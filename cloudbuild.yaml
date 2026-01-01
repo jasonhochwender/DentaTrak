@@ -1,5 +1,5 @@
-# Cloud Build pipeline for Dentatrak
-# Triggered on push/merge to main
+options:
+  logging: CLOUD_LOGGING_ONLY
 
 steps:
   # ---------- Build container ----------
@@ -43,6 +43,5 @@ steps:
         '--quiet'
       ]
 
-# ---------- Output artifact ----------
 images:
   - us-east1-docker.pkg.dev/dtk-prod-core/app-repo/dtk-app-prod:$COMMIT_SHA
