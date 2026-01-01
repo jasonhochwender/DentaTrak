@@ -1,0 +1,35 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
+
+/* Dark Theme Variables */
+:root {
+  /* Common colors - Dark theme */
+  --primary-color: #4285f4; /* Slightly brighter Google blue for dark mode */
+  --accent-color: #00e5ff; /* Brighter dental/medical cyan */
+  --secondary-color: #0288d1; /* Adjusted blue */
+  --text-primary: #e0e0e0; /* Light text for dark background */
+  --text-secondary: #b0bec5; /* Medium light text */
+  --text-light: #78909c; /* Dimmed text */
+  --background-dark: #121212; /* Main dark background */
+  --background-surface: #1e1e1e; /* Card/surface background */
+  --shadow-small: 0 2px 5px rgba(0, 0, 0, 0.5);
+  --shadow-medium: 0 5px 15px rgba(0, 0, 0, 0.5);
+  --shadow-large: 0 12px 28px rgba(0, 0, 0, 0.5);
+  
+  /* Environment-specific colors for dark mode - placeholder values */
+  --dev-bg-dark: #3e2723; /* Dark brown for dev */
+  --dev-bg-gradient-start: #4e342e;
+  --dev-bg-gradient-end: #3e2723;
+  --dev-accent-strip: linear-gradient(to right, #ff9800, #ff5722);
+  
+  --prod-bg-dark: #0d1520; /* Dark blue for prod */
+  --prod-bg-gradient-start: #0d1520;
+  --prod-bg-gradient-end: #162537;
+  --prod-accent-strip: linear-gradient(to right, var(--primary-color), var(--accent-color));
+}
+
+/* 
+ * Dark theme styles will be implemented here in the future.
+ * This file currently serves as a placeholder with CSS variable definitions.
+ *
+ * The structure will mirror app.light.css but with dark mode color values and adjustments.
+ */

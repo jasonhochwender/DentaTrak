@@ -1,0 +1,146 @@
+/* Kanban drag and drop styles */
+.kanban-card {
+  cursor: grab;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.2s ease, filter 0.2s ease;
+}
+
+.kanban-card:active {
+  cursor: grabbing;
+}
+
+.kanban-card.dragging {
+  opacity: 0.8;
+  transform: scale(1.02);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.25), 0 4px 12px rgba(0, 0, 0, 0.15);
+  filter: brightness(1.05);
+  z-index: 1000;
+  position: relative;
+}
+
+/* Tilt right when dragging right */
+.kanban-card.dragging-right {
+  transform: scale(1.02) rotate(2deg);
+}
+
+/* Tilt left when dragging left */
+.kanban-card.dragging-left {
+  transform: scale(1.02) rotate(-2deg);
+}
+
+.kanban-card.updating {
+  position: relative;
+  overflow: hidden;
+  pointer-events: none; /* Prevent interactions while the card is syncing */
+  transition: all 0.3s ease;
+}
+
+/* Dim the card content while updating */
+.kanban-card.updating::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.08) 0%, rgba(147, 51, 234, 0.08) 100%);
+  z-index: 1;
+  backdrop-filter: blur(1px);
+}
+
+/* Enhanced spinner on the card while updating */
+.kanban-card.updating::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 32px;
+  height: 32px;
+  margin-top: -16px;
+  margin-left: -16px;
+  border-radius: 50%;
+  border: 3px solid rgba(59, 130, 246, 0.2);
+  border-top-color: #3b82f6;
+  background: rgba(255, 255, 255, 0.9);
+  animation: card-update-spin 0.6s linear infinite;
+  z-index: 2;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+}
+
+.kanban-column-body.drag-over {
+  background: linear-gradient(135deg, #f0f7ff 0%, #e0f2fe 100%);
+  border: 2px dashed #3b82f6;
+  border-radius: 8px;
+  position: relative;
+  transition: all 0.2s ease;
+}
+
+/* Add drop zone indicator */
+.kanban-column-body.drag-over::before {
+  content: 'Drop here';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: #3b82f6;
+  font-weight: 600;
+  font-size: 0.9rem;
+  opacity: 0.7;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Success feedback animation */
+@keyframes card-update-success {
+  0% {
+    box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.4);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(34, 197, 94, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(34, 197, 94, 0);
+  }
+}
+
+.kanban-card.update-success {
+  animation: card-update-success 0.6s ease-out;
+}
+
+/* Error feedback animation */
+@keyframes card-update-error {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  10%, 30%, 50%, 70%, 90% {
+    transform: translateX(-2px);
+  }
+  20%, 40%, 60%, 80% {
+    transform: translateX(2px);
+  }
+}
+
+.kanban-card.update-error {
+  animation: card-update-error 0.5s ease-in-out;
+  border-color: #ef4444 !important;
+}
+
+@keyframes card-update-spin {
+  0% {
+    transform: translate(-50%, -50%) rotate(0deg);
+  }
+  100% {
+    transform: translate(-50%, -50%) rotate(360deg);
+  }
+}
+
+/* Enhanced hover states */
+.kanban-card:not(.dragging):not(.updating):hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* Drag preview optimization */
+.kanban-card.dragging {
+  /* Hide the default drag preview for better custom styling */
+  opacity: 0.8;
+}

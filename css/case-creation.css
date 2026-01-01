@@ -1,0 +1,205 @@
+/* Enhanced Case Creation Button Animations */
+
+/* Button states and animations */
+#createCaseSubmit {
+  position: relative;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow: hidden;
+}
+
+/* Submitting state with spinner */
+#createCaseSubmit.submitting {
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  transform: scale(1.02);
+  box-shadow: 0 8px 25px rgba(59, 130, 246, 0.3);
+}
+
+/* Button spinner */
+.btn-spinner {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  border-top-color: #ffffff;
+  animation: btn-spin 0.8s linear infinite;
+  margin-right: 8px;
+  vertical-align: middle;
+}
+
+@keyframes btn-spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Success state */
+#createCaseSubmit.success {
+  background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+  transform: scale(1.05);
+  box-shadow: 0 8px 25px rgba(34, 197, 94, 0.4);
+  animation: success-pulse 0.6s ease-out;
+}
+
+/* Success checkmark */
+.btn-checkmark {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  margin-right: 8px;
+  vertical-align: middle;
+}
+
+.btn-checkmark::before {
+  content: '✓';
+  color: white;
+  font-weight: bold;
+  font-size: 16px;
+  line-height: 1;
+}
+
+/* Error state */
+#createCaseSubmit.error {
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  transform: scale(1.02);
+  box-shadow: 0 8px 25px rgba(239, 68, 68, 0.4);
+  animation: error-shake 0.5s ease-in-out;
+}
+
+/* Error icon */
+.btn-error::before {
+  content: '✕';
+  color: white;
+  font-weight: bold;
+  font-size: 16px;
+  margin-right: 8px;
+  vertical-align: middle;
+}
+
+/* Animations */
+@keyframes success-pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7);
+  }
+  70% {
+    box-shadow: 0 0 0 15px rgba(34, 197, 94, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(34, 197, 94, 0);
+  }
+}
+
+@keyframes error-shake {
+  0%, 100% { transform: translateX(0); }
+  10%, 30%, 50%, 70%, 90% { transform: translateX(-3px); }
+  20%, 40%, 60%, 80% { transform: translateX(3px); }
+}
+
+/* Card entrance animation */
+.card-entrance {
+  animation: card-slide-in 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes card-slide-in {
+  0% {
+    opacity: 0;
+    transform: translateY(-20px) scale(0.95);
+  }
+  50% {
+    opacity: 0.8;
+    transform: translateY(5px) scale(1.02);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Enhanced hover states */
+#createCaseSubmit:not(.submitting):not(.success):not(.error):hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(59, 130, 246, 0.25);
+}
+
+/* Loading ripple effect */
+#createCaseSubmit.submitting::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.2) 0%, transparent 70%);
+  transform: translate(-50%, -50%);
+  animation: ripple 1.5s linear infinite;
+}
+
+@keyframes ripple {
+  0% {
+    width: 0;
+    height: 0;
+    opacity: 1;
+  }
+  100% {
+    width: 200%;
+    height: 200%;
+    opacity: 0;
+  }
+}
+
+/* Form field focus enhancements */
+.create-case-modal input:focus,
+.create-case-modal select:focus,
+.create-case-modal textarea:focus {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
+  border-color: #3b82f6;
+}
+
+/* Modal backdrop enhancement */
+.create-case-modal::backdrop {
+  backdrop-filter: blur(4px);
+  background: rgba(0, 0, 0, 0.5);
+}
+
+/* Progress indicator for form submission */
+.form-progress {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #3b82f6, #8b5cf6);
+  border-radius: 3px;
+  transition: width 0.3s ease;
+  z-index: 10;
+}
+
+/* Success celebration effect */
+.success-celebration {
+  position: relative;
+  overflow: visible;
+}
+
+.success-celebration::before {
+  content: '🎉';
+  position: absolute;
+  top: -30px;
+  right: 10px;
+  font-size: 20px;
+  animation: bounce-in 0.6s ease-out;
+  z-index: 100;
+}
+
+@keyframes bounce-in {
+  0% {
+    opacity: 0;
+    transform: scale(0) rotate(0deg);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.2) rotate(180deg);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) rotate(360deg);
+  }
+}

@@ -1,0 +1,15 @@
+/* Hide all PHP error notices and warnings */
+.php-error, .php-warning, .php-notice, .php-deprecated, .php-strict {
+    display: none !important;
+    visibility: hidden !important;
+    height: 0 !important;
+    width: 0 !important;
+    overflow: hidden !important;
+    position: absolute !important;
+    left: -9999px !important;
+}
+
+/* Extra style to catch any elements that might contain error messages */
+p:contains("Deprecated"), div:contains("Deprecated") {
+    display: none !important;
+}

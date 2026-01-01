@@ -1,0 +1,101 @@
+# ===========================================
+# DentaTrak .gitignore
+# ===========================================
+
+# ===========================================
+# SENSITIVE FILES - NEVER COMMIT THESE
+# ===========================================
+
+# Environment variables (contains API keys, passwords, secrets)
+.env
+.env.*
+!.env.example
+
+# Environment mode override file
+.env_mode
+
+# ===========================================
+# DEPENDENCIES
+# ===========================================
+
+# Composer dependencies (reinstall via composer install)
+/vendor/
+
+# ===========================================
+# LOGS & CACHE
+# ===========================================
+
+# Log files
+/logs/
+*.log
+
+# PHP cache
+*.cache
+
+# ===========================================
+# UPLOADS & USER DATA
+# ===========================================
+
+# Uploaded files (logos, attachments, etc.)
+/uploads/logos/*
+!/uploads/logos/.gitkeep
+!/uploads/.htaccess
+
+# ===========================================
+# IDE & EDITOR FILES
+# ===========================================
+
+# Visual Studio Code
+.vscode/
+*.code-workspace
+
+# JetBrains IDEs (PhpStorm, WebStorm, etc.)
+.idea/
+
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+# Vim
+*.swp
+*.swo
+*~
+
+# ===========================================
+# OPERATING SYSTEM FILES
+# ===========================================
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# ===========================================
+# BUILD & DEPLOYMENT
+# ===========================================
+
+# Node modules (if any frontend build tools are added)
+node_modules/
+
+# Deployment artifacts
+*.tar.gz
+*.zip
+
+# ===========================================
+# MISCELLANEOUS
+# ===========================================
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+
+# PHP error files
+php_errors.log
+error_log

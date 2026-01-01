@@ -1,0 +1,292 @@
+/* Developer Tools Panel Styles */
+.dev-tools-panel {
+  position: fixed;
+  bottom: 20px;
+  left: 20px;
+  width: 380px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  z-index: 9999;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 13px;
+  transition: all 0.3s ease;
+}
+
+.dev-tools-panel.collapsed {
+  width: auto;
+}
+
+.dev-tools-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 12px 12px 0 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.dev-tools-header h3 {
+  margin: 0;
+  color: white;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.dev-tools-toggle {
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  color: white;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.dev-tools-toggle:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: scale(1.1);
+}
+
+.dev-tools-content {
+  background: white;
+  border-radius: 0 0 12px 12px;
+  padding: 16px;
+  max-height: 600px;
+  overflow-y: auto;
+}
+
+.dev-tools-section {
+  margin-bottom: 20px;
+}
+
+.dev-tools-section:last-child {
+  margin-bottom: 0;
+}
+
+.dev-tools-section h4 {
+  margin: 0 0 12px 0;
+  color: #374151;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Environment Switcher */
+.env-switcher {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+
+.env-btn {
+  flex: 1;
+  padding: 8px 12px;
+  border: 2px solid #e5e7eb;
+  background: white;
+  color: #6b7280;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.env-btn:hover {
+  border-color: #9ca3af;
+  background: #f9fafb;
+}
+
+.env-btn.active {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border-color: #667eea;
+}
+
+/* Test Case Controls */
+.test-case-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.test-case-controls > div {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+/* Billing Controls */
+.billing-controls {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+/* Data Controls */
+.data-controls {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+/* Dev Inputs and Selects */
+.dev-input, .dev-select {
+  padding: 8px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 12px;
+  background: white;
+  transition: all 0.2s ease;
+}
+
+.dev-input:focus, .dev-select:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.dev-input {
+  width: 80px;
+}
+
+.dev-select {
+  flex: 1;
+}
+
+/* Dev Buttons */
+.dev-btn {
+  padding: 8px 12px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  text-align: center;
+}
+
+.dev-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.dev-btn-primary {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: white;
+}
+
+.dev-btn-secondary {
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  color: white;
+}
+
+.dev-btn-danger {
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  color: white;
+}
+
+.dev-btn-warning {
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  color: white;
+}
+
+.dev-btn-info {
+  background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
+  color: white;
+}
+
+/* Scrollbar for dev tools content */
+.dev-tools-content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.dev-tools-content::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+.dev-tools-content::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 3px;
+}
+
+.dev-tools-content::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+/* Super User Mode Styling (UAT/Production) */
+.dev-tools-panel.super-user-mode {
+  background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%);
+}
+
+.dev-tools-panel.super-user-mode .dev-tools-header {
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.env-badge {
+  display: inline-block;
+  background: rgba(255, 255, 255, 0.25);
+  color: white;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 4px;
+  margin-left: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Warning Banner for Super Users */
+.dev-tools-warning {
+  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+  border: 2px solid #f59e0b;
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 16px;
+}
+
+.dev-tools-warning strong {
+  display: block;
+  color: #92400e;
+  font-size: 12px;
+  margin-bottom: 6px;
+}
+
+.dev-tools-warning p {
+  margin: 0;
+  color: #78350f;
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .dev-tools-panel {
+    bottom: 10px;
+    left: 10px;
+    right: auto;
+    width: auto;
+  }
+  
+  .test-case-controls > div,
+  .billing-controls {
+    flex-wrap: wrap;
+  }
+  
+  .dev-input {
+    width: 100%;
+  }
+  
+  .data-controls {
+    grid-template-columns: 1fr;
+  }
+}

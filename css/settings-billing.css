@@ -1,0 +1,1246 @@
+/* Settings and Billing Modal Styles */
+.settings-billing-modal {
+  max-width: 920px;
+  padding-bottom: 0;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden; /* scrolling handled by inner content */
+}
+
+/* Only show Save Settings button in Settings tab */
+#billingTab .button-container {
+  display: none !important;
+}
+
+.settings-billing-modal .modal-header {
+  background-image: linear-gradient(to right, #1e88e5, #26c6da);
+  color: white;
+  padding: 15px 20px;
+}
+
+.settings-billing-modal .modal-title {
+  color: white;
+  font-weight: 500;
+  font-size: 20px;
+}
+
+.settings-billing-modal .btn-close {
+  color: white;
+  opacity: 0.8;
+}
+
+.settings-billing-modal .btn-close:hover {
+  opacity: 1;
+}
+
+.settings-billing-modal .modal-body {
+  padding: 15px 20px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* Tab Navigation */
+.tab-navigation {
+  display: flex;
+  border-bottom: 1px solid #e0e0e0;
+  margin-bottom: 18px;
+}
+
+.tab-btn {
+  padding: 10px 20px;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  font-weight: 400;
+  color: #666;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 16px;
+}
+
+.tab-btn:hover {
+  background-color: rgba(0,0,0,0.02);
+  color: #333;
+}
+
+.tab-btn.active {
+  color: #2196f3;
+  border-bottom-color: #2196f3;
+  font-weight: 500;
+}
+
+/* Tab Content */
+.tab-content {
+  padding: 8px 0;
+}
+
+/* Scroll container for tab content so header + tabs stay fixed */
+.tab-content-scroll {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.tab-pane {
+  display: none;
+}
+
+.tab-pane.active {
+  display: block;
+}
+
+.tab-pane h3 {
+  margin-top: 0;
+  margin-bottom: 20px;
+  color: #333;
+  font-size: 18px;
+}
+
+/* Settings Tab */
+#settingsForm {
+  max-width: 500px;
+}
+
+#settingsForm .form-field {
+  margin-bottom: 20px;
+}
+
+#settingsForm .btn-primary {
+  margin-top: 16px;
+}
+
+.settings-section-label {
+  display: block;
+  margin-bottom: 10px;
+  font-weight: 500;
+  color: #333;
+  font-size: 16px;
+}
+
+.settings-sublabel {
+  display: block;
+  margin: 8px 0;
+  font-size: 14px;
+  color: #555;
+}
+
+/* Radio buttons styling - stacked */
+.radio-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-left: 0;
+  margin-bottom: 20px;
+}
+
+.radio-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding-left: 10px;
+  padding-right: 30px;
+}
+
+.radio-item input[type="radio"] {
+  margin-right: 0;
+  cursor: pointer;
+  order: 1;
+}
+
+.radio-item label {
+  cursor: pointer;
+  order: 0;
+  color: #333;
+}
+
+/* Checkbox styling */
+.checkbox-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+  width: 100%;
+  padding-left: 10px;
+  padding-right: 30px;
+}
+
+.checkbox-item:last-child {
+  margin-bottom: 0;
+}
+
+.checkbox-item input[type="checkbox"] {
+  margin-right: 0;
+  cursor: pointer;
+  flex-shrink: 0;
+  order: 1;
+}
+
+.checkbox-item label {
+  cursor: pointer;
+  order: 0;
+  color: #333;
+}
+
+/* Conditional settings */
+.conditional-settings {
+  margin-left: 25px;
+  margin-top: -20px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  font-size: 12px;
+}
+
+.conditional-settings.hidden {
+  display: none;
+}
+
+/* Inline past due settings - positioned to the right of checkbox */
+.highlight-past-due-row {
+  flex-wrap: wrap;
+}
+
+.past-due-inline-settings {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 16px;
+  font-size: 13px;
+}
+
+.past-due-inline-settings.hidden {
+  display: none;
+}
+
+.past-due-inline-settings .settings-sublabel {
+  margin: 0;
+  margin-right: 8px;
+}
+
+.settings-sublabel {
+  font-size: 13px;
+  color: #555;
+  margin-right: 10px;
+  white-space: nowrap;
+  display: inline-block;
+  vertical-align: middle;
+}
+
+/* Number input styling */
+.number-input-wrapper {
+  display: inline-flex;
+  align-items: center;
+  vertical-align: middle;
+}
+
+.number-input {
+  width: 40px;
+  padding: 3px 5px;
+  border: 1px solid #ccc;
+  border-radius: 3px;
+  text-align: center;
+  font-size: 13px;
+  margin-left: 5px;
+  vertical-align: middle;
+  position: relative;
+  top: -1px;
+}
+
+/* Checkbox and radio styling */
+input[type="checkbox"], input[type="radio"] {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+
+/* Settings sections */
+.settings-section {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid #eee;
+}
+
+.settings-theme-group {
+  margin-bottom: 5px;
+}
+
+/* Main form layout */
+#settingsForm {
+  max-width: 100%;
+  padding-bottom: 20px;
+}
+
+#settingsForm h3 {
+  font-size: 16px;
+  margin: 0 0 10px 0;
+  font-weight: 500;
+}
+
+.settings-divider {
+  /* Line separators disabled now that twisties group content */
+  height: 0;
+  margin: 0;
+  border: none;
+  background: transparent;
+}
+
+.settings-group {
+  padding: 5px 0;
+}
+
+/* Collapsible twisty sections inside Settings modal */
+.settings-twisty {
+  margin-bottom: 12px;
+  border-radius: 8px;
+  border: 1px solid #d1d5db;
+  background-color: #ffffff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.settings-twisty-header {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  padding: 10px 14px;
+  background-color: #f3f4f6;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  color: #374151;
+  text-align: left;
+  transition: background-color 0.15s ease;
+}
+
+.settings-twisty-header:hover {
+  background-color: #e5e7eb;
+}
+
+.settings-twisty-header:focus {
+  outline: 2px solid #3b82f6;
+  outline-offset: 1px;
+}
+
+/* When open, header has bottom border and square bottom corners */
+.settings-twisty.open .settings-twisty-header {
+  border-radius: 8px 8px 0 0;
+  border-bottom: 1px solid #e5e7eb;
+  background-color: #e8f4fc;
+  color: #1e40af;
+}
+
+.settings-twisty-arrow {
+  width: 8px;
+  height: 8px;
+  border-right: 2px solid #6b7280;
+  border-bottom: 2px solid #6b7280;
+  transform: rotate(-45deg);
+  transition: transform 0.15s ease;
+  margin-right: 10px;
+}
+
+.settings-twisty.open .settings-twisty-arrow {
+  transform: rotate(45deg);
+  border-color: #1e40af;
+}
+
+.settings-twisty-title {
+  flex: 1;
+}
+
+.settings-twisty-content {
+  padding: 12px 14px 14px;
+  display: none;
+  background-color: #ffffff;
+  border-radius: 0 0 8px 8px;
+}
+
+.settings-twisty.open .settings-twisty-content {
+  display: block;
+}
+
+.settings-label {
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 15px;
+}
+
+.section-title {
+  font-size: 15px;
+  font-weight: 500;
+  color: #333;
+  margin-bottom: 12px;
+}
+
+.settings-options {
+  padding-left: 5px;
+}
+
+.option-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 15px;
+  padding-right: 30px;
+  position: relative;
+}
+
+/* Practice name and logo field specific styling */
+.option-row label[for="practiceName"],
+.option-row label[for="practiceLogo"] {
+  min-width: 120px;
+  margin-right: 15px;
+}
+
+input#practiceName {
+  flex: 1;
+  min-width: 200px;
+  padding: 8px 10px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+/* Theme dropdown styling */
+.theme-dropdown {
+  flex: 1;
+  min-width: 200px;
+  padding: 8px 10px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 14px;
+  background-color: white;
+  cursor: pointer;
+}
+
+.option-row label[for="theme"] {
+  min-width: 120px;
+  margin-right: 15px;
+}
+
+.option-row:last-child {
+  margin-bottom: 5px;
+}
+
+.option-text {
+  font-size: 14px;
+  color: #333;
+  white-space: nowrap;
+  margin-right: 5px;
+  margin-left: 8px;
+}
+
+/* Position checkboxes */
+.option-row input[type="checkbox"] {
+  flex-shrink: 0;
+  margin: 0;
+  margin-left: 8px;
+  position: relative;
+  top: 1px;
+}
+
+.option-row label {
+  font-size: 14px;
+  color: #333;
+  white-space: nowrap;
+}
+
+/* Make disabled settings more visually obvious */
+#settingsForm input[disabled],
+#settingsForm select[disabled],
+#settingsForm button[disabled],
+#settingsForm .logo-upload-label.disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+#settingsForm input[disabled],
+#settingsForm select[disabled] {
+  background-color: #f3f4f6;
+  border-color: #d1d5db;
+}
+
+/* Style for checkbox with label */
+.label-with-checkbox {
+  display: flex;
+  align-items: center;
+}
+
+.label-with-checkbox span {
+  font-size: 14px;
+  color: #333;
+  white-space: nowrap;
+}
+
+.label-with-checkbox input[type="checkbox"] {
+  margin-left: 4px;
+  flex-shrink: 0;
+}
+
+/* Exact alignment for radio buttons */
+.option-row input[type="radio"] {
+  position: relative;
+  left: 0;
+  margin-top: 1px;
+}
+
+/* Create exact alignment by adding fixed width to text elements */
+.option-row:nth-child(1) .option-text,
+.option-row:nth-child(2) .option-text {
+  display: inline-block;
+  width: 40px;
+  text-align: left;
+}
+
+/* Position radio buttons in exact alignment */
+.option-row input[type="radio"] {
+  vertical-align: middle;
+  position: relative;
+  margin-left: 8px;
+  top: -1px;
+}
+
+.button-container {
+  margin-top: 20px;
+}
+
+.save-settings-btn {
+  background-color: #2196f3;
+  border: none;
+  border-radius: 4px;
+  padding: 8px 20px;
+  font-weight: 500;
+  font-size: 14px;
+  box-shadow: 0 2px 4px rgba(33, 150, 243, 0.2);
+  color: white;
+  cursor: pointer;
+}
+
+.save-settings-btn:hover {
+  background-color: #1976d2;
+}
+
+/* Billing Tab */
+.subscription-info {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.current-plan, .payment-methods {
+  background-color: #f9f9f9;
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.current-plan h4, .payment-methods h4 {
+  margin-top: 0;
+  margin-bottom: 12px;
+  color: #333;
+  font-size: 16px;
+}
+
+.plan-details p {
+  margin: 8px 0;
+}
+
+.status {
+  display: inline-block;
+  padding: 3px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.status.active {
+  background-color: #e3f8e2;
+  color: #2e7d32;
+}
+
+.payment-method {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: #fff;
+  border-radius: 6px;
+  padding: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.card-type {
+  font-weight: bold;
+  font-size: 14px;
+}
+
+.card-number, .card-expiry {
+  font-size: 14px;
+  color: #666;
+}
+
+.billing-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.btn-outline {
+  background: transparent;
+  border: 1px solid #3b82f6;
+  color: #3b82f6;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-outline:hover {
+  background-color: rgba(59, 130, 246, 0.1);
+}
+
+/* Administrators section styles */
+.admin-users-container {
+  width: 100%;
+}
+
+.admin-input-row {
+  display: flex;
+  margin-bottom: 10px;
+}
+
+.admin-input {
+  flex: 1;
+  padding: 8px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+.add-admin-btn {
+  margin-left: 10px;
+  background-color: #ff5722;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 8px 12px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.add-admin-btn:hover {
+  background-color: #e64a19;
+}
+
+.admin-user-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background-color: #fff8e1;
+  padding: 8px 12px;
+  margin-bottom: 8px;
+  border-radius: 4px;
+  border-left: 3px solid #ff5722;
+}
+
+.admin-user-email {
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.remove-admin-user {
+  background: none;
+  border: none;
+  color: #f44336;
+  cursor: pointer;
+  font-size: 18px;
+  padding: 0;
+  margin: 0;
+  line-height: 1;
+}
+
+.admin-badge {
+  background-color: #ff9800;
+  color: white;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-size: 10px;
+  margin-left: 8px;
+}
+
+/* Gmail users section styles */
+.gmail-users-container {
+  width: 100%;
+}
+
+.gmail-input-row {
+  display: flex;
+  margin-bottom: 10px;
+}
+
+.gmail-input {
+  flex: 1;
+  padding: 8px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+.add-gmail-btn {
+  margin-left: 10px;
+  background-color: #2196f3;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 8px 12px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.add-gmail-btn:hover {
+  background-color: #1976d2;
+}
+
+.error-message {
+  color: #d32f2f;
+  font-size: 12px;
+  margin-top: 5px;
+  min-height: 15px;
+}
+
+.gmail-user-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background-color: #f5f5f5;
+  padding: 8px 12px;
+  margin-bottom: 8px;
+  border-radius: 4px;
+}
+
+.gmail-user-email {
+  font-size: 14px;
+}
+
+.gmail-user-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.gmail-user-last-login {
+  font-size: 12px;
+  color: #666;
+  margin-top: 2px;
+}
+
+.remove-gmail-user {
+  background: none;
+  border: none;
+  color: #f44336;
+  cursor: pointer;
+  font-size: 18px;
+  padding: 0;
+  margin: 0;
+  line-height: 1;
+}
+
+/* Practice Users & Roles grid layout */
+/* Columns: Email | Admin | Analytics | Edit | Add Label | Limited | Remove */
+.practice-user-header,
+.practice-user-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 60px 80px 55px 85px 70px 65px;
+  column-gap: 6px;
+  align-items: center;
+}
+
+.practice-user-header {
+  font-weight: 600;
+  background: #e2e8f0;
+  padding: 8px 10px;
+  border-radius: 6px 6px 0 0;
+  margin-bottom: 4px;
+}
+
+.practice-user-header .gmail-user-email,
+.practice-user-admin-header,
+.practice-user-analytics-header,
+.practice-user-edit-header,
+.practice-user-limited-header,
+.practice-user-addlabels-header,
+.practice-user-remove-header {
+  font-size: 10px;
+  color: #64748b;
+  letter-spacing: 0.03em;
+}
+
+.practice-user-admin-header,
+.practice-user-analytics-header,
+.practice-user-edit-header,
+.practice-user-limited-header,
+.practice-user-addlabels-header,
+.practice-user-analytics-cell,
+.practice-user-edit-cell,
+.practice-user-limited-cell,
+.practice-user-addlabels-cell {
+  text-align: center;
+}
+
+.practice-user-analytics-cell input[type="checkbox"],
+.practice-user-edit-cell input[type="checkbox"],
+.practice-user-limited-cell input[type="checkbox"],
+.practice-user-addlabels-cell input[type="checkbox"] {
+  margin: 0;
+}
+
+.practice-user-admin-header,
+.practice-user-analytics-header,
+.practice-user-edit-header,
+.practice-user-limited-header,
+.practice-user-addlabels-header {
+  position: relative;
+  cursor: default;
+}
+
+.practice-user-admin-header .tooltip-icon,
+.practice-user-analytics-header .tooltip-icon,
+.practice-user-edit-header .tooltip-icon,
+.practice-user-limited-header .tooltip-icon,
+.practice-user-addlabels-header .tooltip-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+  color: white;
+  border-radius: 50%;
+  font-size: 10px;
+  margin-left: 4px;
+  font-weight: 600;
+  font-style: normal;
+  cursor: help;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 3px rgba(59, 130, 246, 0.3);
+  position: relative;
+}
+
+.practice-user-admin-header .tooltip-icon:hover,
+.practice-user-analytics-header .tooltip-icon:hover,
+.practice-user-edit-header .tooltip-icon:hover,
+.practice-user-limited-header .tooltip-icon:hover,
+.practice-user-addlabels-header .tooltip-icon:hover {
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  transform: scale(1.1);
+  box-shadow: 0 2px 6px rgba(59, 130, 246, 0.4);
+}
+
+/* Custom tooltip popup */
+.practice-user-admin-header .tooltip-icon::after,
+.practice-user-analytics-header .tooltip-icon::after,
+.practice-user-edit-header .tooltip-icon::after,
+.practice-user-limited-header .tooltip-icon::after,
+.practice-user-addlabels-header .tooltip-icon::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: linear-gradient(135deg, #1e293b, #334155);
+  color: #f8fafc;
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.5;
+  white-space: normal;
+  width: 220px;
+  max-width: 280px;
+  text-align: left;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(255, 255, 255, 0.05);
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.2s ease;
+  z-index: 1000;
+  pointer-events: none;
+}
+
+/* Tooltip arrow */
+.practice-user-admin-header .tooltip-icon::before,
+.practice-user-analytics-header .tooltip-icon::before,
+.practice-user-edit-header .tooltip-icon::before,
+.practice-user-limited-header .tooltip-icon::before,
+.practice-user-addlabels-header .tooltip-icon::before {
+  content: '';
+  position: absolute;
+  bottom: calc(100% + 2px);
+  left: 50%;
+  transform: translateX(-50%);
+  border: 6px solid transparent;
+  border-top-color: #1e293b;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.2s ease;
+  z-index: 1001;
+}
+
+/* Show tooltip on hover */
+.practice-user-admin-header .tooltip-icon:hover::after,
+.practice-user-analytics-header .tooltip-icon:hover::after,
+.practice-user-edit-header .tooltip-icon:hover::after,
+.practice-user-limited-header .tooltip-icon:hover::after,
+.practice-user-addlabels-header .tooltip-icon:hover::after,
+.practice-user-admin-header .tooltip-icon:hover::before,
+.practice-user-analytics-header .tooltip-icon:hover::before,
+.practice-user-edit-header .tooltip-icon:hover::before,
+.practice-user-limited-header .tooltip-icon:hover::before,
+.practice-user-addlabels-header .tooltip-icon:hover::before {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* Adjust tooltip position for rightmost columns to prevent overflow */
+.practice-user-limited-header .tooltip-icon::after {
+  left: auto;
+  right: 0;
+  transform: translateX(0);
+}
+
+.practice-user-limited-header .tooltip-icon::before {
+  left: auto;
+  right: 8px;
+  transform: translateX(0);
+}
+
+.practice-user-row .gmail-user-email {
+  font-size: 13px;
+  color: #333;
+}
+
+.practice-user-admin-header,
+.practice-user-remove-header,
+.practice-user-admin-cell,
+.practice-user-remove-cell {
+  text-align: center;
+}
+
+.practice-user-admin-cell input[type="checkbox"] {
+  margin: 0;
+}
+
+.practice-user-header {
+  border-bottom: 2px solid #e2e8f0;
+}
+
+.practice-user-row {
+  margin-top: 4px;
+}
+
+/* User limit warning banner */
+.user-limit-warning {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+  border: 1px solid #f59e0b;
+  border-radius: 8px;
+  margin-bottom: 16px;
+  color: #92400e;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.user-limit-warning svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+  color: #d97706;
+}
+
+.user-limit-warning a {
+  color: #92400e;
+  text-decoration: underline;
+}
+
+.user-limit-warning a:hover {
+  color: #78350f;
+}
+
+/* Create/Edit Case modal tabs */
+.case-modal-tabs {
+  display: flex;
+  gap: 16px;
+  border-bottom: 1px solid #e5e7eb;
+  margin-bottom: 12px;
+}
+
+.case-tab {
+  background: none;
+  border: none;
+  padding: 6px 0;
+  font-size: 14px;
+  color: #6b7280; /* gray-500 */
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+}
+
+.case-tab.case-tab-active {
+  color: #111827; /* gray-900 */
+  border-bottom-color: #2563eb; /* blue-600 */
+  font-weight: 500;
+}
+
+.case-tab.case-tab-disabled {
+  color: #9ca3af; /* gray-400 */
+  cursor: default;
+}
+
+.case-tab-panel {
+  display: none;
+}
+
+.case-tab-panel.case-tab-panel-active {
+  display: block;
+}
+
+.case-revision-history {
+  max-height: 260px;
+  overflow-y: auto;
+  padding: 4px 0;
+}
+
+.revision-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.revision-item {
+  padding: 8px 10px;
+  border-radius: 4px;
+  border: 1px solid #e5e7eb;
+  background-color: #f9fafb;
+  font-size: 13px;
+  margin-bottom: 6px;
+}
+
+.revision-header {
+  font-weight: 500;
+  color: #374151; /* gray-700 */
+  margin-bottom: 2px;
+}
+
+.revision-body {
+  color: #4b5563; /* gray-600 */
+}
+
+.revision-empty-state,
+.revision-loading,
+.revision-error {
+  font-size: 13px;
+  color: #6b7280;
+}
+
+.revision-error {
+  color: #b91c1c; /* red-700 */
+}
+
+/* Attachment action links in Edit Case modal */
+ .selected-file.existing-file {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto auto;
+  column-gap: 8px;
+  align-items: center;
+}
+
+.selected-file.existing-file .attachment-link {
+  font-size: 12px;
+  color: #2563eb; /* blue-600 */
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+/* Inline option rows - label on left, value on right */
+.option-row-inline {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.option-row-inline > label {
+  flex: 0 0 140px;
+  font-weight: 500;
+  color: #374151;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.inline-value-group {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.inline-value-group input[type="text"] {
+  width: 100%;
+  max-width: 220px;
+  padding: 6px 10px;
+  border: 1px solid #d1d5db;
+  border-radius: 5px;
+  font-size: 13px;
+}
+
+.inline-value-group input[type="text"]:focus {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1);
+}
+
+/* Legal name display (read-only text, not input) */
+.legal-name-display {
+  font-size: 14px;
+  color: #1f2937;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+/* Inline field notes - smaller, muted */
+.field-note-inline {
+  font-size: 11px;
+  color: #9ca3af;
+  font-style: italic;
+}
+
+/* Large divider for more separation */
+.settings-divider-large {
+  margin: 20px 0 !important;
+}
+
+/* Logo row - label aligned with upload button */
+.option-row-logo {
+  align-items: flex-start !important;
+}
+
+.option-row-logo > label {
+  margin-top: 10px;
+}
+
+/* BAA Status Section Styles */
+.baa-status-section {
+  margin-top: 4px;
+  padding: 12px 0;
+}
+
+.baa-status-section .subsection-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #374151;
+  margin: 0 0 12px 0;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* BAA Info Grid */
+.baa-info-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px 24px;
+  margin-bottom: 12px;
+}
+
+.baa-info-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.baa-info-label {
+  font-size: 11px;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.baa-info-value {
+  font-size: 13px;
+  color: #1f2937;
+}
+
+.baa-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  border-radius: 9999px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.baa-status-badge.accepted {
+  background-color: #d1fae5;
+  color: #065f46;
+}
+
+.baa-status-badge.pending {
+  background-color: #fef3c7;
+  color: #92400e;
+}
+
+/* BAA Download Row */
+.baa-download-row {
+  margin-top: 8px;
+}
+
+.btn-download-baa-small {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 10px;
+  background: #f3f4f6;
+  color: #374151;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  text-decoration: none;
+  transition: all 0.15s;
+}
+
+.btn-download-baa-small:hover {
+  background: #e5e7eb;
+  border-color: #9ca3af;
+  color: #1f2937;
+}
+
+/* Legacy - keep for backwards compatibility */
+.btn-download-baa {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+  color: white;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  text-decoration: none;
+  transition: all 0.2s;
+  box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2);
+}
+
+.btn-download-baa:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(37, 99, 235, 0.3);
+}
+
+/* Read-only field styling */
+.readonly-field {
+  background-color: #f3f4f6 !important;
+  color: #6b7280 !important;
+  cursor: not-allowed;
+  border-color: #d1d5db !important;
+}

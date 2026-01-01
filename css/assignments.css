@@ -1,0 +1,54 @@
+/* Assignment styles for Kanban cards */
+
+.kanban-card-assignment {
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid #f0f0f0;
+}
+
+.assignment-label {
+  font-size: 0.75rem;
+  color: #64748b;
+  font-weight: 500;
+  margin-bottom: 4px;
+}
+
+.assignment-value {
+  position: relative;
+  width: 100%;
+}
+
+/* Style the assignment select dropdown */
+.assignment-select {
+  width: 100%;
+  padding: 4px 8px;
+  font-size: 0.8rem;
+  border: 1px solid #94a3b8; /* Darker border for better contrast */
+  border-radius: 4px;
+  background-color: white;
+  color: #0f172a; /* Darker text for better contrast */
+  appearance: auto; /* Show the dropdown arrow */
+  cursor: pointer;
+}
+
+.assignment-select:hover {
+  border-color: #64748b; /* Darker hover border */
+}
+
+.assignment-select:focus {
+  outline: none;
+  border-color: #3b82f6; /* Darker focus border */
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2); /* Stronger focus shadow */
+}
+
+.assignment-select option {
+  padding: 4px 8px;
+  font-size: 0.8rem;
+}
+
+/* Loading state */
+.assignment-select:disabled {
+  background-color: #f8fafc;
+  color: #94a3b8;
+  cursor: wait;
+}

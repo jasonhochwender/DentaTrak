@@ -1,0 +1,190 @@
+/* Feedback Modal Styles */
+.feedback-modal {
+  max-width: 500px;
+}
+
+.feedback-modal .modal-header {
+  background-image: linear-gradient(to right, #3a6eff, #5b8def);
+  color: white;
+}
+
+.feedback-modal .modal-title {
+  color: white;
+  font-weight: 500;
+}
+
+/* Emoji Selection */
+.feedback-question {
+  display: block;
+  font-size: 16px;
+  font-weight: 500;
+  margin-bottom: 15px;
+}
+
+.emoji-container {
+  display: flex;
+  justify-content: space-around;
+  margin-bottom: 20px;
+  padding: 10px 0;
+}
+
+.emoji-option {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 16px;
+  border: 2px solid #e5e7eb;
+  border-radius: 12px;
+  transition: all 0.2s ease;
+  flex: 1;
+  text-align: center;
+}
+
+.emoji-option:hover {
+  border-color: #d1d5db;
+  background: #f9fafb;
+}
+
+.emoji-option input[type="radio"] {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.emoji-face {
+  font-size: 2.5rem;
+  margin-bottom: 8px;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.emoji-option input[type="radio"]:checked + .emoji-face {
+  transform: scale(1.2);
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.15));
+}
+
+.emoji-option input[type="radio"]:focus + .emoji-face {
+  box-shadow: 0 0 0 3px rgba(58, 110, 255, 0.3);
+  border-radius: 50%;
+}
+
+.emoji-label {
+  font-size: 0.85rem;
+  color: #6b7280;
+  transition: all 0.2s ease;
+}
+
+/* Selected state */
+.emoji-option input[type="radio"]:checked ~ .emoji-label {
+  color: var(--primary-color);
+  font-weight: 600;
+}
+
+/* Highlight the entire container when selected */
+.emoji-option:has(input[type="radio"]:checked) {
+  border-color: var(--primary-color);
+  background: rgba(102, 126, 234, 0.05);
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.emoji-option input[type="radio"]:focus + .emoji-face {
+  box-shadow: 0 0 0 3px rgba(58, 110, 255, 0.3);
+  border-radius: 50%;
+}
+
+/* Comments textarea */
+#feedbackForm textarea {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  resize: vertical;
+  font-family: inherit;
+  font-size: 14px;
+  transition: border-color 0.2s;
+}
+
+#feedbackForm textarea:focus {
+  border-color: #3a6eff;
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(58, 110, 255, 0.2);
+}
+
+/* Footer */
+.feedback-modal .modal-footer,
+.success-body .modal-footer {
+  padding-top: 15px;
+  display: flex;
+  justify-content: flex-start; /* Left-align buttons for consistency */
+  gap: 10px;
+  border-top: 1px solid #eee;
+  margin-top: 20px;
+}
+
+/* Success Modal */
+.feedback-success-modal {
+  max-width: 400px;
+  text-align: center;
+  overflow: hidden;
+}
+
+.success-header {
+  background-image: linear-gradient(to right, #43a047, #66bb6a);
+  color: white;
+  padding: 15px 20px;
+}
+
+.success-body {
+  padding: 25px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.success-icon {
+  margin: 10px 0 20px;
+  animation: scale-in 0.3s ease-out;
+}
+
+.success-message {
+  font-size: 20px;
+  font-weight: 500;
+  color: #333;
+  margin-bottom: 10px;
+}
+
+.success-details {
+  color: #666;
+  margin-bottom: 15px;
+}
+
+.btn-success {
+  background-color: #4CAF50;
+  color: white;
+  border: none;
+  padding: 8px 20px;
+  border-radius: 4px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.btn-success:hover {
+  background-color: #388e3c;
+}
+
+@keyframes scale-in {
+  0% {
+    transform: scale(0);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}

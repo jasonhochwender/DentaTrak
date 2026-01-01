@@ -1,0 +1,9 @@
+runtime: php81
+entrypoint: serve index.php
+
+env_variables:
+  DEV_TOOLS_ENABLED: "true"
+  SUPER_USERS: "jason.hochwender@dentatrak.com,will.virrello@dentatrak.com"
+
+beta_settings:
+  cloud_sql_instances: dtk-prod-core:us-east1:dtk-sql-prod

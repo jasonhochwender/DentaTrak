@@ -1,0 +1,103 @@
+/* Patient Search Styling */
+.dashboard-search {
+  position: relative;
+  width: 100%;
+}
+
+/* Search field in filters bar - matches filter dropdowns */
+.kanban-search-field {
+  min-width: 180px;
+}
+
+.kanban-search-field .dashboard-search {
+  width: 100%;
+}
+
+.kanban-search-field .dashboard-search-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 6px 32px 6px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(148, 163, 184, 0.7);
+  font-size: 0.85rem;
+  background: white;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.kanban-search-field .dashboard-search-input:focus {
+  border-color: #3b82f6;
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+}
+
+.dashboard-search-input {
+  width: 100%;
+  padding: 8px 36px 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+  line-height: 1.5;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.dashboard-search-input:focus {
+  border-color: #3b82f6;
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3);
+}
+
+.dashboard-search-input::placeholder {
+  color: #94a3b8;
+}
+
+.search-clear-btn {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: #94a3b8;
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: background-color 0.2s, color 0.2s;
+}
+
+.search-clear-btn:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+  color: #666;
+}
+
+.search-clear-btn:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3);
+}
+
+/* Highlight matching text in cards */
+.patient-name-highlight {
+  background-color: rgba(255, 230, 0, 0.3);
+  border-radius: 2px;
+  padding: 1px 0;
+}
+
+/* Animation for card filtering - super fast and subtle */
+@keyframes card-filter-in {
+  0% { opacity: 0.8; transform: translateY(2px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+.kanban-card {
+  transition: opacity 0.1s, transform 0.1s;
+}
+
+.kanban-card.filtered-in {
+  animation: card-filter-in 0.15s ease forwards;
+}

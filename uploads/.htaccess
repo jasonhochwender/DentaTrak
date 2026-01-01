@@ -1,0 +1,12 @@
+# Protect uploads directory
+# Allow only image files
+<FilesMatch "\.(jpg|jpeg|png|gif|svg|webp)$">
+    Order allow,deny
+    Allow from all
+</FilesMatch>
+
+# Deny all other files
+<FilesMatch "^(?!.*\.(jpg|jpeg|png|gif|svg|webp)$).*$">
+    Order deny,allow
+    Deny from all
+</FilesMatch>

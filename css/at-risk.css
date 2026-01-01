@@ -1,0 +1,357 @@
+/* At Risk Indicator Styles */
+
+/* Card indicator */
+.at-risk-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  background: #fef3c7;
+  border: 1px solid #fcd34d;
+  border-radius: 4px;
+  color: #92400e;
+  font-size: 0.75rem;
+  font-weight: 500;
+  margin-top: 8px;
+  cursor: help;
+}
+
+.at-risk-indicator svg {
+  color: #d97706;
+  flex-shrink: 0;
+}
+
+.at-risk-indicator span {
+  white-space: nowrap;
+}
+
+/* Card with at-risk status - subtle left border */
+.kanban-card.at-risk {
+  border-left: 3px solid #f59e0b;
+}
+
+/* Case detail view - Clinical Risk Summary component */
+.case-detail-at-risk {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 14px;
+  background: #fafafa;
+  border-left: 3px solid #d97706;
+  border-radius: 0 4px 4px 0;
+  margin-bottom: 16px;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.case-detail-at-risk:hover {
+  background: #f5f5f5;
+}
+
+.case-detail-at-risk-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.case-detail-at-risk-icon svg {
+  color: #d97706;
+  width: 14px;
+  height: 14px;
+}
+
+.case-detail-at-risk-content {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+}
+
+.case-detail-at-risk-label {
+  font-size: 0.6875rem;
+  font-weight: 500;
+  color: #9ca3af;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  margin: 0;
+  line-height: 1;
+}
+
+.case-detail-at-risk-summary {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: #374151;
+  margin: 0;
+  line-height: 1.4;
+}
+
+.case-detail-at-risk-detail {
+  font-size: 0.75rem;
+  color: #6b7280;
+  margin: 2px 0 0 0;
+  line-height: 1.3;
+}
+
+/* Hide old elements if still present */
+.case-detail-at-risk-title,
+h4.case-detail-at-risk-title,
+.case-detail-at-risk-reasons {
+  display: none;
+}
+
+/* Filter checkbox styling */
+.at-risk-filter-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+}
+
+.at-risk-filter-label input[type="checkbox"] {
+  margin: 0;
+}
+
+.at-risk-filter-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 6px;
+  background: #fef3c7;
+  border: 1px solid #fcd34d;
+  border-radius: 4px;
+  color: #92400e;
+  font-size: 0.6875rem;
+  font-weight: 600;
+}
+
+/* Insights stat card for at-risk */
+.insights-stat-at-risk .insights-stat-icon {
+  background: #fef3c7;
+  color: #d97706;
+}
+
+/* Dark theme */
+[data-theme="dark"] .at-risk-indicator {
+  background: #422006;
+  border-color: #92400e;
+  color: #fcd34d;
+}
+
+[data-theme="dark"] .at-risk-indicator svg {
+  color: #fbbf24;
+}
+
+[data-theme="dark"] .kanban-card.at-risk {
+  border-left-color: #d97706;
+}
+
+[data-theme="dark"] .case-detail-at-risk {
+  background: #422006;
+  border-color: #92400e;
+}
+
+[data-theme="dark"] .case-detail-at-risk-icon {
+  background: #78350f;
+}
+
+[data-theme="dark"] .case-detail-at-risk-icon svg {
+  color: #fbbf24;
+}
+
+[data-theme="dark"] .case-detail-at-risk-title {
+  color: #fcd34d;
+}
+
+[data-theme="dark"] .case-detail-at-risk-reasons li {
+  color: #fde68a;
+}
+
+[data-theme="dark"] .case-detail-at-risk-reasons li::before {
+  background: #fbbf24;
+}
+
+[data-theme="dark"] .at-risk-filter-badge {
+  background: #422006;
+  border-color: #92400e;
+  color: #fcd34d;
+}
+
+/* Custom styled tooltip for At Risk indicator - uses title attribute for native tooltip */
+.at-risk-indicator {
+  position: relative;
+}
+
+/* Native browser tooltip via title attribute - no CSS pseudo-elements needed */
+/* The title attribute is set in JavaScript and provides a reliable tooltip that won't be clipped */
+
+/* Filter checkbox tooltip icon styling (matches settings modal) */
+.filter-tooltip-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+  color: white;
+  border-radius: 50%;
+  font-size: 10px;
+  margin-left: 6px;
+  font-weight: 600;
+  font-style: normal;
+  cursor: help;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 3px rgba(59, 130, 246, 0.3);
+  position: relative;
+}
+
+.filter-tooltip-icon:hover {
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  transform: scale(1.1);
+  box-shadow: 0 2px 6px rgba(59, 130, 246, 0.4);
+}
+
+/* Custom tooltip popup for filter icons */
+.filter-tooltip-icon::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: linear-gradient(135deg, #1e293b, #334155);
+  color: #f8fafc;
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.5;
+  white-space: normal;
+  width: 220px;
+  max-width: 280px;
+  text-align: left;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(255, 255, 255, 0.05);
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.2s ease;
+  z-index: 1000;
+  pointer-events: none;
+}
+
+/* Tooltip arrow for filter icons */
+.filter-tooltip-icon::before {
+  content: '';
+  position: absolute;
+  bottom: calc(100% + 2px);
+  left: 50%;
+  transform: translateX(-50%);
+  border: 6px solid transparent;
+  border-top-color: #1e293b;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.2s ease;
+  z-index: 1001;
+}
+
+/* Show tooltip on hover for filter icons */
+.filter-tooltip-icon:hover::after,
+.filter-tooltip-icon:hover::before {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* ================================
+   Regression Indicator Styles
+   ================================ */
+
+/* Card indicator for regressions (backward stage movements) */
+.regression-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  background: #fff7ed;
+  border: 1px solid #fed7aa;
+  border-radius: 4px;
+  color: #9a3412;
+  font-size: 0.75rem;
+  font-weight: 500;
+  margin-top: 8px;
+  cursor: help;
+}
+
+.regression-indicator svg {
+  color: #ea580c;
+  flex-shrink: 0;
+}
+
+.regression-indicator span {
+  white-space: nowrap;
+}
+
+/* Card with regression - subtle orange left border accent */
+.kanban-card.has-regression {
+  border-left: 3px solid #f97316;
+}
+
+/* If card has both at-risk and regression, at-risk takes precedence for border */
+.kanban-card.at-risk.has-regression {
+  border-left-color: #f59e0b;
+}
+
+/* Case detail view regression indicator */
+.case-detail-regression {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: #fff7ed;
+  border: 1px solid #fed7aa;
+  border-radius: 6px;
+  color: #9a3412;
+  font-size: 0.8125rem;
+  font-weight: 500;
+}
+
+.case-detail-regression svg {
+  color: #ea580c;
+  flex-shrink: 0;
+}
+
+/* Dark theme for regression indicator */
+[data-theme="dark"] .regression-indicator {
+  background: #431407;
+  border-color: #9a3412;
+  color: #fed7aa;
+}
+
+[data-theme="dark"] .regression-indicator svg {
+  color: #fb923c;
+}
+
+[data-theme="dark"] .kanban-card.has-regression {
+  border-left-color: #ea580c;
+}
+
+[data-theme="dark"] .case-detail-regression {
+  background: #431407;
+  border-color: #9a3412;
+  color: #fed7aa;
+}
+
+[data-theme="dark"] .case-detail-regression svg {
+  color: #fb923c;
+}
+
+/* Dark theme for filter tooltip icons */
+[data-theme="dark"] .filter-tooltip-icon {
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+  box-shadow: 0 1px 3px rgba(59, 130, 246, 0.4);
+}
+
+[data-theme="dark"] .filter-tooltip-icon:hover {
+  background: linear-gradient(135deg, #60a5fa, #3b82f6);
+  box-shadow: 0 2px 6px rgba(96, 165, 250, 0.5);
+}
