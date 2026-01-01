@@ -704,7 +704,7 @@ $appName = $appConfig['appName'] ?? 'Dentatrak';
   <!-- Hero Section -->
   <section id="waitlist" class="hero">
     <div class="hero-inner">
-      <span class="launch-label">Launching Spring 2026</span>
+      <span class="launch-label">Launching Summer 2026</span>
       <h1>Stop losing cases, chair time, and revenue between lab and delivery</h1>
       <p class="hero-subtitle">
         Stalled cases cost you remakes, delayed revenue, and wasted appointments. Dentatrak gives you visibility into every multi-step case so you can see problems before they become expensive.

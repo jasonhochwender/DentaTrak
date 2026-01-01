@@ -1,0 +1,48 @@
+# Cloud Build pipeline for Dentatrak
+# Triggered on push/merge to main
+
+steps:
+  # ---------- Build container ----------
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      [
+        'build',
+        '-t',
+        'us-east1-docker.pkg.dev/dtk-prod-core/app-repo/dtk-app-prod:$COMMIT_SHA',
+        '.'
+      ]
+
+  # ---------- Push to Artifact Registry ----------
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      [
+        'push',
+        'us-east1-docker.pkg.dev/dtk-prod-core/app-repo/dtk-app-prod:$COMMIT_SHA'
+      ]
+
+  # ---------- Deploy to Cloud Run ----------
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: gcloud
+    args:
+      [
+        'run',
+        'deploy',
+        'dtk-app-prod',
+        '--image',
+        'us-east1-docker.pkg.dev/dtk-prod-core/app-repo/dtk-app-prod:$COMMIT_SHA',
+        '--region',
+        'us-east1',
+        '--platform',
+        'managed',
+        '--service-account',
+        '1029275239454-compute@developer.gserviceaccount.com',
+        '--vpc-connector',
+        'dtk-vpc-prod',
+        '--add-cloudsql-instances',
+        'dtk-prod-core:us-east1:dtk-sql-prod',
+        '--quiet'
+      ]
+
+# ---------- Output artifact ----------
+images:
+  - us-east1-docker.pkg.dev/dtk-prod-core/app-repo/dtk-app-prod:$COMMIT_SHA
