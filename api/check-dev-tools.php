@@ -12,7 +12,7 @@ header('Content-Type: application/json');
 
 // Get current user email from session
 session_start();
-$userEmail = $_SESSION['user_email'] ?? null;
+$userEmail = $_SESSION['user_email'] ?? null; 
 
 // Check configuration
 $response = [
