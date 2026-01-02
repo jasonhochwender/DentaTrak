@@ -696,8 +696,7 @@ $appName = $appConfig['appName'] ?? 'Dentatrak';
       }
     }
   </style>
-</head>
-<body>
+</head> 
   <!-- Navigation -->
   <nav class="nav">
     <div class="nav-inner">
