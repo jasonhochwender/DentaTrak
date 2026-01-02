@@ -3,13 +3,14 @@
  * Dev Tools Access Control
  * 
  * Determines if the current user can access dev tools based on:
- * 1. Environment (always allowed in development)
- * 2. dev_tools_enabled flag (master switch)
- * 3. super_users list (specific users allowed in UAT/Production)
+ * 1. SHOW_DEV_TOOLS feature flag (master switch)
+ * 2. super_users list in appConfig (specific users allowed)
  * 
  * IMPORTANT: Dev tools operations in UAT/Production are ALWAYS scoped
  * to the practice the super user is an admin of.
  */
+
+require_once __DIR__ . '/feature-flags.php';
 
 /**
  * Check if the current user can access dev tools
@@ -19,16 +20,8 @@
  * @return bool True if user can access dev tools
  */
 function canAccessDevTools($appConfig, $userEmail = null) {
-    $environment = $appConfig['current_environment'] ?? $appConfig['environment'] ?? 'production';
-    
-    // Always allow in development environment
-    if ($environment === 'development') {
-        return true;
-    }
-    
-    // In UAT/Production, check if dev tools are enabled globally
-    $devToolsEnabled = $appConfig['dev_tools_enabled'] ?? false;
-    if (!$devToolsEnabled) {
+    // Check if dev tools feature flag is enabled
+    if (!isFeatureEnabled('SHOW_DEV_TOOLS')) {
         return false;
     }
     

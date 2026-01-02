@@ -13,12 +13,13 @@
 $featureFlags = [
     // Case Cards / Case List
     'SHOW_AT_RISK' => false,            // At Risk badge on case cards and list views
-    'SHOW_REVISION_COUNT' => true,     // Revision count inline next to patient name
+    'SHOW_REVISION_COUNT' => true,      // Revision count inline next to patient name
     'SHOW_IN_STATUS' => false,          // "In Status" days counter on case cards
+    'SHOW_ATTACHMENT_COUNT' => false,   // Attachment count on case cards
     
     // Case Detail / Edit Case
     'SHOW_AT_RISK_BANNER' => false,     // At Risk banner at top of Edit Case view
-    'SHOW_ACTIVITY_TIMELINE' => false,   // Activity Timeline section on Details tab
+    'SHOW_ACTIVITY_TIMELINE' => false,  // Activity Timeline section on Details tab
     'SHOW_REVISION_HISTORY' => false,   // Revision History tab in Edit Case modal
     'SHOW_COMMENTS' => false,           // Comments/comment threads in case detail
     
@@ -26,6 +27,7 @@ $featureFlags = [
     'SHOW_NOTIFICATIONS' => false,      // Notification bell, badges, counters, panels
     'SHOW_BILLING' => false,            // Billing menu, plan name/link. Off = all users on Control plan
     'SHOW_AI_CHAT' => false,            // Floating "Ask" AI chat button and panel
+    'SHOW_DEV_TOOLS' => true,           // Dev tools panel (only shown to super_users in appConfig)
 ];
 
 /**

@@ -4813,9 +4813,9 @@ document.addEventListener('DOMContentLoaded', function () {
       // Get assignment information if any
       var assignedEmail = completeData.assignedTo || '';
       
-      // Build attachment indicator HTML
+      // Build attachment indicator HTML (only if feature flag enabled)
       var attachmentIndicatorHtml = '';
-      if (attachmentsCopy && attachmentsCopy.length > 0) {
+      if (window.featureFlags && window.featureFlags.SHOW_ATTACHMENT_COUNT && attachmentsCopy && attachmentsCopy.length > 0) {
         var tooltipLines = [];
         var fileTypes = { photos: 0, xrays: 0, documents: 0, other: 0 };
         attachmentsCopy.forEach(function(att) {

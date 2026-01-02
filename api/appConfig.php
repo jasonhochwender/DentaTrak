@@ -92,9 +92,8 @@ Here is the workflow data to analyze:
     ],
 
     // Dev Tools Configuration
-    // Master switch to enable/disable dev tools globally (even for super users)
-    'dev_tools_enabled' => strtolower(getEnvVar('DEV_TOOLS_ENABLED', 'false')) === 'true',
-    // Super users who can access dev tools in UAT/Production when dev_tools_enabled is true
+    // Super users who can access dev tools when SHOW_DEV_TOOLS feature flag is enabled
+    // Set via SUPER_USERS environment variable (comma-separated email addresses)
     'super_users' => array_filter(array_map('trim', explode(',', getEnvVar('SUPER_USERS', '')))),
 
     // Case Form Field Requirements
