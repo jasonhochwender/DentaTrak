@@ -99,37 +99,8 @@ try {
     $stmt->execute($queryParams);
     $cases = $stmt->fetchAll(PDO::FETCH_ASSOC);
     
-    // Fetch labels for all archived cases
-    $caseIds = array_column($cases, 'id');
-    $caseLabelsMap = [];
-    if (!empty($caseIds)) {
-        try {
-            $placeholders = implode(',', array_fill(0, count($caseIds), '?'));
-            $labelsStmt = $pdo->prepare("
-                SELECT cla.case_id, cl.id as label_id, cl.name, cl.color
-                FROM case_label_assignments cla
-                JOIN case_labels cl ON cla.label_id = cl.id
-                WHERE cla.case_id IN ($placeholders)
-                ORDER BY cl.name ASC
-            ");
-            $labelsStmt->execute($caseIds);
-            while ($row = $labelsStmt->fetch(PDO::FETCH_ASSOC)) {
-                if (!isset($caseLabelsMap[$row['case_id']])) {
-                    $caseLabelsMap[$row['case_id']] = [];
-                }
-                $caseLabelsMap[$row['case_id']][] = [
-                    'id' => (int)$row['label_id'],
-                    'name' => $row['name'],
-                    'color' => $row['color']
-                ];
-            }
-        } catch (PDOException $e) {
-            // Labels table may not exist yet - continue without labels
-        }
-    }
-    
     // Decrypt PII fields for display
-    $decryptedCases = array_map(function($case) use ($caseLabelsMap) {
+    $decryptedCases = array_map(function($case) {
         // Map database column names to the format expected by decryptCaseData
         $caseData = [
             'patientFirstName' => $case['patient_first_name'] ?? '',
@@ -147,8 +118,7 @@ try {
             'status' => $case['status'],
             'creation_date' => $case['creation_date'],
             'archived_date' => $case['archived_date'],
-            'driveFolderId' => $case['driveFolderId'],
-            'labels' => $caseLabelsMap[$case['id']] ?? []
+            'driveFolderId' => $case['driveFolderId']
         ];
     }, $cases);
     

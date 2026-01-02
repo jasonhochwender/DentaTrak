@@ -445,11 +445,24 @@ try {
             exit;
         }
         
-        // Validate GLOBAL required fields
-        $requiredFields = [
-            'patientFirstName', 'patientLastName', 'patientDOB', 'patientGender',
-            'dentistName', 'caseType', 'dueDate', 'status'
-        ];
+        // Get field requirements from config (allows easy customization)
+        $fieldRequirements = $appConfig['case_required_fields'] ?? [];
+        
+        // Build required fields list from config
+        $requiredFields = [];
+        $allFields = ['patientFirstName', 'patientLastName', 'patientDOB', 'patientGender',
+                      'dentistName', 'caseType', 'dueDate', 'status', 'toothShade', 'material',
+                      'assignedTo', 'notes'];
+        
+        foreach ($allFields as $field) {
+            // Default: first 8 fields are required, rest are optional
+            $defaultRequired = in_array($field, ['patientFirstName', 'patientLastName', 'patientDOB', 
+                                                  'patientGender', 'dentistName', 'caseType', 'dueDate', 'status']);
+            $isRequired = $fieldRequirements[$field] ?? $defaultRequired;
+            if ($isRequired) {
+                $requiredFields[] = $field;
+            }
+        }
         
         $caseData = [
             'id' => $_POST['caseId'], // Add the case ID
@@ -459,25 +472,22 @@ try {
         $missingFields = [];
         
         foreach ($requiredFields as $field) {
-            if (!isset($_POST[$field]) || empty($_POST[$field])) {
+            if (!isset($_POST[$field]) || $_POST[$field] === '') {
                 $missingFields[] = $field;
             } else {
                 $caseData[$field] = $_POST[$field];
             }
         }
         
-        // Add optional global fields
-        if (isset($_POST['toothShade']) && !empty($_POST['toothShade'])) {
-            $caseData['toothShade'] = $_POST['toothShade'];
-        }
-        
-        if (isset($_POST['material']) && !empty($_POST['material'])) {
-            $caseData['material'] = $_POST['material'];
-        }
-        
-        // Add optional fields
-        if (isset($_POST['notes'])) {
-            $caseData['notes'] = $_POST['notes'];
+        // Add optional fields (fields not in requiredFields)
+        $optionalFields = array_diff($allFields, $requiredFields);
+        foreach ($optionalFields as $field) {
+            if (isset($_POST[$field]) && $_POST[$field] !== '') {
+                $caseData[$field] = $_POST[$field];
+            } elseif ($field === 'notes' && isset($_POST[$field])) {
+                // Notes can be empty string
+                $caseData[$field] = $_POST[$field];
+            }
         }
         
         // Add clinical details (case-type-specific fields)
@@ -490,43 +500,26 @@ try {
             }
         }
         
-        // Handle case assignment (optional)
-        if (isset($_POST['assignedTo']) && !empty($_POST['assignedTo'])) {
-            $caseData['assignedTo'] = $_POST['assignedTo'];
-        }
-        
-        // Validate CASE-TYPE-SPECIFIC required fields
-        // Check against the clinicalDetails JSON, not individual POST fields
+        // Validate CASE-TYPE-SPECIFIC required fields from config
         $caseType = $_POST['caseType'] ?? '';
         
-        // Crown: Tooth # required (key: toothNumber)
-        if ($caseType === 'Crown') {
-            if (empty($clinicalDetails['toothNumber'])) {
-                $missingFields[] = 'clinicalToothNumber';
-            }
-        }
+        // Map case types to their clinical fields
+        $caseTypeClinicalFields = [
+            'Crown' => ['toothNumber'],
+            'Bridge' => ['abutmentTeeth', 'ponticTeeth'],
+            'Implant Crown' => ['implantToothNumber', 'abutmentType', 'implantSystem', 'platformSize', 'scanBodyUsed'],
+            'Implant Surgical Guide' => ['implantSites'],
+            'Denture' => ['dentureJaw', 'dentureType', 'gingivalShade'],
+            'Partial' => ['partialJaw', 'teethToReplace', 'partialMaterial', 'partialGingivalShade'],
+        ];
         
-        // Bridge: Abutment Teeth and Pontic Teeth required
-        if ($caseType === 'Bridge') {
-            if (empty($clinicalDetails['abutmentTeeth'])) {
-                $missingFields[] = 'clinicalAbutmentTeeth';
-            }
-            if (empty($clinicalDetails['ponticTeeth'])) {
-                $missingFields[] = 'clinicalPonticTeeth';
-            }
-        }
-        
-        // Implant Crown: Tooth # required (key: implantToothNumber)
-        if ($caseType === 'Implant Crown') {
-            if (empty($clinicalDetails['implantToothNumber'])) {
-                $missingFields[] = 'clinicalImplantToothNumber';
-            }
-        }
-        
-        // Partial: Teeth to be Replaced required (key: teethToReplace)
-        if ($caseType === 'Partial') {
-            if (empty($clinicalDetails['teethToReplace'])) {
-                $missingFields[] = 'clinicalTeethToReplace';
+        // Check clinical fields for current case type
+        if (isset($caseTypeClinicalFields[$caseType])) {
+            foreach ($caseTypeClinicalFields[$caseType] as $clinicalField) {
+                $isRequired = $fieldRequirements[$clinicalField] ?? false;
+                if ($isRequired && empty($clinicalDetails[$clinicalField])) {
+                    $missingFields[] = 'clinical_' . $clinicalField;
+                }
             }
         }
         
@@ -544,11 +537,27 @@ try {
                 'caseType' => 'Case Type',
                 'dueDate' => 'Due Date',
                 'status' => 'Status',
-                'clinicalToothNumber' => 'Tooth # (required for Crown)',
-                'clinicalAbutmentTeeth' => 'Abutment Teeth (required for Bridge)',
-                'clinicalPonticTeeth' => 'Pontic Teeth (required for Bridge)',
-                'clinicalImplantToothNumber' => 'Tooth # (required for Implant Crown)',
-                'clinicalTeethToReplace' => 'Teeth to be Replaced (required for Partial)'
+                'toothShade' => 'Tooth Shade',
+                'material' => 'Material',
+                'assignedTo' => 'Assigned To',
+                'notes' => 'Notes',
+                // Clinical fields
+                'clinical_toothNumber' => 'Tooth # (Crown)',
+                'clinical_abutmentTeeth' => 'Abutment Teeth (Bridge)',
+                'clinical_ponticTeeth' => 'Pontic Teeth (Bridge)',
+                'clinical_implantToothNumber' => 'Tooth # (Implant Crown)',
+                'clinical_abutmentType' => 'Abutment Type (Implant Crown)',
+                'clinical_implantSystem' => 'Implant System (Implant Crown)',
+                'clinical_platformSize' => 'Platform Size (Implant Crown)',
+                'clinical_scanBodyUsed' => 'Scan Body Used (Implant Crown)',
+                'clinical_implantSites' => 'Implant Sites (Surgical Guide)',
+                'clinical_dentureJaw' => 'Jaw (Denture)',
+                'clinical_dentureType' => 'Denture Type',
+                'clinical_gingivalShade' => 'Gingival Shade (Denture)',
+                'clinical_partialJaw' => 'Jaw (Partial)',
+                'clinical_teethToReplace' => 'Teeth to Replace (Partial)',
+                'clinical_partialMaterial' => 'Material (Partial)',
+                'clinical_partialGingivalShade' => 'Gingival Shade (Partial)',
             ];
             
             $friendlyNames = array_map(function($field) use ($fieldLabels) {
@@ -679,69 +688,6 @@ try {
                                 'source' => 'update-case.php',
                             ]
                         );
-                    }
-                    
-                    // Handle labels update if provided
-                    if (isset($_POST['labels'])) {
-                        try {
-                            $labelIds = json_decode($_POST['labels'], true);
-                            if (!is_array($labelIds)) {
-                                $labelIds = [];
-                            }
-                            
-                            $userId = $_SESSION['db_user_id'] ?? 0;
-                            
-                            // Ensure label tables exist
-                            $pdo->exec("
-                                CREATE TABLE IF NOT EXISTS case_label_assignments (
-                                    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-                                    case_id VARCHAR(64) NOT NULL,
-                                    label_id INT UNSIGNED NOT NULL,
-                                    assigned_by INT UNSIGNED NOT NULL,
-                                    assigned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                                    UNIQUE KEY unique_case_label (case_id, label_id),
-                                    INDEX idx_case_id (case_id),
-                                    INDEX idx_label_id (label_id)
-                                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
-                            ");
-                            
-                            // Remove existing label assignments
-                            $stmt = $pdo->prepare("DELETE FROM case_label_assignments WHERE case_id = :case_id");
-                            $stmt->execute(['case_id' => $updatedCaseId]);
-                            
-                            // Add new label assignments
-                            if (!empty($labelIds)) {
-                                $labelStmt = $pdo->prepare("
-                                    INSERT INTO case_label_assignments (case_id, label_id, assigned_by)
-                                    VALUES (:case_id, :label_id, :assigned_by)
-                                ");
-                                
-                                foreach ($labelIds as $labelId) {
-                                    try {
-                                        $labelStmt->execute([
-                                            'case_id' => $updatedCaseId,
-                                            'label_id' => (int)$labelId,
-                                            'assigned_by' => $userId
-                                        ]);
-                                    } catch (PDOException $e) {
-                                        // Ignore duplicate or invalid label assignments
-                                    }
-                                }
-                            }
-                            
-                            // Add labels to result for UI
-                            $labelsStmt = $pdo->prepare("
-                                SELECT cl.id, cl.name, cl.color
-                                FROM case_labels cl
-                                JOIN case_label_assignments cla ON cl.id = cla.label_id
-                                WHERE cla.case_id = :case_id
-                            ");
-                            $labelsStmt->execute(['case_id' => $updatedCaseId]);
-                            $result['caseData']['labels'] = $labelsStmt->fetchAll(PDO::FETCH_ASSOC);
-                        } catch (PDOException $e) {
-                            // Labels table may not exist yet - continue without labels
-                            error_log('[update-case] Error updating labels: ' . $e->getMessage());
-                        }
                     }
                     
                     // Check if Google Drive backup sync is needed - store data for deferred processing

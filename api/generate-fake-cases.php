@@ -86,17 +86,6 @@ try {
         'manager@example.com'
     ];
     
-    // Define test case labels (NOT assignment labels - these are tags/context)
-    $testCaseLabels = [
-        'Rush Order',
-        'Quality Check',
-        'Specialist Review',
-        'New Patient',
-        'Follow-up',
-        'Complex Case',
-        'Insurance Pending'
-    ];
-    
     // Create test users in the database (if they don't exist)
     foreach ($testUserEmails as $email) {
         try {
@@ -137,69 +126,6 @@ try {
         }
     }
     
-    // Ensure case_labels table exists
-    try {
-        $pdo->exec("
-            CREATE TABLE IF NOT EXISTS case_labels (
-                id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-                practice_id INT UNSIGNED NOT NULL,
-                name VARCHAR(100) NOT NULL,
-                color VARCHAR(7) DEFAULT '#6b7280',
-                created_by INT UNSIGNED NOT NULL,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                UNIQUE KEY unique_label_per_practice (practice_id, name),
-                INDEX idx_practice_id (practice_id)
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
-        ");
-        
-        $pdo->exec("
-            CREATE TABLE IF NOT EXISTS case_label_assignments (
-                id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-                case_id VARCHAR(64) NOT NULL,
-                label_id INT UNSIGNED NOT NULL,
-                assigned_by INT UNSIGNED NOT NULL,
-                assigned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                UNIQUE KEY unique_case_label (case_id, label_id),
-                INDEX idx_case_id (case_id),
-                INDEX idx_label_id (label_id)
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
-        ");
-    } catch (Exception $e) {
-        error_log('Error creating label tables: ' . $e->getMessage());
-    }
-    
-    // Create test case labels in the database (if they don't exist)
-    $labelColors = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#3b82f6', '#8b5cf6', '#ec4899'];
-    $createdLabelIds = [];
-    $userId = $_SESSION['db_user_id'] ?? 1;
-    
-    foreach ($testCaseLabels as $index => $labelName) {
-        try {
-            // Check if label already exists for this practice
-            $stmt = $pdo->prepare("SELECT id FROM case_labels WHERE practice_id = :practice_id AND name = :name");
-            $stmt->execute(['practice_id' => $currentPracticeId, 'name' => $labelName]);
-            $existingLabel = $stmt->fetch(PDO::FETCH_ASSOC);
-            
-            if ($existingLabel) {
-                $createdLabelIds[] = (int)$existingLabel['id'];
-            } else {
-                // Insert the label with a color
-                $color = $labelColors[$index % count($labelColors)];
-                $stmt = $pdo->prepare("INSERT INTO case_labels (practice_id, name, color, created_by, created_at) VALUES (:practice_id, :name, :color, :created_by, NOW())");
-                $stmt->execute([
-                    'practice_id' => $currentPracticeId,
-                    'name' => $labelName,
-                    'color' => $color,
-                    'created_by' => $userId
-                ]);
-                $createdLabelIds[] = (int)$pdo->lastInsertId();
-            }
-        } catch (Exception $e) {
-            // Log but continue
-            error_log('Error creating test case label ' . $labelName . ': ' . $e->getMessage());
-        }
-    }
-
     // Option pools matching the main PHP UI dropdowns
     $caseTypes = [
         'Crown',
@@ -381,16 +307,7 @@ try {
         // Assigned To must be a practice user
         $assignedTo = $assignOptions[array_rand($assignOptions)];
         
-        // Randomly select 0-3 labels for this case
-        $caseLabelsToAssign = [];
-        if (!empty($createdLabelIds) && rand(0, 100) > 30) { // 70% chance of having labels
-            $numLabels = rand(1, min(3, count($createdLabelIds)));
-            $shuffledLabelIds = $createdLabelIds;
-            shuffle($shuffledLabelIds);
-            $caseLabelsToAssign = array_slice($shuffledLabelIds, 0, $numLabels);
-        }
-        
-        // No attachments for test cases (labels are separate now)
+        // No attachments for test cases
         $attachments = [];
         
         // Generate clinical details based on case type
@@ -492,30 +409,6 @@ try {
         
         // Store directly in the local cache; no Google Drive I/O in dev generator
         saveCaseToCache($encryptedCaseData);
-        
-        // Assign labels to the case
-        if (!empty($caseLabelsToAssign)) {
-            try {
-                $labelStmt = $pdo->prepare("
-                    INSERT INTO case_label_assignments (case_id, label_id, assigned_by)
-                    VALUES (:case_id, :label_id, :assigned_by)
-                ");
-                
-                foreach ($caseLabelsToAssign as $labelId) {
-                    try {
-                        $labelStmt->execute([
-                            'case_id' => $caseId,
-                            'label_id' => $labelId,
-                            'assigned_by' => $userId
-                        ]);
-                    } catch (PDOException $e) {
-                        // Ignore duplicate or invalid label assignments
-                    }
-                }
-            } catch (Exception $e) {
-                error_log('Error assigning labels to test case: ' . $e->getMessage());
-            }
-        }
         
         $created++;
     }

@@ -2102,23 +2102,15 @@ document.addEventListener('DOMContentLoaded', function () {
 
     var adminHeader = document.createElement('div');
     adminHeader.className = 'practice-user-admin-header';
-    adminHeader.innerHTML = 'Admin <span class="tooltip-icon" data-tooltip="Admins have full control: they can add/remove users, change all permissions, manage practice settings, and access billing information.">?</span>';
+    adminHeader.textContent = 'Admin';
 
     var analyticsHeader = document.createElement('div');
     analyticsHeader.className = 'practice-user-analytics-header';
-    analyticsHeader.innerHTML = 'Insights <span class="tooltip-icon" data-tooltip="When enabled, this user can view the Insights tab with practice-wide metrics, charts, and AI-powered recommendations.">?</span>';
-
-    var editHeader = document.createElement('div');
-    editHeader.className = 'practice-user-edit-header';
-    editHeader.innerHTML = 'Edit <span class="tooltip-icon" data-tooltip="When enabled, this user can create new cases and edit existing case details. When disabled, the user can only view cases (read-only access).">?</span>';
+    analyticsHeader.textContent = 'Insights';
 
     var limitedHeader = document.createElement('div');
     limitedHeader.className = 'practice-user-limited-header';
-    limitedHeader.innerHTML = 'Limited <span class="tooltip-icon" data-tooltip="When enabled, this user can only see cases that are specifically assigned to them. Useful for external contractors or part-time staff who should not see all practice cases.">?</span>';
-
-    var addLabelsHeader = document.createElement('div');
-    addLabelsHeader.className = 'practice-user-addlabels-header';
-    addLabelsHeader.innerHTML = 'Add Label <span class="tooltip-icon" data-tooltip="When enabled, this user can create new labels. When disabled, the user can only select from existing labels when tagging cases.">?</span>';
+    limitedHeader.textContent = 'Limited';
 
     var removeHeader = document.createElement('div');
     removeHeader.className = 'practice-user-remove-header';
@@ -2127,8 +2119,6 @@ document.addEventListener('DOMContentLoaded', function () {
     headerRow.appendChild(emailHeader);
     headerRow.appendChild(adminHeader);
     headerRow.appendChild(analyticsHeader);
-    headerRow.appendChild(editHeader);
-    headerRow.appendChild(addLabelsHeader);
     headerRow.appendChild(limitedHeader);
     headerRow.appendChild(removeHeader);
     usersList.appendChild(headerRow);
@@ -2224,54 +2214,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
       analyticsCell.appendChild(analyticsCheckbox);
       row.appendChild(analyticsCell);
-
-      // Edit Cases checkbox cell
-      var editCell = document.createElement('div');
-      editCell.className = 'practice-user-edit-cell';
-      var editCheckbox = document.createElement('input');
-      editCheckbox.type = 'checkbox';
-      // Default to true if not set
-      var canEditCases = window.canEditCasesUsers && window.canEditCasesUsers[email] !== undefined 
-        ? window.canEditCasesUsers[email] : true;
-      editCheckbox.checked = canEditCases;
-      editCheckbox.setAttribute('data-email', email);
-
-      if (!window.isPracticeAdmin || isCreator) {
-        editCheckbox.disabled = true;
-      } else {
-        editCheckbox.addEventListener('change', function() {
-          var targetEmail = this.getAttribute('data-email');
-          var canEdit = !!this.checked;
-          setCanEditCasesForEmail(targetEmail, canEdit);
-        });
-      }
-
-      editCell.appendChild(editCheckbox);
-      row.appendChild(editCell);
-
-      // Add Labels checkbox cell (placed after Edit, before Limited)
-      var addLabelsCell = document.createElement('div');
-      addLabelsCell.className = 'practice-user-addlabels-cell';
-      var addLabelsCheckbox = document.createElement('input');
-      addLabelsCheckbox.type = 'checkbox';
-      // Default to true if not set (most users should be able to create labels)
-      var canAddLabels = window.canAddLabelsUsers && window.canAddLabelsUsers[email] !== undefined 
-        ? window.canAddLabelsUsers[email] : true;
-      addLabelsCheckbox.checked = canAddLabels;
-      addLabelsCheckbox.setAttribute('data-email', email);
-
-      if (!window.isPracticeAdmin || isCreator) {
-        addLabelsCheckbox.disabled = true;
-      } else {
-        addLabelsCheckbox.addEventListener('change', function() {
-          var targetEmail = this.getAttribute('data-email');
-          var canAdd = !!this.checked;
-          setCanAddLabelsForEmail(targetEmail, canAdd);
-        });
-      }
-
-      addLabelsCell.appendChild(addLabelsCheckbox);
-      row.appendChild(addLabelsCell);
 
       // Limited Visibility checkbox cell
       var limitedCell = document.createElement('div');
@@ -3050,11 +2992,13 @@ document.addEventListener('DOMContentLoaded', function () {
     currentEditCaseId = caseId || null;
     setCaseModalActiveTab('details');
 
-    // Initialize comments for this case
-    if (caseId && typeof window.initCaseComments === 'function') {
-      window.initCaseComments(caseId);
-    } else if (typeof window.clearCaseComments === 'function') {
-      window.clearCaseComments();
+    // Initialize comments for this case (only if feature flag enabled)
+    if (window.featureFlags && window.featureFlags.SHOW_COMMENTS) {
+      if (caseId && typeof window.initCaseComments === 'function') {
+        window.initCaseComments(caseId);
+      } else if (typeof window.clearCaseComments === 'function') {
+        window.clearCaseComments();
+      }
     }
 
     if (!caseId) {
@@ -3120,11 +3064,6 @@ document.addEventListener('DOMContentLoaded', function () {
     if (submitBtn) submitBtn.textContent = 'Create Case';
 
     clearFileSelections();
-    
-    // Clear selected labels for new case
-    if (typeof clearSelectedLabels === 'function') {
-      clearSelectedLabels();
-    }
     
     // Hide activity timeline for new case
     if (typeof hideActivityTimeline === 'function') {
@@ -4643,6 +4582,32 @@ document.addEventListener('DOMContentLoaded', function () {
         requestAnimationFrame(() => {
           cardData.status = newStatus;
           cardData.lastUpdateDate = data.caseData.lastUpdateDate;
+          
+          // Update revision count if returned (backward move)
+          if (data.caseData.revisionCount !== undefined) {
+            cardData.revisionCount = data.caseData.revisionCount;
+            
+            // Update revision count line on card if feature flag enabled
+            if (window.featureFlags && window.featureFlags.SHOW_REVISION_COUNT) {
+              const revisionCountLine = card.querySelector('.revision-count-line');
+              const revisionCount = cardData.revisionCount;
+              if (revisionCount > 0) {
+                if (revisionCountLine) {
+                  revisionCountLine.textContent = 'Revisions: ' + revisionCount;
+                } else {
+                  // Create revision count line if it doesn't exist
+                  const cardHeader = card.querySelector('.kanban-card-header');
+                  if (cardHeader) {
+                    const newRevisionLine = document.createElement('div');
+                    newRevisionLine.className = 'revision-count-line';
+                    newRevisionLine.textContent = 'Revisions: ' + revisionCount;
+                    cardHeader.appendChild(newRevisionLine);
+                  }
+                }
+              }
+            }
+          }
+          
           card.dataset.caseJson = JSON.stringify(cardData);
 
           // Update status class
@@ -4808,9 +4773,9 @@ document.addEventListener('DOMContentLoaded', function () {
         driveFolderId: caseData.driveFolderId || null,
         attachments: attachmentsCopy,
         assignedTo: caseData.assignedTo || '',
-        labels: caseData.labels || [],
         atRisk: caseData.atRisk || { isAtRisk: false, reasons: [] },
-        clinicalDetails: caseData.clinicalDetails || null
+        clinicalDetails: caseData.clinicalDetails || null,
+        revisionCount: caseData.revisionCount || 0
       };
       
       // Assignment info stored in completeData.assignedTo
@@ -4835,10 +4800,10 @@ document.addEventListener('DOMContentLoaded', function () {
         driveFolderId: completeData.driveFolderId || null,
         attachments: attachmentsCopy,
         assignedTo: completeData.assignedTo || '',
-        labels: completeData.labels || [],
         atRisk: completeData.atRisk || { isAtRisk: false, reasons: [] },
         patientGender: completeData.patientGender || '',
-        clinicalDetails: completeData.clinicalDetails || null
+        clinicalDetails: completeData.clinicalDetails || null,
+        revisionCount: completeData.revisionCount || 0
       };
       caseCard.dataset.caseJson = JSON.stringify(displayData);
       
@@ -4876,15 +4841,10 @@ document.addEventListener('DOMContentLoaded', function () {
       // Build late indicator text
       var lateIndicatorText = isPastDue ? ' LATE' : '';
       
-      // Build labels HTML - show up to 2 labels on cards
-      var labelsHtml = '';
-      if (typeof renderCaseCardLabels === 'function' && displayData.labels && displayData.labels.length > 0) {
-        labelsHtml = renderCaseCardLabels(displayData.labels, displayData.id, 2);
-      }
-      
-      // Build At Risk indicator HTML
+      // Build At Risk indicator HTML (only if feature flag enabled)
       var atRiskHtml = '';
-      if (displayData.atRisk && displayData.atRisk.isAtRisk && displayData.atRisk.reasons && displayData.atRisk.reasons.length > 0) {
+      var showAtRisk = window.featureFlags && window.featureFlags.SHOW_AT_RISK;
+      if (showAtRisk && displayData.atRisk && displayData.atRisk.isAtRisk && displayData.atRisk.reasons && displayData.atRisk.reasons.length > 0) {
         // Use native title attribute for tooltip (won't be clipped by overflow:hidden)
         var reasonsTooltip = displayData.atRisk.reasons.join('\n');
         // Escape HTML entities for the title attribute
@@ -4900,25 +4860,21 @@ document.addEventListener('DOMContentLoaded', function () {
         caseCard.classList.add('at-risk');
       }
       
-      // Build Revision indicator HTML (if revision count > 0)
-      var revisionHtml = '';
+      // Revision count (used for revision count line below patient name)
       var revisionCount = displayData.revisionCount || 0;
-      if (revisionCount > 0) {
-        var revisionLabel = revisionCount === 1 ? 'Revision' : 'Revisions';
-        revisionHtml = '<div class="regression-indicator" title="This case has ' + revisionCount + ' revision(s)">' +
-          '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
-          '<path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>' +
-          '<path d="M3 3v5h5"></path>' +
-          '</svg>' +
-          '<span>' + revisionCount + ' ' + revisionLabel + '</span>' +
-          '</div>';
-        caseCard.classList.add('has-regression');
+      
+      // Build revision count line (below patient name, only if flag enabled)
+      var revisionCountLine = '';
+      var showRevisionCount = window.featureFlags && window.featureFlags.SHOW_REVISION_COUNT;
+      if (showRevisionCount && revisionCount > 0) {
+        revisionCountLine = '<div class="revision-count-line">Revisions: ' + revisionCount + '</div>';
       }
       
       caseCard.innerHTML = 
         '<button type="button" class="kanban-card-edit" title="Edit Case">✎</button>' +
         '<div class="kanban-card-header">' +
         '  <h3 class="kanban-card-title">' + (displayData.patientFirstName || '') + ' ' + (displayData.patientLastName || '') + '</h3>' +
+        revisionCountLine +
         '</div>' +
         '<div class="kanban-card-content">' +
         '  <p><strong>Type:</strong> ' + (displayData.caseType || '') + '</p>' +
@@ -4932,16 +4888,14 @@ document.addEventListener('DOMContentLoaded', function () {
         '      </select>' +
         '    </div>' +
         '  </div>' +
-        labelsHtml +
         atRiskHtml +
-        revisionHtml +
         '</div>' +
         '<div class="kanban-card-dates">' +
         '  <div style="display: flex; justify-content: space-between; align-items: flex-start;">' +
         '    <div>' +
         '      <div><span class="date-label">Created:</span> <span class="date-value">' + formatDate(creationDate, false) + '</span></div>' +
         '      <div><span class="date-label">Updated:</span> <span class="date-value">' + formatDate(lastUpdateDate, false) + '</span></div>' +
-        '      <div><span class="date-label">In Status:</span> <span class="date-value days-in-status">' + getDaysInStatus(displayData.statusChangedAt) + '</span></div>' +
+        (window.featureFlags && window.featureFlags.SHOW_IN_STATUS ? '      <div><span class="date-label">In Status:</span> <span class="date-value days-in-status">' + getDaysInStatus(displayData.statusChangedAt) + '</span></div>' : '') +
         '    </div>' +
         '    <button type="button" class="card-delete-btn" title="Archive Case" data-case-id="' + displayData.id + '" style="margin-left: 10px; flex-shrink: 0; position: static !important; bottom: auto !important; right: auto !important;">' + 
         '      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + 
@@ -5284,12 +5238,6 @@ document.addEventListener('DOMContentLoaded', function () {
       }
     }
     
-    // Set labels for the case (if labels functionality exists)
-    if (typeof setSelectedLabels === 'function') {
-      var caseLabels = caseData.labels || [];
-      setSelectedLabels(caseLabels);
-    }
-    
     // Clear file selections
     clearFileSelections();
     
@@ -5444,8 +5392,8 @@ document.addEventListener('DOMContentLoaded', function () {
     // Load revision history for this case
     loadCaseRevisionHistory(caseData.id || null);
 
-    // Load activity timeline for this case (always visible when editing)
-    if (typeof loadActivityTimeline === 'function' && caseData.id) {
+    // Load activity timeline for this case (only if feature flag enabled)
+    if (window.featureFlags && window.featureFlags.SHOW_ACTIVITY_TIMELINE && typeof loadActivityTimeline === 'function' && caseData.id) {
       loadActivityTimeline(caseData.id);
     }
 
@@ -5470,6 +5418,11 @@ document.addEventListener('DOMContentLoaded', function () {
     var existingIndicator = document.getElementById('caseDetailAtRisk');
     if (existingIndicator) {
       existingIndicator.remove();
+    }
+    
+    // Check feature flag - if disabled, don't show At Risk banner
+    if (!window.featureFlags || !window.featureFlags.SHOW_AT_RISK_BANNER) {
+      return;
     }
     
     // Check if case is at risk
@@ -6471,8 +6424,8 @@ document.addEventListener('DOMContentLoaded', function () {
         
         billingInfo = data;
         
-        // Update billing tier display
-        if (data.billing_tier) {
+        // Update billing tier display (only if billing feature is enabled)
+        if (data.billing_tier && window.featureFlags && window.featureFlags.SHOW_BILLING) {
           const billingTierElement = document.getElementById('userBillingTier');
           if (billingTierElement) {
             let displayText = '';
@@ -7626,7 +7579,6 @@ document.addEventListener('DOMContentLoaded', function () {
         const assignedTo = filterAssignedTo ? filterAssignedTo.value : '';
         const lateOnly = filterLateCases ? filterLateCases.checked : false;
         const atRiskOnly = filterAtRisk ? filterAtRisk.checked : false;
-        const hasLabelFilters = window.selectedFilterLabels && window.selectedFilterLabels.length > 0;
         
         // Build query parameters
         const params = new URLSearchParams();
@@ -7651,11 +7603,7 @@ document.addEventListener('DOMContentLoaded', function () {
             return;
           }
           
-          // Apply client-side label filtering
           let filteredCases = data.cases;
-          if (hasLabelFilters && typeof window.caseMatchesLabelFilter === 'function') {
-            filteredCases = data.cases.filter(caseData => window.caseMatchesLabelFilter(caseData));
-          }
           
           // Clear existing cases
           const columns = document.querySelectorAll('.kanban-column-body');
@@ -7685,7 +7633,7 @@ document.addEventListener('DOMContentLoaded', function () {
           
           // Update filter active indicator
           if (kanbanFilterActiveDot) {
-            const hasActiveFilters = !!(searchTerm || caseType || assignedTo || lateOnly || atRiskOnly || hasLabelFilters);
+            const hasActiveFilters = !!(searchTerm || caseType || assignedTo || lateOnly || atRiskOnly);
             kanbanFilterActiveDot.style.display = hasActiveFilters ? 'block' : 'none';
           }
         })
@@ -7700,7 +7648,7 @@ document.addEventListener('DOMContentLoaded', function () {
       }, 300); // Debounce for 300ms
     }
     
-    // Make applyFilters globally available for label filtering
+    // Make applyFilters globally available
     window.applyFilters = applyFilters;
     
     // Add event listeners
@@ -7732,11 +7680,6 @@ document.addEventListener('DOMContentLoaded', function () {
         if (filterAssignedTo) filterAssignedTo.value = '';
         if (filterLateCases) filterLateCases.checked = false;
         if (filterAtRisk) filterAtRisk.checked = false;
-        
-        // Clear label filters
-        if (typeof clearLabelFilters === 'function') {
-          clearLabelFilters();
-        }
         
         // Apply cleared filters
         applyFilters();

@@ -10,11 +10,15 @@ error_reporting(E_ALL & ~E_DEPRECATED & ~E_USER_DEPRECATED);
 
 require_once __DIR__ . '/appConfig.php';
 require_once __DIR__ . '/practice-security.php';
+require_once __DIR__ . '/feature-flags.php';
 
 try {
     // SECURITY: Require valid practice context
     $currentPracticeId = requireValidPracticeContext();
     $userId = $_SESSION['db_user_id'];
+    
+    // Check if billing feature is disabled - if so, everyone is on Control plan
+    $billingEnabled = isFeatureEnabled('SHOW_BILLING');
     
     // Get user's billing tier, case count, and created_at for trial calculation
     $stmt = $pdo->prepare("SELECT billing_tier, case_count, created_at FROM users WHERE id = ?");
@@ -26,6 +30,9 @@ try {
         echo json_encode(['error' => 'User not found']);
         exit;
     }
+    
+    // If billing is disabled, treat everyone as Control plan
+    $effectiveTier = $billingEnabled ? $user['billing_tier'] : 'control';
     
     // Get current case count (real-time calculation)
     $currentCaseCount = 0;
@@ -39,7 +46,7 @@ try {
         $stmt->execute([$currentPracticeId]);
         
         // For evaluate plan, count ALL cases including archived ones
-        if ($user['billing_tier'] === 'evaluate') {
+        if ($effectiveTier === 'evaluate') {
             $stmt = $pdo->prepare("SELECT COUNT(*) FROM cases_cache WHERE practice_id = ?");
         } else {
             // For paid plans, only count active cases
@@ -54,8 +61,8 @@ try {
         $currentUserCount = (int)$stmt->fetchColumn();
     }
     
-    // Get billing tier configuration
-    $tierConfig = $appConfig['billing']['tiers'][$user['billing_tier']] ?? $appConfig['billing']['tiers']['evaluate'];
+    // Get billing tier configuration (use effective tier)
+    $tierConfig = $appConfig['billing']['tiers'][$effectiveTier] ?? $appConfig['billing']['tiers']['evaluate'];
     
     // Calculate trial days remaining for Evaluate plan
     $trialDaysRemaining = null;
@@ -102,7 +109,7 @@ try {
     $exceedsUserLimit = $maxUsers > 0 && $currentUserCount > $maxUsers;
     
     echo json_encode([
-        'billing_tier' => $user['billing_tier'],
+        'billing_tier' => $effectiveTier,
         'tier_name' => $tierConfig['name'],
         'case_count' => $currentCaseCount,
         'max_cases' => $tierConfig['max_cases'],

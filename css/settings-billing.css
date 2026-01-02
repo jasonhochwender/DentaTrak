@@ -1,6 +1,6 @@
 /* Settings and Billing Modal Styles */
 .settings-billing-modal {
-  max-width: 920px;
+  max-width: 680px;
   padding-bottom: 0;
   max-height: 80vh;
   display: flex;
@@ -747,11 +747,11 @@ input#practiceName {
 }
 
 /* Practice Users & Roles grid layout */
-/* Columns: Email | Admin | Analytics | Edit | Add Label | Limited | Remove */
+/* Columns: Email | Admin | Insights | Limited | Remove */
 .practice-user-header,
 .practice-user-row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 60px 80px 55px 85px 70px 65px;
+  grid-template-columns: minmax(0, 1fr) 55px 60px 60px 60px;
   column-gap: 6px;
   align-items: center;
 }

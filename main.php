@@ -27,6 +27,9 @@ require_once __DIR__ . '/api/security-headers.php';
 // Load dev tools access control
 require_once __DIR__ . '/api/dev-tools-access.php';
 
+// Load feature flags
+require_once __DIR__ . '/api/feature-flags.php';
+
 // Set security headers for this page
 setSecurityHeaders();
 
@@ -380,7 +383,6 @@ if (isset($appConfig) && is_array($appConfig) && isset($appConfig['appName'])) {
   <link rel="preload" href="css/feedback.css?v=20241210" as="style" onload="this.onload=null;this.rel='stylesheet'">
   <link rel="preload" href="css/kanban-dragdrop.css?v=20241210" as="style" onload="this.onload=null;this.rel='stylesheet'">
   <link rel="preload" href="css/case-creation.css?v=20241210" as="style" onload="this.onload=null;this.rel='stylesheet'">
-  <link rel="preload" href="css/case-labels.css?v=20241230" as="style" onload="this.onload=null;this.rel='stylesheet'">
   <link rel="preload" href="css/case-comments.css?v=20241231" as="style" onload="this.onload=null;this.rel='stylesheet'">
   <link rel="preload" href="css/activity-timeline.css?v=20241230" as="style" onload="this.onload=null;this.rel='stylesheet'">
   <link rel="preload" href="css/insights.css?v=20241230" as="style" onload="this.onload=null;this.rel='stylesheet'">
@@ -400,7 +402,6 @@ if (isset($appConfig) && is_array($appConfig) && isset($appConfig['appName'])) {
     <link rel="stylesheet" href="css/feedback.css?v=20241210">
     <link rel="stylesheet" href="css/kanban-dragdrop.css?v=20241210">
     <link rel="stylesheet" href="css/case-creation.css?v=20241210">
-    <link rel="stylesheet" href="css/case-labels.css?v=20241230">
     <link rel="stylesheet" href="css/case-comments.css?v=20241231">
     <link rel="stylesheet" href="css/activity-timeline.css?v=20241230">
     <link rel="stylesheet" href="css/insights.css?v=20241230">
@@ -446,6 +447,11 @@ if (isset($appConfig) && is_array($appConfig) && isset($appConfig['appName'])) {
 
 <!-- CSRF Token for secure API requests -->
 <meta name="csrf-token" content="<?php echo htmlspecialchars($csrfToken); ?>">
+
+<!-- Feature Flags for JavaScript -->
+<script>
+window.featureFlags = <?php echo getFeatureFlagsJson(); ?>;
+</script>
 
 <div class="main-container">
     <header class="main-header">
@@ -502,8 +508,11 @@ if (isset($appConfig) && is_array($appConfig) && isset($appConfig['appName'])) {
         <div class="user-info">
           <span class="user-name"><?php echo htmlspecialchars($user['name'] ?? 'User'); ?></span>
           <span class="user-email"><?php echo htmlspecialchars($user['email'] ?? ''); ?></span>
+<?php if (isFeatureEnabled('SHOW_BILLING')): ?>
           <a href="billing.php" class="billing-link" id="userBillingTier">Billing</a>
+<?php endif; ?>
         </div>
+<?php if (isFeatureEnabled('SHOW_NOTIFICATIONS')): ?>
         <!-- Notification Bell -->
         <div class="notification-bell-wrapper" style="position: relative;">
           <button type="button" class="notification-bell" id="notificationBell" title="Notifications">
@@ -523,6 +532,7 @@ if (isset($appConfig) && is_array($appConfig) && isset($appConfig['appName'])) {
             </div>
           </div>
         </div>
+<?php endif; ?>
         
         <button type="button" class="user-avatar-button" id="userMenuToggle" aria-haspopup="true" aria-expanded="false">
           <?php if (!empty($user['picture'])): ?>
@@ -533,7 +543,9 @@ if (isset($appConfig) && is_array($appConfig) && isset($appConfig['appName'])) {
         </button>
         <div class="user-menu" id="userMenu">
           <a href="#" class="user-menu-item">Settings</a>
+<?php if (isFeatureEnabled('SHOW_BILLING')): ?>
           <a href="billing.php" class="user-menu-item">Billing</a>
+<?php endif; ?>
           <div class="user-menu-divider"></div>
           <a href="#" class="user-menu-item" id="contactUsLink">Feedback</a>
           <a href="#" class="user-menu-item" id="startTourLink">Take a Tour</a>
@@ -610,80 +622,21 @@ if (isset($appConfig) && is_array($appConfig) && isset($appConfig['appName'])) {
             </select>
           </div>
 
-          <div class="kanban-filter-field kanban-filter-labels" id="labelsFilterRow">
-            <label for="filterLabelSelect">Labels</label>
-            <select id="filterLabelSelect" onchange="handleLabelFilterChange(this)" style="width:100%;padding:6px 10px;border-radius:999px;border:1px solid rgba(148,163,184,0.7);font-size:0.85rem;background:white;">
-              <option value="">Filter by label...</option>
-            </select>
-            <div id="filterSelectedLabels" style="display:flex;flex-wrap:wrap;gap:4px;margin-top:4px;"></div>
-          </div>
-          <script>
-            window.selectedFilterLabels = window.selectedFilterLabels || [];
-            window.populateLabelFilterSelect = function() {
-              var select = document.getElementById('filterLabelSelect');
-              if (!select) return;
-              var labels = window.practiceLabels || [];
-              var selectedIds = window.selectedFilterLabels.map(function(l) { return l.id; });
-              var html = '<option value="">Filter by label...</option>';
-              labels.forEach(function(label) {
-                if (selectedIds.indexOf(label.id) === -1) {
-                  html += '<option value="' + label.id + '">' + label.name + '</option>';
-                }
-              });
-              select.innerHTML = html;
-            }
-            function handleLabelFilterChange(select) {
-              var id = parseInt(select.value);
-              if (!id) return;
-              var labels = window.practiceLabels || [];
-              var label = labels.find(function(l) { return l.id === id; });
-              if (label) {
-                window.selectedFilterLabels.push({id: label.id, name: label.name});
-                renderFilterLabelChips();
-                populateLabelFilterSelect();
-                select.value = '';
-                if (typeof window.applyFilters === 'function') window.applyFilters();
-              }
-            }
-            function removeFilterLabel(id) {
-              window.selectedFilterLabels = window.selectedFilterLabels.filter(function(l) { return l.id !== id; });
-              renderFilterLabelChips();
-              populateLabelFilterSelect();
-              if (typeof window.applyFilters === 'function') window.applyFilters();
-            }
-            function renderFilterLabelChips() {
-              var container = document.getElementById('filterSelectedLabels');
-              if (!container) return;
-              var html = '';
-              window.selectedFilterLabels.forEach(function(label) {
-                html += '<span style="display:inline-flex;align-items:center;gap:3px;padding:2px 6px;background:#e0e7ff;border-radius:3px;font-size:0.75rem;color:#3730a3;">' + label.name + '<button type="button" onclick="removeFilterLabel(' + label.id + ')" style="background:none;border:none;cursor:pointer;padding:0;margin-left:2px;color:#4f46e5;font-size:12px;">&times;</button></span>';
-              });
-              container.innerHTML = html;
-            }
-            // Populate select when labels are loaded
-            var labelSelectInterval = setInterval(function() {
-              if (window.practiceLabels && window.practiceLabels.length >= 0) {
-                populateLabelFilterSelect();
-                clearInterval(labelSelectInterval);
-              }
-            }, 500);
-          </script>
-
           <div class="kanban-filter-field kanban-filter-checkbox">
             <label for="filterLateCases" class="filter-checkbox-label">
               <input type="checkbox" id="filterLateCases">
               Late cases only
-              <span class="filter-tooltip-icon" data-tooltip="Shows only cases that are past their due date and not yet delivered. These cases need immediate attention.">?</span>
             </label>
           </div>
 
+<?php if (isFeatureEnabled('SHOW_AT_RISK')): ?>
           <div class="kanban-filter-field kanban-filter-checkbox">
             <label for="filterAtRisk" class="filter-checkbox-label">
               <input type="checkbox" id="filterAtRisk">
               At Risk only
-              <span class="filter-tooltip-icon" data-tooltip="Shows only cases flagged as at risk based on factors like approaching due dates, multiple revisions, or other workflow concerns.">?</span>
             </label>
           </div>
+<?php endif; ?>
 
           <div class="kanban-filter-field kanban-filter-actions">
             <button type="button" id="clearFiltersBtn" class="filter-clear-btn">Clear filters</button>
@@ -857,6 +810,7 @@ if (isset($appConfig) && is_array($appConfig) && isset($appConfig['appName'])) {
                   <div class="ap-status-label">Ready to schedule or deliver</div>
                 </div>
 
+<?php if (isFeatureEnabled('SHOW_AT_RISK')): ?>
                 <div class="ap-status-card">
                   <div class="ap-status-header">
                     <div class="ap-status-indicator warning"></div>
@@ -865,6 +819,7 @@ if (isset($appConfig) && is_array($appConfig) && isset($appConfig['appName'])) {
                   <div class="ap-status-value" id="apAtRisk">0</div>
                   <div class="ap-status-label">Due soon — potential reschedule</div>
                 </div>
+<?php endif; ?>
 
                 <div class="ap-status-card">
                   <div class="ap-status-header">
@@ -1227,11 +1182,16 @@ if (isset($appConfig) && is_array($appConfig) && isset($appConfig['appName'])) {
           <div class="modal-body">
             <div class="case-modal-tabs">
               <button type="button" class="case-tab case-tab-active" data-tab="details">Details</button>
+<?php if (isFeatureEnabled('SHOW_COMMENTS')): ?>
               <button type="button" class="case-tab" data-tab="comments">Comments <span id="caseCommentsCount" class="case-comments-count" style="display: none;">0</span></button>
+<?php endif; ?>
+<?php if (isFeatureEnabled('SHOW_REVISION_HISTORY')): ?>
               <button type="button" class="case-tab" data-tab="history">Revision History</button>
+<?php endif; ?>
             </div>
 
             <form id="createCaseForm" class="case-tab-panel case-tab-panel-active" enctype="multipart/form-data" novalidate>
+<?php if (isFeatureEnabled('SHOW_ACTIVITY_TIMELINE')): ?>
               <!-- Activity Timeline (visible when editing existing cases) -->
               <div id="caseActivityTimeline" class="activity-timeline-horizontal" style="display: none;">
                 <div class="activity-timeline-header">
@@ -1246,6 +1206,7 @@ if (isset($appConfig) && is_array($appConfig) && isset($appConfig['appName'])) {
                   <p class="activity-empty-state">No activity recorded yet.</p>
                 </div>
               </div>
+<?php endif; ?>
 
               <div class="modal-form-grid">
                 <div class="form-field">
@@ -1446,16 +1407,6 @@ if (isset($appConfig) && is_array($appConfig) && isset($appConfig['appName'])) {
                   </select>
                 </div>
 
-                <div class="form-field form-field-labels">
-                  <label for="caseLabels">Labels</label>
-                  <div class="labels-input-container" id="labelsInputContainer">
-                    <div class="selected-labels" id="selectedLabels"></div>
-                    <input type="text" id="labelInput" class="label-typeahead" placeholder="Type to add labels..." autocomplete="off" onkeydown="if(event.key==='Enter'){event.preventDefault();event.stopPropagation();return false;}">
-                    <div class="labels-dropdown" id="labelsDropdown"></div>
-                  </div>
-                  <input type="hidden" id="caseLabelsData" name="labels">
-                </div>
-
                 <div class="form-field form-field-notes">
                   <label for="notes">Notes</label>
                   <textarea id="notes" name="notes" rows="3"
@@ -1522,6 +1473,7 @@ if (isset($appConfig) && is_array($appConfig) && isset($appConfig['appName'])) {
               </div>
             </form>
 
+<?php if (isFeatureEnabled('SHOW_COMMENTS')): ?>
             <div id="caseCommentsPanel" class="case-tab-panel">
               <div class="case-comments-section">
                 <div id="caseCommentsList" class="case-comments-list">
@@ -1543,12 +1495,15 @@ if (isset($appConfig) && is_array($appConfig) && isset($appConfig['appName'])) {
                 </div>
               </div>
             </div>
+<?php endif; ?>
 
+<?php if (isFeatureEnabled('SHOW_REVISION_HISTORY')): ?>
             <div id="caseRevisionHistoryPanel" class="case-tab-panel">
               <div id="caseRevisionHistory" class="case-revision-history">
                 <p class="revision-empty-state">Select a case to see its revision history.</p>
               </div>
             </div>
+<?php endif; ?>
           </div>
         </div>
       </div>
@@ -2132,9 +2087,10 @@ if (isset($appConfig) && is_array($appConfig) && isset($appConfig['appName'])) {
   <!-- Toast notification container -->
   <div class="toast-container" id="toastContainer"></div>
 
+<?php if (isFeatureEnabled('SHOW_AI_CHAT')): ?>
   <!-- Floating Ask DentaTrak Button and Panel -->
   <div class="ask-dentatrak-floating" id="askDentatrakFloating">
-    <button type="button" class="ask-dentatrak-fab" id="askDentatrakFab" title="Ask DentaTrak">
+    <button type="button" class="ask-dentatrak-fab" id="askDentatrakFab" title="Ask <?php echo htmlspecialchars($appName); ?>">
       <svg class="fab-icon-default" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <circle cx="12" cy="12" r="10"></circle>
         <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
@@ -2147,7 +2103,7 @@ if (isset($appConfig) && is_array($appConfig) && isset($appConfig['appName'])) {
     </button>
     <div class="ask-dentatrak-panel" id="askDentatrakPanel">
       <div class="ask-panel-header">
-        <span class="ask-panel-title">Ask DentaTrak</span>
+        <span class="ask-panel-title">Ask <?php echo htmlspecialchars($appName); ?></span>
         <span class="ask-panel-subtitle">Your practice assistant</span>
       </div>
       <div class="ask-panel-body">
@@ -2156,7 +2112,7 @@ if (isset($appConfig) && is_array($appConfig) && isset($appConfig['appName'])) {
             <p>Hi! I can help you with:</p>
             <ul>
               <li>Questions about your practice data</li>
-              <li>How to use DentaTrak features</li>
+              <li>How to use <?php echo htmlspecialchars($appName); ?> features</li>
               <li>Case status and bottlenecks</li>
             </ul>
             <p>What would you like to know?</p>
@@ -2174,13 +2130,13 @@ if (isset($appConfig) && is_array($appConfig) && isset($appConfig['appName'])) {
       </div>
     </div>
   </div>
+<?php endif; ?>
 
   <!-- Load JavaScript last -->
   <script src="js/toast.js" defer></script>
   <script src="js/app.js"></script>
   <script src="js/card-delete-fixed.js" defer></script>
   <script src="js/assignments.js" defer></script>
-  <script src="js/case-labels.js" defer></script>
   <script src="js/case-comments.js" defer></script>
   <script src="js/notifications.js" defer></script>
   <script src="js/activity-timeline.js" defer></script>

@@ -95,7 +95,59 @@ Here is the workflow data to analyze:
     // Master switch to enable/disable dev tools globally (even for super users)
     'dev_tools_enabled' => strtolower(getEnvVar('DEV_TOOLS_ENABLED', 'false')) === 'true',
     // Super users who can access dev tools in UAT/Production when dev_tools_enabled is true
-    'super_users' => array_filter(array_map('trim', explode(',', getEnvVar('SUPER_USERS', ''))))
+    'super_users' => array_filter(array_map('trim', explode(',', getEnvVar('SUPER_USERS', '')))),
+
+    // Case Form Field Requirements
+    // Set to true to make a field required, false to make it optional
+    // Note: Clinical fields are only validated when their case type is selected
+    'case_required_fields' => [
+        // Patient Information
+        'patientFirstName' => true,
+        'patientLastName' => true,
+        'patientDOB' => true,
+        'patientGender' => true,
+        
+        // Case Information
+        'dentistName' => true,
+        'caseType' => true,
+        'dueDate' => true,
+        'status' => true,
+        
+        // Optional global fields - set to true to make required
+        'toothShade' => false,
+        'material' => false,
+        'assignedTo' => false,
+        'notes' => false,
+        'attachments' => false,
+        
+        // Clinical Details - Crown
+        'toothNumber' => true,              // Crown: Tooth #
+        
+        // Clinical Details - Bridge
+        'abutmentTeeth' => true,            // Bridge: Abutment Teeth
+        'ponticTeeth' => true,              // Bridge: Pontic Teeth
+        
+        // Clinical Details - Implant Crown
+        'implantToothNumber' => true,       // Implant Crown: Tooth #
+        'abutmentType' => false,            // Implant Crown: Abutment Type
+        'implantSystem' => false,           // Implant Crown: Implant System
+        'platformSize' => false,            // Implant Crown: Platform Size
+        'scanBodyUsed' => false,            // Implant Crown: Scan Body Used
+        
+        // Clinical Details - Implant Surgical Guide
+        'implantSites' => false,            // Implant Surgical Guide: Implant Sites
+        
+        // Clinical Details - Denture
+        'dentureJaw' => false,              // Denture: Jaw (Upper/Lower/Both)
+        'dentureType' => false,             // Denture: Type
+        'gingivalShade' => false,           // Denture: Gingival Shade
+        
+        // Clinical Details - Partial
+        'partialJaw' => false,              // Partial: Jaw
+        'teethToReplace' => true,           // Partial: Teeth to Replace
+        'partialMaterial' => false,         // Partial: Material
+        'partialGingivalShade' => false,    // Partial: Gingival Shade
+    ]
 ];
 
 // Production configuration (Cloud Run with Cloud SQL)

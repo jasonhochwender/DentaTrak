@@ -199,6 +199,81 @@ function saveCaseToCache(array $caseData) {
     }
 }
 
+/**
+ * Get a single case from cache by case ID.
+ * @param string $caseId The case ID to retrieve
+ * @return array|null The case data or null if not found
+ */
+function getCaseFromCache($caseId) {
+    global $pdo;
+    if (!$pdo || empty($caseId)) {
+        return null;
+    }
+
+    ensureCasesCacheTable();
+
+    try {
+        $stmt = $pdo->prepare("SELECT * FROM cases_cache WHERE case_id = :case_id LIMIT 1");
+        $stmt->execute(['case_id' => $caseId]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        
+        if (!$row) {
+            return null;
+        }
+
+        $attachments = [];
+        if (!empty($row['attachments_json'])) {
+            $decoded = json_decode($row['attachments_json'], true);
+            if (is_array($decoded)) {
+                $attachments = $decoded;
+            }
+        }
+
+        $revisions = [];
+        if (!empty($row['revisions_json'])) {
+            $decoded = json_decode($row['revisions_json'], true);
+            if (is_array($decoded)) {
+                $revisions = $decoded;
+            }
+        }
+
+        $clinicalDetails = [];
+        if (!empty($row['clinical_details_json'])) {
+            $decoded = json_decode($row['clinical_details_json'], true);
+            if (is_array($decoded)) {
+                $clinicalDetails = $decoded;
+            }
+        }
+
+        return [
+            'id' => $row['case_id'],
+            'driveFolderId' => $row['drive_folder_id'],
+            'patientFirstName' => $row['patient_first_name'],
+            'patientLastName' => $row['patient_last_name'],
+            'patientDOB' => $row['patient_dob'],
+            'patientGender' => $row['patient_gender'] ?? null,
+            'dentistName' => $row['dentist_name'],
+            'caseType' => $row['case_type'],
+            'toothShade' => $row['tooth_shade'],
+            'material' => $row['material'],
+            'dueDate' => $row['due_date'],
+            'creationDate' => $row['creation_date'],
+            'lastUpdateDate' => $row['last_update_date'],
+            'status' => $row['status'],
+            'statusChangedAt' => !empty($row['status_changed_at']) ? date('c', strtotime($row['status_changed_at'])) : null,
+            'notes' => $row['notes'],
+            'revisions' => $revisions,
+            'attachments' => $attachments,
+            'clinicalDetails' => $clinicalDetails,
+            'assignedTo' => $row['assigned_to'] ?? null,
+            'revisionCount' => (int)($row['revision_count'] ?? 0),
+        ];
+    } catch (PDOException $e) {
+        error_log('[cases_cache] Error getting case: ' . $e->getMessage());
+        return null;
+    }
+}
+
 function updateCaseStatusInCache($caseId, $status, $lastUpdateDate) {
     global $pdo;
     if (!$pdo) {

@@ -339,8 +339,7 @@ To add a new user to your practice:
 1. Click the '+ New Case' button at the top of the Cases tab
 2. Fill in patient name, dentist, case type, and due date
 3. Assign the case to a team member
-4. Add any labels for organization
-5. Click 'Create Case'
+4. Click 'Create Case'
 
 **Case Statuses (Kanban Board):**
 Cases flow through stages: Pending → In Progress → Quality Check → Ready for Pickup → Delivered
@@ -348,16 +347,9 @@ Drag and drop cards between columns to update status.
 
 **Filtering Cases:**
 - Use the search bar to find cases by patient or dentist name
-- Filter by Assigned To, Labels, Case Type
+- Filter by Assigned To or Case Type
 - Check 'Late cases only' to see overdue cases
 - Check 'At Risk only' to see cases that may miss their deadline
-
-**Labels:**
-Labels help organize and categorize cases. To add labels:
-1. Open a case by clicking on it
-2. Find the Labels field
-3. Type to search or create new labels
-4. Click a label to add it to the case
 
 **Insights/Analytics Tab:**
 View practice performance metrics, case volume trends, and AI-powered recommendations.

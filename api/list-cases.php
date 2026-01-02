@@ -188,41 +188,6 @@ try {
         return PIIEncryption::decryptCaseData($case);
     }, $cases);
     
-    // Fetch labels for all cases in one query for efficiency
-    $caseIds = array_column($decryptedCases, 'id');
-    $caseLabelsMap = [];
-    if (!empty($caseIds)) {
-        try {
-            $placeholders = implode(',', array_fill(0, count($caseIds), '?'));
-            $stmt = $pdo->prepare("
-                SELECT cla.case_id, cl.id as label_id, cl.name, cl.color
-                FROM case_label_assignments cla
-                JOIN case_labels cl ON cla.label_id = cl.id
-                WHERE cla.case_id IN ($placeholders)
-                ORDER BY cl.name ASC
-            ");
-            $stmt->execute($caseIds);
-            while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-                if (!isset($caseLabelsMap[$row['case_id']])) {
-                    $caseLabelsMap[$row['case_id']] = [];
-                }
-                $caseLabelsMap[$row['case_id']][] = [
-                    'id' => (int)$row['label_id'],
-                    'name' => $row['name'],
-                    'color' => $row['color']
-                ];
-            }
-        } catch (PDOException $e) {
-            // Labels table may not exist yet - continue without labels
-        }
-    }
-    
-    // Attach labels to each case
-    foreach ($decryptedCases as &$case) {
-        $case['labels'] = $caseLabelsMap[$case['id']] ?? [];
-    }
-    unset($case);
-    
     // Calculate At Risk status for all cases
     $atRiskStatuses = batchCalculateAtRiskStatus($decryptedCases, $pdo);
     
