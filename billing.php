@@ -96,6 +96,16 @@ try {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <!-- Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-MBJDENR3H2"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-MBJDENR3H2');
+    </script>
+    
     <title>Billing - <?php echo htmlspecialchars($appConfig['appName']); ?></title>
     <link rel="stylesheet" href="css/app.light.css">
     <script async src="https://js.stripe.com/v3/pricing-table.js"></script>
