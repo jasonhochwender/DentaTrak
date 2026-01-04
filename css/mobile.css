@@ -1,0 +1,1003 @@
+/* ===========================================
+   Mobile Responsiveness - Samsung S20 Ultra & Similar
+   Target breakpoints: 360px - 412px width
+   =========================================== */
+
+/* ===========================================
+   1. GLOBAL HEADER (Mobile Only)
+   - Fix cramped layout
+   - Stack user name/email vertically
+   - Truncate email with ellipsis
+   - Ensure menu button is tappable
+   =========================================== */
+
+@media (max-width: 480px) {
+  .main-header {
+    padding: 12px 16px;
+    gap: 8px;
+  }
+
+  .main-brand {
+    gap: 10px;
+    flex: 1;
+    min-width: 0; /* Allow flex shrinking */
+  }
+
+  .main-logo {
+    height: 36px;
+    width: 36px;
+    flex-shrink: 0;
+  }
+
+  .main-header h1 {
+    font-size: 1.1rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .app-title-container {
+    min-width: 0;
+    flex: 1;
+  }
+
+  .app-title-container h1 {
+    font-size: 1rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .practice-name,
+  .practice-switcher-name {
+    font-size: 0.7rem;
+    max-width: 120px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .user-profile {
+    gap: 8px;
+    flex-shrink: 0;
+  }
+
+  .user-info {
+    display: none; /* Hide user info on very small screens */
+  }
+
+  .user-avatar-button,
+  .profile-image {
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+    min-height: 36px;
+  }
+
+  .notification-bell {
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+  }
+
+  .notification-bell svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  /* User menu dropdown positioning */
+  .user-menu {
+    right: 0;
+    min-width: 180px;
+  }
+}
+
+/* Slightly larger mobile screens - show truncated email */
+@media (min-width: 481px) and (max-width: 640px) {
+  .main-header {
+    padding: 14px 20px;
+  }
+
+  .user-info {
+    max-width: 140px;
+  }
+
+  .user-name {
+    font-size: 0.8rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .user-email {
+    font-size: 0.7rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 120px;
+  }
+
+  .billing-link {
+    font-size: 0.65rem;
+  }
+}
+
+/* ===========================================
+   2. CASES VIEW - Toolbar & Buttons
+   - View Archived Cases button fully visible
+   - Buttons wrap/stack vertically
+   =========================================== */
+
+@media (max-width: 480px) {
+  .dashboard {
+    padding: 12px;
+  }
+
+  .main-tabs {
+    margin-bottom: 12px;
+  }
+
+  .main-tab {
+    padding: 8px 12px;
+    font-size: 0.85rem;
+  }
+
+  .dashboard-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+
+  .dashboard-toolbar-right {
+    flex-direction: column;
+    width: 100%;
+    gap: 8px;
+    margin-left: 0;
+  }
+
+  .create-case-button {
+    width: 100%;
+    justify-content: center;
+    padding: 12px 16px;
+  }
+
+  .filter-toggle-button {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .view-archived-button {
+    width: 100%;
+    justify-content: center;
+    white-space: normal;
+    text-align: center;
+    padding: 10px 12px;
+    font-size: 0.8rem;
+  }
+
+  .view-archived-button svg {
+    flex-shrink: 0;
+  }
+
+  /* Kanban filters */
+  .kanban-filters-bar {
+    padding: 12px;
+  }
+
+  .kanban-filters-row {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .kanban-filter-field {
+    width: 100%;
+  }
+
+  .kanban-filter-field input,
+  .kanban-filter-field select {
+    width: 100%;
+  }
+
+  .kanban-filter-actions {
+    width: 100%;
+  }
+
+  .filter-clear-btn {
+    width: 100%;
+  }
+}
+
+/* ===========================================
+   3. CREATE NEW CASE MODAL (Mobile)
+   - Fit within viewport height
+   - Internal vertical scrolling
+   - All fields and buttons reachable
+   =========================================== */
+
+@media (max-width: 480px) {
+  /* Modal container - full screen */
+  #createCaseModal.modal {
+    padding: 0;
+  }
+
+  #createCaseModal .modal-content.create-case-modal {
+    width: 100% !important;
+    max-width: 100% !important;
+    height: 100vh !important;
+    max-height: 100vh !important;
+    margin: 0 !important;
+    border-radius: 0 !important;
+    display: flex;
+    flex-direction: column;
+  }
+
+  #createCaseModal .modal-header {
+    flex-shrink: 0;
+    padding: 14px 16px;
+  }
+
+  #createCaseModal .modal-title {
+    font-size: 1.1rem;
+  }
+
+  #createCaseModal .modal-body {
+    flex: 1;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: 16px;
+    padding-bottom: 20px;
+  }
+
+  /* Case modal tabs */
+  .case-modal-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+
+  .case-tab {
+    flex: 1;
+    min-width: 80px;
+    padding: 8px 12px;
+    font-size: 0.8rem;
+  }
+
+  /* Form grid - single column on mobile */
+  .modal-form-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .modal-form-grid .form-field {
+    width: 100%;
+  }
+
+  /* Modal footer - sticky at bottom */
+  #createCaseModal .modal-footer.create-case-footer {
+    flex-shrink: 0;
+    padding: 12px 16px;
+    position: sticky;
+    bottom: 0;
+    background: #fff;
+    border-top: 1px solid #e5e7eb;
+    box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+    display: flex;
+    gap: 12px;
+  }
+
+  #createCaseModal .modal-footer button {
+    flex: 1;
+    padding: 12px 16px;
+  }
+
+  /* Form fields - prevent iOS zoom */
+  #createCaseModal input,
+  #createCaseModal select,
+  #createCaseModal textarea {
+    font-size: 16px;
+  }
+
+  /* Attachment sections */
+  .attachment-section {
+    margin-top: 16px;
+  }
+
+  .file-button {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+/* ===========================================
+   4. ARCHIVED CASES VIEW (Mobile)
+   - Prevent table overflow
+   - Horizontal scroll container
+   - Pagination accessible
+   =========================================== */
+
+@media (max-width: 480px) {
+  /* Modal container - full screen */
+  #archivedCasesModal.modal {
+    padding: 0;
+  }
+
+  #archivedCasesModal .modal-content.archived-cases-modal {
+    width: 100% !important;
+    max-width: 100% !important;
+    height: 100vh !important;
+    max-height: 100vh !important;
+    margin: 0 !important;
+    border-radius: 0 !important;
+    display: flex;
+    flex-direction: column;
+  }
+
+  #archivedCasesModal .modal-header {
+    flex-shrink: 0;
+    padding: 14px 16px;
+  }
+
+  #archivedCasesModal .modal-body {
+    flex: 1;
+    overflow: hidden;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Search and filter controls */
+  #archivedCasesModal .archived-search-row {
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+
+  #archivedCasesModal .archived-search-row input,
+  #archivedCasesModal .archived-search-row select {
+    width: 100%;
+    font-size: 16px;
+  }
+
+  /* Table container - horizontal scroll */
+  .archived-table-container {
+    flex: 1;
+    overflow-x: auto;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .archived-cases-table {
+    min-width: 600px; /* Force horizontal scroll */
+  }
+
+  .archived-cases-table th,
+  .archived-cases-table td {
+    padding: 8px 10px;
+    font-size: 0.75rem;
+    white-space: nowrap;
+  }
+
+  /* Modal footer with pagination */
+  #archivedCasesModal .modal-footer {
+    flex-shrink: 0;
+    padding: 10px 12px;
+    background: #fff;
+    border-top: 1px solid #e5e7eb;
+  }
+
+  .archived-pagination {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .archived-pagination .pagination-left,
+  .archived-pagination .pagination-right {
+    width: 100%;
+    justify-content: center;
+    margin-bottom: 8px;
+  }
+
+  .archived-pagination button {
+    min-width: 36px;
+    min-height: 36px;
+    padding: 6px 10px;
+    font-size: 0.8rem;
+  }
+
+  .archived-pagination select {
+    font-size: 14px;
+    padding: 6px 8px;
+  }
+}
+
+/* ===========================================
+   5. INSIGHTS TAB - Charts (Mobile Only)
+   - Charts don't overflow container
+   - Legends wrap/stack/move below
+   - Horizontal scroll where needed
+   =========================================== */
+
+@media (max-width: 480px) {
+  .analytics-pro {
+    padding: 16px 12px;
+  }
+
+  .ap-header-content {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .ap-title {
+    font-size: 1.25rem;
+  }
+
+  .ap-subtitle {
+    font-size: 0.8rem;
+  }
+
+  .ap-header-actions {
+    width: 100%;
+    flex-direction: column;
+  }
+
+  .ap-btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  /* Metrics grid - single column */
+  .ap-metrics-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .ap-metric-card {
+    padding: 16px;
+  }
+
+  .ap-metric-value {
+    font-size: 1.5rem;
+  }
+
+  /* Charts grid - single column */
+  .ap-charts-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .ap-chart-card {
+    padding: 16px;
+    overflow: hidden;
+  }
+
+  .ap-chart-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+  }
+
+  .ap-chart-controls {
+    width: 100%;
+  }
+
+  .ap-chart-controls select,
+  .ap-select {
+    width: 100%;
+  }
+
+  /* Chart container - allow horizontal scroll */
+  .ap-chart-container {
+    min-height: 220px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .ap-chart-container canvas {
+    min-width: 300px;
+  }
+
+  /* Status grid - single column */
+  .ap-status-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .ap-status-card {
+    padding: 16px;
+  }
+
+  .ap-status-value {
+    font-size: 1.5rem;
+  }
+
+  /* Insights grid - single column */
+  .ap-insights-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  /* Section headers */
+  .ap-section-header {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .ap-section-title {
+    font-size: 1rem;
+  }
+
+  /* Insights container */
+  .insights-container {
+    padding: 12px;
+  }
+
+  .insights-quick-stats {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .insights-stat-card {
+    padding: 14px;
+  }
+
+  .insights-stat-value {
+    font-size: 1.25rem;
+  }
+
+  .insights-recommendations,
+  .insights-bottlenecks {
+    padding: 16px;
+  }
+
+  .insights-section-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .insights-recommendation-item {
+    flex-direction: column;
+    gap: 12px;
+    padding: 14px;
+  }
+
+  .insights-recommendation-icon {
+    width: 28px;
+    height: 28px;
+  }
+
+  .insights-bottleneck-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 12px;
+  }
+
+  .insights-bottleneck-stage {
+    min-width: auto;
+    width: 100%;
+  }
+}
+
+/* ===========================================
+   6. SMART RECOMMENDATIONS (Mobile)
+   - Fix card sizing and overflow
+   - Cards stack vertically
+   - Text wraps correctly
+   =========================================== */
+
+@media (max-width: 480px) {
+  .ap-ai-section {
+    padding: 16px;
+  }
+
+  .ap-ai-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .ap-ai-title-group {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .ap-ai-badge {
+    font-size: 0.6rem;
+    padding: 4px 8px;
+  }
+
+  .ap-ai-title {
+    font-size: 1rem;
+  }
+
+  .ap-recommendations-list {
+    gap: 12px;
+  }
+
+  .ap-recommendation-item {
+    flex-direction: column;
+    gap: 12px;
+    padding: 14px;
+  }
+
+  .ap-recommendation-icon {
+    width: 36px;
+    height: 36px;
+  }
+
+  .ap-recommendation-header {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .ap-recommendation-title {
+    font-size: 0.9rem;
+    word-break: break-word;
+  }
+
+  .ap-recommendation-priority {
+    font-size: 0.6rem;
+  }
+
+  .ap-recommendation-description {
+    font-size: 0.8rem;
+    line-height: 1.5;
+    word-break: break-word;
+  }
+}
+
+/* ===========================================
+   7. FEEDBACK MODAL (Mobile)
+   - Fit viewport
+   - Internal scrolling
+   - Emoji options, textarea, buttons visible
+   =========================================== */
+
+@media (max-width: 480px) {
+  /* Feedback Modal - full screen */
+  #feedbackModal.modal {
+    padding: 0;
+  }
+
+  #feedbackModal .modal-content.contact-modal {
+    width: 100% !important;
+    max-width: 100% !important;
+    height: 100vh !important;
+    max-height: 100vh !important;
+    margin: 0 !important;
+    border-radius: 0 !important;
+    display: flex;
+    flex-direction: column;
+  }
+
+  #feedbackModal .modal-header {
+    flex-shrink: 0;
+    padding: 14px 16px;
+  }
+
+  #feedbackModal .modal-body {
+    flex: 1;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: 16px;
+  }
+
+  #feedbackModal .modal-footer {
+    flex-shrink: 0;
+    padding: 12px 16px;
+    background: #fff;
+    border-top: 1px solid #e5e7eb;
+    display: flex;
+    gap: 12px;
+  }
+
+  #feedbackModal .modal-footer button {
+    flex: 1;
+    padding: 12px 16px;
+  }
+
+  /* Emoji container - wrap on small screens */
+  .emoji-container {
+    flex-wrap: wrap;
+    gap: 6px;
+    justify-content: center;
+    padding: 8px 0;
+  }
+
+  .emoji-option {
+    flex: 0 0 calc(33.333% - 6px);
+    min-width: 70px;
+    padding: 10px 6px;
+  }
+
+  .emoji-face {
+    font-size: 1.75rem;
+    margin-bottom: 4px;
+  }
+
+  .emoji-label {
+    font-size: 0.65rem;
+  }
+
+  .feedback-question {
+    font-size: 14px;
+    margin-bottom: 12px;
+  }
+
+  #feedbackForm textarea {
+    font-size: 16px; /* Prevent iOS zoom */
+    min-height: 100px;
+  }
+
+  /* Feedback Success Modal */
+  #feedbackSuccessModal .modal-content.feedback-success-modal {
+    width: 90% !important;
+    max-width: 320px !important;
+    margin: auto !important;
+  }
+}
+
+/* ===========================================
+   8. SETTINGS MODAL & TAKE A TOUR (Mobile)
+   - Hide or disable access on mobile
+   =========================================== */
+
+@media (max-width: 480px) {
+  /* Hide Tour link in user menu on mobile */
+  #startTourLink {
+    display: none !important;
+  }
+
+  /* Settings Modal - make it full screen if opened */
+  #settingsBillingModal.modal {
+    padding: 0;
+  }
+
+  #settingsBillingModal .modal-content.settings-billing-modal {
+    width: 100% !important;
+    max-width: 100% !important;
+    height: 100vh !important;
+    max-height: 100vh !important;
+    margin: 0 !important;
+    border-radius: 0 !important;
+    display: flex;
+    flex-direction: column;
+  }
+
+  #settingsBillingModal .modal-header {
+    flex-shrink: 0;
+    padding: 14px 16px;
+  }
+
+  #settingsBillingModal .modal-body {
+    flex: 1;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: 16px;
+  }
+
+  /* Settings tabs - scrollable */
+  .settings-tabs,
+  .tab-content-scroll {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Settings form fields */
+  #settingsBillingModal input,
+  #settingsBillingModal select,
+  #settingsBillingModal textarea {
+    font-size: 16px;
+  }
+
+  /* Hide tour elements on mobile */
+  .shepherd-modal-overlay-container,
+  .shepherd-element {
+    display: none !important;
+  }
+}
+
+/* ===========================================
+   9. GENERAL MODAL IMPROVEMENTS (Mobile)
+   =========================================== */
+
+@media (max-width: 480px) {
+  /* Generic modal styles */
+  .modal,
+  [class*="modal"] {
+    overflow: hidden;
+  }
+
+  .modal-content {
+    max-height: 100vh;
+  }
+
+  /* Close buttons - ensure tappable */
+  .modal-close,
+  .close-btn,
+  [class*="close"] {
+    min-width: 44px;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* Form inputs - prevent iOS zoom */
+  input[type="text"],
+  input[type="email"],
+  input[type="tel"],
+  input[type="number"],
+  input[type="date"],
+  select,
+  textarea {
+    font-size: 16px;
+  }
+}
+
+/* ===========================================
+   10. KANBAN BOARD (Mobile)
+   =========================================== */
+
+@media (max-width: 480px) {
+  .kanban-board {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .kanban-column {
+    min-height: 200px;
+    padding: 12px;
+  }
+
+  .kanban-column-header {
+    margin-bottom: 10px;
+    padding-bottom: 10px;
+  }
+
+  .kanban-column-title {
+    font-size: 0.8rem;
+  }
+
+  .kanban-card {
+    padding: 12px;
+  }
+
+  .kanban-card-title {
+    font-size: 0.85rem;
+  }
+
+  .kanban-card-meta {
+    font-size: 0.7rem;
+  }
+}
+
+/* ===========================================
+   11. CASE DETAIL MODAL (Mobile)
+   =========================================== */
+
+@media (max-width: 480px) {
+  .case-detail-modal,
+  #caseDetailModal {
+    width: 100% !important;
+    max-width: 100% !important;
+    height: 100vh !important;
+    max-height: 100vh !important;
+    margin: 0 !important;
+    border-radius: 0 !important;
+  }
+
+  .case-detail-modal .modal-content,
+  #caseDetailModal .modal-content {
+    height: 100%;
+    max-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    border-radius: 0;
+  }
+
+  .case-detail-modal .modal-body,
+  #caseDetailModal .modal-body {
+    flex: 1;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: 12px;
+  }
+
+  /* Case detail tabs */
+  .case-detail-tabs {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    white-space: nowrap;
+    padding-bottom: 8px;
+  }
+
+  .case-detail-tab {
+    padding: 8px 12px;
+    font-size: 0.8rem;
+  }
+}
+
+/* ===========================================
+   12. NOTIFICATION DROPDOWN (Mobile)
+   =========================================== */
+
+@media (max-width: 480px) {
+  .notification-dropdown {
+    position: fixed;
+    top: 60px;
+    left: 8px;
+    right: 8px;
+    width: auto;
+    max-width: none;
+    max-height: calc(100vh - 80px);
+    border-radius: 12px;
+  }
+
+  .notification-dropdown-list {
+    max-height: calc(100vh - 160px);
+  }
+}
+
+/* ===========================================
+   13. PRACTICE SWITCHER (Mobile)
+   =========================================== */
+
+@media (max-width: 480px) {
+  .practice-switcher-dropdown {
+    position: fixed;
+    top: 60px;
+    left: 8px;
+    right: 8px;
+    width: auto;
+    max-width: none;
+    max-height: calc(100vh - 80px);
+    overflow-y: auto;
+  }
+
+  .practice-switcher-item {
+    padding: 12px 16px;
+  }
+}
+
+/* ===========================================
+   14. LOADING OVERLAY (Mobile)
+   =========================================== */
+
+@media (max-width: 480px) {
+  .page-loading-overlay .loading-text {
+    font-size: 0.9rem;
+  }
+
+  .loading-spinner {
+    width: 40px;
+    height: 40px;
+  }
+}
+
+/* ===========================================
+   15. TOAST NOTIFICATIONS (Mobile)
+   =========================================== */
+
+@media (max-width: 480px) {
+  .toast-container {
+    left: 8px;
+    right: 8px;
+    bottom: 16px;
+    width: auto;
+  }
+
+  .toast {
+    width: 100%;
+    max-width: none;
+  }
+}
