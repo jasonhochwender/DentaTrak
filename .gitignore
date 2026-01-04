@@ -88,6 +88,26 @@ node_modules/
 *.zip
 
 # ===========================================
+# TESTING (Playwright E2E)
+# ===========================================
+
+# Test files - NEVER deploy to production
+/tests/
+/testResults/
+/test-results/
+/playwright-report/
+
+# Playwright configuration
+playwright.config.ts
+playwright.config.js
+
+# Test-only Node dependencies
+package.json
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# ===========================================
 # MISCELLANEOUS
 # ===========================================
 

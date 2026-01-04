@@ -1,0 +1,59 @@
+# ===========================================
+# Rsync Exclude List for Production Deployment
+# Usage: rsync -av --exclude-from='deploy-exclude.txt' ./ user@server:/var/www/dentatrak/
+# ===========================================
+
+# Testing (Playwright E2E) - NEVER deploy
+tests/
+test-results/
+playwright-report/
+playwright.config.ts
+playwright.config.js
+
+# Node.js artifacts - test-only
+node_modules/
+package.json
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Environment files - use server-side config
+.env
+.env.*
+.env_mode
+
+# IDE and editor files
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# Logs and temp files
+logs/
+*.log
+*.tmp
+*.temp
+*.bak
+php_errors.log
+error_log
+
+# Build artifacts
+*.tar.gz
+*.zip
+
+# Documentation (optional - remove if needed in prod)
+*.md
+!README.md

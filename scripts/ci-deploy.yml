@@ -1,0 +1,119 @@
+# ===========================================
+# Generic CI/CD Deploy Configuration
+# ===========================================
+# This is a vendor-agnostic example.
+# Adapt for GitHub Actions, GitLab CI, Jenkins, etc.
+# ===========================================
+#
+# IMPORTANT: Deployment is BLOCKED if tests fail.
+# Tests are a mandatory gate - no overrides allowed.
+# ===========================================
+
+# Example: GitHub Actions format
+name: Test and Deploy to Production
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  # ===========================================
+  # STAGE 1: E2E TESTS (MANDATORY GATE)
+  # ===========================================
+  test:
+    name: Run E2E Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Run E2E Tests
+        run: npm run test:e2e
+        env:
+          BASE_URL: ${{ secrets.STAGING_URL }}
+          DENTATRAK_TEST_EMAIL: ${{ secrets.TEST_EMAIL }}
+          DENTATRAK_TEST_PASSWORD: ${{ secrets.TEST_PASSWORD }}
+          CI: true
+
+      # Upload test artifacts on failure for debugging
+      - name: Upload test results on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: testResults/
+          retention-days: 7
+
+  # ===========================================
+  # STAGE 2: DEPLOY (ONLY IF TESTS PASS)
+  # ===========================================
+  deploy:
+    name: Deploy to Production
+    needs: test
+    runs-on: ubuntu-latest
+    # CRITICAL: Only run if test job succeeded
+    # No manual override - tests MUST pass
+    if: ${{ success() }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Create clean deployment artifact (allowlist approach)
+      - name: Prepare deployment artifact
+        run: |
+          mkdir -p deploy-artifact
+          
+          # Copy ONLY application files (allowlist)
+          cp -r api/ deploy-artifact/ 2>/dev/null || true
+          cp -r css/ deploy-artifact/ 2>/dev/null || true
+          cp -r js/ deploy-artifact/ 2>/dev/null || true
+          cp -r images/ deploy-artifact/ 2>/dev/null || true
+          cp -r uploads/ deploy-artifact/ 2>/dev/null || true
+          cp -r vendor/ deploy-artifact/ 2>/dev/null || true
+          
+          # Copy root PHP files
+          cp *.php deploy-artifact/ 2>/dev/null || true
+          cp .htaccess deploy-artifact/ 2>/dev/null || true
+          
+          # Verify NO test files are included
+          echo "=== Verifying no test files in artifact ==="
+          if [ -d "deploy-artifact/tests" ]; then
+            echo "ERROR: tests/ directory found in artifact!"
+            exit 1
+          fi
+          if [ -f "deploy-artifact/playwright.config.ts" ]; then
+            echo "ERROR: playwright.config.ts found in artifact!"
+            exit 1
+          fi
+          if [ -d "deploy-artifact/node_modules" ]; then
+            echo "ERROR: node_modules/ found in artifact!"
+            exit 1
+          fi
+          if [ -d "deploy-artifact/testResults" ]; then
+            echo "ERROR: testResults/ directory found in artifact!"
+            exit 1
+          fi
+          echo "=== Artifact is clean ==="
+
+      # Deploy using rsync
+      - name: Deploy to production
+        run: |
+          rsync -avz --delete \
+            deploy-artifact/ \
+            ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:${{ secrets.DEPLOY_PATH }}/
+
+      - name: Deployment complete
+        run: |
+          echo "=== Deployment Complete ==="
+          echo "Tests passed and deployment succeeded."
