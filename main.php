@@ -375,7 +375,7 @@ if (isset($appConfig) && is_array($appConfig) && isset($appConfig['appName'])) {
   <link rel="stylesheet" href="css/app.css?v=20241227">
   
   <!-- Mobile responsiveness CSS -->
-  <link rel="stylesheet" href="css/mobile.css?v=20250104">
+  <link rel="stylesheet" href="css/mobile.css?v=20250104b">
   
   <!-- Non-critical CSS - deferred loading -->
   <link rel="preload" href="https://cdn.jsdelivr.net/npm/shepherd.js@11/dist/css/shepherd.css" as="style" onload="this.onload=null;this.rel='stylesheet'">

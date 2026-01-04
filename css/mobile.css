@@ -4,6 +4,33 @@
    =========================================== */
 
 /* ===========================================
+   0. BASE MODAL OVERRIDES (Critical)
+   - Override min-width: 835px from app.light.css
+   - Must come before specific modal styles
+   =========================================== */
+
+@media (max-width: 480px) {
+  /* Override base modal-content min-width */
+  .modal-content {
+    min-width: 100% !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    border-radius: 0 !important;
+  }
+
+  /* Override modal body max-height */
+  .modal-body {
+    max-height: none !important;
+  }
+
+  /* Ensure modal takes full screen */
+  .modal {
+    padding: 0 !important;
+  }
+}
+
+/* ===========================================
    1. GLOBAL HEADER (Mobile Only)
    - Fix cramped layout
    - Stack user name/email vertically
