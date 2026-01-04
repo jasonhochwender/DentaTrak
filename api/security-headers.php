@@ -40,11 +40,11 @@ function setSecurityHeaders() {
     // Content Security Policy - restrict resource loading
     $csp = [
         "default-src 'self'",
-        "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.google.com https://*.googleapis.com https://*.gstatic.com https://cdn.jsdelivr.net",
+        "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.google.com https://*.googleapis.com https://*.gstatic.com https://cdn.jsdelivr.net https://www.googletagmanager.com",
         "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net",
         "font-src 'self' https://fonts.gstatic.com data:",
         "img-src 'self' data: https: blob:",
-        "connect-src 'self' https://*.google.com https://*.googleapis.com https://api.openai.com https://cdn.jsdelivr.net",
+        "connect-src 'self' https://*.google.com https://*.googleapis.com https://api.openai.com https://cdn.jsdelivr.net https://www.googletagmanager.com https://*.google-analytics.com https://*.analytics.google.com",
         "frame-src https://*.google.com",
         "object-src 'none'",
         "base-uri 'self'",

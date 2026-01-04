@@ -352,7 +352,7 @@ if (isset($appConfig) && is_array($appConfig) && isset($appConfig['appName'])) {
   <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
   
   <!-- Preload critical resources -->
-  <link rel="preload" href="js/app.js" as="script">
+  <link rel="preload" href="js/app.js?v=20250104" as="script">
   <link rel="preload" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
   <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap"></noscript>
   
@@ -546,7 +546,7 @@ window.featureFlags = <?php echo getFeatureFlagsJson(); ?>;
         
         <button type="button" class="user-avatar-button" id="userMenuToggle" aria-haspopup="true" aria-expanded="false">
           <?php if (!empty($user['picture'])): ?>
-            <img src="<?php echo htmlspecialchars($user['picture']); ?>" alt="Profile picture" class="profile-image" referrerpolicy="no-referrer">
+            <img src="<?php echo htmlspecialchars($user['picture']); ?>" alt="Profile picture" class="profile-image" referrerpolicy="no-referrer" crossorigin="anonymous">
           <?php else: ?>
             <span class="avatar-placeholder"><?php echo strtoupper(substr($user['name'] ?? 'U', 0, 1)); ?></span>
           <?php endif; ?>
@@ -2143,17 +2143,17 @@ window.featureFlags = <?php echo getFeatureFlagsJson(); ?>;
 <?php endif; ?>
 
   <!-- Load JavaScript last -->
-  <script src="js/toast.js" defer></script>
-  <script src="js/app.js"></script>
-  <script src="js/card-delete-fixed.js" defer></script>
-  <script src="js/assignments.js" defer></script>
-  <script src="js/case-comments.js" defer></script>
-  <script src="js/notifications.js" defer></script>
-  <script src="js/activity-timeline.js" defer></script>
-  <script src="js/clinical-details.js" defer></script>
-  <script src="js/ask-dentatrak.js" defer></script>
-  <script src="js/insights.js" defer></script>
-  <script src="js/patient-search.js" defer></script>
+  <script src="js/toast.js?v=20250104" defer></script>
+  <script src="js/app.js?v=20250104"></script>
+  <script src="js/card-delete-fixed.js?v=20250104" defer></script>
+  <script src="js/assignments.js?v=20250104" defer></script>
+  <script src="js/case-comments.js?v=20250104" defer></script>
+  <script src="js/notifications.js?v=20250104" defer></script>
+  <script src="js/activity-timeline.js?v=20250104" defer></script>
+  <script src="js/clinical-details.js?v=20250104" defer></script>
+  <script src="js/ask-dentatrak.js?v=20250104" defer></script>
+  <script src="js/insights.js?v=20250104" defer></script>
+  <script src="js/patient-search.js?v=20250104" defer></script>
   
 <?php if ($showDevTools): ?>
 <!-- Dev Tools JavaScript -->
