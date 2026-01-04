@@ -2144,7 +2144,7 @@ window.featureFlags = <?php echo getFeatureFlagsJson(); ?>;
 
   <!-- Load JavaScript last -->
   <script src="js/toast.js?v=20250104" defer></script>
-  <script src="js/app.js?v=20250104"></script>
+  <script src="js/app.js?v=20250104" defer></script>
   <script src="js/card-delete-fixed.js?v=20250104" defer></script>
   <script src="js/assignments.js?v=20250104" defer></script>
   <script src="js/case-comments.js?v=20250104" defer></script>
