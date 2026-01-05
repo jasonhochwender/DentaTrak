@@ -322,5 +322,5 @@ if (session_status() === PHP_SESSION_NONE) {
         'samesite' => 'Lax'
     ]);
     
-    session_start();
+    session_start(); 
 }
