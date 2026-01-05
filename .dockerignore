@@ -6,3 +6,24 @@ node_modules/
 .git
 .gitignore
 cloudbuild.yaml
+
+# Test files and artifacts
+tests/
+testResults/
+*.spec.ts
+*.spec.js
+*.test.ts
+*.test.js
+playwright.config.ts
+playwright-report/
+test-results/
+
+# Development tooling
+package.json
+package-lock.json
+tsconfig.json
+*.md
+README.md
+.env.example
+scripts/
+deploy.cmd

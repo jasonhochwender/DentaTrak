@@ -212,36 +212,38 @@
       ]
     });
 
-    // Step 8: Ask DentaTrak
-    tour.addStep({
-      id: 'ask-dentatrak',
-      title: 'Ask DentaTrak AI',
-      text: 'Your AI-powered practice assistant! Ask questions about your cases, get insights about workload, find overdue cases, understand what puts cases at risk, and more. It\'s like having a smart assistant who knows your practice data.',
-      attachTo: {
-        element: '#askDentatrakFab',
-        on: 'top-end'
-      },
-      popperOptions: {
-        modifiers: [{ name: 'offset', options: { offset: [-20, 16] } }]
-      },
-      buttons: [
-        {
-          text: 'Back',
-          action: tour.back,
-          secondary: true
+    // Step 8: Ask DentaTrak (only if AI Chat feature is enabled)
+    if (window.featureFlags && window.featureFlags.SHOW_AI_CHAT) {
+      tour.addStep({
+        id: 'ask-dentatrak',
+        title: 'Ask DentaTrak AI',
+        text: 'Your AI-powered practice assistant! Ask questions about your cases, get insights about workload, find overdue cases, understand what puts cases at risk, and more. It\'s like having a smart assistant who knows your practice data.',
+        attachTo: {
+          element: '#askDentatrakFab',
+          on: 'top-end'
         },
-        {
-          text: 'Next',
-          action: tour.next
-        }
-      ]
-    });
+        popperOptions: {
+          modifiers: [{ name: 'offset', options: { offset: [-20, 16] } }]
+        },
+        buttons: [
+          {
+            text: 'Back',
+            action: tour.back,
+            secondary: true
+          },
+          {
+            text: 'Next',
+            action: tour.next
+          }
+        ]
+      });
+    }
 
     // Step 9: Finish
     tour.addStep({
       id: 'finish',
       title: 'You\'re All Set!',
-      text: 'That covers the essentials. Remember, you can always access Support from the menu if you need help, or use the AI Chat for quick answers. Happy tracking!',
+      text: 'That covers the essentials. Remember, you can always access Support from the menu if you need help. Happy tracking!',
       buttons: [
         {
           text: 'Back',

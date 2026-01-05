@@ -304,9 +304,6 @@ try {
     exit(1);
 }
 
-// Run one-time billing tier migration (can be removed after production deployment)
-require_once __DIR__ . '/migrate-billing-tiers.php';
-runBillingTierMigration($pdo);
 
 // Start session (Cloud Run safe)
 if (session_status() === PHP_SESSION_NONE) {

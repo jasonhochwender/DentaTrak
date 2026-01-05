@@ -1,13 +1,7 @@
 <?php
 /**
  * Dev Tools Access Control
- * 
- * Determines if the current user can access dev tools based on:
- * 1. SHOW_DEV_TOOLS feature flag (master switch)
- * 2. super_users list in appConfig (specific users allowed)
- * 
- * IMPORTANT: Dev tools operations in UAT/Production are ALWAYS scoped
- * to the practice the super user is an admin of.
+ * Controls access to development tools based on environment and user permissions
  */
 
 require_once __DIR__ . '/feature-flags.php';
@@ -16,16 +10,14 @@ require_once __DIR__ . '/feature-flags.php';
  * Check if the current user can access dev tools
  * 
  * @param array $appConfig The application configuration
- * @param string|null $userEmail The current user's email (from session)
+ * @param string|null $userEmail The current user's email
  * @return bool True if user can access dev tools
  */
 function canAccessDevTools($appConfig, $userEmail = null) {
-    // Check if dev tools feature flag is enabled
     if (!isFeatureEnabled('SHOW_DEV_TOOLS')) {
         return false;
     }
     
-    // Check if user is in super users list
     if (empty($userEmail)) {
         return false;
     }
@@ -59,8 +51,7 @@ function isSuperUser($appConfig, $userEmail) {
 }
 
 /**
- * Check if the current environment is production or UAT (non-development)
- * Used to determine if extra warnings should be shown
+ * Check if the current environment is production or UAT
  * 
  * @param array $appConfig The application configuration
  * @return bool True if in production or UAT
@@ -71,7 +62,7 @@ function isProductionOrUAT($appConfig) {
 }
 
 /**
- * Get the environment display name for warnings
+ * Get the environment display name
  * 
  * @param array $appConfig The application configuration
  * @return string Environment display name
@@ -138,7 +129,6 @@ function getSuperUserManagedPracticeId($pdo, $userId) {
         return null;
     }
     
-    // Verify they are an admin of this practice
     if (superUserHasPracticeAdminAccess($pdo, $userId, $currentPracticeId)) {
         return (int)$currentPracticeId;
     }

@@ -138,6 +138,5 @@ try {
     ]);
     
     error_log('Error getting archived cases: ' . $e->getMessage());
-    error_log('SQL Error: ' . $e->getTraceAsString());
 }
 ?>
