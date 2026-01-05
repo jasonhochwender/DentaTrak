@@ -215,7 +215,7 @@ try {
             border: 1px solid var(--billing-gray-100);
         }
         
-        .billing-card h3 {
+        .billing-card h3 { 
             font-size: 1rem;
             font-weight: 600;
             color: var(--billing-gray-600);
