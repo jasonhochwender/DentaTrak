@@ -10,6 +10,15 @@ require_once __DIR__ . '/api/appConfig.php';
 require_once __DIR__ . '/api/security-headers.php';
 setSecurityHeaders();
 
+// ============================================
+// REDIRECT IF ALREADY LOGGED IN
+// Security: Includes users auto-logged in via Remember Me token
+// ============================================
+if (!empty($_SESSION['db_user_id'])) {
+    header('Location: main.php');
+    exit;
+}
+
 // Get client ID for Google Sign-In
 $googleClientId = $appConfig['google_client_id'];
 
@@ -186,7 +195,21 @@ $authError = isset($_GET['auth_error']) ? htmlspecialchars($_GET['auth_error']) 
             <input type="hidden" id="loginEmail" name="email">
             <div class="form-group">
               <label for="loginPassword">Password</label>
-              <input type="password" id="loginPassword" name="password" required placeholder="Enter your password" autocomplete="current-password">
+              <div class="password-input-wrapper">
+                <input type="password" id="loginPassword" name="password" required placeholder="Enter your password" autocomplete="current-password">
+                <button type="button" class="password-toggle-btn" aria-label="Show password" data-target="loginPassword">
+                  <svg class="icon-show" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                  <svg class="icon-hide" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                </button>
+              </div>
+            </div>
+            <!-- Remember Me Checkbox -->
+            <div class="remember-me-wrapper">
+              <label class="remember-me-label">
+                <input type="checkbox" id="rememberMe" name="rememberMe" class="remember-me-checkbox">
+                <span class="remember-me-checkmark"></span>
+                <span class="remember-me-text">Remember me</span>
+              </label>
             </div>
             <div id="loginError" class="form-error" style="display: none;"></div>
             <button type="submit" class="email-submit-btn" id="loginSubmitBtn">Sign In</button>
@@ -194,6 +217,24 @@ $authError = isset($_GET['auth_error']) ? htmlspecialchars($_GET['auth_error']) 
               <a href="forgot-password.php" class="link-btn">Forgot your password?</a>
             </div>
           </form>
+          
+          <!-- Two-Factor Authentication Input (shown when 2FA is required) -->
+          <div id="twoFactorLoginForm" class="two-factor-login" style="display: none;">
+            <div class="two-factor-header">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+              </svg>
+              <h3>Two-Factor Authentication</h3>
+              <p>Enter the 6-digit code from your authenticator app</p>
+            </div>
+            <div class="two-factor-input-group">
+              <input type="text" id="login2FACode" maxlength="6" pattern="[0-9]*" inputmode="numeric" placeholder="000000" autocomplete="one-time-code">
+            </div>
+            <div id="twoFactorLoginError" class="form-error" style="display: none;"></div>
+            <button type="button" id="verify2FALoginBtn" class="email-submit-btn">Verify & Sign In</button>
+            <button type="button" id="cancel2FALogin" class="link-btn" style="margin-top: 20px;">← Back to login</button>
+          </div>
           <div class="email-form-footer">
             <button type="button" id="changeEmailBtn" class="link-btn">← Use a different email</button>
           </div>
@@ -246,7 +287,13 @@ $authError = isset($_GET['auth_error']) ? htmlspecialchars($_GET['auth_error']) 
             </div>
             <div class="form-group">
               <label for="regPassword">Password</label>
-              <input type="password" id="regPassword" name="password" required placeholder="Create a password" autocomplete="new-password">
+              <div class="password-input-wrapper">
+                <input type="password" id="regPassword" name="password" required placeholder="Create a password" autocomplete="new-password">
+                <button type="button" class="password-toggle-btn" aria-label="Show password" data-target="regPassword">
+                  <svg class="icon-show" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                  <svg class="icon-hide" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                </button>
+              </div>
               <div class="password-requirements">
                 <span class="req" id="reqLength">✗ At least 8 characters</span>
                 <span class="req" id="reqUpper">✗ One uppercase letter</span>
@@ -256,7 +303,13 @@ $authError = isset($_GET['auth_error']) ? htmlspecialchars($_GET['auth_error']) 
             </div>
             <div class="form-group">
               <label for="regConfirmPassword">Confirm Password</label>
-              <input type="password" id="regConfirmPassword" name="confirmPassword" required placeholder="Confirm your password" autocomplete="new-password">
+              <div class="password-input-wrapper">
+                <input type="password" id="regConfirmPassword" name="confirmPassword" required placeholder="Confirm your password" autocomplete="new-password">
+                <button type="button" class="password-toggle-btn" aria-label="Show password" data-target="regConfirmPassword">
+                  <svg class="icon-show" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                  <svg class="icon-hide" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                </button>
+              </div>
               <div id="passwordMatch" class="password-match"></div>
             </div>
             <div id="registerError" class="form-error" style="display: none;"></div>
@@ -290,7 +343,13 @@ $authError = isset($_GET['auth_error']) ? htmlspecialchars($_GET['auth_error']) 
             <input type="hidden" id="immediateSetupToken" name="token">
             <div class="form-group">
               <label for="newPassword">New Password</label>
-              <input type="password" id="newPassword" name="password" required placeholder="Create a password" autocomplete="new-password">
+              <div class="password-input-wrapper">
+                <input type="password" id="newPassword" name="password" required placeholder="Create a password" autocomplete="new-password">
+                <button type="button" class="password-toggle-btn" aria-label="Show password" data-target="newPassword">
+                  <svg class="icon-show" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                  <svg class="icon-hide" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                </button>
+              </div>
               <div class="password-requirements">
                 <span class="req" id="newReqLength">✗ At least 8 characters</span>
                 <span class="req" id="newReqUpper">✗ One uppercase letter</span>
@@ -300,7 +359,13 @@ $authError = isset($_GET['auth_error']) ? htmlspecialchars($_GET['auth_error']) 
             </div>
             <div class="form-group">
               <label for="confirmNewPassword">Confirm Password</label>
-              <input type="password" id="confirmNewPassword" name="confirmPassword" required placeholder="Confirm your password" autocomplete="new-password">
+              <div class="password-input-wrapper">
+                <input type="password" id="confirmNewPassword" name="confirmPassword" required placeholder="Confirm your password" autocomplete="new-password">
+                <button type="button" class="password-toggle-btn" aria-label="Show password" data-target="confirmNewPassword">
+                  <svg class="icon-show" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                  <svg class="icon-hide" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                </button>
+              </div>
               <div id="newPasswordMatch" class="password-match"></div>
             </div>
             <div id="immediateSetupError" class="form-error" style="display: none;"></div>
@@ -499,6 +564,44 @@ $authError = isset($_GET['auth_error']) ? htmlspecialchars($_GET['auth_error']) 
 <script>
 // Progressive Email Authentication JavaScript
 document.addEventListener('DOMContentLoaded', function() {
+  
+  // ============================================
+  // PASSWORD VISIBILITY TOGGLE
+  // Toggles password field between masked and visible states
+  // Security: Never logs or stores password values
+  // ============================================
+  function initPasswordToggle() {
+    const toggleButtons = document.querySelectorAll('.password-toggle-btn');
+    
+    toggleButtons.forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        const targetId = this.getAttribute('data-target');
+        const passwordInput = document.getElementById(targetId);
+        
+        if (!passwordInput) return;
+        
+        // Toggle between password and text input types
+        const isCurrentlyPassword = passwordInput.type === 'password';
+        passwordInput.type = isCurrentlyPassword ? 'text' : 'password';
+        
+        // Update button state and ARIA label for accessibility
+        this.classList.toggle('is-visible', isCurrentlyPassword);
+        this.setAttribute('aria-label', isCurrentlyPassword ? 'Hide password' : 'Show password');
+      });
+      
+      // Handle keyboard activation (Enter and Space)
+      btn.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          this.click();
+        }
+      });
+    });
+  }
+  
+  // Initialize password toggles
+  initPasswordToggle();
+  
   // Form elements
   const showEmailSignInBtn = document.getElementById('showEmailSignIn');
   const emailEntryForm = document.getElementById('emailEntryForm');
@@ -883,13 +986,17 @@ document.addEventListener('DOMContentLoaded', function() {
         loginSubmitBtn.textContent = 'Signing in...';
       }
       
+      // Get Remember Me checkbox value
+      const rememberMe = document.getElementById('rememberMe')?.checked || false;
+      
       fetch('api/auth-email.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           action: 'login',
           email: email,
-          password: password
+          password: password,
+          rememberMe: rememberMe
         }),
         credentials: 'same-origin'
       })
@@ -898,6 +1005,18 @@ document.addEventListener('DOMContentLoaded', function() {
         if (data.success) {
           lastEnteredPassword = ''; // Clear stored password on successful login
           window.location.href = data.redirect || 'main.php';
+        } else if (data.requires_2fa) {
+          // ============================================
+          // TWO-FACTOR AUTHENTICATION REQUIRED
+          // Show 2FA input field for users with 2FA enabled
+          // ============================================
+          if (loginSubmitBtn) {
+            loginSubmitBtn.disabled = false;
+            loginSubmitBtn.textContent = 'Sign In';
+          }
+          
+          // Show 2FA input section
+          show2FAInput(email, password, rememberMe, data.message);
         } else {
           // Reset button state on error
           if (loginSubmitBtn) {
@@ -1218,6 +1337,208 @@ document.addEventListener('keydown', function(e) {
     });
   }
 });
+
+// ============================================
+// TWO-FACTOR AUTHENTICATION LOGIN FLOW
+// ============================================
+var pending2FACredentials = null;
+var pending2FAGoogle = false; // Flag for Google sign-in 2FA
+
+function showGoogle2FAInput() {
+  // Hide all login forms, show 2FA form
+  var emailForm = document.getElementById('emailLoginForm');
+  var passwordLoginFormContainer = document.getElementById('passwordLoginForm');
+  var googleWrapper = document.querySelector('.google-signin-wrapper');
+  var emailToggle = document.querySelector('.email-signin-toggle');
+  var loginDivider = document.querySelector('.login-divider');
+  var twoFactorForm = document.getElementById('twoFactorLoginForm');
+  var twoFactorError = document.getElementById('twoFactorLoginError');
+  var codeInput = document.getElementById('login2FACode');
+  var twoFactorHeader = document.querySelector('.two-factor-header p');
+  var emailEntryForm = document.getElementById('emailEntryForm');
+  var changeEmailBtn = document.getElementById('changeEmailBtn');
+  var loginGreeting = document.getElementById('loginGreeting');
+  
+  // Hide all login elements
+  if (emailForm) emailForm.style.display = 'none';
+  if (emailEntryForm) emailEntryForm.style.display = 'none';
+  if (googleWrapper) googleWrapper.style.display = 'none';
+  if (emailToggle) emailToggle.style.display = 'none';
+  if (loginDivider) loginDivider.style.display = 'none';
+  if (changeEmailBtn) changeEmailBtn.style.display = 'none';
+  if (loginGreeting) loginGreeting.style.display = 'none';
+  
+  // Show the password login form container (which contains the 2FA form)
+  if (passwordLoginFormContainer) passwordLoginFormContainer.style.display = 'block';
+  
+  // Show 2FA form
+  if (twoFactorForm) twoFactorForm.style.display = 'block';
+  if (twoFactorHeader) twoFactorHeader.textContent = 'Enter the 6-digit code from your authenticator app to complete Google sign-in';
+  if (twoFactorError) twoFactorError.style.display = 'none';
+  if (codeInput) {
+    codeInput.value = '';
+    codeInput.focus();
+  }
+}
+
+// Check if we were redirected here for Google 2FA (must be after function definition)
+(function checkGoogle2FA() {
+  var urlParams = new URLSearchParams(window.location.search);
+  if (urlParams.get('require_2fa') === 'google') {
+    // Show 2FA form for Google sign-in
+    pending2FAGoogle = true;
+    showGoogle2FAInput();
+    // Clean up URL
+    window.history.replaceState({}, document.title, window.location.pathname);
+  }
+})();
+
+function show2FAInput(email, password, rememberMe, message) {
+  // Store credentials for 2FA verification
+  pending2FACredentials = { email: email, password: password, rememberMe: rememberMe };
+  pending2FAGoogle = false;
+  
+  // Hide password form, show 2FA form
+  var passwordForm = document.getElementById('emailLoginForm');
+  var twoFactorForm = document.getElementById('twoFactorLoginForm');
+  var twoFactorError = document.getElementById('twoFactorLoginError');
+  var codeInput = document.getElementById('login2FACode');
+  
+  if (passwordForm) passwordForm.style.display = 'none';
+  if (twoFactorForm) twoFactorForm.style.display = 'block';
+  if (twoFactorError) {
+    twoFactorError.textContent = message || '';
+    twoFactorError.style.display = message ? 'block' : 'none';
+  }
+  if (codeInput) {
+    codeInput.value = '';
+    codeInput.focus();
+  }
+}
+
+function hide2FAInput() {
+  pending2FACredentials = null;
+  
+  var passwordForm = document.getElementById('emailLoginForm');
+  var twoFactorForm = document.getElementById('twoFactorLoginForm');
+  
+  if (passwordForm) passwordForm.style.display = 'block';
+  if (twoFactorForm) twoFactorForm.style.display = 'none';
+}
+
+// Verify 2FA code and complete login
+var verify2FABtn = document.getElementById('verify2FALoginBtn');
+var cancel2FABtn = document.getElementById('cancel2FALogin');
+var login2FACodeInput = document.getElementById('login2FACode');
+var twoFactorLoginError = document.getElementById('twoFactorLoginError');
+
+if (verify2FABtn) {
+  verify2FABtn.addEventListener('click', function() {
+    // Check if this is Google 2FA or email/password 2FA
+    if (!pending2FACredentials && !pending2FAGoogle) {
+      hide2FAInput();
+      return;
+    }
+    
+    var code = login2FACodeInput ? login2FACodeInput.value.trim() : '';
+    
+    if (!code || code.length !== 6 || !/^\d+$/.test(code)) {
+      if (twoFactorLoginError) {
+        twoFactorLoginError.textContent = 'Please enter a valid 6-digit code.';
+        twoFactorLoginError.style.display = 'block';
+      }
+      return;
+    }
+    
+    verify2FABtn.disabled = true;
+    verify2FABtn.textContent = 'Verifying...';
+    if (twoFactorLoginError) twoFactorLoginError.style.display = 'none';
+    
+    // Determine which API endpoint to use
+    var apiUrl = pending2FAGoogle ? 'api/verify-google-2fa.php' : 'api/auth-email.php';
+    var requestBody = pending2FAGoogle 
+      ? { totpCode: code }
+      : {
+          action: 'login',
+          email: pending2FACredentials.email,
+          password: pending2FACredentials.password,
+          rememberMe: pending2FACredentials.rememberMe,
+          totpCode: code
+        };
+    
+    // Submit 2FA code
+    fetch(apiUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(requestBody),
+      credentials: 'same-origin'
+    })
+    .then(function(response) { return response.json(); })
+    .then(function(data) {
+      if (data.success) {
+        pending2FACredentials = null;
+        pending2FAGoogle = false;
+        window.location.href = data.redirect || 'main.php';
+      } else {
+        verify2FABtn.disabled = false;
+        verify2FABtn.textContent = 'Verify & Sign In';
+        
+        if (twoFactorLoginError) {
+          twoFactorLoginError.textContent = data.message || 'Invalid code. Please try again.';
+          twoFactorLoginError.style.display = 'block';
+        }
+        
+        // Clear the code input for retry
+        if (login2FACodeInput) {
+          login2FACodeInput.value = '';
+          login2FACodeInput.focus();
+        }
+      }
+    })
+    .catch(function() {
+      verify2FABtn.disabled = false;
+      verify2FABtn.textContent = 'Verify & Sign In';
+      
+      if (twoFactorLoginError) {
+        twoFactorLoginError.textContent = 'An error occurred. Please try again.';
+        twoFactorLoginError.style.display = 'block';
+      }
+    });
+  });
+}
+
+// Cancel 2FA and go back to password form
+if (cancel2FABtn) {
+  cancel2FABtn.addEventListener('click', function() {
+    if (pending2FAGoogle) {
+      // For Google 2FA, restore the main login page elements
+      pending2FAGoogle = false;
+      var googleWrapper = document.querySelector('.google-signin-wrapper');
+      var emailToggle = document.querySelector('.email-signin-toggle');
+      var loginDivider = document.querySelector('.login-divider');
+      var twoFactorForm = document.getElementById('twoFactorLoginForm');
+      var passwordLoginFormContainer = document.getElementById('passwordLoginForm');
+      
+      if (twoFactorForm) twoFactorForm.style.display = 'none';
+      if (passwordLoginFormContainer) passwordLoginFormContainer.style.display = 'none';
+      if (googleWrapper) googleWrapper.style.display = 'block';
+      if (emailToggle) emailToggle.style.display = 'block';
+      if (loginDivider) loginDivider.style.display = 'flex';
+    } else {
+      hide2FAInput();
+    }
+  });
+}
+
+// Allow Enter key to submit 2FA code
+if (login2FACodeInput) {
+  login2FACodeInput.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      if (verify2FABtn) verify2FABtn.click();
+    }
+  });
+}
 </script>
 </body>
 </html>

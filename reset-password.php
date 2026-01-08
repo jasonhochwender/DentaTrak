@@ -73,7 +73,13 @@ $token = $_GET['token'] ?? '';
         
         <div class="form-group">
           <label for="password">New Password</label>
-          <input type="password" id="password" name="password" required placeholder="Enter new password">
+          <div class="password-input-wrapper">
+            <input type="password" id="password" name="password" required placeholder="Enter new password">
+            <button type="button" class="password-toggle-btn" aria-label="Show password" data-target="password">
+              <svg class="icon-show" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+              <svg class="icon-hide" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+            </button>
+          </div>
           <div class="password-requirements">
             <span class="req" id="reqLength">✗ At least 8 characters</span>
             <span class="req" id="reqUpper">✗ One uppercase letter</span>
@@ -84,7 +90,13 @@ $token = $_GET['token'] ?? '';
         
         <div class="form-group">
           <label for="confirmPassword">Confirm New Password</label>
-          <input type="password" id="confirmPassword" name="confirmPassword" required placeholder="Confirm new password">
+          <div class="password-input-wrapper">
+            <input type="password" id="confirmPassword" name="confirmPassword" required placeholder="Confirm new password">
+            <button type="button" class="password-toggle-btn" aria-label="Show password" data-target="confirmPassword">
+              <svg class="icon-show" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+              <svg class="icon-hide" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+            </button>
+          </div>
           <div id="passwordMatch" class="password-match"></div>
         </div>
         
@@ -122,6 +134,40 @@ $token = $_GET['token'] ?? '';
   </div>
 
   <script>
+    // ============================================
+    // PASSWORD VISIBILITY TOGGLE
+    // Toggles password field between masked and visible states
+    // Security: Never logs or stores password values
+    // ============================================
+    (function initPasswordToggle() {
+      const toggleButtons = document.querySelectorAll('.password-toggle-btn');
+      
+      toggleButtons.forEach(function(btn) {
+        btn.addEventListener('click', function() {
+          const targetId = this.getAttribute('data-target');
+          const passwordInput = document.getElementById(targetId);
+          
+          if (!passwordInput) return;
+          
+          // Toggle between password and text input types
+          const isCurrentlyPassword = passwordInput.type === 'password';
+          passwordInput.type = isCurrentlyPassword ? 'text' : 'password';
+          
+          // Update button state and ARIA label for accessibility
+          this.classList.toggle('is-visible', isCurrentlyPassword);
+          this.setAttribute('aria-label', isCurrentlyPassword ? 'Hide password' : 'Show password');
+        });
+        
+        // Handle keyboard activation (Enter and Space)
+        btn.addEventListener('keydown', function(e) {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            this.click();
+          }
+        });
+      });
+    })();
+    
     const token = document.getElementById('token').value;
     const passwordInput = document.getElementById('password');
     const confirmPasswordInput = document.getElementById('confirmPassword');

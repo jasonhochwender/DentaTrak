@@ -5,10 +5,16 @@
 
 # Testing (Playwright E2E) - NEVER deploy
 tests/
+testResults/
 test-results/
 playwright-report/
 playwright.config.ts
 playwright.config.js
+
+# Documentation - not needed in production
+documentation/
+README.md
+*.md
 
 # Node.js artifacts - test-only
 node_modules/
@@ -54,6 +60,5 @@ error_log
 *.tar.gz
 *.zip
 
-# Documentation (optional - remove if needed in prod)
-*.md
-!README.md
+# This file itself
+deploy-exclude.txt

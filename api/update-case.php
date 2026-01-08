@@ -500,8 +500,57 @@ try {
             }
         }
         
-        // Validate CASE-TYPE-SPECIFIC required fields from config
+        // ============================================
+        // CASE NOTES CHARACTER LIMIT VALIDATION
+        // Business Rule: Notes field is limited to 3,000 characters.
+        // Server-side enforcement prevents bypass of client-side limit.
+        // ============================================
+        $notesMaxLength = 3000;
+        if (isset($caseData['notes']) && strlen($caseData['notes']) > $notesMaxLength) {
+            http_response_code(400);
+            echo json_encode([
+                'success' => false,
+                'message' => "Notes cannot exceed {$notesMaxLength} characters. Current length: " . strlen($caseData['notes']) . " characters.",
+                'field' => 'notes'
+            ]);
+            exit;
+        }
+        
+        // ============================================
+        // TOOTH NUMBER VALIDATION (Case-Type Aware)
+        // Business Rule: For Crown case type, validates tooth number
+        // using standard dental numbering (1-32 for adult teeth).
+        // Server-side enforcement prevents bypass of client-side validation.
+        // ============================================
         $caseType = $_POST['caseType'] ?? '';
+        
+        if ($caseType === 'Crown' && !empty($clinicalDetails['toothNumber'])) {
+            $toothNumber = trim($clinicalDetails['toothNumber']);
+            
+            // Validate: must be numeric and between 1-32
+            if (!ctype_digit($toothNumber)) {
+                http_response_code(400);
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'Tooth number must be a number (1-32)',
+                    'field' => 'clinicalToothNumber'
+                ]);
+                exit;
+            }
+            
+            $toothNum = (int)$toothNumber;
+            if ($toothNum < 1 || $toothNum > 32) {
+                http_response_code(400);
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'Tooth number must be between 1 and 32',
+                    'field' => 'clinicalToothNumber'
+                ]);
+                exit;
+            }
+        }
+        
+        // Validate CASE-TYPE-SPECIFIC required fields from config
         
         // Map case types to their clinical fields
         $caseTypeClinicalFields = [

@@ -144,6 +144,8 @@ function handleRegister($pdo, $input) {
 function handleLogin($pdo, $input) {
     $email = trim($input['email'] ?? '');
     $password = $input['password'] ?? '';
+    $rememberMe = !empty($input['rememberMe']); // Remember Me checkbox value
+    $totpCode = $input['totpCode'] ?? ''; // 2FA code if provided
     
     // Validate email
     if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
@@ -181,8 +183,65 @@ function handleLogin($pdo, $input) {
         return;
     }
     
+    // ============================================
+    // TWO-FACTOR AUTHENTICATION CHECK
+    // Security: If 2FA is enabled, require valid TOTP code
+    // ============================================
+    require_once __DIR__ . '/totp.php';
+    
+    $twoFAStatus = get2FAStatus($user['id']);
+    
+    if ($twoFAStatus['enabled']) {
+        // 2FA is enabled - check if code was provided
+        if (empty($totpCode)) {
+            // Return response indicating 2FA is required
+            // Store partial auth in session for 2FA verification
+            $_SESSION['pending_2fa_user_id'] = $user['id'];
+            $_SESSION['pending_2fa_email'] = $email;
+            $_SESSION['pending_2fa_remember_me'] = $rememberMe;
+            $_SESSION['pending_2fa_timestamp'] = time();
+            
+            echo json_encode([
+                'success' => false,
+                'requires_2fa' => true,
+                'message' => 'Please enter your two-factor authentication code.'
+            ]);
+            return;
+        }
+        
+        // Verify the TOTP code
+        $secret = get2FASecret($user['id']);
+        if (!$secret || !TOTP::verifyCode($secret, $totpCode)) {
+            http_response_code(401);
+            echo json_encode([
+                'success' => false,
+                'requires_2fa' => true,
+                'message' => 'Invalid authentication code. Please try again.'
+            ]);
+            return;
+        }
+        
+        // Clear pending 2FA session data
+        unset($_SESSION['pending_2fa_user_id']);
+        unset($_SESSION['pending_2fa_email']);
+        unset($_SESSION['pending_2fa_remember_me']);
+        unset($_SESSION['pending_2fa_timestamp']);
+    }
+    
     // Set up unified session
     setupUserSession($user, 'email');
+    
+    // ============================================
+    // REMEMBER ME HANDLING
+    // Security: Creates persistent token if user checked "Remember Me"
+    // Token is stored hashed in DB, cookie is httpOnly and secure
+    // ============================================
+    if ($rememberMe) {
+        $tokenValue = createRememberMeToken($user['id']);
+        if ($tokenValue) {
+            setRememberMeCookie($tokenValue);
+        }
+    }
     
     // Get user's practices for session
     $userPractices = getUserPractices($user['id']);

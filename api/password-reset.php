@@ -308,6 +308,12 @@ function handlePasswordReset($pdo, $input) {
         // Also update the user_auth_methods table
         addAuthMethod($tokenData['user_id'], 'email', null, $passwordHash);
         
+        // ============================================
+        // SECURITY: Invalidate all remember me tokens on password change
+        // This ensures any stolen tokens become useless after password reset
+        // ============================================
+        revokeAllRememberMeTokens($tokenData['user_id']);
+        
         // Mark token as used
         $stmt = $pdo->prepare("UPDATE password_reset_tokens SET used = 1 WHERE id = :id");
         $stmt->execute(['id' => $tokenData['id']]);

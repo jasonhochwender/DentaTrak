@@ -787,6 +787,149 @@
   color: #ef4444;
 }
 
+/* ============================================
+   PASSWORD VISIBILITY TOGGLE
+   ============================================ */
+
+/* Container for password input with toggle button */
+.password-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.password-input-wrapper input {
+  width: 100%;
+  padding-right: 44px; /* Space for the toggle button */
+}
+
+/* Password visibility toggle button */
+.password-toggle-btn {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  padding: 6px;
+  cursor: pointer;
+  color: #94a3b8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: color 0.2s ease, background-color 0.2s ease;
+}
+
+.password-toggle-btn:hover {
+  color: #64748b;
+  background-color: #f1f5f9;
+}
+
+.password-toggle-btn:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3);
+  color: #3b82f6;
+}
+
+.password-toggle-btn:focus-visible {
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5);
+}
+
+.password-toggle-btn svg {
+  width: 20px;
+  height: 20px;
+  pointer-events: none;
+}
+
+/* Hide the "hide" icon by default, show "show" icon */
+.password-toggle-btn .icon-show {
+  display: block;
+}
+
+.password-toggle-btn .icon-hide {
+  display: none;
+}
+
+.password-toggle-btn.is-visible .icon-show {
+  display: none;
+}
+
+.password-toggle-btn.is-visible .icon-hide {
+  display: block;
+}
+
+/* ============================================
+   REMEMBER ME CHECKBOX
+   ============================================ */
+
+.remember-me-wrapper {
+  margin: 12px 0 4px;
+}
+
+.remember-me-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  user-select: none;
+  font-size: 0.9rem;
+  color: #475569;
+}
+
+.remember-me-checkbox {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.remember-me-checkmark {
+  position: relative;
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+  background: #fff;
+  border: 2px solid #cbd5e1;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.remember-me-checkbox:checked + .remember-me-checkmark {
+  background: #3b82f6;
+  border-color: #3b82f6;
+}
+
+.remember-me-checkmark::after {
+  content: '';
+  position: absolute;
+  display: none;
+  left: 5px;
+  top: 2px;
+  width: 5px;
+  height: 9px;
+  border: solid white;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+.remember-me-checkbox:checked + .remember-me-checkmark::after {
+  display: block;
+}
+
+.remember-me-checkbox:focus + .remember-me-checkmark {
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+}
+
+.remember-me-label:hover .remember-me-checkmark {
+  border-color: #94a3b8;
+}
+
+.remember-me-text {
+  line-height: 1;
+}
+
 /* Forgot Password Link */
 .forgot-password-link {
   text-align: center;
@@ -1225,4 +1368,61 @@
 
 .modal .btn-primary:hover {
   background: #1d4ed8;
+}
+
+/* ============================================
+   TWO-FACTOR AUTHENTICATION LOGIN STYLES
+   ============================================ */
+
+.two-factor-login {
+  text-align: center;
+}
+
+.two-factor-header {
+  margin-bottom: 24px;
+}
+
+.two-factor-header svg {
+  margin-bottom: 12px;
+}
+
+.two-factor-header h3 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #1e293b;
+  margin: 0 0 8px 0;
+}
+
+.two-factor-header p {
+  font-size: 0.9rem;
+  color: #64748b;
+  margin: 0;
+}
+
+.two-factor-input-group {
+  margin-bottom: 16px;
+}
+
+.two-factor-input-group input {
+  width: 100%;
+  max-width: 200px;
+  padding: 14px 16px;
+  border: 2px solid #e2e8f0;
+  border-radius: 10px;
+  font-size: 1.5rem;
+  font-weight: 600;
+  text-align: center;
+  letter-spacing: 8px;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.two-factor-input-group input:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+}
+
+.two-factor-input-group input::placeholder {
+  color: #cbd5e1;
+  letter-spacing: 8px;
 }

@@ -247,6 +247,7 @@ $practiceName = 'My Practice'; // Default
 $practiceLogoPath = ''; // Default
 $userPractices = []; // All practices user belongs to
 $hasMultiplePractices = false;
+$userHasPassword = false; // Whether user has a password set (false for Google-only users)
 
 // Always try to load practice name and logo from the database for the current practice
 if ($currentPracticeId) {
@@ -281,6 +282,13 @@ if ($currentPracticeId) {
                 $stmt->execute(['user_id' => $userId]);
                 $userPractices = $stmt->fetchAll(PDO::FETCH_ASSOC);
                 $hasMultiplePractices = count($userPractices) > 1;
+                
+                // Check if user has a password set (for showing/hiding change password section)
+                // Users who signed in with Google only won't have a password_hash
+                $stmt = $pdo->prepare("SELECT password_hash FROM users WHERE id = :user_id");
+                $stmt->execute(['user_id' => $userId]);
+                $userAuth = $stmt->fetch(PDO::FETCH_ASSOC);
+                $userHasPassword = !empty($userAuth['password_hash']);
             }
         } else {
             // PDO not available, using defaults
@@ -1249,7 +1257,10 @@ window.featureFlags = <?php echo getFeatureFlagsJson(); ?>;
 
                 <div class="form-field">
                   <label for="dentistName">Dentist Name <span class="required">*</span></label>
-                  <input id="dentistName" name="dentistName" type="text" required>
+                  <div class="autocomplete-wrapper">
+                    <input id="dentistName" name="dentistName" type="text" required autocomplete="off" aria-autocomplete="list" aria-controls="dentistNameSuggestions">
+                    <div id="dentistNameSuggestions" class="autocomplete-dropdown" role="listbox" aria-label="Dentist name suggestions"></div>
+                  </div>
                 </div>
 
                 <div class="form-field">
@@ -1422,8 +1433,12 @@ window.featureFlags = <?php echo getFeatureFlagsJson(); ?>;
 
                 <div class="form-field form-field-notes">
                   <label for="notes">Notes</label>
-                  <textarea id="notes" name="notes" rows="3"
-                            placeholder="Optional notes about this case"></textarea>
+                  <div class="char-counter-wrapper">
+                    <textarea id="notes" name="notes" rows="3" maxlength="3000"
+                              placeholder="Optional notes about this case"
+                              aria-describedby="notesCharCounter"></textarea>
+                    <div id="notesCharCounter" class="char-counter">0 / 3,000 characters</div>
+                  </div>
                 </div>
               </div>
 
@@ -1919,6 +1934,137 @@ window.featureFlags = <?php echo getFeatureFlagsJson(); ?>;
                           <div id="gmailUsersList">
                             <!-- Practice users grid will be rendered here -->
                           </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div class="settings-divider"></div>
+                  
+                  <!-- Security Section -->
+                  <div class="settings-twisty" data-twisty-id="security">
+                    <button type="button" class="settings-twisty-header">
+                      <span class="settings-twisty-arrow"></span>
+                      <span class="settings-twisty-title">Security</span>
+                    </button>
+                    <div class="settings-twisty-content">
+                      <div class="settings-group">
+                        
+                        <!-- Change Password Section - Only shown for users with password-based login -->
+                        <?php if ($userHasPassword): ?>
+                        <div class="security-section">
+                          <h4 class="subsection-title">Change Password</h4>
+                          <div id="changePasswordForm" class="security-form">
+                            <div class="form-field">
+                              <label for="currentPassword">Current Password <span class="required">*</span></label>
+                              <div class="password-input-wrapper">
+                                <input type="password" id="currentPassword" name="currentPassword" autocomplete="off" required>
+                                <button type="button" class="password-toggle-btn" aria-label="Show password" data-target="currentPassword">
+                                  <svg class="icon-show" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                                  <svg class="icon-hide" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                                </button>
+                              </div>
+                            </div>
+                            <div class="form-field">
+                              <label for="newPassword">New Password</label>
+                              <div class="password-input-wrapper">
+                                <input type="password" id="newPassword" name="newPassword" autocomplete="new-password">
+                                <button type="button" class="password-toggle-btn" aria-label="Show password" data-target="newPassword">
+                                  <svg class="icon-show" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                                  <svg class="icon-hide" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                                </button>
+                              </div>
+                              <div class="password-requirements" id="newPasswordReqs">
+                                <span class="req" id="pwReqLength">✗ At least 8 characters</span>
+                                <span class="req" id="pwReqUpper">✗ One uppercase letter</span>
+                                <span class="req" id="pwReqNumber">✗ One number</span>
+                                <span class="req" id="pwReqSpecial">✗ One special character</span>
+                              </div>
+                            </div>
+                            <div class="form-field">
+                              <label for="confirmNewPassword">Confirm New Password</label>
+                              <div class="password-input-wrapper">
+                                <input type="password" id="confirmNewPassword" name="confirmNewPassword" autocomplete="new-password">
+                                <button type="button" class="password-toggle-btn" aria-label="Show password" data-target="confirmNewPassword">
+                                  <svg class="icon-show" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                                  <svg class="icon-hide" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                                </button>
+                              </div>
+                              <div id="passwordMatchStatus" class="password-match"></div>
+                            </div>
+                            <div id="changePasswordError" class="form-error" style="display: none;"></div>
+                            <div id="changePasswordSuccess" class="form-success" style="display: none;"></div>
+                            <button type="button" id="changePasswordBtn" class="btn-secondary">Change Password</button>
+                          </div>
+                        </div>
+                        <?php endif; ?>
+                        
+                        <!-- Two-Factor Authentication Section -->
+                        <div class="security-section">
+                          <h4 class="subsection-title">Two-Factor Authentication</h4>
+                          <div id="twoFactorSection">
+                            <div id="twoFactorStatus" class="two-factor-status">
+                              <span class="status-badge status-disabled">Disabled</span>
+                              <p class="status-description">Add an extra layer of security to your account by requiring a verification code from your authenticator app.</p>
+                            </div>
+                            
+                            <!-- Setup Flow (hidden by default) -->
+                            <div id="twoFactorSetup" class="two-factor-setup" style="display: none;">
+                              <div class="setup-step">
+                                <p><strong>Step 1:</strong> Scan this QR code with your authenticator app (Google Authenticator, Authy, etc.)</p>
+                                <div id="twoFactorQRCode" class="qr-code-container"></div>
+                                <p class="manual-entry">Or enter this code manually: <code id="twoFactorSecret"></code></p>
+                              </div>
+                              <div class="setup-step">
+                                <p><strong>Step 2:</strong> Enter the 6-digit verification code from your app</p>
+                                <div class="verification-input-group">
+                                  <input type="text" id="twoFactorVerifyCode" maxlength="6" pattern="[0-9]*" inputmode="numeric" placeholder="000000" autocomplete="one-time-code">
+                                  <button type="button" id="verifyTwoFactorBtn" class="btn-primary">Verify & Enable</button>
+                                </div>
+                                <div id="twoFactorSetupError" class="form-error" style="display: none;"></div>
+                              </div>
+                              <button type="button" id="cancelTwoFactorSetup" class="btn-link">Cancel Setup</button>
+                            </div>
+                            
+                            <!-- Disable Flow (hidden by default) -->
+                            <div id="twoFactorDisable" class="two-factor-disable" style="display: none;">
+                              <p>Are you sure you want to disable two-factor authentication? This will make your account less secure.</p>
+                              <div class="disable-actions">
+                                <button type="button" id="confirmDisableTwoFactor" class="btn-danger">Disable 2FA</button>
+                                <button type="button" id="cancelDisableTwoFactor" class="btn-link">Cancel</button>
+                              </div>
+                              <div id="twoFactorDisableError" class="form-error" style="display: none;"></div>
+                            </div>
+                            
+                            <!-- Action Buttons -->
+                            <div id="twoFactorActions" class="two-factor-actions">
+                              <button type="button" id="enableTwoFactorBtn" class="btn-secondary">Enable 2FA</button>
+                              <button type="button" id="disableTwoFactorBtn" class="btn-outline-danger" style="display: none;">Disable 2FA</button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div class="settings-divider"></div>
+                  
+                  <!-- Data & Privacy Section -->
+                  <div class="settings-twisty" data-twisty-id="data-privacy">
+                    <button type="button" class="settings-twisty-header">
+                      <span class="settings-twisty-arrow"></span>
+                      <span class="settings-twisty-title">Data &amp; Privacy</span>
+                    </button>
+                    <div class="settings-twisty-content">
+                      <div class="settings-group">
+                        <div class="data-export-section">
+                          <h4 class="subsection-title">Export Your Data</h4>
+                          <p class="section-description">Download a copy of all your data including cases, notes, activity history, and settings.</p>
+                          <div id="exportStatus" class="export-status" style="display: none;"></div>
+                          <button type="button" id="exportDataBtn" class="btn-secondary">
+                            <span class="btn-icon">📥</span> Export All Data
+                          </button>
+                          <p class="export-note">Your data will be prepared and a download link will be sent to your email. Links expire after 7 days.</p>
                         </div>
                       </div>
                     </div>

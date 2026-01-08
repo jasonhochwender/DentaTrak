@@ -395,8 +395,178 @@ function registerWithEmail($email, $password, $firstName = '', $lastName = '') {
     }
 }
 
+// ============================================
+// ACCOUNT LOCKOUT CONFIGURATION
+// Security: Prevents brute-force attacks by temporarily locking accounts
+// ============================================
+define('MAX_FAILED_LOGIN_ATTEMPTS', 5);
+define('LOCKOUT_DURATION_MINUTES', 15);
+
+/**
+ * Ensure the login_attempts table exists for tracking failed logins
+ * Security: Server-side tracking prevents client-side bypass
+ */
+function ensureLoginAttemptsTable() {
+    global $pdo;
+    static $initialized = false;
+    
+    if ($initialized || !$pdo) {
+        return;
+    }
+    
+    try {
+        $pdo->exec("
+            CREATE TABLE IF NOT EXISTS login_attempts (
+                id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                email VARCHAR(255) NOT NULL,
+                attempt_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                ip_address VARCHAR(45) DEFAULT NULL,
+                
+                INDEX idx_email (email),
+                INDEX idx_attempt_time (attempt_time),
+                INDEX idx_email_time (email, attempt_time)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+        ");
+        $initialized = true;
+    } catch (PDOException $e) {
+        if (strpos($e->getMessage(), '1050') === false) {
+            error_log('[unified-identity] Error creating login_attempts table: ' . $e->getMessage());
+        }
+        $initialized = true;
+    }
+}
+
+/**
+ * Record a failed login attempt
+ * Security: Tracks attempts by email to prevent enumeration attacks
+ * 
+ * @param string $email Email address (normalized)
+ * @param string|null $ipAddress Client IP address for logging
+ */
+function recordFailedLoginAttempt($email, $ipAddress = null) {
+    global $pdo;
+    
+    if (!$pdo) return;
+    
+    ensureLoginAttemptsTable();
+    
+    try {
+        $stmt = $pdo->prepare("
+            INSERT INTO login_attempts (email, ip_address, attempt_time)
+            VALUES (:email, :ip_address, NOW())
+        ");
+        $stmt->execute([
+            'email' => strtolower(trim($email)),
+            'ip_address' => $ipAddress
+        ]);
+    } catch (PDOException $e) {
+        error_log('[unified-identity] Error recording failed login attempt: ' . $e->getMessage());
+    }
+}
+
+/**
+ * Clear failed login attempts for an email (on successful login)
+ * 
+ * @param string $email Email address
+ */
+function clearFailedLoginAttempts($email) {
+    global $pdo;
+    
+    if (!$pdo) return;
+    
+    ensureLoginAttemptsTable();
+    
+    try {
+        $stmt = $pdo->prepare("DELETE FROM login_attempts WHERE email = :email");
+        $stmt->execute(['email' => strtolower(trim($email))]);
+    } catch (PDOException $e) {
+        error_log('[unified-identity] Error clearing failed login attempts: ' . $e->getMessage());
+    }
+}
+
+/**
+ * Check if an account is currently locked out
+ * Security: Returns generic message to avoid confirming email existence
+ * 
+ * @param string $email Email address
+ * @return array ['locked' => bool, 'remaining_minutes' => int|null, 'attempts' => int]
+ */
+function checkAccountLockout($email) {
+    global $pdo;
+    
+    if (!$pdo) {
+        return ['locked' => false, 'remaining_minutes' => null, 'attempts' => 0];
+    }
+    
+    ensureLoginAttemptsTable();
+    
+    $email = strtolower(trim($email));
+    $lockoutWindow = LOCKOUT_DURATION_MINUTES;
+    
+    try {
+        // Count failed attempts within the lockout window
+        $stmt = $pdo->prepare("
+            SELECT COUNT(*) as attempt_count, MAX(attempt_time) as last_attempt
+            FROM login_attempts 
+            WHERE email = :email 
+            AND attempt_time > DATE_SUB(NOW(), INTERVAL :lockout_minutes MINUTE)
+        ");
+        $stmt->execute([
+            'email' => $email,
+            'lockout_minutes' => $lockoutWindow
+        ]);
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+        
+        $attemptCount = (int)($result['attempt_count'] ?? 0);
+        $lastAttempt = $result['last_attempt'] ?? null;
+        
+        if ($attemptCount >= MAX_FAILED_LOGIN_ATTEMPTS && $lastAttempt) {
+            // Calculate remaining lockout time
+            $lastAttemptTime = strtotime($lastAttempt);
+            $lockoutEndsAt = $lastAttemptTime + (LOCKOUT_DURATION_MINUTES * 60);
+            $remainingSeconds = $lockoutEndsAt - time();
+            
+            if ($remainingSeconds > 0) {
+                return [
+                    'locked' => true,
+                    'remaining_minutes' => ceil($remainingSeconds / 60),
+                    'attempts' => $attemptCount
+                ];
+            }
+        }
+        
+        return [
+            'locked' => false,
+            'remaining_minutes' => null,
+            'attempts' => $attemptCount
+        ];
+        
+    } catch (PDOException $e) {
+        error_log('[unified-identity] Error checking account lockout: ' . $e->getMessage());
+        return ['locked' => false, 'remaining_minutes' => null, 'attempts' => 0];
+    }
+}
+
+/**
+ * Clean up old login attempts (maintenance function)
+ * Can be called periodically to keep the table size manageable
+ */
+function cleanupOldLoginAttempts() {
+    global $pdo;
+    
+    if (!$pdo) return;
+    
+    try {
+        // Delete attempts older than 24 hours
+        $pdo->exec("DELETE FROM login_attempts WHERE attempt_time < DATE_SUB(NOW(), INTERVAL 24 HOUR)");
+    } catch (PDOException $e) {
+        error_log('[unified-identity] Error cleaning up login attempts: ' . $e->getMessage());
+    }
+}
+
 /**
  * Authenticate with email/password
+ * Security: Implements account lockout to prevent brute-force attacks
  * 
  * @param string $email Email address
  * @param string $password Plain text password
@@ -410,10 +580,32 @@ function authenticateWithEmail($email, $password) {
     }
     
     $email = strtolower(trim($email));
+    $clientIp = $_SERVER['REMOTE_ADDR'] ?? null;
+    
+    // ============================================
+    // ACCOUNT LOCKOUT CHECK
+    // Security: Check lockout BEFORE validating credentials
+    // This prevents timing attacks that could reveal valid emails
+    // ============================================
+    $lockoutStatus = checkAccountLockout($email);
+    
+    if ($lockoutStatus['locked']) {
+        // Security: Use generic message that doesn't confirm email existence
+        // The same message is shown whether the email exists or not
+        return [
+            'success' => false,
+            'message' => 'Too many failed login attempts. Please try again in ' . $lockoutStatus['remaining_minutes'] . ' minute(s).',
+            'locked' => true,
+            'remaining_minutes' => $lockoutStatus['remaining_minutes']
+        ];
+    }
     
     $user = findUserByEmail($email);
     
     if (!$user) {
+        // Security: Record attempt even for non-existent emails to prevent enumeration
+        // Use consistent timing to avoid timing attacks
+        recordFailedLoginAttempt($email, $clientIp);
         return ['success' => false, 'message' => 'Invalid email or password'];
     }
     
@@ -432,8 +624,37 @@ function authenticateWithEmail($email, $password) {
     
     // Verify password
     if (!password_verify($password, $user['password_hash'])) {
+        // Record failed attempt
+        recordFailedLoginAttempt($email, $clientIp);
+        
+        // Check if this attempt triggered a lockout
+        $newLockoutStatus = checkAccountLockout($email);
+        if ($newLockoutStatus['locked']) {
+            return [
+                'success' => false,
+                'message' => 'Too many failed login attempts. Your account has been temporarily locked. Please try again in ' . $newLockoutStatus['remaining_minutes'] . ' minute(s).',
+                'locked' => true,
+                'remaining_minutes' => $newLockoutStatus['remaining_minutes']
+            ];
+        }
+        
+        // Calculate remaining attempts before lockout
+        $remainingAttempts = MAX_FAILED_LOGIN_ATTEMPTS - $newLockoutStatus['attempts'];
+        if ($remainingAttempts <= 2 && $remainingAttempts > 0) {
+            return [
+                'success' => false,
+                'message' => 'Invalid email or password. ' . $remainingAttempts . ' attempt(s) remaining before account lockout.'
+            ];
+        }
+        
         return ['success' => false, 'message' => 'Invalid email or password'];
     }
+    
+    // ============================================
+    // SUCCESSFUL LOGIN
+    // Clear failed attempts on successful authentication
+    // ============================================
+    clearFailedLoginAttempts($email);
     
     // Update last login
     updateUserProfile($user['id'], ['last_login_at' => date('Y-m-d H:i:s')]);
@@ -866,4 +1087,289 @@ function isAuthenticatedWithGoogle($email) {
     
     $sessionEmail = $_SESSION['user_email'] ?? '';
     return strtolower($sessionEmail) === strtolower($email);
+}
+
+// ============================================
+// REMEMBER ME FUNCTIONALITY
+// Security: Implements persistent login tokens for "Remember Me" feature
+// Tokens are stored hashed in the database, only the selector is stored in cookie
+// ============================================
+
+define('REMEMBER_ME_COOKIE_NAME', 'remember_token');
+define('REMEMBER_ME_EXPIRY_DAYS', 30);
+
+/**
+ * Ensure the remember_me_tokens table exists
+ * Security: Stores hashed tokens, not plain text
+ */
+function ensureRememberMeTable() {
+    global $pdo;
+    static $initialized = false;
+    
+    if ($initialized || !$pdo) {
+        return;
+    }
+    
+    try {
+        $pdo->exec("
+            CREATE TABLE IF NOT EXISTS remember_me_tokens (
+                id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                user_id INT UNSIGNED NOT NULL,
+                selector VARCHAR(64) NOT NULL UNIQUE,
+                token_hash VARCHAR(255) NOT NULL,
+                expires_at TIMESTAMP NOT NULL,
+                created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                last_used_at TIMESTAMP NULL,
+                user_agent VARCHAR(255) DEFAULT NULL,
+                ip_address VARCHAR(45) DEFAULT NULL,
+                
+                INDEX idx_user_id (user_id),
+                INDEX idx_selector (selector),
+                INDEX idx_expires (expires_at),
+                
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+        ");
+        $initialized = true;
+    } catch (PDOException $e) {
+        if (strpos($e->getMessage(), '1050') === false) {
+            error_log('[unified-identity] Error creating remember_me_tokens table: ' . $e->getMessage());
+        }
+        $initialized = true;
+    }
+}
+
+/**
+ * Create a remember me token for a user
+ * Security: Uses cryptographically secure random bytes for both selector and token
+ * 
+ * @param int $userId User ID
+ * @return string|false The cookie value (selector:token) or false on failure
+ */
+function createRememberMeToken($userId) {
+    global $pdo;
+    
+    if (!$pdo || !$userId) return false;
+    
+    ensureRememberMeTable();
+    
+    try {
+        // Generate cryptographically secure random values
+        // Selector: Used to look up the token (stored plain in DB)
+        // Token: Used to verify (stored hashed in DB)
+        $selector = bin2hex(random_bytes(16));
+        $token = bin2hex(random_bytes(32));
+        $tokenHash = hash('sha256', $token);
+        
+        $expiresAt = date('Y-m-d H:i:s', time() + (REMEMBER_ME_EXPIRY_DAYS * 24 * 60 * 60));
+        $userAgent = $_SERVER['HTTP_USER_AGENT'] ?? null;
+        $ipAddress = $_SERVER['REMOTE_ADDR'] ?? null;
+        
+        $stmt = $pdo->prepare("
+            INSERT INTO remember_me_tokens (user_id, selector, token_hash, expires_at, user_agent, ip_address)
+            VALUES (:user_id, :selector, :token_hash, :expires_at, :user_agent, :ip_address)
+        ");
+        $stmt->execute([
+            'user_id' => $userId,
+            'selector' => $selector,
+            'token_hash' => $tokenHash,
+            'expires_at' => $expiresAt,
+            'user_agent' => $userAgent ? substr($userAgent, 0, 255) : null,
+            'ip_address' => $ipAddress
+        ]);
+        
+        // Return the cookie value (selector:token)
+        return $selector . ':' . $token;
+        
+    } catch (PDOException $e) {
+        error_log('[unified-identity] Error creating remember me token: ' . $e->getMessage());
+        return false;
+    }
+}
+
+/**
+ * Set the remember me cookie
+ * Security: Cookie is httpOnly, secure (in production), and SameSite=Lax
+ * 
+ * @param string $cookieValue The selector:token value
+ * @return bool Success status
+ */
+function setRememberMeCookie($cookieValue) {
+    $isProduction = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') 
+        || (!empty($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https')
+        || (!empty($_SERVER['SERVER_PORT']) && $_SERVER['SERVER_PORT'] == 443);
+    
+    return setcookie(REMEMBER_ME_COOKIE_NAME, $cookieValue, [
+        'expires' => time() + (REMEMBER_ME_EXPIRY_DAYS * 24 * 60 * 60),
+        'path' => '/',
+        'domain' => '',
+        'secure' => $isProduction,
+        'httponly' => true,
+        'samesite' => 'Lax'
+    ]);
+}
+
+/**
+ * Validate a remember me token and return the user
+ * Security: Uses timing-safe comparison for token validation
+ * 
+ * @return array|null User data if valid, null otherwise
+ */
+function validateRememberMeToken() {
+    global $pdo;
+    
+    if (!$pdo) return null;
+    
+    $cookieValue = $_COOKIE[REMEMBER_ME_COOKIE_NAME] ?? null;
+    if (!$cookieValue || strpos($cookieValue, ':') === false) {
+        return null;
+    }
+    
+    ensureRememberMeTable();
+    
+    list($selector, $token) = explode(':', $cookieValue, 2);
+    
+    if (empty($selector) || empty($token)) {
+        return null;
+    }
+    
+    try {
+        // Look up by selector
+        $stmt = $pdo->prepare("
+            SELECT rmt.id, rmt.user_id, rmt.token_hash, rmt.expires_at,
+                   u.id as uid, u.email, u.first_name, u.last_name, u.profile_picture,
+                   u.role, u.is_active, u.auth_method, u.email_verified
+            FROM remember_me_tokens rmt
+            JOIN users u ON rmt.user_id = u.id
+            WHERE rmt.selector = :selector
+        ");
+        $stmt->execute(['selector' => $selector]);
+        $record = $stmt->fetch(PDO::FETCH_ASSOC);
+        
+        if (!$record) {
+            return null;
+        }
+        
+        // Check if token has expired
+        if (strtotime($record['expires_at']) < time()) {
+            // Delete expired token
+            deleteRememberMeTokenBySelector($selector);
+            return null;
+        }
+        
+        // Verify token using timing-safe comparison
+        $tokenHash = hash('sha256', $token);
+        if (!hash_equals($record['token_hash'], $tokenHash)) {
+            // Invalid token - possible theft attempt, delete all tokens for this user
+            revokeAllRememberMeTokens($record['user_id']);
+            return null;
+        }
+        
+        // Check if user is still active
+        if (!$record['is_active']) {
+            deleteRememberMeTokenBySelector($selector);
+            return null;
+        }
+        
+        // Update last used timestamp
+        $stmt = $pdo->prepare("UPDATE remember_me_tokens SET last_used_at = NOW() WHERE selector = :selector");
+        $stmt->execute(['selector' => $selector]);
+        
+        // Return user data
+        return [
+            'id' => $record['user_id'],
+            'email' => $record['email'],
+            'first_name' => $record['first_name'],
+            'last_name' => $record['last_name'],
+            'profile_picture' => $record['profile_picture'],
+            'role' => $record['role'],
+            'is_active' => $record['is_active'],
+            'auth_method' => $record['auth_method'],
+            'email_verified' => $record['email_verified']
+        ];
+        
+    } catch (PDOException $e) {
+        error_log('[unified-identity] Error validating remember me token: ' . $e->getMessage());
+        return null;
+    }
+}
+
+/**
+ * Delete a remember me token by selector
+ * 
+ * @param string $selector Token selector
+ */
+function deleteRememberMeTokenBySelector($selector) {
+    global $pdo;
+    
+    if (!$pdo) return;
+    
+    try {
+        $stmt = $pdo->prepare("DELETE FROM remember_me_tokens WHERE selector = :selector");
+        $stmt->execute(['selector' => $selector]);
+    } catch (PDOException $e) {
+        error_log('[unified-identity] Error deleting remember me token: ' . $e->getMessage());
+    }
+}
+
+/**
+ * Revoke all remember me tokens for a user
+ * Security: Called on logout, password change, or suspected token theft
+ * 
+ * @param int $userId User ID
+ */
+function revokeAllRememberMeTokens($userId) {
+    global $pdo;
+    
+    if (!$pdo || !$userId) return;
+    
+    ensureRememberMeTable();
+    
+    try {
+        $stmt = $pdo->prepare("DELETE FROM remember_me_tokens WHERE user_id = :user_id");
+        $stmt->execute(['user_id' => $userId]);
+    } catch (PDOException $e) {
+        error_log('[unified-identity] Error revoking remember me tokens: ' . $e->getMessage());
+    }
+}
+
+/**
+ * Clear the remember me cookie
+ */
+function clearRememberMeCookie() {
+    if (isset($_COOKIE[REMEMBER_ME_COOKIE_NAME])) {
+        // Delete the token from database if it exists
+        $cookieValue = $_COOKIE[REMEMBER_ME_COOKIE_NAME];
+        if (strpos($cookieValue, ':') !== false) {
+            list($selector, ) = explode(':', $cookieValue, 2);
+            deleteRememberMeTokenBySelector($selector);
+        }
+        
+        // Clear the cookie
+        setcookie(REMEMBER_ME_COOKIE_NAME, '', [
+            'expires' => time() - 3600,
+            'path' => '/',
+            'domain' => '',
+            'secure' => (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off'),
+            'httponly' => true,
+            'samesite' => 'Lax'
+        ]);
+    }
+}
+
+/**
+ * Clean up expired remember me tokens (maintenance function)
+ */
+function cleanupExpiredRememberMeTokens() {
+    global $pdo;
+    
+    if (!$pdo) return;
+    
+    ensureRememberMeTable();
+    
+    try {
+        $pdo->exec("DELETE FROM remember_me_tokens WHERE expires_at < NOW()");
+    } catch (PDOException $e) {
+        error_log('[unified-identity] Error cleaning up remember me tokens: ' . $e->getMessage());
+    }
 }

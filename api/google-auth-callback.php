@@ -17,6 +17,7 @@ require_once __DIR__ . '/appConfig.php';
 require_once __DIR__ . '/user-manager.php';
 require_once __DIR__ . '/redirect-uris.php';
 require_once __DIR__ . '/unified-identity.php';
+require_once __DIR__ . '/totp.php';
 
 // Simple log function that only logs actual errors
 function logMsg($message, $isError = false) {
@@ -146,6 +147,33 @@ if (!$authResult['success']) {
 
 $dbUser = $authResult['user'];
 $isNewUser = $authResult['is_new_user'] ?? false;
+
+// ============================================
+// TWO-FACTOR AUTHENTICATION CHECK
+// Security: If 2FA is enabled, redirect to 2FA verification page
+// ============================================
+try {
+    $twoFAStatus = get2FAStatus($dbUser['id']);
+} catch (Exception $e) {
+    $twoFAStatus = ['enabled' => false];
+}
+
+if ($twoFAStatus['enabled']) {
+    // Store pending 2FA data in session
+    $_SESSION['pending_2fa_user_id'] = $dbUser['id'];
+    $_SESSION['pending_2fa_auth_method'] = 'google';
+    $_SESSION['pending_2fa_user_data'] = [
+        'id'      => $dbUser['google_id'] ?? '',
+        'name'    => trim(($dbUser['first_name'] ?? '') . ' ' . ($dbUser['last_name'] ?? '')),
+        'email'   => $dbUser['email'] ?? '',
+        'picture' => $dbUser['profile_picture'] ?? $pictureUrl
+    ];
+    $_SESSION['pending_2fa_db_user'] = $dbUser;
+    
+    // Redirect to login page with 2FA flag
+    header('Location: ../login.php?require_2fa=google');
+    exit;
+}
 
 // Store user data in session (for backward compatibility)
 $_SESSION['user'] = [

@@ -3045,6 +3045,330 @@ document.addEventListener('DOMContentLoaded', function () {
 
   attachCaseModalTabHandlers();
 
+  // ============================================
+  // DENTIST NAME AUTOCOMPLETE
+  // Business Rule: Shows suggestions from previously used dentist names
+  // scoped to the current practice, ordered by most recently used.
+  // ============================================
+  (function initDentistAutocomplete() {
+    var dentistInput = document.getElementById('dentistName');
+    var suggestionsDropdown = document.getElementById('dentistNameSuggestions');
+    
+    if (!dentistInput || !suggestionsDropdown) return;
+    
+    var debounceTimer = null;
+    var highlightedIndex = -1;
+    var currentSuggestions = [];
+    
+    // Fetch suggestions from API
+    function fetchSuggestions(query) {
+      if (!query || query.length < 1) {
+        hideSuggestions();
+        return;
+      }
+      
+      fetch('api/get-dentist-suggestions.php?q=' + encodeURIComponent(query), {
+        credentials: 'same-origin'
+      })
+      .then(function(response) { return response.json(); })
+      .then(function(data) {
+        if (data.success && data.suggestions && data.suggestions.length > 0) {
+          showSuggestions(data.suggestions);
+        } else {
+          hideSuggestions();
+        }
+      })
+      .catch(function() {
+        hideSuggestions();
+      });
+    }
+    
+    // Display suggestions in dropdown
+    function showSuggestions(suggestions) {
+      currentSuggestions = suggestions;
+      highlightedIndex = -1;
+      suggestionsDropdown.innerHTML = '';
+      
+      suggestions.forEach(function(name, index) {
+        var item = document.createElement('div');
+        item.className = 'autocomplete-item';
+        item.setAttribute('role', 'option');
+        item.setAttribute('data-index', index);
+        item.textContent = name;
+        
+        item.addEventListener('click', function() {
+          selectSuggestion(name);
+        });
+        
+        item.addEventListener('mouseenter', function() {
+          highlightedIndex = index;
+          updateHighlight();
+        });
+        
+        suggestionsDropdown.appendChild(item);
+      });
+      
+      suggestionsDropdown.classList.add('active');
+    }
+    
+    // Hide suggestions dropdown
+    function hideSuggestions() {
+      suggestionsDropdown.classList.remove('active');
+      suggestionsDropdown.innerHTML = '';
+      currentSuggestions = [];
+      highlightedIndex = -1;
+    }
+    
+    // Select a suggestion
+    function selectSuggestion(name) {
+      dentistInput.value = name;
+      hideSuggestions();
+      dentistInput.focus();
+    }
+    
+    // Update highlighted item
+    function updateHighlight() {
+      var items = suggestionsDropdown.querySelectorAll('.autocomplete-item');
+      items.forEach(function(item, index) {
+        item.classList.toggle('highlighted', index === highlightedIndex);
+      });
+    }
+    
+    // Input event handler with debounce
+    dentistInput.addEventListener('input', function() {
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(function() {
+        fetchSuggestions(dentistInput.value.trim());
+      }, 200);
+    });
+    
+    // Keyboard navigation
+    dentistInput.addEventListener('keydown', function(e) {
+      if (!suggestionsDropdown.classList.contains('active')) return;
+      
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        highlightedIndex = Math.min(highlightedIndex + 1, currentSuggestions.length - 1);
+        updateHighlight();
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        highlightedIndex = Math.max(highlightedIndex - 1, 0);
+        updateHighlight();
+      } else if (e.key === 'Enter' && highlightedIndex >= 0) {
+        e.preventDefault();
+        selectSuggestion(currentSuggestions[highlightedIndex]);
+      } else if (e.key === 'Escape') {
+        hideSuggestions();
+      }
+    });
+    
+    // Hide on blur (with delay to allow click)
+    dentistInput.addEventListener('blur', function() {
+      setTimeout(hideSuggestions, 150);
+    });
+    
+    // Show suggestions on focus if there's already text
+    dentistInput.addEventListener('focus', function() {
+      if (dentistInput.value.trim().length >= 1) {
+        fetchSuggestions(dentistInput.value.trim());
+      }
+    });
+  })();
+
+  // ============================================
+  // CASE NOTES CHARACTER LIMIT
+  // Business Rule: Enforces 3,000 character limit on case notes.
+  // Displays remaining character count with visual feedback.
+  // ============================================
+  (function initNotesCharacterCounter() {
+    var notesTextarea = document.getElementById('notes');
+    var charCounter = document.getElementById('notesCharCounter');
+    
+    if (!notesTextarea || !charCounter) return;
+    
+    var maxLength = 3000; // Character limit for case notes
+    var warningThreshold = 2700; // Show warning at 90% capacity
+    
+    function updateCounter() {
+      var currentLength = notesTextarea.value.length;
+      var remaining = maxLength - currentLength;
+      
+      // Format number with comma separator
+      var formattedCurrent = currentLength.toLocaleString();
+      var formattedMax = maxLength.toLocaleString();
+      
+      charCounter.textContent = formattedCurrent + ' / ' + formattedMax + ' characters';
+      
+      // Update visual state
+      charCounter.classList.remove('warning', 'error');
+      if (currentLength >= maxLength) {
+        charCounter.classList.add('error');
+      } else if (currentLength >= warningThreshold) {
+        charCounter.classList.add('warning');
+      }
+    }
+    
+    // Update on input
+    notesTextarea.addEventListener('input', updateCounter);
+    
+    // Initialize counter on page load
+    updateCounter();
+    
+    // Expose function to reset counter when form is reset
+    window.resetNotesCharCounter = updateCounter;
+  })();
+
+  // ============================================
+  // TOOTH NUMBER VALIDATION (Case-Type Aware)
+  // Business Rule: For Crown case type, validates tooth number
+  // using standard dental numbering (1-32 for adult teeth).
+  // Rejects invalid values and displays inline error.
+  // ============================================
+  var toothNumberValidation = (function() {
+    // Valid tooth number range for adult teeth (Universal Numbering System)
+    var MIN_TOOTH_NUMBER = 1;
+    var MAX_TOOTH_NUMBER = 32;
+    
+    /**
+     * Validate a single tooth number
+     * @param {string} value - The tooth number to validate
+     * @returns {object} - { valid: boolean, error: string|null }
+     */
+    function validateToothNumber(value) {
+      if (!value || value.trim() === '') {
+        return { valid: false, error: 'Tooth number is required' };
+      }
+      
+      var trimmed = value.trim();
+      
+      // Check for non-numeric characters (allow only digits)
+      if (!/^\d+$/.test(trimmed)) {
+        return { valid: false, error: 'Tooth number must be a number (1-32)' };
+      }
+      
+      var num = parseInt(trimmed, 10);
+      
+      // Check range
+      if (num < MIN_TOOTH_NUMBER || num > MAX_TOOTH_NUMBER) {
+        return { valid: false, error: 'Tooth number must be between 1 and 32' };
+      }
+      
+      return { valid: true, error: null };
+    }
+    
+    /**
+     * Validate multiple tooth numbers (comma-separated)
+     * @param {string} value - Comma-separated tooth numbers
+     * @returns {object} - { valid: boolean, error: string|null, numbers: number[] }
+     */
+    function validateMultipleToothNumbers(value) {
+      if (!value || value.trim() === '') {
+        return { valid: false, error: 'At least one tooth number is required', numbers: [] };
+      }
+      
+      var parts = value.split(',').map(function(p) { return p.trim(); }).filter(function(p) { return p !== ''; });
+      
+      if (parts.length === 0) {
+        return { valid: false, error: 'At least one tooth number is required', numbers: [] };
+      }
+      
+      var validNumbers = [];
+      for (var i = 0; i < parts.length; i++) {
+        var result = validateToothNumber(parts[i]);
+        if (!result.valid) {
+          return { valid: false, error: result.error + ' (value: "' + parts[i] + '")', numbers: [] };
+        }
+        validNumbers.push(parseInt(parts[i], 10));
+      }
+      
+      return { valid: true, error: null, numbers: validNumbers };
+    }
+    
+    /**
+     * Show validation error on a field
+     */
+    function showFieldError(field, message) {
+      field.classList.add('field-error');
+      
+      // Remove existing error message if any
+      var existingError = field.parentNode.querySelector('.error-message');
+      if (existingError) {
+        existingError.remove();
+      }
+      
+      var errorDiv = document.createElement('div');
+      errorDiv.className = 'error-message';
+      errorDiv.textContent = message;
+      field.parentNode.insertBefore(errorDiv, field.nextSibling);
+    }
+    
+    /**
+     * Clear validation error from a field
+     */
+    function clearFieldError(field) {
+      field.classList.remove('field-error');
+      var existingError = field.parentNode.querySelector('.error-message');
+      if (existingError) {
+        existingError.remove();
+      }
+    }
+    
+    /**
+     * Initialize tooth number validation for Crown case type
+     */
+    function init() {
+      var toothNumberInput = document.getElementById('clinicalToothNumber');
+      var caseTypeSelect = document.getElementById('caseType');
+      
+      if (!toothNumberInput) return;
+      
+      // Validate on blur
+      toothNumberInput.addEventListener('blur', function() {
+        var caseType = caseTypeSelect ? caseTypeSelect.value : '';
+        
+        // Only validate for Crown case type
+        if (caseType !== 'Crown') {
+          clearFieldError(toothNumberInput);
+          return;
+        }
+        
+        var value = toothNumberInput.value.trim();
+        
+        // Allow empty if not yet filled (required validation handles this)
+        if (value === '') {
+          clearFieldError(toothNumberInput);
+          return;
+        }
+        
+        var result = validateToothNumber(value);
+        if (!result.valid) {
+          showFieldError(toothNumberInput, result.error);
+        } else {
+          clearFieldError(toothNumberInput);
+        }
+      });
+      
+      // Clear error on input
+      toothNumberInput.addEventListener('input', function() {
+        clearFieldError(toothNumberInput);
+      });
+    }
+    
+    // Initialize when DOM is ready
+    init();
+    
+    // Expose validation functions for use in form submission
+    return {
+      validateToothNumber: validateToothNumber,
+      validateMultipleToothNumbers: validateMultipleToothNumbers,
+      showFieldError: showFieldError,
+      clearFieldError: clearFieldError
+    };
+  })();
+  
+  // Make validation available globally for form submission
+  window.toothNumberValidation = toothNumberValidation;
+
   // Helper to reset the Create/Edit Case form back to "new case" state
   function resetCreateCaseFormToNew() {
     var form = document.getElementById('createCaseForm');
@@ -3778,6 +4102,32 @@ document.addEventListener('DOMContentLoaded', function () {
           }
         }
       });
+      
+      // ============================================
+      // TOOTH NUMBER VALIDATION ON SUBMIT
+      // Business Rule: For Crown case type, validates tooth number
+      // using standard dental numbering (1-32 for adult teeth).
+      // ============================================
+      if (currentCaseType === 'Crown' && window.toothNumberValidation) {
+        var toothNumberInput = document.getElementById('clinicalToothNumber');
+        if (toothNumberInput && toothNumberInput.value.trim() !== '') {
+          var toothResult = window.toothNumberValidation.validateToothNumber(toothNumberInput.value);
+          if (!toothResult.valid) {
+            isValid = false;
+            window.toothNumberValidation.showFieldError(toothNumberInput, toothResult.error);
+          }
+        }
+      }
+      
+      // ============================================
+      // CASE NOTES CHARACTER LIMIT VALIDATION ON SUBMIT
+      // Business Rule: Notes field is limited to 3,000 characters.
+      // ============================================
+      var notesField = document.getElementById('notes');
+      if (notesField && notesField.value.length > 3000) {
+        isValid = false;
+        addFieldError(notesField, 'Notes cannot exceed 3,000 characters');
+      }
       
       if (!isValid) {
         // Scroll to top of modal to show errors
@@ -7689,4 +8039,473 @@ document.addEventListener('DOMContentLoaded', function () {
   
   // Initialize filters when page loads
   initKanbanFilters();
+  
+  // ============================================
+  // SECURITY SETTINGS FUNCTIONALITY
+  // Change Password, Two-Factor Authentication, Data Export
+  // ============================================
+  (function initSecuritySettings() {
+    
+    // ============================================
+    // PASSWORD VISIBILITY TOGGLE (Settings)
+    // ============================================
+    var settingsPasswordToggles = document.querySelectorAll('#settingsForm .password-toggle-btn');
+    settingsPasswordToggles.forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        var targetId = btn.getAttribute('data-target');
+        var input = document.getElementById(targetId);
+        if (!input) return;
+        
+        var isPassword = input.type === 'password';
+        input.type = isPassword ? 'text' : 'password';
+        btn.classList.toggle('is-visible', isPassword);
+        btn.setAttribute('aria-label', isPassword ? 'Hide password' : 'Show password');
+      });
+    });
+    
+    // ============================================
+    // CHANGE PASSWORD FUNCTIONALITY
+    // ============================================
+    var currentPasswordInput = document.getElementById('currentPassword');
+    var newPasswordInput = document.getElementById('newPassword');
+    var confirmPasswordInput = document.getElementById('confirmNewPassword');
+    var changePasswordBtn = document.getElementById('changePasswordBtn');
+    var changePasswordError = document.getElementById('changePasswordError');
+    var changePasswordSuccess = document.getElementById('changePasswordSuccess');
+    var passwordMatchStatus = document.getElementById('passwordMatchStatus');
+    
+    // Password requirement elements
+    var pwReqLength = document.getElementById('pwReqLength');
+    var pwReqUpper = document.getElementById('pwReqUpper');
+    var pwReqNumber = document.getElementById('pwReqNumber');
+    var pwReqSpecial = document.getElementById('pwReqSpecial');
+    
+    // Validate password requirements in real-time
+    function validatePasswordRequirements(password) {
+      var hasLength = password.length >= 8;
+      var hasUpper = /[A-Z]/.test(password);
+      var hasNumber = /[0-9]/.test(password);
+      var hasSpecial = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password);
+      
+      if (pwReqLength) {
+        pwReqLength.textContent = (hasLength ? '✓' : '✗') + ' At least 8 characters';
+        pwReqLength.classList.toggle('valid', hasLength);
+      }
+      if (pwReqUpper) {
+        pwReqUpper.textContent = (hasUpper ? '✓' : '✗') + ' One uppercase letter';
+        pwReqUpper.classList.toggle('valid', hasUpper);
+      }
+      if (pwReqNumber) {
+        pwReqNumber.textContent = (hasNumber ? '✓' : '✗') + ' One number';
+        pwReqNumber.classList.toggle('valid', hasNumber);
+      }
+      if (pwReqSpecial) {
+        pwReqSpecial.textContent = (hasSpecial ? '✓' : '✗') + ' One special character';
+        pwReqSpecial.classList.toggle('valid', hasSpecial);
+      }
+      
+      return hasLength && hasUpper && hasNumber && hasSpecial;
+    }
+    
+    // Check password match
+    function checkPasswordMatch() {
+      if (!confirmPasswordInput || !newPasswordInput || !passwordMatchStatus) return;
+      
+      var newPw = newPasswordInput.value;
+      var confirmPw = confirmPasswordInput.value;
+      
+      if (confirmPw === '') {
+        passwordMatchStatus.textContent = '';
+        passwordMatchStatus.className = 'password-match';
+      } else if (newPw === confirmPw) {
+        passwordMatchStatus.textContent = '✓ Passwords match';
+        passwordMatchStatus.className = 'password-match match';
+      } else {
+        passwordMatchStatus.textContent = '✗ Passwords do not match';
+        passwordMatchStatus.className = 'password-match no-match';
+      }
+    }
+    
+    if (newPasswordInput) {
+      newPasswordInput.addEventListener('input', function() {
+        validatePasswordRequirements(newPasswordInput.value);
+        checkPasswordMatch();
+      });
+    }
+    
+    if (confirmPasswordInput) {
+      confirmPasswordInput.addEventListener('input', checkPasswordMatch);
+    }
+    
+    // Handle change password submission
+    if (changePasswordBtn) {
+      changePasswordBtn.addEventListener('click', function() {
+        // Hide previous messages
+        if (changePasswordError) changePasswordError.style.display = 'none';
+        if (changePasswordSuccess) changePasswordSuccess.style.display = 'none';
+        
+        var currentPw = currentPasswordInput ? currentPasswordInput.value : '';
+        var newPw = newPasswordInput ? newPasswordInput.value : '';
+        var confirmPw = confirmPasswordInput ? confirmPasswordInput.value : '';
+        
+        // Client-side validation
+        if (!currentPw) {
+          showChangePasswordError('Please enter your current password.');
+          return;
+        }
+        
+        if (!validatePasswordRequirements(newPw)) {
+          showChangePasswordError('New password does not meet all requirements.');
+          return;
+        }
+        
+        if (newPw !== confirmPw) {
+          showChangePasswordError('New passwords do not match.');
+          return;
+        }
+        
+        // Disable button during request
+        changePasswordBtn.disabled = true;
+        changePasswordBtn.textContent = 'Changing...';
+        
+        // Send request to server
+        fetch('api/change-password.php', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-Token': csrfToken
+          },
+          body: JSON.stringify({
+            currentPassword: currentPw,
+            newPassword: newPw,
+            confirmPassword: confirmPw
+          }),
+          credentials: 'same-origin'
+        })
+        .then(function(response) { return response.json(); })
+        .then(function(data) {
+          if (data.success) {
+            showChangePasswordSuccess('Password changed successfully.');
+            // Clear form
+            if (currentPasswordInput) currentPasswordInput.value = '';
+            if (newPasswordInput) newPasswordInput.value = '';
+            if (confirmPasswordInput) confirmPasswordInput.value = '';
+            validatePasswordRequirements('');
+            checkPasswordMatch();
+          } else {
+            showChangePasswordError(data.message || 'Failed to change password.');
+          }
+        })
+        .catch(function() {
+          showChangePasswordError('An error occurred. Please try again.');
+        })
+        .finally(function() {
+          changePasswordBtn.disabled = false;
+          changePasswordBtn.textContent = 'Change Password';
+        });
+      });
+    }
+    
+    function showChangePasswordError(message) {
+      if (changePasswordError) {
+        changePasswordError.textContent = message;
+        changePasswordError.style.display = 'block';
+      }
+    }
+    
+    function showChangePasswordSuccess(message) {
+      if (changePasswordSuccess) {
+        changePasswordSuccess.textContent = message;
+        changePasswordSuccess.style.display = 'block';
+      }
+    }
+    
+    // ============================================
+    // TWO-FACTOR AUTHENTICATION FUNCTIONALITY
+    // ============================================
+    var twoFactorStatus = document.getElementById('twoFactorStatus');
+    var twoFactorSetup = document.getElementById('twoFactorSetup');
+    var twoFactorDisable = document.getElementById('twoFactorDisable');
+    var twoFactorActions = document.getElementById('twoFactorActions');
+    var enableTwoFactorBtn = document.getElementById('enableTwoFactorBtn');
+    var disableTwoFactorBtn = document.getElementById('disableTwoFactorBtn');
+    var verifyTwoFactorBtn = document.getElementById('verifyTwoFactorBtn');
+    var cancelTwoFactorSetup = document.getElementById('cancelTwoFactorSetup');
+    var twoFactorQRCode = document.getElementById('twoFactorQRCode');
+    var twoFactorSecret = document.getElementById('twoFactorSecret');
+    var twoFactorVerifyCode = document.getElementById('twoFactorVerifyCode');
+    var twoFactorSetupError = document.getElementById('twoFactorSetupError');
+    var confirmDisableTwoFactor = document.getElementById('confirmDisableTwoFactor');
+    var cancelDisableTwoFactor = document.getElementById('cancelDisableTwoFactor');
+    var twoFactorDisableError = document.getElementById('twoFactorDisableError');
+    
+    // Load 2FA status when settings modal opens
+    function load2FAStatus() {
+      fetch('api/2fa-setup.php?action=status', { credentials: 'same-origin' })
+        .then(function(response) { return response.json(); })
+        .then(function(data) {
+          if (data.success) {
+            update2FAStatusUI(data.enabled);
+          }
+        })
+        .catch(function() {
+          // Silently fail - 2FA status will show as disabled
+        });
+    }
+    
+    function update2FAStatusUI(enabled) {
+      var statusBadge = twoFactorStatus ? twoFactorStatus.querySelector('.status-badge') : null;
+      
+      if (statusBadge) {
+        if (enabled) {
+          statusBadge.textContent = 'Enabled';
+          statusBadge.className = 'status-badge status-enabled';
+        } else {
+          statusBadge.textContent = 'Disabled';
+          statusBadge.className = 'status-badge status-disabled';
+        }
+      }
+      
+      if (enableTwoFactorBtn) enableTwoFactorBtn.style.display = enabled ? 'none' : 'inline-flex';
+      if (disableTwoFactorBtn) disableTwoFactorBtn.style.display = enabled ? 'inline-flex' : 'none';
+      if (twoFactorSetup) twoFactorSetup.style.display = 'none';
+      if (twoFactorDisable) twoFactorDisable.style.display = 'none';
+      if (twoFactorActions) twoFactorActions.style.display = 'flex';
+    }
+    
+    // Enable 2FA - Start setup
+    if (enableTwoFactorBtn) {
+      enableTwoFactorBtn.addEventListener('click', function() {
+        enableTwoFactorBtn.disabled = true;
+        enableTwoFactorBtn.textContent = 'Loading...';
+        
+        fetch('api/2fa-setup.php?action=setup', {
+          method: 'POST',
+          headers: { 'X-CSRF-Token': csrfToken },
+          credentials: 'same-origin'
+        })
+        .then(function(response) { return response.json(); })
+        .then(function(data) {
+          if (data.success) {
+            // Show QR code and secret
+            if (twoFactorQRCode) twoFactorQRCode.innerHTML = data.qrCode;
+            if (twoFactorSecret) twoFactorSecret.textContent = data.secret;
+            if (twoFactorSetup) twoFactorSetup.style.display = 'block';
+            if (twoFactorActions) twoFactorActions.style.display = 'none';
+            if (twoFactorVerifyCode) twoFactorVerifyCode.value = '';
+            if (twoFactorSetupError) twoFactorSetupError.style.display = 'none';
+          } else {
+            if (typeof Toast !== 'undefined') {
+              Toast.error('2FA Setup', data.message || 'Failed to start 2FA setup.');
+            }
+          }
+        })
+        .catch(function() {
+          if (typeof Toast !== 'undefined') {
+            Toast.error('2FA Setup', 'An error occurred. Please try again.');
+          }
+        })
+        .finally(function() {
+          enableTwoFactorBtn.disabled = false;
+          enableTwoFactorBtn.textContent = 'Enable 2FA';
+        });
+      });
+    }
+    
+    // Verify 2FA code
+    if (verifyTwoFactorBtn) {
+      verifyTwoFactorBtn.addEventListener('click', function() {
+        var code = twoFactorVerifyCode ? twoFactorVerifyCode.value.trim() : '';
+        
+        if (!code || code.length !== 6) {
+          if (twoFactorSetupError) {
+            twoFactorSetupError.textContent = 'Please enter a 6-digit code.';
+            twoFactorSetupError.style.display = 'block';
+          }
+          return;
+        }
+        
+        verifyTwoFactorBtn.disabled = true;
+        verifyTwoFactorBtn.textContent = 'Verifying...';
+        
+        fetch('api/2fa-setup.php?action=verify', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-Token': csrfToken
+          },
+          body: JSON.stringify({ code: code }),
+          credentials: 'same-origin'
+        })
+        .then(function(response) { return response.json(); })
+        .then(function(data) {
+          if (data.success) {
+            update2FAStatusUI(true);
+            if (typeof Toast !== 'undefined') {
+              Toast.success('2FA Enabled', 'Two-factor authentication has been enabled.');
+            }
+          } else {
+            if (twoFactorSetupError) {
+              twoFactorSetupError.textContent = data.message || 'Invalid code. Please try again.';
+              twoFactorSetupError.style.display = 'block';
+            }
+          }
+        })
+        .catch(function() {
+          if (twoFactorSetupError) {
+            twoFactorSetupError.textContent = 'An error occurred. Please try again.';
+            twoFactorSetupError.style.display = 'block';
+          }
+        })
+        .finally(function() {
+          verifyTwoFactorBtn.disabled = false;
+          verifyTwoFactorBtn.textContent = 'Verify & Enable';
+        });
+      });
+    }
+    
+    // Cancel 2FA setup
+    if (cancelTwoFactorSetup) {
+      cancelTwoFactorSetup.addEventListener('click', function() {
+        if (twoFactorSetup) twoFactorSetup.style.display = 'none';
+        if (twoFactorActions) twoFactorActions.style.display = 'flex';
+      });
+    }
+    
+    // Show disable 2FA confirmation
+    if (disableTwoFactorBtn) {
+      disableTwoFactorBtn.addEventListener('click', function() {
+        if (twoFactorDisable) twoFactorDisable.style.display = 'block';
+        if (twoFactorActions) twoFactorActions.style.display = 'none';
+        if (twoFactorDisableError) twoFactorDisableError.style.display = 'none';
+      });
+    }
+    
+    // Confirm disable 2FA
+    if (confirmDisableTwoFactor) {
+      confirmDisableTwoFactor.addEventListener('click', function() {
+        confirmDisableTwoFactor.disabled = true;
+        confirmDisableTwoFactor.textContent = 'Disabling...';
+        
+        fetch('api/2fa-setup.php?action=disable', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-Token': csrfToken
+          },
+          credentials: 'same-origin'
+        })
+        .then(function(response) { return response.json(); })
+        .then(function(data) {
+          if (data.success) {
+            update2FAStatusUI(false);
+            if (typeof Toast !== 'undefined') {
+              Toast.success('2FA Disabled', 'Two-factor authentication has been disabled.');
+            }
+          } else {
+            if (twoFactorDisableError) {
+              twoFactorDisableError.textContent = data.message || 'Failed to disable 2FA.';
+              twoFactorDisableError.style.display = 'block';
+            }
+          }
+        })
+        .catch(function() {
+          if (twoFactorDisableError) {
+            twoFactorDisableError.textContent = 'An error occurred. Please try again.';
+            twoFactorDisableError.style.display = 'block';
+          }
+        })
+        .finally(function() {
+          confirmDisableTwoFactor.disabled = false;
+          confirmDisableTwoFactor.textContent = 'Disable 2FA';
+        });
+      });
+    }
+    
+    // Cancel disable 2FA
+    if (cancelDisableTwoFactor) {
+      cancelDisableTwoFactor.addEventListener('click', function() {
+        if (twoFactorDisable) twoFactorDisable.style.display = 'none';
+        if (twoFactorActions) twoFactorActions.style.display = 'flex';
+      });
+    }
+    
+    // ============================================
+    // DATA EXPORT FUNCTIONALITY
+    // ============================================
+    var exportDataBtn = document.getElementById('exportDataBtn');
+    var exportStatus = document.getElementById('exportStatus');
+    
+    if (exportDataBtn) {
+      exportDataBtn.addEventListener('click', function() {
+        // Show styled confirmation modal instead of native confirm()
+        showConfirmModal(
+          'Export Practice Data',
+          'This will export all your practice data. A download link will be sent to your email. Continue?',
+          function() {
+            // User confirmed - proceed with export
+            exportDataBtn.disabled = true;
+            exportDataBtn.innerHTML = '<span class="btn-icon">⏳</span> Preparing Export...';
+            
+            if (exportStatus) {
+              exportStatus.textContent = 'Preparing your data export...';
+              exportStatus.className = 'export-status';
+              exportStatus.style.display = 'block';
+            }
+            
+            fetch('api/data-export.php?action=request', {
+              method: 'POST',
+              headers: { 'X-CSRF-Token': csrfToken },
+              credentials: 'same-origin'
+            })
+            .then(function(response) { return response.json(); })
+            .then(function(data) {
+              if (data.success) {
+                if (exportStatus) {
+                  exportStatus.textContent = 'Export request submitted! Check your email for the download link.';
+                  exportStatus.className = 'export-status success';
+                }
+                if (typeof Toast !== 'undefined') {
+                  Toast.success('Export Started', 'Your data export is being prepared. You will receive an email when it\'s ready.');
+                }
+              } else {
+                if (exportStatus) {
+                  exportStatus.textContent = data.message || 'Failed to start export.';
+                  exportStatus.className = 'export-status error';
+                }
+              }
+            })
+            .catch(function() {
+              if (exportStatus) {
+                exportStatus.textContent = 'An error occurred. Please try again.';
+                exportStatus.className = 'export-status error';
+              }
+            })
+            .finally(function() {
+              exportDataBtn.disabled = false;
+              exportDataBtn.innerHTML = '<span class="btn-icon">📥</span> Export All Data';
+            });
+          },
+          null // No action needed on cancel
+        );
+      });
+    }
+    
+    // Load 2FA status when settings modal opens
+    var settingsModal = document.getElementById('settingsBillingModal');
+    if (settingsModal) {
+      var observer = new MutationObserver(function(mutations) {
+        mutations.forEach(function(mutation) {
+          if (mutation.attributeName === 'style') {
+            var display = settingsModal.style.display;
+            if (display === 'block') {
+              load2FAStatus();
+            }
+          }
+        });
+      });
+      observer.observe(settingsModal, { attributes: true });
+    }
+    
+  })();
 });

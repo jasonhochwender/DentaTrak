@@ -1244,3 +1244,379 @@ input#practiceName {
   cursor: not-allowed;
   border-color: #d1d5db !important;
 }
+
+/* ============================================
+   SECURITY SECTION STYLES
+   ============================================ */
+
+.security-section {
+  margin-bottom: 16px;
+}
+
+.security-form .form-field {
+  margin-bottom: 14px;
+}
+
+.security-form .form-field label {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  color: #374151;
+  margin-bottom: 6px;
+}
+
+.security-form input[type="password"],
+.security-form input[type="text"] {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 14px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.security-form input:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+/* Password input wrapper for toggle button */
+.password-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.password-input-wrapper input {
+  padding-right: 44px;
+}
+
+.password-toggle-btn {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  padding: 6px;
+  cursor: pointer;
+  color: #94a3b8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: color 0.2s ease;
+}
+
+.password-toggle-btn:hover {
+  color: #64748b;
+}
+
+.password-toggle-btn .icon-hide {
+  display: none;
+}
+
+.password-toggle-btn.is-visible .icon-show {
+  display: none;
+}
+
+.password-toggle-btn.is-visible .icon-hide {
+  display: block;
+}
+
+/* Password requirements */
+.password-requirements {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  margin-top: 8px;
+  font-size: 12px;
+}
+
+.password-requirements .req {
+  color: #9ca3af;
+}
+
+.password-requirements .req.valid {
+  color: #10b981;
+}
+
+/* Password match status */
+.password-match {
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+.password-match.match {
+  color: #10b981;
+}
+
+.password-match.no-match {
+  color: #ef4444;
+}
+
+/* Form messages */
+.form-error {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #dc2626;
+  padding: 10px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  margin-bottom: 12px;
+}
+
+.form-success {
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  color: #16a34a;
+  padding: 10px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  margin-bottom: 12px;
+}
+
+/* Button styles */
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 16px;
+  background: #f3f4f6;
+  color: #374151;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.btn-secondary:hover {
+  background: #e5e7eb;
+  border-color: #9ca3af;
+}
+
+.btn-secondary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 16px;
+  background: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.btn-primary:hover {
+  background: #2563eb;
+}
+
+.btn-danger {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 16px;
+  background: #ef4444;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.btn-danger:hover {
+  background: #dc2626;
+}
+
+.btn-outline-danger {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 16px;
+  background: transparent;
+  color: #ef4444;
+  border: 1px solid #ef4444;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.btn-outline-danger:hover {
+  background: #fef2f2;
+}
+
+.btn-link {
+  background: none;
+  border: none;
+  color: #6b7280;
+  font-size: 13px;
+  cursor: pointer;
+  padding: 4px 0;
+  text-decoration: underline;
+}
+
+.btn-link:hover {
+  color: #374151;
+}
+
+/* Two-Factor Authentication Styles */
+.two-factor-status {
+  margin-bottom: 16px;
+}
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 12px;
+  border-radius: 9999px;
+  font-size: 12px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.status-badge.status-disabled {
+  background: #f3f4f6;
+  color: #6b7280;
+}
+
+.status-badge.status-enabled {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.status-description {
+  font-size: 13px;
+  color: #6b7280;
+  margin: 0;
+}
+
+.two-factor-setup,
+.two-factor-disable {
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+.setup-step {
+  margin-bottom: 20px;
+}
+
+.setup-step:last-child {
+  margin-bottom: 0;
+}
+
+.setup-step p {
+  margin: 0 0 12px 0;
+  font-size: 14px;
+  color: #374151;
+}
+
+.qr-code-container {
+  display: flex;
+  justify-content: center;
+  padding: 16px;
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  margin-bottom: 12px;
+}
+
+.manual-entry {
+  font-size: 12px;
+  color: #6b7280;
+  text-align: center;
+}
+
+.manual-entry code {
+  background: #f3f4f6;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-family: monospace;
+  font-size: 13px;
+  letter-spacing: 1px;
+  user-select: all;
+}
+
+.verification-input-group,
+.disable-input-group {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.verification-input-group input,
+.disable-input-group input {
+  flex: 1;
+  max-width: 200px;
+  padding: 10px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 18px;
+  letter-spacing: 4px;
+  text-align: center;
+}
+
+.two-factor-actions {
+  display: flex;
+  gap: 12px;
+}
+
+/* Data Export Styles */
+.data-export-section {
+  padding: 0;
+}
+
+.section-description {
+  font-size: 13px;
+  color: #6b7280;
+  margin: 0 0 16px 0;
+}
+
+.export-status {
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  color: #1d4ed8;
+  padding: 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  margin-bottom: 12px;
+}
+
+.export-status.success {
+  background: #f0fdf4;
+  border-color: #bbf7d0;
+  color: #16a34a;
+}
+
+.export-status.error {
+  background: #fef2f2;
+  border-color: #fecaca;
+  color: #dc2626;
+}
+
+.export-note {
+  font-size: 12px;
+  color: #9ca3af;
+  margin-top: 12px;
+}
+
+.btn-icon {
+  font-size: 16px;
+}
