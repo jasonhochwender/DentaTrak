@@ -8364,6 +8364,16 @@ document.addEventListener('DOMContentLoaded', function () {
       });
     }
     
+    // Handle Enter key on verification code input
+    if (twoFactorVerifyCode && verifyTwoFactorBtn) {
+      twoFactorVerifyCode.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          verifyTwoFactorBtn.click();
+        }
+      });
+    }
+    
     // Cancel 2FA setup
     if (cancelTwoFactorSetup) {
       cancelTwoFactorSetup.addEventListener('click', function() {

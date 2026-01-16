@@ -328,9 +328,39 @@ $appName = $appConfig['appName'] ?? 'Dentatrak';
       line-height: 1.7;
     }
 
+    /* Credibility Section */
+    .credibility {
+      background: var(--background-subtle);
+    }
+
+    .credibility-content {
+      max-width: 700px;
+      margin: 0 auto;
+      text-align: center;
+    }
+
+    .credibility-content h2 {
+      font-size: 1.5rem;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      color: var(--text-primary);
+      margin-bottom: 20px;
+    }
+
+    .credibility-content p {
+      font-size: 1rem;
+      color: var(--text-secondary);
+      line-height: 1.8;
+      margin-bottom: 12px;
+    }
+
+    .credibility-content p:last-child {
+      margin-bottom: 0;
+    }
+
     /* Audience Sections */
     .audience {
-      background: var(--background-subtle);
+      background: var(--background-white);
     }
 
     .audience-grid {
@@ -720,7 +750,7 @@ $appName = $appConfig['appName'] ?? 'Dentatrak';
         Stalled cases cost you remakes, delayed revenue, and wasted appointments. Dentatrak gives you visibility into every multi-step case so you can see problems before they become expensive.
       </p>
       <p class="hero-private-note">
-        Currently in private evaluation with select dental practices.
+        Currently in private evaluation with select dental practices led by Dr. Verrillo.
       </p>
       <div class="waitlist-form" id="waitlistForm">
         <form id="waitlistFormElement" onsubmit="return submitWaitlist(event)">
@@ -728,7 +758,7 @@ $appName = $appConfig['appName'] ?? 'Dentatrak';
             <input type="email" class="waitlist-input" id="waitlistEmail" placeholder="Enter your email" required>
             <button type="submit" class="waitlist-btn" id="waitlistBtn">Get launch updates</button>
           </div>
-          <p class="waitlist-helper"><strong>Founding practices receive 20% off their first 6 months.</strong> Limited early access.</p>
+          <p class="waitlist-helper"><strong>Founding practices receive 20% off their first year on the Control plan.</strong><br><span style="font-size: 0.8rem; color: var(--text-light);">Limited early access. Early adopters help shape the product.</span></p>
           <p class="waitlist-error" id="waitlistError" style="display: none;"></p>
         </form>
       </div>
@@ -802,6 +832,21 @@ $appName = $appConfig['appName'] ?? 'Dentatrak';
           <h3>External dependency tracking</h3>
           <p>Know which cases are waiting on labs, referrals, or patients—and for how long. Intervene before delays become problems.</p>
         </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Credibility Section -->
+  <section class="section credibility">
+    <div class="section-inner">
+      <div class="credibility-content">
+        <h2>Built by a dentist, for dentists</h2>
+        <p>
+          Dentatrak was created by Dr. William Verrillo, a practicing dentist who experienced firsthand how easily complex cases stall between labs, referrals, and delivery.
+        </p>
+        <p>
+          This product is designed from real clinical workflows, not generic software assumptions.
+        </p>
       </div>
     </div>
   </section>
@@ -884,7 +929,7 @@ $appName = $appConfig['appName'] ?? 'Dentatrak';
     <div class="section-inner">
       <div class="section-header">
         <p class="section-label">Trust & Security</p>
-        <h2>Built for healthcare practices</h2>
+        <h2>Built for healthcare practices, by a healthcare professional</h2>
       </div>
       <div class="trust-grid">
         <div class="trust-item">
@@ -907,7 +952,7 @@ $appName = $appConfig['appName'] ?? 'Dentatrak';
   <section class="section final-cta">
     <div class="section-inner">
       <h2>Join the founding practices</h2>
-      <p>Be first in line when Dentatrak launches. Founding practices get 20% off their first 6 months and early input on the product.</p>
+      <p>Be first in line when Dentatrak launches. Founding practices get 20% off their first year on the Control plan and early input on the product.</p>
       <a href="#waitlist" class="btn-white" onclick="event.preventDefault(); window.scrollTo({top: 0, behavior: 'smooth'}); setTimeout(function(){document.getElementById('waitlistEmail').focus();}, 500);">Get early access</a>
     </div>
   </section>
