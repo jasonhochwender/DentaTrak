@@ -22,12 +22,15 @@
 /vendor/
 
 # ===========================================
-# LOGS & CACHE
+# LOGS & CACHE & SESSIONS
 # ===========================================
 
 # Log files
 /logs/
 *.log
+
+# Session files
+/sessions/
 
 # PHP cache
 *.cache

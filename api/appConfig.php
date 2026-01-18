@@ -310,6 +310,15 @@ if (session_status() === PHP_SESSION_NONE) {
     if (IS_CLOUD_RUN) {
         // Cloud Run: use /tmp for session storage (only writable path)
         session_save_path('/tmp');
+    } else {
+        // Local development: use a sessions folder in the project
+        $localSessionPath = __DIR__ . '/../sessions';
+        if (!is_dir($localSessionPath)) {
+            @mkdir($localSessionPath, 0700, true);
+        }
+        if (is_dir($localSessionPath) && is_writable($localSessionPath)) {
+            session_save_path($localSessionPath);
+        }
     }
     
     // Set secure session cookie parameters

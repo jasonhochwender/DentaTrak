@@ -11,22 +11,31 @@ $isProduction = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
     || (!empty($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https')
     || (!empty($_SERVER['SERVER_PORT']) && $_SERVER['SERVER_PORT'] == 443);
 
-// Set secure session parameters
-ini_set('session.cookie_httponly', 1);
-ini_set('session.use_only_cookies', 1);
-ini_set('session.cookie_secure', $isProduction ? 1 : 0);
-ini_set('session.cookie_samesite', 'Lax');
-
-// Set session lifetime (30 minutes for non-remembered sessions)
-ini_set('session.gc_maxlifetime', 1800);
-ini_set('session.cookie_lifetime', 0); // Session cookie (expires on browser close) by default
-
 // Start the session if not already started
 if (session_status() === PHP_SESSION_NONE) {
-    // Cloud Run: use /tmp for session storage (only writable path)
-    // K_SERVICE environment variable is always set in Cloud Run
+    // Set secure session parameters BEFORE starting session
+    ini_set('session.cookie_httponly', 1);
+    ini_set('session.use_only_cookies', 1);
+    ini_set('session.cookie_secure', $isProduction ? 1 : 0);
+    ini_set('session.cookie_samesite', 'Lax');
+
+    // Set session lifetime (30 minutes for non-remembered sessions)
+    ini_set('session.gc_maxlifetime', 1800);
+    ini_set('session.cookie_lifetime', 0); // Session cookie (expires on browser close) by default
+    
+    // Set session storage path
     if (getenv('K_SERVICE')) {
+        // Cloud Run: use /tmp for session storage (only writable path)
         session_save_path('/tmp');
+    } else {
+        // Local development: use a sessions folder in the project to avoid permission issues
+        $localSessionPath = __DIR__ . '/../sessions';
+        if (!is_dir($localSessionPath)) {
+            @mkdir($localSessionPath, 0700, true);
+        }
+        if (is_dir($localSessionPath) && is_writable($localSessionPath)) {
+            session_save_path($localSessionPath);
+        }
     }
     
     session_set_cookie_params([

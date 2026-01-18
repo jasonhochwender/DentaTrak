@@ -753,12 +753,17 @@ $appName = $appConfig['appName'] ?? 'Dentatrak';
         Currently in private evaluation with select dental practices led by Dr. Verrillo.
       </p>
       <div class="waitlist-form" id="waitlistForm">
+        <div class="founding-offer" style="background: linear-gradient(135deg, rgba(45, 90, 135, 0.15) 0%, rgba(26, 54, 93, 0.1) 100%); border: 2px solid var(--primary-light); border-radius: 12px; padding: 20px; margin-bottom: 20px; text-align: center;">
+          <span style="display: inline-block; background: var(--accent); color: var(--primary); font-size: 0.75rem; font-weight: 600; padding: 4px 12px; border-radius: 20px; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.5px;">Founding Member Offer</span>
+          <p style="margin: 0; font-size: 1.25rem; font-weight: 600; color: var(--primary);">Get 20% off your first year on the Control plan</p>
+          <p style="margin: 8px 0 0; font-size: 0.9rem; color: var(--text-light);">Join now and lock in exclusive early adopter pricing</p>
+        </div>
         <form id="waitlistFormElement" onsubmit="return submitWaitlist(event)">
           <div class="waitlist-input-group">
             <input type="email" class="waitlist-input" id="waitlistEmail" placeholder="Enter your email" required>
-            <button type="submit" class="waitlist-btn" id="waitlistBtn">Get launch updates</button>
+            <button type="submit" class="waitlist-btn" id="waitlistBtn">Claim My Discount</button>
           </div>
-          <p class="waitlist-helper"><strong>Founding practices receive 20% off their first year on the Control plan.</strong><br><span style="font-size: 0.8rem; color: var(--text-light);">Limited early access. Early adopters help shape the product.</span></p>
+          <p class="waitlist-helper"><span style="font-size: 0.85rem; color: var(--text-light);">Limited spots available. Early adopters help shape the product and receive priority access.</span></p>
           <p class="waitlist-error" id="waitlistError" style="display: none;"></p>
         </form>
       </div>
