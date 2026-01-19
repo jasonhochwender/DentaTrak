@@ -46,13 +46,12 @@ try {
     // Load Google Drive integration directly. appConfig already suppresses deprecation notices
     require_once __DIR__ . '/google-drive.php';
 
-// Google Drive is only required if the user has enabled backup
-// Check if backup is enabled and Drive is not connected
-if (isGoogleDriveBackupEnabled() && (!isset($_SESSION['google_drive_token']) || empty($_SESSION['google_drive_token']))) {
+// Check if backup is enabled and the practice has a Drive folder configured
+if (isGoogleDriveBackupEnabled() && !isPracticeCreatorDriveConnected()) {
     http_response_code(401);
     echo json_encode([
         'success' => false,
-        'message' => 'Google Drive backup is enabled but Google Drive is not connected. Please connect Google Drive from Settings or disable backup.',
+        'message' => 'Google Drive backup is enabled but the backup folder is not configured. A practice admin needs to re-enable backup from Settings.',
         'drive_not_connected' => true
     ]);
     exit;

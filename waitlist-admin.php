@@ -5,14 +5,14 @@
  * Restricted to super admins only
  */
 
-// Start session first before any other includes
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
+// Use centralized session handling (same as admin-practices.php)
+require_once __DIR__ . '/api/session.php';
+require_once __DIR__ . '/api/appConfig.php';
+require_once __DIR__ . '/api/dev-tools-access.php';
 
-// Check if user is logged in BEFORE loading heavy includes
-if (!isset($_SESSION['db_user_id']) || !isset($_SESSION['user_email'])) {
-    // Show stylized 404 - use inline version to avoid include issues
+// Check if user is logged in
+if (empty($_SESSION['db_user_id']) || empty($_SESSION['user_email'])) {
+    // Show stylized 404
     http_response_code(404);
     ?>
 <!DOCTYPE html>
@@ -47,15 +47,14 @@ if (!isset($_SESSION['db_user_id']) || !isset($_SESSION['user_email'])) {
     exit;
 }
 
-// Now load appConfig (which may start session again, but it's already started)
-require_once __DIR__ . '/api/appConfig.php';
-
 // Get user email from session
 $userEmail = $_SESSION['user_email'];
 
-// Check if user is a super admin
-$superUsers = $appConfig['super_users'] ?? [];
-if (!in_array($userEmail, $superUsers)) {
+// Check if user can access admin pages (super user OR dev environment)
+$isDev = ($appConfig['current_environment'] ?? '') === 'development';
+$canAccess = isSuperUser($appConfig, $userEmail) || $isDev;
+
+if (!$canAccess) {
     // Show stylized 404 for non-super-admins
     http_response_code(404);
     ?>

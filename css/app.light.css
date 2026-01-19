@@ -2307,12 +2307,20 @@ body {
   border-left: 3px solid #3b82f6;
 }
 
-.existing-file span {
-  max-width: calc(100% - 30px);
+.existing-file > a:first-child,
+.existing-file > span:first-child {
+  max-width: 200px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   display: inline-block;
+}
+
+/* Ensure deletion indicator is not truncated */
+.existing-file.marked-for-deletion > span:last-child {
+  max-width: none;
+  overflow: visible;
+  white-space: nowrap;
 }
 
 .file-remove {

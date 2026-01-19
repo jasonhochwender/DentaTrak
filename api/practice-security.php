@@ -8,6 +8,76 @@
 
 require_once __DIR__ . '/appConfig.php';
 
+// Data retention period in years (HIPAA requires minimum 6 years, we use 7 for safety)
+if (!defined('DATA_RETENTION_YEARS')) {
+    define('DATA_RETENTION_YEARS', 7);
+}
+
+/**
+ * Check if a practice is active and can be accessed.
+ * Returns status info including deactivation details if inactive.
+ * 
+ * @param int $practiceId Practice ID to check
+ * @return array ['active' => bool, 'message' => string, 'details' => array]
+ */
+function checkPracticeActiveStatus($practiceId) {
+    global $pdo;
+    
+    if (!$pdo || !$practiceId) {
+        return ['active' => false, 'message' => 'Invalid practice', 'details' => []];
+    }
+    
+    try {
+        $stmt = $pdo->prepare("
+            SELECT is_active, deactivated_at, deactivation_reason, data_deletion_eligible_at
+            FROM practices WHERE id = ?
+        ");
+        $stmt->execute([$practiceId]);
+        $practice = $stmt->fetch(PDO::FETCH_ASSOC);
+        
+        if (!$practice) {
+            return ['active' => false, 'message' => 'Practice not found', 'details' => []];
+        }
+        
+        // Check if is_active column exists (might be null if schema not updated)
+        $isActive = $practice['is_active'] ?? true;
+        
+        if ($isActive) {
+            return ['active' => true, 'message' => '', 'details' => []];
+        }
+        
+        // Practice is inactive - calculate years inactive
+        $deactivatedAt = $practice['deactivated_at'];
+        $yearsInactive = 0;
+        if ($deactivatedAt) {
+            $deactivatedDate = new DateTime($deactivatedAt);
+            $now = new DateTime();
+            $yearsInactive = $now->diff($deactivatedDate)->y;
+            $monthsInactive = $now->diff($deactivatedDate)->m;
+        }
+        
+        $deletionEligibleAt = $practice['data_deletion_eligible_at'];
+        $yearsUntilDeletion = DATA_RETENTION_YEARS - $yearsInactive;
+        
+        return [
+            'active' => false,
+            'message' => 'This practice is no longer active. Please contact support@dentatrak.com for assistance.',
+            'details' => [
+                'deactivated_at' => $deactivatedAt,
+                'reason' => $practice['deactivation_reason'],
+                'years_inactive' => $yearsInactive,
+                'months_inactive' => $monthsInactive ?? 0,
+                'deletion_eligible_at' => $deletionEligibleAt,
+                'years_until_deletion' => max(0, $yearsUntilDeletion)
+            ]
+        ];
+    } catch (PDOException $e) {
+        error_log('[practice-security] Error checking practice status: ' . $e->getMessage());
+        // Default to active if we can't check (fail open for existing practices)
+        return ['active' => true, 'message' => '', 'details' => []];
+    }
+}
+
 /**
  * Verify the current user has access to the specified practice.
  * This should be called at the start of any API that accesses practice data.

@@ -24,6 +24,9 @@ $googleClientId = $appConfig['google_client_id'];
 
 // Check for authentication errors
 $authError = isset($_GET['auth_error']) ? htmlspecialchars($_GET['auth_error']) : null;
+
+// Check for session timeout
+$sessionTimeout = isset($_GET['timeout']) && $_GET['timeout'] == '1';
 ?><!DOCTYPE html>
 <html lang="en">
 <head>
@@ -136,7 +139,15 @@ $authError = isset($_GET['auth_error']) ? htmlspecialchars($_GET['auth_error']) 
           <p class="invited-only-note">Dentatrak is currently available to invited practices only.</p>
         </div>
         
-        <?php if ($authError): ?>
+        <?php if ($sessionTimeout): ?>
+          <div class="auth-error" style="background: #fef3c7; border-color: #fcd34d; color: #92400e;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"/>
+              <polyline points="12 6 12 12 16 14"/>
+            </svg>
+            <p>Your session has expired due to inactivity. Please sign in again.</p>
+          </div>
+        <?php elseif ($authError): ?>
           <div class="auth-error">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <circle cx="12" cy="12" r="10"/>

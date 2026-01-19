@@ -5,30 +5,29 @@
  * Restricted to super admins only
  */
 
-// Start session first before any other includes
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
+// Use centralized session handling
+require_once __DIR__ . '/session.php';
+require_once __DIR__ . '/appConfig.php';
+require_once __DIR__ . '/dev-tools-access.php';
+require_once __DIR__ . '/email-sender.php';
 
 header('Content-Type: application/json');
 
-// Check if user is logged in BEFORE loading heavy includes
-if (!isset($_SESSION['db_user_id']) || !isset($_SESSION['user_email'])) {
+// Check if user is logged in
+if (empty($_SESSION['db_user_id']) || empty($_SESSION['user_email'])) {
     http_response_code(401);
     echo json_encode(['success' => false, 'error' => 'Not authenticated']);
     exit;
 }
 
-// Now load appConfig for database and super_users list
-require_once __DIR__ . '/appConfig.php';
-require_once __DIR__ . '/email-sender.php';
-
 // Get user email from session
 $userEmail = $_SESSION['user_email'];
 
-// Check if user is a super admin
-$superUsers = $appConfig['super_users'] ?? [];
-if (!in_array($userEmail, $superUsers)) {
+// Check if user can access admin pages (super user OR dev environment)
+$isDev = ($appConfig['current_environment'] ?? '') === 'development';
+$canAccess = isSuperUser($appConfig, $userEmail) || $isDev;
+
+if (!$canAccess) {
     http_response_code(403);
     echo json_encode(['success' => false, 'error' => 'Access denied']);
     exit;

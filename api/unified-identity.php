@@ -193,7 +193,7 @@ function authenticateWithGoogle($googleData) {
                         WHEN auth_method = 'email' THEN 'both'
                         ELSE auth_method
                     END,
-                    profile_picture = COALESCE(:profile_picture, profile_picture),
+                    profile_picture = COALESCE(NULLIF(:profile_picture, ''), profile_picture),
                     last_login_at = NOW()
                 WHERE id = :user_id
             ");
@@ -734,6 +734,10 @@ function updateUserProfile($userId, $fields) {
     
     foreach ($fields as $field => $value) {
         if (in_array($field, $allowedFields)) {
+            // Skip empty profile_picture to avoid overwriting existing with empty string
+            if ($field === 'profile_picture' && empty($value)) {
+                continue;
+            }
             $updates[] = "$field = :$field";
             $params[$field] = $value;
         }
@@ -833,23 +837,76 @@ function userHasPracticeAccess($userId, $practiceId) {
  * @param int $userId User ID
  * @return array List of practices
  */
-function getUserPractices($userId) {
+function getUserPractices($userId, $includeInactive = false) {
     global $pdo;
     
     if (!$pdo || !$userId) return [];
     
     try {
+        // By default, only return active practices
+        $activeFilter = $includeInactive ? '' : 'AND (p.is_active = 1 OR p.is_active IS NULL)';
+        
         $stmt = $pdo->prepare("
-            SELECT p.id, p.practice_id as uuid, p.practice_name, pu.role, pu.is_owner
+            SELECT p.id, p.practice_id as uuid, p.practice_name, pu.role, pu.is_owner,
+                   p.is_active, p.deactivated_at, p.data_deletion_eligible_at
             FROM practices p
             JOIN practice_users pu ON p.id = pu.practice_id
-            WHERE pu.user_id = :user_id
+            WHERE pu.user_id = :user_id $activeFilter
         ");
         $stmt->execute(['user_id' => $userId]);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     } catch (PDOException $e) {
         return [];
     }
+}
+
+/**
+ * Check if user has any active practices they can access
+ * Returns info about inactive practices if all are inactive
+ * 
+ * @param int $userId User ID
+ * @return array ['has_active' => bool, 'inactive_practices' => array]
+ */
+function checkUserPracticeAccess($userId) {
+    global $pdo;
+    
+    if (!$pdo || !$userId) {
+        return ['has_active' => false, 'inactive_practices' => []];
+    }
+    
+    // Get all practices (including inactive)
+    $allPractices = getUserPractices($userId, true);
+    $activePractices = getUserPractices($userId, false);
+    
+    if (count($activePractices) > 0) {
+        return ['has_active' => true, 'inactive_practices' => []];
+    }
+    
+    // All practices are inactive - return details
+    $inactivePractices = [];
+    foreach ($allPractices as $practice) {
+        if (!($practice['is_active'] ?? true)) {
+            $yearsInactive = 0;
+            if ($practice['deactivated_at']) {
+                $deactivatedDate = new DateTime($practice['deactivated_at']);
+                $now = new DateTime();
+                $yearsInactive = $now->diff($deactivatedDate)->y;
+            }
+            
+            $inactivePractices[] = [
+                'name' => $practice['practice_name'],
+                'deactivated_at' => $practice['deactivated_at'],
+                'years_inactive' => $yearsInactive,
+                'deletion_eligible_at' => $practice['data_deletion_eligible_at']
+            ];
+        }
+    }
+    
+    return [
+        'has_active' => false,
+        'inactive_practices' => $inactivePractices,
+        'message' => 'Your practice is no longer active. Please contact support@dentatrak.com for assistance.'
+    ];
 }
 
 /**

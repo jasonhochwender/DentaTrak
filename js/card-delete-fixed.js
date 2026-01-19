@@ -160,11 +160,11 @@ document.addEventListener('DOMContentLoaded', function() {
               window.triggerCardsUpdated();
             }
           } else {
-            // Show only the server-provided message; no generic fallback text
+            // Show only the server-provided message
             if (typeof Toast !== 'undefined' && data.message) {
               Toast.error('Error', data.message);
-            } else if (data.message) {
-              alert('Error: ' + data.message);
+            } else if (data.message && typeof showToast === 'function') {
+              showToast('Error: ' + data.message, 'error');
             }
             
             // Remove loading state if card is still present
@@ -174,7 +174,13 @@ document.addEventListener('DOMContentLoaded', function() {
           }
         })
         .catch(error => {
-          // Silent failure in UI: just clear loading state if possible
+          // Handle network errors with user-friendly message
+          if (typeof NetworkErrorHandler !== 'undefined') {
+            NetworkErrorHandler.handle(error, 'deleting case');
+          } else if (typeof showToast === 'function') {
+            showToast('Error deleting case. Please check your connection.', 'error');
+          }
+          // Clear loading state if possible
           if (currentCardToDelete) {
             currentCardToDelete.classList.remove('deleting');
           }

@@ -386,13 +386,17 @@ if (isset($appConfig) && is_array($appConfig) && isset($appConfig['appName'])) {
   <link rel="stylesheet" href="css/mobile.css?v=20250104c">
   
   <!-- Non-critical CSS - deferred loading -->
+  <?php if (isFeatureEnabled('SHOW_TOUR')): ?>
   <link rel="preload" href="https://cdn.jsdelivr.net/npm/shepherd.js@11/dist/css/shepherd.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
   <link rel="preload" href="css/tour.css?v=20241210" as="style" onload="this.onload=null;this.rel='stylesheet'">
+  <?php endif; ?>
   <link rel="preload" href="css/toast.css?v=20241210" as="style" onload="this.onload=null;this.rel='stylesheet'">
   <link rel="preload" href="css/loading.css?v=20241210" as="style" onload="this.onload=null;this.rel='stylesheet'">
   <noscript>
+    <?php if (isFeatureEnabled('SHOW_TOUR')): ?>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/shepherd.js@11/dist/css/shepherd.css">
     <link rel="stylesheet" href="css/tour.css?v=20241210">
+    <?php endif; ?>
     <link rel="stylesheet" href="css/toast.css?v=20241210">
     <link rel="stylesheet" href="css/loading.css?v=20241210">
   </noscript>
@@ -569,7 +573,9 @@ window.featureFlags = <?php echo getFeatureFlagsJson(); ?>;
 <?php endif; ?>
           <div class="user-menu-divider"></div>
           <a href="#" class="user-menu-item" id="contactUsLink">Feedback</a>
+          <?php if (isFeatureEnabled('SHOW_TOUR')): ?>
           <a href="#" class="user-menu-item" id="startTourLink">Take a Tour</a>
+          <?php endif; ?>
           <div class="user-menu-divider"></div>
           <a href="api/logout.php" class="user-menu-item">Sign Out</a>
         </div>
@@ -1901,10 +1907,14 @@ window.featureFlags = <?php echo getFeatureFlagsJson(); ?>;
                           </span>
                         </div>
                         
-                        <div class="option-row">
+                        <?php if (isFeatureEnabled('SHOW_GOOGLE_DRIVE_BACKUP')): ?>
+                        <div class="option-row" id="googleDriveBackupRow">
                           <label for="googleDriveBackup">Backup case data to Google Drive</label>
                           <input type="checkbox" id="googleDriveBackup" name="googleDriveBackup" <?= $isAdmin ? '' : 'disabled' ?>>
+                          <span id="googleDriveBackupNote" class="field-note" style="display: block; margin-top: 4px; margin-left: 8px; font-size: 12px; color: #666;">All practice cases will be backed up to a shared Google Drive folder.</span>
+                          <span id="googleDriveWorkspaceWarning" class="field-note" style="display: none; margin-top: 4px; margin-left: 8px; font-size: 12px; color: #d97706;">⚠️ Requires Google Workspace with a signed BAA for HIPAA compliance.</span>
                         </div>
+                        <?php endif; ?>
                       </div>
                       
                       <?php if (!$isAdmin): ?>
@@ -2085,28 +2095,33 @@ window.featureFlags = <?php echo getFeatureFlagsJson(); ?>;
   </div>
   
   <!-- Google Drive Backup Confirmation Modal -->
-  <div id="googleDriveBackupModal" class="delete-confirm-modal">
-    <div class="delete-confirm-content">
+  <?php if (isFeatureEnabled('SHOW_GOOGLE_DRIVE_BACKUP')): ?>
+  <div id="googleDriveBackupModal" class="delete-confirm-modal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; width:100%; height:100%; background:rgba(0,0,0,0.6); z-index:999999; align-items:center; justify-content:center;">
+    <div class="delete-confirm-content" style="background:#fff; padding:20px; border-radius:8px; max-width:500px; width:90%; margin:20px; max-height:90vh; overflow-y:auto; box-shadow:0 5px 15px rgba(0,0,0,0.3); border:3px solid #2196f3;">
       <div class="delete-confirm-header">
         <i class="delete-icon" style="background: #2196f3;">☁</i>
         <h3>Enable Google Drive Backup</h3>
       </div>
       <div class="delete-confirm-body">
+        <p style="margin-bottom: 12px; padding: 10px; background: #e3f2fd; border-radius: 4px; font-size: 13px;">
+          <strong>📁 Centralized Backup:</strong> A shared backup folder will be created in your Google Drive. <strong>All practice cases</strong> created by any team member will be backed up to this single location.
+        </p>
         <p>Enabling this feature will:</p>
         <ul>
-          <li>Create a backup folder in Google Drive for each <strong>new case</strong> going forward</li>
-          <li>Store case data as JSON and text files in that folder</li>
-          <li>Copy all attached files to the backup folder</li>
-          <li>Sync file changes when cases are edited (add/remove attachments)</li>
+          <li>Create a shared backup folder in your Google Drive</li>
+          <li>Automatically backup all <strong>new cases</strong> created by any practice member</li>
+          <li>Store case data and attached files in organized subfolders</li>
+          <li>Keep backups in sync when cases are edited</li>
         </ul>
-        <p style="margin-top: 12px;"><strong>Important:</strong></p>
+        <p style="margin-top: 12px;"><strong>Requirements:</strong></p>
         <ul>
-          <li>This only affects <strong>new cases</strong> created after enabling</li>
+          <li>You must be signed in with Google (not email/password)</li>
+          <li>Only affects <strong>new cases</strong> created after enabling</li>
           <li>Existing cases will not be backed up</li>
-          <li>Turning this off later will not remove existing backup files</li>
+          <li>Disabling backup later will preserve existing backup files</li>
         </ul>
         <p style="margin-top: 12px; padding: 10px; background: #fff3cd; border-radius: 4px; font-size: 13px;">
-          <strong>⚠️ HIPAA Compliance:</strong> By enabling this feature, you confirm that you have a signed Business Associate Agreement (BAA) with Google for Google Workspace/Drive that covers PHI storage.
+          <strong>⚠️ HIPAA Compliance:</strong> By enabling this feature, you confirm that you have a signed Business Associate Agreement (BAA) with Google for Google Workspace that covers PHI storage.
         </p>
       </div>
       <div class="delete-confirm-actions">
@@ -2115,6 +2130,7 @@ window.featureFlags = <?php echo getFeatureFlagsJson(); ?>;
       </div>
     </div>
   </div>
+  <?php endif; ?>
   
   <!-- Card Delete Confirmation Modal -->
   <div id="cardDeleteModal" class="delete-confirm-modal">
@@ -2239,6 +2255,15 @@ window.featureFlags = <?php echo getFeatureFlagsJson(); ?>;
           <button id="devDeleteAllCasesBtn" class="dev-btn dev-btn-danger">Delete All Cases</button>
         </div>
       </div>
+      
+      <!-- Admin Tools -->
+      <div class="dev-tools-section">
+        <h4>👑 Admin Tools</h4>
+        <div class="admin-links" style="display: flex; flex-direction: column; gap: 8px;">
+          <a href="/admin-practices.php" class="dev-btn" style="text-align: center; text-decoration: none;">🏥 Practice Administration</a>
+          <a href="/waitlist-admin.php" class="dev-btn" style="text-align: center; text-decoration: none;">📋 Waitlist Admin</a>
+        </div>
+      </div>
     </div>
   </div>
   <?php endif; ?>
@@ -2293,6 +2318,7 @@ window.featureFlags = <?php echo getFeatureFlagsJson(); ?>;
 
   <!-- Load JavaScript last -->
   <script src="js/toast.js?v=20250104" defer></script>
+  <script src="js/session-timeout.js?v=20250118" defer></script>
   <script src="js/app.js?v=20250104" defer></script>
   <script src="js/card-delete-fixed.js?v=20250104" defer></script>
   <script src="js/assignments.js?v=20250104" defer></script>
@@ -2643,8 +2669,10 @@ window.featureFlags = <?php echo getFeatureFlagsJson(); ?>;
   <!-- Chart.js and Analytics Pro are lazy-loaded when Analytics tab is clicked -->
   
   <!-- Shepherd.js Tour - deferred since not needed immediately -->
+  <?php if (isFeatureEnabled('SHOW_TOUR')): ?>
   <script src="https://cdn.jsdelivr.net/npm/shepherd.js@11/dist/js/shepherd.min.js" defer></script>
   <script src="js/tour.js?v=20241227o" defer></script>
+  <?php endif; ?>
 </body>
 </html>
 <?php

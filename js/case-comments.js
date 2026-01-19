@@ -380,8 +380,10 @@
     })
     .catch(function(error) {
       console.error('Error submitting comment:', error);
-      if (typeof showToast === 'function') {
-        showToast('Error adding comment', 'error');
+      if (typeof NetworkErrorHandler !== 'undefined') {
+        NetworkErrorHandler.handle(error, 'adding comment');
+      } else if (typeof showToast === 'function') {
+        showToast('Error adding comment. Please try again.', 'error');
       }
     })
     .finally(function() {

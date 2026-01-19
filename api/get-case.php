@@ -16,6 +16,7 @@ require_once __DIR__ . '/cases-cache.php';
 require_once __DIR__ . '/google-drive.php';
 require_once __DIR__ . '/case-activity-log.php';
 require_once __DIR__ . '/encryption.php';
+require_once __DIR__ . '/hipaa-compliance.php';
 
 // SECURITY: Require valid practice context before accessing any data
 $currentPracticeId = requireValidPracticeContext();
@@ -79,6 +80,9 @@ try {
 
     // Decrypt PII fields before returning
     $decryptedCase = PIIEncryption::decryptCaseData($targetCase);
+
+    // Log PHI access for HIPAA compliance
+    logPHIAccess('view_case', $caseId);
 
     echo json_encode([
         'success' => true,

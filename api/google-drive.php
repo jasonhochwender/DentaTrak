@@ -144,49 +144,29 @@ function getPracticeRootFolder($practiceId) {
         return getAppRootFolder();
     }
 
-    $client = getGoogleClient();
-
-    if (!$client->getAccessToken() || $client->isAccessTokenExpired()) {
-        return getAppRootFolder();
-    }
-
     try {
         if ($pdo) {
-            $stmt = $pdo->prepare("SELECT drive_root_id, practice_name FROM practices WHERE id = :id LIMIT 1");
+            // First check for the new google_drive_folder_id (practice-level backup folder)
+            $stmt = $pdo->prepare("SELECT google_drive_folder_id, drive_root_id, practice_name FROM practices WHERE id = :id LIMIT 1");
             $stmt->execute(['id' => $practiceId]);
             $row = $stmt->fetch(PDO::FETCH_ASSOC);
 
+            // Prefer the new google_drive_folder_id if set
+            if ($row && !empty($row['google_drive_folder_id'])) {
+                return $row['google_drive_folder_id'];
+            }
+            
+            // Fall back to legacy drive_root_id if set
             if ($row && !empty($row['drive_root_id'])) {
                 return $row['drive_root_id'];
-            }
-
-            if ($row) {
-                $service = new Google_Service_Drive($client);
-                $name = $row['practice_name'] ?: ('Practice ' . $practiceId);
-                $folderName = $appConfig['appName'] . ' - ' . $name;
-
-                $folderMetadata = new Google_Service_Drive_DriveFile([
-                    'name' => $folderName,
-                    'mimeType' => 'application/vnd.google-apps.folder'
-                ]);
-
-                $folder = $service->files->create($folderMetadata);
-                $folderId = $folder->getId();
-
-                $update = $pdo->prepare("UPDATE practices SET drive_root_id = :folder_id WHERE id = :id");
-                $update->execute([
-                    'folder_id' => $folderId,
-                    'id' => $practiceId
-                ]);
-
-                return $folderId;
             }
         }
     } catch (Exception $e) {
         logGDMsg('Error resolving practice root: ' . $e->getMessage());
     }
 
-    return getAppRootFolder();
+    // No folder configured - backup should not proceed without explicit setup
+    return null;
 }
 
 function sharePracticeRootWithEmail($practiceId, $email, $role = 'writer') {
@@ -880,21 +860,165 @@ function createCacheOnlyCase($caseData, $files, $originalCaseData = null) {
 }
 
 /**
- * Check if Google Drive backup is enabled for the current user
- * @return bool Whether backup is enabled
+ * Check if Google Drive backup is enabled for the current practice.
+ * Backup is a practice-level setting stored in the practices table.
+ * @return bool Whether backup is enabled for the practice
  */
 function isGoogleDriveBackupEnabled() {
     global $pdo;
     
-    if (!isset($_SESSION['db_user_id'])) {
+    $practiceId = $_SESSION['current_practice_id'] ?? 0;
+    if (!$practiceId) {
         return false;
     }
     
     try {
-        $stmt = $pdo->prepare("SELECT google_drive_backup FROM user_preferences WHERE user_id = :user_id");
-        $stmt->execute(['user_id' => $_SESSION['db_user_id']]);
+        $stmt = $pdo->prepare("SELECT google_drive_backup_enabled FROM practices WHERE id = :id");
+        $stmt->execute(['id' => $practiceId]);
         $result = $stmt->fetchColumn();
         return (bool)$result;
+    } catch (Exception $e) {
+        return false;
+    }
+}
+
+/**
+ * Check if the practice has a Google Drive folder configured.
+ * @return bool Whether the practice has a Drive folder set up
+ */
+function isPracticeCreatorDriveConnected() {
+    global $pdo;
+    
+    $practiceId = $_SESSION['current_practice_id'] ?? 0;
+    if (!$practiceId) {
+        return false;
+    }
+    
+    try {
+        $stmt = $pdo->prepare("SELECT google_drive_folder_id FROM practices WHERE id = :id");
+        $stmt->execute(['id' => $practiceId]);
+        $folderId = $stmt->fetchColumn();
+        return !empty($folderId);
+    } catch (Exception $e) {
+        return false;
+    }
+}
+
+/**
+ * Get the practice's Google Drive folder ID.
+ * @return string|null The folder ID or null if not set
+ */
+function getPracticeDriveFolderId() {
+    global $pdo;
+    
+    $practiceId = $_SESSION['current_practice_id'] ?? 0;
+    if (!$practiceId) {
+        return null;
+    }
+    
+    try {
+        $stmt = $pdo->prepare("SELECT google_drive_folder_id FROM practices WHERE id = :id");
+        $stmt->execute(['id' => $practiceId]);
+        return $stmt->fetchColumn() ?: null;
+    } catch (Exception $e) {
+        return null;
+    }
+}
+
+/**
+ * Check if the current user has Google Workspace (can access Shared Drives).
+ * This is detected by checking if the user can list Shared Drives.
+ * @return array ['hasWorkspace' => bool, 'error' => string|null]
+ */
+function checkGoogleWorkspaceAccess() {
+    if (!isset($_SESSION['google_drive_token']) || empty($_SESSION['google_drive_token'])) {
+        return ['hasWorkspace' => false, 'error' => 'Google Drive not connected'];
+    }
+    
+    try {
+        $client = getGoogleClient();
+        if (!$client->getAccessToken() || $client->isAccessTokenExpired()) {
+            return ['hasWorkspace' => false, 'error' => 'Google Drive session expired'];
+        }
+        
+        $service = new Google_Service_Drive($client);
+        
+        // Try to list Shared Drives - only Workspace accounts can do this
+        // We just need to check if the API call succeeds, not the results
+        $response = $service->drives->listDrives(['pageSize' => 1]);
+        
+        // If we get here without an exception, user has Workspace
+        return ['hasWorkspace' => true, 'error' => null];
+    } catch (Google_Service_Exception $e) {
+        // Error 403 or similar means no Workspace access
+        return ['hasWorkspace' => false, 'error' => 'Google Workspace required for backup feature'];
+    } catch (Exception $e) {
+        return ['hasWorkspace' => false, 'error' => $e->getMessage()];
+    }
+}
+
+/**
+ * Create a shared folder for the practice's backups.
+ * This creates a regular folder (not a Shared Drive) that can be shared with team members.
+ * @param string $practiceName The practice name for the folder
+ * @return array ['success' => bool, 'folderId' => string|null, 'error' => string|null]
+ */
+function createPracticeBackupFolder($practiceName) {
+    global $pdo;
+    
+    if (!isset($_SESSION['google_drive_token']) || empty($_SESSION['google_drive_token'])) {
+        return ['success' => false, 'folderId' => null, 'error' => 'Google Drive not connected'];
+    }
+    
+    try {
+        $client = getGoogleClient();
+        if (!$client->getAccessToken() || $client->isAccessTokenExpired()) {
+            return ['success' => false, 'folderId' => null, 'error' => 'Google Drive session expired'];
+        }
+        
+        $service = new Google_Service_Drive($client);
+        
+        // Create the practice backup folder
+        $folderName = $practiceName . ' - Case Backups';
+        $folderMetadata = new Google_Service_Drive_DriveFile([
+            'name' => $folderName,
+            'mimeType' => 'application/vnd.google-apps.folder',
+            'description' => 'Automated case backups for ' . $practiceName . '. Created by DentaTrack.'
+        ]);
+        
+        $folder = $service->files->create($folderMetadata, ['fields' => 'id']);
+        $folderId = $folder->getId();
+        
+        // Store the folder ID in the practice record
+        $practiceId = $_SESSION['current_practice_id'] ?? 0;
+        if ($practiceId && $folderId) {
+            $stmt = $pdo->prepare("UPDATE practices SET google_drive_folder_id = :folder_id, google_drive_backup_enabled = TRUE WHERE id = :id");
+            $stmt->execute(['folder_id' => $folderId, 'id' => $practiceId]);
+        }
+        
+        return ['success' => true, 'folderId' => $folderId, 'error' => null];
+    } catch (Exception $e) {
+        logGDMsg('Error creating practice backup folder: ' . $e->getMessage());
+        return ['success' => false, 'folderId' => null, 'error' => $e->getMessage()];
+    }
+}
+
+/**
+ * Disable Google Drive backup for the practice.
+ * @return bool Success status
+ */
+function disablePracticeBackup() {
+    global $pdo;
+    
+    $practiceId = $_SESSION['current_practice_id'] ?? 0;
+    if (!$practiceId) {
+        return false;
+    }
+    
+    try {
+        $stmt = $pdo->prepare("UPDATE practices SET google_drive_backup_enabled = FALSE WHERE id = :id");
+        $stmt->execute(['id' => $practiceId]);
+        return true;
     } catch (Exception $e) {
         return false;
     }

@@ -422,13 +422,13 @@ try {
         }
     }
 
-    // Google Drive is only required if the user has enabled backup
-    if (isGoogleDriveBackupEnabled() && (!isset($_SESSION['google_drive_token']) || empty($_SESSION['google_drive_token']))) {
+    // Check if backup is enabled and the practice has a Drive folder configured
+    if (isGoogleDriveBackupEnabled() && !isPracticeCreatorDriveConnected()) {
         http_response_code(401);
         echo json_encode([
             'success' => false,
             'drive_not_connected' => true,
-            'message' => 'Google Drive backup is enabled but Google Drive is not connected. Please connect Google Drive from Settings or disable backup.'
+            'message' => 'Google Drive backup is enabled but the backup folder is not configured. A practice admin needs to re-enable backup from Settings.'
         ]);
         exit;
     }
@@ -468,6 +468,9 @@ try {
             'id' => $_POST['caseId'], // Add the case ID
             'driveFolderId' => $_POST['driveFolderId'] ?? null // Make sure we have the folder ID
         ];
+        
+        // Get version for optimistic locking (concurrent edit detection)
+        $expectedVersion = isset($_POST['version']) ? (int)$_POST['version'] : null;
         
         $missingFields = [];
         
@@ -685,9 +688,42 @@ try {
         // Return the result
         if ($result['success']) {
             if (isset($result['caseData']) && is_array($result['caseData'])) {
-                // Save ENCRYPTED data to cache (re-encrypt the decrypted data returned from updateCase)
+                // Save ENCRYPTED data to cache with version check (optimistic locking)
                 $encryptedForCache = PIIEncryption::encryptCaseData($result['caseData']);
-                saveCaseToCache($encryptedForCache);
+                
+                // If version was provided, use optimistic locking
+                if ($expectedVersion !== null) {
+                    $versionResult = updateCaseWithVersionCheck($encryptedForCache, $expectedVersion);
+                    
+                    if (!$versionResult['success'] && isset($versionResult['conflict']) && $versionResult['conflict']) {
+                        // Version conflict - another user edited the case
+                        http_response_code(409); // Conflict
+                        echo json_encode([
+                            'success' => false,
+                            'conflict' => true,
+                            'message' => $versionResult['message'],
+                            'expectedVersion' => $versionResult['expectedVersion'] ?? $expectedVersion,
+                            'currentVersion' => $versionResult['currentVersion'],
+                            'currentData' => $versionResult['currentData']
+                        ]);
+                        exit;
+                    } elseif (!$versionResult['success']) {
+                        // Other error
+                        http_response_code(500);
+                        echo json_encode([
+                            'success' => false,
+                            'message' => $versionResult['error'] ?? 'Failed to save case'
+                        ]);
+                        exit;
+                    }
+                    
+                    // Update the result with new version
+                    $result['caseData']['version'] = $versionResult['newVersion'];
+                    $result['newVersion'] = $versionResult['newVersion'];
+                } else {
+                    // No version provided - use regular save (backwards compatibility)
+                    saveCaseToCache($encryptedForCache);
+                }
 
                 // Log a generic case update activity (may include status changes)
                 $updatedCaseId = $result['caseData']['id'] ?? ($_POST['caseId'] ?? null);

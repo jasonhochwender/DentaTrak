@@ -35,8 +35,9 @@ try {
     ini_set('log_errors', 1);
     ini_set('error_log', __DIR__ . '/../logs/error.log');
 
-    // Include case activity logging
+    // Include case activity logging and HIPAA compliance
     require_once __DIR__ . '/case-activity-log.php';
+    require_once __DIR__ . '/hipaa-compliance.php';
 
     // Set headers to prevent caching
     header('Cache-Control: no-cache, must-revalidate');
@@ -62,11 +63,13 @@ try {
             null,
             null,
             [
-                'patient_name' => $patientName,
                 'has_attachments' => !empty($caseData['attachments']),
                 'attachment_count' => is_array($caseData['attachments'] ?? null) ? count($caseData['attachments']) : 0
             ]
         );
+        
+        // Log PHI access for HIPAA compliance (printing = exporting PHI)
+        logPHIAccess('print_case', $caseId);
     }
     
     // Check if GD extension is available for image processing
@@ -792,11 +795,15 @@ function generatePrintableHTML($caseData, $attachments = [], $gdAvailable = true
             <h2 style="page-break-after: avoid; border-bottom: 2px solid #333; padding-bottom: 8px; margin-bottom: 20px; margin-top: 0;">Attachment Contents</h2>
             <?php
             if (!empty($attachments) && is_array($attachments)) {
+                $attachmentIndex = 0;
                 foreach ($attachments as $attachment) {
-                    echo '<div class="file-section">';
+                    // Each attachment starts on its own page (except the first one which follows the header)
+                    $pageBreakStyle = $attachmentIndex > 0 ? 'page-break-before: always;' : '';
+                    echo '<div class="file-section" style="' . $pageBreakStyle . '">';
                     echo '<div class="file-header">';
                     echo 'File: ' . htmlspecialchars(isset($attachment['fileName']) ? $attachment['fileName'] : 'Unknown file') . ' (' . htmlspecialchars(isset($attachment['type']) ? $attachment['type'] : 'Unknown type') . ')';
                     echo '</div>';
+                    $attachmentIndex++;
                     
                     // Try to get file from local storage first
                     $filePath = null;

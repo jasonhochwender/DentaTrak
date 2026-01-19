@@ -35,6 +35,7 @@ $data = json_decode(file_get_contents('php://input'), true);
 $caseId = isset($data['caseId']) ? trim((string)$data['caseId']) : '';
 $status = isset($data['status']) ? trim((string)$data['status']) : '';
 $driveFolderId = isset($data['driveFolderId']) ? trim((string)$data['driveFolderId']) : '';
+$expectedVersion = isset($data['version']) ? (int)$data['version'] : null;
 
 if ($caseId === '' || $status === '') {
     http_response_code(400);
@@ -75,31 +76,70 @@ if ($driveFolderId === '') {
     $lastUpdateDate = date('c');
     $revisionCount = null;
     $isRegression = false;
+    $newVersion = null;
 
-    // Best-effort fetch of previous status from cache for logging purposes
-    try {
-        if (isset($pdo) && $pdo) {
-            $stmt = $pdo->prepare("SELECT status, revision_count FROM cases_cache WHERE case_id = :case_id LIMIT 1");
-            $stmt->execute(['case_id' => $caseId]);
-            $row = $stmt->fetch(PDO::FETCH_ASSOC);
-            if ($row) {
-                $oldStatus = $row['status'];
-                $revisionCount = (int)($row['revision_count'] ?? 0);
+    // If version provided, use optimistic locking
+    if ($expectedVersion !== null) {
+        $versionResult = updateCaseStatusWithVersionCheck($caseId, $status, $lastUpdateDate, $expectedVersion);
+        
+        if (!$versionResult['success']) {
+            if (isset($versionResult['conflict']) && $versionResult['conflict']) {
+                // Version conflict - another user edited the case
+                http_response_code(409);
+                echo json_encode([
+                    'success' => false,
+                    'conflict' => true,
+                    'message' => $versionResult['message'] ?? 'This case was modified by another user.',
+                    'expectedVersion' => $expectedVersion,
+                    'currentVersion' => $versionResult['currentVersion'] ?? null,
+                    'currentData' => $versionResult['currentData'] ?? null
+                ]);
+                exit;
+            } else {
+                // Other error
+                http_response_code(500);
+                echo json_encode([
+                    'success' => false,
+                    'message' => $versionResult['error'] ?? 'Failed to update status'
+                ]);
+                exit;
             }
         }
-    } catch (Exception $e) {
-        // Log but do not fail the whole operation
-        error_log('[update-case-status] Error fetching previous status: ' . $e->getMessage());
-    }
+        
+        $oldStatus = $versionResult['oldStatus'] ?? null;
+        $newVersion = $versionResult['newVersion'];
+        
+        // Check if this is a regression
+        if (isBackwardMovement($oldStatus, $status, $workflowStageOrder)) {
+            $isRegression = true;
+            $revisionCount = incrementCaseRevisionCount($caseId);
+        }
+    } else {
+        // No version - use legacy non-locking update (backwards compatibility)
+        // Best-effort fetch of previous status from cache for logging purposes
+        try {
+            if (isset($pdo) && $pdo) {
+                $stmt = $pdo->prepare("SELECT status, revision_count FROM cases_cache WHERE case_id = :case_id LIMIT 1");
+                $stmt->execute(['case_id' => $caseId]);
+                $row = $stmt->fetch(PDO::FETCH_ASSOC);
+                if ($row) {
+                    $oldStatus = $row['status'];
+                    $revisionCount = (int)($row['revision_count'] ?? 0);
+                }
+            }
+        } catch (Exception $e) {
+            error_log('[update-case-status] Error fetching previous status: ' . $e->getMessage());
+        }
 
-    // Check if this is a regression (ANY backward stage movement)
-    if (isBackwardMovement($oldStatus, $status, $workflowStageOrder)) {
-        $isRegression = true;
-        $revisionCount = incrementCaseRevisionCount($caseId);
-    }
+        // Check if this is a regression (ANY backward stage movement)
+        if (isBackwardMovement($oldStatus, $status, $workflowStageOrder)) {
+            $isRegression = true;
+            $revisionCount = incrementCaseRevisionCount($caseId);
+        }
 
-    // Update the local cache only
-    updateCaseStatusInCache($caseId, $status, $lastUpdateDate);
+        // Update the local cache only (no version check)
+        updateCaseStatusInCache($caseId, $status, $lastUpdateDate);
+    }
 
     // Log status change activity
     $activityMeta = [
@@ -108,7 +148,6 @@ if ($driveFolderId === '') {
     ];
     
     if ($isRegression) {
-        // Log as a regression event (backward stage movement)
         logCaseActivity(
             $caseId,
             'case_regression',
@@ -138,6 +177,9 @@ if ($driveFolderId === '') {
     if ($revisionCount !== null) {
         $responseData['revisionCount'] = $revisionCount;
     }
+    if ($newVersion !== null) {
+        $responseData['version'] = $newVersion;
+    }
     
     echo json_encode([
         'success' => true,
@@ -146,6 +188,7 @@ if ($driveFolderId === '') {
             : 'Status updated to "' . $status . '" (cache only)',
         'caseData' => $responseData,
         'isRegression' => $isRegression,
+        'newVersion' => $newVersion,
     ]);
     exit;
 }

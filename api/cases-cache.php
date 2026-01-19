@@ -59,7 +59,8 @@ function ensureCasesCacheTable() {
             "ALTER TABLE cases_cache ADD INDEX idx_practice_id (practice_id)",
             "ALTER TABLE cases_cache ADD COLUMN patient_gender VARCHAR(20) DEFAULT NULL",
             "ALTER TABLE cases_cache ADD COLUMN clinical_details_json LONGTEXT",
-            "ALTER TABLE cases_cache ADD COLUMN revision_count INT UNSIGNED NOT NULL DEFAULT 0 COMMENT 'Number of times case was returned to Originated'"
+            "ALTER TABLE cases_cache ADD COLUMN revision_count INT UNSIGNED NOT NULL DEFAULT 0 COMMENT 'Number of times case was returned to Originated'",
+            "ALTER TABLE cases_cache ADD COLUMN version INT UNSIGNED NOT NULL DEFAULT 1 COMMENT 'Optimistic locking version for concurrent edit detection'"
         ];
         
         foreach ($alterSqls as $alterSql) {
@@ -267,6 +268,7 @@ function getCaseFromCache($caseId) {
             'clinicalDetails' => $clinicalDetails,
             'assignedTo' => $row['assigned_to'] ?? null,
             'revisionCount' => (int)($row['revision_count'] ?? 0),
+            'version' => (int)($row['version'] ?? 1),
         ];
     } catch (PDOException $e) {
         error_log('[cases_cache] Error getting case: ' . $e->getMessage());
@@ -370,6 +372,281 @@ function getCaseRevisionCount($caseId) {
     } catch (PDOException $e) {
         error_log('[cases_cache] Error getting revision count: ' . $e->getMessage());
         return 0;
+    }
+}
+
+/**
+ * Update a case with optimistic locking (version check).
+ * Returns: ['success' => true, 'newVersion' => X] on success
+ *          ['success' => false, 'conflict' => true, 'currentVersion' => X, 'currentData' => [...]] on version conflict
+ *          ['success' => false, 'error' => 'message'] on other errors
+ * 
+ * @param array $caseData Case data including 'id' and 'version'
+ * @param int $expectedVersion The version the client expects (from when they loaded the case)
+ * @return array Result with success status
+ */
+function updateCaseWithVersionCheck(array $caseData, $expectedVersion) {
+    global $pdo;
+    if (!$pdo) {
+        return ['success' => false, 'error' => 'Database not available'];
+    }
+    if (empty($caseData['id'])) {
+        return ['success' => false, 'error' => 'Case ID required'];
+    }
+
+    ensureCasesCacheTable();
+
+    $caseId = $caseData['id'];
+    $expectedVersion = (int)$expectedVersion;
+
+    try {
+        // Start transaction for atomic check-and-update
+        $pdo->beginTransaction();
+
+        // Get current version with row lock
+        $stmt = $pdo->prepare("SELECT version FROM cases_cache WHERE case_id = :case_id FOR UPDATE");
+        $stmt->execute(['case_id' => $caseId]);
+        $currentVersion = $stmt->fetchColumn();
+
+        if ($currentVersion === false) {
+            // Case doesn't exist - this is a new case, allow insert
+            $pdo->rollBack();
+            // Use regular save for new cases
+            $caseData['version'] = 1;
+            saveCaseToCache($caseData);
+            return ['success' => true, 'newVersion' => 1];
+        }
+
+        $currentVersion = (int)$currentVersion;
+
+        // Check if version matches
+        if ($currentVersion !== $expectedVersion) {
+            // Version conflict - someone else edited the case
+            $pdo->rollBack();
+            
+            // Get the current case data to return to client
+            $currentData = getCaseFromCache($caseId);
+            
+            return [
+                'success' => false,
+                'conflict' => true,
+                'expectedVersion' => $expectedVersion,
+                'currentVersion' => $currentVersion,
+                'currentData' => $currentData,
+                'message' => 'This case was modified by another user. Please review their changes.'
+            ];
+        }
+
+        // Version matches - proceed with update
+        $newVersion = $currentVersion + 1;
+        
+        $attachments = isset($caseData['attachments']) ? json_encode($caseData['attachments']) : '[]';
+        $revisions = isset($caseData['revisions']) ? json_encode($caseData['revisions']) : '[]';
+        $clinicalDetailsJson = isset($caseData['clinicalDetails']) ? json_encode($caseData['clinicalDetails']) : null;
+        $assignedTo = isset($caseData['assignedTo']) ? $caseData['assignedTo'] : null;
+
+        // Get practice_id from session or caseData
+        $practiceId = null;
+        if (isset($caseData['practice_id'])) {
+            $practiceId = $caseData['practice_id'];
+        } elseif (isset($_SESSION['current_practice_id'])) {
+            $practiceId = $_SESSION['current_practice_id'];
+        }
+
+        $sql = "UPDATE cases_cache SET
+                    drive_folder_id = :drive_folder_id,
+                    patient_first_name = :patient_first_name,
+                    patient_last_name = :patient_last_name,
+                    patient_dob = :patient_dob,
+                    patient_gender = :patient_gender,
+                    dentist_name = :dentist_name,
+                    case_type = :case_type,
+                    tooth_shade = :tooth_shade,
+                    material = :material,
+                    due_date = :due_date,
+                    last_update_date = :last_update_date,
+                    status = :status,
+                    status_changed_at = :status_changed_at,
+                    notes = :notes,
+                    assigned_to = :assigned_to,
+                    attachments_json = :attachments_json,
+                    revisions_json = :revisions_json,
+                    clinical_details_json = :clinical_details_json,
+                    practice_id = :practice_id,
+                    version = :new_version
+                WHERE case_id = :case_id AND version = :expected_version";
+
+        $stmt = $pdo->prepare($sql);
+        $result = $stmt->execute([
+            'case_id' => $caseId,
+            'drive_folder_id' => $caseData['driveFolderId'] ?? null,
+            'patient_first_name' => $caseData['patientFirstName'] ?? null,
+            'patient_last_name' => $caseData['patientLastName'] ?? null,
+            'patient_dob' => $caseData['patientDOB'] ?? null,
+            'patient_gender' => $caseData['patientGender'] ?? null,
+            'dentist_name' => $caseData['dentistName'] ?? null,
+            'case_type' => $caseData['caseType'] ?? null,
+            'tooth_shade' => $caseData['toothShade'] ?? null,
+            'material' => $caseData['material'] ?? null,
+            'due_date' => $caseData['dueDate'] ?? null,
+            'last_update_date' => $caseData['lastUpdateDate'] ?? null,
+            'status' => $caseData['status'] ?? null,
+            'status_changed_at' => isset($caseData['statusChangedAt']) ? date('Y-m-d H:i:s', strtotime($caseData['statusChangedAt'])) : null,
+            'notes' => $caseData['notes'] ?? null,
+            'assigned_to' => $assignedTo,
+            'attachments_json' => $attachments,
+            'revisions_json' => $revisions,
+            'clinical_details_json' => $clinicalDetailsJson,
+            'practice_id' => $practiceId,
+            'new_version' => $newVersion,
+            'expected_version' => $expectedVersion,
+        ]);
+
+        if ($stmt->rowCount() === 0) {
+            // Race condition - version changed between SELECT and UPDATE
+            $pdo->rollBack();
+            $currentData = getCaseFromCache($caseId);
+            return [
+                'success' => false,
+                'conflict' => true,
+                'expectedVersion' => $expectedVersion,
+                'currentVersion' => $currentData['version'] ?? 'unknown',
+                'currentData' => $currentData,
+                'message' => 'This case was modified by another user. Please review their changes.'
+            ];
+        }
+
+        $pdo->commit();
+        
+        return [
+            'success' => true,
+            'newVersion' => $newVersion
+        ];
+
+    } catch (PDOException $e) {
+        if ($pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
+        error_log('[cases_cache] Error in updateCaseWithVersionCheck: ' . $e->getMessage());
+        return ['success' => false, 'error' => 'Database error: ' . $e->getMessage()];
+    }
+}
+
+/**
+ * Get the current version of a case.
+ * @param string $caseId
+ * @return int|null Version number or null if case not found
+ */
+function getCaseVersion($caseId) {
+    global $pdo;
+    if (!$pdo || empty($caseId)) {
+        return null;
+    }
+
+    ensureCasesCacheTable();
+
+    try {
+        $stmt = $pdo->prepare("SELECT version FROM cases_cache WHERE case_id = :case_id");
+        $stmt->execute(['case_id' => $caseId]);
+        $version = $stmt->fetchColumn();
+        return $version !== false ? (int)$version : null;
+    } catch (PDOException $e) {
+        error_log('[cases_cache] Error getting version: ' . $e->getMessage());
+        return null;
+    }
+}
+
+/**
+ * Update case status with version check for optimistic locking.
+ * Used for drag-and-drop status changes.
+ * 
+ * @param string $caseId
+ * @param string $status New status
+ * @param string $lastUpdateDate
+ * @param int $expectedVersion
+ * @return array Result with success status
+ */
+function updateCaseStatusWithVersionCheck($caseId, $status, $lastUpdateDate, $expectedVersion) {
+    global $pdo;
+    if (!$pdo) {
+        return ['success' => false, 'error' => 'Database not available'];
+    }
+
+    ensureCasesCacheTable();
+
+    $expectedVersion = (int)$expectedVersion;
+
+    try {
+        $pdo->beginTransaction();
+
+        // Get current version with row lock
+        $stmt = $pdo->prepare("SELECT version, status FROM cases_cache WHERE case_id = :case_id FOR UPDATE");
+        $stmt->execute(['case_id' => $caseId]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if (!$row) {
+            $pdo->rollBack();
+            return ['success' => false, 'error' => 'Case not found'];
+        }
+
+        $currentVersion = (int)$row['version'];
+        $oldStatus = $row['status'];
+
+        if ($currentVersion !== $expectedVersion) {
+            $pdo->rollBack();
+            $currentData = getCaseFromCache($caseId);
+            return [
+                'success' => false,
+                'conflict' => true,
+                'expectedVersion' => $expectedVersion,
+                'currentVersion' => $currentVersion,
+                'currentData' => $currentData,
+                'message' => 'This case was modified by another user.'
+            ];
+        }
+
+        $newVersion = $currentVersion + 1;
+
+        $sql = "UPDATE cases_cache
+                SET status = :status, 
+                    last_update_date = :last_update_date, 
+                    status_changed_at = NOW(),
+                    version = :new_version
+                WHERE case_id = :case_id AND version = :expected_version";
+
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute([
+            'status' => $status,
+            'last_update_date' => $lastUpdateDate,
+            'case_id' => $caseId,
+            'new_version' => $newVersion,
+            'expected_version' => $expectedVersion,
+        ]);
+
+        if ($stmt->rowCount() === 0) {
+            $pdo->rollBack();
+            $currentData = getCaseFromCache($caseId);
+            return [
+                'success' => false,
+                'conflict' => true,
+                'message' => 'This case was modified by another user.'
+            ];
+        }
+
+        $pdo->commit();
+
+        return [
+            'success' => true,
+            'newVersion' => $newVersion,
+            'oldStatus' => $oldStatus
+        ];
+
+    } catch (PDOException $e) {
+        if ($pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
+        error_log('[cases_cache] Error in updateCaseStatusWithVersionCheck: ' . $e->getMessage());
+        return ['success' => false, 'error' => 'Database error: ' . $e->getMessage()];
     }
 }
 

@@ -245,7 +245,11 @@ document.addEventListener('DOMContentLoaded', function() {
       .catch(error => {
         console.error('Analytics fetch error:', error);
         showLoading(false);
-        showToast('Error loading analytics: ' + error.message, 'error');
+        if (typeof NetworkErrorHandler !== 'undefined') {
+          NetworkErrorHandler.handle(error, 'loading analytics');
+        } else {
+          showToast('Error loading analytics. Please check your connection.', 'error');
+        }
       });
   }
   
@@ -940,7 +944,11 @@ document.addEventListener('DOMContentLoaded', function() {
       .catch(error => {
         console.error('AI Recommendations error:', error);
         if (loadingEl) loadingEl.style.display = 'none';
-        showAIError('Failed to connect to AI service. Please check your connection and try again.');
+        if (typeof NetworkErrorHandler !== 'undefined' && NetworkErrorHandler.isNetworkError(error)) {
+          showAIError('Connection lost. Please check your internet and try again.');
+        } else {
+          showAIError('Failed to load AI recommendations. Please try again.');
+        }
       });
   }
   

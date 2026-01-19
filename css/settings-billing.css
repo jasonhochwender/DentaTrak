@@ -1048,18 +1048,54 @@ input#practiceName {
 }
 
 /* Attachment action links in Edit Case modal */
- .selected-file.existing-file {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto auto auto;
-  column-gap: 8px;
+.selected-file.existing-file {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 8px;
   align-items: center;
+  padding: 8px 10px;
 }
 
-.selected-file.existing-file .attachment-link {
+.selected-file.existing-file > a:first-child,
+.selected-file.existing-file > span:first-child {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.selected-file.existing-file .attachment-download-link {
   font-size: 12px;
   color: #2563eb; /* blue-600 */
-  text-decoration: underline;
+  text-decoration: none;
   cursor: pointer;
+  flex-shrink: 0;
+  margin-left: auto;
+  margin-right: 8px;
+}
+
+.selected-file.existing-file .attachment-download-link:hover {
+  text-decoration: underline;
+}
+
+.selected-file.existing-file .file-remove {
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 2px 6px;
+  color: #dc3545;
+  font-size: 14px;
+}
+
+.selected-file.existing-file.marked-for-deletion {
+  flex-wrap: wrap;
+}
+
+.selected-file.existing-file.marked-for-deletion > span:last-child {
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 /* Inline option rows - label on left, value on right */

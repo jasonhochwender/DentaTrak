@@ -39,10 +39,11 @@
 # UPLOADS & USER DATA
 # ===========================================
 
-# Uploaded files (logos, attachments, etc.)
-/uploads/logos/*
-!/uploads/logos/.gitkeep
-!/uploads/.htaccess
+# All uploaded files (case attachments, logos, etc.)
+/uploads/
+
+# Documentation folder (flyers, marketing materials)
+/documentation/
 
 # ===========================================
 # IDE & EDITOR FILES

@@ -124,12 +124,12 @@ $token = $_GET['token'] ?? '';
       <h3>Password Reset Successfully!</h3>
       <p>Your password has been updated. You can now sign in with your new password.</p>
       <div style="margin-top: 20px;">
-        <a href="index.php" class="reset-submit-btn" style="display: inline-block; text-decoration: none;">Sign In</a>
+        <a href="login.php" class="reset-submit-btn" style="display: inline-block; text-decoration: none;">Sign In</a>
       </div>
     </div>
     
     <div class="reset-form-footer" id="backLink">
-      <a href="index.php">← Back to Sign In</a>
+      <a href="login.php">← Back to Sign In</a>
     </div>
   </div>
 

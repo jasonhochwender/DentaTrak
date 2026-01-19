@@ -90,9 +90,16 @@ if (!$tokenData || isset($tokenData['error'])) {
 // Get access token
 $accessToken = $tokenData['access_token'];
 
-// Store LOGIN token for user info retrieval (NOT for Drive - Drive has separate tokens)
-// This token only has openid, email, profile scopes
+// Store LOGIN token for user info retrieval
 $_SESSION['google_login_token'] = $tokenData;
+
+// Also store as Drive token since we now request Drive scope during login
+// This allows users to use Drive backup without a separate authorization step
+$_SESSION['google_drive_token'] = $tokenData;
+if (isset($tokenData['refresh_token'])) {
+    $_SESSION['google_drive_refresh_token'] = $tokenData['refresh_token'];
+}
+$_SESSION['google_drive_connected'] = true;
 
 // Get user info
 $userInfoUrl = 'https://www.googleapis.com/oauth2/v3/userinfo';

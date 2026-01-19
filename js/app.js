@@ -83,11 +83,7 @@ async function switchPractice(practiceId) {
       }
       
       // Show error
-      if (typeof showToast === 'function') {
-        showToast(data.error || 'Failed to switch practice', 'error');
-      } else {
-        alert(data.error || 'Failed to switch practice');
-      }
+      showToast(data.error || 'Failed to switch practice', 'error');
     }
   } catch (error) {
     console.error('Error switching practice:', error);
@@ -97,10 +93,10 @@ async function switchPractice(practiceId) {
       loadingOverlay.style.display = 'none';
     }
     
-    if (typeof showToast === 'function') {
-      showToast('Failed to switch practice. Please try again.', 'error');
+    if (typeof NetworkErrorHandler !== 'undefined') {
+      NetworkErrorHandler.handle(error, 'switching practice');
     } else {
-      alert('Failed to switch practice. Please try again.');
+      showToast('Failed to switch practice. Please try again.', 'error');
     }
   }
 }
@@ -1004,37 +1000,34 @@ document.addEventListener('DOMContentLoaded', function () {
       pastDueSettings.classList.toggle('hidden', !preferences.highlight_past_due);
     }
     
-    // Apply Google Drive backup setting
+    // Apply Google Drive backup setting - fetch from practice-level API
     const googleDriveBackupCheckbox = document.getElementById('googleDriveBackup');
     if (googleDriveBackupCheckbox) {
-      // Check if Google Drive is connected (user must have connected via Settings)
-      const googleDriveRow = googleDriveBackupCheckbox.closest('.option-row');
-      const existingNotice = googleDriveRow ? googleDriveRow.querySelector('.google-drive-notice') : null;
-      
-      if (!window.isGoogleDriveConnected) {
-        // Disable the checkbox and show explanation
-        googleDriveBackupCheckbox.disabled = true;
-        googleDriveBackupCheckbox.checked = false;
-        window.originalGoogleDriveBackup = false;
-        
-        // Add notice if it doesn't exist
-        if (googleDriveRow && !existingNotice) {
-          const notice = document.createElement('div');
-          notice.className = 'google-drive-notice';
-          notice.innerHTML = '<small style="color: #64748b; display: block; margin-top: 6px;">This feature is only available for practices created with a Google Workspace account.</small>';
-          googleDriveRow.appendChild(notice);
-        }
-      } else {
-        // Enable the checkbox
-        googleDriveBackupCheckbox.disabled = false;
-        googleDriveBackupCheckbox.checked = preferences.google_drive_backup || false;
-        window.originalGoogleDriveBackup = preferences.google_drive_backup || false;
-        
-        // Remove notice if it exists
-        if (existingNotice) {
-          existingNotice.remove();
-        }
-      }
+      // Fetch backup status from the practice-level API
+      fetch('/api/google-drive-backup.php?action=status', { credentials: 'same-origin' })
+        .then(function(response) { return response.json(); })
+        .then(function(data) {
+          if (data.success) {
+            googleDriveBackupCheckbox.checked = data.backupEnabled || false;
+            window.originalGoogleDriveBackup = data.backupEnabled || false;
+            
+            // Show/hide the workspace warning based on Drive connection
+            var workspaceWarning = document.getElementById('googleDriveWorkspaceWarning');
+            var backupNote = document.getElementById('googleDriveBackupNote');
+            if (!data.driveConnected && workspaceWarning) {
+              workspaceWarning.style.display = 'block';
+              if (backupNote) backupNote.style.display = 'none';
+            } else if (workspaceWarning) {
+              workspaceWarning.style.display = 'none';
+              if (backupNote) backupNote.style.display = 'block';
+            }
+          }
+        })
+        .catch(function(err) {
+          console.error('Error fetching backup status:', err);
+          googleDriveBackupCheckbox.checked = false;
+          window.originalGoogleDriveBackup = false;
+        });
     }
     
     // Load Admin users first
@@ -1473,11 +1466,35 @@ document.addEventListener('DOMContentLoaded', function () {
   
   if (googleDriveBackupCheckbox && googleDriveBackupModal) {
     googleDriveBackupCheckbox.addEventListener('change', function() {
-      // Only show confirmation when enabling (not when disabling)
+      var checkbox = this;
+      
       if (this.checked && !window.originalGoogleDriveBackup) {
-        // Temporarily uncheck while showing modal
+        // Enabling backup - show confirmation modal
         this.checked = false;
-        googleDriveBackupModal.style.display = 'block';
+        googleDriveBackupModal.style.display = 'flex';
+      } else if (!this.checked && window.originalGoogleDriveBackup) {
+        // Disabling backup - call API directly
+        checkbox.disabled = true;
+        fetch('/api/google-drive-backup.php?action=disable', {
+          method: 'POST',
+          credentials: 'same-origin'
+        })
+        .then(function(response) { return response.json(); })
+        .then(function(data) {
+          checkbox.disabled = false;
+          if (data.success) {
+            window.originalGoogleDriveBackup = false;
+            showToast('Google Drive backup disabled', 'success');
+          } else {
+            checkbox.checked = true; // Revert
+            showToast(data.message || 'Failed to disable backup', 'error');
+          }
+        })
+        .catch(function(err) {
+          checkbox.disabled = false;
+          checkbox.checked = true; // Revert
+          showToast('Error disabling backup', 'error');
+        });
       }
     });
     
@@ -1490,8 +1507,44 @@ document.addEventListener('DOMContentLoaded', function () {
     
     if (gdBackupConfirm) {
       gdBackupConfirm.addEventListener('click', function() {
-        googleDriveBackupModal.style.display = 'none';
-        googleDriveBackupCheckbox.checked = true;
+        var btn = this;
+        btn.disabled = true;
+        btn.textContent = 'Enabling...';
+        
+        // Call API to enable backup (creates folder)
+        fetch('/api/google-drive-backup.php?action=enable', {
+          method: 'POST',
+          credentials: 'same-origin'
+        })
+        .then(function(response) { return response.json(); })
+        .then(function(data) {
+          
+          btn.disabled = false;
+          btn.textContent = 'I Agree, Enable Backup';
+          googleDriveBackupModal.style.display = 'none';
+          
+          if (data.success) {
+            googleDriveBackupCheckbox.checked = true;
+            window.originalGoogleDriveBackup = true;
+            showToast('Google Drive backup enabled!', 'success');
+          } else {
+            googleDriveBackupCheckbox.checked = false;
+            if (data.noWorkspace) {
+              showToast('Google Workspace is required for backup. Please use a Workspace account with a signed BAA.', 'error');
+            } else if (data.needsDriveConnection) {
+              showToast('Please connect Google Drive first from Settings.', 'error');
+            } else {
+              showToast(data.message || 'Failed to enable backup', 'error');
+            }
+          }
+        })
+        .catch(function(err) {
+          btn.disabled = false;
+          btn.textContent = 'I Agree, Enable Backup';
+          googleDriveBackupModal.style.display = 'none';
+          googleDriveBackupCheckbox.checked = false;
+          showToast('Error enabling backup: ' + err.message, 'error');
+        });
       });
     }
     
@@ -1644,7 +1697,7 @@ document.addEventListener('DOMContentLoaded', function () {
     var feedbackComments = document.getElementById('feedback_comments');
     
     if (!feedbackType) {
-      alert('Please select your feedback type.');
+      showToast('Please select your feedback type.', 'warning');
       return;
     }
     
@@ -1686,12 +1739,16 @@ document.addEventListener('DOMContentLoaded', function () {
         }, 300); // Small delay for better UX
       } else {
         // Show error message
-        alert('Error: ' + (data.message || 'Unable to send feedback.'));
+        showToast(data.message || 'Unable to send feedback.', 'error');
       }
     })
     .catch(error => {
       // Handle fetch error
-      alert('Error sending feedback. Please try again later.');
+      if (typeof NetworkErrorHandler !== 'undefined') {
+        NetworkErrorHandler.handle(error, 'sending feedback');
+      } else {
+        showToast('Error sending feedback. Please try again later.', 'error');
+      }
     })
     .finally(() => {
       // Reset button state
@@ -2516,17 +2573,27 @@ document.addEventListener('DOMContentLoaded', function () {
         cardContainer.classList.remove('allow-card-delete');
       }
     }
+
+    var dashboard = document.querySelector('.dashboard');
+    if (dashboard) {
+      if (allowCardDelete) {
+        dashboard.classList.add('allow-card-delete');
+      } else {
+        dashboard.classList.remove('allow-card-delete');
+      }
+    }
     
     // Apply theme immediately
     if (formData.theme) {
       document.documentElement.setAttribute('data-theme', formData.theme);
     }
     
-    // Update practice name in header immediately
-    if (formData.practiceName) {
+    // Update practice name in header immediately (prefer displayName over legacy practiceName)
+    var nameToDisplay = formData.displayName || formData.practiceName;
+    if (nameToDisplay) {
       var practiceNameElement = document.querySelector('.practice-name');
       if (practiceNameElement) {
-        practiceNameElement.textContent = formData.practiceName;
+        practiceNameElement.textContent = nameToDisplay;
       }
     }
     
@@ -2614,7 +2681,7 @@ document.addEventListener('DOMContentLoaded', function () {
         saveSettingsBtn.textContent = originalText;
         saveSettingsBtn.disabled = false;
         
-        alert('Failed to save settings. Please try again.');
+        showToast('Failed to save settings. Please try again.', 'error');
       }
     })
   }
@@ -3953,6 +4020,12 @@ document.addEventListener('DOMContentLoaded', function () {
     document.querySelectorAll('.selected-files').forEach(function(container) {
       container.innerHTML = '';
     });
+    
+    // Clear accumulated files from all file inputs
+    document.querySelectorAll('.attachment-input').forEach(function(input) {
+      input._accumulatedFiles = [];
+      input.value = ''; // Clear the input
+    });
   }
   
   // Make file input labels keyboard accessible
@@ -3971,69 +4044,99 @@ document.addEventListener('DOMContentLoaded', function () {
   });
 
   // Handle file selection display with remove option
+  // Accumulate files from multiple selections (different folders)
   var fileInputs = document.querySelectorAll('.attachment-input');
   
   fileInputs.forEach(function(input) {
     input.addEventListener('change', function() {
       var fileType = this.dataset.type;
       var filesContainer = document.getElementById(fileType + '-files');
+      var inputElement = this;
       
       if (!filesContainer) {
         return;
       }
 
-      // Clear only previously selected (non-existing) files so that existing
-      // attachments loaded from Drive remain visible during edits.
+      // Get existing files from the input (previously selected)
+      var existingFiles = [];
+      if (inputElement._accumulatedFiles) {
+        existingFiles = inputElement._accumulatedFiles.slice();
+      }
+      
+      // Add new files to accumulated list (avoid duplicates by name)
+      if (this.files.length > 0) {
+        var existingNames = existingFiles.map(function(f) { return f.name; });
+        for (var i = 0; i < this.files.length; i++) {
+          var file = this.files[i];
+          if (existingNames.indexOf(file.name) === -1) {
+            existingFiles.push(file);
+          }
+        }
+      }
+      
+      // Store accumulated files
+      inputElement._accumulatedFiles = existingFiles;
+      
+      // Update the input's FileList with all accumulated files
+      var dt = new DataTransfer();
+      existingFiles.forEach(function(file) {
+        dt.items.add(file);
+      });
+      inputElement.files = dt.files;
+      
+      // Clear only previously selected (non-existing) files from display
       var nonExisting = filesContainer.querySelectorAll('.selected-file:not(.existing-file)');
       nonExisting.forEach(function(el) { el.remove(); });
       
-      // Add new files
-      if (this.files.length > 0) {
-        for (var i = 0; i < this.files.length; i++) {
-          var file = this.files[i];
-          // Create file element
-          var fileElement = document.createElement('div');
-          fileElement.className = 'selected-file';
-          
-          // Create file name span
-          var nameSpan = document.createElement('span');
-          nameSpan.textContent = file.name;
-          
-          // Create delete button (no inner content - using CSS ::before)
-          var deleteBtn = document.createElement('button');
-          deleteBtn.type = 'button';
-          deleteBtn.className = 'file-remove';
-          deleteBtn.title = 'Remove file';
-          
-          // Assemble elements
-          fileElement.appendChild(nameSpan);
-          fileElement.appendChild(deleteBtn);
-          filesContainer.appendChild(fileElement);
-        }
+      // Display all accumulated files
+      existingFiles.forEach(function(file) {
+        // Create file element
+        var fileElement = document.createElement('div');
+        fileElement.className = 'selected-file';
+        fileElement.dataset.fileName = file.name;
         
-        // Add click handlers to remove buttons
-        var removeButtons = filesContainer.querySelectorAll('.file-remove');
-        removeButtons.forEach(function(button) {
-          button.addEventListener('click', function() {
-            var fileElement = this.closest('.selected-file');
-            var fileName = fileElement.querySelector('span').textContent;
-            
-            // Remove the visual element
-            fileElement.remove();
-            
-            // Create a new FileList without the removed file
-            var input = filesContainer.previousElementSibling.querySelector('.attachment-input');
-            if (input && input.files) {
-              var dt = new DataTransfer();
-              for (var i = 0; i < input.files.length; i++) {
-                if (input.files[i].name !== fileName) {
-                  dt.items.add(input.files[i]);
-                }
-              }
-              input.files = dt.files;
-            }
+        // Create file name span
+        var nameSpan = document.createElement('span');
+        nameSpan.textContent = file.name;
+        
+        // Create delete button (no inner content - using CSS ::before)
+        var deleteBtn = document.createElement('button');
+        deleteBtn.type = 'button';
+        deleteBtn.className = 'file-remove';
+        deleteBtn.title = 'Remove file';
+        
+        // Assemble elements
+        fileElement.appendChild(nameSpan);
+        fileElement.appendChild(deleteBtn);
+        filesContainer.appendChild(fileElement);
+        
+        // Add click handler to remove button
+        deleteBtn.addEventListener('click', function() {
+          var fileName = file.name;
+          
+          // Remove from accumulated files
+          inputElement._accumulatedFiles = inputElement._accumulatedFiles.filter(function(f) {
+            return f.name !== fileName;
           });
+          
+          // Update the input's FileList
+          var newDt = new DataTransfer();
+          inputElement._accumulatedFiles.forEach(function(f) {
+            newDt.items.add(f);
+          });
+          inputElement.files = newDt.files;
+          
+          // Remove the visual element
+          fileElement.remove();
+          
+          // Mark form as having unsaved changes
+          hasUnsavedChanges = true;
         });
+      });
+      
+      // Mark form as having unsaved changes when files are added
+      if (existingFiles.length > 0) {
+        hasUnsavedChanges = true;
       }
     });
   });
@@ -4182,6 +4285,11 @@ document.addEventListener('DOMContentLoaded', function () {
             formData.append('driveFolderId', driveFolderId);
           }
         }
+        
+        // Add version for optimistic locking (concurrent edit detection)
+        if (form.dataset.caseVersion) {
+          formData.append('version', form.dataset.caseVersion);
+        }
       }
       
       // Collect files for deletion efficiently
@@ -4212,12 +4320,23 @@ document.addEventListener('DOMContentLoaded', function () {
             var errorMessage = 'Server error (status ' + response.status + ')';
             try {
               var errorData = JSON.parse(text);
+              
+              // Handle 409 Conflict (concurrent edit detected)
+              if (response.status === 409 && errorData.conflict) {
+                var conflictError = new Error(errorData.message || 'This case was modified by another user.');
+                conflictError.conflict = true;
+                conflictError.currentData = errorData.currentData;
+                conflictError.currentVersion = errorData.currentVersion;
+                throw conflictError;
+              }
+              
               if (errorData.message) {
                 errorMessage = errorData.message;
               } else if (errorData.error) {
                 errorMessage = errorData.error;
               }
             } catch (e) {
+              if (e.conflict) throw e; // Re-throw conflict errors
               // If not JSON, use the text directly (truncated)
               if (text && text.length > 0) {
                 errorMessage = text.substring(0, 200);
@@ -4321,6 +4440,17 @@ document.addEventListener('DOMContentLoaded', function () {
     submitBtn.classList.add('error');
     submitBtn.innerHTML = '<span class="btn-error"></span> Error';
     
+    // Handle concurrent edit conflict
+    if (error.conflict) {
+      showConcurrentEditConflictDialog(error, form);
+      // Reset button immediately for conflict
+      submitBtn.classList.remove('error');
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = isUpdate ? 'Update Case' : 'Create Case';
+      isSubmitting = false;
+      return;
+    }
+    
     // Show appropriate error message
     var errorMessage = error.name === 'AbortError' ? 
       'Request timed out. Please try again.' : 
@@ -4335,6 +4465,73 @@ document.addEventListener('DOMContentLoaded', function () {
       submitBtn.innerHTML = isUpdate ? 'Update Case' : 'Create Case';
       isSubmitting = false;
     }, 2000);
+  }
+  
+  // Show dialog when concurrent edit conflict is detected
+  function showConcurrentEditConflictDialog(error, form) {
+    var currentData = error.currentData || {};
+    var patientName = (currentData.patientFirstName || '') + ' ' + (currentData.patientLastName || '');
+    
+    // Create modal overlay
+    var overlay = document.createElement('div');
+    overlay.className = 'modal-overlay conflict-modal-overlay';
+    overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:10000;display:flex;align-items:center;justify-content:center;';
+    
+    var modal = document.createElement('div');
+    modal.className = 'conflict-modal';
+    modal.style.cssText = 'background:white;border-radius:12px;padding:24px;max-width:500px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,0.3);';
+    
+    modal.innerHTML = 
+      '<div style="text-align:center;margin-bottom:20px;">' +
+        '<div style="font-size:48px;margin-bottom:12px;">⚠️</div>' +
+        '<h3 style="margin:0 0 8px 0;color:#1f2937;font-size:1.25rem;">Concurrent Edit Detected</h3>' +
+        '<p style="margin:0;color:#6b7280;font-size:0.95rem;">' + error.message + '</p>' +
+      '</div>' +
+      '<div style="background:#f9fafb;border-radius:8px;padding:16px;margin-bottom:20px;">' +
+        '<p style="margin:0 0 8px 0;font-size:0.85rem;color:#6b7280;">Current version saved by another user:</p>' +
+        '<p style="margin:0;font-weight:600;color:#1f2937;">' + 
+          (patientName.trim() || 'Unknown Patient') + 
+          (currentData.status ? ' — ' + currentData.status : '') +
+        '</p>' +
+        '<p style="margin:4px 0 0 0;font-size:0.8rem;color:#9ca3af;">Version ' + (error.currentVersion || '?') + '</p>' +
+      '</div>' +
+      '<div style="display:flex;gap:12px;justify-content:center;">' +
+        '<button class="conflict-reload-btn" style="padding:10px 20px;background:#3b82f6;color:white;border:none;border-radius:6px;cursor:pointer;font-weight:500;">Reload Latest</button>' +
+        '<button class="conflict-cancel-btn" style="padding:10px 20px;background:#e5e7eb;color:#374151;border:none;border-radius:6px;cursor:pointer;font-weight:500;">Keep Editing</button>' +
+      '</div>';
+    
+    overlay.appendChild(modal);
+    document.body.appendChild(overlay);
+    
+    // Handle reload button - reload the case with latest data
+    modal.querySelector('.conflict-reload-btn').addEventListener('click', function() {
+      overlay.remove();
+      if (currentData && currentData.id) {
+        // Update the form with the latest data
+        populateEditForm(currentData);
+        // Update the version in the form
+        if (form && currentData.version) {
+          form.dataset.caseVersion = currentData.version;
+        }
+        showToast('Case reloaded with latest changes', 'success');
+      } else {
+        // Close the modal and refresh the page
+        location.reload();
+      }
+    });
+    
+    // Handle cancel button - keep the modal open for user to manually resolve
+    modal.querySelector('.conflict-cancel-btn').addEventListener('click', function() {
+      overlay.remove();
+      showToast('Your changes were not saved. Please review and try again.', 'warning');
+    });
+    
+    // Close on overlay click
+    overlay.addEventListener('click', function(e) {
+      if (e.target === overlay) {
+        overlay.remove();
+      }
+    });
   }
   
   // Efficient old card removal
@@ -4397,6 +4594,11 @@ document.addEventListener('DOMContentLoaded', function () {
       // If focus is on a button, let that button handle the Enter key
       if (tagName === 'button' || (tagName === 'input' && target.type === 'button') || target.type === 'submit') {
         return; // Let the button handle its own click event
+      }
+      
+      // If focus is on a file button label (Select Files), let it handle the Enter key
+      if (tagName === 'label' && target.classList.contains('file-button')) {
+        return; // Let the file button open the file dialog
       }
 
       // Only handle Enter when the Create Case modal is actually open
@@ -4904,7 +5106,8 @@ document.addEventListener('DOMContentLoaded', function () {
     const updateData = {
       caseId: cardData.id,
       status: newStatus,
-      driveFolderId: cardData.driveFolderId
+      driveFolderId: cardData.driveFolderId,
+      version: cardData.version || null  // Include version for optimistic locking
     };
 
     // Fast async API call with timeout
@@ -4923,7 +5126,18 @@ document.addEventListener('DOMContentLoaded', function () {
     })
     .then(response => {
       clearTimeout(timeoutId);
-      if (!response.ok) throw new Error('Network response was not ok');
+      if (!response.ok) {
+        // Handle 409 Conflict (concurrent edit)
+        if (response.status === 409) {
+          return response.json().then(data => {
+            var conflictError = new Error(data.message || 'This case was modified by another user.');
+            conflictError.conflict = true;
+            conflictError.currentData = data.currentData;
+            throw conflictError;
+          });
+        }
+        throw new Error('Network response was not ok');
+      }
       return response.json();
     })
     .then(data => {
@@ -4932,6 +5146,13 @@ document.addEventListener('DOMContentLoaded', function () {
         requestAnimationFrame(() => {
           cardData.status = newStatus;
           cardData.lastUpdateDate = data.caseData.lastUpdateDate;
+          
+          // Update version for optimistic locking
+          if (data.caseData.version !== undefined) {
+            cardData.version = data.caseData.version;
+          } else if (data.newVersion !== undefined) {
+            cardData.version = data.newVersion;
+          }
           
           // Update revision count if returned (backward move)
           if (data.caseData.revisionCount !== undefined) {
@@ -5030,8 +5251,24 @@ document.addEventListener('DOMContentLoaded', function () {
         card.classList.add('update-error');
         setTimeout(() => card.classList.remove('update-error'), 500);
         
-        // Show error feedback
-        showToast('Failed to update case status', 'error');
+        // Show appropriate error message
+        if (error.conflict) {
+          showToast('This case was modified by another user. Refreshing...', 'warning');
+          // If we have current data, update the card with it
+          if (error.currentData) {
+            cardData.status = error.currentData.status || previousStatus;
+            cardData.version = error.currentData.version;
+            cardData.lastUpdateDate = error.currentData.lastUpdateDate || previousLastUpdateDate;
+            card.dataset.caseJson = JSON.stringify(cardData);
+            // Move card to correct column based on current status
+            var correctColumn = document.querySelector('.kanban-column[data-status="' + cardData.status + '"] .kanban-cards');
+            if (correctColumn && correctColumn !== card.parentNode) {
+              correctColumn.appendChild(card);
+            }
+          }
+        } else {
+          showToast('Failed to update case status', 'error');
+        }
       });
     });
   }
@@ -5125,7 +5362,8 @@ document.addEventListener('DOMContentLoaded', function () {
         assignedTo: caseData.assignedTo || '',
         atRisk: caseData.atRisk || { isAtRisk: false, reasons: [] },
         clinicalDetails: caseData.clinicalDetails || null,
-        revisionCount: caseData.revisionCount || 0
+        revisionCount: caseData.revisionCount || 0,
+        version: caseData.version || 1
       };
       
       // Assignment info stored in completeData.assignedTo
@@ -5153,7 +5391,8 @@ document.addEventListener('DOMContentLoaded', function () {
         atRisk: completeData.atRisk || { isAtRisk: false, reasons: [] },
         patientGender: completeData.patientGender || '',
         clinicalDetails: completeData.clinicalDetails || null,
-        revisionCount: completeData.revisionCount || 0
+        revisionCount: completeData.revisionCount || 0,
+        version: completeData.version || 1
       };
       caseCard.dataset.caseJson = JSON.stringify(displayData);
       
@@ -5442,11 +5681,15 @@ document.addEventListener('DOMContentLoaded', function () {
         
         showToast('Case archived successfully', 'success');
       } else {
-        alert('Error archiving case: ' + (data.message || 'Unknown error'));
+        showToast('Error archiving case: ' + (data.message || 'Unknown error'), 'error');
       }
     })
     .catch(error => {
-      alert('Error archiving case: ' + error.message);
+      if (typeof NetworkErrorHandler !== 'undefined') {
+        NetworkErrorHandler.handle(error, 'archiving case');
+      } else {
+        showToast('Error archiving case. Please try again.', 'error');
+      }
     });
   }
   
@@ -5572,6 +5815,11 @@ document.addEventListener('DOMContentLoaded', function () {
       form.dataset.driveFolderId = caseData.driveFolderId;
     }
     
+    // Store the version for optimistic locking (concurrent edit detection)
+    if (caseData.version) {
+      form.dataset.caseVersion = caseData.version;
+    }
+    
     // Set the assigned to dropdown (if it exists)
     if (form.assignedTo) {
       // Store the current assignee (might be empty)
@@ -5655,43 +5903,55 @@ document.addEventListener('DOMContentLoaded', function () {
             // Create the file element
             var fileElement = document.createElement('div');
             fileElement.className = 'selected-file existing-file';
-            fileElement.dataset.fileId = file.driveFileId;
-            fileElement.dataset.attachmentId = file.id;
             
-            // Create the filename span
-            var nameSpan = document.createElement('span');
-            nameSpan.title = file.fileName;
-            nameSpan.textContent = file.fileName;
+            // Get the file path for local files
+            var filePath = file.path || '';
+            var fileId = file.id || '';
+            fileElement.dataset.fileId = fileId;
+            fileElement.dataset.attachmentId = fileId;
+            
+            // Create the filename - make it clickable to view/download if we have a path
+            var nameSpan;
+            if (filePath) {
+              // Use local file path for viewing
+              var viewUrl = '/' + filePath;
+              nameSpan = document.createElement('a');
+              nameSpan.href = viewUrl;
+              nameSpan.target = '_blank';
+              nameSpan.rel = 'noopener noreferrer';
+              nameSpan.style.cssText = 'color: #2563eb; text-decoration: none; cursor: pointer;';
+              nameSpan.title = 'Click to view: ' + file.fileName;
+              nameSpan.textContent = file.fileName;
+              
+              // Add hover effect
+              nameSpan.addEventListener('mouseenter', function() {
+                this.style.textDecoration = 'underline';
+              });
+              nameSpan.addEventListener('mouseleave', function() {
+                this.style.textDecoration = 'none';
+              });
+            } else {
+              nameSpan = document.createElement('span');
+              nameSpan.title = file.fileName;
+              nameSpan.textContent = file.fileName;
+            }
 
-            // Optional View and Download links when we have a Drive file ID
-            var viewLink = null;
+            // Download link when we have a file path
             var downloadLink = null;
-            if (file.driveFileId) {
-              var viewUrl = 'https://drive.google.com/file/d/' + encodeURIComponent(file.driveFileId) + '/view';
-              var downloadUrl = 'https://drive.google.com/uc?export=download&id=' + encodeURIComponent(file.driveFileId);
-
-              viewLink = document.createElement('a');
-              viewLink.href = viewUrl;
-              viewLink.target = '_blank';
-              viewLink.rel = 'noopener noreferrer';
-              viewLink.className = 'attachment-link attachment-view-link';
-              viewLink.textContent = 'View';
-
+            if (filePath) {
               downloadLink = document.createElement('a');
-              downloadLink.href = downloadUrl;
-              downloadLink.target = '_blank';
-              downloadLink.rel = 'noopener noreferrer';
-              downloadLink.className = 'attachment-link attachment-download-link';
+              downloadLink.href = '/' + filePath;
+              downloadLink.download = file.fileName;
+              downloadLink.className = 'attachment-download-link';
               downloadLink.textContent = 'Download';
             }
             
             // Create a simple delete button with visible styling
             var deleteBtn = document.createElement('button');
             deleteBtn.type = 'button';
-            deleteBtn.className = 'file-remove'; // CSS will handle styling
+            deleteBtn.className = 'file-remove';
             deleteBtn.title = 'Mark file for deletion (will be removed when you update the case)';
-            deleteBtn.textContent = '❌'; // Add visible text
-            deleteBtn.style.cssText = 'background: none; border: none; cursor: pointer; padding: 2px 6px; margin-left: 8px; color: #dc3545; font-size: 14px;';
+            deleteBtn.textContent = '❌';
             
             // Add event listener directly to the button
             deleteBtn.addEventListener('click', function(e) {
@@ -5715,13 +5975,13 @@ document.addEventListener('DOMContentLoaded', function () {
               indicator.style.fontSize = '12px';
               indicator.style.fontStyle = 'italic';
               currentFileElement.appendChild(indicator);
+              
+              // Mark form as having unsaved changes
+              hasUnsavedChanges = true;
             });
             
-            // Assemble the elements in order: name, view, download, remove
+            // Assemble the elements in order: name, download, remove
             fileElement.appendChild(nameSpan);
-            if (viewLink) {
-              fileElement.appendChild(viewLink);
-            }
             if (downloadLink) {
               fileElement.appendChild(downloadLink);
             }
@@ -6472,7 +6732,7 @@ document.addEventListener('DOMContentLoaded', function () {
   // Function to print a case with all details and file contents
   function printCase(caseData) {
     if (!caseData || !caseData.id) {
-      alert('Error: Invalid case data');
+      showToast('Error: Invalid case data', 'error');
       return;
     }
 
@@ -6484,7 +6744,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Check if another case is already being printed
     if (window.isPrintingCase) {
-      alert('Another case is currently being printed. Please wait for it to complete before starting a new print.');
+      showToast('Another case is currently being printed. Please wait for it to complete.', 'warning');
       return;
     }
 
@@ -6640,7 +6900,11 @@ document.addEventListener('DOMContentLoaded', function () {
       }
     })
     .catch(error => {
-      alert('Error generating document: ' + error.message);
+      if (typeof NetworkErrorHandler !== 'undefined') {
+        NetworkErrorHandler.handle(error, 'generating document');
+      } else {
+        showToast('Error generating document. Please try again.', 'error');
+      }
     })
     .finally(() => {
       // Reset print button state
@@ -6809,9 +7073,12 @@ document.addEventListener('DOMContentLoaded', function () {
           }
         }
         
-        // Check if trial has expired
+        // Check if trial has expired - show prominent upgrade prompt
         if (data.is_trial && data.trial_expired) {
-          showToast('Your 30-day trial has expired. Please upgrade to continue using all features.', 'warning');
+          // Show upgrade modal on first load when trial expired
+          setTimeout(function() {
+            showTrialExpiredModal();
+          }, 500);
         }
         
         // Apply billing restrictions
@@ -6834,10 +7101,11 @@ document.addEventListener('DOMContentLoaded', function () {
   function applyBillingRestrictions() {
     if (!billingInfo) return;
     
-    // Disable case creation if trial expired
+    const trialExpired = billingInfo.is_trial && billingInfo.trial_expired;
+    
+    // Disable case creation if trial expired or at limit
     const createCaseButton = document.querySelector('.create-case-button');
     if (createCaseButton) {
-      const trialExpired = billingInfo.is_trial && billingInfo.trial_expired;
       if (trialExpired || !billingInfo.can_create_cases) {
         createCaseButton.disabled = true;
         createCaseButton.title = trialExpired ? 'Your trial has expired. Upgrade to continue creating cases.' : 'Upgrade to create more cases.';
@@ -6851,8 +7119,24 @@ document.addEventListener('DOMContentLoaded', function () {
       }
     }
     
-    // Insights tab is now available for all plans (Evaluate, Operate, Control)
-    // Tier-based depth is handled within the Insights tab itself
+    // Add visual indicator to Insights tab when trial expired
+    const insightsTab = document.querySelector('.main-tab[data-tab="insights"]');
+    if (insightsTab && trialExpired) {
+      insightsTab.style.opacity = '0.5';
+      insightsTab.title = 'Your trial has expired. Upgrade to access Insights.';
+    } else if (insightsTab) {
+      insightsTab.style.opacity = '1';
+      insightsTab.title = '';
+    }
+    
+    // Disable drag-and-drop on kanban cards when trial expired
+    if (trialExpired) {
+      const kanbanCards = document.querySelectorAll('.kanban-card');
+      kanbanCards.forEach(function(card) {
+        card.setAttribute('draggable', 'false');
+        card.style.cursor = 'default';
+      });
+    }
     
     // Disable user management in settings if not allowed
     // This will be handled when the settings modal is opened
@@ -6904,22 +7188,76 @@ document.addEventListener('DOMContentLoaded', function () {
     return true;
   }
   
-  // Show upgrade modal when trial expires or case limit reached
+  // Show trial expired modal with encouraging messaging
+  function showTrialExpiredModal() {
+    // Remove any existing modal
+    var existingModal = document.getElementById('trialExpiredModal');
+    if (existingModal) {
+      existingModal.remove();
+    }
+    
+    // Create the trial expired modal with encouraging messaging
+    var modal = document.createElement('div');
+    modal.id = 'trialExpiredModal';
+    modal.className = 'modal';
+    modal.style.cssText = 'position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 10001; display: flex; align-items: center; justify-content: center;';
+    
+    modal.innerHTML = `
+      <div style="background: white; border-radius: 16px; padding: 40px; max-width: 520px; width: 90%; text-align: center; box-shadow: 0 25px 80px rgba(0,0,0,0.35);">
+        <div style="width: 80px; height: 80px; background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 24px;">
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
+          </svg>
+        </div>
+        <h2 style="margin: 0 0 8px; font-size: 1.75rem; color: #1f2937; font-weight: 700;">Your Trial Has Ended</h2>
+        <p style="margin: 0 0 20px; color: #6b7280; font-size: 1.05rem; line-height: 1.6;">
+          We hope you've enjoyed exploring DentaTrak! Your 30-day free trial is now complete.
+        </p>
+        <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 12px; padding: 16px; margin-bottom: 24px; text-align: left;">
+          <p style="margin: 0 0 8px; color: #166534; font-weight: 600; font-size: 0.95rem;">🎉 Great news!</p>
+          <p style="margin: 0; color: #15803d; font-size: 0.9rem; line-height: 1.5;">
+            Your cases and data are safe. Subscribe now to pick up right where you left off with full access to all features.
+          </p>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 12px;">
+          <a href="billing.php" style="padding: 14px 28px; background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); color: white; border-radius: 10px; font-size: 1.05rem; text-decoration: none; font-weight: 600; transition: all 0.2s; display: block; box-shadow: 0 4px 14px rgba(59, 130, 246, 0.4);">
+            Choose Your Plan →
+          </a>
+          <button id="trialExpiredClose" style="padding: 12px 24px; border: none; background: transparent; font-size: 0.9rem; cursor: pointer; color: #9ca3af; transition: all 0.2s;">
+            Continue in read-only mode
+          </button>
+        </div>
+        <p style="margin: 20px 0 0; color: #9ca3af; font-size: 0.8rem;">
+          Questions? Contact us at support@dentatrak.com
+        </p>
+      </div>
+    `;
+    
+    document.body.appendChild(modal);
+    document.body.style.overflow = 'hidden';
+    
+    // Close button handler
+    document.getElementById('trialExpiredClose').addEventListener('click', function() {
+      modal.remove();
+      document.body.style.overflow = '';
+    });
+  }
+  
+  // Show upgrade modal when case limit reached (not trial expired)
   function showUpgradeModal() {
+    // If trial expired, show the trial expired modal instead
+    if (billingInfo && billingInfo.is_trial && billingInfo.trial_expired) {
+      showTrialExpiredModal();
+      return;
+    }
+    
     // Remove any existing modal to ensure fresh state and proper centering
     var existingModal = document.getElementById('upgradePlanModal');
     if (existingModal) {
       existingModal.remove();
     }
     
-    // Determine the message based on trial status
-    var isTrialExpired = billingInfo && billingInfo.is_trial && billingInfo.trial_expired;
-    var title = isTrialExpired ? 'Trial Period Ended' : 'Upgrade Required';
-    var message = isTrialExpired 
-      ? 'Your 30-day free trial has ended. Upgrade now to continue creating and managing cases.'
-      : 'Upgrade to Operate or Control to continue using all features.';
-    
-    // Create the upgrade modal
+    // Create the upgrade modal for case limit
     var modal = document.createElement('div');
     modal.id = 'upgradePlanModal';
     modal.className = 'modal';
@@ -6929,13 +7267,14 @@ document.addEventListener('DOMContentLoaded', function () {
       <div style="background: white; border-radius: 12px; padding: 32px; max-width: 450px; width: 90%; text-align: center; box-shadow: 0 20px 60px rgba(0,0,0,0.3);">
         <div style="width: 64px; height: 64px; background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px;">
           <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="12" r="10"/>
-            <polyline points="12 6 12 12 16 14"/>
+            <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+            <path d="M2 17l10 5 10-5"/>
+            <path d="M2 12l10 5 10-5"/>
           </svg>
         </div>
-        <h2 style="margin: 0 0 12px; font-size: 1.5rem; color: #1f2937;">${title}</h2>
-        <p style="margin: 0 0 24px; color: #6b7280; font-size: 1rem;">
-          ${message}
+        <h2 style="margin: 0 0 12px; font-size: 1.5rem; color: #1f2937;">Ready to Grow?</h2>
+        <p style="margin: 0 0 24px; color: #6b7280; font-size: 1rem; line-height: 1.5;">
+          You've reached your plan's case limit. Upgrade to unlock unlimited cases and advanced features.
         </p>
         <div style="display: flex; gap: 12px; justify-content: center;">
           <button id="upgradeModalClose" style="padding: 12px 24px; border: 1px solid #d1d5db; background: white; border-radius: 8px; font-size: 0.95rem; cursor: pointer; color: #374151; transition: all 0.2s;">
@@ -6977,6 +7316,12 @@ document.addEventListener('DOMContentLoaded', function () {
       // Check if user has access to analytics
       if (targetTab === 'analytics' && billingInfo && !billingInfo.has_analytics) {
         showToast('Analytics is available on Control plan. Upgrade to access analytics features.', 'warning');
+        return;
+      }
+      
+      // Block Insights tab when trial expired
+      if (targetTab === 'insights' && billingInfo && billingInfo.is_trial && billingInfo.trial_expired) {
+        showTrialExpiredModal();
         return;
       }
       
@@ -7609,11 +7954,15 @@ document.addEventListener('DOMContentLoaded', function () {
           loadExistingCases(); // Refresh the main kanban board
           loadBillingInfo(); // Refresh billing info to update case count
         } else {
-          alert('Error restoring case: ' + data.message);
+          showToast('Error restoring case: ' + data.message, 'error');
         }
       })
       .catch(error => {
-        alert('Error restoring case');
+        if (typeof NetworkErrorHandler !== 'undefined') {
+          NetworkErrorHandler.handle(error, 'restoring case');
+        } else {
+          showToast('Error restoring case. Please try again.', 'error');
+        }
       });
     };
     
@@ -7677,11 +8026,15 @@ document.addEventListener('DOMContentLoaded', function () {
             loadExistingCases(); // Refresh the main kanban board
             loadBillingInfo(); // Refresh billing info to update case count
           } else {
-            alert('Error restoring case: ' + data.message);
+            showToast('Error restoring case: ' + data.message, 'error');
           }
         })
         .catch(error => {
-          alert('Error restoring case');
+          if (typeof NetworkErrorHandler !== 'undefined') {
+            NetworkErrorHandler.handle(error, 'restoring case');
+          } else {
+            showToast('Error restoring case. Please try again.', 'error');
+          }
         });
       }
     };

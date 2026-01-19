@@ -75,23 +75,28 @@
 .delete-confirm-modal {
   display: none;
   position: fixed;
-  z-index: 99999; /* Very high z-index to ensure it's on top of everything */
+  z-index: 999999; /* Very high z-index to ensure it's on top of everything including Settings modal */
   left: 0;
   top: 0;
-  width: 100vw; /* Use viewport units */
-  height: 100vh; /* Use viewport units */
-  overflow: auto;
+  right: 0;
+  bottom: 0;
+  width: 100%;
+  height: 100%;
   background-color: rgba(0, 0, 0, 0.6); /* Darker overlay */
-  padding: 20px;
   box-sizing: border-box;
+  align-items: center;
+  justify-content: center;
 }
 
 .delete-confirm-content {
   background-color: #fff;
-  margin: 15% auto;
   padding: 20px;
   border-radius: 8px;
   max-width: 500px;
+  width: 90%;
+  margin: 20px;
+  max-height: 90vh;
+  overflow-y: auto;
   box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
   border: 3px solid #f44336; /* Bright red border to make it visible */
 }

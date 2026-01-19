@@ -130,7 +130,10 @@
     })
     .catch(function(error) {
       console.error('Error loading notifications:', error);
-      list.innerHTML = '<div class="notification-dropdown-empty">Error loading notifications</div>';
+      var errorMsg = (typeof NetworkErrorHandler !== 'undefined' && NetworkErrorHandler.isNetworkError(error))
+        ? 'Connection lost. Check your internet.'
+        : 'Error loading notifications';
+      list.innerHTML = '<div class="notification-dropdown-empty">' + errorMsg + '</div>';
     });
   }
 

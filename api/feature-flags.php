@@ -15,6 +15,9 @@ $FEATURE_DEFAULTS = [
     'SHOW_AI_CHAT' => false,
     'SHOW_IN_STATUS' => false,
     'SHOW_DEV_TOOLS' => true,
+    'SHOW_REVISION_COUNT' => true,
+    'SHOW_GOOGLE_DRIVE_BACKUP' => false,
+    'SHOW_TOUR' => false,
 ];
 
 /**

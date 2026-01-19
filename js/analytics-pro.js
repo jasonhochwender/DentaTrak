@@ -132,7 +132,9 @@
 
     const apiUrl = `api/get-analytics.php?team_period=${teamPeriod}&team_filter=${teamFilter}&volume_period=${volumePeriod}&status_period=${statusPeriod}&type_period=${typePeriod}&duration_period=${durationPeriod}`;
 
-    fetch(apiUrl)
+    fetch(apiUrl, {
+      credentials: 'same-origin'
+    })
       .then(response => {
         if (!response.ok) throw new Error('HTTP ' + response.status);
         return response.json();
