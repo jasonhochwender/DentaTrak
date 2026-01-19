@@ -292,7 +292,7 @@ try {
         $preferences = [
             'theme' => 'light',
             'allow_card_delete' => true,
-            'highlight_past_due' => false,
+            'highlight_past_due' => true,
             'past_due_days' => 7,
             'delivered_hide_days' => 120,
             'tour_completed' => false,
@@ -301,7 +301,7 @@ try {
     } else {
         if (!isset($preferences['theme'])) $preferences['theme'] = 'light';
         if (!isset($preferences['allow_card_delete'])) $preferences['allow_card_delete'] = true;
-        if (!isset($preferences['highlight_past_due'])) $preferences['highlight_past_due'] = false;
+        if (!isset($preferences['highlight_past_due'])) $preferences['highlight_past_due'] = true;
         if (!isset($preferences['past_due_days'])) $preferences['past_due_days'] = 7;
         if (!isset($preferences['delivered_hide_days'])) $preferences['delivered_hide_days'] = 120;
         if (!isset($preferences['tour_completed'])) $preferences['tour_completed'] = false;

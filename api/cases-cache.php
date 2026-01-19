@@ -246,7 +246,7 @@ function getCaseFromCache($caseId) {
             }
         }
 
-        return [
+        $case = [
             'id' => $row['case_id'],
             'driveFolderId' => $row['drive_folder_id'],
             'patientFirstName' => $row['patient_first_name'],
@@ -270,6 +270,17 @@ function getCaseFromCache($caseId) {
             'revisionCount' => (int)($row['revision_count'] ?? 0),
             'version' => (int)($row['version'] ?? 1),
         ];
+
+        // Decrypt PII fields before returning
+        try {
+            if (class_exists('PIIEncryption')) {
+                $case = PIIEncryption::decryptCaseData($case);
+            }
+        } catch (Exception $e) {
+            // Continue with encrypted data if decryption fails
+        }
+
+        return $case;
     } catch (PDOException $e) {
         error_log('[cases_cache] Error getting case: ' . $e->getMessage());
         return null;

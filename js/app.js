@@ -4508,7 +4508,7 @@ document.addEventListener('DOMContentLoaded', function () {
       overlay.remove();
       if (currentData && currentData.id) {
         // Update the form with the latest data
-        populateEditForm(currentData);
+        populateCreateCaseForm(currentData);
         // Update the version in the form
         if (form && currentData.version) {
           form.dataset.caseVersion = currentData.version;
