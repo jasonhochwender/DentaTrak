@@ -183,10 +183,9 @@ try {
         $cases = array_values($cases); // Re-index array
     }
     
-    // Decrypt PII fields for display
-    $decryptedCases = array_map(function($case) {
-        return PIIEncryption::decryptCaseData($case);
-    }, $cases);
+    // Cases are already decrypted by getAllCasesFromCache()
+    // No need to decrypt again - double decryption corrupts the data
+    $decryptedCases = $cases;
     
     // Calculate At Risk status for all cases
     $atRiskStatuses = batchCalculateAtRiskStatus($decryptedCases, $pdo);

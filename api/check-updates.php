@@ -6,15 +6,24 @@
  * Used for real-time updates without requiring SSE or WebSockets.
  */
 
-require_once __DIR__ . '/session.php';
-header('Content-Type: application/json');
-require_once __DIR__ . '/practice-security.php';
-require_once __DIR__ . '/cases-cache.php';
-require_once __DIR__ . '/encryption.php';
-
-// Disable error display for API
+// Disable error display for API - must be first
 ini_set('display_errors', '0');
 error_reporting(E_ALL & ~E_DEPRECATED & ~E_USER_DEPRECATED);
+
+// Set JSON header early
+header('Content-Type: application/json');
+
+// Wrap everything in try-catch to ensure valid JSON response
+try {
+    require_once __DIR__ . '/session.php';
+    require_once __DIR__ . '/practice-security.php';
+    require_once __DIR__ . '/cases-cache.php';
+    require_once __DIR__ . '/encryption.php';
+} catch (Exception $e) {
+    error_log('check-updates.php include error: ' . $e->getMessage());
+    echo json_encode(['success' => true, 'updates' => [], 'serverTime' => time()]);
+    exit;
+}
 
 // SECURITY: Require valid practice context
 $currentPracticeId = requireValidPracticeContext();
@@ -154,39 +163,11 @@ try {
         'updates' => [],
         'serverTime' => time()
     ]);
-}
-
-/**
- * Ensure the case_updates table exists
- */
-function ensureCaseUpdatesTable() {
-    global $pdo;
-    static $initialized = false;
-    
-    if ($initialized || !$pdo) {
-        return;
-    }
-    
-    $sql = "CREATE TABLE IF NOT EXISTS case_updates (
-        id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-        case_id VARCHAR(64) NOT NULL,
-        practice_id INT UNSIGNED NOT NULL,
-        update_type ENUM('create', 'update', 'status', 'assignment', 'delete') NOT NULL,
-        updated_by VARCHAR(255) DEFAULT NULL,
-        previous_status VARCHAR(100) DEFAULT NULL,
-        previous_assigned_to VARCHAR(255) DEFAULT NULL,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        INDEX idx_practice_updated (practice_id, updated_at),
-        INDEX idx_case_id (case_id)
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;";
-    
-    try {
-        $pdo->exec($sql);
-        $initialized = true;
-        
-        // Clean up old updates (older than 1 hour) to keep table small
-        $pdo->exec("DELETE FROM case_updates WHERE updated_at < DATE_SUB(NOW(), INTERVAL 1 HOUR)");
-    } catch (PDOException $e) {
-        error_log('Failed to create case_updates table: ' . $e->getMessage());
-    }
+} catch (Exception $e) {
+    error_log('check-updates.php general error: ' . $e->getMessage());
+    echo json_encode([
+        'success' => true,
+        'updates' => [],
+        'serverTime' => time()
+    ]);
 }
