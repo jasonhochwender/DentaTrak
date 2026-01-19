@@ -9,8 +9,15 @@ require_once __DIR__ . '/user-manager.php';
 require_once __DIR__ . '/practice-security.php';
 
 // Start session if not already started
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
+try {
+    if (session_status() === PHP_SESSION_NONE) {
+        session_start();
+    }
+} catch (Exception $e) {
+    error_log('[SSE] Session start failed: ' . $e->getMessage());
+    http_response_code(500);
+    echo "Session error";
+    exit;
 }
 
 // Check if user is logged in
@@ -49,7 +56,12 @@ $userId = $_SESSION['db_user_id'];
 // Store connection info in a file-based storage (simple approach)
 $connectionsDir = __DIR__ . '/sse_connections';
 if (!is_dir($connectionsDir)) {
-    mkdir($connectionsDir, 0755, true);
+    if (!mkdir($connectionsDir, 0755, true)) {
+        error_log('[SSE] Failed to create connections directory: ' . $connectionsDir);
+        http_response_code(500);
+        echo "Failed to create connections directory";
+        exit;
+    }
 }
 
 // Store connection info
@@ -74,7 +86,19 @@ flush();
 
 // Keep the connection alive with periodic pings
 $lastActivity = time();
+$connectionTimeout = 300; // 5 minutes max connection time
+$startTime = time();
+
 while (true) {
+    // Check for connection timeout
+    if (time() - $startTime > $connectionTimeout) {
+        echo "event: timeout\n";
+        echo "data: " . json_encode(['message' => 'Connection timeout']) . "\n\n";
+        ob_flush();
+        flush();
+        break;
+    }
+
     // Check for any pending updates
     $updatesFile = $connectionsDir . '/updates_' . $userId . '.json';
     if (file_exists($updatesFile)) {

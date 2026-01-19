@@ -8897,7 +8897,12 @@ document.addEventListener('DOMContentLoaded', function () {
         eventSource.close();
       }
       
-      eventSource = new EventSource('api/realtime-updates.php');
+      try {
+        eventSource = new EventSource('api/realtime-updates.php');
+      } catch (e) {
+        console.error('[SSE] Failed to create EventSource:', e);
+        return;
+      }
       
       eventSource.onopen = function(event) {
         console.log('[SSE] Connected to real-time updates');
@@ -9072,8 +9077,13 @@ document.addEventListener('DOMContentLoaded', function () {
       }, 500);
     }
     
-    // Initialize real-time updates when page loads
-    connectRealtimeUpdates();
+    // Initialize real-time updates when page loads (with delay to ensure page is ready)
+    // Temporarily disabled to debug loading issue
+    /*
+    setTimeout(function() {
+      connectRealtimeUpdates();
+    }, 1000);
+    */
     
     // Clean up when page unloads
     window.addEventListener('beforeunload', function() {
