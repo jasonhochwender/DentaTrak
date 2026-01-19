@@ -359,6 +359,20 @@ try {
         'isRegression' => $isRegression,
     ]);
     
+    // Trigger real-time update for other users
+    if (isset($existingCaseData) && is_array($existingCaseData)) {
+        require_once __DIR__ . '/realtime-helper.php';
+        
+        // Get practice ID from session
+        $practiceId = $_SESSION['current_practice_id'] ?? null;
+        
+        // Trigger case update event
+        triggerCaseUpdate($existingCaseData['id'], $existingCaseData, $practiceId);
+        
+        // Trigger status change event
+        triggerCaseStatusChange($existingCaseData['id'], $oldStatus, $status, $practiceId);
+    }
+    
 } catch (Exception $e) {
     http_response_code(500);
     echo json_encode([

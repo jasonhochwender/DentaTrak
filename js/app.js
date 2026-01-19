@@ -4289,6 +4289,9 @@ document.addEventListener('DOMContentLoaded', function () {
         // Add version for optimistic locking (concurrent edit detection)
         if (form.dataset.caseVersion) {
           formData.append('version', form.dataset.caseVersion);
+          console.log('[DEBUG] Sending version:', form.dataset.caseVersion);
+        } else {
+          console.log('[DEBUG] No version found in form dataset');
         }
       }
       
@@ -4327,6 +4330,13 @@ document.addEventListener('DOMContentLoaded', function () {
                 conflictError.conflict = true;
                 conflictError.currentData = errorData.currentData;
                 conflictError.currentVersion = errorData.currentVersion;
+                
+                // Debug: Log what we received from server
+                console.log('[DEBUG] Conflict data received:', {
+                  currentData: errorData.currentData,
+                  currentVersion: errorData.currentVersion
+                });
+                
                 throw conflictError;
               }
               
@@ -4512,6 +4522,9 @@ document.addEventListener('DOMContentLoaded', function () {
         // Update the version in the form
         if (form && currentData.version) {
           form.dataset.caseVersion = currentData.version;
+          console.log('[DEBUG] Reload Latest - Updated version to:', currentData.version);
+        } else {
+          console.log('[DEBUG] Reload Latest - No version found in currentData');
         }
         showToast('Case reloaded with latest changes', 'success');
       } else {
@@ -5818,6 +5831,9 @@ document.addEventListener('DOMContentLoaded', function () {
     // Store the version for optimistic locking (concurrent edit detection)
     if (caseData.version) {
       form.dataset.caseVersion = caseData.version;
+      console.log('[DEBUG] editCaseHandler - Set version to:', caseData.version);
+    } else {
+      console.log('[DEBUG] editCaseHandler - No version in caseData');
     }
     
     // Set the assigned to dropdown (if it exists)
@@ -8869,6 +8885,200 @@ document.addEventListener('DOMContentLoaded', function () {
       });
       observer.observe(settingsModal, { attributes: true });
     }
+    
+    // Real-time Updates using Server-Sent Events (SSE)
+    var eventSource = null;
+    var reconnectAttempts = 0;
+    var maxReconnectAttempts = 5;
+    var reconnectDelay = 1000; // Start with 1 second
+    
+    function connectRealtimeUpdates() {
+      if (eventSource) {
+        eventSource.close();
+      }
+      
+      eventSource = new EventSource('api/realtime-updates.php');
+      
+      eventSource.onopen = function(event) {
+        console.log('[SSE] Connected to real-time updates');
+        reconnectAttempts = 0;
+        reconnectDelay = 1000;
+      };
+      
+      eventSource.onmessage = function(event) {
+        // Handle generic messages
+        try {
+          var data = JSON.parse(event.data);
+          console.log('[SSE] Received message:', data);
+        } catch (e) {
+          console.error('[SSE] Failed to parse message:', e);
+        }
+      };
+      
+      eventSource.addEventListener('connected', function(event) {
+        var data = JSON.parse(event.data);
+        console.log('[SSE] Connection established:', data.connectionId);
+      });
+      
+      eventSource.addEventListener('case_updated', function(event) {
+        var data = JSON.parse(event.data);
+        console.log('[SSE] Case updated:', data);
+        
+        // Update the case card if it exists
+        updateCaseCard(data.caseId, data.caseData);
+        
+        // Update column counts
+        updateColumnCounts();
+      });
+      
+      eventSource.addEventListener('case_assigned', function(event) {
+        var data = JSON.parse(event.data);
+        console.log('[SSE] Case assigned:', data);
+        
+        // Refresh the kanban board to show the case in the new column
+        if (typeof refreshKanbanBoard === 'function') {
+          refreshKanbanBoard();
+        } else {
+          // Fallback: reload the page
+          location.reload();
+        }
+      });
+      
+      eventSource.addEventListener('case_status_changed', function(event) {
+        var data = JSON.parse(event.data);
+        console.log('[SSE] Case status changed:', data);
+        
+        // Update the case card if it exists
+        var card = document.querySelector('[data-case-id="' + data.caseId + '"]');
+        if (card) {
+          // Remove old status class
+          card.classList.remove('status-' + data.oldStatus.toLowerCase().replace(/\s+/g, '-'));
+          // Add new status class
+          card.classList.add('status-' + data.newStatus.toLowerCase().replace(/\s+/g, '-'));
+          
+          // Update status badge
+          var statusBadge = card.querySelector('.kanban-card-status');
+          if (statusBadge) {
+            statusBadge.textContent = data.newStatus;
+          }
+          
+          // Move card to new column if needed
+          moveCardToColumn(data.caseId, data.newStatus);
+        }
+        
+        // Update column counts
+        updateColumnCounts();
+      });
+      
+      eventSource.addEventListener('ping', function(event) {
+        // Just a keep-alive ping
+        console.log('[SSE] Ping received');
+      });
+      
+      eventSource.onerror = function(event) {
+        console.error('[SSE] Connection error:', event);
+        
+        if (eventSource.readyState === EventSource.CLOSED) {
+          console.log('[SSE] Connection closed');
+        } else {
+          console.log('[SSE] Connection error, attempting to reconnect...');
+          reconnectRealtimeUpdates();
+        }
+      };
+    }
+    
+    function reconnectRealtimeUpdates() {
+      if (reconnectAttempts < maxReconnectAttempts) {
+        reconnectAttempts++;
+        console.log('[SSE] Reconnecting... Attempt ' + reconnectAttempts + '/' + maxReconnectAttempts);
+        
+        setTimeout(function() {
+          connectRealtimeUpdates();
+        }, reconnectDelay);
+        
+        // Exponential backoff
+        reconnectDelay = Math.min(reconnectDelay * 2, 30000); // Max 30 seconds
+      } else {
+        console.error('[SSE] Max reconnection attempts reached. Giving up.');
+      }
+    }
+    
+    function disconnectRealtimeUpdates() {
+      if (eventSource) {
+        eventSource.close();
+        eventSource = null;
+        console.log('[SSE] Disconnected from real-time updates');
+      }
+    }
+    
+    // Update a specific case card with new data
+    function updateCaseCard(caseId, caseData) {
+      var card = document.querySelector('[data-case-id="' + caseId + '"]');
+      if (!card) return;
+      
+      // Update card data
+      card.dataset.caseJson = JSON.stringify(caseData);
+      
+      // Update visible elements
+      var patientName = card.querySelector('.kanban-card-patient-name');
+      if (patientName) {
+        patientName.textContent = (caseData.patientFirstName || '') + ' ' + (caseData.patientLastName || '');
+      }
+      
+      var dentistName = card.querySelector('.kanban-card-dentist');
+      if (dentistName) {
+        dentistName.textContent = caseData.dentistName || '';
+      }
+      
+      var statusBadge = card.querySelector('.kanban-card-status');
+      if (statusBadge) {
+        statusBadge.textContent = caseData.status || '';
+      }
+      
+      var dateValue = card.querySelector('.kanban-card-date-value');
+      if (dateValue) {
+        dateValue.textContent = formatDate(caseData.lastUpdateDate, false);
+      }
+      
+      // Apply past due highlighting
+      applyPastDueHighlighting(caseData);
+      
+      // Add visual feedback for update
+      card.classList.add('update-success');
+      setTimeout(function() {
+        card.classList.remove('update-success');
+      }, 2000);
+    }
+    
+    // Move a card to a different column based on status
+    function moveCardToColumn(caseId, newStatus) {
+      var card = document.querySelector('[data-case-id="' + caseId + '"]');
+      if (!card) return;
+      
+      // Find the target column
+      var targetColumn = document.querySelector('[data-status="' + newStatus + '"]');
+      if (!targetColumn) return;
+      
+      var cardsContainer = targetColumn.querySelector('.kanban-cards');
+      if (!cardsContainer) return;
+      
+      // Move the card
+      cardsContainer.appendChild(card);
+      
+      // Add animation
+      card.classList.add('card-moved');
+      setTimeout(function() {
+        card.classList.remove('card-moved');
+      }, 500);
+    }
+    
+    // Initialize real-time updates when page loads
+    connectRealtimeUpdates();
+    
+    // Clean up when page unloads
+    window.addEventListener('beforeunload', function() {
+      disconnectRealtimeUpdates();
+    });
     
   })();
 });

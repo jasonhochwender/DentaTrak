@@ -125,7 +125,9 @@ class PIIEncryption {
                 try {
                     $caseData[$field] = self::decrypt($caseData[$field]);
                 } catch (Exception $e) {
-                    // Don't expose the error to the user
+                    // Log the error and set field to empty to avoid showing encrypted data
+                    error_log('Encryption: Failed to decrypt field ' . $field . ': ' . $e->getMessage());
+                    $caseData[$field] = '';
                 }
             }
         }

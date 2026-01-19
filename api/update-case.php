@@ -819,6 +819,30 @@ try {
                 flush();
             }
             
+            // Trigger real-time update for other users
+            if (isset($result['caseData']) && is_array($result['caseData'])) {
+                require_once __DIR__ . '/realtime-helper.php';
+                
+                // Get practice ID from session or case data
+                $practiceId = $_SESSION['current_practice_id'] ?? null;
+                
+                // Trigger case update event
+                triggerCaseUpdate($result['caseData']['id'], $result['caseData'], $practiceId);
+                
+                // If assignedTo changed, trigger assignment event
+                if (isset($changedFields) && in_array('assignedTo', $changedFields)) {
+                    $assignedTo = $result['caseData']['assignedTo'] ?? '';
+                    triggerCaseAssignment($result['caseData']['id'], $assignedTo, $practiceId);
+                }
+                
+                // If status changed, trigger status change event
+                if (isset($changedFields) && in_array('status', $changedFields)) {
+                    $oldStatus = $_POST['originalStatus'] ?? '';
+                    $newStatus = $result['caseData']['status'] ?? '';
+                    triggerCaseStatusChange($result['caseData']['id'], $oldStatus, $newStatus, $practiceId);
+                }
+            }
+            
             // Now perform the backup sync operation after response is sent
             if (isset($doBackupSync) && $doBackupSync && isset($backupSyncData)) {
                 try {
