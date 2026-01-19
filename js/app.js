@@ -4489,7 +4489,21 @@ document.addEventListener('DOMContentLoaded', function () {
   // Show dialog when concurrent edit conflict is detected
   function showConcurrentEditConflictDialog(error, form) {
     var currentData = error.currentData || {};
-    var patientName = (currentData.patientFirstName || '') + ' ' + (currentData.patientLastName || '');
+    var otherUserName = (currentData.patientFirstName || '') + ' ' + (currentData.patientLastName || '');
+    
+    // Get user's attempted changes from the form
+    var yourPatientName = '';
+    var yourStatus = '';
+    var yourDentist = '';
+    if (form) {
+      var firstNameEl = form.querySelector('#patientFirstName');
+      var lastNameEl = form.querySelector('#patientLastName');
+      var statusEl = form.querySelector('#status');
+      var dentistEl = form.querySelector('#dentistName');
+      yourPatientName = ((firstNameEl ? firstNameEl.value : '') + ' ' + (lastNameEl ? lastNameEl.value : '')).trim();
+      yourStatus = statusEl ? statusEl.value : '';
+      yourDentist = dentistEl ? dentistEl.value : '';
+    }
     
     // Create modal overlay
     var overlay = document.createElement('div');
@@ -4498,24 +4512,42 @@ document.addEventListener('DOMContentLoaded', function () {
     
     var modal = document.createElement('div');
     modal.className = 'conflict-modal';
-    modal.style.cssText = 'background:white;border-radius:12px;padding:24px;max-width:500px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,0.3);';
+    modal.style.cssText = 'background:white;border-radius:12px;padding:24px;max-width:600px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,0.3);max-height:90vh;overflow-y:auto;';
     
     modal.innerHTML = 
       '<div style="text-align:center;margin-bottom:20px;">' +
         '<div style="font-size:48px;margin-bottom:12px;">⚠️</div>' +
         '<h3 style="margin:0 0 8px 0;color:#1f2937;font-size:1.25rem;">Concurrent Edit Detected</h3>' +
-        '<p style="margin:0;color:#6b7280;font-size:0.95rem;">' + error.message + '</p>' +
+        '<p style="margin:0;color:#6b7280;font-size:0.95rem;">Another user saved changes while you were editing. Your changes were not saved.</p>' +
       '</div>' +
-      '<div style="background:#f9fafb;border-radius:8px;padding:16px;margin-bottom:20px;">' +
-        '<p style="margin:0 0 8px 0;font-size:0.85rem;color:#6b7280;">Current version saved by another user:</p>' +
-        '<p style="margin:0;font-weight:600;color:#1f2937;">' + 
-          (patientName.trim() || 'Unknown Patient') + 
-          (currentData.status ? ' — ' + currentData.status : '') +
-        '</p>' +
-        '<p style="margin:4px 0 0 0;font-size:0.8rem;color:#9ca3af;">Version ' + (error.currentVersion || '?') + '</p>' +
+      
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px;">' +
+        
+        // Your changes (not saved)
+        '<div style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:16px;">' +
+          '<p style="margin:0 0 8px 0;font-size:0.75rem;font-weight:600;color:#dc2626;text-transform:uppercase;">❌ Your Changes (Not Saved)</p>' +
+          '<p style="margin:0 0 4px 0;font-size:0.85rem;color:#7f1d1d;"><strong>Patient:</strong> ' + (yourPatientName || 'N/A') + '</p>' +
+          '<p style="margin:0 0 4px 0;font-size:0.85rem;color:#7f1d1d;"><strong>Status:</strong> ' + (yourStatus || 'N/A') + '</p>' +
+          '<p style="margin:0;font-size:0.85rem;color:#7f1d1d;"><strong>Dentist:</strong> ' + (yourDentist || 'N/A') + '</p>' +
+        '</div>' +
+        
+        // Other user's changes (saved)
+        '<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:16px;">' +
+          '<p style="margin:0 0 8px 0;font-size:0.75rem;font-weight:600;color:#16a34a;text-transform:uppercase;">✓ Saved by Another User</p>' +
+          '<p style="margin:0 0 4px 0;font-size:0.85rem;color:#14532d;"><strong>Patient:</strong> ' + (otherUserName.trim() || 'N/A') + '</p>' +
+          '<p style="margin:0 0 4px 0;font-size:0.85rem;color:#14532d;"><strong>Status:</strong> ' + (currentData.status || 'N/A') + '</p>' +
+          '<p style="margin:0;font-size:0.85rem;color:#14532d;"><strong>Dentist:</strong> ' + (currentData.dentistName || 'N/A') + '</p>' +
+        '</div>' +
+        
       '</div>' +
+      
+      '<p style="margin:0 0 16px 0;font-size:0.85rem;color:#6b7280;text-align:center;">' +
+        'Click <strong>Load Their Version</strong> to discard your changes and load the latest saved version, ' +
+        'or <strong>Keep Editing</strong> to continue with your current form data (you\'ll need to save again).' +
+      '</p>' +
+      
       '<div style="display:flex;gap:12px;justify-content:center;">' +
-        '<button class="conflict-reload-btn" style="padding:10px 20px;background:#3b82f6;color:white;border:none;border-radius:6px;cursor:pointer;font-weight:500;">Reload Latest</button>' +
+        '<button class="conflict-reload-btn" style="padding:10px 20px;background:#16a34a;color:white;border:none;border-radius:6px;cursor:pointer;font-weight:500;">Load Their Version</button>' +
         '<button class="conflict-cancel-btn" style="padding:10px 20px;background:#e5e7eb;color:#374151;border:none;border-radius:6px;cursor:pointer;font-weight:500;">Keep Editing</button>' +
       '</div>';
     
@@ -8894,6 +8926,10 @@ document.addEventListener('DOMContentLoaded', function () {
       });
       observer.observe(settingsModal, { attributes: true });
     }
+    
+    // Expose functions globally for real-time updates module
+    window.addCaseToKanban = addCaseToKanban;
+    window.updateColumnCounts = updateColumnCounts;
     
   })();
 });

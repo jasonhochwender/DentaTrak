@@ -112,12 +112,31 @@
       credentials: 'same-origin'
     })
     .then(function(response) {
-      return response.json();
+      if (!response.ok) {
+        throw new Error('HTTP ' + response.status);
+      }
+      return response.text();
     })
-    .then(function(data) {
+    .then(function(text) {
       isPolling = false;
       
+      // Handle empty response
+      if (!text || text.trim() === '') {
+        schedulePoll();
+        return;
+      }
+      
+      var data;
+      try {
+        data = JSON.parse(text);
+      } catch (e) {
+        console.error('[RealTimeUpdates] Invalid JSON:', text.substring(0, 100));
+        schedulePoll();
+        return;
+      }
+      
       if (data.success && data.updates && data.updates.length > 0) {
+        console.log('[RealTimeUpdates] Received', data.updates.length, 'updates');
         processUpdates(data.updates);
       }
       
