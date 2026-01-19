@@ -8886,133 +8886,113 @@ document.addEventListener('DOMContentLoaded', function () {
       observer.observe(settingsModal, { attributes: true });
     }
     
-    // Real-time Updates using Server-Sent Events (SSE)
-    var eventSource = null;
-    var reconnectAttempts = 0;
-    var maxReconnectAttempts = 5;
-    var reconnectDelay = 1000; // Start with 1 second
+    // Real-time Updates using Polling (more reliable than SSE)
+    var realtimePollInterval = null;
+    var lastKnownUpdate = 0;
+    var isPollingActive = false;
     
-    function connectRealtimeUpdates() {
-      if (eventSource) {
-        eventSource.close();
-      }
+    function startRealtimePolling() {
+      if (isPollingActive) return;
       
-      try {
-        eventSource = new EventSource('api/realtime-updates.php');
-      } catch (e) {
-        console.error('[SSE] Failed to create EventSource:', e);
+      isPollingActive = true;
+      console.log('[Realtime] Starting polling for updates');
+      
+      // Poll every 5 seconds
+      realtimePollInterval = setInterval(function() {
+        checkForUpdates();
+      }, 5000);
+      
+      // Initial check after 2 seconds
+      setTimeout(checkForUpdates, 2000);
+    }
+    
+    function stopRealtimePolling() {
+      if (realtimePollInterval) {
+        clearInterval(realtimePollInterval);
+        realtimePollInterval = null;
+      }
+      isPollingActive = false;
+      console.log('[Realtime] Stopped polling');
+    }
+    
+    function checkForUpdates() {
+      // Don't poll if user is inactive or page is hidden
+      if (document.hidden || !isPollingActive) {
         return;
       }
       
-      eventSource.onopen = function(event) {
-        console.log('[SSE] Connected to real-time updates');
-        reconnectAttempts = 0;
-        reconnectDelay = 1000;
-      };
+      // Get current timestamp for this check
+      var now = Date.now();
       
-      eventSource.onmessage = function(event) {
-        // Handle generic messages
-        try {
-          var data = JSON.parse(event.data);
-          console.log('[SSE] Received message:', data);
-        } catch (e) {
-          console.error('[SSE] Failed to parse message:', e);
+      // Make a lightweight request to check for updates
+      fetch('api/check-updates.php?since=' + lastKnownUpdate, {
+        method: 'GET',
+        headers: getSecureHeaders(),
+        credentials: 'same-origin'
+      })
+      .then(function(response) {
+        if (!response.ok) {
+          throw new Error('Network response was not ok');
         }
-      };
-      
-      eventSource.addEventListener('connected', function(event) {
-        var data = JSON.parse(event.data);
-        console.log('[SSE] Connection established:', data.connectionId);
-      });
-      
-      eventSource.addEventListener('case_updated', function(event) {
-        var data = JSON.parse(event.data);
-        console.log('[SSE] Case updated:', data);
-        
-        // Update the case card if it exists
-        updateCaseCard(data.caseId, data.caseData);
-        
-        // Update column counts
-        updateColumnCounts();
-      });
-      
-      eventSource.addEventListener('case_assigned', function(event) {
-        var data = JSON.parse(event.data);
-        console.log('[SSE] Case assigned:', data);
-        
-        // Refresh the kanban board to show the case in the new column
-        if (typeof refreshKanbanBoard === 'function') {
-          refreshKanbanBoard();
-        } else {
-          // Fallback: reload the page
-          location.reload();
-        }
-      });
-      
-      eventSource.addEventListener('case_status_changed', function(event) {
-        var data = JSON.parse(event.data);
-        console.log('[SSE] Case status changed:', data);
-        
-        // Update the case card if it exists
-        var card = document.querySelector('[data-case-id="' + data.caseId + '"]');
-        if (card) {
-          // Remove old status class
-          card.classList.remove('status-' + data.oldStatus.toLowerCase().replace(/\s+/g, '-'));
-          // Add new status class
-          card.classList.add('status-' + data.newStatus.toLowerCase().replace(/\s+/g, '-'));
+        return response.json();
+      })
+      .then(function(data) {
+        if (data.updates && data.updates.length > 0) {
+          console.log('[Realtime] Found updates:', data.updates);
           
-          // Update status badge
-          var statusBadge = card.querySelector('.kanban-card-status');
-          if (statusBadge) {
-            statusBadge.textContent = data.newStatus;
+          // Process each update
+          data.updates.forEach(function(update) {
+            handleRealtimeUpdate(update);
+          });
+          
+          // Update the last known timestamp
+          lastKnownUpdate = data.timestamp || now;
+        }
+      })
+      .catch(function(error) {
+        console.error('[Realtime] Error checking updates:', error);
+      });
+    }
+    
+    function handleRealtimeUpdate(update) {
+      switch (update.type) {
+        case 'case_updated':
+          console.log('[Realtime] Case updated:', update.caseId);
+          updateCaseCard(update.caseId, update.caseData);
+          updateColumnCounts();
+          break;
+          
+        case 'case_assigned':
+          console.log('[Realtime] Case assigned:', update.caseId);
+          // Refresh the kanban board to show the case in the new column
+          if (typeof refreshKanbanBoard === 'function') {
+            refreshKanbanBoard();
+          } else {
+            // Fallback: reload the page
+            location.reload();
           }
+          break;
           
-          // Move card to new column if needed
-          moveCardToColumn(data.caseId, data.newStatus);
-        }
-        
-        // Update column counts
-        updateColumnCounts();
-      });
-      
-      eventSource.addEventListener('ping', function(event) {
-        // Just a keep-alive ping
-        console.log('[SSE] Ping received');
-      });
-      
-      eventSource.onerror = function(event) {
-        console.error('[SSE] Connection error:', event);
-        
-        if (eventSource.readyState === EventSource.CLOSED) {
-          console.log('[SSE] Connection closed');
-        } else {
-          console.log('[SSE] Connection error, attempting to reconnect...');
-          reconnectRealtimeUpdates();
-        }
-      };
-    }
-    
-    function reconnectRealtimeUpdates() {
-      if (reconnectAttempts < maxReconnectAttempts) {
-        reconnectAttempts++;
-        console.log('[SSE] Reconnecting... Attempt ' + reconnectAttempts + '/' + maxReconnectAttempts);
-        
-        setTimeout(function() {
-          connectRealtimeUpdates();
-        }, reconnectDelay);
-        
-        // Exponential backoff
-        reconnectDelay = Math.min(reconnectDelay * 2, 30000); // Max 30 seconds
-      } else {
-        console.error('[SSE] Max reconnection attempts reached. Giving up.');
-      }
-    }
-    
-    function disconnectRealtimeUpdates() {
-      if (eventSource) {
-        eventSource.close();
-        eventSource = null;
-        console.log('[SSE] Disconnected from real-time updates');
+        case 'case_status_changed':
+          console.log('[Realtime] Case status changed:', update.caseId);
+          var card = document.querySelector('[data-case-id="' + update.caseId + '"]');
+          if (card) {
+            // Remove old status class
+            card.classList.remove('status-' + update.oldStatus.toLowerCase().replace(/\s+/g, '-'));
+            // Add new status class
+            card.classList.add('status-' + update.newStatus.toLowerCase().replace(/\s+/g, '-'));
+            
+            // Update status badge
+            var statusBadge = card.querySelector('.kanban-card-status');
+            if (statusBadge) {
+              statusBadge.textContent = update.newStatus;
+            }
+            
+            // Move card to new column if needed
+            moveCardToColumn(update.caseId, update.newStatus);
+          }
+          updateColumnCounts();
+          break;
       }
     }
     
@@ -9077,17 +9057,23 @@ document.addEventListener('DOMContentLoaded', function () {
       }, 500);
     }
     
-    // Initialize real-time updates when page loads (with delay to ensure page is ready)
-    // Temporarily disabled to debug loading issue
-    /*
+    // Initialize real-time polling when page loads (with delay to ensure page is ready)
     setTimeout(function() {
-      connectRealtimeUpdates();
+      startRealtimePolling();
     }, 1000);
-    */
+    
+    // Stop polling when page is hidden (user switched tabs)
+    document.addEventListener('visibilitychange', function() {
+      if (document.hidden) {
+        stopRealtimePolling();
+      } else {
+        startRealtimePolling();
+      }
+    });
     
     // Clean up when page unloads
     window.addEventListener('beforeunload', function() {
-      disconnectRealtimeUpdates();
+      stopRealtimePolling();
     });
     
   })();
