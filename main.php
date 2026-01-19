@@ -420,7 +420,6 @@ if (isset($appConfig) && is_array($appConfig) && isset($appConfig['appName'])) {
   <link rel="preload" href="css/logo-upload.css?v=20241210" as="style" onload="this.onload=null;this.rel='stylesheet'">
   <link rel="preload" href="css/dev-tools.css?v=20241210" as="style" onload="this.onload=null;this.rel='stylesheet'">
   <link rel="preload" href="css/analytics-pro.css?v=20241231" as="style" onload="this.onload=null;this.rel='stylesheet'">
-  <link rel="preload" href="css/realtime.css?v=20250119" as="style" onload="this.onload=null;this.rel='stylesheet'">
   <noscript>
     <link rel="stylesheet" href="css/revision-history.css?v=20241210">
     <link rel="stylesheet" href="css/delete-button.css?v=20241210">
@@ -440,7 +439,6 @@ if (isset($appConfig) && is_array($appConfig) && isset($appConfig['appName'])) {
     <link rel="stylesheet" href="css/logo-upload.css?v=20241210">
     <link rel="stylesheet" href="css/dev-tools.css?v=20241210">
     <link rel="stylesheet" href="css/analytics-pro.css?v=20241231">
-    <link rel="stylesheet" href="css/realtime.css?v=20250119">
   </noscript>
   <!-- Shepherd.js Tour - CSS loaded via preload above -->
 </head>
@@ -2331,6 +2329,7 @@ window.featureFlags = <?php echo getFeatureFlagsJson(); ?>;
   <script src="js/ask-dentatrak.js?v=20250104" defer></script>
   <script src="js/insights.js?v=20250104" defer></script>
   <script src="js/patient-search.js?v=20250104" defer></script>
+  <script src="js/realtime-updates.js?v=20250119" defer></script>
   
 <?php if ($showDevTools): ?>
 <!-- Dev Tools JavaScript -->

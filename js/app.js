@@ -1052,6 +1052,15 @@ document.addEventListener('DOMContentLoaded', function () {
     window.canEditCasesUsers = loadedCanEditCasesUsers || {};
     window.canAddLabelsUsers = loadedCanAddLabelsUsers || {};
 
+    // Add limited-visibility class to body if current user has limited visibility
+    // This is used by real-time updates to know whether to show/hide cases based on assignment
+    var currentEmail = currentUserEmail.toLowerCase();
+    if (currentEmail && window.limitedVisibilityUsers && window.limitedVisibilityUsers[currentEmail]) {
+      document.body.classList.add('limited-visibility');
+    } else {
+      document.body.classList.remove('limited-visibility');
+    }
+
     // Render combined practice users grid
     displayPracticeUsers();
 
@@ -8885,196 +8894,6 @@ document.addEventListener('DOMContentLoaded', function () {
       });
       observer.observe(settingsModal, { attributes: true });
     }
-    
-    // Real-time Updates using Polling (more reliable than SSE)
-    var realtimePollInterval = null;
-    var lastKnownUpdate = 0;
-    var isPollingActive = false;
-    
-    function startRealtimePolling() {
-      if (isPollingActive) return;
-      
-      isPollingActive = true;
-      console.log('[Realtime] Starting polling for updates');
-      
-      // Poll every 5 seconds
-      realtimePollInterval = setInterval(function() {
-        checkForUpdates();
-      }, 5000);
-      
-      // Initial check after 2 seconds
-      setTimeout(checkForUpdates, 2000);
-    }
-    
-    function stopRealtimePolling() {
-      if (realtimePollInterval) {
-        clearInterval(realtimePollInterval);
-        realtimePollInterval = null;
-      }
-      isPollingActive = false;
-      console.log('[Realtime] Stopped polling');
-    }
-    
-    function checkForUpdates() {
-      // Don't poll if user is inactive or page is hidden
-      if (document.hidden || !isPollingActive) {
-        return;
-      }
-      
-      // Get current timestamp for this check
-      var now = Date.now();
-      
-      // Make a lightweight request to check for updates
-      fetch('api/check-updates.php?since=' + lastKnownUpdate, {
-        method: 'GET',
-        headers: getSecureHeaders(),
-        credentials: 'same-origin'
-      })
-      .then(function(response) {
-        if (!response.ok) {
-          throw new Error('Network response was not ok');
-        }
-        return response.json();
-      })
-      .then(function(data) {
-        if (data.updates && data.updates.length > 0) {
-          console.log('[Realtime] Found updates:', data.updates);
-          
-          // Process each update
-          data.updates.forEach(function(update) {
-            handleRealtimeUpdate(update);
-          });
-          
-          // Update the last known timestamp
-          lastKnownUpdate = data.timestamp || now;
-        }
-      })
-      .catch(function(error) {
-        console.error('[Realtime] Error checking updates:', error);
-      });
-    }
-    
-    function handleRealtimeUpdate(update) {
-      switch (update.type) {
-        case 'case_updated':
-          console.log('[Realtime] Case updated:', update.caseId);
-          updateCaseCard(update.caseId, update.caseData);
-          updateColumnCounts();
-          break;
-          
-        case 'case_assigned':
-          console.log('[Realtime] Case assigned:', update.caseId);
-          // Refresh the kanban board to show the case in the new column
-          if (typeof refreshKanbanBoard === 'function') {
-            refreshKanbanBoard();
-          } else {
-            // Fallback: reload the page
-            location.reload();
-          }
-          break;
-          
-        case 'case_status_changed':
-          console.log('[Realtime] Case status changed:', update.caseId);
-          var card = document.querySelector('[data-case-id="' + update.caseId + '"]');
-          if (card) {
-            // Remove old status class
-            card.classList.remove('status-' + update.oldStatus.toLowerCase().replace(/\s+/g, '-'));
-            // Add new status class
-            card.classList.add('status-' + update.newStatus.toLowerCase().replace(/\s+/g, '-'));
-            
-            // Update status badge
-            var statusBadge = card.querySelector('.kanban-card-status');
-            if (statusBadge) {
-              statusBadge.textContent = update.newStatus;
-            }
-            
-            // Move card to new column if needed
-            moveCardToColumn(update.caseId, update.newStatus);
-          }
-          updateColumnCounts();
-          break;
-      }
-    }
-    
-    // Update a specific case card with new data
-    function updateCaseCard(caseId, caseData) {
-      var card = document.querySelector('[data-case-id="' + caseId + '"]');
-      if (!card) return;
-      
-      // Update card data
-      card.dataset.caseJson = JSON.stringify(caseData);
-      
-      // Update visible elements
-      var patientName = card.querySelector('.kanban-card-patient-name');
-      if (patientName) {
-        patientName.textContent = (caseData.patientFirstName || '') + ' ' + (caseData.patientLastName || '');
-      }
-      
-      var dentistName = card.querySelector('.kanban-card-dentist');
-      if (dentistName) {
-        dentistName.textContent = caseData.dentistName || '';
-      }
-      
-      var statusBadge = card.querySelector('.kanban-card-status');
-      if (statusBadge) {
-        statusBadge.textContent = caseData.status || '';
-      }
-      
-      var dateValue = card.querySelector('.kanban-card-date-value');
-      if (dateValue) {
-        dateValue.textContent = formatDate(caseData.lastUpdateDate, false);
-      }
-      
-      // Apply past due highlighting
-      applyPastDueHighlighting(caseData);
-      
-      // Add visual feedback for update
-      card.classList.add('update-success');
-      setTimeout(function() {
-        card.classList.remove('update-success');
-      }, 2000);
-    }
-    
-    // Move a card to a different column based on status
-    function moveCardToColumn(caseId, newStatus) {
-      var card = document.querySelector('[data-case-id="' + caseId + '"]');
-      if (!card) return;
-      
-      // Find the target column
-      var targetColumn = document.querySelector('[data-status="' + newStatus + '"]');
-      if (!targetColumn) return;
-      
-      var cardsContainer = targetColumn.querySelector('.kanban-cards');
-      if (!cardsContainer) return;
-      
-      // Move the card
-      cardsContainer.appendChild(card);
-      
-      // Add animation
-      card.classList.add('card-moved');
-      setTimeout(function() {
-        card.classList.remove('card-moved');
-      }, 500);
-    }
-    
-    // Initialize real-time polling when page loads (with delay to ensure page is ready)
-    setTimeout(function() {
-      startRealtimePolling();
-    }, 1000);
-    
-    // Stop polling when page is hidden (user switched tabs)
-    document.addEventListener('visibilitychange', function() {
-      if (document.hidden) {
-        stopRealtimePolling();
-      } else {
-        startRealtimePolling();
-      }
-    });
-    
-    // Clean up when page unloads
-    window.addEventListener('beforeunload', function() {
-      stopRealtimePolling();
-    });
     
   })();
 });

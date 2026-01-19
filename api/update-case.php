@@ -46,61 +46,6 @@ try {
     // Load Google Drive integration
     require_once __DIR__ . '/google-drive.php';
 
-    /**
-     * Add real-time update to user files
-     */
-    function addRealtimeUpdate($update, $practiceId, $excludeUserId = null) {
-        global $pdo;
-        
-        if (!$pdo) return false;
-        
-        // Get updates directory
-        $updatesDir = __DIR__ . '/realtime_updates';
-        if (!is_dir($updatesDir)) {
-            mkdir($updatesDir, 0755, true);
-        }
-        
-        // Get all users in practice
-        try {
-            $stmt = $pdo->prepare("
-                SELECT user_id 
-                FROM practice_users 
-                WHERE practice_id = :practice_id
-                " . ($excludeUserId ? "AND user_id != :exclude_user_id" : "")
-            );
-            $params = ['practice_id' => $practiceId];
-            if ($excludeUserId) {
-                $params['exclude_user_id'] = $excludeUserId;
-            }
-            $stmt->execute($params);
-            $users = $stmt->fetchAll(PDO::FETCH_COLUMN);
-            
-            // Add update to each user's file
-            foreach ($users as $userId) {
-                $userFile = $updatesDir . '/user_' . $userId . '.json';
-                $existingUpdates = [];
-                
-                if (file_exists($userFile)) {
-                    $existingUpdates = json_decode(file_get_contents($userFile), true) ?: [];
-                }
-                
-                $existingUpdates[] = $update;
-                
-                // Keep only last 50 updates per user
-                if (count($existingUpdates) > 50) {
-                    $existingUpdates = array_slice($existingUpdates, -50);
-                }
-                
-                file_put_contents($userFile, json_encode($existingUpdates));
-            }
-            
-            return true;
-        } catch (Exception $e) {
-            error_log('Failed to add realtime update: ' . $e->getMessage());
-            return false;
-        }
-    }
-
     // Function to update case in database only (when Google Drive fails)
     function updateCaseInDatabaseOnly($caseData, $files = [], $filesToDelete = []) {
         global $pdo;
@@ -861,6 +806,11 @@ try {
                 $result['caseData']['atRisk'] = $atRiskStatus;
             }
             
+            // Record update for real-time notifications to other users
+            if ($updatedCaseId && function_exists('recordCaseUpdate')) {
+                recordCaseUpdate($updatedCaseId, 'update');
+            }
+            
             // Send response to client FIRST
             echo json_encode($result);
             
@@ -872,55 +822,6 @@ try {
                     ob_end_flush();
                 }
                 flush();
-            }
-            
-            // Trigger real-time update for other users
-            if (isset($result['caseData']) && is_array($result['caseData'])) {
-                // Get practice ID from session
-                $practiceId = $_SESSION['current_practice_id'] ?? null;
-                $currentUserId = $_SESSION['db_user_id'] ?? null;
-                
-                if ($practiceId && $currentUserId) {
-                    // Create update entry
-                    $update = [
-                        'type' => 'case_updated',
-                        'caseId' => $result['caseData']['id'],
-                        'caseData' => $result['caseData'],
-                        'timestamp' => time() * 1000, // milliseconds
-                        'userId' => $currentUserId
-                    ];
-                    
-                    // Add to update files for all users in practice
-                    addRealtimeUpdate($update, $practiceId, $currentUserId);
-                    
-                    // If assignedTo changed, trigger assignment event
-                    if (isset($changedFields) && in_array('assignedTo', $changedFields)) {
-                        $assignedTo = $result['caseData']['assignedTo'] ?? '';
-                        $assignmentUpdate = [
-                            'type' => 'case_assigned',
-                            'caseId' => $result['caseData']['id'],
-                            'assignedTo' => $assignedTo,
-                            'timestamp' => time() * 1000,
-                            'userId' => $currentUserId
-                        ];
-                        addRealtimeUpdate($assignmentUpdate, $practiceId, $currentUserId);
-                    }
-                    
-                    // If status changed, trigger status change event
-                    if (isset($changedFields) && in_array('status', $changedFields)) {
-                        $oldStatus = $_POST['originalStatus'] ?? '';
-                        $newStatus = $result['caseData']['status'] ?? '';
-                        $statusUpdate = [
-                            'type' => 'case_status_changed',
-                            'caseId' => $result['caseData']['id'],
-                            'oldStatus' => $oldStatus,
-                            'newStatus' => $newStatus,
-                            'timestamp' => time() * 1000,
-                            'userId' => $currentUserId
-                        ];
-                        addRealtimeUpdate($statusUpdate, $practiceId, $currentUserId);
-                    }
-                }
             }
             
             // Now perform the backup sync operation after response is sent

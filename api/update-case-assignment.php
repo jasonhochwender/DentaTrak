@@ -126,6 +126,19 @@ try {
         userLog("Google Drive update error: " . $e->getMessage(), true);
     }
     
+    // Get previous assignee for real-time notification tracking
+    $previousAssignee = null;
+    try {
+        $stmt = $pdo->prepare("SELECT assigned_to FROM cases_cache WHERE case_id = :case_id LIMIT 1");
+        $stmt->execute(['case_id' => $caseId]);
+        $prevRow = $stmt->fetch(PDO::FETCH_ASSOC);
+        if ($prevRow && !empty($prevRow['assigned_to'])) {
+            $previousAssignee = $prevRow['assigned_to'];
+        }
+    } catch (Exception $e) {
+        // Ignore errors fetching previous assignee
+    }
+    
     // Now update or create the assignment in the database
     $assigneeUserIdForAudit = null;
     if (!empty($assignedTo)) {
@@ -231,6 +244,11 @@ try {
 
     // Update local cache with new assignment
     updateCaseAssignedToInCache($caseId, $assignedTo);
+    
+    // Record assignment change for real-time notifications to other users
+    if (function_exists('recordCaseUpdate')) {
+        recordCaseUpdate($caseId, 'assignment', null, $previousAssignee ?? null);
+    }
     
     // Return success
     echo json_encode([

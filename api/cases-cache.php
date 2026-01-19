@@ -820,3 +820,80 @@ function getAllCasesFromCache() {
 
     return $cases;
 }
+
+/**
+ * Record a case update for real-time notifications.
+ * This allows other users to see changes without refreshing.
+ * 
+ * @param string $caseId The case ID
+ * @param string $updateType Type of update: 'create', 'update', 'status', 'assignment', 'delete'
+ * @param string|null $previousStatus Previous status (for status changes)
+ * @param string|null $previousAssignedTo Previous assignee (for assignment changes)
+ */
+function recordCaseUpdate($caseId, $updateType, $previousStatus = null, $previousAssignedTo = null) {
+    global $pdo;
+    if (!$pdo || empty($caseId)) {
+        return;
+    }
+    
+    // Get practice ID from session
+    $practiceId = $_SESSION['current_practice_id'] ?? null;
+    if (!$practiceId) {
+        return;
+    }
+    
+    // Get current user email
+    $updatedBy = $_SESSION['user_email'] ?? 'unknown';
+    
+    // Ensure table exists
+    ensureCaseUpdatesTable();
+    
+    try {
+        $stmt = $pdo->prepare("
+            INSERT INTO case_updates (case_id, practice_id, update_type, updated_by, previous_status, previous_assigned_to)
+            VALUES (:case_id, :practice_id, :update_type, :updated_by, :previous_status, :previous_assigned_to)
+        ");
+        $stmt->execute([
+            'case_id' => $caseId,
+            'practice_id' => $practiceId,
+            'update_type' => $updateType,
+            'updated_by' => $updatedBy,
+            'previous_status' => $previousStatus,
+            'previous_assigned_to' => $previousAssignedTo
+        ]);
+    } catch (PDOException $e) {
+        error_log('Failed to record case update: ' . $e->getMessage());
+    }
+}
+
+/**
+ * Ensure the case_updates table exists
+ */
+function ensureCaseUpdatesTable() {
+    global $pdo;
+    static $initialized = false;
+    
+    if ($initialized || !$pdo) {
+        return;
+    }
+    
+    $sql = "CREATE TABLE IF NOT EXISTS case_updates (
+        id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+        case_id VARCHAR(64) NOT NULL,
+        practice_id INT UNSIGNED NOT NULL,
+        update_type ENUM('create', 'update', 'status', 'assignment', 'delete') NOT NULL,
+        updated_by VARCHAR(255) DEFAULT NULL,
+        previous_status VARCHAR(100) DEFAULT NULL,
+        previous_assigned_to VARCHAR(255) DEFAULT NULL,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        INDEX idx_practice_updated (practice_id, updated_at),
+        INDEX idx_case_id (case_id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;";
+    
+    try {
+        $pdo->exec($sql);
+        $initialized = true;
+    } catch (PDOException $e) {
+        error_log('Failed to create case_updates table: ' . $e->getMessage());
+    }
+}

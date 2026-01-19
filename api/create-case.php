@@ -432,6 +432,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
         
+        // Record create for real-time notifications to other users
+        if ($createdCaseId && function_exists('recordCaseUpdate')) {
+            recordCaseUpdate($createdCaseId, 'create');
+        }
+        
         // Send response to client FIRST, then do backup
         echo json_encode($result);
         

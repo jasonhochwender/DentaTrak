@@ -349,6 +349,11 @@ try {
     // Include regression count in response
     $existingCaseData['revisionCount'] = $revisionCount;
 
+    // Record status change for real-time notifications to other users
+    if (function_exists('recordCaseUpdate')) {
+        recordCaseUpdate($caseId, 'status', $oldStatus, null);
+    }
+
     // Return success with the updated case data
     echo json_encode([
         'success' => true,
@@ -359,97 +364,10 @@ try {
         'isRegression' => $isRegression,
     ]);
     
-    // Trigger real-time update for other users
-    if (isset($existingCaseData) && is_array($existingCaseData)) {
-        // Get practice ID from session
-        $practiceId = $_SESSION['current_practice_id'] ?? null;
-        $currentUserId = $_SESSION['db_user_id'] ?? null;
-        
-        if ($practiceId && $currentUserId) {
-            // Create update entry
-            $update = [
-                'type' => 'case_updated',
-                'caseId' => $existingCaseData['id'],
-                'caseData' => $existingCaseData,
-                'timestamp' => time() * 1000,
-                'userId' => $currentUserId
-            ];
-            
-            // Add to update files for all users in practice
-            addRealtimeUpdate($update, $practiceId, $currentUserId);
-            
-            // Trigger status change event
-            $statusUpdate = [
-                'type' => 'case_status_changed',
-                'caseId' => $existingCaseData['id'],
-                'oldStatus' => $oldStatus,
-                'newStatus' => $status,
-                'timestamp' => time() * 1000,
-                'userId' => $currentUserId
-            ];
-            addRealtimeUpdate($statusUpdate, $practiceId, $currentUserId);
-        }
-    }
-    
 } catch (Exception $e) {
     http_response_code(500);
     echo json_encode([
         'success' => false,
         'message' => 'Error updating case status: ' . $e->getMessage()
     ]);
-}
-
-/**
- * Add real-time update to user files
- */
-function addRealtimeUpdate($update, $practiceId, $excludeUserId = null) {
-    global $pdo;
-    
-    if (!$pdo) return false;
-    
-    // Get updates directory
-    $updatesDir = __DIR__ . '/realtime_updates';
-    if (!is_dir($updatesDir)) {
-        mkdir($updatesDir, 0755, true);
-    }
-    
-    // Get all users in practice
-    try {
-        $stmt = $pdo->prepare("
-            SELECT user_id 
-            FROM practice_users 
-            WHERE practice_id = :practice_id
-            " . ($excludeUserId ? "AND user_id != :exclude_user_id" : "")
-        );
-        $params = ['practice_id' => $practiceId];
-        if ($excludeUserId) {
-            $params['exclude_user_id'] = $excludeUserId;
-        }
-        $stmt->execute($params);
-        $users = $stmt->fetchAll(PDO::FETCH_COLUMN);
-        
-        // Add update to each user's file
-        foreach ($users as $userId) {
-            $userFile = $updatesDir . '/user_' . $userId . '.json';
-            $existingUpdates = [];
-            
-            if (file_exists($userFile)) {
-                $existingUpdates = json_decode(file_get_contents($userFile), true) ?: [];
-            }
-            
-            $existingUpdates[] = $update;
-            
-            // Keep only last 50 updates per user
-            if (count($existingUpdates) > 50) {
-                $existingUpdates = array_slice($existingUpdates, -50);
-            }
-            
-            file_put_contents($userFile, json_encode($existingUpdates));
-        }
-        
-        return true;
-    } catch (Exception $e) {
-        error_log('Failed to add realtime update: ' . $e->getMessage());
-        return false;
-    }
 }
