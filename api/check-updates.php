@@ -89,6 +89,9 @@ try {
         'since' => $since
     ]);
     
+    $rowCount = $stmt->rowCount();
+    error_log("[RealTimeUpdates] check-updates.php: practice=$currentPracticeId, since=$since (" . date('Y-m-d H:i:s', $since) . "), found $rowCount rows");
+    
     $updates = [];
     while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
         // For limited visibility users, only include cases assigned to them

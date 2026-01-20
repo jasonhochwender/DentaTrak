@@ -853,6 +853,7 @@ function recordCaseUpdate($caseId, $updateType, $previousStatus = null, $previou
             'previous_status' => $previousStatus,
             'previous_assigned_to' => $previousAssignedTo
         ]);
+        error_log("[RealTimeUpdates] Recorded update: case=$caseId, type=$updateType, by=$updatedBy, practice=$practiceId");
     } catch (PDOException $e) {
         error_log('Failed to record case update: ' . $e->getMessage());
     }

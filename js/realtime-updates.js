@@ -132,7 +132,10 @@
       }
       
       if (data.success && data.updates && data.updates.length > 0) {
+        console.log('[RealTimeUpdates] Got', data.updates.length, 'updates');
         processUpdates(data.updates);
+      } else if (data.success) {
+        // Uncomment for debugging: console.log('[RealTimeUpdates] No updates, serverTime:', data.serverTime);
       }
       
       // Update the last check time
@@ -194,9 +197,11 @@
     }
     
     // Add the new case to the board
-    if (typeof addCaseToKanban === 'function') {
-      addCaseToKanban(caseData);
-      updateColumnCounts();
+    if (typeof window.addCaseToKanban === 'function') {
+      window.addCaseToKanban(caseData);
+      if (typeof window.updateColumnCounts === 'function') {
+        window.updateColumnCounts();
+      }
       showUpdateToast('New case added: ' + getPatientName(caseData));
     }
   }
@@ -226,9 +231,11 @@
       }
     } else {
       // Card doesn't exist, add it (might be newly visible due to assignment)
-      if (typeof addCaseToKanban === 'function') {
-        addCaseToKanban(caseData);
-        updateColumnCounts();
+      if (typeof window.addCaseToKanban === 'function') {
+        window.addCaseToKanban(caseData);
+        if (typeof window.updateColumnCounts === 'function') {
+          window.updateColumnCounts();
+        }
       }
     }
   }
@@ -251,9 +258,11 @@
         // Case was assigned to current user
         if (!existingCard) {
           // Add the card to the board
-          if (typeof addCaseToKanban === 'function') {
-            addCaseToKanban(caseData);
-            updateColumnCounts();
+          if (typeof window.addCaseToKanban === 'function') {
+            window.addCaseToKanban(caseData);
+            if (typeof window.updateColumnCounts === 'function') {
+              window.updateColumnCounts();
+            }
             showUpdateToast('Case assigned to you: ' + getPatientName(caseData), 'info');
           }
         } else {
@@ -263,7 +272,9 @@
         // Case was unassigned from current user or assigned to someone else
         if (existingCard) {
           removeCard(existingCard);
-          updateColumnCounts();
+          if (typeof window.updateColumnCounts === 'function') {
+            window.updateColumnCounts();
+          }
           showUpdateToast('Case unassigned: ' + getPatientName(caseData), 'info');
         }
       }
@@ -284,7 +295,9 @@
     
     if (existingCard) {
       removeCard(existingCard);
-      updateColumnCounts();
+      if (typeof window.updateColumnCounts === 'function') {
+        window.updateColumnCounts();
+      }
       showUpdateToast('Case removed', 'info');
     }
   }

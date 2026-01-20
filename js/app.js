@@ -4578,9 +4578,28 @@ document.addEventListener('DOMContentLoaded', function () {
     modal.querySelector('.conflict-reload-btn').addEventListener('click', function() {
       overlay.remove();
       if (savedData && savedData.id) {
+        // Populate the form with the saved data
         populateCreateCaseForm(savedData);
+        // Update the version for next save attempt
         if (form && savedData.version) {
           form.dataset.caseVersion = savedData.version;
+        }
+        // Also update the card on the board if it exists
+        if (typeof window.addCaseToKanban === 'function') {
+          // Remove old card and add updated one
+          var existingCards = document.querySelectorAll('.kanban-card');
+          existingCards.forEach(function(card) {
+            try {
+              var cardData = JSON.parse(card.dataset.caseJson || '{}');
+              if (cardData.id === savedData.id) {
+                card.remove();
+              }
+            } catch(e) {}
+          });
+          window.addCaseToKanban(savedData);
+          if (typeof window.updateColumnCounts === 'function') {
+            window.updateColumnCounts();
+          }
         }
         showToast('Form updated with saved version', 'success');
       } else {

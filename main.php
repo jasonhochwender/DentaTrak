@@ -2319,7 +2319,7 @@ window.featureFlags = <?php echo getFeatureFlagsJson(); ?>;
   <!-- Load JavaScript last -->
   <script src="js/toast.js?v=20250104" defer></script>
   <script src="js/session-timeout.js?v=20250118" defer></script>
-  <script src="js/app.js?v=20250119f" defer></script>
+  <script src="js/app.js?v=20250119g" defer></script>
   <script src="js/card-delete-fixed.js?v=20250104" defer></script>
   <script src="js/assignments.js?v=20250104" defer></script>
   <script src="js/case-comments.js?v=20250104" defer></script>
@@ -2329,7 +2329,7 @@ window.featureFlags = <?php echo getFeatureFlagsJson(); ?>;
   <script src="js/ask-dentatrak.js?v=20250104" defer></script>
   <script src="js/insights.js?v=20250104" defer></script>
   <script src="js/patient-search.js?v=20250104" defer></script>
-  <script src="js/realtime-updates.js?v=20250119d" defer></script>
+  <script src="js/realtime-updates.js?v=20250119f" defer></script>
   
 <?php if ($showDevTools): ?>
 <!-- Dev Tools JavaScript -->
