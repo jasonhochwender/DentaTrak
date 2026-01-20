@@ -792,6 +792,7 @@ function getAllCasesFromCache() {
             'archived' => isset($row['archived']) ? $row['archived'] : false,
             'archivedDate' => $row['archived_date'] ?? null,
             'revisionCount' => isset($row['revision_count']) ? (int)$row['revision_count'] : 0,
+            'version' => (int)($row['version'] ?? 1),
         ];
 
         if (isset($row['assigned_to']) && $row['assigned_to'] !== null) {
