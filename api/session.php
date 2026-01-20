@@ -51,23 +51,24 @@ if (session_status() === PHP_SESSION_NONE) {
         'samesite' => 'Lax'
     ]);
     
-    try {
-        session_start();
-    } catch (Exception $e) {
-        error_log('Failed to start session in ' . __FILE__);
-        throw $e;
-    }
+    // Suppress session warnings (can occur during concurrent test runs)
+    @session_start();
 }
 
 /**
  * Regenerates the session ID and updates last activity time
  */
 function regenerateSession() {
-    // Regenerate session ID
+    // Only regenerate if session is active
+    if (session_status() !== PHP_SESSION_ACTIVE) {
+        return;
+    }
+    
+    // Regenerate session ID periodically
     if (!isset($_SESSION['last_regeneration']) || 
         $_SESSION['last_regeneration'] < time() - 300) {
         
-        session_regenerate_id(true);
+        @session_regenerate_id(true);
         $_SESSION['last_regeneration'] = time();
     }
 }

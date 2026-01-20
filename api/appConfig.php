@@ -331,5 +331,6 @@ if (session_status() === PHP_SESSION_NONE) {
         'samesite' => 'Lax'
     ]);
     
-    session_start(); 
+    // Suppress session warnings (can occur during concurrent test runs)
+    @session_start(); 
 }

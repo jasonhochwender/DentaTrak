@@ -689,6 +689,22 @@ document.addEventListener('DOMContentLoaded', function() {
     return null;
   }
   
+  // Helper function to set cookie value
+  function setCookie(name, value, days) {
+    let expires = '';
+    if (days) {
+      const date = new Date();
+      date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
+      expires = '; expires=' + date.toUTCString();
+    }
+    document.cookie = name + '=' + (value || '') + expires + '; path=/; SameSite=Lax';
+  }
+  
+  // Helper function to delete cookie
+  function deleteCookie(name) {
+    document.cookie = name + '=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; SameSite=Lax';
+  }
+  
   // Hide all forms
   function hideAllForms() {
     emailEntryForm.style.display = 'none';
@@ -1015,6 +1031,8 @@ document.addEventListener('DOMContentLoaded', function() {
       .then(data => {
         if (data.success) {
           lastEnteredPassword = ''; // Clear stored password on successful login
+          // Save preference for email login (expires in 30 days)
+          setCookie('login_preference', 'email', 30);
           window.location.href = data.redirect || 'main.php';
         } else if (data.requires_2fa) {
           // ============================================
@@ -1488,6 +1506,10 @@ if (verify2FABtn) {
     .then(function(data) {
       if (data.success) {
         pending2FACredentials = null;
+        // Save email login preference if this was email 2FA (not Google 2FA)
+        if (!pending2FAGoogle) {
+          setCookie('login_preference', 'email', 30);
+        }
         pending2FAGoogle = false;
         window.location.href = data.redirect || 'main.php';
       } else {
