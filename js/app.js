@@ -4479,7 +4479,9 @@ document.addEventListener('DOMContentLoaded', function () {
   // Show dialog when concurrent edit conflict is detected
   function showConcurrentEditConflictDialog(error, form) {
     var savedData = error.currentData || {};
-    var originalData = form ? JSON.parse(form.dataset.originalCaseData || '{}') : {};
+    var originalDataStr = form ? form.dataset.originalCaseData : null;
+    var originalData = originalDataStr ? JSON.parse(originalDataStr) : null;
+    var hasOriginalData = originalData && Object.keys(originalData).length > 0;
     
     // Get user's current form values
     var yourData = {};
@@ -4507,51 +4509,32 @@ document.addEventListener('DOMContentLoaded', function () {
       notes: 'Notes'
     };
     
-    // Find TRUE conflicts: fields that BOTH users changed from the original
-    var trueConflicts = [];
+    // Find all fields where your value differs from saved value
+    var conflicts = [];
     for (var field in fieldLabels) {
-      var originalVal = (originalData[field] || '').toString().trim();
       var yourVal = (yourData[field] || '').toString().trim();
       var savedVal = (savedData[field] || '').toString().trim();
       
-      var youChanged = (yourVal !== originalVal);
-      var theyChanged = (savedVal !== originalVal);
-      
-      // True conflict: both users changed the same field to different values
-      if (youChanged && theyChanged && yourVal !== savedVal) {
-        trueConflicts.push({
+      // Show any field where your value differs from the saved value
+      if (yourVal !== savedVal) {
+        conflicts.push({
           field: field,
           label: fieldLabels[field],
-          original: originalVal || '(empty)',
           yours: yourVal || '(empty)',
           saved: savedVal || '(empty)'
         });
       }
     }
     
-    // If no true conflicts, we can auto-merge: take their changes for fields they changed,
-    // keep your changes for fields you changed
-    if (trueConflicts.length === 0) {
-      // Build merged data: start with saved data, overlay your changes
-      var mergedData = Object.assign({}, savedData);
-      for (var field in fieldLabels) {
-        var originalVal = (originalData[field] || '').toString().trim();
-        var yourVal = (yourData[field] || '').toString().trim();
-        
-        // If you changed this field (and they didn't conflict), use your value
-        if (yourVal !== originalVal) {
-          mergedData[field] = yourVal;
-        }
-      }
-      
-      // Update form with merged data and new version, then auto-save
-      populateCreateCaseForm(mergedData);
+    // If no differences at all, just update version and retry
+    if (conflicts.length === 0) {
       if (form && savedData.version) {
         form.dataset.caseVersion = savedData.version;
-        // Store new original data for next conflict check
-        form.dataset.originalCaseData = JSON.stringify(mergedData);
       }
-      showToast('Changes merged automatically. Click Save to submit.', 'info');
+      setTimeout(function() {
+        var submitBtn = form.querySelector('button[type="submit"]');
+        if (submitBtn) submitBtn.click();
+      }, 100);
       return;
     }
     
@@ -4564,21 +4547,19 @@ document.addEventListener('DOMContentLoaded', function () {
     modal.className = 'conflict-modal';
     modal.style.cssText = 'background:white;border-radius:12px;padding:24px;max-width:650px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,0.3);max-height:90vh;overflow-y:auto;';
     
-    // Build conflicts table
+    // Build conflicts table - side by side comparison
     var conflictHtml = '<table style="width:100%;border-collapse:collapse;margin-bottom:16px;">' +
       '<thead><tr>' +
-        '<th style="text-align:left;padding:8px;border-bottom:2px solid #e5e7eb;font-size:0.75rem;color:#6b7280;">Field</th>' +
-        '<th style="text-align:left;padding:8px;border-bottom:2px solid #e5e7eb;font-size:0.75rem;color:#6b7280;">Original</th>' +
-        '<th style="text-align:left;padding:8px;border-bottom:2px solid #e5e7eb;font-size:0.75rem;color:#dc2626;">Your Change</th>' +
-        '<th style="text-align:left;padding:8px;border-bottom:2px solid #e5e7eb;font-size:0.75rem;color:#16a34a;">Their Change</th>' +
+        '<th style="text-align:left;padding:10px;border-bottom:2px solid #e5e7eb;font-size:0.8rem;color:#6b7280;">Field</th>' +
+        '<th style="text-align:left;padding:10px;border-bottom:2px solid #e5e7eb;font-size:0.8rem;color:#dc2626;background:#fef2f2;">Your Value</th>' +
+        '<th style="text-align:left;padding:10px;border-bottom:2px solid #e5e7eb;font-size:0.8rem;color:#16a34a;background:#f0fdf4;">Their Value (Saved)</th>' +
       '</tr></thead><tbody>';
     
-    trueConflicts.forEach(function(conflict) {
+    conflicts.forEach(function(conflict) {
       conflictHtml += '<tr>' +
-        '<td style="padding:8px;border-bottom:1px solid #f3f4f6;font-weight:500;color:#374151;">' + conflict.label + '</td>' +
-        '<td style="padding:8px;border-bottom:1px solid #f3f4f6;color:#9ca3af;font-style:italic;">' + escapeHtml(conflict.original) + '</td>' +
-        '<td style="padding:8px;border-bottom:1px solid #f3f4f6;background:#fef2f2;color:#991b1b;">' + escapeHtml(conflict.yours) + '</td>' +
-        '<td style="padding:8px;border-bottom:1px solid #f3f4f6;background:#f0fdf4;color:#166534;">' + escapeHtml(conflict.saved) + '</td>' +
+        '<td style="padding:10px;border-bottom:1px solid #f3f4f6;font-weight:600;color:#374151;">' + conflict.label + '</td>' +
+        '<td style="padding:10px;border-bottom:1px solid #f3f4f6;background:#fef2f2;color:#991b1b;">' + escapeHtml(conflict.yours) + '</td>' +
+        '<td style="padding:10px;border-bottom:1px solid #f3f4f6;background:#f0fdf4;color:#166534;">' + escapeHtml(conflict.saved) + '</td>' +
       '</tr>';
     });
     conflictHtml += '</tbody></table>';
