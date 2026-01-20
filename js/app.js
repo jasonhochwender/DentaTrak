@@ -4608,14 +4608,18 @@ document.addEventListener('DOMContentLoaded', function () {
       }
     });
     
-    // Handle "Keep My Version" - keep form data, update version so user can save again
+    // Handle "Keep My Version" - keep form data, update version, and auto-save
     modal.querySelector('.conflict-cancel-btn').addEventListener('click', function() {
       overlay.remove();
-      // Update version so user can attempt to save again (will overwrite their changes)
+      // Update version so save will succeed (will overwrite their changes)
       if (form && savedData.version) {
         form.dataset.caseVersion = savedData.version;
       }
-      showToast('Your values kept. Click Save to overwrite their changes.', 'warning');
+      // Auto-trigger save with the user's version
+      var submitBtn = document.getElementById('createCaseSubmit');
+      if (submitBtn) {
+        submitBtn.click();
+      }
     });
     
     // Close on overlay click
