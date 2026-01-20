@@ -95,10 +95,10 @@ function checkSessionTimeout() {
             session_unset();
             session_destroy();
             
-            // Clear remember me cookie if exists
-            if (isset($_COOKIE['remember_token'])) {
-                setcookie('remember_token', '', time() - 3600, '/', '', isset($_SERVER['HTTPS']), true);
-            }
+            // NOTE: Do NOT clear remember_token cookie here!
+            // The Remember Me cookie should persist across session timeouts
+            // so users can be auto-logged in when they return.
+            // The cookie is only cleared on explicit logout.
             
             return false;
         }
@@ -154,6 +154,13 @@ function attemptRememberMeLogin() {
         return false;
     }
     
+    // Access $pdo directly from GLOBALS - appConfig.php should already be loaded by the parent script
+    $pdo = $GLOBALS['pdo'] ?? null;
+    
+    if (!$pdo) {
+        return false;
+    }
+    
     // Load unified identity functions if not already loaded
     $unifiedIdentityPath = __DIR__ . '/unified-identity.php';
     if (file_exists($unifiedIdentityPath)) {
@@ -193,6 +200,6 @@ function attemptRememberMeLogin() {
     return false;
 }
 
-// Attempt remember me login (only on page loads, not API calls)
-// This is called automatically when session.php is included
-attemptRememberMeLogin();
+// NOTE: attemptRememberMeLogin() is NOT called automatically here
+// It must be called explicitly by the parent script (e.g., login.php)
+// AFTER appConfig.php has been loaded to ensure $pdo is available

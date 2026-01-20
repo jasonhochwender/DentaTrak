@@ -233,7 +233,13 @@ function fetchAllCaseAssignments() {
   }
   
   fetch('api/get-all-case-assignments.php')
-    .then(response => response.json())
+    .then(response => {
+      if (!response.ok) {
+        // Silently handle auth errors - user may not be logged in
+        return { success: false, assignments: [] };
+      }
+      return response.json();
+    })
     .then(data => {
       if (data.success && data.assignments && data.assignments.length > 0) {
         // Store assignments in the global object

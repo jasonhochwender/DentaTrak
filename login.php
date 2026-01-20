@@ -5,10 +5,21 @@ require_once __DIR__ . '/api/bootstrap.php';
 // Suppress deprecation notices
 error_reporting(E_ALL & ~E_DEPRECATED & ~E_USER_DEPRECATED);
 
-require_once __DIR__ . '/api/session.php';
+// Load appConfig FIRST to establish database connection
 require_once __DIR__ . '/api/appConfig.php';
+// Then load session
+require_once __DIR__ . '/api/session.php';
 require_once __DIR__ . '/api/security-headers.php';
 setSecurityHeaders();
+
+// ============================================
+// REMEMBER ME AUTO-LOGIN
+// Attempt to auto-login user via persistent token cookie
+// Must be called AFTER appConfig.php and session.php are loaded
+// ============================================
+if (function_exists('attemptRememberMeLogin')) {
+    attemptRememberMeLogin();
+}
 
 // ============================================
 // REDIRECT IF ALREADY LOGGED IN

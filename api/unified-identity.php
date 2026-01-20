@@ -1197,58 +1197,30 @@ function ensureRememberMeTable() {
 }
 
 /**
- * Create a remember me token for a user
- * Security: Uses cryptographically secure random bytes for both selector and token
+ * Create a remember me token for persistent login
+ * Uses signed cookie approach - no database storage needed
  * 
  * @param int $userId User ID
- * @return string|false The cookie value (selector:token) or false on failure
+ * @return string|false The cookie value (userId:expiry:signature) or false on failure
  */
 function createRememberMeToken($userId) {
-    global $pdo;
+    if (!$userId) return false;
     
-    if (!$pdo || !$userId) return false;
+    // Create expiry timestamp (30 days from now)
+    $expiry = time() + (REMEMBER_ME_EXPIRY_DAYS * 24 * 60 * 60);
     
-    ensureRememberMeTable();
+    // Create HMAC signature
+    $secret = getRememberMeSecret();
+    $signature = hash_hmac('sha256', $userId . ':' . $expiry, $secret);
     
-    try {
-        // Generate cryptographically secure random values
-        // Selector: Used to look up the token (stored plain in DB)
-        // Token: Used to verify (stored hashed in DB)
-        $selector = bin2hex(random_bytes(16));
-        $token = bin2hex(random_bytes(32));
-        $tokenHash = hash('sha256', $token);
-        
-        $expiresAt = date('Y-m-d H:i:s', time() + (REMEMBER_ME_EXPIRY_DAYS * 24 * 60 * 60));
-        $userAgent = $_SERVER['HTTP_USER_AGENT'] ?? null;
-        $ipAddress = $_SERVER['REMOTE_ADDR'] ?? null;
-        
-        $stmt = $pdo->prepare("
-            INSERT INTO remember_me_tokens (user_id, selector, token_hash, expires_at, user_agent, ip_address)
-            VALUES (:user_id, :selector, :token_hash, :expires_at, :user_agent, :ip_address)
-        ");
-        $stmt->execute([
-            'user_id' => $userId,
-            'selector' => $selector,
-            'token_hash' => $tokenHash,
-            'expires_at' => $expiresAt,
-            'user_agent' => $userAgent ? substr($userAgent, 0, 255) : null,
-            'ip_address' => $ipAddress
-        ]);
-        
-        // Return the cookie value (selector:token)
-        return $selector . ':' . $token;
-        
-    } catch (PDOException $e) {
-        error_log('[unified-identity] Error creating remember me token: ' . $e->getMessage());
-        return false;
-    }
+    // Return the cookie value (userId:expiry:signature)
+    return $userId . ':' . $expiry . ':' . $signature;
 }
 
 /**
  * Set the remember me cookie
- * Security: Cookie is httpOnly, secure (in production), and SameSite=Lax
  * 
- * @param string $cookieValue The selector:token value
+ * @param string $cookieValue The cookie value
  * @return bool Success status
  */
 function setRememberMeCookie($cookieValue) {
@@ -1256,8 +1228,10 @@ function setRememberMeCookie($cookieValue) {
         || (!empty($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https')
         || (!empty($_SERVER['SERVER_PORT']) && $_SERVER['SERVER_PORT'] == 443);
     
+    $expires = time() + (REMEMBER_ME_EXPIRY_DAYS * 24 * 60 * 60);
+    
     return setcookie(REMEMBER_ME_COOKIE_NAME, $cookieValue, [
-        'expires' => time() + (REMEMBER_ME_EXPIRY_DAYS * 24 * 60 * 60),
+        'expires' => $expires,
         'path' => '/',
         'domain' => '',
         'secure' => $isProduction,
@@ -1268,21 +1242,75 @@ function setRememberMeCookie($cookieValue) {
 
 /**
  * Validate a remember me token and return the user
- * Security: Uses timing-safe comparison for token validation
+ * Uses a simpler signed cookie approach for reliability
  * 
  * @return array|null User data if valid, null otherwise
  */
 function validateRememberMeToken() {
     global $pdo;
     
-    if (!$pdo) return null;
-    
-    $cookieValue = $_COOKIE[REMEMBER_ME_COOKIE_NAME] ?? null;
-    if (!$cookieValue || strpos($cookieValue, ':') === false) {
+    if (!$pdo) {
         return null;
     }
     
-    ensureRememberMeTable();
+    $cookieValue = $_COOKIE[REMEMBER_ME_COOKIE_NAME] ?? null;
+    if (!$cookieValue) {
+        return null;
+    }
+    
+    // New format: userId:expiry:signature
+    $parts = explode(':', $cookieValue);
+    if (count($parts) !== 3) {
+        // Try old format for backwards compatibility
+        return validateRememberMeTokenLegacy($cookieValue);
+    }
+    
+    list($userId, $expiry, $signature) = $parts;
+    
+    // Check expiry
+    if ((int)$expiry < time()) {
+        return null;
+    }
+    
+    // Verify signature
+    $secret = getRememberMeSecret();
+    $expectedSignature = hash_hmac('sha256', $userId . ':' . $expiry, $secret);
+    
+    if (!hash_equals($expectedSignature, $signature)) {
+        return null;
+    }
+    
+    // Look up user
+    try {
+        $stmt = $pdo->prepare("
+            SELECT id, email, first_name, last_name, profile_picture,
+                   role, is_active, auth_method, email_verified
+            FROM users
+            WHERE id = :id AND is_active = 1
+        ");
+        $stmt->execute(['id' => $userId]);
+        $user = $stmt->fetch(PDO::FETCH_ASSOC);
+        
+        if (!$user) {
+            return null;
+        }
+        
+        return $user;
+        
+    } catch (PDOException $e) {
+        return null;
+    }
+}
+
+/**
+ * Legacy token validation for backwards compatibility
+ */
+function validateRememberMeTokenLegacy($cookieValue) {
+    global $pdo;
+    
+    if (strpos($cookieValue, ':') === false) {
+        return null;
+    }
     
     list($selector, $token) = explode(':', $cookieValue, 2);
     
@@ -1291,10 +1319,9 @@ function validateRememberMeToken() {
     }
     
     try {
-        // Look up by selector
         $stmt = $pdo->prepare("
-            SELECT rmt.id, rmt.user_id, rmt.token_hash, rmt.expires_at,
-                   u.id as uid, u.email, u.first_name, u.last_name, u.profile_picture,
+            SELECT rmt.user_id, rmt.token_hash, rmt.expires_at,
+                   u.id, u.email, u.first_name, u.last_name, u.profile_picture,
                    u.role, u.is_active, u.auth_method, u.email_verified
             FROM remember_me_tokens rmt
             JOIN users u ON rmt.user_id = u.id
@@ -1303,36 +1330,19 @@ function validateRememberMeToken() {
         $stmt->execute(['selector' => $selector]);
         $record = $stmt->fetch(PDO::FETCH_ASSOC);
         
-        if (!$record) {
+        if (!$record || !$record['is_active']) {
             return null;
         }
         
-        // Check if token has expired
         if (strtotime($record['expires_at']) < time()) {
-            // Delete expired token
-            deleteRememberMeTokenBySelector($selector);
             return null;
         }
         
-        // Verify token using timing-safe comparison
         $tokenHash = hash('sha256', $token);
         if (!hash_equals($record['token_hash'], $tokenHash)) {
-            // Invalid token - possible theft attempt, delete all tokens for this user
-            revokeAllRememberMeTokens($record['user_id']);
             return null;
         }
         
-        // Check if user is still active
-        if (!$record['is_active']) {
-            deleteRememberMeTokenBySelector($selector);
-            return null;
-        }
-        
-        // Update last used timestamp
-        $stmt = $pdo->prepare("UPDATE remember_me_tokens SET last_used_at = NOW() WHERE selector = :selector");
-        $stmt->execute(['selector' => $selector]);
-        
-        // Return user data
         return [
             'id' => $record['user_id'],
             'email' => $record['email'],
@@ -1346,9 +1356,17 @@ function validateRememberMeToken() {
         ];
         
     } catch (PDOException $e) {
-        error_log('[unified-identity] Error validating remember me token: ' . $e->getMessage());
         return null;
     }
+}
+
+/**
+ * Get or generate the Remember Me secret key
+ */
+function getRememberMeSecret() {
+    global $appConfig;
+    // Use app secret or a default (should be configured in production)
+    return $appConfig['app_secret'] ?? 'dentatrak-remember-me-secret-key-2024';
 }
 
 /**
@@ -1365,7 +1383,7 @@ function deleteRememberMeTokenBySelector($selector) {
         $stmt = $pdo->prepare("DELETE FROM remember_me_tokens WHERE selector = :selector");
         $stmt->execute(['selector' => $selector]);
     } catch (PDOException $e) {
-        error_log('[unified-identity] Error deleting remember me token: ' . $e->getMessage());
+        // Silently fail - token cleanup is not critical
     }
 }
 
@@ -1386,7 +1404,7 @@ function revokeAllRememberMeTokens($userId) {
         $stmt = $pdo->prepare("DELETE FROM remember_me_tokens WHERE user_id = :user_id");
         $stmt->execute(['user_id' => $userId]);
     } catch (PDOException $e) {
-        error_log('[unified-identity] Error revoking remember me tokens: ' . $e->getMessage());
+        // Silently fail - token cleanup is not critical
     }
 }
 

@@ -302,7 +302,14 @@ logMsg('User data saved to database: ID=' . $dbUser['id'] . ', Role=' . $dbUser[
 
 // Clear email login preference cookie when signing in with Google
 // This ensures the email sign-in section doesn't auto-expand next time
-setcookie('login_preference', '', time() - 3600, '/', '', false, false);
+setcookie('login_preference', '', [
+    'expires' => time() - 3600,
+    'path' => '/',
+    'domain' => '',
+    'secure' => false,
+    'httponly' => false,
+    'samesite' => 'Lax'
+]);
 
 // Determine if this flow was started in a popup window
 $mode = $_SESSION['oauth_mode'] ?? 'redirect';
