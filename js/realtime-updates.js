@@ -49,7 +49,7 @@
     document.addEventListener('keydown', trackActivity);
     document.addEventListener('click', trackActivity);
     
-    console.log('[RealTimeUpdates] Started polling for updates');
+    console.log('[RealTimeUpdates] Started polling for updates, user:', currentUserEmail, 'since:', lastCheckTime);
   }
   
   /**
@@ -135,8 +135,10 @@
         return;
       }
       
+      console.log('[RealTimeUpdates] Poll response:', data.success, 'updates:', data.updates ? data.updates.length : 0);
+      
       if (data.success && data.updates && data.updates.length > 0) {
-        console.log('[RealTimeUpdates] Received', data.updates.length, 'updates');
+        console.log('[RealTimeUpdates] Received', data.updates.length, 'updates:', data.updates);
         processUpdates(data.updates);
       }
       

@@ -4488,21 +4488,46 @@ document.addEventListener('DOMContentLoaded', function () {
   
   // Show dialog when concurrent edit conflict is detected
   function showConcurrentEditConflictDialog(error, form) {
-    var currentData = error.currentData || {};
-    var otherUserName = (currentData.patientFirstName || '') + ' ' + (currentData.patientLastName || '');
+    var savedData = error.currentData || {};
     
     // Get user's attempted changes from the form
-    var yourPatientName = '';
-    var yourStatus = '';
-    var yourDentist = '';
+    var yourData = {};
     if (form) {
-      var firstNameEl = form.querySelector('#patientFirstName');
-      var lastNameEl = form.querySelector('#patientLastName');
-      var statusEl = form.querySelector('#status');
-      var dentistEl = form.querySelector('#dentistName');
-      yourPatientName = ((firstNameEl ? firstNameEl.value : '') + ' ' + (lastNameEl ? lastNameEl.value : '')).trim();
-      yourStatus = statusEl ? statusEl.value : '';
-      yourDentist = dentistEl ? dentistEl.value : '';
+      yourData.patientFirstName = (form.querySelector('#patientFirstName') || {}).value || '';
+      yourData.patientLastName = (form.querySelector('#patientLastName') || {}).value || '';
+      yourData.status = (form.querySelector('#status') || {}).value || '';
+      yourData.dentistName = (form.querySelector('#dentistName') || {}).value || '';
+      yourData.caseType = (form.querySelector('#caseType') || {}).value || '';
+      yourData.toothShade = (form.querySelector('#toothShade') || {}).value || '';
+      yourData.material = (form.querySelector('#material') || {}).value || '';
+      yourData.dueDate = (form.querySelector('#dueDate') || {}).value || '';
+      yourData.notes = (form.querySelector('#notes') || {}).value || '';
+    }
+    
+    // Build list of differences
+    var differences = [];
+    var fieldLabels = {
+      patientFirstName: 'First Name',
+      patientLastName: 'Last Name',
+      status: 'Status',
+      dentistName: 'Dentist',
+      caseType: 'Case Type',
+      toothShade: 'Shade',
+      material: 'Material',
+      dueDate: 'Due Date',
+      notes: 'Notes'
+    };
+    
+    for (var field in fieldLabels) {
+      var yourVal = (yourData[field] || '').toString().trim();
+      var savedVal = (savedData[field] || '').toString().trim();
+      if (yourVal !== savedVal) {
+        differences.push({
+          label: fieldLabels[field],
+          yours: yourVal || '(empty)',
+          saved: savedVal || '(empty)'
+        });
+      }
     }
     
     // Create modal overlay
@@ -4514,36 +4539,41 @@ document.addEventListener('DOMContentLoaded', function () {
     modal.className = 'conflict-modal';
     modal.style.cssText = 'background:white;border-radius:12px;padding:24px;max-width:600px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,0.3);max-height:90vh;overflow-y:auto;';
     
+    // Build differences HTML
+    var diffHtml = '';
+    if (differences.length > 0) {
+      diffHtml = '<table style="width:100%;border-collapse:collapse;margin-bottom:16px;">' +
+        '<thead><tr>' +
+          '<th style="text-align:left;padding:8px;border-bottom:2px solid #e5e7eb;font-size:0.75rem;color:#6b7280;">Field</th>' +
+          '<th style="text-align:left;padding:8px;border-bottom:2px solid #e5e7eb;font-size:0.75rem;color:#dc2626;">❌ Your Value (Not Saved)</th>' +
+          '<th style="text-align:left;padding:8px;border-bottom:2px solid #e5e7eb;font-size:0.75rem;color:#16a34a;">✓ Saved Value</th>' +
+        '</tr></thead><tbody>';
+      
+      differences.forEach(function(diff) {
+        diffHtml += '<tr>' +
+          '<td style="padding:8px;border-bottom:1px solid #f3f4f6;font-weight:500;color:#374151;">' + diff.label + '</td>' +
+          '<td style="padding:8px;border-bottom:1px solid #f3f4f6;background:#fef2f2;color:#991b1b;">' + escapeHtml(diff.yours) + '</td>' +
+          '<td style="padding:8px;border-bottom:1px solid #f3f4f6;background:#f0fdf4;color:#166534;">' + escapeHtml(diff.saved) + '</td>' +
+        '</tr>';
+      });
+      
+      diffHtml += '</tbody></table>';
+    } else {
+      diffHtml = '<p style="text-align:center;color:#6b7280;margin-bottom:16px;">No visible field differences detected. The case version has changed.</p>';
+    }
+    
     modal.innerHTML = 
       '<div style="text-align:center;margin-bottom:20px;">' +
         '<div style="font-size:48px;margin-bottom:12px;">⚠️</div>' +
         '<h3 style="margin:0 0 8px 0;color:#1f2937;font-size:1.25rem;">Concurrent Edit Detected</h3>' +
-        '<p style="margin:0;color:#6b7280;font-size:0.95rem;">Another user saved changes while you were editing. Your changes were not saved.</p>' +
+        '<p style="margin:0;color:#6b7280;font-size:0.95rem;">Another user saved changes while you were editing.<br><strong>Your changes were not saved.</strong></p>' +
       '</div>' +
       
-      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px;">' +
-        
-        // Your changes (not saved)
-        '<div style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:16px;">' +
-          '<p style="margin:0 0 8px 0;font-size:0.75rem;font-weight:600;color:#dc2626;text-transform:uppercase;">❌ Your Changes (Not Saved)</p>' +
-          '<p style="margin:0 0 4px 0;font-size:0.85rem;color:#7f1d1d;"><strong>Patient:</strong> ' + (yourPatientName || 'N/A') + '</p>' +
-          '<p style="margin:0 0 4px 0;font-size:0.85rem;color:#7f1d1d;"><strong>Status:</strong> ' + (yourStatus || 'N/A') + '</p>' +
-          '<p style="margin:0;font-size:0.85rem;color:#7f1d1d;"><strong>Dentist:</strong> ' + (yourDentist || 'N/A') + '</p>' +
-        '</div>' +
-        
-        // Other user's changes (saved)
-        '<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:16px;">' +
-          '<p style="margin:0 0 8px 0;font-size:0.75rem;font-weight:600;color:#16a34a;text-transform:uppercase;">✓ Saved by Another User</p>' +
-          '<p style="margin:0 0 4px 0;font-size:0.85rem;color:#14532d;"><strong>Patient:</strong> ' + (otherUserName.trim() || 'N/A') + '</p>' +
-          '<p style="margin:0 0 4px 0;font-size:0.85rem;color:#14532d;"><strong>Status:</strong> ' + (currentData.status || 'N/A') + '</p>' +
-          '<p style="margin:0;font-size:0.85rem;color:#14532d;"><strong>Dentist:</strong> ' + (currentData.dentistName || 'N/A') + '</p>' +
-        '</div>' +
-        
-      '</div>' +
+      diffHtml +
       
       '<p style="margin:0 0 16px 0;font-size:0.85rem;color:#6b7280;text-align:center;">' +
-        'Click <strong>Load Their Version</strong> to discard your changes and load the latest saved version, ' +
-        'or <strong>Keep Editing</strong> to continue with your current form data (you\'ll need to save again).' +
+        '<strong>Load Their Version</strong> replaces your form with the saved data.<br>' +
+        '<strong>Keep Editing</strong> keeps your form data so you can try saving again.' +
       '</p>' +
       
       '<div style="display:flex;gap:12px;justify-content:center;">' +
