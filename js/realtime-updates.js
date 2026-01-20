@@ -48,8 +48,6 @@
     document.addEventListener('mousemove', trackActivity);
     document.addEventListener('keydown', trackActivity);
     document.addEventListener('click', trackActivity);
-    
-    console.log('[RealTimeUpdates] Started polling for updates, user:', currentUserEmail, 'since:', lastCheckTime);
   }
   
   /**
@@ -64,8 +62,6 @@
     document.removeEventListener('mousemove', trackActivity);
     document.removeEventListener('keydown', trackActivity);
     document.removeEventListener('click', trackActivity);
-    
-    console.log('[RealTimeUpdates] Stopped polling');
   }
   
   /**
@@ -135,10 +131,7 @@
         return;
       }
       
-      console.log('[RealTimeUpdates] Poll response:', data.success, 'updates:', data.updates ? data.updates.length : 0);
-      
       if (data.success && data.updates && data.updates.length > 0) {
-        console.log('[RealTimeUpdates] Received', data.updates.length, 'updates:', data.updates);
         processUpdates(data.updates);
       }
       
@@ -168,8 +161,6 @@
       if (update.updatedBy === currentUserEmail) {
         return;
       }
-      
-      console.log('[RealTimeUpdates] Processing update:', update.type, update.caseId);
       
       switch (update.type) {
         case 'create':

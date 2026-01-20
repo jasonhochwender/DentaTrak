@@ -438,14 +438,6 @@ function updateCaseWithVersionCheck(array $caseData, $expectedVersion) {
             // Get the current case data to return to client
             $currentData = getCaseFromCache($caseId);
             
-            // Debug: Log what we're returning in conflict
-            error_log('[CONFLICT] Returning data for case ' . $caseId . ': ' . json_encode([
-                'patientFirstName' => $currentData['patientFirstName'] ?? 'null',
-                'patientLastName' => $currentData['patientLastName'] ?? 'null',
-                'status' => $currentData['status'] ?? 'null',
-                'version' => $currentVersion
-            ]));
-            
             return [
                 'success' => false,
                 'conflict' => true,

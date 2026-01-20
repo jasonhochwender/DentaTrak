@@ -4298,9 +4298,6 @@ document.addEventListener('DOMContentLoaded', function () {
         // Add version for optimistic locking (concurrent edit detection)
         if (form.dataset.caseVersion) {
           formData.append('version', form.dataset.caseVersion);
-          console.log('[DEBUG] Sending version:', form.dataset.caseVersion);
-        } else {
-          console.log('[DEBUG] No version found in form dataset');
         }
       }
       
@@ -4339,13 +4336,6 @@ document.addEventListener('DOMContentLoaded', function () {
                 conflictError.conflict = true;
                 conflictError.currentData = errorData.currentData;
                 conflictError.currentVersion = errorData.currentVersion;
-                
-                // Debug: Log what we received from server
-                console.log('[DEBUG] Conflict data received:', {
-                  currentData: errorData.currentData,
-                  currentVersion: errorData.currentVersion
-                });
-                
                 throw conflictError;
               }
               
@@ -4587,19 +4577,13 @@ document.addEventListener('DOMContentLoaded', function () {
     // Handle reload button - reload the case with latest data
     modal.querySelector('.conflict-reload-btn').addEventListener('click', function() {
       overlay.remove();
-      if (currentData && currentData.id) {
-        // Update the form with the latest data
-        populateCreateCaseForm(currentData);
-        // Update the version in the form
-        if (form && currentData.version) {
-          form.dataset.caseVersion = currentData.version;
-          console.log('[DEBUG] Reload Latest - Updated version to:', currentData.version);
-        } else {
-          console.log('[DEBUG] Reload Latest - No version found in currentData');
+      if (savedData && savedData.id) {
+        populateCreateCaseForm(savedData);
+        if (form && savedData.version) {
+          form.dataset.caseVersion = savedData.version;
         }
-        showToast('Case reloaded with latest changes', 'success');
+        showToast('Form updated with saved version', 'success');
       } else {
-        // Close the modal and refresh the page
         location.reload();
       }
     });
@@ -5902,9 +5886,6 @@ document.addEventListener('DOMContentLoaded', function () {
     // Store the version for optimistic locking (concurrent edit detection)
     if (caseData.version) {
       form.dataset.caseVersion = caseData.version;
-      console.log('[DEBUG] editCaseHandler - Set version to:', caseData.version);
-    } else {
-      console.log('[DEBUG] editCaseHandler - No version in caseData');
     }
     
     // Set the assigned to dropdown (if it exists)
