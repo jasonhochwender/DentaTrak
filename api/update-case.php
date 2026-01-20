@@ -624,6 +624,26 @@ try {
             exit;
         }
         
+        // EARLY VERSION CHECK - must happen BEFORE any data modifications
+        // This prevents the race condition where data is modified before conflict is detected
+        if ($expectedVersion !== null) {
+            $currentVersion = getCaseVersion($_POST['caseId']);
+            if ($currentVersion !== null && $currentVersion !== $expectedVersion) {
+                // Version mismatch - another user has edited this case
+                $currentData = getCaseFromCache($_POST['caseId']);
+                http_response_code(409); // Conflict
+                echo json_encode([
+                    'success' => false,
+                    'conflict' => true,
+                    'message' => 'This case was modified by another user. Please review their changes.',
+                    'expectedVersion' => $expectedVersion,
+                    'currentVersion' => $currentVersion,
+                    'currentData' => $currentData
+                ]);
+                exit;
+            }
+        }
+        
         // Update the case
         $filesToDelete = [];
         if (isset($_POST['filesToDelete'])) {

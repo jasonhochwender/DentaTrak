@@ -3458,6 +3458,8 @@ document.addEventListener('DOMContentLoaded', function () {
       form.reset();
       delete form.dataset.caseId;
       delete form.dataset.driveFolderId;
+      delete form.dataset.caseVersion;
+      delete form.dataset.originalCaseData;
     }
 
     if (modalTitle) modalTitle.textContent = 'Create New Case';
@@ -3597,6 +3599,9 @@ document.addEventListener('DOMContentLoaded', function () {
       // Reset unsaved changes tracking
       hasUnsavedChanges = false;
       originalFormData = null;
+      
+      // Reset submission state to allow new submissions
+      isSubmitting = false;
     }
   }
 

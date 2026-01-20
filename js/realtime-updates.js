@@ -132,7 +132,6 @@
       }
       
       if (data.success && data.updates && data.updates.length > 0) {
-        console.log('[RealTimeUpdates] Got', data.updates.length, 'updates');
         processUpdates(data.updates);
       } else if (data.success) {
         // Uncomment for debugging: console.log('[RealTimeUpdates] No updates, serverTime:', data.serverTime);
@@ -492,8 +491,6 @@
     
     if (typeof showToast === 'function') {
       showToast(message, type);
-    } else {
-      console.log('[RealTimeUpdates] ' + message);
     }
   }
   

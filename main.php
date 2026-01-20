@@ -561,7 +561,7 @@ window.featureFlags = <?php echo getFeatureFlagsJson(); ?>;
         
         <button type="button" class="user-avatar-button" id="userMenuToggle" aria-haspopup="true" aria-expanded="false">
           <?php if (!empty($user['picture'])): ?>
-            <img src="<?php echo htmlspecialchars($user['picture']); ?>" alt="Profile picture" class="profile-image" referrerpolicy="no-referrer" crossorigin="anonymous">
+            <img src="<?php echo htmlspecialchars($user['picture']); ?>" alt="Profile picture" class="profile-image" referrerpolicy="no-referrer">
           <?php else: ?>
             <span class="avatar-placeholder"><?php echo strtoupper(substr($user['name'] ?? 'U', 0, 1)); ?></span>
           <?php endif; ?>
