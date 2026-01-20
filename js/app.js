@@ -4479,8 +4479,9 @@ document.addEventListener('DOMContentLoaded', function () {
   // Show dialog when concurrent edit conflict is detected
   function showConcurrentEditConflictDialog(error, form) {
     var savedData = error.currentData || {};
+    var originalData = form ? JSON.parse(form.dataset.originalCaseData || '{}') : {};
     
-    // Get user's attempted changes from the form
+    // Get user's current form values
     var yourData = {};
     if (form) {
       yourData.patientFirstName = (form.querySelector('#patientFirstName') || {}).value || '';
@@ -4494,8 +4495,6 @@ document.addEventListener('DOMContentLoaded', function () {
       yourData.notes = (form.querySelector('#notes') || {}).value || '';
     }
     
-    // Build list of differences
-    var differences = [];
     var fieldLabels = {
       patientFirstName: 'First Name',
       patientLastName: 'Last Name',
@@ -4508,109 +4507,129 @@ document.addEventListener('DOMContentLoaded', function () {
       notes: 'Notes'
     };
     
+    // Find TRUE conflicts: fields that BOTH users changed from the original
+    var trueConflicts = [];
     for (var field in fieldLabels) {
+      var originalVal = (originalData[field] || '').toString().trim();
       var yourVal = (yourData[field] || '').toString().trim();
       var savedVal = (savedData[field] || '').toString().trim();
-      if (yourVal !== savedVal) {
-        differences.push({
+      
+      var youChanged = (yourVal !== originalVal);
+      var theyChanged = (savedVal !== originalVal);
+      
+      // True conflict: both users changed the same field to different values
+      if (youChanged && theyChanged && yourVal !== savedVal) {
+        trueConflicts.push({
+          field: field,
           label: fieldLabels[field],
+          original: originalVal || '(empty)',
           yours: yourVal || '(empty)',
           saved: savedVal || '(empty)'
         });
       }
     }
     
-    // Create modal overlay
+    // If no true conflicts, we can auto-merge: take their changes for fields they changed,
+    // keep your changes for fields you changed
+    if (trueConflicts.length === 0) {
+      // Build merged data: start with saved data, overlay your changes
+      var mergedData = Object.assign({}, savedData);
+      for (var field in fieldLabels) {
+        var originalVal = (originalData[field] || '').toString().trim();
+        var yourVal = (yourData[field] || '').toString().trim();
+        
+        // If you changed this field (and they didn't conflict), use your value
+        if (yourVal !== originalVal) {
+          mergedData[field] = yourVal;
+        }
+      }
+      
+      // Update form with merged data and new version, then auto-save
+      populateCreateCaseForm(mergedData);
+      if (form && savedData.version) {
+        form.dataset.caseVersion = savedData.version;
+        // Store new original data for next conflict check
+        form.dataset.originalCaseData = JSON.stringify(mergedData);
+      }
+      showToast('Changes merged automatically. Click Save to submit.', 'info');
+      return;
+    }
+    
+    // There are true conflicts - show the modal
     var overlay = document.createElement('div');
     overlay.className = 'modal-overlay conflict-modal-overlay';
     overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:10000;display:flex;align-items:center;justify-content:center;';
     
     var modal = document.createElement('div');
     modal.className = 'conflict-modal';
-    modal.style.cssText = 'background:white;border-radius:12px;padding:24px;max-width:600px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,0.3);max-height:90vh;overflow-y:auto;';
+    modal.style.cssText = 'background:white;border-radius:12px;padding:24px;max-width:650px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,0.3);max-height:90vh;overflow-y:auto;';
     
-    // Build differences HTML
-    var diffHtml = '';
-    if (differences.length > 0) {
-      diffHtml = '<table style="width:100%;border-collapse:collapse;margin-bottom:16px;">' +
-        '<thead><tr>' +
-          '<th style="text-align:left;padding:8px;border-bottom:2px solid #e5e7eb;font-size:0.75rem;color:#6b7280;">Field</th>' +
-          '<th style="text-align:left;padding:8px;border-bottom:2px solid #e5e7eb;font-size:0.75rem;color:#dc2626;">❌ Your Value (Not Saved)</th>' +
-          '<th style="text-align:left;padding:8px;border-bottom:2px solid #e5e7eb;font-size:0.75rem;color:#16a34a;">✓ Saved Value</th>' +
-        '</tr></thead><tbody>';
-      
-      differences.forEach(function(diff) {
-        diffHtml += '<tr>' +
-          '<td style="padding:8px;border-bottom:1px solid #f3f4f6;font-weight:500;color:#374151;">' + diff.label + '</td>' +
-          '<td style="padding:8px;border-bottom:1px solid #f3f4f6;background:#fef2f2;color:#991b1b;">' + escapeHtml(diff.yours) + '</td>' +
-          '<td style="padding:8px;border-bottom:1px solid #f3f4f6;background:#f0fdf4;color:#166534;">' + escapeHtml(diff.saved) + '</td>' +
-        '</tr>';
-      });
-      
-      diffHtml += '</tbody></table>';
-    } else {
-      diffHtml = '<p style="text-align:center;color:#6b7280;margin-bottom:16px;">No visible field differences detected. The case version has changed.</p>';
-    }
+    // Build conflicts table
+    var conflictHtml = '<table style="width:100%;border-collapse:collapse;margin-bottom:16px;">' +
+      '<thead><tr>' +
+        '<th style="text-align:left;padding:8px;border-bottom:2px solid #e5e7eb;font-size:0.75rem;color:#6b7280;">Field</th>' +
+        '<th style="text-align:left;padding:8px;border-bottom:2px solid #e5e7eb;font-size:0.75rem;color:#6b7280;">Original</th>' +
+        '<th style="text-align:left;padding:8px;border-bottom:2px solid #e5e7eb;font-size:0.75rem;color:#dc2626;">Your Change</th>' +
+        '<th style="text-align:left;padding:8px;border-bottom:2px solid #e5e7eb;font-size:0.75rem;color:#16a34a;">Their Change</th>' +
+      '</tr></thead><tbody>';
+    
+    trueConflicts.forEach(function(conflict) {
+      conflictHtml += '<tr>' +
+        '<td style="padding:8px;border-bottom:1px solid #f3f4f6;font-weight:500;color:#374151;">' + conflict.label + '</td>' +
+        '<td style="padding:8px;border-bottom:1px solid #f3f4f6;color:#9ca3af;font-style:italic;">' + escapeHtml(conflict.original) + '</td>' +
+        '<td style="padding:8px;border-bottom:1px solid #f3f4f6;background:#fef2f2;color:#991b1b;">' + escapeHtml(conflict.yours) + '</td>' +
+        '<td style="padding:8px;border-bottom:1px solid #f3f4f6;background:#f0fdf4;color:#166534;">' + escapeHtml(conflict.saved) + '</td>' +
+      '</tr>';
+    });
+    conflictHtml += '</tbody></table>';
     
     modal.innerHTML = 
       '<div style="text-align:center;margin-bottom:20px;">' +
         '<div style="font-size:48px;margin-bottom:12px;">⚠️</div>' +
-        '<h3 style="margin:0 0 8px 0;color:#1f2937;font-size:1.25rem;">Concurrent Edit Detected</h3>' +
-        '<p style="margin:0;color:#6b7280;font-size:0.95rem;">Another user saved changes while you were editing.<br><strong>Your changes were not saved.</strong></p>' +
+        '<h3 style="margin:0 0 8px 0;color:#1f2937;font-size:1.25rem;">Edit Conflict</h3>' +
+        '<p style="margin:0;color:#6b7280;font-size:0.95rem;">You and another user both changed the same field(s).</p>' +
       '</div>' +
       
-      diffHtml +
+      conflictHtml +
       
       '<p style="margin:0 0 16px 0;font-size:0.85rem;color:#6b7280;text-align:center;">' +
-        '<strong>Load Their Version</strong> replaces your form with the saved data.<br>' +
-        '<strong>Keep Editing</strong> keeps your form data so you can try saving again.' +
+        '<strong>Load Their Version</strong> updates the form with their saved values.<br>' +
+        '<strong>Keep My Version</strong> keeps your values so you can save again.' +
       '</p>' +
       
       '<div style="display:flex;gap:12px;justify-content:center;">' +
         '<button class="conflict-reload-btn" style="padding:10px 20px;background:#16a34a;color:white;border:none;border-radius:6px;cursor:pointer;font-weight:500;">Load Their Version</button>' +
-        '<button class="conflict-cancel-btn" style="padding:10px 20px;background:#e5e7eb;color:#374151;border:none;border-radius:6px;cursor:pointer;font-weight:500;">Keep Editing</button>' +
+        '<button class="conflict-cancel-btn" style="padding:10px 20px;background:#3b82f6;color:white;border:none;border-radius:6px;cursor:pointer;font-weight:500;">Keep My Version</button>' +
       '</div>';
     
     overlay.appendChild(modal);
     document.body.appendChild(overlay);
     
-    // Handle reload button - reload the case with latest data
+    // Handle "Load Their Version" - update form with saved data
     modal.querySelector('.conflict-reload-btn').addEventListener('click', function() {
       overlay.remove();
       if (savedData && savedData.id) {
-        // Populate the form with the saved data
         populateCreateCaseForm(savedData);
-        // Update the version for next save attempt
         if (form && savedData.version) {
           form.dataset.caseVersion = savedData.version;
+          form.dataset.originalCaseData = JSON.stringify(savedData);
         }
-        // Also update the card on the board if it exists
-        if (typeof window.addCaseToKanban === 'function') {
-          // Remove old card and add updated one
-          var existingCards = document.querySelectorAll('.kanban-card');
-          existingCards.forEach(function(card) {
-            try {
-              var cardData = JSON.parse(card.dataset.caseJson || '{}');
-              if (cardData.id === savedData.id) {
-                card.remove();
-              }
-            } catch(e) {}
-          });
-          window.addCaseToKanban(savedData);
-          if (typeof window.updateColumnCounts === 'function') {
-            window.updateColumnCounts();
-          }
-        }
-        showToast('Form updated with saved version', 'success');
+        // Update the card on the board
+        updateCardOnBoard(savedData);
+        showToast('Form updated with their version', 'success');
       } else {
         location.reload();
       }
     });
     
-    // Handle cancel button - keep the modal open for user to manually resolve
+    // Handle "Keep My Version" - keep form data, update version so user can save again
     modal.querySelector('.conflict-cancel-btn').addEventListener('click', function() {
       overlay.remove();
-      showToast('Your changes were not saved. Please review and try again.', 'warning');
+      // Update version so user can attempt to save again (will overwrite their changes)
+      if (form && savedData.version) {
+        form.dataset.caseVersion = savedData.version;
+      }
+      showToast('Your values kept. Click Save to overwrite their changes.', 'warning');
     });
     
     // Close on overlay click
@@ -4619,6 +4638,26 @@ document.addEventListener('DOMContentLoaded', function () {
         overlay.remove();
       }
     });
+  }
+  
+  // Helper to update a card on the board
+  function updateCardOnBoard(caseData) {
+    if (!caseData || !caseData.id) return;
+    var existingCards = document.querySelectorAll('.kanban-card');
+    existingCards.forEach(function(card) {
+      try {
+        var cardData = JSON.parse(card.dataset.caseJson || '{}');
+        if (cardData.id === caseData.id) {
+          card.remove();
+        }
+      } catch(e) {}
+    });
+    if (typeof window.addCaseToKanban === 'function') {
+      window.addCaseToKanban(caseData);
+      if (typeof window.updateColumnCounts === 'function') {
+        window.updateColumnCounts();
+      }
+    }
   }
   
   // Efficient old card removal
@@ -5906,6 +5945,20 @@ document.addEventListener('DOMContentLoaded', function () {
     if (caseData.version) {
       form.dataset.caseVersion = caseData.version;
     }
+    
+    // Store original case data for conflict detection
+    // This allows us to detect TRUE conflicts (same field changed by both users)
+    form.dataset.originalCaseData = JSON.stringify({
+      patientFirstName: caseData.patientFirstName || '',
+      patientLastName: caseData.patientLastName || '',
+      status: caseData.status || '',
+      dentistName: caseData.dentistName || '',
+      caseType: caseData.caseType || '',
+      toothShade: caseData.toothShade || '',
+      material: caseData.material || '',
+      dueDate: caseData.dueDate || '',
+      notes: caseData.notes || ''
+    });
     
     // Set the assigned to dropdown (if it exists)
     if (form.assignedTo) {
