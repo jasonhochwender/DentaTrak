@@ -108,11 +108,9 @@ function handleSetupTestUser($pdo, $input) {
         if ($existingUser) {
             $userId = $existingUser['id'];
             
-            // Ensure email is verified
-            if (!$existingUser['email_verified']) {
-                $stmt = $pdo->prepare("UPDATE users SET email_verified = 1 WHERE id = :id");
-                $stmt->execute(['id' => $userId]);
-            }
+            // Ensure email is verified and reset created_at to prevent trial expiration
+            $stmt = $pdo->prepare("UPDATE users SET email_verified = 1, created_at = NOW() WHERE id = :id");
+            $stmt->execute(['id' => $userId]);
         } else {
             // Create new user
             $passwordHash = password_hash($password, PASSWORD_BCRYPT);
