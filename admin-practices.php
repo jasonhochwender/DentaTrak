@@ -542,7 +542,7 @@ $userEmail = $_SESSION['user_email'] ?? '';
         
         <div class="stats-grid" id="statsGrid">
             <div class="stat-card">
-                <div class="label">Total Practices</div>
+                <div class="label">Total Practices </div>
                 <div class="value" id="totalPractices">-</div>
             </div>
             <div class="stat-card success">
