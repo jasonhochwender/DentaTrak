@@ -21,8 +21,8 @@ $commonConfig = [
     'disable_caching' => true,
     'feedback_email'  => 'feedback@dentatrak.com',
 
-    // SendGrid email configuration
-    'sendgrid_api_key' => getEnvVar('SENDGRID_API_KEY'),
+    // Resend email configuration
+    'resend_api_key' => getEnvVar('RESEND_API_KEY'),
     'email_from'       => 'noreply@dentatrak.com',
     'email_from_name'  => 'DentaTrak',
 

@@ -6,7 +6,6 @@
         "dompdf/dompdf": "^3.1",
         "phpoffice/phppresentation": "^0.9.0",
         "vlucas/phpdotenv": "^5.6",
-        "sendgrid/sendgrid": "^8.1",
         "endroid/qr-code": "^6.0"
     }
 }

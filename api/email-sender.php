@@ -31,84 +31,103 @@ function loadEnv($envFile) {
 // Load environment variables
 loadEnv(__DIR__ . '/../.env');
 
-use SendGrid as SendGrid;
-use SendGrid\Mail\Mail as SendGridMail;
-
 /**
- * SendGrid email sender
- * Professional email delivery service
+ * Resend email sender
+ * Uses Resend REST API (https://resend.com/docs/api-reference/emails/send-email)
+ * Outbound-only; no inbound email handling.
  */
 function sendAppEmail(string $toEmail, string $subject, string $htmlBody, ?string $textBody = null, ?string $replyToEmail = null): array {
     global $appConfig;
     
-    // Get SendGrid API key from environment
-    $sendGridApiKey = getenv('SENDGRID_API_KEY');
-    if (!$sendGridApiKey || $sendGridApiKey === 'YOUR_SENDGRID_API_KEY_HERE') {
-        error_log('[email] SendGrid API key not configured');
+    // Fail closed: require valid API key before attempting to send
+    $resendApiKey = getenv('RESEND_API_KEY');
+    if (!$resendApiKey || $resendApiKey === 'YOUR_RESEND_API_KEY_HERE' || strpos($resendApiKey, 're_') !== 0) {
+        error_log('[email] Resend API key not configured or invalid');
         return [
             'success' => false,
-            'provider' => 'sendgrid',
-            'error' => 'SendGrid API key not configured'
+            'provider' => 'resend',
+            'error' => 'Email service not configured'
         ];
     }
     
-    // Get from email and name
+    // Get from email and name from environment, with fallbacks
     $fromEmail = getenv('EMAIL_FROM') ?: ($appConfig['email_from'] ?? 'noreply@dentatrak.com');
     $fromName = getenv('EMAIL_FROM_NAME') ?: ($appConfig['appName'] ?? 'DentaTrak');
     
-    try {
-        // Create SendGrid email
-        $email = new SendGridMail();
-        $email->setFrom($fromEmail, $fromName);
-        $email->setSubject($subject);
-        $email->addTo($toEmail);
-        $email->addContent("text/html", $htmlBody);
-        
-        // Add plain text version if provided or auto-generate
-        if ($textBody) {
-            $email->addContent("text/plain", $textBody);
-        } else {
-            // Auto-generate plain text from HTML
-            $plainText = strip_tags(str_replace(['</p>', '<br>', '<br/>', '<br />'], "\n", $htmlBody));
-            $plainText = html_entity_decode($plainText, ENT_QUOTES, 'UTF-8');
-            $plainText = preg_replace('/\n\s*\n/', "\n\n", $plainText);
-            $plainText = trim($plainText);
-            $email->addContent("text/plain", $plainText);
-        }
-        
-        // Set reply-to if provided
-        if ($replyToEmail) {
-            $email->setReplyTo($replyToEmail);
-        }
-        
-        // Send email via SendGrid
-        $sendgrid = new SendGrid($sendGridApiKey);
-        $response = $sendgrid->send($email);
-        
-        // Check response
-        if ($response->statusCode() >= 200 && $response->statusCode() < 300) {
-            // Success - no error logging needed for successful emails
-            return [
-                'success' => true,
-                'provider' => 'sendgrid',
-                'status_code' => $response->statusCode()
-            ];
-        } else {
-            error_log('[email] SendGrid API error for ' . $toEmail . ': ' . $response->statusCode() . ' ' . $response->body());
-            return [
-                'success' => false,
-                'provider' => 'sendgrid',
-                'error' => 'SendGrid API error: ' . $response->statusCode(),
-                'status_code' => $response->statusCode()
-            ];
-        }
-        
-    } catch (Exception $e) {
-        error_log('[email] SendGrid exception for ' . $toEmail . ': ' . $e->getMessage());
+    // Auto-generate plain text from HTML if not provided
+    if (!$textBody) {
+        $plainText = strip_tags(str_replace(['</p>', '<br>', '<br/>', '<br />'], "\n", $htmlBody));
+        $plainText = html_entity_decode($plainText, ENT_QUOTES, 'UTF-8');
+        $plainText = preg_replace('/\n\s*\n/', "\n\n", $plainText);
+        $textBody = trim($plainText);
+    }
+    
+    // Build Resend API payload
+    $payload = [
+        'from' => "$fromName <$fromEmail>",
+        'to' => [$toEmail],
+        'subject' => $subject,
+        'html' => $htmlBody,
+        'text' => $textBody
+    ];
+    
+    if ($replyToEmail) {
+        $payload['reply_to'] = $replyToEmail;
+    }
+    
+    // Send via Resend REST API using cURL
+    return sendViaResendApi($resendApiKey, $payload, $toEmail);
+}
+
+/**
+ * Internal helper: sends email via Resend REST API
+ * Resend API endpoint: POST https://api.resend.com/emails
+ * Returns standardized response array with success status.
+ */
+function sendViaResendApi(string $apiKey, array $payload, string $toEmail): array {
+    $ch = curl_init('https://api.resend.com/emails');
+    
+    curl_setopt_array($ch, [
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_POST => true,
+        CURLOPT_HTTPHEADER => [
+            'Authorization: Bearer ' . $apiKey,
+            'Content-Type: application/json'
+        ],
+        CURLOPT_POSTFIELDS => json_encode($payload),
+        CURLOPT_TIMEOUT => 30
+    ]);
+    
+    $responseBody = curl_exec($ch);
+    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $curlError = curl_error($ch);
+    curl_close($ch);
+    
+    // Handle cURL errors (network issues, timeouts)
+    if ($curlError) {
+        error_log('[email] Resend cURL error for ' . $toEmail . ': ' . $curlError);
         return [
             'success' => false,
-            'provider' => 'sendgrid',
-            'error' => 'SendGrid exception: ' . $e->getMessage()
+            'provider' => 'resend',
+            'error' => 'Email delivery failed'
         ];
     }
+    
+    // Resend returns 200 on success
+    if ($httpCode === 200) {
+        return [
+            'success' => true,
+            'provider' => 'resend',
+            'status_code' => $httpCode
+        ];
+    }
+    
+    // Log API errors server-side but return generic message to caller
+    error_log('[email] Resend API error for ' . $toEmail . ': HTTP ' . $httpCode . ' ' . $responseBody);
+    return [
+        'success' => false,
+        'provider' => 'resend',
+        'error' => 'Email delivery failed',
+        'status_code' => $httpCode
+    ];
 }
