@@ -29,7 +29,7 @@ function getGoogleClient() {
     
     // Set redirect URI for Drive authorization callback
     if ($appConfig['environment'] === 'development') {
-        $redirectUri = 'http://localhost/api/google-drive-callback.php';
+        $redirectUri = 'http://localhost/DentaTrak/api/google-drive-callback.php';
     } else {
         $redirectUri = rtrim($appConfig['baseUrl'], '/') . '/api/google-drive-callback.php';
     }

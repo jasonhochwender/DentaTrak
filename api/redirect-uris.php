@@ -17,7 +17,7 @@ $isLocalhost = ($host === 'localhost' || $host === '127.0.0.1');
 // For localhost/development, ALWAYS use http
 // For production, use baseUrl from config
 if ($isLocalhost) {
-    $redirectUri = 'http://localhost/api/google-auth-callback.php';
+    $redirectUri = 'http://localhost/DentaTrak/api/google-auth-callback.php';
 } else {
     global $appConfig;
     $redirectUri = rtrim($appConfig['baseUrl'], '/') . '/api/google-auth-callback.php';
