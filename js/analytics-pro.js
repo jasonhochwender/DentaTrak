@@ -10,6 +10,7 @@
   const apCharts = {};
   let apDataLoaded = false;
   let currentBillingTier = null;
+  let aiRecommendationsLoading = false; // Guard against duplicate AI recommendation loads
 
   /**
    * Apply tier-based visibility to Insights sections
@@ -514,6 +515,11 @@
     const loadingEl = document.getElementById('apAILoading');
     
     if (!container) return;
+    
+    // Prevent duplicate API calls if already loading
+    if (aiRecommendationsLoading) return;
+    aiRecommendationsLoading = true;
+    
     if (loadingEl) loadingEl.style.display = 'flex';
 
     // Clear previous recommendations
@@ -523,6 +529,7 @@
     fetch('api/ai-recommendations.php')
       .then(response => response.json())
       .then(data => {
+        aiRecommendationsLoading = false; // Reset guard
         if (loadingEl) loadingEl.style.display = 'none';
 
         if (data.error) {
@@ -537,6 +544,7 @@
         }
       })
       .catch(error => {
+        aiRecommendationsLoading = false; // Reset guard
         console.error('AI Recommendations error:', error);
         if (loadingEl) loadingEl.style.display = 'none';
         showAIError(container, 'Failed to load recommendations. Please try again.');
