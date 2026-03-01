@@ -7168,6 +7168,16 @@ document.addEventListener('DOMContentLoaded', function () {
         
         billingInfo = data;
         
+        // Hide billing UI completely for bypass users (partner practices, etc.)
+        if (data.hide_billing_ui) {
+          const billingTierElement = document.getElementById('userBillingTier');
+          if (billingTierElement) {
+            billingTierElement.style.display = 'none';
+          }
+          // Don't show any billing-related UI for bypass users
+          return;
+        }
+        
         // Update billing tier display (only if billing feature is enabled)
         if (data.billing_tier && window.featureFlags && window.featureFlags.SHOW_BILLING) {
           const billingTierElement = document.getElementById('userBillingTier');
@@ -7204,6 +7214,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }
         
         // Check if trial has expired - show prominent upgrade prompt
+        // Skip for bypass users (they never have trial_expired = true)
         if (data.is_trial && data.trial_expired) {
           // Show upgrade modal on first load when trial expired
           setTimeout(function() {

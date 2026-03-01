@@ -13,6 +13,7 @@
  */
 
 require_once __DIR__ . '/appConfig.php';
+require_once __DIR__ . '/billing-bypass.php';
 
 /**
  * Ensure the user_auth_methods table exists
@@ -264,6 +265,9 @@ function authenticateWithGoogle($googleData) {
         // Create default preferences
         createDefaultUserPreferencesIfNeeded($userId);
         
+        // Auto-upgrade billing bypass users to control tier
+        ensureBypassUserTier($pdo, $userId, $email);
+        
         $pdo->commit();
         
         $user = findUserByEmail($email);
@@ -378,6 +382,9 @@ function registerWithEmail($email, $password, $firstName = '', $lastName = '') {
         
         // Create default preferences
         createDefaultUserPreferencesIfNeeded($userId);
+        
+        // Auto-upgrade billing bypass users to control tier
+        ensureBypassUserTier($pdo, $userId, $email);
         
         $pdo->commit();
         
@@ -916,9 +923,16 @@ function checkUserPracticeAccess($userId) {
  * @param string $authMethod 'google' or 'email'
  */
 function setupUserSession($user, $authMethod = 'email') {
+    global $pdo;
+    
     // Rotate session ID on login for security
     if (session_status() === PHP_SESSION_ACTIVE) {
         session_regenerate_id(true);
+    }
+    
+    // Auto-upgrade billing bypass users on every login (catches existing users)
+    if ($pdo && !empty($user['id']) && !empty($user['email'])) {
+        ensureBypassUserTier($pdo, $user['id'], $user['email']);
     }
     
     $_SESSION['db_user_id'] = $user['id'];

@@ -65,61 +65,67 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Check billing for new cases (not updates)
     if (!$isUpdate) {
         require_once __DIR__ . '/appConfig.php';
+        require_once __DIR__ . '/billing-bypass.php';
         
         // Get user's billing tier and created_at for trial calculation
-        $stmt = $pdo->prepare("SELECT billing_tier, created_at FROM users WHERE id = ?");
+        $stmt = $pdo->prepare("SELECT billing_tier, created_at, email FROM users WHERE id = ?");
         $stmt->execute([$_SESSION['db_user_id']]);
         $user = $stmt->fetch(PDO::FETCH_ASSOC);
         
         if ($user) {
-            $tierConfig = $appConfig['billing']['tiers'][$user['billing_tier']] ?? $appConfig['billing']['tiers']['evaluate'];
-            $isTrial = $tierConfig['is_trial'] ?? false;
+            // Skip billing checks for bypass users (partner practices, etc.)
+            $isBypassUser = isBillingBypassEmail($user['email'] ?? '');
             
-            // Check trial expiration for Evaluate plan
-            if ($isTrial && isset($user['created_at'])) {
-                $trialDays = $appConfig['billing']['trial_days'] ?? 30;
-                $createdAt = new DateTime($user['created_at']);
-                $now = new DateTime();
-                $daysSinceSignup = $now->diff($createdAt)->days;
-                $trialExpired = $daysSinceSignup >= $trialDays;
-                
-                if ($trialExpired) {
-                    http_response_code(403);
-                    echo json_encode([
-                        'success' => false,
-                        'message' => "Your 30-day trial has expired. Please upgrade to continue creating cases."
-                    ]);
-                    exit;
-                }
-            }
+            if (!$isBypassUser) {
+                $tierConfig = $appConfig['billing']['tiers'][$user['billing_tier']] ?? $appConfig['billing']['tiers']['evaluate'];
+                $isTrial = $tierConfig['is_trial'] ?? false;
             
-            // Check case limit for non-trial plans with max_cases > 0
-            if (!$isTrial && $tierConfig['max_cases'] > 0) {
-                $currentPracticeId = $_SESSION['current_practice_id'] ?? 0;
-                
-                // If no practice ID in session, try to get the user's practice
-                if (!$currentPracticeId) {
-                    $stmt = $pdo->prepare("SELECT practice_id FROM practice_users WHERE user_id = ? LIMIT 1");
-                    $stmt->execute([$_SESSION['db_user_id']]);
-                    $practiceRow = $stmt->fetch(PDO::FETCH_ASSOC);
-                    if ($practiceRow) {
-                        $currentPracticeId = (int)$practiceRow['practice_id'];
+                // Check trial expiration for Evaluate plan
+                if ($isTrial && isset($user['created_at'])) {
+                    $trialDays = $appConfig['billing']['trial_days'] ?? 30;
+                    $createdAt = new DateTime($user['created_at']);
+                    $now = new DateTime();
+                    $daysSinceSignup = $now->diff($createdAt)->days;
+                    $trialExpired = $daysSinceSignup >= $trialDays;
+                    
+                    if ($trialExpired) {
+                        http_response_code(403);
+                        echo json_encode([
+                            'success' => false,
+                            'message' => "Your 30-day trial has expired. Please upgrade to continue creating cases."
+                        ]);
+                        exit;
                     }
                 }
                 
-                $stmt = $pdo->prepare("SELECT COUNT(*) FROM cases_cache WHERE practice_id = ? AND archived = 0");
-                $stmt->execute([$currentPracticeId]);
-                $currentCaseCount = (int)$stmt->fetchColumn();
-                
-                if ($currentCaseCount >= $tierConfig['max_cases']) {
-                    http_response_code(403);
-                    echo json_encode([
-                        'success' => false,
-                        'message' => "You've reached your limit of {$tierConfig['max_cases']} cases. Upgrade to create more cases."
-                    ]);
-                    exit;
+                // Check case limit for non-trial plans with max_cases > 0
+                if (!$isTrial && $tierConfig['max_cases'] > 0) {
+                    $currentPracticeId = $_SESSION['current_practice_id'] ?? 0;
+                    
+                    // If no practice ID in session, try to get the user's practice
+                    if (!$currentPracticeId) {
+                        $stmt = $pdo->prepare("SELECT practice_id FROM practice_users WHERE user_id = ? LIMIT 1");
+                        $stmt->execute([$_SESSION['db_user_id']]);
+                        $practiceRow = $stmt->fetch(PDO::FETCH_ASSOC);
+                        if ($practiceRow) {
+                            $currentPracticeId = (int)$practiceRow['practice_id'];
+                        }
+                    }
+                    
+                    $stmt = $pdo->prepare("SELECT COUNT(*) FROM cases_cache WHERE practice_id = ? AND archived = 0");
+                    $stmt->execute([$currentPracticeId]);
+                    $currentCaseCount = (int)$stmt->fetchColumn();
+                    
+                    if ($currentCaseCount >= $tierConfig['max_cases']) {
+                        http_response_code(403);
+                        echo json_encode([
+                            'success' => false,
+                            'message' => "You've reached your limit of {$tierConfig['max_cases']} cases. Upgrade to create more cases."
+                        ]);
+                        exit;
+                    }
                 }
-            }
+            } // end if (!$isBypassUser)
         }
     }
     

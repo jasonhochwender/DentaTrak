@@ -11,6 +11,7 @@ error_reporting(E_ALL & ~E_DEPRECATED & ~E_USER_DEPRECATED);
 require_once __DIR__ . '/appConfig.php';
 require_once __DIR__ . '/practice-security.php';
 require_once __DIR__ . '/feature-flags.php';
+require_once __DIR__ . '/billing-bypass.php';
 
 try {
     // SECURITY: Require valid practice context
@@ -21,7 +22,7 @@ try {
     $billingEnabled = isFeatureEnabled('SHOW_BILLING');
     
     // Get user's billing tier, case count, and created_at for trial calculation
-    $stmt = $pdo->prepare("SELECT billing_tier, case_count, created_at FROM users WHERE id = ?");
+    $stmt = $pdo->prepare("SELECT billing_tier, case_count, created_at, email FROM users WHERE id = ?");
     $stmt->execute([$userId]);
     $user = $stmt->fetch(PDO::FETCH_ASSOC);
     
@@ -31,8 +32,11 @@ try {
         exit;
     }
     
-    // If billing is disabled, treat everyone as Control plan
-    $effectiveTier = $billingEnabled ? $user['billing_tier'] : 'control';
+    // Check if user has billing bypass (partner practices, internal users, etc.)
+    $isBypassUser = isBillingBypassEmail($user['email']);
+    
+    // If billing is disabled OR user has bypass, treat as Control plan
+    $effectiveTier = (!$billingEnabled || $isBypassUser) ? 'control' : $user['billing_tier'];
     
     // Get current case count (real-time calculation)
     $currentCaseCount = 0;
@@ -117,12 +121,13 @@ try {
         'can_add_users' => $canAddUsers,
         'has_analytics' => $isTrial ? !$trialExpired : ($tierConfig['has_analytics'] ?? true),
         'practice_id' => $currentPracticeId,
-        'is_trial' => $isTrial,
-        'trial_days_remaining' => $trialDaysRemaining,
-        'trial_expired' => $trialExpired,
+        'is_trial' => $isBypassUser ? false : $isTrial, // Bypass users are never on trial
+        'trial_days_remaining' => $isBypassUser ? null : $trialDaysRemaining,
+        'trial_expired' => $isBypassUser ? false : $trialExpired,
         'user_count' => $currentUserCount,
         'max_users' => $maxUsers,
-        'exceeds_user_limit' => $exceedsUserLimit
+        'exceeds_user_limit' => $exceedsUserLimit,
+        'hide_billing_ui' => $isBypassUser // Frontend should hide billing screens for these users
     ]);
     
 } catch (PDOException $e) {
