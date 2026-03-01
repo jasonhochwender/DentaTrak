@@ -818,11 +818,8 @@
     // Load billing tier and apply visibility restrictions
     loadBillingTierAndApplyVisibility();
     
-    // Check if Analytics/Insights tab is already active
-    const activeTab = document.querySelector('.main-tab.active');
-    if (activeTab && (activeTab.getAttribute('data-tab') === 'analytics' || activeTab.getAttribute('data-tab') === 'insights')) {
-      setTimeout(loadAnalyticsPro, 100);
-    }
+    // NOTE: Do NOT call loadAnalyticsPro() here - app.js will call window.loadAnalyticsProData()
+    // after this script loads. Calling it here would cause duplicate API calls.
   }
   
   // Run immediately if DOM is ready, otherwise wait for DOMContentLoaded
