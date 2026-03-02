@@ -35,6 +35,9 @@ RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/sites-av
 # ---------- Enable Apache modules ----------
 RUN a2enmod rewrite headers expires
 
+# ---------- PHP upload/size limits for large dental scan files (STL, etc.) ----------
+COPY php.ini /usr/local/etc/php/conf.d/99-custom.ini
+
 # ---------- Copy application files ----------
 WORKDIR /var/www/html
 COPY . /var/www/html

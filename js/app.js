@@ -4264,6 +4264,34 @@ document.addEventListener('DOMContentLoaded', function () {
       // Check if we're updating an existing case or creating a new one
       var isUpdate = form.dataset.caseId ? true : false;
       
+      // Validate file sizes before submission
+      var maxFileSize = 100 * 1024 * 1024; // 100MB per file
+      var maxTotalSize = 500 * 1024 * 1024; // 500MB total
+      var fileInputs = form.querySelectorAll('input[type="file"]');
+      var totalFileSize = 0;
+      var oversizedFiles = [];
+      
+      fileInputs.forEach(function(input) {
+        if (input.files) {
+          for (var i = 0; i < input.files.length; i++) {
+            var file = input.files[i];
+            totalFileSize += file.size;
+            if (file.size > maxFileSize) {
+              oversizedFiles.push(file.name + ' (' + (file.size / (1024 * 1024)).toFixed(1) + 'MB)');
+            }
+          }
+        }
+      });
+      
+      if (oversizedFiles.length > 0) {
+        showToast('These files exceed the 100MB limit: ' + oversizedFiles.join(', '), 'error');
+        return false;
+      }
+      if (totalFileSize > maxTotalSize) {
+        showToast('Total file size (' + (totalFileSize / (1024 * 1024)).toFixed(1) + 'MB) exceeds the 250MB limit. Please remove some files.', 'error');
+        return false;
+      }
+      
       // Show enhanced loading state with animation
       isSubmitting = true;
       submitBtn.disabled = true;
@@ -4315,7 +4343,7 @@ document.addEventListener('DOMContentLoaded', function () {
       // Submit with timeout and better error handling
       var endpoint = isUpdate ? 'api/update-case.php' : 'api/create-case.php';
       var controller = new AbortController();
-      var timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+      var timeoutId = setTimeout(() => controller.abort(), 300000); // 5 minute timeout for large file uploads
       
       fetch(endpoint, {
         method: 'POST',
@@ -4466,9 +4494,14 @@ document.addEventListener('DOMContentLoaded', function () {
     }
     
     // Show appropriate error message
-    var errorMessage = error.name === 'AbortError' ? 
-      'Request timed out. Please try again.' : 
-      'Failed to ' + (isUpdate ? 'update' : 'create') + ' case: ' + error.message;
+    var errorMessage;
+    if (error.name === 'AbortError') {
+      errorMessage = 'Request timed out. Please try again.';
+    } else if (error.message && (error.message.indexOf('413') !== -1 || error.message.toLowerCase().indexOf('request entity too l') !== -1 || error.message.toLowerCase().indexOf('too large') !== -1 || error.message.toLowerCase().indexOf('payload too large') !== -1)) {
+      errorMessage = 'The attached files are too large. Individual files must be under 100MB, and total upload size must be under 500MB. Try uploading fewer or smaller files.';
+    } else {
+      errorMessage = 'Failed to ' + (isUpdate ? 'update' : 'create') + ' case: ' + error.message;
+    }
     
     showToast(errorMessage, 'error');
     
