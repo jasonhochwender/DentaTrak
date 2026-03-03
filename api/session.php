@@ -14,6 +14,7 @@ $isProduction = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
 // Session timeout configuration
 define('SESSION_TIMEOUT', 30 * 60);      // 30 minutes of inactivity
 define('SESSION_WARNING_TIME', 5 * 60);  // Warn 5 minutes before timeout
+define('SESSION_GC_LIFETIME', 60 * 60);  // 1 hour - GC lifetime must exceed timeout to allow keepalive
 
 // Start the session if not already started
 if (session_status() === PHP_SESSION_NONE) {
@@ -23,8 +24,8 @@ if (session_status() === PHP_SESSION_NONE) {
     ini_set('session.cookie_secure', $isProduction ? 1 : 0);
     ini_set('session.cookie_samesite', 'Lax');
 
-    // Set session lifetime to match our timeout
-    ini_set('session.gc_maxlifetime', SESSION_TIMEOUT);
+    // Set session GC lifetime - must exceed timeout to allow keepalive during long uploads
+    ini_set('session.gc_maxlifetime', SESSION_GC_LIFETIME);
     ini_set('session.cookie_lifetime', 0); // Session cookie (expires on browser close) by default
     
     // Set session storage path

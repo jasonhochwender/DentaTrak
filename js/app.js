@@ -4382,6 +4382,14 @@ document.addEventListener('DOMContentLoaded', function () {
             try {
               var errorData = JSON.parse(text);
               
+              // Handle 401 Unauthorized (session expired during upload)
+              if (response.status === 401) {
+                var sessionError = new Error('Your session expired during upload. Please log in again. Your files were uploaded successfully and can be attached after re-authentication.');
+                sessionError.sessionExpired = true;
+                sessionError.uploadedFiles = gcsFiles; // Preserve uploaded file paths
+                throw sessionError;
+              }
+              
               // Handle 409 Conflict (concurrent edit detected)
               if (response.status === 409 && errorData.conflict) {
                 var conflictError = new Error(errorData.message || 'This case was modified by another user.');
@@ -4397,6 +4405,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 errorMessage = errorData.error;
               }
             } catch (e) {
+              if (e.sessionExpired) throw e; // Re-throw session errors
               if (e.conflict) throw e; // Re-throw conflict errors
               // If not JSON, use the text directly (truncated)
               if (text && text.length > 0) {

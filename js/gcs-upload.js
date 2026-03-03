@@ -17,6 +17,38 @@
   
   console.log('[GCS-Upload] Module loaded');
 
+  // --- Session keepalive during uploads ---
+  var KEEPALIVE_INTERVAL_MS = 45000; // Ping every 45 seconds
+  var keepaliveIntervalId = null;
+  
+  function startKeepalive() {
+    if (keepaliveIntervalId) return; // Already running
+    
+    console.log('[GCS-Upload] Starting session keepalive (every 45s)');
+    keepaliveIntervalId = setInterval(function() {
+      fetch('api/ping.php', {
+        method: 'GET',
+        credentials: 'same-origin'
+      })
+      .then(function(response) {
+        if (!response.ok) {
+          console.warn('[GCS-Upload] Keepalive ping failed:', response.status);
+        }
+      })
+      .catch(function(err) {
+        console.warn('[GCS-Upload] Keepalive ping error:', err.message);
+      });
+    }, KEEPALIVE_INTERVAL_MS);
+  }
+  
+  function stopKeepalive() {
+    if (keepaliveIntervalId) {
+      console.log('[GCS-Upload] Stopping session keepalive');
+      clearInterval(keepaliveIntervalId);
+      keepaliveIntervalId = null;
+    }
+  }
+
   // --- Type-specific per-file limits (must mirror appConfig.php) ---
   var FILE_SIZE_LIMITS = {
     // 3D scan files
@@ -175,9 +207,15 @@
       });
       
       console.log('[GCS-Upload] Starting upload queue:', totalCount, 'files, max', CONCURRENT_UPLOADS, 'concurrent');
+      
+      // Start session keepalive to prevent timeout during long uploads
+      startKeepalive();
 
       function checkCompletion() {
         if (completedCount === totalCount) {
+          // Stop keepalive when all uploads are done
+          stopKeepalive();
+          
           if (errors.length > 0) {
             var failedNames = errors.map(function(e) { return e.fileName; }).join(', ');
             console.error('[GCS-Upload] Upload batch failed:', errors.length, 'errors');
