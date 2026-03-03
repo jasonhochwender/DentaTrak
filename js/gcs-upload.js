@@ -189,6 +189,9 @@
         }
       }
 
+      // Retry backoff delays: 3s for first retry, 10s for second
+      var RETRY_DELAYS = [3000, 10000];
+      
       function startNextUpload() {
         // Don't start more if we're at capacity or queue is empty
         if (activeCount >= CONCURRENT_UPLOADS || queue.length === 0) {
@@ -198,7 +201,11 @@
         var item = queue.shift();
         activeCount++;
         
-        console.log('[GCS-Upload] [' + item.fileId + '] Starting upload:', item.fileName, '(' + formatFileSize(item.fileSize) + ') - Active:', activeCount);
+        // Track retry count per file
+        item.retryCount = item.retryCount || 0;
+        
+        var retryLabel = item.retryCount > 0 ? ' (retry ' + item.retryCount + '/' + MAX_RETRIES + ')' : '';
+        console.log('[GCS-Upload] [' + item.fileId + '] Starting upload:', item.fileName, '(' + formatFileSize(item.fileSize) + ')' + retryLabel + ' - Active:', activeCount);
 
         uploadSingleFile(item, caseId, csrfToken)
           .then(function(result) {
@@ -214,13 +221,31 @@
             checkCompletion();
           })
           .catch(function(err) {
-            console.error('[GCS-Upload] [' + item.fileId + '] Upload failed:', item.fileName, '-', err.message);
-            errors.push({ fileName: item.fileName, error: err.message });
-            completedCount++;
             activeCount--;
-            // Start next upload even on error (don't block queue)
-            startNextUpload();
-            checkCompletion();
+            
+            // Check if we should retry (only for stall/network errors, not HTTP errors)
+            var isRetryable = err.message.indexOf('stalled') !== -1 || 
+                              err.message.indexOf('Network error') !== -1;
+            
+            if (isRetryable && item.retryCount < MAX_RETRIES) {
+              item.retryCount++;
+              var delay = RETRY_DELAYS[item.retryCount - 1] || 10000;
+              console.log('[GCS-Upload] [' + item.fileId + '] Will retry in ' + (delay / 1000) + 's (attempt ' + item.retryCount + '/' + MAX_RETRIES + ')');
+              
+              setTimeout(function() {
+                // Re-add to queue for retry
+                queue.push(item);
+                startNextUpload();
+              }, delay);
+            } else {
+              // No more retries or non-retryable error
+              console.error('[GCS-Upload] [' + item.fileId + '] Upload failed permanently:', item.fileName, '-', err.message);
+              errors.push({ fileName: item.fileName, error: err.message });
+              completedCount++;
+              // Start next upload even on error (don't block queue)
+              startNextUpload();
+              checkCompletion();
+            }
           });
         
         // Immediately try to start more uploads up to concurrency limit
@@ -278,14 +303,75 @@
 
       console.log('[GCS-Upload] [' + fileId + '] Got signed URL, starting PUT to GCS:', data.storage_path);
       
-      // Step 2: Upload directly to GCS using XMLHttpRequest (better for large files than fetch)
+      // Step 2: Upload directly to GCS using XMLHttpRequest with stall-based timeout
       return new Promise(function(resolveUpload, rejectUpload) {
         var xhr = new XMLHttpRequest();
+        var uploadStartTime = Date.now();
+        var lastProgressAt = Date.now();
+        var lastLoadedBytes = 0;
+        var isCompleted = false;
+        var stallCheckInterval = null;
+        
+        // Timeout constants
+        var STALL_TIMEOUT_MS = 90000;      // 90 seconds without progress = stalled
+        var MAX_TOTAL_MS = 45 * 60 * 1000; // 45 minutes absolute ceiling
+        var STALL_CHECK_INTERVAL_MS = 5000; // Check every 5 seconds
+        
+        function cleanup() {
+          isCompleted = true;
+          if (stallCheckInterval) {
+            clearInterval(stallCheckInterval);
+            stallCheckInterval = null;
+          }
+        }
+        
+        function logThroughput(success) {
+          var durationMs = Date.now() - uploadStartTime;
+          var durationSec = durationMs / 1000;
+          var sizeMB = fileInfo.fileSize / (1024 * 1024);
+          var avgMbps = (fileInfo.fileSize * 8 / 1000000) / durationSec;
+          console.log('[GCS-Upload] [' + fileId + '] Throughput: ' + sizeMB.toFixed(1) + 'MB in ' + durationSec.toFixed(1) + 's = ' + avgMbps.toFixed(2) + ' Mbps' + (success ? ' (success)' : ' (failed)'));
+        }
+        
+        // Stall detection: check if progress has stopped
+        stallCheckInterval = setInterval(function() {
+          if (isCompleted) return;
+          
+          var now = Date.now();
+          var timeSinceProgress = now - lastProgressAt;
+          var totalElapsed = now - uploadStartTime;
+          
+          // Check absolute ceiling first
+          if (totalElapsed > MAX_TOTAL_MS) {
+            console.error('[GCS-Upload] [' + fileId + '] Upload exceeded maximum time (45 minutes)');
+            cleanup();
+            xhr.abort();
+            logThroughput(false);
+            rejectUpload(new Error('Upload exceeded maximum allowed time (45 minutes). Please try with a smaller file or better connection.'));
+            return;
+          }
+          
+          // Check for stall (no progress)
+          if (timeSinceProgress > STALL_TIMEOUT_MS) {
+            console.error('[GCS-Upload] [' + fileId + '] Upload stalled - no progress for ' + Math.round(timeSinceProgress / 1000) + ' seconds');
+            cleanup();
+            xhr.abort();
+            logThroughput(false);
+            rejectUpload(new Error('Upload stalled (no progress for 90 seconds). Check your connection and retry.'));
+            return;
+          }
+        }, STALL_CHECK_INTERVAL_MS);
         
         // Throttle progress logs to avoid console spam (log every 10%)
         var lastLoggedPercent = 0;
         xhr.upload.addEventListener('progress', function(e) {
           if (e.lengthComputable) {
+            // Update stall detection if bytes increased
+            if (e.loaded > lastLoadedBytes) {
+              lastProgressAt = Date.now();
+              lastLoadedBytes = e.loaded;
+            }
+            
             var percent = Math.round((e.loaded / e.total) * 100);
             if (percent >= lastLoggedPercent + 10 || percent === 100) {
               console.log('[GCS-Upload] [' + fileId + '] Progress:', percent + '%', '(' + Math.round(e.loaded / 1024 / 1024) + 'MB / ' + Math.round(e.total / 1024 / 1024) + 'MB)');
@@ -295,8 +381,10 @@
         });
         
         xhr.addEventListener('load', function() {
+          cleanup();
           console.log('[GCS-Upload] [' + fileId + '] GCS PUT response status:', xhr.status);
           if (xhr.status >= 200 && xhr.status < 300) {
+            logThroughput(true);
             console.log('[GCS-Upload] [' + fileId + '] PUT complete - file uploaded to GCS');
             resolveUpload({
               storage_path: data.storage_path,
@@ -306,25 +394,32 @@
               upload_type: fileInfo.uploadType
             });
           } else {
+            logThroughput(false);
             console.error('[GCS-Upload] [' + fileId + '] GCS PUT failed:', xhr.status, xhr.statusText);
-            rejectUpload(new Error('Upload to storage failed (status ' + xhr.status + ')'));
+            rejectUpload(new Error('Upload failed (HTTP status ' + xhr.status + '). Please retry.'));
           }
         });
         
         xhr.addEventListener('error', function() {
+          cleanup();
+          logThroughput(false);
           console.error('[GCS-Upload] [' + fileId + '] GCS PUT network error');
-          rejectUpload(new Error('Network error during upload'));
+          rejectUpload(new Error('Network error during upload. Check your connection and retry.'));
         });
         
-        xhr.addEventListener('timeout', function() {
-          console.error('[GCS-Upload] [' + fileId + '] GCS PUT timeout after 10 minutes');
-          rejectUpload(new Error('Upload timed out after 10 minutes'));
+        xhr.addEventListener('abort', function() {
+          // Abort is handled by stall detection, don't double-reject
+          if (!isCompleted) {
+            cleanup();
+            logThroughput(false);
+            console.error('[GCS-Upload] [' + fileId + '] Upload aborted');
+          }
         });
         
         xhr.open('PUT', data.signed_url);
         xhr.setRequestHeader('Content-Type', fileInfo.contentType);
-        xhr.timeout = 600000; // 10 minute timeout for large files
-        console.log('[GCS-Upload] [' + fileId + '] Starting XHR PUT (timeout: 10 min)');
+        xhr.timeout = 0; // Disable built-in timeout - we use stall detection instead
+        console.log('[GCS-Upload] [' + fileId + '] Starting XHR PUT (stall timeout: 90s, max: 45min)');
         xhr.send(fileInfo.file);
       });
     });
