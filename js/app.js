@@ -4278,17 +4278,21 @@ document.addEventListener('DOMContentLoaded', function () {
       // Step 1: Upload files directly to GCS (bypasses Cloud Run 32MB limit)
       // Step 2: Submit case metadata with storage paths (no binary data)
       
+      console.log('[CaseSubmit] GCSUpload available:', typeof GCSUpload !== 'undefined');
       var hasNewFiles = typeof GCSUpload !== 'undefined' && GCSUpload.formHasFiles(form);
+      console.log('[CaseSubmit] hasNewFiles:', hasNewFiles, 'isUpdate:', isUpdate);
       var gcsUploadPromise;
       
       if (hasNewFiles) {
         var caseIdForUpload = isUpdate ? form.dataset.caseId : 'new';
+        console.log('[CaseSubmit] Starting GCS upload for caseId:', caseIdForUpload);
         submitBtn.innerHTML = '<span class="btn-spinner"></span> Uploading files...';
         
         gcsUploadPromise = GCSUpload.uploadFilesToGCS(form, caseIdForUpload, csrfToken, function(uploaded, total, fileName) {
           submitBtn.innerHTML = '<span class="btn-spinner"></span> Uploading files (' + uploaded + '/' + total + ')...';
         });
       } else {
+        console.log('[CaseSubmit] No new files, skipping GCS upload');
         gcsUploadPromise = Promise.resolve([]);
       }
       
@@ -4296,6 +4300,7 @@ document.addEventListener('DOMContentLoaded', function () {
       var caseSubmitTimeoutId = null;
       
       gcsUploadPromise.then(function(gcsFiles) {
+        console.log('[CaseSubmit] GCS upload complete, files:', gcsFiles.length);
         // Update button text for case submission phase
         submitBtn.innerHTML = isUpdate ? 
           '<span class="btn-spinner"></span> Saving case...' : 
@@ -4355,6 +4360,7 @@ document.addEventListener('DOMContentLoaded', function () {
         
         // Submit case metadata (small payload, no binary data)
         var endpoint = isUpdate ? 'api/update-case.php' : 'api/create-case.php';
+        console.log('[CaseSubmit] Submitting metadata to:', endpoint, 'gcs_files:', gcsFiles.length);
         caseSubmitTimeoutId = setTimeout(function() { caseSubmitController.abort(); }, 30000); // 30 second timeout (no files in body)
         
         return fetch(endpoint, {

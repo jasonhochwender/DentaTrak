@@ -14,6 +14,8 @@
 
 (function() {
   'use strict';
+  
+  console.log('[GCS-Upload] Module loaded');
 
   // --- Type-specific per-file limits (must mirror appConfig.php) ---
   var FILE_SIZE_LIMITS = {
@@ -79,15 +81,18 @@
    * @returns {Promise<Array>} Array of uploaded file metadata objects
    */
   function uploadFilesToGCS(form, caseId, csrfToken, onProgress) {
+    console.log('[GCS-Upload] uploadFilesToGCS called', { caseId: caseId });
     return new Promise(function(resolve, reject) {
       // Collect all files from attachment inputs
       var fileInputs = form.querySelectorAll('.attachment-input');
+      console.log('[GCS-Upload] Found', fileInputs.length, 'file inputs');
       var allFiles = [];
       var totalSize = 0;
 
       fileInputs.forEach(function(input) {
         var uploadType = input.dataset.type || 'photos';
         var files = input._accumulatedFiles || [];
+        console.log('[GCS-Upload] Input', uploadType, '- _accumulatedFiles:', (input._accumulatedFiles || []).length, ', input.files:', (input.files ? input.files.length : 0));
         
         // Also check the input.files directly
         if (files.length === 0 && input.files && input.files.length > 0) {
@@ -106,8 +111,11 @@
         });
       });
 
+      console.log('[GCS-Upload] Total files collected:', allFiles.length, 'Total size:', totalSize);
+      
       // No files to upload
       if (allFiles.length === 0) {
+        console.log('[GCS-Upload] No files to upload, resolving empty');
         resolve([]);
         return;
       }
@@ -210,6 +218,7 @@
    * @returns {Promise<Object>} Uploaded file metadata
    */
   function uploadSingleFile(fileInfo, caseId, csrfToken, retryCount) {
+    console.log('[GCS-Upload] Requesting signed URL for:', fileInfo.fileName, '(', fileInfo.fileSize, 'bytes)');
     // Step 1: Get signed URL from backend
     return fetch('api/upload-signed-url.php', {
       method: 'POST',
@@ -239,6 +248,7 @@
         throw new Error(data.error || 'Failed to get signed upload URL');
       }
 
+      console.log('[GCS-Upload] Got signed URL, uploading to GCS:', data.storage_path);
       // Step 2: Upload directly to GCS using signed PUT URL
       return fetch(data.signed_url, {
         method: 'PUT',
