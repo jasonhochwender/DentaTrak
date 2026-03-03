@@ -161,64 +161,89 @@
         return;
       }
 
-      // Upload all files with concurrency control
+      // Upload all files with controlled concurrency (max 3 parallel)
       var uploaded = [];
-      var uploadedBytes = 0;
-      var totalBytes = totalSize;
       var errors = [];
-
-      // Process uploads in batches for concurrency control
       var queue = allFiles.slice();
       var activeCount = 0;
+      var totalCount = allFiles.length;
+      var completedCount = 0;
+      
+      // Generate unique IDs for each file for tracking
+      queue.forEach(function(item, idx) {
+        item.fileId = 'file_' + idx + '_' + Date.now();
+      });
+      
+      console.log('[GCS-Upload] Starting upload queue:', totalCount, 'files, max', CONCURRENT_UPLOADS, 'concurrent');
 
-      function processNext() {
-        while (activeCount < CONCURRENT_UPLOADS && queue.length > 0) {
-          var item = queue.shift();
-          activeCount++;
-
-          uploadSingleFile(item, caseId, csrfToken, 0)
-            .then(function(result) {
-              uploaded.push(result);
-              uploadedBytes += result.file_size;
-              if (onProgress) {
-                onProgress(uploaded.length, allFiles.length, result.original_filename);
-              }
-              activeCount--;
-              processNext();
-            })
-            .catch(function(err) {
-              errors.push({ fileName: item.fileName, error: err.message });
-              activeCount--;
-              processNext();
-            });
-        }
-
-        // All done when no active uploads and queue is empty
-        if (activeCount === 0 && queue.length === 0) {
+      function checkCompletion() {
+        if (completedCount === totalCount) {
           if (errors.length > 0) {
             var failedNames = errors.map(function(e) { return e.fileName; }).join(', ');
+            console.error('[GCS-Upload] Upload batch failed:', errors.length, 'errors');
             reject(new Error('Failed to upload: ' + failedNames + '. ' + errors[0].error));
           } else {
+            console.log('[GCS-Upload] All', totalCount, 'files uploaded successfully');
             resolve(uploaded);
           }
         }
       }
 
-      processNext();
+      function startNextUpload() {
+        // Don't start more if we're at capacity or queue is empty
+        if (activeCount >= CONCURRENT_UPLOADS || queue.length === 0) {
+          return;
+        }
+        
+        var item = queue.shift();
+        activeCount++;
+        
+        console.log('[GCS-Upload] [' + item.fileId + '] Starting upload:', item.fileName, '(' + formatFileSize(item.fileSize) + ') - Active:', activeCount);
+
+        uploadSingleFile(item, caseId, csrfToken)
+          .then(function(result) {
+            console.log('[GCS-Upload] [' + item.fileId + '] Upload complete:', item.fileName);
+            uploaded.push(result);
+            completedCount++;
+            activeCount--;
+            if (onProgress) {
+              onProgress(completedCount, totalCount, result.original_filename);
+            }
+            // Start next upload if available
+            startNextUpload();
+            checkCompletion();
+          })
+          .catch(function(err) {
+            console.error('[GCS-Upload] [' + item.fileId + '] Upload failed:', item.fileName, '-', err.message);
+            errors.push({ fileName: item.fileName, error: err.message });
+            completedCount++;
+            activeCount--;
+            // Start next upload even on error (don't block queue)
+            startNextUpload();
+            checkCompletion();
+          });
+        
+        // Immediately try to start more uploads up to concurrency limit
+        startNextUpload();
+      }
+
+      // Kick off initial batch (up to CONCURRENT_UPLOADS)
+      startNextUpload();
     });
   }
 
   /**
-   * Upload a single file to GCS via signed URL with retry logic
+   * Upload a single file to GCS via signed URL
+   * No auto-retry to avoid duplicate uploads - caller handles errors
    * 
-   * @param {Object} fileInfo - File info object {file, uploadType, fileName, contentType, fileSize}
+   * @param {Object} fileInfo - File info object {file, uploadType, fileName, contentType, fileSize, fileId}
    * @param {string} caseId - Case ID
    * @param {string} csrfToken - CSRF token
-   * @param {number} retryCount - Current retry attempt
    * @returns {Promise<Object>} Uploaded file metadata
    */
-  function uploadSingleFile(fileInfo, caseId, csrfToken, retryCount) {
-    console.log('[GCS-Upload] Requesting signed URL for:', fileInfo.fileName, '(', fileInfo.fileSize, 'bytes)');
+  function uploadSingleFile(fileInfo, caseId, csrfToken) {
+    var fileId = fileInfo.fileId || 'unknown';
+    console.log('[GCS-Upload] [' + fileId + '] Requesting signed URL for:', fileInfo.fileName, '(' + fileInfo.fileSize + ' bytes)');
     // Step 1: Get signed URL from backend
     return fetch('api/upload-signed-url.php', {
       method: 'POST',
@@ -236,40 +261,43 @@
       })
     })
     .then(function(response) {
-      console.log('[GCS-Upload] Signed URL response status:', response.status);
+      console.log('[GCS-Upload] [' + fileId + '] Signed URL response status:', response.status);
       if (!response.ok) {
         return response.json().then(function(data) {
-          console.error('[GCS-Upload] Signed URL error:', data);
+          console.error('[GCS-Upload] [' + fileId + '] Signed URL error:', data);
           throw new Error(data.error || 'Failed to get upload URL (status ' + response.status + ')');
         });
       }
       return response.json();
     })
     .then(function(data) {
-      console.log('[GCS-Upload] Signed URL response data:', data);
       if (!data.success || !data.signed_url) {
-        console.error('[GCS-Upload] Invalid signed URL response:', data);
+        console.error('[GCS-Upload] [' + fileId + '] Invalid signed URL response:', data);
         throw new Error(data.error || 'Failed to get signed upload URL');
       }
 
-      console.log('[GCS-Upload] Got signed URL, uploading to GCS:', data.storage_path);
-      console.log('[GCS-Upload] Signed URL (first 100 chars):', data.signed_url.substring(0, 100));
+      console.log('[GCS-Upload] [' + fileId + '] Got signed URL, starting PUT to GCS:', data.storage_path);
       
       // Step 2: Upload directly to GCS using XMLHttpRequest (better for large files than fetch)
       return new Promise(function(resolveUpload, rejectUpload) {
         var xhr = new XMLHttpRequest();
         
+        // Throttle progress logs to avoid console spam (log every 10%)
+        var lastLoggedPercent = 0;
         xhr.upload.addEventListener('progress', function(e) {
           if (e.lengthComputable) {
             var percent = Math.round((e.loaded / e.total) * 100);
-            console.log('[GCS-Upload] Upload progress:', percent + '%', '(' + Math.round(e.loaded / 1024 / 1024) + 'MB / ' + Math.round(e.total / 1024 / 1024) + 'MB)');
+            if (percent >= lastLoggedPercent + 10 || percent === 100) {
+              console.log('[GCS-Upload] [' + fileId + '] Progress:', percent + '%', '(' + Math.round(e.loaded / 1024 / 1024) + 'MB / ' + Math.round(e.total / 1024 / 1024) + 'MB)');
+              lastLoggedPercent = percent;
+            }
           }
         });
         
         xhr.addEventListener('load', function() {
-          console.log('[GCS-Upload] GCS PUT response status:', xhr.status);
+          console.log('[GCS-Upload] [' + fileId + '] GCS PUT response status:', xhr.status);
           if (xhr.status >= 200 && xhr.status < 300) {
-            console.log('[GCS-Upload] File uploaded successfully to GCS');
+            console.log('[GCS-Upload] [' + fileId + '] PUT complete - file uploaded to GCS');
             resolveUpload({
               storage_path: data.storage_path,
               original_filename: fileInfo.fileName,
@@ -278,39 +306,27 @@
               upload_type: fileInfo.uploadType
             });
           } else {
-            console.error('[GCS-Upload] GCS PUT failed:', xhr.status, xhr.statusText);
+            console.error('[GCS-Upload] [' + fileId + '] GCS PUT failed:', xhr.status, xhr.statusText);
             rejectUpload(new Error('Upload to storage failed (status ' + xhr.status + ')'));
           }
         });
         
         xhr.addEventListener('error', function() {
-          console.error('[GCS-Upload] GCS PUT network error');
+          console.error('[GCS-Upload] [' + fileId + '] GCS PUT network error');
           rejectUpload(new Error('Network error during upload'));
         });
         
         xhr.addEventListener('timeout', function() {
-          console.error('[GCS-Upload] GCS PUT timeout');
-          rejectUpload(new Error('Upload timed out'));
+          console.error('[GCS-Upload] [' + fileId + '] GCS PUT timeout after 10 minutes');
+          rejectUpload(new Error('Upload timed out after 10 minutes'));
         });
         
         xhr.open('PUT', data.signed_url);
         xhr.setRequestHeader('Content-Type', fileInfo.contentType);
         xhr.timeout = 600000; // 10 minute timeout for large files
+        console.log('[GCS-Upload] [' + fileId + '] Starting XHR PUT (timeout: 10 min)');
         xhr.send(fileInfo.file);
       });
-    })
-    .catch(function(error) {
-      console.error('[GCS-Upload] Upload error (retry ' + retryCount + '):', error.message);
-      // Retry on failure
-      if (retryCount < MAX_RETRIES) {
-        var delay = Math.pow(2, retryCount) * 1000; // Exponential backoff: 1s, 2s
-        return new Promise(function(resolve) {
-          setTimeout(resolve, delay);
-        }).then(function() {
-          return uploadSingleFile(fileInfo, caseId, csrfToken, retryCount + 1);
-        });
-      }
-      throw error;
     });
   }
 
