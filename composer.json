@@ -1,6 +1,7 @@
 {
     "require": {
         "google/apiclient": "2.15",
+        "google/cloud-storage": "1.41",
         "guzzlehttp/guzzle": "7.5",
         "stripe/stripe-php": "^19.0",
         "dompdf/dompdf": "^3.1",

@@ -4264,34 +4264,6 @@ document.addEventListener('DOMContentLoaded', function () {
       // Check if we're updating an existing case or creating a new one
       var isUpdate = form.dataset.caseId ? true : false;
       
-      // Validate file sizes before submission
-      var maxFileSize = 100 * 1024 * 1024; // 100MB per file
-      var maxTotalSize = 500 * 1024 * 1024; // 500MB total
-      var fileInputs = form.querySelectorAll('input[type="file"]');
-      var totalFileSize = 0;
-      var oversizedFiles = [];
-      
-      fileInputs.forEach(function(input) {
-        if (input.files) {
-          for (var i = 0; i < input.files.length; i++) {
-            var file = input.files[i];
-            totalFileSize += file.size;
-            if (file.size > maxFileSize) {
-              oversizedFiles.push(file.name + ' (' + (file.size / (1024 * 1024)).toFixed(1) + 'MB)');
-            }
-          }
-        }
-      });
-      
-      if (oversizedFiles.length > 0) {
-        showToast('These files exceed the 100MB limit: ' + oversizedFiles.join(', '), 'error');
-        return false;
-      }
-      if (totalFileSize > maxTotalSize) {
-        showToast('Total file size (' + (totalFileSize / (1024 * 1024)).toFixed(1) + 'MB) exceeds the 250MB limit. Please remove some files.', 'error');
-        return false;
-      }
-      
       // Show enhanced loading state with animation
       isSubmitting = true;
       submitBtn.disabled = true;
@@ -4302,60 +4274,101 @@ document.addEventListener('DOMContentLoaded', function () {
         '<span class="btn-spinner"></span> Updating Case...' : 
         '<span class="btn-spinner"></span> Creating Case...';
       
-      // Create FormData for file uploads
-      var formData = new FormData(form);
+      // --- GCS Direct Upload Flow ---
+      // Step 1: Upload files directly to GCS (bypasses Cloud Run 32MB limit)
+      // Step 2: Submit case metadata with storage paths (no binary data)
       
-      // Collect and append clinical details as JSON
-      if (typeof getClinicalDetailsData === 'function') {
-        var clinicalDetails = getClinicalDetailsData();
-        if (clinicalDetails && Object.keys(clinicalDetails).length > 0) {
-          formData.append('clinicalDetails', JSON.stringify(clinicalDetails));
-        }
+      var hasNewFiles = typeof GCSUpload !== 'undefined' && GCSUpload.formHasFiles(form);
+      var gcsUploadPromise;
+      
+      if (hasNewFiles) {
+        var caseIdForUpload = isUpdate ? form.dataset.caseId : 'new';
+        submitBtn.innerHTML = '<span class="btn-spinner"></span> Uploading files...';
+        
+        gcsUploadPromise = GCSUpload.uploadFilesToGCS(form, caseIdForUpload, csrfToken, function(uploaded, total, fileName) {
+          submitBtn.innerHTML = '<span class="btn-spinner"></span> Uploading files (' + uploaded + '/' + total + ')...';
+        });
+      } else {
+        gcsUploadPromise = Promise.resolve([]);
       }
       
-      // If updating, add case ID efficiently
-      if (isUpdate) {
-        formData.append('caseId', form.dataset.caseId);
+      var caseSubmitController = new AbortController();
+      var caseSubmitTimeoutId = null;
+      
+      gcsUploadPromise.then(function(gcsFiles) {
+        // Update button text for case submission phase
+        submitBtn.innerHTML = isUpdate ? 
+          '<span class="btn-spinner"></span> Saving case...' : 
+          '<span class="btn-spinner"></span> Creating case...';
         
-        // Add drive folder ID from dataset if available
-        if (form.dataset.driveFolderId) {
-          formData.append('driveFolderId', form.dataset.driveFolderId);
-        } else {
-          // Quick lookup for drive folder ID using cached data
-          var driveFolderId = getDriveFolderIdFromCache(form.dataset.caseId);
-          if (driveFolderId) {
-            formData.append('driveFolderId', driveFolderId);
+        // Build FormData WITHOUT file binaries - only text fields
+        var formData = new FormData();
+        
+        // Copy all non-file form fields
+        var formElements = form.elements;
+        for (var i = 0; i < formElements.length; i++) {
+          var el = formElements[i];
+          if (el.name && el.type !== 'file' && el.type !== 'submit' && el.type !== 'button') {
+            formData.append(el.name, el.value);
           }
         }
         
-        // Add version for optimistic locking (concurrent edit detection)
-        if (form.dataset.caseVersion) {
-          formData.append('version', form.dataset.caseVersion);
+        // Collect and append clinical details as JSON
+        if (typeof getClinicalDetailsData === 'function') {
+          var clinicalDetails = getClinicalDetailsData();
+          if (clinicalDetails && Object.keys(clinicalDetails).length > 0) {
+            formData.append('clinicalDetails', JSON.stringify(clinicalDetails));
+          }
         }
-      }
-      
-      // Collect files for deletion efficiently
-      var filesToDelete = collectFilesForDeletion();
-      if (filesToDelete.length > 0) {
-        formData.append('filesToDelete', JSON.stringify(filesToDelete));
-      }
-      
-      // Submit with timeout and better error handling
-      var endpoint = isUpdate ? 'api/update-case.php' : 'api/create-case.php';
-      var controller = new AbortController();
-      var timeoutId = setTimeout(() => controller.abort(), 300000); // 5 minute timeout for large file uploads
-      
-      fetch(endpoint, {
-        method: 'POST',
-        body: formData,
-        headers: {
-          'X-CSRF-Token': csrfToken
-        },
-        credentials: 'same-origin',
-        signal: controller.signal
+        
+        // If updating, add case ID efficiently
+        if (isUpdate) {
+          formData.append('caseId', form.dataset.caseId);
+          
+          // Add drive folder ID from dataset if available
+          if (form.dataset.driveFolderId) {
+            formData.append('driveFolderId', form.dataset.driveFolderId);
+          } else {
+            // Quick lookup for drive folder ID using cached data
+            var driveFolderId = getDriveFolderIdFromCache(form.dataset.caseId);
+            if (driveFolderId) {
+              formData.append('driveFolderId', driveFolderId);
+            }
+          }
+          
+          // Add version for optimistic locking (concurrent edit detection)
+          if (form.dataset.caseVersion) {
+            formData.append('version', form.dataset.caseVersion);
+          }
+        }
+        
+        // Append GCS uploaded file metadata (storage paths, not binary data)
+        if (gcsFiles.length > 0) {
+          formData.append('gcs_files', JSON.stringify(gcsFiles));
+        }
+        
+        // Collect files for deletion efficiently
+        var filesToDelete = collectFilesForDeletion();
+        if (filesToDelete.length > 0) {
+          formData.append('filesToDelete', JSON.stringify(filesToDelete));
+        }
+        
+        // Submit case metadata (small payload, no binary data)
+        var endpoint = isUpdate ? 'api/update-case.php' : 'api/create-case.php';
+        caseSubmitTimeoutId = setTimeout(function() { caseSubmitController.abort(); }, 30000); // 30 second timeout (no files in body)
+        
+        return fetch(endpoint, {
+          method: 'POST',
+          body: formData,
+          headers: {
+            'X-CSRF-Token': csrfToken
+          },
+          credentials: 'same-origin',
+          signal: caseSubmitController.signal
+        });
       })
       .then(response => {
-        clearTimeout(timeoutId);
+        if (caseSubmitTimeoutId) clearTimeout(caseSubmitTimeoutId);
         if (!response.ok) {
           // Read the response body to get the actual error message
           return response.text().then(text => {
@@ -4494,13 +4507,28 @@ document.addEventListener('DOMContentLoaded', function () {
     }
     
     // Show appropriate error message
+    // Errors from gcs-upload.js already contain user-friendly text
+    // (e.g. "STL files must be under 250MB", "Maximum 15 files per case")
+    // so we pass them through directly.
     var errorMessage;
+    var msg = error.message || '';
     if (error.name === 'AbortError') {
       errorMessage = 'Request timed out. Please try again.';
-    } else if (error.message && (error.message.indexOf('413') !== -1 || error.message.toLowerCase().indexOf('request entity too l') !== -1 || error.message.toLowerCase().indexOf('too large') !== -1 || error.message.toLowerCase().indexOf('payload too large') !== -1)) {
-      errorMessage = 'The attached files are too large. Individual files must be under 100MB, and total upload size must be under 500MB. Try uploading fewer or smaller files.';
+    } else if (msg.indexOf('must be under') !== -1 || msg.indexOf('Maximum') !== -1 || msg.indexOf('cannot exceed') !== -1 || msg.indexOf('Over-limit') !== -1) {
+      // Type-specific or aggregate limit error from frontend/backend validation
+      errorMessage = msg;
+    } else if (msg.indexOf('Failed to upload') !== -1) {
+      errorMessage = 'File upload failed. Please check your internet connection and try again.';
+    } else if (msg.indexOf('upload URL') !== -1) {
+      errorMessage = 'Could not prepare file upload. Please try again. If the problem persists, contact support.';
+    } else if (msg.indexOf('storage failed') !== -1) {
+      errorMessage = 'File upload to cloud storage failed. Please check your connection and try again.';
+    } else if (msg.indexOf('verification failed') !== -1) {
+      errorMessage = 'File verification failed on the server. ' + msg;
+    } else if (msg.indexOf('413') !== -1 || msg.toLowerCase().indexOf('too large') !== -1 || msg.toLowerCase().indexOf('payload too large') !== -1) {
+      errorMessage = 'The request is too large. STL files must be under 250MB, images under 25MB.';
     } else {
-      errorMessage = 'Failed to ' + (isUpdate ? 'update' : 'create') + ' case: ' + error.message;
+      errorMessage = 'Failed to ' + (isUpdate ? 'update' : 'create') + ' case: ' + msg;
     }
     
     showToast(errorMessage, 'error');
@@ -6073,10 +6101,28 @@ document.addEventListener('DOMContentLoaded', function () {
             fileElement.dataset.fileId = fileId;
             fileElement.dataset.attachmentId = fileId;
             
-            // Create the filename - make it clickable to view/download if we have a path
+            // Determine if this is a GCS-stored file or a legacy local/Drive file
+            var isGcsFile = (file.storageType === 'gcs' && file.storagePath);
+            
+            // Create the filename - make it clickable to view/download
             var nameSpan;
-            if (filePath) {
-              // Use local file path for viewing
+            if (isGcsFile) {
+              // GCS file: use signed URL on click
+              nameSpan = document.createElement('a');
+              nameSpan.href = '#';
+              nameSpan.style.cssText = 'color: #2563eb; text-decoration: none; cursor: pointer;';
+              nameSpan.title = 'Click to view: ' + file.fileName;
+              nameSpan.textContent = file.fileName;
+              nameSpan.dataset.storagePath = file.storagePath;
+              nameSpan.dataset.fileName = file.fileName;
+              nameSpan.addEventListener('click', function(e) {
+                e.preventDefault();
+                openGcsFile(this.dataset.storagePath, this.dataset.fileName);
+              });
+              nameSpan.addEventListener('mouseenter', function() { this.style.textDecoration = 'underline'; });
+              nameSpan.addEventListener('mouseleave', function() { this.style.textDecoration = 'none'; });
+            } else if (filePath) {
+              // Legacy local file path for viewing
               var viewUrl = '/' + filePath;
               nameSpan = document.createElement('a');
               nameSpan.href = viewUrl;
@@ -6099,9 +6145,20 @@ document.addEventListener('DOMContentLoaded', function () {
               nameSpan.textContent = file.fileName;
             }
 
-            // Download link when we have a file path
+            // Download link
             var downloadLink = null;
-            if (filePath) {
+            if (isGcsFile) {
+              downloadLink = document.createElement('a');
+              downloadLink.href = '#';
+              downloadLink.className = 'attachment-download-link';
+              downloadLink.textContent = 'Download';
+              downloadLink.dataset.storagePath = file.storagePath;
+              downloadLink.dataset.fileName = file.fileName;
+              downloadLink.addEventListener('click', function(e) {
+                e.preventDefault();
+                openGcsFile(this.dataset.storagePath, this.dataset.fileName);
+              });
+            } else if (filePath) {
               downloadLink = document.createElement('a');
               downloadLink.href = '/' + filePath;
               downloadLink.download = file.fileName;
@@ -7129,6 +7186,45 @@ document.addEventListener('DOMContentLoaded', function () {
     document.body.removeChild(a);
   }
   
+  // Open a GCS-stored file via signed download URL
+  function openGcsFile(storagePath, fileName) {
+    if (!storagePath) return;
+    
+    fetch('api/download-signed-url.php', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRF-Token': csrfToken
+      },
+      credentials: 'same-origin',
+      body: JSON.stringify({
+        storage_path: storagePath,
+        filename: fileName || ''
+      })
+    })
+    .then(function(response) {
+      if (!response.ok) {
+        return response.json().then(function(data) {
+          throw new Error(data.error || 'Failed to get download URL');
+        });
+      }
+      return response.json();
+    })
+    .then(function(data) {
+      if (data.success && data.signed_url) {
+        window.open(data.signed_url, '_blank');
+      } else {
+        throw new Error(data.error || 'Failed to get download URL');
+      }
+    })
+    .catch(function(error) {
+      console.error('GCS download error:', error);
+      if (typeof showToast === 'function') {
+        showToast('Failed to download file: ' + error.message, 'error');
+      }
+    });
+  }
+
   // Initialize logo upload functionality
   setupLogoUpload();
   

@@ -89,7 +89,19 @@ try {
                 $existingAttachments = array_values($existingAttachments);
             }
             
-            // Process new file uploads
+            // Process GCS file uploads (new direct-to-GCS flow)
+            $gcsFilesJson = $_POST['gcs_files'] ?? '';
+            if (!empty($gcsFilesJson)) {
+                require_once __DIR__ . '/gcs-attachments.php';
+                $gcsResult = processGcsAttachments($gcsFilesJson, $_SESSION['current_practice_id'] ?? 0);
+                if ($gcsResult['success'] && !empty($gcsResult['attachments'])) {
+                    foreach ($gcsResult['attachments'] as $gcsAtt) {
+                        $existingAttachments[] = $gcsAtt;
+                    }
+                }
+            }
+            
+            // Process legacy direct file uploads (fallback)
             $attachmentTypes = ['photos', 'intraoralScans', 'facialScans', 'photogrammetry', 'completedDesigns'];
             $caseId = $caseData['id'];
             
@@ -359,7 +371,22 @@ try {
                 );
             }
             
-            // Process file attachments
+            // Process GCS file uploads (new direct-to-GCS flow)
+            $gcsFilesJson = $_POST['gcs_files'] ?? '';
+            if (!empty($gcsFilesJson)) {
+                require_once __DIR__ . '/gcs-attachments.php';
+                $gcsResult = processGcsAttachments($gcsFilesJson, $_SESSION['current_practice_id'] ?? 0);
+                if ($gcsResult['success'] && !empty($gcsResult['attachments'])) {
+                    if (!isset($existingCaseData['attachments']) || !is_array($existingCaseData['attachments'])) {
+                        $existingCaseData['attachments'] = [];
+                    }
+                    foreach ($gcsResult['attachments'] as $gcsAtt) {
+                        $existingCaseData['attachments'][] = $gcsAtt;
+                    }
+                }
+            }
+            
+            // Process legacy file attachments (fallback for direct uploads)
             $attachmentTypes = ['photos', 'intraoralScans', 'facialScans', 'photogrammetry', 'completedDesigns'];
             
             foreach ($attachmentTypes as $type) {

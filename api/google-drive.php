@@ -306,7 +306,7 @@ function trashDriveFolder($folderId) {
  * @param array $files The uploaded files data
  * @return array Status and message
  */
-function createCase($caseData, $files, $originalCaseData = null) {
+function createCase($caseData, $files, $originalCaseData = null, $gcsAttachments = []) {
     global $pdo;
     
     // Use original data if provided, otherwise use encrypted data
@@ -380,7 +380,20 @@ function createCase($caseData, $files, $originalCaseData = null) {
             'attachments' => []
         ];
         
-        // Process file attachments
+        // Process GCS attachments first (new direct-to-GCS upload flow)
+        if (!empty($gcsAttachments)) {
+            // Move files from pending path to final case path
+            $practiceId = $_SESSION['current_practice_id'] ?? 0;
+            if (function_exists('finalizeGcsAttachmentPaths')) {
+                $gcsAttachments = finalizeGcsAttachmentPaths($gcsAttachments, $practiceId, $caseId);
+            }
+            
+            foreach ($gcsAttachments as $gcsAttachment) {
+                $completeCase['attachments'][] = $gcsAttachment;
+            }
+        }
+        
+        // Process legacy direct file attachments (fallback for small files or old flow)
         $attachmentTypes = ['photos', 'intraoralScans', 'facialScans', 'photogrammetry', 'completedDesigns'];
         
         foreach ($attachmentTypes as $type) {

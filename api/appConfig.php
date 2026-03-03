@@ -57,6 +57,70 @@ $commonConfig = [
 Here is the workflow data to analyze:
 ',
 
+    // Google Cloud Storage configuration (for case file uploads)
+    'gcs' => [
+        'bucket_name' => getEnvVar('GCS_BUCKET_NAME', ''),  // REQUIRED — no silent default; validated at use-time in getGcsBucket()
+        'key_file' => getEnvVar('GCS_KEY_FILE'), // Local dev only; Cloud Run uses ADC
+        'signed_url_expiry' => 15 * 60, // 15 minutes for upload URLs
+        'download_url_expiry' => 5 * 60, // 5 minutes for download URLs
+
+        // --- Per-case aggregate limits ---
+        'max_total_size' => 1024 * 1024 * 1024, // 1 GB total per case submission
+        'max_file_count' => 15,                  // Max files per case submission
+
+        // --- Type-specific per-file limits (bytes) ---
+        // Looked up by lowercase extension; fallback is 'default'.
+        'max_file_size_by_type' => [
+            'stl'     => 250 * 1024 * 1024,  // 250 MB — dental 3D scans
+            'obj'     => 250 * 1024 * 1024,
+            'ply'     => 250 * 1024 * 1024,
+            'dcm'     => 250 * 1024 * 1024,
+            'jpg'     => 25 * 1024 * 1024,   // 25 MB — photos
+            'jpeg'    => 25 * 1024 * 1024,
+            'png'     => 25 * 1024 * 1024,
+            'gif'     => 25 * 1024 * 1024,
+            'webp'    => 25 * 1024 * 1024,
+            'tiff'    => 25 * 1024 * 1024,
+            'tif'     => 25 * 1024 * 1024,
+            'bmp'     => 25 * 1024 * 1024,
+            'svg'     => 10 * 1024 * 1024,
+            'pdf'     => 50 * 1024 * 1024,   // 50 MB — documents
+            'zip'     => 250 * 1024 * 1024,
+            'default' => 100 * 1024 * 1024,  // Fallback
+        ],
+
+        // Legacy flat limit kept for any code that still references it
+        'max_file_size' => 250 * 1024 * 1024,
+
+        'allowed_mime_types' => [
+            // 3D scan files (STL, OBJ, PLY)
+            'model/stl',
+            'application/sla',
+            'application/vnd.ms-pki.stl',
+            'application/x-navistyle',
+            'model/obj',
+            'application/x-tgif',
+            'application/octet-stream', // Generic binary (many scanners use this for STL)
+            // Images
+            'image/jpeg',
+            'image/png',
+            'image/gif',
+            'image/webp',
+            'image/tiff',
+            'image/bmp',
+            'image/svg+xml',
+            // Documents
+            'application/pdf',
+            'application/zip',
+            'application/x-zip-compressed',
+        ],
+        'allowed_extensions' => [
+            'stl', 'obj', 'ply', 'dcm',
+            'jpg', 'jpeg', 'png', 'gif', 'webp', 'tiff', 'tif', 'bmp', 'svg',
+            'pdf', 'zip',
+        ],
+    ],
+
     // Stripe configuration
     'stripe' => [
         'publishable_key' => getEnvVar('STRIPE_PUBLISHABLE_KEY'),

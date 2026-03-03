@@ -308,11 +308,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     }
     
+    // Process GCS file uploads (if any) - verify files exist in cloud storage
+    $gcsAttachments = [];
+    $gcsFilesJson = $_POST['gcs_files'] ?? '';
+    if (!empty($gcsFilesJson)) {
+        require_once __DIR__ . '/gcs-attachments.php';
+        $gcsResult = processGcsAttachments($gcsFilesJson, $currentPracticeId);
+        
+        if (!$gcsResult['success']) {
+            http_response_code(400);
+            echo json_encode([
+                'success' => false,
+                'message' => 'File verification failed: ' . implode('; ', $gcsResult['errors'])
+            ]);
+            exit;
+        }
+        
+        $gcsAttachments = $gcsResult['attachments'];
+    }
+    
     // Encrypt PII before storing
     $encryptedCaseData = PIIEncryption::encryptCaseData($caseData);
     
     // Process the case creation with both original and encrypted data
-    $result = createCase($encryptedCaseData, $_FILES, $caseData);
+    // Pass GCS attachments as 4th parameter; $_FILES may be empty with GCS flow
+    $result = createCase($encryptedCaseData, $_FILES, $caseData, $gcsAttachments);
 
     // If the Google PHP client explodes with an implode() error on PHP 8,
     // fall back to a simulated case so the UI can still function.
