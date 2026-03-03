@@ -236,19 +236,24 @@
       })
     })
     .then(function(response) {
+      console.log('[GCS-Upload] Signed URL response status:', response.status);
       if (!response.ok) {
         return response.json().then(function(data) {
+          console.error('[GCS-Upload] Signed URL error:', data);
           throw new Error(data.error || 'Failed to get upload URL (status ' + response.status + ')');
         });
       }
       return response.json();
     })
     .then(function(data) {
+      console.log('[GCS-Upload] Signed URL response data:', data);
       if (!data.success || !data.signed_url) {
+        console.error('[GCS-Upload] Invalid signed URL response:', data);
         throw new Error(data.error || 'Failed to get signed upload URL');
       }
 
       console.log('[GCS-Upload] Got signed URL, uploading to GCS:', data.storage_path);
+      console.log('[GCS-Upload] Signed URL (first 100 chars):', data.signed_url.substring(0, 100));
       // Step 2: Upload directly to GCS using signed PUT URL
       return fetch(data.signed_url, {
         method: 'PUT',
@@ -258,9 +263,12 @@
         body: fileInfo.file
       })
       .then(function(uploadResponse) {
+        console.log('[GCS-Upload] GCS PUT response status:', uploadResponse.status);
         if (!uploadResponse.ok) {
+          console.error('[GCS-Upload] GCS PUT failed:', uploadResponse.status, uploadResponse.statusText);
           throw new Error('Upload to storage failed (status ' + uploadResponse.status + ')');
         }
+        console.log('[GCS-Upload] File uploaded successfully to GCS');
 
         // Return file metadata for case submission
         return {
@@ -273,6 +281,7 @@
       });
     })
     .catch(function(error) {
+      console.error('[GCS-Upload] Upload error (retry ' + retryCount + '):', error.message);
       // Retry on failure
       if (retryCount < MAX_RETRIES) {
         var delay = Math.pow(2, retryCount) * 1000; // Exponential backoff: 1s, 2s
