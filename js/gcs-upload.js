@@ -254,30 +254,49 @@
 
       console.log('[GCS-Upload] Got signed URL, uploading to GCS:', data.storage_path);
       console.log('[GCS-Upload] Signed URL (first 100 chars):', data.signed_url.substring(0, 100));
-      // Step 2: Upload directly to GCS using signed PUT URL
-      return fetch(data.signed_url, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': fileInfo.contentType
-        },
-        body: fileInfo.file
-      })
-      .then(function(uploadResponse) {
-        console.log('[GCS-Upload] GCS PUT response status:', uploadResponse.status);
-        if (!uploadResponse.ok) {
-          console.error('[GCS-Upload] GCS PUT failed:', uploadResponse.status, uploadResponse.statusText);
-          throw new Error('Upload to storage failed (status ' + uploadResponse.status + ')');
-        }
-        console.log('[GCS-Upload] File uploaded successfully to GCS');
-
-        // Return file metadata for case submission
-        return {
-          storage_path: data.storage_path,
-          original_filename: fileInfo.fileName,
-          content_type: fileInfo.contentType,
-          file_size: fileInfo.fileSize,
-          upload_type: fileInfo.uploadType
-        };
+      
+      // Step 2: Upload directly to GCS using XMLHttpRequest (better for large files than fetch)
+      return new Promise(function(resolveUpload, rejectUpload) {
+        var xhr = new XMLHttpRequest();
+        
+        xhr.upload.addEventListener('progress', function(e) {
+          if (e.lengthComputable) {
+            var percent = Math.round((e.loaded / e.total) * 100);
+            console.log('[GCS-Upload] Upload progress:', percent + '%', '(' + Math.round(e.loaded / 1024 / 1024) + 'MB / ' + Math.round(e.total / 1024 / 1024) + 'MB)');
+          }
+        });
+        
+        xhr.addEventListener('load', function() {
+          console.log('[GCS-Upload] GCS PUT response status:', xhr.status);
+          if (xhr.status >= 200 && xhr.status < 300) {
+            console.log('[GCS-Upload] File uploaded successfully to GCS');
+            resolveUpload({
+              storage_path: data.storage_path,
+              original_filename: fileInfo.fileName,
+              content_type: fileInfo.contentType,
+              file_size: fileInfo.fileSize,
+              upload_type: fileInfo.uploadType
+            });
+          } else {
+            console.error('[GCS-Upload] GCS PUT failed:', xhr.status, xhr.statusText);
+            rejectUpload(new Error('Upload to storage failed (status ' + xhr.status + ')'));
+          }
+        });
+        
+        xhr.addEventListener('error', function() {
+          console.error('[GCS-Upload] GCS PUT network error');
+          rejectUpload(new Error('Network error during upload'));
+        });
+        
+        xhr.addEventListener('timeout', function() {
+          console.error('[GCS-Upload] GCS PUT timeout');
+          rejectUpload(new Error('Upload timed out'));
+        });
+        
+        xhr.open('PUT', data.signed_url);
+        xhr.setRequestHeader('Content-Type', fileInfo.contentType);
+        xhr.timeout = 600000; // 10 minute timeout for large files
+        xhr.send(fileInfo.file);
       });
     })
     .catch(function(error) {
