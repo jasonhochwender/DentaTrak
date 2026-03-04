@@ -593,6 +593,25 @@ function generatePrintableHTML($caseData, $attachments = [], $gdAvailable = true
                     overflow: visible !important;
                 }
                 
+                /* Photo items - keep filename and image together */
+                .photo-item {
+                    page-break-inside: avoid !important;
+                    break-inside: avoid !important;
+                    margin-bottom: 20px !important;
+                }
+                
+                .photo-item img {
+                    max-width: 100% !important;
+                    height: auto !important;
+                    display: block !important;
+                }
+                
+                /* Section headers - prevent orphaning */
+                .file-header {
+                    page-break-after: avoid !important;
+                    break-after: avoid !important;
+                }
+                
                 #attachments {
                     margin-bottom: 80px !important;
                     clear: both !important;
@@ -825,7 +844,7 @@ function generatePrintableHTML($caseData, $attachments = [], $gdAvailable = true
                         $isGcs = str_starts_with($path, 'cases/');
                         $isLocal = str_starts_with($path, 'uploads/');
                         
-                        echo '<div style="margin: 15px 0; padding: 10px; background: white; border: 1px solid #ddd; border-radius: 4px;">';
+                        echo '<div class="photo-item" style="margin: 15px 0; padding: 10px; background: white; border: 1px solid #ddd; border-radius: 4px;">';
                         echo '<p style="margin: 0 0 10px 0; font-weight: bold; font-size: 11px;">' . htmlspecialchars($fileName) . '</p>';
                         
                         $imageRendered = false;
