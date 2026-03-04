@@ -308,23 +308,52 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     }
     
-    // Process GCS file uploads (if any) - verify files exist in cloud storage
+    // Process GCS file uploads (if any) - create attachment records directly
     $gcsAttachments = [];
-    $gcsFilesJson = $_POST['gcs_files'] ?? '';
-    if (!empty($gcsFilesJson)) {
-        require_once __DIR__ . '/gcs-attachments.php';
-        $gcsResult = processGcsAttachments($gcsFilesJson, $currentPracticeId);
-        
-        if (!$gcsResult['success']) {
-            http_response_code(400);
-            echo json_encode([
-                'success' => false,
-                'message' => 'File verification failed: ' . implode('; ', $gcsResult['errors'])
-            ]);
-            exit;
+    $gcsFilesRaw = $_POST['gcs_files'] ?? '';
+    if (!empty($gcsFilesRaw)) {
+        // Normalize input: handle both string (JSON) and array formats
+        if (is_string($gcsFilesRaw)) {
+            $gcsFiles = json_decode($gcsFilesRaw, true);
+        } else {
+            $gcsFiles = $gcsFilesRaw;
         }
         
-        $gcsAttachments = $gcsResult['attachments'];
+        if (!is_array($gcsFiles)) {
+            $gcsFiles = [];
+        }
+        
+        error_log('[create-case] GCS FILES RECEIVED: ' . json_encode($gcsFiles));
+        
+        // Create attachment records directly (file already exists in GCS)
+        foreach ($gcsFiles as $file) {
+            $storagePath = $file['storage_path'] ?? '';
+            $originalName = $file['original_filename'] ?? '';
+            
+            if (empty($storagePath) || empty($originalName)) {
+                error_log('[create-case] Skipping invalid GCS file entry: ' . json_encode($file));
+                continue;
+            }
+            
+            $attachment = [
+                'id' => uniqid(),
+                'type' => ucfirst($file['upload_type'] ?? 'photos'),
+                'fileName' => $originalName,
+                'name' => $originalName,
+                'path' => $storagePath,
+                'storagePath' => $storagePath,
+                'storageType' => 'gcs',
+                'fileType' => $file['content_type'] ?? 'application/octet-stream',
+                'mimeType' => $file['content_type'] ?? 'application/octet-stream',
+                'size' => intval($file['file_size'] ?? 0),
+                'uploadedAt' => date('c')
+            ];
+            
+            $gcsAttachments[] = $attachment;
+            error_log('[create-case] Added GCS attachment: ' . $originalName . ' -> ' . $storagePath);
+        }
+        
+        error_log('[create-case] TOTAL GCS ATTACHMENTS: ' . count($gcsAttachments));
     }
     
     // Encrypt PII before storing
