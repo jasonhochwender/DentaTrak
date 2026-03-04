@@ -90,27 +90,66 @@ try {
             }
             
             // Process GCS file uploads (new direct-to-GCS flow)
-            $gcsFilesJson = $_POST['gcs_files'] ?? '';
-            if (!empty($gcsFilesJson)) {
-                require_once __DIR__ . '/gcs-attachments.php';
-                $gcsResult = processGcsAttachments($gcsFilesJson, $_SESSION['current_practice_id'] ?? 0);
-                if ($gcsResult['success'] && !empty($gcsResult['attachments'])) {
-                    // Build set of existing storage paths to prevent duplicates
-                    $existingPaths = [];
-                    foreach ($existingAttachments as $att) {
-                        if (!empty($att['storagePath'])) {
-                            $existingPaths[$att['storagePath']] = true;
-                        }
-                    }
-                    
-                    foreach ($gcsResult['attachments'] as $gcsAtt) {
-                        // Only add if not already present (prevent duplicates)
-                        if (empty($existingPaths[$gcsAtt['storagePath']])) {
-                            $existingAttachments[] = $gcsAtt;
-                            $existingPaths[$gcsAtt['storagePath']] = true;
-                        }
+            $gcsFilesRaw = $_POST['gcs_files'] ?? '';
+            if (!empty($gcsFilesRaw)) {
+                // Normalize input: handle both string (JSON) and array formats
+                if (is_string($gcsFilesRaw)) {
+                    $gcsFiles = json_decode($gcsFilesRaw, true);
+                } else {
+                    $gcsFiles = $gcsFilesRaw;
+                }
+                
+                if (!is_array($gcsFiles)) {
+                    $gcsFiles = [];
+                }
+                
+                error_log('[update-case] GCS FILES RECEIVED: ' . json_encode($gcsFiles));
+                
+                // Build set of existing storage paths to prevent duplicates
+                $existingPaths = [];
+                foreach ($existingAttachments as $att) {
+                    $path = $att['storagePath'] ?? $att['path'] ?? '';
+                    if (!empty($path)) {
+                        $existingPaths[$path] = true;
                     }
                 }
+                
+                // Create attachment records directly (file already exists in GCS)
+                foreach ($gcsFiles as $file) {
+                    $storagePath = $file['storage_path'] ?? '';
+                    $originalName = $file['original_filename'] ?? '';
+                    
+                    if (empty($storagePath) || empty($originalName)) {
+                        error_log('[update-case] Skipping invalid GCS file entry: ' . json_encode($file));
+                        continue;
+                    }
+                    
+                    // Skip if already exists
+                    if (!empty($existingPaths[$storagePath])) {
+                        error_log('[update-case] Skipping duplicate: ' . $storagePath);
+                        continue;
+                    }
+                    
+                    $attachment = [
+                        'id' => uniqid(),
+                        'type' => ucfirst($file['upload_type'] ?? 'photos'),
+                        'fileName' => $originalName,
+                        'name' => $originalName,
+                        'path' => $storagePath,
+                        'storagePath' => $storagePath,
+                        'storageType' => 'gcs',
+                        'fileType' => $file['content_type'] ?? 'application/octet-stream',
+                        'mimeType' => $file['content_type'] ?? 'application/octet-stream',
+                        'size' => intval($file['file_size'] ?? 0),
+                        'uploadedAt' => date('c')
+                    ];
+                    
+                    $existingAttachments[] = $attachment;
+                    $existingPaths[$storagePath] = true;
+                    error_log('[update-case] Added GCS attachment: ' . $originalName . ' -> ' . $storagePath);
+                }
+                
+                error_log('[update-case] ATTACHMENTS AFTER GCS MERGE: ' . count($existingAttachments));
             }
             
             // Process legacy direct file uploads (fallback)
@@ -384,31 +423,70 @@ try {
             }
             
             // Process GCS file uploads (new direct-to-GCS flow)
-            $gcsFilesJson = $_POST['gcs_files'] ?? '';
-            if (!empty($gcsFilesJson)) {
-                require_once __DIR__ . '/gcs-attachments.php';
-                $gcsResult = processGcsAttachments($gcsFilesJson, $_SESSION['current_practice_id'] ?? 0);
-                if ($gcsResult['success'] && !empty($gcsResult['attachments'])) {
-                    if (!isset($existingCaseData['attachments']) || !is_array($existingCaseData['attachments'])) {
-                        $existingCaseData['attachments'] = [];
-                    }
-                    
-                    // Build set of existing storage paths to prevent duplicates
-                    $existingPaths = [];
-                    foreach ($existingCaseData['attachments'] as $att) {
-                        if (!empty($att['storagePath'])) {
-                            $existingPaths[$att['storagePath']] = true;
-                        }
-                    }
-                    
-                    foreach ($gcsResult['attachments'] as $gcsAtt) {
-                        // Only add if not already present (prevent duplicates)
-                        if (empty($existingPaths[$gcsAtt['storagePath']])) {
-                            $existingCaseData['attachments'][] = $gcsAtt;
-                            $existingPaths[$gcsAtt['storagePath']] = true;
-                        }
+            $gcsFilesRaw = $_POST['gcs_files'] ?? '';
+            if (!empty($gcsFilesRaw)) {
+                // Normalize input: handle both string (JSON) and array formats
+                if (is_string($gcsFilesRaw)) {
+                    $gcsFiles = json_decode($gcsFilesRaw, true);
+                } else {
+                    $gcsFiles = $gcsFilesRaw;
+                }
+                
+                if (!is_array($gcsFiles)) {
+                    $gcsFiles = [];
+                }
+                
+                error_log('[update-case-drive] GCS FILES RECEIVED: ' . json_encode($gcsFiles));
+                
+                if (!isset($existingCaseData['attachments']) || !is_array($existingCaseData['attachments'])) {
+                    $existingCaseData['attachments'] = [];
+                }
+                
+                // Build set of existing storage paths to prevent duplicates
+                $existingPaths = [];
+                foreach ($existingCaseData['attachments'] as $att) {
+                    $path = $att['storagePath'] ?? $att['path'] ?? '';
+                    if (!empty($path)) {
+                        $existingPaths[$path] = true;
                     }
                 }
+                
+                // Create attachment records directly (file already exists in GCS)
+                foreach ($gcsFiles as $file) {
+                    $storagePath = $file['storage_path'] ?? '';
+                    $originalName = $file['original_filename'] ?? '';
+                    
+                    if (empty($storagePath) || empty($originalName)) {
+                        error_log('[update-case-drive] Skipping invalid GCS file entry: ' . json_encode($file));
+                        continue;
+                    }
+                    
+                    // Skip if already exists
+                    if (!empty($existingPaths[$storagePath])) {
+                        error_log('[update-case-drive] Skipping duplicate: ' . $storagePath);
+                        continue;
+                    }
+                    
+                    $attachment = [
+                        'id' => uniqid(),
+                        'type' => ucfirst($file['upload_type'] ?? 'photos'),
+                        'fileName' => $originalName,
+                        'name' => $originalName,
+                        'path' => $storagePath,
+                        'storagePath' => $storagePath,
+                        'storageType' => 'gcs',
+                        'fileType' => $file['content_type'] ?? 'application/octet-stream',
+                        'mimeType' => $file['content_type'] ?? 'application/octet-stream',
+                        'size' => intval($file['file_size'] ?? 0),
+                        'uploadedAt' => date('c')
+                    ];
+                    
+                    $existingCaseData['attachments'][] = $attachment;
+                    $existingPaths[$storagePath] = true;
+                    error_log('[update-case-drive] Added GCS attachment: ' . $originalName . ' -> ' . $storagePath);
+                }
+                
+                error_log('[update-case-drive] ATTACHMENTS AFTER GCS MERGE: ' . count($existingCaseData['attachments']));
             }
             
             // Process legacy file attachments (fallback for direct uploads)
