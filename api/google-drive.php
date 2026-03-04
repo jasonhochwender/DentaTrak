@@ -321,7 +321,7 @@ function createCase($caseData, $files, $originalCaseData = null, $gcsAttachments
         
         // If backup is not enabled, create a cache-only case
         if (!$backupEnabled) {
-            return createCacheOnlyCase($caseData, $files, $originalCaseData);
+            return createCacheOnlyCase($caseData, $files, $originalCaseData, $gcsAttachments);
         }
         
         $client = getGoogleClient();
@@ -329,7 +329,7 @@ function createCase($caseData, $files, $originalCaseData = null, $gcsAttachments
         // Check for valid access token - if not available and backup is enabled, fall back to cache-only
         if (!$client->getAccessToken() || $client->isAccessTokenExpired()) {
             // Google Drive token expired but backup was enabled - create cache-only with warning
-            $result = createCacheOnlyCase($caseData, $files, $originalCaseData);
+            $result = createCacheOnlyCase($caseData, $files, $originalCaseData, $gcsAttachments);
             if ($result['success']) {
                 $result['warning'] = 'Google Drive session expired. Case saved locally only. Reconnect Google Drive from Settings to enable backup.';
             }
@@ -775,7 +775,7 @@ function removeFileFromBackup($backupFolderId, $fileName) {
  * @param array $files The uploaded files data
  * @return array Status and message
  */
-function createCacheOnlyCase($caseData, $files, $originalCaseData = null) {
+function createCacheOnlyCase($caseData, $files, $originalCaseData = null, $gcsAttachments = []) {
     global $pdo;
     
     // Use original data if provided, otherwise use encrypted data
@@ -807,7 +807,20 @@ function createCacheOnlyCase($caseData, $files, $originalCaseData = null) {
             'attachments' => []
         ];
         
-        // Process file attachments - store locally (in uploads directory)
+        // Process GCS attachments first (new direct-to-GCS upload flow)
+        if (!empty($gcsAttachments)) {
+            // Move files from pending path to final case path
+            if (function_exists('finalizeGcsAttachmentPaths')) {
+                require_once __DIR__ . '/gcs-attachments.php';
+                $gcsAttachments = finalizeGcsAttachmentPaths($gcsAttachments, $practiceId, $caseId);
+            }
+            
+            foreach ($gcsAttachments as $gcsAttachment) {
+                $completeCase['attachments'][] = $gcsAttachment;
+            }
+        }
+        
+        // Process legacy file attachments - store locally (in uploads directory)
         $attachmentTypes = ['photos', 'intraoralScans', 'facialScans', 'photogrammetry', 'completedDesigns'];
         
         foreach ($attachmentTypes as $type) {

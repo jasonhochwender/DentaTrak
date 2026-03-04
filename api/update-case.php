@@ -95,8 +95,20 @@ try {
                 require_once __DIR__ . '/gcs-attachments.php';
                 $gcsResult = processGcsAttachments($gcsFilesJson, $_SESSION['current_practice_id'] ?? 0);
                 if ($gcsResult['success'] && !empty($gcsResult['attachments'])) {
+                    // Build set of existing storage paths to prevent duplicates
+                    $existingPaths = [];
+                    foreach ($existingAttachments as $att) {
+                        if (!empty($att['storagePath'])) {
+                            $existingPaths[$att['storagePath']] = true;
+                        }
+                    }
+                    
                     foreach ($gcsResult['attachments'] as $gcsAtt) {
-                        $existingAttachments[] = $gcsAtt;
+                        // Only add if not already present (prevent duplicates)
+                        if (empty($existingPaths[$gcsAtt['storagePath']])) {
+                            $existingAttachments[] = $gcsAtt;
+                            $existingPaths[$gcsAtt['storagePath']] = true;
+                        }
                     }
                 }
             }
@@ -380,8 +392,21 @@ try {
                     if (!isset($existingCaseData['attachments']) || !is_array($existingCaseData['attachments'])) {
                         $existingCaseData['attachments'] = [];
                     }
+                    
+                    // Build set of existing storage paths to prevent duplicates
+                    $existingPaths = [];
+                    foreach ($existingCaseData['attachments'] as $att) {
+                        if (!empty($att['storagePath'])) {
+                            $existingPaths[$att['storagePath']] = true;
+                        }
+                    }
+                    
                     foreach ($gcsResult['attachments'] as $gcsAtt) {
-                        $existingCaseData['attachments'][] = $gcsAtt;
+                        // Only add if not already present (prevent duplicates)
+                        if (empty($existingPaths[$gcsAtt['storagePath']])) {
+                            $existingCaseData['attachments'][] = $gcsAtt;
+                            $existingPaths[$gcsAtt['storagePath']] = true;
+                        }
                     }
                 }
             }
