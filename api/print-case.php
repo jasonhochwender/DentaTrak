@@ -38,6 +38,7 @@ try {
     // Include case activity logging and HIPAA compliance
     require_once __DIR__ . '/case-activity-log.php';
     require_once __DIR__ . '/hipaa-compliance.php';
+    require_once __DIR__ . '/gcs-storage.php';
 
     // Set headers to prevent caching
     header('Cache-Control: no-cache, must-revalidate');
@@ -795,107 +796,125 @@ function generatePrintableHTML($caseData, $attachments = [], $gdAvailable = true
             <h2 style="page-break-after: avoid; border-bottom: 2px solid #333; padding-bottom: 8px; margin-bottom: 20px; margin-top: 0;">Attachment Contents</h2>
             <?php
             if (!empty($attachments) && is_array($attachments)) {
-                $attachmentIndex = 0;
+                // Group attachments by category
+                $imageAttachments = [];
+                $scanAttachments = [];  // STL, OBJ, PLY, DCM
+                $documentAttachments = []; // PDF, DOC, ZIP, etc.
+                
                 foreach ($attachments as $attachment) {
-                    // Each attachment starts on its own page (except the first one which follows the header)
-                    $pageBreakStyle = $attachmentIndex > 0 ? 'page-break-before: always;' : '';
-                    echo '<div class="file-section" style="' . $pageBreakStyle . '">';
-                    echo '<div class="file-header">';
-                    echo 'File: ' . htmlspecialchars(isset($attachment['fileName']) ? $attachment['fileName'] : 'Unknown file') . ' (' . htmlspecialchars(isset($attachment['type']) ? $attachment['type'] : 'Unknown type') . ')';
-                    echo '</div>';
-                    $attachmentIndex++;
+                    $fileName = $attachment['fileName'] ?? $attachment['name'] ?? 'Unknown';
+                    $ext = strtolower(pathinfo($fileName, PATHINFO_EXTENSION));
                     
-                    // Try to get file from local storage first
-                    $filePath = null;
-                    $fileContent = null;
-                    
-                    // Check for local path
-                    if (isset($attachment['path']) && !empty($attachment['path'])) {
-                        $filePath = __DIR__ . '/../' . $attachment['path'];
-                    }
-                    // Check for nested attachment structure (from createCacheOnlyCase)
-                    else if (isset($attachment['name']) && !empty($attachment['name'])) {
-                        // Try to construct path from case ID and attachment structure
-                        $caseId = $caseData['id'] ?? 'unknown';
-                        $fileName = $attachment['name'];
-                        $attachmentType = isset($attachment['type']) ? strtolower($attachment['type']) : 'unknown';
-                        
-                        // Try common upload patterns
-                        $possiblePaths = [
-                            __DIR__ . '/../uploads/' . $caseId . '/' . $attachmentType . '/' . $fileName,
-                            __DIR__ . '/../uploads/' . $caseId . '/' . $fileName,
-                            __DIR__ . '/../uploads/' . $fileName
-                        ];
-                        
-                        foreach ($possiblePaths as $path) {
-                            if (file_exists($path)) {
-                                $filePath = $path;
-                                break;
-                            }
-                        }
-                    }
-                    
-                    if ($filePath && file_exists($filePath)) {
-                        try {
-                            $fileContent = file_get_contents($filePath);
-                            if ($fileContent !== false) {
-                                echo '<div class="file-content">';
-                                
-                                $fileName = basename($filePath);
-                                
-                                // Check if it's an image
-                                if (isImageFile($fileName)) {
-                                    if ($gdAvailable) {
-                                        echo '<div class="image-content">';
-                                        echo '<img src="data:image/jpeg;base64,' . base64_encode($fileContent) . '" alt="' . htmlspecialchars($fileName) . '" />';
-                                        echo '</div>';
-                                    } else {
-                                        // GD not available - show placeholder instead of image
-                                        echo '<div class="file-info" style="border: 1px solid #ddd; padding: 10px; margin: 10px 0; background: #f9f9f9;">';
-                                        echo '<p><strong>Image File:</strong> ' . htmlspecialchars($fileName) . '</p>';
-                                        echo '<p><strong>File Size:</strong> ' . number_format(strlen($fileContent)) . ' bytes</p>';
-                                        echo '<p><em><strong>Note:</strong> Image not displayed - PHP GD extension is not installed</em></p>';
-                                        echo '</div>';
-                                    }
-                                } else if (isTextFile($fileName)) {
-                                    // Display as text for text files
-                                    echo '<pre>' . htmlspecialchars($fileContent) . '</pre>';
-                                } else if (isDocumentFile($fileName)) {
-                                    // Convert documents to displayable content
-                                    $convertedContent = convertDocumentToImages($fileName, $fileContent);
-                                    foreach ($convertedContent as $content) {
-                                        echo $content;
-                                    }
-                                    // GD not available - show document info without conversion
-                                    echo '<div class="file-info" style="border: 1px solid #ddd; padding: 10px; margin: 10px 0; background: #f9f9f9;">';
-                                    echo '<p><strong>Document File:</strong> ' . htmlspecialchars($fileName) . '</p>';
-                                    echo '<p><strong>File Size:</strong> ' . number_format(strlen($fileContent)) . ' bytes</p>';
-                                    echo '<p><em><strong>Note:</strong> Document content not displayed - PHP GD extension is not installed</em></p>';
-                                    echo '</div>';
-                                } else {
-                                    // Unknown file type - show file info
-                                    echo '<div class="binary-file-info">';
-                                    echo '<p><strong>File Type:</strong> Unknown Binary File</p>';
-                                    echo '<p><strong>File Name:</strong> ' . htmlspecialchars($fileName) . '</p>';
-                                    echo '<p><strong>File Size:</strong> ' . number_format(strlen($fileContent)) . ' bytes</p>';
-                                    echo '<p><strong>Content:</strong> Cannot be displayed in print format</p>';
-                                    echo '<p><em>This file type is not supported for display.</em></p>';
-                                    echo '</div>';
-                                }
-                                
-                                echo '</div>';
-                            } else {
-                                echo '<div class="no-files">Unable to read file content</div>';
-                            }
-                        } catch (Exception $e) {
-                            echo '<div class="no-files">Error loading file: ' . htmlspecialchars($e->getMessage()) . '</div>';
-                        }
+                    if (in_array($ext, ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp'])) {
+                        $imageAttachments[] = $attachment;
+                    } else if (in_array($ext, ['stl', 'obj', 'ply', 'dcm'])) {
+                        $scanAttachments[] = $attachment;
                     } else {
-                        echo '<div class="no-files">File not found in local storage</div>';
+                        $documentAttachments[] = $attachment;
                     }
+                }
+                
+                // === PHOTOS / IMAGES SECTION ===
+                if (!empty($imageAttachments)) {
+                    echo '<div class="file-section" style="margin-bottom: 30px;">';
+                    echo '<div class="file-header" style="background: #e8f5e9; border-color: #c8e6c9;">Photos</div>';
                     
+                    foreach ($imageAttachments as $attachment) {
+                        $fileName = $attachment['fileName'] ?? $attachment['name'] ?? 'Unknown';
+                        $path = $attachment['storagePath'] ?? $attachment['path'] ?? '';
+                        $isGcs = str_starts_with($path, 'cases/');
+                        $isLocal = str_starts_with($path, 'uploads/');
+                        
+                        echo '<div style="margin: 15px 0; padding: 10px; background: white; border: 1px solid #ddd; border-radius: 4px;">';
+                        echo '<p style="margin: 0 0 10px 0; font-weight: bold; font-size: 11px;">' . htmlspecialchars($fileName) . '</p>';
+                        
+                        $imageRendered = false;
+                        
+                        // Try local file first
+                        if ($isLocal) {
+                            $localPath = __DIR__ . '/../' . $path;
+                            if (file_exists($localPath)) {
+                                $fileContent = @file_get_contents($localPath);
+                                if ($fileContent !== false && $gdAvailable) {
+                                    $mimeType = $attachment['mimeType'] ?? $attachment['fileType'] ?? 'image/jpeg';
+                                    echo '<div class="image-content" style="text-align: center;">';
+                                    echo '<img src="data:' . $mimeType . ';base64,' . base64_encode($fileContent) . '" alt="' . htmlspecialchars($fileName) . '" style="max-width: 500px; max-height: 400px; border: 1px solid #ccc;" />';
+                                    echo '</div>';
+                                    $imageRendered = true;
+                                }
+                            }
+                        }
+                        
+                        // Try GCS signed URL
+                        if (!$imageRendered && $isGcs) {
+                            try {
+                                $signedUrl = generateGcsSignedUrl($path, 15); // 15 minute expiry
+                                if ($signedUrl) {
+                                    echo '<div class="image-content" style="text-align: center;">';
+                                    echo '<img src="' . htmlspecialchars($signedUrl) . '" alt="' . htmlspecialchars($fileName) . '" style="max-width: 500px; max-height: 400px; border: 1px solid #ccc;" />';
+                                    echo '</div>';
+                                    $imageRendered = true;
+                                }
+                            } catch (Exception $e) {
+                                error_log('[print-case] GCS signed URL failed for ' . $path . ': ' . $e->getMessage());
+                            }
+                        }
+                        
+                        if (!$imageRendered) {
+                            echo '<p style="color: #666; font-style: italic; font-size: 10px;">File available in case attachments</p>';
+                        }
+                        
+                        echo '</div>';
+                    }
                     echo '</div>';
                 }
+                
+                // === INTRAORAL SCANS SECTION (STL, OBJ, PLY, DCM) ===
+                if (!empty($scanAttachments)) {
+                    echo '<div class="file-section" style="margin-bottom: 30px;">';
+                    echo '<div class="file-header" style="background: #e3f2fd; border-color: #bbdefb;">Intraoral Scans</div>';
+                    echo '<ul style="margin: 10px 0; padding-left: 25px;">';
+                    
+                    foreach ($scanAttachments as $attachment) {
+                        $fileName = $attachment['fileName'] ?? $attachment['name'] ?? 'Unknown';
+                        $fileSize = $attachment['size'] ?? 0;
+                        $sizeStr = $fileSize > 0 ? ' (' . formatFileSize($fileSize) . ')' : '';
+                        
+                        echo '<li style="margin: 8px 0; font-size: 11px;">';
+                        echo '<strong>' . htmlspecialchars($fileName) . '</strong>' . $sizeStr;
+                        echo '</li>';
+                    }
+                    
+                    echo '</ul>';
+                    echo '<p style="font-size: 10px; color: #666; font-style: italic; margin-top: 10px;">3D scan files are available for download in the case attachments.</p>';
+                    echo '</div>';
+                }
+                
+                // === DOCUMENTS SECTION (PDF, ZIP, etc.) ===
+                if (!empty($documentAttachments)) {
+                    echo '<div class="file-section" style="margin-bottom: 30px;">';
+                    echo '<div class="file-header" style="background: #fff3e0; border-color: #ffe0b2;">Documents</div>';
+                    echo '<ul style="margin: 10px 0; padding-left: 25px;">';
+                    
+                    foreach ($documentAttachments as $attachment) {
+                        $fileName = $attachment['fileName'] ?? $attachment['name'] ?? 'Unknown';
+                        $fileSize = $attachment['size'] ?? 0;
+                        $sizeStr = $fileSize > 0 ? ' (' . formatFileSize($fileSize) . ')' : '';
+                        $ext = strtoupper(pathinfo($fileName, PATHINFO_EXTENSION));
+                        
+                        echo '<li style="margin: 8px 0; font-size: 11px;">';
+                        echo '<strong>' . htmlspecialchars($fileName) . '</strong>' . $sizeStr;
+                        if ($ext) {
+                            echo ' <span style="color: #666; font-size: 9px;">[' . $ext . ']</span>';
+                        }
+                        echo '</li>';
+                    }
+                    
+                    echo '</ul>';
+                    echo '<p style="font-size: 10px; color: #666; font-style: italic; margin-top: 10px;">Document files are available for download in the case attachments.</p>';
+                    echo '</div>';
+                }
+                
             } else {
                 echo '<div class="no-files">No attachments available.</div>';
             }
@@ -1325,5 +1344,41 @@ function formatDateTime($dateString) {
     } catch (Exception $e) {
         return htmlspecialchars($dateString);
     }
+}
+
+/**
+ * Generate a signed URL for GCS file download (for print/PDF rendering)
+ * @param string $objectPath GCS object path (e.g., cases/19/abc123/photos/file.jpg)
+ * @param int $expiryMinutes URL expiry in minutes (default 15)
+ * @return string|null Signed URL or null on failure
+ */
+function generateGcsSignedUrl($objectPath, $expiryMinutes = 15) {
+    try {
+        // Use the existing function from gcs-storage.php
+        if (function_exists('generateSignedDownloadUrl')) {
+            return generateSignedDownloadUrl($objectPath, $expiryMinutes * 60);
+        }
+        return null;
+    } catch (Exception $e) {
+        error_log('[print-case] generateGcsSignedUrl error: ' . $e->getMessage());
+        return null;
+    }
+}
+
+/**
+ * Format file size in human-readable format
+ * @param int $bytes File size in bytes
+ * @return string Formatted size (e.g., "1.5 MB")
+ */
+function formatFileSize($bytes) {
+    if ($bytes <= 0) return '0 B';
+    
+    $units = ['B', 'KB', 'MB', 'GB'];
+    $i = 0;
+    while ($bytes >= 1024 && $i < count($units) - 1) {
+        $bytes /= 1024;
+        $i++;
+    }
+    return round($bytes, 1) . ' ' . $units[$i];
 }
 ?>
