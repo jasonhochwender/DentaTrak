@@ -886,7 +886,7 @@ function generatePrintableHTML($caseData, $attachments = [], $gdAvailable = true
                     }
                     
                     echo '</ul>';
-                    echo '<p style="font-size: 10px; color: #666; font-style: italic; margin-top: 10px;">3D scan files are available for download in the case attachments.</p>';
+                    echo '<p style="font-size: 10px; color: #666; font-style: italic; margin-top: 10px;">Files available in the case.</p>';
                     echo '</div>';
                 }
                 
@@ -911,7 +911,7 @@ function generatePrintableHTML($caseData, $attachments = [], $gdAvailable = true
                     }
                     
                     echo '</ul>';
-                    echo '<p style="font-size: 10px; color: #666; font-style: italic; margin-top: 10px;">Document files are available for download in the case attachments.</p>';
+                    echo '<p style="font-size: 10px; color: #666; font-style: italic; margin-top: 10px;">Files available in the case.</p>';
                     echo '</div>';
                 }
                 
