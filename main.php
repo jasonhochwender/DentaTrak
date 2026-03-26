@@ -360,7 +360,7 @@ if (isset($appConfig) && is_array($appConfig) && isset($appConfig['appName'])) {
   <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
   
   <!-- Preload critical resources -->
-  <link rel="preload" href="js/app.js?v=20250104" as="script">
+  <link rel="preload" href="js/app.js?v=20260326a" as="script">
   <link rel="preload" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
   <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap"></noscript>
   
@@ -2320,7 +2320,7 @@ window.featureFlags = <?php echo getFeatureFlagsJson(); ?>;
   <script src="js/toast.js?v=20250104" defer></script>
   <script src="js/session-timeout.js?v=20250118" defer></script>
   <script src="js/gcs-upload.js?v=20260303c" defer></script>
-  <script src="js/app.js?v=20260303a" defer></script>
+  <script src="js/app.js?v=20260326a" defer></script>
   <script src="js/card-delete-fixed.js?v=20250104" defer></script>
   <script src="js/assignments.js?v=20250104" defer></script>
   <script src="js/case-comments.js?v=20250104" defer></script>

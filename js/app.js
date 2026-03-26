@@ -3346,7 +3346,7 @@ document.addEventListener('DOMContentLoaded', function () {
             
             // Validate both parts are numeric
             if (!/^\d+$/.test(start) || !/^\d+$/.test(end)) {
-              return { valid: false, error: 'Range values must be numbers (1-32): "' + part + '"', numbers: [], normalized: '' };
+              return { valid: false, error: 'Enter valid tooth numbers (1-32), e.g. 14, 30 or 14-18', numbers: [], normalized: '' };
             }
             
             var startNum = parseInt(start, 10);
@@ -3372,7 +3372,7 @@ document.addEventListener('DOMContentLoaded', function () {
           } else {
             // Single number
             if (!/^\d+$/.test(part)) {
-              return { valid: false, error: 'Tooth number must be a number (1-32): "' + part + '"', numbers: [], normalized: '' };
+              return { valid: false, error: 'Enter valid tooth numbers (1-32), e.g. 14, 30 or 14-18', numbers: [], normalized: '' };
             }
             
             var num = parseInt(part, 10);

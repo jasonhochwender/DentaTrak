@@ -67,7 +67,7 @@ function parseToothNumbers($value) {
                 if (!ctype_digit($start) || !ctype_digit($end)) {
                     return [
                         'valid' => false,
-                        'error' => 'Range values must be numbers (1-32): "' . $part . '"',
+                        'error' => 'Enter valid tooth numbers (1-32), e.g. 14, 30 or 14-18',
                         'numbers' => [],
                         'normalized' => ''
                     ];
@@ -113,7 +113,7 @@ function parseToothNumbers($value) {
                 if (!ctype_digit($part)) {
                     return [
                         'valid' => false,
-                        'error' => 'Tooth number must be a number (1-32): "' . $part . '"',
+                        'error' => 'Enter valid tooth numbers (1-32), e.g. 14, 30 or 14-18',
                         'numbers' => [],
                         'normalized' => ''
                     ];
