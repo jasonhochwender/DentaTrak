@@ -3295,9 +3295,11 @@ document.addEventListener('DOMContentLoaded', function () {
   })();
 
   // ============================================
-  // TOOTH NUMBER VALIDATION (Case-Type Aware)
-  // Business Rule: For Crown case type, validates tooth number
+  // TOOTH NUMBER VALIDATION MODULE
+  // Business Rule: For Crown case type, validates tooth number(s)
   // using standard dental numbering (1-32 for adult teeth).
+  // Supports multiple formats: single (14), comma-separated (14, 30),
+  // space-separated (14 30), ranges (14-18), or combinations (14-18, 30 31).
   // Rejects invalid values and displays inline error.
   // ============================================
   var toothNumberValidation = (function() {
@@ -3306,58 +3308,124 @@ document.addEventListener('DOMContentLoaded', function () {
     var MAX_TOOTH_NUMBER = 32;
     
     /**
-     * Validate a single tooth number
+     * Parse and validate tooth number input supporting multiple formats
+     * @param {string} value - Input string (e.g., "14", "14, 30", "14-18", "14-18, 30 31")
+     * @returns {object} - { valid: boolean, error: string|null, numbers: number[], normalized: string }
+     */
+    function parseToothNumbers(value) {
+      if (!value || value.trim() === '') {
+        return { valid: false, error: 'At least one tooth number is required', numbers: [], normalized: '' };
+      }
+      
+      var trimmed = value.trim();
+      var allNumbers = [];
+      
+      // Split by comma and/or whitespace (but not within ranges)
+      // First, split by comma
+      var commaParts = trimmed.split(',');
+      
+      for (var i = 0; i < commaParts.length; i++) {
+        // Then split each comma part by whitespace
+        var spaceParts = commaParts[i].trim().split(/\s+/);
+        
+        for (var j = 0; j < spaceParts.length; j++) {
+          var part = spaceParts[j].trim();
+          if (part === '') continue;
+          
+          // Check if it's a range (e.g., "14-18")
+          if (part.indexOf('-') !== -1) {
+            var rangeParts = part.split('-');
+            
+            // Validate range format
+            if (rangeParts.length !== 2) {
+              return { valid: false, error: 'Invalid range format: "' + part + '"', numbers: [], normalized: '' };
+            }
+            
+            var start = rangeParts[0].trim();
+            var end = rangeParts[1].trim();
+            
+            // Validate both parts are numeric
+            if (!/^\d+$/.test(start) || !/^\d+$/.test(end)) {
+              return { valid: false, error: 'Range values must be numbers (1-32): "' + part + '"', numbers: [], normalized: '' };
+            }
+            
+            var startNum = parseInt(start, 10);
+            var endNum = parseInt(end, 10);
+            
+            // Validate range bounds
+            if (startNum < MIN_TOOTH_NUMBER || startNum > MAX_TOOTH_NUMBER) {
+              return { valid: false, error: 'Tooth number ' + startNum + ' must be between 1 and 32', numbers: [], normalized: '' };
+            }
+            if (endNum < MIN_TOOTH_NUMBER || endNum > MAX_TOOTH_NUMBER) {
+              return { valid: false, error: 'Tooth number ' + endNum + ' must be between 1 and 32', numbers: [], normalized: '' };
+            }
+            
+            // Validate range direction
+            if (startNum > endNum) {
+              return { valid: false, error: 'Invalid range: start (' + startNum + ') must be less than or equal to end (' + endNum + ')', numbers: [], normalized: '' };
+            }
+            
+            // Expand range
+            for (var n = startNum; n <= endNum; n++) {
+              allNumbers.push(n);
+            }
+          } else {
+            // Single number
+            if (!/^\d+$/.test(part)) {
+              return { valid: false, error: 'Tooth number must be a number (1-32): "' + part + '"', numbers: [], normalized: '' };
+            }
+            
+            var num = parseInt(part, 10);
+            
+            if (num < MIN_TOOTH_NUMBER || num > MAX_TOOTH_NUMBER) {
+              return { valid: false, error: 'Tooth number ' + num + ' must be between 1 and 32', numbers: [], normalized: '' };
+            }
+            
+            allNumbers.push(num);
+          }
+        }
+      }
+      
+      if (allNumbers.length === 0) {
+        return { valid: false, error: 'At least one tooth number is required', numbers: [], normalized: '' };
+      }
+      
+      // Deduplicate and sort
+      var uniqueNumbers = [];
+      var seen = {};
+      for (var k = 0; k < allNumbers.length; k++) {
+        if (!seen[allNumbers[k]]) {
+          seen[allNumbers[k]] = true;
+          uniqueNumbers.push(allNumbers[k]);
+        }
+      }
+      uniqueNumbers.sort(function(a, b) { return a - b; });
+      
+      // Create normalized string (comma-separated, sorted)
+      var normalized = uniqueNumbers.join(', ');
+      
+      return { valid: true, error: null, numbers: uniqueNumbers, normalized: normalized };
+    }
+    
+    /**
+     * Validate a single tooth number (legacy function for backward compatibility)
      * @param {string} value - The tooth number to validate
      * @returns {object} - { valid: boolean, error: string|null }
      */
     function validateToothNumber(value) {
-      if (!value || value.trim() === '') {
-        return { valid: false, error: 'Tooth number is required' };
-      }
-      
-      var trimmed = value.trim();
-      
-      // Check for non-numeric characters (allow only digits)
-      if (!/^\d+$/.test(trimmed)) {
-        return { valid: false, error: 'Tooth number must be a number (1-32)' };
-      }
-      
-      var num = parseInt(trimmed, 10);
-      
-      // Check range
-      if (num < MIN_TOOTH_NUMBER || num > MAX_TOOTH_NUMBER) {
-        return { valid: false, error: 'Tooth number must be between 1 and 32' };
-      }
-      
-      return { valid: true, error: null };
+      // Use the new parser which handles all formats
+      var result = parseToothNumbers(value);
+      return { valid: result.valid, error: result.error };
     }
     
     /**
-     * Validate multiple tooth numbers (comma-separated)
+     * Validate multiple tooth numbers (comma-separated) - legacy function
      * @param {string} value - Comma-separated tooth numbers
      * @returns {object} - { valid: boolean, error: string|null, numbers: number[] }
      */
     function validateMultipleToothNumbers(value) {
-      if (!value || value.trim() === '') {
-        return { valid: false, error: 'At least one tooth number is required', numbers: [] };
-      }
-      
-      var parts = value.split(',').map(function(p) { return p.trim(); }).filter(function(p) { return p !== ''; });
-      
-      if (parts.length === 0) {
-        return { valid: false, error: 'At least one tooth number is required', numbers: [] };
-      }
-      
-      var validNumbers = [];
-      for (var i = 0; i < parts.length; i++) {
-        var result = validateToothNumber(parts[i]);
-        if (!result.valid) {
-          return { valid: false, error: result.error + ' (value: "' + parts[i] + '")', numbers: [] };
-        }
-        validNumbers.push(parseInt(parts[i], 10));
-      }
-      
-      return { valid: true, error: null, numbers: validNumbers };
+      var result = parseToothNumbers(value);
+      return { valid: result.valid, error: result.error, numbers: result.numbers };
     }
     
     /**

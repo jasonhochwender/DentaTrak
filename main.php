@@ -1311,7 +1311,7 @@ window.featureFlags = <?php echo getFeatureFlagsJson(); ?>;
                   <!-- Crown fields -->
                   <div class="form-field clinical-field" data-case-types="Crown" data-conditionally-required="true">
                     <label for="clinicalToothNumber">Tooth # <span class="required">*</span></label>
-                    <input id="clinicalToothNumber" name="clinicalToothNumber" type="text" placeholder="e.g. 14, 30">
+                    <input id="clinicalToothNumber" name="clinicalToothNumber" type="text" placeholder="e.g. 14, 30 or 14-18" title="Enter one or more teeth (e.g., 14, 30 or 14-18)">
                   </div>
 
                   <!-- Bridge fields -->

@@ -9,6 +9,7 @@ require_once __DIR__ . '/at-risk-calculator.php';
 require_once __DIR__ . '/encryption.php';
 require_once __DIR__ . '/csrf.php';
 require_once __DIR__ . '/security-headers.php';
+require_once __DIR__ . '/tooth-number-parser.php';
 
 // Set security headers
 setApiSecurityHeaders();
@@ -651,36 +652,31 @@ try {
         
         // ============================================
         // TOOTH NUMBER VALIDATION (Case-Type Aware)
-        // Business Rule: For Crown case type, validates tooth number
+        // Business Rule: For Crown case type, validates tooth number(s)
         // using standard dental numbering (1-32 for adult teeth).
+        // Supports multiple formats: single (14), comma-separated (14, 30),
+        // space-separated (14 30), ranges (14-18), or combinations.
         // Server-side enforcement prevents bypass of client-side validation.
         // ============================================
         $caseType = $_POST['caseType'] ?? '';
         
         if ($caseType === 'Crown' && !empty($clinicalDetails['toothNumber'])) {
-            $toothNumber = trim($clinicalDetails['toothNumber']);
+            $toothNumberInput = trim($clinicalDetails['toothNumber']);
+            $parseResult = parseToothNumbers($toothNumberInput);
             
-            // Validate: must be numeric and between 1-32
-            if (!ctype_digit($toothNumber)) {
+            if (!$parseResult['valid']) {
                 http_response_code(400);
                 echo json_encode([
                     'success' => false,
-                    'message' => 'Tooth number must be a number (1-32)',
+                    'message' => $parseResult['error'],
                     'field' => 'clinicalToothNumber'
                 ]);
                 exit;
             }
             
-            $toothNum = (int)$toothNumber;
-            if ($toothNum < 1 || $toothNum > 32) {
-                http_response_code(400);
-                echo json_encode([
-                    'success' => false,
-                    'message' => 'Tooth number must be between 1 and 32',
-                    'field' => 'clinicalToothNumber'
-                ]);
-                exit;
-            }
+            // Store normalized value (sorted, deduplicated, comma-separated)
+            $clinicalDetails['toothNumber'] = $parseResult['normalized'];
+            $caseData['clinicalDetails'] = $clinicalDetails;
         }
         
         // Validate CASE-TYPE-SPECIFIC required fields from config
