@@ -780,7 +780,7 @@ $appName = $appConfig['appName'] ?? 'Dentatrak';
         <p class="section-label">The Problem</p>
         <h2>Complex cases fail in predictable ways</h2>
         <p class="section-subtitle">
-          Implants, prosthodontics, orthodontics—these cases require coordination across labs, referrals, and staff. Most practices track them with systems that weren't built for this.
+          Implants, prosthodontics, orthodontics—these cases require coordination across labs, referrals, and staff. Most practices lack proper dental workflow tracking and rely on systems that weren't built for this.
         </p>
       </div>
       <div class="problem-grid">
@@ -798,7 +798,7 @@ $appName = $appConfig['appName'] ?? 'Dentatrak';
         </div>
         <div class="problem-card">
           <h3>PMS wasn't built for this</h3>
-          <p>Practice management software handles scheduling and billing—not multi-step case workflows or external dependencies.</p>
+          <p>Practice management software handles scheduling and billing—not dental lab case tracking or multi-step workflows with external dependencies.</p>
         </div>
       </div>
       <!-- Consequence Bridge -->
@@ -815,7 +815,7 @@ $appName = $appConfig['appName'] ?? 'Dentatrak';
         <p class="section-label">What Dentatrak Does</p>
         <h2>Catch problems before they cost you</h2>
         <p class="section-subtitle">
-          Dentatrak tracks cases—not appointments, not tasks. Every case has a status, an owner, and a clear next step. Nothing slips through.
+          Dentatrak is dental case tracking software that tracks cases—not appointments, not tasks. Every crown, implant, and lab case has a status, an owner, and a clear next step. Nothing slips through.
         </p>
       </div>
       <div class="solution-grid">
@@ -947,7 +947,7 @@ $appName = $appConfig['appName'] ?? 'Dentatrak';
       </div>
       <div class="integration-content">
         <p>
-          Dentatrak does not replace your practice management software. It fills a gap that PMS systems were never designed to address: tracking multi-step cases across labs, referrals, and internal handoffs.
+          Dentatrak does not replace your practice management software. It fills a gap that PMS systems were never designed to address: dental workflow tracking for multi-step cases across labs, referrals, and internal handoffs.
         </p>
         <p>
           Your PMS handles scheduling and billing. Dentatrak handles case visibility.
