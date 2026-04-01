@@ -971,6 +971,9 @@ $appName = $appConfig['appName'] ?? 'Dentatrak';
       </div>
       <div class="integration-content">
         <p>
+          Dentatrak provides a dedicated system for dental case tracking that complements existing practice management software by focusing specifically on multi-step case workflows.
+        </p>
+        <p>
           Dentatrak does not replace your practice management software. It fills a gap that PMS systems were never designed to address: dental workflow tracking for multi-step cases across labs, referrals, and internal handoffs.
         </p>
         <p>
