@@ -849,7 +849,7 @@ $appName = $appConfig['appName'] ?? 'Dentatrak';
     <div class="section-inner">
       <div class="section-header">
         <p class="section-label">How Dentatrak Works</p>
-        <h2>A simple workflow for complex cases</h2>
+        <h2>A simple workflow for tracking multi-step dental cases from prep to delivery</h2>
       </div>
       <div class="solution-grid">
         <div class="solution-item">
