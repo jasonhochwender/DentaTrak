@@ -55,6 +55,19 @@ $appName = $appConfig['appName'] ?? 'Dentatrak';
       background: var(--background-white);
     }
 
+    /* Inline text links */
+    .content-link {
+      color: var(--primary-color);
+      text-decoration: underline;
+      text-underline-offset: 2px;
+      font-weight: 500;
+      transition: color 0.2s;
+    }
+
+    .content-link:hover {
+      color: var(--primary-dark);
+    }
+
     /* Navigation */
     .nav {
       position: fixed;
@@ -780,7 +793,7 @@ $appName = $appConfig['appName'] ?? 'Dentatrak';
         <p class="section-label">The Problem</p>
         <h2>Complex cases fail in predictable ways</h2>
         <p class="section-subtitle">
-          Dental practices do not have a reliable system for <a href="/how-to-track-dental-cases" style="color: var(--primary-color); text-decoration: none; font-weight: 500;">tracking multi-step cases</a> across labs, referrals, and internal handoffs. Implants, prosthodontics, orthodontics—these cases require coordination, yet most practices lack proper dental case tracking and rely on systems that weren't built for multi-step workflows.
+          Dental practices do not have a reliable system for <a href="/how-to-track-dental-cases" class="content-link">tracking multi-step cases</a> across labs, referrals, and internal handoffs. Implants, prosthodontics, orthodontics—these cases require coordination, yet most practices lack proper dental case tracking and rely on systems that weren't built for multi-step workflows.
         </p>
       </div>
       <div class="problem-grid">
@@ -842,7 +855,7 @@ $appName = $appConfig['appName'] ?? 'Dentatrak';
         </div>
       </div>
       <p style="text-align: center; margin-top: 32px; font-size: 0.95rem; color: var(--text-secondary);">
-        For a deeper look at how dental case tracking software works, see our <a href="/dental-case-tracking" style="color: var(--primary-color); text-decoration: none; font-weight: 500;">detailed guide</a>.
+        For a deeper look at how dental case tracking software works, see our <a href="/dental-case-tracking" class="content-link">detailed guide on dental case tracking</a>.
       </p>
     </div>
   </section>
