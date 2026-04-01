@@ -745,9 +745,12 @@ $appName = $appConfig['appName'] ?? 'Dentatrak';
   <section id="waitlist" class="hero">
     <div class="hero-inner">
       <span class="launch-label">Launching Summer 2026</span>
-      <h1>Stop losing cases, chair time, and revenue between lab and delivery</h1>
+      <h1>Dental case tracking software for dental practices</h1>
       <p class="hero-subtitle">
-        Stalled cases cost you remakes, delayed revenue, and wasted appointments. Dentatrak gives you visibility into every multi-step case so you can see problems before they become expensive.
+        Track every crown, implant, and lab case from prep to delivery so nothing gets lost between labs, referrals, and patient scheduling.
+      </p>
+      <p class="hero-subtitle" style="margin-top: 16px;">
+        Dentatrak is a dental case tracking system designed for dental practices to manage multi-step cases across labs, referrals, and internal handoffs. It gives every case a status, owner, and next step so delays are visible before they become costly.
       </p>
       <p class="hero-private-note">
         Currently in private evaluation with select dental practices led by Dr. Verrillo.
