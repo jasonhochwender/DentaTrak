@@ -897,7 +897,7 @@ $appName = $appConfig['appName'] ?? 'Dentatrak';
       <div class="credibility-content">
         <h2>Built by a dentist, for dentists</h2>
         <p>
-          Dentatrak was created by Dr. William Verrillo, a practicing dentist who experienced firsthand how easily complex cases stall between labs, referrals, and delivery.
+          Dentatrak was developed by Dr. William Verrillo, a practicing dentist based in Georgia, to solve real breakdowns in case tracking between labs, referrals, and delivery.
         </p>
         <p>
           This product is designed from real clinical workflows, not generic software assumptions.
