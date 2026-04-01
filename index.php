@@ -780,7 +780,7 @@ $appName = $appConfig['appName'] ?? 'Dentatrak';
         <p class="section-label">The Problem</p>
         <h2>Complex cases fail in predictable ways</h2>
         <p class="section-subtitle">
-          Dental practices do not have a reliable system for tracking multi-step cases across labs, referrals, and internal handoffs. Implants, prosthodontics, orthodontics—these cases require coordination, yet most practices lack proper dental workflow tracking and rely on systems that weren't built for this.
+          Dental practices do not have a reliable system for tracking multi-step cases across labs, referrals, and internal handoffs. Implants, prosthodontics, orthodontics—these cases require coordination, yet most practices lack proper dental case tracking and rely on systems that weren't built for multi-step workflows.
         </p>
       </div>
       <div class="problem-grid">
