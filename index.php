@@ -844,6 +844,53 @@ $appName = $appConfig['appName'] ?? 'Dentatrak';
     </div>
   </section>
 
+  <!-- How It Works Section -->
+  <section class="section">
+    <div class="section-inner">
+      <div class="section-header">
+        <p class="section-label">How Dentatrak Works</p>
+        <h2>A simple workflow for complex cases</h2>
+      </div>
+      <div class="solution-grid">
+        <div class="solution-item">
+          <div class="solution-icon">
+            <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+          </div>
+          <h3>1. Enter the case when treatment begins</h3>
+          <p>Add patient, case type (crown, implant, etc.), and lab details.</p>
+        </div>
+        <div class="solution-item">
+          <div class="solution-icon">
+            <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+          </div>
+          <h3>2. Assign ownership and next step</h3>
+          <p>Every case has a responsible person and a clear next action.</p>
+        </div>
+        <div class="solution-item">
+          <div class="solution-icon">
+            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+          </div>
+          <h3>3. Track external dependencies</h3>
+          <p>See which cases are waiting on labs, referrals, or patients.</p>
+        </div>
+        <div class="solution-item">
+          <div class="solution-icon">
+            <svg viewBox="0 0 24 24"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="10"/></svg>
+          </div>
+          <h3>4. Monitor until delivery</h3>
+          <p>Follow the case through to completion and mark it delivered.</p>
+        </div>
+        <div class="solution-item">
+          <div class="solution-icon">
+            <svg viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><path d="M12 9v4M12 17h.01"/></svg>
+          </div>
+          <h3>5. Intervene early</h3>
+          <p>Identify stalled cases before they affect scheduling or revenue.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <!-- Credibility Section -->
   <section class="section credibility">
     <div class="section-inner">
