@@ -1,6 +1,19 @@
 # Custom 404 Error Page
 ErrorDocument 404 /404.php
 
+# Clean URLs - rewrite /page to /page.php
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  
+  # Skip if the request is a real file or directory
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteCond %{REQUEST_FILENAME} !-d
+  
+  # Rewrite clean URL to .php file (e.g., /dental-case-tracking -> dental-case-tracking.php)
+  RewriteCond %{REQUEST_FILENAME}.php -f
+  RewriteRule ^([a-zA-Z0-9-]+)/?$ $1.php [L]
+</IfModule>
+
 # Force HTTPS redirect
 # NOTE: On Google App Engine, SSL is terminated at the load balancer
 # so %{HTTPS} may always appear "off". Use X-Forwarded-Proto header instead.
