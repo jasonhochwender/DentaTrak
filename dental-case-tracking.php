@@ -292,86 +292,122 @@ $appName = $appConfig['appName'] ?? 'Dentatrak';
     <h1>Dental Case Tracking Software for Dental Practices</h1>
     
     <p>
-      Dental case tracking software helps dental practices monitor multi-step cases from start to finish. Unlike practice management systems that focus on scheduling and billing, dental case tracking software is designed specifically to track crowns, implants, lab work, and referral-dependent treatments through every stage of completion.
+      Dental case tracking software helps dental practices manage multi-step cases such as crowns, implants, and lab-based treatments by providing visibility into each step of the workflow.
     </p>
-
-    <div class="highlight-box">
-      <h3>What is dental case tracking?</h3>
-      <p>
-        Dental case tracking is the process of monitoring complex dental cases—such as crowns, bridges, implants, and lab-based restorations—from initial treatment through final delivery. It ensures every case has a clear status, an assigned owner, and a defined next step.
-      </p>
-    </div>
-
-    <h2>Common Problems Without Dental Case Tracking</h2>
     
     <p>
-      Most dental practices do not have a dedicated system for tracking cases. Instead, they rely on memory, sticky notes, or spreadsheets. This leads to predictable problems:
+      Dentatrak is a dental case tracking system designed to give every case a status, owner, and next step so nothing is lost between labs, referrals, and internal handoffs.
+    </p>
+
+    <h2>Why Dental Case Tracking Is Difficult</h2>
+    
+    <p>
+      Most dental practices struggle to track complex cases because they lack a dedicated system. Instead, case information lives in scattered places—and problems only surface when it's too late.
     </p>
     
     <ul>
-      <li><strong>Lost cases:</strong> Cases get stuck between lab shipments, patient no-shows, or referral delays. Without visibility, no one notices until the patient calls or the case expires.</li>
-      <li><strong>Lab delays:</strong> When a lab case is late, staff often don't know until the patient arrives. This wastes chair time and creates scheduling problems.</li>
-      <li><strong>No clear ownership:</strong> When multiple people touch a case, it's unclear who is responsible for the next step. Cases fall through the cracks during handoffs.</li>
-      <li><strong>Invisible bottlenecks:</strong> Without tracking, practices can't see patterns—like which labs are consistently late or which case types stall most often.</li>
+      <li><strong>Cases tracked in memory:</strong> The dentist or coordinator knows where things stand, but that knowledge isn't shared. When someone is out sick or busy, cases stall because no one else knows the status.</li>
+      <li><strong>Lost between lab and front desk:</strong> A case ships to the lab, comes back, and sits waiting. The front desk doesn't know it's ready. The patient doesn't get scheduled. Days pass before anyone notices.</li>
+      <li><strong>No ownership or accountability:</strong> Multiple people touch a case—hygienist, assistant, coordinator, dentist. But no one is clearly responsible for the next step. Handoffs become drop-offs.</li>
+      <li><strong>Delays only noticed after impact:</strong> By the time someone realizes a case is stalled, the patient has already waited too long, the lab work may need to be redone, or chair time has been wasted.</li>
     </ul>
-
-    <h2>How Dental Case Tracking Software Solves These Problems</h2>
     
     <p>
-      Dental case tracking software like Dentatrak gives every case a status, an owner, and a next step. This creates visibility across your entire workflow:
+      These aren't edge cases. They happen regularly in practices that handle crowns, implants, bridges, and other multi-step treatments. Without dental case tracking software, there's no reliable way to catch problems before they become costly.
+    </p>
+
+    <h2>What Dental Case Tracking Software Should Do</h2>
+    
+    <p>
+      Effective dental case tracking software provides a clear, shared view of every active case. It should do the following:
     </p>
     
     <ul>
-      <li><strong>See all active cases in one place:</strong> Know exactly where every crown, implant, and lab case stands—without asking staff or digging through records.</li>
-      <li><strong>Track external dependencies:</strong> See which cases are waiting on labs, referrals, or patients. Know how long they've been waiting.</li>
-      <li><strong>Assign clear ownership:</strong> Every case has a responsible person. No confusion about who handles the next step.</li>
-      <li><strong>Catch problems early:</strong> Identify stalled cases before they affect scheduling, revenue, or patient satisfaction.</li>
+      <li><strong>Track case status:</strong> Know whether a case is in prep, at the lab, waiting on the patient, or ready for delivery. See the current state at a glance.</li>
+      <li><strong>Assign ownership:</strong> Every case should have a responsible person. When ownership is clear, accountability follows.</li>
+      <li><strong>Monitor lab dependencies:</strong> See which cases are waiting on external labs, how long they've been waiting, and whether expected return dates have passed.</li>
+      <li><strong>Show stalled cases:</strong> Surface cases that haven't moved in too long. Make delays visible before they become problems.</li>
+      <li><strong>Provide full lifecycle visibility:</strong> Track the case from initial treatment through final delivery. Nothing should disappear between steps.</li>
     </ul>
+    
+    <p>
+      Dental case tracking software is not a replacement for your practice management system. It fills a gap that PMS software was never designed to address: managing the workflow of complex, multi-step cases.
+    </p>
 
     <h2>How Dentatrak Works</h2>
     
     <p>
-      Dentatrak is dental case tracking software built specifically for dental practices. Here's how it works:
+      Dentatrak is dental case tracking software built for dental practices. It provides a simple, structured workflow for tracking cases from start to finish:
     </p>
     
     <ol class="workflow-steps">
       <li>
-        <strong>Enter the case when treatment begins</strong>
-        Add patient details, case type (crown, implant, bridge, etc.), and lab information.
+        <strong>Enter the case</strong>
+        When treatment begins, create a case record with patient details, case type (crown, implant, bridge, etc.), and lab information.
       </li>
       <li>
-        <strong>Assign ownership and next step</strong>
-        Every case gets a responsible person and a clear next action.
+        <strong>Assign ownership</strong>
+        Designate who is responsible for the case and what the next step is. Ownership stays clear through every handoff.
       </li>
       <li>
-        <strong>Track external dependencies</strong>
-        See which cases are waiting on labs, referrals, or patient scheduling.
+        <strong>Track dependencies</strong>
+        See which cases are waiting on labs, referrals, or patient scheduling. Know how long they've been waiting.
       </li>
       <li>
-        <strong>Monitor until delivery</strong>
-        Follow the case through each stage until it's marked complete.
+        <strong>Monitor progress</strong>
+        Follow the case through each stage. Update status as it moves from prep to lab to delivery.
       </li>
       <li>
         <strong>Intervene early</strong>
-        Identify stalled cases before they become costly problems.
+        Identify stalled cases before they affect scheduling, revenue, or patient satisfaction. Take action while there's still time.
       </li>
     </ol>
+
+    <h2>Types of Cases Tracked</h2>
+    
+    <p>
+      Dentatrak is designed to support common multi-step dental workflows that are difficult to track in traditional systems:
+    </p>
+    
+    <ul>
+      <li><strong>Crown and bridge cases:</strong> Track from prep through lab fabrication to final seating.</li>
+      <li><strong>Implant workflows:</strong> Monitor surgical placement, healing periods, and restoration phases.</li>
+      <li><strong>Lab-based restorations:</strong> See which cases are at the lab, when they're expected back, and whether they're overdue.</li>
+      <li><strong>Referral-dependent treatments:</strong> Track cases that require coordination with specialists or external providers.</li>
+      <li><strong>Multi-appointment procedures:</strong> Maintain visibility across treatments that span multiple visits over weeks or months.</li>
+    </ul>
 
     <h2>Who Should Use Dental Case Tracking Software</h2>
     
     <p>
-      Dental case tracking software is designed for practices that handle complex, multi-step cases:
+      Dental case tracking software benefits everyone involved in managing complex cases:
     </p>
     
     <ul>
-      <li><strong>Practice owners:</strong> See where cases stall without asking staff. Identify bottlenecks and reduce remakes before they cost you.</li>
-      <li><strong>Treatment coordinators:</strong> Get a clear view of what needs attention today. Know exactly who owns each case and what's next.</li>
-      <li><strong>Dental assistants:</strong> Fewer dropped handoffs between team members. Less time chasing down case status.</li>
+      <li><strong>Practice owners:</strong> Get visibility into case flow without asking staff for updates. See where bottlenecks occur and identify patterns that affect revenue and efficiency.</li>
+      <li><strong>Treatment coordinators:</strong> Know exactly which cases need attention today. Stop chasing down status updates and focus on moving cases forward.</li>
+      <li><strong>Dental assistants:</strong> Understand what's coming up and what's waiting. Reduce confusion during handoffs and spend less time tracking down information.</li>
     </ul>
     
     <p>
       If your practice handles crowns, bridges, implants, dentures, or any lab-based restorations, dental case tracking software can help you maintain visibility and reduce delays.
     </p>
+
+    <h2>How Dentatrak Fits with PMS Systems</h2>
+    
+    <p>
+      Dentatrak does not replace your practice management software. Your PMS handles scheduling, billing, and patient records. Dentatrak handles something different: tracking the workflow of multi-step cases.
+    </p>
+    
+    <p>
+      Most PMS systems were not designed for dental case tracking. They don't show you which cases are stalled, who owns each case, or how long a case has been waiting on a lab. Dentatrak fills that gap.
+    </p>
+    
+    <ul>
+      <li><strong>Complements scheduling and billing:</strong> Use your PMS for appointments and payments. Use Dentatrak for case visibility.</li>
+      <li><strong>No data migration required:</strong> Dentatrak works alongside your existing systems. Start tracking cases immediately without disrupting your current workflow.</li>
+      <li><strong>Focuses specifically on case tracking:</strong> Instead of trying to do everything, Dentatrak does one thing well: giving you visibility into complex cases.</li>
+    </ul>
 
     <div class="cta-section">
       <h2>Ready to track your cases?</h2>
