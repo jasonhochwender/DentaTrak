@@ -841,6 +841,9 @@ $appName = $appConfig['appName'] ?? 'Dentatrak';
           <p>Know which cases are waiting on labs, referrals, or patients—and for how long. Intervene before delays become problems.</p>
         </div>
       </div>
+      <p style="text-align: center; margin-top: 32px; font-size: 0.95rem; color: var(--text-secondary);">
+        For a deeper look at how dental case tracking software works, see our <a href="/dental-case-tracking" style="color: var(--primary-color); text-decoration: none; font-weight: 500;">detailed guide</a>.
+      </p>
     </div>
   </section>
 

@@ -408,6 +408,10 @@ $appName = $appConfig['appName'] ?? 'Dentatrak';
       <li><strong>No data migration required:</strong> Dentatrak works alongside your existing systems. Start tracking cases immediately without disrupting your current workflow.</li>
       <li><strong>Focuses specifically on case tracking:</strong> Instead of trying to do everything, Dentatrak does one thing well: giving you visibility into complex cases.</li>
     </ul>
+    
+    <p>
+      If you're looking for a practical approach to tracking cases in your practice, see our <a href="/how-to-track-dental-cases" style="color: var(--primary-color); text-decoration: none; font-weight: 500;">step-by-step guide</a>.
+    </p>
 
     <div class="cta-section">
       <h2>Ready to track your cases?</h2>

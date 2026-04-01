@@ -363,7 +363,7 @@ $appName = $appConfig['appName'] ?? 'Dentatrak';
     </ul>
     
     <p>
-      This is what dental case tracking should provide: a shared, current view of every active case so nothing falls through the cracks.
+      This is what dental case tracking should provide: a shared, current view of every active case so nothing falls through the cracks. Using dedicated <a href="/dental-case-tracking" style="color: var(--primary-color); text-decoration: none; font-weight: 500;">dental case tracking software</a> makes this process consistent and reliable.
     </p>
 
     <h2>Step-by-Step Process to Track Dental Cases</h2>
