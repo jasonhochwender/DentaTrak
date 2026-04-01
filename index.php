@@ -938,6 +938,30 @@ $appName = $appConfig['appName'] ?? 'Dentatrak';
     </div>
   </section>
 
+  <!-- Case Types Section -->
+  <section class="section">
+    <div class="section-inner">
+      <div class="section-header">
+        <p class="section-label">Cases Dentatrak Helps Track</p>
+        <h2>Built for complex dental workflows</h2>
+        <p class="section-subtitle">
+          Dentatrak is designed to support common multi-step dental workflows that are difficult to track in traditional systems.
+        </p>
+      </div>
+      <div class="audience-grid">
+        <div class="audience-card">
+          <ul class="audience-list">
+            <li>Crown and bridge cases</li>
+            <li>Implant workflows</li>
+            <li>Lab-based restorations</li>
+            <li>Referral-dependent treatments</li>
+            <li>Multi-appointment procedures</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <!-- Integration Section -->
   <section class="section">
     <div class="section-inner">
