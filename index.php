@@ -815,7 +815,7 @@ $appName = $appConfig['appName'] ?? 'Dentatrak';
         <p class="section-label">What Dentatrak Does</p>
         <h2>Catch problems before they cost you</h2>
         <p class="section-subtitle">
-          Dentatrak is dental case tracking software that tracks cases—not appointments, not tasks. Every crown, implant, and lab case has a status, an owner, and a clear next step. Nothing slips through.
+          Dentatrak is dental case tracking software designed to manage crown cases, implant workflows, and lab coordination across the full lifecycle of treatment. Every case has a status, an owner, and a clear next step. Nothing slips through.
         </p>
       </div>
       <div class="solution-grid">
