@@ -104,8 +104,6 @@ try {
                     $gcsFiles = [];
                 }
                 
-                error_log('[update-case] GCS FILES RECEIVED: ' . json_encode($gcsFiles));
-                
                 // Build set of existing storage paths to prevent duplicates
                 $existingPaths = [];
                 foreach ($existingAttachments as $att) {
@@ -121,13 +119,11 @@ try {
                     $originalName = $file['original_filename'] ?? '';
                     
                     if (empty($storagePath) || empty($originalName)) {
-                        error_log('[update-case] Skipping invalid GCS file entry: ' . json_encode($file));
                         continue;
                     }
                     
                     // Skip if already exists
                     if (!empty($existingPaths[$storagePath])) {
-                        error_log('[update-case] Skipping duplicate: ' . $storagePath);
                         continue;
                     }
                     
@@ -147,10 +143,7 @@ try {
                     
                     $existingAttachments[] = $attachment;
                     $existingPaths[$storagePath] = true;
-                    error_log('[update-case] Added GCS attachment: ' . $originalName . ' -> ' . $storagePath);
                 }
-                
-                error_log('[update-case] ATTACHMENTS AFTER GCS MERGE: ' . count($existingAttachments));
             }
             
             // Process legacy direct file uploads (fallback)
@@ -202,7 +195,6 @@ try {
                 'driveFolderId' => $caseData['driveFolderId'] ?? null
             ];
         } catch (Exception $e) {
-            error_log('[update-case] Database update failed: ' . $e->getMessage());
             return [
                 'success' => false,
                 'message' => 'Failed to update case: ' . $e->getMessage()
@@ -260,7 +252,6 @@ try {
                                 'case_id' => $caseData['id']
                             ]);
                         } catch (Exception $e) {
-                            error_log('[update-case] Failed to update cache: ' . $e->getMessage());
                         }
                     } else {
                         // Create a new folder for this case
@@ -287,7 +278,6 @@ try {
                                 'case_id' => $caseData['id']
                             ]);
                         } catch (Exception $e) {
-                            error_log('[update-case] Failed to update cache: ' . $e->getMessage());
                         }
                     }
                 } catch (Exception $e) {
@@ -437,8 +427,6 @@ try {
                     $gcsFiles = [];
                 }
                 
-                error_log('[update-case-drive] GCS FILES RECEIVED: ' . json_encode($gcsFiles));
-                
                 if (!isset($existingCaseData['attachments']) || !is_array($existingCaseData['attachments'])) {
                     $existingCaseData['attachments'] = [];
                 }
@@ -458,13 +446,11 @@ try {
                     $originalName = $file['original_filename'] ?? '';
                     
                     if (empty($storagePath) || empty($originalName)) {
-                        error_log('[update-case-drive] Skipping invalid GCS file entry: ' . json_encode($file));
                         continue;
                     }
                     
                     // Skip if already exists
                     if (!empty($existingPaths[$storagePath])) {
-                        error_log('[update-case-drive] Skipping duplicate: ' . $storagePath);
                         continue;
                     }
                     
@@ -484,10 +470,7 @@ try {
                     
                     $existingCaseData['attachments'][] = $attachment;
                     $existingPaths[$storagePath] = true;
-                    error_log('[update-case-drive] Added GCS attachment: ' . $originalName . ' -> ' . $storagePath);
                 }
-                
-                error_log('[update-case-drive] ATTACHMENTS AFTER GCS MERGE: ' . count($existingCaseData['attachments']));
             }
             
             // Process legacy file attachments (fallback for direct uploads)
@@ -545,7 +528,7 @@ try {
                 'changedFields' => $changedFields
             ];
         } catch (Exception $e) {
-            error_log('[update-case] Error: ' . $e->getMessage());
+
             return [
                 'success' => false,
                 'message' => 'Error updating case: ' . $e->getMessage()
@@ -826,7 +809,7 @@ try {
                 }
             } catch (PDOException $e) {
                 // Log error but don't fail the whole operation
-                error_log('[update-case] Assignment error: ' . $e->getMessage());
+
                 $result['assignmentError'] = 'Error updating assignment: ' . $e->getMessage();
             }
         }
@@ -940,7 +923,7 @@ try {
                                 ];
                             }
                         } catch (Exception $e) {
-                            error_log('[update-case] Error checking backup folder: ' . $e->getMessage());
+
                         }
                     }
                 }
@@ -1001,7 +984,7 @@ try {
                         }
                     }
                 } catch (Exception $e) {
-                    error_log('[update-case] Backup sync error (non-blocking): ' . $e->getMessage());
+
                 }
             }
             exit;

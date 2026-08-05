@@ -3,6 +3,8 @@ require_once __DIR__ . '/api/appConfig.php';
 require_once __DIR__ . '/api/security-headers.php';
 setSecurityHeaders();
 $appName = $appConfig['appName'] ?? 'Dentatrak';
+$baseUrl = rtrim($appConfig['baseUrl'], '/') . '/';
+$articleUrls = $appConfig['public_urls'] ?? [];
 ?><!DOCTYPE html>
 <html lang="en">
 <head>
@@ -18,8 +20,8 @@ $appName = $appConfig['appName'] ?? 'Dentatrak';
     gtag('config', 'G-MBJDENR3H2');
   </script>
   
-  <meta name="description" content="Dentatrak helps dental practices track complex, multi-step cases from lab to chair. Prevent lost cases, reduce remakes, and maintain visibility across your entire workflow.">
-  <title>Dentatrak - Case Tracking for Dental Practices</title>
+  <meta name="description" content="Dentatrak is dental case tracking software for dental practices. Track every crown, implant, and lab case from prep to delivery. Start a 90-day free trial.">
+  <title>Dentatrak - Dental Case Tracking Software for Dental Practices</title>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
     :root {
@@ -113,6 +115,18 @@ $appName = $appConfig['appName'] ?? 'Dentatrak';
     }
 
     .nav-link:hover {
+      color: var(--primary-color);
+    }
+
+    .nav-login {
+      font-size: 0.9rem;
+      font-weight: 500;
+      color: var(--text-secondary);
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+
+    .nav-login:hover {
       color: var(--primary-color);
     }
 
@@ -449,11 +463,20 @@ $appName = $appConfig['appName'] ?? 'Dentatrak';
       background: var(--background-subtle);
     }
 
+    .pricing-intro {
+      text-align: center;
+      font-size: 1rem;
+      color: var(--text-secondary);
+      max-width: 600px;
+      margin: -32px auto 48px;
+      line-height: 1.7;
+    }
+
     .pricing-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
       gap: 32px;
-      max-width: 800px;
+      max-width: 840px;
       margin: 0 auto;
     }
 
@@ -462,26 +485,56 @@ $appName = $appConfig['appName'] ?? 'Dentatrak';
       border: 1px solid var(--border-light);
       border-radius: var(--radius-lg);
       padding: 40px;
-      text-align: center;
     }
 
     .pricing-card h3 {
       font-size: 1.25rem;
-      font-weight: 600;
+      font-weight: 700;
       color: var(--text-primary);
-      margin-bottom: 12px;
+      margin-bottom: 20px;
+    }
+
+    .pricing-price-primary {
+      font-size: 2rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      letter-spacing: -0.02em;
+      margin-bottom: 4px;
+    }
+
+    .pricing-price-annual {
+      font-size: 0.9rem;
+      color: var(--text-secondary);
+      margin-bottom: 4px;
+    }
+
+    .pricing-price-note {
+      font-size: 0.825rem;
+      color: var(--primary-color);
+      font-weight: 500;
+      margin-bottom: 24px;
+    }
+
+    .pricing-divider {
+      border: none;
+      border-top: 1px solid var(--border-light);
+      margin: 24px 0;
     }
 
     .pricing-card p {
       font-size: 0.925rem;
       color: var(--text-secondary);
       line-height: 1.7;
+      margin-bottom: 24px;
+    }
+
+    .pricing-card .btn-primary {
+      width: 100%;
+      justify-content: center;
     }
 
     .pricing-card-featured {
       border: 2px solid var(--primary-color);
-      background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
-      position: relative;
     }
 
     .pricing-card-featured h3 {
@@ -592,111 +645,11 @@ $appName = $appConfig['appName'] ?? 'Dentatrak';
       color: var(--text-light);
     }
 
-    /* Launch Label */
-    .launch-label {
-      display: inline-block;
-      font-size: 0.75rem;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.1em;
-      color: var(--primary-color);
-      background: rgba(30, 64, 175, 0.1);
-      padding: 6px 14px;
-      border-radius: 20px;
-      margin-bottom: 20px;
-    }
-
-    .hero-private-note {
-      font-size: 0.95rem;
+    /* Hero supporting note */
+    .hero-note {
+      font-size: 0.9rem;
       color: var(--text-light);
-      margin-top: -24px;
-      margin-bottom: 40px;
-    }
-
-    /* Waitlist Form */
-    .waitlist-form {
-      max-width: 500px;
-      margin: 0 auto;
-    }
-
-    .waitlist-input-group {
-      display: flex;
-      gap: 12px;
-      margin-bottom: 12px;
-    }
-
-    .waitlist-input {
-      flex: 1;
-      min-width: 280px;
-      padding: 16px 20px;
-      font-size: 1rem;
-      font-family: inherit;
-      border: 2px solid var(--border-medium);
-      border-radius: var(--radius-md);
-      outline: none;
-      background: var(--background-white);
-      box-shadow: var(--shadow-small);
-      transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
-    }
-
-    .waitlist-input:hover {
-      border-color: var(--primary-light);
-      background: #fafbff;
-    }
-
-    .waitlist-input:focus {
-      border-color: var(--primary-color);
-      box-shadow: 0 0 0 4px rgba(30, 64, 175, 0.12);
-      background: var(--background-white);
-    }
-
-    .waitlist-input::placeholder {
-      color: var(--text-light);
-    }
-
-    .waitlist-btn {
-      padding: 14px 24px;
-      background: var(--primary-color);
-      color: white;
-      font-size: 0.95rem;
-      font-weight: 600;
-      font-family: inherit;
-      border: none;
-      border-radius: var(--radius-md);
-      cursor: pointer;
-      transition: background 0.2s, transform 0.2s;
-      white-space: nowrap;
-    }
-
-    .waitlist-btn:hover {
-      background: var(--primary-light);
-      transform: translateY(-1px);
-    }
-
-    .waitlist-btn:disabled {
-      background: var(--text-light);
-      cursor: not-allowed;
-      transform: none;
-    }
-
-    .waitlist-helper {
-      font-size: 0.85rem;
-      color: var(--text-light);
-    }
-
-    .waitlist-success {
-      font-size: 1rem;
-      color: var(--primary-color);
-      font-weight: 500;
-      padding: 20px;
-      background: rgba(30, 64, 175, 0.05);
-      border-radius: var(--radius-md);
-    }
-
-    .waitlist-error {
-      font-size: 0.875rem;
-      color: #dc2626;
-      margin-top: 8px;
+      margin-top: 20px;
     }
 
     /* Responsive */
@@ -717,7 +670,8 @@ $appName = $appConfig['appName'] ?? 'Dentatrak';
         gap: 16px;
       }
 
-      .nav-link {
+      .nav-link,
+      .nav-login {
         display: none;
       }
 
@@ -730,13 +684,6 @@ $appName = $appConfig['appName'] ?? 'Dentatrak';
         text-align: center;
       }
 
-      .waitlist-input-group {
-        flex-direction: column;
-      }
-
-      .waitlist-btn {
-        width: 100%;
-      }
     }
   </style>
 </head>
@@ -744,45 +691,32 @@ $appName = $appConfig['appName'] ?? 'Dentatrak';
   <!-- Navigation -->
   <nav class="nav">
     <div class="nav-inner">
-      <a href="index.php" class="nav-logo">Dentatrak</a>
+      <a href="<?= $baseUrl ?>" class="nav-logo">Dentatrak</a>
       <div class="nav-links">
         <a href="#problem" class="nav-link">The Problem</a>
-        <a href="#solution" class="nav-link">How It Works</a>
+        <a href="#how-it-works" class="nav-link">How It Works</a>
         <a href="#pricing" class="nav-link">Pricing</a>
-        <a href="#waitlist" class="nav-cta" onclick="setTimeout(function(){document.getElementById('waitlistEmail').focus();},100)">Get launch updates</a>
+        <a href="<?= $baseUrl ?>login.php" class="nav-login">Log In</a>
+        <a href="<?= $baseUrl ?>login.php" class="nav-cta">Start 90-Day Free Trial</a>
       </div>
     </div>
   </nav>
 
   <!-- Hero Section -->
-  <section id="waitlist" class="hero">
+  <section id="hero" class="hero">
     <div class="hero-inner">
-      <span class="launch-label">Launching Summer 2026</span>
       <h1>Dental case tracking software for dental practices</h1>
       <p class="hero-subtitle">
         Track every crown, implant, and lab case from prep to delivery so nothing gets lost between labs, referrals, and patient scheduling.
       </p>
-      <p class="hero-subtitle" style="margin-top: 16px;">
-        Dentatrak is a dental case tracking system designed for dental practices to manage multi-step cases across labs, referrals, and internal handoffs. It gives every case a status, owner, and next step so delays are visible before they become costly.
+      <p class="hero-subtitle" style="margin-top: 8px;">
+        Dentatrak gives every case a status, owner, and next step, helping your practice identify delays before they disrupt patient care, scheduling, or revenue.
       </p>
-      <p class="hero-private-note">
-        Currently in private evaluation with select dental practices led by Dr. Verrillo.
-      </p>
-      <div class="waitlist-form" id="waitlistForm">
-        <div class="founding-offer" style="background: linear-gradient(135deg, rgba(45, 90, 135, 0.15) 0%, rgba(26, 54, 93, 0.1) 100%); border: 2px solid var(--primary-light); border-radius: 12px; padding: 20px; margin-bottom: 20px; text-align: center;">
-          <span style="display: inline-block; background: var(--accent); color: var(--primary); font-size: 0.75rem; font-weight: 600; padding: 4px 12px; border-radius: 20px; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.5px;">Founding Member Offer</span>
-          <p style="margin: 0; font-size: 1.25rem; font-weight: 600; color: var(--primary);">Get 20% off your first year on the Control plan</p>
-          <p style="margin: 8px 0 0; font-size: 0.9rem; color: var(--text-light);">Join now and lock in exclusive early adopter pricing</p>
-        </div>
-        <form id="waitlistFormElement" onsubmit="return submitWaitlist(event)">
-          <div class="waitlist-input-group">
-            <input type="email" class="waitlist-input" id="waitlistEmail" placeholder="Enter your email" required>
-            <button type="submit" class="waitlist-btn" id="waitlistBtn">Claim My Discount</button>
-          </div>
-          <p class="waitlist-helper"><span style="font-size: 0.85rem; color: var(--text-light);">Limited spots available. Early adopters help shape the product and receive priority access.</span></p>
-          <p class="waitlist-error" id="waitlistError" style="display: none;"></p>
-        </form>
+      <div class="hero-ctas">
+        <a href="<?= $baseUrl ?>login.php" class="btn-primary">Start 90-Day Free Trial</a>
+        <a href="<?= $baseUrl ?>login.php" class="btn-secondary">Log In</a>
       </div>
+      <p class="hero-note">Try Dentatrak free for 90 days. Set up your practice and begin tracking cases in minutes.</p>
     </div>
   </section>
 
@@ -793,7 +727,7 @@ $appName = $appConfig['appName'] ?? 'Dentatrak';
         <p class="section-label">The Problem</p>
         <h2>Complex cases fail in predictable ways</h2>
         <p class="section-subtitle">
-          Dental practices do not have a reliable system for <a href="/how-to-track-dental-cases" class="content-link">tracking multi-step cases</a> across labs, referrals, and internal handoffs. Implants, prosthodontics, orthodontics—these cases require coordination, yet most practices lack proper dental case tracking and rely on systems that weren't built for multi-step workflows.
+          Dental practices do not have a reliable system for <a href="<?= $baseUrl . ($articleUrls['article_how_to_track'] ?? 'how-to-track-dental-cases') ?>" class="content-link">tracking multi-step cases</a> across labs, referrals, and internal handoffs. Implants, prosthodontics, orthodontics—these cases require coordination, yet most practices lack proper dental case tracking and rely on systems that weren't built for multi-step workflows.
         </p>
       </div>
       <div class="problem-grid">
@@ -825,7 +759,7 @@ $appName = $appConfig['appName'] ?? 'Dentatrak';
   <section id="solution" class="section">
     <div class="section-inner">
       <div class="section-header">
-        <p class="section-label">What Dentatrak Does</p>
+        <p class="section-label">How Dentatrak Helps</p>
         <h2>Catch problems before they cost you</h2>
         <p class="section-subtitle">
           Dentatrak is dental case tracking software designed to manage crown cases, implant workflows, and lab coordination across the full lifecycle of treatment. Every case has a status, an owner, and a clear next step. Nothing slips through.
@@ -855,13 +789,13 @@ $appName = $appConfig['appName'] ?? 'Dentatrak';
         </div>
       </div>
       <p style="text-align: center; margin-top: 32px; font-size: 0.95rem; color: var(--text-secondary);">
-        For a deeper look at how dental case tracking software works, see our <a href="/dental-case-tracking" class="content-link">detailed guide on dental case tracking</a>.
+        For a deeper look at how dental case tracking software works, see our <a href="<?= $baseUrl . ($articleUrls['article_dental_case_tracking'] ?? 'dental-case-tracking') ?>" class="content-link">detailed guide on dental case tracking</a>.
       </p>
     </div>
   </section>
 
   <!-- How It Works Section -->
-  <section class="section">
+  <section id="how-it-works" class="section">
     <div class="section-inner">
       <div class="section-header">
         <p class="section-label">How Dentatrak Works</p>
@@ -873,35 +807,35 @@ $appName = $appConfig['appName'] ?? 'Dentatrak';
             <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
           </div>
           <h3>1. Enter the case when treatment begins</h3>
-          <p>Add patient, case type (crown, implant, etc.), and lab details.</p>
+          <p>Add the patient, case type, and relevant lab or referral details.</p>
         </div>
         <div class="solution-item">
           <div class="solution-icon">
             <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
           </div>
-          <h3>2. Assign ownership and next step</h3>
-          <p>Every case has a responsible person and a clear next action.</p>
+          <h3>2. Assign ownership and the next step</h3>
+          <p>Give every case a responsible owner and a clear next action.</p>
         </div>
         <div class="solution-item">
           <div class="solution-icon">
             <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
           </div>
           <h3>3. Track external dependencies</h3>
-          <p>See which cases are waiting on labs, referrals, or patients.</p>
+          <p>See which cases are waiting on labs, referrals, patients, or other outside actions.</p>
         </div>
         <div class="solution-item">
           <div class="solution-icon">
             <svg viewBox="0 0 24 24"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="10"/></svg>
           </div>
-          <h3>4. Monitor until delivery</h3>
-          <p>Follow the case through to completion and mark it delivered.</p>
+          <h3>4. Monitor through delivery</h3>
+          <p>Follow each case through its full workflow and mark it complete when delivered.</p>
         </div>
         <div class="solution-item">
           <div class="solution-icon">
             <svg viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><path d="M12 9v4M12 17h.01"/></svg>
           </div>
           <h3>5. Intervene early</h3>
-          <p>Identify stalled cases before they affect scheduling or revenue.</p>
+          <p>Identify cases that are stalled or at risk before they affect scheduling, patient care, or revenue.</p>
         </div>
       </div>
     </div>
@@ -1007,16 +941,36 @@ $appName = $appConfig['appName'] ?? 'Dentatrak';
     <div class="section-inner">
       <div class="section-header">
         <p class="section-label">Pricing</p>
-        <h2>Two plans, clear purpose</h2>
+        <h2>Two plans, one clear view of every case</h2>
       </div>
+      <p class="pricing-intro">Start with a 90-day free trial. Choose monthly billing or save the equivalent of two months with annual billing.</p>
       <div class="pricing-grid">
         <div class="pricing-card">
           <h3>Operate</h3>
-          <p>For coordinators and staff who execute. Track every case, assign ownership, and keep handoffs clean. Know what needs attention today.</p>
+          <p class="pricing-price-primary">$495<span style="font-size: 1rem; font-weight: 500; color: var(--text-secondary);">/month</span></p>
+          <p class="pricing-price-annual">or $4,950/year billed annually</p>
+          <p class="pricing-price-note">Two months free with annual billing</p>
+          <hr class="pricing-divider">
+          <p>For coordinators and teams that need a reliable system for tracking cases, assigning ownership, managing handoffs, and knowing what needs attention today.</p>
+          <ul style="list-style: none; padding: 0; margin: 12px 0 20px; text-align: left; font-size: 0.95rem; color: var(--text-secondary);">
+            <li style="padding: 4px 0;">&#10003;&nbsp; Unlimited cases</li>
+            <li style="padding: 4px 0;">&#10003;&nbsp; Up to 5 users</li>
+          </ul>
+          <a href="<?= $baseUrl ?>login.php" class="btn-primary">Start 90-Day Free Trial</a>
         </div>
         <div class="pricing-card pricing-card-featured">
           <h3>Control</h3>
-          <p>For owners who need foresight. See which cases are at risk before they become problems. Identify bottlenecks, spot patterns, and intervene early—without chasing down staff.</p>
+          <p class="pricing-price-primary">$795<span style="font-size: 1rem; font-weight: 500; color: var(--text-secondary);">/month</span></p>
+          <p class="pricing-price-annual">or $7,950/year billed annually</p>
+          <p class="pricing-price-note">Two months free with annual billing</p>
+          <hr class="pricing-divider">
+          <p>For practice owners who need greater visibility into stalled cases, workflow risks, and bottlenecks, with Insights and Smart Recommendations that help identify where to intervene before delays become costly.</p>
+          <ul style="list-style: none; padding: 0; margin: 12px 0 20px; text-align: left; font-size: 0.95rem; color: var(--text-secondary);">
+            <li style="padding: 4px 0;">&#10003;&nbsp; Unlimited cases</li>
+            <li style="padding: 4px 0;">&#10003;&nbsp; Unlimited users</li>
+            <li style="padding: 4px 0;">&#10003;&nbsp; Insights and Smart Recommendations</li>
+          </ul>
+          <a href="<?= $baseUrl ?>login.php" class="btn-primary">Start 90-Day Free Trial</a>
         </div>
       </div>
     </div>
@@ -1049,9 +1003,12 @@ $appName = $appConfig['appName'] ?? 'Dentatrak';
   <!-- Final CTA -->
   <section class="section final-cta">
     <div class="section-inner">
-      <h2>Join the founding practices</h2>
-      <p>Be first in line when Dentatrak launches. Founding practices get 20% off their first year on the Control plan and early input on the product.</p>
-      <a href="#waitlist" class="btn-white" onclick="event.preventDefault(); window.scrollTo({top: 0, behavior: 'smooth'}); setTimeout(function(){document.getElementById('waitlistEmail').focus();}, 500);">Get early access</a>
+      <h2>Bring every case into view</h2>
+      <p>Stop relying on memory, disconnected notes, and manual follow-up. Give your team one place to see what is happening, who owns the next step, and which cases need attention.</p>
+      <a href="<?= $baseUrl ?>login.php" class="btn-white">Start Your 90-Day Free Trial</a>
+      <p style="margin-top: 20px; font-size: 0.9rem;">
+        <a href="<?= $baseUrl ?>login.php" style="color: rgba(255,255,255,0.75); text-decoration: underline; text-underline-offset: 2px;">Already have an account? Log in</a>
+      </p>
     </div>
   </section>
 
@@ -1060,65 +1017,13 @@ $appName = $appConfig['appName'] ?? 'Dentatrak';
     <div class="footer-inner">
       <div class="footer-logo">Dentatrak</div>
       <div class="footer-links">
-        <a href="privacy.php" class="footer-link">Privacy Policy</a>
-        <a href="terms.php" class="footer-link">Terms of Service</a>
+        <a href="<?= $baseUrl ?>privacy.php" class="footer-link">Privacy Policy</a>
+        <a href="<?= $baseUrl ?>terms.php" class="footer-link">Terms of Service</a>
         <a href="mailto:support@dentatrak.com" class="footer-link">Contact</a>
       </div>
       <div class="footer-copy">&copy; <?php echo date('Y'); ?> Dentatrak. All rights reserved.</div>
     </div>
   </footer>
 
-  <script>
-    async function submitWaitlist(event) {
-      event.preventDefault();
-      
-      const emailInput = document.getElementById('waitlistEmail');
-      const submitBtn = document.getElementById('waitlistBtn');
-      const errorEl = document.getElementById('waitlistError');
-      const formEl = document.getElementById('waitlistFormElement');
-      const formContainer = document.getElementById('waitlistForm');
-      
-      const email = emailInput.value.trim();
-      
-      if (!email) {
-        errorEl.textContent = 'Please enter your email address.';
-        errorEl.style.display = 'block';
-        return false;
-      }
-      
-      // Disable button during submission
-      submitBtn.disabled = true;
-      submitBtn.textContent = 'Submitting...';
-      errorEl.style.display = 'none';
-      
-      try {
-        const response = await fetch('api/waitlist.php', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({ email: email })
-        });
-        
-        const data = await response.json();
-        
-        if (data.success) {
-          formContainer.innerHTML = '<p class="waitlist-success">Thanks — we\'ll notify you when Dentatrak launches.</p>';
-        } else {
-          errorEl.textContent = data.error || 'Something went wrong. Please try again.';
-          errorEl.style.display = 'block';
-          submitBtn.disabled = false;
-          submitBtn.textContent = 'Get launch updates';
-        }
-      } catch (err) {
-        errorEl.textContent = 'Something went wrong. Please try again.';
-        errorEl.style.display = 'block';
-        submitBtn.disabled = false;
-        submitBtn.textContent = 'Get launch updates';
-      }
-      
-      return false;
-    }
-  </script>
 </body>
 </html>

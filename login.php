@@ -145,9 +145,8 @@ $sessionTimeout = isset($_GET['timeout']) && $_GET['timeout'] == '1';
     <div class="login-container">
       <div class="login-card">
         <div class="login-card-header">
-          <h2>Welcome Back</h2>
-          <p>Sign in to continue managing your cases</p>
-          <p class="invited-only-note">Dentatrak is currently available to invited practices only.</p>
+          <h2>Welcome to Dentatrak</h2>
+          <p>Sign in to your account or enter your email to start your 90-day free trial.</p>
         </div>
         
         <?php if ($sessionTimeout): ?>

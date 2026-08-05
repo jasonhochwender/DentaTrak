@@ -1,6 +1,6 @@
 /**
  * App JavaScript
- * 
+ *
  * Handles modal functionality, Google Sign-In modal experience,
  * and dental case management functionality
  */
@@ -37,12 +37,12 @@ function getSecureHeaders(additionalHeaders) {
 function secureFetch(url, options) {
   options = options || {};
   options.headers = options.headers || {};
-  
+
   // Add CSRF token header for non-GET requests
   if (!options.method || options.method.toUpperCase() !== 'GET') {
     options.headers['X-CSRF-Token'] = csrfToken;
   }
-  
+
   return fetch(url, options);
 }
 
@@ -53,14 +53,14 @@ function secureFetch(url, options) {
  */
 async function switchPractice(practiceId) {
   if (!practiceId) return;
-  
+
   // Show loading indicator
   var loadingOverlay = document.getElementById('pageLoadingOverlay');
   if (loadingOverlay) {
     loadingOverlay.style.display = 'flex';
     loadingOverlay.style.opacity = '1';
   }
-  
+
   try {
     var response = await secureFetch('api/switch-practice.php', {
       method: 'POST',
@@ -70,9 +70,9 @@ async function switchPractice(practiceId) {
       body: JSON.stringify({ practice_id: parseInt(practiceId, 10) }),
       credentials: 'same-origin'
     });
-    
+
     var data = await response.json();
-    
+
     if (data.success) {
       // Reload the page to get fresh context for the new practice
       window.location.reload();
@@ -81,18 +81,17 @@ async function switchPractice(practiceId) {
       if (loadingOverlay) {
         loadingOverlay.style.display = 'none';
       }
-      
+
       // Show error
       showToast(data.error || 'Failed to switch practice', 'error');
     }
   } catch (error) {
-    console.error('Error switching practice:', error);
-    
+
     // Hide loading overlay
     if (loadingOverlay) {
       loadingOverlay.style.display = 'none';
     }
-    
+
     if (typeof NetworkErrorHandler !== 'undefined') {
       NetworkErrorHandler.handle(error, 'switching practice');
     } else {
@@ -127,7 +126,7 @@ function showConfirmModal(title, message, onConfirm, onCancel, preventBackground
   var messageEl = document.getElementById('confirmModalMessage');
   var okBtn = document.getElementById('confirmModalOk');
   var cancelBtn = document.getElementById('confirmModalCancel');
-  
+
   if (!modal || !titleEl || !messageEl || !okBtn || !cancelBtn) {
     // Fallback to browser confirm if modal elements don't exist
     if (confirm(message)) {
@@ -137,28 +136,28 @@ function showConfirmModal(title, message, onConfirm, onCancel, preventBackground
     }
     return;
   }
-  
+
   titleEl.textContent = title || 'Confirm';
   messageEl.textContent = message || 'Are you sure?';
   modal.style.display = 'block';
-  
+
   // Clean up old event listeners by cloning buttons
   var newOkBtn = okBtn.cloneNode(true);
   var newCancelBtn = cancelBtn.cloneNode(true);
   okBtn.parentNode.replaceChild(newOkBtn, okBtn);
   cancelBtn.parentNode.replaceChild(newCancelBtn, cancelBtn);
-  
+
   // Add new event listeners
   newOkBtn.addEventListener('click', function() {
     modal.style.display = 'none';
     if (onConfirm) onConfirm();
   });
-  
+
   newCancelBtn.addEventListener('click', function() {
     modal.style.display = 'none';
     if (onCancel) onCancel();
   });
-  
+
   // Close on background click (unless prevented)
   if (!preventBackgroundClose) {
     modal.onclick = function(e) {
@@ -208,13 +207,13 @@ window.logoMarkedForRemoval = false;
 document.addEventListener('DOMContentLoaded', function () {
   // Reference to the full-page loading overlay
   var pageLoadingOverlay = document.getElementById('pageLoadingOverlay');
-  
+
   // Track app initialization state
   var appInitialized = false;
-  
+
   // We'll keep the loading overlay visible until the cases are fully loaded
   // The overlay will be hidden by the loadExistingCases function when complete
-  
+
   // Drag-and-drop will be initialized after cases are loaded
   // See hideLoader function in loadExistingCases
 
@@ -224,17 +223,17 @@ document.addEventListener('DOMContentLoaded', function () {
   const authPrivacyLink = document.getElementById('authPrivacyLink');
   const continueToGoogleBtn = document.getElementById('continueToGoogleBtn');
   let authPopup = null;
-  
+
   if (googleSignInBtn && signInModal) {
     // Prevent default action on the sign-in button to show our modal first
     googleSignInBtn.addEventListener('click', function(e) {
       // Prevent default link behavior
       e.preventDefault();
-      
+
       // Show the modal
       signInModal.style.display = 'block';
     });
-    
+
     // Handle privacy link in auth modal
     if (authPrivacyLink) {
       authPrivacyLink.addEventListener('click', function(e) {
@@ -247,7 +246,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }
       });
     }
-    
+
     // Close the modal if user clicks outside of it
     window.addEventListener('click', function(e) {
       if (e.target === signInModal) {
@@ -255,7 +254,7 @@ document.addEventListener('DOMContentLoaded', function () {
       }
     });
   }
-  
+
   // Clear validation state (error classes and messages) from the create case form
   function clearCreateCaseErrors() {
     var form = document.getElementById('createCaseForm');
@@ -515,8 +514,8 @@ document.addEventListener('DOMContentLoaded', function () {
       openAuthPopup(targetUrl);
     });
   }
-  
-  
+
+
   // Modal functionality
   const privacyLink = document.getElementById('privacyLink');
   const termsLink = document.getElementById('termsLink');
@@ -524,7 +523,7 @@ document.addEventListener('DOMContentLoaded', function () {
   const termsModal = document.getElementById('termsModal');
   const closeBtns = document.querySelectorAll('.btn-close, .modal-close-btn');
 
-  
+
   // Function to open a modal
   function openModal(modal) {
     if (modal) {
@@ -532,7 +531,7 @@ document.addEventListener('DOMContentLoaded', function () {
       document.body.style.overflow = 'hidden'; // Prevent scrolling behind modal
     }
   }
-  
+
   // Function to close all modals
   function closeModals() {
     const modals = document.querySelectorAll('.modal');
@@ -584,7 +583,7 @@ document.addEventListener('DOMContentLoaded', function () {
        pageLoadingOverlay.style.display = 'none';
      }, 300);
    }
-  
+
   // Event listeners for opening modals
   if (privacyLink) {
     privacyLink.addEventListener('click', function(e) {
@@ -592,14 +591,14 @@ document.addEventListener('DOMContentLoaded', function () {
       openModal(privacyModal);
     });
   }
-  
+
   if (termsLink) {
     termsLink.addEventListener('click', function(e) {
       e.preventDefault();
       openModal(termsModal);
     });
   }
-  
+
   // Event listeners for closing modals
   // Exclude create case modal close button and settings modal close button - they have their own handlers with unsaved changes check
   var createCaseCloseBtn = document.getElementById('createCaseClose');
@@ -609,7 +608,7 @@ document.addEventListener('DOMContentLoaded', function () {
       btn.addEventListener('click', closeModals);
     }
   });
-  
+
   // Close modal when clicking outside of modal content
   window.addEventListener('click', function(e) {
     if (e.target.classList.contains('modal')) {
@@ -631,7 +630,7 @@ document.addEventListener('DOMContentLoaded', function () {
       closeModals();
     }
   });
-  
+
   // Close modal with Escape key
   document.addEventListener('keydown', function(e) {
     if (e.key === 'Escape') {
@@ -640,39 +639,39 @@ document.addEventListener('DOMContentLoaded', function () {
         // Check if any other modal is open that should take priority
         var deleteConfirmModal = document.getElementById('deleteConfirmModal');
         var unsavedChangesDialog = document.querySelector('[style*="position: fixed"][style*="z-index: 10000"]');
-        
+
         if (deleteConfirmModal && deleteConfirmModal.style.display === 'block') {
           closeModals(); // Let delete confirmation handle it normally
           return;
         }
-        
+
         if (unsavedChangesDialog) {
           return; // Let unsaved changes dialog handle it
         }
-        
+
         e.preventDefault();
         e.stopPropagation();
         closeCreateCaseWithCheck();
         return;
       }
-      
+
       // Don't close modals if settings modal is open (it has its own ESC handling)
       if (settingsBillingModal && settingsBillingModal.style.display === 'block') {
         return; // Let the settings-specific ESC handler deal with it
       }
-      
+
       closeModals();
     }
   });
-  
+
   // Practice Switcher functionality
   var practiceSwitcherBtn = document.getElementById('practiceSwitcherBtn');
   var practiceSwitcherDropdown = document.getElementById('practiceSwitcherDropdown');
-  
+
   // User menu dropdown functionality
   var userMenuToggle = document.getElementById('userMenuToggle');
   var userMenu = document.getElementById('userMenu');
-  
+
   // Define helper functions first
   function closePracticeSwitcher() {
     if (practiceSwitcherDropdown && practiceSwitcherDropdown.classList.contains('open')) {
@@ -682,7 +681,7 @@ document.addEventListener('DOMContentLoaded', function () {
       }
     }
   }
-  
+
   function closeUserMenu() {
     if (userMenu && userMenu.classList.contains('open')) {
       userMenu.classList.remove('open');
@@ -691,10 +690,10 @@ document.addEventListener('DOMContentLoaded', function () {
       }
     }
   }
-  
+
   // Make closePracticeSwitcher available globally
   window.closePracticeSwitcher = closePracticeSwitcher;
-  
+
   // User menu event handlers
   if (userMenuToggle && userMenu) {
     userMenuToggle.addEventListener('click', function (e) {
@@ -713,7 +712,7 @@ document.addEventListener('DOMContentLoaded', function () {
       }
     });
   }
-  
+
   // Practice Switcher event handlers
   if (practiceSwitcherBtn && practiceSwitcherDropdown) {
     practiceSwitcherBtn.addEventListener('click', function(e) {
@@ -724,50 +723,77 @@ document.addEventListener('DOMContentLoaded', function () {
       // Close user menu if open
       closeUserMenu();
     });
-    
+
     // Close dropdown when clicking outside
     document.addEventListener('click', function(e) {
       if (!e.target.closest('.practice-switcher')) {
         closePracticeSwitcher();
       }
     });
-    
+
     // Handle practice selection
     var practiceItems = practiceSwitcherDropdown.querySelectorAll('.practice-switcher-item');
     practiceItems.forEach(function(item) {
       item.addEventListener('click', function(e) {
         e.preventDefault();
         var practiceId = this.getAttribute('data-practice-id');
-        
+
         // Don't switch if already on this practice
         if (this.classList.contains('active')) {
           closePracticeSwitcher();
           return;
         }
-        
+
         switchPractice(practiceId);
       });
     });
   }
-  
-  // Add click event listeners for menu items
-  var settingsMenuItem = document.querySelector('.user-menu-item:nth-child(1)');
+
+  // Add click event listeners for menu items.
+  // All items are addressed by explicit stable IDs — no positional or nth-child selectors.
+  var billingMenuItem   = document.getElementById('billingMenuItem');
+  var settingsMenuItem  = document.getElementById('settingsMenuItem');
   var contactUsMenuItem = document.getElementById('contactUsLink');
-  
-  if (settingsMenuItem) {
+
+  if (billingMenuItem && !billingMenuItem.hasAttribute('data-menu-listener')) {
+    billingMenuItem.setAttribute('data-menu-listener', 'true');
+    billingMenuItem.addEventListener('click', function(e) {
+      e.preventDefault();
+      closeUserMenu();
+      if (typeof window.openBillingPortal === 'function') {
+        window.openBillingPortal();
+      }
+    });
+  }
+
+  if (settingsMenuItem && !settingsMenuItem.hasAttribute('data-menu-listener')) {
+    settingsMenuItem.setAttribute('data-menu-listener', 'true');
     settingsMenuItem.addEventListener('click', function(e) {
       e.preventDefault();
+      closeUserMenu();
       openSettingsBillingModal();
     });
   }
-  
-  if (contactUsMenuItem) {
+
+  // Wire the X close button inside the Billing modal
+  var billingPortalCloseBtn = document.getElementById('billingPortalClose');
+  if (billingPortalCloseBtn && !billingPortalCloseBtn.hasAttribute('data-menu-listener')) {
+    billingPortalCloseBtn.setAttribute('data-menu-listener', 'true');
+    billingPortalCloseBtn.addEventListener('click', function() {
+      if (typeof window.closeBillingPortal === 'function') {
+        window.closeBillingPortal();
+      }
+    });
+  }
+
+  if (contactUsMenuItem && !contactUsMenuItem.hasAttribute('data-menu-listener')) {
+    contactUsMenuItem.setAttribute('data-menu-listener', 'true');
     contactUsMenuItem.addEventListener('click', function(e) {
       e.preventDefault();
       openContactModal();
     });
   }
-  
+
   // Take a Tour menu item
   var startTourMenuItem = document.getElementById('startTourLink');
   if (startTourMenuItem) {
@@ -783,30 +809,30 @@ document.addEventListener('DOMContentLoaded', function () {
       }
     });
   }
-  
+
   // Settings Modal functionality
   var settingsBillingModal = document.getElementById('settingsBillingModal');
   var settingsBillingClose = document.getElementById('settingsBillingClose');
   var settingsCancelBtn = document.getElementById('settingsCancel');
-  
+
   function openSettingsBillingModal() {
     if (!settingsBillingModal) return;
-    
+
     // Do not open modal while the page is loading
     if (pageLoadingOverlay && pageLoadingOverlay.style.display !== 'none' && pageLoadingOverlay.style.opacity !== '0') {
       return;
     }
-    
+
     // Show the modal
     settingsBillingModal.style.display = 'block';
-    
+
     // Initialize settings twisties and restore their state
     initSettingsTwisties();
-    
+
     // Load user settings
     loadSettings();
   }
-  
+
   // Function to load user settings from the server
   function loadSettings() {
     fetch('api/get-settings.php')
@@ -892,14 +918,14 @@ document.addEventListener('DOMContentLoaded', function () {
       twisty.dataset.twistyInitialized = '1';
     });
   }
-  
+
   // Apply loaded settings to form fields
   function applyUserSettings(preferences, loadedGmailUsers, loadedGmailLogins, loadedAdminUsers, practiceName, logoPath, loadedAssignmentLabels, isPracticeAdmin, practiceCreatorEmail, displayName, legalName, loadedLimitedVisibilityUsers, loadedCanViewAnalyticsUsers, loadedCanEditCasesUsers, loadedCanAddLabelsUsers, practiceCreatorHasGoogleAccount, isGoogleDriveConnected) {
     window.isPracticeAdmin = !!isPracticeAdmin;
     window.practiceCreatorEmail = (practiceCreatorEmail || '').toLowerCase() || null;
     window.practiceCreatorHasGoogleAccount = practiceCreatorHasGoogleAccount !== false;
     window.isGoogleDriveConnected = isGoogleDriveConnected === true;
-    
+
     // Set tour completion status for Shepherd.js
     window.tourCompleted = !!preferences.tour_completed;
 
@@ -917,7 +943,7 @@ document.addEventListener('DOMContentLoaded', function () {
     if (themeDropdown) {
       themeDropdown.value = themeValue;
     }
-    
+
     // Update practice name in header (use displayName if available)
     var nameToDisplay = displayName || practiceName;
     if (nameToDisplay) {
@@ -926,13 +952,13 @@ document.addEventListener('DOMContentLoaded', function () {
         practiceNameElement.textContent = nameToDisplay;
       }
     }
-    
+
     // Populate display name field in settings
     const displayNameInput = document.getElementById('displayName');
     if (displayNameInput) {
       displayNameInput.value = displayName || practiceName || '';
     }
-    
+
     // Update logo display from the value currently saved in the database
     updateLogoDisplay(logoPath);
 
@@ -940,7 +966,7 @@ document.addEventListener('DOMContentLoaded', function () {
     window.currentLogoPath = logoPath || '';
     window.pendingLogoPath = '';
     window.logoMarkedForRemoval = false;
-    
+
     // Apply checkbox values
     const allowCardDelete = preferences.allow_card_delete !== undefined ? !!preferences.allow_card_delete : true;
     // Sync checkbox with database value
@@ -949,12 +975,12 @@ document.addEventListener('DOMContentLoaded', function () {
       allowCardDeleteCheckbox.checked = allowCardDelete;
     }
     document.getElementById('highlightPastDue').checked = !!preferences.highlight_past_due;
-    
+
     // Apply allow card delete preference to show/hide archive buttons
     var mainContainer = document.querySelector('.main-container');
     var cardContainer = document.querySelector('.kanban-board');
     var dashboard = document.querySelector('.dashboard');
-    
+
     if (mainContainer) {
       if (allowCardDelete) {
         mainContainer.classList.add('allow-card-delete');
@@ -970,7 +996,7 @@ document.addEventListener('DOMContentLoaded', function () {
         cardContainer.classList.remove('allow-card-delete');
       }
     }
-    
+
     if (dashboard) {
       if (allowCardDelete) {
         dashboard.classList.add('allow-card-delete');
@@ -978,10 +1004,10 @@ document.addEventListener('DOMContentLoaded', function () {
         dashboard.classList.remove('allow-card-delete');
       }
     }
-    
+
     // Save allow card delete preference in localStorage
     localStorage.setItem('allow_card_delete', allowCardDelete ? 'true' : 'false');
-    
+
     // Apply past due days value
     const pastDueDaysInput = document.getElementById('pastDueDays');
     if (pastDueDaysInput) {
@@ -993,13 +1019,13 @@ document.addEventListener('DOMContentLoaded', function () {
     if (deliveredHideDaysInput) {
       deliveredHideDaysInput.value = (typeof preferences.delivered_hide_days === 'number' ? preferences.delivered_hide_days : 0);
     }
-    
+
     // Update conditional visibility
     const pastDueSettings = document.getElementById('pastDueSettings');
     if (pastDueSettings) {
       pastDueSettings.classList.toggle('hidden', !preferences.highlight_past_due);
     }
-    
+
     // Apply Google Drive backup setting - fetch from practice-level API
     const googleDriveBackupCheckbox = document.getElementById('googleDriveBackup');
     if (googleDriveBackupCheckbox) {
@@ -1010,7 +1036,7 @@ document.addEventListener('DOMContentLoaded', function () {
           if (data.success) {
             googleDriveBackupCheckbox.checked = data.backupEnabled || false;
             window.originalGoogleDriveBackup = data.backupEnabled || false;
-            
+
             // Show/hide the workspace warning based on Drive connection
             var workspaceWarning = document.getElementById('googleDriveWorkspaceWarning');
             var backupNote = document.getElementById('googleDriveBackupNote');
@@ -1024,12 +1050,12 @@ document.addEventListener('DOMContentLoaded', function () {
           }
         })
         .catch(function(err) {
-          console.error('Error fetching backup status:', err);
+
           googleDriveBackupCheckbox.checked = false;
           window.originalGoogleDriveBackup = false;
         });
     }
-    
+
     // Load Admin users first
     if (loadedAdminUsers && loadedAdminUsers.length > 0) {
       window.adminUsers = loadedAdminUsers.slice();
@@ -1072,22 +1098,22 @@ document.addEventListener('DOMContentLoaded', function () {
       window.assignmentLabels = [];
       displayAssignmentLabels();
     }
-    
+
     // Capture original values for change detection after a short delay
     // to ensure all DOM updates are complete
     setTimeout(captureOriginalSettingsValues, 100);
   }
-  
+
   // Store original settings values for change detection
   window.originalSettingsValues = {};
-  
+
   function captureOriginalSettingsValues() {
     // Deep copy permission maps to avoid reference issues
     var limitedCopy = {};
     var analyticsCopy = {};
     var editCopy = {};
     var addLabelsCopy = {};
-    
+
     if (window.limitedVisibilityUsers) {
       Object.keys(window.limitedVisibilityUsers).forEach(function(key) {
         limitedCopy[key] = window.limitedVisibilityUsers[key];
@@ -1108,7 +1134,7 @@ document.addEventListener('DOMContentLoaded', function () {
         addLabelsCopy[key] = window.canAddLabelsUsers[key];
       });
     }
-    
+
     window.originalSettingsValues = {
       theme: document.getElementById('theme')?.value || 'light',
       displayName: document.getElementById('displayName')?.value || '',
@@ -1129,11 +1155,11 @@ document.addEventListener('DOMContentLoaded', function () {
       pendingLogoPath: ''
     };
   }
-  
+
   function hasUnsavedSettingsChanges() {
     var orig = window.originalSettingsValues;
     if (!orig || Object.keys(orig).length === 0) return false;
-    
+
     // Check simple form fields
     if ((document.getElementById('theme')?.value || 'light') !== orig.theme) return true;
     if ((document.getElementById('displayName')?.value || '') !== orig.displayName) return true;
@@ -1142,11 +1168,11 @@ document.addEventListener('DOMContentLoaded', function () {
     if ((document.getElementById('pastDueDays')?.value || '7') !== orig.pastDueDays) return true;
     if ((document.getElementById('deliveredHideDays')?.value || '0') !== orig.deliveredHideDays) return true;
     if ((document.getElementById('googleDriveBackup')?.checked || false) !== orig.googleDriveBackup) return true;
-    
+
     // Check logo changes
     if (window.logoMarkedForRemoval) return true;
     if (window.pendingLogoPath && window.pendingLogoPath !== orig.logoPath) return true;
-    
+
     // Check arrays (users, labels)
     var currentGmailUsers = window.gmailUsers || [];
     var currentAdminUsers = window.adminUsers || [];
@@ -1159,11 +1185,11 @@ document.addEventListener('DOMContentLoaded', function () {
     var origAnalyticsUsers = orig.canViewAnalyticsUsers || {};
     var origEditUsers = orig.canEditCasesUsers || {};
     var origAddLabelsUsers = orig.canAddLabelsUsers || {};
-    
+
     if (currentGmailUsers.length !== orig.gmailUsers.length) return true;
     if (currentAdminUsers.length !== orig.adminUsers.length) return true;
     if (currentLabels.length !== orig.assignmentLabels.length) return true;
-    
+
     // Deep compare arrays
     for (var i = 0; i < currentGmailUsers.length; i++) {
       if (currentGmailUsers[i] !== orig.gmailUsers[i]) return true;
@@ -1174,7 +1200,7 @@ document.addEventListener('DOMContentLoaded', function () {
     for (var i = 0; i < currentLabels.length; i++) {
       if (currentLabels[i] !== orig.assignmentLabels[i]) return true;
     }
-    
+
     // Check user permission maps
     var limitedKeys = Object.keys(currentLimitedUsers);
     var origLimitedKeys = Object.keys(origLimitedUsers);
@@ -1183,7 +1209,7 @@ document.addEventListener('DOMContentLoaded', function () {
       var key = limitedKeys[i];
       if (currentLimitedUsers[key] !== origLimitedUsers[key]) return true;
     }
-    
+
     var analyticsKeys = Object.keys(currentAnalyticsUsers);
     var origAnalyticsKeys = Object.keys(origAnalyticsUsers);
     if (analyticsKeys.length !== origAnalyticsKeys.length) return true;
@@ -1191,7 +1217,7 @@ document.addEventListener('DOMContentLoaded', function () {
       var key = analyticsKeys[i];
       if (currentAnalyticsUsers[key] !== origAnalyticsUsers[key]) return true;
     }
-    
+
     var editKeys = Object.keys(currentEditUsers);
     var origEditKeys = Object.keys(origEditUsers);
     if (editKeys.length !== origEditKeys.length) return true;
@@ -1199,7 +1225,7 @@ document.addEventListener('DOMContentLoaded', function () {
       var key = editKeys[i];
       if (currentEditUsers[key] !== origEditUsers[key]) return true;
     }
-    
+
     var addLabelsKeys = Object.keys(currentAddLabelsUsers);
     var origAddLabelsKeys = Object.keys(origAddLabelsUsers);
     if (addLabelsKeys.length !== origAddLabelsKeys.length) return true;
@@ -1207,13 +1233,13 @@ document.addEventListener('DOMContentLoaded', function () {
       var key = addLabelsKeys[i];
       if (currentAddLabelsUsers[key] !== origAddLabelsUsers[key]) return true;
     }
-    
+
     return false;
   }
-  
+
   // Track if we're currently showing the unsaved changes dialog for settings
   var settingsUnsavedDialogOpen = false;
-  
+
   function closeSettingsBillingModal(forceClose) {
     if (settingsBillingModal) {
       // Check for unsaved changes unless force closing
@@ -1222,7 +1248,7 @@ document.addEventListener('DOMContentLoaded', function () {
         if (settingsUnsavedDialogOpen) {
           return;
         }
-        
+
         // Show unsaved changes dialog ON TOP of the settings modal (modal stays visible)
         // This matches the Create/Edit Case modal behavior
         showSettingsUnsavedChangesWarning(function() {
@@ -1235,14 +1261,14 @@ document.addEventListener('DOMContentLoaded', function () {
       }
       // No unsaved changes or force closing, close immediately
       settingsBillingModal.style.display = 'none';
-      
+
       // Reset logo upload state when closing without saving
       if (!forceClose) {
         resetLogoUploadState();
       }
     }
   }
-  
+
   /**
    * Reset logo upload state - clears file input so same file can be selected again
    */
@@ -1255,7 +1281,7 @@ document.addEventListener('DOMContentLoaded', function () {
     window.pendingLogoPath = '';
     window.logoMarkedForRemoval = false;
   }
-  
+
   /**
    * Show unsaved changes warning dialog for Settings modal.
    * Uses the same copy and button labels as the Create/Edit Case modal.
@@ -1264,7 +1290,7 @@ document.addEventListener('DOMContentLoaded', function () {
    */
   function showSettingsUnsavedChangesWarning(onCloseWithoutSaving) {
     settingsUnsavedDialogOpen = true;
-    
+
     // Create custom confirmation dialog (same style as Create/Edit Case modal)
     var dialog = document.createElement('div');
     dialog.id = 'settingsUnsavedDialog';
@@ -1280,7 +1306,7 @@ document.addEventListener('DOMContentLoaded', function () {
       justify-content: center;
       z-index: 10000;
     `;
-    
+
     var content = document.createElement('div');
     content.style.cssText = `
       background: white;
@@ -1290,7 +1316,7 @@ document.addEventListener('DOMContentLoaded', function () {
       text-align: center;
       box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
     `;
-    
+
     // Same copy as Create/Edit Case modal
     content.innerHTML = `
       <h3 style="margin: 0 0 15px 0; color: #333;">Unsaved Changes</h3>
@@ -1318,28 +1344,28 @@ document.addEventListener('DOMContentLoaded', function () {
         ">Close Without Saving</button>
       </div>
     `;
-    
+
     dialog.appendChild(content);
     document.body.appendChild(dialog);
-    
+
     function closeDialog() {
       settingsUnsavedDialogOpen = false;
       if (dialog.parentNode) {
         document.body.removeChild(dialog);
       }
     }
-    
+
     // "Stay" button - close dialog only, keep settings modal open
     document.getElementById('settings-stay-btn').addEventListener('click', function() {
       closeDialog();
     });
-    
+
     // "Close Without Saving" button - close dialog and execute callback to close modal
     document.getElementById('settings-close-btn').addEventListener('click', function() {
       closeDialog();
       if (onCloseWithoutSaving) onCloseWithoutSaving();
     });
-    
+
     // Clicking backdrop = "Stay" (close dialog, keep modal open)
     dialog.addEventListener('click', function(e) {
       if (e.target === dialog) {
@@ -1347,7 +1373,7 @@ document.addEventListener('DOMContentLoaded', function () {
       }
     });
   }
-  
+
   // Add event listener for closing the modal
   if (settingsBillingClose) {
     settingsBillingClose.addEventListener('click', function() {
@@ -1360,7 +1386,7 @@ document.addEventListener('DOMContentLoaded', function () {
       closeSettingsBillingModal(false);
     });
   }
-  
+
   // Close modal when clicking outside
   window.addEventListener('click', function(e) {
     if (e.target === settingsBillingModal) {
@@ -1369,7 +1395,7 @@ document.addEventListener('DOMContentLoaded', function () {
       closeSettingsBillingModal(false);
     }
   });
-  
+
   // Keyboard handlers for settings modal and create case
   document.addEventListener('keydown', function(event) {
     var target = event.target;
@@ -1451,11 +1477,11 @@ document.addEventListener('DOMContentLoaded', function () {
       }
     }
   });
-  
+
   // Handle the past due settings visibility toggle
   var highlightPastDueCheckbox = document.getElementById('highlightPastDue');
   var pastDueSettings = document.getElementById('pastDueSettings');
-  
+
   if (highlightPastDueCheckbox && pastDueSettings) {
     highlightPastDueCheckbox.addEventListener('change', function() {
       // Toggle the visibility of the past due settings based on checkbox state
@@ -1466,17 +1492,17 @@ document.addEventListener('DOMContentLoaded', function () {
       }
     });
   }
-  
+
   // Handle Google Drive Backup checkbox with confirmation modal
   var googleDriveBackupCheckbox = document.getElementById('googleDriveBackup');
   var googleDriveBackupModal = document.getElementById('googleDriveBackupModal');
   var gdBackupCancel = document.getElementById('gdBackupCancel');
   var gdBackupConfirm = document.getElementById('gdBackupConfirm');
-  
+
   if (googleDriveBackupCheckbox && googleDriveBackupModal) {
     googleDriveBackupCheckbox.addEventListener('change', function() {
       var checkbox = this;
-      
+
       if (this.checked && !window.originalGoogleDriveBackup) {
         // Enabling backup - show confirmation modal
         this.checked = false;
@@ -1506,20 +1532,20 @@ document.addEventListener('DOMContentLoaded', function () {
         });
       }
     });
-    
+
     if (gdBackupCancel) {
       gdBackupCancel.addEventListener('click', function() {
         googleDriveBackupModal.style.display = 'none';
         googleDriveBackupCheckbox.checked = false;
       });
     }
-    
+
     if (gdBackupConfirm) {
       gdBackupConfirm.addEventListener('click', function() {
         var btn = this;
         btn.disabled = true;
         btn.textContent = 'Enabling...';
-        
+
         // Call API to enable backup (creates folder)
         fetch('/api/google-drive-backup.php?action=enable', {
           method: 'POST',
@@ -1527,11 +1553,11 @@ document.addEventListener('DOMContentLoaded', function () {
         })
         .then(function(response) { return response.json(); })
         .then(function(data) {
-          
+
           btn.disabled = false;
           btn.textContent = 'I Agree, Enable Backup';
           googleDriveBackupModal.style.display = 'none';
-          
+
           if (data.success) {
             googleDriveBackupCheckbox.checked = true;
             window.originalGoogleDriveBackup = true;
@@ -1556,7 +1582,7 @@ document.addEventListener('DOMContentLoaded', function () {
         });
       });
     }
-    
+
     // Close modal when clicking outside
     googleDriveBackupModal.addEventListener('click', function(e) {
       if (e.target === googleDriveBackupModal) {
@@ -1565,25 +1591,25 @@ document.addEventListener('DOMContentLoaded', function () {
       }
     });
   }
-  
+
   // Feedback Modal functionality
   var feedbackModal = document.getElementById('feedbackModal');
   var feedbackClose = document.getElementById('feedbackClose');
   var feedbackCancel = document.getElementById('feedbackCancel');
   var feedbackForm = document.getElementById('feedbackForm');
-  
+
   // Feedback Success Modal
   var feedbackSuccessModal = document.getElementById('feedbackSuccessModal');
   var feedbackSuccessClose = document.getElementById('feedbackSuccessClose');
   var feedbackSuccessOk = document.getElementById('feedbackSuccessOk');
-  
+
   function openContactModal() {
     if (feedbackModal) {
       // Do not open modal while the page is loading
       if (pageLoadingOverlay && pageLoadingOverlay.style.display !== 'none' && pageLoadingOverlay.style.opacity !== '0') {
         return;
       }
-      
+
       feedbackModal.style.display = 'block';
       // Reset the form when opening
       if (feedbackForm) {
@@ -1594,7 +1620,7 @@ document.addEventListener('DOMContentLoaded', function () {
       const supportTab = document.querySelector('[data-tab="support"]');
       const feedbackContent = document.getElementById('feedback-tab');
       const supportContent = document.getElementById('support-tab');
-      
+
       if (feedbackTab && supportTab && feedbackContent && supportContent) {
         feedbackTab.classList.add('active');
         supportTab.classList.remove('active');
@@ -1603,46 +1629,46 @@ document.addEventListener('DOMContentLoaded', function () {
       }
     }
   }
-  
+
   function closeFeedbackModal() {
     if (feedbackModal) {
       feedbackModal.style.display = 'none';
     }
   }
-  
+
   function openFeedbackSuccessModal() {
     if (feedbackSuccessModal) {
       feedbackSuccessModal.style.display = 'block';
     }
   }
-  
+
   function closeFeedbackSuccessModal() {
     if (feedbackSuccessModal) {
       feedbackSuccessModal.style.display = 'none';
     }
   }
-  
+
   // Add event listeners for the feedback modal
   if (feedbackClose) {
     feedbackClose.addEventListener('click', closeFeedbackModal);
   }
-  
+
   if (feedbackCancel) {
     feedbackCancel.addEventListener('click', closeFeedbackModal);
   }
-  
+
   // Contact tabs functionality
   const contactTabs = document.querySelectorAll('.contact-tab');
   const contactTabContents = document.querySelectorAll('.contact-tab-content');
-  
+
   contactTabs.forEach(tab => {
     tab.addEventListener('click', () => {
       const targetTab = tab.dataset.tab;
-      
+
       // Remove active class from all tabs and contents
       contactTabs.forEach(t => t.classList.remove('active'));
       contactTabContents.forEach(c => c.classList.remove('active'));
-      
+
       // Add active class to clicked tab and corresponding content
       tab.classList.add('active');
       document.getElementById(targetTab + '-tab').classList.add('active');
@@ -1655,16 +1681,16 @@ document.addEventListener('DOMContentLoaded', function () {
       closeFeedbackModal();
     }
   });
-  
+
   // Add event listeners for the success modal
   if (feedbackSuccessClose) {
     feedbackSuccessClose.addEventListener('click', closeFeedbackSuccessModal);
   }
-  
+
   if (feedbackSuccessOk) {
     feedbackSuccessOk.addEventListener('click', closeFeedbackSuccessModal);
   }
-  
+
   // Add direct click handler for submit button as a backup
   var feedbackSubmit = document.getElementById('feedbackSubmit');
   if (feedbackSubmit) {
@@ -1684,7 +1710,7 @@ document.addEventListener('DOMContentLoaded', function () {
       closeFeedbackSuccessModal();
     }
   });
-  
+
   // Handle escape key for modals
   document.addEventListener('keydown', function(event) {
     if (event.key === 'Escape') {
@@ -1696,34 +1722,34 @@ document.addEventListener('DOMContentLoaded', function () {
       }
     }
   });
-  
+
   // Function to handle form submission
   function submitFeedbackForm() {
     // Process feedback data
-    
+
     // Get form data
     var feedbackType = document.querySelector('input[name="feedback_type"]:checked');
     var feedbackComments = document.getElementById('feedback_comments');
-    
+
     if (!feedbackType) {
       showToast('Please select your feedback type.', 'warning');
       return;
     }
-    
+
     // Show loading state
     var submitBtn = document.getElementById('feedbackSubmit');
     var originalBtnText = submitBtn.textContent;
     submitBtn.disabled = true;
     submitBtn.textContent = 'Sending...';
-    
+
     // Prepare the data
     var formData = {
       feedback_type: feedbackType.value,
       feedback_comments: feedbackComments.value || ''
     };
-    
+
     // Send the feedback data
-    
+
     // Send the data to the server
     fetch('api/send-feedback.php', {
       method: 'POST',
@@ -1765,7 +1791,7 @@ document.addEventListener('DOMContentLoaded', function () {
       submitBtn.textContent = originalBtnText;
     });
   }
-  
+
   // Handle feedback form submission
   if (feedbackForm) {
     feedbackForm.addEventListener('submit', function(e) {
@@ -1774,7 +1800,7 @@ document.addEventListener('DOMContentLoaded', function () {
       submitFeedbackForm();
     });
   }
-  
+
   // Gmail user functionality
   window.gmailUsers = []; // Will store all added regular users - use window to ensure global scope
   window.gmailUserLogins = {}; // Map of email -> last_login_at timestamp (or null)
@@ -1813,14 +1839,14 @@ document.addEventListener('DOMContentLoaded', function () {
     addGmailUserBtn.addEventListener('click', function() {
       addGmailUser();
     });
-    
+
     // Also add on Enter key press
     newGmailUserInput.addEventListener('keydown', function(e) {
       if (e.key === 'Enter') {
         e.preventDefault();
         e.stopPropagation();
         e.stopImmediatePropagation();
-        
+
         // If there's text in the field, add the user (don't save)
         // If the field is empty, trigger Save Settings
         if (newGmailUserInput.value.trim()) {
@@ -1861,22 +1887,22 @@ document.addEventListener('DOMContentLoaded', function () {
   // Ensures delete buttons work even for dynamically created cards
   document.addEventListener('click', function(e) {
     var target = e.target;
-    
+
     // Check if clicked element is a delete button or is inside one
     var deleteButton = target.closest('.card-delete-btn');
     if (deleteButton) {
       e.preventDefault();
       e.stopPropagation();
-      
+
       // Check if any case is currently being printed
       if (window.isPrintingCase) {
         return;
       }
-      
+
       // Find the case card
       var caseCard = deleteButton.closest('.kanban-card');
       if (!caseCard) return;
-      
+
       // Get case data from the data attribute
       var rawData = caseCard.dataset.caseJson;
       var cardData;
@@ -1885,7 +1911,7 @@ document.addEventListener('DOMContentLoaded', function () {
       } catch(e) {
         cardData = {};
       }
-      
+
       // Show delete confirmation
       if (cardData.id) {
         showDeleteConfirmation(caseCard, cardData.patientFirstName + ' ' + cardData.patientLastName, function() {
@@ -1894,22 +1920,22 @@ document.addEventListener('DOMContentLoaded', function () {
       }
       return;
     }
-    
+
     // Check if clicked element is an edit button or is inside one
     var editButton = target.closest('.kanban-card-edit');
     if (editButton) {
       e.preventDefault();
       e.stopPropagation();
-      
+
       // Check if any case is currently being printed
       if (window.isPrintingCase) {
         return;
       }
-      
+
       // Find the case card
       var caseCard = editButton.closest('.kanban-card');
       if (!caseCard) return;
-      
+
       // Get case data from the data attribute
       var rawData = caseCard.dataset.caseJson;
       var cardData;
@@ -1918,7 +1944,7 @@ document.addEventListener('DOMContentLoaded', function () {
       } catch(e) {
         cardData = {};
       }
-      
+
       // Open the modal for editing
       editCaseHandler(cardData);
       return;
@@ -1930,7 +1956,7 @@ document.addEventListener('DOMContentLoaded', function () {
     if (!window.isPracticeAdmin) {
       return;
     }
-    
+
     // Check current user count against max (controls should already be disabled, but double-check)
     var currentUserCount = 0;
     var seenEmails = {};
@@ -1950,36 +1976,36 @@ document.addEventListener('DOMContentLoaded', function () {
         }
       });
     }
-    
+
     var maxUsers = billingInfo && billingInfo.max_users ? billingInfo.max_users : 0;
     if (maxUsers > 0 && currentUserCount >= maxUsers) {
       gmailErrorElement.textContent = 'User limit reached (' + maxUsers + ' users). Upgrade to Control plan to add more users.';
       return;
     }
-    
+
     var email = newGmailUserInput.value.trim();
-    
+
     // Clear previous error
     gmailErrorElement.textContent = '';
-    
+
     // Validate email
     if (!email) {
       gmailErrorElement.textContent = 'Please enter an email address';
       return;
     }
-    
+
     // Validate email format (basic check)
     if (!email.includes('@') || !email.includes('.')) {
       gmailErrorElement.textContent = 'Please enter a valid email address';
       return;
     }
-    
+
     // Check for duplicate
     if (window.gmailUsers.includes(email)) {
       gmailErrorElement.textContent = 'This email has already been added';
       return;
     }
-    
+
     // Check if user is already in the CURRENT practice (to prevent duplicates)
     // Note: Users CAN belong to multiple practices, so we only block if they're already in THIS practice
     checkUserPracticeStatus(email).then(response => {
@@ -1988,13 +2014,13 @@ document.addEventListener('DOMContentLoaded', function () {
         gmailErrorElement.textContent = 'This user is already a member of this practice';
         return;
       }
-      
+
       // User can be added (even if they're in other practices - multi-practice membership is allowed)
       window.gmailUsers.push(email);
-      
+
       // Add to display
       displayGmailUsers();
-      
+
       // Clear input
       newGmailUserInput.value = '';
     }).catch(error => {
@@ -2002,7 +2028,7 @@ document.addEventListener('DOMContentLoaded', function () {
       // Error message displayed in UI
     });
   }
-  
+
   // Function to check if a user is already in a practice
   function checkUserPracticeStatus(email) {
     return fetch('api/check-user-practice.php', {
@@ -2031,13 +2057,13 @@ document.addEventListener('DOMContentLoaded', function () {
     var addBtn = document.getElementById('addGmailUser');
     var inputField = document.getElementById('newGmailUser');
     var errorElement = document.getElementById('gmailError');
-    
+
     if (!addBtn || !inputField) return;
-    
+
     // Calculate current user count from in-memory arrays
     var currentUserCount = 0;
     var seenEmails = {};
-    
+
     if (Array.isArray(window.gmailUsers)) {
       window.gmailUsers.forEach(function(email) {
         if (email && !seenEmails[email.toLowerCase()]) {
@@ -2054,11 +2080,11 @@ document.addEventListener('DOMContentLoaded', function () {
         }
       });
     }
-    
+
     // Check if we're at or over the limit
     var maxUsers = billingInfo && billingInfo.max_users ? billingInfo.max_users : 0;
     var atLimit = maxUsers > 0 && currentUserCount >= maxUsers;
-    
+
     if (atLimit) {
       addBtn.disabled = true;
       inputField.disabled = true;
@@ -2080,18 +2106,18 @@ document.addEventListener('DOMContentLoaded', function () {
       }
     }
   }
-  
+
   // Combined practice users grid (admins + authorized users)
   function displayPracticeUsers() {
     // Always get fresh reference to the element
     var usersList = document.getElementById('gmailUsersList');
-    
+
     if (!usersList) {
       return;
     }
 
     usersList.innerHTML = '';
-    
+
     // Calculate current user count for warning display
     var currentUserCount = 0;
     var seenEmails = {};
@@ -2111,19 +2137,19 @@ document.addEventListener('DOMContentLoaded', function () {
         }
       });
     }
-    
+
     var maxUsers = billingInfo && billingInfo.max_users ? billingInfo.max_users : 0;
-    
+
     // Show warning if workspace exceeds user limit (e.g., after downgrading from Evaluate)
     // Only show if current count exceeds max (not just at max)
     if (maxUsers > 0 && currentUserCount > maxUsers) {
       var warningBanner = document.createElement('div');
       warningBanner.className = 'user-limit-warning';
       warningBanner.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>' +
-        '<span>This workspace exceeds typical Operate usage. Control unlocks full visibility and unlimited roles. <a href="billing.php" style="color: inherit; font-weight: 600;">Upgrade now</a></span>';
+        '<span>This practice has ' + currentUserCount + ' users, which exceeds the 5-user Operate limit. You can continue using DentaTrak with the current team, but you cannot add more users unless you upgrade to Control or reduce the team to 5 users. <a href="billing.php" style="color: inherit; font-weight: 600;">Upgrade to Control</a></span>';
       usersList.appendChild(warningBanner);
     }
-    
+
     // Update add user controls based on current count
     updateAddUserControls();
 
@@ -2263,7 +2289,7 @@ document.addEventListener('DOMContentLoaded', function () {
       var analyticsCheckbox = document.createElement('input');
       analyticsCheckbox.type = 'checkbox';
       // Default to true if not set
-      var canViewAnalytics = window.canViewAnalyticsUsers && window.canViewAnalyticsUsers[email] !== undefined 
+      var canViewAnalytics = window.canViewAnalyticsUsers && window.canViewAnalyticsUsers[email] !== undefined
         ? window.canViewAnalyticsUsers[email] : true;
       analyticsCheckbox.checked = canViewAnalytics;
       analyticsCheckbox.setAttribute('data-email', email);
@@ -2364,9 +2390,9 @@ document.addEventListener('DOMContentLoaded', function () {
   function setLimitedVisibilityForEmail(email, isLimited) {
     if (!email) return;
     if (!window.limitedVisibilityUsers) window.limitedVisibilityUsers = {};
-    
+
     window.limitedVisibilityUsers[email] = isLimited;
-    
+
     // If user is set to Limited, uncheck and disable the Admin checkbox
     var adminCheckbox = document.querySelector('input[data-email="' + email + '"][type="checkbox"].practice-user-admin-checkbox');
     if (adminCheckbox) {
@@ -2391,7 +2417,7 @@ document.addEventListener('DOMContentLoaded', function () {
   function setCanViewAnalyticsForEmail(email, canView) {
     if (!email) return;
     if (!window.canViewAnalyticsUsers) window.canViewAnalyticsUsers = {};
-    
+
     window.canViewAnalyticsUsers[email] = canView;
   }
 
@@ -2399,7 +2425,7 @@ document.addEventListener('DOMContentLoaded', function () {
   function setCanEditCasesForEmail(email, canEdit) {
     if (!email) return;
     if (!window.canEditCasesUsers) window.canEditCasesUsers = {};
-    
+
     window.canEditCasesUsers[email] = canEdit;
   }
 
@@ -2407,7 +2433,7 @@ document.addEventListener('DOMContentLoaded', function () {
   function setCanAddLabelsForEmail(email, canAdd) {
     if (!email) return;
     if (!window.canAddLabelsUsers) window.canAddLabelsUsers = {};
-    
+
     window.canAddLabelsUsers[email] = canAdd;
   }
 
@@ -2447,7 +2473,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     displayPracticeUsers();
   }
-  
+
   // Admin user management (kept for API compatibility; uses shared grid)
   var addAdminUserBtn = null;
   var newAdminUserInput = null;
@@ -2469,7 +2495,7 @@ document.addEventListener('DOMContentLoaded', function () {
   // Add functionality for the Save Settings button
   var saveSettingsBtn = document.getElementById('saveSettings');
   var settingsForm = document.getElementById('settingsForm');
-  
+
   function saveSettings() {
       // Auto-add any pending email in the user input field before saving
       var pendingEmailInput = document.getElementById('newGmailUser');
@@ -2482,11 +2508,11 @@ document.addEventListener('DOMContentLoaded', function () {
           displayGmailUsers();
         }
       }
-      
+
       // Get theme value from dropdown
       var themeDropdown = document.getElementById('theme');
       var theme = themeDropdown ? themeDropdown.value : 'light';
-      
+
       // Get checkbox values
       var allowCardDelete = document.getElementById('allowCardDelete').checked;
       var highlightPastDue = document.getElementById('highlightPastDue').checked;
@@ -2497,11 +2523,11 @@ document.addEventListener('DOMContentLoaded', function () {
       // Delivered hide days (0 = show all)
       var deliveredHideDaysInput = document.getElementById('deliveredHideDays');
       var deliveredHideDays = deliveredHideDaysInput ? parseInt(deliveredHideDaysInput.value || '0', 10) : 0;
-      
+
       // Practice settings - use displayName (editable) instead of practiceName
       var displayNameInput = document.getElementById('displayName');
       var displayName = displayNameInput ? displayNameInput.value.trim() : '';
-      
+
       // Legacy fallback to practiceName if displayName doesn't exist
       var practiceNameInput = document.getElementById('practiceName');
       var practiceName = practiceNameInput ? practiceNameInput.value.trim() : '';
@@ -2537,17 +2563,17 @@ document.addEventListener('DOMContentLoaded', function () {
       } else {
         formData.logoAction = 'none';
       }
-      
+
       // Prepare to save settings
-      
+
       // Send data to server
       saveSettingsToServer(formData);
   }
-  
+
   if (saveSettingsBtn) {
     saveSettingsBtn.addEventListener('click', saveSettings);
   }
-  
+
   // Add Enter key handler for settings form
   if (settingsForm) {
     settingsForm.addEventListener('keydown', function(e) {
@@ -2563,7 +2589,7 @@ document.addEventListener('DOMContentLoaded', function () {
     // Apply card delete visibility
     var allowCardDelete = formData.allowCardDelete;
     localStorage.setItem('allow_card_delete', allowCardDelete ? 'true' : 'false');
-    
+
     // Update delete button visibility on all cards
     var mainContainer = document.querySelector('.main-container');
     if (mainContainer) {
@@ -2591,12 +2617,12 @@ document.addEventListener('DOMContentLoaded', function () {
         dashboard.classList.remove('allow-card-delete');
       }
     }
-    
+
     // Apply theme immediately
     if (formData.theme) {
       document.documentElement.setAttribute('data-theme', formData.theme);
     }
-    
+
     // Update practice name in header immediately (prefer displayName over legacy practiceName)
     var nameToDisplay = formData.displayName || formData.practiceName;
     if (nameToDisplay) {
@@ -2605,12 +2631,12 @@ document.addEventListener('DOMContentLoaded', function () {
         practiceNameElement.textContent = nameToDisplay;
       }
     }
-    
+
     // Apply past due highlighting
     if (formData.highlightPastDue !== undefined) {
       localStorage.setItem('highlight_past_due', formData.highlightPastDue ? 'true' : 'false');
       localStorage.setItem('past_due_days', formData.pastDueDays.toString());
-      
+
       // Trigger card highlighting update if the function exists
       if (typeof updatePastDueHighlighting === 'function') {
         updatePastDueHighlighting();
@@ -2657,7 +2683,7 @@ document.addEventListener('DOMContentLoaded', function () {
     var originalText = saveSettingsBtn.textContent;
     saveSettingsBtn.textContent = 'Saving...';
     saveSettingsBtn.disabled = true;
-    
+
     fetch('api/save-settings.php', {
       method: 'POST',
       headers: {
@@ -2670,17 +2696,17 @@ document.addEventListener('DOMContentLoaded', function () {
     .then(data => {
       if (data.success) {
         // Settings saved successfully
-        
+
         // Apply settings immediately
         applySettingsImmediately(formData);
-        
+
         // Reset button state
         saveSettingsBtn.textContent = originalText;
         saveSettingsBtn.disabled = false;
-        
+
         // Close the settings modal (force close since we just saved)
         closeSettingsBillingModal(true);
-        
+
         // Show success toast
         if (typeof Toast !== 'undefined') {
           Toast.success('Settings Updated', 'Your settings have been saved successfully.');
@@ -2689,22 +2715,22 @@ document.addEventListener('DOMContentLoaded', function () {
         // Reset button state
         saveSettingsBtn.textContent = originalText;
         saveSettingsBtn.disabled = false;
-        
+
         showToast('Failed to save settings. Please try again.', 'error');
       }
     })
   }
-  
+
   // Toggle visibility of past due days input based on checkbox
   var highlightPastDueCheckbox = document.getElementById('highlightPastDue');
   var pastDueSettings = document.getElementById('pastDueSettings');
-  
+
   if (highlightPastDueCheckbox && pastDueSettings) {
     highlightPastDueCheckbox.addEventListener('change', function() {
       pastDueSettings.classList.toggle('hidden', !this.checked);
     });
   }
-  
+
   // Add event handlers for billing section buttons
   document.addEventListener('DOMContentLoaded', function() {
     // Update payment method button
@@ -2713,35 +2739,35 @@ document.addEventListener('DOMContentLoaded', function () {
       updatePaymentBtn.addEventListener('click', function() {
         // Close the modal
         closeSettingsBillingModal(true);
-        
+
         // Show a toast notification
         if (typeof Toast !== 'undefined') {
           Toast.info('Update Payment', 'Payment update functionality will be available soon.');
         }
       });
     }
-    
+
     // Change plan button
     const changePlanBtn = document.querySelector('.billing-actions .btn-primary');
     if (changePlanBtn) {
       changePlanBtn.addEventListener('click', function() {
         // Close the modal
         closeSettingsBillingModal(true);
-        
+
         // Show a toast notification
         if (typeof Toast !== 'undefined') {
           Toast.success('Plan Updated', 'Your subscription plan has been updated successfully.');
         }
       });
     }
-    
+
     // Billing history button
     const billingHistoryBtn = document.querySelector('.billing-actions .btn-outline');
     if (billingHistoryBtn) {
       billingHistoryBtn.addEventListener('click', function() {
         // Close the modal
         closeSettingsBillingModal(true);
-        
+
         // Show a toast notification
         if (typeof Toast !== 'undefined') {
           Toast.info('Billing History', 'Your billing history will be available soon.');
@@ -2749,25 +2775,25 @@ document.addEventListener('DOMContentLoaded', function () {
       });
     }
   });
-  
+
   // Validate the past due days input to ensure it's within range (1-99)
   var pastDueDaysInput = document.getElementById('pastDueDays');
   if (pastDueDaysInput) {
     pastDueDaysInput.addEventListener('input', function() {
       var value = parseInt(this.value, 10);
-      
+
       // Remove non-numeric characters
       if (isNaN(value)) {
         this.value = '';
         return;
       }
-      
+
       // Enforce the 1-99 range
       if (value < 1) this.value = '1';
       if (value > 99) this.value = '99';
     });
   }
-  
+
   // Create Case modal functionality
   var createBtn = document.querySelector('.create-case-button');
   var createCaseModal = document.getElementById('createCaseModal');
@@ -2872,7 +2898,7 @@ document.addEventListener('DOMContentLoaded', function () {
           var diffMins = Math.floor(diffMs / 60000);
           var diffHours = Math.floor(diffMs / 3600000);
           var diffDays = Math.floor(diffMs / 86400000);
-          
+
           var timeString;
           if (diffMins < 1) {
             timeString = 'Just now';
@@ -2885,7 +2911,7 @@ document.addEventListener('DOMContentLoaded', function () {
           } else {
             timeString = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' });
           }
-          
+
           header.textContent = timeString;
         } else {
           header.textContent = evt.created_at;
@@ -3129,20 +3155,20 @@ document.addEventListener('DOMContentLoaded', function () {
   (function initDentistAutocomplete() {
     var dentistInput = document.getElementById('dentistName');
     var suggestionsDropdown = document.getElementById('dentistNameSuggestions');
-    
+
     if (!dentistInput || !suggestionsDropdown) return;
-    
+
     var debounceTimer = null;
     var highlightedIndex = -1;
     var currentSuggestions = [];
-    
+
     // Fetch suggestions from API
     function fetchSuggestions(query) {
       if (!query || query.length < 1) {
         hideSuggestions();
         return;
       }
-      
+
       fetch('api/get-dentist-suggestions.php?q=' + encodeURIComponent(query), {
         credentials: 'same-origin'
       })
@@ -3158,35 +3184,35 @@ document.addEventListener('DOMContentLoaded', function () {
         hideSuggestions();
       });
     }
-    
+
     // Display suggestions in dropdown
     function showSuggestions(suggestions) {
       currentSuggestions = suggestions;
       highlightedIndex = -1;
       suggestionsDropdown.innerHTML = '';
-      
+
       suggestions.forEach(function(name, index) {
         var item = document.createElement('div');
         item.className = 'autocomplete-item';
         item.setAttribute('role', 'option');
         item.setAttribute('data-index', index);
         item.textContent = name;
-        
+
         item.addEventListener('click', function() {
           selectSuggestion(name);
         });
-        
+
         item.addEventListener('mouseenter', function() {
           highlightedIndex = index;
           updateHighlight();
         });
-        
+
         suggestionsDropdown.appendChild(item);
       });
-      
+
       suggestionsDropdown.classList.add('active');
     }
-    
+
     // Hide suggestions dropdown
     function hideSuggestions() {
       suggestionsDropdown.classList.remove('active');
@@ -3194,14 +3220,14 @@ document.addEventListener('DOMContentLoaded', function () {
       currentSuggestions = [];
       highlightedIndex = -1;
     }
-    
+
     // Select a suggestion
     function selectSuggestion(name) {
       dentistInput.value = name;
       hideSuggestions();
       dentistInput.focus();
     }
-    
+
     // Update highlighted item
     function updateHighlight() {
       var items = suggestionsDropdown.querySelectorAll('.autocomplete-item');
@@ -3209,7 +3235,7 @@ document.addEventListener('DOMContentLoaded', function () {
         item.classList.toggle('highlighted', index === highlightedIndex);
       });
     }
-    
+
     // Input event handler with debounce
     dentistInput.addEventListener('input', function() {
       clearTimeout(debounceTimer);
@@ -3217,11 +3243,11 @@ document.addEventListener('DOMContentLoaded', function () {
         fetchSuggestions(dentistInput.value.trim());
       }, 200);
     });
-    
+
     // Keyboard navigation
     dentistInput.addEventListener('keydown', function(e) {
       if (!suggestionsDropdown.classList.contains('active')) return;
-      
+
       if (e.key === 'ArrowDown') {
         e.preventDefault();
         highlightedIndex = Math.min(highlightedIndex + 1, currentSuggestions.length - 1);
@@ -3237,12 +3263,12 @@ document.addEventListener('DOMContentLoaded', function () {
         hideSuggestions();
       }
     });
-    
+
     // Hide on blur (with delay to allow click)
     dentistInput.addEventListener('blur', function() {
       setTimeout(hideSuggestions, 150);
     });
-    
+
     // Show suggestions on focus if there's already text
     dentistInput.addEventListener('focus', function() {
       if (dentistInput.value.trim().length >= 1) {
@@ -3259,22 +3285,22 @@ document.addEventListener('DOMContentLoaded', function () {
   (function initNotesCharacterCounter() {
     var notesTextarea = document.getElementById('notes');
     var charCounter = document.getElementById('notesCharCounter');
-    
+
     if (!notesTextarea || !charCounter) return;
-    
+
     var maxLength = 3000; // Character limit for case notes
     var warningThreshold = 2700; // Show warning at 90% capacity
-    
+
     function updateCounter() {
       var currentLength = notesTextarea.value.length;
       var remaining = maxLength - currentLength;
-      
+
       // Format number with comma separator
       var formattedCurrent = currentLength.toLocaleString();
       var formattedMax = maxLength.toLocaleString();
-      
+
       charCounter.textContent = formattedCurrent + ' / ' + formattedMax + ' characters';
-      
+
       // Update visual state
       charCounter.classList.remove('warning', 'error');
       if (currentLength >= maxLength) {
@@ -3283,13 +3309,13 @@ document.addEventListener('DOMContentLoaded', function () {
         charCounter.classList.add('warning');
       }
     }
-    
+
     // Update on input
     notesTextarea.addEventListener('input', updateCounter);
-    
+
     // Initialize counter on page load
     updateCounter();
-    
+
     // Expose function to reset counter when form is reset
     window.resetNotesCharCounter = updateCounter;
   })();
@@ -3306,7 +3332,7 @@ document.addEventListener('DOMContentLoaded', function () {
     // Valid tooth number range for adult teeth (Universal Numbering System)
     var MIN_TOOTH_NUMBER = 1;
     var MAX_TOOTH_NUMBER = 32;
-    
+
     /**
      * Parse and validate tooth number input supporting multiple formats
      * @param {string} value - Input string (e.g., "14", "14, 30", "14-18", "14-18, 30 31")
@@ -3316,42 +3342,42 @@ document.addEventListener('DOMContentLoaded', function () {
       if (!value || value.trim() === '') {
         return { valid: false, error: 'At least one tooth number is required', numbers: [], normalized: '' };
       }
-      
+
       var trimmed = value.trim();
       var allNumbers = [];
-      
+
       // Split by comma and/or whitespace (but not within ranges)
       // First, split by comma
       var commaParts = trimmed.split(',');
-      
+
       for (var i = 0; i < commaParts.length; i++) {
         // Then split each comma part by whitespace
         var spaceParts = commaParts[i].trim().split(/\s+/);
-        
+
         for (var j = 0; j < spaceParts.length; j++) {
           var part = spaceParts[j].trim();
           if (part === '') continue;
-          
+
           // Check if it's a range (e.g., "14-18")
           if (part.indexOf('-') !== -1) {
             var rangeParts = part.split('-');
-            
+
             // Validate range format
             if (rangeParts.length !== 2) {
               return { valid: false, error: 'Invalid range format: "' + part + '"', numbers: [], normalized: '' };
             }
-            
+
             var start = rangeParts[0].trim();
             var end = rangeParts[1].trim();
-            
+
             // Validate both parts are numeric
             if (!/^\d+$/.test(start) || !/^\d+$/.test(end)) {
               return { valid: false, error: 'Enter valid tooth numbers (1-32), e.g. 14, 30 or 14-18', numbers: [], normalized: '' };
             }
-            
+
             var startNum = parseInt(start, 10);
             var endNum = parseInt(end, 10);
-            
+
             // Validate range bounds
             if (startNum < MIN_TOOTH_NUMBER || startNum > MAX_TOOTH_NUMBER) {
               return { valid: false, error: 'Tooth number ' + startNum + ' must be between 1 and 32', numbers: [], normalized: '' };
@@ -3359,12 +3385,12 @@ document.addEventListener('DOMContentLoaded', function () {
             if (endNum < MIN_TOOTH_NUMBER || endNum > MAX_TOOTH_NUMBER) {
               return { valid: false, error: 'Tooth number ' + endNum + ' must be between 1 and 32', numbers: [], normalized: '' };
             }
-            
+
             // Validate range direction
             if (startNum > endNum) {
               return { valid: false, error: 'Invalid range: start (' + startNum + ') must be less than or equal to end (' + endNum + ')', numbers: [], normalized: '' };
             }
-            
+
             // Expand range
             for (var n = startNum; n <= endNum; n++) {
               allNumbers.push(n);
@@ -3374,22 +3400,22 @@ document.addEventListener('DOMContentLoaded', function () {
             if (!/^\d+$/.test(part)) {
               return { valid: false, error: 'Enter valid tooth numbers (1-32), e.g. 14, 30 or 14-18', numbers: [], normalized: '' };
             }
-            
+
             var num = parseInt(part, 10);
-            
+
             if (num < MIN_TOOTH_NUMBER || num > MAX_TOOTH_NUMBER) {
               return { valid: false, error: 'Tooth number ' + num + ' must be between 1 and 32', numbers: [], normalized: '' };
             }
-            
+
             allNumbers.push(num);
           }
         }
       }
-      
+
       if (allNumbers.length === 0) {
         return { valid: false, error: 'At least one tooth number is required', numbers: [], normalized: '' };
       }
-      
+
       // Deduplicate and sort
       var uniqueNumbers = [];
       var seen = {};
@@ -3400,13 +3426,13 @@ document.addEventListener('DOMContentLoaded', function () {
         }
       }
       uniqueNumbers.sort(function(a, b) { return a - b; });
-      
+
       // Create normalized string (comma-separated, sorted)
       var normalized = uniqueNumbers.join(', ');
-      
+
       return { valid: true, error: null, numbers: uniqueNumbers, normalized: normalized };
     }
-    
+
     /**
      * Validate a single tooth number (legacy function for backward compatibility)
      * @param {string} value - The tooth number to validate
@@ -3417,7 +3443,7 @@ document.addEventListener('DOMContentLoaded', function () {
       var result = parseToothNumbers(value);
       return { valid: result.valid, error: result.error };
     }
-    
+
     /**
      * Validate multiple tooth numbers (comma-separated) - legacy function
      * @param {string} value - Comma-separated tooth numbers
@@ -3427,25 +3453,25 @@ document.addEventListener('DOMContentLoaded', function () {
       var result = parseToothNumbers(value);
       return { valid: result.valid, error: result.error, numbers: result.numbers };
     }
-    
+
     /**
      * Show validation error on a field
      */
     function showFieldError(field, message) {
       field.classList.add('field-error');
-      
+
       // Remove existing error message if any
       var existingError = field.parentNode.querySelector('.error-message');
       if (existingError) {
         existingError.remove();
       }
-      
+
       var errorDiv = document.createElement('div');
       errorDiv.className = 'error-message';
       errorDiv.textContent = message;
       field.parentNode.insertBefore(errorDiv, field.nextSibling);
     }
-    
+
     /**
      * Clear validation error from a field
      */
@@ -3456,34 +3482,34 @@ document.addEventListener('DOMContentLoaded', function () {
         existingError.remove();
       }
     }
-    
+
     /**
      * Initialize tooth number validation for Crown case type
      */
     function init() {
       var toothNumberInput = document.getElementById('clinicalToothNumber');
       var caseTypeSelect = document.getElementById('caseType');
-      
+
       if (!toothNumberInput) return;
-      
+
       // Validate on blur
       toothNumberInput.addEventListener('blur', function() {
         var caseType = caseTypeSelect ? caseTypeSelect.value : '';
-        
+
         // Only validate for Crown case type
         if (caseType !== 'Crown') {
           clearFieldError(toothNumberInput);
           return;
         }
-        
+
         var value = toothNumberInput.value.trim();
-        
+
         // Allow empty if not yet filled (required validation handles this)
         if (value === '') {
           clearFieldError(toothNumberInput);
           return;
         }
-        
+
         var result = validateToothNumber(value);
         if (!result.valid) {
           showFieldError(toothNumberInput, result.error);
@@ -3491,16 +3517,16 @@ document.addEventListener('DOMContentLoaded', function () {
           clearFieldError(toothNumberInput);
         }
       });
-      
+
       // Clear error on input
       toothNumberInput.addEventListener('input', function() {
         clearFieldError(toothNumberInput);
       });
     }
-    
+
     // Initialize when DOM is ready
     init();
-    
+
     // Expose validation functions for use in form submission
     return {
       validateToothNumber: validateToothNumber,
@@ -3509,7 +3535,7 @@ document.addEventListener('DOMContentLoaded', function () {
       clearFieldError: clearFieldError
     };
   })();
-  
+
   // Make validation available globally for form submission
   window.toothNumberValidation = toothNumberValidation;
 
@@ -3534,30 +3560,30 @@ document.addEventListener('DOMContentLoaded', function () {
     if (submitBtn) submitBtn.textContent = 'Create Case';
 
     clearFileSelections();
-    
+
     // Hide activity timeline for new case
     if (typeof hideActivityTimeline === 'function') {
       hideActivityTimeline();
     }
-    
+
     // Remove At Risk indicator for new case
     var atRiskIndicator = document.getElementById('caseDetailAtRisk');
     if (atRiskIndicator) {
       atRiskIndicator.remove();
     }
-    
+
     // Remove revision indicator for new case
     var revisionIndicator = document.querySelector('.modal-header .case-detail-revision');
     if (revisionIndicator) {
       revisionIndicator.remove();
     }
-    
+
     // Remove regression indicator for new case
     var regressionIndicator = document.querySelector('.modal-header .case-detail-regression');
     if (regressionIndicator) {
       regressionIndicator.remove();
     }
-    
+
     // Clear clinical details fields for new case
     if (typeof clearClinicalDetailsFields === 'function') {
       clearClinicalDetailsFields();
@@ -3570,15 +3596,15 @@ document.addEventListener('DOMContentLoaded', function () {
       if (pageLoadingOverlay && pageLoadingOverlay.style.display !== 'none' && pageLoadingOverlay.style.opacity !== '0') {
         return;
       }
-      
+
       // Check billing before allowing case creation
       if (!checkBillingForCaseCreation()) {
         return;
       }
-      
+
       createCaseModal.style.display = 'block';
       document.body.style.overflow = 'hidden'; // Prevent scrolling behind modal
-      
+
       // Determine if we're editing an existing case or creating a new one
       var form = document.getElementById('createCaseForm');
       var isUpdate = !!(form && form.dataset && form.dataset.caseId);
@@ -3593,17 +3619,17 @@ document.addEventListener('DOMContentLoaded', function () {
 
       // Always start on Details tab
       setCaseModalActiveTab('details');
-      
+
       // Ensure any previous validation errors are cleared when opening the modal
       if (typeof clearCreateCaseErrors === 'function') {
         clearCreateCaseErrors();
       }
-      
+
       // Start tracking form changes
       setTimeout(function() {
         trackFormChanges();
       }, 100);
-      
+
       // Initialize assignment dropdown
       setTimeout(function() {
         var assignedToDropdown = document.getElementById('assignedTo');
@@ -3611,7 +3637,7 @@ document.addEventListener('DOMContentLoaded', function () {
           initializeAssignmentDropdown(assignedToDropdown, '', ''); // No caseId for new case, no current assignee
         }
       }, 100);
-      
+
       // Focus on the first input field
       setTimeout(function() {
         var firstInput = createCaseModal.querySelector('input:not([type="hidden"]):not([type="file"]):not([readonly])');
@@ -3626,10 +3652,10 @@ document.addEventListener('DOMContentLoaded', function () {
     if (createCaseModal) {
       createCaseModal.style.display = 'none';
       document.body.style.overflow = ''; // Restore scrolling
-      
+
       // Reset modal state after viewing
       resetCreateCaseFormToNew();
-      
+
       // Reset any view-only modifications
       var form = document.getElementById('createCaseForm');
       if (form) {
@@ -3639,21 +3665,21 @@ document.addEventListener('DOMContentLoaded', function () {
           input.style.backgroundColor = '';
           input.style.cursor = '';
         });
-        
+
         // Re-enable file inputs
         var fileInputs = form.querySelectorAll('input[type="file"]');
         fileInputs.forEach(function(input) {
           input.disabled = false;
           input.style.opacity = '';
         });
-        
+
         // Show delete file buttons again
         var deleteButtons = form.querySelectorAll('.delete-file-btn');
         deleteButtons.forEach(function(btn) {
           btn.style.display = '';
         });
       }
-      
+
       // Reset submit button
       var submitBtn = document.getElementById('createCaseSubmit');
       var cancelBtn = document.getElementById('createCaseCancel');
@@ -3663,11 +3689,11 @@ document.addEventListener('DOMContentLoaded', function () {
       if (cancelBtn) {
         cancelBtn.textContent = 'Cancel';
       }
-      
+
       // Reset unsaved changes tracking
       hasUnsavedChanges = false;
       originalFormData = null;
-      
+
       // Reset submission state to allow new submissions
       isSubmitting = false;
     }
@@ -3676,13 +3702,13 @@ document.addEventListener('DOMContentLoaded', function () {
   function populateCreateCaseForm(caseData) {
     var form = document.getElementById('createCaseForm');
     if (!form) return;
-    
+
     // Set form data attribute for editing
     form.dataset.caseId = caseData.id || caseData.case_id;
     if (caseData.driveFolderId) {
       form.dataset.driveFolderId = caseData.driveFolderId;
     }
-    
+
     // Populate basic fields - handle both camelCase and snake_case
     var patientFirstName = document.getElementById('patientFirstName');
     var patientLastName = document.getElementById('patientLastName');
@@ -3696,7 +3722,7 @@ document.addEventListener('DOMContentLoaded', function () {
     var status = document.getElementById('status');
     var assignedTo = document.getElementById('assignedTo');
     var notes = document.getElementById('notes');
-    
+
     if (patientFirstName) patientFirstName.value = caseData.patientFirstName || caseData.patient_first_name || '';
     if (patientLastName) patientLastName.value = caseData.patientLastName || caseData.patient_last_name || '';
     if (patientDOB) patientDOB.value = caseData.patientDOB || caseData.patient_dob || '';
@@ -3709,32 +3735,32 @@ document.addEventListener('DOMContentLoaded', function () {
     if (status) status.value = caseData.status || 'Originated';
     if (assignedTo) assignedTo.value = caseData.assignedTo || caseData.assigned_to || '';
     if (notes) notes.value = caseData.notes || '';
-    
+
     // Populate clinical details if available
     var clinicalDetails = caseData.clinicalDetails || caseData.clinical_details || null;
     var caseTypeValue = caseData.caseType || caseData.case_type || '';
     if (typeof setClinicalDetailsData === 'function') {
       setClinicalDetailsData(clinicalDetails, caseTypeValue);
     }
-    
+
     // Update modal title for editing
     var modalTitle = createCaseModal.querySelector('.modal-title');
     if (modalTitle) {
       modalTitle.textContent = 'Edit Case';
     }
-    
+
     // Update submit button text
     var submitBtn = document.getElementById('createCaseSubmit');
     if (submitBtn) {
       submitBtn.textContent = 'Update Case';
     }
-    
+
     // Load and display existing files
     if (caseData.files && Array.isArray(caseData.files)) {
       displayExistingFiles(caseData.files);
     }
   }
-  
+
   function displayExistingFiles(files) {
     // Group files by type
     var fileGroups = {
@@ -3744,7 +3770,7 @@ document.addEventListener('DOMContentLoaded', function () {
       radiographs: [],
       documents: []
     };
-    
+
     files.forEach(function(file) {
       var type = file.type || 'documents';
       if (fileGroups[type]) {
@@ -3753,7 +3779,7 @@ document.addEventListener('DOMContentLoaded', function () {
         fileGroups.documents.push(file);
       }
     });
-    
+
     // Display files in their respective containers
     Object.keys(fileGroups).forEach(function(type) {
       var container = document.getElementById(type + '-files');
@@ -3766,39 +3792,39 @@ document.addEventListener('DOMContentLoaded', function () {
       }
     });
   }
-  
+
   function createFileElement(file, type) {
     var div = document.createElement('div');
     div.className = 'selected-file';
     div.setAttribute('data-file-id', file.id);
     div.setAttribute('data-file-name', file.name);
-    
+
     var fileInfo = document.createElement('div');
     fileInfo.className = 'file-info';
-    
+
     var fileName = document.createElement('span');
     fileName.className = 'file-name';
     fileName.textContent = file.name;
-    
+
     var viewLink = document.createElement('a');
     viewLink.href = file.webViewLink || '#';
     viewLink.target = '_blank';
     viewLink.className = 'file-view-link';
     viewLink.textContent = 'View';
-    
+
     fileInfo.appendChild(fileName);
     fileInfo.appendChild(viewLink);
     div.appendChild(fileInfo);
-    
+
     return div;
   }
-  
+
   /**
    * Open a case by its ID (used by notifications)
    */
   window.openCaseById = function(caseId) {
     if (!caseId) return;
-    
+
     fetch('api/get-case.php?id=' + encodeURIComponent(caseId), {
       credentials: 'same-origin'
     })
@@ -3820,32 +3846,32 @@ document.addEventListener('DOMContentLoaded', function () {
       }
     })
     .catch(function(error) {
-      console.error('Error opening case:', error);
+
       if (typeof showToast === 'function') {
         showToast('Error opening case', 'error');
       }
     });
   };
-  
+
   function openCaseModalForView(caseData) {
     if (createCaseModal) {
       createCaseModal.style.display = 'block';
-      
+
       // Remove any existing "Back to Archived Cases" button (only relevant when coming from archived modal)
       var existingBackBtn = createCaseModal.querySelector('.back-to-archived');
       if (existingBackBtn) {
         existingBackBtn.remove();
       }
-      
+
       // Populate the form with case data
       populateCreateCaseForm(caseData);
-      
+
       // Change modal title to "View Case"
       var modalTitle = createCaseModal.querySelector('.modal-title');
       if (modalTitle) {
         modalTitle.textContent = 'View Case';
       }
-      
+
       // Hide submit button and show close button instead
       var submitBtn = document.getElementById('createCaseSubmit');
       var cancelBtn = document.getElementById('createCaseCancel');
@@ -3856,7 +3882,7 @@ document.addEventListener('DOMContentLoaded', function () {
         cancelBtn.textContent = 'Close';
         cancelBtn.style.display = 'inline-block';
       }
-      
+
       // Make all form fields readonly
       var form = document.getElementById('createCaseForm');
       if (form) {
@@ -3878,21 +3904,21 @@ document.addEventListener('DOMContentLoaded', function () {
             }
           }
         });
-        
+
         // Disable file upload functionality
         var fileInputs = form.querySelectorAll('input[type="file"]');
         fileInputs.forEach(function(input) {
           input.disabled = true;
           input.style.opacity = '0.5';
         });
-        
+
         // Disable delete file buttons
         var deleteButtons = form.querySelectorAll('.delete-file-btn');
         deleteButtons.forEach(function(btn) {
           btn.style.display = 'none';
         });
       }
-      
+
       // Show tabs for viewing
       if (caseModalTabs) {
         caseModalTabs.style.display = 'flex';
@@ -3900,13 +3926,13 @@ document.addEventListener('DOMContentLoaded', function () {
       if (caseHistoryTab) {
         caseHistoryTab.classList.remove('case-tab-disabled');
       }
-      
+
       // Load revision history
       loadCaseRevisionHistory(caseData.case_id || caseData.id);
-      
+
       // Always start on Details tab
       setCaseModalActiveTab('details');
-      
+
       // Don't track form changes for view mode
       hasUnsavedChanges = false;
     }
@@ -3918,7 +3944,7 @@ document.addEventListener('DOMContentLoaded', function () {
       if (!checkBillingForCaseCreation()) {
         return;
       }
-      
+
       // Fully reset to a brand-new case state
       resetCreateCaseFormToNew();
 
@@ -3929,33 +3955,33 @@ document.addEventListener('DOMContentLoaded', function () {
   }
   if (closeBtn) closeBtn.addEventListener('click', closeCreateCaseWithCheck);
   if (cancelBtn) cancelBtn.addEventListener('click', closeCreateCaseWithCheck);
-  
-    
+
+
   // Unsaved changes tracking
   var originalFormData = null;
   var hasUnsavedChanges = false;
   var isSubmitting = false;
-  
+
   function trackFormChanges() {
     var form = document.getElementById('createCaseForm');
     if (!form) return;
-    
+
     // Store original form data when modal opens
     originalFormData = new FormData(form);
     hasUnsavedChanges = false;
-    
+
     // Track changes to form fields
     var inputs = form.querySelectorAll('input, select, textarea');
     inputs.forEach(function(input) {
       input.addEventListener('change', function() {
         checkForChanges();
       });
-      
+
       input.addEventListener('input', function() {
         checkForChanges();
       });
     });
-    
+
     // Track file changes
     var fileInputs = form.querySelectorAll('input[type="file"]');
     fileInputs.forEach(function(input) {
@@ -3963,7 +3989,7 @@ document.addEventListener('DOMContentLoaded', function () {
         checkForChanges();
       });
     });
-    
+
     // Track file deletions
     document.addEventListener('click', function(e) {
       if (e.target.classList.contains('file-remove')) {
@@ -3971,42 +3997,42 @@ document.addEventListener('DOMContentLoaded', function () {
       }
     });
   }
-  
+
   function checkForChanges() {
     var form = document.getElementById('createCaseForm');
     if (!form || !originalFormData) return;
-    
+
     // Check if form data has changed
     var currentFormData = new FormData(form);
     hasUnsavedChanges = !formDataEqual(originalFormData, currentFormData);
   }
-  
+
   function formDataEqual(formData1, formData2) {
     // Convert FormData to objects for comparison
     var obj1 = {};
     var obj2 = {};
-    
+
     for (var pair of formData1.entries()) {
       obj1[pair[0]] = pair[1];
     }
-    
+
     for (var pair of formData2.entries()) {
       obj2[pair[0]] = pair[1];
     }
-    
+
     // Compare keys and values
     var keys1 = Object.keys(obj1);
     var keys2 = Object.keys(obj2);
-    
+
     if (keys1.length !== keys2.length) return false;
-    
+
     for (var key of keys1) {
       if (obj1[key] !== obj2[key]) return false;
     }
-    
+
     return true;
   }
-  
+
   function showUnsavedChangesWarning(callback) {
     // Create custom confirmation dialog
     var dialog = document.createElement('div');
@@ -4022,7 +4048,7 @@ document.addEventListener('DOMContentLoaded', function () {
       justify-content: center;
       z-index: 10000;
     `;
-    
+
     var content = document.createElement('div');
     content.style.cssText = `
       background: white;
@@ -4032,7 +4058,7 @@ document.addEventListener('DOMContentLoaded', function () {
       text-align: center;
       box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
     `;
-    
+
     content.innerHTML = `
       <h3 style="margin: 0 0 15px 0; color: #333;">Unsaved Changes</h3>
       <p style="margin: 0 0 25px 0; color: #666; line-height: 1.5;">
@@ -4059,20 +4085,20 @@ document.addEventListener('DOMContentLoaded', function () {
         ">Close Without Saving</button>
       </div>
     `;
-    
+
     dialog.appendChild(content);
     document.body.appendChild(dialog);
-    
+
     // Add event listeners
     document.getElementById('stay-btn').addEventListener('click', function() {
       document.body.removeChild(dialog);
     });
-    
+
     document.getElementById('close-btn').addEventListener('click', function() {
       document.body.removeChild(dialog);
       if (callback) callback();
     });
-    
+
     // Close on backdrop click
     dialog.addEventListener('click', function(e) {
       if (e.target === dialog) {
@@ -4080,14 +4106,14 @@ document.addEventListener('DOMContentLoaded', function () {
       }
     });
   }
-  
+
   // Modify closeCreateCase to check for unsaved changes
   function closeCreateCaseWithCheck() {
     // Prevent closing if form is submitting
     if (isSubmitting) {
       return;
     }
-    
+
     if (hasUnsavedChanges) {
       showUnsavedChangesWarning(function() {
         closeCreateCase();
@@ -4096,20 +4122,20 @@ document.addEventListener('DOMContentLoaded', function () {
       closeCreateCase();
     }
   }
-  
+
   // Function to clear file selections
   function clearFileSelections() {
     document.querySelectorAll('.selected-files').forEach(function(container) {
       container.innerHTML = '';
     });
-    
+
     // Clear accumulated files from all file inputs
     document.querySelectorAll('.attachment-input').forEach(function(input) {
       input._accumulatedFiles = [];
       input.value = ''; // Clear the input
     });
   }
-  
+
   // Make file input labels keyboard accessible
   var fileLabels = document.querySelectorAll('.file-button[tabindex="0"]');
   fileLabels.forEach(function(label) {
@@ -4128,13 +4154,13 @@ document.addEventListener('DOMContentLoaded', function () {
   // Handle file selection display with remove option
   // Accumulate files from multiple selections (different folders)
   var fileInputs = document.querySelectorAll('.attachment-input');
-  
+
   fileInputs.forEach(function(input) {
     input.addEventListener('change', function() {
       var fileType = this.dataset.type;
       var filesContainer = document.getElementById(fileType + '-files');
       var inputElement = this;
-      
+
       if (!filesContainer) {
         return;
       }
@@ -4144,7 +4170,7 @@ document.addEventListener('DOMContentLoaded', function () {
       if (inputElement._accumulatedFiles) {
         existingFiles = inputElement._accumulatedFiles.slice();
       }
-      
+
       // Add new files to accumulated list (avoid duplicates by name)
       if (this.files.length > 0) {
         var existingNames = existingFiles.map(function(f) { return f.name; });
@@ -4155,85 +4181,85 @@ document.addEventListener('DOMContentLoaded', function () {
           }
         }
       }
-      
+
       // Store accumulated files
       inputElement._accumulatedFiles = existingFiles;
-      
+
       // Update the input's FileList with all accumulated files
       var dt = new DataTransfer();
       existingFiles.forEach(function(file) {
         dt.items.add(file);
       });
       inputElement.files = dt.files;
-      
+
       // Clear only previously selected (non-existing) files from display
       var nonExisting = filesContainer.querySelectorAll('.selected-file:not(.existing-file)');
       nonExisting.forEach(function(el) { el.remove(); });
-      
+
       // Display all accumulated files
       existingFiles.forEach(function(file) {
         // Create file element
         var fileElement = document.createElement('div');
         fileElement.className = 'selected-file';
         fileElement.dataset.fileName = file.name;
-        
+
         // Create file name span
         var nameSpan = document.createElement('span');
         nameSpan.textContent = file.name;
-        
+
         // Create delete button (no inner content - using CSS ::before)
         var deleteBtn = document.createElement('button');
         deleteBtn.type = 'button';
         deleteBtn.className = 'file-remove';
         deleteBtn.title = 'Remove file';
-        
+
         // Assemble elements
         fileElement.appendChild(nameSpan);
         fileElement.appendChild(deleteBtn);
         filesContainer.appendChild(fileElement);
-        
+
         // Add click handler to remove button
         deleteBtn.addEventListener('click', function() {
           var fileName = file.name;
-          
+
           // Remove from accumulated files
           inputElement._accumulatedFiles = inputElement._accumulatedFiles.filter(function(f) {
             return f.name !== fileName;
           });
-          
+
           // Update the input's FileList
           var newDt = new DataTransfer();
           inputElement._accumulatedFiles.forEach(function(f) {
             newDt.items.add(f);
           });
           inputElement.files = newDt.files;
-          
+
           // Remove the visual element
           fileElement.remove();
-          
+
           // Mark form as having unsaved changes
           hasUnsavedChanges = true;
         });
       });
-      
+
       // Mark form as having unsaved changes when files are added
       if (existingFiles.length > 0) {
         hasUnsavedChanges = true;
       }
     });
   });
-  
+
   // Form validation and submission with enhanced UX
   if (submitBtn) {
     submitBtn.addEventListener('click', function() {
       var form = document.getElementById('createCaseForm');
       var isValid = true;
-      
+
       // Prevent multiple submissions
       if (isSubmitting) {
         return false;
       }
-      
+
       // Helper function to add field error
       function addFieldError(field, message) {
         field.classList.add('field-error');
@@ -4244,7 +4270,7 @@ document.addEventListener('DOMContentLoaded', function () {
           field.parentNode.insertBefore(errorMessage, field.nextSibling);
         }
       }
-      
+
       // Helper function to clear field error
       function clearFieldError(field) {
         field.classList.remove('field-error');
@@ -4252,10 +4278,10 @@ document.addEventListener('DOMContentLoaded', function () {
           field.nextElementSibling.remove();
         }
       }
-      
+
       // Check all globally required fields (fields with required attribute)
       var requiredFields = form.querySelectorAll('[required]');
-      
+
       requiredFields.forEach(function(field) {
         if (!field.value) {
           isValid = false;
@@ -4264,18 +4290,18 @@ document.addEventListener('DOMContentLoaded', function () {
           clearFieldError(field);
         }
       });
-      
+
       // Check case-type-specific conditionally required fields
       var caseType = form.querySelector('#caseType');
       var currentCaseType = caseType ? caseType.value : '';
-      
+
       // Find all conditionally required fields that are visible for the current case type
       var conditionalFields = form.querySelectorAll('[data-conditionally-required="true"]');
-      
+
       conditionalFields.forEach(function(fieldContainer) {
         var caseTypes = fieldContainer.dataset.caseTypes || '';
         var caseTypeList = caseTypes.split(',').map(function(t) { return t.trim(); });
-        
+
         // Only validate if this field is visible for the current case type
         if (caseTypeList.includes(currentCaseType)) {
           var input = fieldContainer.querySelector('input, select, textarea');
@@ -4287,7 +4313,7 @@ document.addEventListener('DOMContentLoaded', function () {
           }
         }
       });
-      
+
       // ============================================
       // TOOTH NUMBER VALIDATION ON SUBMIT
       // Business Rule: For Crown case type, validates tooth number
@@ -4303,7 +4329,7 @@ document.addEventListener('DOMContentLoaded', function () {
           }
         }
       }
-      
+
       // ============================================
       // CASE NOTES CHARACTER LIMIT VALIDATION ON SUBMIT
       // Business Rule: Notes field is limited to 3,000 characters.
@@ -4313,7 +4339,7 @@ document.addEventListener('DOMContentLoaded', function () {
         isValid = false;
         addFieldError(notesField, 'Notes cannot exceed 3,000 characters');
       }
-      
+
       if (!isValid) {
         // Scroll to top of modal to show errors
         var modalContent = form.closest('.modal-content');
@@ -4328,55 +4354,54 @@ document.addEventListener('DOMContentLoaded', function () {
         }
         return false;
       }
-      
+
       // Check if we're updating an existing case or creating a new one
       var isUpdate = form.dataset.caseId ? true : false;
-      
+
       // Show enhanced loading state with animation
       isSubmitting = true;
       submitBtn.disabled = true;
       submitBtn.classList.add('submitting');
-      
+
       // Add loading spinner and text
-      submitBtn.innerHTML = isUpdate ? 
-        '<span class="btn-spinner"></span> Updating Case...' : 
+      submitBtn.innerHTML = isUpdate ?
+        '<span class="btn-spinner"></span> Updating Case...' :
         '<span class="btn-spinner"></span> Creating Case...';
-      
+
       // --- GCS Direct Upload Flow ---
       // Step 1: Upload files directly to GCS (bypasses Cloud Run 32MB limit)
       // Step 2: Submit case metadata with storage paths (no binary data)
-      
-      console.log('[CaseSubmit] GCSUpload available:', typeof GCSUpload !== 'undefined');
+
       var hasNewFiles = typeof GCSUpload !== 'undefined' && GCSUpload.formHasFiles(form);
-      console.log('[CaseSubmit] hasNewFiles:', hasNewFiles, 'isUpdate:', isUpdate);
+
       var gcsUploadPromise;
-      
+
       if (hasNewFiles) {
         var caseIdForUpload = isUpdate ? form.dataset.caseId : 'new';
-        console.log('[CaseSubmit] Starting GCS upload for caseId:', caseIdForUpload);
+
         submitBtn.innerHTML = '<span class="btn-spinner"></span> Uploading files...';
-        
+
         gcsUploadPromise = GCSUpload.uploadFilesToGCS(form, caseIdForUpload, csrfToken, function(uploaded, total, fileName) {
           submitBtn.innerHTML = '<span class="btn-spinner"></span> Uploading files (' + uploaded + '/' + total + ')...';
         });
       } else {
-        console.log('[CaseSubmit] No new files, skipping GCS upload');
+
         gcsUploadPromise = Promise.resolve([]);
       }
-      
+
       var caseSubmitController = new AbortController();
       var caseSubmitTimeoutId = null;
-      
+
       gcsUploadPromise.then(function(gcsFiles) {
-        console.log('[CaseSubmit] GCS upload complete, files:', gcsFiles.length);
+
         // Update button text for case submission phase
-        submitBtn.innerHTML = isUpdate ? 
-          '<span class="btn-spinner"></span> Saving case...' : 
+        submitBtn.innerHTML = isUpdate ?
+          '<span class="btn-spinner"></span> Saving case...' :
           '<span class="btn-spinner"></span> Creating case...';
-        
+
         // Build FormData WITHOUT file binaries - only text fields
         var formData = new FormData();
-        
+
         // Copy all non-file form fields
         var formElements = form.elements;
         for (var i = 0; i < formElements.length; i++) {
@@ -4385,7 +4410,7 @@ document.addEventListener('DOMContentLoaded', function () {
             formData.append(el.name, el.value);
           }
         }
-        
+
         // Collect and append clinical details as JSON
         if (typeof getClinicalDetailsData === 'function') {
           var clinicalDetails = getClinicalDetailsData();
@@ -4393,11 +4418,11 @@ document.addEventListener('DOMContentLoaded', function () {
             formData.append('clinicalDetails', JSON.stringify(clinicalDetails));
           }
         }
-        
+
         // If updating, add case ID efficiently
         if (isUpdate) {
           formData.append('caseId', form.dataset.caseId);
-          
+
           // Add drive folder ID from dataset if available
           if (form.dataset.driveFolderId) {
             formData.append('driveFolderId', form.dataset.driveFolderId);
@@ -4408,29 +4433,29 @@ document.addEventListener('DOMContentLoaded', function () {
               formData.append('driveFolderId', driveFolderId);
             }
           }
-          
+
           // Add version for optimistic locking (concurrent edit detection)
           if (form.dataset.caseVersion) {
             formData.append('version', form.dataset.caseVersion);
           }
         }
-        
+
         // Append GCS uploaded file metadata (storage paths, not binary data)
         if (gcsFiles.length > 0) {
           formData.append('gcs_files', JSON.stringify(gcsFiles));
         }
-        
+
         // Collect files for deletion efficiently
         var filesToDelete = collectFilesForDeletion();
         if (filesToDelete.length > 0) {
           formData.append('filesToDelete', JSON.stringify(filesToDelete));
         }
-        
+
         // Submit case metadata (small payload, no binary data)
         var endpoint = isUpdate ? 'api/update-case.php' : 'api/create-case.php';
-        console.log('[CaseSubmit] Submitting metadata to:', endpoint, 'gcs_files:', gcsFiles.length);
+
         caseSubmitTimeoutId = setTimeout(function() { caseSubmitController.abort(); }, 30000); // 30 second timeout (no files in body)
-        
+
         return fetch(endpoint, {
           method: 'POST',
           body: formData,
@@ -4449,7 +4474,7 @@ document.addEventListener('DOMContentLoaded', function () {
             var errorMessage = 'Server error (status ' + response.status + ')';
             try {
               var errorData = JSON.parse(text);
-              
+
               // Handle 401 Unauthorized (session expired during upload)
               if (response.status === 401) {
                 var sessionError = new Error('Your session expired during upload. Please log in again. Your files were uploaded successfully and can be attached after re-authentication.');
@@ -4457,7 +4482,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 sessionError.uploadedFiles = gcsFiles; // Preserve uploaded file paths
                 throw sessionError;
               }
-              
+
               // Handle 409 Conflict (concurrent edit detected)
               if (response.status === 409 && errorData.conflict) {
                 var conflictError = new Error(errorData.message || 'This case was modified by another user.');
@@ -4466,7 +4491,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 conflictError.currentVersion = errorData.currentVersion;
                 throw conflictError;
               }
-              
+
               if (errorData.message) {
                 errorMessage = errorData.message;
               } else if (errorData.error) {
@@ -4498,11 +4523,11 @@ document.addEventListener('DOMContentLoaded', function () {
       .catch(error => {
         handleCaseSubmissionError(error, form, submitBtn, isUpdate);
       });
-      
+
       return false;
     });
   }
-  
+
   // Helper function to get drive folder ID from cache
   function getDriveFolderIdFromCache(caseId) {
     // Try to find from existing cards efficiently
@@ -4519,12 +4544,12 @@ document.addEventListener('DOMContentLoaded', function () {
     }
     return null;
   }
-  
+
   // Helper function to collect files for deletion
   function collectFilesForDeletion() {
     var markedForDeletion = document.querySelectorAll('.marked-for-deletion');
     var filesToDelete = [];
-    
+
     markedForDeletion.forEach(function(element) {
       if (element.dataset.fileId && element.dataset.attachmentId) {
         filesToDelete.push({
@@ -4533,51 +4558,51 @@ document.addEventListener('DOMContentLoaded', function () {
         });
       }
     });
-    
+
     return filesToDelete;
   }
-  
+
   // Optimized success handler
   function handleCaseSubmissionSuccess(data, form, submitBtn, isUpdate) {
     // Show success animation
     submitBtn.classList.remove('submitting');
     submitBtn.classList.add('success');
     submitBtn.innerHTML = '<span class="btn-checkmark"></span> Success!';
-    
+
     // Use requestAnimationFrame for smooth DOM updates
     requestAnimationFrame(() => {
       if (isUpdate) {
         // Remove old card efficiently
         removeOldCard(form.dataset.caseId);
       }
-      
+
       // Add new card with animation
       addCaseToKanbanWithAnimation(data.caseData);
-      
+
       // Update counts
       updateColumnCounts();
-      
+
       // Apply highlighting
       applyPastDueHighlighting(data.caseData);
-      
+
       // Load billing info asynchronously for new cases
       if (!isUpdate) {
         setTimeout(() => loadBillingInfo(), 100);
       }
-      
+
       // Reset and close after success animation
       setTimeout(() => {
         resetFormAndClose(form, submitBtn, isUpdate);
       }, 800);
     });
   }
-  
+
   // Optimized error handler
   function handleCaseSubmissionError(error, form, submitBtn, isUpdate) {
     submitBtn.classList.remove('submitting');
     submitBtn.classList.add('error');
     submitBtn.innerHTML = '<span class="btn-error"></span> Error';
-    
+
     // Handle concurrent edit conflict
     if (error.conflict) {
       showConcurrentEditConflictDialog(error, form);
@@ -4588,7 +4613,7 @@ document.addEventListener('DOMContentLoaded', function () {
       isSubmitting = false;
       return;
     }
-    
+
     // Show appropriate error message
     // Errors from gcs-upload.js already contain user-friendly text
     // (e.g. "STL files must be under 250MB", "Maximum 15 files per case")
@@ -4613,9 +4638,9 @@ document.addEventListener('DOMContentLoaded', function () {
     } else {
       errorMessage = 'Failed to ' + (isUpdate ? 'update' : 'create') + ' case: ' + msg;
     }
-    
+
     showToast(errorMessage, 'error');
-    
+
     // Reset button after error animation
     setTimeout(() => {
       submitBtn.classList.remove('error');
@@ -4624,14 +4649,14 @@ document.addEventListener('DOMContentLoaded', function () {
       isSubmitting = false;
     }, 2000);
   }
-  
+
   // Show dialog when concurrent edit conflict is detected
   function showConcurrentEditConflictDialog(error, form) {
     var savedData = error.currentData || {};
     var originalDataStr = form ? form.dataset.originalCaseData : null;
     var originalData = originalDataStr ? JSON.parse(originalDataStr) : null;
     var hasOriginalData = originalData && Object.keys(originalData).length > 0;
-    
+
     // Get user's current form values
     var yourData = {};
     if (form) {
@@ -4645,7 +4670,7 @@ document.addEventListener('DOMContentLoaded', function () {
       yourData.dueDate = (form.querySelector('#dueDate') || {}).value || '';
       yourData.notes = (form.querySelector('#notes') || {}).value || '';
     }
-    
+
     var fieldLabels = {
       patientFirstName: 'First Name',
       patientLastName: 'Last Name',
@@ -4657,13 +4682,13 @@ document.addEventListener('DOMContentLoaded', function () {
       dueDate: 'Due Date',
       notes: 'Notes'
     };
-    
+
     // Find all fields where your value differs from saved value
     var conflicts = [];
     for (var field in fieldLabels) {
       var yourVal = (yourData[field] || '').toString().trim();
       var savedVal = (savedData[field] || '').toString().trim();
-      
+
       // Show any field where your value differs from the saved value
       if (yourVal !== savedVal) {
         conflicts.push({
@@ -4674,7 +4699,7 @@ document.addEventListener('DOMContentLoaded', function () {
         });
       }
     }
-    
+
     // If no differences at all, just update version and retry
     if (conflicts.length === 0) {
       if (form && savedData.version) {
@@ -4686,16 +4711,16 @@ document.addEventListener('DOMContentLoaded', function () {
       }, 100);
       return;
     }
-    
+
     // There are true conflicts - show the modal
     var overlay = document.createElement('div');
     overlay.className = 'modal-overlay conflict-modal-overlay';
     overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:10000;display:flex;align-items:center;justify-content:center;';
-    
+
     var modal = document.createElement('div');
     modal.className = 'conflict-modal';
     modal.style.cssText = 'background:white;border-radius:12px;padding:24px;max-width:650px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,0.3);max-height:90vh;overflow-y:auto;';
-    
+
     // Build conflicts table - side by side comparison
     var conflictHtml = '<table style="width:100%;border-collapse:collapse;margin-bottom:16px;">' +
       '<thead><tr>' +
@@ -4703,7 +4728,7 @@ document.addEventListener('DOMContentLoaded', function () {
         '<th style="text-align:left;padding:10px;border-bottom:2px solid #e5e7eb;font-size:0.8rem;color:#dc2626;background:#fef2f2;">Your Value</th>' +
         '<th style="text-align:left;padding:10px;border-bottom:2px solid #e5e7eb;font-size:0.8rem;color:#16a34a;background:#f0fdf4;">Their Value (Saved)</th>' +
       '</tr></thead><tbody>';
-    
+
     conflicts.forEach(function(conflict) {
       conflictHtml += '<tr>' +
         '<td style="padding:10px;border-bottom:1px solid #f3f4f6;font-weight:600;color:#374151;">' + conflict.label + '</td>' +
@@ -4712,29 +4737,29 @@ document.addEventListener('DOMContentLoaded', function () {
       '</tr>';
     });
     conflictHtml += '</tbody></table>';
-    
-    modal.innerHTML = 
+
+    modal.innerHTML =
       '<div style="text-align:center;margin-bottom:20px;">' +
         '<div style="font-size:48px;margin-bottom:12px;">⚠️</div>' +
         '<h3 style="margin:0 0 8px 0;color:#1f2937;font-size:1.25rem;">Edit Conflict</h3>' +
         '<p style="margin:0;color:#6b7280;font-size:0.95rem;">You and another user both changed the same field(s).</p>' +
       '</div>' +
-      
+
       conflictHtml +
-      
+
       '<p style="margin:0 0 16px 0;font-size:0.85rem;color:#6b7280;text-align:center;">' +
         '<strong>Load Their Version</strong> updates the form with their saved values.<br>' +
         '<strong>Keep My Version</strong> keeps your values so you can save again.' +
       '</p>' +
-      
+
       '<div style="display:flex;gap:12px;justify-content:center;">' +
         '<button class="conflict-reload-btn" style="padding:10px 20px;background:#16a34a;color:white;border:none;border-radius:6px;cursor:pointer;font-weight:500;">Load Their Version</button>' +
         '<button class="conflict-cancel-btn" style="padding:10px 20px;background:#3b82f6;color:white;border:none;border-radius:6px;cursor:pointer;font-weight:500;">Keep My Version</button>' +
       '</div>';
-    
+
     overlay.appendChild(modal);
     document.body.appendChild(overlay);
-    
+
     // Handle "Load Their Version" - update form with saved data
     modal.querySelector('.conflict-reload-btn').addEventListener('click', function() {
       overlay.remove();
@@ -4751,7 +4776,7 @@ document.addEventListener('DOMContentLoaded', function () {
         location.reload();
       }
     });
-    
+
     // Handle "Keep My Version" - keep form data, update version, and auto-save
     modal.querySelector('.conflict-cancel-btn').addEventListener('click', function() {
       overlay.remove();
@@ -4765,7 +4790,7 @@ document.addEventListener('DOMContentLoaded', function () {
         submitBtn.click();
       }
     });
-    
+
     // Close on overlay click
     overlay.addEventListener('click', function(e) {
       if (e.target === overlay) {
@@ -4773,7 +4798,7 @@ document.addEventListener('DOMContentLoaded', function () {
       }
     });
   }
-  
+
   // Helper to update a card on the board
   function updateCardOnBoard(caseData) {
     if (!caseData || !caseData.id) return;
@@ -4793,7 +4818,7 @@ document.addEventListener('DOMContentLoaded', function () {
       }
     }
   }
-  
+
   // Efficient old card removal
   function removeOldCard(caseId) {
     var caseCards = document.querySelectorAll('.kanban-card');
@@ -4809,7 +4834,7 @@ document.addEventListener('DOMContentLoaded', function () {
       }
     }
   }
-  
+
   // Enhanced card addition with animation
   function addCaseToKanbanWithAnimation(caseData) {
     var card = addCaseToKanban(caseData);
@@ -4819,7 +4844,7 @@ document.addEventListener('DOMContentLoaded', function () {
       setTimeout(() => card.classList.remove('card-entrance'), 600);
     }
   }
-  
+
   // Reset form and close modal
   function resetFormAndClose(form, submitBtn, isUpdate) {
     hasUnsavedChanges = false;
@@ -4828,7 +4853,7 @@ document.addEventListener('DOMContentLoaded', function () {
     submitBtn.disabled = false;
     submitBtn.classList.remove('success');
     submitBtn.innerHTML = isUpdate ? 'Update Case' : 'Create Case';
-    
+
     closeCreateCase();
     form.reset();
     clearFileSelections();
@@ -4855,7 +4880,7 @@ document.addEventListener('DOMContentLoaded', function () {
       if (tagName === 'button' || (tagName === 'input' && target.type === 'button') || target.type === 'submit') {
         return; // Let the button handle its own click event
       }
-      
+
       // If focus is on a file button label (Select Files), let it handle the Enter key
       if (tagName === 'label' && target.classList.contains('file-button')) {
         return; // Let the file button open the file dialog
@@ -4877,12 +4902,12 @@ document.addEventListener('DOMContentLoaded', function () {
   var deleteConfirmCancel = document.getElementById('deleteConfirmCancel');
   var deleteConfirmDelete = document.getElementById('deleteConfirmDelete');
   var deleteConfirmMessage = document.querySelector('.delete-confirm-message');
-  
+
   // Current file being deleted
   var currentDeletingFile = null;
   var currentDeletingElement = null;
   var currentDeleteCallback = null;
-  
+
   function showDeleteConfirmation(fileElement, fileName, onConfirm) {
     // Check if user has opted to skip the confirmation
     if (localStorage.getItem('skip_archive_confirmation') === 'true') {
@@ -4891,7 +4916,7 @@ document.addEventListener('DOMContentLoaded', function () {
       }
       return;
     }
-    
+
     // Create a simple confirmation modal
     const modal = document.createElement('div');
     modal.style.cssText = `
@@ -4906,7 +4931,7 @@ document.addEventListener('DOMContentLoaded', function () {
       justify-content: center;
       z-index: 999999;
     `;
-    
+
     const content = document.createElement('div');
     content.style.cssText = `
       background: white;
@@ -4916,7 +4941,7 @@ document.addEventListener('DOMContentLoaded', function () {
       text-align: center;
       box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
     `;
-    
+
     content.innerHTML = `
       <h3 style="margin: 0 0 15px 0; color: #f44336;">Archive Case</h3>
       <p style="margin: 0 0 20px 0; color: #333;">Are you sure you want to archive "<strong>${fileName}</strong>"?</p>
@@ -4946,20 +4971,20 @@ document.addEventListener('DOMContentLoaded', function () {
         ">Archive</button>
       </div>
     `;
-    
+
     modal.appendChild(content);
     document.body.appendChild(modal);
-    
+
     // Get button references
     const cancelBtn = document.getElementById('cancelBtn');
     const confirmBtn = document.getElementById('confirmBtn');
     const dontShowCheckbox = document.getElementById('dontShowAgainCheckbox');
-    
+
     // Focus on the Archive button when modal opens
     setTimeout(() => {
       confirmBtn.focus();
     }, 100);
-    
+
     // Add event listeners
     cancelBtn.onclick = () => {
       document.body.removeChild(modal);
@@ -4967,7 +4992,7 @@ document.addEventListener('DOMContentLoaded', function () {
       document.removeEventListener('keydown', escapeHandler);
       document.removeEventListener('keydown', enterHandler);
     };
-    
+
     confirmBtn.onclick = () => {
       // Save preference if checkbox is checked
       if (dontShowCheckbox && dontShowCheckbox.checked) {
@@ -4981,7 +5006,7 @@ document.addEventListener('DOMContentLoaded', function () {
         onConfirm();
       }
     };
-    
+
     // Tab trapping - only allow tabbing between the two buttons
     const tabHandler = (e) => {
       if (e.key === 'Tab') {
@@ -4995,7 +5020,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }
       }
     };
-    
+
     // Close on background click
     modal.onclick = (e) => {
       if (e.target === modal) {
@@ -5005,7 +5030,7 @@ document.addEventListener('DOMContentLoaded', function () {
         document.removeEventListener('keydown', enterHandler);
       }
     };
-    
+
     // Close on Escape key
     const escapeHandler = (e) => {
       if (e.key === 'Escape') {
@@ -5015,7 +5040,7 @@ document.addEventListener('DOMContentLoaded', function () {
         document.removeEventListener('keydown', enterHandler);
       }
     };
-    
+
     // Enter key triggers Archive
     const enterHandler = (e) => {
       if (e.key === 'Enter') {
@@ -5024,19 +5049,19 @@ document.addEventListener('DOMContentLoaded', function () {
         document.removeEventListener('keydown', tabHandler);
         document.removeEventListener('keydown', escapeHandler);
         document.removeEventListener('keydown', enterHandler);
-        
+
         // Execute the archive callback after modal is removed
         if (onConfirm) {
           setTimeout(() => onConfirm(), 0);
         }
       }
     };
-    
+
     document.addEventListener('keydown', tabHandler);
     document.addEventListener('keydown', escapeHandler);
     document.addEventListener('keydown', enterHandler);
   }
-  
+
   function closeDeleteConfirmation() {
     if (deleteConfirmModal) {
       deleteConfirmModal.style.display = 'none';
@@ -5045,11 +5070,11 @@ document.addEventListener('DOMContentLoaded', function () {
     currentDeletingElement = null;
     currentDeleteCallback = null;
   }
-  
+
   // Wire up confirmation dialog event listeners
   if (deleteConfirmClose) deleteConfirmClose.addEventListener('click', closeDeleteConfirmation);
   if (deleteConfirmCancel) deleteConfirmCancel.addEventListener('click', closeDeleteConfirmation);
-  
+
   // Handle the delete confirmation
   if (deleteConfirmDelete) {
     deleteConfirmDelete.addEventListener('click', function() {
@@ -5059,42 +5084,42 @@ document.addEventListener('DOMContentLoaded', function () {
       closeDeleteConfirmation();
     });
   }
-  
+
   // Close modal when clicking outside of it
   window.addEventListener('click', function(e) {
     if (e.target === deleteConfirmModal) closeDeleteConfirmation();
   });
-  
+
   // Add escape key handler for delete confirmation
   document.addEventListener('keydown', function(event) {
     if (event.key === 'Escape' && deleteConfirmModal && deleteConfirmModal.style.display === 'block') {
       closeDeleteConfirmation();
     }
   });
-  
+
   // Function to ensure file delete buttons are visible and working
   function ensureFileDeleteButtons() {
     document.querySelectorAll('.file-remove').forEach(function(button) {
       // Remove any inline styles that might interfere with CSS
       button.removeAttribute('style');
-      
+
       // Clear any inner HTML - we're using CSS ::before for the X
       button.innerHTML = '';
     });
   }
-  
+
   // Function to update file count display
   function updateFileCountDisplay() {
     // This function updates any UI elements that show the file count
     document.querySelectorAll('.selected-files').forEach(function(container) {
       // Count files in this container
       var fileCount = container.querySelectorAll('.selected-file').length;
-      
+
       // Get the attachment type from data attribute
       var type = container.dataset.type || '';
-      
+
       // Track attachment count
-      
+
       // Update any UI elements that show counts (if they exist)
       // For example, if there were badges showing file counts
       var countBadge = document.querySelector('.file-count-badge[data-type="' + type + '"]');
@@ -5104,46 +5129,46 @@ document.addEventListener('DOMContentLoaded', function () {
       }
     });
   }
-  
+
   // Handle conditional fields in the form
   var caseTypeSelect = document.getElementById('caseType');
   var materialElement = document.getElementById('material');
   var materialField = materialElement ? materialElement.closest('.form-field') : null;
-  
+
   if (caseTypeSelect && materialField) {
     // Case types that require the material field
     var caseTypesRequiringMaterial = [
       "Crown", "Bridge", "Implant", "AOX", "Veneer", "Inlay/Onlay"
     ];
-    
+
     function updateMaterialVisibility() {
       var selectedCaseType = caseTypeSelect.value;
       var requiresMaterial = caseTypesRequiringMaterial.includes(selectedCaseType);
-      
+
       // Show/hide the material field based on case type
       materialField.style.display = requiresMaterial ? 'block' : 'none';
       document.getElementById('material').required = requiresMaterial;
     }
-    
+
     // Set initial visibility
     updateMaterialVisibility();
-    
+
     // Update when case type changes
     caseTypeSelect.addEventListener('change', updateMaterialVisibility);
   }
-  
+
   // Function to calculate days in current status
   function getDaysInStatus(statusChangedAt) {
     if (!statusChangedAt) return 'N/A';
-    
+
     try {
       var changedDate = new Date(statusChangedAt);
       if (isNaN(changedDate.getTime())) return 'N/A';
-      
+
       var now = new Date();
       var diffTime = now.getTime() - changedDate.getTime();
       var diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-      
+
       if (diffDays === 0) return 'Today';
       if (diffDays === 1) return '1 day';
       return diffDays + ' days';
@@ -5151,14 +5176,14 @@ document.addEventListener('DOMContentLoaded', function () {
       return 'N/A';
     }
   }
-  
+
   // Function to format dates
   function formatDate(dateString, includeTime) {
     if (!dateString) return 'N/A';
-    
+
     try {
       var date;
-      
+
       // For date-only strings (YYYY-MM-DD), treat as local date to avoid timezone issues
       if (dateString.match(/^\d{4}-\d{2}-\d{2}$/)) {
         var parts = dateString.split('-');
@@ -5166,72 +5191,72 @@ document.addEventListener('DOMContentLoaded', function () {
       } else {
         date = new Date(dateString);
       }
-      
+
       // Check if date is valid
       if (isNaN(date.getTime())) {
         return 'Invalid Date';
       }
-      
+
       var options = {
         year: 'numeric',
         month: 'short',
         day: 'numeric'
       };
-      
+
       if (includeTime) {
         options.hour = '2-digit';
         options.minute = '2-digit';
       }
-      
+
       return date.toLocaleDateString('en-US', options);
     } catch (e) {
       return 'Invalid Date';
     }
   }
-  
+
   // Initialize drag-and-drop for Kanban board
   function initKanbanDragDrop() {
     // Disable drag-and-drop if trial expired
     if (billingInfo && billingInfo.is_trial && billingInfo.trial_expired) {
       return;
     }
-    
+
     const kanbanCards = document.querySelectorAll('.kanban-card');
     const kanbanColumns = document.querySelectorAll('.kanban-column-body');
-    
+
     // Make all existing cards draggable
     kanbanCards.forEach(card => {
       card.setAttribute('draggable', 'true');
       addDragListeners(card);
     });
-    
+
     // Add drop targets to all columns
     kanbanColumns.forEach(column => {
       column.addEventListener('dragover', e => {
         e.preventDefault(); // Allow drop
         column.classList.add('drag-over');
       });
-      
+
       column.addEventListener('dragleave', e => {
         column.classList.remove('drag-over');
       });
-      
+
       column.addEventListener('drop', e => {
         e.preventDefault();
         column.classList.remove('drag-over');
-        
+
         // Get the dragged card ID and data
         const cardId = e.dataTransfer.getData('text/plain');
         const draggedCard = document.getElementById(cardId);
-        
+
         if (!draggedCard) return;
-        
+
         // Get the column's status from its parent column header
         const columnHeader = column.closest('.kanban-column').querySelector('.kanban-column-title');
         if (!columnHeader) return;
-        
+
         const newStatus = columnHeader.textContent.trim();
-        
+
         // Get card data
         let cardData;
         try {
@@ -5240,54 +5265,54 @@ document.addEventListener('DOMContentLoaded', function () {
           // Handle parse error
           return;
         }
-        
+
         // Only update if the status is actually changing
         if (cardData.status === newStatus) return;
-        
+
         // Update the card's status via API
         updateCardStatus(draggedCard, cardData, newStatus, column);
       });
     });
   }
-  
+
   // Add drag event listeners to a card
   function addDragListeners(card) {
     // Generate a unique ID if the card doesn't have one
     if (!card.id) {
       card.id = 'case-' + Math.random().toString(36).substring(2, 9);
     }
-    
+
     // Track initial mouse position for drag direction
     var dragStartX = 0;
-    
+
     card.addEventListener('mousedown', e => {
       dragStartX = e.clientX;
     });
-    
+
     card.addEventListener('dragstart', e => {
       // Check if any case is currently being printed
       if (window.isPrintingCase) {
         e.preventDefault();
         return false;
       }
-      
+
       e.dataTransfer.setData('text/plain', card.id);
       card.classList.add('dragging');
-      
+
       // Store the start position for direction detection
       card.dataset.dragStartX = dragStartX;
-      
+
       // Set drag effect
       e.dataTransfer.effectAllowed = 'move';
     });
-    
+
     card.addEventListener('drag', e => {
       // Update tilt direction based on current mouse position vs start
       if (e.clientX === 0) return; // Ignore when drag ends (clientX becomes 0)
-      
+
       var startX = parseInt(card.dataset.dragStartX) || 0;
       var currentX = e.clientX;
-      
+
       if (currentX < startX - 10) {
         // Dragging left
         card.classList.remove('dragging-right');
@@ -5298,7 +5323,7 @@ document.addEventListener('DOMContentLoaded', function () {
         card.classList.add('dragging-right');
       }
     });
-    
+
     card.addEventListener('dragend', e => {
       card.classList.remove('dragging');
       card.classList.remove('dragging-left');
@@ -5306,7 +5331,7 @@ document.addEventListener('DOMContentLoaded', function () {
       delete card.dataset.dragStartX;
     });
   }
-  
+
   // Update card status via API (optimized for performance)
   function updateCardStatus(card, cardData, newStatus, targetColumn) {
     // Cache DOM elements to avoid repeated queries
@@ -5336,7 +5361,7 @@ document.addEventListener('DOMContentLoaded', function () {
       // Handle empty states efficiently
       const originalEmpty = originalColumn.querySelector('.kanban-empty');
       const targetEmpty = targetColumn.querySelector('.kanban-empty');
-      
+
       if (originalCount - 1 === 0 && !originalEmpty) {
         const emptyMsg = document.createElement('p');
         emptyMsg.className = 'kanban-empty';
@@ -5345,7 +5370,7 @@ document.addEventListener('DOMContentLoaded', function () {
       } else if (originalCount - 1 > 0 && originalEmpty) {
         originalEmpty.remove();
       }
-      
+
       if (targetEmpty) {
         targetEmpty.remove();
       }
@@ -5406,18 +5431,18 @@ document.addEventListener('DOMContentLoaded', function () {
         requestAnimationFrame(() => {
           cardData.status = newStatus;
           cardData.lastUpdateDate = data.caseData.lastUpdateDate;
-          
+
           // Update version for optimistic locking
           if (data.caseData.version !== undefined) {
             cardData.version = data.caseData.version;
           } else if (data.newVersion !== undefined) {
             cardData.version = data.newVersion;
           }
-          
+
           // Update revision count if returned (backward move)
           if (data.caseData.revisionCount !== undefined) {
             cardData.revisionCount = data.caseData.revisionCount;
-            
+
             // Update revision count line on card if feature flag enabled
             if (window.featureFlags && window.featureFlags.SHOW_REVISION_COUNT) {
               const revisionCountLine = card.querySelector('.revision-count-line');
@@ -5438,7 +5463,7 @@ document.addEventListener('DOMContentLoaded', function () {
               }
             }
           }
-          
+
           card.dataset.caseJson = JSON.stringify(cardData);
 
           // Update status class
@@ -5453,11 +5478,11 @@ document.addEventListener('DOMContentLoaded', function () {
 
           // Apply highlighting
           applyPastDueHighlighting(cardData);
-          
+
           // Add success feedback
           card.classList.add('update-success');
           setTimeout(() => card.classList.remove('update-success'), 600);
-          
+
           // Remove updating class after a short delay
           setTimeout(() => card.classList.remove('updating'), 300);
         });
@@ -5506,11 +5531,11 @@ document.addEventListener('DOMContentLoaded', function () {
 
         applyPastDueHighlighting(cardData);
         card.classList.remove('updating');
-        
+
         // Add error feedback
         card.classList.add('update-error');
         setTimeout(() => card.classList.remove('update-error'), 500);
-        
+
         // Show appropriate error message
         if (error.conflict) {
           showToast('This case was modified by another user. Refreshing...', 'warning');
@@ -5538,40 +5563,40 @@ document.addEventListener('DOMContentLoaded', function () {
     // Find the appropriate column based on status
     var status = caseData.status;
     var columnSelector = '.kanban-column:has(.kanban-column-title:contains("' + status + '"))';
-    
+
     // Use a more compatible approach
     var columns = document.querySelectorAll('.kanban-column');
     var targetColumn = null;
-    
+
     columns.forEach(function(column) {
       var titleElement = column.querySelector('.kanban-column-title');
       if (titleElement && titleElement.textContent.trim() === status) {
         targetColumn = column;
       }
     });
-    
+
     if (targetColumn) {
       // Remove the 'No cases in this stage' message if present
       var emptyMessage = targetColumn.querySelector('.kanban-empty');
       if (emptyMessage) {
         emptyMessage.remove();
       }
-      
+
       // Update the count badge
       var countBadge = targetColumn.querySelector('.kanban-column-count');
       if (countBadge) {
         var currentCount = parseInt(countBadge.textContent) || 0;
         countBadge.textContent = currentCount + 1;
       }
-      
+
       // Create a new case card
       var caseCard = document.createElement('div');
       caseCard.className = 'kanban-card';
-      
+
       // Add class based on status for colored left border
       var statusClass = 'kanban-card-' + status.toLowerCase().replace(/\s+/g, '-');
       caseCard.classList.add(statusClass);
-      
+
       // Check if past due and add class immediately to prevent CLS
       var highlightPastDue = localStorage.getItem('highlight_past_due') === 'true';
       var isPastDue = false;
@@ -5585,7 +5610,7 @@ document.addEventListener('DOMContentLoaded', function () {
           isPastDue = true;
         }
       }
-      
+
       // Create a separate copy of attachments first for clarity
       var attachmentsCopy = [];
       if (Array.isArray(caseData.attachments) && caseData.attachments.length > 0) {
@@ -5599,7 +5624,7 @@ document.addEventListener('DOMContentLoaded', function () {
           attachmentsCopy = [];
         }
       }
-      
+
       // Ensure we have all required fields in the case data
       var completeData = {
         id: caseData.id || ('temp_' + Date.now()),
@@ -5625,9 +5650,9 @@ document.addEventListener('DOMContentLoaded', function () {
         revisionCount: caseData.revisionCount || 0,
         version: caseData.version || 1
       };
-      
+
       // Assignment info stored in completeData.assignedTo
-      
+
       // Store complete case data as a data attribute (JSON string)
       // Ensure data is properly formatted for display
       var displayData = {
@@ -5655,13 +5680,13 @@ document.addEventListener('DOMContentLoaded', function () {
         version: completeData.version || 1
       };
       caseCard.dataset.caseJson = JSON.stringify(displayData);
-      
+
       var creationDate = caseData.creationDate || new Date().toISOString();
       var lastUpdateDate = caseData.lastUpdateDate || new Date().toISOString();
-      
+
       // Get assignment information if any
       var assignedEmail = completeData.assignedTo || '';
-      
+
       // Build attachment indicator HTML (only if feature flag enabled)
       var attachmentIndicatorHtml = '';
       if (window.featureFlags && window.featureFlags.SHOW_ATTACHMENT_COUNT && attachmentsCopy && attachmentsCopy.length > 0) {
@@ -5686,10 +5711,10 @@ document.addEventListener('DOMContentLoaded', function () {
           '<span class="attachment-count">' + attachmentsCopy.length + '</span>' +
           '</span>';
       }
-      
+
       // Build late indicator text
       var lateIndicatorText = isPastDue ? ' LATE' : '';
-      
+
       // Build At Risk indicator HTML (only if feature flag enabled)
       var atRiskHtml = '';
       var showAtRisk = window.featureFlags && window.featureFlags.SHOW_AT_RISK;
@@ -5708,18 +5733,18 @@ document.addEventListener('DOMContentLoaded', function () {
           '</div>';
         caseCard.classList.add('at-risk');
       }
-      
+
       // Revision count (used for revision count line below patient name)
       var revisionCount = displayData.revisionCount || 0;
-      
+
       // Build revision count line (below patient name, only if flag enabled)
       var revisionCountLine = '';
       var showRevisionCount = window.featureFlags && window.featureFlags.SHOW_REVISION_COUNT;
       if (showRevisionCount && revisionCount > 0) {
         revisionCountLine = '<div class="revision-count-line">Revisions: ' + revisionCount + '</div>';
       }
-      
-      caseCard.innerHTML = 
+
+      caseCard.innerHTML =
         '<button type="button" class="kanban-card-edit" title="Edit Case">✎</button>' +
         '<div class="kanban-card-header">' +
         '  <h3 class="kanban-card-title">' + (displayData.patientFirstName || '') + ' ' + (displayData.patientLastName || '') + '</h3>' +
@@ -5731,7 +5756,7 @@ document.addEventListener('DOMContentLoaded', function () {
         '  <p class="dentist-row"><strong>Dentist:</strong> ' + (displayData.dentistName || '') + attachmentIndicatorHtml + '</p>' +
         '  <div class="kanban-card-assignment">' +
         '    <div class="assignment-label"><strong>Assigned to</strong></div>' +
-        '    <div class="assignment-value" data-case-id="' + displayData.id + '">' + 
+        '    <div class="assignment-value" data-case-id="' + displayData.id + '">' +
         '      <select class="assignment-select" data-case-id="' + displayData.id + '" name="assignmentSelect" aria-label="Assign case to team member">' +
         '        <option value="loading">Loading...</option>' +
         '      </select>' +
@@ -5746,9 +5771,9 @@ document.addEventListener('DOMContentLoaded', function () {
         '      <div><span class="date-label">Updated:</span> <span class="date-value">' + formatDate(lastUpdateDate, false) + '</span></div>' +
         (window.featureFlags && window.featureFlags.SHOW_IN_STATUS ? '      <div><span class="date-label">In Status:</span> <span class="date-value days-in-status">' + getDaysInStatus(displayData.statusChangedAt) + '</span></div>' : '') +
         '    </div>' +
-        '    <button type="button" class="card-delete-btn" title="Archive Case" data-case-id="' + displayData.id + '" style="margin-left: 10px; flex-shrink: 0; position: static !important; bottom: auto !important; right: auto !important;">' + 
-        '      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + 
-        '        <rect x="3" y="3" width="18" height="4" rx="1" ry="1"></rect>' + 
+        '    <button type="button" class="card-delete-btn" title="Archive Case" data-case-id="' + displayData.id + '" style="margin-left: 10px; flex-shrink: 0; position: static !important; bottom: auto !important; right: auto !important;">' +
+        '      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
+        '        <rect x="3" y="3" width="18" height="4" rx="1" ry="1"></rect>' +
         '        <path d="M5 7h14v14H5z"></path>' +
         '        <path d="M10 12h4"></path>' +
         '      </svg>' +
@@ -5758,24 +5783,24 @@ document.addEventListener('DOMContentLoaded', function () {
         '<div class="kanban-card-actions">' +
         '  <button type="button" class="kanban-card-print" title="Print Case" aria-label="Print case" data-case-id="' + displayData.id + '" style="width: 100%; justify-content: center;">🖨️ Print</button>' +
         '</div>';
-      
+
       // Initialize the assignment dropdown BEFORE adding to DOM
       const assignmentSelect = caseCard.querySelector('.assignment-select');
       if (assignmentSelect) {
         // First, try to set the initial value directly before full initialization
         if (assignedEmail) {
           assignmentSelect.value = assignedEmail;
-          
+
           // Store in global assignments cache for reference
           if (typeof window.caseAssignments === 'object') {
             window.caseAssignments[displayData.id] = assignedEmail;
           }
         }
-        
+
         // Initialize the assignment dropdown immediately
         initializeAssignmentDropdown(assignmentSelect, displayData.id, assignedEmail);
       }
-      
+
       // Add the case card to the TOP of the column body (as first card)
       var columnBody = targetColumn.querySelector('.kanban-column-body');
       var firstExistingCard = columnBody.querySelector('.kanban-card');
@@ -5784,22 +5809,22 @@ document.addEventListener('DOMContentLoaded', function () {
       } else {
         columnBody.appendChild(caseCard);
       }
-      
+
       // Add click event for the edit button
       var editButton = caseCard.querySelector('.kanban-card-edit');
       if (editButton) {
         editButton.addEventListener('click', function(e) {
           // Prevent event from propagating to parent elements
           e.stopPropagation();
-          
+
           // Check if any case is currently being printed
           if (window.isPrintingCase) {
             return;
           }
-          
+
           // Get case data from the data attribute
           var rawData = caseCard.dataset.caseJson;
-          
+
           var cardData;
           try {
             cardData = JSON.parse(rawData);
@@ -5807,22 +5832,22 @@ document.addEventListener('DOMContentLoaded', function () {
             // Error parsing card data
             cardData = {}; // Default empty object if parse fails
           }
-          
+
           // Open the modal for editing
           editCaseHandler(cardData);
         });
       }
-      
+
       // Add click event for the delete button
       var deleteButton = caseCard.querySelector('.card-delete-btn');
       if (deleteButton) {
         deleteButton.addEventListener('click', function(e) {
           // Prevent event from propagating to parent elements
           e.stopPropagation();
-          
+
           // Get case data from the data attribute
           var rawData = caseCard.dataset.caseJson;
-          
+
           var cardData;
           try {
             cardData = JSON.parse(rawData);
@@ -5830,7 +5855,7 @@ document.addEventListener('DOMContentLoaded', function () {
             // Error parsing card data
             cardData = {}; // Default empty object if parse fails
           }
-          
+
           // Show delete confirmation
           if (cardData.id) {
             showDeleteConfirmation(caseCard, cardData.patientFirstName + ' ' + cardData.patientLastName, function() {
@@ -5839,17 +5864,17 @@ document.addEventListener('DOMContentLoaded', function () {
           }
         });
       }
-      
+
       // Add click event for the print button
       var printButton = caseCard.querySelector('.kanban-card-print');
       if (printButton) {
         printButton.addEventListener('click', function(e) {
           // Prevent event from propagating to parent elements
           e.stopPropagation();
-          
+
           // Get case data from the data attribute
           var rawData = caseCard.dataset.caseJson;
-          
+
           var cardData;
           try {
             cardData = JSON.parse(rawData);
@@ -5857,7 +5882,7 @@ document.addEventListener('DOMContentLoaded', function () {
             // Error parsing card data
             cardData = {}; // Default empty object if parse fails
           }
-          
+
           // Print the case
           printCase(cardData);
         });
@@ -5872,7 +5897,7 @@ document.addEventListener('DOMContentLoaded', function () {
         if (tagName === 'button' || tagName === 'input' || tagName === 'select' || tagName === 'textarea') {
           return;
         }
-        
+
         // Check if any case is currently being printed
         if (window.isPrintingCase) {
           return;
@@ -5888,16 +5913,16 @@ document.addEventListener('DOMContentLoaded', function () {
 
         editCaseHandler(cardData);
       });
-      
+
       // Make the card draggable
       caseCard.setAttribute('draggable', 'true');
       addDragListeners(caseCard);
-      
+
       // Trigger the cards updated event
       window.triggerCardsUpdated();
     }
   }
-  
+
   // Function to delete/archive a case
   // Note: Archiving is allowed even when trial expired (cleanup operation)
   function deleteCase(caseId, caseCard) {
@@ -5905,7 +5930,7 @@ document.addEventListener('DOMContentLoaded', function () {
     if (window.isPrintingCase) {
       return;
     }
-    
+
     fetch('api/delete-case.php', {
       method: 'POST',
       headers: {
@@ -5925,7 +5950,7 @@ document.addEventListener('DOMContentLoaded', function () {
           caseCard.style.transition = 'opacity 0.3s, transform 0.3s';
           caseCard.style.opacity = '0';
           caseCard.style.transform = 'scale(0.9)';
-          
+
           setTimeout(function() {
             caseCard.remove();
             // Update column count
@@ -5938,7 +5963,7 @@ document.addEventListener('DOMContentLoaded', function () {
             loadArchivedCaseCount();
           }, 300);
         }
-        
+
         showToast('Case archived successfully', 'success');
       } else {
         showToast('Error archiving case: ' + (data.message || 'Unknown error'), 'error');
@@ -5952,7 +5977,7 @@ document.addEventListener('DOMContentLoaded', function () {
       }
     });
   }
-  
+
   // Function to update column counts
   function updateColumnCounts() {
     var columns = document.querySelectorAll('.kanban-column');
@@ -5964,28 +5989,28 @@ document.addEventListener('DOMContentLoaded', function () {
       }
     });
   }
-  
+
   // Function to handle case editing
   function editCaseHandler(caseData) {
     // Check if any case is currently being printed
     if (window.isPrintingCase) {
       return;
     }
-    
+
     // Get form and modal elements
     var form = document.getElementById('createCaseForm');
     var modalTitle = document.querySelector('.modal-title');
     var submitBtn = document.getElementById('createCaseSubmit');
-    
+
     // Clear any previous validation errors when starting to edit a case
     if (typeof clearCreateCaseErrors === 'function') {
       clearCreateCaseErrors();
     }
-    
+
     // Update modal title to indicate editing mode
     if (modalTitle) modalTitle.textContent = 'Edit Case';
     if (submitBtn) submitBtn.textContent = 'Update Case';
-    
+
     // Show revision indicator in modal header if case has revisions
     var revisionCount = caseData.revisionCount || 0;
     var existingRevisionIndicator = document.querySelector('.modal-header .case-detail-regression');
@@ -5997,7 +6022,7 @@ document.addEventListener('DOMContentLoaded', function () {
       var revisionIndicator = document.createElement('span');
       revisionIndicator.className = 'case-detail-regression';
       revisionIndicator.title = 'This case has ' + revisionCount + ' revision(s)';
-      revisionIndicator.innerHTML = 
+      revisionIndicator.innerHTML =
         '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
         '<path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>' +
         '<path d="M3 3v5h5"></path>' +
@@ -6005,17 +6030,17 @@ document.addEventListener('DOMContentLoaded', function () {
         '<span>' + revisionCount + ' ' + revisionLabel + '</span>';
       modalTitle.parentNode.insertBefore(revisionIndicator, modalTitle.nextSibling);
     }
-    
+
     // Ensure all form fields exist before setting values
     if (!form) {
       // Form not found
       return;
     }
-    
+
     // Set form field values with thorough null checking
     if (form.patientFirstName) form.patientFirstName.value = caseData.patientFirstName || '';
     if (form.patientLastName) form.patientLastName.value = caseData.patientLastName || '';
-    
+
     // Handle DOB date carefully
     if (form.patientDOB && caseData.patientDOB) {
       try {
@@ -6028,22 +6053,22 @@ document.addEventListener('DOMContentLoaded', function () {
         // Error formatting DOB
       }
     }
-    
+
     // Set patient gender
     if (form.patientGender) form.patientGender.value = caseData.patientGender || '';
-    
+
     if (form.dentistName) form.dentistName.value = caseData.dentistName || '';
     if (form.caseType) form.caseType.value = caseData.caseType || '';
     if (form.toothShade) form.toothShade.value = caseData.toothShade || '';
-    
+
     // Trigger material field visibility update
     if (typeof updateMaterialVisibility === 'function') {
       updateMaterialVisibility();
     }
-    
+
     // Set material value after visibility update
     if (form.material) form.material.value = caseData.material || '';
-    
+
     // Handle due date carefully
     if (form.dueDate && caseData.dueDate) {
       try {
@@ -6056,30 +6081,30 @@ document.addEventListener('DOMContentLoaded', function () {
         // Error formatting due date
       }
     }
-    
+
     if (form.status) form.status.value = caseData.status || '';
     if (form.notes) form.notes.value = caseData.notes || '';
-    
+
     // Load clinical details if available
     var clinicalDetails = caseData.clinicalDetails || caseData.clinical_details || null;
     var caseTypeValue = caseData.caseType || '';
     if (typeof setClinicalDetailsData === 'function') {
       setClinicalDetailsData(clinicalDetails, caseTypeValue);
     }
-    
+
     // Store the case ID for update handling
     form.dataset.caseId = caseData.id || '';
-    
+
     // Store the drive folder ID for update handling
     if (caseData.driveFolderId) {
       form.dataset.driveFolderId = caseData.driveFolderId;
     }
-    
+
     // Store the version for optimistic locking (concurrent edit detection)
     if (caseData.version) {
       form.dataset.caseVersion = caseData.version;
     }
-    
+
     // Store original case data for conflict detection
     // This allows us to detect TRUE conflicts (same field changed by both users)
     form.dataset.originalCaseData = JSON.stringify({
@@ -6093,12 +6118,12 @@ document.addEventListener('DOMContentLoaded', function () {
       dueDate: caseData.dueDate || '',
       notes: caseData.notes || ''
     });
-    
+
     // Set the assigned to dropdown (if it exists)
     if (form.assignedTo) {
       // Store the current assignee (might be empty)
       var currentAssignee = caseData.assignedTo || '';
-      
+
       // Manually trigger initializeAssignmentDropdown if it exists
       if (typeof initializeAssignmentDropdown === 'function') {
         setTimeout(function() {
@@ -6109,10 +6134,10 @@ document.addEventListener('DOMContentLoaded', function () {
         form.assignedTo.value = currentAssignee;
       }
     }
-    
+
     // Clear file selections
     clearFileSelections();
-    
+
     // Display existing attachments if any
     if (caseData.attachments && Array.isArray(caseData.attachments) && caseData.attachments.length > 0) {
       // Group attachments by type
@@ -6131,7 +6156,7 @@ document.addEventListener('DOMContentLoaded', function () {
           'CompletedDesigns': 'completedDesigns',
           'Completed': 'completedDesigns'
         };
-        
+
         // Try to map the type, fallback to lowercase if not found
         var mappedType = typeMapping[type] || type.toLowerCase();
         if (!attachmentsByType[mappedType]) {
@@ -6139,12 +6164,12 @@ document.addEventListener('DOMContentLoaded', function () {
         }
         attachmentsByType[mappedType].push(attachment);
       });
-      
+
       // Display in the appropriate containers
       Object.keys(attachmentsByType).forEach(function(type) {
         // First look for containers with matching data-api-type attribute
         var container = document.querySelector('.selected-files[data-api-type="' + type + '"]');
-        
+
         if (!container) {
           // Try different selector formats until we find a matching container
           var containerSelectors = [
@@ -6155,7 +6180,7 @@ document.addEventListener('DOMContentLoaded', function () {
             '[id$="' + type.toLowerCase() + '"]',  // Contains type name
             '.selected-files'                    // Any selected-files container
           ];
-          
+
           // Try each selector until we find a matching container
           containerSelectors.some(function(selector) {
             var el = document.querySelector(selector);
@@ -6165,28 +6190,28 @@ document.addEventListener('DOMContentLoaded', function () {
             }
             return false;
           });
-          
+
           // If no container found, fallback to the first one
           if (!container) {
             container = document.querySelector('.selected-files');
           }
         }
-        
+
         if (container) {
           attachmentsByType[type].forEach(function(file) {
             // Create the file element
             var fileElement = document.createElement('div');
             fileElement.className = 'selected-file existing-file';
-            
+
             // Get the file path for local files
             var filePath = file.path || '';
             var fileId = file.id || '';
             fileElement.dataset.fileId = fileId;
             fileElement.dataset.attachmentId = fileId;
-            
+
             // Determine if this is a GCS-stored file or a legacy local/Drive file
             var isGcsFile = (file.storageType === 'gcs' && file.storagePath);
-            
+
             // Create the filename - make it clickable to view/download
             var nameSpan;
             if (isGcsFile) {
@@ -6214,7 +6239,7 @@ document.addEventListener('DOMContentLoaded', function () {
               nameSpan.style.cssText = 'color: #2563eb; text-decoration: none; cursor: pointer;';
               nameSpan.title = 'Click to view: ' + file.fileName;
               nameSpan.textContent = file.fileName;
-              
+
               // Add hover effect
               nameSpan.addEventListener('mouseenter', function() {
                 this.style.textDecoration = 'underline';
@@ -6248,29 +6273,29 @@ document.addEventListener('DOMContentLoaded', function () {
               downloadLink.className = 'attachment-download-link';
               downloadLink.textContent = 'Download';
             }
-            
+
             // Create a simple delete button with visible styling
             var deleteBtn = document.createElement('button');
             deleteBtn.type = 'button';
             deleteBtn.className = 'file-remove';
             deleteBtn.title = 'Mark file for deletion (will be removed when you update the case)';
             deleteBtn.textContent = '❌';
-            
+
             // Add event listener directly to the button
             deleteBtn.addEventListener('click', function(e) {
               e.preventDefault();
               e.stopPropagation();
-              
+
               var currentFileElement = this.parentElement;
-              
+
               // Mark the file element for deletion
               currentFileElement.classList.add('marked-for-deletion');
               currentFileElement.style.opacity = '0.5';
               currentFileElement.style.textDecoration = 'line-through';
-              
+
               // Hide the delete button after marking
               this.style.display = 'none';
-              
+
               // Add a visual indicator that it's marked for deletion
               var indicator = document.createElement('span');
               indicator.textContent = ' (will be deleted)';
@@ -6278,18 +6303,18 @@ document.addEventListener('DOMContentLoaded', function () {
               indicator.style.fontSize = '12px';
               indicator.style.fontStyle = 'italic';
               currentFileElement.appendChild(indicator);
-              
+
               // Mark form as having unsaved changes
               hasUnsavedChanges = true;
             });
-            
+
             // Assemble the elements in order: name, download, remove
             fileElement.appendChild(nameSpan);
             if (downloadLink) {
               fileElement.appendChild(downloadLink);
             }
             fileElement.appendChild(deleteBtn);
-            
+
             container.appendChild(fileElement);
           });
         }
@@ -6298,7 +6323,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Open the modal (will show tabs because caseId is set on the form)
     openCreateCase();
-    
+
     // Display At Risk indicator in case detail view
     displayAtRiskInCaseDetail(caseData);
 
@@ -6312,19 +6337,19 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Call the function to ensure delete buttons are visible
     setTimeout(ensureFileDeleteButtons, 500); // Small delay to ensure DOM is updated
-    
+
     // Simple check after modal is open to verify delete buttons
     setTimeout(function() {
       // Count and verify all delete buttons
       var deleteButtons = document.querySelectorAll('.file-remove');
-      
+
       // Make sure no buttons have HTML content (should use CSS ::before)
       deleteButtons.forEach(function(btn) {
         btn.innerHTML = '';
       });
     }, 500); // Half second delay should be enough
   }
-  
+
   // Display At Risk indicator in case detail view
   function displayAtRiskInCaseDetail(caseData) {
     // Remove any existing At Risk indicator
@@ -6332,27 +6357,27 @@ document.addEventListener('DOMContentLoaded', function () {
     if (existingIndicator) {
       existingIndicator.remove();
     }
-    
+
     // Check feature flag - if disabled, don't show At Risk banner
     if (!window.featureFlags || !window.featureFlags.SHOW_AT_RISK_BANNER) {
       return;
     }
-    
+
     // Check if case is at risk
     if (!caseData || !caseData.atRisk || !caseData.atRisk.isAtRisk) {
       return;
     }
-    
+
     var reasons = caseData.atRisk.reasons || [];
     if (reasons.length === 0) {
       return;
     }
-    
+
     // Build human-readable summary from reasons
     var summaryText = reasons.join(', ');
     // Capitalize first letter
     summaryText = summaryText.charAt(0).toUpperCase() + summaryText.slice(1);
-    
+
     // Build clinical Risk Summary HTML
     // Icon: small circle with dot (subtle indicator, not warning triangle)
     var indicatorHtml = '<div id="caseDetailAtRisk" class="case-detail-at-risk" title="Click to view revision history">' +
@@ -6367,7 +6392,7 @@ document.addEventListener('DOMContentLoaded', function () {
       '<p class="case-detail-at-risk-summary">' + escapeHtml(summaryText) + '</p>' +
       '</div>' +
       '</div>';
-    
+
     // Insert at the top of the form
     var form = document.getElementById('createCaseForm');
     if (form) {
@@ -6375,7 +6400,7 @@ document.addEventListener('DOMContentLoaded', function () {
       var tempDiv = document.createElement('div');
       tempDiv.innerHTML = indicatorHtml;
       var indicator = tempDiv.firstChild;
-      
+
       // Add click handler to switch to Revision History tab
       indicator.addEventListener('click', function() {
         var historyTab = document.querySelector('.case-tab[data-tab="history"]');
@@ -6383,11 +6408,11 @@ document.addEventListener('DOMContentLoaded', function () {
           historyTab.click();
         }
       });
-      
+
       form.insertBefore(indicator, firstChild);
     }
   }
-  
+
   // Helper function to escape HTML (if not already defined)
   function escapeHtml(text) {
     if (!text) return '';
@@ -6395,7 +6420,7 @@ document.addEventListener('DOMContentLoaded', function () {
     div.textContent = text;
     return div.innerHTML;
   }
-  
+
   // Load user settings first, then load existing cases
   function loadUserSettingsBeforeCases() {
     fetch('api/get-settings.php')
@@ -6422,7 +6447,7 @@ document.addEventListener('DOMContentLoaded', function () {
             data.practiceCreatorHasGoogleAccount !== false,
             data.isGoogleDriveConnected === true
           );
-          
+
           // Set localStorage values for past due highlighting
           if (data.preferences.highlight_past_due !== undefined) {
             localStorage.setItem('highlight_past_due', data.preferences.highlight_past_due ? 'true' : 'false');
@@ -6440,19 +6465,19 @@ document.addEventListener('DOMContentLoaded', function () {
         loadExistingCases();
       });
   }
-  
+
   // Load existing cases from Google Drive when the page loads
   function loadExistingCases() {
     // Get reference to kanban board
     var kanbanBoard = document.querySelector('.kanban-board');
-    
+
     // Slightly dim the kanban board while loading
     if (kanbanBoard) kanbanBoard.classList.add('loading');
-    
+
     // Track loading state
     var loadingStartTime = Date.now();
     var minLoadingTime = 1000; // Show loading for at least this many ms for UX
-    
+
     fetch('api/list-cases.php', {
       method: 'GET',
       credentials: 'same-origin'
@@ -6465,30 +6490,30 @@ document.addEventListener('DOMContentLoaded', function () {
         hideLoader();
         return;
       }
-      
+
       // Add all cases to the board
       var totalCases = data.cases.length;
-      
+
       if (totalCases === 0) {
         // No cases to add, hide loader immediately
         hideLoader();
         return;
       }
-      
+
       // Add all cases at once (no stagger) to prevent CLS
       data.cases.forEach(function (caseData) {
         // Deep clone to ensure we don't lose data
         var clonedCase = JSON.parse(JSON.stringify(caseData));
-        
+
         // Each case from the API already has status, dueDate, etc.
         addCaseToKanban(clonedCase);
       });
-      
+
       // All cases added, apply past due highlighting
       if (typeof updatePastDueHighlighting === 'function') {
         updatePastDueHighlighting();
       }
-      
+
       // Hide loader after all cases are added
       hideLoader();
     })
@@ -6496,12 +6521,12 @@ document.addEventListener('DOMContentLoaded', function () {
       // Failed to load cases
       hideLoader();
     });
-    
+
     // Function to hide loader with minimum display time
     function hideLoader() {
       var elapsedTime = Date.now() - loadingStartTime;
       var remainingTime = Math.max(0, minLoadingTime - elapsedTime);
-      
+
       setTimeout(function() {
         // Remove loading state from kanban board
         if (kanbanBoard) {
@@ -6509,17 +6534,17 @@ document.addEventListener('DOMContentLoaded', function () {
           // Show the kanban board now that all cards are loaded (prevents CLS)
           kanbanBoard.classList.add('loaded');
         }
-        
+
         // Mark app as initialized
         appInitialized = true;
-        
+
         // Initialize drag-and-drop now that all cards are loaded
         initKanbanDragDrop();
-        
+
         // Notify that cards are loaded (for search indexing)
         var cardsLoadedEvent = new CustomEvent('cardsLoaded');
         window.dispatchEvent(cardsLoadedEvent);
-        
+
         // Execute any registered callbacks
         if (window.cardLoadedCallbacks && Array.isArray(window.cardLoadedCallbacks)) {
           window.cardLoadedCallbacks.forEach(function(callback) {
@@ -6532,7 +6557,7 @@ document.addEventListener('DOMContentLoaded', function () {
             }
           });
         }
-        
+
         // Fade out and hide the page loading overlay
         if (pageLoadingOverlay) {
           pageLoadingOverlay.style.opacity = '0';
@@ -6543,7 +6568,7 @@ document.addEventListener('DOMContentLoaded', function () {
       }, remainingTime);
     }
   }
-  
+
   // Function to clear highlighting from a specific card
   function clearCardHighlighting(card) {
     card.classList.remove('kanban-card-past-due');
@@ -6552,23 +6577,23 @@ document.addEventListener('DOMContentLoaded', function () {
       lateIndicator.textContent = '';
     }
   }
-  
+
   // Function to check if a case is past due and apply highlighting
   function applyPastDueHighlighting(caseData) {
     // Check if highlighting is enabled
     var highlightPastDue = localStorage.getItem('highlight_past_due') === 'true';
     if (!highlightPastDue) return;
-    
+
     // Don't highlight cases in the Delivered board (they are essentially closed)
     if (caseData.status === 'Delivered') return;
-    
+
     var pastDueDays = parseInt(localStorage.getItem('past_due_days') || '7', 10);
-    
+
     // Calculate if case is past due
     var dueDate = new Date(caseData.dueDate);
     var today = new Date();
     var daysDiff = Math.floor((today - dueDate) / (1000 * 60 * 60 * 24));
-    
+
     if (daysDiff >= pastDueDays) {
       // Find the card element
       var cardElement = document.querySelector('[data-case-id="' + caseData.id + '"]');
@@ -6577,7 +6602,7 @@ document.addEventListener('DOMContentLoaded', function () {
         if (card) {
           // Add past due styling using CSS class (prevents CLS)
           card.classList.add('kanban-card-past-due');
-          
+
           // Add LATE indicator
           var lateIndicator = card.querySelector('.late-indicator');
           if (lateIndicator) {
@@ -6587,7 +6612,7 @@ document.addEventListener('DOMContentLoaded', function () {
       }
     }
   }
-  
+
   // Function to update all cards' past due highlighting
   function updatePastDueHighlighting() {
     // Remove existing highlighting
@@ -6599,7 +6624,7 @@ document.addEventListener('DOMContentLoaded', function () {
         lateIndicator.textContent = '';
       }
     });
-    
+
     // Reapply highlighting to all cards
     var allCaseElements = document.querySelectorAll('[data-case-id]');
     allCaseElements.forEach(function(element) {
@@ -6610,7 +6635,7 @@ document.addEventListener('DOMContentLoaded', function () {
         var dueDateElement = card.querySelector('p:nth-child(2)');
         if (dueDateElement) {
           var dueDateText = dueDateElement.textContent.replace('Due: ', '').replace(' LATE', '');
-          
+
           // Determine the status based on which column the card is in
           var column = card.closest('.kanban-column');
           var status = '';
@@ -6620,7 +6645,7 @@ document.addEventListener('DOMContentLoaded', function () {
               status = titleElement.textContent.trim();
             }
           }
-          
+
           var caseData = {
             id: caseId,
             dueDate: dueDateText,
@@ -6631,7 +6656,7 @@ document.addEventListener('DOMContentLoaded', function () {
       }
     });
   }
-  
+
   // Logo management functions
   function updateLogoDisplay(logoPath) {
     const currentLogo = document.getElementById('currentLogo');
@@ -6663,15 +6688,15 @@ document.addEventListener('DOMContentLoaded', function () {
       }
     }
   }
-  
+
   function setupLogoUpload() {
     const logoInput = document.getElementById('practiceLogo');
     const logoLabel = document.querySelector('.logo-upload-label');
     const deleteLogo = document.getElementById('deleteLogo');
     const currentLogo = document.getElementById('currentLogo');
-    
+
     if (!logoInput || !logoLabel) return;
-    
+
     // Handle file selection
     logoInput.addEventListener('change', function(e) {
       const file = e.target.files[0];
@@ -6679,7 +6704,7 @@ document.addEventListener('DOMContentLoaded', function () {
         uploadLogo(file);
       }
     });
-    
+
     // Handle drag and drop
     logoLabel.addEventListener('dragover', function(e) {
       e.preventDefault();
@@ -6687,24 +6712,24 @@ document.addEventListener('DOMContentLoaded', function () {
         logoLabel.classList.add('drag-over');
       }
     });
-    
+
     logoLabel.addEventListener('dragleave', function(e) {
       e.preventDefault();
       logoLabel.classList.remove('drag-over');
     });
-    
+
     logoLabel.addEventListener('drop', function(e) {
       e.preventDefault();
       logoLabel.classList.remove('drag-over');
-      
+
       if (logoLabel.classList.contains('disabled')) return;
-      
+
       const files = e.dataTransfer.files;
       if (files.length > 0) {
         uploadLogo(files[0]);
       }
     });
-    
+
     // Handle logo deletion (stage removal until settings are saved)
     if (deleteLogo) {
       deleteLogo.addEventListener('click', function() {
@@ -6726,32 +6751,32 @@ document.addEventListener('DOMContentLoaded', function () {
       });
     }
   }
-  
+
   function uploadLogo(file) {
     const logoLabel = document.querySelector('.logo-upload-label');
     const uploadText = logoLabel.querySelector('.upload-text');
-    
+
     // Validate file type
     const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/svg+xml', 'image/webp'];
     if (!allowedTypes.includes(file.type)) {
       showToast('Invalid file type. Only JPG, PNG, GIF, SVG, and WebP files are allowed.', 'error');
       return;
     }
-    
+
     // Validate file size (5MB)
     if (file.size > 5 * 1024 * 1024) {
       showToast('File is too large. Maximum size is 5MB.', 'error');
       return;
     }
-    
+
     // Show uploading state
     logoLabel.classList.add('uploading');
     uploadText.textContent = 'Uploading';
-    
+
     // Create form data
     const formData = new FormData();
     formData.append('logo', file);
-    
+
     // Upload file
     fetch('api/upload-logo.php', {
       method: 'POST',
@@ -6763,7 +6788,7 @@ document.addEventListener('DOMContentLoaded', function () {
     .then(response => response.json())
     .then(data => {
       logoLabel.classList.remove('uploading');
-      
+
       if (data.success) {
         logoLabel.classList.add('success');
         uploadText.textContent = 'Upload successful!';
@@ -6776,18 +6801,18 @@ document.addEventListener('DOMContentLoaded', function () {
         updateLogoDisplay(window.pendingLogoPath || window.currentLogoPath || '');
 
         showToast('Logo uploaded successfully!', 'success');
-        
+
         // Reset upload state after 2 seconds
         setTimeout(() => {
           logoLabel.classList.remove('success');
           uploadText.textContent = 'Choose logo file';
         }, 2000);
-        
+
       } else {
         logoLabel.classList.add('error');
         uploadText.textContent = 'Upload failed';
         showToast(data.message || 'Failed to upload logo', 'error');
-        
+
         // Reset error state after 3 seconds
         setTimeout(() => {
           logoLabel.classList.remove('error');
@@ -6800,7 +6825,7 @@ document.addEventListener('DOMContentLoaded', function () {
       logoLabel.classList.add('error');
       uploadText.textContent = 'Upload failed';
       showToast('Network error while uploading logo', 'error');
-      
+
       // Reset error state after 3 seconds
       setTimeout(() => {
         logoLabel.classList.remove('error');
@@ -6808,7 +6833,7 @@ document.addEventListener('DOMContentLoaded', function () {
       }, 3000);
     });
   }
-  
+
   function deletePracticeLogo() {
     fetch('api/delete-logo.php', {
       method: 'POST',
@@ -6821,13 +6846,13 @@ document.addEventListener('DOMContentLoaded', function () {
       if (data.success) {
         // Hide current logo display
         updateLogoDisplay('');
-        
+
         // Remove header logo
         const headerLogo = document.querySelector('.main-logo');
         if (headerLogo) {
           headerLogo.style.display = 'none';
         }
-        
+
         showToast('Logo removed successfully!', 'success');
       } else {
         showToast(data.message || 'Failed to remove logo', 'error');
@@ -6837,7 +6862,7 @@ document.addEventListener('DOMContentLoaded', function () {
       showToast('Network error while removing logo', 'error');
     });
   }
-  
+
   // Dev-only fake case generator (power users only)
   var devGenerateBtn = document.getElementById('devGenerateCasesBtn');
   var devCaseCountInput = document.getElementById('devCaseCount');
@@ -6975,7 +7000,7 @@ document.addEventListener('DOMContentLoaded', function () {
       });
     });
   }
-  
+
   if (devResetAllDataBtn) {
     // Capture-phase handler to block any other click handlers (including old inline confirm())
     devResetAllDataBtn.addEventListener('click', function (event) {
@@ -7030,8 +7055,8 @@ document.addEventListener('DOMContentLoaded', function () {
       });
     }, true);
   }
-  
-    
+
+
   // Function to print a case with all details and file contents
   function printCase(caseData) {
     if (!caseData || !caseData.id) {
@@ -7056,16 +7081,16 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Set global flag to prevent other operations
     window.isPrintingCase = true;
-    
+
     // Track which specific case is being printed
     window.currentlyPrintingCaseId = caseData.id;
-    
+
     // Add safety timeout to reset flag after 60 seconds in case of errors
     setTimeout(function() {
       if (window.isPrintingCase) {
         window.isPrintingCase = false;
         window.currentlyPrintingCaseId = null;
-        
+
         // Reset any stuck print buttons
         var printButtons = document.querySelectorAll('.kanban-card-print');
         printButtons.forEach(function(btn) {
@@ -7074,7 +7099,7 @@ document.addEventListener('DOMContentLoaded', function () {
             btn.textContent = '🖨️ Print';
           }
         });
-        
+
         // Reset all edit buttons
         var editButtons = document.querySelectorAll('.kanban-card-edit');
         editButtons.forEach(function(button) {
@@ -7140,7 +7165,7 @@ document.addEventListener('DOMContentLoaded', function () {
     if (practiceNameElement) {
       caseData.practiceName = practiceNameElement.textContent;
     }
-    
+
     fetch('api/print-case.php', {
       method: 'POST',
       headers: {
@@ -7155,10 +7180,10 @@ document.addEventListener('DOMContentLoaded', function () {
       if (!response.ok) {
         throw new Error('Network response was not ok');
       }
-      
+
       // Check the content type to determine how to handle the response
       var contentType = response.headers.get('Content-Type');
-      
+
       if (contentType && contentType.includes('application/pdf')) {
         // Handle PDF content - download directly
         return response.blob().then(blob => {
@@ -7184,13 +7209,13 @@ document.addEventListener('DOMContentLoaded', function () {
             </style>
             </head>`
           );
-          
+
           // Open in new window for printing
           var printWindow = window.open('', '_blank');
           if (printWindow) {
             printWindow.document.write(enhancedHtml);
             printWindow.document.close();
-            
+
             // Wait a moment for content to load, then trigger print
             setTimeout(function() {
               printWindow.print();
@@ -7215,10 +7240,10 @@ document.addEventListener('DOMContentLoaded', function () {
         printButton.disabled = false;
         printButton.textContent = '🖨️ Print';
       }
-      
+
       window.isPrintingCase = false;
       window.currentlyPrintingCaseId = null;
-      
+
       // Re-enable all edit buttons visually after printing
       var editButtons = document.querySelectorAll('.kanban-card-edit');
       editButtons.forEach(function(button) {
@@ -7257,22 +7282,22 @@ document.addEventListener('DOMContentLoaded', function () {
     const a = document.createElement('a');
     a.style.display = 'none';
     a.href = url;
-    
+
     // Generate filename with patient name and case ID
     var patientName = (caseData.patientFirstName + '_' + caseData.patientLastName).replace(/\s+/g, '_');
     var fileExtension = extension || 'pdf';
     a.download = 'Case_' + patientName + '_' + caseData.id + '.' + fileExtension;
-    
+
     document.body.appendChild(a);
     a.click();
     window.URL.revokeObjectURL(url);
     document.body.removeChild(a);
   }
-  
+
   // Open a GCS-stored file via signed download URL
   function openGcsFile(storagePath, fileName) {
     if (!storagePath) return;
-    
+
     fetch('api/download-signed-url.php', {
       method: 'POST',
       headers: {
@@ -7301,7 +7326,7 @@ document.addEventListener('DOMContentLoaded', function () {
       }
     })
     .catch(function(error) {
-      console.error('GCS download error:', error);
+
       if (typeof showToast === 'function') {
         showToast('Failed to download file: ' + error.message, 'error');
       }
@@ -7310,23 +7335,23 @@ document.addEventListener('DOMContentLoaded', function () {
 
   // Initialize logo upload functionality
   setupLogoUpload();
-  
+
   // Load user settings first, then load existing cases
   loadUserSettingsBeforeCases();
-  
+
   // Load and display billing information
   loadBillingInfo();
-  
+
   // Main dashboard search is handled by patient-search.js
-  
+
   // Billing functionality
   let billingInfo = null;
-  
+
   // Dev plan selector
   if (devPlanSelect && devSetPlanBtn) {
     devSetPlanBtn.addEventListener('click', function () {
       var selectedPlan = devPlanSelect.value;
-      
+
       if (!selectedPlan) {
         showToast('Please select a plan', 'warning');
         return;
@@ -7357,7 +7382,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }
 
         showToast('Billing tier updated to ' + selectedPlan, 'success');
-        
+
         // Reload billing info to update the UI
         loadBillingInfo();
       })
@@ -7368,7 +7393,7 @@ document.addEventListener('DOMContentLoaded', function () {
       });
     });
   }
-  
+
   // Load billing information from API
   function loadBillingInfo() {
     fetch('api/billing.php')
@@ -7377,9 +7402,9 @@ document.addEventListener('DOMContentLoaded', function () {
         if (data.error) {
           return;
         }
-        
+
         billingInfo = data;
-        
+
         // Hide billing UI completely for bypass users (partner practices, etc.)
         if (data.hide_billing_ui) {
           const billingTierElement = document.getElementById('userBillingTier');
@@ -7389,14 +7414,14 @@ document.addEventListener('DOMContentLoaded', function () {
           // Don't show any billing-related UI for bypass users
           return;
         }
-        
+
         // Update billing tier display (only if billing feature is enabled)
         if (data.billing_tier && window.featureFlags && window.featureFlags.SHOW_BILLING) {
           const billingTierElement = document.getElementById('userBillingTier');
           if (billingTierElement) {
             let displayText = '';
             let showLink = false;
-            
+
             if (data.billing_tier === 'evaluate') {
               // Show trial days remaining for Evaluate plan
               if (data.is_trial && data.trial_days_remaining !== null) {
@@ -7416,7 +7441,7 @@ document.addEventListener('DOMContentLoaded', function () {
               displayText = 'Control Plan';
               showLink = false;
             }
-            
+
             billingTierElement.textContent = displayText;
             billingTierElement.onclick = showLink ? function() {
               window.location.href = 'billing.php';
@@ -7424,7 +7449,7 @@ document.addEventListener('DOMContentLoaded', function () {
             billingTierElement.style.cursor = showLink ? 'pointer' : 'default';
           }
         }
-        
+
         // Check if trial has expired - show prominent upgrade prompt
         // Skip for bypass users (they never have trial_expired = true)
         if (data.is_trial && data.trial_expired) {
@@ -7433,10 +7458,10 @@ document.addEventListener('DOMContentLoaded', function () {
             showTrialExpiredModal();
           }, 500);
         }
-        
+
         // Apply billing restrictions
         applyBillingRestrictions();
-        
+
         // Update dev plan selector if it exists
         if (devPlanSelect && data.billing_tier) {
           devPlanSelect.value = data.billing_tier;
@@ -7449,13 +7474,13 @@ document.addEventListener('DOMContentLoaded', function () {
         }
       });
   }
-  
+
   // Apply billing restrictions based on current tier
   function applyBillingRestrictions() {
     if (!billingInfo) return;
-    
+
     const trialExpired = billingInfo.is_trial && billingInfo.trial_expired;
-    
+
     // Disable case creation if trial expired or at limit
     const createCaseButton = document.querySelector('.create-case-button');
     if (createCaseButton) {
@@ -7471,7 +7496,7 @@ document.addEventListener('DOMContentLoaded', function () {
         createCaseButton.style.cursor = 'pointer';
       }
     }
-    
+
     // Add visual indicator to Insights tab when trial expired
     const insightsTab = document.querySelector('.main-tab[data-tab="insights"]');
     if (insightsTab && trialExpired) {
@@ -7481,7 +7506,7 @@ document.addEventListener('DOMContentLoaded', function () {
       insightsTab.style.opacity = '1';
       insightsTab.title = '';
     }
-    
+
     // Disable drag-and-drop on kanban cards when trial expired
     if (trialExpired) {
       const kanbanCards = document.querySelectorAll('.kanban-card');
@@ -7490,11 +7515,11 @@ document.addEventListener('DOMContentLoaded', function () {
         card.style.cursor = 'default';
       });
     }
-    
+
     // Disable user management in settings if not allowed
     // This will be handled when the settings modal is opened
   }
-  
+
   // Check billing before creating a case (async version)
   async function checkBillingForCaseCreationAsync() {
     // Always fetch fresh billing info to ensure accurate case count
@@ -7507,23 +7532,23 @@ document.addEventListener('DOMContentLoaded', function () {
     } catch (e) {
       // Silent fail - will check billingInfo below
     }
-    
+
     // If still no billing info, block to be safe
     if (!billingInfo) {
       showToast('Unable to verify billing status. Please refresh the page.', 'error');
       return false;
     }
-    
+
     // Check if user cannot create cases (at limit)
     // can_create_cases is the authoritative check from the server
     if (!billingInfo.can_create_cases) {
       showUpgradeModal();
       return false;
     }
-    
+
     return true;
   }
-  
+
   // Synchronous check using cached billing info (for immediate UI feedback)
   function checkBillingForCaseCreation() {
     // Use cached billing info for immediate check
@@ -7531,16 +7556,16 @@ document.addEventListener('DOMContentLoaded', function () {
       // If no cached info, allow and let server validate
       return true;
     }
-    
+
     // Check if user cannot create cases (at limit)
     if (!billingInfo.can_create_cases) {
       showUpgradeModal();
       return false;
     }
-    
+
     return true;
   }
-  
+
   // Show trial expired modal with encouraging messaging
   function showTrialExpiredModal() {
     // Remove any existing modal
@@ -7548,13 +7573,13 @@ document.addEventListener('DOMContentLoaded', function () {
     if (existingModal) {
       existingModal.remove();
     }
-    
+
     // Create the trial expired modal with encouraging messaging
     var modal = document.createElement('div');
     modal.id = 'trialExpiredModal';
     modal.className = 'modal';
     modal.style.cssText = 'position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 10001; display: flex; align-items: center; justify-content: center;';
-    
+
     modal.innerHTML = `
       <div style="background: white; border-radius: 16px; padding: 40px; max-width: 520px; width: 90%; text-align: center; box-shadow: 0 25px 80px rgba(0,0,0,0.35);">
         <div style="width: 80px; height: 80px; background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 24px;">
@@ -7564,7 +7589,7 @@ document.addEventListener('DOMContentLoaded', function () {
         </div>
         <h2 style="margin: 0 0 8px; font-size: 1.75rem; color: #1f2937; font-weight: 700;">Your Trial Has Ended</h2>
         <p style="margin: 0 0 20px; color: #6b7280; font-size: 1.05rem; line-height: 1.6;">
-          We hope you've enjoyed exploring DentaTrak! Your 30-day free trial is now complete.
+          We hope you've enjoyed exploring DentaTrak! Your 90-day free trial is now complete.
         </p>
         <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 12px; padding: 16px; margin-bottom: 24px; text-align: left;">
           <p style="margin: 0 0 8px; color: #166534; font-weight: 600; font-size: 0.95rem;">🎉 Great news!</p>
@@ -7585,17 +7610,17 @@ document.addEventListener('DOMContentLoaded', function () {
         </p>
       </div>
     `;
-    
+
     document.body.appendChild(modal);
     document.body.style.overflow = 'hidden';
-    
+
     // Close button handler
     document.getElementById('trialExpiredClose').addEventListener('click', function() {
       modal.remove();
       document.body.style.overflow = '';
     });
   }
-  
+
   // Show upgrade modal when case limit reached (not trial expired)
   function showUpgradeModal() {
     // If trial expired, show the trial expired modal instead
@@ -7603,19 +7628,19 @@ document.addEventListener('DOMContentLoaded', function () {
       showTrialExpiredModal();
       return;
     }
-    
+
     // Remove any existing modal to ensure fresh state and proper centering
     var existingModal = document.getElementById('upgradePlanModal');
     if (existingModal) {
       existingModal.remove();
     }
-    
+
     // Create the upgrade modal for case limit
     var modal = document.createElement('div');
     modal.id = 'upgradePlanModal';
     modal.className = 'modal';
     modal.style.cssText = 'position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 10001; display: flex; align-items: center; justify-content: center;';
-    
+
     modal.innerHTML = `
       <div style="background: white; border-radius: 12px; padding: 32px; max-width: 450px; width: 90%; text-align: center; box-shadow: 0 20px 60px rgba(0,0,0,0.3);">
         <div style="width: 64px; height: 64px; background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px;">
@@ -7639,16 +7664,16 @@ document.addEventListener('DOMContentLoaded', function () {
         </div>
       </div>
     `;
-    
+
     document.body.appendChild(modal);
     document.body.style.overflow = 'hidden';
-    
+
     // Close button handler
     document.getElementById('upgradeModalClose').addEventListener('click', function() {
       modal.remove();
       document.body.style.overflow = '';
     });
-    
+
     // Close on backdrop click
     modal.addEventListener('click', function(e) {
       if (e.target === modal) {
@@ -7657,42 +7682,42 @@ document.addEventListener('DOMContentLoaded', function () {
       }
     });
   }
-  
+
   // Main tabs functionality
   const mainTabs = document.querySelectorAll('.main-tab');
   const mainTabPanes = document.querySelectorAll('.main-tab-pane');
-  
+
   mainTabs.forEach(tab => {
     tab.addEventListener('click', () => {
       const targetTab = tab.dataset.tab;
-      
+
       // Check if user has access to analytics
       if (targetTab === 'analytics' && billingInfo && !billingInfo.has_analytics) {
         showToast('Analytics is available on Control plan. Upgrade to access analytics features.', 'warning');
         return;
       }
-      
+
       // Block Insights tab when trial expired
       if (targetTab === 'insights' && billingInfo && billingInfo.is_trial && billingInfo.trial_expired) {
         showTrialExpiredModal();
         return;
       }
-      
+
       // Remove active class from all tabs and panes
       mainTabs.forEach(t => t.classList.remove('active'));
       mainTabPanes.forEach(p => p.classList.remove('active'));
-      
+
       // Add active class to clicked tab and corresponding pane
       tab.classList.add('active');
       document.getElementById(targetTab + '-tab').classList.add('active');
-      
+
       // Lazy load analytics scripts when insights tab is clicked (consolidated tab)
       if (targetTab === 'insights') {
         loadAnalyticsScripts();
       }
     });
   });
-  
+
   // Lazy load Chart.js and analytics-pro.js
   var analyticsScriptsLoaded = false;
   function loadAnalyticsScripts() {
@@ -7703,7 +7728,7 @@ document.addEventListener('DOMContentLoaded', function () {
       }
       return;
     }
-    
+
     // Load Chart.js first, then analytics-pro.js
     var chartScript = document.createElement('script');
     chartScript.src = 'https://cdn.jsdelivr.net/npm/chart.js';
@@ -7728,11 +7753,11 @@ document.addEventListener('DOMContentLoaded', function () {
   const viewArchivedBtn = document.getElementById('viewArchivedBtn');
   const archivedCasesClose = document.getElementById('archivedCasesClose');
   const archivedCasesFooterClose = document.getElementById('archivedCasesFooterClose');
-  
+
   let archivedCurrentPage = 1;
   let archivedPageSize = 25;
   let archivedTotalCount = 0;
-  
+
   // Open archived cases modal
   if (viewArchivedBtn) {
     viewArchivedBtn.addEventListener('click', () => {
@@ -7741,7 +7766,7 @@ document.addEventListener('DOMContentLoaded', function () {
       loadArchivedCases();
     });
   }
-  
+
   // Close archived cases modal
   if (archivedCasesClose) {
     archivedCasesClose.addEventListener('click', () => {
@@ -7749,7 +7774,7 @@ document.addEventListener('DOMContentLoaded', function () {
       document.body.style.overflow = ''; // Restore body scroll
     });
   }
-  
+
   // Close archived cases modal from footer
   if (archivedCasesFooterClose) {
     archivedCasesFooterClose.addEventListener('click', () => {
@@ -7757,25 +7782,25 @@ document.addEventListener('DOMContentLoaded', function () {
       document.body.style.overflow = ''; // Restore body scroll
     });
   }
-  
+
   // Move View Archived Cases button next to search bar
   if (viewArchivedBtn) {
     const dashboardSearch = document.querySelector('.dashboard-search');
-  
+
     // Open archived cases modal
     viewArchivedBtn.addEventListener('click', () => {
       archivedCasesModal.style.display = 'block';
       loadArchivedCases();
     });
   }
-  
+
   // Close archived cases modal
   if (archivedCasesClose) {
     archivedCasesClose.addEventListener('click', () => {
       archivedCasesModal.style.display = 'none';
     });
   }
-  
+
   // Close modal when clicking outside
   window.addEventListener('click', (e) => {
     if (e.target === archivedCasesModal) {
@@ -7783,23 +7808,23 @@ document.addEventListener('DOMContentLoaded', function () {
       document.body.style.overflow = ''; // Restore body scroll
     }
   });
-  
+
   // Search and filter functionality
   const archivedSearch = document.getElementById('archivedSearch');
   const archivedPageSizeSelect = document.getElementById('archivedPageSize');
   const archivedDateRange = document.getElementById('archivedDateRange');
   const archivedCaseType = document.getElementById('archivedCaseType');
-  
+
   // Store all archived cases for client-side filtering
   let allArchivedCases = [];
   let filteredArchivedCases = [];
-  
+
   // Client-side search function
   function filterArchivedCasesClientSide() {
     const search = archivedSearch ? archivedSearch.value.toLowerCase().trim() : '';
     const dateRange = archivedDateRange ? archivedDateRange.value : '';
     const caseType = archivedCaseType ? archivedCaseType.value : '';
-    
+
     // Filter cases
     filteredArchivedCases = allArchivedCases.filter(case_ => {
       // Search filter (patient name + dentist) - handle both camelCase and snake_case
@@ -7807,15 +7832,15 @@ document.addEventListener('DOMContentLoaded', function () {
         const patientFirstName = case_.patientFirstName || case_.patient_first_name || '';
         const patientLastName = case_.patientLastName || case_.patient_last_name || '';
         const dentistName = case_.dentistName || case_.dentist_name || '';
-        
+
         const fullName = (patientFirstName + ' ' + patientLastName).toLowerCase();
         const dentistNameLower = dentistName.toLowerCase();
-        
+
         if (!fullName.includes(search) && !dentistNameLower.includes(search)) {
           return false;
         }
       }
-      
+
       // Date range filter
       if (dateRange > 0) {
         const archivedDate = new Date(case_.archived_date);
@@ -7825,24 +7850,24 @@ document.addEventListener('DOMContentLoaded', function () {
           return false;
         }
       }
-      
+
       // Case type filter
       if (caseType && case_.case_type !== caseType) {
         return false;
       }
-      
+
       return true;
     });
-    
+
     // Reset to page 1 and display filtered results
     archivedCurrentPage = 1;
     displayPaginatedArchivedCases();
     updateArchivedPagination(filteredArchivedCases.length);
-    
+
     const countSpan = document.getElementById('archivedCount');
     countSpan.textContent = `Showing ${Math.min(filteredArchivedCases.length, archivedPageSize)} of ${filteredArchivedCases.length} archived cases`;
   }
-  
+
   // Display paginated results from filtered data
   function displayPaginatedArchivedCases() {
     const startIndex = (archivedCurrentPage - 1) * archivedPageSize;
@@ -7850,7 +7875,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const pageData = filteredArchivedCases.slice(startIndex, endIndex);
     displayArchivedCases(pageData);
   }
-  
+
   if (archivedSearch) {
     archivedSearch.addEventListener('input', () => {
       filterArchivedCasesClientSide();
@@ -7859,7 +7884,7 @@ document.addEventListener('DOMContentLoaded', function () {
         archivedSearchClearBtn.style.display = archivedSearch.value.length > 0 ? 'block' : 'none';
       }
     });
-    
+
     // Add clear button for archived search
     const archivedSearchContainer = archivedSearch.parentElement;
     var archivedSearchClearBtn = null;
@@ -7870,18 +7895,18 @@ document.addEventListener('DOMContentLoaded', function () {
       archivedSearchClearBtn.innerHTML = '&times;';
       archivedSearchClearBtn.title = 'Clear search';
       archivedSearchClearBtn.setAttribute('aria-label', 'Clear search');
-      
+
       archivedSearchClearBtn.addEventListener('click', function() {
         archivedSearch.value = '';
         archivedSearchClearBtn.style.display = 'none';
         filterArchivedCasesClientSide();
         archivedSearch.focus();
       });
-      
+
       archivedSearchContainer.appendChild(archivedSearchClearBtn);
     }
   }
-  
+
   if (archivedPageSizeSelect) {
     archivedPageSizeSelect.addEventListener('change', () => {
       archivedCurrentPage = 1;
@@ -7890,29 +7915,29 @@ document.addEventListener('DOMContentLoaded', function () {
         archivedPageSize = newPageSize;
         displayPaginatedArchivedCases();
         updateArchivedPagination(filteredArchivedCases.length);
-        
+
         const countSpan = document.getElementById('archivedCount');
         countSpan.textContent = `Showing ${Math.min(filteredArchivedCases.length, archivedPageSize)} of ${filteredArchivedCases.length} archived cases`;
       }
     });
   }
-  
+
   if (archivedDateRange) {
     archivedDateRange.addEventListener('change', () => {
       filterArchivedCasesClientSide();
     });
   }
-  
+
   if (archivedCaseType) {
     archivedCaseType.addEventListener('change', () => {
       filterArchivedCasesClientSide();
     });
   }
-  
+
   // Pagination
   const archivedPrevPage = document.getElementById('archivedPrevPage');
   const archivedNextPage = document.getElementById('archivedNextPage');
-  
+
   if (archivedPrevPage) {
     archivedPrevPage.addEventListener('click', () => {
       if (archivedCurrentPage > 1) {
@@ -7922,7 +7947,7 @@ document.addEventListener('DOMContentLoaded', function () {
       }
     });
   }
-  
+
   if (archivedNextPage) {
     archivedNextPage.addEventListener('click', () => {
       const totalPages = Math.ceil(filteredArchivedCases.length / archivedPageSize);
@@ -7933,15 +7958,15 @@ document.addEventListener('DOMContentLoaded', function () {
       }
     });
   }
-  
+
   function loadArchivedCases() {
     const tbody = document.getElementById('archivedCasesTableBody');
     const countSpan = document.getElementById('archivedCount');
-    
+
     // Show loading state
     tbody.innerHTML = '<tr><td colspan="7" class="loading-row">Loading archived cases...</td></tr>';
     countSpan.textContent = 'Loading...';
-    
+
     // Load all archived cases at once (server-side pagination removed)
     const params = new URLSearchParams({
       page: 1,
@@ -7950,7 +7975,7 @@ document.addEventListener('DOMContentLoaded', function () {
       dateRange: '',
       caseType: ''
     });
-    
+
     fetch(`api/get-archived-cases.php?${params}`, {
       credentials: 'same-origin'
     })
@@ -7959,10 +7984,10 @@ document.addEventListener('DOMContentLoaded', function () {
       if (data.success) {
         allArchivedCases = data.cases;
         filteredArchivedCases = [...data.cases]; // Start with all cases
-        
+
         // Update the archived cases badge
         updateArchivedCasesBadge(data.cases.length);
-        
+
         // Apply initial filters and display
         filterArchivedCasesClientSide();
       } else {
@@ -7975,7 +8000,7 @@ document.addEventListener('DOMContentLoaded', function () {
       countSpan.textContent = 'Error loading cases';
     });
   }
-  
+
   // Update the archived cases badge on the button
   function updateArchivedCasesBadge(count) {
     const badge = document.getElementById('archivedCasesBadge');
@@ -7988,7 +8013,7 @@ document.addEventListener('DOMContentLoaded', function () {
       }
     }
   }
-  
+
   // Load archived case count on page load (without opening modal)
   function loadArchivedCaseCount() {
     fetch('api/get-archived-cases.php?page=1&pageSize=1', {
@@ -8004,18 +8029,18 @@ document.addEventListener('DOMContentLoaded', function () {
       // Silently fail - badge just won't show
     });
   }
-  
+
   // Load archived case count on page load
   loadArchivedCaseCount();
-  
+
   function displayArchivedCases(cases) {
     const tbody = document.getElementById('archivedCasesTableBody');
-    
+
     if (cases.length === 0) {
       tbody.innerHTML = '<tr><td colspan="7" class="loading-row">No archived cases found</td></tr>';
       return;
     }
-    
+
     tbody.innerHTML = cases.map(case_ => `
       <tr>
         <td>${case_.patientFirstName || case_.patient_first_name || ''} ${case_.patientLastName || case_.patient_last_name || ''}</td>
@@ -8053,42 +8078,42 @@ document.addEventListener('DOMContentLoaded', function () {
       </tr>
     `).join('');
   }
-  
+
   function updateArchivedPagination(totalCount) {
     archivedTotalCount = totalCount;
     const totalPages = Math.ceil(totalCount / archivedPageSize);
-    
+
     const prevBtn = document.getElementById('archivedPrevPage');
     const nextBtn = document.getElementById('archivedNextPage');
     const pageInfo = document.getElementById('archivedPageInfo');
-    
+
     if (prevBtn) prevBtn.disabled = archivedCurrentPage <= 1;
     if (nextBtn) nextBtn.disabled = archivedCurrentPage >= totalPages;
-    
+
     if (pageInfo) pageInfo.textContent = `Page ${archivedCurrentPage} of ${totalPages || 1}`;
   }
-  
+
   window.restoreArchivedCase = function(caseId) {
     // Note: Restore is allowed even when trial expired (symmetrical with archive - organizational operation)
     showRestoreConfirmation(caseId);
   };
-  
+
   window.viewArchivedCase = function(caseId) {
     // Check if trial expired
     if (billingInfo && billingInfo.is_trial && billingInfo.trial_expired) {
       showUpgradeModal();
       return;
     }
-    
+
     // Store the current state of the archived modal
     const archivedModalWasOpen = archivedCasesModal && archivedCasesModal.style.display === 'block';
-    
+
     // Hide the archived modal temporarily
     if (archivedModalWasOpen) {
       archivedCasesModal.style.display = 'none';
       document.body.style.overflow = ''; // Restore body scroll
     }
-    
+
     // Load case data and open modal in read-only mode
     fetch(`api/get-case.php?id=${caseId}`, {
       credentials: 'same-origin'
@@ -8104,24 +8129,24 @@ document.addEventListener('DOMContentLoaded', function () {
         if (typeof openCaseModalForView === 'function') {
           // Store the original close function
           const originalCloseCreateCase = closeCreateCase;
-          
+
           // Override the close function to restore archived modal
           closeCreateCase = function() {
             // Call the original close function
             originalCloseCreateCase();
-            
+
             // Restore the archived modal if it was open
             if (archivedModalWasOpen && archivedCasesModal) {
               archivedCasesModal.style.display = 'block';
               document.body.style.overflow = 'hidden'; // Prevent body scroll again
             }
-            
+
             // Restore the original close function
             setTimeout(() => {
               closeCreateCase = originalCloseCreateCase;
             }, 100);
           };
-          
+
           // Add a "Back to Archived Cases" button if coming from archived modal
           if (archivedModalWasOpen) {
             setTimeout(() => {
@@ -8149,7 +8174,7 @@ document.addEventListener('DOMContentLoaded', function () {
                       document.body.style.overflow = 'hidden';
                     }
                   };
-                  
+
                   // Insert before the close button
                   const closeBtn = modalHeader.querySelector('.btn-close');
                   if (closeBtn) {
@@ -8161,11 +8186,11 @@ document.addEventListener('DOMContentLoaded', function () {
               }
             }, 100);
           }
-          
+
           openCaseModalForView(data.case);
         } else {
           showToast('Error: View function not available', 'error');
-          
+
           // Restore archived modal if there was an error
           if (archivedModalWasOpen && archivedCasesModal) {
             archivedCasesModal.style.display = 'block';
@@ -8174,7 +8199,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }
       } else {
         showToast('Error loading case: ' + (data.message || 'Unknown error'), 'error');
-        
+
         // Restore archived modal if there was an error
         if (archivedModalWasOpen && archivedCasesModal) {
           archivedCasesModal.style.display = 'block';
@@ -8184,7 +8209,7 @@ document.addEventListener('DOMContentLoaded', function () {
     })
     .catch(error => {
       showToast('Error loading case', 'error');
-      
+
       // Restore archived modal if there was an error
       if (archivedModalWasOpen && archivedCasesModal) {
         archivedCasesModal.style.display = 'block';
@@ -8192,7 +8217,7 @@ document.addEventListener('DOMContentLoaded', function () {
       }
     });
   };
-  
+
   window.printArchivedCase = function(caseId) {
     // First get the case data, then print it using the same function as main cases
     fetch(`api/get-case.php?id=${caseId}`, {
@@ -8211,7 +8236,7 @@ document.addEventListener('DOMContentLoaded', function () {
       showToast('Error loading case', 'error');
     });
   };
-  
+
   function showRestoreConfirmation(caseId) {
     // Create a simple confirmation modal
     const modal = document.createElement('div');
@@ -8227,7 +8252,7 @@ document.addEventListener('DOMContentLoaded', function () {
       justify-content: center;
       z-index: 999999;
     `;
-    
+
     const content = document.createElement('div');
     content.style.cssText = `
       background: white;
@@ -8237,7 +8262,7 @@ document.addEventListener('DOMContentLoaded', function () {
       text-align: center;
       box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
     `;
-    
+
     content.innerHTML = `
       <h3 style="margin: 0 0 15px 0; color: #22c55e;">Restore Case</h3>
       <p style="margin: 0 0 20px 0; color: #333;">Are you sure you want to restore this case?</p>
@@ -8263,19 +8288,19 @@ document.addEventListener('DOMContentLoaded', function () {
         ">Restore</button>
       </div>
     `;
-    
+
     modal.appendChild(content);
     document.body.appendChild(modal);
-    
+
     // Get button references
     const cancelBtn = document.getElementById('cancelBtn');
     const confirmBtn = document.getElementById('confirmBtn');
-    
+
     // Focus on the Restore button when modal opens
     setTimeout(() => {
       confirmBtn.focus();
     }, 100);
-    
+
     // Add event listeners
     cancelBtn.onclick = () => {
       document.body.removeChild(modal);
@@ -8283,13 +8308,13 @@ document.addEventListener('DOMContentLoaded', function () {
       document.removeEventListener('keydown', escapeHandler);
       document.removeEventListener('keydown', enterHandler);
     };
-    
+
     confirmBtn.onclick = () => {
       document.body.removeChild(modal);
       document.removeEventListener('keydown', tabHandler);
       document.removeEventListener('keydown', escapeHandler);
       document.removeEventListener('keydown', enterHandler);
-      
+
       // Perform the restore
       fetch('api/restore-case.php', {
         method: 'POST',
@@ -8318,7 +8343,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }
       });
     };
-    
+
     // Tab trapping - only allow tabbing between the two buttons
     const tabHandler = (e) => {
       if (e.key === 'Tab') {
@@ -8332,7 +8357,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }
       }
     };
-    
+
     // Close on background click
     modal.onclick = (e) => {
       if (e.target === modal) {
@@ -8342,7 +8367,7 @@ document.addEventListener('DOMContentLoaded', function () {
         document.removeEventListener('keydown', enterHandler);
       }
     };
-    
+
     // Close on Escape key
     const escapeHandler = (e) => {
       if (e.key === 'Escape') {
@@ -8352,7 +8377,7 @@ document.addEventListener('DOMContentLoaded', function () {
         document.removeEventListener('keydown', enterHandler);
       }
     };
-    
+
     // Enter key triggers Restore
     const enterHandler = (e) => {
       if (e.key === 'Enter') {
@@ -8361,7 +8386,7 @@ document.addEventListener('DOMContentLoaded', function () {
         document.removeEventListener('keydown', tabHandler);
         document.removeEventListener('keydown', escapeHandler);
         document.removeEventListener('keydown', enterHandler);
-        
+
         // Perform the restore after modal is removed
         fetch('api/restore-case.php', {
           method: 'POST',
@@ -8391,12 +8416,12 @@ document.addEventListener('DOMContentLoaded', function () {
         });
       }
     };
-    
+
     document.addEventListener('keydown', tabHandler);
     document.addEventListener('keydown', escapeHandler);
     document.addEventListener('keydown', enterHandler);
   }
-  
+
   function debounce(func, wait) {
     let timeout;
     return function executedFunction(...args) {
@@ -8408,21 +8433,21 @@ document.addEventListener('DOMContentLoaded', function () {
       timeout = setTimeout(later, wait);
     };
   }
-  
+
   // Load settings on page load to apply archive button visibility
   loadSettings();
-  
+
   // Keyboard shortcut for opening archived cases: Ctrl+Shift+A (or Cmd+Shift+A on Mac)
   document.addEventListener('keydown', function(e) {
     // Check for Ctrl+Shift+A or Cmd+Shift+A
     if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'A') {
       e.preventDefault();
-      
+
       // Do not trigger the shortcut while the page is loading
       if (pageLoadingOverlay && pageLoadingOverlay.style.display !== 'none' && pageLoadingOverlay.style.opacity !== '0') {
         return;
       }
-      
+
       // Check if archived cases modal exists and view button exists
       if (archivedCasesModal && viewArchivedBtn) {
         // Open the archived cases modal
@@ -8432,14 +8457,14 @@ document.addEventListener('DOMContentLoaded', function () {
       }
     }
   });
-  
+
   // Fallback: Force archive buttons to be visible after 2 seconds if settings haven't loaded
   setTimeout(() => {
     var archiveButtons = document.querySelectorAll('.card-delete-btn');
-    var hasVisibleButtons = Array.from(archiveButtons).some(btn => 
+    var hasVisibleButtons = Array.from(archiveButtons).some(btn =>
       window.getComputedStyle(btn).display !== 'none'
     );
-    
+
     if (!hasVisibleButtons && archiveButtons.length > 0) {
       var dashboard = document.querySelector('.dashboard');
       if (dashboard) {
@@ -8447,18 +8472,18 @@ document.addEventListener('DOMContentLoaded', function () {
       }
     }
   }, 2000);
-  
+
   // ========================================
   // AI Chat Support
   // ========================================
-  
+
   var aiChatModal = document.getElementById('aiChatModal');
   var aiChatClose = document.getElementById('aiChatClose');
   var aiChatMessages = document.getElementById('aiChatMessages');
   var aiChatInput = document.getElementById('aiChatInput');
   var aiChatSend = document.getElementById('aiChatSend');
   var startAiChatBtn = document.getElementById('startAiChatBtn');
-  
+
   // Open AI Chat from Support modal
   if (startAiChatBtn) {
     startAiChatBtn.addEventListener('click', function() {
@@ -8477,7 +8502,7 @@ document.addEventListener('DOMContentLoaded', function () {
       }
     });
   }
-  
+
   // Close AI Chat modal
   if (aiChatClose) {
     aiChatClose.addEventListener('click', function() {
@@ -8487,7 +8512,7 @@ document.addEventListener('DOMContentLoaded', function () {
       }
     });
   }
-  
+
   // Close on outside click
   if (aiChatModal) {
     aiChatModal.addEventListener('click', function(e) {
@@ -8497,23 +8522,23 @@ document.addEventListener('DOMContentLoaded', function () {
       }
     });
   }
-  
+
   // Send message function
   function sendAiChatMessage() {
     if (!aiChatInput || !aiChatMessages) return;
-    
+
     var message = aiChatInput.value.trim();
     if (!message) return;
-    
+
     // Add user message to chat
     addChatMessage(message, 'user');
     aiChatInput.value = '';
     aiChatInput.style.height = 'auto';
-    
+
     // Disable input while waiting
     aiChatInput.disabled = true;
     if (aiChatSend) aiChatSend.disabled = true;
-    
+
     // Show typing indicator
     var typingIndicator = document.createElement('div');
     typingIndicator.className = 'ai-message assistant typing-indicator';
@@ -8527,7 +8552,7 @@ document.addEventListener('DOMContentLoaded', function () {
     `;
     aiChatMessages.appendChild(typingIndicator);
     aiChatMessages.scrollTop = aiChatMessages.scrollHeight;
-    
+
     // Send to API
     fetch('api/ai-chat.php', {
       method: 'POST',
@@ -8539,7 +8564,7 @@ document.addEventListener('DOMContentLoaded', function () {
       // Remove typing indicator
       var indicator = aiChatMessages.querySelector('.typing-indicator');
       if (indicator) indicator.remove();
-      
+
       // Add AI response
       if (data.message) {
         addChatMessage(data.message, 'assistant', data.is_error);
@@ -8548,11 +8573,11 @@ document.addEventListener('DOMContentLoaded', function () {
       }
     })
     .catch(function(error) {
-      console.error('AI Chat error:', error);
+
       // Remove typing indicator
       var indicator = aiChatMessages.querySelector('.typing-indicator');
       if (indicator) indicator.remove();
-      
+
       addChatMessage('Sorry, I\'m having trouble connecting. Please try again.', 'assistant', true);
     })
     .finally(function() {
@@ -8562,16 +8587,16 @@ document.addEventListener('DOMContentLoaded', function () {
       aiChatInput.focus();
     });
   }
-  
+
   // Add message to chat
   function addChatMessage(content, role, isError) {
     if (!aiChatMessages) return;
-    
+
     var messageDiv = document.createElement('div');
     messageDiv.className = 'ai-message ' + role + (isError ? ' error' : '');
-    
+
     var avatar = role === 'user' ? '👤' : '🤖';
-    
+
     // Convert markdown-like formatting to HTML
     var formattedContent = content
       .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
@@ -8579,26 +8604,26 @@ document.addEventListener('DOMContentLoaded', function () {
       .replace(/\n- /g, '</p><ul><li>')
       .replace(/\n\d+\. /g, '</p><ol><li>')
       .replace(/\n/g, '<br>');
-    
+
     // Wrap in paragraph if not already
     if (!formattedContent.startsWith('<')) {
       formattedContent = '<p>' + formattedContent + '</p>';
     }
-    
+
     messageDiv.innerHTML = `
       <div class="ai-message-avatar">${avatar}</div>
       <div class="ai-message-content">${formattedContent}</div>
     `;
-    
+
     aiChatMessages.appendChild(messageDiv);
     aiChatMessages.scrollTop = aiChatMessages.scrollHeight;
   }
-  
+
   // Send on button click
   if (aiChatSend) {
     aiChatSend.addEventListener('click', sendAiChatMessage);
   }
-  
+
   // Send on Enter (Shift+Enter for new line)
   if (aiChatInput) {
     aiChatInput.addEventListener('keydown', function(e) {
@@ -8607,14 +8632,14 @@ document.addEventListener('DOMContentLoaded', function () {
         sendAiChatMessage();
       }
     });
-    
+
     // Auto-resize textarea
     aiChatInput.addEventListener('input', function() {
       this.style.height = 'auto';
       this.style.height = Math.min(this.scrollHeight, 120) + 'px';
     });
   }
-  
+
   // Kanban Filter Functionality
   function initKanbanFilters() {
     const patientSearch = document.getElementById('patientSearch');
@@ -8624,9 +8649,9 @@ document.addEventListener('DOMContentLoaded', function () {
     const filterAtRisk = document.getElementById('filterAtRisk');
     const clearFiltersBtn = document.getElementById('clearFiltersBtn');
     const kanbanFilterActiveDot = document.getElementById('kanbanFilterActiveDot');
-    
+
     let filterTimeout;
-    
+
     function applyFilters() {
       clearTimeout(filterTimeout);
       filterTimeout = setTimeout(() => {
@@ -8635,7 +8660,7 @@ document.addEventListener('DOMContentLoaded', function () {
         const assignedTo = filterAssignedTo ? filterAssignedTo.value : '';
         const lateOnly = filterLateCases ? filterLateCases.checked : false;
         const atRiskOnly = filterAtRisk ? filterAtRisk.checked : false;
-        
+
         // Build query parameters
         const params = new URLSearchParams();
         if (searchTerm) params.append('search', searchTerm);
@@ -8643,11 +8668,11 @@ document.addEventListener('DOMContentLoaded', function () {
         if (assignedTo) params.append('assigned_to', assignedTo);
         if (lateOnly) params.append('late_only', 'true');
         if (atRiskOnly) params.append('at_risk_only', 'true');
-        
+
         // Show loading state
         const kanbanBoard = document.querySelector('.kanban-board');
         if (kanbanBoard) kanbanBoard.classList.add('loading');
-        
+
         // Fetch filtered cases
         fetch(`api/list-cases.php?${params.toString()}`, {
           method: 'GET',
@@ -8658,15 +8683,15 @@ document.addEventListener('DOMContentLoaded', function () {
           if (!data || !data.success || !Array.isArray(data.cases)) {
             return;
           }
-          
+
           let filteredCases = data.cases;
-          
+
           // Clear existing cases
           const columns = document.querySelectorAll('.kanban-column-body');
           columns.forEach(column => {
             const cards = column.querySelectorAll('.kanban-card');
             cards.forEach(card => card.remove());
-            
+
             // Show empty message if column is empty
             if (column.children.length === 0) {
               const emptyMsg = document.createElement('p');
@@ -8675,18 +8700,18 @@ document.addEventListener('DOMContentLoaded', function () {
               column.appendChild(emptyMsg);
             }
           });
-          
+
           // Add filtered cases
           filteredCases.forEach(caseData => {
             const clonedCase = JSON.parse(JSON.stringify(caseData));
             addCaseToKanban(clonedCase);
           });
-          
+
           // Apply past due highlighting
           if (typeof updatePastDueHighlighting === 'function') {
             updatePastDueHighlighting();
           }
-          
+
           // Update filter active indicator
           if (kanbanFilterActiveDot) {
             const hasActiveFilters = !!(searchTerm || caseType || assignedTo || lateOnly || atRiskOnly);
@@ -8694,7 +8719,7 @@ document.addEventListener('DOMContentLoaded', function () {
           }
         })
         .catch(error => {
-          console.error('Error applying filters:', error);
+
         })
         .finally(() => {
           if (kanbanBoard) {
@@ -8703,31 +8728,31 @@ document.addEventListener('DOMContentLoaded', function () {
         });
       }, 300); // Debounce for 300ms
     }
-    
+
     // Make applyFilters globally available
     window.applyFilters = applyFilters;
-    
+
     // Add event listeners
     if (patientSearch) {
       patientSearch.addEventListener('input', applyFilters);
     }
-    
+
     if (filterCaseType) {
       filterCaseType.addEventListener('change', applyFilters);
     }
-    
+
     if (filterAssignedTo) {
       filterAssignedTo.addEventListener('change', applyFilters);
     }
-    
+
     if (filterLateCases) {
       filterLateCases.addEventListener('change', applyFilters);
     }
-    
+
     if (filterAtRisk) {
       filterAtRisk.addEventListener('change', applyFilters);
     }
-    
+
     if (clearFiltersBtn) {
       clearFiltersBtn.addEventListener('click', function() {
         // Clear all filters
@@ -8736,22 +8761,22 @@ document.addEventListener('DOMContentLoaded', function () {
         if (filterAssignedTo) filterAssignedTo.value = '';
         if (filterLateCases) filterLateCases.checked = false;
         if (filterAtRisk) filterAtRisk.checked = false;
-        
+
         // Apply cleared filters
         applyFilters();
       });
     }
   }
-  
+
   // Initialize filters when page loads
   initKanbanFilters();
-  
+
   // ============================================
   // SECURITY SETTINGS FUNCTIONALITY
   // Change Password, Two-Factor Authentication, Data Export
   // ============================================
   (function initSecuritySettings() {
-    
+
     // ============================================
     // PASSWORD VISIBILITY TOGGLE (Settings)
     // ============================================
@@ -8761,14 +8786,14 @@ document.addEventListener('DOMContentLoaded', function () {
         var targetId = btn.getAttribute('data-target');
         var input = document.getElementById(targetId);
         if (!input) return;
-        
+
         var isPassword = input.type === 'password';
         input.type = isPassword ? 'text' : 'password';
         btn.classList.toggle('is-visible', isPassword);
         btn.setAttribute('aria-label', isPassword ? 'Hide password' : 'Show password');
       });
     });
-    
+
     // ============================================
     // CHANGE PASSWORD FUNCTIONALITY
     // ============================================
@@ -8779,20 +8804,20 @@ document.addEventListener('DOMContentLoaded', function () {
     var changePasswordError = document.getElementById('changePasswordError');
     var changePasswordSuccess = document.getElementById('changePasswordSuccess');
     var passwordMatchStatus = document.getElementById('passwordMatchStatus');
-    
+
     // Password requirement elements
     var pwReqLength = document.getElementById('pwReqLength');
     var pwReqUpper = document.getElementById('pwReqUpper');
     var pwReqNumber = document.getElementById('pwReqNumber');
     var pwReqSpecial = document.getElementById('pwReqSpecial');
-    
+
     // Validate password requirements in real-time
     function validatePasswordRequirements(password) {
       var hasLength = password.length >= 8;
       var hasUpper = /[A-Z]/.test(password);
       var hasNumber = /[0-9]/.test(password);
       var hasSpecial = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password);
-      
+
       if (pwReqLength) {
         pwReqLength.textContent = (hasLength ? '✓' : '✗') + ' At least 8 characters';
         pwReqLength.classList.toggle('valid', hasLength);
@@ -8809,17 +8834,17 @@ document.addEventListener('DOMContentLoaded', function () {
         pwReqSpecial.textContent = (hasSpecial ? '✓' : '✗') + ' One special character';
         pwReqSpecial.classList.toggle('valid', hasSpecial);
       }
-      
+
       return hasLength && hasUpper && hasNumber && hasSpecial;
     }
-    
+
     // Check password match
     function checkPasswordMatch() {
       if (!confirmPasswordInput || !newPasswordInput || !passwordMatchStatus) return;
-      
+
       var newPw = newPasswordInput.value;
       var confirmPw = confirmPasswordInput.value;
-      
+
       if (confirmPw === '') {
         passwordMatchStatus.textContent = '';
         passwordMatchStatus.className = 'password-match';
@@ -8831,49 +8856,49 @@ document.addEventListener('DOMContentLoaded', function () {
         passwordMatchStatus.className = 'password-match no-match';
       }
     }
-    
+
     if (newPasswordInput) {
       newPasswordInput.addEventListener('input', function() {
         validatePasswordRequirements(newPasswordInput.value);
         checkPasswordMatch();
       });
     }
-    
+
     if (confirmPasswordInput) {
       confirmPasswordInput.addEventListener('input', checkPasswordMatch);
     }
-    
+
     // Handle change password submission
     if (changePasswordBtn) {
       changePasswordBtn.addEventListener('click', function() {
         // Hide previous messages
         if (changePasswordError) changePasswordError.style.display = 'none';
         if (changePasswordSuccess) changePasswordSuccess.style.display = 'none';
-        
+
         var currentPw = currentPasswordInput ? currentPasswordInput.value : '';
         var newPw = newPasswordInput ? newPasswordInput.value : '';
         var confirmPw = confirmPasswordInput ? confirmPasswordInput.value : '';
-        
+
         // Client-side validation
         if (!currentPw) {
           showChangePasswordError('Please enter your current password.');
           return;
         }
-        
+
         if (!validatePasswordRequirements(newPw)) {
           showChangePasswordError('New password does not meet all requirements.');
           return;
         }
-        
+
         if (newPw !== confirmPw) {
           showChangePasswordError('New passwords do not match.');
           return;
         }
-        
+
         // Disable button during request
         changePasswordBtn.disabled = true;
         changePasswordBtn.textContent = 'Changing...';
-        
+
         // Send request to server
         fetch('api/change-password.php', {
           method: 'POST',
@@ -8911,21 +8936,21 @@ document.addEventListener('DOMContentLoaded', function () {
         });
       });
     }
-    
+
     function showChangePasswordError(message) {
       if (changePasswordError) {
         changePasswordError.textContent = message;
         changePasswordError.style.display = 'block';
       }
     }
-    
+
     function showChangePasswordSuccess(message) {
       if (changePasswordSuccess) {
         changePasswordSuccess.textContent = message;
         changePasswordSuccess.style.display = 'block';
       }
     }
-    
+
     // ============================================
     // TWO-FACTOR AUTHENTICATION FUNCTIONALITY
     // ============================================
@@ -8944,7 +8969,7 @@ document.addEventListener('DOMContentLoaded', function () {
     var confirmDisableTwoFactor = document.getElementById('confirmDisableTwoFactor');
     var cancelDisableTwoFactor = document.getElementById('cancelDisableTwoFactor');
     var twoFactorDisableError = document.getElementById('twoFactorDisableError');
-    
+
     // Load 2FA status when settings modal opens
     function load2FAStatus() {
       fetch('api/2fa-setup.php?action=status', { credentials: 'same-origin' })
@@ -8958,10 +8983,10 @@ document.addEventListener('DOMContentLoaded', function () {
           // Silently fail - 2FA status will show as disabled
         });
     }
-    
+
     function update2FAStatusUI(enabled) {
       var statusBadge = twoFactorStatus ? twoFactorStatus.querySelector('.status-badge') : null;
-      
+
       if (statusBadge) {
         if (enabled) {
           statusBadge.textContent = 'Enabled';
@@ -8971,20 +8996,20 @@ document.addEventListener('DOMContentLoaded', function () {
           statusBadge.className = 'status-badge status-disabled';
         }
       }
-      
+
       if (enableTwoFactorBtn) enableTwoFactorBtn.style.display = enabled ? 'none' : 'inline-flex';
       if (disableTwoFactorBtn) disableTwoFactorBtn.style.display = enabled ? 'inline-flex' : 'none';
       if (twoFactorSetup) twoFactorSetup.style.display = 'none';
       if (twoFactorDisable) twoFactorDisable.style.display = 'none';
       if (twoFactorActions) twoFactorActions.style.display = 'flex';
     }
-    
+
     // Enable 2FA - Start setup
     if (enableTwoFactorBtn) {
       enableTwoFactorBtn.addEventListener('click', function() {
         enableTwoFactorBtn.disabled = true;
         enableTwoFactorBtn.textContent = 'Loading...';
-        
+
         fetch('api/2fa-setup.php?action=setup', {
           method: 'POST',
           headers: { 'X-CSRF-Token': csrfToken },
@@ -9017,12 +9042,12 @@ document.addEventListener('DOMContentLoaded', function () {
         });
       });
     }
-    
+
     // Verify 2FA code
     if (verifyTwoFactorBtn) {
       verifyTwoFactorBtn.addEventListener('click', function() {
         var code = twoFactorVerifyCode ? twoFactorVerifyCode.value.trim() : '';
-        
+
         if (!code || code.length !== 6) {
           if (twoFactorSetupError) {
             twoFactorSetupError.textContent = 'Please enter a 6-digit code.';
@@ -9030,10 +9055,10 @@ document.addEventListener('DOMContentLoaded', function () {
           }
           return;
         }
-        
+
         verifyTwoFactorBtn.disabled = true;
         verifyTwoFactorBtn.textContent = 'Verifying...';
-        
+
         fetch('api/2fa-setup.php?action=verify', {
           method: 'POST',
           headers: {
@@ -9069,7 +9094,7 @@ document.addEventListener('DOMContentLoaded', function () {
         });
       });
     }
-    
+
     // Handle Enter key on verification code input
     if (twoFactorVerifyCode && verifyTwoFactorBtn) {
       twoFactorVerifyCode.addEventListener('keydown', function(e) {
@@ -9079,7 +9104,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }
       });
     }
-    
+
     // Cancel 2FA setup
     if (cancelTwoFactorSetup) {
       cancelTwoFactorSetup.addEventListener('click', function() {
@@ -9087,7 +9112,7 @@ document.addEventListener('DOMContentLoaded', function () {
         if (twoFactorActions) twoFactorActions.style.display = 'flex';
       });
     }
-    
+
     // Show disable 2FA confirmation
     if (disableTwoFactorBtn) {
       disableTwoFactorBtn.addEventListener('click', function() {
@@ -9096,13 +9121,13 @@ document.addEventListener('DOMContentLoaded', function () {
         if (twoFactorDisableError) twoFactorDisableError.style.display = 'none';
       });
     }
-    
+
     // Confirm disable 2FA
     if (confirmDisableTwoFactor) {
       confirmDisableTwoFactor.addEventListener('click', function() {
         confirmDisableTwoFactor.disabled = true;
         confirmDisableTwoFactor.textContent = 'Disabling...';
-        
+
         fetch('api/2fa-setup.php?action=disable', {
           method: 'POST',
           headers: {
@@ -9137,7 +9162,7 @@ document.addEventListener('DOMContentLoaded', function () {
         });
       });
     }
-    
+
     // Cancel disable 2FA
     if (cancelDisableTwoFactor) {
       cancelDisableTwoFactor.addEventListener('click', function() {
@@ -9145,13 +9170,13 @@ document.addEventListener('DOMContentLoaded', function () {
         if (twoFactorActions) twoFactorActions.style.display = 'flex';
       });
     }
-    
+
     // ============================================
     // DATA EXPORT FUNCTIONALITY
     // ============================================
     var exportDataBtn = document.getElementById('exportDataBtn');
     var exportStatus = document.getElementById('exportStatus');
-    
+
     if (exportDataBtn) {
       exportDataBtn.addEventListener('click', function() {
         // Show styled confirmation modal instead of native confirm()
@@ -9162,13 +9187,13 @@ document.addEventListener('DOMContentLoaded', function () {
             // User confirmed - proceed with export
             exportDataBtn.disabled = true;
             exportDataBtn.innerHTML = '<span class="btn-icon">⏳</span> Preparing Export...';
-            
+
             if (exportStatus) {
               exportStatus.textContent = 'Preparing your data export...';
               exportStatus.className = 'export-status';
               exportStatus.style.display = 'block';
             }
-            
+
             fetch('api/data-export.php?action=request', {
               method: 'POST',
               headers: { 'X-CSRF-Token': csrfToken },
@@ -9206,7 +9231,7 @@ document.addEventListener('DOMContentLoaded', function () {
         );
       });
     }
-    
+
     // Load 2FA status when settings modal opens
     var settingsModal = document.getElementById('settingsBillingModal');
     if (settingsModal) {
@@ -9222,10 +9247,10 @@ document.addEventListener('DOMContentLoaded', function () {
       });
       observer.observe(settingsModal, { attributes: true });
     }
-    
+
     // Expose functions globally for real-time updates module
     window.addCaseToKanban = addCaseToKanban;
     window.updateColumnCounts = updateColumnCounts;
-    
+
   })();
 });

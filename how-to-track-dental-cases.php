@@ -3,6 +3,8 @@ require_once __DIR__ . '/api/appConfig.php';
 require_once __DIR__ . '/api/security-headers.php';
 setSecurityHeaders();
 $appName = $appConfig['appName'] ?? 'Dentatrak';
+$baseUrl = rtrim($appConfig['baseUrl'], '/') . '/';
+$articleUrls = $appConfig['public_urls'] ?? [];
 ?><!DOCTYPE html>
 <html lang="en">
 <head>
@@ -73,11 +75,31 @@ $appName = $appConfig['appName'] ?? 'Dentatrak';
       height: 64px;
     }
 
+    .nav-actions {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+
     .nav-logo {
       font-size: 1.25rem;
       font-weight: 700;
       color: var(--primary-color);
       text-decoration: none;
+    }
+
+    .nav-login {
+      font-size: 0.9rem;
+      font-weight: 500;
+      color: var(--text-secondary);
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+
+    .nav-login:hover { color: var(--primary-color); }
+
+    @media (max-width: 540px) {
+      .nav-login { display: none; }
     }
 
     .nav-cta {
@@ -287,8 +309,11 @@ $appName = $appConfig['appName'] ?? 'Dentatrak';
   <!-- Navigation -->
   <nav class="nav">
     <div class="nav-inner">
-      <a href="/" class="nav-logo"><?php echo htmlspecialchars($appName); ?></a>
-      <a href="/#waitlist" class="nav-cta">Get launch updates</a>
+      <a href="<?= $baseUrl ?>" class="nav-logo"><?php echo htmlspecialchars($appName); ?></a>
+      <div class="nav-actions">
+        <a href="<?= $baseUrl ?>login.php" class="nav-login">Log In</a>
+        <a href="<?= $baseUrl ?>login.php" class="nav-cta">Start 90-Day Free Trial</a>
+      </div>
     </div>
   </nav>
 
@@ -363,7 +388,7 @@ $appName = $appConfig['appName'] ?? 'Dentatrak';
     </ul>
     
     <p>
-      This is what dental case tracking should provide: a shared, current view of every active case so nothing falls through the cracks. Using dedicated <a href="/dental-case-tracking" style="color: var(--primary-color); text-decoration: none; font-weight: 500;">dental case tracking software</a> makes this process consistent and reliable.
+      This is what dental case tracking should provide: a shared, current view of every active case so nothing falls through the cracks. Using dedicated <a href="<?= $baseUrl . ($articleUrls['article_dental_case_tracking'] ?? 'dental-case-tracking') ?>" style="color: var(--primary-color); text-decoration: none; font-weight: 500;">dental case tracking software</a> makes this process consistent and reliable.
     </p>
 
     <h2>Step-by-Step Process to Track Dental Cases</h2>
@@ -438,8 +463,9 @@ $appName = $appConfig['appName'] ?? 'Dentatrak';
 
     <div class="cta-section">
       <h2>Ready to track your cases?</h2>
-      <p>Dentatrak is launching soon. Join the waitlist to get early access.</p>
-      <a href="/#waitlist" class="btn-white">Get launch updates</a>
+      <p>Try Dentatrak free for 90 days. Set up your practice and begin tracking cases in minutes.</p>
+      <a href="<?= $baseUrl ?>login.php" class="btn-white">Start 90-Day Free Trial</a>
+      <p style="margin-top: 16px; font-size: 0.9rem;"><a href="<?= $baseUrl ?>login.php" style="color: rgba(255,255,255,0.75); text-decoration: underline; text-underline-offset: 2px;">Already have an account? Log in</a></p>
     </div>
   </main>
 
@@ -448,9 +474,9 @@ $appName = $appConfig['appName'] ?? 'Dentatrak';
     <div class="footer-inner">
       <span class="footer-logo"><?php echo htmlspecialchars($appName); ?></span>
       <div class="footer-links">
-        <a href="/privacy.php" class="footer-link">Privacy</a>
-        <a href="/terms.php" class="footer-link">Terms</a>
-        <a href="/" class="footer-link">Home</a>
+        <a href="<?= $baseUrl ?>privacy.php" class="footer-link">Privacy</a>
+        <a href="<?= $baseUrl ?>terms.php" class="footer-link">Terms</a>
+        <a href="<?= $baseUrl ?>" class="footer-link">Home</a>
       </div>
       <span class="footer-copy">&copy; <?php echo date('Y'); ?> <?php echo htmlspecialchars($appName); ?>. All rights reserved.</span>
     </div>

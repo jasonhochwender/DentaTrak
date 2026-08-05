@@ -26,20 +26,32 @@ if (!$user) {
     exit;
 }
 
-// Check access: Control plan always has access, Evaluate plan has access during trial
-$hasAccess = false;
-$tierConfig = $appConfig['billing']['tiers'][$user['billing_tier']] ?? null;
+// Master billing gate: when billing is disabled (the production default until
+// Stripe is fully configured), all users get AI access with no plan checks.
+$billingEnabledRaw = getenv('BILLING_ENABLED');
+if ($billingEnabledRaw === false) {
+    $billingEnabledRaw = $_ENV['BILLING_ENABLED'] ?? '';
+}
+$billingEnabled = filter_var($billingEnabledRaw, FILTER_VALIDATE_BOOLEAN);
 
-if ($user['billing_tier'] === 'control') {
+if (!$billingEnabled) {
     $hasAccess = true;
-} elseif ($tierConfig && ($tierConfig['is_trial'] ?? false)) {
-    // Check if trial is still active
-    if (isset($user['created_at'])) {
-        $trialDays = $appConfig['billing']['trial_days'] ?? 30;
-        $createdAt = new DateTime($user['created_at']);
-        $now = new DateTime();
-        $daysSinceSignup = $now->diff($createdAt)->days;
-        $hasAccess = $daysSinceSignup < $trialDays;
+} else {
+    // Check access: Control plan always has access, Evaluate plan has access during trial
+    $hasAccess = false;
+    $tierConfig = $appConfig['billing']['tiers'][$user['billing_tier']] ?? null;
+
+    if ($user['billing_tier'] === 'control') {
+        $hasAccess = true;
+    } elseif ($tierConfig && ($tierConfig['is_trial'] ?? false)) {
+        // Check if trial is still active
+        if (isset($user['created_at'])) {
+            $trialDays = $appConfig['billing']['trial_days'] ?? 30;
+            $createdAt = new DateTime($user['created_at']);
+            $now = new DateTime();
+            $daysSinceSignup = $now->diff($createdAt)->days;
+            $hasAccess = $daysSinceSignup < $trialDays;
+        }
     }
 }
 
@@ -91,7 +103,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 try {
     // Gather aggregated analytics data (NO PII)
     $analyticsData = gatherAnalyticsData($pdo, $practiceId);
-    
+
     if ($isAskRequest) {
         // Handle user question
         $response = answerUserQuestion($appConfig, $analyticsData, $userQuery, $aiProvider);
@@ -109,23 +121,33 @@ try {
             'generated_at' => date('Y-m-d H:i:s')
         ]);
     }
-    
+
 } catch (Exception $e) {
     $errorMessage = $e->getMessage();
     error_log('AI Recommendations Error: ' . $errorMessage);
-    
-    // Map internal error codes to user-friendly messages
+
+    // Map internal error codes to user-facing messages
+    // config_error codes are permanent failures — the UI should not offer a retry
     $userMessage = match($errorMessage) {
-        'AI_QUOTA_EXCEEDED' => 'AI service is temporarily unavailable due to high demand. Please try again in a few minutes.',
-        'AI_AUTH_ERROR' => 'AI service configuration error. Please contact support.',
+        'AI_QUOTA_EXCEEDED'     => 'AI service is temporarily unavailable due to high demand. Please try again in a few minutes.',
+        'AI_MODEL_UNAVAILABLE'  => 'Smart Recommendations are temporarily unavailable because the configured AI model could not be reached.',
+        'AI_INVALID_REQUEST'    => 'AI service configuration error. Please contact support.',
+        'AI_AUTH_ERROR'         => 'AI service configuration error. Please contact support.',
         'AI_SERVICE_UNAVAILABLE' => 'AI service is currently unavailable. Please try again later.',
-        default => 'Unable to generate recommendations at this time. Please try again later.'
+        default                 => 'Unable to generate recommendations at this time. Please try again later.'
     };
-    
+
+    $errorCode = match($errorMessage) {
+        'AI_QUOTA_EXCEEDED'                      => 'quota',
+        'AI_MODEL_UNAVAILABLE', 'AI_AUTH_ERROR',
+        'AI_INVALID_REQUEST'                     => 'config_error',
+        default                                  => 'general',
+    };
+
     http_response_code(200); // Return 200 so frontend can handle gracefully
     echo json_encode([
-        'error' => $userMessage,
-        'error_code' => $errorMessage === 'AI_QUOTA_EXCEEDED' ? 'quota' : 'general',
+        'error'       => $userMessage,
+        'error_code'  => $errorCode,
         'retry_after' => $errorMessage === 'AI_QUOTA_EXCEEDED' ? 60 : 30
     ]);
 }
@@ -135,146 +157,146 @@ try {
  */
 function gatherAnalyticsData($pdo, $practiceId) {
     $data = [];
-    
+
     // Build practice filter with fallback
     $practiceFilter = "(practice_id = ? OR practice_id = 0 OR practice_id IS NULL)";
-    
+
     // Total cases by status
     $stmt = $pdo->prepare("
-        SELECT status, COUNT(*) as count 
-        FROM cases_cache 
-        WHERE $practiceFilter AND archived = 0 
+        SELECT status, COUNT(*) as count
+        FROM cases_cache
+        WHERE $practiceFilter AND archived = 0
         GROUP BY status
     ");
     $stmt->execute([$practiceId]);
     $data['cases_by_status'] = $stmt->fetchAll(PDO::FETCH_KEY_PAIR);
-    
+
     // Fallback: if no data, try without practice filter
     if (empty($data['cases_by_status'])) {
         $stmt = $pdo->query("SELECT status, COUNT(*) as count FROM cases_cache WHERE archived = 0 GROUP BY status");
         $data['cases_by_status'] = $stmt->fetchAll(PDO::FETCH_KEY_PAIR);
     }
-    
+
     // Total active cases
     $stmt = $pdo->prepare("SELECT COUNT(*) FROM cases_cache WHERE $practiceFilter AND archived = 0");
     $stmt->execute([$practiceId]);
     $data['total_active_cases'] = (int)$stmt->fetchColumn();
-    
+
     // Fallback
     if ($data['total_active_cases'] === 0) {
         $stmt = $pdo->query("SELECT COUNT(*) FROM cases_cache WHERE archived = 0");
         $data['total_active_cases'] = (int)$stmt->fetchColumn();
     }
-    
+
     // Total archived cases
     $stmt = $pdo->prepare("SELECT COUNT(*) FROM cases_cache WHERE $practiceFilter AND archived = 1");
     $stmt->execute([$practiceId]);
     $data['total_archived_cases'] = (int)$stmt->fetchColumn();
-    
+
     // Cases by type
     $stmt = $pdo->prepare("
-        SELECT case_type, COUNT(*) as count 
-        FROM cases_cache 
-        WHERE $practiceFilter AND archived = 0 
+        SELECT case_type, COUNT(*) as count
+        FROM cases_cache
+        WHERE $practiceFilter AND archived = 0
         GROUP BY case_type
     ");
     $stmt->execute([$practiceId]);
     $data['cases_by_type'] = $stmt->fetchAll(PDO::FETCH_KEY_PAIR);
-    
+
     // Fallback
     if (empty($data['cases_by_type'])) {
         $stmt = $pdo->query("SELECT case_type, COUNT(*) as count FROM cases_cache WHERE archived = 0 GROUP BY case_type");
         $data['cases_by_type'] = $stmt->fetchAll(PDO::FETCH_KEY_PAIR);
     }
-    
+
     // Overdue cases (due_date < today and status not 'Completed' or 'Shipped')
     $today = date('Y-m-d');
     $stmt = $pdo->prepare("
-        SELECT COUNT(*) 
-        FROM cases_cache 
-        WHERE $practiceFilter 
-        AND archived = 0 
-        AND due_date < ? 
+        SELECT COUNT(*)
+        FROM cases_cache
+        WHERE $practiceFilter
+        AND archived = 0
+        AND due_date < ?
         AND status NOT IN ('Completed', 'Shipped', 'Delivered')
     ");
     $stmt->execute([$practiceId, $today]);
     $data['overdue_cases'] = (int)$stmt->fetchColumn();
-    
+
     // Cases due this week
     $weekEnd = date('Y-m-d', strtotime('+7 days'));
     $stmt = $pdo->prepare("
-        SELECT COUNT(*) 
-        FROM cases_cache 
-        WHERE $practiceFilter 
-        AND archived = 0 
+        SELECT COUNT(*)
+        FROM cases_cache
+        WHERE $practiceFilter
+        AND archived = 0
         AND due_date BETWEEN ? AND ?
         AND status NOT IN ('Completed', 'Shipped', 'Delivered')
     ");
     $stmt->execute([$practiceId, $today, $weekEnd]);
     $data['cases_due_this_week'] = (int)$stmt->fetchColumn();
-    
+
     // Cases created in last 30 days
     $thirtyDaysAgo = date('Y-m-d', strtotime('-30 days'));
     $stmt = $pdo->prepare("
-        SELECT COUNT(*) 
-        FROM cases_cache 
-        WHERE $practiceFilter 
+        SELECT COUNT(*)
+        FROM cases_cache
+        WHERE $practiceFilter
         AND STR_TO_DATE(LEFT(COALESCE(creation_date, CURRENT_DATE()), 10), '%Y-%m-%d') >= ?
     ");
     $stmt->execute([$practiceId, $thirtyDaysAgo]);
     $data['cases_created_last_30_days'] = (int)$stmt->fetchColumn();
-    
+
     // Fallback
     if ($data['cases_created_last_30_days'] === 0) {
         $stmt = $pdo->prepare("SELECT COUNT(*) FROM cases_cache WHERE STR_TO_DATE(LEFT(COALESCE(creation_date, CURRENT_DATE()), 10), '%Y-%m-%d') >= ?");
         $stmt->execute([$thirtyDaysAgo]);
         $data['cases_created_last_30_days'] = (int)$stmt->fetchColumn();
     }
-    
+
     // Cases completed in last 30 days
     $stmt = $pdo->prepare("
-        SELECT COUNT(*) 
-        FROM cases_cache 
-        WHERE $practiceFilter 
+        SELECT COUNT(*)
+        FROM cases_cache
+        WHERE $practiceFilter
         AND status IN ('Completed', 'Shipped', 'Delivered')
         AND STR_TO_DATE(LEFT(COALESCE(last_update_date, CURRENT_DATE()), 10), '%Y-%m-%d') >= ?
     ");
     $stmt->execute([$practiceId, $thirtyDaysAgo]);
     $data['cases_completed_last_30_days'] = (int)$stmt->fetchColumn();
-    
+
     // Workload distribution (cases per assignee - no names, just counts)
     $stmt = $pdo->prepare("
-        SELECT 
+        SELECT
             CASE WHEN assigned_to IS NULL OR assigned_to = '' THEN 'Unassigned' ELSE 'Assigned' END as assignment_status,
-            COUNT(*) as count 
-        FROM cases_cache 
-        WHERE $practiceFilter AND archived = 0 
+            COUNT(*) as count
+        FROM cases_cache
+        WHERE $practiceFilter AND archived = 0
         GROUP BY assignment_status
     ");
     $stmt->execute([$practiceId]);
     $data['assignment_distribution'] = $stmt->fetchAll(PDO::FETCH_KEY_PAIR);
-    
+
     // Fallback
     if (empty($data['assignment_distribution'])) {
         $stmt = $pdo->query("SELECT CASE WHEN assigned_to IS NULL OR assigned_to = '' THEN 'Unassigned' ELSE 'Assigned' END as assignment_status, COUNT(*) as count FROM cases_cache WHERE archived = 0 GROUP BY assignment_status");
         $data['assignment_distribution'] = $stmt->fetchAll(PDO::FETCH_KEY_PAIR);
     }
-    
+
     // Count of unique assignees
     $stmt = $pdo->prepare("
-        SELECT COUNT(DISTINCT assigned_to) 
-        FROM cases_cache 
+        SELECT COUNT(DISTINCT assigned_to)
+        FROM cases_cache
         WHERE $practiceFilter AND archived = 0 AND assigned_to IS NOT NULL AND assigned_to != ''
     ");
     $stmt->execute([$practiceId]);
     $data['unique_assignees'] = (int)$stmt->fetchColumn();
-    
+
     // Fallback
     if ($data['unique_assignees'] === 0) {
         $stmt = $pdo->query("SELECT COUNT(DISTINCT assigned_to) FROM cases_cache WHERE archived = 0 AND assigned_to IS NOT NULL AND assigned_to != ''");
         $data['unique_assignees'] = (int)$stmt->fetchColumn();
     }
-    
+
     // Average cases per assignee
     if ($data['unique_assignees'] > 0) {
         $assignedCount = $data['assignment_distribution']['Assigned'] ?? 0;
@@ -282,27 +304,27 @@ function gatherAnalyticsData($pdo, $practiceId) {
     } else {
         $data['avg_cases_per_assignee'] = 0;
     }
-    
+
     // Cases by material (for case types that use materials)
     $stmt = $pdo->prepare("
-        SELECT material, COUNT(*) as count 
-        FROM cases_cache 
+        SELECT material, COUNT(*) as count
+        FROM cases_cache
         WHERE $practiceFilter AND archived = 0 AND material IS NOT NULL AND material != ''
         GROUP BY material
     ");
     $stmt->execute([$practiceId]);
     $data['cases_by_material'] = $stmt->fetchAll(PDO::FETCH_KEY_PAIR);
-    
+
     // Team size
     $stmt = $pdo->prepare("SELECT COUNT(*) FROM practice_users WHERE practice_id = ?");
     $stmt->execute([$practiceId]);
     $data['team_size'] = (int)$stmt->fetchColumn();
-    
+
     // Fallback - if no team found, default to 1
     if ($data['team_size'] === 0) {
         $data['team_size'] = 1;
     }
-    
+
     return $data;
 }
 
@@ -311,11 +333,11 @@ function gatherAnalyticsData($pdo, $practiceId) {
  */
 function answerUserQuestion($appConfig, $analyticsData, $userQuery, $provider = 'gemini') {
     $aiConfig = $appConfig[$provider];
-    
+
     // Build context with practice data
     $dataString = json_encode($analyticsData, JSON_PRETTY_PRINT);
-    
-    $systemPrompt = "You are DentaTrak's helpful assistant for a dental lab case management system. 
+
+    $systemPrompt = "You are DentaTrak's helpful assistant for a dental lab case management system.
 You can answer questions about:
 1. Practice data and case statistics
 2. How to use DentaTrak features
@@ -376,17 +398,17 @@ RESPONSE GUIDELINES:
     } else {
         $content = callOpenAIAPI($aiConfig, $systemPrompt, $userQuery);
     }
-    
+
     // Clean up the response - remove any markdown code blocks
     $content = preg_replace('/```html?\s*/i', '', $content);
     $content = preg_replace('/```\s*/', '', $content);
     $content = trim($content);
-    
+
     // Ensure response is wrapped in HTML if it isn't already
     if (strpos($content, '<') === false) {
         $content = '<p>' . nl2br(htmlspecialchars($content)) . '</p>';
     }
-    
+
     return $content;
 }
 
@@ -396,44 +418,44 @@ RESPONSE GUIDELINES:
 function getAIRecommendations($appConfig, $analyticsData, $provider = 'gemini') {
     $aiConfig = $appConfig[$provider];
     $prompt = $appConfig['ai_prompt'];
-    
+
     // Build the full prompt with data
     $dataString = json_encode($analyticsData, JSON_PRETTY_PRINT);
     $systemPrompt = 'You are a dental lab workflow optimization expert. Always respond with valid JSON only, no markdown or extra text.';
     $fullPrompt = $prompt . $dataString;
-    
+
     if ($provider === 'gemini') {
         $content = callGeminiAPI($aiConfig, $systemPrompt, $fullPrompt);
     } else {
         $content = callOpenAIAPI($aiConfig, $systemPrompt, $fullPrompt);
     }
-    
+
     // Parse the JSON response
     $recommendations = json_decode($content, true);
-    
+
     if (json_last_error() !== JSON_ERROR_NONE) {
         // Try to extract JSON from the response if it contains extra text
         if (preg_match('/\[[\s\S]*\]/', $content, $matches)) {
             $recommendations = json_decode($matches[0], true);
         }
-        
+
         if (json_last_error() !== JSON_ERROR_NONE) {
             throw new Exception('Failed to parse AI response as JSON');
         }
     }
-    
+
     // Validate and sanitize recommendations
     $validRecommendations = [];
-    
+
     // Handle case where recommendations might be wrapped in an object
     if (isset($recommendations['recommendations'])) {
         $recommendations = $recommendations['recommendations'];
     }
-    
+
     if (!is_array($recommendations)) {
         return [];
     }
-    
+
     foreach ($recommendations as $rec) {
         if (isset($rec['title']) && isset($rec['description'])) {
             // Don't use htmlspecialchars here - it causes double-encoding (&#039;)
@@ -445,13 +467,13 @@ function getAIRecommendations($appConfig, $analyticsData, $provider = 'gemini') 
                 'category' => in_array($rec['category'] ?? '', ['efficiency', 'quality', 'scheduling', 'workload', 'communication']) ? $rec['category'] : 'efficiency'
             ];
         }
-        
+
         // Only keep top 3
         if (count($validRecommendations) >= 3) {
             break;
         }
     }
-    
+
     return $validRecommendations;
 }
 
@@ -468,7 +490,7 @@ function callOpenAIAPI($aiConfig, $systemPrompt, $userPrompt) {
         'max_tokens' => $aiConfig['max_tokens'],
         'temperature' => $aiConfig['temperature']
     ];
-    
+
     $ch = curl_init('https://api.openai.com/v1/chat/completions');
     curl_setopt_array($ch, [
         CURLOPT_RETURNTRANSFER => true,
@@ -480,26 +502,26 @@ function callOpenAIAPI($aiConfig, $systemPrompt, $userPrompt) {
         CURLOPT_POSTFIELDS => json_encode($requestBody),
         CURLOPT_TIMEOUT => 30
     ]);
-    
+
     $response = curl_exec($ch);
     $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
     $curlError = curl_error($ch);
     curl_close($ch);
-    
+
     if ($curlError) {
         throw new Exception('API connection error: ' . $curlError);
     }
-    
+
     if ($httpCode !== 200) {
         handleAPIError($httpCode, $response, 'OpenAI');
     }
-    
+
     $responseData = json_decode($response, true);
-    
+
     if (!isset($responseData['choices'][0]['message']['content'])) {
         throw new Exception('Invalid API response format');
     }
-    
+
     return $responseData['choices'][0]['message']['content'];
 }
 
@@ -508,7 +530,7 @@ function callOpenAIAPI($aiConfig, $systemPrompt, $userPrompt) {
  */
 function callGeminiAPI($aiConfig, $systemPrompt, $userPrompt) {
     $url = 'https://generativelanguage.googleapis.com/v1beta/models/' . $aiConfig['model'] . ':generateContent?key=' . $aiConfig['api_key'];
-    
+
     $requestBody = [
         'contents' => [
             [
@@ -518,11 +540,13 @@ function callGeminiAPI($aiConfig, $systemPrompt, $userPrompt) {
             ]
         ],
         'generationConfig' => [
-            'temperature' => $aiConfig['temperature'],
-            'maxOutputTokens' => $aiConfig['max_tokens']
-        ]
+            'maxOutputTokens' => $aiConfig['max_tokens'],
+            'thinkingConfig'  => [
+                'thinkingLevel' => 'low',
+            ],
+        ],
     ];
-    
+
     $ch = curl_init($url);
     curl_setopt_array($ch, [
         CURLOPT_RETURNTRANSFER => true,
@@ -531,43 +555,83 @@ function callGeminiAPI($aiConfig, $systemPrompt, $userPrompt) {
         CURLOPT_POSTFIELDS => json_encode($requestBody),
         CURLOPT_TIMEOUT => 30
     ]);
-    
+
     $response = curl_exec($ch);
-    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $httpCode  = curl_getinfo($ch, CURLINFO_HTTP_CODE);
     $curlError = curl_error($ch);
     curl_close($ch);
-    
+
     if ($curlError) {
         throw new Exception('API connection error: ' . $curlError);
     }
-    
+
     if ($httpCode !== 200) {
         handleAPIError($httpCode, $response, 'Gemini');
     }
-    
+
     $responseData = json_decode($response, true);
-    
+
+    // Check for MAX_TOKENS truncation before attempting to use the text
+    $finishReason = $responseData['candidates'][0]['finishReason'] ?? 'UNKNOWN';
+    if ($finishReason === 'MAX_TOKENS') {
+        $usageData  = $responseData['usageMetadata'] ?? [];
+        $textLength = strlen($responseData['candidates'][0]['content']['parts'][0]['text'] ?? '');
+        error_log(sprintf(
+            'Gemini MAX_TOKENS: model=%s maxOutputTokens=%d finishReason=%s '
+            . 'promptTokens=%d candidateTokens=%d totalTokens=%d visibleTextLength=%d',
+            $aiConfig['model'],
+            $aiConfig['max_tokens'],
+            $finishReason,
+            $usageData['promptTokenCount']     ?? 0,
+            $usageData['candidatesTokenCount'] ?? 0,
+            $usageData['totalTokenCount']      ?? 0,
+            $textLength
+        ));
+        throw new Exception('Failed to parse AI response as JSON');
+    }
+
     if (!isset($responseData['candidates'][0]['content']['parts'][0]['text'])) {
         throw new Exception('Invalid API response format');
     }
-    
+
     return $responseData['candidates'][0]['content']['parts'][0]['text'];
 }
 
 /**
  * Handle API errors consistently
+ * Logs sanitized diagnostic info (status, model, error type, requestId).
+ * Never logs API keys, prompts, analytics payloads, or patient data.
  */
 function handleAPIError($httpCode, $response, $provider) {
     $errorData = json_decode($response, true);
+
+    // Extract only safe diagnostic fields — no keys, no payload, no PII
+    $errorType    = $errorData['error']['status'] ?? ($errorData['error']['code'] ?? 'UNKNOWN');
     $errorMessage = $errorData['error']['message'] ?? 'Unknown API error';
-    
-    if ($httpCode === 429) {
+    $requestId    = $errorData['error']['details'][0]['requestId']
+                    ?? ($errorData['error']['requestId'] ?? null);
+
+    // Sanitize: truncate message to 200 chars, strip any key-like tokens
+    $safeMessage = substr(preg_replace('/[A-Za-z0-9_\-]{30,}/', '[REDACTED]', $errorMessage), 0, 200);
+    $requestIdLog = $requestId ? ' requestId=' . substr($requestId, 0, 32) : '';
+
+    error_log(sprintf(
+        '%s API error: HTTP %d | errorType=%s | message=%s%s',
+        $provider, $httpCode, $errorType, $safeMessage, $requestIdLog
+    ));
+
+    if ($httpCode === 404) {
+        // Model not found or retired — this is a configuration failure, not transient
+        throw new Exception('AI_MODEL_UNAVAILABLE');
+    } elseif ($httpCode === 400) {
+        throw new Exception('AI_INVALID_REQUEST');
+    } elseif ($httpCode === 429) {
         throw new Exception('AI_QUOTA_EXCEEDED');
     } elseif ($httpCode === 401 || $httpCode === 403) {
         throw new Exception('AI_AUTH_ERROR');
-    } elseif ($httpCode === 503 || $httpCode === 500) {
+    } elseif ($httpCode >= 500) {
         throw new Exception('AI_SERVICE_UNAVAILABLE');
     }
-    
-    throw new Exception($provider . ' API error (' . $httpCode . '): ' . $errorMessage);
+
+    throw new Exception('AI_UNEXPECTED_ERROR');
 }

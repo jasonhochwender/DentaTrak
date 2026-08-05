@@ -1,0 +1,504 @@
+/* Billing Portal Modal Styles
+   Follows the same design language as settings-billing.css and analytics-pro.css */
+
+/* ── Modal shell ──────────────────────────────────────────────────────────── */
+.billing-portal-modal {
+  max-width: 600px;
+  width: 92%;
+  border-radius: 12px;
+  overflow: hidden;
+  max-height: 88vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.billing-portal-modal .modal-header {
+  background: linear-gradient(to right, #1e40af, #3b82f6);
+  color: #fff;
+  padding: 18px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+}
+
+.billing-portal-modal .modal-title {
+  color: #fff;
+  font-size: 1.15rem;
+  font-weight: 600;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.billing-portal-modal .modal-title svg {
+  opacity: 0.9;
+}
+
+.billing-portal-modal .btn-close {
+  background: none;
+  border: none;
+  color: rgba(255,255,255,0.85);
+  font-size: 1.4rem;
+  cursor: pointer;
+  line-height: 1;
+  padding: 0 4px;
+  transition: opacity 0.15s;
+}
+
+.billing-portal-modal .btn-close:hover {
+  color: #fff;
+  opacity: 1;
+}
+
+.billing-portal-modal .modal-body {
+  padding: 24px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+/* ── Loading / error states ───────────────────────────────────────────────── */
+.bp-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 24px;
+  gap: 14px;
+  color: #6b7280;
+  font-size: 0.95rem;
+}
+
+.bp-loading-spinner {
+  width: 36px;
+  height: 36px;
+  border: 3px solid #dbeafe;
+  border-top-color: #3b82f6;
+  border-radius: 50%;
+  animation: bp-spin 0.8s linear infinite;
+}
+
+@keyframes bp-spin {
+  to { transform: rotate(360deg); }
+}
+
+.bp-error {
+  text-align: center;
+  padding: 32px 24px;
+  color: #6b7280;
+}
+
+.bp-error svg {
+  color: #ef4444;
+  margin-bottom: 12px;
+}
+
+.bp-error p {
+  margin: 0 0 16px;
+  font-size: 0.95rem;
+}
+
+/* ── Empty state (no subscription yet) ───────────────────────────────────── */
+.bp-empty-state {
+  text-align: center;
+  padding: 40px 24px;
+}
+
+.bp-empty-icon {
+  width: 72px;
+  height: 72px;
+  background: linear-gradient(135deg, #dbeafe, #bfdbfe);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 20px;
+}
+
+.bp-empty-icon svg {
+  color: #2563eb;
+}
+
+.bp-empty-state h3 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #111827;
+  margin: 0 0 10px;
+}
+
+.bp-empty-state p {
+  color: #6b7280;
+  font-size: 0.95rem;
+  line-height: 1.6;
+  margin: 0 0 24px;
+  max-width: 380px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.bp-choose-plan-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 28px;
+  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: not-allowed;           /* placeholder — disabled until Stripe connected */
+  opacity: 0.7;
+  transition: opacity 0.2s;
+  text-decoration: none;
+}
+
+/* ── Subscription card ────────────────────────────────────────────────────── */
+.bp-card {
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  overflow: hidden;
+  margin-bottom: 20px;
+}
+
+.bp-card-header {
+  background: linear-gradient(135deg, #eff6ff, #dbeafe);
+  padding: 18px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid #dbeafe;
+}
+
+.bp-plan-name {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #1e40af;
+}
+
+.bp-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.bp-status-active    { background: #d1fae5; color: #065f46; }
+.bp-status-trialing  { background: #fef3c7; color: #92400e; }
+.bp-status-past_due  { background: #fee2e2; color: #991b1b; }
+.bp-status-canceled  { background: #f3f4f6; color: #6b7280; }
+.bp-status-unpaid    { background: #fee2e2; color: #991b1b; }
+.bp-status-unknown   { background: #f3f4f6; color: #6b7280; }
+
+.bp-card-body {
+  padding: 20px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px 24px;
+}
+
+@media (max-width: 480px) {
+  .bp-card-body { grid-template-columns: 1fr; }
+}
+
+.bp-field {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.bp-field-label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.bp-field-value {
+  font-size: 0.97rem;
+  color: #111827;
+  font-weight: 500;
+}
+
+.bp-field-value.muted {
+  color: #9ca3af;
+  font-style: italic;
+  font-weight: 400;
+}
+
+.bp-cancel-notice {
+  margin: 0 20px 20px;
+  padding: 12px 14px;
+  background: #fff7ed;
+  border: 1px solid #fed7aa;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  color: #9a3412;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.bp-cancel-notice svg {
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+/* ── Mock-data notice (development only) ──────────────────────────────────── */
+.bp-mock-notice {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  background: #fefce8;
+  border: 1px dashed #fbbf24;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  color: #92400e;
+  margin-bottom: 20px;
+}
+
+/* ── Read-only notice for non-admin ──────────────────────────────────────── */
+.bp-readonly-notice {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  color: #166534;
+  margin-bottom: 20px;
+}
+
+/* ── Action area ──────────────────────────────────────────────────────────── */
+.bp-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  padding-top: 4px;
+}
+
+.bp-manage-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 11px 24px;
+  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: not-allowed;          /* disabled until Stripe connected */
+  opacity: 0.55;
+  transition: opacity 0.2s;
+}
+
+.bp-manage-btn[data-enabled="true"] {
+  cursor: pointer;
+  opacity: 1;
+}
+
+.bp-manage-btn[data-enabled="true"]:hover {
+  opacity: 0.9;
+}
+
+.bp-close-btn {
+  padding: 11px 20px;
+  background: none;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  color: #374151;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.bp-close-btn:hover {
+  background: #f3f4f6;
+}
+
+/* ── Trial banner inside card ─────────────────────────────────────────────── */
+.bp-trial-banner {
+  margin: 0 20px 20px;
+  padding: 12px 14px;
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  color: #78350f;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ── Trial top section (trialing, no paid sub) ────────────────────────────── */
+.bp-trial-top {
+  text-align: center;
+  padding: 24px 8px 8px;
+}
+
+.bp-trial-top h3 {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #1e40af;
+  margin: 0 0 8px;
+}
+
+.bp-trial-top p {
+  color: #6b7280;
+  font-size: 0.93rem;
+  margin: 0 0 12px;
+}
+
+.bp-trial-days {
+  display: inline-block;
+  background: #dbeafe;
+  color: #1e40af;
+  font-weight: 700;
+  font-size: 1rem;
+  padding: 6px 18px;
+  border-radius: 999px;
+  margin-bottom: 8px;
+}
+
+.bp-trial-sub-note {
+  font-size: 0.8rem;
+  color: #9ca3af;
+  margin: 12px 0 20px;
+}
+
+/* ── Plan selection grid ──────────────────────────────────────────────────── */
+.bp-plan-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  margin: 0 0 8px;
+}
+
+@media (max-width: 520px) {
+  .bp-plan-grid { grid-template-columns: 1fr; }
+}
+
+.bp-plan-card {
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 16px 14px;
+  position: relative;
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.bp-plan-card:hover {
+  border-color: #93c5fd;
+  box-shadow: 0 2px 10px rgba(59,130,246,0.1);
+}
+
+.bp-plan-card--featured {
+  border-color: #3b82f6;
+  background: #eff6ff;
+}
+
+.bp-plan-badge {
+  position: absolute;
+  top: -10px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 2px 10px;
+  border-radius: 999px;
+  white-space: nowrap;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.bp-plan-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #111827;
+}
+
+.bp-plan-interval {
+  font-size: 0.78rem;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-weight: 600;
+}
+
+.bp-plan-price {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: #1e40af;
+  margin: 4px 0 2px;
+  display: flex;
+  align-items: baseline;
+  gap: 2px;
+}
+
+.bp-plan-per {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: #6b7280;
+}
+
+.bp-plan-desc {
+  font-size: 0.8rem;
+  color: #6b7280;
+  margin-bottom: 10px;
+}
+
+.bp-plan-select-btn {
+  display: block;
+  width: 100%;
+  padding: 9px 12px;
+  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+  color: #fff;
+  border: none;
+  border-radius: 7px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: center;
+  transition: opacity 0.15s;
+  margin-top: auto;
+}
+
+.bp-plan-select-btn:hover {
+  opacity: 0.9;
+}
+
+.bp-plan-select-btn:disabled {
+  opacity: 0.55;
+  cursor: wait;
+}
+
+.bp-plan-note {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.78rem;
+  color: #6b7280;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 7px;
+  padding: 8px 12px;
+  margin: 4px 0 16px;
+}

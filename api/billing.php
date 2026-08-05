@@ -17,38 +17,43 @@ try {
     // SECURITY: Require valid practice context
     $currentPracticeId = requireValidPracticeContext();
     $userId = $_SESSION['db_user_id'];
-    
-    // Check if billing feature is disabled - if so, everyone is on Control plan
-    $billingEnabled = isFeatureEnabled('SHOW_BILLING');
-    
+
+    // Master billing flag.  When disabled (the production default until Stripe is
+    // fully configured) everyone is treated as the Control tier with no limits.
+    $billingEnabled = isFeatureEnabled('BILLING_ENABLED');
+    $legacyBillingLinkEnabled = isFeatureEnabled('SHOW_BILLING');
+
+    // If the legacy billing page link is also off, hide billing UI.
+    $showBillingUI = $legacyBillingLinkEnabled && $billingEnabled;
+
     // Get user's billing tier, case count, and created_at for trial calculation
     $stmt = $pdo->prepare("SELECT billing_tier, case_count, created_at, email FROM users WHERE id = ?");
     $stmt->execute([$userId]);
     $user = $stmt->fetch(PDO::FETCH_ASSOC);
-    
+
     if (!$user) {
         http_response_code(404);
         echo json_encode(['error' => 'User not found']);
         exit;
     }
-    
+
     // Check if user has billing bypass (partner practices, internal users, etc.)
     $isBypassUser = isBillingBypassEmail($user['email']);
-    
+
     // If billing is disabled OR user has bypass, treat as Control plan
     $effectiveTier = (!$billingEnabled || $isBypassUser) ? 'control' : $user['billing_tier'];
-    
+
     // Get current case count (real-time calculation)
     $currentCaseCount = 0;
-    
+
     // Get current user count for the practice
     $currentUserCount = 0;
-    
+
     if ($currentPracticeId) {
         // First, fix any cases that don't have practice_id set (one-time migration)
         $stmt = $pdo->prepare("UPDATE cases_cache SET practice_id = ? WHERE practice_id IS NULL");
         $stmt->execute([$currentPracticeId]);
-        
+
         // For evaluate plan, count ALL cases including archived ones
         if ($effectiveTier === 'evaluate') {
             $stmt = $pdo->prepare("SELECT COUNT(*) FROM cases_cache WHERE practice_id = ?");
@@ -58,49 +63,49 @@ try {
         }
         $stmt->execute([$currentPracticeId]);
         $currentCaseCount = (int)$stmt->fetchColumn();
-        
+
         // Count users in this practice
         $stmt = $pdo->prepare("SELECT COUNT(*) FROM practice_users WHERE practice_id = ?");
         $stmt->execute([$currentPracticeId]);
         $currentUserCount = (int)$stmt->fetchColumn();
     }
-    
+
     // Get billing tier configuration (use effective tier)
     $tierConfig = $appConfig['billing']['tiers'][$effectiveTier] ?? $appConfig['billing']['tiers']['evaluate'];
-    
+
     // Calculate trial days remaining for Evaluate plan
     $trialDaysRemaining = null;
     $trialExpired = false;
     $isTrial = $tierConfig['is_trial'] ?? false;
-    
+
     if ($isTrial && isset($user['created_at'])) {
-        $trialDays = $appConfig['billing']['trial_days'] ?? 30;
+        $trialDays = $appConfig['billing']['trial_days'] ?? 90;
         $createdAt = new DateTime($user['created_at']);
         $now = new DateTime();
         $daysSinceSignup = $now->diff($createdAt)->days;
         $trialDaysRemaining = max(0, $trialDays - $daysSinceSignup);
         $trialExpired = $trialDaysRemaining <= 0;
     }
-    
+
     // Check if user can create more cases
     $canCreateCases = true;
-    
+
     // For trial plans, check if trial has expired
     if ($isTrial && $trialExpired) {
         $canCreateCases = false;
     } elseif ($tierConfig['max_cases'] > 0) {
         $canCreateCases = $currentCaseCount < $tierConfig['max_cases'];
     }
-    
+
     // Update case count in users table
     if ($currentCaseCount !== $user['case_count']) {
         $stmt = $pdo->prepare("UPDATE users SET case_count = ? WHERE id = ?");
         $stmt->execute([$currentCaseCount, $userId]);
     }
-    
+
     // Get max_users from tier config (0 means unlimited)
     $maxUsers = $tierConfig['max_users'] ?? 0;
-    
+
     // Check if user can add more users
     $canAddUsers = $tierConfig['can_add_users'] ?? true;
     if ($isTrial && $trialExpired) {
@@ -108,10 +113,10 @@ try {
     } elseif ($maxUsers > 0 && $currentUserCount >= $maxUsers) {
         $canAddUsers = false;
     }
-    
+
     // Check if workspace exceeds user limit (for showing warning)
     $exceedsUserLimit = $maxUsers > 0 && $currentUserCount > $maxUsers;
-    
+
     echo json_encode([
         'billing_tier' => $effectiveTier,
         'tier_name' => $tierConfig['name'],
@@ -127,9 +132,9 @@ try {
         'user_count' => $currentUserCount,
         'max_users' => $maxUsers,
         'exceeds_user_limit' => $exceedsUserLimit,
-        'hide_billing_ui' => $isBypassUser // Frontend should hide billing screens for these users
+        'hide_billing_ui' => !$showBillingUI || $isBypassUser // Frontend should hide billing screens when billing is off or for bypass users
     ]);
-    
+
 } catch (PDOException $e) {
     error_log('Billing API error: ' . $e->getMessage());
     http_response_code(500);

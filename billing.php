@@ -9,6 +9,19 @@ if (!isset($_SESSION['user'])) {
     exit;
 }
 
+// ── Billing feature gate ────────────────────────────────────────────────────
+// When billing is disabled (the production default until Stripe is fully
+// configured), this entire page is unreachable.  Do this before loading
+// appConfig.php so no Stripe config is evaluated.
+$billingEnabledRaw = getenv('BILLING_ENABLED');
+if ($billingEnabledRaw === false) {
+    $billingEnabledRaw = $_ENV['BILLING_ENABLED'] ?? '';
+}
+if (!filter_var($billingEnabledRaw, FILTER_VALIDATE_BOOLEAN)) {
+    header('Location: main.php');
+    exit;
+}
+
 setSecurityHeaders();
 
 require_once __DIR__ . '/api/appConfig.php';
@@ -51,7 +64,7 @@ try {
         $isTrial = $tierConfig['is_trial'] ?? false;
         
         if ($isTrial && isset($user['created_at'])) {
-            $trialDays = $appConfig['billing']['trial_days'] ?? 30;
+            $trialDays = $appConfig['billing']['trial_days'] ?? 90;
             $createdAt = new DateTime($user['created_at']);
             $now = new DateTime();
             $daysSinceSignup = $now->diff($createdAt)->days;
@@ -66,13 +79,20 @@ try {
         } elseif ($tierConfig['max_cases'] > 0) {
             $canCreateCases = $currentCaseCount < $tierConfig['max_cases'];
         }
-        
-        // Update case count in users table
+
         if ($currentCaseCount !== $user['case_count']) {
             $stmt = $pdo->prepare("UPDATE users SET case_count = ? WHERE id = ?");
             $stmt->execute([$currentCaseCount, $_SESSION['db_user_id']]);
         }
         
+        // Get current user count for pre-selection warning
+        $currentUserCount = 0;
+        if ($currentPracticeId) {
+            $stmt = $pdo->prepare("SELECT COUNT(*) FROM practice_users WHERE practice_id = ?");
+            $stmt->execute([$currentPracticeId]);
+            $currentUserCount = (int)$stmt->fetchColumn();
+        }
+
         $billingInfo = [
             'billing_tier' => $user['billing_tier'],
             'tier_name' => $tierConfig['name'],
@@ -84,7 +104,8 @@ try {
             'practice_id' => $currentPracticeId,
             'is_trial' => $isTrial,
             'trial_days_remaining' => $trialDaysRemaining,
-            'trial_expired' => $trialExpired
+            'trial_expired' => $trialExpired,
+            'user_count' => $currentUserCount
         ];
     }
 } catch (PDOException $e) {
@@ -481,6 +502,21 @@ try {
                         <p>Select the plan that best fits your practice needs</p>
                     </div>
                     
+                    <?php if (isset($billingInfo['user_count']) && $billingInfo['user_count'] > 5): ?>
+                    <div class="info-banner" style="margin-bottom: 24px; background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%); border-color: #fcd34d;">
+                        <div class="info-banner-icon" style="color: #d97706;">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                                <line x1="12" y1="9" x2="12" y2="13"></line>
+                                <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                            </svg>
+                        </div>
+                        <div class="info-banner-text" style="color: #92400e;">
+                            Your practice currently has <strong><?php echo (int)$billingInfo['user_count']; ?> users</strong>. Operate supports up to 5 users. Select <strong>Control</strong> to keep your current team size, or reduce the practice to 5 users before choosing Operate.
+                        </div>
+                    </div>
+                    <?php endif; ?>
+
                     <div class="stripe-pricing-container">
                         <?php if (!empty($stripePricingTableId) && !empty($stripePricingTableKey)): ?>
                         <stripe-pricing-table 

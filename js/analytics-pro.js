@@ -11,6 +11,7 @@
   let apDataLoaded = false;
   let currentBillingTier = null;
   let aiRecommendationsLoading = false; // Guard against duplicate AI recommendation loads
+  let aiRecommendationsLoaded = false;  // Prevents automatic repeat calls after first success
 
   /**
    * Apply tier-based visibility to Insights sections
@@ -20,14 +21,14 @@
    */
   function applyTierBasedVisibility(tier) {
     currentBillingTier = tier || 'evaluate';
-    
+
     // Determine if user has Control-level access
     // Evaluate (trial) and Control both get full access
     const hasControlAccess = currentBillingTier === 'control' || currentBillingTier === 'evaluate';
-    
+
     // Elements with blur overlay for Control-only features
     const controlOnlyFeatures = document.querySelectorAll('[data-control-feature]');
-    
+
     controlOnlyFeatures.forEach(function(section) {
       if (hasControlAccess) {
         section.classList.remove('ap-locked');
@@ -35,13 +36,13 @@
         section.classList.add('ap-locked');
       }
     });
-    
+
     // Legacy: Handle old data-tier-required sections (hide completely)
     const controlOnlySections = document.querySelectorAll('[data-tier-required="control"]');
     controlOnlySections.forEach(function(section) {
       section.style.display = hasControlAccess ? '' : 'none';
     });
-    
+
     // Legacy: Show/hide placeholders for Operate users
     const controlPlaceholders = document.querySelectorAll('[data-tier-placeholder="control"]');
     controlPlaceholders.forEach(function(placeholder) {
@@ -92,7 +93,7 @@
     pink: '#ec4899',
     slate: '#64748b',
     chartColors: [
-      '#1e40af', '#3b82f6', '#06b6d4', '#10b981', 
+      '#1e40af', '#3b82f6', '#06b6d4', '#10b981',
       '#f59e0b', '#f97316', '#ef4444', '#8b5cf6',
       '#ec4899', '#64748b'
     ],
@@ -113,7 +114,7 @@
       'apTypePeriod': localStorage.getItem('ap_type_period') || 'active',
       'apDurationPeriod': localStorage.getItem('ap_duration_period') || 'active'
     };
-    
+
     Object.keys(filters).forEach(id => {
       const el = document.getElementById(id);
       if (el) {
@@ -146,11 +147,11 @@
           renderAnalyticsPro(payload);
           apDataLoaded = true;
         } else {
-          console.error('Analytics Pro API error:', data?.message);
+          // API returned a structured error; UI toast handles display
         }
       })
       .catch(error => {
-        console.error('Analytics Pro fetch error:', error);
+        // Network/parse failure; UI toast handles display
       });
   }
 
@@ -200,10 +201,14 @@
     // Show AI recommendations section if there are cases, then load recommendations
     const totalCases = (metrics.totalActiveCases || 0) + (metrics.totalDeliveredCases || 0) + (metrics.totalArchivedCases || 0);
     const aiSection = document.getElementById('aiRecommendationsSection');
-    
+
     if (totalCases > 0) {
       if (aiSection) aiSection.style.display = 'block';
-      loadAIRecommendations();
+      // Only auto-load on the first successful analytics render.
+      // Filter changes and tab re-opens do not trigger a new Gemini call.
+      if (!aiRecommendationsLoaded) {
+        loadAIRecommendations(false);
+      }
     } else {
       if (aiSection) aiSection.style.display = 'none';
     }
@@ -509,45 +514,60 @@
     });
   }
 
-  // Load AI Recommendations
-  function loadAIRecommendations() {
+  // Clears the recommendations container — removes the loading indicator, stale errors,
+  // and any previous recommendations before rendering new content.
+  function clearAIRecommendationsLoadingState(container) {
+    container.innerHTML = '';
+  }
+
+  // Load AI Recommendations.
+  // isManual=true: user-initiated Refresh, bypasses aiRecommendationsLoaded guard.
+  // isManual=false (default): auto-load, skipped if already loaded successfully.
+  function loadAIRecommendations(isManual) {
     const container = document.getElementById('apRecommendations');
-    const loadingEl = document.getElementById('apAILoading');
-    
+    const aiRefreshBtn = document.getElementById('apRefreshAI');
+
     if (!container) return;
-    
-    // Prevent duplicate API calls if already loading
+
+    // Prevent overlapping requests regardless of how this was called
     if (aiRecommendationsLoading) return;
     aiRecommendationsLoading = true;
-    
-    if (loadingEl) loadingEl.style.display = 'flex';
 
-    // Clear previous recommendations
-    const existingItems = container.querySelectorAll('.ap-recommendation-item');
-    existingItems.forEach(item => item.remove());
+    // Disable Refresh button for the duration of the request
+    if (aiRefreshBtn) aiRefreshBtn.disabled = true;
 
-    fetch('api/ai-recommendations.php')
+    // Clear any previous state and show loading indicator inside the container.
+    // The static #apAILoading child is intentionally replaced here — it is inside
+    // #apRecommendations and would be wiped by innerHTML anyway.
+    container.innerHTML = '<div class="ap-loading"><div class="ap-loading-spinner"></div><p class="ap-loading-text">Generating Smart Recommendations…</p></div>';
+
+    fetch('api/ai-recommendations.php', { credentials: 'same-origin' })
       .then(response => response.json())
       .then(data => {
-        aiRecommendationsLoading = false; // Reset guard
-        if (loadingEl) loadingEl.style.display = 'none';
+        // Always clear the loading indicator before rendering any result
+        clearAIRecommendationsLoadingState(container);
 
         if (data.error) {
+          // Failed — leave aiRecommendationsLoaded as-is so manual Refresh still works
           showAIError(container, data.error);
           return;
         }
 
         if (data.success && data.recommendations && data.recommendations.length > 0) {
           displayRecommendations(container, data.recommendations);
+          aiRecommendationsLoaded = true;
         } else {
           showAIError(container, 'No recommendations available at this time.');
         }
       })
       .catch(error => {
-        aiRecommendationsLoading = false; // Reset guard
-        console.error('AI Recommendations error:', error);
-        if (loadingEl) loadingEl.style.display = 'none';
+        // Network/parse failure; UI toast handles display
+        clearAIRecommendationsLoadingState(container);
         showAIError(container, 'Failed to load recommendations. Please try again.');
+      })
+      .finally(() => {
+        aiRecommendationsLoading = false;
+        if (aiRefreshBtn) aiRefreshBtn.disabled = false;
       });
   }
 
@@ -621,7 +641,7 @@
   function initializeEventListeners() {
     // Restore saved filter values from localStorage (always do this)
     restoreSavedFilters();
-    
+
     // Refresh button
     const refreshBtn = document.getElementById('apRefreshData');
     if (refreshBtn && !refreshBtn.hasAttribute('data-ap-listener')) {
@@ -629,10 +649,10 @@
       refreshBtn.setAttribute('data-ap-listener', 'true');
     }
 
-    // AI Refresh button
+    // AI Refresh button — manual clicks bypass the aiRecommendationsLoaded guard
     const aiRefreshBtn = document.getElementById('apRefreshAI');
     if (aiRefreshBtn && !aiRefreshBtn.hasAttribute('data-ap-listener')) {
-      aiRefreshBtn.addEventListener('click', loadAIRecommendations);
+      aiRefreshBtn.addEventListener('click', function() { loadAIRecommendations(true); });
       aiRefreshBtn.setAttribute('data-ap-listener', 'true');
     }
 
@@ -645,7 +665,7 @@
       'apTeamFilter': 'ap_team_filter',
       'apDurationPeriod': 'ap_duration_period'
     };
-    
+
     Object.keys(filterStorageKeys).forEach(id => {
       const el = document.getElementById(id);
       if (el && !el.hasAttribute('data-ap-listener')) {
@@ -814,14 +834,14 @@
   // Initialize immediately since this script is lazy-loaded after DOMContentLoaded
   function initOnLoad() {
     initializeEventListeners();
-    
+
     // Load billing tier and apply visibility restrictions
     loadBillingTierAndApplyVisibility();
-    
+
     // NOTE: Do NOT call loadAnalyticsPro() here - app.js will call window.loadAnalyticsProData()
     // after this script loads. Calling it here would cause duplicate API calls.
   }
-  
+
   // Run immediately if DOM is ready, otherwise wait for DOMContentLoaded
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', initOnLoad);

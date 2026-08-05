@@ -420,6 +420,9 @@ if (isset($appConfig) && is_array($appConfig) && isset($appConfig['appName'])) {
   <link rel="preload" href="css/logo-upload.css?v=20241210" as="style" onload="this.onload=null;this.rel='stylesheet'">
   <link rel="preload" href="css/dev-tools.css?v=20241210" as="style" onload="this.onload=null;this.rel='stylesheet'">
   <link rel="preload" href="css/analytics-pro.css?v=20241231" as="style" onload="this.onload=null;this.rel='stylesheet'">
+<?php if (isFeatureEnabled('BILLING_ENABLED')): ?>
+  <link rel="preload" href="css/billing-portal.css?v=20260805" as="style" onload="this.onload=null;this.rel='stylesheet'">
+<?php endif; ?>
   <noscript>
     <link rel="stylesheet" href="css/revision-history.css?v=20241210">
     <link rel="stylesheet" href="css/delete-button.css?v=20241210">
@@ -439,6 +442,9 @@ if (isset($appConfig) && is_array($appConfig) && isset($appConfig['appName'])) {
     <link rel="stylesheet" href="css/logo-upload.css?v=20241210">
     <link rel="stylesheet" href="css/dev-tools.css?v=20241210">
     <link rel="stylesheet" href="css/analytics-pro.css?v=20241231">
+<?php if (isFeatureEnabled('BILLING_ENABLED')): ?>
+    <link rel="stylesheet" href="css/billing-portal.css?v=20260805">
+<?php endif; ?>
   </noscript>
   <!-- Shepherd.js Tour - CSS loaded via preload above -->
 </head>
@@ -533,7 +539,7 @@ window.featureFlags = <?php echo getFeatureFlagsJson(); ?>;
         <div class="user-info">
           <span class="user-name"><?php echo htmlspecialchars($user['name'] ?? 'User'); ?></span>
           <span class="user-email"><?php echo htmlspecialchars($user['email'] ?? ''); ?></span>
-<?php if (isFeatureEnabled('SHOW_BILLING')): ?>
+<?php if (isFeatureEnabled('BILLING_ENABLED')): ?>
           <a href="billing.php" class="billing-link" id="userBillingTier">Billing</a>
 <?php endif; ?>
         </div>
@@ -567,10 +573,10 @@ window.featureFlags = <?php echo getFeatureFlagsJson(); ?>;
           <?php endif; ?>
         </button>
         <div class="user-menu" id="userMenu">
-          <a href="#" class="user-menu-item">Settings</a>
-<?php if (isFeatureEnabled('SHOW_BILLING')): ?>
-          <a href="billing.php" class="user-menu-item">Billing</a>
+<?php if (isFeatureEnabled('BILLING_ENABLED')): ?>
+          <a href="#" class="user-menu-item" id="billingMenuItem">Billing</a>
 <?php endif; ?>
+          <a href="#" class="user-menu-item" id="settingsMenuItem">Settings</a>
           <div class="user-menu-divider"></div>
           <a href="#" class="user-menu-item" id="contactUsLink">Feedback</a>
           <?php if (isFeatureEnabled('SHOW_TOUR')): ?>
@@ -999,7 +1005,9 @@ window.featureFlags = <?php echo getFeatureFlagsJson(); ?>;
                 </div>
                 <h3>Throughput Trends</h3>
                 <p>Unlock capacity analysis, workload imbalance detection, and trend insights.</p>
+<?php if (isFeatureEnabled('BILLING_ENABLED')): ?>
                 <a href="billing.php" class="ap-upgrade-btn">Upgrade to Control</a>
+<?php endif; ?>
               </div>
             </div>
 
@@ -1080,7 +1088,9 @@ window.featureFlags = <?php echo getFeatureFlagsJson(); ?>;
                 </div>
                 <h3>Duration Analytics</h3>
                 <p>Unlock historical comparisons, outlier detection, and bottleneck identification.</p>
+<?php if (isFeatureEnabled('BILLING_ENABLED')): ?>
                 <a href="billing.php" class="ap-upgrade-btn">Upgrade to Control</a>
+<?php endif; ?>
               </div>
             </div>
 
@@ -1136,7 +1146,9 @@ window.featureFlags = <?php echo getFeatureFlagsJson(); ?>;
                 </div>
                 <h3>Year-over-Year Trends</h3>
                 <p>Unlock historical comparisons, peak season insights, and growth metrics.</p>
+<?php if (isFeatureEnabled('BILLING_ENABLED')): ?>
                 <a href="billing.php" class="ap-upgrade-btn">Upgrade to Control</a>
+<?php endif; ?>
               </div>
             </div>
 
@@ -1182,7 +1194,9 @@ window.featureFlags = <?php echo getFeatureFlagsJson(); ?>;
                 </div>
                 <h3>Smart Recommendations</h3>
                 <p>Get AI-powered insights, bottleneck detection, and actionable recommendations.</p>
+<?php if (isFeatureEnabled('BILLING_ENABLED')): ?>
                 <a href="billing.php" class="ap-upgrade-btn">Upgrade to Control</a>
+<?php endif; ?>
               </div>
             </div>
 
@@ -1724,6 +1738,27 @@ window.featureFlags = <?php echo getFeatureFlagsJson(); ?>;
         </div>
       </div>
       
+<?php if (isFeatureEnabled('BILLING_ENABLED')): ?>
+      <!-- Billing Portal Modal -->
+      <div id="billingPortalModal" class="modal" style="display:none;">
+        <div class="modal-content billing-portal-modal">
+          <div class="modal-header">
+            <h2 class="modal-title">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="1" y="4" width="22" height="16" rx="2" ry="2"/>
+                <line x1="1" y1="10" x2="23" y2="10"/>
+              </svg>
+              Billing
+            </h2>
+            <button type="button" class="btn-close" id="billingPortalClose"><span>&times;</span></button>
+          </div>
+          <div class="modal-body" id="billingPortalBody">
+            <!-- Content rendered by js/billing-portal.js -->
+          </div>
+        </div>
+      </div>
+<?php endif; ?>
+
       <!-- Settings Modal -->
       <div id="settingsBillingModal" class="modal">
         <div class="modal-content settings-billing-modal">
@@ -2329,6 +2364,9 @@ window.featureFlags = <?php echo getFeatureFlagsJson(); ?>;
   <script src="js/clinical-details.js?v=20250104" defer></script>
   <script src="js/ask-dentatrak.js?v=20250104" defer></script>
   <script src="js/insights.js?v=20250104" defer></script>
+<?php if (isFeatureEnabled('BILLING_ENABLED')): ?>
+  <script src="js/billing-portal.js?v=20260805" defer></script>
+<?php endif; ?>
   <script src="js/patient-search.js?v=20250104" defer></script>
   <script src="js/realtime-updates.js?v=20250119f" defer></script>
   
@@ -2447,7 +2485,6 @@ window.featureFlags = <?php echo getFeatureFlagsJson(); ?>;
           }
         })
         .catch(error => {
-          console.error('Error switching environment:', error);
           showToast('Error switching environment', 'error');
         })
         .finally(() => {
@@ -2493,7 +2530,6 @@ window.featureFlags = <?php echo getFeatureFlagsJson(); ?>;
             }
           })
           .catch(error => {
-            console.error('Error deleting all cases:', error);
             showToast('Error deleting all cases', 'error');
             this.disabled = false;
             this.textContent = 'Delete All Cases';
@@ -2542,7 +2578,6 @@ window.featureFlags = <?php echo getFeatureFlagsJson(); ?>;
             }
           })
           .catch(error => {
-            console.error('Error setting billing plan:', error);
             showToast('Error setting billing plan', 'error');
             this.disabled = false;
             this.textContent = 'Set Plan';
@@ -2585,7 +2620,6 @@ window.featureFlags = <?php echo getFeatureFlagsJson(); ?>;
             }
           })
           .catch(error => {
-            console.error('Error setting signup date:', error);
             showToast('Error setting signup date', 'error');
             this.disabled = false;
             this.textContent = 'Set Date';

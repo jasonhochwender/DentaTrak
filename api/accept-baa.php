@@ -1,13 +1,15 @@
 <?php
 /**
  * Accept BAA (Business Associate Agreement) API Endpoint
- * 
+ *
  * This endpoint handles the acceptance of the BAA for a practice.
  * It records all required fields and marks the practice as having accepted the BAA.
  */
 
+require_once __DIR__ . '/session.php';
 require_once __DIR__ . '/appConfig.php';
-require_once __DIR__ . '/user-manager.php';
+require_once __DIR__ . '/practice-trial.php';
+require_once __DIR__ . '/practice-security.php';
 require_once __DIR__ . '/csrf.php';
 
 // Start session if not already started
@@ -59,7 +61,7 @@ foreach ($requiredFields as $field) {
 if (!empty($missingFields)) {
     http_response_code(400);
     echo json_encode([
-        'success' => false, 
+        'success' => false,
         'message' => 'Missing required fields: ' . implode(', ', $missingFields)
     ]);
     exit;
@@ -69,7 +71,7 @@ if (!empty($missingFields)) {
 if ($data['authorizedToBind'] !== true) {
     http_response_code(400);
     echo json_encode([
-        'success' => false, 
+        'success' => false,
         'message' => 'You must confirm you are authorized to bind this practice'
     ]);
     exit;
@@ -113,7 +115,7 @@ try {
             'baa_signer_name' => "VARCHAR(255) DEFAULT NULL",
             'baa_signer_title' => "VARCHAR(255) DEFAULT NULL"
         ];
-        
+
         foreach ($columnsToAdd as $col => $def) {
             try {
                 $pdo->exec("ALTER TABLE practices ADD COLUMN `{$col}` {$def}");
@@ -122,10 +124,10 @@ try {
             }
         }
     }
-    
+
     // Check if user has a practice or needs to create one
     $practiceId = $_SESSION['current_practice_id'] ?? null;
-    
+
     if (!$practiceId) {
         // User doesn't have a practice yet - create one
         $practiceUuid = sprintf(
@@ -136,19 +138,26 @@ try {
             mt_rand(0, 0x3fff) | 0x8000,
             mt_rand(0, 0xffff), mt_rand(0, 0xffff), mt_rand(0, 0xffff)
         );
-        
+
+        $trial = getNewPracticeTrialDefaults();
+
         $stmt = $pdo->prepare("
             INSERT INTO practices (
                 practice_id, practice_name, legal_name, display_name, practice_address,
                 baa_accepted, baa_accepted_at, baa_version, baa_accepted_by_user_id,
-                baa_signer_name, baa_signer_title, created_by
+                baa_signer_name, baa_signer_title, created_by,
+                subscription_status, trial_ends_at
             ) VALUES (
                 :practice_uuid, :practice_name, :legal_name, :display_name, :practice_address,
-                1, NOW(), :baa_version, :user_id,
-                :signer_name, :signer_title, :created_by
+                1, UTC_TIMESTAMP(), :baa_version, :user_id,
+                :signer_name, :signer_title, :created_by,
+                :subscription_status, :trial_ends_at
             )
         ");
-        
+        // NOTE: trial_ends_at is set once at practice creation and never reset.
+        // It is the DentaTrak trial end, not a Stripe trial. Stripe Checkout
+        // reads this value and forwards it to the subscription trial_end parameter.
+
         $stmt->execute([
             'practice_uuid' => $practiceUuid,
             'practice_name' => $legalName, // Legacy field - keep in sync
@@ -159,11 +168,13 @@ try {
             'user_id' => $userId,
             'signer_name' => $signerName,
             'signer_title' => $signerTitle,
-            'created_by' => $userId
+            'created_by' => $userId,
+            'subscription_status' => $trial['subscription_status'],
+            'trial_ends_at'       => $trial['trial_ends_at'],
         ]);
-        
+
         $practiceId = $pdo->lastInsertId();
-        
+
         // Add user to practice_users as admin/owner
         $stmt = $pdo->prepare("
             INSERT INTO practice_users (practice_id, user_id, role, is_owner)
@@ -173,30 +184,30 @@ try {
             'practice_id' => $practiceId,
             'user_id' => $userId
         ]);
-        
+
         // Update session
         $_SESSION['current_practice_id'] = $practiceId;
         $_SESSION['practice_name'] = $legalName;
         $_SESSION['needs_practice_setup'] = false;
         $_SESSION['needs_baa_acceptance'] = false;
-        
+
         userLog("Created new practice with BAA acceptance: {$legalName} (ID: {$practiceId})", false);
-        
+
     } else {
         // Practice exists - check if BAA already accepted
         $stmt = $pdo->prepare("SELECT baa_accepted, legal_name FROM practices WHERE id = :id");
         $stmt->execute(['id' => $practiceId]);
         $practice = $stmt->fetch(PDO::FETCH_ASSOC);
-        
+
         if ($practice && $practice['baa_accepted']) {
             http_response_code(400);
             echo json_encode([
-                'success' => false, 
+                'success' => false,
                 'message' => 'BAA has already been accepted for this practice. Legal name cannot be changed.'
             ]);
             exit;
         }
-        
+
         // Update existing practice with BAA acceptance
         $stmt = $pdo->prepare("
             UPDATE practices SET
@@ -212,7 +223,7 @@ try {
                 baa_signer_title = :signer_title
             WHERE id = :practice_id
         ");
-        
+
         $stmt->execute([
             'legal_name' => $legalName,
             'display_name' => $legalName,
@@ -224,14 +235,14 @@ try {
             'signer_title' => $signerTitle,
             'practice_id' => $practiceId
         ]);
-        
+
         // Update session
         $_SESSION['practice_name'] = $legalName;
         $_SESSION['needs_baa_acceptance'] = false;
-        
+
         userLog("BAA accepted for existing practice: {$legalName} (ID: {$practiceId})", false);
     }
-    
+
     // Log the BAA acceptance in user activity
     try {
         $stmt = $pdo->prepare("
@@ -253,7 +264,7 @@ try {
         // Activity log failure shouldn't block BAA acceptance
         userLog("Failed to log BAA acceptance activity: " . $e->getMessage(), true);
     }
-    
+
     echo json_encode([
         'success' => true,
         'message' => 'BAA accepted successfully',
@@ -262,7 +273,7 @@ try {
         'baa_version' => $baaVersion,
         'baa_accepted_at' => date('c')
     ]);
-    
+
 } catch (PDOException $e) {
     userLog("Error accepting BAA: " . $e->getMessage(), true);
     http_response_code(500);

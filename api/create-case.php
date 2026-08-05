@@ -62,103 +62,113 @@ if (isGoogleDriveBackupEnabled() && !isPracticeCreatorDriveConnected()) {
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Check if this is an update (has caseId) or a new case
     $isUpdate = isset($_POST['caseId']) && !empty($_POST['caseId']);
-    
+
     // Check billing for new cases (not updates)
     if (!$isUpdate) {
-        require_once __DIR__ . '/appConfig.php';
-        require_once __DIR__ . '/billing-bypass.php';
-        
-        // Get user's billing tier and created_at for trial calculation
-        $stmt = $pdo->prepare("SELECT billing_tier, created_at, email FROM users WHERE id = ?");
-        $stmt->execute([$_SESSION['db_user_id']]);
-        $user = $stmt->fetch(PDO::FETCH_ASSOC);
-        
-        if ($user) {
-            // Skip billing checks for bypass users (partner practices, etc.)
-            $isBypassUser = isBillingBypassEmail($user['email'] ?? '');
-            
-            if (!$isBypassUser) {
-                $tierConfig = $appConfig['billing']['tiers'][$user['billing_tier']] ?? $appConfig['billing']['tiers']['evaluate'];
-                $isTrial = $tierConfig['is_trial'] ?? false;
-            
-                // Check trial expiration for Evaluate plan
-                if ($isTrial && isset($user['created_at'])) {
-                    $trialDays = $appConfig['billing']['trial_days'] ?? 30;
-                    $createdAt = new DateTime($user['created_at']);
-                    $now = new DateTime();
-                    $daysSinceSignup = $now->diff($createdAt)->days;
-                    $trialExpired = $daysSinceSignup >= $trialDays;
-                    
-                    if ($trialExpired) {
-                        http_response_code(403);
-                        echo json_encode([
-                            'success' => false,
-                            'message' => "Your 30-day trial has expired. Please upgrade to continue creating cases."
-                        ]);
-                        exit;
-                    }
-                }
-                
-                // Check case limit for non-trial plans with max_cases > 0
-                if (!$isTrial && $tierConfig['max_cases'] > 0) {
-                    $currentPracticeId = $_SESSION['current_practice_id'] ?? 0;
-                    
-                    // If no practice ID in session, try to get the user's practice
-                    if (!$currentPracticeId) {
-                        $stmt = $pdo->prepare("SELECT practice_id FROM practice_users WHERE user_id = ? LIMIT 1");
-                        $stmt->execute([$_SESSION['db_user_id']]);
-                        $practiceRow = $stmt->fetch(PDO::FETCH_ASSOC);
-                        if ($practiceRow) {
-                            $currentPracticeId = (int)$practiceRow['practice_id'];
+        // When billing is disabled (the production default until Stripe is fully
+        // configured), all trial and case-limit checks are bypassed.
+        $billingEnabledRaw = getenv('BILLING_ENABLED');
+        if ($billingEnabledRaw === false) {
+            $billingEnabledRaw = $_ENV['BILLING_ENABLED'] ?? '';
+        }
+        if (!filter_var($billingEnabledRaw, FILTER_VALIDATE_BOOLEAN)) {
+            // Skip all billing checks
+        } else {
+            require_once __DIR__ . '/appConfig.php';
+            require_once __DIR__ . '/billing-bypass.php';
+
+            // Get user's billing tier and created_at for trial calculation
+            $stmt = $pdo->prepare("SELECT billing_tier, created_at, email FROM users WHERE id = ?");
+            $stmt->execute([$_SESSION['db_user_id']]);
+            $user = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            if ($user) {
+                // Skip billing checks for bypass users (partner practices, etc.)
+                $isBypassUser = isBillingBypassEmail($user['email'] ?? '');
+
+                if (!$isBypassUser) {
+                    $tierConfig = $appConfig['billing']['tiers'][$user['billing_tier']] ?? $appConfig['billing']['tiers']['evaluate'];
+                    $isTrial = $tierConfig['is_trial'] ?? false;
+
+                    // Check trial expiration for Evaluate plan
+                    if ($isTrial && isset($user['created_at'])) {
+                        $trialDays = $appConfig['billing']['trial_days'] ?? 30;
+                        $createdAt = new DateTime($user['created_at']);
+                        $now = new DateTime();
+                        $daysSinceSignup = $now->diff($createdAt)->days;
+                        $trialExpired = $daysSinceSignup >= $trialDays;
+
+                        if ($trialExpired) {
+                            http_response_code(403);
+                            echo json_encode([
+                                'success' => false,
+                                'message' => "Your 30-day trial has expired. Please upgrade to continue creating cases."
+                            ]);
+                            exit;
                         }
                     }
-                    
-                    $stmt = $pdo->prepare("SELECT COUNT(*) FROM cases_cache WHERE practice_id = ? AND archived = 0");
-                    $stmt->execute([$currentPracticeId]);
-                    $currentCaseCount = (int)$stmt->fetchColumn();
-                    
-                    if ($currentCaseCount >= $tierConfig['max_cases']) {
-                        http_response_code(403);
-                        echo json_encode([
-                            'success' => false,
-                            'message' => "You've reached your limit of {$tierConfig['max_cases']} cases. Upgrade to create more cases."
-                        ]);
-                        exit;
+
+                    // Check case limit for non-trial plans with max_cases > 0
+                    if (!$isTrial && $tierConfig['max_cases'] > 0) {
+                        $currentPracticeId = $_SESSION['current_practice_id'] ?? 0;
+
+                        // If no practice ID in session, try to get the user's practice
+                        if (!$currentPracticeId) {
+                            $stmt = $pdo->prepare("SELECT practice_id FROM practice_users WHERE user_id = ? LIMIT 1");
+                            $stmt->execute([$_SESSION['db_user_id']]);
+                            $practiceRow = $stmt->fetch(PDO::FETCH_ASSOC);
+                            if ($practiceRow) {
+                                $currentPracticeId = (int)$practiceRow['practice_id'];
+                            }
+                        }
+
+                        $stmt = $pdo->prepare("SELECT COUNT(*) FROM cases_cache WHERE practice_id = ? AND archived = 0");
+                        $stmt->execute([$currentPracticeId]);
+                        $currentCaseCount = (int)$stmt->fetchColumn();
+
+                        if ($currentCaseCount >= $tierConfig['max_cases']) {
+                            http_response_code(403);
+                            echo json_encode([
+                                'success' => false,
+                                'message' => "You've reached your limit of {$tierConfig['max_cases']} cases. Upgrade to create more cases."
+                            ]);
+                            exit;
+                        }
                     }
-                }
-            } // end if (!$isBypassUser)
-        }
-    }
-    
+                } // end if (!$isBypassUser)
+            } // end if ($user)
+        } // end billing enabled
+    } // end if (!$isUpdate)
+
     // If it's an update, delegate to the update-case.php endpoint
     if ($isUpdate) {
         require_once __DIR__ . '/update-case.php';
         exit; // The update-case.php script will handle the response
     }
-    
+
     // Continue with creating a new case
     // Get field requirements from config (allows easy customization)
     $fieldRequirements = $appConfig['case_required_fields'] ?? [];
-    
+
     // Build required fields list from config
     $requiredFields = [];
     $allFields = ['patientFirstName', 'patientLastName', 'patientDOB', 'patientGender',
                   'dentistName', 'caseType', 'dueDate', 'status', 'toothShade', 'material',
                   'assignedTo', 'notes'];
-    
+
     foreach ($allFields as $field) {
         // Default: first 8 fields are required, rest are optional
-        $defaultRequired = in_array($field, ['patientFirstName', 'patientLastName', 'patientDOB', 
+        $defaultRequired = in_array($field, ['patientFirstName', 'patientLastName', 'patientDOB',
                                               'patientGender', 'dentistName', 'caseType', 'dueDate', 'status']);
         $isRequired = $fieldRequirements[$field] ?? $defaultRequired;
         if ($isRequired) {
             $requiredFields[] = $field;
         }
     }
-    
+
     $caseData = [];
     $missingFields = [];
-    
+
     foreach ($requiredFields as $field) {
         if (!isset($_POST[$field]) || $_POST[$field] === '') {
             $missingFields[] = $field;
@@ -166,7 +176,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $caseData[$field] = $_POST[$field];
         }
     }
-    
+
     // Add optional fields (fields not in requiredFields)
     $optionalFields = array_diff($allFields, $requiredFields);
     foreach ($optionalFields as $field) {
@@ -177,7 +187,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $caseData[$field] = $_POST[$field];
         }
     }
-    
+
     // Add clinical details (case-type-specific fields)
     // Clinical details come as JSON from frontend getClinicalDetailsData()
     $clinicalDetails = [];
@@ -187,7 +197,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $caseData['clinicalDetails'] = $clinicalDetails;
         }
     }
-    
+
     // ============================================
     // CASE NOTES CHARACTER LIMIT VALIDATION
     // Business Rule: Notes field is limited to 3,000 characters.
@@ -203,7 +213,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         ]);
         exit;
     }
-    
+
     // ============================================
     // TOOTH NUMBER VALIDATION (Case-Type Aware)
     // Business Rule: For Crown case type, validates tooth number(s)
@@ -213,11 +223,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Server-side enforcement prevents bypass of client-side validation.
     // ============================================
     $caseType = $_POST['caseType'] ?? '';
-    
+
     if ($caseType === 'Crown' && !empty($clinicalDetails['toothNumber'])) {
         $toothNumberInput = trim($clinicalDetails['toothNumber']);
         $parseResult = parseToothNumbers($toothNumberInput);
-        
+
         if (!$parseResult['valid']) {
             http_response_code(400);
             echo json_encode([
@@ -227,14 +237,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             ]);
             exit;
         }
-        
+
         // Store normalized value (sorted, deduplicated, comma-separated)
         $clinicalDetails['toothNumber'] = $parseResult['normalized'];
         $caseData['clinicalDetails'] = $clinicalDetails;
     }
-    
+
     // Validate CASE-TYPE-SPECIFIC required fields from config
-    
+
     // Map case types to their clinical fields
     $caseTypeClinicalFields = [
         'Crown' => ['toothNumber'],
@@ -244,7 +254,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'Denture' => ['dentureJaw', 'dentureType', 'gingivalShade'],
         'Partial' => ['partialJaw', 'teethToReplace', 'partialMaterial', 'partialGingivalShade'],
     ];
-    
+
     // Check clinical fields for current case type
     if (isset($caseTypeClinicalFields[$caseType])) {
         foreach ($caseTypeClinicalFields[$caseType] as $clinicalField) {
@@ -254,11 +264,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
     }
-    
+
     // Return error if required fields are missing
     if (!empty($missingFields)) {
         http_response_code(400);
-        
+
         // Generate user-friendly field names
         $fieldLabels = [
             'patientFirstName' => 'Patient First Name',
@@ -291,7 +301,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'clinical_partialMaterial' => 'Material (Partial)',
             'clinical_partialGingivalShade' => 'Gingival Shade (Partial)',
         ];
-        
+
         $friendlyNames = array_map(function($field) use ($fieldLabels) {
             return $fieldLabels[$field] ?? $field;
         }, $missingFields);
@@ -303,7 +313,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         ]);
         exit;
     }
-    
+
     // Process GCS file uploads (if any) - create attachment records directly
     $gcsAttachments = [];
     $gcsFilesRaw = $_POST['gcs_files'] ?? '';
@@ -314,23 +324,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } else {
             $gcsFiles = $gcsFilesRaw;
         }
-        
+
         if (!is_array($gcsFiles)) {
             $gcsFiles = [];
         }
-        
+
         error_log('[create-case] GCS FILES RECEIVED: ' . json_encode($gcsFiles));
-        
+
         // Create attachment records directly (file already exists in GCS)
         foreach ($gcsFiles as $file) {
             $storagePath = $file['storage_path'] ?? '';
             $originalName = $file['original_filename'] ?? '';
-            
+
             if (empty($storagePath) || empty($originalName)) {
                 error_log('[create-case] Skipping invalid GCS file entry: ' . json_encode($file));
                 continue;
             }
-            
+
             $attachment = [
                 'id' => uniqid(),
                 'type' => ucfirst($file['upload_type'] ?? 'photos'),
@@ -344,17 +354,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'size' => intval($file['file_size'] ?? 0),
                 'uploadedAt' => date('c')
             ];
-            
+
             $gcsAttachments[] = $attachment;
             error_log('[create-case] Added GCS attachment: ' . $originalName . ' -> ' . $storagePath);
         }
-        
+
         error_log('[create-case] TOTAL GCS ATTACHMENTS: ' . count($gcsAttachments));
     }
-    
+
     // Encrypt PII before storing
     $encryptedCaseData = PIIEncryption::encryptCaseData($caseData);
-    
+
     // Process the case creation with both original and encrypted data
     // Pass GCS attachments as 4th parameter; $_FILES may be empty with GCS flow
     $result = createCase($encryptedCaseData, $_FILES, $caseData, $gcsAttachments);
@@ -392,7 +402,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'caseData' => $simulatedCase
         ];
     }
-    
+
     // Return the result
     if ($result['success']) {
         if (isset($result['caseData']) && is_array($result['caseData'])) {
@@ -406,11 +416,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $stmt = $pdo->prepare("SELECT COUNT(*) FROM cases_cache WHERE practice_id = ? AND archived = 0");
                 $stmt->execute([$currentPracticeId]);
                 $newCaseCount = (int)$stmt->fetchColumn();
-                
+
                 $stmt = $pdo->prepare("UPDATE users SET case_count = ? WHERE id = ?");
                 $stmt->execute([$newCaseCount, $_SESSION['db_user_id']]);
             }
-            
+
             // Log case creation activity
             $createdCaseId = $result['caseData']['id'] ?? null;
             $createdStatus = $result['caseData']['status'] ?? null;
@@ -462,11 +472,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         ]
                     );
                 }
-                
+
                 // Calculate At Risk status for the newly created case
                 $atRiskStatus = calculateAtRiskStatus($result['caseData'], null);
                 $result['caseData']['atRisk'] = $atRiskStatus;
-                
+
                 // Check if Google Drive backup is enabled - store data for deferred processing
                 $doBackup = false;
                 $backupData = null;
@@ -482,15 +492,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
             }
         }
-        
+
         // Record create for real-time notifications to other users
         if ($createdCaseId && function_exists('recordCaseUpdate')) {
             recordCaseUpdate($createdCaseId, 'create');
         }
-        
+
         // Send response to client FIRST, then do backup
         echo json_encode($result);
-        
+
         // Flush output to client so they don't wait for backup
         if (function_exists('fastcgi_finish_request')) {
             fastcgi_finish_request();
@@ -501,19 +511,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
             flush();
         }
-        
+
         // Now perform the backup operation after response is sent
         if (isset($doBackup) && $doBackup && isset($backupData)) {
             try {
                 $backupRootFolderId = getBackupRootFolder($backupData['practiceId'], $backupData['practiceName']);
-                
+
                 if ($backupRootFolderId) {
                     $backupFolderId = createCaseBackupFolder(
                         $backupData['caseData'],
                         $backupRootFolderId,
                         $backupData['attachments']
                     );
-                    
+
                     if ($backupFolderId) {
                         // Store the backup folder ID in the case cache for future updates
                         $stmt = $pdo->prepare("UPDATE cases_cache SET backup_folder_id = :backup_folder_id WHERE case_id = :case_id");

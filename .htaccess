@@ -1,7 +1,7 @@
 # Custom 404 Error Page
 ErrorDocument 404 /404.php
 
-# Clean URLs - rewrite /page to /page.php
+# Clean URLs - rewrite /page to /page.php (production only)
 <IfModule mod_rewrite.c>
   RewriteEngine On
   

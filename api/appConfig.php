@@ -41,10 +41,9 @@ $commonConfig = [
     ],
 
     'gemini' => [
-        'api_key'     => getEnvVar('GEMINI_API_KEY'),
-        'model'       => 'gemini-2.0-flash',
-        'max_tokens'  => 1000,
-        'temperature' => 0.7,
+        'api_key'    => getEnvVar('GEMINI_API_KEY'),
+        'model'      => 'gemini-3.6-flash',
+        'max_tokens' => 4096,
     ],
 
     'ai_prompt' => 'Analyze the following dental lab workflow data and provide exactly 3 actionable recommendations to improve efficiency, quality, or scheduling. Return ONLY a JSON array with this exact format (no markdown, no extra text):
@@ -121,16 +120,119 @@ Here is the workflow data to analyze:
         ],
     ],
 
-    // Stripe configuration
-    'stripe' => [
-        'publishable_key' => getEnvVar('STRIPE_PUBLISHABLE_KEY'),
-        'secret_key' => getEnvVar('STRIPE_SECRET_KEY'),
-        'pricing_table_id' => getEnvVar('STRIPE_PRICING_TABLE_ID'),
-        'pricing_table_publishable_key' => getEnvVar('STRIPE_PRICING_TABLE_PUBLISHABLE_KEY'),
+    // ── Stripe configuration ────────────────────────────────────────────────
+    // Built by a closure so validation failures abort config loading immediately
+    // rather than surfacing as cryptic Stripe API errors at request time.
+    //
+    // STRIPE_ENVIRONMENT must be 'test' or 'live'.
+    //   test → keys must start with sk_test_ / pk_test_
+    //   live → keys must start with sk_live_ / pk_live_
+    //
+    // There is deliberately NO cross-environment fallback: a missing test key
+    // will never silently fall back to the live key, and vice versa.
+    //
+    // Only publishable_key is ever exposed to browser JS.  All other values
+    // remain server-side.
+    'stripe' => (static function (): array {
+        // When billing is disabled we should never touch Stripe.  Keep the closure
+        // self-contained but skip the noisy error log in that case; the safe empty
+        // config is returned either way.
+        $billingEnabledRaw = getenv('BILLING_ENABLED');
+        if ($billingEnabledRaw === false) {
+            $billingEnabledRaw = $_ENV['BILLING_ENABLED'] ?? '';
+        }
+        $billingEnabled = filter_var($billingEnabledRaw, FILTER_VALIDATE_BOOLEAN);
+
+        $env = getEnvVar('STRIPE_ENVIRONMENT', '');
+        if (!in_array($env, ['test', 'live'], true)) {
+            if ($billingEnabled) {
+                error_log('[appConfig] STRIPE_ENVIRONMENT must be "test" or "live"; got: ' .
+                          (empty($env) ? '(empty)' : substr($env, 0, 20)));
+            }
+            // Return a config that will cause the first Stripe call to fail loudly
+            // rather than silently falling back to an unexpected environment.
+            return [
+                'environment'              => $env,
+                'publishable_key'          => null,
+                'secret_key'              => null,
+                'webhook_secret'          => null,
+                'portal_configuration_id' => null,
+                'prices'                  => [],
+                'display_prices'          => [
+                    'operate' => ['month' => 49500, 'year' => 495000],
+                    'control' => ['month' => 79500, 'year' => 795000],
+                ],
+                'config_error' => 'STRIPE_ENVIRONMENT must be "test" or "live"',
+            ];
+        }
+
+        $secretKey      = getEnvVar('STRIPE_SECRET_KEY',      '');
+        $publishableKey = getEnvVar('STRIPE_PUBLISHABLE_KEY', '');
+
+        $expectedSecretPrefix      = 'sk_' . $env . '_';
+        $expectedPublishablePrefix = 'pk_' . $env . '_';
+
+        $configError = null;
+
+        if (!empty($secretKey) && !str_starts_with($secretKey, $expectedSecretPrefix)) {
+            $configError = 'STRIPE_SECRET_KEY prefix does not match STRIPE_ENVIRONMENT=' . $env;
+            if ($billingEnabled) {
+                error_log('[appConfig] ' . $configError);
+            }
+        }
+
+        if (!empty($publishableKey) && !str_starts_with($publishableKey, $expectedPublishablePrefix)) {
+            $configError = $configError ?? ('STRIPE_PUBLISHABLE_KEY prefix does not match ' .
+                           'STRIPE_ENVIRONMENT=' . $env);
+            if ($billingEnabled) {
+                error_log('[appConfig] ' . ($configError));
+            }
+        }
+
+        return [
+            'environment'              => $env,
+            'publishable_key'          => $publishableKey ?: null,
+            'secret_key'               => $secretKey       ?: null,
+            'webhook_secret'           => getEnvVar('STRIPE_WEBHOOK_SECRET') ?: null,
+            'portal_configuration_id'  => getEnvVar('STRIPE_PORTAL_CONFIGURATION_ID') ?: null,
+
+            // Server-side Price ID map — never sent to or accepted from the browser.
+            'prices' => [
+                'operate' => [
+                    'month' => getEnvVar('STRIPE_OPERATE_MONTHLY_PRICE_ID') ?: null,
+                    'year'  => getEnvVar('STRIPE_OPERATE_ANNUAL_PRICE_ID')  ?: null,
+                ],
+                'control' => [
+                    'month' => getEnvVar('STRIPE_CONTROL_MONTHLY_PRICE_ID') ?: null,
+                    'year'  => getEnvVar('STRIPE_CONTROL_ANNUAL_PRICE_ID')  ?: null,
+                ],
+            ],
+
+            // Display prices in cents — for UI only; authoritative amount is on the Stripe Price object.
+            'display_prices' => [
+                'operate' => ['month' => 49500, 'year' => 495000],  // $495/mo, $4,950/yr
+                'control' => ['month' => 79500, 'year' => 795000],  // $795/mo, $7,950/yr
+            ],
+
+            // Set when environment or key prefix validation fails — checked by endpoints.
+            'config_error' => $configError,
+        ];
+    })(),
+
+    // Base URL for Stripe success/cancel redirects and portal return URLs.
+    // Set APP_BASE_URL in .env (e.g. http://localhost/DentaTrak for local dev).
+    'app_base_url' => rtrim(getEnvVar('APP_BASE_URL', 'https://dentatrak.com'), '/'),
+
+    // Public article URLs — clean paths on production, direct .php on local/UAT
+    // (Local Apache serves the app from a subfolder so clean URL rewrites don't apply)
+    'public_urls' => [
+        'article_dental_case_tracking' => 'dental-case-tracking',
+        'article_how_to_track'         => 'how-to-track-dental-cases',
+        'article_comparison'           => 'dental-case-tracking-vs-spreadsheets',
     ],
 
     'billing' => [
-        'trial_days' => 30, // Evaluate plan trial period in days
+        'trial_days' => 90, // Evaluate plan trial period in days
         'tiers' => [
             'evaluate' => [
                 'name' => 'Evaluate',
@@ -141,7 +243,7 @@ Here is the workflow data to analyze:
             ],
             'operate' => [
                 'name' => 'Operate',
-                'max_cases' => 100,
+                'max_cases' => 0, // Unlimited
                 'max_users' => 5,
                 'can_add_users' => true,
                 'has_analytics' => true
@@ -169,42 +271,42 @@ Here is the workflow data to analyze:
         'patientLastName' => true,
         'patientDOB' => true,
         'patientGender' => true,
-        
+
         // Case Information
         'dentistName' => true,
         'caseType' => true,
         'dueDate' => true,
         'status' => true,
-        
+
         // Optional global fields - set to true to make required
         'toothShade' => false,
         'material' => false,
         'assignedTo' => false,
         'notes' => false,
         'attachments' => false,
-        
+
         // Clinical Details - Crown
         'toothNumber' => true,              // Crown: Tooth #
-        
+
         // Clinical Details - Bridge
         'abutmentTeeth' => true,            // Bridge: Abutment Teeth
         'ponticTeeth' => true,              // Bridge: Pontic Teeth
-        
+
         // Clinical Details - Implant Crown
         'implantToothNumber' => true,       // Implant Crown: Tooth #
         'abutmentType' => false,            // Implant Crown: Abutment Type
         'implantSystem' => false,           // Implant Crown: Implant System
         'platformSize' => false,            // Implant Crown: Platform Size
         'scanBodyUsed' => false,            // Implant Crown: Scan Body Used
-        
+
         // Clinical Details - Implant Surgical Guide
         'implantSites' => false,            // Implant Surgical Guide: Implant Sites
-        
+
         // Clinical Details - Denture
         'dentureJaw' => false,              // Denture: Jaw (Upper/Lower/Both)
         'dentureType' => false,             // Denture: Type
         'gingivalShade' => false,           // Denture: Gingival Shade
-        
+
         // Clinical Details - Partial
         'partialJaw' => false,              // Partial: Jaw
         'teethToReplace' => true,           // Partial: Teeth to Replace
@@ -232,7 +334,12 @@ $appConfigUAT = array_merge($commonConfig, [
     'db_user'     => getEnvVar('DB_USER'),
     'db_password' => getEnvVar('DB_PASSWORD'),
     'db_name'     => getEnvVar('DB_NAME', 'dental_case_tracker'),
-    'baseUrl'     => 'http://localhost/'
+    'baseUrl'     => 'http://localhost/DentaTrak',
+    'public_urls' => [
+        'article_dental_case_tracking' => 'dental-case-tracking.php',
+        'article_how_to_track'         => 'how-to-track-dental-cases.php',
+        'article_comparison'           => 'dental-case-tracking-vs-spreadsheets.php',
+    ],
 ]);
 
 // Local Development configuration (MAMP with local DB)
@@ -244,10 +351,13 @@ $appConfigLocalDev = array_merge($commonConfig, [
     'db_user'     => getEnvVar('DB_USER_LOCAL'),
     'db_password' => getEnvVar('DB_PASSWORD_LOCAL'),
     'db_name'     => getEnvVar('DB_NAME', 'dental_case_tracker'),
-    'baseUrl'     => 'http://localhost/'
+    'baseUrl'     => 'http://localhost/DentaTrak',
+    'public_urls' => [
+        'article_dental_case_tracking' => 'dental-case-tracking.php',
+        'article_how_to_track'         => 'how-to-track-dental-cases.php',
+        'article_comparison'           => 'dental-case-tracking-vs-spreadsheets.php',
+    ],
 ]);
-
-// RA7Y4CKWHAWBVMKLSF4XMM7Y
 
 // Determine which environment to use
 // Check for environment override file (allows switching between UAT and local dev)
@@ -287,7 +397,7 @@ try {
     } else {
         // ===== Local Environment =====
         // Determine if this is UAT (bridge to prod DB) or Local Dev (MAMP local DB)
-        
+
         // If .env_mode file explicitly specifies the environment, use that
         if ($envMode === 'development' || $envMode === 'local') {
             $selectedConfig = $appConfigLocalDev;
@@ -303,7 +413,7 @@ try {
             $selectedConfig = $appConfigUAT;
             $currentEnv = 'uat';
             $showDevTools = false;
-            
+
             // Test if UAT port (3307) is available
             $uatConnection = @fsockopen($appConfigUAT['db_host'], $appConfigUAT['db_port'], $errno, $errstr, 1);
             if (!$uatConnection) {
@@ -322,7 +432,7 @@ try {
                 fclose($uatConnection);
             }
         }
-        
+
         if (
             empty($selectedConfig['db_host']) ||
             empty($selectedConfig['db_port']) ||
@@ -384,7 +494,7 @@ if (session_status() === PHP_SESSION_NONE) {
             session_save_path($localSessionPath);
         }
     }
-    
+
     // Set secure session cookie parameters
     session_set_cookie_params([
         'lifetime' => 0,
@@ -394,7 +504,7 @@ if (session_status() === PHP_SESSION_NONE) {
         'httponly' => true,
         'samesite' => 'Lax'
     ]);
-    
+
     // Suppress session warnings (can occur during concurrent test runs)
-    @session_start(); 
+    @session_start();
 }

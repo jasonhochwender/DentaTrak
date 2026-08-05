@@ -5,6 +5,7 @@
  */
 
 require_once __DIR__ . '/appConfig.php';
+require_once __DIR__ . '/practice-trial.php';
 require_once __DIR__ . '/user-manager.php';
 require_once __DIR__ . '/google-drive.php';
 
@@ -20,7 +21,7 @@ header('Content-Type: application/json');
 if (!isset($_SESSION['db_user_id'])) {
     http_response_code(401);
     echo json_encode([
-        'success' => false, 
+        'success' => false,
         'message' => 'User not authenticated'
     ]);
     exit;
@@ -51,8 +52,8 @@ try {
     if ($practiceId) {
         // Check if user has admin access to this practice
         $stmt = $pdo->prepare("
-            SELECT practice_users.role 
-            FROM practice_users 
+            SELECT practice_users.role
+            FROM practice_users
             WHERE practice_id = :practice_id AND user_id = :user_id
         ");
         $stmt->execute([
@@ -60,7 +61,7 @@ try {
             'user_id' => $userId
         ]);
         $userRole = $stmt->fetchColumn();
-        
+
         if ($userRole !== 'admin') {
             $pdo->rollBack();
             http_response_code(403);
@@ -70,10 +71,10 @@ try {
             ]);
             exit;
         }
-        
+
         // Update existing practice
         $legalName = isset($data['legal_name']) ? $data['legal_name'] : null;
-        
+
         if ($legalName) {
             $stmt = $pdo->prepare("
                 UPDATE practices
@@ -101,19 +102,27 @@ try {
         }
     } else {
         $practiceUuid = uniqid('practice_', true);
-        
+        $trial = getNewPracticeTrialDefaults();
+
         $stmt = $pdo->prepare("
-            INSERT INTO practices (practice_id, practice_name, created_by)
-            VALUES (:practice_uuid, :practice_name, :created_by)
+            INSERT INTO practices (
+                practice_id, practice_name, created_by,
+                subscription_status, trial_ends_at
+            ) VALUES (
+                :practice_uuid, :practice_name, :created_by,
+                :subscription_status, :trial_ends_at
+            )
         ");
         $result = $stmt->execute([
             'practice_uuid' => $practiceUuid,
             'practice_name' => $practiceName,
-            'created_by' => $userId
+            'created_by' => $userId,
+            'subscription_status' => $trial['subscription_status'],
+            'trial_ends_at'       => $trial['trial_ends_at'],
         ]);
-        
+
         $practiceId = $pdo->lastInsertId();
-        
+
         $stmt = $pdo->prepare("
             INSERT INTO practice_users (practice_id, user_id, role, is_owner)
             VALUES (:practice_id, :user_id, 'admin', TRUE)
@@ -128,7 +137,7 @@ try {
         $_SESSION['current_practice_id'] = $practiceId;
         $_SESSION['needs_practice_setup'] = false;
         $_SESSION['needs_practice_selection'] = false;
-        
+
         // Log the practice creation for security audit
         error_log("[SECURITY] New practice created: practice_id={$practiceId}, user_id={$userId}, name={$practiceName}");
 
@@ -137,10 +146,10 @@ try {
         } catch (Exception $e) {
         }
     }
-    
+
     // Commit transaction
     $pdo->commit();
-    
+
     // Get the updated practice data
     $stmt = $pdo->prepare("
         SELECT id, practice_id as uuid, practice_name
@@ -149,7 +158,7 @@ try {
     ");
     $stmt->execute(['id' => $practiceId]);
     $practice = $stmt->fetch(PDO::FETCH_ASSOC);
-    
+
     // Return the practice ID in the response so the frontend can verify
     echo json_encode([
         'success' => true,
@@ -157,18 +166,18 @@ try {
         'practice' => $practice,
         'current_practice_id' => $_SESSION['current_practice_id'] // Include for verification
     ]);
-    
+
 } catch (PDOException $e) {
     // Roll back transaction on error
     if ($pdo->inTransaction()) {
         $pdo->rollBack();
     }
-    
+
     http_response_code(500);
     echo json_encode([
-        'success' => false, 
+        'success' => false,
         'message' => 'Error updating practice: ' . $e->getMessage()
     ]);
-    
+
     userLog("Error updating practice: " . $e->getMessage(), true);
 }
