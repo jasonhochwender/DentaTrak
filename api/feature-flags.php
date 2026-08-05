@@ -30,12 +30,40 @@ $FEATURE_DEFAULTS = [
  * @return bool True if feature is enabled
  */
 function isFeatureEnabled($featureName) {
-    global $FEATURE_DEFAULTS;
+    global $FEATURE_DEFAULTS, $appConfig;
 
-    // Check environment variable first
+    // Check environment variable first (process env, then Dotenv-populated $_ENV)
     $envValue = getenv($featureName);
-    if ($envValue !== false) {
+    if ($envValue === false) {
+        $envValue = $_ENV[$featureName] ?? null;
+    }
+    if ($envValue !== false && $envValue !== null && $envValue !== '') {
         return filter_var($envValue, FILTER_VALIDATE_BOOLEAN);
+    }
+
+    // SHOW_DEV_TOOLS has environment-specific defaults:
+    // - Local development (MAMP/localhost): visible by default
+    // - Cloud Run / production: hidden by default
+    if ($featureName === 'SHOW_DEV_TOOLS') {
+        // Prefer the environment-derived value already computed by appConfig
+        if (isset($appConfig) && is_array($appConfig) && array_key_exists('show_dev_tools', $appConfig)) {
+            return (bool) $appConfig['show_dev_tools'];
+        }
+
+        // Cloud Run = production = hidden
+        if (getenv('K_SERVICE')) {
+            return false;
+        }
+
+        // Local development heuristic
+        $host = strtolower($_SERVER['HTTP_HOST'] ?? $_SERVER['SERVER_NAME'] ?? 'localhost');
+        $hostWithoutPort = explode(':', $host)[0];
+        $localHosts = ['localhost', '127.0.0.1', '[::1]'];
+        if (in_array($hostWithoutPort, $localHosts, true) || str_ends_with($hostWithoutPort, '.localhost')) {
+            return true;
+        }
+
+        return false;
     }
 
     // Return default value
