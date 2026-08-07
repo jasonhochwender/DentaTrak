@@ -6,6 +6,7 @@
 
 require_once __DIR__ . '/appConfig.php';
 require_once __DIR__ . '/practice-security.php';
+require_once __DIR__ . '/user-manager.php';
 
 // Set header to JSON
 header('Content-Type: application/json');
@@ -30,8 +31,10 @@ try {
         exit;
     }
     
-    // SECURITY: Only get case assignments for cases in the current practice
-    $stmt = $pdo->prepare("
+    // SECURITY: Only get case assignments for cases in the current practice.
+    // Assigned Only users may only see their own assignment(s), never the
+    // full practice-wide assignment map.
+    $assignmentsSql = "
         SELECT 
             ca.case_id,
             u.email
@@ -39,8 +42,16 @@ try {
         JOIN users u ON ca.user_id = u.id
         JOIN cases_cache cc ON ca.case_id = cc.case_id
         WHERE cc.practice_id = :practice_id
-    ");
-    $stmt->execute(['practice_id' => $currentPracticeId]);
+    ";
+    $assignmentsParams = ['practice_id' => $currentPracticeId];
+
+    if (hasLimitedVisibility($currentPracticeId)) {
+        $assignmentsSql .= ' AND LOWER(u.email) = :assigned_email';
+        $assignmentsParams['assigned_email'] = getCurrentUserEmail() ?? '';
+    }
+
+    $stmt = $pdo->prepare($assignmentsSql);
+    $stmt->execute($assignmentsParams);
     $assignments = $stmt->fetchAll(PDO::FETCH_ASSOC);
     
     echo json_encode([

@@ -39,6 +39,15 @@ try {
         $whereConditions[] = 'cc.practice_id = :practice_id';
         $params['practice_id'] = $currentPracticeId;
     }
+
+    // SECURITY: Assigned Only (limited_visibility) users may only see
+    // archived cases assigned to them (same rule as active cases).
+    $archivedUserEmail = null;
+    if (hasLimitedVisibility($currentPracticeId)) {
+        $archivedUserEmail = getCurrentUserEmail();
+        $whereConditions[] = 'LOWER(cc.assigned_to) = :assigned_email';
+        $params['assigned_email'] = $archivedUserEmail ?? '';
+    }
     
     // Add search filter
     if (!empty($search)) {

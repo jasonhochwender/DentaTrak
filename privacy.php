@@ -95,7 +95,7 @@ $appName = $appConfig['appName'] ?? 'Dentatrak';
     </div>
     
     <div class="policy-content">
-      <p><strong>Effective Date:</strong> December 22, 2025</p>
+      <p><strong>Effective Date:</strong> August 7, 2026</p>
       
       <p>This Privacy Policy explains how Dentatrak ("we," "us," or "our") collects, uses, and protects your information when you use our dental case tracking service ("Service"). Dentatrak is a case management tool designed for dental practices.</p>
       

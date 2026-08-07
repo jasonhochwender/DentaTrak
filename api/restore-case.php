@@ -35,25 +35,13 @@ if (empty($caseId)) {
 }
 
 try {
-    // Check if user has permission to restore this case
-    $checkSql = "
-        SELECT practice_id 
-        FROM cases_cache 
-        WHERE case_id = :case_id AND archived = 1
-    ";
-    
-    $checkStmt = $pdo->prepare($checkSql);
-    $checkStmt->execute(['case_id' => $caseId]);
-    $caseInfo = $checkStmt->fetch(PDO::FETCH_ASSOC);
-    
-    if (!$caseInfo) {
+    // SECURITY: Verify this case belongs to the current practice and, for
+    // Assigned Only users, is assigned to them.
+    $caseInfo = requireCaseAccess($caseId, $currentPracticeId);
+
+    // Business rule: can only restore a case that is actually archived.
+    if ((int)($caseInfo['archived'] ?? 0) !== 1) {
         echo json_encode(['success' => false, 'message' => 'Archived case not found']);
-        exit;
-    }
-    
-    // Verify practice access
-    if ($currentPracticeId && $caseInfo['practice_id'] != $currentPracticeId) {
-        echo json_encode(['success' => false, 'message' => 'Access denied']);
         exit;
     }
     

@@ -136,7 +136,6 @@ try {
     $limitedVisibilityUsers = []; // Track which users have limited visibility
     $canViewAnalyticsUsers = []; // Track which users can view analytics
     $canEditCasesUsers = []; // Track which users can create/edit cases
-    $canAddLabelsUsers = []; // Track which users can create new labels
     
     // Ensure permission columns exist (auto-migration)
     try {
@@ -152,10 +151,6 @@ try {
         if ($stmt->rowCount() === 0) {
             $pdo->exec("ALTER TABLE practice_users ADD COLUMN can_edit_cases BOOLEAN NOT NULL DEFAULT TRUE COMMENT 'If true, user can create and edit cases'");
         }
-        $stmt = $pdo->query("SHOW COLUMNS FROM practice_users LIKE 'can_add_labels'");
-        if ($stmt->rowCount() === 0) {
-            $pdo->exec("ALTER TABLE practice_users ADD COLUMN can_add_labels BOOLEAN NOT NULL DEFAULT TRUE COMMENT 'If true, user can create new labels'");
-        }
     } catch (PDOException $e) {
         // Column might already exist or table doesn't exist yet
     }
@@ -169,8 +164,7 @@ try {
                 SELECT u.email, u.auth_method,
                        IFNULL(pu.limited_visibility, 0) as limited_visibility,
                        IFNULL(pu.can_view_analytics, 1) as can_view_analytics,
-                       IFNULL(pu.can_edit_cases, 1) as can_edit_cases,
-                       IFNULL(pu.can_add_labels, 1) as can_add_labels
+                       IFNULL(pu.can_edit_cases, 1) as can_edit_cases
                 FROM users u
                 LEFT JOIN practice_users pu ON u.id = pu.user_id AND pu.practice_id = :practice_id
                 WHERE u.id = :user_id
@@ -188,7 +182,6 @@ try {
                 $limitedVisibilityUsers[$creatorRow['email']] = (bool)$creatorRow['limited_visibility'];
                 $canViewAnalyticsUsers[$creatorRow['email']] = (bool)$creatorRow['can_view_analytics'];
                 $canEditCasesUsers[$creatorRow['email']] = (bool)$creatorRow['can_edit_cases'];
-                $canAddLabelsUsers[$creatorRow['email']] = true; // Creator always can add labels
             }
         }
         
@@ -197,8 +190,7 @@ try {
             SELECT u.email, 
                    IFNULL(pu.limited_visibility, 0) as limited_visibility,
                    IFNULL(pu.can_view_analytics, 1) as can_view_analytics,
-                   IFNULL(pu.can_edit_cases, 1) as can_edit_cases,
-                   IFNULL(pu.can_add_labels, 1) as can_add_labels
+                   IFNULL(pu.can_edit_cases, 1) as can_edit_cases
             FROM users u
             JOIN practice_users pu ON u.id = pu.user_id
             WHERE pu.practice_id = :practice_id AND pu.role = 'admin' AND pu.user_id != :creator_id
@@ -216,7 +208,6 @@ try {
                 $limitedVisibilityUsers[$row['email']] = (bool)$row['limited_visibility'];
                 $canViewAnalyticsUsers[$row['email']] = (bool)$row['can_view_analytics'];
                 $canEditCasesUsers[$row['email']] = (bool)$row['can_edit_cases'];
-                $canAddLabelsUsers[$row['email']] = true; // Admins always can add labels
             }
         }
         
@@ -235,8 +226,7 @@ try {
             SELECT u.email, u.last_login_at, 
                    IFNULL(pu.limited_visibility, 0) as limited_visibility,
                    IFNULL(pu.can_view_analytics, 1) as can_view_analytics,
-                   IFNULL(pu.can_edit_cases, 1) as can_edit_cases,
-                   IFNULL(pu.can_add_labels, 1) as can_add_labels
+                   IFNULL(pu.can_edit_cases, 1) as can_edit_cases
             FROM users u
             JOIN practice_users pu ON u.id = pu.user_id
             WHERE pu.practice_id = :practice_id AND pu.role = 'user'
@@ -255,7 +245,6 @@ try {
                 $limitedVisibilityUsers[$email] = (bool)$row['limited_visibility'];
                 $canViewAnalyticsUsers[$email] = (bool)$row['can_view_analytics'];
                 $canEditCasesUsers[$email] = (bool)$row['can_edit_cases'];
-                $canAddLabelsUsers[$email] = (bool)$row['can_add_labels'];
             }
         }
         
@@ -328,7 +317,6 @@ try {
         'limitedVisibilityUsers' => $limitedVisibilityUsers,
         'canViewAnalyticsUsers' => $canViewAnalyticsUsers,
         'canEditCasesUsers' => $canEditCasesUsers,
-        'canAddLabelsUsers' => $canAddLabelsUsers,
         'practiceName' => $practiceName,
         'logoPath' => $logoPath,
         'assignmentLabels' => $assignmentLabels,

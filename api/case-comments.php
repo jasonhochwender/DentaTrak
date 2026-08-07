@@ -208,6 +208,9 @@ if ($method === 'GET') {
         echo json_encode(['success' => false, 'message' => 'Case ID required']);
         exit;
     }
+
+    // SECURITY: Assigned Only users may only view comments on cases assigned to them.
+    requireCaseAccess($caseId, $currentPracticeId);
     
     try {
         $stmt = $pdo->prepare("
@@ -265,6 +268,9 @@ if ($method === 'GET') {
             echo json_encode(['success' => false, 'message' => 'Case ID and comment text required']);
             exit;
         }
+
+        // SECURITY: Assigned Only users may only comment on cases assigned to them.
+        requireCaseAccess($caseId, $currentPracticeId);
         
         // Extract and resolve mentions
         $mentionIdentifiers = extractMentions($commentText);

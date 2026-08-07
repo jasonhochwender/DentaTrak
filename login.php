@@ -433,7 +433,7 @@ $sessionTimeout = isset($_GET['timeout']) && $_GET['timeout'] == '1';
         <h2 class="modal-title"><?php echo htmlspecialchars($appName); ?> Privacy Policy</h2>
       </div>
       <div class="modal-body" id="privacyContent">
-        <p><strong>Effective Date:</strong> December 22, 2025</p>
+        <p><strong>Effective Date:</strong> August 7, 2026</p>
         
         <p>This Privacy Policy explains how <?php echo htmlspecialchars($appName); ?> ("we," "us," or "our") collects, uses, and protects your information when you use our dental case tracking service ("Service"). <?php echo htmlspecialchars($appName); ?> is a case management tool designed for dental practices.</p>
         
@@ -513,7 +513,7 @@ $sessionTimeout = isset($_GET['timeout']) && $_GET['timeout'] == '1';
         <h2 class="modal-title"><?php echo htmlspecialchars($appName); ?> Terms of Service</h2>
       </div>
       <div class="modal-body" id="termsContent">
-        <p><strong>Effective Date:</strong> December 22, 2025</p>
+        <p><strong>Effective Date:</strong> August 7, 2026</p>
         
         <p>These Terms of Service ("Terms") govern your use of <?php echo htmlspecialchars($appName); ?> ("Service"), a case tracking application provided to dental practices. By using the Service, you agree to these Terms.</p>
         

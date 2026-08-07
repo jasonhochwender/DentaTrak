@@ -21,29 +21,38 @@ if (!isset($_SESSION['db_user_id'])) {
 // The BAA acceptance page now handles practice creation
 $userId = $_SESSION['db_user_id'];
 
-// Check if user has any practices
+// Check if user has any practices. The BAA represents CREATING a practice,
+// never merely joining one someone else already created and accepted BAA
+// for - so this check must only ever redirect into the BAA flow for (a) a
+// user with no practices at all (creating their first practice), or (b)
+// a practice the user actually OWNS that was created but never finished
+// BAA acceptance. Being a MEMBER of another practice whose BAA is already
+// accepted must fall through to the practice chooser below instead.
 try {
     $stmt = $pdo->prepare("
-        SELECT p.id, p.baa_accepted 
+        SELECT p.id, p.baa_accepted, pu.is_owner
         FROM practices p
         JOIN practice_users pu ON p.id = pu.practice_id
         WHERE pu.user_id = :user_id
-        LIMIT 1
     ");
     $stmt->execute(['user_id' => $userId]);
-    $existingPractice = $stmt->fetch(PDO::FETCH_ASSOC);
+    $allMemberships = $stmt->fetchAll(PDO::FETCH_ASSOC);
     
-    // If user has no practices, redirect to BAA acceptance
-    if (!$existingPractice) {
+    // If user has no practices at all, they need to create their first one.
+    if (empty($allMemberships)) {
         header('Location: baa-acceptance.php');
         exit;
     }
     
-    // If user has a practice but BAA not accepted, redirect to BAA acceptance
-    if ($existingPractice && !$existingPractice['baa_accepted']) {
-        $_SESSION['current_practice_id'] = $existingPractice['id'];
-        header('Location: baa-acceptance.php');
-        exit;
+    // Resume BAA acceptance only for a practice this user OWNS and hasn't
+    // finished accepting the BAA for - never for a practice they merely
+    // belong to as a member/admin of someone else's already-accepted practice.
+    foreach ($allMemberships as $membership) {
+        if (!empty($membership['is_owner']) && empty($membership['baa_accepted'])) {
+            $_SESSION['current_practice_id'] = $membership['id'];
+            header('Location: baa-acceptance.php');
+            exit;
+        }
     }
 } catch (PDOException $e) {
     // If baa_accepted column doesn't exist, continue with normal flow
@@ -93,11 +102,14 @@ if ($userEmail) {
 
 // Get the user's practices
 try {
+    // Deterministic ordering: owned practices first, then alphabetically by
+    // name - matches resolveLoginPracticeSelection() in user-manager.php.
     $stmt = $pdo->prepare("
         SELECT p.id, p.practice_name, p.practice_id as uuid, pu.role, pu.is_owner
         FROM practices p
         JOIN practice_users pu ON p.id = pu.practice_id
         WHERE pu.user_id = :user_id
+        ORDER BY pu.is_owner DESC, p.practice_name ASC
     ");
     $stmt->execute(['user_id' => $userId]);
     $practices = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -115,6 +127,7 @@ try {
         JOIN practice_users pu ON p.id = pu.practice_id
         JOIN users u ON p.created_by = u.id
         WHERE pu.user_id = :user_id AND pu.is_owner = FALSE
+        ORDER BY p.practice_name ASC
     ");
     $stmt->execute(['user_id' => $userId]);
     $invitedPractices = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -126,6 +139,22 @@ try {
 $hasPractices = !empty($practices);
 $isInvited = !empty($invitedPractices);
 $showPracticeChoice = $isInvited || count($practices) > 1;
+
+// A user can be a MEMBER of a practice (invited by someone else) without
+// ever having OWNED a practice of their own. Those are independent
+// concepts: being invited into Verrillo Dental should never by itself
+// prevent someone from also creating and owning their own practice. When
+// the only practice a user belongs to is one they don't own, tailor the
+// copy below to make both options ("continue" vs "create your own")
+// equally visible, rather than reusing generic multi-practice wording.
+$ownsAnyPractice = false;
+foreach ($practices as $p) {
+    if (!empty($p['is_owner'])) {
+        $ownsAnyPractice = true;
+        break;
+    }
+}
+$isSingleUnownedMembership = ($showPracticeChoice && count($practices) === 1 && !$ownsAnyPractice);
 
 // Determine environment for visual cues
 $envValue = $appConfig['environment'] ?? 'production';
@@ -159,7 +188,10 @@ $appName = $appConfig['appName'];
                         <polyline points="9 22 9 12 15 12 15 22"/>
                     </svg>
                 </div>
-                <?php if ($showPracticeChoice): ?>
+                <?php if ($isSingleUnownedMembership): ?>
+                    <h1 class="setup-title">Welcome to DentaTrak</h1>
+                    <p class="setup-subtitle">You already have access to an existing practice. Continue there, or create your own.</p>
+                <?php elseif ($showPracticeChoice): ?>
                     <h1 class="setup-title">You're Part of Multiple Practices</h1>
                     <p class="setup-subtitle">Select which practice you'd like to work with</p>
                 <?php else: ?>
@@ -198,7 +230,11 @@ $appName = $appConfig['appName'];
                         <path d="M12 16v-4"/>
                         <path d="M12 8h.01"/>
                     </svg>
+                    <?php if ($isSingleUnownedMembership && !empty($memberPractices)): ?>
+                    <p>Welcome, <strong><?php echo htmlspecialchars($userName ?: 'there'); ?></strong>! You already have access to <strong><?php echo htmlspecialchars($memberPractices[0]['practice_name']); ?></strong>. Continue there, or create your own practice below.</p>
+                    <?php else: ?>
                     <p>Welcome back, <strong><?php echo htmlspecialchars($userName ?: 'there'); ?></strong>! Select which practice you'd like to work with today.</p>
+                    <?php endif; ?>
                 </div>
                 
                 <!-- Owned Practices -->
@@ -235,10 +271,12 @@ $appName = $appConfig['appName'];
                 
                 <!-- Member Practices -->
                 <?php if ($hasMemberPractice): ?>
+                    <?php if (!$isSingleUnownedMembership): ?>
                     <div class="section-header" <?php echo $hasOwnPractice ? 'style="margin-top: 24px;"' : ''; ?>>
                         <h2><?php echo $hasOwnPractice ? 'Other Practices' : 'Your Practices'; ?></h2>
                         <span class="count-badge"><?php echo count($memberPractices); ?></span>
                     </div>
+                    <?php endif; ?>
                     <?php foreach ($memberPractices as $practice): ?>
                         <div class="practice-card">
                             <div class="practice-card-header">
@@ -250,7 +288,9 @@ $appName = $appConfig['appName'];
                             <div class="practice-card-actions">
                                 <button class="select-btn" data-practice-id="<?php echo htmlspecialchars($practice['id']); ?>">
                                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-                                    Select This Practice
+                                    <?php echo $isSingleUnownedMembership
+                                        ? 'Continue to ' . htmlspecialchars($practice['practice_name'])
+                                        : 'Select This Practice'; ?>
                                 </button>
                                 <div class="remember-choice">
                                     <input type="checkbox" id="remember_choice_<?php echo htmlspecialchars($practice['id']); ?>" 
@@ -264,7 +304,7 @@ $appName = $appConfig['appName'];
                 
                 <!-- Create New Practice Option -->
                 <div class="or-divider">
-                    <span>Or create new</span>
+                    <span><?php echo $isSingleUnownedMembership ? 'Or create your own' : 'Or create new'; ?></span>
                 </div>
                 
                 <div class="practice-card create-practice-card">
@@ -276,18 +316,17 @@ $appName = $appConfig['appName'];
                                 <line x1="8" y1="12" x2="16" y2="12"/>
                             </svg>
                         </div>
-                        <p>Start fresh with a new practice where you'll be the administrator.</p>
+                        <p>Start fresh with a new practice where you'll be the administrator. Belonging to another practice doesn't affect this. You'll review and accept the Business Associate Agreement as part of creating it.</p>
                     </div>
-                    <form id="practiceSetupForm" class="setup-form">
-                        <div class="form-group">
-                            <label for="practiceName">Practice Name</label>
-                            <input type="text" id="practiceName" name="practiceName" placeholder="e.g., Sunshine Dental Lab" required>
-                        </div>
-                        <button type="submit" class="submit-btn">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
-                            Create New Practice
-                        </button>
-                    </form>
+                    <!-- Creating a practice always goes through the BAA flow (baa-acceptance.php
+                         collects the practice's legal name and creates it atomically with BAA
+                         acceptance) - the same flow a brand new user goes through, never the
+                         bare update-practice.php shortcut. ?new=1 ensures this always starts a
+                         fresh practice even if a stale current_practice_id lingers in session. -->
+                    <a href="baa-acceptance.php?new=1" class="submit-btn">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+                        <?php echo $isSingleUnownedMembership ? 'Create My Own Practice' : 'Create New Practice'; ?>
+                    </a>
                 </div>
             
             <?php elseif ($isInvited && count($invitedPractices) > 0): ?>

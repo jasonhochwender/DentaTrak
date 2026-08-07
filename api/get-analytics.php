@@ -18,6 +18,18 @@ header('Content-Type: application/json');
 // SECURITY: Require valid practice context - NO FALLBACKS
 $practiceId = requireValidPracticeContext();
 
+// SECURITY: Insights (can_view_analytics) gates access to analytics data.
+// This was previously stored/toggleable in Settings but never enforced by
+// any backend endpoint.
+if (!canViewAnalytics($practiceId)) {
+    http_response_code(403);
+    echo json_encode([
+        'success' => false,
+        'message' => 'Access denied. You do not have permission to view analytics.'
+    ]);
+    exit;
+}
+
 // Load configuration
 require_once __DIR__ . '/appConfig.php';
 require_once __DIR__ . '/at-risk-calculator.php';

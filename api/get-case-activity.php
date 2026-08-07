@@ -32,19 +32,9 @@ if (!$pdo) {
     exit;
 }
 
-// SECURITY: Verify the case belongs to the current practice
-$stmt = $pdo->prepare("SELECT practice_id FROM cases_cache WHERE case_id = :case_id");
-$stmt->execute(['case_id' => $caseId]);
-$casePracticeId = $stmt->fetchColumn();
-
-if (!$casePracticeId || (int)$casePracticeId !== (int)$currentPracticeId) {
-    http_response_code(403);
-    echo json_encode([
-        'success' => false,
-        'message' => 'Case not found or access denied',
-    ]);
-    exit;
-}
+// SECURITY: Verify the case belongs to the current practice and, for
+// limited-visibility users, is assigned to them.
+requireCaseAccess($caseId, $currentPracticeId);
 
 ensureCaseActivityLogTable();
 

@@ -81,6 +81,17 @@ try {
         exit;
     }
 
+    // SECURITY: Path prefix only proves the file belongs to this practice.
+    // For Assigned Only users, also verify the specific case (parsed from
+    // cases/{practiceId}/{caseId}/...) is assigned to them. Pending uploads
+    // (cases/{practiceId}/pending_.../...) precede case creation and have no
+    // cases_cache row yet, so they are exempt from this per-case check.
+    $storagePathParts = explode('/', $storagePath);
+    $pathCaseId = $storagePathParts[2] ?? '';
+    if ($pathCaseId !== '' && strpos($pathCaseId, 'pending_') !== 0) {
+        requireCaseAccess($pathCaseId, $currentPracticeId);
+    }
+
     // Generate short-lived signed download URL
     $signedUrl = generateSignedDownloadUrl($storagePath);
 

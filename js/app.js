@@ -298,6 +298,13 @@ document.addEventListener('DOMContentLoaded', function () {
 
   // Function to add an assignment label
   function addAssignmentLabel() {
+    // Only Practice Administrators may manage Assignment Labels. This
+    // mirrors addGmailUser()'s admin check; the server independently
+    // enforces this too (save-settings.php requires role === 'admin').
+    if (!window.isPracticeAdmin) {
+      return;
+    }
+
     // Resolve DOM elements lazily in case they weren't bound yet
     if (!newAssignmentLabelInput) {
       newAssignmentLabelInput = document.getElementById('newAssignmentLabel');
@@ -357,6 +364,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
   // Function to edit an existing assignment label
   function editAssignmentLabel(oldLabel) {
+    if (!window.isPracticeAdmin) {
+      return;
+    }
     if (!window.assignmentLabels || window.assignmentLabels.length === 0) {
       return;
     }
@@ -440,47 +450,53 @@ document.addEventListener('DOMContentLoaded', function () {
 
       item.appendChild(labelSpan);
 
-      // Container for action icons on the right
-      var actions = document.createElement('div');
-      actions.className = 'assignment-actions';
-      actions.style.display = 'flex';
-      actions.style.alignItems = 'center';
-      actions.style.gap = '8px';
+      // Edit/delete controls are only rendered for Practice Administrators.
+      // Non-admins can still see the label list (it's used when assigning
+      // cases) but cannot manage it - matches the server-side enforcement
+      // in save-settings.php (role === 'admin').
+      if (window.isPracticeAdmin) {
+        // Container for action icons on the right
+        var actions = document.createElement('div');
+        actions.className = 'assignment-actions';
+        actions.style.display = 'flex';
+        actions.style.alignItems = 'center';
+        actions.style.gap = '8px';
 
-      // Edit button (same style as card edit: ✎)
-      var editBtn = document.createElement('button');
-      editBtn.type = 'button';
-      editBtn.className = 'edit-assignment-label';
-      editBtn.innerHTML = '✎';
-      editBtn.title = 'Edit label';
-      editBtn.setAttribute('data-label', label);
-      editBtn.addEventListener('click', function() {
-        var labelToEdit = this.getAttribute('data-label');
-        editAssignmentLabel(labelToEdit);
-      });
+        // Edit button (same style as card edit: ✎)
+        var editBtn = document.createElement('button');
+        editBtn.type = 'button';
+        editBtn.className = 'edit-assignment-label';
+        editBtn.innerHTML = '✎';
+        editBtn.title = 'Edit label';
+        editBtn.setAttribute('data-label', label);
+        editBtn.addEventListener('click', function() {
+          var labelToEdit = this.getAttribute('data-label');
+          editAssignmentLabel(labelToEdit);
+        });
 
-      // Remove button (reuse the same trash SVG as case card delete)
-      var removeBtn = document.createElement('button');
-      removeBtn.type = 'button';
-      removeBtn.className = 'assignment-delete-btn';
-      removeBtn.title = 'Delete label';
-      removeBtn.innerHTML = '' +
-        '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
-        '  <polyline points="3 6 5 6 21 6"></polyline>' +
-        '  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>' +
-        '  <line x1="10" y1="11" x2="10" y2="17"></line>' +
-        '  <line x1="14" y1="11" x2="14" y2="17"></line>' +
-        '</svg>';
-      removeBtn.style.color = '#e53935';
-      removeBtn.setAttribute('data-label', label);
-      removeBtn.addEventListener('click', function() {
-        var labelToRemove = this.getAttribute('data-label');
-        removeAssignmentLabel(labelToRemove);
-      });
+        // Remove button (reuse the same trash SVG as case card delete)
+        var removeBtn = document.createElement('button');
+        removeBtn.type = 'button';
+        removeBtn.className = 'assignment-delete-btn';
+        removeBtn.title = 'Delete label';
+        removeBtn.innerHTML = '' +
+          '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
+          '  <polyline points="3 6 5 6 21 6"></polyline>' +
+          '  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>' +
+          '  <line x1="10" y1="11" x2="10" y2="17"></line>' +
+          '  <line x1="14" y1="11" x2="14" y2="17"></line>' +
+          '</svg>';
+        removeBtn.style.color = '#e53935';
+        removeBtn.setAttribute('data-label', label);
+        removeBtn.addEventListener('click', function() {
+          var labelToRemove = this.getAttribute('data-label');
+          removeAssignmentLabel(labelToRemove);
+        });
 
-      actions.appendChild(editBtn);
-      actions.appendChild(removeBtn);
-      item.appendChild(actions);
+        actions.appendChild(editBtn);
+        actions.appendChild(removeBtn);
+        item.appendChild(actions);
+      }
 
       labelsList.appendChild(item);
     });
@@ -488,6 +504,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
   // Function to remove an assignment label
   function removeAssignmentLabel(label) {
+    if (!window.isPracticeAdmin) {
+      return;
+    }
     if (!window.assignmentLabels) {
       return;
     }
@@ -858,7 +877,6 @@ document.addEventListener('DOMContentLoaded', function () {
             data.limitedVisibilityUsers || {},
             data.canViewAnalyticsUsers || {},
             data.canEditCasesUsers || {},
-            data.canAddLabelsUsers || {},
             data.practiceCreatorHasGoogleAccount !== false,
             data.isGoogleDriveConnected === true
           );
@@ -984,7 +1002,7 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   // Apply loaded settings to form fields
-  function applyUserSettings(preferences, loadedGmailUsers, loadedGmailLogins, loadedAdminUsers, practiceName, logoPath, loadedAssignmentLabels, isPracticeAdmin, practiceCreatorEmail, displayName, legalName, loadedLimitedVisibilityUsers, loadedCanViewAnalyticsUsers, loadedCanEditCasesUsers, loadedCanAddLabelsUsers, practiceCreatorHasGoogleAccount, isGoogleDriveConnected) {
+  function applyUserSettings(preferences, loadedGmailUsers, loadedGmailLogins, loadedAdminUsers, practiceName, logoPath, loadedAssignmentLabels, isPracticeAdmin, practiceCreatorEmail, displayName, legalName, loadedLimitedVisibilityUsers, loadedCanViewAnalyticsUsers, loadedCanEditCasesUsers, practiceCreatorHasGoogleAccount, isGoogleDriveConnected) {
     window.isPracticeAdmin = !!isPracticeAdmin;
     window.practiceCreatorEmail = (practiceCreatorEmail || '').toLowerCase() || null;
     window.practiceCreatorHasGoogleAccount = practiceCreatorHasGoogleAccount !== false;
@@ -1140,7 +1158,6 @@ document.addEventListener('DOMContentLoaded', function () {
     window.limitedVisibilityUsers = loadedLimitedVisibilityUsers || {};
     window.canViewAnalyticsUsers = loadedCanViewAnalyticsUsers || {};
     window.canEditCasesUsers = loadedCanEditCasesUsers || {};
-    window.canAddLabelsUsers = loadedCanAddLabelsUsers || {};
 
     // Add limited-visibility class to body if current user has limited visibility
     // This is used by real-time updates to know whether to show/hide cases based on assignment
@@ -1176,7 +1193,6 @@ document.addEventListener('DOMContentLoaded', function () {
     var limitedCopy = {};
     var analyticsCopy = {};
     var editCopy = {};
-    var addLabelsCopy = {};
 
     if (window.limitedVisibilityUsers) {
       Object.keys(window.limitedVisibilityUsers).forEach(function(key) {
@@ -1191,11 +1207,6 @@ document.addEventListener('DOMContentLoaded', function () {
     if (window.canEditCasesUsers) {
       Object.keys(window.canEditCasesUsers).forEach(function(key) {
         editCopy[key] = window.canEditCasesUsers[key];
-      });
-    }
-    if (window.canAddLabelsUsers) {
-      Object.keys(window.canAddLabelsUsers).forEach(function(key) {
-        addLabelsCopy[key] = window.canAddLabelsUsers[key];
       });
     }
 
@@ -1213,7 +1224,6 @@ document.addEventListener('DOMContentLoaded', function () {
       limitedVisibilityUsers: limitedCopy,
       canViewAnalyticsUsers: analyticsCopy,
       canEditCasesUsers: editCopy,
-      canAddLabelsUsers: addLabelsCopy,
       logoPath: window.currentLogoPath || '',
       logoMarkedForRemoval: false,
       pendingLogoPath: ''
@@ -1244,11 +1254,9 @@ document.addEventListener('DOMContentLoaded', function () {
     var currentLimitedUsers = window.limitedVisibilityUsers || {};
     var currentAnalyticsUsers = window.canViewAnalyticsUsers || {};
     var currentEditUsers = window.canEditCasesUsers || {};
-    var currentAddLabelsUsers = window.canAddLabelsUsers || {};
     var origLimitedUsers = orig.limitedVisibilityUsers || {};
     var origAnalyticsUsers = orig.canViewAnalyticsUsers || {};
     var origEditUsers = orig.canEditCasesUsers || {};
-    var origAddLabelsUsers = orig.canAddLabelsUsers || {};
 
     if (currentGmailUsers.length !== orig.gmailUsers.length) return true;
     if (currentAdminUsers.length !== orig.adminUsers.length) return true;
@@ -1288,14 +1296,6 @@ document.addEventListener('DOMContentLoaded', function () {
     for (var i = 0; i < editKeys.length; i++) {
       var key = editKeys[i];
       if (currentEditUsers[key] !== origEditUsers[key]) return true;
-    }
-
-    var addLabelsKeys = Object.keys(currentAddLabelsUsers);
-    var origAddLabelsKeys = Object.keys(origAddLabelsUsers);
-    if (addLabelsKeys.length !== origAddLabelsKeys.length) return true;
-    for (var i = 0; i < addLabelsKeys.length; i++) {
-      var key = addLabelsKeys[i];
-      if (currentAddLabelsUsers[key] !== origAddLabelsUsers[key]) return true;
     }
 
     return false;
@@ -2508,9 +2508,28 @@ document.addEventListener('DOMContentLoaded', function () {
       if (isLimited) {
         adminCheckbox.checked = false;
         adminCheckbox.disabled = true;
-        // Also update the admin users array
-        if (window.adminUsers && window.adminUsers[email]) {
-          delete window.adminUsers[email];
+        // Also remove the user from the admin users array (it's an array of
+        // emails, not a map, so find the matching entry and splice it out),
+        // and ensure they remain tracked as a regular user so save-settings
+        // still persists their practice membership (every user must be in
+        // exactly one of adminUsers / gmailUsers, same invariant maintained
+        // by setAdminFlagForEmail()).
+        if (!window.adminUsers) window.adminUsers = [];
+        if (!window.gmailUsers) window.gmailUsers = [];
+        var lowerEmail = email.toLowerCase();
+        var idxAdmin = -1;
+        var idxUser = -1;
+        window.adminUsers.forEach(function(e, i) {
+          if (typeof e === 'string' && e.toLowerCase() === lowerEmail) idxAdmin = i;
+        });
+        window.gmailUsers.forEach(function(e, i) {
+          if (typeof e === 'string' && e.toLowerCase() === lowerEmail) idxUser = i;
+        });
+        if (idxAdmin !== -1) {
+          window.adminUsers.splice(idxAdmin, 1);
+        }
+        if (idxUser === -1) {
+          window.gmailUsers.push(email);
         }
       } else {
         // Re-enable the Admin checkbox if user is not a creator and current user is practice admin
@@ -2536,14 +2555,6 @@ document.addEventListener('DOMContentLoaded', function () {
     if (!window.canEditCasesUsers) window.canEditCasesUsers = {};
 
     window.canEditCasesUsers[email] = canEdit;
-  }
-
-  // Function to set can add labels flag for a user
-  function setCanAddLabelsForEmail(email, canAdd) {
-    if (!email) return;
-    if (!window.canAddLabelsUsers) window.canAddLabelsUsers = {};
-
-    window.canAddLabelsUsers[email] = canAdd;
   }
 
   // Function to remove a Gmail user
@@ -2660,8 +2671,7 @@ document.addEventListener('DOMContentLoaded', function () {
         assignmentLabels: window.assignmentLabels, // Add the assignment labels array
         limitedVisibilityUsers: window.limitedVisibilityUsers || {}, // Add limited visibility map
         canViewAnalyticsUsers: window.canViewAnalyticsUsers || {}, // Add analytics permission map
-        canEditCasesUsers: window.canEditCasesUsers || {}, // Add edit cases permission map
-        canAddLabelsUsers: window.canAddLabelsUsers || {} // Add add labels permission map
+        canEditCasesUsers: window.canEditCasesUsers || {} // Add edit cases permission map
       };
 
       // Include logo action so the server can handle removals/updates
@@ -2825,7 +2835,10 @@ document.addEventListener('DOMContentLoaded', function () {
         saveSettingsBtn.textContent = originalText;
         saveSettingsBtn.disabled = false;
 
-        showToast('Failed to save settings. Please try again.', 'error');
+        // Show the server's specific validation message when available
+        // (e.g. "Cannot delete label(s) still in use...") rather than a
+        // generic failure message.
+        showToast(data.message || 'Failed to save settings. Please try again.', 'error');
       }
     })
   }
@@ -6552,7 +6565,6 @@ document.addEventListener('DOMContentLoaded', function () {
             data.limitedVisibilityUsers || {},
             data.canViewAnalyticsUsers || {},
             data.canEditCasesUsers || {},
-            data.canAddLabelsUsers || {},
             data.practiceCreatorHasGoogleAccount !== false,
             data.isGoogleDriveConnected === true
           );
@@ -8581,173 +8593,6 @@ document.addEventListener('DOMContentLoaded', function () {
       }
     }
   }, 2000);
-
-  // ========================================
-  // AI Chat Support
-  // ========================================
-
-  var aiChatModal = document.getElementById('aiChatModal');
-  var aiChatClose = document.getElementById('aiChatClose');
-  var aiChatMessages = document.getElementById('aiChatMessages');
-  var aiChatInput = document.getElementById('aiChatInput');
-  var aiChatSend = document.getElementById('aiChatSend');
-  var startAiChatBtn = document.getElementById('startAiChatBtn');
-
-  // Open AI Chat from Support modal
-  if (startAiChatBtn) {
-    startAiChatBtn.addEventListener('click', function() {
-      // Close the support modal first
-      var feedbackModal = document.getElementById('feedbackModal');
-      if (feedbackModal) {
-        feedbackModal.style.display = 'none';
-      }
-      // Open AI Chat modal
-      if (aiChatModal) {
-        aiChatModal.style.display = 'block';
-        document.body.style.overflow = 'hidden';
-        if (aiChatInput) {
-          aiChatInput.focus();
-        }
-      }
-    });
-  }
-
-  // Close AI Chat modal
-  if (aiChatClose) {
-    aiChatClose.addEventListener('click', function() {
-      if (aiChatModal) {
-        aiChatModal.style.display = 'none';
-        document.body.style.overflow = '';
-      }
-    });
-  }
-
-  // Close on outside click
-  if (aiChatModal) {
-    aiChatModal.addEventListener('click', function(e) {
-      if (e.target === aiChatModal) {
-        aiChatModal.style.display = 'none';
-        document.body.style.overflow = '';
-      }
-    });
-  }
-
-  // Send message function
-  function sendAiChatMessage() {
-    if (!aiChatInput || !aiChatMessages) return;
-
-    var message = aiChatInput.value.trim();
-    if (!message) return;
-
-    // Add user message to chat
-    addChatMessage(message, 'user');
-    aiChatInput.value = '';
-    aiChatInput.style.height = 'auto';
-
-    // Disable input while waiting
-    aiChatInput.disabled = true;
-    if (aiChatSend) aiChatSend.disabled = true;
-
-    // Show typing indicator
-    var typingIndicator = document.createElement('div');
-    typingIndicator.className = 'ai-message assistant typing-indicator';
-    typingIndicator.innerHTML = `
-      <div class="ai-message-avatar">🤖</div>
-      <div class="ai-typing">
-        <div class="ai-typing-dot"></div>
-        <div class="ai-typing-dot"></div>
-        <div class="ai-typing-dot"></div>
-      </div>
-    `;
-    aiChatMessages.appendChild(typingIndicator);
-    aiChatMessages.scrollTop = aiChatMessages.scrollHeight;
-
-    // Send to API
-    fetch('api/ai-chat.php', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken },
-      body: JSON.stringify({ message: message })
-    })
-    .then(function(response) { return response.json(); })
-    .then(function(data) {
-      // Remove typing indicator
-      var indicator = aiChatMessages.querySelector('.typing-indicator');
-      if (indicator) indicator.remove();
-
-      // Add AI response
-      if (data.message) {
-        addChatMessage(data.message, 'assistant', data.is_error);
-      } else {
-        addChatMessage('Sorry, I couldn\'t process your request. Please try again.', 'assistant', true);
-      }
-    })
-    .catch(function(error) {
-
-      // Remove typing indicator
-      var indicator = aiChatMessages.querySelector('.typing-indicator');
-      if (indicator) indicator.remove();
-
-      addChatMessage('Sorry, I\'m having trouble connecting. Please try again.', 'assistant', true);
-    })
-    .finally(function() {
-      // Re-enable input
-      aiChatInput.disabled = false;
-      if (aiChatSend) aiChatSend.disabled = false;
-      aiChatInput.focus();
-    });
-  }
-
-  // Add message to chat
-  function addChatMessage(content, role, isError) {
-    if (!aiChatMessages) return;
-
-    var messageDiv = document.createElement('div');
-    messageDiv.className = 'ai-message ' + role + (isError ? ' error' : '');
-
-    var avatar = role === 'user' ? '👤' : '🤖';
-
-    // Convert markdown-like formatting to HTML
-    var formattedContent = content
-      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-      .replace(/\n\n/g, '</p><p>')
-      .replace(/\n- /g, '</p><ul><li>')
-      .replace(/\n\d+\. /g, '</p><ol><li>')
-      .replace(/\n/g, '<br>');
-
-    // Wrap in paragraph if not already
-    if (!formattedContent.startsWith('<')) {
-      formattedContent = '<p>' + formattedContent + '</p>';
-    }
-
-    messageDiv.innerHTML = `
-      <div class="ai-message-avatar">${avatar}</div>
-      <div class="ai-message-content">${formattedContent}</div>
-    `;
-
-    aiChatMessages.appendChild(messageDiv);
-    aiChatMessages.scrollTop = aiChatMessages.scrollHeight;
-  }
-
-  // Send on button click
-  if (aiChatSend) {
-    aiChatSend.addEventListener('click', sendAiChatMessage);
-  }
-
-  // Send on Enter (Shift+Enter for new line)
-  if (aiChatInput) {
-    aiChatInput.addEventListener('keydown', function(e) {
-      if (e.key === 'Enter' && !e.shiftKey) {
-        e.preventDefault();
-        sendAiChatMessage();
-      }
-    });
-
-    // Auto-resize textarea
-    aiChatInput.addEventListener('input', function() {
-      this.style.height = 'auto';
-      this.style.height = Math.min(this.scrollHeight, 120) + 'px';
-    });
-  }
 
   // Kanban Filter Functionality
   function initKanbanFilters() {

@@ -10,6 +10,7 @@ require_once __DIR__ . '/session.php';
 require_once __DIR__ . '/appConfig.php';
 require_once __DIR__ . '/practice-trial.php';
 require_once __DIR__ . '/practice-security.php';
+require_once __DIR__ . '/user-manager.php';
 require_once __DIR__ . '/csrf.php';
 
 // Start session if not already started
@@ -97,7 +98,7 @@ if (strlen($signerName) > 255 || strlen($signerTitle) > 255) {
 }
 
 // Current BAA version
-$baaVersion = 'v1.0-2025-12-18';
+$baaVersion = 'v1.0-2026-08-07';
 
 try {
     // Ensure BAA columns exist (run migration if needed)

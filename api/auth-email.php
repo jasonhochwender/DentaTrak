@@ -243,59 +243,10 @@ function handleLogin($pdo, $input) {
         }
     }
     
-    // Get user's practices for session
-    $userPractices = getUserPractices($user['id']);
-    $practiceCount = count($userPractices);
-    
-    // Store all practices in session for potential selection
-    $_SESSION['available_practices'] = $userPractices;
-    
-    // Check for preferred practice in user preferences
-    $preferredPracticeId = null;
-    try {
-        $prefStmt = $pdo->prepare("SELECT preferred_practice_id FROM user_preferences WHERE user_id = :user_id");
-        $prefStmt->execute(['user_id' => $user['id']]);
-        $prefRow = $prefStmt->fetch(PDO::FETCH_ASSOC);
-        if ($prefRow && !empty($prefRow['preferred_practice_id'])) {
-            // Validate the preferred practice is still accessible
-            foreach ($userPractices as $p) {
-                if ((int)$p['id'] === (int)$prefRow['preferred_practice_id']) {
-                    $preferredPracticeId = (int)$p['id'];
-                    break;
-                }
-            }
-        }
-    } catch (PDOException $e) {
-        // Preferences table might not exist yet
-    }
-    
-    if ($practiceCount === 0) {
-        // No practices - needs setup
-        $_SESSION['needs_practice_setup'] = true;
-        $_SESSION['needs_practice_selection'] = false;
-        $_SESSION['has_multiple_practices'] = false;
-    } else if ($preferredPracticeId) {
-        // User has a preferred practice - use it
-        $_SESSION['current_practice_id'] = $preferredPracticeId;
-        $_SESSION['needs_practice_setup'] = false;
-        $_SESSION['needs_practice_selection'] = false;
-        $_SESSION['has_multiple_practices'] = ($practiceCount > 1);
-    } else if ($practiceCount === 1) {
-        // User has exactly one practice - auto-select it
-        $_SESSION['current_practice_id'] = $userPractices[0]['id'];
-        $_SESSION['practice_uuid'] = $userPractices[0]['uuid'] ?? null;
-        $_SESSION['needs_practice_setup'] = false;
-        $_SESSION['needs_practice_selection'] = false;
-        $_SESSION['has_multiple_practices'] = false;
-    } else {
-        // User has multiple practices but no preference - auto-select first one
-        // User can switch practices via the header switcher
-        $_SESSION['current_practice_id'] = $userPractices[0]['id'];
-        $_SESSION['practice_uuid'] = $userPractices[0]['uuid'] ?? null;
-        $_SESSION['has_multiple_practices'] = true;
-        $_SESSION['needs_practice_selection'] = false;
-        $_SESSION['needs_practice_setup'] = false;
-    }
+    // Resolve which practice (if any) to auto-select, or whether the user
+    // needs to be sent to the existing practice chooser. Single source of
+    // truth shared with the Google OAuth login paths - see user-manager.php.
+    $practiceSelection = resolveLoginPracticeSelection($user['id']);
     
     // Set cookie to remember login preference (email/password)
     setcookie('login_preference', 'email', [
@@ -306,15 +257,9 @@ function handleLogin($pdo, $input) {
         'samesite' => 'Lax'
     ]);
     
-    // Determine redirect based on practice status
-    $redirect = 'main.php';
-    if (!empty($_SESSION['needs_practice_setup']) || !empty($_SESSION['needs_practice_selection'])) {
-        $redirect = 'practice-setup.php';
-    }
-    
     echo json_encode([
         'success' => true,
         'message' => 'Login successful',
-        'redirect' => $redirect
+        'redirect' => $practiceSelection['redirect']
     ]);
 }

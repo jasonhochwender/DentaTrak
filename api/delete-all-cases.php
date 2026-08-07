@@ -17,6 +17,7 @@ require_once __DIR__ . '/session.php';
 require_once __DIR__ . '/google-drive.php';
 require_once __DIR__ . '/cases-cache.php';
 require_once __DIR__ . '/dev-tools-access.php';
+require_once __DIR__ . '/csrf.php';
 header('Content-Type: application/json');
 
 // Check if user is logged in
@@ -34,6 +35,9 @@ if (!canAccessDevTools($appConfig, $userEmail)) {
     echo json_encode(['success' => false, 'message' => 'Dev tools access not authorized']);
     exit;
 }
+
+// Validate CSRF token (standard app-wide CSRF pattern)
+requireCsrfToken();
 
 // For super users in UAT/Production, verify they have admin access to the practice
 if (isProductionOrUAT($appConfig)) {
@@ -57,23 +61,17 @@ try {
     // Get current practice ID
     $currentPracticeId = $_SESSION['current_practice_id'] ?? 0;
     
-    // Get all cases for the current user's practice
+    // Get all cases for the current user's practice ONLY. This is a
+    // deliberate SELECT before DELETE (rather than a single DELETE
+    // statement) so each case's Google Drive folder can also be trashed.
+    // SECURITY: There is intentionally no fallback to legacy/orphaned
+    // practice_id IS NULL rows here - if the current practice has zero
+    // cases, zero cases are deleted. Cleaning up any legacy orphaned rows
+    // is a migration concern, not something this everyday Dev Tool should
+    // ever touch.
     $stmt = $pdo->prepare("SELECT case_id, drive_folder_id FROM cases_cache WHERE practice_id = ?");
     $stmt->execute([$currentPracticeId]);
     $cases = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    
-    // If no cases found for current practice but there are cases with NULL practice_id,
-    // try to delete those as well (fallback for cases created before practice_id was implemented)
-    if (count($cases) === 0) {
-        $nullPracticeStmt = $pdo->query("SELECT COUNT(*) as count FROM cases_cache WHERE practice_id IS NULL");
-        $nullPracticeCases = $nullPracticeStmt->fetchColumn();
-        
-        if ($nullPracticeCases > 0) {
-            $stmt = $pdo->prepare("SELECT case_id, drive_folder_id FROM cases_cache WHERE practice_id IS NULL");
-            $stmt->execute();
-            $cases = $stmt->fetchAll(PDO::FETCH_ASSOC);
-        }
-    }
     
     $deletedCount = 0;
     $errors = [];
@@ -85,17 +83,12 @@ try {
                 trashDriveFolder($case['drive_folder_id']);
             }
             
-            // Delete case from cases_cache table
-            // Handle both cases with specific practice_id and NULL practice_id
-            if ($currentPracticeId > 0) {
-                // Try to delete with practice_id first
-                $deleteStmt = $pdo->prepare("DELETE FROM cases_cache WHERE case_id = ? AND (practice_id = ? OR practice_id IS NULL)");
-                $result = $deleteStmt->execute([$case['case_id'], $currentPracticeId]);
-            } else {
-                // If no practice ID, only delete NULL practice_id cases
-                $deleteStmt = $pdo->prepare("DELETE FROM cases_cache WHERE case_id = ? AND practice_id IS NULL");
-                $result = $deleteStmt->execute([$case['case_id']]);
-            }
+            // Delete case from cases_cache table - strictly scoped to the
+            // current practice. $case['case_id'] already only ever came
+            // from the practice-scoped SELECT above, and this WHERE clause
+            // re-confirms that scoping rather than trusting the prior query.
+            $deleteStmt = $pdo->prepare("DELETE FROM cases_cache WHERE case_id = ? AND practice_id = ?");
+            $result = $deleteStmt->execute([$case['case_id'], $currentPracticeId]);
             
             if ($result) {
                 $deletedCount++;
@@ -108,17 +101,23 @@ try {
         }
     }
     
-    if ($deletedCount > 0) {
+    // Deleting zero cases (because the current practice already has none)
+    // is a successful outcome, not a failure - only report failure if a
+    // case that existed in this practice could not actually be deleted.
+    if (empty($errors)) {
         echo json_encode([
             'success' => true,
-            'message' => "Successfully deleted {$deletedCount} cases",
+            'message' => $deletedCount > 0
+                ? "Successfully deleted {$deletedCount} cases"
+                : 'No cases to delete for this practice',
             'deleted_count' => $deletedCount,
             'errors' => $errors
         ]);
     } else {
         echo json_encode([
             'success' => false,
-            'message' => 'No cases were deleted',
+            'message' => 'Some cases could not be deleted',
+            'deleted_count' => $deletedCount,
             'errors' => $errors
         ]);
     }

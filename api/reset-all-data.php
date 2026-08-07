@@ -4,9 +4,15 @@
  * Resets all data for the current user's practice
  * 
  * Access Control:
- * - Always allowed in development environment (resets entire local DB)
+ * - Always allowed in development environment
  * - In UAT/Production: Only allowed for super users with dev_tools_enabled
- * - In UAT/Production: Operations are scoped to the user's practice ONLY
+ *
+ * Tenant scoping:
+ * - Operations are ALWAYS scoped to the current authenticated practice
+ *   ($_SESSION['current_practice_id']), in every environment. There is no
+ *   environment-specific full-database-reset path - a complete local
+ *   database wipe, if ever needed, belongs in a separate, explicitly-named
+ *   developer tool, not this per-practice action.
  */
 
 require_once __DIR__ . '/session.php';
@@ -143,142 +149,134 @@ try {
         error_log('Drive cleanup error during reset: ' . $driveError->getMessage());
     }
 
-    // In UAT/Production: Only delete data for the user's practice (scoped reset)
-    // In Development: Full database reset (truncate all tables)
-    if ($isSuperUserInProd) {
-        // SCOPED RESET: Delete everything for this practice including the practice itself
-        $pdo->beginTransaction();
+    // TENANT SAFETY: "Start Over" always performs the same practice-scoped
+    // reset in every environment (development, UAT, production). There is
+    // intentionally no environment-specific branch here and no TRUNCATE of
+    // any kind - a per-practice Dev Tool must never be able to affect any
+    // practice other than $practiceId, regardless of where it's run. A
+    // separate, explicitly-named tool (e.g. "Wipe Local Database") would be
+    // the right place for a full local sandbox wipe, and is out of scope
+    // for this action.
+    $pdo->beginTransaction();
+    try {
+        // Get all user IDs in this practice before deleting (check if table exists)
+        $userIds = [];
         try {
-            // Get all user IDs in this practice before deleting (check if table exists)
-            $userIds = [];
-            try {
-                $stmt = $pdo->prepare("SELECT user_id FROM practice_users WHERE practice_id = ?");
-                $stmt->execute([$practiceId]);
-                $practiceUserRows = $stmt->fetchAll(PDO::FETCH_ASSOC);
-                foreach ($practiceUserRows as $row) {
-                    $userIds[] = $row['user_id'];
-                }
-            } catch (PDOException $e) {
-                error_log('practice_users table does not exist or error: ' . $e->getMessage());
+            $stmt = $pdo->prepare("SELECT user_id FROM practice_users WHERE practice_id = ?");
+            $stmt->execute([$practiceId]);
+            $practiceUserRows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            foreach ($practiceUserRows as $row) {
+                $userIds[] = $row['user_id'];
             }
-            
-            // Delete cases for this practice (check if table exists)
-            $casesDeleted = 0;
-            try {
-                $stmt = $pdo->prepare("DELETE FROM cases_cache WHERE practice_id = ?");
-                $stmt->execute([$practiceId]);
-                $casesDeleted = $stmt->rowCount();
-                // Cases deleted successfully
-            } catch (PDOException $e) {
-                error_log('cases_cache table does not exist or error: ' . $e->getMessage());
-            }
-            
-            // Delete practice_users associations (check if table exists)
-            $practiceUsersDeleted = 0;
-            try {
-                $stmt = $pdo->prepare("DELETE FROM practice_users WHERE practice_id = ?");
-                $stmt->execute([$practiceId]);
-                $practiceUsersDeleted = $stmt->rowCount();
-                // Practice user associations deleted successfully
-            } catch (PDOException $e) {
-                error_log('practice_users table does not exist or error: ' . $e->getMessage());
-            }
-            
-            // Delete user preferences for users in this practice
-            if (!empty($userIds)) {
-                $placeholders = str_repeat('?,', count($userIds) - 1) . '?';
-                
-                // Delete user preferences (check if table exists first)
-                try {
-                    $stmt = $pdo->prepare("DELETE FROM user_preferences WHERE user_id IN ($placeholders)");
-                    $stmt->execute($userIds);
-                } catch (PDOException $e) {
-                    error_log('user_preferences table does not exist or error: ' . $e->getMessage());
-                }
-                
-                // Delete user auth methods (check if table exists first)
-                try {
-                    $stmt = $pdo->prepare("DELETE FROM user_auth_methods WHERE user_id IN ($placeholders)");
-                    $stmt->execute($userIds);
-                } catch (PDOException $e) {
-                    error_log('user_auth_methods table does not exist or error: ' . $e->getMessage());
-                }
-                
-                // Delete billing info (check if table exists first)
-                try {
-                    $stmt = $pdo->prepare("DELETE FROM user_billing WHERE user_id IN ($placeholders)");
-                    $stmt->execute($userIds);
-                } catch (PDOException $e) {
-                    error_log('user_billing table does not exist or error: ' . $e->getMessage());
-                }
-                
-                // Delete the users themselves (only if they're not in other practices)
-                try {
-                    $stmt = $pdo->prepare("
-                        DELETE FROM users 
-                        WHERE id IN ($placeholders) 
-                        AND id NOT IN (
-                            SELECT DISTINCT user_id 
-                            FROM practice_users 
-                            WHERE user_id IN ($placeholders)
-                        )
-                    ");
-                    $stmt->execute(array_merge($userIds, $userIds));
-                } catch (PDOException $e) {
-                    error_log('Error deleting users: ' . $e->getMessage());
-                }
-            }
-            
-            // Finally, delete the practice itself (check if table exists)
-            try {
-                $stmt = $pdo->prepare("DELETE FROM practices WHERE id = ?");
-                $stmt->execute([$practiceId]);
-                // Practice deleted successfully
-            } catch (PDOException $e) {
-                error_log('practices table does not exist or error: ' . $e->getMessage());
-            }
-            
-            $pdo->commit();
-            
-            $message = "Your practice and all associated data have been completely deleted.";
-        } catch (Exception $e) {
-            $pdo->rollBack();
-            throw $e;
+        } catch (PDOException $e) {
+            error_log('practice_users table does not exist or error: ' . $e->getMessage());
         }
-    } else {
-        // FULL RESET: Development environment - truncate all tables
+        
+        // Delete cases for this practice (check if table exists)
+        $casesDeleted = 0;
         try {
-            $pdo->exec('SET FOREIGN_KEY_CHECKS = 0');
-
-            $tablesStmt = $pdo->query('SHOW TABLES');
-            $tables = $tablesStmt ? $tablesStmt->fetchAll(PDO::FETCH_COLUMN) : [];
-
-            foreach ($tables as $tableName) {
-                $tableName = trim($tableName);
-                if ($tableName === '') {
-                    continue;
-                }
-                try {
-                    $pdo->exec("TRUNCATE TABLE `{$tableName}`");
-                    // Table truncated successfully
-                } catch (PDOException $e) {
-                    // Failed to truncate table - continue with reset
-                }
-            }
-
-            // Re-enable foreign key checks
-            $pdo->exec('SET FOREIGN_KEY_CHECKS = 1');
-            
-            $message = 'All application data has been reset for this development environment.';
-        } catch (Exception $e) {
-            // Ensure foreign key checks are re-enabled even if truncation fails
-            try {
-                $pdo->exec('SET FOREIGN_KEY_CHECKS = 1');
-            } catch (Exception $inner) {
-                // Ignore errors while attempting to restore foreign key checks
-            }
-            throw $e;
+            $stmt = $pdo->prepare("DELETE FROM cases_cache WHERE practice_id = ?");
+            $stmt->execute([$practiceId]);
+            $casesDeleted = $stmt->rowCount();
+            // Cases deleted successfully
+        } catch (PDOException $e) {
+            error_log('cases_cache table does not exist or error: ' . $e->getMessage());
         }
+        
+        // Delete practice_users associations (check if table exists)
+        $practiceUsersDeleted = 0;
+        try {
+            $stmt = $pdo->prepare("DELETE FROM practice_users WHERE practice_id = ?");
+            $stmt->execute([$practiceId]);
+            $practiceUsersDeleted = $stmt->rowCount();
+            // Practice user associations deleted successfully
+        } catch (PDOException $e) {
+            error_log('practice_users table does not exist or error: ' . $e->getMessage());
+        }
+        
+        // SECURITY: Determine which of this practice's users have NO
+        // remaining membership in ANY practice (not just this one), now
+        // that this practice's practice_users rows are gone. This single
+        // membership check is reused below for every shared, user-level
+        // table (preferences, auth methods, billing, and the users row
+        // itself) so a user who still belongs to another practice - e.g.
+        // owner of Practice A, member of Practice B - keeps their login
+        // method, preferences, and billing records intact when Practice A
+        // is reset.
+        $orphanedUserIds = [];
+        if (!empty($userIds)) {
+            $placeholders = str_repeat('?,', count($userIds) - 1) . '?';
+            try {
+                $stmt = $pdo->prepare("
+                    SELECT id FROM users
+                    WHERE id IN ($placeholders)
+                    AND id NOT IN (
+                        SELECT DISTINCT user_id
+                        FROM practice_users
+                        WHERE user_id IN ($placeholders)
+                    )
+                ");
+                $stmt->execute(array_merge($userIds, $userIds));
+                $orphanedUserIds = array_map('intval', $stmt->fetchAll(PDO::FETCH_COLUMN));
+            } catch (PDOException $e) {
+                error_log('Error determining orphaned users during reset: ' . $e->getMessage());
+            }
+        }
+        
+        // Only touch shared user-level records for users who truly have no
+        // remaining practice membership anywhere.
+        if (!empty($orphanedUserIds)) {
+            $orphanPlaceholders = str_repeat('?,', count($orphanedUserIds) - 1) . '?';
+            
+            // Delete user preferences (check if table exists first)
+            try {
+                $stmt = $pdo->prepare("DELETE FROM user_preferences WHERE user_id IN ($orphanPlaceholders)");
+                $stmt->execute($orphanedUserIds);
+            } catch (PDOException $e) {
+                error_log('user_preferences table does not exist or error: ' . $e->getMessage());
+            }
+            
+            // Delete user auth methods (check if table exists first)
+            try {
+                $stmt = $pdo->prepare("DELETE FROM user_auth_methods WHERE user_id IN ($orphanPlaceholders)");
+                $stmt->execute($orphanedUserIds);
+            } catch (PDOException $e) {
+                error_log('user_auth_methods table does not exist or error: ' . $e->getMessage());
+            }
+            
+            // Delete billing info (check if table exists first)
+            try {
+                $stmt = $pdo->prepare("DELETE FROM user_billing WHERE user_id IN ($orphanPlaceholders)");
+                $stmt->execute($orphanedUserIds);
+            } catch (PDOException $e) {
+                error_log('user_billing table does not exist or error: ' . $e->getMessage());
+            }
+            
+            // Delete the users themselves - already confirmed above that
+            // these specific IDs have no remaining practice membership.
+            try {
+                $stmt = $pdo->prepare("DELETE FROM users WHERE id IN ($orphanPlaceholders)");
+                $stmt->execute($orphanedUserIds);
+            } catch (PDOException $e) {
+                error_log('Error deleting users: ' . $e->getMessage());
+            }
+        }
+        
+        // Finally, delete the practice itself (check if table exists)
+        try {
+            $stmt = $pdo->prepare("DELETE FROM practices WHERE id = ?");
+            $stmt->execute([$practiceId]);
+            // Practice deleted successfully
+        } catch (PDOException $e) {
+            error_log('practices table does not exist or error: ' . $e->getMessage());
+        }
+        
+        $pdo->commit();
+        
+        $message = "Your practice and all associated data have been completely deleted.";
+    } catch (Exception $e) {
+        $pdo->rollBack();
+        throw $e;
     }
 
     // Clear relevant cookies (including preferred practice selection)
@@ -311,14 +309,6 @@ try {
         'message' => $message
     ]);
 } catch (Throwable $e) {
-    try {
-        if (isset($pdo) && $pdo) {
-            $pdo->exec('SET FOREIGN_KEY_CHECKS = 1');
-        }
-    } catch (Throwable $inner) {
-        // Ignore errors while attempting to restore foreign key checks
-    }
-
     http_response_code(500);
     echo json_encode([
         'success' => false,

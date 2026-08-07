@@ -38,29 +38,11 @@ if (!$currentPracticeId) {
 $since = isset($_GET['since']) ? (int)$_GET['since'] : 0;
 
 // Get current user info for limited visibility check
-$currentUserEmail = $_SESSION['user_email'] ?? '';
-$hasLimitedVisibility = false;
-
-// Check if user has limited visibility
-if ($currentUserEmail && $currentPracticeId) {
-    global $pdo;
-    try {
-        $stmt = $pdo->prepare("
-            SELECT limited_visibility 
-            FROM practice_users pu
-            JOIN users u ON pu.user_id = u.id
-            WHERE pu.practice_id = :practice_id AND u.email = :email
-        ");
-        $stmt->execute([
-            'practice_id' => $currentPracticeId,
-            'email' => $currentUserEmail
-        ]);
-        $row = $stmt->fetch(PDO::FETCH_ASSOC);
-        $hasLimitedVisibility = $row && (bool)$row['limited_visibility'];
-    } catch (PDOException $e) {
-        // Ignore errors, assume no limited visibility
-    }
-}
+// SECURITY: Resolve email and limited_visibility via the centralized
+// helpers (never trust $_SESSION['user_email'] alone), and normalize
+// case for the assignment comparison below.
+$currentUserEmail = getCurrentUserEmail() ?? '';
+$hasLimitedVisibility = $currentPracticeId ? hasLimitedVisibility($currentPracticeId) : false;
 
 try {
     // Ensure the case_updates table exists
@@ -92,9 +74,12 @@ try {
     $updates = [];
     while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
         // For limited visibility users, only include cases assigned to them
-        if ($hasLimitedVisibility && $row['assigned_to'] !== $currentUserEmail) {
+        // (email comparison is case-insensitive, matching list-cases.php)
+        $rowAssignedTo = strtolower(trim((string)($row['assigned_to'] ?? '')));
+        $rowPreviousAssignedTo = strtolower(trim((string)($row['previous_assigned_to'] ?? '')));
+        if ($hasLimitedVisibility && $rowAssignedTo !== $currentUserEmail) {
             // Check if this was previously assigned to them (they need to know it was removed)
-            if ($row['update_type'] === 'assignment' && $row['previous_assigned_to'] === $currentUserEmail) {
+            if ($row['update_type'] === 'assignment' && $rowPreviousAssignedTo === $currentUserEmail) {
                 // Include this update so they know the case was unassigned from them
             } else {
                 continue; // Skip updates for cases not assigned to this user

@@ -827,6 +827,111 @@ input#practiceName {
   line-height: 1;
 }
 
+/* ============================================================
+   Shared Assignment Labels - scoped presentation overrides
+   ============================================================
+   Assignment Labels reuse the exact same markup/classes/IDs as the
+   Practice Users list above it (gmail-user-item, gmail-user-email,
+   gmail-users-container, add-gmail-user, gmail-input-row, gmail-input,
+   add-gmail-btn, error-message) so no HTML structure or JavaScript had
+   to change. Every rule below is scoped under .assignment-labels-container
+   / .assignment-labels-list so the Practice Users table is completely
+   unaffected. */
+
+.assignment-labels-hint {
+  margin: 0 0 10px 0;
+}
+
+.assignment-labels-container .add-gmail-user {
+  margin-bottom: 12px;
+}
+
+.assignment-labels-container .gmail-input-row {
+  margin-bottom: 4px;
+}
+
+/* Give the label list a light card-like boundary so entries read as
+   reusable resources rather than a loose block of editable text. */
+.assignment-labels-list {
+  border: 1px solid var(--border-light);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.assignment-labels-list .gmail-user-item {
+  padding: 8px 12px;
+}
+
+.assignment-labels-list .gmail-user-email {
+  display: flex;
+  align-items: center;
+  font-size: 13px;
+}
+
+/* Small leading marker (like a tag/resource dot) instead of plain text,
+   reinforcing that this is a resource, not a person. */
+.assignment-labels-list .gmail-user-email::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--text-light);
+  margin-right: 10px;
+  flex-shrink: 0;
+}
+
+/* Small text buttons instead of large buttons - icon plus a short label,
+   right-aligned via the existing .gmail-user-item (space-between) and
+   .assignment-actions (flex) layout already produced by displayAssignmentLabels(). */
+.assignment-labels-list .edit-assignment-label,
+.assignment-labels-list .assignment-delete-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 26px;
+  padding: 0 8px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  cursor: pointer;
+  font-size: 12px;
+  line-height: 1;
+  transition: background-color 0.15s ease;
+}
+
+.assignment-labels-list .edit-assignment-label {
+  color: var(--text-light);
+}
+
+.assignment-labels-list .edit-assignment-label::after {
+  content: "Rename";
+}
+
+.assignment-labels-list .assignment-delete-btn::after {
+  content: "Delete";
+}
+
+.assignment-labels-list .edit-assignment-label:hover {
+  background-color: var(--background-subtle);
+  color: var(--text-primary);
+}
+
+.assignment-labels-list .assignment-delete-btn:hover {
+  background-color: rgba(229, 57, 53, 0.12);
+}
+
+/* Empty state - shown automatically whenever displayAssignmentLabels()
+   leaves the list container with no children (it sets innerHTML = '' when
+   window.assignmentLabels is empty). Pure CSS, no JS change required. */
+.assignment-labels-list:empty::after {
+  content: "No shared assignment labels have been created yet.";
+  display: block;
+  padding: 14px 12px;
+  font-size: 13px;
+  color: var(--text-light);
+  font-style: italic;
+}
+
 /* Practice Users & Roles grid layout */
 /* Columns: Email | Admin | Insights | Assigned Only | Remove */
 .practice-user-header,

@@ -35,9 +35,9 @@ try {
             p.baa_accepted,
             pu.role,
             pu.is_owner,
-            pu.limited_visibility,
-            pu.can_view_analytics,
-            pu.can_edit_cases
+            IFNULL(pu.limited_visibility, 0) AS limited_visibility,
+            IFNULL(pu.can_view_analytics, 1) AS can_view_analytics,
+            IFNULL(pu.can_edit_cases, 1) AS can_edit_cases
         FROM practices p
         JOIN practice_users pu ON p.id = pu.practice_id
         WHERE pu.user_id = :user_id

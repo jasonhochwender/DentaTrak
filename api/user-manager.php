@@ -358,3 +358,160 @@ function getUserPreferences($userId) {
         return false;
     }
 }
+
+/**
+ * ============================================================
+ * Centralized post-authentication practice resolution
+ * ============================================================
+ *
+ * Single source of truth for "which practice should this user land in
+ * after logging in, and does the app need to ask them?" Used by every
+ * login entry point (email/password, Google OAuth, Google OAuth + 2FA,
+ * and Remember Me auto-login) so their behavior can never drift apart.
+ *
+ * Decision matrix:
+ *   0 practices                              -> needs_practice_setup
+ *   any count, valid stored preference       -> auto-select preferred practice
+ *   1 practice, user owns it                 -> auto-select it
+ *   1 practice, user does NOT own it         -> needs_practice_selection
+ *                                                (existing chooser lets them
+ *                                                continue into it OR create
+ *                                                their own practice instead)
+ *   >1 practices, no valid preference        -> needs_practice_selection
+ *                                                (existing chooser in practice-setup.php)
+ *
+ * Membership and ownership are independent: being invited into someone
+ * else's practice (membership) should never by itself prevent a user from
+ * also creating and owning their own practice. A single membership only
+ * short-circuits straight into the app when that membership is one the
+ * user actually owns (the common "I created my own practice" case) -
+ * otherwise they get a chance to continue into it or create their own,
+ * exactly as they would if they already belonged to several practices.
+ *
+ * Practice ordering: owned practices first, then alphabetically by
+ * practice_name (case-insensitive). getUserPractices() has no ORDER BY,
+ * so without this the order returned by MySQL for an unordered SELECT is
+ * unspecified. This ordering is what practice-setup.php's chooser and
+ * $_SESSION['available_practices'] consumers see.
+ *
+ * This function requires getUserPractices() (unified-identity.php) to be
+ * loaded by the caller before use.
+ *
+ * @param int $userId
+ * @return array{
+ *   practices: array,
+ *   practice_count: int,
+ *   preferred_practice_id: int|null,
+ *   selected_practice_id: int|null,
+ *   needs_practice_setup: bool,
+ *   needs_practice_selection: bool,
+ *   has_multiple_practices: bool,
+ *   redirect: string
+ * }
+ */
+function resolveLoginPracticeSelection($userId) {
+    global $pdo;
+
+    $userPractices = function_exists('getUserPractices') ? getUserPractices($userId) : [];
+
+    // Deterministic ordering: owned practices first, then alphabetical by
+    // name, instead of relying on MySQL's unspecified row order.
+    usort($userPractices, function ($a, $b) {
+        $aOwner = !empty($a['is_owner']) ? 1 : 0;
+        $bOwner = !empty($b['is_owner']) ? 1 : 0;
+        if ($aOwner !== $bOwner) {
+            return $bOwner - $aOwner; // owned practices first
+        }
+        return strcasecmp($a['practice_name'] ?? '', $b['practice_name'] ?? '');
+    });
+
+    $practiceCount = count($userPractices);
+
+    // Store all practices in session; this is what practice-setup.php's
+    // existing "Choose a Practice" screen reads from when a chooser is needed.
+    $_SESSION['available_practices'] = $userPractices;
+
+    // Resolve and validate a stored preferred practice, if any. A stored
+    // preference that no longer matches a current membership (practice
+    // deleted, user removed, etc.) is treated as if none were set.
+    $preferredPracticeId = null;
+    if ($pdo) {
+        try {
+            $prefStmt = $pdo->prepare("SELECT preferred_practice_id FROM user_preferences WHERE user_id = :user_id");
+            $prefStmt->execute(['user_id' => $userId]);
+            $prefRow = $prefStmt->fetch(PDO::FETCH_ASSOC);
+            if ($prefRow && !empty($prefRow['preferred_practice_id'])) {
+                foreach ($userPractices as $p) {
+                    if ((int)$p['id'] === (int)$prefRow['preferred_practice_id']) {
+                        $preferredPracticeId = (int)$p['id'];
+                        break;
+                    }
+                }
+            }
+        } catch (PDOException $e) {
+            // user_preferences table/column might not exist yet - treat as no preference.
+        }
+    }
+
+    $selectedPracticeId = null;
+    $needsPracticeSetup = false;
+    $needsPracticeSelection = false;
+
+    if ($practiceCount === 0) {
+        $needsPracticeSetup = true;
+    } elseif ($preferredPracticeId) {
+        $selectedPracticeId = $preferredPracticeId;
+    } elseif ($practiceCount === 1) {
+        // Only auto-select a single membership when the user actually owns
+        // that practice. A user who was only invited as a member/admin of
+        // someone else's practice, and has never created their own, should
+        // get the chance to continue into it OR create their own practice
+        // via the existing chooser - membership elsewhere should never
+        // silently stand in for "this is my only practice."
+        if (!empty($userPractices[0]['is_owner'])) {
+            $selectedPracticeId = (int)$userPractices[0]['id'];
+        } else {
+            $needsPracticeSelection = true;
+        }
+    } else {
+        // Multiple practices, no valid stored preference: ask the user via
+        // the existing chooser instead of silently auto-selecting a row.
+        $needsPracticeSelection = true;
+    }
+
+    $hasMultiplePractices = $practiceCount > 1;
+
+    if ($selectedPracticeId !== null) {
+        $_SESSION['current_practice_id'] = $selectedPracticeId;
+        $_SESSION['practice_uuid'] = null;
+        foreach ($userPractices as $p) {
+            if ((int)$p['id'] === $selectedPracticeId) {
+                $_SESSION['practice_uuid'] = $p['uuid'] ?? null;
+                break;
+            }
+        }
+    } else {
+        // Routing to the chooser (needs_practice_setup or
+        // needs_practice_selection): explicitly clear any stale
+        // current_practice_id left over from a previous session/practice
+        // so downstream pages (practice-setup.php, baa-acceptance.php)
+        // never mistake a leftover value for an active selection.
+        unset($_SESSION['current_practice_id']);
+        unset($_SESSION['practice_uuid']);
+    }
+
+    $_SESSION['needs_practice_setup'] = $needsPracticeSetup;
+    $_SESSION['needs_practice_selection'] = $needsPracticeSelection;
+    $_SESSION['has_multiple_practices'] = $hasMultiplePractices;
+
+    return [
+        'practices' => $userPractices,
+        'practice_count' => $practiceCount,
+        'preferred_practice_id' => $preferredPracticeId,
+        'selected_practice_id' => $selectedPracticeId,
+        'needs_practice_setup' => $needsPracticeSetup,
+        'needs_practice_selection' => $needsPracticeSelection,
+        'has_multiple_practices' => $hasMultiplePractices,
+        'redirect' => ($needsPracticeSetup || $needsPracticeSelection) ? 'practice-setup.php' : 'main.php'
+    ];
+}

@@ -1,12 +1,18 @@
 <?php
-// Start session
-session_start();
+// Centralized session handling (auth, timeout, secure cookie params)
+require_once __DIR__ . '/session.php';
+// Practice/case authorization (also pulls in appConfig.php for $pdo)
+require_once __DIR__ . '/practice-security.php';
 
 // Load PDF generation library
 require_once __DIR__ . '/../vendor/autoload.php';
 use Dompdf\Dompdf;
 use Dompdf\Options;
 use PhpOffice\PhpPresentation\IOFactory;
+
+// SECURITY: Require an authenticated user with a valid practice context
+// before generating/printing any case data.
+$currentPracticeId = requireValidPracticeContext();
 
 try {
     // Increase execution time limit for large documents
@@ -53,9 +59,19 @@ try {
     }
     
     $caseData = $input['caseData'];
-    
-    // Log the print activity
     $caseId = $caseData['id'] ?? null;
+
+    // SECURITY: Must have a case ID and it must belong to the current
+    // practice; for Assigned Only users it must also be assigned to them.
+    // This must happen BEFORE any activity logging or rendering below.
+    if (!$caseId) {
+        http_response_code(400);
+        echo json_encode(['success' => false, 'message' => 'Case ID is required']);
+        exit;
+    }
+    requireCaseAccess($caseId, $currentPracticeId);
+
+    // Log the print activity
     if ($caseId) {
         $patientName = trim(($caseData['patientFirstName'] ?? '') . ' ' . ($caseData['patientLastName'] ?? ''));
         logCaseActivity(

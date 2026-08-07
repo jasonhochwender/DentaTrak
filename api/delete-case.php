@@ -93,6 +93,10 @@ if (!isset($data['caseId']) || empty($data['caseId'])) {
 $caseId = $data['caseId'];
 $driveFolderId = $data['driveFolderId'] ?? '';
 
+// SECURITY: Verify this case belongs to the current practice and, for
+// Assigned Only users, is assigned to them, before archiving it.
+requireCaseAccess($caseId, $currentPracticeId);
+
 try {
     // Optionally clean up relational data without depending on a dental_cases table
     if ($pdo) {

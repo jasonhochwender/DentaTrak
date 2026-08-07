@@ -24,6 +24,12 @@ function sanitizeCaseActivityMeta(array $meta) {
         'fields_count',
         'attachment_count',
         'assignee_user_id',
+        // Assignee display value (a staff email or an Assignment Label,
+        // e.g. "Lab"/"Front Desk") - already shown throughout the app
+        // (case cards, dropdowns, exports), not PII/PHI, so it's safe to
+        // include here so the activity timeline can render "Assigned to X".
+        'assigned_to',
+        'old_assigned_to',
     ];
 
     $clean = [];

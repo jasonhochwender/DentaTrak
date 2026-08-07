@@ -103,6 +103,28 @@ $limitedVisibilityUsers = isset($data['limitedVisibilityUsers']) && is_array($da
     ? $data['limitedVisibilityUsers'] 
     : [];
 
+// SECURITY: Admin and Assigned Only (limited_visibility) are mutually
+// exclusive. The UI enforces this, but a manipulated request could try to
+// submit both for the same user - reject the whole request rather than
+// silently deciding which one wins, so no invalid combination is ever
+// persisted.
+$limitedVisibilityLower = [];
+foreach ($limitedVisibilityUsers as $limitedEmail => $isLimited) {
+    if ($isLimited) {
+        $limitedVisibilityLower[strtolower(trim((string)$limitedEmail))] = true;
+    }
+}
+foreach ($validAdminUsers as $adminEmail) {
+    if (isset($limitedVisibilityLower[strtolower(trim($adminEmail))])) {
+        http_response_code(400);
+        echo json_encode([
+            'success' => false,
+            'message' => 'Invalid role combination: "' . $adminEmail . '" cannot be both Admin and Assigned Only. Please uncheck one and try again.'
+        ]);
+        exit;
+    }
+}
+
 // Handle can view analytics users (map of email => boolean, default true)
 $canViewAnalyticsUsers = isset($data['canViewAnalyticsUsers']) && is_array($data['canViewAnalyticsUsers']) 
     ? $data['canViewAnalyticsUsers'] 
@@ -111,11 +133,6 @@ $canViewAnalyticsUsers = isset($data['canViewAnalyticsUsers']) && is_array($data
 // Handle can edit cases users (map of email => boolean, default true)
 $canEditCasesUsers = isset($data['canEditCasesUsers']) && is_array($data['canEditCasesUsers']) 
     ? $data['canEditCasesUsers'] 
-    : [];
-
-// Handle can add labels permission (map of email => boolean, default true)
-$canAddLabelsUsers = isset($data['canAddLabelsUsers']) && is_array($data['canAddLabelsUsers']) 
-    ? $data['canAddLabelsUsers'] 
     : [];
 
 // Handle assignment labels (free-text, per practice)
@@ -267,9 +284,61 @@ try {
             }
         }
 
-        // Update assignment labels for this practice for any practice member
-        if ($isPracticeMember) {
+        // Update assignment labels for this practice. Management
+        // (create/rename/delete) is restricted to Practice Administrators -
+        // there is no separate can_add_labels permission. Non-admins can
+        // still view/use labels (loaded via get-settings.php for the
+        // assignment dropdown); they just can't change the label set.
+        if ($userRole === 'admin') {
             try {
+                // SECURITY: Never silently orphan a case's assignment by
+                // deleting a label that's still in use. Determine which
+                // currently-stored labels are being removed by this save,
+                // and block the whole save (returning a clear message) if
+                // any removed label is still assigned to one or more cases.
+                $stmt = $pdo->prepare("SELECT label FROM practice_assignment_labels WHERE practice_id = :practice_id");
+                $stmt->execute(['practice_id' => $currentPracticeId]);
+                $existingLabels = $stmt->fetchAll(PDO::FETCH_COLUMN);
+
+                $newLabelsLower = array_map('mb_strtolower', $validAssignmentLabels);
+                $removedLabels = [];
+                foreach ($existingLabels as $existingLabel) {
+                    if (!in_array(mb_strtolower($existingLabel), $newLabelsLower, true)) {
+                        $removedLabels[] = $existingLabel;
+                    }
+                }
+
+                $blockedLabels = [];
+                if (!empty($removedLabels)) {
+                    $countStmt = $pdo->prepare("
+                        SELECT COUNT(*) FROM cases_cache
+                        WHERE practice_id = :practice_id AND LOWER(assigned_to) = :label
+                    ");
+                    foreach ($removedLabels as $removedLabel) {
+                        $countStmt->execute([
+                            'practice_id' => $currentPracticeId,
+                            'label' => mb_strtolower($removedLabel)
+                        ]);
+                        $caseCount = (int)$countStmt->fetchColumn();
+                        if ($caseCount > 0) {
+                            $blockedLabels[] = ['label' => $removedLabel, 'count' => $caseCount];
+                        }
+                    }
+                }
+
+                if (!empty($blockedLabels)) {
+                    $parts = [];
+                    foreach ($blockedLabels as $blocked) {
+                        $parts[] = '"' . $blocked['label'] . '" (' . $blocked['count'] . ' case' . ($blocked['count'] === 1 ? '' : 's') . ')';
+                    }
+                    http_response_code(409);
+                    echo json_encode([
+                        'success' => false,
+                        'message' => 'Cannot delete label(s) still in use: ' . implode(', ', $parts) . '. Please reassign those cases first.'
+                    ]);
+                    exit;
+                }
+
                 // Delete existing labels for this practice
                 $stmt = $pdo->prepare("DELETE FROM practice_assignment_labels WHERE practice_id = :practice_id");
                 $stmt->execute(['practice_id' => $currentPracticeId]);
@@ -293,7 +362,7 @@ try {
             }
         } else {
             if (!empty($validAssignmentLabels)) {
-                userLog("User {$userId} attempted to update assignment labels but does not belong to practice {$currentPracticeId}", true);
+                userLog("User {$userId} attempted to update assignment labels but is not an admin of practice {$currentPracticeId}", true);
             }
         }
     }
@@ -363,24 +432,22 @@ try {
                     $userId = $pdo->lastInsertId();
                 }
                 
-                // Check permissions for this user (default: limited=false, analytics=true, edit=true, add_labels=true for admins)
+                // Check permissions for this user (default: limited=false, analytics=true, edit=true)
                 $hasLimitedVisibility = isset($limitedVisibilityUsers[$email]) && $limitedVisibilityUsers[$email] ? 1 : 0;
                 $canViewAnalytics = isset($canViewAnalyticsUsers[$email]) ? ($canViewAnalyticsUsers[$email] ? 1 : 0) : 1;
                 $canEditCases = isset($canEditCasesUsers[$email]) ? ($canEditCasesUsers[$email] ? 1 : 0) : 1;
-                $canAddLabels = 1; // Admins always can add labels
                 
                 // Add user to practice as admin
                 $stmt = $pdo->prepare("
-                    INSERT INTO practice_users (practice_id, user_id, role, is_owner, limited_visibility, can_view_analytics, can_edit_cases, can_add_labels, created_at)
-                    VALUES (:practice_id, :user_id, 'admin', 0, :limited_visibility, :can_view_analytics, :can_edit_cases, :can_add_labels, NOW())
+                    INSERT INTO practice_users (practice_id, user_id, role, is_owner, limited_visibility, can_view_analytics, can_edit_cases, created_at)
+                    VALUES (:practice_id, :user_id, 'admin', 0, :limited_visibility, :can_view_analytics, :can_edit_cases, NOW())
                 ");
                 $stmt->execute([
                     'practice_id' => $currentPracticeId,
                     'user_id' => $userId,
                     'limited_visibility' => $hasLimitedVisibility,
                     'can_view_analytics' => $canViewAnalytics,
-                    'can_edit_cases' => $canEditCases,
-                    'can_add_labels' => $canAddLabels
+                    'can_edit_cases' => $canEditCases
                 ]);
             }
             
@@ -406,24 +473,22 @@ try {
                     $userId = $pdo->lastInsertId();
                 }
                 
-                // Check permissions for this user (default: limited=false, analytics=true, edit=true, add_labels=true)
+                // Check permissions for this user (default: limited=false, analytics=true, edit=true)
                 $hasLimitedVisibility = isset($limitedVisibilityUsers[$email]) && $limitedVisibilityUsers[$email] ? 1 : 0;
                 $canViewAnalytics = isset($canViewAnalyticsUsers[$email]) ? ($canViewAnalyticsUsers[$email] ? 1 : 0) : 1;
                 $canEditCases = isset($canEditCasesUsers[$email]) ? ($canEditCasesUsers[$email] ? 1 : 0) : 1;
-                $canAddLabels = isset($canAddLabelsUsers[$email]) ? ($canAddLabelsUsers[$email] ? 1 : 0) : 1;
                 
                 // Add user to practice as regular user
                 $stmt = $pdo->prepare("
-                    INSERT INTO practice_users (practice_id, user_id, role, is_owner, limited_visibility, can_view_analytics, can_edit_cases, can_add_labels, created_at)
-                    VALUES (:practice_id, :user_id, 'user', 0, :limited_visibility, :can_view_analytics, :can_edit_cases, :can_add_labels, NOW())
+                    INSERT INTO practice_users (practice_id, user_id, role, is_owner, limited_visibility, can_view_analytics, can_edit_cases, created_at)
+                    VALUES (:practice_id, :user_id, 'user', 0, :limited_visibility, :can_view_analytics, :can_edit_cases, NOW())
                 ");
                 $stmt->execute([
                     'practice_id' => $currentPracticeId,
                     'user_id' => $userId,
                     'limited_visibility' => $hasLimitedVisibility,
                     'can_view_analytics' => $canViewAnalytics,
-                    'can_edit_cases' => $canEditCases,
-                    'can_add_labels' => $canAddLabels
+                    'can_edit_cases' => $canEditCases
                 ]);
             }
             

@@ -79,6 +79,10 @@ function initializeAssignmentDropdown(selectElement, caseId, currentAssignee) {
     noneOption.textContent = 'None';
     selectElement.appendChild(noneOption);
     
+    // "People" optgroup - real DentaTrak user accounts
+    const peopleGroup = document.createElement('optgroup');
+    peopleGroup.label = 'People';
+
     // Add current user first if not already in the list
     const currentUserEmail = getCurrentUserEmail();
     let currentUserIncluded = false;
@@ -87,7 +91,7 @@ function initializeAssignmentDropdown(selectElement, caseId, currentAssignee) {
       const currentUserOption = document.createElement('option');
       currentUserOption.value = currentUserEmail;
       currentUserOption.textContent = currentUserEmail + ' (You)';
-      selectElement.appendChild(currentUserOption);
+      peopleGroup.appendChild(currentUserOption);
       currentUserIncluded = true;
       
       // Also add to the global array if needed
@@ -111,8 +115,32 @@ function initializeAssignmentDropdown(selectElement, caseId, currentAssignee) {
         option.textContent += ' (You)';
       }
       
-      selectElement.appendChild(option);
+      peopleGroup.appendChild(option);
     });
+
+    if (peopleGroup.children.length > 0) {
+      selectElement.appendChild(peopleGroup);
+    }
+
+    // "Assignment Labels" optgroup - shared responsibilities that do not
+    // correspond to a DentaTrak user account (e.g. Lab, Front Desk,
+    // Insurance). Visually separated from People so it's obvious which
+    // entries are real users and which are labels.
+    const assignmentLabels = Array.isArray(window.assignmentLabels) ? window.assignmentLabels : [];
+    if (assignmentLabels.length > 0) {
+      const labelsGroup = document.createElement('optgroup');
+      labelsGroup.label = 'Assignment Labels';
+
+      assignmentLabels.forEach(label => {
+        const option = document.createElement('option');
+        option.value = label;
+        option.textContent = label;
+        option.className = 'assignment-label-option';
+        labelsGroup.appendChild(option);
+      });
+
+      selectElement.appendChild(labelsGroup);
+    }
     
     // Set the current assignee as selected
     if (currentAssignee) {
@@ -157,9 +185,12 @@ function initializeAssignmentDropdown(selectElement, caseId, currentAssignee) {
 }
 
 /**
- * Load available users for assignment
- * NOTE: Only returns practice users (admins + regular users), NOT assignment labels
- * Labels are now a separate concept from case ownership
+ * Load available real users for assignment (admins + regular users).
+ * NOTE: Intentionally does NOT include Assignment Labels - labels are a
+ * separate concept (shared responsibilities, not user accounts) and are
+ * merged into the dropdown separately, in their own optgroup, by
+ * initializeAssignmentDropdown(). This keeps "real user" data untouched
+ * by labels, so assigning to a real user always behaves exactly as before.
  */
 function loadAvailableUsers() {
   return new Promise((resolve, reject) => {

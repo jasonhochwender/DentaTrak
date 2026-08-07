@@ -2,8 +2,12 @@
 /**
  * Switch Practice API Endpoint
  * 
- * Switches the user's active practice context.
- * Updates session and stores as preferred practice for future logins.
+ * Switches the user's active practice context for the current session only.
+ * This is a temporary, session-scoped switch - it does NOT change the
+ * user's default login practice. The only way to change the stored
+ * preferred_practice_id (and therefore what practice a user lands in on
+ * their next login) is the explicit "Always use this practice" checkbox
+ * in the practice chooser (see practice-setup.php / select-practice.php).
  * Ensures clean context switch with no data leakage between practices.
  */
 
@@ -42,7 +46,9 @@ try {
     // Verify user has access to the requested practice
     $stmt = $pdo->prepare("
         SELECT p.id, p.practice_name, p.baa_accepted, pu.role, pu.is_owner,
-               pu.limited_visibility, pu.can_view_analytics, pu.can_edit_cases
+               IFNULL(pu.limited_visibility, 0) AS limited_visibility,
+               IFNULL(pu.can_view_analytics, 1) AS can_view_analytics,
+               IFNULL(pu.can_edit_cases, 1) AS can_edit_cases
         FROM practices p
         JOIN practice_users pu ON p.id = pu.practice_id
         WHERE p.id = :practice_id AND pu.user_id = :user_id
@@ -90,22 +96,12 @@ try {
     $_SESSION['needs_practice_setup'] = false;
     $_SESSION['needs_practice_selection'] = false;
     
-    // Update preferred_practice_id in user_preferences for future logins
-    try {
-        ensureUserPreferencesSchema();
-        $stmt = $pdo->prepare("
-            INSERT INTO user_preferences (user_id, preferred_practice_id) 
-            VALUES (:user_id, :practice_id)
-            ON DUPLICATE KEY UPDATE preferred_practice_id = VALUES(preferred_practice_id)
-        ");
-        $stmt->execute([
-            'user_id' => $userId,
-            'practice_id' => $newPracticeId
-        ]);
-    } catch (PDOException $e) {
-        // Non-fatal - log but continue
-        error_log("Error updating preferred practice: " . $e->getMessage());
-    }
+    // NOTE: This switch is intentionally session-only and does NOT update
+    // user_preferences.preferred_practice_id. The stored default login
+    // practice should only change via an explicit, opt-in action (the
+    // "Always use this practice" checkbox in the practice chooser -
+    // see select-practice.php), not as a side effect of a temporary
+    // context switch from the header switcher.
     
     // Log the practice switch for audit
     if (function_exists('logUserActivity')) {

@@ -30,6 +30,9 @@ require_once __DIR__ . '/api/dev-tools-access.php';
 // Load feature flags
 require_once __DIR__ . '/api/feature-flags.php';
 
+// Load practice permission helpers (canViewAnalytics, etc.)
+require_once __DIR__ . '/api/practice-security.php';
+
 // Set security headers for this page
 setSecurityHeaders();
 
@@ -83,6 +86,15 @@ if ($userId && $currentPracticeId) {
         error_log("[SECURITY] Error verifying practice membership: " . $e->getMessage());
     }
 }
+
+// Insights (analytics + Ask DentaTrak) visibility for the CURRENT practice.
+// This is a per-practice-membership permission (practice_users.can_view_analytics),
+// not global to the user - it is intentionally recomputed on every page load
+// against $currentPracticeId so it reflects whichever practice is active,
+// including immediately after a practice switch (which triggers a full
+// page reload). This only controls UI visibility; get-analytics.php and
+// ai-recommendations.php remain the authoritative server-side enforcement.
+$userCanViewAnalytics = canViewAnalytics($currentPracticeId);
 
 // BAA ACCESS CONTROL GATE
 // Block access to PHI until BAA is accepted
@@ -404,7 +416,7 @@ if (isset($appConfig) && is_array($appConfig) && isset($appConfig['appName'])) {
   <!-- Feature-specific CSS - loaded on demand -->
   <link rel="preload" href="css/revision-history.css?v=20241210" as="style" onload="this.onload=null;this.rel='stylesheet'">
   <link rel="preload" href="css/delete-button.css?v=20241210" as="style" onload="this.onload=null;this.rel='stylesheet'">
-  <link rel="preload" href="css/settings-billing.css?v=20260807e" as="style" onload="this.onload=null;this.rel='stylesheet'">
+  <link rel="preload" href="css/settings-billing.css?v=20260807f" as="style" onload="this.onload=null;this.rel='stylesheet'">
   <link rel="preload" href="css/feedback.css?v=20241210" as="style" onload="this.onload=null;this.rel='stylesheet'">
   <link rel="preload" href="css/kanban-dragdrop.css?v=20241210" as="style" onload="this.onload=null;this.rel='stylesheet'">
   <link rel="preload" href="css/case-creation.css?v=20241210" as="style" onload="this.onload=null;this.rel='stylesheet'">
@@ -426,7 +438,7 @@ if (isset($appConfig) && is_array($appConfig) && isset($appConfig['appName'])) {
   <noscript>
     <link rel="stylesheet" href="css/revision-history.css?v=20241210">
     <link rel="stylesheet" href="css/delete-button.css?v=20241210">
-    <link rel="stylesheet" href="css/settings-billing.css?v=20260807e">
+    <link rel="stylesheet" href="css/settings-billing.css?v=20260807f">
     <link rel="stylesheet" href="css/feedback.css?v=20241210">
     <link rel="stylesheet" href="css/kanban-dragdrop.css?v=20241210">
     <link rel="stylesheet" href="css/case-creation.css?v=20241210">
@@ -592,7 +604,9 @@ window.featureFlags = <?php echo getFeatureFlagsJson(); ?>;
       <!-- Main Tabs -->
       <div class="main-tabs">
         <button type="button" class="main-tab active" data-tab="cases">Cases</button>
+        <?php if ($userCanViewAnalytics): ?>
         <button type="button" class="main-tab" data-tab="insights">Insights</button>
+        <?php endif; ?>
       </div>
 
       <!-- Tab Content -->
@@ -741,6 +755,7 @@ window.featureFlags = <?php echo getFeatureFlagsJson(); ?>;
         </div>
         <!-- End Cases Tab -->
 
+        <?php if ($userCanViewAnalytics): ?>
         <!-- Insights Tab (consolidated analytics + AI) -->
         <div class="main-tab-pane" id="insights-tab">
           <div class="analytics-pro">
@@ -1208,6 +1223,7 @@ window.featureFlags = <?php echo getFeatureFlagsJson(); ?>;
           </div>
         </div>
         <!-- End Insights Tab -->
+        <?php endif; ?>
       </div>
       <!-- End Tab Content -->
     </main>
@@ -1976,6 +1992,7 @@ window.featureFlags = <?php echo getFeatureFlagsJson(); ?>;
                     </button>
                     <div class="settings-twisty-content">
                       <div class="settings-group">
+                        <h4 class="subsection-title">Practice Users</h4>
                         <div class="gmail-users-container">
                           <div class="add-gmail-user">
                             <div class="gmail-input-row">
@@ -1987,6 +2004,32 @@ window.featureFlags = <?php echo getFeatureFlagsJson(); ?>;
 
                           <div id="gmailUsersList">
                             <!-- Practice users grid will be rendered here -->
+                          </div>
+                        </div>
+
+                        <div class="settings-divider"></div>
+
+                        <!-- Assignment Labels Section -->
+                        <div class="assignment-labels-section">
+                          <h4 class="subsection-title">Shared Assignment Labels</h4>
+                          <p class="field-note-inline">Create reusable assignment destinations for work that is not assigned to a specific person. Examples include Lab, Front Desk, Insurance, or Sterilization.</p>
+                          
+                          <div class="gmail-users-container assignment-labels-container">
+                            <?php if ($isAdmin): ?>
+                            <div class="add-gmail-user">
+                              <div class="gmail-input-row">
+                                <input type="text" id="newAssignmentLabel" placeholder="e.g., Lab, Front Desk, Insurance" class="gmail-input" maxlength="150">
+                                <button type="button" id="addAssignmentLabel" class="add-gmail-btn">Add</button>
+                              </div>
+                              <div class="error-message" id="assignmentLabelError"></div>
+                            </div>
+                            <?php endif; ?>
+                            
+                            <p class="field-note-inline assignment-labels-hint">Shared Assignment Labels appear alongside people in assignment dropdowns but do not represent real user accounts.</p>
+                            
+                            <div id="assignmentLabelsList" class="assignment-labels-list">
+                              <!-- Assignment labels will be rendered here -->
+                            </div>
                           </div>
                         </div>
                       </div>
@@ -2307,8 +2350,7 @@ window.featureFlags = <?php echo getFeatureFlagsJson(); ?>;
       <div class="dev-tools-section">
         <h4>👑 Admin Tools</h4>
         <div class="admin-links" style="display: flex; flex-direction: column; gap: 8px;">
-          <a href="/admin-practices.php" class="dev-btn" style="text-align: center; text-decoration: none;">🏥 Practice Administration</a>
-          <a href="/waitlist-admin.php" class="dev-btn" style="text-align: center; text-decoration: none;">📋 Waitlist Admin</a>
+          <a href="admin-practices.php" class="dev-btn" style="text-align: center; text-decoration: none;">🏥 Practice Administration</a>
         </div>
       </div>
     </div>
@@ -2318,8 +2360,11 @@ window.featureFlags = <?php echo getFeatureFlagsJson(); ?>;
   <!-- Toast notification container -->
   <div class="toast-container" id="toastContainer"></div>
 
-<?php if (isFeatureEnabled('SHOW_AI_CHAT')): ?>
+<?php if (isFeatureEnabled('SHOW_AI_CHAT') && $userCanViewAnalytics): ?>
   <!-- Floating Ask DentaTrak Button and Panel -->
+  <!-- Ask DentaTrak calls api/ai-recommendations.php, which is gated server-side
+       by canViewAnalytics() - hide the entry point when the current practice
+       membership doesn't have Insights access, consistent with the Insights tab. -->
   <div class="ask-dentatrak-floating" id="askDentatrakFloating">
     <button type="button" class="ask-dentatrak-fab" id="askDentatrakFab" title="Ask <?php echo htmlspecialchars($appName); ?>">
       <svg class="fab-icon-default" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -2524,11 +2569,13 @@ window.featureFlags = <?php echo getFeatureFlagsJson(); ?>;
           this.textContent = 'Deleting...';
           showToast('Deleting all cases...', 'warning');
           
-          fetch('../api/delete-all-cases.php', {
+          fetch('api/delete-all-cases.php', {
             method: 'DELETE',
             headers: {
-              'Content-Type': 'application/json'
-            }
+              'Content-Type': 'application/json',
+              'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]')?.content || ''
+            },
+            credentials: 'same-origin'
           })
           .then(response => response.json())
           .then(data => {

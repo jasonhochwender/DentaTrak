@@ -8,11 +8,28 @@
 require_once __DIR__ . '/session.php';
 require_once __DIR__ . '/appConfig.php';
 require_once __DIR__ . '/practice-security.php';
+require_once __DIR__ . '/csrf.php';
 
 header('Content-Type: application/json');
 
 // SECURITY: Require valid practice context before accessing any data
 $currentPracticeId = requireValidPracticeContext();
+
+// SECURITY: CSRF protection for this state-triggering POST endpoint,
+// consistent with the rest of the application's POST endpoints.
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    requireCsrfToken();
+}
+
+// SECURITY: Insights (can_view_analytics) gates analytics + AI recommendations.
+if (!canViewAnalytics($currentPracticeId)) {
+    http_response_code(403);
+    echo json_encode([
+        'success' => false,
+        'error' => 'Access denied. You do not have permission to view analytics or AI insights.'
+    ]);
+    exit;
+}
 
 // Check if user has analytics access (Control plan or Evaluate trial)
 $userId = $_SESSION['db_user_id'];
@@ -158,8 +175,23 @@ try {
 function gatherAnalyticsData($pdo, $practiceId) {
     $data = [];
 
-    // Build practice filter with fallback
-    $practiceFilter = "(practice_id = ? OR practice_id = 0 OR practice_id IS NULL)";
+    // SECURITY: Strict practice filter — no OR practice_id = 0 / IS NULL
+    // fallback (that previously allowed orphaned/legacy rows from other
+    // practices to leak in), and no "no data? query everything" fallback
+    // (that previously leaked other practices' aggregates into a quiet
+    // practice's recommendations). A practice with zero matching cases
+    // must see zero, not another practice's data.
+    //
+    // For Assigned Only (limited_visibility) users, additionally scope to
+    // their own assigned cases so Insights + Assigned Only together return
+    // authorized data only, rather than denying access outright.
+    $practiceFilter = "practice_id = ?";
+    $filterParams = [$practiceId];
+    if (hasLimitedVisibility($practiceId)) {
+        $scopeEmail = getCurrentUserEmail();
+        $practiceFilter = "practice_id = ? AND LOWER(assigned_to) = ?";
+        $filterParams = [$practiceId, $scopeEmail ?? ''];
+    }
 
     // Total cases by status
     $stmt = $pdo->prepare("
@@ -168,29 +200,17 @@ function gatherAnalyticsData($pdo, $practiceId) {
         WHERE $practiceFilter AND archived = 0
         GROUP BY status
     ");
-    $stmt->execute([$practiceId]);
+    $stmt->execute($filterParams);
     $data['cases_by_status'] = $stmt->fetchAll(PDO::FETCH_KEY_PAIR);
-
-    // Fallback: if no data, try without practice filter
-    if (empty($data['cases_by_status'])) {
-        $stmt = $pdo->query("SELECT status, COUNT(*) as count FROM cases_cache WHERE archived = 0 GROUP BY status");
-        $data['cases_by_status'] = $stmt->fetchAll(PDO::FETCH_KEY_PAIR);
-    }
 
     // Total active cases
     $stmt = $pdo->prepare("SELECT COUNT(*) FROM cases_cache WHERE $practiceFilter AND archived = 0");
-    $stmt->execute([$practiceId]);
+    $stmt->execute($filterParams);
     $data['total_active_cases'] = (int)$stmt->fetchColumn();
-
-    // Fallback
-    if ($data['total_active_cases'] === 0) {
-        $stmt = $pdo->query("SELECT COUNT(*) FROM cases_cache WHERE archived = 0");
-        $data['total_active_cases'] = (int)$stmt->fetchColumn();
-    }
 
     // Total archived cases
     $stmt = $pdo->prepare("SELECT COUNT(*) FROM cases_cache WHERE $practiceFilter AND archived = 1");
-    $stmt->execute([$practiceId]);
+    $stmt->execute($filterParams);
     $data['total_archived_cases'] = (int)$stmt->fetchColumn();
 
     // Cases by type
@@ -200,14 +220,8 @@ function gatherAnalyticsData($pdo, $practiceId) {
         WHERE $practiceFilter AND archived = 0
         GROUP BY case_type
     ");
-    $stmt->execute([$practiceId]);
+    $stmt->execute($filterParams);
     $data['cases_by_type'] = $stmt->fetchAll(PDO::FETCH_KEY_PAIR);
-
-    // Fallback
-    if (empty($data['cases_by_type'])) {
-        $stmt = $pdo->query("SELECT case_type, COUNT(*) as count FROM cases_cache WHERE archived = 0 GROUP BY case_type");
-        $data['cases_by_type'] = $stmt->fetchAll(PDO::FETCH_KEY_PAIR);
-    }
 
     // Overdue cases (due_date < today and status not 'Completed' or 'Shipped')
     $today = date('Y-m-d');
@@ -219,7 +233,7 @@ function gatherAnalyticsData($pdo, $practiceId) {
         AND due_date < ?
         AND status NOT IN ('Completed', 'Shipped', 'Delivered')
     ");
-    $stmt->execute([$practiceId, $today]);
+    $stmt->execute(array_merge($filterParams, [$today]));
     $data['overdue_cases'] = (int)$stmt->fetchColumn();
 
     // Cases due this week
@@ -232,7 +246,7 @@ function gatherAnalyticsData($pdo, $practiceId) {
         AND due_date BETWEEN ? AND ?
         AND status NOT IN ('Completed', 'Shipped', 'Delivered')
     ");
-    $stmt->execute([$practiceId, $today, $weekEnd]);
+    $stmt->execute(array_merge($filterParams, [$today, $weekEnd]));
     $data['cases_due_this_week'] = (int)$stmt->fetchColumn();
 
     // Cases created in last 30 days
@@ -243,15 +257,8 @@ function gatherAnalyticsData($pdo, $practiceId) {
         WHERE $practiceFilter
         AND STR_TO_DATE(LEFT(COALESCE(creation_date, CURRENT_DATE()), 10), '%Y-%m-%d') >= ?
     ");
-    $stmt->execute([$practiceId, $thirtyDaysAgo]);
+    $stmt->execute(array_merge($filterParams, [$thirtyDaysAgo]));
     $data['cases_created_last_30_days'] = (int)$stmt->fetchColumn();
-
-    // Fallback
-    if ($data['cases_created_last_30_days'] === 0) {
-        $stmt = $pdo->prepare("SELECT COUNT(*) FROM cases_cache WHERE STR_TO_DATE(LEFT(COALESCE(creation_date, CURRENT_DATE()), 10), '%Y-%m-%d') >= ?");
-        $stmt->execute([$thirtyDaysAgo]);
-        $data['cases_created_last_30_days'] = (int)$stmt->fetchColumn();
-    }
 
     // Cases completed in last 30 days
     $stmt = $pdo->prepare("
@@ -261,7 +268,7 @@ function gatherAnalyticsData($pdo, $practiceId) {
         AND status IN ('Completed', 'Shipped', 'Delivered')
         AND STR_TO_DATE(LEFT(COALESCE(last_update_date, CURRENT_DATE()), 10), '%Y-%m-%d') >= ?
     ");
-    $stmt->execute([$practiceId, $thirtyDaysAgo]);
+    $stmt->execute(array_merge($filterParams, [$thirtyDaysAgo]));
     $data['cases_completed_last_30_days'] = (int)$stmt->fetchColumn();
 
     // Workload distribution (cases per assignee - no names, just counts)
@@ -273,14 +280,8 @@ function gatherAnalyticsData($pdo, $practiceId) {
         WHERE $practiceFilter AND archived = 0
         GROUP BY assignment_status
     ");
-    $stmt->execute([$practiceId]);
+    $stmt->execute($filterParams);
     $data['assignment_distribution'] = $stmt->fetchAll(PDO::FETCH_KEY_PAIR);
-
-    // Fallback
-    if (empty($data['assignment_distribution'])) {
-        $stmt = $pdo->query("SELECT CASE WHEN assigned_to IS NULL OR assigned_to = '' THEN 'Unassigned' ELSE 'Assigned' END as assignment_status, COUNT(*) as count FROM cases_cache WHERE archived = 0 GROUP BY assignment_status");
-        $data['assignment_distribution'] = $stmt->fetchAll(PDO::FETCH_KEY_PAIR);
-    }
 
     // Count of unique assignees
     $stmt = $pdo->prepare("
@@ -288,14 +289,8 @@ function gatherAnalyticsData($pdo, $practiceId) {
         FROM cases_cache
         WHERE $practiceFilter AND archived = 0 AND assigned_to IS NOT NULL AND assigned_to != ''
     ");
-    $stmt->execute([$practiceId]);
+    $stmt->execute($filterParams);
     $data['unique_assignees'] = (int)$stmt->fetchColumn();
-
-    // Fallback
-    if ($data['unique_assignees'] === 0) {
-        $stmt = $pdo->query("SELECT COUNT(DISTINCT assigned_to) FROM cases_cache WHERE archived = 0 AND assigned_to IS NOT NULL AND assigned_to != ''");
-        $data['unique_assignees'] = (int)$stmt->fetchColumn();
-    }
 
     // Average cases per assignee
     if ($data['unique_assignees'] > 0) {
@@ -312,7 +307,7 @@ function gatherAnalyticsData($pdo, $practiceId) {
         WHERE $practiceFilter AND archived = 0 AND material IS NOT NULL AND material != ''
         GROUP BY material
     ");
-    $stmt->execute([$practiceId]);
+    $stmt->execute($filterParams);
     $data['cases_by_material'] = $stmt->fetchAll(PDO::FETCH_KEY_PAIR);
 
     // Team size

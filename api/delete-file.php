@@ -2,8 +2,12 @@
 // Delete File API endpoint
 require_once __DIR__ . '/session.php'; // centralized session handling
 header('Content-Type: application/json');
+require_once __DIR__ . '/practice-security.php';
 require_once __DIR__ . '/case-activity-log.php';
 require_once __DIR__ . '/csrf.php';
+
+// SECURITY: Require an authenticated user with a valid practice context
+$currentPracticeId = requireValidPracticeContext();
 
 // Disable PHP error display for API - return only JSON
 ini_set('display_errors', '0');
@@ -71,7 +75,12 @@ try {
             ]);
             exit;
         }
-        
+
+        // SECURITY: Verify the case belongs to the current practice and,
+        // for Assigned Only users, is assigned to them, before deleting
+        // any attachment from it.
+        requireCaseAccess($data['caseId'], $currentPracticeId);
+
         // Delete the file from Google Drive
         try {
             $client = getGoogleClient();

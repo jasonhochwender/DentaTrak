@@ -649,7 +649,7 @@ $userEmail = $_SESSION['user_email'] ?? '';
         function loadPractices() {
             document.getElementById('practicesTableBody').innerHTML = '<div class="loading">Loading practices...</div>';
             
-            fetch('/api/admin-practices.php?action=list', { credentials: 'same-origin' })
+            fetch('api/admin-practices.php?action=list', { credentials: 'same-origin' })
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
@@ -790,7 +790,7 @@ $userEmail = $_SESSION['user_email'] ?? '';
         }
         
         function loadComplianceTab(practiceId) {
-            fetch('/api/admin-practices.php?action=compliance&practice_id=' + practiceId, { credentials: 'same-origin' })
+            fetch('api/admin-practices.php?action=compliance&practice_id=' + practiceId, { credentials: 'same-origin' })
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
@@ -845,7 +845,7 @@ $userEmail = $_SESSION['user_email'] ?? '';
         }
         
         function loadPHITab(practiceId) {
-            fetch('/api/admin-practices.php?action=phi_log&practice_id=' + practiceId + '&limit=100', { credentials: 'same-origin' })
+            fetch('api/admin-practices.php?action=phi_log&practice_id=' + practiceId + '&limit=100', { credentials: 'same-origin' })
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
@@ -891,7 +891,7 @@ $userEmail = $_SESSION['user_email'] ?? '';
         }
         
         function loadUsersTab(practiceId) {
-            fetch('/api/admin-practices.php?action=users&practice_id=' + practiceId, { credentials: 'same-origin' })
+            fetch('api/admin-practices.php?action=users&practice_id=' + practiceId, { credentials: 'same-origin' })
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
@@ -935,7 +935,7 @@ $userEmail = $_SESSION['user_email'] ?? '';
             document.getElementById('complianceDetails').innerHTML = '<div class="loading">Loading...</div>';
             document.getElementById('complianceModal').classList.add('active');
             
-            fetch('/api/admin-practices.php?action=compliance&practice_id=' + practiceId, { credentials: 'same-origin' })
+            fetch('api/admin-practices.php?action=compliance&practice_id=' + practiceId, { credentials: 'same-origin' })
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
@@ -1005,7 +1005,7 @@ $userEmail = $_SESSION['user_email'] ?? '';
             document.getElementById('phiLogContent').innerHTML = '<div class="loading">Loading...</div>';
             document.getElementById('phiLogModal').classList.add('active');
             
-            fetch('/api/admin-practices.php?action=phi_log&practice_id=' + practiceId + '&limit=100', { credentials: 'same-origin' })
+            fetch('api/admin-practices.php?action=phi_log&practice_id=' + practiceId + '&limit=100', { credentials: 'same-origin' })
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
@@ -1059,7 +1059,7 @@ $userEmail = $_SESSION['user_email'] ?? '';
             btn.disabled = true;
             btn.textContent = 'Deactivating...';
             
-            fetch('/api/admin-practices.php?action=deactivate', {
+            fetch('api/admin-practices.php?action=deactivate', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'same-origin',
@@ -1093,7 +1093,7 @@ $userEmail = $_SESSION['user_email'] ?? '';
                 return;
             }
             
-            fetch('/api/admin-practices.php?action=reactivate', {
+            fetch('api/admin-practices.php?action=reactivate', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'same-origin',
@@ -1146,9 +1146,9 @@ $userEmail = $_SESSION['user_email'] ?? '';
             
             // Fetch all data for printing
             const [complianceRes, phiRes, usersRes] = await Promise.all([
-                fetch('/api/admin-practices.php?action=compliance&practice_id=' + practiceId, { credentials: 'same-origin' }).then(r => r.json()),
-                fetch('/api/admin-practices.php?action=phi_log&practice_id=' + practiceId + '&limit=500', { credentials: 'same-origin' }).then(r => r.json()),
-                fetch('/api/admin-practices.php?action=users&practice_id=' + practiceId, { credentials: 'same-origin' }).then(r => r.json())
+                fetch('api/admin-practices.php?action=compliance&practice_id=' + practiceId, { credentials: 'same-origin' }).then(r => r.json()),
+                fetch('api/admin-practices.php?action=phi_log&practice_id=' + practiceId + '&limit=500', { credentials: 'same-origin' }).then(r => r.json()),
+                fetch('api/admin-practices.php?action=users&practice_id=' + practiceId, { credentials: 'same-origin' }).then(r => r.json())
             ]);
             
             const compliance = complianceRes.compliance || {};

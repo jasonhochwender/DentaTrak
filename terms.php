@@ -95,7 +95,7 @@ $appName = $appConfig['appName'] ?? 'Dentatrak';
     </div>
     
     <div class="policy-content">
-      <p><strong>Effective Date:</strong> December 22, 2025</p>
+      <p><strong>Effective Date:</strong> August 7, 2026</p>
       
       <p>These Terms of Service ("Terms") govern your use of Dentatrak ("Service"), a case tracking application provided to dental practices. By using the Service, you agree to these Terms.</p>
       

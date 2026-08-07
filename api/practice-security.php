@@ -317,8 +317,13 @@ function getUserPracticePermissions($practiceId = null) {
     }
     
     try {
+        // IFNULL(...,1) matches the DEFAULT TRUE intent of these columns
+        // (see get-settings.php schema migration) so a missing/legacy row
+        // never silently denies access due to a NULL value.
         $stmt = $pdo->prepare("
-            SELECT role, is_owner, limited_visibility, can_view_analytics, can_edit_cases
+            SELECT role, is_owner, limited_visibility,
+                   IFNULL(can_view_analytics, 1) AS can_view_analytics,
+                   IFNULL(can_edit_cases, 1) AS can_edit_cases
             FROM practice_users 
             WHERE user_id = :user_id AND practice_id = :practice_id
         ");
@@ -354,6 +359,25 @@ function getUserPracticePermissions($practiceId = null) {
 function canViewAnalytics($practiceId = null) {
     $permissions = getUserPracticePermissions($practiceId);
     return $permissions && $permissions['can_view_analytics'];
+}
+
+/**
+ * Check if the current user may manage (create/rename/delete) Assignment
+ * Labels for the given practice.
+ *
+ * Simplified permission model: any Practice Administrator may manage
+ * labels. There is intentionally no separate can_add_labels permission -
+ * that column/flag was dead code (never enforced, never exposed in the
+ * UI) and has been retired in favor of reusing the existing admin role.
+ * Non-admin practice members can still see and use labels when assigning
+ * cases; they just cannot create, rename, or delete them.
+ *
+ * @param int|null $practiceId Practice ID (defaults to session practice)
+ * @return bool True if the current user is an admin of the practice
+ */
+function canManageAssignmentLabels($practiceId = null) {
+    $permissions = getUserPracticePermissions($practiceId);
+    return $permissions && $permissions['is_admin'];
 }
 
 /**
@@ -541,4 +565,168 @@ function verifyRecordBelongsToPractice($recordPracticeId) {
     }
     
     return true;
+}
+
+/**
+ * ============================================================
+ * Centralized case-access authorization (Assigned Only)
+ * ============================================================
+ *
+ * Authorization model:
+ *   - Admin: administrative control over the practice (user/settings management).
+ *   - Insights (can_view_analytics): controls access to analytics + AI features.
+ *   - Assigned Only (limited_visibility): restricts VISIBLE CASE DATA to cases
+ *     assigned to the user's own email. It does NOT disable Insights or Admin
+ *     on its own — those are independent permissions. The UI additionally
+ *     enforces Admin and Assigned Only as mutually exclusive (an admin needs
+ *     practice-wide visibility to do their job), which is validated below.
+ *
+ * These helpers are the SINGLE source of truth for "may this user see/act on
+ * this specific case". Endpoints must use requireCaseAccess() instead of
+ * re-implementing their own practice/assignment SQL checks.
+ */
+
+/**
+ * Get the current authenticated user's email, resolved server-side from the
+ * database via the session's db_user_id. Never trust an email supplied by
+ * the client for authorization decisions.
+ *
+ * @return string|null Lowercase-trimmed email, or null if not logged in.
+ */
+function getCurrentUserEmail() {
+    global $pdo;
+
+    if (!isset($_SESSION['db_user_id']) || !$pdo) {
+        return null;
+    }
+
+    try {
+        $stmt = $pdo->prepare("SELECT email FROM users WHERE id = :id LIMIT 1");
+        $stmt->execute(['id' => $_SESSION['db_user_id']]);
+        $email = $stmt->fetchColumn();
+        return $email ? strtolower(trim($email)) : null;
+    } catch (PDOException $e) {
+        error_log('[practice-security] Error resolving current user email: ' . $e->getMessage());
+        return null;
+    }
+}
+
+/**
+ * Pure policy check: may the current user access the given case?
+ * Preserves existing behavior for non-limited users (practice match only).
+ * For limited-visibility users, additionally requires the case's assigned
+ * email to case-insensitively match the current authenticated user's email.
+ *
+ * @param array $case Case row/array. Accepts either snake_case (cases_cache
+ *                     columns: practice_id, assigned_to) or camelCase
+ *                     (cache/API shape: practice_id, assignedTo) keys.
+ * @param int|null $practiceId Defaults to session practice.
+ * @return bool
+ */
+function canUserAccessCase($case, $practiceId = null) {
+    if (!is_array($case)) {
+        return false;
+    }
+
+    if ($practiceId === null) {
+        $practiceId = $_SESSION['current_practice_id'] ?? null;
+    }
+
+    $casePracticeId = $case['practice_id'] ?? $case['practiceId'] ?? null;
+    if (!$practiceId || !$casePracticeId || (int)$casePracticeId !== (int)$practiceId) {
+        return false;
+    }
+
+    if (!hasLimitedVisibility($practiceId)) {
+        return true;
+    }
+
+    $currentEmail = getCurrentUserEmail();
+    if (!$currentEmail) {
+        return false;
+    }
+
+    $assignedTo = $case['assigned_to'] ?? $case['assignedTo'] ?? '';
+    $assignedTo = strtolower(trim((string)$assignedTo));
+
+    return $assignedTo !== '' && $assignedTo === $currentEmail;
+}
+
+/**
+ * CRITICAL: Require that the given case ID belongs to the current practice
+ * and, for limited-visibility users, is assigned to the current user.
+ * Use this at the START of every endpoint that reads or mutates a single
+ * case identified by a client-supplied case ID.
+ *
+ * Case-not-found and access-denied are both reported as 404 "Case not
+ * found" so unauthorized requests cannot use response differences to probe
+ * for the existence of cases in other practices.
+ *
+ * @param string $caseId
+ * @param int|null $practiceId Defaults to session practice.
+ * @return array The matching cases_cache row (case_id, practice_id, assigned_to, ...).
+ *               Exits with a JSON error response on failure.
+ */
+function requireCaseAccess($caseId, $practiceId = null) {
+    global $pdo;
+
+    if ($practiceId === null) {
+        $practiceId = $_SESSION['current_practice_id'] ?? null;
+    }
+
+    if (!$caseId || !$practiceId || !$pdo) {
+        http_response_code(400);
+        echo json_encode(['success' => false, 'message' => 'Invalid request']);
+        exit;
+    }
+
+    try {
+        $stmt = $pdo->prepare("SELECT * FROM cases_cache WHERE case_id = :case_id LIMIT 1");
+        $stmt->execute(['case_id' => $caseId]);
+        $case = $stmt->fetch(PDO::FETCH_ASSOC);
+    } catch (PDOException $e) {
+        error_log('[practice-security] Error loading case for access check: ' . $e->getMessage());
+        http_response_code(500);
+        echo json_encode(['success' => false, 'message' => 'Error verifying case access']);
+        exit;
+    }
+
+    if (!$case || (int)$case['practice_id'] !== (int)$practiceId) {
+        logSecurityEvent('access_denied', [
+            'reason' => 'case_not_in_practice',
+            'case_id' => $caseId,
+        ]);
+        http_response_code(404);
+        echo json_encode(['success' => false, 'message' => 'Case not found']);
+        exit;
+    }
+
+    if (!canUserAccessCase($case, $practiceId)) {
+        logSecurityEvent('access_denied', [
+            'reason' => 'limited_visibility_case_not_assigned',
+            'case_id' => $caseId,
+        ]);
+        http_response_code(403);
+        echo json_encode(['success' => false, 'message' => 'Access denied. This case is not assigned to you.']);
+        exit;
+    }
+
+    return $case;
+}
+
+/**
+ * Check if the current user is permitted to edit cases in the given practice.
+ * Defined for the centralized authorization layer per can_edit_cases.
+ *
+ * NOTE: can_edit_cases is not yet enforced by any endpoint (see security
+ * report). This helper is provided so future enforcement uses a single
+ * consistent check rather than duplicated inline queries, but wiring it
+ * into every case-mutation endpoint is intentionally out of scope here —
+ * flagged as a follow-up rather than silently changing who can edit cases.
+ *
+ * @param int|null $practiceId Defaults to session practice.
+ * @return bool
+ */
+function canEditCase($practiceId = null) {
+    return canEditCases($practiceId);
 }

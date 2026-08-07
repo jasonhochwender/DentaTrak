@@ -46,6 +46,10 @@ if ($caseId === '' || $status === '') {
     exit;
 }
 
+// SECURITY: Verify this case belongs to the current practice and, for
+// Assigned Only users, is assigned to them, before changing its status.
+requireCaseAccess($caseId, $currentPracticeId);
+
 // Define workflow stage order (index 0 = earliest, higher = later)
 $workflowStageOrder = [
     'Originated' => 0,

@@ -26,6 +26,15 @@ $userId = $_SESSION['db_user_id'];
 $userEmail = $_SESSION['user_email'] ?? '';
 $userName = $_SESSION['user_name'] ?? '';
 
+// If explicitly starting a brand new practice (e.g. "Create My Own Practice"
+// from the practice chooser), ignore any stale current_practice_id left
+// over from a previous practice selection earlier in this session, so this
+// always creates a new practice rather than accidentally reopening or
+// updating a different practice's BAA.
+if (isset($_GET['new']) && $_GET['new'] === '1') {
+    unset($_SESSION['current_practice_id']);
+}
+
 // Check if user already has a practice with accepted BAA
 $hasBaaAccepted = false;
 $practiceId = $_SESSION['current_practice_id'] ?? null;
@@ -72,7 +81,7 @@ $envClass = ($envValue === 'production') ? 'env-prod' : 'env-dev';
 $appName = $appConfig['appName'] ?? 'Dental Case Manager';
 
 // Current BAA version
-$baaVersion = 'v1.0-2025-12-18';
+$baaVersion = 'v1.0-2026-08-07';
 ?>
 <!DOCTYPE html>
 <html lang="en">

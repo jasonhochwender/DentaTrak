@@ -176,20 +176,17 @@ function attemptRememberMeLogin() {
                 if (function_exists('setupUserSession')) {
                     setupUserSession($user, 'remember_me');
                     
-                    // Load user practices
-                    if (function_exists('getUserPractices')) {
-                        $userPractices = getUserPractices($user['id']);
-                        $_SESSION['available_practices'] = $userPractices;
-                        
-                        if (count($userPractices) > 0) {
-                            $_SESSION['current_practice_id'] = $userPractices[0]['id'];
-                            $_SESSION['practice_uuid'] = $userPractices[0]['uuid'] ?? null;
-                            $_SESSION['has_multiple_practices'] = (count($userPractices) > 1);
-                            $_SESSION['needs_practice_setup'] = false;
-                            $_SESSION['needs_practice_selection'] = false;
-                        } else {
-                            $_SESSION['needs_practice_setup'] = true;
-                        }
+                    // Resolve which practice (if any) to auto-select, or
+                    // whether the user needs to be sent to the existing
+                    // practice chooser. Same resolution used by every other
+                    // login path - see resolveLoginPracticeSelection() in
+                    // user-manager.php.
+                    $userManagerPath = __DIR__ . '/user-manager.php';
+                    if (file_exists($userManagerPath)) {
+                        require_once $userManagerPath;
+                    }
+                    if (function_exists('resolveLoginPracticeSelection')) {
+                        resolveLoginPracticeSelection($user['id']);
                     }
                     
                     return true;

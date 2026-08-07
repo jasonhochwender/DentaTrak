@@ -234,63 +234,14 @@ try {
         $_SESSION['first_time_login'] = true;
         logMsg("Practice tables don't exist yet. User will be sent to setup page.");
     } else {
-        // Check if user is associated with any practices
-        $stmt = $pdo->prepare("SELECT p.id, p.practice_name, pu.role, pu.is_owner 
-                               FROM practice_users pu 
-                               JOIN practices p ON pu.practice_id = p.id 
-                               WHERE pu.user_id = :user_id");
-        $stmt->execute(['user_id' => $dbUser['id']]);
-        $userPractices = $stmt->fetchAll(PDO::FETCH_ASSOC);
-        $hasPractice = !empty($userPractices);
-        $practiceCount = count($userPractices);
-
-        $preferredPracticeId = null;
-        if (!empty($preferences) && !empty($preferences['preferred_practice_id'])) {
-            $preferredPracticeId = (int)$preferences['preferred_practice_id'];
-            $validPreference = false;
-            foreach ($userPractices as $practice) {
-                if ((int)$practice['id'] === $preferredPracticeId) {
-                    $validPreference = true;
-                    break;
-                }
-            }
-            if (!$validPreference) {
-                $preferredPracticeId = null;
-            }
-        }
-        
-        // Store all practices in session for the selection page
-        $_SESSION['available_practices'] = $userPractices;
-        
-        if (!$hasPractice) {
-            // User has no practice at all - needs to set up one
-            $_SESSION['needs_practice_setup'] = true;
-            $_SESSION['needs_practice_selection'] = false;
-            $_SESSION['has_multiple_practices'] = false;
-            logMsg("User has no practice. Will be sent to practice setup.");
-        } else if ($preferredPracticeId) {
-            // User has a preferred practice set - use it
-            $_SESSION['current_practice_id'] = $preferredPracticeId;
-            $_SESSION['needs_practice_setup'] = false;
-            $_SESSION['needs_practice_selection'] = false;
-            $_SESSION['has_multiple_practices'] = ($practiceCount > 1);
-            logMsg("Using preferred practice ID from user preferences: {$preferredPracticeId}");
-        } else if ($practiceCount === 1) {
-            // User has exactly one practice (owned or member) - auto-select it
-            $_SESSION['current_practice_id'] = $userPractices[0]['id'];
-            $_SESSION['needs_practice_setup'] = false;
-            $_SESSION['needs_practice_selection'] = false;
-            $_SESSION['has_multiple_practices'] = false;
-            logMsg("User has a single practice. Auto-selecting practice ID: {$_SESSION['current_practice_id']}");
-        } else {
-            // User has multiple practices but no preference - auto-select first one
-            // User can switch practices via the header switcher
-            $_SESSION['current_practice_id'] = $userPractices[0]['id'];
-            $_SESSION['has_multiple_practices'] = true;
-            $_SESSION['needs_practice_selection'] = false;
-            $_SESSION['needs_practice_setup'] = false;
-            logMsg("User has {$practiceCount} practices. Auto-selecting first practice ID: {$_SESSION['current_practice_id']}");
-        }
+        // Resolve which practice (if any) to auto-select, or whether the
+        // user needs to be sent to the existing practice chooser. Single
+        // source of truth shared with the email/password login path -
+        // see resolveLoginPracticeSelection() in user-manager.php.
+        $practiceSelection = resolveLoginPracticeSelection($dbUser['id']);
+        logMsg("Practice selection resolved: count={$practiceSelection['practice_count']}, "
+            . "selected={$practiceSelection['selected_practice_id']}, "
+            . "needs_selection=" . ($practiceSelection['needs_practice_selection'] ? '1' : '0'));
     }
 } catch (PDOException $e) {
     logMsg("Error checking practice status: " . $e->getMessage());

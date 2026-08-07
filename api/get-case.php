@@ -32,6 +32,11 @@ try {
         exit;
     }
 
+    // SECURITY: Verify this case belongs to the current practice and, for
+    // limited-visibility users, is assigned to them. Must happen BEFORE any
+    // case data is loaded/returned below.
+    requireCaseAccess($caseId, $currentPracticeId);
+
     // Get all cases from cache
     $cases = getAllCasesFromCache();
     

@@ -558,6 +558,11 @@ try {
             ]);
             exit;
         }
+
+        // SECURITY: Verify this case belongs to the current practice and,
+        // for Assigned Only users, is assigned to them, before any edits
+        // are processed.
+        requireCaseAccess($_POST['caseId'], $currentPracticeId);
         
         // Get field requirements from config (allows easy customization)
         $fieldRequirements = $appConfig['case_required_fields'] ?? [];

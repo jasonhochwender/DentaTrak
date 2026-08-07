@@ -104,6 +104,7 @@ if ($preferences) {
 }
 
 // Check practice setup (similar to google-auth-callback.php)
+$redirect = 'main.php';
 try {
     global $pdo;
     
@@ -113,62 +114,18 @@ try {
     if (!$tableExists) {
         $_SESSION['needs_practice_setup'] = true;
         $_SESSION['first_time_login'] = true;
+        $redirect = 'practice-setup.php';
     } else {
-        $stmt = $pdo->prepare("SELECT p.id, p.practice_name, pu.role, pu.is_owner 
-                               FROM practice_users pu 
-                               JOIN practices p ON pu.practice_id = p.id 
-                               WHERE pu.user_id = :user_id");
-        $stmt->execute(['user_id' => $dbUser['id']]);
-        $userPractices = $stmt->fetchAll(PDO::FETCH_ASSOC);
-        $hasPractice = !empty($userPractices);
-        $practiceCount = count($userPractices);
-
-        $preferredPracticeId = null;
-        if (!empty($preferences) && !empty($preferences['preferred_practice_id'])) {
-            $preferredPracticeId = (int)$preferences['preferred_practice_id'];
-            $validPreference = false;
-            foreach ($userPractices as $practice) {
-                if ((int)$practice['id'] === $preferredPracticeId) {
-                    $validPreference = true;
-                    break;
-                }
-            }
-            if (!$validPreference) {
-                $preferredPracticeId = null;
-            }
-        }
-        
-        $_SESSION['available_practices'] = $userPractices;
-        
-        if (!$hasPractice) {
-            $_SESSION['needs_practice_setup'] = true;
-            $_SESSION['needs_practice_selection'] = false;
-            $_SESSION['has_multiple_practices'] = false;
-        } else if ($preferredPracticeId) {
-            $_SESSION['current_practice_id'] = $preferredPracticeId;
-            $_SESSION['needs_practice_setup'] = false;
-            $_SESSION['needs_practice_selection'] = false;
-            $_SESSION['has_multiple_practices'] = ($practiceCount > 1);
-        } else if ($practiceCount === 1) {
-            $_SESSION['current_practice_id'] = $userPractices[0]['id'];
-            $_SESSION['needs_practice_setup'] = false;
-            $_SESSION['needs_practice_selection'] = false;
-            $_SESSION['has_multiple_practices'] = false;
-        } else {
-            $_SESSION['current_practice_id'] = $userPractices[0]['id'];
-            $_SESSION['has_multiple_practices'] = true;
-            $_SESSION['needs_practice_selection'] = false;
-            $_SESSION['needs_practice_setup'] = false;
-        }
+        // Resolve which practice (if any) to auto-select, or whether the
+        // user needs to be sent to the existing practice chooser. Single
+        // source of truth shared with the other login paths - see
+        // resolveLoginPracticeSelection() in user-manager.php.
+        $practiceSelection = resolveLoginPracticeSelection($dbUser['id']);
+        $redirect = $practiceSelection['redirect'];
     }
 } catch (PDOException $e) {
     error_log('[verify-google-2fa] Error checking practice status: ' . $e->getMessage());
     $_SESSION['needs_practice_setup'] = true;
-}
-
-// Determine redirect
-$redirect = 'main.php';
-if (!empty($_SESSION['needs_practice_setup']) || !empty($_SESSION['needs_practice_selection'])) {
     $redirect = 'practice-setup.php';
 }
 

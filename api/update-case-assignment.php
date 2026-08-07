@@ -44,6 +44,11 @@ if (!isset($data['caseId']) || empty($data['caseId'])) {
 $caseId = $data['caseId'];
 $assignedTo = isset($data['assignedTo']) ? $data['assignedTo'] : '';
 
+// SECURITY: Verify this case belongs to the current practice and, for
+// Assigned Only users, is currently assigned to them, before allowing the
+// assignment to be changed.
+requireCaseAccess($caseId, $currentPracticeId);
+
 try {
     // Variable to track if Google Drive update was successful
     $driveUpdateSuccess = false;
@@ -140,23 +145,62 @@ try {
     }
     
     // Now update or create the assignment in the database
+    //
+    // SECURITY / DATA INTEGRITY: this must NEVER create a phantom user
+    // record. assignedTo can be one of three things:
+    //   1. An Assignment Label (e.g. "Lab", "Front Desk") - a shared
+    //      responsibility that does not correspond to a DentaTrak user
+    //      account. Labels are stored ONLY in cases_cache.assigned_to;
+    //      they never touch the users or case_assignments tables.
+    //   2. A real, existing user's email - the normal case. The relational
+    //      case_assignments row is created/updated as before.
+    //   3. Anything else (an email with no matching account, or an
+    //      arbitrary string that isn't a recognized label) - previously
+    //      this silently created a new "users" row for whatever string
+    //      was submitted. That phantom-user behavior has been removed
+    //      entirely: the raw string is still stored in cases_cache (same
+    //      as case creation already does), but no users/case_assignments
+    //      row is created or modified.
     $assigneeUserIdForAudit = null;
+    $isAssignmentLabel = false;
+
     if (!empty($assignedTo)) {
-        // First, try to get the user ID for the email
+        // Check whether this value matches an Assignment Label for the
+        // current practice (case-insensitive), before ever considering it
+        // a user.
+        $stmt = $pdo->prepare("
+            SELECT 1 FROM practice_assignment_labels
+            WHERE practice_id = :practice_id AND LOWER(label) = LOWER(:label)
+            LIMIT 1
+        ");
+        $stmt->execute([
+            'practice_id' => $currentPracticeId,
+            'label' => $assignedTo
+        ]);
+        $isAssignmentLabel = (bool)$stmt->fetchColumn();
+    }
+
+    if ($isAssignmentLabel) {
+        // Label assignment: not a person, so remove any existing
+        // relational assignment row (a label can't be "assigned to" in
+        // the case_assignments/user sense) and never touch users.
+        $stmt = $pdo->prepare("DELETE FROM case_assignments WHERE case_id = :case_id");
+        $stmt->execute(['case_id' => $caseId]);
+    } elseif (!empty($assignedTo)) {
+        // Try to resolve to an existing real user by email.
         $stmt = $pdo->prepare("SELECT id FROM users WHERE email = :email LIMIT 1");
         $stmt->execute(['email' => $assignedTo]);
         $assigneeUser = $stmt->fetch(PDO::FETCH_ASSOC);
-        
-        // If the user exists, update the assignment
+
         if ($assigneeUser) {
             $assigneeId = $assigneeUser['id'];
             $assigneeUserIdForAudit = $assigneeId;
-            
+
             // Check if assignment already exists
             $stmt = $pdo->prepare("SELECT id FROM case_assignments WHERE case_id = :case_id LIMIT 1");
             $stmt->execute(['case_id' => $caseId]);
             $existingAssignment = $stmt->fetch(PDO::FETCH_ASSOC);
-            
+
             if ($existingAssignment) {
                 // Update existing assignment
                 $stmt = $pdo->prepare("
@@ -182,39 +226,13 @@ try {
                 ]);
             }
         } else {
-            // User does not exist in the system yet, so we need to create it
-            try {
-                // Create minimal user record
-                $stmt = $pdo->prepare("
-                    INSERT INTO users (email, role, created_at, is_active)
-                    VALUES (:email, 'user', NOW(), 1)
-                ");
-                
-                $result = $stmt->execute([
-                    'email' => $assignedTo
-                ]);
-                
-                if ($result) {
-                    $assigneeId = $pdo->lastInsertId();
-                    $assigneeUserIdForAudit = $assigneeId;
-                    userLog("Created new user {$assignedTo} with ID {$assigneeId}", false);
-                    
-                    // Now create the assignment
-                    $stmt = $pdo->prepare("
-                        INSERT INTO case_assignments (case_id, user_id, assigned_by) 
-                        VALUES (:case_id, :user_id, :assigned_by)
-                    ");
-                    $stmt->execute([
-                        'case_id' => $caseId,
-                        'user_id' => $assigneeId,
-                        'assigned_by' => $currentUserId
-                    ]);
-                } else {
-                    userLog("Failed to create new user {$assignedTo}", true);
-                }
-            } catch (Exception $e) {
-                userLog("Error creating new user {$assignedTo}: " . $e->getMessage(), true);
-            }
+            // No matching user and not a recognized label: store the raw
+            // value in cases_cache only (below) - do NOT create a user or
+            // a case_assignments row. Also clear any stale relational
+            // assignment left over from a previous real-user assignment.
+            $stmt = $pdo->prepare("DELETE FROM case_assignments WHERE case_id = :case_id");
+            $stmt->execute(['case_id' => $caseId]);
+            userLog("Assignment set to unrecognized value '{$assignedTo}' for case {$caseId} - stored as plain text, no user created", false);
         }
     } else {
         // If assignedTo is empty, remove any existing assignment
@@ -231,6 +249,8 @@ try {
         null,
         [
             'assignee_user_id' => $assigneeUserIdForAudit,
+            'assigned_to' => $assignedTo,
+            'old_assigned_to' => $previousAssignee,
             'source' => 'update-case-assignment.php',
         ]
     );

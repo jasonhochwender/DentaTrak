@@ -210,7 +210,21 @@ function processExport(int $exportId, int $userId, int $practiceId, string $user
         ");
         $stmt->execute(['practice_id' => $practiceId]);
         $cases = $stmt->fetchAll(PDO::FETCH_ASSOC);
-        
+
+        // SECURITY: Assigned Only (limited_visibility) users must never receive
+        // export data for cases that are not assigned to them. $isLimitedVisibilityExport
+        // and $exportUserEmail are also reused below to scope activityHistory to the
+        // same set of authorized cases - a limited user must not receive activity/history
+        // entries for cases outside their own assignment either.
+        $isLimitedVisibilityExport = hasLimitedVisibility($practiceId);
+        $exportUserEmail = $isLimitedVisibilityExport ? getCurrentUserEmail() : null;
+        if ($isLimitedVisibilityExport) {
+            $cases = array_filter($cases, function ($case) use ($exportUserEmail) {
+                $assignedTo = strtolower(trim((string)($case['assigned_to'] ?? '')));
+                return $exportUserEmail && $assignedTo !== '' && $assignedTo === $exportUserEmail;
+            });
+        }
+
         // Process cases (decrypt PII fields, include attachment metadata)
         foreach ($cases as $case) {
             // Decrypt PII fields
@@ -259,16 +273,27 @@ function processExport(int $exportId, int $userId, int $practiceId, string $user
         
         // Get activity history (join through cases_cache to filter by practice)
         try {
-            $stmt = $pdo->prepare("
+            // SECURITY: Assigned Only users must not receive activity/history
+            // entries for cases outside their own assignment - mirror the same
+            // per-case restriction already applied to the cases export above.
+            $activitySql = "
                 SELECT ca.case_id, ca.event_type, ca.old_status, ca.new_status, 
                        ca.meta_json, ca.created_at, ca.user_email
                 FROM case_activity_log ca
                 INNER JOIN cases_cache cc ON ca.case_id = cc.case_id
                 WHERE cc.practice_id = :practice_id
-                ORDER BY ca.created_at DESC
-                LIMIT 1000
-            ");
-            $stmt->execute(['practice_id' => $practiceId]);
+            ";
+            $activityParams = ['practice_id' => $practiceId];
+
+            if ($isLimitedVisibilityExport) {
+                $activitySql .= ' AND LOWER(cc.assigned_to) = :assigned_email';
+                $activityParams['assigned_email'] = $exportUserEmail ?? '';
+            }
+
+            $activitySql .= ' ORDER BY ca.created_at DESC LIMIT 1000';
+
+            $stmt = $pdo->prepare($activitySql);
+            $stmt->execute($activityParams);
             $activities = $stmt->fetchAll(PDO::FETCH_ASSOC);
             
             foreach ($activities as $activity) {
@@ -382,9 +407,12 @@ function processExport(int $exportId, int $userId, int $practiceId, string $user
 function sendExportReadyEmail(string $email, string $token, string $expiresAt, int $fileSize): void {
     global $appConfig;
     
-    // Build download URL
-    $baseUrl = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http') 
-               . '://' . ($_SERVER['HTTP_HOST'] ?? 'localhost');
+    // Build download URL from the application's own configured base URL
+    // (e.g. https://dentatrak.com in production, http://localhost/DentaTrak
+    // locally) rather than reconstructing it from $_SERVER, which has no
+    // knowledge of the app's base path and silently drops it when the app
+    // is hosted under a subdirectory (as it is in local development).
+    $baseUrl = rtrim($appConfig['baseUrl'] ?? '', '/');
     $downloadUrl = $baseUrl . '/api/data-export.php?action=download&token=' . urlencode($token);
     
     $fileSizeFormatted = number_format($fileSize / 1024, 1) . ' KB';
