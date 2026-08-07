@@ -380,7 +380,7 @@ if (isset($appConfig) && is_array($appConfig) && isset($appConfig['appName'])) {
   
   <!-- Load app.light.css directly (skip app.css @import chain) -->
   <link rel="stylesheet" href="css/app.light.css?v=20241227">
-  <link rel="stylesheet" href="css/app.css?v=20241227">
+  <link rel="stylesheet" href="css/app.css?v=20260807a">
   
   <!-- Mobile responsiveness CSS -->
   <link rel="stylesheet" href="css/mobile.css?v=20250104c">
@@ -404,7 +404,7 @@ if (isset($appConfig) && is_array($appConfig) && isset($appConfig['appName'])) {
   <!-- Feature-specific CSS - loaded on demand -->
   <link rel="preload" href="css/revision-history.css?v=20241210" as="style" onload="this.onload=null;this.rel='stylesheet'">
   <link rel="preload" href="css/delete-button.css?v=20241210" as="style" onload="this.onload=null;this.rel='stylesheet'">
-  <link rel="preload" href="css/settings-billing.css?v=20241210" as="style" onload="this.onload=null;this.rel='stylesheet'">
+  <link rel="preload" href="css/settings-billing.css?v=20260807e" as="style" onload="this.onload=null;this.rel='stylesheet'">
   <link rel="preload" href="css/feedback.css?v=20241210" as="style" onload="this.onload=null;this.rel='stylesheet'">
   <link rel="preload" href="css/kanban-dragdrop.css?v=20241210" as="style" onload="this.onload=null;this.rel='stylesheet'">
   <link rel="preload" href="css/case-creation.css?v=20241210" as="style" onload="this.onload=null;this.rel='stylesheet'">
@@ -417,7 +417,7 @@ if (isset($appConfig) && is_array($appConfig) && isset($appConfig['appName'])) {
   <link rel="preload" href="css/patient-search.css?v=20241210" as="style" onload="this.onload=null;this.rel='stylesheet'">
   <link rel="preload" href="css/assignments.css?v=20241210" as="style" onload="this.onload=null;this.rel='stylesheet'">
   <link rel="preload" href="css/practice-name.css?v=20241210" as="style" onload="this.onload=null;this.rel='stylesheet'">
-  <link rel="preload" href="css/logo-upload.css?v=20241210" as="style" onload="this.onload=null;this.rel='stylesheet'">
+  <link rel="preload" href="css/logo-upload.css?v=20260807a" as="style" onload="this.onload=null;this.rel='stylesheet'">
   <link rel="preload" href="css/dev-tools.css?v=20241210" as="style" onload="this.onload=null;this.rel='stylesheet'">
   <link rel="preload" href="css/analytics-pro.css?v=20241231" as="style" onload="this.onload=null;this.rel='stylesheet'">
 <?php if (isFeatureEnabled('BILLING_ENABLED')): ?>
@@ -426,7 +426,7 @@ if (isset($appConfig) && is_array($appConfig) && isset($appConfig['appName'])) {
   <noscript>
     <link rel="stylesheet" href="css/revision-history.css?v=20241210">
     <link rel="stylesheet" href="css/delete-button.css?v=20241210">
-    <link rel="stylesheet" href="css/settings-billing.css?v=20241210">
+    <link rel="stylesheet" href="css/settings-billing.css?v=20260807e">
     <link rel="stylesheet" href="css/feedback.css?v=20241210">
     <link rel="stylesheet" href="css/kanban-dragdrop.css?v=20241210">
     <link rel="stylesheet" href="css/case-creation.css?v=20241210">
@@ -439,7 +439,7 @@ if (isset($appConfig) && is_array($appConfig) && isset($appConfig['appName'])) {
     <link rel="stylesheet" href="css/patient-search.css?v=20241210">
     <link rel="stylesheet" href="css/assignments.css?v=20241210">
     <link rel="stylesheet" href="css/practice-name.css?v=20241210">
-    <link rel="stylesheet" href="css/logo-upload.css?v=20241210">
+    <link rel="stylesheet" href="css/logo-upload.css?v=20260807a">
     <link rel="stylesheet" href="css/dev-tools.css?v=20241210">
     <link rel="stylesheet" href="css/analytics-pro.css?v=20241231">
 <?php if (isFeatureEnabled('BILLING_ENABLED')): ?>
@@ -1775,9 +1775,18 @@ window.featureFlags = <?php echo getFeatureFlagsJson(); ?>;
               <!-- Settings Tab -->
               <div class="tab-pane active" id="settingsTab">
                 <form id="settingsForm">
-                  
-                  
-                  <div class="settings-twisty" data-twisty-id="practice">
+
+                  <div class="settings-layout">
+                    <nav class="settings-nav">
+                      <button type="button" class="settings-nav-item active" data-nav-target="practice">Practice</button>
+                      <button type="button" class="settings-nav-item" data-nav-target="display">Display &amp; Behavior</button>
+                      <button type="button" class="settings-nav-item" data-nav-target="authorized">Practice Users &amp; Roles</button>
+                      <button type="button" class="settings-nav-item" data-nav-target="security">Security</button>
+                      <button type="button" class="settings-nav-item" data-nav-target="data-privacy">Data &amp; Privacy</button>
+                    </nav>
+                    <div class="settings-panels">
+
+                  <div class="settings-twisty settings-panel-active" data-twisty-id="practice">
                     <button type="button" class="settings-twisty-header">
                       <span class="settings-twisty-arrow"></span>
                       <span class="settings-twisty-title">Practice</span>
@@ -2115,6 +2124,9 @@ window.featureFlags = <?php echo getFeatureFlagsJson(); ?>;
                     </div>
                   </div>
                   
+                    </div>
+                  </div>
+
                   <div class="button-container">
                     <button type="button" class="save-settings-btn" id="saveSettings">Save Settings</button>
                     <button type="button" class="btn-cancel" id="settingsCancel">Cancel</button>

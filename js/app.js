@@ -829,6 +829,9 @@ document.addEventListener('DOMContentLoaded', function () {
     // Initialize settings twisties and restore their state
     initSettingsTwisties();
 
+    // Initialize the Settings left-nav (drives which section panel is shown)
+    initSettingsNav();
+
     // Load user settings
     loadSettings();
   }
@@ -916,6 +919,67 @@ document.addEventListener('DOMContentLoaded', function () {
       });
 
       twisty.dataset.twistyInitialized = '1';
+    });
+  }
+
+  // Initialize the Settings modal left-nav (two-column layout).
+  // Drives which .settings-twisty panel is visible without altering
+  // the existing accordion markup, IDs, or event handlers.
+  function initSettingsNav() {
+    var navItems = document.querySelectorAll('#settingsForm .settings-nav-item');
+    var panels = document.querySelectorAll('#settingsForm .settings-panels .settings-twisty');
+    if (!navItems || navItems.length === 0 || !panels || panels.length === 0) {
+      return;
+    }
+
+    var userKeyPart = (typeof currentUserEmail === 'string' && currentUserEmail) ? currentUserEmail.toLowerCase() : 'anonymous';
+    var storageKey = 'settingsActiveSection_' + userKeyPart;
+
+    var validTargets = [];
+    panels.forEach(function(panel) {
+      validTargets.push(panel.getAttribute('data-twisty-id'));
+    });
+
+    function activate(target) {
+      navItems.forEach(function(item) {
+        item.classList.toggle('active', item.getAttribute('data-nav-target') === target);
+      });
+      panels.forEach(function(panel) {
+        panel.classList.toggle('settings-panel-active', panel.getAttribute('data-twisty-id') === target);
+      });
+    }
+
+    var savedTarget = null;
+    try {
+      if (window.localStorage) {
+        savedTarget = localStorage.getItem(storageKey);
+      }
+    } catch (e) {
+      savedTarget = null;
+    }
+
+    var initialTarget = (savedTarget && validTargets.indexOf(savedTarget) !== -1)
+      ? savedTarget
+      : navItems[0].getAttribute('data-nav-target');
+
+    activate(initialTarget);
+
+    navItems.forEach(function(item) {
+      if (item.dataset.navInitialized === '1') {
+        return;
+      }
+      item.addEventListener('click', function() {
+        var target = item.getAttribute('data-nav-target');
+        activate(target);
+        try {
+          if (window.localStorage) {
+            localStorage.setItem(storageKey, target);
+          }
+        } catch (e) {
+          // Ignore localStorage errors
+        }
+      });
+      item.dataset.navInitialized = '1';
     });
   }
 
@@ -2107,6 +2171,44 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   }
 
+  // Reusable, accessible info tooltip (mouse hover + keyboard focus).
+  // Builds the .dt-tooltip markup used by css/settings-billing.css.
+  // Purely presentational -- does not read or write any app state.
+  var dtTooltipIdCounter = 0;
+  function createInfoTooltip(text, alignRight) {
+    dtTooltipIdCounter++;
+    var tooltipId = 'dtTooltip' + dtTooltipIdCounter;
+
+    var wrapper = document.createElement('span');
+    wrapper.className = 'dt-tooltip' + (alignRight ? ' dt-tooltip-align-right' : '');
+
+    var trigger = document.createElement('button');
+    trigger.type = 'button';
+    trigger.className = 'dt-tooltip-trigger';
+    trigger.textContent = 'i';
+    trigger.setAttribute('aria-describedby', tooltipId);
+    trigger.setAttribute('aria-label', 'More information');
+
+    var bubble = document.createElement('span');
+    bubble.className = 'dt-tooltip-bubble';
+    bubble.setAttribute('role', 'tooltip');
+    bubble.id = tooltipId;
+    bubble.textContent = text;
+
+    wrapper.appendChild(trigger);
+    wrapper.appendChild(bubble);
+    return wrapper;
+  }
+
+  // Escape dismisses an open tooltip by blurring its trigger.
+  // Isolated listener -- does not interact with any other keyboard
+  // handlers (e.g. the settings form's Enter-to-save handler).
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape' && document.activeElement && document.activeElement.classList && document.activeElement.classList.contains('dt-tooltip-trigger')) {
+      document.activeElement.blur();
+    }
+  });
+
   // Combined practice users grid (admins + authorized users)
   function displayPracticeUsers() {
     // Always get fresh reference to the element
@@ -2194,15 +2296,18 @@ document.addEventListener('DOMContentLoaded', function () {
 
     var adminHeader = document.createElement('div');
     adminHeader.className = 'practice-user-admin-header';
-    adminHeader.textContent = 'Admin';
+    adminHeader.appendChild(document.createTextNode('Admin'));
+    adminHeader.appendChild(createInfoTooltip('Grants administrative access to practice settings and user management.'));
 
     var analyticsHeader = document.createElement('div');
     analyticsHeader.className = 'practice-user-analytics-header';
-    analyticsHeader.textContent = 'Insights';
+    analyticsHeader.appendChild(document.createTextNode('Insights'));
+    analyticsHeader.appendChild(createInfoTooltip('Allows this user to access DentaTrak Insights and analytics.'));
 
     var limitedHeader = document.createElement('div');
     limitedHeader.className = 'practice-user-limited-header';
-    limitedHeader.textContent = 'Limited';
+    limitedHeader.appendChild(document.createTextNode('Assigned Only'));
+    limitedHeader.appendChild(createInfoTooltip('Limits this user\'s case view to cases assigned to their email address.', true));
 
     var removeHeader = document.createElement('div');
     removeHeader.className = 'practice-user-remove-header';
@@ -2234,7 +2339,12 @@ document.addEventListener('DOMContentLoaded', function () {
 
       var userEmail = document.createElement('div');
       userEmail.className = 'gmail-user-email';
-      userEmail.textContent = email;
+
+      var emailTextSpan = document.createElement('span');
+      emailTextSpan.className = 'user-email-text';
+      emailTextSpan.textContent = email;
+      emailTextSpan.title = email;
+      userEmail.appendChild(emailTextSpan);
 
       if (isCurrent) {
         var youBadge = document.createElement('span');
@@ -2247,7 +2357,6 @@ document.addEventListener('DOMContentLoaded', function () {
         var creatorBadge = document.createElement('span');
         creatorBadge.className = 'admin-badge';
         creatorBadge.textContent = 'Creator';
-        creatorBadge.style.marginLeft = '8px';
         userEmail.appendChild(creatorBadge);
       }
 

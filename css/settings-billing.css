@@ -1,8 +1,8 @@
 /* Settings and Billing Modal Styles */
 .settings-billing-modal {
-  max-width: 680px;
+  max-width: 740px;
   padding-bottom: 0;
-  max-height: 80vh;
+  max-height: calc(80vh + 40px);
   display: flex;
   flex-direction: column;
   overflow: hidden; /* scrolling handled by inner content */
@@ -14,7 +14,7 @@
 }
 
 .settings-billing-modal .modal-header {
-  background-image: linear-gradient(to right, #1e88e5, #26c6da);
+  background-color: var(--primary-color);
   color: white;
   padding: 15px 20px;
 }
@@ -130,9 +130,9 @@
 .radio-stack {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
   margin-left: 0;
-  margin-bottom: 20px;
+  margin-bottom: 14px;
 }
 
 .radio-item {
@@ -148,12 +148,13 @@
   margin-right: 0;
   cursor: pointer;
   order: 1;
+  accent-color: var(--primary-color);
 }
 
 .radio-item label {
   cursor: pointer;
   order: 0;
-  color: #333;
+  color: var(--text-secondary);
 }
 
 /* Checkbox styling */
@@ -176,12 +177,13 @@
   cursor: pointer;
   flex-shrink: 0;
   order: 1;
+  accent-color: var(--primary-color);
 }
 
 .checkbox-item label {
   cursor: pointer;
   order: 0;
-  color: #333;
+  color: var(--text-secondary);
 }
 
 /* Conditional settings */
@@ -204,9 +206,12 @@
 }
 
 .past-due-inline-settings {
-  display: inline-flex;
+  display: flex;
   align-items: center;
-  margin-left: 16px;
+  width: 100%;
+  margin-left: 0;
+  margin-top: 8px;
+  padding-left: 28px;
   font-size: 13px;
 }
 
@@ -239,7 +244,7 @@
   width: 40px;
   padding: 3px 5px;
   border: 1px solid #ccc;
-  border-radius: 3px;
+  border-radius: 5px;
   text-align: center;
   font-size: 13px;
   margin-left: 5px;
@@ -287,36 +292,65 @@ input[type="checkbox"], input[type="radio"] {
 }
 
 .settings-group {
-  padding: 5px 0;
+  padding: 4px 0;
+}
+
+/* Shared subsection heading style used across Practice/BAA, Security,
+   and Data & Privacy blocks for consistent typographic hierarchy. */
+.subsection-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 12px 0;
+  text-transform: none;
+  letter-spacing: normal;
+}
+
+/* css/app.light.css defines a generic `.modal-body h4` rule (orange color,
+   large margin) for legal/policy text modals. It has higher specificity
+   than .subsection-title alone, so it was silently overriding the color
+   and spacing here. Re-assert with a scoped, equally-targeted selector
+   rather than touching the shared global rule. */
+.settings-billing-modal .subsection-title {
+  color: var(--text-primary);
+  margin: 0 0 12px 0;
+}
+
+/* Same app.light.css `.modal-body strong` rule also colors the "Step 1:" /
+   "Step 2:" labels in the 2FA setup orange. Scoped override, higher
+   specificity than the shared rule -- does not touch app.light.css. */
+.settings-billing-modal .two-factor-setup strong {
+  color: var(--text-primary);
+  font-weight: 600;
 }
 
 /* Collapsible twisty sections inside Settings modal */
 .settings-twisty {
-  margin-bottom: 12px;
-  border-radius: 8px;
-  border: 1px solid #d1d5db;
-  background-color: #ffffff;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  margin-bottom: 10px;
+  border-radius: 10px;
+  border: 1px solid var(--border-light);
+  background-color: var(--background-white);
+  box-shadow: none;
 }
 
 .settings-twisty-header {
   width: 100%;
   display: flex;
   align-items: center;
-  padding: 10px 14px;
-  background-color: #f3f4f6;
+  padding: 12px 16px;
+  background-color: transparent;
   border: none;
-  border-radius: 8px;
+  border-radius: 10px;
   cursor: pointer;
-  font-size: 14px;
-  font-weight: 500;
-  color: #374151;
+  font-size: 14.5px;
+  font-weight: 600;
+  color: var(--text-primary);
   text-align: left;
   transition: background-color 0.15s ease;
 }
 
 .settings-twisty-header:hover {
-  background-color: #e5e7eb;
+  background-color: var(--background-subtle);
 }
 
 .settings-twisty-header:focus {
@@ -326,25 +360,25 @@ input[type="checkbox"], input[type="radio"] {
 
 /* When open, header has bottom border and square bottom corners */
 .settings-twisty.open .settings-twisty-header {
-  border-radius: 8px 8px 0 0;
-  border-bottom: 1px solid #e5e7eb;
-  background-color: #e8f4fc;
-  color: #1e40af;
+  border-radius: 10px 10px 0 0;
+  border-bottom: 1px solid var(--border-light);
+  background-color: var(--background-subtle);
+  color: var(--text-primary);
 }
 
 .settings-twisty-arrow {
   width: 8px;
   height: 8px;
-  border-right: 2px solid #6b7280;
-  border-bottom: 2px solid #6b7280;
+  border-right: 2px solid var(--text-light);
+  border-bottom: 2px solid var(--text-light);
   transform: rotate(-45deg);
-  transition: transform 0.15s ease;
+  transition: transform 0.15s ease, border-color 0.15s ease;
   margin-right: 10px;
 }
 
 .settings-twisty.open .settings-twisty-arrow {
   transform: rotate(45deg);
-  border-color: #1e40af;
+  border-color: var(--text-secondary);
 }
 
 .settings-twisty-title {
@@ -352,10 +386,21 @@ input[type="checkbox"], input[type="radio"] {
 }
 
 .settings-twisty-content {
-  padding: 12px 14px 14px;
+  padding: 14px 16px 16px;
   display: none;
-  background-color: #ffffff;
-  border-radius: 0 0 8px 8px;
+  background-color: var(--background-white);
+  border-radius: 0 0 10px 10px;
+}
+
+/* Subtle internal dividers for grouping related settings within an
+   open accordion (e.g. Practice Information / Branding / BAA).
+   Scoped to dividers nested inside twisty content only -- the
+   top-level .settings-divider rule (between accordions) is left
+   untouched below to preserve existing spacing between sections. */
+.settings-twisty-content .settings-divider {
+  height: 1px;
+  margin: 16px 0;
+  background-color: var(--border-light);
 }
 
 .settings-twisty.open .settings-twisty-content {
@@ -383,7 +428,7 @@ input[type="checkbox"], input[type="radio"] {
 .option-row {
   display: flex;
   align-items: center;
-  margin-bottom: 15px;
+  margin-bottom: 11px;
   padding-right: 30px;
   position: relative;
 }
@@ -400,7 +445,7 @@ input#practiceName {
   min-width: 200px;
   padding: 8px 10px;
   border: 1px solid #ccc;
-  border-radius: 4px;
+  border-radius: 6px;
   font-size: 14px;
 }
 
@@ -410,7 +455,7 @@ input#practiceName {
   min-width: 200px;
   padding: 8px 10px;
   border: 1px solid #ccc;
-  border-radius: 4px;
+  border-radius: 6px;
   font-size: 14px;
   background-color: white;
   cursor: pointer;
@@ -422,7 +467,7 @@ input#practiceName {
 }
 
 .option-row:last-child {
-  margin-bottom: 5px;
+  margin-bottom: 4px;
 }
 
 .option-text {
@@ -440,11 +485,12 @@ input#practiceName {
   margin-left: 8px;
   position: relative;
   top: 1px;
+  accent-color: var(--primary-color);
 }
 
 .option-row label {
   font-size: 14px;
-  color: #333;
+  color: var(--text-secondary);
   white-space: nowrap;
 }
 
@@ -507,11 +553,37 @@ input#practiceName {
   margin-top: 20px;
 }
 
+/* Subtle sticky footer for Save/Cancel within the scrollable modal
+   body -- CSS-only, no change to markup, IDs, or click handlers. */
+.settings-billing-modal .button-container {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 10px;
+  padding-top: 12px;
+  padding-bottom: 4px;
+  border-top: 1px solid var(--border-light);
+  background-color: var(--background-white);
+  z-index: 2;
+}
+
+/* Visually show Cancel before Save Settings (right-aligned group) without
+   changing DOM order, IDs, or click handlers. */
+.settings-billing-modal .button-container #settingsCancel {
+  order: 1;
+}
+
+.settings-billing-modal .button-container #saveSettings {
+  order: 2;
+}
+
 .save-settings-btn {
   background-color: #2196f3;
   border: none;
-  border-radius: 4px;
-  padding: 8px 20px;
+  border-radius: 6px;
+  padding: 9px 20px;
   font-weight: 500;
   font-size: 14px;
   box-shadow: 0 2px 4px rgba(33, 150, 243, 0.2);
@@ -664,10 +736,12 @@ input#practiceName {
 .admin-badge {
   background-color: #ff9800;
   color: white;
-  padding: 2px 6px;
-  border-radius: 3px;
+  padding: 2px 8px;
+  border-radius: 9999px;
   font-size: 10px;
-  margin-left: 8px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  margin-left: 6px;
 }
 
 /* Gmail users section styles */
@@ -693,10 +767,11 @@ input#practiceName {
   background-color: #2196f3;
   color: white;
   border: none;
-  border-radius: 4px;
-  padding: 8px 12px;
+  border-radius: 6px;
+  padding: 8px 14px;
   cursor: pointer;
   font-size: 14px;
+  transition: background-color 0.15s ease;
 }
 
 .add-gmail-btn:hover {
@@ -714,14 +789,20 @@ input#practiceName {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background-color: #f5f5f5;
-  padding: 8px 12px;
-  margin-bottom: 8px;
-  border-radius: 4px;
+  background-color: transparent;
+  padding: 9px 10px;
+  margin-bottom: 0;
+  border-radius: 0;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.gmail-user-item:last-child {
+  border-bottom: none;
 }
 
 .gmail-user-email {
   font-size: 14px;
+  color: var(--text-primary);
 }
 
 .gmail-user-info {
@@ -731,7 +812,7 @@ input#practiceName {
 
 .gmail-user-last-login {
   font-size: 12px;
-  color: #666;
+  color: var(--text-light);
   margin-top: 2px;
 }
 
@@ -747,21 +828,49 @@ input#practiceName {
 }
 
 /* Practice Users & Roles grid layout */
-/* Columns: Email | Admin | Insights | Limited | Remove */
+/* Columns: Email | Admin | Insights | Assigned Only | Remove */
 .practice-user-header,
 .practice-user-row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 55px 60px 60px 60px;
+  grid-template-columns: minmax(0, 1fr) 56px 70px 94px 42px;
   column-gap: 6px;
   align-items: center;
 }
 
+/* Prevent the User column (badges + long emails) from overflowing into
+   the fixed-width permission columns -- grid items default to
+   min-width:auto, which lets intrinsic content width exceed the track. */
+.practice-user-row .gmail-user-info,
+.practice-user-header .gmail-user-email {
+  min-width: 0;
+  overflow: hidden;
+}
+
+.practice-user-row .gmail-user-email {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.practice-user-row .user-email-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.practice-user-row .admin-badge {
+  flex-shrink: 0;
+}
+
 .practice-user-header {
   font-weight: 600;
-  background: #e2e8f0;
-  padding: 8px 10px;
-  border-radius: 6px 6px 0 0;
-  margin-bottom: 4px;
+  background: var(--background-subtle);
+  padding: 9px 10px;
+  border-radius: 8px 8px 0 0;
+  margin-bottom: 0;
 }
 
 .practice-user-header .gmail-user-email,
@@ -802,121 +911,116 @@ input#practiceName {
 .practice-user-addlabels-header {
   position: relative;
   cursor: default;
+  display: inline-flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  line-height: 1.3;
+  white-space: nowrap;
 }
 
-.practice-user-admin-header .tooltip-icon,
-.practice-user-analytics-header .tooltip-icon,
-.practice-user-edit-header .tooltip-icon,
-.practice-user-limited-header .tooltip-icon,
-.practice-user-addlabels-header .tooltip-icon {
+/* ============================================
+   REUSABLE TOOLTIP COMPONENT (.dt-tooltip)
+   ------------------------------------------------
+   Accessible, custom tooltip for compact help text.
+   Works with mouse hover AND keyboard focus (no
+   reliance on the native browser `title` tooltip).
+   Intended to be reused anywhere in DentaTrak that
+   needs a small explanatory info icon.
+   ============================================ */
+.dt-tooltip {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.dt-tooltip-trigger {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 16px;
-  height: 16px;
-  background: linear-gradient(135deg, #3b82f6, #2563eb);
-  color: white;
+  width: 14px;
+  height: 14px;
+  padding: 0;
+  border: none;
   border-radius: 50%;
-  font-size: 10px;
-  margin-left: 4px;
-  font-weight: 600;
+  background-color: var(--text-light);
+  color: var(--background-white);
+  font-size: 9px;
+  font-weight: 700;
   font-style: normal;
+  line-height: 1;
   cursor: help;
-  transition: all 0.2s ease;
-  box-shadow: 0 1px 3px rgba(59, 130, 246, 0.3);
-  position: relative;
+  transition: background-color 0.15s ease;
 }
 
-.practice-user-admin-header .tooltip-icon:hover,
-.practice-user-analytics-header .tooltip-icon:hover,
-.practice-user-edit-header .tooltip-icon:hover,
-.practice-user-limited-header .tooltip-icon:hover,
-.practice-user-addlabels-header .tooltip-icon:hover {
-  background: linear-gradient(135deg, #2563eb, #1d4ed8);
-  transform: scale(1.1);
-  box-shadow: 0 2px 6px rgba(59, 130, 246, 0.4);
+.dt-tooltip-trigger:hover,
+.dt-tooltip-trigger:focus-visible {
+  background-color: var(--primary-color);
 }
 
-/* Custom tooltip popup */
-.practice-user-admin-header .tooltip-icon::after,
-.practice-user-analytics-header .tooltip-icon::after,
-.practice-user-edit-header .tooltip-icon::after,
-.practice-user-limited-header .tooltip-icon::after,
-.practice-user-addlabels-header .tooltip-icon::after {
-  content: attr(data-tooltip);
+.dt-tooltip-trigger:focus-visible {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 2px;
+}
+
+.dt-tooltip-bubble {
   position: absolute;
-  bottom: calc(100% + 8px);
+  bottom: calc(100% + 9px);
   left: 50%;
   transform: translateX(-50%);
-  background: linear-gradient(135deg, #1e293b, #334155);
+  width: max-content;
+  max-width: 210px;
+  background-color: #1e293b;
   color: #f8fafc;
-  padding: 10px 14px;
-  border-radius: 8px;
+  padding: 8px 11px;
+  border-radius: 6px;
   font-size: 12px;
   font-weight: 400;
-  line-height: 1.5;
-  white-space: normal;
-  width: 220px;
-  max-width: 280px;
+  line-height: 1.45;
   text-align: left;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(255, 255, 255, 0.05);
+  white-space: normal;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.18);
   opacity: 0;
   visibility: hidden;
-  transition: all 0.2s ease;
-  z-index: 1000;
   pointer-events: none;
+  transition: opacity 0.12s ease;
+  z-index: 1000;
 }
 
-/* Tooltip arrow */
-.practice-user-admin-header .tooltip-icon::before,
-.practice-user-analytics-header .tooltip-icon::before,
-.practice-user-edit-header .tooltip-icon::before,
-.practice-user-limited-header .tooltip-icon::before,
-.practice-user-addlabels-header .tooltip-icon::before {
+.dt-tooltip-bubble::after {
   content: '';
   position: absolute;
-  bottom: calc(100% + 2px);
+  top: 100%;
   left: 50%;
   transform: translateX(-50%);
-  border: 6px solid transparent;
+  border: 5px solid transparent;
   border-top-color: #1e293b;
-  opacity: 0;
-  visibility: hidden;
-  transition: all 0.2s ease;
-  z-index: 1001;
 }
 
-/* Show tooltip on hover */
-.practice-user-admin-header .tooltip-icon:hover::after,
-.practice-user-analytics-header .tooltip-icon:hover::after,
-.practice-user-edit-header .tooltip-icon:hover::after,
-.practice-user-limited-header .tooltip-icon:hover::after,
-.practice-user-addlabels-header .tooltip-icon:hover::after,
-.practice-user-admin-header .tooltip-icon:hover::before,
-.practice-user-analytics-header .tooltip-icon:hover::before,
-.practice-user-edit-header .tooltip-icon:hover::before,
-.practice-user-limited-header .tooltip-icon:hover::before,
-.practice-user-addlabels-header .tooltip-icon:hover::before {
+.dt-tooltip-trigger:hover + .dt-tooltip-bubble,
+.dt-tooltip-trigger:focus-visible + .dt-tooltip-bubble {
   opacity: 1;
   visibility: visible;
 }
 
-/* Adjust tooltip position for rightmost columns to prevent overflow */
-.practice-user-limited-header .tooltip-icon::after {
+/* Edge-aware variant so tooltips near the right edge of the modal
+   don't get clipped */
+.dt-tooltip.dt-tooltip-align-right .dt-tooltip-bubble {
   left: auto;
-  right: 0;
-  transform: translateX(0);
+  right: -6px;
+  transform: none;
 }
 
-.practice-user-limited-header .tooltip-icon::before {
+.dt-tooltip.dt-tooltip-align-right .dt-tooltip-bubble::after {
   left: auto;
-  right: 8px;
-  transform: translateX(0);
+  right: 10px;
+  transform: none;
 }
 
 .practice-user-row .gmail-user-email {
   font-size: 13px;
-  color: #333;
+  color: var(--text-primary);
 }
 
 .practice-user-admin-header,
@@ -931,11 +1035,11 @@ input#practiceName {
 }
 
 .practice-user-header {
-  border-bottom: 2px solid #e2e8f0;
+  border-bottom: 1px solid var(--border-light);
 }
 
 .practice-user-row {
-  margin-top: 4px;
+  margin-top: 0;
 }
 
 /* User limit warning banner */
@@ -1103,13 +1207,13 @@ input#practiceName {
   display: flex;
   align-items: flex-start;
   gap: 12px;
-  margin-bottom: 14px;
+  margin-bottom: 8px;
 }
 
 .option-row-inline > label {
   flex: 0 0 140px;
   font-weight: 500;
-  color: #374151;
+  color: var(--text-secondary);
   font-size: 13px;
   line-height: 1.4;
 }
@@ -1118,7 +1222,7 @@ input#practiceName {
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 3px;
 }
 
 .inline-value-group input[type="text"] {
@@ -1147,7 +1251,7 @@ input#practiceName {
 /* Inline field notes - smaller, muted */
 .field-note-inline {
   font-size: 11px;
-  color: #9ca3af;
+  color: var(--text-light);
   font-style: italic;
 }
 
@@ -1162,30 +1266,21 @@ input#practiceName {
 }
 
 .option-row-logo > label {
-  margin-top: 10px;
+  margin-top: 6px;
 }
 
 /* BAA Status Section Styles */
 .baa-status-section {
-  margin-top: 4px;
-  padding: 12px 0;
-}
-
-.baa-status-section .subsection-title {
-  font-size: 13px;
-  font-weight: 600;
-  color: #374151;
-  margin: 0 0 12px 0;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+  margin-top: 0;
+  padding: 4px 0;
 }
 
 /* BAA Info Grid */
 .baa-info-grid {
   display: flex;
   flex-wrap: wrap;
-  gap: 16px 24px;
-  margin-bottom: 12px;
+  gap: 12px 24px;
+  margin-bottom: 8px;
 }
 
 .baa-info-item {
@@ -1196,14 +1291,14 @@ input#practiceName {
 
 .baa-info-label {
   font-size: 11px;
-  color: #6b7280;
+  color: var(--text-light);
   text-transform: uppercase;
   letter-spacing: 0.3px;
 }
 
 .baa-info-value {
   font-size: 13px;
-  color: #1f2937;
+  color: var(--text-primary);
 }
 
 .baa-status-badge {
@@ -1228,7 +1323,7 @@ input#practiceName {
 
 /* BAA Download Row */
 .baa-download-row {
-  margin-top: 8px;
+  margin-top: 4px;
 }
 
 .btn-download-baa-small {
@@ -1286,18 +1381,18 @@ input#practiceName {
    ============================================ */
 
 .security-section {
-  margin-bottom: 16px;
+  margin-bottom: 14px;
 }
 
 .security-form .form-field {
-  margin-bottom: 14px;
+  margin-bottom: 12px;
 }
 
 .security-form .form-field label {
   display: block;
   font-size: 13px;
   font-weight: 500;
-  color: #374151;
+  color: var(--text-secondary);
   margin-bottom: 6px;
 }
 
@@ -1512,7 +1607,7 @@ input#practiceName {
 
 /* Two-Factor Authentication Styles */
 .two-factor-status {
-  margin-bottom: 16px;
+  margin-bottom: 12px;
 }
 
 .status-badge {
@@ -1522,7 +1617,7 @@ input#practiceName {
   border-radius: 9999px;
   font-size: 12px;
   font-weight: 600;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
 }
 
 .status-badge.status-disabled {
@@ -1537,21 +1632,22 @@ input#practiceName {
 
 .status-description {
   font-size: 13px;
-  color: #6b7280;
+  color: var(--text-light);
   margin: 0;
+  line-height: 1.5;
 }
 
 .two-factor-setup,
 .two-factor-disable {
-  background: #f9fafb;
-  border: 1px solid #e5e7eb;
+  background: var(--background-subtle);
+  border: 1px solid var(--border-light);
   border-radius: 8px;
-  padding: 16px;
-  margin-bottom: 16px;
+  padding: 14px;
+  margin-bottom: 12px;
 }
 
 .setup-step {
-  margin-bottom: 20px;
+  margin-bottom: 14px;
 }
 
 .setup-step:last-child {
@@ -1621,8 +1717,9 @@ input#practiceName {
 
 .section-description {
   font-size: 13px;
-  color: #6b7280;
-  margin: 0 0 16px 0;
+  color: var(--text-light);
+  margin: 0 0 12px 0;
+  line-height: 1.5;
 }
 
 .export-status {
@@ -1649,10 +1746,141 @@ input#practiceName {
 
 .export-note {
   font-size: 12px;
-  color: #9ca3af;
-  margin-top: 12px;
+  color: var(--text-light);
+  margin-top: 8px;
 }
 
 .btn-icon {
   font-size: 16px;
+}
+
+/* ============================================
+   SETTINGS TWO-COLUMN LAYOUT (SaaS-style nav)
+   ------------------------------------------------
+   Wraps the existing .settings-twisty accordion
+   markup (unchanged) in a left-nav + single-panel
+   layout, driven by initSettingsNav() in app.js.
+   The legacy accordion open/close classes and
+   click handlers remain fully intact underneath.
+   ============================================ */
+.settings-layout {
+  display: grid;
+  grid-template-columns: 210px 1fr;
+  align-items: start;
+}
+
+.settings-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 4px 14px 4px 0;
+  border-right: 1px solid var(--border-light);
+  position: sticky;
+  top: 0;
+}
+
+.settings-nav-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 14px;
+  white-space: nowrap;
+  font-weight: 500;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.settings-nav-item:hover {
+  background-color: var(--background-subtle);
+  color: var(--text-primary);
+}
+
+.settings-nav-item.active {
+  background-color: rgba(30, 64, 175, 0.08);
+  color: var(--primary-color);
+  font-weight: 600;
+  border-radius: 8px;
+  box-shadow: inset 3px 0 0 0 var(--primary-color);
+}
+
+.settings-panels {
+  padding: 4px 4px 4px 32px;
+  min-width: 0;
+}
+
+/* Dividers between accordion sections are obsolete now that only
+   one section is shown at a time -- hidden, not removed. */
+.settings-panels > .settings-divider {
+  display: none;
+}
+
+/* Only the active panel is shown. The !important on the content
+   rule below is required to override the legacy open/closed state
+   set by initSettingsTwisties(), which is preserved untouched and
+   still drives the accordion's own .open class in the background. */
+.settings-panels .settings-twisty {
+  display: none;
+  margin-bottom: 0;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.settings-panels .settings-twisty.settings-panel-active {
+  display: block;
+}
+
+.settings-panels .settings-twisty.settings-panel-active .settings-twisty-content {
+  display: block !important;
+  padding: 0;
+}
+
+/* The accordion header becomes a static section heading. Its click
+   handler (from initSettingsTwisties) remains attached but is made
+   unreachable via pointer-events so the nav fully controls which
+   section is visible. */
+.settings-panels .settings-twisty .settings-twisty-header {
+  pointer-events: none;
+  cursor: default;
+  width: auto;
+  padding: 0 0 12px 0;
+  margin-bottom: 12px;
+  background: transparent;
+  border-bottom: 1px solid var(--border-light);
+  border-radius: 0;
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.settings-panels .settings-twisty-arrow {
+  display: none;
+}
+
+/* Stack nav above content on narrower widths */
+@media (max-width: 720px) {
+  .settings-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .settings-nav {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 0 0 12px 0;
+    margin-bottom: 12px;
+    border-right: none;
+    border-bottom: 1px solid var(--border-light);
+    position: static;
+  }
+
+  .settings-panels {
+    padding: 4px 0 0 0;
+  }
 }

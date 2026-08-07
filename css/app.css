@@ -225,6 +225,190 @@
   color: #64748b;
 }
 
+/* ============================================================
+   Archived Cases Modal -- modernization pass to match Settings
+   visual language (solid header, content-driven height, calm
+   neutral surfaces, subtle separators). Scoped to
+   .archived-cases-modal so it overrides the base rules above
+   and in app.light.css without touching them -- presentation
+   only, no IDs/classes/markup/JS affected.
+   ============================================================ */
+
+/* 1. Solid primary-blue header (was a blue-to-orange gradient) */
+.archived-cases-modal .modal-header {
+  background: var(--primary-color);
+}
+
+/* 2. Content-driven height: shrink for a few results, cap growth
+   for large result sets. The 300px min-height in app.light.css
+   was forcing empty space even for a single result. */
+.archived-cases-modal {
+  max-height: 85vh;
+}
+
+.archived-cases-modal .modal-body {
+  min-height: 0;
+}
+
+/* 3. Compact results toolbar -- search + filters visually grouped
+   into one bar instead of floating inputs with an 80px gap. */
+.archived-cases-modal .archived-search-header {
+  padding: 14px 20px 10px;
+}
+
+.archived-cases-modal .archived-filters {
+  gap: 10px;
+  padding: 10px 12px;
+  background: var(--background-subtle);
+  border: 1px solid var(--border-light);
+  border-radius: 10px;
+  margin-bottom: 0;
+}
+
+.archived-cases-modal .archived-search {
+  margin-right: 0;
+}
+
+.archived-cases-modal .archived-search input {
+  height: 34px;
+  padding: 0 12px;
+  box-sizing: border-box;
+  border: 1px solid var(--border-medium);
+  border-radius: 8px;
+  font-size: 13px;
+}
+
+.archived-cases-modal .archived-filter-controls {
+  gap: 8px;
+}
+
+.archived-cases-modal .archived-filter-controls select {
+  height: 34px;
+  padding: 0 30px 0 12px;
+  box-sizing: border-box;
+  border: 1px solid var(--border-medium);
+  border-radius: 8px;
+  font-size: 13px;
+  min-width: 120px;
+}
+
+/* 4. Results count as smaller secondary text near the toolbar */
+.archived-cases-modal .archived-count {
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--text-light);
+  font-weight: 500;
+}
+
+/* 5. Denser, flatter table -- integrated into the modal instead
+   of a bordered card nested inside the modal card. */
+.archived-cases-modal .archived-table-container {
+  padding: 0 20px 16px;
+  border: none;
+  border-radius: 0;
+  margin-bottom: 0;
+}
+
+.archived-cases-modal .archived-cases-table th {
+  padding: 10px 12px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-light);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  background: transparent;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.archived-cases-modal .archived-cases-table td {
+  padding: 10px 12px;
+  font-size: 13px;
+  color: var(--text-primary);
+  vertical-align: middle;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.archived-cases-modal .archived-cases-table tbody tr:hover {
+  background: var(--background-subtle);
+}
+
+.archived-cases-modal .archived-cases-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.archived-cases-modal .loading-row {
+  padding: 20px 12px;
+  font-size: 13px;
+}
+
+/* 6. Actions column -- one coordinated set: View/Print read as
+   neutral secondary actions, Restore is the single warning-toned
+   state-changing action. Icons and behavior unchanged. */
+.archived-cases-modal .archived-actions button {
+  padding: 6px 10px;
+  font-size: 12px;
+  border-radius: 6px;
+}
+
+.archived-cases-modal .archived-actions .btn-view,
+.archived-cases-modal .archived-actions .btn-print {
+  color: var(--text-secondary);
+  border-color: var(--border-medium);
+}
+
+.archived-cases-modal .archived-actions .btn-view:hover,
+.archived-cases-modal .archived-actions .btn-print:hover {
+  background: var(--background-subtle);
+  border-color: var(--text-light);
+  color: var(--text-primary);
+}
+
+.archived-cases-modal .archived-actions .btn-restore {
+  color: #b45309;
+  border-color: var(--warning-color);
+}
+
+.archived-cases-modal .archived-actions .btn-restore:hover {
+  background: var(--warning-color);
+  border-color: var(--warning-color);
+  color: white;
+}
+
+/* 7. Compact footer -- flatten the boxed pagination bar (it was
+   double-boxed inside the already-bordered modal footer). */
+.archived-cases-modal .modal-footer {
+  padding: 12px 20px;
+}
+
+.archived-cases-modal .archived-pagination {
+  margin-top: 0;
+  padding: 0;
+  border-top: none;
+  background: transparent;
+  border-radius: 0;
+}
+
+.archived-cases-modal .pagination-left select {
+  padding: 7px 10px;
+  font-size: 13px;
+  min-width: 110px;
+}
+
+.archived-cases-modal .pagination-center {
+  gap: 12px;
+}
+
+.archived-cases-modal .pagination-center button,
+.archived-cases-modal .pagination-right .btn-cancel {
+  padding: 7px 14px;
+  font-size: 13px;
+}
+
+.archived-cases-modal .pagination-center span {
+  padding: 6px 12px;
+  font-size: 13px;
+}
+
 .btn-restore {
   background: #10b981;
   color: white;
