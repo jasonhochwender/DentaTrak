@@ -2,7 +2,7 @@
 require_once __DIR__ . '/api/appConfig.php';
 require_once __DIR__ . '/api/security-headers.php';
 setSecurityHeaders();
-$appName = $appConfig['appName'] ?? 'Dentatrak';
+$appName = $appConfig['appName'] ?? 'DentaTrak';
 ?><!DOCTYPE html>
 <html lang="en">
 <head>
@@ -18,7 +18,7 @@ $appName = $appConfig['appName'] ?? 'Dentatrak';
     gtag('config', 'G-MBJDENR3H2');
   </script>
   
-  <title>Terms of Service - Dentatrak</title>
+  <title>Terms of Service - DentaTrak</title>
   <link rel="stylesheet" href="css/app.css">
   <style>
     body {
@@ -91,16 +91,16 @@ $appName = $appConfig['appName'] ?? 'Dentatrak';
     
     <div class="policy-header">
       <h1>Terms of Service</h1>
-      <p class="app-name">Dentatrak</p>
+      <p class="app-name">DentaTrak</p>
     </div>
     
     <div class="policy-content">
       <p><strong>Effective Date:</strong> August 7, 2026</p>
       
-      <p>These Terms of Service ("Terms") govern your use of Dentatrak ("Service"), a case tracking application provided to dental practices. By using the Service, you agree to these Terms.</p>
+      <p>These Terms of Service ("Terms") govern your use of DentaTrak ("Service"), a case tracking application provided to dental practices. By using the Service, you agree to these Terms.</p>
       
       <h4>1. Service Description</h4>
-      <p>Dentatrak is a case management tool that helps dental practices track and manage dental cases. The Service is intended for use by dental professionals and their authorized staff.</p>
+      <p>DentaTrak is a case management tool that helps dental practices track and manage dental cases. The Service is intended for use by dental professionals and their authorized staff.</p>
       
       <h4>2. Account Security</h4>
       <p>You are responsible for:</p>
@@ -128,7 +128,7 @@ $appName = $appConfig['appName'] ?? 'Dentatrak';
       <p>The Service is provided "as is" without warranties of any kind, express or implied. We do not warrant that the Service will be uninterrupted, error-free, or completely secure. We do not provide legal, medical, or compliance advice.</p>
       
       <h4>6. Limitation of Liability</h4>
-      <p>To the maximum extent permitted by law, Dentatrak and its operators shall not be liable for any indirect, incidental, special, consequential, or punitive damages arising from your use of the Service. This includes, but is not limited to:</p>
+      <p>To the maximum extent permitted by law, DentaTrak and its operators shall not be liable for any indirect, incidental, special, consequential, or punitive damages arising from your use of the Service. This includes, but is not limited to:</p>
       <ul>
         <li>Loss of data or unauthorized access to your data</li>
         <li>Service interruptions or downtime</li>
@@ -157,7 +157,7 @@ $appName = $appConfig['appName'] ?? 'Dentatrak';
     </div>
     
     <div class="policy-footer">
-      &copy; <?php echo date('Y'); ?> Dentatrak. All rights reserved.
+      &copy; <?php echo date('Y'); ?> DentaTrak. All rights reserved.
     </div>
   </div>
 </body>

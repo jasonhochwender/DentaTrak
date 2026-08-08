@@ -2,7 +2,7 @@
 require_once __DIR__ . '/api/appConfig.php';
 require_once __DIR__ . '/api/security-headers.php';
 setSecurityHeaders();
-$appName = $appConfig['appName'] ?? 'Dentatrak';
+$appName = $appConfig['appName'] ?? 'DentaTrak';
 $baseUrl = rtrim($appConfig['baseUrl'], '/') . '/';
 $articleUrls = $appConfig['public_urls'] ?? [];
 ?><!DOCTYPE html>
@@ -20,8 +20,8 @@ $articleUrls = $appConfig['public_urls'] ?? [];
     gtag('config', 'G-MBJDENR3H2');
   </script>
   
-  <meta name="description" content="Dentatrak is dental case tracking software for dental practices. Track every crown, implant, and lab case from prep to delivery. Start a 90-day free trial.">
-  <title>Dentatrak - Dental Case Tracking Software for Dental Practices</title>
+  <meta name="description" content="DentaTrak is dental case tracking software for dental practices. Track every crown, implant, and lab case from prep to delivery. Start a 90-day free trial.">
+  <title>DentaTrak - Dental Case Tracking Software for Dental Practices</title>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
     :root {
@@ -691,7 +691,7 @@ $articleUrls = $appConfig['public_urls'] ?? [];
   <!-- Navigation -->
   <nav class="nav">
     <div class="nav-inner">
-      <a href="<?= $baseUrl ?>" class="nav-logo">Dentatrak</a>
+      <a href="<?= $baseUrl ?>" class="nav-logo">DentaTrak</a>
       <div class="nav-links">
         <a href="#problem" class="nav-link">The Problem</a>
         <a href="#how-it-works" class="nav-link">How It Works</a>
@@ -710,13 +710,13 @@ $articleUrls = $appConfig['public_urls'] ?? [];
         Track every crown, implant, and lab case from prep to delivery so nothing gets lost between labs, referrals, and patient scheduling.
       </p>
       <p class="hero-subtitle" style="margin-top: 8px;">
-        Dentatrak gives every case a status, owner, and next step, helping your practice identify delays before they disrupt patient care, scheduling, or revenue.
+        DentaTrak gives every case a status, owner, and next step, helping your practice identify delays before they disrupt patient care, scheduling, or revenue.
       </p>
       <div class="hero-ctas">
         <a href="<?= $baseUrl ?>login.php" class="btn-primary">Start 90-Day Free Trial</a>
         <a href="<?= $baseUrl ?>login.php" class="btn-secondary">Log In</a>
       </div>
-      <p class="hero-note">Try Dentatrak free for 90 days. Set up your practice and begin tracking cases in minutes.</p>
+      <p class="hero-note">Try DentaTrak free for 90 days. Set up your practice and begin tracking cases in minutes.</p>
     </div>
   </section>
 
@@ -759,10 +759,10 @@ $articleUrls = $appConfig['public_urls'] ?? [];
   <section id="solution" class="section">
     <div class="section-inner">
       <div class="section-header">
-        <p class="section-label">How Dentatrak Helps</p>
+        <p class="section-label">How DentaTrak Helps</p>
         <h2>Catch problems before they cost you</h2>
         <p class="section-subtitle">
-          Dentatrak is dental case tracking software designed to manage crown cases, implant workflows, and lab coordination across the full lifecycle of treatment. Every case has a status, an owner, and a clear next step. Nothing slips through.
+          DentaTrak is dental case tracking software designed to manage crown cases, implant workflows, and lab coordination across the full lifecycle of treatment. Every case has a status, an owner, and a clear next step. Nothing slips through.
         </p>
       </div>
       <div class="solution-grid">
@@ -798,7 +798,7 @@ $articleUrls = $appConfig['public_urls'] ?? [];
   <section id="how-it-works" class="section">
     <div class="section-inner">
       <div class="section-header">
-        <p class="section-label">How Dentatrak Works</p>
+        <p class="section-label">How DentaTrak Works</p>
         <h2>A simple workflow for tracking multi-step dental cases from prep to delivery</h2>
       </div>
       <div class="solution-grid">
@@ -847,7 +847,7 @@ $articleUrls = $appConfig['public_urls'] ?? [];
       <div class="credibility-content">
         <h2>Built by a dentist, for dentists</h2>
         <p>
-          Dentatrak was developed by Dr. William Verrillo, a practicing dentist based in Georgia, to solve real breakdowns in case tracking between labs, referrals, and delivery.
+          DentaTrak was developed by Dr. William Verrillo, a practicing dentist based in Georgia, to solve real breakdowns in case tracking between labs, referrals, and delivery.
         </p>
         <p>
           This product is designed from real clinical workflows, not generic software assumptions.
@@ -892,10 +892,10 @@ $articleUrls = $appConfig['public_urls'] ?? [];
   <section class="section">
     <div class="section-inner">
       <div class="section-header">
-        <p class="section-label">Cases Dentatrak Helps Track</p>
+        <p class="section-label">Cases DentaTrak Helps Track</p>
         <h2>Built for complex dental workflows</h2>
         <p class="section-subtitle">
-          Dentatrak is designed to support common multi-step dental workflows that are difficult to track in traditional systems.
+          DentaTrak is designed to support common multi-step dental workflows that are difficult to track in traditional systems.
         </p>
       </div>
       <div class="audience-grid">
@@ -921,13 +921,13 @@ $articleUrls = $appConfig['public_urls'] ?? [];
       </div>
       <div class="integration-content">
         <p>
-          Dentatrak provides a dedicated system for dental case tracking that complements existing practice management software by focusing specifically on multi-step case workflows.
+          DentaTrak provides a dedicated system for dental case tracking that complements existing practice management software by focusing specifically on multi-step case workflows.
         </p>
         <p>
-          Dentatrak does not replace your practice management software. It fills a gap that PMS systems were never designed to address: dental workflow tracking for multi-step cases across labs, referrals, and internal handoffs.
+          DentaTrak does not replace your practice management software. It fills a gap that PMS systems were never designed to address: dental workflow tracking for multi-step cases across labs, referrals, and internal handoffs.
         </p>
         <p>
-          Your PMS handles scheduling and billing. Dentatrak handles case visibility.
+          Your PMS handles scheduling and billing. DentaTrak handles case visibility.
         </p>
         <div class="integration-note">
           No data migration required. Start tracking cases immediately.
@@ -1015,13 +1015,13 @@ $articleUrls = $appConfig['public_urls'] ?? [];
   <!-- Footer -->
   <footer class="footer">
     <div class="footer-inner">
-      <div class="footer-logo">Dentatrak</div>
+      <div class="footer-logo">DentaTrak</div>
       <div class="footer-links">
         <a href="<?= $baseUrl ?>privacy.php" class="footer-link">Privacy Policy</a>
         <a href="<?= $baseUrl ?>terms.php" class="footer-link">Terms of Service</a>
         <a href="mailto:support@dentatrak.com" class="footer-link">Contact</a>
       </div>
-      <div class="footer-copy">&copy; <?php echo date('Y'); ?> Dentatrak. All rights reserved.</div>
+      <div class="footer-copy">&copy; <?php echo date('Y'); ?> DentaTrak. All rights reserved.</div>
     </div>
   </footer>
 

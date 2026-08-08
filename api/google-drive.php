@@ -1009,7 +1009,7 @@ function createPracticeBackupFolder($practiceName) {
         $folderMetadata = new Google_Service_Drive_DriveFile([
             'name' => $folderName,
             'mimeType' => 'application/vnd.google-apps.folder',
-            'description' => 'Automated case backups for ' . $practiceName . '. Created by DentaTrack.'
+            'description' => 'Automated case backups for ' . $practiceName . '. Created by DentaTrak.'
         ]);
         
         $folder = $service->files->create($folderMetadata, ['fields' => 'id']);

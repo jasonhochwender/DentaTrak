@@ -142,10 +142,10 @@
 /* Left Hero Section */
 .login-hero {
   flex: 1.2;
-  padding: 48px;
+  padding: 40px 42px 60px;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
+  justify-content: center;
   position: relative;
   overflow: hidden;
 }
@@ -179,6 +179,7 @@
 .hero-content {
   position: relative;
   z-index: 1;
+  transform: translateY(-32px);
 }
 
 .hero-logo {
@@ -205,6 +206,20 @@
   color: white;
 }
 
+/* Brand logo - unmasked, no added background/effects, sized up ~23% from
+   the previous 52px and left-aligned with the heading below it (both are
+   plain block-level children of .hero-content with no extra indent). */
+.hero-brand-icon {
+  width: 120px;
+  height: 120px;
+  object-fit: contain;
+  display: block;
+  flex: 0 0 auto;
+  margin-top: 5px;
+  margin-bottom: -20px;
+  transform: translate(-18px, -12px);
+}
+
 .hero-title {
   font-size: 2.2rem;
   font-weight: 700;
@@ -213,24 +228,33 @@
   letter-spacing: -0.02em;
 }
 
+.hero-headline {
+  font-size: 1.2rem;
+  font-weight: 600;
+  opacity: 0.95;
+  margin: 0 0 5px;
+  line-height: 1.4;
+  max-width: 400px;
+}
+
 .hero-tagline {
   font-size: 1.1rem;
   opacity: 0.9;
-  margin: 0 0 40px;
+  margin: 0 0 30px;
   line-height: 1.5;
-  max-width: 320px;
+  max-width: 400px;
 }
 
 .hero-features {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 18px;
 }
 
 .feature-item {
   display: flex;
-  align-items: flex-start;
-  gap: 16px;
+  align-items: center;
+  gap: 14px;
 }
 
 .feature-icon {
@@ -268,7 +292,8 @@
 .hero-footer {
   position: relative;
   z-index: 1;
-  margin-top: 40px;
+  margin-top: 34px;
+  transform: translateY(34px);
 }
 
 .trust-badges {
@@ -533,8 +558,21 @@
     min-height: auto;
   }
   
+  .hero-content {
+    margin-top: 14px;
+  }
+  
+  .hero-brand-icon {
+    width: 58px;
+    margin-bottom: 18px;
+  }
+  
   .hero-title {
     font-size: 1.75rem;
+  }
+  
+  .hero-headline {
+    margin-bottom: 6px;
   }
   
   .hero-tagline {
@@ -546,7 +584,7 @@
   }
   
   .hero-footer {
-    margin-top: 20px;
+    margin-top: 24px;
   }
   
   .trust-badges {
@@ -582,8 +620,22 @@
     height: 32px;
   }
   
+  .hero-content {
+    margin-top: 8px;
+  }
+  
+  .hero-brand-icon {
+    width: 60px;
+    height: auto;
+    margin-bottom: 18px;
+  }
+  
   .hero-title {
     font-size: 1.5rem;
+  }
+  
+  .hero-headline {
+    font-size: 1.05rem;
   }
   
   .hero-tagline {

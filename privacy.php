@@ -2,7 +2,7 @@
 require_once __DIR__ . '/api/appConfig.php';
 require_once __DIR__ . '/api/security-headers.php';
 setSecurityHeaders();
-$appName = $appConfig['appName'] ?? 'Dentatrak';
+$appName = $appConfig['appName'] ?? 'DentaTrak';
 ?><!DOCTYPE html>
 <html lang="en">
 <head>
@@ -18,7 +18,7 @@ $appName = $appConfig['appName'] ?? 'Dentatrak';
     gtag('config', 'G-MBJDENR3H2');
   </script>
   
-  <title>Privacy Policy - Dentatrak</title>
+  <title>Privacy Policy - DentaTrak</title>
   <link rel="stylesheet" href="css/app.css">
   <style>
     body {
@@ -91,13 +91,13 @@ $appName = $appConfig['appName'] ?? 'Dentatrak';
     
     <div class="policy-header">
       <h1>Privacy Policy</h1>
-      <p class="app-name">Dentatrak</p>
+      <p class="app-name">DentaTrak</p>
     </div>
     
     <div class="policy-content">
       <p><strong>Effective Date:</strong> August 7, 2026</p>
       
-      <p>This Privacy Policy explains how Dentatrak ("we," "us," or "our") collects, uses, and protects your information when you use our dental case tracking service ("Service"). Dentatrak is a case management tool designed for dental practices.</p>
+      <p>This Privacy Policy explains how DentaTrak ("we," "us," or "our") collects, uses, and protects your information when you use our dental case tracking service ("Service"). DentaTrak is a case management tool designed for dental practices.</p>
       
       <h4>1. Information We Collect</h4>
       <p>We collect the following types of information:</p>
@@ -108,7 +108,7 @@ $appName = $appConfig['appName'] ?? 'Dentatrak';
       </ul>
       
       <h4>2. Google OAuth Disclosure</h4>
-      <p>Dentatrak uses Google OAuth solely for authentication purposes. When you sign in with Google:</p>
+      <p>DentaTrak uses Google OAuth solely for authentication purposes. When you sign in with Google:</p>
       <ul>
         <li>We access only your basic profile information (name and email address)</li>
         <li>We use this information only to identify your account and enable sign-in</li>
@@ -147,7 +147,7 @@ $appName = $appConfig['appName'] ?? 'Dentatrak';
         <li><strong>Access your data:</strong> Request a copy of the information we hold about you</li>
         <li><strong>Correct your data:</strong> Update inaccurate information in your account</li>
         <li><strong>Delete your data:</strong> Request deletion of your account and associated data</li>
-        <li><strong>Revoke access:</strong> Remove Dentatrak's access to your Google account at any time through your Google account settings</li>
+        <li><strong>Revoke access:</strong> Remove DentaTrak's access to your Google account at any time through your Google account settings</li>
       </ul>
       <p>To exercise these rights, contact us at <a href="mailto:privacy@dentatrak.com">privacy@dentatrak.com</a>.</p>
       
@@ -163,7 +163,7 @@ $appName = $appConfig['appName'] ?? 'Dentatrak';
     </div>
     
     <div class="policy-footer">
-      &copy; <?php echo date('Y'); ?> Dentatrak. All rights reserved.
+      &copy; <?php echo date('Y'); ?> DentaTrak. All rights reserved.
     </div>
   </div>
 </body>

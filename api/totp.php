@@ -16,7 +16,7 @@ class TOTP {
     private const CODE_DIGITS = 6;    // Standard 6-digit codes
     private const TIME_STEP = 30;     // 30-second time window
     private const ALGORITHM = 'sha1'; // Required for Google Authenticator compatibility
-    private const ISSUER = 'Dentatrak';
+    private const ISSUER = 'DentaTrak';
     
     // Allow 1 time step before/after for clock drift tolerance
     private const ALLOWED_DRIFT = 1;

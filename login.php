@@ -93,15 +93,11 @@ $sessionTimeout = isset($_GET['timeout']) && $_GET['timeout'] == '1';
         <?php if ($hasLogo): ?>
           <img src="<?php echo htmlspecialchars($appConfig['logo']); ?>" alt="Logo" class="hero-logo">
         <?php else: ?>
-          <div class="hero-icon">
-            <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M12 2C8.5 2 6 4 6 7c0 2 .5 3.5 1 5 .5 1.5 1 3 1 5 0 3 1.5 5 4 5s4-2 4-5c0-2 .5-3.5 1-5s1-3 1-5c0-3-2.5-5-6-5z"/>
-              <path d="M9 7h6"/>
-            </svg>
-          </div>
+          <img src="images/logo.png" alt="<?php echo htmlspecialchars($appName); ?>" class="hero-brand-icon">
         <?php endif; ?>
         
         <h1 class="hero-title"><?php echo htmlspecialchars($appName); ?></h1>
+        <p class="hero-headline">Track every case. Deliver confidence.</p>
         <p class="hero-tagline">Case visibility for complex dental work.</p>
         
         <div class="hero-features">
@@ -145,7 +141,7 @@ $sessionTimeout = isset($_GET['timeout']) && $_GET['timeout'] == '1';
     <div class="login-container">
       <div class="login-card">
         <div class="login-card-header">
-          <h2>Welcome to Dentatrak</h2>
+          <h2>Welcome to DentaTrak</h2>
           <p>Sign in to your account or enter your email to start your 90-day free trial.</p>
         </div>
         

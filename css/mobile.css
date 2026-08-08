@@ -866,16 +866,19 @@
 
 /* ===========================================
    8. SETTINGS MODAL & TAKE A TOUR (Mobile)
-   - Hide settings link on mobile (not mobile-optimized)
    - Hide tour on mobile
    =========================================== */
 
 @media (max-width: 480px) {
-  /* Hide Settings link in user menu on mobile */
-  .user-menu a[href="#"]:first-child,
-  .user-menu-item[href="#"]:first-of-type {
-    display: none !important;
-  }
+  /* NOTE: A rule used to live here hiding the Settings link in the user
+     menu via `.user-menu-item[href="#"]:first-of-type` (comment: "not
+     mobile-optimized"). That positional selector no longer reliably
+     targets Settings - it hides whichever menu item happens to render
+     first (e.g. Billing, when BILLING_ENABLED), and everything below
+     this block already makes the Settings modal itself usable on mobile
+     (full-screen layout, scrollable content, adjusted twisty padding).
+     Removed rather than left in place hiding the wrong/an inconsistent
+     item. */
 
   /* Hide Tour link in user menu on mobile */
   #startTourLink {

@@ -2,7 +2,7 @@
 require_once __DIR__ . '/api/appConfig.php';
 require_once __DIR__ . '/api/security-headers.php';
 setSecurityHeaders();
-$appName = $appConfig['appName'] ?? 'Dentatrak';
+$appName = $appConfig['appName'] ?? 'DentaTrak';
 $baseUrl = rtrim($appConfig['baseUrl'], '/') . '/';
 $articleUrls = $appConfig['public_urls'] ?? [];
 ?><!DOCTYPE html>
@@ -21,7 +21,7 @@ $articleUrls = $appConfig['public_urls'] ?? [];
   </script>
   
   <meta name="description" content="Compare dental case tracking software vs spreadsheets. Learn when to move beyond manual tracking methods for crowns, implants, and lab cases.">
-  <title>Dental Case Tracking Software vs Spreadsheets | Dentatrak</title>
+  <title>Dental Case Tracking Software vs Spreadsheets | DentaTrak</title>
   <link rel="canonical" href="https://dentatrak.com/dental-case-tracking-vs-spreadsheets">
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
@@ -356,10 +356,10 @@ $articleUrls = $appConfig['public_urls'] ?? [];
       Moving to dental case tracking software isn't about abandoning what works. It's about recognizing when the current approach has reached its limits.
     </p>
 
-    <h2>Where Dentatrak Fits</h2>
+    <h2>Where DentaTrak Fits</h2>
     
     <p>
-      Dentatrak is designed to replace informal tracking methods with a structured system built specifically for dental case workflows.
+      DentaTrak is designed to replace informal tracking methods with a structured system built specifically for dental case workflows.
     </p>
     
     <p>
@@ -367,14 +367,14 @@ $articleUrls = $appConfig['public_urls'] ?? [];
     </p>
     
     <div class="highlight-box">
-      <h3>Dentatrak vs spreadsheets</h3>
+      <h3>DentaTrak vs spreadsheets</h3>
       <p>
-        Spreadsheets require you to build and maintain your own tracking system. Dentatrak provides a ready-made structure designed for dental case workflows, with ownership, visibility, and accountability built in.
+        Spreadsheets require you to build and maintain your own tracking system. DentaTrak provides a ready-made structure designed for dental case workflows, with ownership, visibility, and accountability built in.
       </p>
     </div>
     
     <p>
-      If your practice has outgrown spreadsheets—or if you're seeing cases slip through the cracks—dental case tracking software like Dentatrak can provide the structure and visibility you need.
+      If your practice has outgrown spreadsheets—or if you're seeing cases slip through the cracks—dental case tracking software like DentaTrak can provide the structure and visibility you need.
     </p>
     
     <p>
@@ -383,7 +383,7 @@ $articleUrls = $appConfig['public_urls'] ?? [];
 
     <div class="cta-section">
       <h2>Ready to move beyond spreadsheets?</h2>
-      <p>Try Dentatrak free for 90 days. Set up your practice and begin tracking cases in minutes.</p>
+      <p>Try DentaTrak free for 90 days. Set up your practice and begin tracking cases in minutes.</p>
       <a href="<?= $baseUrl ?>login.php" class="btn-white">Start 90-Day Free Trial</a>
       <p style="margin-top: 16px; font-size: 0.9rem;"><a href="<?= $baseUrl ?>login.php" style="color: rgba(255,255,255,0.75); text-decoration: underline; text-underline-offset: 2px;">Already have an account? Log in</a></p>
     </div>

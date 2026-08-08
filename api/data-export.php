@@ -418,7 +418,7 @@ function sendExportReadyEmail(string $email, string $token, string $expiresAt, i
     $fileSizeFormatted = number_format($fileSize / 1024, 1) . ' KB';
     $expiresFormatted = date('F j, Y \a\t g:i A', strtotime($expiresAt));
     
-    $appName = $appConfig['appName'] ?? 'Dentatrak';
+    $appName = $appConfig['appName'] ?? 'DentaTrak';
     $subject = "Your {$appName} Data Export is Ready";
     
     // HTML email body - matching app email style
