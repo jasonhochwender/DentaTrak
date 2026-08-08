@@ -548,18 +548,44 @@
 
 /* Responsive Design */
 @media (max-width: 900px) {
+  /* Below this width the card stacks (hero on top, form below) instead of
+     sitting side-by-side. Centering that stacked card vertically inside a
+     full-height viewport (the desktop behavior) leaves a large empty gap
+     above it whenever the card's natural content height is shorter than
+     the screen -- which it normally is on a phone. Let the card flow from
+     the top instead, with a modest fixed top gap rather than a viewport-
+     height-dependent one, so this holds up across different phone heights. */
+  .login-body {
+    align-items: flex-start;
+    padding-top: 24px;
+  }
+
   .login-wrapper {
     flex-direction: column;
     max-width: 500px;
+    /* Desktop's 600px floor is what was inflating the stacked hero+form
+       card well past its actual content height on mobile. Let it size to
+       content instead. */
+    min-height: auto;
   }
   
   .login-hero {
     padding: 36px;
     min-height: auto;
+    /* Desktop vertically centers the branding group inside a tall hero
+       panel; on the stacked mobile layout that centers it inside a much
+       shorter box, but still leaves a visible gap above it. Flow it from
+       the top of the panel instead. */
+    justify-content: flex-start;
   }
   
   .hero-content {
     margin-top: 14px;
+    /* Reset the desktop-only fine-tuning offset (used to nudge the group
+       up within the centered desktop layout) -- not meaningful once the
+       content is top-aligned, and left in place it would shift the group
+       out from under the hero's own top padding. */
+    transform: none;
   }
   
   .hero-brand-icon {

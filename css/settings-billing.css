@@ -1887,20 +1887,18 @@ input#practiceName {
   border-right: 1px solid var(--border-light);
 }
 
-/* Sticky nav (stays visible while scrolling a tall panel) is a mouse/desktop
-   nicety, scoped to devices with a precise pointer + hover capability. On
-   touchscreens - including a phone with "Desktop site" forced, which widens
-   the layout viewport but does NOT change the actual input device -
-   position: sticky on an element inside a scrolling ancestor
-   (.tab-content-scroll) is a known source of tap/click hit-testing
-   failures on some mobile browsers. Omitting it for touch devices removes
-   that risk entirely while leaving the desktop experience unchanged. */
-@media (hover: hover) and (pointer: fine) {
-  .settings-nav {
-    position: sticky;
-    top: 0;
-  }
-}
+/* NOTE: position: sticky on this nav was previously gated behind
+   `@media (hover: hover) and (pointer: fine)` to keep it desktop-mouse-only,
+   since sticky positioning inside a scrolling ancestor (.tab-content-scroll)
+   is a known source of tap/click hit-testing failures on touch browsers.
+   That gate turned out not to be reliable: a phone with "Desktop site"
+   requested widens the layout viewport enough to show the desktop sidebar,
+   and on at least some mobile browsers that mode also reports pointer/hover
+   as though a mouse were attached, which silently re-enabled sticky (and
+   the click failures with it) in exactly the scenario it was meant to
+   exclude. Since pointer/hover detection can't be trusted to identify real
+   touch input here, position: sticky has been removed outright rather than
+   re-gated. The nav still scrolls normally with the rest of the panel. */
 
 .settings-nav-item {
   display: block;
@@ -1991,7 +1989,15 @@ input#practiceName {
   display: none;
 }
 
-/* Stack nav above content on narrower widths */
+/* Convert the left sidebar into a horizontally scrollable tab row on
+   narrower widths. `flex-wrap: wrap` previously used here combined with
+   `.settings-nav-item`'s desktop `width: 100%` (correct for a vertical
+   sidebar, where each button should span the full column) meant every tab
+   button demanded the full row width, which forced one tab per line
+   instead of a compact wrapped row. Using `overflow-x: auto` with
+   `flex-wrap: nowrap`, and sizing each tab to its own label instead of
+   100%, keeps every tab on one line, fully readable, with the row
+   scrolling horizontally instead of wrapping or compressing. */
 @media (max-width: 720px) {
   .settings-layout {
     grid-template-columns: 1fr;
@@ -1999,13 +2005,20 @@ input#practiceName {
 
   .settings-nav {
     flex-direction: row;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
     gap: 6px;
     padding: 0 0 12px 0;
     margin-bottom: 12px;
     border-right: none;
     border-bottom: 1px solid var(--border-light);
     position: static;
+  }
+
+  .settings-nav-item {
+    width: auto;
+    flex: 0 0 auto;
   }
 
   .settings-panels {
