@@ -81,6 +81,11 @@
 .tab-content-scroll {
   flex: 1;
   overflow-y: auto;
+  /* Defensive: stop scroll from chaining to an ancestor (and, previously,
+     the still-scrollable page behind the modal) once this container hits
+     its own scroll boundary. Purely a touch/scroll-edge behavior; has no
+     visible effect and does not change desktop mouse interaction. */
+  overscroll-behavior: contain;
 }
 
 .tab-pane {
@@ -1911,6 +1916,11 @@ input#practiceName {
   color: var(--text-secondary);
   cursor: pointer;
   transition: background-color 0.15s ease, color 0.15s ease;
+  /* Skips the browser's default double-tap-to-zoom delay/gesture handling
+     for this element on touch devices, which improves tap responsiveness
+     for buttons sitting inside a scrollable container. No effect on mouse
+     interaction. */
+  touch-action: manipulation;
 }
 
 .settings-nav-item:hover {

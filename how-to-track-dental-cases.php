@@ -23,7 +23,31 @@ $articleUrls = $appConfig['public_urls'] ?? [];
   <meta name="description" content="Learn how to track dental cases without losing them. A practical guide to managing crowns, implants, and lab cases from prep to delivery.">
   <title>How to Track Dental Cases Without Losing Them | DentaTrak</title>
   <link rel="canonical" href="https://dentatrak.com/how-to-track-dental-cases">
+
+  <!-- Favicon / App Icons -->
+  <link rel="icon" type="image/x-icon" href="favicon.ico">
+  <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="android-chrome-192x192.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+  <link rel="manifest" href="site.webmanifest">
+
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Structured Data: Article (dates/author mirror the visible byline below) -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "How to Track Dental Cases Without Losing Them",
+    "author": { "@type": "Person", "name": "Dr. William Verrillo" },
+    "publisher": { "@type": "Organization", "name": "DentaTrak" },
+    "datePublished": "2026-04-01",
+    "dateModified": "2026-08-08",
+    "mainEntityOfPage": "https://dentatrak.com/how-to-track-dental-cases"
+  }
+  </script>
+
   <style>
     :root {
       --primary-color: #1e40af;
@@ -130,8 +154,23 @@ $articleUrls = $appConfig['public_urls'] ?? [];
       line-height: 1.2;
       letter-spacing: -0.03em;
       color: var(--text-primary);
-      margin-bottom: 24px;
+      margin-bottom: 16px;
     }
+
+    .article-meta {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px 16px;
+      font-size: 0.875rem;
+      color: var(--text-light);
+      margin-bottom: 28px;
+      padding-bottom: 20px;
+      border-bottom: 1px solid var(--border-light);
+    }
+
+    .article-meta strong { color: var(--text-secondary); font-weight: 600; }
+    .article-meta .meta-divider { color: var(--border-medium); }
 
     .content h2 {
       font-size: 1.5rem;
@@ -320,6 +359,14 @@ $articleUrls = $appConfig['public_urls'] ?? [];
   <!-- Main Content -->
   <main class="content">
     <h1>How to Track Dental Cases Without Losing Them</h1>
+
+    <div class="article-meta">
+      <span>By <strong>Dr. William Verrillo</strong></span>
+      <span class="meta-divider">&middot;</span>
+      <span>Published <strong>April 1, 2026</strong></span>
+      <span class="meta-divider">&middot;</span>
+      <span>Updated <strong>August 8, 2026</strong></span>
+    </div>
     
     <p>
       Tracking dental cases across labs, referrals, and multiple appointments is one of the most common breakdowns in dental practices.
@@ -342,9 +389,9 @@ $articleUrls = $appConfig['public_urls'] ?? [];
     <ul>
       <li><strong>No centralized system:</strong> Case information lives in different places—the dentist's head, a coordinator's notes, the PMS, a spreadsheet. No one has the full picture.</li>
       <li><strong>No clear ownership:</strong> Multiple people touch a case over its lifecycle. When no one is clearly responsible for the next step, handoffs become drop-offs.</li>
-      <li><strong>Lab delays aren't visible:</strong> A case ships to the lab and enters a black box. Staff don't know it's late until the patient arrives and the case isn't ready.</li>
+      <li><strong>Lab delays aren't visible:</strong> A case ships to the lab and enters a black box. Staff don't know it's late until the patient arrives and the case isn't ready. See our guide to <a href="<?= $baseUrl . ($articleUrls['article_lab_tracking'] ?? 'dental-lab-case-tracking') ?>" style="color: var(--primary-color); text-decoration: none; font-weight: 500;">dental lab case tracking</a> for more on this specific breakdown.</li>
       <li><strong>Patient reschedules break flow:</strong> A patient cancels or reschedules, and the case falls off the radar. Weeks later, no one remembers where it stands.</li>
-      <li><strong>Practice management systems don't track case workflows:</strong> PMS software handles scheduling and billing well, but it wasn't designed to track dental cases through multi-step treatments. It shows appointments, not case status.</li>
+      <li><strong>Practice management systems don't track case workflows:</strong> PMS software handles scheduling and billing well, but it wasn't designed to track dental cases through multi-step treatments. It shows appointments, not case status. See <a href="<?= $baseUrl . ($articleUrls['article_vs_pms'] ?? 'dental-case-tracking-software-vs-pms') ?>" style="color: var(--primary-color); text-decoration: none; font-weight: 500;">dental case tracking software vs. PMS</a> for a fuller comparison.</li>
     </ul>
 
     <h2>How Dental Cases Are Typically Tracked (and Why It Fails)</h2>
@@ -388,7 +435,7 @@ $articleUrls = $appConfig['public_urls'] ?? [];
     </ul>
     
     <p>
-      This is what dental case tracking should provide: a shared, current view of every active case so nothing falls through the cracks. Using dedicated <a href="<?= $baseUrl . ($articleUrls['article_dental_case_tracking'] ?? 'dental-case-tracking') ?>" style="color: var(--primary-color); text-decoration: none; font-weight: 500;">dental case tracking software</a> makes this process consistent and reliable.
+      This is what dental case tracking should provide: a shared, current view of every active case so nothing falls through the cracks. Using dedicated <a href="<?= $baseUrl . ($articleUrls['article_dental_case_tracking_software'] ?? 'dental-case-tracking-software') ?>" style="color: var(--primary-color); text-decoration: none; font-weight: 500;">dental case tracking software</a> makes this process consistent and reliable.
     </p>
 
     <h2>Step-by-Step Process to Track Dental Cases</h2>
@@ -458,7 +505,7 @@ $articleUrls = $appConfig['public_urls'] ?? [];
     </ul>
     
     <p>
-      If your practice handles crowns, bridges, implants, or any lab-based restorations, a reliable way to track dental cases can reduce delays, prevent lost work, and improve the patient experience.
+      If your practice handles crowns, bridges, implants, or any lab-based restorations, a reliable way to track dental cases can reduce delays, prevent lost work, and improve the patient experience. See our workflow guides for <a href="<?= $baseUrl . ($articleUrls['article_crown_bridge'] ?? 'crown-and-bridge-case-tracking') ?>" style="color: var(--primary-color); text-decoration: none; font-weight: 500;">crown and bridge cases</a> and <a href="<?= $baseUrl . ($articleUrls['article_implant'] ?? 'implant-case-tracking') ?>" style="color: var(--primary-color); text-decoration: none; font-weight: 500;">implant cases</a> for more detail on those specific workflows.
     </p>
 
     <div class="cta-section">
@@ -474,6 +521,8 @@ $articleUrls = $appConfig['public_urls'] ?? [];
     <div class="footer-inner">
       <span class="footer-logo"><?php echo htmlspecialchars($appName); ?></span>
       <div class="footer-links">
+        <a href="<?= $baseUrl . ($articleUrls['page_about'] ?? 'about') ?>" class="footer-link">About</a>
+        <a href="<?= $baseUrl . ($articleUrls['page_resources'] ?? 'resources') ?>" class="footer-link">Resources</a>
         <a href="<?= $baseUrl ?>privacy.php" class="footer-link">Privacy</a>
         <a href="<?= $baseUrl ?>terms.php" class="footer-link">Terms</a>
         <a href="<?= $baseUrl ?>" class="footer-link">Home</a>

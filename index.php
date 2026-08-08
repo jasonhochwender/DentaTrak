@@ -22,7 +22,68 @@ $articleUrls = $appConfig['public_urls'] ?? [];
   
   <meta name="description" content="DentaTrak is dental case tracking software for dental practices. Track every crown, implant, and lab case from prep to delivery. Start a 90-day free trial.">
   <title>DentaTrak - Dental Case Tracking Software for Dental Practices</title>
+  <link rel="canonical" href="https://dentatrak.com/">
+
+  <!-- Favicon / App Icons -->
+  <link rel="icon" type="image/x-icon" href="favicon.ico">
+  <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="android-chrome-192x192.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+  <link rel="manifest" href="site.webmanifest">
+
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Structured Data: Organization -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    "name": "DentaTrak",
+    "url": "https://dentatrak.com/",
+    "email": "support@dentatrak.com"
+  }
+  </script>
+
+  <!-- Structured Data: WebSite -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "name": "DentaTrak",
+    "url": "https://dentatrak.com/"
+  }
+  </script>
+
+  <!-- Structured Data: SoftwareApplication (pricing mirrors the Pricing section on this page) -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "DentaTrak",
+    "applicationCategory": "BusinessApplication",
+    "operatingSystem": "Web",
+    "description": "DentaTrak is dental case tracking software for dental practices. It tracks multi-step cases such as crowns, implants, and lab work from preparation through delivery.",
+    "url": "https://dentatrak.com/",
+    "offers": [
+      {
+        "@type": "Offer",
+        "name": "Operate",
+        "price": "495.00",
+        "priceCurrency": "USD",
+        "url": "https://dentatrak.com/#pricing"
+      },
+      {
+        "@type": "Offer",
+        "name": "Control",
+        "price": "795.00",
+        "priceCurrency": "USD",
+        "url": "https://dentatrak.com/#pricing"
+      }
+    ]
+  }
+  </script>
+
   <style>
     :root {
       --primary-color: #1e40af;
@@ -695,6 +756,7 @@ $articleUrls = $appConfig['public_urls'] ?? [];
       <div class="nav-links">
         <a href="#problem" class="nav-link">The Problem</a>
         <a href="#how-it-works" class="nav-link">How It Works</a>
+        <a href="<?= $baseUrl . ($articleUrls['page_resources'] ?? 'resources') ?>" class="nav-link">Resources</a>
         <a href="#pricing" class="nav-link">Pricing</a>
         <a href="<?= $baseUrl ?>login.php" class="nav-login">Log In</a>
         <a href="<?= $baseUrl ?>login.php" class="nav-cta">Start 90-Day Free Trial</a>
@@ -789,7 +851,7 @@ $articleUrls = $appConfig['public_urls'] ?? [];
         </div>
       </div>
       <p style="text-align: center; margin-top: 32px; font-size: 0.95rem; color: var(--text-secondary);">
-        For a deeper look at how dental case tracking software works, see our <a href="<?= $baseUrl . ($articleUrls['article_dental_case_tracking'] ?? 'dental-case-tracking') ?>" class="content-link">detailed guide on dental case tracking</a>.
+        For a deeper look at how dental case tracking software works, see our <a href="<?= $baseUrl . ($articleUrls['article_dental_case_tracking_software'] ?? 'dental-case-tracking-software') ?>" class="content-link">detailed guide on dental case tracking software</a>.
       </p>
     </div>
   </section>
@@ -1017,6 +1079,8 @@ $articleUrls = $appConfig['public_urls'] ?? [];
     <div class="footer-inner">
       <div class="footer-logo">DentaTrak</div>
       <div class="footer-links">
+        <a href="<?= $baseUrl . ($articleUrls['page_about'] ?? 'about') ?>" class="footer-link">About</a>
+        <a href="<?= $baseUrl . ($articleUrls['page_resources'] ?? 'resources') ?>" class="footer-link">Resources</a>
         <a href="<?= $baseUrl ?>privacy.php" class="footer-link">Privacy Policy</a>
         <a href="<?= $baseUrl ?>terms.php" class="footer-link">Terms of Service</a>
         <a href="mailto:support@dentatrak.com" class="footer-link">Contact</a>

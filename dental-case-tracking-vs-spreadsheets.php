@@ -23,7 +23,31 @@ $articleUrls = $appConfig['public_urls'] ?? [];
   <meta name="description" content="Compare dental case tracking software vs spreadsheets. Learn when to move beyond manual tracking methods for crowns, implants, and lab cases.">
   <title>Dental Case Tracking Software vs Spreadsheets | DentaTrak</title>
   <link rel="canonical" href="https://dentatrak.com/dental-case-tracking-vs-spreadsheets">
+
+  <!-- Favicon / App Icons -->
+  <link rel="icon" type="image/x-icon" href="favicon.ico">
+  <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="android-chrome-192x192.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+  <link rel="manifest" href="site.webmanifest">
+
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Structured Data: Article (dates/author mirror the visible byline below) -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "Dental Case Tracking Software vs Spreadsheets",
+    "author": { "@type": "Person", "name": "Dr. William Verrillo" },
+    "publisher": { "@type": "Organization", "name": "DentaTrak" },
+    "datePublished": "2026-04-01",
+    "dateModified": "2026-08-08",
+    "mainEntityOfPage": "https://dentatrak.com/dental-case-tracking-vs-spreadsheets"
+  }
+  </script>
+
   <style>
     :root {
       --primary-color: #1e40af;
@@ -130,8 +154,23 @@ $articleUrls = $appConfig['public_urls'] ?? [];
       line-height: 1.2;
       letter-spacing: -0.03em;
       color: var(--text-primary);
-      margin-bottom: 24px;
+      margin-bottom: 16px;
     }
+
+    .article-meta {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px 16px;
+      font-size: 0.875rem;
+      color: var(--text-light);
+      margin-bottom: 28px;
+      padding-bottom: 20px;
+      border-bottom: 1px solid var(--border-light);
+    }
+
+    .article-meta strong { color: var(--text-secondary); font-weight: 600; }
+    .article-meta .meta-divider { color: var(--border-medium); }
 
     .content h2 {
       font-size: 1.5rem;
@@ -278,6 +317,14 @@ $articleUrls = $appConfig['public_urls'] ?? [];
   <!-- Main Content -->
   <main class="content">
     <h1>Dental Case Tracking Software vs Spreadsheets</h1>
+
+    <div class="article-meta">
+      <span>By <strong>Dr. William Verrillo</strong></span>
+      <span class="meta-divider">&middot;</span>
+      <span>Published <strong>April 1, 2026</strong></span>
+      <span class="meta-divider">&middot;</span>
+      <span>Updated <strong>August 8, 2026</strong></span>
+    </div>
     
     <p>
       Many dental practices use spreadsheets or notes to track cases. It's a natural starting point—spreadsheets are familiar, flexible, and free. But as case volume grows and workflows become more complex, these methods start to break down.
@@ -347,7 +394,7 @@ $articleUrls = $appConfig['public_urls'] ?? [];
     
     <ul>
       <li><strong>Increasing case volume:</strong> More cases mean more rows, more updates, and more chances for things to fall through. If your spreadsheet is getting unwieldy, that's a sign.</li>
-      <li><strong>More lab coordination:</strong> If you're working with multiple labs and tracking shipments, returns, and delays, a spreadsheet quickly becomes insufficient.</li>
+      <li><strong>More lab coordination:</strong> If you're working with multiple labs and tracking shipments, returns, and delays, a spreadsheet quickly becomes insufficient. See our guide to <a href="<?= $baseUrl . ($articleUrls['article_lab_tracking'] ?? 'dental-lab-case-tracking') ?>" class="content-link" style="color: var(--primary-color); text-decoration: none; font-weight: 500;">dental lab case tracking</a> for a closer look at this specific problem.</li>
       <li><strong>More staff involved:</strong> When multiple people need to update and reference case status, a shared spreadsheet creates confusion. Who updated what? Is this current?</li>
       <li><strong>Frequent delays or remakes:</strong> If cases are regularly stalling, getting lost, or requiring rework, the tracking method itself may be part of the problem.</li>
     </ul>
@@ -378,7 +425,7 @@ $articleUrls = $appConfig['public_urls'] ?? [];
     </p>
     
     <p>
-      For more on how dental case tracking works, see our <a href="<?= $baseUrl . ($articleUrls['article_dental_case_tracking'] ?? 'dental-case-tracking') ?>" style="color: var(--primary-color); text-decoration: none; font-weight: 500;">detailed guide</a>.
+      For more on how dental case tracking works, see our <a href="<?= $baseUrl . ($articleUrls['article_dental_case_tracking_software'] ?? 'dental-case-tracking-software') ?>" style="color: var(--primary-color); text-decoration: none; font-weight: 500;">detailed guide</a>.
     </p>
 
     <div class="cta-section">
@@ -394,6 +441,8 @@ $articleUrls = $appConfig['public_urls'] ?? [];
     <div class="footer-inner">
       <span class="footer-logo"><?php echo htmlspecialchars($appName); ?></span>
       <div class="footer-links">
+        <a href="<?= $baseUrl . ($articleUrls['page_about'] ?? 'about') ?>" class="footer-link">About</a>
+        <a href="<?= $baseUrl . ($articleUrls['page_resources'] ?? 'resources') ?>" class="footer-link">Resources</a>
         <a href="<?= $baseUrl ?>privacy.php" class="footer-link">Privacy</a>
         <a href="<?= $baseUrl ?>terms.php" class="footer-link">Terms</a>
         <a href="<?= $baseUrl ?>" class="footer-link">Home</a>

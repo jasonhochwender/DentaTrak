@@ -226,9 +226,15 @@ Here is the workflow data to analyze:
     // Public article URLs — clean paths on production, direct .php on local/UAT
     // (Local Apache serves the app from a subfolder so clean URL rewrites don't apply)
     'public_urls' => [
-        'article_dental_case_tracking' => 'dental-case-tracking',
-        'article_how_to_track'         => 'how-to-track-dental-cases',
-        'article_comparison'           => 'dental-case-tracking-vs-spreadsheets',
+        'article_dental_case_tracking_software' => 'dental-case-tracking-software',
+        'article_how_to_track'                  => 'how-to-track-dental-cases',
+        'article_comparison'                    => 'dental-case-tracking-vs-spreadsheets',
+        'article_vs_pms'                        => 'dental-case-tracking-software-vs-pms',
+        'article_lab_tracking'                  => 'dental-lab-case-tracking',
+        'article_crown_bridge'                  => 'crown-and-bridge-case-tracking',
+        'article_implant'                       => 'implant-case-tracking',
+        'page_about'                            => 'about',
+        'page_resources'                        => 'resources',
     ],
 
     'billing' => [
@@ -336,9 +342,15 @@ $appConfigUAT = array_merge($commonConfig, [
     'db_name'     => getEnvVar('DB_NAME', 'dental_case_tracker'),
     'baseUrl'     => 'http://localhost/DentaTrak',
     'public_urls' => [
-        'article_dental_case_tracking' => 'dental-case-tracking.php',
-        'article_how_to_track'         => 'how-to-track-dental-cases.php',
-        'article_comparison'           => 'dental-case-tracking-vs-spreadsheets.php',
+        'article_dental_case_tracking_software' => 'dental-case-tracking-software.php',
+        'article_how_to_track'                  => 'how-to-track-dental-cases.php',
+        'article_comparison'                    => 'dental-case-tracking-vs-spreadsheets.php',
+        'article_vs_pms'                        => 'dental-case-tracking-software-vs-pms.php',
+        'article_lab_tracking'                  => 'dental-lab-case-tracking.php',
+        'article_crown_bridge'                  => 'crown-and-bridge-case-tracking.php',
+        'article_implant'                       => 'implant-case-tracking.php',
+        'page_about'                            => 'about.php',
+        'page_resources'                        => 'resources.php',
     ],
 ]);
 
@@ -353,9 +365,15 @@ $appConfigLocalDev = array_merge($commonConfig, [
     'db_name'     => getEnvVar('DB_NAME', 'dental_case_tracker'),
     'baseUrl'     => 'http://localhost/DentaTrak',
     'public_urls' => [
-        'article_dental_case_tracking' => 'dental-case-tracking.php',
-        'article_how_to_track'         => 'how-to-track-dental-cases.php',
-        'article_comparison'           => 'dental-case-tracking-vs-spreadsheets.php',
+        'article_dental_case_tracking_software' => 'dental-case-tracking-software.php',
+        'article_how_to_track'                  => 'how-to-track-dental-cases.php',
+        'article_comparison'                    => 'dental-case-tracking-vs-spreadsheets.php',
+        'article_vs_pms'                        => 'dental-case-tracking-software-vs-pms.php',
+        'article_lab_tracking'                  => 'dental-lab-case-tracking.php',
+        'article_crown_bridge'                  => 'crown-and-bridge-case-tracking.php',
+        'article_implant'                       => 'implant-case-tracking.php',
+        'page_about'                            => 'about.php',
+        'page_resources'                        => 'resources.php',
     ],
 ]);
 

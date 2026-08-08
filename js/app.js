@@ -845,6 +845,15 @@ document.addEventListener('DOMContentLoaded', function () {
     // Show the modal
     settingsBillingModal.style.display = 'block';
 
+    // Prevent the page behind the modal from scrolling. Every other modal in
+    // this file does this (createCaseModal, trialExpiredModal, upgradeModal,
+    // archivedCasesModal); the Settings modal was missing it. On touch
+    // devices, leaving the background page scrollable while a tap starts
+    // inside a nested scrollable region (.tab-content-scroll) can cause the
+    // browser to interpret the tap as the start of a scroll/chain gesture
+    // instead of a click, which cancels the synthetic click event entirely.
+    document.body.style.overflow = 'hidden';
+
     // Initialize settings twisties and restore their state
     initSettingsTwisties();
 
@@ -1318,6 +1327,7 @@ document.addEventListener('DOMContentLoaded', function () {
         showSettingsUnsavedChangesWarning(function() {
           // User chose "Close Without Saving" - close the modal and reload original values
           settingsBillingModal.style.display = 'none';
+          document.body.style.overflow = '';
           resetLogoUploadState();
           loadSettings();
         });
@@ -1325,6 +1335,7 @@ document.addEventListener('DOMContentLoaded', function () {
       }
       // No unsaved changes or force closing, close immediately
       settingsBillingModal.style.display = 'none';
+      document.body.style.overflow = '';
 
       // Reset logo upload state when closing without saving
       if (!forceClose) {
