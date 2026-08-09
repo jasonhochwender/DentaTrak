@@ -7058,21 +7058,17 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   }
 
-  // Dev-only Carolina Family Dental demo data generator
-  var devGenerateCarolinaDemoBtn = document.getElementById('devGenerateCarolinaDemoBtn');
-  if (devGenerateCarolinaDemoBtn) {
-    devGenerateCarolinaDemoBtn.addEventListener('click', function () {
-      if (!confirm('This will add a complete demo dataset to Carolina Family Dental. Continue?')) {
-        return;
-      }
-
-      var originalText = devGenerateCarolinaDemoBtn.textContent;
+  // Dev-only dental practice demo data generator
+  var devGenerateDemoDataBtn = document.getElementById('devGenerateDemoDataBtn');
+  if (devGenerateDemoDataBtn) {
+    devGenerateDemoDataBtn.addEventListener('click', function () {
+      var originalText = devGenerateDemoDataBtn.textContent;
 
       function callGenerator(body) {
-        devGenerateCarolinaDemoBtn.disabled = true;
-        devGenerateCarolinaDemoBtn.textContent = 'Generating...';
+        devGenerateDemoDataBtn.disabled = true;
+        devGenerateDemoDataBtn.textContent = 'Generating...';
 
-        fetch('api/generate-carolina-demo-data.php', {
+        fetch('api/generate-dental-practice-demo-data.php', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -7089,20 +7085,20 @@ document.addEventListener('DOMContentLoaded', function () {
                 callGenerator({ confirmed: true });
                 return;
               }
-              devGenerateCarolinaDemoBtn.disabled = false;
-              devGenerateCarolinaDemoBtn.textContent = originalText;
+              devGenerateDemoDataBtn.disabled = false;
+              devGenerateDemoDataBtn.textContent = originalText;
               showToast('Action cancelled', 'info');
               return;
             }
 
-            devGenerateCarolinaDemoBtn.disabled = false;
-            devGenerateCarolinaDemoBtn.textContent = originalText;
+            devGenerateDemoDataBtn.disabled = false;
+            devGenerateDemoDataBtn.textContent = originalText;
             showToast((data && data.message) ? data.message : 'Failed to generate demo data.', 'error');
             return;
           }
 
-          devGenerateCarolinaDemoBtn.disabled = false;
-          devGenerateCarolinaDemoBtn.textContent = originalText;
+          devGenerateDemoDataBtn.disabled = false;
+          devGenerateDemoDataBtn.textContent = originalText;
           showToast(data.message || 'Demo data generated.', 'success');
 
           setTimeout(function () {
@@ -7110,8 +7106,8 @@ document.addEventListener('DOMContentLoaded', function () {
           }, 800);
         })
         .catch(function (err) {
-          devGenerateCarolinaDemoBtn.disabled = false;
-          devGenerateCarolinaDemoBtn.textContent = originalText;
+          devGenerateDemoDataBtn.disabled = false;
+          devGenerateDemoDataBtn.textContent = originalText;
           showToast('Error generating demo data: ' + err.message, 'error');
         });
       }

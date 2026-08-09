@@ -2337,11 +2337,11 @@ window.featureFlags = <?php echo getFeatureFlagsJson(); ?>;
         </div>
       </div>
       
-      <!-- Carolina Family Dental Demo Data -->
+      <!-- Dental Practice Demo Data -->
       <div class="dev-tools-section">
-        <h4>🏥 Carolina Family Dental Demo Data</h4>
+        <h4>🏥 Generate Dental Practice Demo Data</h4>
         <div class="test-case-controls">
-          <button id="devGenerateCarolinaDemoBtn" class="dev-btn dev-btn-primary">Generate Carolina Family Dental Demo Data</button>
+          <button id="devGenerateDemoDataBtn" class="dev-btn dev-btn-primary">Generate Demo Data</button>
         </div>
       </div>
       

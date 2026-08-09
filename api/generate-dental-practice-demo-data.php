@@ -1,15 +1,18 @@
 <?php
 /**
- * Generate Carolina Family Dental Demo Data
+ * Generate Dental Practice Demo Data
  *
- * Purpose-built Dev Tools generator that populates the CURRENT practice with a
- * curated, realistic demo dataset (active + historical cases) for marketing
- * screenshots, demos, training, and general testing.
+ * Purpose-built Dev Tools generator that populates the CURRENT practice
+ * ($_SESSION['current_practice_id']) with a curated, realistic demo dataset
+ * (active + historical cases) for marketing screenshots, demos, training,
+ * and general testing. Works for whatever practice is currently selected -
+ * it is not tied to any specific practice name.
  *
- * SAFETY: This endpoint refuses to run unless the current practice's name is
- * EXACTLY "Carolina Family Dental". It never creates the practice itself, and
- * it never touches any other practice's data (every write is scoped to
- * $currentPracticeId, exactly like generate-fake-cases.php).
+ * SAFETY: Scoped entirely to the current practice via requireValidPracticeContext()
+ * and $currentPracticeId - every write uses that ID, exactly like
+ * generate-fake-cases.php. It never creates a practice, and if the current
+ * practice already has a meaningful amount of case data it asks for
+ * confirmation before adding more (see $significantDataThreshold below).
  *
  * Architecture: follows the same pattern as api/generate-fake-cases.php -
  * writes directly to cases_cache (bypassing Google Drive, which real case
@@ -19,6 +22,16 @@
  * and real revision_count values (via incrementCaseRevisionCount()), so
  * generated cases behave like normal, lived-in DentaTrak records rather than
  * empty shells.
+ *
+ * NOTE on case_comments: api/case-comments.php is an HTTP endpoint file with
+ * top-level request-routing code that executes immediately on require/include
+ * (it reads $_SERVER['REQUEST_METHOD'] and php://input unconditionally). It is
+ * NOT safe to require_once from another script - doing so previously caused
+ * this generator to be short-circuited by that file's own "Case ID and
+ * comment text required" validation error, because it interpreted this
+ * generator's own POST body as a comment-creation request. This file
+ * therefore does NOT require case-comments.php; it creates the case_comments
+ * table and row itself using the exact same schema/columns as that endpoint.
  */
 
 require_once __DIR__ . '/session.php';
@@ -26,13 +39,53 @@ header('Content-Type: application/json');
 require_once __DIR__ . '/practice-security.php';
 require_once __DIR__ . '/cases-cache.php';
 require_once __DIR__ . '/case-activity-log.php';
-require_once __DIR__ . '/case-comments.php';
 require_once __DIR__ . '/encryption.php';
 require_once __DIR__ . '/dev-tools-access.php';
 require_once __DIR__ . '/csrf.php';
 
 ini_set('display_errors', '0');
 error_reporting(E_ALL & ~E_DEPRECATED & ~E_USER_DEPRECATED);
+
+/**
+ * Ensure the case_comments table exists. Duplicated (not required) from
+ * api/case-comments.php, which cannot be safely require_once'd from another
+ * script - see the file header note above. Schema matches that file exactly.
+ */
+function ensureDemoCaseCommentsTable() {
+    global $pdo;
+    static $initialized = false;
+
+    if ($initialized || !$pdo) {
+        return;
+    }
+
+    $sql = "CREATE TABLE IF NOT EXISTS case_comments (
+        id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+        case_id VARCHAR(64) NOT NULL,
+        practice_id INT UNSIGNED NOT NULL,
+        user_id BIGINT UNSIGNED NOT NULL,
+        user_name VARCHAR(255) NOT NULL,
+        user_email VARCHAR(255) NOT NULL,
+        comment_text TEXT NOT NULL,
+        mentions_json TEXT DEFAULT NULL,
+        is_deleted BOOLEAN DEFAULT FALSE,
+        deleted_at DATETIME DEFAULT NULL,
+        deleted_by BIGINT UNSIGNED DEFAULT NULL,
+        created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        INDEX idx_case_id (case_id),
+        INDEX idx_practice_id (practice_id),
+        INDEX idx_user_id (user_id),
+        INDEX idx_created_at (created_at),
+        INDEX idx_is_deleted (is_deleted)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;";
+
+    try {
+        $pdo->exec($sql);
+        $initialized = true;
+    } catch (PDOException $e) {
+        error_log('[case_comments] Error creating table: ' . $e->getMessage());
+    }
+}
 
 try {
     if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -41,8 +94,8 @@ try {
         exit;
     }
 
-    // SECURITY: Require valid, authenticated practice membership (never a
-    // fallback / never another practice).
+    // SECURITY: Require valid, authenticated practice membership. All writes
+    // below are scoped to this ID - never another practice.
     $currentPracticeId = requireValidPracticeContext();
 
     // Dev tools access control (super user in UAT/Prod, always allowed in dev)
@@ -61,30 +114,16 @@ try {
         exit;
     }
 
-    // SAFETY GATE: the practice name must be EXACTLY "Carolina Family Dental".
-    $stmt = $pdo->prepare("SELECT practice_name FROM practices WHERE id = :id");
-    $stmt->execute(['id' => $currentPracticeId]);
-    $practiceName = $stmt->fetchColumn();
-
-    if ($practiceName === false || trim((string)$practiceName) !== 'Carolina Family Dental') {
-        http_response_code(403);
-        echo json_encode([
-            'success' => false,
-            'message' => 'This generator only runs for the practice "Carolina Family Dental". '
-                . 'The current practice is "' . ($practiceName !== false ? $practiceName : 'unknown') . '". No data was generated.'
-        ]);
-        exit;
-    }
-
     $input = json_decode(file_get_contents('php://input'), true);
     if (!is_array($input)) {
         $input = [];
     }
     $confirmed = !empty($input['confirmed']);
 
-    // Warn (once) if the practice already has a meaningful amount of case data,
-    // per the "do not silently pile onto existing data" requirement. Kept
-    // intentionally simple - no duplicate-detection system, just a count check.
+    // Warn if the current practice already has a meaningful amount of case
+    // data, so demo records aren't silently dumped into an actively used
+    // practice. Kept intentionally simple - no duplicate-detection system,
+    // just a count check.
     $stmt = $pdo->prepare("SELECT COUNT(*) FROM cases_cache WHERE practice_id = :pid AND archived = 0");
     $stmt->execute(['pid' => $currentPracticeId]);
     $existingActiveCount = (int)$stmt->fetchColumn();
@@ -95,7 +134,7 @@ try {
             'success' => false,
             'needsConfirmation' => true,
             'existingCaseCount' => $existingActiveCount,
-            'message' => "Carolina Family Dental already has {$existingActiveCount} active case(s). "
+            'message' => "This practice already has {$existingActiveCount} active case(s). "
                 . 'This will ADD demo data on top of what exists (nothing will be deleted). Continue anyway?'
         ]);
         exit;
@@ -386,7 +425,7 @@ try {
 
         // case_created
         logCaseActivity($caseId, 'case_created', null, null, [
-            'source' => 'generate-carolina-demo-data.php',
+            'source' => 'generate-dental-practice-demo-data.php',
             'has_notes' => !empty($notes),
         ], date('Y-m-d H:i:s', $creationTs));
         $eventsWritten++;
@@ -396,7 +435,7 @@ try {
             $assignTs = min($endTs, $creationTs + random_int(1800, 14400));
             logCaseActivity($caseId, 'assignment_set', null, null, [
                 'assigned_to' => $assignedTo,
-                'source' => 'generate-carolina-demo-data.php',
+                'source' => 'generate-dental-practice-demo-data.php',
             ], date('Y-m-d H:i:s', $assignTs));
             $eventsWritten++;
         }
@@ -406,7 +445,7 @@ try {
             $notesTs = min($endTs, $creationTs + random_int(3600, 28800));
             logCaseActivity($caseId, 'notes_updated', null, null, [
                 'length' => strlen($notes),
-                'source' => 'generate-carolina-demo-data.php',
+                'source' => 'generate-dental-practice-demo-data.php',
             ], date('Y-m-d H:i:s', $notesTs));
             $eventsWritten++;
         }
@@ -424,11 +463,11 @@ try {
                 logCaseActivity($caseId, 'case_regression', $fromStatus, $toStatus, [
                     'regression_number' => $newCount,
                     'reason' => 'Stage moved backward from ' . $fromStatus . ' to ' . $toStatus,
-                    'source' => 'generate-carolina-demo-data.php',
+                    'source' => 'generate-dental-practice-demo-data.php',
                 ], $ts);
             } else {
                 logCaseActivity($caseId, 'status_changed', $fromStatus, $toStatus, [
-                    'source' => 'generate-carolina-demo-data.php',
+                    'source' => 'generate-dental-practice-demo-data.php',
                 ], $ts);
             }
             $eventsWritten++;
@@ -439,7 +478,7 @@ try {
             $archiveTs = min($endTs, ($timestamps[$totalSteps - 1] ?? $creationTs) + random_int(3600, 3 * 86400));
             logCaseActivity($caseId, 'case_archived_auto', 'Delivered', null, [
                 'delivered_hide_days' => 14,
-                'source' => 'generate-carolina-demo-data.php',
+                'source' => 'generate-dental-practice-demo-data.php',
             ], date('Y-m-d H:i:s', $archiveTs));
             $eventsWritten++;
         }
@@ -603,31 +642,46 @@ try {
             $def['assignedTo'], $def['notes'], false
         );
 
-        // A couple of showcase cases also get a short discussion thread to
-        // demonstrate the Comments feature.
+        // A showcase case also gets a short discussion thread to demonstrate
+        // the Comments feature. The activity log entry is only written after
+        // the comment INSERT has actually succeeded.
         if ($def['showcase'] === 'comments' && $staffAvailable) {
-            ensureCaseCommentsTable();
+            ensureDemoCaseCommentsTable();
             $commentAuthor = $staffUsers[array_rand($staffUsers)];
             $commentTs = date('Y-m-d H:i:s', min($now, $def['creationTs'] + random_int(3600, 172800)));
-            $stmt = $pdo->prepare("
-                INSERT INTO case_comments (case_id, practice_id, user_id, user_name, user_email, comment_text, created_at)
-                VALUES (:case_id, :practice_id, :user_id, :user_name, :user_email, :comment_text, :created_at)
-            ");
+            $commentText = $commentPool[array_rand($commentPool)];
             $userName = trim(($commentAuthor['first_name'] ?? '') . ' ' . ($commentAuthor['last_name'] ?? ''));
-            $stmt->execute([
-                'case_id' => $caseId,
-                'practice_id' => $currentPracticeId,
-                'user_id' => $commentAuthor['id'],
-                'user_name' => $userName !== '' ? $userName : $commentAuthor['email'],
-                'user_email' => $commentAuthor['email'],
-                'comment_text' => $commentPool[array_rand($commentPool)],
-                'created_at' => $commentTs,
-            ]);
-            logCaseActivity($caseId, 'comment_added', null, null, [
-                'source' => 'generate-carolina-demo-data.php',
-            ], $commentTs);
-            $commentsWritten++;
-            $activityRecordsWritten++;
+            if ($userName === '') {
+                $userName = $commentAuthor['email'];
+            }
+
+            try {
+                $stmt = $pdo->prepare("
+                    INSERT INTO case_comments (case_id, practice_id, user_id, user_name, user_email, comment_text, mentions_json, created_at)
+                    VALUES (:case_id, :practice_id, :user_id, :user_name, :user_email, :comment_text, NULL, :created_at)
+                ");
+                $stmt->execute([
+                    'case_id' => $caseId,
+                    'practice_id' => $currentPracticeId,
+                    'user_id' => $commentAuthor['id'],
+                    'user_name' => $userName,
+                    'user_email' => $commentAuthor['email'],
+                    'comment_text' => $commentText,
+                    'created_at' => $commentTs,
+                ]);
+
+                // Only log the comment activity after the INSERT succeeded.
+                logCaseActivity($caseId, 'comment_added', null, null, [
+                    'comment_id' => (int)$pdo->lastInsertId(),
+                    'source' => 'generate-dental-practice-demo-data.php',
+                ], $commentTs);
+                $commentsWritten++;
+                $activityRecordsWritten++;
+            } catch (PDOException $e) {
+                // Non-fatal: skip the comment for this showcase case rather
+                // than aborting the whole generation run.
+                error_log('[generate-dental-practice-demo-data] Error creating demo comment: ' . $e->getMessage());
+            }
         }
     }
 
@@ -691,7 +745,6 @@ try {
                 $revisions = 2;
             }
 
-            $statusIdxForAssignment = 5; // Delivered
             $assignedTo = $staffAvailable ? $staffWeightedPool[array_rand($staffWeightedPool)] : ($labUserAvailable ? $labUser['email'] : '');
 
             $notes = '';
@@ -750,7 +803,7 @@ try {
 
     echo json_encode([
         'success' => true,
-        'message' => "Generated {$activeCreated} active case(s) and {$historicalCreated} historical case(s) for Carolina Family Dental.",
+        'message' => "Generated {$activeCreated} active case(s) and {$historicalCreated} historical case(s) for the current practice.",
         'activeCasesCreated' => $activeCreated,
         'historicalCasesCreated' => $historicalCreated,
         'activityRecordsWritten' => $activityRecordsWritten,
@@ -759,7 +812,7 @@ try {
         'staffUsersUsed' => count($staffUsers),
     ]);
 } catch (Throwable $e) {
-    error_log('[generate-carolina-demo-data] ' . $e->getMessage());
+    error_log('[generate-dental-practice-demo-data] ' . $e->getMessage());
     http_response_code(500);
     echo json_encode([
         'success' => false,
