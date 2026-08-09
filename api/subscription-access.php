@@ -145,7 +145,7 @@ function getSubscriptionAccess(array $practice): array {
 
         case 'canceled':
             $readOnly      = true;
-            $accessMessage = 'Your subscription has been canceled. Your data is preserved. Contact your administrator to resubscribe.';
+            $accessMessage = 'Your subscription has been canceled. Your data is preserved. Please update your billing information or choose a plan to restore access.';
             break;
 
         case 'trial_expired':
