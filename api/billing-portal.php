@@ -10,6 +10,7 @@
  * One trial belongs to the practice, set at creation time in accept-baa.php.
  */
 
+require_once __DIR__ . '/bootstrap.php';
 require_once __DIR__ . '/billing-gate.php';
 requireBillingEnabled();
 

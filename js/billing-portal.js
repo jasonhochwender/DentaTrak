@@ -17,6 +17,13 @@
   var bodyEl    = null;
   var isLoading = false;
 
+  // Selected billing interval for the plan-selection cards ('year' | 'month').
+  // Reset to 'year' every time the modal is opened so Annual is always the default.
+  var selectedInterval = 'year';
+  // Cache of the last API response so toggling the interval can re-render
+  // without an extra network request.
+  var lastRenderData = null;
+
   // CSRF token — set by main.php in a <meta> tag
   function getCsrfToken() {
     var meta = document.querySelector('meta[name="csrf-token"]');
@@ -28,6 +35,7 @@
     modal  = document.getElementById('billingPortalModal');
     bodyEl = document.getElementById('billingPortalBody');
     if (!modal || !bodyEl) return;
+    selectedInterval = 'year';
     modal.style.display = 'block';
     document.body.style.overflow = 'hidden';
     loadBillingPortal();
@@ -96,6 +104,7 @@
 
   // ── Render: main ─────────────────────────────────────────────────────────────
   function render(data) {
+    lastRenderData = data;
     var canManage = !!data.can_manage_billing;
     var hasSub    = !!data.has_subscription;
     var access    = data.access || {};
@@ -139,11 +148,25 @@
     html += '<div class="bp-actions"><button class="bp-close-btn" onclick="window.closeBillingPortal()">Close</button></div>';
     bodyEl.innerHTML = html;
 
+    // Wire billing-interval toggle (Annual / Monthly) after inserting HTML
+    var intervalBtns = bodyEl.querySelectorAll('.bp-interval-btn');
+    intervalBtns.forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var interval = btn.getAttribute('data-interval');
+        if (interval === selectedInterval) return;
+        selectedInterval = interval;
+        if (lastRenderData) render(lastRenderData);
+      });
+    });
+
     // Wire plan selector buttons after inserting HTML
+    // Interval comes from the module-level selectedInterval (set by the toggle above),
+    // not from the button itself, so the existing checkout call always uses the
+    // currently-selected billing interval.
     var planBtns = bodyEl.querySelectorAll('[data-plan]');
     planBtns.forEach(function (btn) {
       btn.addEventListener('click', function () {
-        handleChoosePlan(btn.getAttribute('data-plan'), btn.getAttribute('data-interval'), btn);
+        handleChoosePlan(btn.getAttribute('data-plan'), selectedInterval, btn);
       });
     });
 
@@ -157,29 +180,23 @@
   // ── Render: trialing (no paid subscription yet) ───────────────────────────────
   function renderTrialState(access, prices, canManage) {
     var daysLeft  = access.trial_days_remaining;
-    var endsAt    = access.trial_ends_at ? formatDate(access.trial_ends_at) : null;
     var daysLabel = daysLeft !== null
-      ? (daysLeft === 0 ? 'Trial ends today' : daysLeft + ' day' + (daysLeft === 1 ? '' : 's') + ' remaining')
-      : '';
+      ? (daysLeft === 0 ? 'Trial ends today' : daysLeft + ' day' + (daysLeft === 1 ? '' : 's') + ' left in your free trial')
+      : '90-day free trial';
 
     var html =
-      '<div class="bp-trial-top">' +
-        '<div class="bp-empty-icon">' +
-          '<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">' +
-            '<circle cx="12" cy="12" r="10"/>' +
-            '<polyline points="12 6 12 12 16 14"/>' +
-          '</svg>' +
-        '</div>' +
-        '<h3>90-Day Free Trial</h3>' +
-        '<p>No credit card required. Full access to all features during your trial.</p>' +
-        (daysLabel ? '<div class="bp-trial-days">' + escHtml(daysLabel) + '</div>' : '') +
-        (endsAt ? '<div class="bp-field-label" style="margin-top:4px;">Trial ends ' + escHtml(endsAt) + '</div>' : '') +
-        '<p class="bp-trial-sub-note">If you subscribe now, your first charge occurs when your trial ends on ' +
-          escHtml(endsAt || 'your trial end date') + '.</p>' +
+      '<div class="bp-plan-header">' +
+        '<h3 class="bp-plan-header-title">Choose your DentaTrak plan</h3>' +
+        '<p class="bp-plan-header-sub">' + escHtml(daysLabel) + ' \u2022 No credit card required</p>' +
       '</div>';
 
     if (canManage) {
       html += renderPlanGrid(prices, access.trial_ends_at);
+    } else {
+      html +=
+        '<p style="text-align:center;color:#6b7280;font-size:0.9rem;">' +
+          'Contact your practice administrator to choose a plan.' +
+        '</p>';
     }
     return html;
   }
@@ -231,6 +248,10 @@
     var periodEnd  = access.current_period_ends_at ? formatDate(access.current_period_ends_at) : '\u2014';
     var trialEnd   = access.trial_ends_at ? formatDate(access.trial_ends_at) : null;
     var cancelAtEnd = !!sub.cancel_at_period_end;
+    // Special-case: a trial that is scheduled to cancel at trial end — the
+    // customer will never be charged, so trial/first-charge messaging is
+    // replaced with cancellation messaging sourced from the same trial_ends_at.
+    var trialingCancel = statusKey === 'trialing' && cancelAtEnd;
 
     // Display price from config
     var priceAmt = '\u2014';
@@ -242,14 +263,25 @@
     var html =
       '<div class="bp-card">' +
         '<div class="bp-card-header">' +
-          '<span class="bp-plan-name">' + escHtml(planLabel) + '</span>' +
+          '<span class="bp-plan-name-group">' +
+            '<span class="bp-plan-name">' + escHtml(planLabel) + '</span>' +
+            (trialingCancel && trialEnd
+              ? '<span class="bp-cancels-badge">Cancels ' + escHtml(formatShortDate(access.trial_ends_at)) + '</span>'
+              : '') +
+          '</span>' +
           '<span class="bp-status-badge bp-status-' + escHtml(statusKey) + '">' +
             statusDot(statusKey) + escHtml(statusLabel) +
           '</span>' +
         '</div>';
 
-    // Stripe trial (subscribed mid-trial)
-    if (trialEnd && (statusKey === 'trialing')) {
+    if (trialingCancel && trialEnd) {
+      html +=
+        '<div class="bp-trial-banner">' +
+          infoIcon() +
+          'Your subscription is scheduled to end on ' + escHtml(trialEnd) + '. You will not be charged.' +
+        '</div>';
+    } else if (trialEnd && statusKey === 'trialing') {
+      // Stripe trial (subscribed mid-trial), not scheduled to cancel
       html +=
         '<div class="bp-trial-banner">' +
           infoIcon() +
@@ -257,7 +289,7 @@
         '</div>';
     }
 
-    if (cancelAtEnd) {
+    if (cancelAtEnd && !trialingCancel) {
       html +=
         '<div class="bp-cancel-notice">' +
           warnIcon() +
@@ -271,8 +303,13 @@
           field('Status',      statusLabel) +
           field('Billing',     interval) +
           field('Amount',      priceAmt,  priceAmt === '\u2014') +
-          field('Next Billing', periodEnd, periodEnd === '\u2014') +
-          (trialEnd && statusKey === 'trialing' ? field('First Charge', trialEnd) : '') +
+          // "Next Billing" implies an upcoming charge, which would contradict the
+          // "You will not be charged" message above — omit it for this state and
+          // show "Access Until" instead, sourced from the same trial_ends_at.
+          (trialingCancel && trialEnd
+            ? field('Access Until', trialEnd)
+            : field('Next Billing', periodEnd, periodEnd === '\u2014') +
+              (trialEnd && statusKey === 'trialing' ? field('First Charge', trialEnd) : '')) +
         '</div>';
 
     if (canManage) {
@@ -288,49 +325,87 @@
     return html;
   }
 
-  // ── Render: plan selection grid ───────────────────────────────────────────────
-  function renderPlanGrid(prices, trialEndsAt) {
-    var annualNote = trialEndsAt
-      ? 'First charge on ' + formatDate(trialEndsAt)
-      : 'Charge begins immediately';
+  // Static benefit copy per plan — display only, no pricing/billing logic here.
+  var PLAN_INFO = {
+    operate: {
+      label: 'Operate',
+      benefits: [
+        'Unlimited case tracking',
+        'Up to 5 users',
+        'Analytics and insights',
+        'Case assignments and workflow tracking',
+        'Practice management tools',
+      ],
+    },
+    control: {
+      label: 'Control',
+      benefits: [
+        'Everything in Operate',
+        'Unlimited users',
+        'Built for larger practices and teams',
+        'Expanded operational visibility',
+        'Advanced practice oversight',
+      ],
+    },
+  };
 
-    var plans = [
-      { plan: 'operate', interval: 'month', label: 'Operate',  desc: 'Up to 5 users',           highlight: false },
-      { plan: 'operate', interval: 'year',  label: 'Operate',  desc: 'Up to 5 users · 2 mo free', highlight: false },
-      { plan: 'control', interval: 'month', label: 'Control',  desc: 'Unlimited users',           highlight: true  },
-      { plan: 'control', interval: 'year',  label: 'Control',  desc: 'Unlimited users · 2 mo free', highlight: true },
-    ];
+  // ── Render: single plan card (Operate or Control) ────────────────────────────
+  function renderPlanCard(planKey, prices, interval) {
+    var info      = PLAN_INFO[planKey];
+    var isFeatured = planKey === 'control';
+    var cents     = (prices[planKey] && prices[planKey][interval]) ? prices[planKey][interval] : null;
+    var priceStr  = cents ? formatCents(cents) : '';
+    var perStr    = interval === 'month' ? '/month' : '/year';
 
-    var html = '<div class="bp-plan-grid">';
-
-    plans.forEach(function (p) {
-      var cents   = (prices[p.plan] && prices[p.plan][p.interval]) ? prices[p.plan][p.interval] : null;
-      var priceStr = cents ? formatCents(cents) : '';
-      var perStr  = p.interval === 'month' ? '/month' : '/year';
-
-      html +=
-        '<div class="bp-plan-card' + (p.highlight ? ' bp-plan-card--featured' : '') + '">' +
-          (p.highlight ? '<div class="bp-plan-badge">Most Popular</div>' : '') +
-          '<div class="bp-plan-title">' + escHtml(p.label) + '</div>' +
-          '<div class="bp-plan-interval">' + escHtml(p.interval === 'month' ? 'Monthly' : 'Annual') + '</div>' +
-          '<div class="bp-plan-price">' + (priceStr ? escHtml(priceStr) : '') +
-            '<span class="bp-plan-per">' + escHtml(perStr) + '</span>' +
-          '</div>' +
-          '<div class="bp-plan-desc">' + escHtml(p.desc) + '</div>' +
-          '<button class="bp-plan-select-btn" data-plan="' + escHtml(p.plan) + '" data-interval="' + escHtml(p.interval) + '">' +
-            'Choose ' + escHtml(p.label) + (p.interval === 'year' ? ' Annual' : ' Monthly') +
-          '</button>' +
-        '</div>';
-    });
-
+    var html = '<div class="bp-plan-card' + (isFeatured ? ' bp-plan-card--featured' : '') + '">';
+    if (isFeatured) {
+      html += '<div class="bp-plan-badge">Most Popular</div>';
+    }
     html +=
-      '</div>' +
-      '<p class="bp-plan-note">' +
-        infoIcon() +
-        '90-day free trial &bull; No credit card required to start &bull; ' + escHtml(annualNote) +
-      '</p>';
+        '<div class="bp-plan-title">' + escHtml(info.label) + '</div>' +
+        '<div class="bp-plan-price">' + (priceStr ? escHtml(priceStr) : '') +
+          '<span class="bp-plan-per">' + escHtml(perStr) + '</span>' +
+        '</div>' +
+        (interval === 'year' ? '<div class="bp-plan-savings">Save 2 months</div>' : '') +
+        '<ul class="bp-plan-benefits">';
+    info.benefits.forEach(function (b) {
+      html += '<li>' + checkIcon() + '<span>' + escHtml(b) + '</span></li>';
+    });
+    html +=
+        '</ul>' +
+        '<button class="bp-plan-select-btn" data-plan="' + escHtml(planKey) + '">' +
+          'Choose ' + escHtml(info.label) +
+        '</button>' +
+      '</div>';
 
     return html;
+  }
+
+  // ── Render: plan selection grid (Annual/Monthly toggle + Operate/Control cards) ─
+  function renderPlanGrid(prices, trialEndsAt) {
+    var footerNote = trialEndsAt
+      ? 'Your first charge occurs when your trial ends on ' + formatDate(trialEndsAt) + '.'
+      : 'Charge begins immediately.';
+
+    var toggleHtml =
+      '<div class="bp-interval-toggle" role="tablist">' +
+        '<button type="button" class="bp-interval-btn' + (selectedInterval === 'year' ? ' active' : '') + '" data-interval="year">Annual</button>' +
+        '<button type="button" class="bp-interval-btn' + (selectedInterval === 'month' ? ' active' : '') + '" data-interval="month">Monthly</button>' +
+      '</div>';
+
+    var cardsHtml =
+      '<div class="bp-plan-grid">' +
+        renderPlanCard('operate', prices, selectedInterval) +
+        renderPlanCard('control', prices, selectedInterval) +
+      '</div>';
+
+    var footerHtml =
+      '<p class="bp-plan-note">' +
+        infoIcon() +
+        escHtml(footerNote) +
+      '</p>';
+
+    return toggleHtml + cardsHtml + footerHtml;
   }
 
   // ── Handle plan selection → Checkout ─────────────────────────────────────────
@@ -432,6 +507,16 @@
     } catch (e) { return iso; }
   }
 
+  // Short form for the "Cancels {date}" badge, e.g. "Nov 6" — sourced from the
+  // same trial_ends_at value as formatDate(), just formatted more compactly.
+  function formatShortDate(iso) {
+    if (!iso) return '\u2014';
+    try {
+      var d = new Date(iso);
+      return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    } catch (e) { return iso; }
+  }
+
   function capitalize(s) { return s ? s.charAt(0).toUpperCase() + s.slice(1) : ''; }
 
   function escHtml(str) {
@@ -471,6 +556,11 @@
   function infoIcon() {
     return '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0">' +
       '<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>';
+  }
+
+  function checkIcon() {
+    return '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="flex-shrink:0">' +
+      '<polyline points="20 6 9 17 4 12"/></svg>';
   }
 
   function cardIcon() {

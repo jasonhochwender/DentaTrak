@@ -33,6 +33,9 @@ $rawBody = file_get_contents('php://input');
 // ── Billing feature gate ─────────────────────────────────────────────────────
 // Must come before appConfig.php so no Stripe env var reads happen when billing
 // is disabled. Raw body is already captured above so we haven't missed anything.
+// bootstrap.php is required first so .env (BILLING_ENABLED) is loaded before
+// the gate reads it — it does not read any Stripe env vars itself.
+require_once __DIR__ . '/bootstrap.php';
 require_once __DIR__ . '/billing-gate.php';
 requireBillingEnabled();
 
@@ -328,8 +331,17 @@ function handleSubscriptionUpsert(
     $stripeCustomerId     = $sub->customer            ?? null;
     $stripeSubscriptionId = $sub->id                  ?? null;
     $status               = $sub->status              ?? null;
-    $cancelAtPeriodEnd    = (bool)($sub->cancel_at_period_end ?? false);
-    $currentPeriodEnd     = $sub->current_period_end  ?? null;
+    // Stripe represents a scheduled cancellation two different ways depending on
+    // how the Customer Portal (or API caller) schedules it: either the boolean
+    // cancel_at_period_end=true, or an absolute cancel_at timestamp with
+    // cancel_at_period_end left false. Treat either as "scheduled to cancel".
+    $cancelAt             = $sub->cancel_at ?? null;
+    $cancelAtPeriodEnd    = (bool)($sub->cancel_at_period_end ?? false) ||
+                            ($cancelAt !== null && $cancelAt > time());
+    // Prefer the subscription item's current_period_end (moved here in newer
+    // Stripe API versions / stripe-php v19+); fall back to the top-level field
+    // for older API versions where it still lives on the Subscription object.
+    $currentPeriodEnd     = $sub->items->data[0]->current_period_end ?? $sub->current_period_end ?? null;
     $trialEnd             = $sub->trial_end           ?? null;
 
     // Resolve practice by customer ID — never trust metadata alone for routing
@@ -357,9 +369,13 @@ function handleSubscriptionUpsert(
     $trialEndsDt        = $trialEnd         ? gmdate('Y-m-d H:i:s', $trialEnd)         : null;
     $eventCreatedDt     = gmdate('Y-m-d H:i:s', $eventCreatedAt);
 
-    // Stale-event guard: only apply if this event is strictly newer than the last
-    // accepted event. Uses stripe_event_created (the Stripe event timestamp) — not
-    // subscription_updated_at (our DB write time), which was the previous no-op bug.
+    // Stale-event guard: apply if this event is newer than or same-timestamp as
+    // the last accepted event, so a genuinely older event can't overwrite newer
+    // state, while same-second follow-up events (Stripe frequently delivers more
+    // than one customer.subscription.updated within the same second — e.g. a
+    // portal cancellation) are still allowed through. Uses stripe_event_created
+    // (the Stripe event timestamp) — not subscription_updated_at (our DB write
+    // time), which was the previous no-op bug.
     $pdo->prepare("
         UPDATE practices SET
             stripe_customer_id      = COALESCE(stripe_customer_id, :cid),
@@ -376,7 +392,7 @@ function handleSubscriptionUpsert(
         WHERE id = :practice_id
           AND (
               stripe_event_created IS NULL
-              OR stripe_event_created < :event_created2
+              OR stripe_event_created <= :event_created2
           )
     ")->execute([
         'cid'            => $stripeCustomerId,
