@@ -66,7 +66,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Check billing for new cases (not updates)
     if (!$isUpdate) {
         // When billing is disabled (the production default until Stripe is fully
-        // configured), all trial and case-limit checks are bypassed.
+        // configured), all billing/trial checks are bypassed.
         $billingEnabledRaw = getenv('BILLING_ENABLED');
         if ($billingEnabledRaw === false) {
             $billingEnabledRaw = $_ENV['BILLING_ENABLED'] ?? '';
@@ -74,69 +74,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (!filter_var($billingEnabledRaw, FILTER_VALIDATE_BOOLEAN)) {
             // Skip all billing checks
         } else {
-            require_once __DIR__ . '/appConfig.php';
             require_once __DIR__ . '/billing-bypass.php';
+            require_once __DIR__ . '/subscription-access.php';
 
-            // Get user's billing tier and created_at for trial calculation
-            $stmt = $pdo->prepare("SELECT billing_tier, created_at, email FROM users WHERE id = ?");
+            // Get user's email to check for billing bypass (partner practices, etc.)
+            $stmt = $pdo->prepare("SELECT email FROM users WHERE id = ?");
             $stmt->execute([$_SESSION['db_user_id']]);
             $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
-            if ($user) {
-                // Skip billing checks for bypass users (partner practices, etc.)
-                $isBypassUser = isBillingBypassEmail($user['email'] ?? '');
+            $isBypassUser = $user ? isBillingBypassEmail($user['email'] ?? '') : false;
 
-                if (!$isBypassUser) {
-                    $tierConfig = $appConfig['billing']['tiers'][$user['billing_tier']] ?? $appConfig['billing']['tiers']['evaluate'];
-                    $isTrial = $tierConfig['is_trial'] ?? false;
+            if (!$isBypassUser) {
+                // Practice-level subscription access is the sole authority for
+                // whether new cases can be created — see subscription-access.php.
+                $access = getPracticeSubscriptionAccess($pdo, $currentPracticeId);
 
-                    // Check trial expiration for Evaluate plan
-                    if ($isTrial && isset($user['created_at'])) {
-                        $trialDays = $appConfig['billing']['trial_days'] ?? 30;
-                        $createdAt = new DateTime($user['created_at']);
-                        $now = new DateTime();
-                        $daysSinceSignup = $now->diff($createdAt)->days;
-                        $trialExpired = $daysSinceSignup >= $trialDays;
-
-                        if ($trialExpired) {
-                            http_response_code(403);
-                            echo json_encode([
-                                'success' => false,
-                                'message' => "Your 30-day trial has expired. Please upgrade to continue creating cases."
-                            ]);
-                            exit;
-                        }
-                    }
-
-                    // Check case limit for non-trial plans with max_cases > 0
-                    if (!$isTrial && $tierConfig['max_cases'] > 0) {
-                        $currentPracticeId = $_SESSION['current_practice_id'] ?? 0;
-
-                        // If no practice ID in session, try to get the user's practice
-                        if (!$currentPracticeId) {
-                            $stmt = $pdo->prepare("SELECT practice_id FROM practice_users WHERE user_id = ? LIMIT 1");
-                            $stmt->execute([$_SESSION['db_user_id']]);
-                            $practiceRow = $stmt->fetch(PDO::FETCH_ASSOC);
-                            if ($practiceRow) {
-                                $currentPracticeId = (int)$practiceRow['practice_id'];
-                            }
-                        }
-
-                        $stmt = $pdo->prepare("SELECT COUNT(*) FROM cases_cache WHERE practice_id = ? AND archived = 0");
-                        $stmt->execute([$currentPracticeId]);
-                        $currentCaseCount = (int)$stmt->fetchColumn();
-
-                        if ($currentCaseCount >= $tierConfig['max_cases']) {
-                            http_response_code(403);
-                            echo json_encode([
-                                'success' => false,
-                                'message' => "You've reached your limit of {$tierConfig['max_cases']} cases. Upgrade to create more cases."
-                            ]);
-                            exit;
-                        }
-                    }
-                } // end if (!$isBypassUser)
-            } // end if ($user)
+                if (!$access || !$access['full_access']) {
+                    http_response_code(403);
+                    echo json_encode([
+                        'success' => false,
+                        'message' => $access['access_message'] ?? 'Access denied. Please contact your administrator.'
+                    ]);
+                    exit;
+                }
+            }
         } // end billing enabled
     } // end if (!$isUpdate)
 

@@ -9,6 +9,8 @@ require_once __DIR__ . '/session.php';
 require_once __DIR__ . '/appConfig.php';
 require_once __DIR__ . '/practice-security.php';
 require_once __DIR__ . '/csrf.php';
+require_once __DIR__ . '/billing-bypass.php';
+require_once __DIR__ . '/subscription-access.php';
 
 header('Content-Type: application/json');
 
@@ -31,17 +33,8 @@ if (!canViewAnalytics($currentPracticeId)) {
     exit;
 }
 
-// Check if user has analytics access (Control plan or Evaluate trial)
+// Check if the practice has analytics access (Control plan or active practice trial)
 $userId = $_SESSION['db_user_id'];
-$stmt = $pdo->prepare("SELECT billing_tier, created_at FROM users WHERE id = ?");
-$stmt->execute([$userId]);
-$user = $stmt->fetch(PDO::FETCH_ASSOC);
-
-if (!$user) {
-    http_response_code(403);
-    echo json_encode(['error' => 'User not found']);
-    exit;
-}
 
 // Master billing gate: when billing is disabled (the production default until
 // Stripe is fully configured), all users get AI access with no plan checks.
@@ -54,20 +47,35 @@ $billingEnabled = filter_var($billingEnabledRaw, FILTER_VALIDATE_BOOLEAN);
 if (!$billingEnabled) {
     $hasAccess = true;
 } else {
-    // Check access: Control plan always has access, Evaluate plan has access during trial
-    $hasAccess = false;
-    $tierConfig = $appConfig['billing']['tiers'][$user['billing_tier']] ?? null;
+    $stmt = $pdo->prepare("SELECT email FROM users WHERE id = ?");
+    $stmt->execute([$userId]);
+    $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
-    if ($user['billing_tier'] === 'control') {
+    if (!$user) {
+        http_response_code(403);
+        echo json_encode(['error' => 'User not found']);
+        exit;
+    }
+
+    $isBypassUser = isBillingBypassEmail($user['email'] ?? '');
+
+    if ($isBypassUser) {
         $hasAccess = true;
-    } elseif ($tierConfig && ($tierConfig['is_trial'] ?? false)) {
-        // Check if trial is still active
-        if (isset($user['created_at'])) {
-            $trialDays = $appConfig['billing']['trial_days'] ?? 30;
-            $createdAt = new DateTime($user['created_at']);
-            $now = new DateTime();
-            $daysSinceSignup = $now->diff($createdAt)->days;
-            $hasAccess = $daysSinceSignup < $trialDays;
+    } else {
+        // Practice-level subscription access is the sole authority here — never
+        // trust Stripe metadata or any browser-supplied plan value.
+        $access = getPracticeSubscriptionAccess($pdo, $currentPracticeId);
+
+        if (!$access || !$access['full_access']) {
+            $hasAccess = false;
+        } else {
+            // Active practice trial (Stripe-trialing or DentaTrak's own 90-day
+            // trial) always has access; otherwise Control plan is required.
+            $planStmt = $pdo->prepare("SELECT subscription_plan FROM practices WHERE id = ? LIMIT 1");
+            $planStmt->execute([$currentPracticeId]);
+            $subscriptionPlan = $planStmt->fetchColumn();
+
+            $hasAccess = ($access['status'] === 'trialing') || ($subscriptionPlan === 'control');
         }
     }
 }
