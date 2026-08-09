@@ -127,6 +127,11 @@
 
 .practice-item-name {
   flex: 1;
+  /* Flex items default to min-width: auto, which lets the intrinsic
+     text width win over the ellipsis rules below for long practice
+     names, pushing/clipping the role badge instead of truncating
+     cleanly. min-width: 0 lets this item actually shrink. */
+  min-width: 0;
   font-size: 0.95rem;
   font-weight: 500;
   color: #1e293b;

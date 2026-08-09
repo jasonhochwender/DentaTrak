@@ -49,6 +49,30 @@
 }
 
 /* ===========================================
+   0b. TABLET / MID-WIDTH MODAL FIX (481px-900px)
+   - The base `.modal-content` rule in app.light.css sets
+     `min-width: 835px`, which was previously only
+     neutralized by the <=480px phone rules above. That
+     left every generic modal (Case Detail, Create Case,
+     Archived Cases, Feedback, Settings, Ask DentaTrak,
+     Billing) forced to >=835px wide across the
+     481px-900px tablet/phablet gap (e.g. 768px),
+     causing horizontal overflow and unreachable
+     footer/close controls.
+   - This restores a fitted, centered modal here instead
+     of the edge-to-edge full-screen treatment, which
+     stays reserved for true phones (<=480px) above.
+   =========================================== */
+
+@media (min-width: 481px) and (max-width: 900px) {
+  .modal-content {
+    min-width: 0;
+    width: 92%;
+    max-width: 95vw;
+  }
+}
+
+/* ===========================================
    1. GLOBAL HEADER (Mobile Only)
    - Fix cramped layout
    - Stack user name/email vertically
@@ -230,6 +254,35 @@
     padding: 12px;
   }
 
+  .kanban-filters-row {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .kanban-filter-field {
+    width: 100%;
+  }
+
+  .kanban-filter-field input,
+  .kanban-filter-field select {
+    width: 100%;
+  }
+
+  .kanban-filter-actions {
+    width: 100%;
+  }
+
+  .filter-clear-btn {
+    width: 100%;
+  }
+}
+
+/* Narrow tablet / large-phone widths: the 140-180px min-width filter
+   fields (Search, Case Type, Assigned To, etc.) wrap into a cramped,
+   uneven row in this gap. Reuse the same "stack to full width" pattern
+   as the <=480px rules above, at the same 481-640px tier already used
+   for the header, rather than inventing a new toolbar layout. */
+@media (min-width: 481px) and (max-width: 640px) {
   .kanban-filters-row {
     flex-direction: column;
     gap: 12px;

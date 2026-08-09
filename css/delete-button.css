@@ -57,6 +57,16 @@
   box-shadow: 0 2px 5px rgba(244, 67, 54, 0.3);
 }
 
+/* Touch-oriented devices: same sub-32px icon-button pattern as
+   .kanban-card-edit on the same card. Grow the padding around the
+   18x18 SVG rather than the icon itself, so the icon's appearance is
+   unchanged and only the clickable area increases. */
+@media (pointer: coarse) {
+  .card-delete-btn {
+    padding: 9px;
+  }
+}
+
 .card-delete-btn svg {
   color: #f44336; /* Ensure icon is red */
   fill: none;

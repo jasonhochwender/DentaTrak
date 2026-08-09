@@ -2132,6 +2132,19 @@ body {
   box-shadow: var(--shadow-medium);
 }
 
+/* Touch-oriented devices: grow the clickable circle without enlarging
+   the "✎" glyph itself (font-size is untouched), and pull the
+   top/right offsets in slightly so the larger circle stays anchored
+   near the same corner instead of intruding further over the card. */
+@media (pointer: coarse) {
+  .kanban-card-edit {
+    width: 38px;
+    height: 38px;
+    top: 8px;
+    right: 6px;
+  }
+}
+
 /* Visual environment indicator in main container */
 .main-body::before {
   content: '';
