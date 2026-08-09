@@ -154,13 +154,80 @@ try {
     $stmt->execute(['practice_id' => $currentPracticeId]);
     $practiceUsers = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
+    $labDemoEmail = 'lab@dentatrak.com';
     $labUser = null;
     $staffUsers = [];
     foreach ($practiceUsers as $pu) {
-        if (strcasecmp($pu['email'], 'lab@dentatrak.com') === 0) {
+        if (strcasecmp($pu['email'], $labDemoEmail) === 0) {
             $labUser = $pu;
         } else {
             $staffUsers[] = $pu;
+        }
+    }
+
+    // ------------------------------------------------------------------
+    // Ensure lab@dentatrak.com is a member of the CURRENT practice. This is
+    // a required demo identity, not an optional one. We use the exact same
+    // application logic/data relationships as the real "add team member by
+    // email" flow (see api/save-settings.php's admin/user provisioning
+    // block): if the email has no users row yet, one is created exactly as
+    // save-settings.php does (INSERT INTO users ... role='user'); this does
+    // NOT create a Google Workspace account or bypass authentication - the
+    // real lab@dentatrak.com owner can still sign in with that email later
+    // and will seamlessly assume this same pre-provisioned identity and
+    // practice membership, the same way any admin-invited teammate does
+    // today before their first login.
+    // ------------------------------------------------------------------
+    if ($labUser === null) {
+        try {
+            $stmt = $pdo->prepare("SELECT id, email, first_name, last_name FROM users WHERE LOWER(email) = LOWER(:email) LIMIT 1");
+            $stmt->execute(['email' => $labDemoEmail]);
+            $existingLabAccount = $stmt->fetch(PDO::FETCH_ASSOC) ?: null;
+
+            if ($existingLabAccount) {
+                $labUserId = $existingLabAccount['id'];
+            } else {
+                // Same pattern as save-settings.php's team-member provisioning:
+                // create a placeholder users row for an email that has not
+                // logged in yet.
+                $stmt = $pdo->prepare("
+                    INSERT INTO users (email, role, is_active, created_at)
+                    VALUES (:email, 'user', 1, NOW())
+                ");
+                $stmt->execute(['email' => $labDemoEmail]);
+                $labUserId = $pdo->lastInsertId();
+            }
+
+            // Add (or confirm) practice membership: regular 'user' role (never
+            // admin), restricted to seeing only cases assigned to them
+            // (limited_visibility = 1, the same "Assigned Only" access level
+            // already used for restricted staff), and no analytics access -
+            // the minimum permissions appropriate for an external lab.
+            $stmt = $pdo->prepare("
+                INSERT INTO practice_users (practice_id, user_id, role, is_owner, limited_visibility, can_view_analytics, can_edit_cases, created_at)
+                VALUES (:practice_id, :user_id, 'user', 0, 1, 0, 1, NOW())
+            ");
+            $stmt->execute([
+                'practice_id' => $currentPracticeId,
+                'user_id' => $labUserId,
+            ]);
+
+            $labUser = [
+                'id' => $labUserId,
+                'email' => $labDemoEmail,
+                'first_name' => $existingLabAccount['first_name'] ?? null,
+                'last_name' => $existingLabAccount['last_name'] ?? null,
+            ];
+        } catch (PDOException $e) {
+            error_log('[generate-dental-practice-demo-data] Failed to provision lab@dentatrak.com: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode([
+                'success' => false,
+                'message' => 'Could not add lab@dentatrak.com to this practice: ' . $e->getMessage()
+                    . '. No demo data was generated. Please add lab@dentatrak.com to this practice '
+                    . 'manually via Settings > Team, then try again.',
+            ]);
+            exit;
         }
     }
 
@@ -275,12 +342,13 @@ try {
     // Helper functions
     // ------------------------------------------------------------------
 
-    /** Pick a realistic assignee email for a case at a given workflow stage. */
+    /**
+     * Pick a realistic staff assignee email for a case. Lab assignment is
+     * handled separately/deterministically (see $labCaseIndices below), so
+     * this only ever returns a staff member (falling back to the lab user
+     * only in the unlikely case the practice has no staff at all).
+     */
     $pickAssignee = function ($statusIndex) use ($labUserAvailable, $labUser, $staffAvailable, $staffWeightedPool) {
-        $atLab = ($statusIndex >= 1 && $statusIndex <= 3); // Sent / Designed / Manufactured
-        if ($atLab && $labUserAvailable && random_int(1, 100) <= 70) {
-            return $labUser['email'];
-        }
         if ($staffAvailable) {
             return $staffWeightedPool[array_rand($staffWeightedPool)];
         }
@@ -490,6 +558,8 @@ try {
     $commentsWritten = 0;
     $activeCreated = 0;
     $historicalCreated = 0;
+    $labActiveCaseCount = 0;
+    $labHistoricalCaseCount = 0;
     $now = time();
     $today = strtotime(date('Y-m-d', $now));
 
@@ -577,6 +647,32 @@ try {
 
     $showcaseIndices = array_values($showcaseIdx);
 
+    // Deterministically pick which active cases are associated with the
+    // lab user, targeting roughly 6-10 cases (per the demo-data
+    // requirements), drawn from statuses where external-lab involvement
+    // makes sense: Sent To External Lab / Designed / Manufactured /
+    // Received From External Lab (statusIdx 1-4). The 'at_lab' showcase
+    // case is always included so it stays consistent with the earlier
+    // showcase selection above.
+    $labCaseIndices = [];
+    if ($labUserAvailable) {
+        $labEligibleIndices = [];
+        foreach ($activeDefs as $idx => $def) {
+            if ($def['statusIdx'] >= 1 && $def['statusIdx'] <= 4) {
+                $labEligibleIndices[] = $idx;
+            }
+        }
+        shuffle($labEligibleIndices);
+
+        $labTargetCount = min(count($labEligibleIndices), random_int(6, 10));
+        $labCaseIndices = array_slice($labEligibleIndices, 0, $labTargetCount);
+
+        if (isset($showcaseIdx['at_lab']) && !in_array($showcaseIdx['at_lab'], $labCaseIndices, true)) {
+            $labCaseIndices[] = $showcaseIdx['at_lab'];
+        }
+        $labCaseIndices = array_values(array_unique($labCaseIndices));
+    }
+
     foreach ($activeDefs as $idx => &$def) {
         $isShowcase = in_array($idx, $showcaseIndices, true);
         $showcaseKey = array_search($idx, $showcaseIdx, true);
@@ -584,7 +680,7 @@ try {
         // Assignment
         if ($showcaseKey === 'unassigned') {
             $def['assignedTo'] = '';
-        } elseif ($showcaseKey === 'at_lab' && $labUserAvailable) {
+        } elseif ($labUserAvailable && in_array($idx, $labCaseIndices, true)) {
             $def['assignedTo'] = $labUser['email'];
         } else {
             $def['assignedTo'] = $pickAssignee($def['statusIdx']);
@@ -636,6 +732,9 @@ try {
         $encrypted = PIIEncryption::encryptCaseData($caseData);
         saveCaseToCache($encrypted);
         $activeCreated++;
+        if ($labUserAvailable && strcasecmp($def['assignedTo'], $labUser['email']) === 0) {
+            $labActiveCaseCount++;
+        }
 
         $activityRecordsWritten += $simulateJourney(
             $caseId, $def['creationTs'], $now, $def['status'], $def['revisions'],
@@ -745,7 +844,14 @@ try {
                 $revisions = 2;
             }
 
-            $assignedTo = $staffAvailable ? $staffWeightedPool[array_rand($staffWeightedPool)] : ($labUserAvailable ? $labUser['email'] : '');
+            // ~20% of historical cases also went through the lab, for a more
+            // realistic-looking lab-user history.
+            if ($labUserAvailable && random_int(1, 100) <= 20) {
+                $assignedTo = $labUser['email'];
+                $labHistoricalCaseCount++;
+            } else {
+                $assignedTo = $staffAvailable ? $staffWeightedPool[array_rand($staffWeightedPool)] : ($labUserAvailable ? $labUser['email'] : '');
+            }
 
             $notes = '';
             if (random_int(1, 100) <= 30) {
@@ -803,12 +909,15 @@ try {
 
     echo json_encode([
         'success' => true,
-        'message' => "Generated {$activeCreated} active case(s) and {$historicalCreated} historical case(s) for the current practice.",
+        'message' => "Generated {$activeCreated} active case(s) and {$historicalCreated} historical case(s) for the current practice. "
+            . "{$labActiveCaseCount} active and {$labHistoricalCaseCount} historical case(s) were associated with lab@dentatrak.com.",
         'activeCasesCreated' => $activeCreated,
         'historicalCasesCreated' => $historicalCreated,
         'activityRecordsWritten' => $activityRecordsWritten,
         'commentsWritten' => $commentsWritten,
         'labUserUsed' => $labUserAvailable,
+        'labActiveCasesAssigned' => $labActiveCaseCount,
+        'labHistoricalCasesAssigned' => $labHistoricalCaseCount,
         'staffUsersUsed' => count($staffUsers),
     ]);
 } catch (Throwable $e) {
