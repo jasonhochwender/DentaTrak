@@ -113,8 +113,11 @@ function ensureCaseActivityLogTable() {
  * @param string|null $oldStatus  Previous status (if applicable).
  * @param string|null $newStatus  New status (if applicable).
  * @param array       $meta       Optional extra context, stored as JSON.
+ * @param string|null $createdAt  Optional explicit timestamp ('Y-m-d H:i:s') for backdating
+ *                                historical/demo events. Defaults to NOW() for all normal,
+ *                                real-time callers (unchanged behavior).
  */
-function logCaseActivity($caseId, $eventType, $oldStatus = null, $newStatus = null, array $meta = []) {
+function logCaseActivity($caseId, $eventType, $oldStatus = null, $newStatus = null, array $meta = [], $createdAt = null) {
     global $pdo;
 
     if (!$pdo || !$caseId || !$eventType) {
@@ -151,7 +154,7 @@ function logCaseActivity($caseId, $eventType, $oldStatus = null, $newStatus = nu
                 :user_id,
                 :user_email,
                 :meta_json,
-                NOW()
+                :created_at
             )";
 
     try {
@@ -164,6 +167,7 @@ function logCaseActivity($caseId, $eventType, $oldStatus = null, $newStatus = nu
             'user_id'    => $userId,
             'user_email' => $userEmail,
             'meta_json'  => $metaJson,
+            'created_at' => $createdAt !== null ? $createdAt : date('Y-m-d H:i:s'),
         ]);
     } catch (PDOException $e) {
         // Do not break the main flow if logging fails; just log the error.
