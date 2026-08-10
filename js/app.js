@@ -171,6 +171,33 @@ function showConfirmModal(title, message, onConfirm, onCancel, preventBackground
   }
 }
 
+// Product decision: Settings and Billing are desktop/tablet-only
+// administrative surfaces. On phones (<=720px) this shows a lightweight
+// message instead. Called from a central guard inside openSettingsBillingModal()
+// and window.openBillingPortal() so every existing/future call site
+// (menu click, Ctrl+, shortcut, etc.) is covered without duplicating the
+// check in each handler.
+function showMobileRestrictedModal(type) {
+  var modal = document.getElementById('mobileRestrictedModal');
+  var titleEl = document.getElementById('mobileRestrictedTitle');
+  var messageEl = document.getElementById('mobileRestrictedMessage');
+  var subtextEl = document.getElementById('mobileRestrictedSubtext');
+  if (!modal || !titleEl || !messageEl || !subtextEl) return;
+
+  if (type === 'billing') {
+    titleEl.textContent = 'Billing';
+    messageEl.textContent = 'Billing management is available on desktop or tablet.';
+    subtextEl.textContent = 'Please use DentaTrak on a larger screen to manage your subscription and billing information.';
+  } else {
+    titleEl.textContent = 'Settings';
+    messageEl.textContent = 'Settings are available on desktop or tablet.';
+    subtextEl.textContent = 'Please use DentaTrak on a larger screen to manage practice settings, users, security, and data preferences.';
+  }
+
+  modal.style.display = 'block';
+}
+window.showMobileRestrictedModal = showMobileRestrictedModal;
+
 // Simple wrapper around the Toast system used throughout the app
 function showToast(message, type) {
   if (!message) return;
@@ -837,6 +864,14 @@ document.addEventListener('DOMContentLoaded', function () {
   function openSettingsBillingModal() {
     if (!settingsBillingModal) return;
 
+    // Product decision: Settings is desktop/tablet-only on phones. Central
+    // guard here covers every call site (menu click, Ctrl+, shortcut) so
+    // phone users never land inside the admin UI, even via direct calls.
+    if (window.matchMedia('(max-width: 720px)').matches) {
+      showMobileRestrictedModal('settings');
+      return;
+    }
+
     // Do not open modal while the page is loading
     if (pageLoadingOverlay && pageLoadingOverlay.style.display !== 'none' && pageLoadingOverlay.style.opacity !== '0') {
       return;
@@ -1453,6 +1488,20 @@ document.addEventListener('DOMContentLoaded', function () {
   if (settingsBillingClose) {
     settingsBillingClose.addEventListener('click', function() {
       closeSettingsBillingModal(false);
+    });
+  }
+
+  // Mobile Restricted Modal (Settings/Billing on phones) - Close button + backdrop click
+  var mobileRestrictedModalEl = document.getElementById('mobileRestrictedModal');
+  var mobileRestrictedCloseBtn = document.getElementById('mobileRestrictedClose');
+  if (mobileRestrictedCloseBtn && mobileRestrictedModalEl) {
+    mobileRestrictedCloseBtn.addEventListener('click', function() {
+      mobileRestrictedModalEl.style.display = 'none';
+    });
+    mobileRestrictedModalEl.addEventListener('click', function(e) {
+      if (e.target === mobileRestrictedModalEl) {
+        mobileRestrictedModalEl.style.display = 'none';
+      }
     });
   }
 
@@ -5227,6 +5276,14 @@ document.addEventListener('DOMContentLoaded', function () {
   document.addEventListener('keydown', function(event) {
     if (event.key === 'Escape' && deleteConfirmModal && deleteConfirmModal.style.display === 'block') {
       closeDeleteConfirmation();
+    }
+  });
+
+  // Escape key handler for the Mobile Restricted Modal (Settings/Billing on phones)
+  document.addEventListener('keydown', function(event) {
+    var mrModal = document.getElementById('mobileRestrictedModal');
+    if (event.key === 'Escape' && mrModal && mrModal.style.display === 'block') {
+      mrModal.style.display = 'none';
     }
   });
 

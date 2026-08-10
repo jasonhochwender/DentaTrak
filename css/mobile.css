@@ -921,6 +921,26 @@
 }
 
 /* ===========================================
+   PRODUCT DECISION: Settings & Billing are
+   desktop/tablet-only on phones (<=720px).
+   ------------------------------------------------
+   Hides the two menu items by stable ID (not a
+   positional selector - see removed-rule note
+   below). This is a presentation-only guard; the
+   real enforcement is the matchMedia() check inside
+   openSettingsBillingModal() / window.openBillingPortal()
+   in js/app.js and js/billing-portal.js, which also
+   covers direct/programmatic calls (e.g. the Ctrl+,
+   shortcut) that never touch this menu markup.
+   =========================================== */
+@media (max-width: 720px) {
+  #settingsMenuItem,
+  #billingMenuItem {
+    display: none;
+  }
+}
+
+/* ===========================================
    8. SETTINGS MODAL & TAKE A TOUR (Mobile)
    - Hide tour on mobile
    =========================================== */
@@ -934,7 +954,8 @@
      this block already makes the Settings modal itself usable on mobile
      (full-screen layout, scrollable content, adjusted twisty padding).
      Removed rather than left in place hiding the wrong/an inconsistent
-     item. */
+     item. Superseded by the dedicated <=720px rule above anyway, which
+     now hides both items by stable ID. */
 
   /* Hide Tour link in user menu on mobile */
   #startTourLink {

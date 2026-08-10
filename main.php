@@ -2787,6 +2787,25 @@ window.featureFlags = <?php echo getFeatureFlagsJson(); ?>;
       </div>
     </div>
   </div>
+
+  <!-- Mobile Restricted Feature Modal (reusable) -->
+  <!-- Shown instead of Settings/Billing on phone-sized screens (<=720px).
+       Reuses the .confirm-modal-content / .confirm-modal-footer styling
+       from the Confirmation Modal above so no new CSS is required. -->
+  <div id="mobileRestrictedModal" class="modal confirm-modal">
+    <div class="modal-content confirm-modal-content">
+      <div class="modal-header">
+        <h2 class="modal-title" id="mobileRestrictedTitle">Settings</h2>
+      </div>
+      <div class="modal-body">
+        <p id="mobileRestrictedMessage">Settings are available on desktop or tablet.</p>
+        <p id="mobileRestrictedSubtext" style="margin-top:10px;font-size:0.85rem;color:var(--text-secondary);line-height:1.5;"></p>
+      </div>
+      <div class="modal-footer confirm-modal-footer">
+        <button type="button" class="btn-primary" id="mobileRestrictedClose">Close</button>
+      </div>
+    </div>
+  </div>
   
   <!-- Chart.js and Analytics Pro are lazy-loaded when Analytics tab is clicked -->
   
