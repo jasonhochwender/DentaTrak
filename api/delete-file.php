@@ -1,7 +1,20 @@
 <?php
 // Delete File API endpoint
+// SECURITY: This legacy Google Drive attachment deletion endpoint is
+// disabled. Attachment deletion now goes exclusively through
+// update-case.php's filesToDelete flow, which physically deletes the
+// GCS object. This endpoint is not referenced by the current frontend.
 require_once __DIR__ . '/session.php'; // centralized session handling
 header('Content-Type: application/json');
+require_once __DIR__ . '/security-headers.php';
+setApiSecurityHeaders();
+http_response_code(410);
+echo json_encode([
+    'success' => false,
+    'message' => 'This endpoint is no longer supported. Use the standard case update flow to remove attachments.'
+]);
+exit;
+
 require_once __DIR__ . '/practice-security.php';
 require_once __DIR__ . '/case-activity-log.php';
 require_once __DIR__ . '/csrf.php';

@@ -18,6 +18,7 @@ require_once __DIR__ . '/google-drive.php';
 require_once __DIR__ . '/cases-cache.php';
 require_once __DIR__ . '/dev-tools-access.php';
 require_once __DIR__ . '/csrf.php';
+require_once __DIR__ . '/gcs-attachments.php';
 header('Content-Type: application/json');
 
 // Check if user is logged in
@@ -69,7 +70,7 @@ try {
     // cases, zero cases are deleted. Cleaning up any legacy orphaned rows
     // is a migration concern, not something this everyday Dev Tool should
     // ever touch.
-    $stmt = $pdo->prepare("SELECT case_id, drive_folder_id FROM cases_cache WHERE practice_id = ?");
+    $stmt = $pdo->prepare("SELECT case_id, drive_folder_id, attachments_json FROM cases_cache WHERE practice_id = ?");
     $stmt->execute([$currentPracticeId]);
     $cases = $stmt->fetchAll(PDO::FETCH_ASSOC);
     
@@ -81,6 +82,17 @@ try {
             // Delete Google Drive folder (move to trash)
             if (!empty($case['drive_folder_id'])) {
                 trashDriveFolder($case['drive_folder_id']);
+            }
+
+            // SECURITY/STORAGE: This is a PERMANENT delete (unlike archiving
+            // via delete-case.php), so physically remove any GCS-backed
+            // attachment objects to reclaim storage. Archived cases are
+            // never processed here - this endpoint deletes the DB row itself.
+            if (!empty($case['attachments_json'])) {
+                $attachments = json_decode($case['attachments_json'], true);
+                if (is_array($attachments)) {
+                    deleteGcsAttachments($attachments);
+                }
             }
             
             // Delete case from cases_cache table - strictly scoped to the

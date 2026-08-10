@@ -393,43 +393,24 @@ function createCase($caseData, $files, $originalCaseData = null, $gcsAttachments
             }
         }
         
-        // Process legacy direct file attachments (fallback for small files or old flow)
+        // SECURITY: Legacy local $_FILES attachment path is disabled. All
+        // case attachments must go through the verified GCS signed-URL flow
+        // (see $gcsAttachments above). This legacy fallback previously
+        // uploaded raw multipart file data directly to Google Drive with no
+        // GCS verification. It is unreachable via the current frontend (the
+        // case form's file inputs are excluded from submission - see
+        // js/app.js) and is disabled here with a controlled error rather
+        // than silently accepting unverified uploads. This does NOT affect
+        // the Google Drive backup mechanism itself (folder creation,
+        // case.json writes, backup sync).
         $attachmentTypes = ['photos', 'intraoralScans', 'facialScans', 'photogrammetry', 'completedDesigns'];
         
         foreach ($attachmentTypes as $type) {
             if (isset($files[$type]) && !empty($files[$type]['name'][0])) {
-                for ($i = 0; $i < count($files[$type]['name']); $i++) {
-                    if ($files[$type]['error'][$i] === UPLOAD_ERR_OK) {
-                        $tmpFilePath = $files[$type]['tmp_name'][$i];
-                        $fileName = $files[$type]['name'][$i];
-                        $fileType = $files[$type]['type'][$i];
-                        
-                        // Upload file to Google Drive
-                        $fileMetadata = new Google_Service_Drive_DriveFile([
-                            'name' => $fileName,
-                            'parents' => [$caseFolderId]
-                        ]);
-                        
-                        $content = file_get_contents($tmpFilePath);
-                        $file = $service->files->create($fileMetadata, [
-                            'data' => $content,
-                            'mimeType' => $fileType,
-                            'uploadType' => 'multipart'
-                        ]);
-                        
-                        $fileId = $file->getId();
-                        
-                        // Add to case attachments
-                        $completeCase['attachments'][] = [
-                            'id' => uniqid(),
-                            'type' => ucfirst($type),
-                            'fileName' => $fileName,
-                            'fileType' => $fileType,
-                            'driveFileId' => $fileId,
-                            'uploadedAt' => date('c')
-                        ];
-                    }
-                }
+                return [
+                    'success' => false,
+                    'message' => 'Direct file uploads are no longer supported. Please use the standard attachment upload flow.'
+                ];
             }
         }
         
@@ -820,38 +801,21 @@ function createCacheOnlyCase($caseData, $files, $originalCaseData = null, $gcsAt
             }
         }
         
-        // Process legacy file attachments - store locally (in uploads directory)
+        // SECURITY: Legacy local $_FILES attachment path is disabled. Case
+        // attachments must NEVER be written to ephemeral local Cloud Run
+        // storage (this block previously did exactly that via
+        // move_uploaded_file() into ../uploads/). All attachments must go
+        // through the verified GCS signed-URL flow (see $gcsAttachments
+        // above). Unreachable via the current frontend (the case form's
+        // file inputs are excluded from submission - see js/app.js).
         $attachmentTypes = ['photos', 'intraoralScans', 'facialScans', 'photogrammetry', 'completedDesigns'];
         
         foreach ($attachmentTypes as $type) {
             if (isset($files[$type]) && !empty($files[$type]['name'][0])) {
-                // Create uploads directory if it doesn't exist
-                $uploadsDir = __DIR__ . '/../uploads/' . $caseId . '/' . $type;
-                if (!is_dir($uploadsDir)) {
-                    mkdir($uploadsDir, 0755, true);
-                }
-                
-                foreach ($files[$type]['name'] as $index => $fileName) {
-                    if ($files[$type]['error'][$index] === UPLOAD_ERR_OK) {
-                        $tmpName = $files[$type]['tmp_name'][$index];
-                        $destPath = $uploadsDir . '/' . $fileName;
-                        
-                        if (move_uploaded_file($tmpName, $destPath)) {
-                            // Use flat array structure matching Google Drive format
-                            $completeCase['attachments'][] = [
-                                'id' => uniqid(),
-                                'type' => ucfirst($type),
-                                'fileName' => $fileName,
-                                'name' => $fileName,
-                                'path' => 'uploads/' . $caseId . '/' . $type . '/' . $fileName,
-                                'fileType' => $files[$type]['type'][$index],
-                                'mimeType' => $files[$type]['type'][$index],
-                                'size' => $files[$type]['size'][$index],
-                                'uploadedAt' => date('c')
-                            ];
-                        }
-                    }
-                }
+                return [
+                    'success' => false,
+                    'message' => 'Direct file uploads are no longer supported. Please use the standard attachment upload flow.'
+                ];
             }
         }
         

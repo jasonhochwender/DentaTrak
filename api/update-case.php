@@ -10,6 +10,7 @@ require_once __DIR__ . '/encryption.php';
 require_once __DIR__ . '/csrf.php';
 require_once __DIR__ . '/security-headers.php';
 require_once __DIR__ . '/tooth-number-parser.php';
+require_once __DIR__ . '/gcs-attachments.php';
 
 // Set security headers
 setApiSecurityHeaders();
@@ -78,10 +79,23 @@ try {
             }
             
             // Handle file deletions
+            // SECURITY: The authoritative storage path is looked up from the
+            // case's own existing attachment record (never trusted from the
+            // client), then the GCS object is physically deleted to reclaim
+            // storage.
             if (!empty($filesToDelete) && is_array($filesToDelete)) {
                 foreach ($filesToDelete as $fileInfo) {
                     $attachmentId = $fileInfo['attachmentId'] ?? null;
                     if ($attachmentId) {
+                        foreach ($existingAttachments as $att) {
+                            if (isset($att['id']) && $att['id'] == $attachmentId
+                                && ($att['storageType'] ?? '') === 'gcs' && !empty($att['storagePath'])) {
+                                if (!deleteGcsObject($att['storagePath'])) {
+                                    error_log("[update-case] Failed to delete GCS object {$att['storagePath']} for attachment {$attachmentId}");
+                                }
+                                break;
+                            }
+                        }
                         $existingAttachments = array_filter($existingAttachments, function($att) use ($attachmentId) {
                             return !isset($att['id']) || $att['id'] != $attachmentId;
                         });
@@ -90,20 +104,26 @@ try {
                 $existingAttachments = array_values($existingAttachments);
             }
             
-            // Process GCS file uploads (new direct-to-GCS flow)
+            // Process GCS file uploads (new direct-to-GCS flow).
+            // SECURITY: Attachment metadata is verified server-side against the
+            // actual GCS object (existence, size, MIME type, path ownership,
+            // per-type/aggregate limits) via processGcsAttachments() rather than
+            // trusting client-declared metadata directly.
+            global $currentPracticeId;
             $gcsFilesRaw = $_POST['gcs_files'] ?? '';
             if (!empty($gcsFilesRaw)) {
-                // Normalize input: handle both string (JSON) and array formats
-                if (is_string($gcsFilesRaw)) {
-                    $gcsFiles = json_decode($gcsFilesRaw, true);
-                } else {
-                    $gcsFiles = $gcsFilesRaw;
+                $gcsResult = processGcsAttachments(
+                    is_string($gcsFilesRaw) ? $gcsFilesRaw : json_encode($gcsFilesRaw),
+                    $currentPracticeId
+                );
+
+                if (!$gcsResult['success']) {
+                    return [
+                        'success' => false,
+                        'message' => 'File upload verification failed: ' . implode('; ', $gcsResult['errors'])
+                    ];
                 }
-                
-                if (!is_array($gcsFiles)) {
-                    $gcsFiles = [];
-                }
-                
+
                 // Build set of existing storage paths to prevent duplicates
                 $existingPaths = [];
                 foreach ($existingAttachments as $att) {
@@ -112,72 +132,28 @@ try {
                         $existingPaths[$path] = true;
                     }
                 }
-                
-                // Create attachment records directly (file already exists in GCS)
-                foreach ($gcsFiles as $file) {
-                    $storagePath = $file['storage_path'] ?? '';
-                    $originalName = $file['original_filename'] ?? '';
-                    
-                    if (empty($storagePath) || empty($originalName)) {
-                        continue;
-                    }
-                    
-                    // Skip if already exists
+
+                foreach ($gcsResult['attachments'] as $attachment) {
+                    $storagePath = $attachment['storagePath'];
                     if (!empty($existingPaths[$storagePath])) {
                         continue;
                     }
-                    
-                    $attachment = [
-                        'id' => uniqid(),
-                        'type' => ucfirst($file['upload_type'] ?? 'photos'),
-                        'fileName' => $originalName,
-                        'name' => $originalName,
-                        'path' => $storagePath,
-                        'storagePath' => $storagePath,
-                        'storageType' => 'gcs',
-                        'fileType' => $file['content_type'] ?? 'application/octet-stream',
-                        'mimeType' => $file['content_type'] ?? 'application/octet-stream',
-                        'size' => intval($file['file_size'] ?? 0),
-                        'uploadedAt' => date('c')
-                    ];
-                    
+                    $attachment['path'] = $storagePath;
                     $existingAttachments[] = $attachment;
                     $existingPaths[$storagePath] = true;
                 }
             }
-            
-            // Process legacy direct file uploads (fallback)
+
+            // SECURITY: Legacy local $_FILES attachment path is disabled.
+            // All attachments must go through the GCS signed-URL flow above.
             $attachmentTypes = ['photos', 'intraoralScans', 'facialScans', 'photogrammetry', 'completedDesigns'];
-            $caseId = $caseData['id'];
-            
+
             foreach ($attachmentTypes as $type) {
                 if (isset($files[$type]) && !empty($files[$type]['name'][0])) {
-                    // Create uploads directory if it doesn't exist
-                    $uploadsDir = __DIR__ . '/../uploads/' . $caseId . '/' . $type;
-                    if (!is_dir($uploadsDir)) {
-                        mkdir($uploadsDir, 0755, true);
-                    }
-                    
-                    foreach ($files[$type]['name'] as $index => $fileName) {
-                        if ($files[$type]['error'][$index] === UPLOAD_ERR_OK) {
-                            $tmpName = $files[$type]['tmp_name'][$index];
-                            $destPath = $uploadsDir . '/' . $fileName;
-                            
-                            if (move_uploaded_file($tmpName, $destPath)) {
-                                $existingAttachments[] = [
-                                    'id' => uniqid(),
-                                    'type' => ucfirst($type),
-                                    'fileName' => $fileName,
-                                    'name' => $fileName,
-                                    'path' => 'uploads/' . $caseId . '/' . $type . '/' . $fileName,
-                                    'fileType' => $files[$type]['type'][$index],
-                                    'mimeType' => $files[$type]['type'][$index],
-                                    'size' => $files[$type]['size'][$index],
-                                    'uploadedAt' => date('c')
-                                ];
-                            }
-                        }
-                    }
+                    return [
+                        'success' => false,
+                        'message' => 'Direct file uploads are no longer supported. Please use the standard attachment upload flow.'
+                    ];
                 }
             }
             
@@ -379,22 +355,31 @@ try {
             // Encrypt PII before saving
             $encryptedCaseData = PIIEncryption::encryptCaseData($existingCaseData);
             
-            // Process files marked for deletion
+            // Process files marked for deletion.
+            // SECURITY: The authoritative storage path is looked up from the
+            // case's own existing attachment record (never trusted from the
+            // client), then the GCS object is physically deleted to reclaim
+            // storage. Legacy Google Drive fileId-based deletion has been
+            // removed since all current attachments are GCS-backed.
             if (!empty($filesToDelete)) {
                 foreach ($filesToDelete as $fileToDelete) {
-                    $fileId = $fileToDelete['fileId'];
-                    $attachmentId = $fileToDelete['attachmentId'];
-                    
-                    // Delete file from Google Drive (move to trash)
-                    try {
-                        $service->files->update($fileId, new Google_Service_Drive_DriveFile(['trashed' => true]));
-                    } catch (Exception $e) {
-                        // Log error but continue processing
-                        error_log("Failed to delete file $fileId from Drive: " . $e->getMessage());
+                    $attachmentId = $fileToDelete['attachmentId'] ?? null;
+                    if (!$attachmentId) {
+                        continue;
                     }
-                    
-                    // Remove attachment from case data
+
                     if (isset($existingCaseData['attachments']) && is_array($existingCaseData['attachments'])) {
+                        foreach ($existingCaseData['attachments'] as $attachment) {
+                            if (isset($attachment['id']) && $attachment['id'] == $attachmentId
+                                && ($attachment['storageType'] ?? '') === 'gcs' && !empty($attachment['storagePath'])) {
+                                if (!deleteGcsObject($attachment['storagePath'])) {
+                                    error_log("[update-case] Failed to delete GCS object {$attachment['storagePath']} for attachment {$attachmentId}");
+                                }
+                                break;
+                            }
+                        }
+
+                        // Remove attachment from case data
                         $existingCaseData['attachments'] = array_filter($existingCaseData['attachments'], function($attachment) use ($attachmentId) {
                             return !isset($attachment['id']) || $attachment['id'] != $attachmentId;
                         });
@@ -413,24 +398,30 @@ try {
                 );
             }
             
-            // Process GCS file uploads (new direct-to-GCS flow)
+            // Process GCS file uploads (new direct-to-GCS flow).
+            // SECURITY: Attachment metadata is verified server-side against the
+            // actual GCS object (existence, size, MIME type, path ownership,
+            // per-type/aggregate limits) via processGcsAttachments() rather than
+            // trusting client-declared metadata directly.
+            global $currentPracticeId;
             $gcsFilesRaw = $_POST['gcs_files'] ?? '';
             if (!empty($gcsFilesRaw)) {
-                // Normalize input: handle both string (JSON) and array formats
-                if (is_string($gcsFilesRaw)) {
-                    $gcsFiles = json_decode($gcsFilesRaw, true);
-                } else {
-                    $gcsFiles = $gcsFilesRaw;
-                }
-                
-                if (!is_array($gcsFiles)) {
-                    $gcsFiles = [];
-                }
-                
                 if (!isset($existingCaseData['attachments']) || !is_array($existingCaseData['attachments'])) {
                     $existingCaseData['attachments'] = [];
                 }
-                
+
+                $gcsResult = processGcsAttachments(
+                    is_string($gcsFilesRaw) ? $gcsFilesRaw : json_encode($gcsFilesRaw),
+                    $currentPracticeId
+                );
+
+                if (!$gcsResult['success']) {
+                    return [
+                        'success' => false,
+                        'message' => 'File upload verification failed: ' . implode('; ', $gcsResult['errors'])
+                    ];
+                }
+
                 // Build set of existing storage paths to prevent duplicates
                 $existingPaths = [];
                 foreach ($existingCaseData['attachments'] as $att) {
@@ -439,77 +430,28 @@ try {
                         $existingPaths[$path] = true;
                     }
                 }
-                
-                // Create attachment records directly (file already exists in GCS)
-                foreach ($gcsFiles as $file) {
-                    $storagePath = $file['storage_path'] ?? '';
-                    $originalName = $file['original_filename'] ?? '';
-                    
-                    if (empty($storagePath) || empty($originalName)) {
-                        continue;
-                    }
-                    
-                    // Skip if already exists
+
+                foreach ($gcsResult['attachments'] as $attachment) {
+                    $storagePath = $attachment['storagePath'];
                     if (!empty($existingPaths[$storagePath])) {
                         continue;
                     }
-                    
-                    $attachment = [
-                        'id' => uniqid(),
-                        'type' => ucfirst($file['upload_type'] ?? 'photos'),
-                        'fileName' => $originalName,
-                        'name' => $originalName,
-                        'path' => $storagePath,
-                        'storagePath' => $storagePath,
-                        'storageType' => 'gcs',
-                        'fileType' => $file['content_type'] ?? 'application/octet-stream',
-                        'mimeType' => $file['content_type'] ?? 'application/octet-stream',
-                        'size' => intval($file['file_size'] ?? 0),
-                        'uploadedAt' => date('c')
-                    ];
-                    
+                    $attachment['path'] = $storagePath;
                     $existingCaseData['attachments'][] = $attachment;
                     $existingPaths[$storagePath] = true;
                 }
             }
-            
-            // Process legacy file attachments (fallback for direct uploads)
+
+            // SECURITY: Legacy local $_FILES attachment path is disabled.
+            // All attachments must go through the GCS signed-URL flow above.
             $attachmentTypes = ['photos', 'intraoralScans', 'facialScans', 'photogrammetry', 'completedDesigns'];
-            
+
             foreach ($attachmentTypes as $type) {
                 if (isset($files[$type]) && !empty($files[$type]['name'][0])) {
-                    for ($i = 0; $i < count($files[$type]['name']); $i++) {
-                        if ($files[$type]['error'][$i] === UPLOAD_ERR_OK) {
-                            $tmpFilePath = $files[$type]['tmp_name'][$i];
-                            $fileName = $files[$type]['name'][$i];
-                            $fileType = $files[$type]['type'][$i];
-                            
-                            // Upload file to Google Drive
-                            $fileMetadata = new Google_Service_Drive_DriveFile([
-                                'name' => $fileName,
-                                'parents' => [$caseFolderId]
-                            ]);
-                            
-                            $content = file_get_contents($tmpFilePath);
-                            $file = $service->files->create($fileMetadata, [
-                                'data' => $content,
-                                'mimeType' => $fileType,
-                                'uploadType' => 'multipart'
-                            ]);
-                            
-                            $fileId = $file->getId();
-                            
-                            // Add to case attachments
-                            $existingCaseData['attachments'][] = [
-                                'id' => uniqid(),
-                                'type' => ucfirst($type),
-                                'fileName' => $fileName,
-                                'fileType' => $fileType,
-                                'driveFileId' => $fileId,
-                                'uploadedAt' => date('c')
-                            ];
-                        }
-                    }
+                    return [
+                        'success' => false,
+                        'message' => 'Direct file uploads are no longer supported. Please use the standard attachment upload flow.'
+                    ];
                 }
             }
             
@@ -875,12 +817,14 @@ try {
                         ]
                     );
 
-                    // Log attachment summary on update ONLY if files were actually added
+                    // Log attachment summary on update ONLY if files were actually
+                    // added via the GCS upload flow this request (the legacy
+                    // $_FILES path is disabled - see updateCase()).
                     // (File deletions are logged separately above)
                     $attachments = $result['caseData']['attachments'] ?? [];
-                    $filesWereAdded = !empty($files) && is_array($files) && count(array_filter($files, function($f) { 
-                        return !empty($f['tmp_name']) && is_uploaded_file($f['tmp_name']); 
-                    })) > 0;
+                    $gcsFilesSubmitted = $_POST['gcs_files'] ?? '';
+                    $gcsFilesDecoded = is_string($gcsFilesSubmitted) ? json_decode($gcsFilesSubmitted, true) : $gcsFilesSubmitted;
+                    $filesWereAdded = is_array($gcsFilesDecoded) && count($gcsFilesDecoded) > 0;
                     if ($filesWereAdded && is_array($attachments)) {
                         logCaseActivity(
                             $updatedCaseId,

@@ -124,15 +124,11 @@ try {
         exit;
     }
 
-    // Validate case ownership for existing cases
+    // SECURITY: Validate case ownership AND Assigned Only visibility for
+    // existing cases before issuing an upload URL. requireCaseAccess()
+    // exits with a JSON error itself on failure.
     if ($caseId && $caseId !== 'new') {
-        $stmt = $pdo->prepare("SELECT id FROM cases_cache WHERE case_id = ? AND practice_id = ?");
-        $stmt->execute([$caseId, $currentPracticeId]);
-        if (!$stmt->fetch()) {
-            http_response_code(403);
-            echo json_encode(['success' => false, 'error' => 'Case not found or access denied']);
-            exit;
-        }
+        requireCaseAccess($caseId, $currentPracticeId);
     }
 
     // --- Generate signed URL ---
