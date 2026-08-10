@@ -615,7 +615,14 @@
   }
   
   .hero-footer {
-    margin-top: 24px;
+    margin-top: 20px;
+    /* Desktop uses this transform (paired with .hero-content's
+       translateY(-32px), reset above) to visually re-center both blocks
+       within a taller, vertically-centered hero. Once the hero switches to
+       top-aligned flow here, this leftover +34px shift was never undone -
+       it pushed the HIPAA badge an extra 34px down inside the hero's own
+       padding, straight to (or past) the bottom edge. */
+    transform: none;
   }
   
   .trust-badges {
@@ -661,7 +668,7 @@
     object-fit: contain;
     max-width: 100%;
     margin-top: 0;
-    margin-bottom: 18px;
+    margin-bottom: 14px;
     transform: none;
   }
   
@@ -675,6 +682,17 @@
   
   .hero-tagline {
     font-size: 0.95rem;
+    /* Tighten from the 30px base so the panel itself is more compact,
+       rather than growing the hero to give the badge below room to
+       breathe. */
+    margin-bottom: 20px;
+  }
+  
+  /* Slightly tighter than the 900px tier's 20px - keeps the badge
+     comfortably clear of the hero's own 28px bottom padding (set above)
+     without needing extra hero height. */
+  .hero-footer {
+    margin-top: 14px;
   }
   
   .trust-badges {

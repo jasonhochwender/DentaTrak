@@ -2025,3 +2025,169 @@ input#practiceName {
     padding: 4px 0 0 0;
   }
 }
+
+/* ============================================
+   PHONE CLEANUP (<=480px)
+   ------------------------------------------------
+   Builds on the <=720px horizontal-nav conversion
+   above (unchanged). Addresses:
+   - .tab-content-scroll missing min-height:0, the
+     classic nested-flex-scroll bug where a flex:1
+     child with overflow:auto can't shrink below its
+     content's intrinsic height, so instead of
+     scrolling internally it pushes the whole
+     .modal-content taller than the phone's 100vh
+     shell. That leftover height then had to be
+     absorbed by the outer .modal's own overflow-y,
+     which scrolled the header + nav + panels as one
+     unit out of sync with what felt like "coordinated"
+     scrolling, and could momentarily leave the nav
+     row's first tab visually underlapping the header
+     during that outer scroll.
+   - .settings-nav / .settings-twisty-header vertical
+     padding trimmed so real content starts sooner.
+   - .option-row / .option-row-inline: labels no
+     longer force nowrap or a fixed side-by-side
+     column, which was both overflowing narrow rows
+     and separating label from field.
+   - Practice Users & Roles: the 5-column grid
+     (.practice-user-header / .practice-user-row)
+     restyled into stacked cards via CSS only - same
+     markup/checkbboxes/handlers, no JS changes.
+   ============================================ */
+@media (max-width: 480px) {
+  .tab-content-scroll {
+    min-height: 0;
+  }
+
+  .settings-nav {
+    padding: 0 0 10px 0;
+    margin-bottom: 10px;
+  }
+
+  .settings-panels .settings-twisty .settings-twisty-header {
+    padding: 0 0 10px 0;
+    margin-bottom: 10px;
+    font-size: 17px;
+  }
+
+  /* Labels are free to wrap instead of forcing a single nowrap line that
+     can overflow the phone-width row. */
+  .option-row label,
+  .option-text {
+    white-space: normal;
+  }
+
+  /* "Days past due before highlighting:" + number input - nowrap label
+     sharing a row with the input was wide enough to overflow at phone
+     widths (28px left padding + nowrap label + input left no room). */
+  .past-due-inline-settings {
+    flex-wrap: wrap;
+    padding-left: 0;
+  }
+
+  .past-due-inline-settings .settings-sublabel {
+    white-space: normal;
+    margin-right: 0;
+    margin-bottom: 6px;
+    flex: 1 1 100%;
+  }
+
+  /* Inline rows (Legal Practice Name, Display Name, Practice Logo) stack
+     label above field instead of a fixed 140px side column, which was
+     both cramming the value column and reading as an oversized gap
+     between label and field on narrow screens. */
+  .option-row-inline {
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .option-row-inline > label {
+    flex: 0 0 auto;
+  }
+
+  .inline-value-group input[type="text"] {
+    max-width: 100%;
+  }
+
+  /* ------------------------------------------------
+     Practice Users & Roles -> stacked cards
+     ------------------------------------------------ */
+  .practice-user-header {
+    display: none;
+  }
+
+  .practice-user-row {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    padding: 12px;
+    margin-bottom: 10px;
+    border: 1px solid var(--border-light);
+    border-radius: 8px;
+  }
+
+  .practice-user-row .gmail-user-info {
+    margin-bottom: 8px;
+  }
+
+  .practice-user-admin-cell,
+  .practice-user-analytics-cell,
+  .practice-user-limited-cell,
+  .practice-user-remove-cell {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    text-align: left;
+    padding: 8px 0;
+    border-top: 1px solid var(--border-light);
+  }
+
+  .practice-user-admin-cell::before,
+  .practice-user-analytics-cell::before,
+  .practice-user-limited-cell::before {
+    font-size: 13px;
+    color: var(--text-secondary);
+    font-weight: 500;
+  }
+
+  .practice-user-admin-cell::before {
+    content: "Admin";
+  }
+
+  .practice-user-analytics-cell::before {
+    content: "Insights";
+  }
+
+  .practice-user-limited-cell::before {
+    content: "Assigned Only";
+  }
+
+  .practice-user-admin-cell input[type="checkbox"],
+  .practice-user-analytics-cell input[type="checkbox"],
+  .practice-user-limited-cell input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+  }
+
+  /* Remove cell only renders a button for rows where removal is actually
+     allowed (see displayPracticeUsers() in app.js) - collapse the empty
+     cell entirely rather than showing a "Remove" row with nothing in it. */
+  .practice-user-remove-cell:empty {
+    display: none;
+    border-top: none;
+    padding: 0;
+  }
+
+  .practice-user-remove-cell:not(:empty)::before {
+    content: "Remove";
+    font-size: 13px;
+    color: var(--text-secondary);
+    font-weight: 500;
+  }
+
+  .remove-gmail-user {
+    font-size: 22px;
+    padding: 4px 8px;
+  }
+}

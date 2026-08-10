@@ -290,3 +290,52 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* ============================================
+   PHONE CLEANUP (<=480px)
+   ------------------------------------------------
+   The panel already renders collapsed by default
+   (main.php sets the "collapsed" class + inline
+   display:none on .dev-tools-content), but even
+   collapsed its header bar is tall/wide enough to
+   sit over footer buttons in full-screen mobile
+   modals, and once expanded it can occupy up to
+   600px of a phone's limited viewport height. This
+   substantially shrinks the collapsed footprint and
+   caps the expanded height so it never covers the
+   whole screen - the toggle/content themselves are
+   untouched (same button, same IDs, same JS).
+   ============================================ */
+@media (max-width: 480px) {
+  .dev-tools-panel {
+    bottom: 8px;
+    left: 8px;
+    right: auto;
+    max-width: calc(100vw - 16px);
+  }
+
+  .dev-tools-header {
+    padding: 6px 10px;
+  }
+
+  .dev-tools-header h3 {
+    font-size: 11px;
+  }
+
+  .env-badge {
+    display: none;
+  }
+
+  /* #toggleDevTools carries inline styles (font-size/padding) set directly
+     in main.php - only !important can win against those without touching
+     the markup. */
+  #toggleDevTools {
+    font-size: 14px !important;
+    padding: 2px !important;
+  }
+
+  .dev-tools-content {
+    max-height: 50vh;
+    padding: 12px;
+  }
+}

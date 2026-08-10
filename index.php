@@ -746,6 +746,56 @@ $articleUrls = $appConfig['public_urls'] ?? [];
       }
 
     }
+
+    /* ===========================================
+       MOBILE PHONE CLEANUP (<=480px)
+       - Header: CTA no longer clips off-screen
+       - Hero: tighter vertical rhythm so the CTA
+         appears sooner without feeling cramped
+       Scoped additions only; the >=481px rules
+       above are untouched.
+       =========================================== */
+    @media (max-width: 480px) {
+      .nav {
+        padding: 0 16px;
+      }
+
+      .nav-inner {
+        height: 56px;
+      }
+
+      .nav-logo {
+        font-size: 1.05rem;
+      }
+
+      .nav-cta {
+        padding: 7px 12px;
+        font-size: 0.72rem;
+      }
+
+      .hero {
+        padding: 96px 20px 56px;
+      }
+
+      .hero h1 {
+        font-size: 1.6rem;
+        margin-bottom: 16px;
+      }
+
+      .hero-subtitle {
+        font-size: 0.9rem;
+        margin-bottom: 20px;
+      }
+
+      .hero-ctas {
+        gap: 10px;
+      }
+
+      .hero-note {
+        margin-top: 14px;
+        font-size: 0.8rem;
+      }
+    }
   </style>
 </head>
 <body>

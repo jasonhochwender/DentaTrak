@@ -860,47 +860,50 @@
   .emoji-container {
     display: flex !important;
     flex-wrap: wrap !important;
-    gap: 8px !important;
+    gap: 6px !important;
     justify-content: center !important;
-    padding: 8px 0;
+    padding: 4px 0;
+    margin-bottom: 10px !important;
   }
 
   .emoji-option {
-    flex: 0 0 calc(33.333% - 8px) !important;
-    min-width: 90px !important;
+    flex: 0 0 calc(33.333% - 6px) !important;
+    min-width: 84px !important;
     max-width: 100px;
-    padding: 12px 8px !important;
+    padding: 8px 6px !important;
     margin: 0 !important;
   }
 
   .emoji-face {
-    font-size: 2rem !important;
-    margin-bottom: 6px;
+    font-size: 1.65rem !important;
+    margin-bottom: 4px;
   }
 
   .emoji-label {
-    font-size: 0.75rem !important;
+    font-size: 0.72rem !important;
   }
 
   .feedback-question {
-    font-size: 15px;
-    margin-bottom: 12px;
+    font-size: 14px;
+    margin-bottom: 8px;
   }
 
+  /* Textarea appears sooner and the footer is reachable without excessive
+     scrolling now that the sentiment cards above take up less height. */
   #feedbackForm textarea {
     font-size: 16px !important; /* Prevent iOS zoom */
-    min-height: 120px;
+    min-height: 100px;
     width: 100% !important;
     box-sizing: border-box;
   }
 
   #feedbackForm .form-field {
-    margin-bottom: 16px;
+    margin-bottom: 10px;
   }
 
   #feedbackForm .form-field label {
     font-size: 14px;
-    margin-bottom: 8px;
+    margin-bottom: 6px;
     display: block;
   }
 
