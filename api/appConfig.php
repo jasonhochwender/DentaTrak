@@ -159,8 +159,8 @@ Here is the workflow data to analyze:
                 'portal_configuration_id' => null,
                 'prices'                  => [],
                 'display_prices'          => [
-                    'operate' => ['month' => 49500, 'year' => 495000],
-                    'control' => ['month' => 79500, 'year' => 795000],
+                    'operate' => ['month' => 24900, 'year' => 249000],
+                    'control' => ['month' => 49900, 'year' => 499000],
                 ],
                 'config_error' => 'STRIPE_ENVIRONMENT must be "test" or "live"',
             ];
@@ -210,8 +210,8 @@ Here is the workflow data to analyze:
 
             // Display prices in cents — for UI only; authoritative amount is on the Stripe Price object.
             'display_prices' => [
-                'operate' => ['month' => 49500, 'year' => 495000],  // $495/mo, $4,950/yr
-                'control' => ['month' => 79500, 'year' => 795000],  // $795/mo, $7,950/yr
+                'operate' => ['month' => 24900, 'year' => 249000],  // $249/mo, $2,490/yr
+                'control' => ['month' => 49900, 'year' => 499000],  // $499/mo, $4,990/yr
             ],
 
             // Set when environment or key prefix validation fails — checked by endpoints.

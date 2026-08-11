@@ -69,14 +69,14 @@ $articleUrls = $appConfig['public_urls'] ?? [];
       {
         "@type": "Offer",
         "name": "Operate",
-        "price": "495.00",
+        "price": "249.00",
         "priceCurrency": "USD",
         "url": "https://dentatrak.com/#pricing"
       },
       {
         "@type": "Offer",
         "name": "Control",
-        "price": "795.00",
+        "price": "499.00",
         "priceCurrency": "USD",
         "url": "https://dentatrak.com/#pricing"
       }
@@ -1059,8 +1059,8 @@ $articleUrls = $appConfig['public_urls'] ?? [];
       <div class="pricing-grid">
         <div class="pricing-card">
           <h3>Operate</h3>
-          <p class="pricing-price-primary">$495<span style="font-size: 1rem; font-weight: 500; color: var(--text-secondary);">/month</span></p>
-          <p class="pricing-price-annual">or $4,950/year billed annually</p>
+          <p class="pricing-price-primary">$249<span style="font-size: 1rem; font-weight: 500; color: var(--text-secondary);">/month</span></p>
+          <p class="pricing-price-annual">or $2,490/year billed annually</p>
           <p class="pricing-price-note">Two months free with annual billing</p>
           <hr class="pricing-divider">
           <p>For coordinators and teams that need a reliable system for tracking cases, assigning ownership, managing handoffs, and knowing what needs attention today.</p>
@@ -1072,8 +1072,8 @@ $articleUrls = $appConfig['public_urls'] ?? [];
         </div>
         <div class="pricing-card pricing-card-featured">
           <h3>Control</h3>
-          <p class="pricing-price-primary">$795<span style="font-size: 1rem; font-weight: 500; color: var(--text-secondary);">/month</span></p>
-          <p class="pricing-price-annual">or $7,950/year billed annually</p>
+          <p class="pricing-price-primary">$499<span style="font-size: 1rem; font-weight: 500; color: var(--text-secondary);">/month</span></p>
+          <p class="pricing-price-annual">or $4,990/year billed annually</p>
           <p class="pricing-price-note">Two months free with annual billing</p>
           <hr class="pricing-divider">
           <p>For practice owners who need greater visibility into stalled cases, workflow risks, and bottlenecks, with Insights and Smart Recommendations that help identify where to intervene before delays become costly.</p>
