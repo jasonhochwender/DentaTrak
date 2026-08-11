@@ -136,8 +136,16 @@ class PIIEncryption {
     }
     
     /**
-     * Filter cases by search term (decrypts in memory)
-     * @param array $cases Array of case data
+     * Filter cases by search term
+     *
+     * IMPORTANT: $cases must already contain DECRYPTED PII fields (this is
+     * how every current caller — list-cases.php via getAllCasesFromCache() —
+     * supplies them). This function does NOT decrypt; calling decrypt again
+     * on already-plaintext fields throws (invalid IV length for short
+     * strings) and silently wipes the field to '', which made every
+     * patient-name search fail to match. See getAllCasesFromCache().
+     *
+     * @param array $cases Array of case data with PII fields already decrypted
      * @param string $searchTerm Search term
      * @return array Filtered cases
      */
@@ -150,8 +158,8 @@ class PIIEncryption {
         $filtered = [];
         
         foreach ($cases as $case) {
-            // Decrypt case temporarily for searching
-            $decryptedCase = self::decryptCaseData($case);
+            // $case is already decrypted by the caller - do not decrypt again
+            $decryptedCase = $case;
             
             // Check if search term matches any PII fields
             $match = false;
