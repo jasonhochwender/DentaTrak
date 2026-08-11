@@ -5,6 +5,7 @@ header('Content-Type: application/json');
 require_once __DIR__ . '/practice-security.php';
 require_once __DIR__ . '/cases-cache.php';
 require_once __DIR__ . '/case-activity-log.php';
+require_once __DIR__ . '/lab-assignment-history.php';
 require_once __DIR__ . '/at-risk-calculator.php';
 require_once __DIR__ . '/encryption.php';
 require_once __DIR__ . '/csrf.php';
@@ -709,8 +710,32 @@ try {
             }
         }
         
+        // Lab Insights foundation: capture the assignment text as it exists
+        // BEFORE this update, so a genuine assignment change can be detected
+        // afterward. Must be read before updateCase() overwrites the cache.
+        $previousAssignedToForLabHistory = null;
+        try {
+            $prevStmt = $pdo->prepare("SELECT assigned_to FROM cases_cache WHERE case_id = :case_id LIMIT 1");
+            $prevStmt->execute(['case_id' => $_POST['caseId']]);
+            $prevAssignedToRow = $prevStmt->fetchColumn();
+            if ($prevAssignedToRow !== false && $prevAssignedToRow !== null) {
+                $previousAssignedToForLabHistory = $prevAssignedToRow;
+            }
+        } catch (Exception $e) {
+            // Ignore errors fetching previous assignment; treated as unknown/empty.
+        }
+
         $result = updateCase($_POST['caseId'], $caseData, $_FILES, $filesToDelete);
-        
+
+        // Lab Insights foundation: record any lab-assignment-period transition.
+        // Mirrors the same gate already used below for the relational
+        // case_assignments write (assignedTo present and non-empty) - this
+        // endpoint has no path that clears an assignment to empty, so no
+        // "reassigned_to_internal" transition can originate here.
+        if ($result['success'] && isset($caseData['assignedTo']) && !empty($caseData['assignedTo'])) {
+            recordLabAssignmentChange($_POST['caseId'], $currentPracticeId, $previousAssignedToForLabHistory, $caseData['assignedTo']);
+        }
+
         // Process case assignment if successful and assignedTo is provided
         if ($result['success'] && isset($caseData['assignedTo']) && !empty($caseData['assignedTo'])) {
             // Get user ID from email

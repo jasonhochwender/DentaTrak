@@ -12,6 +12,7 @@ require_once __DIR__ . '/appConfig.php';
 require_once __DIR__ . '/practice-security.php';
 require_once __DIR__ . '/feature-flags.php';
 require_once __DIR__ . '/billing-bypass.php';
+require_once __DIR__ . '/subscription-access.php';
 
 try {
     // SECURITY: Require valid practice context
@@ -117,8 +118,18 @@ try {
     // Check if workspace exceeds user limit (for showing warning)
     $exceedsUserLimit = $maxUsers > 0 && $currentUserCount > $maxUsers;
 
+    // Authoritative, practice-level Control entitlement (does NOT read
+    // users.billing_tier). This is the value Practice Insights and any
+    // other Control-only capability should key off of -- billing_tier
+    // above is the separate, legacy per-user case/user-limit metering
+    // value and must not be used to decide Control access.
+    $hasControlAccess = ($currentPracticeId > 0)
+        ? hasControlAccess($pdo, $currentPracticeId, $user['email'] ?? '')
+        : false;
+
     echo json_encode([
         'billing_tier' => $effectiveTier,
+        'has_control_access' => $hasControlAccess,
         'tier_name' => $tierConfig['name'],
         'case_count' => $currentCaseCount,
         'max_cases' => $tierConfig['max_cases'],

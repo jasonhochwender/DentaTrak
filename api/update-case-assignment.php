@@ -9,6 +9,7 @@ require_once __DIR__ . '/practice-security.php';
 require_once __DIR__ . '/user-manager.php';
 require_once __DIR__ . '/cases-cache.php';
 require_once __DIR__ . '/case-activity-log.php';
+require_once __DIR__ . '/lab-assignment-history.php';
 require_once __DIR__ . '/csrf.php';
 
 // Set header to JSON
@@ -264,7 +265,11 @@ try {
 
     // Update local cache with new assignment
     updateCaseAssignedToInCache($caseId, $assignedTo);
-    
+
+    // Lab Insights foundation: record any lab-assignment-period transition.
+    // No-op for practices/entities with no Lab-designated user or label.
+    recordLabAssignmentChange($caseId, $currentPracticeId, $previousAssignee, $assignedTo);
+
     // Record assignment change for real-time notifications to other users
     if (function_exists('recordCaseUpdate')) {
         recordCaseUpdate($caseId, 'assignment', null, $previousAssignee ?? null);

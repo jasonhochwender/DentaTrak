@@ -7,6 +7,8 @@
 require_once __DIR__ . '/appConfig.php';
 require_once __DIR__ . '/user-manager.php';
 require_once __DIR__ . '/practice-security.php';
+require_once __DIR__ . '/feature-flags.php';
+require_once __DIR__ . '/lab-assignment-history.php';
 
 // Start session if not already started
 if (session_status() === PHP_SESSION_NONE) {
@@ -136,6 +138,7 @@ try {
     $limitedVisibilityUsers = []; // Track which users have limited visibility
     $canViewAnalyticsUsers = []; // Track which users can view analytics
     $canEditCasesUsers = []; // Track which users can create/edit cases
+    $isLabUsers = []; // Track which users are designated as a Lab (Lab Insights foundation)
     
     // Ensure permission columns exist (auto-migration)
     try {
@@ -154,6 +157,11 @@ try {
     } catch (PDOException $e) {
         // Column might already exist or table doesn't exist yet
     }
+
+    // Ensure Lab Insights foundation columns exist (practice_users.is_lab,
+    // practice_assignment_labels.is_lab). Self-healing, same convention as
+    // above. Safe to run even while SHOW_LAB_INSIGHTS is off.
+    ensureLabDesignationColumns();
     
     try {
         userLog("Attempting to retrieve Admin users for practice ID: {$currentPracticeId}", false);
@@ -164,7 +172,8 @@ try {
                 SELECT u.email, u.auth_method,
                        IFNULL(pu.limited_visibility, 0) as limited_visibility,
                        IFNULL(pu.can_view_analytics, 1) as can_view_analytics,
-                       IFNULL(pu.can_edit_cases, 1) as can_edit_cases
+                       IFNULL(pu.can_edit_cases, 1) as can_edit_cases,
+                       IFNULL(pu.is_lab, 0) as is_lab
                 FROM users u
                 LEFT JOIN practice_users pu ON u.id = pu.user_id AND pu.practice_id = :practice_id
                 WHERE u.id = :user_id
@@ -182,6 +191,7 @@ try {
                 $limitedVisibilityUsers[$creatorRow['email']] = (bool)$creatorRow['limited_visibility'];
                 $canViewAnalyticsUsers[$creatorRow['email']] = (bool)$creatorRow['can_view_analytics'];
                 $canEditCasesUsers[$creatorRow['email']] = (bool)$creatorRow['can_edit_cases'];
+                $isLabUsers[$creatorRow['email']] = (bool)$creatorRow['is_lab'];
             }
         }
         
@@ -190,7 +200,8 @@ try {
             SELECT u.email, 
                    IFNULL(pu.limited_visibility, 0) as limited_visibility,
                    IFNULL(pu.can_view_analytics, 1) as can_view_analytics,
-                   IFNULL(pu.can_edit_cases, 1) as can_edit_cases
+                   IFNULL(pu.can_edit_cases, 1) as can_edit_cases,
+                   IFNULL(pu.is_lab, 0) as is_lab
             FROM users u
             JOIN practice_users pu ON u.id = pu.user_id
             WHERE pu.practice_id = :practice_id AND pu.role = 'admin' AND pu.user_id != :creator_id
@@ -208,6 +219,7 @@ try {
                 $limitedVisibilityUsers[$row['email']] = (bool)$row['limited_visibility'];
                 $canViewAnalyticsUsers[$row['email']] = (bool)$row['can_view_analytics'];
                 $canEditCasesUsers[$row['email']] = (bool)$row['can_edit_cases'];
+                $isLabUsers[$row['email']] = (bool)$row['is_lab'];
             }
         }
         
@@ -226,7 +238,8 @@ try {
             SELECT u.email, u.last_login_at, 
                    IFNULL(pu.limited_visibility, 0) as limited_visibility,
                    IFNULL(pu.can_view_analytics, 1) as can_view_analytics,
-                   IFNULL(pu.can_edit_cases, 1) as can_edit_cases
+                   IFNULL(pu.can_edit_cases, 1) as can_edit_cases,
+                   IFNULL(pu.is_lab, 0) as is_lab
             FROM users u
             JOIN practice_users pu ON u.id = pu.user_id
             WHERE pu.practice_id = :practice_id AND pu.role = 'user'
@@ -245,6 +258,7 @@ try {
                 $limitedVisibilityUsers[$email] = (bool)$row['limited_visibility'];
                 $canViewAnalyticsUsers[$email] = (bool)$row['can_view_analytics'];
                 $canEditCasesUsers[$email] = (bool)$row['can_edit_cases'];
+                $isLabUsers[$email] = (bool)$row['is_lab'];
             }
         }
         
@@ -253,12 +267,18 @@ try {
         userLog("Error retrieving regular users: " . $e->getMessage(), true);
     }
 
-    // Get assignment labels for this practice
+    // Get assignment labels for this practice.
+    // `assignmentLabels` (plain string array) is kept for backward
+    // compatibility with existing consumers (e.g. the case-assignment
+    // dropdown in js/assignments.js, which only ever needs label text).
+    // `assignmentLabelsDetailed` is the new stable-ID Settings payload
+    // ({id, label, isLab}) used to preserve identity through renames.
     $assignmentLabels = [];
+    $assignmentLabelsDetailed = [];
     if ($currentPracticeId) {
         try {
             $stmt = $pdo->prepare("
-                SELECT label, sort_order
+                SELECT id, label, sort_order, is_lab
                 FROM practice_assignment_labels
                 WHERE practice_id = :practice_id
                 ORDER BY sort_order ASC, label ASC
@@ -268,6 +288,11 @@ try {
                 $label = isset($row['label']) ? trim($row['label']) : '';
                 if ($label !== '' && !in_array($label, $assignmentLabels, true)) {
                     $assignmentLabels[] = $label;
+                    $assignmentLabelsDetailed[] = [
+                        'id' => (int)$row['id'],
+                        'label' => $label,
+                        'isLab' => (bool)$row['is_lab'],
+                    ];
                 }
             }
             userLog("Retrieved " . count($assignmentLabels) . " assignment labels for practice ID: {$currentPracticeId}", false);
@@ -320,6 +345,9 @@ try {
         'practiceName' => $practiceName,
         'logoPath' => $logoPath,
         'assignmentLabels' => $assignmentLabels,
+        'assignmentLabelsDetailed' => $assignmentLabelsDetailed,
+        'isLabUsers' => $isLabUsers,
+        'showLabInsights' => isFeatureEnabled('SHOW_LAB_INSIGHTS'),
         'isPracticeAdmin' => $isPracticeAdmin,
         'practiceCreatorEmail' => $practiceCreatorEmail,
         'practiceCreatorHasGoogleAccount' => ($practiceCreatorAuthMethod === 'google' || $practiceCreatorAuthMethod === 'both'),

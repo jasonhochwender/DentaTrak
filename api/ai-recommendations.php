@@ -57,27 +57,11 @@ if (!$billingEnabled) {
         exit;
     }
 
-    $isBypassUser = isBillingBypassEmail($user['email'] ?? '');
-
-    if ($isBypassUser) {
-        $hasAccess = true;
-    } else {
-        // Practice-level subscription access is the sole authority here — never
-        // trust Stripe metadata or any browser-supplied plan value.
-        $access = getPracticeSubscriptionAccess($pdo, $currentPracticeId);
-
-        if (!$access || !$access['full_access']) {
-            $hasAccess = false;
-        } else {
-            // Active practice trial (Stripe-trialing or DentaTrak's own 90-day
-            // trial) always has access; otherwise Control plan is required.
-            $planStmt = $pdo->prepare("SELECT subscription_plan FROM practices WHERE id = ? LIMIT 1");
-            $planStmt->execute([$currentPracticeId]);
-            $subscriptionPlan = $planStmt->fetchColumn();
-
-            $hasAccess = ($access['status'] === 'trialing') || ($subscriptionPlan === 'control');
-        }
-    }
+    // Practice-level subscription access is the sole authority here — never
+    // trust Stripe metadata or any browser-supplied plan value. Reuses the
+    // same hasControlAccess() rule as every other Control-only capability
+    // (Practice Insights, and future Lab Insights).
+    $hasAccess = hasControlAccess($pdo, $currentPracticeId, $user['email'] ?? '');
 }
 
 if (!$hasAccess) {

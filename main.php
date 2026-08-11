@@ -451,6 +451,9 @@ if (isset($appConfig) && is_array($appConfig) && isset($appConfig['appName'])) {
   <link rel="preload" href="css/logo-upload.css?v=20260807a" as="style" onload="this.onload=null;this.rel='stylesheet'">
   <link rel="preload" href="css/dev-tools.css?v=20241210" as="style" onload="this.onload=null;this.rel='stylesheet'">
   <link rel="preload" href="css/analytics-pro.css?v=20241231" as="style" onload="this.onload=null;this.rel='stylesheet'">
+<?php if (isFeatureEnabled('SHOW_LAB_INSIGHTS')): ?>
+  <link rel="preload" href="css/lab-insights.css?v=20260811" as="style" onload="this.onload=null;this.rel='stylesheet'">
+<?php endif; ?>
 <?php if (isFeatureEnabled('BILLING_ENABLED')): ?>
   <link rel="preload" href="css/billing-portal.css?v=20260805" as="style" onload="this.onload=null;this.rel='stylesheet'">
 <?php endif; ?>
@@ -473,6 +476,9 @@ if (isset($appConfig) && is_array($appConfig) && isset($appConfig['appName'])) {
     <link rel="stylesheet" href="css/logo-upload.css?v=20260807a">
     <link rel="stylesheet" href="css/dev-tools.css?v=20241210">
     <link rel="stylesheet" href="css/analytics-pro.css?v=20241231">
+<?php if (isFeatureEnabled('SHOW_LAB_INSIGHTS')): ?>
+    <link rel="stylesheet" href="css/lab-insights.css?v=20260811">
+<?php endif; ?>
 <?php if (isFeatureEnabled('BILLING_ENABLED')): ?>
     <link rel="stylesheet" href="css/billing-portal.css?v=20260805">
 <?php endif; ?>
@@ -624,7 +630,10 @@ window.featureFlags = <?php echo getFeatureFlagsJson(); ?>;
       <div class="main-tabs">
         <button type="button" class="main-tab active" data-tab="cases">Cases</button>
         <?php if ($userCanViewAnalytics): ?>
-        <button type="button" class="main-tab" data-tab="insights">Insights</button>
+        <button type="button" class="main-tab" data-tab="insights"><?= isFeatureEnabled('SHOW_LAB_INSIGHTS') ? 'Practice Insights' : 'Insights' ?></button>
+        <?php if (isFeatureEnabled('SHOW_LAB_INSIGHTS')): ?>
+        <button type="button" class="main-tab" data-tab="lab-insights">Lab Insights</button>
+        <?php endif; ?>
         <?php endif; ?>
       </div>
 
@@ -782,7 +791,7 @@ window.featureFlags = <?php echo getFeatureFlagsJson(); ?>;
             <div class="ap-header">
               <div class="ap-header-content">
                 <div>
-                  <h1 class="ap-title">Insights</h1>
+                  <h1 class="ap-title"><?= isFeatureEnabled('SHOW_LAB_INSIGHTS') ? 'Practice Insights' : 'Insights' ?></h1>
                   <p class="ap-subtitle">Track your practice performance and case flow</p>
                 </div>
                 <div class="ap-header-actions">
@@ -1242,6 +1251,143 @@ window.featureFlags = <?php echo getFeatureFlagsJson(); ?>;
           </div>
         </div>
         <!-- End Insights Tab -->
+
+        <?php if (isFeatureEnabled('SHOW_LAB_INSIGHTS')): ?>
+        <!-- Lab Insights Tab -->
+        <div class="main-tab-pane" id="lab-insights-tab">
+          <div class="analytics-pro li-root">
+            <div class="ap-header">
+              <div class="ap-header-content">
+                <div>
+                  <h1 class="ap-title">Lab Insights</h1>
+                  <p class="ap-subtitle">See how the labs your practice works with are performing</p>
+                </div>
+                <div class="ap-header-actions">
+                  <select class="ap-select" id="liRangeSelect">
+                    <option value="3">Last 3 Months</option>
+                    <option value="6">Last 6 Months</option>
+                    <option value="12" selected>Last 12 Months</option>
+                    <option value="24">Last 24 Months</option>
+                    <option value="all">All Time</option>
+                  </select>
+                  <button type="button" class="ap-btn ap-btn-secondary" id="liRefreshData">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M23 4v6h-6M1 20v-6h6M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/>
+                    </svg>
+                    Refresh
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Empty states -->
+            <div class="li-empty-state" id="liNoLabsEmptyState" style="display: none;">
+              <h3>No Labs configured yet</h3>
+              <p>Designate a user or Assignment Label as a Lab in Settings &rarr; Practice Users &amp; Roles to start seeing Lab Insights here.</p>
+            </div>
+            <div class="li-empty-state" id="liNoHistoryEmptyState" style="display: none;">
+              <h3>Lab Insights will populate as cases are assigned</h3>
+              <p>You've designated at least one Lab, but no cases have been assigned to it yet. Metrics will appear here once cases start moving through your labs.</p>
+            </div>
+
+            <!-- Control-gated content (reuses the same [data-control-feature] blur pattern as Practice Insights) -->
+            <div class="ap-section ap-control-only" data-control-feature="lab-insights" id="liContent" style="display: none;">
+              <div class="ap-upgrade-overlay">
+                <div class="ap-upgrade-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                    <path d="M7 11V7a5 5 0 0110 0v4"></path>
+                  </svg>
+                </div>
+                <h3>Lab Insights</h3>
+                <p>Unlock lab workload, turnaround, current late cases, and revision comparisons across the labs your practice works with.</p>
+<?php if (isFeatureEnabled('BILLING_ENABLED')): ?>
+                <a href="billing.php" class="ap-upgrade-btn">Upgrade to Control</a>
+<?php endif; ?>
+              </div>
+
+              <!-- Summary Cards -->
+              <div class="ap-metrics-grid li-summary-grid">
+                <div class="ap-metric-card accent-blue">
+                  <div class="ap-metric-value" id="liActiveLabs">-</div>
+                  <div class="ap-metric-label">Active Labs</div>
+                </div>
+                <div class="ap-metric-card accent-blue">
+                  <div class="ap-metric-value" id="liCasesAtLabs">-</div>
+                  <div class="ap-metric-label">Cases Currently at Labs</div>
+                </div>
+                <div class="ap-metric-card accent-green">
+                  <div class="ap-metric-value" id="liAvgTurnaround">-</div>
+                  <div class="ap-metric-label li-label-with-tooltip">
+                    Average Lab Turnaround
+                  </div>
+                </div>
+                <div class="ap-metric-card accent-orange">
+                  <div class="ap-metric-value" id="liLateCases">-</div>
+                  <div class="ap-metric-label">Currently Late Cases</div>
+                </div>
+                <div class="ap-metric-card accent-orange">
+                  <div class="ap-metric-value" id="liRevisions">-</div>
+                  <div class="ap-metric-label">Revisions</div>
+                </div>
+                <div class="ap-metric-card accent-blue">
+                  <div class="ap-metric-value" id="liDirectTransfers">-</div>
+                  <div class="ap-metric-label">Direct Lab Transfers</div>
+                </div>
+              </div>
+
+              <!-- Lab Performance Table -->
+              <div class="ap-section li-inner-section">
+                <div class="ap-section-header">
+                  <div>
+                    <h2 class="ap-section-title">Lab Performance</h2>
+                    <p class="ap-section-subtitle">Click a row to see what a lab currently has in progress. Click a column header to sort.</p>
+                  </div>
+                </div>
+                <div class="li-table-wrap">
+                  <table class="li-table" id="liLabTable">
+                    <thead>
+                      <tr>
+                        <th data-sort="name">Lab</th>
+                        <th data-sort="currentWorkload">Current Workload</th>
+                        <th data-sort="casesHandled">Cases Handled</th>
+                        <th data-sort="avgTurnaroundDays" id="liTurnaroundHeader">Avg. Turnaround</th>
+                        <th data-sort="lateCaseRate" id="liLateRateHeader">Current Late Rate</th>
+                        <th data-sort="revisionCount">Revisions</th>
+                        <th data-sort="revisionRate">Revision Rate</th>
+                        <th data-sort="directTransfersOut">Direct Transfers</th>
+                      </tr>
+                    </thead>
+                    <tbody id="liLabTableBody"></tbody>
+                  </table>
+                </div>
+              </div>
+
+              <!-- Trend -->
+              <div class="ap-section li-inner-section" id="liTrendSection" style="display: none;">
+                <div class="ap-section-header">
+                  <div>
+                    <h2 class="ap-section-title">Cases Handled Over Time</h2>
+                    <p class="ap-section-subtitle">Top labs by volume, by month</p>
+                  </div>
+                </div>
+                <div class="ap-chart-card full-width">
+                  <div class="ap-chart-container">
+                    <canvas id="liTrendChart"></canvas>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Loading Overlay -->
+            <div class="ap-loading" id="liLoading" style="display: none;">
+              <div class="ap-loading-spinner"></div>
+              <p class="ap-loading-text">Loading Lab Insights data...</p>
+            </div>
+          </div>
+        </div>
+        <!-- End Lab Insights Tab -->
+        <?php endif; ?>
         <?php endif; ?>
       </div>
       <!-- End Tab Content -->
@@ -2021,7 +2167,7 @@ window.featureFlags = <?php echo getFeatureFlagsJson(); ?>;
                             <div id="gmailError" class="error-message"></div>
                           </div>
 
-                          <div id="gmailUsersList">
+                          <div id="gmailUsersList" data-show-lab-insights="<?= isFeatureEnabled('SHOW_LAB_INSIGHTS') ? '1' : '0' ?>">
                             <!-- Practice users grid will be rendered here -->
                           </div>
                         </div>
@@ -2038,6 +2184,12 @@ window.featureFlags = <?php echo getFeatureFlagsJson(); ?>;
                             <div class="add-gmail-user">
                               <div class="gmail-input-row">
                                 <input type="text" id="newAssignmentLabel" placeholder="e.g., Lab, Front Desk, Insurance" class="gmail-input" maxlength="150">
+                                <?php if (isFeatureEnabled('SHOW_LAB_INSIGHTS')): ?>
+                                <label class="assignment-label-lab-checkbox" for="newAssignmentLabelIsLab" title="Identifies this user or assignment label as an external dental lab for Lab Insights reporting.">
+                                  <input type="checkbox" id="newAssignmentLabelIsLab">
+                                  Lab
+                                </label>
+                                <?php endif; ?>
                                 <button type="button" id="addAssignmentLabel" class="add-gmail-btn">Add</button>
                               </div>
                               <div class="error-message" id="assignmentLabelError"></div>
@@ -2046,7 +2198,7 @@ window.featureFlags = <?php echo getFeatureFlagsJson(); ?>;
                             
                             <p class="field-note-inline assignment-labels-hint">Shared Assignment Labels appear alongside people in assignment dropdowns but do not represent real user accounts.</p>
                             
-                            <div id="assignmentLabelsList" class="assignment-labels-list">
+                            <div id="assignmentLabelsList" class="assignment-labels-list" data-show-lab-insights="<?= isFeatureEnabled('SHOW_LAB_INSIGHTS') ? '1' : '0' ?>">
                               <!-- Assignment labels will be rendered here -->
                             </div>
                           </div>

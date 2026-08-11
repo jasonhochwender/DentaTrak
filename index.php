@@ -1,7 +1,9 @@
 <?php
 require_once __DIR__ . '/api/appConfig.php';
+require_once __DIR__ . '/api/feature-flags.php';
 require_once __DIR__ . '/api/security-headers.php';
 setSecurityHeaders();
+$showLabInsights = isFeatureEnabled('SHOW_LAB_INSIGHTS');
 $appName = $appConfig['appName'] ?? 'DentaTrak';
 $baseUrl = rtrim($appConfig['baseUrl'], '/') . '/';
 $articleUrls = $appConfig['public_urls'] ?? [];
@@ -1076,11 +1078,17 @@ $articleUrls = $appConfig['public_urls'] ?? [];
           <p class="pricing-price-annual">or $4,990/year billed annually</p>
           <p class="pricing-price-note">Two months free with annual billing</p>
           <hr class="pricing-divider">
-          <p>For practice owners who need greater visibility into stalled cases, workflow risks, and bottlenecks, with Insights and Smart Recommendations that help identify where to intervene before delays become costly.</p>
+          <p>For practice owners who need greater visibility into stalled cases, workflow risks, and bottlenecks, with <?= $showLabInsights ? 'Practice &amp; Lab Insights' : 'Insights' ?> and Smart Recommendations that help identify where to intervene before delays become costly.</p>
           <ul style="list-style: none; padding: 0; margin: 12px 0 20px; text-align: left; font-size: 0.95rem; color: var(--text-secondary);">
             <li style="padding: 4px 0;">&#10003;&nbsp; Unlimited cases</li>
             <li style="padding: 4px 0;">&#10003;&nbsp; Unlimited users</li>
+<?php if ($showLabInsights): ?>
+            <li style="padding: 4px 0;">&#10003;&nbsp; Practice Insights &mdash; case volume, workflow performance, trends, and opportunities to improve practice operations</li>
+            <li style="padding: 4px 0;">&#10003;&nbsp; Lab Insights &mdash; compare lab workload, turnaround times, revisions, and performance trends, and identify currently late cases across the labs your practice works with</li>
+            <li style="padding: 4px 0;">&#10003;&nbsp; Smart Recommendations</li>
+<?php else: ?>
             <li style="padding: 4px 0;">&#10003;&nbsp; Insights and Smart Recommendations</li>
+<?php endif; ?>
           </ul>
           <a href="<?= $baseUrl ?>login.php" class="btn-primary">Start 90-Day Free Trial</a>
         </div>

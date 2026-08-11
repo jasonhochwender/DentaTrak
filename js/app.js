@@ -323,6 +323,13 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   }
 
+  // Settings-only metadata parallel to window.assignmentLabels (which stays
+  // a plain string array for backward compatibility with other consumers,
+  // e.g. js/assignments.js's dropdown builder). Same index/order/length as
+  // window.assignmentLabels at all times. {id: number|null, label, isLab}.
+  // id === null means "not yet persisted" (a label added this session).
+  window.assignmentLabelsMeta = window.assignmentLabelsMeta || [];
+
   // Function to add an assignment label
   function addAssignmentLabel() {
     // Only Practice Administrators may manage Assignment Labels. This
@@ -382,8 +389,19 @@ document.addEventListener('DOMContentLoaded', function () {
     if (!window.assignmentLabels) {
       window.assignmentLabels = [];
     }
+    if (!window.assignmentLabelsMeta) {
+      window.assignmentLabelsMeta = [];
+    }
+
+    var newLabelIsLab = false;
+    var isLabCheckbox = document.getElementById('newAssignmentLabelIsLab');
+    if (isLabCheckbox) {
+      newLabelIsLab = !!isLabCheckbox.checked;
+      isLabCheckbox.checked = false;
+    }
 
     window.assignmentLabels.push(label);
+    window.assignmentLabelsMeta.push({ id: null, label: label, isLab: newLabelIsLab });
 
     displayAssignmentLabels();
     newAssignmentLabelInput.value = '';
@@ -441,15 +459,34 @@ document.addEventListener('DOMContentLoaded', function () {
       return;
     }
 
-    // Replace old label with new label
+    // Replace old label with new label. The underlying id in
+    // assignmentLabelsMeta is left untouched - this IS what preserves Lab
+    // identity through a rename (the id is what save-settings.php matches
+    // on, never the text).
     for (var i = 0; i < window.assignmentLabels.length; i++) {
       if (window.assignmentLabels[i] === oldLabel) {
         window.assignmentLabels[i] = newLabel;
+        if (window.assignmentLabelsMeta && window.assignmentLabelsMeta[i]) {
+          window.assignmentLabelsMeta[i].label = newLabel;
+        }
         break;
       }
     }
 
     displayAssignmentLabels();
+  }
+
+  // Function to toggle the Lab designation for an existing assignment label
+  function setIsLabForAssignmentLabel(label, isLab) {
+    if (!window.isPracticeAdmin || !window.assignmentLabelsMeta) {
+      return;
+    }
+    for (var i = 0; i < window.assignmentLabels.length; i++) {
+      if (window.assignmentLabels[i] === label && window.assignmentLabelsMeta[i]) {
+        window.assignmentLabelsMeta[i].isLab = !!isLab;
+        break;
+      }
+    }
   }
 
   // Function to display assignment labels
@@ -467,7 +504,9 @@ document.addEventListener('DOMContentLoaded', function () {
       return;
     }
 
-    window.assignmentLabels.forEach(function(label) {
+    var showLabInsights = !!window.showLabInsights;
+
+    window.assignmentLabels.forEach(function(label, idx) {
       var item = document.createElement('div');
       item.className = 'gmail-user-item';
 
@@ -476,6 +515,27 @@ document.addEventListener('DOMContentLoaded', function () {
       labelSpan.textContent = label;
 
       item.appendChild(labelSpan);
+
+      // Lab checkbox - only rendered while SHOW_LAB_INSIGHTS is enabled.
+      if (showLabInsights) {
+        var meta = window.assignmentLabelsMeta && window.assignmentLabelsMeta[idx];
+        var labWrapper = document.createElement('label');
+        labWrapper.className = 'assignment-label-lab-checkbox';
+        labWrapper.title = 'Identifies this user or assignment label as an external dental lab for Lab Insights reporting.';
+
+        var labCheckbox = document.createElement('input');
+        labCheckbox.type = 'checkbox';
+        labCheckbox.checked = !!(meta && meta.isLab);
+        labCheckbox.disabled = !window.isPracticeAdmin;
+        labCheckbox.setAttribute('data-label', label);
+        labCheckbox.addEventListener('change', function() {
+          setIsLabForAssignmentLabel(this.getAttribute('data-label'), this.checked);
+        });
+
+        labWrapper.appendChild(labCheckbox);
+        labWrapper.appendChild(document.createTextNode('Lab'));
+        item.appendChild(labWrapper);
+      }
 
       // Edit/delete controls are only rendered for Practice Administrators.
       // Non-admins can still see the label list (it's used when assigning
@@ -548,6 +608,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
     if (index > -1) {
       window.assignmentLabels.splice(index, 1);
+      if (window.assignmentLabelsMeta) {
+        window.assignmentLabelsMeta.splice(index, 1);
+      }
       displayAssignmentLabels();
     }
   }
@@ -922,7 +985,10 @@ document.addEventListener('DOMContentLoaded', function () {
             data.canViewAnalyticsUsers || {},
             data.canEditCasesUsers || {},
             data.practiceCreatorHasGoogleAccount !== false,
-            data.isGoogleDriveConnected === true
+            data.isGoogleDriveConnected === true,
+            data.assignmentLabelsDetailed || [],
+            data.isLabUsers || {},
+            data.showLabInsights === true
           );
         } else {
           // Error handled through UI
@@ -1046,11 +1112,12 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   // Apply loaded settings to form fields
-  function applyUserSettings(preferences, loadedGmailUsers, loadedGmailLogins, loadedAdminUsers, practiceName, logoPath, loadedAssignmentLabels, isPracticeAdmin, practiceCreatorEmail, displayName, legalName, loadedLimitedVisibilityUsers, loadedCanViewAnalyticsUsers, loadedCanEditCasesUsers, practiceCreatorHasGoogleAccount, isGoogleDriveConnected) {
+  function applyUserSettings(preferences, loadedGmailUsers, loadedGmailLogins, loadedAdminUsers, practiceName, logoPath, loadedAssignmentLabels, isPracticeAdmin, practiceCreatorEmail, displayName, legalName, loadedLimitedVisibilityUsers, loadedCanViewAnalyticsUsers, loadedCanEditCasesUsers, practiceCreatorHasGoogleAccount, isGoogleDriveConnected, loadedAssignmentLabelsDetailed, loadedIsLabUsers, showLabInsights) {
     window.isPracticeAdmin = !!isPracticeAdmin;
     window.practiceCreatorEmail = (practiceCreatorEmail || '').toLowerCase() || null;
     window.practiceCreatorHasGoogleAccount = practiceCreatorHasGoogleAccount !== false;
     window.isGoogleDriveConnected = isGoogleDriveConnected === true;
+    window.showLabInsights = showLabInsights === true;
 
     // Set tour completion status for Shepherd.js
     window.tourCompleted = !!preferences.tour_completed;
@@ -1202,6 +1269,7 @@ document.addEventListener('DOMContentLoaded', function () {
     window.limitedVisibilityUsers = loadedLimitedVisibilityUsers || {};
     window.canViewAnalyticsUsers = loadedCanViewAnalyticsUsers || {};
     window.canEditCasesUsers = loadedCanEditCasesUsers || {};
+    window.isLabUsers = loadedIsLabUsers || {};
 
     // Add limited-visibility class to body if current user has limited visibility
     // This is used by real-time updates to know whether to show/hide cases based on assignment
@@ -1215,12 +1283,25 @@ document.addEventListener('DOMContentLoaded', function () {
     // Render combined practice users grid
     displayPracticeUsers();
 
-    // Load assignment labels
+    // Load assignment labels. assignmentLabelsMeta mirrors
+    // assignmentLabels index-for-index and carries the stable id/isLab
+    // metadata needed by the Settings save flow; it falls back to
+    // {id: null, isLab: false} entries if the server hasn't returned the
+    // detailed payload for some reason (keeps this code resilient).
     if (loadedAssignmentLabels && loadedAssignmentLabels.length > 0) {
       window.assignmentLabels = loadedAssignmentLabels.slice();
+      window.assignmentLabelsMeta = loadedAssignmentLabels.map(function(label, idx) {
+        var detailed = (loadedAssignmentLabelsDetailed || [])[idx];
+        return {
+          id: (detailed && typeof detailed.id === 'number') ? detailed.id : null,
+          label: label,
+          isLab: !!(detailed && detailed.isLab)
+        };
+      });
       displayAssignmentLabels();
     } else {
       window.assignmentLabels = [];
+      window.assignmentLabelsMeta = [];
       displayAssignmentLabels();
     }
 
@@ -1254,6 +1335,17 @@ document.addEventListener('DOMContentLoaded', function () {
       });
     }
 
+    var labUsersCopy = {};
+    if (window.isLabUsers) {
+      Object.keys(window.isLabUsers).forEach(function(key) {
+        labUsersCopy[key] = window.isLabUsers[key];
+      });
+    }
+
+    var labelsMetaCopy = (window.assignmentLabelsMeta || []).map(function(m) {
+      return { id: m.id, isLab: !!m.isLab };
+    });
+
     window.originalSettingsValues = {
       theme: document.getElementById('theme')?.value || 'light',
       displayName: document.getElementById('displayName')?.value || '',
@@ -1268,6 +1360,8 @@ document.addEventListener('DOMContentLoaded', function () {
       limitedVisibilityUsers: limitedCopy,
       canViewAnalyticsUsers: analyticsCopy,
       canEditCasesUsers: editCopy,
+      isLabUsers: labUsersCopy,
+      assignmentLabelsMeta: labelsMetaCopy,
       logoPath: window.currentLogoPath || '',
       logoMarkedForRemoval: false,
       pendingLogoPath: ''
@@ -1298,9 +1392,11 @@ document.addEventListener('DOMContentLoaded', function () {
     var currentLimitedUsers = window.limitedVisibilityUsers || {};
     var currentAnalyticsUsers = window.canViewAnalyticsUsers || {};
     var currentEditUsers = window.canEditCasesUsers || {};
+    var currentLabUsers = window.isLabUsers || {};
     var origLimitedUsers = orig.limitedVisibilityUsers || {};
     var origAnalyticsUsers = orig.canViewAnalyticsUsers || {};
     var origEditUsers = orig.canEditCasesUsers || {};
+    var origLabUsers = orig.isLabUsers || {};
 
     if (currentGmailUsers.length !== orig.gmailUsers.length) return true;
     if (currentAdminUsers.length !== orig.adminUsers.length) return true;
@@ -1315,6 +1411,14 @@ document.addEventListener('DOMContentLoaded', function () {
     }
     for (var i = 0; i < currentLabels.length; i++) {
       if (currentLabels[i] !== orig.assignmentLabels[i]) return true;
+    }
+
+    // Check Lab designation on assignment labels (index-aligned metadata)
+    var currentLabelsMeta = window.assignmentLabelsMeta || [];
+    var origLabelsMeta = orig.assignmentLabelsMeta || [];
+    if (currentLabelsMeta.length !== origLabelsMeta.length) return true;
+    for (var i = 0; i < currentLabelsMeta.length; i++) {
+      if (!!currentLabelsMeta[i].isLab !== !!origLabelsMeta[i].isLab) return true;
     }
 
     // Check user permission maps
@@ -1340,6 +1444,14 @@ document.addEventListener('DOMContentLoaded', function () {
     for (var i = 0; i < editKeys.length; i++) {
       var key = editKeys[i];
       if (currentEditUsers[key] !== origEditUsers[key]) return true;
+    }
+
+    var labKeys = Object.keys(currentLabUsers);
+    var origLabKeys = Object.keys(origLabUsers);
+    if (labKeys.length !== origLabKeys.length) return true;
+    for (var i = 0; i < labKeys.length; i++) {
+      var key = labKeys[i];
+      if (!!currentLabUsers[key] !== !!origLabUsers[key]) return true;
     }
 
     return false;
@@ -2259,6 +2371,9 @@ document.addEventListener('DOMContentLoaded', function () {
     wrapper.appendChild(bubble);
     return wrapper;
   }
+  // Exposed so independently-loaded scripts (e.g. js/lab-insights.js) can
+  // reuse the exact same tooltip markup/style instead of duplicating it.
+  window.createInfoTooltip = createInfoTooltip;
 
   // Escape dismisses an open tooltip by blurring its trigger.
   // Isolated listener -- does not interact with any other keyboard
@@ -2348,7 +2463,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Header row
     var headerRow = document.createElement('div');
-    headerRow.className = 'gmail-user-item practice-user-header';
+    headerRow.className = 'gmail-user-item practice-user-header' + (window.showLabInsights ? ' has-lab-column' : '');
 
     var emailHeader = document.createElement('div');
     emailHeader.className = 'gmail-user-email';
@@ -2369,6 +2484,15 @@ document.addEventListener('DOMContentLoaded', function () {
     limitedHeader.appendChild(document.createTextNode('Assigned Only'));
     limitedHeader.appendChild(createInfoTooltip('Limits this user\'s case view to cases assigned to their email address.', true));
 
+    var showLabInsights = !!window.showLabInsights;
+    var labHeader = null;
+    if (showLabInsights) {
+      labHeader = document.createElement('div');
+      labHeader.className = 'practice-user-lab-header';
+      labHeader.appendChild(document.createTextNode('Lab'));
+      labHeader.appendChild(createInfoTooltip('Identifies this user or assignment label as an external dental lab for Lab Insights reporting.', true));
+    }
+
     var removeHeader = document.createElement('div');
     removeHeader.className = 'practice-user-remove-header';
     removeHeader.textContent = 'Remove';
@@ -2377,6 +2501,9 @@ document.addEventListener('DOMContentLoaded', function () {
     headerRow.appendChild(adminHeader);
     headerRow.appendChild(analyticsHeader);
     headerRow.appendChild(limitedHeader);
+    if (labHeader) {
+      headerRow.appendChild(labHeader);
+    }
     headerRow.appendChild(removeHeader);
     usersList.appendChild(headerRow);
 
@@ -2392,7 +2519,7 @@ document.addEventListener('DOMContentLoaded', function () {
       var isCurrent = (lower === normalizedCurrent);
 
       var row = document.createElement('div');
-      row.className = 'gmail-user-item practice-user-row';
+      row.className = 'gmail-user-item practice-user-row' + (showLabInsights ? ' has-lab-column' : '');
 
       var infoWrapper = document.createElement('div');
       infoWrapper.className = 'gmail-user-info';
@@ -2496,6 +2623,29 @@ document.addEventListener('DOMContentLoaded', function () {
 
       limitedCell.appendChild(limitedCheckbox);
       row.appendChild(limitedCell);
+
+      // Lab checkbox cell - only rendered while SHOW_LAB_INSIGHTS is enabled.
+      if (showLabInsights) {
+        var labCell = document.createElement('div');
+        labCell.className = 'practice-user-lab-cell';
+        var labCheckbox = document.createElement('input');
+        labCheckbox.type = 'checkbox';
+        labCheckbox.checked = !!(window.isLabUsers && window.isLabUsers[email]);
+        labCheckbox.setAttribute('data-email', email);
+
+        if (!window.isPracticeAdmin || isCreator) {
+          labCheckbox.disabled = true;
+        } else {
+          labCheckbox.addEventListener('change', function() {
+            var targetEmail = this.getAttribute('data-email');
+            var isLab = !!this.checked;
+            setIsLabForEmail(targetEmail, isLab);
+          });
+        }
+
+        labCell.appendChild(labCheckbox);
+        row.appendChild(labCell);
+      }
 
       // Remove cell
       var removeCell = document.createElement('div');
@@ -2617,6 +2767,14 @@ document.addEventListener('DOMContentLoaded', function () {
     window.canEditCasesUsers[email] = canEdit;
   }
 
+  // Function to set the Lab designation flag for a user
+  function setIsLabForEmail(email, isLab) {
+    if (!email) return;
+    if (!window.isLabUsers) window.isLabUsers = {};
+
+    window.isLabUsers[email] = isLab;
+  }
+
   // Function to remove a Gmail user
   function removeGmailUser(email) {
     removePracticeUser(email);
@@ -2728,10 +2886,18 @@ document.addEventListener('DOMContentLoaded', function () {
         logoPath: logoPathToSave,
         adminUsers: window.adminUsers, // Add the Admin users array
         gmailUsers: window.gmailUsers, // Add the Gmail users array
-        assignmentLabels: window.assignmentLabels, // Add the assignment labels array
+        assignmentLabels: window.assignmentLabels, // Legacy string array - kept for backward compatibility
+        assignmentLabelsDetailed: (window.assignmentLabelsMeta || []).map(function(m, idx) {
+          return {
+            id: m.id,
+            label: (window.assignmentLabels && window.assignmentLabels[idx] !== undefined) ? window.assignmentLabels[idx] : m.label,
+            isLab: !!m.isLab
+          };
+        }), // Stable-ID payload: preserves label identity through renames
         limitedVisibilityUsers: window.limitedVisibilityUsers || {}, // Add limited visibility map
         canViewAnalyticsUsers: window.canViewAnalyticsUsers || {}, // Add analytics permission map
-        canEditCasesUsers: window.canEditCasesUsers || {} // Add edit cases permission map
+        canEditCasesUsers: window.canEditCasesUsers || {}, // Add edit cases permission map
+        isLabUsers: window.isLabUsers || {} // Add Lab designation map (Lab Insights foundation)
       };
 
       // Include logo action so the server can handle removals/updates
@@ -2879,6 +3045,23 @@ document.addEventListener('DOMContentLoaded', function () {
         // Apply settings immediately
         applySettingsImmediately(formData);
 
+        // Refresh assignmentLabelsMeta from the post-commit server state so
+        // newly-added labels pick up their real database id right away.
+        // Without this, a second save (without reopening Settings) would
+        // still submit id: null for a label that already exists in the DB,
+        // causing the server to insert a duplicate instead of updating it.
+        // window.assignmentLabels is rebuilt in the same order/text so both
+        // arrays stay index-aligned.
+        if (data.assignmentLabelsDetailed) {
+          window.assignmentLabels = data.assignmentLabelsDetailed.map(function(item) {
+            return item.label;
+          });
+          window.assignmentLabelsMeta = data.assignmentLabelsDetailed.map(function(item) {
+            return { id: item.id, label: item.label, isLab: !!item.isLab };
+          });
+          displayAssignmentLabels();
+        }
+
         // Reset button state
         saveSettingsBtn.textContent = originalText;
         saveSettingsBtn.disabled = false;
@@ -2899,6 +3082,14 @@ document.addEventListener('DOMContentLoaded', function () {
         // (e.g. "Cannot delete label(s) still in use...") rather than a
         // generic failure message.
         showToast(data.message || 'Failed to save settings. Please try again.', 'error');
+
+        // A stale client (missing the stable-ID label payload while Lab
+        // Insights is enabled) was rejected to avoid corrupting Lab
+        // identity - refresh in-memory settings so assignmentLabelsMeta
+        // picks up current ids/isLab values instead of retrying blind.
+        if (data.reload_required) {
+          loadSettings();
+        }
       }
     })
   }
@@ -6634,7 +6825,10 @@ document.addEventListener('DOMContentLoaded', function () {
             data.canViewAnalyticsUsers || {},
             data.canEditCasesUsers || {},
             data.practiceCreatorHasGoogleAccount !== false,
-            data.isGoogleDriveConnected === true
+            data.isGoogleDriveConnected === true,
+            data.assignmentLabelsDetailed || [],
+            data.isLabUsers || {},
+            data.showLabInsights === true
           );
 
           // Set localStorage values for past due highlighting
@@ -7746,6 +7940,14 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Add visual indicator to Insights tab when trial expired
     const insightsTab = document.querySelector('.main-tab[data-tab="insights"]');
+    const labInsightsTab = document.querySelector('.main-tab[data-tab="lab-insights"]');
+    if (labInsightsTab && trialExpired) {
+      labInsightsTab.style.opacity = '0.5';
+      labInsightsTab.title = 'Your trial has expired. Upgrade to access Lab Insights.';
+    } else if (labInsightsTab) {
+      labInsightsTab.style.opacity = '1';
+      labInsightsTab.title = '';
+    }
     if (insightsTab && trialExpired) {
       insightsTab.style.opacity = '0.5';
       insightsTab.title = 'Your trial has expired. Upgrade to access Insights.';
@@ -7945,7 +8147,7 @@ document.addEventListener('DOMContentLoaded', function () {
       }
 
       // Block Insights tab when trial expired
-      if (targetTab === 'insights' && billingInfo && billingInfo.is_trial && billingInfo.trial_expired) {
+      if ((targetTab === 'insights' || targetTab === 'lab-insights') && billingInfo && billingInfo.is_trial && billingInfo.trial_expired) {
         showTrialExpiredModal();
         return;
       }
@@ -7962,8 +8164,37 @@ document.addEventListener('DOMContentLoaded', function () {
       if (targetTab === 'insights') {
         loadAnalyticsScripts();
       }
+
+      // Lazy load Lab Insights scripts when that tab is clicked
+      if (targetTab === 'lab-insights') {
+        loadLabInsightsScripts();
+      }
     });
   });
+
+  // Lazy load Chart.js (shared by both Practice Insights and Lab Insights)
+  var chartJsLoaded = false;
+  var chartJsLoading = false;
+  var chartJsCallbacks = [];
+  function ensureChartJsLoaded(callback) {
+    if (chartJsLoaded) {
+      callback();
+      return;
+    }
+    chartJsCallbacks.push(callback);
+    if (chartJsLoading) {
+      return;
+    }
+    chartJsLoading = true;
+    var chartScript = document.createElement('script');
+    chartScript.src = 'https://cdn.jsdelivr.net/npm/chart.js';
+    chartScript.onload = function() {
+      chartJsLoaded = true;
+      chartJsCallbacks.forEach(function(cb) { cb(); });
+      chartJsCallbacks = [];
+    };
+    document.body.appendChild(chartScript);
+  }
 
   // Lazy load Chart.js and analytics-pro.js
   var analyticsScriptsLoaded = false;
@@ -7976,11 +8207,7 @@ document.addEventListener('DOMContentLoaded', function () {
       return;
     }
 
-    // Load Chart.js first, then analytics-pro.js
-    var chartScript = document.createElement('script');
-    chartScript.src = 'https://cdn.jsdelivr.net/npm/chart.js';
-    chartScript.onload = function() {
-      // Chart.js loaded, now load analytics-pro.js
+    ensureChartJsLoaded(function() {
       var analyticsScript = document.createElement('script');
       analyticsScript.src = 'js/analytics-pro.js?v=' + Date.now();
       analyticsScript.onload = function() {
@@ -7991,8 +8218,30 @@ document.addEventListener('DOMContentLoaded', function () {
         }
       };
       document.body.appendChild(analyticsScript);
-    };
-    document.body.appendChild(chartScript);
+    });
+  }
+
+  // Lazy load Chart.js and lab-insights.js
+  var labInsightsScriptsLoaded = false;
+  function loadLabInsightsScripts() {
+    if (labInsightsScriptsLoaded) {
+      if (typeof window.loadLabInsightsData === 'function') {
+        setTimeout(function() { window.loadLabInsightsData(); }, 100);
+      }
+      return;
+    }
+
+    ensureChartJsLoaded(function() {
+      var labInsightsScript = document.createElement('script');
+      labInsightsScript.src = 'js/lab-insights.js?v=' + Date.now();
+      labInsightsScript.onload = function() {
+        labInsightsScriptsLoaded = true;
+        if (typeof window.loadLabInsightsData === 'function') {
+          setTimeout(function() { window.loadLabInsightsData(); }, 100);
+        }
+      };
+      document.body.appendChild(labInsightsScript);
+    });
   }
 
   // Archived Cases Modal functionality

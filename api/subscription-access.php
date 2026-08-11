@@ -57,6 +57,7 @@ function getSubscriptionAccess(array $practice): array {
             'trial_ends_at'           => null,
             'current_period_ends_at'  => null,
             'access_message'          => '',
+            'subscription_plan'       => $practice['subscription_plan'] ?? null,
         ];
     }
 
@@ -186,7 +187,66 @@ function getSubscriptionAccess(array $practice): array {
         'trial_ends_at'           => $trialEndsAt,
         'current_period_ends_at'  => $practice['current_period_ends_at'] ?? null,
         'access_message'          => $accessMessage,
+        'subscription_plan'       => $practice['subscription_plan'] ?? null,
     ];
+}
+
+/**
+ * Single authoritative answer to "does this active practice currently have
+ * Control-plan access?" Combines the practice's subscription/trial access
+ * (getPracticeSubscriptionAccess) with its actual subscription_plan, so
+ * callers never need to read practices.subscription_plan or
+ * users.billing_tier directly for this decision. Intended to be reused by
+ * every Control-only capability (Smart Recommendations, Practice Insights
+ * advanced sections, and future Lab Insights) so there is exactly one
+ * definition of Control access.
+ *
+ * Mirrors the pre-existing rule already used by Smart Recommendations
+ * (api/ai-recommendations.php): an active DentaTrak/Stripe trial always
+ * grants Control-level access regardless of the practice's selected plan;
+ * outside of a trial, the practice's real subscription_plan must be
+ * 'control'. This is a permission-agnostic check — callers must separately
+ * enforce can_view_analytics (or any other user-level permission); this
+ * function only answers the practice's subscription entitlement.
+ *
+ * @param PDO    $pdo
+ * @param int    $practiceId
+ * @param string $userEmail  Optional. If provided and it matches a billing
+ *                           bypass pattern (see billing-bypass.php), Control
+ *                           access is granted unconditionally, matching the
+ *                           existing bypass behavior used elsewhere.
+ * @return bool
+ */
+function hasControlAccess(PDO $pdo, int $practiceId, string $userEmail = ''): bool {
+    $billingEnabledRaw = getenv('BILLING_ENABLED');
+    if ($billingEnabledRaw === false) {
+        $billingEnabledRaw = $_ENV['BILLING_ENABLED'] ?? '';
+    }
+    $billingEnabled = filter_var($billingEnabledRaw, FILTER_VALIDATE_BOOLEAN);
+
+    // Master billing gate: matches every other Control check in the app —
+    // when billing isn't enabled, everyone is treated as Control.
+    if (!$billingEnabled) {
+        return true;
+    }
+
+    if ($userEmail !== '' && function_exists('isBillingBypassEmail') && isBillingBypassEmail($userEmail)) {
+        return true;
+    }
+
+    $access = getPracticeSubscriptionAccess($pdo, $practiceId);
+    if (!$access || !$access['full_access']) {
+        return false;
+    }
+
+    // Active practice trial (Stripe-trialing or DentaTrak's own trial)
+    // always grants Control-level access — preserves existing trial
+    // behavior; do not require subscription_plan === 'control' here.
+    if ($access['status'] === 'trialing') {
+        return true;
+    }
+
+    return ($access['subscription_plan'] ?? null) === 'control';
 }
 
 /**

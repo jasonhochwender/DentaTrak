@@ -8,6 +8,8 @@ require_once __DIR__ . '/appConfig.php';
 require_once __DIR__ . '/practice-security.php';
 require_once __DIR__ . '/user-manager.php';
 require_once __DIR__ . '/google-drive.php';
+require_once __DIR__ . '/feature-flags.php';
+require_once __DIR__ . '/lab-assignment-history.php';
 require_once __DIR__ . '/csrf.php';
 
 // Start session if not already started
@@ -164,8 +166,101 @@ foreach ($assignmentLabels as $label) {
     $validAssignmentLabels[] = $trimmed;
 }
 
+// Handle the new stable-ID assignment-label payload ({id, label, isLab}).
+// Absence of this field (null) means an older/legacy client submitted only
+// the plain `assignmentLabels` string array above - handled separately
+// below so a stale client can never trigger a destructive delete-all once
+// stable IDs exist. Presence of an empty array [] is a valid "no labels"
+// state and is NOT treated as absent.
+$assignmentLabelsDetailed = null;
+if (isset($data['assignmentLabelsDetailed']) && is_array($data['assignmentLabelsDetailed'])) {
+    $assignmentLabelsDetailed = [];
+    foreach ($data['assignmentLabelsDetailed'] as $item) {
+        if (!is_array($item)) {
+            continue;
+        }
+        $labelText = isset($item['label']) ? trim((string)$item['label']) : '';
+        if ($labelText === '') {
+            continue;
+        }
+        if (mb_strlen($labelText) > 150) {
+            $labelText = mb_substr($labelText, 0, 150);
+        }
+        $assignmentLabelsDetailed[] = [
+            'id' => (isset($item['id']) && is_numeric($item['id']) && (int)$item['id'] > 0) ? (int)$item['id'] : null,
+            'label' => $labelText,
+            'isLab' => !empty($item['isLab']),
+        ];
+    }
+}
+
+// Handle Lab designation for users (map of email => boolean). Only ever
+// applied while SHOW_LAB_INSIGHTS is on the server side of the checkbox's
+// visibility, but harmless to accept/ignore otherwise since it only ever
+// flips a boolean that has no effect on anything unless the flag is on.
+$isLabUsers = isset($data['isLabUsers']) && is_array($data['isLabUsers']) ? $data['isLabUsers'] : [];
+
+/**
+ * SECURITY: Never silently orphan a case's assignment by deleting a label
+ * that's still in use. Given a list of candidate-for-removal label rows,
+ * returns the subset that are still assigned to one or more cases.
+ */
+function checkAssignmentLabelsInUse(PDO $pdo, $practiceId, array $removedRows) {
+    if (empty($removedRows)) {
+        return [];
+    }
+    $blocked = [];
+    $countStmt = $pdo->prepare("
+        SELECT COUNT(*) FROM cases_cache
+        WHERE practice_id = :practice_id AND LOWER(assigned_to) = :label
+    ");
+    foreach ($removedRows as $row) {
+        $countStmt->execute([
+            'practice_id' => $practiceId,
+            'label' => mb_strtolower(trim($row['label']))
+        ]);
+        $caseCount = (int)$countStmt->fetchColumn();
+        if ($caseCount > 0) {
+            $blocked[] = ['label' => $row['label'], 'count' => $caseCount];
+        }
+    }
+    return $blocked;
+}
+
+/**
+ * Emit the standard "labels still in use" error response and exit.
+ */
+function respondAssignmentLabelsInUse(array $blockedLabels) {
+    $parts = [];
+    foreach ($blockedLabels as $blocked) {
+        $parts[] = '"' . $blocked['label'] . '" (' . $blocked['count'] . ' case' . ($blocked['count'] === 1 ? '' : 's') . ')';
+    }
+    http_response_code(409);
+    echo json_encode([
+        'success' => false,
+        'message' => 'Cannot delete label(s) still in use: ' . implode(', ', $parts) . '. Please reassign those cases first.'
+    ]);
+    exit;
+}
+
 try {
     ensureUserPreferencesSchema();
+
+    // Lab Insights foundation: self-healing migration for is_lab columns.
+    // Safe to run unconditionally; has no visible effect while
+    // SHOW_LAB_INSIGHTS is off.
+    ensureLabDesignationColumns();
+
+    // CRITICAL: must run here, before any beginTransaction() below. This
+    // is a CREATE TABLE (DDL), and DDL causes an implicit commit in
+    // MySQL/InnoDB. If left to the lazy static-guarded call inside
+    // initializeOpenLabPeriodsForEntity()/recordLabAssignmentChange() and
+    // first triggered while a transaction is already open (e.g. a Lab
+    // checkbox toggled on for the first time ever), it silently ends that
+    // transaction early, and the later explicit $pdo->commit() then fails
+    // with "There is no active transaction". Calling it once, up front,
+    // makes every later call a no-op (guarded by its own static flag).
+    ensureLabAssignmentHistoryTable();
 
     // Ensure google_drive_backup column exists
     $stmt = $pdo->query("SHOW COLUMNS FROM user_preferences LIKE 'google_drive_backup'");
@@ -289,79 +384,267 @@ try {
         // there is no separate can_add_labels permission. Non-admins can
         // still view/use labels (loaded via get-settings.php for the
         // assignment dropdown); they just can't change the label set.
+        //
+        // IMPORTANT: practice_assignment_labels.id must be preserved across
+        // saves - it is the stable Lab identity used by
+        // case_lab_assignment_periods (see lab-assignment-history.php).
+        // Nothing below may delete-all/reinsert every row for a practice;
+        // only genuinely removed labels are ever deleted.
+        $showLabInsightsFlag = isFeatureEnabled('SHOW_LAB_INSIGHTS');
+
         if ($userRole === 'admin') {
             try {
-                // SECURITY: Never silently orphan a case's assignment by
-                // deleting a label that's still in use. Determine which
-                // currently-stored labels are being removed by this save,
-                // and block the whole save (returning a clear message) if
-                // any removed label is still assigned to one or more cases.
-                $stmt = $pdo->prepare("SELECT label FROM practice_assignment_labels WHERE practice_id = :practice_id");
-                $stmt->execute(['practice_id' => $currentPracticeId]);
-                $existingLabels = $stmt->fetchAll(PDO::FETCH_COLUMN);
-
-                $newLabelsLower = array_map('mb_strtolower', $validAssignmentLabels);
-                $removedLabels = [];
-                foreach ($existingLabels as $existingLabel) {
-                    if (!in_array(mb_strtolower($existingLabel), $newLabelsLower, true)) {
-                        $removedLabels[] = $existingLabel;
-                    }
-                }
-
-                $blockedLabels = [];
-                if (!empty($removedLabels)) {
-                    $countStmt = $pdo->prepare("
-                        SELECT COUNT(*) FROM cases_cache
-                        WHERE practice_id = :practice_id AND LOWER(assigned_to) = :label
-                    ");
-                    foreach ($removedLabels as $removedLabel) {
-                        $countStmt->execute([
-                            'practice_id' => $currentPracticeId,
-                            'label' => mb_strtolower($removedLabel)
+                if ($assignmentLabelsDetailed === null) {
+                    // Legacy client: only the plain string array was submitted.
+                    if ($showLabInsightsFlag && !empty($validAssignmentLabels)) {
+                        // Once Lab Insights is enabled, a stale/legacy client
+                        // attempting to change labels without stable IDs could
+                        // corrupt Lab identity (e.g. mis-detect a rename as a
+                        // delete+add). Reject safely instead of guessing.
+                        http_response_code(409);
+                        echo json_encode([
+                            'success' => false,
+                            'reload_required' => true,
+                            'message' => 'Please reload the page before making changes to Assignment Labels.'
                         ]);
-                        $caseCount = (int)$countStmt->fetchColumn();
-                        if ($caseCount > 0) {
-                            $blockedLabels[] = ['label' => $removedLabel, 'count' => $caseCount];
+                        exit;
+                    }
+
+                    // Reconcile by case-insensitive text, preserving id/is_lab
+                    // for every label whose text is unchanged. Never
+                    // delete-all/reinsert.
+                    $existingStmt = $pdo->prepare("SELECT id, label, is_lab FROM practice_assignment_labels WHERE practice_id = :practice_id");
+                    $existingStmt->execute(['practice_id' => $currentPracticeId]);
+                    $existingRows = $existingStmt->fetchAll(PDO::FETCH_ASSOC);
+
+                    $existingByNormalized = [];
+                    foreach ($existingRows as $row) {
+                        $existingByNormalized[mb_strtolower(trim($row['label']))] = $row;
+                    }
+
+                    $submittedNormalized = [];
+                    foreach ($validAssignmentLabels as $label) {
+                        $submittedNormalized[] = mb_strtolower(trim($label));
+                    }
+
+                    $removedRows = [];
+                    foreach ($existingRows as $row) {
+                        if (!in_array(mb_strtolower(trim($row['label'])), $submittedNormalized, true)) {
+                            $removedRows[] = $row;
                         }
                     }
-                }
 
-                if (!empty($blockedLabels)) {
-                    $parts = [];
-                    foreach ($blockedLabels as $blocked) {
-                        $parts[] = '"' . $blocked['label'] . '" (' . $blocked['count'] . ' case' . ($blocked['count'] === 1 ? '' : 's') . ')';
+                    $blockedLabels = checkAssignmentLabelsInUse($pdo, $currentPracticeId, $removedRows);
+                    if (!empty($blockedLabels)) {
+                        respondAssignmentLabelsInUse($blockedLabels);
                     }
-                    http_response_code(409);
-                    echo json_encode([
-                        'success' => false,
-                        'message' => 'Cannot delete label(s) still in use: ' . implode(', ', $parts) . '. Please reassign those cases first.'
-                    ]);
-                    exit;
-                }
 
-                // Delete existing labels for this practice
-                $stmt = $pdo->prepare("DELETE FROM practice_assignment_labels WHERE practice_id = :practice_id");
-                $stmt->execute(['practice_id' => $currentPracticeId]);
+                    $pdo->beginTransaction();
+                    try {
+                        $sortOrder = 0;
+                        foreach ($validAssignmentLabels as $label) {
+                            $norm = mb_strtolower(trim($label));
+                            if (isset($existingByNormalized[$norm])) {
+                                $row = $existingByNormalized[$norm];
+                                $stmt = $pdo->prepare("UPDATE practice_assignment_labels SET label = :label, sort_order = :sort_order WHERE id = :id AND practice_id = :practice_id");
+                                $stmt->execute([
+                                    'label' => $label,
+                                    'sort_order' => $sortOrder,
+                                    'id' => $row['id'],
+                                    'practice_id' => $currentPracticeId
+                                ]);
+                            } else {
+                                $stmt = $pdo->prepare("INSERT INTO practice_assignment_labels (practice_id, label, sort_order, is_lab) VALUES (:practice_id, :label, :sort_order, 0)");
+                                $stmt->execute([
+                                    'practice_id' => $currentPracticeId,
+                                    'label' => $label,
+                                    'sort_order' => $sortOrder
+                                ]);
+                            }
+                            $sortOrder++;
+                        }
 
-                // Insert current labels, preserving order
-                if (!empty($validAssignmentLabels)) {
-                    $stmt = $pdo->prepare("INSERT INTO practice_assignment_labels (practice_id, label, sort_order) VALUES (:practice_id, :label, :sort_order)");
-                    $sortOrder = 0;
-                    foreach ($validAssignmentLabels as $label) {
-                        $stmt->execute([
-                            'practice_id' => $currentPracticeId,
-                            'label' => $label,
-                            'sort_order' => $sortOrder++
+                        foreach ($removedRows as $row) {
+                            $stmt = $pdo->prepare("DELETE FROM practice_assignment_labels WHERE id = :id AND practice_id = :practice_id");
+                            $stmt->execute(['id' => $row['id'], 'practice_id' => $currentPracticeId]);
+                            // Legacy payload can't distinguish "designation
+                            // removed" from "label deleted" - if it was ever
+                            // Lab-flagged, close any open periods either way.
+                            if (!empty($row['is_lab'])) {
+                                closeOpenLabPeriodsForEntity($currentPracticeId, 'label', (int)$row['id'], 'lab_designation_removed');
+                            }
+                        }
+
+                        $pdo->commit();
+                    } catch (Exception $e) {
+                        $pdo->rollBack();
+                        throw $e;
+                    }
+
+                    userLog("Updated assignment labels (legacy payload) for practice {$currentPracticeId} (" . count($validAssignmentLabels) . " labels) by user {$userId}", false);
+                } else {
+                    // Stable-ID payload: authoritative duplicate validation,
+                    // ID-based update/insert/delete, rename propagation, and
+                    // Lab-designation lifecycle - all in one transaction.
+
+                    // Authoritative server-side duplicate check, by submitted
+                    // array index (never by id, since two new labels both
+                    // have id = null and must still be caught).
+                    $dupErrors = [];
+                    foreach ($assignmentLabelsDetailed as $i => $item) {
+                        $normI = mb_strtolower($item['label']);
+                        foreach ($assignmentLabelsDetailed as $j => $other) {
+                            if ($i === $j) {
+                                continue;
+                            }
+                            if (mb_strtolower($other['label']) === $normI) {
+                                $dupErrors[$item['label']] = true;
+                            }
+                        }
+                    }
+                    if (!empty($dupErrors)) {
+                        http_response_code(409);
+                        echo json_encode([
+                            'success' => false,
+                            'message' => 'Duplicate label(s): ' . implode(', ', array_keys($dupErrors))
                         ]);
+                        exit;
                     }
-                }
 
-                userLog("Updated assignment labels for practice {$currentPracticeId} (" . count($validAssignmentLabels) . " labels) by user {$userId}", false);
+                    $existingStmt = $pdo->prepare("SELECT id, label, is_lab FROM practice_assignment_labels WHERE practice_id = :practice_id");
+                    $existingStmt->execute(['practice_id' => $currentPracticeId]);
+                    $existingRowsById = [];
+                    foreach ($existingStmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+                        $existingRowsById[(int)$row['id']] = $row;
+                    }
+
+                    // SECURITY / DATA INTEGRITY: a non-null id must be an
+                    // existing row for THIS practice. Silently falling back
+                    // to "insert as new" for an unmatched id (e.g. one that
+                    // belongs to another practice, or one that's simply
+                    // stale) would violate stable-ID semantics - the client
+                    // believes it's updating a specific row, not creating a
+                    // duplicate. Reject the whole save instead of guessing.
+                    // The response is intentionally identical whether the id
+                    // belongs to another practice or doesn't exist at all,
+                    // so this can never be used to probe for the existence
+                    // of another practice's label.
+                    foreach ($assignmentLabelsDetailed as $item) {
+                        if ($item['id'] !== null && !isset($existingRowsById[$item['id']])) {
+                            http_response_code(409);
+                            echo json_encode([
+                                'success' => false,
+                                'reload_required' => true,
+                                'message' => 'Assignment Label data is out of date. Please reload Settings and try again.'
+                            ]);
+                            exit;
+                        }
+                    }
+
+                    $submittedIds = [];
+                    foreach ($assignmentLabelsDetailed as $item) {
+                        if ($item['id'] !== null) {
+                            $submittedIds[$item['id']] = true;
+                        }
+                    }
+
+                    $removedRows = [];
+                    foreach ($existingRowsById as $id => $row) {
+                        if (!isset($submittedIds[$id])) {
+                            $removedRows[] = $row;
+                        }
+                    }
+
+                    $blockedLabels = checkAssignmentLabelsInUse($pdo, $currentPracticeId, $removedRows);
+                    if (!empty($blockedLabels)) {
+                        respondAssignmentLabelsInUse($blockedLabels);
+                    }
+
+                    $pdo->beginTransaction();
+                    try {
+                        $sortOrder = 0;
+                        foreach ($assignmentLabelsDetailed as $item) {
+                            $labelText = $item['label'];
+                            $newIsLab = !empty($item['isLab']) ? 1 : 0;
+                            $id = $item['id'];
+
+                            if ($id !== null && isset($existingRowsById[$id])) {
+                                $oldRow = $existingRowsById[$id];
+                                $oldLabel = $oldRow['label'];
+                                $oldIsLab = (int)$oldRow['is_lab'];
+
+                                $stmt = $pdo->prepare("UPDATE practice_assignment_labels SET label = :label, sort_order = :sort_order, is_lab = :is_lab WHERE id = :id AND practice_id = :practice_id");
+                                $stmt->execute([
+                                    'label' => $labelText,
+                                    'sort_order' => $sortOrder,
+                                    'is_lab' => $newIsLab,
+                                    'id' => $id,
+                                    'practice_id' => $currentPracticeId
+                                ]);
+
+                                // Rename propagation: same id, different text.
+                                // Pure text substitution on currently-assigned
+                                // cases - NOT routed through
+                                // recordLabAssignmentChange(), so it never
+                                // opens/closes a lab period or counts as a
+                                // transfer. Historical snapshots are untouched.
+                                if (mb_strtolower(trim($oldLabel)) !== mb_strtolower($labelText)) {
+                                    $propStmt = $pdo->prepare("
+                                        UPDATE cases_cache
+                                        SET assigned_to = :new_label
+                                        WHERE practice_id = :practice_id
+                                          AND LOWER(TRIM(assigned_to)) = LOWER(TRIM(:old_label))
+                                    ");
+                                    $propStmt->execute([
+                                        'new_label' => $labelText,
+                                        'practice_id' => $currentPracticeId,
+                                        'old_label' => $oldLabel
+                                    ]);
+                                }
+
+                                // Lab designation lifecycle.
+                                if ($oldIsLab === 0 && $newIsLab === 1) {
+                                    initializeOpenLabPeriodsForEntity($currentPracticeId, 'label', $id, $labelText);
+                                } elseif ($oldIsLab === 1 && $newIsLab === 0) {
+                                    closeOpenLabPeriodsForEntity($currentPracticeId, 'label', $id, 'lab_designation_removed');
+                                }
+                            } else {
+                                $stmt = $pdo->prepare("INSERT INTO practice_assignment_labels (practice_id, label, sort_order, is_lab) VALUES (:practice_id, :label, :sort_order, :is_lab)");
+                                $stmt->execute([
+                                    'practice_id' => $currentPracticeId,
+                                    'label' => $labelText,
+                                    'sort_order' => $sortOrder,
+                                    'is_lab' => $newIsLab
+                                ]);
+                                $newId = (int)$pdo->lastInsertId();
+                                if ($newIsLab === 1) {
+                                    initializeOpenLabPeriodsForEntity($currentPracticeId, 'label', $newId, $labelText);
+                                }
+                            }
+                            $sortOrder++;
+                        }
+
+                        foreach ($removedRows as $row) {
+                            $stmt = $pdo->prepare("DELETE FROM practice_assignment_labels WHERE id = :id AND practice_id = :practice_id");
+                            $stmt->execute(['id' => $row['id'], 'practice_id' => $currentPracticeId]);
+                            if (!empty($row['is_lab'])) {
+                                closeOpenLabPeriodsForEntity($currentPracticeId, 'label', (int)$row['id'], 'lab_designation_removed');
+                            }
+                        }
+
+                        $pdo->commit();
+                    } catch (Exception $e) {
+                        $pdo->rollBack();
+                        throw $e;
+                    }
+
+                    userLog("Updated assignment labels (detailed payload) for practice {$currentPracticeId} (" . count($assignmentLabelsDetailed) . " labels) by user {$userId}", false);
+                }
             } catch (PDOException $e) {
                 userLog("Error updating assignment labels for practice {$currentPracticeId} by user {$userId}: " . $e->getMessage(), true);
             }
         } else {
-            if (!empty($validAssignmentLabels)) {
+            if (!empty($validAssignmentLabels) || !empty($assignmentLabelsDetailed)) {
                 userLog("User {$userId} attempted to update assignment labels but is not an admin of practice {$currentPracticeId}", true);
             }
         }
@@ -398,6 +681,18 @@ try {
         $pdo->beginTransaction();
         
         try {
+            // Lab Insights foundation: capture each user's CURRENT is_lab
+            // value before the delete/reinsert below, so a genuine 0->1 or
+            // 1->0 transition can be detected afterward (practice_users.id
+            // is not stable across this delete/reinsert, but user_id is -
+            // this map is keyed by user_id, not by practice_users.id).
+            $oldIsLabByUserId = [];
+            $oldIsLabStmt = $pdo->prepare("SELECT user_id, is_lab FROM practice_users WHERE practice_id = :practice_id");
+            $oldIsLabStmt->execute(['practice_id' => $currentPracticeId]);
+            foreach ($oldIsLabStmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+                $oldIsLabByUserId[(int)$row['user_id']] = (int)$row['is_lab'];
+            }
+
             // First, remove all non-creator users from the practice
             $stmt = $pdo->prepare("
                 DELETE FROM practice_users 
@@ -409,6 +704,27 @@ try {
             ]);
             
             userLog("Removed all non-creator users from practice {$currentPracticeId}", false);
+
+            // The practice creator's row is never deleted/reinserted above
+            // (loops below skip the creator entirely), so handle their Lab
+            // designation as a direct UPDATE, still inside this transaction.
+            if ($practiceCreatorId && $creatorEmail) {
+                $creatorNewIsLab = isset($isLabUsers[$creatorEmail]) && $isLabUsers[$creatorEmail] ? 1 : 0;
+                $creatorOldIsLab = $oldIsLabByUserId[(int)$practiceCreatorId] ?? 0;
+                if ($creatorOldIsLab !== $creatorNewIsLab) {
+                    $stmt = $pdo->prepare("UPDATE practice_users SET is_lab = :is_lab WHERE practice_id = :practice_id AND user_id = :user_id");
+                    $stmt->execute([
+                        'is_lab' => $creatorNewIsLab,
+                        'practice_id' => $currentPracticeId,
+                        'user_id' => $practiceCreatorId
+                    ]);
+                    if ($creatorOldIsLab === 0 && $creatorNewIsLab === 1) {
+                        initializeOpenLabPeriodsForEntity($currentPracticeId, 'user', (int)$practiceCreatorId, $creatorEmail);
+                    } elseif ($creatorOldIsLab === 1 && $creatorNewIsLab === 0) {
+                        closeOpenLabPeriodsForEntity($currentPracticeId, 'user', (int)$practiceCreatorId, 'lab_designation_removed');
+                    }
+                }
+            }
             
             // Process admin users
             userLog("Processing admin users: " . count($validAdminUsers) . " - " . implode(", ", $validAdminUsers), false);
@@ -436,19 +752,28 @@ try {
                 $hasLimitedVisibility = isset($limitedVisibilityUsers[$email]) && $limitedVisibilityUsers[$email] ? 1 : 0;
                 $canViewAnalytics = isset($canViewAnalyticsUsers[$email]) ? ($canViewAnalyticsUsers[$email] ? 1 : 0) : 1;
                 $canEditCases = isset($canEditCasesUsers[$email]) ? ($canEditCasesUsers[$email] ? 1 : 0) : 1;
+                $newIsLab = isset($isLabUsers[$email]) && $isLabUsers[$email] ? 1 : 0;
                 
                 // Add user to practice as admin
                 $stmt = $pdo->prepare("
-                    INSERT INTO practice_users (practice_id, user_id, role, is_owner, limited_visibility, can_view_analytics, can_edit_cases, created_at)
-                    VALUES (:practice_id, :user_id, 'admin', 0, :limited_visibility, :can_view_analytics, :can_edit_cases, NOW())
+                    INSERT INTO practice_users (practice_id, user_id, role, is_owner, limited_visibility, can_view_analytics, can_edit_cases, is_lab, created_at)
+                    VALUES (:practice_id, :user_id, 'admin', 0, :limited_visibility, :can_view_analytics, :can_edit_cases, :is_lab, NOW())
                 ");
                 $stmt->execute([
                     'practice_id' => $currentPracticeId,
                     'user_id' => $userId,
                     'limited_visibility' => $hasLimitedVisibility,
                     'can_view_analytics' => $canViewAnalytics,
-                    'can_edit_cases' => $canEditCases
+                    'can_edit_cases' => $canEditCases,
+                    'is_lab' => $newIsLab
                 ]);
+
+                $oldIsLab = $oldIsLabByUserId[(int)$userId] ?? 0;
+                if ($oldIsLab === 0 && $newIsLab === 1) {
+                    initializeOpenLabPeriodsForEntity($currentPracticeId, 'user', (int)$userId, $email);
+                } elseif ($oldIsLab === 1 && $newIsLab === 0) {
+                    closeOpenLabPeriodsForEntity($currentPracticeId, 'user', (int)$userId, 'lab_designation_removed');
+                }
             }
             
             // Process regular users
@@ -477,19 +802,28 @@ try {
                 $hasLimitedVisibility = isset($limitedVisibilityUsers[$email]) && $limitedVisibilityUsers[$email] ? 1 : 0;
                 $canViewAnalytics = isset($canViewAnalyticsUsers[$email]) ? ($canViewAnalyticsUsers[$email] ? 1 : 0) : 1;
                 $canEditCases = isset($canEditCasesUsers[$email]) ? ($canEditCasesUsers[$email] ? 1 : 0) : 1;
+                $newIsLab = isset($isLabUsers[$email]) && $isLabUsers[$email] ? 1 : 0;
                 
                 // Add user to practice as regular user
                 $stmt = $pdo->prepare("
-                    INSERT INTO practice_users (practice_id, user_id, role, is_owner, limited_visibility, can_view_analytics, can_edit_cases, created_at)
-                    VALUES (:practice_id, :user_id, 'user', 0, :limited_visibility, :can_view_analytics, :can_edit_cases, NOW())
+                    INSERT INTO practice_users (practice_id, user_id, role, is_owner, limited_visibility, can_view_analytics, can_edit_cases, is_lab, created_at)
+                    VALUES (:practice_id, :user_id, 'user', 0, :limited_visibility, :can_view_analytics, :can_edit_cases, :is_lab, NOW())
                 ");
                 $stmt->execute([
                     'practice_id' => $currentPracticeId,
                     'user_id' => $userId,
                     'limited_visibility' => $hasLimitedVisibility,
                     'can_view_analytics' => $canViewAnalytics,
-                    'can_edit_cases' => $canEditCases
+                    'can_edit_cases' => $canEditCases,
+                    'is_lab' => $newIsLab
                 ]);
+
+                $oldIsLab = $oldIsLabByUserId[(int)$userId] ?? 0;
+                if ($oldIsLab === 0 && $newIsLab === 1) {
+                    initializeOpenLabPeriodsForEntity($currentPracticeId, 'user', (int)$userId, $email);
+                } elseif ($oldIsLab === 1 && $newIsLab === 0) {
+                    closeOpenLabPeriodsForEntity($currentPracticeId, 'user', (int)$userId, 'lab_designation_removed');
+                }
             }
             
             $pdo->commit();
@@ -535,10 +869,26 @@ try {
     
     // Log the activity
     logUserActivity($userId, 'update_settings', 'User updated preferences');
-    
+
+    // Return the authoritative, post-commit assignment-label state so the
+    // client can refresh window.assignmentLabelsMeta with real database IDs
+    // immediately - without this, a newly-added label would keep id=null
+    // client-side until Settings is reopened, and a second save (before
+    // reopening) could re-insert it as a duplicate instead of updating it.
+    $freshLabelsStmt = $pdo->prepare("SELECT id, label, is_lab FROM practice_assignment_labels WHERE practice_id = :practice_id ORDER BY sort_order ASC, id ASC");
+    $freshLabelsStmt->execute(['practice_id' => $currentPracticeId]);
+    $freshAssignmentLabelsDetailed = array_map(function($row) {
+        return [
+            'id' => (int)$row['id'],
+            'label' => $row['label'],
+            'isLab' => (bool)$row['is_lab']
+        ];
+    }, $freshLabelsStmt->fetchAll(PDO::FETCH_ASSOC));
+
     echo json_encode([
         'success' => true,
-        'message' => 'Settings saved successfully'
+        'message' => 'Settings saved successfully',
+        'assignmentLabelsDetailed' => $freshAssignmentLabelsDetailed
     ]);
     
 } catch (PDOException $e) {

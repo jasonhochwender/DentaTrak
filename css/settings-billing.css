@@ -867,10 +867,20 @@ input#practiceName {
   padding: 8px 12px;
 }
 
+/* Let the label text shrink/truncate instead of forcing the row (and the
+   Settings modal) to overflow horizontally once the Lab checkbox added a
+   third item to this row. Flex items default to min-width:auto, which
+   otherwise lets the label's own content width push the row past the
+   available panel width. */
 .assignment-labels-list .gmail-user-email {
   display: flex;
   align-items: center;
   font-size: 13px;
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* Small leading marker (like a tag/resource dot) instead of plain text,
@@ -882,6 +892,23 @@ input#practiceName {
   border-radius: 50%;
   background: var(--text-light);
   margin-right: 10px;
+  flex-shrink: 0;
+}
+
+/* Lab checkbox + actions must stay fixed-size/compact so the flexible
+   label text above is the only thing that shrinks. */
+.assignment-labels-list .assignment-label-lab-checkbox {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+  white-space: nowrap;
+  margin: 0 8px;
+  font-size: 12px;
+  color: var(--text-light);
+}
+
+.assignment-labels-list .assignment-actions {
   flex-shrink: 0;
 }
 
@@ -947,6 +974,13 @@ input#practiceName {
   align-items: center;
 }
 
+/* Extra "Lab" column - only added while SHOW_LAB_INSIGHTS is enabled
+   (js/app.js toggles this modifier class on the same elements). */
+.practice-user-header.has-lab-column,
+.practice-user-row.has-lab-column {
+  grid-template-columns: minmax(0, 1fr) 56px 70px 94px 48px 42px;
+}
+
 /* Prevent the User column (badges + long emails) from overflowing into
    the fixed-width permission columns -- grid items default to
    min-width:auto, which lets intrinsic content width exceed the track. */
@@ -989,6 +1023,7 @@ input#practiceName {
 .practice-user-edit-header,
 .practice-user-limited-header,
 .practice-user-addlabels-header,
+.practice-user-lab-header,
 .practice-user-remove-header {
   font-size: 10px;
   color: #64748b;
@@ -1000,17 +1035,20 @@ input#practiceName {
 .practice-user-edit-header,
 .practice-user-limited-header,
 .practice-user-addlabels-header,
+.practice-user-lab-header,
 .practice-user-analytics-cell,
 .practice-user-edit-cell,
 .practice-user-limited-cell,
-.practice-user-addlabels-cell {
+.practice-user-addlabels-cell,
+.practice-user-lab-cell {
   text-align: center;
 }
 
 .practice-user-analytics-cell input[type="checkbox"],
 .practice-user-edit-cell input[type="checkbox"],
 .practice-user-limited-cell input[type="checkbox"],
-.practice-user-addlabels-cell input[type="checkbox"] {
+.practice-user-addlabels-cell input[type="checkbox"],
+.practice-user-lab-cell input[type="checkbox"] {
   margin: 0;
 }
 
@@ -1018,7 +1056,8 @@ input#practiceName {
 .practice-user-analytics-header,
 .practice-user-edit-header,
 .practice-user-limited-header,
-.practice-user-addlabels-header {
+.practice-user-addlabels-header,
+.practice-user-lab-header {
   position: relative;
   cursor: default;
   display: inline-flex;

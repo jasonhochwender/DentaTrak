@@ -9,23 +9,20 @@
   // Chart instances for cleanup
   const apCharts = {};
   let apDataLoaded = false;
-  let currentBillingTier = null;
   let aiRecommendationsLoading = false; // Guard against duplicate AI recommendation loads
   let aiRecommendationsLoaded = false;  // Prevents automatic repeat calls after first success
 
   /**
-   * Apply tier-based visibility to Insights sections
-   * - Evaluate: Full access (trial)
-   * - Operate: Core operational visibility (some sections blurred)
-   * - Control: Full access with advanced features
+   * Apply Control-entitlement-based visibility to Insights sections.
+   *
+   * hasControlAccess must be the authoritative practice-level value from
+   * api/billing.php's has_control_access field (backed by
+   * hasControlAccess()/getPracticeSubscriptionAccess() in
+   * api/subscription-access.php) -- NOT derived from the legacy, per-user
+   * users.billing_tier value, which can be stale/manually set and does not
+   * reflect the active practice's real subscription plan.
    */
-  function applyTierBasedVisibility(tier) {
-    currentBillingTier = tier || 'evaluate';
-
-    // Determine if user has Control-level access
-    // Evaluate (trial) and Control both get full access
-    const hasControlAccess = currentBillingTier === 'control' || currentBillingTier === 'evaluate';
-
+  function applyTierBasedVisibility(hasControlAccess) {
     // Elements with blur overlay for Control-only features
     const controlOnlyFeatures = document.querySelectorAll('[data-control-feature]');
 
@@ -57,13 +54,18 @@
     fetch('api/billing.php', { credentials: 'same-origin' })
       .then(function(response) { return response.json(); })
       .then(function(data) {
-        if (data && data.billing_tier) {
-          applyTierBasedVisibility(data.billing_tier);
-        }
+        // has_control_access is the authoritative, practice-level entitlement
+        // (see api/subscription-access.php: hasControlAccess()). Fall back to
+        // full access only when the field is entirely absent (older cached
+        // response shape), matching the previous fail-open behavior.
+        const hasControlAccess = data && Object.prototype.hasOwnProperty.call(data, 'has_control_access')
+          ? !!data.has_control_access
+          : true;
+        applyTierBasedVisibility(hasControlAccess);
       })
       .catch(function() {
-        // Default to evaluate (full access) on error
-        applyTierBasedVisibility('evaluate');
+        // Default to full access on error, matching previous fail-open behavior.
+        applyTierBasedVisibility(true);
       });
   }
 
