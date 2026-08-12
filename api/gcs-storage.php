@@ -170,8 +170,11 @@ function verifyGcsUpload($objectPath, $expectedSize = 0, $expectedType = '') {
             }
         }
 
-        // Validate path prefix matches expected pattern
-        if (!preg_match('#^cases/[^/]+/[a-f0-9\-]+-#', $objectPath)) {
+        // Validate path prefix matches the format produced by
+        // upload-signed-url.php: cases/{practiceId}/{caseId}/{uploadType}/{uuid}-{filename}
+        // (four path segments before the uuid-prefixed filename - previously
+        // this only accounted for two, rejecting every current upload).
+        if (!preg_match('#^cases/[^/]+/[^/]+/[^/]+/[a-f0-9\-]+-#', $objectPath)) {
             return [
                 'valid' => false,
                 'error' => 'Invalid storage path format',
