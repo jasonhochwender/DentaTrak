@@ -2076,13 +2076,10 @@ document.addEventListener('DOMContentLoaded', function () {
     // Process feedback data
 
     // Get form data
+    // The feedback icon (feedback_type) is optional - a user can submit
+    // feedback with just text and no icon selected.
     var feedbackType = document.querySelector('input[name="feedback_type"]:checked');
     var feedbackComments = document.getElementById('feedback_comments');
-
-    if (!feedbackType) {
-      showToast('Please select your feedback type.', 'warning');
-      return;
-    }
 
     // Show loading state
     var submitBtn = document.getElementById('feedbackSubmit');
@@ -2092,7 +2089,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Prepare the data
     var formData = {
-      feedback_type: feedbackType.value,
+      feedback_type: feedbackType ? feedbackType.value : '',
       feedback_comments: feedbackComments.value || ''
     };
 
@@ -4137,6 +4134,19 @@ document.addEventListener('DOMContentLoaded', function () {
     if (createCaseModal) {
       createCaseModal.style.display = 'none';
       document.body.style.overflow = ''; // Restore scrolling
+
+      // Remove any "Back to Archived Cases" button left over from viewing
+      // an archived case (see window.viewArchivedCase()). This is the
+      // single point where the case modal's lifecycle genuinely ends, so
+      // clearing it here - rather than in every possible "open" function -
+      // guarantees it can never leak into the next case that's opened
+      // (e.g. a normal board case). viewArchivedCase() re-adds it fresh
+      // each time it's actually needed, so this has no effect on the
+      // archived-case flow itself.
+      var existingBackBtn = createCaseModal.querySelector('.back-to-archived');
+      if (existingBackBtn) {
+        existingBackBtn.remove();
+      }
 
       // Reset modal state after viewing
       resetCreateCaseFormToNew();

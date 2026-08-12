@@ -1798,17 +1798,17 @@ window.featureFlags = <?php echo getFeatureFlagsJson(); ?>;
                   <label class="feedback-question">How was your experience?</label>
                   <div class="emoji-container">
                     <label class="emoji-option">
-                      <input type="radio" name="feedback_type" value="positive" required>
+                      <input type="radio" name="feedback_type" value="positive">
                       <div class="emoji-face happy-face">😊</div>
                       <span class="emoji-label">Positive</span>
                     </label>
                     <label class="emoji-option">
-                      <input type="radio" name="feedback_type" value="neutral" required>
+                      <input type="radio" name="feedback_type" value="neutral">
                       <div class="emoji-face neutral-face">😐</div>
                       <span class="emoji-label">Neutral</span>
                     </label>
                     <label class="emoji-option">
-                      <input type="radio" name="feedback_type" value="negative" required>
+                      <input type="radio" name="feedback_type" value="negative">
                       <div class="emoji-face sad-face">😞</div>
                       <span class="emoji-label">Negative</span>
                     </label>

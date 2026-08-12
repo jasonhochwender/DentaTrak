@@ -47,8 +47,9 @@ if (empty($data)) {
     $data = $_POST;
 }
 
-// Validate required fields
-if (!isset($data['feedback_type']) || !isset($data['feedback_comments'])) {
+// Validate required fields. feedback_type (the icon) is intentionally
+// optional - a user can submit feedback with just text and no icon.
+if (!isset($data['feedback_comments'])) {
     echo json_encode([
         'success' => false,
         'message' => 'Missing required fields'
@@ -77,8 +78,11 @@ if ($currentPracticeId && isset($pdo)) {
     }
 }
 
-// Get feedback data
-$feedbackType = htmlspecialchars($data['feedback_type']);
+// Get feedback data. feedback_type (the icon) is optional, so it may be
+// missing or an empty string - htmlspecialchars() on an empty string is
+// safe and yields '', which the switch below already handles gracefully
+// via its default case.
+$feedbackType = htmlspecialchars($data['feedback_type'] ?? '');
 $comments = htmlspecialchars($data['feedback_comments']);
 
 // Format feedback type
@@ -93,6 +97,9 @@ switch ($feedbackType) {
         $feedbackEmoji = '🙁';
         break;
     default:
+        // No icon selected - display a neutral placeholder instead of an
+        // empty label ("Feedback Type: " with nothing after it).
+        $feedbackType = 'Not specified';
         $feedbackEmoji = '';
 }
 
