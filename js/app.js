@@ -407,7 +407,18 @@ document.addEventListener('DOMContentLoaded', function () {
     newAssignmentLabelInput.value = '';
   }
 
-  // Function to edit an existing assignment label
+  // Function to edit an existing assignment label. Opens the
+  // renameAssignmentLabelModal (DentaTrak-styled) rather than a native
+  // prompt(). Renaming is always allowed, including for labels currently
+  // assigned to one or more cases - the label's stable id in
+  // assignmentLabelsMeta is what preserves identity through a rename
+  // (save-settings.php matches on id, never on text), and it propagates
+  // the new text onto every case currently using the old text. The only
+  // thing that ever blocks a save is genuinely REMOVING a label that's
+  // still in use (see checkAssignmentLabelsInUse() in save-settings.php) -
+  // that restriction is unrelated to renaming and is left untouched.
+  var renameAssignmentLabelOldValue = null;
+
   function editAssignmentLabel(oldLabel) {
     if (!window.isPracticeAdmin) {
       return;
@@ -416,16 +427,58 @@ document.addEventListener('DOMContentLoaded', function () {
       return;
     }
 
-    var currentValue = oldLabel || '';
-    var newLabel = window.prompt('Edit label', currentValue);
-    if (newLabel === null) {
-      // User cancelled
+    renameAssignmentLabelOldValue = oldLabel || '';
+
+    var modal = document.getElementById('renameAssignmentLabelModal');
+    var input = document.getElementById('renameAssignmentLabelInput');
+    var errorEl = document.getElementById('renameAssignmentLabelError');
+    if (!modal || !input) {
       return;
     }
 
-    newLabel = newLabel.trim();
+    input.value = renameAssignmentLabelOldValue;
+    if (errorEl) {
+      errorEl.textContent = '';
+    }
+
+    modal.style.display = 'block';
+    setTimeout(function() {
+      input.focus();
+      input.select();
+    }, 50);
+  }
+
+  function closeRenameAssignmentLabelModal() {
+    var modal = document.getElementById('renameAssignmentLabelModal');
+    if (modal) {
+      modal.style.display = 'none';
+    }
+    renameAssignmentLabelOldValue = null;
+    var errorEl = document.getElementById('renameAssignmentLabelError');
+    if (errorEl) {
+      errorEl.textContent = '';
+    }
+  }
+
+  function saveRenameAssignmentLabel() {
+    if (renameAssignmentLabelOldValue === null) {
+      return;
+    }
+
+    var input = document.getElementById('renameAssignmentLabelInput');
+    var errorEl = document.getElementById('renameAssignmentLabelError');
+    if (!input) {
+      return;
+    }
+
+    var oldLabel = renameAssignmentLabelOldValue;
+    var newLabel = (input.value || '').trim();
+
+    // Empty/whitespace-only names must not be accepted.
     if (!newLabel) {
-      // Treat empty as no-op
+      if (errorEl) {
+        errorEl.textContent = 'Label name cannot be empty';
+      }
       return;
     }
 
@@ -433,18 +486,25 @@ document.addEventListener('DOMContentLoaded', function () {
       newLabel = newLabel.substring(0, 150);
     }
 
-    var oldLower = (oldLabel || '').toLowerCase();
+    var oldLower = oldLabel.toLowerCase();
     var newLower = newLabel.toLowerCase();
 
-    // Avoid duplicate labels (case-insensitive), ignoring the original itself
-    if (window.assignmentLabels.some(function(existing) {
+    // No-op: name unchanged (still a valid save, just nothing to do)
+    if (newLower === oldLower) {
+      closeRenameAssignmentLabelModal();
+      return;
+    }
+
+    // Preserve existing duplicate-name validation (case-insensitive),
+    // ignoring the original item itself.
+    if (window.assignmentLabels && window.assignmentLabels.some(function(existing) {
       if (typeof existing !== 'string') return false;
       var existingLower = existing.toLowerCase();
       if (existingLower === oldLower) return false; // same item
       return existingLower === newLower;
     })) {
-      if (assignmentLabelErrorElement || document.getElementById('assignmentLabelError')) {
-        (assignmentLabelErrorElement || document.getElementById('assignmentLabelError')).textContent = 'A label with that name already exists';
+      if (errorEl) {
+        errorEl.textContent = 'A label with that name already exists';
       }
       return;
     }
@@ -453,8 +513,8 @@ document.addEventListener('DOMContentLoaded', function () {
     if (window.gmailUsers && window.gmailUsers.some(function(email) {
       return typeof email === 'string' && email.toLowerCase() === newLower;
     })) {
-      if (assignmentLabelErrorElement || document.getElementById('assignmentLabelError')) {
-        (assignmentLabelErrorElement || document.getElementById('assignmentLabelError')).textContent = 'This label matches an existing authorized user email';
+      if (errorEl) {
+        errorEl.textContent = 'This label matches an existing authorized user email';
       }
       return;
     }
@@ -474,7 +534,59 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     displayAssignmentLabels();
+    closeRenameAssignmentLabelModal();
   }
+
+  // Wire up the rename modal's Save/Cancel/Close/Enter/Escape/outside-click
+  // behavior once, matching the conventions of the other modals on this page.
+  (function initRenameAssignmentLabelModal() {
+    var modal = document.getElementById('renameAssignmentLabelModal');
+    var saveBtn = document.getElementById('renameAssignmentLabelSave');
+    var cancelBtn = document.getElementById('renameAssignmentLabelCancel');
+    var closeBtn = document.getElementById('renameAssignmentLabelClose');
+    var input = document.getElementById('renameAssignmentLabelInput');
+    var form = document.getElementById('renameAssignmentLabelForm');
+
+    if (!modal) {
+      return;
+    }
+
+    if (saveBtn) {
+      saveBtn.addEventListener('click', saveRenameAssignmentLabel);
+    }
+    if (cancelBtn) {
+      cancelBtn.addEventListener('click', closeRenameAssignmentLabelModal);
+    }
+    if (closeBtn) {
+      closeBtn.addEventListener('click', closeRenameAssignmentLabelModal);
+    }
+    if (form) {
+      form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        saveRenameAssignmentLabel();
+      });
+    }
+    if (input) {
+      input.addEventListener('input', function() {
+        var errorEl = document.getElementById('renameAssignmentLabelError');
+        if (errorEl) {
+          errorEl.textContent = '';
+        }
+      });
+    }
+
+    window.addEventListener('click', function(e) {
+      if (e.target === modal) {
+        closeRenameAssignmentLabelModal();
+      }
+    });
+
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape' && modal.style.display === 'block') {
+        closeRenameAssignmentLabelModal();
+      }
+    });
+  })();
 
   // Function to toggle the Lab designation for an existing assignment label
   function setIsLabForAssignmentLabel(label, isLab) {
@@ -6171,10 +6283,20 @@ document.addEventListener('DOMContentLoaded', function () {
         // First, try to set the initial value directly before full initialization
         if (assignedEmail) {
           assignmentSelect.value = assignedEmail;
+        }
 
-          // Store in global assignments cache for reference
-          if (typeof window.caseAssignments === 'object') {
+        // Keep the global assignments cache in sync with THIS render's
+        // actual value, including clearing it when there is no longer an
+        // assignee. Previously this only ever SET the cache (never
+        // cleared it), so a stale entry from an earlier assignment could
+        // survive here and then override the correct (empty) value below
+        // inside initializeAssignmentDropdown(), which explicitly prefers
+        // window.caseAssignments[caseId] over the value passed to it.
+        if (typeof window.caseAssignments === 'object') {
+          if (assignedEmail) {
             window.caseAssignments[displayData.id] = assignedEmail;
+          } else {
+            delete window.caseAssignments[displayData.id];
           }
         }
 

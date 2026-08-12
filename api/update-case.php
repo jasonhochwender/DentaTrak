@@ -350,6 +350,9 @@ try {
             $existingCaseData['dueDate'] = $caseData['dueDate'];
             $existingCaseData['status'] = $caseData['status'];
             $existingCaseData['notes'] = $caseData['notes'] ?? '';
+            // Assigned To (including clearing it to empty) - see the
+            // matching comment above where $caseData['assignedTo'] is built.
+            $existingCaseData['assignedTo'] = $caseData['assignedTo'] ?? ($existingCaseData['assignedTo'] ?? null);
             $existingCaseData['clinicalDetails'] = $caseData['clinicalDetails'] ?? [];
             $existingCaseData['lastUpdateDate'] = date('c'); // Update the timestamp
             
@@ -549,8 +552,15 @@ try {
         foreach ($optionalFields as $field) {
             if (isset($_POST[$field]) && $_POST[$field] !== '') {
                 $caseData[$field] = $_POST[$field];
-            } elseif ($field === 'notes' && isset($_POST[$field])) {
-                // Notes can be empty string
+            } elseif (($field === 'notes' || $field === 'assignedTo') && isset($_POST[$field])) {
+                // Notes and Assigned To can be intentionally submitted as an
+                // empty string (clearing an assignment). This key MUST still
+                // be captured here - updateCaseInDatabaseOnly() below does
+                // array_merge($existingCase, $caseData), and if this key is
+                // ever absent from $caseData, array_merge() silently keeps
+                // the OLD assigned_to value instead of clearing it (this was
+                // the root cause of a stale assignment label surviving in
+                // the database after "Assigned To" was set to None).
                 $caseData[$field] = $_POST[$field];
             }
         }
@@ -728,11 +738,11 @@ try {
         $result = updateCase($_POST['caseId'], $caseData, $_FILES, $filesToDelete);
 
         // Lab Insights foundation: record any lab-assignment-period transition.
-        // Mirrors the same gate already used below for the relational
-        // case_assignments write (assignedTo present and non-empty) - this
-        // endpoint has no path that clears an assignment to empty, so no
-        // "reassigned_to_internal" transition can originate here.
-        if ($result['success'] && isset($caseData['assignedTo']) && !empty($caseData['assignedTo'])) {
+        // Runs whenever assignedTo was explicitly submitted (including an
+        // explicit clear to empty), so a Lab-designated assignment being
+        // cleared here correctly closes its open lab period, exactly like
+        // update-case-assignment.php already does.
+        if ($result['success'] && isset($caseData['assignedTo'])) {
             recordLabAssignmentChange($_POST['caseId'], $currentPracticeId, $previousAssignedToForLabHistory, $caseData['assignedTo']);
         }
 
@@ -783,6 +793,18 @@ try {
                 // Log error but don't fail the whole operation
 
                 $result['assignmentError'] = 'Error updating assignment: ' . $e->getMessage();
+            }
+        } elseif ($result['success'] && isset($caseData['assignedTo']) && empty($caseData['assignedTo'])) {
+            // Assignment explicitly cleared to None: remove any stale
+            // relational case_assignments row left over from a previous
+            // real-user assignment. Mirrors the same cleanup already done
+            // by update-case-assignment.php's quick-assign dropdown, so
+            // both write paths agree once this saves.
+            try {
+                $stmt = $pdo->prepare("DELETE FROM case_assignments WHERE case_id = :case_id");
+                $stmt->execute(['case_id' => $_POST['caseId']]);
+            } catch (PDOException $e) {
+                $result['assignmentError'] = 'Error clearing assignment: ' . $e->getMessage();
             }
         }
         

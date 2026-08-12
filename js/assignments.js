@@ -387,6 +387,18 @@ function saveAssignment(caseId, assignedTo, selectElement) {
       // Ensure the card data is updated with the new assignment
       caseData.assignedTo = assignedTo;
       card.dataset.caseJson = JSON.stringify(caseData);
+
+      // Keep the global assignments cache in sync too - it must be
+      // cleared (not just left stale) when assignedTo is empty, since
+      // initializeAssignmentDropdown() prefers this cache over any value
+      // passed to it on the next render of this card.
+      if (typeof window.caseAssignments === 'object') {
+        if (assignedTo) {
+          window.caseAssignments[caseId] = assignedTo;
+        } else {
+          delete window.caseAssignments[caseId];
+        }
+      }
     }
     
     // Reset the dropdown

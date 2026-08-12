@@ -793,11 +793,12 @@ function getAllCasesFromCache() {
             'archivedDate' => $row['archived_date'] ?? null,
             'revisionCount' => isset($row['revision_count']) ? (int)$row['revision_count'] : 0,
             'version' => (int)($row['version'] ?? 1),
+            // Always present (explicit null when cleared), matching
+            // getCaseFromCache() - a cleared assignment must be
+            // distinguishable from "field not returned" everywhere a case
+            // is fetched, not just on single-case reload.
+            'assignedTo' => $row['assigned_to'] ?? null,
         ];
-
-        if (isset($row['assigned_to']) && $row['assigned_to'] !== null) {
-            $case['assignedTo'] = $row['assigned_to'];
-        }
 
         // Decrypt PII fields before returning
         try {

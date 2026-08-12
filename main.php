@@ -1940,6 +1940,29 @@ window.featureFlags = <?php echo getFeatureFlagsJson(); ?>;
       </div>
 <?php endif; ?>
 
+      <!-- Rename Assignment Label Modal -->
+      <div id="renameAssignmentLabelModal" class="modal">
+        <div class="modal-content rename-label-modal">
+          <div class="modal-header">
+            <h2 class="modal-title">Rename Assignment Label</h2>
+            <button type="button" class="btn-close" id="renameAssignmentLabelClose"><span>&times;</span></button>
+          </div>
+          <div class="modal-body">
+            <form id="renameAssignmentLabelForm">
+              <div class="form-field">
+                <label for="renameAssignmentLabelInput">Label Name</label>
+                <input id="renameAssignmentLabelInput" type="text" maxlength="150" autocomplete="off">
+                <div class="error-message" id="renameAssignmentLabelError"></div>
+              </div>
+            </form>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn-primary" id="renameAssignmentLabelSave">Save</button>
+            <button type="button" class="btn-cancel" id="renameAssignmentLabelCancel">Cancel</button>
+          </div>
+        </div>
+      </div>
+
       <!-- Settings Modal -->
       <div id="settingsBillingModal" class="modal">
         <div class="modal-content settings-billing-modal">
