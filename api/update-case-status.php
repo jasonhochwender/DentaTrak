@@ -50,28 +50,10 @@ if ($caseId === '' || $status === '') {
 // Assigned Only users, is assigned to them, before changing its status.
 requireCaseAccess($caseId, $currentPracticeId);
 
-// Define workflow stage order (index 0 = earliest, higher = later)
-$workflowStageOrder = [
-    'Originated' => 0,
-    'Sent To External Lab' => 1,
-    'Designed' => 2,
-    'Manufactured' => 3,
-    'Received From External Lab' => 4,
-    'Delivered' => 5
-];
-
-/**
- * Check if moving from oldStatus to newStatus is a backward (regression) movement
- */
-function isBackwardMovement($oldStatus, $newStatus, $stageOrder) {
-    if ($oldStatus === null || $oldStatus === $newStatus) {
-        return false;
-    }
-    $oldIndex = isset($stageOrder[$oldStatus]) ? $stageOrder[$oldStatus] : -1;
-    $newIndex = isset($stageOrder[$newStatus]) ? $stageOrder[$newStatus] : -1;
-    // Backward movement = new stage has lower index than old stage
-    return $newIndex < $oldIndex && $oldIndex >= 0 && $newIndex >= 0;
-}
+// Workflow stage order and backward-movement detection are centralized in
+// cases-cache.php (getWorkflowStageOrder() / isBackwardStatusMovement()) so
+// every status-change entry point (this drag/drop endpoint and Edit Case's
+// update-case.php) applies the exact same "backward" business rule.
 
 // If we do not have a driveFolderId (e.g., dev-only/cache-only cases),
 // update only the local cache and log activity without touching Google Drive.
@@ -114,7 +96,7 @@ if ($driveFolderId === '') {
         $newVersion = $versionResult['newVersion'];
         
         // Check if this is a regression
-        if (isBackwardMovement($oldStatus, $status, $workflowStageOrder)) {
+        if (isBackwardStatusMovement($oldStatus, $status)) {
             $isRegression = true;
             $revisionCount = incrementCaseRevisionCount($caseId);
         }
@@ -136,7 +118,7 @@ if ($driveFolderId === '') {
         }
 
         // Check if this is a regression (ANY backward stage movement)
-        if (isBackwardMovement($oldStatus, $status, $workflowStageOrder)) {
+        if (isBackwardStatusMovement($oldStatus, $status)) {
             $isRegression = true;
             $revisionCount = incrementCaseRevisionCount($caseId);
         }
@@ -304,7 +286,7 @@ try {
     $isRegression = false;
     $revisionCount = getCaseRevisionCount($caseId);
     
-    if (isBackwardMovement($oldStatus, $status, $workflowStageOrder)) {
+    if (isBackwardStatusMovement($oldStatus, $status)) {
         $isRegression = true;
         $revisionCount = incrementCaseRevisionCount($caseId);
         // Store regression count in case data for Google Drive backup

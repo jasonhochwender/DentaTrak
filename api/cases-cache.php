@@ -335,6 +335,41 @@ function updateCaseAssignedToInCache($caseId, $assignedTo) {
 }
 
 /**
+ * Centralized workflow stage order (index 0 = earliest, higher = later).
+ * Used by every status-change code path (drag/drop, Edit Case save, demo
+ * data generation) to determine forward vs. backward stage movement, so the
+ * "backward movement" business rule is defined in exactly one place.
+ */
+function getWorkflowStageOrder() {
+    return [
+        'Originated' => 0,
+        'Sent To External Lab' => 1,
+        'Designed' => 2,
+        'Manufactured' => 3,
+        'Received From External Lab' => 4,
+        'Delivered' => 5,
+    ];
+}
+
+/**
+ * Check if moving from $oldStatus to $newStatus is a backward (regression)
+ * movement, using the centralized workflow stage order. This is the single
+ * source of truth for "backward" so every status-change entry point (board
+ * drag/drop via update-case-status.php, and Edit Case save via
+ * update-case.php) agrees on when a revision should be recorded.
+ */
+function isBackwardStatusMovement($oldStatus, $newStatus) {
+    if ($oldStatus === null || $oldStatus === $newStatus) {
+        return false;
+    }
+    $stageOrder = getWorkflowStageOrder();
+    $oldIndex = isset($stageOrder[$oldStatus]) ? $stageOrder[$oldStatus] : -1;
+    $newIndex = isset($stageOrder[$newStatus]) ? $stageOrder[$newStatus] : -1;
+    // Backward movement = new stage has lower index than old stage
+    return $newIndex < $oldIndex && $oldIndex >= 0 && $newIndex >= 0;
+}
+
+/**
  * Increment the revision count for a case when it's returned to Originated.
  * Returns the new revision count, or null on failure.
  */

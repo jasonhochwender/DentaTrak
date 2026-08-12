@@ -4228,8 +4228,28 @@ document.addEventListener('DOMContentLoaded', function () {
     if (material) material.value = caseData.material || '';
     if (dueDate) dueDate.value = caseData.dueDate || caseData.due_date || '';
     if (status) status.value = caseData.status || 'Originated';
-    if (assignedTo) assignedTo.value = caseData.assignedTo || caseData.assigned_to || '';
     if (notes) notes.value = caseData.notes || '';
+
+    // Populate + select the Assigned To dropdown. The <select id="assignedTo">
+    // only has a static "Select user..." option in the markup - the real
+    // People/Assignment Labels <option>s are added dynamically by
+    // initializeAssignmentDropdown() (assignments.js). Simply setting
+    // assignedTo.value here (as this used to do) silently fails to select
+    // anything when there's no matching <option> yet, which is why archived
+    // (and other read-only "View Case") views appeared to have lost the
+    // assignment even though it was persisted correctly server-side. This
+    // mirrors the same call editCaseHandler() already makes for the normal
+    // edit flow.
+    if (assignedTo) {
+      var currentAssignee = caseData.assignedTo || caseData.assigned_to || '';
+      if (typeof initializeAssignmentDropdown === 'function') {
+        setTimeout(function() {
+          initializeAssignmentDropdown(assignedTo, caseData.id || caseData.case_id, currentAssignee);
+        }, 100);
+      } else {
+        assignedTo.value = currentAssignee;
+      }
+    }
 
     // Populate clinical details if available
     var clinicalDetails = caseData.clinicalDetails || caseData.clinical_details || null;

@@ -723,19 +723,54 @@ try {
         // Lab Insights foundation: capture the assignment text as it exists
         // BEFORE this update, so a genuine assignment change can be detected
         // afterward. Must be read before updateCase() overwrites the cache.
+        // Also capture the pre-update status here so a backward stage move
+        // made via Edit Case (as opposed to board drag/drop) can be detected
+        // using the exact same rule as update-case-status.php.
         $previousAssignedToForLabHistory = null;
+        $previousStatusForRevision = null;
         try {
-            $prevStmt = $pdo->prepare("SELECT assigned_to FROM cases_cache WHERE case_id = :case_id LIMIT 1");
+            $prevStmt = $pdo->prepare("SELECT assigned_to, status FROM cases_cache WHERE case_id = :case_id LIMIT 1");
             $prevStmt->execute(['case_id' => $_POST['caseId']]);
-            $prevAssignedToRow = $prevStmt->fetchColumn();
-            if ($prevAssignedToRow !== false && $prevAssignedToRow !== null) {
-                $previousAssignedToForLabHistory = $prevAssignedToRow;
+            $prevRow = $prevStmt->fetch(PDO::FETCH_ASSOC);
+            if ($prevRow) {
+                if ($prevRow['assigned_to'] !== null) {
+                    $previousAssignedToForLabHistory = $prevRow['assigned_to'];
+                }
+                $previousStatusForRevision = $prevRow['status'];
             }
         } catch (Exception $e) {
-            // Ignore errors fetching previous assignment; treated as unknown/empty.
+            // Ignore errors fetching previous assignment/status; treated as unknown/empty.
         }
 
         $result = updateCase($_POST['caseId'], $caseData, $_FILES, $filesToDelete);
+
+        // Backend-enforced revision count: a backward stage transition must
+        // increment the revision count regardless of whether the status
+        // change came from board drag/drop (update-case-status.php) or from
+        // here (Edit Case save). isBackwardStatusMovement()/
+        // incrementCaseRevisionCount() are the same shared functions
+        // (cases-cache.php) used by the drag/drop endpoint, so both entry
+        // points apply the identical "backward" rule and can never disagree
+        // or double-count.
+        if ($result['success'] && isset($result['caseData']) && is_array($result['caseData'])) {
+            $newStatusForRevision = $result['caseData']['status'] ?? null;
+            if (isBackwardStatusMovement($previousStatusForRevision, $newStatusForRevision)) {
+                $newRevisionCount = incrementCaseRevisionCount($_POST['caseId']);
+                $result['caseData']['revisionCount'] = $newRevisionCount;
+                $result['isRegression'] = true;
+                logCaseActivity(
+                    $_POST['caseId'],
+                    'case_regression',
+                    $previousStatusForRevision,
+                    $newStatusForRevision,
+                    [
+                        'source' => 'update-case.php',
+                        'regression_number' => $newRevisionCount,
+                        'reason' => 'Stage moved backward from ' . $previousStatusForRevision . ' to ' . $newStatusForRevision
+                    ]
+                );
+            }
+        }
 
         // Lab Insights foundation: record any lab-assignment-period transition.
         // Runs whenever assignedTo was explicitly submitted (including an
