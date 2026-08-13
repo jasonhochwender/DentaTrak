@@ -211,6 +211,55 @@
   color: #60a5fa;
 }
 
+.practice-switcher-divider {
+  height: 1px;
+  background-color: rgba(0, 0, 0, 0.1);
+  margin: 4px 0;
+}
+
+.practice-switcher-create {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 10px 16px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  text-align: left;
+  text-decoration: none;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #2563eb;
+  transition: background 0.1s ease;
+}
+
+.practice-switcher-create:hover,
+.practice-switcher-create:focus {
+  outline: none;
+  background: #f8fafc;
+  color: #1d4ed8;
+}
+
+.practice-item-plus-icon {
+  flex-shrink: 0;
+}
+
+[data-theme="dark"] .practice-switcher-divider {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+[data-theme="dark"] .practice-switcher-create {
+  color: #60a5fa;
+}
+
+[data-theme="dark"] .practice-switcher-create:hover,
+[data-theme="dark"] .practice-switcher-create:focus {
+  background: #334155;
+  color: #93c5fd;
+}
+
 /* Responsive adjustments */
 @media (max-width: 768px) {
   .practice-name {

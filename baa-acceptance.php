@@ -27,17 +27,38 @@ $userEmail = $_SESSION['user_email'] ?? '';
 $userName = $_SESSION['user_name'] ?? '';
 
 // If explicitly starting a brand new practice (e.g. "Create My Own Practice"
-// from the practice chooser), ignore any stale current_practice_id left
-// over from a previous practice selection earlier in this session, so this
-// always creates a new practice rather than accidentally reopening or
-// updating a different practice's BAA.
-if (isset($_GET['new']) && $_GET['new'] === '1') {
-    unset($_SESSION['current_practice_id']);
+// from the practice chooser, or "Create New Practice" from the in-app
+// practice switcher), this page must not check/prefill against the OLD
+// practice's BAA/legal info - the form below should always start blank and
+// this page should never redirect to main.php just because some OTHER
+// practice already has an accepted BAA.
+//
+// IMPORTANT: unlike an earlier version of this check, $_SESSION['current_
+// practice_id'] is intentionally left untouched here. Destroying it as a
+// side effect of merely LOADING this page (rather than successfully
+// completing or explicitly canceling it) orphaned the session - main.php
+// would bounce the user to practice-setup.php if they abandoned the form
+// or a validation error stopped them from submitting. The "create a new
+// practice rather than update the current one" decision is instead made
+// explicitly via a `new` flag sent to api/accept-baa.php on submit (see
+// the IS_CREATING_NEW_PRACTICE JS var below), not by session presence.
+$isCreatingNewPractice = (isset($_GET['new']) && $_GET['new'] === '1');
+
+// A Cancel action can safely return the user to whichever practice they
+// were already on - this only applies when they already had a valid
+// practice (i.e. they are creating an ADDITIONAL practice), never for a
+// brand new user with nothing to cancel back to.
+$cancelReturnPracticeId = null;
+if ($isCreatingNewPractice && !empty($_SESSION['current_practice_id'])) {
+    $cancelReturnPracticeId = (int)$_SESSION['current_practice_id'];
 }
 
-// Check if user already has a practice with accepted BAA
+// Check if user already has a practice with accepted BAA. When explicitly
+// creating a new practice, treat this as if there were no current
+// practice for display purposes only - $_SESSION['current_practice_id']
+// itself is not modified.
 $hasBaaAccepted = false;
-$practiceId = $_SESSION['current_practice_id'] ?? null;
+$practiceId = $isCreatingNewPractice ? null : ($_SESSION['current_practice_id'] ?? null);
 $existingPracticeName = '';
 $existingPracticeAddress = '';
 
@@ -562,7 +583,11 @@ $baaVersion = 'v1.0-2026-08-07';
         <div class="baa-footer">
             <div class="baa-version">BAA Version: <?php echo htmlspecialchars($baaVersion); ?></div>
             <div class="baa-actions">
+                <?php if ($cancelReturnPracticeId): ?>
+                <a href="api/select-practice.php?practice_id=<?php echo $cancelReturnPracticeId; ?>&redirect=1" class="btn btn-secondary">Cancel</a>
+                <?php else: ?>
                 <button type="button" class="btn btn-secondary" onclick="window.location.href='api/logout.php'">Sign Out</button>
+                <?php endif; ?>
                 <button type="submit" form="baaForm" class="btn btn-primary" id="acceptBtn" disabled>Accept Agreement</button>
             </div>
         </div>
@@ -570,6 +595,7 @@ $baaVersion = 'v1.0-2026-08-07';
     
     <script src="js/toast.js"></script>
     <script>
+        var IS_CREATING_NEW_PRACTICE = <?php echo $isCreatingNewPractice ? 'true' : 'false'; ?>;
         document.addEventListener('DOMContentLoaded', function() {
             // Initialize Toast system
             if (typeof Toast !== 'undefined') {
@@ -669,7 +695,8 @@ $baaVersion = 'v1.0-2026-08-07';
                     practiceAddress: document.getElementById('practiceAddress').value.trim(),
                     signerName: document.getElementById('signerName').value.trim(),
                     signerTitle: document.getElementById('signerTitle').value.trim(),
-                    authorizedToBind: authorizedCheckbox.checked
+                    authorizedToBind: authorizedCheckbox.checked,
+                    new: IS_CREATING_NEW_PRACTICE
                 };
                 
                 try {

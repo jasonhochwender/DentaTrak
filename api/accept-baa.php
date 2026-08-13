@@ -126,10 +126,19 @@ try {
         }
     }
 
-    // Check if user has a practice or needs to create one
+    // Check if user has a practice or needs to create one. $creatingNew is
+    // true either when the client explicitly signaled it (the page was
+    // loaded via ?new=1 - see baa-acceptance.php's IS_CREATING_NEW_PRACTICE),
+    // or when the user genuinely has no current practice at all. Relying on
+    // an explicit flag - rather than solely on $_SESSION['current_practice_id']
+    // being absent - means an ADDITIONAL practice can be created for a user
+    // who already has one, without requiring the session to be cleared just
+    // to load the form (which previously orphaned the session if the user
+    // abandoned or failed to submit the form).
     $practiceId = $_SESSION['current_practice_id'] ?? null;
+    $creatingNew = !empty($data['new']) || !$practiceId;
 
-    if (!$practiceId) {
+    if ($creatingNew) {
         // User doesn't have a practice yet - create one
         $practiceUuid = sprintf(
             '%04x%04x-%04x-%04x-%04x-%04x%04x%04x',

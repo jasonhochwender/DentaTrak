@@ -549,7 +549,6 @@ window.featureFlags = <?php echo getFeatureFlagsJson(); ?>;
         <div class="app-title-container">
           <h1><?php echo htmlspecialchars($appConfig['appName']); ?></h1>
           <?php if (!empty($practiceName)): ?>
-          <?php if ($hasMultiplePractices): ?>
           <div class="practice-switcher" id="practiceSwitcher">
             <button type="button" class="practice-switcher-btn" id="practiceSwitcherBtn" aria-haspopup="true" aria-expanded="false">
               <span class="practice-switcher-name"><?php echo htmlspecialchars($practiceName); ?></span>
@@ -572,11 +571,24 @@ window.featureFlags = <?php echo getFeatureFlagsJson(); ?>;
                 <span class="practice-item-role"><?php echo htmlspecialchars(ucfirst($practice['role'])); ?></span>
               </button>
               <?php endforeach; ?>
+              <div class="practice-switcher-divider"></div>
+              <!-- Creating a practice always goes through the BAA flow (baa-acceptance.php
+                   collects the practice's legal name and creates it atomically with BAA
+                   acceptance) - the same flow used by the login-time "You're Part of
+                   Multiple Practices" chooser. ?new=1 ensures this always starts a fresh
+                   practice even if a stale current_practice_id lingers in session.
+                   Deliberately NOT given the .practice-switcher-item class so it is
+                   excluded from app.js's practice-switching click handler and instead
+                   navigates normally. -->
+              <a href="baa-acceptance.php?new=1" class="practice-switcher-create" id="createNewPracticeItem">
+                <svg class="practice-item-plus-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="12" y1="5" x2="12" y2="19"></line>
+                  <line x1="5" y1="12" x2="19" y2="12"></line>
+                </svg>
+                <span>Create New Practice</span>
+              </a>
             </div>
           </div>
-          <?php else: ?>
-          <div class="practice-name"><?php echo htmlspecialchars($practiceName); ?></div>
-          <?php endif; ?>
           <?php endif; ?>
         </div>
       </div>
