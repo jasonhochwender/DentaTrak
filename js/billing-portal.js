@@ -32,6 +32,18 @@
 
   // ── Open ────────────────────────────────────────────────────────────────────
   window.openBillingPortal = function () {
+    // SECURITY: Billing is an admin-only surface. This guard covers every
+    // call site (menu click, or any future direct call) so non-admins can
+    // never open it client-side. window.isPracticeAdmin is set from the
+    // server's isPracticeAdmin() check - api/billing-portal.php and every
+    // billing mutation endpoint independently re-verify this too.
+    if (!window.isPracticeAdmin) {
+      if (typeof window.showToast === 'function') {
+        window.showToast('Billing is only available to practice administrators.', 'error');
+      }
+      return;
+    }
+
     // Product decision: Billing is desktop/tablet-only on phones. Central
     // guard here covers every call site (menu click, any future direct
     // call) so phone users never land inside the admin/Stripe UI.

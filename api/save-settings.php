@@ -24,6 +24,13 @@ header('Content-Type: application/json');
 $currentPracticeId = requireValidPracticeContext();
 $userId = $_SESSION['db_user_id'];
 
+// SECURITY: Settings is an admin-only surface (practice configuration, users
+// & roles, security, data & privacy, assignment-label management, and
+// personal preferences are all edited through this one endpoint). Reject
+// the entire request up front for non-admins rather than relying solely on
+// the per-section role checks further below.
+requirePracticeAdmin($currentPracticeId);
+
 // Validate CSRF token for POST requests
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     requireCsrfToken();

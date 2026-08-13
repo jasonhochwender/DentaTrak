@@ -1059,6 +1059,16 @@ document.addEventListener('DOMContentLoaded', function () {
   function openSettingsBillingModal() {
     if (!settingsBillingModal) return;
 
+    // SECURITY: Settings is an admin-only surface. This guard covers every
+    // call site (menu click, Ctrl+ shortcut, or any future direct call) so
+    // non-admins can never open it client-side. window.isPracticeAdmin is
+    // set from the server's isPracticeAdmin() check (api/get-settings.php) -
+    // every underlying settings API independently re-verifies this too.
+    if (!window.isPracticeAdmin) {
+      showToast('Settings are only available to practice administrators.', 'error');
+      return;
+    }
+
     // Product decision: Settings is desktop/tablet-only on phones. Central
     // guard here covers every call site (menu click, Ctrl+, shortcut) so
     // phone users never land inside the admin UI, even via direct calls.

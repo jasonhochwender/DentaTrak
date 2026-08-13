@@ -46,6 +46,9 @@ switch ($action) {
     case 'cleanup_test_user':
         handleCleanupTestUser($pdo, $input);
         break;
+    case 'setup_practice_member':
+        handleSetupPracticeMember($pdo, $input);
+        break;
     default:
         http_response_code(400);
         echo json_encode(['success' => false, 'message' => 'Invalid action']);
@@ -246,6 +249,144 @@ function handleSetupTestUser($pdo, $input) {
     } catch (PDOException $e) {
         $pdo->rollBack();
         error_log('[test-helpers] Setup error: ' . $e->getMessage());
+        http_response_code(500);
+        echo json_encode(['success' => false, 'message' => 'Setup failed: ' . $e->getMessage()]);
+    }
+}
+
+/**
+ * Add (or update) a secondary test user as a member of an EXISTING test
+ * practice, with a configurable role and limited_visibility flag.
+ *
+ * Used by Playwright regression tests to exercise the admin-only permission
+ * model with real, independently-logged-in sessions for each role (admin,
+ * normal non-admin, Assigned Only) rather than mutating a single shared
+ * test account's role mid-test-run.
+ */
+function handleSetupPracticeMember($pdo, $input) {
+    $email = strtolower(trim($input['email'] ?? ''));
+    $password = $input['password'] ?? '';
+    $firstName = trim($input['firstName'] ?? 'E2E');
+    $lastName = trim($input['lastName'] ?? 'Member');
+    $adminEmail = strtolower(trim($input['adminEmail'] ?? ''));
+    $role = ($input['role'] ?? 'user') === 'admin' ? 'admin' : 'user';
+    $limitedVisibility = !empty($input['limitedVisibility']) ? 1 : 0;
+
+    if (empty($email) || empty($password) || empty($adminEmail)) {
+        http_response_code(400);
+        echo json_encode(['success' => false, 'message' => 'email, password, and adminEmail are required']);
+        return;
+    }
+
+    try {
+        // Resolve the practice from the existing admin's membership
+        $stmt = $pdo->prepare("
+            SELECT p.id
+            FROM practices p
+            JOIN practice_users pu ON p.id = pu.practice_id
+            JOIN users u ON u.id = pu.user_id
+            WHERE u.email = :admin_email
+            LIMIT 1
+        ");
+        $stmt->execute(['admin_email' => $adminEmail]);
+        $practiceId = $stmt->fetchColumn();
+
+        if (!$practiceId) {
+            http_response_code(404);
+            echo json_encode(['success' => false, 'message' => 'No practice found for adminEmail. Run setup_test_user first.']);
+            return;
+        }
+
+        $pdo->beginTransaction();
+
+        // Create or reuse the member user account
+        $stmt = $pdo->prepare("SELECT id FROM users WHERE email = :email");
+        $stmt->execute(['email' => $email]);
+        $userId = $stmt->fetchColumn();
+
+        if ($userId) {
+            $stmt = $pdo->prepare("UPDATE users SET email_verified = 1 WHERE id = :id");
+            $stmt->execute(['id' => $userId]);
+        } else {
+            $passwordHash = password_hash($password, PASSWORD_BCRYPT);
+            $stmt = $pdo->prepare("
+                INSERT INTO users (
+                    email, password_hash, auth_method, first_name, last_name,
+                    role, is_active, email_verified, created_at
+                ) VALUES (
+                    :email, :password_hash, 'email', :first_name, :last_name,
+                    'user', 1, 1, NOW()
+                )
+            ");
+            $stmt->execute([
+                'email' => $email,
+                'password_hash' => $passwordHash,
+                'first_name' => $firstName,
+                'last_name' => $lastName
+            ]);
+            $userId = $pdo->lastInsertId();
+
+            try {
+                $stmt = $pdo->prepare("
+                    INSERT INTO user_preferences (user_id, theme, allow_card_delete, highlight_past_due, past_due_days, tour_completed)
+                    VALUES (:user_id, 'light', TRUE, TRUE, 7, TRUE)
+                ");
+                $stmt->execute(['user_id' => $userId]);
+            } catch (PDOException $e) {
+                // Preferences table might not exist or have different schema
+            }
+        }
+
+        // Insert or update this user's membership row for the practice.
+        // is_owner is always FALSE here - ownership is set once at practice
+        // creation (setup_test_user) and is not something this helper grants.
+        $stmt = $pdo->prepare("
+            SELECT 1 FROM practice_users WHERE practice_id = :practice_id AND user_id = :user_id
+        ");
+        $stmt->execute(['practice_id' => $practiceId, 'user_id' => $userId]);
+
+        if ($stmt->fetchColumn()) {
+            $stmt = $pdo->prepare("
+                UPDATE practice_users
+                SET role = :role, limited_visibility = :limited_visibility
+                WHERE practice_id = :practice_id AND user_id = :user_id
+            ");
+            $stmt->execute([
+                'role' => $role,
+                'limited_visibility' => $limitedVisibility,
+                'practice_id' => $practiceId,
+                'user_id' => $userId
+            ]);
+        } else {
+            $stmt = $pdo->prepare("
+                INSERT INTO practice_users (practice_id, user_id, role, is_owner, limited_visibility)
+                VALUES (:practice_id, :user_id, :role, FALSE, :limited_visibility)
+            ");
+            $stmt->execute([
+                'practice_id' => $practiceId,
+                'user_id' => $userId,
+                'role' => $role,
+                'limited_visibility' => $limitedVisibility
+            ]);
+        }
+
+        $pdo->commit();
+
+        echo json_encode([
+            'success' => true,
+            'message' => 'Practice member setup complete',
+            'user_id' => $userId,
+            'practice_id' => $practiceId,
+            'email' => $email,
+            'role' => $role,
+            'limited_visibility' => (bool)$limitedVisibility
+        ]);
+
+    } catch (PDOException $e) {
+        if ($pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
+        error_log('[test-helpers] setup_practice_member error: ' . $e->getMessage());
         http_response_code(500);
         echo json_encode(['success' => false, 'message' => 'Setup failed: ' . $e->getMessage()]);
     }

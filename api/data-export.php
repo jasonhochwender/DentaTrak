@@ -101,7 +101,20 @@ function handleExportRequest(int $userId, int $practiceId, string $userEmail): v
     }
     
     requireCsrfToken();
-    
+
+    // SECURITY: Practice-wide data export (all cases, activity history, and
+    // settings for the practice) is an admin-only capability, regardless of
+    // whether the requester is a normal or Assigned-Only (limited_visibility)
+    // user - a non-admin must never be able to pull the full practice export.
+    if (!isPracticeAdmin($practiceId)) {
+        http_response_code(403);
+        echo json_encode([
+            'success' => false,
+            'message' => 'Only practice administrators can export practice data.'
+        ]);
+        return;
+    }
+
     global $pdo;
     
     ensureExportTables();

@@ -2,10 +2,25 @@
 // Billing page
 require_once __DIR__ . '/api/session.php';
 require_once __DIR__ . '/api/security-headers.php';
+require_once __DIR__ . '/api/practice-security.php';
 
 // Check if user is logged in
 if (!isset($_SESSION['user'])) {
     header('Location: index.php');
+    exit;
+}
+
+// SECURITY: Billing is an admin-only surface. Non-admins (and anyone
+// without a valid practice context) are redirected back to the dashboard
+// even if they navigate here directly, matching the hidden Billing links
+// in main.php and the admin enforcement already on every billing API
+// endpoint (api/billing.php, api/billing-portal.php,
+// api/create-checkout-session.php, api/create-portal-session.php).
+// getCurrentPracticeId() is used (rather than requireValidPracticeContext())
+// because this is an HTML page, not a JSON API endpoint.
+$currentPracticeId = getCurrentPracticeId();
+if (!$currentPracticeId || !isPracticeAdmin($currentPracticeId)) {
+    header('Location: main.php');
     exit;
 }
 

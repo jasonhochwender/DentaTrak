@@ -331,36 +331,90 @@ try {
     $currentUserHasDriveToken = isset($_SESSION['google_drive_token']) && !empty($_SESSION['google_drive_token']);
     $practiceCreatorHasGoogle = ($practiceCreatorAuthMethod === 'google' || $practiceCreatorAuthMethod === 'both');
     $isGoogleDriveConnected = $currentUserHasDriveToken || $practiceCreatorHasGoogle;
-    
+
+    // SECURITY: Settings (Practice Users & Roles, Security, Data & Privacy,
+    // assignment-label management) is an admin-only surface. Non-admins still
+    // need the plain user/label lists below - they're what populates the
+    // case "Assigned To" dropdown for every practice member - but must not
+    // receive admin-only data: other users' permission flags, login
+    // timestamps, label IDs/lab designation, or BAA/legal practice info.
+    //
+    // limitedVisibilityUsers is the one exception that is trimmed rather
+    // than withheld entirely: the client uses it to flag the CURRENT user's
+    // own limited-visibility status (adds a `limited-visibility` class to
+    // <body>, used to filter which cases are shown), so a non-admin still
+    // needs their own entry - just not their coworkers'.
+    if ($isPracticeAdmin) {
+        $responseGmailUserLogins = $gmailUserLogins;
+        $responseLimitedVisibilityUsers = $limitedVisibilityUsers;
+        $responseCanViewAnalyticsUsers = $canViewAnalyticsUsers;
+        $responseCanEditCasesUsers = $canEditCasesUsers;
+        $responseIsLabUsers = $isLabUsers;
+        $responseAssignmentLabelsDetailed = $assignmentLabelsDetailed;
+        $responsePracticeCreatorEmail = $practiceCreatorEmail;
+        $responseLegalName = $legalName;
+        $responsePracticeAddress = $practiceAddress;
+        $responseBaaAcceptedAt = $baaAcceptedAt;
+        $responseBaaVersion = $baaVersion;
+        $responseBaaSignerName = $baaSignerName;
+        $responseBaaSignerTitle = $baaSignerTitle;
+    } else {
+        $responseGmailUserLogins = [];
+        $currentUserEmailLower = strtolower(trim(getCurrentUserEmail() ?? ''));
+        $responseLimitedVisibilityUsers = [];
+        if ($currentUserEmailLower !== '') {
+            foreach ($limitedVisibilityUsers as $emailKey => $flag) {
+                if (strtolower(trim($emailKey)) === $currentUserEmailLower) {
+                    // Preserve the original-case key so the client's lookup
+                    // (keyed by the same raw-case email it already has) still matches.
+                    $responseLimitedVisibilityUsers[$emailKey] = $flag;
+                    break;
+                }
+            }
+        }
+        $responseCanViewAnalyticsUsers = [];
+        $responseCanEditCasesUsers = [];
+        $responseIsLabUsers = [];
+        $responseAssignmentLabelsDetailed = [];
+        $responsePracticeCreatorEmail = null;
+        $responseLegalName = '';
+        $responsePracticeAddress = '';
+        $responseBaaAcceptedAt = null;
+        $responseBaaVersion = '';
+        $responseBaaSignerName = '';
+        $responseBaaSignerTitle = '';
+    }
+
     // Return preferences, admin users, regular users, practice name, logo path, assignment labels, and BAA info
     echo json_encode([
         'success' => true,
         'preferences' => $preferences,
         'adminUsers' => $adminUsers,
         'gmailUsers' => $gmailUsers,
-        'gmailUserLogins' => $gmailUserLogins,
-        'limitedVisibilityUsers' => $limitedVisibilityUsers,
-        'canViewAnalyticsUsers' => $canViewAnalyticsUsers,
-        'canEditCasesUsers' => $canEditCasesUsers,
+        'gmailUserLogins' => $responseGmailUserLogins,
+        'limitedVisibilityUsers' => $responseLimitedVisibilityUsers,
+        'canViewAnalyticsUsers' => $responseCanViewAnalyticsUsers,
+        'canEditCasesUsers' => $responseCanEditCasesUsers,
         'practiceName' => $practiceName,
         'logoPath' => $logoPath,
         'assignmentLabels' => $assignmentLabels,
-        'assignmentLabelsDetailed' => $assignmentLabelsDetailed,
-        'isLabUsers' => $isLabUsers,
+        'assignmentLabelsDetailed' => $responseAssignmentLabelsDetailed,
+        'isLabUsers' => $responseIsLabUsers,
         'showLabInsights' => isFeatureEnabled('SHOW_LAB_INSIGHTS'),
         'isPracticeAdmin' => $isPracticeAdmin,
-        'practiceCreatorEmail' => $practiceCreatorEmail,
+        'practiceCreatorEmail' => $responsePracticeCreatorEmail,
         'practiceCreatorHasGoogleAccount' => ($practiceCreatorAuthMethod === 'google' || $practiceCreatorAuthMethod === 'both'),
         'isGoogleDriveConnected' => $isGoogleDriveConnected,
-        // BAA fields
-        'legalName' => $legalName,
+        // BAA fields (admin-only, except displayName which is the practice's
+        // public display name shown in the header for every user)
+        'legalName' => $responseLegalName,
         'displayName' => $displayName,
-        'practiceAddress' => $practiceAddress,
+        'practiceAddress' => $responsePracticeAddress,
         'baaAccepted' => $baaAccepted,
-        'baaAcceptedAt' => $baaAcceptedAt,
-        'baaVersion' => $baaVersion,
-        'baaSignerName' => $baaSignerName,
-        'baaSignerTitle' => $baaSignerTitle
+        'baaAcceptedAt' => $responseBaaAcceptedAt,
+        'baaVersion' => $responseBaaVersion,
+        'baaSignerName' => $responseBaaSignerName,
+        'baaSignerTitle' => $responseBaaSignerTitle
     ]);
     
 } catch (PDOException $e) {

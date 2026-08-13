@@ -96,6 +96,14 @@ if ($userId && $currentPracticeId) {
 // ai-recommendations.php remain the authoritative server-side enforcement.
 $userCanViewAnalytics = canViewAnalytics($currentPracticeId);
 
+// Billing, Settings, and practice-wide data export are administrative
+// surfaces - only practice admins may see or use them. Computed the same
+// way as $userCanViewAnalytics: per-practice-membership, recomputed on
+// every page load (including after a practice switch) against the
+// authoritative practice_users.role column. This only controls UI
+// visibility; every underlying API independently enforces this server-side.
+$isCurrentUserPracticeAdmin = isPracticeAdmin($currentPracticeId);
+
 // BAA ACCESS CONTROL GATE
 // Block access to PHI until BAA is accepted
 $baaAccepted = false;
@@ -576,7 +584,7 @@ window.featureFlags = <?php echo getFeatureFlagsJson(); ?>;
         <div class="user-info">
           <span class="user-name"><?php echo htmlspecialchars($user['name'] ?? 'User'); ?></span>
           <span class="user-email"><?php echo htmlspecialchars($user['email'] ?? ''); ?></span>
-<?php if (isFeatureEnabled('BILLING_ENABLED')): ?>
+<?php if (isFeatureEnabled('BILLING_ENABLED') && $isCurrentUserPracticeAdmin): ?>
           <a href="billing.php" class="billing-link" id="userBillingTier">Billing</a>
 <?php endif; ?>
         </div>
@@ -610,11 +618,13 @@ window.featureFlags = <?php echo getFeatureFlagsJson(); ?>;
           <?php endif; ?>
         </button>
         <div class="user-menu" id="userMenu">
+<?php if ($isCurrentUserPracticeAdmin): ?>
 <?php if (isFeatureEnabled('BILLING_ENABLED')): ?>
           <a href="#" class="user-menu-item" id="billingMenuItem">Billing</a>
 <?php endif; ?>
           <a href="#" class="user-menu-item" id="settingsMenuItem">Settings</a>
           <div class="user-menu-divider"></div>
+<?php endif; ?>
           <a href="#" class="user-menu-item" id="contactUsLink">Feedback</a>
           <?php if (isFeatureEnabled('SHOW_TOUR')): ?>
           <a href="#" class="user-menu-item" id="startTourLink">Take a Tour</a>
@@ -1048,7 +1058,7 @@ window.featureFlags = <?php echo getFeatureFlagsJson(); ?>;
                 </div>
                 <h3>Throughput Trends</h3>
                 <p>Unlock capacity analysis, workload imbalance detection, and trend insights.</p>
-<?php if (isFeatureEnabled('BILLING_ENABLED')): ?>
+<?php if (isFeatureEnabled('BILLING_ENABLED') && $isCurrentUserPracticeAdmin): ?>
                 <a href="billing.php" class="ap-upgrade-btn">Upgrade to Control</a>
 <?php endif; ?>
               </div>
@@ -1131,7 +1141,7 @@ window.featureFlags = <?php echo getFeatureFlagsJson(); ?>;
                 </div>
                 <h3>Duration Analytics</h3>
                 <p>Unlock historical comparisons, outlier detection, and bottleneck identification.</p>
-<?php if (isFeatureEnabled('BILLING_ENABLED')): ?>
+<?php if (isFeatureEnabled('BILLING_ENABLED') && $isCurrentUserPracticeAdmin): ?>
                 <a href="billing.php" class="ap-upgrade-btn">Upgrade to Control</a>
 <?php endif; ?>
               </div>
@@ -1189,7 +1199,7 @@ window.featureFlags = <?php echo getFeatureFlagsJson(); ?>;
                 </div>
                 <h3>Year-over-Year Trends</h3>
                 <p>Unlock historical comparisons, peak season insights, and growth metrics.</p>
-<?php if (isFeatureEnabled('BILLING_ENABLED')): ?>
+<?php if (isFeatureEnabled('BILLING_ENABLED') && $isCurrentUserPracticeAdmin): ?>
                 <a href="billing.php" class="ap-upgrade-btn">Upgrade to Control</a>
 <?php endif; ?>
               </div>
@@ -1237,7 +1247,7 @@ window.featureFlags = <?php echo getFeatureFlagsJson(); ?>;
                 </div>
                 <h3>Smart Recommendations</h3>
                 <p>Get AI-powered insights, bottleneck detection, and actionable recommendations.</p>
-<?php if (isFeatureEnabled('BILLING_ENABLED')): ?>
+<?php if (isFeatureEnabled('BILLING_ENABLED') && $isCurrentUserPracticeAdmin): ?>
                 <a href="billing.php" class="ap-upgrade-btn">Upgrade to Control</a>
 <?php endif; ?>
               </div>
@@ -1301,7 +1311,7 @@ window.featureFlags = <?php echo getFeatureFlagsJson(); ?>;
                 </div>
                 <h3>Lab Insights</h3>
                 <p>Unlock lab workload, turnaround, current late cases, and revision comparisons across the labs your practice works with.</p>
-<?php if (isFeatureEnabled('BILLING_ENABLED')): ?>
+<?php if (isFeatureEnabled('BILLING_ENABLED') && $isCurrentUserPracticeAdmin): ?>
                 <a href="billing.php" class="ap-upgrade-btn">Upgrade to Control</a>
 <?php endif; ?>
               </div>

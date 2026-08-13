@@ -35,6 +35,15 @@ try {
     $isOwner       = isPracticeOwner($currentPracticeId);
     $canManage     = $isAdmin || $isOwner;
 
+    // SECURITY: Billing is an admin-only surface. Reject non-admins/non-owners
+    // server-side so this endpoint can't be called directly to read subscription
+    // state, even though the client also hides the Billing modal for them.
+    if (!$canManage) {
+        http_response_code(403);
+        echo json_encode(['error' => 'Only practice administrators can view billing information.']);
+        exit;
+    }
+
     // ── Bypass check (partners / internal users) ─────────────────────────────
     $userStmt = $pdo->prepare("SELECT email FROM users WHERE id = ?");
     $userStmt->execute([$userId]);
