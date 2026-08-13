@@ -840,8 +840,17 @@ document.addEventListener('DOMContentLoaded', function () {
   // Close modal when clicking outside of modal content
   window.addEventListener('click', function(e) {
     if (e.target.classList.contains('modal')) {
-      // Special handling for case modal with unsaved changes
-      if (e.target === createCaseModal && hasUnsavedChanges) {
+      // Always route case-modal backdrop clicks through
+      // closeCreateCaseWithCheck() - never the generic closeModals()
+      // below - regardless of hasUnsavedChanges. closeCreateCaseWithCheck()
+      // already no-ops/shows a warning when there ARE unsaved changes, but
+      // when there aren't (e.g. read-only "View Case" mode, which never has
+      // unsaved changes) this used to fall through to closeModals(), which
+      // just hides every modal with no cleanup - leaving stale state behind
+      // such as the "Back to Archived Cases" button and the closeCreateCase
+      // override installed by viewArchivedCase(), which then leaked into
+      // whatever case was opened next.
+      if (e.target === createCaseModal) {
         e.preventDefault();
         e.stopPropagation();
         closeCreateCaseWithCheck();
@@ -862,8 +871,12 @@ document.addEventListener('DOMContentLoaded', function () {
   // Close modal with Escape key
   document.addEventListener('keydown', function(e) {
     if (e.key === 'Escape') {
-      // Special handling for case modal with unsaved changes
-      if (createCaseModal && createCaseModal.style.display === 'block' && hasUnsavedChanges) {
+      // Always route case-modal Escape presses through
+      // closeCreateCaseWithCheck() - never the generic closeModals() below -
+      // regardless of hasUnsavedChanges, for the same reason as the
+      // backdrop-click handler above (read-only "View Case" mode never has
+      // unsaved changes, but still needs closeCreateCase()'s cleanup).
+      if (createCaseModal && createCaseModal.style.display === 'block') {
         // Check if any other modal is open that should take priority
         var deleteConfirmModal = document.getElementById('deleteConfirmModal');
         var unsavedChangesDialog = document.querySelector('[style*="position: fixed"][style*="z-index: 10000"]');
@@ -4102,6 +4115,17 @@ document.addEventListener('DOMContentLoaded', function () {
 
       createCaseModal.style.display = 'block';
       document.body.style.overflow = 'hidden'; // Prevent scrolling behind modal
+
+      // Opening any case here (new or edit, via editCaseHandler()) always
+      // establishes a normal, non-archive context - remove any leftover
+      // "Back to Archived Cases" button so it can never carry over from a
+      // previously viewed archived case (belt-and-suspenders alongside the
+      // same removal in openCaseModalForView() and the cleanup in
+      // closeCreateCase()).
+      var existingBackBtnOnOpen = createCaseModal.querySelector('.back-to-archived');
+      if (existingBackBtnOnOpen) {
+        existingBackBtnOnOpen.remove();
+      }
 
       // Determine if we're editing an existing case or creating a new one
       var form = document.getElementById('createCaseForm');
