@@ -584,6 +584,13 @@ document.addEventListener('DOMContentLoaded', function () {
     document.addEventListener('keydown', function(e) {
       if (e.key === 'Escape' && modal.style.display === 'block') {
         closeRenameAssignmentLabelModal();
+        // Rename is a child modal of Settings, and Settings has its own
+        // document-level Escape handler for closing itself. Stop this
+        // keypress here so it doesn't also reach that handler afterward
+        // (which would immediately try to close/prompt-close Settings too,
+        // on the very same Escape press that was only meant to dismiss
+        // Rename).
+        e.stopImmediatePropagation();
       }
     });
   })();
@@ -1573,6 +1580,15 @@ document.addEventListener('DOMContentLoaded', function () {
   var settingsUnsavedDialogOpen = false;
 
   function closeSettingsBillingModal(forceClose) {
+    // Rename Assignment Label is a child modal opened from within Settings.
+    // While it's open, Settings must not close through ANY path (X, Cancel,
+    // outside-click, Escape, or a force-close) - otherwise Settings' state
+    // (backdrop, body scroll lock) would be torn down while the child modal
+    // is still visually on top of it, leaving things inconsistent.
+    var renameLabelModal = document.getElementById('renameAssignmentLabelModal');
+    if (renameLabelModal && renameLabelModal.style.display === 'block') {
+      return;
+    }
     if (settingsBillingModal) {
       // Check for unsaved changes unless force closing
       if (!forceClose && hasUnsavedSettingsChanges()) {

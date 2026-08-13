@@ -2542,6 +2542,16 @@ body {
   max-width: 420px;
 }
 
+/* Rename Assignment Label is opened as a child modal of Settings
+   (#settingsBillingModal). Both share the base .modal z-index (100), and
+   since Settings comes later in the DOM it would otherwise paint on top of
+   Rename. Scope a small bump to this modal only - just above the base
+   modal layer - so it (and its own backdrop) always appears above Settings
+   without affecting other modals, tooltips, or toasts (z-index >= 1000). */
+#renameAssignmentLabelModal {
+  z-index: 150;
+}
+
 .modal-header {
   margin: 0;
   padding: 20px 28px;

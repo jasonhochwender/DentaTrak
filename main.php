@@ -410,7 +410,7 @@ if (isset($appConfig) && is_array($appConfig) && isset($appConfig['appName'])) {
   </style>
   
   <!-- Load app.light.css directly (skip app.css @import chain) -->
-  <link rel="stylesheet" href="css/app.light.css?v=20241227">
+  <link rel="stylesheet" href="css/app.light.css?v=20260813">
   <link rel="stylesheet" href="css/app.css?v=20260807a">
   
   <!-- Mobile responsiveness CSS -->
