@@ -5,8 +5,11 @@
  * Cloud Run safe: proper error logging, no filesystem writes outside /tmp
  */
 
-// Determine if running on Cloud Run (K_SERVICE is always set in Cloud Run)
-define('IS_CLOUD_RUN', (bool) getenv('K_SERVICE'));
+// Determine if running on Cloud Run. K_SERVICE is set for Cloud Run
+// Services; CLOUD_RUN_JOB is the equivalent for Cloud Run Jobs (a one-off
+// script execution, e.g. api/migrate-subscription-owner.php run via a Job,
+// has no K_SERVICE). Either one means we're running in Cloud Run.
+define('IS_CLOUD_RUN', (bool) (getenv('K_SERVICE') || getenv('CLOUD_RUN_JOB')));
 
 // Configure error logging FIRST - before any code that might fail
 // Cloud Run filesystem is read-only except /tmp, so we must log to stderr

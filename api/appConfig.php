@@ -417,8 +417,8 @@ if (file_exists($envOverrideFile)) {
 
 // Database connection
 try {
-    if (getenv('K_SERVICE')) {
-        // ===== Cloud Run (Production) =====
+    if (getenv('K_SERVICE') || getenv('CLOUD_RUN_JOB')) {
+        // ===== Cloud Run (Production) - Service (K_SERVICE) or Job (CLOUD_RUN_JOB) =====
         $connectionName = getenv('CLOUD_SQL_CONNECTION_NAME');
         if (!$connectionName) {
             throw new Exception('CLOUD_SQL_CONNECTION_NAME not set');
