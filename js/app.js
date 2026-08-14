@@ -4206,13 +4206,24 @@ document.addEventListener('DOMContentLoaded', function () {
         trackFormChanges();
       }, 100);
 
-      // Initialize assignment dropdown
-      setTimeout(function() {
-        var assignedToDropdown = document.getElementById('assignedTo');
-        if (assignedToDropdown && typeof initializeAssignmentDropdown === 'function') {
-          initializeAssignmentDropdown(assignedToDropdown, '', ''); // No caseId for new case, no current assignee
-        }
-      }, 100);
+      // Initialize assignment dropdown for a brand-new case only. When
+      // editing an existing case, editCaseHandler() already scheduled its
+      // own initializeAssignmentDropdown() call (with the real caseId and
+      // stored assignee) before calling openCreateCase(). Since both calls
+      // share the same 100ms delay, running this unconditionally would fire
+      // *after* that one and clobber the just-selected assignment back to
+      // "None" (caseId='', currentAssignee='') even though the data was
+      // never lost - it's purely a dropdown re-initialization race. Archived
+      // "View Case" doesn't go through openCreateCase() at all (see
+      // openCaseModalForView()), which is why it was never affected.
+      if (!isUpdate) {
+        setTimeout(function() {
+          var assignedToDropdown = document.getElementById('assignedTo');
+          if (assignedToDropdown && typeof initializeAssignmentDropdown === 'function') {
+            initializeAssignmentDropdown(assignedToDropdown, '', ''); // No caseId for new case, no current assignee
+          }
+        }, 100);
+      }
 
       // Focus on the first input field
       setTimeout(function() {
