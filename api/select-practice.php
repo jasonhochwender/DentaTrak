@@ -148,15 +148,24 @@ try {
         }
     }
     
+    // Optional deep link: callers that need the user to land in the Billing
+    // modal (e.g. an "Upgrade" action on the plan-limit screen) can pass
+    // billing=1. Selecting a practice first guarantees main.php has a valid
+    // practice context instead of bouncing to the practice chooser.
+    $mainUrl = '../main.php';
+    if (isset($_GET['billing']) && $_GET['billing'] == 1) {
+        $mainUrl .= '?billing=1';
+    }
+
     // Force redirect if redirect=1 is set in the query string
     if (isset($_GET['redirect']) && $_GET['redirect'] == 1) {
-        header('Location: ../main.php');
+        header('Location: ' . $mainUrl);
         exit;
     }
     
     // For direct browser access, redirect to main.php
     if ($isDirectAccess) {
-        header('Location: ../main.php');
+        header('Location: ' . $mainUrl);
         exit;
     }
     

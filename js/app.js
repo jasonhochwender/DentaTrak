@@ -1132,6 +1132,11 @@ document.addEventListener('DOMContentLoaded', function () {
             data.isLabUsers || {},
             data.showLabInsights === true
           );
+
+          // Deep link support - must run after applyUserSettings() because
+          // that is what sets window.isPracticeAdmin, which the Billing
+          // modal's own admin guard depends on.
+          maybeOpenBillingPortalFromUrl();
         } else {
           // Error handled through UI
         }
@@ -1139,6 +1144,45 @@ document.addEventListener('DOMContentLoaded', function () {
       .catch(error => {
         // Error handled through UI
       });
+  }
+
+  // Opens the Billing modal when the page was reached via `?billing=1`.
+  //
+  // Used by upgrade calls-to-action that live outside the app shell (e.g.
+  // the plan-limit screen on baa-acceptance.php) so they lead into the SAME
+  // billing/checkout flow as the Billing menu item rather than a separate
+  // upgrade path. Runs at most once per page load and removes the parameter
+  // from the URL so a refresh or back-navigation doesn't reopen the modal.
+  var billingDeepLinkHandled = false;
+  function maybeOpenBillingPortalFromUrl() {
+    if (billingDeepLinkHandled) return;
+
+    var params;
+    try {
+      params = new URLSearchParams(window.location.search);
+    } catch (e) {
+      return;
+    }
+    if (params.get('billing') !== '1') return;
+
+    billingDeepLinkHandled = true;
+
+    params.delete('billing');
+    var query = params.toString();
+    try {
+      window.history.replaceState(
+        {},
+        '',
+        window.location.pathname + (query ? '?' + query : '') + window.location.hash
+      );
+    } catch (e) {
+      // Non-fatal - the modal still opens below
+    }
+
+    // openBillingPortal() applies its own admin-only and mobile guards.
+    if (typeof window.openBillingPortal === 'function') {
+      window.openBillingPortal();
+    }
   }
 
   // Initialize collapsible settings sections (twisties)

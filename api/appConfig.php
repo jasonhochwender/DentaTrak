@@ -161,6 +161,7 @@ Here is the workflow data to analyze:
                 'display_prices'          => [
                     'operate' => ['month' => 24900, 'year' => 249000],
                     'control' => ['month' => 49900, 'year' => 499000],
+                    'scale'   => ['month' => 99900, 'year' => 999000],
                 ],
                 'config_error' => 'STRIPE_ENVIRONMENT must be "test" or "live"',
             ];
@@ -197,6 +198,10 @@ Here is the workflow data to analyze:
             'portal_configuration_id'  => getEnvVar('STRIPE_PORTAL_CONFIGURATION_ID') ?: null,
 
             // Server-side Price ID map — never sent to or accepted from the browser.
+            // Read exclusively from the environment, so the running environment's
+            // own Price IDs are the only ones that can ever be selected. A plan
+            // with no configured Price ID for this environment resolves to null
+            // and callers fail closed (see api/stripe-price-map.php).
             'prices' => [
                 'operate' => [
                     'month' => getEnvVar('STRIPE_OPERATE_MONTHLY_PRICE_ID') ?: null,
@@ -206,12 +211,24 @@ Here is the workflow data to analyze:
                     'month' => getEnvVar('STRIPE_CONTROL_MONTHLY_PRICE_ID') ?: null,
                     'year'  => getEnvVar('STRIPE_CONTROL_ANNUAL_PRICE_ID')  ?: null,
                 ],
+                // Scale: test Price IDs are set in .env for local/test. The LIVE
+                // Price IDs do not exist yet — set STRIPE_SCALE_MONTHLY_PRICE_ID
+                // and STRIPE_SCALE_ANNUAL_PRICE_ID as production environment
+                // variables (Cloud Run) once they are created in the live Stripe
+                // account. Until then these stay null in production and a Scale
+                // checkout there fails with a clear, controlled error instead of
+                // falling back to test IDs.
+                'scale' => [
+                    'month' => getEnvVar('STRIPE_SCALE_MONTHLY_PRICE_ID') ?: null,
+                    'year'  => getEnvVar('STRIPE_SCALE_ANNUAL_PRICE_ID')  ?: null,
+                ],
             ],
 
             // Display prices in cents — for UI only; authoritative amount is on the Stripe Price object.
             'display_prices' => [
                 'operate' => ['month' => 24900, 'year' => 249000],  // $249/mo, $2,490/yr
                 'control' => ['month' => 49900, 'year' => 499000],  // $499/mo, $4,990/yr
+                'scale'   => ['month' => 99900, 'year' => 999000],  // $999/mo, $9,990/yr
             ],
 
             // Set when environment or key prefix validation fails — checked by endpoints.
@@ -256,6 +273,19 @@ Here is the workflow data to analyze:
             ],
             'control' => [
                 'name' => 'Control',
+                'max_cases' => 0, // Unlimited
+                'can_add_users' => true,
+                'has_analytics' => true
+            ],
+            // NOTE: this legacy per-user metering tier (users.billing_tier -
+            // case/user limits) is a separate concern from the owner-level
+            // subscription plan in the `subscriptions` table. Scale is defined
+            // here purely as a safety net: consumers of this map fall back to
+            // the 'evaluate' TRIAL tier for unknown keys, so without an entry a
+            // paying Scale customer whose billing_tier ever read 'scale' would
+            // be silently metered as a trial user. Mirrors Control.
+            'scale' => [
+                'name' => 'Scale',
                 'max_cases' => 0, // Unlimited
                 'can_add_users' => true,
                 'has_analytics' => true

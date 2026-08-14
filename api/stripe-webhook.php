@@ -40,6 +40,10 @@ require_once __DIR__ . '/billing-gate.php';
 requireBillingEnabled();
 
 require_once __DIR__ . '/appConfig.php';
+// Authoritative Stripe Price ID -> plan/interval mapping, shared with
+// api/create-checkout-session.php so both directions of the mapping have a
+// single source of truth.
+require_once __DIR__ . '/stripe-price-map.php';
 
 header('Content-Type: application/json');
 ini_set('display_errors', '0');
@@ -285,8 +289,9 @@ exit;
 /**
  * checkout.session.completed
  *
- * Checkout is complete. Persist the Stripe Customer ID so it is available
- * even if the subscription.created event arrives out of order.
+ * Checkout is complete. Persist the Stripe Customer ID on the subscription
+ * OWNER's row so it is available even if the subscription.created event
+ * arrives out of order.
  */
 function handleCheckoutSessionCompleted(
     \Stripe\Checkout\Session $session,
@@ -294,23 +299,23 @@ function handleCheckoutSessionCompleted(
     array $appConfig
 ): void {
     $stripeCustomerId = $session->customer ?? null;
-    $practiceId       = $session->metadata['dentatrak_practice_id'] ?? null;
+    $ownerUserId      = $session->metadata['dentatrak_owner_user_id'] ?? null;
 
-    if (!$practiceId || !$stripeCustomerId) {
+    if (!$ownerUserId || !$stripeCustomerId) {
         error_log('[stripe-webhook] checkout.session.completed: missing metadata');
         return;
     }
 
-    $practiceId = (int)$practiceId;
+    $ownerUserId = (int)$ownerUserId;
 
     $pdo->prepare("
-        UPDATE practices
+        UPDATE subscriptions
         SET stripe_customer_id = :cid
-        WHERE id = :practice_id
+        WHERE owner_user_id = :owner_user_id
           AND (stripe_customer_id IS NULL OR stripe_customer_id = '')
     ")->execute([
-        'cid'         => $stripeCustomerId,
-        'practice_id' => $practiceId,
+        'cid'           => $stripeCustomerId,
+        'owner_user_id' => $ownerUserId,
     ]);
 }
 
@@ -344,15 +349,15 @@ function handleSubscriptionUpsert(
     $currentPeriodEnd     = $sub->items->data[0]->current_period_end ?? $sub->current_period_end ?? null;
     $trialEnd             = $sub->trial_end           ?? null;
 
-    // Resolve practice by customer ID — never trust metadata alone for routing
-    $practiceId = resolvePracticeByCustomer($pdo, $stripeCustomerId);
-    if (!$practiceId) {
+    // Resolve the subscription OWNER by customer ID — never trust metadata alone for routing
+    $ownerUserId = resolveOwnerByCustomer($pdo, $stripeCustomerId);
+    if (!$ownerUserId) {
         // Metadata fallback: customer ID may not yet be stored (race with checkout.session.completed)
-        $metaPracticeId = $sub->metadata['dentatrak_practice_id'] ?? null;
-        if ($metaPracticeId) {
-            $practiceId = (int)$metaPracticeId;
+        $metaOwnerUserId = $sub->metadata['dentatrak_owner_user_id'] ?? null;
+        if ($metaOwnerUserId) {
+            $ownerUserId = (int)$metaOwnerUserId;
         } else {
-            error_log('[stripe-webhook] Cannot resolve practice for customer: ' .
+            error_log('[stripe-webhook] Cannot resolve subscription owner for customer: ' .
                       substr($stripeCustomerId ?? '', 0, 20));
             return;
         }
@@ -377,19 +382,19 @@ function handleSubscriptionUpsert(
     // (the Stripe event timestamp) — not subscription_updated_at (our DB write
     // time), which was the previous no-op bug.
     $pdo->prepare("
-        UPDATE practices SET
+        UPDATE subscriptions SET
             stripe_customer_id      = COALESCE(stripe_customer_id, :cid),
             stripe_subscription_id  = :sub_id,
             stripe_price_id         = :price_id,
-            subscription_plan       = :plan,
+            plan                    = :plan,
             billing_interval        = :interval,
-            subscription_status     = :status,
+            status                  = :status,
             trial_ends_at           = COALESCE(:trial_ends_at, trial_ends_at),
             current_period_ends_at  = :period_end,
             cancel_at_period_end    = :cancel,
             subscription_updated_at = UTC_TIMESTAMP(),
             stripe_event_created    = :event_created
-        WHERE id = :practice_id
+        WHERE owner_user_id = :owner_user_id
           AND (
               stripe_event_created IS NULL
               OR stripe_event_created <= :event_created2
@@ -406,7 +411,7 @@ function handleSubscriptionUpsert(
         'cancel'         => $cancelAtPeriodEnd ? 1 : 0,
         'event_created'  => $eventCreatedDt,
         'event_created2' => $eventCreatedDt,
-        'practice_id'    => $practiceId,
+        'owner_user_id'  => $ownerUserId,
     ]);
 }
 
@@ -425,19 +430,19 @@ function handleSubscriptionDeleted(
     $stripeSubscriptionId = $sub->id       ?? null;
     $eventCreatedDt       = gmdate('Y-m-d H:i:s', $eventCreatedAt);
 
-    $practiceId = resolvePracticeByCustomer($pdo, $stripeCustomerId);
-    if (!$practiceId) {
-        error_log('[stripe-webhook] subscription.deleted: cannot resolve practice');
+    $ownerUserId = resolveOwnerByCustomer($pdo, $stripeCustomerId);
+    if (!$ownerUserId) {
+        error_log('[stripe-webhook] subscription.deleted: cannot resolve subscription owner');
         return;
     }
 
     $pdo->prepare("
-        UPDATE practices SET
-            subscription_status     = 'canceled',
+        UPDATE subscriptions SET
+            status                  = 'canceled',
             cancel_at_period_end    = 0,
             subscription_updated_at = UTC_TIMESTAMP(),
             stripe_event_created    = :event_created
-        WHERE id = :practice_id
+        WHERE owner_user_id = :owner_user_id
           AND stripe_subscription_id = :sub_id
           AND (
               stripe_event_created IS NULL
@@ -446,7 +451,7 @@ function handleSubscriptionDeleted(
     ")->execute([
         'event_created'  => $eventCreatedDt,
         'event_created2' => $eventCreatedDt,
-        'practice_id'    => $practiceId,
+        'owner_user_id'  => $ownerUserId,
         'sub_id'         => $stripeSubscriptionId,
     ]);
 }
@@ -469,21 +474,21 @@ function handleInvoicePaid(
         return; // One-time invoice, not a subscription invoice
     }
 
-    $practiceId = resolvePracticeByCustomer($pdo, $stripeCustomerId);
-    if (!$practiceId) {
+    $ownerUserId = resolveOwnerByCustomer($pdo, $stripeCustomerId);
+    if (!$ownerUserId) {
         return;
     }
 
     $pdo->prepare("
-        UPDATE practices SET
-            subscription_status     = 'active',
+        UPDATE subscriptions SET
+            status                  = 'active',
             subscription_updated_at = UTC_TIMESTAMP()
-        WHERE id = :practice_id
+        WHERE owner_user_id = :owner_user_id
           AND stripe_subscription_id = :sub_id
-          AND subscription_status IN ('past_due', 'unpaid')
+          AND status IN ('past_due', 'unpaid')
     ")->execute([
-        'practice_id' => $practiceId,
-        'sub_id'      => $stripeSubscriptionId,
+        'owner_user_id' => $ownerUserId,
+        'sub_id'        => $stripeSubscriptionId,
     ]);
 }
 
@@ -505,21 +510,21 @@ function handleInvoicePaymentFailed(
         return;
     }
 
-    $practiceId = resolvePracticeByCustomer($pdo, $stripeCustomerId);
-    if (!$practiceId) {
+    $ownerUserId = resolveOwnerByCustomer($pdo, $stripeCustomerId);
+    if (!$ownerUserId) {
         return;
     }
 
     $pdo->prepare("
-        UPDATE practices SET
-            subscription_status     = 'past_due',
+        UPDATE subscriptions SET
+            status                  = 'past_due',
             subscription_updated_at = UTC_TIMESTAMP()
-        WHERE id = :practice_id
+        WHERE owner_user_id = :owner_user_id
           AND stripe_subscription_id = :sub_id
-          AND subscription_status NOT IN ('canceled', 'unpaid')
+          AND status NOT IN ('canceled', 'unpaid')
     ")->execute([
-        'practice_id' => $practiceId,
-        'sub_id'      => $stripeSubscriptionId,
+        'owner_user_id' => $ownerUserId,
+        'sub_id'        => $stripeSubscriptionId,
     ]);
 }
 
@@ -528,39 +533,23 @@ function handleInvoicePaymentFailed(
 // ════════════════════════════════════════════════════════════════════════════
 
 /**
- * Resolve practice DB ID from a Stripe Customer ID.
- * Returns int practice ID or null if not found.
+ * Resolve the subscription OWNER's user ID from a Stripe Customer ID.
+ * Returns int user ID or null if not found.
  * Throws PDOException on DB error (caught by outer transaction handler → 500).
  */
-function resolvePracticeByCustomer(PDO $pdo, ?string $stripeCustomerId): ?int {
+function resolveOwnerByCustomer(PDO $pdo, ?string $stripeCustomerId): ?int {
     if (empty($stripeCustomerId)) {
         return null;
     }
     $stmt = $pdo->prepare("
-        SELECT id FROM practices WHERE stripe_customer_id = ? LIMIT 1
+        SELECT owner_user_id FROM subscriptions WHERE stripe_customer_id = ? LIMIT 1
     ");
     $stmt->execute([$stripeCustomerId]);
     $id = $stmt->fetchColumn();
     return $id ? (int)$id : null;
 }
 
-/**
- * Map a Stripe Price ID to [plan, interval] using the server-side config.
- * Returns ['unknown', null] for unrecognized Price IDs.
- * Never trusts plan/interval from Stripe metadata.
- */
-function resolvePlanFromPriceId(?string $priceId, array $appConfig): array {
-    if (empty($priceId)) {
-        return ['unknown', null];
-    }
-    $prices = $appConfig['stripe']['prices'] ?? [];
-    foreach ($prices as $plan => $intervals) {
-        foreach ($intervals as $interval => $configuredId) {
-            if (!empty($configuredId) && $configuredId === $priceId) {
-                return [$plan, $interval];
-            }
-        }
-    }
-    error_log('[stripe-webhook] Unrecognized Price ID: ' . substr($priceId, 0, 30));
-    return ['unknown', null];
-}
+// resolvePlanFromPriceId() now lives in api/stripe-price-map.php (required
+// at the top of this file) so checkout and webhook handling share one
+// authoritative Price ID <-> plan mapping. Plan identification here still
+// comes only from configured Stripe Price IDs, never from event metadata.

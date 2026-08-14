@@ -26,6 +26,7 @@ require_once __DIR__ . '/appConfig.php';
 require_once __DIR__ . '/practice-security.php';
 require_once __DIR__ . '/billing-bypass.php';
 require_once __DIR__ . '/csrf.php';
+require_once __DIR__ . '/subscription-owner.php';
 
 // ── Auth ─────────────────────────────────────────────────────────────────────
 if (!isset($_SESSION['db_user_id'])) {
@@ -81,13 +82,19 @@ if (empty($secretKey)) {
     exit;
 }
 
-// ── Load Stripe Customer ID from DB ─────────────────────────────────────────
+// ── Load Stripe Customer ID from the subscription OWNER's row ───────────────
+// A subscription belongs to the subscription owner (practice_users.is_owner
+// = 1), not to the current practice — resolve the owner first.
 try {
-    $stmt = $pdo->prepare("
-        SELECT stripe_customer_id FROM practices WHERE id = ? LIMIT 1
-    ");
-    $stmt->execute([$currentPracticeId]);
-    $stripeCustomerId = $stmt->fetchColumn();
+    $ownerUserId = getSubscriptionOwnerUserId($pdo, $currentPracticeId);
+    $stripeCustomerId = null;
+    if ($ownerUserId !== null) {
+        $stmt = $pdo->prepare("
+            SELECT stripe_customer_id FROM subscriptions WHERE owner_user_id = ? LIMIT 1
+        ");
+        $stmt->execute([$ownerUserId]);
+        $stripeCustomerId = $stmt->fetchColumn();
+    }
 } catch (PDOException $e) {
     error_log('create-portal-session: DB error: ' . $e->getMessage());
     http_response_code(500);

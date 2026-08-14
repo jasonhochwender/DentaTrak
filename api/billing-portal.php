@@ -2,12 +2,13 @@
 /**
  * Billing Portal API
  *
- * Returns authoritative practice-level subscription state for the Billing modal.
+ * Returns authoritative subscription state for the Billing modal, resolved
+ * from the CURRENT practice's subscription OWNER (see
+ * api/subscription-owner.php). A subscription belongs to the owner
+ * account, not to any single practice — every practice that owner has
+ * created shares this same plan/trial/billing cycle.
  * Read-only — all mutations go through create-checkout-session.php,
  * create-portal-session.php, and stripe-webhook.php.
- *
- * The trial period is stored on the practice row (trial_ends_at), not on the user.
- * One trial belongs to the practice, set at creation time in accept-baa.php.
  */
 
 require_once __DIR__ . '/bootstrap.php';
@@ -25,6 +26,7 @@ require_once __DIR__ . '/appConfig.php';
 require_once __DIR__ . '/practice-security.php';
 require_once __DIR__ . '/billing-bypass.php';
 require_once __DIR__ . '/subscription-access.php';
+require_once __DIR__ . '/subscription-owner.php';
 
 try {
     $currentPracticeId = requireValidPracticeContext();
@@ -55,57 +57,58 @@ try {
     }
     $isBypassUser = isBillingBypassEmail($userRow['email']);
 
-    // ── Load practice Stripe + trial fields ──────────────────────────────────
-    $practiceRow     = null;
+    // ── Load the OWNER's subscription/trial fields ───────────────────────────
+    // A subscription belongs to the subscription owner (practice_users.is_owner
+    // = 1), not to the current practice — resolve the owner first, then read
+    // their single shared subscriptions row.
+    $ownerRow        = null;
     $hasSubscription = false;
     $subscription    = null;
 
+    $ownerUserId = getSubscriptionOwnerUserId($pdo, $currentPracticeId);
+
     try {
-        $pStmt = $pdo->prepare("
-            SELECT
-                stripe_customer_id,
-                stripe_subscription_id,
-                stripe_price_id,
-                subscription_plan,
-                billing_interval,
-                subscription_status,
-                trial_ends_at,
-                current_period_ends_at,
-                cancel_at_period_end,
-                subscription_updated_at
-            FROM practices
-            WHERE id = ?
-            LIMIT 1
-        ");
-        $pStmt->execute([$currentPracticeId]);
-        $practiceRow = $pStmt->fetch(PDO::FETCH_ASSOC);
+        $ownerRow = $ownerUserId !== null ? getSubscriptionForOwner($pdo, $ownerUserId) : null;
     } catch (PDOException $e) {
-        if (strpos($e->getMessage(), 'Unknown column') !== false) {
-            error_log('billing-portal.php: Stripe columns missing — run api/migrate-stripe-fields.php');
-            $practiceRow = [];
+        if (strpos($e->getMessage(), "doesn't exist") !== false) {
+            error_log('billing-portal.php: subscriptions table missing — run api/migrate-subscription-owner.php');
+            $ownerRow = null;
         } else {
             throw $e;
         }
     }
 
-    $practiceRow = $practiceRow ?: [];
+    // Map subscriptions table columns onto the field names getSubscriptionAccess()
+    // expects (historically named after the deprecated per-practice columns).
+    $mappedRow = $ownerRow ? [
+        'stripe_customer_id'      => $ownerRow['stripe_customer_id'],
+        'stripe_subscription_id'  => $ownerRow['stripe_subscription_id'],
+        'stripe_price_id'         => $ownerRow['stripe_price_id'],
+        'subscription_plan'       => $ownerRow['plan'],
+        'billing_interval'        => $ownerRow['billing_interval'],
+        'subscription_status'     => $ownerRow['status'],
+        'trial_ends_at'           => $ownerRow['trial_ends_at'],
+        'current_period_ends_at'  => $ownerRow['current_period_ends_at'],
+        'cancel_at_period_end'    => $ownerRow['cancel_at_period_end'],
+        'subscription_updated_at' => $ownerRow['subscription_updated_at'],
+    ] : [];
 
-    if (!empty($practiceRow['stripe_subscription_id'])) {
+    if (!empty($mappedRow['stripe_subscription_id'])) {
         $hasSubscription = true;
         $subscription    = [
-            'plan'                   => $practiceRow['subscription_plan'],
-            'billing_interval'       => $practiceRow['billing_interval'],
-            'status'                 => $practiceRow['subscription_status'],
-            'trial_ends_at'          => $practiceRow['trial_ends_at'],
-            'current_period_ends_at' => $practiceRow['current_period_ends_at'],
-            'cancel_at_period_end'   => (bool)($practiceRow['cancel_at_period_end'] ?? false),
-            'has_stripe_customer'    => !empty($practiceRow['stripe_customer_id']),
+            'plan'                   => $mappedRow['subscription_plan'],
+            'billing_interval'       => $mappedRow['billing_interval'],
+            'status'                 => $mappedRow['subscription_status'],
+            'trial_ends_at'          => $mappedRow['trial_ends_at'],
+            'current_period_ends_at' => $mappedRow['current_period_ends_at'],
+            'cancel_at_period_end'   => (bool)($mappedRow['cancel_at_period_end'] ?? false),
+            'has_stripe_customer'    => !empty($mappedRow['stripe_customer_id']),
         ];
         // Never expose stripe_customer_id or stripe_subscription_id to the browser
     }
 
     // ── Evaluate access state ────────────────────────────────────────────────
-    $access = getSubscriptionAccess($practiceRow);
+    $access = getSubscriptionAccess($mappedRow);
 
     // ── Display prices from config (cents) ───────────────────────────────────
     $displayPrices = $appConfig['stripe']['display_prices'] ?? [];

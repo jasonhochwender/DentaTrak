@@ -348,9 +348,11 @@
   }
 
   // Static benefit copy per plan — display only, no pricing/billing logic here.
+  // Amounts always come from display_prices (server config), never hardcoded.
   var PLAN_INFO = {
     operate: {
       label: 'Operate',
+      practices: '1 practice',
       benefits: [
         'Unlimited case tracking',
         'Up to 5 users',
@@ -361,6 +363,7 @@
     },
     control: {
       label: 'Control',
+      practices: 'Up to 2 practices',
       benefits: [
         'Everything in Operate',
         'Unlimited users',
@@ -369,17 +372,30 @@
         'Advanced practice oversight',
       ],
     },
+    scale: {
+      label: 'Scale',
+      practices: 'Up to 50 practices',
+      benefits: [
+        'Everything in Control, plus support for up to 50 practices',
+      ],
+    },
   };
 
-  // ── Render: single plan card (Operate or Control) ────────────────────────────
+  // Plan display order, lowest tier first. Mirrors PLAN_TIER_RANK in
+  // api/plan-entitlements.php.
+  var PLAN_ORDER = ['operate', 'control', 'scale'];
+
+  // ── Render: single plan card (Operate, Control, or Scale) ────────────────────
   function renderPlanCard(planKey, prices, interval) {
     var info      = PLAN_INFO[planKey];
+    if (!info) return '';
     var isFeatured = planKey === 'control';
     var cents     = (prices[planKey] && prices[planKey][interval]) ? prices[planKey][interval] : null;
     var priceStr  = cents ? formatCents(cents) : '';
     var perStr    = interval === 'month' ? '/month' : '/year';
 
-    var html = '<div class="bp-plan-card' + (isFeatured ? ' bp-plan-card--featured' : '') + '">';
+    var html = '<div class="bp-plan-card' + (isFeatured ? ' bp-plan-card--featured' : '') +
+               '" data-plan-card="' + escHtml(planKey) + '">';
     if (isFeatured) {
       html += '<div class="bp-plan-badge">Most Popular</div>';
     }
@@ -389,6 +405,7 @@
           '<span class="bp-plan-per">' + escHtml(perStr) + '</span>' +
         '</div>' +
         (interval === 'year' ? '<div class="bp-plan-savings">Save 2 months</div>' : '') +
+        '<div class="bp-plan-practices">' + escHtml(info.practices) + '</div>' +
         '<ul class="bp-plan-benefits">';
     info.benefits.forEach(function (b) {
       html += '<li>' + checkIcon() + '<span>' + escHtml(b) + '</span></li>';
@@ -403,7 +420,7 @@
     return html;
   }
 
-  // ── Render: plan selection grid (Annual/Monthly toggle + Operate/Control cards) ─
+  // ── Render: plan selection grid (Annual/Monthly toggle + plan cards) ─────────
   function renderPlanGrid(prices, trialEndsAt) {
     var footerNote = trialEndsAt
       ? 'Your first charge occurs when your trial ends on ' + formatDate(trialEndsAt) + '.'
@@ -415,11 +432,11 @@
         '<button type="button" class="bp-interval-btn' + (selectedInterval === 'month' ? ' active' : '') + '" data-interval="month">Monthly</button>' +
       '</div>';
 
-    var cardsHtml =
-      '<div class="bp-plan-grid">' +
-        renderPlanCard('operate', prices, selectedInterval) +
-        renderPlanCard('control', prices, selectedInterval) +
-      '</div>';
+    var cardsHtml = '<div class="bp-plan-grid">';
+    PLAN_ORDER.forEach(function (planKey) {
+      cardsHtml += renderPlanCard(planKey, prices, selectedInterval);
+    });
+    cardsHtml += '</div>';
 
     var footerHtml =
       '<p class="bp-plan-note">' +
@@ -508,7 +525,13 @@
   }
 
   function formatPlan(slug) {
-    var map = { evaluate: 'Evaluate (Trial)', operate: 'Operate', control: 'Control', unknown: 'Unknown' };
+    var map = {
+      evaluate: 'Evaluate (Trial)',
+      operate:  'Operate',
+      control:  'Control',
+      scale:    'Scale',
+      unknown:  'Unknown',
+    };
     return map[slug] || capitalize(slug || 'Unknown');
   }
 

@@ -1,13 +1,25 @@
 <?php
 /**
  * Update Practice API Endpoint
- * Creates or updates a dental practice
+ * Updates an existing dental practice's name.
+ *
+ * Practice CREATION no longer happens here. It used to (see the git history
+ * for the old $practiceId-less branch), but practice creation is now
+ * exclusively handled by api/accept-baa.php, which - unlike this endpoint -
+ * atomically: (a) locks and gets-or-creates the subscription OWNER's single
+ * `subscriptions` row (api/subscription-owner.php), (b) enforces that
+ * owner's plan-based practice-count limit (api/plan-entitlements.php), and
+ * (c) requires BAA acceptance. This endpoint had none of those guards, so a
+ * request with no `practice_id` created a practice with no entitlement
+ * check at all - a direct bypass of the Operate/Control/Scale limits - and
+ * with practices.subscription_status/trial_ends_at (deprecated, unused
+ * elsewhere) instead of the owner-level subscription. See
+ * tests/practice/practice-limit-entitlement.spec.ts for the regression
+ * coverage of the limit this endpoint used to be able to bypass.
  */
 
 require_once __DIR__ . '/appConfig.php';
-require_once __DIR__ . '/practice-trial.php';
 require_once __DIR__ . '/user-manager.php';
-require_once __DIR__ . '/google-drive.php';
 
 // Start session if not already started
 if (session_status() === PHP_SESSION_NONE) {
@@ -45,106 +57,72 @@ if (!isset($data['practice_name']) || empty($data['practice_name'])) {
 $practiceName = $data['practice_name'];
 $practiceId = isset($data['practice_id']) ? $data['practice_id'] : null;
 
+// Practice creation (no practice_id) is no longer supported here - see the
+// file-level docblock. Reject rather than silently creating an
+// unentitled, un-BAA'd practice.
+if (!$practiceId) {
+    http_response_code(410);
+    echo json_encode([
+        'success' => false,
+        'message' => 'Practice creation has moved. Please use the Business Associate Agreement flow (baa-acceptance.php) to create a practice.',
+        'error_code' => 'MOVED_TO_BAA_FLOW',
+    ]);
+    exit;
+}
+
 try {
     // Start transaction
     $pdo->beginTransaction();
 
-    if ($practiceId) {
-        // Check if user has admin access to this practice
-        $stmt = $pdo->prepare("
-            SELECT practice_users.role
-            FROM practice_users
-            WHERE practice_id = :practice_id AND user_id = :user_id
-        ");
-        $stmt->execute([
-            'practice_id' => $practiceId,
-            'user_id' => $userId
+    // Check if user has admin access to this practice
+    $stmt = $pdo->prepare("
+        SELECT practice_users.role
+        FROM practice_users
+        WHERE practice_id = :practice_id AND user_id = :user_id
+    ");
+    $stmt->execute([
+        'practice_id' => $practiceId,
+        'user_id' => $userId
+    ]);
+    $userRole = $stmt->fetchColumn();
+
+    if ($userRole !== 'admin') {
+        $pdo->rollBack();
+        http_response_code(403);
+        echo json_encode([
+            'success' => false,
+            'message' => 'You do not have permission to update this practice'
         ]);
-        $userRole = $stmt->fetchColumn();
+        exit;
+    }
 
-        if ($userRole !== 'admin') {
-            $pdo->rollBack();
-            http_response_code(403);
-            echo json_encode([
-                'success' => false,
-                'message' => 'You do not have permission to update this practice'
-            ]);
-            exit;
-        }
+    // Update existing practice
+    $legalName = isset($data['legal_name']) ? $data['legal_name'] : null;
 
-        // Update existing practice
-        $legalName = isset($data['legal_name']) ? $data['legal_name'] : null;
-
-        if ($legalName) {
-            $stmt = $pdo->prepare("
-                UPDATE practices
-                SET practice_name = :practice_name,
-                    legal_name = :legal_name,
-                    display_name = COALESCE(display_name, :display_name)
-                WHERE id = :id
-            ");
-            $result = $stmt->execute([
-                'practice_name' => $practiceName,
-                'legal_name' => $legalName,
-                'display_name' => $legalName,
-                'id' => $practiceId
-            ]);
-        } else {
-            $stmt = $pdo->prepare("
-                UPDATE practices
-                SET practice_name = :practice_name
-                WHERE id = :id
-            ");
-            $result = $stmt->execute([
-                'practice_name' => $practiceName,
-                'id' => $practiceId
-            ]);
-        }
-    } else {
-        $practiceUuid = uniqid('practice_', true);
-        $trial = getNewPracticeTrialDefaults();
-
+    if ($legalName) {
         $stmt = $pdo->prepare("
-            INSERT INTO practices (
-                practice_id, practice_name, created_by,
-                subscription_status, trial_ends_at
-            ) VALUES (
-                :practice_uuid, :practice_name, :created_by,
-                :subscription_status, :trial_ends_at
-            )
+            UPDATE practices
+            SET practice_name = :practice_name,
+                legal_name = :legal_name,
+                display_name = COALESCE(display_name, :display_name)
+            WHERE id = :id
         ");
         $result = $stmt->execute([
-            'practice_uuid' => $practiceUuid,
             'practice_name' => $practiceName,
-            'created_by' => $userId,
-            'subscription_status' => $trial['subscription_status'],
-            'trial_ends_at'       => $trial['trial_ends_at'],
+            'legal_name' => $legalName,
+            'display_name' => $legalName,
+            'id' => $practiceId
         ]);
-
-        $practiceId = $pdo->lastInsertId();
-
+    } else {
         $stmt = $pdo->prepare("
-            INSERT INTO practice_users (practice_id, user_id, role, is_owner)
-            VALUES (:practice_id, :user_id, 'admin', TRUE)
+            UPDATE practices
+            SET practice_name = :practice_name
+            WHERE id = :id
         ");
-        $stmt->execute([
-            'practice_id' => $practiceId,
-            'user_id' => $userId
+        $result = $stmt->execute([
+            'practice_name' => $practiceName,
+            'id' => $practiceId
         ]);
-
-        // CRITICAL: Set the session to the newly created practice IMMEDIATELY
-        // This ensures subsequent requests are scoped to this practice
-        $_SESSION['current_practice_id'] = $practiceId;
-        $_SESSION['needs_practice_setup'] = false;
-        $_SESSION['needs_practice_selection'] = false;
-
-        // Log the practice creation for security audit
-        error_log("[SECURITY] New practice created: practice_id={$practiceId}, user_id={$userId}, name={$practiceName}");
-
-        try {
-            getPracticeRootFolder($practiceId);
-        } catch (Exception $e) {
-        }
     }
 
     // Commit transaction
@@ -162,7 +140,7 @@ try {
     // Return the practice ID in the response so the frontend can verify
     echo json_encode([
         'success' => true,
-        'message' => $practiceId ? 'Practice updated successfully' : 'Practice created successfully',
+        'message' => 'Practice updated successfully',
         'practice' => $practice,
         'current_practice_id' => $_SESSION['current_practice_id'] // Include for verification
     ]);

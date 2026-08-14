@@ -204,8 +204,11 @@ function getSubscriptionAccess(array $practice): array {
  * Mirrors the pre-existing rule already used by Smart Recommendations
  * (api/ai-recommendations.php): an active DentaTrak/Stripe trial always
  * grants Control-level access regardless of the practice's selected plan;
- * outside of a trial, the practice's real subscription_plan must be
- * 'control'. This is a permission-agnostic check — callers must separately
+ * outside of a trial, the practice's real subscription_plan must be at
+ * least Control. Plans are cumulative, so any tier above Control (Scale,
+ * and any future higher tier) also passes — the comparison is delegated to
+ * planMeetsTier() in api/plan-entitlements.php rather than enumerating plan
+ * names here. This is a permission-agnostic check — callers must separately
  * enforce can_view_analytics (or any other user-level permission); this
  * function only answers the practice's subscription entitlement.
  *
@@ -241,48 +244,62 @@ function hasControlAccess(PDO $pdo, int $practiceId, string $userEmail = ''): bo
 
     // Active practice trial (Stripe-trialing or DentaTrak's own trial)
     // always grants Control-level access — preserves existing trial
-    // behavior; do not require subscription_plan === 'control' here.
+    // behavior; do not require a specific subscription_plan here.
     if ($access['status'] === 'trialing') {
         return true;
     }
 
-    return ($access['subscription_plan'] ?? null) === 'control';
+    // Control or higher (Scale includes everything in Control).
+    require_once __DIR__ . '/plan-entitlements.php';
+    return planMeetsTier($access['subscription_plan'] ?? null, 'control');
 }
 
 /**
- * Load the practice row for the current session and return its subscription access.
- * Returns null if the practice cannot be found.
+ * Resolve a practice's subscription access via its OWNER's subscription
+ * row. A subscription belongs to the subscription owner (the user with
+ * practice_users.is_owner = 1 for this practice — see
+ * api/subscription-owner.php), not to the practice itself, so every
+ * practice a given owner has created shares the same plan/trial/billing
+ * cycle. Returns null if the practice cannot be found or has no resolvable
+ * owner.
  *
  * @param PDO $pdo
  * @param int $practiceId
  * @return array|null
  */
 function getPracticeSubscriptionAccess(PDO $pdo, int $practiceId): ?array {
+    require_once __DIR__ . '/subscription-owner.php';
+
+    $ownerUserId = getSubscriptionOwnerUserId($pdo, $practiceId);
+    if ($ownerUserId === null) {
+        return null;
+    }
+
     try {
-        $stmt = $pdo->prepare("
-            SELECT
-                subscription_status,
-                trial_ends_at,
-                current_period_ends_at,
-                stripe_subscription_id,
-                stripe_customer_id,
-                cancel_at_period_end,
-                subscription_plan,
-                billing_interval
-            FROM practices
-            WHERE id = ?
-            LIMIT 1
-        ");
-        $stmt->execute([$practiceId]);
-        $row = $stmt->fetch(PDO::FETCH_ASSOC);
-        if (!$row) {
-            return null;
+        $subscription = getSubscriptionForOwner($pdo, $ownerUserId);
+        if (!$subscription) {
+            // Owner has no subscriptions row yet (e.g. migration hasn't run) —
+            // fail open, matches the previous "treat as trialing" behavior.
+            return getSubscriptionAccess([]);
         }
-        return getSubscriptionAccess($row);
+
+        // Map subscriptions table columns onto the field names
+        // getSubscriptionAccess() expects (historically named after the
+        // deprecated per-practice columns on `practices`).
+        return getSubscriptionAccess([
+            'subscription_status'    => $subscription['status'],
+            'trial_ends_at'          => $subscription['trial_ends_at'],
+            'current_period_ends_at' => $subscription['current_period_ends_at'],
+            'stripe_subscription_id' => $subscription['stripe_subscription_id'],
+            'stripe_customer_id'     => $subscription['stripe_customer_id'],
+            'cancel_at_period_end'   => $subscription['cancel_at_period_end'],
+            'subscription_plan'      => $subscription['plan'],
+            'billing_interval'       => $subscription['billing_interval'],
+        ]);
     } catch (PDOException $e) {
-        // Stripe columns may not exist yet — fail open (treat as trialing)
-        if (strpos($e->getMessage(), 'Unknown column') !== false) {
-            error_log('[subscription-access] Stripe columns missing — run migrate-stripe-fields.php');
+        // subscriptions table may not exist yet — fail open (treat as trialing)
+        if (strpos($e->getMessage(), 'Unknown column') !== false || strpos($e->getMessage(), "doesn't exist") !== false) {
+            error_log('[subscription-access] subscriptions table missing — run migrate-subscription-owner.php');
             return getSubscriptionAccess([]);
         }
         throw $e;

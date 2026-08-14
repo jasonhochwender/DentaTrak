@@ -2,14 +2,22 @@
 /**
  * Create Stripe Checkout Session
  *
- * Accepts:  POST JSON { "plan": "operate"|"control", "interval": "month"|"year" }
+ * Accepts:  POST JSON { "plan": "operate"|"control"|"scale", "interval": "month"|"year" }
  * Returns:  { "checkout_url": "https://checkout.stripe.com/..." }
- *        or { "portal_url": "..." }  when the practice already has an active subscription
+ *        or { "portal_url": "..." }  when the owner already has an active subscription
  *        or { "error": "..." }
  *
+ * A subscription belongs to the CURRENT practice's subscription OWNER (see
+ * api/subscription-owner.php), not to the practice itself — every practice
+ * that owner has created shares this one Stripe customer/subscription.
+ *
  * Security contract:
- *   - Plan and interval are validated server-side.
- *   - Price ID is resolved from server config — never from the browser.
+ *   - Plan and interval are validated server-side against the canonical plan
+ *     list (api/plan-entitlements.php).
+ *   - Price ID is resolved from server config for the RUNNING environment via
+ *     api/stripe-price-map.php — never from the browser, and never from
+ *     another environment (a plan with no Price ID configured here fails
+ *     closed rather than falling back).
  *   - Stripe Customer ID is always read from the DB, never from the browser.
  *   - trial_end is the existing DentaTrak trial_ends_at, never a new 90-day window.
  *   - CSRF token required.
@@ -29,6 +37,9 @@ require_once __DIR__ . '/appConfig.php';
 require_once __DIR__ . '/practice-security.php';
 require_once __DIR__ . '/billing-bypass.php';
 require_once __DIR__ . '/csrf.php';
+require_once __DIR__ . '/subscription-owner.php';
+require_once __DIR__ . '/plan-entitlements.php';
+require_once __DIR__ . '/stripe-price-map.php';
 
 // ── Auth ─────────────────────────────────────────────────────────────────────
 if (!isset($_SESSION['db_user_id'])) {
@@ -77,12 +88,14 @@ if (!is_array($body)) {
 $plan     = $body['plan']     ?? '';
 $interval = $body['interval'] ?? '';
 
-$allowedPlans     = ['operate', 'control'];
+// Canonical plan list comes from plan-entitlements.php so a new tier is
+// purchasable as soon as it is defined there and given Price IDs.
+$allowedPlans     = getKnownPlans();
 $allowedIntervals = ['month', 'year'];
 
 if (!in_array($plan, $allowedPlans, true)) {
     http_response_code(400);
-    echo json_encode(['error' => 'Invalid plan. Must be operate or control']);
+    echo json_encode(['error' => 'Invalid plan. Must be one of: ' . implode(', ', $allowedPlans)]);
     exit;
 }
 if (!in_array($interval, $allowedIntervals, true)) {
@@ -102,12 +115,22 @@ if (!empty($stripeConfig['config_error'])) {
     exit;
 }
 
-$priceId = $stripeConfig['prices'][$plan][$interval] ?? null;
+// Resolve against the CURRENT environment's configured Price IDs only.
+// A known plan with no Price ID configured for this environment (e.g. Scale
+// in production before its live Price IDs are created) is a controlled,
+// expected outcome: fail closed with a clear message. Never substitute
+// another environment's or another plan's Price ID.
+$priceId = getStripePriceId($plan, $interval, $appConfig);
 
-if (empty($priceId)) {
-    error_log("create-checkout-session: Price ID not configured for {$plan}/{$interval} in environment '{$stripeConfig['environment']}'");
-    http_response_code(500);
-    echo json_encode(['error' => 'Billing configuration error. Please contact support.']);
+if ($priceId === null) {
+    error_log("create-checkout-session: no Price ID configured for {$plan}/{$interval} in Stripe environment '" .
+              ($stripeConfig['environment'] ?? 'unknown') . "' - set STRIPE_" . strtoupper($plan) . '_' .
+              ($interval === 'month' ? 'MONTHLY' : 'ANNUAL') . '_PRICE_ID for this environment');
+    http_response_code(503);
+    echo json_encode([
+        'error'      => 'The ' . getPlanDisplayName($plan) . ' plan is not available for purchase yet. Please contact support.',
+        'error_code' => 'plan_not_available',
+    ]);
     exit;
 }
 
@@ -120,45 +143,39 @@ if (empty($secretKey)) {
     exit;
 }
 
-// ── Load practice row ────────────────────────────────────────────────────────
-try {
-    $practiceStmt = $pdo->prepare("
-        SELECT
-            stripe_customer_id,
-            stripe_subscription_id,
-            subscription_status,
-            trial_ends_at,
-            practice_name
-        FROM practices
-        WHERE id = ?
-        LIMIT 1
-    ");
-    $practiceStmt->execute([$currentPracticeId]);
-    $practice = $practiceStmt->fetch(PDO::FETCH_ASSOC);
-} catch (PDOException $e) {
-    error_log('create-checkout-session: DB error loading practice: ' . $e->getMessage());
+// ── Resolve the subscription OWNER for the current practice ──────────────────
+$ownerUserId = getSubscriptionOwnerUserId($pdo, $currentPracticeId);
+if ($ownerUserId === null) {
+    error_log("create-checkout-session: no subscription owner found for practice {$currentPracticeId}");
     http_response_code(500);
     echo json_encode(['error' => 'Internal server error']);
     exit;
 }
 
-if (!$practice) {
-    http_response_code(404);
-    echo json_encode(['error' => 'Practice not found']);
+try {
+    $practiceNameStmt = $pdo->prepare("SELECT practice_name FROM practices WHERE id = ? LIMIT 1");
+    $practiceNameStmt->execute([$currentPracticeId]);
+    $practiceName = $practiceNameStmt->fetchColumn() ?: "Practice #{$currentPracticeId}";
+
+    $subscription = getOrCreateSubscriptionForOwner($pdo, $ownerUserId);
+} catch (PDOException $e) {
+    error_log('create-checkout-session: DB error loading owner subscription: ' . $e->getMessage());
+    http_response_code(500);
+    echo json_encode(['error' => 'Internal server error']);
     exit;
 }
 
 // ── Guard: already has a manageable subscription ─────────────────────────────
-// If the practice has an active/trialing/past_due Stripe subscription, redirect
+// If the owner has an active/trialing/past_due Stripe subscription, redirect
 // them to the Customer Portal rather than creating a duplicate subscription.
 $manageableStatuses = ['active', 'trialing', 'past_due', 'unpaid'];
 if (
-    !empty($practice['stripe_subscription_id']) &&
-    in_array($practice['subscription_status'], $manageableStatuses, true)
+    !empty($subscription['stripe_subscription_id']) &&
+    in_array($subscription['status'], $manageableStatuses, true)
 ) {
     // Return a portal URL instead of starting a duplicate Checkout
     try {
-        $portalUrl = createPortalSession($pdo, $currentPracticeId, $appConfig);
+        $portalUrl = createPortalSession($pdo, $ownerUserId, $appConfig);
         echo json_encode(['portal_url' => $portalUrl]);
     } catch (Exception $e) {
         error_log('create-checkout-session: portal redirect failed: ' . $e->getMessage());
@@ -171,9 +188,9 @@ if (
 // ── Determine trial_end for Stripe ───────────────────────────────────────────
 // Use the existing DentaTrak trial_ends_at — never create a new trial.
 $stripeTrialEnd = null;
-if (!empty($practice['trial_ends_at'])) {
+if (!empty($subscription['trial_ends_at'])) {
     try {
-        $trialEnd = new DateTimeImmutable($practice['trial_ends_at'], new DateTimeZone('UTC'));
+        $trialEnd = new DateTimeImmutable($subscription['trial_ends_at'], new DateTimeZone('UTC'));
         $now      = new DateTimeImmutable('now', new DateTimeZone('UTC'));
         if ($trialEnd > $now) {
             $stripeTrialEnd = $trialEnd->getTimestamp();
@@ -192,21 +209,23 @@ $baseUrl = rtrim($appConfig['app_base_url'] ?? 'https://dentatrak.com', '/');
 
 try {
     // ── Create or reuse Stripe Customer ──────────────────────────────────────
-    $stripeCustomerId = $practice['stripe_customer_id'] ?? null;
+    // The Stripe Customer belongs to the subscription OWNER, not the practice
+    // currently being viewed — reused across every practice that owner creates.
+    $stripeCustomerId = $subscription['stripe_customer_id'] ?? null;
 
     if (empty($stripeCustomerId)) {
         $customer = \Stripe\Customer::create([
             'metadata' => [
-                'dentatrak_practice_id' => (string)$currentPracticeId,
+                'dentatrak_owner_user_id' => (string)$ownerUserId,
             ],
-            'description' => $practice['practice_name'] ?? "Practice #{$currentPracticeId}",
+            'description' => $practiceName,
         ]);
         $stripeCustomerId = $customer->id;
 
         // Persist Customer ID immediately so it survives abandoned checkouts
         $pdo->prepare("
-            UPDATE practices SET stripe_customer_id = ? WHERE id = ?
-        ")->execute([$stripeCustomerId, $currentPracticeId]);
+            UPDATE subscriptions SET stripe_customer_id = ? WHERE owner_user_id = ?
+        ")->execute([$stripeCustomerId, $ownerUserId]);
     }
 
     // ── Build Checkout Session params ─────────────────────────────────────────
@@ -221,15 +240,15 @@ try {
         'success_url'           => $baseUrl . '/main.php?checkout=success',
         'cancel_url'            => $baseUrl . '/main.php?checkout=canceled',
         'metadata'              => [
-            'dentatrak_practice_id' => (string)$currentPracticeId,
-            'plan'                  => $plan,
-            'interval'              => $interval,
+            'dentatrak_owner_user_id' => (string)$ownerUserId,
+            'plan'                    => $plan,
+            'interval'                => $interval,
         ],
         'subscription_data'     => [
             'metadata' => [
-                'dentatrak_practice_id' => (string)$currentPracticeId,
-                'plan'                  => $plan,
-                'interval'              => $interval,
+                'dentatrak_owner_user_id' => (string)$ownerUserId,
+                'plan'                    => $plan,
+                'interval'                => $interval,
             ],
         ],
     ];
@@ -254,17 +273,17 @@ try {
 }
 
 /**
- * Build a Stripe Customer Portal session URL for the given practice.
- * Passes portal_configuration_id when configured so the correct portal
- * configuration (e.g. bpc_...) is used in both test and live environments.
- * Returns the URL string on success, throws on failure.
+ * Build a Stripe Customer Portal session URL for the given subscription
+ * OWNER. Passes portal_configuration_id when configured so the correct
+ * portal configuration (e.g. bpc_...) is used in both test and live
+ * environments. Returns the URL string on success, throws on failure.
  */
-function createPortalSession(PDO $pdo, int $practiceId, array $appConfig): string {
-    $pStmt = $pdo->prepare("SELECT stripe_customer_id FROM practices WHERE id = ? LIMIT 1");
-    $pStmt->execute([$practiceId]);
-    $cid = $pStmt->fetchColumn();
+function createPortalSession(PDO $pdo, int $ownerUserId, array $appConfig): string {
+    $sStmt = $pdo->prepare("SELECT stripe_customer_id FROM subscriptions WHERE owner_user_id = ? LIMIT 1");
+    $sStmt->execute([$ownerUserId]);
+    $cid = $sStmt->fetchColumn();
     if (empty($cid)) {
-        throw new RuntimeException('No Stripe customer found for this practice');
+        throw new RuntimeException('No Stripe customer found for this subscription owner');
     }
     $baseUrl = rtrim($appConfig['app_base_url'] ?? 'https://dentatrak.com', '/');
     $params  = [

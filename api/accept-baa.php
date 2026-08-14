@@ -12,6 +12,9 @@ require_once __DIR__ . '/practice-trial.php';
 require_once __DIR__ . '/practice-security.php';
 require_once __DIR__ . '/user-manager.php';
 require_once __DIR__ . '/csrf.php';
+require_once __DIR__ . '/subscription-owner.php';
+require_once __DIR__ . '/plan-entitlements.php';
+require_once __DIR__ . '/billing-bypass.php';
 
 // Start session if not already started
 if (session_status() === PHP_SESSION_NONE) {
@@ -139,61 +142,102 @@ try {
     $creatingNew = !empty($data['new']) || !$practiceId;
 
     if ($creatingNew) {
-        // User doesn't have a practice yet - create one
-        $practiceUuid = sprintf(
-            '%04x%04x-%04x-%04x-%04x-%04x%04x%04x',
-            mt_rand(0, 0xffff), mt_rand(0, 0xffff),
-            mt_rand(0, 0xffff),
-            mt_rand(0, 0x0fff) | 0x4000,
-            mt_rand(0, 0x3fff) | 0x8000,
-            mt_rand(0, 0xffff), mt_rand(0, 0xffff), mt_rand(0, 0xffff)
-        );
+        // A subscription belongs to the OWNER (this user), not to any one
+        // practice. Every practice this user owns (practice_users.is_owner=1)
+        // shares that single subscription/trial/plan - see
+        // api/subscription-owner.php and api/plan-entitlements.php. The
+        // limit check and the practice INSERT happen in one transaction,
+        // with the owner's subscription row locked throughout, so two
+        // concurrent "create practice" requests from the same owner can
+        // never both succeed and exceed the plan's practice limit.
+        $ownerEmailStmt = $pdo->prepare("SELECT email FROM users WHERE id = :id");
+        $ownerEmailStmt->execute(['id' => $userId]);
+        $ownerEmail = $ownerEmailStmt->fetchColumn() ?: '';
 
-        $trial = getNewPracticeTrialDefaults();
+        $pdo->beginTransaction();
 
-        $stmt = $pdo->prepare("
-            INSERT INTO practices (
-                practice_id, practice_name, legal_name, display_name, practice_address,
-                baa_accepted, baa_accepted_at, baa_version, baa_accepted_by_user_id,
-                baa_signer_name, baa_signer_title, created_by,
-                subscription_status, trial_ends_at
-            ) VALUES (
-                :practice_uuid, :practice_name, :legal_name, :display_name, :practice_address,
-                1, UTC_TIMESTAMP(), :baa_version, :user_id,
-                :signer_name, :signer_title, :created_by,
-                :subscription_status, :trial_ends_at
-            )
-        ");
-        // NOTE: trial_ends_at is set once at practice creation and never reset.
-        // It is the DentaTrak trial end, not a Stripe trial. Stripe Checkout
-        // reads this value and forwards it to the subscription trial_end parameter.
+        try {
+            // Locks (and creates, on first-ever call for this owner) the
+            // owner's subscription row for the duration of this transaction.
+            getOrCreateSubscriptionForOwner($pdo, $userId);
 
-        $stmt->execute([
-            'practice_uuid' => $practiceUuid,
-            'practice_name' => $legalName, // Legacy field - keep in sync
-            'legal_name' => $legalName,
-            'display_name' => $legalName, // Default display name to legal name
-            'practice_address' => $practiceAddress,
-            'baa_version' => $baaVersion,
-            'user_id' => $userId,
-            'signer_name' => $signerName,
-            'signer_title' => $signerTitle,
-            'created_by' => $userId,
-            'subscription_status' => $trial['subscription_status'],
-            'trial_ends_at'       => $trial['trial_ends_at'],
-        ]);
+            $entitlement = evaluatePracticeCreationEntitlement($pdo, $userId, $ownerEmail);
 
-        $practiceId = $pdo->lastInsertId();
+            if (!$entitlement['allowed']) {
+                $pdo->rollBack();
+                http_response_code(403);
+                echo json_encode([
+                    'success'        => false,
+                    'error_code'     => 'PRACTICE_LIMIT_REACHED',
+                    'message'        => "Your {$entitlement['plan_name']} plan allows {$entitlement['max_practices']} owned practice(s). Upgrade to add another.",
+                    'plan'           => $entitlement['plan'],
+                    'plan_name'      => $entitlement['plan_name'],
+                    'max_practices'  => $entitlement['max_practices'],
+                    'current_count'  => $entitlement['current_count'],
+                    'upgrade_target' => $entitlement['upgrade_target'],
+                ]);
+                exit;
+            }
 
-        // Add user to practice_users as admin/owner
-        $stmt = $pdo->prepare("
-            INSERT INTO practice_users (practice_id, user_id, role, is_owner)
-            VALUES (:practice_id, :user_id, 'admin', TRUE)
-        ");
-        $stmt->execute([
-            'practice_id' => $practiceId,
-            'user_id' => $userId
-        ]);
+            $practiceUuid = sprintf(
+                '%04x%04x-%04x-%04x-%04x-%04x%04x%04x',
+                mt_rand(0, 0xffff), mt_rand(0, 0xffff),
+                mt_rand(0, 0xffff),
+                mt_rand(0, 0x0fff) | 0x4000,
+                mt_rand(0, 0x3fff) | 0x8000,
+                mt_rand(0, 0xffff), mt_rand(0, 0xffff), mt_rand(0, 0xffff)
+            );
+
+            // NOTE: practices.subscription_status / trial_ends_at are legacy,
+            // deprecated columns (see migrate-subscription-owner.php) and are
+            // deliberately left NULL for new practices. The authoritative
+            // trial/subscription state now lives on the owner's single
+            // `subscriptions` row (created/locked above), shared by every
+            // practice this owner creates.
+            $stmt = $pdo->prepare("
+                INSERT INTO practices (
+                    practice_id, practice_name, legal_name, display_name, practice_address,
+                    baa_accepted, baa_accepted_at, baa_version, baa_accepted_by_user_id,
+                    baa_signer_name, baa_signer_title, created_by
+                ) VALUES (
+                    :practice_uuid, :practice_name, :legal_name, :display_name, :practice_address,
+                    1, UTC_TIMESTAMP(), :baa_version, :user_id,
+                    :signer_name, :signer_title, :created_by
+                )
+            ");
+
+            $stmt->execute([
+                'practice_uuid' => $practiceUuid,
+                'practice_name' => $legalName, // Legacy field - keep in sync
+                'legal_name' => $legalName,
+                'display_name' => $legalName, // Default display name to legal name
+                'practice_address' => $practiceAddress,
+                'baa_version' => $baaVersion,
+                'user_id' => $userId,
+                'signer_name' => $signerName,
+                'signer_title' => $signerTitle,
+                'created_by' => $userId,
+            ]);
+
+            $practiceId = $pdo->lastInsertId();
+
+            // Add user to practice_users as admin/owner
+            $stmt = $pdo->prepare("
+                INSERT INTO practice_users (practice_id, user_id, role, is_owner)
+                VALUES (:practice_id, :user_id, 'admin', TRUE)
+            ");
+            $stmt->execute([
+                'practice_id' => $practiceId,
+                'user_id' => $userId
+            ]);
+
+            $pdo->commit();
+        } catch (PDOException $e) {
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+            throw $e;
+        }
 
         // Update session
         $_SESSION['current_practice_id'] = $practiceId;

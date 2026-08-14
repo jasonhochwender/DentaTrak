@@ -11,6 +11,8 @@ require_once __DIR__ . '/api/session.php';
 require_once __DIR__ . '/api/appConfig.php';
 require_once __DIR__ . '/api/csrf.php';
 require_once __DIR__ . '/api/security-headers.php';
+require_once __DIR__ . '/api/plan-entitlements.php';
+require_once __DIR__ . '/api/billing-bypass.php';
 setSecurityHeaders();
 
 // Generate CSRF token
@@ -94,6 +96,50 @@ if ($practiceId) {
 if ($hasBaaAccepted) {
     header('Location: main.php');
     exit;
+}
+
+// When creating an ADDITIONAL practice, check the user's own practice-count
+// entitlement before showing the onboarding form. A subscription (and its
+// practice-count limit) belongs to the subscription owner's account, not to
+// any single practice — see api/plan-entitlements.php. This is a UX
+// short-circuit only; api/accept-baa.php independently re-checks and is the
+// authoritative enforcement point.
+$entitlementBlocked = false;
+$entitlement = null;
+$upgradeUrl = null;
+if ($isCreatingNewPractice) {
+    $entitlementEmail = $_SESSION['user_email'] ?? ($_SESSION['user']['email'] ?? '');
+    $entitlement = evaluatePracticeCreationEntitlement($pdo, $userId, $entitlementEmail);
+    $entitlementBlocked = !$entitlement['allowed'];
+}
+
+// Build the upgrade call-to-action target. Upgrading uses the SAME in-app
+// Billing/Checkout flow as the Billing menu item (api/create-checkout-session.php
+// via the billing modal) - there is no separate upgrade path. Because this
+// page can be reached from the practice chooser with no practice selected,
+// route through select-practice.php first so main.php has a valid practice
+// context and doesn't bounce back to the chooser.
+if ($entitlementBlocked && !empty($entitlement['upgrade_target'])) {
+    $upgradePracticeId = $cancelReturnPracticeId;
+    if (!$upgradePracticeId) {
+        try {
+            $stmt = $pdo->prepare("
+                SELECT practice_id
+                FROM practice_users
+                WHERE user_id = :user_id AND is_owner = 1
+                ORDER BY practice_id ASC
+                LIMIT 1
+            ");
+            $stmt->execute(['user_id' => $userId]);
+            $ownedId = $stmt->fetchColumn();
+            $upgradePracticeId = $ownedId ? (int)$ownedId : null;
+        } catch (PDOException $e) {
+            $upgradePracticeId = null;
+        }
+    }
+    $upgradeUrl = $upgradePracticeId
+        ? 'api/select-practice.php?practice_id=' . $upgradePracticeId . '&redirect=1&billing=1'
+        : 'main.php?billing=1';
 }
 
 // Determine environment for visual cues
@@ -489,6 +535,28 @@ $baaVersion = 'v1.0-2026-08-07';
         </div>
         
         <div class="baa-content">
+            <?php if ($entitlementBlocked): ?>
+            <div class="baa-intro" style="background: #fef3c7; border-color: #fcd34d;">
+                <p style="color: #92400e;">
+                    <strong>Your <?php echo htmlspecialchars($entitlement['plan_name']); ?> plan allows <?php echo (int)$entitlement['max_practices']; ?> owned practice<?php echo $entitlement['max_practices'] === 1 ? '' : 's'; ?>.</strong>
+                    You already own <?php echo (int)$entitlement['current_count']; ?>.<?php echo !empty($entitlement['upgrade_target']) ? ' To create another practice, upgrade your plan.' : ''; ?>
+                </p>
+            </div>
+
+            <?php if ($entitlement['upgrade_target'] === 'control'): ?>
+            <p style="margin: 24px 0; color: #374151; line-height: 1.6;">
+                Upgrade to <strong>Control</strong> to own up to <?php echo getMaxOwnedPractices('control'); ?> practices under one account, plus advanced analytics and Smart Recommendations.
+            </p>
+            <?php elseif ($entitlement['upgrade_target'] === 'scale'): ?>
+            <p style="margin: 24px 0; color: #374151; line-height: 1.6;">
+                Upgrade to <strong>Scale</strong> to own up to <?php echo getMaxOwnedPractices('scale'); ?> practices under one account — everything in Control, plus support for up to <?php echo getMaxOwnedPractices('scale'); ?> practices.
+            </p>
+            <?php else: ?>
+            <p style="margin: 24px 0; color: #374151; line-height: 1.6;">
+                Your <?php echo htmlspecialchars($entitlement['plan_name']); ?> plan supports up to <?php echo (int)$entitlement['max_practices']; ?> practices. Please contact DentaTrak if you need additional practices.
+            </p>
+            <?php endif; ?>
+            <?php else: ?>
             <div class="baa-intro">
                 <p><strong>Welcome, <?php echo htmlspecialchars($userName ?: 'there'); ?>!</strong> Before you can access patient data and case management features, you must review and accept our Business Associate Agreement (BAA). This is required for HIPAA compliance.</p>
             </div>
@@ -578,17 +646,31 @@ $baaVersion = 'v1.0-2026-08-07';
                     </label>
                 </div>
             </form>
+            <?php endif; ?>
         </div>
         
-        <div class="baa-footer">
-            <div class="baa-version">BAA Version: <?php echo htmlspecialchars($baaVersion); ?></div>
+        <div class="baa-footer" data-entitlement-blocked="<?php echo $entitlementBlocked ? '1' : '0'; ?>">
+            <div class="baa-version"><?php echo $entitlementBlocked ? '' : ('BAA Version: ' . htmlspecialchars($baaVersion)); ?></div>
             <div class="baa-actions">
-                <?php if ($cancelReturnPracticeId): ?>
+                <?php if ($entitlementBlocked): ?>
+                    <?php if ($cancelReturnPracticeId): ?>
+                    <a href="api/select-practice.php?practice_id=<?php echo $cancelReturnPracticeId; ?>&redirect=1" class="btn btn-secondary">Back to My Practice</a>
+                    <?php else: ?>
+                    <a href="main.php" class="btn btn-secondary">Back to Dashboard</a>
+                    <?php endif; ?>
+                    <?php if (!empty($entitlement['upgrade_target']) && $upgradeUrl): ?>
+                    <a href="<?php echo htmlspecialchars($upgradeUrl); ?>" class="btn btn-primary" id="upgradeBtn">Upgrade to <?php echo htmlspecialchars(getPlanDisplayName($entitlement['upgrade_target'])); ?></a>
+                    <?php else: ?>
+                    <a href="mailto:feedback@dentatrak.com?subject=Practice%20limit%20reached" class="btn btn-primary" id="upgradeBtn">Contact Support</a>
+                    <?php endif; ?>
+                <?php elseif ($cancelReturnPracticeId): ?>
                 <a href="api/select-practice.php?practice_id=<?php echo $cancelReturnPracticeId; ?>&redirect=1" class="btn btn-secondary">Cancel</a>
                 <?php else: ?>
                 <button type="button" class="btn btn-secondary" onclick="window.location.href='api/logout.php'">Sign Out</button>
                 <?php endif; ?>
+                <?php if (!$entitlementBlocked): ?>
                 <button type="submit" form="baaForm" class="btn btn-primary" id="acceptBtn" disabled>Accept Agreement</button>
+                <?php endif; ?>
             </div>
         </div>
     </div>
@@ -596,10 +678,15 @@ $baaVersion = 'v1.0-2026-08-07';
     <script src="js/toast.js"></script>
     <script>
         var IS_CREATING_NEW_PRACTICE = <?php echo $isCreatingNewPractice ? 'true' : 'false'; ?>;
+        var ENTITLEMENT_BLOCKED = <?php echo $entitlementBlocked ? 'true' : 'false'; ?>;
         document.addEventListener('DOMContentLoaded', function() {
             // Initialize Toast system
             if (typeof Toast !== 'undefined') {
                 Toast.init();
+            }
+            if (ENTITLEMENT_BLOCKED) {
+                // No form rendered in this state - nothing else to wire up.
+                return;
             }
             const form = document.getElementById('baaForm');
             const acceptBtn = document.getElementById('acceptBtn');

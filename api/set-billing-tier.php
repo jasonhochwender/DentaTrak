@@ -37,8 +37,13 @@ if (empty($billingTier)) {
     exit;
 }
 
-// Validate billing tier - accept both lowercase and capitalized
-$validTiers = ['evaluate', 'operate', 'control', 'Evaluate', 'Operate', 'Control'];
+// Validate billing tier - accept both lowercase and capitalized.
+// This dev-tools endpoint sets the LEGACY per-user metering tier
+// (users.billing_tier), not the owner-level subscription plan - changing it
+// here does not change what Stripe bills or what plan-entitlements.php
+// allows. 'scale' is accepted so the dev-tools list stays in step with the
+// tiers defined in appConfig.php.
+$validTiers = ['evaluate', 'operate', 'control', 'scale', 'Evaluate', 'Operate', 'Control', 'Scale'];
 if (!in_array($billingTier, $validTiers)) {
     echo json_encode(['success' => false, 'message' => 'Invalid billing tier: ' . $billingTier]);
     exit;

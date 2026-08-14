@@ -392,16 +392,13 @@ $appName = $appConfig['appName'];
                         </div>
                         <p>Create your own practice where you'll be the administrator.</p>
                     </div>
-                    <form id="practiceSetupForm" class="setup-form">
-                        <div class="form-group">
-                            <label for="practiceName">Practice Name</label>
-                            <input type="text" id="practiceName" name="practiceName" placeholder="e.g., Sunshine Dental Lab" required>
-                        </div>
-                        <button type="submit" class="submit-btn">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
-                            Create My Practice
-                        </button>
-                    </form>
+                    <!-- Practice creation always goes through the BAA flow - see the
+                         "Create New Practice Option" comment above. Never
+                         api/update-practice.php, which no longer creates practices. -->
+                    <a href="baa-acceptance.php?new=1" class="submit-btn">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+                        Create My Practice
+                    </a>
                 </div>
                 
             <?php else: ?>
@@ -414,20 +411,19 @@ $appName = $appConfig['appName'];
                     <p>You'll be the administrator of your practice and can invite team members later.</p>
                 </div>
                 
-                <form id="practiceSetupForm" class="setup-form">
-                    <div class="form-group">
-                        <label for="practiceName">Practice Name</label>
-                        <input type="text" id="practiceName" name="practiceName" placeholder="e.g., Sunshine Dental Lab" required autofocus>
-                    </div>
-                    <button type="submit" class="submit-btn">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
-                        Create My Practice
-                    </button>
-                </form>
+                <a href="baa-acceptance.php?new=1" class="submit-btn">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+                    Create My Practice
+                </a>
             <?php endif; ?>
                 
         <?php else: ?>
-            <!-- No practices - show create form -->
+            <!-- No practices - show create form. In practice this branch is
+                 unreachable: the redirect at the top of this file already
+                 sends a user with zero practices straight to
+                 baa-acceptance.php. Kept as a safety-net link (never a form
+                 posting to api/update-practice.php, which no longer creates
+                 practices) in case that redirect's precondition ever changes. -->
             <div class="welcome-banner">
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <circle cx="12" cy="12" r="10"/>
@@ -443,16 +439,10 @@ $appName = $appConfig['appName'];
                 </p>
             </div>
             
-            <form id="practiceSetupForm" class="setup-form">
-                <div class="form-group">
-                    <label for="practiceName">Dental Practice Name</label>
-                    <input type="text" id="practiceName" name="practiceName" placeholder="e.g., Sunshine Dental Lab" required autofocus>
-                </div>
-                <button type="submit" class="submit-btn">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
-                    Create Practice
-                </button>
-            </form>
+            <a href="baa-acceptance.php?new=1" class="submit-btn">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+                Create Practice
+            </a>
         <?php endif; ?>
             </div>
             
@@ -465,52 +455,10 @@ $appName = $appConfig['appName'];
     
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            // Handle practice setup form submission
-            const practiceSetupForm = document.getElementById('practiceSetupForm');
-            if (practiceSetupForm) {
-                practiceSetupForm.addEventListener('submit', function(e) {
-                    e.preventDefault();
-                    
-                    const practiceName = document.getElementById('practiceName').value.trim();
-                    if (!practiceName) {
-                        alert('Please enter a practice name');
-                        return;
-                    }
-                    
-                    // Show loading state
-                    const submitBtn = practiceSetupForm.querySelector('button[type="submit"]');
-                    const originalText = submitBtn.innerHTML;
-                    submitBtn.disabled = true;
-                    submitBtn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="spin"><circle cx="12" cy="12" r="10"/></svg> Creating...';
-                    
-                    // Send API request to create practice
-                    fetch('api/update-practice.php', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({
-                            practice_name: practiceName
-                        })
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success) {
-                            // Select this practice automatically
-                            selectPractice(data.practice.id);
-                        } else {
-                            submitBtn.disabled = false;
-                            submitBtn.innerHTML = originalText;
-                            alert('Error: ' + data.message);
-                        }
-                    })
-                    .catch(error => {
-                        submitBtn.disabled = false;
-                        submitBtn.innerHTML = originalText;
-                        alert('Error creating practice: ' + error);
-                    });
-                });
-            }
+            // Practice creation is now a plain link to baa-acceptance.php?new=1
+            // (see the markup above) rather than a form posted to
+            // api/update-practice.php, so there is no practice-creation
+            // submit handler here anymore.
             
             // Handle practice selection
             const selectButtons = document.querySelectorAll('.select-btn');
