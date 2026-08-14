@@ -81,6 +81,13 @@ $articleUrls = $appConfig['public_urls'] ?? [];
         "price": "499.00",
         "priceCurrency": "USD",
         "url": "https://dentatrak.com/#pricing"
+      },
+      {
+        "@type": "Offer",
+        "name": "Scale",
+        "price": "999.00",
+        "priceCurrency": "USD",
+        "url": "https://dentatrak.com/#pricing"
       }
     ]
   }
@@ -537,9 +544,11 @@ $articleUrls = $appConfig['public_urls'] ?? [];
 
     .pricing-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      /* 280px (not 320px) so all three cards fit on one row within the
+         shared .section-inner max-width (1000px) used across the page. */
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
       gap: 32px;
-      max-width: 840px;
+      max-width: 1000px;
       margin: 0 auto;
     }
 
@@ -1055,7 +1064,7 @@ $articleUrls = $appConfig['public_urls'] ?? [];
     <div class="section-inner">
       <div class="section-header">
         <p class="section-label">Pricing</p>
-        <h2>Two plans, one clear view of every case</h2>
+        <h2>Three plans, one clear view of every case</h2>
       </div>
       <p class="pricing-intro">Start with a 90-day free trial. Choose monthly billing or save the equivalent of two months with annual billing.</p>
       <div class="pricing-grid">
@@ -1069,6 +1078,7 @@ $articleUrls = $appConfig['public_urls'] ?? [];
           <ul style="list-style: none; padding: 0; margin: 12px 0 20px; text-align: left; font-size: 0.95rem; color: var(--text-secondary);">
             <li style="padding: 4px 0;">&#10003;&nbsp; Unlimited cases</li>
             <li style="padding: 4px 0;">&#10003;&nbsp; Up to 5 users</li>
+            <li style="padding: 4px 0;">&#10003;&nbsp; 1 practice</li>
           </ul>
           <a href="<?= $baseUrl ?>login.php" class="btn-primary">Start 90-Day Free Trial</a>
         </div>
@@ -1089,6 +1099,20 @@ $articleUrls = $appConfig['public_urls'] ?? [];
 <?php else: ?>
             <li style="padding: 4px 0;">&#10003;&nbsp; Insights and Smart Recommendations</li>
 <?php endif; ?>
+            <li style="padding: 4px 0;">&#10003;&nbsp; Up to 2 practices</li>
+          </ul>
+          <a href="<?= $baseUrl ?>login.php" class="btn-primary">Start 90-Day Free Trial</a>
+        </div>
+        <div class="pricing-card">
+          <h3>Scale</h3>
+          <p class="pricing-price-primary">$999<span style="font-size: 1rem; font-weight: 500; color: var(--text-secondary);">/month</span></p>
+          <p class="pricing-price-annual">or $9,990/year billed annually</p>
+          <p class="pricing-price-note">Two months free with annual billing</p>
+          <hr class="pricing-divider">
+          <p>For multi-practice groups that need every location's cases tracked under one account, with the same visibility and controls as Control.</p>
+          <ul style="list-style: none; padding: 0; margin: 12px 0 20px; text-align: left; font-size: 0.95rem; color: var(--text-secondary);">
+            <li style="padding: 4px 0;">&#10003;&nbsp; Everything in Control</li>
+            <li style="padding: 4px 0;">&#10003;&nbsp; Up to 50 practices under one account</li>
           </ul>
           <a href="<?= $baseUrl ?>login.php" class="btn-primary">Start 90-Day Free Trial</a>
         </div>
