@@ -813,6 +813,8 @@ $articleUrls = $appConfig['public_urls'] ?? [];
 
     .footer-links {
       display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
       gap: 32px;
     }
 
@@ -881,6 +883,10 @@ $articleUrls = $appConfig['public_urls'] ?? [];
       .footer-inner {
         flex-direction: column;
         text-align: center;
+      }
+
+      .footer-links {
+        gap: 12px 20px;
       }
 
     }

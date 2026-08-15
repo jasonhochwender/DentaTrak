@@ -321,6 +321,8 @@ $articleUrls = $appConfig['public_urls'] ?? [];
 
     .footer-links {
       display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
       gap: 32px;
     }
 
@@ -341,6 +343,7 @@ $articleUrls = $appConfig['public_urls'] ?? [];
       .content h1 { font-size: 1.75rem; }
       .content h2 { font-size: 1.25rem; }
       .footer-inner { flex-direction: column; text-align: center; }
+      .footer-links { gap: 12px 20px; }
     }
   </style>
 </head>
