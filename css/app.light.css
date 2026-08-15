@@ -2045,27 +2045,26 @@ body {
   vertical-align: middle;
 }
 
-/* Past due card highlighting - uses outline to prevent CLS */
+/* Past due card highlighting - single red border, subtle background */
 .kanban-card-past-due {
-  outline: 2px solid #ff0000;
-  outline-offset: -2px;
-  box-shadow: 0 0 10px rgba(255, 0, 0, 0.3);
+  border-color: #dc2626;
   background: linear-gradient(135deg, #ffffff 0%, #fef2f2 100%);
 }
 
 .kanban-card-past-due .late-indicator {
-  color: #ff0000 !important;
-  font-weight: bold;
+  color: #dc2626 !important;
+  font-weight: 600;
+  background-color: #fee2e2;
 }
 
-/* Coming-due card highlighting - blue awareness state */
+/* Coming-due card highlighting - single blue border, subtle background */
 .kanban-card-coming-due {
-  border-color: #2563eb;
+  border-color: #3b82f6;
   background: linear-gradient(135deg, #ffffff 0%, #eff6ff 100%);
 }
 
 .kanban-card-coming-due .late-indicator {
-  color: #1d4ed8 !important;
+  color: #2563eb !important;
   font-weight: 600;
   background-color: #dbeafe;
 }
