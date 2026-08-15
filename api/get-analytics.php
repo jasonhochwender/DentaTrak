@@ -384,7 +384,43 @@ try {
     } catch (Exception $e) {
         $teamPerformance = [];
     }
-    
+
+    // Creator Breakdown - cases created by authenticated user (not provider-specific)
+    $creatorBreakdown = [];
+    try {
+        $creatorPeriod = $_GET['creator_period'] ?? 'all';
+        $creatorClause = buildTimePeriodClause($creatorPeriod);
+
+        $stmt = $pdo->prepare("
+            SELECT
+                c.created_by_user_id as user_id,
+                COALESCE(u.first_name, '') as first_name,
+                COALESCE(u.last_name, '') as last_name,
+                COUNT(*) as cases_count
+            FROM cases_cache c
+            LEFT JOIN users u ON u.id = c.created_by_user_id
+            WHERE c.practice_id = :practice_id
+            AND c.archived = 0
+            $creatorClause
+            GROUP BY c.created_by_user_id
+            ORDER BY cases_count DESC
+            LIMIT 10
+        ");
+        $stmt->execute(['practice_id' => $practiceId]);
+        $creatorBreakdown = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        foreach ($creatorBreakdown as &$row) {
+            $row['creator'] = trim(($row['first_name'] ?? '') . ' ' . ($row['last_name'] ?? ''));
+            if ($row['creator'] === '') {
+                $row['creator'] = 'Unknown';
+            }
+            unset($row['first_name'], $row['last_name']);
+        }
+        unset($row);
+    } catch (Exception $e) {
+        $creatorBreakdown = [];
+    }
+
     // Status Duration Analytics - NEW
     $statusDurationData = [];
     try {
@@ -633,6 +669,7 @@ try {
         'monthlyVolume' => array_reverse($monthlyVolume), // Show oldest to newest
         'caseTypeBreakdown' => $caseTypeBreakdown,
         'teamPerformance' => $teamPerformance,
+        'creatorBreakdown' => $creatorBreakdown,
         'statusDuration' => $statusDurationData,
         'lifecycle' => $lifecycleData
     ];

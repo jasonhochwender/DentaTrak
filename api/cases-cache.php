@@ -42,10 +42,12 @@ function ensureCasesCacheTable() {
         archived BOOLEAN DEFAULT FALSE,
         archived_date VARCHAR(50) DEFAULT NULL,
         practice_id INT UNSIGNED DEFAULT NULL,
+        created_by_user_id INT UNSIGNED DEFAULT NULL,
         INDEX idx_status (status),
         INDEX idx_due_date (due_date),
         INDEX idx_archived (archived),
-        INDEX idx_practice_id (practice_id)
+        INDEX idx_practice_id (practice_id),
+        INDEX idx_created_by_user_id (created_by_user_id)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;";
 
     try {
@@ -65,7 +67,9 @@ function ensureCasesCacheTable() {
             "ALTER TABLE cases_cache ADD COLUMN patient_gender VARCHAR(20) DEFAULT NULL",
             "ALTER TABLE cases_cache ADD COLUMN clinical_details_json LONGTEXT",
             "ALTER TABLE cases_cache ADD COLUMN revision_count INT UNSIGNED NOT NULL DEFAULT 0 COMMENT 'Number of times case was returned to Originated'",
-            "ALTER TABLE cases_cache ADD COLUMN version INT UNSIGNED NOT NULL DEFAULT 1 COMMENT 'Optimistic locking version for concurrent edit detection'"
+            "ALTER TABLE cases_cache ADD COLUMN version INT UNSIGNED NOT NULL DEFAULT 1 COMMENT 'Optimistic locking version for concurrent edit detection'",
+            "ALTER TABLE cases_cache ADD COLUMN created_by_user_id INT UNSIGNED DEFAULT NULL",
+            "ALTER TABLE cases_cache ADD INDEX idx_created_by_user_id (created_by_user_id)"
         ];
         
         foreach ($alterSqls as $alterSql) {
@@ -127,7 +131,8 @@ function saveCaseToCache(array $caseData) {
                 attachments_json,
                 revisions_json,
                 clinical_details_json,
-                practice_id
+                practice_id,
+                created_by_user_id
             ) VALUES (
                 :case_id,
                 :drive_folder_id,
@@ -149,7 +154,8 @@ function saveCaseToCache(array $caseData) {
                 :attachments_json,
                 :revisions_json,
                 :clinical_details_json,
-                :practice_id
+                :practice_id,
+                :created_by_user_id
             )
             ON DUPLICATE KEY UPDATE
                 drive_folder_id = VALUES(drive_folder_id),
@@ -171,7 +177,8 @@ function saveCaseToCache(array $caseData) {
                 attachments_json = VALUES(attachments_json),
                 revisions_json = VALUES(revisions_json),
                 clinical_details_json = VALUES(clinical_details_json),
-                practice_id = VALUES(practice_id)";
+                practice_id = VALUES(practice_id)
+                /* created_by_user_id intentionally omitted: immutable after creation */";
 
     $clinicalDetailsJson = isset($caseData['clinicalDetails']) ? json_encode($caseData['clinicalDetails']) : null;
     
@@ -199,6 +206,7 @@ function saveCaseToCache(array $caseData) {
             'revisions_json' => $revisions,
             'clinical_details_json' => $clinicalDetailsJson,
             'practice_id' => $practiceId,
+            'created_by_user_id' => isset($caseData['createdByUserId']) ? ($caseData['createdByUserId'] !== '' ? (int)$caseData['createdByUserId'] : null) : null,
         ]);
     } catch (PDOException $e) {
         error_log('[cases_cache] Error saving case: ' . $e->getMessage());
@@ -272,6 +280,7 @@ function getCaseFromCache($caseId) {
             'attachments' => $attachments,
             'clinicalDetails' => $clinicalDetails,
             'assignedTo' => $row['assigned_to'] ?? null,
+            'createdByUserId' => isset($row['created_by_user_id']) ? (int)$row['created_by_user_id'] : null,
             'revisionCount' => (int)($row['revision_count'] ?? 0),
             'version' => (int)($row['version'] ?? 1),
         ];
@@ -821,6 +830,7 @@ function getAllCasesFromCache() {
             // distinguishable from "field not returned" everywhere a case
             // is fetched, not just on single-case reload.
             'assignedTo' => $row['assigned_to'] ?? null,
+            'createdByUserId' => isset($row['created_by_user_id']) ? (int)$row['created_by_user_id'] : null,
         ];
 
         // Decrypt PII fields before returning

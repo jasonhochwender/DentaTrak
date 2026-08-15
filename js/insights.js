@@ -108,6 +108,9 @@
     
     // Update bottlenecks based on status distribution
     updateBottlenecks(metrics, charts);
+
+    // Update cases-created-by-user breakdown
+    updateCreatorBreakdown(charts.creatorBreakdown);
   }
 
   /**
@@ -204,6 +207,31 @@
         '</div>';
     });
     
+    container.innerHTML = html;
+  }
+
+  /**
+   * Render the Cases Created by User breakdown
+   */
+  function updateCreatorBreakdown(creatorBreakdown) {
+    var container = document.getElementById('apCreatorBreakdown');
+    if (!container) return;
+
+    if (!creatorBreakdown || !Array.isArray(creatorBreakdown) || creatorBreakdown.length === 0) {
+      container.innerHTML = '<p class="insights-empty-state" id="apCreatorBreakdownEmpty" style="width: 100%;">No creator data available.</p>';
+      return;
+    }
+
+    var html = '';
+    creatorBreakdown.forEach(function(item) {
+      var name = escapeHtml(item.creator || 'Unknown');
+      var count = parseInt(item.cases_count || 0, 10);
+      html += '<div class="ap-insight-card">' +
+        '<div class="ap-insight-value">' + count + '</div>' +
+        '<div class="ap-insight-label">' + name + '</div>' +
+      '</div>';
+    });
+
     container.innerHTML = html;
   }
 

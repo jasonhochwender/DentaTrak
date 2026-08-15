@@ -376,6 +376,7 @@ function createCase($caseData, $files, $originalCaseData = null, $gcsAttachments
             'status' => $caseData['status'] ?? 'Originated',
             'notes' => $caseData['notes'] ?? '',
             'assignedTo' => $caseData['assignedTo'] ?? '',
+            'createdByUserId' => $caseData['createdByUserId'] ?? null,
             'revisions' => [],
             'attachments' => []
         ];
@@ -784,6 +785,7 @@ function createCacheOnlyCase($caseData, $files, $originalCaseData = null, $gcsAt
             'status' => $caseData['status'] ?? 'Originated',
             'notes' => $caseData['notes'] ?? '',
             'assignedTo' => $caseData['assignedTo'] ?? '',
+            'createdByUserId' => $caseData['createdByUserId'] ?? null,
             'revisions' => [],
             'attachments' => []
         ];

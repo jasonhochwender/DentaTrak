@@ -161,6 +161,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     // ============================================
+    // CREATOR ATTRIBUTION (immutable, server-side only)
+    // The frontend never submits this. Use the authenticated session user.
+    // ============================================
+    $caseData['createdByUserId'] = isset($_SESSION['db_user_id']) ? (int)$_SESSION['db_user_id'] : null;
+
+    // ============================================
     // CASE NOTES CHARACTER LIMIT VALIDATION
     // Business Rule: Notes field is limited to 3,000 characters.
     // Server-side enforcement prevents bypass of client-side limit.
@@ -350,6 +356,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'notes'           => $caseData['notes'] ?? '',
             'assignedTo'      => $caseData['assignedTo'] ?? '',
             'clinicalDetails' => $caseData['clinicalDetails'] ?? null,
+            'createdByUserId' => $caseData['createdByUserId'] ?? null,
             'revisions'       => [],
             'attachments'     => []
         ];

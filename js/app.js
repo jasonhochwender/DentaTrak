@@ -4514,6 +4514,12 @@ document.addEventListener('DOMContentLoaded', function () {
     if (status) status.value = caseData.status || 'Originated';
     if (notes) notes.value = caseData.notes || '';
 
+    // Created By is read-only and resolved by the server; never sent back.
+    var createdByDisplay = document.getElementById('createdByDisplay');
+    if (createdByDisplay) {
+      createdByDisplay.textContent = caseData.createdByName || 'Unknown';
+    }
+
     // Populate + select the Assigned To dropdown. The <select id="assignedTo">
     // only has a static "Select user..." option in the markup - the real
     // People/Assignment Labels <option>s are added dynamically by

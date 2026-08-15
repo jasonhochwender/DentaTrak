@@ -87,6 +87,26 @@ try {
     // Do not decrypt again — double decryption corrupts the data.
     $decryptedCase = $targetCase;
 
+    // Resolve creator display name from the historical user record.
+    // A user may no longer be a current practice member, but we still display
+    // the historical attribution from the cases_cache.created_by_user_id value.
+    $decryptedCase['createdByName'] = 'Unknown';
+    if (!empty($decryptedCase['createdByUserId'])) {
+        try {
+            $userStmt = $pdo->prepare("SELECT first_name, last_name FROM users WHERE id = :id LIMIT 1");
+            $userStmt->execute(['id' => $decryptedCase['createdByUserId']]);
+            $creator = $userStmt->fetch(PDO::FETCH_ASSOC);
+            if ($creator) {
+                $name = trim(($creator['first_name'] ?? '') . ' ' . ($creator['last_name'] ?? ''));
+                if ($name !== '') {
+                    $decryptedCase['createdByName'] = $name;
+                }
+            }
+        } catch (Exception $e) {
+            // Leave as Unknown on error
+        }
+    }
+
     // Log PHI access for HIPAA compliance
     logPHIAccess('view_case', $caseId);
 

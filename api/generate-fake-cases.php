@@ -404,9 +404,12 @@ try {
             $caseData['material'] = $materials[array_rand($materials)];
         }
 
+        // Creator attribution for generated cases: the authenticated dev user
+        $caseData['createdByUserId'] = isset($_SESSION['db_user_id']) ? (int)$_SESSION['db_user_id'] : null;
+
         // Encrypt PII before storing in cache
         $encryptedCaseData = PIIEncryption::encryptCaseData($caseData);
-        
+
         // Store directly in the local cache; no Google Drive I/O in dev generator
         saveCaseToCache($encryptedCaseData);
         
