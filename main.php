@@ -431,7 +431,7 @@ if (isset($appConfig) && is_array($appConfig) && isset($appConfig['appName'])) {
   </style>
   
   <!-- Load app.light.css directly (skip app.css @import chain) -->
-  <link rel="stylesheet" href="css/app.light.css?v=20260813a">
+  <link rel="stylesheet" href="css/app.light.css?v=20260813b">
   <link rel="stylesheet" href="css/app.css?v=20260807a">
   
   <!-- Mobile responsiveness CSS -->
@@ -2217,10 +2217,10 @@ window.featureFlags = <?php echo getFeatureFlagsJson(); ?>;
                           </span>
                         </div>
 
-                        <div class="option-row highlight-coming-due-row">
+                        <div class="option-row highlight-past-due-row">
                           <label for="highlightComingDue">Highlight cases coming due</label>
                           <input type="checkbox" id="highlightComingDue" name="highlightComingDue" <?= $isAdmin ? '' : 'disabled' ?>>
-                          <span id="comingDueSettings" class="coming-due-inline-settings hidden">
+                          <span id="comingDueSettings" class="past-due-inline-settings hidden">
                             <label for="comingDueDays" class="settings-sublabel">Days before due:</label>
                             <input type="number" id="comingDueDays" name="comingDueDays" min="1" max="99" value="5" class="number-input" <?= $isAdmin ? '' : 'disabled' ?>>
                           </span>

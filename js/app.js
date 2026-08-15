@@ -6559,7 +6559,7 @@ document.addEventListener('DOMContentLoaded', function () {
             isPastDue = true;
             lateIndicatorText = ' LATE';
           }
-          // Amber coming-due window: only while the case is due today or in the future
+          // Blue coming-due window: only while the case is due today or in the future
           else if (highlightComingDue && daysUntil >= 0 && daysUntil <= comingDueDays) {
             caseCard.classList.add('kanban-card-coming-due');
             isComingDue = true;
@@ -7617,7 +7617,7 @@ document.addEventListener('DOMContentLoaded', function () {
         lateIndicator.textContent = ' LATE';
       }
     }
-    // Amber coming-due window: only while the case is due today or in the future
+    // Blue coming-due window: only while the case is due today or in the future
     else if (highlightComingDue && daysUntil >= 0 && daysUntil <= comingDueDays) {
       card.classList.add('kanban-card-coming-due');
       if (lateIndicator) {
