@@ -463,6 +463,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             recordCaseUpdate($createdCaseId, 'create');
         }
 
+        // Resolve creator display name for the new-case response so the
+        // Kanban card and edit modal can show the creator immediately.
+        if (isset($result['caseData']['createdByUserId']) && !isset($result['caseData']['createdByName']) && $pdo) {
+            try {
+                $creatorStmt = $pdo->prepare("SELECT first_name, last_name FROM users WHERE id = :id LIMIT 1");
+                $creatorStmt->execute(['id' => (int)$result['caseData']['createdByUserId']]);
+                $creator = $creatorStmt->fetch(PDO::FETCH_ASSOC);
+                if ($creator) {
+                    $name = trim(($creator['first_name'] ?? '') . ' ' . ($creator['last_name'] ?? ''));
+                    if ($name !== '') {
+                        $result['caseData']['createdByName'] = $name;
+                    }
+                }
+            } catch (Exception $e) {
+                // Leave as Unknown on lookup error
+            }
+        }
+
         // Send response to client FIRST, then do backup
         echo json_encode($result);
 

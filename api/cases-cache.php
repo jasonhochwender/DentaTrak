@@ -285,6 +285,22 @@ function getCaseFromCache($caseId) {
             'version' => (int)($row['version'] ?? 1),
         ];
 
+        // Resolve creator display name for single-case responses
+        $case['createdByName'] = 'Unknown';
+        if (!empty($case['createdByUserId'])) {
+            try {
+                $userStmt = $pdo->prepare("SELECT first_name, last_name FROM users WHERE id = :id LIMIT 1");
+                $userStmt->execute(['id' => $case['createdByUserId']]);
+                $creator = $userStmt->fetch(PDO::FETCH_ASSOC);
+                if ($creator) {
+                    $name = trim(($creator['first_name'] ?? '') . ' ' . ($creator['last_name'] ?? ''));
+                    $case['createdByName'] = $name !== '' ? $name : 'Unknown';
+                }
+            } catch (Exception $e) {
+                error_log('[cases_cache] Error resolving creator name: ' . $e->getMessage());
+            }
+        }
+
         // Decrypt PII fields before returning
         try {
             if (class_exists('PIIEncryption')) {
@@ -831,6 +847,7 @@ function getAllCasesFromCache() {
             // is fetched, not just on single-case reload.
             'assignedTo' => $row['assigned_to'] ?? null,
             'createdByUserId' => isset($row['created_by_user_id']) ? (int)$row['created_by_user_id'] : null,
+            'createdByName' => 'Unknown',
         ];
 
         // Decrypt PII fields before returning
@@ -843,6 +860,28 @@ function getAllCasesFromCache() {
         }
 
         $cases[] = $case;
+    }
+
+    // Resolve creator display names in a single query for the list response
+    $creatorIds = array_filter(array_unique(array_map(function ($c) { return $c['createdByUserId'] ?? null; }, $cases)));
+    if (!empty($creatorIds)) {
+        $placeholders = implode(',', array_fill(0, count($creatorIds), '?'));
+        try {
+            $userStmt = $pdo->prepare("SELECT id, first_name, last_name FROM users WHERE id IN ($placeholders)");
+            $userStmt->execute(array_values($creatorIds));
+            $userMap = [];
+            while ($u = $userStmt->fetch(PDO::FETCH_ASSOC)) {
+                $name = trim(($u['first_name'] ?? '') . ' ' . ($u['last_name'] ?? ''));
+                $userMap[(int)$u['id']] = $name !== '' ? $name : 'Unknown';
+            }
+            foreach ($cases as &$case) {
+                $id = $case['createdByUserId'] ?? null;
+                $case['createdByName'] = ($id && isset($userMap[$id])) ? $userMap[$id] : 'Unknown';
+            }
+            unset($case);
+        } catch (Exception $e) {
+            error_log('[cases_cache] Error resolving creator names: ' . $e->getMessage());
+        }
     }
 
     return $cases;

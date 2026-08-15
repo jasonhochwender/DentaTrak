@@ -6605,7 +6605,9 @@ document.addEventListener('DOMContentLoaded', function () {
         atRisk: caseData.atRisk || { isAtRisk: false, reasons: [] },
         clinicalDetails: caseData.clinicalDetails || null,
         revisionCount: caseData.revisionCount || 0,
-        version: caseData.version || 1
+        version: caseData.version || 1,
+        createdByUserId: caseData.createdByUserId || null,
+        createdByName: caseData.createdByName || 'Unknown'
       };
 
       // Assignment info stored in completeData.assignedTo
@@ -6634,7 +6636,9 @@ document.addEventListener('DOMContentLoaded', function () {
         patientGender: completeData.patientGender || '',
         clinicalDetails: completeData.clinicalDetails || null,
         revisionCount: completeData.revisionCount || 0,
-        version: completeData.version || 1
+        version: completeData.version || 1,
+        createdByUserId: completeData.createdByUserId || null,
+        createdByName: completeData.createdByName || 'Unknown'
       };
       caseCard.dataset.caseJson = JSON.stringify(displayData);
 
@@ -7293,6 +7297,12 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Open the modal (will show tabs because caseId is set on the form)
     openCreateCase();
+
+    // Set the read-only Created By display for edit mode
+    var createdByDisplay = document.getElementById('createdByDisplay');
+    if (createdByDisplay) {
+      createdByDisplay.textContent = caseData.createdByName || 'Unknown';
+    }
 
     // Display At Risk indicator in case detail view
     displayAtRiskInCaseDetail(caseData);
