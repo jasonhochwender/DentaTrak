@@ -2286,6 +2286,32 @@ body {
   grid-column: 1 / -1;
 }
 
+/* Creator attribution metadata row in the case modal */
+.case-creator-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.case-creator-meta label {
+  margin-bottom: 0;
+  color: #64748b;
+  font-weight: 500;
+  font-size: 0.85rem;
+}
+
+.case-creator-meta .case-meta-value {
+  display: inline-block;
+  padding: 4px 10px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 4px;
+  color: #334155;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
 .required {
   color: #e53935;
 }

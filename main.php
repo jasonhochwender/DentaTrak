@@ -431,7 +431,7 @@ if (isset($appConfig) && is_array($appConfig) && isset($appConfig['appName'])) {
   </style>
   
   <!-- Load app.light.css directly (skip app.css @import chain) -->
-  <link rel="stylesheet" href="css/app.light.css?v=20260813b">
+  <link rel="stylesheet" href="css/app.light.css?v=20260813c">
   <link rel="stylesheet" href="css/app.css?v=20260807a">
   
   <!-- Mobile responsiveness CSS -->
@@ -1689,9 +1689,9 @@ window.featureFlags = <?php echo getFeatureFlagsJson(); ?>;
                   </select>
                 </div>
 
-                <div class="form-field">
+                <div class="form-field case-creator-meta">
                   <label>Created By</label>
-                  <span id="createdByDisplay" class="case-meta-value" style="display: block; padding: 0.5rem 0;">Unknown</span>
+                  <span id="createdByDisplay" class="case-meta-value">Unknown</span>
                 </div>
 
                 <div class="form-field form-field-notes">

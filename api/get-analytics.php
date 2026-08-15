@@ -402,7 +402,7 @@ try {
             WHERE c.practice_id = :practice_id
             AND c.archived = 0
             $creatorClause
-            GROUP BY c.created_by_user_id
+            GROUP BY c.created_by_user_id, u.first_name, u.last_name
             ORDER BY cases_count DESC
             LIMIT 10
         ");
