@@ -2285,30 +2285,37 @@ body {
   grid-column: 1 / -1;
 }
 
-/* Creator attribution metadata row in the case modal */
+/* Creator attribution metadata panel in the case modal */
 .case-creator-meta {
+  grid-column: 1 / -1;
   display: flex;
-  align-items: center;
-  gap: 12px;
-  flex-wrap: wrap;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 14px;
+  margin: 4px 0 6px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
 }
 
 .case-creator-meta label {
   margin-bottom: 0;
   color: #64748b;
+  font-size: 0.75rem;
   font-weight: 500;
-  font-size: 0.85rem;
+  letter-spacing: 0.2px;
+  text-transform: uppercase;
 }
 
 .case-creator-meta .case-meta-value {
-  display: inline-block;
-  padding: 4px 10px;
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
-  border-radius: 4px;
+  display: block;
+  padding: 0;
+  background: transparent;
+  border: none;
+  border-radius: 0;
   color: #334155;
-  font-size: 0.9rem;
-  font-weight: 500;
+  font-size: 0.95rem;
+  font-weight: 600;
 }
 
 .required {
