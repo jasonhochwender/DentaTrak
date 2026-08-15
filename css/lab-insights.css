@@ -167,7 +167,7 @@
 }
 
 /* Raise CURRENT LATE RATE and other table-header tooltips above
-   sibling header cells so aligned-right bubbles are not covered. */
+   sibling header cells so they are not covered by later header cells. */
 .li-table th {
   position: relative;
   z-index: 1;
@@ -176,6 +176,26 @@
 .li-table th:hover,
 .li-table th:focus-within {
   z-index: 2;
+}
+
+/* Table-header tooltips cannot escape the .li-table-wrap overflow box when
+   positioned above the <th>. Keep them on the same row, to the right of the
+   trigger, so they render fully without being clipped. */
+.li-table th .dt-tooltip.dt-tooltip-align-right .dt-tooltip-bubble {
+  bottom: auto;
+  top: 0;
+  left: calc(100% + 9px);
+  right: auto;
+  transform: none;
+}
+
+.li-table th .dt-tooltip.dt-tooltip-align-right .dt-tooltip-bubble::after {
+  top: 2px;
+  left: -10px;
+  right: auto;
+  transform: none;
+  border-top-color: transparent;
+  border-right-color: #1e293b;
 }
 
 @media (max-width: 720px) {

@@ -473,7 +473,7 @@ if (isset($appConfig) && is_array($appConfig) && isset($appConfig['appName'])) {
   <link rel="preload" href="css/dev-tools.css?v=20241210" as="style" onload="this.onload=null;this.rel='stylesheet'">
   <link rel="preload" href="css/analytics-pro.css?v=20241231" as="style" onload="this.onload=null;this.rel='stylesheet'">
 <?php if (isFeatureEnabled('SHOW_LAB_INSIGHTS')): ?>
-  <link rel="preload" href="css/lab-insights.css?v=20260811" as="style" onload="this.onload=null;this.rel='stylesheet'">
+  <link rel="preload" href="css/lab-insights.css?v=20260815" as="style" onload="this.onload=null;this.rel='stylesheet'">
 <?php endif; ?>
 <?php if (isFeatureEnabled('BILLING_ENABLED')): ?>
   <link rel="preload" href="css/billing-portal.css?v=20260805" as="style" onload="this.onload=null;this.rel='stylesheet'">
@@ -498,7 +498,7 @@ if (isset($appConfig) && is_array($appConfig) && isset($appConfig['appName'])) {
     <link rel="stylesheet" href="css/dev-tools.css?v=20241210">
     <link rel="stylesheet" href="css/analytics-pro.css?v=20241231">
 <?php if (isFeatureEnabled('SHOW_LAB_INSIGHTS')): ?>
-    <link rel="stylesheet" href="css/lab-insights.css?v=20260811">
+    <link rel="stylesheet" href="css/lab-insights.css?v=20260815">
 <?php endif; ?>
 <?php if (isFeatureEnabled('BILLING_ENABLED')): ?>
     <link rel="stylesheet" href="css/billing-portal.css?v=20260805">
