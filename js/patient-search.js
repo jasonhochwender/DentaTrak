@@ -319,6 +319,11 @@ document.addEventListener('DOMContentLoaded', function() {
     // Update empty message visibility in each column
     updateEmptyMessages();
 
+    // Reconcile column counts with the cards actually visible after filtering
+    if (typeof window.updateColumnCounts === 'function') {
+      window.updateColumnCounts();
+    }
+
     return matchCount;
   }
 

@@ -6815,8 +6815,14 @@ document.addEventListener('DOMContentLoaded', function () {
     columns.forEach(function(column) {
       var countBadge = column.querySelector('.kanban-column-count');
       var cards = column.querySelectorAll('.kanban-card');
+      var visibleCount = 0;
+      cards.forEach(function(card) {
+        if (card.style.display !== 'none') {
+          visibleCount++;
+        }
+      });
       if (countBadge) {
-        countBadge.textContent = cards.length;
+        countBadge.textContent = visibleCount;
       }
     });
   }
