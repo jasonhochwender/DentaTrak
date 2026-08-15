@@ -83,8 +83,9 @@ try {
         $activity = [];
     }
 
-    // Decrypt PII fields before returning
-    $decryptedCase = PIIEncryption::decryptCaseData($targetCase);
+    // getAllCasesFromCache() already returns cases with PII decrypted.
+    // Do not decrypt again — double decryption corrupts the data.
+    $decryptedCase = $targetCase;
 
     // Log PHI access for HIPAA compliance
     logPHIAccess('view_case', $caseId);
