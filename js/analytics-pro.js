@@ -238,7 +238,12 @@
     apCharts['apStatusChart'] = new Chart(ctx, {
       type: 'doughnut',
       data: {
-        labels: Object.keys(statusData),
+        // statusData is keyed by the fixed internal status; only the
+        // chart's visible labels are resolved to the practice-specific
+        // display label, Object.values(statusData) stays aligned.
+        labels: Object.keys(statusData).map(function(status) {
+          return (typeof getStageLabel === 'function') ? getStageLabel(status) : status;
+        }),
         datasets: [{
           data: Object.values(statusData),
           backgroundColor: colors.chartColors.slice(0, Object.keys(statusData).length),
@@ -692,7 +697,8 @@
     const maxDays = [];
 
     (data || []).forEach(item => {
-      labels.push(item.status || 'Unknown');
+      var rawStatus = item.status || 'Unknown';
+      labels.push((typeof getStageLabel === 'function') ? getStageLabel(rawStatus) : rawStatus);
       avgDays.push(Number(item.avg_days_in_status || 0));
       minDays.push(Number(item.min_days_in_status || 0));
       maxDays.push(Number(item.max_days_in_status || 0));

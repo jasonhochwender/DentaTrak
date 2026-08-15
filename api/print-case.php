@@ -3,6 +3,7 @@
 require_once __DIR__ . '/session.php';
 // Practice/case authorization (also pulls in appConfig.php for $pdo)
 require_once __DIR__ . '/practice-security.php';
+require_once __DIR__ . '/workflow-stages.php';
 
 // Load PDF generation library
 require_once __DIR__ . '/../vendor/autoload.php';
@@ -107,8 +108,17 @@ try {
         }
     }
     
+    // Resolve the practice-specific display label for this case's internal
+    // status (which remains the raw, unchanged value in $caseData) - this
+    // is a human-facing printed document, so the visible value should be
+    // the custom label, not the internal status string.
+    $resolvedStatusLabel = resolveWorkflowStageLabel(
+        $caseData['status'] ?? '',
+        getWorkflowStageLabelOverridesForPractice($currentPracticeId)
+    );
+
     // Generate HTML content optimized for PDF
-    $htmlContent = generatePrintableHTML($caseData, $attachments, $gdAvailable);
+    $htmlContent = generatePrintableHTML($caseData, $attachments, $gdAvailable, $resolvedStatusLabel);
     
     // Create PDF
     $options = new Options();
@@ -203,7 +213,7 @@ function getPracticeNameFromSettings() {
     return 'Practice';
 }
 
-function generatePrintableHTML($caseData, $attachments = [], $gdAvailable = true) {
+function generatePrintableHTML($caseData, $attachments = [], $gdAvailable = true, $resolvedStatusLabel = null) {
     // Get practice name from case data (sent from JavaScript)
     $practiceName = isset($caseData['practiceName']) ? $caseData['practiceName'] : 'Practice';
     
@@ -741,7 +751,7 @@ function generatePrintableHTML($caseData, $attachments = [], $gdAvailable = true
             </div>
             <div class="field">
                 <div class="field-label">Status:</div>
-                <div class="field-value"><?php echo htmlspecialchars($caseData['status']); ?></div>
+                <div class="field-value"><?php echo htmlspecialchars($resolvedStatusLabel !== null ? $resolvedStatusLabel : $caseData['status']); ?></div>
             </div>
             <?php if (!empty($caseData['assignedTo'])): ?>
             <div class="field">

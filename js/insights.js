@@ -139,7 +139,10 @@
       var count = parseInt(statusCounts[status] || 0, 10);
       if (count >= warningThreshold) {
         bottlenecks.push({
-          stage: status,
+          // Aggregation above is keyed by the fixed internal status
+          // (statusCounts[status]); only the display field is resolved to
+          // the practice-specific label here.
+          stage: (typeof getStageLabel === 'function') ? getStageLabel(status) : status,
           count: count,
           severity: count >= criticalThreshold ? 'critical' : 'warning',
           message: count >= criticalThreshold 

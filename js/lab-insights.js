@@ -126,7 +126,7 @@
       html += '<tr>' +
         '<td>' + escapeHtml(r.caseId) + '</td>' +
         '<td>' + escapeHtml(r.caseType || '\u2014') + '</td>' +
-        '<td>' + escapeHtml(r.status || '\u2014') + '</td>' +
+        '<td>' + escapeHtml((r.status && typeof getStageLabel === 'function' ? getStageLabel(r.status) : r.status) || '\u2014') + '</td>' +
         '<td>' + escapeHtml(r.dueDate || '\u2014') + '</td>' +
         '<td>' + (r.daysLate !== null ? '<span class="li-days-late">' + escapeHtml(r.daysLate) + '</span>' : '\u2014') + '</td>' +
         '</tr>';

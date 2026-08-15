@@ -394,13 +394,13 @@
    * Move a card to a different column
    */
   function moveCardToColumn(card, caseData, newStatus) {
-    // Find the target column
+    // Find the target column by its fixed data-status attribute - not the
+    // column header's visible (and later practice-customizable) text.
     var columns = document.querySelectorAll('.kanban-column');
     var targetColumn = null;
     
     columns.forEach(function(column) {
-      var titleEl = column.querySelector('.kanban-column-title');
-      if (titleEl && titleEl.textContent.trim() === newStatus) {
+      if (column.dataset.status === newStatus) {
         targetColumn = column;
       }
     });
@@ -409,8 +409,12 @@
       return;
     }
     
-    // Get the cards container in the target column
-    var cardsContainer = targetColumn.querySelector('.kanban-cards');
+    // Get the cards container in the target column. The board markup
+    // (main.php) nests cards inside '.kanban-column-body', not '.kanban-
+    // cards' (a stale selector that never matched anything, which is why
+    // this repositioning silently no-op'd) - see addCaseToKanban() in
+    // app.js, which already appends new cards into '.kanban-column-body'.
+    var cardsContainer = targetColumn.querySelector('.kanban-column-body');
     if (!cardsContainer) {
       return;
     }
@@ -425,7 +429,9 @@
     statusClasses.forEach(function(cls) {
       card.classList.remove(cls);
     });
-    var newStatusClass = 'kanban-card-' + newStatus.toLowerCase().replace(/\s+/g, '-');
+    var newStatusClass = (typeof window.getWorkflowStatusCssClass === 'function')
+      ? window.getWorkflowStatusCssClass(newStatus)
+      : 'kanban-card-' + String(newStatus || '').toLowerCase().replace(/\s+/g, '-');
     card.classList.add(newStatusClass);
     
     // Move the card

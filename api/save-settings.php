@@ -10,6 +10,7 @@ require_once __DIR__ . '/user-manager.php';
 require_once __DIR__ . '/google-drive.php';
 require_once __DIR__ . '/feature-flags.php';
 require_once __DIR__ . '/lab-assignment-history.php';
+require_once __DIR__ . '/workflow-stages.php';
 require_once __DIR__ . '/csrf.php';
 
 // Start session if not already started
@@ -45,6 +46,31 @@ if (!$data) {
     echo json_encode(['success' => false, 'message' => 'Invalid data format']);
     exit;
 }
+
+// Workflow Stage Names (Settings > Display & Behavior). Validated FIRST,
+// before any field in this request is persisted, using the single
+// authoritative validator (normalizeWorkflowStageLabelsForSave() in
+// workflow-stages.php) so this endpoint can never store anything that
+// helper wouldn't also allow. ATOMIC SAVE POLICY: if any submitted label
+// is invalid (unknown status key or over the 40-character limit), the
+// ENTIRE request is rejected here - nothing is written to the database,
+// not even other, unrelated, otherwise-valid settings fields in the same
+// request - so previously-saved values are always preserved on failure.
+$workflowStageLabelsInput = isset($data['workflowStageLabels']) && is_array($data['workflowStageLabels'])
+    ? $data['workflowStageLabels']
+    : [];
+$workflowStageLabelsResult = normalizeWorkflowStageLabelsForSave($workflowStageLabelsInput);
+if (!$workflowStageLabelsResult['valid']) {
+    http_response_code(400);
+    echo json_encode([
+        'success' => false,
+        'message' => 'Invalid workflow stage name(s): ' . implode('; ', $workflowStageLabelsResult['errors']),
+        'errors' => $workflowStageLabelsResult['errors'],
+        'field' => 'workflowStageLabels'
+    ]);
+    exit;
+}
+$workflowStageLabelOverridesToSave = $workflowStageLabelsResult['overrides'];
 
 // Validate data
 $theme = isset($data['theme']) ? $data['theme'] : 'light';
@@ -379,6 +405,23 @@ try {
 
                 userLog("Updated logo for practice {$currentPracticeId} to '{$logoPath}'", false);
             }
+
+            // Workflow Stage Names - already validated atomically above
+            // (before any writes in this request) via
+            // normalizeWorkflowStageLabelsForSave(). Persist only the
+            // overrides that differ from the default label; an empty
+            // result clears the column back to NULL (all defaults).
+            ensureWorkflowStageLabelsColumn();
+            $workflowStageLabelsJson = empty($workflowStageLabelOverridesToSave)
+                ? null
+                : json_encode($workflowStageLabelOverridesToSave);
+            $stmt = $pdo->prepare("UPDATE practices SET workflow_stage_labels = :labels WHERE id = :practice_id");
+            $stmt->execute([
+                'labels' => $workflowStageLabelsJson,
+                'practice_id' => $currentPracticeId
+            ]);
+
+            userLog("Updated workflow stage labels for practice {$currentPracticeId}", false);
         } else {
             // Not an admin; log any attempted changes to practice name or logo
             if (!empty($practiceName) || $logoAction === 'remove') {
@@ -895,7 +938,12 @@ try {
     echo json_encode([
         'success' => true,
         'message' => 'Settings saved successfully',
-        'assignmentLabelsDetailed' => $freshAssignmentLabelsDetailed
+        'assignmentLabelsDetailed' => $freshAssignmentLabelsDetailed,
+        // Fully-resolved six-entry map reflecting exactly what was just
+        // persisted (normalized: trimmed, blanks removed) - the client
+        // uses this to update window.workflowStageLabels, the Kanban
+        // headers, and the status dropdown immediately, with no reload.
+        'workflowStageLabels' => getResolvedWorkflowStageLabels($workflowStageLabelOverridesToSave)
     ]);
     
 } catch (PDOException $e) {

@@ -32,6 +32,10 @@
 # Session files
 /sessions/
 
+# Practice-wide data export files (api/data-export.php writes these -
+# contains exported case/PHI-adjacent data, never commit)
+/exports/
+
 # PHP cache
 *.cache
 

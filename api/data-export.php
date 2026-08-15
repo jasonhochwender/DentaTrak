@@ -16,6 +16,7 @@ require_once __DIR__ . '/practice-security.php';
 require_once __DIR__ . '/csrf.php';
 require_once __DIR__ . '/security-headers.php';
 require_once __DIR__ . '/cases-cache.php';
+require_once __DIR__ . '/workflow-stages.php';
 require_once __DIR__ . '/email-sender.php';
 require_once __DIR__ . '/encryption.php';
 
@@ -238,6 +239,14 @@ function processExport(int $exportId, int $userId, int $practiceId, string $user
             });
         }
 
+        // Resolved once for this practice; used below to add a
+        // human-readable `statusLabel`/`oldStatusLabel`/`newStatusLabel`
+        // alongside the raw, unchanged machine-readable status fields -
+        // exports (and any future integrations) must keep working off the
+        // fixed internal values, with the practice-specific label as pure
+        // additive context.
+        $workflowStageLabelOverrides = getWorkflowStageLabelOverridesForPractice($practiceId);
+
         // Process cases (decrypt PII fields, include attachment metadata)
         foreach ($cases as $case) {
             // Decrypt PII fields
@@ -261,6 +270,7 @@ function processExport(int $exportId, int $userId, int $practiceId, string $user
                 'creationDate' => $case['creation_date'],
                 'lastUpdateDate' => $case['last_update_date'],
                 'status' => $case['status'],
+                'statusLabel' => resolveWorkflowStageLabel($case['status'], $workflowStageLabelOverrides),
                 'notes' => $notes,
                 'assignedTo' => $case['assigned_to'],
                 'clinicalDetails' => json_decode($case['clinical_details_json'] ?? '{}', true),
@@ -315,6 +325,12 @@ function processExport(int $exportId, int $userId, int $practiceId, string $user
                     'eventType' => $activity['event_type'],
                     'oldStatus' => $activity['old_status'],
                     'newStatus' => $activity['new_status'],
+                    'oldStatusLabel' => $activity['old_status'] !== null
+                        ? resolveWorkflowStageLabel($activity['old_status'], $workflowStageLabelOverrides)
+                        : null,
+                    'newStatusLabel' => $activity['new_status'] !== null
+                        ? resolveWorkflowStageLabel($activity['new_status'], $workflowStageLabelOverrides)
+                        : null,
                     'userEmail' => $activity['user_email'],
                     'createdAt' => $activity['created_at'],
                     'metadata' => json_decode($activity['meta_json'] ?? '{}', true)

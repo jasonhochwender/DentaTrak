@@ -276,6 +276,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     }
 
+    // Authoritative status validation: when a status is supplied, it must
+    // be one of the six internal workflow values defined by
+    // getWorkflowStageOrder() (cases-cache.php). Reject anything else
+    // outright rather than silently coercing it, so an unrecognized string
+    // (e.g. a future custom display label) can never be persisted.
+    if (isset($caseData['status']) && !isValidWorkflowStatus($caseData['status'])) {
+        http_response_code(400);
+        echo json_encode([
+            'success' => false,
+            'message' => 'Invalid status value',
+            'field' => 'status'
+        ]);
+        exit;
+    }
+
     // Process GCS file uploads (if any).
     // SECURITY: Attachment metadata is verified server-side against the
     // actual GCS object (existence, size, MIME type, path ownership,

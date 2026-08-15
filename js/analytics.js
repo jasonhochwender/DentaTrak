@@ -711,7 +711,13 @@ document.addEventListener('DOMContentLoaded', function() {
     chartInstances['statusChart'] = new Chart(ctx, {
       type: 'doughnut',
       data: {
-        labels: Object.keys(data),
+        // `data` is keyed by the fixed internal status (see
+        // normalizeStatusDistribution()) - only the chart's visible
+        // labels are resolved to the practice-specific display label;
+        // Object.values(data) (the counts) stay aligned by iteration order.
+        labels: Object.keys(data).map(function(status) {
+          return (typeof getStageLabel === 'function') ? getStageLabel(status) : status;
+        }),
         datasets: [{
           data: Object.values(data),
           backgroundColor: [

@@ -41,8 +41,11 @@
    */
   function formatShortDescription(event) {
     var eventType = event.event_type;
-    var oldStatus = event.old_status;
-    var newStatus = event.new_status;
+    // Raw old_status/new_status remain stored/read as-is; only this
+    // render-time text resolves them to the practice's current display
+    // labels (see getStageLabel() in js/app.js).
+    var oldStatus = event.old_status ? getStageLabel(event.old_status) : event.old_status;
+    var newStatus = event.new_status ? getStageLabel(event.new_status) : event.new_status;
     var meta = event.meta || {};
     
     switch (eventType) {
@@ -159,8 +162,11 @@
    */
   function getFullDescription(event) {
     var eventType = event.event_type;
-    var oldStatus = event.old_status;
-    var newStatus = event.new_status;
+    // Raw old_status/new_status remain stored/read as-is; only this
+    // render-time text resolves them to the practice's current display
+    // labels (see getStageLabel() in js/app.js).
+    var oldStatus = event.old_status ? getStageLabel(event.old_status) : event.old_status;
+    var newStatus = event.new_status ? getStageLabel(event.new_status) : event.new_status;
     var meta = event.meta || {};
     var user = event.user_email ? event.user_email.split('@')[0] : 'System';
     var date = new Date(event.created_at);

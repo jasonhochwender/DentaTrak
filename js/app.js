@@ -12,6 +12,98 @@ var currentUserEmail = document.getElementById('userEmailData') ? document.getEl
 var csrfToken = document.querySelector('meta[name="csrf-token"]') ? document.querySelector('meta[name="csrf-token"]').getAttribute('content') : '';
 
 /**
+ * Convert an internal workflow status value (e.g. 'Received From External
+ * Lab') into its corresponding "kanban-card-*" CSS class name (e.g.
+ * 'kanban-card-received-from-external-lab'). Centralized so every place
+ * that needs the status-color class derives it the same way, from the
+ * fixed INTERNAL status value only - never from a column header's visible
+ * text, which will become practice-customizable in a later pass while this
+ * slug (and the underlying internal status) stays fixed.
+ * @param {string} status - internal workflow status value
+ * @returns {string} CSS class name
+ */
+function getWorkflowStatusCssClass(status) {
+  return 'kanban-card-' + String(status || '').toLowerCase().replace(/\s+/g, '-');
+}
+window.getWorkflowStatusCssClass = getWorkflowStatusCssClass;
+
+/**
+ * Resolve the practice-specific display label for an internal workflow
+ * status. window.workflowStageLabels is populated from get-settings.php's
+ * fully-resolved `workflowStageLabels` map (see applyUserSettings()) - it
+ * already contains all six statuses, defaulting to the stock label
+ * wherever a practice hasn't customized anything, so under normal
+ * operation this simply returns that resolved value. Falling back to the
+ * raw internal status itself (never inventing a label, never throwing) is
+ * only a safety net for settings not having loaded yet or an unrecognized
+ * status.
+ *
+ * Used by renderWorkflowStageLabels() below and available for future
+ * secondary-surface work (Insights, archive, history, print/export, etc.)
+ * that hasn't been wired in yet.
+ * @param {string} internalStatus
+ * @returns {string} resolved display label, or internalStatus as fallback
+ */
+function getStageLabel(internalStatus) {
+  if (window.workflowStageLabels && Object.prototype.hasOwnProperty.call(window.workflowStageLabels, internalStatus)) {
+    return window.workflowStageLabels[internalStatus];
+  }
+  return internalStatus;
+}
+window.getStageLabel = getStageLabel;
+
+/**
+ * Apply the current window.workflowStageLabels to every primary-surface
+ * consumer: the Settings > Display & Behavior "Workflow Stage Names"
+ * inputs, the six Kanban column headings, and the Create/Edit Case status
+ * dropdown's visible option text. Never touches an internal status value -
+ * `.kanban-column[data-status]` and `<option value>` are left completely
+ * alone, only visible text changes. Safe to call at any time (initial
+ * page bootstrap, whenever Settings loads/reopens, and immediately after a
+ * successful Settings save) since it always re-derives from the current
+ * window.workflowStageLabels map.
+ *
+ * Secondary surfaces (Insights, Lab Insights, archived cases, revision/
+ * activity history, print/export, notifications, AI prompts) are NOT
+ * updated here yet - that is a later propagation pass.
+ */
+function renderWorkflowStageLabels() {
+  var labels = window.workflowStageLabels;
+  if (!labels || typeof labels !== 'object') return;
+
+  // Settings > Display & Behavior > Workflow Stage Names inputs.
+  document.querySelectorAll('.workflow-stage-label-input').forEach(function(input) {
+    var status = input.dataset.internalStatus;
+    if (status && Object.prototype.hasOwnProperty.call(labels, status)) {
+      input.value = labels[status];
+    }
+  });
+
+  // Kanban column headings - data-status is never touched, only the
+  // visible <h2> text.
+  document.querySelectorAll('.kanban-column').forEach(function(column) {
+    var status = column.dataset.status;
+    if (!status || !Object.prototype.hasOwnProperty.call(labels, status)) return;
+    var titleEl = column.querySelector('.kanban-column-title');
+    if (titleEl) {
+      titleEl.textContent = labels[status];
+    }
+  });
+
+  // Create/Edit Case status dropdown - <option value> is never touched,
+  // only the visible option text.
+  var statusSelect = document.getElementById('status');
+  if (statusSelect) {
+    Array.prototype.forEach.call(statusSelect.options, function(option) {
+      if (option.value && Object.prototype.hasOwnProperty.call(labels, option.value)) {
+        option.textContent = labels[option.value];
+      }
+    });
+  }
+}
+window.renderWorkflowStageLabels = renderWorkflowStageLabels;
+
+/**
  * Get headers object with CSRF token for fetch requests
  * @param {Object} additionalHeaders - Additional headers to merge
  * @returns {Object} Headers object with CSRF token
@@ -1130,7 +1222,8 @@ document.addEventListener('DOMContentLoaded', function () {
             data.isGoogleDriveConnected === true,
             data.assignmentLabelsDetailed || [],
             data.isLabUsers || {},
-            data.showLabInsights === true
+            data.showLabInsights === true,
+            data.workflowStageLabels || {}
           );
 
           // Deep link support - must run after applyUserSettings() because
@@ -1298,12 +1391,29 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   // Apply loaded settings to form fields
-  function applyUserSettings(preferences, loadedGmailUsers, loadedGmailLogins, loadedAdminUsers, practiceName, logoPath, loadedAssignmentLabels, isPracticeAdmin, practiceCreatorEmail, displayName, legalName, loadedLimitedVisibilityUsers, loadedCanViewAnalyticsUsers, loadedCanEditCasesUsers, practiceCreatorHasGoogleAccount, isGoogleDriveConnected, loadedAssignmentLabelsDetailed, loadedIsLabUsers, showLabInsights) {
+  function applyUserSettings(preferences, loadedGmailUsers, loadedGmailLogins, loadedAdminUsers, practiceName, logoPath, loadedAssignmentLabels, isPracticeAdmin, practiceCreatorEmail, displayName, legalName, loadedLimitedVisibilityUsers, loadedCanViewAnalyticsUsers, loadedCanEditCasesUsers, practiceCreatorHasGoogleAccount, isGoogleDriveConnected, loadedAssignmentLabelsDetailed, loadedIsLabUsers, showLabInsights, loadedWorkflowStageLabels) {
     window.isPracticeAdmin = !!isPracticeAdmin;
     window.practiceCreatorEmail = (practiceCreatorEmail || '').toLowerCase() || null;
     window.practiceCreatorHasGoogleAccount = practiceCreatorHasGoogleAccount !== false;
     window.isGoogleDriveConnected = isGoogleDriveConnected === true;
     window.showLabInsights = showLabInsights === true;
+
+    // Fully-resolved workflow-stage display labels for the current
+    // practice (see get-settings.php's `workflowStageLabels` field and
+    // getStageLabel() above). Always an object; getStageLabel() falls back
+    // safely to the internal status if a key is ever missing.
+    window.workflowStageLabels = (loadedWorkflowStageLabels && typeof loadedWorkflowStageLabels === 'object')
+      ? loadedWorkflowStageLabels
+      : {};
+
+    // Apply to the Settings inputs, Kanban headers, and status dropdown.
+    // The board is already server-rendered with these same resolved
+    // labels on first paint (see main.php), so on initial load this is a
+    // no-op re-confirmation; it's what actually updates the UI whenever
+    // Settings (re)loads later or a save just completed.
+    if (typeof renderWorkflowStageLabels === 'function') {
+      renderWorkflowStageLabels();
+    }
 
     // Set tour completion status for Shepherd.js
     window.tourCompleted = !!preferences.tour_completed;
@@ -1532,6 +1642,13 @@ document.addEventListener('DOMContentLoaded', function () {
       return { id: m.id, isLab: !!m.isLab };
     });
 
+    var workflowStageLabelInputsCopy = {};
+    document.querySelectorAll('.workflow-stage-label-input').forEach(function(input) {
+      if (input.dataset.internalStatus) {
+        workflowStageLabelInputsCopy[input.dataset.internalStatus] = input.value;
+      }
+    });
+
     window.originalSettingsValues = {
       theme: document.getElementById('theme')?.value || 'light',
       displayName: document.getElementById('displayName')?.value || '',
@@ -1548,6 +1665,7 @@ document.addEventListener('DOMContentLoaded', function () {
       canEditCasesUsers: editCopy,
       isLabUsers: labUsersCopy,
       assignmentLabelsMeta: labelsMetaCopy,
+      workflowStageLabelInputs: workflowStageLabelInputsCopy,
       logoPath: window.currentLogoPath || '',
       logoMarkedForRemoval: false,
       pendingLogoPath: ''
@@ -1570,6 +1688,18 @@ document.addEventListener('DOMContentLoaded', function () {
     // Check logo changes
     if (window.logoMarkedForRemoval) return true;
     if (window.pendingLogoPath && window.pendingLogoPath !== orig.logoPath) return true;
+
+    // Check Workflow Stage Names inputs
+    var origWorkflowStageLabelInputs = orig.workflowStageLabelInputs || {};
+    var workflowStageInputsChanged = false;
+    document.querySelectorAll('.workflow-stage-label-input').forEach(function(input) {
+      var status = input.dataset.internalStatus;
+      if (!status) return;
+      if ((input.value || '') !== (origWorkflowStageLabelInputs[status] || '')) {
+        workflowStageInputsChanged = true;
+      }
+    });
+    if (workflowStageInputsChanged) return true;
 
     // Check arrays (users, labels)
     var currentGmailUsers = window.gmailUsers || [];
@@ -3065,6 +3195,17 @@ document.addEventListener('DOMContentLoaded', function () {
       // Practice logo settings
       var logoPathToSave = window.pendingLogoPath || window.currentLogoPath || '';
 
+      // Workflow Stage Names - keyed by the six fixed internal statuses
+      // (never by display text). Server-side normalizeWorkflowStageLabelsForSave()
+      // is authoritative for trimming/validating/dropping blanks - this is
+      // just the raw current input values.
+      var workflowStageLabels = {};
+      document.querySelectorAll('.workflow-stage-label-input').forEach(function(input) {
+        if (input.dataset.internalStatus) {
+          workflowStageLabels[input.dataset.internalStatus] = input.value;
+        }
+      });
+
       // Compile form data including Admin users, Gmail users, practice name, and logo
       var formData = {
         theme: theme,
@@ -3089,7 +3230,8 @@ document.addEventListener('DOMContentLoaded', function () {
         limitedVisibilityUsers: window.limitedVisibilityUsers || {}, // Add limited visibility map
         canViewAnalyticsUsers: window.canViewAnalyticsUsers || {}, // Add analytics permission map
         canEditCasesUsers: window.canEditCasesUsers || {}, // Add edit cases permission map
-        isLabUsers: window.isLabUsers || {} // Add Lab designation map (Lab Insights foundation)
+        isLabUsers: window.isLabUsers || {}, // Add Lab designation map (Lab Insights foundation)
+        workflowStageLabels: workflowStageLabels // Practice-specific stage display-label overrides
       };
 
       // Include logo action so the server can handle removals/updates
@@ -3109,6 +3251,25 @@ document.addEventListener('DOMContentLoaded', function () {
 
   if (saveSettingsBtn) {
     saveSettingsBtn.addEventListener('click', saveSettings);
+  }
+
+  // Restore Defaults (Workflow Stage Names) - resets the six visible
+  // inputs to their default stage names (read from each row's own fixed
+  // left-hand label, so there is no second hardcoded six-item list on the
+  // client). This is a CLIENT-SIDE FIELD RESET ONLY: it does not call any
+  // API and does not save - hasUnsavedSettingsChanges() picks up the
+  // change live (it compares current input values against the snapshot
+  // taken when Settings last loaded), so the existing Save/Cancel and
+  // close-with-unsaved-changes flows apply exactly as they would for any
+  // other manually-edited field.
+  var restoreWorkflowStageDefaultsBtn = document.getElementById('restoreWorkflowStageDefaultsBtn');
+  if (restoreWorkflowStageDefaultsBtn) {
+    restoreWorkflowStageDefaultsBtn.addEventListener('click', function() {
+      document.querySelectorAll('.workflow-stage-label-input').forEach(function(input) {
+        var labelEl = document.querySelector('label[for="' + input.id + '"]');
+        input.value = labelEl ? labelEl.textContent.trim() : (input.dataset.internalStatus || '');
+      });
+    });
   }
 
   // Add Enter key handler for settings form
@@ -3252,6 +3413,17 @@ document.addEventListener('DOMContentLoaded', function () {
             return { id: item.id, label: item.label, isLab: !!item.isLab };
           });
           displayAssignmentLabels();
+        }
+
+        // Refresh window.workflowStageLabels from the post-commit,
+        // server-normalized (trimmed/validated) values, then immediately
+        // re-render the Settings inputs, Kanban headers, and status
+        // dropdown - no reload, no logout/practice-switch required.
+        if (data.workflowStageLabels) {
+          window.workflowStageLabels = data.workflowStageLabels;
+          if (typeof renderWorkflowStageLabels === 'function') {
+            renderWorkflowStageLabels();
+          }
         }
 
         // Reset button state
@@ -3552,20 +3724,27 @@ document.addEventListener('DOMContentLoaded', function () {
           }
           break;
         case 'status_changed':
-          if (evt.old_status && evt.new_status) {
-            description = 'Changed status from ' + evt.old_status + ' to ' + evt.new_status + ' by ' + userName;
-          } else if (evt.new_status) {
-            description = 'Changed status to ' + evt.new_status + ' by ' + userName;
+          // Raw old_status/new_status remain stored/read as-is (the
+          // internal status values); only this render-time sentence
+          // resolves them to the practice's current display labels.
+          var statusChangedOldLabel = evt.old_status ? getStageLabel(evt.old_status) : evt.old_status;
+          var statusChangedNewLabel = evt.new_status ? getStageLabel(evt.new_status) : evt.new_status;
+          if (statusChangedOldLabel && statusChangedNewLabel) {
+            description = 'Changed status from ' + statusChangedOldLabel + ' to ' + statusChangedNewLabel + ' by ' + userName;
+          } else if (statusChangedNewLabel) {
+            description = 'Changed status to ' + statusChangedNewLabel + ' by ' + userName;
           } else {
             description = 'Status changed by ' + userName;
           }
           break;
         case 'case_revision':
         case 'case_regression':
-          if (evt.old_status && evt.new_status) {
-            description = 'Changed status from ' + evt.old_status + ' to ' + evt.new_status + ' (revision) by ' + userName;
-          } else if (evt.new_status) {
-            description = 'Changed status to ' + evt.new_status + ' (revision) by ' + userName;
+          var revisionOldLabel = evt.old_status ? getStageLabel(evt.old_status) : evt.old_status;
+          var revisionNewLabel = evt.new_status ? getStageLabel(evt.new_status) : evt.new_status;
+          if (revisionOldLabel && revisionNewLabel) {
+            description = 'Changed status from ' + revisionOldLabel + ' to ' + revisionNewLabel + ' (revision) by ' + userName;
+          } else if (revisionNewLabel) {
+            description = 'Changed status to ' + revisionNewLabel + ' (revision) by ' + userName;
           } else {
             description = 'Status changed (revision) by ' + userName;
           }
@@ -5879,11 +6058,13 @@ document.addEventListener('DOMContentLoaded', function () {
 
         if (!draggedCard) return;
 
-        // Get the column's status from its parent column header
-        const columnHeader = column.closest('.kanban-column').querySelector('.kanban-column-title');
-        if (!columnHeader) return;
-
-        const newStatus = columnHeader.textContent.trim();
+        // Get the column's internal status from its fixed data-status
+        // attribute - NOT from the column header's visible text, which
+        // will become practice-customizable and must never determine the
+        // persisted status.
+        const columnEl = column.closest('.kanban-column');
+        const newStatus = columnEl ? columnEl.dataset.status : '';
+        if (!newStatus) return;
 
         // Get card data
         let cardData;
@@ -5974,7 +6155,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const targetCount = targetCountBadge ? parseInt(targetCountBadge.textContent) || 0 : 0;
     const previousStatus = cardData.status;
     const previousLastUpdateDate = cardData.lastUpdateDate;
-    const previousStatusClass = 'kanban-card-' + previousStatus.toLowerCase().replace(/\s+/g, '-');
+    const previousStatusClass = getWorkflowStatusCssClass(previousStatus);
 
     // Fast optimistic UI updates - batch DOM operations
     requestAnimationFrame(() => {
@@ -6096,7 +6277,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
           // Update status class
           card.classList.remove(previousStatusClass);
-          card.classList.add('kanban-card-' + newStatus.toLowerCase().replace(/\s+/g, '-'));
+          card.classList.add(getWorkflowStatusCssClass(newStatus));
 
           // Update date display
           const dateValue = card.querySelector('.date-value:last-child');
@@ -6148,7 +6329,7 @@ document.addEventListener('DOMContentLoaded', function () {
         cardData.status = previousStatus;
         cardData.lastUpdateDate = previousLastUpdateDate;
         card.dataset.caseJson = JSON.stringify(cardData);
-        card.classList.remove('kanban-card-' + newStatus.toLowerCase().replace(/\s+/g, '-'));
+        card.classList.remove(getWorkflowStatusCssClass(newStatus));
         card.classList.add(previousStatusClass);
 
         // Restore date
@@ -6173,11 +6354,24 @@ document.addEventListener('DOMContentLoaded', function () {
             cardData.version = error.currentData.version;
             cardData.lastUpdateDate = error.currentData.lastUpdateDate || previousLastUpdateDate;
             card.dataset.caseJson = JSON.stringify(cardData);
-            // Move card to correct column based on current status
-            var correctColumn = document.querySelector('.kanban-column[data-status="' + cardData.status + '"] .kanban-cards');
+
+            // Move card to the column matching the server-authoritative
+            // status, found via the fixed data-status attribute (never
+            // visible column-header text). The card container is
+            // '.kanban-column-body' - the same class addCaseToKanban()
+            // appends new cards into - not '.kanban-cards', which never
+            // matched anything and silently no-op'd this repositioning.
+            var correctColumn = document.querySelector('.kanban-column[data-status="' + cardData.status + '"] .kanban-column-body');
             if (correctColumn && correctColumn !== card.parentNode) {
               correctColumn.appendChild(card);
             }
+
+            // The status-color class was just reset to previousStatusClass
+            // above; if the server-authoritative status differs from that
+            // (e.g. a third party moved the case elsewhere), correct it to
+            // match cardData.status so styling stays accurate.
+            card.classList.remove(previousStatusClass);
+            card.classList.add(getWorkflowStatusCssClass(cardData.status));
           }
         } else {
           showToast('Failed to update case status', 'error');
@@ -6188,17 +6382,16 @@ document.addEventListener('DOMContentLoaded', function () {
 
   // Function to add a new case to the appropriate Kanban column
   function addCaseToKanban(caseData) {
-    // Find the appropriate column based on status
+    // Find the appropriate column based on the case's internal status,
+    // matched against each column's fixed data-status attribute - never
+    // against the column header's visible (and later practice-
+    // customizable) text.
     var status = caseData.status;
-    var columnSelector = '.kanban-column:has(.kanban-column-title:contains("' + status + '"))';
-
-    // Use a more compatible approach
     var columns = document.querySelectorAll('.kanban-column');
     var targetColumn = null;
 
     columns.forEach(function(column) {
-      var titleElement = column.querySelector('.kanban-column-title');
-      if (titleElement && titleElement.textContent.trim() === status) {
+      if (column.dataset.status === status) {
         targetColumn = column;
       }
     });
@@ -6222,7 +6415,7 @@ document.addEventListener('DOMContentLoaded', function () {
       caseCard.className = 'kanban-card';
 
       // Add class based on status for colored left border
-      var statusClass = 'kanban-card-' + status.toLowerCase().replace(/\s+/g, '-');
+      var statusClass = getWorkflowStatusCssClass(status);
       caseCard.classList.add(statusClass);
 
       // Check if past due and add class immediately to prevent CLS
@@ -7085,7 +7278,8 @@ document.addEventListener('DOMContentLoaded', function () {
             data.isGoogleDriveConnected === true,
             data.assignmentLabelsDetailed || [],
             data.isLabUsers || {},
-            data.showLabInsights === true
+            data.showLabInsights === true,
+            data.workflowStageLabels || {}
           );
 
           // Set localStorage values for past due highlighting
@@ -7276,15 +7470,11 @@ document.addEventListener('DOMContentLoaded', function () {
         if (dueDateElement) {
           var dueDateText = dueDateElement.textContent.replace('Due: ', '').replace(' LATE', '');
 
-          // Determine the status based on which column the card is in
+          // Determine the internal status from the column's fixed
+          // data-status attribute - not its visible (and later practice-
+          // customizable) header text.
           var column = card.closest('.kanban-column');
-          var status = '';
-          if (column) {
-            var titleElement = column.querySelector('.kanban-column-title');
-            if (titleElement) {
-              status = titleElement.textContent.trim();
-            }
-          }
+          var status = column ? (column.dataset.status || '') : '';
 
           var caseData = {
             id: caseId,
@@ -8501,6 +8691,22 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   }
 
+  // Practice Insights / Lab Insights already re-fetch and re-render (via
+  // loadAnalyticsProData()/loadLabInsightsData()) every time their tab is
+  // clicked, which naturally picks up the latest window.workflowStageLabels.
+  // The one gap is a tab that's already the active/visible one at the
+  // moment Settings is saved - reuse those exact same existing refresh
+  // functions (no new rendering logic) so it doesn't keep showing stale
+  // custom labels until the next tab switch.
+  window.addEventListener('settingsUpdated', function() {
+    if (analyticsScriptsLoaded && typeof window.loadAnalyticsProData === 'function') {
+      window.loadAnalyticsProData();
+    }
+    if (labInsightsScriptsLoaded && typeof window.loadLabInsightsData === 'function') {
+      window.loadLabInsightsData();
+    }
+  });
+
   // Archived Cases Modal functionality
   const archivedCasesModal = document.getElementById('archivedCasesModal');
   const viewArchivedBtn = document.getElementById('viewArchivedBtn');
@@ -8799,7 +9005,7 @@ document.addEventListener('DOMContentLoaded', function () {
         <td>${case_.patientFirstName || case_.patient_first_name || ''} ${case_.patientLastName || case_.patient_last_name || ''}</td>
         <td>${case_.dentistName || case_.dentist_name || ''}</td>
         <td>${case_.caseType || case_.case_type || ''}</td>
-        <td>${case_.status || ''}</td>
+        <td>${case_.status ? escapeHtml(getStageLabel(case_.status)) : ''}</td>
         <td>${formatDate(case_.creation_date, false)}</td>
         <td>${formatDate(case_.archived_date, false)}</td>
         <td>

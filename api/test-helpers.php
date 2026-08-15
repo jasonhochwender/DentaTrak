@@ -9,6 +9,7 @@
 require_once __DIR__ . '/appConfig.php';
 require_once __DIR__ . '/practice-trial.php';
 require_once __DIR__ . '/subscription-owner.php';
+require_once __DIR__ . '/workflow-stages.php';
 
 // SECURITY CHECK: Only allow in development environment
 $environment = $appConfig['current_environment'] ?? $appConfig['environment'] ?? 'production';
@@ -61,6 +62,18 @@ switch ($action) {
         break;
     case 'get_subscription_state':
         handleGetSubscriptionState($pdo, $input);
+        break;
+    case 'set_workflow_stage_labels':
+        handleSetWorkflowStageLabels($pdo, $input);
+        break;
+    case 'get_ai_workflow_stages_prompt_text':
+        handleGetAiWorkflowStagesPromptText($pdo, $input);
+        break;
+    case 'get_export_file_by_id':
+        handleGetExportFileById($pdo, $input);
+        break;
+    case 'cleanup_test_data':
+        handleCleanupTestData($pdo, $input);
         break;
     default:
         http_response_code(400);
@@ -761,5 +774,299 @@ function handleCleanupTestUser($pdo, $input) {
     } catch (PDOException $e) {
         http_response_code(500);
         echo json_encode(['success' => false, 'message' => 'Cleanup failed']);
+    }
+}
+
+/**
+ * Test-only fixture setup for the workflow-stage display-label foundation
+ * (no Settings UI exists to do this yet). Sets the given practice's
+ * `workflow_stage_labels` column directly so tests can exercise the
+ * resolver/get-settings.php without a save endpoint.
+ *
+ * Normal mode: `{ email, overrides: { <internalStatus>: <label>, ... } }`
+ * - runs the exact same normalizeWorkflowStageLabelsForSave() validation
+ * the future Settings save endpoint will use, so this helper can never
+ * store anything the real save path wouldn't also allow.
+ *
+ * Escape-hatch mode: `{ email, raw: <string|null> }` - writes the raw
+ * value directly, bypassing validation entirely, so tests can exercise the
+ * defensive read-time parser (parseWorkflowStageLabelOverrides()) against
+ * malformed/legacy data (invalid JSON, unknown keys, overlong values).
+ */
+function handleSetWorkflowStageLabels($pdo, $input) {
+    $email = strtolower(trim($input['email'] ?? ''));
+
+    if (empty($email)) {
+        http_response_code(400);
+        echo json_encode(['success' => false, 'message' => 'email is required']);
+        return;
+    }
+
+    try {
+        $stmt = $pdo->prepare("SELECT id FROM users WHERE email = :email");
+        $stmt->execute(['email' => $email]);
+        $userId = $stmt->fetchColumn();
+
+        if (!$userId) {
+            http_response_code(404);
+            echo json_encode(['success' => false, 'message' => 'User not found. Run setup_test_user first.']);
+            return;
+        }
+
+        $stmt = $pdo->prepare("SELECT id FROM practices WHERE created_by = :user_id ORDER BY id DESC LIMIT 1");
+        $stmt->execute(['user_id' => $userId]);
+        $practiceId = $stmt->fetchColumn();
+
+        if (!$practiceId) {
+            http_response_code(404);
+            echo json_encode(['success' => false, 'message' => 'No practice found for this user.']);
+            return;
+        }
+
+        ensureWorkflowStageLabelsColumn();
+
+        if (array_key_exists('raw', $input)) {
+            $raw = $input['raw'];
+            $stmt = $pdo->prepare("UPDATE practices SET workflow_stage_labels = :labels WHERE id = :id");
+            $stmt->execute(['labels' => $raw === null ? null : (string)$raw, 'id' => $practiceId]);
+            echo json_encode(['success' => true, 'practice_id' => (int)$practiceId, 'raw' => $raw]);
+            return;
+        }
+
+        $overridesInput = $input['overrides'] ?? [];
+        if (!is_array($overridesInput)) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'message' => 'overrides must be an object']);
+            return;
+        }
+
+        $normalized = normalizeWorkflowStageLabelsForSave($overridesInput);
+        if (!$normalized['valid']) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'message' => 'Invalid overrides', 'errors' => $normalized['errors']]);
+            return;
+        }
+
+        $json = empty($normalized['overrides']) ? null : json_encode($normalized['overrides']);
+        $stmt = $pdo->prepare("UPDATE practices SET workflow_stage_labels = :labels WHERE id = :id");
+        $stmt->execute(['labels' => $json, 'id' => $practiceId]);
+
+        echo json_encode([
+            'success' => true,
+            'practice_id' => (int)$practiceId,
+            'overrides' => $normalized['overrides'],
+        ]);
+    } catch (PDOException $e) {
+        error_log('[test-helpers] set_workflow_stage_labels error: ' . $e->getMessage());
+        http_response_code(500);
+        echo json_encode(['success' => false, 'message' => 'Update failed: ' . $e->getMessage()]);
+    }
+}
+
+/**
+ * Development-only: returns the exact "Cases flow through stages: ..."
+ * text buildWorkflowStagesPromptText() (api/workflow-stages.php) would
+ * embed in the AI assistant's system prompt for this practice, WITHOUT
+ * making any real call to an AI provider. Lets tests verify the stale
+ * hardcoded workflow wording is gone and the real, resolved, ordered
+ * stages are used - a live AI call is impractical to exercise in this
+ * test suite (external API, no mock/test-mode hook, non-deterministic).
+ */
+function handleGetAiWorkflowStagesPromptText($pdo, $input) {
+    $email = strtolower(trim($input['email'] ?? ''));
+
+    if (empty($email)) {
+        http_response_code(400);
+        echo json_encode(['success' => false, 'message' => 'email is required']);
+        return;
+    }
+
+    $stmt = $pdo->prepare("SELECT id FROM users WHERE email = :email");
+    $stmt->execute(['email' => $email]);
+    $userId = $stmt->fetchColumn();
+
+    if (!$userId) {
+        http_response_code(404);
+        echo json_encode(['success' => false, 'message' => 'User not found. Run setup_test_user first.']);
+        return;
+    }
+
+    $stmt = $pdo->prepare("SELECT id FROM practices WHERE created_by = :user_id ORDER BY id DESC LIMIT 1");
+    $stmt->execute(['user_id' => $userId]);
+    $practiceId = $stmt->fetchColumn();
+
+    if (!$practiceId) {
+        http_response_code(404);
+        echo json_encode(['success' => false, 'message' => 'No practice found for this user.']);
+        return;
+    }
+
+    echo json_encode([
+        'success' => true,
+        'practice_id' => (int)$practiceId,
+        'promptText' => buildWorkflowStagesPromptText((int)$practiceId),
+    ]);
+}
+
+/**
+ * Development-only: reads back the JSON file api/data-export.php's
+ * processExport() writes to disk (exports/dentatrak_export_{id}_{token}.json),
+ * given only the exportId returned by the normal `?action=request` response.
+ * The real download flow requires a token that is only ever delivered by
+ * email (by design, for security) - this exists purely so tests can verify
+ * export content (statusLabel/oldStatusLabel/newStatusLabel additions)
+ * without needing a real mailbox.
+ */
+function handleGetExportFileById($pdo, $input) {
+    $exportId = (int)($input['exportId'] ?? 0);
+    if (!$exportId) {
+        http_response_code(400);
+        echo json_encode(['success' => false, 'message' => 'exportId is required']);
+        return;
+    }
+
+    $stmt = $pdo->prepare("SELECT file_path FROM data_exports WHERE id = :id");
+    $stmt->execute(['id' => $exportId]);
+    $filePath = $stmt->fetchColumn();
+
+    if (!$filePath) {
+        http_response_code(404);
+        echo json_encode(['success' => false, 'message' => 'Export not found']);
+        return;
+    }
+
+    $fullPath = __DIR__ . '/../exports/' . $filePath;
+    if (!file_exists($fullPath)) {
+        http_response_code(404);
+        echo json_encode(['success' => false, 'message' => 'Export file not found on disk']);
+        return;
+    }
+
+    $content = json_decode(file_get_contents($fullPath), true);
+    echo json_encode(['success' => true, 'export' => $content]);
+}
+
+/**
+ * Development-only: deletes E2E-test-generated local data, identified
+ * ONLY by deterministic naming convention - never by age:
+ *   - users whose email matches 'e2e.%@dentatrak.com' (every test helper
+ *     in this codebase - setup_test_user, setup_practice_member,
+ *     seed_owned_practices, etc. - creates accounts this way)
+ *   - users whose email ends in '@example.com' (used by a few specs for
+ *     throwaway/never-persisted-login users)
+ * The shared 'e2e.test@dentatrak.com' account (used by tests/global-setup.ts
+ * and every test that calls helpers/login.ts's login()) is explicitly
+ * excluded from deletion - only ITS accumulated cases/activity/assignment
+ * labels are reset to a clean baseline, exactly like every other run.
+ *
+ * cases_cache and its dependent tables (case_activity_log, case_comments,
+ * case_assignments, case_lab_assignment_periods, case_label_assignments,
+ * data_exports) have NO foreign-key cascade from practices/users in this
+ * schema, so they are deleted explicitly and in FK-safe order BEFORE the
+ * owning users are deleted. Deleting the users themselves then cascades
+ * (ON DELETE CASCADE) to practices, practice_users, practice_assignment_labels,
+ * subscriptions, sessions, and the other user-owned tables.
+ *
+ * Pass `{ "dryRun": true }` to only COUNT what would be deleted (used by
+ * tests/global-teardown.ts to log expected counts before actually
+ * deleting, and by the representative regression check to confirm no net
+ * growth). Wrapped in a single transaction; if any statement fails,
+ * nothing is deleted.
+ */
+function handleCleanupTestData($pdo, $input) {
+    $dryRun = !empty($input['dryRun']);
+    $sharedEmail = 'e2e.test@dentatrak.com';
+
+    $testPracticeSubquery = "
+        SELECT p.id FROM practices p
+        JOIN users u ON p.created_by = u.id
+        WHERE u.email LIKE 'e2e.%@dentatrak.com' AND u.email <> :shared_email
+    ";
+    $testUserSubquery = "
+        SELECT id FROM users
+        WHERE (email LIKE 'e2e.%@dentatrak.com' AND email <> :shared_email)
+           OR email LIKE '%@example.com'
+    ";
+    $testCaseSubquery = "
+        SELECT case_id FROM cases_cache
+        WHERE practice_id IN ($testPracticeSubquery)
+    ";
+
+    try {
+        $counts = [];
+
+        $countSql = function ($sql) use ($pdo, $sharedEmail) {
+            $stmt = $pdo->prepare($sql);
+            $stmt->execute(['shared_email' => $sharedEmail]);
+            return (int)$stmt->fetchColumn();
+        };
+
+        $counts['test_practices'] = $countSql("SELECT COUNT(*) FROM ($testPracticeSubquery) t");
+        $counts['test_users'] = $countSql("SELECT COUNT(*) FROM ($testUserSubquery) t");
+        $counts['test_cases'] = $countSql("SELECT COUNT(*) FROM cases_cache WHERE practice_id IN ($testPracticeSubquery)");
+        $counts['test_case_activity_log'] = $countSql("SELECT COUNT(*) FROM case_activity_log WHERE case_id IN ($testCaseSubquery)");
+        // No :shared_email placeholder in this one - query directly rather
+        // than through $countSql (native prepares reject an unused bound
+        // parameter as "Invalid parameter number").
+        $counts['orphaned_case_activity_log'] = (int)$pdo->query(
+            "SELECT COUNT(*) FROM case_activity_log WHERE case_id NOT IN (SELECT case_id FROM cases_cache)"
+        )->fetchColumn();
+        $counts['test_case_comments'] = $countSql("SELECT COUNT(*) FROM case_comments WHERE case_id IN ($testCaseSubquery)");
+        $counts['test_case_assignments'] = $countSql("SELECT COUNT(*) FROM case_assignments WHERE case_id COLLATE utf8mb4_general_ci IN ($testCaseSubquery)");
+        $counts['test_case_lab_assignment_periods'] = $countSql("SELECT COUNT(*) FROM case_lab_assignment_periods WHERE practice_id IN ($testPracticeSubquery)");
+        $counts['test_case_label_assignments'] = $countSql("SELECT COUNT(*) FROM case_label_assignments WHERE case_id IN ($testCaseSubquery)");
+        $counts['test_data_exports'] = $countSql("SELECT COUNT(*) FROM data_exports WHERE practice_id IN ($testPracticeSubquery)");
+        $counts['shared_account_cases'] = (int)$pdo->query("SELECT COUNT(*) FROM cases_cache cc JOIN practices p ON cc.practice_id = p.id JOIN users u ON p.created_by = u.id WHERE u.email = " . $pdo->quote($sharedEmail))->fetchColumn();
+
+        if ($dryRun) {
+            echo json_encode(['success' => true, 'dryRun' => true, 'counts' => $counts]);
+            return;
+        }
+
+        $pdo->beginTransaction();
+
+        // Test-owned practices' case-dependent rows (no FK cascade exists).
+        $pdo->prepare("DELETE FROM case_comments WHERE case_id IN ($testCaseSubquery)")->execute(['shared_email' => $sharedEmail]);
+        $pdo->prepare("DELETE FROM case_assignments WHERE case_id COLLATE utf8mb4_general_ci IN ($testCaseSubquery)")->execute(['shared_email' => $sharedEmail]);
+        $pdo->prepare("DELETE FROM case_lab_assignment_periods WHERE practice_id IN ($testPracticeSubquery)")->execute(['shared_email' => $sharedEmail]);
+        $pdo->prepare("DELETE FROM case_label_assignments WHERE case_id IN ($testCaseSubquery)")->execute(['shared_email' => $sharedEmail]);
+        $pdo->prepare("DELETE FROM case_activity_log WHERE case_id IN ($testCaseSubquery)")->execute(['shared_email' => $sharedEmail]);
+        // Pre-existing orphaned rows from any past ad-hoc cleanup that deleted
+        // cases_cache directly without cleaning case_activity_log.
+        $pdo->exec("DELETE FROM case_activity_log WHERE case_id NOT IN (SELECT case_id FROM cases_cache)");
+        $pdo->prepare("DELETE FROM data_exports WHERE practice_id IN ($testPracticeSubquery)")->execute(['shared_email' => $sharedEmail]);
+        $pdo->prepare("DELETE FROM cases_cache WHERE practice_id IN ($testPracticeSubquery)")->execute(['shared_email' => $sharedEmail]);
+
+        // Deleting the test users cascades to their owned practices,
+        // practice_users, practice_assignment_labels, subscriptions, etc.
+        $pdo->prepare("DELETE FROM users WHERE (email LIKE 'e2e.%@dentatrak.com' AND email <> :shared_email) OR email LIKE '%@example.com'")
+            ->execute(['shared_email' => $sharedEmail]);
+
+        // Reset the shared account's OWN accumulated cases/activity/labels to
+        // a clean baseline. Membership rows (owner + the "Assigned Only"
+        // fixture member) are left untouched.
+        $sharedPracticeIds = $pdo->prepare("SELECT p.id FROM practices p JOIN users u ON p.created_by = u.id WHERE u.email = :shared_email");
+        $sharedPracticeIds->execute(['shared_email' => $sharedEmail]);
+        foreach ($sharedPracticeIds->fetchAll(PDO::FETCH_COLUMN) as $practiceId) {
+            $pdo->prepare("DELETE FROM case_comments WHERE case_id IN (SELECT case_id FROM cases_cache WHERE practice_id = :pid)")->execute(['pid' => $practiceId]);
+            $pdo->prepare("DELETE FROM case_assignments WHERE case_id COLLATE utf8mb4_general_ci IN (SELECT case_id FROM cases_cache WHERE practice_id = :pid)")->execute(['pid' => $practiceId]);
+            $pdo->prepare("DELETE FROM case_lab_assignment_periods WHERE practice_id = :pid")->execute(['pid' => $practiceId]);
+            $pdo->prepare("DELETE FROM case_label_assignments WHERE case_id IN (SELECT case_id FROM cases_cache WHERE practice_id = :pid)")->execute(['pid' => $practiceId]);
+            $pdo->prepare("DELETE FROM case_activity_log WHERE case_id IN (SELECT case_id FROM cases_cache WHERE practice_id = :pid)")->execute(['pid' => $practiceId]);
+            $pdo->prepare("DELETE FROM data_exports WHERE practice_id = :pid")->execute(['pid' => $practiceId]);
+            $pdo->prepare("DELETE FROM cases_cache WHERE practice_id = :pid")->execute(['pid' => $practiceId]);
+            $pdo->prepare("DELETE FROM practice_assignment_labels WHERE practice_id = :pid")->execute(['pid' => $practiceId]);
+        }
+
+        $pdo->commit();
+
+        echo json_encode(['success' => true, 'dryRun' => false, 'deleted' => $counts]);
+    } catch (PDOException $e) {
+        if ($pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
+        error_log('[test-helpers] cleanup_test_data error: ' . $e->getMessage());
+        http_response_code(500);
+        echo json_encode(['success' => false, 'message' => 'Cleanup failed: ' . $e->getMessage()]);
     }
 }

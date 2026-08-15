@@ -9,6 +9,7 @@ require_once __DIR__ . '/user-manager.php';
 require_once __DIR__ . '/practice-security.php';
 require_once __DIR__ . '/feature-flags.php';
 require_once __DIR__ . '/lab-assignment-history.php';
+require_once __DIR__ . '/workflow-stages.php';
 
 // Start session if not already started
 if (session_status() === PHP_SESSION_NONE) {
@@ -301,6 +302,18 @@ try {
         }
     }
     
+    // Fully-resolved practice-specific workflow-stage display labels
+    // (foundation only - there is no Settings UI to customize these yet,
+    // so today this always resolves to the six default labels). Always
+    // all six internal statuses as keys, defaults where uncustomized -
+    // see getResolvedWorkflowStageLabels() in workflow-stages.php. This is
+    // operational board/UI data every practice member needs (not
+    // admin-only configuration), so - like assignmentLabels below - it is
+    // included unconditionally, regardless of $isPracticeAdmin.
+    $workflowStageLabels = getResolvedWorkflowStageLabels(
+        $currentPracticeId ? getWorkflowStageLabelOverridesForPractice($currentPracticeId) : []
+    );
+
     // Normalize preferences and provide defaults
     if (!$preferences) {
         $preferences = [
@@ -399,6 +412,7 @@ try {
         'logoPath' => $logoPath,
         'assignmentLabels' => $assignmentLabels,
         'assignmentLabelsDetailed' => $responseAssignmentLabelsDetailed,
+        'workflowStageLabels' => $workflowStageLabels,
         'isLabUsers' => $responseIsLabUsers,
         'showLabInsights' => isFeatureEnabled('SHOW_LAB_INSIGHTS'),
         'isPracticeAdmin' => $isPracticeAdmin,

@@ -11,6 +11,7 @@ require_once __DIR__ . '/practice-security.php';
 require_once __DIR__ . '/csrf.php';
 require_once __DIR__ . '/billing-bypass.php';
 require_once __DIR__ . '/subscription-access.php';
+require_once __DIR__ . '/workflow-stages.php';
 
 header('Content-Type: application/json');
 
@@ -115,7 +116,7 @@ try {
 
     if ($isAskRequest) {
         // Handle user question
-        $response = answerUserQuestion($appConfig, $analyticsData, $userQuery, $aiProvider);
+        $response = answerUserQuestion($appConfig, $analyticsData, $userQuery, $aiProvider, $practiceId);
         echo json_encode([
             'success' => true,
             'response' => $response,
@@ -318,11 +319,12 @@ function gatherAnalyticsData($pdo, $practiceId) {
 /**
  * Answer a user question about their practice data
  */
-function answerUserQuestion($appConfig, $analyticsData, $userQuery, $provider = 'gemini') {
+function answerUserQuestion($appConfig, $analyticsData, $userQuery, $provider = 'gemini', $practiceId = null) {
     $aiConfig = $appConfig[$provider];
 
     // Build context with practice data
     $dataString = json_encode($analyticsData, JSON_PRETTY_PRINT);
+    $workflowStagesText = buildWorkflowStagesPromptText($practiceId);
 
     $systemPrompt = "You are DentaTrak's helpful assistant for a dental lab case management system.
 You can answer questions about:
@@ -351,7 +353,7 @@ To add a new user to your practice:
 4. Click 'Create Case'
 
 **Case Statuses (Kanban Board):**
-Cases flow through stages: Pending → In Progress → Quality Check → Ready for Pickup → Delivered
+Cases flow through stages: $workflowStagesText
 Drag and drop cards between columns to update status.
 
 **Filtering Cases:**

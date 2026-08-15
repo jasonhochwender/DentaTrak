@@ -33,6 +33,7 @@ if (!canViewAnalytics($practiceId)) {
 // Load configuration
 require_once __DIR__ . '/appConfig.php';
 require_once __DIR__ . '/at-risk-calculator.php';
+require_once __DIR__ . '/workflow-stages.php';
 
 // Get time period filters
 $userId = $_SESSION['db_user_id'];
@@ -252,16 +253,7 @@ try {
             WHERE practice_id = :practice_id
             $statusClause
             GROUP BY status
-            ORDER BY 
-                CASE 
-                    WHEN status = 'Originated' THEN 1
-                    WHEN status = 'Sent To External Lab' THEN 2
-                    WHEN status = 'Designed' THEN 3
-                    WHEN status = 'Manufactured' THEN 4
-                    WHEN status = 'Received From External Lab' THEN 5
-                    WHEN status = 'Delivered' THEN 6
-                    ELSE 7
-                END
+            ORDER BY " . getWorkflowStageOrderCaseSql() . "
         ");
         $stmt->execute(['practice_id' => $practiceId]);
         $statusDistribution = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -423,15 +415,7 @@ try {
             AND status_changed_at IS NOT NULL
             $durationClause
             GROUP BY status
-            ORDER BY 
-                CASE 
-                    WHEN status = 'Originated' THEN 1
-                    WHEN status = 'Sent To External Lab' THEN 2
-                    WHEN status = 'Designed' THEN 3
-                    WHEN status = 'Manufactured' THEN 4
-                    WHEN status = 'Received From External Lab' THEN 5
-                    ELSE 6
-                END
+            ORDER BY " . getWorkflowStageOrderCaseSql() . "
         ");
         $stmt->execute(['practice_id' => $practiceId]);
         $statusDurationData = $stmt->fetchAll(PDO::FETCH_ASSOC);

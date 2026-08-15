@@ -104,6 +104,19 @@ $userCanViewAnalytics = canViewAnalytics($currentPracticeId);
 // visibility; every underlying API independently enforces this server-side.
 $isCurrentUserPracticeAdmin = isPracticeAdmin($currentPracticeId);
 
+// Practice-specific workflow-stage display labels, resolved once here so
+// both the Kanban board and Settings > Display & Behavior can render the
+// customized text server-side on first paint - avoiding a flash of the
+// default label before get-settings.php's client-side bootstrap runs (see
+// window.workflowStageLabels / getStageLabel() in js/app.js). This is
+// display text ONLY: data-status attributes, <option value>, drag/drop,
+// and revision logic all continue to use the fixed internal status values
+// and never derive from $resolvedWorkflowStageLabels.
+require_once __DIR__ . '/api/workflow-stages.php';
+$resolvedWorkflowStageLabels = getResolvedWorkflowStageLabels(
+    getWorkflowStageLabelOverridesForPractice($currentPracticeId)
+);
+
 // BAA ACCESS CONTROL GATE
 // Block access to PHI until BAA is accepted
 $baaAccepted = false;
@@ -742,9 +755,9 @@ window.featureFlags = <?php echo getFeatureFlagsJson(); ?>;
       </div>
 
       <section class="kanban-board">
-        <div class="kanban-column">
+        <div class="kanban-column" data-status="Originated">
           <div class="kanban-column-header">
-            <h2 class="kanban-column-title">Originated</h2>
+            <h2 class="kanban-column-title"><?= htmlspecialchars($resolvedWorkflowStageLabels['Originated']) ?></h2>
             <span class="kanban-column-count">0</span>
           </div>
           <div class="kanban-column-body">
@@ -752,9 +765,9 @@ window.featureFlags = <?php echo getFeatureFlagsJson(); ?>;
           </div>
         </div>
 
-        <div class="kanban-column">
+        <div class="kanban-column" data-status="Sent To External Lab">
           <div class="kanban-column-header">
-            <h2 class="kanban-column-title">Sent To External Lab</h2>
+            <h2 class="kanban-column-title"><?= htmlspecialchars($resolvedWorkflowStageLabels['Sent To External Lab']) ?></h2>
             <span class="kanban-column-count">0</span>
           </div>
           <div class="kanban-column-body">
@@ -762,9 +775,9 @@ window.featureFlags = <?php echo getFeatureFlagsJson(); ?>;
           </div>
         </div>
 
-        <div class="kanban-column">
+        <div class="kanban-column" data-status="Designed">
           <div class="kanban-column-header">
-            <h2 class="kanban-column-title">Designed</h2>
+            <h2 class="kanban-column-title"><?= htmlspecialchars($resolvedWorkflowStageLabels['Designed']) ?></h2>
             <span class="kanban-column-count">0</span>
           </div>
           <div class="kanban-column-body">
@@ -772,9 +785,9 @@ window.featureFlags = <?php echo getFeatureFlagsJson(); ?>;
           </div>
         </div>
 
-        <div class="kanban-column">
+        <div class="kanban-column" data-status="Manufactured">
           <div class="kanban-column-header">
-            <h2 class="kanban-column-title">Manufactured</h2>
+            <h2 class="kanban-column-title"><?= htmlspecialchars($resolvedWorkflowStageLabels['Manufactured']) ?></h2>
             <span class="kanban-column-count">0</span>
           </div>
           <div class="kanban-column-body">
@@ -782,9 +795,9 @@ window.featureFlags = <?php echo getFeatureFlagsJson(); ?>;
           </div>
         </div>
 
-        <div class="kanban-column">
+        <div class="kanban-column" data-status="Received From External Lab">
           <div class="kanban-column-header">
-            <h2 class="kanban-column-title">Received From External Lab</h2>
+            <h2 class="kanban-column-title"><?= htmlspecialchars($resolvedWorkflowStageLabels['Received From External Lab']) ?></h2>
             <span class="kanban-column-count">0</span>
           </div>
           <div class="kanban-column-body">
@@ -792,9 +805,9 @@ window.featureFlags = <?php echo getFeatureFlagsJson(); ?>;
           </div>
         </div>
 
-        <div class="kanban-column">
+        <div class="kanban-column" data-status="Delivered">
           <div class="kanban-column-header">
-            <h2 class="kanban-column-title">Delivered</h2>
+            <h2 class="kanban-column-title"><?= htmlspecialchars($resolvedWorkflowStageLabels['Delivered']) ?></h2>
             <span class="kanban-column-count">0</span>
           </div>
           <div class="kanban-column-body">
@@ -867,7 +880,7 @@ window.featureFlags = <?php echo getFeatureFlagsJson(); ?>;
                   </div>
                 </div>
                 <div class="ap-metric-value" id="apDelivered">-</div>
-                <div class="ap-metric-label">Delivered</div>
+                <div class="ap-metric-label"><?= htmlspecialchars($resolvedWorkflowStageLabels['Delivered']) ?></div>
               </div>
 
               <div class="ap-metric-card accent-orange">
@@ -1638,12 +1651,12 @@ window.featureFlags = <?php echo getFeatureFlagsJson(); ?>;
                   <label for="status">Status <span class="required">*</span></label>
                   <select id="status" name="status" required>
                     <option value="">Select status...</option>
-                    <option value="Originated" selected>Originated</option>
-                    <option>Sent To External Lab</option>
-                    <option>Designed</option>
-                    <option>Manufactured</option>
-                    <option>Received From External Lab</option>
-                    <option>Delivered</option>
+                    <option value="Originated" selected><?= htmlspecialchars($resolvedWorkflowStageLabels['Originated']) ?></option>
+                    <option value="Sent To External Lab"><?= htmlspecialchars($resolvedWorkflowStageLabels['Sent To External Lab']) ?></option>
+                    <option value="Designed"><?= htmlspecialchars($resolvedWorkflowStageLabels['Designed']) ?></option>
+                    <option value="Manufactured"><?= htmlspecialchars($resolvedWorkflowStageLabels['Manufactured']) ?></option>
+                    <option value="Received From External Lab"><?= htmlspecialchars($resolvedWorkflowStageLabels['Received From External Lab']) ?></option>
+                    <option value="Delivered"><?= htmlspecialchars($resolvedWorkflowStageLabels['Delivered']) ?></option>
                   </select>
                 </div>
 
@@ -2185,6 +2198,43 @@ window.featureFlags = <?php echo getFeatureFlagsJson(); ?>;
                           <span id="googleDriveWorkspaceWarning" class="field-note" style="display: none; margin-top: 4px; margin-left: 8px; font-size: 12px; color: #d97706;">⚠️ Requires Google Workspace with a signed BAA for HIPAA compliance.</span>
                         </div>
                         <?php endif; ?>
+                      </div>
+
+                      <div class="settings-divider"></div>
+
+                      <div class="settings-group workflow-stage-labels-group">
+                        <h4 class="subsection-title">Workflow Stage Names</h4>
+                        <p class="field-note-inline">Customize how workflow stages are displayed for your practice. This changes stage names only and does not change the underlying workflow.</p>
+
+                        <div class="workflow-stage-labels-grid">
+                          <span class="workflow-stage-labels-col-heading">Workflow Stage</span>
+                          <span class="workflow-stage-labels-col-heading">Display Name</span>
+
+                          <label for="workflowStageLabelOriginated">Originated</label>
+                          <input type="text" id="workflowStageLabelOriginated" class="workflow-stage-label-input" data-internal-status="Originated" maxlength="40" value="<?= htmlspecialchars($resolvedWorkflowStageLabels['Originated']) ?>" <?= $isAdmin ? '' : 'disabled' ?>>
+
+                          <label for="workflowStageLabelSentToExternalLab">Sent To External Lab</label>
+                          <input type="text" id="workflowStageLabelSentToExternalLab" class="workflow-stage-label-input" data-internal-status="Sent To External Lab" maxlength="40" value="<?= htmlspecialchars($resolvedWorkflowStageLabels['Sent To External Lab']) ?>" <?= $isAdmin ? '' : 'disabled' ?>>
+
+                          <label for="workflowStageLabelDesigned">Designed</label>
+                          <input type="text" id="workflowStageLabelDesigned" class="workflow-stage-label-input" data-internal-status="Designed" maxlength="40" value="<?= htmlspecialchars($resolvedWorkflowStageLabels['Designed']) ?>" <?= $isAdmin ? '' : 'disabled' ?>>
+
+                          <label for="workflowStageLabelManufactured">Manufactured</label>
+                          <input type="text" id="workflowStageLabelManufactured" class="workflow-stage-label-input" data-internal-status="Manufactured" maxlength="40" value="<?= htmlspecialchars($resolvedWorkflowStageLabels['Manufactured']) ?>" <?= $isAdmin ? '' : 'disabled' ?>>
+
+                          <label for="workflowStageLabelReceivedFromExternalLab">Received From External Lab</label>
+                          <input type="text" id="workflowStageLabelReceivedFromExternalLab" class="workflow-stage-label-input" data-internal-status="Received From External Lab" maxlength="40" value="<?= htmlspecialchars($resolvedWorkflowStageLabels['Received From External Lab']) ?>" <?= $isAdmin ? '' : 'disabled' ?>>
+
+                          <label for="workflowStageLabelDelivered">Delivered</label>
+                          <input type="text" id="workflowStageLabelDelivered" class="workflow-stage-label-input" data-internal-status="Delivered" maxlength="40" value="<?= htmlspecialchars($resolvedWorkflowStageLabels['Delivered']) ?>" <?= $isAdmin ? '' : 'disabled' ?>>
+
+                          <?php if ($isAdmin): ?>
+                          <div class="workflow-stage-labels-actions">
+                            <button type="button" id="restoreWorkflowStageDefaultsBtn" class="btn-secondary">Restore Defaults</button>
+                          </div>
+                          <?php endif; ?>
+                        </div>
+                        <div class="error-message" id="workflowStageLabelsError"></div>
                       </div>
                       
                       <?php if (!$isAdmin): ?>

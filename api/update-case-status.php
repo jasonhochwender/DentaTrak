@@ -46,6 +46,21 @@ if ($caseId === '' || $status === '') {
     exit;
 }
 
+// Authoritative status validation: status must be one of the six internal
+// workflow values defined by getWorkflowStageOrder() (cases-cache.php).
+// This is the board drag/drop entry point, so its input is driven by
+// client DOM state - reject anything else outright rather than silently
+// coercing it, so an unrecognized string (e.g. a future custom display
+// label) can never be written to cases_cache.status.
+if (!isValidWorkflowStatus($status)) {
+    http_response_code(400);
+    echo json_encode([
+        'success' => false,
+        'message' => 'Invalid status value'
+    ]);
+    exit;
+}
+
 // SECURITY: Verify this case belongs to the current practice and, for
 // Assigned Only users, is assigned to them, before changing its status.
 requireCaseAccess($caseId, $currentPracticeId);
