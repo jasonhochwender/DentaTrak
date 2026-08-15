@@ -2170,17 +2170,17 @@ window.featureFlags = <?php echo getFeatureFlagsJson(); ?>;
                           <label for="allowCardDelete">Allow archiving of individual cases</label>
                           <input type="checkbox" id="allowCardDelete" name="allowCardDelete" <?= $isAdmin ? '' : 'disabled' ?>>
                         </div>
-                      </div>
-                      
-                      <div class="settings-divider"></div>
-                      
-                      <div class="settings-group">
+
                         <div class="option-row">
                           <label for="deliveredHideDays">Automatically archive delivered cases after</label>
                           <input type="number" id="deliveredHideDays" name="deliveredHideDays" min="0" max="365" value="120" class="number-input" <?= $isAdmin ? '' : 'disabled' ?>>
                           <span class="option-text">days (0 = never)</span>
                         </div>
-                        
+                      </div>
+                      
+                      <div class="settings-divider"></div>
+                      
+                      <div class="settings-group">
                         <div class="option-row highlight-past-due-row">
                           <label for="highlightPastDue">Highlight past due cases</label>
                           <input type="checkbox" id="highlightPastDue" name="highlightPastDue" <?= $isAdmin ? '' : 'disabled' ?>>
