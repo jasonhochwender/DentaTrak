@@ -154,6 +154,30 @@
   justify-content: center;
 }
 
+/* Allow AVG TURNAROUND metric-card tooltip to escape the card
+   and paint above the table section below. */
+.li-summary-grid .ap-metric-card {
+  overflow: visible;
+  z-index: 1;
+}
+
+.li-summary-grid .ap-metric-card:hover,
+.li-summary-grid .ap-metric-card:focus-within {
+  z-index: 2;
+}
+
+/* Raise CURRENT LATE RATE and other table-header tooltips above
+   sibling header cells so aligned-right bubbles are not covered. */
+.li-table th {
+  position: relative;
+  z-index: 1;
+}
+
+.li-table th:hover,
+.li-table th:focus-within {
+  z-index: 2;
+}
+
 @media (max-width: 720px) {
   .li-summary-grid {
     grid-template-columns: repeat(2, 1fr);
