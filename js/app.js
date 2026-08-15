@@ -7334,6 +7334,20 @@ document.addEventListener('DOMContentLoaded', function () {
         return;
       }
 
+      // Clear existing board state before re-rendering (full refresh path)
+      var columns = document.querySelectorAll('.kanban-column-body');
+      columns.forEach(function (column) {
+        var cards = column.querySelectorAll('.kanban-card');
+        cards.forEach(function (card) { card.remove(); });
+
+        if (column.children.length === 0) {
+          var emptyMsg = document.createElement('p');
+          emptyMsg.className = 'kanban-empty';
+          emptyMsg.textContent = 'No cases in this stage.';
+          column.appendChild(emptyMsg);
+        }
+      });
+
       // Add all cases at once (no stagger) to prevent CLS
       data.cases.forEach(function (caseData) {
         // Deep clone to ensure we don't lose data
@@ -7346,6 +7360,11 @@ document.addEventListener('DOMContentLoaded', function () {
       // All cases added, apply past due highlighting
       if (typeof updatePastDueHighlighting === 'function') {
         updatePastDueHighlighting();
+      }
+
+      // Reconcile column counts with the actual rendered cards
+      if (typeof window.updateColumnCounts === 'function') {
+        window.updateColumnCounts();
       }
 
       // Hide loader after all cases are added
@@ -9498,6 +9517,11 @@ document.addEventListener('DOMContentLoaded', function () {
             const clonedCase = JSON.parse(JSON.stringify(caseData));
             addCaseToKanban(clonedCase);
           });
+
+          // Reconcile column counts from the actual rendered cards
+          if (typeof window.updateColumnCounts === 'function') {
+            window.updateColumnCounts();
+          }
 
           // Apply past due highlighting
           if (typeof updatePastDueHighlighting === 'function') {
