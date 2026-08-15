@@ -43,7 +43,17 @@ try {
     if ($stmt->rowCount() === 0) {
         $pdo->exec("ALTER TABLE user_preferences ADD COLUMN google_drive_backup TINYINT(1) DEFAULT 0");
     }
-    
+
+    // Ensure coming-due settings columns exist
+    $stmt = $pdo->query("SHOW COLUMNS FROM user_preferences LIKE 'highlight_coming_due'");
+    if ($stmt->rowCount() === 0) {
+        $pdo->exec("ALTER TABLE user_preferences ADD COLUMN highlight_coming_due TINYINT(1) DEFAULT 0");
+    }
+    $stmt = $pdo->query("SHOW COLUMNS FROM user_preferences LIKE 'coming_due_days'");
+    if ($stmt->rowCount() === 0) {
+        $pdo->exec("ALTER TABLE user_preferences ADD COLUMN coming_due_days INT(11) DEFAULT 5");
+    }
+
     // Get user preferences
     $stmt = $pdo->prepare("
         SELECT * FROM user_preferences 
@@ -320,7 +330,9 @@ try {
             'theme' => 'light',
             'allow_card_delete' => true,
             'highlight_past_due' => true,
-            'past_due_days' => 7,
+            'past_due_days' => 1,
+            'highlight_coming_due' => false,
+            'coming_due_days' => 5,
             'delivered_hide_days' => 120,
             'tour_completed' => false,
             'google_drive_backup' => false
@@ -329,7 +341,9 @@ try {
         if (!isset($preferences['theme'])) $preferences['theme'] = 'light';
         if (!isset($preferences['allow_card_delete'])) $preferences['allow_card_delete'] = true;
         if (!isset($preferences['highlight_past_due'])) $preferences['highlight_past_due'] = true;
-        if (!isset($preferences['past_due_days'])) $preferences['past_due_days'] = 7;
+        if (!isset($preferences['past_due_days'])) $preferences['past_due_days'] = 1;
+        if (!isset($preferences['highlight_coming_due'])) $preferences['highlight_coming_due'] = false;
+        if (!isset($preferences['coming_due_days'])) $preferences['coming_due_days'] = 5;
         if (!isset($preferences['delivered_hide_days'])) $preferences['delivered_hide_days'] = 120;
         if (!isset($preferences['tour_completed'])) $preferences['tour_completed'] = false;
         if (!isset($preferences['google_drive_backup'])) $preferences['google_drive_backup'] = false;

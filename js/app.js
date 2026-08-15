@@ -1500,7 +1500,7 @@ document.addEventListener('DOMContentLoaded', function () {
     // Apply past due days value
     const pastDueDaysInput = document.getElementById('pastDueDays');
     if (pastDueDaysInput) {
-      pastDueDaysInput.value = preferences.past_due_days || 7;
+      pastDueDaysInput.value = preferences.past_due_days || 1;
     }
 
     // Apply delivered hide days value
@@ -1509,10 +1509,25 @@ document.addEventListener('DOMContentLoaded', function () {
       deliveredHideDaysInput.value = (typeof preferences.delivered_hide_days === 'number' ? preferences.delivered_hide_days : 0);
     }
 
+    // Apply coming due values
+    document.getElementById('highlightComingDue').checked = !!preferences.highlight_coming_due;
+    const comingDueDaysInput = document.getElementById('comingDueDays');
+    if (comingDueDaysInput) {
+      comingDueDaysInput.value = preferences.coming_due_days || 5;
+    }
+
+    // Save coming due preferences in localStorage
+    localStorage.setItem('highlight_coming_due', preferences.highlight_coming_due ? 'true' : 'false');
+    localStorage.setItem('coming_due_days', (preferences.coming_due_days || 5).toString());
+
     // Update conditional visibility
     const pastDueSettings = document.getElementById('pastDueSettings');
     if (pastDueSettings) {
       pastDueSettings.classList.toggle('hidden', !preferences.highlight_past_due);
+    }
+    const comingDueSettings = document.getElementById('comingDueSettings');
+    if (comingDueSettings) {
+      comingDueSettings.classList.toggle('hidden', !preferences.highlight_coming_due);
     }
 
     // Apply Google Drive backup setting - fetch from practice-level API
@@ -1654,7 +1669,9 @@ document.addEventListener('DOMContentLoaded', function () {
       displayName: document.getElementById('displayName')?.value || '',
       allowCardDelete: document.getElementById('allowCardDelete')?.checked || false,
       highlightPastDue: document.getElementById('highlightPastDue')?.checked || false,
-      pastDueDays: document.getElementById('pastDueDays')?.value || '7',
+      pastDueDays: document.getElementById('pastDueDays')?.value || '1',
+      highlightComingDue: document.getElementById('highlightComingDue')?.checked || false,
+      comingDueDays: document.getElementById('comingDueDays')?.value || '5',
       deliveredHideDays: document.getElementById('deliveredHideDays')?.value || '0',
       googleDriveBackup: document.getElementById('googleDriveBackup')?.checked || false,
       gmailUsers: window.gmailUsers ? window.gmailUsers.slice() : [],
@@ -1681,7 +1698,9 @@ document.addEventListener('DOMContentLoaded', function () {
     if ((document.getElementById('displayName')?.value || '') !== orig.displayName) return true;
     if ((document.getElementById('allowCardDelete')?.checked || false) !== orig.allowCardDelete) return true;
     if ((document.getElementById('highlightPastDue')?.checked || false) !== orig.highlightPastDue) return true;
-    if ((document.getElementById('pastDueDays')?.value || '7') !== orig.pastDueDays) return true;
+    if ((document.getElementById('pastDueDays')?.value || '1') !== orig.pastDueDays) return true;
+    if ((document.getElementById('highlightComingDue')?.checked || false) !== orig.highlightComingDue) return true;
+    if ((document.getElementById('comingDueDays')?.value || '5') !== orig.comingDueDays) return true;
     if ((document.getElementById('deliveredHideDays')?.value || '0') !== orig.deliveredHideDays) return true;
     if ((document.getElementById('googleDriveBackup')?.checked || false) !== orig.googleDriveBackup) return true;
 
@@ -2050,6 +2069,20 @@ document.addEventListener('DOMContentLoaded', function () {
         pastDueSettings.classList.remove('hidden');
       } else {
         pastDueSettings.classList.add('hidden');
+      }
+    });
+  }
+
+  // Handle the coming due settings visibility toggle
+  var highlightComingDueCheckbox = document.getElementById('highlightComingDue');
+  var comingDueSettings = document.getElementById('comingDueSettings');
+
+  if (highlightComingDueCheckbox && comingDueSettings) {
+    highlightComingDueCheckbox.addEventListener('change', function() {
+      if (this.checked) {
+        comingDueSettings.classList.remove('hidden');
+      } else {
+        comingDueSettings.classList.add('hidden');
       }
     });
   }
@@ -3177,6 +3210,9 @@ document.addEventListener('DOMContentLoaded', function () {
       var allowCardDelete = document.getElementById('allowCardDelete').checked;
       var highlightPastDue = document.getElementById('highlightPastDue').checked;
       var pastDueDays = document.getElementById('pastDueDays').value;
+      var highlightComingDue = document.getElementById('highlightComingDue').checked;
+      var comingDueDaysInput = document.getElementById('comingDueDays');
+      var comingDueDays = comingDueDaysInput ? parseInt(comingDueDaysInput.value || '5', 10) : 5;
       var googleDriveBackupCheckbox = document.getElementById('googleDriveBackup');
       var googleDriveBackup = googleDriveBackupCheckbox ? googleDriveBackupCheckbox.checked : false;
 
@@ -3212,6 +3248,8 @@ document.addEventListener('DOMContentLoaded', function () {
         allowCardDelete: allowCardDelete,
         highlightPastDue: highlightPastDue,
         pastDueDays: pastDueDays,
+        highlightComingDue: highlightComingDue,
+        comingDueDays: comingDueDays,
         deliveredHideDays: deliveredHideDays,
         googleDriveBackup: googleDriveBackup,
         displayName: displayName, // New: editable display name
@@ -3334,11 +3372,17 @@ document.addEventListener('DOMContentLoaded', function () {
     if (formData.highlightPastDue !== undefined) {
       localStorage.setItem('highlight_past_due', formData.highlightPastDue ? 'true' : 'false');
       localStorage.setItem('past_due_days', formData.pastDueDays.toString());
+    }
 
-      // Trigger card highlighting update if the function exists
-      if (typeof updatePastDueHighlighting === 'function') {
-        updatePastDueHighlighting();
-      }
+    // Apply coming-due highlighting
+    if (formData.highlightComingDue !== undefined) {
+      localStorage.setItem('highlight_coming_due', formData.highlightComingDue ? 'true' : 'false');
+      localStorage.setItem('coming_due_days', formData.comingDueDays.toString());
+    }
+
+    // Trigger card highlighting update if the function exists (handles both past-due and coming-due)
+    if (typeof updatePastDueHighlighting === 'function') {
+      updatePastDueHighlighting();
     }
 
     // Store delivered hide days in localStorage for client awareness (even though filtering is server-side)
@@ -3468,6 +3512,16 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   }
 
+  // Toggle visibility of coming due days input based on checkbox
+  var highlightComingDueCheckbox = document.getElementById('highlightComingDue');
+  var comingDueSettings = document.getElementById('comingDueSettings');
+
+  if (highlightComingDueCheckbox && comingDueSettings) {
+    highlightComingDueCheckbox.addEventListener('change', function() {
+      comingDueSettings.classList.toggle('hidden', !this.checked);
+    });
+  }
+
   // Add event handlers for billing section buttons
   document.addEventListener('DOMContentLoaded', function() {
     // Update payment method button
@@ -3517,6 +3571,24 @@ document.addEventListener('DOMContentLoaded', function () {
   var pastDueDaysInput = document.getElementById('pastDueDays');
   if (pastDueDaysInput) {
     pastDueDaysInput.addEventListener('input', function() {
+      var value = parseInt(this.value, 10);
+
+      // Remove non-numeric characters
+      if (isNaN(value)) {
+        this.value = '';
+        return;
+      }
+
+      // Enforce the 1-99 range
+      if (value < 1) this.value = '1';
+      if (value > 99) this.value = '99';
+    });
+  }
+
+  // Validate the coming due days input to ensure it's within range (1-99)
+  var comingDueDaysInput = document.getElementById('comingDueDays');
+  if (comingDueDaysInput) {
+    comingDueDaysInput.addEventListener('input', function() {
       var value = parseInt(this.value, 10);
 
       // Remove non-numeric characters
@@ -6027,6 +6099,51 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   }
 
+  /**
+   * Compute the calendar-day difference between a due date and today (local).
+   * Positive = due in the future, 0 = due today, negative = past due.
+   * Handles date-only strings as local calendar dates to avoid timezone shifts.
+   */
+  function getCalendarDayDiff(dueDateString) {
+    if (!dueDateString) return null;
+
+    try {
+      var due;
+      if (dueDateString.match(/^\d{4}-\d{2}-\d{2}$/)) {
+        var parts = dueDateString.split('-');
+        due = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+      } else {
+        due = new Date(dueDateString);
+      }
+
+      if (isNaN(due.getTime())) return null;
+      due.setHours(0, 0, 0, 0);
+
+      var today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      // Use round so DST transitions don't push a true integer-day diff up/down
+      return Math.round((due.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+    } catch (e) {
+      return null;
+    }
+  }
+
+  /**
+   * Build the human-readable due warning badge text for the Kanban card.
+   * Returns '' when the case should display its normal due date with no badge.
+   * Only applies to future/today dates; past-due cases are handled separately.
+   */
+  function getDueWarningText(daysUntil) {
+    if (daysUntil === null || daysUntil === undefined) return '';
+    if (daysUntil < 0) return '';
+
+    if (daysUntil > 1) return 'DUE IN ' + daysUntil + ' DAYS';
+    if (daysUntil === 1) return 'DUE TOMORROW';
+    if (daysUntil === 0) return 'DUE TODAY';
+    return '';
+  }
+
   // Initialize drag-and-drop for Kanban board
   function initKanbanDragDrop() {
     // Disable drag-and-drop if trial expired
@@ -6426,15 +6543,28 @@ document.addEventListener('DOMContentLoaded', function () {
 
       // Check if past due and add class immediately to prevent CLS
       var highlightPastDue = localStorage.getItem('highlight_past_due') === 'true';
+      var highlightComingDue = localStorage.getItem('highlight_coming_due') === 'true';
       var isPastDue = false;
-      if (highlightPastDue && status !== 'Delivered' && caseData.dueDate) {
-        var pastDueDays = parseInt(localStorage.getItem('past_due_days') || '7', 10);
-        var dueDate = new Date(caseData.dueDate);
-        var today = new Date();
-        var daysDiff = Math.floor((today - dueDate) / (1000 * 60 * 60 * 24));
-        if (daysDiff >= pastDueDays) {
-          caseCard.classList.add('kanban-card-past-due');
-          isPastDue = true;
+      var isComingDue = false;
+      var lateIndicatorText = '';
+      if (status !== 'Delivered' && caseData.dueDate) {
+        var pastDueDays = parseInt(localStorage.getItem('past_due_days') || '1', 10);
+        var comingDueDays = parseInt(localStorage.getItem('coming_due_days') || '5', 10);
+        var daysUntil = getCalendarDayDiff(caseData.dueDate);
+
+        if (daysUntil !== null) {
+          // Red late treatment takes precedence and uses the existing threshold
+          if (highlightPastDue && daysUntil <= -pastDueDays) {
+            caseCard.classList.add('kanban-card-past-due');
+            isPastDue = true;
+            lateIndicatorText = ' LATE';
+          }
+          // Amber coming-due window: only while the case is due today or in the future
+          else if (highlightComingDue && daysUntil >= 0 && daysUntil <= comingDueDays) {
+            caseCard.classList.add('kanban-card-coming-due');
+            isComingDue = true;
+            lateIndicatorText = ' ' + getDueWarningText(daysUntil);
+          }
         }
       }
 
@@ -6538,9 +6668,6 @@ document.addEventListener('DOMContentLoaded', function () {
           '<span class="attachment-count">' + attachmentsCopy.length + '</span>' +
           '</span>';
       }
-
-      // Build late indicator text
-      var lateIndicatorText = isPastDue ? ' LATE' : '';
 
       // Build At Risk indicator HTML (only if feature flag enabled)
       var atRiskHtml = '';
@@ -7294,12 +7421,18 @@ document.addEventListener('DOMContentLoaded', function () {
             data.workflowStageLabels || {}
           );
 
-          // Set localStorage values for past due highlighting
+          // Set localStorage values for past due and coming due highlighting
           if (data.preferences.highlight_past_due !== undefined) {
             localStorage.setItem('highlight_past_due', data.preferences.highlight_past_due ? 'true' : 'false');
           }
           if (data.preferences.past_due_days !== undefined) {
             localStorage.setItem('past_due_days', data.preferences.past_due_days.toString());
+          }
+          if (data.preferences.highlight_coming_due !== undefined) {
+            localStorage.setItem('highlight_coming_due', data.preferences.highlight_coming_due ? 'true' : 'false');
+          }
+          if (data.preferences.coming_due_days !== undefined) {
+            localStorage.setItem('coming_due_days', data.preferences.coming_due_days.toString());
           }
         }
       })
@@ -7437,53 +7570,59 @@ document.addEventListener('DOMContentLoaded', function () {
   // Function to clear highlighting from a specific card
   function clearCardHighlighting(card) {
     card.classList.remove('kanban-card-past-due');
+    card.classList.remove('kanban-card-coming-due');
     var lateIndicator = card.querySelector('.late-indicator');
     if (lateIndicator) {
       lateIndicator.textContent = '';
     }
   }
 
-  // Function to check if a case is past due and apply highlighting
+  // Function to check if a case is past due / coming due and apply highlighting
   function applyPastDueHighlighting(caseData) {
-    // Check if highlighting is enabled
     var highlightPastDue = localStorage.getItem('highlight_past_due') === 'true';
-    if (!highlightPastDue) return;
+    var highlightComingDue = localStorage.getItem('highlight_coming_due') === 'true';
+    if (!highlightPastDue && !highlightComingDue) return;
 
     // Don't highlight cases in the Delivered board (they are essentially closed)
     if (caseData.status === 'Delivered') return;
 
-    var pastDueDays = parseInt(localStorage.getItem('past_due_days') || '7', 10);
+    var pastDueDays = parseInt(localStorage.getItem('past_due_days') || '1', 10);
+    var comingDueDays = parseInt(localStorage.getItem('coming_due_days') || '5', 10);
 
-    // Calculate if case is past due
-    var dueDate = new Date(caseData.dueDate);
-    var today = new Date();
-    var daysDiff = Math.floor((today - dueDate) / (1000 * 60 * 60 * 24));
+    var daysUntil = getCalendarDayDiff(caseData.dueDate);
+    if (daysUntil === null) return;
 
-    if (daysDiff >= pastDueDays) {
-      // Find the card element
-      var cardElement = document.querySelector('[data-case-id="' + caseData.id + '"]');
-      if (cardElement) {
-        var card = cardElement.closest('.kanban-card');
-        if (card) {
-          // Add past due styling using CSS class (prevents CLS)
-          card.classList.add('kanban-card-past-due');
+    // Find the card element
+    var cardElement = document.querySelector('[data-case-id="' + caseData.id + '"]');
+    if (!cardElement) return;
+    var card = cardElement.closest('.kanban-card');
+    if (!card) return;
 
-          // Add LATE indicator
-          var lateIndicator = card.querySelector('.late-indicator');
-          if (lateIndicator) {
-            lateIndicator.textContent = ' LATE';
-          }
-        }
+    var lateIndicator = card.querySelector('.late-indicator');
+
+    // Red late treatment takes precedence and uses the existing threshold
+    if (highlightPastDue && daysUntil <= -pastDueDays) {
+      card.classList.add('kanban-card-past-due');
+      if (lateIndicator) {
+        lateIndicator.textContent = ' LATE';
+      }
+    }
+    // Amber coming-due window: only while the case is due today or in the future
+    else if (highlightComingDue && daysUntil >= 0 && daysUntil <= comingDueDays) {
+      card.classList.add('kanban-card-coming-due');
+      if (lateIndicator) {
+        lateIndicator.textContent = ' ' + getDueWarningText(daysUntil);
       }
     }
   }
 
-  // Function to update all cards' past due highlighting
+  // Function to update all cards' past due / coming due highlighting
   function updatePastDueHighlighting() {
     // Remove existing highlighting
     var allCards = document.querySelectorAll('.kanban-card');
     allCards.forEach(function(card) {
       card.classList.remove('kanban-card-past-due');
+      card.classList.remove('kanban-card-coming-due');
       var lateIndicator = card.querySelector('.late-indicator');
       if (lateIndicator) {
         lateIndicator.textContent = '';
@@ -7491,29 +7630,19 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     // Reapply highlighting to all cards
-    var allCaseElements = document.querySelectorAll('[data-case-id]');
-    allCaseElements.forEach(function(element) {
-      var caseId = element.getAttribute('data-case-id');
-      var card = element.closest('.kanban-card');
-      if (card) {
-        // Extract case data from the card
-        var dueDateElement = card.querySelector('p:nth-child(2)');
-        if (dueDateElement) {
-          var dueDateText = dueDateElement.textContent.replace('Due: ', '').replace(' LATE', '');
-
+    document.querySelectorAll('.kanban-card[data-case-json]').forEach(function(card) {
+      try {
+        var caseData = JSON.parse(card.dataset.caseJson || '{}');
+        if (caseData.id) {
           // Determine the internal status from the column's fixed
           // data-status attribute - not its visible (and later practice-
           // customizable) header text.
           var column = card.closest('.kanban-column');
-          var status = column ? (column.dataset.status || '') : '';
-
-          var caseData = {
-            id: caseId,
-            dueDate: dueDateText,
-            status: status
-          };
+          caseData.status = column ? (column.dataset.status || '') : (caseData.status || '');
           applyPastDueHighlighting(caseData);
         }
+      } catch (e) {
+        // Skip card with invalid data
       }
     });
   }

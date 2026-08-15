@@ -80,7 +80,11 @@ if (!in_array($theme, ['light', 'dark'])) {
 
 $allowCardDelete = isset($data['allowCardDelete']) ? (bool)$data['allowCardDelete'] : false;
 $highlightPastDue = isset($data['highlightPastDue']) ? (bool)$data['highlightPastDue'] : true;
-$pastDueDays = isset($data['pastDueDays']) ? (int)$data['pastDueDays'] : 7;
+$pastDueDays = isset($data['pastDueDays']) ? (int)$data['pastDueDays'] : 1;
+
+// Coming-due highlighting settings (default OFF to avoid surprising existing practices)
+$highlightComingDue = isset($data['highlightComingDue']) ? (bool)$data['highlightComingDue'] : false;
+$comingDueDays = isset($data['comingDueDays']) ? (int)$data['comingDueDays'] : 5;
 
 // New: hide Delivered cases older than N days (0 = show all). Default is 120 days.
 $deliveredHideDays = isset($data['deliveredHideDays']) ? (int)$data['deliveredHideDays'] : 120;
@@ -93,6 +97,13 @@ if ($pastDueDays < 1) {
     $pastDueDays = 1;
 } elseif ($pastDueDays > 99) {
     $pastDueDays = 99;
+}
+
+// Ensure comingDueDays is within valid range
+if ($comingDueDays < 1) {
+    $comingDueDays = 1;
+} elseif ($comingDueDays > 99) {
+    $comingDueDays = 99;
 }
 
 // Ensure deliveredHideDays is within a sane range (0 = off)
@@ -301,27 +312,43 @@ try {
         $pdo->exec("ALTER TABLE user_preferences ADD COLUMN google_drive_backup TINYINT(1) DEFAULT 0");
     }
 
+    // Ensure coming-due settings columns exist
+    $stmt = $pdo->query("SHOW COLUMNS FROM user_preferences LIKE 'highlight_coming_due'");
+    if ($stmt->rowCount() === 0) {
+        $pdo->exec("ALTER TABLE user_preferences ADD COLUMN highlight_coming_due TINYINT(1) DEFAULT 0");
+    }
+    $stmt = $pdo->query("SHOW COLUMNS FROM user_preferences LIKE 'coming_due_days'");
+    if ($stmt->rowCount() === 0) {
+        $pdo->exec("ALTER TABLE user_preferences ADD COLUMN coming_due_days INT(11) DEFAULT 5");
+    }
+
     // First, update user preferences
     $stmt = $pdo->prepare("
         INSERT INTO user_preferences (
-            user_id, theme, allow_card_delete, highlight_past_due, past_due_days, delivered_hide_days, google_drive_backup
+            user_id, theme, allow_card_delete, highlight_past_due, past_due_days,
+            highlight_coming_due, coming_due_days, delivered_hide_days, google_drive_backup
         ) VALUES (
-            :user_id, :theme, :allow_card_delete, :highlight_past_due, :past_due_days, :delivered_hide_days, :google_drive_backup
+            :user_id, :theme, :allow_card_delete, :highlight_past_due, :past_due_days,
+            :highlight_coming_due, :coming_due_days, :delivered_hide_days, :google_drive_backup
         ) ON DUPLICATE KEY UPDATE
             theme = VALUES(theme),
             allow_card_delete = VALUES(allow_card_delete),
             highlight_past_due = VALUES(highlight_past_due),
             past_due_days = VALUES(past_due_days),
+            highlight_coming_due = VALUES(highlight_coming_due),
+            coming_due_days = VALUES(coming_due_days),
             delivered_hide_days = VALUES(delivered_hide_days),
             google_drive_backup = VALUES(google_drive_backup)
     ");
-    
+
     $result = $stmt->execute([
         'user_id' => $userId,
         'theme' => $theme,
         'allow_card_delete' => $allowCardDelete ? 1 : 0,
         'highlight_past_due' => $highlightPastDue ? 1 : 0,
         'past_due_days' => $pastDueDays,
+        'highlight_coming_due' => $highlightComingDue ? 1 : 0,
+        'coming_due_days' => $comingDueDays,
         'delivered_hide_days' => $deliveredHideDays,
         'google_drive_backup' => $googleDriveBackup ? 1 : 0
     ]);
@@ -913,6 +940,8 @@ try {
         'allow_card_delete' => $allowCardDelete,
         'highlight_past_due' => $highlightPastDue,
         'past_due_days' => $pastDueDays,
+        'highlight_coming_due' => $highlightComingDue,
+        'coming_due_days' => $comingDueDays,
         'delivered_hide_days' => $deliveredHideDays,
         'google_drive_backup' => $googleDriveBackup
     ];

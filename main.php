@@ -431,7 +431,7 @@ if (isset($appConfig) && is_array($appConfig) && isset($appConfig['appName'])) {
   </style>
   
   <!-- Load app.light.css directly (skip app.css @import chain) -->
-  <link rel="stylesheet" href="css/app.light.css?v=20260813">
+  <link rel="stylesheet" href="css/app.light.css?v=20260813a">
   <link rel="stylesheet" href="css/app.css?v=20260807a">
   
   <!-- Mobile responsiveness CSS -->
@@ -2213,7 +2213,16 @@ window.featureFlags = <?php echo getFeatureFlagsJson(); ?>;
                           <input type="checkbox" id="highlightPastDue" name="highlightPastDue" <?= $isAdmin ? '' : 'disabled' ?>>
                           <span id="pastDueSettings" class="past-due-inline-settings hidden">
                             <label for="pastDueDays" class="settings-sublabel">Days past due before highlighting:</label>
-                            <input type="number" id="pastDueDays" name="pastDueDays" min="1" max="99" value="7" class="number-input" <?= $isAdmin ? '' : 'disabled' ?>>
+                            <input type="number" id="pastDueDays" name="pastDueDays" min="1" max="99" value="1" class="number-input" <?= $isAdmin ? '' : 'disabled' ?>>
+                          </span>
+                        </div>
+
+                        <div class="option-row highlight-coming-due-row">
+                          <label for="highlightComingDue">Highlight cases coming due</label>
+                          <input type="checkbox" id="highlightComingDue" name="highlightComingDue" <?= $isAdmin ? '' : 'disabled' ?>>
+                          <span id="comingDueSettings" class="coming-due-inline-settings hidden">
+                            <label for="comingDueDays" class="settings-sublabel">Days before due:</label>
+                            <input type="number" id="comingDueDays" name="comingDueDays" min="1" max="99" value="5" class="number-input" <?= $isAdmin ? '' : 'disabled' ?>>
                           </span>
                         </div>
                         
@@ -2713,7 +2722,7 @@ window.featureFlags = <?php echo getFeatureFlagsJson(); ?>;
   <script src="js/toast.js?v=20250104" defer></script>
   <script src="js/session-timeout.js?v=20250118" defer></script>
   <script src="js/gcs-upload.js?v=20260303c" defer></script>
-  <script src="js/app.js?v=20260326b" defer></script>
+  <script src="js/app.js?v=20260326c" defer></script>
   <script src="js/card-delete-fixed.js?v=20250104" defer></script>
   <script src="js/assignments.js?v=20250104" defer></script>
   <script src="js/case-comments.js?v=20250104" defer></script>

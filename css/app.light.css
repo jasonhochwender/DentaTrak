@@ -2058,6 +2058,20 @@ body {
   font-weight: bold;
 }
 
+/* Coming-due card highlighting - amber warning */
+.kanban-card-coming-due {
+  outline: 2px solid #ed6c02;
+  outline-offset: -2px;
+  box-shadow: 0 0 10px rgba(237, 108, 2, 0.25);
+  background: linear-gradient(135deg, #ffffff 0%, #fff8ed 100%);
+}
+
+.kanban-card-coming-due .late-indicator {
+  color: #ed6c02 !important;
+  font-weight: bold;
+  background-color: #fff8ed;
+}
+
 /* Kanban Card Actions */
 .kanban-card-actions {
   margin-top: 10px;
