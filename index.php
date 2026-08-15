@@ -22,8 +22,8 @@ $articleUrls = $appConfig['public_urls'] ?? [];
     gtag('config', 'G-MBJDENR3H2');
   </script>
   
-  <meta name="description" content="DentaTrak is dental case tracking software for dental practices. Track every crown, implant, and lab case from prep to delivery. Start a 90-day free trial.">
-  <title>DentaTrak - Dental Case Tracking Software for Dental Practices</title>
+  <meta name="description" content="DentaTrak is visual dental case tracking software for dental practices. See your entire case workflow at a glance and follow every crown, implant, and lab case from prep to delivery. Start a 90-day free trial.">
+  <title>DentaTrak - Visual Dental Case Tracking Software for Practices</title>
   <link rel="canonical" href="https://dentatrak.com/">
 
   <!-- Favicon / App Icons -->
@@ -65,8 +65,17 @@ $articleUrls = $appConfig['public_urls'] ?? [];
     "name": "DentaTrak",
     "applicationCategory": "BusinessApplication",
     "operatingSystem": "Web",
-    "description": "DentaTrak is dental case tracking software for dental practices. It tracks multi-step cases such as crowns, implants, and lab work from preparation through delivery.",
+    "description": "DentaTrak is visual dental case tracking software for dental practices. Multi-step cases such as crowns, implants, and lab work are tracked on a Kanban-inspired board, so a practice can see its entire case workflow at a glance and follow every case from preparation through delivery.",
     "url": "https://dentatrak.com/",
+    "featureList": [
+      "Visual case workflow board with six built-in stages",
+      "Customizable workflow stage names",
+      "Case ownership and assignment",
+      "Due dates and past-due visibility",
+      "Lab and referral dependency tracking",
+      "Case files and case information in one place",
+      "Practice Insights and Smart Recommendations"
+    ],
     "offers": [
       {
         "@type": "Offer",
@@ -288,6 +297,112 @@ $articleUrls = $appConfig['public_urls'] ?? [];
     .btn-secondary:hover {
       border-color: var(--primary-color);
       color: var(--primary-color);
+    }
+
+    /* Hero Workflow Board
+       A simplified illustration of DentaTrak's actual board: the same six
+       built-in workflow stages, in order, with case cards showing the same
+       kind of information real cards do (case type, tooth, due date, owner,
+       past-due flag). Labelled as a simplified view in its caption so it is
+       never mistaken for a doctored screenshot. Scrolls horizontally on
+       small screens, like the real board does. */
+    .hero-board {
+      max-width: 1000px;
+      margin: 56px auto 0;
+    }
+
+    .hero-board-frame {
+      background: var(--background-white);
+      border: 1px solid var(--border-light);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-large);
+      padding: 20px;
+      overflow-x: auto;
+    }
+
+    .hero-board-columns {
+      display: grid;
+      grid-auto-flow: column;
+      grid-auto-columns: minmax(148px, 1fr);
+      gap: 12px;
+      /* Keeps all six real stage names legible; narrow screens scroll. */
+      min-width: 880px;
+    }
+
+    .hero-board-column {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .hero-board-stage {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 8px;
+      /* Reserve two lines (plus the 8px rule below) so a stage name that
+         wraps ("Received From External Lab") doesn't push its column's
+         first card out of line with the other columns. */
+      min-height: 4em;
+      font-size: 0.68rem;
+      font-weight: 600;
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+      color: var(--text-light);
+      text-align: left;
+      padding-bottom: 8px;
+      border-bottom: 2px solid var(--border-light);
+    }
+
+    .hero-board-card {
+      background: var(--background-subtle);
+      border: 1px solid var(--border-light);
+      border-left: 3px solid var(--primary-light);
+      border-radius: var(--radius-sm);
+      padding: 10px;
+      text-align: left;
+    }
+
+    .hero-board-card-title {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      line-height: 1.35;
+    }
+
+    .hero-board-card-meta {
+      font-size: 0.7rem;
+      color: var(--text-light);
+      margin-top: 3px;
+    }
+
+    .hero-board-card.is-late {
+      border-left-color: #dc2626;
+    }
+
+    .hero-board-flag {
+      display: inline-block;
+      margin-top: 7px;
+      padding: 2px 8px;
+      font-size: 0.65rem;
+      font-weight: 600;
+      color: #b91c1c;
+      background: #fee2e2;
+      border-radius: 999px;
+    }
+
+    .hero-board-caption {
+      margin: 14px auto 0;
+      max-width: 620px;
+      font-size: 0.8rem;
+      color: var(--text-light);
+      text-align: center;
+    }
+
+    /* Visual Workflow section: four supporting points read better as a
+       balanced 2x2 than as the shared .solution-grid's 3-then-1 wrap. */
+    #visual-workflow .solution-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
     /* Section Base */
@@ -751,6 +866,18 @@ $articleUrls = $appConfig['public_urls'] ?? [];
         grid-template-columns: 1fr;
       }
 
+      .hero-board {
+        margin-top: 40px;
+      }
+
+      .hero-board-frame {
+        padding: 14px;
+      }
+
+      #visual-workflow .solution-grid {
+        grid-template-columns: 1fr;
+      }
+
       .footer-inner {
         flex-direction: column;
         text-align: center;
@@ -806,6 +933,25 @@ $articleUrls = $appConfig['public_urls'] ?? [];
         margin-top: 14px;
         font-size: 0.8rem;
       }
+
+      .hero-board {
+        margin-top: 28px;
+      }
+
+      .hero-board-frame {
+        padding: 12px;
+        border-radius: var(--radius-md);
+      }
+
+      .hero-board-columns {
+        grid-auto-columns: minmax(136px, 1fr);
+        min-width: 780px;
+        gap: 10px;
+      }
+
+      .hero-board-caption {
+        font-size: 0.75rem;
+      }
     }
   </style>
 </head>
@@ -828,12 +974,12 @@ $articleUrls = $appConfig['public_urls'] ?? [];
   <!-- Hero Section -->
   <section id="hero" class="hero">
     <div class="hero-inner">
-      <h1>Dental case tracking software for dental practices</h1>
+      <h1>Dental case tracking software you can actually see</h1>
       <p class="hero-subtitle">
-        Track every crown, implant, and lab case from prep to delivery so nothing gets lost between labs, referrals, and patient scheduling.
+        DentaTrak tracks every crown, implant, and lab case on a visual board, so your team can see where each case stands from prep to delivery instead of hunting through lists, spreadsheets, emails, and lab portals.
       </p>
       <p class="hero-subtitle" style="margin-top: 8px;">
-        DentaTrak gives every case a status, owner, and next step, helping your practice identify delays before they disrupt patient care, scheduling, or revenue.
+        Every case has a status, an owner, and a next step, so the whole practice works from the same picture and can identify delays before they disrupt patient care, scheduling, or revenue.
       </p>
       <div class="hero-ctas">
         <a href="<?= $baseUrl ?>login.php" class="btn-primary">Start 90-Day Free Trial</a>
@@ -841,6 +987,74 @@ $articleUrls = $appConfig['public_urls'] ?? [];
       </div>
       <p class="hero-note">Try DentaTrak free for 90 days. Set up your practice and begin tracking cases in minutes.</p>
     </div>
+
+    <!-- Simplified illustration of the DentaTrak board: the six built-in
+         workflow stages in their real order, with the kind of information
+         real case cards carry. -->
+    <figure class="hero-board">
+      <div class="hero-board-frame">
+        <div class="hero-board-columns">
+          <div class="hero-board-column">
+            <div class="hero-board-stage"><span>Originated</span><span>3</span></div>
+            <div class="hero-board-card">
+              <div class="hero-board-card-title">Crown &middot; #14</div>
+              <div class="hero-board-card-meta">Due Mar 14 &middot; Dr. Patel</div>
+            </div>
+            <div class="hero-board-card">
+              <div class="hero-board-card-title">Implant &middot; #30</div>
+              <div class="hero-board-card-meta">Due Mar 18 &middot; Front desk</div>
+            </div>
+          </div>
+          <div class="hero-board-column">
+            <div class="hero-board-stage"><span>Sent To External Lab</span><span>4</span></div>
+            <div class="hero-board-card is-late">
+              <div class="hero-board-card-title">Bridge &middot; #12&ndash;14</div>
+              <div class="hero-board-card-meta">Due Mar 6 &middot; Lab</div>
+              <span class="hero-board-flag">Past due</span>
+            </div>
+            <div class="hero-board-card">
+              <div class="hero-board-card-title">Denture</div>
+              <div class="hero-board-card-meta">Due Mar 20 &middot; Lab</div>
+            </div>
+          </div>
+          <div class="hero-board-column">
+            <div class="hero-board-stage"><span>Designed</span><span>2</span></div>
+            <div class="hero-board-card">
+              <div class="hero-board-card-title">Veneer &middot; #8&ndash;9</div>
+              <div class="hero-board-card-meta">Due Mar 22 &middot; Lab</div>
+            </div>
+          </div>
+          <div class="hero-board-column">
+            <div class="hero-board-stage"><span>Manufactured</span><span>3</span></div>
+            <div class="hero-board-card">
+              <div class="hero-board-card-title">Crown &middot; #19</div>
+              <div class="hero-board-card-meta">Due Mar 24 &middot; Lab</div>
+            </div>
+            <div class="hero-board-card">
+              <div class="hero-board-card-title">Inlay &middot; #3</div>
+              <div class="hero-board-card-meta">Due Mar 26 &middot; Lab</div>
+            </div>
+          </div>
+          <div class="hero-board-column">
+            <div class="hero-board-stage"><span>Received From External Lab</span><span>2</span></div>
+            <div class="hero-board-card">
+              <div class="hero-board-card-title">Implant &middot; #19</div>
+              <div class="hero-board-card-meta">Seat Mar 27 &middot; Coordinator</div>
+            </div>
+          </div>
+          <div class="hero-board-column">
+            <div class="hero-board-stage"><span>Delivered</span><span>9</span></div>
+            <div class="hero-board-card">
+              <div class="hero-board-card-title">Crown &middot; #30</div>
+              <div class="hero-board-card-meta">Delivered Mar 4</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <figcaption class="hero-board-caption">
+        A simplified view of the DentaTrak board: cases move left to right through six workflow stages, from origination to delivery. Practices can rename these stages to match the terminology their team already uses.
+      </figcaption>
+    </figure>
   </section>
 
   <!-- Problem Section -->
@@ -913,6 +1127,55 @@ $articleUrls = $appConfig['public_urls'] ?? [];
       </div>
       <p style="text-align: center; margin-top: 32px; font-size: 0.95rem; color: var(--text-secondary);">
         For a deeper look at how dental case tracking software works, see our <a href="<?= $baseUrl . ($articleUrls['article_dental_case_tracking_software'] ?? 'dental-case-tracking-software') ?>" class="content-link">detailed guide on dental case tracking software</a>.
+      </p>
+    </div>
+  </section>
+
+  <!-- Visual Workflow Section -->
+  <section id="visual-workflow" class="section problem">
+    <div class="section-inner">
+      <div class="section-header">
+        <p class="section-label">Visual Workflow</p>
+        <h2>See the whole workflow, not just a list of cases</h2>
+        <p class="section-subtitle">
+          A list can tell you that a case exists. A visual workflow shows your team where work is sitting, what is moving, and what needs attention next. DentaTrak uses a visual, Kanban-inspired board&mdash;stages laid out left to right, with each case as a card that moves forward as work progresses&mdash;so dental case workflow management becomes something you can look at rather than something you have to reconstruct.
+        </p>
+      </div>
+      <div class="solution-grid">
+        <div class="solution-item">
+          <div class="solution-icon">
+            <svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          </div>
+          <h3>See where everything stands</h3>
+          <p>Scan the board and understand the state of your active cases without opening them one at a time.</p>
+        </div>
+        <div class="solution-item">
+          <div class="solution-icon">
+            <svg viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M13 6l6 6-6 6"/></svg>
+          </div>
+          <h3>Keep work moving</h3>
+          <p>Move cases through a consistent workflow as work progresses, so the next step is always clear.</p>
+        </div>
+        <div class="solution-item">
+          <div class="solution-icon">
+            <svg viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><path d="M12 9v4M12 17h.01"/></svg>
+          </div>
+          <h3>Spot delays and bottlenecks</h3>
+          <p>Visual stages make it easier to notice where cases are accumulating or falling behind schedule.</p>
+        </div>
+        <div class="solution-item">
+          <div class="solution-icon">
+            <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
+          </div>
+          <h3>Give everyone the same picture</h3>
+          <p>Doctors, coordinators, and clinical staff work from the same current view of the practice's cases.</p>
+        </div>
+      </div>
+      <p style="text-align: center; margin-top: 32px; font-size: 0.95rem; color: var(--text-secondary);">
+        Every practice describes its workflow a little differently, so administrators can rename DentaTrak's six built-in stages to match the terminology your team already uses&mdash;without changing how cases are tracked.
+      </p>
+      <p style="text-align: center; margin-top: 12px; font-size: 0.95rem; color: var(--text-secondary);">
+        For the operational thinking behind this approach, read <a href="<?= $baseUrl . ($articleUrls['article_visual_workflow'] ?? 'visual-dental-case-workflow') ?>" class="content-link">why visual workflow management works for complex dental cases</a>.
       </p>
     </div>
   </section>

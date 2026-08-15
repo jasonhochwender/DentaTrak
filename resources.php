@@ -65,6 +65,10 @@ $articleUrls = $appConfig['public_urls'] ?? [];
           <h3>How to Track Dental Cases Without Losing Them</h3>
           <p>A practical, step-by-step process for tracking cases from start to finish.</p>
         </a>
+        <a class="resource-card" href="<?= $baseUrl . ($articleUrls['article_visual_workflow'] ?? 'visual-dental-case-workflow') ?>">
+          <h3>Why Visual Workflow Management Works for Complex Dental Cases</h3>
+          <p>Why multi-stage cases are processes, not records — and how a visual workflow shows where every case stands.</p>
+        </a>
       </div>
     </div>
 
