@@ -2167,9 +2167,8 @@ window.featureFlags = <?php echo getFeatureFlagsJson(); ?>;
                         -->
 
                         <div class="option-row">
-                          <label for="deliveredHideDays">Archive delivered cases older than</label>
-                          <input type="number" id="deliveredHideDays" name="deliveredHideDays" min="0" max="365" value="120" class="number-input" <?= $isAdmin ? '' : 'disabled' ?>>
-                          <span class="option-text">days (0 = show all)</span>
+                          <label for="allowCardDelete">Allow archiving of individual cases</label>
+                          <input type="checkbox" id="allowCardDelete" name="allowCardDelete" <?= $isAdmin ? '' : 'disabled' ?>>
                         </div>
                       </div>
                       
@@ -2177,8 +2176,9 @@ window.featureFlags = <?php echo getFeatureFlagsJson(); ?>;
                       
                       <div class="settings-group">
                         <div class="option-row">
-                          <label for="allowCardDelete">Allow archiving of individual cases</label>
-                          <input type="checkbox" id="allowCardDelete" name="allowCardDelete" <?= $isAdmin ? '' : 'disabled' ?>>
+                          <label for="deliveredHideDays">Automatically archive delivered cases after</label>
+                          <input type="number" id="deliveredHideDays" name="deliveredHideDays" min="0" max="365" value="120" class="number-input" <?= $isAdmin ? '' : 'disabled' ?>>
+                          <span class="option-text">days (0 = never)</span>
                         </div>
                         
                         <div class="option-row highlight-past-due-row">
