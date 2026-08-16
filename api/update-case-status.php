@@ -5,6 +5,7 @@ header('Content-Type: application/json');
 require_once __DIR__ . '/practice-security.php';
 require_once __DIR__ . '/cases-cache.php';
 require_once __DIR__ . '/case-activity-log.php';
+require_once __DIR__ . '/lab-assignment-history.php';
 require_once __DIR__ . '/csrf.php';
 
 // Disable PHP error display for API - return only JSON
@@ -169,6 +170,19 @@ if ($driveFolderId === '') {
         );
     }
 
+    // Lab Insights: a case reaching Delivered closes its own open lab
+    // period (if any); a case regressing FROM Delivered back to a
+    // non-terminal status while still assigned to a currently live lab
+    // opens a brand-new period (second round of lab work). See
+    // lab-assignment-history.php's design rules - these are the two
+    // deliberate exceptions to "status changes never touch periods."
+    // Safe/idempotent no-ops otherwise.
+    if ($status === 'Delivered') {
+        closeOpenLabPeriodForDeliveredCase($caseId, $currentPracticeId);
+    } else {
+        reopenLabPeriodOnDeliveredRegression($caseId, $currentPracticeId, $oldStatus, $status);
+    }
+
     // Return success with minimal updated case data (UI only needs lastUpdateDate)
     $responseData = [
         'id' => $caseId,
@@ -235,7 +249,16 @@ try {
                 'note' => 'Google Drive token expired - cache only update'
             ]
         );
-        
+
+        // Lab Insights: close on delivery, or reopen a new period if this
+        // is a regression back from Delivered while still lab-assigned
+        // (see lab-assignment-history.php docblocks).
+        if ($status === 'Delivered') {
+            closeOpenLabPeriodForDeliveredCase($caseId, $currentPracticeId);
+        } else {
+            reopenLabPeriodOnDeliveredRegression($caseId, $currentPracticeId, $oldStatus, $status);
+        }
+
         // Return success with warning
         echo json_encode([
             'success' => true,
@@ -349,6 +372,15 @@ try {
 
     // Include regression count in response
     $existingCaseData['revisionCount'] = $revisionCount;
+
+    // Lab Insights: close on delivery, or reopen a new period if this is a
+    // regression back from Delivered while still lab-assigned (see
+    // lab-assignment-history.php docblocks).
+    if ($status === 'Delivered') {
+        closeOpenLabPeriodForDeliveredCase($caseId, $currentPracticeId);
+    } else {
+        reopenLabPeriodOnDeliveredRegression($caseId, $currentPracticeId, $oldStatus, $status);
+    }
 
     // Record status change for real-time notifications to other users
     if (function_exists('recordCaseUpdate')) {

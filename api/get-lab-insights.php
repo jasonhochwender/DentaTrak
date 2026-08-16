@@ -18,13 +18,48 @@
  *
  * DATE RANGE SEMANTICS (see also js/lab-insights.js):
  *   - `range` query param: 'all' | 3 | 6 | 12 | 24 (months). Default 12.
- *   - Cases handled / turnaround / revisions / trend are filtered by the
+ *   - Cases Assigned / Completed / Avg. Turnaround / Late Delivery Rate /
+ *     Revisions / Direct Transfers / trend are all filtered by the
  *     relevant timestamp for that metric (assignment period start/end for
- *     handled+turnaround, case_activity_log.created_at for revisions).
- *   - Current workload and its late-count are ALWAYS computed from current
- *     state and are NEVER filtered by range - an assignment that began
- *     before the selected range must not disappear from "what a lab has
- *     right now".
+ *     assigned+turnaround+late-delivery+transfers, case_activity_log.created_at
+ *     for revisions).
+ *   - Current Workload and Current Late Rate are ALWAYS computed from
+ *     current state and are NEVER filtered by range - an assignment that
+ *     began before the selected range must not disappear from "what a lab
+ *     has right now".
+ *
+ * COLUMN DEFINITIONS:
+ *   - Current Workload: cases currently assigned to this lab right now
+ *     (cases_cache, not range-filtered).
+ *   - Current Late Rate: of Current Workload, how many are currently past
+ *     due (cases_cache, not range-filtered).
+ *   - Cases Assigned: distinct cases assigned to this lab at any point
+ *     during the selected range (any case_lab_assignment_periods row,
+ *     open or closed, any history_quality - this INCLUDES in-progress
+ *     assignments, so it is not a "completed work" count).
+ *   - Completed: distinct cases with at least one reliably-measurable
+ *     (history_quality='observed', has a real ended_at, positive
+ *     duration) completed assignment period at this lab within the
+ *     range - the same population Avg. Turnaround is computed from.
+ *     Represents distinct CASES, not distinct periods (a case reassigned
+ *     back to the same lab twice within the range still counts once).
+ *   - Avg. Turnaround: average, per completed case, of that case's total
+ *     observed time at this lab (summed if a case had more than one
+ *     period at the same lab).
+ *   - Late Delivery Rate: of the same Completed population, the
+ *     percentage whose FINAL completed period ended after the case's due
+ *     date. A case with more than one completed period at this lab
+ *     (Delivered -> reopened -> Delivered again) is scored ONCE, from its
+ *     final delivery only - an earlier late or on-time round never
+ *     independently affects the result. The final period is chosen
+ *     explicitly by latest ended_at (tie-broken by the period's own id),
+ *     never by query/iteration order. Excludes any case whose due date
+ *     was edited AFTER that final period ended (see dueDateChangedAfter
+ *     below) - due_date is a single mutable field on cases_cache, not a
+ *     point-in-time snapshot, so a case edited after its final completion
+ *     cannot be reliably scored.
+ *   - Direct Transfers: periods that ended via a direct lab-to-lab
+ *     reassignment (end_reason='reassigned_to_lab'), scoped to the range.
  */
 
 require_once __DIR__ . '/session.php';
@@ -34,6 +69,7 @@ require_once __DIR__ . '/feature-flags.php';
 require_once __DIR__ . '/billing-bypass.php';
 require_once __DIR__ . '/subscription-access.php';
 require_once __DIR__ . '/lab-assignment-history.php';
+require_once __DIR__ . '/encryption.php';
 
 header('Content-Type: application/json');
 
@@ -148,7 +184,7 @@ try {
     // All assignment periods this practice has ever recorded for a lab
     // identity (is_lab_snapshot=1). One query, no per-lab N+1.
     $stmt = $pdo->prepare("
-        SELECT case_id, assignee_type, user_id, label_id, assignee_display_name_snapshot,
+        SELECT id, case_id, assignee_type, user_id, label_id, assignee_display_name_snapshot,
                started_at, ended_at, end_reason, history_quality
         FROM case_lab_assignment_periods
         WHERE practice_id = :practice_id AND is_lab_snapshot = 1
@@ -244,6 +280,54 @@ try {
         }
     }
 
+    // Late Delivery Rate data-quality guard: cases_cache.due_date is a
+    // single mutable field, not a point-in-time snapshot of "the due date
+    // when this lab period ended". If a case's due date was edited AFTER a
+    // completed period's ended_at, we cannot know what the due date was at
+    // completion time, so that case must be excluded from Late Delivery
+    // Rate (it still counts toward Cases Assigned / Completed / Avg.
+    // Turnaround, which don't depend on due_date at all). Detected via the
+    // existing case_updated activity log entries that already record which
+    // fields changed on every edit (see update-case.php's $changedFields).
+    $dueDateChangeTimestampsByCase = []; // case_id => [DateTimeImmutable, ...]
+    if (!empty($caseIds)) {
+        $chunks = array_chunk($caseIds, 500);
+        foreach ($chunks as $chunk) {
+            $placeholders = implode(',', array_fill(0, count($chunk), '?'));
+            $stmt = $pdo->prepare("
+                SELECT case_id, created_at, meta_json
+                FROM case_activity_log
+                WHERE event_type = 'case_updated' AND case_id IN ($placeholders)
+            ");
+            $stmt->execute($chunk);
+            foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+                $meta = json_decode($row['meta_json'] ?? '', true);
+                $changedFields = is_array($meta) ? ($meta['changed_fields'] ?? []) : [];
+                if (is_array($changedFields) && in_array('dueDate', $changedFields, true)) {
+                    try {
+                        $dueDateChangeTimestampsByCase[$row['case_id']][] = new DateTimeImmutable($row['created_at']);
+                    } catch (Exception $e) {
+                        // Ignore unparseable timestamps rather than fail the whole request.
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * True if this case's due date was edited strictly after $after - i.e.
+     * the current cases_cache.due_date cannot be trusted to represent what
+     * the due date was at that point in time.
+     */
+    function dueDateChangedAfter($caseId, DateTimeImmutable $after, array $dueDateChangeTimestampsByCase) {
+        foreach (($dueDateChangeTimestampsByCase[$caseId] ?? []) as $ts) {
+            if ($ts > $after) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     // Current-state workload is authoritative from cases_cache. A case is
     // "currently at a lab" when it is active (not archived, not terminal)
     // and its assigned_to resolves (case-insensitive, trimmed) to a
@@ -258,10 +342,22 @@ try {
         $liveLabByName[$nameKey] = $labKey;
     }
 
+    // SECURITY: Assigned Only (limited_visibility) users must see the same
+    // case-level restriction here as everywhere else in the app - reuse the
+    // single authoritative policy check (canUserAccessCase()) rather than
+    // reimplementing it. For a non-limited-visibility user this is always
+    // true (matching today's behavior exactly); for a limited-visibility
+    // user it restricts current-state Lab Insights (workload counts, late
+    // counts, and the drill-down rows/patient names below) to only cases
+    // assigned to their own email - which will legitimately be zero/near-
+    // zero for most such users, since lab-assigned cases are assigned to a
+    // lab identity, not to individual staff. This is a deliberate, expected
+    // consequence of Assigned Only, not a bug.
     $currentWorkloadCaseIds = [];   // labKey => [caseId => true]
     $currentWorkloadLateCount = []; // labKey => int
     $stmt = $pdo->prepare("
-        SELECT case_id, status, due_date, archived, case_type, assigned_to
+        SELECT case_id, status, due_date, archived, case_type, assigned_to,
+               patient_first_name, patient_last_name
         FROM cases_cache
         WHERE practice_id = :practice_id AND archived = 0
     ");
@@ -276,6 +372,10 @@ try {
         $nameKey = mb_strtolower(trim($row['assigned_to']));
         $labKey = $liveLabByName[$nameKey] ?? null;
         if (!$labKey) {
+            continue;
+        }
+        $row['practice_id'] = $practiceId;
+        if (!canUserAccessCase($row, $practiceId)) {
             continue;
         }
         $currentWorkloadCaseIds[$labKey][$row['case_id']] = true;
@@ -301,35 +401,57 @@ try {
         $periods = $periodsByLab[$labKey] ?? [];
 
         $workloadCaseIds = $currentWorkloadCaseIds[$labKey] ?? [];
-        $handledCaseIds = [];        // within range
-        $handledCaseIdsAllTime = []; // for revision-rate denominator (any time), matches "handled" semantics
-        $turnaroundByCase = [];      // case_id => summed observed seconds (this lab)
+        $assignedCaseIds = [];       // within range - "Cases Assigned" (may be in-progress)
+        $turnaroundByCase = [];      // case_id => summed observed seconds (this lab) - "Completed" population
         $revisionAttributedCases = []; // case_id => true (>=1 attributed revision, within range)
         $revisionCountTotal = 0;
         $directTransfersOut = 0;
+        $lateDeliveryEligibleCases = []; // case_id => true (reliable due-date comparison possible)
+        $lateDeliveryLateCases = [];     // case_id => true (subset of eligible, delivered late)
+        $completedPeriodsForLateDelivery = []; // case_id => [ ['id' => int, 'endedAt' => DateTimeImmutable], ... ]
 
         foreach ($periods as $p) {
             $caseId = $p['case_id'];
 
-            if ($p['end_reason'] === 'reassigned_to_lab') {
+            // Direct Transfers is historical like every other metric below -
+            // scoped to the selected range via the same overlap check.
+            if ($p['end_reason'] === 'reassigned_to_lab' && periodOverlapsRange($p, $rangeStart, $now)) {
                 $directTransfersOut++;
             }
 
-            // "Handled" - at least one period of any quality, filtered to range
-            // by whether the period overlaps the selected window.
+            // "Cases Assigned" - at least one period of any quality
+            // (including still-open/in-progress), filtered to range by
+            // whether the period overlaps the selected window. This is
+            // intentionally NOT a "completed work" count - see Completed
+            // below for that.
             if (periodOverlapsRange($p, $rangeStart, $now)) {
-                $handledCaseIds[$caseId] = true;
+                $assignedCaseIds[$caseId] = true;
             }
-            $handledCaseIdsAllTime[$caseId] = true;
 
-            // Turnaround: observed periods only, must have a real end, and a
-            // strictly positive duration. Backfilled/open periods excluded.
+            // Completed / Avg. Turnaround: observed periods only, must have
+            // a real end, and a strictly positive duration. Backfilled/open
+            // periods excluded. Represents distinct CASES (not periods) -
+            // if the same case had two separate completed periods at this
+            // lab, their durations are summed and it still counts once.
             if ($p['history_quality'] === 'observed' && $p['ended_at'] !== null) {
                 $started = new DateTimeImmutable($p['started_at']);
                 $ended = new DateTimeImmutable($p['ended_at']);
                 $seconds = $ended->getTimestamp() - $started->getTimestamp();
                 if ($seconds > 0 && periodOverlapsRange($p, $rangeStart, $now)) {
                     $turnaroundByCase[$caseId] = ($turnaroundByCase[$caseId] ?? 0) + $seconds;
+
+                    // Late Delivery Rate candidate: same completed population
+                    // as turnaround. A case can have more than one completed
+                    // period here (Delivered -> reopened -> Delivered again)
+                    // - only the FINAL one (by ended_at, tie-broken by the
+                    // period's own id) determines the case's late/on-time
+                    // result below. Do not evaluate lateness per-period here;
+                    // that would make the result depend on iteration/query
+                    // order rather than being explicitly determined.
+                    $completedPeriodsForLateDelivery[$caseId][] = [
+                        'id' => (int)$p['id'],
+                        'endedAt' => $ended,
+                    ];
                 }
             }
 
@@ -352,17 +474,65 @@ try {
             $multiLabCaseKeys[$caseId][$labKey] = true;
         }
 
-        $turnaroundCaseCount = count($turnaroundByCase);
-        $avgTurnaroundSeconds = $turnaroundCaseCount > 0
-            ? array_sum($turnaroundByCase) / $turnaroundCaseCount
+        // Late Delivery Rate: resolve exactly one outcome per case, from
+        // that case's FINAL completed period at this lab (product decision:
+        // "based on the final delivery outcome for each case" - an earlier
+        // late period must not count if the case was later re-delivered on
+        // time, and vice versa). Selection is explicit (max ended_at, tied
+        // broken by the period's own id) rather than relying on the order
+        // periods were queried/iterated above.
+        foreach ($completedPeriodsForLateDelivery as $caseId => $candidates) {
+            usort($candidates, function ($a, $b) {
+                if ($a['endedAt'] != $b['endedAt']) {
+                    return $a['endedAt'] <=> $b['endedAt'];
+                }
+                return $a['id'] <=> $b['id'];
+            });
+            $final = end($candidates);
+
+            // Reliability guard (unchanged from the original implementation):
+            // cases_cache.due_date is a single mutable field, not a snapshot
+            // at completion time. Excluded if there's no due date, or if the
+            // due date was edited after THIS FINAL period ended - an earlier
+            // due-date edit that happened before the final period ended is
+            // still fine, since the current value would already reflect it.
+            $caseRow = $casesById[$caseId] ?? null;
+            if (!$caseRow || empty($caseRow['due_date'])) {
+                continue;
+            }
+            if (dueDateChangedAfter($caseId, $final['endedAt'], $dueDateChangeTimestampsByCase)) {
+                continue;
+            }
+
+            try {
+                $dueDateOnly = new DateTimeImmutable(substr($caseRow['due_date'], 0, 10));
+                $endedDateOnly = new DateTimeImmutable($final['endedAt']->format('Y-m-d'));
+            } catch (Exception $e) {
+                continue;
+            }
+
+            $lateDeliveryEligibleCases[$caseId] = true;
+            if ($endedDateOnly > $dueDateOnly) {
+                $lateDeliveryLateCases[$caseId] = true;
+            }
+        }
+
+        $completedCaseCount = count($turnaroundByCase);
+        $avgTurnaroundSeconds = $completedCaseCount > 0
+            ? array_sum($turnaroundByCase) / $completedCaseCount
             : null;
 
         $currentWorkloadCount = count($workloadCaseIds);
         $lateInWorkload = $currentWorkloadLateCount[$labKey] ?? 0;
 
-        $handledCount = count($handledCaseIds);
-        $revisionRate = $handledCount > 0 ? (count($revisionAttributedCases) / $handledCount) * 100 : null;
+        $assignedCount = count($assignedCaseIds);
+        $revisionRate = $assignedCount > 0 ? (count($revisionAttributedCases) / $assignedCount) * 100 : null;
         $lateRate = $currentWorkloadCount > 0 ? ($lateInWorkload / $currentWorkloadCount) * 100 : null;
+
+        $lateDeliverySampleSize = count($lateDeliveryEligibleCases);
+        $lateDeliveryRate = $lateDeliverySampleSize > 0
+            ? (count($lateDeliveryLateCases) / $lateDeliverySampleSize) * 100
+            : null;
 
         $totalTransfers += $directTransfersOut;
 
@@ -373,11 +543,14 @@ try {
             'name' => $labInfo['isLive'] ? $labInfo['currentName'] : $labInfo['snapshotName'],
             'isLive' => $labInfo['isLive'],
             'currentWorkload' => $currentWorkloadCount,
-            'casesHandled' => $handledCount,
+            'casesAssigned' => $assignedCount,
+            'completed' => $completedCaseCount,
             'avgTurnaroundDays' => $avgTurnaroundSeconds !== null ? round($avgTurnaroundSeconds / 86400, 1) : null,
-            'turnaroundSampleSize' => $turnaroundCaseCount,
+            'turnaroundSampleSize' => $completedCaseCount,
             'lateCaseRate' => $lateRate !== null ? round($lateRate, 1) : null,
             'lateCaseCount' => $lateInWorkload,
+            'lateDeliveryRate' => $lateDeliveryRate !== null ? round($lateDeliveryRate, 1) : null,
+            'lateDeliverySampleSize' => $lateDeliverySampleSize,
             'revisionCount' => $revisionCountTotal,
             'revisionRate' => $revisionRate !== null ? round($revisionRate, 1) : null,
             'directTransfersOut' => $directTransfersOut,
@@ -394,6 +567,12 @@ try {
     }
 
     // ── Current workload table (flat list across all labs) ──────────────
+    // Patient name is decrypted here via the same PIIEncryption mechanism
+    // used by every other authenticated case screen (get-case.php,
+    // list-cases.php, etc.) - no new PII access path. Every case reaching
+    // this point has already passed canUserAccessCase() above, so Assigned
+    // Only users never see a name for a case they would not otherwise be
+    // permitted to see.
     $currentWorkload = [];
     foreach ($labMetrics as $labKey => $m) {
         foreach ($m['currentWorkloadCaseIds'] as $cid) {
@@ -404,8 +583,24 @@ try {
                 $due = new DateTimeImmutable(substr($caseRow['due_date'], 0, 10));
                 $daysLate = $now->modify('midnight')->diff($due)->days;
             }
+
+            $patientName = 'Unknown Patient';
+            try {
+                $decrypted = PIIEncryption::decryptCaseData([
+                    'patientFirstName' => $caseRow['patient_first_name'] ?? null,
+                    'patientLastName' => $caseRow['patient_last_name'] ?? null,
+                ]);
+                $fullName = trim(($decrypted['patientFirstName'] ?? '') . ' ' . ($decrypted['patientLastName'] ?? ''));
+                if ($fullName !== '') {
+                    $patientName = $fullName;
+                }
+            } catch (Exception $e) {
+                // Fall back to the generic label rather than fail the whole request.
+            }
+
             $currentWorkload[] = [
                 'caseId' => $cid,
+                'patientName' => $patientName,
                 'caseType' => $caseRow['case_type'],
                 'status' => $caseRow['status'],
                 'dueDate' => $caseRow['due_date'] ?: null,
@@ -429,10 +624,10 @@ try {
         $cursor = $cursor->modify('+1 month');
     }
 
-    // Top 5 labs by cases handled drive the trend lines; avoids a cluttered chart.
-    $topLabKeys = array_keys(array_filter($labMetrics, function ($m) { return $m['casesHandled'] > 0; }));
+    // Top 5 labs by cases assigned drive the trend lines; avoids a cluttered chart.
+    $topLabKeys = array_keys(array_filter($labMetrics, function ($m) { return $m['casesAssigned'] > 0; }));
     usort($topLabKeys, function ($a, $b) use ($labMetrics) {
-        return $labMetrics[$b]['casesHandled'] - $labMetrics[$a]['casesHandled'];
+        return $labMetrics[$b]['casesAssigned'] - $labMetrics[$a]['casesAssigned'];
     });
     $topLabKeys = array_slice($topLabKeys, 0, 5);
 

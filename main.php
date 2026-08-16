@@ -1411,9 +1411,11 @@ window.featureFlags = <?php echo getFeatureFlagsJson(); ?>;
                       <tr>
                         <th data-sort="name">Lab</th>
                         <th data-sort="currentWorkload">Current Workload</th>
-                        <th data-sort="casesHandled">Cases Handled</th>
+                        <th data-sort="casesAssigned" id="liCasesAssignedHeader">Cases Assigned</th>
+                        <th data-sort="completed" id="liCompletedHeader">Completed</th>
                         <th data-sort="avgTurnaroundDays" id="liTurnaroundHeader">Avg. Turnaround</th>
                         <th data-sort="lateCaseRate" id="liLateRateHeader">Current Late Rate</th>
+                        <th data-sort="lateDeliveryRate" id="liLateDeliveryRateHeader">Late Delivery Rate</th>
                         <th data-sort="revisionCount">Revisions</th>
                         <th data-sort="revisionRate">Revision Rate</th>
                         <th data-sort="directTransfersOut">Direct Transfers</th>
@@ -1428,7 +1430,7 @@ window.featureFlags = <?php echo getFeatureFlagsJson(); ?>;
               <div class="ap-section li-inner-section" id="liTrendSection" style="display: none;">
                 <div class="ap-section-header">
                   <div>
-                    <h2 class="ap-section-title">Cases Handled Over Time</h2>
+                    <h2 class="ap-section-title">Cases Assigned Over Time</h2>
                     <p class="ap-section-subtitle">Top labs by volume, by month</p>
                   </div>
                 </div>

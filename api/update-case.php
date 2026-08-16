@@ -55,7 +55,27 @@ try {
         try {
             // Get existing case data from cache to preserve attachments and other fields
             $existingCase = getCaseFromCache($caseData['id']);
-            
+
+            // Detect a dueDate change BEFORE the merge below overwrites it,
+            // so callers (and case_updated activity logging) can tell
+            // whether the due date was edited. Scoped to dueDate only (not
+            // a full field diff) since dueDate is the one field consumers
+            // currently depend on for historical accuracy (Lab Insights'
+            // Late Delivery Rate excludes cases whose due date was edited
+            // after their lab period completed - see get-lab-insights.php).
+            // PII fields are intentionally NOT compared here: $existingCase
+            // holds still-encrypted ciphertext from the DB while incoming
+            // $caseData holds plaintext from the request, so a naive
+            // comparison would always appear "changed" for those fields.
+            $changedFields = [];
+            if ($existingCase && is_array($existingCase) && array_key_exists('dueDate', $caseData)) {
+                $oldDueDate = $existingCase['dueDate'] ?? null;
+                $newDueDate = $caseData['dueDate'] ?? null;
+                if ($oldDueDate !== $newDueDate) {
+                    $changedFields[] = 'dueDate';
+                }
+            }
+
             // Merge existing case data with new data (new data takes precedence)
             if ($existingCase && is_array($existingCase)) {
                 $caseData = array_merge($existingCase, $caseData);
@@ -169,7 +189,8 @@ try {
                 'success' => true,
                 'message' => 'Case updated successfully (database only)',
                 'caseData' => $caseData,
-                'driveFolderId' => $caseData['driveFolderId'] ?? null
+                'driveFolderId' => $caseData['driveFolderId'] ?? null,
+                'changedFields' => $changedFields
             ];
         } catch (Exception $e) {
             return [
@@ -795,6 +816,24 @@ try {
         // update-case-assignment.php already does.
         if ($result['success'] && isset($caseData['assignedTo'])) {
             recordLabAssignmentChange($_POST['caseId'], $currentPracticeId, $previousAssignedToForLabHistory, $caseData['assignedTo']);
+        }
+
+        // Lab Insights: a case reaching Delivered through Edit Case closes
+        // its own open lab period (if any); a case regressing FROM
+        // Delivered back to a non-terminal status through Edit Case opens
+        // a brand-new period if it's still assigned to a currently live
+        // lab - same rule/no-op semantics as update-case-status.php's
+        // closeOpenLabPeriodForDeliveredCase() / reopenLabPeriodOnDeliveredRegression().
+        // Runs after the assignment-change handling above so a same-request
+        // reassignment + delivery/regression is always resolved against
+        // the case's final assignedTo for this request.
+        if ($result['success'] && isset($result['caseData']['status'])) {
+            $newStatusForLabPeriod = $result['caseData']['status'];
+            if ($newStatusForLabPeriod === 'Delivered') {
+                closeOpenLabPeriodForDeliveredCase($_POST['caseId'], $currentPracticeId);
+            } else {
+                reopenLabPeriodOnDeliveredRegression($_POST['caseId'], $currentPracticeId, $previousStatusForRevision, $newStatusForLabPeriod);
+            }
         }
 
         // Process case assignment if successful and assignedTo is provided
