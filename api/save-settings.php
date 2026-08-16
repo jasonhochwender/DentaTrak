@@ -770,6 +770,10 @@ try {
                 $oldIsLabByUserId[(int)$row['user_id']] = (int)$row['is_lab'];
             }
 
+            // Track which lab users survive this save so removed lab users can
+            // have their open lab periods closed before they disappear.
+            $keptUserIds = [];
+
             // First, remove all non-creator users from the practice
             $stmt = $pdo->prepare("
                 DELETE FROM practice_users 
@@ -795,11 +799,15 @@ try {
                         'practice_id' => $currentPracticeId,
                         'user_id' => $practiceCreatorId
                     ]);
-                    if ($creatorOldIsLab === 0 && $creatorNewIsLab === 1) {
-                        initializeOpenLabPeriodsForEntity($currentPracticeId, 'user', (int)$practiceCreatorId, $creatorEmail);
-                    } elseif ($creatorOldIsLab === 1 && $creatorNewIsLab === 0) {
-                        closeOpenLabPeriodsForEntity($currentPracticeId, 'user', (int)$practiceCreatorId, 'lab_designation_removed');
-                    }
+                }
+
+                // Creator survives as long as they are still the creator.
+                $keptUserIds[(int)$practiceCreatorId] = true;
+
+                if ($creatorOldIsLab === 0 && $creatorNewIsLab === 1) {
+                    initializeOpenLabPeriodsForEntity($currentPracticeId, 'user', (int)$practiceCreatorId, $creatorEmail);
+                } elseif ($creatorOldIsLab === 1 && $creatorNewIsLab === 0) {
+                    closeOpenLabPeriodsForEntity($currentPracticeId, 'user', (int)$practiceCreatorId, 'lab_designation_removed');
                 }
             }
             
@@ -845,6 +853,8 @@ try {
                     'is_lab' => $newIsLab
                 ]);
 
+                $keptUserIds[(int)$userId] = true;
+
                 $oldIsLab = $oldIsLabByUserId[(int)$userId] ?? 0;
                 if ($oldIsLab === 0 && $newIsLab === 1) {
                     initializeOpenLabPeriodsForEntity($currentPracticeId, 'user', (int)$userId, $email);
@@ -852,7 +862,7 @@ try {
                     closeOpenLabPeriodsForEntity($currentPracticeId, 'user', (int)$userId, 'lab_designation_removed');
                 }
             }
-            
+
             // Process regular users
             userLog("Processing regular users: " . count($validGmailUsers) . " - " . implode(", ", $validGmailUsers), false);
             
@@ -895,6 +905,8 @@ try {
                     'is_lab' => $newIsLab
                 ]);
 
+                $keptUserIds[(int)$userId] = true;
+
                 $oldIsLab = $oldIsLabByUserId[(int)$userId] ?? 0;
                 if ($oldIsLab === 0 && $newIsLab === 1) {
                     initializeOpenLabPeriodsForEntity($currentPracticeId, 'user', (int)$userId, $email);
@@ -902,7 +914,15 @@ try {
                     closeOpenLabPeriodsForEntity($currentPracticeId, 'user', (int)$userId, 'lab_designation_removed');
                 }
             }
-            
+
+            // Close any open lab periods for lab users that were just removed
+            // from this practice entirely (not just toggled off).
+            foreach ($oldIsLabByUserId as $removedUserId => $wasLab) {
+                if ($wasLab && !isset($keptUserIds[$removedUserId])) {
+                    closeOpenLabPeriodsForEntity($currentPracticeId, 'user', $removedUserId, 'lab_designation_removed');
+                }
+            }
+
             $pdo->commit();
             userLog("Successfully updated practice users for practice {$currentPracticeId}", false);
 

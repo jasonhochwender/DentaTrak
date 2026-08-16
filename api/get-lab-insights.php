@@ -95,6 +95,19 @@ $now = new DateTimeImmutable('now');
 // workload drill-down) reads from this single source.
 $TERMINAL_CASE_STATUSES = ['Delivered'];
 
+function labIsLate($caseRow, DateTimeImmutable $now, array $terminalStatuses) {
+    if (!$caseRow) { return false; }
+    if ((int)$caseRow['archived'] === 1) { return false; }
+    if (in_array($caseRow['status'], $terminalStatuses, true)) { return false; }
+    if (empty($caseRow['due_date'])) { return false; }
+    try {
+        $due = new DateTimeImmutable(substr($caseRow['due_date'], 0, 10));
+    } catch (Exception $e) {
+        return false;
+    }
+    return $due < $now->modify('midnight');
+}
+
 try {
     // ── Lab identity universe: currently-designated labs UNION any identity
     // that appears in this practice's assignment history (so removed/renamed
@@ -231,17 +244,45 @@ try {
         }
     }
 
-    function labIsLate($caseRow, DateTimeImmutable $now, array $terminalStatuses) {
-        if (!$caseRow) { return false; }
-        if ((int)$caseRow['archived'] === 1) { return false; }
-        if (in_array($caseRow['status'], $terminalStatuses, true)) { return false; }
-        if (empty($caseRow['due_date'])) { return false; }
-        try {
-            $due = new DateTimeImmutable(substr($caseRow['due_date'], 0, 10));
-        } catch (Exception $e) {
-            return false;
+    // Current-state workload is authoritative from cases_cache. A case is
+    // "currently at a lab" when it is active (not archived, not terminal)
+    // and its assigned_to resolves (case-insensitive, trimmed) to a
+    // currently live lab name. This makes current workload independent of
+    // whether an open case_lab_assignment_periods row exists.
+    $liveLabByName = [];
+    foreach ($labs as $labKey => $labInfo) {
+        if (!$labInfo['isLive']) {
+            continue;
         }
-        return $due < $now->modify('midnight');
+        $nameKey = mb_strtolower(trim($labInfo['currentName']));
+        $liveLabByName[$nameKey] = $labKey;
+    }
+
+    $currentWorkloadCaseIds = [];   // labKey => [caseId => true]
+    $currentWorkloadLateCount = []; // labKey => int
+    $stmt = $pdo->prepare("
+        SELECT case_id, status, due_date, archived, case_type, assigned_to
+        FROM cases_cache
+        WHERE practice_id = :practice_id AND archived = 0
+    ");
+    $stmt->execute(['practice_id' => $practiceId]);
+    foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+        if (in_array($row['status'], $TERMINAL_CASE_STATUSES, true)) {
+            continue;
+        }
+        if (empty($row['assigned_to'])) {
+            continue;
+        }
+        $nameKey = mb_strtolower(trim($row['assigned_to']));
+        $labKey = $liveLabByName[$nameKey] ?? null;
+        if (!$labKey) {
+            continue;
+        }
+        $currentWorkloadCaseIds[$labKey][$row['case_id']] = true;
+        $casesById[$row['case_id']] = $row;
+        if (labIsLate($row, $now, $TERMINAL_CASE_STATUSES)) {
+            $currentWorkloadLateCount[$labKey] = ($currentWorkloadLateCount[$labKey] ?? 0) + 1;
+        }
     }
 
     function periodOverlapsRange($period, ?DateTimeImmutable $rangeStart, DateTimeImmutable $now) {
@@ -259,7 +300,7 @@ try {
     foreach ($labs as $labKey => $labInfo) {
         $periods = $periodsByLab[$labKey] ?? [];
 
-        $currentWorkloadCaseIds = [];
+        $workloadCaseIds = $currentWorkloadCaseIds[$labKey] ?? [];
         $handledCaseIds = [];        // within range
         $handledCaseIdsAllTime = []; // for revision-rate denominator (any time), matches "handled" semantics
         $turnaroundByCase = [];      // case_id => summed observed seconds (this lab)
@@ -269,18 +310,6 @@ try {
 
         foreach ($periods as $p) {
             $caseId = $p['case_id'];
-
-            // Current workload: open period + case still exists + not terminal
-            // (terminal = $TERMINAL_CASE_STATUSES, or archived). Pure query-time
-            // filtering - a case moving between terminal/active statuses, or
-            // being archived/restored, changes its workload membership on the
-            // next request without ever touching the assignment period itself.
-            if ($p['ended_at'] === null) {
-                $caseRow = $casesById[$caseId] ?? null;
-                if ($caseRow && (int)$caseRow['archived'] === 0 && !in_array($caseRow['status'], $TERMINAL_CASE_STATUSES, true)) {
-                    $currentWorkloadCaseIds[$caseId] = true;
-                }
-            }
 
             if ($p['end_reason'] === 'reassigned_to_lab') {
                 $directTransfersOut++;
@@ -328,13 +357,8 @@ try {
             ? array_sum($turnaroundByCase) / $turnaroundCaseCount
             : null;
 
-        $currentWorkloadCount = count($currentWorkloadCaseIds);
-        $lateInWorkload = 0;
-        foreach (array_keys($currentWorkloadCaseIds) as $cid) {
-            if (labIsLate($casesById[$cid] ?? null, $now, $TERMINAL_CASE_STATUSES)) {
-                $lateInWorkload++;
-            }
-        }
+        $currentWorkloadCount = count($workloadCaseIds);
+        $lateInWorkload = $currentWorkloadLateCount[$labKey] ?? 0;
 
         $handledCount = count($handledCaseIds);
         $revisionRate = $handledCount > 0 ? (count($revisionAttributedCases) / $handledCount) * 100 : null;
@@ -357,7 +381,7 @@ try {
             'revisionCount' => $revisionCountTotal,
             'revisionRate' => $revisionRate !== null ? round($revisionRate, 1) : null,
             'directTransfersOut' => $directTransfersOut,
-            'currentWorkloadCaseIds' => array_keys($currentWorkloadCaseIds),
+            'currentWorkloadCaseIds' => array_keys($workloadCaseIds),
         ];
     }
 

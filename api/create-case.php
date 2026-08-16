@@ -5,6 +5,7 @@ header('Content-Type: application/json');
 require_once __DIR__ . '/practice-security.php';
 require_once __DIR__ . '/cases-cache.php';
 require_once __DIR__ . '/case-activity-log.php';
+require_once __DIR__ . '/lab-assignment-history.php';
 require_once __DIR__ . '/at-risk-calculator.php';
 require_once __DIR__ . '/encryption.php';
 require_once __DIR__ . '/csrf.php';
@@ -374,6 +375,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // Save ENCRYPTED data to cache (re-encrypt the decrypted data returned from createCase)
             $encryptedForCache = PIIEncryption::encryptCaseData($result['caseData']);
             saveCaseToCache($encryptedForCache);
+
+            // Lab Insights foundation: record the initial assignment transition.
+            // No-op when the initial assignee is not a lab-designated user/label.
+            $createdCaseId = $result['caseData']['id'] ?? null;
+            if ($createdCaseId && $currentPracticeId) {
+                recordLabAssignmentChange($createdCaseId, $currentPracticeId, '', $result['caseData']['assignedTo'] ?? '');
+            }
 
             // Update user's case count
             $currentPracticeId = $_SESSION['current_practice_id'] ?? 0;

@@ -823,8 +823,15 @@ function createCacheOnlyCase($caseData, $files, $originalCaseData = null, $gcsAt
         
         // Store in database cache
         require_once __DIR__ . '/cases-cache.php';
+        require_once __DIR__ . '/lab-assignment-history.php';
         saveCaseToCache($completeCase);
-        
+
+        // Lab Insights foundation: record the initial assignment if the new
+        // case is assigned to a lab-designated user/label.
+        if ($practiceId) {
+            recordLabAssignmentChange($caseId, $practiceId, '', $completeCase['assignedTo'] ?? '');
+        }
+
         // Return the original case data for frontend display (already unencrypted)
         $responseData = array_merge($dataForResponse, [
             'id' => $caseId,
