@@ -287,6 +287,134 @@ function respondAssignmentLabelsInUse(array $blockedLabels) {
     exit;
 }
 
+/**
+ * Normalize an assignment identity for cross-table comparison.
+ */
+function normalizeAssignmentIdentity($value) {
+    return mb_strtolower(trim((string)$value));
+}
+
+/**
+ * Verify that the submitted labels and users do not create a new cross-table
+ * collision in the practice's assignment namespace. Existing historical
+ * collisions are preserved (allowed to be resubmitted unchanged); only
+ * create/rename/add operations that would introduce or move a collision are
+ * rejected.
+ *
+ * Exits with 409 on a new collision.
+ */
+function validateAssignmentNamespaceCollisions($pdo, $practiceId, array $assignmentLabelsDetailed, array $adminUsers, array $gmailUsers) {
+    if (empty($assignmentLabelsDetailed) && empty($adminUsers) && empty($gmailUsers)) {
+        return;
+    }
+
+    $existingLabelsStmt = $pdo->prepare("SELECT id, label FROM practice_assignment_labels WHERE practice_id = :practice_id");
+    $existingLabelsStmt->execute(['practice_id' => $practiceId]);
+    $existingLabelsById = [];
+    $existingLabelNorms = [];
+    foreach ($existingLabelsStmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+        $norm = normalizeAssignmentIdentity($row['label']);
+        $existingLabelsById[(int)$row['id']] = $row;
+        $existingLabelNorms[$norm] = (int)$row['id'];
+    }
+
+    $existingUsersStmt = $pdo->prepare("
+        SELECT u.email
+        FROM practice_users pu
+        JOIN users u ON pu.user_id = u.id
+        WHERE pu.practice_id = :practice_id
+    ");
+    $existingUsersStmt->execute(['practice_id' => $practiceId]);
+    $existingUserNorms = [];
+    foreach ($existingUsersStmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+        $existingUserNorms[normalizeAssignmentIdentity($row['email'])] = true;
+    }
+
+    // Final label set, tracking which id (if any) owns each normalized value.
+    $labelNormOwners = [];
+    foreach ($assignmentLabelsDetailed as $item) {
+        $newNorm = normalizeAssignmentIdentity($item['label']);
+        $labelId = !empty($item['id']) && isset($existingLabelsById[(int)$item['id']]) ? (int)$item['id'] : null;
+
+        // Reject duplicate within the final label set.
+        if (isset($labelNormOwners[$newNorm])) {
+            http_response_code(409);
+            echo json_encode([
+                'success' => false,
+                'message' => 'An assignment label with this name already exists.'
+            ]);
+            exit;
+        }
+        $labelNormOwners[$newNorm] = $labelId;
+
+        // Determine if this label is being created or renamed.
+        $isNew = ($labelId === null);
+        $oldNorm = $labelId !== null ? normalizeAssignmentIdentity($existingLabelsById[$labelId]['label']) : null;
+        $isChanging = ($isNew || $oldNorm !== $newNorm);
+
+        if (!$isChanging) {
+            // Keeping its current normalized value; allow historical collisions.
+            continue;
+        }
+
+        // Do not create a label that matches an existing label (unless it's
+        // keeping its own current value).
+        if (isset($existingLabelNorms[$newNorm])) {
+            $existingId = $existingLabelNorms[$newNorm];
+            if ($isNew || $existingId !== $labelId) {
+                http_response_code(409);
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'An assignment label with this name already exists.'
+                ]);
+                exit;
+            }
+        }
+
+        // Do not create or rename a label into a practice user identity.
+        if (isset($existingUserNorms[$newNorm])) {
+            http_response_code(409);
+            echo json_encode([
+                'success' => false,
+                'message' => 'An assignment label cannot have the same name as a practice user.'
+            ]);
+            exit;
+        }
+    }
+
+    // Final user set: dedup admin + regular users, normalize, validate email.
+    $allSubmittedUserEmails = [];
+    foreach ($adminUsers as $email) {
+        $allSubmittedUserEmails[] = trim((string)$email);
+    }
+    foreach ($gmailUsers as $email) {
+        $allSubmittedUserEmails[] = trim((string)$email);
+    }
+    $allSubmittedUserEmails = array_unique($allSubmittedUserEmails);
+
+    foreach ($allSubmittedUserEmails as $email) {
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            continue;
+        }
+        $userNorm = normalizeAssignmentIdentity($email);
+
+        if (isset($existingUserNorms[$userNorm])) {
+            // Existing user; don't block because of their own record.
+            continue;
+        }
+
+        // New user: cannot collide with any label that will exist after this save.
+        if (isset($labelNormOwners[$userNorm])) {
+            http_response_code(409);
+            echo json_encode([
+                'success' => false,
+                'message' => "This user's email conflicts with an existing assignment label. Rename or remove the assignment label before adding this user."
+            ]);
+            exit;
+        }
+    }
+}
+
 try {
     ensureUserPreferencesSchema();
 
@@ -468,6 +596,11 @@ try {
         // Nothing below may delete-all/reinsert every row for a practice;
         // only genuinely removed labels are ever deleted.
         $showLabInsightsFlag = isFeatureEnabled('SHOW_LAB_INSIGHTS');
+
+        // Harden the assignment namespace before persisting any labels or users.
+        // Existing historical collisions are preserved; only new/moved collisions
+        // are rejected.
+        validateAssignmentNamespaceCollisions($pdo, $currentPracticeId, $assignmentLabelsDetailed ?? [], $validAdminUsers, $validGmailUsers);
 
         if ($userRole === 'admin') {
             try {

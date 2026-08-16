@@ -18,8 +18,28 @@ require_once __DIR__ . '/case-activity-log.php';
 require_once __DIR__ . '/encryption.php';
 require_once __DIR__ . '/at-risk-calculator.php';
 
+// Match the local calendar-day semantics used by the Kanban card state
+// (see js/app.js getCalendarDayDiff() and the print-case.php time fix).
+date_default_timezone_set('America/New_York');
+
 // SECURITY: Require valid practice context before accessing any data
 $currentPracticeId = requireValidPracticeContext();
+
+function getCalendarDayDiff($dueDateString) {
+    if (empty($dueDateString)) {
+        return null;
+    }
+    try {
+        $due = new DateTimeImmutable($dueDateString, new DateTimeZone(date_default_timezone_get()));
+        $due = $due->setTime(0, 0, 0);
+        $today = new DateTimeImmutable('today', new DateTimeZone(date_default_timezone_get()));
+        $today = $today->setTime(0, 0, 0);
+        $diffSeconds = $due->getTimestamp() - $today->getTimestamp();
+        return (int) round($diffSeconds / 86400);
+    } catch (Throwable $e) {
+        return null;
+    }
+}
 
 try {
     // getAllCasesFromCache now enforces practice_id filtering internally
@@ -159,26 +179,66 @@ try {
         $cases = PIIEncryption::filterCasesBySearch($cases, $searchTerm);
     }
     
+    // Load user due-state thresholds for late and due-soon filters
+    $pastDueDays = 1;
+    $comingDueDays = 5;
+    if (isset($_SESSION['user_preferences']['past_due_days'])) {
+        $pastDueDays = (int)$_SESSION['user_preferences']['past_due_days'];
+    } elseif (isset($_SESSION['db_user_id'])) {
+        try {
+            $stmt = $pdo->prepare("SELECT past_due_days, coming_due_days FROM user_preferences WHERE user_id = :user_id");
+            $stmt->execute(['user_id' => $_SESSION['db_user_id']]);
+            $duePrefs = $stmt->fetch(PDO::FETCH_ASSOC);
+            if ($duePrefs) {
+                $pastDueDays = (int)($duePrefs['past_due_days'] ?? 1);
+                $comingDueDays = (int)($duePrefs['coming_due_days'] ?? 5);
+                if (!isset($_SESSION['user_preferences'])) {
+                    $_SESSION['user_preferences'] = [];
+                }
+                $_SESSION['user_preferences']['past_due_days'] = $pastDueDays;
+                $_SESSION['user_preferences']['coming_due_days'] = $comingDueDays;
+            }
+        } catch (Throwable $e) {
+            // On error, use defaults
+        }
+    }
+
     // Apply late cases filter if requested
     $lateOnly = $_GET['late_only'] ?? '';
     if ($lateOnly === 'true') {
-        $cases = array_filter($cases, function($case) {
+        $cases = array_filter($cases, function($case) use ($pastDueDays) {
             // Exclude delivered cases - they can't be late if they're completed
             if (isset($case['status']) && $case['status'] === 'Delivered') {
                 return false;
             }
-            
-            // Check if case is past due
-            if (!isset($case['dueDate']) || empty($case['dueDate'])) {
-                return false; // No due date means not late
+
+            // Check if case is past due by the user's configured threshold
+            $daysUntil = getCalendarDayDiff($case['dueDate'] ?? '');
+            if ($daysUntil === null) {
+                return false;
             }
-            
-            $dueDate = new DateTime($case['dueDate']);
-            $today = new DateTime();
-            $today->setTime(0, 0, 0); // Set to start of day for comparison
-            
-            // Case is late if due date is before today
-            return $dueDate < $today;
+
+            return $daysUntil <= -$pastDueDays;
+        });
+        $cases = array_values($cases); // Re-index array
+    }
+
+    // Apply due soon filter if requested
+    $dueSoon = $_GET['due_soon'] ?? '';
+    if ($dueSoon === 'true') {
+        $cases = array_filter($cases, function($case) use ($comingDueDays) {
+            // Exclude delivered cases
+            if (isset($case['status']) && $case['status'] === 'Delivered') {
+                return false;
+            }
+
+            $daysUntil = getCalendarDayDiff($case['dueDate'] ?? '');
+            if ($daysUntil === null) {
+                return false;
+            }
+
+            // Due soon = today or within the configured coming-due window
+            return $daysUntil >= 0 && $daysUntil <= $comingDueDays;
         });
         $cases = array_values($cases); // Re-index array
     }

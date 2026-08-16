@@ -9608,6 +9608,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const filterCaseType = document.getElementById('filterCaseType');
     const filterAssignedTo = document.getElementById('filterAssignedTo');
     const filterLateCases = document.getElementById('filterLateCases');
+    const filterDueSoon = document.getElementById('filterDueSoon');
     const filterAtRisk = document.getElementById('filterAtRisk');
     const clearFiltersBtn = document.getElementById('clearFiltersBtn');
     const kanbanFilterActiveDot = document.getElementById('kanbanFilterActiveDot');
@@ -9621,6 +9622,7 @@ document.addEventListener('DOMContentLoaded', function () {
         const caseType = filterCaseType ? filterCaseType.value : '';
         const assignedTo = filterAssignedTo ? filterAssignedTo.value : '';
         const lateOnly = filterLateCases ? filterLateCases.checked : false;
+        const dueSoon = filterDueSoon ? filterDueSoon.checked : false;
         const atRiskOnly = filterAtRisk ? filterAtRisk.checked : false;
 
         // Build query parameters
@@ -9629,6 +9631,7 @@ document.addEventListener('DOMContentLoaded', function () {
         if (caseType) params.append('case_type', caseType);
         if (assignedTo) params.append('assigned_to', assignedTo);
         if (lateOnly) params.append('late_only', 'true');
+        if (dueSoon) params.append('due_soon', 'true');
         if (atRiskOnly) params.append('at_risk_only', 'true');
 
         // Show loading state
@@ -9681,7 +9684,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
           // Update filter active indicator
           if (kanbanFilterActiveDot) {
-            const hasActiveFilters = !!(searchTerm || caseType || assignedTo || lateOnly || atRiskOnly);
+            const hasActiveFilters = !!(searchTerm || caseType || assignedTo || lateOnly || dueSoon || atRiskOnly);
             kanbanFilterActiveDot.style.display = hasActiveFilters ? 'block' : 'none';
           }
         })
@@ -9713,7 +9716,21 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     if (filterLateCases) {
-      filterLateCases.addEventListener('change', applyFilters);
+      filterLateCases.addEventListener('change', function() {
+        if (filterLateCases.checked && filterDueSoon) {
+          filterDueSoon.checked = false;
+        }
+        applyFilters();
+      });
+    }
+
+    if (filterDueSoon) {
+      filterDueSoon.addEventListener('change', function() {
+        if (filterDueSoon.checked && filterLateCases) {
+          filterLateCases.checked = false;
+        }
+        applyFilters();
+      });
     }
 
     if (filterAtRisk) {
@@ -9727,6 +9744,7 @@ document.addEventListener('DOMContentLoaded', function () {
         if (filterCaseType) filterCaseType.value = '';
         if (filterAssignedTo) filterAssignedTo.value = '';
         if (filterLateCases) filterLateCases.checked = false;
+        if (filterDueSoon) filterDueSoon.checked = false;
         if (filterAtRisk) filterAtRisk.checked = false;
 
         // Apply cleared filters

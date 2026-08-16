@@ -412,7 +412,7 @@ if (isset($appConfig) && is_array($appConfig) && isset($appConfig['appName'])) {
   <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
   
   <!-- Preload critical resources -->
-  <link rel="preload" href="js/app.js?v=20260326b" as="script">
+  <link rel="preload" href="js/app.js?v=20260326d" as="script">
   <link rel="preload" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
   <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap"></noscript>
   
@@ -735,7 +735,11 @@ window.featureFlags = <?php echo getFeatureFlagsJson(); ?>;
           <div class="kanban-filter-field kanban-filter-checkbox">
             <label for="filterLateCases" class="filter-checkbox-label">
               <input type="checkbox" id="filterLateCases">
-              Late cases only
+              Late cases
+            </label>
+            <label for="filterDueSoon" class="filter-checkbox-label" style="margin-left: 12px;">
+              <input type="checkbox" id="filterDueSoon">
+              Due soon
             </label>
           </div>
 
@@ -2722,7 +2726,7 @@ window.featureFlags = <?php echo getFeatureFlagsJson(); ?>;
   <script src="js/toast.js?v=20250104" defer></script>
   <script src="js/session-timeout.js?v=20250118" defer></script>
   <script src="js/gcs-upload.js?v=20260303c" defer></script>
-  <script src="js/app.js?v=20260326c" defer></script>
+  <script src="js/app.js?v=20260326d" defer></script>
   <script src="js/card-delete-fixed.js?v=20250104" defer></script>
   <script src="js/assignments.js?v=20250104" defer></script>
   <script src="js/case-comments.js?v=20250104" defer></script>
