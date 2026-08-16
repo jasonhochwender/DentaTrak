@@ -737,7 +737,7 @@ window.featureFlags = <?php echo getFeatureFlagsJson(); ?>;
               <input type="checkbox" id="filterLateCases">
               Late cases
             </label>
-            <label for="filterDueSoon" class="filter-checkbox-label" style="margin-left: 12px;">
+            <label for="filterDueSoon" class="filter-checkbox-label">
               <input type="checkbox" id="filterDueSoon">
               Due soon
             </label>
@@ -1695,11 +1695,6 @@ window.featureFlags = <?php echo getFeatureFlagsJson(); ?>;
                   </select>
                 </div>
 
-                <div class="form-field case-creator-meta">
-                  <label>Created By</label>
-                  <span id="createdByDisplay" class="case-meta-value">Unknown</span>
-                </div>
-
                 <div class="form-field form-field-notes">
                   <label for="notes">Notes</label>
                   <div class="char-counter-wrapper">
@@ -1762,6 +1757,11 @@ window.featureFlags = <?php echo getFeatureFlagsJson(); ?>;
                   <!-- Make sure ID is both lowercase and matches API's CompletedDesigns type -->
                   <div class="selected-files" id="completedDesigns-files" data-type="completedDesigns" data-api-type="CompletedDesigns"></div>
                 </div>
+              </div>
+
+              <div class="form-field case-creator-meta">
+                <label>Created By</label>
+                <span id="createdByDisplay" class="case-meta-value">Unknown</span>
               </div>
 
               <div class="modal-footer create-case-footer">
