@@ -2052,7 +2052,7 @@ body {
 }
 
 .kanban-card-past-due .late-indicator {
-  color: #dc2626 !important;
+  color: #ef1b1b !important;
   font-weight: 600;
   background-color: #fee2e2;
 }
@@ -2064,7 +2064,7 @@ body {
 }
 
 .kanban-card-coming-due .late-indicator {
-  color: #2563eb !important;
+  color: #1261ff !important;
   font-weight: 600;
   background-color: #dbeafe;
 }
@@ -2293,14 +2293,15 @@ body {
   gap: 2px;
   padding: 10px 14px;
   margin: 4px 0 6px;
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  border-left: 3px solid #fbbf24;
   border-radius: 6px;
 }
 
 .case-creator-meta label {
   margin-bottom: 0;
-  color: #64748b;
+  color: #b45309;
   font-size: 0.75rem;
   font-weight: 500;
   letter-spacing: 0.2px;
@@ -2313,7 +2314,7 @@ body {
   background: transparent;
   border: none;
   border-radius: 0;
-  color: #334155;
+  color: #78350f;
   font-size: 0.95rem;
   font-weight: 600;
 }

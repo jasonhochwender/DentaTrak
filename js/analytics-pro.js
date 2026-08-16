@@ -199,6 +199,7 @@
     renderDurationChart(charts.statusDuration || []);
     renderLifecycleChart(charts.lifecycle || {});
     renderTrendsChart(trends);
+    renderCreatorBreakdown(charts.creatorBreakdown || []);
 
     // Show AI recommendations section if there are cases, then load recommendations
     const totalCases = (metrics.totalActiveCases || 0) + (metrics.totalDeliveredCases || 0) + (metrics.totalArchivedCases || 0);
@@ -519,6 +520,28 @@
         }
       }
     });
+  }
+
+  // Cases Created by User breakdown
+  function renderCreatorBreakdown(creatorBreakdown) {
+    const container = document.getElementById('apCreatorBreakdown');
+    if (!container) return;
+
+    if (!creatorBreakdown || !Array.isArray(creatorBreakdown) || creatorBreakdown.length === 0) {
+      container.innerHTML = '<p class="insights-empty-state" id="apCreatorBreakdownEmpty" style="width: 100%;">No creator data available.</p>';
+      return;
+    }
+
+    let html = '';
+    creatorBreakdown.forEach(function(item) {
+      const name = escapeHtml(item.creator || 'Unknown');
+      const count = parseInt(item.cases_count || 0, 10);
+      html += '<div class="ap-insight-card">' +
+        '<div class="ap-insight-value">' + count + '</div>' +
+        '<div class="ap-insight-label">' + name + '</div>' +
+      '</div>';
+    });
+    container.innerHTML = html;
   }
 
   // Clears the recommendations container — removes the loading indicator, stale errors,

@@ -134,13 +134,22 @@ document.addEventListener('DOMContentLoaded', function() {
     loadAvailableUsers()
       .then(function(users) {
         if (!Array.isArray(users)) return;
-        const seen = {};
+
+        // Build from the current DOM so we never append an option that is
+        // already present (e.g., an assignee added by addAssignedValuesFromCardsToFilter
+        // before loadAvailableUsers resolved).
+        const existing = {};
+        for (let i = 0; i < filterAssignedTo.options.length; i++) {
+          const val = filterAssignedTo.options[i].value || '';
+          existing[val.toLowerCase()] = true;
+        }
+
         users.forEach(function(value) {
           const val = (value || '').toString().trim();
           if (!val) return;
           const key = val.toLowerCase();
-          if (seen[key]) return;
-          seen[key] = true;
+          if (existing[key]) return;
+          existing[key] = true;
           const option = document.createElement('option');
           option.value = val;
           option.textContent = val;

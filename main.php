@@ -431,7 +431,7 @@ if (isset($appConfig) && is_array($appConfig) && isset($appConfig['appName'])) {
   </style>
   
   <!-- Load app.light.css directly (skip app.css @import chain) -->
-  <link rel="stylesheet" href="css/app.light.css?v=20260813e">
+  <link rel="stylesheet" href="css/app.light.css?v=20260813g">
   <link rel="stylesheet" href="css/app.css?v=20260807a">
   
   <!-- Mobile responsiveness CSS -->
@@ -2734,7 +2734,7 @@ window.featureFlags = <?php echo getFeatureFlagsJson(); ?>;
 <?php if (isFeatureEnabled('BILLING_ENABLED')): ?>
   <script src="js/billing-portal.js?v=20260805" defer></script>
 <?php endif; ?>
-  <script src="js/patient-search.js?v=20250105" defer></script>
+  <script src="js/patient-search.js?v=20250105a" defer></script>
   <script src="js/realtime-updates.js?v=20250119f" defer></script>
   
 <?php if ($showDevTools): ?>
