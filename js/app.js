@@ -4377,6 +4377,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
     clearFileSelections();
 
+    // Reset shipping link for new case
+    updateTrackingNumberLink();
+
     // Hide activity timeline for new case
     if (typeof hideActivityTimeline === 'function') {
       hideActivityTimeline();
@@ -4456,6 +4459,18 @@ document.addEventListener('DOMContentLoaded', function () {
       setTimeout(function() {
         trackFormChanges();
       }, 100);
+
+      // Bind shipping-input listeners once so the tracking link stays in sync.
+      var carrierInput = document.getElementById('carrier');
+      var trackingInput = document.getElementById('trackingNumber');
+      if (carrierInput && trackingInput && !carrierInput.dataset.shippingListenersBound) {
+        carrierInput.addEventListener('change', function() {
+          toggleCustomCarrierField();
+          updateTrackingNumberLink();
+        });
+        trackingInput.addEventListener('input', updateTrackingNumberLink);
+        carrierInput.dataset.shippingListenersBound = '1';
+      }
 
       // Initialize assignment dropdown for a brand-new case only. When
       // editing an existing case, editCaseHandler() already scheduled its
@@ -4586,6 +4601,16 @@ document.addEventListener('DOMContentLoaded', function () {
     if (status) status.value = caseData.status || 'Originated';
     if (notes) notes.value = caseData.notes || '';
 
+    // Shipping fields
+    var carrier = document.getElementById('carrier');
+    var trackingNumber = document.getElementById('trackingNumber');
+    var customCarrier = document.getElementById('customCarrier');
+    if (carrier) carrier.value = caseData.carrier || '';
+    if (customCarrier) customCarrier.value = caseData.customCarrier || '';
+    if (trackingNumber) trackingNumber.value = caseData.trackingNumber || '';
+    toggleCustomCarrierField();
+    updateTrackingNumberLink();
+
     // Created By is read-only and resolved by the server; never sent back.
     var createdByDisplay = document.getElementById('createdByDisplay');
     if (createdByDisplay) {
@@ -4635,6 +4660,54 @@ document.addEventListener('DOMContentLoaded', function () {
     // Load and display existing files
     if (caseData.files && Array.isArray(caseData.files)) {
       displayExistingFiles(caseData.files);
+    }
+  }
+
+  // Show/hide the custom carrier field and clear it when not applicable.
+  function toggleCustomCarrierField() {
+    var carrier = document.getElementById('carrier');
+    var customField = document.getElementById('customCarrierField');
+    var customInput = document.getElementById('customCarrier');
+    if (!carrier || !customField || !customInput) return;
+    if (carrier.value === 'Other') {
+      customField.style.display = 'block';
+    } else {
+      customField.style.display = 'none';
+      customInput.value = '';
+    }
+  }
+
+  // Carrier tracking URL templates. Carrier is a known, server-controlled
+  // value; only the tracking number is user-provided and is encoded.
+  function getCarrierTrackingUrl(carrier, trackingNumber) {
+    var t = encodeURIComponent(trackingNumber.trim());
+    if (!t) return '';
+    switch (carrier) {
+      case 'UPS':
+        return 'https://www.ups.com/track?tracknum=' + t;
+      case 'FedEx':
+        return 'https://www.fedex.com/apps/fedextrack/?tracknumbers=' + t;
+      case 'USPS':
+        return 'https://tools.usps.com/go/TrackConfirmAction?tLabels=' + t;
+      case 'DHL':
+        return 'https://www.dhl.com/en/hidden/toolbox/tracking.html?tracking-id=' + t;
+      default:
+        return '';
+    }
+  }
+
+  function updateTrackingNumberLink() {
+    var carrier = document.getElementById('carrier');
+    var trackingNumber = document.getElementById('trackingNumber');
+    var link = document.getElementById('trackingNumberLink');
+    if (!carrier || !trackingNumber || !link) return;
+    var url = getCarrierTrackingUrl(carrier.value, trackingNumber.value);
+    if (url) {
+      link.href = url;
+      link.style.display = 'inline-block';
+    } else {
+      link.href = '#';
+      link.style.display = 'none';
     }
   }
 
@@ -6519,6 +6592,7 @@ document.addEventListener('DOMContentLoaded', function () {
       }
     });
 
+
     if (targetColumn) {
       // Remove the 'No cases in this stage' message if present
       var emptyMessage = targetColumn.querySelector('.kanban-empty');
@@ -6597,6 +6671,9 @@ document.addEventListener('DOMContentLoaded', function () {
         status: status,
         statusChangedAt: caseData.statusChangedAt || new Date().toISOString(),
         notes: caseData.notes || '',
+        carrier: caseData.carrier || '',
+        trackingNumber: caseData.trackingNumber || '',
+        customCarrier: caseData.customCarrier || '',
         creationDate: caseData.creationDate || new Date().toISOString(),
         lastUpdateDate: caseData.lastUpdateDate || new Date().toISOString(),
         driveFolderId: caseData.driveFolderId || null,
@@ -6627,6 +6704,9 @@ document.addEventListener('DOMContentLoaded', function () {
         status: status,
         statusChangedAt: completeData.statusChangedAt || new Date().toISOString(),
         notes: completeData.notes || '',
+        carrier: completeData.carrier || '',
+        trackingNumber: completeData.trackingNumber || '',
+        customCarrier: completeData.customCarrier || '',
         creationDate: completeData.creationDate || new Date().toISOString(),
         lastUpdateDate: completeData.lastUpdateDate || new Date().toISOString(),
         driveFolderId: completeData.driveFolderId || null,
@@ -6771,10 +6851,10 @@ document.addEventListener('DOMContentLoaded', function () {
 
       // Add the case card to the TOP of the column body (as first card)
       var columnBody = targetColumn.querySelector('.kanban-column-body');
-      var firstExistingCard = columnBody.querySelector('.kanban-card');
+      var firstExistingCard = columnBody ? columnBody.querySelector('.kanban-card') : null;
       if (firstExistingCard) {
         columnBody.insertBefore(caseCard, firstExistingCard);
-      } else {
+      } else if (columnBody) {
         columnBody.appendChild(caseCard);
       }
 
@@ -7058,6 +7138,11 @@ document.addEventListener('DOMContentLoaded', function () {
 
     if (form.status) form.status.value = caseData.status || '';
     if (form.notes) form.notes.value = caseData.notes || '';
+    if (form.carrier) form.carrier.value = caseData.carrier || '';
+    if (form.customCarrier) form.customCarrier.value = caseData.customCarrier || '';
+    if (form.trackingNumber) form.trackingNumber.value = caseData.trackingNumber || '';
+    toggleCustomCarrierField();
+    updateTrackingNumberLink();
 
     // Load clinical details if available
     var clinicalDetails = caseData.clinicalDetails || caseData.clinical_details || null;
@@ -9607,6 +9692,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const patientSearch = document.getElementById('patientSearch');
     const filterCaseType = document.getElementById('filterCaseType');
     const filterAssignedTo = document.getElementById('filterAssignedTo');
+    const filterCarrier = document.getElementById('filterCarrier');
     const filterLateCases = document.getElementById('filterLateCases');
     const filterDueSoon = document.getElementById('filterDueSoon');
     const filterAtRisk = document.getElementById('filterAtRisk');
@@ -9621,6 +9707,7 @@ document.addEventListener('DOMContentLoaded', function () {
         const searchTerm = patientSearch ? patientSearch.value.trim() : '';
         const caseType = filterCaseType ? filterCaseType.value : '';
         const assignedTo = filterAssignedTo ? filterAssignedTo.value : '';
+        const carrier = filterCarrier ? filterCarrier.value : '';
         const lateOnly = filterLateCases ? filterLateCases.checked : false;
         const dueSoon = filterDueSoon ? filterDueSoon.checked : false;
         const atRiskOnly = filterAtRisk ? filterAtRisk.checked : false;
@@ -9630,6 +9717,7 @@ document.addEventListener('DOMContentLoaded', function () {
         if (searchTerm) params.append('search', searchTerm);
         if (caseType) params.append('case_type', caseType);
         if (assignedTo) params.append('assigned_to', assignedTo);
+        if (carrier) params.append('carrier', carrier);
         if (lateOnly) params.append('late_only', 'true');
         if (dueSoon) params.append('due_soon', 'true');
         if (atRiskOnly) params.append('at_risk_only', 'true');
@@ -9684,12 +9772,12 @@ document.addEventListener('DOMContentLoaded', function () {
 
           // Update filter active indicator
           if (kanbanFilterActiveDot) {
-            const hasActiveFilters = !!(searchTerm || caseType || assignedTo || lateOnly || dueSoon || atRiskOnly);
+            const hasActiveFilters = !!(searchTerm || caseType || assignedTo || carrier || lateOnly || dueSoon || atRiskOnly);
             kanbanFilterActiveDot.style.display = hasActiveFilters ? 'block' : 'none';
           }
         })
         .catch(error => {
-
+          console.error('Kanban filter error:', error);
         })
         .finally(() => {
           if (kanbanBoard) {
@@ -9713,6 +9801,10 @@ document.addEventListener('DOMContentLoaded', function () {
 
     if (filterAssignedTo) {
       filterAssignedTo.addEventListener('change', applyFilters);
+    }
+
+    if (filterCarrier) {
+      filterCarrier.addEventListener('change', applyFilters);
     }
 
     if (filterLateCases) {
@@ -9743,6 +9835,7 @@ document.addEventListener('DOMContentLoaded', function () {
         if (patientSearch) patientSearch.value = '';
         if (filterCaseType) filterCaseType.value = '';
         if (filterAssignedTo) filterAssignedTo.value = '';
+        if (filterCarrier) filterCarrier.value = '';
         if (filterLateCases) filterLateCases.checked = false;
         if (filterDueSoon) filterDueSoon.checked = false;
         if (filterAtRisk) filterAtRisk.checked = false;

@@ -359,6 +359,15 @@ try {
             if (json_encode($existingCaseData['clinicalDetails'] ?? []) !== json_encode($caseData['clinicalDetails'] ?? [])) {
                 $changedFields[] = 'clinicalDetails';
             }
+            if (($existingCaseData['carrier'] ?? '') !== ($caseData['carrier'] ?? '')) {
+                $changedFields[] = 'carrier';
+            }
+            if (($existingCaseData['trackingNumber'] ?? '') !== ($caseData['trackingNumber'] ?? '')) {
+                $changedFields[] = 'trackingNumber';
+            }
+            if (($existingCaseData['customCarrier'] ?? '') !== ($caseData['customCarrier'] ?? '')) {
+                $changedFields[] = 'customCarrier';
+            }
             
             $existingCaseData['patientFirstName'] = $caseData['patientFirstName'];
             $existingCaseData['patientLastName'] = $caseData['patientLastName'];
@@ -374,6 +383,9 @@ try {
             // Assigned To (including clearing it to empty) - see the
             // matching comment above where $caseData['assignedTo'] is built.
             $existingCaseData['assignedTo'] = $caseData['assignedTo'] ?? ($existingCaseData['assignedTo'] ?? null);
+            $existingCaseData['carrier'] = $caseData['carrier'] ?? ($existingCaseData['carrier'] ?? '');
+            $existingCaseData['trackingNumber'] = $caseData['trackingNumber'] ?? ($existingCaseData['trackingNumber'] ?? '');
+            $existingCaseData['customCarrier'] = $caseData['customCarrier'] ?? ($existingCaseData['customCarrier'] ?? '');
             $existingCaseData['clinicalDetails'] = $caseData['clinicalDetails'] ?? [];
             $existingCaseData['lastUpdateDate'] = date('c'); // Update the timestamp
             
@@ -538,7 +550,7 @@ try {
         $requiredFields = [];
         $allFields = ['patientFirstName', 'patientLastName', 'patientDOB', 'patientGender',
                       'dentistName', 'caseType', 'dueDate', 'status', 'toothShade', 'material',
-                      'assignedTo', 'notes'];
+                      'assignedTo', 'notes', 'carrier', 'trackingNumber', 'customCarrier'];
         
         foreach ($allFields as $field) {
             // Default: first 8 fields are required, rest are optional
@@ -573,8 +585,8 @@ try {
         foreach ($optionalFields as $field) {
             if (isset($_POST[$field]) && $_POST[$field] !== '') {
                 $caseData[$field] = $_POST[$field];
-            } elseif (($field === 'notes' || $field === 'assignedTo') && isset($_POST[$field])) {
-                // Notes and Assigned To can be intentionally submitted as an
+            } elseif (($field === 'notes' || $field === 'assignedTo' || $field === 'carrier' || $field === 'trackingNumber' || $field === 'customCarrier') && isset($_POST[$field])) {
+                // Notes, Assigned To, carrier and tracking number can be intentionally submitted as an
                 // empty string (clearing an assignment). This key MUST still
                 // be captured here - updateCaseInDatabaseOnly() below does
                 // array_merge($existingCase, $caseData), and if this key is
@@ -596,6 +608,42 @@ try {
             }
         }
         
+        // Trim and cap shipping metadata (tracking numbers vary by carrier,
+        // but they should not be unbounded strings).
+        if (isset($caseData['carrier'])) {
+            $caseData['carrier'] = trim($caseData['carrier']);
+        }
+        if (isset($caseData['trackingNumber'])) {
+            $caseData['trackingNumber'] = trim($caseData['trackingNumber']);
+            if (strlen($caseData['trackingNumber']) > 100) {
+                $caseData['trackingNumber'] = substr($caseData['trackingNumber'], 0, 100);
+            }
+        }
+        if (isset($caseData['customCarrier'])) {
+            $caseData['customCarrier'] = trim($caseData['customCarrier']);
+            if (strlen($caseData['customCarrier']) > 100) {
+                $caseData['customCarrier'] = substr($caseData['customCarrier'], 0, 100);
+            }
+            // Clear custom carrier whenever a standard carrier is chosen.
+            if (($caseData['carrier'] ?? '') !== 'Other') {
+                $caseData['customCarrier'] = '';
+            }
+        }
+
+        // ============================================
+        // CUSTOM CARRIER VALIDATION
+        // Other carrier requires a custom name when a tracking number is provided.
+        // ============================================
+        if (($caseData['carrier'] ?? '') === 'Other' && !empty($caseData['trackingNumber']) && empty($caseData['customCarrier'] ?? '')) {
+            http_response_code(400);
+            echo json_encode([
+                'success' => false,
+                'message' => 'Please enter an Other Carrier name when providing a tracking number.',
+                'field' => 'customCarrier'
+            ]);
+            exit;
+        }
+
         // ============================================
         // CASE NOTES CHARACTER LIMIT VALIDATION
         // Business Rule: Notes field is limited to 3,000 characters.

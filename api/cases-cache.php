@@ -36,9 +36,12 @@ function ensureCasesCacheTable() {
         status_changed_at DATETIME DEFAULT NULL,
         notes TEXT,
         assigned_to VARCHAR(255) DEFAULT NULL,
+        custom_carrier VARCHAR(255) DEFAULT NULL,
         attachments_json LONGTEXT,
         revisions_json LONGTEXT,
         clinical_details_json LONGTEXT,
+        carrier VARCHAR(100) DEFAULT NULL,
+        tracking_number VARCHAR(255) DEFAULT NULL,
         archived BOOLEAN DEFAULT FALSE,
         archived_date VARCHAR(50) DEFAULT NULL,
         practice_id INT UNSIGNED DEFAULT NULL,
@@ -69,7 +72,10 @@ function ensureCasesCacheTable() {
             "ALTER TABLE cases_cache ADD COLUMN revision_count INT UNSIGNED NOT NULL DEFAULT 0 COMMENT 'Number of times case was returned to Originated'",
             "ALTER TABLE cases_cache ADD COLUMN version INT UNSIGNED NOT NULL DEFAULT 1 COMMENT 'Optimistic locking version for concurrent edit detection'",
             "ALTER TABLE cases_cache ADD COLUMN created_by_user_id INT UNSIGNED DEFAULT NULL",
-            "ALTER TABLE cases_cache ADD INDEX idx_created_by_user_id (created_by_user_id)"
+            "ALTER TABLE cases_cache ADD INDEX idx_created_by_user_id (created_by_user_id)",
+            "ALTER TABLE cases_cache ADD COLUMN carrier VARCHAR(100) DEFAULT NULL",
+            "ALTER TABLE cases_cache ADD COLUMN tracking_number VARCHAR(255) DEFAULT NULL",
+            "ALTER TABLE cases_cache ADD COLUMN custom_carrier VARCHAR(255) DEFAULT NULL"
         ];
         
         foreach ($alterSqls as $alterSql) {
@@ -101,6 +107,9 @@ function saveCaseToCache(array $caseData) {
     $attachments = isset($caseData['attachments']) ? json_encode($caseData['attachments']) : '[]';
     $revisions = isset($caseData['revisions']) ? json_encode($caseData['revisions']) : '[]';
     $assignedTo = isset($caseData['assignedTo']) ? $caseData['assignedTo'] : null;
+    $carrier = !empty($caseData['carrier']) ? $caseData['carrier'] : null;
+    $trackingNumber = !empty($caseData['trackingNumber']) ? $caseData['trackingNumber'] : null;
+    $customCarrier = !empty($caseData['customCarrier']) ? $caseData['customCarrier'] : null;
 
     // Get practice_id from session or caseData
     $practiceId = null;
@@ -131,6 +140,9 @@ function saveCaseToCache(array $caseData) {
                 attachments_json,
                 revisions_json,
                 clinical_details_json,
+                carrier,
+                tracking_number,
+                custom_carrier,
                 practice_id,
                 created_by_user_id
             ) VALUES (
@@ -154,6 +166,9 @@ function saveCaseToCache(array $caseData) {
                 :attachments_json,
                 :revisions_json,
                 :clinical_details_json,
+                :carrier,
+                :tracking_number,
+                :custom_carrier,
                 :practice_id,
                 :created_by_user_id
             )
@@ -177,6 +192,9 @@ function saveCaseToCache(array $caseData) {
                 attachments_json = VALUES(attachments_json),
                 revisions_json = VALUES(revisions_json),
                 clinical_details_json = VALUES(clinical_details_json),
+                carrier = VALUES(carrier),
+                tracking_number = VALUES(tracking_number),
+                custom_carrier = VALUES(custom_carrier),
                 practice_id = VALUES(practice_id)
                 /* created_by_user_id intentionally omitted: immutable after creation */";
 
@@ -205,6 +223,9 @@ function saveCaseToCache(array $caseData) {
             'attachments_json' => $attachments,
             'revisions_json' => $revisions,
             'clinical_details_json' => $clinicalDetailsJson,
+            'carrier' => $carrier,
+            'tracking_number' => $trackingNumber,
+            'custom_carrier' => $customCarrier,
             'practice_id' => $practiceId,
             'created_by_user_id' => isset($caseData['createdByUserId']) ? ($caseData['createdByUserId'] !== '' ? (int)$caseData['createdByUserId'] : null) : null,
         ]);
@@ -276,6 +297,9 @@ function getCaseFromCache($caseId) {
             'status' => $row['status'],
             'statusChangedAt' => !empty($row['status_changed_at']) ? date('c', strtotime($row['status_changed_at'])) : null,
             'notes' => $row['notes'],
+            'carrier' => $row['carrier'] ?? null,
+            'trackingNumber' => $row['tracking_number'] ?? null,
+            'customCarrier' => $row['custom_carrier'] ?? null,
             'revisions' => $revisions,
             'attachments' => $attachments,
             'clinicalDetails' => $clinicalDetails,
@@ -834,6 +858,9 @@ function getAllCasesFromCache() {
             'status' => $row['status'],
             'statusChangedAt' => !empty($row['status_changed_at']) ? date('c', strtotime($row['status_changed_at'])) : null,
             'notes' => $row['notes'],
+            'carrier' => $row['carrier'] ?? null,
+            'trackingNumber' => $row['tracking_number'] ?? null,
+            'customCarrier' => $row['custom_carrier'] ?? null,
             'revisions' => $revisions,
             'attachments' => $attachments,
             'clinicalDetails' => $clinicalDetails,

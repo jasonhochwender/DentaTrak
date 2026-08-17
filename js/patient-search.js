@@ -233,15 +233,17 @@ document.addEventListener('DOMContentLoaded', function() {
         // Extract case data from card
         const cardData = JSON.parse(card.dataset.caseJson || '{}');
         
-        // Add to index with normalized search text (patient name + dentist name)
+        // Add to index with normalized search text (patient name + tracking number + custom carrier)
         const patientName = (cardData.patientFirstName + ' ' + cardData.patientLastName).toLowerCase();
         const dentistName = (cardData.dentistName || '').toLowerCase();
         // Also create normalized dentist name without "dr" prefix for flexible matching
         const dentistNameNormalized = dentistName.replace(/^dr\.?\s*/i, '').trim();
-        
+        const trackingNumber = (cardData.trackingNumber || '').toLowerCase();
+        const customCarrier = (cardData.customCarrier || '').toLowerCase();
+
         patientCardIndex.push({
           card: card,
-          searchText: patientName,
+          searchText: (patientName + ' ' + trackingNumber + ' ' + customCarrier).trim(),
           dentistName: dentistName,
           dentistNameNormalized: dentistNameNormalized,
           id: cardData.id

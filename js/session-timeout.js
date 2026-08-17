@@ -67,7 +67,7 @@
    */
   function pingServerActivity() {
     lastServerPing = Date.now();
-    fetch('/api/session-status.php', {
+    fetch('api/session-status.php', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'same-origin',
@@ -81,7 +81,7 @@
    * Check session status with server
    */
   function checkSessionStatus() {
-    fetch('/api/session-status.php', {
+    fetch('api/session-status.php', {
       credentials: 'same-origin'
     })
     .then(function(response) { return response.json(); })
@@ -153,7 +153,7 @@
     // Button handlers
     document.getElementById('sessionExtendBtn').addEventListener('click', extendSession);
     document.getElementById('sessionLogoutBtn').addEventListener('click', function() {
-      window.location.href = '/api/logout.php';
+      window.location.href = 'api/logout.php';
     });
   }
   
@@ -204,7 +204,7 @@
    * Extend the session
    */
   function extendSession() {
-    fetch('/api/session-status.php', {
+    fetch('api/session-status.php', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -236,7 +236,7 @@
     hideWarningModal();
     
     // Redirect to login with timeout message
-    window.location.href = '/login.php?timeout=1';
+    window.location.href = 'login.php?timeout=1';
   }
   
   // Initialize when DOM is ready

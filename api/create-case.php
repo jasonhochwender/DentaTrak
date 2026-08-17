@@ -117,7 +117,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $requiredFields = [];
     $allFields = ['patientFirstName', 'patientLastName', 'patientDOB', 'patientGender',
                   'dentistName', 'caseType', 'dueDate', 'status', 'toothShade', 'material',
-                  'assignedTo', 'notes'];
+                  'assignedTo', 'notes', 'carrier', 'trackingNumber', 'customCarrier'];
 
     foreach ($allFields as $field) {
         // Default: first 8 fields are required, rest are optional
@@ -145,9 +145,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     foreach ($optionalFields as $field) {
         if (isset($_POST[$field]) && $_POST[$field] !== '') {
             $caseData[$field] = $_POST[$field];
-        } elseif ($field === 'notes' && isset($_POST[$field])) {
-            // Notes can be empty string
+        } elseif (($field === 'notes' || $field === 'carrier' || $field === 'trackingNumber' || $field === 'customCarrier') && isset($_POST[$field])) {
+            // Notes can be empty string; carrier/tracking number are always
+            // captured (even when cleared) so the cache stays in sync.
             $caseData[$field] = $_POST[$field];
+        }
+    }
+
+    // Trim and cap shipping metadata (tracking numbers vary by carrier,
+    // but they should not be unbounded strings).
+    if (isset($caseData['carrier'])) {
+        $caseData['carrier'] = trim($caseData['carrier']);
+    }
+    if (isset($caseData['trackingNumber'])) {
+        $caseData['trackingNumber'] = trim($caseData['trackingNumber']);
+        if (strlen($caseData['trackingNumber']) > 100) {
+            $caseData['trackingNumber'] = substr($caseData['trackingNumber'], 0, 100);
+        }
+    }
+    if (isset($caseData['customCarrier'])) {
+        $caseData['customCarrier'] = trim($caseData['customCarrier']);
+        if (strlen($caseData['customCarrier']) > 100) {
+            $caseData['customCarrier'] = substr($caseData['customCarrier'], 0, 100);
+        }
+        // Clear custom carrier whenever a standard carrier is chosen.
+        if (($caseData['carrier'] ?? '') !== 'Other') {
+            $caseData['customCarrier'] = '';
         }
     }
 
@@ -179,6 +202,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'success' => false,
             'message' => "Notes cannot exceed {$notesMaxLength} characters. Current length: " . strlen($caseData['notes']) . " characters.",
             'field' => 'notes'
+        ]);
+        exit;
+    }
+
+    // ============================================
+    // CUSTOM CARRIER VALIDATION
+    // Other carrier requires a custom name when a tracking number is provided.
+    // ============================================
+    if (($caseData['carrier'] ?? '') === 'Other' && !empty($caseData['trackingNumber']) && empty($caseData['customCarrier'] ?? '')) {
+        http_response_code(400);
+        echo json_encode([
+            'success' => false,
+            'message' => 'Please enter an Other Carrier name when providing a tracking number.',
+            'field' => 'customCarrier'
         ]);
         exit;
     }
@@ -356,6 +393,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'status'          => $caseData['status'],
             'notes'           => $caseData['notes'] ?? '',
             'assignedTo'      => $caseData['assignedTo'] ?? '',
+            'carrier'         => $caseData['carrier'] ?? '',
+            'trackingNumber'  => $caseData['trackingNumber'] ?? '',
+            'customCarrier'   => $caseData['customCarrier'] ?? '',
             'clinicalDetails' => $caseData['clinicalDetails'] ?? null,
             'createdByUserId' => $caseData['createdByUserId'] ?? null,
             'revisions'       => [],

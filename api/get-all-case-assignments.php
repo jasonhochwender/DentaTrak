@@ -35,12 +35,12 @@ try {
     // Assigned Only users may only see their own assignment(s), never the
     // full practice-wide assignment map.
     $assignmentsSql = "
-        SELECT 
+        SELECT
             ca.case_id,
             u.email
         FROM case_assignments ca
         JOIN users u ON ca.user_id = u.id
-        JOIN cases_cache cc ON ca.case_id = cc.case_id
+        JOIN cases_cache cc ON ca.case_id COLLATE utf8mb4_unicode_ci = cc.case_id COLLATE utf8mb4_unicode_ci
         WHERE cc.practice_id = :practice_id
     ";
     $assignmentsParams = ['practice_id' => $currentPracticeId];
@@ -61,7 +61,7 @@ try {
     
 } catch (PDOException $e) {
     // Check if it's a "table doesn't exist" error - return empty array instead of 500
-    if (strpos($e->getMessage(), "doesn't exist") !== false || 
+    if (strpos($e->getMessage(), "doesn't exist") !== false ||
         strpos($e->getMessage(), 'case_assignments') !== false) {
         echo json_encode([
             'success' => true,
@@ -69,13 +69,13 @@ try {
         ]);
         exit;
     }
-    
+
     http_response_code(500);
     echo json_encode([
         'success' => false,
         'message' => 'Error fetching assignments'
     ]);
-    
+
     if (function_exists('userLog')) {
         userLog("Error fetching case assignments: " . $e->getMessage(), true);
     }
@@ -85,7 +85,7 @@ try {
         'success' => false,
         'message' => 'Error fetching assignments'
     ]);
-    
+
     if (function_exists('userLog')) {
         userLog("Error fetching case assignments: " . $e->getMessage(), true);
     }

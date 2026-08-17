@@ -431,7 +431,7 @@ if (isset($appConfig) && is_array($appConfig) && isset($appConfig['appName'])) {
   </style>
   
   <!-- Load app.light.css directly (skip app.css @import chain) -->
-  <link rel="stylesheet" href="css/app.light.css?v=20260813g">
+  <link rel="stylesheet" href="css/app.light.css?v=20260816g">
   <link rel="stylesheet" href="css/app.css?v=20260807a">
   
   <!-- Mobile responsiveness CSS -->
@@ -466,7 +466,7 @@ if (isset($appConfig) && is_array($appConfig) && isset($appConfig['appName'])) {
   <link rel="preload" href="css/at-risk.css?v=20241231" as="style" onload="this.onload=null;this.rel='stylesheet'">
   <link rel="preload" href="css/clinical-details.css?v=20241230" as="style" onload="this.onload=null;this.rel='stylesheet'">
   <link rel="preload" href="css/ask-dentatrak.css?v=20241230" as="style" onload="this.onload=null;this.rel='stylesheet'">
-  <link rel="preload" href="css/patient-search.css?v=20241210" as="style" onload="this.onload=null;this.rel='stylesheet'">
+  <link rel="preload" href="css/patient-search.css?v=20241212" as="style" onload="this.onload=null;this.rel='stylesheet'">
   <link rel="preload" href="css/assignments.css?v=20241210" as="style" onload="this.onload=null;this.rel='stylesheet'">
   <link rel="preload" href="css/practice-name.css?v=20241210" as="style" onload="this.onload=null;this.rel='stylesheet'">
   <link rel="preload" href="css/logo-upload.css?v=20260807a" as="style" onload="this.onload=null;this.rel='stylesheet'">
@@ -491,7 +491,7 @@ if (isset($appConfig) && is_array($appConfig) && isset($appConfig['appName'])) {
     <link rel="stylesheet" href="css/at-risk.css?v=20241231">
     <link rel="stylesheet" href="css/clinical-details.css?v=20241230">
     <link rel="stylesheet" href="css/ask-dentatrak.css?v=20241230">
-    <link rel="stylesheet" href="css/patient-search.css?v=20241210">
+    <link rel="stylesheet" href="css/patient-search.css?v=20241212">
     <link rel="stylesheet" href="css/assignments.css?v=20241210">
     <link rel="stylesheet" href="css/practice-name.css?v=20241210">
     <link rel="stylesheet" href="css/logo-upload.css?v=20260807a">
@@ -703,7 +703,7 @@ window.featureFlags = <?php echo getFeatureFlagsJson(); ?>;
               type="text"
               id="patientSearch"
               class="kanban-filter-input"
-              placeholder="Patient or dentist name"
+              placeholder="Search patient, dentist, or tracking number"
               autocomplete="off"
             />
           </div>
@@ -729,6 +729,18 @@ window.featureFlags = <?php echo getFeatureFlagsJson(); ?>;
             <select id="filterAssignedTo">
               <option value="">Anyone</option>
               <!-- Options populated dynamically -->
+            </select>
+          </div>
+
+          <div class="kanban-filter-field">
+            <label for="filterCarrier">Carrier</label>
+            <select id="filterCarrier">
+              <option value="">All carriers</option>
+              <option value="UPS">UPS</option>
+              <option value="FedEx">FedEx</option>
+              <option value="USPS">USPS</option>
+              <option value="DHL">DHL</option>
+              <option value="Other">Other</option>
             </select>
           </div>
 
@@ -1703,6 +1715,30 @@ window.featureFlags = <?php echo getFeatureFlagsJson(); ?>;
                               aria-describedby="notesCharCounter"></textarea>
                     <div id="notesCharCounter" class="char-counter">0 / 3,000 characters</div>
                   </div>
+                </div>
+              </div>
+
+              <h3 class="shipping-title">Shipping (optional)</h3>
+              <div class="shipping-fields">
+                <div class="form-field">
+                  <label for="carrier">Carrier</label>
+                  <select id="carrier" name="carrier">
+                    <option value="">Select carrier...</option>
+                    <option value="UPS">UPS</option>
+                    <option value="FedEx">FedEx</option>
+                    <option value="USPS">USPS</option>
+                    <option value="DHL">DHL</option>
+                    <option value="Other">Other</option>
+                  </select>
+                </div>
+                <div class="form-field custom-carrier-field" id="customCarrierField">
+                  <label for="customCarrier">Other Carrier</label>
+                  <input type="text" id="customCarrier" name="customCarrier" placeholder="e.g. OnTrac" maxlength="100">
+                </div>
+                <div class="form-field">
+                  <label for="trackingNumber">Tracking Number</label>
+                  <input type="text" id="trackingNumber" name="trackingNumber" placeholder="e.g. 1Z999AA10123456784" maxlength="100">
+                  <a id="trackingNumberLink" class="tracking-number-link" href="#" target="_blank" rel="noopener noreferrer nofollow" style="display:none;">Track package</a>
                 </div>
               </div>
 
@@ -2726,9 +2762,9 @@ window.featureFlags = <?php echo getFeatureFlagsJson(); ?>;
 
   <!-- Load JavaScript last -->
   <script src="js/toast.js?v=20250104" defer></script>
-  <script src="js/session-timeout.js?v=20250118" defer></script>
+  <script src="js/session-timeout.js?v=20250119" defer></script>
   <script src="js/gcs-upload.js?v=20260303c" defer></script>
-  <script src="js/app.js?v=20260326d" defer></script>
+  <script src="js/app.js?v=20260327f" defer></script>
   <script src="js/card-delete-fixed.js?v=20250104" defer></script>
   <script src="js/assignments.js?v=20250104" defer></script>
   <script src="js/case-comments.js?v=20250104" defer></script>
@@ -2740,7 +2776,7 @@ window.featureFlags = <?php echo getFeatureFlagsJson(); ?>;
 <?php if (isFeatureEnabled('BILLING_ENABLED')): ?>
   <script src="js/billing-portal.js?v=20260805" defer></script>
 <?php endif; ?>
-  <script src="js/patient-search.js?v=20250105a" defer></script>
+  <script src="js/patient-search.js?v=20250105c" defer></script>
   <script src="js/realtime-updates.js?v=20250119f" defer></script>
   
 <?php if ($showDevTools): ?>

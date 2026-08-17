@@ -6,7 +6,8 @@
 
 /* Search field in filters bar - matches filter dropdowns */
 .kanban-search-field {
-  min-width: 180px;
+  min-width: 280px;
+  max-width: 360px;
 }
 
 .kanban-search-field .dashboard-search {

@@ -1661,6 +1661,10 @@ body {
   min-width: 140px;
 }
 
+.kanban-search-field {
+  min-width: 500px;
+}
+
 .kanban-filter-field label {
   display: block;
   font-size: 0.8rem;
@@ -2327,10 +2331,56 @@ body {
   color: #e53935;
 }
 
-.attachments-title {
+.attachments-title,
+.shipping-title {
   margin-top: 24px;
   margin-bottom: 10px;
   font-size: 0.95rem;
+}
+
+.attachments-title {
+  margin-top: 0;
+  padding-top: 24px;
+  margin-bottom: 10px;
+}
+
+.shipping-fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-areas: "carrier other" "tracking .";
+  gap: 16px;
+  margin-bottom: 8px;
+}
+
+.shipping-fields .form-field:nth-child(1) { grid-area: carrier; }
+.shipping-fields .form-field:nth-child(2) { grid-area: other; }
+.shipping-fields .form-field:nth-child(3) { grid-area: tracking; }
+
+.shipping-fields .form-field {
+  margin-bottom: 0;
+}
+
+.tracking-number-link {
+  display: none;
+  margin-top: 8px;
+  font-size: 0.9rem;
+  color: #2563eb;
+  text-decoration: underline;
+}
+
+.tracking-number-link:hover {
+  color: #1d4ed8;
+}
+
+.custom-carrier-field {
+  display: none;
+}
+
+@media (max-width: 480px) {
+  .shipping-fields {
+    grid-template-columns: 1fr;
+    grid-template-areas: "carrier" "other" "tracking";
+  }
 }
 
 .attachments-grid {

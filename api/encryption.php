@@ -209,7 +209,7 @@ class PIIEncryption {
             
             // Also check non-PII fields
             if (!$match) {
-                $nonPiiFields = ['caseType', 'status', 'id'];
+                $nonPiiFields = ['caseType', 'status', 'id', 'trackingNumber', 'customCarrier'];
                 foreach ($nonPiiFields as $field) {
                     if (isset($case[$field]) && 
                         strpos(strtolower($case[$field]), $searchTerm) !== false) {
