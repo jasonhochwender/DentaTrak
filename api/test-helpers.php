@@ -95,6 +95,15 @@ switch ($action) {
     case 'clear_test_email_log':
         handleClearTestEmailLog($appConfig, $input);
         break;
+    case 'force_email_failure':
+        handleForceEmailFailure($appConfig, $input);
+        break;
+    case 'clear_email_failure':
+        handleClearEmailFailure($appConfig, $input);
+        break;
+    case 'get_practice_user':
+        handleGetPracticeUser($pdo, $input);
+        break;
     default:
         http_response_code(400);
         echo json_encode(['success' => false, 'message' => 'Invalid action']);
@@ -1426,4 +1435,60 @@ function handleClearTestEmailLog(array $appConfig, array $input) {
     }
 
     echo json_encode(['success' => true, 'message' => 'Test email log cleared']);
+}
+
+/**
+ * Force the test-mode email sender to return a failure without recording.
+ */
+function handleForceEmailFailure(array $appConfig, array $input) {
+    $recordPath = __DIR__ . '/../testResults/force-email-failure.json';
+    $recordDir = dirname($recordPath);
+    if (!is_dir($recordDir)) {
+        @mkdir($recordDir, 0750, true);
+    }
+    file_put_contents($recordPath, json_encode(['enabled' => true, 'timestamp' => date('c')]));
+    echo json_encode(['success' => true, 'message' => 'Forced email failure enabled for test mode']);
+}
+
+/**
+ * Clear the forced email failure flag.
+ */
+function handleClearEmailFailure(array $appConfig, array $input) {
+    $recordPath = __DIR__ . '/../testResults/force-email-failure.json';
+    if (file_exists($recordPath)) {
+        @unlink($recordPath);
+    }
+    echo json_encode(['success' => true, 'message' => 'Forced email failure cleared']);
+}
+
+/**
+ * Look up a practice membership by email and practice_id.
+ */
+function handleGetPracticeUser(PDO $pdo, array $input) {
+    $email = strtolower(trim($input['email'] ?? ''));
+    $practiceId = isset($input['practice_id']) ? (int)$input['practice_id'] : 0;
+
+    if (!$email || !$practiceId) {
+        http_response_code(400);
+        echo json_encode(['success' => false, 'message' => 'email and practice_id are required']);
+        return;
+    }
+
+    $stmt = $pdo->prepare("
+        SELECT pu.*, u.email AS user_email
+        FROM practice_users pu
+        JOIN users u ON u.id = pu.user_id
+        WHERE u.email = :email AND pu.practice_id = :practice_id
+        LIMIT 1
+    ");
+    $stmt->execute(['email' => $email, 'practice_id' => $practiceId]);
+    $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+    if (!$row) {
+        http_response_code(404);
+        echo json_encode(['success' => false, 'message' => 'Practice user not found']);
+        return;
+    }
+
+    echo json_encode(['success' => true, 'practice_user' => $row]);
 }

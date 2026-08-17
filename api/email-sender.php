@@ -44,6 +44,15 @@ function sendAppEmail(string $toEmail, string $subject, string $htmlBody, ?strin
         !empty($appConfig['test_record_emails'])
         && ($appConfig['current_environment'] ?? 'production') !== 'production'
     ) {
+        // Test-only hook to simulate a delivery failure.
+        if (file_exists(__DIR__ . '/../testResults/force-email-failure.json')) {
+            return [
+                'success' => false,
+                'provider' => 'test_record',
+                'error' => 'simulated email failure',
+            ];
+        }
+
         $recordPath = __DIR__ . '/../testResults/last-email.json';
         $recordDir = dirname($recordPath);
         if (!is_dir($recordDir)) {

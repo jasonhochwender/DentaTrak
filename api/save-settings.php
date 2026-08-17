@@ -12,6 +12,7 @@ require_once __DIR__ . '/feature-flags.php';
 require_once __DIR__ . '/lab-assignment-history.php';
 require_once __DIR__ . '/workflow-stages.php';
 require_once __DIR__ . '/csrf.php';
+require_once __DIR__ . '/practice-invite-email.php';
 
 // Start session if not already started
 if (session_status() === PHP_SESSION_NONE) {
@@ -891,17 +892,30 @@ try {
         $pdo->beginTransaction();
         
         try {
+            // Lock the parent practices row first. This row always exists and is
+            // never deleted, so it reliably serializes concurrent Settings saves
+            // for this practice even when there are no current practice_users rows.
+            $lockStmt = $pdo->prepare("SELECT id FROM practices WHERE id = :practice_id FOR UPDATE");
+            $lockStmt->execute(['practice_id' => $currentPracticeId]);
+
             // Lab Insights foundation: capture each user's CURRENT is_lab
             // value before the delete/reinsert below, so a genuine 0->1 or
             // 1->0 transition can be detected afterward (practice_users.id
             // is not stable across this delete/reinsert, but user_id is -
             // this map is keyed by user_id, not by practice_users.id).
+            //
+            // The practices row is already locked above, which serializes this
+            // whole flow. No need for FOR UPDATE here; the user_id/is_lab data is
+            // read simply to detect is_lab transitions and previously-joined users.
             $oldIsLabByUserId = [];
             $oldIsLabStmt = $pdo->prepare("SELECT user_id, is_lab FROM practice_users WHERE practice_id = :practice_id");
             $oldIsLabStmt->execute(['practice_id' => $currentPracticeId]);
             foreach ($oldIsLabStmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
                 $oldIsLabByUserId[(int)$row['user_id']] = (int)$row['is_lab'];
             }
+
+            $oldUserIds = array_keys($oldIsLabByUserId);
+            $newlyAddedUserIds = [];
 
             // Track which lab users survive this save so removed lab users can
             // have their open lab periods closed before they disappear.
@@ -988,6 +1002,10 @@ try {
 
                 $keptUserIds[(int)$userId] = true;
 
+                if (!in_array((int)$userId, $oldUserIds, true)) {
+                    $newlyAddedUserIds[(int)$userId] = $email;
+                }
+
                 $oldIsLab = $oldIsLabByUserId[(int)$userId] ?? 0;
                 if ($oldIsLab === 0 && $newIsLab === 1) {
                     initializeOpenLabPeriodsForEntity($currentPracticeId, 'user', (int)$userId, $email);
@@ -1040,6 +1058,10 @@ try {
 
                 $keptUserIds[(int)$userId] = true;
 
+                if (!in_array((int)$userId, $oldUserIds, true)) {
+                    $newlyAddedUserIds[(int)$userId] = $email;
+                }
+
                 $oldIsLab = $oldIsLabByUserId[(int)$userId] ?? 0;
                 if ($oldIsLab === 0 && $newIsLab === 1) {
                     initializeOpenLabPeriodsForEntity($currentPracticeId, 'user', (int)$userId, $email);
@@ -1058,6 +1080,35 @@ try {
 
             $pdo->commit();
             userLog("Successfully updated practice users for practice {$currentPracticeId}", false);
+
+            // Send invitation emails to users who were not previously members
+            // of this practice. This is independent of (and before) Google Drive
+            // sharing, and it has its own try/catch so an email delivery failure
+            // cannot cause Drive sharing to be skipped, and vice versa.
+            if (!empty($newlyAddedUserIds)) {
+                try {
+                    $practiceNameStmt = $pdo->prepare("SELECT display_name, practice_name FROM practices WHERE id = :id");
+                    $practiceNameStmt->execute(['id' => $currentPracticeId]);
+                    $practiceRow = $practiceNameStmt->fetch(PDO::FETCH_ASSOC);
+                    $practiceName = $practiceRow['display_name'] ?? $practiceRow['practice_name'] ?? 'your practice';
+
+                    $newUserIds = array_keys($newlyAddedUserIds);
+                    $placeholders = implode(',', array_fill(0, count($newUserIds), '?'));
+                    $newUserStmt = $pdo->prepare("SELECT id, first_name, last_name, email FROM users WHERE id IN ({$placeholders})");
+                    $newUserStmt->execute($newUserIds);
+
+                    foreach ($newUserStmt->fetchAll(PDO::FETCH_ASSOC) as $newUser) {
+                        sendPracticeInviteEmail(
+                            $newUser['email'],
+                            $newUser['first_name'] ?? null,
+                            $practiceName,
+                            $appConfig
+                        );
+                    }
+                } catch (Exception $e) {
+                    userLog("Failed to send one or more practice invitation emails for practice {$currentPracticeId}: " . $e->getMessage(), true);
+                }
+            }
 
             foreach ($validAdminUsers as $email) {
                 try {
