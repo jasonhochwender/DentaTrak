@@ -215,12 +215,16 @@ Here is the workflow data to analyze:
                 // Price IDs do not exist yet — set STRIPE_SCALE_MONTHLY_PRICE_ID
                 // and STRIPE_SCALE_ANNUAL_PRICE_ID as production environment
                 // variables (Cloud Run) once they are created in the live Stripe
-                // account. Until then these stay null in production and a Scale
-                // checkout there fails with a clear, controlled error instead of
-                // falling back to test IDs.
+                // account. The per-extra-practice add-on Price IDs are also
+                // configured per environment in the same way.
+                // Until then these stay null in production and a Scale checkout
+                // there fails with a clear, controlled error instead of falling
+                // back to test IDs.
                 'scale' => [
-                    'month' => getEnvVar('STRIPE_SCALE_MONTHLY_PRICE_ID') ?: null,
-                    'year'  => getEnvVar('STRIPE_SCALE_ANNUAL_PRICE_ID')  ?: null,
+                    'month'            => getEnvVar('STRIPE_SCALE_MONTHLY_PRICE_ID') ?: null,
+                    'year'             => getEnvVar('STRIPE_SCALE_ANNUAL_PRICE_ID')  ?: null,
+                    'additional_month' => getEnvVar('STRIPE_SCALE_ADDITIONAL_MONTHLY_PRICE_ID') ?: null,
+                    'additional_year'  => getEnvVar('STRIPE_SCALE_ADDITIONAL_ANNUAL_PRICE_ID')  ?: null,
                 ],
             ],
 

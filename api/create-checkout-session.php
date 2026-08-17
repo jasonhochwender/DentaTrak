@@ -229,14 +229,39 @@ try {
     }
 
     // ── Build Checkout Session params ─────────────────────────────────────────
+    $lineItems = [[
+        'price'    => $priceId,
+        'quantity' => 1,
+    ]];
+
+    // Scale includes 5 owned practices in the base price; additional owned
+    // practices are billed per unit as an add-on line item.
+    if ($plan === 'scale') {
+        $ownedPracticeCount = getOwnedPracticeCount($pdo, $ownerUserId);
+        $additionalQuantity = max(0, $ownedPracticeCount - 5);
+        if ($additionalQuantity > 0) {
+            $additionalPriceId = getScaleAdditionalPriceId($interval, $appConfig);
+            if ($additionalPriceId === null) {
+                error_log("create-checkout-session: no add-on Price ID configured for scale/{$interval} in this environment");
+                http_response_code(503);
+                echo json_encode([
+                    'error'      => 'The Scale plan is not available for purchase with this many practices. Please contact support.',
+                    'error_code' => 'plan_not_available',
+                ]);
+                exit;
+            }
+            $lineItems[] = [
+                'price'    => $additionalPriceId,
+                'quantity' => $additionalQuantity,
+            ];
+        }
+    }
+
     $sessionParams = [
         'customer'              => $stripeCustomerId,
         'mode'                  => 'subscription',
         'payment_method_collection' => 'always',
-        'line_items'            => [[
-            'price'    => $priceId,
-            'quantity' => 1,
-        ]],
+        'line_items'            => $lineItems,
         'success_url'           => $baseUrl . '/main.php?checkout=success',
         'cancel_url'            => $baseUrl . '/main.php?checkout=canceled',
         'metadata'              => [

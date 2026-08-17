@@ -28,7 +28,7 @@ require_once __DIR__ . '/subscription-owner.php';
 const PLAN_MAX_PRACTICES = [
     'operate' => 1,
     'control' => 2,
-    'scale'   => 50,
+    'scale'   => null, // Scale is uncapped; add-on billing applies beyond the first 5.
 ];
 
 /**
@@ -60,8 +60,11 @@ const PLAN_UPGRADE_TARGET = [
     'scale'   => null,
 ];
 
-function getMaxOwnedPractices(string $plan): int {
-    return PLAN_MAX_PRACTICES[$plan] ?? PLAN_MAX_PRACTICES['operate'];
+function getMaxOwnedPractices(string $plan): ?int {
+    if (array_key_exists($plan, PLAN_MAX_PRACTICES)) {
+        return PLAN_MAX_PRACTICES[$plan];
+    }
+    return PLAN_MAX_PRACTICES['operate'];
 }
 
 /**
@@ -74,7 +77,7 @@ function getKnownPlans(): array {
 }
 
 function isKnownPlan(string $plan): bool {
-    return isset(PLAN_MAX_PRACTICES[$plan]);
+    return array_key_exists($plan, PLAN_MAX_PRACTICES);
 }
 
 /**
@@ -124,7 +127,7 @@ function resolveEffectivePlan(?string $storedPlan, bool $isBypass): string {
     if ($isBypass) {
         return 'control';
     }
-    if (!empty($storedPlan) && isset(PLAN_MAX_PRACTICES[$storedPlan])) {
+    if (!empty($storedPlan) && isKnownPlan($storedPlan)) {
         return $storedPlan;
     }
     return 'operate';
@@ -178,7 +181,7 @@ function evaluatePracticeCreationEntitlement(PDO $pdo, int $ownerUserId, string 
     $maxPractices = getMaxOwnedPractices($plan);
 
     return [
-        'allowed'        => $currentCount < $maxPractices,
+        'allowed'        => $maxPractices === null || $currentCount < $maxPractices,
         'plan'           => $plan,
         'plan_name'      => getPlanDisplayName($plan),
         'max_practices'  => $maxPractices,

@@ -374,9 +374,9 @@
     },
     scale: {
       label: 'Scale',
-      practices: 'Up to 50 practices',
+      practices: 'Unlimited practices',
       benefits: [
-        'Everything in Control, plus support for up to 50 practices',
+        'Everything in Control, plus support for unlimited practices',
       ],
     },
   };

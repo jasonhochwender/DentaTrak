@@ -15,6 +15,7 @@ require_once __DIR__ . '/csrf.php';
 require_once __DIR__ . '/subscription-owner.php';
 require_once __DIR__ . '/plan-entitlements.php';
 require_once __DIR__ . '/billing-bypass.php';
+require_once __DIR__ . '/scale-subscription-addons.php';
 
 // Start session if not already started
 if (session_status() === PHP_SESSION_NONE) {
@@ -166,10 +167,11 @@ try {
             if (!$entitlement['allowed']) {
                 $pdo->rollBack();
                 http_response_code(403);
+                $limitText = $entitlement['max_practices'] === null ? 'unlimited' : $entitlement['max_practices'];
                 echo json_encode([
                     'success'        => false,
                     'error_code'     => 'PRACTICE_LIMIT_REACHED',
-                    'message'        => "Your {$entitlement['plan_name']} plan allows {$entitlement['max_practices']} owned practice(s). Upgrade to add another.",
+                    'message'        => "Your {$entitlement['plan_name']} plan allows {$limitText} owned practice(s). Upgrade to add another.",
                     'plan'           => $entitlement['plan'],
                     'plan_name'      => $entitlement['plan_name'],
                     'max_practices'  => $entitlement['max_practices'],
@@ -231,7 +233,42 @@ try {
                 'user_id' => $userId
             ]);
 
-            $pdo->commit();
+            // For Scale, the base price includes 5 practices. Any additional
+            // owned practices must be reflected on the active Stripe
+            // subscription before the local DB commit. This is the "Stripe
+            // before DB" two-phase commit: if Stripe fails, we roll back the
+            // DB and tell the user; if the DB commit then fails, we attempt
+            // to restore the previous add-on quantity on Stripe.
+            $previousAddOnQty = null;
+            $newOwnedCount = $entitlement['current_count'] + 1;
+            if ($entitlement['plan'] === 'scale' && $newOwnedCount > 5) {
+                try {
+                    $previousAddOnQty = syncScaleAddOnQuantity($pdo, $userId, $newOwnedCount, $appConfig);
+                } catch (Exception $stripeEx) {
+                    error_log('[accept-baa] Stripe Scale add-on sync failed: ' . $stripeEx->getMessage());
+                    $pdo->rollBack();
+                    http_response_code(502);
+                    echo json_encode([
+                        'success'   => false,
+                        'message'   => 'Billing update failed. Please try again or contact support.',
+                        'error_code' => 'BILLING_UPDATE_FAILED',
+                    ]);
+                    exit;
+                }
+            }
+
+            try {
+                $pdo->commit();
+            } catch (PDOException $commitEx) {
+                if ($previousAddOnQty !== null) {
+                    try {
+                        restoreScaleAddOnQuantity($pdo, $userId, $previousAddOnQty, $appConfig);
+                    } catch (Exception $restoreEx) {
+                        error_log('[accept-baa] Failed to restore Scale add-on after commit failure: ' . $restoreEx->getMessage());
+                    }
+                }
+                throw $commitEx;
+            }
         } catch (PDOException $e) {
             if ($pdo->inTransaction()) {
                 $pdo->rollBack();

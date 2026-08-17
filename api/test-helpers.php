@@ -9,6 +9,7 @@
 require_once __DIR__ . '/appConfig.php';
 require_once __DIR__ . '/practice-trial.php';
 require_once __DIR__ . '/subscription-owner.php';
+require_once __DIR__ . '/scale-subscription-addons.php';
 require_once __DIR__ . '/workflow-stages.php';
 
 // SECURITY CHECK: Only allow in development environment
@@ -54,11 +55,20 @@ switch ($action) {
     case 'set_subscription_plan':
         handleSetSubscriptionPlan($pdo, $input);
         break;
+    case 'set_stripe_subscription_id':
+        handleSetStripeSubscriptionId($pdo, $input);
+        break;
+    case 'test_scale_addon_restore':
+        handleTestScaleAddonRestore($pdo, $appConfig, $input);
+        break;
     case 'seed_owned_practices':
         handleSeedOwnedPractices($pdo, $input);
         break;
     case 'describe_plan_config':
         handleDescribePlanConfig($appConfig, $input);
+        break;
+    case 'preview_scale_checkout':
+        handlePreviewScaleCheckout($pdo, $appConfig, $input);
         break;
     case 'get_subscription_state':
         handleGetSubscriptionState($pdo, $input);
@@ -446,10 +456,12 @@ function handleSetupPracticeMember($pdo, $input) {
  *                        the same way real events are routed.
  */
 function handleSetSubscriptionPlan($pdo, $input) {
-    $email      = strtolower(trim($input['email'] ?? ''));
-    $plan       = trim($input['plan'] ?? '');
-    $status     = trim($input['status'] ?? 'active');
-    $customerId = trim($input['stripe_customer_id'] ?? '');
+    $email             = strtolower(trim($input['email'] ?? ''));
+    $plan              = trim($input['plan'] ?? '');
+    $status            = trim($input['status'] ?? 'active');
+    $customerId        = trim($input['stripe_customer_id'] ?? '');
+    $subscriptionId    = trim($input['stripe_subscription_id'] ?? '');
+    $billingInterval   = trim($input['billing_interval'] ?? '');
 
     $allowedPlans = ['operate', 'control', 'scale'];
     if (empty($email) || !in_array($plan, $allowedPlans, true)) {
@@ -477,15 +489,18 @@ function handleSetSubscriptionPlan($pdo, $input) {
             UPDATE subscriptions
             SET plan = :plan,
                 status = :status,
-                stripe_subscription_id = COALESCE(stripe_subscription_id, :fake_sub_id),
+                stripe_subscription_id = COALESCE(NULLIF(:stripe_subscription_id, ''), COALESCE(stripe_subscription_id, :fake_sub_id)),
+                billing_interval = COALESCE(NULLIF(:billing_interval, ''), billing_interval),
                 subscription_updated_at = UTC_TIMESTAMP()
             WHERE owner_user_id = :owner_user_id
         ");
         $stmt->execute([
-            'plan'          => $plan,
-            'status'        => $status,
-            'fake_sub_id'   => 'sub_test_' . $userId,
-            'owner_user_id' => $userId,
+            'plan'                   => $plan,
+            'status'                 => $status,
+            'stripe_subscription_id' => $subscriptionId,
+            'billing_interval'       => $billingInterval,
+            'fake_sub_id'            => 'sub_test_' . $userId,
+            'owner_user_id'          => $userId,
         ]);
 
         if ($customerId !== '') {
@@ -508,6 +523,208 @@ function handleSetSubscriptionPlan($pdo, $input) {
         error_log('[test-helpers] set_subscription_plan error: ' . $e->getMessage());
         http_response_code(500);
         echo json_encode(['success' => false, 'message' => 'Update failed: ' . $e->getMessage()]);
+    }
+}
+
+/**
+ * Directly stamp a Stripe subscription ID and billing interval on an
+ * existing owner's subscriptions row. Useful when a test needs an explicit,
+ * known subscription ID (e.g., an invalid fake ID for the billing-failure
+ * path) but does not want to change the plan/status.
+ */
+function handleSetStripeSubscriptionId($pdo, $input) {
+    $email           = strtolower(trim($input['email'] ?? ''));
+    $subscriptionId  = trim($input['stripe_subscription_id'] ?? '');
+    $billingInterval = trim($input['billing_interval'] ?? '');
+
+    if (empty($email) || empty($subscriptionId)) {
+        http_response_code(400);
+        echo json_encode(['success' => false, 'message' => 'email and stripe_subscription_id are required']);
+        return;
+    }
+
+    try {
+        $stmt = $pdo->prepare("SELECT id FROM users WHERE email = :email");
+        $stmt->execute(['email' => $email]);
+        $userId = $stmt->fetchColumn();
+
+        if (!$userId) {
+            http_response_code(404);
+            echo json_encode(['success' => false, 'message' => 'User not found. Run setup_test_user first.']);
+            return;
+        }
+
+        $fields = ['stripe_subscription_id = :stripe_subscription_id'];
+        $params = [
+            'stripe_subscription_id' => $subscriptionId,
+            'owner_user_id'          => $userId,
+        ];
+
+        if ($billingInterval !== '') {
+            $fields[] = 'billing_interval = :billing_interval';
+            $params['billing_interval'] = $billingInterval;
+        }
+
+        $sql = "UPDATE subscriptions SET " . implode(', ', $fields) . ", subscription_updated_at = UTC_TIMESTAMP() WHERE owner_user_id = :owner_user_id";
+        $pdo->prepare($sql)->execute($params);
+
+        echo json_encode([
+            'success' => true,
+            'message' => 'Stripe subscription ID updated',
+            'user_id' => (int)$userId,
+            'stripe_subscription_id' => $subscriptionId,
+        ]);
+    } catch (PDOException $e) {
+        error_log('[test-helpers] set_stripe_subscription_id error: ' . $e->getMessage());
+        http_response_code(500);
+        echo json_encode(['success' => false, 'message' => 'Update failed: ' . $e->getMessage()]);
+    }
+}
+
+/**
+ * Test-only helper that exercises the Scale add-on compensation path.
+ *
+ * Looks up the owner by email, ensures a real Stripe test subscription
+ * exists (creating one if the stored ID is missing/invalid), then calls
+ * syncScaleAddOnQuantity() and restoreScaleAddOnQuantity() and returns the
+ * quantities observed. This is the recoverable half of the compensation path
+ * in api/accept-baa.php and is intentionally verified without forcing an
+ * unrecoverable PDO commit failure from the browser.
+ */
+function handleTestScaleAddonRestore($pdo, $appConfig, $input) {
+    $email    = strtolower(trim($input['email'] ?? ''));
+    $interval = in_array($input['interval'] ?? '', ['month', 'year'], true) ? $input['interval'] : 'month';
+
+    if (empty($email)) {
+        http_response_code(400);
+        echo json_encode(['success' => false, 'message' => 'email is required']);
+        return;
+    }
+
+    $secretKey = $appConfig['stripe']['secret_key'] ?? null;
+    if (empty($secretKey)) {
+        http_response_code(500);
+        echo json_encode(['success' => false, 'message' => 'Stripe secret key not configured']);
+        return;
+    }
+
+    try {
+        $stmt = $pdo->prepare("SELECT id, email FROM users WHERE email = :email");
+        $stmt->execute(['email' => $email]);
+        $user = $stmt->fetch(PDO::FETCH_ASSOC);
+        if (!$user) {
+            http_response_code(404);
+            echo json_encode(['success' => false, 'message' => 'User not found. Run setup_test_user first.']);
+            return;
+        }
+        $userId = (int)$user['id'];
+
+        $stmt = $pdo->prepare("
+            SELECT stripe_customer_id, stripe_subscription_id, billing_interval, plan, status
+            FROM subscriptions
+            WHERE owner_user_id = :owner_user_id
+            LIMIT 1
+        ");
+        $stmt->execute(['owner_user_id' => $userId]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC) ?: [];
+
+        $subId      = $row['stripe_subscription_id'] ?? '';
+        $customerId = $row['stripe_customer_id'] ?? '';
+        $hasValidSub = false;
+
+        \Stripe\Stripe::setApiKey($secretKey);
+
+        // Treat test-only fake IDs (sub_test_*) and un-verifiable IDs as
+        // invalid so the helper can stand up a real Stripe test subscription.
+        if (!empty($subId) && !str_starts_with($subId, 'sub_test_')) {
+            try {
+                \Stripe\Subscription::retrieve($subId);
+                $hasValidSub = true;
+            } catch (\Exception $e) {
+                $hasValidSub = false;
+            }
+        }
+
+        if (!$hasValidSub) {
+            $basePriceId  = getStripePriceId('scale', $interval, $appConfig);
+            $addOnPriceId = getScaleAdditionalPriceId($interval, $appConfig);
+
+            if (empty($basePriceId) || empty($addOnPriceId)) {
+                http_response_code(500);
+                echo json_encode(['success' => false, 'message' => 'Scale Price IDs not configured for ' . $interval]);
+                return;
+            }
+
+            if (empty($customerId)) {
+                $customer = \Stripe\Customer::create(['email' => $user['email'], 'name' => 'E2E Test ' . $userId]);
+                $customerId = $customer->id;
+            }
+
+            $subscription = \Stripe\Subscription::create([
+                'customer' => $customerId,
+                'items'    => [
+                    ['price' => $basePriceId],
+                    ['price' => $addOnPriceId, 'quantity' => 1],
+                ],
+                'trial_end' => time() + 365 * 24 * 60 * 60,
+            ]);
+
+            $subId = $subscription->id;
+
+            $pdo->prepare("
+                UPDATE subscriptions
+                SET stripe_customer_id = :customer_id,
+                    stripe_subscription_id = :sub_id,
+                    billing_interval = :interval,
+                    plan = :plan,
+                    status = :status,
+                    subscription_updated_at = UTC_TIMESTAMP()
+                WHERE owner_user_id = :owner_user_id
+            ")->execute([
+                'customer_id'   => $customerId,
+                'sub_id'        => $subId,
+                'interval'      => $interval,
+                'plan'          => 'scale',
+                'status'        => 'active',
+                'owner_user_id' => $userId,
+            ]);
+        }
+
+        $previousQuantity = syncScaleAddOnQuantity($pdo, $userId, 6, $appConfig);
+        restoreScaleAddOnQuantity($pdo, $userId, 1, $appConfig);
+
+        // Read back the restored add-on quantity for the test assertion.
+        $stmt = $pdo->prepare("
+            SELECT stripe_subscription_id, billing_interval
+            FROM subscriptions
+            WHERE owner_user_id = :owner_user_id
+            LIMIT 1
+        ");
+        $stmt->execute(['owner_user_id' => $userId]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC) ?: [];
+        $subId = $row['stripe_subscription_id'] ?? $subId;
+        $dbInterval = $row['billing_interval'] ?? $interval;
+
+        $addOnPriceId = getScaleAdditionalPriceId($dbInterval, $appConfig);
+        $items = \Stripe\SubscriptionItem::all(['subscription' => $subId, 'limit' => 100]);
+        $restoredQuantity = 0;
+        foreach ($items->data as $item) {
+            if (($item->price->id ?? null) === $addOnPriceId) {
+                $restoredQuantity = (int)$item->quantity;
+                break;
+            }
+        }
+
+        echo json_encode([
+            'success'                => true,
+            'previous_quantity'      => $previousQuantity ?? 0,
+            'restored_quantity'      => $restoredQuantity,
+            'stripe_subscription_id' => $subId,
+        ]);
+    } catch (\Exception $e) {
+        error_log('[test-helpers] test_scale_addon_restore error: ' . $e->getMessage());
+        http_response_code(500);
+        echo json_encode(['success' => false, 'message' => 'Restore failed: ' . $e->getMessage()]);
     }
 }
 
@@ -603,15 +820,20 @@ function handleDescribePlanConfig(array $appConfig, array $input) {
 
     $plans = [];
     foreach (getKnownPlans() as $plan) {
+        $priceIds = [
+            'month' => getStripePriceId($plan, 'month', $appConfig),
+            'year'  => getStripePriceId($plan, 'year',  $appConfig),
+        ];
+        if ($plan === 'scale') {
+            $priceIds['additional_month'] = getScaleAdditionalPriceId('month', $appConfig);
+            $priceIds['additional_year']  = getScaleAdditionalPriceId('year',  $appConfig);
+        }
         $plans[$plan] = [
             'max_practices'   => getMaxOwnedPractices($plan),
             'display_name'    => getPlanDisplayName($plan),
             'upgrade_target'  => PLAN_UPGRADE_TARGET[$plan] ?? null,
             'meets_control'   => planMeetsTier($plan, 'control'),
-            'price_ids'       => [
-                'month' => getStripePriceId($plan, 'month', $appConfig),
-                'year'  => getStripePriceId($plan, 'year',  $appConfig),
-            ],
+            'price_ids'       => $priceIds,
             'display_prices'  => $appConfig['stripe']['display_prices'][$plan] ?? null,
         ];
     }
@@ -630,6 +852,64 @@ function handleDescribePlanConfig(array $appConfig, array $input) {
     }
 
     echo json_encode($response);
+}
+
+/**
+ * Preview the line_items that a Scale Checkout Session would be created
+ * with for the given owner, without actually calling Stripe. Used to
+ * exercise the base + add-on item structure for 5 vs 6+ owned practices.
+ */
+function handlePreviewScaleCheckout(PDO $pdo, array $appConfig, array $input) {
+    require_once __DIR__ . '/stripe-price-map.php';
+    require_once __DIR__ . '/plan-entitlements.php';
+
+    $email = strtolower(trim($input['email'] ?? ''));
+    $interval = in_array($input['interval'] ?? '', ['month', 'year'], true) ? $input['interval'] : 'month';
+
+    if (empty($email)) {
+        http_response_code(400);
+        echo json_encode(['success' => false, 'message' => 'email is required']);
+        return;
+    }
+
+    try {
+        $stmt = $pdo->prepare("SELECT id FROM users WHERE email = :email");
+        $stmt->execute(['email' => $email]);
+        $userId = $stmt->fetchColumn();
+
+        if (!$userId) {
+            http_response_code(404);
+            echo json_encode(['success' => false, 'message' => 'User not found']);
+            return;
+        }
+
+        $ownedCount = getOwnedPracticeCount($pdo, (int)$userId);
+        $basePriceId = getStripePriceId('scale', $interval, $appConfig);
+        $addOnPriceId = getScaleAdditionalPriceId($interval, $appConfig);
+        $addOnQty = max(0, $ownedCount - 5);
+
+        $lineItems = [[
+            'price'    => $basePriceId,
+            'quantity' => 1,
+        ]];
+        if ($addOnQty > 0) {
+            $lineItems[] = [
+                'price'    => $addOnPriceId,
+                'quantity' => $addOnQty,
+            ];
+        }
+
+        echo json_encode([
+            'success'             => true,
+            'owned_practice_count' => $ownedCount,
+            'additional_quantity'  => $addOnQty,
+            'line_items'           => $lineItems,
+        ]);
+    } catch (PDOException $e) {
+        error_log('[test-helpers] preview_scale_checkout error: ' . $e->getMessage());
+        http_response_code(500);
+        echo json_encode(['success' => false, 'message' => 'Preview failed: ' . $e->getMessage()]);
+    }
 }
 
 /**

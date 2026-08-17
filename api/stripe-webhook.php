@@ -363,11 +363,30 @@ function handleSubscriptionUpsert(
         }
     }
 
-    // Resolve Price ID from first subscription item
-    $priceId = $sub->items->data[0]->price->id ?? null;
+    // A Scale subscription has both the base plan item and a per-practice
+    // add-on item. Scan every item and use the first one that maps to a
+    // known base plan; ignore add-on items that resolve to 'unknown'.
+    $plan = 'unknown';
+    $billingInterval = null;
+    $priceId = null;
+    $currentPeriodEnd = null;
+    foreach ($sub->items->data as $item) {
+        $itemPriceId = $item->price->id ?? null;
+        [$itemPlan, $itemInterval] = resolvePlanFromPriceId($itemPriceId, $appConfig);
+        if ($itemPlan !== 'unknown' && $itemInterval !== null) {
+            $plan = $itemPlan;
+            $billingInterval = $itemInterval;
+            $priceId = $itemPriceId;
+            $currentPeriodEnd = $item->current_period_end ?? null;
+            break;
+        }
+    }
 
-    // Map Price ID → plan + interval using server-side config only
-    [$plan, $billingInterval] = resolvePlanFromPriceId($priceId, $appConfig);
+    // Fallback to the first item only for the period-end / price field if
+    // no base plan was found (should not happen for a DentaTrak subscription).
+    if ($currentPeriodEnd === null && !empty($sub->items->data[0])) {
+        $currentPeriodEnd = $sub->items->data[0]->current_period_end ?? null;
+    }
 
     // Format timestamps as UTC datetime strings for storage
     $currentPeriodEndDt = $currentPeriodEnd ? gmdate('Y-m-d H:i:s', $currentPeriodEnd) : null;

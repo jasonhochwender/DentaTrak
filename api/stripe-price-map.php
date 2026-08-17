@@ -49,10 +49,23 @@ function resolvePlanFromPriceId(?string $priceId, array $appConfig): array {
     $prices = $appConfig['stripe']['prices'] ?? [];
     foreach ($prices as $plan => $intervals) {
         foreach ($intervals as $interval => $configuredId) {
-            if (!empty($configuredId) && $configuredId === $priceId) {
-                return [$plan, $interval];
+            if (empty($configuredId) || $configuredId !== $priceId) {
+                continue;
             }
+            // The Scale "additional practice" add-on Price IDs are not base
+            // plans and must never be reverse-mapped to 'scale'.
+            if ($plan === 'scale' && (str_starts_with($interval, 'additional_') || $configuredId === getScaleAdditionalPriceId($interval, $appConfig))) {
+                continue;
+            }
+            return [$plan, $interval];
         }
+    }
+
+    // If the Price ID is a known Scale add-on, treat it as explicitly
+    // unrecognized (an add-on is not a plan) and do not log an error.
+    if ($priceId === getScaleAdditionalPriceId('month', $appConfig) ||
+        $priceId === getScaleAdditionalPriceId('year', $appConfig)) {
+        return ['unknown', null];
     }
 
     error_log('[stripe-price-map] Unrecognized Price ID: ' . substr($priceId, 0, 30));
@@ -70,6 +83,17 @@ function resolvePlanFromPriceId(?string $priceId, array $appConfig): array {
  */
 function getStripePriceId(string $plan, string $interval, array $appConfig): ?string {
     $priceId = $appConfig['stripe']['prices'][$plan][$interval] ?? null;
+    return !empty($priceId) ? $priceId : null;
+}
+
+/**
+ * Resolve the Scale "additional practice" add-on Price ID for the given
+ * billing interval. This is a per-extra-practice charge beyond the five
+ * included in the base Scale plan; it is NOT a base plan Price ID.
+ */
+function getScaleAdditionalPriceId(string $interval, array $appConfig): ?string {
+    $key = in_array($interval, ['month', 'year'], true) ? 'additional_' . $interval : '';
+    $priceId = $appConfig['stripe']['prices']['scale'][$key] ?? null;
     return !empty($priceId) ? $priceId : null;
 }
 
