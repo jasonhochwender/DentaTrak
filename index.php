@@ -1375,13 +1375,17 @@ $articleUrls = $appConfig['public_urls'] ?? [];
         <div class="pricing-card">
           <h3>Scale</h3>
           <p class="pricing-price-primary">$999<span style="font-size: 1rem; font-weight: 500; color: var(--text-secondary);">/month</span></p>
+          <p class="pricing-price-annual">Includes up to 5 practices</p>
+          <p class="pricing-price-annual">+$99/month per additional practice</p>
           <p class="pricing-price-annual">or $9,990/year billed annually</p>
+          <p class="pricing-price-annual">+$990/year per additional practice</p>
           <p class="pricing-price-note">Two months free with annual billing</p>
           <hr class="pricing-divider">
           <p>For multi-practice groups that need every location's cases tracked under one account, with the same visibility and controls as Control.</p>
           <ul style="list-style: none; padding: 0; margin: 12px 0 20px; text-align: left; font-size: 0.95rem; color: var(--text-secondary);">
             <li style="padding: 4px 0;">&#10003;&nbsp; Everything in Control</li>
-            <li style="padding: 4px 0;">&#10003;&nbsp; Up to 50 practices under one account</li>
+            <li style="padding: 4px 0;">&#10003;&nbsp; Includes up to 5 practices</li>
+            <li style="padding: 4px 0;">&#10003;&nbsp; +$99/month per additional practice ($990/year billed annually)</li>
           </ul>
           <a href="<?= $baseUrl ?>login.php" class="btn-primary">Start 90-Day Free Trial</a>
         </div>
