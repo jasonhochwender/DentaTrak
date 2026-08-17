@@ -434,6 +434,7 @@ function getComplianceSummary($practiceId) {
             'practice_id' => $practiceId,
             'practice_name' => $practice['practice_name'],
             'legal_name' => $practice['legal_name'],
+            'practice_address' => $practice['practice_address'] ?? '',
             'is_active' => (bool)($practice['is_active'] ?? true),
             'baa_accepted' => (bool)$practice['baa_accepted'],
             'baa_accepted_at' => $practice['baa_accepted_at'],

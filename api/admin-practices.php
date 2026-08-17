@@ -15,6 +15,8 @@ require_once __DIR__ . '/session.php';
 require_once __DIR__ . '/appConfig.php';
 require_once __DIR__ . '/hipaa-compliance.php';
 require_once __DIR__ . '/practice-security.php';
+require_once __DIR__ . '/workflow-stages.php';
+require_once __DIR__ . '/lab-assignment-history.php';
 
 header('Content-Type: application/json');
 
@@ -58,7 +60,13 @@ function handleGetRequest($action) {
     switch ($action) {
         case 'list':
             // List all practices with compliance status
+            ensureAdminHiddenPracticesSchema();
             $practices = getAllPracticesWithComplianceStatus();
+            $hiddenIds = getAdminHiddenPracticeIds($_SESSION['db_user_id'] ?? 0);
+            foreach ($practices as &$practice) {
+                $practice['is_hidden'] = in_array((int)$practice['id'], $hiddenIds, true);
+            }
+            unset($practice);
             echo json_encode([
                 'success' => true,
                 'practices' => $practices,
@@ -116,6 +124,21 @@ function handleGetRequest($action) {
             echo json_encode([
                 'success' => true,
                 'users' => $users
+            ]);
+            break;
+            
+        case 'settings':
+            $practiceId = $_GET['practice_id'] ?? null;
+            if (!$practiceId || !is_numeric($practiceId)) {
+                http_response_code(400);
+                echo json_encode(['success' => false, 'message' => 'Valid practice ID required']);
+                return;
+            }
+            
+            $settings = getPracticeSettings($practiceId);
+            echo json_encode([
+                'success' => true,
+                'settings' => $settings
             ]);
             break;
             
@@ -234,6 +257,46 @@ function handlePostRequest($action) {
             }
             break;
             
+        case 'hide':
+            $practiceId = $input['practice_id'] ?? null;
+            if (!$practiceId || !is_numeric($practiceId)) {
+                http_response_code(400);
+                echo json_encode(['success' => false, 'message' => 'Valid practice ID required']);
+                return;
+            }
+            
+            ensureAdminHiddenPracticesSchema();
+            $result = hidePracticeForAdmin($practiceId, $_SESSION['db_user_id'] ?? 0);
+            
+            if ($result) {
+                logAdminAction('practice_hidden', ['practice_id' => $practiceId]);
+                echo json_encode(['success' => true, 'message' => 'Practice hidden from admin view']);
+            } else {
+                http_response_code(500);
+                echo json_encode(['success' => false, 'message' => 'Failed to hide practice']);
+            }
+            break;
+            
+        case 'unhide':
+            $practiceId = $input['practice_id'] ?? null;
+            if (!$practiceId || !is_numeric($practiceId)) {
+                http_response_code(400);
+                echo json_encode(['success' => false, 'message' => 'Valid practice ID required']);
+                return;
+            }
+            
+            ensureAdminHiddenPracticesSchema();
+            $result = unhidePracticeForAdmin($practiceId, $_SESSION['db_user_id'] ?? 0);
+            
+            if ($result) {
+                logAdminAction('practice_unhidden', ['practice_id' => $practiceId]);
+                echo json_encode(['success' => true, 'message' => 'Practice unhidden']);
+            } else {
+                http_response_code(500);
+                echo json_encode(['success' => false, 'message' => 'Failed to unhide practice']);
+            }
+            break;
+            
         default:
             http_response_code(400);
             echo json_encode(['success' => false, 'message' => 'Invalid action']);
@@ -250,9 +313,11 @@ function getPracticeUsers($practiceId) {
         
         $hasLastLoginAt = in_array('last_login_at', $userColumns);
         $hasIsOwner = in_array('is_owner', $puColumns);
+        $hasIsActive = in_array('is_active', $userColumns);
         
         $lastLoginSelect = $hasLastLoginAt ? 'u.last_login_at as last_login' : 'NULL as last_login';
         $isOwnerSelect = $hasIsOwner ? 'IFNULL(pu.is_owner, 0) as is_owner' : '0 as is_owner';
+        $isActiveSelect = $hasIsActive ? 'IFNULL(u.is_active, 1) as is_active' : '1 as is_active';
         $orderBy = $hasIsOwner ? 'pu.is_owner DESC, pu.role, u.email' : 'pu.role, u.email';
         
         $sql = "
@@ -265,6 +330,7 @@ function getPracticeUsers($practiceId) {
                 $lastLoginSelect,
                 IFNULL(pu.role, 'user') as role,
                 $isOwnerSelect,
+                $isActiveSelect,
                 pu.created_at as joined_at
             FROM practice_users pu
             JOIN users u ON pu.user_id = u.id
@@ -337,4 +403,298 @@ function logAdminAction($action, $details = []) {
     } catch (PDOException $e) {
         error_log('[admin-practices] Error logging admin action: ' . $e->getMessage());
     }
+}
+
+/**
+ * Ensure the admin_hidden_practices table exists.
+ */
+function ensureAdminHiddenPracticesSchema() {
+    global $pdo;
+    static $initialized = false;
+    
+    if ($initialized || !$pdo) {
+        return;
+    }
+    
+    try {
+        $pdo->exec("CREATE TABLE IF NOT EXISTS admin_hidden_practices (
+            id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+            admin_user_id BIGINT UNSIGNED NOT NULL,
+            practice_id BIGINT UNSIGNED NOT NULL,
+            hidden_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            INDEX idx_admin_user_id (admin_user_id),
+            INDEX idx_practice_id (practice_id),
+            UNIQUE KEY idx_admin_practice (admin_user_id, practice_id)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+        
+        $initialized = true;
+    } catch (PDOException $e) {
+        error_log('[admin-practices] Error ensuring admin hidden practices schema: ' . $e->getMessage());
+    }
+}
+
+/**
+ * Get the practice IDs hidden by the given admin.
+ */
+function getAdminHiddenPracticeIds($adminUserId) {
+    global $pdo;
+    
+    if (!$pdo || !$adminUserId) {
+        return [];
+    }
+    
+    try {
+        $stmt = $pdo->prepare("SELECT practice_id FROM admin_hidden_practices WHERE admin_user_id = ?");
+        $stmt->execute([$adminUserId]);
+        return array_map('intval', $stmt->fetchAll(PDO::FETCH_COLUMN));
+    } catch (PDOException $e) {
+        error_log('[admin-practices] Error getting hidden practice IDs: ' . $e->getMessage());
+        return [];
+    }
+}
+
+/**
+ * Hide a practice from the admin's view.
+ */
+function hidePracticeForAdmin($practiceId, $adminUserId) {
+    global $pdo;
+    
+    if (!$pdo || !$practiceId || !$adminUserId || !is_numeric($practiceId)) {
+        return false;
+    }
+    
+    try {
+        $stmt = $pdo->prepare("INSERT IGNORE INTO admin_hidden_practices (admin_user_id, practice_id, hidden_at) VALUES (?, ?, NOW())");
+        return $stmt->execute([$adminUserId, $practiceId]);
+    } catch (PDOException $e) {
+        error_log('[admin-practices] Error hiding practice: ' . $e->getMessage());
+        return false;
+    }
+}
+
+/**
+ * Unhide a practice from the admin's view.
+ */
+function unhidePracticeForAdmin($practiceId, $adminUserId) {
+    global $pdo;
+    
+    if (!$pdo || !$practiceId || !$adminUserId || !is_numeric($practiceId)) {
+        return false;
+    }
+    
+    try {
+        $stmt = $pdo->prepare("DELETE FROM admin_hidden_practices WHERE admin_user_id = ? AND practice_id = ?");
+        return $stmt->execute([$adminUserId, $practiceId]);
+    } catch (PDOException $e) {
+        error_log('[admin-practices] Error unhiding practice: ' . $e->getMessage());
+        return false;
+    }
+}
+
+/**
+ * Get a representative user ID for a practice (owner/creator preferred, then first admin).
+ */
+function getRepresentativeUserId($practiceId) {
+    global $pdo;
+    
+    if (!$pdo || !$practiceId) {
+        return null;
+    }
+    
+    try {
+        $stmt = $pdo->prepare("SELECT created_by FROM practices WHERE id = ?");
+        $stmt->execute([$practiceId]);
+        $createdBy = $stmt->fetchColumn();
+        
+        if ($createdBy) {
+            $stmt = $pdo->prepare("SELECT 1 FROM user_preferences WHERE user_id = ?");
+            $stmt->execute([$createdBy]);
+            if ($stmt->fetchColumn()) {
+                return (int)$createdBy;
+            }
+        }
+        
+        $puColumns = $pdo->query("SHOW COLUMNS FROM practice_users")->fetchAll(PDO::FETCH_COLUMN);
+        $hasIsOwner = in_array('is_owner', $puColumns);
+        
+        $ownerClause = $hasIsOwner ? "OR pu.is_owner = 1" : "";
+        $stmt = $pdo->prepare("SELECT u.id 
+            FROM users u
+            JOIN practice_users pu ON u.id = pu.user_id
+            WHERE pu.practice_id = ? AND (pu.role = 'admin' {$ownerClause})
+            ORDER BY pu.created_at ASC, u.id ASC
+            LIMIT 1");
+        $stmt->execute([$practiceId]);
+        $adminId = $stmt->fetchColumn();
+        
+        if ($adminId) {
+            return (int)$adminId;
+        }
+        
+        $stmt = $pdo->prepare("SELECT u.id 
+            FROM users u
+            JOIN practice_users pu ON u.id = pu.user_id
+            WHERE pu.practice_id = ?
+            ORDER BY pu.created_at ASC
+            LIMIT 1");
+        $stmt->execute([$practiceId]);
+        $firstUserId = $stmt->fetchColumn();
+        return $firstUserId ? (int)$firstUserId : null;
+    } catch (PDOException $e) {
+        error_log('[admin-practices] Error getting representative user: ' . $e->getMessage());
+        return null;
+    }
+}
+
+/**
+ * Get user preference values for a representative user.
+ */
+function getRepresentativeUserPreferences($practiceId) {
+    global $pdo;
+    
+    if (!$pdo || !$practiceId) {
+        return [];
+    }
+    
+    $userId = getRepresentativeUserId($practiceId);
+    if (!$userId) {
+        return [];
+    }
+    
+    try {
+        $columns = $pdo->query("SHOW COLUMNS FROM user_preferences")->fetchAll(PDO::FETCH_COLUMN);
+    } catch (PDOException $e) {
+        error_log('[admin-practices] Error reading user_preferences columns: ' . $e->getMessage());
+        return [];
+    }
+    
+    $desired = [
+        'allow_card_delete',
+        'delivered_hide_days',
+        'highlight_past_due',
+        'past_due_days',
+        'highlight_coming_due',
+        'coming_due_days'
+    ];
+    $available = array_intersect($desired, $columns);
+    
+    if (empty($available)) {
+        return [];
+    }
+    
+    try {
+        $sql = "SELECT " . implode(', ', $available) . " FROM user_preferences WHERE user_id = ?";
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute([$userId]);
+        return $stmt->fetch(PDO::FETCH_ASSOC) ?: [];
+    } catch (PDOException $e) {
+        error_log('[admin-practices] Error getting user preferences: ' . $e->getMessage());
+        return [];
+    }
+}
+
+/**
+ * Get assignment labels for the Settings tab.
+ */
+function getPracticeAssignmentLabelsForSettings($practiceId) {
+    global $pdo;
+    
+    if (!$pdo || !$practiceId) {
+        return [];
+    }
+    
+    ensureLabDesignationColumns();
+    
+    try {
+        $stmt = $pdo->prepare("SELECT label, is_lab FROM practice_assignment_labels WHERE practice_id = ? ORDER BY sort_order ASC, label ASC");
+        $stmt->execute([$practiceId]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    } catch (PDOException $e) {
+        error_log('[admin-practices] Error getting assignment labels: ' . $e->getMessage());
+        return [];
+    }
+}
+
+/**
+ * Check if any practice user has two-factor authentication enabled.
+ */
+function getTwoFactorEnabledForPractice($practiceId) {
+    global $pdo;
+    
+    if (!$pdo || !$practiceId) {
+        return false;
+    }
+    
+    try {
+        $columns = $pdo->query("SHOW COLUMNS FROM users LIKE 'totp_enabled'")->fetchAll(PDO::FETCH_COLUMN);
+        if (!in_array('totp_enabled', $columns)) {
+            return false;
+        }
+        
+        $stmt = $pdo->prepare("SELECT COUNT(*) FROM users u JOIN practice_users pu ON u.id = pu.user_id WHERE pu.practice_id = ? AND u.totp_enabled = 1");
+        $stmt->execute([$practiceId]);
+        return (int)$stmt->fetchColumn() > 0;
+    } catch (PDOException $e) {
+        error_log('[admin-practices] Error checking 2FA status: ' . $e->getMessage());
+        return false;
+    }
+}
+
+/**
+ * Get read-only Settings payload for the practice.
+ */
+function getPracticeSettings($practiceId) {
+    global $pdo;
+    
+    $preferences = getRepresentativeUserPreferences($practiceId);
+    $workflowLabels = getResolvedWorkflowStageLabels(
+        getWorkflowStageLabelOverridesForPractice($practiceId)
+    );
+    $users = getPracticeUsers($practiceId);
+    $labels = getPracticeAssignmentLabelsForSettings($practiceId);
+    $twoFactorEnabled = getTwoFactorEnabledForPractice($practiceId);
+    
+    $deliveredHideDays = isset($preferences['delivered_hide_days']) ? (int)$preferences['delivered_hide_days'] : 0;
+    $autoArchive = $deliveredHideDays > 0;
+    
+    $allowArchiving = isset($preferences['allow_card_delete']) ? (bool)$preferences['allow_card_delete'] : true;
+    $archiveAfterDays = $autoArchive ? $deliveredHideDays : 0;
+    
+    $userList = [];
+    foreach ($users as $u) {
+        $userList[] = [
+            'name' => trim(($u['first_name'] ?? '') . ' ' . ($u['last_name'] ?? '')) ?: ($u['email'] ?? ''),
+            'email' => $u['email'] ?? '',
+            'role' => !empty($u['is_owner']) ? 'Owner' : (($u['role'] === 'admin') ? 'Admin' : 'User'),
+            'active' => !empty($u['is_active'])
+        ];
+    }
+    
+    $labelList = [];
+    foreach ($labels as $l) {
+        $labelList[] = [
+            'label' => $l['label'],
+            'is_lab' => (bool)$l['is_lab']
+        ];
+    }
+    
+    return [
+        'case_management' => [
+            'allow_archiving_individual_cases' => $allowArchiving,
+            'auto_archive_delivered_cases' => $autoArchive,
+            'archive_delivered_cases_after_days' => $archiveAfterDays
+        ],
+        'due_date_highlighting' => [
+            'highlight_past_due' => isset($preferences['highlight_past_due']) ? (bool)$preferences['highlight_past_due'] : false,
+            'past_due_days' => isset($preferences['past_due_days']) ? (int)$preferences['past_due_days'] : 0,
+            'highlight_coming_due' => isset($preferences['highlight_coming_due']) ? (bool)$preferences['highlight_coming_due'] : false,
+            'coming_due_days' => isset($preferences['coming_due_days']) ? (int)$preferences['coming_due_days'] : 5
+        ],
+        'workflow_stages' => $workflowLabels,
+        'users' => $userList,
+        'assignment_labels' => $labelList,
+        'security' => [
+            'two_factor_authentication_enabled' => $twoFactorEnabled
+        ]
+    ];
 }

@@ -2589,30 +2589,8 @@ window.featureFlags = <?php echo getFeatureFlagsJson(); ?>;
   </div>
   
   <!-- Dev Tools Panel -->
-  <?php if ($showDevTools): 
-    // Get user's current billing tier and signup date for dev tools
-    $currentBillingTier = 'evaluate';
-    $userSignupDate = '';
-    try {
-        if (isset($_SESSION['db_user_id']) && isset($pdo)) {
-            $tierStmt = $pdo->prepare("SELECT billing_tier, created_at FROM users WHERE id = ?");
-            $tierStmt->execute([$_SESSION['db_user_id']]);
-            $tierUser = $tierStmt->fetch(PDO::FETCH_ASSOC);
-            if ($tierUser) {
-                if (!empty($tierUser['billing_tier'])) {
-                    $currentBillingTier = strtolower($tierUser['billing_tier']);
-                }
-                if (!empty($tierUser['created_at'])) {
-                    $userSignupDate = date('Y-m-d', strtotime($tierUser['created_at']));
-                }
-            }
-        }
-    } catch (Exception $e) {
-        $currentBillingTier = 'evaluate';
-    }
-  ?>
+  <?php if ($showDevTools): ?>
   <div class="dev-tools-panel collapsed <?php echo $isSuperUserInProd ? 'super-user-mode' : ''; ?>" id="devToolsPanel" 
-       data-environment="<?php echo htmlspecialchars($currentEnv); ?>"
        data-is-super-user="<?php echo $isSuperUserInProd ? 'true' : 'false'; ?>"
        data-env-display-name="<?php echo htmlspecialchars($environmentDisplayName); ?>">
     <div class="dev-tools-header">
@@ -2628,16 +2606,6 @@ window.featureFlags = <?php echo getFeatureFlagsJson(); ?>;
       </div>
       <?php endif; ?>
       
-      <?php if (!$isSuperUserInProd): ?>
-      <!-- Environment Switcher - Only show in development -->
-      <div class="dev-tools-section">
-        <h4>🌍 Environment</h4>
-        <div class="env-switcher">
-          <button id="envDevBtn" class="env-btn">Development (Local DB)</button>
-          <button id="envUatBtn" class="env-btn">UAT (Prod DB)</button>
-        </div>
-      </div>
-      <?php endif; ?>
       
       <!-- Test Case Creation -->
       <div class="dev-tools-section">
@@ -2670,30 +2638,11 @@ window.featureFlags = <?php echo getFeatureFlagsJson(); ?>;
         </div>
       </div>
       
-      <!-- Billing Plan -->
-      <div class="dev-tools-section">
-        <h4>💳 Billing Plan</h4>
-        <div class="billing-controls">
-          <label for="devPlanSelect" class="sr-only">Billing plan</label>
-          <select id="devPlanSelect" class="dev-select">
-            <option value="evaluate" <?php echo (strtolower($currentBillingTier) === 'evaluate') ? 'selected' : ''; ?>>Evaluate</option>
-            <option value="operate" <?php echo (strtolower($currentBillingTier) === 'operate') ? 'selected' : ''; ?>>Operate</option>
-            <option value="control" <?php echo (strtolower($currentBillingTier) === 'control') ? 'selected' : ''; ?>>Control</option>
-          </select>
-          <button id="devSetPlanBtn" class="dev-btn dev-btn-primary">Set Plan</button>
-        </div>
-        <div class="billing-controls" style="margin-top: 10px;">
-          <label for="devSignupDate" style="color: #ccc; font-size: 12px; margin-right: 8px;">Signup Date:</label>
-          <input type="date" id="devSignupDate" class="dev-select" value="<?php echo htmlspecialchars($userSignupDate); ?>" style="width: 150px;">
-          <button id="devSetSignupDateBtn" class="dev-btn dev-btn-primary">Set Date</button>
-        </div>
-      </div>
       
       <!-- Data Management -->
       <div class="dev-tools-section">
         <h4>🗂️ Data Management</h4>
         <div class="data-controls">
-          <button id="devStartOverBtn" class="dev-btn dev-btn-danger">🔄 Start Over (Delete All & Reset)</button>
           <button id="devDeleteAllCasesBtn" class="dev-btn dev-btn-danger">Delete All Cases</button>
         </div>
       </div>
@@ -2798,13 +2747,7 @@ window.featureFlags = <?php echo getFeatureFlagsJson(); ?>;
       const devToolsPanel = document.getElementById('devToolsPanel');
       const toggleBtn = document.getElementById('toggleDevTools');
       const devToolsContent = document.getElementById('devToolsContent');
-      const envDevBtn = document.getElementById('envDevBtn');
-      const envUatBtn = document.getElementById('envUatBtn');
-      const devPlanSelect = document.getElementById('devPlanSelect');
-      
-      // Initialize with current environment from PHP
-      const currentEnv = '<?php echo $appConfig['current_environment'] ?? 'development'; ?>';
-      const currentPlan = '<?php echo $currentBillingTier; ?>';
+
       const isSuperUserInProd = devToolsPanel?.dataset?.isSuperUser === 'true';
       const envDisplayName = devToolsPanel?.dataset?.envDisplayName || 'Production';
       
@@ -2824,13 +2767,6 @@ window.featureFlags = <?php echo getFeatureFlagsJson(); ?>;
         return userInput === 'CONFIRM';
       }
       
-      function updateEnvironmentUI(env) {
-        if (envDevBtn) envDevBtn.classList.toggle('active', env === 'development');
-        if (envUatBtn) envUatBtn.classList.toggle('active', env === 'uat');
-      }
-      
-      // Billing dropdown value is set via PHP selected attribute - no JS override needed
-      
       // Toggle dev tools panel
       if (toggleBtn) toggleBtn.addEventListener('click', function() {
         const isCollapsed = devToolsContent.style.display === 'none';
@@ -2838,70 +2774,6 @@ window.featureFlags = <?php echo getFeatureFlagsJson(); ?>;
         toggleBtn.textContent = isCollapsed ? '−' : '+';
         if (devToolsPanel) devToolsPanel.classList.toggle('collapsed', !isCollapsed);
       });
-      
-      // Environment switcher (only exists in development mode)
-      if (envDevBtn) {
-        envDevBtn.addEventListener('click', function() {
-          switchEnvironment('development');
-        });
-      }
-      
-      if (envUatBtn) {
-        envUatBtn.addEventListener('click', function() {
-          switchEnvironment('uat');
-        });
-      }
-      
-      function switchEnvironment(env) {
-        // Don't switch if already on this environment
-        if (env === currentEnv) {
-          showToast('Already in ' + (env === 'development' ? 'Development (Local DB)' : 'UAT (Prod DB)') + ' mode', 'info');
-          return;
-        }
-        
-        // Show loading state
-        if (envDevBtn) envDevBtn.disabled = true;
-        if (envUatBtn) envUatBtn.disabled = true;
-        showToast('Switching environment...', 'info');
-        
-        // Call API to switch environment
-        fetch('api/switch-environment.php', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]')?.content || ''
-            },
-            credentials: 'same-origin',
-            body: JSON.stringify({
-                environment: env
-            })
-        })
-        .then(response => response.json())
-        .then(data => {
-          if (data.success) {
-            // Update UI
-            updateEnvironmentUI(env);
-            
-            // Show success notification
-            showToast('Environment switched to: ' + (env === 'development' ? 'Development (Local DB)' : 'UAT (Prod DB)'), 'success');
-            
-            // Reload page after a short delay to apply changes
-            setTimeout(() => {
-              location.reload();
-            }, 1500);
-          } else {
-            showToast('Failed to switch environment: ' + data.message, 'error');
-          }
-        })
-        .catch(error => {
-          showToast('Error switching environment', 'error');
-        })
-        .finally(() => {
-          // Re-enable buttons
-          if (envDevBtn) envDevBtn.disabled = false;
-          if (envUatBtn) envUatBtn.disabled = false;
-        });
-      }
       
       // Generate test cases - handled by app.js, no duplicate handler needed here
       
@@ -2947,152 +2819,9 @@ window.featureFlags = <?php echo getFeatureFlagsJson(); ?>;
           });
       });
       
-      // Set billing plan
-      const devSetPlanBtn = document.getElementById('devSetPlanBtn');
-      if (devSetPlanBtn) {
-        devSetPlanBtn.addEventListener('click', function() {
-          const plan = document.getElementById('devPlanSelect').value;
-          
-          if (!plan) {
-            showToast('Please select a billing plan', 'error');
-            return;
-          }
-          
-          // Prevent multiple clicks during processing
-          if (this.disabled) {
-            return;
-          }
-          
-          // Disable button during request
-          this.disabled = true;
-          this.textContent = 'Setting...';
-          
-          // Make API call with the exact value from dropdown
-          fetch('../api/set-billing-tier.php', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-              billing_tier: plan
-            })
-          })
-          .then(response => response.json())
-          .then(data => {
-            if (data.success) {
-              showToast('Billing plan changed! Refreshing...', 'success');
-              setTimeout(() => location.reload(), 1000);
-            } else {
-              showToast('Failed to set plan: ' + data.message, 'error');
-              this.disabled = false;
-              this.textContent = 'Set Plan';
-            }
-          })
-          .catch(error => {
-            showToast('Error setting billing plan', 'error');
-            this.disabled = false;
-            this.textContent = 'Set Plan';
-          });
-        });
-      }
       
-      // Set signup date
-      const devSetSignupDateBtn = document.getElementById('devSetSignupDateBtn');
-      if (devSetSignupDateBtn) {
-        devSetSignupDateBtn.addEventListener('click', function() {
-          const signupDate = document.getElementById('devSignupDate').value;
-          
-          if (!signupDate) {
-            showToast('Please select a date', 'error');
-            return;
-          }
-          
-          this.disabled = true;
-          this.textContent = 'Setting...';
-          
-          fetch('api/set-signup-date.php', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-              signup_date: signupDate
-            })
-          })
-          .then(response => response.json())
-          .then(data => {
-            if (data.success) {
-              showToast('Signup date changed! Refreshing...', 'success');
-              setTimeout(() => location.reload(), 1000);
-            } else {
-              showToast('Failed to set date: ' + data.message, 'error');
-              this.disabled = false;
-              this.textContent = 'Set Date';
-            }
-          })
-          .catch(error => {
-            showToast('Error setting signup date', 'error');
-            this.disabled = false;
-            this.textContent = 'Set Date';
-          });
-        });
-      }
       
-      // Start Over - Complete Reset
-      const devStartOverBtn = document.getElementById('devStartOverBtn');
-      if (devStartOverBtn) devStartOverBtn.addEventListener('click', function() {
-        // Require confirmation in UAT/Production (extra strict for this dangerous action)
-        if (!confirmDestructiveAction(
-          'COMPLETE DATA RESET',
-          'This will DELETE EVERYTHING for your practice including:\n' +
-          '• All cases and case history\n' +
-          '• All Google Drive folders and files\n' +
-          '• All user accounts in this practice\n' +
-          '• All user preferences and settings\n' +
-          '• The practice itself\n' +
-          '• Your session will be terminated\n\n' +
-          'THIS ACTION CANNOT BE UNDONE!\n\n' +
-          'You will need to create a new account after this reset.'
-        )) {
-          showToast('Action cancelled', 'info');
-          return;
-        }
-        
-        // Show toast message
-        if (typeof showToast === 'function') {
-          showToast('Deleting your practice and all associated data...', 'info');
-        }
-        
-        // Clear browser storage silently
-        try {
-          localStorage.clear();
-          sessionStorage.clear();
-        } catch(e) {}
-        
-        // Clear cookies
-        try {
-          document.cookie.split(";").forEach(function(c) { 
-            document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/"); 
-          });
-        } catch(e) {}
-        
-        // Call reset API and redirect silently
-        fetch('api/reset-all-data.php', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]')?.content || ''
-          },
-          credentials: 'same-origin',
-          body: JSON.stringify({ confirm: true })
-        })
-        .then(function() {
-          window.location.href = 'login.php';
-        })
-        .catch(function() {
-          window.location.href = 'login.php';
-        });
-      });
+      
     });
   </script>
 <?php endif; ?>

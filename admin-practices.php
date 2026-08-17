@@ -536,6 +536,83 @@ $userEmail = $_SESSION['user_email'] ?? '';
             padding: 4px 8px;
             font-size: 0.75rem;
         }
+        
+        .view-toggle {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .view-toggle .action-btn {
+            background: #f3f4f6;
+            color: #374151;
+        }
+        
+        .view-toggle .action-btn.active {
+            background: #3b82f6;
+            color: white;
+        }
+        
+        .action-btn.secondary {
+            background: #e5e7eb;
+            color: #374151;
+        }
+        
+        .action-btn.secondary:hover {
+            background: #d1d5db;
+        }
+        
+        .action-btn.warning {
+            background: #fef3c7;
+            color: #92400e;
+        }
+        
+        .action-btn.warning:hover {
+            background: #fde68a;
+        }
+        
+        .settings-card {
+            background: #f9fafb;
+            border-radius: 8px;
+            padding: 14px 16px;
+            margin-bottom: 14px;
+        }
+        
+        .settings-card h4 {
+            margin: 0 0 10px 0;
+            color: #1f2937;
+            font-size: 0.95rem;
+        }
+        
+        .settings-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 6px 0;
+            border-bottom: 1px solid #e5e7eb;
+            font-size: 0.85rem;
+        }
+        
+        .settings-row:last-child {
+            border-bottom: none;
+        }
+        
+        .settings-row .settings-label {
+            color: #6b7280;
+        }
+        
+        .settings-row .settings-value {
+            font-weight: 500;
+            color: #1f2937;
+        }
+        
+        .settings-list {
+            margin: 0;
+            padding-left: 18px;
+            font-size: 0.85rem;
+        }
+        
+        .settings-list li {
+            margin-bottom: 4px;
+        }
     </style>
 </head>
 <body>
@@ -574,8 +651,10 @@ $userEmail = $_SESSION['user_email'] ?? '';
             <!-- Left panel: Practice list -->
             <div class="practices-table-container">
                 <div class="table-header">
-                    <h2>All Practices</h2>
-                    <div>
+                    <h2 id="practicesTableTitle">All Practices</h2>
+                    <div class="view-toggle" id="viewToggle">
+                        <button class="action-btn active" id="viewAllBtn" onclick="setView('all')">All Practices</button>
+                        <button class="action-btn" id="viewHiddenBtn" onclick="setView('hidden')">Hidden Practices</button>
                         <button class="action-btn primary" onclick="loadPractices()">↻ Refresh</button>
                     </div>
                 </div>
@@ -652,6 +731,7 @@ $userEmail = $_SESSION['user_email'] ?? '';
     <script>
         let practices = [];
         let selectedPracticeId = null;
+        let currentView = 'all';
         
         // Load practices on page load
         document.addEventListener('DOMContentLoaded', loadPractices);
@@ -677,11 +757,28 @@ $userEmail = $_SESSION['user_email'] ?? '';
                 });
         }
         
+        function setView(view) {
+            currentView = view;
+            document.getElementById('viewAllBtn').classList.toggle('active', view === 'all');
+            document.getElementById('viewHiddenBtn').classList.toggle('active', view === 'hidden');
+            document.getElementById('practicesTableTitle').textContent = view === 'all' ? 'All Practices' : 'Hidden Practices';
+            renderPractices();
+            updateStats();
+        }
+        
+        function visiblePractices() {
+            if (currentView === 'hidden') {
+                return practices.filter(p => p.is_hidden);
+            }
+            return practices.filter(p => !p.is_hidden);
+        }
+        
         function updateStats() {
-            const total = practices.length;
-            const active = practices.filter(p => p.is_active === true || p.is_active === '1' || p.is_active === 1).length;
+            const visible = visiblePractices();
+            const total = visible.length;
+            const active = visible.filter(p => p.is_active === true || p.is_active === '1' || p.is_active === 1).length;
             const inactive = total - active;
-            const deletionEligible = practices.filter(p => p.can_delete).length;
+            const deletionEligible = visible.filter(p => p.can_delete).length;
             
             document.getElementById('totalPractices').textContent = total;
             document.getElementById('activePractices').textContent = active;
@@ -690,9 +787,10 @@ $userEmail = $_SESSION['user_email'] ?? '';
         }
         
         function renderPractices() {
-            if (practices.length === 0) {
+            const visible = visiblePractices();
+            if (visible.length === 0) {
                 document.getElementById('practicesTableBody').innerHTML = 
-                    '<div class="empty-state">No practices found</div>';
+                    '<div class="empty-state">No practices found in this view</div>';
                 return;
             }
             
@@ -705,7 +803,7 @@ $userEmail = $_SESSION['user_email'] ?? '';
                 '<th>Actions</th>' +
                 '</tr></thead><tbody>';
             
-            practices.forEach(practice => {
+            visible.forEach(practice => {
                 const isActive = practice.is_active === true || practice.is_active === '1' || practice.is_active === 1;
                 const statusClass = isActive ? 'active' : 'inactive';
                 const statusText = isActive ? 'Active' : 'Inactive';
@@ -714,6 +812,9 @@ $userEmail = $_SESSION['user_email'] ?? '';
                 const baaText = practice.baa_accepted ? 'Accepted' : 'Pending';
                 
                 const selectedClass = selectedPracticeId === practice.id ? 'selected' : '';
+                const hideButton = practice.is_hidden
+                    ? '<button class="action-btn success" onclick="unhidePractice(' + practice.id + ')">Unhide</button>'
+                    : '<button class="action-btn secondary" onclick="hidePractice(' + practice.id + ')">Hide</button>';
                 
                 html += '<tr class="practice-row ' + selectedClass + '" onclick="selectPractice(' + practice.id + ')" data-practice-id="' + practice.id + '">' +
                     '<td>' +
@@ -734,6 +835,7 @@ $userEmail = $_SESSION['user_email'] ?? '';
                         (isActive 
                             ? '<button class="action-btn danger" onclick="deactivatePractice(' + practice.id + ', \'' + escapeHtml(practice.practice_name || '').replace(/'/g, "\\'") + '\')">Deactivate</button>'
                             : '<button class="action-btn success" onclick="reactivatePractice(' + practice.id + ')">Reactivate</button>') +
+                        hideButton +
                     '</td>' +
                     '</tr>';
             });
@@ -774,6 +876,7 @@ $userEmail = $_SESSION['user_email'] ?? '';
                     '<button class="detail-tab active" onclick="showTab(\'compliance\', ' + practiceId + ')">Compliance Details</button>' +
                     '<button class="detail-tab" onclick="showTab(\'phi\', ' + practiceId + ')">PHI Access Log</button>' +
                     '<button class="detail-tab" onclick="showTab(\'users\', ' + practiceId + ')">Users</button>' +
+                    '<button class="detail-tab" onclick="showTab(\'settings\', ' + practiceId + ')">Settings</button>' +
                 '</div>' +
                 '<div class="detail-content" id="detailContent">' +
                     '<div class="loading">Loading...</div>' +
@@ -796,6 +899,8 @@ $userEmail = $_SESSION['user_email'] ?? '';
                 loadPHITab(practiceId);
             } else if (tab === 'users') {
                 loadUsersTab(practiceId);
+            } else if (tab === 'settings') {
+                loadSettingsTab(practiceId);
             }
         }
         
@@ -823,6 +928,10 @@ $userEmail = $_SESSION['user_email'] ?? '';
                     '<div class="value">' + (compliance.baa_accepted 
                         ? '✅ v' + compliance.baa_version + ' (' + formatDate(compliance.baa_accepted_at) + ')'
                         : '⚠️ Not Accepted') + '</div>' +
+                '</div>' +
+                '<div class="compliance-detail" style="grid-column: 1 / -1;">' +
+                    '<div class="label">BAA Practice Address</div>' +
+                    '<div class="value">' + (compliance.practice_address ? escapeHtml(compliance.practice_address).replace(/\n/g, '<br>') : 'Not provided') + '</div>' +
                 '</div>' +
                 '<div class="compliance-detail">' +
                     '<div class="label">Created</div>' +
@@ -940,6 +1049,92 @@ $userEmail = $_SESSION['user_email'] ?? '';
             document.getElementById('detailContent').innerHTML = html;
         }
         
+        function loadSettingsTab(practiceId) {
+            fetch('api/admin-practices.php?action=settings&practice_id=' + practiceId, { credentials: 'same-origin' })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        renderSettingsTab(data.settings);
+                    } else {
+                        document.getElementById('detailContent').innerHTML =
+                            '<div class="empty-state">Error: ' + (data.message || 'Unknown error') + '</div>';
+                    }
+                });
+        }
+        
+        function renderSettingsTab(settings) {
+            const yesNo = value => value ? 'Yes' : 'No';
+            
+            let html = '<div class="settings-card">' +
+                '<h4>Case Management</h4>' +
+                '<div class="settings-row"><span class="settings-label">Allow Archiving Individual Cases</span><span class="settings-value">' + yesNo(settings.case_management.allow_archiving_individual_cases) + '</span></div>' +
+                '<div class="settings-row"><span class="settings-label">Auto-Archive Delivered Cases</span><span class="settings-value">' + yesNo(settings.case_management.auto_archive_delivered_cases) + '</span></div>' +
+                (settings.case_management.archive_delivered_cases_after_days > 0
+                    ? '<div class="settings-row"><span class="settings-label">Archive Delivered After Days</span><span class="settings-value">' + settings.case_management.archive_delivered_cases_after_days + '</span></div>'
+                    : '') +
+                '</div>';
+            
+            html += '<div class="settings-card">' +
+                '<h4>Due Date Highlighting</h4>' +
+                '<div class="settings-row"><span class="settings-label">Highlight Past Due</span><span class="settings-value">' + yesNo(settings.due_date_highlighting.highlight_past_due) + '</span></div>' +
+                (settings.due_date_highlighting.highlight_past_due
+                    ? '<div class="settings-row"><span class="settings-label">Past Due Threshold (days)</span><span class="settings-value">' + settings.due_date_highlighting.past_due_days + '</span></div>'
+                    : '') +
+                '<div class="settings-row"><span class="settings-label">Highlight Coming Due</span><span class="settings-value">' + yesNo(settings.due_date_highlighting.highlight_coming_due) + '</span></div>' +
+                (settings.due_date_highlighting.highlight_coming_due
+                    ? '<div class="settings-row"><span class="settings-label">Coming Due Window (days)</span><span class="settings-value">' + settings.due_date_highlighting.coming_due_days + '</span></div>'
+                    : '') +
+                '</div>';
+            
+            html += '<div class="settings-card">' +
+                '<h4>Workflow Stages</h4>' +
+                '<ol class="settings-list">' +
+                Object.values(settings.workflow_stages || {}).map(label => '<li>' + escapeHtml(label) + '</li>').join('') +
+                '</ol>' +
+                '</div>';
+            
+            html += '<div class="settings-card">' +
+                '<h4>Users</h4>';
+            if (settings.users && settings.users.length > 0) {
+                html += '<table class="phi-log-table"><thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Active</th></tr></thead><tbody>';
+                settings.users.forEach(user => {
+                    html += '<tr>' +
+                        '<td><strong>' + escapeHtml(user.name || '-') + '</strong></td>' +
+                        '<td>' + escapeHtml(user.email || '-') + '</td>' +
+                        '<td>' + escapeHtml(user.role || '-') + '</td>' +
+                        '<td>' + yesNo(user.active) + '</td>' +
+                        '</tr>';
+                });
+                html += '</tbody></table>';
+            } else {
+                html += '<p style="font-size: 0.85rem; color: #6b7280;">No users found</p>';
+            }
+            html += '</div>';
+            
+            html += '<div class="settings-card">' +
+                '<h4>Assignment Labels</h4>';
+            if (settings.assignment_labels && settings.assignment_labels.length > 0) {
+                html += '<table class="phi-log-table"><thead><tr><th>Label</th><th>Lab</th></tr></thead><tbody>';
+                settings.assignment_labels.forEach(label => {
+                    html += '<tr>' +
+                        '<td>' + escapeHtml(label.label || '-') + '</td>' +
+                        '<td>' + yesNo(label.is_lab) + '</td>' +
+                        '</tr>';
+                });
+                html += '</tbody></table>';
+            } else {
+                html += '<p style="font-size: 0.85rem; color: #6b7280;">No assignment labels found</p>';
+            }
+            html += '</div>';
+            
+            html += '<div class="settings-card">' +
+                '<h4>Security</h4>' +
+                '<div class="settings-row"><span class="settings-label">Two-Factor Authentication Enabled</span><span class="settings-value">' + yesNo(settings.security.two_factor_authentication_enabled) + '</span></div>' +
+                '</div>';
+            
+            document.getElementById('detailContent').innerHTML = html;
+        }
+        
         function viewCompliance(practiceId) {
             selectedPracticeId = practiceId;
             document.getElementById('complianceDetails').innerHTML = '<div class="loading">Loading...</div>';
@@ -975,6 +1170,10 @@ $userEmail = $_SESSION['user_email'] ?? '';
                 '<div class="value">' + (compliance.baa_accepted 
                     ? '✅ Accepted on ' + formatDate(compliance.baa_accepted_at) + ' (v' + compliance.baa_version + ')'
                     : '⚠️ Not Accepted') + '</div>' +
+                '</div>' +
+                '<div class="compliance-detail">' +
+                '<div class="label">BAA Practice Address</div>' +
+                '<div class="value">' + (compliance.practice_address ? escapeHtml(compliance.practice_address).replace(/\n/g, '<br>') : 'Not provided') + '</div>' +
                 '</div>' +
                 '<div class="compliance-detail">' +
                 '<div class="label">Created</div>' +
@@ -1116,6 +1315,46 @@ $userEmail = $_SESSION['user_email'] ?? '';
                     alert('Practice reactivated successfully');
                 } else {
                     alert('Error: ' + (data.message || 'Failed to reactivate practice'));
+                }
+            })
+            .catch(error => {
+                alert('Error: ' + error.message);
+            });
+        }
+        
+        function hidePractice(practiceId) {
+            fetch('api/admin-practices.php?action=hide', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'same-origin',
+                body: JSON.stringify({ practice_id: practiceId })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    loadPractices();
+                } else {
+                    alert('Error: ' + (data.message || 'Failed to hide practice'));
+                }
+            })
+            .catch(error => {
+                alert('Error: ' + error.message);
+            });
+        }
+        
+        function unhidePractice(practiceId) {
+            fetch('api/admin-practices.php?action=unhide', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'same-origin',
+                body: JSON.stringify({ practice_id: practiceId })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    loadPractices();
+                } else {
+                    alert('Error: ' + (data.message || 'Failed to unhide practice'));
                 }
             })
             .catch(error => {

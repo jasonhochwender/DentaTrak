@@ -7951,11 +7951,7 @@ document.addEventListener('DOMContentLoaded', function () {
   // Dev-only fake case generator (power users only)
   var devGenerateBtn = document.getElementById('devGenerateCasesBtn');
   var devCaseCountInput = document.getElementById('devCaseCount');
-  var devDeleteAllBtn = document.getElementById('devDeleteAllCasesBtn');
-  var devClearCookieBtn = document.getElementById('devClearPracticeCookieBtn');
-  var devResetAllDataBtn = document.getElementById('devResetAllDataBtn');
-  var devPlanSelect = document.getElementById('devPlanSelect');
-  var devSetPlanBtn = document.getElementById('devSetPlanBtn');
+  var devGenerateDemoDataBtn = document.getElementById('devGenerateDemoDataBtn');
 
   if (devGenerateBtn && devCaseCountInput) {
     devGenerateBtn.addEventListener('click', function () {
@@ -8068,137 +8064,6 @@ document.addEventListener('DOMContentLoaded', function () {
       callGenerator({});
     });
   }
-
-  // Dev-only delete all cases
-  if (devDeleteAllBtn) {
-    devDeleteAllBtn.addEventListener('click', function () {
-      devDeleteAllBtn.disabled = true;
-      var originalDeleteText = devDeleteAllBtn.textContent;
-      devDeleteAllBtn.textContent = 'Deleting...';
-
-      fetch('api/delete-all-cases.php', {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-CSRF-Token': csrfToken
-        },
-        credentials: 'same-origin'
-      })
-      .then(function (response) { return response.json(); })
-      .then(function (data) {
-        devDeleteAllBtn.disabled = false;
-        devDeleteAllBtn.textContent = originalDeleteText;
-
-        if (!data || !data.success) {
-          var msg = (data && data.message) ? data.message : 'Failed to delete cases.';
-          showToast(msg, 'error');
-          return;
-        }
-
-        showToast(data.message || 'All cases deleted.', 'success');
-
-        setTimeout(function () {
-          window.location.reload();
-        }, 500);
-      })
-      .catch(function (err) {
-        devDeleteAllBtn.disabled = false;
-        devDeleteAllBtn.textContent = originalDeleteText;
-        showToast('Error deleting cases: ' + err.message, 'error');
-      });
-    });
-  }
-
-  if (devClearCookieBtn) {
-    devClearCookieBtn.addEventListener('click', function () {
-
-      devClearCookieBtn.disabled = true;
-      var originalClearText = devClearCookieBtn.textContent;
-      devClearCookieBtn.textContent = 'Clearing...';
-
-      fetch('api/clear-preferred-practice-cookie.php', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        credentials: 'same-origin'
-      })
-      .then(function (response) { return response.json(); })
-      .then(function (data) {
-        devClearCookieBtn.disabled = false;
-        devClearCookieBtn.textContent = originalClearText;
-
-        if (!data || !data.success) {
-          var msg = (data && data.message) ? data.message : 'Failed to clear preferred practice cookie.';
-          showToast(msg, 'error');
-          return;
-        }
-
-        showToast(data.message || 'Preferred practice cookie cleared. Sign out and sign back in to test login.', 'success');
-      })
-      .catch(function (err) {
-        devClearCookieBtn.disabled = false;
-        devClearCookieBtn.textContent = originalClearText;
-        showToast('Error clearing preferred practice cookie: ' + err.message, 'error');
-      });
-    });
-  }
-
-  if (devResetAllDataBtn) {
-    // Capture-phase handler to block any other click handlers (including old inline confirm())
-    devResetAllDataBtn.addEventListener('click', function (event) {
-      if (event) {
-        if (typeof event.preventDefault === 'function') {
-          event.preventDefault();
-        }
-        if (typeof event.stopImmediatePropagation === 'function') {
-          event.stopImmediatePropagation();
-        }
-      }
-
-      // Force-disable any confirm/alert prompts triggered by older handlers
-      try {
-        if (typeof window !== 'undefined') {
-          window.confirm = function () { return true; };
-          window.alert = function () {};
-        }
-      } catch (e) {
-        // Ignore errors overriding built-ins
-      }
-
-      // Clear client-side storage silently
-      try {
-        if (window.localStorage) {
-          localStorage.clear();
-        }
-        if (window.sessionStorage) {
-          sessionStorage.clear();
-        }
-      } catch (e) {
-        // Ignore storage clearing errors
-      }
-
-      // Direct reset via API - no confirmations or messages
-      fetch('api/reset-all-data.php', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-CSRF-Token': csrfToken
-        },
-        credentials: 'same-origin',
-        body: JSON.stringify({ confirm: true })
-      })
-      .then(function () {
-        // Silent redirect regardless of success/failure
-        window.location.href = 'login.php';
-      })
-      .catch(function () {
-        // Silent redirect even on error
-        window.location.href = 'login.php';
-      });
-    }, true);
-  }
-
 
   // Function to print a case with all details and file contents
   function printCase(caseData) {
@@ -8490,52 +8355,7 @@ document.addEventListener('DOMContentLoaded', function () {
   // Billing functionality
   let billingInfo = null;
 
-  // Dev plan selector
-  if (devPlanSelect && devSetPlanBtn) {
-    devSetPlanBtn.addEventListener('click', function () {
-      var selectedPlan = devPlanSelect.value;
 
-      if (!selectedPlan) {
-        showToast('Please select a plan', 'warning');
-        return;
-      }
-
-      devSetPlanBtn.disabled = true;
-      var originalText = devSetPlanBtn.textContent;
-      devSetPlanBtn.textContent = 'Setting...';
-
-      fetch('api/set-billing-tier.php', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-CSRF-Token': csrfToken
-        },
-        credentials: 'same-origin',
-        body: JSON.stringify({ billing_tier: selectedPlan })
-      })
-      .then(function (response) { return response.json(); })
-      .then(function (data) {
-        devSetPlanBtn.disabled = false;
-        devSetPlanBtn.textContent = originalText;
-
-        if (!data || !data.success) {
-          var msg = (data && data.message) ? data.message : 'Failed to set billing tier.';
-          showToast(msg, 'error');
-          return;
-        }
-
-        showToast('Billing tier updated to ' + selectedPlan, 'success');
-
-        // Reload billing info to update the UI
-        loadBillingInfo();
-      })
-      .catch(function (err) {
-        devSetPlanBtn.disabled = false;
-        devSetPlanBtn.textContent = originalText;
-        showToast('Error setting billing tier: ' + err.message, 'error');
-      });
-    });
-  }
 
   // Load billing information from API
   function loadBillingInfo() {
@@ -8604,11 +8424,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
         // Apply billing restrictions
         applyBillingRestrictions();
-
-        // Update dev plan selector if it exists
-        if (devPlanSelect && data.billing_tier) {
-          devPlanSelect.value = data.billing_tier;
-        }
       })
       .catch(error => {
         const billingTierElement = document.getElementById('userBillingTier');
