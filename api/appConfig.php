@@ -194,7 +194,8 @@ Here is the workflow data to analyze:
             'environment'              => $env,
             'publishable_key'          => $publishableKey ?: null,
             'secret_key'               => $secretKey       ?: null,
-            'webhook_secret'           => getEnvVar('STRIPE_WEBHOOK_SECRET') ?: null,
+            'webhook_secret'           => getEnvVar('STRIPE_WEBHOOK_SECRET')      ?: null,
+            'webhook_secret_test'      => getEnvVar('STRIPE_WEBHOOK_SECRET_TEST') ?: null,
             'portal_configuration_id'  => getEnvVar('STRIPE_PORTAL_CONFIGURATION_ID') ?: null,
 
             // Server-side Price ID map — never sent to or accepted from the browser.

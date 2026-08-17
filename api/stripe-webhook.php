@@ -44,6 +44,7 @@ require_once __DIR__ . '/appConfig.php';
 // api/create-checkout-session.php so both directions of the mapping have a
 // single source of truth.
 require_once __DIR__ . '/stripe-price-map.php';
+require_once __DIR__ . '/stripe-webhook-guard.php';
 
 header('Content-Type: application/json');
 ini_set('display_errors', '0');
@@ -51,8 +52,9 @@ ini_set('display_startup_errors', '0');
 error_reporting(E_ALL & ~E_DEPRECATED & ~E_USER_DEPRECATED);
 
 // ── Validate server-side Stripe config ───────────────────────────────────────
-$webhookSecret = $appConfig['stripe']['webhook_secret'] ?? null;
-$secretKey     = $appConfig['stripe']['secret_key']     ?? null;
+$webhookSecret      = $appConfig['stripe']['webhook_secret']      ?? null;
+$webhookSecretTest  = $appConfig['stripe']['webhook_secret_test'] ?? null;
+$secretKey          = $appConfig['stripe']['secret_key']          ?? null;
 
 if (empty($webhookSecret) || empty($secretKey)) {
     error_log('[stripe-webhook] STRIPE_WEBHOOK_SECRET or STRIPE_SECRET_KEY not configured');
@@ -71,17 +73,45 @@ if (empty($sigHeader)) {
 
 \Stripe\Stripe::setApiKey($secretKey);
 
+$event = null;
+$signatureError = null;
+$verifiedWithTestSecret = false;
+
 try {
     $event = \Stripe\Webhook::constructEvent($rawBody, $sigHeader, $webhookSecret);
 } catch (\Stripe\Exception\SignatureVerificationException $e) {
-    error_log('[stripe-webhook] Signature verification failed');
-    http_response_code(400);
-    echo json_encode(['error' => 'Invalid webhook signature']);
-    exit;
+    $signatureError = $e;
 } catch (\UnexpectedValueException $e) {
     error_log('[stripe-webhook] Unparseable payload');
     http_response_code(400);
     echo json_encode(['error' => 'Invalid payload']);
+    exit;
+}
+
+// Test-mode events may be sent to the same endpoint with a different signing
+// secret. If the primary secret fails and a test secret is configured, try it.
+if (!$event && !empty($webhookSecretTest)) {
+    try {
+        $event = \Stripe\Webhook::constructEvent($rawBody, $sigHeader, $webhookSecretTest);
+        $verifiedWithTestSecret = true;
+    } catch (\Stripe\Exception\SignatureVerificationException $e) {
+        $signatureError = $e;
+    }
+}
+
+if (!$event) {
+    error_log('[stripe-webhook] Signature verification failed');
+    http_response_code(400);
+    echo json_encode(['error' => 'Invalid webhook signature']);
+    exit;
+}
+
+// Do not let test events mutate production billing state. Acknowledge them so
+// Stripe does not consider the delivery failed, but skip further processing.
+if (!shouldProcessWebhookEvent($event, $verifiedWithTestSecret, $appConfig)) {
+    error_log('[stripe-webhook] Test-mode event received in live environment; acknowledging without processing. event=' . $event->id);
+    http_response_code(200);
+    echo json_encode(['status' => 'test_event_acknowledged', 'processed' => false]);
     exit;
 }
 

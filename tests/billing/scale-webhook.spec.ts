@@ -26,11 +26,15 @@ const CONTROL_MONTHLY_PRICE_ID          = 'price_1U3JUuQk34photKQrbz2tVed';
 const PASSWORD = 'D3n7@Tr@k!9Zf#Qm2xL8V';
 
 /** Read STRIPE_WEBHOOK_SECRET from .env so events can be signed exactly as Stripe would. */
-function getWebhookSecret(): string {
+function getWebhookSecret(which: 'primary' | 'test' = 'primary'): string | null {
   const envPath = path.resolve(__dirname, '../../.env');
   const contents = fs.readFileSync(envPath, 'utf8');
-  const match = contents.match(/^STRIPE_WEBHOOK_SECRET=(.+)$/m);
-  if (!match) throw new Error('STRIPE_WEBHOOK_SECRET not found in .env');
+  const varName = which === 'test' ? 'STRIPE_WEBHOOK_SECRET_TEST' : 'STRIPE_WEBHOOK_SECRET';
+  const match = contents.match(new RegExp(`^${varName}=(.+)$`, 'm'));
+  if (!match) {
+    if (which === 'primary') throw new Error('STRIPE_WEBHOOK_SECRET not found in .env');
+    return null;
+  }
   return match[1].trim();
 }
 
@@ -41,6 +45,17 @@ async function testHelper(ctx: any, data: Record<string, unknown>) {
   return json;
 }
 
+async function setupOwner(ctx: any, email: string, practiceName: string) {
+  return testHelper(ctx, {
+    action: 'setup_test_user',
+    email,
+    password: PASSWORD,
+    practiceName,
+    firstName: 'E2E',
+    lastName: 'Owner',
+  });
+}
+
 async function describePlanConfig(ctx: any, priceId?: string) {
   const res = await ctx.post(`${BASE_URL}/api/test-helpers.php`, {
     data: { action: 'describe_plan_config', ...(priceId ? { price_id: priceId } : {}) },
@@ -49,11 +64,11 @@ async function describePlanConfig(ctx: any, priceId?: string) {
 }
 
 /** POST a Stripe-signed event to the webhook endpoint. */
-async function sendWebhookEvent(ctx: any, event: Record<string, any>) {
+async function sendWebhookEvent(ctx: any, event: Record<string, any>, secret?: string) {
   const payload   = JSON.stringify(event);
   const timestamp = Math.floor(Date.now() / 1000);
   const signature = crypto
-    .createHmac('sha256', getWebhookSecret())
+    .createHmac('sha256', secret ?? getWebhookSecret())
     .update(`${timestamp}.${payload}`)
     .digest('hex');
 
@@ -83,6 +98,7 @@ function subscriptionEvent(opts: {
   cancelAtPeriodEnd?: boolean;
   createdOffsetSeconds?: number;
   additionalPriceId?: string;
+  livemode?: boolean;
 }) {
   const nowSec = Math.floor(Date.now() / 1000);
   const created = nowSec + (opts.createdOffsetSeconds ?? 0);
@@ -107,6 +123,7 @@ function subscriptionEvent(opts: {
     object: 'event',
     api_version: '2024-06-20',
     created,
+    livemode: opts.livemode ?? false,
     type: opts.eventType ?? 'customer.subscription.updated',
     data: {
       object: {
@@ -342,5 +359,129 @@ test.describe.serial('Scale - webhook plan recognition (owner-level subscription
     expect(state.subscription.plan).toBe('scale');
     expect(state.subscription.billing_interval).toBe('year');
     expect(state.subscription.stripe_price_id).toBe(SCALE_ANNUAL_PRICE_ID);
+  });
+});
+
+test.describe('Webhook signature fallback', () => {
+  const FALLBACK_CUSTOMER = `cus_fallback_test_${crypto.randomBytes(8).toString('hex')}`;
+  const FALLBACK_SUBSCRIPTION = `sub_fallback_test_${crypto.randomBytes(8).toString('hex')}`;
+
+  test('events signed with STRIPE_WEBHOOK_SECRET_TEST are accepted when primary secret fails', async () => {
+    const testSecret = getWebhookSecret('test');
+    if (!testSecret) {
+      test.skip(true, 'STRIPE_WEBHOOK_SECRET_TEST not configured; skipping fallback test');
+      return;
+    }
+
+    const ctx = await playwrightRequest.newContext();
+    const event = subscriptionEvent({
+      customerId: FALLBACK_CUSTOMER,
+      subscriptionId: FALLBACK_SUBSCRIPTION,
+      priceId: SCALE_MONTHLY_PRICE_ID,
+      status: 'active',
+    });
+    const res = await sendWebhookEvent(ctx, event, testSecret);
+    await ctx.dispose();
+
+    expect(res.status).toBe(200);
+    expect(res.body.success ?? true).toBeTruthy();
+  });
+
+  test('events with a completely unknown signature are still rejected', async () => {
+    const badSecret = 'whsec_' + crypto.randomBytes(24).toString('hex');
+    const ctx = await playwrightRequest.newContext();
+    const event = subscriptionEvent({
+      customerId: FALLBACK_CUSTOMER,
+      subscriptionId: FALLBACK_SUBSCRIPTION,
+      priceId: SCALE_MONTHLY_PRICE_ID,
+      status: 'active',
+      createdOffsetSeconds: 1,
+    });
+    const res = await sendWebhookEvent(ctx, event, badSecret);
+    await ctx.dispose();
+
+    expect(res.status).toBe(400);
+  });
+});
+
+test.describe('Webhook mode guard', () => {
+  const OWNER_EMAIL = `e2e.scale.guard.${crypto.randomBytes(4).toString('hex')}@dentatrak.com`;
+  const CUSTOMER_ID = `cus_livetest_${crypto.randomBytes(8).toString('hex')}`;
+  const SUBSCRIPTION_ID = `sub_livetest_${crypto.randomBytes(8).toString('hex')}`;
+
+  test.beforeAll(async () => {
+    const ctx = await playwrightRequest.newContext();
+    await setupOwner(ctx, OWNER_EMAIL, 'Webhook Guard Practice');
+    await testHelper(ctx, {
+      action: 'set_subscription_plan',
+      email: OWNER_EMAIL,
+      plan: 'scale',
+      status: 'active',
+      billing_interval: 'month',
+      stripe_customer_id: CUSTOMER_ID,
+      stripe_subscription_id: SUBSCRIPTION_ID,
+    });
+    await ctx.dispose();
+  });
+
+  test('live-signature + livemode=true event is accepted and processes the subscription', async () => {
+    const ctx = await playwrightRequest.newContext();
+    const res = await sendWebhookEvent(
+      ctx,
+      subscriptionEvent({
+        customerId: CUSTOMER_ID,
+        subscriptionId: SUBSCRIPTION_ID,
+        priceId: SCALE_MONTHLY_PRICE_ID,
+        livemode: true,
+        createdOffsetSeconds: 120,
+      })
+    );
+    await ctx.dispose();
+
+    expect(res.status).toBe(200);
+    expect(res.body.processed ?? true).toBeTruthy();
+
+    const stateCtx = await playwrightRequest.newContext();
+    const state = await testHelper(stateCtx, { action: 'get_subscription_state', email: OWNER_EMAIL });
+    await stateCtx.dispose();
+
+    expect(state.subscription.plan).toBe('scale');
+    expect(state.subscription.billing_interval).toBe('month');
+  });
+
+  test('test-mode events are blocked from processing in a live environment', async () => {
+    const ctx = await playwrightRequest.newContext();
+    const liveGuard = await ctx.post(`${BASE_URL}/api/test-helpers.php`, {
+      data: { action: 'test_webhook_mode_guard', environment: 'live', livemode: false, verified_with_test_secret: true },
+    });
+    const liveJson = await liveGuard.json().catch(() => ({}));
+    await ctx.dispose();
+
+    expect(liveJson.success).toBe(true);
+    expect(liveJson.should_process).toBe(false);
+  });
+
+  test('live-mode events are allowed to process in a live environment', async () => {
+    const ctx = await playwrightRequest.newContext();
+    const liveGuard = await ctx.post(`${BASE_URL}/api/test-helpers.php`, {
+      data: { action: 'test_webhook_mode_guard', environment: 'live', livemode: true, verified_with_test_secret: false },
+    });
+    const liveJson = await liveGuard.json().catch(() => ({}));
+    await ctx.dispose();
+
+    expect(liveJson.success).toBe(true);
+    expect(liveJson.should_process).toBe(true);
+  });
+
+  test('test-mode events are allowed to process in a test environment', async () => {
+    const ctx = await playwrightRequest.newContext();
+    const testGuard = await ctx.post(`${BASE_URL}/api/test-helpers.php`, {
+      data: { action: 'test_webhook_mode_guard', environment: 'test', livemode: false, verified_with_test_secret: true },
+    });
+    const testJson = await testGuard.json().catch(() => ({}));
+    await ctx.dispose();
+
+    expect(testJson.success).toBe(true);
+    expect(testJson.should_process).toBe(true);
   });
 });

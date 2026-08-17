@@ -10,6 +10,7 @@ require_once __DIR__ . '/appConfig.php';
 require_once __DIR__ . '/practice-trial.php';
 require_once __DIR__ . '/subscription-owner.php';
 require_once __DIR__ . '/scale-subscription-addons.php';
+require_once __DIR__ . '/stripe-webhook-guard.php';
 require_once __DIR__ . '/workflow-stages.php';
 
 // SECURITY CHECK: Only allow in development environment
@@ -60,6 +61,9 @@ switch ($action) {
         break;
     case 'test_scale_addon_restore':
         handleTestScaleAddonRestore($pdo, $appConfig, $input);
+        break;
+    case 'test_webhook_mode_guard':
+        handleTestWebhookModeGuard($appConfig, $input);
         break;
     case 'seed_owned_practices':
         handleSeedOwnedPractices($pdo, $input);
@@ -726,6 +730,33 @@ function handleTestScaleAddonRestore($pdo, $appConfig, $input) {
         http_response_code(500);
         echo json_encode(['success' => false, 'message' => 'Restore failed: ' . $e->getMessage()]);
     }
+}
+
+/**
+ * Verify the webhook mode guard without sending a real HTTP request.
+ * Takes an environment ('live' or 'test'), livemode flag, and whether the
+ * signature was verified with the test secret, and returns should_process.
+ */
+function handleTestWebhookModeGuard(array $appConfig, array $input) {
+    $environment          = in_array($input['environment'] ?? '', ['live', 'test'], true) ? $input['environment'] : 'test';
+    $livemode             = (bool)($input['livemode'] ?? false);
+    $verifiedWithTest     = (bool)($input['verified_with_test_secret'] ?? false);
+
+    $testConfig = $appConfig;
+    $testConfig['stripe']['environment'] = $environment;
+
+    $event = new stdClass();
+    $event->livemode = $livemode;
+
+    $shouldProcess = shouldProcessWebhookEvent($event, $verifiedWithTest, $testConfig);
+
+    echo json_encode([
+        'success'        => true,
+        'environment'    => $environment,
+        'livemode'       => $livemode,
+        'verified_test'  => $verifiedWithTest,
+        'should_process' => $shouldProcess,
+    ]);
 }
 
 /**
