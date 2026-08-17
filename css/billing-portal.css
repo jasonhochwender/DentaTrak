@@ -496,7 +496,7 @@
   margin-bottom: 8px;
 }
 
-/* Owned-practice allowance, e.g. "Up to 50 practices" */
+/* Owned-practice allowance, e.g. "5 practices included" */
 .bp-plan-practices {
   font-size: 0.82rem;
   font-weight: 600;
@@ -504,6 +504,13 @@
   padding-bottom: 8px;
   border-bottom: 1px solid #f3f4f6;
   margin-bottom: 4px;
+}
+
+.bp-plan-additional {
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: #6b7280;
+  margin-bottom: 10px;
 }
 
 .bp-plan-benefits {

@@ -4,9 +4,8 @@ import { loginAsOwner, loginAndGoTo, getUrl, BASE_URL } from '../helpers/login';
 /**
  * Scale Plan - Stripe Configuration, Checkout, Billing UI, and Entitlement
  *
- * Scale is $999/month or $9,990/year and allows up to 50 owned practices
- * ("everything in Control, plus support for up to 50 practices" - never
- * "unlimited").
+ * Scale is $999/month or $9,990/year and includes 5 practices.
+ * Additional practices are $99/month or $990/year each.
  *
  * Plan identification is always derived from the configured Stripe Price ID
  * for the RUNNING environment (api/stripe-price-map.php), never from a
@@ -195,10 +194,11 @@ test.describe('Scale - Billing UI', () => {
 
     await expect(scale.locator('.bp-plan-title')).toHaveText('Scale');
     await expect(scale.locator('.bp-plan-price')).toContainText('$9,990');
-    await expect(scale.locator('.bp-plan-practices')).toHaveText('Unlimited practices');
+    await expect(scale.locator('.bp-plan-practices')).toHaveText('5 practices included');
 
     // Existing annual value-proposition treatment applies to every plan.
     await expect(scale.locator('.bp-plan-savings')).toHaveText('Save 2 months');
+    await expect(scale.locator('.bp-plan-additional')).toHaveText('Additional practices: $990/year each');
     await expect(scale.locator('.bp-plan-select-btn')).toHaveText('Choose Scale');
   });
 
@@ -213,22 +213,25 @@ test.describe('Scale - Billing UI', () => {
     await expect(modal.locator('[data-plan-card="control"] .bp-plan-price')).toContainText('$499');
     await expect(modal.locator('[data-plan-card="scale"] .bp-plan-price')).toContainText('$999');
 
+    await expect(modal.locator('[data-plan-card="scale"] .bp-plan-additional')).toHaveText('Additional practices: $99/month each');
+
     // Monthly never advertises the annual savings badge.
     await expect(modal.locator('.bp-plan-savings')).toHaveCount(0);
   });
 
-  test('Scale is described as "everything in Control" with unlimited practices', async ({ page }) => {
+  test('Scale is described as "everything in Control" with 5 included practices and additional-practice pricing', async ({ page }) => {
     await loginAsOwner(page, OWNER_EMAIL, PASSWORD);
     const modal = await openBillingModal(page);
 
     const scale = modal.locator('[data-plan-card="scale"]');
+    await expect(scale.locator('.bp-plan-practices')).toHaveText('5 practices included');
     await expect(scale.locator('.bp-plan-benefits')).toContainText(
-      'Everything in Control, plus support for unlimited practices'
+      'Everything in Control, plus support for additional practices as your organization grows'
     );
 
-    // Scale is uncapped, so the copy should use the word "unlimited".
     const scaleText = ((await scale.textContent()) || '').toLowerCase();
-    expect(scaleText).toContain('unlimited');
+    expect(scaleText).toContain('5 practices included');
+    expect(scaleText).toContain('additional practices');
   });
 });
 

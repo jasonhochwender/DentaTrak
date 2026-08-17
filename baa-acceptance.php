@@ -538,7 +538,7 @@ $baaVersion = 'v1.0-2026-08-07';
             <?php if ($entitlementBlocked): ?>
             <div class="baa-intro" style="background: #fef3c7; border-color: #fcd34d;">
                 <p style="color: #92400e;">
-                    <strong>Your <?php echo htmlspecialchars($entitlement['plan_name']); ?> plan allows <?php echo $entitlement['max_practices'] === null ? 'unlimited' : (int)$entitlement['max_practices']; ?> owned practice<?php echo $entitlement['max_practices'] === 1 ? '' : 's'; ?>.</strong>
+                    <strong>Your <?php echo htmlspecialchars($entitlement['plan_name']); ?> plan <?php echo $entitlement['max_practices'] === null ? 'includes 5 practices' : 'allows ' . (int)$entitlement['max_practices'] . ' owned practice' . ($entitlement['max_practices'] === 1 ? '' : 's'); ?>.</strong>
                     You already own <?php echo (int)$entitlement['current_count']; ?>.<?php echo !empty($entitlement['upgrade_target']) ? ' To create another practice, upgrade your plan.' : ''; ?>
                 </p>
             </div>
@@ -549,11 +549,11 @@ $baaVersion = 'v1.0-2026-08-07';
             </p>
             <?php elseif ($entitlement['upgrade_target'] === 'scale'): ?>
             <p style="margin: 24px 0; color: #374151; line-height: 1.6;">
-                Upgrade to <strong>Scale</strong> for unlimited owned practices under one account — everything in Control, plus support for unlimited practices.
+                Upgrade to <strong>Scale</strong> for 5 included practices under one account — everything in Control, plus support for additional practices as your organization grows.
             </p>
             <?php else: ?>
             <p style="margin: 24px 0; color: #374151; line-height: 1.6;">
-                Your <?php echo htmlspecialchars($entitlement['plan_name']); ?> plan supports up to <?php echo $entitlement['max_practices'] === null ? 'unlimited' : (int)$entitlement['max_practices']; ?> practices. Please contact DentaTrak if you need additional practices.
+                Your <?php echo htmlspecialchars($entitlement['plan_name']); ?> plan <?php echo $entitlement['max_practices'] === null ? 'includes 5 practices with additional practices billed separately' : 'supports up to ' . (int)$entitlement['max_practices'] . ' practices'; ?>. Please contact DentaTrak if you need additional practices.
             </p>
             <?php endif; ?>
             <?php else: ?>

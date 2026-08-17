@@ -380,6 +380,10 @@ $articleUrls = $appConfig['public_urls'] ?? [];
       border-left-color: #dc2626;
     }
 
+    .hero-board-card.is-due-soon {
+      border-left-color: #f59e0b;
+    }
+
     .hero-board-flag {
       display: inline-block;
       margin-top: 7px;
@@ -389,6 +393,11 @@ $articleUrls = $appConfig['public_urls'] ?? [];
       color: #b91c1c;
       background: #fee2e2;
       border-radius: 999px;
+    }
+
+    .hero-board-flag.is-due-soon {
+      color: #92400e;
+      background: #fef3c7;
     }
 
     .hero-board-caption {
@@ -1001,58 +1010,60 @@ $articleUrls = $appConfig['public_urls'] ?? [];
       <div class="hero-board-frame">
         <div class="hero-board-columns">
           <div class="hero-board-column">
-            <div class="hero-board-stage"><span>Originated</span><span>3</span></div>
-            <div class="hero-board-card">
+            <div class="hero-board-stage"><span>Originated</span></div>
+            <div class="hero-board-card is-due-soon">
               <div class="hero-board-card-title">Crown &middot; #14</div>
-              <div class="hero-board-card-meta">Due Mar 14 &middot; Dr. Patel</div>
+              <div class="hero-board-card-meta">Due in 2 days &middot; Dr. Rivera</div>
+              <span class="hero-board-flag is-due-soon">Due Soon</span>
             </div>
             <div class="hero-board-card">
               <div class="hero-board-card-title">Implant &middot; #30</div>
-              <div class="hero-board-card-meta">Due Mar 18 &middot; Front desk</div>
+              <div class="hero-board-card-meta">Due Mar 18 &middot; Front Desk</div>
             </div>
           </div>
           <div class="hero-board-column">
-            <div class="hero-board-stage"><span>Sent To External Lab</span><span>4</span></div>
+            <div class="hero-board-stage"><span>Sent To External Lab</span></div>
             <div class="hero-board-card is-late">
               <div class="hero-board-card-title">Bridge &middot; #12&ndash;14</div>
-              <div class="hero-board-card-meta">Due Mar 6 &middot; Lab</div>
-              <span class="hero-board-flag">Past due</span>
+              <div class="hero-board-card-meta">Due Mar 6 &middot; Precision Dental Lab</div>
+              <span class="hero-board-flag">Late</span>
             </div>
-            <div class="hero-board-card">
-              <div class="hero-board-card-title">Denture</div>
-              <div class="hero-board-card-meta">Due Mar 20 &middot; Lab</div>
+            <div class="hero-board-card is-due-soon">
+              <div class="hero-board-card-title">Denture &middot; Lower</div>
+              <div class="hero-board-card-meta">Due in 3 days &middot; SmileCraft Lab</div>
+              <span class="hero-board-flag is-due-soon">Due Soon</span>
             </div>
           </div>
           <div class="hero-board-column">
-            <div class="hero-board-stage"><span>Designed</span><span>2</span></div>
+            <div class="hero-board-stage"><span>Designed</span></div>
             <div class="hero-board-card">
               <div class="hero-board-card-title">Veneer &middot; #8&ndash;9</div>
-              <div class="hero-board-card-meta">Due Mar 22 &middot; Lab</div>
+              <div class="hero-board-card-meta">Due Mar 22 &middot; Design Team</div>
             </div>
           </div>
           <div class="hero-board-column">
-            <div class="hero-board-stage"><span>Manufactured</span><span>3</span></div>
+            <div class="hero-board-stage"><span>Manufactured</span></div>
             <div class="hero-board-card">
               <div class="hero-board-card-title">Crown &middot; #19</div>
-              <div class="hero-board-card-meta">Due Mar 24 &middot; Lab</div>
+              <div class="hero-board-card-meta">Due Mar 24 &middot; Precision Dental Lab</div>
             </div>
             <div class="hero-board-card">
               <div class="hero-board-card-title">Inlay &middot; #3</div>
-              <div class="hero-board-card-meta">Due Mar 26 &middot; Lab</div>
+              <div class="hero-board-card-meta">Due Mar 26 &middot; Milestone Milling</div>
             </div>
           </div>
           <div class="hero-board-column">
-            <div class="hero-board-stage"><span>Received From External Lab</span><span>2</span></div>
+            <div class="hero-board-stage"><span>Received From External Lab</span></div>
             <div class="hero-board-card">
               <div class="hero-board-card-title">Implant &middot; #19</div>
-              <div class="hero-board-card-meta">Seat Mar 27 &middot; Coordinator</div>
+              <div class="hero-board-card-meta">Seat Mar 27 &middot; Dr. Patel</div>
             </div>
           </div>
           <div class="hero-board-column">
-            <div class="hero-board-stage"><span>Delivered</span><span>9</span></div>
+            <div class="hero-board-stage"><span>Delivered</span></div>
             <div class="hero-board-card">
               <div class="hero-board-card-title">Crown &middot; #30</div>
-              <div class="hero-board-card-meta">Delivered Mar 4</div>
+              <div class="hero-board-card-meta">Delivered Mar 4 &middot; Dr. Chen</div>
             </div>
           </div>
         </div>

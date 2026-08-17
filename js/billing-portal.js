@@ -374,10 +374,14 @@
     },
     scale: {
       label: 'Scale',
-      practices: 'Unlimited practices',
+      practices: '5 practices included',
       benefits: [
-        'Everything in Control, plus support for unlimited practices',
+        'Everything in Control, plus support for additional practices as your organization grows',
       ],
+      additionalPrice: {
+        month: 'Additional practices: $99/month each',
+        year: 'Additional practices: $990/year each',
+      },
     },
   };
 
@@ -406,6 +410,9 @@
         '</div>' +
         (interval === 'year' ? '<div class="bp-plan-savings">Save 2 months</div>' : '') +
         '<div class="bp-plan-practices">' + escHtml(info.practices) + '</div>' +
+        (planKey === 'scale' && info.additionalPrice && info.additionalPrice[interval]
+          ? '<div class="bp-plan-additional">' + escHtml(info.additionalPrice[interval]) + '</div>'
+          : '') +
         '<ul class="bp-plan-benefits">';
     info.benefits.forEach(function (b) {
       html += '<li>' + checkIcon() + '<span>' + escHtml(b) + '</span></li>';
