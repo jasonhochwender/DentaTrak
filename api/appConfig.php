@@ -19,7 +19,9 @@ $commonConfig = [
     'port'            => 465,
     'smtpAuth'        => true,
     'disable_caching' => true,
-    'feedback_email'  => 'feedback@dentatrak.com',
+    'feedback_email'    => 'feedback@dentatrak.com',
+    'support_email'     => getEnvVar('SUPPORT_EMAIL', 'support@dentatrak.com'),
+    'test_record_emails' => filter_var(getEnvVar('DENTATRAK_TEST_RECORD_EMAILS', getEnvVar('DENTATRAK_TEST_MODE', 'false')), FILTER_VALIDATE_BOOLEAN) === true,
 
     // Resend email configuration
     'resend_api_key' => getEnvVar('RESEND_API_KEY'),
@@ -243,7 +245,8 @@ Here is the workflow data to analyze:
 
     // Base URL for Stripe success/cancel redirects and portal return URLs.
     // Set APP_BASE_URL in .env (e.g. http://localhost/DentaTrak for local dev).
-    'app_base_url' => rtrim(getEnvVar('APP_BASE_URL', 'https://dentatrak.com'), '/'),
+    'app_base_url'  => rtrim(getEnvVar('APP_BASE_URL', 'https://dentatrak.com'), '/'),
+    'user_guide_url' => rtrim(getEnvVar('APP_BASE_URL', 'https://dentatrak.com'), '/') . '/resources/user-guide',
 
     // Public article URLs — clean paths on production, direct .php on local/UAT
     // (Local Apache serves the app from a subfolder so clean URL rewrites don't apply)

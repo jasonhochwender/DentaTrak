@@ -89,6 +89,12 @@ switch ($action) {
     case 'cleanup_test_data':
         handleCleanupTestData($pdo, $input);
         break;
+    case 'get_last_app_email':
+        handleGetLastAppEmail($appConfig, $input);
+        break;
+    case 'clear_test_email_log':
+        handleClearTestEmailLog($appConfig, $input);
+        break;
     default:
         http_response_code(400);
         echo json_encode(['success' => false, 'message' => 'Invalid action']);
@@ -1380,4 +1386,44 @@ function handleCleanupTestData($pdo, $input) {
         http_response_code(500);
         echo json_encode(['success' => false, 'message' => 'Cleanup failed: ' . $e->getMessage()]);
     }
+}
+
+/**
+ * Return the most recent email recorded by the test-mode email sender.
+ */
+function handleGetLastAppEmail(array $appConfig, array $input) {
+    $recordPath = __DIR__ . '/../testResults/last-email.json';
+
+    if (!file_exists($recordPath)) {
+        http_response_code(404);
+        echo json_encode(['success' => false, 'message' => 'No recorded email found']);
+        return;
+    }
+
+    $content = file_get_contents($recordPath);
+    $email = json_decode($content, true);
+
+    if (!$email) {
+        http_response_code(500);
+        echo json_encode(['success' => false, 'message' => 'Recorded email file is not valid JSON']);
+        return;
+    }
+
+    echo json_encode([
+        'success' => true,
+        'email' => $email,
+    ]);
+}
+
+/**
+ * Clear the recorded test email log.
+ */
+function handleClearTestEmailLog(array $appConfig, array $input) {
+    $recordPath = __DIR__ . '/../testResults/last-email.json';
+
+    if (file_exists($recordPath)) {
+        @unlink($recordPath);
+    }
+
+    echo json_encode(['success' => true, 'message' => 'Test email log cleared']);
 }

@@ -4,6 +4,12 @@ ErrorDocument 404 /404.php
 # Clean URLs - rewrite /page to /page.php (production only)
 <IfModule mod_rewrite.c>
   RewriteEngine On
+
+  # User Guide: clean public URL and prevent direct PDF indexing by forcing
+  # all User Guide requests through the streaming endpoint that sets headers.
+  RewriteRule ^resources/user-guide$ api/user-guide.php [L]
+  RewriteCond %{REQUEST_URI} ".*resources/DentaTrak(%20| )User(%20| )Guide\.pdf$" [NC]
+  RewriteRule .* api/user-guide.php [L]
   
   # Skip if the request is a real file or directory
   RewriteCond %{REQUEST_FILENAME} !-f

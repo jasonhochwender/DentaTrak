@@ -654,6 +654,7 @@ window.featureFlags = <?php echo getFeatureFlagsJson(); ?>;
           <?php if (isFeatureEnabled('SHOW_TOUR')): ?>
           <a href="#" class="user-menu-item" id="startTourLink">Take a Tour</a>
           <?php endif; ?>
+          <a href="<?php echo htmlspecialchars($appConfig['user_guide_url'], ENT_QUOTES, 'UTF-8'); ?>" class="user-menu-item" id="userGuideLink" target="_blank" rel="noopener noreferrer">User Guide</a>
           <div class="user-menu-divider"></div>
           <a href="api/logout.php" class="user-menu-item">Sign Out</a>
         </div>

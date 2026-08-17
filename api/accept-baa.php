@@ -16,6 +16,8 @@ require_once __DIR__ . '/subscription-owner.php';
 require_once __DIR__ . '/plan-entitlements.php';
 require_once __DIR__ . '/billing-bypass.php';
 require_once __DIR__ . '/scale-subscription-addons.php';
+require_once __DIR__ . '/email-sender.php';
+require_once __DIR__ . '/welcome-email.php';
 
 // Start session if not already started
 if (session_status() === PHP_SESSION_NONE) {
@@ -283,6 +285,11 @@ try {
         $_SESSION['needs_baa_acceptance'] = false;
 
         userLog("Created new practice with BAA acceptance: {$legalName} (ID: {$practiceId})", false);
+
+        // Send welcome email only for the very first owned practice
+        if ($entitlement['current_count'] === 0) {
+            sendWelcomeEmail($pdo, (int)$userId, $legalName, $appConfig);
+        }
 
     } else {
         // Practice exists - check if BAA already accepted

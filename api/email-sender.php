@@ -38,7 +38,52 @@ loadEnv(__DIR__ . '/../.env');
  */
 function sendAppEmail(string $toEmail, string $subject, string $htmlBody, ?string $textBody = null, ?string $replyToEmail = null): array {
     global $appConfig;
-    
+
+    // Test mode: record the email to disk instead of sending (never used in production)
+    if (
+        !empty($appConfig['test_record_emails'])
+        && ($appConfig['current_environment'] ?? 'production') !== 'production'
+    ) {
+        $recordPath = __DIR__ . '/../testResults/last-email.json';
+        $recordDir = dirname($recordPath);
+        if (!is_dir($recordDir)) {
+            @mkdir($recordDir, 0750, true);
+        }
+
+        $fromEmail = $appConfig['email_from'] ?? 'noreply@dentatrak.com';
+        $fromName  = $appConfig['email_from_name'] ?? 'DentaTrak';
+
+        $recordedText = $textBody;
+        if (!$recordedText) {
+            $recordedText = strip_tags(str_replace(['</p>', '<br>', '<br/>', '<br />'], "\n", $htmlBody));
+            $recordedText = html_entity_decode($recordedText, ENT_QUOTES, 'UTF-8');
+            $recordedText = preg_replace('/\n\s*\n/', "\n\n", $recordedText);
+            $recordedText = trim($recordedText);
+        }
+
+        $record = [
+            'timestamp' => date('c'),
+            'from' => "$fromName <$fromEmail>",
+            'to' => [$toEmail],
+            'subject' => $subject,
+            'html' => $htmlBody,
+            'text' => $recordedText,
+        ];
+
+        if ($replyToEmail) {
+            $record['reply_to'] = $replyToEmail;
+        }
+
+        file_put_contents($recordPath, json_encode($record, JSON_PRETTY_PRINT));
+
+        return [
+            'success' => true,
+            'provider' => 'test_record',
+            'status_code' => 200,
+            'recorded' => true,
+        ];
+    }
+
     // Fail closed: require valid API key before attempting to send
     $resendApiKey = getenv('RESEND_API_KEY');
     if (!$resendApiKey || $resendApiKey === 'YOUR_RESEND_API_KEY_HERE' || strpos($resendApiKey, 're_') !== 0) {
