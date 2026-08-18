@@ -210,6 +210,35 @@
     });
   }
 
+  function scrollSettingsTo(selector) {
+    return new Promise(function(resolve) {
+      var scrollContainer = document.querySelector('#settingsBillingModal .tab-content-scroll');
+      var el = document.querySelector(selector);
+      if (!scrollContainer || !el) {
+        resolve(false);
+        return;
+      }
+
+      var containerRect = scrollContainer.getBoundingClientRect();
+      var elRect = el.getBoundingClientRect();
+      var target = scrollContainer.scrollTop + (elRect.top - containerRect.top) - 16;
+
+      if (target < 0) {
+        target = 0;
+      }
+      var maxScroll = scrollContainer.scrollHeight - scrollContainer.clientHeight;
+      if (maxScroll > 0 && target > maxScroll) {
+        target = maxScroll;
+      }
+
+      scrollContainer.scrollTop = target;
+
+      setTimeout(function() {
+        resolve(isVisible(el));
+      }, 150);
+    });
+  }
+
   function closeSettingsModal() {
     return new Promise(function(resolve) {
       if (!openedSettings) {
@@ -287,25 +316,33 @@
         return closeUserMenu().then(openSettingsModal).then(function(ok) {
           if (!ok) { return false; }
           navigateSettingsToAuthorized();
-          return waitForElement('.settings-twisty[data-twisty-id="authorized"] .settings-twisty-header', 1000).then(function(el) { return !!el; });
+          return scrollSettingsTo('.settings-twisty[data-twisty-id="authorized"] .settings-twisty-header').then(function() {
+            return waitForElement('.settings-twisty[data-twisty-id="authorized"] .settings-twisty-header', 1000).then(function(el) { return !!el; });
+          });
         });
       case 'add-users':
         return openSettingsModal().then(function(ok) {
           if (!ok) { return false; }
           navigateSettingsToAuthorized();
-          return waitForElement('#addGmailUser', 1000).then(function(el) { return !!el; });
+          return scrollSettingsTo('#addGmailUser').then(function() {
+            return waitForElement('#addGmailUser', 1000).then(function(el) { return !!el; });
+          });
         });
       case 'lab-user':
         return openSettingsModal().then(function(ok) {
           if (!ok) { return false; }
           navigateSettingsToAuthorized();
-          return waitForElement('.practice-user-lab-header', 1000).then(function(el) { return !!el; });
+          return scrollSettingsTo('.practice-user-lab-header').then(function() {
+            return waitForElement('.practice-user-lab-header', 1000).then(function(el) { return !!el; });
+          });
         });
       case 'assignment-labels':
         return openSettingsModal().then(function(ok) {
           if (!ok) { return false; }
           navigateSettingsToAuthorized();
-          return waitForElement('#newAssignmentLabel', 1000).then(function(el) { return !!el; });
+          return scrollSettingsTo('.assignment-labels-section').then(function() {
+            return waitForElement('#newAssignmentLabel', 1000).then(function(el) { return !!el; });
+          });
         });
       case 'share-feedback':
         window.tourKeepsUserMenuOpen = true;
@@ -594,10 +631,10 @@
       steps.push({
         id: 'assignment-labels',
         title: 'Assignment Labels',
-        text: 'Create assignment labels for work that is not tied to a specific person, such as an outside lab, department, or workflow responsibility. Labels can also be designated as Labs for Lab Insights reporting when that feature is enabled.',
+        text: 'Create reusable assignment labels for work that is not tied to a specific person, such as an outside lab, department, or workflow responsibility. Labels can also represent labs for Lab Insights.',
         attachTo: {
-          element: '#newAssignmentLabel',
-          on: 'bottom'
+          element: '.assignment-labels-section',
+          on: 'top'
         },
         scrollTo: false,
         popperOptions: offsetModifier(0, 16),
