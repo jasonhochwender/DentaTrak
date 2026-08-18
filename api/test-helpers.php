@@ -92,6 +92,9 @@ switch ($action) {
     case 'get_last_app_email':
         handleGetLastAppEmail($appConfig, $input);
         break;
+    case 'get_all_app_emails':
+        handleGetAllAppEmails($appConfig, $input);
+        break;
     case 'clear_test_email_log':
         handleClearTestEmailLog($appConfig, $input);
         break;
@@ -1425,16 +1428,47 @@ function handleGetLastAppEmail(array $appConfig, array $input) {
 }
 
 /**
+ * Return all emails recorded by the test-mode email sender.
+ */
+function handleGetAllAppEmails(array $appConfig, array $input) {
+    $allPath = __DIR__ . '/../testResults/all-emails.json';
+
+    if (!file_exists($allPath)) {
+        http_response_code(404);
+        echo json_encode(['success' => false, 'message' => 'No recorded emails found']);
+        return;
+    }
+
+    $content = file_get_contents($allPath);
+    $emails = json_decode($content, true);
+
+    if (!is_array($emails)) {
+        http_response_code(500);
+        echo json_encode(['success' => false, 'message' => 'Recorded email log is not valid JSON']);
+        return;
+    }
+
+    echo json_encode([
+        'success' => true,
+        'emails' => $emails,
+    ]);
+}
+
+/**
  * Clear the recorded test email log.
  */
 function handleClearTestEmailLog(array $appConfig, array $input) {
     $recordPath = __DIR__ . '/../testResults/last-email.json';
+    $allPath = __DIR__ . '/../testResults/all-emails.json';
 
     if (file_exists($recordPath)) {
         @unlink($recordPath);
     }
+    if (file_exists($allPath)) {
+        @unlink($allPath);
+    }
 
-    echo json_encode(['success' => true, 'message' => 'Test email log cleared']);
+    echo json_encode(['success' => true, 'message' => 'Test email logs cleared']);
 }
 
 /**

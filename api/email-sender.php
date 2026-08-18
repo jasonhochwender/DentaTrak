@@ -85,6 +85,18 @@ function sendAppEmail(string $toEmail, string $subject, string $htmlBody, ?strin
 
         file_put_contents($recordPath, json_encode($record, JSON_PRETTY_PRINT));
 
+        // Also append to a cumulative test log so tests can inspect multi-email flows.
+        $allPath = $recordDir . '/all-emails.json';
+        $allRecords = [];
+        if (file_exists($allPath)) {
+            $existing = json_decode(file_get_contents($allPath), true);
+            if (is_array($existing)) {
+                $allRecords = $existing;
+            }
+        }
+        $allRecords[] = $record;
+        file_put_contents($allPath, json_encode($allRecords, JSON_PRETTY_PRINT));
+
         return [
             'success' => true,
             'provider' => 'test_record',

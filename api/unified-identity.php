@@ -14,6 +14,7 @@
 
 require_once __DIR__ . '/appConfig.php';
 require_once __DIR__ . '/billing-bypass.php';
+require_once __DIR__ . '/signup-notification-email.php';
 
 /**
  * Ensure the user_auth_methods table exists
@@ -267,11 +268,18 @@ function authenticateWithGoogle($googleData) {
         
         // Auto-upgrade billing bypass users to control tier
         ensureBypassUserTier($pdo, $userId, $email);
-        
+
         $pdo->commit();
-        
+
+        // Internal notification to DentaTrak team (must not affect registration outcome)
+        try {
+            sendSignupNotificationEmail($pdo, (int)$userId, $appConfig);
+        } catch (Exception $e) {
+            error_log('[unified-identity] Failed to send Google signup notification for user ' . $userId . ': ' . $e->getMessage());
+        }
+
         $user = findUserByEmail($email);
-        
+
         return [
             'success' => true,
             'user' => $user,
@@ -385,9 +393,9 @@ function registerWithEmail($email, $password, $firstName = '', $lastName = '') {
         
         // Auto-upgrade billing bypass users to control tier
         ensureBypassUserTier($pdo, $userId, $email);
-        
+
         $pdo->commit();
-        
+
         return [
             'success' => true,
             'user_id' => $userId,

@@ -8,6 +8,7 @@ require_once __DIR__ . '/appConfig.php';
 require_once __DIR__ . '/user-manager.php';
 require_once __DIR__ . '/unified-identity.php';
 require_once __DIR__ . '/email-verification.php';
+require_once __DIR__ . '/signup-notification-email.php';
 
 // Start session if not already started
 if (session_status() === PHP_SESSION_NONE) {
@@ -127,9 +128,18 @@ function handleRegister($pdo, $input) {
     // Send verification email for new registrations
     $userId = $result['user_id'] ?? null;
     if ($userId && !($result['linked_existing'] ?? false)) {
+        // Internal notification to DentaTrak team - sent immediately after a new
+        // user is created, independent of the verification email. Failure here
+        // must not affect the registration outcome.
+        try {
+            sendSignupNotificationEmail($pdo, (int)$userId, $appConfig);
+        } catch (Exception $e) {
+            error_log('[auth-email] Failed to send signup notification for user ' . $userId . ': ' . $e->getMessage());
+        }
+
         // New user - send verification email
         $verifyResult = sendVerificationEmail($pdo, $userId, $email, $firstName);
-        
+
         echo json_encode([
             'success' => true,
             'message' => 'Account created! Please check your email to verify your account before signing in.',
