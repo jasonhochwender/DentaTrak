@@ -409,7 +409,42 @@ $userEmail = $_SESSION['user_email'] ?? '';
         .phi-log-table td:nth-child(4) { width: 18%; } /* Case */
         .phi-log-table th:nth-child(5),
         .phi-log-table td:nth-child(5) { width: 15%; } /* IP */
-        
+
+        .table-scroll {
+            overflow-x: auto;
+            width: 100%;
+        }
+
+        .users-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.8rem;
+            table-layout: auto;
+        }
+
+        .users-table th,
+        .users-table td {
+            padding: 8px 10px;
+            text-align: left;
+            border-bottom: 1px solid #e5e7eb;
+            white-space: nowrap;
+            vertical-align: top;
+        }
+
+        .users-table th {
+            background: #f3f4f6;
+            font-weight: 600;
+        }
+
+        .users-table td.permission,
+        .users-table th.permission {
+            text-align: center;
+        }
+
+        .users-table .text-muted {
+            color: #6b7280;
+        }
+
         .form-group {
             margin-bottom: 16px;
         }
@@ -729,6 +764,8 @@ $userEmail = $_SESSION['user_email'] ?? '';
     </div>
     
     <script>
+        const yesNo = value => value ? 'Yes' : 'No';
+
         let practices = [];
         let selectedPracticeId = null;
         let currentView = 'all';
@@ -1024,28 +1061,44 @@ $userEmail = $_SESSION['user_email'] ?? '';
         
         function renderUsersTab(users) {
             if (!users || users.length === 0) {
-                document.getElementById('detailContent').innerHTML = 
+                document.getElementById('detailContent').innerHTML =
                     '<div class="empty-state">No users found</div>';
                 return;
             }
-            
-            let html = '<table class="phi-log-table"><thead><tr>' +
+
+            let html = '<div class="table-scroll"><table class="users-table"><thead><tr>' +
                 '<th>User</th>' +
                 '<th>Role</th>' +
-                '<th>Last Login</th>' +
+                '<th class="permission">Admin</th>' +
+                '<th class="permission">Assigned Only</th>' +
+                '<th class="permission">Insights</th>' +
+                '<th class="permission">Edit Cases</th>' +
+                '<th class="permission">Lab</th>' +
+                '<th class="permission">Active</th>' +
                 '</tr></thead><tbody>';
-            
+
             users.forEach(user => {
                 const name = [user.first_name, user.last_name].filter(Boolean).join(' ') || user.email;
-                const roleLabel = user.is_owner ? 'Owner' : (user.role === 'admin' ? 'Admin' : 'User');
+                const isOwner = user.is_owner;
+                const isAdmin = isOwner || user.role === 'admin';
+                const assignedOnly = !isOwner && user.limited_visibility;
+                const insights = isOwner || user.can_view_analytics;
+                const editCases = isOwner || user.can_edit_cases;
+                const lab = user.is_lab;
+
                 html += '<tr>' +
-                    '<td><strong>' + escapeHtml(name) + '</strong><br><small style="color: #6b7280;">' + escapeHtml(user.email) + '</small></td>' +
-                    '<td><span class="status-badge ' + (user.is_owner || user.role === 'admin' ? 'active' : '') + '">' + roleLabel + '</span></td>' +
-                    '<td>' + (user.last_login ? formatDateTime(user.last_login) : 'Never') + '</td>' +
+                    '<td><strong>' + escapeHtml(name) + '</strong><br><small class="text-muted">' + escapeHtml(user.email) + '</small></td>' +
+                    '<td>' + (isOwner ? 'Owner' : 'User') + '</td>' +
+                    '<td class="permission">' + yesNo(isAdmin) + '</td>' +
+                    '<td class="permission">' + yesNo(assignedOnly) + '</td>' +
+                    '<td class="permission">' + yesNo(insights) + '</td>' +
+                    '<td class="permission">' + yesNo(editCases) + '</td>' +
+                    '<td class="permission">' + yesNo(lab) + '</td>' +
+                    '<td class="permission">' + yesNo(user.is_active) + '</td>' +
                     '</tr>';
             });
-            
-            html += '</tbody></table>';
+
+            html += '</tbody></table></div>';
             document.getElementById('detailContent').innerHTML = html;
         }
         
@@ -1063,8 +1116,6 @@ $userEmail = $_SESSION['user_email'] ?? '';
         }
         
         function renderSettingsTab(settings) {
-            const yesNo = value => value ? 'Yes' : 'No';
-            
             let html = '<div class="settings-card">' +
                 '<h4>Case Management</h4>' +
                 '<div class="settings-row"><span class="settings-label">Allow Archiving Individual Cases</span><span class="settings-value">' + yesNo(settings.case_management.allow_archiving_individual_cases) + '</span></div>' +
@@ -1096,16 +1147,31 @@ $userEmail = $_SESSION['user_email'] ?? '';
             html += '<div class="settings-card">' +
                 '<h4>Users</h4>';
             if (settings.users && settings.users.length > 0) {
-                html += '<table class="phi-log-table"><thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Active</th></tr></thead><tbody>';
+                html += '<div class="table-scroll"><table class="users-table"><thead><tr>' +
+                    '<th>Name</th>' +
+                    '<th>Email</th>' +
+                    '<th>Role</th>' +
+                    '<th class="permission">Admin</th>' +
+                    '<th class="permission">Assigned Only</th>' +
+                    '<th class="permission">Insights</th>' +
+                    '<th class="permission">Edit Cases</th>' +
+                    '<th class="permission">Lab</th>' +
+                    '<th class="permission">Active</th>' +
+                    '</tr></thead><tbody>';
                 settings.users.forEach(user => {
                     html += '<tr>' +
                         '<td><strong>' + escapeHtml(user.name || '-') + '</strong></td>' +
                         '<td>' + escapeHtml(user.email || '-') + '</td>' +
                         '<td>' + escapeHtml(user.role || '-') + '</td>' +
-                        '<td>' + yesNo(user.active) + '</td>' +
+                        '<td class="permission">' + yesNo(user.admin) + '</td>' +
+                        '<td class="permission">' + yesNo(user.assigned_only) + '</td>' +
+                        '<td class="permission">' + yesNo(user.insights) + '</td>' +
+                        '<td class="permission">' + yesNo(user.edit_cases) + '</td>' +
+                        '<td class="permission">' + yesNo(user.lab) + '</td>' +
+                        '<td class="permission">' + yesNo(user.active) + '</td>' +
                         '</tr>';
                 });
-                html += '</tbody></table>';
+                html += '</tbody></table></div>';
             } else {
                 html += '<p style="font-size: 0.85rem; color: #6b7280;">No users found</p>';
             }
@@ -1472,15 +1538,28 @@ $userEmail = $_SESSION['user_email'] ?? '';
                     
                     <h2>Users (${users.length})</h2>
                     <table>
-                        <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Last Login</th></tr></thead>
+                        <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Admin</th><th>Assigned Only</th><th>Insights</th><th>Edit Cases</th><th>Lab</th><th>Active</th></tr></thead>
                         <tbody>
-                            ${users.length === 0 ? '<tr><td colspan="4" style="text-align:center;">No users</td></tr>' : 
-                              users.map(u => `<tr>
-                                <td>${escapeHtml([u.first_name, u.last_name].filter(Boolean).join(' ') || '-')}</td>
-                                <td>${escapeHtml(u.email)}</td>
-                                <td>${u.is_owner ? 'Owner' : (u.role === 'admin' ? 'Admin' : 'User')}</td>
-                                <td>${u.last_login ? formatDateTime(u.last_login) : 'Never'}</td>
-                              </tr>`).join('')}
+                            ${users.length === 0 ? '<tr><td colspan="9" style="text-align:center;">No users</td></tr>' :
+                              users.map(u => {
+                                const isOwner = u.is_owner;
+                                const isAdmin = isOwner || u.role === 'admin';
+                                const assignedOnly = !isOwner && u.limited_visibility;
+                                const insights = isOwner || u.can_view_analytics;
+                                const editCases = isOwner || u.can_edit_cases;
+                                const lab = u.is_lab;
+                                return `<tr>
+                                  <td>${escapeHtml([u.first_name, u.last_name].filter(Boolean).join(' ') || '-')}</td>
+                                  <td>${escapeHtml(u.email)}</td>
+                                  <td>${isOwner ? 'Owner' : 'User'}</td>
+                                  <td style="text-align:center;">${yesNo(isAdmin)}</td>
+                                  <td style="text-align:center;">${yesNo(assignedOnly)}</td>
+                                  <td style="text-align:center;">${yesNo(insights)}</td>
+                                  <td style="text-align:center;">${yesNo(editCases)}</td>
+                                  <td style="text-align:center;">${yesNo(lab)}</td>
+                                  <td style="text-align:center;">${yesNo(u.is_active)}</td>
+                                </tr>`;
+                              }).join('')}
                         </tbody>
                     </table>
                     

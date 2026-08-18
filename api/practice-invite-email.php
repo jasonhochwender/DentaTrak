@@ -39,9 +39,9 @@ function sendPracticeInviteEmail(string $toEmail, ?string $firstName, string $pr
 <html>
 <body>
   <p>{$htmlGreeting}</p>
-  <p>You've been added to <strong>{$htmlPracticeName}</strong> in DentaTrak.</p>
-  <p>If you already have a DentaTrak account, sign in using the email address that received this message. {$htmlPracticeName} will be available when you sign in.</p>
-  <p>If you don't have a DentaTrak account yet, create an account using this same email address. Once registration is complete, you'll be able to access {$htmlPracticeName}.</p>
+  <p>You've been added to the <strong>{$htmlPracticeName}</strong> dental practice in DentaTrak.</p>
+  <p>If you already have a DentaTrak account, sign in using the email address that received this message. The <strong>{$htmlPracticeName}</strong> dental practice will be available when you sign in.</p>
+  <p>If you don't have a DentaTrak account yet, create an account using this same email address. Once registration is complete, you'll be able to access the <strong>{$htmlPracticeName}</strong> dental practice.</p>
   <p><a href="{$htmlLoginUrl}" target="_blank" rel="noopener noreferrer">Open DentaTrak</a></p>
   <p>DentaTrak User Guide<br><a href="{$htmlUserGuideUrl}" target="_blank" rel="noopener noreferrer">View the User Guide</a></p>
   <p>If you have questions or need help, contact us at <a href="mailto:{$htmlSupportEmail}">{$htmlSupportEmail}</a>.</p>
@@ -51,9 +51,9 @@ function sendPracticeInviteEmail(string $toEmail, ?string $firstName, string $pr
 HTML;
 
     $textBody = $greeting . "\n\n" .
-        "You've been added to \"{$practiceName}\" in DentaTrak.\n\n" .
-        "If you already have a DentaTrak account, sign in using the email address that received this message. \"{$practiceName}\" will be available when you sign in.\n\n" .
-        "If you don't have a DentaTrak account yet, create an account using this same email address. Once registration is complete, you'll be able to access \"{$practiceName}\".\n\n" .
+        "You've been added to the \"{$practiceName}\" dental practice in DentaTrak.\n\n" .
+        "If you already have a DentaTrak account, sign in using the email address that received this message. The \"{$practiceName}\" dental practice will be available when you sign in.\n\n" .
+        "If you don't have a DentaTrak account yet, create an account using this same email address. Once registration is complete, you'll be able to access the \"{$practiceName}\" dental practice.\n\n" .
         "Open DentaTrak: {$loginUrl}\n\n" .
         "DentaTrak User Guide: {$userGuideUrl}\n\n" .
         "If you have questions or need help, contact us at {$supportEmail}.\n\n" .

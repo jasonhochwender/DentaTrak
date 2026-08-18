@@ -21,8 +21,17 @@ async function globalSetup(config: FullConfig) {
   const browser = await chromium.launch();
   const context = await browser.newContext();
   const page = await context.newPage();
-  
+
   try {
+    // Clean up leftover test-mode email artifacts from a previous run so
+    // they cannot cause unrelated specs to fail or send simulated failures.
+    await page.request.post(`${BASE_URL}/api/test-helpers.php`, {
+      data: { action: 'clear_email_failure' }
+    });
+    await page.request.post(`${BASE_URL}/api/test-helpers.php`, {
+      data: { action: 'clear_test_email_log' }
+    });
+
     // Use the test-helpers endpoint to set up everything in one call
     // This creates the user, verifies email, creates practice, and accepts BAA
     console.log('   Setting up test user with practice and BAA...');

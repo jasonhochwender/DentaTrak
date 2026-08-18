@@ -38,6 +38,10 @@ test.describe.serial('Practice invitation email', () => {
     await clearTestArtifacts(request);
   });
 
+  test.afterEach(async ({ request }) => {
+    await clearTestArtifacts(request);
+  });
+
   async function loginAsOwner(page: any) {
     await page.goto(getUrl('login.php'));
     await page.locator('#showEmailSignIn').click();
@@ -86,6 +90,10 @@ test.describe.serial('Practice invitation email', () => {
     expect(email.email.subject).toContain(`Invite Practice ${RUN_ID}`);
     expect(email.email.html).toContain(`Invite Practice ${RUN_ID}`);
     expect(email.email.text).toContain(`Invite Practice ${RUN_ID}`);
+    expect(email.email.html).toContain('dental practice');
+    expect(email.email.text).toContain('dental practice');
+    expect(email.email.html).toContain('Hello,');
+    expect(email.email.text).toContain('Hello,');
     expect(email.email.html).toContain(BASE_URL);
     expect(email.email.html).toContain('resources/user-guide');
     expect(email.email.html).toContain('support@dentatrak.com');
@@ -143,7 +151,10 @@ test.describe.serial('Practice invitation email', () => {
     expect(email.success).toBe(true);
     expect(email.email.to).toContain(existingEmail);
     expect(email.email.subject).toContain(`Invite Practice ${RUN_ID}`);
+    expect(email.email.html).toContain('dental practice');
+    expect(email.email.text).toContain('dental practice');
     expect(email.email.html).toContain('Hi E2E,');
+    expect(email.email.text).toContain('Hi E2E,');
   });
 
   test('email-send failure does not undo the successfully created practice membership', async ({ page, request }) => {

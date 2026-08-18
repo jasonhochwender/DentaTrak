@@ -314,14 +314,22 @@ function getPracticeUsers($practiceId) {
         $hasLastLoginAt = in_array('last_login_at', $userColumns);
         $hasIsOwner = in_array('is_owner', $puColumns);
         $hasIsActive = in_array('is_active', $userColumns);
-        
+        $hasLimitedVisibility = in_array('limited_visibility', $puColumns);
+        $hasCanViewAnalytics = in_array('can_view_analytics', $puColumns);
+        $hasCanEditCases = in_array('can_edit_cases', $puColumns);
+        $hasIsLab = in_array('is_lab', $puColumns);
+
         $lastLoginSelect = $hasLastLoginAt ? 'u.last_login_at as last_login' : 'NULL as last_login';
         $isOwnerSelect = $hasIsOwner ? 'IFNULL(pu.is_owner, 0) as is_owner' : '0 as is_owner';
         $isActiveSelect = $hasIsActive ? 'IFNULL(u.is_active, 1) as is_active' : '1 as is_active';
+        $limitedVisibilitySelect = $hasLimitedVisibility ? 'IFNULL(pu.limited_visibility, 0) as limited_visibility' : '0 as limited_visibility';
+        $canViewAnalyticsSelect = $hasCanViewAnalytics ? 'IFNULL(pu.can_view_analytics, 0) as can_view_analytics' : '0 as can_view_analytics';
+        $canEditCasesSelect = $hasCanEditCases ? 'IFNULL(pu.can_edit_cases, 0) as can_edit_cases' : '0 as can_edit_cases';
+        $isLabSelect = $hasIsLab ? 'IFNULL(pu.is_lab, 0) as is_lab' : '0 as is_lab';
         $orderBy = $hasIsOwner ? 'pu.is_owner DESC, pu.role, u.email' : 'pu.role, u.email';
-        
+
         $sql = "
-            SELECT 
+            SELECT
                 u.id,
                 u.email,
                 IFNULL(u.first_name, '') as first_name,
@@ -331,6 +339,10 @@ function getPracticeUsers($practiceId) {
                 IFNULL(pu.role, 'user') as role,
                 $isOwnerSelect,
                 $isActiveSelect,
+                $limitedVisibilitySelect,
+                $canViewAnalyticsSelect,
+                $canEditCasesSelect,
+                $isLabSelect,
                 pu.created_at as joined_at
             FROM practice_users pu
             JOIN users u ON pu.user_id = u.id
@@ -662,10 +674,17 @@ function getPracticeSettings($practiceId) {
     
     $userList = [];
     foreach ($users as $u) {
+        $isOwner = !empty($u['is_owner']);
+        $isAdmin = $isOwner || (($u['role'] ?? '') === 'admin');
         $userList[] = [
             'name' => trim(($u['first_name'] ?? '') . ' ' . ($u['last_name'] ?? '')) ?: ($u['email'] ?? ''),
             'email' => $u['email'] ?? '',
-            'role' => !empty($u['is_owner']) ? 'Owner' : (($u['role'] === 'admin') ? 'Admin' : 'User'),
+            'role' => $isOwner ? 'Owner' : 'User',
+            'admin' => $isAdmin,
+            'assigned_only' => !$isOwner && !empty($u['limited_visibility']),
+            'insights' => $isOwner || !empty($u['can_view_analytics']),
+            'edit_cases' => $isOwner || !empty($u['can_edit_cases']),
+            'lab' => !empty($u['is_lab']),
             'active' => !empty($u['is_active'])
         ];
     }
