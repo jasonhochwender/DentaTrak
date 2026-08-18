@@ -457,10 +457,10 @@
       steps.push({
         id: 'lab-user',
         title: 'Lab User',
-        text: 'Mark a user as a Lab when they represent an internal or external laboratory. Lab users are used to power Lab Insights reporting, showing where cases are assigned and how work is moving through your labs.',
+        text: 'Mark a user as Lab when they represent an internal or external laboratory. Cases assigned to Lab users are included in Lab Insights so you can track lab workload and performance.',
         attachTo: {
           element: '.practice-user-lab-header',
-          on: 'bottom'
+          on: 'left-start'
         },
         beforeShowPromise: labUserBefore,
         scrollTo: false,
