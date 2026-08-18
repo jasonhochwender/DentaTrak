@@ -1,10 +1,13 @@
 /**
  * Shepherd.js Tour Implementation
- * First-time user walkthrough for the application
+ * Concise product tour for new DentaTrak users
  */
 
 (function() {
   'use strict';
+
+  // Desktop threshold below which the tour is not appropriate.
+  var DESKTOP_MIN_WIDTH = 1024;
 
   // Check if Shepherd is available
   if (typeof Shepherd === 'undefined') {
@@ -14,35 +17,218 @@
   // Initialize tour only after DOM is ready and settings are loaded
   document.addEventListener('DOMContentLoaded', function() {
     // Wait for settings to be loaded (app.js sets window.tourCompleted)
-    // Check periodically until tourCompleted is defined or timeout
     var checkCount = 0;
     var maxChecks = 20; // 20 * 250ms = 5 seconds max wait
-    
+
     var checkInterval = setInterval(function() {
       checkCount++;
-      
-      // If tourCompleted is explicitly set (true or false), we can proceed
+
       if (typeof window.tourCompleted !== 'undefined') {
         clearInterval(checkInterval);
         // Additional delay to ensure UI is fully rendered
-        setTimeout(initTour, 500);
+        setTimeout(maybeAutoStartTour, 500);
       } else if (checkCount >= maxChecks) {
-        // Timeout - assume tour not completed (new user)
         clearInterval(checkInterval);
         window.tourCompleted = false;
-        setTimeout(initTour, 500);
+        setTimeout(maybeAutoStartTour, 500);
       }
     }, 250);
   });
 
+  /**
+   * Auto-start the tour only on desktop for users who have not completed it.
+   */
+  function maybeAutoStartTour() {
+    if (window.tourCompleted === true) {
+      return;
+    }
+    if (window.innerWidth < DESKTOP_MIN_WIDTH) {
+      return;
+    }
+    initTour();
+  }
+
+  /**
+   * Return a simple offset modifier for Shepherd poppers.
+   */
+  function offsetModifier(x, y) {
+    return {
+      modifiers: [{
+        name: 'offset',
+        options: { offset: [x || 0, y || 16] }
+      }]
+    };
+  }
+
+  /**
+   * Build the ordered list of eligible tour steps.
+   * Any step whose target does not exist in the DOM is skipped up front.
+   */
+  function buildTourSteps() {
+    var steps = [];
+
+    // Step 1: Welcome
+    steps.push({
+      id: 'welcome',
+      title: 'Welcome to DentaTrak',
+      text: "Here's a quick overview of the tools you'll use to manage cases and keep work moving.",
+      buttons: [
+        {
+          text: 'Skip Tour',
+          action: function() {
+            tour.complete();
+          },
+          secondary: true
+        },
+        {
+          text: 'Start Tour',
+          action: function() {
+            tour.next();
+          }
+        }
+      ]
+    });
+
+    // Step 2: Your Cases Board
+    if (document.querySelector('.kanban-board')) {
+      steps.push({
+        id: 'cases-board',
+        title: 'Your Cases Board',
+        text: 'Cases are organized into workflow stages. Move a case from one column to another as work progresses.',
+        attachTo: {
+          element: '.kanban-board',
+          on: 'top-start'
+        },
+        popperOptions: offsetModifier(20, 16),
+        buttons: [
+          { text: 'Back', action: tour.back, secondary: true },
+          { text: 'Next', action: tour.next }
+        ]
+      });
+    }
+
+    // Step 3: Create a Case
+    if (document.querySelector('.create-case-button')) {
+      steps.push({
+        id: 'create-case',
+        title: 'Create a Case',
+        text: 'Add a case here, including patient and dentist information, case details, due dates, assignments, and files.',
+        attachTo: {
+          element: '.create-case-button',
+          on: 'bottom-start'
+        },
+        popperOptions: offsetModifier(20, 16),
+        buttons: [
+          { text: 'Back', action: tour.back, secondary: true },
+          { text: 'Next', action: tour.next }
+        ]
+      });
+    }
+
+    // Step 4: Keep Track of Every Case
+    // Target the first Kanban column so the tour works even with zero cases.
+    if (document.querySelector('.kanban-column')) {
+      steps.push({
+        id: 'keep-track',
+        title: 'Keep Track of Every Case',
+        text: 'Case cards give you the important details at a glance. Due Soon and Late indicators help you see what needs attention.',
+        attachTo: {
+          element: '.kanban-column',
+          on: 'right'
+        },
+        popperOptions: offsetModifier(16, 0),
+        buttons: [
+          { text: 'Back', action: tour.back, secondary: true },
+          { text: 'Next', action: tour.next }
+        ]
+      });
+    }
+
+    // Step 5: Search & Filter
+    if (document.querySelector('#kanbanFilterToggle')) {
+      steps.push({
+        id: 'search-filter',
+        title: 'Search & Filter',
+        text: 'Quickly find cases or narrow the board by patient, dentist, case type, assignment, carrier, due status, and other criteria.',
+        attachTo: {
+          element: '#kanbanFilterToggle',
+          on: 'bottom'
+        },
+        popperOptions: offsetModifier(0, 16),
+        buttons: [
+          { text: 'Back', action: tour.back, secondary: true },
+          { text: 'Next', action: tour.next }
+        ]
+      });
+    }
+
+    // Step 6: Assign Work
+    // The board is the only persistent target for assignment when no cards exist.
+    if (document.querySelector('.kanban-board')) {
+      steps.push({
+        id: 'assign-work',
+        title: 'Assign Work',
+        text: 'Assign cases to team members, labs, or assignment labels so everyone can see who is responsible for the next step.',
+        attachTo: {
+          element: '.kanban-board',
+          on: 'top-start'
+        },
+        popperOptions: offsetModifier(20, 16),
+        buttons: [
+          { text: 'Back', action: tour.back, secondary: true },
+          { text: 'Next', action: tour.next }
+        ]
+      });
+    }
+
+    // Step 7: Insights (only if the Insights tab is actually rendered)
+    if (document.querySelector('.main-tab[data-tab="insights"]')) {
+      steps.push({
+        id: 'insights',
+        title: 'Insights',
+        text: 'Use Insights to understand workload, turnaround times, case activity, labs, and other trends across your practice.',
+        attachTo: {
+          element: '.main-tab[data-tab="insights"]',
+          on: 'bottom-start'
+        },
+        popperOptions: offsetModifier(20, 16),
+        buttons: [
+          { text: 'Back', action: tour.back, secondary: true },
+          { text: 'Next', action: tour.next }
+        ]
+      });
+    }
+
+    // Step 8: You're Ready
+    steps.push({
+      id: 'finish',
+      title: "You're Ready",
+      text: 'You can take this tour again anytime from your user menu. The DentaTrak User Guide is also available whenever you need more detail.',
+      buttons: [
+        { text: 'Back', action: tour.back, secondary: true },
+        {
+          text: 'Get Started',
+          action: function() {
+            tour.complete();
+          }
+        }
+      ]
+    });
+
+    return steps;
+  }
+
+  var tour;
+
+  /**
+   * Create and start the tour from the eligible steps.
+   */
   function initTour() {
-    // Check if user has already completed the tour
     if (window.tourCompleted === true) {
       return;
     }
 
-    // Create the tour instance
-    const tour = new Shepherd.Tour({
+    tour = new Shepherd.Tour({
       useModalOverlay: true,
       defaultStepOptions: {
         classes: 'shepherd-theme-custom',
@@ -54,12 +240,11 @@
         modalOverlayOpeningRadius: 8
       }
     });
-    
-    // Add event listener to handle positioning jump
+
+    // Temporarily hide each step while Shepherd settles its position, then fade in.
     tour.on('show', function() {
-      const currentStep = tour.getCurrentStep();
+      var currentStep = tour.getCurrentStep();
       if (currentStep && currentStep.el) {
-        // Hide immediately, then show after positioning settles
         currentStep.el.style.opacity = '0';
         setTimeout(function() {
           if (currentStep.el) {
@@ -69,221 +254,38 @@
       }
     });
 
-    // Step 1: Welcome
-    tour.addStep({
-      id: 'welcome',
-      title: 'Welcome to DentaTrak',
-      text: 'Let\'s take a quick tour of the main features to help you get started.',
-      buttons: [
-        {
-          text: 'Skip Tour',
-          action: function() {
-            completeTour();
-            tour.complete();
-          },
-          secondary: true
-        },
-        {
-          text: 'Start Tour',
-          action: tour.next
-        }
-      ]
+    var steps = buildTourSteps();
+    steps.forEach(function(step) {
+      tour.addStep(step);
     });
 
-    // Step 2: Cases Tab
-    tour.addStep({
-      id: 'cases-tab',
-      title: 'Cases Board',
-      text: 'This is your main workspace. Cases are organized by status in columns. Drag and drop cases between columns to update their status.',
-      attachTo: {
-        element: '.main-tab[data-tab="cases"]',
-        on: 'bottom-start'
-      },
-      popperOptions: {
-        modifiers: [{ name: 'offset', options: { offset: [20, 16] } }]
-      },
-      buttons: [
-        {
-          text: 'Back',
-          action: tour.back,
-          secondary: true
-        },
-        {
-          text: 'Next',
-          action: tour.next
-        }
-      ]
-    });
+    // Mark as completed on finish or early dismiss.
+    tour.on('complete', completeTour);
+    tour.on('cancel', completeTour);
 
-    // Step 3: Create Case Button
-    tour.addStep({
-      id: 'create-case',
-      title: 'Create New Cases',
-      text: 'Click here to create a new dental case. You can add patient details, case type, due dates, and attach files.',
-      attachTo: {
-        element: '.create-case-button',
-        on: 'bottom-start'
-      },
-      popperOptions: {
-        modifiers: [{ name: 'offset', options: { offset: [20, 16] } }]
-      },
-      buttons: [
-        {
-          text: 'Back',
-          action: tour.back,
-          secondary: true
-        },
-        {
-          text: 'Next',
-          action: tour.next
-        }
-      ]
-    });
-
-    // Step 4: Filters (now includes search)
-    tour.addStep({
-      id: 'filters',
-      title: 'Search & Filter Cases',
-      text: 'Click Filters to search by patient or dentist name, filter by case type, assignee, and more.',
-      attachTo: {
-        element: '#kanbanFilterToggle',
-        on: 'bottom'
-      },
-      buttons: [
-        {
-          text: 'Back',
-          action: tour.back,
-          secondary: true
-        },
-        {
-          text: 'Next',
-          action: tour.next
-        }
-      ]
-    });
-
-    // Step 6: Insights Tab
-    tour.addStep({
-      id: 'insights-tab',
-      title: 'Insights Dashboard',
-      text: 'View detailed analytics about your cases, team performance, and trends over time. You can also ask questions about your practice data.',
-      attachTo: {
-        element: '.main-tab[data-tab="insights"]',
-        on: 'bottom-start'
-      },
-      popperOptions: {
-        modifiers: [{ name: 'offset', options: { offset: [20, 16] } }]
-      },
-      buttons: [
-        {
-          text: 'Back',
-          action: tour.back,
-          secondary: true
-        },
-        {
-          text: 'Next',
-          action: tour.next
-        }
-      ]
-    });
-
-    // Step 7: User Menu
-    tour.addStep({
-      id: 'user-menu',
-      title: 'Menu',
-      text: 'Click your profile picture to access the main menu with Settings, Billing, Support, and more.',
-      attachTo: {
-        element: '#userMenuToggle',
-        on: 'bottom-end'
-      },
-      popperOptions: {
-        modifiers: [{ name: 'offset', options: { offset: [-20, 16] } }]
-      },
-      buttons: [
-        {
-          text: 'Back',
-          action: tour.back,
-          secondary: true
-        },
-        {
-          text: 'Next',
-          action: tour.next
-        }
-      ]
-    });
-
-    // Step 8: Ask DentaTrak (only if AI Chat feature is enabled)
-    if (window.featureFlags && window.featureFlags.SHOW_AI_CHAT) {
-      tour.addStep({
-        id: 'ask-dentatrak',
-        title: 'Ask DentaTrak AI',
-        text: 'Your AI-powered practice assistant! Ask questions about your cases, get insights about workload, find overdue cases, understand what puts cases at risk, and more. It\'s like having a smart assistant who knows your practice data.',
-        attachTo: {
-          element: '#askDentatrakFab',
-          on: 'top-end'
-        },
-        popperOptions: {
-          modifiers: [{ name: 'offset', options: { offset: [-20, 16] } }]
-        },
-        buttons: [
-          {
-            text: 'Back',
-            action: tour.back,
-            secondary: true
-          },
-          {
-            text: 'Next',
-            action: tour.next
-          }
-        ]
-      });
-    }
-
-    // Step 9: Finish
-    tour.addStep({
-      id: 'finish',
-      title: 'You\'re All Set!',
-      text: 'That covers the essentials. Remember, you can always access Support from the menu if you need help. Happy tracking!',
-      buttons: [
-        {
-          text: 'Back',
-          action: tour.back,
-          secondary: true
-        },
-        {
-          text: 'Get Started',
-          action: function() {
-            completeTour();
-            tour.complete();
-          }
-        }
-      ]
-    });
-
-    // Handle tour cancellation (X button or clicking outside)
-    tour.on('cancel', function() {
-      completeTour();
-    });
-
-    // Start the tour
     tour.start();
   }
 
   // Track if we've already saved to prevent duplicate calls
   var tourSaveInProgress = false;
 
-  // Function to mark tour as completed
+  /**
+   * Persist tour completion for the current user.
+   */
   function completeTour() {
-    // Prevent duplicate saves
     if (window.tourCompleted === true || tourSaveInProgress) {
       return;
     }
-    
+
     tourSaveInProgress = true;
     window.tourCompleted = true;
-    
-    // Save to server
-    var csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || '';
+
+    var csrfToken = '';
+    var meta = document.querySelector('meta[name="csrf-token"]');
+    if (meta && meta.content) {
+      csrfToken = meta.content;
+    }
+
     fetch('api/save-tour-completed.php', {
       method: 'POST',
       headers: {
@@ -292,19 +294,28 @@
       },
       body: JSON.stringify({ tourCompleted: true })
     })
-    .then(response => response.json())
-    .then(data => {
+    .then(function(response) { return response.json(); })
+    .then(function(data) {
       tourSaveInProgress = false;
     })
-    .catch(error => {
+    .catch(function() {
       tourSaveInProgress = false;
     });
   }
 
-  // Expose function to manually start tour (for testing or help menu)
+  /**
+   * Manual replay entry point. Used by the user menu "Take a Tour" link.
+   * Does not permanently reset server-side completion; only the current page load.
+   */
   window.startAppTour = function() {
+    if (window.innerWidth < DESKTOP_MIN_WIDTH) {
+      if (typeof showToast === 'function') {
+        showToast('The guided tour is available on a larger screen.', 'info');
+      }
+      return;
+    }
+
     window.tourCompleted = false;
     initTour();
   };
-
 })();
