@@ -118,6 +118,59 @@
     return waitForElement('.main-tab[data-tab="' + tabName + '"].active', timeout);
   }
 
+  function waitForTourTargetStable(selector, timeout) {
+    return new Promise(function(resolve) {
+      var start = Date.now();
+      var el = document.querySelector(selector);
+      if (!el) {
+        resolve(null);
+        return;
+      }
+
+      var lastRect = el.getBoundingClientRect();
+      var stableFrames = 0;
+      var requiredFrames = 3;
+
+      function check() {
+        el = document.querySelector(selector);
+        if (!el || !isVisible(el)) {
+          resolve(null);
+          return;
+        }
+        var rect = el.getBoundingClientRect();
+        if (lastRect &&
+            Math.abs(rect.left - lastRect.left) < 1 &&
+            Math.abs(rect.top - lastRect.top) < 1 &&
+            Math.abs(rect.width - lastRect.width) < 1 &&
+            Math.abs(rect.height - lastRect.height) < 1) {
+          stableFrames++;
+          if (stableFrames >= requiredFrames) {
+            resolve(el);
+            return;
+          }
+        } else {
+          stableFrames = 0;
+          lastRect = rect;
+        }
+
+        if (Date.now() - start >= timeout) {
+          resolve(el);
+          return;
+        }
+
+        requestAnimationFrame(check);
+      }
+
+      requestAnimationFrame(check);
+    });
+  }
+
+  function stableTarget(selector) {
+    return function() {
+      return waitForTourTargetStable(selector, 2000);
+    };
+  }
+
   function openUserMenu() {
     return new Promise(function(resolve) {
       var menu = document.getElementById('userMenu');
@@ -474,6 +527,7 @@
           element: '.kanban-board',
           on: 'top-start'
         },
+        beforeShowPromise: stableTarget('.kanban-board'),
         scrollTo: false,
         popperOptions: offsetModifier(20, 16),
         buttons: [
@@ -492,6 +546,7 @@
           element: '.create-case-button',
           on: 'bottom-start'
         },
+        beforeShowPromise: stableTarget('.create-case-button'),
         scrollTo: false,
         popperOptions: offsetModifier(20, 16),
         buttons: [
@@ -510,6 +565,7 @@
           element: '#kanbanFilterToggle',
           on: 'bottom'
         },
+        beforeShowPromise: stableTarget('#kanbanFilterToggle'),
         scrollTo: false,
         popperOptions: offsetModifier(0, 16),
         buttons: [
@@ -528,6 +584,7 @@
           element: '.main-tab[data-tab="insights"]',
           on: 'bottom-start'
         },
+        beforeShowPromise: stableTarget('.main-tab[data-tab="insights"]'),
         scrollTo: false,
         popperOptions: offsetModifier(20, 16),
         buttons: [
@@ -546,6 +603,7 @@
           element: '.main-tab[data-tab="lab-insights"]',
           on: 'bottom-start'
         },
+        beforeShowPromise: stableTarget('.main-tab[data-tab="lab-insights"]'),
         scrollTo: false,
         popperOptions: offsetModifier(20, 16),
         buttons: [
@@ -564,6 +622,7 @@
           element: '#settingsMenuItem',
           on: 'left-start'
         },
+        beforeShowPromise: stableTarget('#settingsMenuItem'),
         scrollTo: false,
         popperOptions: offsetModifier(-16, 0),
         buttons: [
@@ -582,6 +641,7 @@
           element: '.settings-twisty[data-twisty-id="authorized"] .settings-twisty-header',
           on: 'right-start'
         },
+        beforeShowPromise: stableTarget('.settings-twisty[data-twisty-id="authorized"] .settings-twisty-header'),
         scrollTo: false,
         popperOptions: offsetModifier(16, 0),
         buttons: [
@@ -600,6 +660,7 @@
           element: '#addGmailUser',
           on: 'bottom'
         },
+        beforeShowPromise: stableTarget('#addGmailUser'),
         scrollTo: false,
         popperOptions: offsetModifier(0, 16),
         buttons: [
@@ -618,6 +679,7 @@
           element: '.practice-user-lab-header',
           on: 'bottom'
         },
+        beforeShowPromise: stableTarget('.practice-user-lab-header'),
         scrollTo: false,
         popperOptions: offsetModifier(0, 16),
         buttons: [
@@ -636,6 +698,7 @@
           element: '.assignment-labels-section',
           on: 'top'
         },
+        beforeShowPromise: stableTarget('.assignment-labels-section'),
         scrollTo: false,
         popperOptions: offsetModifier(0, 16),
         buttons: [
@@ -654,6 +717,7 @@
           element: '#contactUsLink',
           on: 'bottom-start'
         },
+        beforeShowPromise: stableTarget('#contactUsLink'),
         scrollTo: false,
         popperOptions: offsetModifier(0, 16),
         buttons: [
