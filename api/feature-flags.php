@@ -20,7 +20,7 @@ $FEATURE_DEFAULTS = [
     'SHOW_DEV_TOOLS' => false,
     'SHOW_REVISION_COUNT' => true,
     'SHOW_GOOGLE_DRIVE_BACKUP' => false,
-    'SHOW_TOUR' => false,
+    'SHOW_TOUR' => true,
     'SHOW_LAB_INSIGHTS' => true,   // Lab Insights foundation (assignment-history
                                     // tracking, Lab designation on users/labels).
                                     // Must remain OFF until analytics/UI are built

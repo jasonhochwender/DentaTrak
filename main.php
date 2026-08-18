@@ -2867,7 +2867,7 @@ window.featureFlags = <?php echo getFeatureFlagsJson(); ?>;
   <!-- Shepherd.js Tour - deferred since not needed immediately -->
   <?php if (isFeatureEnabled('SHOW_TOUR')): ?>
   <script src="https://cdn.jsdelivr.net/npm/shepherd.js@11/dist/js/shepherd.min.js" defer></script>
-  <script src="js/tour.js?v=20260818m" defer></script>
+  <script src="js/tour.js?v=20260818o" defer></script>
   <?php endif; ?>
 </body>
 </html>

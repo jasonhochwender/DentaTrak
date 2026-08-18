@@ -13,19 +13,10 @@
   var openedInsightsTab = null;
 
   document.addEventListener('DOMContentLoaded', function() {
-    var checkCount = 0;
-    var maxChecks = 20;
-    var checkInterval = setInterval(function() {
-      checkCount++;
-      if (typeof window.tourCompleted !== 'undefined') {
-        clearInterval(checkInterval);
-        setTimeout(maybeAutoStartTour, 500);
-      } else if (checkCount >= maxChecks) {
-        clearInterval(checkInterval);
-        window.tourCompleted = false;
-        setTimeout(maybeAutoStartTour, 500);
-      }
-    }, 250);
+    if (typeof window.tourCompleted === 'undefined') {
+      window.tourCompleted = false;
+    }
+    maybeAutoStartTour();
   });
 
   function isDesktop() {
@@ -33,10 +24,7 @@
   }
 
   function maybeAutoStartTour() {
-    if (window.tourCompleted === true) {
-      return;
-    }
-    if (!isDesktop()) {
+    if (window.tourCompleted === true || !isDesktop()) {
       return;
     }
     initTour();
@@ -64,231 +52,18 @@
     return true;
   }
 
-  function waitForElement(selector, timeout) {
+  function raf(n) {
     return new Promise(function(resolve) {
-      var el = document.querySelector(selector);
-      if (el && isVisible(el)) {
-        resolve(el);
-        return;
-      }
-
-      var elapsed = 0;
-      var interval = setInterval(function() {
-        elapsed += 50;
-        el = document.querySelector(selector);
-        if (el && isVisible(el)) {
-          clearInterval(interval);
-          resolve(el);
-          return;
-        }
-        if (elapsed >= timeout) {
-          clearInterval(interval);
-          resolve(null);
-        }
-      }, 50);
-    });
-  }
-
-  function waitForHidden(selector, timeout) {
-    return new Promise(function(resolve) {
-      var el = document.querySelector(selector);
-      if (!el || !isVisible(el)) {
-        resolve();
-        return;
-      }
-
-      var elapsed = 0;
-      var interval = setInterval(function() {
-        elapsed += 50;
-        el = document.querySelector(selector);
-        if (!el || !isVisible(el)) {
-          clearInterval(interval);
+      var count = 0;
+      function step() {
+        count++;
+        if (count >= n) {
           resolve();
-          return;
-        }
-        if (elapsed >= timeout) {
-          clearInterval(interval);
-          resolve();
-        }
-      }, 50);
-    });
-  }
-
-  function waitForActiveTab(tabName, timeout) {
-    return waitForElement('.main-tab[data-tab="' + tabName + '"].active', timeout);
-  }
-
-  function waitForTourTargetStable(selector, timeout) {
-    return new Promise(function(resolve) {
-      var start = Date.now();
-      var el = document.querySelector(selector);
-      if (!el) {
-        resolve(null);
-        return;
-      }
-
-      var lastRect = el.getBoundingClientRect();
-      var stableFrames = 0;
-      var requiredFrames = 3;
-
-      function check() {
-        el = document.querySelector(selector);
-        if (!el || !isVisible(el)) {
-          resolve(null);
-          return;
-        }
-        var rect = el.getBoundingClientRect();
-        if (lastRect &&
-            Math.abs(rect.left - lastRect.left) < 1 &&
-            Math.abs(rect.top - lastRect.top) < 1 &&
-            Math.abs(rect.width - lastRect.width) < 1 &&
-            Math.abs(rect.height - lastRect.height) < 1) {
-          stableFrames++;
-          if (stableFrames >= requiredFrames) {
-            resolve(el);
-            return;
-          }
         } else {
-          stableFrames = 0;
-          lastRect = rect;
+          requestAnimationFrame(step);
         }
-
-        if (Date.now() - start >= timeout) {
-          resolve(el);
-          return;
-        }
-
-        requestAnimationFrame(check);
       }
-
-      requestAnimationFrame(check);
-    });
-  }
-
-  function stableTarget(selector) {
-    return function() {
-      return waitForTourTargetStable(selector, 2000);
-    };
-  }
-
-  function openUserMenu() {
-    return new Promise(function(resolve) {
-      var menu = document.getElementById('userMenu');
-      var toggle = document.getElementById('userMenuToggle');
-      if (!menu || !toggle) {
-        resolve(null);
-        return;
-      }
-      if (menu.classList.contains('open')) {
-        waitForElement('#userMenu.open', 300).then(resolve);
-        return;
-      }
-      if (typeof window.openUserMenu === 'function') {
-        window.openUserMenu();
-      } else {
-        toggle.click();
-      }
-      waitForElement('#userMenu.open', 1000).then(resolve);
-    });
-  }
-
-  function closeUserMenu() {
-    return new Promise(function(resolve) {
-      var menu = document.getElementById('userMenu');
-      var toggle = document.getElementById('userMenuToggle');
-      if (!menu || !menu.classList.contains('open')) {
-        resolve();
-        return;
-      }
-      if (typeof window.closeUserMenu === 'function') {
-        window.closeUserMenu();
-      } else if (toggle) {
-        toggle.click();
-      }
-      waitForHidden('#userMenu', 1000).then(resolve);
-    });
-  }
-
-  function goToCasesTab() {
-    return new Promise(function(resolve) {
-      var tab = document.querySelector('.main-tab[data-tab="cases"]');
-      if (tab && !tab.classList.contains('active')) {
-        tab.click();
-      }
-      openedInsightsTab = null;
-      waitForActiveTab('cases', 1000).then(resolve);
-    });
-  }
-
-  function goToInsightsTab() {
-    return new Promise(function(resolve) {
-      var tab = document.querySelector('.main-tab[data-tab="insights"]');
-      if (tab) {
-        tab.click();
-      }
-      openedInsightsTab = 'insights';
-      waitForActiveTab('insights', 1000).then(resolve);
-    });
-  }
-
-  function goToLabInsightsTab() {
-    return new Promise(function(resolve) {
-      var tab = document.querySelector('.main-tab[data-tab="lab-insights"]');
-      if (tab) {
-        tab.click();
-      }
-      openedInsightsTab = 'lab-insights';
-      waitForActiveTab('lab-insights', 1000).then(resolve);
-    });
-  }
-
-  function openSettingsModal() {
-    return new Promise(function(resolve) {
-      if (!window.isPracticeAdmin) {
-        resolve(false);
-        return;
-      }
-      if (openedSettings) {
-        resolve(true);
-        return;
-      }
-      var menuItem = document.getElementById('settingsMenuItem');
-      if (!menuItem) {
-        resolve(false);
-        return;
-      }
-      menuItem.click();
-      openedSettings = true;
-      resolve(true);
-    });
-  }
-
-  function scrollSettingsTo(selector) {
-    return new Promise(function(resolve) {
-      var scrollContainer = document.querySelector('#settingsBillingModal .tab-content-scroll');
-      var el = document.querySelector(selector);
-      if (!scrollContainer || !el) {
-        resolve(false);
-        return;
-      }
-
-      var containerRect = scrollContainer.getBoundingClientRect();
-      var elRect = el.getBoundingClientRect();
-      var target = scrollContainer.scrollTop + (elRect.top - containerRect.top) - 16;
-
-      if (target < 0) {
-        target = 0;
-      }
-      var maxScroll = scrollContainer.scrollHeight - scrollContainer.clientHeight;
-      if (maxScroll > 0 && target > maxScroll) {
-        target = maxScroll;
-      }
-
-      scrollContainer.scrollTop = target;
-
-      setTimeout(function() {
-        resolve(isVisible(el));
-      }, 150);
+      requestAnimationFrame(step);
     });
   }
 
@@ -301,29 +76,20 @@
       var closeBtn = document.getElementById('settingsBillingClose');
       if (closeBtn) {
         closeBtn.click();
-      } else {
-        var modal = document.getElementById('settingsBillingModal');
-        if (modal) {
-          modal.style.display = 'none';
-        }
-        document.body.style.overflow = '';
       }
       openedSettings = false;
+      raf(1).then(resolve);
+    });
+  }
 
-      var elapsed = 0;
-      var interval = setInterval(function() {
-        elapsed += 50;
-        var modal = document.getElementById('settingsBillingModal');
-        if (!modal || modal.style.display === 'none' || window.getComputedStyle(modal).display === 'none') {
-          clearInterval(interval);
-          resolve();
-          return;
-        }
-        if (elapsed >= 1000) {
-          clearInterval(interval);
-          resolve();
-        }
-      }, 50);
+  function openSettingsModal() {
+    return new Promise(function(resolve) {
+      var settingsMenuItem = document.getElementById('settingsMenuItem');
+      if (settingsMenuItem) {
+        settingsMenuItem.click();
+        openedSettings = true;
+      }
+      raf(1).then(resolve);
     });
   }
 
@@ -341,150 +107,170 @@
     }
   }
 
-  function prepareForStep(stepId) {
-    if (stepId !== 'practice-settings' && stepId !== 'share-feedback') {
-      window.tourKeepsUserMenuOpen = false;
-    }
-    switch (stepId) {
-      case 'welcome':
-        return closeSettingsModal().then(closeUserMenu).then(goToCasesTab).then(function() { return true; });
-      case 'cases-board':
-      case 'create-case':
-      case 'search-filter':
-        return closeSettingsModal().then(closeUserMenu).then(goToCasesTab).then(function() { return true; });
-      case 'practice-insights':
-        return closeSettingsModal().then(closeUserMenu).then(goToInsightsTab).then(function() { return true; });
-      case 'lab-insights':
-        return closeSettingsModal().then(closeUserMenu).then(goToLabInsightsTab).then(function() { return true; });
-      case 'practice-settings':
-        window.tourKeepsUserMenuOpen = true;
-        return closeSettingsModal().then(goToCasesTab).then(openUserMenu).then(function(menu) {
-          if (!menu) { window.tourKeepsUserMenuOpen = false; return false; }
-          return waitForElement('#settingsMenuItem', 1000).then(function(el) {
-            if (!el) { window.tourKeepsUserMenuOpen = false; return false; }
-            return true;
-          });
-        });
-      case 'practice-users':
-        return closeUserMenu().then(openSettingsModal).then(function(ok) {
-          if (!ok) { return false; }
-          navigateSettingsToAuthorized();
-          return scrollSettingsTo('.settings-twisty[data-twisty-id="authorized"] .settings-twisty-header').then(function() {
-            return waitForElement('.settings-twisty[data-twisty-id="authorized"] .settings-twisty-header', 1000).then(function(el) { return !!el; });
-          });
-        });
-      case 'add-users':
-        return openSettingsModal().then(function(ok) {
-          if (!ok) { return false; }
-          navigateSettingsToAuthorized();
-          return scrollSettingsTo('#addGmailUser').then(function() {
-            return waitForElement('#addGmailUser', 1000).then(function(el) { return !!el; });
-          });
-        });
-      case 'lab-user':
-        return openSettingsModal().then(function(ok) {
-          if (!ok) { return false; }
-          navigateSettingsToAuthorized();
-          return scrollSettingsTo('.practice-user-lab-header').then(function() {
-            return waitForElement('.practice-user-lab-header', 1000).then(function(el) { return !!el; });
-          });
-        });
-      case 'assignment-labels':
-        return openSettingsModal().then(function(ok) {
-          if (!ok) { return false; }
-          navigateSettingsToAuthorized();
-          return scrollSettingsTo('.assignment-labels-section').then(function() {
-            return waitForElement('#newAssignmentLabel', 1000).then(function(el) { return !!el; });
-          });
-        });
-      case 'share-feedback':
-        window.tourKeepsUserMenuOpen = true;
-        return closeSettingsModal().then(goToCasesTab).then(openUserMenu).then(function(menu) {
-          if (!menu) { window.tourKeepsUserMenuOpen = false; return false; }
-          return waitForElement('#contactUsLink', 1000).then(function(el) {
-            if (!el) { window.tourKeepsUserMenuOpen = false; return false; }
-            return true;
-          });
-        });
-      case 'finish':
-        return closeSettingsModal().then(closeUserMenu).then(goToCasesTab).then(function() { return true; });
-      default:
-        return Promise.resolve(true);
-    }
-  }
-
-  function showStepById(stepId) {
-    if (!tour) {
-      return Promise.resolve(false);
-    }
-    return prepareForStep(stepId).then(function(ready) {
-      if (ready) {
-        tour.show(stepId);
-        return true;
+  function scrollSettingsTo(selector) {
+    return new Promise(function(resolve) {
+      var scrollContainer = document.querySelector('#settingsBillingModal .tab-content-scroll');
+      var el = document.querySelector(selector);
+      if (!scrollContainer || !el) {
+        resolve();
+        return;
       }
-      return false;
+      var containerRect = scrollContainer.getBoundingClientRect();
+      var elRect = el.getBoundingClientRect();
+      var target = scrollContainer.scrollTop + (elRect.top - containerRect.top) - 16;
+      var maxScroll = scrollContainer.scrollHeight - scrollContainer.clientHeight;
+      if (target < 0) {
+        target = 0;
+      }
+      if (maxScroll > 0 && target > maxScroll) {
+        target = maxScroll;
+      }
+      scrollContainer.scrollTop = target;
+      raf(1).then(resolve);
     });
   }
 
-  function tryShowForward(startIdx) {
-    if (!tour) {
-      return;
-    }
-    if (startIdx >= tour.steps.length) {
-      tour.complete();
-      return;
-    }
-    var id = tour.steps[startIdx].id;
-    showStepById(id).then(function(shown) {
-      if (!shown) {
-        tryShowForward(startIdx + 1);
+  function openUserMenu() {
+    if (typeof window.openUserMenu === 'function') {
+      window.openUserMenu();
+    } else {
+      var toggle = document.getElementById('userMenuToggle');
+      if (toggle) {
+        toggle.click();
       }
+    }
+  }
+
+  function closeUserMenu() {
+    return new Promise(function(resolve) {
+      if (typeof window.closeUserMenu === 'function') {
+        window.closeUserMenu();
+      } else {
+        var menu = document.getElementById('userMenu');
+        var toggle = document.getElementById('userMenuToggle');
+        if (menu && menu.classList.contains('open')) {
+          menu.classList.remove('open');
+          if (toggle) {
+            toggle.setAttribute('aria-expanded', 'false');
+          }
+        }
+      }
+      raf(1).then(resolve);
     });
   }
 
-  function tryShowBackward(startIdx) {
-    if (!tour) {
-      return;
+  function goToCasesTab() {
+    var tab = document.querySelector('.main-tab[data-tab="cases"]');
+    if (tab && !tab.classList.contains('active')) {
+      tab.click();
     }
-    if (startIdx < 0) {
-      return;
-    }
-    var id = tour.steps[startIdx].id;
-    showStepById(id).then(function(shown) {
-      if (!shown) {
-        tryShowBackward(startIdx - 1);
-      }
-    });
+    openedInsightsTab = null;
+    return raf(1);
   }
 
-  function currentStepIndex() {
-    if (!tour || !tour.getCurrentStep()) {
-      return -1;
+  function goToInsightsTab() {
+    var tab = document.querySelector('.main-tab[data-tab="insights"]');
+    if (tab) {
+      tab.click();
     }
-    var currentId = tour.getCurrentStep().id;
-    for (var i = 0; i < tour.steps.length; i++) {
-      if (tour.steps[i].id === currentId) {
-        return i;
-      }
-    }
-    return -1;
+    openedInsightsTab = 'insights';
+    return raf(1);
   }
 
-  function goToNext() {
-    var idx = currentStepIndex();
-    if (idx === -1) {
-      tryShowForward(0);
-      return;
+  function goToLabInsightsTab() {
+    var tab = document.querySelector('.main-tab[data-tab="lab-insights"]');
+    if (tab) {
+      tab.click();
     }
-    tryShowForward(idx + 1);
+    openedInsightsTab = 'lab-insights';
+    return raf(1);
   }
 
-  function goToPrev() {
-    var idx = currentStepIndex();
-    if (idx === -1) {
-      return;
-    }
-    tryShowBackward(idx - 1);
+  function mainViewBefore() {
+    window.tourKeepsUserMenuOpen = false;
+    return Promise.resolve()
+      .then(closeSettingsModal)
+      .then(closeUserMenu)
+      .then(goToCasesTab);
+  }
+
+  function insightsBefore() {
+    window.tourKeepsUserMenuOpen = false;
+    return Promise.resolve()
+      .then(closeSettingsModal)
+      .then(closeUserMenu)
+      .then(goToInsightsTab);
+  }
+
+  function labInsightsBefore() {
+    window.tourKeepsUserMenuOpen = false;
+    return Promise.resolve()
+      .then(closeSettingsModal)
+      .then(closeUserMenu)
+      .then(goToLabInsightsTab);
+  }
+
+  function practiceSettingsBefore() {
+    window.tourKeepsUserMenuOpen = true;
+    return Promise.resolve()
+      .then(closeSettingsModal)
+      .then(goToCasesTab)
+      .then(function() {
+        openUserMenu();
+        return raf(1);
+      });
+  }
+
+  function settingsBefore() {
+    window.tourKeepsUserMenuOpen = false;
+    return Promise.resolve()
+      .then(closeUserMenu)
+      .then(openSettingsModal)
+      .then(function() {
+        navigateSettingsToAuthorized();
+        return raf(1);
+      });
+  }
+
+  function labUserBefore() {
+    window.tourKeepsUserMenuOpen = false;
+    return Promise.resolve()
+      .then(closeUserMenu)
+      .then(openSettingsModal)
+      .then(function() {
+        navigateSettingsToAuthorized();
+        return scrollSettingsTo('.practice-user-lab-header');
+      });
+  }
+
+  function assignmentLabelsBefore() {
+    window.tourKeepsUserMenuOpen = false;
+    return Promise.resolve()
+      .then(closeUserMenu)
+      .then(openSettingsModal)
+      .then(function() {
+        navigateSettingsToAuthorized();
+        return scrollSettingsTo('.assignment-labels-section');
+      });
+  }
+
+  function shareFeedbackBefore() {
+    window.tourKeepsUserMenuOpen = true;
+    return Promise.resolve()
+      .then(closeSettingsModal)
+      .then(goToCasesTab)
+      .then(function() {
+        openUserMenu();
+        return raf(1);
+      });
+  }
+
+  function finishBefore() {
+    window.tourKeepsUserMenuOpen = false;
+    return Promise.resolve()
+      .then(closeSettingsModal)
+      .then(closeUserMenu)
+      .then(goToCasesTab);
   }
 
   function offsetModifier(x, y) {
@@ -506,14 +292,12 @@
       buttons: [
         {
           text: 'Skip Tour',
-          action: function() {
-            tour.complete();
-          },
+          action: function() { tour.complete(); },
           secondary: true
         },
         {
           text: 'Start Tour',
-          action: goToNext
+          action: function() { tour.next(); }
         }
       ]
     });
@@ -527,12 +311,12 @@
           element: '.kanban-board',
           on: 'top-start'
         },
-        beforeShowPromise: stableTarget('.kanban-board'),
+        beforeShowPromise: mainViewBefore,
         scrollTo: false,
         popperOptions: offsetModifier(20, 16),
         buttons: [
-          { text: 'Back', action: goToPrev, secondary: true },
-          { text: 'Next', action: goToNext }
+          { text: 'Back', action: function() { tour.back(); }, secondary: true },
+          { text: 'Next', action: function() { tour.next(); } }
         ]
       });
     }
@@ -546,17 +330,17 @@
           element: '.create-case-button',
           on: 'bottom-start'
         },
-        beforeShowPromise: stableTarget('.create-case-button'),
+        beforeShowPromise: mainViewBefore,
         scrollTo: false,
         popperOptions: offsetModifier(20, 16),
         buttons: [
-          { text: 'Back', action: goToPrev, secondary: true },
-          { text: 'Next', action: goToNext }
+          { text: 'Back', action: function() { tour.back(); }, secondary: true },
+          { text: 'Next', action: function() { tour.next(); } }
         ]
       });
     }
 
-    if (document.querySelector('#kanbanFilterToggle')) {
+    if (document.getElementById('kanbanFilterToggle')) {
       steps.push({
         id: 'search-filter',
         title: 'Search & Filter',
@@ -565,12 +349,12 @@
           element: '#kanbanFilterToggle',
           on: 'bottom'
         },
-        beforeShowPromise: stableTarget('#kanbanFilterToggle'),
+        beforeShowPromise: mainViewBefore,
         scrollTo: false,
-        popperOptions: offsetModifier(0, 16),
+        popperOptions: offsetModifier(20, 16),
         buttons: [
-          { text: 'Back', action: goToPrev, secondary: true },
-          { text: 'Next', action: goToNext }
+          { text: 'Back', action: function() { tour.back(); }, secondary: true },
+          { text: 'Next', action: function() { tour.next(); } }
         ]
       });
     }
@@ -584,12 +368,12 @@
           element: '.main-tab[data-tab="insights"]',
           on: 'bottom-start'
         },
-        beforeShowPromise: stableTarget('.main-tab[data-tab="insights"]'),
+        beforeShowPromise: insightsBefore,
         scrollTo: false,
         popperOptions: offsetModifier(20, 16),
         buttons: [
-          { text: 'Back', action: goToPrev, secondary: true },
-          { text: 'Next', action: goToNext }
+          { text: 'Back', action: function() { tour.back(); }, secondary: true },
+          { text: 'Next', action: function() { tour.next(); } }
         ]
       });
     }
@@ -603,12 +387,12 @@
           element: '.main-tab[data-tab="lab-insights"]',
           on: 'bottom-start'
         },
-        beforeShowPromise: stableTarget('.main-tab[data-tab="lab-insights"]'),
+        beforeShowPromise: labInsightsBefore,
         scrollTo: false,
         popperOptions: offsetModifier(20, 16),
         buttons: [
-          { text: 'Back', action: goToPrev, secondary: true },
-          { text: 'Next', action: goToNext }
+          { text: 'Back', action: function() { tour.back(); }, secondary: true },
+          { text: 'Next', action: function() { tour.next(); } }
         ]
       });
     }
@@ -622,12 +406,12 @@
           element: '#settingsMenuItem',
           on: 'left-start'
         },
-        beforeShowPromise: stableTarget('#settingsMenuItem'),
+        beforeShowPromise: practiceSettingsBefore,
         scrollTo: false,
         popperOptions: offsetModifier(-16, 0),
         buttons: [
-          { text: 'Back', action: goToPrev, secondary: true },
-          { text: 'Next', action: goToNext }
+          { text: 'Back', action: function() { tour.back(); }, secondary: true },
+          { text: 'Next', action: function() { tour.next(); } }
         ]
       });
     }
@@ -641,12 +425,12 @@
           element: '.settings-twisty[data-twisty-id="authorized"] .settings-twisty-header',
           on: 'right-start'
         },
-        beforeShowPromise: stableTarget('.settings-twisty[data-twisty-id="authorized"] .settings-twisty-header'),
+        beforeShowPromise: settingsBefore,
         scrollTo: false,
         popperOptions: offsetModifier(16, 0),
         buttons: [
-          { text: 'Back', action: goToPrev, secondary: true },
-          { text: 'Next', action: goToNext }
+          { text: 'Back', action: function() { tour.back(); }, secondary: true },
+          { text: 'Next', action: function() { tour.next(); } }
         ]
       });
     }
@@ -660,12 +444,12 @@
           element: '#addGmailUser',
           on: 'bottom'
         },
-        beforeShowPromise: stableTarget('#addGmailUser'),
+        beforeShowPromise: settingsBefore,
         scrollTo: false,
         popperOptions: offsetModifier(0, 16),
         buttons: [
-          { text: 'Back', action: goToPrev, secondary: true },
-          { text: 'Next', action: goToNext }
+          { text: 'Back', action: function() { tour.back(); }, secondary: true },
+          { text: 'Next', action: function() { tour.next(); } }
         ]
       });
     }
@@ -679,12 +463,12 @@
           element: '.practice-user-lab-header',
           on: 'bottom'
         },
-        beforeShowPromise: stableTarget('.practice-user-lab-header'),
+        beforeShowPromise: labUserBefore,
         scrollTo: false,
         popperOptions: offsetModifier(0, 16),
         buttons: [
-          { text: 'Back', action: goToPrev, secondary: true },
-          { text: 'Next', action: goToNext }
+          { text: 'Back', action: function() { tour.back(); }, secondary: true },
+          { text: 'Next', action: function() { tour.next(); } }
         ]
       });
     }
@@ -698,12 +482,12 @@
           element: '.assignment-labels-section',
           on: 'top'
         },
-        beforeShowPromise: stableTarget('.assignment-labels-section'),
+        beforeShowPromise: assignmentLabelsBefore,
         scrollTo: false,
         popperOptions: offsetModifier(0, 16),
         buttons: [
-          { text: 'Back', action: goToPrev, secondary: true },
-          { text: 'Next', action: goToNext }
+          { text: 'Back', action: function() { tour.back(); }, secondary: true },
+          { text: 'Next', action: function() { tour.next(); } }
         ]
       });
     }
@@ -717,12 +501,12 @@
           element: '#contactUsLink',
           on: 'bottom-start'
         },
-        beforeShowPromise: stableTarget('#contactUsLink'),
+        beforeShowPromise: shareFeedbackBefore,
         scrollTo: false,
         popperOptions: offsetModifier(0, 16),
         buttons: [
-          { text: 'Back', action: goToPrev, secondary: true },
-          { text: 'Next', action: goToNext }
+          { text: 'Back', action: function() { tour.back(); }, secondary: true },
+          { text: 'Next', action: function() { tour.next(); } }
         ]
       });
     }
@@ -730,15 +514,10 @@
     steps.push({
       id: 'finish',
       title: "You're Ready",
-      text: 'You can take this tour again anytime from your user menu. The DentaTrak User Guide is also available whenever you need more detail.',
+      text: 'You can restart the tour any time from your profile menu. Enjoy using DentaTrak!',
+      beforeShowPromise: finishBefore,
       buttons: [
-        { text: 'Back', action: goToPrev, secondary: true },
-        {
-          text: 'Get Started',
-          action: function() {
-            tour.complete();
-          }
-        }
+        { text: 'Finish', action: function() { tour.complete(); } }
       ]
     });
 
@@ -747,71 +526,13 @@
 
   function cleanupTour() {
     window.tourKeepsUserMenuOpen = false;
-    closeSettingsModal().then(closeUserMenu).then(goToCasesTab);
-  }
-
-  function initTour() {
-    if (window.tourCompleted === true) {
-      return;
+    closeSettingsModal();
+    closeUserMenu();
+    var casesTab = document.querySelector('.main-tab[data-tab="cases"]');
+    if (casesTab && !casesTab.classList.contains('active')) {
+      casesTab.click();
     }
-
-    tour = new Shepherd.Tour({
-      useModalOverlay: true,
-      defaultStepOptions: {
-        classes: 'shepherd-theme-custom',
-        scrollTo: { behavior: 'smooth', block: 'center' },
-        cancelIcon: {
-          enabled: true
-        },
-        modalOverlayOpeningPadding: 8,
-        modalOverlayOpeningRadius: 8
-      }
-    });
-
-    tour.on('show', function() {
-      var currentStep = tour.getCurrentStep();
-
-      if (currentStep && currentStep.id !== 'share-feedback' && currentStep.id !== 'practice-settings') {
-        if (typeof window.closeUserMenu === 'function') {
-          window.closeUserMenu();
-        } else {
-          var userMenu = document.getElementById('userMenu');
-          var userMenuToggle = document.getElementById('userMenuToggle');
-          if (userMenu && userMenu.classList.contains('open')) {
-            userMenu.classList.remove('open');
-            if (userMenuToggle) {
-              userMenuToggle.setAttribute('aria-expanded', 'false');
-            }
-          }
-        }
-      }
-
-      if (currentStep && currentStep.el) {
-        currentStep.el.style.opacity = '0';
-        setTimeout(function() {
-          if (currentStep.el) {
-            currentStep.el.style.opacity = '1';
-          }
-        }, 150);
-      }
-    });
-
-    var steps = buildTourSteps();
-    steps.forEach(function(step) {
-      tour.addStep(step);
-    });
-
-    tour.on('complete', function() {
-      completeTour();
-      cleanupTour();
-    });
-
-    tour.on('cancel', function() {
-      completeTour();
-      cleanupTour();
-    });
-
-    tour.start();
+    openedInsightsTab = null;
   }
 
   function completeTour() {
@@ -829,19 +550,67 @@
 
     fetch('api/save-tour-completed.php', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-CSRF-Token': csrfToken
-      },
-      body: JSON.stringify({ tourCompleted: true })
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: 'csrf_token=' + encodeURIComponent(csrfToken)
     })
     .then(function(response) { return response.json(); })
-    .then(function(data) {
+    .then(function() {
       tourSaveInProgress = false;
     })
     .catch(function() {
       tourSaveInProgress = false;
     });
+  }
+
+  function initTour() {
+    if (window.tourCompleted === true) {
+      return;
+    }
+
+    tour = new Shepherd.Tour({
+      useModalOverlay: true,
+      defaultStepOptions: {
+        classes: 'shepherd-theme-custom',
+        scrollTo: false,
+        cancelIcon: {
+          enabled: true
+        },
+        modalOverlayOpeningPadding: 8,
+        modalOverlayOpeningRadius: 8
+      }
+    });
+
+    tour.on('show', function() {
+      var currentStep = tour.getCurrentStep();
+      var el = currentStep && currentStep.el;
+      if (el) {
+        el.style.visibility = 'hidden';
+        el.style.opacity = '0';
+        raf(2).then(function() {
+          if (el.parentNode) {
+            el.style.visibility = 'visible';
+            el.style.opacity = '1';
+          }
+        });
+      }
+    });
+
+    tour.on('complete', function() {
+      completeTour();
+      cleanupTour();
+    });
+
+    tour.on('cancel', function() {
+      completeTour();
+      cleanupTour();
+    });
+
+    var steps = buildTourSteps();
+    steps.forEach(function(step) {
+      tour.addStep(step);
+    });
+
+    tour.start();
   }
 
   window.startAppTour = function() {
