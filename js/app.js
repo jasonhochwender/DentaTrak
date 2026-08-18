@@ -1015,34 +1015,42 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   }
 
-  function closeUserMenu() {
-    if (userMenu && userMenu.classList.contains('open')) {
-      userMenu.classList.remove('open');
-      if (userMenuToggle) {
-        userMenuToggle.setAttribute('aria-expanded', 'false');
-      }
+  function openUserMenu() {
+    if (userMenu && userMenuToggle && !userMenu.classList.contains('open')) {
+      userMenu.classList.add('open');
+      userMenuToggle.setAttribute('aria-expanded', 'true');
+      closePracticeSwitcher();
     }
   }
 
-  // Make closePracticeSwitcher available globally
+  function closeUserMenu() {
+    if (window.tourKeepsUserMenuOpen) {
+      return;
+    }
+    if (userMenu && userMenuToggle && userMenu.classList.contains('open')) {
+      userMenu.classList.remove('open');
+      userMenuToggle.setAttribute('aria-expanded', 'false');
+    }
+  }
+
+  // Make menu helpers available to the tour and other consumers
+  window.openUserMenu = openUserMenu;
+  window.closeUserMenu = closeUserMenu;
   window.closePracticeSwitcher = closePracticeSwitcher;
 
   // User menu event handlers
   if (userMenuToggle && userMenu) {
     userMenuToggle.addEventListener('click', function (e) {
       e.stopPropagation();
-      var isOpen = userMenu.classList.contains('open');
-      userMenu.classList.toggle('open', !isOpen);
-      userMenuToggle.setAttribute('aria-expanded', (!isOpen).toString());
-      // Close practice switcher if open
-      closePracticeSwitcher();
+      if (userMenu.classList.contains('open')) {
+        closeUserMenu();
+      } else {
+        openUserMenu();
+      }
     });
 
     document.addEventListener('click', function () {
-      if (userMenu.classList.contains('open')) {
-        userMenu.classList.remove('open');
-        userMenuToggle.setAttribute('aria-expanded', 'false');
-      }
+      closeUserMenu();
     });
   }
 

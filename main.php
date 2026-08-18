@@ -2714,7 +2714,7 @@ window.featureFlags = <?php echo getFeatureFlagsJson(); ?>;
   <script src="js/toast.js?v=20250104" defer></script>
   <script src="js/session-timeout.js?v=20250119" defer></script>
   <script src="js/gcs-upload.js?v=20260303c" defer></script>
-  <script src="js/app.js?v=20260327f" defer></script>
+  <script src="js/app.js?v=20260327i" defer></script>
   <script src="js/card-delete-fixed.js?v=20250104" defer></script>
   <script src="js/assignments.js?v=20250104" defer></script>
   <script src="js/case-comments.js?v=20250104" defer></script>
@@ -2867,7 +2867,7 @@ window.featureFlags = <?php echo getFeatureFlagsJson(); ?>;
   <!-- Shepherd.js Tour - deferred since not needed immediately -->
   <?php if (isFeatureEnabled('SHOW_TOUR')): ?>
   <script src="https://cdn.jsdelivr.net/npm/shepherd.js@11/dist/js/shepherd.min.js" defer></script>
-  <script src="js/tour.js?v=20260818" defer></script>
+  <script src="js/tour.js?v=20260818k" defer></script>
   <?php endif; ?>
 </body>
 </html>
