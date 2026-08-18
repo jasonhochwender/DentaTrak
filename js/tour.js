@@ -12,22 +12,21 @@
   var openedSettings = false;
   var openedInsightsTab = null;
 
-  document.addEventListener('DOMContentLoaded', function() {
-    if (typeof window.tourCompleted === 'undefined') {
-      window.tourCompleted = false;
-    }
-    maybeAutoStartTour();
-  });
-
-  function isDesktop() {
-    return window.innerWidth >= DESKTOP_MIN_WIDTH;
-  }
-
-  function maybeAutoStartTour() {
-    if (window.tourCompleted === true || !isDesktop()) {
+  function attemptAutoStartTour() {
+    if (window.tourCompleted !== false || !isDesktop()) {
       return;
     }
     initTour();
+  }
+
+  window.addEventListener('toursettingsloaded', attemptAutoStartTour);
+
+  if (window.tourSettingsLoaded) {
+    attemptAutoStartTour();
+  }
+
+  function isDesktop() {
+    return window.innerWidth >= DESKTOP_MIN_WIDTH;
   }
 
   function isVisible(el) {
@@ -540,7 +539,6 @@
       return;
     }
     tourSaveInProgress = true;
-    window.tourCompleted = true;
 
     var csrfToken = '';
     var meta = document.querySelector('meta[name="csrf-token"]');
@@ -550,20 +548,23 @@
 
     fetch('api/save-tour-completed.php', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: 'csrf_token=' + encodeURIComponent(csrfToken)
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tourCompleted: true, csrf_token: csrfToken })
     })
     .then(function(response) { return response.json(); })
-    .then(function() {
+    .then(function(data) {
       tourSaveInProgress = false;
+      if (data && data.success) {
+        window.tourCompleted = true;
+      }
     })
     .catch(function() {
       tourSaveInProgress = false;
     });
   }
 
-  function initTour() {
-    if (window.tourCompleted === true) {
+  function initTour(manual) {
+    if (!manual && window.tourCompleted !== false) {
       return;
     }
 
@@ -623,7 +624,6 @@
 
     openedSettings = false;
     openedInsightsTab = null;
-    window.tourCompleted = false;
-    initTour();
+    initTour(true);
   };
 })();

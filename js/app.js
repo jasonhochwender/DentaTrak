@@ -1425,6 +1425,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Set tour completion status for Shepherd.js
     window.tourCompleted = !!preferences.tour_completed;
+    window.tourSettingsLoaded = true;
+    window.dispatchEvent(new Event('toursettingsloaded'));
 
     if (!window.isPracticeAdmin) {
       if (addGmailUserBtn) addGmailUserBtn.disabled = true;
