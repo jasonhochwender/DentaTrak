@@ -370,6 +370,7 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
   }
 
   function render3D(buffer, ext) {
+    console.log('render3D:', ext, buffer.byteLength, 'bytes');
     init3DScene();
 
     currentObject = build3DModel(buffer, ext);
@@ -553,6 +554,7 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
   }
 
   function renderImage(buffer, fileName, fileType) {
+    console.log('renderImage:', fileName, buffer.byteLength, 'bytes');
     disposeViewer();
     currentMode = 'image';
     setControlVisibility('image');
@@ -768,6 +770,7 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
   }
 
   function renderPdf(buffer) {
+    console.log('renderPdf:', buffer.byteLength, 'bytes');
     disposeViewer();
     currentMode = 'pdf';
     setControlVisibility('pdf');
@@ -892,6 +895,7 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
     fetchAttachmentContent(storagePath)
       .then(function(buffer) {
+        console.log('Attachment content loaded:', buffer.byteLength, 'bytes, ext:', ext);
         if (SUPPORTED_IMAGE[ext]) {
           renderImage(buffer, fileName, fileType);
         } else if (SUPPORTED_PDF[ext]) {
@@ -899,7 +903,7 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
         } else {
           render3D(buffer, ext);
         }
-      })
+      }
       .catch(function(error) {
         console.error('Attachment viewer error:', error);
         setError(error.message || 'Unable to load attachment');

@@ -7395,13 +7395,26 @@ document.addEventListener('DOMContentLoaded', function () {
               hasUnsavedChanges = true;
             });
 
-            // Assemble the elements in order: name, view, download, remove
-            fileElement.appendChild(nameSpan);
+            // Group View and Download together so they sit beside each other
+            var actionsContainer = document.createElement('div');
+            actionsContainer.className = 'attachment-actions';
             if (viewLink) {
-              fileElement.appendChild(viewLink);
+              actionsContainer.appendChild(viewLink);
+              if (downloadLink) {
+                var separator = document.createElement('span');
+                separator.className = 'attachment-actions-separator';
+                separator.textContent = '|';
+                actionsContainer.appendChild(separator);
+              }
             }
             if (downloadLink) {
-              fileElement.appendChild(downloadLink);
+              actionsContainer.appendChild(downloadLink);
+            }
+
+            // Assemble the elements in order: name, actions, remove
+            fileElement.appendChild(nameSpan);
+            if (actionsContainer.childNodes.length > 0) {
+              fileElement.appendChild(actionsContainer);
             }
             fileElement.appendChild(deleteBtn);
 

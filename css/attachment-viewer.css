@@ -249,30 +249,35 @@
 }
 
 /* Attachment list action links */
-.attachment-view-link {
-  display: inline-block;
-  margin-left: 10px;
+.attachment-view-link,
+.attachment-download-link {
+  display: inline;
   color: #2563eb;
-  font-size: 0.85rem;
+  font-size: 12px;
   font-weight: 500;
   text-decoration: none;
   cursor: pointer;
 }
 
-.attachment-view-link:hover {
+.attachment-view-link:hover,
+.attachment-download-link:hover {
   text-decoration: underline;
 }
 
-/* Keep View and Download together on the same line, pushed to the right of the filename */
-.selected-file.existing-file .attachment-view-link {
+/* Group View and Download as one action area on the right of the filename */
+.attachment-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
   margin-left: auto;
-  margin-right: 6px;
-  font-size: 12px;
+  white-space: nowrap;
 }
 
-.selected-file.existing-file .attachment-view-link + .attachment-download-link {
-  margin-left: 0;
-  margin-right: 8px;
+.attachment-actions-separator {
+  color: #9ca3af;
+  font-size: 12px;
+  user-select: none;
 }
 
 @media (max-width: 768px) {

@@ -472,6 +472,7 @@ if (isset($appConfig) && is_array($appConfig) && isset($appConfig['appName'])) {
   <link rel="preload" href="css/logo-upload.css?v=20260807a" as="style" onload="this.onload=null;this.rel='stylesheet'">
   <link rel="preload" href="css/dev-tools.css?v=20241210" as="style" onload="this.onload=null;this.rel='stylesheet'">
   <link rel="preload" href="css/analytics-pro.css?v=20241231" as="style" onload="this.onload=null;this.rel='stylesheet'">
+  <link rel="preload" href="css/attachment-viewer.css?v=20260819b" as="style" onload="this.onload=null;this.rel='stylesheet'">
 <?php if (isFeatureEnabled('SHOW_LAB_INSIGHTS')): ?>
   <link rel="preload" href="css/lab-insights.css?v=20260815" as="style" onload="this.onload=null;this.rel='stylesheet'">
 <?php endif; ?>
@@ -500,7 +501,7 @@ if (isset($appConfig) && is_array($appConfig) && isset($appConfig['appName'])) {
 <?php if (isFeatureEnabled('SHOW_LAB_INSIGHTS')): ?>
     <link rel="stylesheet" href="css/lab-insights.css?v=20260815">
 <?php endif; ?>
-    <link rel="stylesheet" href="css/attachment-viewer.css?v=20260819a">
+    <link rel="stylesheet" href="css/attachment-viewer.css?v=20260819b">
 <?php if (isFeatureEnabled('BILLING_ENABLED')): ?>
     <link rel="stylesheet" href="css/billing-portal.css?v=20260805">
 <?php endif; ?>
@@ -2725,7 +2726,6 @@ window.featureFlags = <?php echo getFeatureFlagsJson(); ?>;
   </script>
   <script src="js/app.js?v=20260327j" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js" defer></script>
-  <script src="js/attachment-viewer-stub.js?v=20260819b" defer></script>
   <script type="module" src="js/attachment-viewer.js?v=20260819c" defer></script>
   <script src="js/card-delete-fixed.js?v=20250104" defer></script>
   <script src="js/assignments.js?v=20250104" defer></script>
@@ -2907,7 +2907,7 @@ window.featureFlags = <?php echo getFeatureFlagsJson(); ?>;
         <div class="attachment-viewer-canvas"></div>
         <div class="attachment-viewer-loading">
           <div class="attachment-viewer-spinner"></div>
-          <span>Loading model…</span>
+          <span>Loading preview…</span>
         </div>
         <div class="attachment-viewer-error"></div>
       </div>
