@@ -903,7 +903,7 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
         } else {
           render3D(buffer, ext);
         }
-      }
+      })
       .catch(function(error) {
         console.error('Attachment viewer error:', error);
         setError(error.message || 'Unable to load attachment');

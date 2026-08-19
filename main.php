@@ -2736,7 +2736,7 @@ window.featureFlags = <?php echo getFeatureFlagsJson(); ?>;
   </script>
   <script src="js/app.js?v=20260327j" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js" defer></script>
-  <script type="module" src="js/attachment-viewer.js?v=20260819c" defer></script>
+  <script type="module" src="js/attachment-viewer.js?v=20260820a" defer></script>
   <script src="js/card-delete-fixed.js?v=20250104" defer></script>
   <script src="js/assignments.js?v=20250104" defer></script>
   <script src="js/case-comments.js?v=20250104" defer></script>
