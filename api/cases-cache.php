@@ -30,6 +30,7 @@ function ensureCasesCacheTable() {
         tooth_shade VARCHAR(50) DEFAULT NULL,
         material VARCHAR(100) DEFAULT NULL,
         due_date VARCHAR(50) DEFAULT NULL,
+        patient_appointment_date VARCHAR(50) DEFAULT NULL,
         creation_date VARCHAR(50) DEFAULT NULL,
         last_update_date VARCHAR(50) DEFAULT NULL,
         status VARCHAR(100) DEFAULT NULL,
@@ -75,7 +76,8 @@ function ensureCasesCacheTable() {
             "ALTER TABLE cases_cache ADD INDEX idx_created_by_user_id (created_by_user_id)",
             "ALTER TABLE cases_cache ADD COLUMN carrier VARCHAR(100) DEFAULT NULL",
             "ALTER TABLE cases_cache ADD COLUMN tracking_number VARCHAR(255) DEFAULT NULL",
-            "ALTER TABLE cases_cache ADD COLUMN custom_carrier VARCHAR(255) DEFAULT NULL"
+            "ALTER TABLE cases_cache ADD COLUMN custom_carrier VARCHAR(255) DEFAULT NULL",
+            "ALTER TABLE cases_cache ADD COLUMN patient_appointment_date VARCHAR(50) DEFAULT NULL"
         ];
         
         foreach ($alterSqls as $alterSql) {
@@ -131,6 +133,7 @@ function saveCaseToCache(array $caseData) {
                 tooth_shade,
                 material,
                 due_date,
+                patient_appointment_date,
                 creation_date,
                 last_update_date,
                 status,
@@ -157,6 +160,7 @@ function saveCaseToCache(array $caseData) {
                 :tooth_shade,
                 :material,
                 :due_date,
+                :patient_appointment_date,
                 :creation_date,
                 :last_update_date,
                 :status,
@@ -183,6 +187,7 @@ function saveCaseToCache(array $caseData) {
                 tooth_shade = VALUES(tooth_shade),
                 material = VALUES(material),
                 due_date = VALUES(due_date),
+                patient_appointment_date = VALUES(patient_appointment_date),
                 creation_date = VALUES(creation_date),
                 last_update_date = VALUES(last_update_date),
                 status = VALUES(status),
@@ -214,6 +219,7 @@ function saveCaseToCache(array $caseData) {
             'tooth_shade' => isset($caseData['toothShade']) ? $caseData['toothShade'] : null,
             'material' => isset($caseData['material']) ? $caseData['material'] : null,
             'due_date' => isset($caseData['dueDate']) ? $caseData['dueDate'] : null,
+            'patient_appointment_date' => isset($caseData['patientAppointmentDate']) ? $caseData['patientAppointmentDate'] : null,
             'creation_date' => isset($caseData['creationDate']) ? $caseData['creationDate'] : null,
             'last_update_date' => isset($caseData['lastUpdateDate']) ? $caseData['lastUpdateDate'] : null,
             'status' => isset($caseData['status']) ? $caseData['status'] : null,
@@ -292,6 +298,7 @@ function getCaseFromCache($caseId) {
             'toothShade' => $row['tooth_shade'],
             'material' => $row['material'],
             'dueDate' => $row['due_date'],
+            'patientAppointmentDate' => $row['patient_appointment_date'],
             'creationDate' => $row['creation_date'],
             'lastUpdateDate' => $row['last_update_date'],
             'status' => $row['status'],
@@ -853,6 +860,7 @@ function getAllCasesFromCache() {
             'toothShade' => $row['tooth_shade'],
             'material' => $row['material'],
             'dueDate' => $row['due_date'],
+            'patientAppointmentDate' => $row['patient_appointment_date'],
             'creationDate' => $row['creation_date'],
             'lastUpdateDate' => $row['last_update_date'],
             'status' => $row['status'],

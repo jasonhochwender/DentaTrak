@@ -2077,6 +2077,18 @@ body {
   background-color: #2563eb;
 }
 
+/* Appointment-risk card highlighting - orange border, background and badge */
+.kanban-card-appointment-risk {
+  border-color: #ea580c;
+  background: linear-gradient(135deg, #ffffff 0%, #fff7ed 100%);
+}
+
+.kanban-card-appointment-risk .late-indicator {
+  color: #fff !important;
+  font-weight: 700;
+  background-color: #f97316;
+}
+
 /* Kanban Card Actions */
 .kanban-card-actions {
   margin-top: 10px;

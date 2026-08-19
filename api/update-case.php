@@ -75,6 +75,13 @@ try {
                     $changedFields[] = 'dueDate';
                 }
             }
+            if ($existingCase && is_array($existingCase) && array_key_exists('patientAppointmentDate', $caseData)) {
+                $oldApptDate = $existingCase['patientAppointmentDate'] ?? null;
+                $newApptDate = $caseData['patientAppointmentDate'] ?? null;
+                if ($oldApptDate !== $newApptDate) {
+                    $changedFields[] = 'patientAppointmentDate';
+                }
+            }
 
             // Merge existing case data with new data (new data takes precedence)
             if ($existingCase && is_array($existingCase)) {
@@ -347,6 +354,9 @@ try {
             if ($existingCaseData['dueDate'] !== $caseData['dueDate']) {
                 $changedFields[] = 'dueDate';
             }
+            if (($existingCaseData['patientAppointmentDate'] ?? '') !== ($caseData['patientAppointmentDate'] ?? '')) {
+                $changedFields[] = 'patientAppointmentDate';
+            }
             if ($existingCaseData['status'] !== $caseData['status']) {
                 $changedFields[] = 'status';
             }
@@ -378,6 +388,7 @@ try {
             $existingCaseData['toothShade'] = $caseData['toothShade'];
             $existingCaseData['material'] = $caseData['material'] ?? null;
             $existingCaseData['dueDate'] = $caseData['dueDate'];
+            $existingCaseData['patientAppointmentDate'] = $caseData['patientAppointmentDate'] ?? ($existingCaseData['patientAppointmentDate'] ?? '');
             $existingCaseData['status'] = $caseData['status'];
             $existingCaseData['notes'] = $caseData['notes'] ?? '';
             // Assigned To (including clearing it to empty) - see the
@@ -549,7 +560,7 @@ try {
         // Build required fields list from config
         $requiredFields = [];
         $allFields = ['patientFirstName', 'patientLastName', 'patientDOB', 'patientGender',
-                      'dentistName', 'caseType', 'dueDate', 'status', 'toothShade', 'material',
+                      'dentistName', 'caseType', 'dueDate', 'patientAppointmentDate', 'status', 'toothShade', 'material',
                       'assignedTo', 'notes', 'carrier', 'trackingNumber', 'customCarrier'];
         
         foreach ($allFields as $field) {
@@ -585,7 +596,7 @@ try {
         foreach ($optionalFields as $field) {
             if (isset($_POST[$field]) && $_POST[$field] !== '') {
                 $caseData[$field] = $_POST[$field];
-            } elseif (($field === 'notes' || $field === 'assignedTo' || $field === 'carrier' || $field === 'trackingNumber' || $field === 'customCarrier') && isset($_POST[$field])) {
+            } elseif (($field === 'notes' || $field === 'assignedTo' || $field === 'carrier' || $field === 'trackingNumber' || $field === 'customCarrier' || $field === 'patientAppointmentDate') && isset($_POST[$field])) {
                 // Notes, Assigned To, carrier and tracking number can be intentionally submitted as an
                 // empty string (clearing an assignment). This key MUST still
                 // be captured here - updateCaseInDatabaseOnly() below does

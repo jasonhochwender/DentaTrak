@@ -116,7 +116,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Build required fields list from config
     $requiredFields = [];
     $allFields = ['patientFirstName', 'patientLastName', 'patientDOB', 'patientGender',
-                  'dentistName', 'caseType', 'dueDate', 'status', 'toothShade', 'material',
+                  'dentistName', 'caseType', 'dueDate', 'patientAppointmentDate', 'status', 'toothShade', 'material',
                   'assignedTo', 'notes', 'carrier', 'trackingNumber', 'customCarrier'];
 
     foreach ($allFields as $field) {
@@ -145,7 +145,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     foreach ($optionalFields as $field) {
         if (isset($_POST[$field]) && $_POST[$field] !== '') {
             $caseData[$field] = $_POST[$field];
-        } elseif (($field === 'notes' || $field === 'carrier' || $field === 'trackingNumber' || $field === 'customCarrier') && isset($_POST[$field])) {
+        } elseif (($field === 'notes' || $field === 'carrier' || $field === 'trackingNumber' || $field === 'customCarrier' || $field === 'patientAppointmentDate') && isset($_POST[$field])) {
             // Notes can be empty string; carrier/tracking number are always
             // captured (even when cleared) so the cache stays in sync.
             $caseData[$field] = $_POST[$field];
@@ -388,6 +388,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'toothShade'      => $caseData['toothShade'] ?? null,
             'material'        => $caseData['material'] ?? null,
             'dueDate'         => $caseData['dueDate'],
+            'patientAppointmentDate' => $caseData['patientAppointmentDate'] ?? '',
             'creationDate'    => date('c'),
             'lastUpdateDate'  => date('c'),
             'status'          => $caseData['status'],

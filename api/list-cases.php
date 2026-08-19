@@ -243,6 +243,23 @@ try {
         $cases = array_values($cases); // Re-index array
     }
     
+    // Apply appointment risk filter if requested
+    $apptRiskOnly = $_GET['appt_risk_only'] ?? '';
+    if ($apptRiskOnly === 'true') {
+        $cases = array_filter($cases, function($case) {
+            if (isset($case['status']) && $case['status'] === 'Delivered') {
+                return false;
+            }
+            $apptDate = $case['patientAppointmentDate'] ?? '';
+            if (empty($apptDate)) {
+                return false;
+            }
+            $daysUntil = getCalendarDayDiff($apptDate);
+            return $daysUntil !== null && $daysUntil <= 3;
+        });
+        $cases = array_values($cases);
+    }
+
     // Cases are already decrypted by getAllCasesFromCache()
     // No need to decrypt again - double decryption corrupts the data
     $decryptedCases = $cases;

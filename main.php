@@ -756,6 +756,10 @@ window.featureFlags = <?php echo getFeatureFlagsJson(); ?>;
               <input type="checkbox" id="filterDueSoon">
               Due soon
             </label>
+            <label for="filterApptRisk" class="filter-checkbox-label">
+              <input type="checkbox" id="filterApptRisk">
+              Appt Risk
+            </label>
           </div>
 
 <?php if (isFeatureEnabled('SHOW_AT_RISK')): ?>
@@ -1688,6 +1692,12 @@ window.featureFlags = <?php echo getFeatureFlagsJson(); ?>;
                   <label for="dueDate">Due Date <span class="required">*</span></label>
                   <input id="dueDate" name="dueDate" type="date"
                          placeholder="mm/dd/yyyy" title="mm/dd/yyyy" required>
+                </div>
+
+                <div class="form-field">
+                  <label for="patientAppointmentDate">Patient Appointment Date</label>
+                  <input id="patientAppointmentDate" name="patientAppointmentDate" type="date"
+                         placeholder="mm/dd/yyyy" title="mm/dd/yyyy">
                 </div>
 
                 <div class="form-field">

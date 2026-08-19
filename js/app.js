@@ -4596,6 +4596,7 @@ document.addEventListener('DOMContentLoaded', function () {
     var toothShade = document.getElementById('toothShade');
     var material = document.getElementById('material');
     var dueDate = document.getElementById('dueDate');
+    var patientAppointmentDate = document.getElementById('patientAppointmentDate');
     var status = document.getElementById('status');
     var assignedTo = document.getElementById('assignedTo');
     var notes = document.getElementById('notes');
@@ -4609,6 +4610,7 @@ document.addEventListener('DOMContentLoaded', function () {
     if (toothShade) toothShade.value = caseData.toothShade || caseData.tooth_shade || '';
     if (material) material.value = caseData.material || '';
     if (dueDate) dueDate.value = caseData.dueDate || caseData.due_date || '';
+    if (patientAppointmentDate) patientAppointmentDate.value = caseData.patientAppointmentDate || caseData.patient_appointment_date || '';
     if (status) status.value = caseData.status || 'Originated';
     if (notes) notes.value = caseData.notes || '';
 
@@ -5629,6 +5631,7 @@ document.addEventListener('DOMContentLoaded', function () {
       yourData.toothShade = (form.querySelector('#toothShade') || {}).value || '';
       yourData.material = (form.querySelector('#material') || {}).value || '';
       yourData.dueDate = (form.querySelector('#dueDate') || {}).value || '';
+      yourData.patientAppointmentDate = (form.querySelector('#patientAppointmentDate') || {}).value || '';
       yourData.notes = (form.querySelector('#notes') || {}).value || '';
     }
 
@@ -6631,25 +6634,44 @@ document.addEventListener('DOMContentLoaded', function () {
       var highlightComingDue = localStorage.getItem('highlight_coming_due') === 'true';
       var isPastDue = false;
       var isComingDue = false;
+      var isAppointmentRisk = false;
       var lateIndicatorText = '';
+      var dueDayDiff = null;
+      var apptDayDiff = null;
+
+      // Past Due (red) takes top precedence
       if (status !== 'Delivered' && caseData.dueDate) {
         var pastDueDays = parseInt(localStorage.getItem('past_due_days') || '1', 10);
-        var comingDueDays = parseInt(localStorage.getItem('coming_due_days') || '5', 10);
-        var daysUntil = getCalendarDayDiff(caseData.dueDate);
+        dueDayDiff = getCalendarDayDiff(caseData.dueDate);
 
-        if (daysUntil !== null) {
-          // Red late treatment takes precedence and uses the existing threshold
-          if (highlightPastDue && daysUntil <= -pastDueDays) {
+        if (dueDayDiff !== null) {
+          if (highlightPastDue && dueDayDiff <= -pastDueDays) {
             caseCard.classList.add('kanban-card-past-due');
             isPastDue = true;
             lateIndicatorText = ' LATE';
           }
-          // Blue coming-due window: only while the case is due today or in the future
-          else if (highlightComingDue && daysUntil >= 0 && daysUntil <= comingDueDays) {
-            caseCard.classList.add('kanban-card-coming-due');
-            isComingDue = true;
-            lateIndicatorText = ' ' + getDueWarningText(daysUntil);
-          }
+        }
+      }
+
+      // Coming Due (blue) if not already Late
+      if (!isPastDue && status !== 'Delivered' && caseData.dueDate) {
+        var comingDueDays = parseInt(localStorage.getItem('coming_due_days') || '5', 10);
+        dueDayDiff = dueDayDiff !== null ? dueDayDiff : getCalendarDayDiff(caseData.dueDate);
+        if (dueDayDiff !== null && dueDayDiff >= 0 && dueDayDiff <= comingDueDays) {
+          caseCard.classList.add('kanban-card-coming-due');
+          isComingDue = true;
+          lateIndicatorText = ' ' + getDueWarningText(dueDayDiff);
+        }
+      }
+
+      // Appointment Risk (orange) if not Late or Coming Due
+      // Triggered when patient appointment is within 3 days (today, tomorrow, in 3 days, or past) and case is not delivered.
+      if (!isPastDue && !isComingDue && status !== 'Delivered' && caseData.patientAppointmentDate) {
+        apptDayDiff = getCalendarDayDiff(caseData.patientAppointmentDate);
+        if (apptDayDiff !== null && apptDayDiff <= 3) {
+          caseCard.classList.add('kanban-card-appointment-risk');
+          isAppointmentRisk = true;
+          lateIndicatorText = ' APPT RISK';
         }
       }
 
@@ -6679,6 +6701,7 @@ document.addEventListener('DOMContentLoaded', function () {
         toothShade: caseData.toothShade || '',
         material: caseData.material || '',
         dueDate: caseData.dueDate || '',
+        patientAppointmentDate: caseData.patientAppointmentDate || '',
         status: status,
         statusChangedAt: caseData.statusChangedAt || new Date().toISOString(),
         notes: caseData.notes || '',
@@ -6712,6 +6735,7 @@ document.addEventListener('DOMContentLoaded', function () {
         toothShade: completeData.toothShade || '',
         material: completeData.material || '',
         dueDate: completeData.dueDate || '',
+        patientAppointmentDate: completeData.patientAppointmentDate || '',
         status: status,
         statusChangedAt: completeData.statusChangedAt || new Date().toISOString(),
         notes: completeData.notes || '',
@@ -6802,6 +6826,7 @@ document.addEventListener('DOMContentLoaded', function () {
         '<div class="kanban-card-content">' +
         '  <p><strong>Type:</strong> ' + (displayData.caseType || '') + '</p>' +
         '  <p><strong>Due:</strong> ' + formatDate(displayData.dueDate) + '<span class="late-indicator">' + lateIndicatorText + '</span></p>' +
+        (displayData.patientAppointmentDate ? '  <p><strong>Patient Appt:</strong> ' + formatDate(displayData.patientAppointmentDate) + '</p>' : '') +
         '  <p class="dentist-row"><strong>Dentist:</strong> ' + (displayData.dentistName || '') + attachmentIndicatorHtml + '</p>' +
         '  <div class="kanban-card-assignment">' +
         '    <div class="assignment-label"><strong>Assigned to</strong></div>' +
@@ -9554,6 +9579,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const filterCarrier = document.getElementById('filterCarrier');
     const filterLateCases = document.getElementById('filterLateCases');
     const filterDueSoon = document.getElementById('filterDueSoon');
+    const filterApptRisk = document.getElementById('filterApptRisk');
     const filterAtRisk = document.getElementById('filterAtRisk');
     const clearFiltersBtn = document.getElementById('clearFiltersBtn');
     const kanbanFilterActiveDot = document.getElementById('kanbanFilterActiveDot');
@@ -9569,6 +9595,7 @@ document.addEventListener('DOMContentLoaded', function () {
         const carrier = filterCarrier ? filterCarrier.value : '';
         const lateOnly = filterLateCases ? filterLateCases.checked : false;
         const dueSoon = filterDueSoon ? filterDueSoon.checked : false;
+        const apptRiskOnly = filterApptRisk ? filterApptRisk.checked : false;
         const atRiskOnly = filterAtRisk ? filterAtRisk.checked : false;
 
         // Build query parameters
@@ -9579,6 +9606,7 @@ document.addEventListener('DOMContentLoaded', function () {
         if (carrier) params.append('carrier', carrier);
         if (lateOnly) params.append('late_only', 'true');
         if (dueSoon) params.append('due_soon', 'true');
+        if (apptRiskOnly) params.append('appt_risk_only', 'true');
         if (atRiskOnly) params.append('at_risk_only', 'true');
 
         // Show loading state
@@ -9684,6 +9712,10 @@ document.addEventListener('DOMContentLoaded', function () {
       });
     }
 
+    if (filterApptRisk) {
+      filterApptRisk.addEventListener('change', applyFilters);
+    }
+
     if (filterAtRisk) {
       filterAtRisk.addEventListener('change', applyFilters);
     }
@@ -9697,6 +9729,7 @@ document.addEventListener('DOMContentLoaded', function () {
         if (filterCarrier) filterCarrier.value = '';
         if (filterLateCases) filterLateCases.checked = false;
         if (filterDueSoon) filterDueSoon.checked = false;
+        if (filterApptRisk) filterApptRisk.checked = false;
         if (filterAtRisk) filterAtRisk.checked = false;
 
         // Apply cleared filters
