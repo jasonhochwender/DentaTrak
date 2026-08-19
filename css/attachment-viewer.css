@@ -263,6 +263,18 @@
   text-decoration: underline;
 }
 
+/* Keep View and Download together on the same line, pushed to the right of the filename */
+.selected-file.existing-file .attachment-view-link {
+  margin-left: auto;
+  margin-right: 6px;
+  font-size: 12px;
+}
+
+.selected-file.existing-file .attachment-view-link + .attachment-download-link {
+  margin-left: 0;
+  margin-right: 8px;
+}
+
 @media (max-width: 768px) {
   .attachment-viewer-modal {
     padding: 12px;

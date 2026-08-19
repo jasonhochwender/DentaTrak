@@ -314,6 +314,7 @@ function showToast(message, type) {
     alert(message);
   }
 }
+window.showToast = showToast;
 
 // Track practice logo state for the settings modal
 // currentLogoPath: logo path currently saved in the database
@@ -7326,9 +7327,15 @@ document.addEventListener('DOMContentLoaded', function () {
               viewLink.addEventListener('click', function(e) {
                 e.preventDefault();
                 if (typeof openAttachmentViewer === 'function') {
-                  openAttachmentViewer(this.dataset.storagePath, this.dataset.fileName, this.dataset.fileType);
+                  try {
+                    openAttachmentViewer(this.dataset.storagePath, this.dataset.fileName, this.dataset.fileType);
+                  } catch (err) {
+                    console.error('Attachment viewer failed to open:', err);
+                    showToast('Unable to open this attachment preview. You can still download the file.', 'error');
+                  }
                 } else {
-                  showToast('File viewer is not available.', 'error');
+                  console.error('openAttachmentViewer is not available');
+                  showToast('Unable to open this attachment preview. You can still download the file.', 'error');
                 }
               });
             }
