@@ -2077,16 +2077,22 @@ body {
   background-color: #2563eb;
 }
 
-/* Appointment-risk card highlighting - orange border, background and badge */
+/* Appointment-risk card highlighting - purple border, background and badge */
 .kanban-card-appointment-risk {
-  border-color: #ea580c;
-  background: linear-gradient(135deg, #ffffff 0%, #fff7ed 100%);
+  border-color: #9333ea;
+  background: linear-gradient(135deg, #ffffff 0%, #f3e8ff 100%);
 }
 
-.kanban-card-appointment-risk .late-indicator {
-  color: #fff !important;
+.appointment-risk-indicator {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 11px;
   font-weight: 700;
-  background-color: #f97316;
+  color: #fff;
+  background-color: #9333ea;
+  vertical-align: middle;
 }
 
 /* Kanban Card Actions */
@@ -2267,6 +2273,10 @@ body {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
   gap: 16px 20px;
+}
+
+.modal-form-grid.date-status-row {
+  margin-top: 1.25rem;
 }
 
 .form-field label {

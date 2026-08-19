@@ -1531,6 +1531,17 @@ document.addEventListener('DOMContentLoaded', function () {
     localStorage.setItem('highlight_coming_due', preferences.highlight_coming_due ? 'true' : 'false');
     localStorage.setItem('coming_due_days', (preferences.coming_due_days || 5).toString());
 
+    // Apply appointment risk values
+    document.getElementById('highlightAppointmentRisk').checked = !!preferences.highlight_appointment_risk;
+    const appointmentRiskDaysInput = document.getElementById('appointmentRiskDays');
+    if (appointmentRiskDaysInput) {
+      appointmentRiskDaysInput.value = preferences.appointment_risk_days || 3;
+    }
+
+    // Save appointment risk preferences in localStorage
+    localStorage.setItem('highlight_appointment_risk', preferences.highlight_appointment_risk ? 'true' : 'false');
+    localStorage.setItem('appointment_risk_days', (preferences.appointment_risk_days || 3).toString());
+
     // Update conditional visibility
     const pastDueSettings = document.getElementById('pastDueSettings');
     if (pastDueSettings) {
@@ -1539,6 +1550,10 @@ document.addEventListener('DOMContentLoaded', function () {
     const comingDueSettings = document.getElementById('comingDueSettings');
     if (comingDueSettings) {
       comingDueSettings.classList.toggle('hidden', !preferences.highlight_coming_due);
+    }
+    const appointmentRiskSettings = document.getElementById('appointmentRiskSettings');
+    if (appointmentRiskSettings) {
+      appointmentRiskSettings.classList.toggle('hidden', !preferences.highlight_appointment_risk);
     }
 
     // Apply Google Drive backup setting - fetch from practice-level API
@@ -1683,6 +1698,8 @@ document.addEventListener('DOMContentLoaded', function () {
       pastDueDays: document.getElementById('pastDueDays')?.value || '1',
       highlightComingDue: document.getElementById('highlightComingDue')?.checked || false,
       comingDueDays: document.getElementById('comingDueDays')?.value || '5',
+      highlightAppointmentRisk: document.getElementById('highlightAppointmentRisk')?.checked || false,
+      appointmentRiskDays: document.getElementById('appointmentRiskDays')?.value || '3',
       deliveredHideDays: document.getElementById('deliveredHideDays')?.value || '0',
       googleDriveBackup: document.getElementById('googleDriveBackup')?.checked || false,
       gmailUsers: window.gmailUsers ? window.gmailUsers.slice() : [],
@@ -1712,6 +1729,8 @@ document.addEventListener('DOMContentLoaded', function () {
     if ((document.getElementById('pastDueDays')?.value || '1') !== orig.pastDueDays) return true;
     if ((document.getElementById('highlightComingDue')?.checked || false) !== orig.highlightComingDue) return true;
     if ((document.getElementById('comingDueDays')?.value || '5') !== orig.comingDueDays) return true;
+    if ((document.getElementById('highlightAppointmentRisk')?.checked || false) !== orig.highlightAppointmentRisk) return true;
+    if ((document.getElementById('appointmentRiskDays')?.value || '3') !== orig.appointmentRiskDays) return true;
     if ((document.getElementById('deliveredHideDays')?.value || '0') !== orig.deliveredHideDays) return true;
     if ((document.getElementById('googleDriveBackup')?.checked || false) !== orig.googleDriveBackup) return true;
 
@@ -2094,6 +2113,20 @@ document.addEventListener('DOMContentLoaded', function () {
         comingDueSettings.classList.remove('hidden');
       } else {
         comingDueSettings.classList.add('hidden');
+      }
+    });
+  }
+
+  // Handle the appointment risk settings visibility toggle
+  var highlightAppointmentRiskCheckbox = document.getElementById('highlightAppointmentRisk');
+  var appointmentRiskSettings = document.getElementById('appointmentRiskSettings');
+
+  if (highlightAppointmentRiskCheckbox && appointmentRiskSettings) {
+    highlightAppointmentRiskCheckbox.addEventListener('change', function() {
+      if (this.checked) {
+        appointmentRiskSettings.classList.remove('hidden');
+      } else {
+        appointmentRiskSettings.classList.add('hidden');
       }
     });
   }
@@ -3224,6 +3257,9 @@ document.addEventListener('DOMContentLoaded', function () {
       var highlightComingDue = document.getElementById('highlightComingDue').checked;
       var comingDueDaysInput = document.getElementById('comingDueDays');
       var comingDueDays = comingDueDaysInput ? parseInt(comingDueDaysInput.value || '5', 10) : 5;
+      var highlightAppointmentRisk = document.getElementById('highlightAppointmentRisk').checked;
+      var appointmentRiskDaysInput = document.getElementById('appointmentRiskDays');
+      var appointmentRiskDays = appointmentRiskDaysInput ? parseInt(appointmentRiskDaysInput.value || '3', 10) : 3;
       var googleDriveBackupCheckbox = document.getElementById('googleDriveBackup');
       var googleDriveBackup = googleDriveBackupCheckbox ? googleDriveBackupCheckbox.checked : false;
 
@@ -3261,6 +3297,8 @@ document.addEventListener('DOMContentLoaded', function () {
         pastDueDays: pastDueDays,
         highlightComingDue: highlightComingDue,
         comingDueDays: comingDueDays,
+        highlightAppointmentRisk: highlightAppointmentRisk,
+        appointmentRiskDays: appointmentRiskDays,
         deliveredHideDays: deliveredHideDays,
         googleDriveBackup: googleDriveBackup,
         displayName: displayName, // New: editable display name
@@ -3389,6 +3427,12 @@ document.addEventListener('DOMContentLoaded', function () {
     if (formData.highlightComingDue !== undefined) {
       localStorage.setItem('highlight_coming_due', formData.highlightComingDue ? 'true' : 'false');
       localStorage.setItem('coming_due_days', formData.comingDueDays.toString());
+    }
+
+    // Apply appointment-risk highlighting
+    if (formData.highlightAppointmentRisk !== undefined) {
+      localStorage.setItem('highlight_appointment_risk', formData.highlightAppointmentRisk ? 'true' : 'false');
+      localStorage.setItem('appointment_risk_days', formData.appointmentRiskDays.toString());
     }
 
     // Trigger card highlighting update if the function exists (handles both past-due and coming-due)
@@ -3530,6 +3574,16 @@ document.addEventListener('DOMContentLoaded', function () {
   if (highlightComingDueCheckbox && comingDueSettings) {
     highlightComingDueCheckbox.addEventListener('change', function() {
       comingDueSettings.classList.toggle('hidden', !this.checked);
+    });
+  }
+
+  // Toggle visibility of appointment risk days input based on checkbox
+  var highlightAppointmentRiskCheckbox = document.getElementById('highlightAppointmentRisk');
+  var appointmentRiskSettings = document.getElementById('appointmentRiskSettings');
+
+  if (highlightAppointmentRiskCheckbox && appointmentRiskSettings) {
+    highlightAppointmentRiskCheckbox.addEventListener('change', function() {
+      appointmentRiskSettings.classList.toggle('hidden', !this.checked);
     });
   }
 
@@ -6632,10 +6686,12 @@ document.addEventListener('DOMContentLoaded', function () {
       // Check if past due and add class immediately to prevent CLS
       var highlightPastDue = localStorage.getItem('highlight_past_due') === 'true';
       var highlightComingDue = localStorage.getItem('highlight_coming_due') === 'true';
+      var highlightAppointmentRisk = localStorage.getItem('highlight_appointment_risk') === 'true';
       var isPastDue = false;
       var isComingDue = false;
       var isAppointmentRisk = false;
-      var lateIndicatorText = '';
+      var dueIndicatorText = '';
+      var apptRiskText = '';
       var dueDayDiff = null;
       var apptDayDiff = null;
 
@@ -6648,7 +6704,7 @@ document.addEventListener('DOMContentLoaded', function () {
           if (highlightPastDue && dueDayDiff <= -pastDueDays) {
             caseCard.classList.add('kanban-card-past-due');
             isPastDue = true;
-            lateIndicatorText = ' LATE';
+            dueIndicatorText = ' LATE';
           }
         }
       }
@@ -6660,18 +6716,19 @@ document.addEventListener('DOMContentLoaded', function () {
         if (dueDayDiff !== null && dueDayDiff >= 0 && dueDayDiff <= comingDueDays) {
           caseCard.classList.add('kanban-card-coming-due');
           isComingDue = true;
-          lateIndicatorText = ' ' + getDueWarningText(dueDayDiff);
+          dueIndicatorText = ' ' + getDueWarningText(dueDayDiff);
         }
       }
 
-      // Appointment Risk (orange) if not Late or Coming Due
-      // Triggered when patient appointment is within 3 days (today, tomorrow, in 3 days, or past) and case is not delivered.
-      if (!isPastDue && !isComingDue && status !== 'Delivered' && caseData.patientAppointmentDate) {
+      // Appointment Risk (purple) if not Late or Coming Due
+      // Triggered when patient appointment is within the configured threshold (or past) and case is not delivered.
+      if (!isPastDue && !isComingDue && status !== 'Delivered' && caseData.patientAppointmentDate && highlightAppointmentRisk) {
+        var appointmentRiskDays = parseInt(localStorage.getItem('appointment_risk_days') || '3', 10);
         apptDayDiff = getCalendarDayDiff(caseData.patientAppointmentDate);
-        if (apptDayDiff !== null && apptDayDiff <= 3) {
+        if (apptDayDiff !== null && apptDayDiff <= appointmentRiskDays) {
           caseCard.classList.add('kanban-card-appointment-risk');
           isAppointmentRisk = true;
-          lateIndicatorText = ' APPT RISK';
+          apptRiskText = 'APPT RISK';
         }
       }
 
@@ -6825,8 +6882,8 @@ document.addEventListener('DOMContentLoaded', function () {
         '</div>' +
         '<div class="kanban-card-content">' +
         '  <p><strong>Type:</strong> ' + (displayData.caseType || '') + '</p>' +
-        '  <p><strong>Due:</strong> ' + formatDate(displayData.dueDate) + '<span class="late-indicator">' + lateIndicatorText + '</span></p>' +
-        (displayData.patientAppointmentDate ? '  <p><strong>Patient Appt:</strong> ' + formatDate(displayData.patientAppointmentDate) + '</p>' : '') +
+        '  <p><strong>Due:</strong> ' + formatDate(displayData.dueDate) + '<span class="late-indicator">' + dueIndicatorText + '</span></p>' +
+        (displayData.patientAppointmentDate ? '  <p><strong>Patient Appt:</strong> ' + formatDate(displayData.patientAppointmentDate) + '<span class="appointment-risk-indicator">' + apptRiskText + '</span></p>' : '') +
         '  <p class="dentist-row"><strong>Dentist:</strong> ' + (displayData.dentistName || '') + attachmentIndicatorHtml + '</p>' +
         '  <div class="kanban-card-assignment">' +
         '    <div class="assignment-label"><strong>Assigned to</strong></div>' +
@@ -7597,6 +7654,12 @@ document.addEventListener('DOMContentLoaded', function () {
           }
           if (data.preferences.coming_due_days !== undefined) {
             localStorage.setItem('coming_due_days', data.preferences.coming_due_days.toString());
+          }
+          if (data.preferences.highlight_appointment_risk !== undefined) {
+            localStorage.setItem('highlight_appointment_risk', data.preferences.highlight_appointment_risk ? 'true' : 'false');
+          }
+          if (data.preferences.appointment_risk_days !== undefined) {
+            localStorage.setItem('appointment_risk_days', data.preferences.appointment_risk_days.toString());
           }
         }
       })

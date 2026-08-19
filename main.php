@@ -1687,7 +1687,7 @@ window.featureFlags = <?php echo getFeatureFlagsJson(); ?>;
               </div>
 
               <!-- Continue with workflow fields -->
-              <div class="modal-form-grid">
+              <div class="modal-form-grid date-status-row">
                 <div class="form-field">
                   <label for="dueDate">Due Date <span class="required">*</span></label>
                   <input id="dueDate" name="dueDate" type="date"
@@ -2278,6 +2278,15 @@ window.featureFlags = <?php echo getFeatureFlagsJson(); ?>;
                           <span id="comingDueSettings" class="past-due-inline-settings hidden">
                             <label for="comingDueDays" class="settings-sublabel">Days before due:</label>
                             <input type="number" id="comingDueDays" name="comingDueDays" min="1" max="99" value="5" class="number-input" <?= $isAdmin ? '' : 'disabled' ?>>
+                          </span>
+                        </div>
+
+                        <div class="option-row highlight-past-due-row">
+                          <label for="highlightAppointmentRisk">Highlight appointment risk</label>
+                          <input type="checkbox" id="highlightAppointmentRisk" name="highlightAppointmentRisk" <?= $isAdmin ? '' : 'disabled' ?>>
+                          <span id="appointmentRiskSettings" class="past-due-inline-settings hidden">
+                            <label for="appointmentRiskDays" class="settings-sublabel">Days before patient appointment:</label>
+                            <input type="number" id="appointmentRiskDays" name="appointmentRiskDays" min="1" max="99" value="3" class="number-input" <?= $isAdmin ? '' : 'disabled' ?>>
                           </span>
                         </div>
                         

@@ -87,6 +87,10 @@ $pastDueDays = isset($data['pastDueDays']) ? (int)$data['pastDueDays'] : 1;
 $highlightComingDue = isset($data['highlightComingDue']) ? (bool)$data['highlightComingDue'] : false;
 $comingDueDays = isset($data['comingDueDays']) ? (int)$data['comingDueDays'] : 5;
 
+// Appointment-risk highlighting settings (default ON, threshold 3 days)
+$highlightAppointmentRisk = isset($data['highlightAppointmentRisk']) ? (bool)$data['highlightAppointmentRisk'] : true;
+$appointmentRiskDays = isset($data['appointmentRiskDays']) ? (int)$data['appointmentRiskDays'] : 3;
+
 // New: hide Delivered cases older than N days (0 = show all). Default is 120 days.
 $deliveredHideDays = isset($data['deliveredHideDays']) ? (int)$data['deliveredHideDays'] : 120;
 
@@ -105,6 +109,13 @@ if ($comingDueDays < 1) {
     $comingDueDays = 1;
 } elseif ($comingDueDays > 99) {
     $comingDueDays = 99;
+}
+
+// Ensure appointmentRiskDays is within valid range
+if ($appointmentRiskDays < 1) {
+    $appointmentRiskDays = 1;
+} elseif ($appointmentRiskDays > 99) {
+    $appointmentRiskDays = 99;
 }
 
 // Ensure deliveredHideDays is within a sane range (0 = off)
@@ -451,14 +462,26 @@ try {
         $pdo->exec("ALTER TABLE user_preferences ADD COLUMN coming_due_days INT(11) DEFAULT 5");
     }
 
+    // Ensure appointment-risk settings columns exist
+    $stmt = $pdo->query("SHOW COLUMNS FROM user_preferences LIKE 'highlight_appointment_risk'");
+    if ($stmt->rowCount() === 0) {
+        $pdo->exec("ALTER TABLE user_preferences ADD COLUMN highlight_appointment_risk TINYINT(1) DEFAULT 1");
+    }
+    $stmt = $pdo->query("SHOW COLUMNS FROM user_preferences LIKE 'appointment_risk_days'");
+    if ($stmt->rowCount() === 0) {
+        $pdo->exec("ALTER TABLE user_preferences ADD COLUMN appointment_risk_days INT(11) DEFAULT 3");
+    }
+
     // First, update user preferences
     $stmt = $pdo->prepare("
         INSERT INTO user_preferences (
             user_id, theme, allow_card_delete, highlight_past_due, past_due_days,
-            highlight_coming_due, coming_due_days, delivered_hide_days, google_drive_backup
+            highlight_coming_due, coming_due_days, highlight_appointment_risk, appointment_risk_days,
+            delivered_hide_days, google_drive_backup
         ) VALUES (
             :user_id, :theme, :allow_card_delete, :highlight_past_due, :past_due_days,
-            :highlight_coming_due, :coming_due_days, :delivered_hide_days, :google_drive_backup
+            :highlight_coming_due, :coming_due_days, :highlight_appointment_risk, :appointment_risk_days,
+            :delivered_hide_days, :google_drive_backup
         ) ON DUPLICATE KEY UPDATE
             theme = VALUES(theme),
             allow_card_delete = VALUES(allow_card_delete),
@@ -466,6 +489,8 @@ try {
             past_due_days = VALUES(past_due_days),
             highlight_coming_due = VALUES(highlight_coming_due),
             coming_due_days = VALUES(coming_due_days),
+            highlight_appointment_risk = VALUES(highlight_appointment_risk),
+            appointment_risk_days = VALUES(appointment_risk_days),
             delivered_hide_days = VALUES(delivered_hide_days),
             google_drive_backup = VALUES(google_drive_backup)
     ");
@@ -478,6 +503,8 @@ try {
         'past_due_days' => $pastDueDays,
         'highlight_coming_due' => $highlightComingDue ? 1 : 0,
         'coming_due_days' => $comingDueDays,
+        'highlight_appointment_risk' => $highlightAppointmentRisk ? 1 : 0,
+        'appointment_risk_days' => $appointmentRiskDays,
         'delivered_hide_days' => $deliveredHideDays,
         'google_drive_backup' => $googleDriveBackup ? 1 : 0
     ]);
@@ -1146,6 +1173,8 @@ try {
         'past_due_days' => $pastDueDays,
         'highlight_coming_due' => $highlightComingDue,
         'coming_due_days' => $comingDueDays,
+        'highlight_appointment_risk' => $highlightAppointmentRisk,
+        'appointment_risk_days' => $appointmentRiskDays,
         'delivered_hide_days' => $deliveredHideDays,
         'google_drive_backup' => $googleDriveBackup
     ];

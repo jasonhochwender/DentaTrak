@@ -18,6 +18,22 @@ require_once __DIR__ . '/case-activity-log.php';
 require_once __DIR__ . '/encryption.php';
 require_once __DIR__ . '/at-risk-calculator.php';
 
+// Ensure appointment-risk preference columns exist before querying user_preferences
+if (isset($pdo)) {
+    try {
+        $stmt = $pdo->query("SHOW COLUMNS FROM user_preferences LIKE 'highlight_appointment_risk'");
+        if ($stmt->rowCount() === 0) {
+            $pdo->exec("ALTER TABLE user_preferences ADD COLUMN highlight_appointment_risk TINYINT(1) DEFAULT 1");
+        }
+        $stmt = $pdo->query("SHOW COLUMNS FROM user_preferences LIKE 'appointment_risk_days'");
+        if ($stmt->rowCount() === 0) {
+            $pdo->exec("ALTER TABLE user_preferences ADD COLUMN appointment_risk_days INT(11) DEFAULT 3");
+        }
+    } catch (Throwable $e) {
+        // Continue with defaults if columns cannot be added
+    }
+}
+
 // Match the local calendar-day semantics used by the Kanban card state
 // (see js/app.js getCalendarDayDiff() and the print-case.php time fix).
 date_default_timezone_set('America/New_York');
@@ -182,21 +198,24 @@ try {
     // Load user due-state thresholds for late and due-soon filters
     $pastDueDays = 1;
     $comingDueDays = 5;
+    $appointmentRiskDays = 3;
     if (isset($_SESSION['user_preferences']['past_due_days'])) {
         $pastDueDays = (int)$_SESSION['user_preferences']['past_due_days'];
     } elseif (isset($_SESSION['db_user_id'])) {
         try {
-            $stmt = $pdo->prepare("SELECT past_due_days, coming_due_days FROM user_preferences WHERE user_id = :user_id");
+            $stmt = $pdo->prepare("SELECT past_due_days, coming_due_days, appointment_risk_days FROM user_preferences WHERE user_id = :user_id");
             $stmt->execute(['user_id' => $_SESSION['db_user_id']]);
             $duePrefs = $stmt->fetch(PDO::FETCH_ASSOC);
             if ($duePrefs) {
                 $pastDueDays = (int)($duePrefs['past_due_days'] ?? 1);
                 $comingDueDays = (int)($duePrefs['coming_due_days'] ?? 5);
+                $appointmentRiskDays = (int)($duePrefs['appointment_risk_days'] ?? 3);
                 if (!isset($_SESSION['user_preferences'])) {
                     $_SESSION['user_preferences'] = [];
                 }
                 $_SESSION['user_preferences']['past_due_days'] = $pastDueDays;
                 $_SESSION['user_preferences']['coming_due_days'] = $comingDueDays;
+                $_SESSION['user_preferences']['appointment_risk_days'] = $appointmentRiskDays;
             }
         } catch (Throwable $e) {
             // On error, use defaults
@@ -246,7 +265,7 @@ try {
     // Apply appointment risk filter if requested
     $apptRiskOnly = $_GET['appt_risk_only'] ?? '';
     if ($apptRiskOnly === 'true') {
-        $cases = array_filter($cases, function($case) {
+        $cases = array_filter($cases, function($case) use ($appointmentRiskDays) {
             if (isset($case['status']) && $case['status'] === 'Delivered') {
                 return false;
             }
@@ -255,7 +274,7 @@ try {
                 return false;
             }
             $daysUntil = getCalendarDayDiff($apptDate);
-            return $daysUntil !== null && $daysUntil <= 3;
+            return $daysUntil !== null && $daysUntil <= $appointmentRiskDays;
         });
         $cases = array_values($cases);
     }
