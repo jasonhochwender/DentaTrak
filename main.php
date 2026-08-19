@@ -500,6 +500,7 @@ if (isset($appConfig) && is_array($appConfig) && isset($appConfig['appName'])) {
 <?php if (isFeatureEnabled('SHOW_LAB_INSIGHTS')): ?>
     <link rel="stylesheet" href="css/lab-insights.css?v=20260815">
 <?php endif; ?>
+    <link rel="stylesheet" href="css/attachment-viewer.css?v=20260819a">
 <?php if (isFeatureEnabled('BILLING_ENABLED')): ?>
     <link rel="stylesheet" href="css/billing-portal.css?v=20260805">
 <?php endif; ?>
@@ -2714,6 +2715,16 @@ window.featureFlags = <?php echo getFeatureFlagsJson(); ?>;
   <script src="js/toast.js?v=20250104" defer></script>
   <script src="js/session-timeout.js?v=20250119" defer></script>
   <script src="js/gcs-upload.js?v=20260303c" defer></script>
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+    }
+  }
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js" defer></script>
+  <script type="module" src="js/attachment-viewer.js?v=20260819b" defer></script>
   <script src="js/app.js?v=20260327i" defer></script>
   <script src="js/card-delete-fixed.js?v=20250104" defer></script>
   <script src="js/assignments.js?v=20250104" defer></script>
@@ -2869,6 +2880,38 @@ window.featureFlags = <?php echo getFeatureFlagsJson(); ?>;
   <script src="https://cdn.jsdelivr.net/npm/shepherd.js@11/dist/js/shepherd.min.js" defer></script>
   <script src="js/tour.js?v=20260818p" defer></script>
   <?php endif; ?>
+
+  <!-- Attachment Viewer Modal -->
+  <div id="attachmentViewerModal" class="attachment-viewer-modal" style="display:none;">
+    <div class="attachment-viewer-content">
+      <div class="attachment-viewer-header">
+        <div class="attachment-viewer-title-wrap">
+          <h2 class="attachment-viewer-title">Attachment</h2>
+          <span class="attachment-viewer-type">STL</span>
+        </div>
+        <div class="attachment-viewer-actions">
+          <button type="button" class="attachment-viewer-btn attachment-viewer-prev" title="Previous page" disabled>&lt;</button>
+          <span class="attachment-viewer-page-info">Page 1</span>
+          <button type="button" class="attachment-viewer-btn attachment-viewer-next" title="Next page" disabled>&gt;</button>
+          <button type="button" class="attachment-viewer-btn attachment-viewer-zoom-in" title="Zoom in">+</button>
+          <button type="button" class="attachment-viewer-btn attachment-viewer-zoom-out" title="Zoom out">&#8722;</button>
+          <button type="button" class="attachment-viewer-btn attachment-viewer-reset" title="Reset view">Reset</button>
+          <button type="button" class="attachment-viewer-btn attachment-viewer-fit" title="Fit to view">Fit</button>
+          <button type="button" class="attachment-viewer-btn attachment-viewer-download" title="Download file">Download</button>
+          <button type="button" class="attachment-viewer-btn attachment-viewer-fullscreen" title="Full screen">Full Screen</button>
+          <button type="button" class="attachment-viewer-btn attachment-viewer-btn-close attachment-viewer-close" title="Close viewer">&times;</button>
+        </div>
+      </div>
+      <div class="attachment-viewer-canvas-wrap">
+        <div class="attachment-viewer-canvas"></div>
+        <div class="attachment-viewer-loading">
+          <div class="attachment-viewer-spinner"></div>
+          <span>Loading model…</span>
+        </div>
+        <div class="attachment-viewer-error"></div>
+      </div>
+    </div>
+  </div>
 </body>
 </html>
 <?php

@@ -7281,24 +7281,12 @@ document.addEventListener('DOMContentLoaded', function () {
             // Determine if this is a GCS-stored file or a legacy local/Drive file
             var isGcsFile = (file.storageType === 'gcs' && file.storagePath);
 
-            // Create the filename - make it clickable to view/download
+            // Determine file extension for viewer support
+            var fileExt = (file.fileName || '').split('.').pop().toLowerCase();
+
+            // Create the filename label
             var nameSpan;
-            if (isGcsFile) {
-              // GCS file: use signed URL on click
-              nameSpan = document.createElement('a');
-              nameSpan.href = '#';
-              nameSpan.style.cssText = 'color: #2563eb; text-decoration: none; cursor: pointer;';
-              nameSpan.title = 'Click to view: ' + file.fileName;
-              nameSpan.textContent = file.fileName;
-              nameSpan.dataset.storagePath = file.storagePath;
-              nameSpan.dataset.fileName = file.fileName;
-              nameSpan.addEventListener('click', function(e) {
-                e.preventDefault();
-                openGcsFile(this.dataset.storagePath, this.dataset.fileName);
-              });
-              nameSpan.addEventListener('mouseenter', function() { this.style.textDecoration = 'underline'; });
-              nameSpan.addEventListener('mouseleave', function() { this.style.textDecoration = 'none'; });
-            } else if (filePath) {
+            if (filePath && !isGcsFile) {
               // Legacy local file path for viewing
               var viewUrl = '/' + filePath;
               nameSpan = document.createElement('a');
@@ -7320,6 +7308,29 @@ document.addEventListener('DOMContentLoaded', function () {
               nameSpan = document.createElement('span');
               nameSpan.title = file.fileName;
               nameSpan.textContent = file.fileName;
+              nameSpan.style.cssText = 'color: #374151;';
+            }
+
+            // View link for supported preview formats
+            var viewableExts = ['stl', 'obj', 'ply', 'jpg', 'jpeg', 'png', 'webp', 'pdf'];
+            var viewLink = null;
+            if (isGcsFile && viewableExts.indexOf(fileExt) !== -1) {
+              viewLink = document.createElement('a');
+              viewLink.href = '#';
+              viewLink.className = 'attachment-view-link';
+              viewLink.textContent = 'View';
+              viewLink.title = 'Open in File Viewer';
+              viewLink.dataset.storagePath = file.storagePath;
+              viewLink.dataset.fileName = file.fileName;
+              viewLink.dataset.fileType = file.fileType || file.mimeType || fileExt;
+              viewLink.addEventListener('click', function(e) {
+                e.preventDefault();
+                if (typeof openAttachmentViewer === 'function') {
+                  openAttachmentViewer(this.dataset.storagePath, this.dataset.fileName, this.dataset.fileType);
+                } else {
+                  showToast('File viewer is not available.', 'error');
+                }
+              });
             }
 
             // Download link
@@ -7377,8 +7388,11 @@ document.addEventListener('DOMContentLoaded', function () {
               hasUnsavedChanges = true;
             });
 
-            // Assemble the elements in order: name, download, remove
+            // Assemble the elements in order: name, view, download, remove
             fileElement.appendChild(nameSpan);
+            if (viewLink) {
+              fileElement.appendChild(viewLink);
+            }
             if (downloadLink) {
               fileElement.appendChild(downloadLink);
             }
