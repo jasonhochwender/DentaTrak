@@ -10,6 +10,11 @@ ErrorDocument 404 /404.php
   RewriteRule ^resources/user-guide$ api/user-guide.php [L]
   RewriteCond %{REQUEST_URI} ".*resources/DentaTrak(%20| )User(%20| )Guide\.pdf$" [NC]
   RewriteRule .* api/user-guide.php [L]
+
+  # Resources landing page: /resources/ is a real directory, so the normal
+  # clean-URL rewrite below would be skipped. Route it explicitly to
+  # resources.php while keeping the actual directory contents protected.
+  RewriteRule ^resources/?$ resources.php [L]
   
   # Skip if the request is a real file or directory
   RewriteCond %{REQUEST_FILENAME} !-f
