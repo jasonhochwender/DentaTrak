@@ -166,15 +166,16 @@
     // Update metrics
     updateElement('apCasesThisMonth', metrics.casesThisMonth || 0);
     updateElement('apActiveCases', metrics.totalActiveCases || 0);
-    updateElement('apDelivered', metrics.totalDeliveredCases || 0);
+    updateElement('apDelivered', metrics.deliveredThisMonth || 0);
     updateElement('apPastDue', metrics.casesPastDue || 0);
     updateElement('apArchived', metrics.totalArchivedCases || 0);
 
-    // Update operational status
-    const completion = insights.completion || {};
-    updateElement('apOnTrack', completion.onTrack || 0);
-    updateElement('apAtRisk', completion.atRisk || 0);
-    updateElement('apDelayed', completion.delayed || 0);
+    // Update Case Flow Status (On Track, Due Soon, Appointment Risk, Late)
+    const caseFlow = insights.caseFlow || {};
+    updateElement('apOnTrack', caseFlow.onTrack || 0);
+    updateElement('apDueSoon', caseFlow.dueSoon || 0);
+    updateElement('apAppointmentRisk', caseFlow.appointmentRisk || 0);
+    updateElement('apLate', caseFlow.late || 0);
 
     // Update trends insights
     const trends = insights.trends || {};

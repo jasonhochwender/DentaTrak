@@ -35,6 +35,26 @@ require_once __DIR__ . '/appConfig.php';
 require_once __DIR__ . '/at-risk-calculator.php';
 require_once __DIR__ . '/workflow-stages.php';
 
+// Match the local calendar-day semantics used by the Kanban board
+// (see js/app.js getCalendarDayDiff() and api/list-cases.php).
+date_default_timezone_set('America/New_York');
+
+function getCalendarDayDiff($dateString) {
+    if (empty($dateString)) {
+        return null;
+    }
+    try {
+        $due = new DateTimeImmutable($dateString, new DateTimeZone(date_default_timezone_get()));
+        $due = $due->setTime(0, 0, 0);
+        $today = new DateTimeImmutable('today', new DateTimeZone(date_default_timezone_get()));
+        $today = $today->setTime(0, 0, 0);
+        $diffSeconds = $due->getTimestamp() - $today->getTimestamp();
+        return (int) round($diffSeconds / 86400);
+    } catch (Throwable $e) {
+        return null;
+    }
+}
+
 // Get time period filters
 $userId = $_SESSION['db_user_id'];
 $teamPeriod = $_GET['team_period'] ?? '12'; // Default: last 12 months
@@ -66,30 +86,114 @@ try {
     // Core Metrics
     $metrics = [];
     
-    // Total Active Cases - cases that are not archived (archived = 0)
+    // Load the user's highlighting thresholds. The Kanban obtains these from the
+    // same user_preferences store (cached in session / localStorage), so we use
+    // the session cache first and fall back to the database.
+    $preferences = $_SESSION['user_preferences'] ?? [];
+    if (empty($preferences)) {
+        $prefStmt = $pdo->prepare("SELECT highlight_past_due, past_due_days, highlight_coming_due, coming_due_days, highlight_appointment_risk, appointment_risk_days FROM user_preferences WHERE user_id = :user_id LIMIT 1");
+        $prefStmt->execute(['user_id' => $userId]);
+        $preferences = $prefStmt->fetch(PDO::FETCH_ASSOC) ?: [];
+    }
+    // Defaults mirror get-settings.php so Insights and the Kanban resolve the same effective values.
+    $highlightPastDue = (bool)($preferences['highlight_past_due'] ?? true);
+    $pastDueDays = (int)($preferences['past_due_days'] ?? 1);
+    $highlightComingDue = (bool)($preferences['highlight_coming_due'] ?? false);
+    $comingDueDays = (int)($preferences['coming_due_days'] ?? 5);
+    $highlightAppointmentRisk = (bool)($preferences['highlight_appointment_risk'] ?? true);
+    $appointmentRiskDays = (int)($preferences['appointment_risk_days'] ?? 3);
+
+    // Total Active Cases - active, non-archived, non-delivered workflow cases
     $stmt = $pdo->prepare("
         SELECT COUNT(*) as total
-        FROM cases_cache 
-        WHERE practice_id = :practice_id AND archived = 0
+        FROM cases_cache
+        WHERE practice_id = :practice_id AND archived = 0 AND status != 'Delivered'
     ");
     $stmt->execute(['practice_id' => $practiceId]);
     $metrics['totalActiveCases'] = (int)$stmt->fetchColumn();
-    
+
     // Initialize empty arrays for charts when no data exists
     $statusDistribution = [];
     $monthlyVolume = [];
     $caseTypeBreakdown = [];
     $teamPerformance = [];
-    
-    // Total Delivered Cases - cases with status = 'Delivered' (not archived)
+
+    // Delivered This Month - cases that reached Delivered status this calendar month,
+    // including any that have since been archived. Uses cases_cache.status_changed_at
+    // as the primary delivery timestamp. If that is unavailable, falls back to the
+    // most recent case_activity_log entry where event_type = 'status_changed' and
+    // new_status = 'Delivered'. If neither exists, the case is not counted.
     $stmt = $pdo->prepare("
-        SELECT COUNT(*) as total
-        FROM cases_cache 
-        WHERE practice_id = :practice_id AND status = 'Delivered' AND archived = 0
+        SELECT COUNT(DISTINCT c.case_id) as total
+        FROM cases_cache c
+        LEFT JOIN (
+            SELECT case_id, MAX(created_at) as delivered_at
+            FROM case_activity_log
+            WHERE event_type = 'status_changed'
+              AND new_status = 'Delivered'
+            GROUP BY case_id
+        ) l ON l.case_id = c.case_id
+        WHERE c.practice_id = :practice_id
+          AND c.status = 'Delivered'
+          AND MONTH(STR_TO_DATE(LEFT(COALESCE(c.status_changed_at, l.delivered_at), 10), '%Y-%m-%d')) = MONTH(CURRENT_DATE())
+          AND YEAR(STR_TO_DATE(LEFT(COALESCE(c.status_changed_at, l.delivered_at), 10), '%Y-%m-%d')) = YEAR(CURRENT_DATE())
     ");
     $stmt->execute(['practice_id' => $practiceId]);
-    $metrics['totalDeliveredCases'] = (int)$stmt->fetchColumn();
-    
+    $metrics['deliveredThisMonth'] = (int)$stmt->fetchColumn();
+
+    // Case Flow Status - classify active (non-archived, non-delivered) cases using
+    // the same definitions and precedence as the Kanban board.
+    $caseFlow = ['onTrack' => 0, 'dueSoon' => 0, 'appointmentRisk' => 0, 'late' => 0];
+    $stmt = $pdo->prepare("
+        SELECT due_date, patient_appointment_date, status
+        FROM cases_cache
+        WHERE practice_id = :practice_id AND archived = 0 AND status != 'Delivered'
+    ");
+    $stmt->execute(['practice_id' => $practiceId]);
+    $activeForFlow = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    foreach ($activeForFlow as $case) {
+        $status = $case['status'] ?? '';
+        if ($status === 'Delivered') {
+            continue;
+        }
+
+        // 1. Late (highest precedence)
+        if ($highlightPastDue) {
+            $daysUntilDue = getCalendarDayDiff($case['due_date'] ?? '');
+            if ($daysUntilDue !== null && $daysUntilDue <= -$pastDueDays) {
+                $caseFlow['late']++;
+                continue;
+            }
+        }
+
+        // 2. Appointment Risk
+        if ($highlightAppointmentRisk) {
+            $apptDate = $case['patient_appointment_date'] ?? '';
+            if (!empty($apptDate)) {
+                $daysUntilAppt = getCalendarDayDiff($apptDate);
+                if ($daysUntilAppt !== null && $daysUntilAppt <= $appointmentRiskDays) {
+                    $caseFlow['appointmentRisk']++;
+                    continue;
+                }
+            }
+        }
+
+        // 3. Due Soon
+        if ($highlightComingDue) {
+            $daysUntilDue = $daysUntilDue ?? getCalendarDayDiff($case['due_date'] ?? '');
+            if ($daysUntilDue !== null && $daysUntilDue >= 0 && $daysUntilDue <= $comingDueDays) {
+                $caseFlow['dueSoon']++;
+                continue;
+            }
+        }
+
+        // 4. On Track
+        $caseFlow['onTrack']++;
+    }
+
+    $metrics['caseFlow'] = $caseFlow;
+
     // Total Archived Cases - cases that are archived (archived = 1)
     $stmt = $pdo->prepare("
         SELECT COUNT(*) as total
@@ -510,11 +614,12 @@ try {
     
     // Calculate actual advanced insights from case data
     $advancedInsights = [
+        'caseFlow' => $caseFlow,
         'completion' => [
             'avgDays' => $metrics['averageCaseDuration'] ?? 0,
-            'onTrack' => 0,
-            'atRisk' => 0,
-            'delayed' => $metrics['casesPastDue'] ?? 0
+            'onTrack' => $caseFlow['onTrack'],
+            'atRisk' => $caseFlow['dueSoon'] + $caseFlow['appointmentRisk'],
+            'delayed' => $caseFlow['late']
         ],
         'workload' => [
             'utilization' => $metrics['totalActiveCases'] > 0 ? min(100, round(($metrics['totalActiveCases'] / 20) * 100)) : 0,
@@ -634,26 +739,8 @@ try {
         // Keep default empty values on error
     }
     
-    // Calculate at-risk cases (due within 3 days) - strict practice filter, exclude archived
-    try {
-        $stmt = $pdo->prepare("
-            SELECT COUNT(*) as count
-            FROM cases_cache 
-            WHERE practice_id = :practice_id
-            AND archived = 0
-            AND status != 'Delivered'
-            AND due_date IS NOT NULL
-            AND due_date != ''
-            AND DATE(STR_TO_DATE(LEFT(due_date, 10), '%Y-%m-%d')) BETWEEN CURRENT_DATE() AND DATE_ADD(CURRENT_DATE(), INTERVAL 3 DAY)
-        ");
-        $stmt->execute(['practice_id' => $practiceId]);
-        $advancedInsights['completion']['atRisk'] = (int)$stmt->fetchColumn();
-    } catch (Exception $e) {
-        $advancedInsights['completion']['atRisk'] = 0;
-    }
-    
-    // Calculate on-track cases (not past due and not at risk)
-    $advancedInsights['completion']['onTrack'] = max(0, ($metrics['totalActiveCases'] ?? 0) - $advancedInsights['completion']['atRisk'] - $advancedInsights['completion']['delayed']);
+    // Case Flow Status already computed in $metrics['caseFlow'] and assigned
+    // to $advancedInsights above; no additional calculation needed here.
     
     // Find top performer from team performance data
     if (!empty($teamPerformance)) {

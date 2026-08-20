@@ -26,6 +26,8 @@
   --ap-success: #10b981;
   --ap-warning: #f59e0b;
   --ap-danger: #ef4444;
+  --ap-primary: #2563eb;
+  --ap-appointment-risk: #7e22ce;
   --ap-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.02);
   --ap-shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
   --ap-shadow-lg: 0 10px 25px -5px rgba(0, 0, 0, 0.08), 0 8px 10px -6px rgba(0, 0, 0, 0.03);
@@ -388,8 +390,16 @@
   gap: 16px;
 }
 
+.ap-status-grid.four-col {
+  grid-template-columns: repeat(4, 1fr);
+}
+
 @media (max-width: 900px) {
   .ap-status-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .ap-status-grid.four-col {
     grid-template-columns: 1fr;
   }
 }
@@ -423,6 +433,8 @@
 .ap-status-indicator.success { background: var(--ap-success); }
 .ap-status-indicator.warning { background: var(--ap-warning); }
 .ap-status-indicator.danger { background: var(--ap-danger); }
+.ap-status-indicator.primary { background: var(--ap-primary); }
+.ap-status-indicator.appt-risk { background: var(--ap-appointment-risk); }
 
 .ap-status-title {
   font-size: 0.875rem;

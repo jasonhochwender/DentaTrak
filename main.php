@@ -903,7 +903,7 @@ window.featureFlags = <?php echo getFeatureFlagsJson(); ?>;
                   </div>
                 </div>
                 <div class="ap-metric-value" id="apDelivered">-</div>
-                <div class="ap-metric-label"><?= htmlspecialchars($resolvedWorkflowStageLabels['Delivered']) ?></div>
+                <div class="ap-metric-label">Delivered This Month</div>
               </div>
 
               <div class="ap-metric-card accent-orange">
@@ -934,34 +934,41 @@ window.featureFlags = <?php echo getFeatureFlagsJson(); ?>;
                 </div>
               </div>
 
-              <div class="ap-status-grid">
+              <div class="ap-status-grid four-col">
                 <div class="ap-status-card">
                   <div class="ap-status-header">
                     <div class="ap-status-indicator success"></div>
                     <h3 class="ap-status-title">On Track</h3>
                   </div>
                   <div class="ap-status-value" id="apOnTrack">0</div>
-                  <div class="ap-status-label">Ready to schedule or deliver</div>
+                  <div class="ap-status-label">No immediate timing risk</div>
                 </div>
 
-<?php if (isFeatureEnabled('SHOW_AT_RISK')): ?>
                 <div class="ap-status-card">
                   <div class="ap-status-header">
-                    <div class="ap-status-indicator warning"></div>
-                    <h3 class="ap-status-title">At Risk</h3>
+                    <div class="ap-status-indicator primary"></div>
+                    <h3 class="ap-status-title">Due Soon</h3>
                   </div>
-                  <div class="ap-status-value" id="apAtRisk">0</div>
-                  <div class="ap-status-label">Due soon — potential reschedule</div>
+                  <div class="ap-status-value" id="apDueSoon">0</div>
+                  <div class="ap-status-label">Approaching case due date</div>
                 </div>
-<?php endif; ?>
+
+                <div class="ap-status-card">
+                  <div class="ap-status-header">
+                    <div class="ap-status-indicator appt-risk"></div>
+                    <h3 class="ap-status-title">Appointment Risk</h3>
+                  </div>
+                  <div class="ap-status-value" id="apAppointmentRisk">0</div>
+                  <div class="ap-status-label">Patient appointment approaching</div>
+                </div>
 
                 <div class="ap-status-card">
                   <div class="ap-status-header">
                     <div class="ap-status-indicator danger"></div>
                     <h3 class="ap-status-title">Late</h3>
                   </div>
-                  <div class="ap-status-value" id="apDelayed">0</div>
-                  <div class="ap-status-label">Revenue at risk — needs attention</div>
+                  <div class="ap-status-value" id="apLate">0</div>
+                  <div class="ap-status-label">Past configured due threshold</div>
                 </div>
               </div>
             </div>
