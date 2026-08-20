@@ -62,6 +62,11 @@
     
     // Show/hide the entire section
     section.style.display = hasVisibleFields ? 'block' : 'none';
+
+    // Update the tooth selector visibility and active field
+    if (typeof updateToothSelectorVisibility === 'function') {
+      updateToothSelectorVisibility();
+    }
   }
 
   /**
@@ -106,11 +111,16 @@
     Object.keys(clinicalFieldMapping).forEach(function(fieldId) {
       var dataKey = clinicalFieldMapping[fieldId];
       var input = document.getElementById(fieldId);
-      
+
       if (input && clinicalDetails[dataKey] !== undefined) {
         input.value = clinicalDetails[dataKey];
       }
     });
+
+    // Sync the tooth selector with the active field after values are set
+    if (typeof updateToothSelectorVisibility === 'function') {
+      updateToothSelectorVisibility();
+    }
   };
 
   /**
@@ -311,6 +321,11 @@
       var labelText = label ? label.textContent.replace(/\*/g, '').trim() : 'selected field';
       toothSelectorActiveField.textContent = input ? labelText : '';
     }
+    // Move the chart directly beneath the active tooth field
+    if (input && toothSelectorContainer) {
+      toothSelectorContainer.style.display = 'block';
+      input.parentElement.appendChild(toothSelectorContainer);
+    }
     syncActiveField(false);
   }
 
@@ -321,20 +336,10 @@
     toothSelectorContainer.style.display = hasAny ? 'block' : 'none';
 
     if (hasAny) {
-      // Auto-select if only one, or preserve current if it is still visible
+      // Select the first visible tooth field by default (or keep the active one if it is still visible)
       var inputs = Array.from(visibleToothInputs);
-      var activeStillVisible = activeToothInput && inputs.indexOf(activeToothInput) !== -1;
-      if (!activeStillVisible) {
-        if (inputs.length === 1) {
-          setActiveToothInput(inputs[0]);
-        } else if (activeToothInput) {
-          setActiveToothInput(activeToothInput);
-        } else {
-          setActiveToothInput(inputs[0]);
-        }
-      } else {
-        setActiveToothInput(activeToothInput);
-      }
+      var target = activeToothInput && inputs.indexOf(activeToothInput) !== -1 ? activeToothInput : inputs[0];
+      setActiveToothInput(target);
     } else {
       activeToothInput = null;
     }
