@@ -120,6 +120,49 @@ try {
     }
     $confirmed = !empty($input['confirmed']);
 
+    // ------------------------------------------------------------------
+    // Dataset size: small, standard (default), large
+    // ------------------------------------------------------------------
+    $dataset = isset($input['dataset']) && in_array($input['dataset'], ['small', 'standard', 'large'], true)
+        ? $input['dataset']
+        : 'standard';
+
+    $datasetConfig = [
+        'small' => [
+            'activeCount' => 15,
+            'historicalMonths' => 1,
+            'showcaseCount' => 2,
+            'monthBaseCount' => [2, 3, 3, 3, 3, 3],
+        ],
+        'standard' => [
+            'activeCount' => 40,
+            'historicalMonths' => 3,
+            'showcaseCount' => 5,
+            'monthBaseCount' => [5, 7, 8, 8, 9, 10],
+        ],
+        'large' => [
+            'activeCount' => 80,
+            'historicalMonths' => 6,
+            'showcaseCount' => 10,
+            'monthBaseCount' => [10, 13, 14, 14, 16, 18],
+        ],
+    ];
+    $activeTarget = $datasetConfig[$dataset]['activeCount'];
+    $historicalMonths = $datasetConfig[$dataset]['historicalMonths'];
+    $showcaseTarget = $datasetConfig[$dataset]['showcaseCount'];
+
+    // ------------------------------------------------------------------
+    // Load the practice's current highlighting thresholds so boundary
+    // cases match the user's actual settings.
+    // ------------------------------------------------------------------
+    $currentUserId = $_SESSION['db_user_id'] ?? 0;
+    $prefStmt = $pdo->prepare("SELECT past_due_days, coming_due_days, appointment_risk_days FROM user_preferences WHERE user_id = :uid LIMIT 1");
+    $prefStmt->execute(['uid' => $currentUserId]);
+    $preferences = $prefStmt->fetch(PDO::FETCH_ASSOC) ?: [];
+    $pastDueDays = (int)($preferences['past_due_days'] ?? 1);
+    $comingDueDays = (int)($preferences['coming_due_days'] ?? 5);
+    $appointmentRiskDays = (int)($preferences['appointment_risk_days'] ?? 3);
+
     // Warn if the current practice already has a meaningful amount of case
     // data, so demo records aren't silently dumped into an actively used
     // practice. Kept intentionally simple - no duplicate-detection system,
@@ -244,46 +287,80 @@ try {
     $staffAvailable = !empty($staffUsers);
 
     // ------------------------------------------------------------------
-    // Reference pools - real case types / statuses / clinical fields taken
-    // directly from the actual "Create Case" form (main.php), not guessed.
+    // Weighted pools - sized to the selected dataset. Case types and
+    // statuses are drawn from the actual Create Case form values.
     // ------------------------------------------------------------------
-    $caseTypePool25 = array_merge(
-        array_fill(0, 8, 'Crown'),
-        array_fill(0, 4, 'Bridge'),
-        array_fill(0, 2, 'Implant Crown'),
-        array_fill(0, 1, 'Implant Surgical Guide'),
-        array_fill(0, 2, 'Denture'),
-        array_fill(0, 2, 'Partial'),
-        array_fill(0, 3, 'Veneer'),
-        array_fill(0, 2, 'Inlay/Onlay'),
-        array_fill(0, 1, 'AOX')
-    ); // 25
-    shuffle($caseTypePool25);
+    $buildWeightedPool = function ($weights, $count) {
+        $pool = [];
+        foreach ($weights as $value => $weight) {
+            for ($i = 0; $i < $weight; $i++) {
+                $pool[] = $value;
+            }
+        }
+        shuffle($pool);
+        $result = [];
+        $total = count($pool);
+        for ($i = 0; $i < $count; $i++) {
+            $result[] = $pool[$i % $total];
+            if (($i + 1) % $total === 0) {
+                shuffle($pool);
+            }
+        }
+        shuffle($result);
+        return $result;
+    };
 
-    $statusPool25 = array_merge(
-        array_fill(0, 7, 'Originated'),
-        array_fill(0, 5, 'Sent To External Lab'),
-        array_fill(0, 5, 'Designed'),
-        array_fill(0, 4, 'Manufactured'),
-        array_fill(0, 4, 'Received From External Lab')
-    ); // 25
-    shuffle($statusPool25);
+    // Weights intentionally mirror a real dental practice distribution.
+    $caseTypeWeights = [
+        'Crown' => 8,
+        'Bridge' => 4,
+        'Veneer' => 3,
+        'Inlay/Onlay' => 2,
+        'Implant Crown' => 2,
+        'Implant Surgical Guide' => 1,
+        'Denture' => 2,
+        'Partial' => 2,
+        'AOX' => 1,
+        'Orthodontic Appliance' => 1,
+    ];
 
-    $dueBucketPool25 = array_merge(
-        array_fill(0, 2, 'overdue'),
-        array_fill(0, 3, 'very_soon'),
-        array_fill(0, 6, 'this_week'),
-        array_fill(0, 9, 'few_weeks'),
-        array_fill(0, 5, 'distant')
-    ); // 25
-    shuffle($dueBucketPool25);
+    $statusWeights = [
+        'Originated' => 9,
+        'Sent To External Lab' => 6,
+        'Designed' => 6,
+        'Manufactured' => 5,
+        'Received From External Lab' => 5,
+    ];
 
-    $revisionPool25 = array_merge(
-        array_fill(0, 17, 0),
-        array_fill(0, 4, 1),
-        array_fill(0, 3, 2),
-        array_fill(0, 1, 3)
-    ); // 25
+    $dueBucketWeights = [
+        'overdue' => 2,
+        'very_soon' => 3,
+        'this_week' => 5,
+        'few_weeks' => 8,
+        'distant' => 7,
+        'long_overdue' => 1,
+    ];
+
+    $revisionWeights = [
+        0 => 55,
+        1 => 16,
+        2 => 8,
+        3 => 2,
+    ];
+
+    $apptBucketWeights = [
+        'none' => 6,
+        'far_future' => 4,
+        'within_threshold' => 3,
+        'today' => 1,
+        'past' => 2,
+    ];
+
+    $caseTypePool = $buildWeightedPool($caseTypeWeights, $activeTarget);
+    $statusPool = $buildWeightedPool($statusWeights, $activeTarget);
+    $dueBucketPool = $buildWeightedPool($dueBucketWeights, $activeTarget);
+    $revisionPool = $buildWeightedPool($revisionWeights, $activeTarget);
+    $apptBucketPool = $buildWeightedPool($apptBucketWeights, $activeTarget);
     shuffle($revisionPool25);
 
     $workflowStageOrder = [
@@ -564,13 +641,28 @@ try {
     $today = strtotime(date('Y-m-d', $now));
 
     // ------------------------------------------------------------------
-    // 1) ACTIVE CASES (25)
+    // Mark the demo lab user as a lab so Lab Insights sees the assignment
+    // periods as lab-owned rather than generic assignments.
+    // ------------------------------------------------------------------
+    if ($labUserAvailable) {
+        $pdo->prepare("UPDATE practice_users SET is_lab = 1 WHERE practice_id = :practice_id AND user_id = :user_id")
+            ->execute(['practice_id' => $currentPracticeId, 'user_id' => $labUser['id']]);
+    }
+    ensureLabAssignmentHistoryTable();
+
+    $activeCreatedByNames = [];
+    foreach ($staffUsers as $u) {
+        $activeCreatedByNames[] = trim($u['first_name'] . ' ' . $u['last_name']) ?: $u['email'];
+    }
+
+    // ------------------------------------------------------------------
+    // 1) ACTIVE CASES
     // ------------------------------------------------------------------
 
-    // Due date offsets (in days from today) per bucket.
     $dueOffsetForBucket = function ($bucket) {
         switch ($bucket) {
             case 'overdue': return -random_int(1, 10);
+            case 'long_overdue': return -random_int(20, 45);
             case 'very_soon': return random_int(0, 2);
             case 'this_week': return random_int(3, 7);
             case 'few_weeks': return random_int(8, 21);
@@ -579,20 +671,28 @@ try {
         return 7;
     };
 
-    // Build the 25 base case definitions first so we can reliably pick
-    // showcase cases from the guaranteed pool distribution above.
-    $activeDefs = [];
-    for ($i = 0; $i < 25; $i++) {
-        $caseType = $caseTypePool25[$i];
-        $status = $statusPool25[$i];
-        $statusIdx = $workflowStageOrder[$status];
-        $revisions = $revisionPool25[$i];
-        $dueBucket = $dueBucketPool25[$i];
+    $apptOffsetForBucket = function ($bucket) use ($appointmentRiskDays) {
+        switch ($bucket) {
+            case 'none': return null;
+            case 'far_future': return random_int(max(1, $appointmentRiskDays + 7), $appointmentRiskDays + 45);
+            case 'within_threshold': return $appointmentRiskDays > 0 ? random_int(1, $appointmentRiskDays) : 0;
+            case 'today': return 0;
+            case 'past': return -random_int(1, 30);
+        }
+        return null;
+    };
 
-        // Cases further along the workflow were created further in the past.
+    $activeDefs = [];
+    for ($i = 0; $i < $activeTarget; $i++) {
+        $caseType = $caseTypePool[$i];
+        $status = $statusPool[$i];
+        $statusIdx = $workflowStageOrder[$status];
+        $revisions = $revisionPool[$i];
+        $dueBucket = $dueBucketPool[$i];
+        $apptBucket = $apptBucketPool[$i];
+
         $ageDaysMin = [0 => 2, 1 => 5, 2 => 10, 3 => 15, 4 => 20][$statusIdx];
         $ageDaysMax = [0 => 8, 1 => 14, 2 => 20, 3 => 28, 4 => 35][$statusIdx];
-        // Revisions add real elapsed time (each regression/forward cycle takes days).
         $ageDaysMin += $revisions * 4;
         $ageDaysMax += $revisions * 7;
 
@@ -603,6 +703,9 @@ try {
             $dueTs = $creationTs + (86400 * random_int(5, 15));
         }
 
+        $apptOffset = $apptOffsetForBucket($apptBucket);
+        $apptTs = $apptOffset !== null ? $today + (86400 * $apptOffset) : null;
+
         $activeDefs[] = [
             'caseType' => $caseType,
             'status' => $status,
@@ -610,17 +713,17 @@ try {
             'revisions' => $revisions,
             'creationTs' => $creationTs,
             'dueTs' => $dueTs,
+            'apptTs' => $apptTs,
             'notes' => null,
             'assignedTo' => null,
             'showcase' => null,
         ];
     }
 
-    // Pick 5 showcase cases from the pool (guaranteed to exist given the
-    // fixed bucket distributions above).
+    // Pick showcase cases up to the configured target.
     $showcaseIdx = [];
     foreach ($activeDefs as $idx => $def) {
-        if ($def['revisions'] === 3 && !in_array('three_revisions', $showcaseIdx, true)) {
+        if ($def['revisions'] >= 3 && !in_array('three_revisions', $showcaseIdx, true)) {
             $showcaseIdx['three_revisions'] = $idx;
         }
     }
@@ -644,16 +747,16 @@ try {
             $showcaseIdx['comments'] = $idx;
         }
     }
+    // Appointment-risk showcase
+    foreach ($activeDefs as $idx => $def) {
+        if ($def['apptTs'] !== null && $def['apptTs'] <= $today + (86400 * $appointmentRiskDays) && !isset($showcaseIdx['appt_risk']) && !in_array($idx, $showcaseIdx, true)) {
+            $showcaseIdx['appt_risk'] = $idx;
+        }
+    }
 
-    $showcaseIndices = array_values($showcaseIdx);
+    $showcaseIndices = array_slice(array_values($showcaseIdx), 0, $showcaseTarget);
 
-    // Deterministically pick which active cases are associated with the
-    // lab user, targeting roughly 6-10 cases (per the demo-data
-    // requirements), drawn from statuses where external-lab involvement
-    // makes sense: Sent To External Lab / Designed / Manufactured /
-    // Received From External Lab (statusIdx 1-4). The 'at_lab' showcase
-    // case is always included so it stays consistent with the earlier
-    // showcase selection above.
+    // Active lab cases: external-lab statuses + a few in other stages.
     $labCaseIndices = [];
     if ($labUserAvailable) {
         $labEligibleIndices = [];
@@ -664,7 +767,8 @@ try {
         }
         shuffle($labEligibleIndices);
 
-        $labTargetCount = min(count($labEligibleIndices), random_int(6, 10));
+        $labTargetCount = max(3, (int)round($activeTarget * 0.25));
+        $labTargetCount = min(count($labEligibleIndices), $labTargetCount);
         $labCaseIndices = array_slice($labEligibleIndices, 0, $labTargetCount);
 
         if (isset($showcaseIdx['at_lab']) && !in_array($showcaseIdx['at_lab'], $labCaseIndices, true)) {
@@ -674,10 +778,9 @@ try {
     }
 
     foreach ($activeDefs as $idx => &$def) {
-        $isShowcase = in_array($idx, $showcaseIndices, true);
         $showcaseKey = array_search($idx, $showcaseIdx, true);
+        $isShowcase = $showcaseKey !== false && in_array($idx, $showcaseIndices, true);
 
-        // Assignment
         if ($showcaseKey === 'unassigned') {
             $def['assignedTo'] = '';
         } elseif ($labUserAvailable && in_array($idx, $labCaseIndices, true)) {
@@ -686,7 +789,6 @@ try {
             $def['assignedTo'] = $pickAssignee($def['statusIdx']);
         }
 
-        // Notes: all showcase cases get notes; ~55% of the rest do too.
         if ($isShowcase || random_int(1, 100) <= 55) {
             $def['notes'] = $notesPool[array_rand($notesPool)];
         } else {
@@ -697,12 +799,18 @@ try {
     }
     unset($def);
 
+    $demoCaseCreatorIds = [];
     foreach ($activeDefs as $def) {
         $caseId = 'demo_' . uniqid('', true);
         $firstName = $firstNames[array_rand($firstNames)];
         $lastName = $lastNames[array_rand($lastNames)];
         $dentist = $dentistNames[array_rand($dentistNames)];
         $dobTs = strtotime('-' . random_int(10, 80) . ' years', $now);
+
+        $creator = $staffAvailable ? $staffUsers[array_rand($staffUsers)] : null;
+        $createdByUserId = $creator ? (int)$creator['id'] : ($_SESSION['db_user_id'] ?? null);
+        $createdByName = $creator ? (trim($creator['first_name'] . ' ' . $creator['last_name']) ?: $creator['email']) : 'Demo Generator';
+        $demoCaseCreatorIds[] = $caseId;
 
         $caseData = [
             'id' => $caseId,
@@ -715,6 +823,7 @@ try {
             'caseType' => $def['caseType'],
             'toothShade' => $toothShades[array_rand($toothShades)],
             'dueDate' => date('Y-m-d', $def['dueTs']),
+            'patientAppointmentDate' => $def['apptTs'] !== null ? date('Y-m-d', $def['apptTs']) : null,
             'creationDate' => date('c', $def['creationTs']),
             'lastUpdateDate' => date('c', min($now, $def['creationTs'] + random_int(3600, max(3600, $now - $def['creationTs'])))),
             'status' => $def['status'],
@@ -724,6 +833,9 @@ try {
             'revisions' => [],
             'attachments' => [],
             'clinicalDetails' => $buildClinicalDetails($def['caseType']),
+            'createdByUserId' => $createdByUserId,
+            'createdByName' => $createdByName,
+            'isDemo' => true,
         ];
         if (in_array($def['caseType'], $needsMaterial, true)) {
             $caseData['material'] = $materials[array_rand($materials)];
@@ -741,9 +853,24 @@ try {
             $def['assignedTo'], $def['notes'], false
         );
 
-        // A showcase case also gets a short discussion thread to demonstrate
-        // the Comments feature. The activity log entry is only written after
-        // the comment INSERT has actually succeeded.
+        // Open a backdated lab assignment period for lab-assigned active cases.
+        if ($labUserAvailable && strcasecmp($def['assignedTo'], $labUser['email']) === 0) {
+            $labStartTs = date('Y-m-d H:i:s', min($def['creationTs'] + 300, $now));
+            $pdo->prepare("
+                INSERT INTO case_lab_assignment_periods
+                    (case_id, practice_id, assignee_type, user_id, label_id, label_text_normalized, assignee_display_name_snapshot, is_lab_snapshot, started_at, ended_at, end_reason, history_quality)
+                VALUES
+                    (:case_id, :practice_id, 'user', :user_id, NULL, NULL, :display_name, 1, :started_at, NULL, NULL, 'backfilled_unknown_start')
+            ")->execute([
+                'case_id' => $caseId,
+                'practice_id' => $currentPracticeId,
+                'user_id' => $labUser['id'],
+                'display_name' => $labUser['email'],
+                'started_at' => $labStartTs,
+            ]);
+        }
+
+        // Comment showcase
         if ($def['showcase'] === 'comments' && $staffAvailable) {
             ensureDemoCaseCommentsTable();
             $commentAuthor = $staffUsers[array_rand($staffUsers)];
@@ -769,7 +896,6 @@ try {
                     'created_at' => $commentTs,
                 ]);
 
-                // Only log the comment activity after the INSERT succeeded.
                 logCaseActivity($caseId, 'comment_added', null, null, [
                     'comment_id' => (int)$pdo->lastInsertId(),
                     'source' => 'generate-dental-practice-demo-data.php',
@@ -777,19 +903,17 @@ try {
                 $commentsWritten++;
                 $activityRecordsWritten++;
             } catch (PDOException $e) {
-                // Non-fatal: skip the comment for this showcase case rather
-                // than aborting the whole generation run.
                 error_log('[generate-dental-practice-demo-data] Error creating demo comment: ' . $e->getMessage());
             }
         }
     }
 
     // ------------------------------------------------------------------
-    // 2) HISTORICAL / COMPLETED CASES (previous 6 months, for Insights)
+    // 2) HISTORICAL / COMPLETED CASES (previous months, for Insights)
     // ------------------------------------------------------------------
     $caseTypesHistorical = ['Crown', 'Bridge', 'Implant Crown', 'Implant Surgical Guide',
-        'Denture', 'Partial', 'Veneer', 'Inlay/Onlay', 'AOX'];
-    $caseTypeWeights = [8, 4, 2, 1, 2, 2, 3, 2, 1]; // mirrors the active-case mix
+        'Denture', 'Partial', 'Veneer', 'Inlay/Onlay', 'AOX', 'Orthodontic Appliance'];
+    $caseTypeWeights = [8, 4, 2, 1, 2, 2, 3, 2, 1, 1]; // mirrors the active-case mix
     $caseTypeWeightedPool = [];
     foreach ($caseTypesHistorical as $ci => $ct) {
         for ($w = 0; $w < $caseTypeWeights[$ci]; $w++) {
@@ -801,23 +925,22 @@ try {
         'Crown' => [7, 14], 'Veneer' => [7, 14], 'Inlay/Onlay' => [6, 12],
         'Bridge' => [12, 22], 'Denture' => [14, 24], 'Partial' => [12, 20],
         'Implant Crown' => [18, 32], 'Implant Surgical Guide' => [16, 28], 'AOX' => [21, 35],
+        'Orthodontic Appliance' => [14, 28],
     ];
 
-    // One randomly-chosen "busy" month gets a volume bump.
-    $busyMonthOffset = random_int(1, 5);
+    $monthBaseBySize = $datasetConfig[$dataset]['monthBaseCount'];
+    $busyMonthOffset = random_int(1, max(1, $historicalMonths - 1));
 
-    for ($monthOffset = 0; $monthOffset <= 5; $monthOffset++) {
+    for ($monthOffset = 0; $monthOffset < $historicalMonths; $monthOffset++) {
         $monthStartTs = strtotime(date('Y-m-01', strtotime("-{$monthOffset} months", $today)));
         $monthEndTs = strtotime('+1 month -1 day', $monthStartTs);
         if ($monthEndTs > $today) {
-            $monthEndTs = $today; // current partial month
+            $monthEndTs = $today;
         }
 
-        $baseCount = ($monthOffset === 0)
-            ? random_int(3, 6) // partial current month
-            : random_int(8, 13);
+        $baseCount = $monthBaseBySize[$monthOffset] ?? random_int(2, 4);
         if ($monthOffset === $busyMonthOffset) {
-            $baseCount += random_int(4, 6);
+            $baseCount += random_int(3, 5);
         }
 
         for ($c = 0; $c < $baseCount; $c++) {
@@ -844,8 +967,6 @@ try {
                 $revisions = 2;
             }
 
-            // ~20% of historical cases also went through the lab, for a more
-            // realistic-looking lab-user history.
             if ($labUserAvailable && random_int(1, 100) <= 20) {
                 $assignedTo = $labUser['email'];
                 $labHistoricalCaseCount++;
@@ -864,6 +985,19 @@ try {
             $dentist = $dentistNames[array_rand($dentistNames)];
             $dobTs = strtotime('-' . random_int(10, 80) . ' years', $now);
 
+            $creator = $staffAvailable ? $staffUsers[array_rand($staffUsers)] : null;
+            $createdByUserId = $creator ? (int)$creator['id'] : ($_SESSION['db_user_id'] ?? null);
+
+            // Some delivered cases have a patient appointment (before or shortly after delivery) to
+            // demonstrate that Delivered cases do NOT show Appointment Risk highlighting.
+            $apptRoll = random_int(1, 100);
+            $apptTs = null;
+            if ($apptRoll <= 40) {
+                $apptTs = $creationTs + (86400 * random_int(1, $turnaroundDays - 1));
+            } elseif ($apptRoll <= 55) {
+                $apptTs = $archivedTs + (86400 * random_int(1, 14));
+            }
+
             $caseData = [
                 'id' => $caseId,
                 'driveFolderId' => null,
@@ -875,6 +1009,7 @@ try {
                 'caseType' => $caseType,
                 'toothShade' => $toothShades[array_rand($toothShades)],
                 'dueDate' => date('Y-m-d', $dueTs),
+                'patientAppointmentDate' => $apptTs !== null ? date('Y-m-d', $apptTs) : null,
                 'creationDate' => date('c', $creationTs),
                 'lastUpdateDate' => date('c', $archivedTs),
                 'status' => 'Delivered',
@@ -884,6 +1019,7 @@ try {
                 'revisions' => [],
                 'attachments' => [],
                 'clinicalDetails' => $buildClinicalDetails($caseType),
+                'createdByUserId' => $createdByUserId,
             ];
             if (in_array($caseType, $needsMaterial, true)) {
                 $caseData['material'] = $materials[array_rand($materials)];
@@ -904,6 +1040,23 @@ try {
             $activityRecordsWritten += $simulateJourney(
                 $caseId, $creationTs, $archivedTs, 'Delivered', $revisions, $assignedTo, $notes, true
             );
+
+            // Backdated, closed lab assignment period for historical lab cases.
+            if ($labUserAvailable && strcasecmp($assignedTo, $labUser['email']) === 0) {
+                $pdo->prepare("
+                    INSERT INTO case_lab_assignment_periods
+                        (case_id, practice_id, assignee_type, user_id, label_id, label_text_normalized, assignee_display_name_snapshot, is_lab_snapshot, started_at, ended_at, end_reason, history_quality)
+                    VALUES
+                        (:case_id, :practice_id, 'user', :user_id, NULL, NULL, :display_name, 1, :started_at, :ended_at, 'delivered', 'backfilled_unknown_start')
+                ")->execute([
+                    'case_id' => $caseId,
+                    'practice_id' => $currentPracticeId,
+                    'user_id' => $labUser['id'],
+                    'display_name' => $labUser['email'],
+                    'started_at' => date('Y-m-d H:i:s', $creationTs + 300),
+                    'ended_at' => date('Y-m-d H:i:s', $archivedTs),
+                ]);
+            }
         }
     }
 

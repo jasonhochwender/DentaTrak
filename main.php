@@ -2656,6 +2656,12 @@ window.featureFlags = <?php echo getFeatureFlagsJson(); ?>;
       <div class="dev-tools-section">
         <h4>🏥 Generate Dental Practice Demo Data</h4>
         <div class="test-case-controls">
+          <label for="devDemoDataSize" class="sr-only">Dataset size</label>
+          <select id="devDemoDataSize" class="dev-input" style="margin-right: 8px;">
+            <option value="small">Small (15 active + 5 historical)</option>
+            <option value="standard" selected>Standard (40 active + 20 historical)</option>
+            <option value="large">Large (80 active + 40 historical)</option>
+          </select>
           <button id="devGenerateDemoDataBtn" class="dev-btn dev-btn-primary">Generate Demo Data</button>
         </div>
       </div>

@@ -8141,11 +8141,16 @@ document.addEventListener('DOMContentLoaded', function () {
 
   // Dev-only dental practice demo data generator
   var devGenerateDemoDataBtn = document.getElementById('devGenerateDemoDataBtn');
+  var devDemoDataSizeSelect = document.getElementById('devDemoDataSize');
   if (devGenerateDemoDataBtn) {
     devGenerateDemoDataBtn.addEventListener('click', function () {
       var originalText = devGenerateDemoDataBtn.textContent;
+      var dataset = devDemoDataSizeSelect ? devDemoDataSizeSelect.value : 'standard';
 
       function callGenerator(body) {
+        if (!body.dataset) {
+          body.dataset = dataset;
+        }
         devGenerateDemoDataBtn.disabled = true;
         devGenerateDemoDataBtn.textContent = 'Generating...';
 
