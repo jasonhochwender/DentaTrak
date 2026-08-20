@@ -97,6 +97,16 @@ $articleUrls = $appConfig['public_urls'] ?? [];
     </div>
 
     <div class="resource-group">
+      <h2>Practice Operations</h2>
+      <div class="resource-grid">
+        <a class="resource-card" href="<?= $baseUrl . ($articleUrls['article_dental_remake_cost'] ?? 'dental-remake-cost') ?>">
+          <h3>What Dental Remakes Really Cost Your Practice</h3>
+          <p>Calculate the hidden cost of remakes, from chair and staff time to lab and shipping expenses, and see what reducing your remake rate could mean for your practice.</p>
+        </a>
+      </div>
+    </div>
+
+    <div class="resource-group">
       <h2>Comparisons</h2>
       <div class="resource-grid">
         <a class="resource-card" href="<?= $baseUrl . ($articleUrls['article_vs_pms'] ?? 'dental-case-tracking-software-vs-pms') ?>">
