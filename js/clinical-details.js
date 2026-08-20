@@ -186,12 +186,14 @@
 
   // Build tooth buttons (1-16 upper, 32-17 lower)
   function buildToothButtons() {
+    console.log('[ToothSelector] buildToothButtons called');
     for (var n = 1; n <= 16; n++) {
       upperTeeth.appendChild(makeToothButton(n));
     }
     for (var m = 32; m >= 17; m--) {
       lowerTeeth.appendChild(makeToothButton(m));
     }
+    console.log('[ToothSelector] built ' + document.querySelectorAll('.tooth-button').length + ' buttons');
   }
 
   function makeToothButton(num) {
@@ -314,6 +316,7 @@
   }
 
   function setActiveToothInput(input) {
+    console.log('[ToothSelector] setActiveToothInput', input ? input.id : null, 'container=', !!toothSelectorContainer);
     if (activeToothInput === input) return;
     activeToothInput = input;
     if (toothSelectorActiveField) {
@@ -325,13 +328,19 @@
     if (input && toothSelectorContainer) {
       toothSelectorContainer.style.display = 'block';
       input.parentElement.appendChild(toothSelectorContainer);
+      console.log('[ToothSelector] appended container to', input.parentElement.className);
     }
     syncActiveField(false);
   }
 
   function updateToothSelectorVisibility() {
-    if (!toothSelectorContainer) return;
+    console.log('[ToothSelector] updateToothSelectorVisibility');
+    if (!toothSelectorContainer) {
+      console.log('[ToothSelector] no container');
+      return;
+    }
     var visibleToothInputs = document.querySelectorAll('.clinical-field.visible input[data-tooth-selector="true"]');
+    console.log('[ToothSelector] visible tooth inputs:', visibleToothInputs.length);
     var hasAny = visibleToothInputs.length > 0;
     toothSelectorContainer.style.display = hasAny ? 'block' : 'none';
 
@@ -347,8 +356,9 @@
 
   function attachToothFieldHandlers() {
     var toothInputs = document.querySelectorAll('input[data-tooth-selector="true"]');
+    console.log('[ToothSelector] attaching focus handlers to', toothInputs.length, 'inputs');
     toothInputs.forEach(function(input) {
-      input.addEventListener('focus', function() { setActiveToothInput(input); });
+      input.addEventListener('focus', function() { console.log('[ToothSelector] focus on', input.id); setActiveToothInput(input); });
       input.addEventListener('input', function() { if (activeToothInput === input) syncActiveField(false); });
       input.addEventListener('blur', function() {
         if (activeToothInput === input) {
@@ -367,7 +377,11 @@
   };
 
   function initToothSelector() {
-    if (!upperTeeth || !lowerTeeth) return;
+    console.log('[ToothSelector] initToothSelector start', 'upper=', !!upperTeeth, 'lower=', !!lowerTeeth);
+    if (!upperTeeth || !lowerTeeth) {
+      console.log('[ToothSelector] missing arch containers');
+      return;
+    }
     buildToothButtons();
     attachToothFieldHandlers();
     // Show/hide after initial render
@@ -375,6 +389,7 @@
     if (caseTypeSelect) {
       updateToothSelectorVisibility();
     }
+    console.log('[ToothSelector] initToothSelector complete');
   }
 
   // Run when DOM is ready

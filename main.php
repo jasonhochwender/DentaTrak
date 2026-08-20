@@ -464,7 +464,7 @@ if (isset($appConfig) && is_array($appConfig) && isset($appConfig['appName'])) {
   <link rel="preload" href="css/activity-timeline.css?v=20241230" as="style" onload="this.onload=null;this.rel='stylesheet'">
   <link rel="preload" href="css/insights.css?v=20241230" as="style" onload="this.onload=null;this.rel='stylesheet'">
   <link rel="preload" href="css/at-risk.css?v=20241231" as="style" onload="this.onload=null;this.rel='stylesheet'">
-  <link rel="preload" href="css/clinical-details.css?v=20241230" as="style" onload="this.onload=null;this.rel='stylesheet'">
+  <link rel="preload" href="css/clinical-details.css?v=202508081" as="style" onload="this.onload=null;this.rel='stylesheet'">
   <link rel="preload" href="css/ask-dentatrak.css?v=20241230" as="style" onload="this.onload=null;this.rel='stylesheet'">
   <link rel="preload" href="css/patient-search.css?v=20241212" as="style" onload="this.onload=null;this.rel='stylesheet'">
   <link rel="preload" href="css/assignments.css?v=20241210" as="style" onload="this.onload=null;this.rel='stylesheet'">
@@ -490,7 +490,7 @@ if (isset($appConfig) && is_array($appConfig) && isset($appConfig['appName'])) {
     <link rel="stylesheet" href="css/activity-timeline.css?v=20241230">
     <link rel="stylesheet" href="css/insights.css?v=20241230">
     <link rel="stylesheet" href="css/at-risk.css?v=20241231">
-    <link rel="stylesheet" href="css/clinical-details.css?v=20241230">
+    <link rel="stylesheet" href="css/clinical-details.css?v=202508081">
     <link rel="stylesheet" href="css/ask-dentatrak.css?v=20241230">
     <link rel="stylesheet" href="css/patient-search.css?v=20241212">
     <link rel="stylesheet" href="css/assignments.css?v=20241210">
@@ -2799,7 +2799,7 @@ window.featureFlags = <?php echo getFeatureFlagsJson(); ?>;
   <script src="js/case-comments.js?v=20250104" defer></script>
   <script src="js/notifications.js?v=20250104" defer></script>
   <script src="js/activity-timeline.js?v=20250104" defer></script>
-  <script src="js/clinical-details.js?v=20250104" defer></script>
+  <script src="js/clinical-details.js?v=202508081" defer></script>
   <script src="js/ask-dentatrak.js?v=20250104" defer></script>
   <script src="js/insights.js?v=20250104" defer></script>
 <?php if (isFeatureEnabled('BILLING_ENABLED')): ?>
