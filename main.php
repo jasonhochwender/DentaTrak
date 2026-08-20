@@ -1595,23 +1595,23 @@ window.featureFlags = <?php echo getFeatureFlagsJson(); ?>;
                   <!-- Crown fields -->
                   <div class="form-field clinical-field" data-case-types="Crown" data-conditionally-required="true">
                     <label for="clinicalToothNumber">Tooth # <span class="required">*</span></label>
-                    <input id="clinicalToothNumber" name="clinicalToothNumber" type="text" placeholder="e.g. 14, 30 or 14-18" title="Enter one or more teeth (e.g., 14, 30 or 14-18)">
+                    <input id="clinicalToothNumber" name="clinicalToothNumber" type="text" data-tooth-selector="true" placeholder="e.g. 14, 30 or 14-18" title="Enter one or more teeth (e.g., 14, 30 or 14-18)">
                   </div>
 
                   <!-- Bridge fields -->
                   <div class="form-field clinical-field" data-case-types="Bridge" data-conditionally-required="true">
                     <label for="clinicalAbutmentTeeth">Abutment Teeth <span class="required">*</span></label>
-                    <input id="clinicalAbutmentTeeth" name="clinicalAbutmentTeeth" type="text" placeholder="e.g. 3, 5">
+                    <input id="clinicalAbutmentTeeth" name="clinicalAbutmentTeeth" type="text" data-tooth-selector="true" placeholder="e.g. 3, 5">
                   </div>
                   <div class="form-field clinical-field" data-case-types="Bridge" data-conditionally-required="true">
                     <label for="clinicalPonticTeeth">Pontic Teeth <span class="required">*</span></label>
-                    <input id="clinicalPonticTeeth" name="clinicalPonticTeeth" type="text" placeholder="e.g. 4">
+                    <input id="clinicalPonticTeeth" name="clinicalPonticTeeth" type="text" data-tooth-selector="true" placeholder="e.g. 4">
                   </div>
 
                   <!-- Implant Crown fields -->
                   <div class="form-field clinical-field" data-case-types="Implant Crown" data-conditionally-required="true">
                     <label for="clinicalImplantToothNumber">Tooth # <span class="required">*</span></label>
-                    <input id="clinicalImplantToothNumber" name="clinicalImplantToothNumber" type="text" placeholder="e.g. 14, 30">
+                    <input id="clinicalImplantToothNumber" name="clinicalImplantToothNumber" type="text" data-tooth-selector="true" placeholder="e.g. 14, 30">
                   </div>
                   <div class="form-field clinical-field" data-case-types="Implant Crown">
                     <label for="clinicalAbutmentType">Abutment Type</label>
@@ -1638,7 +1638,7 @@ window.featureFlags = <?php echo getFeatureFlagsJson(); ?>;
                   <!-- Implant Surgical Guide fields -->
                   <div class="form-field clinical-field" data-case-types="Implant Surgical Guide">
                     <label for="clinicalImplantSites">Implant Site(s)</label>
-                    <input id="clinicalImplantSites" name="clinicalImplantSites" type="text" placeholder="e.g. 14, 15, 16">
+                    <input id="clinicalImplantSites" name="clinicalImplantSites" type="text" data-tooth-selector="true" placeholder="e.g. 14, 15, 16">
                   </div>
 
                   <!-- Denture fields -->
@@ -1674,7 +1674,7 @@ window.featureFlags = <?php echo getFeatureFlagsJson(); ?>;
                   </div>
                   <div class="form-field clinical-field" data-case-types="Partial" data-conditionally-required="true">
                     <label for="clinicalTeethToReplace">Teeth to be Replaced <span class="required">*</span></label>
-                    <input id="clinicalTeethToReplace" name="clinicalTeethToReplace" type="text" placeholder="e.g. 3, 4, 5">
+                    <input id="clinicalTeethToReplace" name="clinicalTeethToReplace" type="text" data-tooth-selector="true" placeholder="e.g. 3, 4, 5">
                   </div>
                   <div class="form-field clinical-field" data-case-types="Partial">
                     <label for="clinicalPartialMaterial">Material</label>
@@ -1690,6 +1690,35 @@ window.featureFlags = <?php echo getFeatureFlagsJson(); ?>;
                     <label for="clinicalPartialGingivalShade">Gingival Shade</label>
                     <input id="clinicalPartialGingivalShade" name="clinicalPartialGingivalShade" type="text" placeholder="Optional">
                   </div>
+                </div>
+
+                <!-- Tooth selector for tooth-selection fields -->
+                <div id="toothSelectorContainer" class="tooth-selector-container" style="display: none;">
+                  <div class="tooth-selector-heading">
+                    <span class="tooth-selector-label" id="toothSelectorLabel">Selecting teeth for</span>
+                    <span class="tooth-selector-active-field" id="toothSelectorActiveField"></span>
+                  </div>
+                  <div class="tooth-arches">
+                    <div class="tooth-arch">
+                      <div class="tooth-arch-label">Upper</div>
+                      <div class="tooth-arch-sublabel">
+                        <span>Upper Right</span>
+                        <span>Upper Left</span>
+                      </div>
+                      <div class="tooth-buttons" id="upperTeeth" role="group" aria-label="Upper teeth, numbers 1 through 16"></div>
+                    </div>
+                    <div class="tooth-arch-divider"></div>
+                    <div class="tooth-arch">
+                      <div class="tooth-arch-label">Lower</div>
+                      <div class="tooth-arch-sublabel">
+                        <span>Lower Right</span>
+                        <span>Lower Left</span>
+                      </div>
+                      <div class="tooth-buttons" id="lowerTeeth" role="group" aria-label="Lower teeth, numbers 32 through 17"></div>
+                    </div>
+                  </div>
+                  <div class="tooth-selector-help" id="toothSelectorHelp">Click or type tooth numbers from 1 to 32. Separate teeth with commas or ranges, such as 2-4, 7, 9-11.</div>
+                  <div class="tooth-selector-error" id="toothSelectorError" role="alert" aria-live="polite"></div>
                 </div>
               </div>
 

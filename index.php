@@ -292,6 +292,10 @@ $articleUrls = $appConfig['public_urls'] ?? [];
     .footer-nav h4 { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.08em; color: #9ca3af; margin-bottom: 14px; }
     .footer-nav a { display: block; font-size: 0.9rem; margin-bottom: 10px; }
     .footer-bottom { border-top: 1px solid #374151; padding-top: 24px; margin-top: 48px; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 16px; font-size: 0.85rem; color: #9ca3af; }
+    .footer-wordmark { display: inline-flex; align-items: center; gap: 0; font-size: 22px; font-weight: 700; text-decoration: none; line-height: 1.2; margin-bottom: 14px; }
+    .footer-wordmark .denta { color: #fff; }
+    .footer-wordmark .trak { color: var(--dt-cyan); }
+    @media (max-width: 640px) { .footer-wordmark { font-size: 18px; } }
 
     @media (max-width: 900px) {
       .site-nav a:not(.nav-cta) { display: none; }
@@ -325,7 +329,7 @@ $articleUrls = $appConfig['public_urls'] ?? [];
   <header class="site-header">
     <div class="container">
       <a href="<?= $baseUrl ?>" class="site-logo" aria-label="DentaTrak home">
-        <img src="images/main.png" alt="DentaTrak">
+        <img src="<?= $baseUrl ?>images/main.png" alt="DentaTrak">
       </a>
       <nav class="site-nav" aria-label="Primary">
         <a href="#problem">The Problem</a>
@@ -673,7 +677,7 @@ $articleUrls = $appConfig['public_urls'] ?? [];
     <div class="container">
       <div class="footer-grid">
         <div class="footer-brand">
-          <img src="images/main.png" alt="DentaTrak">
+          <a href="<?= $baseUrl ?>" class="footer-wordmark" aria-label="DentaTrak home"><span class="denta">Denta</span><span class="trak">Trak</span></a>
           <p>Dental case tracking built for the way dental practices actually work.</p>
         </div>
         <nav class="footer-nav" aria-label="Footer">

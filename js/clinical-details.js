@@ -164,4 +164,219 @@
     initClinicalDetails();
   }
 
+  /* ---------------------------------------------------------------
+     Tooth selector
+  --------------------------------------------------------------- */
+  var upperTeeth = document.getElementById('upperTeeth');
+  var lowerTeeth = document.getElementById('lowerTeeth');
+  var toothSelectorContainer = document.getElementById('toothSelectorContainer');
+  var toothSelectorActiveField = document.getElementById('toothSelectorActiveField');
+  var toothSelectorError = document.getElementById('toothSelectorError');
+  var activeToothInput = null;
+
+  // Build tooth buttons (1-16 upper, 32-17 lower)
+  function buildToothButtons() {
+    for (var n = 1; n <= 16; n++) {
+      upperTeeth.appendChild(makeToothButton(n));
+    }
+    for (var m = 32; m >= 17; m--) {
+      lowerTeeth.appendChild(makeToothButton(m));
+    }
+  }
+
+  function makeToothButton(num) {
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'tooth-button';
+    btn.textContent = num;
+    btn.setAttribute('data-tooth', num);
+    btn.setAttribute('aria-pressed', 'false');
+    btn.setAttribute('aria-label', 'Tooth ' + num);
+    btn.addEventListener('click', function() { toggleTooth(num); });
+    return btn;
+  }
+
+  function parseToothString(str) {
+    var selected = new Set();
+    var invalid = [];
+    if (!str || typeof str !== 'string') return { selected: selected, invalid: invalid };
+
+    var parts = str.split(/[\s,]+/).filter(function(p) { return p.length > 0; });
+    parts.forEach(function(part) {
+      var range = part.split('-');
+      if (range.length === 1) {
+        var n = parseInt(part, 10);
+        if (isNaN(n) || n < 1 || n > 32) {
+          invalid.push(part);
+        } else {
+          selected.add(n);
+        }
+      } else if (range.length === 2) {
+        var start = parseInt(range[0], 10);
+        var end = parseInt(range[1], 10);
+        if (isNaN(start) || isNaN(end) || start < 1 || end > 32 || start > end) {
+          invalid.push(part);
+        } else {
+          for (var k = start; k <= end; k++) selected.add(k);
+        }
+      } else {
+        invalid.push(part);
+      }
+    });
+
+    return { selected: selected, invalid: invalid };
+  }
+
+  function formatToothString(nums) {
+    var sorted = Array.from(nums).sort(function(a, b) { return a - b; });
+    var result = [];
+    var i = 0;
+    while (i < sorted.length) {
+      var start = sorted[i];
+      var end = start;
+      while (i + 1 < sorted.length && sorted[i + 1] === end + 1) {
+        end = sorted[++i];
+      }
+      if (end - start >= 2) {
+        result.push(start + '-' + end);
+      } else if (end === start + 1) {
+        result.push(start + ', ' + end);
+      } else {
+        result.push(start);
+      }
+      i++;
+    }
+    return result.join(', ');
+  }
+
+  function updateToothChart(selected) {
+    document.querySelectorAll('.tooth-button').forEach(function(btn) {
+      var n = parseInt(btn.getAttribute('data-tooth'), 10);
+      var isSelected = selected.has(n);
+      btn.classList.toggle('selected', isSelected);
+      btn.setAttribute('aria-pressed', isSelected ? 'true' : 'false');
+    });
+  }
+
+  function toggleTooth(num) {
+    if (!activeToothInput) return;
+    var parsed = parseToothString(activeToothInput.value);
+    if (parsed.selected.has(num)) {
+      parsed.selected.delete(num);
+    } else {
+      parsed.selected.add(num);
+    }
+    activeToothInput.value = formatToothString(parsed.selected);
+    activeToothInput.dispatchEvent(new Event('input', { bubbles: true }));
+    activeToothInput.dispatchEvent(new Event('change', { bubbles: true }));
+    syncActiveField(false);
+  }
+
+  function showToothError(msg) {
+    if (!toothSelectorError) return;
+    toothSelectorError.textContent = msg;
+    toothSelectorError.classList.toggle('visible', !!msg);
+    if (activeToothInput) activeToothInput.setAttribute('aria-invalid', msg ? 'true' : 'false');
+  }
+
+  function syncActiveField(parseInput) {
+    if (!activeToothInput) return;
+    var rawValue = activeToothInput.value.trim();
+    var parsed = parseToothString(rawValue);
+    var sortedInvalid = parsed.invalid.filter(function(v, i, a) { return a.indexOf(v) === i; });
+
+    if (sortedInvalid.length > 0 || (rawValue && parsed.selected.size === 0 && rawValue !== '')) {
+      showToothError('Enter tooth numbers from 1 to 32, separated by commas or ranges such as 2-4.');
+    } else if (rawValue === '') {
+      showToothError('');
+    } else {
+      showToothError('');
+    }
+
+    updateToothChart(parsed.selected);
+
+    if (parseInput && activeToothInput && parsed.invalid.length === 0) {
+      var formatted = formatToothString(parsed.selected);
+      if (formatted !== rawValue) {
+        activeToothInput.value = formatted;
+      }
+    }
+  }
+
+  function setActiveToothInput(input) {
+    if (activeToothInput === input) return;
+    activeToothInput = input;
+    if (toothSelectorActiveField) {
+      var label = input ? input.previousElementSibling : null;
+      var labelText = label ? label.textContent.replace(/\*/g, '').trim() : 'selected field';
+      toothSelectorActiveField.textContent = input ? labelText : '';
+    }
+    syncActiveField(false);
+  }
+
+  function updateToothSelectorVisibility() {
+    if (!toothSelectorContainer) return;
+    var visibleToothInputs = document.querySelectorAll('.clinical-field.visible input[data-tooth-selector="true"]');
+    var hasAny = visibleToothInputs.length > 0;
+    toothSelectorContainer.style.display = hasAny ? 'block' : 'none';
+
+    if (hasAny) {
+      // Auto-select if only one, or preserve current if it is still visible
+      var inputs = Array.from(visibleToothInputs);
+      var activeStillVisible = activeToothInput && inputs.indexOf(activeToothInput) !== -1;
+      if (!activeStillVisible) {
+        if (inputs.length === 1) {
+          setActiveToothInput(inputs[0]);
+        } else if (activeToothInput) {
+          setActiveToothInput(activeToothInput);
+        } else {
+          setActiveToothInput(inputs[0]);
+        }
+      } else {
+        setActiveToothInput(activeToothInput);
+      }
+    } else {
+      activeToothInput = null;
+    }
+  }
+
+  function attachToothFieldHandlers() {
+    var toothInputs = document.querySelectorAll('input[data-tooth-selector="true"]');
+    toothInputs.forEach(function(input) {
+      input.addEventListener('focus', function() { setActiveToothInput(input); });
+      input.addEventListener('input', function() { if (activeToothInput === input) syncActiveField(false); });
+      input.addEventListener('blur', function() {
+        if (activeToothInput === input) {
+          syncActiveField(true);
+        }
+      });
+    });
+  }
+
+  // Hook into existing visibility update
+  var originalUpdateVisibility = window.updateClinicalFieldsVisibility;
+  window.updateClinicalFieldsVisibility = function(caseType) {
+    originalUpdateVisibility(caseType);
+    // Need to let the original run first so visibility classes are updated
+    window.setTimeout(updateToothSelectorVisibility, 0);
+  };
+
+  function initToothSelector() {
+    if (!upperTeeth || !lowerTeeth) return;
+    buildToothButtons();
+    attachToothFieldHandlers();
+    // Show/hide after initial render
+    var caseTypeSelect = document.getElementById('caseType');
+    if (caseTypeSelect) {
+      updateToothSelectorVisibility();
+    }
+  }
+
+  // Run when DOM is ready
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initToothSelector);
+  } else {
+    initToothSelector();
+  }
+
 })();

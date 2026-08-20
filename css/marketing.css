@@ -538,3 +538,8 @@ body {
   .footer-inner { flex-direction: column; text-align: center; }
   .footer-links { gap: 12px 20px; }
 }
+
+.footer-wordmark { display: inline-flex; align-items: center; gap: 0; font-size: 22px; font-weight: 700; text-decoration: none; line-height: 1.2; margin-bottom: 14px; color: var(--text-primary); }
+.footer-wordmark .denta { color: var(--text-primary); }
+.footer-wordmark .trak { color: #06b6d4; }
+@media (max-width: 640px) { .footer-wordmark { font-size: 18px; } }
