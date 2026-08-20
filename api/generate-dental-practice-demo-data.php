@@ -293,9 +293,14 @@ try {
     $buildWeightedPool = function ($weights, $count) {
         $pool = [];
         foreach ($weights as $value => $weight) {
-            for ($i = 0; $i < $weight; $i++) {
-                $pool[] = $value;
+            if ($weight > 0) {
+                for ($i = 0; $i < $weight; $i++) {
+                    $pool[] = $value;
+                }
             }
+        }
+        if (empty($pool) || $count <= 0) {
+            return [];
         }
         shuffle($pool);
         $result = [];
@@ -361,7 +366,6 @@ try {
     $dueBucketPool = $buildWeightedPool($dueBucketWeights, $activeTarget);
     $revisionPool = $buildWeightedPool($revisionWeights, $activeTarget);
     $apptBucketPool = $buildWeightedPool($apptBucketWeights, $activeTarget);
-    shuffle($revisionPool25);
 
     $workflowStageOrder = [
         'Originated' => 0,
@@ -1074,7 +1078,10 @@ try {
         'staffUsersUsed' => count($staffUsers),
     ]);
 } catch (Throwable $e) {
-    error_log('[generate-dental-practice-demo-data] ' . $e->getMessage());
+    $stage = $activeCreated > 0
+        ? ($historicalCreated > 0 ? 'historical' : 'active')
+        : 'setup';
+    error_log('[generate-dental-practice-demo-data] dataset=' . ($dataset ?? 'unknown') . ' stage=' . $stage . ' error=' . $e->getMessage());
     http_response_code(500);
     echo json_encode([
         'success' => false,
