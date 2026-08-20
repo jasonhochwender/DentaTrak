@@ -102,7 +102,7 @@ $sessionTimeout = isset($_GET['timeout']) && $_GET['timeout'] == '1';
         <?php if ($hasLogo): ?>
           <img src="<?php echo htmlspecialchars($appConfig['logo']); ?>" alt="Logo" class="hero-logo">
         <?php else: ?>
-          <img src="images/main.png" alt="DentaTrak" class="hero-brand-icon">
+          <img src="images/logo.png" alt="<?php echo htmlspecialchars($appName); ?>" class="hero-brand-icon">
         <?php endif; ?>
         
         <h1 class="hero-title"><?php echo htmlspecialchars($appName); ?></h1>
