@@ -4664,7 +4664,21 @@ document.addEventListener('DOMContentLoaded', function () {
     if (toothShade) toothShade.value = caseData.toothShade || caseData.tooth_shade || '';
     if (material) material.value = caseData.material || '';
     if (dueDate) dueDate.value = caseData.dueDate || caseData.due_date || '';
-    if (patientAppointmentDate) patientAppointmentDate.value = caseData.patientAppointmentDate || caseData.patient_appointment_date || '';
+    if (patientAppointmentDate) {
+      var apptValue = caseData.patientAppointmentDate || caseData.patient_appointment_date || '';
+      if (apptValue) {
+        // Use the leading YYYY-MM-DD portion when present to keep the
+        // calendar day exactly as stored instead of converting timezones.
+        var apptPrefixMatch = String(apptValue).match(/^(\d{4}-\d{2}-\d{2})/);
+        if (apptPrefixMatch) {
+          patientAppointmentDate.value = apptPrefixMatch[1];
+        } else {
+          patientAppointmentDate.value = apptValue;
+        }
+      } else {
+        patientAppointmentDate.value = '';
+      }
+    }
     if (status) status.value = caseData.status || 'Originated';
     if (notes) notes.value = caseData.notes || '';
 
@@ -6709,26 +6723,27 @@ document.addEventListener('DOMContentLoaded', function () {
         }
       }
 
-      // Coming Due (blue) if not already Late
-      if (!isPastDue && status !== 'Delivered' && caseData.dueDate) {
-        var comingDueDays = parseInt(localStorage.getItem('coming_due_days') || '5', 10);
-        dueDayDiff = dueDayDiff !== null ? dueDayDiff : getCalendarDayDiff(caseData.dueDate);
-        if (dueDayDiff !== null && dueDayDiff >= 0 && dueDayDiff <= comingDueDays) {
-          caseCard.classList.add('kanban-card-coming-due');
-          isComingDue = true;
-          dueIndicatorText = ' ' + getDueWarningText(dueDayDiff);
-        }
-      }
-
-      // Appointment Risk (purple) if not Late or Coming Due
-      // Triggered when patient appointment is within the configured threshold (or past) and case is not delivered.
-      if (!isPastDue && !isComingDue && status !== 'Delivered' && caseData.patientAppointmentDate && highlightAppointmentRisk) {
+      // Appointment Risk (purple) if not already Late
+      // Outranks Coming Due so an appointment-within-threshold case is purple
+      // even when it is also within the coming-due window.
+      if (!isPastDue && status !== 'Delivered' && caseData.patientAppointmentDate && highlightAppointmentRisk) {
         var appointmentRiskDays = parseInt(localStorage.getItem('appointment_risk_days') || '3', 10);
         apptDayDiff = getCalendarDayDiff(caseData.patientAppointmentDate);
         if (apptDayDiff !== null && apptDayDiff <= appointmentRiskDays) {
           caseCard.classList.add('kanban-card-appointment-risk');
           isAppointmentRisk = true;
           apptRiskText = 'APPT RISK';
+        }
+      }
+
+      // Coming Due (blue) if not already Late or Appointment Risk
+      if (!isPastDue && !isAppointmentRisk && status !== 'Delivered' && caseData.dueDate) {
+        var comingDueDays = parseInt(localStorage.getItem('coming_due_days') || '5', 10);
+        dueDayDiff = dueDayDiff !== null ? dueDayDiff : getCalendarDayDiff(caseData.dueDate);
+        if (dueDayDiff !== null && dueDayDiff >= 0 && dueDayDiff <= comingDueDays) {
+          caseCard.classList.add('kanban-card-coming-due');
+          isComingDue = true;
+          dueIndicatorText = ' ' + getDueWarningText(dueDayDiff);
         }
       }
 
@@ -7226,6 +7241,28 @@ document.addEventListener('DOMContentLoaded', function () {
         }
       } catch (e) {
         // Error formatting due date
+      }
+    }
+
+    // Handle patient appointment date carefully
+    if (form.patientAppointmentDate) {
+      var apptDateValue = caseData.patientAppointmentDate || caseData.patient_appointment_date || '';
+      if (apptDateValue) {
+        // Prefer the leading YYYY-MM-DD portion when present to avoid
+        // timezone/offset shifts changing the calendar day.
+        var apptMatch = String(apptDateValue).match(/^(\d{4}-\d{2}-\d{2})/);
+        if (apptMatch) {
+          form.patientAppointmentDate.value = apptMatch[1];
+        } else {
+          try {
+            var apptDate = new Date(apptDateValue);
+            if (!isNaN(apptDate.getTime())) {
+              form.patientAppointmentDate.value = apptDate.toISOString().split('T')[0];
+            }
+          } catch (e) {
+            // Error formatting appointment date
+          }
+        }
       }
     }
 

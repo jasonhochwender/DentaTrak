@@ -46,7 +46,14 @@ function getCalendarDayDiff($dueDateString) {
         return null;
     }
     try {
-        $due = new DateTimeImmutable($dueDateString, new DateTimeZone(date_default_timezone_get()));
+        // If the string contains an ISO-like date prefix, use it as a local
+        // calendar date to avoid timezone/offset shifting the displayed day.
+        $datePart = $dueDateString;
+        if (preg_match('/^(\d{4}-\d{2}-\d{2})/', $dueDateString, $m)) {
+            $datePart = $m[1];
+        }
+
+        $due = new DateTimeImmutable($datePart, new DateTimeZone(date_default_timezone_get()));
         $due = $due->setTime(0, 0, 0);
         $today = new DateTimeImmutable('today', new DateTimeZone(date_default_timezone_get()));
         $today = $today->setTime(0, 0, 0);
@@ -195,27 +202,28 @@ try {
         $cases = PIIEncryption::filterCasesBySearch($cases, $searchTerm);
     }
     
-    // Load user due-state thresholds for late and due-soon filters
+    // Load current user urgency settings from the database each request.
+    // Do not rely on stale session preferences; the Kanban uses locally
+    // stored (localStorage) values that can get out of sync with $_SESSION.
     $pastDueDays = 1;
     $comingDueDays = 5;
     $appointmentRiskDays = 3;
-    if (isset($_SESSION['user_preferences']['past_due_days'])) {
-        $pastDueDays = (int)$_SESSION['user_preferences']['past_due_days'];
-    } elseif (isset($_SESSION['db_user_id'])) {
+    $highlightPastDue = false;
+    $highlightComingDue = false;
+    $highlightAppointmentRisk = false;
+
+    if (isset($_SESSION['db_user_id'])) {
         try {
-            $stmt = $pdo->prepare("SELECT past_due_days, coming_due_days, appointment_risk_days FROM user_preferences WHERE user_id = :user_id");
+            $stmt = $pdo->prepare("SELECT highlight_past_due, past_due_days, highlight_coming_due, coming_due_days, highlight_appointment_risk, appointment_risk_days FROM user_preferences WHERE user_id = :user_id");
             $stmt->execute(['user_id' => $_SESSION['db_user_id']]);
             $duePrefs = $stmt->fetch(PDO::FETCH_ASSOC);
             if ($duePrefs) {
+                $highlightPastDue = (bool)(int)($duePrefs['highlight_past_due'] ?? 0);
                 $pastDueDays = (int)($duePrefs['past_due_days'] ?? 1);
+                $highlightComingDue = (bool)(int)($duePrefs['highlight_coming_due'] ?? 0);
                 $comingDueDays = (int)($duePrefs['coming_due_days'] ?? 5);
+                $highlightAppointmentRisk = (bool)(int)($duePrefs['highlight_appointment_risk'] ?? 1);
                 $appointmentRiskDays = (int)($duePrefs['appointment_risk_days'] ?? 3);
-                if (!isset($_SESSION['user_preferences'])) {
-                    $_SESSION['user_preferences'] = [];
-                }
-                $_SESSION['user_preferences']['past_due_days'] = $pastDueDays;
-                $_SESSION['user_preferences']['coming_due_days'] = $comingDueDays;
-                $_SESSION['user_preferences']['appointment_risk_days'] = $appointmentRiskDays;
             }
         } catch (Throwable $e) {
             // On error, use defaults
@@ -262,19 +270,36 @@ try {
         $cases = array_values($cases); // Re-index array
     }
     
-    // Apply appointment risk filter if requested
+    // Apply appointment risk filter if requested.
+    // Mirror the Kanban card's effective urgency classification (Late > Appt Risk > Due Soon).
     $apptRiskOnly = $_GET['appt_risk_only'] ?? '';
     if ($apptRiskOnly === 'true') {
-        $cases = array_filter($cases, function($case) use ($appointmentRiskDays) {
+        $cases = array_filter($cases, function($case) use ($highlightPastDue, $pastDueDays, $highlightAppointmentRisk, $appointmentRiskDays) {
+            // Delivered cases are never urgent
             if (isset($case['status']) && $case['status'] === 'Delivered') {
                 return false;
             }
+
+            // Late (red) outranks Appointment Risk (purple)
+            if ($highlightPastDue) {
+                $daysUntilDue = getCalendarDayDiff($case['dueDate'] ?? '');
+                if ($daysUntilDue !== null && $daysUntilDue <= -$pastDueDays) {
+                    return false;
+                }
+            }
+
+            // Appointment Risk highlight must be enabled for a card to be purple
+            if (!$highlightAppointmentRisk) {
+                return false;
+            }
+
             $apptDate = $case['patientAppointmentDate'] ?? '';
             if (empty($apptDate)) {
                 return false;
             }
-            $daysUntil = getCalendarDayDiff($apptDate);
-            return $daysUntil !== null && $daysUntil <= $appointmentRiskDays;
+
+            $daysUntilAppt = getCalendarDayDiff($apptDate);
+            return $daysUntilAppt !== null && $daysUntilAppt <= $appointmentRiskDays;
         });
         $cases = array_values($cases);
     }
