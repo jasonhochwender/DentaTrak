@@ -7841,20 +7841,16 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   }
 
-  // Function to check if a case is past due / coming due and apply highlighting
-  function applyPastDueHighlighting(caseData) {
+  // Apply the full urgency hierarchy (Late > Appt Risk > Coming Due) to a card.
+  // This is the single source of truth used both when cards are created and when
+  // settings are updated, so the visual state matches the filter logic.
+  function applyUrgencyHighlighting(caseData) {
     var highlightPastDue = localStorage.getItem('highlight_past_due') === 'true';
     var highlightComingDue = localStorage.getItem('highlight_coming_due') === 'true';
-    if (!highlightPastDue && !highlightComingDue) return;
+    var highlightAppointmentRisk = localStorage.getItem('highlight_appointment_risk') === 'true';
 
     // Don't highlight cases in the Delivered board (they are essentially closed)
     if (caseData.status === 'Delivered') return;
-
-    var pastDueDays = parseInt(localStorage.getItem('past_due_days') || '1', 10);
-    var comingDueDays = parseInt(localStorage.getItem('coming_due_days') || '5', 10);
-
-    var daysUntil = getCalendarDayDiff(caseData.dueDate);
-    if (daysUntil === null) return;
 
     // Find the card element
     var cardElement = document.querySelector('[data-case-id="' + caseData.id + '"]');
@@ -7862,17 +7858,47 @@ document.addEventListener('DOMContentLoaded', function () {
     var card = cardElement.closest('.kanban-card');
     if (!card) return;
 
-    var lateIndicator = card.querySelector('.late-indicator');
+    var pastDueDays = parseInt(localStorage.getItem('past_due_days') || '1', 10);
+    var comingDueDays = parseInt(localStorage.getItem('coming_due_days') || '5', 10);
+    var appointmentRiskDays = parseInt(localStorage.getItem('appointment_risk_days') || '3', 10);
 
-    // Red late treatment takes precedence and uses the existing threshold
-    if (highlightPastDue && daysUntil <= -pastDueDays) {
+    var lateIndicator = card.querySelector('.late-indicator');
+    var apptIndicator = card.querySelector('.appointment-risk-indicator');
+
+    // Clear previous state
+    card.classList.remove('kanban-card-past-due');
+    card.classList.remove('kanban-card-coming-due');
+    card.classList.remove('kanban-card-appointment-risk');
+    if (lateIndicator) lateIndicator.textContent = '';
+    if (apptIndicator) apptIndicator.textContent = '';
+
+    // Red late treatment takes top precedence
+    var daysUntil = null;
+    if (caseData.dueDate) {
+      daysUntil = getCalendarDayDiff(caseData.dueDate);
+    }
+    if (highlightPastDue && daysUntil !== null && daysUntil <= -pastDueDays) {
       card.classList.add('kanban-card-past-due');
       if (lateIndicator) {
         lateIndicator.textContent = ' LATE';
       }
+      return;
     }
-    // Blue coming-due window: only while the case is due today or in the future
-    else if (highlightComingDue && daysUntil >= 0 && daysUntil <= comingDueDays) {
+
+    // Purple appointment risk takes precedence over Coming Due
+    if (highlightAppointmentRisk && caseData.patientAppointmentDate) {
+      var daysUntilAppt = getCalendarDayDiff(caseData.patientAppointmentDate);
+      if (daysUntilAppt !== null && daysUntilAppt <= appointmentRiskDays) {
+        card.classList.add('kanban-card-appointment-risk');
+        if (apptIndicator) {
+          apptIndicator.textContent = 'APPT RISK';
+        }
+        return;
+      }
+    }
+
+    // Blue coming-due window: only while the case is not Late or Appt Risk
+    if (highlightComingDue && daysUntil !== null && daysUntil >= 0 && daysUntil <= comingDueDays) {
       card.classList.add('kanban-card-coming-due');
       if (lateIndicator) {
         lateIndicator.textContent = ' ' + getDueWarningText(daysUntil);
@@ -7880,20 +7906,14 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   }
 
-  // Function to update all cards' past due / coming due highlighting
-  function updatePastDueHighlighting() {
-    // Remove existing highlighting
-    var allCards = document.querySelectorAll('.kanban-card');
-    allCards.forEach(function(card) {
-      card.classList.remove('kanban-card-past-due');
-      card.classList.remove('kanban-card-coming-due');
-      var lateIndicator = card.querySelector('.late-indicator');
-      if (lateIndicator) {
-        lateIndicator.textContent = '';
-      }
-    });
+  // Backward-compatible alias for existing callers that expect the old name.
+  function applyPastDueHighlighting(caseData) {
+    applyUrgencyHighlighting(caseData);
+  }
 
-    // Reapply highlighting to all cards
+  // Function to update all cards' urgency highlighting
+  function updatePastDueHighlighting() {
+    // Reapply full urgency hierarchy to all cards
     document.querySelectorAll('.kanban-card[data-case-json]').forEach(function(card) {
       try {
         var caseData = JSON.parse(card.dataset.caseJson || '{}');
@@ -7903,7 +7923,7 @@ document.addEventListener('DOMContentLoaded', function () {
           // customizable) header text.
           var column = card.closest('.kanban-column');
           caseData.status = column ? (column.dataset.status || '') : (caseData.status || '');
-          applyPastDueHighlighting(caseData);
+          applyUrgencyHighlighting(caseData);
         }
       } catch (e) {
         // Skip card with invalid data
