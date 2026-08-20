@@ -112,8 +112,8 @@ if ($comingDueDays < 1) {
 }
 
 // Ensure appointmentRiskDays is within valid range
-if ($appointmentRiskDays < 1) {
-    $appointmentRiskDays = 1;
+if ($appointmentRiskDays < 0) {
+    $appointmentRiskDays = 0;
 } elseif ($appointmentRiskDays > 99) {
     $appointmentRiskDays = 99;
 }

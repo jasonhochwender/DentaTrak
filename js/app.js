@@ -6882,8 +6882,8 @@ document.addEventListener('DOMContentLoaded', function () {
         '</div>' +
         '<div class="kanban-card-content">' +
         '  <p><strong>Type:</strong> ' + (displayData.caseType || '') + '</p>' +
-        '  <p><strong>Due:</strong> ' + formatDate(displayData.dueDate) + '<span class="late-indicator">' + dueIndicatorText + '</span></p>' +
-        (displayData.patientAppointmentDate ? '  <p><strong>Patient Appt:</strong> ' + formatDate(displayData.patientAppointmentDate) + '<span class="appointment-risk-indicator">' + apptRiskText + '</span></p>' : '') +
+        '  <p><strong>Due:</strong> ' + formatDate(displayData.dueDate) + (dueIndicatorText ? '<span class="late-indicator">' + dueIndicatorText + '</span>' : '') + '</p>' +
+        (displayData.patientAppointmentDate ? '  <p><strong>Patient Appt:</strong> ' + formatDate(displayData.patientAppointmentDate) + (apptRiskText ? '<span class="appointment-risk-indicator">' + apptRiskText + '</span>' : '') + '</p>' : '') +
         '  <p class="dentist-row"><strong>Dentist:</strong> ' + (displayData.dentistName || '') + attachmentIndicatorHtml + '</p>' +
         '  <div class="kanban-card-assignment">' +
         '    <div class="assignment-label"><strong>Assigned to</strong></div>' +

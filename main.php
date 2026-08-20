@@ -412,7 +412,7 @@ if (isset($appConfig) && is_array($appConfig) && isset($appConfig['appName'])) {
   <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
   
   <!-- Preload critical resources -->
-  <link rel="preload" href="js/app.js?v=20260326d" as="script">
+  <link rel="preload" href="js/app.js?v=20260820b" as="script">
   <link rel="preload" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
   <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap"></noscript>
   
@@ -431,7 +431,7 @@ if (isset($appConfig) && is_array($appConfig) && isset($appConfig['appName'])) {
   </style>
   
   <!-- Load app.light.css directly (skip app.css @import chain) -->
-  <link rel="stylesheet" href="css/app.light.css?v=20260816g">
+  <link rel="stylesheet" href="css/app.light.css?v=20260820b">
   <link rel="stylesheet" href="css/app.css?v=20260807a">
   
   <!-- Mobile responsiveness CSS -->
@@ -2286,7 +2286,7 @@ window.featureFlags = <?php echo getFeatureFlagsJson(); ?>;
                           <input type="checkbox" id="highlightAppointmentRisk" name="highlightAppointmentRisk" <?= $isAdmin ? '' : 'disabled' ?>>
                           <span id="appointmentRiskSettings" class="past-due-inline-settings hidden">
                             <label for="appointmentRiskDays" class="settings-sublabel">Days before patient appointment:</label>
-                            <input type="number" id="appointmentRiskDays" name="appointmentRiskDays" min="1" max="99" value="3" class="number-input" <?= $isAdmin ? '' : 'disabled' ?>>
+                            <input type="number" id="appointmentRiskDays" name="appointmentRiskDays" min="0" max="99" value="3" class="number-input" <?= $isAdmin ? '' : 'disabled' ?>>
                           </span>
                         </div>
                         
@@ -2743,7 +2743,7 @@ window.featureFlags = <?php echo getFeatureFlagsJson(); ?>;
     }
   }
   </script>
-  <script src="js/app.js?v=20260327j" defer></script>
+  <script src="js/app.js?v=20260820b" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js" defer></script>
   <script type="module" src="js/attachment-viewer.js?v=20260820a" defer></script>
   <script src="js/card-delete-fixed.js?v=20250104" defer></script>

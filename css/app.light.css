@@ -2053,22 +2053,22 @@ body {
   vertical-align: middle;
 }
 
-/* Past due card highlighting - single red border, stronger background and badge */
+/* Past due card highlighting - strong red border and background */
 .kanban-card-past-due {
-  border-color: #b91c1c;
+  border-color: #dc2626;
   background: linear-gradient(135deg, #ffffff 0%, #fee2e2 100%);
 }
 
 .kanban-card-past-due .late-indicator {
   color: #fff !important;
   font-weight: 700;
-  background-color: #ef4444;
+  background-color: #dc2626;
 }
 
-/* Coming-due card highlighting - single blue border, stronger background and badge */
+/* Coming-due card highlighting - strong blue border and background */
 .kanban-card-coming-due {
   border-color: #2563eb;
-  background: linear-gradient(135deg, #ffffff 0%, #e0f2fe 100%);
+  background: linear-gradient(135deg, #ffffff 0%, #dbeafe 100%);
 }
 
 .kanban-card-coming-due .late-indicator {
@@ -2077,10 +2077,10 @@ body {
   background-color: #2563eb;
 }
 
-/* Appointment-risk card highlighting - purple border, background and badge */
+/* Appointment-risk card highlighting - strong purple border and background */
 .kanban-card-appointment-risk {
-  border-color: #9333ea;
-  background: linear-gradient(135deg, #ffffff 0%, #f3e8ff 100%);
+  border-color: #7e22ce;
+  background: linear-gradient(135deg, #ffffff 0%, #ede9fe 100%);
 }
 
 .appointment-risk-indicator {
@@ -2091,7 +2091,7 @@ body {
   font-size: 11px;
   font-weight: 700;
   color: #fff;
-  background-color: #9333ea;
+  background-color: #7e22ce;
   vertical-align: middle;
 }
 
