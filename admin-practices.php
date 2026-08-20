@@ -221,7 +221,12 @@ $userEmail = $_SESSION['user_email'] ?? '';
             background: #fef3c7;
             color: #92400e;
         }
-        
+
+        .status-badge.success {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
         .baa-badge {
             display: inline-flex;
             align-items: center;
@@ -766,6 +771,19 @@ $userEmail = $_SESSION['user_email'] ?? '';
     <script>
         const yesNo = value => value ? 'Yes' : 'No';
 
+        function adminSubscriptionStatusClass(status) {
+            switch (status) {
+                case 'active': return 'success';
+                case 'trialing': return 'warning';
+                case 'past_due':
+                case 'unpaid': return 'danger';
+                case 'canceled':
+                case 'incomplete_expired': return 'inactive';
+                case 'incomplete': return 'warning';
+                default: return 'inactive';
+            }
+        }
+
         let practices = [];
         let selectedPracticeId = null;
         let currentView = 'all';
@@ -834,6 +852,9 @@ $userEmail = $_SESSION['user_email'] ?? '';
             let html = '<table class="practices-table"><thead><tr>' +
                 '<th>Practice Name</th>' +
                 '<th>Status</th>' +
+                '<th>Plan</th>' +
+                '<th>Subscription</th>' +
+                '<th>Owner</th>' +
                 '<th>BAA</th>' +
                 '<th>Users</th>' +
                 '<th>Cases</th>' +
@@ -844,32 +865,44 @@ $userEmail = $_SESSION['user_email'] ?? '';
                 const isActive = practice.is_active === true || practice.is_active === '1' || practice.is_active === 1;
                 const statusClass = isActive ? 'active' : 'inactive';
                 const statusText = isActive ? 'Active' : 'Inactive';
-                
+
+                const sub = practice.subscription || {};
+                const planDisplay = escapeHtml(sub.plan_display || '—');
+                const subscriptionStatusClass = adminSubscriptionStatusClass(sub.status);
+                let subscriptionText = escapeHtml(sub.status_display || 'No Subscription');
+                if (sub.is_trialing && sub.trial_display) {
+                    subscriptionText += ' · ' + escapeHtml(sub.trial_display);
+                }
+                const ownerDisplay = escapeHtml(sub.owner_email || '—');
+
                 const baaClass = practice.baa_accepted ? 'accepted' : 'pending';
                 const baaText = practice.baa_accepted ? 'Accepted' : 'Pending';
-                
+
                 const selectedClass = selectedPracticeId === practice.id ? 'selected' : '';
                 const hideButton = practice.is_hidden
                     ? '<button class="action-btn success" onclick="unhidePractice(' + practice.id + ')">Unhide</button>'
                     : '<button class="action-btn secondary" onclick="hidePractice(' + practice.id + ')">Hide</button>';
-                
+
                 html += '<tr class="practice-row ' + selectedClass + '" onclick="selectPractice(' + practice.id + ')" data-practice-id="' + practice.id + '">' +
                     '<td>' +
                         '<strong>' + escapeHtml(practice.practice_name || practice.legal_name || 'Unnamed') + '</strong>' +
-                        (practice.legal_name && practice.legal_name !== practice.practice_name 
-                            ? '<br><small style="color: #6b7280;">' + escapeHtml(practice.legal_name) + '</small>' 
+                        (practice.legal_name && practice.legal_name !== practice.practice_name
+                            ? '<br><small style="color: #6b7280;">' + escapeHtml(practice.legal_name) + '</small>'
                             : '') +
                     '</td>' +
                     '<td><span class="status-badge ' + statusClass + '">' + statusText + '</span>' +
-                        (!isActive && practice.years_inactive > 0 
-                            ? '<br><small style="color: #6b7280;">' + practice.years_inactive + ' yrs</small>' 
+                        (!isActive && practice.years_inactive > 0
+                            ? '<br><small style="color: #6b7280;">' + practice.years_inactive + ' yrs</small>'
                             : '') +
                     '</td>' +
+                    '<td>' + planDisplay + '</td>' +
+                    '<td><span class="status-badge ' + subscriptionStatusClass + '">' + subscriptionText + '</span></td>' +
+                    '<td>' + ownerDisplay + '</td>' +
                     '<td><span class="baa-badge ' + baaClass + '">' + baaText + '</span></td>' +
                     '<td>' + (practice.user_count || 0) + '</td>' +
                     '<td>' + (practice.case_count || 0) + '</td>' +
                     '<td class="compact-actions" onclick="event.stopPropagation()">' +
-                        (isActive 
+                        (isActive
                             ? '<button class="action-btn danger" onclick="deactivatePractice(' + practice.id + ', \'' + escapeHtml(practice.practice_name || '').replace(/'/g, "\\'") + '\')">Deactivate</button>'
                             : '<button class="action-btn success" onclick="reactivatePractice(' + practice.id + ')">Reactivate</button>') +
                         hideButton +
@@ -911,6 +944,7 @@ $userEmail = $_SESSION['user_email'] ?? '';
                 '</div>' +
                 '<div class="detail-tabs">' +
                     '<button class="detail-tab active" onclick="showTab(\'compliance\', ' + practiceId + ')">Compliance Details</button>' +
+                    '<button class="detail-tab" onclick="showTab(\'subscription\', ' + practiceId + ')">Subscription</button>' +
                     '<button class="detail-tab" onclick="showTab(\'phi\', ' + practiceId + ')">PHI Access Log</button>' +
                     '<button class="detail-tab" onclick="showTab(\'users\', ' + practiceId + ')">Users</button>' +
                     '<button class="detail-tab" onclick="showTab(\'settings\', ' + practiceId + ')">Settings</button>' +
@@ -932,6 +966,8 @@ $userEmail = $_SESSION['user_email'] ?? '';
             
             if (tab === 'compliance') {
                 loadComplianceTab(practiceId);
+            } else if (tab === 'subscription') {
+                loadSubscriptionTab(practiceId);
             } else if (tab === 'phi') {
                 loadPHITab(practiceId);
             } else if (tab === 'users') {
@@ -999,7 +1035,52 @@ $userEmail = $_SESSION['user_email'] ?? '';
             
             document.getElementById('detailContent').innerHTML = html;
         }
-        
+
+        function loadSubscriptionTab(practiceId) {
+            const practice = practices.find(p => p.id === practiceId);
+            if (!practice) {
+                document.getElementById('detailContent').innerHTML = '<div class="empty-state">Practice not found</div>';
+                return;
+            }
+            renderSubscriptionTab(practice.subscription || {});
+        }
+
+        function renderSubscriptionTab(subscription) {
+            let html = '<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">';
+
+            const row = (label, value) => {
+                return '<div class="compliance-detail">' +
+                    '<div class="label">' + escapeHtml(label) + '</div>' +
+                    '<div class="value">' + (value !== null && value !== undefined && value !== '' ? escapeHtml(value) : '—') + '</div>' +
+                    '</div>';
+            };
+
+            html += row('Plan', subscription.plan_display);
+            html += row('Subscription Status', subscription.status_display);
+            html += row('Trial Status', subscription.is_trialing ? 'In Trial' : (subscription.has_subscription ? 'Not in Trial' : '—'));
+            html += row('Trial End Date', subscription.trial_ends_at ? formatDate(subscription.trial_ends_at) : '—');
+            html += row('Trial Time Remaining', subscription.trial_display || '—');
+            html += row('Subscription Owner', subscription.owner_email || '—');
+            html += row('Practices Using Subscription', subscription.owned_practice_count !== null ? String(subscription.owned_practice_count) : '—');
+            html += row('Capacity', subscription.capacity_display || '—');
+            html += row('Stripe Customer ID', subscription.stripe_customer_id || '—');
+            html += row('Stripe Subscription ID', subscription.stripe_subscription_id || '—');
+            html += row('Current Period Ends', subscription.current_period_ends_at ? formatDate(subscription.current_period_ends_at) : '—');
+            html += row('Billing Interval', subscription.billing_interval ? (subscription.billing_interval === 'year' ? 'Yearly' : 'Monthly') : '—');
+            html += row('Cancel at Period End', subscription.cancel_at_period_end ? 'Yes' : 'No');
+
+            html += '</div>';
+
+            if (!subscription.has_subscription) {
+                html += '<div class="retention-warning" style="margin-top: 16px;">' +
+                    '<h4>No Subscription Record</h4>' +
+                    '<p>This practice has no associated subscription. It may be a legacy practice or the subscription data has not been migrated yet.</p>' +
+                    '</div>';
+            }
+
+            document.getElementById('detailContent').innerHTML = html;
+        }
+
         function loadPHITab(practiceId) {
             fetch('api/admin-practices.php?action=phi_log&practice_id=' + practiceId + '&limit=100', { credentials: 'same-origin' })
                 .then(response => response.json())

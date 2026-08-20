@@ -17,6 +17,8 @@ require_once __DIR__ . '/hipaa-compliance.php';
 require_once __DIR__ . '/practice-security.php';
 require_once __DIR__ . '/workflow-stages.php';
 require_once __DIR__ . '/lab-assignment-history.php';
+require_once __DIR__ . '/subscription-owner.php';
+require_once __DIR__ . '/plan-entitlements.php';
 
 header('Content-Type: application/json');
 
@@ -41,6 +43,126 @@ if (!$canAccess) {
     exit;
 }
 
+/**
+ * Build a normalized, display-friendly subscription info array for admin use.
+ *
+ * @param array|null $sub      subscriptions row (or null)
+ * @param array|null $owner    owner user row (or null)
+ * @param int        $ownedCount number of practices this owner has
+ * @return array
+ */
+function buildSubscriptionInfo(?array $sub, ?array $owner, int $ownedCount): array {
+    if (empty($sub) || empty($sub['plan'])) {
+        $ownerId = $owner ? (int)($owner['owner_user_id'] ?? $owner['id'] ?? null) : null;
+        return [
+            'has_subscription' => false,
+            'plan' => null,
+            'plan_display' => '—',
+            'status' => 'no_subscription',
+            'status_display' => 'No Subscription',
+            'is_trialing' => false,
+            'trial_ends_at' => null,
+            'trial_days_remaining' => null,
+            'trial_display' => '',
+            'owner_user_id' => $ownerId,
+            'owner_email' => $owner ? ($owner['owner_email'] ?? $owner['email'] ?? null) : null,
+            'owner_name' => $owner ? trim(($owner['owner_first_name'] ?? $owner['first_name'] ?? '') . ' ' . ($owner['owner_last_name'] ?? $owner['last_name'] ?? '')) : null,
+            'owned_practice_count' => $ownedCount,
+            'max_practices' => null,
+            'capacity_display' => '—',
+            'stripe_customer_id' => null,
+            'stripe_subscription_id' => null,
+            'current_period_ends_at' => null,
+            'billing_interval' => null,
+            'cancel_at_period_end' => false,
+            'subscription_updated_at' => null,
+        ];
+    }
+
+    $plan = $sub['plan'] ?? null;
+    $maxPractices = null;
+    $capacityDisplay = '';
+    if (!empty($plan)) {
+        $maxPractices = getMaxOwnedPractices($plan);
+        if ($maxPractices === null) {
+            $capacityDisplay = 'Practices: ' . $ownedCount;
+        } else {
+            $capacityDisplay = 'Practices: ' . $ownedCount . ' of ' . $maxPractices;
+        }
+    }
+
+    $status = $sub['status'] ?? null;
+    $statusDisplay = 'Unknown';
+    if (!empty($status)) {
+        $statusDisplay = match ($status) {
+            'trialing' => 'Trial',
+            'active' => 'Active',
+            'past_due' => 'Past Due',
+            'unpaid' => 'Unpaid',
+            'canceled' => 'Canceled',
+            'incomplete' => 'Incomplete',
+            'incomplete_expired' => 'Incomplete Expired',
+            default => ucfirst(str_replace('_', ' ', $status)),
+        };
+    }
+
+    $trialEndsAt = null;
+    $trialDaysRemaining = null;
+    $trialDisplay = '';
+    $isTrialing = ($status === 'trialing');
+    if ($isTrialing && !empty($sub['trial_ends_at'])) {
+        $trialEndsAt = $sub['trial_ends_at'];
+        try {
+            $end = new DateTimeImmutable($trialEndsAt, new DateTimeZone('UTC'));
+            $now = new DateTimeImmutable('now', new DateTimeZone('UTC'));
+            $endDate = $end->setTime(0, 0, 0);
+            $nowDate = $now->setTime(0, 0, 0);
+            $diff = $nowDate->diff($endDate);
+            $days = (int)$diff->format('%r%a');
+
+            if ($days > 1) {
+                $trialDisplay = $days . ' days left';
+                $trialDaysRemaining = $days;
+            } elseif ($days === 1) {
+                $trialDisplay = '1 day left';
+                $trialDaysRemaining = 1;
+            } elseif ($days === 0) {
+                $trialDisplay = 'Ends today';
+                $trialDaysRemaining = 0;
+            } else {
+                $trialDisplay = 'Trial expired';
+                $trialDaysRemaining = $days;
+            }
+        } catch (Throwable $e) {
+            $trialDisplay = '';
+        }
+    }
+
+    return [
+        'has_subscription' => true,
+        'plan' => $plan,
+        'plan_display' => !empty($plan) ? getPlanDisplayName($plan) : '—',
+        'status' => $status,
+        'status_display' => $statusDisplay,
+        'is_trialing' => $isTrialing,
+        'trial_ends_at' => $trialEndsAt,
+        'trial_days_remaining' => $trialDaysRemaining,
+        'trial_display' => $trialDisplay,
+        'owner_user_id' => $owner ? (int)($owner['owner_user_id'] ?? $owner['id'] ?? null) : null,
+        'owner_email' => $owner ? ($owner['owner_email'] ?? $owner['email'] ?? null) : null,
+        'owner_name' => $owner ? trim(($owner['owner_first_name'] ?? $owner['first_name'] ?? '') . ' ' . ($owner['owner_last_name'] ?? $owner['last_name'] ?? '')) : null,
+        'owned_practice_count' => $ownedCount,
+        'max_practices' => $maxPractices,
+        'capacity_display' => $capacityDisplay,
+        'stripe_customer_id' => $sub['stripe_customer_id'] ?? null,
+        'stripe_subscription_id' => $sub['stripe_subscription_id'] ?? null,
+        'current_period_ends_at' => $sub['current_period_ends_at'] ?? null,
+        'billing_interval' => $sub['billing_interval'] ?? null,
+        'cancel_at_period_end' => !empty($sub['cancel_at_period_end']),
+        'subscription_updated_at' => $sub['subscription_updated_at'] ?? null,
+    ];
+}
+
 $method = $_SERVER['REQUEST_METHOD'];
 $action = $_GET['action'] ?? '';
 
@@ -57,14 +179,75 @@ switch ($method) {
 }
 
 function handleGetRequest($action) {
+    global $pdo;
     switch ($action) {
         case 'list':
-            // List all practices with compliance status
+            // List all practices with compliance status and subscription context
             ensureAdminHiddenPracticesSchema();
             $practices = getAllPracticesWithComplianceStatus();
             $hiddenIds = getAdminHiddenPracticeIds($_SESSION['db_user_id'] ?? 0);
+
+            // Batch-load owner + subscription for all practices in one query
+            $practiceIds = array_filter(array_column($practices, 'id'), 'is_numeric');
+            $ownerMap = [];
+            $ownerUserIds = [];
+            if (!empty($practiceIds) && $pdo) {
+                $placeholders = implode(',', array_fill(0, count($practiceIds), '?'));
+                $stmt = $pdo->prepare("
+                    SELECT
+                        pu.practice_id,
+                        u.id AS owner_user_id,
+                        u.email AS owner_email,
+                        u.first_name AS owner_first_name,
+                        u.last_name AS owner_last_name,
+                        s.id,
+                        s.stripe_customer_id,
+                        s.stripe_subscription_id,
+                        s.stripe_price_id,
+                        s.plan,
+                        s.billing_interval,
+                        s.status,
+                        s.trial_ends_at,
+                        s.current_period_ends_at,
+                        s.cancel_at_period_end,
+                        s.subscription_updated_at,
+                        s.stripe_event_created,
+                        s.created_at
+                    FROM practice_users pu
+                    JOIN users u ON u.id = pu.user_id
+                    LEFT JOIN subscriptions s ON s.owner_user_id = u.id
+                    WHERE pu.practice_id IN ($placeholders)
+                      AND pu.is_owner = 1
+                ");
+                $stmt->execute($practiceIds);
+                $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                foreach ($rows as $row) {
+                    $ownerMap[(int)$row['practice_id']] = $row;
+                    $ownerUserIds[] = (int)$row['owner_user_id'];
+                }
+                $ownerUserIds = array_unique($ownerUserIds);
+
+                // Batch-load owned-practice counts for all owners in one query
+                $ownedCounts = [];
+                if (!empty($ownerUserIds)) {
+                    $opPlaceholders = implode(',', array_fill(0, count($ownerUserIds), '?'));
+                    $countStmt = $pdo->prepare("
+                        SELECT user_id, COUNT(*) as cnt
+                        FROM practice_users
+                        WHERE user_id IN ($opPlaceholders) AND is_owner = 1
+                        GROUP BY user_id
+                    ");
+                    $countStmt->execute($ownerUserIds);
+                    $ownedCounts = $countStmt->fetchAll(PDO::FETCH_KEY_PAIR);
+                }
+            }
+
             foreach ($practices as &$practice) {
                 $practice['is_hidden'] = in_array((int)$practice['id'], $hiddenIds, true);
+                $owner = $ownerMap[(int)$practice['id']] ?? null;
+                $ownerId = $owner ? (int)$owner['owner_user_id'] : null;
+                $ownedCount = $ownerId ? (int)($ownedCounts[$ownerId] ?? 1) : 0;
+                $practice['subscription'] = buildSubscriptionInfo($owner, $owner, $ownedCount);
             }
             unset($practice);
             echo json_encode([

@@ -930,7 +930,7 @@ window.featureFlags = <?php echo getFeatureFlagsJson(); ?>;
                 </div>
                 <div>
                   <h2 class="ap-section-title">Case Flow Status</h2>
-                  <p class="ap-section-subtitle">Where is your money right now?</p>
+                  <p class="ap-section-subtitle">Timing and risk across active cases</p>
                 </div>
               </div>
 
