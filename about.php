@@ -39,7 +39,7 @@ $articleUrls = $appConfig['public_urls'] ?? [];
   <!-- Navigation -->
   <nav class="nav">
     <div class="nav-inner">
-      <a href="<?= $baseUrl ?>" class="nav-logo"><?php echo htmlspecialchars($appName); ?></a>
+      <a href="<?= $baseUrl ?>" class="nav-logo" aria-label="DentaTrak home"><img src="images/main.png" alt="DentaTrak" style="height: auto; width: auto; max-width: 140px; object-fit: contain; display: block;"></a>
       <div class="nav-actions">
         <a href="<?= $baseUrl ?>login.php" class="nav-login">Log In</a>
         <a href="<?= $baseUrl ?>login.php" class="nav-cta">Start 90-Day Free Trial</a>
@@ -54,13 +54,13 @@ $articleUrls = $appConfig['public_urls'] ?? [];
     <h2>What DentaTrak Is</h2>
 
     <p>
-      DentaTrak is dental case tracking software for dental practices. It gives every multi-step case — crowns, implants, lab work, referrals, and other treatments that span multiple visits — a status, an owner, and a next step, so nothing gets lost between handoffs.
+      DentaTrak is dental case tracking software for dental practices. It gives every multi-step case (crowns, implants, lab work, referrals, and other treatments that span multiple visits) a status, an owner, and a next step, so nothing gets lost between handoffs.
     </p>
 
     <h2>Why It Was Built</h2>
 
     <p>
-      DentaTrak was developed by Dr. William Verrillo, a practicing dentist based in Georgia, to solve real breakdowns in case tracking between labs, referrals, and delivery. It was designed from real clinical workflows rather than generic software assumptions — built by someone who has managed these cases from inside a practice, not just studied the problem from the outside.
+      DentaTrak was developed by Dr. William Verrillo, a practicing dentist based in Georgia, to solve real breakdowns in case tracking between labs, referrals, and delivery. It was designed from real clinical workflows rather than generic software assumptions, built by someone who has managed these cases from inside a practice, not just studied the problem from the outside.
     </p>
 
     <h2>The Problem It Solves</h2>
@@ -77,13 +77,13 @@ $articleUrls = $appConfig['public_urls'] ?? [];
     </ul>
 
     <p>
-      DentaTrak is built for practices that handle crowns, bridges, implants, dentures, or other lab-based or referral-dependent treatments — the cases most likely to lose visibility between appointments.
+      DentaTrak is built for practices that handle crowns, bridges, implants, dentures, or other lab-based or referral-dependent treatments: the cases most likely to lose visibility between appointments.
     </p>
 
     <h2>How It Differs from General Practice-Management Tools</h2>
 
     <p>
-      DentaTrak does not replace a practice management system (PMS). A PMS handles scheduling, billing, and patient records. DentaTrak focuses specifically on the workflow of multi-step cases — status, ownership, and stalled-case visibility — which most PMS platforms were not built to track. DentaTrak works alongside your existing PMS with no data migration required. See our full comparison in <a href="<?= $baseUrl . ($articleUrls['article_vs_pms'] ?? 'dental-case-tracking-software-vs-pms') ?>" class="content-link">dental case tracking software vs. PMS</a>.
+      DentaTrak does not replace a practice management system (PMS). A PMS handles scheduling, billing, and patient records. DentaTrak focuses specifically on the workflow of multi-step cases (status, ownership, and stalled-case visibility) which most PMS platforms were not built to track. DentaTrak works alongside your existing PMS with no data migration required. See our full comparison in <a href="<?= $baseUrl . ($articleUrls['article_vs_pms'] ?? 'dental-case-tracking-software-vs-pms') ?>" class="content-link">dental case tracking software vs. PMS</a>.
     </p>
 
     <h2>Contact and Support</h2>
@@ -103,7 +103,7 @@ $articleUrls = $appConfig['public_urls'] ?? [];
   <!-- Footer -->
   <footer class="footer">
     <div class="footer-inner">
-      <span class="footer-logo"><?php echo htmlspecialchars($appName); ?></span>
+      <img src="images/main.png" alt="DentaTrak" class="footer-logo" style="height: auto; width: auto; max-width: 140px; object-fit: contain; display: block;">
       <div class="footer-links">
         <a href="<?= $baseUrl . ($articleUrls['page_resources'] ?? 'resources') ?>" class="footer-link">Resources</a>
         <a href="<?= $baseUrl ?>privacy.php" class="footer-link">Privacy</a>

@@ -89,7 +89,7 @@ $articleUrls = $appConfig['public_urls'] ?? [];
         "name": "Does case tracking software provide implant treatment timelines?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "No. Healing and treatment timelines are clinical decisions made by the treating provider based on the individual patient. Case tracking software tracks the status and ownership of the case through whatever timeline the clinical team determines — it does not set or recommend timelines."
+          "text": "No. Healing and treatment timelines are clinical decisions made by the treating provider based on the individual patient. Case tracking software tracks the status and ownership of the case through whatever timeline the clinical team determines. It does not set or recommend timelines."
         }
       }
     ]
@@ -100,7 +100,7 @@ $articleUrls = $appConfig['public_urls'] ?? [];
   <!-- Navigation -->
   <nav class="nav">
     <div class="nav-inner">
-      <a href="<?= $baseUrl ?>" class="nav-logo"><?php echo htmlspecialchars($appName); ?></a>
+      <a href="<?= $baseUrl ?>" class="nav-logo" aria-label="DentaTrak home"><img src="images/main.png" alt="DentaTrak" style="height: auto; width: auto; max-width: 140px; object-fit: contain; display: block;"></a>
       <div class="nav-actions">
         <a href="<?= $baseUrl ?>login.php" class="nav-login">Log In</a>
         <a href="<?= $baseUrl ?>login.php" class="nav-cta">Start 90-Day Free Trial</a>
@@ -131,7 +131,7 @@ $articleUrls = $appConfig['public_urls'] ?? [];
 
     <div class="answer-box">
       <p>
-        Implant case tracking means following a case across its full arc — from surgical placement, through the healing period, to the restorative phase and final restoration — with clear status and ownership at each stage. Implant cases are among the longest-running and most multi-provider case types in a practice, which makes them especially prone to losing visibility between appointments.
+        Implant case tracking means following a case across its full arc, from surgical placement through the healing period, to the restorative phase and final restoration, with clear status and ownership at each stage. Implant cases are among the longest-running and most multi-provider case types in a practice, which makes them especially prone to losing visibility between appointments.
       </p>
     </div>
 
@@ -145,7 +145,7 @@ $articleUrls = $appConfig['public_urls'] ?? [];
 
     <div class="table-wrap">
       <table class="comparison-table">
-        <caption>Timing varies by case and is determined by the treating clinical team — this table describes typical phases, not fixed timelines</caption>
+        <caption>Timing varies by case and is determined by the treating clinical team. This table describes typical phases, not fixed timelines</caption>
         <thead>
           <tr><th>Phase</th><th>What happens</th><th>Typically involves</th></tr>
         </thead>
@@ -165,7 +165,7 @@ $articleUrls = $appConfig['public_urls'] ?? [];
     <ul class="checklist">
       <li><strong>The referral or surgical coordination step:</strong> A case sent for surgical placement can lose visibility if there's no clear record of its status while it's with the surgical provider. See our guide to <a href="<?= $baseUrl . ($articleUrls['article_dental_case_tracking_software'] ?? 'dental-case-tracking-software') ?>" class="content-link">dental case tracking software</a> for how referral-dependent cases fit into overall tracking.</li>
       <li><strong>The transition out of the healing period:</strong> Because this phase can run long, it's easy for a case to be forgotten until the patient happens to call.</li>
-      <li><strong>The restorative handoff:</strong> When a case returns from the surgical provider, someone needs to know to restart the restorative process — this handoff is a common drop-off point.</li>
+      <li><strong>The restorative handoff:</strong> When a case returns from the surgical provider, someone needs to know to restart the restorative process. This handoff is a common drop-off point.</li>
       <li><strong>Long-running cases in general:</strong> Any case that spans months rather than weeks is more likely to fall out of a team's working memory without a system tracking it.</li>
     </ul>
 
@@ -189,7 +189,7 @@ $articleUrls = $appConfig['public_urls'] ?? [];
 
     <div class="faq-item">
       <h3>Does case tracking software provide implant treatment timelines?</h3>
-      <p>No. Healing and treatment timelines are clinical decisions made by the treating provider based on the individual patient. Case tracking software tracks the status and ownership of the case through whatever timeline the clinical team determines — it does not set or recommend timelines.</p>
+      <p>No. Healing and treatment timelines are clinical decisions made by the treating provider based on the individual patient. Case tracking software tracks the status and ownership of the case through whatever timeline the clinical team determines. It does not set or recommend timelines.</p>
     </div>
 
     <div class="related-links">
@@ -212,7 +212,7 @@ $articleUrls = $appConfig['public_urls'] ?? [];
   <!-- Footer -->
   <footer class="footer">
     <div class="footer-inner">
-      <span class="footer-logo"><?php echo htmlspecialchars($appName); ?></span>
+      <img src="images/main.png" alt="DentaTrak" class="footer-logo" style="height: auto; width: auto; max-width: 140px; object-fit: contain; display: block;">
       <div class="footer-links">
         <a href="<?= $baseUrl . ($articleUrls['page_about'] ?? 'about') ?>" class="footer-link">About</a>
         <a href="<?= $baseUrl . ($articleUrls['page_resources'] ?? 'resources') ?>" class="footer-link">Resources</a>

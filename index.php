@@ -673,7 +673,7 @@ $articleUrls = $appConfig['public_urls'] ?? [];
     <div class="container">
       <div class="footer-grid">
         <div class="footer-brand">
-          <img src="images/logo-large.png" alt="DentaTrak">
+          <img src="images/main.png" alt="DentaTrak">
           <p>Dental case tracking built for the way dental practices actually work.</p>
         </div>
         <nav class="footer-nav" aria-label="Footer">

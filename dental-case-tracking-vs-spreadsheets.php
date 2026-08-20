@@ -309,7 +309,7 @@ $articleUrls = $appConfig['public_urls'] ?? [];
   <!-- Navigation -->
   <nav class="nav">
     <div class="nav-inner">
-      <a href="<?= $baseUrl ?>" class="nav-logo"><?php echo htmlspecialchars($appName); ?></a>
+      <a href="<?= $baseUrl ?>" class="nav-logo" aria-label="DentaTrak home"><img src="images/main.png" alt="DentaTrak" style="height: auto; width: auto; max-width: 140px; object-fit: contain; display: block;"></a>
       <div class="nav-actions">
         <a href="<?= $baseUrl ?>login.php" class="nav-login">Log In</a>
         <a href="<?= $baseUrl ?>login.php" class="nav-cta">Start 90-Day Free Trial</a>
@@ -330,7 +330,7 @@ $articleUrls = $appConfig['public_urls'] ?? [];
     </div>
     
     <p>
-      Many dental practices use spreadsheets or notes to track cases. It's a natural starting point—spreadsheets are familiar, flexible, and free. But as case volume grows and workflows become more complex, these methods start to break down.
+      Many dental practices use spreadsheets or notes to track cases. It's a natural starting point. Spreadsheets are familiar, flexible, and free. But as case volume grows and workflows become more complex, these methods start to break down.
     </p>
     
     <p>
@@ -361,7 +361,7 @@ $articleUrls = $appConfig['public_urls'] ?? [];
     
     <ul>
       <li><strong>No ownership:</strong> A spreadsheet shows data, but it doesn't enforce accountability. There's no clear assignment of who is responsible for each case or each step.</li>
-      <li><strong>No real-time visibility:</strong> Spreadsheets are only as current as the last update. If someone forgets to update a row, the information is stale—and no one knows it.</li>
+      <li><strong>No real-time visibility:</strong> Spreadsheets are only as current as the last update. If someone forgets to update a row, the information is stale, and no one knows it.</li>
       <li><strong>Easy to forget updates:</strong> Updating a spreadsheet is a manual task that competes with everything else. When things get busy, updates slip. Cases fall out of sync with reality.</li>
       <li><strong>No alerting for delays:</strong> A spreadsheet won't tell you that a case has been sitting in the same status for two weeks. It just displays whatever was entered. You have to notice problems yourself.</li>
       <li><strong>Breaks with multi-step workflows:</strong> Complex cases move through multiple stages with different owners and dependencies. Spreadsheets flatten this into rows and columns, losing the structure that makes tracking useful.</li>
@@ -382,7 +382,7 @@ $articleUrls = $appConfig['public_urls'] ?? [];
       <li><strong>Ownership and accountability:</strong> Every case has an assigned owner. When a case changes hands, ownership transfers explicitly. There's no ambiguity about who is responsible.</li>
       <li><strong>Visibility across the lifecycle:</strong> See all active cases in one view. Filter by status, case type, or owner. Know exactly where things stand without asking anyone.</li>
       <li><strong>Tracks lab dependencies:</strong> See which cases are waiting on labs, when they were sent, and when they're expected back. Know immediately when something is overdue.</li>
-      <li><strong>Identifies stalled cases:</strong> Cases that haven't moved in too long surface automatically. You don't have to remember to check—the system shows you what needs attention.</li>
+      <li><strong>Identifies stalled cases:</strong> Cases that haven't moved in too long surface automatically. You don't have to remember to check. The system shows you what needs attention.</li>
     </ul>
     
     <p>
@@ -413,7 +413,7 @@ $articleUrls = $appConfig['public_urls'] ?? [];
     </p>
     
     <p>
-      It gives every case a status, an owner, and a next step. It tracks cases across their full lifecycle—from prep to lab to delivery. It makes delays visible before they become problems.
+      It gives every case a status, an owner, and a next step. It tracks cases across their full lifecycle, from prep to lab to delivery. It makes delays visible before they become problems.
     </p>
     
     <div class="highlight-box">
@@ -424,7 +424,7 @@ $articleUrls = $appConfig['public_urls'] ?? [];
     </div>
     
     <p>
-      If your practice has outgrown spreadsheets—or if you're seeing cases slip through the cracks—dental case tracking software like DentaTrak can provide the structure and visibility you need.
+      If your practice has outgrown spreadsheets, or if you're seeing cases slip through the cracks, dental case tracking software like DentaTrak can provide the structure and visibility you need.
     </p>
     
     <p>
@@ -442,7 +442,7 @@ $articleUrls = $appConfig['public_urls'] ?? [];
   <!-- Footer -->
   <footer class="footer">
     <div class="footer-inner">
-      <span class="footer-logo"><?php echo htmlspecialchars($appName); ?></span>
+      <img src="images/main.png" alt="DentaTrak" class="footer-logo" style="height: auto; width: auto; max-width: 140px; object-fit: contain; display: block;">
       <div class="footer-links">
         <a href="<?= $baseUrl . ($articleUrls['page_about'] ?? 'about') ?>" class="footer-link">About</a>
         <a href="<?= $baseUrl . ($articleUrls['page_resources'] ?? 'resources') ?>" class="footer-link">Resources</a>

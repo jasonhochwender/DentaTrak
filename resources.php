@@ -39,7 +39,7 @@ $articleUrls = $appConfig['public_urls'] ?? [];
   <!-- Navigation -->
   <nav class="nav">
     <div class="nav-inner">
-      <a href="<?= $baseUrl ?>" class="nav-logo"><?php echo htmlspecialchars($appName); ?></a>
+      <a href="<?= $baseUrl ?>" class="nav-logo" aria-label="DentaTrak home"><img src="images/main.png" alt="DentaTrak" style="height: auto; width: auto; max-width: 140px; object-fit: contain; display: block;"></a>
       <div class="nav-actions">
         <a href="<?= $baseUrl ?>login.php" class="nav-login">Log In</a>
         <a href="<?= $baseUrl ?>login.php" class="nav-cta">Start 90-Day Free Trial</a>
@@ -51,7 +51,7 @@ $articleUrls = $appConfig['public_urls'] ?? [];
   <main class="content no-breadcrumb" style="max-width: 1000px;">
     <h1>Dental Case Tracking Resources</h1>
     <p>
-      Practical guides on tracking dental cases across labs, referrals, and internal handoffs — organized by topic.
+      Practical guides on tracking dental cases across labs, referrals, and internal handoffs, organized by topic.
     </p>
 
     <div class="resource-group">
@@ -67,7 +67,7 @@ $articleUrls = $appConfig['public_urls'] ?? [];
         </a>
         <a class="resource-card" href="<?= $baseUrl . ($articleUrls['article_visual_workflow'] ?? 'visual-dental-case-workflow') ?>">
           <h3>Why Visual Workflow Management Works for Complex Dental Cases</h3>
-          <p>Why multi-stage cases are processes, not records — and how a visual workflow shows where every case stands.</p>
+          <p>Why multi-stage cases are processes, not records, and how a visual workflow shows where every case stands.</p>
         </a>
       </div>
     </div>
@@ -77,7 +77,7 @@ $articleUrls = $appConfig['public_urls'] ?? [];
       <div class="resource-grid">
         <a class="resource-card" href="<?= $baseUrl . ($articleUrls['article_lab_tracking'] ?? 'dental-lab-case-tracking') ?>">
           <h3>Dental Lab Case Tracking</h3>
-          <p>Tracking cases sent to external labs — shipping, returns, overdue cases, and remakes.</p>
+          <p>Tracking cases sent to external labs (shipping, returns, overdue cases, and remakes).</p>
         </a>
       </div>
     </div>
@@ -121,7 +121,7 @@ $articleUrls = $appConfig['public_urls'] ?? [];
   <!-- Footer -->
   <footer class="footer">
     <div class="footer-inner">
-      <span class="footer-logo"><?php echo htmlspecialchars($appName); ?></span>
+      <img src="images/main.png" alt="DentaTrak" class="footer-logo" style="height: auto; width: auto; max-width: 140px; object-fit: contain; display: block;">
       <div class="footer-links">
         <a href="<?= $baseUrl . ($articleUrls['page_about'] ?? 'about') ?>" class="footer-link">About</a>
         <a href="<?= $baseUrl ?>privacy.php" class="footer-link">Privacy</a>

@@ -20,7 +20,7 @@ $articleUrls = $appConfig['public_urls'] ?? [];
     gtag('config', 'G-MBJDENR3H2');
   </script>
 
-  <meta name="description" content="DentaTrak is dental case tracking software that gives every crown, implant, and lab case a status, owner, and next step — so nothing gets lost. Start a 90-day free trial.">
+  <meta name="description" content="DentaTrak is dental case tracking software that gives every crown, implant, and lab case a status, owner, and next step, so nothing gets lost. Start a 90-day free trial.">
   <title>Dental Case Tracking Software | Track Every Case from Prep to Delivery | DentaTrak</title>
   <link rel="canonical" href="https://dentatrak.com/dental-case-tracking-software">
 
@@ -108,7 +108,7 @@ $articleUrls = $appConfig['public_urls'] ?? [];
   <!-- Navigation -->
   <nav class="nav">
     <div class="nav-inner">
-      <a href="<?= $baseUrl ?>" class="nav-logo"><?php echo htmlspecialchars($appName); ?></a>
+      <a href="<?= $baseUrl ?>" class="nav-logo" aria-label="DentaTrak home"><img src="images/main.png" alt="DentaTrak" style="height: auto; width: auto; max-width: 140px; object-fit: contain; display: block;"></a>
       <div class="nav-actions">
         <a href="<?= $baseUrl ?>login.php" class="nav-login">Log In</a>
         <a href="<?= $baseUrl ?>login.php" class="nav-cta">Start 90-Day Free Trial</a>
@@ -146,7 +146,7 @@ $articleUrls = $appConfig['public_urls'] ?? [];
     <h2>What Dental Case Tracking Software Is</h2>
 
     <p>
-      Dental case tracking software is a system dedicated to following a case through every stage of its lifecycle — not just the appointment on the calendar, but everything that happens between appointments: the lab fabricating the restoration, the specialist completing a referral, the front desk waiting to hear a case is ready.
+      Dental case tracking software is a system dedicated to following a case through every stage of its lifecycle, not just the appointment on the calendar, but everything that happens between appointments: the lab fabricating the restoration, the specialist completing a referral, the front desk waiting to hear a case is ready.
     </p>
 
     <p>
@@ -156,12 +156,12 @@ $articleUrls = $appConfig['public_urls'] ?? [];
     <h2>Why Practices Need It</h2>
 
     <p>
-      Most dental practices manage complex cases without a dedicated system. Case information lives in scattered places — a coordinator's memory, sticky notes, a spreadsheet, notes buried in the PMS — and problems only surface once they're already expensive.
+      Most dental practices manage complex cases without a dedicated system. Case information lives in scattered places: a coordinator's memory, sticky notes, a spreadsheet, and notes buried in the PMS. Problems only surface once they're already expensive.
     </p>
 
     <ul>
       <li><strong>Cases tracked in memory:</strong> The dentist or coordinator knows where things stand, but that knowledge isn't shared. When someone is out sick or busy, cases stall because no one else knows the status.</li>
-      <li><strong>No ownership or accountability:</strong> Multiple people touch a case — hygienist, assistant, coordinator, dentist. But no one is clearly responsible for the next step. Handoffs become drop-offs.</li>
+      <li><strong>No ownership or accountability:</strong> Multiple people touch a case (hygienist, assistant, coordinator, dentist). But no one is clearly responsible for the next step. Handoffs become drop-offs.</li>
       <li><strong>Delays only noticed after impact:</strong> By the time someone realizes a case is stalled, the patient has already waited too long, the lab work may need to be redone, or chair time has been wasted.</li>
     </ul>
 
@@ -178,7 +178,7 @@ $articleUrls = $appConfig['public_urls'] ?? [];
       </li>
       <li>
         <strong>Between a referral and the practice</strong>
-        A case is sent to a specialist and the loop never formally closes — no one confirms the patient was seen or the next step was completed.
+        A case is sent to a specialist and the loop never formally closes. No one confirms the patient was seen or the next step was completed.
       </li>
       <li>
         <strong>Across staff handoffs</strong>
@@ -314,7 +314,7 @@ $articleUrls = $appConfig['public_urls'] ?? [];
   <!-- Footer -->
   <footer class="footer">
     <div class="footer-inner">
-      <span class="footer-logo"><?php echo htmlspecialchars($appName); ?></span>
+      <img src="images/main.png" alt="DentaTrak" class="footer-logo" style="height: auto; width: auto; max-width: 140px; object-fit: contain; display: block;">
       <div class="footer-links">
         <a href="<?= $baseUrl . ($articleUrls['page_about'] ?? 'about') ?>" class="footer-link">About</a>
         <a href="<?= $baseUrl . ($articleUrls['page_resources'] ?? 'resources') ?>" class="footer-link">Resources</a>

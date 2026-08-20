@@ -20,7 +20,7 @@ $articleUrls = $appConfig['public_urls'] ?? [];
     gtag('config', 'G-MBJDENR3H2');
   </script>
 
-  <meta name="description" content="Track every case sent to the dental lab — shipping dates, expected returns, overdue cases, and remakes — in one place. See how DentaTrak keeps lab cases visible.">
+  <meta name="description" content="Track every case sent to the dental lab (shipping dates, expected returns, overdue cases, and remakes) in one place. See how DentaTrak keeps lab cases visible.">
   <title>Dental Lab Case Tracking for Dental Practices | DentaTrak</title>
   <link rel="canonical" href="https://dentatrak.com/dental-lab-case-tracking">
 
@@ -73,7 +73,7 @@ $articleUrls = $appConfig['public_urls'] ?? [];
         "name": "What is dental lab case tracking?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "Dental lab case tracking is the practice of monitoring a case from the moment it's sent to an external lab through fabrication, return, and delivery to the patient — including sent date, expected return date, actual return, and whether it's overdue."
+          "text": "Dental lab case tracking is the practice of monitoring a case from the moment it's sent to an external lab through fabrication, return, and delivery to the patient, including sent date, expected return date, actual return, and whether it's overdue."
         }
       },
       {
@@ -100,7 +100,7 @@ $articleUrls = $appConfig['public_urls'] ?? [];
   <!-- Navigation -->
   <nav class="nav">
     <div class="nav-inner">
-      <a href="<?= $baseUrl ?>" class="nav-logo"><?php echo htmlspecialchars($appName); ?></a>
+      <a href="<?= $baseUrl ?>" class="nav-logo" aria-label="DentaTrak home"><img src="images/main.png" alt="DentaTrak" style="height: auto; width: auto; max-width: 140px; object-fit: contain; display: block;"></a>
       <div class="nav-actions">
         <a href="<?= $baseUrl ?>login.php" class="nav-login">Log In</a>
         <a href="<?= $baseUrl ?>login.php" class="nav-cta">Start 90-Day Free Trial</a>
@@ -131,7 +131,7 @@ $articleUrls = $appConfig['public_urls'] ?? [];
 
     <div class="answer-box">
       <p>
-        Dental lab case tracking is the practice of monitoring a case from the moment it's sent to an external lab through fabrication, return, and delivery to the patient. It covers the sent date, expected return date, actual return, and whether a case is overdue — the specific information practices need to catch lab delays before they affect a patient's appointment.
+        Dental lab case tracking is the practice of monitoring a case from the moment it's sent to an external lab through fabrication, return, and delivery to the patient. It covers the sent date, expected return date, actual return, and whether a case is overdue: the specific information practices need to catch lab delays before they affect a patient's appointment.
       </p>
     </div>
 
@@ -180,7 +180,7 @@ $articleUrls = $appConfig['public_urls'] ?? [];
     <h2>How DentaTrak Tracks Lab Dependencies</h2>
 
     <p>
-      DentaTrak tracks lab-dependent cases as part of its full case lifecycle: the sent date and expected return date are recorded when a case goes out, and cases that pass their expected return date are surfaced automatically rather than requiring someone to check. This is part of the same case record used to track ownership, status, and handoffs across the practice — see the full <a href="<?= $baseUrl . ($articleUrls['article_dental_case_tracking_software'] ?? 'dental-case-tracking-software') ?>" class="content-link">dental case tracking software</a> overview for how this fits together.
+      DentaTrak tracks lab-dependent cases as part of its full case lifecycle: the sent date and expected return date are recorded when a case goes out, and cases that pass their expected return date are surfaced automatically rather than requiring someone to check. This is part of the same case record used to track ownership, status, and handoffs across the practice. See the full <a href="<?= $baseUrl . ($articleUrls['article_dental_case_tracking_software'] ?? 'dental-case-tracking-software') ?>" class="content-link">dental case tracking software</a> overview for how this fits together.
     </p>
 
     <p>
@@ -190,14 +190,14 @@ $articleUrls = $appConfig['public_urls'] ?? [];
     <h2>Reducing Remakes Through Better Visibility</h2>
 
     <p>
-      Not every remake is preventable, but some are the direct result of a breakdown in communication rather than a clinical issue — a shade mismatch that wasn't caught before a case went out, or a case that sat too long and needed to be redone because circumstances changed. Recording remakes alongside case status makes it possible to see whether a pattern exists.
+      Not every remake is preventable, but some are the direct result of a breakdown in communication rather than a clinical issue, such as a shade mismatch that wasn't caught before a case went out, or a case that sat too long and needed to be redone because circumstances changed. Recording remakes alongside case status makes it possible to see whether a pattern exists.
     </p>
 
     <h2>Frequently Asked Questions</h2>
 
     <div class="faq-item">
       <h3>What is dental lab case tracking?</h3>
-      <p>Dental lab case tracking is the practice of monitoring a case from the moment it's sent to an external lab through fabrication, return, and delivery to the patient — including sent date, expected return date, actual return, and whether it's overdue.</p>
+      <p>Dental lab case tracking is the practice of monitoring a case from the moment it's sent to an external lab through fabrication, return, and delivery to the patient, including sent date, expected return date, actual return, and whether it's overdue.</p>
     </div>
 
     <div class="faq-item">
@@ -230,7 +230,7 @@ $articleUrls = $appConfig['public_urls'] ?? [];
   <!-- Footer -->
   <footer class="footer">
     <div class="footer-inner">
-      <span class="footer-logo"><?php echo htmlspecialchars($appName); ?></span>
+      <img src="images/main.png" alt="DentaTrak" class="footer-logo" style="height: auto; width: auto; max-width: 140px; object-fit: contain; display: block;">
       <div class="footer-links">
         <a href="<?= $baseUrl . ($articleUrls['page_about'] ?? 'about') ?>" class="footer-link">About</a>
         <a href="<?= $baseUrl . ($articleUrls['page_resources'] ?? 'resources') ?>" class="footer-link">Resources</a>

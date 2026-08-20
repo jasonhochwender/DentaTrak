@@ -549,7 +549,7 @@ $baaVersion = 'v1.0-2026-08-07';
             </p>
             <?php elseif ($entitlement['upgrade_target'] === 'scale'): ?>
             <p style="margin: 24px 0; color: #374151; line-height: 1.6;">
-                Upgrade to <strong>Scale</strong> for 5 included practices under one account — everything in Control, plus support for additional practices as your organization grows.
+                Upgrade to <strong>Scale</strong> for 5 included practices under one account, with everything in Control plus support for additional practices as your organization grows.
             </p>
             <?php else: ?>
             <p style="margin: 24px 0; color: #374151; line-height: 1.6;">

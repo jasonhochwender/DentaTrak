@@ -89,7 +89,7 @@ $articleUrls = $appConfig['public_urls'] ?? [];
         "name": "Does tracking crown and bridge cases require clinical software?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "No. Case tracking software focuses on workflow visibility — status, ownership, and timing — rather than clinical charting or treatment planning, which remain the role of your clinical and practice management systems."
+          "text": "No. Case tracking software focuses on workflow visibility (status, ownership, and timing) rather than clinical charting or treatment planning, which remain the role of your clinical and practice management systems."
         }
       }
     ]
@@ -100,7 +100,7 @@ $articleUrls = $appConfig['public_urls'] ?? [];
   <!-- Navigation -->
   <nav class="nav">
     <div class="nav-inner">
-      <a href="<?= $baseUrl ?>" class="nav-logo"><?php echo htmlspecialchars($appName); ?></a>
+      <a href="<?= $baseUrl ?>" class="nav-logo" aria-label="DentaTrak home"><img src="images/main.png" alt="DentaTrak" style="height: auto; width: auto; max-width: 140px; object-fit: contain; display: block;"></a>
       <div class="nav-actions">
         <a href="<?= $baseUrl ?>login.php" class="nav-login">Log In</a>
         <a href="<?= $baseUrl ?>login.php" class="nav-cta">Start 90-Day Free Trial</a>
@@ -131,7 +131,7 @@ $articleUrls = $appConfig['public_urls'] ?? [];
 
     <div class="answer-box">
       <p>
-        Crown and bridge case tracking means following a case from preparation through lab fabrication to final seating, with a clear record of status and ownership at each stage. This page focuses on workflow visibility and handoffs — not clinical technique or treatment recommendations.
+        Crown and bridge case tracking means following a case from preparation through lab fabrication to final seating, with a clear record of status and ownership at each stage. This page focuses on workflow visibility and handoffs, not clinical technique or treatment recommendations.
       </p>
     </div>
 
@@ -173,7 +173,7 @@ $articleUrls = $appConfig['public_urls'] ?? [];
       </li>
       <li>
         <strong>Waiting on the lab</strong>
-        Knowing the expected return date — and whether it's been missed — before the patient's appointment arrives.
+        Knowing the expected return date, and whether it's been missed, before the patient's appointment arrives.
       </li>
       <li>
         <strong>Case ready but not yet scheduled</strong>
@@ -205,7 +205,7 @@ $articleUrls = $appConfig['public_urls'] ?? [];
 
     <div class="faq-item">
       <h3>Does tracking crown and bridge cases require clinical software?</h3>
-      <p>No. Case tracking software focuses on workflow visibility — status, ownership, and timing — rather than clinical charting or treatment planning, which remain the role of your clinical and practice management systems.</p>
+      <p>No. Case tracking software focuses on workflow visibility (status, ownership, and timing) rather than clinical charting or treatment planning, which remain the role of your clinical and practice management systems.</p>
     </div>
 
     <div class="related-links">
@@ -228,7 +228,7 @@ $articleUrls = $appConfig['public_urls'] ?? [];
   <!-- Footer -->
   <footer class="footer">
     <div class="footer-inner">
-      <span class="footer-logo"><?php echo htmlspecialchars($appName); ?></span>
+      <img src="images/main.png" alt="DentaTrak" class="footer-logo" style="height: auto; width: auto; max-width: 140px; object-fit: contain; display: block;">
       <div class="footer-links">
         <a href="<?= $baseUrl . ($articleUrls['page_about'] ?? 'about') ?>" class="footer-link">About</a>
         <a href="<?= $baseUrl . ($articleUrls['page_resources'] ?? 'resources') ?>" class="footer-link">Resources</a>

@@ -100,7 +100,7 @@ $articleUrls = $appConfig['public_urls'] ?? [];
   <!-- Navigation -->
   <nav class="nav">
     <div class="nav-inner">
-      <a href="<?= $baseUrl ?>" class="nav-logo"><?php echo htmlspecialchars($appName); ?></a>
+      <a href="<?= $baseUrl ?>" class="nav-logo" aria-label="DentaTrak home"><img src="images/main.png" alt="DentaTrak" style="height: auto; width: auto; max-width: 140px; object-fit: contain; display: block;"></a>
       <div class="nav-actions">
         <a href="<?= $baseUrl ?>login.php" class="nav-login">Log In</a>
         <a href="<?= $baseUrl ?>login.php" class="nav-cta">Start 90-Day Free Trial</a>
@@ -131,14 +131,14 @@ $articleUrls = $appConfig['public_urls'] ?? [];
 
     <div class="answer-box">
       <p>
-        A practice management system (PMS) is built to manage scheduling, billing, and patient records. Dedicated dental case tracking software is built to manage the status, ownership, and progress of multi-step cases — crowns, implants, referrals, lab work — as they move through your practice. Most PMS platforms were not designed for the second job, which is why practices often use both.
+        A practice management system (PMS) is built to manage scheduling, billing, and patient records. Dedicated dental case tracking software is built to manage the status, ownership, and progress of multi-step cases (crowns, implants, referrals, lab work) as they move through your practice. Most PMS platforms were not designed for the second job, which is why practices often use both.
       </p>
     </div>
 
     <h2>What a PMS Is Primarily Designed to Manage</h2>
 
     <p>
-      A dental practice management system is the system of record for the business and clinical side of a practice: appointments, patient charts, insurance and billing, and — in many platforms — clinical notes and imaging. It answers questions like "who is scheduled today" and "has this claim been paid."
+      A dental practice management system is the system of record for the business and clinical side of a practice: appointments, patient charts, insurance and billing, and, in many platforms, clinical notes and imaging. It answers questions like "who is scheduled today" and "has this claim been paid."
     </p>
 
     <h2>What Dedicated Case Tracking Manages</h2>
@@ -149,7 +149,7 @@ $articleUrls = $appConfig['public_urls'] ?? [];
 
     <div class="table-wrap">
       <table class="comparison-table">
-        <caption>General comparison — capabilities vary by specific PMS product</caption>
+        <caption>General comparison: capabilities vary by specific PMS product</caption>
         <thead>
           <tr><th>Capability</th><th>Practice management software (PMS)</th><th>Dedicated case tracking</th></tr>
         </thead>
@@ -174,7 +174,7 @@ $articleUrls = $appConfig['public_urls'] ?? [];
     <h2>Where the Two Overlap</h2>
 
     <p>
-      Both systems touch the same patient and the same treatment. A case in DentaTrak references the same crown, implant, or lab case that's scheduled in your PMS. The overlap is the patient and case identity — not the workflow tracking itself.
+      Both systems touch the same patient and the same treatment. A case in DentaTrak references the same crown, implant, or lab case that's scheduled in your PMS. The overlap is the patient and case identity, not the workflow tracking itself.
     </p>
 
     <h2>Where They Differ</h2>
@@ -188,7 +188,7 @@ $articleUrls = $appConfig['public_urls'] ?? [];
     <h2>Do You Need Both?</h2>
 
     <p>
-      If your practice handles crowns, bridges, implants, dentures, or referral-dependent treatments, and cases have ever gone quiet between appointments, a PMS alone is unlikely to give you the visibility to catch that early. Most practices keep their PMS for scheduling and billing and add dedicated case tracking for workflow visibility — the two aren't a replacement for one another.
+      If your practice handles crowns, bridges, implants, dentures, or referral-dependent treatments, and cases have ever gone quiet between appointments, a PMS alone is unlikely to give you the visibility to catch that early. Most practices keep their PMS for scheduling and billing and add dedicated case tracking for workflow visibility. The two aren't a replacement for one another.
     </p>
 
     <h2>How DentaTrak Complements Rather Than Replaces a PMS</h2>
@@ -196,7 +196,7 @@ $articleUrls = $appConfig['public_urls'] ?? [];
     <ul>
       <li><strong>No data migration required:</strong> DentaTrak works alongside your existing PMS. Start tracking cases without disrupting your current workflow.</li>
       <li><strong>Focused scope:</strong> DentaTrak doesn't try to handle scheduling or billing. It does one thing: give you visibility into complex, multi-step cases.</li>
-      <li><strong>Fills a specific gap:</strong> The gap most PMS platforms leave — case status, ownership, and stalled-case visibility — is exactly what DentaTrak is built for.</li>
+      <li><strong>Fills a specific gap:</strong> The gap most PMS platforms leave (case status, ownership, and stalled-case visibility) is exactly what DentaTrak is built for.</li>
     </ul>
 
     <p>
@@ -240,7 +240,7 @@ $articleUrls = $appConfig['public_urls'] ?? [];
   <!-- Footer -->
   <footer class="footer">
     <div class="footer-inner">
-      <span class="footer-logo"><?php echo htmlspecialchars($appName); ?></span>
+      <img src="images/main.png" alt="DentaTrak" class="footer-logo" style="height: auto; width: auto; max-width: 140px; object-fit: contain; display: block;">
       <div class="footer-links">
         <a href="<?= $baseUrl . ($articleUrls['page_about'] ?? 'about') ?>" class="footer-link">About</a>
         <a href="<?= $baseUrl . ($articleUrls['page_resources'] ?? 'resources') ?>" class="footer-link">Resources</a>

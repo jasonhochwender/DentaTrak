@@ -351,7 +351,7 @@ $articleUrls = $appConfig['public_urls'] ?? [];
   <!-- Navigation -->
   <nav class="nav">
     <div class="nav-inner">
-      <a href="<?= $baseUrl ?>" class="nav-logo"><?php echo htmlspecialchars($appName); ?></a>
+      <a href="<?= $baseUrl ?>" class="nav-logo" aria-label="DentaTrak home"><img src="images/main.png" alt="DentaTrak" style="height: auto; width: auto; max-width: 140px; object-fit: contain; display: block;"></a>
       <div class="nav-actions">
         <a href="<?= $baseUrl ?>login.php" class="nav-login">Log In</a>
         <a href="<?= $baseUrl ?>login.php" class="nav-cta">Start 90-Day Free Trial</a>
@@ -376,7 +376,7 @@ $articleUrls = $appConfig['public_urls'] ?? [];
     </p>
     
     <p>
-      Cases get lost between handoffs. Staff rely on memory or scattered notes to know where things stand. Delays are discovered too late—often when the patient is already in the chair or calling to ask what happened.
+      Cases get lost between handoffs. Staff rely on memory or scattered notes to know where things stand. Delays are discovered too late, often when the patient is already in the chair or calling to ask what happened.
     </p>
     
     <p>
@@ -390,7 +390,7 @@ $articleUrls = $appConfig['public_urls'] ?? [];
     </p>
     
     <ul>
-      <li><strong>No centralized system:</strong> Case information lives in different places—the dentist's head, a coordinator's notes, the PMS, a spreadsheet. No one has the full picture.</li>
+      <li><strong>No centralized system:</strong> Case information lives in different places: the dentist's head, a coordinator's notes, the PMS, and a spreadsheet. No one has the full picture.</li>
       <li><strong>No clear ownership:</strong> Multiple people touch a case over its lifecycle. When no one is clearly responsible for the next step, handoffs become drop-offs.</li>
       <li><strong>Lab delays aren't visible:</strong> A case ships to the lab and enters a black box. Staff don't know it's late until the patient arrives and the case isn't ready. See our guide to <a href="<?= $baseUrl . ($articleUrls['article_lab_tracking'] ?? 'dental-lab-case-tracking') ?>" style="color: var(--primary-color); text-decoration: none; font-weight: 500;">dental lab case tracking</a> for more on this specific breakdown.</li>
       <li><strong>Patient reschedules break flow:</strong> A patient cancels or reschedules, and the case falls off the radar. Weeks later, no one remembers where it stands.</li>
@@ -433,7 +433,7 @@ $articleUrls = $appConfig['public_urls'] ?? [];
       <li><strong>Every case has a status:</strong> Is it in prep? At the lab? Waiting on the patient? Ready for delivery? The current state should be obvious at a glance.</li>
       <li><strong>Every case has an owner:</strong> Someone is responsible for the next step. When ownership is clear, accountability follows.</li>
       <li><strong>Every case has a next step:</strong> Not just "in progress" but a specific action: "Schedule seating" or "Follow up with lab" or "Call patient to confirm."</li>
-      <li><strong>External dependencies are visible:</strong> You can see which cases are waiting on labs, referrals, or patient scheduling—and how long they've been waiting.</li>
+      <li><strong>External dependencies are visible:</strong> You can see which cases are waiting on labs, referrals, or patient scheduling, and how long they've been waiting.</li>
       <li><strong>Stalled cases are easy to identify:</strong> Cases that haven't moved in too long should surface automatically, not require someone to remember to check.</li>
     </ul>
     
@@ -450,7 +450,7 @@ $articleUrls = $appConfig['public_urls'] ?? [];
     <ol class="workflow-steps">
       <li>
         <strong>Enter the case when treatment begins</strong>
-        As soon as a multi-step case starts—crown prep, implant placement, bridge work—create a record. Include patient details, case type, lab information, and expected timeline.
+        As soon as a multi-step case starts, such as crown prep, implant placement, or bridge work, create a record. Include patient details, case type, lab information, and expected timeline.
       </li>
       <li>
         <strong>Assign responsibility</strong>
@@ -462,7 +462,7 @@ $articleUrls = $appConfig['public_urls'] ?? [];
       </li>
       <li>
         <strong>Monitor progress over time</strong>
-        Check case status regularly. Update it as the case moves through stages. Look for cases that haven't moved—they're the ones most likely to cause problems.
+        Check case status regularly. Update it as the case moves through stages. Look for cases that haven't moved. They're the ones most likely to cause problems.
       </li>
       <li>
         <strong>Follow through to delivery</strong>
@@ -481,7 +481,7 @@ $articleUrls = $appConfig['public_urls'] ?? [];
     </p>
     
     <p>
-      It gives every case a status, an owner, and a next step. It tracks cases across their full lifecycle—from initial treatment through final delivery. It makes delays visible early, so you can intervene before they become costly problems.
+      It gives every case a status, an owner, and a next step. It tracks cases across their full lifecycle, from initial treatment through final delivery. It makes delays visible early, so you can intervene before they become costly problems.
     </p>
     
     <p>
@@ -522,7 +522,7 @@ $articleUrls = $appConfig['public_urls'] ?? [];
   <!-- Footer -->
   <footer class="footer">
     <div class="footer-inner">
-      <span class="footer-logo"><?php echo htmlspecialchars($appName); ?></span>
+      <img src="images/main.png" alt="DentaTrak" class="footer-logo" style="height: auto; width: auto; max-width: 140px; object-fit: contain; display: block;">
       <div class="footer-links">
         <a href="<?= $baseUrl . ($articleUrls['page_about'] ?? 'about') ?>" class="footer-link">About</a>
         <a href="<?= $baseUrl . ($articleUrls['page_resources'] ?? 'resources') ?>" class="footer-link">Resources</a>
