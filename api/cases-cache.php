@@ -6,6 +6,37 @@ require_once __DIR__ . '/appConfig.php';
 // there and used by isBackwardStatusMovement() below.
 require_once __DIR__ . '/workflow-stages.php';
 
+function ensureDemoGenerationRunsSchema() {
+    global $pdo;
+    static $initialized = false;
+
+    if ($initialized || !$pdo) {
+        return;
+    }
+
+    $sql = "CREATE TABLE IF NOT EXISTS demo_generation_runs (
+        id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+        practice_id INT UNSIGNED NOT NULL,
+        dataset_size VARCHAR(32) NOT NULL,
+        created_by_user_id BIGINT UNSIGNED NOT NULL,
+        created_by_email VARCHAR(255) DEFAULT NULL,
+        created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        active_case_count INT UNSIGNED NOT NULL DEFAULT 0,
+        historical_case_count INT UNSIGNED NOT NULL DEFAULT 0,
+        status VARCHAR(32) NOT NULL DEFAULT 'pending',
+        INDEX idx_practice_id (practice_id),
+        INDEX idx_created_at (created_at),
+        INDEX idx_status (status)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;";
+
+    try {
+        $pdo->exec($sql);
+        $initialized = true;
+    } catch (PDOException $e) {
+        error_log('[demo_generation_runs] Error creating table: ' . $e->getMessage());
+    }
+}
+
 function ensureCasesCacheTable() {
     global $pdo;
     static $initialized = false;
@@ -77,7 +108,9 @@ function ensureCasesCacheTable() {
             "ALTER TABLE cases_cache ADD COLUMN carrier VARCHAR(100) DEFAULT NULL",
             "ALTER TABLE cases_cache ADD COLUMN tracking_number VARCHAR(255) DEFAULT NULL",
             "ALTER TABLE cases_cache ADD COLUMN custom_carrier VARCHAR(255) DEFAULT NULL",
-            "ALTER TABLE cases_cache ADD COLUMN patient_appointment_date VARCHAR(50) DEFAULT NULL"
+            "ALTER TABLE cases_cache ADD COLUMN patient_appointment_date VARCHAR(50) DEFAULT NULL",
+            "ALTER TABLE cases_cache ADD COLUMN demo_generation_run_id BIGINT UNSIGNED DEFAULT NULL",
+            "ALTER TABLE cases_cache ADD INDEX idx_demo_generation_run_id (demo_generation_run_id)"
         ];
         
         foreach ($alterSqls as $alterSql) {
@@ -121,6 +154,8 @@ function saveCaseToCache(array $caseData) {
         $practiceId = $_SESSION['current_practice_id'];
     }
 
+    $demoRunId = isset($caseData['demoGenerationRunId']) && $caseData['demoGenerationRunId'] !== '' ? (int)$caseData['demoGenerationRunId'] : null;
+
     $sql = "INSERT INTO cases_cache (
                 case_id,
                 drive_folder_id,
@@ -147,7 +182,8 @@ function saveCaseToCache(array $caseData) {
                 tracking_number,
                 custom_carrier,
                 practice_id,
-                created_by_user_id
+                created_by_user_id,
+                demo_generation_run_id
             ) VALUES (
                 :case_id,
                 :drive_folder_id,
@@ -174,7 +210,8 @@ function saveCaseToCache(array $caseData) {
                 :tracking_number,
                 :custom_carrier,
                 :practice_id,
-                :created_by_user_id
+                :created_by_user_id,
+                :demo_generation_run_id
             )
             ON DUPLICATE KEY UPDATE
                 drive_folder_id = VALUES(drive_folder_id),
@@ -200,11 +237,12 @@ function saveCaseToCache(array $caseData) {
                 carrier = VALUES(carrier),
                 tracking_number = VALUES(tracking_number),
                 custom_carrier = VALUES(custom_carrier),
-                practice_id = VALUES(practice_id)
+                practice_id = VALUES(practice_id),
+                demo_generation_run_id = VALUES(demo_generation_run_id)
                 /* created_by_user_id intentionally omitted: immutable after creation */";
 
     $clinicalDetailsJson = isset($caseData['clinicalDetails']) ? json_encode($caseData['clinicalDetails']) : null;
-    
+
     try {
         $stmt = $pdo->prepare($sql);
         $stmt->execute([
@@ -234,6 +272,7 @@ function saveCaseToCache(array $caseData) {
             'custom_carrier' => $customCarrier,
             'practice_id' => $practiceId,
             'created_by_user_id' => isset($caseData['createdByUserId']) ? ($caseData['createdByUserId'] !== '' ? (int)$caseData['createdByUserId'] : null) : null,
+            'demo_generation_run_id' => $demoRunId,
         ]);
     } catch (PDOException $e) {
         error_log('[cases_cache] Error saving case: ' . $e->getMessage());

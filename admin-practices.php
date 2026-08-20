@@ -771,6 +771,41 @@ $userEmail = $_SESSION['user_email'] ?? '';
     <script>
         const yesNo = value => value ? 'Yes' : 'No';
 
+        function formatRelativeTimestamp(dateStr, emptyLabel = '—') {
+            if (!dateStr || dateStr === '0000-00-00 00:00:00') {
+                return '<span style="color: #9ca3af;">' + escapeHtml(emptyLabel) + '</span>';
+            }
+
+            const date = new Date(dateStr);
+            if (isNaN(date.getTime())) {
+                return '<span style="color: #9ca3af;">' + escapeHtml(emptyLabel) + '</span>';
+            }
+
+            const now = new Date();
+            now.setHours(0, 0, 0, 0);
+            const activityDate = new Date(date);
+            activityDate.setHours(0, 0, 0, 0);
+            const msPerDay = 1000 * 60 * 60 * 24;
+            const diffDays = Math.round((now.getTime() - activityDate.getTime()) / msPerDay);
+
+            let text;
+            if (diffDays < 0) {
+                text = formatDate(dateStr); // future (clock skew)
+            } else if (diffDays === 0) {
+                text = 'Today';
+            } else if (diffDays === 1) {
+                text = 'Yesterday';
+            } else if (diffDays <= 6) {
+                text = diffDays + ' days ago';
+            } else if (diffDays <= 90) {
+                text = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+            } else {
+                text = date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+            }
+
+            return '<span title="' + escapeHtml(formatDateTime(dateStr)) + '">' + escapeHtml(text) + '</span>';
+        }
+
         function adminSubscriptionStatusClass(status) {
             switch (status) {
                 case 'active': return 'success';
@@ -857,7 +892,8 @@ $userEmail = $_SESSION['user_email'] ?? '';
                 '<th>Owner</th>' +
                 '<th>BAA</th>' +
                 '<th>Users</th>' +
-                '<th>Cases</th>' +
+                '<th>Active Cases</th>' +
+                '<th>Last Activity</th>' +
                 '<th>Actions</th>' +
                 '</tr></thead><tbody>';
             
@@ -900,7 +936,8 @@ $userEmail = $_SESSION['user_email'] ?? '';
                     '<td>' + ownerDisplay + '</td>' +
                     '<td><span class="baa-badge ' + baaClass + '">' + baaText + '</span></td>' +
                     '<td>' + (practice.user_count || 0) + '</td>' +
-                    '<td>' + (practice.case_count || 0) + '</td>' +
+                    '<td>' + (practice.adoption?.active_cases || 0) + '</td>' +
+                    '<td>' + formatRelativeTimestamp(practice.adoption?.last_activity, 'No activity recorded') + '</td>' +
                     '<td class="compact-actions" onclick="event.stopPropagation()">' +
                         (isActive
                             ? '<button class="action-btn danger" onclick="deactivatePractice(' + practice.id + ', \'' + escapeHtml(practice.practice_name || '').replace(/'/g, "\\'") + '\')">Deactivate</button>'
@@ -944,6 +981,7 @@ $userEmail = $_SESSION['user_email'] ?? '';
                 '</div>' +
                 '<div class="detail-tabs">' +
                     '<button class="detail-tab active" onclick="showTab(\'compliance\', ' + practiceId + ')">Compliance Details</button>' +
+                    '<button class="detail-tab" onclick="showTab(\'usage\', ' + practiceId + ')">Usage & Adoption</button>' +
                     '<button class="detail-tab" onclick="showTab(\'subscription\', ' + practiceId + ')">Subscription</button>' +
                     '<button class="detail-tab" onclick="showTab(\'phi\', ' + practiceId + ')">PHI Access Log</button>' +
                     '<button class="detail-tab" onclick="showTab(\'users\', ' + practiceId + ')">Users</button>' +
@@ -966,6 +1004,8 @@ $userEmail = $_SESSION['user_email'] ?? '';
             
             if (tab === 'compliance') {
                 loadComplianceTab(practiceId);
+            } else if (tab === 'usage') {
+                loadAdoptionTab(practiceId);
             } else if (tab === 'subscription') {
                 loadSubscriptionTab(practiceId);
             } else if (tab === 'phi') {
@@ -1081,6 +1121,72 @@ $userEmail = $_SESSION['user_email'] ?? '';
             document.getElementById('detailContent').innerHTML = html;
         }
 
+        function loadAdoptionTab(practiceId) {
+            fetch('api/admin-practices.php?action=adoption&practice_id=' + practiceId, { credentials: 'same-origin' })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        renderAdoptionTab(data.adoption);
+                    } else {
+                        document.getElementById('detailContent').innerHTML =
+                            '<div class="empty-state">Error: ' + (data.message || 'Unknown error') + '</div>';
+                    }
+                });
+        }
+
+        function renderAdoptionTab(adoption) {
+            const sub = (adoption.subscription || (practices.find(p => p.id === selectedPracticeId) || {}).subscription) || {};
+
+            const summaryHelp = {
+                'Recent case activity': 'Case activity recorded within the last 30 days',
+                'Historical case activity': 'Case activity exists, but none within the last 30 days',
+                'No recorded case activity': 'No recorded case creation or workflow activity'
+            };
+
+            let html = '<div class="compliance-detail" style="margin-bottom: 14px; grid-column: 1 / -1;">' +
+                '<div class="label">Adoption Summary</div>' +
+                '<div class="value" style="font-size: 1.1rem; font-weight: 600;">' + escapeHtml(adoption.summary) + '</div>' +
+                '<div style="font-size: 0.8rem; color: #6b7280; margin-top: 4px;">' + escapeHtml(summaryHelp[adoption.summary] || '') + '</div>' +
+                '</div>';
+
+            if (sub.plan_display) {
+                html += '<div class="compliance-detail" style="margin-bottom: 14px; grid-column: 1 / -1;">' +
+                    '<div class="label">Subscription Context</div>' +
+                    '<div class="value">' + escapeHtml(sub.plan_display || '—') + ' • ' + escapeHtml(sub.status_display || '—') +
+                    (sub.is_trialing && sub.trial_display ? ' • ' + escapeHtml(sub.trial_display) : '') +
+                    '</div>' +
+                    '</div>';
+            }
+
+            const metric = (label, value) => {
+                return '<div class="compliance-detail">' +
+                    '<div class="label">' + escapeHtml(label) + '</div>' +
+                    '<div class="value" style="font-size: 1.2rem;">' + (value !== null && value !== undefined && value !== '' ? value : '—') + '</div>' +
+                    '</div>';
+            };
+
+            html += '<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">';
+            html += metric('Total Users', adoption.total_users);
+            html += metric('Users With Recorded Login', adoption.users_with_login);
+            html += metric('No Recorded Login', adoption.users_without_login);
+            html += metric('Most Recent Login', formatRelativeTimestamp(adoption.most_recent_login, 'No recorded login'));
+            html += metric('Active Cases', adoption.active_cases);
+            html += metric('Cases Created Last 30 Days', adoption.created_last_30_days);
+            html += metric('Delivered Last 30 Days', adoption.delivered_last_30_days);
+            html += metric('Last Activity', formatRelativeTimestamp(adoption.last_activity, 'No activity recorded'));
+
+            if (adoption.demo_case_count > 0) {
+                html += '<div class="compliance-detail" style="grid-column: 1 / -1;">' +
+                    '<div class="label">Demo Data</div>' +
+                    '<div class="value">' + adoption.demo_case_count + ' demo case' + (adoption.demo_case_count === 1 ? '' : 's') + '</div>' +
+                    '</div>';
+            }
+
+            html += '</div>';
+
+            document.getElementById('detailContent').innerHTML = html;
+        }
+
         function loadPHITab(practiceId) {
             fetch('api/admin-practices.php?action=phi_log&practice_id=' + practiceId + '&limit=100', { credentials: 'same-origin' })
                 .then(response => response.json())
@@ -1132,6 +1238,7 @@ $userEmail = $_SESSION['user_email'] ?? '';
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
+                        currentPracticeUsers = data.users || [];
                         renderUsersTab(data.users);
                     } else {
                         document.getElementById('detailContent').innerHTML = 
@@ -1147,40 +1254,266 @@ $userEmail = $_SESSION['user_email'] ?? '';
                 return;
             }
 
-            let html = '<div class="table-scroll"><table class="users-table"><thead><tr>' +
-                '<th>User</th>' +
-                '<th>Role</th>' +
-                '<th class="permission">Admin</th>' +
-                '<th class="permission">Assigned Only</th>' +
-                '<th class="permission">Insights</th>' +
-                '<th class="permission">Edit Cases</th>' +
-                '<th class="permission">Lab</th>' +
-                '<th class="permission">Active</th>' +
+            const total = users.length;
+            const withLogin = users.filter(u => u.last_login).length;
+            const withoutLogin = total - withLogin;
+
+            let html = '<div style="margin-bottom: 16px; color: #6b7280; font-size: 0.9rem;">' +
+                escapeHtml(total + ' User' + (total === 1 ? '' : 's')) + ' · ' +
+                withLogin + ' with recorded login' + (withLogin === 1 ? '' : 's') +
+                (withoutLogin > 0 ? ' · ' + withoutLogin + ' with no login recorded' : '') +
+                '</div>';
+
+            html += '<div class="table-scroll"><table class="users-table" id="usersTable"><thead><tr>' +
+                '<th data-sort="name" style="cursor: pointer;">User ↕</th>' +
+                '<th data-sort="role" style="cursor: pointer;">Role ↕</th>' +
+                '<th data-sort="last-login" style="cursor: pointer;">Last Login ↕</th>' +
+                '<th data-sort="created-at" style="cursor: pointer;">Account Created ↕</th>' +
+                '<th data-sort="status" style="cursor: pointer;">Status ↕</th>' +
+                '<th>Actions</th>' +
                 '</tr></thead><tbody>';
 
             users.forEach(user => {
                 const name = [user.first_name, user.last_name].filter(Boolean).join(' ') || user.email;
                 const isOwner = user.is_owner;
-                const isAdmin = isOwner || user.role === 'admin';
+                const isAdmin = !isOwner && user.role === 'admin';
                 const assignedOnly = !isOwner && user.limited_visibility;
-                const insights = isOwner || user.can_view_analytics;
-                const editCases = isOwner || user.can_edit_cases;
-                const lab = user.is_lab;
+                let role = 'User';
+                if (isOwner) role = 'Owner';
+                else if (isAdmin) role = 'Admin';
+                else if (assignedOnly) role = 'Assigned Only';
+
+                const login = formatRelativeLogin(user.last_login);
+                const loginClass = user.last_login ? '' : ' style="color: #9ca3af;"';
+
+                let status = 'Active';
+                let statusClass = '';
+                if (user.is_active === false || user.is_active === 0 || user.is_active === '0') {
+                    status = 'Disabled';
+                    statusClass = ' style="color: #dc2626; font-weight: 500;"';
+                } else if (user.email_verified === false || user.email_verified === 0 || user.email_verified === '0') {
+                    status = 'Pending Verification';
+                    statusClass = ' style="color: #d97706; font-weight: 500;"';
+                }
 
                 html += '<tr>' +
-                    '<td><strong>' + escapeHtml(name) + '</strong><br><small class="text-muted">' + escapeHtml(user.email) + '</small></td>' +
-                    '<td>' + (isOwner ? 'Owner' : 'User') + '</td>' +
-                    '<td class="permission">' + yesNo(isAdmin) + '</td>' +
-                    '<td class="permission">' + yesNo(assignedOnly) + '</td>' +
-                    '<td class="permission">' + yesNo(insights) + '</td>' +
-                    '<td class="permission">' + yesNo(editCases) + '</td>' +
-                    '<td class="permission">' + yesNo(lab) + '</td>' +
-                    '<td class="permission">' + yesNo(user.is_active) + '</td>' +
+                    '<td data-name="' + escapeHtml(name.toLowerCase()) + '"><strong>' + escapeHtml(name) + '</strong><br><small class="text-muted">' + escapeHtml(user.email) + '</small></td>' +
+                    '<td data-role="' + escapeHtml(role) + '">' + escapeHtml(role) + '</td>' +
+                    '<td data-last-login="' + (user.last_login || '') + '" title="' + escapeHtml(login.title) + '"' + loginClass + '>' + escapeHtml(login.text) + '</td>' +
+                    '<td data-created-at="' + (user.user_created_at || '') + '">' + formatDate(user.user_created_at) + '</td>' +
+                    '<td data-status="' + escapeHtml(status) + '"' + statusClass + '>' + escapeHtml(status) + '</td>' +
+                    '<td><button class="action-btn primary" onclick="openEmailModal(event, ' + selectedPracticeId + ', ' + user.id + ')">Email</button></td>' +
                     '</tr>';
             });
 
             html += '</tbody></table></div>';
             document.getElementById('detailContent').innerHTML = html;
+
+            // Attach lightweight column sorting
+            document.querySelectorAll('#usersTable th[data-sort]').forEach(th => {
+                th.addEventListener('click', () => sortUsersTable(th.dataset.sort));
+            });
+        }
+
+        let currentUsersSort = { column: 'name', direction: 'asc' };
+
+        function sortUsersTable(column) {
+            const tbody = document.querySelector('#usersTable tbody');
+            if (!tbody) return;
+
+            if (currentUsersSort.column === column) {
+                currentUsersSort.direction = currentUsersSort.direction === 'asc' ? 'desc' : 'asc';
+            } else {
+                currentUsersSort.column = column;
+                currentUsersSort.direction = 'asc';
+            }
+
+            const rows = Array.from(tbody.querySelectorAll('tr'));
+            const dir = currentUsersSort.direction === 'asc' ? 1 : -1;
+
+            rows.sort((a, b) => {
+                const aCell = a.querySelector('td[data-' + column + ']');
+                const bCell = b.querySelector('td[data-' + column + ']');
+                let aVal = aCell ? (aCell.getAttribute('data-' + column) || '') : '';
+                let bVal = bCell ? (bCell.getAttribute('data-' + column) || '') : '';
+
+                if (column === 'last-login' || column === 'created-at') {
+                    // Empty/no-login sorts to the bottom for newest-first, top for oldest-first
+                    if (!aVal) aVal = '0000-00-00 00:00:00';
+                    if (!bVal) bVal = '0000-00-00 00:00:00';
+                    return dir * aVal.localeCompare(bVal);
+                }
+
+                return dir * aVal.toLowerCase().localeCompare(bVal.toLowerCase());
+            });
+
+            rows.forEach(row => tbody.appendChild(row));
+        }
+
+        let currentPracticeUsers = [];
+        let currentEmailState = { practiceId: null, userId: null, user: null, sending: false };
+
+        function openEmailModal(event, practiceId, userId) {
+            if (event) {
+                event.stopPropagation();
+            }
+
+            const practice = practices.find(p => p.id === practiceId);
+            const user = currentPracticeUsers ? currentPracticeUsers.find(u => u.id === userId) : null;
+            if (!user || !practice) {
+                alert('User or practice not found');
+                return;
+            }
+
+            currentEmailState = { practiceId, userId, user, sending: false };
+            const sub = practice.subscription || {};
+            const isTrialing = sub.status === 'trialing';
+
+            const name = [user.first_name, user.last_name].filter(Boolean).join(' ') || user.email;
+            const trialOption = isTrialing
+                ? '<option value="trial_reminder">Trial Reminder</option>'
+                : '';
+
+            const html =
+                '<div class="form-group">' +
+                    '<label>To</label>' +
+                    '<p style="margin: 0; color: #1f2937;"><strong>' + escapeHtml(name) + '</strong><br><small class="text-muted">' + escapeHtml(user.email) + '</small></p>' +
+                '</div>' +
+                '<div class="form-group">' +
+                    '<label>Practice</label>' +
+                    '<p style="margin: 0; color: #1f2937;">' + escapeHtml(practice.practice_name || practice.legal_name || 'Unnamed') + '</p>' +
+                '</div>' +
+                '<div class="form-group">' +
+                    '<label for="emailType">Email Type</label>' +
+                    '<select id="emailType" class="form-control" onchange="updateEmailPreview()" style="width: 100%; padding: 8px; border: 1px solid #d1d5db; border-radius: 6px;">' +
+                        '<option value="getting_started">Getting Started</option>' +
+                        '<option value="user_guide">User Guide</option>' +
+                        trialOption +
+                        '<option value="custom">Custom Support Message</option>' +
+                    '</select>' +
+                '</div>' +
+                '<div id="customFields" style="display: none;">' +
+                    '<div class="form-group">' +
+                        '<label for="customEmailSubject">Subject</label>' +
+                        '<input type="text" id="customEmailSubject" class="form-control" style="width: 100%; padding: 8px; border: 1px solid #d1d5db; border-radius: 6px;" placeholder="e.g. A quick follow-up">' +
+                    '</div>' +
+                    '<div class="form-group">' +
+                        '<label for="customEmailMessage">Message</label>' +
+                        '<textarea id="customEmailMessage" rows="5" class="form-control" style="width: 100%; padding: 8px; border: 1px solid #d1d5db; border-radius: 6px;" placeholder="Plain text only"></textarea>' +
+                    '</div>' +
+                '</div>' +
+                '<div class="form-group" id="emailPreviewGroup">' +
+                    '<label>Preview</label>' +
+                    '<div id="emailPreview" style="background: #f9fafb; padding: 12px; border-radius: 8px; font-size: 0.9rem; color: #374151; border: 1px solid #e5e7eb; white-space: pre-line;">Loading preview...</div>' +
+                '</div>' +
+                '<div class="modal-actions" style="margin-top: 20px;">' +
+                    '<button class="action-btn" onclick="closeModal(\'emailModal\')">Cancel</button>' +
+                    '<button class="action-btn primary" id="confirmEmailBtn" onclick="sendAdminEmail()">Send Email</button>' +
+                '</div>';
+
+            document.getElementById('emailContent').innerHTML = html;
+            document.getElementById('emailModal').classList.add('active');
+            updateEmailPreview();
+        }
+
+        function updateEmailPreview() {
+            const type = document.getElementById('emailType').value;
+            const customFields = document.getElementById('customFields');
+            const preview = document.getElementById('emailPreview');
+
+            if (!customFields || !preview) return;
+
+            customFields.style.display = (type === 'custom') ? 'block' : 'none';
+
+            const user = currentEmailState.user || {};
+            const practice = practices.find(p => p.id === currentEmailState.practiceId) || {};
+            const firstName = user.first_name || '';
+            const practiceName = practice.practice_name || practice.legal_name || 'Your Practice';
+            const sub = practice.subscription || {};
+
+            let text = '';
+            if (type === 'getting_started') {
+                text = 'Hi ' + (firstName || 'there') + ',\n\n';
+                text += 'You have access to DentaTrak for ' + practiceName + '.\n\n';
+                text += 'DentaTrak helps dental practices track cases across the office, labs, and referrals.\n\n';
+                text += 'Subject: Getting started with DentaTrak';
+            } else if (type === 'user_guide') {
+                text = 'Hi ' + (firstName || 'there') + ',\n\n';
+                text += 'Here is a link to the DentaTrak User Guide for ' + practiceName + '.\n\n';
+                text += 'Subject: DentaTrak User Guide';
+            } else if (type === 'trial_reminder') {
+                text = 'Hi ' + (firstName || 'there') + ',\n\n';
+                text += 'Reminder: the DentaTrak trial for ' + practiceName + ' (' + (sub.plan_display || '—') + ') is ending soon.\n';
+                text += 'Trial end: ' + (sub.trial_ends_at ? formatDate(sub.trial_ends_at) : '—') + ' (' + (sub.trial_display || '') + ').\n\n';
+                text += 'Subject: Your DentaTrak trial is ending soon';
+            } else if (type === 'custom') {
+                const subject = document.getElementById('customEmailSubject').value.trim() || '(no subject yet)';
+                const message = document.getElementById('customEmailMessage').value.trim() || '(no message yet)';
+                text = 'Hi ' + (firstName || 'there') + ',\n\n';
+                text += escapeHtml(message) + '\n\n';
+                text += 'Subject: ' + escapeHtml(subject);
+            }
+
+            preview.textContent = text;
+        }
+
+        function sendAdminEmail() {
+            if (currentEmailState.sending) return;
+
+            const type = document.getElementById('emailType').value;
+            const customSubject = document.getElementById('customEmailSubject')?.value.trim() || '';
+            const customMessage = document.getElementById('customEmailMessage')?.value.trim() || '';
+
+            currentEmailState.sending = true;
+            const btn = document.getElementById('confirmEmailBtn');
+            if (btn) btn.textContent = 'Sending...';
+
+            const payload = {
+                practice_id: currentEmailState.practiceId,
+                user_id: currentEmailState.userId,
+                email_type: type
+            };
+            if (type === 'custom') {
+                payload.custom_subject = customSubject;
+                payload.custom_message = customMessage;
+            }
+
+            fetch('api/admin-practices.php?action=send_email', {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            })
+                .then(response => response.json().then(data => ({ response, data })))
+                .then(({ response, data }) => {
+                    currentEmailState.sending = false;
+                    if (btn) btn.textContent = 'Send Email';
+
+                    if (response.ok && data.success) {
+                        showAdminToast(data.message || 'Email sent');
+                        closeModal('emailModal');
+                    } else {
+                        alert(data.message || 'Failed to send email');
+                    }
+                })
+                .catch(error => {
+                    currentEmailState.sending = false;
+                    if (btn) btn.textContent = 'Send Email';
+                    alert('Error: ' + error.message);
+                });
+        }
+
+        function showAdminToast(message) {
+            const existing = document.getElementById('adminToast');
+            if (existing) existing.remove();
+
+            const toast = document.createElement('div');
+            toast.id = 'adminToast';
+            toast.style.cssText = 'position: fixed; bottom: 24px; right: 24px; background: #065f46; color: white; padding: 12px 20px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 2000; font-size: 0.9rem;';
+            toast.textContent = message;
+            document.body.appendChild(toast);
+
+            setTimeout(() => toast.remove(), 3000);
         }
         
         function loadSettingsTab(practiceId) {
@@ -1513,6 +1846,41 @@ $userEmail = $_SESSION['user_email'] ?? '';
             document.getElementById(modalId).classList.remove('active');
         }
         
+        function formatRelativeLogin(dateStr) {
+            if (!dateStr || dateStr === '0000-00-00 00:00:00') {
+                return { text: 'Never', title: 'No recorded login' };
+            }
+
+            const date = new Date(dateStr);
+            if (isNaN(date.getTime())) {
+                return { text: 'No login recorded', title: 'Timestamp unavailable' };
+            }
+
+            const now = new Date();
+            now.setHours(0, 0, 0, 0);
+            const loginDate = new Date(date);
+            loginDate.setHours(0, 0, 0, 0);
+            const msPerDay = 1000 * 60 * 60 * 24;
+            const diffDays = Math.round((now.getTime() - loginDate.getTime()) / msPerDay);
+
+            let text;
+            if (diffDays < 0) {
+                text = formatDate(dateStr); // future (clock skew)
+            } else if (diffDays === 0) {
+                text = 'Today';
+            } else if (diffDays === 1) {
+                text = 'Yesterday';
+            } else if (diffDays <= 6) {
+                text = diffDays + ' days ago';
+            } else if (diffDays <= 90) {
+                text = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+            } else {
+                text = date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+            }
+
+            return { text: text, title: formatDateTime(dateStr) };
+        }
+
         function formatDate(dateStr) {
             if (!dateStr) return 'N/A';
             const date = new Date(dateStr);
@@ -1688,5 +2056,19 @@ $userEmail = $_SESSION['user_email'] ?? '';
             });
         });
     </script>
+
+    <!-- Send Email Modal -->
+    <div class="modal" id="emailModal">
+        <div class="modal-content" style="max-width: 620px;">
+            <div class="modal-header">
+                <h3>Send Email</h3>
+                <button class="modal-close" onclick="closeModal('emailModal')">&times;</button>
+            </div>
+            <div id="emailContent">
+                <div class="loading">Loading...</div>
+            </div>
+        </div>
+    </div>
 </body>
+
 </html>

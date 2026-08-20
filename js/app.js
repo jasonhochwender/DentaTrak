@@ -8139,67 +8139,229 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   }
 
-  // Dev-only dental practice demo data generator
+  // Dev-only dental practice demo data lifecycle
   var devGenerateDemoDataBtn = document.getElementById('devGenerateDemoDataBtn');
+  var devResetDemoDataBtn = document.getElementById('devResetDemoDataBtn');
+  var devDeleteDemoDataBtn = document.getElementById('devDeleteDemoDataBtn');
   var devDemoDataSizeSelect = document.getElementById('devDemoDataSize');
+  var devDemoDataSummary = document.getElementById('devDemoDataSummary');
+  var devDemoRecentRuns = document.getElementById('devDemoRecentRuns');
+
+  function loadDemoDataSummary() {
+    if (!devDemoDataSummary) return;
+
+    fetch('api/manage-demo-data.php?action=status', { credentials: 'same-origin' })
+      .then(function (response) { return response.json(); })
+      .then(function (data) {
+        if (!data || !data.success) {
+          devDemoDataSummary.textContent = 'Unable to load demo data summary.';
+          return;
+        }
+
+        var lines = [];
+        if (data.total > 0) {
+          lines.push(data.active + ' active demo cases');
+          lines.push(data.historical + ' archived demo cases');
+        } else {
+          lines.push('No demo data in this practice');
+        }
+        lines.push(data.runCount + ' generation run' + (data.runCount === 1 ? '' : 's'));
+        if (data.lastGenerated) {
+          var d = new Date(data.lastGenerated);
+          lines.push('Last generated: ' + d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }));
+        }
+        devDemoDataSummary.textContent = lines.join(' • ');
+
+        var recent = (data.runs || []).slice(0, 3);
+        if (recent.length > 0) {
+          devDemoRecentRuns.innerHTML = recent.map(function (run) {
+            var d = new Date(run.created_at);
+            return '<div>' + d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) + ' &mdash; ' + run.dataset_size + ' &mdash; ' + (run.active_case_count + run.historical_case_count) + ' cases' + (run.status !== 'complete' ? ' (' + run.status + ')' : '') + '</div>';
+          }).join('');
+        } else {
+          devDemoRecentRuns.innerHTML = '';
+        }
+      })
+      .catch(function (err) {
+        devDemoDataSummary.textContent = 'Unable to load demo data summary.';
+        console.error('Demo summary error:', err);
+      });
+  }
+
+  function callManageDemoData(action, confirmed, onDone) {
+    var body = { action: action, confirmed: confirmed };
+    fetch('api/manage-demo-data.php', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRF-Token': csrfToken
+      },
+      credentials: 'same-origin',
+      body: JSON.stringify(body)
+    })
+    .then(function (response) { return response.json(); })
+    .then(function (data) {
+      if (data && data.needsConfirmation) {
+        if (confirm(data.message)) {
+          callManageDemoData(action, true, onDone);
+          return;
+        }
+        showToast('Action cancelled', 'info');
+        return;
+      }
+
+      if (!data || !data.success) {
+        showToast((data && data.message) ? data.message : 'Failed to ' + action + ' demo data.', 'error');
+        return;
+      }
+
+      if (typeof onDone === 'function') {
+        onDone(data);
+      } else {
+        showToast(data.message, 'success');
+        loadDemoDataSummary();
+      }
+    })
+    .catch(function (err) {
+      showToast('Error managing demo data: ' + err.message, 'error');
+    });
+  }
+
+  function callDemoGenerator(body) {
+    if (!body.dataset) {
+      body.dataset = devDemoDataSizeSelect ? devDemoDataSizeSelect.value : 'standard';
+    }
+
+    return fetch('api/generate-dental-practice-demo-data.php', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRF-Token': csrfToken
+      },
+      credentials: 'same-origin',
+      body: JSON.stringify(body)
+    })
+    .then(function (response) { return response.json(); });
+  }
+
   if (devGenerateDemoDataBtn) {
     devGenerateDemoDataBtn.addEventListener('click', function () {
       var originalText = devGenerateDemoDataBtn.textContent;
-      var dataset = devDemoDataSizeSelect ? devDemoDataSizeSelect.value : 'standard';
+      devGenerateDemoDataBtn.disabled = true;
+      devGenerateDemoDataBtn.textContent = 'Generating...';
 
-      function callGenerator(body) {
-        if (!body.dataset) {
-          body.dataset = dataset;
-        }
-        devGenerateDemoDataBtn.disabled = true;
-        devGenerateDemoDataBtn.textContent = 'Generating...';
+      function tryGenerate(needsConfirm) {
+        callDemoGenerator(needsConfirm ? { confirmed: true } : {})
+          .then(function (data) {
+            devGenerateDemoDataBtn.disabled = false;
+            devGenerateDemoDataBtn.textContent = originalText;
 
-        fetch('api/generate-dental-practice-demo-data.php', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-CSRF-Token': csrfToken
-          },
-          credentials: 'same-origin',
-          body: JSON.stringify(body)
-        })
-        .then(function (response) { return response.json(); })
-        .then(function (data) {
-          if (!data || !data.success) {
             if (data && data.needsConfirmation) {
               if (confirm(data.message || 'This practice already has case data. Continue anyway?')) {
-                callGenerator({ confirmed: true });
+                devGenerateDemoDataBtn.disabled = true;
+                devGenerateDemoDataBtn.textContent = 'Generating...';
+                tryGenerate(true);
                 return;
               }
-              devGenerateDemoDataBtn.disabled = false;
-              devGenerateDemoDataBtn.textContent = originalText;
               showToast('Action cancelled', 'info');
               return;
             }
 
+            if (!data || !data.success) {
+              showToast((data && data.message) ? data.message : 'Failed to generate demo data.', 'error');
+              return;
+            }
+
+            showToast(data.message || 'Demo data generated.', 'success');
+            loadDemoDataSummary();
+          })
+          .catch(function (err) {
             devGenerateDemoDataBtn.disabled = false;
             devGenerateDemoDataBtn.textContent = originalText;
-            showToast((data && data.message) ? data.message : 'Failed to generate demo data.', 'error');
-            return;
-          }
-
-          devGenerateDemoDataBtn.disabled = false;
-          devGenerateDemoDataBtn.textContent = originalText;
-          showToast(data.message || 'Demo data generated.', 'success');
-
-          setTimeout(function () {
-            window.location.reload();
-          }, 800);
-        })
-        .catch(function (err) {
-          devGenerateDemoDataBtn.disabled = false;
-          devGenerateDemoDataBtn.textContent = originalText;
-          showToast('Error generating demo data: ' + err.message, 'error');
-        });
+            showToast('Error generating demo data: ' + err.message, 'error');
+          });
       }
 
-      callGenerator({});
+      tryGenerate(false);
     });
+  }
+
+  if (devDeleteDemoDataBtn) {
+    devDeleteDemoDataBtn.addEventListener('click', function () {
+      callManageDemoData('delete', false);
+    });
+  }
+
+  if (devResetDemoDataBtn) {
+    devResetDemoDataBtn.addEventListener('click', function () {
+      var originalText = devResetDemoDataBtn.textContent;
+      devResetDemoDataBtn.disabled = true;
+      devResetDemoDataBtn.textContent = 'Resetting...';
+
+      function afterDelete(data) {
+        var dataset = devDemoDataSizeSelect ? devDemoDataSizeSelect.value : 'standard';
+        callDemoGenerator({ dataset: dataset, confirmed: true })
+          .then(function (genData) {
+            devResetDemoDataBtn.disabled = false;
+            devResetDemoDataBtn.textContent = originalText;
+
+            if (!genData || !genData.success) {
+              showToast((genData && genData.message) ? genData.message : 'Failed to generate demo data after reset.', 'error');
+              loadDemoDataSummary();
+              return;
+            }
+
+            showToast(genData.message || 'Demo data reset successfully.', 'success');
+            loadDemoDataSummary();
+          })
+          .catch(function (err) {
+            devResetDemoDataBtn.disabled = false;
+            devResetDemoDataBtn.textContent = originalText;
+            showToast('Error generating demo data after reset: ' + err.message, 'error');
+          });
+      }
+
+      fetch('api/manage-demo-data.php', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRF-Token': csrfToken
+        },
+        credentials: 'same-origin',
+        body: JSON.stringify({ action: 'reset', confirmed: false })
+      })
+      .then(function (response) { return response.json(); })
+      .then(function (data) {
+        if (data && data.needsConfirmation) {
+          if (confirm(data.message)) {
+            callManageDemoData('reset', true, afterDelete);
+            return;
+          }
+          devResetDemoDataBtn.disabled = false;
+          devResetDemoDataBtn.textContent = originalText;
+          showToast('Action cancelled', 'info');
+          return;
+        }
+
+        if (!data || !data.success) {
+          devResetDemoDataBtn.disabled = false;
+          devResetDemoDataBtn.textContent = originalText;
+          showToast((data && data.message) ? data.message : 'Failed to reset demo data.', 'error');
+          return;
+        }
+
+        afterDelete(data);
+      })
+      .catch(function (err) {
+        devResetDemoDataBtn.disabled = false;
+        devResetDemoDataBtn.textContent = originalText;
+        showToast('Error resetting demo data: ' + err.message, 'error');
+      });
+    });
+  }
+
+  if (devDemoDataSummary) {
+    loadDemoDataSummary();
   }
 
   // Function to print a case with all details and file contents

@@ -2661,7 +2661,11 @@ window.featureFlags = <?php echo getFeatureFlagsJson(); ?>;
       
       <!-- Dental Practice Demo Data -->
       <div class="dev-tools-section">
-        <h4>🏥 Generate Dental Practice Demo Data</h4>
+        <h4>🏥 Demo Data</h4>
+        <div id="devDemoDataSummary" style="margin-bottom: 12px; font-size: 0.9rem; color: #6b7280; min-height: 1.2em;">
+          Loading demo data summary...
+        </div>
+        <div id="devDemoRecentRuns" style="margin-bottom: 12px; font-size: 0.85rem; color: #6b7280;"></div>
         <div class="test-case-controls">
           <label for="devDemoDataSize" class="sr-only">Dataset size</label>
           <select id="devDemoDataSize" class="dev-input" style="margin-right: 8px;">
@@ -2670,10 +2674,12 @@ window.featureFlags = <?php echo getFeatureFlagsJson(); ?>;
             <option value="large">Large (80 active + 40 historical)</option>
           </select>
           <button id="devGenerateDemoDataBtn" class="dev-btn dev-btn-primary">Generate Demo Data</button>
+          <button id="devResetDemoDataBtn" class="dev-btn dev-btn-warning">Reset Demo Data</button>
+          <button id="devDeleteDemoDataBtn" class="dev-btn dev-btn-danger">Delete Demo Data</button>
         </div>
       </div>
-      
-      
+
+
       <!-- Data Management -->
       <div class="dev-tools-section">
         <h4>🗂️ Data Management</h4>

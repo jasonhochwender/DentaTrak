@@ -121,6 +121,12 @@ try {
     }
     $confirmed = !empty($input['confirmed']);
 
+    // Ensure demo run schema is available for all actions
+    ensureDemoGenerationRunsSchema();
+    ensureDemoCaseCommentsTable();
+    ensureLabAssignmentHistoryTable();
+    ensureCasesCacheTable();
+
     // ------------------------------------------------------------------
     // Dataset size: small, standard (default), large
     // ------------------------------------------------------------------
@@ -183,6 +189,21 @@ try {
         ]);
         exit;
     }
+
+    // ------------------------------------------------------------------
+    // Create the generation run record
+    // ------------------------------------------------------------------
+    $runInsertStmt = $pdo->prepare("
+        INSERT INTO demo_generation_runs (practice_id, dataset_size, created_by_user_id, created_by_email, status)
+        VALUES (:practice_id, :dataset_size, :created_by_user_id, :created_by_email, 'pending')
+    ");
+    $runInsertStmt->execute([
+        'practice_id' => $currentPracticeId,
+        'dataset_size' => $dataset,
+        'created_by_user_id' => $_SESSION['db_user_id'] ?? 0,
+        'created_by_email' => $_SESSION['user_email'] ?? '',
+    ]);
+    $runId = (int)$pdo->lastInsertId();
 
     // ------------------------------------------------------------------
     // Resolve practice users (reuse whoever already belongs to the
@@ -840,6 +861,7 @@ try {
             'clinicalDetails' => $buildClinicalDetails($def['caseType']),
             'createdByUserId' => $createdByUserId,
             'createdByName' => $createdByName,
+            'demoGenerationRunId' => $runId,
             'isDemo' => true,
         ];
         if (in_array($def['caseType'], $needsMaterial, true)) {
@@ -1025,6 +1047,7 @@ try {
                 'attachments' => [],
                 'clinicalDetails' => $buildClinicalDetails($caseType),
                 'createdByUserId' => $createdByUserId,
+                'demoGenerationRunId' => $runId,
             ];
             if (in_array($caseType, $needsMaterial, true)) {
                 $caseData['material'] = $materials[array_rand($materials)];
@@ -1065,8 +1088,20 @@ try {
         }
     }
 
+    // Mark the run complete with counts
+    $pdo->prepare("
+        UPDATE demo_generation_runs
+        SET status = 'complete', active_case_count = :active, historical_case_count = :historical
+        WHERE id = :run_id
+    ")->execute([
+        'active' => $activeCreated,
+        'historical' => $historicalCreated,
+        'run_id' => $runId,
+    ]);
+
     echo json_encode([
         'success' => true,
+        'run_id' => $runId,
         'message' => "Generated {$activeCreated} active case(s) and {$historicalCreated} historical case(s) for the current practice. "
             . "{$labActiveCaseCount} active and {$labHistoricalCaseCount} historical case(s) were associated with lab@dentatrak.com.",
         'activeCasesCreated' => $activeCreated,
@@ -1083,6 +1118,19 @@ try {
         ? ($historicalCreated > 0 ? 'historical' : 'active')
         : 'setup';
     error_log('[generate-dental-practice-demo-data] dataset=' . ($dataset ?? 'unknown') . ' stage=' . $stage . ' error=' . $e->getMessage());
+
+    if (!empty($runId) && $pdo) {
+        try {
+            $pdo->prepare("
+                UPDATE demo_generation_runs
+                SET status = 'failed'
+                WHERE id = :run_id
+            ")->execute(['run_id' => $runId]);
+        } catch (PDOException $updateEx) {
+            error_log('[generate-dental-practice-demo-data] Error marking run failed: ' . $updateEx->getMessage());
+        }
+    }
+
     http_response_code(500);
     echo json_encode([
         'success' => false,

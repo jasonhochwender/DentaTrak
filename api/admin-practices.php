@@ -19,6 +19,7 @@ require_once __DIR__ . '/workflow-stages.php';
 require_once __DIR__ . '/lab-assignment-history.php';
 require_once __DIR__ . '/subscription-owner.php';
 require_once __DIR__ . '/plan-entitlements.php';
+require_once __DIR__ . '/email-sender.php';
 
 header('Content-Type: application/json');
 
@@ -41,6 +42,79 @@ if (!$canAccess) {
     http_response_code(403);
     echo json_encode(['success' => false, 'message' => 'Access denied. Super user privileges required.']);
     exit;
+}
+
+/**
+ * Ensure the admin practice email audit log table exists.
+ */
+function ensureAdminEmailLogSchema() {
+    global $pdo;
+    static $initialized = false;
+
+    if ($initialized || !$pdo) {
+        return;
+    }
+
+    try {
+        $pdo->exec("CREATE TABLE IF NOT EXISTS admin_email_log (
+            id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+            admin_user_id BIGINT UNSIGNED NOT NULL,
+            admin_email VARCHAR(255),
+            recipient_user_id BIGINT UNSIGNED NOT NULL,
+            recipient_email VARCHAR(255) NOT NULL,
+            practice_id BIGINT UNSIGNED NOT NULL,
+            email_type VARCHAR(64) NOT NULL,
+            email_subject VARCHAR(255) NOT NULL,
+            sent_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            success TINYINT(1) NOT NULL DEFAULT 0,
+            provider VARCHAR(64) DEFAULT NULL,
+            error_message TEXT,
+            INDEX idx_practice_id (practice_id),
+            INDEX idx_recipient_user_id (recipient_user_id),
+            INDEX idx_admin_user_id (admin_user_id),
+            INDEX idx_sent_at (sent_at)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+
+        $initialized = true;
+    } catch (PDOException $e) {
+        error_log('[admin-practices] Error ensuring admin email log schema: ' . $e->getMessage());
+    }
+}
+
+/**
+ * Record an admin email action to the audit log.
+ */
+function logAdminEmail($adminUserId, $adminEmail, $recipientUserId, $recipientEmail, $practiceId, $emailType, $subject, $success, $provider = null, $error = null) {
+    global $pdo;
+
+    if (!$pdo) {
+        return false;
+    }
+
+    ensureAdminEmailLogSchema();
+
+    try {
+        $stmt = $pdo->prepare("
+            INSERT INTO admin_email_log (admin_user_id, admin_email, recipient_user_id, recipient_email, practice_id, email_type, email_subject, success, provider, error_message)
+            VALUES (:admin_user_id, :admin_email, :recipient_user_id, :recipient_email, :practice_id, :email_type, :email_subject, :success, :provider, :error_message)
+        ");
+        $stmt->execute([
+            ':admin_user_id' => $adminUserId,
+            ':admin_email' => $adminEmail,
+            ':recipient_user_id' => $recipientUserId,
+            ':recipient_email' => $recipientEmail,
+            ':practice_id' => $practiceId,
+            ':email_type' => $emailType,
+            ':email_subject' => $subject,
+            ':success' => $success ? 1 : 0,
+            ':provider' => $provider,
+            ':error_message' => $error,
+        ]);
+        return true;
+    } catch (PDOException $e) {
+        error_log('[admin-practices] Error logging admin email: ' . $e->getMessage());
+        return false;
+    }
 }
 
 /**
@@ -163,6 +237,242 @@ function buildSubscriptionInfo(?array $sub, ?array $owner, int $ownedCount): arr
     ];
 }
 
+/**
+ * Compose and send an admin-triggered practice-user email.
+ *
+ * @return array { success: bool, message: string, provider: ?string, error: ?string }
+ */
+function sendAdminPracticeEmail(PDO $pdo, int $adminUserId, string $adminEmail, int $practiceId, int $recipientUserId, string $emailType, string $customSubject = '', string $customMessage = ''): array {
+    global $appConfig;
+
+    // Verify the recipient actually belongs to the selected practice
+    $stmt = $pdo->prepare("
+        SELECT u.id, u.email, u.first_name, u.last_name, p.practice_name
+        FROM practice_users pu
+        JOIN users u ON u.id = pu.user_id
+        JOIN practices p ON p.id = pu.practice_id
+        WHERE pu.practice_id = :practice_id AND u.id = :user_id
+        LIMIT 1
+    ");
+    $stmt->execute(['practice_id' => $practiceId, 'user_id' => $recipientUserId]);
+    $recipient = $stmt->fetch(PDO::FETCH_ASSOC);
+
+    if (!$recipient) {
+        return ['success' => false, 'message' => 'Recipient not found or does not belong to this practice.', 'provider' => null, 'error' => null];
+    }
+
+    $toName = trim(($recipient['first_name'] ?? '') . ' ' . ($recipient['last_name'] ?? ''));
+    $toEmail = $recipient['email'];
+    $practiceName = $recipient['practice_name'] ?? 'Your Practice';
+    $firstName = $recipient['first_name'] ?? '';
+    $supportEmail = $appConfig['support_email'] ?? 'support@dentatrak.com';
+    $fromName = $appConfig['email_from_name'] ?? 'DentaTrak';
+    $baseUrl = rtrim($appConfig['app_base_url'] ?? 'https://dentatrak.com', '/');
+    $loginUrl = $baseUrl . '/login.php';
+    $userGuideUrl = $appConfig['user_guide_url'] ?? ($baseUrl . '/resources/user-guide');
+
+    $subject = '';
+    $html = '';
+    $text = '';
+
+    if ($emailType === 'getting_started') {
+        $subject = 'Getting started with DentaTrak';
+        $greeting = $firstName ? "Hi {$firstName}," : "Hi there,";
+
+        $html = <<<HTML
+<!DOCTYPE html>
+<html>
+<body>
+  <p>{$greeting}</p>
+  <p>You have access to <strong>DentaTrak</strong> for <strong>{$practiceName}</strong>.</p>
+  <p>DentaTrak helps dental practices track cases across the office, labs, and referrals without losing them in spreadsheets or PMS systems.</p>
+  <p><a href="{$loginUrl}">Sign in to DentaTrak</a></p>
+  <p>Get started with the <a href="{$userGuideUrl}">DentaTrak User Guide</a>.</p>
+  <p>If you have any questions, reach out to us at <a href="mailto:{$supportEmail}">{$supportEmail}</a>.</p>
+  <p>Thanks,<br>{$fromName} Team</p>
+</body>
+</html>
+HTML;
+
+        $text = <<<TEXT
+{$greeting}
+
+You have access to DentaTrak for "{$practiceName}".
+
+DentaTrak helps dental practices track cases across the office, labs, and referrals without losing them in spreadsheets or PMS systems.
+
+Sign in: {$loginUrl}
+
+Get started with the User Guide: {$userGuideUrl}
+
+If you have any questions, reach out to us at {$supportEmail}.
+
+Thanks,
+{$fromName} Team
+TEXT;
+    } elseif ($emailType === 'user_guide') {
+        $subject = 'DentaTrak User Guide';
+        $greeting = $firstName ? "Hi {$firstName}," : "Hi there,";
+
+        $html = <<<HTML
+<!DOCTYPE html>
+<html>
+<body>
+  <p>{$greeting}</p>
+  <p>Here is a link to the <a href="{$userGuideUrl}">DentaTrak User Guide</a> for <strong>{$practiceName}</strong>.</p>
+  <p>The guide covers the most common DentaTrak workflows and is a good place to start if you are new to the platform.</p>
+  <p><a href="{$loginUrl}">Sign in to DentaTrak</a></p>
+  <p>If you have any questions, reach out to us at <a href="mailto:{$supportEmail}">{$supportEmail}</a>.</p>
+  <p>Thanks,<br>{$fromName} Team</p>
+</body>
+</html>
+HTML;
+
+        $text = <<<TEXT
+{$greeting}
+
+Here is a link to the DentaTrak User Guide for "{$practiceName}":
+
+{$userGuideUrl}
+
+The guide covers the most common DentaTrak workflows and is a good place to start if you are new to the platform.
+
+Sign in: {$loginUrl}
+
+If you have any questions, reach out to us at {$supportEmail}.
+
+Thanks,
+{$fromName} Team
+TEXT;
+    } elseif ($emailType === 'trial_reminder') {
+        // Resolve the effective subscription/trial for this practice's owner
+        $ownerUserId = getSubscriptionOwnerUserId($pdo, $practiceId);
+        if (!$ownerUserId) {
+            return ['success' => false, 'message' => 'Could not determine subscription owner for this practice.', 'provider' => null, 'error' => null];
+        }
+
+        $sub = getSubscriptionForOwner($pdo, $ownerUserId);
+        if (empty($sub) || ($sub['status'] ?? '') !== 'trialing' || empty($sub['trial_ends_at'])) {
+            return ['success' => false, 'message' => 'This practice is not currently in a trial.', 'provider' => null, 'error' => null];
+        }
+
+        $storedPlan = $sub['plan'] ?? null;
+        $planDisplay = !empty($storedPlan) ? getPlanDisplayName($storedPlan) : '—';
+
+        try {
+            $end = new DateTimeImmutable($sub['trial_ends_at'], new DateTimeZone('UTC'));
+            $now = new DateTimeImmutable('now', new DateTimeZone('UTC'));
+            $days = (int)$now->diff($end)->format('%r%a');
+
+            if ($days > 1) {
+                $remainingText = "{$days} days remaining";
+            } elseif ($days === 1) {
+                $remainingText = "1 day remaining";
+            } elseif ($days === 0) {
+                $remainingText = "ends today";
+            } else {
+                $remainingText = "has expired";
+            }
+
+            $trialEndDate = $end->format('M j, Y');
+        } catch (Throwable $e) {
+            return ['success' => false, 'message' => 'Could not parse trial end date.', 'provider' => null, 'error' => $e->getMessage()];
+        }
+
+        $subject = 'Your DentaTrak trial is ending soon';
+        $greeting = $firstName ? "Hi {$firstName}," : "Hi there,";
+
+        $html = <<<HTML
+<!DOCTYPE html>
+<html>
+<body>
+  <p>{$greeting}</p>
+  <p>This is a friendly reminder that the DentaTrak trial for <strong>{$practiceName}</strong> ({$planDisplay} plan) {$remainingText}.</p>
+  <p><strong>Trial end date:</strong> {$trialEndDate}</p>
+  <p><a href="{$loginUrl}">Sign in to DentaTrak</a></p>
+  <p>If you have any questions, reach out to us at <a href="mailto:{$supportEmail}">{$supportEmail}</a>.</p>
+  <p>Thanks,<br>{$fromName} Team</p>
+</body>
+</html>
+HTML;
+
+        $text = <<<TEXT
+{$greeting}
+
+This is a friendly reminder that the DentaTrak trial for "{$practiceName}" ({$planDisplay} plan) {$remainingText}.
+
+Trial end date: {$trialEndDate}
+
+Sign in: {$loginUrl}
+
+If you have any questions, reach out to us at {$supportEmail}.
+
+Thanks,
+{$fromName} Team
+TEXT;
+    } elseif ($emailType === 'custom') {
+        $subject = trim($customSubject);
+        $message = trim($customMessage);
+        if ($subject === '' || $message === '') {
+            return ['success' => false, 'message' => 'Custom email subject and message are required.', 'provider' => null, 'error' => null];
+        }
+
+        $greeting = $firstName ? "Hi {$firstName}," : "Hi there,";
+        $safeMessage = htmlspecialchars($message, ENT_QUOTES, 'UTF-8');
+        $safeMessageHtml = nl2br($safeMessage, false);
+
+        $html = <<<HTML
+<!DOCTYPE html>
+<html>
+<body>
+  <p>{$greeting}</p>
+  <p>{$safeMessageHtml}</p>
+  <p>If you have any questions, reach out to us at <a href="mailto:{$supportEmail}">{$supportEmail}</a>.</p>
+  <p>Thanks,<br>{$fromName} Team</p>
+</body>
+</html>
+HTML;
+
+        $text = <<<TEXT
+{$greeting}
+
+{$message}
+
+If you have any questions, reach out to us at {$supportEmail}.
+
+Thanks,
+{$fromName} Team
+TEXT;
+    } else {
+        return ['success' => false, 'message' => 'Invalid email type.', 'provider' => null, 'error' => null];
+    }
+
+    $result = sendAppEmail($toEmail, $subject, $html, $text, $supportEmail);
+
+    $success = !empty($result['success']);
+    $provider = $result['provider'] ?? null;
+    $error = $result['error'] ?? null;
+
+    logAdminEmail(
+        $adminUserId,
+        $adminEmail,
+        $recipientUserId,
+        $toEmail,
+        $practiceId,
+        $emailType,
+        $subject,
+        $success,
+        $provider,
+        $error
+    );
+
+    if ($success) {
+        return ['success' => true, 'message' => 'Email sent to ' . $toEmail, 'provider' => $provider, 'error' => null];
+    }
+
+    return ['success' => false, 'message' => 'Failed to send email. ' . ($error ?: 'Unknown error'), 'provider' => $provider, 'error' => $error];
+}
+
 $method = $_SERVER['REQUEST_METHOD'];
 $action = $_GET['action'] ?? '';
 
@@ -176,6 +486,240 @@ switch ($method) {
     default:
         http_response_code(405);
         echo json_encode(['success' => false, 'message' => 'Method not allowed']);
+}
+
+/**
+ * Build adoption/usage metrics for a single practice.
+ */
+function getAdoptionForPractice(PDO $pdo, int $practiceId, ?array $users = null): array {
+    if ($users === null) {
+        $users = getPracticeUsers($practiceId);
+    }
+
+    $totalUsers = count($users);
+    $withLogin = 0;
+    $withoutLogin = 0;
+    $unknownLegacy = 0;
+    $mostRecentLogin = null;
+
+    foreach ($users as $user) {
+        if (!empty($user['last_login'])) {
+            $withLogin++;
+            if ($mostRecentLogin === null || $user['last_login'] > $mostRecentLogin) {
+                $mostRecentLogin = $user['last_login'];
+            }
+        } else {
+            $withoutLogin++;
+        }
+    }
+
+    // Active cases: same as Practice Insights (archived=0 and not Delivered)
+    $activeStmt = $pdo->prepare("
+        SELECT COUNT(*)
+        FROM cases_cache
+        WHERE practice_id = :practice_id AND archived = 0 AND status != 'Delivered'
+    ");
+    $activeStmt->execute(['practice_id' => $practiceId]);
+    $activeCases = (int)$activeStmt->fetchColumn();
+
+    // Cases created in last 30 rolling days
+    $createdStmt = $pdo->prepare("
+        SELECT COUNT(*)
+        FROM cases_cache
+        WHERE practice_id = :practice_id
+          AND DATE(STR_TO_DATE(LEFT(creation_date, 10), '%Y-%m-%d')) >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
+    ");
+    $createdStmt->execute(['practice_id' => $practiceId]);
+    $createdLast30 = (int)$createdStmt->fetchColumn();
+
+    // Delivered in last 30 rolling days, using status_changed_at primary and activity log fallback
+    $deliveredStmt = $pdo->prepare("
+        SELECT COUNT(DISTINCT c.case_id)
+        FROM cases_cache c
+        LEFT JOIN (
+            SELECT case_id, MAX(created_at) as delivered_at
+            FROM case_activity_log
+            WHERE event_type = 'status_changed' AND new_status = 'Delivered'
+            GROUP BY case_id
+        ) l ON l.case_id = c.case_id
+        WHERE c.practice_id = :practice_id
+          AND c.status = 'Delivered'
+          AND COALESCE(c.status_changed_at, l.delivered_at) >= DATE_SUB(NOW(), INTERVAL 30 DAY)
+    ");
+    $deliveredStmt->execute(['practice_id' => $practiceId]);
+    $deliveredLast30 = (int)$deliveredStmt->fetchColumn();
+
+    // Demo data count
+    $demoStmt = $pdo->prepare("
+        SELECT COUNT(*) FROM cases_cache
+        WHERE practice_id = :practice_id
+          AND (demo_generation_run_id IS NOT NULL OR LEFT(case_id, 5) = 'demo_')
+    ");
+    $demoStmt->execute(['practice_id' => $practiceId]);
+    $demoCaseCount = (int)$demoStmt->fetchColumn();
+
+    // Last case activity: authoritative case-use signals only (case creation + case_activity_log)
+    $lastCaseActivity = null;
+
+    $caseActivityStmt = $pdo->prepare("
+        SELECT MAX(created_at) as last_activity
+        FROM case_activity_log
+        WHERE case_id IN (SELECT case_id FROM cases_cache WHERE practice_id = :practice_id)
+    ");
+    $caseActivityStmt->execute(['practice_id' => $practiceId]);
+    $caseActivityRow = $caseActivityStmt->fetch(PDO::FETCH_ASSOC);
+    if (!empty($caseActivityRow['last_activity'])) {
+        $lastCaseActivity = $caseActivityRow['last_activity'];
+    }
+
+    $caseCreateStmt = $pdo->prepare("
+        SELECT MAX(STR_TO_DATE(LEFT(creation_date, 10), '%Y-%m-%d')) as last_created
+        FROM cases_cache
+        WHERE practice_id = :practice_id
+    ");
+    $caseCreateStmt->execute(['practice_id' => $practiceId]);
+    $createRow = $caseCreateStmt->fetch(PDO::FETCH_ASSOC);
+    if (!empty($createRow['last_created'])) {
+        $createDate = $createRow['last_created'];
+        if ($lastCaseActivity === null || $createDate > $lastCaseActivity) {
+            $lastCaseActivity = $createDate;
+        }
+    }
+
+    // Descriptive case-activity summary based only on actual case work
+    $summary = 'No recorded case activity';
+    if ($lastCaseActivity !== null) {
+        try {
+            $caseActivityDate = new DateTimeImmutable($lastCaseActivity, new DateTimeZone('UTC'));
+            $now = new DateTimeImmutable('now', new DateTimeZone('UTC'));
+            $days = (int)$now->diff($caseActivityDate)->format('%r%a');
+            if ($days <= 30) {
+                $summary = 'Recent case activity';
+            } else {
+                $summary = 'Historical case activity';
+            }
+        } catch (Throwable $e) {
+            $summary = 'Historical case activity';
+        }
+    }
+
+    // Last activity: most recent customer activity only
+    // Sources: user login, case creation, case activity log (unchanged)
+    $lastActivity = null;
+
+    $loginStmt = $pdo->prepare("
+        SELECT MAX(u.last_login_at) as last_login_at
+        FROM users u
+        JOIN practice_users pu ON u.id = pu.user_id
+        WHERE pu.practice_id = :practice_id
+    ");
+    $loginStmt->execute(['practice_id' => $practiceId]);
+    $loginRow = $loginStmt->fetch(PDO::FETCH_ASSOC);
+    if (!empty($loginRow['last_login_at'])) {
+        $lastActivity = $loginRow['last_login_at'];
+    }
+
+    if (!empty($caseActivityRow['last_activity'])) {
+        if ($lastActivity === null || $caseActivityRow['last_activity'] > $lastActivity) {
+            $lastActivity = $caseActivityRow['last_activity'];
+        }
+    }
+
+    if (!empty($createRow['last_created'])) {
+        $createDate = $createRow['last_created'];
+        if ($lastActivity === null || $createDate > $lastActivity) {
+            $lastActivity = $createDate;
+        }
+    }
+
+    return [
+        'total_users' => $totalUsers,
+        'users_with_login' => $withLogin,
+        'users_without_login' => $withoutLogin,
+        'most_recent_login' => $mostRecentLogin,
+        'active_cases' => $activeCases,
+        'created_last_30_days' => $createdLast30,
+        'delivered_last_30_days' => $deliveredLast30,
+        'demo_case_count' => $demoCaseCount,
+        'last_case_activity' => $lastCaseActivity,
+        'last_activity' => $lastActivity,
+        'summary' => $summary,
+    ];
+}
+
+/**
+ * Build lightweight list-level adoption metrics for multiple practices.
+ */
+function getListAdoptionMetrics(PDO $pdo, array $practiceIds): array {
+    if (empty($practiceIds)) {
+        return [];
+    }
+
+    $placeholders = implode(',', array_fill(0, count($practiceIds), '?'));
+
+    $metrics = [];
+    foreach ($practiceIds as $id) {
+        $metrics[(int)$id] = [
+            'active_cases' => 0,
+            'last_activity' => null,
+        ];
+    }
+
+    // Active cases per practice
+    $activeStmt = $pdo->prepare("
+        SELECT practice_id, COUNT(*) as cnt
+        FROM cases_cache
+        WHERE practice_id IN ($placeholders) AND archived = 0 AND status != 'Delivered'
+        GROUP BY practice_id
+    ");
+    $activeStmt->execute($practiceIds);
+    foreach ($activeStmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+        $metrics[(int)$row['practice_id']]['active_cases'] = (int)$row['cnt'];
+    }
+
+    // Last activity per practice
+    $lastLoginStmt = $pdo->prepare("
+        SELECT pu.practice_id, MAX(u.last_login_at) as last_login
+        FROM practice_users pu
+        JOIN users u ON u.id = pu.user_id
+        WHERE pu.practice_id IN ($placeholders)
+        GROUP BY pu.practice_id
+    ");
+    $lastLoginStmt->execute($practiceIds);
+    $loginMap = [];
+    foreach ($lastLoginStmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+        $loginMap[(int)$row['practice_id']] = $row['last_login'];
+    }
+
+    $lastActivityStmt = $pdo->prepare("
+        SELECT c.practice_id, MAX(l.created_at) as last_activity
+        FROM cases_cache c
+        LEFT JOIN case_activity_log l ON l.case_id = c.case_id
+        WHERE c.practice_id IN ($placeholders)
+        GROUP BY c.practice_id
+    ");
+    $lastActivityStmt->execute($practiceIds);
+    $activityMap = [];
+    foreach ($lastActivityStmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+        if (!empty($row['last_activity'])) {
+            $activityMap[(int)$row['practice_id']] = $row['last_activity'];
+        }
+    }
+
+    foreach ($practiceIds as $id) {
+        $lastLogin = $loginMap[$id] ?? null;
+        $lastCaseActivity = $activityMap[$id] ?? null;
+        $last = null;
+        if (!empty($lastLogin)) {
+            $last = $lastLogin;
+        }
+        if (!empty($lastCaseActivity) && ($last === null || $lastCaseActivity > $last)) {
+            $last = $lastCaseActivity;
+        }
+        $metrics[$id]['last_activity'] = $last;
+    }
+
+    return $metrics;
 }
 
 function handleGetRequest($action) {
@@ -242,12 +786,19 @@ function handleGetRequest($action) {
                 }
             }
 
+            // Batch-load lightweight adoption metrics for all practices
+            $adoptionMetrics = getListAdoptionMetrics($pdo, array_map('intval', $practiceIds));
+
             foreach ($practices as &$practice) {
                 $practice['is_hidden'] = in_array((int)$practice['id'], $hiddenIds, true);
                 $owner = $ownerMap[(int)$practice['id']] ?? null;
                 $ownerId = $owner ? (int)$owner['owner_user_id'] : null;
                 $ownedCount = $ownerId ? (int)($ownedCounts[$ownerId] ?? 1) : 0;
                 $practice['subscription'] = buildSubscriptionInfo($owner, $owner, $ownedCount);
+                $practice['adoption'] = $adoptionMetrics[(int)$practice['id']] ?? [
+                    'active_cases' => 0,
+                    'last_activity' => null,
+                ];
             }
             unset($practice);
             echo json_encode([
@@ -324,7 +875,23 @@ function handleGetRequest($action) {
                 'settings' => $settings
             ]);
             break;
-            
+
+        case 'adoption':
+            $practiceId = $_GET['practice_id'] ?? null;
+            if (!$practiceId || !is_numeric($practiceId)) {
+                http_response_code(400);
+                echo json_encode(['success' => false, 'message' => 'Valid practice ID required']);
+                return;
+            }
+
+            $adoptionUsers = getPracticeUsers((int)$practiceId);
+            $adoption = getAdoptionForPractice($pdo, (int)$practiceId, $adoptionUsers);
+            echo json_encode([
+                'success' => true,
+                'adoption' => $adoption
+            ]);
+            break;
+
         default:
             http_response_code(400);
             echo json_encode(['success' => false, 'message' => 'Invalid action']);
@@ -479,7 +1046,47 @@ function handlePostRequest($action) {
                 echo json_encode(['success' => false, 'message' => 'Failed to unhide practice']);
             }
             break;
-            
+
+        case 'send_email':
+            $practiceId = $input['practice_id'] ?? null;
+            $recipientUserId = $input['user_id'] ?? null;
+            $emailType = $input['email_type'] ?? '';
+
+            if (!$practiceId || !is_numeric($practiceId) || !$recipientUserId || !is_numeric($recipientUserId)) {
+                http_response_code(400);
+                echo json_encode(['success' => false, 'message' => 'Practice ID and user ID are required']);
+                return;
+            }
+
+            if (!in_array($emailType, ['getting_started', 'user_guide', 'trial_reminder', 'custom'], true)) {
+                http_response_code(400);
+                echo json_encode(['success' => false, 'message' => 'Invalid email type']);
+                return;
+            }
+
+            $customSubject = $input['custom_subject'] ?? '';
+            $customMessage = $input['custom_message'] ?? '';
+
+            $result = sendAdminPracticeEmail(
+                $pdo,
+                (int)($_SESSION['db_user_id'] ?? 0),
+                $_SESSION['user_email'] ?? '',
+                (int)$practiceId,
+                (int)$recipientUserId,
+                $emailType,
+                $customSubject,
+                $customMessage
+            );
+
+            if ($result['success']) {
+                http_response_code(200);
+                echo json_encode(['success' => true, 'message' => $result['message']]);
+            } else {
+                http_response_code(422);
+                echo json_encode(['success' => false, 'message' => $result['message']]);
+            }
+            break;
+
         default:
             http_response_code(400);
             echo json_encode(['success' => false, 'message' => 'Invalid action']);
@@ -497,6 +1104,7 @@ function getPracticeUsers($practiceId) {
         $hasLastLoginAt = in_array('last_login_at', $userColumns);
         $hasIsOwner = in_array('is_owner', $puColumns);
         $hasIsActive = in_array('is_active', $userColumns);
+        $hasEmailVerified = in_array('email_verified', $userColumns);
         $hasLimitedVisibility = in_array('limited_visibility', $puColumns);
         $hasCanViewAnalytics = in_array('can_view_analytics', $puColumns);
         $hasCanEditCases = in_array('can_edit_cases', $puColumns);
@@ -505,6 +1113,7 @@ function getPracticeUsers($practiceId) {
         $lastLoginSelect = $hasLastLoginAt ? 'u.last_login_at as last_login' : 'NULL as last_login';
         $isOwnerSelect = $hasIsOwner ? 'IFNULL(pu.is_owner, 0) as is_owner' : '0 as is_owner';
         $isActiveSelect = $hasIsActive ? 'IFNULL(u.is_active, 1) as is_active' : '1 as is_active';
+        $emailVerifiedSelect = $hasEmailVerified ? 'IFNULL(u.email_verified, 0) as email_verified' : '1 as email_verified';
         $limitedVisibilitySelect = $hasLimitedVisibility ? 'IFNULL(pu.limited_visibility, 0) as limited_visibility' : '0 as limited_visibility';
         $canViewAnalyticsSelect = $hasCanViewAnalytics ? 'IFNULL(pu.can_view_analytics, 0) as can_view_analytics' : '0 as can_view_analytics';
         $canEditCasesSelect = $hasCanEditCases ? 'IFNULL(pu.can_edit_cases, 0) as can_edit_cases' : '0 as can_edit_cases';
@@ -522,6 +1131,7 @@ function getPracticeUsers($practiceId) {
                 IFNULL(pu.role, 'user') as role,
                 $isOwnerSelect,
                 $isActiveSelect,
+                $emailVerifiedSelect,
                 $limitedVisibilitySelect,
                 $canViewAnalyticsSelect,
                 $canEditCasesSelect,
