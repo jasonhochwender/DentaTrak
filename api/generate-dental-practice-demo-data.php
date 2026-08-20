@@ -39,6 +39,7 @@ header('Content-Type: application/json');
 require_once __DIR__ . '/practice-security.php';
 require_once __DIR__ . '/cases-cache.php';
 require_once __DIR__ . '/case-activity-log.php';
+require_once __DIR__ . '/lab-assignment-history.php';
 require_once __DIR__ . '/encryption.php';
 require_once __DIR__ . '/dev-tools-access.php';
 require_once __DIR__ . '/csrf.php';
