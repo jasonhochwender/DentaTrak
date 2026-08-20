@@ -978,7 +978,7 @@ $articleUrls = $appConfig['public_urls'] ?? [];
       <div class="nav-links">
         <a href="#problem" class="nav-link">The Problem</a>
         <a href="#how-it-works" class="nav-link">How It Works</a>
-        <a href="<?= $baseUrl . ($articleUrls['page_resources'] ?? 'resources') ?>" class="nav-link">Resources</a>
+        <a href="/resources/" class="nav-link">Resources</a>
         <a href="#pricing" class="nav-link">Pricing</a>
         <a href="<?= $baseUrl ?>login.php" class="nav-login">Log In</a>
         <a href="<?= $baseUrl ?>login.php" class="nav-cta">Start 90-Day Free Trial</a>

@@ -367,7 +367,10 @@ $appConfigProduction = array_merge($commonConfig, [
     'db_user'       => getEnvVar('DB_USER'),
     'db_password'   => getEnvVar('DB_PASSWORD'),
     'db_name'       => getEnvVar('DB_NAME', 'dental_case_tracker'),
-    'baseUrl'       => getEnvVar('BASE_URL', 'https://dentatrak.com')
+    // Public DentaTrak origin must never expose Cloud Run/container ports
+    // (e.g. :8080). Use the canonical public origin.
+    'baseUrl'       => 'https://dentatrak.com',
+    'app_base_url'  => 'https://dentatrak.com'
 ]);
 
 // UAT configuration (local machine with bridge to production DB)

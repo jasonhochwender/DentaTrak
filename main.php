@@ -365,7 +365,7 @@ if (isset($appConfig) && is_array($appConfig) && isset($appConfig['appName'])) {
 }
 ?>
 <meta name="description" content="<?php echo htmlspecialchars($appName . ' - Professional dental case tracking and management system. Streamline your dental lab workflow with real-time case tracking, team collaboration, and analytics.'); ?>">
-  <link rel="canonical" href="<?php echo htmlspecialchars((isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http') . '://' . ($_SERVER['HTTP_HOST'] ?? 'localhost') . ($_SERVER['REQUEST_URI'] ?? '/main.php')); ?>">
+  <link rel="canonical" href="<?php echo htmlspecialchars(rtrim($appConfig['baseUrl'] ?? 'https://dentatrak.com', '/') . ($_SERVER['REQUEST_URI'] ?? '/main.php')); ?>">
   <title><?php echo htmlspecialchars($appName . ' - Main'); ?></title>
 
   <!-- Favicon / App Icons -->
@@ -383,7 +383,7 @@ if (isset($appConfig) && is_array($appConfig) && isset($appConfig['appName'])) {
     "@type": "WebApplication",
     "name": "<?php echo htmlspecialchars($appName); ?>",
     "description": "Professional dental case tracking and management system. Streamline your dental lab workflow with real-time case tracking, team collaboration, and analytics.",
-    "url": "<?php echo htmlspecialchars((isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http') . '://' . ($_SERVER['HTTP_HOST'] ?? 'localhost') . (dirname($_SERVER['PHP_SELF'] ?? '/main.php') ?: '/')); ?>",
+    "url": "<?php echo htmlspecialchars(rtrim($appConfig['baseUrl'] ?? 'https://dentatrak.com', '/') . '/'); ?>",
     "applicationCategory": "BusinessApplication",
     "operatingSystem": "Web Browser",
     "offers": {
@@ -431,7 +431,7 @@ if (isset($appConfig) && is_array($appConfig) && isset($appConfig['appName'])) {
   </style>
   
   <!-- Load app.light.css directly (skip app.css @import chain) -->
-  <link rel="stylesheet" href="css/app.light.css?v=20260820b">
+  <link rel="stylesheet" href="css/app.light.css?v=20260821a">
   <link rel="stylesheet" href="css/app.css?v=20260807a">
   
   <!-- Mobile responsiveness CSS -->
