@@ -123,89 +123,12 @@
   color: #64748b;
 }
 
-/* Tooth selector */
-.tooth-selector-container {
-  margin-top: 20px;
-  padding: 18px;
-  background: #fff;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  display: none;
-}
-
-.tooth-selector-heading {
-  display: flex;
-  align-items: baseline;
-  gap: 6px;
-  margin-bottom: 14px;
-  font-size: 0.875rem;
-}
-
-.tooth-selector-label { color: #475569; font-weight: 500; }
-.tooth-selector-active-field { font-weight: 700; color: #1e40af; }
-
-.tooth-arches { display: flex; flex-direction: column; gap: 18px; }
-
-.tooth-arch { display: flex; flex-direction: column; gap: 8px; }
-
-.tooth-arch-label { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #64748b; text-align: center; }
-
-.tooth-arch-sublabel { display: flex; justify-content: space-between; font-size: 0.65rem; color: #94a3b8; padding: 0 2px; }
-
-.tooth-buttons { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; }
-
-.tooth-button {
-  width: 32px;
-  height: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0;
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: #475569;
-  background: #fff;
-  border: 1px solid #cbd5e1;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease;
-}
-
-.tooth-button:hover { background: #eff6ff; border-color: #3b82f6; color: #1e40af; }
-
-.tooth-button:focus-visible { outline: 2px solid #3b82f6; outline-offset: 2px; }
-
-.tooth-button.selected {
-  color: #fff;
-  background: #1e40af;
-  border-color: #1e40af;
-}
-
-.tooth-arch-divider { height: 1px; background: #e2e8f0; margin: 4px 0; }
-
-.tooth-selector-help { font-size: 0.75rem; color: #64748b; margin-top: 14px; line-height: 1.4; }
-
-.tooth-selector-error { font-size: 0.8rem; color: #b91c1c; margin-top: 8px; display: none; }
-.tooth-selector-error.visible { display: block; }
-
-/* Dark theme */
-[data-theme="dark"] .tooth-selector-container { background: #0f172a; border-color: #334155; }
-[data-theme="dark"] .tooth-arch-label { color: #94a3b8; }
-[data-theme="dark"] .tooth-arch-sublabel { color: #64748b; }
-[data-theme="dark"] .tooth-button { color: #cbd5e1; background: #1e293b; border-color: #475569; }
-[data-theme="dark"] .tooth-button:hover { background: #1e3a8a; border-color: #3b82f6; color: #fff; }
-[data-theme="dark"] .tooth-button.selected { color: #fff; background: #3b82f6; border-color: #3b82f6; }
-[data-theme="dark"] .tooth-selector-help { color: #94a3b8; }
-
 /* Responsive */
 @media (max-width: 640px) {
   .clinical-details-grid {
     grid-template-columns: 1fr;
   }
-
-  .tooth-button { width: 28px; height: 28px; font-size: 0.7rem; }
-  .tooth-buttons { gap: 4px; }
-
+  
   .clinical-details-section {
     padding: 12px 16px;
   }
