@@ -948,3 +948,64 @@
     padding: 24px 16px;
   }
 }
+
+/* ========================================
+   Insights Sub-Navigation (Practice | Labs)
+   ======================================== */
+.insights-subtabs {
+  display: flex;
+  border-bottom: 1px solid var(--ap-border, #e2e8f0);
+  gap: 4px;
+  margin: -32px -32px 24px -32px;
+  padding: 16px 32px 0 32px;
+  background: var(--ap-bg-secondary, #ffffff);
+}
+
+.insights-subtab {
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--ap-text-secondary, #475569);
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 500;
+  padding: 8px 16px;
+  transition: color 0.15s ease, border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.insights-subtab:hover {
+  color: var(--ap-text-primary, #1e293b);
+  background: rgba(0, 0, 0, 0.02);
+}
+
+.insights-subtab:focus-visible {
+  outline: 2px solid var(--ap-accent-primary, #1e40af);
+  outline-offset: 2px;
+}
+
+.insights-subtab.active {
+  color: var(--ap-accent-primary, #1e40af);
+  border-bottom-color: var(--ap-accent-primary, #1e40af);
+  background: transparent;
+}
+
+.insights-subpane {
+  display: none;
+}
+
+.insights-subpane.active {
+  display: block;
+}
+
+@media (max-width: 600px) {
+  .insights-subtabs {
+    margin: -20px -16px 16px -16px;
+    padding: 12px 16px 0 16px;
+  }
+  .insights-subtab {
+    flex: 1;
+    padding: 10px 8px;
+    font-size: 0.85rem;
+    text-align: center;
+  }
+}

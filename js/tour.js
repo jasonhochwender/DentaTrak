@@ -177,9 +177,13 @@
   }
 
   function goToLabInsightsTab() {
-    var tab = document.querySelector('.main-tab[data-tab="lab-insights"]');
-    if (tab) {
-      tab.click();
+    var mainTab = document.querySelector('.main-tab[data-tab="insights"]');
+    if (mainTab) {
+      mainTab.click();
+    }
+    var subTab = document.querySelector('.insights-subtab[data-insights-subtab="labs"]');
+    if (subTab) {
+      subTab.click();
     }
     openedInsightsTab = 'lab-insights';
     return raf(1);
@@ -377,13 +381,13 @@
       });
     }
 
-    if (document.querySelector('.main-tab[data-tab="lab-insights"]')) {
+    if (document.querySelector('.insights-subtab[data-insights-subtab="labs"]')) {
       steps.push({
         id: 'lab-insights',
         title: t('tour.lab_insights_title'),
         text: t('tour.lab_insights_text'),
         attachTo: {
-          element: '.main-tab[data-tab="lab-insights"]',
+          element: '.insights-subtab[data-insights-subtab="labs"]',
           on: 'bottom-start'
         },
         beforeShowPromise: labInsightsBefore,

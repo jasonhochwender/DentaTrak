@@ -292,6 +292,30 @@
   min-width: 120px;
 }
 
+.archived-cases-modal .archived-filter-controls .btn-clear-filters {
+  height: 34px;
+  padding: 0 14px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  transition: color 0.15s ease, background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.archived-cases-modal .archived-filter-controls .btn-clear-filters:hover:not(:disabled) {
+  color: var(--text-primary);
+  background: var(--background-subtle);
+  border-color: var(--border-medium);
+}
+
+.archived-cases-modal .archived-filter-controls .btn-clear-filters:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
 /* 4. Results count as smaller secondary text near the toolbar */
 .archived-cases-modal .archived-count {
   margin-top: 8px;

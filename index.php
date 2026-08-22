@@ -334,8 +334,8 @@ $articleUrls = $appConfig['public_urls'] ?? [];
       <nav class="site-nav" aria-label="Primary">
         <a href="#problem"><?php echo t('marketing.navigation.problem'); ?></a>
         <a href="#how-it-works"><?php echo t('marketing.navigation.how_it_works'); ?></a>
-        <a href="<?= $baseUrl ?>resources/"><?php echo t('marketing.navigation.resources'); ?></a>
         <a href="#pricing"><?php echo t('marketing.navigation.pricing'); ?></a>
+        <a href="<?= $baseUrl ?>resources/"><?php echo t('marketing.navigation.resources'); ?></a>
         <a href="<?= $baseUrl ?>login.php"><?php echo t('marketing.navigation.sign_in'); ?></a>
         <a href="<?= $baseUrl ?>login.php" class="nav-cta"><?php echo t('marketing.navigation.start_free'); ?></a>
         <?php echo renderLanguageSelector('api/set-session-locale.php', getResolvedLocale(), false); ?>

@@ -396,6 +396,8 @@ try {
     $labMetrics = [];
     $multiLabCaseKeys = []; // case_id => set of lab keys (practice-wide)
     $totalTransfers = 0;
+    $globalTurnaroundSeconds = 0;
+    $globalTurnaroundCases = 0;
 
     foreach ($labs as $labKey => $labInfo) {
         $periods = $periodsByLab[$labKey] ?? [];
@@ -428,12 +430,13 @@ try {
                 $assignedCaseIds[$caseId] = true;
             }
 
-            // Completed / Avg. Turnaround: observed periods only, must have
-            // a real end, and a strictly positive duration. Backfilled/open
-            // periods excluded. Represents distinct CASES (not periods) -
-            // if the same case had two separate completed periods at this
-            // lab, their durations are summed and it still counts once.
-            if ($p['history_quality'] === 'observed' && $p['ended_at'] !== null) {
+            // Completed / Avg. Turnaround: observed periods that ended
+            // because the case was delivered at this lab. Reassignments away
+            // from the lab are real ends, but they are not "completed" lab
+            // work for this lab. Backfilled/open periods excluded. Represents
+            // distinct CASES (not periods) - if the same case had more than
+            // one delivered period at this lab, their durations are summed.
+            if ($p['history_quality'] === 'observed' && $p['ended_at'] !== null && $p['end_reason'] === 'delivered') {
                 $started = new DateTimeImmutable($p['started_at']);
                 $ended = new DateTimeImmutable($p['ended_at']);
                 $seconds = $ended->getTimestamp() - $started->getTimestamp();
@@ -471,7 +474,9 @@ try {
                 }
             }
 
-            $multiLabCaseKeys[$caseId][$labKey] = true;
+            if (periodOverlapsRange($p, $rangeStart, $now)) {
+                $multiLabCaseKeys[$caseId][$labKey] = true;
+            }
         }
 
         // Late Delivery Rate: resolve exactly one outcome per case, from
@@ -521,6 +526,11 @@ try {
         $avgTurnaroundSeconds = $completedCaseCount > 0
             ? array_sum($turnaroundByCase) / $completedCaseCount
             : null;
+
+        if ($completedCaseCount > 0) {
+            $globalTurnaroundSeconds += array_sum($turnaroundByCase);
+            $globalTurnaroundCases += $completedCaseCount;
+        }
 
         $currentWorkloadCount = count($workloadCaseIds);
         $lateInWorkload = $currentWorkloadLateCount[$labKey] ?? 0;
@@ -656,14 +666,10 @@ try {
     ];
 
     // ── Summary cards ────────────────────────────────────────────────────
-    $turnaroundValues = array_values(array_filter(array_map(function ($m) {
-        return $m['avgTurnaroundDays'];
-    }, $labMetrics), function ($v) { return $v !== null; }));
-
     $summary = [
         'activeLabs' => count(array_filter($labs, function ($l) { return $l['isLive']; })),
         'casesCurrentlyAtLabs' => array_sum(array_map(function ($m) { return $m['currentWorkload']; }, $labMetrics)),
-        'avgTurnaroundDays' => count($turnaroundValues) > 0 ? round(array_sum($turnaroundValues) / count($turnaroundValues), 1) : null,
+        'avgTurnaroundDays' => $globalTurnaroundCases > 0 ? round(($globalTurnaroundSeconds / $globalTurnaroundCases) / 86400, 1) : null,
         'lateCasesAtLabs' => array_sum(array_map(function ($m) { return $m['lateCaseCount']; }, $labMetrics)),
         'totalRevisions' => array_sum(array_map(function ($m) { return $m['revisionCount']; }, $labMetrics)),
         'directLabTransfers' => $totalTransfers,

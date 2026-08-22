@@ -193,7 +193,7 @@ if (!isset($_SESSION['user'])) {
     // Show a styled authentication required page
     ?>
     <!DOCTYPE html>
-    <html lang="en">
+    <html lang="<?php echo getHtmlLang(); ?>">
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -383,7 +383,7 @@ if ($currentPracticeId) {
 
 
 ?><!DOCTYPE html>
-<html lang="en"> 
+<html lang="<?php echo getHtmlLang(); ?>">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -599,7 +599,7 @@ window.featureFlags = <?php echo getFeatureFlagsJson(); ?>;
         ?>
         <img
           src="<?php echo $hasPracticeLogo ? htmlspecialchars($practiceLogoPath) : ''; ?>"
-          alt="Logo"
+          alt="<?php echo htmlspecialchars(t('settings.branding.logo')); ?>"
           class="main-logo"
           width="56"
           height="56"
@@ -723,10 +723,7 @@ endif;
       <div class="main-tabs">
         <button type="button" class="main-tab active" data-tab="cases"><?php echo t('navigation.cases'); ?></button>
         <?php if ($userCanViewAnalytics): ?>
-        <button type="button" class="main-tab" data-tab="insights"><?= isFeatureEnabled('SHOW_LAB_INSIGHTS') ? t('navigation.practice_insights') : t('navigation.insights') ?></button>
-        <?php if (isFeatureEnabled('SHOW_LAB_INSIGHTS')): ?>
-        <button type="button" class="main-tab" data-tab="lab-insights"><?php echo t('navigation.lab_insights'); ?></button>
-        <?php endif; ?>
+        <button type="button" class="main-tab" data-tab="insights"><?= t('navigation.insights') ?></button>
         <?php endif; ?>
       </div>
 
@@ -900,6 +897,12 @@ endif;
         <!-- Insights Tab (consolidated analytics + AI) -->
         <div class="main-tab-pane" id="insights-tab">
           <div class="analytics-pro">
+            <div class="insights-subtabs" id="insightsSubtabs" role="tablist">
+              <button type="button" class="insights-subtab active" data-insights-subtab="practice" role="tab" aria-selected="true"><?= t('insights.navigation.practice') ?></button>
+              <?php if (isFeatureEnabled('SHOW_LAB_INSIGHTS')): ?>
+              <button type="button" class="insights-subtab" data-insights-subtab="labs" role="tab" aria-selected="false"><?= t('insights.navigation.lab') ?></button>
+              <?php endif; ?>
+            </div>
             <!-- Header -->
             <div class="ap-header">
               <div class="ap-header-content">
@@ -1398,6 +1401,12 @@ endif;
         <!-- Lab Insights Tab -->
         <div class="main-tab-pane" id="lab-insights-tab">
           <div class="analytics-pro li-root">
+            <div class="insights-subtabs" id="labInsightsSubtabs" role="tablist">
+              <button type="button" class="insights-subtab" data-insights-subtab="practice" role="tab" aria-selected="false"><?= t('insights.navigation.practice') ?></button>
+              <?php if (isFeatureEnabled('SHOW_LAB_INSIGHTS')): ?>
+              <button type="button" class="insights-subtab active" data-insights-subtab="labs" role="tab" aria-selected="true"><?= t('insights.navigation.lab') ?></button>
+              <?php endif; ?>
+            </div>
             <div class="ap-header">
               <div class="ap-header-content">
                 <div>
@@ -2044,6 +2053,7 @@ endif;
                   <option value="Partial"><?php echo t('case_types.partial'); ?></option>
                   <option value="Orthodontic Appliance"><?php echo t('case_types.orthodontic_appliance'); ?></option>
                 </select>
+                <button type="button" class="btn-clear-filters" id="archivedClearFilters"><?php echo t('filters.clear_filters'); ?></button>
               </div>
             </div>
             <div class="archived-count">
@@ -2734,13 +2744,12 @@ endif;
       <!-- Dental Practice Demo Data -->
       <div class="dev-tools-section">
         <h4>🏥 <?php echo t('dev_tools.demo_data'); ?></h4>
-        <div id="devDemoDataSummary" style="margin-bottom: 12px; font-size: 0.9rem; color: #6b7280; min-height: 1.2em;">
+        <div id="devDemoDataSummary" class="dev-demo-summary">
           <?php echo t('dev_tools.demo_loading_summary'); ?>
         </div>
-        <div id="devDemoRecentRuns" style="margin-bottom: 12px; font-size: 0.85rem; color: #6b7280;"></div>
-        <div class="test-case-controls">
+        <div class="test-case-controls demo-data-controls">
           <label for="devDemoDataSize" class="sr-only"><?php echo t('dev_tools.test_case_count'); ?></label>
-          <select id="devDemoDataSize" class="dev-input" style="margin-right: 8px;">
+          <select id="devDemoDataSize" class="dev-select">
             <option value="small"><?php echo t('dev_tools.small'); ?></option>
             <option value="standard" selected><?php echo t('dev_tools.standard'); ?></option>
             <option value="large"><?php echo t('dev_tools.large'); ?></option>

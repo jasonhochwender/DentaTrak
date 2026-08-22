@@ -19,6 +19,8 @@
         "invalid_date": "Invalid Date",
         "date_format": "mm/dd/yyyy",
         "today": "Today",
+        "yesterday": "Yesterday",
+        "days_ago": "{count} days ago",
         "continue": "Continue",
         "back": "Back",
         "next": "Next",
@@ -312,7 +314,7 @@
         "anyone": "Anyone",
         "all_types": "All types",
         "all_carriers": "All carriers",
-        "clear_filters": "Clear filters",
+        "clear_filters": "Clear Filters",
         "apply_filters": "Apply filters",
         "late_cases": "Late cases",
         "due_soon": "Due soon",
@@ -745,8 +747,8 @@
             "lab_insights": "Your trial has expired. Upgrade to access Lab Insights."
         },
         "navigation": {
-            "practice": "Practice Insights",
-            "lab": "Lab Insights",
+            "practice": "Practice",
+            "lab": "Labs",
             "refresh": "Refresh"
         },
         "metrics": {
@@ -832,12 +834,12 @@
             "practice_users_only": "Practice Users Only"
         },
         "tooltips": {
-            "average_lab_turnaround": "Average observed time cases spent assigned to this lab. Cases with unknown historical assignment start dates are excluded.",
+            "average_lab_turnaround": "Average number of days cases spend assigned to a lab, from the start of the lab assignment until the assignment is completed. This value is averaged across all labs.",
             "cases_assigned_header": "Distinct cases assigned to this lab during the selected period, including cases still in progress. Not a completed-work count - see Completed.",
-            "completed_header": "Distinct cases with a reliably-measured completed assignment at this lab during the selected period. Same population used for Avg. Turnaround.",
-            "avg_turnaround_header": "Average observed time cases spent assigned to this lab (started_at to ended_at). Excludes cases with unknown historical start dates and open assignments.",
+            "completed_header": "Distinct cases with a completed, observed lab assignment that was delivered at this lab during the selected period. This is the same population used for Avg. Turnaround and Late Delivery Rate.",
+            "avg_turnaround_header": "Average number of days a case spent assigned to this lab, from the start of the lab assignment until the completed assignment ended. Open assignments and cases without a reliable assignment start are excluded.",
             "late_rate_header": "Percentage of cases currently assigned to this lab that are past their due date. This reflects the lab's current workload only, not a historical performance rate.",
-            "late_delivery_rate_header": "Of the Completed cases, the percentage delivered after their due date. Excludes cases whose due date was edited after completion, since that date can no longer be verified."
+            "late_delivery_rate_header": "Of the completed cases, the percentage delivered after their due date. Excludes cases whose due date was edited after completion, since that date can no longer be verified."
         },
         "priority": {
             "high": "High",
@@ -1288,7 +1290,9 @@
             "continue_with_microsoft": "Continue with Microsoft",
             "sign_in_with_microsoft": "Sign in with Microsoft",
             "microsoft_error": "Microsoft sign-in is currently unavailable. Please try again later.",
-            "linking_google": "Google sign-in linked to your existing account."
+            "linking_google": "Google sign-in linked to your existing account.",
+            "google_logo_alt": "Google logo",
+            "microsoft_logo_alt": "Microsoft logo"
         },
         "errors": {
             "invalid_action": "Invalid action",
@@ -1668,7 +1672,7 @@
         "reset_error": "Error resetting demo data: {message}",
         "action_failed": "Failed to {action} demo data.",
         "active_cases": "{count} active demo cases",
-        "archived_cases": "{count} archived demo cases",
+        "archived_cases": "{count} archived",
         "no_data": "No demo data in this practice",
         "generation_run_one": "1 generation run",
         "generation_run_other": "{count} generation runs",
@@ -2072,6 +2076,10 @@
             "resources": {
                 "title": "Dental Case Tracking Resources | DentaTrak",
                 "description": "Guides on dental case tracking, dental lab workflows, case types like crowns, bridges, and implants, and how case tracking software compares to spreadsheets and PMS platforms."
+            },
+            "hipaa": {
+                "title": "HIPAA & Security | DentaTrak",
+                "description": "Learn how DentaTrak protects patient information with encryption, access controls, audit logging, and Business Associate Agreements."
             }
         },
         "articles": {
@@ -3635,8 +3643,32 @@
         },
         "resources": {
             "title": "Dental Case Tracking Resources | DentaTrak",
-            "h1": "Dental Case Tracking Resources",
-            "intro": "Practical guides on tracking dental cases across labs, referrals, and internal handoffs, organized by topic.",
+            "h1": "Resources for better dental case management",
+            "intro": "Practical tools, templates, guides, and articles to help your practice keep cases organized, reduce surprises, and understand the operational impact of case management.",
+            "tools_heading": "Free Tools & Downloads",
+            "tools_desc": "Practical resources you can use whether or not you use DentaTrak.",
+            "tool_spreadsheet_title": "DentaTrak Dental Case Tracking Spreadsheet",
+            "tool_spreadsheet_desc": "A free Excel template for tracking dental cases, labs, due dates, patient appointments, status, priorities, and more. Includes built-in filters, case alerts, and a simple dashboard. No DentaTrak account required.",
+            "tool_spreadsheet_cta": "Download Free Spreadsheet",
+            "tool_spreadsheet_type": "Download",
+            "tool_spreadsheet_privacy": "Protect patient information: use a non-identifying case or patient reference whenever possible and store the spreadsheet according to your practice's privacy and security policies.",
+            "tool_calculator_title": "Dental Remake Cost Calculator",
+            "tool_calculator_desc": "A free tool for estimating the real cost of dental case remakes, including more than just the laboratory fee.",
+            "tool_calculator_cta": "Calculate Remake Cost",
+            "tool_calculator_type": "Calculator",
+            "featured_heading": "Featured Resources",
+            "featured_desc": "A few of the most useful guides to start with.",
+            "browse_heading": "Browse Resources",
+            "browse_desc": "Explore guides and comparisons by topic.",
+            "read_guide": "Read guide",
+            "coming_soon": "Coming soon",
+            "type_guide": "Guide",
+            "type_comparison": "Comparison",
+            "type_download": "Download",
+            "type_tool": "Tool",
+            "cta_heading": "Ready to move beyond spreadsheets?",
+            "cta_desc": "DentaTrak gives your team one place to track dental cases, deadlines, assignments, lab activity, files, shipping, and revisions from start to delivery.",
+            "cta_secondary": "See How It Works",
             "group_dental_case_tracking": "Dental Case Tracking",
             "card_dental_case_tracking_software_title": "Dental Case Tracking Software",
             "card_dental_case_tracking_software_desc": "What dental case tracking software is, why practices need it, and how DentaTrak works.",
@@ -3660,7 +3692,50 @@
             "card_vs_pms_desc": "What a PMS manages, what dedicated case tracking manages, and whether you need both.",
             "card_vs_spreadsheets_title": "Dental Case Tracking Software vs. Spreadsheets",
             "card_vs_spreadsheets_desc": "When spreadsheets stop working and what dedicated software does differently.",
-            "cta_title": "Ready to track your cases?"
+            "cta_title": "Ready to track your cases?",
+            "group_security_privacy": "Security & Privacy",
+            "card_hipaa_title": "HIPAA & Security",
+            "card_hipaa_desc": "Learn how DentaTrak protects patient information, controls access, and supports your practice's HIPAA responsibilities.",
+            "card_hipaa_cta": "Learn About HIPAA & Security",
+            "type_security": "Security"
+        },
+        "hipaa": {
+            "title": "HIPAA & Security",
+            "h1": "HIPAA & Security",
+            "intro": "DentaTrak is designed for dental practices that need to manage cases involving protected health information. Security, access control, and responsible data handling are built into the platform rather than treated as optional features.",
+            "shared_responsibility_heading": "HIPAA is a shared responsibility",
+            "shared_responsibility_body": "HIPAA compliance requires both the right technology and the right day-to-day processes. DentaTrak provides technical safeguards designed to support your practice's HIPAA obligations, but using DentaTrak alone does not make a practice HIPAA compliant. Your practice remains responsible for how you use the platform, train your staff, and manage your own policies.",
+            "baa_heading": "Business Associate Agreement",
+            "baa_body": "DentaTrak provides a Business Associate Agreement (BAA) as part of practice onboarding. The BAA is a required step before accessing case data. It establishes DentaTrak's responsibilities when handling protected health information on your practice's behalf, and the acceptance is recorded in your practice record.",
+            "baa_existing_customers": "If you are an existing practice, you can view your signed BAA from your account. Prospective customers can contact us for more information.",
+            "safeguards_heading": "Technical safeguards",
+            "data_protection_heading": "Data protection",
+            "data_protection_body": "Patient names, dates of birth, dentist names, and case notes are encrypted at the application level using AES-256-CBC before being stored in the database. Passwords are hashed with bcrypt. All traffic between your browser and DentaTrak is sent over HTTPS.",
+            "access_controls_heading": "User and practice access controls",
+            "access_controls_body": "Every user is tied to a practice through a membership table. Every API call that accesses case data requires a valid practice context and verifies that the user belongs to that practice. Role-based permissions (admin, user, and owner) control what each person can do, and the Assigned Only setting limits a user to seeing only cases assigned to them.",
+            "files_heading": "Secure file access",
+            "files_body": "Case attachments are stored in Google Cloud Storage and are never served as public files. Access uses short-lived signed URLs that expire in minutes, and each download request is validated against the user's practice membership and case assignment before the file is streamed.",
+            "audit_heading": "Audit logging",
+            "audit_body": "DentaTrak logs access to protected health information, including who accessed what case, from what IP address, and when. Case status and activity changes are also tracked for audit purposes.",
+            "sessions_heading": "Authentication and session security",
+            "sessions_body": "Sessions are configured with httpOnly, Secure in production, and SameSite=Lax cookies. Sessions time out after 30 minutes of inactivity and are periodically regenerated. Cross-site request forgery tokens are required for state-changing requests. Optional TOTP two-factor authentication is available.",
+            "retention_heading": "Data retention and export",
+            "retention_body": "Practice data is retained for 7 years after deactivation, which exceeds HIPAA's minimum 6-year requirement. Practice administrators can export data at any time through the application.",
+            "headers_heading": "Security headers",
+            "headers_body": "The application sets security headers including X-Frame-Options, X-Content-Type-Options, X-XSS-Protection, Referrer-Policy, Permissions-Policy, and a Content Security Policy.",
+            "practice_responsibilities_heading": "What your practice is responsible for",
+            "practice_responsibilities_body": "DentaTrak provides the technical controls, but your practice is responsible for managing authorized users, removing access when staff leave, protecting account credentials, using appropriate devices and networks, and following your own HIPAA policies and procedures.",
+            "responsibilities_item_1": "Add and remove users promptly when staff change.",
+            "responsibilities_item_2": "Use strong, unique passwords and keep them confidential.",
+            "responsibilities_item_3": "Use two-factor authentication where it is available.",
+            "responsibilities_item_4": "Only access DentaTrak from secure devices and networks.",
+            "responsibilities_item_5": "Train staff on your practice's HIPAA policies.",
+            "baa_callout_heading": "A BAA is part of onboarding",
+            "baa_callout_body": "A Business Associate Agreement is a required part of DentaTrak onboarding. An authorized representative of your practice must review and accept the BAA before viewing or entering case data.",
+            "contact_body": "For questions about HIPAA, our BAA, or data practices, please contact us at privacy@dentatrak.com.",
+            "cta_heading": "Ready to get started?",
+            "cta_primary": "Start Free",
+            "cta_secondary": "Contact Sales"
         }
     }
 }

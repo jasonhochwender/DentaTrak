@@ -275,6 +275,7 @@ Here is the workflow data to analyze:
         'article_dental_remake_cost'            => 'dental-remake-cost',
         'page_about'                            => 'about',
         'page_resources'                        => 'resources',
+        'page_hipaa_security'                   => 'hipaa-security',
     ],
 
     'billing' => [
@@ -409,6 +410,7 @@ $appConfigUAT = array_merge($commonConfig, [
         'article_dental_remake_cost'            => 'dental-remake-cost.php',
         'page_about'                            => 'about.php',
         'page_resources'                        => 'resources.php',
+        'page_hipaa_security'                   => 'hipaa-security.php',
     ],
 ]);
 
@@ -434,6 +436,7 @@ $appConfigLocalDev = array_merge($commonConfig, [
         'article_dental_remake_cost'            => 'dental-remake-cost.php',
         'page_about'                            => 'about.php',
         'page_resources'                        => 'resources.php',
+        'page_hipaa_security'                   => 'hipaa-security.php',
     ],
 ]);
 

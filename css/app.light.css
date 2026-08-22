@@ -1442,6 +1442,29 @@ body {
   box-shadow: 0 0 0 2px rgba(26, 115, 232, 0.15);
 }
 
+.archived-filter-controls .btn-clear-filters {
+  padding: 10px 16px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: color 0.15s ease, background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.archived-filter-controls .btn-clear-filters:hover:not(:disabled) {
+  color: var(--text-primary);
+  background: var(--background-subtle);
+  border-color: var(--border-color);
+}
+
+.archived-filter-controls .btn-clear-filters:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
 /* Archived Cases Modal */
 .archived-cases-modal {
   max-width: 2200px;

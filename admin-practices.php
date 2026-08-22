@@ -37,12 +37,12 @@ $userName = $_SESSION['user_name'] ?? 'Admin';
 $userEmail = $_SESSION['user_email'] ?? '';
 ?>
 <!DOCTYPE html>
-<html lang="en">
+<html lang="<?php echo getHtmlLang(); ?>">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="robots" content="noindex, nofollow">
-    <title>Practice Administration - <?php echo htmlspecialchars($appConfig['appName']); ?></title>
+    <title><?php echo htmlspecialchars(t('admin_practices.title')); ?> - <?php echo htmlspecialchars($appConfig['appName']); ?></title>
 
     <!-- Favicon / App Icons -->
     <link rel="icon" type="image/x-icon" href="favicon.ico">
@@ -653,6 +653,137 @@ $userEmail = $_SESSION['user_email'] ?? '';
         .settings-list li {
             margin-bottom: 4px;
         }
+        /* Compact UI overrides */
+        .admin-header {
+            margin-bottom: 16px;
+            padding: 14px 18px;
+        }
+        .admin-header h1 {
+            font-size: 1.25rem;
+        }
+        .admin-header .subtitle {
+            font-size: 0.8rem;
+        }
+        .stats-grid {
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+        .stat-card {
+            padding: 12px 14px;
+            border-radius: 8px;
+        }
+        .stat-card .label {
+            font-size: 0.75rem;
+            margin-bottom: 4px;
+        }
+        .stat-card .value {
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+        .table-header {
+            padding: 10px 14px;
+        }
+        .table-header h2 {
+            font-size: 0.95rem;
+        }
+        .practices-table th,
+        .practices-table td {
+            padding: 8px 10px;
+        }
+        .practices-table th {
+            font-size: 0.75rem;
+            font-weight: 500;
+            text-transform: none;
+            letter-spacing: 0;
+        }
+        .practices-table td:first-child {
+            max-width: 200px;
+        }
+        .practices-table strong {
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+        .practices-table small {
+            font-size: 0.75rem;
+        }
+        .status-badge,
+        .baa-badge {
+            padding: 2px 8px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+        .detail-panel-header {
+            padding: 12px 14px;
+        }
+        .detail-panel-header h3 {
+            font-size: 1rem;
+            font-weight: 600;
+        }
+        .detail-panel-header .subtitle {
+            font-size: 0.8rem;
+        }
+        .detail-tab {
+            padding: 8px 12px;
+            font-size: 0.8rem;
+        }
+        .detail-content {
+            padding: 14px;
+        }
+        .compliance-detail {
+            padding: 8px 10px;
+            margin-bottom: 10px;
+        }
+        .compliance-detail .label {
+            font-size: 0.75rem;
+            margin-bottom: 2px;
+        }
+        .compliance-detail .value {
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+        .settings-card {
+            padding: 10px 12px;
+            margin-bottom: 10px;
+        }
+        .settings-card h4 {
+            font-size: 0.85rem;
+            margin: 0 0 6px 0;
+        }
+        .settings-row {
+            padding: 4px 0;
+            font-size: 0.8rem;
+        }
+        .phi-log-table th,
+        .phi-log-table td,
+        .users-table th,
+        .users-table td {
+            padding: 6px 8px;
+            font-size: 0.75rem;
+        }
+        .loading, .empty-state {
+            padding: 24px;
+        }
+        .trial-urgent {
+            color: #dc2626;
+            font-weight: 600;
+        }
+        .trial-expired {
+            color: #991b1b;
+            font-weight: 700;
+        }
+        .trial-normal {
+            color: #1f2937;
+            font-weight: 500;
+        }
+        .baa-badge.pending {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+        .hidden-note {
+            color: #6b7280;
+            font-size: 0.75rem;
+            margin-left: 6px;
+        }
     </style>
 </head>
 <body>
@@ -795,11 +926,11 @@ $userEmail = $_SESSION['user_email'] ?? '';
             if (diffDays < 0) {
                 text = formatDate(dateStr); // future (clock skew)
             } else if (diffDays === 0) {
-                text = 'Today';
+                text = t('common.today');
             } else if (diffDays === 1) {
-                text = 'Yesterday';
+                text = t('common.yesterday');
             } else if (diffDays <= 6) {
-                text = diffDays + ' days ago';
+                text = t('common.days_ago', {count: diffDays});
             } else if (diffDays <= 90) {
                 text = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
             } else {
@@ -910,7 +1041,9 @@ $userEmail = $_SESSION['user_email'] ?? '';
                 const subscriptionStatusClass = adminSubscriptionStatusClass(sub.status);
                 let subscriptionText = escapeHtml(sub.status_display || t('admin_practices.no_subscription'));
                 if (sub.is_trialing && sub.trial_display) {
-                    subscriptionText += ' · ' + escapeHtml(sub.trial_display);
+                    const days = (typeof sub.trial_days_remaining === 'number') ? sub.trial_days_remaining : null;
+                    const trialClass = (days !== null && days < 0) ? 'trial-expired' : ((days !== null && days <= 14) ? 'trial-urgent' : 'trial-normal');
+                    subscriptionText += ' · <span class="' + trialClass + '">' + escapeHtml(sub.trial_display) + '</span>';
                 }
                 const ownerDisplay = escapeHtml(sub.owner_email || '—');
 
@@ -971,26 +1104,26 @@ $userEmail = $_SESSION['user_email'] ?? '';
             // Show detail panel with tabs
             const isActive = practice.is_active === true || practice.is_active === '1' || practice.is_active === 1;
             
-            document.getElementById('detailPanel').innerHTML = 
+            document.getElementById('detailPanel').innerHTML =
                 '<div class="detail-panel-header">' +
                     '<div style="display: flex; justify-content: space-between; align-items: flex-start;">' +
                         '<div>' +
-                            '<h3>' + escapeHtml(practice.practice_name || practice.legal_name || 'Unnamed Practice') + '</h3>' +
-                            '<div class="subtitle">' + (isActive ? '✅ Active' : '❌ Inactive') + ' • ' + (practice.user_count || 0) + ' users • ' + (practice.case_count || 0) + ' cases</div>' +
+                            '<h3>' + escapeHtml(practice.practice_name || practice.legal_name || t('admin_practices.unnamed')) + '</h3>' +
+                            '<div class="subtitle">' + (isActive ? '✅ ' + t('admin_practices.status_active') : '❌ ' + t('admin_practices.status_inactive')) + ' • ' + (practice.user_count || 0) + ' ' + t('admin_practices.table_users').toLowerCase() + ' • ' + (practice.case_count || 0) + ' ' + t('navigation.cases').toLowerCase() + '</div>' +
                         '</div>' +
-                        '<button class="action-btn primary" onclick="printPracticeDetails(' + practiceId + ')" style="flex-shrink: 0;">🖨️ Print</button>' +
+                        '<button class="action-btn primary" onclick="printPracticeDetails(' + practiceId + ')" style="flex-shrink: 0;">🖨️ ' + t('admin_practices.print') + '</button>' +
                     '</div>' +
                 '</div>' +
                 '<div class="detail-tabs">' +
-                    '<button class="detail-tab active" onclick="showTab(\'compliance\', ' + practiceId + ')">Compliance Details</button>' +
-                    '<button class="detail-tab" onclick="showTab(\'usage\', ' + practiceId + ')">Usage & Adoption</button>' +
-                    '<button class="detail-tab" onclick="showTab(\'subscription\', ' + practiceId + ')">Subscription</button>' +
-                    '<button class="detail-tab" onclick="showTab(\'phi\', ' + practiceId + ')">PHI Access Log</button>' +
-                    '<button class="detail-tab" onclick="showTab(\'users\', ' + practiceId + ')">Users</button>' +
-                    '<button class="detail-tab" onclick="showTab(\'settings\', ' + practiceId + ')">Settings</button>' +
+                    '<button class="detail-tab active" onclick="showTab(\'compliance\', ' + practiceId + ')">' + t('admin_practices.tabs_compliance') + '</button>' +
+                    '<button class="detail-tab" onclick="showTab(\'usage\', ' + practiceId + ')">' + t('admin_practices.tabs_usage') + '</button>' +
+                    '<button class="detail-tab" onclick="showTab(\'subscription\', ' + practiceId + ')">' + t('admin_practices.tabs_subscription') + '</button>' +
+                    '<button class="detail-tab" onclick="showTab(\'phi\', ' + practiceId + ')">' + t('admin_practices.tabs_phi_log') + '</button>' +
+                    '<button class="detail-tab" onclick="showTab(\'users\', ' + practiceId + ')">' + t('admin_practices.tabs_users') + '</button>' +
+                    '<button class="detail-tab" onclick="showTab(\'settings\', ' + practiceId + ')">' + t('admin_practices.tabs_settings') + '</button>' +
                 '</div>' +
                 '<div class="detail-content" id="detailContent">' +
-                    '<div class="loading">Loading...</div>' +
+                    '<div class="loading">' + t('common.loading') + '</div>' +
                 '</div>';
             
             // Load compliance tab by default
@@ -1002,7 +1135,7 @@ $userEmail = $_SESSION['user_email'] ?? '';
             document.querySelectorAll('.detail-tab').forEach(btn => btn.classList.remove('active'));
             event.target.classList.add('active');
             
-            document.getElementById('detailContent').innerHTML = '<div class="loading">Loading...</div>';
+            document.getElementById('detailContent').innerHTML = '<div class="loading">' + t('common.loading') + '</div>';
             
             if (tab === 'compliance') {
                 loadComplianceTab(practiceId);
@@ -1406,7 +1539,7 @@ $userEmail = $_SESSION['user_email'] ?? '';
                 '</div>' +
                 '<div class="form-group" id="emailPreviewGroup">' +
                     '<label>Preview</label>' +
-                    '<div id="emailPreview" style="background: #f9fafb; padding: 12px; border-radius: 8px; font-size: 0.9rem; color: #374151; border: 1px solid #e5e7eb; white-space: pre-line;">Loading preview...</div>' +
+                    '<div id="emailPreview" style="background: #f9fafb; padding: 12px; border-radius: 8px; font-size: 0.9rem; color: #374151; border: 1px solid #e5e7eb; white-space: pre-line;">' + t('common.loading') + '</div>' +
                 '</div>' +
                 '<div class="modal-actions" style="margin-top: 20px;">' +
                     '<button class="action-btn" onclick="closeModal(\'emailModal\')">Cancel</button>' +
@@ -1619,7 +1752,7 @@ $userEmail = $_SESSION['user_email'] ?? '';
         
         function viewCompliance(practiceId) {
             selectedPracticeId = practiceId;
-            document.getElementById('complianceDetails').innerHTML = '<div class="loading">Loading...</div>';
+            document.getElementById('complianceDetails').innerHTML = '<div class="loading">' + t('common.loading') + '</div>';
             document.getElementById('complianceModal').classList.add('active');
             
             fetch('api/admin-practices.php?action=compliance&practice_id=' + practiceId, { credentials: 'same-origin' })
@@ -1693,7 +1826,7 @@ $userEmail = $_SESSION['user_email'] ?? '';
         
         function viewPHILog(practiceId) {
             selectedPracticeId = practiceId;
-            document.getElementById('phiLogContent').innerHTML = '<div class="loading">Loading...</div>';
+            document.getElementById('phiLogContent').innerHTML = '<div class="loading">' + t('common.loading') + '</div>';
             document.getElementById('phiLogModal').classList.add('active');
             
             fetch('api/admin-practices.php?action=phi_log&practice_id=' + practiceId + '&limit=100', { credentials: 'same-origin' })
@@ -2067,7 +2200,7 @@ $userEmail = $_SESSION['user_email'] ?? '';
                 <button class="modal-close" onclick="closeModal('emailModal')">&times;</button>
             </div>
             <div id="emailContent">
-                <div class="loading">Loading...</div>
+                <div class="loading">' + t('common.loading') + '</div>
             </div>
         </div>
     </div>

@@ -318,6 +318,24 @@
   opacity: 0.9;
 }
 
+a.trust-item,
+a.trust-item:hover,
+a.trust-item:focus,
+a.trust-item:active {
+  color: inherit;
+  text-decoration: none;
+}
+
+a.trust-item:hover {
+  background: rgba(255, 255, 255, 0.28);
+  opacity: 1;
+}
+
+a.trust-item:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.5);
+  outline-offset: 2px;
+}
+
 /* Right Login Container */
 .login-container {
   flex: 1;

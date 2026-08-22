@@ -8237,7 +8237,6 @@ document.addEventListener('DOMContentLoaded', function () {
   var devDeleteDemoDataBtn = document.getElementById('devDeleteDemoDataBtn');
   var devDemoDataSizeSelect = document.getElementById('devDemoDataSize');
   var devDemoDataSummary = document.getElementById('devDemoDataSummary');
-  var devDemoRecentRuns = document.getElementById('devDemoRecentRuns');
 
   function loadDemoDataSummary() {
     if (!devDemoDataSummary) return;
@@ -8250,28 +8249,10 @@ document.addEventListener('DOMContentLoaded', function () {
           return;
         }
 
-        var lines = [];
         if (data.total > 0) {
-          lines.push(t('demo_data.active_cases', {count: data.active}));
-          lines.push(t('demo_data.archived_cases', {count: data.historical}));
+          devDemoDataSummary.textContent = t('demo_data.active_cases', {count: data.active}) + ' • ' + t('demo_data.archived_cases', {count: data.historical});
         } else {
-          lines.push(t('demo_data.no_data'));
-        }
-        lines.push(I18n.pluralize(data.runCount, 'demo_data.generation_run'));
-        if (data.lastGenerated) {
-          var d = new Date(data.lastGenerated);
-          lines.push(t('demo_data.last_generated', {date: I18n.formatDate(d, {style: 'medium'})}));
-        }
-        devDemoDataSummary.textContent = lines.join(' • ');
-
-        var recent = (data.runs || []).slice(0, 3);
-        if (recent.length > 0) {
-          devDemoRecentRuns.innerHTML = recent.map(function (run) {
-            var d = new Date(run.created_at);
-            return '<div>' + I18n.formatDate(d, {style: 'medium'}) + ' &mdash; ' + run.dataset_size + ' &mdash; ' + t('demo_data.cases', {count: (run.active_case_count + run.historical_case_count)}) + (run.status !== 'complete' ? ' (' + run.status + ')' : '') + '</div>';
-          }).join('');
-        } else {
-          devDemoRecentRuns.innerHTML = '';
+          devDemoDataSummary.textContent = t('demo_data.no_data');
         }
       })
       .catch(function (err) {
@@ -9043,6 +9024,29 @@ document.addEventListener('DOMContentLoaded', function () {
   // Main tabs functionality
   const mainTabs = document.querySelectorAll('.main-tab');
   const mainTabPanes = document.querySelectorAll('.main-tab-pane');
+  const insightsSubtabs = document.querySelectorAll('.insights-subtab');
+
+  function activateInsightsSubview(view, updateHash) {
+    updateHash = updateHash !== false;
+    mainTabPanes.forEach(p => p.classList.remove('active'));
+    document.getElementById(view === 'labs' ? 'lab-insights-tab' : 'insights-tab').classList.add('active');
+
+    insightsSubtabs.forEach(st => {
+      const isActive = st.dataset.insightsSubtab === view;
+      st.classList.toggle('active', isActive);
+      st.setAttribute('aria-selected', isActive ? 'true' : 'false');
+    });
+
+    if (view === 'practice') {
+      loadAnalyticsScripts();
+    } else if (view === 'labs') {
+      loadLabInsightsScripts();
+    }
+
+    if (updateHash && window.history.replaceState) {
+      window.history.replaceState(null, null, '#insights/' + view);
+    }
+  }
 
   mainTabs.forEach(tab => {
     tab.addEventListener('click', () => {
@@ -9055,7 +9059,7 @@ document.addEventListener('DOMContentLoaded', function () {
       }
 
       // Block Insights tab when trial expired
-      if ((targetTab === 'insights' || targetTab === 'lab-insights') && billingInfo && billingInfo.is_trial && billingInfo.trial_expired) {
+      if (targetTab === 'insights' && billingInfo && billingInfo.is_trial && billingInfo.trial_expired) {
         showTrialExpiredModal();
         return;
       }
@@ -9068,17 +9072,45 @@ document.addEventListener('DOMContentLoaded', function () {
       tab.classList.add('active');
       document.getElementById(targetTab + '-tab').classList.add('active');
 
-      // Lazy load analytics scripts when insights tab is clicked (consolidated tab)
+      // Insights top tab defaults to the Practice sub-tab
       if (targetTab === 'insights') {
-        loadAnalyticsScripts();
-      }
-
-      // Lazy load Lab Insights scripts when that tab is clicked
-      if (targetTab === 'lab-insights') {
-        loadLabInsightsScripts();
+        activateInsightsSubview('practice', false);
       }
     });
   });
+
+  insightsSubtabs.forEach(st => {
+    st.addEventListener('click', () => {
+      const view = st.dataset.insightsSubtab;
+      if (!view) { return; }
+      // Keep the top Insights tab active; just switch the subview
+      mainTabPanes.forEach(p => p.classList.remove('active'));
+      activateInsightsSubview(view);
+    });
+  });
+
+  // Deep linking: #insights/practice or #insights/labs
+  function applyInitialInsightsHash() {
+    const hash = (window.location.hash || '').replace(/^#/, '');
+    if (hash === 'insights' || hash === 'insights/practice') {
+      mainTabs.forEach(t => t.classList.remove('active'));
+      mainTabPanes.forEach(p => p.classList.remove('active'));
+      const insightsTab = document.querySelector('.main-tab[data-tab="insights"]');
+      if (insightsTab) { insightsTab.classList.add('active'); }
+      document.getElementById('insights-tab').classList.add('active');
+      activateInsightsSubview('practice', false);
+    } else if (hash === 'insights/labs') {
+      mainTabs.forEach(t => t.classList.remove('active'));
+      mainTabPanes.forEach(p => p.classList.remove('active'));
+      const insightsTab = document.querySelector('.main-tab[data-tab="insights"]');
+      if (insightsTab) { insightsTab.classList.add('active'); }
+      document.getElementById('lab-insights-tab').classList.add('active');
+      activateInsightsSubview('labs', false);
+    }
+  }
+
+  applyInitialInsightsHash();
+  window.addEventListener('hashchange', applyInitialInsightsHash);
 
   // Lazy load Chart.js (shared by both Practice Insights and Lab Insights)
   var chartJsLoaded = false;
@@ -9234,6 +9266,57 @@ document.addEventListener('DOMContentLoaded', function () {
   const archivedPageSizeSelect = document.getElementById('archivedPageSize');
   const archivedDateRange = document.getElementById('archivedDateRange');
   const archivedCaseType = document.getElementById('archivedCaseType');
+  const archivedClearFilters = document.getElementById('archivedClearFilters');
+
+  // Single source of truth for archived filter defaults
+  const archivedFilterDefaults = {
+    search: '',
+    dateRange: '',
+    caseType: '',
+    pageSize: '25'
+  };
+
+  function getArchivedFilterValues() {
+    return {
+      search: archivedSearch ? archivedSearch.value : '',
+      dateRange: archivedDateRange ? archivedDateRange.value : '',
+      caseType: archivedCaseType ? archivedCaseType.value : '',
+      pageSize: archivedPageSizeSelect ? archivedPageSizeSelect.value : archivedFilterDefaults.pageSize
+    };
+  }
+
+  function archivedFiltersAreActive() {
+    const v = getArchivedFilterValues();
+    return Object.keys(archivedFilterDefaults).some(function(key) {
+      return v[key] !== archivedFilterDefaults[key];
+    });
+  }
+
+  function updateArchivedClearFiltersButton() {
+    if (archivedClearFilters) {
+      archivedClearFilters.disabled = !archivedFiltersAreActive();
+    }
+  }
+
+  function clearArchivedFilters() {
+    if (archivedSearch) {
+      archivedSearch.value = archivedFilterDefaults.search;
+    }
+    if (archivedSearchClearBtn) {
+      archivedSearchClearBtn.style.display = 'none';
+    }
+    if (archivedDateRange) {
+      archivedDateRange.value = archivedFilterDefaults.dateRange;
+    }
+    if (archivedCaseType) {
+      archivedCaseType.value = archivedFilterDefaults.caseType;
+    }
+    if (archivedPageSizeSelect) {
+      archivedPageSizeSelect.value = archivedFilterDefaults.pageSize;
+    }
+    archivedPageSize = parseInt(archivedFilterDefaults.pageSize, 10);
+    filterArchivedCasesClientSide();
+  }
 
   // Store all archived cases for client-side filtering
   let allArchivedCases = [];
@@ -9286,6 +9369,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
     const countSpan = document.getElementById('archivedCount');
     countSpan.textContent = t('archive.pagination.results_count', {visible: Math.min(filteredArchivedCases.length, archivedPageSize), total: filteredArchivedCases.length});
+
+    updateArchivedClearFiltersButton();
   }
 
   // Display paginated results from filtered data
@@ -9338,6 +9423,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
         const countSpan = document.getElementById('archivedCount');
         countSpan.textContent = t('archive.pagination.results_count', {visible: Math.min(filteredArchivedCases.length, archivedPageSize), total: filteredArchivedCases.length});
+        updateArchivedClearFiltersButton();
       }
     });
   }
@@ -9351,6 +9437,12 @@ document.addEventListener('DOMContentLoaded', function () {
   if (archivedCaseType) {
     archivedCaseType.addEventListener('change', () => {
       filterArchivedCasesClientSide();
+    });
+  }
+
+  if (archivedClearFilters) {
+    archivedClearFilters.addEventListener('click', () => {
+      clearArchivedFilters();
     });
   }
 

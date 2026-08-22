@@ -89,6 +89,9 @@ $sessionTimeout = isset($_GET['timeout']) && $_GET['timeout'] == '1';
   }
   $appName = $appConfig['appName'];
   $hasLogo = isset($appConfig['logo']) && !empty($appConfig['logo']);
+  $baseUrl = rtrim($appConfig['baseUrl'] ?? '', '/') . '/';
+  $publicUrls = $appConfig['public_urls'] ?? [];
+  $hipaaUrl = $baseUrl . ($publicUrls['page_hipaa_security'] ?? 'hipaa-security.php');
 ?>
 <body class="login-body <?php echo $envClass; ?>">
   <!-- Animated background elements -->
@@ -105,7 +108,7 @@ $sessionTimeout = isset($_GET['timeout']) && $_GET['timeout'] == '1';
     <div class="login-hero">
       <div class="hero-content">
         <?php if ($hasLogo): ?>
-          <img src="<?php echo htmlspecialchars($appConfig['logo']); ?>" alt="Logo" class="hero-logo">
+          <img src="<?php echo htmlspecialchars($appConfig['logo']); ?>" alt="<?php echo htmlspecialchars(t('marketing.accessibility.logo_alt')); ?>" class="hero-logo">
         <?php else: ?>
           <img src="images/logo.png" alt="<?php echo htmlspecialchars($appName); ?>" class="hero-brand-icon">
         <?php endif; ?>
@@ -143,10 +146,10 @@ $sessionTimeout = isset($_GET['timeout']) && $_GET['timeout'] == '1';
       
       <div class="hero-footer">
         <div class="trust-badges">
-          <span class="trust-item">
+          <a href="<?= $hipaaUrl ?>" class="trust-item trust-link" aria-label="<?php echo htmlspecialchars(t('auth.login.hipaa_compliant') . ' - ' . t('marketing.hipaa.title')); ?>">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/></svg>
             <?php echo t('auth.login.hipaa_compliant'); ?>
-          </span>
+          </a>
         </div>
       </div>
     </div>
@@ -191,7 +194,7 @@ $sessionTimeout = isset($_GET['timeout']) && $_GET['timeout'] == '1';
         
         <div class="google-signin-wrapper">
           <a href="api/oauth-start.php" class="google-signin-btn" id="googleSignInBtn">
-            <img src="images/google-logo.svg" alt="Google logo" class="google-logo">
+            <img src="images/google-logo.svg" alt="<?php echo htmlspecialchars(t('auth.sso.google_logo_alt')); ?>" class="google-logo">
             <span><?php echo t('auth.sso.continue_with_google'); ?></span>
           </a>
         </div>
@@ -288,7 +291,7 @@ $sessionTimeout = isset($_GET['timeout']) && $_GET['timeout'] == '1';
           </div>
           <div class="google-signin-wrapper">
             <a href="api/oauth-start.php" class="google-signin-btn" id="googleOnlySignInBtn">
-              <img src="images/google-logo.svg" alt="Google logo" class="google-logo">
+              <img src="images/google-logo.svg" alt="<?php echo htmlspecialchars(t('auth.sso.google_logo_alt')); ?>" class="google-logo">
               <span><?php echo t('auth.sso.continue_with_google'); ?></span>
             </a>
           </div>
