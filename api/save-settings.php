@@ -44,7 +44,7 @@ $data = json_decode($jsonData, true);
 
 if (!$data) {
     http_response_code(400);
-    echo json_encode(['success' => false, 'message' => 'Invalid data format']);
+    echo json_encode(['success' => false, 'message' => t('api.settings.invalid_data')]);
     exit;
 }
 
@@ -65,7 +65,7 @@ if (!$workflowStageLabelsResult['valid']) {
     http_response_code(400);
     echo json_encode([
         'success' => false,
-        'message' => 'Invalid workflow stage name(s): ' . implode('; ', $workflowStageLabelsResult['errors']),
+        'message' => t('api.settings.invalid_workflow_stages', ['message' => implode('; ', $workflowStageLabelsResult['errors'])]),
         'errors' => $workflowStageLabelsResult['errors'],
         'field' => 'workflowStageLabels'
     ]);
@@ -177,7 +177,7 @@ foreach ($validAdminUsers as $adminEmail) {
         http_response_code(400);
         echo json_encode([
             'success' => false,
-            'message' => 'Invalid role combination: "' . $adminEmail . '" cannot be both Admin and Assigned Only. Please uncheck one and try again.'
+            'message' => t('api.settings.invalid_role_combination', ['email' => $adminEmail])
         ]);
         exit;
     }
@@ -294,7 +294,7 @@ function respondAssignmentLabelsInUse(array $blockedLabels) {
     http_response_code(409);
     echo json_encode([
         'success' => false,
-        'message' => 'Cannot delete label(s) still in use: ' . implode(', ', $parts) . '. Please reassign those cases first.'
+        'message' => t('api.settings.labels_in_use', ['labels' => implode(', ', $parts)])
     ]);
     exit;
 }
@@ -353,7 +353,7 @@ function validateAssignmentNamespaceCollisions($pdo, $practiceId, array $assignm
             http_response_code(409);
             echo json_encode([
                 'success' => false,
-                'message' => 'An assignment label with this name already exists.'
+                'message' => t('api.settings.label_exists')
             ]);
             exit;
         }
@@ -377,7 +377,7 @@ function validateAssignmentNamespaceCollisions($pdo, $practiceId, array $assignm
                 http_response_code(409);
                 echo json_encode([
                     'success' => false,
-                    'message' => 'An assignment label with this name already exists.'
+                    'message' => t('api.settings.label_exists')
                 ]);
                 exit;
             }
@@ -388,7 +388,7 @@ function validateAssignmentNamespaceCollisions($pdo, $practiceId, array $assignm
             http_response_code(409);
             echo json_encode([
                 'success' => false,
-                'message' => 'An assignment label cannot have the same name as a practice user.'
+                'message' => t('api.settings.label_user_conflict')
             ]);
             exit;
         }
@@ -420,7 +420,7 @@ function validateAssignmentNamespaceCollisions($pdo, $practiceId, array $assignm
             http_response_code(409);
             echo json_encode([
                 'success' => false,
-                'message' => "This user's email conflicts with an existing assignment label. Rename or remove the assignment label before adding this user."
+                'message' => t('api.settings.user_label_conflict')
             ]);
             exit;
         }
@@ -605,6 +605,17 @@ try {
             ]);
 
             userLog("Updated workflow stage labels for practice {$currentPracticeId}", false);
+
+            // Practice default language (admin-only)
+            if (isset($data['practiceDefaultLanguage'])) {
+                $practiceDefaultLanguage = validateLocale($data['practiceDefaultLanguage'], 'en-US');
+                $stmt = $pdo->prepare("UPDATE practices SET default_locale = :default_locale WHERE id = :practice_id");
+                $stmt->execute([
+                    'default_locale' => $practiceDefaultLanguage,
+                    'practice_id' => $currentPracticeId
+                ]);
+                userLog("Updated practice default locale for practice {$currentPracticeId} to '{$practiceDefaultLanguage}'", false);
+            }
         } else {
             // Not an admin; log any attempted changes to practice name or logo
             if (!empty($practiceName) || $logoAction === 'remove') {
@@ -643,7 +654,7 @@ try {
                         echo json_encode([
                             'success' => false,
                             'reload_required' => true,
-                            'message' => 'Please reload the page before making changes to Assignment Labels.'
+                            'message' => t('api.settings.reload_required_labels')
                         ]);
                         exit;
                     }
@@ -744,7 +755,7 @@ try {
                         http_response_code(409);
                         echo json_encode([
                             'success' => false,
-                            'message' => 'Duplicate label(s): ' . implode(', ', array_keys($dupErrors))
+                            'message' => t('api.settings.duplicate_labels', ['labels' => implode(', ', array_keys($dupErrors))])
                         ]);
                         exit;
                     }
@@ -773,7 +784,7 @@ try {
                             echo json_encode([
                                 'success' => false,
                                 'reload_required' => true,
-                                'message' => 'Assignment Label data is out of date. Please reload Settings and try again.'
+                                'message' => t('api.settings.assignment_labels_out_of_date')
                             ]);
                             exit;
                         }
@@ -1129,7 +1140,8 @@ try {
                             $newUser['email'],
                             $newUser['first_name'] ?? null,
                             $practiceName,
-                            $appConfig
+                            $appConfig,
+                            (int)$currentPracticeId
                         );
                     }
                 } catch (Exception $e) {
@@ -1199,7 +1211,7 @@ try {
 
     echo json_encode([
         'success' => true,
-        'message' => 'Settings saved successfully',
+        'message' => t('api.settings.saved_success'),
         'assignmentLabelsDetailed' => $freshAssignmentLabelsDetailed,
         // Fully-resolved six-entry map reflecting exactly what was just
         // persisted (normalized: trimmed, blanks removed) - the client
@@ -1212,7 +1224,7 @@ try {
     http_response_code(500);
     echo json_encode([
         'success' => false,
-        'message' => 'Database error while saving settings'
+        'message' => t('settings.messages.save_error')
     ]);
     
     userLog("Error saving user settings: " . $e->getMessage(), true);

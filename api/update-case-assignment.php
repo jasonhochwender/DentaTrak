@@ -37,7 +37,7 @@ if (!isset($data['caseId']) || empty($data['caseId'])) {
     http_response_code(400);
     echo json_encode([
         'success' => false,
-        'message' => 'Case ID is required'
+        'message' => t('api.assignments.case_id_required')
     ]);
     exit;
 }
@@ -278,7 +278,7 @@ try {
     // Return success
     echo json_encode([
         'success' => true,
-        'message' => 'Assignment updated successfully',
+        'message' => t('api.assignments.updated_success'),
         'caseId' => $caseId,
         'assignedTo' => $assignedTo,
         'driveUpdateSuccess' => $driveUpdateSuccess
@@ -288,7 +288,7 @@ try {
     http_response_code(500);
     echo json_encode([
         'success' => false,
-        'message' => 'Error updating assignment: ' . $e->getMessage()
+        'message' => t('api.assignments.update_error', ['message' => $e->getMessage()])
     ]);
     
     userLog("Error updating case assignment: " . $e->getMessage(), true);

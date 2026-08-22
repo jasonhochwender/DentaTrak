@@ -30,7 +30,7 @@ $input = json_decode(file_get_contents('php://input'), true);
 $caseId = $input['caseId'] ?? '';
 
 if (empty($caseId)) {
-    echo json_encode(['success' => false, 'message' => 'Case ID is required']);
+    echo json_encode(['success' => false, 'message' => t('api.cases.case_id_required')]);
     exit;
 }
 
@@ -41,7 +41,7 @@ try {
 
     // Business rule: can only restore a case that is actually archived.
     if ((int)($caseInfo['archived'] ?? 0) !== 1) {
-        echo json_encode(['success' => false, 'message' => 'Archived case not found']);
+        echo json_encode(['success' => false, 'message' => t('api.restore.archived_not_found')]);
         exit;
     }
     
@@ -68,12 +68,12 @@ try {
         
         echo json_encode([
             'success' => true,
-            'message' => 'Case restored successfully'
+            'message' => t('archive.messages.restored')
         ]);
     } else {
         echo json_encode([
             'success' => false,
-            'message' => 'Failed to restore case'
+            'message' => t('api.restore.failed')
         ]);
     }
     
@@ -81,7 +81,7 @@ try {
     http_response_code(500);
     echo json_encode([
         'success' => false,
-        'message' => 'Failed to restore case'
+        'message' => t('api.restore.failed')
     ]);
     
     error_log('Error restoring case: ' . $e->getMessage());

@@ -6,7 +6,7 @@ $appName = $appConfig['appName'] ?? 'DentaTrak';
 $baseUrl = rtrim($appConfig['baseUrl'], '/') . '/';
 $articleUrls = $appConfig['public_urls'] ?? [];
 ?><!DOCTYPE html>
-<html lang="en">
+<html lang="<?php echo getHtmlLang(); ?>">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -20,8 +20,19 @@ $articleUrls = $appConfig['public_urls'] ?? [];
     gtag('config', 'G-MBJDENR3H2');
   </script>
 
-  <meta name="description" content="DentaTrak is dental case tracking software that gives every crown, implant, and lab case a status, owner, and next step, so nothing gets lost. Start a 90-day free trial.">
-  <title>Dental Case Tracking Software | Track Every Case from Prep to Delivery | DentaTrak</title>
+  <meta name="description" content="<?php echo htmlspecialchars(t('marketing.articles.dental_case_tracking_software.seo.description')); ?>">
+
+  <title><?php echo htmlspecialchars(t('marketing.articles.dental_case_tracking_software.seo.title')); ?></title>
+
+  <!-- Open Graph -->
+  <meta property="og:title" content="<?php echo htmlspecialchars(t('marketing.articles.dental_case_tracking_software.seo.title')); ?>">
+  <meta property="og:description" content="<?php echo htmlspecialchars(t('marketing.articles.dental_case_tracking_software.seo.description')); ?>">
+  <meta property="og:type" content="article">
+  <meta property="og:url" content="https://dentatrak.com/dental-case-tracking-software">
+
+  <!-- Twitter -->
+  <meta name="twitter:title" content="<?php echo htmlspecialchars(t('marketing.articles.dental_case_tracking_software.seo.title')); ?>">
+  <meta name="twitter:description" content="<?php echo htmlspecialchars(t('marketing.articles.dental_case_tracking_software.seo.description')); ?>">
   <link rel="canonical" href="https://dentatrak.com/dental-case-tracking-software">
 
   <!-- Favicon / App Icons -->
@@ -40,7 +51,9 @@ $articleUrls = $appConfig['public_urls'] ?? [];
   {
     "@context": "https://schema.org",
     "@type": "Article",
-    "headline": "Dental Case Tracking Software for Dental Practices",
+    "headline": <?php echo json_encode(t('marketing.articles.dental_case_tracking_software.h1'), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>,
+    "articleSection": <?php echo json_encode(t('marketing.navigation.resources'), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>,
+    "alternativeHeadline": <?php echo json_encode(t('marketing.articles.dental_case_tracking_software.h1'), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>,
     "author": { "@type": "Person", "name": "Dr. William Verrillo" },
     "publisher": { "@type": "Organization", "name": "DentaTrak" },
     "datePublished": "2026-08-08",
@@ -55,9 +68,9 @@ $articleUrls = $appConfig['public_urls'] ?? [];
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",
     "itemListElement": [
-      { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://dentatrak.com/" },
-      { "@type": "ListItem", "position": 2, "name": "Resources", "item": "https://dentatrak.com/resources" },
-      { "@type": "ListItem", "position": 3, "name": "Dental Case Tracking Software", "item": "https://dentatrak.com/dental-case-tracking-software" }
+      { "@type": "ListItem", "position": 1, "name": <?php echo json_encode(t('marketing.navigation.home'), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>, "item": "https://dentatrak.com/" },
+      { "@type": "ListItem", "position": 2, "name": <?php echo json_encode(t('marketing.navigation.resources'), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>, "item": "https://dentatrak.com/resources" },
+      { "@type": "ListItem", "position": 3, "name": <?php echo json_encode(t('marketing.articles.dental_case_tracking_software.h1'), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>, "item": "https://dentatrak.com/dental-case-tracking-software" }
     ]
   }
   </script>
@@ -70,34 +83,34 @@ $articleUrls = $appConfig['public_urls'] ?? [];
     "mainEntity": [
       {
         "@type": "Question",
-        "name": "What is dental case tracking software?",
+        "name": <?php echo json_encode(t('marketing.articles.dental_case_tracking_software.faq.items.0.question'), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>,
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "Dental case tracking software helps dental practices monitor multi-step cases from preparation through lab work, referrals, scheduling, delivery, and completion. It gives each case a status, owner, and next step so delays can be identified before they affect the patient."
+          "text": <?php echo json_encode(t('marketing.articles.dental_case_tracking_software.faq.items.0.answer'), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>
         }
       },
       {
         "@type": "Question",
-        "name": "Does dental case tracking software replace my practice management system (PMS)?",
+        "name": <?php echo json_encode(t('marketing.articles.dental_case_tracking_software.faq.items.1.question'), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>,
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "No. A PMS handles scheduling, billing, and patient records. Dental case tracking software works alongside it to track the status, ownership, and progress of multi-step cases, which most PMS platforms are not designed to do."
+          "text": <?php echo json_encode(t('marketing.articles.dental_case_tracking_software.faq.items.1.answer', ['link' => t('marketing.articles.dental_case_tracking_software.faq.items.1.answer_link_label')]), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>
         }
       },
       {
         "@type": "Question",
-        "name": "What types of dental cases can be tracked?",
+        "name": <?php echo json_encode(t('marketing.articles.dental_case_tracking_software.faq.items.2.question'), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>,
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "Common examples include crown and bridge cases, implant cases, lab-based restorations, referral-dependent treatments, and other multi-appointment procedures."
+          "text": <?php echo json_encode(t('marketing.articles.dental_case_tracking_software.faq.items.2.answer'), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>
         }
       },
       {
         "@type": "Question",
-        "name": "Who uses dental case tracking software in a practice?",
+        "name": <?php echo json_encode(t('marketing.articles.dental_case_tracking_software.faq.items.3.question'), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>,
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "Practice owners use it to see where cases stall without asking staff for updates. Treatment coordinators use it to know which cases need attention today. Dental assistants use it to understand handoffs and reduce confusion during transitions."
+          "text": <?php echo json_encode(t('marketing.articles.dental_case_tracking_software.faq.items.3.answer'), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>
         }
       }
     ]
@@ -108,10 +121,11 @@ $articleUrls = $appConfig['public_urls'] ?? [];
   <!-- Navigation -->
   <nav class="nav">
     <div class="nav-inner">
-      <a href="<?= $baseUrl ?>" class="nav-logo" aria-label="DentaTrak home"><img src="<?= $baseUrl ?>images/main.png" alt="DentaTrak" style="height: auto; width: auto; max-width: 140px; object-fit: contain; display: block;"></a>
+      <a href="<?= $baseUrl ?>" class="nav-logo" aria-label="<?php echo htmlspecialchars(t('marketing.accessibility.home_aria')); ?>"><img src="<?= $baseUrl ?>images/main.png" alt="<?php echo htmlspecialchars(t('marketing.accessibility.logo_alt')); ?>" style="height: auto; width: auto; max-width: 140px; object-fit: contain; display: block;"></a>
       <div class="nav-actions">
-        <a href="<?= $baseUrl ?>login.php" class="nav-login">Log In</a>
-        <a href="<?= $baseUrl ?>login.php" class="nav-cta">Start 90-Day Free Trial</a>
+        <a href="<?= $baseUrl ?>login.php" class="nav-login"><?php echo t('marketing.navigation.log_in'); ?></a>
+        <a href="<?= $baseUrl ?>login.php" class="nav-cta"><?php echo t('marketing.navigation.start_trial'); ?></a>
+        <?php echo renderLanguageSelector('api/set-session-locale.php', getResolvedLocale(), false); ?>
       </div>
     </div>
   </nav>
@@ -119,210 +133,256 @@ $articleUrls = $appConfig['public_urls'] ?? [];
   <!-- Breadcrumbs -->
   <div class="breadcrumb-bar">
     <ol class="breadcrumb">
-      <li><a href="<?= $baseUrl ?>">Home</a></li>
+      <li><a href="<?= $baseUrl ?>"><?php echo t('marketing.navigation.home'); ?></a></li>
       <li>/</li>
-      <li><a href="<?= $baseUrl . ($articleUrls['page_resources'] ?? 'resources') ?>">Resources</a></li>
+      <li><a href="<?= $baseUrl . ($articleUrls['page_resources'] ?? 'resources') ?>"><?php echo t('marketing.navigation.resources'); ?></a></li>
       <li>/</li>
-      <li aria-current="page">Dental Case Tracking Software</li>
+      <li aria-current="page"><?php echo t('marketing.articles.dental_case_tracking_software.h1'); ?></li>
     </ol>
   </div>
 
   <!-- Main Content -->
   <main class="content">
-    <h1>Dental Case Tracking Software for Dental Practices</h1>
+    <h1><?php echo t('marketing.articles.dental_case_tracking_software.h1'); ?></h1>
 
     <div class="article-meta">
-      <span>By <strong>Dr. William Verrillo</strong></span>
+      <span><?php echo t('marketing.articles.dental_case_tracking_software.meta.by'); ?> <strong>Dr. William Verrillo</strong></span>
       <span class="meta-divider">&middot;</span>
-      <span>Published <strong>August 8, 2026</strong></span>
+      <span><?php echo t('marketing.articles.dental_case_tracking_software.meta.published'); ?> <strong>August 8, 2026</strong></span>
     </div>
 
     <div class="answer-box">
       <p>
-        Dental case tracking software helps dental practices monitor multi-step cases from preparation through lab work, referrals, scheduling, delivery, and completion. It gives each case a status, owner, and next step so delays can be identified before they affect the patient.
+        <?php echo t('marketing.articles.dental_case_tracking_software.intro'); ?>
       </p>
     </div>
 
-    <h2>What Dental Case Tracking Software Is</h2>
+    <h2><?php echo t('marketing.articles.dental_case_tracking_software.what_it_is.heading'); ?></h2>
 
     <p>
-      Dental case tracking software is a system dedicated to following a case through every stage of its lifecycle, not just the appointment on the calendar, but everything that happens between appointments: the lab fabricating the restoration, the specialist completing a referral, the front desk waiting to hear a case is ready.
+      <?php echo t('marketing.articles.dental_case_tracking_software.what_it_is.body_1'); ?>
     </p>
 
     <p>
-      DentaTrak is dental case tracking software designed for dental practices. It gives every case a status, an owner, and a next step so nothing is lost between labs, referrals, and internal handoffs.
+      <?php echo t('marketing.articles.dental_case_tracking_software.what_it_is.body_2'); ?>
     </p>
 
-    <h2>Why Practices Need It</h2>
+    <h2><?php echo t('marketing.articles.dental_case_tracking_software.why_practices_need.heading'); ?></h2>
 
     <p>
-      Most dental practices manage complex cases without a dedicated system. Case information lives in scattered places: a coordinator's memory, sticky notes, a spreadsheet, and notes buried in the PMS. Problems only surface once they're already expensive.
+      <?php echo t('marketing.articles.dental_case_tracking_software.why_practices_need.body_1'); ?>
     </p>
 
     <ul>
-      <li><strong>Cases tracked in memory:</strong> The dentist or coordinator knows where things stand, but that knowledge isn't shared. When someone is out sick or busy, cases stall because no one else knows the status.</li>
-      <li><strong>No ownership or accountability:</strong> Multiple people touch a case (hygienist, assistant, coordinator, dentist). But no one is clearly responsible for the next step. Handoffs become drop-offs.</li>
-      <li><strong>Delays only noticed after impact:</strong> By the time someone realizes a case is stalled, the patient has already waited too long, the lab work may need to be redone, or chair time has been wasted.</li>
+      <li><strong><?php echo t('marketing.articles.dental_case_tracking_software.why_practices_need.items.0.title'); ?></strong> <?php echo t('marketing.articles.dental_case_tracking_software.why_practices_need.items.0.body'); ?></li>
+      <li><strong><?php echo t('marketing.articles.dental_case_tracking_software.why_practices_need.items.1.title'); ?></strong> <?php echo t('marketing.articles.dental_case_tracking_software.why_practices_need.items.1.body'); ?></li>
+      <li><strong><?php echo t('marketing.articles.dental_case_tracking_software.why_practices_need.items.2.title'); ?></strong> <?php echo t('marketing.articles.dental_case_tracking_software.why_practices_need.items.2.body'); ?></li>
     </ul>
 
-    <h2>Where Cases Commonly Get Lost or Delayed</h2>
+    <h2><?php echo t('marketing.articles.dental_case_tracking_software.cases_get_lost.heading'); ?></h2>
 
     <p>
-      A handful of predictable points account for most lost or delayed cases:
+      <?php echo t('marketing.articles.dental_case_tracking_software.cases_get_lost.intro'); ?>
     </p>
 
     <ol class="workflow-steps">
       <li>
-        <strong>Between the front desk and the lab</strong>
-        A case ships out and the front desk has no visibility into when it's due back or whether it's overdue.
+        <strong><?php echo t('marketing.articles.dental_case_tracking_software.cases_get_lost.steps.0.title'); ?></strong>
+        <?php echo t('marketing.articles.dental_case_tracking_software.cases_get_lost.steps.0.body'); ?>
       </li>
       <li>
-        <strong>Between a referral and the practice</strong>
-        A case is sent to a specialist and the loop never formally closes. No one confirms the patient was seen or the next step was completed.
+        <strong><?php echo t('marketing.articles.dental_case_tracking_software.cases_get_lost.steps.1.title'); ?></strong>
+        <?php echo t('marketing.articles.dental_case_tracking_software.cases_get_lost.steps.1.body'); ?>
       </li>
       <li>
-        <strong>Across staff handoffs</strong>
-        A case changes hands between team members without a clear record of who owns it next.
+        <strong><?php echo t('marketing.articles.dental_case_tracking_software.cases_get_lost.steps.2.title'); ?></strong>
+        <?php echo t('marketing.articles.dental_case_tracking_software.cases_get_lost.steps.2.body'); ?>
       </li>
       <li>
-        <strong>After a patient reschedule</strong>
-        A cancellation or reschedule knocks a case out of its normal flow, and it can sit unnoticed for weeks.
+        <strong><?php echo t('marketing.articles.dental_case_tracking_software.cases_get_lost.steps.3.title'); ?></strong>
+        <?php echo t('marketing.articles.dental_case_tracking_software.cases_get_lost.steps.3.body'); ?>
       </li>
     </ol>
 
     <p>
-      Read more about the specific breakdowns that happen with external labs in our guide to <a href="<?= $baseUrl . ($articleUrls['article_lab_tracking'] ?? 'dental-lab-case-tracking') ?>" class="content-link">dental lab case tracking</a>.
+      <?php echo t('marketing.articles.dental_case_tracking_software.cases_get_lost.link_prefix'); ?> <a href="<?= $baseUrl . ($articleUrls['article_lab_tracking'] ?? 'dental-lab-case-tracking') ?>" class="content-link"><?php echo t('marketing.articles.dental_case_tracking_software.cases_get_lost.link_label'); ?></a> <?php echo t('marketing.articles.dental_case_tracking_software.cases_get_lost.link_suffix'); ?>
     </p>
 
-    <h2>What Good Case Tracking Software Should Include</h2>
+    <h2><?php echo t('marketing.articles.dental_case_tracking_software.good_software.heading'); ?></h2>
 
     <ul class="checklist">
-      <li><strong>Case status:</strong> Whether a case is in prep, at the lab, waiting on the patient, or ready for delivery, visible at a glance.</li>
-      <li><strong>Clear ownership:</strong> Every case has a responsible person, and ownership transfers explicitly at each handoff.</li>
-      <li><strong>Lab and referral dependency tracking:</strong> Visibility into which cases are waiting on an external party, since when, and whether they're overdue.</li>
-      <li><strong>Stalled-case visibility:</strong> Cases that haven't moved in too long surface automatically, without anyone needing to remember to check.</li>
-      <li><strong>Full lifecycle tracking:</strong> A single view from initial treatment through final delivery.</li>
+      <li><strong><?php echo t('marketing.articles.dental_case_tracking_software.good_software.checklist.0.title'); ?></strong> <?php echo t('marketing.articles.dental_case_tracking_software.good_software.checklist.0.body'); ?></li>
+      <li><strong><?php echo t('marketing.articles.dental_case_tracking_software.good_software.checklist.1.title'); ?></strong> <?php echo t('marketing.articles.dental_case_tracking_software.good_software.checklist.1.body'); ?></li>
+      <li><strong><?php echo t('marketing.articles.dental_case_tracking_software.good_software.checklist.2.title'); ?></strong> <?php echo t('marketing.articles.dental_case_tracking_software.good_software.checklist.2.body'); ?></li>
+      <li><strong><?php echo t('marketing.articles.dental_case_tracking_software.good_software.checklist.3.title'); ?></strong> <?php echo t('marketing.articles.dental_case_tracking_software.good_software.checklist.3.body'); ?></li>
+      <li><strong><?php echo t('marketing.articles.dental_case_tracking_software.good_software.checklist.4.title'); ?></strong> <?php echo t('marketing.articles.dental_case_tracking_software.good_software.checklist.4.body'); ?></li>
     </ul>
 
     <p>
-      Dental case tracking software is not a replacement for your practice management system. It fills a gap that PMS software was never designed to address: managing the workflow of complex, multi-step cases. See <a href="<?= $baseUrl . ($articleUrls['article_vs_pms'] ?? 'dental-case-tracking-software-vs-pms') ?>" class="content-link">dental case tracking software vs. PMS</a> for a full comparison.
+      <?php
+        $vsPmsUrl = $baseUrl . ($articleUrls['article_vs_pms'] ?? 'dental-case-tracking-software-vs-pms');
+        $vsPmsLink = '<a href="' . $vsPmsUrl . '" class="content-link">' . t('marketing.articles.dental_case_tracking_software.good_software.vs_pms_link_label') . '</a>';
+        echo t('marketing.articles.dental_case_tracking_software.good_software.body_2', ['link' => $vsPmsLink]);
+      ?>
     </p>
 
-    <h2>How DentaTrak Works</h2>
+    <h2><?php echo t('marketing.articles.dental_case_tracking_software.how_it_works.heading'); ?></h2>
 
     <ol class="workflow-steps">
       <li>
-        <strong>Enter the case</strong>
-        When treatment begins, create a case record with patient details, case type (crown, implant, bridge, etc.), and lab information.
+        <strong><?php echo t('marketing.articles.dental_case_tracking_software.how_it_works.steps.0.title'); ?></strong>
+        <?php echo t('marketing.articles.dental_case_tracking_software.how_it_works.steps.0.body'); ?>
       </li>
       <li>
-        <strong>Assign ownership</strong>
-        Designate who is responsible for the case and what the next step is. Ownership stays clear through every handoff.
+        <strong><?php echo t('marketing.articles.dental_case_tracking_software.how_it_works.steps.1.title'); ?></strong>
+        <?php echo t('marketing.articles.dental_case_tracking_software.how_it_works.steps.1.body'); ?>
       </li>
       <li>
-        <strong>Track dependencies</strong>
-        See which cases are waiting on labs, referrals, or patient scheduling, and how long they've been waiting.
+        <strong><?php echo t('marketing.articles.dental_case_tracking_software.how_it_works.steps.2.title'); ?></strong>
+        <?php echo t('marketing.articles.dental_case_tracking_software.how_it_works.steps.2.body'); ?>
       </li>
       <li>
-        <strong>Monitor progress</strong>
-        Follow the case through each stage. Update status as it moves from prep to lab to delivery.
+        <strong><?php echo t('marketing.articles.dental_case_tracking_software.how_it_works.steps.3.title'); ?></strong>
+        <?php echo t('marketing.articles.dental_case_tracking_software.how_it_works.steps.3.body'); ?>
       </li>
       <li>
-        <strong>Intervene early</strong>
-        Identify stalled cases before they affect scheduling, revenue, or patient satisfaction.
+        <strong><?php echo t('marketing.articles.dental_case_tracking_software.how_it_works.steps.4.title'); ?></strong>
+        <?php echo t('marketing.articles.dental_case_tracking_software.how_it_works.steps.4.body'); ?>
       </li>
     </ol>
 
-    <h2>Types of Cases DentaTrak Can Track</h2>
+    <h2><?php echo t('marketing.articles.dental_case_tracking_software.types.heading'); ?></h2>
 
     <div class="table-wrap">
       <table class="comparison-table">
         <thead>
-          <tr><th>Case type</th><th>What's tracked</th></tr>
+          <tr>
+            <th><?php echo t('marketing.articles.dental_case_tracking_software.types.table.headers.0'); ?></th>
+            <th><?php echo t('marketing.articles.dental_case_tracking_software.types.table.headers.1'); ?></th>
+          </tr>
         </thead>
         <tbody>
-          <tr><td>Crown and bridge</td><td>Prep through lab fabrication to final seating. See <a href="<?= $baseUrl . ($articleUrls['article_crown_bridge'] ?? 'crown-and-bridge-case-tracking') ?>" class="content-link">crown and bridge case tracking</a>.</td></tr>
-          <tr><td>Implants</td><td>Surgical placement, healing period, and restorative phases. See <a href="<?= $baseUrl . ($articleUrls['article_implant'] ?? 'implant-case-tracking') ?>" class="content-link">implant case tracking</a>.</td></tr>
-          <tr><td>Lab-based restorations</td><td>Which cases are at the lab, when they're expected back, and whether they're overdue. See <a href="<?= $baseUrl . ($articleUrls['article_lab_tracking'] ?? 'dental-lab-case-tracking') ?>" class="content-link">dental lab case tracking</a>.</td></tr>
-          <tr><td>Referral-dependent treatments</td><td>Cases that require coordination with specialists or external providers.</td></tr>
-          <tr><td>Multi-appointment procedures</td><td>Visibility across treatments that span multiple visits over weeks or months.</td></tr>
+          <tr>
+            <td><?php echo t('marketing.articles.dental_case_tracking_software.types.table.rows.0.type'); ?></td>
+            <td>
+              <?php
+                $row0Url = $baseUrl . ($articleUrls['article_crown_bridge'] ?? 'crown-and-bridge-case-tracking');
+                $row0Link = '<a href="' . $row0Url . '" class="content-link">' . t('marketing.articles.dental_case_tracking_software.types.table.rows.0.tracks_link_label') . '</a>';
+                echo t('marketing.articles.dental_case_tracking_software.types.table.rows.0.tracks', ['link' => $row0Link]);
+              ?>
+            </td>
+          </tr>
+          <tr>
+            <td><?php echo t('marketing.articles.dental_case_tracking_software.types.table.rows.1.type'); ?></td>
+            <td>
+              <?php
+                $row1Url = $baseUrl . ($articleUrls['article_implant'] ?? 'implant-case-tracking');
+                $row1Link = '<a href="' . $row1Url . '" class="content-link">' . t('marketing.articles.dental_case_tracking_software.types.table.rows.1.tracks_link_label') . '</a>';
+                echo t('marketing.articles.dental_case_tracking_software.types.table.rows.1.tracks', ['link' => $row1Link]);
+              ?>
+            </td>
+          </tr>
+          <tr>
+            <td><?php echo t('marketing.articles.dental_case_tracking_software.types.table.rows.2.type'); ?></td>
+            <td>
+              <?php
+                $row2Url = $baseUrl . ($articleUrls['article_lab_tracking'] ?? 'dental-lab-case-tracking');
+                $row2Link = '<a href="' . $row2Url . '" class="content-link">' . t('marketing.articles.dental_case_tracking_software.types.table.rows.2.tracks_link_label') . '</a>';
+                echo t('marketing.articles.dental_case_tracking_software.types.table.rows.2.tracks', ['link' => $row2Link]);
+              ?>
+            </td>
+          </tr>
+          <tr>
+            <td><?php echo t('marketing.articles.dental_case_tracking_software.types.table.rows.3.type'); ?></td>
+            <td><?php echo t('marketing.articles.dental_case_tracking_software.types.table.rows.3.tracks'); ?></td>
+          </tr>
+          <tr>
+            <td><?php echo t('marketing.articles.dental_case_tracking_software.types.table.rows.4.type'); ?></td>
+            <td><?php echo t('marketing.articles.dental_case_tracking_software.types.table.rows.4.tracks'); ?></td>
+          </tr>
         </tbody>
       </table>
     </div>
 
-    <h2>Who Should Use Dental Case Tracking Software</h2>
+    <h2><?php echo t('marketing.articles.dental_case_tracking_software.who_should.heading'); ?></h2>
 
     <ul>
-      <li><strong>Practice owners:</strong> Get visibility into case flow without asking staff for updates. See where bottlenecks occur and identify patterns that affect revenue and efficiency.</li>
-      <li><strong>Treatment coordinators:</strong> Know exactly which cases need attention today. Stop chasing down status updates and focus on moving cases forward.</li>
-      <li><strong>Dental assistants:</strong> Understand what's coming up and what's waiting. Reduce confusion during handoffs and spend less time tracking down information.</li>
+      <li><strong><?php echo t('marketing.articles.dental_case_tracking_software.who_should.items.0.title'); ?></strong> <?php echo t('marketing.articles.dental_case_tracking_software.who_should.items.0.body'); ?></li>
+      <li><strong><?php echo t('marketing.articles.dental_case_tracking_software.who_should.items.1.title'); ?></strong> <?php echo t('marketing.articles.dental_case_tracking_software.who_should.items.1.body'); ?></li>
+      <li><strong><?php echo t('marketing.articles.dental_case_tracking_software.who_should.items.2.title'); ?></strong> <?php echo t('marketing.articles.dental_case_tracking_software.who_should.items.2.body'); ?></li>
     </ul>
 
-    <h2>How DentaTrak Works Alongside a PMS</h2>
+    <h2><?php echo t('marketing.articles.dental_case_tracking_software.pms.heading'); ?></h2>
 
     <p>
-      DentaTrak does not replace your practice management software. Your PMS handles scheduling, billing, and patient records. DentaTrak handles something different: tracking the workflow of multi-step cases.
+      <?php echo t('marketing.articles.dental_case_tracking_software.pms.body'); ?>
     </p>
 
     <ul>
-      <li><strong>Complements scheduling and billing:</strong> Use your PMS for appointments and payments. Use DentaTrak for case visibility.</li>
-      <li><strong>No data migration required:</strong> DentaTrak works alongside your existing systems. Start tracking cases without disrupting your current workflow.</li>
-      <li><strong>Focuses specifically on case tracking:</strong> Instead of trying to do everything, DentaTrak does one thing well: giving you visibility into complex cases.</li>
+      <li><strong><?php echo t('marketing.articles.dental_case_tracking_software.pms.items.0.title'); ?></strong> <?php echo t('marketing.articles.dental_case_tracking_software.pms.items.0.body'); ?></li>
+      <li><strong><?php echo t('marketing.articles.dental_case_tracking_software.pms.items.1.title'); ?></strong> <?php echo t('marketing.articles.dental_case_tracking_software.pms.items.1.body'); ?></li>
+      <li><strong><?php echo t('marketing.articles.dental_case_tracking_software.pms.items.2.title'); ?></strong> <?php echo t('marketing.articles.dental_case_tracking_software.pms.items.2.body'); ?></li>
     </ul>
 
-    <h2>Frequently Asked Questions</h2>
+    <h2><?php echo t('marketing.articles.dental_case_tracking_software.faq.heading'); ?></h2>
 
     <div class="faq-item">
-      <h3>What is dental case tracking software?</h3>
-      <p>Dental case tracking software helps dental practices monitor multi-step cases from preparation through lab work, referrals, scheduling, delivery, and completion. It gives each case a status, owner, and next step so delays can be identified before they affect the patient.</p>
+      <h3><?php echo t('marketing.articles.dental_case_tracking_software.faq.items.0.question'); ?></h3>
+      <p><?php echo t('marketing.articles.dental_case_tracking_software.faq.items.0.answer'); ?></p>
     </div>
 
     <div class="faq-item">
-      <h3>Does dental case tracking software replace my practice management system (PMS)?</h3>
-      <p>No. A PMS handles scheduling, billing, and patient records. Dental case tracking software works alongside it to track the status, ownership, and progress of multi-step cases, which most PMS platforms are not designed to do. See our full <a href="<?= $baseUrl . ($articleUrls['article_vs_pms'] ?? 'dental-case-tracking-software-vs-pms') ?>" class="content-link">comparison with PMS</a>.</p>
+      <h3><?php echo t('marketing.articles.dental_case_tracking_software.faq.items.1.question'); ?></h3>
+      <p>
+        <?php
+          $faq1Url = $baseUrl . ($articleUrls['article_vs_pms'] ?? 'dental-case-tracking-software-vs-pms');
+          $faq1Link = '<a href="' . $faq1Url . '" class="content-link">' . t('marketing.articles.dental_case_tracking_software.faq.items.1.answer_link_label') . '</a>';
+          echo t('marketing.articles.dental_case_tracking_software.faq.items.1.answer', ['link' => $faq1Link]);
+        ?>
+      </p>
     </div>
 
     <div class="faq-item">
-      <h3>What types of dental cases can be tracked?</h3>
-      <p>Common examples include crown and bridge cases, implant cases, lab-based restorations, referral-dependent treatments, and other multi-appointment procedures.</p>
+      <h3><?php echo t('marketing.articles.dental_case_tracking_software.faq.items.2.question'); ?></h3>
+      <p><?php echo t('marketing.articles.dental_case_tracking_software.faq.items.2.answer'); ?></p>
     </div>
 
     <div class="faq-item">
-      <h3>Who uses dental case tracking software in a practice?</h3>
-      <p>Practice owners use it to see where cases stall without asking staff for updates. Treatment coordinators use it to know which cases need attention today. Dental assistants use it to understand handoffs and reduce confusion during transitions.</p>
+      <h3><?php echo t('marketing.articles.dental_case_tracking_software.faq.items.3.question'); ?></h3>
+      <p><?php echo t('marketing.articles.dental_case_tracking_software.faq.items.3.answer'); ?></p>
     </div>
 
     <div class="related-links">
-      <h3>Related resources</h3>
+      <h3><?php echo t('marketing.articles.dental_case_tracking_software.related_resources.heading'); ?></h3>
       <ul>
-        <li><a href="<?= $baseUrl . ($articleUrls['article_lab_tracking'] ?? 'dental-lab-case-tracking') ?>">Dental Lab Case Tracking</a></li>
-        <li><a href="<?= $baseUrl . ($articleUrls['article_crown_bridge'] ?? 'crown-and-bridge-case-tracking') ?>">Crown and Bridge Case Tracking</a></li>
-        <li><a href="<?= $baseUrl . ($articleUrls['article_implant'] ?? 'implant-case-tracking') ?>">Implant Case Tracking</a></li>
-        <li><a href="<?= $baseUrl . ($articleUrls['article_vs_pms'] ?? 'dental-case-tracking-software-vs-pms') ?>">Dental Case Tracking Software vs. PMS</a></li>
-        <li><a href="<?= $baseUrl . ($articleUrls['page_about'] ?? 'about') ?>">About DentaTrak</a></li>
+        <li><a href="<?= $baseUrl . ($articleUrls['article_lab_tracking'] ?? 'dental-lab-case-tracking') ?>"><?php echo t('marketing.articles.dental_case_tracking_software.related_resources.items.0'); ?></a></li>
+        <li><a href="<?= $baseUrl . ($articleUrls['article_crown_bridge'] ?? 'crown-and-bridge-case-tracking') ?>"><?php echo t('marketing.articles.dental_case_tracking_software.related_resources.items.1'); ?></a></li>
+        <li><a href="<?= $baseUrl . ($articleUrls['article_implant'] ?? 'implant-case-tracking') ?>"><?php echo t('marketing.articles.dental_case_tracking_software.related_resources.items.2'); ?></a></li>
+        <li><a href="<?= $baseUrl . ($articleUrls['article_vs_pms'] ?? 'dental-case-tracking-software-vs-pms') ?>"><?php echo t('marketing.articles.dental_case_tracking_software.related_resources.items.3'); ?></a></li>
+        <li><a href="<?= $baseUrl . ($articleUrls['page_about'] ?? 'about') ?>"><?php echo t('marketing.articles.dental_case_tracking_software.related_resources.items.4'); ?></a></li>
       </ul>
     </div>
 
     <div class="cta-section">
-      <h2>Ready to track your cases?</h2>
-      <p>Try DentaTrak free for 90 days. Set up your practice and begin tracking cases in minutes.</p>
-      <a href="<?= $baseUrl ?>login.php" class="btn-white">Start 90-Day Free Trial</a>
-      <p style="margin-top: 16px; font-size: 0.9rem;"><a href="<?= $baseUrl ?>login.php" style="color: rgba(255,255,255,0.75); text-decoration: underline; text-underline-offset: 2px;">Already have an account? Log in</a></p>
+      <h2><?php echo t('marketing.cta.ready_title'); ?></h2>
+      <p><?php echo t('marketing.cta.ready_lead'); ?></p>
+      <a href="<?= $baseUrl ?>login.php" class="btn-white"><?php echo t('marketing.navigation.start_trial'); ?></a>
+      <p style="margin-top: 16px; font-size: 0.9rem;"><a href="<?= $baseUrl ?>login.php" style="color: rgba(255,255,255,0.75); text-decoration: underline; text-underline-offset: 2px;"><?php echo t('marketing.cta.already_account'); ?></a></p>
     </div>
   </main>
 
   <!-- Footer -->
   <footer class="footer">
     <div class="footer-inner">
-      <a href="<?= $baseUrl ?>" class="footer-wordmark" aria-label="DentaTrak home"><span class="denta">Denta</span><span class="trak">Trak</span></a>
+      <a href="<?= $baseUrl ?>" class="footer-wordmark" aria-label="<?php echo htmlspecialchars(t('marketing.accessibility.home_aria')); ?>"><span class="denta">Denta</span><span class="trak">Trak</span></a>
       <div class="footer-links">
-        <a href="<?= $baseUrl . ($articleUrls['page_about'] ?? 'about') ?>" class="footer-link">About</a>
-        <a href="<?= $baseUrl . ($articleUrls['page_resources'] ?? 'resources') ?>" class="footer-link">Resources</a>
-        <a href="<?= $baseUrl ?>privacy.php" class="footer-link">Privacy</a>
-        <a href="<?= $baseUrl ?>terms.php" class="footer-link">Terms</a>
-        <a href="<?= $baseUrl ?>" class="footer-link">Home</a>
+        <a href="<?= $baseUrl . ($articleUrls['page_about'] ?? 'about') ?>" class="footer-link"><?php echo t('marketing.footer.about'); ?></a>
+        <a href="<?= $baseUrl . ($articleUrls['page_resources'] ?? 'resources') ?>" class="footer-link"><?php echo t('marketing.navigation.resources'); ?></a>
+        <a href="<?= $baseUrl ?>privacy.php" class="footer-link"><?php echo t('marketing.footer.privacy'); ?></a>
+        <a href="<?= $baseUrl ?>terms.php" class="footer-link"><?php echo t('marketing.footer.terms'); ?></a>
+        <a href="<?= $baseUrl ?>" class="footer-link"><?php echo t('marketing.navigation.home'); ?></a>
       </div>
-      <span class="footer-copy">&copy; <?php echo date('Y'); ?> <?php echo htmlspecialchars($appName); ?>. All rights reserved.</span>
+      <span class="footer-copy">&copy; <?php echo date('Y'); ?> <?php echo htmlspecialchars($appName); ?>. <?php echo t('marketing.footer.copyright'); ?></span>
     </div>
   </footer>
 </body>

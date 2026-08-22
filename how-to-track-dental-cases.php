@@ -6,7 +6,7 @@ $appName = $appConfig['appName'] ?? 'DentaTrak';
 $baseUrl = rtrim($appConfig['baseUrl'], '/') . '/';
 $articleUrls = $appConfig['public_urls'] ?? [];
 ?><!DOCTYPE html>
-<html lang="en">
+<html lang="<?php echo getHtmlLang(); ?>">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -20,8 +20,19 @@ $articleUrls = $appConfig['public_urls'] ?? [];
     gtag('config', 'G-MBJDENR3H2');
   </script>
   
-  <meta name="description" content="Learn how to track dental cases without losing them. A practical guide to managing crowns, implants, and lab cases from prep to delivery.">
-  <title>How to Track Dental Cases Without Losing Them | DentaTrak</title>
+  <meta name="description" content="<?php echo htmlspecialchars(t("marketing.articles.how_to_track.seo.description")); ?>">
+  <title><?php echo htmlspecialchars(t("marketing.articles.how_to_track.seo.title")); ?></title>
+
+  <!-- Open Graph -->
+  <meta property="og:title" content="<?php echo htmlspecialchars(t("marketing.articles.how_to_track.seo.title")); ?>">
+  <meta property="og:description" content="<?php echo htmlspecialchars(t("marketing.articles.how_to_track.seo.description")); ?>">
+  <meta property="og:type" content="article">
+  <meta property="og:url" content="https://dentatrak.com/how-to-track-dental-cases">
+  <meta property="og:site_name" content="DentaTrak">
+  <!-- Twitter -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="<?php echo htmlspecialchars(t("marketing.articles.how_to_track.seo.title")); ?>">
+  <meta name="twitter:description" content="<?php echo htmlspecialchars(t("marketing.articles.how_to_track.seo.description")); ?>">
   <link rel="canonical" href="https://dentatrak.com/how-to-track-dental-cases">
 
   <!-- Favicon / App Icons -->
@@ -39,7 +50,7 @@ $articleUrls = $appConfig['public_urls'] ?? [];
   {
     "@context": "https://schema.org",
     "@type": "Article",
-    "headline": "How to Track Dental Cases Without Losing Them",
+    "headline": <?php echo json_encode(t("marketing.articles.how_to_track.h1"), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>,
     "author": { "@type": "Person", "name": "Dr. William Verrillo" },
     "publisher": { "@type": "Organization", "name": "DentaTrak" },
     "datePublished": "2026-04-01",
@@ -355,186 +366,139 @@ $articleUrls = $appConfig['public_urls'] ?? [];
   <!-- Navigation -->
   <nav class="nav">
     <div class="nav-inner">
-      <a href="<?= $baseUrl ?>" class="nav-logo" aria-label="DentaTrak home"><img src="<?= $baseUrl ?>images/main.png" alt="DentaTrak" style="height: auto; width: auto; max-width: 140px; object-fit: contain; display: block;"></a>
+      <a href="<?= $baseUrl ?>" class="nav-logo" aria-label="<?php echo htmlspecialchars(t('marketing.accessibility.home_aria')); ?>"><img src="<?= $baseUrl ?>images/main.png" alt="<?php echo htmlspecialchars(t('marketing.accessibility.logo_alt')); ?>" style="height: auto; width: auto; max-width: 140px; object-fit: contain; display: block;"></a>
       <div class="nav-actions">
-        <a href="<?= $baseUrl ?>login.php" class="nav-login">Log In</a>
-        <a href="<?= $baseUrl ?>login.php" class="nav-cta">Start 90-Day Free Trial</a>
+        <a href="<?= $baseUrl ?>login.php" class="nav-login"><?php echo t("marketing.navigation.log_in"); ?></a>
+        <a href="<?= $baseUrl ?>login.php" class="nav-cta"><?php echo t("marketing.navigation.start_trial"); ?></a>
+        <?php echo renderLanguageSelector("api/set-session-locale.php", getResolvedLocale(), false); ?>
       </div>
     </div>
   </nav>
 
   <!-- Main Content -->
   <main class="content">
-    <h1>How to Track Dental Cases Without Losing Them</h1>
+    <h1><?php echo t('marketing.articles.how_to_track.h1'); ?></h1>
 
     <div class="article-meta">
-      <span>By <strong>Dr. William Verrillo</strong></span>
+      <span><?php echo t('marketing.articles.how_to_track.meta.by'); ?> <strong>Dr. William Verrillo</strong></span>
       <span class="meta-divider">&middot;</span>
-      <span>Published <strong>April 1, 2026</strong></span>
+      <span><?php echo t('marketing.articles.how_to_track.meta.published'); ?> <strong>August 8, 2026</strong></span>
       <span class="meta-divider">&middot;</span>
-      <span>Updated <strong>August 8, 2026</strong></span>
+      <span><?php echo t('marketing.articles.how_to_track.meta.updated'); ?><strong></strong></span>
     </div>
     
-    <p>
-      Tracking dental cases across labs, referrals, and multiple appointments is one of the most common breakdowns in dental practices.
-    </p>
+    <p><?php echo t('marketing.articles.how_to_track.sections..body_1'); ?></p>
     
-    <p>
-      Cases get lost between handoffs. Staff rely on memory or scattered notes to know where things stand. Delays are discovered too late, often when the patient is already in the chair or calling to ask what happened.
-    </p>
+    <p><?php echo t('marketing.articles.how_to_track.sections..body_2'); ?></p>
     
-    <p>
-      This isn't a rare problem. It happens in practices of all sizes, especially those that handle crowns, implants, bridges, and other multi-step treatments. The issue isn't carelessness. It's that most practices don't have a reliable way to track dental cases through every stage of the workflow.
-    </p>
+    <p><?php echo t('marketing.articles.how_to_track.sections..body_3'); ?></p>
 
-    <h2>Why Dental Cases Get Lost</h2>
+    <h2><?php echo t('marketing.articles.how_to_track.sections.why_dental_cases_get_lost.heading'); ?></h2>
     
-    <p>
-      Cases don't disappear because of one big mistake. They slip through the cracks gradually, usually for predictable reasons:
-    </p>
+    <p><?php echo t('marketing.articles.how_to_track.sections.why_dental_cases_get_lost.body_4'); ?></p>
     
     <ul>
-      <li><strong>No centralized system:</strong> Case information lives in different places: the dentist's head, a coordinator's notes, the PMS, and a spreadsheet. No one has the full picture.</li>
-      <li><strong>No clear ownership:</strong> Multiple people touch a case over its lifecycle. When no one is clearly responsible for the next step, handoffs become drop-offs.</li>
-      <li><strong>Lab delays aren't visible:</strong> A case ships to the lab and enters a black box. Staff don't know it's late until the patient arrives and the case isn't ready. See our guide to <a href="<?= $baseUrl . ($articleUrls['article_lab_tracking'] ?? 'dental-lab-case-tracking') ?>" style="color: var(--primary-color); text-decoration: none; font-weight: 500;">dental lab case tracking</a> for more on this specific breakdown.</li>
-      <li><strong>Patient reschedules break flow:</strong> A patient cancels or reschedules, and the case falls off the radar. Weeks later, no one remembers where it stands.</li>
-      <li><strong>Practice management systems don't track case workflows:</strong> PMS software handles scheduling and billing well, but it wasn't designed to track dental cases through multi-step treatments. It shows appointments, not case status. See <a href="<?= $baseUrl . ($articleUrls['article_vs_pms'] ?? 'dental-case-tracking-software-vs-pms') ?>" style="color: var(--primary-color); text-decoration: none; font-weight: 500;">dental case tracking software vs. PMS</a> for a fuller comparison.</li>
+      <li><strong><?php echo t('marketing.articles.how_to_track.sections.why_dental_cases_get_lost.list_items.1.title'); ?></strong> <?php echo t('marketing.articles.how_to_track.sections.why_dental_cases_get_lost.list_items.1.body'); ?></li>
+      <li><strong><?php echo t('marketing.articles.how_to_track.sections.why_dental_cases_get_lost.list_items.2.title'); ?></strong> <?php echo t('marketing.articles.how_to_track.sections.why_dental_cases_get_lost.list_items.2.body'); ?></li>
+      <li><strong><?php echo t('marketing.articles.how_to_track.sections.why_dental_cases_get_lost.list_items.3.title'); ?></strong> <?php echo t('marketing.articles.how_to_track.sections.why_dental_cases_get_lost.list_items.3.body'); ?> <a href="<?= $baseUrl . ($articleUrls['article_lab_tracking'] ?? 'dental-lab-case-tracking') ?>" style="color: var(--primary-color); text-decoration: none; font-weight: 500;"><?php echo t('marketing.articles.how_to_track.sections.why_dental_cases_get_lost.list_items.3.link'); ?></a> <?php echo t('marketing.articles.how_to_track.sections.why_dental_cases_get_lost.list_items.3.body_2'); ?></li>
+      <li><strong><?php echo t('marketing.articles.how_to_track.sections.why_dental_cases_get_lost.list_items.4.title'); ?></strong> <?php echo t('marketing.articles.how_to_track.sections.why_dental_cases_get_lost.list_items.4.body'); ?></li>
+      <li><strong><?php echo t('marketing.articles.how_to_track.sections.why_dental_cases_get_lost.list_items.5.title'); ?></strong> <?php echo t('marketing.articles.how_to_track.sections.why_dental_cases_get_lost.list_items.5.body'); ?> <a href="<?= $baseUrl . ($articleUrls['article_vs_pms'] ?? 'dental-case-tracking-software-vs-pms') ?>" style="color: var(--primary-color); text-decoration: none; font-weight: 500;"><?php echo t('marketing.articles.how_to_track.sections.why_dental_cases_get_lost.list_items.5.link'); ?></a> <?php echo t('marketing.articles.how_to_track.sections.why_dental_cases_get_lost.list_items.5.body_2'); ?></li>
     </ul>
 
-    <h2>How Dental Cases Are Typically Tracked (and Why It Fails)</h2>
+    <h2><?php echo t('marketing.articles.how_to_track.sections.how_dental_cases_are_typically_tracked_and_why_it_fails.heading'); ?></h2>
     
-    <p>
-      Without a dedicated system, practices improvise. These workarounds seem reasonable at first, but they break down as volume increases or staff changes.
-    </p>
+    <p><?php echo t('marketing.articles.how_to_track.sections.how_dental_cases_are_typically_tracked_and_why_it_fails.body_5'); ?></p>
     
-    <h3>Sticky notes and paper lists</h3>
-    <p>
-      Quick to create, easy to lose. Sticky notes work for one person tracking a few cases, but they don't scale. Information isn't shared, and notes get buried, thrown away, or forgotten.
-    </p>
+    <h3><?php echo t('marketing.articles.how_to_track.sections.how_dental_cases_are_typically_tracked_and_why_it_fails.subheading_1'); ?></h3>
+    <p><?php echo t('marketing.articles.how_to_track.sections.how_dental_cases_are_typically_tracked_and_why_it_fails.body_6'); ?></p>
     
-    <h3>Spreadsheets</h3>
-    <p>
-      Better than paper, but still fragile. Spreadsheets require manual updates, and they're only as current as the last person who edited them. They don't alert you when something stalls. They just sit there, waiting to be checked.
-    </p>
+    <h3><?php echo t('marketing.articles.how_to_track.sections.how_dental_cases_are_typically_tracked_and_why_it_fails.subheading_2'); ?></h3>
+    <p><?php echo t('marketing.articles.how_to_track.sections.how_dental_cases_are_typically_tracked_and_why_it_fails.body_7'); ?></p>
     
-    <h3>Notes in the PMS</h3>
-    <p>
-      Some practices add case notes to patient records in their practice management software. But PMS systems aren't built to track dental cases across stages. Notes get buried in the patient chart, and there's no way to see all active cases at once or filter by status.
-    </p>
+    <h3><?php echo t('marketing.articles.how_to_track.sections.how_dental_cases_are_typically_tracked_and_why_it_fails.subheading_3'); ?></h3>
+    <p><?php echo t('marketing.articles.how_to_track.sections.how_dental_cases_are_typically_tracked_and_why_it_fails.body_8'); ?></p>
     
-    <h3>Verbal communication</h3>
-    <p>
-      "Did the lab send that back?" "Where are we with the Smith implant?" These conversations happen constantly because there's no shared source of truth. When someone is out sick or busy, the information disappears.
-    </p>
+    <h3><?php echo t('marketing.articles.how_to_track.sections.how_dental_cases_are_typically_tracked_and_why_it_fails.subheading_4'); ?></h3>
+    <p><?php echo t('marketing.articles.how_to_track.sections.how_dental_cases_are_typically_tracked_and_why_it_fails.body_9'); ?></p>
 
-    <h2>What Effective Dental Case Tracking Looks Like</h2>
+    <h2><?php echo t('marketing.articles.how_to_track.sections.what_effective_dental_case_tracking_looks_like.heading'); ?></h2>
     
-    <p>
-      To track dental cases reliably, you need a system where every case has clear, visible information that anyone on the team can access:
-    </p>
+    <p><?php echo t('marketing.articles.how_to_track.sections.what_effective_dental_case_tracking_looks_like.body_10'); ?></p>
     
     <ul>
-      <li><strong>Every case has a status:</strong> Is it in prep? At the lab? Waiting on the patient? Ready for delivery? The current state should be obvious at a glance.</li>
-      <li><strong>Every case has an owner:</strong> Someone is responsible for the next step. When ownership is clear, accountability follows.</li>
-      <li><strong>Every case has a next step:</strong> Not just "in progress" but a specific action: "Schedule seating" or "Follow up with lab" or "Call patient to confirm."</li>
-      <li><strong>External dependencies are visible:</strong> You can see which cases are waiting on labs, referrals, or patient scheduling, and how long they've been waiting.</li>
-      <li><strong>Stalled cases are easy to identify:</strong> Cases that haven't moved in too long should surface automatically, not require someone to remember to check.</li>
+      <li><strong><?php echo t('marketing.articles.how_to_track.sections.what_effective_dental_case_tracking_looks_like.list_items.6.title'); ?></strong> <?php echo t('marketing.articles.how_to_track.sections.what_effective_dental_case_tracking_looks_like.list_items.6.body'); ?></li>
+      <li><strong><?php echo t('marketing.articles.how_to_track.sections.what_effective_dental_case_tracking_looks_like.list_items.7.title'); ?></strong> <?php echo t('marketing.articles.how_to_track.sections.what_effective_dental_case_tracking_looks_like.list_items.7.body'); ?></li>
+      <li><strong><?php echo t('marketing.articles.how_to_track.sections.what_effective_dental_case_tracking_looks_like.list_items.8.title'); ?></strong> <?php echo t('marketing.articles.how_to_track.sections.what_effective_dental_case_tracking_looks_like.list_items.8.body'); ?></li>
+      <li><strong><?php echo t('marketing.articles.how_to_track.sections.what_effective_dental_case_tracking_looks_like.list_items.9.title'); ?></strong> <?php echo t('marketing.articles.how_to_track.sections.what_effective_dental_case_tracking_looks_like.list_items.9.body'); ?></li>
+      <li><strong><?php echo t('marketing.articles.how_to_track.sections.what_effective_dental_case_tracking_looks_like.list_items.10.title'); ?></strong> <?php echo t('marketing.articles.how_to_track.sections.what_effective_dental_case_tracking_looks_like.list_items.10.body'); ?></li>
     </ul>
     
-    <p>
-      This is what dental case tracking should provide: a shared, current view of every active case so nothing falls through the cracks. Using dedicated <a href="<?= $baseUrl . ($articleUrls['article_dental_case_tracking_software'] ?? 'dental-case-tracking-software') ?>" style="color: var(--primary-color); text-decoration: none; font-weight: 500;">dental case tracking software</a> makes this process consistent and reliable.
-    </p>
+    <p><?php echo t('marketing.articles.how_to_track.sections.what_effective_dental_case_tracking_looks_like.body_11'); ?> <a href="<?= $baseUrl . ($articleUrls['article_dental_case_tracking_software'] ?? 'dental-case-tracking-software') ?>" style="color: var(--primary-color); text-decoration: none; font-weight: 500;"><?php echo t('marketing.articles.how_to_track.sections.what_effective_dental_case_tracking_looks_like.links.1'); ?></a> <?php echo t('marketing.articles.how_to_track.sections.what_effective_dental_case_tracking_looks_like.body_12'); ?></p>
 
-    <h2>Step-by-Step Process to Track Dental Cases</h2>
+    <h2><?php echo t('marketing.articles.how_to_track.sections.step_by_step_process_to_track_dental_cases.heading'); ?></h2>
     
-    <p>
-      Here's a practical process for tracking dental cases from start to finish:
-    </p>
+    <p><?php echo t('marketing.articles.how_to_track.sections.step_by_step_process_to_track_dental_cases.body_13'); ?></p>
     
     <ol class="workflow-steps">
       <li>
-        <strong>Enter the case when treatment begins</strong>
-        As soon as a multi-step case starts, such as crown prep, implant placement, or bridge work, create a record. Include patient details, case type, lab information, and expected timeline.
-      </li>
+        <strong><?php echo t('marketing.articles.how_to_track.sections.step_by_step_process_to_track_dental_cases.list_items.11.title'); ?></strong> <?php echo t('marketing.articles.how_to_track.sections.step_by_step_process_to_track_dental_cases.list_items.11.body'); ?></li>
       <li>
-        <strong>Assign responsibility</strong>
-        Designate who owns the case at each stage. This might be the treatment coordinator, a dental assistant, or the front desk. The point is clarity: someone is accountable for the next step.
-      </li>
+        <strong><?php echo t('marketing.articles.how_to_track.sections.step_by_step_process_to_track_dental_cases.list_items.12.title'); ?></strong> <?php echo t('marketing.articles.how_to_track.sections.step_by_step_process_to_track_dental_cases.list_items.12.body'); ?></li>
       <li>
-        <strong>Track lab and referral dependencies</strong>
-        When a case goes to an external lab or specialist, note the expected return date. Monitor whether it comes back on time. If it's late, you should know before the patient's appointment.
-      </li>
+        <strong><?php echo t('marketing.articles.how_to_track.sections.step_by_step_process_to_track_dental_cases.list_items.13.title'); ?></strong> <?php echo t('marketing.articles.how_to_track.sections.step_by_step_process_to_track_dental_cases.list_items.13.body'); ?></li>
       <li>
-        <strong>Monitor progress over time</strong>
-        Check case status regularly. Update it as the case moves through stages. Look for cases that haven't moved. They're the ones most likely to cause problems.
-      </li>
+        <strong><?php echo t('marketing.articles.how_to_track.sections.step_by_step_process_to_track_dental_cases.list_items.14.title'); ?></strong> <?php echo t('marketing.articles.how_to_track.sections.step_by_step_process_to_track_dental_cases.list_items.14.body'); ?></li>
       <li>
-        <strong>Follow through to delivery</strong>
-        Track the case until it's complete. Final seating, patient confirmation, case closed. Don't let cases linger in an ambiguous state.
-      </li>
+        <strong><?php echo t('marketing.articles.how_to_track.sections.step_by_step_process_to_track_dental_cases.list_items.15.title'); ?></strong> <?php echo t('marketing.articles.how_to_track.sections.step_by_step_process_to_track_dental_cases.list_items.15.body'); ?></li>
     </ol>
     
-    <p>
-      This process works whether you're using software, a spreadsheet, or a whiteboard. The key is consistency: every case gets tracked the same way, every time.
-    </p>
+    <p><?php echo t('marketing.articles.how_to_track.sections.step_by_step_process_to_track_dental_cases.body_14'); ?></p>
 
-    <h2>Where DentaTrak Fits</h2>
+    <h2><?php echo t('marketing.articles.how_to_track.sections.where_dentatrak_fits.heading'); ?></h2>
     
-    <p>
-      DentaTrak is a dental case tracking system designed to manage this exact process.
-    </p>
+    <p><?php echo t('marketing.articles.how_to_track.sections.where_dentatrak_fits.body_15'); ?></p>
     
-    <p>
-      It gives every case a status, an owner, and a next step. It tracks cases across their full lifecycle, from initial treatment through final delivery. It makes delays visible early, so you can intervene before they become costly problems.
-    </p>
+    <p><?php echo t('marketing.articles.how_to_track.sections.where_dentatrak_fits.body_16'); ?></p>
     
-    <p>
-      DentaTrak doesn't replace your practice management software. It fills a gap that PMS systems weren't designed to address: managing the workflow of complex, multi-step dental cases.
-    </p>
+    <p><?php echo t('marketing.articles.how_to_track.sections.where_dentatrak_fits.body_17'); ?></p>
     
     <div class="highlight-box">
-      <h3>What DentaTrak provides</h3>
-      <p>
-        A dedicated system to track dental cases across labs, referrals, and internal handoffs. Clear ownership and accountability at every stage. Visibility into stalled cases before they affect patients or revenue.
-      </p>
+      <h3><?php echo t('marketing.articles.how_to_track.sections.where_dentatrak_fits.subheading_5'); ?></h3>
+      <p><?php echo t('marketing.articles.how_to_track.sections.where_dentatrak_fits.body_18'); ?></p>
     </div>
 
-    <h2>Who Benefits from Dental Case Tracking</h2>
+    <h2><?php echo t('marketing.articles.how_to_track.sections.who_benefits_from_dental_case_tracking.heading'); ?></h2>
     
-    <p>
-      When you track dental cases systematically, everyone on the team benefits:
-    </p>
+    <p><?php echo t('marketing.articles.how_to_track.sections.who_benefits_from_dental_case_tracking.body_19'); ?></p>
     
     <ul>
-      <li><strong>Practice owners:</strong> See where cases stall without asking staff for updates. Identify patterns that affect efficiency and revenue. Reduce remakes and wasted chair time.</li>
-      <li><strong>Treatment coordinators:</strong> Know exactly which cases need attention today. Stop chasing down status updates and focus on moving cases forward.</li>
-      <li><strong>Dental assistants:</strong> Understand what's coming up and what's waiting. Reduce confusion during handoffs. Spend less time tracking down information and more time on patient care.</li>
+      <li><strong><?php echo t('marketing.articles.how_to_track.sections.who_benefits_from_dental_case_tracking.list_items.16.title'); ?></strong> <?php echo t('marketing.articles.how_to_track.sections.who_benefits_from_dental_case_tracking.list_items.16.body'); ?></li>
+      <li><strong><?php echo t('marketing.articles.how_to_track.sections.who_benefits_from_dental_case_tracking.list_items.17.title'); ?></strong> <?php echo t('marketing.articles.how_to_track.sections.who_benefits_from_dental_case_tracking.list_items.17.body'); ?></li>
+      <li><strong><?php echo t('marketing.articles.how_to_track.sections.who_benefits_from_dental_case_tracking.list_items.18.title'); ?></strong> <?php echo t('marketing.articles.how_to_track.sections.who_benefits_from_dental_case_tracking.list_items.18.body'); ?></li>
     </ul>
     
-    <p>
-      If your practice handles crowns, bridges, implants, or any lab-based restorations, a reliable way to track dental cases can reduce delays, prevent lost work, and improve the patient experience. See our workflow guides for <a href="<?= $baseUrl . ($articleUrls['article_crown_bridge'] ?? 'crown-and-bridge-case-tracking') ?>" style="color: var(--primary-color); text-decoration: none; font-weight: 500;">crown and bridge cases</a> and <a href="<?= $baseUrl . ($articleUrls['article_implant'] ?? 'implant-case-tracking') ?>" style="color: var(--primary-color); text-decoration: none; font-weight: 500;">implant cases</a> for more detail on those specific workflows.
-    </p>
+    <p><?php echo t('marketing.articles.how_to_track.sections.who_benefits_from_dental_case_tracking.body_20'); ?> <a href="<?= $baseUrl . ($articleUrls['article_crown_bridge'] ?? 'crown-and-bridge-case-tracking') ?>" style="color: var(--primary-color); text-decoration: none; font-weight: 500;"><?php echo t('marketing.articles.how_to_track.sections.who_benefits_from_dental_case_tracking.links.2'); ?></a> <?php echo t('marketing.articles.how_to_track.sections.who_benefits_from_dental_case_tracking.body_21'); ?> <a href="<?= $baseUrl . ($articleUrls['article_implant'] ?? 'implant-case-tracking') ?>" style="color: var(--primary-color); text-decoration: none; font-weight: 500;"><?php echo t('marketing.articles.how_to_track.sections.who_benefits_from_dental_case_tracking.links.3'); ?></a> <?php echo t('marketing.articles.how_to_track.sections.who_benefits_from_dental_case_tracking.body_22'); ?></p>
 
     <div class="cta-section">
-      <h2>Ready to track your cases?</h2>
-      <p>Try DentaTrak free for 90 days. Set up your practice and begin tracking cases in minutes.</p>
-      <a href="<?= $baseUrl ?>login.php" class="btn-white">Start 90-Day Free Trial</a>
-      <p style="margin-top: 16px; font-size: 0.9rem;"><a href="<?= $baseUrl ?>login.php" style="color: rgba(255,255,255,0.75); text-decoration: underline; text-underline-offset: 2px;">Already have an account? Log in</a></p>
+      <h2><?php echo t('marketing.articles.how_to_track.sections.ready_to_track_your_cases.heading'); ?></h2>
+      <p><?php echo t('marketing.articles.how_to_track.cta.body'); ?></p>
+      <a href="<?= $baseUrl ?>login.php" class="btn-white"><?php echo t('marketing.navigation.start_trial'); ?></a>
+      <p style="margin-top: 16px; font-size: 0.9rem;"><a href="<?= $baseUrl ?>login.php" style="color: rgba(255,255,255,0.75); text-decoration: underline; text-underline-offset: 2px;"><?php echo t('marketing.cta.already_account'); ?></a></p>
     </div>
   </main>
 
   <!-- Footer -->
   <footer class="footer">
     <div class="footer-inner">
-      <a href="<?= $baseUrl ?>" class="footer-wordmark" aria-label="DentaTrak home"><span class="denta">Denta</span><span class="trak">Trak</span></a>
+      <a href="<?= $baseUrl ?>" class="footer-wordmark" aria-label="<?php echo htmlspecialchars(t('marketing.accessibility.home_aria')); ?>"><span class="denta">Denta</span><span class="trak">Trak</span></a>
       <div class="footer-links">
-        <a href="<?= $baseUrl . ($articleUrls['page_about'] ?? 'about') ?>" class="footer-link">About</a>
-        <a href="<?= $baseUrl . ($articleUrls['page_resources'] ?? 'resources') ?>" class="footer-link">Resources</a>
-        <a href="<?= $baseUrl ?>privacy.php" class="footer-link">Privacy</a>
-        <a href="<?= $baseUrl ?>terms.php" class="footer-link">Terms</a>
-        <a href="<?= $baseUrl ?>" class="footer-link">Home</a>
+        <a href="<?= $baseUrl . ($articleUrls['page_about'] ?? 'about') ?>" class="footer-link"><?php echo t('marketing.footer.about'); ?></a>
+        <a href="<?= $baseUrl . ($articleUrls['page_resources'] ?? 'resources') ?>" class="footer-link"><?php echo t('marketing.navigation.resources'); ?></a>
+        <a href="<?= $baseUrl ?>privacy.php" class="footer-link"><?php echo t('marketing.footer.privacy'); ?></a>
+        <a href="<?= $baseUrl ?>terms.php" class="footer-link"><?php echo t('marketing.footer.terms'); ?></a>
+        <a href="<?= $baseUrl ?>" class="footer-link"><?php echo t('marketing.navigation.home'); ?></a>
       </div>
-      <span class="footer-copy">&copy; <?php echo date('Y'); ?> <?php echo htmlspecialchars($appName); ?>. All rights reserved.</span>
+      <span class="footer-copy">&copy; <?php echo date('Y'); ?> <?php echo htmlspecialchars($appName); ?>. <?php echo t('marketing.footer.copyright'); ?></span>
     </div>
   </footer>
 </body>

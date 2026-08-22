@@ -61,8 +61,8 @@
         '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">' +
         '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>' +
         '</svg>' +
-        '<div>No comments yet</div>' +
-        '<div style="font-size: 0.75rem; margin-top: 4px;">Use @mentions to notify team members</div>' +
+        '<div>' + t('cases.comments.empty') + '</div>' +
+        '<div style="font-size: 0.75rem; margin-top: 4px;">' + t('cases.comments.mentions_hint') + '</div>' +
         '</div>';
       return;
     }
@@ -208,7 +208,7 @@
 
     // If users haven't loaded yet, try loading them
     if (practiceUsers.length === 0) {
-      dropdown.innerHTML = '<div class="mention-autocomplete-empty">Loading users...</div>';
+      dropdown.innerHTML = '<div class="mention-autocomplete-empty">' + t('comments.mentions_loading') + '</div>';
       dropdown.classList.add('open');
       mentionAutocompleteOpen = true;
       
@@ -220,11 +220,11 @@
             practiceUsers = data.users;
             showMentionAutocomplete(searchTerm); // Retry with loaded users
           } else {
-            dropdown.innerHTML = '<div class="mention-autocomplete-empty">No users found</div>';
+            dropdown.innerHTML = '<div class="mention-autocomplete-empty">' + t('comments.mentions_no_users') + '</div>';
           }
         })
         .catch(function() {
-          dropdown.innerHTML = '<div class="mention-autocomplete-empty">Error loading users</div>';
+          dropdown.innerHTML = '<div class="mention-autocomplete-empty">' + t('comments.mentions_load_error') + '</div>';
         });
       return;
     }
@@ -237,14 +237,14 @@
     }).slice(0, 5);
 
     if (filtered.length === 0) {
-      dropdown.innerHTML = '<div class="mention-autocomplete-empty">No users found</div>';
+      dropdown.innerHTML = '<div class="mention-autocomplete-empty">' + t('comments.mentions_no_users') + '</div>';
     } else {
       dropdown.innerHTML = filtered.map(function(user, index) {
         var initials = getInitials(user.name || user.email);
         return '<div class="mention-autocomplete-item' + (index === selectedMentionIndex ? ' selected' : '') + '" data-user-id="' + user.id + '" data-user-name="' + escapeHtml(user.name || user.email) + '">' +
           '<div class="mention-autocomplete-avatar">' + initials + '</div>' +
           '<div class="mention-autocomplete-info">' +
-          '<div class="mention-autocomplete-name">' + escapeHtml(user.name || 'Unknown') + '</div>' +
+          '<div class="mention-autocomplete-name">' + escapeHtml(user.name || t('common.unknown')) + '</div>' +
           '<div class="mention-autocomplete-email">' + escapeHtml(user.email) + '</div>' +
           '</div>' +
           '</div>';
@@ -370,11 +370,11 @@
         
         // Show success feedback
         if (typeof showToast === 'function') {
-          showToast('Comment added', 'success');
+          showToast(t('comments.toast_added'), 'success');
         }
       } else {
         if (typeof showToast === 'function') {
-          showToast(data.message || 'Error adding comment', 'error');
+          showToast(data.message || t('comments.toast_add_error'), 'error');
         }
       }
     })
@@ -383,7 +383,7 @@
       if (typeof NetworkErrorHandler !== 'undefined') {
         NetworkErrorHandler.handle(error, 'adding comment');
       } else if (typeof showToast === 'function') {
-        showToast('Error adding comment. Please try again.', 'error');
+        showToast(t('comments.toast_add_error_retry'), 'error');
       }
     })
     .finally(function() {
@@ -453,10 +453,10 @@
     var diffHours = Math.floor(diffMs / 3600000);
     var diffDays = Math.floor(diffMs / 86400000);
 
-    if (diffMins < 1) return 'just now';
-    if (diffMins < 60) return diffMins + 'm ago';
-    if (diffHours < 24) return diffHours + 'h ago';
-    if (diffDays < 7) return diffDays + 'd ago';
+    if (diffMins < 1) return t('comments.time_ago.just_now');
+    if (diffMins < 60) return t('comments.time_ago.minutes', {count: diffMins});
+    if (diffHours < 24) return t('comments.time_ago.hours', {count: diffHours});
+    if (diffDays < 7) return t('comments.time_ago.days', {count: diffDays});
     
     return date.toLocaleDateString();
   }

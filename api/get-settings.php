@@ -64,6 +64,9 @@ try {
         $pdo->exec("ALTER TABLE user_preferences ADD COLUMN appointment_risk_days INT(11) DEFAULT 3");
     }
 
+    // Ensure locale columns exist
+    ensureLocaleColumns();
+
     // Get user preferences
     $stmt = $pdo->prepare("
         SELECT * FROM user_preferences 
@@ -71,6 +74,46 @@ try {
     ");
     $stmt->execute(['user_id' => $userId]);
     $preferences = $stmt->fetch(PDO::FETCH_ASSOC);
+
+    // Resolve persisted locale values
+    // users.locale is the authoritative source; user_preferences.locale is no longer consulted.
+    $userLocale = null;
+    try {
+        $userLocaleStmt = $pdo->prepare("SELECT locale FROM users WHERE id = :user_id");
+        $userLocaleStmt->execute(['user_id' => $userId]);
+        $userLocale = $userLocaleStmt->fetchColumn();
+    } catch (PDOException $e) {
+        error_log('[get-settings] Error reading user locale: ' . $e->getMessage());
+    }
+
+    $practiceDefaultLocale = 'en-US';
+    $currentPracticeIdForLocale = $_SESSION['current_practice_id'] ?? 0;
+    if ($currentPracticeIdForLocale) {
+        try {
+            $practiceLocaleStmt = $pdo->prepare("SELECT default_locale FROM practices WHERE id = :practice_id");
+            $practiceLocaleStmt->execute(['practice_id' => $currentPracticeIdForLocale]);
+            $practiceDefaultLocale = $practiceLocaleStmt->fetchColumn() ?: 'en-US';
+        } catch (PDOException $e) {
+            error_log('[get-settings] Error reading practice default locale: ' . $e->getMessage());
+        }
+    }
+
+    $usePracticeDefault = empty($userLocale);
+    $storedUserLocale = $userLocale;
+    if ($usePracticeDefault) {
+        $userLocale = $practiceDefaultLocale;
+    }
+
+    $supportedLanguages = [];
+    foreach (getSupportedLocales() as $code => $meta) {
+        if (!empty($meta['enabled'])) {
+            $supportedLanguages[] = [
+                'value' => $code,
+                'label' => $meta['name'] ?? $code,
+                'nativeName' => $meta['nativeName'] ?? $code,
+            ];
+        }
+    }
     
     // Get current practice information
     $currentPracticeId = $_SESSION['current_practice_id'] ?? 0;
@@ -441,6 +484,12 @@ try {
         'assignmentLabels' => $assignmentLabels,
         'assignmentLabelsDetailed' => $responseAssignmentLabelsDetailed,
         'workflowStageLabels' => $workflowStageLabels,
+        'language' => $userLocale,
+        'practiceDefaultLanguage' => $practiceDefaultLocale,
+        'usePracticeDefault' => $usePracticeDefault,
+        'supportedLanguages' => $supportedLanguages,
+        'storedUserLocale' => $storedUserLocale,
+        'fallbackLocale' => getFallbackLocale(),
         'isLabUsers' => $responseIsLabUsers,
         'showLabInsights' => isFeatureEnabled('SHOW_LAB_INSIGHTS'),
         'isPracticeAdmin' => $isPracticeAdmin,

@@ -134,7 +134,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     if (currentCount - 1 === 0) {
                       const emptyMsg = document.createElement('p');
                       emptyMsg.className = 'kanban-empty';
-                      emptyMsg.textContent = 'No cases in this stage.';
+                      emptyMsg.textContent = t('cases.no_cases_in_stage');
                       columnBody.appendChild(emptyMsg);
                     }
                   }
@@ -152,7 +152,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
             // Show success toast
             if (typeof Toast !== 'undefined') {
-              Toast.success('Case Archived', 'The case and all associated files have been moved to your Archive folder in Google Drive.');
+              Toast.success(t('archive.messages.archived_title'), t('archive.messages.archived_message'));
             }
             
             // Trigger cards updated event
@@ -162,9 +162,9 @@ document.addEventListener('DOMContentLoaded', function() {
           } else {
             // Show only the server-provided message
             if (typeof Toast !== 'undefined' && data.message) {
-              Toast.error('Error', data.message);
+              Toast.error(t('common.error'), data.message);
             } else if (data.message && typeof showToast === 'function') {
-              showToast('Error: ' + data.message, 'error');
+              showToast(t('archive.messages.delete_failed', {message: data.message}), 'error');
             }
             
             // Remove loading state if card is still present
@@ -178,7 +178,7 @@ document.addEventListener('DOMContentLoaded', function() {
           if (typeof NetworkErrorHandler !== 'undefined') {
             NetworkErrorHandler.handle(error, 'deleting case');
           } else if (typeof showToast === 'function') {
-            showToast('Error deleting case. Please check your connection.', 'error');
+            showToast(t('archive.messages.delete_connection_error'), 'error');
           }
           // Clear loading state if possible
           if (currentCardToDelete) {

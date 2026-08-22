@@ -6,7 +6,7 @@ $appName = $appConfig['appName'] ?? 'DentaTrak';
 $baseUrl = rtrim($appConfig['baseUrl'], '/') . '/';
 $articleUrls = $appConfig['public_urls'] ?? [];
 ?><!DOCTYPE html>
-<html lang="en">
+<html lang="<?php echo getHtmlLang(); ?>">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -20,8 +20,8 @@ $articleUrls = $appConfig['public_urls'] ?? [];
     gtag('config', 'G-MBJDENR3H2');
   </script>
 
-  <meta name="description" content="Guides on dental case tracking, dental lab workflows, case types like crowns, bridges, and implants, and how case tracking software compares to spreadsheets and PMS platforms.">
-  <title>Dental Case Tracking Resources | DentaTrak</title>
+  <meta name="description" content="<?php echo htmlspecialchars(t('marketing.seo.resources.description')); ?>">
+  <title><?php echo htmlspecialchars(t('marketing.seo.resources.title')); ?></title>
   <link rel="canonical" href="https://dentatrak.com/resources">
 
   <!-- Favicon / App Icons -->
@@ -39,106 +39,107 @@ $articleUrls = $appConfig['public_urls'] ?? [];
   <!-- Navigation -->
   <nav class="nav">
     <div class="nav-inner">
-      <a href="<?= $baseUrl ?>" class="nav-logo" aria-label="DentaTrak home"><img src="<?= $baseUrl ?>images/main.png" alt="DentaTrak" style="height: auto; width: auto; max-width: 140px; object-fit: contain; display: block;"></a>
+      <a href="<?= $baseUrl ?>" class="nav-logo" aria-label="<?php echo htmlspecialchars(t('marketing.accessibility.home_aria')); ?>"><img src="<?= $baseUrl ?>images/main.png" alt="<?php echo htmlspecialchars(t('marketing.accessibility.logo_alt')); ?>" style="height: auto; width: auto; max-width: 140px; object-fit: contain; display: block;"></a>
       <div class="nav-actions">
-        <a href="<?= $baseUrl ?>login.php" class="nav-login">Log In</a>
-        <a href="<?= $baseUrl ?>login.php" class="nav-cta">Start 90-Day Free Trial</a>
+        <a href="<?= $baseUrl ?>login.php" class="nav-login"><?php echo t('marketing.navigation.log_in'); ?></a>
+        <a href="<?= $baseUrl ?>login.php" class="nav-cta"><?php echo t('marketing.navigation.start_trial'); ?></a>
+        <?php echo renderLanguageSelector('api/set-session-locale.php', getResolvedLocale(), false); ?>
       </div>
     </div>
   </nav>
 
   <!-- Main Content -->
   <main class="content no-breadcrumb" style="max-width: 1000px;">
-    <h1>Dental Case Tracking Resources</h1>
+    <h1><?php echo t('marketing.resources.h1'); ?></h1>
     <p>
-      Practical guides on tracking dental cases across labs, referrals, and internal handoffs, organized by topic.
+      <?php echo t('marketing.resources.intro'); ?>
     </p>
 
     <div class="resource-group">
-      <h2>Dental Case Tracking</h2>
+      <h2><?php echo t('marketing.resources.group_dental_case_tracking'); ?></h2>
       <div class="resource-grid">
         <a class="resource-card" href="<?= $baseUrl . ($articleUrls['article_dental_case_tracking_software'] ?? 'dental-case-tracking-software') ?>">
-          <h3>Dental Case Tracking Software</h3>
-          <p>What dental case tracking software is, why practices need it, and how DentaTrak works.</p>
+          <h3><?php echo t('marketing.resources.card_dental_case_tracking_software_title'); ?></h3>
+          <p><?php echo t('marketing.resources.card_dental_case_tracking_software_desc'); ?></p>
         </a>
         <a class="resource-card" href="<?= $baseUrl . ($articleUrls['article_how_to_track'] ?? 'how-to-track-dental-cases') ?>">
-          <h3>How to Track Dental Cases Without Losing Them</h3>
-          <p>A practical, step-by-step process for tracking cases from start to finish.</p>
+          <h3><?php echo t('marketing.resources.card_how_to_track_title'); ?></h3>
+          <p><?php echo t('marketing.resources.card_how_to_track_desc'); ?></p>
         </a>
         <a class="resource-card" href="<?= $baseUrl . ($articleUrls['article_visual_workflow'] ?? 'visual-dental-case-workflow') ?>">
-          <h3>Why Visual Workflow Management Works for Complex Dental Cases</h3>
-          <p>Why multi-stage cases are processes, not records, and how a visual workflow shows where every case stands.</p>
+          <h3><?php echo t('marketing.resources.card_visual_workflow_title'); ?></h3>
+          <p><?php echo t('marketing.resources.card_visual_workflow_desc'); ?></p>
         </a>
       </div>
     </div>
 
     <div class="resource-group">
-      <h2>Dental Lab Workflows</h2>
+      <h2><?php echo t('marketing.resources.group_lab_workflows'); ?></h2>
       <div class="resource-grid">
         <a class="resource-card" href="<?= $baseUrl . ($articleUrls['article_lab_tracking'] ?? 'dental-lab-case-tracking') ?>">
-          <h3>Dental Lab Case Tracking</h3>
-          <p>Tracking cases sent to external labs (shipping, returns, overdue cases, and remakes).</p>
+          <h3><?php echo t('marketing.resources.card_lab_tracking_title'); ?></h3>
+          <p><?php echo t('marketing.resources.card_lab_tracking_desc'); ?></p>
         </a>
       </div>
     </div>
 
     <div class="resource-group">
-      <h2>Case Types</h2>
+      <h2><?php echo t('marketing.resources.group_case_types'); ?></h2>
       <div class="resource-grid">
         <a class="resource-card" href="<?= $baseUrl . ($articleUrls['article_crown_bridge'] ?? 'crown-and-bridge-case-tracking') ?>">
-          <h3>Crown and Bridge Case Tracking</h3>
-          <p>The crown and bridge workflow from prep to final seat, and where these cases stall.</p>
+          <h3><?php echo t('marketing.resources.card_crown_bridge_title'); ?></h3>
+          <p><?php echo t('marketing.resources.card_crown_bridge_desc'); ?></p>
         </a>
         <a class="resource-card" href="<?= $baseUrl . ($articleUrls['article_implant'] ?? 'implant-case-tracking') ?>">
-          <h3>Implant Case Tracking</h3>
-          <p>Tracking implant cases across surgical placement, healing, and restoration.</p>
+          <h3><?php echo t('marketing.resources.card_implant_title'); ?></h3>
+          <p><?php echo t('marketing.resources.card_implant_desc'); ?></p>
         </a>
       </div>
     </div>
 
     <div class="resource-group">
-      <h2>Practice Operations</h2>
+      <h2><?php echo t('marketing.resources.group_practice_operations'); ?></h2>
       <div class="resource-grid">
         <a class="resource-card" href="<?= $baseUrl . ($articleUrls['article_dental_remake_cost'] ?? 'dental-remake-cost') ?>">
-          <h3>What Dental Remakes Really Cost Your Practice</h3>
-          <p>Calculate the hidden cost of remakes, from chair and staff time to lab and shipping expenses, and see what reducing your remake rate could mean for your practice.</p>
+          <h3><?php echo t('marketing.resources.card_remake_cost_title'); ?></h3>
+          <p><?php echo t('marketing.resources.card_remake_cost_desc'); ?></p>
         </a>
       </div>
     </div>
 
     <div class="resource-group">
-      <h2>Comparisons</h2>
+      <h2><?php echo t('marketing.resources.group_comparisons'); ?></h2>
       <div class="resource-grid">
         <a class="resource-card" href="<?= $baseUrl . ($articleUrls['article_vs_pms'] ?? 'dental-case-tracking-software-vs-pms') ?>">
-          <h3>Dental Case Tracking Software vs. PMS</h3>
-          <p>What a PMS manages, what dedicated case tracking manages, and whether you need both.</p>
+          <h3><?php echo t('marketing.resources.card_vs_pms_title'); ?></h3>
+          <p><?php echo t('marketing.resources.card_vs_pms_desc'); ?></p>
         </a>
         <a class="resource-card" href="<?= $baseUrl . ($articleUrls['article_comparison'] ?? 'dental-case-tracking-vs-spreadsheets') ?>">
-          <h3>Dental Case Tracking Software vs. Spreadsheets</h3>
-          <p>When spreadsheets stop working and what dedicated software does differently.</p>
+          <h3><?php echo t('marketing.resources.card_vs_spreadsheets_title'); ?></h3>
+          <p><?php echo t('marketing.resources.card_vs_spreadsheets_desc'); ?></p>
         </a>
       </div>
     </div>
 
     <div class="cta-section">
-      <h2>Ready to track your cases?</h2>
-      <p>Try DentaTrak free for 90 days. Set up your practice and begin tracking cases in minutes.</p>
-      <a href="<?= $baseUrl ?>login.php" class="btn-white">Start 90-Day Free Trial</a>
-      <p style="margin-top: 16px; font-size: 0.9rem;"><a href="<?= $baseUrl ?>login.php" style="color: rgba(255,255,255,0.75); text-decoration: underline; text-underline-offset: 2px;">Already have an account? Log in</a></p>
+      <h2><?php echo t('marketing.resources.cta_title'); ?></h2>
+      <p><?php echo t('marketing.about.cta_lead'); ?></p>
+      <a href="<?= $baseUrl ?>login.php" class="btn-white"><?php echo t('marketing.navigation.start_trial'); ?></a>
+      <p style="margin-top: 16px; font-size: 0.9rem;"><a href="<?= $baseUrl ?>login.php" style="color: rgba(255,255,255,0.75); text-decoration: underline; text-underline-offset: 2px;"><?php echo t('marketing.cta.already_account'); ?></a></p>
     </div>
   </main>
 
   <!-- Footer -->
   <footer class="footer">
     <div class="footer-inner">
-      <a href="<?= $baseUrl ?>" class="footer-wordmark" aria-label="DentaTrak home"><span class="denta">Denta</span><span class="trak">Trak</span></a>
+      <a href="<?= $baseUrl ?>" class="footer-wordmark" aria-label="<?php echo htmlspecialchars(t('marketing.accessibility.home_aria')); ?>"><span class="denta">Denta</span><span class="trak">Trak</span></a>
       <div class="footer-links">
-        <a href="<?= $baseUrl . ($articleUrls['page_about'] ?? 'about') ?>" class="footer-link">About</a>
-        <a href="<?= $baseUrl ?>privacy.php" class="footer-link">Privacy</a>
-        <a href="<?= $baseUrl ?>terms.php" class="footer-link">Terms</a>
-        <a href="<?= $baseUrl ?>" class="footer-link">Home</a>
+        <a href="<?= $baseUrl . ($articleUrls['page_about'] ?? 'about') ?>" class="footer-link"><?php echo t('marketing.footer.about'); ?></a>
+        <a href="<?= $baseUrl ?>privacy.php" class="footer-link"><?php echo t('marketing.footer.privacy'); ?></a>
+        <a href="<?= $baseUrl ?>terms.php" class="footer-link"><?php echo t('marketing.footer.terms'); ?></a>
+        <a href="<?= $baseUrl ?>" class="footer-link"><?php echo t('marketing.footer.home'); ?></a>
       </div>
-      <span class="footer-copy">&copy; <?php echo date('Y'); ?> <?php echo htmlspecialchars($appName); ?>. All rights reserved.</span>
+      <span class="footer-copy">&copy; <?php echo date('Y'); ?> <?php echo htmlspecialchars($appName); ?>. <?php echo t('marketing.footer.copyright'); ?></span>
     </div>
   </footer>
 </body>

@@ -36,7 +36,7 @@ switch ($action) {
         break;
     default:
         http_response_code(400);
-        echo json_encode(['success' => false, 'message' => 'Invalid action']);
+        echo json_encode(['success' => false, 'message' => t('auth.errors.invalid_action')]);
 }
 
 function handleRequest($email) {
@@ -44,7 +44,7 @@ function handleRequest($email) {
     
     if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
         http_response_code(400);
-        echo json_encode(['success' => false, 'message' => 'Invalid email address']);
+        echo json_encode(['success' => false, 'message' => t('auth.errors.invalid_email')]);
         return;
     }
     
@@ -60,7 +60,7 @@ function handleRequest($email) {
         // Always return success to prevent email enumeration
         echo json_encode([
             'success' => true,
-            'message' => 'If an account exists with this email, you will receive a password setup link.',
+            'message' => t('auth.errors.request_password_setup_email_unknown'),
             'immediate_setup' => false
         ]);
         return;
@@ -70,7 +70,7 @@ function handleRequest($email) {
     if ($isGoogleAuthenticated) {
         echo json_encode([
             'success' => true,
-            'message' => 'You are verified via Google. You can set your password now.',
+            'message' => t('auth.errors.request_password_setup_verified'),
             'immediate_setup' => true,
             'token' => $result['token']
         ]);
@@ -80,20 +80,21 @@ function handleRequest($email) {
     // Otherwise, send verification email
     $token = $result['token'];
     $firstName = $result['first_name'] ?? '';
-    
+    $setupUserId = $result['user_id'] ?? null;
+
     // Build the setup URL
     $baseUrl = rtrim(($appConfig['baseUrl'] ?? ''), '/');
     $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
     $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
     $setupUrl = $baseUrl ? $baseUrl . '/set-password.php?token=' . urlencode($token) : $protocol . '://' . $host . '/set-password.php?token=' . urlencode($token);
-    
+
     // Send email (using the app's email sending mechanism)
-    $emailSent = sendPasswordSetupEmail($email, $firstName, $setupUrl);
+    $emailSent = sendPasswordSetupEmail($email, $firstName, $setupUrl, $setupUserId);
     
     if ($emailSent) {
         echo json_encode([
             'success' => true,
-            'message' => 'A password setup link has been sent to your email.',
+            'message' => t('auth.errors.request_password_setup_link_sent'),
             'immediate_setup' => false
         ]);
     } else {
@@ -101,7 +102,7 @@ function handleRequest($email) {
         error_log("[request-password-setup] Failed to send email to: $email");
         echo json_encode([
             'success' => true,
-            'message' => 'If an account exists with this email, you will receive a password setup link.',
+            'message' => t('auth.errors.request_password_setup_email_unknown'),
             'immediate_setup' => false
         ]);
     }
@@ -110,7 +111,7 @@ function handleRequest($email) {
 function handleValidate($token) {
     if (empty($token)) {
         http_response_code(400);
-        echo json_encode(['success' => false, 'message' => 'Token is required']);
+        echo json_encode(['success' => false, 'message' => t('auth.errors.token_required')]);
         return;
     }
     
@@ -121,13 +122,13 @@ function handleValidate($token) {
 function handleComplete($token, $password) {
     if (empty($token)) {
         http_response_code(400);
-        echo json_encode(['success' => false, 'message' => 'Token is required']);
+        echo json_encode(['success' => false, 'message' => t('auth.errors.token_required')]);
         return;
     }
     
     if (empty($password)) {
         http_response_code(400);
-        echo json_encode(['success' => false, 'message' => 'Password is required']);
+        echo json_encode(['success' => false, 'message' => t('auth.errors.password_required')]);
         return;
     }
     
@@ -137,7 +138,7 @@ function handleComplete($token, $password) {
         http_response_code(400);
         echo json_encode([
             'success' => false,
-            'message' => 'Password does not meet requirements',
+            'message' => t('auth.errors.password_requirements_not_met'),
             'errors' => $passwordErrors
         ]);
         return;
@@ -157,59 +158,76 @@ function validatePasswordStrength($password) {
     $errors = [];
     
     if (strlen($password) < 8) {
-        $errors[] = 'Password must be at least 8 characters long';
+        $errors[] = t('auth.errors.password_min_length');
     }
     
     if (!preg_match('/[A-Z]/', $password)) {
-        $errors[] = 'Password must contain at least one uppercase letter';
+        $errors[] = t('auth.errors.password_upper');
     }
     
     if (!preg_match('/[0-9]/', $password)) {
-        $errors[] = 'Password must contain at least one number';
+        $errors[] = t('auth.errors.password_number');
     }
     
     if (!preg_match('/[!@#$%^&*()_+\-=\[\]{};\':"\\|,.<>\/?]/', $password)) {
-        $errors[] = 'Password must contain at least one special character';
+        $errors[] = t('auth.errors.password_special');
     }
     
     return $errors;
 }
 
-function sendPasswordSetupEmail($email, $firstName, $setupUrl) {
+function sendPasswordSetupEmail($email, $firstName, $setupUrl, $userId = null) {
     global $appConfig;
-    
-    $appName = $appConfig['appName'] ?? 'DentalFlow';
-    $greeting = $firstName ? "Hi $firstName," : "Hello,";
-    
-    $subject = "Set up your password for $appName";
-    
+
+    $locale = resolveEmailLocale($userId, null, null);
+    $appName = $appConfig['appName'] ?? 'DentaTrak';
+    $safeFirstName = $firstName ? htmlspecialchars($firstName, ENT_QUOTES, 'UTF-8') : '';
+    $greetingHtml = $safeFirstName
+        ? tForLocale($locale, 'email.common.greeting_with_name', ['name' => $safeFirstName])
+        : tForLocale($locale, 'email.common.greeting_generic');
+    $greetingText = $firstName
+        ? tForLocale($locale, 'email.common.greeting_with_name', ['name' => $firstName])
+        : tForLocale($locale, 'email.common.greeting_generic');
+
+    $subject = tForLocale($locale, 'email.password_setup.subject', ['appName' => $appName]);
+    $heading = tForLocale($locale, 'email.password_setup.heading', ['appName' => $appName]);
+    $intro = tForLocale($locale, 'email.password_setup.intro', ['appName' => $appName]);
+    $cta = tForLocale($locale, 'email.password_setup.cta');
+    $copyLink = tForLocale($locale, 'email.common.copy_link');
+    $expiryMinutes = 60;
+    $expiry = tForLocale($locale, 'email.password_setup.expiry', ['count' => $expiryMinutes]);
+    $ignore = tForLocale($locale, 'email.common.ignore_unsolicited');
+    $footer = tForLocale($locale, 'email.common.footer', ['appName' => $appName]);
+
     $htmlBody = "
     <html>
     <body style='font-family: Arial, sans-serif; line-height: 1.6; color: #333;'>
         <div style='max-width: 600px; margin: 0 auto; padding: 20px;'>
-            <h2 style='color: #2563eb;'>$appName</h2>
-            <p>$greeting</p>
-            <p>You requested to set up a password for your account. Click the button below to create your password:</p>
+            <h2 style='color: #2563eb;'>{$heading}</h2>
+            <p>{$greetingHtml}</p>
+            <p>{$intro}</p>
             <p style='text-align: center; margin: 30px 0;'>
-                <a href='$setupUrl' style='background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;'>Set Password</a>
+                <a href='{$setupUrl}' style='background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;'>{$cta}</a>
             </p>
-            <p>Or copy and paste this link into your browser:</p>
-            <p style='word-break: break-all; color: #666;'>$setupUrl</p>
-            <p><strong>This link expires in 1 hour.</strong></p>
-            <p>If you didn't request this, you can safely ignore this email.</p>
+            <p>{$copyLink}</p>
+            <p style='word-break: break-all; color: #666;'>{$setupUrl}</p>
+            <p><strong>{$expiry}</strong></p>
+            <p>{$ignore}</p>
             <hr style='border: none; border-top: 1px solid #eee; margin: 30px 0;'>
-            <p style='color: #666; font-size: 12px;'>This email was sent by $appName. Please do not reply to this email.</p>
+            <p style='color: #666; font-size: 12px;'>{$footer}</p>
         </div>
     </body>
     </html>
     ";
-    
-    $textBody = "$greeting\n\n" .
-        "You requested to set up a password for your $appName account.\n\n" .
-        "Click this link to create your password:\n$setupUrl\n\n" .
-        "This link expires in 1 hour.\n\n" .
-        "If you didn't request this, you can safely ignore this email.";
-    
+
+    $textBody = "{$greetingText}\n\n" .
+        "{$intro}\n\n" .
+        "{$cta}:\n{$setupUrl}\n\n" .
+        "{$copyLink}\n{$setupUrl}\n\n" .
+        "{$expiry}\n\n" .
+        "{$ignore}\n\n" .
+        "{$footer}";
+
     $result = sendAppEmail($email, $subject, $htmlBody, $textBody);
     return $result['success'] ?? false;
 }

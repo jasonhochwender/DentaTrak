@@ -16,48 +16,66 @@ require_once __DIR__ . '/email-sender.php';
  * @param string|null $firstName Recipient first name, or null/empty if unknown.
  * @param string   $practiceName Display name of the practice the user was added to.
  * @param array    $appConfig   Application configuration (must include app_base_url, user_guide_url, support_email).
+ * @param int|null $practiceId  Practice ID for locale resolution.
  * @return void
  */
-function sendPracticeInviteEmail(string $toEmail, ?string $firstName, string $practiceName, array $appConfig): void {
+function sendPracticeInviteEmail(string $toEmail, ?string $firstName, string $practiceName, array $appConfig, ?int $practiceId = null): void {
+    $locale = resolveEmailLocale(null, $practiceId, null);
+    $appName = $appConfig['appName'] ?? 'DentaTrak';
     $supportEmail = $appConfig['support_email'] ?? 'support@dentatrak.com';
+    $safeSupportEmail = htmlspecialchars($supportEmail, ENT_QUOTES, 'UTF-8');
     $userGuideUrl = $appConfig['user_guide_url'] ?? '#';
     $appBaseUrl   = rtrim($appConfig['app_base_url'] ?? 'https://dentatrak.com', '/');
     $loginUrl     = $appBaseUrl . '/login.php';
 
-    $greeting = !empty($firstName) ? 'Hi ' . trim($firstName) . ',' : 'Hello,';
-    $subject  = "You've been added to {$practiceName} in DentaTrak";
+    $htmlFirstName = $firstName ? htmlspecialchars(trim($firstName), ENT_QUOTES, 'UTF-8') : '';
+    $greetingHtml = $htmlFirstName
+        ? tForLocale($locale, 'email.common.greeting_with_name', ['name' => $htmlFirstName])
+        : tForLocale($locale, 'email.common.greeting_generic');
+    $greetingText = $firstName
+        ? tForLocale($locale, 'email.common.greeting_with_name', ['name' => $firstName])
+        : tForLocale($locale, 'email.common.greeting_generic');
 
     $htmlPracticeName = htmlspecialchars($practiceName, ENT_QUOTES, 'UTF-8');
-    $htmlFirstName    = $firstName ? htmlspecialchars(trim($firstName), ENT_QUOTES, 'UTF-8') : '';
-    $htmlGreeting     = !empty($firstName) ? 'Hi ' . $htmlFirstName . ',' : 'Hello,';
-    $htmlLoginUrl     = htmlspecialchars($loginUrl, ENT_QUOTES, 'UTF-8');
-    $htmlUserGuideUrl = htmlspecialchars($userGuideUrl, ENT_QUOTES, 'UTF-8');
-    $htmlSupportEmail = htmlspecialchars($supportEmail, ENT_QUOTES, 'UTF-8');
+    $subject = tForLocale($locale, 'email.practice_invite.subject', ['appName' => $appName, 'practiceName' => $practiceName]);
+    $existingIntroHtml = tForLocale($locale, 'email.practice_invite.existing_user_intro', ['appName' => $appName, 'practiceName' => $htmlPracticeName]);
+    $existingIntroText = tForLocale($locale, 'email.practice_invite.existing_user_intro', ['appName' => $appName, 'practiceName' => $practiceName]);
+    $newIntroHtml = tForLocale($locale, 'email.practice_invite.new_user_intro', ['appName' => $appName, 'practiceName' => $htmlPracticeName]);
+    $newIntroText = tForLocale($locale, 'email.practice_invite.new_user_intro', ['appName' => $appName, 'practiceName' => $practiceName]);
+    $openDentatrak = tForLocale($locale, 'email.common.open_dentatrak', ['appName' => $appName]);
+    $viewUserGuide = tForLocale($locale, 'email.common.view_user_guide');
+    $helpPlain = tForLocale($locale, 'email.practice_invite.help', ['supportEmail' => $supportEmail]);
+    $helpHtml = str_replace(
+        $safeSupportEmail,
+        "<a href='mailto:{$safeSupportEmail}'>{$safeSupportEmail}</a>",
+        tForLocale($locale, 'email.practice_invite.help', ['supportEmail' => $safeSupportEmail])
+    );
+    $thanks = tForLocale($locale, 'email.common.thanks');
+    $team = tForLocale($locale, 'email.common.team_signature', ['appName' => $appName]);
 
     $htmlBody = <<<HTML
 <!DOCTYPE html>
 <html>
 <body>
-  <p>{$htmlGreeting}</p>
-  <p>You've been added to the <strong>{$htmlPracticeName}</strong> dental practice in DentaTrak.</p>
-  <p>If you already have a DentaTrak account, sign in using the email address that received this message. The <strong>{$htmlPracticeName}</strong> dental practice will be available when you sign in.</p>
-  <p>If you don't have a DentaTrak account yet, create an account using this same email address. Once registration is complete, you'll be able to access the <strong>{$htmlPracticeName}</strong> dental practice.</p>
-  <p><a href="{$htmlLoginUrl}" target="_blank" rel="noopener noreferrer">Open DentaTrak</a></p>
-  <p>DentaTrak User Guide<br><a href="{$htmlUserGuideUrl}" target="_blank" rel="noopener noreferrer">View the User Guide</a></p>
-  <p>If you have questions or need help, contact us at <a href="mailto:{$htmlSupportEmail}">{$htmlSupportEmail}</a>.</p>
-  <p>Thanks,<br>The DentaTrak Team</p>
+  <p>{$greetingHtml}</p>
+  <p>{$existingIntroHtml}</p>
+  <p>{$newIntroHtml}</p>
+  <p><a href="{$loginUrl}" target="_blank" rel="noopener noreferrer">{$openDentatrak}</a></p>
+  <p>{$appName} User Guide<br><a href="{$userGuideUrl}" target="_blank" rel="noopener noreferrer">{$viewUserGuide}</a></p>
+  <p>{$helpHtml}</p>
+  <p>{$thanks}<br>{$team}</p>
 </body>
 </html>
 HTML;
 
-    $textBody = $greeting . "\n\n" .
-        "You've been added to the \"{$practiceName}\" dental practice in DentaTrak.\n\n" .
-        "If you already have a DentaTrak account, sign in using the email address that received this message. The \"{$practiceName}\" dental practice will be available when you sign in.\n\n" .
-        "If you don't have a DentaTrak account yet, create an account using this same email address. Once registration is complete, you'll be able to access the \"{$practiceName}\" dental practice.\n\n" .
-        "Open DentaTrak: {$loginUrl}\n\n" .
-        "DentaTrak User Guide: {$userGuideUrl}\n\n" .
-        "If you have questions or need help, contact us at {$supportEmail}.\n\n" .
-        "Thanks,\nThe DentaTrak Team";
+    $textBody = $greetingText . "\n\n" .
+        $existingIntroText . "\n\n" .
+        $newIntroText . "\n\n" .
+        $openDentatrak . ": {$loginUrl}\n\n" .
+        $appName . " User Guide: {$userGuideUrl}\n\n" .
+        $helpPlain . "\n\n" .
+        $thanks . "\n" .
+        $team;
 
     $result = sendAppEmail($toEmail, $subject, $htmlBody, $textBody, $supportEmail);
 

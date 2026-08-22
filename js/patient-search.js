@@ -370,7 +370,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!emptyMessage) {
           emptyMessage = document.createElement('p');
           emptyMessage.className = 'kanban-empty';
-          emptyMessage.textContent = 'No cases in this stage.';
+          emptyMessage.textContent = t('cases.no_cases_in_stage');
           columnBody.appendChild(emptyMessage);
         }
       } else if (emptyMessage) {
@@ -414,8 +414,8 @@ document.addEventListener('DOMContentLoaded', function() {
     clearButton.type = 'button';
     clearButton.className = 'search-clear-btn';
     clearButton.innerHTML = '&times;';
-    clearButton.title = 'Clear search';
-    clearButton.setAttribute('aria-label', 'Clear search');
+    clearButton.title = t('common.clear');
+    clearButton.setAttribute('aria-label', t('common.clear'));
     
     clearButton.addEventListener('click', function() {
       resetSearch();

@@ -39,7 +39,7 @@ set_error_handler(function($errno, $errstr, $errfile, $errline) {
     http_response_code(500);
     echo json_encode([
         'success' => false,
-        'message' => "PHP Error: $errstr in $errfile on line $errline",
+        'message' => t('api.cases.server_error', ['message' => $errstr]),
         'error' => $errstr
     ]);
     exit;
@@ -148,7 +148,7 @@ try {
                 if (!$gcsResult['success']) {
                     return [
                         'success' => false,
-                        'message' => 'File upload verification failed: ' . implode('; ', $gcsResult['errors'])
+                        'message' => t('api.cases.upload_verification_failed', ['message' => implode('; ', $gcsResult['errors'])])
                     ];
                 }
 
@@ -180,7 +180,7 @@ try {
                 if (isset($files[$type]) && !empty($files[$type]['name'][0])) {
                     return [
                         'success' => false,
-                        'message' => 'Direct file uploads are no longer supported. Please use the standard attachment upload flow.'
+                        'message' => t('api.cases.direct_uploads_not_supported')
                     ];
                 }
             }
@@ -194,7 +194,7 @@ try {
             
             return [
                 'success' => true,
-                'message' => 'Case updated successfully (database only)',
+                'message' => t('api.cases.updated_db_only'),
                 'caseData' => $caseData,
                 'driveFolderId' => $caseData['driveFolderId'] ?? null,
                 'changedFields' => $changedFields
@@ -202,7 +202,7 @@ try {
         } catch (Exception $e) {
             return [
                 'success' => false,
-                'message' => 'Failed to update case: ' . $e->getMessage()
+                'message' => t('api.cases.failed_to_update', ['message' => $e->getMessage()])
             ];
         }
     }
@@ -226,7 +226,7 @@ try {
                 // Google Drive token expired - update database only with warning
                 $result = updateCaseInDatabaseOnly($caseData, $files, $filesToDelete);
                 if ($result['success']) {
-                    $result['warning'] = 'Google Drive session expired. Changes saved locally only. Reconnect Google Drive from Settings to sync.';
+                    $result['warning'] = t('api.cases.google_drive_session_expired');
                 }
                 return $result;
             }
@@ -323,7 +323,7 @@ try {
             if (!$existingCaseData) {
                 return [
                     'success' => false,
-                    'message' => 'Failed to parse existing case data'
+                    'message' => t('api.cases.failed_to_parse')
                 ];
             }
             
@@ -466,7 +466,7 @@ try {
                 if (!$gcsResult['success']) {
                     return [
                         'success' => false,
-                        'message' => 'File upload verification failed: ' . implode('; ', $gcsResult['errors'])
+                        'message' => t('api.cases.upload_verification_failed', ['message' => implode('; ', $gcsResult['errors'])])
                     ];
                 }
 
@@ -498,7 +498,7 @@ try {
                 if (isset($files[$type]) && !empty($files[$type]['name'][0])) {
                     return [
                         'success' => false,
-                        'message' => 'Direct file uploads are no longer supported. Please use the standard attachment upload flow.'
+                        'message' => t('api.cases.direct_uploads_not_supported')
                     ];
                 }
             }
@@ -513,7 +513,7 @@ try {
             
             return [
                 'success' => true,
-                'message' => 'Case updated successfully',
+                'message' => t('api.cases.updated_success'),
                 'caseData' => $existingCaseData, // Return decrypted data for UI
                 'changedFields' => $changedFields
             ];
@@ -521,7 +521,7 @@ try {
 
             return [
                 'success' => false,
-                'message' => 'Error updating case: ' . $e->getMessage()
+                'message' => t('api.cases.error_updating', ['message' => $e->getMessage()])
             ];
         }
     }
@@ -532,7 +532,7 @@ try {
         echo json_encode([
             'success' => false,
             'drive_not_connected' => true,
-            'message' => 'Google Drive backup is enabled but the backup folder is not configured. A practice admin needs to re-enable backup from Settings.'
+            'message' => t('api.cases.drive_backup_not_connected')
         ]);
         exit;
     }
@@ -544,7 +544,7 @@ try {
             http_response_code(400);
             echo json_encode([
                 'success' => false,
-                'message' => 'Case ID is required for updates'
+                'message' => t('api.cases.case_id_required')
             ]);
             exit;
         }
@@ -649,7 +649,7 @@ try {
             http_response_code(400);
             echo json_encode([
                 'success' => false,
-                'message' => 'Please enter an Other Carrier name when providing a tracking number.',
+                'message' => t('api.cases.other_carrier_required'),
                 'field' => 'customCarrier'
             ]);
             exit;
@@ -665,7 +665,7 @@ try {
             http_response_code(400);
             echo json_encode([
                 'success' => false,
-                'message' => "Notes cannot exceed {$notesMaxLength} characters. Current length: " . strlen($caseData['notes']) . " characters.",
+                'message' => t('api.cases.notes_too_long', ['max' => $notesMaxLength, 'current' => strlen($caseData['notes'])]),
                 'field' => 'notes'
             ]);
             exit;
@@ -689,7 +689,7 @@ try {
                 http_response_code(400);
                 echo json_encode([
                     'success' => false,
-                    'message' => $parseResult['error'],
+                    'message' => t('validation.tooth_numbers'),
                     'field' => 'clinicalToothNumber'
                 ]);
                 exit;
@@ -727,45 +727,13 @@ try {
             http_response_code(400);
             
             // Generate user-friendly field names
-            $fieldLabels = [
-                'patientFirstName' => 'Patient First Name',
-                'patientLastName' => 'Patient Last Name',
-                'patientDOB' => 'Patient DOB',
-                'patientGender' => 'Gender',
-                'dentistName' => 'Dentist Name',
-                'caseType' => 'Case Type',
-                'dueDate' => 'Due Date',
-                'status' => 'Status',
-                'toothShade' => 'Tooth Shade',
-                'material' => 'Material',
-                'assignedTo' => 'Assigned To',
-                'notes' => 'Notes',
-                // Clinical fields
-                'clinical_toothNumber' => 'Tooth # (Crown)',
-                'clinical_abutmentTeeth' => 'Abutment Teeth (Bridge)',
-                'clinical_ponticTeeth' => 'Pontic Teeth (Bridge)',
-                'clinical_implantToothNumber' => 'Tooth # (Implant Crown)',
-                'clinical_abutmentType' => 'Abutment Type (Implant Crown)',
-                'clinical_implantSystem' => 'Implant System (Implant Crown)',
-                'clinical_platformSize' => 'Platform Size (Implant Crown)',
-                'clinical_scanBodyUsed' => 'Scan Body Used (Implant Crown)',
-                'clinical_implantSites' => 'Implant Sites (Surgical Guide)',
-                'clinical_dentureJaw' => 'Jaw (Denture)',
-                'clinical_dentureType' => 'Denture Type',
-                'clinical_gingivalShade' => 'Gingival Shade (Denture)',
-                'clinical_partialJaw' => 'Jaw (Partial)',
-                'clinical_teethToReplace' => 'Teeth to Replace (Partial)',
-                'clinical_partialMaterial' => 'Material (Partial)',
-                'clinical_partialGingivalShade' => 'Gingival Shade (Partial)',
-            ];
-            
-            $friendlyNames = array_map(function($field) use ($fieldLabels) {
-                return $fieldLabels[$field] ?? $field;
+            $friendlyNames = array_map(function($field) {
+                return t('cases.fields.' . $field);
             }, $missingFields);
             
             echo json_encode([
                 'success' => false,
-                'message' => 'Please fill in the following required fields: ' . implode(', ', $friendlyNames),
+                'message' => t('api.cases.missing_required', ['fields' => implode(', ', $friendlyNames)]),
                 'missingFields' => $missingFields
             ]);
             exit;
@@ -781,7 +749,7 @@ try {
             http_response_code(400);
             echo json_encode([
                 'success' => false,
-                'message' => 'Invalid status value',
+                'message' => t('api.cases.invalid_status'),
                 'field' => 'status'
             ]);
             exit;
@@ -798,7 +766,7 @@ try {
                 echo json_encode([
                     'success' => false,
                     'conflict' => true,
-                    'message' => 'This case was modified by another user. Please review their changes.',
+                    'message' => t('api.cases.concurrent_edit'),
                     'expectedVersion' => $expectedVersion,
                     'currentVersion' => $currentVersion,
                     'currentData' => $currentData
@@ -941,7 +909,7 @@ try {
             } catch (PDOException $e) {
                 // Log error but don't fail the whole operation
 
-                $result['assignmentError'] = 'Error updating assignment: ' . $e->getMessage();
+                $result['assignmentError'] = t('api.cases.assignment_update_error', ['message' => $e->getMessage()]);
             }
         } elseif ($result['success'] && isset($caseData['assignedTo']) && empty($caseData['assignedTo'])) {
             // Assignment explicitly cleared to None: remove any stale
@@ -953,7 +921,7 @@ try {
                 $stmt = $pdo->prepare("DELETE FROM case_assignments WHERE case_id = :case_id");
                 $stmt->execute(['case_id' => $_POST['caseId']]);
             } catch (PDOException $e) {
-                $result['assignmentError'] = 'Error clearing assignment: ' . $e->getMessage();
+                $result['assignmentError'] = t('api.cases.assignment_clear_error', ['message' => $e->getMessage()]);
             }
         }
         
@@ -984,7 +952,7 @@ try {
                         http_response_code(500);
                         echo json_encode([
                             'success' => false,
-                            'message' => $versionResult['error'] ?? 'Failed to save case'
+                            'message' => $versionResult['error'] ?? t('api.cases.failed_to_save')
                         ]);
                         exit;
                     }
@@ -1141,14 +1109,14 @@ try {
         http_response_code(405);
         echo json_encode([
             'success' => false,
-            'message' => 'Method not allowed'
+            'message' => t('api.cases.method_not_allowed')
         ]);
     }
 } catch (Throwable $e) {
     http_response_code(500);
     echo json_encode([
         'success' => false,
-        'message' => 'Server error: ' . $e->getMessage(),
+        'message' => t('api.cases.server_error', ['message' => $e->getMessage()]),
         'error' => $e->getMessage()
     ]);
 }

@@ -286,16 +286,16 @@
 
     steps.push({
       id: 'welcome',
-      title: 'Welcome to DentaTrak',
-      text: "Here's a quick overview of the tools you'll use to manage cases and keep work moving.",
+      title: t('tour.welcome_title', {appName: 'DentaTrak'}),
+      text: t('tour.welcome_text'),
       buttons: [
         {
-          text: 'Skip Tour',
+          text: t('tour.skip'),
           action: function() { tour.complete(); },
           secondary: true
         },
         {
-          text: 'Start Tour',
+          text: t('tour.start'),
           action: function() { tour.next(); }
         }
       ]
@@ -304,8 +304,8 @@
     if (document.querySelector('.kanban-board')) {
       steps.push({
         id: 'cases-board',
-        title: 'Your Cases Board',
-        text: 'Cases are organized into workflow stages. Move a case from one column to another as work progresses.',
+        title: t('tour.cases_board_title'),
+        text: t('tour.cases_board_text'),
         attachTo: {
           element: '.kanban-board',
           on: 'top-start'
@@ -314,8 +314,8 @@
         scrollTo: false,
         popperOptions: offsetModifier(20, 16),
         buttons: [
-          { text: 'Back', action: function() { tour.back(); }, secondary: true },
-          { text: 'Next', action: function() { tour.next(); } }
+          { text: t('tour.back'), action: function() { tour.back(); }, secondary: true },
+          { text: t('tour.next'), action: function() { tour.next(); } }
         ]
       });
     }
@@ -323,8 +323,8 @@
     if (document.querySelector('.create-case-button')) {
       steps.push({
         id: 'create-case',
-        title: 'Create a Case',
-        text: 'Add a case here, including patient and dentist information, case details, due dates, assignments, and files.',
+        title: t('tour.create_case_title'),
+        text: t('tour.create_case_text'),
         attachTo: {
           element: '.create-case-button',
           on: 'bottom-start'
@@ -333,8 +333,8 @@
         scrollTo: false,
         popperOptions: offsetModifier(20, 16),
         buttons: [
-          { text: 'Back', action: function() { tour.back(); }, secondary: true },
-          { text: 'Next', action: function() { tour.next(); } }
+          { text: t('tour.back'), action: function() { tour.back(); }, secondary: true },
+          { text: t('tour.next'), action: function() { tour.next(); } }
         ]
       });
     }
@@ -342,8 +342,8 @@
     if (document.getElementById('kanbanFilterToggle')) {
       steps.push({
         id: 'search-filter',
-        title: 'Search & Filter',
-        text: 'Quickly find cases or narrow the board by patient, dentist, case type, assignment, carrier, due status, and other criteria.',
+        title: t('tour.search_filter_title'),
+        text: t('tour.search_filter_text'),
         attachTo: {
           element: '#kanbanFilterToggle',
           on: 'bottom'
@@ -352,8 +352,8 @@
         scrollTo: false,
         popperOptions: offsetModifier(20, 16),
         buttons: [
-          { text: 'Back', action: function() { tour.back(); }, secondary: true },
-          { text: 'Next', action: function() { tour.next(); } }
+          { text: t('tour.back'), action: function() { tour.back(); }, secondary: true },
+          { text: t('tour.next'), action: function() { tour.next(); } }
         ]
       });
     }
@@ -361,8 +361,8 @@
     if (document.querySelector('.main-tab[data-tab="insights"]')) {
       steps.push({
         id: 'practice-insights',
-        title: 'Practice Insights',
-        text: 'See workload, turnaround times, case activity, user activity, and other trends across your practice.',
+        title: t('tour.practice_insights_title'),
+        text: t('tour.practice_insights_text'),
         attachTo: {
           element: '.main-tab[data-tab="insights"]',
           on: 'bottom-start'
@@ -371,8 +371,8 @@
         scrollTo: false,
         popperOptions: offsetModifier(20, 16),
         buttons: [
-          { text: 'Back', action: function() { tour.back(); }, secondary: true },
-          { text: 'Next', action: function() { tour.next(); } }
+          { text: t('tour.back'), action: function() { tour.back(); }, secondary: true },
+          { text: t('tour.next'), action: function() { tour.next(); } }
         ]
       });
     }
@@ -380,8 +380,8 @@
     if (document.querySelector('.main-tab[data-tab="lab-insights"]')) {
       steps.push({
         id: 'lab-insights',
-        title: 'Lab Insights',
-        text: 'Review lab workload and performance to understand where cases are currently assigned and how work is moving through your labs.',
+        title: t('tour.lab_insights_title'),
+        text: t('tour.lab_insights_text'),
         attachTo: {
           element: '.main-tab[data-tab="lab-insights"]',
           on: 'bottom-start'
@@ -390,8 +390,8 @@
         scrollTo: false,
         popperOptions: offsetModifier(20, 16),
         buttons: [
-          { text: 'Back', action: function() { tour.back(); }, secondary: true },
-          { text: 'Next', action: function() { tour.next(); } }
+          { text: t('tour.back'), action: function() { tour.back(); }, secondary: true },
+          { text: t('tour.next'), action: function() { tour.next(); } }
         ]
       });
     }
@@ -399,8 +399,8 @@
     if (document.getElementById('settingsMenuItem')) {
       steps.push({
         id: 'practice-settings',
-        title: 'Practice Settings',
-        text: 'Manage your practice, users, permissions, assignment labels, security, and other DentaTrak preferences from Settings.',
+        title: t('tour.practice_settings_title'),
+        text: t('tour.practice_settings_text', {appName: 'DentaTrak'}),
         attachTo: {
           element: '#settingsMenuItem',
           on: 'left-start'
@@ -409,8 +409,8 @@
         scrollTo: false,
         popperOptions: offsetModifier(-16, 0),
         buttons: [
-          { text: 'Back', action: function() { tour.back(); }, secondary: true },
-          { text: 'Next', action: function() { tour.next(); } }
+          { text: t('tour.back'), action: function() { tour.back(); }, secondary: true },
+          { text: t('tour.next'), action: function() { tour.next(); } }
         ]
       });
     }
@@ -418,8 +418,8 @@
     if (document.getElementById('settingsMenuItem')) {
       steps.push({
         id: 'practice-users',
-        title: 'Practice Users & Roles',
-        text: 'Add people to your practice and control what they can access and do in DentaTrak.',
+        title: t('tour.practice_users_title'),
+        text: t('tour.practice_users_text', {appName: 'DentaTrak'}),
         attachTo: {
           element: '.settings-twisty[data-twisty-id="authorized"] .settings-twisty-header',
           on: 'right-start'
@@ -428,8 +428,8 @@
         scrollTo: false,
         popperOptions: offsetModifier(16, 0),
         buttons: [
-          { text: 'Back', action: function() { tour.back(); }, secondary: true },
-          { text: 'Next', action: function() { tour.next(); } }
+          { text: t('tour.back'), action: function() { tour.back(); }, secondary: true },
+          { text: t('tour.next'), action: function() { tour.next(); } }
         ]
       });
     }
@@ -437,8 +437,8 @@
     if (document.getElementById('settingsMenuItem')) {
       steps.push({
         id: 'add-users',
-        title: 'Add Users',
-        text: 'Invite team members and choose the access they need. Permissions let you control administrative access, Insights access, case editing, assignment visibility, and other capabilities.',
+        title: t('tour.add_users_title'),
+        text: t('tour.add_users_text'),
         attachTo: {
           element: '#addGmailUser',
           on: 'bottom'
@@ -447,8 +447,8 @@
         scrollTo: false,
         popperOptions: offsetModifier(0, 16),
         buttons: [
-          { text: 'Back', action: function() { tour.back(); }, secondary: true },
-          { text: 'Next', action: function() { tour.next(); } }
+          { text: t('tour.back'), action: function() { tour.back(); }, secondary: true },
+          { text: t('tour.next'), action: function() { tour.next(); } }
         ]
       });
     }
@@ -456,8 +456,8 @@
     if (document.querySelector('.practice-user-lab-header')) {
       steps.push({
         id: 'lab-user',
-        title: 'Lab User',
-        text: 'Mark a user as Lab when they represent an internal or external laboratory. Cases assigned to Lab users are included in Lab Insights so you can track lab workload and performance.',
+        title: t('tour.lab_user_title'),
+        text: t('tour.lab_user_text'),
         attachTo: {
           element: '.practice-user-lab-header',
           on: 'left-start'
@@ -466,8 +466,8 @@
         scrollTo: false,
         popperOptions: offsetModifier(0, 16),
         buttons: [
-          { text: 'Back', action: function() { tour.back(); }, secondary: true },
-          { text: 'Next', action: function() { tour.next(); } }
+          { text: t('tour.back'), action: function() { tour.back(); }, secondary: true },
+          { text: t('tour.next'), action: function() { tour.next(); } }
         ]
       });
     }
@@ -475,8 +475,8 @@
     if (document.getElementById('newAssignmentLabel')) {
       steps.push({
         id: 'assignment-labels',
-        title: 'Assignment Labels',
-        text: 'Create reusable assignment labels for work that is not tied to a specific person, such as an outside lab, department, or workflow responsibility. Labels can also represent labs for Lab Insights.',
+        title: t('tour.assignment_labels_title'),
+        text: t('tour.assignment_labels_text'),
         attachTo: {
           element: '.assignment-labels-section',
           on: 'top'
@@ -485,8 +485,8 @@
         scrollTo: false,
         popperOptions: offsetModifier(0, 16),
         buttons: [
-          { text: 'Back', action: function() { tour.back(); }, secondary: true },
-          { text: 'Next', action: function() { tour.next(); } }
+          { text: t('tour.back'), action: function() { tour.back(); }, secondary: true },
+          { text: t('tour.next'), action: function() { tour.next(); } }
         ]
       });
     }
@@ -494,8 +494,8 @@
     if (document.getElementById('contactUsLink')) {
       steps.push({
         id: 'share-feedback',
-        title: 'Share Feedback',
-        text: 'Have an idea, found an issue, or need help? Send feedback directly from DentaTrak.',
+        title: t('tour.share_feedback_title'),
+        text: t('tour.share_feedback_text', {appName: 'DentaTrak'}),
         attachTo: {
           element: '#contactUsLink',
           on: 'bottom-start'
@@ -504,19 +504,19 @@
         scrollTo: false,
         popperOptions: offsetModifier(0, 16),
         buttons: [
-          { text: 'Back', action: function() { tour.back(); }, secondary: true },
-          { text: 'Next', action: function() { tour.next(); } }
+          { text: t('tour.back'), action: function() { tour.back(); }, secondary: true },
+          { text: t('tour.next'), action: function() { tour.next(); } }
         ]
       });
     }
 
     steps.push({
       id: 'finish',
-      title: "You're Ready",
-      text: 'You can restart the tour any time from your profile menu. Enjoy using DentaTrak!',
+      title: t('tour.finish_title'),
+      text: t('tour.finish_text', {appName: 'DentaTrak'}),
       beforeShowPromise: finishBefore,
       buttons: [
-        { text: 'Finish', action: function() { tour.complete(); } }
+        { text: t('tour.finish'), action: function() { tour.complete(); } }
       ]
     });
 
@@ -617,7 +617,7 @@
   window.startAppTour = function() {
     if (!isDesktop()) {
       if (typeof showToast === 'function') {
-        showToast('The guided tour is available on a larger screen.', 'info');
+        showToast(t('tour.desktop_only'), 'info');
       }
       return;
     }

@@ -56,7 +56,7 @@ try {
     $input = json_decode($jsonInput, true);
     
     if (!$input || !isset($input['caseData'])) {
-        throw new Exception('Case data is required');
+        throw new Exception(t('print.case_data_required'));
     }
     
     $caseData = $input['caseData'];
@@ -67,7 +67,7 @@ try {
     // This must happen BEFORE any activity logging or rendering below.
     if (!$caseId) {
         http_response_code(400);
-        echo json_encode(['success' => false, 'message' => 'Case ID is required']);
+        echo json_encode(['success' => false, 'message' => t('print.case_id_required')]);
         exit;
     }
     requireCaseAccess($caseId, $currentPracticeId);
@@ -194,7 +194,7 @@ try {
     // Output error as text if generation fails
     error_log('Error in print-case.php: ' . $e->getMessage());
     header('Content-Type: text/plain');
-    echo 'Error generating document: ' . $e->getMessage();
+    echo t('print.error_generating_document', ['message' => $e->getMessage()]);
     exit;
 }
 
@@ -230,7 +230,7 @@ function generatePrintableHTML($caseData, $attachments = [], $gdAvailable = true
     <html>
     <head>
         <meta charset="utf-8">
-        <title>Case Report - <?php echo htmlspecialchars($caseData['patientFirstName'] . ' ' . $caseData['patientLastName']); ?></title>
+        <title><?php echo t('print.case_report'); ?> - <?php echo htmlspecialchars($caseData['patientFirstName'] . ' ' . $caseData['patientLastName']); ?></title>
         <style>
             @page {
                 size: Letter;
@@ -687,75 +687,75 @@ function generatePrintableHTML($caseData, $attachments = [], $gdAvailable = true
     </head>
     <body>
         <div class="header">
-            <h1>Patient Case Report</h1>
+            <h1><?php echo t('print.title'); ?></h1>
             <div style="margin-top: 10px; font-size: 14px; color: #333; font-weight: bold;">
                 <?php echo htmlspecialchars($practiceName); ?>
             </div>
             <div style="margin-top: 5px; font-size: 12px; color: #666;">
-                Generated on <?php echo date('F j, Y g:i A'); ?>
+                <?php echo t('print.generated_on'); ?> <?php echo formatDateTime('now'); ?>
             </div>
             <?php if (!$gdAvailable): ?>
             <div style="margin-top: 10px; padding: 8px; background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 4px; font-size: 11px; color: #856404;">
-                <strong>Note:</strong> PHP GD extension is not installed. Images and document previews are not displayed in this PDF.
+                <strong><?php echo t('print.note'); ?>:</strong> <?php echo t('print.gd_note'); ?>
             </div>
             <?php endif; ?>
         </div>
         
         <div class="section">
-            <h2>Patient Information</h2>
+            <h2><?php echo t('print.patient_information'); ?></h2>
             <div class="field">
-                <div class="field-label">Patient Name:</div>
+                <div class="field-label"><?php echo t('print.patient_name'); ?>:</div>
                 <div class="field-value"><?php echo htmlspecialchars($caseData['patientFirstName'] . ' ' . $caseData['patientLastName']); ?></div>
             </div>
             <?php if (!empty($caseData['patientDOB'])): ?>
             <div class="field">
-                <div class="field-label">Date of Birth:</div>
+                <div class="field-label"><?php echo t('print.date_of_birth'); ?>:</div>
                 <div class="field-value"><?php echo htmlspecialchars(formatDate($caseData['patientDOB'])); ?></div>
             </div>
             <?php endif; ?>
             <?php if (!empty($caseData['patientGender'])): ?>
             <div class="field">
-                <div class="field-label">Gender:</div>
+                <div class="field-label"><?php echo t('print.gender'); ?>:</div>
                 <div class="field-value"><?php echo htmlspecialchars($caseData['patientGender']); ?></div>
             </div>
             <?php endif; ?>
             <?php if (!empty($caseData['dentistName'])): ?>
             <div class="field">
-                <div class="field-label">Dentist:</div>
+                <div class="field-label"><?php echo t('print.dentist'); ?>:</div>
                 <div class="field-value"><?php echo htmlspecialchars($caseData['dentistName']); ?></div>
             </div>
             <?php endif; ?>
         </div>
         
         <div class="section">
-            <h2>Case Details</h2>
+            <h2><?php echo t('print.case_details'); ?></h2>
             <div class="field">
-                <div class="field-label">Case Type:</div>
-                <div class="field-value"><?php echo htmlspecialchars($caseData['caseType']); ?></div>
+                <div class="field-label"><?php echo t('print.case_type'); ?>:</div>
+                <div class="field-value"><?php echo htmlspecialchars(getCaseTypeDisplayLabel($caseData['caseType'])); ?></div>
             </div>
             <?php if (!empty($caseData['toothShade'])): ?>
             <div class="field">
-                <div class="field-label">Tooth Shade:</div>
+                <div class="field-label"><?php echo t('print.tooth_shade'); ?>:</div>
                 <div class="field-value"><?php echo htmlspecialchars($caseData['toothShade']); ?></div>
             </div>
             <?php endif; ?>
             <?php if (!empty($caseData['material'])): ?>
             <div class="field">
-                <div class="field-label">Material:</div>
+                <div class="field-label"><?php echo t('print.material'); ?>:</div>
                 <div class="field-value"><?php echo htmlspecialchars($caseData['material']); ?></div>
             </div>
             <?php endif; ?>
             <div class="field">
-                <div class="field-label">Due Date:</div>
+                <div class="field-label"><?php echo t('print.due_date'); ?>:</div>
                 <div class="field-value"><?php echo htmlspecialchars(formatDate($caseData['dueDate'])); ?></div>
             </div>
             <div class="field">
-                <div class="field-label">Status:</div>
+                <div class="field-label"><?php echo t('print.status'); ?>:</div>
                 <div class="field-value"><?php echo htmlspecialchars($resolvedStatusLabel !== null ? $resolvedStatusLabel : $caseData['status']); ?></div>
             </div>
             <?php if (!empty($caseData['assignedTo'])): ?>
             <div class="field">
-                <div class="field-label">Assigned To:</div>
+                <div class="field-label"><?php echo t('print.assigned_to'); ?>:</div>
                 <div class="field-value"><?php echo htmlspecialchars($caseData['assignedTo']); ?></div>
             </div>
             <?php endif; ?>
@@ -768,40 +768,20 @@ function generatePrintableHTML($caseData, $attachments = [], $gdAvailable = true
             $clinicalDetails = json_decode($clinicalDetails, true);
         }
         
-        // Define clinical field labels by case type
-        $clinicalFieldLabels = [
-            // Crown
-            'toothNumber' => 'Tooth Number',
-            // Bridge
-            'abutmentTeeth' => 'Abutment Teeth',
-            'ponticTeeth' => 'Pontic Teeth',
-            // Implant Crown
-            'implantToothNumber' => 'Implant Tooth Number',
-            'abutmentType' => 'Abutment Type',
-            'implantSystem' => 'Implant System',
-            'platformSize' => 'Platform Size',
-            'scanBodyUsed' => 'Scan Body Used',
-            // Implant Surgical Guide
-            'implantSites' => 'Implant Sites',
-            // Denture
-            'dentureJaw' => 'Jaw',
-            'dentureType' => 'Denture Type',
-            'gingivalShade' => 'Gingival Shade',
-            // Partial
-            'partialJaw' => 'Jaw',
-            'teethToReplace' => 'Teeth to Replace',
-            'partialMaterial' => 'Material',
-            'partialGingivalShade' => 'Gingival Shade'
-        ];
-        
         if (!empty($clinicalDetails) && is_array($clinicalDetails)):
         ?>
         <div class="section">
-            <h2>Clinical Details</h2>
+            <h2><?php echo t('cases.clinical.title'); ?></h2>
             <?php foreach ($clinicalDetails as $key => $value): ?>
                 <?php if (!empty($value)): ?>
                 <div class="field">
-                    <div class="field-label"><?php echo htmlspecialchars($clinicalFieldLabels[$key] ?? ucfirst(preg_replace('/([A-Z])/', ' $1', $key))); ?>:</div>
+                    <div class="field-label"><?php 
+                        $clinicalLabel = t('cases.clinical.fields.' . $key);
+                        if (empty($clinicalLabel)) {
+                            $clinicalLabel = ucfirst(preg_replace('/([A-Z])/', ' $1', $key));
+                        }
+                        echo htmlspecialchars($clinicalLabel);
+                    ?>:</div>
                     <div class="field-value"><?php echo htmlspecialchars($value); ?></div>
                 </div>
                 <?php endif; ?>
@@ -811,34 +791,36 @@ function generatePrintableHTML($caseData, $attachments = [], $gdAvailable = true
         
         <?php if (!empty($caseData['notes'])): ?>
         <div class="section">
-            <h2>Notes</h2>
+            <h2><?php echo t('print.notes'); ?></h2>
             <div class="field-value" style="white-space: pre-wrap; border: 1px solid #ddd; padding: 10px; background-color: #f9f9f9;"><?php echo htmlspecialchars($caseData['notes']); ?></div>
         </div>
         <?php endif; ?>
         
         <div class="section">
-            <h2>Attachments Summary</h2>
+            <h2><?php echo t('print.attachments_summary'); ?></h2>
             <?php
             if (!empty($attachments) && is_array($attachments)) {
                 echo '<div class="field">';
-                echo '<div class="field-label">Total Files:</div>';
-                echo '<div class="field-value">' . count($attachments) . ' attachments</div>';
+                echo '<div class="field-label">' . t('print.total_files') . ':</div>';
+                echo '<div class="field-value">' . pluralize(count($attachments), 'print.attachment_count') . '</div>';
                 echo '</div>';
                 
                 foreach ($attachments as $attachment) {
+                    $fileName = $attachment['fileName'] ?? $attachment['name'] ?? t('common.unknown');
+                    $fileType = $attachment['type'] ?? t('common.unknown');
                     echo '<div class="field">';
-                    echo '<div class="field-label">File:</div>';
-                    echo '<div class="field-value">' . htmlspecialchars(isset($attachment['fileName']) ? $attachment['fileName'] : 'Unknown file') . ' (' . htmlspecialchars(isset($attachment['type']) ? $attachment['type'] : 'Unknown type') . ')</div>';
+                    echo '<div class="field-label">' . t('print.file') . ':</div>';
+                    echo '<div class="field-value">' . htmlspecialchars($fileName) . ' (' . htmlspecialchars($fileType) . ')</div>';
                     echo '</div>';
                 }
             } else {
-                echo '<div class="no-files">No attachments found for this case.</div>';
+                echo '<div class="no-files">' . t('print.no_attachments') . '</div>';
             }
             ?>
         </div>
         
         <div class="section" id="attachments" style="page-break-after: auto; margin-bottom: 100px; clear: both; overflow: visible; min-height: auto; height: auto; display: block; background: #fafafa; padding: 20px; border-radius: 4px; border: 1px solid #eee;">
-            <h2 style="page-break-after: avoid; border-bottom: 2px solid #333; padding-bottom: 8px; margin-bottom: 20px; margin-top: 0;">Attachment Contents</h2>
+            <h2 style="page-break-after: avoid; border-bottom: 2px solid #333; padding-bottom: 8px; margin-bottom: 20px; margin-top: 0;"><?php echo t('print.attachment_contents'); ?></h2>
             <?php
             if (!empty($attachments) && is_array($attachments)) {
                 // Group attachments by category
@@ -862,7 +844,7 @@ function generatePrintableHTML($caseData, $attachments = [], $gdAvailable = true
                 // === PHOTOS / IMAGES SECTION ===
                 if (!empty($imageAttachments)) {
                     echo '<div class="file-section" style="margin-bottom: 30px;">';
-                    echo '<div class="file-header" style="background: #e8f5e9; border-color: #c8e6c9;">Photos</div>';
+                    echo '<div class="file-header" style="background: #e8f5e9; border-color: #c8e6c9;">' . t('attachments.photos') . '</div>';
                     
                     foreach ($imageAttachments as $attachment) {
                         $fileName = $attachment['fileName'] ?? $attachment['name'] ?? 'Unknown';
@@ -906,7 +888,7 @@ function generatePrintableHTML($caseData, $attachments = [], $gdAvailable = true
                         }
                         
                         if (!$imageRendered) {
-                            echo '<p style="color: #666; font-style: italic; font-size: 10px;">File available in case attachments</p>';
+                            echo '<p style="color: #666; font-style: italic; font-size: 10px;">' . t('print.files_available') . '</p>';
                         }
                         
                         echo '</div>';
@@ -917,7 +899,7 @@ function generatePrintableHTML($caseData, $attachments = [], $gdAvailable = true
                 // === INTRAORAL SCANS SECTION (STL, OBJ, PLY, DCM) ===
                 if (!empty($scanAttachments)) {
                     echo '<div class="file-section" style="margin-bottom: 30px;">';
-                    echo '<div class="file-header" style="background: #e3f2fd; border-color: #bbdefb;">Intraoral Scans</div>';
+                    echo '<div class="file-header" style="background: #e3f2fd; border-color: #bbdefb;">' . t('attachments.intraoral_scans') . '</div>';
                     echo '<ul style="margin: 10px 0; padding-left: 25px;">';
                     
                     foreach ($scanAttachments as $attachment) {
@@ -931,14 +913,14 @@ function generatePrintableHTML($caseData, $attachments = [], $gdAvailable = true
                     }
                     
                     echo '</ul>';
-                    echo '<p style="font-size: 10px; color: #666; font-style: italic; margin-top: 10px;">Files available in the case.</p>';
+                    echo '<p style="font-size: 10px; color: #666; font-style: italic; margin-top: 10px;">' . t('print.files_available') . '</p>';
                     echo '</div>';
                 }
                 
                 // === DOCUMENTS SECTION (PDF, ZIP, etc.) ===
                 if (!empty($documentAttachments)) {
                     echo '<div class="file-section" style="margin-bottom: 30px;">';
-                    echo '<div class="file-header" style="background: #fff3e0; border-color: #ffe0b2;">Documents</div>';
+                    echo '<div class="file-header" style="background: #fff3e0; border-color: #ffe0b2;">' . t('attachments.documents') . '</div>';
                     echo '<ul style="margin: 10px 0; padding-left: 25px;">';
                     
                     foreach ($documentAttachments as $attachment) {
@@ -956,30 +938,30 @@ function generatePrintableHTML($caseData, $attachments = [], $gdAvailable = true
                     }
                     
                     echo '</ul>';
-                    echo '<p style="font-size: 10px; color: #666; font-style: italic; margin-top: 10px;">Files available in the case.</p>';
+                    echo '<p style="font-size: 10px; color: #666; font-style: italic; margin-top: 10px;">' . t('print.files_available') . '</p>';
                     echo '</div>';
                 }
                 
             } else {
-                echo '<div class="no-files">No attachments available.</div>';
+                echo '<div class="no-files">' . t('print.no_attachments_available') . '</div>';
             }
             ?>
         </div>
         
         <div class="section" id="timeline" style="page-break-inside: avoid; margin-top: 60px; border-top: 3px solid #333; padding-top: 30px; clear: both; background: white; padding: 30px 20px; border-radius: 4px; border: 1px solid #ddd; overflow: visible; min-height: auto; height: auto; display: block;">
-            <h2 style="page-break-after: avoid; border-bottom: 2px solid #333; padding-bottom: 8px; margin-bottom: 20px; margin-top: 0;">Timeline</h2>
+            <h2 style="page-break-after: avoid; border-bottom: 2px solid #333; padding-bottom: 8px; margin-bottom: 20px; margin-top: 0;"><?php echo t('print.timeline'); ?></h2>
             <div class="field">
-                <div class="field-label">Created:</div>
-                <div class="field-value"><?php echo htmlspecialchars(formatDateTime($caseData['creationDate'])); ?></div>
+                <div class="field-label"><?php echo t('print.created'); ?>:</div>
+                <div class="field-value"><?php echo htmlspecialchars(!empty($caseData['creationDate']) ? formatDateTime($caseData['creationDate']) : t('common.not_applicable')); ?></div>
             </div>
             <div class="field">
-                <div class="field-label">Last Updated:</div>
-                <div class="field-value"><?php echo htmlspecialchars(formatDateTime($caseData['lastUpdateDate'])); ?></div>
+                <div class="field-label"><?php echo t('print.last_updated'); ?>:</div>
+                <div class="field-value"><?php echo htmlspecialchars(!empty($caseData['lastUpdateDate']) ? formatDateTime($caseData['lastUpdateDate']) : t('common.not_applicable')); ?></div>
             </div>
         </div>
         
         <div class="footer">
-            <p>Generated by <?php echo htmlspecialchars($appName); ?> on <?php echo date('F j, Y g:i A'); ?></p>
+            <p><?php echo t('print.generated_by', ['appName' => $appName, 'date' => formatDateTime('now')]); ?></p>
         </div>
     </body>
     </html>
@@ -1366,28 +1348,6 @@ function extractExcelContent($fileContent, $filename) {
         }
     } catch (Exception $e) {
         return ['<div class="document-placeholder" style="border: 1px solid #ddd; padding: 10px; margin: 10px 0; background: #f9f9f9;"><p><strong>Excel Spreadsheet:</strong> ' . htmlspecialchars($filename) . '</p><p><strong>File Size:</strong> ' . number_format(strlen($fileContent)) . ' bytes</p><p><em><strong>Note:</strong> Excel content extraction failed - ' . htmlspecialchars($e->getMessage()) . '</em></p></div>'];
-    }
-}
-
-function formatDate($dateString) {
-    if (empty($dateString)) return '';
-    
-    try {
-        $date = new DateTime($dateString);
-        return $date->format('m/d/Y');
-    } catch (Exception $e) {
-        return htmlspecialchars($dateString);
-    }
-}
-
-function formatDateTime($dateString) {
-    if (empty($dateString)) return 'N/A';
-    
-    try {
-        $date = new DateTime($dateString);
-        return $date->format('F j, Y g:i A');
-    } catch (Exception $e) {
-        return htmlspecialchars($dateString);
     }
 }
 

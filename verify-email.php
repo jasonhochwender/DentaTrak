@@ -13,12 +13,12 @@ $token = $_GET['token'] ?? '';
 $appName = $appConfig['appName'] ?? 'App';
 ?>
 <!DOCTYPE html>
-<html lang="en">
+<html lang="<?php echo getHtmlLang(); ?>">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="robots" content="noindex, nofollow">
-    <title>Verify Email - <?php echo htmlspecialchars($appName); ?></title>
+    <title><?php echo htmlspecialchars(t('auth.verification.title')) . ' - ' . htmlspecialchars($appName); ?></title>
 
     <!-- Favicon / App Icons -->
     <link rel="icon" type="image/x-icon" href="favicon.ico">
@@ -30,6 +30,8 @@ $appName = $appConfig['appName'] ?? 'App';
 
     <link rel="stylesheet" href="css/app.css">
     <link rel="stylesheet" href="css/login.css">
+    <script>window.__i18n = <?php echo getTranslationsJsonForJs(); ?>;</script>
+    <script src="js/i18n.js"></script>
     <style>
         .verify-container {
             min-height: 100vh;
@@ -132,17 +134,21 @@ $appName = $appConfig['appName'] ?? 'App';
 </head>
 <body>
     <div class="verify-container">
-        <div class="verify-card">
+        <div class="verify-card" style="position: relative;">
+            <?php
+            // Global language selector (hidden until a second locale is enabled)
+            echo renderLanguageSelector('api/set-session-locale.php', getResolvedLocale(), false);
+            ?>
             <div class="verify-icon loading" id="verifyIcon">
                 <div class="spinner"></div>
             </div>
-            <h1 class="verify-title" id="verifyTitle">Verifying your email...</h1>
-            <p class="verify-message" id="verifyMessage">Please wait while we verify your email address.</p>
+            <h1 class="verify-title" id="verifyTitle"><?php echo htmlspecialchars(t('auth.verification.verifying')); ?></h1>
+            <p class="verify-message" id="verifyMessage"><?php echo htmlspecialchars(t('auth.verification.wait_message')); ?></p>
             <div id="verifyActions" style="display: none;">
-                <a href="login.php" class="verify-btn">Sign In</a>
+                <a href="login.php" class="verify-btn"><?php echo htmlspecialchars(t('auth.verification.sign_in')); ?></a>
             </div>
             <div id="resendSection" class="resend-section" style="display: none;">
-                <p>Didn't receive the email? <span class="resend-link" id="resendLink">Send again</span></p>
+                <p><?php echo htmlspecialchars(t('auth.verification.resend_prompt')); ?> <span class="resend-link" id="resendLink"><?php echo htmlspecialchars(t('auth.verification.resend_action')); ?></span></p>
             </div>
         </div>
     </div>
@@ -158,17 +164,17 @@ $appName = $appConfig['appName'] ?? 'App';
         function showSuccess(message) {
             verifyIcon.className = 'verify-icon success';
             verifyIcon.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg>';
-            verifyTitle.textContent = 'Email Verified!';
-            verifyMessage.textContent = message || 'Your email has been verified successfully.';
+            verifyTitle.textContent = t('auth.verification.success_title');
+            verifyMessage.textContent = message || t('auth.verification.success_message');
             verifyActions.style.display = 'block';
         }
         
         function showError(message, showResend = false) {
             verifyIcon.className = 'verify-icon error';
             verifyIcon.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>';
-            verifyTitle.textContent = 'Verification Failed';
-            verifyMessage.textContent = message || 'Unable to verify your email.';
-            verifyActions.innerHTML = '<a href="login.php" class="verify-btn secondary">Back to Sign In</a>';
+            verifyTitle.textContent = t('auth.verification.failed_title');
+            verifyMessage.textContent = message || t('auth.verification.generic_error');
+            verifyActions.innerHTML = '<a href="login.php" class="verify-btn secondary">' + t('auth.verification.back_to_sign_in') + '</a>';
             verifyActions.style.display = 'block';
             
             if (showResend) {
@@ -179,14 +185,14 @@ $appName = $appConfig['appName'] ?? 'App';
         function showAlreadyVerified() {
             verifyIcon.className = 'verify-icon success';
             verifyIcon.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg>';
-            verifyTitle.textContent = 'Already Verified';
-            verifyMessage.textContent = 'Your email has already been verified. You can sign in now.';
+            verifyTitle.textContent = t('auth.verification.already_verified_title');
+            verifyMessage.textContent = t('auth.verification.already_verified_message');
             verifyActions.style.display = 'block';
         }
         
         // Verify the token
         if (!token) {
-            showError('No verification token provided.');
+            showError(t('auth.verification.no_token'));
         } else {
             fetch('api/email-verification.php?action=verify&token=' + encodeURIComponent(token))
                 .then(response => response.json())
@@ -202,13 +208,13 @@ $appName = $appConfig['appName'] ?? 'App';
                     }
                 })
                 .catch(error => {
-                    showError('An error occurred. Please try again.');
+                    showError(t('auth.verification.generic_error'));
                 });
         }
         
         // Handle resend
         document.getElementById('resendLink').addEventListener('click', function() {
-            const email = prompt('Enter your email address to resend verification:');
+            const email = prompt(t('auth.verification.resend_email_prompt'));
             if (email) {
                 fetch('api/email-verification.php', {
                     method: 'POST',
@@ -220,7 +226,7 @@ $appName = $appConfig['appName'] ?? 'App';
                     alert(data.message);
                 })
                 .catch(error => {
-                    alert('Failed to resend verification email. Please try again.');
+                    alert(t('auth.verification.resend_failed'));
                 });
             }
         });

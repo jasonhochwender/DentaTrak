@@ -14,6 +14,7 @@ $userId = $_SESSION['db_user_id'] ?? null;
 clearRememberMeCookie();
 
 // Clear the session data
+unset($_SESSION['resolved_locale']);
 session_unset();
 session_destroy();
 

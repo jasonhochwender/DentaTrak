@@ -162,12 +162,12 @@ $envClass = ($envValue === 'production') ? 'env-prod' : 'env-dev';
 $appName = $appConfig['appName'];
 ?>
 <!DOCTYPE html>
-<html lang="en">
+<html lang="<?php echo getHtmlLang(); ?>">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="robots" content="noindex, nofollow">
-    <title>Practice Setup - <?php echo htmlspecialchars($appName); ?></title>
+    <title><?php echo t('onboarding.practice.page_title'); ?> - <?php echo htmlspecialchars($appName); ?></title>
 
     <!-- Favicon / App Icons -->
     <link rel="icon" type="image/x-icon" href="favicon.ico">
@@ -179,6 +179,10 @@ $appName = $appConfig['appName'];
 
     <link rel="stylesheet" href="css/app.css">
     <link rel="stylesheet" href="css/practice-setup.css">
+    <script>
+        window.__i18n = <?php echo getTranslationsJsonForJs(); ?>;
+    </script>
+    <script src="js/i18n.js"></script>
 </head>
 <body class="practice-setup-body <?php echo $envClass; ?>">
     <!-- Animated Background -->
@@ -190,6 +194,10 @@ $appName = $appConfig['appName'];
     
     <div class="setup-wrapper">
         <div class="setup-container">
+            <?php
+            // Global language selector (hidden until a second locale is enabled)
+            echo renderLanguageSelector('api/set-session-locale.php', getResolvedLocale(), false);
+            ?>
             <!-- Header -->
             <div class="setup-header">
                 <div class="setup-icon">
@@ -199,14 +207,14 @@ $appName = $appConfig['appName'];
                     </svg>
                 </div>
                 <?php if ($isSingleUnownedMembership): ?>
-                    <h1 class="setup-title">Welcome to DentaTrak</h1>
-                    <p class="setup-subtitle">You already have access to an existing practice. Continue there, or create your own.</p>
+                    <h1 class="setup-title"><?php echo t('onboarding.practice.welcome_title'); ?></h1>
+                    <p class="setup-subtitle"><?php echo t('onboarding.practice.welcome_subtitle_single_unowned'); ?></p>
                 <?php elseif ($showPracticeChoice): ?>
-                    <h1 class="setup-title">You're Part of Multiple Practices</h1>
-                    <p class="setup-subtitle">Select which practice you'd like to work with</p>
+                    <h1 class="setup-title"><?php echo t('onboarding.practice.welcome_title'); ?></h1>
+                    <p class="setup-subtitle"><?php echo t('onboarding.practice.welcome_subtitle_multiple'); ?></p>
                 <?php else: ?>
-                    <h1 class="setup-title">Welcome!</h1>
-                    <p class="setup-subtitle">Let's set up your dental practice</p>
+                    <h1 class="setup-title"><?php echo t('auth.login.welcome'); ?></h1>
+                    <p class="setup-subtitle"><?php echo t('onboarding.practice.welcome_subtitle_new'); ?></p>
                 <?php endif; ?>
             </div>
             
@@ -241,16 +249,16 @@ $appName = $appConfig['appName'];
                         <path d="M12 8h.01"/>
                     </svg>
                     <?php if ($isSingleUnownedMembership && !empty($memberPractices)): ?>
-                    <p>Welcome, <strong><?php echo htmlspecialchars($userName ?: 'there'); ?></strong>! You already have access to <strong><?php echo htmlspecialchars($memberPractices[0]['practice_name']); ?></strong>. Continue there, or create your own practice below.</p>
+                    <p><?php echo t('onboarding.practice.welcome_banner_name', ['name' => htmlspecialchars($userName ?: 'there')]); ?> <?php echo t('onboarding.practice.single_unowned_continue', ['practice' => htmlspecialchars($memberPractices[0]['practice_name'])]); ?></p>
                     <?php else: ?>
-                    <p>Welcome back, <strong><?php echo htmlspecialchars($userName ?: 'there'); ?></strong>! Select which practice you'd like to work with today.</p>
+                    <p><?php echo t('onboarding.practice.welcome_back_name', ['name' => htmlspecialchars($userName ?: 'there')]); ?> <?php echo t('onboarding.practice.select_today'); ?></p>
                     <?php endif; ?>
                 </div>
                 
                 <!-- Owned Practices -->
                 <?php if ($hasOwnPractice): ?>
                     <div class="section-header">
-                        <h2>Your Practices</h2>
+                        <h2><?php echo t('onboarding.practice.your_practices'); ?></h2>
                         <span class="count-badge"><?php echo count($ownedPractices); ?></span>
                     </div>
                     <?php foreach ($ownedPractices as $practice): ?>
@@ -261,18 +269,18 @@ $appName = $appConfig['appName'];
                                 </div>
                                 <span class="role-badge owner">
                                     <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/></svg>
-                                    Owner
+                                    <?php echo t('onboarding.practice.role_owner'); ?>
                                 </span>
                             </div>
                             <div class="practice-card-actions">
                                 <button class="select-btn" data-practice-id="<?php echo htmlspecialchars($practice['id']); ?>">
                                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-                                    Select This Practice
+                                    <?php echo t('onboarding.practice.select_this_practice'); ?>
                                 </button>
                                 <div class="remember-choice">
                                     <input type="checkbox" id="remember_choice_<?php echo htmlspecialchars($practice['id']); ?>" 
                                            class="remember-choice-checkbox" data-practice-id="<?php echo htmlspecialchars($practice['id']); ?>">
-                                    <label for="remember_choice_<?php echo htmlspecialchars($practice['id']); ?>">Always use this practice</label>
+                                    <label for="remember_choice_<?php echo htmlspecialchars($practice['id']); ?>"><?php echo t('onboarding.practice.always_use_this_practice'); ?></label>
                                 </div>
                             </div>
                         </div>
@@ -283,7 +291,7 @@ $appName = $appConfig['appName'];
                 <?php if ($hasMemberPractice): ?>
                     <?php if (!$isSingleUnownedMembership): ?>
                     <div class="section-header" <?php echo $hasOwnPractice ? 'style="margin-top: 24px;"' : ''; ?>>
-                        <h2><?php echo $hasOwnPractice ? 'Other Practices' : 'Your Practices'; ?></h2>
+                        <h2><?php echo $hasOwnPractice ? t('onboarding.practice.other_practices') : t('onboarding.practice.your_practices'); ?></h2>
                         <span class="count-badge"><?php echo count($memberPractices); ?></span>
                     </div>
                     <?php endif; ?>
@@ -293,19 +301,19 @@ $appName = $appConfig['appName'];
                                 <div>
                                     <h3><?php echo htmlspecialchars($practice['practice_name']); ?></h3>
                                 </div>
-                                <span class="role-badge member"><?php echo htmlspecialchars($practice['role'] ?? 'Member'); ?></span>
+                                <span class="role-badge member"><?php echo htmlspecialchars($practice['role'] ?? t('onboarding.practice.role_member')); ?></span>
                             </div>
                             <div class="practice-card-actions">
                                 <button class="select-btn" data-practice-id="<?php echo htmlspecialchars($practice['id']); ?>">
                                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
                                     <?php echo $isSingleUnownedMembership
-                                        ? 'Continue to ' . htmlspecialchars($practice['practice_name'])
-                                        : 'Select This Practice'; ?>
+                                        ? t('onboarding.practice.continue_to_practice', ['practice' => htmlspecialchars($practice['practice_name'])])
+                                        : t('onboarding.practice.select_this_practice'); ?>
                                 </button>
                                 <div class="remember-choice">
                                     <input type="checkbox" id="remember_choice_<?php echo htmlspecialchars($practice['id']); ?>" 
                                            class="remember-choice-checkbox" data-practice-id="<?php echo htmlspecialchars($practice['id']); ?>">
-                                    <label for="remember_choice_<?php echo htmlspecialchars($practice['id']); ?>">Always use this practice</label>
+                                    <label for="remember_choice_<?php echo htmlspecialchars($practice['id']); ?>"><?php echo t('onboarding.practice.always_use_this_practice'); ?></label>
                                 </div>
                             </div>
                         </div>
@@ -314,7 +322,7 @@ $appName = $appConfig['appName'];
                 
                 <!-- Create New Practice Option -->
                 <div class="or-divider">
-                    <span><?php echo $isSingleUnownedMembership ? 'Or create your own' : 'Or create new'; ?></span>
+                    <span><?php echo $isSingleUnownedMembership ? t('onboarding.practice.or_create_your_own') : t('onboarding.practice.or_create_new'); ?></span>
                 </div>
                 
                 <div class="practice-card create-practice-card">
@@ -326,7 +334,7 @@ $appName = $appConfig['appName'];
                                 <line x1="8" y1="12" x2="16" y2="12"/>
                             </svg>
                         </div>
-                        <p>Start fresh with a new practice where you'll be the administrator. Belonging to another practice doesn't affect this. You'll review and accept the Business Associate Agreement as part of creating it.</p>
+                        <p><?php echo t('onboarding.practice.create_practice_intro'); ?></p>
                     </div>
                     <!-- Creating a practice always goes through the BAA flow (baa-acceptance.php
                          collects the practice's legal name and creates it atomically with BAA
@@ -335,7 +343,7 @@ $appName = $appConfig['appName'];
                          fresh practice even if a stale current_practice_id lingers in session. -->
                     <a href="baa-acceptance.php?new=1" class="submit-btn">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
-                        <?php echo $isSingleUnownedMembership ? 'Create My Own Practice' : 'Create New Practice'; ?>
+                        <?php echo $isSingleUnownedMembership ? t('onboarding.practice.create_my_own_practice') : t('onboarding.practice.create_new_practice'); ?>
                     </a>
                 </div>
             
@@ -346,11 +354,11 @@ $appName = $appConfig['appName'];
                         <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
                         <polyline points="22 4 12 14.01 9 11.01"/>
                     </svg>
-                    <p>You've been invited to join a dental practice! Select it below or create your own.</p>
+                    <p><?php echo t('onboarding.practice.invited_message'); ?></p>
                 </div>
                 
                 <div class="section-header">
-                    <h2>Invitations</h2>
+                    <h2><?php echo t('onboarding.practice.invitations'); ?></h2>
                     <span class="count-badge"><?php echo count($invitedPractices); ?></span>
                 </div>
                 
@@ -359,26 +367,26 @@ $appName = $appConfig['appName'];
                         <div class="practice-card-header">
                             <div>
                                 <h3><?php echo htmlspecialchars($practice['practice_name']); ?></h3>
-                                <p class="owner-info">Owned by <?php echo htmlspecialchars($practice['owner_first_name'] . ' ' . $practice['owner_last_name']); ?></p>
+                                <p class="owner-info"><?php echo t('onboarding.practice.owned_by', ['name' => htmlspecialchars($practice['owner_first_name'] . ' ' . $practice['owner_last_name'])]); ?></p>
                             </div>
-                            <span class="role-badge member"><?php echo htmlspecialchars($practice['role'] ?? 'Member'); ?></span>
+                            <span class="role-badge member"><?php echo htmlspecialchars($practice['role'] ?? t('onboarding.practice.role_member')); ?></span>
                         </div>
                         <div class="practice-card-actions">
                             <button class="select-btn" data-practice-id="<?php echo htmlspecialchars($practice['id']); ?>">
                                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-                                Join This Practice
+                                <?php echo t('onboarding.practice.join_this_practice'); ?>
                             </button>
                             <div class="remember-choice">
                                 <input type="checkbox" id="remember_choice_<?php echo htmlspecialchars($practice['id']); ?>" 
                                        class="remember-choice-checkbox" data-practice-id="<?php echo htmlspecialchars($practice['id']); ?>">
-                                <label for="remember_choice_<?php echo htmlspecialchars($practice['id']); ?>">Always use this practice</label>
+                                <label for="remember_choice_<?php echo htmlspecialchars($practice['id']); ?>"><?php echo t('onboarding.practice.always_use_this_practice'); ?></label>
                             </div>
                         </div>
                     </div>
                 <?php endforeach; ?>
                 
                 <div class="or-divider">
-                    <span>Or create your own</span>
+                    <span><?php echo t('onboarding.practice.or_create_your_own'); ?></span>
                 </div>
                 
                 <div class="practice-card create-practice-card">
@@ -390,14 +398,14 @@ $appName = $appConfig['appName'];
                                 <line x1="8" y1="12" x2="16" y2="12"/>
                             </svg>
                         </div>
-                        <p>Create your own practice where you'll be the administrator.</p>
+                        <p><?php echo t('onboarding.practice.create_practice_intro'); ?></p>
                     </div>
                     <!-- Practice creation always goes through the BAA flow - see the
                          "Create New Practice Option" comment above. Never
                          api/update-practice.php, which no longer creates practices. -->
                     <a href="baa-acceptance.php?new=1" class="submit-btn">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
-                        Create My Practice
+                        <?php echo t('onboarding.practice.create_my_practice'); ?>
                     </a>
                 </div>
                 
@@ -408,12 +416,12 @@ $appName = $appConfig['appName'];
                         <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
                         <polyline points="22 4 12 14.01 9 11.01"/>
                     </svg>
-                    <p>You'll be the administrator of your practice and can invite team members later.</p>
+                    <p><?php echo t('onboarding.practice.create_practice_info'); ?></p>
                 </div>
                 
                 <a href="baa-acceptance.php?new=1" class="submit-btn">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
-                    Create My Practice
+                    <?php echo t('onboarding.practice.create_my_practice'); ?>
                 </a>
             <?php endif; ?>
                 
@@ -432,16 +440,16 @@ $appName = $appConfig['appName'];
                 </svg>
                 <p>
                     <?php if ($isAdmin || $inAdminList): ?>
-                        As an administrator, your practice name will be visible to all users in your organization.
+                        <?php echo t('onboarding.practice.admin_create_practice_info'); ?>
                     <?php else: ?>
-                        You'll be the administrator of your practice and can invite team members later.
+                        <?php echo t('onboarding.practice.create_practice_info'); ?>
                     <?php endif; ?>
                 </p>
             </div>
             
             <a href="baa-acceptance.php?new=1" class="submit-btn">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
-                Create Practice
+                <?php echo t('onboarding.practice.create_practice'); ?>
             </a>
         <?php endif; ?>
             </div>
@@ -473,7 +481,7 @@ $appName = $appConfig['appName'];
                     // Show loading state
                     const originalText = this.innerHTML;
                     this.disabled = true;
-                    this.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="spin"><circle cx="12" cy="12" r="10"/></svg> Please wait...';
+                    this.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="spin"><circle cx="12" cy="12" r="10"/></svg> ' + t('onboarding.practice.please_wait');
                     
                     selectPractice(practiceId, savePreference);
                 });
@@ -510,7 +518,7 @@ $appName = $appConfig['appName'];
                     if (data.success) {
                         window.location.href = 'main.php';
                     } else {
-                        alert('Error: ' + (data.message || 'Could not select practice'));
+                        alert(t('onboarding.practice.could_not_select') + (data.message ? ': ' + data.message : ''));
                         location.reload();
                     }
                 })
@@ -519,7 +527,7 @@ $appName = $appConfig['appName'];
                     if (practiceId) {
                         window.location.href = 'main.php';
                     } else {
-                        alert('Error selecting practice. Please try again: ' + error.message);
+                        alert(t('onboarding.practice.select_error_message', {message: error.message}));
                         location.reload();
                     }
                 });

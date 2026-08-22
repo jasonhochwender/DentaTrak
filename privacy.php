@@ -4,7 +4,7 @@ require_once __DIR__ . '/api/security-headers.php';
 setSecurityHeaders();
 $appName = $appConfig['appName'] ?? 'DentaTrak';
 ?><!DOCTYPE html>
-<html lang="en">
+<html lang="<?php echo getHtmlLang(); ?>">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">

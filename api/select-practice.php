@@ -20,7 +20,7 @@ if (!isset($_SESSION['db_user_id'])) {
     http_response_code(401);
     echo json_encode([
         'success' => false, 
-        'message' => 'User not authenticated'
+        'message' => t('auth.errors.user_not_authenticated')
     ]);
     exit;
 }
@@ -62,7 +62,7 @@ if (empty($practiceId)) {
     http_response_code(400);
     echo json_encode([
         'success' => false,
-        'message' => 'Practice ID is required'
+        'message' => t('auth.errors.practice_id_required')
     ]);
     exit;
 }
@@ -83,13 +83,16 @@ try {
         http_response_code(403);
         echo json_encode([
             'success' => false,
-            'message' => 'You do not have access to this practice'
+            'message' => t('auth.errors.no_access_practice')
         ]);
         exit;
     }
     
     // Store the selected practice ID in the session
     $_SESSION['current_practice_id'] = $practiceId;
+    
+    // Resolve and persist the active locale for the newly-selected practice
+    setResolvedLocale(resolveLocale(null, $userId, $practiceId));
     
     // If the user wants to remember this preference, store it in user_preferences
     if ($rememberPreference) {
@@ -172,7 +175,7 @@ try {
     // Otherwise return JSON for API calls
     echo json_encode([
         'success' => true,
-        'message' => 'Practice selected successfully',
+        'message' => t('auth.errors.practice_selected'),
         'practice' => $practice,
         'preference_saved' => $rememberPreference
     ]);
@@ -181,7 +184,7 @@ try {
     http_response_code(500);
     echo json_encode([
         'success' => false, 
-        'message' => 'Error selecting practice: ' . $e->getMessage()
+        'message' => t('auth.errors.error_selecting_practice') . ': ' . $e->getMessage()
     ]);
     
     userLog("Error selecting practice: " . $e->getMessage(), true);

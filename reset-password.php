@@ -17,12 +17,12 @@ if ($currentEnv === 'production') {
 
 $token = $_GET['token'] ?? '';
 ?><!DOCTYPE html>
-<html lang="en">
+<html lang="<?php echo getHtmlLang(); ?>">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="robots" content="noindex, nofollow">
-  <title>Reset Password - <?php echo htmlspecialchars($appName); ?></title>
+  <title><?php echo htmlspecialchars(t('auth.password.reset_title')) . ' - ' . htmlspecialchars($appName); ?></title>
 
   <!-- Favicon / App Icons -->
   <link rel="icon" type="image/x-icon" href="favicon.ico">
@@ -34,6 +34,8 @@ $token = $_GET['token'] ?? '';
 
   <link rel="stylesheet" href="css/app.css">
   <link rel="stylesheet" href="css/login.css">
+  <script>window.__i18n = <?php echo getTranslationsJsonForJs(); ?>;</script>
+  <script src="js/i18n.js"></script>
 </head>
 <body class="login-body <?php echo $envClass; ?>">
   <!-- Animated background elements -->
@@ -46,19 +48,23 @@ $token = $_GET['token'] ?? '';
   </div>
   
   <div class="reset-password-container">
+    <?php
+    // Global language selector (hidden until a second locale is enabled)
+    echo renderLanguageSelector('api/set-session-locale.php', getResolvedLocale(), false);
+    ?>
     <div class="reset-password-header">
       <div class="icon">
         <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/>
         </svg>
       </div>
-      <h2>Reset Your Password</h2>
-      <p id="headerText">Create a new password for your account.</p>
+      <h2><?php echo htmlspecialchars(t('auth.password.reset_title')); ?></h2>
+      <p id="headerText"><?php echo htmlspecialchars(t('auth.password.reset_subtitle')); ?></p>
     </div>
     
     <!-- Loading state while validating token -->
     <div id="loadingState" style="text-align: center; padding: 20px;">
-      <p style="color: #64748b;">Validating reset link...</p>
+      <p style="color: #64748b;"><?php echo htmlspecialchars(t('auth.password.loading')); ?></p>
     </div>
     
     <!-- Invalid token message -->
@@ -69,10 +75,10 @@ $token = $_GET['token'] ?? '';
           <line x1="12" y1="8" x2="12" y2="12"/>
           <line x1="12" y1="16" x2="12.01" y2="16"/>
         </svg>
-        <p id="invalidTokenMessage">This password reset link is invalid or has expired.</p>
+        <p id="invalidTokenMessage"><?php echo htmlspecialchars(t('auth.password.invalid_token')); ?></p>
       </div>
       <div style="text-align: center; margin-top: 20px;">
-        <a href="forgot-password.php" class="reset-submit-btn" style="display: inline-block; text-decoration: none;">Request New Reset Link</a>
+        <a href="forgot-password.php" class="reset-submit-btn" style="display: inline-block; text-decoration: none;"><?php echo htmlspecialchars(t('auth.password.request_new_link')); ?></a>
       </div>
     </div>
     
@@ -82,10 +88,10 @@ $token = $_GET['token'] ?? '';
         <input type="hidden" id="token" value="<?php echo htmlspecialchars($token); ?>">
         
         <div class="form-group">
-          <label for="password">New Password</label>
+          <label for="password"><?php echo htmlspecialchars(t('auth.password.new_password_label')); ?></label>
           <div class="password-input-wrapper">
-            <input type="password" id="password" name="password" required placeholder="Enter new password">
-            <button type="button" class="password-toggle-btn" aria-label="Show password" data-target="password">
+            <input type="password" id="password" name="password" required placeholder="<?php echo htmlspecialchars(t('auth.password.new_password_placeholder')); ?>">
+            <button type="button" class="password-toggle-btn" aria-label="<?php echo htmlspecialchars(t('auth.login.show_password')); ?>" data-target="password">
               <svg class="icon-show" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
               <svg class="icon-hide" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
             </button>
@@ -99,10 +105,10 @@ $token = $_GET['token'] ?? '';
         </div>
         
         <div class="form-group">
-          <label for="confirmPassword">Confirm New Password</label>
+          <label for="confirmPassword"><?php echo htmlspecialchars(t('auth.password.confirm_new_password_label')); ?></label>
           <div class="password-input-wrapper">
-            <input type="password" id="confirmPassword" name="confirmPassword" required placeholder="Confirm new password">
-            <button type="button" class="password-toggle-btn" aria-label="Show password" data-target="confirmPassword">
+            <input type="password" id="confirmPassword" name="confirmPassword" required placeholder="<?php echo htmlspecialchars(t('auth.password.confirm_new_password_placeholder')); ?>">
+            <button type="button" class="password-toggle-btn" aria-label="<?php echo htmlspecialchars(t('auth.login.show_password')); ?>" data-target="confirmPassword">
               <svg class="icon-show" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
               <svg class="icon-hide" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
             </button>
@@ -119,7 +125,7 @@ $token = $_GET['token'] ?? '';
           <p id="errorMessage"></p>
         </div>
         
-        <button type="submit" class="reset-submit-btn" id="submitBtn" disabled>Reset Password</button>
+        <button type="submit" class="reset-submit-btn" id="submitBtn" disabled><?php echo htmlspecialchars(t('auth.password.reset_button')); ?></button>
       </form>
     </div>
     
@@ -131,15 +137,15 @@ $token = $_GET['token'] ?? '';
           <polyline points="22 4 12 14.01 9 11.01"/>
         </svg>
       </div>
-      <h3>Password Reset Successfully!</h3>
-      <p>Your password has been updated. You can now sign in with your new password.</p>
+      <h3><?php echo htmlspecialchars(t('auth.password.reset_success_title')); ?></h3>
+      <p><?php echo htmlspecialchars(t('auth.password.reset_success_message')); ?></p>
       <div style="margin-top: 20px;">
-        <a href="login.php" class="reset-submit-btn" style="display: inline-block; text-decoration: none;">Sign In</a>
+        <a href="login.php" class="reset-submit-btn" style="display: inline-block; text-decoration: none;"><?php echo htmlspecialchars(t('auth.password.sign_in')); ?></a>
       </div>
     </div>
     
     <div class="reset-form-footer" id="backLink">
-      <a href="login.php">← Back to Sign In</a>
+      <a href="login.php">← <?php echo htmlspecialchars(t('auth.password.back_to_sign_in')); ?></a>
     </div>
   </div>
 
@@ -165,7 +171,7 @@ $token = $_GET['token'] ?? '';
           
           // Update button state and ARIA label for accessibility
           this.classList.toggle('is-visible', isCurrentlyPassword);
-          this.setAttribute('aria-label', isCurrentlyPassword ? 'Hide password' : 'Show password');
+          this.setAttribute('aria-label', isCurrentlyPassword ? t('auth.login.hide_password') : t('auth.login.show_password'));
         });
         
         // Handle keyboard activation (Enter and Space)
@@ -193,16 +199,16 @@ $token = $_GET['token'] ?? '';
       };
       
       document.getElementById('reqLength').className = 'req' + (requirements.length ? ' valid' : '');
-      document.getElementById('reqLength').textContent = (requirements.length ? '✓' : '✗') + ' At least 8 characters';
+      document.getElementById('reqLength').textContent = (requirements.length ? '✓ ' : '✗ ') + t('auth.registration.password_requirements.length');
       
       document.getElementById('reqUpper').className = 'req' + (requirements.upper ? ' valid' : '');
-      document.getElementById('reqUpper').textContent = (requirements.upper ? '✓' : '✗') + ' One uppercase letter';
+      document.getElementById('reqUpper').textContent = (requirements.upper ? '✓ ' : '✗ ') + t('auth.registration.password_requirements.upper');
       
       document.getElementById('reqNumber').className = 'req' + (requirements.number ? ' valid' : '');
-      document.getElementById('reqNumber').textContent = (requirements.number ? '✓' : '✗') + ' One number';
+      document.getElementById('reqNumber').textContent = (requirements.number ? '✓ ' : '✗ ') + t('auth.registration.password_requirements.number');
       
       document.getElementById('reqSpecial').className = 'req' + (requirements.special ? ' valid' : '');
-      document.getElementById('reqSpecial').textContent = (requirements.special ? '✓' : '✗') + ' One special character';
+      document.getElementById('reqSpecial').textContent = (requirements.special ? '✓ ' : '✗ ') + t('auth.registration.password_requirements.special');
       
       return requirements.length && requirements.upper && requirements.number && requirements.special;
     }
@@ -219,11 +225,11 @@ $token = $_GET['token'] ?? '';
       }
       
       if (password === confirmPassword) {
-        matchDiv.textContent = '✓ Passwords match';
+        matchDiv.textContent = '✓ ' + t('auth.registration.match_yes');
         matchDiv.className = 'password-match match';
         return true;
       } else {
-        matchDiv.textContent = '✗ Passwords do not match';
+        matchDiv.textContent = '✗ ' + t('auth.registration.match_no');
         matchDiv.className = 'password-match no-match';
         return false;
       }
@@ -241,7 +247,7 @@ $token = $_GET['token'] ?? '';
     // Validate token on page load
     async function validateToken() {
       if (!token) {
-        showInvalidToken('No reset token provided.');
+        showInvalidToken(t('auth.password.no_token'));
         return;
       }
       
@@ -263,10 +269,10 @@ $token = $_GET['token'] ?? '';
         if (data.success && data.valid) {
           document.getElementById('resetForm').style.display = 'block';
         } else {
-          showInvalidToken(data.message || 'This password reset link is invalid or has expired.');
+          showInvalidToken(data.message || t('auth.password.invalid_token'));
         }
       } catch (error) {
-        showInvalidToken('An error occurred while validating the reset link.');
+        showInvalidToken(t('auth.password.validate_error'));
       }
     }
     
@@ -286,7 +292,7 @@ $token = $_GET['token'] ?? '';
       const errorMessage = document.getElementById('errorMessage');
       
       submitBtn.disabled = true;
-      submitBtn.textContent = 'Resetting...';
+      submitBtn.textContent = t('auth.password.resetting');
       formError.style.display = 'none';
       
       try {
@@ -310,21 +316,21 @@ $token = $_GET['token'] ?? '';
           document.getElementById('successMessage').style.display = 'flex';
           document.querySelector('.reset-password-header').style.display = 'none';
         } else {
-          let errorText = data.message || 'An error occurred. Please try again.';
+          let errorText = data.message || t('auth.errors.generic');
           if (data.errors && data.errors.length > 0) {
             errorText = data.errors.join('. ');
           }
           errorMessage.textContent = errorText;
           formError.style.display = 'flex';
           submitBtn.disabled = false;
-          submitBtn.textContent = 'Reset Password';
+          submitBtn.textContent = t('auth.password.reset_button');
           updateSubmitButton();
         }
       } catch (error) {
-        errorMessage.textContent = 'An error occurred. Please try again.';
+        errorMessage.textContent = t('auth.errors.generic');
         formError.style.display = 'flex';
         submitBtn.disabled = false;
-        submitBtn.textContent = 'Reset Password';
+        submitBtn.textContent = t('auth.password.reset_button');
         updateSubmitButton();
       }
     });

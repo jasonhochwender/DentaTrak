@@ -3,6 +3,11 @@
  * AI-Driven Recommendations API
  * Uses OpenAI to generate practice recommendations based on analytics data
  * No PII is sent - only aggregated metrics
+ *
+ * CACHING/STORAGE NOTE: Recommendations are generated on-demand and are not
+ * cached in the database, session, or client-side. Any future cache must use
+ * a cache key that includes the active locale (e.g. practice + analytics period
+ * + locale) to avoid cross-language results.
  */
 
 require_once __DIR__ . '/session.php';
@@ -322,6 +327,10 @@ function gatherAnalyticsData($pdo, $practiceId) {
 function answerUserQuestion($appConfig, $analyticsData, $userQuery, $provider = 'gemini', $practiceId = null) {
     $aiConfig = $appConfig[$provider];
 
+    // Resolve the active locale and human-readable language for the AI
+    $locale = getActiveLocale();
+    $languageName = getActiveLanguageName();
+
     // Build context with practice data
     $dataString = json_encode($analyticsData, JSON_PRETTY_PRINT);
     $workflowStagesText = buildWorkflowStagesPromptText($practiceId);
@@ -380,6 +389,7 @@ RESPONSE GUIDELINES:
 - For how-to questions, provide step-by-step instructions
 - Keep responses concise but complete
 - Use HTML formatting: <p> for paragraphs, <strong> for emphasis, <ul>/<li> for lists
+- Generate all user-facing text in the response language for {$languageName} (locale: {$locale}). Preserve proper names, identifiers, and practice-provided values as provided. Do not translate UI labels, JSON keys, or status identifiers.
 - Do NOT use markdown formatting";
 
     if ($provider === 'gemini') {
@@ -408,10 +418,18 @@ function getAIRecommendations($appConfig, $analyticsData, $provider = 'gemini') 
     $aiConfig = $appConfig[$provider];
     $prompt = $appConfig['ai_prompt'];
 
+    // Resolve the active locale and human-readable language for the AI
+    $locale = getActiveLocale();
+    $languageName = getActiveLanguageName();
+
     // Build the full prompt with data
     $dataString = json_encode($analyticsData, JSON_PRETTY_PRINT);
     $systemPrompt = 'You are a dental lab workflow optimization expert. Always respond with valid JSON only, no markdown or extra text.';
-    $fullPrompt = $prompt . $dataString;
+    $languageInstruction = "\n\nRESPONSE LANGUAGE (locale: {$locale}; language: {$languageName}):\n" .
+        "Generate all user-facing recommendations, headings, explanations, and narrative text in the specified response language.\n" .
+        "Preserve proper names, identifiers, practice-provided values, and other user-provided data as provided.\n" .
+        "Do NOT translate JSON property names or internal enum values such as 'recommendations', 'title', 'description', 'priority', 'high', 'medium', 'low', 'category', 'efficiency', 'quality', 'scheduling', 'workload', or 'communication'. Only the values of 'title' and 'description' should be generated in the requested language.";
+    $fullPrompt = $prompt . $dataString . $languageInstruction;
 
     if ($provider === 'gemini') {
         $content = callGeminiAPI($aiConfig, $systemPrompt, $fullPrompt);

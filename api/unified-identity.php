@@ -130,7 +130,7 @@ function authenticateWithGoogle($googleData) {
     global $pdo, $appConfig;
     
     if (!$pdo) {
-        return ['success' => false, 'message' => 'Database connection unavailable'];
+        return ['success' => false, 'message' => t('auth.errors.database_connection_unavailable')];
     }
     
     $email = strtolower(trim($googleData['email'] ?? ''));
@@ -163,7 +163,7 @@ function authenticateWithGoogle($googleData) {
             if (strtolower($existingByGoogleId['email']) !== $email) {
                 $pdo->rollBack();
                 error_log("[unified-identity] SECURITY: Google ID {$googleId} email mismatch. DB: {$existingByGoogleId['email']}, OAuth: {$email}");
-                return ['success' => false, 'message' => 'Account email mismatch. Please contact support.'];
+                return ['success' => false, 'message' => t('auth.errors.account_mismatch')];
             }
             
             // Update last login and profile
@@ -218,7 +218,7 @@ function authenticateWithGoogle($googleData) {
                 'user' => $user,
                 'is_new_user' => false,
                 'linked_existing' => true,
-                'message' => 'Google sign-in linked to your existing account.'
+                'message' => t('auth.errors.linking_google')
             ];
         }
         
@@ -290,7 +290,7 @@ function authenticateWithGoogle($googleData) {
     } catch (PDOException $e) {
         $pdo->rollBack();
         error_log('[unified-identity] Google auth error: ' . $e->getMessage());
-        return ['success' => false, 'message' => 'Authentication failed. Please try again.'];
+        return ['success' => false, 'message' => t('auth.errors.auth_failed')];
     }
 }
 
@@ -307,13 +307,13 @@ function registerWithEmail($email, $password, $firstName = '', $lastName = '') {
     global $pdo;
     
     if (!$pdo) {
-        return ['success' => false, 'message' => 'Database connection unavailable'];
+        return ['success' => false, 'message' => t('auth.errors.database_connection_unavailable')];
     }
     
     $email = strtolower(trim($email));
     
     if (empty($email) || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
-        return ['success' => false, 'message' => 'Invalid email address'];
+        return ['success' => false, 'message' => t('auth.errors.invalid_email')];
     }
     
     ensureAuthMethodsTable();
@@ -329,7 +329,7 @@ function registerWithEmail($email, $password, $firstName = '', $lastName = '') {
                 $pdo->rollBack();
                 return [
                     'success' => false, 
-                    'message' => 'An account with this email already exists. Please sign in instead.'
+                    'message' => t('auth.errors.email_in_use')
                 ];
             }
             
@@ -360,7 +360,7 @@ function registerWithEmail($email, $password, $firstName = '', $lastName = '') {
                 'success' => true,
                 'user_id' => $existingUser['id'],
                 'linked_existing' => true,
-                'message' => 'Password added to your existing account. You can now sign in with either Google or email/password.'
+                'message' => t('auth.errors.password_added')
             ];
         }
         
@@ -400,13 +400,13 @@ function registerWithEmail($email, $password, $firstName = '', $lastName = '') {
             'success' => true,
             'user_id' => $userId,
             'is_new_user' => true,
-            'message' => 'Account created successfully. You can now sign in.'
+            'message' => t('auth.errors.account_created_success')
         ];
         
     } catch (PDOException $e) {
         $pdo->rollBack();
         error_log('[unified-identity] Email registration error: ' . $e->getMessage());
-        return ['success' => false, 'message' => 'Registration failed. Please try again.'];
+        return ['success' => false, 'message' => t('auth.errors.registration_failed')];
     }
 }
 
@@ -591,7 +591,7 @@ function authenticateWithEmail($email, $password) {
     global $pdo;
     
     if (!$pdo) {
-        return ['success' => false, 'message' => 'Database connection unavailable'];
+        return ['success' => false, 'message' => t('auth.errors.database_connection_unavailable')];
     }
     
     $email = strtolower(trim($email));
@@ -609,7 +609,7 @@ function authenticateWithEmail($email, $password) {
         // The same message is shown whether the email exists or not
         return [
             'success' => false,
-            'message' => 'Too many failed login attempts. Please try again in ' . $lockoutStatus['remaining_minutes'] . ' minute(s).',
+            'message' => pluralize($lockoutStatus['remaining_minutes'], 'auth.errors.account_locked', ['minutes' => $lockoutStatus['remaining_minutes']]),
             'locked' => true,
             'remaining_minutes' => $lockoutStatus['remaining_minutes']
         ];
@@ -621,20 +621,20 @@ function authenticateWithEmail($email, $password) {
         // Security: Record attempt even for non-existent emails to prevent enumeration
         // Use consistent timing to avoid timing attacks
         recordFailedLoginAttempt($email, $clientIp);
-        return ['success' => false, 'message' => 'Invalid email or password'];
+        return ['success' => false, 'message' => t('auth.errors.invalid_credentials')];
     }
     
     // Check if user can use email auth
     if ($user['auth_method'] === 'google') {
         return [
             'success' => false,
-            'message' => 'This account uses Google Sign-In. Please sign in with Google or set up a password first.'
+            'message' => t('auth.errors.google_only_login')
         ];
     }
     
     // Check if account is active
     if (!$user['is_active']) {
-        return ['success' => false, 'message' => 'This account has been deactivated'];
+        return ['success' => false, 'message' => t('auth.errors.account_deactivated')];
     }
     
     // Verify password
@@ -647,7 +647,7 @@ function authenticateWithEmail($email, $password) {
         if ($newLockoutStatus['locked']) {
             return [
                 'success' => false,
-                'message' => 'Too many failed login attempts. Your account has been temporarily locked. Please try again in ' . $newLockoutStatus['remaining_minutes'] . ' minute(s).',
+                'message' => pluralize($newLockoutStatus['remaining_minutes'], 'auth.errors.account_locked', ['minutes' => $newLockoutStatus['remaining_minutes']]),
                 'locked' => true,
                 'remaining_minutes' => $newLockoutStatus['remaining_minutes']
             ];
@@ -658,11 +658,11 @@ function authenticateWithEmail($email, $password) {
         if ($remainingAttempts <= 2 && $remainingAttempts > 0) {
             return [
                 'success' => false,
-                'message' => 'Invalid email or password. ' . $remainingAttempts . ' attempt(s) remaining before account lockout.'
+                'message' => pluralize($remainingAttempts, 'auth.errors.attempts_remaining', ['count' => $remainingAttempts])
             ];
         }
         
-        return ['success' => false, 'message' => 'Invalid email or password'];
+        return ['success' => false, 'message' => t('auth.errors.invalid_credentials')];
     }
     
     // ============================================
@@ -957,6 +957,11 @@ function setupUserSession($user, $authMethod = 'email') {
         'name' => $_SESSION['user_name'],
         'picture' => $user['profile_picture'] ?? ''
     ];
+
+    // Resolve and persist the active locale from user/practice preferences
+    if (!empty($_SESSION['current_practice_id'])) {
+        setResolvedLocale(resolveLocale(null, $user['id'], $_SESSION['current_practice_id']));
+    }
 }
 
 /**
@@ -970,13 +975,13 @@ function generatePasswordSetupToken($email) {
     global $pdo;
     
     if (!$pdo) {
-        return ['success' => false, 'message' => 'Database unavailable'];
+        return ['success' => false, 'message' => t('auth.errors.database_unavailable')];
     }
     
     $user = findUserByEmail($email);
     
     if (!$user) {
-        return ['success' => false, 'message' => 'User not found'];
+        return ['success' => false, 'message' => t('auth.errors.no_account')];
     }
     
     // Only allow for Google-only users
@@ -1049,7 +1054,7 @@ function validatePasswordSetupToken($token) {
     global $pdo;
     
     if (!$pdo || empty($token)) {
-        return ['success' => false, 'message' => 'Invalid token'];
+        return ['success' => false, 'message' => t('auth.errors.invalid_token')];
     }
     
     try {
@@ -1063,15 +1068,15 @@ function validatePasswordSetupToken($token) {
         $tokenData = $stmt->fetch(PDO::FETCH_ASSOC);
         
         if (!$tokenData) {
-            return ['success' => false, 'message' => 'Invalid or expired link'];
+            return ['success' => false, 'message' => t('auth.errors.invalid_token')];
         }
         
         if ($tokenData['used']) {
-            return ['success' => false, 'message' => 'This link has already been used'];
+            return ['success' => false, 'message' => t('auth.errors.link_used')];
         }
         
         if (strtotime($tokenData['expires_at']) < time()) {
-            return ['success' => false, 'message' => 'This link has expired'];
+            return ['success' => false, 'message' => t('auth.errors.link_expired')];
         }
         
         return [
@@ -1083,7 +1088,7 @@ function validatePasswordSetupToken($token) {
         ];
         
     } catch (PDOException $e) {
-        return ['success' => false, 'message' => 'Validation failed'];
+        return ['success' => false, 'message' => t('auth.errors.validation_failed')];
     }
 }
 
@@ -1098,7 +1103,7 @@ function completePasswordSetup($token, $password) {
     global $pdo;
     
     if (!$pdo) {
-        return ['success' => false, 'message' => 'Database unavailable'];
+        return ['success' => false, 'message' => t('auth.errors.database_unavailable')];
     }
     
     // Validate token first
@@ -1138,13 +1143,13 @@ function completePasswordSetup($token, $password) {
         
         return [
             'success' => true,
-            'message' => 'Password set successfully. You can now sign in with email and password.'
+            'message' => t('auth.errors.password_set')
         ];
         
     } catch (PDOException $e) {
         $pdo->rollBack();
         error_log('[unified-identity] Error completing password setup: ' . $e->getMessage());
-        return ['success' => false, 'message' => 'Failed to set password'];
+        return ['success' => false, 'message' => t('auth.errors.set_password_failed')];
     }
 }
 

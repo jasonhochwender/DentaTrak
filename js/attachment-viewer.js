@@ -118,7 +118,7 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
     .then(function(response) {
       if (!response.ok) {
         return response.json().then(function(data) {
-          throw new Error(data.error || data.message || 'Failed to get download URL');
+          throw new Error(data.error || data.message || t('attachments.viewer.download_url_failed'));
         });
       }
       return response.json();
@@ -140,9 +140,9 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
     .then(function(response) {
       if (!response.ok) {
         return response.json().then(function(data) {
-          throw new Error(data.error || data.message || 'Failed to load attachment content');
+          throw new Error(data.error || data.message || t('attachments.viewer.unable_to_load'));
         }).catch(function() {
-          throw new Error('Failed to load attachment content');
+          throw new Error(t('attachments.viewer.unable_to_load'));
         });
       }
       return response.arrayBuffer();
@@ -156,12 +156,12 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
         if (data.success && data.signed_url) {
           window.open(data.signed_url, '_blank');
         } else {
-          throw new Error(data.error || 'Failed to get download URL');
+          throw new Error(data.error || t('attachments.viewer.download_url_failed'));
         }
       })
       .catch(function(error) {
         if (typeof window.showToast === 'function') {
-          window.showToast('Download failed: ' + error.message, 'error');
+          window.showToast(t('attachments.download_failed', {message: error.message}), 'error');
         }
       });
   }
@@ -174,7 +174,7 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
   function setError(message) {
     if (loadingEl) loadingEl.style.display = 'none';
     if (errorEl) {
-      errorEl.textContent = message || 'Unable to load attachment';
+      errorEl.textContent = message || t('attachments.viewer.unable_to_load');
       errorEl.style.display = 'flex';
     }
   }
@@ -273,7 +273,7 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
     const loader = new STLLoader();
     const geometry = loader.parse(buffer);
     if (!geometry || !geometry.attributes || !geometry.attributes.position) {
-      throw new Error('The file does not appear to be a valid STL.');
+      throw new Error(t('attachments.viewer.invalid_stl'));
     }
     geometry.computeBoundingBox();
     const center = new THREE.Vector3();
@@ -291,7 +291,7 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
     const loader = new OBJLoader();
     const group = loader.parse(text);
     if (!group || !group.children || group.children.length === 0) {
-      throw new Error('The file does not appear to be a valid OBJ.');
+      throw new Error(t('attachments.viewer.invalid_obj'));
     }
 
     const box = new THREE.Box3().setFromObject(group);
@@ -317,7 +317,7 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
     const loader = new PLYLoader();
     const geometry = loader.parse(buffer);
     if (!geometry || !geometry.attributes || !geometry.attributes.position) {
-      throw new Error('The file does not appear to be a valid PLY.');
+      throw new Error(t('attachments.viewer.invalid_ply'));
     }
     geometry.computeBoundingBox();
     const center = new THREE.Vector3();
@@ -345,7 +345,7 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
     if (ext === 'stl') return buildSTL(buffer);
     if (ext === 'obj') return buildOBJ(buffer);
     if (ext === 'ply') return buildPLY(buffer);
-    throw new Error('Unsupported 3D model format');
+    throw new Error(t('attachments.viewer.unsupported_3d_format'));
   }
 
   function fitCameraToObject(object) {
@@ -570,7 +570,7 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
     imageEl = document.createElement('img');
     imageEl.className = 'attachment-viewer-image';
     imageEl.src = imageUrl;
-    imageEl.alt = fileName || 'Attachment preview';
+    imageEl.alt = fileName || t('attachments.viewer.attachment');
     imageEl.style.transform = 'translate(0px, 0px) scale(1)';
 
     imageScale = 1;
@@ -583,7 +583,7 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
     });
 
     imageEl.addEventListener('error', function() {
-      setError('Unable to display image');
+      setError(t('attachments.viewer.display_image_error'));
     });
 
     imageStage.addEventListener('wheel', onImageWheel, { passive: false });
@@ -625,7 +625,7 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
   function getPdfjsLib() {
     if (!window.pdfjsLib) {
-      throw new Error('PDF viewer library is not loaded.');
+      throw new Error(t('attachments.viewer.pdf_not_loaded'));
     }
     if (!pdfWorkerConfigured) {
       window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'js/pdfjs-worker.js';
@@ -671,9 +671,9 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
   function updatePdfPageInfo() {
     if (!pageInfo) return;
     if (pdfNumPages > 0) {
-      pageInfo.textContent = 'Page ' + pdfPageNum + ' of ' + pdfNumPages;
+      pageInfo.textContent = t('attachments.viewer.page_info_of', {page: pdfPageNum, total: pdfNumPages});
     } else {
-      pageInfo.textContent = 'Page 1';
+      pageInfo.textContent = t('attachments.viewer.page_info', {page: 1});
     }
     if (prevBtn) prevBtn.disabled = pdfPageNum <= 1;
     if (nextBtn) nextBtn.disabled = pdfPageNum >= pdfNumPages || pdfNumPages === 0;
@@ -733,11 +733,11 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
       }).catch(function(err) {
         if (err && err.name === 'RenderingCancelledException') return;
         pdfRenderTask = null;
-        setError('Failed to render PDF page');
+        setError(t('attachments.viewer.pdf_render_error'));
       });
     }).catch(function(err) {
       console.error('PDF page load error:', err);
-      setError('Failed to load PDF page: ' + (err.message || 'Unknown error'));
+      setError(t('attachments.viewer.pdf_load_error', {message: err.message || t('common.unknown_error')}));
     });
   }
 
@@ -803,8 +803,8 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
     }).catch(function(err) {
       console.error('PDF load error:', err);
       const msg = err && err.name === 'PasswordException'
-        ? 'This PDF is password protected and cannot be previewed.'
-        : 'Failed to load PDF: ' + (err.message || 'The file may be corrupt or unsupported.');
+        ? t('attachments.viewer.pdf_password_protected')
+        : t('attachments.viewer.pdf_load_failed', {message: err.message || t('attachments.viewer.unable_to_load')});
       setError(msg);
     });
   }
@@ -842,7 +842,7 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
       if (typeof request === 'function') {
         request.call(modal).catch(function(err) {
           if (typeof window.showToast === 'function') {
-            window.showToast('Full screen not supported: ' + err.message, 'error');
+            window.showToast(t('attachments.viewer.fullscreen_not_supported', {message: err.message}), 'error');
           }
         });
       }
@@ -872,20 +872,20 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
     const ext = (fileName || '').split('.').pop().toLowerCase();
     if (!SUPPORTED_TYPES[ext]) {
       if (typeof window.showToast === 'function') {
-        window.showToast('Preview is not available for this file type.', 'info');
+        window.showToast(t('attachments.viewer.preview_unavailable_toast'), 'info');
       }
       return;
     }
 
     if (!modal || !titleEl || !typeEl || !canvasContainer || !loadingEl) {
       if (typeof window.showToast === 'function') {
-        window.showToast('Viewer is not ready.', 'error');
+        window.showToast(t('attachments.viewer.not_ready'), 'error');
       }
       return;
     }
 
     currentData = { storagePath: storagePath, fileName: fileName, fileType: fileType, ext: ext };
-    titleEl.textContent = fileName || 'Attachment';
+    titleEl.textContent = fileName || t('attachments.viewer.attachment');
     typeEl.textContent = ext.toUpperCase();
     disposeViewer();
     if (errorEl) errorEl.style.display = 'none';
@@ -906,9 +906,9 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
       })
       .catch(function(error) {
         console.error('Attachment viewer error:', error);
-        setError(error.message || 'Unable to load attachment');
+        setError(error.message || t('attachments.viewer.unable_to_load'));
         if (typeof window.showToast === 'function') {
-          window.showToast('Viewer error: ' + error.message, 'error');
+          window.showToast(t('attachments.viewer.viewer_error', {message: error.message}), 'error');
         }
       });
   };

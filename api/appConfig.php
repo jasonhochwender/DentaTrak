@@ -248,6 +248,19 @@ Here is the workflow data to analyze:
     'app_base_url'  => rtrim(getEnvVar('APP_BASE_URL', 'https://dentatrak.com'), '/'),
     'user_guide_url' => rtrim(getEnvVar('APP_BASE_URL', 'https://dentatrak.com'), '/') . '/resources/user-guide',
 
+    // Internationalization
+    'i18n' => [
+        'locale' => 'en-US',
+        'fallback_locale' => 'en-US',
+        'supported_locales' => [
+            'en-US' => [
+                'name' => 'English (United States)',
+                'nativeName' => 'English (United States)',
+                'enabled' => true,
+            ],
+        ],
+    ],
+
     // Public article URLs — clean paths on production, direct .php on local/UAT
     // (Local Apache serves the app from a subfolder so clean URL rewrites don't apply)
     'public_urls' => [
@@ -573,3 +586,20 @@ if (session_status() === PHP_SESSION_NONE) {
     // Suppress session warnings (can occur during concurrent test runs)
     @session_start();
 }
+
+// Make the i18n helper functions and active locale available everywhere
+require_once __DIR__ . '/i18n.php';
+
+// Ensure locale columns exist before resolving the active locale
+require_once __DIR__ . '/locale-migrations.php';
+ensureLocaleColumns();
+
+// Resolve and persist the active locale from preferences / session
+$resolvedLocale = resolveLocale(
+    null,
+    $_SESSION['db_user_id'] ?? null,
+    $_SESSION['current_practice_id'] ?? null
+);
+setResolvedLocale($resolvedLocale);
+$appConfig['i18n']['locale'] = $resolvedLocale;
+$activeLocale = $resolvedLocale;

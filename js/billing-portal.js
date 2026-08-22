@@ -39,7 +39,7 @@
     // billing mutation endpoint independently re-verify this too.
     if (!window.isPracticeAdmin) {
       if (typeof window.showToast === 'function') {
-        window.showToast('Billing is only available to practice administrators.', 'error');
+        window.showToast(t('billing.errors.billing_admin_only'), 'error');
       }
       return;
     }
@@ -89,7 +89,7 @@
       .catch(function (err) {
         isLoading = false;
 
-        renderError('Unable to load billing information. Please try again.');
+        renderError(t('billing.errors.unable_to_load'));
       });
   }
 
@@ -98,7 +98,7 @@
     bodyEl.innerHTML =
       '<div class="bp-loading">' +
         '<div class="bp-loading-spinner"></div>' +
-        '<span>Loading billing information\u2026</span>' +
+        '<span>' + escHtml(t('common.loading_application')) + '</span>' +
       '</div>';
   }
 
@@ -111,7 +111,7 @@
           '<line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>' +
         '</svg>' +
         '<p>' + escHtml(message) + '</p>' +
-        '<button class="bp-close-btn" onclick="window.closeBillingPortal()">Close</button>' +
+        '<button class="bp-close-btn" onclick="window.closeBillingPortal()">' + escHtml(t('common.close')) + '</button>' +
       '</div>';
   }
 
@@ -119,8 +119,8 @@
   function renderBypassed() {
     bodyEl.innerHTML =
       '<div class="bp-empty-state">' +
-        '<p style="color:#6b7280;font-size:0.95rem;">Billing is managed separately for this account.</p>' +
-        '<div class="bp-actions"><button class="bp-close-btn" onclick="window.closeBillingPortal()">Close</button></div>' +
+        '<p style="color:#6b7280;font-size:0.95rem;">' + escHtml(t('billing.messages.bypassed')) + '</p>' +
+        '<div class="bp-actions"><button class="bp-close-btn" onclick="window.closeBillingPortal()">' + escHtml(t('common.close')) + '</button></div>' +
       '</div>';
   }
 
@@ -140,7 +140,7 @@
       html +=
         '<div class="bp-readonly-notice">' +
           lockIcon() +
-          'You can view billing information. Only practice administrators can manage the subscription.' +
+          escHtml(t('billing.messages.readonly_notice')) +
         '</div>';
     }
 
@@ -149,7 +149,7 @@
       html +=
         '<div class="bp-cancel-notice" style="background:#fef2f2;border-color:#fecaca;">' +
           warnIcon() +
-          '<strong>Payment past due.</strong> Please update your payment method to avoid service interruption.' +
+          escHtml(t('billing.messages.past_due_warning')) +
         '</div>';
     }
 
@@ -202,14 +202,19 @@
   // ── Render: trialing (no paid subscription yet) ───────────────────────────────
   function renderTrialState(access, prices, canManage) {
     var daysLeft  = access.trial_days_remaining;
-    var daysLabel = daysLeft !== null
-      ? (daysLeft === 0 ? 'Trial ends today' : daysLeft + ' day' + (daysLeft === 1 ? '' : 's') + ' left in your free trial')
-      : '90-day free trial';
+    var daysLabel = '';
+    if (daysLeft === null) {
+      daysLabel = t('billing.trial.free_trial', { count: 90 });
+    } else if (daysLeft === 0) {
+      daysLabel = t('billing.trial.ends_today');
+    } else {
+      daysLabel = I18n.pluralize(daysLeft, 'billing.trial.days_remaining');
+    }
 
     var html =
       '<div class="bp-plan-header">' +
-        '<h3 class="bp-plan-header-title">Choose your DentaTrak plan</h3>' +
-        '<p class="bp-plan-header-sub">' + escHtml(daysLabel) + ' \u2022 No credit card required</p>' +
+        '<h3 class="bp-plan-header-title">' + escHtml(t('billing.plans.title')) + '</h3>' +
+        '<p class="bp-plan-header-sub">' + escHtml(daysLabel) + ' \u2022 ' + escHtml(t('billing.trial.no_credit_card_required')) + '</p>' +
       '</div>';
 
     if (canManage) {
@@ -217,7 +222,7 @@
     } else {
       html +=
         '<p style="text-align:center;color:#6b7280;font-size:0.9rem;">' +
-          'Contact your practice administrator to choose a plan.' +
+          escHtml(t('billing.messages.contact_administrator_choose')) +
         '</p>';
     }
     return html;
@@ -232,8 +237,8 @@
             '<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>' +
           '</svg>' +
         '</div>' +
-        '<h3>Trial Ended</h3>' +
-        '<p>Your 90-day trial has ended. Your cases and data are safe. Choose a plan to restore full access immediately.</p>' +
+        '<h3>' + escHtml(t('billing.trial.expired.title')) + '</h3>' +
+        '<p>' + escHtml(t('billing.trial.expired.message')) + '</p>' +
       '</div>';
 
     if (canManage) {
@@ -241,7 +246,7 @@
     } else {
       html +=
         '<p style="text-align:center;color:#6b7280;font-size:0.9rem;">' +
-          'Contact your practice administrator to resubscribe.' +
+          escHtml(t('billing.messages.contact_administrator_resubscribe')) +
         '</p>';
     }
     return html;
@@ -251,10 +256,10 @@
   function renderIncompleteState(access, canManage) {
     return (
       '<div class="bp-empty-state">' +
-        '<h3>Subscription Setup Incomplete</h3>' +
+        '<h3>' + escHtml(t('billing.subscription.setup_incomplete_title')) + '</h3>' +
         '<p>' + escHtml(access.access_message) + '</p>' +
         (canManage
-          ? '<button class="bp-manage-btn" data-action="manage-billing" style="opacity:1;cursor:pointer;margin-top:8px;">Complete Setup</button>'
+          ? '<button class="bp-manage-btn" data-action="manage-billing" style="opacity:1;cursor:pointer;margin-top:8px;">' + escHtml(t('billing.checkout.complete_setup')) + '</button>'
           : '') +
       '</div>'
     );
@@ -266,7 +271,7 @@
     var planLabel  = formatPlan(planSlug);
     var statusKey  = sub.status        || access.status || 'unknown';
     var statusLabel = formatStatus(statusKey);
-    var interval   = sub.billing_interval ? capitalize(sub.billing_interval) + 'ly' : '\u2014';
+    var interval   = sub.billing_interval ? t('billing.interval.' + sub.billing_interval) : '\u2014';
     var periodEnd  = access.current_period_ends_at ? formatDate(access.current_period_ends_at) : '\u2014';
     var trialEnd   = access.trial_ends_at ? formatDate(access.trial_ends_at) : null;
     var cancelAtEnd = !!sub.cancel_at_period_end;
@@ -278,8 +283,8 @@
     // Display price from config
     var priceAmt = '\u2014';
     if (prices[planSlug] && sub.billing_interval && prices[planSlug][sub.billing_interval]) {
-      priceAmt = formatCents(prices[planSlug][sub.billing_interval]) +
-                 (sub.billing_interval === 'month' ? '/mo' : '/yr');
+      var priceKey = 'billing.price.per_' + sub.billing_interval;
+      priceAmt = t(priceKey, { amount: I18n.formatCurrency(prices[planSlug][sub.billing_interval] / 100, 'USD') });
     }
 
     var html =
@@ -288,7 +293,7 @@
           '<span class="bp-plan-name-group">' +
             '<span class="bp-plan-name">' + escHtml(planLabel) + '</span>' +
             (trialingCancel && trialEnd
-              ? '<span class="bp-cancels-badge">Cancels ' + escHtml(formatShortDate(access.trial_ends_at)) + '</span>'
+              ? '<span class="bp-cancels-badge">' + escHtml(t('billing.messages.cancels_on', { date: formatShortDate(access.trial_ends_at) })) + '</span>'
               : '') +
           '</span>' +
           '<span class="bp-status-badge bp-status-' + escHtml(statusKey) + '">' +
@@ -300,14 +305,14 @@
       html +=
         '<div class="bp-trial-banner">' +
           infoIcon() +
-          'Your subscription is scheduled to end on ' + escHtml(trialEnd) + '. You will not be charged.' +
+          escHtml(t('billing.messages.trial_cancels_on', { date: trialEnd })) +
         '</div>';
     } else if (trialEnd && statusKey === 'trialing') {
       // Stripe trial (subscribed mid-trial), not scheduled to cancel
       html +=
         '<div class="bp-trial-banner">' +
           infoIcon() +
-          'First charge on ' + escHtml(trialEnd) + '. No charge until your trial ends.' +
+          escHtml(t('billing.messages.first_charge_on', { date: trialEnd })) +
         '</div>';
     }
 
@@ -315,30 +320,30 @@
       html +=
         '<div class="bp-cancel-notice">' +
           warnIcon() +
-          'Cancellation scheduled. Access continues until ' + escHtml(periodEnd) + '.' +
+          escHtml(t('billing.messages.subscription_end_scheduled', { date: periodEnd })) +
         '</div>';
     }
 
     html +=
         '<div class="bp-card-body">' +
-          field('Plan',        planLabel) +
-          field('Status',      statusLabel) +
-          field('Billing',     interval) +
-          field('Amount',      priceAmt,  priceAmt === '\u2014') +
+          field(t('billing.messages.plan'),        planLabel) +
+          field(t('billing.messages.status'),      statusLabel) +
+          field(t('billing.messages.billing_interval'),     interval) +
+          field(t('billing.messages.amount'),      priceAmt,  priceAmt === '\u2014') +
           // "Next Billing" implies an upcoming charge, which would contradict the
           // "You will not be charged" message above — omit it for this state and
           // show "Access Until" instead, sourced from the same trial_ends_at.
           (trialingCancel && trialEnd
-            ? field('Access Until', trialEnd)
-            : field('Next Billing', periodEnd, periodEnd === '\u2014') +
-              (trialEnd && statusKey === 'trialing' ? field('First Charge', trialEnd) : '')) +
+            ? field(t('billing.messages.access_until'), trialEnd)
+            : field(t('billing.messages.next_billing'), periodEnd, periodEnd === '\u2014') +
+              (trialEnd && statusKey === 'trialing' ? field(t('billing.messages.first_charge'), trialEnd) : '')) +
         '</div>';
 
     if (canManage) {
       html +=
         '<div style="padding:0 20px 20px;text-align:right;">' +
           '<button class="bp-manage-btn" data-action="manage-billing" style="opacity:1;cursor:pointer;">' +
-            cardIcon() + 'Manage Billing' +
+            cardIcon() + escHtml(t('billing.portal.manage_billing')) +
           '</button>' +
         '</div>';
     }
@@ -347,40 +352,40 @@
     return html;
   }
 
-  // Static benefit copy per plan — display only, no pricing/billing logic here.
-  // Amounts always come from display_prices (server config), never hardcoded.
+  // Benefit keys per plan — translated client-side. Plan brand names and amounts
+  // are not translated; amounts come from display_prices (server config).
   var PLAN_INFO = {
     operate: {
       label: 'Operate',
-      practices: '1 practice',
-      benefits: [
-        'Unlimited case tracking',
-        'Up to 5 users',
-        'Analytics and insights',
-        'Case assignments and workflow tracking',
-        'Practice management tools',
+      practices_key: 'billing.plans.operate.practices',
+      benefit_keys: [
+        'billing.plans.operate.benefit_1',
+        'billing.plans.operate.benefit_2',
+        'billing.plans.operate.benefit_3',
+        'billing.plans.operate.benefit_4',
+        'billing.plans.operate.benefit_5',
       ],
     },
     control: {
       label: 'Control',
-      practices: 'Up to 2 practices',
-      benefits: [
-        'Everything in Operate',
-        'Unlimited users',
-        'Built for larger practices and teams',
-        'Expanded operational visibility',
-        'Advanced practice oversight',
+      practices_key: 'billing.plans.control.practices',
+      benefit_keys: [
+        'billing.plans.control.benefit_1',
+        'billing.plans.control.benefit_2',
+        'billing.plans.control.benefit_3',
+        'billing.plans.control.benefit_4',
+        'billing.plans.control.benefit_5',
       ],
     },
     scale: {
       label: 'Scale',
-      practices: '5 practices included',
-      benefits: [
-        'Everything in Control, plus support for additional practices as your organization grows',
+      practices_key: 'billing.plans.scale.practices',
+      benefit_keys: [
+        'billing.plans.scale.benefit_1',
       ],
-      additionalPrice: {
-        month: 'Additional practices: $99/month each',
-        year: 'Additional practices: $990/year each',
+      additional_price_keys: {
+        month: 'billing.plans.scale.additional_practices_month',
+        year: 'billing.plans.scale.additional_practices_year',
       },
     },
   };
@@ -396,31 +401,29 @@
     var isFeatured = planKey === 'control';
     var cents     = (prices[planKey] && prices[planKey][interval]) ? prices[planKey][interval] : null;
     var priceStr  = cents ? formatCents(cents) : '';
-    var perStr    = interval === 'month' ? '/month' : '/year';
+    var priceDisplay = priceStr ? t('billing.price.per_' + interval, { amount: priceStr }) : '';
 
     var html = '<div class="bp-plan-card' + (isFeatured ? ' bp-plan-card--featured' : '') +
                '" data-plan-card="' + escHtml(planKey) + '">';
     if (isFeatured) {
-      html += '<div class="bp-plan-badge">Most Popular</div>';
+      html += '<div class="bp-plan-badge">' + escHtml(t('billing.plans.most_popular')) + '</div>';
     }
     html +=
         '<div class="bp-plan-title">' + escHtml(info.label) + '</div>' +
-        '<div class="bp-plan-price">' + (priceStr ? escHtml(priceStr) : '') +
-          '<span class="bp-plan-per">' + escHtml(perStr) + '</span>' +
-        '</div>' +
-        (interval === 'year' ? '<div class="bp-plan-savings">Save 2 months</div>' : '') +
-        '<div class="bp-plan-practices">' + escHtml(info.practices) + '</div>' +
-        (planKey === 'scale' && info.additionalPrice && info.additionalPrice[interval]
-          ? '<div class="bp-plan-additional">' + escHtml(info.additionalPrice[interval]) + '</div>'
+        '<div class="bp-plan-price">' + (priceDisplay ? escHtml(priceDisplay) : '') + '</div>' +
+        (interval === 'year' ? '<div class="bp-plan-savings">' + escHtml(t('billing.interval.annual_savings')) + '</div>' : '') +
+        '<div class="bp-plan-practices">' + escHtml(t(info.practices_key)) + '</div>' +
+        (planKey === 'scale' && info.additional_price_keys && info.additional_price_keys[interval]
+          ? '<div class="bp-plan-additional">' + escHtml(t(info.additional_price_keys[interval], { amount: I18n.formatCurrency(interval === 'month' ? 99 : 990, 'USD') })) + '</div>'
           : '') +
         '<ul class="bp-plan-benefits">';
-    info.benefits.forEach(function (b) {
-      html += '<li>' + checkIcon() + '<span>' + escHtml(b) + '</span></li>';
+    info.benefit_keys.forEach(function (b) {
+      html += '<li>' + checkIcon() + '<span>' + escHtml(t(b)) + '</span></li>';
     });
     html +=
         '</ul>' +
         '<button class="bp-plan-select-btn" data-plan="' + escHtml(planKey) + '">' +
-          'Choose ' + escHtml(info.label) +
+          escHtml(t('billing.plans.choose', { plan: info.label })) +
         '</button>' +
       '</div>';
 
@@ -430,13 +433,13 @@
   // ── Render: plan selection grid (Annual/Monthly toggle + plan cards) ─────────
   function renderPlanGrid(prices, trialEndsAt) {
     var footerNote = trialEndsAt
-      ? 'Your first charge occurs when your trial ends on ' + formatDate(trialEndsAt) + '.'
-      : 'Charge begins immediately.';
+      ? t('billing.trial.first_charge_note', { date: formatDate(trialEndsAt) })
+      : t('billing.trial.charge_now');
 
     var toggleHtml =
       '<div class="bp-interval-toggle" role="tablist">' +
-        '<button type="button" class="bp-interval-btn' + (selectedInterval === 'year' ? ' active' : '') + '" data-interval="year">Annual</button>' +
-        '<button type="button" class="bp-interval-btn' + (selectedInterval === 'month' ? ' active' : '') + '" data-interval="month">Monthly</button>' +
+        '<button type="button" class="bp-interval-btn' + (selectedInterval === 'year' ? ' active' : '') + '" data-interval="year">' + escHtml(t('billing.interval.annual')) + '</button>' +
+        '<button type="button" class="bp-interval-btn' + (selectedInterval === 'month' ? ' active' : '') + '" data-interval="month">' + escHtml(t('billing.interval.monthly')) + '</button>' +
       '</div>';
 
     var cardsHtml = '<div class="bp-plan-grid">';
@@ -459,7 +462,7 @@
     if (!plan || !interval) return;
     var originalText = btn.textContent;
     btn.disabled    = true;
-    btn.textContent = 'Redirecting\u2026';
+    btn.textContent = t('billing.checkout.redirecting');
 
     fetch('api/create-checkout-session.php', {
       method:      'POST',
@@ -477,13 +480,13 @@
         } else if (data.portal_url) {
           window.location.href = data.portal_url;
         } else {
-          showBpToast(data.error || 'Unable to start checkout. Please try again.');
+          showBpToast(data.error || t('billing.checkout.error_unable_to_start'));
           btn.disabled    = false;
           btn.textContent = originalText;
         }
       })
       .catch(function () {
-        showBpToast('Network error. Please try again.');
+        showBpToast(t('billing.checkout.error_network'));
         btn.disabled    = false;
         btn.textContent = originalText;
       });
@@ -493,7 +496,7 @@
   function handleManageBilling(btn) {
     var originalText = btn.textContent;
     btn.disabled    = true;
-    btn.textContent = 'Opening\u2026';
+    btn.textContent = t('billing.portal.opening');
 
     fetch('api/create-portal-session.php', {
       method:      'POST',
@@ -509,17 +512,17 @@
         if (data.portal_url) {
           window.location.href = data.portal_url;
         } else if (data.error_code === 'no_customer') {
-          showBpToast('No billing account found. Please choose a plan first.');
+          showBpToast(t('billing.portal.error_no_customer'));
           btn.disabled    = false;
           btn.textContent = originalText;
         } else {
-          showBpToast(data.error || 'Unable to open billing portal. Please try again.');
+          showBpToast(data.error || t('billing.portal.error_unable_to_open'));
           btn.disabled    = false;
           btn.textContent = originalText;
         }
       })
       .catch(function () {
-        showBpToast('Network error. Please try again.');
+        showBpToast(t('billing.checkout.error_network'));
         btn.disabled    = false;
         btn.textContent = originalText;
       });
@@ -528,7 +531,7 @@
   // ── Formatting helpers ────────────────────────────────────────────────────────
   function formatCents(cents) {
     if (!cents) return '';
-    return '$' + (cents / 100).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+    return I18n.formatCurrency(cents / 100, 'USD');
   }
 
   function formatPlan(slug) {
@@ -543,12 +546,9 @@
   }
 
   function formatStatus(s) {
-    var map = {
-      active: 'Active', trialing: 'Trialing', past_due: 'Past Due',
-      canceled: 'Canceled', unpaid: 'Unpaid', incomplete: 'Incomplete',
-      incomplete_expired: 'Expired', trial_expired: 'Trial Ended', none: 'No Subscription', unknown: 'Unknown',
-    };
-    return map[s] || capitalize(s || 'Unknown');
+    var key = 'billing.status.' + (s || 'unknown');
+    var label = t(key);
+    return label || capitalize(s || 'Unknown');
   }
 
   function formatDate(iso) {

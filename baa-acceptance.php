@@ -151,7 +151,7 @@ $appName = $appConfig['appName'] ?? 'Dental Case Manager';
 $baaVersion = 'v1.0-2026-08-07';
 ?>
 <!DOCTYPE html>
-<html lang="en">
+<html lang="<?php echo getHtmlLang(); ?>">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -167,7 +167,7 @@ $baaVersion = 'v1.0-2026-08-07';
     </script>
     
     <meta name="csrf-token" content="<?php echo htmlspecialchars($csrfToken); ?>">
-    <title>Business Associate Agreement - <?php echo htmlspecialchars($appName); ?></title>
+    <title><?php echo t('onboarding.baa.title'); ?> - <?php echo htmlspecialchars($appName); ?></title>
 
     <!-- Favicon / App Icons -->
     <link rel="icon" type="image/x-icon" href="favicon.ico">
@@ -519,7 +519,7 @@ $baaVersion = 'v1.0-2026-08-07';
     <div class="loading-overlay" id="loadingOverlay">
         <div class="loading-spinner">
             <div class="spinner"></div>
-            <p>Processing your agreement...</p>
+            <p><?php echo t('onboarding.baa.processing_agreement'); ?></p>
         </div>
     </div>
     
@@ -530,8 +530,8 @@ $baaVersion = 'v1.0-2026-08-07';
                     <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
                 </svg>
             </div>
-            <h1>Business Associate Agreement</h1>
-            <p>HIPAA Compliance Requirement</p>
+            <h1><?php echo t('onboarding.baa.title'); ?></h1>
+            <p><?php echo t('onboarding.baa.hipaa_compliance_requirement'); ?></p>
         </div>
         
         <div class="baa-content">
@@ -558,7 +558,7 @@ $baaVersion = 'v1.0-2026-08-07';
             <?php endif; ?>
             <?php else: ?>
             <div class="baa-intro">
-                <p><strong>Welcome, <?php echo htmlspecialchars($userName ?: 'there'); ?>!</strong> Before you can access patient data and case management features, you must review and accept our Business Associate Agreement (BAA). This is required for HIPAA compliance.</p>
+                <p><?php echo t('onboarding.baa.welcome_user', ['name' => htmlspecialchars($userName ?: 'there')]); ?> <?php echo t('onboarding.baa.intro_text'); ?></p>
             </div>
             
             <div id="errorMessage" class="error-message"></div>
@@ -566,31 +566,31 @@ $baaVersion = 'v1.0-2026-08-07';
             
             <form id="baaForm" novalidate>
                 <div class="form-section">
-                    <div class="form-section-title">Practice Information</div>
+                    <div class="form-section-title"><?php echo t('onboarding.baa.practice_information_title', [], 'Practice Information'); ?></div>
                     
                     <div class="form-group">
-                        <label for="legalName">Legal Practice Name <span class="required">*</span></label>
-                        <input type="text" id="legalName" name="legalName" placeholder="Enter your practice's legal name" value="<?php echo htmlspecialchars($existingPracticeName); ?>">
-                        <p class="help-text">This is the official legal name of your practice. <strong>This cannot be changed after BAA acceptance.</strong></p>
+                        <label for="legalName"><?php echo t('onboarding.baa.practice_name_label'); ?> <span class="required">*</span></label>
+                        <input type="text" id="legalName" name="legalName" placeholder="<?php echo t('onboarding.baa.practice_name_placeholder', [], "Enter your practice's legal name"); ?>" value="<?php echo htmlspecialchars($existingPracticeName); ?>">
+                        <p class="help-text"><?php echo t('onboarding.baa.legal_name_help'); ?></p>
                     </div>
                     
                     <div class="form-group">
-                        <label for="practiceAddress">Practice Address <span class="required">*</span></label>
-                        <textarea id="practiceAddress" name="practiceAddress" placeholder="Enter your practice's full address"><?php echo htmlspecialchars($existingPracticeAddress); ?></textarea>
+                        <label for="practiceAddress"><?php echo t('onboarding.baa.practice_address_label'); ?> <span class="required">*</span></label>
+                        <textarea id="practiceAddress" name="practiceAddress" placeholder="<?php echo t('onboarding.baa.practice_address_placeholder'); ?>"><?php echo htmlspecialchars($existingPracticeAddress); ?></textarea>
                     </div>
                 </div>
                 
                 <div class="form-section">
-                    <div class="form-section-title">Authorized Signer</div>
+                    <div class="form-section-title"><?php echo t('onboarding.baa.authorized_signer_title', [], 'Authorized Signer'); ?></div>
                     
                     <div class="form-group">
-                        <label for="signerName">Authorized Signer Name <span class="required">*</span></label>
-                        <input type="text" id="signerName" name="signerName" placeholder="Full name of authorized signer">
+                        <label for="signerName"><?php echo t('onboarding.baa.signer_name_label'); ?> <span class="required">*</span></label>
+                        <input type="text" id="signerName" name="signerName" placeholder="<?php echo t('onboarding.baa.signer_name_placeholder'); ?>">
                     </div>
                     
                     <div class="form-group">
-                        <label for="signerTitle">Authorized Signer Title <span class="required">*</span></label>
-                        <input type="text" id="signerTitle" name="signerTitle" placeholder="e.g., Owner, Practice Manager, Compliance Officer">
+                        <label for="signerTitle"><?php echo t('onboarding.baa.signer_title_label'); ?> <span class="required">*</span></label>
+                        <input type="text" id="signerTitle" name="signerTitle" placeholder="<?php echo t('onboarding.baa.signer_title_placeholder'); ?>">
                     </div>
                 </div>
                 
@@ -642,7 +642,7 @@ $baaVersion = 'v1.0-2026-08-07';
                 <div class="checkbox-group">
                     <input type="checkbox" id="authorizedToBind" name="authorizedToBind">
                     <label for="authorizedToBind">
-                        <strong>I confirm that I am authorized to bind this practice</strong> to this Business Associate Agreement and that I have read, understood, and agree to the terms above.
+                        <strong><?php echo t('onboarding.baa.authorized_to_bind_label'); ?></strong> <?php echo t('onboarding.baa.authorized_to_bind_text'); ?>
                     </label>
                 </div>
             </form>
@@ -650,32 +650,36 @@ $baaVersion = 'v1.0-2026-08-07';
         </div>
         
         <div class="baa-footer" data-entitlement-blocked="<?php echo $entitlementBlocked ? '1' : '0'; ?>">
-            <div class="baa-version"><?php echo $entitlementBlocked ? '' : ('BAA Version: ' . htmlspecialchars($baaVersion)); ?></div>
+            <div class="baa-version"><?php echo $entitlementBlocked ? '' : t('onboarding.baa.version_label', ['version' => htmlspecialchars($baaVersion)]); ?></div>
             <div class="baa-actions">
                 <?php if ($entitlementBlocked): ?>
                     <?php if ($cancelReturnPracticeId): ?>
-                    <a href="api/select-practice.php?practice_id=<?php echo $cancelReturnPracticeId; ?>&redirect=1" class="btn btn-secondary">Back to My Practice</a>
+                    <a href="api/select-practice.php?practice_id=<?php echo $cancelReturnPracticeId; ?>&redirect=1" class="btn btn-secondary"><?php echo t('onboarding.baa.back_to_practice'); ?></a>
                     <?php else: ?>
-                    <a href="main.php" class="btn btn-secondary">Back to Dashboard</a>
+                    <a href="main.php" class="btn btn-secondary"><?php echo t('onboarding.baa.back_to_dashboard'); ?></a>
                     <?php endif; ?>
                     <?php if (!empty($entitlement['upgrade_target']) && $upgradeUrl): ?>
-                    <a href="<?php echo htmlspecialchars($upgradeUrl); ?>" class="btn btn-primary" id="upgradeBtn">Upgrade to <?php echo htmlspecialchars(getPlanDisplayName($entitlement['upgrade_target'])); ?></a>
+                    <a href="<?php echo htmlspecialchars($upgradeUrl); ?>" class="btn btn-primary" id="upgradeBtn"><?php echo t('billing.upgrade.to_control', ['plan' => htmlspecialchars(getPlanDisplayName($entitlement['upgrade_target']))]); ?></a>
                     <?php else: ?>
-                    <a href="mailto:feedback@dentatrak.com?subject=Practice%20limit%20reached" class="btn btn-primary" id="upgradeBtn">Contact Support</a>
+                    <a href="mailto:feedback@dentatrak.com?subject=Practice%20limit%20reached" class="btn btn-primary" id="upgradeBtn"><?php echo t('onboarding.baa.contact_support'); ?></a>
                     <?php endif; ?>
                 <?php elseif ($cancelReturnPracticeId): ?>
-                <a href="api/select-practice.php?practice_id=<?php echo $cancelReturnPracticeId; ?>&redirect=1" class="btn btn-secondary">Cancel</a>
+                <a href="api/select-practice.php?practice_id=<?php echo $cancelReturnPracticeId; ?>&redirect=1" class="btn btn-secondary"><?php echo t('common.cancel'); ?></a>
                 <?php else: ?>
-                <button type="button" class="btn btn-secondary" onclick="window.location.href='api/logout.php'">Sign Out</button>
+                <button type="button" class="btn btn-secondary" onclick="window.location.href='api/logout.php'"><?php echo t('onboarding.baa.sign_out'); ?></button>
                 <?php endif; ?>
                 <?php if (!$entitlementBlocked): ?>
-                <button type="submit" form="baaForm" class="btn btn-primary" id="acceptBtn" disabled>Accept Agreement</button>
+                <button type="submit" form="baaForm" class="btn btn-primary" id="acceptBtn" disabled><?php echo t('onboarding.baa.accept_agreement'); ?></button>
                 <?php endif; ?>
             </div>
         </div>
     </div>
     
     <script src="js/toast.js"></script>
+    <script>
+        window.__i18n = <?php echo getTranslationsJsonForJs(); ?>;
+    </script>
+    <script src="js/i18n.js"></script>
     <script>
         var IS_CREATING_NEW_PRACTICE = <?php echo $isCreatingNewPractice ? 'true' : 'false'; ?>;
         var ENTITLEMENT_BLOCKED = <?php echo $entitlementBlocked ? 'true' : 'false'; ?>;
@@ -717,10 +721,10 @@ $baaVersion = 'v1.0-2026-08-07';
             // Form validation with enhanced feedback
             function validateForm() {
                 const fields = [
-                    { id: 'legalName', name: 'Legal Practice Name', value: document.getElementById('legalName').value.trim() },
-                    { id: 'practiceAddress', name: 'Practice Address', value: document.getElementById('practiceAddress').value.trim() },
-                    { id: 'signerName', name: 'Authorized Signer Name', value: document.getElementById('signerName').value.trim() },
-                    { id: 'signerTitle', name: 'Authorized Signer Title', value: document.getElementById('signerTitle').value.trim() }
+                    { id: 'legalName', name: t('onboarding.baa.practice_name_label'), value: document.getElementById('legalName').value.trim() },
+                    { id: 'practiceAddress', name: t('onboarding.baa.practice_address_label'), value: document.getElementById('practiceAddress').value.trim() },
+                    { id: 'signerName', name: t('onboarding.baa.signer_name_label'), value: document.getElementById('signerName').value.trim() },
+                    { id: 'signerTitle', name: t('onboarding.baa.signer_title_label'), value: document.getElementById('signerTitle').value.trim() }
                 ];
                 
                 // Clear previous error styles
@@ -740,8 +744,8 @@ $baaVersion = 'v1.0-2026-08-07';
                         element.focus();
                         
                         return {
-                            title: 'Required Field',
-                            message: `${field.name} is required. Please complete this field to continue.`
+                            title: t('onboarding.baa.required_field_title'),
+                            message: t('onboarding.baa.required_field_message', {field: field.name})
                         };
                     }
                 }
@@ -749,8 +753,8 @@ $baaVersion = 'v1.0-2026-08-07';
                 // Check authorization checkbox
                 if (!authorizedCheckbox.checked) {
                     return {
-                        title: 'Authorization Required',
-                        message: 'Please confirm you are authorized to bind this practice to the Business Associate Agreement.'
+                        title: t('onboarding.baa.authorization_required_title'),
+                        message: t('onboarding.baa.authorization_required_message')
                     };
                 }
                 
@@ -801,9 +805,9 @@ $baaVersion = 'v1.0-2026-08-07';
                     
                     if (result.success) {
                         if (typeof Toast !== 'undefined') {
-                            Toast.success('Agreement Accepted', 'BAA accepted successfully! Redirecting...');
+                            Toast.success(t('onboarding.baa.accepted_toast_title'), t('onboarding.baa.accepted_toast_message'));
                         } else {
-                            successMessage.textContent = 'BAA accepted successfully! Redirecting...';
+                            successMessage.textContent = t('onboarding.baa.accepted_toast_message');
                             successMessage.style.display = 'block';
                         }
                         
@@ -812,9 +816,9 @@ $baaVersion = 'v1.0-2026-08-07';
                         }, 1500);
                     } else {
                         if (typeof Toast !== 'undefined') {
-                            Toast.error('Error', result.message || 'An error occurred. Please try again.');
+                            Toast.error(t('common.error'), result.message || t('common.unknown_error'));
                         } else {
-                            errorMessage.textContent = result.message || 'An error occurred. Please try again.';
+                            errorMessage.textContent = result.message || t('common.unknown_error');
                             errorMessage.style.display = 'block';
                         }
                         loadingOverlay.style.display = 'none';
@@ -823,9 +827,9 @@ $baaVersion = 'v1.0-2026-08-07';
                 } catch (error) {
                     console.error('Error:', error);
                     if (typeof Toast !== 'undefined') {
-                        Toast.error('Network Error', 'A network error occurred. Please try again.');
+                        Toast.error(t('onboarding.baa.network_error_title'), t('onboarding.baa.network_error_message'));
                     } else {
-                        errorMessage.textContent = 'A network error occurred. Please try again.';
+                        errorMessage.textContent = t('onboarding.baa.network_error_message');
                         errorMessage.style.display = 'block';
                     }
                     loadingOverlay.style.display = 'none';

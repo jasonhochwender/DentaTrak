@@ -75,7 +75,7 @@ try {
 // (Admin requirement removed - if user can see the button, they can use it)
 if (!$allowCardDelete) {
     http_response_code(403);
-    echo json_encode(['success' => false, 'message' => 'You do not have permission to archive cases']);
+    echo json_encode(['success' => false, 'message' => t('api.archive.no_permission')]);
     exit;
 }
 
@@ -86,7 +86,7 @@ $data = json_decode($jsonData, true);
 // Check for required fields
 if (!isset($data['caseId']) || empty($data['caseId'])) {
     http_response_code(400);
-    echo json_encode(['success' => false, 'message' => 'Case ID is required']);
+    echo json_encode(['success' => false, 'message' => t('api.cases.case_id_required')]);
     exit;
 }
 
@@ -151,7 +151,7 @@ try {
     // Return success response
     echo json_encode([
         'success' => true,
-        'message' => 'Case archived successfully',
+        'message' => t('api.archive.archived_success'),
         'driveArchived' => $driveArchived
     ]);
 
@@ -159,7 +159,7 @@ try {
     http_response_code(500);
     echo json_encode([
         'success' => false,
-        'message' => 'Error archiving case: ' . $e->getMessage()
+        'message' => t('api.archive.archive_error', ['message' => $e->getMessage()])
     ]);
 
     error_log("Error archiving case: " . $e->getMessage());
@@ -188,7 +188,7 @@ function deleteGoogleDriveFolder($folderId) {
             echo json_encode([
                 'success' => false,
                 'redirect' => 'login.php',
-                'message' => 'Your session has expired. Please log in again.'
+                'message' => t('api.auth.session_expired')
             ]);
             exit;
         }

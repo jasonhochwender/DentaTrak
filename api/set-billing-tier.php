@@ -9,22 +9,22 @@
  */
 
 require_once __DIR__ . '/session.php';
+require_once __DIR__ . '/appConfig.php';
 require_once __DIR__ . '/dev-tools-access.php';
 header('Content-Type: application/json');
 
 // Check if user is logged in
 if (!isset($_SESSION['db_user_id'])) {
     http_response_code(401);
-    echo json_encode(['success' => false, 'message' => 'Authentication required']);
+    echo json_encode(['success' => false, 'message' => t('billing.errors.authentication_required')]);
     exit;
 }
 
 // Check dev tools access (handles both development and super user in UAT/Prod)
-require_once __DIR__ . '/appConfig.php';
 $userEmail = $_SESSION['user_email'] ?? '';
 if (!canAccessDevTools($appConfig, $userEmail)) {
     http_response_code(403);
-    echo json_encode(['success' => false, 'message' => 'Not authorized to change billing tier']);
+    echo json_encode(['success' => false, 'message' => t('billing.errors.unauthorized')]);
     exit;
 }
 
@@ -33,7 +33,7 @@ $input = json_decode(file_get_contents('php://input'), true);
 $billingTier = $input['billing_tier'] ?? '';
 
 if (empty($billingTier)) {
-    echo json_encode(['success' => false, 'message' => 'Billing tier is required']);
+    echo json_encode(['success' => false, 'message' => t('validation.required')]);
     exit;
 }
 

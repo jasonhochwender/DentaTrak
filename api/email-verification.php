@@ -63,7 +63,7 @@ if (basename($_SERVER['SCRIPT_FILENAME']) === 'email-verification.php') {
             break;
         default:
             http_response_code(400);
-            echo json_encode(['success' => false, 'message' => 'Invalid action']);
+            echo json_encode(['success' => false, 'message' => t('auth.errors.invalid_action')]);
             break;
     }
     exit;
@@ -105,11 +105,24 @@ function sendVerificationEmail($pdo, $userId, $email, $firstName = '') {
             $verifyUrl = "{$protocol}://{$host}/verify-email.php?token={$token}";
         }
         
-        // Send email
+        // Resolve email locale and load translated copy
+        $locale = resolveEmailLocale($userId, null, null);
         $appName = $appConfig['appName'] ?? 'App';
-        $displayName = $firstName ?: 'there';
-        
-        $subject = "Verify your email - {$appName}";
+        $displayName = $firstName ?: '';
+
+        $subject = tForLocale($locale, 'email.verification.subject', ['appName' => $appName]);
+        $heading = tForLocale($locale, 'email.verification.heading');
+        $greeting = $displayName
+            ? tForLocale($locale, 'email.common.greeting_with_name', ['name' => htmlspecialchars($displayName, ENT_QUOTES, 'UTF-8')])
+            : tForLocale($locale, 'email.common.greeting_no_name');
+        $intro = tForLocale($locale, 'email.verification.intro', ['appName' => $appName]);
+        $cta = tForLocale($locale, 'email.verification.cta');
+        $copyLink = tForLocale($locale, 'email.common.copy_link');
+        $expiryMinutes = 24 * 60;
+        $expiry = tForLocale($locale, 'email.verification.expiry', ['count' => $expiryMinutes]);
+        $ignore = tForLocale($locale, 'email.common.ignore_signup');
+        $footer = tForLocale($locale, 'email.common.footer', ['appName' => $appName]);
+
         $message = "
             <html>
             <head>
@@ -122,23 +135,23 @@ function sendVerificationEmail($pdo, $userId, $email, $firstName = '') {
             </head>
             <body>
                 <div class='container'>
-                    <h2>Verify your email address</h2>
-                    <p>Hi {$displayName},</p>
-                    <p>Thanks for signing up for {$appName}! Please verify your email address to complete your registration.</p>
+                    <h2>{$heading}</h2>
+                    <p>{$greeting}</p>
+                    <p>{$intro}</p>
                     <p>Click the button below to verify your email:</p>
-                    <p><a href='{$verifyUrl}' class='button' style='display: inline-block; padding: 12px 24px; background-color: #3b82f6; color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: bold;'>Verify Email</a></p>
-                    <p>Or copy and paste this link into your browser:</p>
+                    <p><a href='{$verifyUrl}' class='button' style='display: inline-block; padding: 12px 24px; background-color: #3b82f6; color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: bold;'>{$cta}</a></p>
+                    <p>{$copyLink}</p>
                     <p style='word-break: break-all;'>{$verifyUrl}</p>
-                    <p>This link will expire in 24 hours.</p>
-                    <p>If you didn't create an account, you can safely ignore this email.</p>
+                    <p>{$expiry}</p>
+                    <p>{$ignore}</p>
                     <div class='footer'>
-                        <p>This is an automated message from {$appName}. Please do not reply to this email.</p>
+                        <p>{$footer}</p>
                     </div>
                 </div>
             </body>
             </html>
         ";
-        
+
         $sendResult = sendAppEmail($email, $subject, $message, null, null);
         
         return array_merge([
@@ -150,7 +163,7 @@ function sendVerificationEmail($pdo, $userId, $email, $firstName = '') {
         error_log('Error sending verification email: ' . $e->getMessage());
         return [
             'success' => false,
-            'message' => 'Failed to send verification email'
+            'message' => t('auth.verification.resend_failed')
         ];
     }
 }
@@ -163,7 +176,7 @@ function handleVerifyEmail($pdo, $input) {
     
     if (empty($token)) {
         http_response_code(400);
-        echo json_encode(['success' => false, 'message' => 'Verification token is required']);
+        echo json_encode(['success' => false, 'message' => t('auth.verification.no_token')]);
         return;
     }
     
@@ -179,17 +192,17 @@ function handleVerifyEmail($pdo, $input) {
         $tokenData = $stmt->fetch(PDO::FETCH_ASSOC);
         
         if (!$tokenData) {
-            echo json_encode(['success' => false, 'message' => 'Invalid verification link']);
+            echo json_encode(['success' => false, 'message' => t('auth.errors.invalid_token')]);
             return;
         }
         
         if ($tokenData['used']) {
-            echo json_encode(['success' => false, 'message' => 'This verification link has already been used', 'already_verified' => true]);
+            echo json_encode(['success' => false, 'message' => t('auth.verification.already_verified_message'), 'already_verified' => true]);
             return;
         }
         
         if (strtotime($tokenData['expires_at']) < time()) {
-            echo json_encode(['success' => false, 'message' => 'This verification link has expired. Please request a new one.', 'expired' => true]);
+            echo json_encode(['success' => false, 'message' => t('auth.verification.expired_message', ['count' => 24]), 'expired' => true]);
             return;
         }
         
@@ -203,14 +216,14 @@ function handleVerifyEmail($pdo, $input) {
         
         echo json_encode([
             'success' => true,
-            'message' => 'Email verified successfully! You can now sign in.',
+            'message' => t('auth.verification.success_message'),
             'email' => $tokenData['email']
         ]);
         
     } catch (PDOException $e) {
         error_log('Email verification error: ' . $e->getMessage());
         http_response_code(500);
-        echo json_encode(['success' => false, 'message' => 'An error occurred. Please try again.']);
+        echo json_encode(['success' => false, 'message' => t('auth.errors.generic')]);
     }
 }
 
@@ -222,7 +235,7 @@ function handleResendVerification($pdo, $input) {
     
     if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
         http_response_code(400);
-        echo json_encode(['success' => false, 'message' => 'Invalid email address']);
+        echo json_encode(['success' => false, 'message' => t('auth.errors.invalid_email')]);
         return;
     }
     
@@ -240,7 +253,7 @@ function handleResendVerification($pdo, $input) {
         if (!$user) {
             echo json_encode([
                 'success' => true,
-                'message' => 'If an account exists with this email, a verification link will be sent.'
+                'message' => t('auth.verification.resend_success_unknown')
             ]);
             return;
         }
@@ -249,7 +262,7 @@ function handleResendVerification($pdo, $input) {
         if ($user['email_verified']) {
             echo json_encode([
                 'success' => true,
-                'message' => 'Your email is already verified. You can sign in.',
+                'message' => t('auth.verification.already_verified_message'),
                 'already_verified' => true
             ]);
             return;
@@ -259,7 +272,7 @@ function handleResendVerification($pdo, $input) {
         if ($user['auth_method'] === 'google') {
             echo json_encode([
                 'success' => true,
-                'message' => 'This account uses Google Sign-In. No email verification needed.'
+                'message' => t('auth.errors.google_account')
             ]);
             return;
         }
@@ -269,12 +282,12 @@ function handleResendVerification($pdo, $input) {
         
         echo json_encode([
             'success' => true,
-            'message' => 'Verification email sent. Please check your inbox.'
+            'message' => t('auth.verification.resend_success')
         ]);
         
     } catch (PDOException $e) {
         error_log('Resend verification error: ' . $e->getMessage());
         http_response_code(500);
-        echo json_encode(['success' => false, 'message' => 'An error occurred. Please try again.']);
+        echo json_encode(['success' => false, 'message' => t('auth.errors.generic')]);
     }
 }

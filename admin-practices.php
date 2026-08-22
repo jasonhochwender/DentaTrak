@@ -659,29 +659,29 @@ $userEmail = $_SESSION['user_email'] ?? '';
     <div class="admin-container">
         <div class="admin-header">
             <div>
-                <h1>🏥 Practice Administration</h1>
-                <div class="subtitle">HIPAA Compliance Dashboard • Data Retention: 7 Years</div>
+                <h1>🏥 <?php echo t('admin_practices.title'); ?></h1>
+                <div class="subtitle"><?php echo t('admin_practices.subtitle'); ?></div>
             </div>
             <a href="main.php" class="back-link">
-                ← Back to Dashboard
+                ← <?php echo t('admin_practices.back_to_dashboard'); ?>
             </a>
         </div>
         
         <div class="stats-grid" id="statsGrid">
             <div class="stat-card">
-                <div class="label">Total Practices </div>
+                <div class="label"><?php echo t('admin_practices.stats_total'); ?></div>
                 <div class="value" id="totalPractices">-</div>
             </div>
             <div class="stat-card success">
-                <div class="label">Active Practices</div>
+                <div class="label"><?php echo t('admin_practices.stats_active'); ?></div>
                 <div class="value" id="activePractices">-</div>
             </div>
             <div class="stat-card warning">
-                <div class="label">Inactive Practices</div>
+                <div class="label"><?php echo t('admin_practices.stats_inactive'); ?></div>
                 <div class="value" id="inactivePractices">-</div>
             </div>
             <div class="stat-card danger">
-                <div class="label">Deletion Eligible</div>
+                <div class="label"><?php echo t('admin_practices.stats_deletion_eligible'); ?></div>
                 <div class="value" id="deletionEligible">-</div>
             </div>
         </div>
@@ -691,22 +691,22 @@ $userEmail = $_SESSION['user_email'] ?? '';
             <!-- Left panel: Practice list -->
             <div class="practices-table-container">
                 <div class="table-header">
-                    <h2 id="practicesTableTitle">All Practices</h2>
+                    <h2 id="practicesTableTitle"><?php echo t('admin_practices.view_all'); ?></h2>
                     <div class="view-toggle" id="viewToggle">
-                        <button class="action-btn active" id="viewAllBtn" onclick="setView('all')">All Practices</button>
-                        <button class="action-btn" id="viewHiddenBtn" onclick="setView('hidden')">Hidden Practices</button>
-                        <button class="action-btn primary" onclick="loadPractices()">↻ Refresh</button>
+                        <button class="action-btn active" id="viewAllBtn" onclick="setView('all')"><?php echo t('admin_practices.view_all'); ?></button>
+                        <button class="action-btn" id="viewHiddenBtn" onclick="setView('hidden')"><?php echo t('admin_practices.view_hidden'); ?></button>
+                        <button class="action-btn primary" onclick="loadPractices()">↻ <?php echo t('admin_practices.refresh'); ?></button>
                     </div>
                 </div>
                 <div id="practicesTableBody">
-                    <div class="loading">Loading practices...</div>
+                    <div class="loading"><?php echo t('admin_practices.loading'); ?></div>
                 </div>
             </div>
             
             <!-- Right panel: Practice details & PHI log -->
             <div class="detail-panel" id="detailPanel">
                 <div class="detail-panel-empty">
-                    <p>Select a practice to view details and PHI access log</p>
+                    <p><?php echo t('admin_practices.select_prompt'); ?></p>
                 </div>
             </div>
         </div>
@@ -716,11 +716,11 @@ $userEmail = $_SESSION['user_email'] ?? '';
     <div class="modal" id="complianceModal">
         <div class="modal-content">
             <div class="modal-header">
-                <h3>Practice Compliance Details</h3>
+                <h3><?php echo t('admin_practices.tabs_compliance'); ?></h3>
                 <button class="modal-close" onclick="closeModal('complianceModal')">&times;</button>
             </div>
             <div id="complianceDetails">
-                <div class="loading">Loading...</div>
+                <div class="loading"><?php echo t('common.loading'); ?></div>
             </div>
         </div>
     </div>
@@ -729,11 +729,11 @@ $userEmail = $_SESSION['user_email'] ?? '';
     <div class="modal" id="phiLogModal">
         <div class="modal-content" style="max-width: 900px;">
             <div class="modal-header">
-                <h3>PHI Access Log</h3>
+                <h3><?php echo t('admin_practices.tabs_phi_log'); ?></h3>
                 <button class="modal-close" onclick="closeModal('phiLogModal')">&times;</button>
             </div>
             <div id="phiLogContent">
-                <div class="loading">Loading...</div>
+                <div class="loading"><?php echo t('common.loading'); ?></div>
             </div>
         </div>
     </div>
@@ -742,34 +742,37 @@ $userEmail = $_SESSION['user_email'] ?? '';
     <div class="modal" id="deactivateModal">
         <div class="modal-content">
             <div class="modal-header">
-                <h3>Deactivate Practice</h3>
+                <h3><?php echo t('admin_practices.deactivate_title'); ?></h3>
                 <button class="modal-close" onclick="closeModal('deactivateModal')">&times;</button>
             </div>
             <div id="deactivateContent">
-                <p>Are you sure you want to deactivate this practice?</p>
-                <p><strong>Practice:</strong> <span id="deactivatePracticeName"></span></p>
+                <p><?php echo t('admin_practices.deactivate_prompt'); ?></p>
+                <p><strong><?php echo t('admin_practices.practice_label'); ?>:</strong> <span id="deactivatePracticeName"></span></p>
                 
                 <div class="retention-warning">
-                    <h4>⚠️ Data Retention Policy</h4>
-                    <p>Per HIPAA requirements, all practice data will be retained for 7 years after deactivation. 
-                       Users will not be able to log in, but data will remain accessible for compliance purposes.</p>
+                    <h4>⚠️ <?php echo t('admin_practices.data_retention_title'); ?></h4>
+                    <p><?php echo t('admin_practices.retention_warning'); ?></p>
                 </div>
                 
                 <div class="form-group" style="margin-top: 16px;">
-                    <label for="deactivateReason">Reason for Deactivation</label>
-                    <textarea id="deactivateReason" rows="3" placeholder="Enter reason for deactivation..."></textarea>
+                    <label for="deactivateReason"><?php echo t('admin_practices.deactivate_reason_label'); ?></label>
+                    <textarea id="deactivateReason" rows="3" placeholder="<?php echo t('admin_practices.deactivate_reason_placeholder'); ?>"></textarea>
                 </div>
                 
                 <div class="modal-actions">
-                    <button class="action-btn" onclick="closeModal('deactivateModal')">Cancel</button>
-                    <button class="action-btn danger" id="confirmDeactivateBtn" onclick="confirmDeactivate()">Deactivate Practice</button>
+                    <button class="action-btn" onclick="closeModal('deactivateModal')"><?php echo t('common.cancel'); ?></button>
+                    <button class="action-btn danger" id="confirmDeactivateBtn" onclick="confirmDeactivate()"><?php echo t('admin_practices.deactivate_button'); ?></button>
                 </div>
             </div>
         </div>
     </div>
     
     <script>
-        const yesNo = value => value ? 'Yes' : 'No';
+        window.__i18n = <?php echo getTranslationsJsonForJs(); ?>;
+    </script>
+    <script src="js/i18n.js"></script>
+    <script>
+        const yesNo = value => value ? t('common.yes') : t('common.no');
 
         function formatRelativeTimestamp(dateStr, emptyLabel = '—') {
             if (!dateStr || dateStr === '0000-00-00 00:00:00') {
@@ -827,7 +830,7 @@ $userEmail = $_SESSION['user_email'] ?? '';
         document.addEventListener('DOMContentLoaded', loadPractices);
         
         function loadPractices() {
-            document.getElementById('practicesTableBody').innerHTML = '<div class="loading">Loading practices...</div>';
+            document.getElementById('practicesTableBody').innerHTML = '<div class="loading">' + t('admin_practices.loading') + '</div>';
             
             fetch('api/admin-practices.php?action=list', { credentials: 'same-origin' })
                 .then(response => response.json())
@@ -851,7 +854,7 @@ $userEmail = $_SESSION['user_email'] ?? '';
             currentView = view;
             document.getElementById('viewAllBtn').classList.toggle('active', view === 'all');
             document.getElementById('viewHiddenBtn').classList.toggle('active', view === 'hidden');
-            document.getElementById('practicesTableTitle').textContent = view === 'all' ? 'All Practices' : 'Hidden Practices';
+            document.getElementById('practicesTableTitle').textContent = view === 'all' ? t('admin_practices.view_all') : t('admin_practices.view_hidden');
             renderPractices();
             updateStats();
         }
@@ -880,48 +883,47 @@ $userEmail = $_SESSION['user_email'] ?? '';
             const visible = visiblePractices();
             if (visible.length === 0) {
                 document.getElementById('practicesTableBody').innerHTML = 
-                    '<div class="empty-state">No practices found in this view</div>';
+                    '<div class="empty-state">' + t('admin_practices.no_practices_view') + '</div>';
                 return;
             }
             
             let html = '<table class="practices-table"><thead><tr>' +
-                '<th>Practice Name</th>' +
-                '<th>Status</th>' +
-                '<th>Plan</th>' +
-                '<th>Subscription</th>' +
-                '<th>Owner</th>' +
-                '<th>BAA</th>' +
-                '<th>Users</th>' +
-                '<th>Active Cases</th>' +
-                '<th>Last Activity</th>' +
-                '<th>Actions</th>' +
+                '<th>' + t('admin_practices.table_practice_name') + '</th>' +
+                '<th>' + t('admin_practices.table_status') + '</th>' +
+                '<th>' + t('admin_practices.table_plan') + '</th>' +
+                '<th>' + t('admin_practices.table_subscription') + '</th>' +
+                '<th>' + t('admin_practices.table_owner') + '</th>' +
+                '<th>' + t('admin_practices.table_baa') + '</th>' +
+                '<th>' + t('admin_practices.table_users') + '</th>' +
+                '<th>' + t('admin_practices.table_active_cases') + '</th>' +
+                '<th>' + t('admin_practices.table_last_activity') + '</th>' +
+                '<th>' + t('admin_practices.table_actions') + '</th>' +
                 '</tr></thead><tbody>';
             
             visible.forEach(practice => {
                 const isActive = practice.is_active === true || practice.is_active === '1' || practice.is_active === 1;
                 const statusClass = isActive ? 'active' : 'inactive';
-                const statusText = isActive ? 'Active' : 'Inactive';
+                const statusText = isActive ? t('admin_practices.status_active') : t('admin_practices.status_inactive');
 
                 const sub = practice.subscription || {};
                 const planDisplay = escapeHtml(sub.plan_display || '—');
                 const subscriptionStatusClass = adminSubscriptionStatusClass(sub.status);
-                let subscriptionText = escapeHtml(sub.status_display || 'No Subscription');
+                let subscriptionText = escapeHtml(sub.status_display || t('admin_practices.no_subscription'));
                 if (sub.is_trialing && sub.trial_display) {
                     subscriptionText += ' · ' + escapeHtml(sub.trial_display);
                 }
                 const ownerDisplay = escapeHtml(sub.owner_email || '—');
 
                 const baaClass = practice.baa_accepted ? 'accepted' : 'pending';
-                const baaText = practice.baa_accepted ? 'Accepted' : 'Pending';
-
+                const baaText = practice.baa_accepted ? t('admin_practices.baa_accepted') : t('admin_practices.baa_pending');
                 const selectedClass = selectedPracticeId === practice.id ? 'selected' : '';
                 const hideButton = practice.is_hidden
-                    ? '<button class="action-btn success" onclick="unhidePractice(' + practice.id + ')">Unhide</button>'
-                    : '<button class="action-btn secondary" onclick="hidePractice(' + practice.id + ')">Hide</button>';
+                    ? '<button class="action-btn success" onclick="unhidePractice(' + practice.id + ')">' + t('admin_practices.unhide_button') + '</button>'
+                    : '<button class="action-btn secondary" onclick="hidePractice(' + practice.id + ')">' + t('admin_practices.hide_button') + '</button>';
 
                 html += '<tr class="practice-row ' + selectedClass + '" onclick="selectPractice(' + practice.id + ')" data-practice-id="' + practice.id + '">' +
                     '<td>' +
-                        '<strong>' + escapeHtml(practice.practice_name || practice.legal_name || 'Unnamed') + '</strong>' +
+                        '<strong>' + escapeHtml(practice.practice_name || practice.legal_name || t('admin_practices.unnamed')) + '</strong>' +
                         (practice.legal_name && practice.legal_name !== practice.practice_name
                             ? '<br><small style="color: #6b7280;">' + escapeHtml(practice.legal_name) + '</small>'
                             : '') +
@@ -937,11 +939,11 @@ $userEmail = $_SESSION['user_email'] ?? '';
                     '<td><span class="baa-badge ' + baaClass + '">' + baaText + '</span></td>' +
                     '<td>' + (practice.user_count || 0) + '</td>' +
                     '<td>' + (practice.adoption?.active_cases || 0) + '</td>' +
-                    '<td>' + formatRelativeTimestamp(practice.adoption?.last_activity, 'No activity recorded') + '</td>' +
+                    '<td>' + formatRelativeTimestamp(practice.adoption?.last_activity, t('admin_practices.no_activity_recorded')) + '</td>' +
                     '<td class="compact-actions" onclick="event.stopPropagation()">' +
                         (isActive
-                            ? '<button class="action-btn danger" onclick="deactivatePractice(' + practice.id + ', \'' + escapeHtml(practice.practice_name || '').replace(/'/g, "\\'") + '\')">Deactivate</button>'
-                            : '<button class="action-btn success" onclick="reactivatePractice(' + practice.id + ')">Reactivate</button>') +
+                            ? '<button class="action-btn danger" onclick="deactivatePractice(' + practice.id + ', \'' + escapeHtml(practice.practice_name || '').replace(/'/g, "\\'") + '\')">' + t('admin_practices.deactivate_button_short') + '</button>'
+                            : '<button class="action-btn success" onclick="reactivatePractice(' + practice.id + ')">' + t('admin_practices.reactivate_button') + '</button>') +
                         hideButton +
                     '</td>' +
                     '</tr>';

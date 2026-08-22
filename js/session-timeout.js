@@ -131,17 +131,17 @@
           '<polyline points="12 6 12 12 16 14"/>' +
         '</svg>' +
       '</div>' +
-      '<h2 style="margin: 0 0 12px; font-size: 1.4rem; color: #1f2937;">Session Expiring Soon</h2>' +
+      '<h2 style="margin: 0 0 12px; font-size: 1.4rem; color: #1f2937;">' + t('session.expiring_title') + '</h2>' +
       '<p style="margin: 0 0 8px; color: #6b7280; font-size: 1rem;">' +
-        'Your session will expire in:' +
+        t('session.expiring_text') +
       '</p>' +
       '<div id="sessionCountdown" style="font-size: 2rem; font-weight: 700; color: #d97706; margin: 16px 0;"></div>' +
       '<p style="margin: 0 0 24px; color: #9ca3af; font-size: 0.9rem;">' +
-        'Click below to continue working, or you\'ll be logged out automatically.' +
+        t('session.expiring_subtext') +
       '</p>' +
       '<div style="display: flex; gap: 12px; justify-content: center;">' +
-        '<button id="sessionLogoutBtn" style="padding: 12px 24px; border: 1px solid #d1d5db; background: white; border-radius: 8px; font-size: 0.95rem; cursor: pointer; color: #374151;">Log Out Now</button>' +
-        '<button id="sessionExtendBtn" style="padding: 12px 24px; background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); color: white; border: none; border-radius: 8px; font-size: 0.95rem; cursor: pointer; font-weight: 500;">Stay Logged In</button>' +
+        '<button id="sessionLogoutBtn" style="padding: 12px 24px; border: 1px solid #d1d5db; background: white; border-radius: 8px; font-size: 0.95rem; cursor: pointer; color: #374151;">' + t('session.logout_now') + '</button>' +
+        '<button id="sessionExtendBtn" style="padding: 12px 24px; background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); color: white; border: none; border-radius: 8px; font-size: 0.95rem; cursor: pointer; font-weight: 500;">' + t('session.stay_logged_in') + '</button>' +
       '</div>';
     
     warningModal.appendChild(content);
@@ -220,7 +220,7 @@
         
         // Show confirmation toast if available
         if (typeof showToast === 'function') {
-          showToast('Session extended. You can continue working.', 'success');
+          showToast(t('session.extended'), 'success');
         }
       }
     })

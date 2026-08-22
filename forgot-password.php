@@ -15,12 +15,12 @@ if ($currentEnv === 'production') {
     $envClass = 'env-dev';
 }
 ?><!DOCTYPE html>
-<html lang="en">
+<html lang="<?php echo getHtmlLang(); ?>">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="robots" content="noindex, nofollow">
-  <title>Forgot Password - <?php echo htmlspecialchars($appName); ?></title>
+  <title><?php echo htmlspecialchars(t('auth.password.forgot_title')) . ' - ' . htmlspecialchars($appName); ?></title>
 
   <!-- Favicon / App Icons -->
   <link rel="icon" type="image/x-icon" href="favicon.ico">
@@ -32,6 +32,8 @@ if ($currentEnv === 'production') {
 
   <link rel="stylesheet" href="css/app.css">
   <link rel="stylesheet" href="css/login.css">
+  <script>window.__i18n = <?php echo getTranslationsJsonForJs(); ?>;</script>
+  <script src="js/i18n.js"></script>
 </head>
 <body class="login-body <?php echo $envClass; ?>">
   <!-- Animated background elements -->
@@ -44,6 +46,10 @@ if ($currentEnv === 'production') {
   </div>
   
   <div class="reset-password-container">
+    <?php
+    // Global language selector (hidden until a second locale is enabled)
+    echo renderLanguageSelector('api/set-session-locale.php', getResolvedLocale(), false);
+    ?>
     <div class="reset-password-header">
       <div class="icon">
         <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -51,15 +57,15 @@ if ($currentEnv === 'production') {
           <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
         </svg>
       </div>
-      <h2>Forgot Password?</h2>
-      <p>Enter your email address and we'll send you instructions to reset your password.</p>
+      <h2><?php echo htmlspecialchars(t('auth.password.forgot_title')); ?></h2>
+      <p><?php echo htmlspecialchars(t('auth.password.forgot_subtitle')); ?></p>
     </div>
     
     <div id="requestForm">
       <form id="forgotPasswordForm" class="reset-form">
         <div class="form-group">
-          <label for="email">Email Address</label>
-          <input type="email" id="email" name="email" required placeholder="your@email.com" autofocus>
+          <label for="email"><?php echo htmlspecialchars(t('auth.password.email_label')); ?></label>
+          <input type="email" id="email" name="email" required placeholder="<?php echo htmlspecialchars(t('auth.password.email_placeholder')); ?>" autofocus>
         </div>
         <div id="formError" class="reset-error" style="display: none;">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -69,7 +75,7 @@ if ($currentEnv === 'production') {
           </svg>
           <p id="errorMessage"></p>
         </div>
-        <button type="submit" class="reset-submit-btn" id="submitBtn">Send Reset Link</button>
+        <button type="submit" class="reset-submit-btn" id="submitBtn"><?php echo htmlspecialchars(t('auth.password.send_reset_link')); ?></button>
       </form>
     </div>
     
@@ -80,12 +86,12 @@ if ($currentEnv === 'production') {
           <polyline points="22 4 12 14.01 9 11.01"/>
         </svg>
       </div>
-      <h3>Check Your Email</h3>
-      <p>If an account exists with that email address, you will receive password reset instructions shortly.</p>
+      <h3><?php echo htmlspecialchars(t('auth.password.success_title')); ?></h3>
+      <p><?php echo htmlspecialchars(t('auth.password.success_message')); ?></p>
     </div>
     
     <div class="reset-form-footer">
-      <a href="index.php">← Back to Sign In</a>
+      <a href="login.php">← <?php echo htmlspecialchars(t('auth.password.back_to_sign_in')); ?></a>
     </div>
   </div>
 
@@ -100,7 +106,7 @@ if ($currentEnv === 'production') {
       
       // Disable button and show loading state
       submitBtn.disabled = true;
-      submitBtn.textContent = 'Sending...';
+      submitBtn.textContent = t('auth.password.sending');
       formError.style.display = 'none';
       
       try {
@@ -121,16 +127,16 @@ if ($currentEnv === 'production') {
           document.getElementById('requestForm').style.display = 'none';
           document.getElementById('successMessage').style.display = 'flex';
         } else {
-          errorMessage.textContent = data.message || 'An error occurred. Please try again.';
+          errorMessage.textContent = data.message || t('auth.errors.generic');
           formError.style.display = 'flex';
           submitBtn.disabled = false;
-          submitBtn.textContent = 'Send Reset Link';
+          submitBtn.textContent = t('auth.password.send_reset_link');
         }
       } catch (error) {
-        errorMessage.textContent = 'An error occurred. Please try again.';
+        errorMessage.textContent = t('auth.errors.generic');
         formError.style.display = 'flex';
         submitBtn.disabled = false;
-        submitBtn.textContent = 'Send Reset Link';
+        submitBtn.textContent = t('auth.password.send_reset_link');
       }
     });
   </script>

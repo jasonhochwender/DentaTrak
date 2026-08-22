@@ -42,7 +42,7 @@ try {
     // state, even though the client also hides the Billing modal for them.
     if (!$canManage) {
         http_response_code(403);
-        echo json_encode(['error' => 'Only practice administrators can view billing information.']);
+        echo json_encode(['error' => t('billing.errors.admin_only_view')]);
         exit;
     }
 
@@ -52,7 +52,7 @@ try {
     $userRow  = $userStmt->fetch(PDO::FETCH_ASSOC);
     if (!$userRow) {
         http_response_code(404);
-        echo json_encode(['error' => 'User not found']);
+        echo json_encode(['error' => t('billing.errors.user_not_found')]);
         exit;
     }
     $isBypassUser = isBillingBypassEmail($userRow['email']);
@@ -153,5 +153,5 @@ try {
 } catch (PDOException $e) {
     error_log('billing-portal.php PDO error: ' . $e->getMessage());
     http_response_code(500);
-    echo json_encode(['error' => 'Internal server error']);
+    echo json_encode(['error' => t('billing.errors.internal')]);
 }

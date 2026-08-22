@@ -201,7 +201,32 @@ try {
     if (!empty($searchTerm)) {
         $cases = PIIEncryption::filterCasesBySearch($cases, $searchTerm);
     }
-    
+
+    // Apply dropdown filters using raw stored values (display values are not compared).
+    $filterCarrier = $_GET['carrier'] ?? '';
+    if ($filterCarrier !== '') {
+        $cases = array_filter($cases, function($case) use ($filterCarrier) {
+            return ($case['carrier'] ?? '') === $filterCarrier;
+        });
+        $cases = array_values($cases);
+    }
+
+    $filterCaseType = $_GET['case_type'] ?? '';
+    if ($filterCaseType !== '') {
+        $cases = array_filter($cases, function($case) use ($filterCaseType) {
+            return ($case['caseType'] ?? '') === $filterCaseType;
+        });
+        $cases = array_values($cases);
+    }
+
+    $filterAssignedTo = $_GET['assigned_to'] ?? '';
+    if ($filterAssignedTo !== '') {
+        $cases = array_filter($cases, function($case) use ($filterAssignedTo) {
+            return ($case['assignedTo'] ?? '') === $filterAssignedTo;
+        });
+        $cases = array_values($cases);
+    }
+
     // Load current user urgency settings from the database each request.
     // Do not rely on stale session preferences; the Kanban uses locally
     // stored (localStorage) values that can get out of sync with $_SESSION.
@@ -340,6 +365,6 @@ try {
     http_response_code(500);
     echo json_encode([
         'success' => false,
-        'message' => 'Error listing cases: ' . $e->getMessage()
+        'message' => t('api.cases.list_error', ['message' => $e->getMessage()])
     ]);
 }

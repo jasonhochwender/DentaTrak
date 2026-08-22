@@ -12,9 +12,10 @@ require_once __DIR__ . '/email-sender.php';
  * @param int   $userId
  * @param string $practiceName
  * @param array $appConfig
+ * @param int|null $practiceId
  * @return void
  */
-function sendWelcomeEmail(PDO $pdo, int $userId, string $practiceName, array $appConfig): void {
+function sendWelcomeEmail(PDO $pdo, int $userId, string $practiceName, array $appConfig, ?int $practiceId = null): void {
     $stmt = $pdo->prepare("SELECT first_name, last_name, email FROM users WHERE id = :id");
     $stmt->execute(['id' => $userId]);
     $user = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -24,38 +25,60 @@ function sendWelcomeEmail(PDO $pdo, int $userId, string $practiceName, array $ap
         return;
     }
 
+    $locale = resolveEmailLocale($userId, $practiceId, null);
+    $appName = $appConfig['appName'] ?? 'DentaTrak';
     $firstName = trim($user['first_name'] ?? '');
     $toEmail = $user['email'];
     $supportEmail = $appConfig['support_email'] ?? 'support@dentatrak.com';
+    $safeSupportEmail = htmlspecialchars($supportEmail, ENT_QUOTES, 'UTF-8');
     $userGuideUrl = $appConfig['user_guide_url'] ?? '#';
 
-    $greeting = $firstName ? "Hi {$firstName}," : "Hi there,";
-    $subject = 'Welcome to DentaTrak';
+    $safeFirstName = htmlspecialchars($firstName, ENT_QUOTES, 'UTF-8');
+    $safePracticeName = htmlspecialchars($practiceName, ENT_QUOTES, 'UTF-8');
+
+    $greetingHtml = $firstName
+        ? tForLocale($locale, 'email.common.greeting_with_name', ['name' => $safeFirstName])
+        : tForLocale($locale, 'email.common.greeting_no_name');
+    $greetingText = $firstName
+        ? tForLocale($locale, 'email.common.greeting_with_name', ['name' => $firstName])
+        : tForLocale($locale, 'email.common.greeting_no_name');
+    $subject = tForLocale($locale, 'email.welcome.subject', ['appName' => $appName]);
+    $introHtml = tForLocale($locale, 'email.welcome.intro', ['appName' => $appName, 'practiceName' => $safePracticeName]);
+    $introText = tForLocale($locale, 'email.welcome.intro', ['appName' => $appName, 'practiceName' => $practiceName]);
+    $cta = tForLocale($locale, 'email.welcome.cta');
+    $footerText = tForLocale($locale, 'email.welcome.footer', ['supportEmail' => $supportEmail]);
+    $footerHtml = str_replace(
+        $safeSupportEmail,
+        "<a href='mailto:{$safeSupportEmail}'>{$safeSupportEmail}</a>",
+        tForLocale($locale, 'email.welcome.footer', ['supportEmail' => $safeSupportEmail])
+    );
+    $thanks = tForLocale($locale, 'email.common.thanks');
+    $team = tForLocale($locale, 'email.common.team_signature', ['appName' => $appName]);
 
     $htmlBody = <<<HTML
 <!DOCTYPE html>
 <html>
 <body>
-  <p>{$greeting}</p>
-  <p>Welcome to <strong>DentaTrak</strong>! Your practice <strong>{$practiceName}</strong> has been set up and is ready to use.</p>
-  <p>Get started with the <a href="{$userGuideUrl}" target="_blank" rel="noopener noreferrer">DentaTrak User Guide</a>.</p>
-  <p>If you have any questions, reach out to us at <a href="mailto:{$supportEmail}">{$supportEmail}</a>.</p>
-  <p>Thanks,<br>The DentaTrak Team</p>
+  <p>{$greetingHtml}</p>
+  <p>{$introHtml}</p>
+  <p>Get started with the <a href="{$userGuideUrl}" target="_blank" rel="noopener noreferrer">{$cta}</a>.</p>
+  <p>{$footerHtml}</p>
+  <p>{$thanks}<br>{$team}</p>
 </body>
 </html>
 HTML;
 
     $textBody = <<<TEXT
-{$greeting}
+{$greetingText}
 
-Welcome to DentaTrak! Your practice "{$practiceName}" has been set up and is ready to use.
+{$introText}
 
-Get started with the User Guide here: {$userGuideUrl}
+{$cta}: {$userGuideUrl}
 
-If you have any questions, reach out to us at {$supportEmail}.
+{$footerText}
 
-Thanks,
-The DentaTrak Team
+{$thanks}
+{$team}
 TEXT;
 
     $result = sendAppEmail($toEmail, $subject, $htmlBody, $textBody, $supportEmail);

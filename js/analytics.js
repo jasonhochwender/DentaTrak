@@ -237,9 +237,9 @@ document.addEventListener('DOMContentLoaded', function() {
           }
         } else {
           showLoading(false);
-          const msg = data && data.message ? data.message : 'Unknown analytics error';
+          const msg = data && data.message ? data.message : t('common.unknown_error');
           console.error('Analytics API error:', msg);
-          showToast('Error loading analytics data: ' + msg, 'error');
+          showToast(t('insights.errors.loading_analytics', { message: msg }), 'error');
         }
       })
       .catch(error => {
@@ -248,7 +248,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (typeof NetworkErrorHandler !== 'undefined') {
           NetworkErrorHandler.handle(error, 'loading analytics');
         } else {
-          showToast('Error loading analytics. Please check your connection.', 'error');
+          showToast(t('insights.errors.loading_connection'), 'error');
         }
       });
   }
@@ -598,14 +598,14 @@ document.addEventListener('DOMContentLoaded', function() {
           labels: data.monthly_volume.labels || [],
           datasets: [
             {
-              label: 'Cases Created',
+              label: t('insights.charts.dataset_created'),
               data: data.monthly_volume.created || [],
               borderColor: '#1e40af',
               backgroundColor: 'rgba(30, 64, 175, 0.1)',
               fill: true
             },
             {
-              label: 'Cases Delivered',
+              label: t('insights.charts.dataset_delivered'),
               data: data.monthly_volume.delivered || [],
               borderColor: '#34d399',
               backgroundColor: 'rgba(52, 211, 153, 0.1)',
@@ -641,7 +641,7 @@ document.addEventListener('DOMContentLoaded', function() {
       data: {
         labels: Object.keys(data),
         datasets: [{
-          label: 'Cases Completed',
+          label: t('insights.charts.dataset_cases'),
           data: Object.values(data),
           backgroundColor: '#1e40af'
         }]
@@ -669,7 +669,7 @@ document.addEventListener('DOMContentLoaded', function() {
         labels: data.labels || [],
         datasets: [
           {
-            label: 'Cases Created',
+            label: t('insights.charts.dataset_created'),
             data: data.created || [],
             borderColor: '#1e40af',
             backgroundColor: 'rgba(30, 64, 175, 0.1)',
@@ -677,7 +677,7 @@ document.addEventListener('DOMContentLoaded', function() {
             tension: 0.4
           },
           {
-            label: 'Cases Delivered',
+            label: t('insights.charts.dataset_delivered'),
             data: data.delivered || [],
             borderColor: '#34d399',
             backgroundColor: 'rgba(52, 211, 153, 0.1)',
@@ -755,7 +755,7 @@ document.addEventListener('DOMContentLoaded', function() {
       data: {
         labels: Object.keys(data),
         datasets: [{
-          label: 'Case Types',
+          label: t('insights.charts.dataset_cases'),
           data: Object.values(data),
           backgroundColor: '#fb923c'
         }]
@@ -791,9 +791,9 @@ document.addEventListener('DOMContentLoaded', function() {
     const capacityAlert = document.getElementById('capacityAlert');
     
     if (teamUtilization) teamUtilization.textContent = (data.workload?.utilization || 0) + '%';
-    if (topPerformer) topPerformer.textContent = data.workload?.topPerformer || 'N/A';
-    if (busiestMember) busiestMember.textContent = data.workload?.busiest || 'N/A';
-    if (capacityAlert) capacityAlert.textContent = data.workload?.capacity || 'Optimal';
+    if (topPerformer) topPerformer.textContent = data.workload?.topPerformer || t('common.not_applicable');
+    if (busiestMember) busiestMember.textContent = data.workload?.busiest || t('common.not_applicable');
+    if (capacityAlert) capacityAlert.textContent = data.workload?.capacity || t('insights.advanced.optimal');
     
     // Update trends insights
     const growthRate = document.getElementById('growthRate');
@@ -801,8 +801,8 @@ document.addEventListener('DOMContentLoaded', function() {
     const nextPeak = document.getElementById('nextPeak');
     
     if (growthRate) growthRate.textContent = '+' + (data.trends?.growthRate || 0) + '%';
-    if (peakMonth) peakMonth.textContent = data.trends?.peakMonth || 'N/A';
-    if (nextPeak) nextPeak.textContent = data.trends?.nextPeak || 'N/A';
+    if (peakMonth) peakMonth.textContent = data.trends?.peakMonth || t('common.not_applicable');
+    if (nextPeak) nextPeak.textContent = data.trends?.nextPeak || t('common.not_applicable');
   }
   
   function updateTrendsChart(trendsData) {
@@ -870,7 +870,7 @@ document.addEventListener('DOMContentLoaded', function() {
           },
           title: {
             display: true,
-            text: 'Monthly Case Volume Trends'
+            text: t('insights.charts.monthly_case_volume')
           }
         },
         scales: {
@@ -878,7 +878,7 @@ document.addEventListener('DOMContentLoaded', function() {
             beginAtZero: true,
             title: {
               display: true,
-              text: 'Number of Cases'
+              text: t('insights.charts.axis_cases')
             }
           }
         }
@@ -944,16 +944,16 @@ document.addEventListener('DOMContentLoaded', function() {
           displayAIRecommendations(data.recommendations);
           aiRecommendationsLoaded = true;
         } else {
-          showAIError('No recommendations available');
+          showAIError(t('insights.errors.no_recommendations'));
         }
       })
       .catch(error => {
         console.error('AI Recommendations error:', error);
         if (loadingEl) loadingEl.style.display = 'none';
         if (typeof NetworkErrorHandler !== 'undefined' && NetworkErrorHandler.isNetworkError(error)) {
-          showAIError('Connection lost. Please check your internet and try again.');
+          showAIError(t('insights.errors.connection_lost'));
         } else {
-          showAIError('Failed to load AI recommendations. Please try again.');
+          showAIError(t('insights.errors.failed_recommendations'));
         }
       });
   }
@@ -1018,13 +1018,13 @@ document.addEventListener('DOMContentLoaded', function() {
       }
       
       const msgEl = errorEl.querySelector('p');
-      if (msgEl) msgEl.textContent = message || 'Unable to generate recommendations.';
+      if (msgEl) msgEl.textContent = message || t('insights.errors.unable_recommendations');
       
       // Show retry countdown if applicable
       const retryBtn = document.getElementById('retryAiRecommendations');
       if (retryBtn && retryAfter) {
         retryBtn.disabled = true;
-        retryBtn.textContent = `Try Again (${retryAfter}s)`;
+        retryBtn.textContent = t('insights.ai.try_again_seconds', { count: retryAfter });
         
         let countdown = retryAfter;
         const countdownInterval = setInterval(() => {
@@ -1032,9 +1032,9 @@ document.addEventListener('DOMContentLoaded', function() {
           if (countdown <= 0) {
             clearInterval(countdownInterval);
             retryBtn.disabled = false;
-            retryBtn.textContent = 'Try Again';
+            retryBtn.textContent = t('insights.ai.try_again');
           } else {
-            retryBtn.textContent = `Try Again (${countdown}s)`;
+            retryBtn.textContent = t('insights.ai.try_again_seconds', { count: countdown });
           }
         }, 1000);
       }

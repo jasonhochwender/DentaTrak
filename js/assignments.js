@@ -55,7 +55,7 @@ function initializeAssignmentDropdown(selectElement, caseId, currentAssignee) {
   // Add loading option
   const loadingOption = document.createElement('option');
   loadingOption.value = 'loading';
-  loadingOption.textContent = 'Loading...';
+  loadingOption.textContent = t('common.loading');
   loadingOption.disabled = true;
   loadingOption.selected = true;
   selectElement.appendChild(loadingOption);
@@ -76,12 +76,12 @@ function initializeAssignmentDropdown(selectElement, caseId, currentAssignee) {
     // Add a "None" option
     const noneOption = document.createElement('option');
     noneOption.value = '';
-    noneOption.textContent = 'None';
+    noneOption.textContent = t('assignments.none');
     selectElement.appendChild(noneOption);
     
     // "People" optgroup - real DentaTrak user accounts
     const peopleGroup = document.createElement('optgroup');
-    peopleGroup.label = 'People';
+    peopleGroup.label = t('assignments.people');
 
     // Add current user first if not already in the list
     const currentUserEmail = getCurrentUserEmail();
@@ -90,7 +90,7 @@ function initializeAssignmentDropdown(selectElement, caseId, currentAssignee) {
     if (currentUserEmail && !users.includes(currentUserEmail)) {
       const currentUserOption = document.createElement('option');
       currentUserOption.value = currentUserEmail;
-      currentUserOption.textContent = currentUserEmail + ' (You)';
+      currentUserOption.textContent = t('assignments.you_label', {email: currentUserEmail});
       peopleGroup.appendChild(currentUserOption);
       currentUserIncluded = true;
       
@@ -112,7 +112,7 @@ function initializeAssignmentDropdown(selectElement, caseId, currentAssignee) {
       
       // Mark as "You" if this is the current user
       if (user === currentUserEmail) {
-        option.textContent += ' (You)';
+        option.textContent = t('assignments.you_label', {email: user});
       }
       
       peopleGroup.appendChild(option);
@@ -129,7 +129,7 @@ function initializeAssignmentDropdown(selectElement, caseId, currentAssignee) {
     const assignmentLabels = Array.isArray(window.assignmentLabels) ? window.assignmentLabels : [];
     if (assignmentLabels.length > 0) {
       const labelsGroup = document.createElement('optgroup');
-      labelsGroup.label = 'Assignment Labels';
+      labelsGroup.label = t('assignments.assignment_labels');
 
       assignmentLabels.forEach(label => {
         const option = document.createElement('option');
@@ -352,7 +352,7 @@ function saveAssignment(caseId, assignedTo, selectElement) {
   
   // Show a temporary loading indicator
   const originalText = selectElement.options[selectElement.selectedIndex].text;
-  selectElement.options[selectElement.selectedIndex].text = 'Saving...';
+  selectElement.options[selectElement.selectedIndex].text = t('common.saving');
   selectElement.disabled = true;
   
   // Save to server - ensure clean data

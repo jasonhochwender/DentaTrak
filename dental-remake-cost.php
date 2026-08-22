@@ -6,7 +6,7 @@ $appName = $appConfig['appName'] ?? 'DentaTrak';
 $baseUrl = rtrim($appConfig['baseUrl'], '/') . '/';
 $articleUrls = $appConfig['public_urls'] ?? [];
 ?><!DOCTYPE html>
-<html lang="en">
+<html lang="<?php echo getHtmlLang(); ?>">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -20,13 +20,13 @@ $articleUrls = $appConfig['public_urls'] ?? [];
     gtag('config', 'G-MBJDENR3H2');
   </script>
 
-  <meta name="description" content="Estimate the real cost of dental remakes to your practice, including chair time, staff time, lab fees, shipping, and lost capacity, with an interactive dental remake cost calculator.">
-  <title>What Dental Remakes Really Cost Your Practice | DentaTrak</title>
+  <meta name="description" content="<?php echo htmlspecialchars(t("marketing.articles.dental_remake_cost.seo.description")); ?>">
+  <title><?php echo htmlspecialchars(t("marketing.articles.dental_remake_cost.seo.title")); ?></title>
   <link rel="canonical" href="https://dentatrak.com/resources/dental-remake-cost">
 
   <!-- Open Graph -->
-  <meta property="og:title" content="What Dental Remakes Really Cost Your Practice">
-  <meta property="og:description" content="Calculate the hidden cost of dental remakes, from chair time and staff coordination to lab fees and shipping.">
+  <meta property="og:title" content="<?php echo htmlspecialchars(t("marketing.articles.dental_remake_cost.seo.title")); ?>">
+  <meta property="og:description" content="<?php echo htmlspecialchars(t("marketing.articles.dental_remake_cost.seo.description")); ?>">
   <meta property="og:type" content="article">
   <meta property="og:url" content="https://dentatrak.com/resources/dental-remake-cost">
 
@@ -46,7 +46,7 @@ $articleUrls = $appConfig['public_urls'] ?? [];
   {
     "@context": "https://schema.org",
     "@type": "Article",
-    "headline": "What Dental Remakes Really Cost Your Practice",
+    "headline": <?php echo json_encode(t("marketing.articles.dental_remake_cost.h1"), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>,
     "author": { "@type": "Person", "name": "Dr. William Verrillo" },
     "publisher": { "@type": "Organization", "name": "DentaTrak" },
     "datePublished": "2026-08-08",
@@ -61,9 +61,9 @@ $articleUrls = $appConfig['public_urls'] ?? [];
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",
     "itemListElement": [
-      { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://dentatrak.com/" },
-      { "@type": "ListItem", "position": 2, "name": "Resources", "item": "https://dentatrak.com/resources" },
-      { "@type": "ListItem", "position": 3, "name": "What Dental Remakes Really Cost Your Practice", "item": "https://dentatrak.com/resources/dental-remake-cost" }
+      { "@type": "ListItem", "position": 1, "name": <?php echo json_encode(t("marketing.navigation.home"), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>, "item": "https://dentatrak.com/" },
+      { "@type": "ListItem", "position": 2, "name": <?php echo json_encode(t("marketing.navigation.resources"), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>, "item": "https://dentatrak.com/resources" },
+      { "@type": "ListItem", "position": 3, "name": <?php echo json_encode(t("marketing.articles.dental_remake_cost.h1"), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>, "item": "https://dentatrak.com/resources/dental-remake-cost" }
     ]
   }
   </script>
@@ -145,10 +145,11 @@ $articleUrls = $appConfig['public_urls'] ?? [];
   <!-- Navigation -->
   <nav class="nav">
     <div class="nav-inner">
-      <a href="<?= $baseUrl ?>" class="nav-logo" aria-label="DentaTrak home"><img src="<?= $baseUrl ?>images/main.png" alt="DentaTrak" style="height: auto; width: auto; max-width: 140px; object-fit: contain; display: block;"></a>
+      <a href="<?= $baseUrl ?>" class="nav-logo" aria-label="<?php echo htmlspecialchars(t('marketing.accessibility.home_aria')); ?>"><img src="<?= $baseUrl ?>images/main.png" alt="<?php echo htmlspecialchars(t('marketing.accessibility.logo_alt')); ?>" style="height: auto; width: auto; max-width: 140px; object-fit: contain; display: block;"></a>
       <div class="nav-actions">
-        <a href="<?= $baseUrl ?>login.php" class="nav-login">Log In</a>
-        <a href="<?= $baseUrl ?>login.php" class="nav-cta">Start 90-Day Free Trial</a>
+        <a href="<?= $baseUrl ?>login.php" class="nav-login"><?php echo t("marketing.navigation.log_in"); ?></a>
+        <a href="<?= $baseUrl ?>login.php" class="nav-cta"><?php echo t("marketing.navigation.start_trial"); ?></a>
+        <?php echo renderLanguageSelector("api/set-session-locale.php", getResolvedLocale(), false); ?>
       </div>
     </div>
   </nav>
@@ -156,233 +157,209 @@ $articleUrls = $appConfig['public_urls'] ?? [];
   <!-- Breadcrumbs -->
   <div class="breadcrumb-bar">
     <ol class="breadcrumb">
-      <li><a href="<?= $baseUrl ?>">Home</a></li>
+      <li><a href="<?= $baseUrl ?>"><?php echo t("marketing.navigation.home"); ?></a></li>
       <li>/</li>
-      <li><a href="<?= $baseUrl . ($articleUrls['page_resources'] ?? 'resources') ?>">Resources</a></li>
+      <li><a href="<?= $baseUrl . ($articleUrls['page_resources'] ?? 'resources') ?>"><?php echo t("marketing.navigation.resources"); ?></a></li>
       <li>/</li>
-      <li aria-current="page">What Dental Remakes Really Cost Your Practice</li>
+      <li aria-current="page"><?php echo t("marketing.articles.dental_remake_cost.h1"); ?></li>
     </ol>
   </div>
 
   <!-- Main Content -->
   <main class="content">
-    <h1>What Dental Remakes Really Cost Your Practice</h1>
+    <h1><?php echo t('marketing.articles.dental_remake_cost.h1'); ?></h1>
 
     <div class="article-meta">
-      <span>By <strong>Dr. William Verrillo</strong></span>
+      <span><?php echo t('marketing.articles.dental_remake_cost.meta.by'); ?> <strong>Dr. William Verrillo</strong></span>
       <span class="meta-divider">&middot;</span>
-      <span>Published <strong>August 8, 2026</strong></span>
+      <span><?php echo t('marketing.articles.dental_remake_cost.meta.published'); ?> <strong>August 8, 2026</strong></span>
     </div>
 
     <div class="answer-box">
-      <p>
-        A dental remake costs more than a second lab bill. Depending on the case, a remake may also consume dentist chair time, assistant and staff time, an additional patient appointment, scheduling capacity, shipping or courier fees, administrative coordination, and time spent diagnosing what went wrong.
-      </p>
+      <p><?php echo t('marketing.articles.dental_remake_cost.intro'); ?></p>
     </div>
 
-    <h2>The Lab Bill Is Not the Whole Cost</h2>
+    <h2><?php echo t('marketing.articles.dental_remake_cost.sections.the_lab_bill_is_not_the_whole_cost.heading'); ?></h2>
 
-    <p>
-      When a crown, bridge, or implant restoration does not fit or needs to be redone, the obvious expense is the new lab charge. That cost is easy to see on an invoice. The less obvious costs are spread across the practice and are harder to assign to one specific case.
-    </p>
+    <p><?php echo t('marketing.articles.dental_remake_cost.sections.the_lab_bill_is_not_the_whole_cost.body_1'); ?></p>
 
     <ul>
-      <li><strong>Dentist chair time:</strong> Seating or rescanning a remake takes time that could have been used for another patient or another procedure.</li>
-      <li><strong>Assistant and staff time:</strong> Staff may need to reappoint the patient, contact the lab, locate files, send new impressions or scans, and update records.</li>
-      <li><strong>Additional appointments:</strong> A remake often means bringing the patient back, which uses a chair and blocks another slot on the schedule.</li>
-      <li><strong>Shipping and courier costs:</strong> Returning a case and receiving the replacement may add shipping or same-day delivery fees.</li>
-      <li><strong>Time spent finding the cause:</strong> Someone has to determine whether the issue was a prep problem, an impression issue, a lab error, or a communication breakdown.</li>
-      <li><strong>Lost capacity:</strong> Even if the practice does not write a check for the dentist's time, that chair is no longer available for productive work during the remake visit.</li>
+      <li><strong><?php echo t('marketing.articles.dental_remake_cost.sections.the_lab_bill_is_not_the_whole_cost.list_items.1.title'); ?></strong> <?php echo t('marketing.articles.dental_remake_cost.sections.the_lab_bill_is_not_the_whole_cost.list_items.1.body'); ?></li>
+      <li><strong><?php echo t('marketing.articles.dental_remake_cost.sections.the_lab_bill_is_not_the_whole_cost.list_items.2.title'); ?></strong> <?php echo t('marketing.articles.dental_remake_cost.sections.the_lab_bill_is_not_the_whole_cost.list_items.2.body'); ?></li>
+      <li><strong><?php echo t('marketing.articles.dental_remake_cost.sections.the_lab_bill_is_not_the_whole_cost.list_items.3.title'); ?></strong> <?php echo t('marketing.articles.dental_remake_cost.sections.the_lab_bill_is_not_the_whole_cost.list_items.3.body'); ?></li>
+      <li><strong><?php echo t('marketing.articles.dental_remake_cost.sections.the_lab_bill_is_not_the_whole_cost.list_items.4.title'); ?></strong> <?php echo t('marketing.articles.dental_remake_cost.sections.the_lab_bill_is_not_the_whole_cost.list_items.4.body'); ?></li>
+      <li><strong><?php echo t('marketing.articles.dental_remake_cost.sections.the_lab_bill_is_not_the_whole_cost.list_items.5.title'); ?></strong> <?php echo t('marketing.articles.dental_remake_cost.sections.the_lab_bill_is_not_the_whole_cost.list_items.5.body'); ?></li>
+      <li><strong><?php echo t('marketing.articles.dental_remake_cost.sections.the_lab_bill_is_not_the_whole_cost.list_items.6.title'); ?></strong> <?php echo t('marketing.articles.dental_remake_cost.sections.the_lab_bill_is_not_the_whole_cost.list_items.6.body'); ?></li>
     </ul>
 
-    <p>
-      Not every remake incurs every one of these costs. Some are resolved with a quick phone call. Others require multiple appointments, new scans, and significant back and forth. The purpose of this article is to help a practice estimate its own financial exposure based on its own volume and workflow.
-    </p>
+    <p><?php echo t('marketing.articles.dental_remake_cost.sections.the_lab_bill_is_not_the_whole_cost.body_2'); ?></p>
 
-    <h2>Chair Time Has a Cost</h2>
+    <h2><?php echo t('marketing.articles.dental_remake_cost.sections.chair_time_has_a_cost.heading'); ?></h2>
 
-    <p>
-      A dentist's chair time has value whether or not the practice bills specifically for it. When a remake requires a second appointment, the practice gives up an opportunity to see a different patient in that same slot. The value of that time depends on the practice, the type of work typically scheduled in that chair, and the local fee structure.
-    </p>
+    <p><?php echo t('marketing.articles.dental_remake_cost.sections.chair_time_has_a_cost.body_3'); ?></p>
 
-    <p>
-      For example, a 45-minute remake appointment for a crown has a clear time cost. If a dentist's productive chair time is valued at $500 per hour, the chair time alone for that appointment is over $375. That is in addition to any lab fee or shipping charge.
-    </p>
+    <p><?php echo t('marketing.articles.dental_remake_cost.sections.chair_time_has_a_cost.body_4'); ?></p>
 
-    <h2>Staff Time Adds Up Too</h2>
+    <h2><?php echo t('marketing.articles.dental_remake_cost.sections.staff_time_adds_up_too.heading'); ?></h2>
 
-    <p>
-      Staff time may be less visible than dentist time, but it is still a real cost. Someone has to coordinate the remake with the patient, communicate with the lab, manage files and records, and update the schedule. For a busy practice, these small tasks accumulate quickly.
-    </p>
+    <p><?php echo t('marketing.articles.dental_remake_cost.sections.staff_time_adds_up_too.body_5'); ?></p>
 
-    <p>
-      If a staff member spends 20 minutes on a remake at $35 per hour, that is roughly $12 in direct labor per remake. Across dozens of remakes a year, the total becomes meaningful. And that time is also time not spent on other productive or patient-facing work.
-    </p>
+    <p><?php echo t('marketing.articles.dental_remake_cost.sections.staff_time_adds_up_too.body_6'); ?></p>
 
-    <h2>Calculate Your Practice's Remake Cost</h2>
+    <h2><?php echo t('marketing.articles.dental_remake_cost.sections.calculate_your_practice_s_remake_cost.heading'); ?></h2>
 
-    <p>
-      Use the calculator below to estimate the annual cost of remakes to your practice. The default values are examples only. Change them to reflect your own case volume, remake rate, and costs.
-    </p>
+    <p><?php echo t('marketing.articles.dental_remake_cost.sections.calculate_your_practice_s_remake_cost.body_7'); ?></p>
 
     <div class="calculator">
       <div class="calculator-grid">
         <div class="calc-field">
-          <label for="cases">Cases per month</label>
-          <span class="help">Total cases your practice sends to the lab in a typical month.</span>
+          <label for="cases"><?php echo t('marketing.articles.dental_remake_cost.calculator.fields.cases.label'); ?></label>
+          <span class="help"><?php echo t('marketing.articles.dental_remake_cost.calculator.fields.cases.help'); ?></span>
           <input type="number" id="cases" value="150" min="0" step="1">
         </div>
         <div class="calc-field">
-          <label for="rate">Estimated remake rate (%)</label>
-          <span class="help">The percentage of cases that require a remake.</span>
+          <label for="rate"><?php echo t('marketing.articles.dental_remake_cost.calculator.fields.rate.label'); ?></label>
+          <span class="help"><?php echo t('marketing.articles.dental_remake_cost.calculator.fields.rate.help'); ?></span>
           <input type="number" id="rate" value="5" min="0" step="0.1">
         </div>
         <div class="calc-field">
-          <label for="dentistMins">Average dentist chair time per remake (minutes)</label>
-          <span class="help">Time the dentist spends on the remake appointment.</span>
+          <label for="dentistMins"><?php echo t('marketing.articles.dental_remake_cost.calculator.fields.dentistMins.label'); ?></label>
+          <span class="help"><?php echo t('marketing.articles.dental_remake_cost.calculator.fields.dentistMins.help'); ?></span>
           <input type="number" id="dentistMins" value="45" min="0" step="1">
         </div>
         <div class="calc-field">
-          <label for="dentistHourly">Estimated value of dentist chair time ($/hour)</label>
-          <span class="help">Approximate productive value of one hour of chair time.</span>
+          <label for="dentistHourly"><?php echo t('marketing.articles.dental_remake_cost.calculator.fields.dentistHourly.label'); ?></label>
+          <span class="help"><?php echo t('marketing.articles.dental_remake_cost.calculator.fields.dentistHourly.help'); ?></span>
           <input type="number" id="dentistHourly" value="500" min="0" step="1">
         </div>
         <div class="calc-field">
-          <label for="staffMins">Average staff time per remake (minutes)</label>
-          <span class="help">Scheduling, coordination, and record keeping per remake.</span>
+          <label for="staffMins"><?php echo t('marketing.articles.dental_remake_cost.calculator.fields.staffMins.label'); ?></label>
+          <span class="help"><?php echo t('marketing.articles.dental_remake_cost.calculator.fields.staffMins.help'); ?></span>
           <input type="number" id="staffMins" value="20" min="0" step="1">
         </div>
         <div class="calc-field">
-          <label for="staffHourly">Average staff cost ($/hour)</label>
-          <span class="help">Hourly wage or loaded cost for staff time.</span>
+          <label for="staffHourly"><?php echo t('marketing.articles.dental_remake_cost.calculator.fields.staffHourly.label'); ?></label>
+          <span class="help"><?php echo t('marketing.articles.dental_remake_cost.calculator.fields.staffHourly.help'); ?></span>
           <input type="number" id="staffHourly" value="35" min="0" step="1">
         </div>
         <div class="calc-field">
-          <label for="labCharge">Additional lab/remake charge ($/remake)</label>
-          <span class="help">Use 0 if your lab remakes without an additional fee.</span>
+          <label for="labCharge"><?php echo t('marketing.articles.dental_remake_cost.calculator.fields.labCharge.label'); ?></label>
+          <span class="help"><?php echo t('marketing.articles.dental_remake_cost.calculator.fields.labCharge.help'); ?></span>
           <input type="number" id="labCharge" value="75" min="0" step="1">
         </div>
         <div class="calc-field">
-          <label for="shipping">Additional shipping/courier cost ($/remake)</label>
-          <span class="help">Round trip or rush shipping for the remade case.</span>
+          <label for="shipping"><?php echo t('marketing.articles.dental_remake_cost.calculator.fields.shipping.label'); ?></label>
+          <span class="help"><?php echo t('marketing.articles.dental_remake_cost.calculator.fields.shipping.help'); ?></span>
           <input type="number" id="shipping" value="15" min="0" step="1">
         </div>
         <div class="calc-field" style="grid-column: 1 / -1;">
-          <label for="other">Other estimated cost ($/remake)</label>
-          <span class="help">Imaging, additional materials, or other costs not captured above.</span>
+          <label for="other"><?php echo t('marketing.articles.dental_remake_cost.calculator.fields.other.label'); ?></label>
+          <span class="help"><?php echo t('marketing.articles.dental_remake_cost.calculator.fields.other.help'); ?></span>
           <input type="number" id="other" value="20" min="0" step="1">
         </div>
       </div>
 
       <div class="calc-results">
         <div class="primary-result">
-          <div class="label">Estimated Annual Remake Cost</div>
+          <div class="label"><?php echo t('marketing.articles.dental_remake_cost.calculator.primary_result.label'); ?></div>
           <div class="value" id="annualCost">$0</div>
         </div>
 
         <div class="result-grid">
           <div class="result-item">
-            <div class="label">Remakes per month</div>
+            <div class="label"><?php echo t('marketing.articles.dental_remake_cost.calculator.results.1.label'); ?></div>
             <div class="value" id="remakesMonth">0</div>
           </div>
           <div class="result-item">
-            <div class="label">Dentist/chair cost per remake</div>
+            <div class="label"><?php echo t('marketing.articles.dental_remake_cost.calculator.results.2.label'); ?></div>
             <div class="value" id="dentistCost">$0</div>
           </div>
           <div class="result-item">
-            <div class="label">Staff cost per remake</div>
+            <div class="label"><?php echo t('marketing.articles.dental_remake_cost.calculator.results.3.label'); ?></div>
             <div class="value" id="staffCost">$0</div>
           </div>
           <div class="result-item">
-            <div class="label">Total cost per remake</div>
+            <div class="label"><?php echo t('marketing.articles.dental_remake_cost.calculator.results.4.label'); ?></div>
             <div class="value" id="costPerRemake">$0</div>
           </div>
           <div class="result-item">
-            <div class="label">Estimated monthly cost</div>
+            <div class="label"><?php echo t('marketing.articles.dental_remake_cost.calculator.results.5.label'); ?></div>
             <div class="value" id="monthlyCost">$0</div>
           </div>
         </div>
 
         <div class="savings">
-          <h4>What if you reduced remakes?</h4>
-          <p class="calculator-disclaimer">These scenarios show estimated annual avoided costs if your practice reduced its remake rate. They do not assume any specific cause of reduction.</p>
+          <h4><?php echo t('marketing.articles.dental_remake_cost.calculator.savings.heading'); ?></h4>
+          <p class="calculator-disclaimer"><?php echo t('marketing.articles.dental_remake_cost.calculator.savings.disclaimer'); ?></p>
           <div class="savings-row" id="savings-0.5"></div>
           <div class="savings-row" id="savings-1"></div>
           <div class="savings-row" id="savings-2"></div>
         </div>
       </div>
 
-      <p class="calculator-disclaimer">
-        This calculator is for estimation only. Actual costs vary by practice, location, case type, lab relationship, and workflow. It is not financial or accounting advice.
-      </p>
+      <p class="calculator-disclaimer"><?php echo t('marketing.articles.dental_remake_cost.calculator.disclaimer'); ?></p>
     </div>
 
-    <h2>The Number That Matters Is Not Just Your Remake Rate</h2>
+    <h2><?php echo t('marketing.articles.dental_remake_cost.sections.the_number_that_matters_is_not_just_your_remake_rate.heading'); ?></h2>
 
-    <p>
-      Knowing that a practice has remakes is less useful than understanding the context around them. A percentage alone does not tell you where to act.
-    </p>
+    <p><?php echo t('marketing.articles.dental_remake_cost.sections.the_number_that_matters_is_not_just_your_remake_rate.body_8'); ?></p>
 
     <ul class="checklist">
-      <li><strong>How often remakes occur:</strong> Is the rate steady, seasonal, or increasing?</li>
-      <li><strong>Which case types are involved:</strong> Are remakes concentrated in crowns, implants, dentures, or another type?</li>
-      <li><strong>Which labs are involved:</strong> Does one lab account for more remakes than others?</li>
-      <li><strong>Why the remake occurred:</strong> Was it a prep issue, an impression problem, a shade mismatch, a lab error, or a communication gap?</li>
-      <li><strong>Whether certain reasons repeat:</strong> Are the same one or two issues coming up again and again?</li>
-      <li><strong>Whether the trend is improving or worsening:</strong> Are recent changes to the workflow helping?</li>
+      <li><strong><?php echo t('marketing.articles.dental_remake_cost.sections.the_number_that_matters_is_not_just_your_remake_rate.list_items.7.title'); ?></strong> <?php echo t('marketing.articles.dental_remake_cost.sections.the_number_that_matters_is_not_just_your_remake_rate.list_items.7.body'); ?></li>
+      <li><strong><?php echo t('marketing.articles.dental_remake_cost.sections.the_number_that_matters_is_not_just_your_remake_rate.list_items.8.title'); ?></strong> <?php echo t('marketing.articles.dental_remake_cost.sections.the_number_that_matters_is_not_just_your_remake_rate.list_items.8.body'); ?></li>
+      <li><strong><?php echo t('marketing.articles.dental_remake_cost.sections.the_number_that_matters_is_not_just_your_remake_rate.list_items.9.title'); ?></strong> <?php echo t('marketing.articles.dental_remake_cost.sections.the_number_that_matters_is_not_just_your_remake_rate.list_items.9.body'); ?></li>
+      <li><strong><?php echo t('marketing.articles.dental_remake_cost.sections.the_number_that_matters_is_not_just_your_remake_rate.list_items.10.title'); ?></strong> <?php echo t('marketing.articles.dental_remake_cost.sections.the_number_that_matters_is_not_just_your_remake_rate.list_items.10.body'); ?></li>
+      <li><strong><?php echo t('marketing.articles.dental_remake_cost.sections.the_number_that_matters_is_not_just_your_remake_rate.list_items.11.title'); ?></strong> <?php echo t('marketing.articles.dental_remake_cost.sections.the_number_that_matters_is_not_just_your_remake_rate.list_items.11.body'); ?></li>
+      <li><strong><?php echo t('marketing.articles.dental_remake_cost.sections.the_number_that_matters_is_not_just_your_remake_rate.list_items.12.title'); ?></strong> <?php echo t('marketing.articles.dental_remake_cost.sections.the_number_that_matters_is_not_just_your_remake_rate.list_items.12.body'); ?></li>
     </ul>
 
-    <p>
-      Answering these questions is what makes a practice able to reduce remakes, or at least reduce the cost and disruption associated with them.
-    </p>
+    <p><?php echo t('marketing.articles.dental_remake_cost.sections.the_number_that_matters_is_not_just_your_remake_rate.body_9'); ?></p>
 
-    <h2>Reducing Remake Cost Starts with Understanding Why Remakes Happen</h2>
+    <h2><?php echo t('marketing.articles.dental_remake_cost.sections.reducing_remake_cost_starts_with_understanding_why_remakes_happen.heading'); ?></h2>
 
-    <p>
-      DentaTrak cannot eliminate every remake. It can give a practice a clearer record of what is happening across its cases so the team can identify patterns, improve coordination, and make better decisions.
-    </p>
+    <p><?php echo t('marketing.articles.dental_remake_cost.sections.reducing_remake_cost_starts_with_understanding_why_remakes_happen.body_10'); ?></p>
 
-    <p>
-      DentaTrak keeps case history with the case. Practices can record remake and revision activity, note reasons for remakes, associate cases with specific labs, track case types, monitor due dates and patient appointments, and see practice and lab insights that reveal recurring patterns over time.
-    </p>
+    <p><?php echo t('marketing.articles.dental_remake_cost.sections.reducing_remake_cost_starts_with_understanding_why_remakes_happen.body_11'); ?></p>
 
-    <p>
-      That visibility is the foundation for improvement. Once the team can see where remakes are clustering and why, it becomes much easier to adjust workflows, train staff, clarify lab instructions, or catch problems earlier in the process.
-    </p>
+    <p><?php echo t('marketing.articles.dental_remake_cost.sections.reducing_remake_cost_starts_with_understanding_why_remakes_happen.body_12'); ?></p>
 
     <div class="related-links">
-      <h3>Related resources</h3>
+      <h3><?php echo t('marketing.articles.dental_remake_cost.related_resources.heading'); ?></h3>
       <ul>
-        <li><a href="<?= $baseUrl . ($articleUrls['article_lab_tracking'] ?? 'dental-lab-case-tracking') ?>">Dental Lab Case Tracking</a></li>
-        <li><a href="<?= $baseUrl . ($articleUrls['article_crown_bridge'] ?? 'crown-and-bridge-case-tracking') ?>">Crown and Bridge Case Tracking</a></li>
-        <li><a href="<?= $baseUrl . ($articleUrls['article_implant'] ?? 'implant-case-tracking') ?>">Implant Case Tracking</a></li>
-        <li><a href="<?= $baseUrl . ($articleUrls['page_about'] ?? 'about') ?>">About DentaTrak</a></li>
+        <li><a href="<?= $baseUrl . ($articleUrls['article_lab_tracking'] ?? 'dental-lab-case-tracking') ?>"><?php echo t('marketing.articles.dental_remake_cost.related_resources.items.0'); ?></a></li>
+        <li><a href="<?= $baseUrl . ($articleUrls['article_crown_bridge'] ?? 'crown-and-bridge-case-tracking') ?>"><?php echo t('marketing.articles.dental_remake_cost.related_resources.items.1'); ?></a></li>
+        <li><a href="<?= $baseUrl . ($articleUrls['article_implant'] ?? 'implant-case-tracking') ?>"><?php echo t('marketing.articles.dental_remake_cost.related_resources.items.2'); ?></a></li>
+        <li><a href="<?= $baseUrl . ($articleUrls['page_about'] ?? 'about') ?>"><?php echo t('marketing.articles.dental_remake_cost.related_resources.items.3'); ?></a></li>
       </ul>
     </div>
 
     <div class="cta-section">
-      <h2>Know what your remakes are costing. Then understand why they are happening.</h2>
-      <p>DentaTrak gives your practice one place to track cases, remakes, and the details that help your team improve coordination.</p>
-      <a href="<?= $baseUrl ?>login.php" class="btn-white">Start Free</a>
-      <p style="margin-top: 16px; font-size: 0.9rem;">90-day free trial. No credit card required.</p>
+      <h2><?php echo t('marketing.articles.dental_remake_cost.sections.know_what_your_remakes_are_costing_then_understand_why_they_are_happening.heading'); ?></h2>
+      <p><?php echo t('marketing.articles.dental_remake_cost.cta.body'); ?></p>
+      <a href="<?= $baseUrl ?>login.php" class="btn-white"><?php echo t('marketing.articles.dental_remake_cost.sections.know_what_your_remakes_are_costing_then_understand_why_they_are_happening.links.1'); ?></a>
+      <p style="margin-top: 16px; font-size: 0.9rem;"><?php echo t('marketing.articles.dental_remake_cost.cta.body'); ?></p>
     </div>
   </main>
 
   <!-- Footer -->
   <footer class="footer">
     <div class="footer-inner">
-      <a href="<?= $baseUrl ?>" class="footer-wordmark" aria-label="DentaTrak home"><span class="denta">Denta</span><span class="trak">Trak</span></a>
+      <a href="<?= $baseUrl ?>" class="footer-wordmark" aria-label="<?php echo htmlspecialchars(t('marketing.accessibility.home_aria')); ?>"><span class="denta">Denta</span><span class="trak">Trak</span></a>
       <div class="footer-links">
-        <a href="<?= $baseUrl . ($articleUrls['page_about'] ?? 'about') ?>" class="footer-link">About</a>
-        <a href="<?= $baseUrl . ($articleUrls['page_resources'] ?? 'resources') ?>" class="footer-link">Resources</a>
-        <a href="<?= $baseUrl ?>privacy.php" class="footer-link">Privacy</a>
-        <a href="<?= $baseUrl ?>terms.php" class="footer-link">Terms</a>
+        <a href="<?= $baseUrl . ($articleUrls['page_about'] ?? 'about') ?>" class="footer-link"><?php echo t('marketing.footer.about'); ?></a>
+        <a href="<?= $baseUrl . ($articleUrls['page_resources'] ?? 'resources') ?>" class="footer-link"><?php echo t('marketing.navigation.resources'); ?></a>
+        <a href="<?= $baseUrl ?>privacy.php" class="footer-link"><?php echo t('marketing.footer.privacy'); ?></a>
+        <a href="<?= $baseUrl ?>terms.php" class="footer-link"><?php echo t('marketing.footer.terms'); ?></a>
       </div>
-      <span class="footer-copy">&copy; <?php echo date('Y'); ?> <?php echo htmlspecialchars($appName); ?>. All rights reserved.</span>
+      <span class="footer-copy">&copy; <?php echo date('Y'); ?> <?php echo htmlspecialchars($appName); ?>. <?php echo t('marketing.footer.copyright'); ?></span>
     </div>
   </footer>
 
   <script>
+    const calcLabels = {
+      from_to: <?php echo json_encode(t('marketing.articles.dental_remake_cost.calculator.savings.from_to'), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>,
+      per_year: <?php echo json_encode(t('marketing.articles.dental_remake_cost.calculator.savings.per_year'), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>
+    };
     const fields = ['cases','rate','dentistMins','dentistHourly','staffMins','staffHourly','labCharge','shipping','other'];
     const fmtCurrency = (n) => {
       const v = Number(n);
@@ -432,7 +409,7 @@ $articleUrls = $appConfig['public_urls'] ?? [];
         const avoidedAnnual = avoidedMonth * costPerRemake * 12;
         const row = document.getElementById('savings-' + (r % 1 === 0 ? r : '0.5'));
         if (row) {
-          row.innerHTML = '<span>From ' + fmtNumber(rate, 1) + '% to ' + fmtNumber(newRate, 1) + '%</span><span class="amount">' + fmtCurrency(avoidedAnnual) + ' per year</span>';
+          row.innerHTML = '<span>' + calcLabels.from_to.replace('{rate}', fmtNumber(rate, 1)).replace('{newRate}', fmtNumber(newRate, 1)) + '</span><span class="amount">' + fmtCurrency(avoidedAnnual) + ' ' + calcLabels.per_year + '</span>';
         }
       });
     }

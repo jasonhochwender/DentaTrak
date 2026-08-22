@@ -16,6 +16,7 @@
  */
 
 require_once __DIR__ . '/session.php';
+require_once __DIR__ . '/appConfig.php';
 require_once __DIR__ . '/practice-security.php';
 require_once __DIR__ . '/gcs-storage.php';
 require_once __DIR__ . '/csrf.php';
@@ -28,7 +29,7 @@ setApiSecurityHeaders();
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     http_response_code(405);
     header('Content-Type: application/json');
-    echo json_encode(['success' => false, 'error' => 'Method not allowed']);
+    echo json_encode(['success' => false, 'error' => t('api.attachment_content.method_not_allowed')]);
     exit;
 }
 
@@ -39,7 +40,7 @@ $userId = $_SESSION['db_user_id'] ?? null;
 if (!$userId) {
     http_response_code(401);
     header('Content-Type: application/json');
-    echo json_encode(['success' => false, 'error' => 'Authentication required']);
+    echo json_encode(['success' => false, 'error' => t('api.attachment_content.authentication_required')]);
     exit;
 }
 
@@ -52,7 +53,7 @@ $input = json_decode(file_get_contents('php://input'), true);
 if (!$input) {
     http_response_code(400);
     header('Content-Type: application/json');
-    echo json_encode(['success' => false, 'error' => 'Invalid JSON request body']);
+    echo json_encode(['success' => false, 'error' => t('api.attachment_content.invalid_json')]);
     exit;
 }
 
@@ -61,7 +62,7 @@ $storagePath = $input['storage_path'] ?? '';
 if (empty($storagePath)) {
     http_response_code(400);
     header('Content-Type: application/json');
-    echo json_encode(['success' => false, 'error' => 'Missing required field: storage_path']);
+    echo json_encode(['success' => false, 'error' => t('api.attachment_content.missing_storage_path')]);
     exit;
 }
 
@@ -70,7 +71,7 @@ $expectedPrefix = "cases/{$currentPracticeId}/";
 if (strpos($storagePath, $expectedPrefix) !== 0) {
     http_response_code(403);
     header('Content-Type: application/json');
-    echo json_encode(['success' => false, 'error' => 'Access denied']);
+    echo json_encode(['success' => false, 'error' => t('api.attachment_content.access_denied')]);
     exit;
 }
 
@@ -78,7 +79,7 @@ if (strpos($storagePath, $expectedPrefix) !== 0) {
 if (strpos($storagePath, '..') !== false) {
     http_response_code(400);
     header('Content-Type: application/json');
-    echo json_encode(['success' => false, 'error' => 'Invalid storage path']);
+    echo json_encode(['success' => false, 'error' => t('api.attachment_content.invalid_storage_path')]);
     exit;
 }
 
@@ -97,7 +98,7 @@ try {
     if (!$object->exists()) {
         http_response_code(404);
         header('Content-Type: application/json');
-        echo json_encode(['success' => false, 'error' => 'File not found']);
+        echo json_encode(['success' => false, 'error' => t('api.attachment_content.file_not_found')]);
         exit;
     }
 
@@ -127,6 +128,6 @@ try {
     error_log('[AttachmentContent] Error streaming attachment: ' . $e->getMessage());
     http_response_code(500);
     header('Content-Type: application/json');
-    echo json_encode(['success' => false, 'error' => 'Failed to stream attachment']);
+    echo json_encode(['success' => false, 'error' => t('api.attachment_content.stream_failed')]);
     exit;
 }

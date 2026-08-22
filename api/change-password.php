@@ -21,7 +21,7 @@ setApiSecurityHeaders();
 // ============================================
 if (!isset($_SESSION['db_user_id'])) {
     http_response_code(401);
-    echo json_encode(['success' => false, 'message' => 'Authentication required']);
+    echo json_encode(['success' => false, 'message' => t('billing.errors.authentication_required')]);
     exit;
 }
 
@@ -33,7 +33,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 // Only accept POST requests
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     http_response_code(405);
-    echo json_encode(['success' => false, 'message' => 'Method not allowed']);
+    echo json_encode(['success' => false, 'message' => t('billing.errors.method_not_allowed')]);
     exit;
 }
 
@@ -43,7 +43,7 @@ $data = json_decode($jsonData, true);
 
 if (!$data) {
     http_response_code(400);
-    echo json_encode(['success' => false, 'message' => 'Invalid request data']);
+    echo json_encode(['success' => false, 'message' => t('auth.errors.invalid_request_data')]);
     exit;
 }
 
@@ -57,19 +57,19 @@ $confirmPassword = $data['confirmPassword'] ?? '';
 // ============================================
 if (empty($currentPassword)) {
     http_response_code(400);
-    echo json_encode(['success' => false, 'message' => 'Current password is required', 'field' => 'currentPassword']);
+    echo json_encode(['success' => false, 'message' => t('auth.errors.current_password_required'), 'field' => 'currentPassword']);
     exit;
 }
 
 if (empty($newPassword)) {
     http_response_code(400);
-    echo json_encode(['success' => false, 'message' => 'New password is required', 'field' => 'newPassword']);
+    echo json_encode(['success' => false, 'message' => t('auth.errors.new_password_required'), 'field' => 'newPassword']);
     exit;
 }
 
 if ($newPassword !== $confirmPassword) {
     http_response_code(400);
-    echo json_encode(['success' => false, 'message' => 'New passwords do not match', 'field' => 'confirmPassword']);
+    echo json_encode(['success' => false, 'message' => t('auth.errors.passwords_not_match'), 'field' => 'confirmPassword']);
     exit;
 }
 
@@ -80,19 +80,19 @@ if ($newPassword !== $confirmPassword) {
 $passwordErrors = [];
 
 if (strlen($newPassword) < 8) {
-    $passwordErrors[] = 'Password must be at least 8 characters long';
+    $passwordErrors[] = t('auth.errors.password_min_length');
 }
 
 if (!preg_match('/[A-Z]/', $newPassword)) {
-    $passwordErrors[] = 'Password must contain at least one uppercase letter';
+    $passwordErrors[] = t('auth.errors.password_upper');
 }
 
 if (!preg_match('/[0-9]/', $newPassword)) {
-    $passwordErrors[] = 'Password must contain at least one number';
+    $passwordErrors[] = t('auth.errors.password_number');
 }
 
 if (!preg_match('/[!@#$%^&*()_+\-=\[\]{};\':"\\|,.<>\/?]/', $newPassword)) {
-    $passwordErrors[] = 'Password must contain at least one special character';
+    $passwordErrors[] = t('auth.errors.password_special');
 }
 
 if (!empty($passwordErrors)) {
@@ -117,7 +117,7 @@ try {
     
     if (!$user) {
         http_response_code(404);
-        echo json_encode(['success' => false, 'message' => 'User not found']);
+        echo json_encode(['success' => false, 'message' => t('auth.errors.no_account')]);
         exit;
     }
     
@@ -126,7 +126,7 @@ try {
         http_response_code(400);
         echo json_encode([
             'success' => false, 
-            'message' => 'Your account uses Google Sign-In only. Please set up a password first via the login page.'
+            'message' => t('auth.errors.google_only_setup_password')
         ]);
         exit;
     }
@@ -136,7 +136,7 @@ try {
         http_response_code(400);
         echo json_encode([
             'success' => false, 
-            'message' => 'Current password is incorrect',
+            'message' => t('auth.errors.current_password_incorrect'),
             'field' => 'currentPassword'
         ]);
         exit;
@@ -189,7 +189,7 @@ try {
         
         echo json_encode([
             'success' => true,
-            'message' => 'Password changed successfully'
+            'message' => t('auth.errors.password_change_success')
         ]);
         
     } catch (Exception $e) {
@@ -202,6 +202,6 @@ try {
     http_response_code(500);
     echo json_encode([
         'success' => false,
-        'message' => 'An error occurred while changing password. Please try again.'
+        'message' => t('auth.errors.password_change_error')
     ]);
 }

@@ -44,13 +44,13 @@ require_once __DIR__ . '/stripe-price-map.php';
 // ── Auth ─────────────────────────────────────────────────────────────────────
 if (!isset($_SESSION['db_user_id'])) {
     http_response_code(401);
-    echo json_encode(['error' => 'Authentication required']);
+    echo json_encode(['error' => t('billing.errors.authentication_required')]);
     exit;
 }
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     http_response_code(405);
-    echo json_encode(['error' => 'Method not allowed']);
+    echo json_encode(['error' => t('billing.errors.method_not_allowed')]);
     exit;
 }
 
@@ -63,7 +63,7 @@ $userId            = $_SESSION['db_user_id'];
 // ── Permission: admin or owner only ─────────────────────────────────────────
 if (!isPracticeAdmin($currentPracticeId) && !isPracticeOwner($currentPracticeId)) {
     http_response_code(403);
-    echo json_encode(['error' => 'Billing management requires practice administrator or owner role']);
+    echo json_encode(['error' => t('billing.errors.billing_requires_admin_or_owner')]);
     exit;
 }
 
@@ -73,7 +73,7 @@ $userStmt->execute([$userId]);
 $userRow = $userStmt->fetch(PDO::FETCH_ASSOC);
 if ($userRow && isBillingBypassEmail($userRow['email'])) {
     http_response_code(403);
-    echo json_encode(['error' => 'Billing management is not applicable to this account']);
+    echo json_encode(['error' => t('billing.errors.billing_not_applicable')]);
     exit;
 }
 
@@ -81,7 +81,7 @@ if ($userRow && isBillingBypassEmail($userRow['email'])) {
 $body = json_decode(file_get_contents('php://input'), true);
 if (!is_array($body)) {
     http_response_code(400);
-    echo json_encode(['error' => 'Invalid JSON body']);
+    echo json_encode(['error' => t('billing.errors.invalid_json_body')]);
     exit;
 }
 
@@ -95,12 +95,12 @@ $allowedIntervals = ['month', 'year'];
 
 if (!in_array($plan, $allowedPlans, true)) {
     http_response_code(400);
-    echo json_encode(['error' => 'Invalid plan. Must be one of: ' . implode(', ', $allowedPlans)]);
+    echo json_encode(['error' => t('billing.errors.invalid_plan', ['plans' => implode(', ', $allowedPlans)])]);
     exit;
 }
 if (!in_array($interval, $allowedIntervals, true)) {
     http_response_code(400);
-    echo json_encode(['error' => 'Invalid interval. Must be month or year']);
+    echo json_encode(['error' => t('billing.errors.invalid_interval')]);
     exit;
 }
 
@@ -111,7 +111,7 @@ $stripeConfig = $appConfig['stripe'] ?? [];
 if (!empty($stripeConfig['config_error'])) {
     error_log('create-checkout-session: Stripe config error: ' . $stripeConfig['config_error']);
     http_response_code(500);
-    echo json_encode(['error' => 'Payment system configuration error. Please contact support.']);
+    echo json_encode(['error' => t('billing.errors.payment_system_config')]);
     exit;
 }
 
@@ -128,7 +128,7 @@ if ($priceId === null) {
               ($interval === 'month' ? 'MONTHLY' : 'ANNUAL') . '_PRICE_ID for this environment');
     http_response_code(503);
     echo json_encode([
-        'error'      => 'The ' . getPlanDisplayName($plan) . ' plan is not available for purchase yet. Please contact support.',
+        'error'      => t('billing.errors.plan_not_available', ['plan' => getPlanDisplayName($plan)]),
         'error_code' => 'plan_not_available',
     ]);
     exit;
@@ -139,7 +139,7 @@ $secretKey = $stripeConfig['secret_key'] ?? null;
 if (empty($secretKey)) {
     error_log('create-checkout-session: STRIPE_SECRET_KEY not configured');
     http_response_code(500);
-    echo json_encode(['error' => 'Payment system not configured. Please contact support.']);
+    echo json_encode(['error' => t('billing.errors.payment_system_not_configured')]);
     exit;
 }
 
@@ -148,7 +148,7 @@ $ownerUserId = getSubscriptionOwnerUserId($pdo, $currentPracticeId);
 if ($ownerUserId === null) {
     error_log("create-checkout-session: no subscription owner found for practice {$currentPracticeId}");
     http_response_code(500);
-    echo json_encode(['error' => 'Internal server error']);
+    echo json_encode(['error' => t('billing.errors.internal')]);
     exit;
 }
 
@@ -161,7 +161,7 @@ try {
 } catch (PDOException $e) {
     error_log('create-checkout-session: DB error loading owner subscription: ' . $e->getMessage());
     http_response_code(500);
-    echo json_encode(['error' => 'Internal server error']);
+    echo json_encode(['error' => t('billing.errors.internal')]);
     exit;
 }
 
@@ -180,7 +180,7 @@ if (
     } catch (Exception $e) {
         error_log('create-checkout-session: portal redirect failed: ' . $e->getMessage());
         http_response_code(502);
-        echo json_encode(['error' => 'Payment system error. Please try again or contact support.']);
+        echo json_encode(['error' => t('billing.errors.payment_system_error')]);
     }
     exit;
 }
@@ -245,7 +245,7 @@ try {
                 error_log("create-checkout-session: no add-on Price ID configured for scale/{$interval} in this environment");
                 http_response_code(503);
                 echo json_encode([
-                    'error'      => 'The Scale plan is not available for purchase with this many practices. Please contact support.',
+                    'error'      => t('billing.errors.plan_not_available_quantity'),
                     'error_code' => 'plan_not_available',
                 ]);
                 exit;
@@ -278,6 +278,12 @@ try {
         ],
     ];
 
+    // Pass the resolved DentaTrak locale to Stripe Checkout when supported.
+    $stripeLocale = function_exists('getStripeLocale') ? getStripeLocale(getResolvedLocale()) : null;
+    if (!empty($stripeLocale)) {
+        $sessionParams['locale'] = $stripeLocale;
+    }
+
     // Carry the DentaTrak trial end into Stripe only when still in the future
     if ($stripeTrialEnd !== null) {
         $sessionParams['subscription_data']['trial_end'] = $stripeTrialEnd;
@@ -290,11 +296,11 @@ try {
 } catch (\Stripe\Exception\ApiErrorException $e) {
     error_log('create-checkout-session: Stripe API error: ' . $e->getMessage());
     http_response_code(502);
-    echo json_encode(['error' => 'Payment system error. Please try again or contact support.']);
+    echo json_encode(['error' => t('billing.errors.payment_system_error')]);
 } catch (Exception $e) {
     error_log('create-checkout-session: Unexpected error: ' . $e->getMessage());
     http_response_code(500);
-    echo json_encode(['error' => 'Internal server error']);
+    echo json_encode(['error' => t('billing.errors.internal')]);
 }
 
 /**
@@ -318,6 +324,10 @@ function createPortalSession(PDO $pdo, int $ownerUserId, array $appConfig): stri
     $portalConfigId = $appConfig['stripe']['portal_configuration_id'] ?? null;
     if (!empty($portalConfigId)) {
         $params['configuration'] = $portalConfigId;
+    }
+    $stripeLocale = function_exists('getStripeLocale') ? getStripeLocale(getResolvedLocale()) : null;
+    if (!empty($stripeLocale)) {
+        $params['locale'] = $stripeLocale;
     }
     $portal = \Stripe\BillingPortal\Session::create($params);
     return $portal->url;

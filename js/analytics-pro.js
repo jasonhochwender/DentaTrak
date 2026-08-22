@@ -185,9 +185,9 @@
 
     // Update lifecycle metrics
     const lifecycle = charts.lifecycle || {};
-    updateElement('apAvgLifecycle', (lifecycle.avg_total_days || 0) + ' days');
-    updateElement('apFastestCase', (lifecycle.min_total_days || 0) + ' days');
-    updateElement('apSlowestCase', (lifecycle.max_total_days || 0) + ' days');
+    updateElement('apAvgLifecycle', I18n.pluralize(lifecycle.avg_total_days || 0, 'insights.metrics.days'));
+    updateElement('apFastestCase', I18n.pluralize(lifecycle.min_total_days || 0, 'insights.metrics.days'));
+    updateElement('apSlowestCase', I18n.pluralize(lifecycle.max_total_days || 0, 'insights.metrics.days'));
 
     // Destroy existing charts before creating new ones
     destroyAllCharts();
@@ -290,7 +290,7 @@
       data: {
         labels: Object.keys(typeData),
         datasets: [{
-          label: 'Cases',
+          label: t('insights.charts.dataset_cases'),
           data: Object.values(typeData),
           backgroundColor: colors.secondary,
           borderRadius: 6,
@@ -341,7 +341,7 @@
         labels: labels,
         datasets: [
           {
-            label: 'Created',
+            label: t('insights.charts.dataset_created'),
             data: created,
             borderColor: colors.primary,
             backgroundColor: 'rgba(30, 64, 175, 0.1)',
@@ -351,7 +351,7 @@
             pointHoverRadius: 6
           },
           {
-            label: 'Delivered',
+            label: t('insights.charts.dataset_delivered'),
             data: delivered,
             borderColor: colors.success,
             backgroundColor: 'rgba(16, 185, 129, 0.1)',
@@ -409,7 +409,7 @@
       data: {
         labels: Object.keys(teamData),
         datasets: [{
-          label: 'Cases',
+          label: t('insights.charts.dataset_cases'),
           data: Object.values(teamData),
           backgroundColor: colors.primaryLight,
           borderRadius: 6,
@@ -529,7 +529,7 @@
     if (!container) return;
 
     if (!creatorBreakdown || !Array.isArray(creatorBreakdown) || creatorBreakdown.length === 0) {
-      container.innerHTML = '<p class="insights-empty-state" id="apCreatorBreakdownEmpty" style="width: 100%;">No creator data available.</p>';
+      container.innerHTML = '<p class="insights-empty-state" id="apCreatorBreakdownEmpty" style="width: 100%;">' + t('insights.creators.empty') + '</p>';
       return;
     }
 
@@ -570,7 +570,7 @@
     // Clear any previous state and show loading indicator inside the container.
     // The static #apAILoading child is intentionally replaced here — it is inside
     // #apRecommendations and would be wiped by innerHTML anyway.
-    container.innerHTML = '<div class="ap-loading"><div class="ap-loading-spinner"></div><p class="ap-loading-text">Generating Smart Recommendations…</p></div>';
+    container.innerHTML = '<div class="ap-loading"><div class="ap-loading-spinner"></div><p class="ap-loading-text">' + t('insights.ai.generating') + '</p></div>';
 
     fetch('api/ai-recommendations.php', { credentials: 'same-origin' })
       .then(response => response.json())
@@ -588,13 +588,13 @@
           displayRecommendations(container, data.recommendations);
           aiRecommendationsLoaded = true;
         } else {
-          showAIError(container, 'No recommendations available at this time.');
+          showAIError(container, t('insights.ai.none_available'));
         }
       })
       .catch(error => {
         // Network/parse failure; UI toast handles display
         clearAIRecommendationsLoadingState(container);
-        showAIError(container, 'Failed to load recommendations. Please try again.');
+        showAIError(container, t('insights.ai.load_error'));
       })
       .finally(() => {
         aiRecommendationsLoading = false;
@@ -618,7 +618,7 @@
         <div class="ap-recommendation-content">
           <div class="ap-recommendation-header">
             <h4 class="ap-recommendation-title">${escapeHtml(rec.title)}</h4>
-            <span class="ap-recommendation-priority ${rec.priority || 'medium'}">${rec.priority || 'medium'}</span>
+            <span class="ap-recommendation-priority ${rec.priority || 'medium'}">${t('insights.priority.' + (rec.priority || 'medium'))}</span>
           </div>
           <p class="ap-recommendation-description">${escapeHtml(rec.description)}</p>
         </div>
@@ -736,21 +736,21 @@
         labels: labels,
         datasets: [
           {
-            label: 'Average Days',
+            label: t('insights.charts.dataset_average_days'),
             data: avgDays,
             backgroundColor: colors.primary,
             borderRadius: 6,
             borderSkipped: false
           },
           {
-            label: 'Min Days',
+            label: t('insights.charts.dataset_min_days'),
             data: minDays,
             backgroundColor: colors.success,
             borderRadius: 6,
             borderSkipped: false
           },
           {
-            label: 'Max Days',
+            label: t('insights.charts.dataset_max_days'),
             data: maxDays,
             backgroundColor: colors.danger,
             borderRadius: 6,
@@ -797,9 +797,9 @@
       apCharts['apLifecycleChart'] = new Chart(ctx, {
         type: 'bar',
         data: {
-          labels: ['No Data'],
+          labels: [t('insights.charts.no_data')],
           datasets: [{
-            label: 'Days',
+            label: t('insights.charts.dataset_days'),
             data: [0],
             backgroundColor: colors.slate,
             borderRadius: 6
@@ -822,9 +822,9 @@
     apCharts['apLifecycleChart'] = new Chart(ctx, {
       type: 'bar',
       data: {
-        labels: ['Fastest', 'Average', 'Slowest'],
+        labels: [t('insights.charts.lifecycle_fastest'), t('insights.charts.lifecycle_average'), t('insights.charts.lifecycle_slowest')],
         datasets: [{
-          label: 'Days',
+          label: t('insights.charts.dataset_days'),
           data: [
             Number(data.min_total_days || 0),
             Number(data.avg_total_days || 0),
@@ -843,7 +843,7 @@
           tooltip: {
             callbacks: {
               label: function(context) {
-                return context.parsed.y + ' days';
+                return I18n.pluralize(context.parsed.y, 'insights.metrics.days');
               }
             }
           }

@@ -28,19 +28,19 @@ function validatePassword($password) {
     $errors = [];
     
     if (strlen($password) < 8) {
-        $errors[] = 'Password must be at least 8 characters long';
+        $errors[] = t('auth.errors.password_min_length');
     }
     
     if (!preg_match('/[A-Z]/', $password)) {
-        $errors[] = 'Password must contain at least one uppercase letter';
+        $errors[] = t('auth.errors.password_upper');
     }
     
     if (!preg_match('/[0-9]/', $password)) {
-        $errors[] = 'Password must contain at least one number';
+        $errors[] = t('auth.errors.password_number');
     }
     
     if (!preg_match('/[!@#$%^&*()_+\-=\[\]{};\':"\\|,.<>\/?]/', $password)) {
-        $errors[] = 'Password must contain at least one special character (!@#$%^&*()_+-=[]{};\':"|,.<>/?)';
+        $errors[] = t('auth.errors.password_special');
     }
     
     return $errors;
@@ -78,7 +78,7 @@ switch ($action) {
         break;
     default:
         http_response_code(400);
-        echo json_encode(['success' => false, 'message' => 'Invalid action']);
+        echo json_encode(['success' => false, 'message' => t('auth.errors.invalid_action')]);
         break;
 }
 
@@ -92,14 +92,14 @@ function handleRegister($pdo, $input) {
     // Validate email
     if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
         http_response_code(400);
-        echo json_encode(['success' => false, 'message' => 'Invalid email address']);
+        echo json_encode(['success' => false, 'message' => t('auth.errors.invalid_email')]);
         return;
     }
     
     // Check passwords match
     if ($password !== $confirmPassword) {
         http_response_code(400);
-        echo json_encode(['success' => false, 'message' => 'Passwords do not match']);
+        echo json_encode(['success' => false, 'message' => t('auth.errors.passwords_not_match')]);
         return;
     }
     
@@ -109,7 +109,7 @@ function handleRegister($pdo, $input) {
         http_response_code(400);
         echo json_encode([
             'success' => false, 
-            'message' => 'Password does not meet requirements',
+            'message' => t('auth.errors.password_requirements_not_met'),
             'errors' => $passwordErrors
         ]);
         return;
@@ -142,7 +142,7 @@ function handleRegister($pdo, $input) {
 
         echo json_encode([
             'success' => true,
-            'message' => 'Account created! Please check your email to verify your account before signing in.',
+            'message' => t('auth.login.verify_email_message'),
             'requires_verification' => true
         ]);
     } else {
@@ -160,13 +160,13 @@ function handleLogin($pdo, $input) {
     // Validate email
     if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
         http_response_code(400);
-        echo json_encode(['success' => false, 'message' => 'Invalid email address']);
+        echo json_encode(['success' => false, 'message' => t('auth.errors.invalid_email')]);
         return;
     }
     
     if (empty($password)) {
         http_response_code(400);
-        echo json_encode(['success' => false, 'message' => 'Password is required']);
+        echo json_encode(['success' => false, 'message' => t('auth.errors.password_required')]);
         return;
     }
     
@@ -186,7 +186,7 @@ function handleLogin($pdo, $input) {
         http_response_code(401);
         echo json_encode([
             'success' => false,
-            'message' => 'Please verify your email before signing in. Check your inbox for the verification link.',
+            'message' => t('auth.errors.email_not_verified'),
             'requires_verification' => true,
             'email' => $email
         ]);
@@ -214,7 +214,7 @@ function handleLogin($pdo, $input) {
             echo json_encode([
                 'success' => false,
                 'requires_2fa' => true,
-                'message' => 'Please enter your two-factor authentication code.'
+                'message' => t('auth.errors.2fa_required')
             ]);
             return;
         }
@@ -226,7 +226,7 @@ function handleLogin($pdo, $input) {
             echo json_encode([
                 'success' => false,
                 'requires_2fa' => true,
-                'message' => 'Invalid authentication code. Please try again.'
+                'message' => t('auth.errors.invalid_2fa')
             ]);
             return;
         }
@@ -269,7 +269,7 @@ function handleLogin($pdo, $input) {
     
     echo json_encode([
         'success' => true,
-        'message' => 'Login successful',
+        'message' => t('auth.errors.login_success'),
         'redirect' => $practiceSelection['redirect']
     ]);
 }

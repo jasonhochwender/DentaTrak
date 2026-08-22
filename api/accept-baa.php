@@ -29,7 +29,7 @@ header('Content-Type: application/json');
 // Check if user is logged in
 if (!isset($_SESSION['db_user_id'])) {
     http_response_code(401);
-    echo json_encode(['success' => false, 'message' => 'User not authenticated']);
+    echo json_encode(['success' => false, 'message' => t('onboarding.baa.api.not_authenticated')]);
     exit;
 }
 
@@ -38,7 +38,7 @@ $userId = $_SESSION['db_user_id'];
 // Only accept POST requests
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     http_response_code(405);
-    echo json_encode(['success' => false, 'message' => 'Method not allowed']);
+    echo json_encode(['success' => false, 'message' => t('onboarding.baa.api.method_not_allowed')]);
     exit;
 }
 
@@ -51,7 +51,7 @@ $data = json_decode($jsonData, true);
 
 if (!$data) {
     http_response_code(400);
-    echo json_encode(['success' => false, 'message' => 'Invalid JSON data']);
+    echo json_encode(['success' => false, 'message' => t('onboarding.baa.api.invalid_json')]);
     exit;
 }
 
@@ -69,7 +69,7 @@ if (!empty($missingFields)) {
     http_response_code(400);
     echo json_encode([
         'success' => false,
-        'message' => 'Missing required fields: ' . implode(', ', $missingFields)
+        'message' => t('onboarding.baa.api.missing_fields', ['fields' => implode(', ', $missingFields)])
     ]);
     exit;
 }
@@ -79,7 +79,7 @@ if ($data['authorizedToBind'] !== true) {
     http_response_code(400);
     echo json_encode([
         'success' => false,
-        'message' => 'You must confirm you are authorized to bind this practice'
+        'message' => t('onboarding.baa.api.must_authorize')
     ]);
     exit;
 }
@@ -93,13 +93,13 @@ $signerTitle = trim($data['signerTitle']);
 // Validate lengths
 if (strlen($legalName) > 255) {
     http_response_code(400);
-    echo json_encode(['success' => false, 'message' => 'Legal name must be 255 characters or less']);
+    echo json_encode(['success' => false, 'message' => t('onboarding.baa.api.legal_name_too_long')]);
     exit;
 }
 
 if (strlen($signerName) > 255 || strlen($signerTitle) > 255) {
     http_response_code(400);
-    echo json_encode(['success' => false, 'message' => 'Signer name and title must be 255 characters or less']);
+    echo json_encode(['success' => false, 'message' => t('onboarding.baa.api.signer_too_long')]);
     exit;
 }
 
@@ -173,7 +173,7 @@ try {
                 echo json_encode([
                     'success'        => false,
                     'error_code'     => 'PRACTICE_LIMIT_REACHED',
-                    'message'        => "Your {$entitlement['plan_name']} plan allows {$limitText} owned practice(s). Upgrade to add another.",
+                    'message'        => t('onboarding.baa.api.practice_limit_reached', ['plan' => $entitlement['plan_name'], 'max' => $limitText]),
                     'plan'           => $entitlement['plan'],
                     'plan_name'      => $entitlement['plan_name'],
                     'max_practices'  => $entitlement['max_practices'],
@@ -202,11 +202,11 @@ try {
                 INSERT INTO practices (
                     practice_id, practice_name, legal_name, display_name, practice_address,
                     baa_accepted, baa_accepted_at, baa_version, baa_accepted_by_user_id,
-                    baa_signer_name, baa_signer_title, created_by
+                    baa_signer_name, baa_signer_title, created_by, default_locale
                 ) VALUES (
                     :practice_uuid, :practice_name, :legal_name, :display_name, :practice_address,
                     1, UTC_TIMESTAMP(), :baa_version, :user_id,
-                    :signer_name, :signer_title, :created_by
+                    :signer_name, :signer_title, :created_by, :default_locale
                 )
             ");
 
@@ -221,6 +221,7 @@ try {
                 'signer_name' => $signerName,
                 'signer_title' => $signerTitle,
                 'created_by' => $userId,
+                'default_locale' => 'en-US',
             ]);
 
             $practiceId = $pdo->lastInsertId();
@@ -252,7 +253,7 @@ try {
                     http_response_code(502);
                     echo json_encode([
                         'success'   => false,
-                        'message'   => 'Billing update failed. Please try again or contact support.',
+                        'message'   => t('onboarding.baa.api.billing_update_failed'),
                         'error_code' => 'BILLING_UPDATE_FAILED',
                     ]);
                     exit;
@@ -288,7 +289,7 @@ try {
 
         // Send welcome email only for the very first owned practice
         if ($entitlement['current_count'] === 0) {
-            sendWelcomeEmail($pdo, (int)$userId, $legalName, $appConfig);
+            sendWelcomeEmail($pdo, (int)$userId, $legalName, $appConfig, (int)$practiceId);
         }
 
     } else {
@@ -301,7 +302,7 @@ try {
             http_response_code(400);
             echo json_encode([
                 'success' => false,
-                'message' => 'BAA has already been accepted for this practice. Legal name cannot be changed.'
+                'message' => t('onboarding.baa.api.baa_already_accepted')
             ]);
             exit;
         }
@@ -365,7 +366,7 @@ try {
 
     echo json_encode([
         'success' => true,
-        'message' => 'BAA accepted successfully',
+        'message' => t('onboarding.baa.api.success'),
         'practice_id' => $practiceId,
         'legal_name' => $legalName,
         'baa_version' => $baaVersion,
@@ -375,5 +376,5 @@ try {
 } catch (PDOException $e) {
     userLog("Error accepting BAA: " . $e->getMessage(), true);
     http_response_code(500);
-    echo json_encode(['success' => false, 'message' => 'Database error occurred']);
+    echo json_encode(['success' => false, 'message' => t('onboarding.baa.api.database_error')]);
 }

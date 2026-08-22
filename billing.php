@@ -143,7 +143,7 @@ try {
       gtag('config', 'G-MBJDENR3H2');
     </script>
     
-    <title>Billing - <?php echo htmlspecialchars($appConfig['appName']); ?></title>
+    <title><?php echo t('billing.title'); ?> - <?php echo htmlspecialchars($appConfig['appName']); ?></title>
 
     <!-- Favicon / App Icons -->
     <link rel="icon" type="image/x-icon" href="favicon.ico">
@@ -460,13 +460,13 @@ try {
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M19 12H5M12 19l-7-7 7-7"/>
                 </svg>
-                Back to Dashboard
+                <?php echo t('billing.back_to_dashboard'); ?>
             </a>
         </nav>
         
         <div class="billing-header">
-            <h1>Billing & Subscription</h1>
-            <p>Manage your plan, view usage, and upgrade to unlock more features</p>
+            <h1><?php echo t('billing.title'); ?></h1>
+            <p><?php echo t('billing.subtitle'); ?></p>
         </div>
         
         <?php if ($billingInfo && !isset($billingInfo['error'])): ?>
@@ -474,7 +474,7 @@ try {
                 <!-- Sidebar with current plan info -->
                 <div class="billing-sidebar">
                     <div class="billing-card">
-                        <h3>Current Plan</h3>
+                        <h3><?php echo t('billing.current_plan.title'); ?></h3>
                         <div class="current-plan-display">
                             <div class="plan-icon <?php echo strtolower($billingInfo['tier_name']); ?>">
                                 <?php 
@@ -497,7 +497,7 @@ try {
                                 <h2><?php echo htmlspecialchars($billingInfo['tier_name']); ?></h2>
                                 <span class="plan-status">
                                     <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" style="margin-right: 4px;"><circle cx="4" cy="4" r="4"/></svg>
-                                    Active
+                                    <?php echo t('billing.status.active'); ?>
                                 </span>
                             </div>
                         </div>
@@ -508,8 +508,8 @@ try {
                         ?>
                         <div class="usage-meter">
                             <div class="usage-meter-header">
-                                <span class="usage-meter-label">Trial Period</span>
-                                <span class="usage-meter-value"><?php echo $billingInfo['trial_expired'] ? 'Expired' : $billingInfo['trial_days_remaining'] . ' days remaining'; ?></span>
+                                <span class="usage-meter-label"><?php echo t('billing.current_plan.trial_period'); ?></span>
+                                <span class="usage-meter-value"><?php echo $billingInfo['trial_expired'] ? t('billing.current_plan.trial_expired') : pluralize($billingInfo['trial_days_remaining'], 'billing.current_plan.trial_days_remaining'); ?></span>
                             </div>
                             <div class="usage-meter-bar">
                                 <div class="usage-meter-fill <?php echo $trialClass; ?>" style="width: <?php echo $trialPercent; ?>%"></div>
@@ -522,8 +522,8 @@ try {
                 <!-- Main pricing section -->
                 <div class="pricing-section">
                     <div class="pricing-section-header">
-                        <h2>Choose Your Plan</h2>
-                        <p>Select the plan that best fits your practice needs</p>
+                        <h2><?php echo t('billing.plans.title'); ?></h2>
+                        <p><?php echo t('billing.plans.subtitle'); ?></p>
                     </div>
                     
                     <?php if (isset($billingInfo['user_count']) && $billingInfo['user_count'] > 5): ?>
@@ -536,7 +536,10 @@ try {
                             </svg>
                         </div>
                         <div class="info-banner-text" style="color: #92400e;">
-                            Your practice currently has <strong><?php echo (int)$billingInfo['user_count']; ?> users</strong>. Operate supports up to 5 users. Select <strong>Control</strong> to keep your current team size, or reduce the practice to 5 users before choosing Operate.
+                            <?php echo t('billing.current_plan.user_limit_warning', [
+                                'count' => (int)$billingInfo['user_count'],
+                                'max' => $appConfig['billing']['tiers']['operate']['max_users'] ?? 5
+                            ]); ?>
                         </div>
                     </div>
                     <?php endif; ?>
@@ -556,7 +559,7 @@ try {
                                 <rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect>
                                 <line x1="1" y1="10" x2="23" y2="10"></line>
                             </svg>
-                            <p>Pricing table is being configured. Please check back soon or contact support.</p>
+                            <p><?php echo t('billing.pricing_table_unavailable'); ?></p>
                         </div>
                         <?php endif; ?>
                     </div>
@@ -564,13 +567,13 @@ try {
             </div>
             
             <div class="billing-footer">
-                <p>All payments are securely processed by Stripe. Your payment information is never stored on our servers.</p>
+                <p><?php echo t('billing.security_note'); ?></p>
             </div>
             
         <?php else: ?>
             <div class="billing-card" style="max-width: 600px; margin: 0 auto; text-align: center;">
-                <p style="color: var(--billing-gray-600);">Unable to load billing information. Please try refreshing the page.</p>
-                <a href="main.php" class="back-link" style="margin-top: 20px; display: inline-flex;">Return to Dashboard</a>
+                <p style="color: var(--billing-gray-600);"><?php echo t('billing.loading_error'); ?></p>
+                <a href="main.php" class="back-link" style="margin-top: 20px; display: inline-flex;"><?php echo t('billing.return_to_dashboard'); ?></a>
             </div>
         <?php endif; ?>
     </div>

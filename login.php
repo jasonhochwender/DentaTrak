@@ -39,7 +39,7 @@ $authError = isset($_GET['auth_error']) ? htmlspecialchars($_GET['auth_error']) 
 // Check for session timeout
 $sessionTimeout = isset($_GET['timeout']) && $_GET['timeout'] == '1';
 ?><!DOCTYPE html>
-<html lang="en">
+<html lang="<?php echo getHtmlLang(); ?>">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -69,6 +69,11 @@ $sessionTimeout = isset($_GET['timeout']) && $_GET['timeout'] == '1';
   <link rel="stylesheet" href="css/app.css">
   <link rel="stylesheet" href="css/login.css">
   
+  <!-- Internationalization bootstrap -->
+  <script>
+    window.__i18n = <?php echo getTranslationsJsonForJs(); ?>;
+  </script>
+  <script src="js/i18n.js"></script>
   <!-- No external Google libraries needed for server-side OAuth flow -->
   <script src="js/app.js"></script>
 </head>
@@ -106,8 +111,8 @@ $sessionTimeout = isset($_GET['timeout']) && $_GET['timeout'] == '1';
         <?php endif; ?>
         
         <h1 class="hero-title"><?php echo htmlspecialchars($appName); ?></h1>
-        <p class="hero-headline">Track every case. Deliver confidence.</p>
-        <p class="hero-tagline">Case visibility for complex dental work.</p>
+        <p class="hero-headline"><?php echo t('auth.login.headline'); ?></p>
+        <p class="hero-tagline"><?php echo t('auth.login.tagline'); ?></p>
         
         <div class="hero-features">
           <div class="feature-item">
@@ -118,7 +123,7 @@ $sessionTimeout = isset($_GET['timeout']) && $_GET['timeout'] == '1';
               </svg>
             </div>
             <div class="feature-text">
-              <strong>Prevent lost or forgotten cases</strong>
+              <strong><?php echo t('auth.login.feature_1'); ?></strong>
             </div>
           </div>
           
@@ -130,7 +135,7 @@ $sessionTimeout = isset($_GET['timeout']) && $_GET['timeout'] == '1';
               </svg>
             </div>
             <div class="feature-text">
-              <strong>Visibility across lab, referral, and chair</strong>
+              <strong><?php echo t('auth.login.feature_2'); ?></strong>
             </div>
           </div>
         </div>
@@ -140,7 +145,7 @@ $sessionTimeout = isset($_GET['timeout']) && $_GET['timeout'] == '1';
         <div class="trust-badges">
           <span class="trust-item">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/></svg>
-            HIPAA Compliant
+            <?php echo t('auth.login.hipaa_compliant'); ?>
           </span>
         </div>
       </div>
@@ -149,9 +154,13 @@ $sessionTimeout = isset($_GET['timeout']) && $_GET['timeout'] == '1';
     <!-- Right side - Sign In Form -->
     <div class="login-container">
       <div class="login-card">
+        <?php
+        // Global language selector (hidden until a second locale is enabled)
+        echo renderLanguageSelector('api/set-session-locale.php', getResolvedLocale(), false);
+        ?>
         <div class="login-card-header">
-          <h2>Welcome to DentaTrak</h2>
-          <p>Sign in to your account or enter your email to start your 90-day free trial.</p>
+          <h2><?php echo t('auth.login.title'); ?></h2>
+          <p><?php echo t('auth.login.subtitle'); ?></p>
         </div>
         
         <?php if ($sessionTimeout): ?>
@@ -176,19 +185,19 @@ $sessionTimeout = isset($_GET['timeout']) && $_GET['timeout'] == '1';
         <?php if (isset($_GET['oauth_status']) && $_GET['oauth_status'] === 'initiated'): ?>
           <div class="auth-status">
             <div class="auth-status-spinner"></div>
-            <p>Redirecting to Google Sign-In...</p>
+            <p><?php echo t('auth.login.google_redirect'); ?></p>
           </div>
         <?php endif; ?>
         
         <div class="google-signin-wrapper">
           <a href="api/oauth-start.php" class="google-signin-btn" id="googleSignInBtn">
             <img src="images/google-logo.svg" alt="Google logo" class="google-logo">
-            <span>Continue with Google</span>
+            <span><?php echo t('auth.sso.continue_with_google'); ?></span>
           </a>
         </div>
         
         <div class="login-divider">
-          <span>or</span>
+          <span><?php echo t('auth.login.or'); ?></span>
         </div>
         
         <!-- Progressive Email Authentication -->
@@ -198,7 +207,7 @@ $sessionTimeout = isset($_GET['timeout']) && $_GET['timeout'] == '1';
               <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
               <polyline points="22,6 12,13 2,6"/>
             </svg>
-            <span>Sign in with Email</span>
+            <span class="email-toggle-text"><?php echo t('auth.login.sign_in_with_email'); ?></span>
           </button>
         </div>
         
@@ -206,11 +215,11 @@ $sessionTimeout = isset($_GET['timeout']) && $_GET['timeout'] == '1';
         <div id="emailEntryForm" class="email-signin-form" style="display: none;">
           <form id="emailCheckForm" class="email-form">
             <div class="form-group">
-              <label for="checkEmail">Email</label>
-              <input type="email" id="checkEmail" name="email" required placeholder="your@email.com" autocomplete="email">
+              <label for="checkEmail"><?php echo t('auth.login.email_label'); ?></label>
+              <input type="email" id="checkEmail" name="email" required placeholder="<?php echo t('auth.login.email_placeholder'); ?>" autocomplete="email">
             </div>
             <div id="emailCheckError" class="form-error" style="display: none;"></div>
-            <button type="submit" class="email-submit-btn" id="emailContinueBtn">Continue</button>
+            <button type="submit" class="email-submit-btn" id="emailContinueBtn"><?php echo t('auth.login.continue'); ?></button>
           </form>
         </div>
         
@@ -220,10 +229,10 @@ $sessionTimeout = isset($_GET['timeout']) && $_GET['timeout'] == '1';
           <form id="emailLoginForm" class="email-form">
             <input type="hidden" id="loginEmail" name="email">
             <div class="form-group">
-              <label for="loginPassword">Password</label>
+              <label for="loginPassword"><?php echo t('auth.login.password_label'); ?></label>
               <div class="password-input-wrapper">
-                <input type="password" id="loginPassword" name="password" required placeholder="Enter your password" autocomplete="current-password">
-                <button type="button" class="password-toggle-btn" aria-label="Show password" data-target="loginPassword">
+                <input type="password" id="loginPassword" name="password" required placeholder="<?php echo t('auth.login.password_placeholder'); ?>" autocomplete="current-password">
+                <button type="button" class="password-toggle-btn" aria-label="<?php echo t('auth.login.show_password'); ?>" data-target="loginPassword">
                   <svg class="icon-show" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
                   <svg class="icon-hide" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
                 </button>
@@ -234,13 +243,13 @@ $sessionTimeout = isset($_GET['timeout']) && $_GET['timeout'] == '1';
               <label class="remember-me-label">
                 <input type="checkbox" id="rememberMe" name="rememberMe" class="remember-me-checkbox">
                 <span class="remember-me-checkmark"></span>
-                <span class="remember-me-text">Remember me</span>
+                <span class="remember-me-text"><?php echo t('auth.login.remember_me'); ?></span>
               </label>
             </div>
             <div id="loginError" class="form-error" style="display: none;"></div>
-            <button type="submit" class="email-submit-btn" id="loginSubmitBtn">Sign In</button>
+            <button type="submit" class="email-submit-btn" id="loginSubmitBtn"><?php echo t('auth.login.sign_in'); ?></button>
             <div class="forgot-password-link">
-              <a href="forgot-password.php" class="link-btn">Forgot your password?</a>
+              <a href="forgot-password.php" class="link-btn"><?php echo t('auth.login.forgot_password'); ?></a>
             </div>
           </form>
           
@@ -251,18 +260,18 @@ $sessionTimeout = isset($_GET['timeout']) && $_GET['timeout'] == '1';
                 <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
                 <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
               </svg>
-              <h3>Two-Factor Authentication</h3>
-              <p>Enter the 6-digit code from your authenticator app</p>
+              <h3><?php echo t('auth.login.two_factor_title'); ?></h3>
+              <p><?php echo t('auth.login.two_factor_subtitle'); ?></p>
             </div>
             <div class="two-factor-input-group">
-              <input type="text" id="login2FACode" maxlength="6" pattern="[0-9]*" inputmode="numeric" placeholder="000000" autocomplete="one-time-code">
+              <input type="text" id="login2FACode" maxlength="6" pattern="[0-9]*" inputmode="numeric" placeholder="<?php echo t('auth.login.two_factor_placeholder'); ?>" autocomplete="one-time-code">
             </div>
             <div id="twoFactorLoginError" class="form-error" style="display: none;"></div>
-            <button type="button" id="verify2FALoginBtn" class="email-submit-btn">Verify & Sign In</button>
-            <button type="button" id="cancel2FALogin" class="link-btn" style="margin-top: 20px;">← Back to login</button>
+            <button type="button" id="verify2FALoginBtn" class="email-submit-btn"><?php echo t('auth.login.verify_and_sign_in'); ?></button>
+            <button type="button" id="cancel2FALogin" class="link-btn" style="margin-top: 20px;">← <?php echo t('auth.login.back_to_login'); ?></button>
           </div>
           <div class="email-form-footer">
-            <button type="button" id="changeEmailBtn" class="link-btn">← Use a different email</button>
+            <button type="button" id="changeEmailBtn" class="link-btn">← <?php echo t('auth.login.use_different_email'); ?></button>
           </div>
         </div>
         
@@ -275,63 +284,63 @@ $sessionTimeout = isset($_GET['timeout']) && $_GET['timeout'] == '1';
               <line x1="12" y1="16" x2="12" y2="12"/>
               <line x1="12" y1="8" x2="12.01" y2="8"/>
             </svg>
-            <p>This account uses Google Sign-In. Please continue with Google or set up a password.</p>
+            <p><?php echo t('auth.login.google_only_notice'); ?></p>
           </div>
           <div class="google-signin-wrapper">
             <a href="api/oauth-start.php" class="google-signin-btn" id="googleOnlySignInBtn">
               <img src="images/google-logo.svg" alt="Google logo" class="google-logo">
-              <span>Continue with Google</span>
+              <span><?php echo t('auth.sso.continue_with_google'); ?></span>
             </a>
           </div>
-          <div class="or-divider"><span>or</span></div>
+          <div class="or-divider"><span><?php echo t('auth.login.or'); ?></span></div>
           <button type="button" id="setupPasswordBtn" class="email-toggle-btn secondary">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
               <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
             </svg>
-            <span>Set up a password for this account</span>
+            <span><?php echo t('auth.login.set_up_password_for_account'); ?></span>
           </button>
           <div class="email-form-footer">
-            <button type="button" id="changeEmailBtn2" class="link-btn">← Use a different email</button>
+            <button type="button" id="changeEmailBtn2" class="link-btn">← <?php echo t('auth.login.use_different_email'); ?></button>
           </div>
         </div>
         
         <!-- Step 2c: New User Registration -->
         <div id="emailRegisterForm" class="email-signin-form" style="display: none;">
-          <div class="user-greeting">Create your account</div>
+          <div class="user-greeting"><?php echo t('auth.login.create_account'); ?></div>
           <form id="emailRegForm" class="email-form">
             <input type="hidden" id="regEmail" name="email">
             <div class="form-row">
               <div class="form-group half">
-                <label for="regFirstName">First Name</label>
-                <input type="text" id="regFirstName" name="firstName" placeholder="First name" autocomplete="given-name">
+                <label for="regFirstName"><?php echo t('auth.login.first_name'); ?></label>
+                <input type="text" id="regFirstName" name="firstName" placeholder="<?php echo t('auth.login.first_name_placeholder'); ?>" autocomplete="given-name">
               </div>
               <div class="form-group half">
-                <label for="regLastName">Last Name</label>
-                <input type="text" id="regLastName" name="lastName" placeholder="Last name" autocomplete="family-name">
+                <label for="regLastName"><?php echo t('auth.login.last_name'); ?></label>
+                <input type="text" id="regLastName" name="lastName" placeholder="<?php echo t('auth.login.last_name_placeholder'); ?>" autocomplete="family-name">
               </div>
             </div>
             <div class="form-group">
-              <label for="regPassword">Password</label>
+              <label for="regPassword"><?php echo t('auth.login.password_label'); ?></label>
               <div class="password-input-wrapper">
-                <input type="password" id="regPassword" name="password" required placeholder="Create a password" autocomplete="new-password">
-                <button type="button" class="password-toggle-btn" aria-label="Show password" data-target="regPassword">
+                <input type="password" id="regPassword" name="password" required placeholder="<?php echo t('auth.login.create_password_placeholder'); ?>" autocomplete="new-password">
+                <button type="button" class="password-toggle-btn" aria-label="<?php echo t('auth.login.show_password'); ?>" data-target="regPassword">
                   <svg class="icon-show" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
                   <svg class="icon-hide" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
                 </button>
               </div>
               <div class="password-requirements">
-                <span class="req" id="reqLength">✗ At least 8 characters</span>
-                <span class="req" id="reqUpper">✗ One uppercase letter</span>
-                <span class="req" id="reqNumber">✗ One number</span>
-                <span class="req" id="reqSpecial">✗ One special character</span>
+                <span class="req" id="reqLength">✗ <?php echo t('auth.registration.password_requirements.length'); ?></span>
+                <span class="req" id="reqUpper">✗ <?php echo t('auth.registration.password_requirements.upper'); ?></span>
+                <span class="req" id="reqNumber">✗ <?php echo t('auth.registration.password_requirements.number'); ?></span>
+                <span class="req" id="reqSpecial">✗ <?php echo t('auth.registration.password_requirements.special'); ?></span>
               </div>
             </div>
             <div class="form-group">
-              <label for="regConfirmPassword">Confirm Password</label>
+              <label for="regConfirmPassword"><?php echo t('auth.login.confirm_password_label'); ?></label>
               <div class="password-input-wrapper">
-                <input type="password" id="regConfirmPassword" name="confirmPassword" required placeholder="Confirm your password" autocomplete="new-password">
-                <button type="button" class="password-toggle-btn" aria-label="Show password" data-target="regConfirmPassword">
+                <input type="password" id="regConfirmPassword" name="confirmPassword" required placeholder="<?php echo t('auth.login.confirm_password_placeholder'); ?>" autocomplete="new-password">
+                <button type="button" class="password-toggle-btn" aria-label="<?php echo t('auth.login.show_password'); ?>" data-target="regConfirmPassword">
                   <svg class="icon-show" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
                   <svg class="icon-hide" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
                 </button>
@@ -339,55 +348,55 @@ $sessionTimeout = isset($_GET['timeout']) && $_GET['timeout'] == '1';
               <div id="passwordMatch" class="password-match"></div>
             </div>
             <div id="registerError" class="form-error" style="display: none;"></div>
-            <button type="submit" class="email-submit-btn" id="registerBtn" disabled>Create Account</button>
+            <button type="submit" class="email-submit-btn" id="registerBtn" disabled><?php echo t('auth.registration.create_account'); ?></button>
           </form>
           <div class="email-form-footer">
-            <button type="button" id="changeEmailBtn3" class="link-btn">← Use a different email</button>
+            <button type="button" id="changeEmailBtn3" class="link-btn">← <?php echo t('auth.login.use_different_email'); ?></button>
           </div>
         </div>
         
         <!-- Password Setup Form (for Google-only users) -->
         <div id="passwordSetupForm" class="email-signin-form" style="display: none;">
-          <div class="user-greeting">Set up your password</div>
+          <div class="user-greeting"><?php echo t('auth.login.set_up_password'); ?></div>
           <div class="setup-notice">
-            <p>We'll send a verification link to your email to confirm your identity.</p>
+            <p><?php echo t('auth.login.verification_link_notice'); ?></p>
           </div>
           <form id="requestPasswordSetupForm" class="email-form">
             <input type="hidden" id="setupEmail" name="email">
             <div id="setupError" class="form-error" style="display: none;"></div>
-            <button type="submit" class="email-submit-btn">Send Verification Link</button>
+            <button type="submit" class="email-submit-btn"><?php echo t('auth.login.send_verification_link'); ?></button>
           </form>
           <div class="email-form-footer">
-            <button type="button" id="backToGoogleOnly" class="link-btn">← Back</button>
+            <button type="button" id="backToGoogleOnly" class="link-btn">← <?php echo t('auth.login.back'); ?></button>
           </div>
         </div>
         
         <!-- Immediate Password Setup (for verified Google users) -->
         <div id="immediatePasswordSetup" class="email-signin-form" style="display: none;">
-          <div class="user-greeting">Set your password</div>
+          <div class="user-greeting"><?php echo t('auth.login.set_your_password'); ?></div>
           <form id="immediateSetupForm" class="email-form">
             <input type="hidden" id="immediateSetupToken" name="token">
             <div class="form-group">
-              <label for="newPassword">New Password</label>
+              <label for="newPassword"><?php echo t('auth.login.new_password_label'); ?></label>
               <div class="password-input-wrapper">
-                <input type="password" id="newPassword" name="password" required placeholder="Create a password" autocomplete="new-password">
-                <button type="button" class="password-toggle-btn" aria-label="Show password" data-target="newPassword">
+                <input type="password" id="newPassword" name="password" required placeholder="<?php echo t('auth.login.create_password_placeholder'); ?>" autocomplete="new-password">
+                <button type="button" class="password-toggle-btn" aria-label="<?php echo t('auth.login.show_password'); ?>" data-target="newPassword">
                   <svg class="icon-show" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
                   <svg class="icon-hide" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
                 </button>
               </div>
               <div class="password-requirements">
-                <span class="req" id="newReqLength">✗ At least 8 characters</span>
-                <span class="req" id="newReqUpper">✗ One uppercase letter</span>
-                <span class="req" id="newReqNumber">✗ One number</span>
-                <span class="req" id="newReqSpecial">✗ One special character</span>
+                <span class="req" id="newReqLength">✗ <?php echo t('auth.registration.password_requirements.length'); ?></span>
+                <span class="req" id="newReqUpper">✗ <?php echo t('auth.registration.password_requirements.upper'); ?></span>
+                <span class="req" id="newReqNumber">✗ <?php echo t('auth.registration.password_requirements.number'); ?></span>
+                <span class="req" id="newReqSpecial">✗ <?php echo t('auth.registration.password_requirements.special'); ?></span>
               </div>
             </div>
             <div class="form-group">
-              <label for="confirmNewPassword">Confirm Password</label>
+              <label for="confirmNewPassword"><?php echo t('auth.login.confirm_new_password_label'); ?></label>
               <div class="password-input-wrapper">
-                <input type="password" id="confirmNewPassword" name="confirmPassword" required placeholder="Confirm your password" autocomplete="new-password">
-                <button type="button" class="password-toggle-btn" aria-label="Show password" data-target="confirmNewPassword">
+                <input type="password" id="confirmNewPassword" name="confirmPassword" required placeholder="<?php echo t('auth.login.confirm_password_placeholder'); ?>" autocomplete="new-password">
+                <button type="button" class="password-toggle-btn" aria-label="<?php echo t('auth.login.show_password'); ?>" data-target="confirmNewPassword">
                   <svg class="icon-show" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
                   <svg class="icon-hide" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
                 </button>
@@ -395,10 +404,10 @@ $sessionTimeout = isset($_GET['timeout']) && $_GET['timeout'] == '1';
               <div id="newPasswordMatch" class="password-match"></div>
             </div>
             <div id="immediateSetupError" class="form-error" style="display: none;"></div>
-            <button type="submit" class="email-submit-btn" id="setPasswordBtn" disabled>Set Password</button>
+            <button type="submit" class="email-submit-btn" id="setPasswordBtn" disabled><?php echo t('auth.login.set_password_button'); ?></button>
           </form>
           <div class="email-form-footer">
-            <button type="button" id="backFromImmediate" class="link-btn">← Back</button>
+            <button type="button" id="backFromImmediate" class="link-btn">← <?php echo t('auth.login.back'); ?></button>
           </div>
         </div>
         
@@ -407,20 +416,18 @@ $sessionTimeout = isset($_GET['timeout']) && $_GET['timeout'] == '1';
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <polyline points="20 6 9 17 4 12"/>
             </svg>
-            <span>Prevent costly remakes</span>
+            <span><?php echo t('auth.login.benefit_1'); ?></span>
           </div>
           <div class="benefit-item">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <polyline points="20 6 9 17 4 12"/>
             </svg>
-            <span>Free to start, no credit card</span>
+            <span><?php echo t('auth.login.benefit_2'); ?></span>
           </div>
         </div>
         
         <p class="login-disclaimer">
-          By signing in, you agree to our 
-          <a href="#" id="privacyLink">Privacy Policy</a> and 
-          <a href="#" id="termsLink">Terms of Use</a>
+          <?php echo t('auth.login.disclaimer', ['privacy' => '<a href="#" id="privacyLink">' . t('auth.login.privacy_policy') . '</a>', 'terms' => '<a href="#" id="termsLink">' . t('auth.login.terms_of_use') . '</a>']); ?>
         </p>
       </div>
       
@@ -612,7 +619,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Update button state and ARIA label for accessibility
         this.classList.toggle('is-visible', isCurrentlyPassword);
-        this.setAttribute('aria-label', isCurrentlyPassword ? 'Hide password' : 'Show password');
+        this.setAttribute('aria-label', isCurrentlyPassword ? t('auth.login.hide_password') : t('auth.login.show_password'));
       });
       
       // Handle keyboard activation (Enter and Space)
@@ -689,10 +696,10 @@ document.addEventListener('DOMContentLoaded', function() {
     })
     .then(response => response.json())
     .then(data => {
-      alert(data.message || 'Verification email sent. Please check your inbox.');
+      alert(data.message || t('auth.login.resend_success'));
     })
     .catch(error => {
-      alert('Failed to resend verification email. Please try again.');
+      alert(t('auth.login.resend_failed'));
     });
   }
   
@@ -747,7 +754,7 @@ document.addEventListener('DOMContentLoaded', function() {
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <polyline points="18 15 12 9 6 15"/>
       </svg>
-      <span>Hide email sign-in</span>
+      <span class="email-toggle-text">` + t('auth.login.hide_email_sign_in') + `</span>
     `;
   }
   
@@ -776,7 +783,7 @@ document.addEventListener('DOMContentLoaded', function() {
             <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
             <polyline points="22,6 12,13 2,6"/>
           </svg>
-          <span>Sign in with Email</span>
+          <span class="email-toggle-text">` + t('auth.login.sign_in_with_email') + `</span>
         `;
       }
     });
@@ -790,7 +797,7 @@ document.addEventListener('DOMContentLoaded', function() {
       const email = document.getElementById('checkEmail').value.trim();
       emailCheckError.style.display = 'none';
       emailContinueBtn.disabled = true;
-      emailContinueBtn.textContent = 'Checking...';
+      emailContinueBtn.textContent = t('auth.login.checking');
       
       fetch('api/check-email.php', {
         method: 'POST',
@@ -801,10 +808,10 @@ document.addEventListener('DOMContentLoaded', function() {
       .then(response => response.json())
       .then(data => {
         emailContinueBtn.disabled = false;
-        emailContinueBtn.textContent = 'Continue';
+        emailContinueBtn.textContent = t('auth.login.continue');
         
         if (!data.success) {
-          emailCheckError.textContent = data.message || 'An error occurred';
+          emailCheckError.textContent = data.message || t('auth.errors.generic');
           emailCheckError.style.display = 'block';
           return;
         }
@@ -816,13 +823,13 @@ document.addEventListener('DOMContentLoaded', function() {
         if (data.flow === 'login') {
           // User has password auth - show password login
           document.getElementById('loginEmail').value = email;
-          const greeting = data.first_name ? `Welcome back, ${data.first_name}!` : `Welcome back!`;
+          const greeting = data.first_name ? t('auth.login.welcome_back', {name: data.first_name}) : t('auth.login.welcome_back_no_name');
           document.getElementById('loginGreeting').textContent = greeting;
           passwordLoginForm.style.display = 'block';
           document.getElementById('loginPassword').focus();
         } else if (data.flow === 'google_only') {
           // User has Google only - show Google options
-          const greeting = data.first_name ? `Hi ${data.first_name}!` : `Welcome!`;
+          const greeting = data.first_name ? t('auth.login.hi_user', {name: data.first_name}) : t('auth.login.welcome');
           document.getElementById('googleOnlyGreeting').textContent = greeting;
           googleOnlyForm.style.display = 'block';
         } else if (data.flow === 'register') {
@@ -841,8 +848,8 @@ document.addEventListener('DOMContentLoaded', function() {
       })
       .catch(error => {
         emailContinueBtn.disabled = false;
-        emailContinueBtn.textContent = 'Continue';
-        emailCheckError.textContent = 'An error occurred. Please try again.';
+        emailContinueBtn.textContent = t('auth.login.continue');
+        emailCheckError.textContent = t('auth.errors.generic');
         emailCheckError.style.display = 'block';
       });
     });
@@ -899,12 +906,12 @@ document.addEventListener('DOMContentLoaded', function() {
           setupError.style.background = '#f0fdf4';
           setupError.style.borderColor = '#bbf7d0';
           setupError.style.color = '#16a34a';
-          setupError.textContent = data.message || 'Check your email for a verification link.';
+          setupError.textContent = data.message || t('auth.login.verify_email_message');
           setupError.style.display = 'block';
         }
       })
       .catch(error => {
-        setupError.textContent = 'An error occurred. Please try again.';
+        setupError.textContent = t('auth.errors.generic');
         setupError.style.display = 'block';
       });
     });
@@ -917,40 +924,40 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Length check
     if (password.length >= 8) {
-      reqLength.textContent = '✓ At least 8 characters';
+      reqLength.textContent = '✓ ' + t('auth.registration.password_requirements.length');
       reqLength.classList.add('valid');
     } else {
-      reqLength.textContent = '✗ At least 8 characters';
+      reqLength.textContent = '✗ ' + t('auth.registration.password_requirements.length');
       reqLength.classList.remove('valid');
       allValid = false;
     }
     
     // Uppercase check
     if (/[A-Z]/.test(password)) {
-      reqUpper.textContent = '✓ One uppercase letter';
+      reqUpper.textContent = '✓ ' + t('auth.registration.password_requirements.upper');
       reqUpper.classList.add('valid');
     } else {
-      reqUpper.textContent = '✗ One uppercase letter';
+      reqUpper.textContent = '✗ ' + t('auth.registration.password_requirements.upper');
       reqUpper.classList.remove('valid');
       allValid = false;
     }
     
     // Number check
     if (/[0-9]/.test(password)) {
-      reqNumber.textContent = '✓ One number';
+      reqNumber.textContent = '✓ ' + t('auth.registration.password_requirements.number');
       reqNumber.classList.add('valid');
     } else {
-      reqNumber.textContent = '✗ One number';
+      reqNumber.textContent = '✗ ' + t('auth.registration.password_requirements.number');
       reqNumber.classList.remove('valid');
       allValid = false;
     }
     
     // Special character check
     if (/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)) {
-      reqSpecial.textContent = '✓ One special character';
+      reqSpecial.textContent = '✓ ' + t('auth.registration.password_requirements.special');
       reqSpecial.classList.add('valid');
     } else {
-      reqSpecial.textContent = '✗ One special character';
+      reqSpecial.textContent = '✗ ' + t('auth.registration.password_requirements.special');
       reqSpecial.classList.remove('valid');
       allValid = false;
     }
@@ -969,11 +976,11 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     if (password === confirm) {
-      passwordMatch.textContent = '✓ Passwords match';
+      passwordMatch.textContent = '✓ ' + t('auth.registration.match_yes');
       passwordMatch.className = 'password-match match';
       return true;
     } else {
-      passwordMatch.textContent = '✗ Passwords do not match';
+      passwordMatch.textContent = '✗ ' + t('auth.registration.match_no');
       passwordMatch.className = 'password-match no-match';
       return false;
     }
@@ -1025,7 +1032,7 @@ document.addEventListener('DOMContentLoaded', function() {
       // Show loading state
       if (loginSubmitBtn) {
         loginSubmitBtn.disabled = true;
-        loginSubmitBtn.textContent = 'Signing in...';
+        loginSubmitBtn.textContent = t('auth.login.signing_in');
       }
       
       // Get Remember Me checkbox value
@@ -1056,7 +1063,7 @@ document.addEventListener('DOMContentLoaded', function() {
           // ============================================
           if (loginSubmitBtn) {
             loginSubmitBtn.disabled = false;
-            loginSubmitBtn.textContent = 'Sign In';
+            loginSubmitBtn.textContent = t('auth.login.sign_in');
           }
           
           // Show 2FA input section
@@ -1065,7 +1072,7 @@ document.addEventListener('DOMContentLoaded', function() {
           // Reset button state on error
           if (loginSubmitBtn) {
             loginSubmitBtn.disabled = false;
-            loginSubmitBtn.textContent = 'Sign In';
+            loginSubmitBtn.textContent = t('auth.login.sign_in');
           }
           
           // Check if verification is required
@@ -1083,7 +1090,7 @@ document.addEventListener('DOMContentLoaded', function() {
               });
             }
           } else {
-            loginError.textContent = data.message || 'Login failed';
+            loginError.textContent = data.message || t('auth.errors.login_failed');
             loginError.style.display = 'block';
           }
         }
@@ -1092,9 +1099,9 @@ document.addEventListener('DOMContentLoaded', function() {
         // Reset button state on error
         if (loginSubmitBtn) {
           loginSubmitBtn.disabled = false;
-          loginSubmitBtn.textContent = 'Sign In';
+          loginSubmitBtn.textContent = t('auth.login.sign_in');
         }
-        loginError.textContent = 'An error occurred. Please try again.';
+        loginError.textContent = t('auth.errors.generic');
         loginError.style.display = 'block';
       });
     });
@@ -1136,14 +1143,14 @@ document.addEventListener('DOMContentLoaded', function() {
             // Show verification required message
             hideAllForms();
             document.getElementById('loginEmail').value = email;
-            document.getElementById('loginGreeting').textContent = 'Check your email';
+            document.getElementById('loginGreeting').textContent = t('auth.login.check_email');
             passwordLoginForm.style.display = 'block';
             loginError.style.display = 'block';
             loginError.style.background = '#eff6ff';
             loginError.style.borderColor = '#bfdbfe';
             loginError.style.color = '#1d4ed8';
-            loginError.innerHTML = (data.message || 'Please check your email to verify your account.') + 
-              '<br><a href="#" class="resend-verification-link" style="color: #3b82f6; margin-top: 8px; display: inline-block;">Resend verification email</a>';
+            loginError.innerHTML = (data.message || t('auth.login.verify_email_message')) + 
+              '<br><a href="#" class="resend-verification-link" style="color: #3b82f6; margin-top: 8px; display: inline-block;">' + t('auth.login.resend_verification') + '</a>';
             
             // Add click handler for resend link
             const resendLink = loginError.querySelector('.resend-verification-link');
@@ -1157,18 +1164,18 @@ document.addEventListener('DOMContentLoaded', function() {
             // Show success and switch to password login form (for linked accounts)
             hideAllForms();
             document.getElementById('loginEmail').value = email;
-            const greeting = 'Account created! Sign in below.';
+            const greeting = t('auth.login.account_created');
             document.getElementById('loginGreeting').textContent = greeting;
             passwordLoginForm.style.display = 'block';
             loginError.style.display = 'block';
             loginError.style.background = '#f0fdf4';
             loginError.style.borderColor = '#bbf7d0';
             loginError.style.color = '#16a34a';
-            loginError.textContent = data.message || 'Account created! Please sign in.';
+            loginError.textContent = data.message || t('auth.login.account_created');
             document.getElementById('loginPassword').focus();
           }
         } else {
-          registerError.textContent = data.message || 'Registration failed';
+          registerError.textContent = data.message || t('auth.errors.registration_failed');
           if (data.errors && data.errors.length > 0) {
             registerError.textContent = data.errors.join('. ');
           }
@@ -1176,7 +1183,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
       })
       .catch(error => {
-        registerError.textContent = 'An error occurred. Please try again.';
+        registerError.textContent = t('auth.errors.generic');
         registerError.style.display = 'block';
       });
     });
@@ -1188,37 +1195,37 @@ document.addEventListener('DOMContentLoaded', function() {
     let allValid = true;
     
     if (password.length >= 8) {
-      newReqLength.textContent = '✓ At least 8 characters';
+      newReqLength.textContent = '✓ ' + t('auth.registration.password_requirements.length');
       newReqLength.classList.add('valid');
     } else {
-      newReqLength.textContent = '✗ At least 8 characters';
+      newReqLength.textContent = '✗ ' + t('auth.registration.password_requirements.length');
       newReqLength.classList.remove('valid');
       allValid = false;
     }
     
     if (/[A-Z]/.test(password)) {
-      newReqUpper.textContent = '✓ One uppercase letter';
+      newReqUpper.textContent = '✓ ' + t('auth.registration.password_requirements.upper');
       newReqUpper.classList.add('valid');
     } else {
-      newReqUpper.textContent = '✗ One uppercase letter';
+      newReqUpper.textContent = '✗ ' + t('auth.registration.password_requirements.upper');
       newReqUpper.classList.remove('valid');
       allValid = false;
     }
     
     if (/[0-9]/.test(password)) {
-      newReqNumber.textContent = '✓ One number';
+      newReqNumber.textContent = '✓ ' + t('auth.registration.password_requirements.number');
       newReqNumber.classList.add('valid');
     } else {
-      newReqNumber.textContent = '✗ One number';
+      newReqNumber.textContent = '✗ ' + t('auth.registration.password_requirements.number');
       newReqNumber.classList.remove('valid');
       allValid = false;
     }
     
     if (/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)) {
-      newReqSpecial.textContent = '✓ One special character';
+      newReqSpecial.textContent = '✓ ' + t('auth.registration.password_requirements.special');
       newReqSpecial.classList.add('valid');
     } else {
-      newReqSpecial.textContent = '✗ One special character';
+      newReqSpecial.textContent = '✗ ' + t('auth.registration.password_requirements.special');
       newReqSpecial.classList.remove('valid');
       allValid = false;
     }
@@ -1237,11 +1244,11 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     if (password === confirm) {
-      newPasswordMatch.textContent = '✓ Passwords match';
+      newPasswordMatch.textContent = '✓ ' + t('auth.registration.match_yes');
       newPasswordMatch.className = 'password-match match';
       return true;
     } else {
-      newPasswordMatch.textContent = '✗ Passwords do not match';
+      newPasswordMatch.textContent = '✗ ' + t('auth.registration.match_no');
       newPasswordMatch.className = 'password-match no-match';
       return false;
     }
@@ -1278,7 +1285,7 @@ document.addEventListener('DOMContentLoaded', function() {
       
       immediateSetupError.style.display = 'none';
       setPasswordBtn.disabled = true;
-      setPasswordBtn.textContent = 'Setting password...';
+      setPasswordBtn.textContent = t('auth.login.set_password_loading');
       
       fetch('api/request-password-setup.php', {
         method: 'POST',
@@ -1292,30 +1299,30 @@ document.addEventListener('DOMContentLoaded', function() {
       })
       .then(response => response.json())
       .then(data => {
-        setPasswordBtn.textContent = 'Set Password';
+        setPasswordBtn.textContent = t('auth.login.set_password_button');
         
         if (data.success) {
           // Show success and switch to password login
           hideAllForms();
           document.getElementById('loginEmail').value = currentEmail;
-          document.getElementById('loginGreeting').textContent = 'Password set! Sign in below.';
+          document.getElementById('loginGreeting').textContent = t('auth.login.password_set');
           passwordLoginForm.style.display = 'block';
           loginError.style.display = 'block';
           loginError.style.background = '#f0fdf4';
           loginError.style.borderColor = '#bbf7d0';
           loginError.style.color = '#16a34a';
-          loginError.textContent = data.message || 'Password set successfully!';
+          loginError.textContent = data.message || t('auth.login.password_set');
           document.getElementById('loginPassword').focus();
         } else {
           setPasswordBtn.disabled = false;
-          immediateSetupError.textContent = data.message || 'Failed to set password';
+          immediateSetupError.textContent = data.message || t('auth.errors.set_password_failed');
           immediateSetupError.style.display = 'block';
         }
       })
       .catch(error => {
         setPasswordBtn.disabled = false;
-        setPasswordBtn.textContent = 'Set Password';
-        immediateSetupError.textContent = 'An error occurred. Please try again.';
+        setPasswordBtn.textContent = t('auth.login.set_password_button');
+        immediateSetupError.textContent = t('auth.errors.generic');
         immediateSetupError.style.display = 'block';
       });
     });
@@ -1417,7 +1424,7 @@ function showGoogle2FAInput() {
   
   // Show 2FA form
   if (twoFactorForm) twoFactorForm.style.display = 'block';
-  if (twoFactorHeader) twoFactorHeader.textContent = 'Enter the 6-digit code from your authenticator app to complete Google sign-in';
+  if (twoFactorHeader) twoFactorHeader.textContent = t('auth.login.google_2fa_subtitle');
   if (twoFactorError) twoFactorError.style.display = 'none';
   if (codeInput) {
     codeInput.value = '';
@@ -1488,14 +1495,14 @@ if (verify2FABtn) {
     
     if (!code || code.length !== 6 || !/^\d+$/.test(code)) {
       if (twoFactorLoginError) {
-        twoFactorLoginError.textContent = 'Please enter a valid 6-digit code.';
+        twoFactorLoginError.textContent = t('auth.login.2fa_invalid_code');
         twoFactorLoginError.style.display = 'block';
       }
       return;
     }
     
     verify2FABtn.disabled = true;
-    verify2FABtn.textContent = 'Verifying...';
+    verify2FABtn.textContent = t('auth.login.2fa_verifying');
     if (twoFactorLoginError) twoFactorLoginError.style.display = 'none';
     
     // Determine which API endpoint to use
@@ -1529,10 +1536,10 @@ if (verify2FABtn) {
         window.location.href = data.redirect || 'main.php';
       } else {
         verify2FABtn.disabled = false;
-        verify2FABtn.textContent = 'Verify & Sign In';
+        verify2FABtn.textContent = t('auth.login.verify_and_sign_in');
         
         if (twoFactorLoginError) {
-          twoFactorLoginError.textContent = data.message || 'Invalid code. Please try again.';
+          twoFactorLoginError.textContent = data.message || t('auth.errors.invalid_2fa');
           twoFactorLoginError.style.display = 'block';
         }
         
@@ -1545,10 +1552,10 @@ if (verify2FABtn) {
     })
     .catch(function() {
       verify2FABtn.disabled = false;
-      verify2FABtn.textContent = 'Verify & Sign In';
+      verify2FABtn.textContent = t('auth.login.verify_and_sign_in');
       
       if (twoFactorLoginError) {
-        twoFactorLoginError.textContent = 'An error occurred. Please try again.';
+        twoFactorLoginError.textContent = t('auth.errors.generic');
         twoFactorLoginError.style.display = 'block';
       }
     });

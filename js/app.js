@@ -44,11 +44,29 @@ window.getWorkflowStatusCssClass = getWorkflowStatusCssClass;
  * @param {string} internalStatus
  * @returns {string} resolved display label, or internalStatus as fallback
  */
+var defaultWorkflowStageLabels = {
+  'Originated': 'Originated',
+  'Sent To External Lab': 'Sent To External Lab',
+  'Designed': 'Designed',
+  'Manufactured': 'Manufactured',
+  'Received From External Lab': 'Received From External Lab',
+  'Delivered': 'Delivered'
+};
+
 function getStageLabel(internalStatus) {
   if (window.workflowStageLabels && Object.prototype.hasOwnProperty.call(window.workflowStageLabels, internalStatus)) {
     return window.workflowStageLabels[internalStatus];
   }
-  return internalStatus;
+  var normalized = String(internalStatus).toLowerCase().replace(/\s+/g, '_');
+  var key = 'cases.status.' + normalized;
+  var label = t(key);
+  if (label && label !== key) {
+    return label;
+  }
+  if (defaultWorkflowStageLabels && Object.prototype.hasOwnProperty.call(defaultWorkflowStageLabels, internalStatus)) {
+    return defaultWorkflowStageLabels[internalStatus];
+  }
+  return '';
 }
 window.getStageLabel = getStageLabel;
 
@@ -175,7 +193,7 @@ async function switchPractice(practiceId) {
       }
 
       // Show error
-      showToast(data.error || 'Failed to switch practice', 'error');
+      showToast(data.error || t('practice_switcher.switch_failed'), 'error');
     }
   } catch (error) {
 
@@ -187,7 +205,7 @@ async function switchPractice(practiceId) {
     if (typeof NetworkErrorHandler !== 'undefined') {
       NetworkErrorHandler.handle(error, 'switching practice');
     } else {
-      showToast('Failed to switch practice. Please try again.', 'error');
+      showToast(t('practice_switcher.switch_failed'), 'error');
     }
   }
 }
@@ -229,8 +247,8 @@ function showConfirmModal(title, message, onConfirm, onCancel, preventBackground
     return;
   }
 
-  titleEl.textContent = title || 'Confirm';
-  messageEl.textContent = message || 'Are you sure?';
+  titleEl.textContent = title || t('common.confirm');
+  messageEl.textContent = message || t('common.confirm_message');
   modal.style.display = 'block';
 
   // Clean up old event listeners by cloning buttons
@@ -277,13 +295,13 @@ function showMobileRestrictedModal(type) {
   if (!modal || !titleEl || !messageEl || !subtextEl) return;
 
   if (type === 'billing') {
-    titleEl.textContent = 'Billing';
-    messageEl.textContent = 'Billing management is available on desktop or tablet.';
-    subtextEl.textContent = 'Please use DentaTrak on a larger screen to manage your subscription and billing information.';
+    titleEl.textContent = t('billing.billing');
+    messageEl.textContent = t('billing.errors.desktop_tablet_only');
+    subtextEl.textContent = t('billing.errors.desktop_tablet_only_subtext');
   } else {
-    titleEl.textContent = 'Settings';
-    messageEl.textContent = 'Settings are available on desktop or tablet.';
-    subtextEl.textContent = 'Please use DentaTrak on a larger screen to manage practice settings, users, security, and data preferences.';
+    titleEl.textContent = t('settings.messages.mobile_title');
+    messageEl.textContent = t('settings.messages.mobile_message');
+    subtextEl.textContent = t('settings.messages.mobile_subtext');
   }
 
   modal.style.display = 'block';
@@ -297,17 +315,17 @@ function showToast(message, type) {
   if (typeof Toast !== 'undefined') {
     switch (type) {
       case 'success':
-        Toast.success('', message);
+        Toast.success(t('common.success'), message);
         break;
       case 'error':
-        Toast.error('Error', message);
+        Toast.error(t('common.error'), message);
         break;
       case 'warning':
-        Toast.warning('Warning', message);
+        Toast.warning(t('common.warning'), message);
         break;
       case 'info':
       default:
-        Toast.info('', message);
+        Toast.info(t('common.info'), message);
         break;
     }
   } else {
@@ -467,7 +485,7 @@ document.addEventListener('DOMContentLoaded', function () {
     if (window.assignmentLabels && window.assignmentLabels.some(function(existing) {
       return typeof existing === 'string' && existing.toLowerCase() === lower;
     })) {
-      assignmentLabelErrorElement.textContent = 'This label has already been added';
+      assignmentLabelErrorElement.textContent = t('settings.users.shared_assignment_labels.validation.duplicate');
       return;
     }
 
@@ -475,7 +493,7 @@ document.addEventListener('DOMContentLoaded', function () {
     if (window.gmailUsers && window.gmailUsers.some(function(email) {
       return typeof email === 'string' && email.toLowerCase() === lower;
     })) {
-      assignmentLabelErrorElement.textContent = 'This label matches an existing authorized user email';
+      assignmentLabelErrorElement.textContent = t('settings.users.shared_assignment_labels.validation.matches_user');
       return;
     }
 
@@ -570,7 +588,7 @@ document.addEventListener('DOMContentLoaded', function () {
     // Empty/whitespace-only names must not be accepted.
     if (!newLabel) {
       if (errorEl) {
-        errorEl.textContent = 'Label name cannot be empty';
+        errorEl.textContent = t('settings.users.shared_assignment_labels.validation.empty');
       }
       return;
     }
@@ -597,7 +615,7 @@ document.addEventListener('DOMContentLoaded', function () {
       return existingLower === newLower;
     })) {
       if (errorEl) {
-        errorEl.textContent = 'A label with that name already exists';
+        errorEl.textContent = t('settings.users.shared_assignment_labels.validation.already_exists');
       }
       return;
     }
@@ -607,7 +625,7 @@ document.addEventListener('DOMContentLoaded', function () {
       return typeof email === 'string' && email.toLowerCase() === newLower;
     })) {
       if (errorEl) {
-        errorEl.textContent = 'This label matches an existing authorized user email';
+        errorEl.textContent = t('settings.users.shared_assignment_labels.validation.matches_user');
       }
       return;
     }
@@ -733,7 +751,7 @@ document.addEventListener('DOMContentLoaded', function () {
         var meta = window.assignmentLabelsMeta && window.assignmentLabelsMeta[idx];
         var labWrapper = document.createElement('label');
         labWrapper.className = 'assignment-label-lab-checkbox';
-        labWrapper.title = 'Identifies this user or assignment label as an external dental lab for Lab Insights reporting.';
+        labWrapper.title = t('settings.users.practice_users.lab_tooltip');
 
         var labCheckbox = document.createElement('input');
         labCheckbox.type = 'checkbox';
@@ -745,7 +763,7 @@ document.addEventListener('DOMContentLoaded', function () {
         });
 
         labWrapper.appendChild(labCheckbox);
-        labWrapper.appendChild(document.createTextNode('Lab'));
+        labWrapper.appendChild(document.createTextNode(t('settings.users.practice_users.lab')));
         item.appendChild(labWrapper);
       }
 
@@ -766,7 +784,7 @@ document.addEventListener('DOMContentLoaded', function () {
         editBtn.type = 'button';
         editBtn.className = 'edit-assignment-label';
         editBtn.innerHTML = '✎';
-        editBtn.title = 'Edit label';
+        editBtn.title = t('settings.users.shared_assignment_labels.actions.edit');
         editBtn.setAttribute('data-label', label);
         editBtn.addEventListener('click', function() {
           var labelToEdit = this.getAttribute('data-label');
@@ -777,7 +795,7 @@ document.addEventListener('DOMContentLoaded', function () {
         var removeBtn = document.createElement('button');
         removeBtn.type = 'button';
         removeBtn.className = 'assignment-delete-btn';
-        removeBtn.title = 'Delete label';
+        removeBtn.title = t('settings.users.shared_assignment_labels.actions.delete');
         removeBtn.innerHTML = '' +
           '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
           '  <polyline points="3 6 5 6 21 6"></polyline>' +
@@ -1166,7 +1184,7 @@ document.addEventListener('DOMContentLoaded', function () {
     // set from the server's isPracticeAdmin() check (api/get-settings.php) -
     // every underlying settings API independently re-verifies this too.
     if (!window.isPracticeAdmin) {
-      showToast('Settings are only available to practice administrators.', 'error');
+      showToast(t('settings.messages.admin_only'), 'error');
       return;
     }
 
@@ -1234,6 +1252,16 @@ document.addEventListener('DOMContentLoaded', function () {
             data.showLabInsights === true,
             data.workflowStageLabels || {}
           );
+
+          // Apply locale selections to the settings form
+          var languageSelect = document.getElementById('languageSelect');
+          if (languageSelect && data.language) {
+            languageSelect.value = data.usePracticeDefault ? 'use_practice_default' : (data.storedUserLocale || data.language);
+          }
+          var practiceDefaultLanguageSelect = document.getElementById('practiceDefaultLanguage');
+          if (practiceDefaultLanguageSelect && data.practiceDefaultLanguage) {
+            practiceDefaultLanguageSelect.value = data.practiceDefaultLanguage;
+          }
 
           // Deep link support - must run after applyUserSettings() because
           // that is what sets window.isPracticeAdmin, which the Billing
@@ -1913,11 +1941,10 @@ document.addEventListener('DOMContentLoaded', function () {
       box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
     `;
 
-    // Same copy as Create/Edit Case modal
     content.innerHTML = `
-      <h3 style="margin: 0 0 15px 0; color: #333;">Unsaved Changes</h3>
+      <h3 style="margin: 0 0 15px 0; color: #333;">` + t('settings.common.unsaved_changes') + `</h3>
       <p style="margin: 0 0 25px 0; color: #666; line-height: 1.5;">
-        You have unsaved changes. Are you sure you want to close without saving?
+        ` + t('settings.messages.unsaved_message') + `
       </p>
       <div style="display: flex; gap: 10px; justify-content: center;">
         <button id="settings-stay-btn" style="
@@ -1928,7 +1955,7 @@ document.addEventListener('DOMContentLoaded', function () {
           border-radius: 4px;
           cursor: pointer;
           font-size: 14px;
-        ">Stay</button>
+        ">` + t('settings.common.stay') + `</button>
         <button id="settings-close-btn" style="
           padding: 10px 20px;
           background: #dc3545;
@@ -1937,7 +1964,7 @@ document.addEventListener('DOMContentLoaded', function () {
           border-radius: 4px;
           cursor: pointer;
           font-size: 14px;
-        ">Close Without Saving</button>
+        ">` + t('settings.common.close_without_saving') + `</button>
       </div>
     `;
 
@@ -2157,16 +2184,16 @@ document.addEventListener('DOMContentLoaded', function () {
           checkbox.disabled = false;
           if (data.success) {
             window.originalGoogleDriveBackup = false;
-            showToast('Google Drive backup disabled', 'success');
+            showToast(t('settings.display.google_drive.disabled_toast'), 'success');
           } else {
             checkbox.checked = true; // Revert
-            showToast(data.message || 'Failed to disable backup', 'error');
+            showToast(data.message || t('settings.display.google_drive.disable_error'), 'error');
           }
         })
         .catch(function(err) {
           checkbox.disabled = false;
           checkbox.checked = true; // Revert
-          showToast('Error disabling backup', 'error');
+          showToast(t('settings.display.google_drive.disable_unknown_error'), 'error');
         });
       }
     });
@@ -2182,7 +2209,7 @@ document.addEventListener('DOMContentLoaded', function () {
       gdBackupConfirm.addEventListener('click', function() {
         var btn = this;
         btn.disabled = true;
-        btn.textContent = 'Enabling...';
+        btn.textContent = t('settings.display.google_drive.enabling');
 
         // Call API to enable backup (creates folder)
         fetch('/api/google-drive-backup.php?action=enable', {
@@ -2193,30 +2220,30 @@ document.addEventListener('DOMContentLoaded', function () {
         .then(function(data) {
 
           btn.disabled = false;
-          btn.textContent = 'I Agree, Enable Backup';
+          btn.textContent = t('settings.display.google_drive.confirm_button');
           googleDriveBackupModal.style.display = 'none';
 
           if (data.success) {
             googleDriveBackupCheckbox.checked = true;
             window.originalGoogleDriveBackup = true;
-            showToast('Google Drive backup enabled!', 'success');
+            showToast(t('settings.display.google_drive.enabled_toast'), 'success');
           } else {
             googleDriveBackupCheckbox.checked = false;
             if (data.noWorkspace) {
-              showToast('Google Workspace is required for backup. Please use a Workspace account with a signed BAA.', 'error');
+              showToast(t('settings.display.google_drive.workspace_required'), 'error');
             } else if (data.needsDriveConnection) {
-              showToast('Please connect Google Drive first from Settings.', 'error');
+              showToast(t('settings.display.google_drive.connect_first'), 'error');
             } else {
-              showToast(data.message || 'Failed to enable backup', 'error');
+              showToast(data.message || t('settings.display.google_drive.unknown_error'), 'error');
             }
           }
         })
         .catch(function(err) {
           btn.disabled = false;
-          btn.textContent = 'I Agree, Enable Backup';
+          btn.textContent = t('settings.display.google_drive.confirm_button');
           googleDriveBackupModal.style.display = 'none';
           googleDriveBackupCheckbox.checked = false;
-          showToast('Error enabling backup: ' + err.message, 'error');
+          showToast(t('settings.display.google_drive.enable_error_prefix') + err.message, 'error');
         });
       });
     }
@@ -2375,7 +2402,7 @@ document.addEventListener('DOMContentLoaded', function () {
     var submitBtn = document.getElementById('feedbackSubmit');
     var originalBtnText = submitBtn.textContent;
     submitBtn.disabled = true;
-    submitBtn.textContent = 'Sending...';
+    submitBtn.textContent = t('common.sending');
 
     // Prepare the data
     var formData = {
@@ -2409,7 +2436,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }, 300); // Small delay for better UX
       } else {
         // Show error message
-        showToast(data.message || 'Unable to send feedback.', 'error');
+        showToast(data.message || t('feedback.unable_to_send'), 'error');
       }
     })
     .catch(error => {
@@ -2417,7 +2444,7 @@ document.addEventListener('DOMContentLoaded', function () {
       if (typeof NetworkErrorHandler !== 'undefined') {
         NetworkErrorHandler.handle(error, 'sending feedback');
       } else {
-        showToast('Error sending feedback. Please try again later.', 'error');
+        showToast(t('feedback.send_error'), 'error');
       }
     })
     .finally(() => {
@@ -2614,7 +2641,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     var maxUsers = billingInfo && billingInfo.max_users ? billingInfo.max_users : 0;
     if (maxUsers > 0 && currentUserCount >= maxUsers) {
-      gmailErrorElement.textContent = 'User limit reached (' + maxUsers + ' users). Upgrade to Control plan to add more users.';
+      gmailErrorElement.textContent = t('settings.users.practice_users.validation.limit_reached', { count: maxUsers });
       return;
     }
 
@@ -2625,19 +2652,19 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Validate email
     if (!email) {
-      gmailErrorElement.textContent = 'Please enter an email address';
+      gmailErrorElement.textContent = t('settings.users.practice_users.validation.email_required');
       return;
     }
 
     // Validate email format (basic check)
     if (!email.includes('@') || !email.includes('.')) {
-      gmailErrorElement.textContent = 'Please enter a valid email address';
+      gmailErrorElement.textContent = t('settings.users.practice_users.validation.email_invalid');
       return;
     }
 
     // Check for duplicate
     if (window.gmailUsers.includes(email)) {
-      gmailErrorElement.textContent = 'This email has already been added';
+      gmailErrorElement.textContent = t('settings.users.practice_users.validation.duplicate');
       return;
     }
 
@@ -2646,7 +2673,7 @@ document.addEventListener('DOMContentLoaded', function () {
     checkUserPracticeStatus(email).then(response => {
       if (response.inCurrentPractice) {
         // User is already in the current practice
-        gmailErrorElement.textContent = 'This user is already a member of this practice';
+        gmailErrorElement.textContent = t('settings.users.practice_users.validation.already_member');
         return;
       }
 
@@ -2659,7 +2686,7 @@ document.addEventListener('DOMContentLoaded', function () {
       // Clear input
       newGmailUserInput.value = '';
     }).catch(error => {
-      gmailErrorElement.textContent = 'Error checking user status: ' + error.message;
+      gmailErrorElement.textContent = t('settings.users.practice_users.validation.check_error', { message: error.message });
       // Error message displayed in UI
     });
   }
@@ -2726,7 +2753,7 @@ document.addEventListener('DOMContentLoaded', function () {
       addBtn.style.opacity = '0.5';
       inputField.style.opacity = '0.5';
       if (errorElement) {
-        errorElement.textContent = 'User limit reached (' + maxUsers + ' users). Upgrade to Control plan to add more users.';
+        errorElement.textContent = t('settings.users.practice_users.validation.limit_reached', { count: maxUsers });
       }
     } else {
       // Only enable if user is practice admin
@@ -2758,7 +2785,8 @@ document.addEventListener('DOMContentLoaded', function () {
     trigger.className = 'dt-tooltip-trigger';
     trigger.textContent = 'i';
     trigger.setAttribute('aria-describedby', tooltipId);
-    trigger.setAttribute('aria-label', 'More information');
+    trigger.setAttribute('aria-label', t('settings.common.more_info'));
+    trigger.textContent = t('settings.common.info_trigger') || 'i';
 
     var bubble = document.createElement('span');
     bubble.className = 'dt-tooltip-bubble';
@@ -2822,7 +2850,7 @@ document.addEventListener('DOMContentLoaded', function () {
       var warningBanner = document.createElement('div');
       warningBanner.className = 'user-limit-warning';
       warningBanner.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>' +
-        '<span>This practice has ' + currentUserCount + ' users, which exceeds the 5-user Operate limit. You can continue using DentaTrak with the current team, but you cannot add more users unless you upgrade to Control or reduce the team to 5 users. <a href="billing.php" style="color: inherit; font-weight: 600;">Upgrade to Control</a></span>';
+        '<span>' + t('settings.users.practice_users.limit_warning', { count: currentUserCount }) + '</span>';
       usersList.appendChild(warningBanner);
     }
 
@@ -2866,35 +2894,35 @@ document.addEventListener('DOMContentLoaded', function () {
 
     var emailHeader = document.createElement('div');
     emailHeader.className = 'gmail-user-email';
-    emailHeader.textContent = 'User';
+    emailHeader.textContent = t('settings.users.practice_users.user');
 
     var adminHeader = document.createElement('div');
     adminHeader.className = 'practice-user-admin-header';
-    adminHeader.appendChild(document.createTextNode('Admin'));
-    adminHeader.appendChild(createInfoTooltip('Grants administrative access to practice settings and user management.'));
+    adminHeader.appendChild(document.createTextNode(t('settings.users.practice_users.admin')));
+    adminHeader.appendChild(createInfoTooltip(t('settings.users.practice_users.admin_tooltip')));
 
     var analyticsHeader = document.createElement('div');
     analyticsHeader.className = 'practice-user-analytics-header';
-    analyticsHeader.appendChild(document.createTextNode('Insights'));
-    analyticsHeader.appendChild(createInfoTooltip('Allows this user to access DentaTrak Insights and analytics.'));
+    analyticsHeader.appendChild(document.createTextNode(t('settings.users.practice_users.insights')));
+    analyticsHeader.appendChild(createInfoTooltip(t('settings.users.practice_users.insights_tooltip')));
 
     var limitedHeader = document.createElement('div');
     limitedHeader.className = 'practice-user-limited-header';
-    limitedHeader.appendChild(document.createTextNode('Assigned Only'));
-    limitedHeader.appendChild(createInfoTooltip('Limits this user\'s case view to cases assigned to their email address.', true));
+    limitedHeader.appendChild(document.createTextNode(t('settings.users.practice_users.assigned_only')));
+    limitedHeader.appendChild(createInfoTooltip(t('settings.users.practice_users.assigned_only_tooltip'), true));
 
     var showLabInsights = !!window.showLabInsights;
     var labHeader = null;
     if (showLabInsights) {
       labHeader = document.createElement('div');
       labHeader.className = 'practice-user-lab-header';
-      labHeader.appendChild(document.createTextNode('Lab'));
-      labHeader.appendChild(createInfoTooltip('Identifies this user or assignment label as an external dental lab for Lab Insights reporting.', true));
+      labHeader.appendChild(document.createTextNode(t('settings.users.practice_users.lab')));
+      labHeader.appendChild(createInfoTooltip(t('settings.users.practice_users.lab_tooltip'), true));
     }
 
     var removeHeader = document.createElement('div');
     removeHeader.className = 'practice-user-remove-header';
-    removeHeader.textContent = 'Remove';
+    removeHeader.textContent = t('settings.users.practice_users.remove');
 
     headerRow.appendChild(emailHeader);
     headerRow.appendChild(adminHeader);
@@ -2935,14 +2963,14 @@ document.addEventListener('DOMContentLoaded', function () {
       if (isCurrent) {
         var youBadge = document.createElement('span');
         youBadge.className = 'admin-badge';
-        youBadge.textContent = 'You';
+        youBadge.textContent = t('settings.users.practice_users.badge_you');
         userEmail.appendChild(youBadge);
       }
 
       if (isCreator) {
         var creatorBadge = document.createElement('span');
         creatorBadge.className = 'admin-badge';
-        creatorBadge.textContent = 'Creator';
+        creatorBadge.textContent = t('settings.users.practice_users.badge_creator');
         userEmail.appendChild(creatorBadge);
       }
 
@@ -3263,6 +3291,10 @@ document.addEventListener('DOMContentLoaded', function () {
       var googleDriveBackupCheckbox = document.getElementById('googleDriveBackup');
       var googleDriveBackup = googleDriveBackupCheckbox ? googleDriveBackupCheckbox.checked : false;
 
+      // Practice default language (only when the language controls are visible)
+      var practiceDefaultLanguageSelect = document.getElementById('practiceDefaultLanguage');
+      var practiceDefaultLanguage = practiceDefaultLanguageSelect ? practiceDefaultLanguageSelect.value : null;
+
       // Delivered hide days (0 = show all)
       var deliveredHideDaysInput = document.getElementById('deliveredHideDays');
       var deliveredHideDays = deliveredHideDaysInput ? parseInt(deliveredHideDaysInput.value || '0', 10) : 0;
@@ -3320,6 +3352,10 @@ document.addEventListener('DOMContentLoaded', function () {
         isLabUsers: window.isLabUsers || {}, // Add Lab designation map (Lab Insights foundation)
         workflowStageLabels: workflowStageLabels // Practice-specific stage display-label overrides
       };
+
+      if (practiceDefaultLanguage) {
+        formData.practiceDefaultLanguage = practiceDefaultLanguage;
+      }
 
       // Include logo action so the server can handle removals/updates
       if (window.logoMarkedForRemoval) {
@@ -3478,7 +3514,7 @@ document.addEventListener('DOMContentLoaded', function () {
     // Show loading state
     var saveSettingsBtn = document.getElementById('saveSettings');
     var originalText = saveSettingsBtn.textContent;
-    saveSettingsBtn.textContent = 'Saving...';
+    saveSettingsBtn.textContent = t('settings.common.saving');
     saveSettingsBtn.disabled = true;
 
     fetch('api/save-settings.php', {
@@ -3534,7 +3570,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
         // Show success toast
         if (typeof Toast !== 'undefined') {
-          Toast.success('Settings Updated', 'Your settings have been saved successfully.');
+          Toast.success(t('settings.messages.save_success_title'), t('settings.messages.save_success_message'));
         }
       } else {
         // Reset button state
@@ -3544,7 +3580,7 @@ document.addEventListener('DOMContentLoaded', function () {
         // Show the server's specific validation message when available
         // (e.g. "Cannot delete label(s) still in use...") rather than a
         // generic failure message.
-        showToast(data.message || 'Failed to save settings. Please try again.', 'error');
+        showToast(data.message || t('settings.messages.save_error'), 'error');
 
         // A stale client (missing the stable-ID label payload while Lab
         // Insights is enabled) was rejected to avoid corrupting Lab
@@ -3598,7 +3634,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
         // Show a toast notification
         if (typeof Toast !== 'undefined') {
-          Toast.info('Update Payment', 'Payment update functionality will be available soon.');
+          Toast.info(t('billing.payment_method'), t('billing.messages.payment_update_soon'));
         }
       });
     }
@@ -3612,7 +3648,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
         // Show a toast notification
         if (typeof Toast !== 'undefined') {
-          Toast.success('Plan Updated', 'Your subscription plan has been updated successfully.');
+          Toast.success(t('billing.messages.change_plan_title'), t('billing.messages.plan_updated'));
         }
       });
     }
@@ -3626,7 +3662,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
         // Show a toast notification
         if (typeof Toast !== 'undefined') {
-          Toast.info('Billing History', 'Your billing history will be available soon.');
+          Toast.info(t('billing.messages.billing_history_title'), t('billing.messages.billing_history_soon'));
         }
       });
     }
@@ -3747,7 +3783,7 @@ document.addEventListener('DOMContentLoaded', function () {
     if (!events || !events.length) {
       var empty = document.createElement('p');
       empty.className = 'revision-empty-state';
-      empty.textContent = 'No history yet.';
+      empty.textContent = t('cases.history.no_events');
       caseHistoryContainer.appendChild(empty);
       return;
     }
@@ -3775,15 +3811,15 @@ document.addEventListener('DOMContentLoaded', function () {
 
           var timeString;
           if (diffMins < 1) {
-            timeString = 'Just now';
+            timeString = t('cases.history.just_now');
           } else if (diffMins < 60) {
-            timeString = diffMins + ' minute' + (diffMins !== 1 ? 's' : '') + ' ago';
+            timeString = I18n.pluralize(diffMins, 'common.relative.minutes_ago');
           } else if (diffHours < 24) {
-            timeString = diffHours + ' hour' + (diffHours !== 1 ? 's' : '') + ' ago';
+            timeString = I18n.pluralize(diffHours, 'common.relative.hours_ago');
           } else if (diffDays < 7) {
-            timeString = diffDays + ' day' + (diffDays !== 1 ? 's' : '') + ' ago';
+            timeString = I18n.pluralize(diffDays, 'common.relative.days_ago');
           } else {
-            timeString = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' });
+            timeString = I18n.formatDate(d, { style: 'medium', timeStyle: 'short' });
           }
 
           header.textContent = timeString;
@@ -3814,19 +3850,19 @@ document.addEventListener('DOMContentLoaded', function () {
         case 'fields_updated':
           if (evt.meta && evt.meta.changed_fields && Array.isArray(evt.meta.changed_fields)) {
             var fieldMap = {
-              'patientFirstName': 'Patient First Name',
-              'patientLastName': 'Patient Last Name',
-              'patientDOB': 'Patient DOB',
-              'patientGender': 'Gender',
-              'dentistName': 'Dentist',
-              'caseType': 'Case Type',
-              'toothShade': 'Tooth Shade',
-              'material': 'Material',
-              'dueDate': 'Due Date',
-              'status': 'Status',
-              'assignedTo': 'Assigned To',
-              'notes': 'Notes',
-              'clinicalDetails': 'Clinical Details'
+              'patientFirstName': t('cases.fields.patientFirstName'),
+              'patientLastName': t('cases.fields.patientLastName'),
+              'patientDOB': t('cases.fields.patientDOB'),
+              'patientGender': t('cases.fields.patientGender'),
+              'dentistName': t('cases.fields.dentistName'),
+              'caseType': t('cases.fields.caseType'),
+              'toothShade': t('cases.fields.toothShade'),
+              'material': t('cases.fields.material'),
+              'dueDate': t('cases.fields.dueDate'),
+              'status': t('cases.fields.status'),
+              'assignedTo': t('cases.fields.assignedTo'),
+              'notes': t('cases.fields.notes'),
+              'clinicalDetails': t('cases.fields.clinicalDetails')
             };
             // Check if we have old/new values for detailed display
             if (evt.meta.field_changes && typeof evt.meta.field_changes === 'object') {
@@ -3988,7 +4024,7 @@ document.addEventListener('DOMContentLoaded', function () {
       caseHistoryContainer.innerHTML = '';
       var empty = document.createElement('p');
       empty.className = 'revision-empty-state';
-      empty.textContent = 'No history yet.';
+      empty.textContent = t('cases.history.no_events');
       caseHistoryContainer.appendChild(empty);
       return;
     }
@@ -3996,7 +4032,7 @@ document.addEventListener('DOMContentLoaded', function () {
     caseHistoryContainer.innerHTML = '';
     var loading = document.createElement('p');
     loading.className = 'revision-loading';
-    loading.textContent = 'Loading revision history...';
+    loading.textContent = t('cases.history.loading');
     caseHistoryContainer.appendChild(loading);
 
     fetch('api/get-case-activity.php?caseId=' + encodeURIComponent(caseId), {
@@ -4010,7 +4046,7 @@ document.addEventListener('DOMContentLoaded', function () {
           caseHistoryContainer.innerHTML = '';
           var error = document.createElement('p');
           error.className = 'revision-error';
-          error.textContent = 'Unable to load revision history.';
+          error.textContent = t('cases.history.error');
           caseHistoryContainer.appendChild(error);
           return;
         }
@@ -4021,7 +4057,7 @@ document.addEventListener('DOMContentLoaded', function () {
         caseHistoryContainer.innerHTML = '';
         var error = document.createElement('p');
         error.className = 'revision-error';
-        error.textContent = 'Unable to load revision history.';
+        error.textContent = t('cases.history.error');
         caseHistoryContainer.appendChild(error);
       });
   }
@@ -4177,10 +4213,10 @@ document.addEventListener('DOMContentLoaded', function () {
       var remaining = maxLength - currentLength;
 
       // Format number with comma separator
-      var formattedCurrent = currentLength.toLocaleString();
-      var formattedMax = maxLength.toLocaleString();
+      var formattedCurrent = I18n.formatNumber(currentLength);
+      var formattedMax = I18n.formatNumber(maxLength);
 
-      charCounter.textContent = formattedCurrent + ' / ' + formattedMax + ' characters';
+      charCounter.textContent = t('cases.comments.character_count', {current: formattedCurrent, max: formattedMax});
 
       // Update visual state
       charCounter.classList.remove('warning', 'error');
@@ -4221,7 +4257,7 @@ document.addEventListener('DOMContentLoaded', function () {
      */
     function parseToothNumbers(value) {
       if (!value || value.trim() === '') {
-        return { valid: false, error: 'At least one tooth number is required', numbers: [], normalized: '' };
+        return { valid: false, error: t('cases.clinical.validation.tooth_number_required'), numbers: [], normalized: '' };
       }
 
       var trimmed = value.trim();
@@ -4245,7 +4281,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
             // Validate range format
             if (rangeParts.length !== 2) {
-              return { valid: false, error: 'Invalid range format: "' + part + '"', numbers: [], normalized: '' };
+              return { valid: false, error: t('cases.clinical.validation.tooth_number_invalid_range_format', {part: part}), numbers: [], normalized: '' };
             }
 
             var start = rangeParts[0].trim();
@@ -4253,7 +4289,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
             // Validate both parts are numeric
             if (!/^\d+$/.test(start) || !/^\d+$/.test(end)) {
-              return { valid: false, error: 'Enter valid tooth numbers (1-32), e.g. 14, 30 or 14-18', numbers: [], normalized: '' };
+              return { valid: false, error: t('validation.tooth_numbers'), numbers: [], normalized: '' };
             }
 
             var startNum = parseInt(start, 10);
@@ -4261,15 +4297,15 @@ document.addEventListener('DOMContentLoaded', function () {
 
             // Validate range bounds
             if (startNum < MIN_TOOTH_NUMBER || startNum > MAX_TOOTH_NUMBER) {
-              return { valid: false, error: 'Tooth number ' + startNum + ' must be between 1 and 32', numbers: [], normalized: '' };
+              return { valid: false, error: t('cases.clinical.validation.tooth_number_out_of_range', {number: startNum, min: MIN_TOOTH_NUMBER, max: MAX_TOOTH_NUMBER}), numbers: [], normalized: '' };
             }
             if (endNum < MIN_TOOTH_NUMBER || endNum > MAX_TOOTH_NUMBER) {
-              return { valid: false, error: 'Tooth number ' + endNum + ' must be between 1 and 32', numbers: [], normalized: '' };
+              return { valid: false, error: t('cases.clinical.validation.tooth_number_out_of_range', {number: endNum, min: MIN_TOOTH_NUMBER, max: MAX_TOOTH_NUMBER}), numbers: [], normalized: '' };
             }
 
             // Validate range direction
             if (startNum > endNum) {
-              return { valid: false, error: 'Invalid range: start (' + startNum + ') must be less than or equal to end (' + endNum + ')', numbers: [], normalized: '' };
+              return { valid: false, error: t('cases.clinical.validation.tooth_number_invalid_range_order', {start: startNum, end: endNum}), numbers: [], normalized: '' };
             }
 
             // Expand range
@@ -4279,13 +4315,13 @@ document.addEventListener('DOMContentLoaded', function () {
           } else {
             // Single number
             if (!/^\d+$/.test(part)) {
-              return { valid: false, error: 'Enter valid tooth numbers (1-32), e.g. 14, 30 or 14-18', numbers: [], normalized: '' };
+              return { valid: false, error: t('validation.tooth_numbers'), numbers: [], normalized: '' };
             }
 
             var num = parseInt(part, 10);
 
             if (num < MIN_TOOTH_NUMBER || num > MAX_TOOTH_NUMBER) {
-              return { valid: false, error: 'Tooth number ' + num + ' must be between 1 and 32', numbers: [], normalized: '' };
+              return { valid: false, error: t('cases.clinical.validation.tooth_number_out_of_range', {number: num, min: MIN_TOOTH_NUMBER, max: MAX_TOOTH_NUMBER}), numbers: [], normalized: '' };
             }
 
             allNumbers.push(num);
@@ -4294,7 +4330,7 @@ document.addEventListener('DOMContentLoaded', function () {
       }
 
       if (allNumbers.length === 0) {
-        return { valid: false, error: 'At least one tooth number is required', numbers: [], normalized: '' };
+        return { valid: false, error: t('cases.clinical.validation.tooth_number_required'), numbers: [], normalized: '' };
       }
 
       // Deduplicate and sort
@@ -4437,8 +4473,8 @@ document.addEventListener('DOMContentLoaded', function () {
       delete form.dataset.originalCaseData;
     }
 
-    if (modalTitle) modalTitle.textContent = 'Create New Case';
-    if (submitBtn) submitBtn.textContent = 'Create Case';
+    if (modalTitle) modalTitle.textContent = t('cases.create_new_case');
+    if (submitBtn) submitBtn.textContent = t('cases.create_case');
 
     clearFileSelections();
 
@@ -4618,7 +4654,7 @@ document.addEventListener('DOMContentLoaded', function () {
         submitBtn.style.display = '';
       }
       if (cancelBtn) {
-        cancelBtn.textContent = 'Cancel';
+        cancelBtn.textContent = t('common.cancel');
       }
 
       // Reset unsaved changes tracking
@@ -4695,7 +4731,7 @@ document.addEventListener('DOMContentLoaded', function () {
     // Created By is read-only and resolved by the server; never sent back.
     var createdByDisplay = document.getElementById('createdByDisplay');
     if (createdByDisplay) {
-      createdByDisplay.textContent = caseData.createdByName || 'Unknown';
+      createdByDisplay.textContent = caseData.createdByName || t('common.unknown');
     }
 
     // Populate + select the Assigned To dropdown. The <select id="assignedTo">
@@ -4729,13 +4765,13 @@ document.addEventListener('DOMContentLoaded', function () {
     // Update modal title for editing
     var modalTitle = createCaseModal.querySelector('.modal-title');
     if (modalTitle) {
-      modalTitle.textContent = 'Edit Case';
+      modalTitle.textContent = t('cases.edit_case');
     }
 
     // Update submit button text
     var submitBtn = document.getElementById('createCaseSubmit');
     if (submitBtn) {
-      submitBtn.textContent = 'Update Case';
+      submitBtn.textContent = t('cases.update_case');
     }
 
     // Load and display existing files
@@ -4841,7 +4877,7 @@ document.addEventListener('DOMContentLoaded', function () {
     viewLink.href = file.webViewLink || '#';
     viewLink.target = '_blank';
     viewLink.className = 'file-view-link';
-    viewLink.textContent = 'View';
+    viewLink.textContent = t('common.view');
 
     fileInfo.appendChild(fileName);
     fileInfo.appendChild(viewLink);
@@ -4872,14 +4908,14 @@ document.addEventListener('DOMContentLoaded', function () {
         }, 100);
       } else {
         if (typeof showToast === 'function') {
-          showToast('Could not open case', 'error');
+          showToast(t('cases.toast.open_failed'), 'error');
         }
       }
     })
     .catch(function(error) {
 
       if (typeof showToast === 'function') {
-        showToast('Error opening case', 'error');
+        showToast(t('cases.toast.open_error'), 'error');
       }
     });
   };
@@ -4900,7 +4936,7 @@ document.addEventListener('DOMContentLoaded', function () {
       // Change modal title to "View Case"
       var modalTitle = createCaseModal.querySelector('.modal-title');
       if (modalTitle) {
-        modalTitle.textContent = 'View Case';
+        modalTitle.textContent = t('cases.view_case');
       }
 
       // Hide submit button and show close button instead
@@ -4910,7 +4946,7 @@ document.addEventListener('DOMContentLoaded', function () {
         submitBtn.style.display = 'none';
       }
       if (cancelBtn) {
-        cancelBtn.textContent = 'Close';
+        cancelBtn.textContent = t('common.close');
         cancelBtn.style.display = 'inline-block';
       }
 
@@ -5091,9 +5127,9 @@ document.addEventListener('DOMContentLoaded', function () {
     `;
 
     content.innerHTML = `
-      <h3 style="margin: 0 0 15px 0; color: #333;">Unsaved Changes</h3>
+      <h3 style="margin: 0 0 15px 0; color: #333;">${t('settings.common.unsaved_changes')}</h3>
       <p style="margin: 0 0 25px 0; color: #666; line-height: 1.5;">
-        You have unsaved changes. Are you sure you want to close without saving?
+        ${t('settings.messages.unsaved_message')}
       </p>
       <div style="display: flex; gap: 10px; justify-content: center;">
         <button id="stay-btn" style="
@@ -5104,7 +5140,7 @@ document.addEventListener('DOMContentLoaded', function () {
           border-radius: 4px;
           cursor: pointer;
           font-size: 14px;
-        ">Stay</button>
+        ">${t('settings.common.stay')}</button>
         <button id="close-btn" style="
           padding: 10px 20px;
           background: #dc3545;
@@ -5113,7 +5149,7 @@ document.addEventListener('DOMContentLoaded', function () {
           border-radius: 4px;
           cursor: pointer;
           font-size: 14px;
-        ">Close Without Saving</button>
+        ">${t('settings.common.close_without_saving')}</button>
       </div>
     `;
 
@@ -5297,7 +5333,7 @@ document.addEventListener('DOMContentLoaded', function () {
         if (!field.nextElementSibling || !field.nextElementSibling.classList.contains('error-message')) {
           var errorMessage = document.createElement('div');
           errorMessage.className = 'error-message';
-          errorMessage.textContent = message || 'This field is required';
+          errorMessage.textContent = message || t('validation.required');
           field.parentNode.insertBefore(errorMessage, field.nextSibling);
         }
       }
@@ -5338,7 +5374,7 @@ document.addEventListener('DOMContentLoaded', function () {
           var input = fieldContainer.querySelector('input, select, textarea');
           if (input && !input.value) {
             isValid = false;
-            addFieldError(input, 'This field is required for ' + currentCaseType + ' cases');
+            addFieldError(input, t('cases.clinical.validation.required_for_case_type', {caseType: getCaseTypeDisplayLabel(currentCaseType)}));
           } else if (input) {
             clearFieldError(input);
           }
@@ -5368,7 +5404,7 @@ document.addEventListener('DOMContentLoaded', function () {
       var notesField = document.getElementById('notes');
       if (notesField && notesField.value.length > 3000) {
         isValid = false;
-        addFieldError(notesField, 'Notes cannot exceed 3,000 characters');
+        addFieldError(notesField, t('validation.notes_max', {max: 3000}));
       }
 
       if (!isValid) {
@@ -5396,8 +5432,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
       // Add loading spinner and text
       submitBtn.innerHTML = isUpdate ?
-        '<span class="btn-spinner"></span> Updating Case...' :
-        '<span class="btn-spinner"></span> Creating Case...';
+        '<span class="btn-spinner"></span> ' + t('cases.updating_case') :
+        '<span class="btn-spinner"></span> ' + t('cases.creating_case');
 
       // --- GCS Direct Upload Flow ---
       // Step 1: Upload files directly to GCS (bypasses Cloud Run 32MB limit)
@@ -5410,10 +5446,10 @@ document.addEventListener('DOMContentLoaded', function () {
       if (hasNewFiles) {
         var caseIdForUpload = isUpdate ? form.dataset.caseId : 'new';
 
-        submitBtn.innerHTML = '<span class="btn-spinner"></span> Uploading files...';
+        submitBtn.innerHTML = '<span class="btn-spinner"></span> ' + t('common.uploading');
 
         gcsUploadPromise = GCSUpload.uploadFilesToGCS(form, caseIdForUpload, csrfToken, function(uploaded, total, fileName) {
-          submitBtn.innerHTML = '<span class="btn-spinner"></span> Uploading files (' + uploaded + '/' + total + ')...';
+          submitBtn.innerHTML = '<span class="btn-spinner"></span> ' + t('common.uploading_with_count', {uploaded: uploaded, total: total});
         });
       } else {
 
@@ -5427,8 +5463,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
         // Update button text for case submission phase
         submitBtn.innerHTML = isUpdate ?
-          '<span class="btn-spinner"></span> Saving case...' :
-          '<span class="btn-spinner"></span> Creating case...';
+          '<span class="btn-spinner"></span> ' + t('cases.saving_case') :
+          '<span class="btn-spinner"></span> ' + t('cases.creating_case');
 
         // Build FormData WITHOUT file binaries - only text fields
         var formData = new FormData();
@@ -5598,7 +5634,7 @@ document.addEventListener('DOMContentLoaded', function () {
     // Show success animation
     submitBtn.classList.remove('submitting');
     submitBtn.classList.add('success');
-    submitBtn.innerHTML = '<span class="btn-checkmark"></span> Success!';
+    submitBtn.innerHTML = '<span class="btn-checkmark"></span> ' + t('common.success_exclamation');
 
     // Use requestAnimationFrame for smooth DOM updates
     requestAnimationFrame(() => {
@@ -5632,7 +5668,7 @@ document.addEventListener('DOMContentLoaded', function () {
   function handleCaseSubmissionError(error, form, submitBtn, isUpdate) {
     submitBtn.classList.remove('submitting');
     submitBtn.classList.add('error');
-    submitBtn.innerHTML = '<span class="btn-error"></span> Error';
+    submitBtn.innerHTML = '<span class="btn-error"></span> ' + t('common.error');
 
     // Handle concurrent edit conflict
     if (error.conflict) {
@@ -5640,7 +5676,7 @@ document.addEventListener('DOMContentLoaded', function () {
       // Reset button immediately for conflict
       submitBtn.classList.remove('error');
       submitBtn.disabled = false;
-      submitBtn.innerHTML = isUpdate ? 'Update Case' : 'Create Case';
+      submitBtn.innerHTML = isUpdate ? t('cases.update_case') : t('cases.create_case');
       isSubmitting = false;
       return;
     }
@@ -5652,22 +5688,22 @@ document.addEventListener('DOMContentLoaded', function () {
     var errorMessage;
     var msg = error.message || '';
     if (error.name === 'AbortError') {
-      errorMessage = 'Request timed out. Please try again.';
+      errorMessage = t('cases.toast.timeout');
     } else if (msg.indexOf('must be under') !== -1 || msg.indexOf('Maximum') !== -1 || msg.indexOf('cannot exceed') !== -1 || msg.indexOf('Over-limit') !== -1) {
       // Type-specific or aggregate limit error from frontend/backend validation
       errorMessage = msg;
     } else if (msg.indexOf('Failed to upload') !== -1) {
-      errorMessage = 'File upload failed. Please check your internet connection and try again.';
+      errorMessage = t('cases.toast.upload_failed');
     } else if (msg.indexOf('upload URL') !== -1) {
-      errorMessage = 'Could not prepare file upload. Please try again. If the problem persists, contact support.';
+      errorMessage = t('cases.toast.upload_prepare_failed');
     } else if (msg.indexOf('storage failed') !== -1) {
-      errorMessage = 'File upload to cloud storage failed. Please check your connection and try again.';
+      errorMessage = t('cases.toast.storage_failed');
     } else if (msg.indexOf('verification failed') !== -1) {
-      errorMessage = 'File verification failed on the server. ' + msg;
+      errorMessage = t('cases.toast.verification_failed', {message: msg});
     } else if (msg.indexOf('413') !== -1 || msg.toLowerCase().indexOf('too large') !== -1 || msg.toLowerCase().indexOf('payload too large') !== -1) {
-      errorMessage = 'The request is too large. STL files must be under 250MB, images under 25MB.';
+      errorMessage = t('cases.toast.payload_too_large');
     } else {
-      errorMessage = 'Failed to ' + (isUpdate ? 'update' : 'create') + ' case: ' + msg;
+      errorMessage = t(isUpdate ? 'cases.toast.update_failed' : 'cases.toast.create_failed', {message: msg});
     }
 
     showToast(errorMessage, 'error');
@@ -5676,7 +5712,7 @@ document.addEventListener('DOMContentLoaded', function () {
     setTimeout(() => {
       submitBtn.classList.remove('error');
       submitBtn.disabled = false;
-      submitBtn.innerHTML = isUpdate ? 'Update Case' : 'Create Case';
+      submitBtn.innerHTML = isUpdate ? t('cases.update_case') : t('cases.create_case');
       isSubmitting = false;
     }, 2000);
   }
@@ -5704,15 +5740,15 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     var fieldLabels = {
-      patientFirstName: 'First Name',
-      patientLastName: 'Last Name',
-      status: 'Status',
-      dentistName: 'Dentist',
-      caseType: 'Case Type',
-      toothShade: 'Shade',
-      material: 'Material',
-      dueDate: 'Due Date',
-      notes: 'Notes'
+      patientFirstName: t('cases.fields.firstName'),
+      patientLastName: t('cases.fields.lastName'),
+      status: t('cases.fields.status'),
+      dentistName: t('cases.fields.dentistName'),
+      caseType: t('cases.fields.caseType'),
+      toothShade: t('cases.fields.shade'),
+      material: t('cases.fields.material'),
+      dueDate: t('cases.fields.dueDate'),
+      notes: t('cases.fields.notes')
     };
 
     // Find all fields where your value differs from saved value
@@ -5756,9 +5792,9 @@ document.addEventListener('DOMContentLoaded', function () {
     // Build conflicts table - side by side comparison
     var conflictHtml = '<table style="width:100%;border-collapse:collapse;margin-bottom:16px;">' +
       '<thead><tr>' +
-        '<th style="text-align:left;padding:10px;border-bottom:2px solid #e5e7eb;font-size:0.8rem;color:#6b7280;">Field</th>' +
-        '<th style="text-align:left;padding:10px;border-bottom:2px solid #e5e7eb;font-size:0.8rem;color:#dc2626;background:#fef2f2;">Your Value</th>' +
-        '<th style="text-align:left;padding:10px;border-bottom:2px solid #e5e7eb;font-size:0.8rem;color:#16a34a;background:#f0fdf4;">Their Value (Saved)</th>' +
+        '<th style="text-align:left;padding:10px;border-bottom:2px solid #e5e7eb;font-size:0.8rem;color:#6b7280;">' + t('cases.conflict.field') + '</th>' +
+        '<th style="text-align:left;padding:10px;border-bottom:2px solid #e5e7eb;font-size:0.8rem;color:#dc2626;background:#fef2f2;">' + t('cases.conflict.your_value') + '</th>' +
+        '<th style="text-align:left;padding:10px;border-bottom:2px solid #e5e7eb;font-size:0.8rem;color:#16a34a;background:#f0fdf4;">' + t('cases.conflict.their_value') + '</th>' +
       '</tr></thead><tbody>';
 
     conflicts.forEach(function(conflict) {
@@ -5773,20 +5809,20 @@ document.addEventListener('DOMContentLoaded', function () {
     modal.innerHTML =
       '<div style="text-align:center;margin-bottom:20px;">' +
         '<div style="font-size:48px;margin-bottom:12px;">⚠️</div>' +
-        '<h3 style="margin:0 0 8px 0;color:#1f2937;font-size:1.25rem;">Edit Conflict</h3>' +
-        '<p style="margin:0;color:#6b7280;font-size:0.95rem;">You and another user both changed the same field(s).</p>' +
+        '<h3 style="margin:0 0 8px 0;color:#1f2937;font-size:1.25rem;">' + t('cases.conflict.title') + '</h3>' +
+        '<p style="margin:0;color:#6b7280;font-size:0.95rem;">' + t('cases.conflict.subtitle') + '</p>' +
       '</div>' +
 
       conflictHtml +
 
       '<p style="margin:0 0 16px 0;font-size:0.85rem;color:#6b7280;text-align:center;">' +
-        '<strong>Load Their Version</strong> updates the form with their saved values.<br>' +
-        '<strong>Keep My Version</strong> keeps your values so you can save again.' +
+        '<strong>' + t('cases.conflict.load_theirs') + '</strong> ' + t('cases.conflict.load_theirs_description') + '<br>' +
+        '<strong>' + t('cases.conflict.keep_mine') + '</strong> ' + t('cases.conflict.keep_mine_description') +
       '</p>' +
 
       '<div style="display:flex;gap:12px;justify-content:center;">' +
-        '<button class="conflict-reload-btn" style="padding:10px 20px;background:#16a34a;color:white;border:none;border-radius:6px;cursor:pointer;font-weight:500;">Load Their Version</button>' +
-        '<button class="conflict-cancel-btn" style="padding:10px 20px;background:#3b82f6;color:white;border:none;border-radius:6px;cursor:pointer;font-weight:500;">Keep My Version</button>' +
+        '<button class="conflict-reload-btn" style="padding:10px 20px;background:#16a34a;color:white;border:none;border-radius:6px;cursor:pointer;font-weight:500;">' + t('cases.conflict.load_theirs') + '</button>' +
+        '<button class="conflict-cancel-btn" style="padding:10px 20px;background:#3b82f6;color:white;border:none;border-radius:6px;cursor:pointer;font-weight:500;">' + t('cases.conflict.keep_mine') + '</button>' +
       '</div>';
 
     overlay.appendChild(modal);
@@ -5803,7 +5839,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }
         // Update the card on the board
         updateCardOnBoard(savedData);
-        showToast('Form updated with their version', 'success');
+        showToast(t('cases.toast.form_updated'), 'success');
       } else {
         location.reload();
       }
@@ -5884,7 +5920,7 @@ document.addEventListener('DOMContentLoaded', function () {
     isSubmitting = false;
     submitBtn.disabled = false;
     submitBtn.classList.remove('success');
-    submitBtn.innerHTML = isUpdate ? 'Update Case' : 'Create Case';
+    submitBtn.innerHTML = isUpdate ? t('cases.update_case') : t('cases.create_case');
 
     closeCreateCase();
     form.reset();
@@ -5975,12 +6011,12 @@ document.addEventListener('DOMContentLoaded', function () {
     `;
 
     content.innerHTML = `
-      <h3 style="margin: 0 0 15px 0; color: #f44336;">Archive Case</h3>
-      <p style="margin: 0 0 20px 0; color: #333;">Are you sure you want to archive "<strong>${fileName}</strong>"?</p>
-      <p style="margin: 0 0 20px 0; color: #666; font-size: 14px;">This action can be undone from the "View Archived Cases" button.</p>
+      <h3 style="margin: 0 0 15px 0; color: #f44336;">${t('archive.confirm.archive_title')}</h3>
+      <p style="margin: 0 0 20px 0; color: #333;">${t('archive.confirm.archive_message', {name: fileName})}</p>
+      <p style="margin: 0 0 20px 0; color: #666; font-size: 14px;">${t('archive.confirm.archive_undone')}</p>
       <label style="display: flex; align-items: center; justify-content: center; gap: 8px; margin: 0 0 25px 0; color: #666; font-size: 13px; cursor: pointer;">
         <input type="checkbox" id="dontShowAgainCheckbox" style="cursor: pointer;">
-        Don't show this message again
+        ${t('archive.dont_show_again')}
       </label>
       <div style="display: flex; gap: 10px; justify-content: center;">
         <button id="cancelBtn" style="
@@ -5991,7 +6027,7 @@ document.addEventListener('DOMContentLoaded', function () {
           border-radius: 4px;
           cursor: pointer;
           font-size: 14px;
-        ">Cancel</button>
+        ">${t('common.cancel')}</button>
         <button id="confirmBtn" style="
           background: #f44336;
           color: white;
@@ -6000,7 +6036,7 @@ document.addEventListener('DOMContentLoaded', function () {
           border-radius: 4px;
           cursor: pointer;
           font-size: 14px;
-        ">Archive</button>
+        ">${t('common.archive')}</button>
       </div>
     `;
 
@@ -6199,27 +6235,26 @@ document.addEventListener('DOMContentLoaded', function () {
 
   // Function to calculate days in current status
   function getDaysInStatus(statusChangedAt) {
-    if (!statusChangedAt) return 'N/A';
+    if (!statusChangedAt) return t('common.not_applicable');
 
     try {
       var changedDate = new Date(statusChangedAt);
-      if (isNaN(changedDate.getTime())) return 'N/A';
+      if (isNaN(changedDate.getTime())) return t('common.not_applicable');
 
       var now = new Date();
       var diffTime = now.getTime() - changedDate.getTime();
       var diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
 
-      if (diffDays === 0) return 'Today';
-      if (diffDays === 1) return '1 day';
-      return diffDays + ' days';
+      if (diffDays === 0) return t('common.today');
+      return I18n.pluralize(diffDays, 'cases.status_days');
     } catch (e) {
-      return 'N/A';
+      return t('common.not_applicable');
     }
   }
 
   // Function to format dates
   function formatDate(dateString, includeTime) {
-    if (!dateString) return 'N/A';
+    if (!dateString) return t('common.not_applicable');
 
     try {
       var date;
@@ -6234,7 +6269,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
       // Check if date is valid
       if (isNaN(date.getTime())) {
-        return 'Invalid Date';
+        return t('common.invalid_date');
       }
 
       var options = {
@@ -6248,9 +6283,9 @@ document.addEventListener('DOMContentLoaded', function () {
         options.minute = '2-digit';
       }
 
-      return date.toLocaleDateString('en-US', options);
+      return I18n.formatDate(date, includeTime ? { style: 'medium', timeStyle: 'short' } : { style: 'medium' });
     } catch (e) {
-      return 'Invalid Date';
+      return t('common.invalid_date');
     }
   }
 
@@ -6293,9 +6328,9 @@ document.addEventListener('DOMContentLoaded', function () {
     if (daysUntil === null || daysUntil === undefined) return '';
     if (daysUntil < 0) return '';
 
-    if (daysUntil > 1) return 'DUE IN ' + daysUntil + ' DAYS';
-    if (daysUntil === 1) return 'DUE TOMORROW';
-    if (daysUntil === 0) return 'DUE TODAY';
+    if (daysUntil > 1) return I18n.pluralize(daysUntil, 'cases.due.in_days');
+    if (daysUntil === 1) return t('cases.due.tomorrow');
+    if (daysUntil === 0) return t('cases.due.today');
     return '';
   }
 
@@ -6452,7 +6487,7 @@ document.addEventListener('DOMContentLoaded', function () {
       if (originalCount - 1 === 0 && !originalEmpty) {
         const emptyMsg = document.createElement('p');
         emptyMsg.className = 'kanban-empty';
-        emptyMsg.textContent = 'No cases in this stage.';
+        emptyMsg.textContent = t('cases.no_cases_in_stage');
         originalColumn.appendChild(emptyMsg);
       } else if (originalCount - 1 > 0 && originalEmpty) {
         originalEmpty.remove();
@@ -6536,14 +6571,14 @@ document.addEventListener('DOMContentLoaded', function () {
               const revisionCount = cardData.revisionCount;
               if (revisionCount > 0) {
                 if (revisionCountLine) {
-                  revisionCountLine.textContent = 'Revisions: ' + revisionCount;
+                  revisionCountLine.textContent = t('cases.revisions_count', {count: revisionCount});
                 } else {
                   // Create revision count line if it doesn't exist
                   const cardHeader = card.querySelector('.kanban-card-header');
                   if (cardHeader) {
                     const newRevisionLine = document.createElement('div');
                     newRevisionLine.className = 'revision-count-line';
-                    newRevisionLine.textContent = 'Revisions: ' + revisionCount;
+                    newRevisionLine.textContent = t('cases.revisions_count', {count: revisionCount});
                     cardHeader.appendChild(newRevisionLine);
                   }
                 }
@@ -6593,13 +6628,13 @@ document.addEventListener('DOMContentLoaded', function () {
         if (originalCount === 0) {
           const emptyMsg = document.createElement('p');
           emptyMsg.className = 'kanban-empty';
-          emptyMsg.textContent = 'No cases in this stage.';
+          emptyMsg.textContent = t('cases.no_cases_in_stage');
           originalColumn.appendChild(emptyMsg);
         }
         if (targetCount === 0) {
           const emptyMsg = document.createElement('p');
           emptyMsg.className = 'kanban-empty';
-          emptyMsg.textContent = 'No cases in this stage.';
+          emptyMsg.textContent = t('cases.no_cases_in_stage');
           targetColumn.appendChild(emptyMsg);
         }
 
@@ -6625,7 +6660,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
         // Show appropriate error message
         if (error.conflict) {
-          showToast('This case was modified by another user. Refreshing...', 'warning');
+          showToast(t('cases.toast.concurrent_edit'), 'warning');
           // If we have current data, update the card with it
           if (error.currentData) {
             cardData.status = error.currentData.status || previousStatus;
@@ -6652,7 +6687,7 @@ document.addEventListener('DOMContentLoaded', function () {
             card.classList.add(getWorkflowStatusCssClass(cardData.status));
           }
         } else {
-          showToast('Failed to update case status', 'error');
+          showToast(t('cases.toast.status_update_failed'), 'error');
         }
       });
     });
@@ -6718,7 +6753,7 @@ document.addEventListener('DOMContentLoaded', function () {
           if (highlightPastDue && dueDayDiff <= -pastDueDays) {
             caseCard.classList.add('kanban-card-past-due');
             isPastDue = true;
-            dueIndicatorText = ' LATE';
+            dueIndicatorText = ' ' + t('cases.due.late');
           }
         }
       }
@@ -6732,7 +6767,7 @@ document.addEventListener('DOMContentLoaded', function () {
         if (apptDayDiff !== null && apptDayDiff <= appointmentRiskDays) {
           caseCard.classList.add('kanban-card-appointment-risk');
           isAppointmentRisk = true;
-          apptRiskText = 'APPT RISK';
+          apptRiskText = t('cases.risk.appointment_abbreviation');
         }
       }
 
@@ -6847,10 +6882,10 @@ document.addEventListener('DOMContentLoaded', function () {
           else if (type === 'document' || type === 'documents') fileTypes.documents++;
           else fileTypes.other++;
         });
-        if (fileTypes.photos > 0) tooltipLines.push(fileTypes.photos + ' photo' + (fileTypes.photos > 1 ? 's' : ''));
-        if (fileTypes.xrays > 0) tooltipLines.push(fileTypes.xrays + ' x-ray' + (fileTypes.xrays > 1 ? 's' : ''));
-        if (fileTypes.documents > 0) tooltipLines.push(fileTypes.documents + ' document' + (fileTypes.documents > 1 ? 's' : ''));
-        if (fileTypes.other > 0) tooltipLines.push(fileTypes.other + ' file' + (fileTypes.other > 1 ? 's' : ''));
+        if (fileTypes.photos > 0) tooltipLines.push(I18n.pluralize(fileTypes.photos, 'attachments.photo'));
+        if (fileTypes.xrays > 0) tooltipLines.push(I18n.pluralize(fileTypes.xrays, 'attachments.xray'));
+        if (fileTypes.documents > 0) tooltipLines.push(I18n.pluralize(fileTypes.documents, 'attachments.document'));
+        if (fileTypes.other > 0) tooltipLines.push(I18n.pluralize(fileTypes.other, 'attachments.file'));
         var tooltipText = tooltipLines.join('&#10;');
         attachmentIndicatorHtml = '<span class="attachment-indicator" title="' + tooltipText + '">' +
           '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
@@ -6874,7 +6909,7 @@ document.addEventListener('DOMContentLoaded', function () {
           '<line x1="12" y1="9" x2="12" y2="13"></line>' +
           '<line x1="12" y1="17" x2="12.01" y2="17"></line>' +
           '</svg>' +
-          '<span>At Risk</span>' +
+          '<span>' + t('cases.risk.at_risk') + '</span>' +
           '</div>';
         caseCard.classList.add('at-risk');
       }
@@ -6886,25 +6921,25 @@ document.addEventListener('DOMContentLoaded', function () {
       var revisionCountLine = '';
       var showRevisionCount = window.featureFlags && window.featureFlags.SHOW_REVISION_COUNT;
       if (showRevisionCount && revisionCount > 0) {
-        revisionCountLine = '<div class="revision-count-line">Revisions: ' + revisionCount + '</div>';
+        revisionCountLine = '<div class="revision-count-line">' + t('cases.revisions_count', {count: revisionCount}) + '</div>';
       }
 
       caseCard.innerHTML =
-        '<button type="button" class="kanban-card-edit" title="Edit Case">✎</button>' +
+        '<button type="button" class="kanban-card-edit" title="' + t('cases.edit_case') + '">✎</button>' +
         '<div class="kanban-card-header">' +
         '  <h3 class="kanban-card-title">' + (displayData.patientFirstName || '') + ' ' + (displayData.patientLastName || '') + '</h3>' +
         revisionCountLine +
         '</div>' +
         '<div class="kanban-card-content">' +
-        '  <p><strong>Type:</strong> ' + (displayData.caseType || '') + '</p>' +
-        '  <p><strong>Due:</strong> ' + formatDate(displayData.dueDate) + (dueIndicatorText ? '<span class="late-indicator">' + dueIndicatorText + '</span>' : '') + '</p>' +
-        (displayData.patientAppointmentDate ? '  <p><strong>Patient Appt:</strong> ' + formatDate(displayData.patientAppointmentDate) + (apptRiskText ? '<span class="appointment-risk-indicator">' + apptRiskText + '</span>' : '') + '</p>' : '') +
-        '  <p class="dentist-row"><strong>Dentist:</strong> ' + (displayData.dentistName || '') + attachmentIndicatorHtml + '</p>' +
+        '  <p><strong>' + t('cases.type') + ':</strong> ' + (getCaseTypeDisplayLabel(displayData.caseType) || '') + '</p>' +
+        '  <p><strong>' + t('cases.due_label') + ':</strong> ' + formatDate(displayData.dueDate) + (dueIndicatorText ? '<span class="late-indicator">' + dueIndicatorText + '</span>' : '') + '</p>' +
+        (displayData.patientAppointmentDate ? '  <p><strong>' + t('cases.patient_appointment_short') + ':</strong> ' + formatDate(displayData.patientAppointmentDate) + (apptRiskText ? '<span class="appointment-risk-indicator">' + apptRiskText + '</span>' : '') + '</p>' : '') +
+        '  <p class="dentist-row"><strong>' + t('cases.dentist') + ':</strong> ' + (displayData.dentistName || '') + attachmentIndicatorHtml + '</p>' +
         '  <div class="kanban-card-assignment">' +
-        '    <div class="assignment-label"><strong>Assigned to</strong></div>' +
+        '    <div class="assignment-label"><strong>' + t('cases.assigned_to') + '</strong></div>' +
         '    <div class="assignment-value" data-case-id="' + displayData.id + '">' +
-        '      <select class="assignment-select" data-case-id="' + displayData.id + '" name="assignmentSelect" aria-label="Assign case to team member">' +
-        '        <option value="loading">Loading...</option>' +
+        '      <select class="assignment-select" data-case-id="' + displayData.id + '" name="assignmentSelect" aria-label="' + t('cases.assign_to') + '">' +
+        '        <option value="loading">' + t('common.loading') + '</option>' +
         '      </select>' +
         '    </div>' +
         '  </div>' +
@@ -6913,11 +6948,11 @@ document.addEventListener('DOMContentLoaded', function () {
         '<div class="kanban-card-dates">' +
         '  <div style="display: flex; justify-content: space-between; align-items: flex-start;">' +
         '    <div>' +
-        '      <div><span class="date-label">Created:</span> <span class="date-value">' + formatDate(creationDate, false) + '</span></div>' +
-        '      <div><span class="date-label">Updated:</span> <span class="date-value">' + formatDate(lastUpdateDate, false) + '</span></div>' +
-        (window.featureFlags && window.featureFlags.SHOW_IN_STATUS ? '      <div><span class="date-label">In Status:</span> <span class="date-value days-in-status">' + getDaysInStatus(displayData.statusChangedAt) + '</span></div>' : '') +
+        '      <div><span class="date-label">' + t('cases.created') + ':</span> <span class="date-value">' + formatDate(creationDate, false) + '</span></div>' +
+        '      <div><span class="date-label">' + t('cases.updated') + ':</span> <span class="date-value">' + formatDate(lastUpdateDate, false) + '</span></div>' +
+        (window.featureFlags && window.featureFlags.SHOW_IN_STATUS ? '      <div><span class="date-label">' + t('cases.in_status') + ':</span> <span class="date-value days-in-status">' + getDaysInStatus(displayData.statusChangedAt) + '</span></div>' : '') +
         '    </div>' +
-        '    <button type="button" class="card-delete-btn" title="Archive Case" data-case-id="' + displayData.id + '" style="margin-left: 10px; flex-shrink: 0; position: static !important; bottom: auto !important; right: auto !important;">' +
+        '    <button type="button" class="card-delete-btn" title="' + t('archive.confirm.archive_title') + '" data-case-id="' + displayData.id + '" style="margin-left: 10px; flex-shrink: 0; position: static !important; bottom: auto !important; right: auto !important;">' +
         '      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
         '        <rect x="3" y="3" width="18" height="4" rx="1" ry="1"></rect>' +
         '        <path d="M5 7h14v14H5z"></path>' +
@@ -6927,7 +6962,7 @@ document.addEventListener('DOMContentLoaded', function () {
         '  </div>' +
         '</div>' +
         '<div class="kanban-card-actions">' +
-        '  <button type="button" class="kanban-card-print" title="Print Case" aria-label="Print case" data-case-id="' + displayData.id + '" style="width: 100%; justify-content: center;">🖨️ Print</button>' +
+        '  <button type="button" class="kanban-card-print" title="' + t('common.print') + '" aria-label="' + t('common.print') + '" data-case-id="' + displayData.id + '" style="width: 100%; justify-content: center;">🖨️ ' + t('common.print') + '</button>' +
         '</div>';
 
       // Initialize the assignment dropdown BEFORE adding to DOM
@@ -7120,16 +7155,16 @@ document.addEventListener('DOMContentLoaded', function () {
           }, 300);
         }
 
-        showToast('Case archived successfully', 'success');
+        showToast(t('cases.toast.archived_success'), 'success');
       } else {
-        showToast('Error archiving case: ' + (data.message || 'Unknown error'), 'error');
+        showToast(t('cases.toast.archive_error', {message: data.message || t('common.unknown_error')}), 'error');
       }
     })
     .catch(error => {
       if (typeof NetworkErrorHandler !== 'undefined') {
         NetworkErrorHandler.handle(error, 'archiving case');
       } else {
-        showToast('Error archiving case. Please try again.', 'error');
+        showToast(t('cases.toast.archive_error_retry'), 'error');
       }
     });
   }
@@ -7170,8 +7205,8 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     // Update modal title to indicate editing mode
-    if (modalTitle) modalTitle.textContent = 'Edit Case';
-    if (submitBtn) submitBtn.textContent = 'Update Case';
+    if (modalTitle) modalTitle.textContent = t('cases.edit_case');
+    if (submitBtn) submitBtn.textContent = t('cases.update_case');
 
     // Show revision indicator in modal header if case has revisions
     var revisionCount = caseData.revisionCount || 0;
@@ -7183,7 +7218,7 @@ document.addEventListener('DOMContentLoaded', function () {
       var revisionLabel = revisionCount === 1 ? 'Revision' : 'Revisions';
       var revisionIndicator = document.createElement('span');
       revisionIndicator.className = 'case-detail-regression';
-      revisionIndicator.title = 'This case has ' + revisionCount + ' revision(s)';
+      revisionIndicator.title = t('cases.revisions_count', {count: revisionCount});
       revisionIndicator.innerHTML =
         '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
         '<path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>' +
@@ -7438,7 +7473,7 @@ document.addEventListener('DOMContentLoaded', function () {
               viewLink = document.createElement('a');
               viewLink.href = '#';
               viewLink.className = 'attachment-view-link';
-              viewLink.textContent = 'View';
+              viewLink.textContent = t('common.view');
               viewLink.title = 'Open in File Viewer';
               viewLink.dataset.storagePath = file.storagePath;
               viewLink.dataset.fileName = file.fileName;
@@ -7450,11 +7485,11 @@ document.addEventListener('DOMContentLoaded', function () {
                     openAttachmentViewer(this.dataset.storagePath, this.dataset.fileName, this.dataset.fileType);
                   } catch (err) {
                     console.error('Attachment viewer failed to open:', err);
-                    showToast('Unable to open this attachment preview. You can still download the file.', 'error');
+                    showToast(t('attachments.preview_unavailable'), 'error');
                   }
                 } else {
                   console.error('openAttachmentViewer is not available');
-                  showToast('Unable to open this attachment preview. You can still download the file.', 'error');
+                  showToast(t('attachments.preview_unavailable'), 'error');
                 }
               });
             }
@@ -7465,7 +7500,7 @@ document.addEventListener('DOMContentLoaded', function () {
               downloadLink = document.createElement('a');
               downloadLink.href = '#';
               downloadLink.className = 'attachment-download-link';
-              downloadLink.textContent = 'Download';
+              downloadLink.textContent = t('common.download');
               downloadLink.dataset.storagePath = file.storagePath;
               downloadLink.dataset.fileName = file.fileName;
               downloadLink.addEventListener('click', function(e) {
@@ -7477,7 +7512,7 @@ document.addEventListener('DOMContentLoaded', function () {
               downloadLink.href = '/' + filePath;
               downloadLink.download = file.fileName;
               downloadLink.className = 'attachment-download-link';
-              downloadLink.textContent = 'Download';
+              downloadLink.textContent = t('common.download');
             }
 
             // Create a simple delete button with visible styling
@@ -7504,7 +7539,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
               // Add a visual indicator that it's marked for deletion
               var indicator = document.createElement('span');
-              indicator.textContent = ' (will be deleted)';
+              indicator.textContent = ' ' + t('attachments.will_be_deleted');
               indicator.style.color = '#dc3545';
               indicator.style.fontSize = '12px';
               indicator.style.fontStyle = 'italic';
@@ -7549,7 +7584,7 @@ document.addEventListener('DOMContentLoaded', function () {
     // Set the read-only Created By display for edit mode
     var createdByDisplay = document.getElementById('createdByDisplay');
     if (createdByDisplay) {
-      createdByDisplay.textContent = caseData.createdByName || 'Unknown';
+      createdByDisplay.textContent = caseData.createdByName || t('common.unknown');
     }
 
     // Display At Risk indicator in case detail view
@@ -7752,7 +7787,7 @@ document.addEventListener('DOMContentLoaded', function () {
         if (column.children.length === 0) {
           var emptyMsg = document.createElement('p');
           emptyMsg.className = 'kanban-empty';
-          emptyMsg.textContent = 'No cases in this stage.';
+          emptyMsg.textContent = t('cases.no_cases_in_stage');
           column.appendChild(emptyMsg);
         }
       });
@@ -8033,19 +8068,19 @@ document.addEventListener('DOMContentLoaded', function () {
     // Validate file type
     const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/svg+xml', 'image/webp'];
     if (!allowedTypes.includes(file.type)) {
-      showToast('Invalid file type. Only JPG, PNG, GIF, SVG, and WebP files are allowed.', 'error');
+      showToast(t('settings.practice.logo_invalid_file'), 'error');
       return;
     }
 
     // Validate file size (5MB)
     if (file.size > 5 * 1024 * 1024) {
-      showToast('File is too large. Maximum size is 5MB.', 'error');
+      showToast(t('settings.practice.logo_file_too_large'), 'error');
       return;
     }
 
     // Show uploading state
     logoLabel.classList.add('uploading');
-    uploadText.textContent = 'Uploading';
+    uploadText.textContent = t('settings.practice.logo_uploading');
 
     // Create form data
     const formData = new FormData();
@@ -8065,7 +8100,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
       if (data.success) {
         logoLabel.classList.add('success');
-        uploadText.textContent = 'Upload successful!';
+        uploadText.textContent = t('settings.practice.logo_upload_successful');
 
         // Stage the new logo for this session only (settings preview)
         window.pendingLogoPath = data.logoPath || '';
@@ -8074,36 +8109,36 @@ document.addEventListener('DOMContentLoaded', function () {
         // Update only the settings preview using the pending path
         updateLogoDisplay(window.pendingLogoPath || window.currentLogoPath || '');
 
-        showToast('Logo uploaded successfully!', 'success');
+        showToast(t('settings.practice.logo_uploaded'), 'success');
 
         // Reset upload state after 2 seconds
-        setTimeout(() => {
+        setTimeout(function() {
           logoLabel.classList.remove('success');
-          uploadText.textContent = 'Choose logo file';
+          uploadText.textContent = t('settings.practice.logo_choose');
         }, 2000);
 
       } else {
         logoLabel.classList.add('error');
-        uploadText.textContent = 'Upload failed';
-        showToast(data.message || 'Failed to upload logo', 'error');
+        uploadText.textContent = t('settings.practice.logo_upload_failed');
+        showToast(data.message || t('settings.practice.logo_upload_failed'), 'error');
 
         // Reset error state after 3 seconds
-        setTimeout(() => {
+        setTimeout(function() {
           logoLabel.classList.remove('error');
-          uploadText.textContent = 'Choose logo file';
+          uploadText.textContent = t('settings.practice.logo_choose');
         }, 3000);
       }
     })
-    .catch(error => {
+    .catch(function(error) {
       logoLabel.classList.remove('uploading');
       logoLabel.classList.add('error');
-      uploadText.textContent = 'Upload failed';
-      showToast('Network error while uploading logo', 'error');
+      uploadText.textContent = t('settings.practice.logo_upload_failed');
+      showToast(t('settings.practice.logo_upload_error'), 'error');
 
       // Reset error state after 3 seconds
-      setTimeout(() => {
+      setTimeout(function() {
         logoLabel.classList.remove('error');
-        uploadText.textContent = 'Choose logo file';
+        uploadText.textContent = t('settings.practice.logo_choose');
       }, 3000);
     });
   }
@@ -8127,13 +8162,13 @@ document.addEventListener('DOMContentLoaded', function () {
           headerLogo.style.display = 'none';
         }
 
-        showToast('Logo removed successfully!', 'success');
+        showToast(t('settings.practice.logo_removed'), 'success');
       } else {
-        showToast(data.message || 'Failed to remove logo', 'error');
+        showToast(data.message || t('settings.practice.logo_upload_failed'), 'error');
       }
     })
-    .catch(error => {
-      showToast('Network error while removing logo', 'error');
+    .catch(function(error) {
+      showToast(t('settings.practice.logo_remove_error'), 'error');
     });
   }
 
@@ -8148,7 +8183,7 @@ document.addEventListener('DOMContentLoaded', function () {
       var count = parseInt(raw, 10);
 
       if (isNaN(count) || count < 1) {
-        showToast('Enter a number of cases between 1 and 500.', 'warning');
+        showToast(t('common.enter_case_count'), 'warning');
         return;
       }
 
@@ -8176,12 +8211,12 @@ document.addEventListener('DOMContentLoaded', function () {
         devGenerateBtn.textContent = originalText;
 
         if (!data || !data.success) {
-          var msg = (data && data.message) ? data.message : 'Failed to generate cases.';
+          var msg = (data && data.message) ? data.message : t('demo_data.generate_failed');
           showToast(msg, 'error');
           return;
         }
 
-        showToast(data.message || 'Fake cases generated.', 'success');
+        showToast(data.message || t('demo_data.fake_cases_generated'), 'success');
 
         // Reload the page so the new cases are fetched and rendered
         setTimeout(function () {
@@ -8191,7 +8226,7 @@ document.addEventListener('DOMContentLoaded', function () {
       .catch(function (err) {
         devGenerateBtn.disabled = false;
         devGenerateBtn.textContent = originalText;
-        showToast('Error generating cases: ' + err.message, 'error');
+        showToast(t('demo_data.generate_error', {message: err.message}), 'error');
       });
     });
   }
@@ -8211,21 +8246,21 @@ document.addEventListener('DOMContentLoaded', function () {
       .then(function (response) { return response.json(); })
       .then(function (data) {
         if (!data || !data.success) {
-          devDemoDataSummary.textContent = 'Unable to load demo data summary.';
+          devDemoDataSummary.textContent = t('demo_data.unable_to_load');
           return;
         }
 
         var lines = [];
         if (data.total > 0) {
-          lines.push(data.active + ' active demo cases');
-          lines.push(data.historical + ' archived demo cases');
+          lines.push(t('demo_data.active_cases', {count: data.active}));
+          lines.push(t('demo_data.archived_cases', {count: data.historical}));
         } else {
-          lines.push('No demo data in this practice');
+          lines.push(t('demo_data.no_data'));
         }
-        lines.push(data.runCount + ' generation run' + (data.runCount === 1 ? '' : 's'));
+        lines.push(I18n.pluralize(data.runCount, 'demo_data.generation_run'));
         if (data.lastGenerated) {
           var d = new Date(data.lastGenerated);
-          lines.push('Last generated: ' + d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }));
+          lines.push(t('demo_data.last_generated', {date: I18n.formatDate(d, {style: 'medium'})}));
         }
         devDemoDataSummary.textContent = lines.join(' • ');
 
@@ -8233,14 +8268,14 @@ document.addEventListener('DOMContentLoaded', function () {
         if (recent.length > 0) {
           devDemoRecentRuns.innerHTML = recent.map(function (run) {
             var d = new Date(run.created_at);
-            return '<div>' + d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) + ' &mdash; ' + run.dataset_size + ' &mdash; ' + (run.active_case_count + run.historical_case_count) + ' cases' + (run.status !== 'complete' ? ' (' + run.status + ')' : '') + '</div>';
+            return '<div>' + I18n.formatDate(d, {style: 'medium'}) + ' &mdash; ' + run.dataset_size + ' &mdash; ' + t('demo_data.cases', {count: (run.active_case_count + run.historical_case_count)}) + (run.status !== 'complete' ? ' (' + run.status + ')' : '') + '</div>';
           }).join('');
         } else {
           devDemoRecentRuns.innerHTML = '';
         }
       })
       .catch(function (err) {
-        devDemoDataSummary.textContent = 'Unable to load demo data summary.';
+        devDemoDataSummary.textContent = t('demo_data.unable_to_load');
         console.error('Demo summary error:', err);
       });
   }
@@ -8263,12 +8298,12 @@ document.addEventListener('DOMContentLoaded', function () {
           callManageDemoData(action, true, onDone);
           return;
         }
-        showToast('Action cancelled', 'info');
+        showToast(t('common.action_cancelled'), 'info');
         return;
       }
 
       if (!data || !data.success) {
-        showToast((data && data.message) ? data.message : 'Failed to ' + action + ' demo data.', 'error');
+        showToast((data && data.message) ? data.message : t('demo_data.action_failed', {action: action}), 'error');
         return;
       }
 
@@ -8280,7 +8315,7 @@ document.addEventListener('DOMContentLoaded', function () {
       }
     })
     .catch(function (err) {
-      showToast('Error managing demo data: ' + err.message, 'error');
+      showToast(t('demo_data.manage_error', {message: err.message}), 'error');
     });
   }
 
@@ -8305,7 +8340,7 @@ document.addEventListener('DOMContentLoaded', function () {
     devGenerateDemoDataBtn.addEventListener('click', function () {
       var originalText = devGenerateDemoDataBtn.textContent;
       devGenerateDemoDataBtn.disabled = true;
-      devGenerateDemoDataBtn.textContent = 'Generating...';
+      devGenerateDemoDataBtn.textContent = t('common.generating');
 
       function tryGenerate(needsConfirm) {
         callDemoGenerator(needsConfirm ? { confirmed: true } : {})
@@ -8314,28 +8349,28 @@ document.addEventListener('DOMContentLoaded', function () {
             devGenerateDemoDataBtn.textContent = originalText;
 
             if (data && data.needsConfirmation) {
-              if (confirm(data.message || 'This practice already has case data. Continue anyway?')) {
+              if (confirm(data.message || t('demo_data.confirm_overwrite'))) {
                 devGenerateDemoDataBtn.disabled = true;
-                devGenerateDemoDataBtn.textContent = 'Generating...';
+                devGenerateDemoDataBtn.textContent = t('common.generating');
                 tryGenerate(true);
                 return;
               }
-              showToast('Action cancelled', 'info');
+              showToast(t('common.action_cancelled'), 'info');
               return;
             }
 
             if (!data || !data.success) {
-              showToast((data && data.message) ? data.message : 'Failed to generate demo data.', 'error');
+              showToast((data && data.message) ? data.message : t('demo_data.generate_failed_action'), 'error');
               return;
             }
 
-            showToast(data.message || 'Demo data generated.', 'success');
+            showToast(data.message || t('demo_data.generated'), 'success');
             loadDemoDataSummary();
           })
           .catch(function (err) {
             devGenerateDemoDataBtn.disabled = false;
             devGenerateDemoDataBtn.textContent = originalText;
-            showToast('Error generating demo data: ' + err.message, 'error');
+            showToast(t('demo_data.generate_error_action', {message: err.message}), 'error');
           });
       }
 
@@ -8353,7 +8388,7 @@ document.addEventListener('DOMContentLoaded', function () {
     devResetDemoDataBtn.addEventListener('click', function () {
       var originalText = devResetDemoDataBtn.textContent;
       devResetDemoDataBtn.disabled = true;
-      devResetDemoDataBtn.textContent = 'Resetting...';
+      devResetDemoDataBtn.textContent = t('common.resetting');
 
       function afterDelete(data) {
         var dataset = devDemoDataSizeSelect ? devDemoDataSizeSelect.value : 'standard';
@@ -8363,18 +8398,18 @@ document.addEventListener('DOMContentLoaded', function () {
             devResetDemoDataBtn.textContent = originalText;
 
             if (!genData || !genData.success) {
-              showToast((genData && genData.message) ? genData.message : 'Failed to generate demo data after reset.', 'error');
+              showToast((genData && genData.message) ? genData.message : t('demo_data.reset_generate_failed'), 'error');
               loadDemoDataSummary();
               return;
             }
 
-            showToast(genData.message || 'Demo data reset successfully.', 'success');
+            showToast(genData.message || t('demo_data.reset_success'), 'success');
             loadDemoDataSummary();
           })
           .catch(function (err) {
             devResetDemoDataBtn.disabled = false;
             devResetDemoDataBtn.textContent = originalText;
-            showToast('Error generating demo data after reset: ' + err.message, 'error');
+            showToast(t('demo_data.reset_generate_error', {message: err.message}), 'error');
           });
       }
 
@@ -8396,14 +8431,14 @@ document.addEventListener('DOMContentLoaded', function () {
           }
           devResetDemoDataBtn.disabled = false;
           devResetDemoDataBtn.textContent = originalText;
-          showToast('Action cancelled', 'info');
+          showToast(t('common.action_cancelled'), 'info');
           return;
         }
 
         if (!data || !data.success) {
           devResetDemoDataBtn.disabled = false;
           devResetDemoDataBtn.textContent = originalText;
-          showToast((data && data.message) ? data.message : 'Failed to reset demo data.', 'error');
+          showToast((data && data.message) ? data.message : t('demo_data.reset_failed'), 'error');
           return;
         }
 
@@ -8412,7 +8447,7 @@ document.addEventListener('DOMContentLoaded', function () {
       .catch(function (err) {
         devResetDemoDataBtn.disabled = false;
         devResetDemoDataBtn.textContent = originalText;
-        showToast('Error resetting demo data: ' + err.message, 'error');
+        showToast(t('demo_data.reset_error', {message: err.message}), 'error');
       });
     });
   }
@@ -8424,7 +8459,7 @@ document.addEventListener('DOMContentLoaded', function () {
   // Function to print a case with all details and file contents
   function printCase(caseData) {
     if (!caseData || !caseData.id) {
-      showToast('Error: Invalid case data', 'error');
+      showToast(t('cases.toast.invalid_case_data'), 'error');
       return;
     }
 
@@ -8436,7 +8471,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Check if another case is already being printed
     if (window.isPrintingCase) {
-      showToast('Another case is currently being printed. Please wait for it to complete.', 'warning');
+      showToast(t('cases.toast.print_in_progress'), 'warning');
       return;
     }
 
@@ -8595,7 +8630,7 @@ document.addEventListener('DOMContentLoaded', function () {
       if (typeof NetworkErrorHandler !== 'undefined') {
         NetworkErrorHandler.handle(error, 'generating document');
       } else {
-        showToast('Error generating document. Please try again.', 'error');
+        showToast(t('cases.toast.document_error'), 'error');
       }
     })
     .finally(() => {
@@ -8692,7 +8727,7 @@ document.addEventListener('DOMContentLoaded', function () {
     .catch(function(error) {
 
       if (typeof showToast === 'function') {
-        showToast('Failed to download file: ' + error.message, 'error');
+        showToast(t('attachments.download_failed', {message: error.message}), 'error');
       }
     });
   }
@@ -8745,19 +8780,19 @@ document.addEventListener('DOMContentLoaded', function () {
               // Show trial days remaining for Evaluate plan
               if (data.is_trial && data.trial_days_remaining !== null) {
                 if (data.trial_expired) {
-                  displayText = 'Trial Expired - Upgrade';
+                  displayText = t('billing.link.trial_expired_upgrade');
                 } else {
-                  displayText = 'Evaluate Plan - ' + data.trial_days_remaining + ' days left';
+                  displayText = t('billing.link.evaluate_plan') + ' - ' + I18n.pluralize(data.trial_days_remaining, 'billing.link.days_left');
                 }
               } else {
-                displayText = 'Evaluate Plan';
+                displayText = t('billing.link.evaluate_plan');
               }
               showLink = true;
             } else if (data.billing_tier === 'operate') {
-              displayText = 'Operate Plan';
+              displayText = t('billing.link.operate_plan');
               showLink = false;
             } else if (data.billing_tier === 'control') {
-              displayText = 'Control Plan';
+              displayText = t('billing.link.control_plan');
               showLink = false;
             }
 
@@ -8784,7 +8819,7 @@ document.addEventListener('DOMContentLoaded', function () {
       .catch(error => {
         const billingTierElement = document.getElementById('userBillingTier');
         if (billingTierElement) {
-          billingTierElement.textContent = 'Evaluate';
+          billingTierElement.textContent = t('billing.link.evaluate_plan');
         }
       });
   }
@@ -8800,7 +8835,7 @@ document.addEventListener('DOMContentLoaded', function () {
     if (createCaseButton) {
       if (trialExpired || !billingInfo.can_create_cases) {
         createCaseButton.disabled = true;
-        createCaseButton.title = trialExpired ? 'Your trial has expired. Upgrade to continue creating cases.' : 'Upgrade to create more cases.';
+        createCaseButton.title = trialExpired ? t('billing.upgrade.trial_expired_cases') : t('billing.upgrade.create_more_cases');
         createCaseButton.style.opacity = '0.5';
         createCaseButton.style.cursor = 'not-allowed';
       } else {
@@ -8816,14 +8851,14 @@ document.addEventListener('DOMContentLoaded', function () {
     const labInsightsTab = document.querySelector('.main-tab[data-tab="lab-insights"]');
     if (labInsightsTab && trialExpired) {
       labInsightsTab.style.opacity = '0.5';
-      labInsightsTab.title = 'Your trial has expired. Upgrade to access Lab Insights.';
+      labInsightsTab.title = t('insights.trial_expired.lab_insights');
     } else if (labInsightsTab) {
       labInsightsTab.style.opacity = '1';
       labInsightsTab.title = '';
     }
     if (insightsTab && trialExpired) {
       insightsTab.style.opacity = '0.5';
-      insightsTab.title = 'Your trial has expired. Upgrade to access Insights.';
+      insightsTab.title = t('insights.trial_expired.practice_insights');
     } else if (insightsTab) {
       insightsTab.style.opacity = '1';
       insightsTab.title = '';
@@ -8857,7 +8892,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // If still no billing info, block to be safe
     if (!billingInfo) {
-      showToast('Unable to verify billing status. Please refresh the page.', 'error');
+      showToast(t('billing.errors.unable_verify_billing'), 'error');
       return false;
     }
 
@@ -8909,26 +8944,26 @@ document.addEventListener('DOMContentLoaded', function () {
             <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
           </svg>
         </div>
-        <h2 style="margin: 0 0 8px; font-size: 1.75rem; color: #1f2937; font-weight: 700;">Your Trial Has Ended</h2>
+        <h2 style="margin: 0 0 8px; font-size: 1.75rem; color: #1f2937; font-weight: 700;">${t('billing.trial.modal.title')}</h2>
         <p style="margin: 0 0 20px; color: #6b7280; font-size: 1.05rem; line-height: 1.6;">
-          We hope you've enjoyed exploring DentaTrak! Your 90-day free trial is now complete.
+          ${t('billing.trial.modal.message')}
         </p>
         <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 12px; padding: 16px; margin-bottom: 24px; text-align: left;">
-          <p style="margin: 0 0 8px; color: #166534; font-weight: 600; font-size: 0.95rem;">🎉 Great news!</p>
+          <p style="margin: 0 0 8px; color: #166534; font-weight: 600; font-size: 0.95rem;">${t('billing.trial.modal.good_news_title')}</p>
           <p style="margin: 0; color: #15803d; font-size: 0.9rem; line-height: 1.5;">
-            Your cases and data are safe. Subscribe now to pick up right where you left off with full access to all features.
+            ${t('billing.trial.modal.good_news_message')}
           </p>
         </div>
         <div style="display: flex; flex-direction: column; gap: 12px;">
           <a href="billing.php" style="padding: 14px 28px; background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); color: white; border-radius: 10px; font-size: 1.05rem; text-decoration: none; font-weight: 600; transition: all 0.2s; display: block; box-shadow: 0 4px 14px rgba(59, 130, 246, 0.4);">
-            Choose Your Plan →
+            ${t('billing.trial.modal.choose_plan')}
           </a>
           <button id="trialExpiredClose" style="padding: 12px 24px; border: none; background: transparent; font-size: 0.9rem; cursor: pointer; color: #9ca3af; transition: all 0.2s;">
-            Continue in read-only mode
+            ${t('billing.trial.modal.read_only')}
           </button>
         </div>
         <p style="margin: 20px 0 0; color: #9ca3af; font-size: 0.8rem;">
-          Questions? Contact us at support@dentatrak.com
+          ${t('billing.trial.modal.support', { email: 'support@dentatrak.com' })}
         </p>
       </div>
     `;
@@ -8972,16 +9007,16 @@ document.addEventListener('DOMContentLoaded', function () {
             <path d="M2 12l10 5 10-5"/>
           </svg>
         </div>
-        <h2 style="margin: 0 0 12px; font-size: 1.5rem; color: #1f2937;">Ready to Grow?</h2>
+        <h2 style="margin: 0 0 12px; font-size: 1.5rem; color: #1f2937;">${t('billing.trial.upgrade_prompt.title')}</h2>
         <p style="margin: 0 0 24px; color: #6b7280; font-size: 1rem; line-height: 1.5;">
-          You've reached your plan's case limit. Upgrade to unlock unlimited cases and advanced features.
+          ${t('billing.trial.upgrade_prompt.message')}
         </p>
         <div style="display: flex; gap: 12px; justify-content: center;">
           <button id="upgradeModalClose" style="padding: 12px 24px; border: 1px solid #d1d5db; background: white; border-radius: 8px; font-size: 0.95rem; cursor: pointer; color: #374151; transition: all 0.2s;">
-            Maybe Later
+            ${t('billing.trial.upgrade_prompt.later')}
           </button>
           <a href="billing.php" style="padding: 12px 24px; background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); color: white; border-radius: 8px; font-size: 0.95rem; text-decoration: none; font-weight: 500; transition: all 0.2s; display: inline-block;">
-            View Plans
+            ${t('billing.trial.upgrade_prompt.view_plans')}
           </a>
         </div>
       </div>
@@ -9015,7 +9050,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
       // Check if user has access to analytics
       if (targetTab === 'analytics' && billingInfo && !billingInfo.has_analytics) {
-        showToast('Analytics is available on Control plan. Upgrade to access analytics features.', 'warning');
+        showToast(t('insights.upgrade.analytics_control'), 'warning');
         return;
       }
 
@@ -9250,7 +9285,7 @@ document.addEventListener('DOMContentLoaded', function () {
     updateArchivedPagination(filteredArchivedCases.length);
 
     const countSpan = document.getElementById('archivedCount');
-    countSpan.textContent = `Showing ${Math.min(filteredArchivedCases.length, archivedPageSize)} of ${filteredArchivedCases.length} archived cases`;
+    countSpan.textContent = t('archive.pagination.results_count', {visible: Math.min(filteredArchivedCases.length, archivedPageSize), total: filteredArchivedCases.length});
   }
 
   // Display paginated results from filtered data
@@ -9278,8 +9313,8 @@ document.addEventListener('DOMContentLoaded', function () {
       archivedSearchClearBtn.type = 'button';
       archivedSearchClearBtn.className = 'archived-search-clear-btn';
       archivedSearchClearBtn.innerHTML = '&times;';
-      archivedSearchClearBtn.title = 'Clear search';
-      archivedSearchClearBtn.setAttribute('aria-label', 'Clear search');
+      archivedSearchClearBtn.title = t('archive.search.clear');
+      archivedSearchClearBtn.setAttribute('aria-label', t('archive.search.clear'))
 
       archivedSearchClearBtn.addEventListener('click', function() {
         archivedSearch.value = '';
@@ -9302,7 +9337,7 @@ document.addEventListener('DOMContentLoaded', function () {
         updateArchivedPagination(filteredArchivedCases.length);
 
         const countSpan = document.getElementById('archivedCount');
-        countSpan.textContent = `Showing ${Math.min(filteredArchivedCases.length, archivedPageSize)} of ${filteredArchivedCases.length} archived cases`;
+        countSpan.textContent = t('archive.pagination.results_count', {visible: Math.min(filteredArchivedCases.length, archivedPageSize), total: filteredArchivedCases.length});
       }
     });
   }
@@ -9349,8 +9384,8 @@ document.addEventListener('DOMContentLoaded', function () {
     const countSpan = document.getElementById('archivedCount');
 
     // Show loading state
-    tbody.innerHTML = '<tr><td colspan="7" class="loading-row">Loading archived cases...</td></tr>';
-    countSpan.textContent = 'Loading...';
+    tbody.innerHTML = '<tr><td colspan="7" class="loading-row">' + t('archive.loading') + '</td></tr>';
+    countSpan.textContent = t('common.loading');
 
     // Load all archived cases at once (server-side pagination removed)
     const params = new URLSearchParams({
@@ -9376,13 +9411,13 @@ document.addEventListener('DOMContentLoaded', function () {
         // Apply initial filters and display
         filterArchivedCasesClientSide();
       } else {
-        tbody.innerHTML = '<tr><td colspan="7" class="loading-row">Error loading archived cases</td></tr>';
-        countSpan.textContent = 'Error loading cases';
+        tbody.innerHTML = '<tr><td colspan="7" class="loading-row">' + t('archive.error.loading') + '</td></tr>';
+        countSpan.textContent = t('archive.error.loading_count');
       }
     })
     .catch(error => {
-      tbody.innerHTML = '<tr><td colspan="7" class="loading-row">Error loading archived cases</td></tr>';
-      countSpan.textContent = 'Error loading cases';
+      tbody.innerHTML = '<tr><td colspan="7" class="loading-row">' + t('archive.error.loading') + '</td></tr>';
+      countSpan.textContent = t('archive.error.loading_count');
     });
   }
 
@@ -9422,7 +9457,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const tbody = document.getElementById('archivedCasesTableBody');
 
     if (cases.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="7" class="loading-row">No archived cases found</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="7" class="loading-row">' + t('archive.empty.no_cases') + '</td></tr>';
       return;
     }
 
@@ -9430,33 +9465,33 @@ document.addEventListener('DOMContentLoaded', function () {
       <tr>
         <td>${case_.patientFirstName || case_.patient_first_name || ''} ${case_.patientLastName || case_.patient_last_name || ''}</td>
         <td>${case_.dentistName || case_.dentist_name || ''}</td>
-        <td>${case_.caseType || case_.case_type || ''}</td>
+        <td>${getCaseTypeDisplayLabel(case_.caseType || case_.case_type) || ''}</td>
         <td>${case_.status ? escapeHtml(getStageLabel(case_.status)) : ''}</td>
         <td>${formatDate(case_.creation_date, false)}</td>
         <td>${formatDate(case_.archived_date, false)}</td>
         <td>
           <div class="archived-actions">
-            <button type="button" class="btn-view" onclick="viewArchivedCase('${case_.id}')" title="View case details">
+            <button type="button" class="btn-view" onclick="viewArchivedCase('${case_.id}')" title="${t('archive.actions.view_details')}">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
                 <circle cx="12" cy="12" r="3"></circle>
               </svg>
-              View
+              ${t('archive.actions.view')}
             </button>
-            <button type="button" class="btn-print" onclick="printArchivedCase('${case_.id}')" title="Print case">
+            <button type="button" class="btn-print" onclick="printArchivedCase('${case_.id}')" title="${t('archive.actions.print_case')}">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <polyline points="6 9 6 2 18 2 18 9"></polyline>
                 <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
                 <rect x="6" y="14" width="12" height="8"></rect>
               </svg>
-              Print
+              ${t('archive.actions.print')}
             </button>
-            <button type="button" class="btn-restore" onclick="restoreArchivedCase('${case_.id}')" title="Restore case">
+            <button type="button" class="btn-restore" onclick="restoreArchivedCase('${case_.id}')" title="${t('archive.actions.restore_case')}">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
                 <path d="M3 3v5h5"></path>
               </svg>
-              Restore
+              ${t('archive.actions.restore')}
             </button>
           </div>
         </td>
@@ -9475,7 +9510,7 @@ document.addEventListener('DOMContentLoaded', function () {
     if (prevBtn) prevBtn.disabled = archivedCurrentPage <= 1;
     if (nextBtn) nextBtn.disabled = archivedCurrentPage >= totalPages;
 
-    if (pageInfo) pageInfo.textContent = `Page ${archivedCurrentPage} of ${totalPages || 1}`;
+    if (pageInfo) pageInfo.textContent = t('archive.pagination.page_info', {current: archivedCurrentPage, total: totalPages || 1});
   }
 
   window.restoreArchivedCase = function(caseId) {
@@ -9541,7 +9576,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 if (!modalHeader.querySelector('.back-to-archived')) {
                   const backButton = document.createElement('button');
                   backButton.className = 'back-to-archived';
-                  backButton.innerHTML = '← Back to Archived Cases';
+                  backButton.innerHTML = '← ' + t('archive.back_to_archived');
                   backButton.style.cssText = `
                     background: #6c757d;
                     color: white;
@@ -9574,7 +9609,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
           openCaseModalForView(data.case);
         } else {
-          showToast('Error: View function not available', 'error');
+          showToast(t('cases.toast.open_failed'), 'error');
 
           // Restore archived modal if there was an error
           if (archivedModalWasOpen && archivedCasesModal) {
@@ -9583,7 +9618,7 @@ document.addEventListener('DOMContentLoaded', function () {
           }
         }
       } else {
-        showToast('Error loading case: ' + (data.message || 'Unknown error'), 'error');
+        showToast(t('cases.toast.load_error', {message: data.message || t('common.unknown_error')}), 'error');
 
         // Restore archived modal if there was an error
         if (archivedModalWasOpen && archivedCasesModal) {
@@ -9593,7 +9628,7 @@ document.addEventListener('DOMContentLoaded', function () {
       }
     })
     .catch(error => {
-      showToast('Error loading case', 'error');
+      showToast(t('cases.toast.load_error'), 'error');
 
       // Restore archived modal if there was an error
       if (archivedModalWasOpen && archivedCasesModal) {
@@ -9614,11 +9649,11 @@ document.addEventListener('DOMContentLoaded', function () {
         // Use the exact same printCase function as main cases
         printCase(data.case);
       } else {
-        showToast('Error loading case data', 'error');
+        showToast(t('cases.toast.load_data_error'), 'error');
       }
     })
     .catch(error => {
-      showToast('Error loading case', 'error');
+      showToast(t('cases.toast.load_error'), 'error');
     });
   };
 
@@ -9649,9 +9684,9 @@ document.addEventListener('DOMContentLoaded', function () {
     `;
 
     content.innerHTML = `
-      <h3 style="margin: 0 0 15px 0; color: #22c55e;">Restore Case</h3>
-      <p style="margin: 0 0 20px 0; color: #333;">Are you sure you want to restore this case?</p>
-      <p style="margin: 0 0 25px 0; color: #666; font-size: 14px;">The case will reappear on the main Kanban board.</p>
+      <h3 style="margin: 0 0 15px 0; color: #22c55e;">${t('archive.confirm.restore_title')}</h3>
+      <p style="margin: 0 0 20px 0; color: #333;">${t('archive.confirm.restore_message')}</p>
+      <p style="margin: 0 0 25px 0; color: #666; font-size: 14px;">${t('archive.confirm.restore_reappear')}</p>
       <div style="display: flex; gap: 10px; justify-content: center;">
         <button id="cancelBtn" style="
           background: #e0e0e0;
@@ -9661,7 +9696,7 @@ document.addEventListener('DOMContentLoaded', function () {
           border-radius: 4px;
           cursor: pointer;
           font-size: 14px;
-        ">Cancel</button>
+        ">${t('common.cancel')}</button>
         <button id="confirmBtn" style="
           background: #22c55e;
           color: white;
@@ -9670,7 +9705,7 @@ document.addEventListener('DOMContentLoaded', function () {
           border-radius: 4px;
           cursor: pointer;
           font-size: 14px;
-        ">Restore</button>
+        ">${t('archive.actions.restore')}</button>
       </div>
     `;
 
@@ -9716,15 +9751,16 @@ document.addEventListener('DOMContentLoaded', function () {
           loadArchivedCases(); // Refresh the archived cases list
           loadExistingCases(); // Refresh the main kanban board
           loadBillingInfo(); // Refresh billing info to update case count
+          showToast(t('archive.messages.restored'), 'success');
         } else {
-          showToast('Error restoring case: ' + data.message, 'error');
+          showToast(t('archive.messages.restore_failed', {message: data.message}), 'error');
         }
       })
       .catch(error => {
         if (typeof NetworkErrorHandler !== 'undefined') {
           NetworkErrorHandler.handle(error, 'restoring case');
         } else {
-          showToast('Error restoring case. Please try again.', 'error');
+          showToast(t('archive.messages.restore_failed_retry'), 'error');
         }
       });
     };
@@ -9788,15 +9824,16 @@ document.addEventListener('DOMContentLoaded', function () {
             loadArchivedCases(); // Refresh the archived cases list
             loadExistingCases(); // Refresh the main kanban board
             loadBillingInfo(); // Refresh billing info to update case count
+          showToast(t('archive.messages.restored'), 'success');
           } else {
-            showToast('Error restoring case: ' + data.message, 'error');
+            showToast(t('archive.messages.restore_failed', {message: data.message}), 'error');
           }
         })
         .catch(error => {
           if (typeof NetworkErrorHandler !== 'undefined') {
             NetworkErrorHandler.handle(error, 'restoring case');
           } else {
-            showToast('Error restoring case. Please try again.', 'error');
+            showToast(t('archive.messages.restore_failed_retry'), 'error');
           }
         });
       }
@@ -9923,7 +9960,7 @@ document.addEventListener('DOMContentLoaded', function () {
             if (column.children.length === 0) {
               const emptyMsg = document.createElement('p');
               emptyMsg.className = 'kanban-empty';
-              emptyMsg.textContent = 'No cases in this stage.';
+              emptyMsg.textContent = t('cases.no_cases_in_stage');
               column.appendChild(emptyMsg);
             }
           });
@@ -10047,7 +10084,7 @@ document.addEventListener('DOMContentLoaded', function () {
         var isPassword = input.type === 'password';
         input.type = isPassword ? 'text' : 'password';
         btn.classList.toggle('is-visible', isPassword);
-        btn.setAttribute('aria-label', isPassword ? 'Hide password' : 'Show password');
+        btn.setAttribute('aria-label', isPassword ? t('settings.security.change_password.hide_password') : t('settings.security.change_password.show_password'));
       });
     });
 
@@ -10076,19 +10113,19 @@ document.addEventListener('DOMContentLoaded', function () {
       var hasSpecial = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password);
 
       if (pwReqLength) {
-        pwReqLength.textContent = (hasLength ? '✓' : '✗') + ' At least 8 characters';
+        pwReqLength.textContent = (hasLength ? '✓' : '✗') + ' ' + t('settings.security.change_password.requirements.length');
         pwReqLength.classList.toggle('valid', hasLength);
       }
       if (pwReqUpper) {
-        pwReqUpper.textContent = (hasUpper ? '✓' : '✗') + ' One uppercase letter';
+        pwReqUpper.textContent = (hasUpper ? '✓' : '✗') + ' ' + t('settings.security.change_password.requirements.upper');
         pwReqUpper.classList.toggle('valid', hasUpper);
       }
       if (pwReqNumber) {
-        pwReqNumber.textContent = (hasNumber ? '✓' : '✗') + ' One number';
+        pwReqNumber.textContent = (hasNumber ? '✓' : '✗') + ' ' + t('settings.security.change_password.requirements.number');
         pwReqNumber.classList.toggle('valid', hasNumber);
       }
       if (pwReqSpecial) {
-        pwReqSpecial.textContent = (hasSpecial ? '✓' : '✗') + ' One special character';
+        pwReqSpecial.textContent = (hasSpecial ? '✓' : '✗') + ' ' + t('settings.security.change_password.requirements.special');
         pwReqSpecial.classList.toggle('valid', hasSpecial);
       }
 
@@ -10106,10 +10143,10 @@ document.addEventListener('DOMContentLoaded', function () {
         passwordMatchStatus.textContent = '';
         passwordMatchStatus.className = 'password-match';
       } else if (newPw === confirmPw) {
-        passwordMatchStatus.textContent = '✓ Passwords match';
+        passwordMatchStatus.textContent = '✓ ' + t('settings.security.change_password.match_yes');
         passwordMatchStatus.className = 'password-match match';
       } else {
-        passwordMatchStatus.textContent = '✗ Passwords do not match';
+        passwordMatchStatus.textContent = '✗ ' + t('settings.security.change_password.match_no');
         passwordMatchStatus.className = 'password-match no-match';
       }
     }
@@ -10138,23 +10175,23 @@ document.addEventListener('DOMContentLoaded', function () {
 
         // Client-side validation
         if (!currentPw) {
-          showChangePasswordError('Please enter your current password.');
+          showChangePasswordError(t('settings.security.change_password.validation.current_required'));
           return;
         }
 
         if (!validatePasswordRequirements(newPw)) {
-          showChangePasswordError('New password does not meet all requirements.');
+          showChangePasswordError(t('settings.security.change_password.validation.requirements_not_met'));
           return;
         }
 
         if (newPw !== confirmPw) {
-          showChangePasswordError('New passwords do not match.');
+          showChangePasswordError(t('settings.security.change_password.validation.not_match'));
           return;
         }
 
         // Disable button during request
         changePasswordBtn.disabled = true;
-        changePasswordBtn.textContent = 'Changing...';
+        changePasswordBtn.textContent = t('settings.security.change_password.button_changing');
 
         // Send request to server
         fetch('api/change-password.php', {
@@ -10173,7 +10210,7 @@ document.addEventListener('DOMContentLoaded', function () {
         .then(function(response) { return response.json(); })
         .then(function(data) {
           if (data.success) {
-            showChangePasswordSuccess('Password changed successfully.');
+            showChangePasswordSuccess(t('settings.security.change_password.success'));
             // Clear form
             if (currentPasswordInput) currentPasswordInput.value = '';
             if (newPasswordInput) newPasswordInput.value = '';
@@ -10181,15 +10218,15 @@ document.addEventListener('DOMContentLoaded', function () {
             validatePasswordRequirements('');
             checkPasswordMatch();
           } else {
-            showChangePasswordError(data.message || 'Failed to change password.');
+            showChangePasswordError(data.message || t('settings.security.change_password.error'));
           }
         })
         .catch(function() {
-          showChangePasswordError('An error occurred. Please try again.');
+          showChangePasswordError(t('settings.security.change_password.unknown_error'));
         })
         .finally(function() {
           changePasswordBtn.disabled = false;
-          changePasswordBtn.textContent = 'Change Password';
+          changePasswordBtn.textContent = t('settings.security.change_password.button');
         });
       });
     }
@@ -10246,10 +10283,10 @@ document.addEventListener('DOMContentLoaded', function () {
 
       if (statusBadge) {
         if (enabled) {
-          statusBadge.textContent = 'Enabled';
+          statusBadge.textContent = t('settings.security.two_factor.status_enabled');
           statusBadge.className = 'status-badge status-enabled';
         } else {
-          statusBadge.textContent = 'Disabled';
+          statusBadge.textContent = t('settings.security.two_factor.status_disabled');
           statusBadge.className = 'status-badge status-disabled';
         }
       }
@@ -10265,7 +10302,7 @@ document.addEventListener('DOMContentLoaded', function () {
     if (enableTwoFactorBtn) {
       enableTwoFactorBtn.addEventListener('click', function() {
         enableTwoFactorBtn.disabled = true;
-        enableTwoFactorBtn.textContent = 'Loading...';
+        enableTwoFactorBtn.textContent = t('settings.security.two_factor.setup.loading');
 
         fetch('api/2fa-setup.php?action=setup', {
           method: 'POST',
@@ -10284,18 +10321,18 @@ document.addEventListener('DOMContentLoaded', function () {
             if (twoFactorSetupError) twoFactorSetupError.style.display = 'none';
           } else {
             if (typeof Toast !== 'undefined') {
-              Toast.error('2FA Setup', data.message || 'Failed to start 2FA setup.');
+              Toast.error(t('settings.security.two_factor.setup.setup_title'), data.message || t('settings.security.two_factor.setup.unknown_error'));
             }
           }
         })
         .catch(function() {
           if (typeof Toast !== 'undefined') {
-            Toast.error('2FA Setup', 'An error occurred. Please try again.');
+            Toast.error(t('settings.security.two_factor.setup.setup_title'), t('settings.security.two_factor.setup.unknown_error'));
           }
         })
         .finally(function() {
           enableTwoFactorBtn.disabled = false;
-          enableTwoFactorBtn.textContent = 'Enable 2FA';
+          enableTwoFactorBtn.textContent = t('settings.security.two_factor.enable');
         });
       });
     }
@@ -10307,14 +10344,14 @@ document.addEventListener('DOMContentLoaded', function () {
 
         if (!code || code.length !== 6) {
           if (twoFactorSetupError) {
-            twoFactorSetupError.textContent = 'Please enter a 6-digit code.';
+            twoFactorSetupError.textContent = t('settings.security.two_factor.setup.code_required');
             twoFactorSetupError.style.display = 'block';
           }
           return;
         }
 
         verifyTwoFactorBtn.disabled = true;
-        verifyTwoFactorBtn.textContent = 'Verifying...';
+        verifyTwoFactorBtn.textContent = t('settings.security.two_factor.setup.verifying');
 
         fetch('api/2fa-setup.php?action=verify', {
           method: 'POST',
@@ -10330,24 +10367,24 @@ document.addEventListener('DOMContentLoaded', function () {
           if (data.success) {
             update2FAStatusUI(true);
             if (typeof Toast !== 'undefined') {
-              Toast.success('2FA Enabled', 'Two-factor authentication has been enabled.');
+              Toast.success(t('settings.security.two_factor.setup.success_title'), t('settings.security.two_factor.setup.success_message'));
             }
           } else {
             if (twoFactorSetupError) {
-              twoFactorSetupError.textContent = data.message || 'Invalid code. Please try again.';
+              twoFactorSetupError.textContent = data.message || t('settings.security.two_factor.setup.invalid');
               twoFactorSetupError.style.display = 'block';
             }
           }
         })
         .catch(function() {
           if (twoFactorSetupError) {
-            twoFactorSetupError.textContent = 'An error occurred. Please try again.';
+            twoFactorSetupError.textContent = t('settings.security.two_factor.setup.unknown_error');
             twoFactorSetupError.style.display = 'block';
           }
         })
         .finally(function() {
           verifyTwoFactorBtn.disabled = false;
-          verifyTwoFactorBtn.textContent = 'Verify & Enable';
+          verifyTwoFactorBtn.textContent = t('settings.security.two_factor.setup.verify');
         });
       });
     }
@@ -10383,7 +10420,7 @@ document.addEventListener('DOMContentLoaded', function () {
     if (confirmDisableTwoFactor) {
       confirmDisableTwoFactor.addEventListener('click', function() {
         confirmDisableTwoFactor.disabled = true;
-        confirmDisableTwoFactor.textContent = 'Disabling...';
+        confirmDisableTwoFactor.textContent = t('settings.security.two_factor.disable.disabling');
 
         fetch('api/2fa-setup.php?action=disable', {
           method: 'POST',
@@ -10398,24 +10435,24 @@ document.addEventListener('DOMContentLoaded', function () {
           if (data.success) {
             update2FAStatusUI(false);
             if (typeof Toast !== 'undefined') {
-              Toast.success('2FA Disabled', 'Two-factor authentication has been disabled.');
+              Toast.success(t('settings.security.two_factor.disable.success_title'), t('settings.security.two_factor.disable.success_message'));
             }
           } else {
             if (twoFactorDisableError) {
-              twoFactorDisableError.textContent = data.message || 'Failed to disable 2FA.';
+              twoFactorDisableError.textContent = data.message || t('settings.security.two_factor.disable.error');
               twoFactorDisableError.style.display = 'block';
             }
           }
         })
         .catch(function() {
           if (twoFactorDisableError) {
-            twoFactorDisableError.textContent = 'An error occurred. Please try again.';
+            twoFactorDisableError.textContent = t('settings.security.two_factor.disable.unknown_error');
             twoFactorDisableError.style.display = 'block';
           }
         })
         .finally(function() {
           confirmDisableTwoFactor.disabled = false;
-          confirmDisableTwoFactor.textContent = 'Disable 2FA';
+          confirmDisableTwoFactor.textContent = t('settings.security.two_factor.disable.button');
         });
       });
     }
@@ -10438,15 +10475,15 @@ document.addEventListener('DOMContentLoaded', function () {
       exportDataBtn.addEventListener('click', function() {
         // Show styled confirmation modal instead of native confirm()
         showConfirmModal(
-          'Export Practice Data',
-          'This will export all your practice data. A download link will be sent to your email. Continue?',
+          t('settings.data_privacy.export.confirm_title'),
+          t('settings.data_privacy.export.confirm_message'),
           function() {
             // User confirmed - proceed with export
             exportDataBtn.disabled = true;
-            exportDataBtn.innerHTML = '<span class="btn-icon">⏳</span> Preparing Export...';
+            exportDataBtn.innerHTML = '<span class="btn-icon">⏳</span> ' + t('settings.data_privacy.export.preparing');
 
             if (exportStatus) {
-              exportStatus.textContent = 'Preparing your data export...';
+              exportStatus.textContent = t('settings.data_privacy.export.preparing_status');
               exportStatus.className = 'export-status';
               exportStatus.style.display = 'block';
             }
@@ -10460,28 +10497,28 @@ document.addEventListener('DOMContentLoaded', function () {
             .then(function(data) {
               if (data.success) {
                 if (exportStatus) {
-                  exportStatus.textContent = 'Export request submitted! Check your email for the download link.';
+                  exportStatus.textContent = t('settings.data_privacy.export.success_status');
                   exportStatus.className = 'export-status success';
                 }
                 if (typeof Toast !== 'undefined') {
-                  Toast.success('Export Started', 'Your data export is being prepared. You will receive an email when it\'s ready.');
+                  Toast.success(t('settings.data_privacy.export.success_title'), t('settings.data_privacy.export.success_message'));
                 }
               } else {
                 if (exportStatus) {
-                  exportStatus.textContent = data.message || 'Failed to start export.';
+                  exportStatus.textContent = data.message || t('settings.data_privacy.export.error');
                   exportStatus.className = 'export-status error';
                 }
               }
             })
             .catch(function() {
               if (exportStatus) {
-                exportStatus.textContent = 'An error occurred. Please try again.';
+                exportStatus.textContent = t('settings.data_privacy.export.unknown_error');
                 exportStatus.className = 'export-status error';
               }
             })
             .finally(function() {
               exportDataBtn.disabled = false;
-              exportDataBtn.innerHTML = '<span class="btn-icon">📥</span> Export All Data';
+              exportDataBtn.innerHTML = '<span class="btn-icon">📥</span> ' + t('settings.data_privacy.export.button');
             });
           },
           null // No action needed on cancel

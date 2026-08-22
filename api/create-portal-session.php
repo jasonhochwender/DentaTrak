@@ -31,13 +31,13 @@ require_once __DIR__ . '/subscription-owner.php';
 // ── Auth ─────────────────────────────────────────────────────────────────────
 if (!isset($_SESSION['db_user_id'])) {
     http_response_code(401);
-    echo json_encode(['error' => 'Authentication required']);
+    echo json_encode(['error' => t('billing.errors.authentication_required')]);
     exit;
 }
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     http_response_code(405);
-    echo json_encode(['error' => 'Method not allowed']);
+    echo json_encode(['error' => t('billing.errors.method_not_allowed')]);
     exit;
 }
 
@@ -50,7 +50,7 @@ $userId            = $_SESSION['db_user_id'];
 // ── Permission: admin or owner only ─────────────────────────────────────────
 if (!isPracticeAdmin($currentPracticeId) && !isPracticeOwner($currentPracticeId)) {
     http_response_code(403);
-    echo json_encode(['error' => 'Billing management requires practice administrator or owner role']);
+    echo json_encode(['error' => t('billing.errors.billing_requires_admin_or_owner')]);
     exit;
 }
 
@@ -60,7 +60,7 @@ $userStmt->execute([$userId]);
 $userRow = $userStmt->fetch(PDO::FETCH_ASSOC);
 if ($userRow && isBillingBypassEmail($userRow['email'])) {
     http_response_code(403);
-    echo json_encode(['error' => 'Billing management is not applicable to this account']);
+    echo json_encode(['error' => t('billing.errors.billing_not_applicable')]);
     exit;
 }
 
@@ -70,7 +70,7 @@ $stripeConfig = $appConfig['stripe'] ?? [];
 if (!empty($stripeConfig['config_error'])) {
     error_log('create-portal-session: Stripe config error: ' . $stripeConfig['config_error']);
     http_response_code(500);
-    echo json_encode(['error' => 'Payment system configuration error. Please contact support.']);
+    echo json_encode(['error' => t('billing.errors.payment_system_config')]);
     exit;
 }
 
@@ -78,7 +78,7 @@ $secretKey = $stripeConfig['secret_key'] ?? null;
 if (empty($secretKey)) {
     error_log('create-portal-session: STRIPE_SECRET_KEY not configured');
     http_response_code(500);
-    echo json_encode(['error' => 'Payment system not configured. Please contact support.']);
+    echo json_encode(['error' => t('billing.errors.payment_system_not_configured')]);
     exit;
 }
 
@@ -98,14 +98,14 @@ try {
 } catch (PDOException $e) {
     error_log('create-portal-session: DB error: ' . $e->getMessage());
     http_response_code(500);
-    echo json_encode(['error' => 'Internal server error']);
+    echo json_encode(['error' => t('billing.errors.internal')]);
     exit;
 }
 
 if (empty($stripeCustomerId)) {
     http_response_code(400);
     echo json_encode([
-        'error' => 'No billing account found for this practice. Please choose a plan first.',
+        'error' => t('billing.errors.no_billing_account'),
         'error_code' => 'no_customer',
     ]);
     exit;
@@ -127,6 +127,11 @@ try {
         $portalParams['configuration'] = $portalConfigId;
     }
 
+    $stripeLocale = function_exists('getStripeLocale') ? getStripeLocale(getResolvedLocale()) : null;
+    if (!empty($stripeLocale)) {
+        $portalParams['locale'] = $stripeLocale;
+    }
+
     $portalSession = \Stripe\BillingPortal\Session::create($portalParams);
 
     echo json_encode(['portal_url' => $portalSession->url]);
@@ -134,9 +139,9 @@ try {
 } catch (\Stripe\Exception\ApiErrorException $e) {
     error_log('create-portal-session: Stripe API error: ' . $e->getMessage());
     http_response_code(502);
-    echo json_encode(['error' => 'Payment system error. Please try again or contact support.']);
+    echo json_encode(['error' => t('billing.errors.payment_system_error')]);
 } catch (Exception $e) {
     error_log('create-portal-session: Unexpected error: ' . $e->getMessage());
     http_response_code(500);
-    echo json_encode(['error' => 'Internal server error']);
+    echo json_encode(['error' => t('billing.errors.internal')]);
 }

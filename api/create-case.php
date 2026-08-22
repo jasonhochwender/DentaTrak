@@ -54,7 +54,7 @@ if (isGoogleDriveBackupEnabled() && !isPracticeCreatorDriveConnected()) {
     http_response_code(401);
     echo json_encode([
         'success' => false,
-        'message' => 'Google Drive backup is enabled but the backup folder is not configured. A practice admin needs to re-enable backup from Settings.',
+        'message' => t('api.cases.drive_backup_not_connected'),
         'drive_not_connected' => true
     ]);
     exit;
@@ -95,7 +95,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     http_response_code(403);
                     echo json_encode([
                         'success' => false,
-                        'message' => $access['access_message'] ?? 'Access denied. Please contact your administrator.'
+                        'message' => $access['access_message'] ?? t('api.cases.access_denied')
                     ]);
                     exit;
                 }
@@ -200,7 +200,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         http_response_code(400);
         echo json_encode([
             'success' => false,
-            'message' => "Notes cannot exceed {$notesMaxLength} characters. Current length: " . strlen($caseData['notes']) . " characters.",
+            'message' => t('api.cases.notes_too_long', ['max' => $notesMaxLength, 'current' => strlen($caseData['notes'])]),
             'field' => 'notes'
         ]);
         exit;
@@ -214,7 +214,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         http_response_code(400);
         echo json_encode([
             'success' => false,
-            'message' => 'Please enter an Other Carrier name when providing a tracking number.',
+            'message' => t('api.cases.other_carrier_required'),
             'field' => 'customCarrier'
         ]);
         exit;
@@ -238,7 +238,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             http_response_code(400);
             echo json_encode([
                 'success' => false,
-                'message' => $parseResult['error'],
+                'message' => t('validation.tooth_numbers'),
                 'field' => 'clinicalToothNumber'
             ]);
             exit;
@@ -276,45 +276,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         http_response_code(400);
 
         // Generate user-friendly field names
-        $fieldLabels = [
-            'patientFirstName' => 'Patient First Name',
-            'patientLastName' => 'Patient Last Name',
-            'patientDOB' => 'Patient DOB',
-            'patientGender' => 'Gender',
-            'dentistName' => 'Dentist Name',
-            'caseType' => 'Case Type',
-            'dueDate' => 'Due Date',
-            'status' => 'Status',
-            'toothShade' => 'Tooth Shade',
-            'material' => 'Material',
-            'assignedTo' => 'Assigned To',
-            'notes' => 'Notes',
-            // Clinical fields
-            'clinical_toothNumber' => 'Tooth # (Crown)',
-            'clinical_abutmentTeeth' => 'Abutment Teeth (Bridge)',
-            'clinical_ponticTeeth' => 'Pontic Teeth (Bridge)',
-            'clinical_implantToothNumber' => 'Tooth # (Implant Crown)',
-            'clinical_abutmentType' => 'Abutment Type (Implant Crown)',
-            'clinical_implantSystem' => 'Implant System (Implant Crown)',
-            'clinical_platformSize' => 'Platform Size (Implant Crown)',
-            'clinical_scanBodyUsed' => 'Scan Body Used (Implant Crown)',
-            'clinical_implantSites' => 'Implant Sites (Surgical Guide)',
-            'clinical_dentureJaw' => 'Jaw (Denture)',
-            'clinical_dentureType' => 'Denture Type',
-            'clinical_gingivalShade' => 'Gingival Shade (Denture)',
-            'clinical_partialJaw' => 'Jaw (Partial)',
-            'clinical_teethToReplace' => 'Teeth to Replace (Partial)',
-            'clinical_partialMaterial' => 'Material (Partial)',
-            'clinical_partialGingivalShade' => 'Gingival Shade (Partial)',
-        ];
-
-        $friendlyNames = array_map(function($field) use ($fieldLabels) {
-            return $fieldLabels[$field] ?? $field;
+        $friendlyNames = array_map(function($field) {
+            return t('cases.fields.' . $field);
         }, $missingFields);
 
         echo json_encode([
             'success' => false,
-            'message' => 'Please fill in the following required fields: ' . implode(', ', $friendlyNames),
+            'message' => t('api.cases.missing_required', ['fields' => implode(', ', $friendlyNames)]),
             'missingFields' => $missingFields
         ]);
         exit;
@@ -329,7 +297,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         http_response_code(400);
         echo json_encode([
             'success' => false,
-            'message' => 'Invalid status value',
+            'message' => t('api.cases.invalid_status'),
             'field' => 'status'
         ]);
         exit;
@@ -352,7 +320,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             http_response_code(400);
             echo json_encode([
                 'success' => false,
-                'message' => 'File upload verification failed: ' . implode('; ', $gcsResult['errors'])
+                'message' => t('api.cases.upload_verification_failed', ['message' => implode('; ', $gcsResult['errors'])])
             ]);
             exit;
         }
@@ -405,7 +373,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         $result = [
             'success'  => true,
-            'message'  => 'Case created locally (Google Drive unavailable).',
+            'message'  => t('api.cases.created_local'),
             'caseData' => $simulatedCase
         ];
     }
@@ -578,7 +546,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     http_response_code(405);
     echo json_encode([
         'success' => false,
-        'message' => 'Method not allowed'
+        'message' => t('api.cases.method_not_allowed')
     ]);
 }
 
@@ -612,7 +580,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         echo json_encode([
             'success'  => true,
-            'message'  => 'Case created locally (Google Drive unavailable).',
+            'message'  => t('api.cases.created_local'),
             'caseData' => $simulatedCase
         ]);
         exit;
@@ -621,7 +589,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     http_response_code(500);
     echo json_encode([
         'success' => false,
-        'message' => 'Server error: ' . $msg,
+        'message' => t('api.cases.server_error', ['message' => $msg]),
         'error' => $msg
     ]);
 }

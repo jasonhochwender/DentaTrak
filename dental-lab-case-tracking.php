@@ -6,7 +6,7 @@ $appName = $appConfig['appName'] ?? 'DentaTrak';
 $baseUrl = rtrim($appConfig['baseUrl'], '/') . '/';
 $articleUrls = $appConfig['public_urls'] ?? [];
 ?><!DOCTYPE html>
-<html lang="en">
+<html lang="<?php echo getHtmlLang(); ?>">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -20,8 +20,19 @@ $articleUrls = $appConfig['public_urls'] ?? [];
     gtag('config', 'G-MBJDENR3H2');
   </script>
 
-  <meta name="description" content="Track every case sent to the dental lab (shipping dates, expected returns, overdue cases, and remakes) in one place. See how DentaTrak keeps lab cases visible.">
-  <title>Dental Lab Case Tracking for Dental Practices | DentaTrak</title>
+  <meta name="description" content="<?php echo htmlspecialchars(t("marketing.articles.dental_lab_case_tracking.seo.description")); ?>">
+  <title><?php echo htmlspecialchars(t("marketing.articles.dental_lab_case_tracking.seo.title")); ?></title>
+
+  <!-- Open Graph -->
+  <meta property="og:title" content="<?php echo htmlspecialchars(t("marketing.articles.dental_lab_case_tracking.seo.title")); ?>">
+  <meta property="og:description" content="<?php echo htmlspecialchars(t("marketing.articles.dental_lab_case_tracking.seo.description")); ?>">
+  <meta property="og:type" content="article">
+  <meta property="og:url" content="https://dentatrak.com/dental-lab-case-tracking">
+  <meta property="og:site_name" content="DentaTrak">
+  <!-- Twitter -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="<?php echo htmlspecialchars(t("marketing.articles.dental_lab_case_tracking.seo.title")); ?>">
+  <meta name="twitter:description" content="<?php echo htmlspecialchars(t("marketing.articles.dental_lab_case_tracking.seo.description")); ?>">
   <link rel="canonical" href="https://dentatrak.com/dental-lab-case-tracking">
 
   <!-- Favicon / App Icons -->
@@ -40,7 +51,7 @@ $articleUrls = $appConfig['public_urls'] ?? [];
   {
     "@context": "https://schema.org",
     "@type": "Article",
-    "headline": "Dental Lab Case Tracking for Dental Practices",
+    "headline": <?php echo json_encode(t("marketing.articles.dental_lab_case_tracking.h1"), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>,
     "author": { "@type": "Person", "name": "Dr. William Verrillo" },
     "publisher": { "@type": "Organization", "name": "DentaTrak" },
     "datePublished": "2026-08-08",
@@ -55,9 +66,9 @@ $articleUrls = $appConfig['public_urls'] ?? [];
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",
     "itemListElement": [
-      { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://dentatrak.com/" },
-      { "@type": "ListItem", "position": 2, "name": "Resources", "item": "https://dentatrak.com/resources" },
-      { "@type": "ListItem", "position": 3, "name": "Dental Lab Case Tracking", "item": "https://dentatrak.com/dental-lab-case-tracking" }
+      { "@type": "ListItem", "position": 1, "name": <?php echo json_encode(t("marketing.navigation.home"), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>, "item": "https://dentatrak.com/" },
+      { "@type": "ListItem", "position": 2, "name": <?php echo json_encode(t("marketing.navigation.resources"), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>, "item": "https://dentatrak.com/resources" },
+      { "@type": "ListItem", "position": 3, "name": <?php echo json_encode(t("marketing.articles.dental_lab_case_tracking.h1"), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>, "item": "https://dentatrak.com/dental-lab-case-tracking" }
     ]
   }
   </script>
@@ -70,26 +81,26 @@ $articleUrls = $appConfig['public_urls'] ?? [];
     "mainEntity": [
       {
         "@type": "Question",
-        "name": "What is dental lab case tracking?",
+        "name": <?php echo json_encode(t("marketing.articles.dental_lab_case_tracking.faq.items.0.question"), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>,
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "Dental lab case tracking is the practice of monitoring a case from the moment it's sent to an external lab through fabrication, return, and delivery to the patient, including sent date, expected return date, actual return, and whether it's overdue."
+          "text": <?php echo json_encode(t("marketing.articles.dental_lab_case_tracking.faq.items.0.answer"), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>
         }
       },
       {
         "@type": "Question",
-        "name": "How is lab case tracking different from general dental case tracking?",
+        "name": <?php echo json_encode(t("marketing.articles.dental_lab_case_tracking.faq.items.1.question"), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>,
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "Dental lab case tracking focuses specifically on the practice's relationship with external labs: shipping, turnaround time, and remakes. General dental case tracking also covers referrals, internal handoffs, and scheduling dependencies that don't involve a lab."
+          "text": <?php echo json_encode(t("marketing.articles.dental_lab_case_tracking.faq.items.1.answer"), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>
         }
       },
       {
         "@type": "Question",
-        "name": "What causes dental lab cases to get lost or delayed?",
+        "name": <?php echo json_encode(t("marketing.articles.dental_lab_case_tracking.faq.items.2.question"), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>,
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "Common causes include no record of when a case was sent or expected back, no alert when a case is overdue, and no visibility for the front desk when a case is ready for the patient to be scheduled."
+          "text": <?php echo json_encode(t("marketing.articles.dental_lab_case_tracking.faq.items.2.answer"), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>
         }
       }
     ]
@@ -100,10 +111,11 @@ $articleUrls = $appConfig['public_urls'] ?? [];
   <!-- Navigation -->
   <nav class="nav">
     <div class="nav-inner">
-      <a href="<?= $baseUrl ?>" class="nav-logo" aria-label="DentaTrak home"><img src="<?= $baseUrl ?>images/main.png" alt="DentaTrak" style="height: auto; width: auto; max-width: 140px; object-fit: contain; display: block;"></a>
+      <a href="<?= $baseUrl ?>" class="nav-logo" aria-label="<?php echo htmlspecialchars(t('marketing.accessibility.home_aria')); ?>"><img src="<?= $baseUrl ?>images/main.png" alt="<?php echo htmlspecialchars(t('marketing.accessibility.logo_alt')); ?>" style="height: auto; width: auto; max-width: 140px; object-fit: contain; display: block;"></a>
       <div class="nav-actions">
-        <a href="<?= $baseUrl ?>login.php" class="nav-login">Log In</a>
-        <a href="<?= $baseUrl ?>login.php" class="nav-cta">Start 90-Day Free Trial</a>
+        <a href="<?= $baseUrl ?>login.php" class="nav-login"><?php echo t("marketing.navigation.log_in"); ?></a>
+        <a href="<?= $baseUrl ?>login.php" class="nav-cta"><?php echo t("marketing.navigation.start_trial"); ?></a>
+        <?php echo renderLanguageSelector("api/set-session-locale.php", getResolvedLocale(), false); ?>
       </div>
     </div>
   </nav>
@@ -111,134 +123,114 @@ $articleUrls = $appConfig['public_urls'] ?? [];
   <!-- Breadcrumbs -->
   <div class="breadcrumb-bar">
     <ol class="breadcrumb">
-      <li><a href="<?= $baseUrl ?>">Home</a></li>
+      <li><a href="<?= $baseUrl ?>"><?php echo t("marketing.navigation.home"); ?></a></li>
       <li>/</li>
-      <li><a href="<?= $baseUrl . ($articleUrls['page_resources'] ?? 'resources') ?>">Resources</a></li>
+      <li><a href="<?= $baseUrl . ($articleUrls['page_resources'] ?? 'resources') ?>"><?php echo t("marketing.navigation.resources"); ?></a></li>
       <li>/</li>
-      <li aria-current="page">Dental Lab Case Tracking</li>
+      <li aria-current="page"><?php echo t("marketing.articles.dental_lab_case_tracking.h1"); ?></li>
     </ol>
   </div>
 
   <!-- Main Content -->
   <main class="content">
-    <h1>Dental Lab Case Tracking for Dental Practices</h1>
+    <h1><?php echo t('marketing.articles.dental_lab_case_tracking.h1'); ?></h1>
 
     <div class="article-meta">
-      <span>By <strong>Dr. William Verrillo</strong></span>
+      <span><?php echo t('marketing.articles.dental_lab_case_tracking.meta.by'); ?> <strong>Dr. William Verrillo</strong></span>
       <span class="meta-divider">&middot;</span>
-      <span>Published <strong>August 8, 2026</strong></span>
+      <span><?php echo t('marketing.articles.dental_lab_case_tracking.meta.published'); ?> <strong>August 8, 2026</strong></span>
     </div>
 
     <div class="answer-box">
-      <p>
-        Dental lab case tracking is the practice of monitoring a case from the moment it's sent to an external lab through fabrication, return, and delivery to the patient. It covers the sent date, expected return date, actual return, and whether a case is overdue: the specific information practices need to catch lab delays before they affect a patient's appointment.
-      </p>
+      <p><?php echo t('marketing.articles.dental_lab_case_tracking.intro'); ?></p>
     </div>
 
-    <h2>Why Lab Cases Need Their Own Tracking</h2>
+    <h2><?php echo t('marketing.articles.dental_lab_case_tracking.sections.why_lab_cases_need_their_own_tracking.heading'); ?></h2>
 
-    <p>
-      Once a case leaves the practice for an external lab, it's out of direct control. Without a clear record of when it was sent and when it's expected back, a case sitting at the lab can go unnoticed until a patient arrives for an appointment and the restoration isn't ready.
-    </p>
+    <p><?php echo t('marketing.articles.dental_lab_case_tracking.sections.why_lab_cases_need_their_own_tracking.body_1'); ?></p>
 
-    <h2>What to Track for Every Lab Case</h2>
+    <h2><?php echo t('marketing.articles.dental_lab_case_tracking.sections.what_to_track_for_every_lab_case.heading'); ?></h2>
 
     <ul class="checklist">
-      <li><strong>Sent date:</strong> When the case was shipped to the lab.</li>
-      <li><strong>Expected return date:</strong> When the lab has committed to sending it back.</li>
-      <li><strong>Actual return:</strong> When the case actually arrived back at the practice.</li>
-      <li><strong>Overdue status:</strong> Whether the case has passed its expected return date without being flagged.</li>
-      <li><strong>Remakes:</strong> Whether a case had to be sent back to the lab a second time, and why.</li>
-      <li><strong>Patient scheduling dependency:</strong> Whether the front desk has been notified that a case is ready to schedule.</li>
+      <li><strong><?php echo t('marketing.articles.dental_lab_case_tracking.sections.what_to_track_for_every_lab_case.list_items.1.title'); ?></strong> <?php echo t('marketing.articles.dental_lab_case_tracking.sections.what_to_track_for_every_lab_case.list_items.1.body'); ?></li>
+      <li><strong><?php echo t('marketing.articles.dental_lab_case_tracking.sections.what_to_track_for_every_lab_case.list_items.2.title'); ?></strong> <?php echo t('marketing.articles.dental_lab_case_tracking.sections.what_to_track_for_every_lab_case.list_items.2.body'); ?></li>
+      <li><strong><?php echo t('marketing.articles.dental_lab_case_tracking.sections.what_to_track_for_every_lab_case.list_items.3.title'); ?></strong> <?php echo t('marketing.articles.dental_lab_case_tracking.sections.what_to_track_for_every_lab_case.list_items.3.body'); ?></li>
+      <li><strong><?php echo t('marketing.articles.dental_lab_case_tracking.sections.what_to_track_for_every_lab_case.list_items.4.title'); ?></strong> <?php echo t('marketing.articles.dental_lab_case_tracking.sections.what_to_track_for_every_lab_case.list_items.4.body'); ?></li>
+      <li><strong><?php echo t('marketing.articles.dental_lab_case_tracking.sections.what_to_track_for_every_lab_case.list_items.5.title'); ?></strong> <?php echo t('marketing.articles.dental_lab_case_tracking.sections.what_to_track_for_every_lab_case.list_items.5.body'); ?></li>
+      <li><strong><?php echo t('marketing.articles.dental_lab_case_tracking.sections.what_to_track_for_every_lab_case.list_items.6.title'); ?></strong> <?php echo t('marketing.articles.dental_lab_case_tracking.sections.what_to_track_for_every_lab_case.list_items.6.body'); ?></li>
     </ul>
 
-    <h2>Signs Your Dental Lab Case Tracking Process Is Failing</h2>
+    <h2><?php echo t('marketing.articles.dental_lab_case_tracking.sections.signs_your_dental_lab_case_tracking_process_is_failing.heading'); ?></h2>
 
     <ol class="workflow-steps">
       <li>
-        <strong>The front desk finds out a case isn't ready when the patient arrives</strong>
-        This is the clearest sign there's no visibility into lab status before the appointment.
-      </li>
+        <strong><?php echo t('marketing.articles.dental_lab_case_tracking.sections.signs_your_dental_lab_case_tracking_process_is_failing.list_items.7.title'); ?></strong> <?php echo t('marketing.articles.dental_lab_case_tracking.sections.signs_your_dental_lab_case_tracking_process_is_failing.list_items.7.body'); ?></li>
       <li>
-        <strong>No one can say how many cases are currently at the lab</strong>
-        If that number isn't known without checking multiple places, it isn't being tracked.
-      </li>
+        <strong><?php echo t('marketing.articles.dental_lab_case_tracking.sections.signs_your_dental_lab_case_tracking_process_is_failing.list_items.8.title'); ?></strong> <?php echo t('marketing.articles.dental_lab_case_tracking.sections.signs_your_dental_lab_case_tracking_process_is_failing.list_items.8.body'); ?></li>
       <li>
-        <strong>Overdue cases are only caught by accident</strong>
-        A case that's a week late should be visible on its own, not discovered when someone happens to ask about it.
-      </li>
+        <strong><?php echo t('marketing.articles.dental_lab_case_tracking.sections.signs_your_dental_lab_case_tracking_process_is_failing.list_items.9.title'); ?></strong> <?php echo t('marketing.articles.dental_lab_case_tracking.sections.signs_your_dental_lab_case_tracking_process_is_failing.list_items.9.body'); ?></li>
       <li>
-        <strong>Remakes aren't recorded anywhere</strong>
-        Without a record of remakes, a practice can't see whether a specific lab or case type is causing repeated problems.
-      </li>
+        <strong><?php echo t('marketing.articles.dental_lab_case_tracking.sections.signs_your_dental_lab_case_tracking_process_is_failing.list_items.10.title'); ?></strong> <?php echo t('marketing.articles.dental_lab_case_tracking.sections.signs_your_dental_lab_case_tracking_process_is_failing.list_items.10.body'); ?></li>
       <li>
-        <strong>Handoffs between the practice and the lab rely on phone calls or email threads</strong>
-        Information about a case's status lives in someone's inbox instead of a shared system.
-      </li>
+        <strong><?php echo t('marketing.articles.dental_lab_case_tracking.sections.signs_your_dental_lab_case_tracking_process_is_failing.list_items.11.title'); ?></strong> <?php echo t('marketing.articles.dental_lab_case_tracking.sections.signs_your_dental_lab_case_tracking_process_is_failing.list_items.11.body'); ?></li>
     </ol>
 
-    <h2>How DentaTrak Tracks Lab Dependencies</h2>
+    <h2><?php echo t('marketing.articles.dental_lab_case_tracking.sections.how_dentatrak_tracks_lab_dependencies.heading'); ?></h2>
 
-    <p>
-      DentaTrak tracks lab-dependent cases as part of its full case lifecycle: the sent date and expected return date are recorded when a case goes out, and cases that pass their expected return date are surfaced automatically rather than requiring someone to check. This is part of the same case record used to track ownership, status, and handoffs across the practice. See the full <a href="<?= $baseUrl . ($articleUrls['article_dental_case_tracking_software'] ?? 'dental-case-tracking-software') ?>" class="content-link">dental case tracking software</a> overview for how this fits together.
-    </p>
+    <p><?php echo t('marketing.articles.dental_lab_case_tracking.sections.how_dentatrak_tracks_lab_dependencies.body_2'); ?> <a href="<?= $baseUrl . ($articleUrls['article_dental_case_tracking_software'] ?? 'dental-case-tracking-software') ?>" class="content-link"><?php echo t('marketing.articles.dental_lab_case_tracking.sections.how_dentatrak_tracks_lab_dependencies.links.1'); ?></a> <?php echo t('marketing.articles.dental_lab_case_tracking.sections.how_dentatrak_tracks_lab_dependencies.body_3'); ?></p>
 
-    <p>
-      Crown and bridge cases are among the most common lab-dependent case types in a general practice. See our guide to <a href="<?= $baseUrl . ($articleUrls['article_crown_bridge'] ?? 'crown-and-bridge-case-tracking') ?>" class="content-link">crown and bridge case tracking</a> for the specific workflow from prep to final seat.
-    </p>
+    <p><?php echo t('marketing.articles.dental_lab_case_tracking.sections.how_dentatrak_tracks_lab_dependencies.body_4'); ?> <a href="<?= $baseUrl . ($articleUrls['article_crown_bridge'] ?? 'crown-and-bridge-case-tracking') ?>" class="content-link"><?php echo t('marketing.articles.dental_lab_case_tracking.sections.how_dentatrak_tracks_lab_dependencies.links.2'); ?></a> <?php echo t('marketing.articles.dental_lab_case_tracking.sections.how_dentatrak_tracks_lab_dependencies.body_5'); ?></p>
 
-    <h2>Reducing Remakes Through Better Visibility</h2>
+    <h2><?php echo t('marketing.articles.dental_lab_case_tracking.sections.reducing_remakes_through_better_visibility.heading'); ?></h2>
 
-    <p>
-      Not every remake is preventable, but some are the direct result of a breakdown in communication rather than a clinical issue, such as a shade mismatch that wasn't caught before a case went out, or a case that sat too long and needed to be redone because circumstances changed. Recording remakes alongside case status makes it possible to see whether a pattern exists.
-    </p>
+    <p><?php echo t('marketing.articles.dental_lab_case_tracking.sections.reducing_remakes_through_better_visibility.body_6'); ?></p>
 
-    <h2>Frequently Asked Questions</h2>
+    <h2><?php echo t('marketing.articles.dental_lab_case_tracking.sections.frequently_asked_questions.heading'); ?></h2>
 
     <div class="faq-item">
-      <h3>What is dental lab case tracking?</h3>
-      <p>Dental lab case tracking is the practice of monitoring a case from the moment it's sent to an external lab through fabrication, return, and delivery to the patient, including sent date, expected return date, actual return, and whether it's overdue.</p>
+      <h3><?php echo t('marketing.articles.dental_lab_case_tracking.faq.items.0.question'); ?></h3>
+      <p><?php echo t('marketing.articles.dental_lab_case_tracking.faq.items.0.answer'); ?></p>
     </div>
 
     <div class="faq-item">
-      <h3>How is lab case tracking different from general dental case tracking?</h3>
-      <p>Dental lab case tracking focuses specifically on the practice's relationship with external labs: shipping, turnaround time, and remakes. General dental case tracking also covers referrals, internal handoffs, and scheduling dependencies that don't involve a lab.</p>
+      <h3><?php echo t('marketing.articles.dental_lab_case_tracking.faq.items.1.question'); ?></h3>
+      <p><?php echo t('marketing.articles.dental_lab_case_tracking.faq.items.1.answer'); ?></p>
     </div>
 
     <div class="faq-item">
-      <h3>What causes dental lab cases to get lost or delayed?</h3>
-      <p>Common causes include no record of when a case was sent or expected back, no alert when a case is overdue, and no visibility for the front desk when a case is ready for the patient to be scheduled.</p>
+      <h3><?php echo t('marketing.articles.dental_lab_case_tracking.faq.items.2.question'); ?></h3>
+      <p><?php echo t('marketing.articles.dental_lab_case_tracking.faq.items.2.answer'); ?></p>
     </div>
 
     <div class="related-links">
-      <h3>Related resources</h3>
+      <h3><?php echo t('marketing.articles.dental_lab_case_tracking.related_resources.heading'); ?></h3>
       <ul>
-        <li><a href="<?= $baseUrl . ($articleUrls['article_dental_case_tracking_software'] ?? 'dental-case-tracking-software') ?>">Dental Case Tracking Software</a></li>
-        <li><a href="<?= $baseUrl . ($articleUrls['article_crown_bridge'] ?? 'crown-and-bridge-case-tracking') ?>">Crown and Bridge Case Tracking</a></li>
-        <li><a href="<?= $baseUrl . ($articleUrls['article_comparison'] ?? 'dental-case-tracking-vs-spreadsheets') ?>">Dental Case Tracking Software vs. Spreadsheets</a></li>
+        <li><a href="<?= $baseUrl . ($articleUrls['article_dental_case_tracking_software'] ?? 'dental-case-tracking-software') ?>"><?php echo t('marketing.articles.dental_lab_case_tracking.related_resources.items.0'); ?></a></li>
+        <li><a href="<?= $baseUrl . ($articleUrls['article_crown_bridge'] ?? 'crown-and-bridge-case-tracking') ?>"><?php echo t('marketing.articles.dental_lab_case_tracking.related_resources.items.1'); ?></a></li>
+        <li><a href="<?= $baseUrl . ($articleUrls['article_comparison'] ?? 'dental-case-tracking-vs-spreadsheets') ?>"><?php echo t('marketing.articles.dental_lab_case_tracking.related_resources.items.2'); ?></a></li>
       </ul>
     </div>
 
     <div class="cta-section">
-      <h2>Stop losing track of lab cases</h2>
-      <p>Try DentaTrak free for 90 days. Set up your practice and begin tracking cases in minutes.</p>
-      <a href="<?= $baseUrl ?>login.php" class="btn-white">Start 90-Day Free Trial</a>
-      <p style="margin-top: 16px; font-size: 0.9rem;"><a href="<?= $baseUrl ?>login.php" style="color: rgba(255,255,255,0.75); text-decoration: underline; text-underline-offset: 2px;">Already have an account? Log in</a></p>
+      <h2><?php echo t('marketing.articles.dental_lab_case_tracking.sections.stop_losing_track_of_lab_cases.heading'); ?></h2>
+      <p><?php echo t('marketing.articles.dental_lab_case_tracking.cta.body'); ?></p>
+      <a href="<?= $baseUrl ?>login.php" class="btn-white"><?php echo t('marketing.navigation.start_trial'); ?></a>
+      <p style="margin-top: 16px; font-size: 0.9rem;"><a href="<?= $baseUrl ?>login.php" style="color: rgba(255,255,255,0.75); text-decoration: underline; text-underline-offset: 2px;"><?php echo t('marketing.cta.already_account'); ?></a></p>
     </div>
   </main>
 
   <!-- Footer -->
   <footer class="footer">
     <div class="footer-inner">
-      <a href="<?= $baseUrl ?>" class="footer-wordmark" aria-label="DentaTrak home"><span class="denta">Denta</span><span class="trak">Trak</span></a>
+      <a href="<?= $baseUrl ?>" class="footer-wordmark" aria-label="<?php echo htmlspecialchars(t('marketing.accessibility.home_aria')); ?>"><span class="denta">Denta</span><span class="trak">Trak</span></a>
       <div class="footer-links">
-        <a href="<?= $baseUrl . ($articleUrls['page_about'] ?? 'about') ?>" class="footer-link">About</a>
-        <a href="<?= $baseUrl . ($articleUrls['page_resources'] ?? 'resources') ?>" class="footer-link">Resources</a>
-        <a href="<?= $baseUrl ?>privacy.php" class="footer-link">Privacy</a>
-        <a href="<?= $baseUrl ?>terms.php" class="footer-link">Terms</a>
-        <a href="<?= $baseUrl ?>" class="footer-link">Home</a>
+        <a href="<?= $baseUrl . ($articleUrls['page_about'] ?? 'about') ?>" class="footer-link"><?php echo t('marketing.footer.about'); ?></a>
+        <a href="<?= $baseUrl . ($articleUrls['page_resources'] ?? 'resources') ?>" class="footer-link"><?php echo t('marketing.navigation.resources'); ?></a>
+        <a href="<?= $baseUrl ?>privacy.php" class="footer-link"><?php echo t('marketing.footer.privacy'); ?></a>
+        <a href="<?= $baseUrl ?>terms.php" class="footer-link"><?php echo t('marketing.footer.terms'); ?></a>
+        <a href="<?= $baseUrl ?>" class="footer-link"><?php echo t('marketing.navigation.home'); ?></a>
       </div>
-      <span class="footer-copy">&copy; <?php echo date('Y'); ?> <?php echo htmlspecialchars($appName); ?>. All rights reserved.</span>
+      <span class="footer-copy">&copy; <?php echo date('Y'); ?> <?php echo htmlspecialchars($appName); ?>. <?php echo t('marketing.footer.copyright'); ?></span>
     </div>
   </footer>
 </body>

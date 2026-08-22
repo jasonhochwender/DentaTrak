@@ -8,7 +8,7 @@ $appName = $appConfig['appName'] ?? 'DentaTrak';
 $baseUrl = rtrim($appConfig['baseUrl'], '/') . '/';
 $articleUrls = $appConfig['public_urls'] ?? [];
 ?><!DOCTYPE html>
-<html lang="en">
+<html lang="<?php echo getHtmlLang(); ?>">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -22,8 +22,8 @@ $articleUrls = $appConfig['public_urls'] ?? [];
     gtag('config', 'G-MBJDENR3H2');
   </script>
 
-  <meta name="description" content="DentaTrak is visual dental case tracking software for dental practices. See your entire case workflow at a glance and follow every crown, implant, and lab case from prep to delivery. Start a 90-day free trial.">
-  <title>DentaTrak - Visual Dental Case Tracking Software for Practices</title>
+  <meta name="description" content="<?php echo htmlspecialchars(t('marketing.seo.index.description')); ?>">
+  <title><?php echo htmlspecialchars(t('marketing.seo.index.title')); ?></title>
   <link rel="canonical" href="https://dentatrak.com/">
 
   <!-- Favicon / App Icons -->
@@ -41,9 +41,9 @@ $articleUrls = $appConfig['public_urls'] ?? [];
   {
     "@context": "https://schema.org",
     "@type": "Organization",
-    "name": "DentaTrak",
+    "name": <?php echo json_encode($appName, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>,
     "url": "https://dentatrak.com/",
-    "email": "support@dentatrak.com"
+    "email": <?php echo json_encode(t('marketing.footer.support_email'), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>
   }
   </script>
 
@@ -52,7 +52,7 @@ $articleUrls = $appConfig['public_urls'] ?? [];
   {
     "@context": "https://schema.org",
     "@type": "WebSite",
-    "name": "DentaTrak",
+    "name": <?php echo json_encode($appName, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>,
     "url": "https://dentatrak.com/"
   }
   </script>
@@ -62,10 +62,10 @@ $articleUrls = $appConfig['public_urls'] ?? [];
   {
     "@context": "https://schema.org",
     "@type": "SoftwareApplication",
-    "name": "DentaTrak",
+    "name": <?php echo json_encode($appName, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>,
     "applicationCategory": "BusinessApplication",
     "operatingSystem": "Web",
-    "description": "DentaTrak is visual dental case tracking software for dental practices. Multi-step cases such as crowns, implants, and lab work are tracked on a Kanban-inspired board, so a practice can see its entire case workflow at a glance and follow every case from preparation through delivery.",
+    "description": <?php echo json_encode(t('marketing.seo.index.description'), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>,
     "url": "https://dentatrak.com/",
     "featureList": [
       "Visual case workflow board with six built-in stages",
@@ -79,21 +79,21 @@ $articleUrls = $appConfig['public_urls'] ?? [];
     "offers": [
       {
         "@type": "Offer",
-        "name": "Operate",
+        "name": <?php echo json_encode(t('marketing.pricing.operate'), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>,
         "price": "249.00",
         "priceCurrency": "USD",
         "url": "https://dentatrak.com/#pricing"
       },
       {
         "@type": "Offer",
-        "name": "Control",
+        "name": <?php echo json_encode(t('marketing.pricing.control'), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>,
         "price": "499.00",
         "priceCurrency": "USD",
         "url": "https://dentatrak.com/#pricing"
       },
       {
         "@type": "Offer",
-        "name": "Scale",
+        "name": <?php echo json_encode(t('marketing.pricing.scale'), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>,
         "price": "999.00",
         "priceCurrency": "USD",
         "url": "https://dentatrak.com/#pricing"
@@ -328,29 +328,30 @@ $articleUrls = $appConfig['public_urls'] ?? [];
 
   <header class="site-header">
     <div class="container">
-      <a href="<?= $baseUrl ?>" class="site-logo" aria-label="DentaTrak home">
-        <img src="<?= $baseUrl ?>images/main.png" alt="DentaTrak">
+      <a href="<?= $baseUrl ?>" class="site-logo" aria-label="<?php echo htmlspecialchars(t('marketing.accessibility.home_aria')); ?>">
+        <img src="<?= $baseUrl ?>images/main.png" alt="<?php echo htmlspecialchars(t('marketing.accessibility.logo_alt')); ?>">
       </a>
       <nav class="site-nav" aria-label="Primary">
-        <a href="#problem">The Problem</a>
-        <a href="#how-it-works">How It Works</a>
-        <a href="<?= $baseUrl ?>resources/">Resources</a>
-        <a href="#pricing">Pricing</a>
-        <a href="<?= $baseUrl ?>login.php">Sign In</a>
-        <a href="<?= $baseUrl ?>login.php" class="nav-cta">Start Free</a>
+        <a href="#problem"><?php echo t('marketing.navigation.problem'); ?></a>
+        <a href="#how-it-works"><?php echo t('marketing.navigation.how_it_works'); ?></a>
+        <a href="<?= $baseUrl ?>resources/"><?php echo t('marketing.navigation.resources'); ?></a>
+        <a href="#pricing"><?php echo t('marketing.navigation.pricing'); ?></a>
+        <a href="<?= $baseUrl ?>login.php"><?php echo t('marketing.navigation.sign_in'); ?></a>
+        <a href="<?= $baseUrl ?>login.php" class="nav-cta"><?php echo t('marketing.navigation.start_free'); ?></a>
+        <?php echo renderLanguageSelector('api/set-session-locale.php', getResolvedLocale(), false); ?>
       </nav>
     </div>
   </header>
 
   <section class="hero">
     <div class="container">
-      <h1>Know where every dental case stands.</h1>
-      <p class="lead">DentaTrak gives your team one place to track dental cases, deadlines, assignments, lab activity, files, shipping, and revisions from start to delivery.</p>
+      <h1><?php echo t('marketing.hero.title'); ?></h1>
+      <p class="lead"><?php echo t('marketing.hero.lead'); ?></p>
       <div class="hero-actions">
-        <a href="<?= $baseUrl ?>login.php" class="btn btn-primary">Start Free</a>
-        <a href="#how-it-works" class="btn btn-secondary">See How It Works</a>
+        <a href="<?= $baseUrl ?>login.php" class="btn btn-primary"><?php echo t('marketing.hero.start_free'); ?></a>
+        <a href="#how-it-works" class="btn btn-secondary"><?php echo t('marketing.hero.see_how'); ?></a>
       </div>
-      <p class="hero-trial">90-day free trial. No credit card required.</p>
+      <p class="hero-trial"><?php echo t('marketing.hero.trial_note'); ?></p>
 
       <div class="product-preview">
         <div class="app-header">
@@ -480,9 +481,9 @@ $articleUrls = $appConfig['public_urls'] ?? [];
     <div class="container">
       <div class="problem-grid">
         <div>
-          <span class="eyebrow">The Problem</span>
-          <h2>Dental cases don't stay in one system.</h2>
-          <p class="lead">Appointments, lab updates, files, shipping, and team knowledge each live separately. When the case story is split across texts, emails, spreadsheets, and memory, no one sees the full picture.</p>
+          <span class="eyebrow"><?php echo t('marketing.problem.eyebrow'); ?></span>
+          <h2><?php echo t('marketing.problem.title'); ?></h2>
+          <p class="lead"><?php echo t('marketing.problem.lead'); ?></p>
         </div>
         <div class="problem-visual">
           <div class="fragment f-1"><strong>Patient Appointment</strong><small>Mar 19 &middot; 10:30 AM &middot; Hannah L.</small></div>
@@ -502,27 +503,27 @@ $articleUrls = $appConfig['public_urls'] ?? [];
 
   <section id="how-it-works" class="section">
     <div class="container">
-      <span class="eyebrow">How DentaTrak Works</span>
-      <h2>One case record from start to delivery.</h2>
-      <p class="lead">Create the case once, keep it current as work moves, and let DentaTrak surface what needs attention.</p>
+      <span class="eyebrow"><?php echo t('marketing.workflow.eyebrow'); ?></span>
+      <h2><?php echo t('marketing.workflow.title'); ?></h2>
+      <p class="lead"><?php echo t('marketing.workflow.lead'); ?></p>
       <div class="steps-grid">
         <div class="step step-1">
           <div class="step-num">01</div>
           <svg class="step-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>
-          <h3>Create the case</h3>
-          <p>Start with one record. Add the patient, case type, due date, appointment, assignment, lab, notes, and files.</p>
+          <h3><?php echo t('marketing.workflow.step1_title'); ?></h3>
+          <p><?php echo t('marketing.workflow.step1_body'); ?></p>
         </div>
         <div class="step step-2">
           <div class="step-num">02</div>
           <svg class="step-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"></path><path d="M16 16h5v5"></path></svg>
-          <h3>Keep it current</h3>
-          <p>Move the case through your workflow, update assignments, add files and designs, and track lab and shipping activity in one place.</p>
+          <h3><?php echo t('marketing.workflow.step2_title'); ?></h3>
+          <p><?php echo t('marketing.workflow.step2_body'); ?></p>
         </div>
         <div class="step step-3">
           <div class="step-num">03</div>
           <svg class="step-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
-          <h3>See what needs attention</h3>
-          <p>Due Soon, Late, and Appointment Risk flags help your team find cases that need follow-up without checking every case manually.</p>
+          <h3><?php echo t('marketing.workflow.step3_title'); ?></h3>
+          <p><?php echo t('marketing.workflow.step3_body'); ?></p>
         </div>
       </div>
     </div>
@@ -530,12 +531,12 @@ $articleUrls = $appConfig['public_urls'] ?? [];
 
   <section class="section attention">
     <div class="container">
-      <span class="eyebrow">Product View</span>
-      <h2>See what needs attention without checking every case.</h2>
-      <p class="lead">Status, assignment, due date, and appointment risk are visible at a glance so your team knows where to focus.</p>
+      <span class="eyebrow"><?php echo t('marketing.attention.eyebrow'); ?></span>
+      <h2><?php echo t('marketing.attention.title'); ?></h2>
+      <p class="lead"><?php echo t('marketing.attention.lead'); ?></p>
       <div class="attention-board">
         <div class="attention-col">
-          <div class="attention-title late">Late</div>
+          <div class="attention-title late"><?php echo t('marketing.attention.late'); ?></div>
           <div class="case-card late">
             <h4>Justin Vance</h4>
             <div class="case-type">Partial</div>
@@ -546,7 +547,7 @@ $articleUrls = $appConfig['public_urls'] ?? [];
           </div>
         </div>
         <div class="attention-col">
-          <div class="attention-title due">Due Soon</div>
+          <div class="attention-title due"><?php echo t('marketing.attention.due_soon'); ?></div>
           <div class="case-card due">
             <h4>Hannah Lindqvist</h4>
             <div class="case-type">Crown</div>
@@ -557,7 +558,7 @@ $articleUrls = $appConfig['public_urls'] ?? [];
           </div>
         </div>
         <div class="attention-col">
-          <div class="attention-title appt">Appointment Risk</div>
+          <div class="attention-title appt"><?php echo t('marketing.attention.appointment_risk'); ?></div>
           <div class="case-card appt">
             <h4>Sofia Patel</h4>
             <div class="case-type">Veneer</div>
@@ -568,7 +569,7 @@ $articleUrls = $appConfig['public_urls'] ?? [];
           </div>
         </div>
         <div class="attention-col">
-          <div class="attention-title ready">Ready</div>
+          <div class="attention-title ready"><?php echo t('marketing.attention.ready'); ?></div>
           <div class="case-card">
             <h4>Sarah Bennett</h4>
             <div class="case-type">Bridge</div>
@@ -590,9 +591,9 @@ $articleUrls = $appConfig['public_urls'] ?? [];
           <div class="founder-role">Practicing Dentist &middot; DentaTrak Co-Founder</div>
         </div>
         <div>
-          <span class="eyebrow">Built from Real Experience</span>
-          <h2>Built by a dentist who wanted a better way to manage cases.</h2>
-          <p class="lead">Dr. William Verrillo, a practicing dentist, developed DentaTrak to give dental teams one current picture of every case&mdash;from the practice to the lab and back to the patient.</p>
+          <span class="eyebrow"><?php echo t('marketing.founder.eyebrow'); ?></span>
+          <h2><?php echo t('marketing.founder.title'); ?></h2>
+          <p class="lead"><?php echo t('marketing.founder.lead'); ?></p>
         </div>
       </div>
     </div>
@@ -601,51 +602,51 @@ $articleUrls = $appConfig['public_urls'] ?? [];
   <section id="pricing" class="section pricing">
     <div class="container">
       <div class="pricing-intro">
-        <span class="eyebrow">Pricing</span>
-        <h2>Simple plans for practices of different sizes.</h2>
-        <p class="lead">Every plan includes the core DentaTrak case workflow. Start with a 90-day free trial. No credit card required.</p>
+        <span class="eyebrow"><?php echo t('marketing.pricing.eyebrow'); ?></span>
+        <h2><?php echo t('marketing.pricing.title'); ?></h2>
+        <p class="lead"><?php echo t('marketing.pricing.lead'); ?></p>
       </div>
       <div class="plans">
         <div class="plan">
-          <div class="plan-name">Operate</div>
-          <div class="plan-price">$249<span>/month</span></div>
-          <div class="plan-annual">$2,490/year billed annually</div>
-          <a href="<?= $baseUrl ?>login.php" class="btn btn-primary" style="width:100%;">Start Free</a>
-          <p>For a single practice that wants a clear, shared way to keep cases organized.</p>
+          <div class="plan-name"><?php echo t('marketing.pricing.operate'); ?></div>
+          <div class="plan-price"><?php echo t('marketing.pricing.operate_price_month'); ?><span><?php echo t('marketing.pricing.per_month'); ?></span></div>
+          <div class="plan-annual"><?php echo t('marketing.pricing.operate_annual'); ?></div>
+          <a href="<?= $baseUrl ?>login.php" class="btn btn-primary" style="width:100%;"><?php echo t('marketing.pricing.start_free'); ?></a>
+          <p><?php echo t('marketing.pricing.operate_description'); ?></p>
           <ul>
-            <li>Unlimited cases</li>
-            <li>Up to 5 users</li>
-            <li>1 practice</li>
+            <li><?php echo t('marketing.pricing.operate_features_1'); ?></li>
+            <li><?php echo t('marketing.pricing.operate_features_2'); ?></li>
+            <li><?php echo t('marketing.pricing.operate_features_3'); ?></li>
           </ul>
         </div>
         <div class="plan featured">
-          <span class="plan-popular">Most Popular</span>
-          <div class="plan-name">Control</div>
-          <div class="plan-price">$499<span>/month</span></div>
-          <div class="plan-annual">$4,990/year billed annually</div>
-          <a href="<?= $baseUrl ?>login.php" class="btn btn-primary" style="width:100%;">Start Free</a>
-          <p>For practices that want deeper visibility, unlimited users, and more control over case operations.</p>
+          <span class="plan-popular"><?php echo t('marketing.pricing.most_popular'); ?></span>
+          <div class="plan-name"><?php echo t('marketing.pricing.control'); ?></div>
+          <div class="plan-price"><?php echo t('marketing.pricing.control_price_month'); ?><span><?php echo t('marketing.pricing.per_month'); ?></span></div>
+          <div class="plan-annual"><?php echo t('marketing.pricing.control_annual'); ?></div>
+          <a href="<?= $baseUrl ?>login.php" class="btn btn-primary" style="width:100%;"><?php echo t('marketing.pricing.start_free'); ?></a>
+          <p><?php echo t('marketing.pricing.control_description'); ?></p>
           <ul>
-            <li>Everything in Operate</li>
-            <li>Unlimited users</li>
-            <li>Up to 2 practices</li>
-            <li>Practice Insights</li>
-            <li>Lab Insights</li>
-            <li>Smart Recommendations</li>
+            <li><?php echo t('marketing.pricing.control_features_1'); ?></li>
+            <li><?php echo t('marketing.pricing.control_features_2'); ?></li>
+            <li><?php echo t('marketing.pricing.control_features_3'); ?></li>
+            <li><?php echo t('marketing.pricing.control_features_4'); ?></li>
+            <li><?php echo t('marketing.pricing.control_features_5'); ?></li>
+            <li><?php echo t('marketing.pricing.control_features_6'); ?></li>
           </ul>
         </div>
         <div class="plan">
-          <div class="plan-name">Scale</div>
-          <div class="plan-price">$999<span>/month</span></div>
-          <div class="plan-annual">$9,990/year billed annually</div>
-          <a href="<?= $baseUrl ?>login.php" class="btn btn-primary" style="width:100%;">Start Free</a>
-          <p>For organizations managing multiple practices and larger teams.</p>
+          <div class="plan-name"><?php echo t('marketing.pricing.scale'); ?></div>
+          <div class="plan-price"><?php echo t('marketing.pricing.scale_price_month'); ?><span><?php echo t('marketing.pricing.per_month'); ?></span></div>
+          <div class="plan-annual"><?php echo t('marketing.pricing.scale_annual'); ?></div>
+          <a href="<?= $baseUrl ?>login.php" class="btn btn-primary" style="width:100%;"><?php echo t('marketing.pricing.start_free'); ?></a>
+          <p><?php echo t('marketing.pricing.scale_description'); ?></p>
           <ul>
-            <li>Everything in Control</li>
-            <li>Up to 5 practices included</li>
-            <li>Additional practices available</li>
+            <li><?php echo t('marketing.pricing.scale_features_1'); ?></li>
+            <li><?php echo t('marketing.pricing.scale_features_2'); ?></li>
+            <li><?php echo t('marketing.pricing.scale_features_3'); ?></li>
           </ul>
-          <div class="plan-extra"><strong>Add more practices</strong><br>+$99/month per additional practice<br>+$990/year per additional practice</div>
+          <div class="plan-extra"><strong><?php echo t('marketing.pricing.scale_addon_title'); ?></strong><br><?php echo t('marketing.pricing.scale_addon_month'); ?><br><?php echo t('marketing.pricing.scale_addon_year'); ?></div>
         </div>
       </div>
     </div>
@@ -653,11 +654,11 @@ $articleUrls = $appConfig['public_urls'] ?? [];
 
   <section class="section final-cta">
     <div class="container">
-      <h2>Give your practice a clearer way to manage dental cases.</h2>
-      <p class="lead">Start a 90-day free trial and see how DentaTrak helps your team stay on top of every case.</p>
+      <h2><?php echo t('marketing.cta.final_title'); ?></h2>
+      <p class="lead"><?php echo t('marketing.cta.final_lead'); ?></p>
       <div>
-        <a href="<?= $baseUrl ?>login.php" class="btn btn-primary">Start Free</a>
-        <a href="<?= $baseUrl ?>login.php" class="btn btn-secondary">Sign In</a>
+        <a href="<?= $baseUrl ?>login.php" class="btn btn-primary"><?php echo t('marketing.cta.start_free'); ?></a>
+        <a href="<?= $baseUrl ?>login.php" class="btn btn-secondary"><?php echo t('marketing.cta.sign_in'); ?></a>
       </div>
     </div>
   </section>
@@ -665,10 +666,10 @@ $articleUrls = $appConfig['public_urls'] ?? [];
   <section class="trust">
     <div class="container">
       <div class="trust-items">
-        <span>Practice-based access</span>
-        <span>User permissions</span>
-        <span>Encrypted data storage</span>
-        <span>Google sign-in supported</span>
+        <span><?php echo t('marketing.security.practice_based_access'); ?></span>
+        <span><?php echo t('marketing.security.user_permissions'); ?></span>
+        <span><?php echo t('marketing.security.encrypted_data_storage'); ?></span>
+        <span><?php echo t('marketing.security.google_sign_in'); ?></span>
       </div>
     </div>
   </section>
@@ -677,32 +678,32 @@ $articleUrls = $appConfig['public_urls'] ?? [];
     <div class="container">
       <div class="footer-grid">
         <div class="footer-brand">
-          <a href="<?= $baseUrl ?>" class="footer-wordmark" aria-label="DentaTrak home"><span class="denta">Denta</span><span class="trak">Trak</span></a>
-          <p>Dental case tracking built for the way dental practices actually work.</p>
+          <a href="<?= $baseUrl ?>" class="footer-wordmark" aria-label="<?php echo htmlspecialchars(t('marketing.accessibility.home_aria')); ?>"><span class="denta">Denta</span><span class="trak">Trak</span></a>
+          <p><?php echo t('marketing.footer.tagline'); ?></p>
         </div>
         <nav class="footer-nav" aria-label="Footer">
           <div>
-            <h4>Product</h4>
-            <a href="#how-it-works">How It Works</a>
-            <a href="#pricing">Pricing</a>
-            <a href="<?= $baseUrl ?>login.php">Sign In</a>
+            <h4><?php echo t('marketing.footer.product'); ?></h4>
+            <a href="#how-it-works"><?php echo t('marketing.footer.how_it_works'); ?></a>
+            <a href="#pricing"><?php echo t('marketing.footer.pricing'); ?></a>
+            <a href="<?= $baseUrl ?>login.php"><?php echo t('marketing.footer.sign_in'); ?></a>
           </div>
           <div>
-            <h4>Resources</h4>
-            <a href="<?= $baseUrl ?>resources/">Resources</a>
-            <a href="<?= $baseUrl . ($articleUrls['page_about'] ?? 'about') ?>">About</a>
-            <a href="mailto:support@dentatrak.com">Support</a>
+            <h4><?php echo t('marketing.footer.resources'); ?></h4>
+            <a href="<?= $baseUrl ?>resources/"><?php echo t('marketing.footer.resources'); ?></a>
+            <a href="<?= $baseUrl . ($articleUrls['page_about'] ?? 'about') ?>"><?php echo t('marketing.footer.about'); ?></a>
+            <a href="mailto:<?php echo t('marketing.footer.support_email'); ?>"><?php echo t('marketing.footer.support'); ?></a>
           </div>
           <div>
-            <h4>Legal</h4>
-            <a href="<?= $baseUrl ?>privacy.php">Privacy</a>
-            <a href="<?= $baseUrl ?>terms.php">Terms</a>
+            <h4><?php echo t('marketing.footer.legal'); ?></h4>
+            <a href="<?= $baseUrl ?>privacy.php"><?php echo t('marketing.footer.privacy'); ?></a>
+            <a href="<?= $baseUrl ?>terms.php"><?php echo t('marketing.footer.terms'); ?></a>
           </div>
         </nav>
       </div>
       <div class="footer-bottom">
-        <span>&copy; 2026 DentaTrak. All rights reserved.</span>
-        <span>support@dentatrak.com</span>
+        <span>&copy; <?php echo date('Y'); ?> <?php echo htmlspecialchars($appName); ?>. <?php echo t('marketing.footer.copyright'); ?></span>
+        <span><?php echo t('marketing.footer.support_email'); ?></span>
       </div>
     </div>
   </footer>

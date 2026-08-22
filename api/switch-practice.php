@@ -22,7 +22,7 @@ if (!isset($_SESSION['db_user_id'])) {
     http_response_code(401);
     echo json_encode([
         'success' => false,
-        'error' => 'Not authenticated'
+        'error' => t('auth.errors.not_authenticated')
     ]);
     exit;
 }
@@ -37,7 +37,7 @@ if (!$newPracticeId) {
     http_response_code(400);
     echo json_encode([
         'success' => false,
-        'error' => 'Practice ID is required'
+        'error' => t('auth.errors.practice_id_required')
     ]);
     exit;
 }
@@ -67,7 +67,7 @@ try {
         http_response_code(403);
         echo json_encode([
             'success' => false,
-            'error' => 'You do not have access to this practice'
+            'error' => t('auth.errors.no_access_practice')
         ]);
         exit;
     }
@@ -91,6 +91,9 @@ try {
         'can_view_analytics' => (bool)$practice['can_view_analytics'],
         'can_edit_cases' => (bool)$practice['can_edit_cases']
     ];
+
+    // Resolve and persist the active locale for the new practice context
+    setResolvedLocale(resolveLocale(null, $userId, $newPracticeId));
     
     // Clear practice selection flags
     $_SESSION['needs_practice_setup'] = false;
@@ -130,6 +133,6 @@ try {
     http_response_code(500);
     echo json_encode([
         'success' => false,
-        'error' => 'Failed to switch practice'
+        'error' => t('auth.errors.failed_switch_practice')
     ]);
 }

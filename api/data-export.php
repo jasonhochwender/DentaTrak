@@ -28,7 +28,7 @@ setApiSecurityHeaders();
 // ============================================
 if (!isset($_SESSION['db_user_id'])) {
     http_response_code(401);
-    echo json_encode(['success' => false, 'message' => 'Authentication required']);
+    echo json_encode(['success' => false, 'message' => t('export.authentication_required')]);
     exit;
 }
 
@@ -54,7 +54,7 @@ switch ($action) {
         
     default:
         http_response_code(400);
-        echo json_encode(['success' => false, 'message' => 'Invalid action']);
+        echo json_encode(['success' => false, 'message' => t('export.invalid_action')]);
         exit;
 }
 
@@ -97,7 +97,7 @@ function ensureExportTables(): void {
 function handleExportRequest(int $userId, int $practiceId, string $userEmail): void {
     if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
         http_response_code(405);
-        echo json_encode(['success' => false, 'message' => 'Method not allowed']);
+        echo json_encode(['success' => false, 'message' => t('export.method_not_allowed')]);
         return;
     }
     
@@ -111,7 +111,7 @@ function handleExportRequest(int $userId, int $practiceId, string $userEmail): v
         http_response_code(403);
         echo json_encode([
             'success' => false,
-            'message' => 'Only practice administrators can export practice data.'
+            'message' => t('export.admin_only')
         ]);
         return;
     }
@@ -138,7 +138,7 @@ function handleExportRequest(int $userId, int $practiceId, string $userEmail): v
     if ($existingExport) {
         echo json_encode([
             'success' => false,
-            'message' => 'An export is already in progress. Please wait for it to complete.',
+            'message' => t('export.in_progress'),
             'exportId' => $existingExport['id'],
             'status' => $existingExport['status']
         ]);
@@ -171,7 +171,7 @@ function handleExportRequest(int $userId, int $practiceId, string $userEmail): v
         
         echo json_encode([
             'success' => true,
-            'message' => 'Export request submitted. You will receive an email when your data is ready.',
+            'message' => t('export.request_success'),
             'exportId' => $exportId
         ]);
         
@@ -180,7 +180,7 @@ function handleExportRequest(int $userId, int $practiceId, string $userEmail): v
         http_response_code(500);
         echo json_encode([
             'success' => false,
-            'message' => 'Failed to initiate export. Please try again.'
+            'message' => t('export.request_failed')
         ]);
     }
 }
@@ -264,6 +264,7 @@ function processExport(int $exportId, int $userId, int $practiceId, string $user
                 'patientGender' => $case['patient_gender'],
                 'dentistName' => $dentistName,
                 'caseType' => $case['case_type'],
+                'caseTypeLabel' => getCaseTypeDisplayLabel($case['case_type']),
                 'toothShade' => $case['tooth_shade'],
                 'material' => $case['material'],
                 'dueDate' => $case['due_date'],
@@ -424,7 +425,7 @@ function processExport(int $exportId, int $userId, int $practiceId, string $user
             WHERE id = :id
         ");
         $stmt->execute([
-            'error' => 'Export processing failed. Please try again.',
+            'error' => t('export.request_failed'),
             'id' => $exportId
         ]);
     }
@@ -534,7 +535,7 @@ function handleExportDownload(int $userId): void {
     
     if (empty($token)) {
         http_response_code(400);
-        echo json_encode(['success' => false, 'message' => 'Download token required']);
+        echo json_encode(['success' => false, 'message' => t('export.download_token_required')]);
         return;
     }
     
@@ -554,14 +555,14 @@ function handleExportDownload(int $userId): void {
     
     if (!$export) {
         http_response_code(404);
-        echo json_encode(['success' => false, 'message' => 'Export not found or link has expired']);
+        echo json_encode(['success' => false, 'message' => t('export.not_found_or_expired')]);
         return;
     }
     
     // Verify user owns this export
     if ((int)$export['user_id'] !== $userId) {
         http_response_code(403);
-        echo json_encode(['success' => false, 'message' => 'Access denied']);
+        echo json_encode(['success' => false, 'message' => t('export.access_denied')]);
         return;
     }
     
@@ -572,7 +573,7 @@ function handleExportDownload(int $userId): void {
         $stmt->execute(['id' => $export['id']]);
         
         http_response_code(410);
-        echo json_encode(['success' => false, 'message' => 'This download link has expired']);
+        echo json_encode(['success' => false, 'message' => t('export.expired')]);
         return;
     }
     
@@ -580,7 +581,7 @@ function handleExportDownload(int $userId): void {
     $filePath = __DIR__ . '/../exports/' . $export['file_path'];
     if (!file_exists($filePath)) {
         http_response_code(404);
-        echo json_encode(['success' => false, 'message' => 'Export file not found']);
+        echo json_encode(['success' => false, 'message' => t('export.file_not_found')]);
         return;
     }
     

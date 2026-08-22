@@ -137,11 +137,24 @@ function handleResetRequest($pdo, $input) {
                 $resetUrl = "{$protocol}://{$host}/reset-password.php?token={$token}";
             }
             
-            // Send email
+            // Resolve email locale and load translated copy
+            $locale = resolveEmailLocale($user['id'], null, null);
             $appName = $appConfig['appName'] ?? 'App';
-            $firstName = $user['first_name'] ?: 'User';
-            
-            $subject = "Password Reset Request - {$appName}";
+            $firstName = $user['first_name'] ?: '';
+
+            $subject = tForLocale($locale, 'email.password_reset.subject', ['appName' => $appName]);
+            $heading = tForLocale($locale, 'email.password_reset.heading');
+            $greeting = $firstName
+                ? tForLocale($locale, 'email.common.greeting_with_name', ['name' => htmlspecialchars($firstName, ENT_QUOTES, 'UTF-8')])
+                : tForLocale($locale, 'email.common.greeting_no_name');
+            $intro = tForLocale($locale, 'email.password_reset.intro', ['appName' => $appName]);
+            $cta = tForLocale($locale, 'email.password_reset.cta');
+            $copyLink = tForLocale($locale, 'email.common.copy_link');
+            $expiryMinutes = 60;
+            $expiry = tForLocale($locale, 'email.password_reset.expiry', ['count' => $expiryMinutes]);
+            $ignore = tForLocale($locale, 'email.common.ignore_unsolicited');
+            $footer = tForLocale($locale, 'email.common.footer', ['appName' => $appName]);
+
             $message = "
                 <html>
                 <head>
@@ -154,23 +167,23 @@ function handleResetRequest($pdo, $input) {
                 </head>
                 <body>
                     <div class='container'>
-                        <h2>Password Reset Request</h2>
-                        <p>Hi {$firstName},</p>
-                        <p>We received a request to reset your password for your {$appName} account.</p>
+                        <h2>{$heading}</h2>
+                        <p>{$greeting}</p>
+                        <p>{$intro}</p>
                         <p>Click the button below to reset your password:</p>
-                        <p><a href='{$resetUrl}' class='button' style='display: inline-block; padding: 12px 24px; background-color: #3b82f6; color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: bold;'>Reset Password</a></p>
-                        <p>Or copy and paste this link into your browser:</p>
+                        <p><a href='{$resetUrl}' class='button' style='display: inline-block; padding: 12px 24px; background-color: #3b82f6; color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: bold;'>{$cta}</a></p>
+                        <p>{$copyLink}</p>
                         <p style='word-break: break-all;'>{$resetUrl}</p>
-                        <p>This link will expire in 1 hour.</p>
-                        <p>If you didn't request this password reset, you can safely ignore this email.</p>
+                        <p>{$expiry}</p>
+                        <p>{$ignore}</p>
                         <div class='footer'>
-                            <p>This is an automated message from {$appName}. Please do not reply to this email.</p>
+                            <p>{$footer}</p>
                         </div>
                     </div>
                 </body>
                 </html>
             ";
-            
+
             sendAppEmail($email, $subject, $message);
         }
         

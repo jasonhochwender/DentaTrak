@@ -32,6 +32,9 @@ function sendSignupNotificationEmail(PDO $pdo, int $userId, array $appConfig): v
             return;
         }
 
+        $locale = resolveEmailLocale(null, null, 'en-US');
+        $appName = $appConfig['appName'] ?? 'DentaTrak';
+
         $firstName = trim($user['first_name'] ?? '');
         $lastName  = trim($user['last_name'] ?? '');
         $fullName  = trim($firstName . ' ' . $lastName);
@@ -40,7 +43,7 @@ function sendSignupNotificationEmail(PDO $pdo, int $userId, array $appConfig): v
         }
 
         $email     = trim($user['email'] ?? '');
-        $timestamp = !empty($user['created_at']) ? date('c', strtotime($user['created_at'])) : date('c');
+        $timestamp = !empty($user['created_at']) ? formatDateTime($user['created_at'], 'medium') : formatDateTime(time(), 'medium');
 
         $practiceStmt = $pdo->prepare("
             SELECT p.display_name, p.practice_name
@@ -64,28 +67,21 @@ function sendSignupNotificationEmail(PDO $pdo, int $userId, array $appConfig): v
         $htmlEmail    = htmlspecialchars($email, ENT_QUOTES, 'UTF-8');
         $htmlPractice = htmlspecialchars($practiceName, ENT_QUOTES, 'UTF-8');
 
-        $subject = 'New DentaTrak User Signup';
-
-        $htmlBody = <<<HTML
-<!DOCTYPE html>
-<html>
-<body>
-  <p>A new user has registered for DentaTrak.</p>
-  <p>
-    <strong>Name:</strong> {$htmlFullName}<br>
-    <strong>Email:</strong> {$htmlEmail}<br>
-    <strong>Registration Date/Time:</strong> {$timestamp}<br>
-    <strong>Practice:</strong> {$htmlPractice}
-  </p>
-</body>
-</html>
-HTML;
-
-        $textBody = "A new user has registered for DentaTrak.\n\n" .
-            "Name: {$fullName}\n" .
-            "Email: {$email}\n" .
-            "Registration Date/Time: {$timestamp}\n" .
-            "Practice: {$practiceName}";
+        $subject = tForLocale($locale, 'email.admin_notification.subject', ['appName' => $appName]);
+        $htmlBody = tForLocale($locale, 'email.admin_notification.body_html', [
+            'appName' => $appName,
+            'fullName' => $htmlFullName,
+            'email' => $htmlEmail,
+            'timestamp' => $timestamp,
+            'practiceName' => $htmlPractice
+        ]);
+        $textBody = tForLocale($locale, 'email.admin_notification.body_text', [
+            'appName' => $appName,
+            'fullName' => $fullName,
+            'email' => $email,
+            'timestamp' => $timestamp,
+            'practiceName' => $practiceName
+        ]);
 
         $result = sendAppEmail(SIGNUP_NOTIFICATION_RECIPIENT, $subject, $htmlBody, $textBody, $supportEmail);
 

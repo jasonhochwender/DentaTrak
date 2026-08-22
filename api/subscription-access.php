@@ -1,4 +1,6 @@
 <?php
+require_once __DIR__ . '/appConfig.php';
+
 /**
  * Subscription Access Helper
  *
@@ -125,53 +127,53 @@ function getSubscriptionAccess(array $practice): array {
         case 'trialing':
             $fullAccess      = true;
             $showTrialBanner = true;
-            $accessMessage   = 'Your free trial is active.';
+            $accessMessage   = t('billing.subscription.trialing_message');
             break;
 
         case 'active':
             $fullAccess    = true;
-            $accessMessage = 'Your subscription is active.';
+            $accessMessage = t('billing.subscription.active_message');
             break;
 
         case 'past_due':
             $fullAccess         = true;
             $showBillingWarning = true;
-            $accessMessage      = 'Your payment is past due. Please update your payment method to avoid interruption.';
+            $accessMessage      = t('billing.subscription.past_due_message');
             break;
 
         case 'unpaid':
             $readOnly      = true;
-            $accessMessage = 'Your account is in read-only mode due to an unpaid invoice. Please contact your administrator.';
+            $accessMessage = t('billing.subscription.unpaid_message');
             break;
 
         case 'canceled':
             $readOnly      = true;
-            $accessMessage = 'Your subscription has been canceled. Your data is preserved. Please update your billing information or choose a plan to restore access.';
+            $accessMessage = t('billing.subscription.canceled_message');
             break;
 
         case 'trial_expired':
             $readOnly      = true;
-            $accessMessage = 'Your free trial has ended. Please choose a plan to continue creating and editing cases.';
+            $accessMessage = t('billing.subscription.trial_expired_message');
             break;
 
         case 'none':
             $readOnly      = true;
-            $accessMessage = 'No active subscription found. Please contact your administrator.';
+            $accessMessage = t('billing.subscription.no_subscription_message');
             break;
 
         case 'incomplete':
             $readOnly      = true;
-            $accessMessage = 'Your subscription setup is incomplete. Please finish checkout.';
+            $accessMessage = t('billing.subscription.incomplete_message');
             break;
 
         case 'incomplete_expired':
             $lockedOut     = true;
-            $accessMessage = 'Your previous checkout session expired. A new checkout session is required.';
+            $accessMessage = t('billing.subscription.incomplete_expired_message');
             break;
 
         default:
             $readOnly      = true;
-            $accessMessage = 'Subscription status unknown. Please contact support.';
+            $accessMessage = t('billing.subscription.unknown_status_message');
             break;
     }
 

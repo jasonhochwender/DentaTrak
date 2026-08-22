@@ -154,6 +154,17 @@
     height: 18px;
   }
 
+  /* Language selector remains compact on mobile */
+  .language-selector-toggle {
+    padding: 5px 8px;
+    font-size: 0.75rem;
+  }
+
+  .language-selector-menu {
+    right: 0;
+    min-width: 160px;
+  }
+
   /* User menu dropdown positioning */
   .user-menu {
     right: 0;

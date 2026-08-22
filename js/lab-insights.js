@@ -20,7 +20,7 @@
 
   function fmtDays(value) {
     if (value === null || value === undefined) { return '\u2014'; }
-    return value + (value === 1 ? ' day' : ' days');
+    return I18n.pluralize(value, 'insights.metrics.days');
   }
 
   function fmtPercent(value) {
@@ -118,10 +118,14 @@
   function renderWorkloadDrilldown(labKey) {
     var rows = liWorkloadByLab[labKey] || [];
     if (rows.length === 0) {
-      return '<div class="li-workload-inner"><p class="li-muted">Nothing currently in progress at this lab.</p></div>';
+      return '<div class="li-workload-inner"><p class="li-muted">' + t('insights.labs.nothing_in_progress') + '</p></div>';
     }
     var html = '<div class="li-workload-inner"><table class="li-workload-table"><thead><tr>' +
-      '<th>Patient</th><th>Type</th><th>Status</th><th>Due Date</th><th>Days Late</th></tr></thead><tbody>';
+      '<th>' + t('insights.labs.patient') + '</th>' +
+      '<th>' + t('insights.labs.type') + '</th>' +
+      '<th>' + t('insights.labs.status') + '</th>' +
+      '<th>' + t('insights.labs.due_date') + '</th>' +
+      '<th>' + t('insights.labs.days_late') + '</th></tr></thead><tbody>';
     rows.forEach(function (r) {
       html += '<tr>' +
         '<td>' + escapeHtml(r.patientName || r.caseId) + '</td>' +
@@ -150,7 +154,7 @@
 
       var nameCell = lab.isLive
         ? '<span class="li-lab-name" title="' + escapeHtml(lab.name) + '">' + escapeHtml(lab.name) + '</span>'
-        : '<span class="li-lab-name li-lab-name-removed" title="' + escapeHtml(lab.name) + ' (removed)">' + escapeHtml(lab.name) + '</span>';
+        : '<span class="li-lab-name li-lab-name-removed" title="' + escapeHtml(lab.name) + t('insights.labs.removed_suffix') + '">' + escapeHtml(lab.name) + '</span>';
 
       var turnaroundCell = (lab.avgTurnaroundDays !== null)
         ? escapeHtml(fmtDays(lab.avgTurnaroundDays))
@@ -249,32 +253,32 @@
   function attachStaticTooltips() {
     var turnaroundLabel = document.querySelector('#liAvgTurnaround').parentElement.querySelector('.li-label-with-tooltip');
     if (turnaroundLabel && !turnaroundLabel.querySelector('.dt-tooltip')) {
-      attachTooltip(turnaroundLabel, 'Average observed time cases spent assigned to this lab. Cases with unknown historical assignment start dates are excluded.');
+      attachTooltip(turnaroundLabel, t('insights.tooltips.average_lab_turnaround'));
     }
     var casesAssignedHeader = document.getElementById('liCasesAssignedHeader');
     if (casesAssignedHeader && !casesAssignedHeader.querySelector('.dt-tooltip')) {
       casesAssignedHeader.appendChild(document.createTextNode(' '));
-      attachTooltip(casesAssignedHeader, 'Distinct cases assigned to this lab during the selected period, including cases still in progress. Not a completed-work count - see Completed.', true);
+      attachTooltip(casesAssignedHeader, t('insights.tooltips.cases_assigned_header'), true);
     }
     var completedHeader = document.getElementById('liCompletedHeader');
     if (completedHeader && !completedHeader.querySelector('.dt-tooltip')) {
       completedHeader.appendChild(document.createTextNode(' '));
-      attachTooltip(completedHeader, 'Distinct cases with a reliably-measured completed assignment at this lab during the selected period. Same population used for Avg. Turnaround.', true);
+      attachTooltip(completedHeader, t('insights.tooltips.completed_header'), true);
     }
     var turnaroundHeader = document.getElementById('liTurnaroundHeader');
     if (turnaroundHeader && !turnaroundHeader.querySelector('.dt-tooltip')) {
       turnaroundHeader.appendChild(document.createTextNode(' '));
-      attachTooltip(turnaroundHeader, 'Average observed time cases spent assigned to this lab (started_at to ended_at). Excludes cases with unknown historical start dates and open assignments.', true);
+      attachTooltip(turnaroundHeader, t('insights.tooltips.avg_turnaround_header'), true);
     }
     var lateRateHeader = document.getElementById('liLateRateHeader');
     if (lateRateHeader && !lateRateHeader.querySelector('.dt-tooltip')) {
       lateRateHeader.appendChild(document.createTextNode(' '));
-      attachTooltip(lateRateHeader, 'Percentage of cases currently assigned to this lab that are past their due date. This reflects the lab\'s current workload only, not a historical performance rate.', true);
+      attachTooltip(lateRateHeader, t('insights.tooltips.late_rate_header'), true);
     }
     var lateDeliveryRateHeader = document.getElementById('liLateDeliveryRateHeader');
     if (lateDeliveryRateHeader && !lateDeliveryRateHeader.querySelector('.dt-tooltip')) {
       lateDeliveryRateHeader.appendChild(document.createTextNode(' '));
-      attachTooltip(lateDeliveryRateHeader, 'Of the Completed cases, the percentage delivered after their due date. Excludes cases whose due date was edited after completion, since that date can no longer be verified.', true);
+      attachTooltip(lateDeliveryRateHeader, t('insights.tooltips.late_delivery_rate_header'), true);
     }
   }
 

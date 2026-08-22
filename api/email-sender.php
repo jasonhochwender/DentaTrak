@@ -112,7 +112,7 @@ function sendAppEmail(string $toEmail, string $subject, string $htmlBody, ?strin
         return [
             'success' => false,
             'provider' => 'resend',
-            'error' => 'Email service not configured'
+            'error' => t('api.email.service_not_configured')
         ];
     }
     
@@ -175,7 +175,7 @@ function sendViaResendApi(string $apiKey, array $payload, string $toEmail): arra
         return [
             'success' => false,
             'provider' => 'resend',
-            'error' => 'Email delivery failed'
+            'error' => t('api.email.delivery_failed')
         ];
     }
     
@@ -193,7 +193,7 @@ function sendViaResendApi(string $apiKey, array $payload, string $toEmail): arra
     return [
         'success' => false,
         'provider' => 'resend',
-        'error' => 'Email delivery failed',
+        'error' => t('api.email.delivery_failed'),
         'status_code' => $httpCode
     ];
 }

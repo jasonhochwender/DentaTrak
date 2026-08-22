@@ -16,7 +16,7 @@ if (!isset($_SESSION['db_user_id'])) {
     http_response_code(401);
     echo json_encode([
         'success' => false,
-        'error' => 'Not authenticated'
+        'error' => t('auth.errors.not_authenticated')
     ]);
     exit;
 }
@@ -70,6 +70,6 @@ try {
     http_response_code(500);
     echo json_encode([
         'success' => false,
-        'error' => 'Failed to fetch practices'
+        'error' => t('auth.errors.failed_fetch_practices')
     ]);
 }

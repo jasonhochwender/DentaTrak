@@ -244,7 +244,13 @@ function resolveWorkflowStageLabel($internalStatus, $practiceOverrides) {
     }
 
     $defaults = getWorkflowStageDefaultLabels();
-    return $defaults[$internalStatus];
+    $default = $defaults[$internalStatus];
+    $i18nKey = 'cases.status.' . strtolower(str_replace(' ', '_', $internalStatus));
+    $label = function_exists('t') ? t($i18nKey) : '';
+    if ($label === '' || $label === $i18nKey) {
+        $label = $default;
+    }
+    return $label;
 }
 
 /**

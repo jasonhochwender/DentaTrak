@@ -6,7 +6,7 @@ $appName = $appConfig['appName'] ?? 'DentaTrak';
 $baseUrl = rtrim($appConfig['baseUrl'], '/') . '/';
 $articleUrls = $appConfig['public_urls'] ?? [];
 ?><!DOCTYPE html>
-<html lang="en">
+<html lang="<?php echo getHtmlLang(); ?>">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -20,8 +20,19 @@ $articleUrls = $appConfig['public_urls'] ?? [];
     gtag('config', 'G-MBJDENR3H2');
   </script>
   
-  <meta name="description" content="Compare dental case tracking software vs spreadsheets. Learn when to move beyond manual tracking methods for crowns, implants, and lab cases.">
-  <title>Dental Case Tracking Software vs Spreadsheets | DentaTrak</title>
+  <meta name="description" content="<?php echo htmlspecialchars(t("marketing.articles.dental_case_tracking_vs_spreadsheets.seo.description")); ?>">
+  <title><?php echo htmlspecialchars(t("marketing.articles.dental_case_tracking_vs_spreadsheets.seo.title")); ?></title>
+
+  <!-- Open Graph -->
+  <meta property="og:title" content="<?php echo htmlspecialchars(t("marketing.articles.dental_case_tracking_vs_spreadsheets.seo.title")); ?>">
+  <meta property="og:description" content="<?php echo htmlspecialchars(t("marketing.articles.dental_case_tracking_vs_spreadsheets.seo.description")); ?>">
+  <meta property="og:type" content="article">
+  <meta property="og:url" content="https://dentatrak.com/dental-case-tracking-vs-spreadsheets">
+  <meta property="og:site_name" content="DentaTrak">
+  <!-- Twitter -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="<?php echo htmlspecialchars(t("marketing.articles.dental_case_tracking_vs_spreadsheets.seo.title")); ?>">
+  <meta name="twitter:description" content="<?php echo htmlspecialchars(t("marketing.articles.dental_case_tracking_vs_spreadsheets.seo.description")); ?>">
   <link rel="canonical" href="https://dentatrak.com/dental-case-tracking-vs-spreadsheets">
 
   <!-- Favicon / App Icons -->
@@ -39,7 +50,7 @@ $articleUrls = $appConfig['public_urls'] ?? [];
   {
     "@context": "https://schema.org",
     "@type": "Article",
-    "headline": "Dental Case Tracking Software vs Spreadsheets",
+    "headline": <?php echo json_encode(t("marketing.articles.dental_case_tracking_vs_spreadsheets.h1"), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>,
     "author": { "@type": "Person", "name": "Dr. William Verrillo" },
     "publisher": { "@type": "Organization", "name": "DentaTrak" },
     "datePublished": "2026-04-01",
@@ -313,148 +324,120 @@ $articleUrls = $appConfig['public_urls'] ?? [];
   <!-- Navigation -->
   <nav class="nav">
     <div class="nav-inner">
-      <a href="<?= $baseUrl ?>" class="nav-logo" aria-label="DentaTrak home"><img src="<?= $baseUrl ?>images/main.png" alt="DentaTrak" style="height: auto; width: auto; max-width: 140px; object-fit: contain; display: block;"></a>
+      <a href="<?= $baseUrl ?>" class="nav-logo" aria-label="<?php echo htmlspecialchars(t('marketing.accessibility.home_aria')); ?>"><img src="<?= $baseUrl ?>images/main.png" alt="<?php echo htmlspecialchars(t('marketing.accessibility.logo_alt')); ?>" style="height: auto; width: auto; max-width: 140px; object-fit: contain; display: block;"></a>
       <div class="nav-actions">
-        <a href="<?= $baseUrl ?>login.php" class="nav-login">Log In</a>
-        <a href="<?= $baseUrl ?>login.php" class="nav-cta">Start 90-Day Free Trial</a>
+        <a href="<?= $baseUrl ?>login.php" class="nav-login"><?php echo t("marketing.navigation.log_in"); ?></a>
+        <a href="<?= $baseUrl ?>login.php" class="nav-cta"><?php echo t("marketing.navigation.start_trial"); ?></a>
+        <?php echo renderLanguageSelector("api/set-session-locale.php", getResolvedLocale(), false); ?>
       </div>
     </div>
   </nav>
 
   <!-- Main Content -->
   <main class="content">
-    <h1>Dental Case Tracking Software vs Spreadsheets</h1>
+    <h1><?php echo t('marketing.articles.dental_case_tracking_vs_spreadsheets.h1'); ?></h1>
 
     <div class="article-meta">
-      <span>By <strong>Dr. William Verrillo</strong></span>
+      <span><?php echo t('marketing.articles.dental_case_tracking_vs_spreadsheets.meta.by'); ?> <strong>Dr. William Verrillo</strong></span>
       <span class="meta-divider">&middot;</span>
-      <span>Published <strong>April 1, 2026</strong></span>
+      <span><?php echo t('marketing.articles.dental_case_tracking_vs_spreadsheets.meta.published'); ?> <strong>August 8, 2026</strong></span>
       <span class="meta-divider">&middot;</span>
-      <span>Updated <strong>August 8, 2026</strong></span>
+      <span><?php echo t('marketing.articles.dental_case_tracking_vs_spreadsheets.meta.updated'); ?><strong></strong></span>
     </div>
     
-    <p>
-      Many dental practices use spreadsheets or notes to track cases. It's a natural starting point. Spreadsheets are familiar, flexible, and free. But as case volume grows and workflows become more complex, these methods start to break down.
-    </p>
+    <p><?php echo t('marketing.articles.dental_case_tracking_vs_spreadsheets.sections..body_1'); ?></p>
     
-    <p>
-      This page compares spreadsheet-based tracking with dedicated dental case tracking software, and explains when it makes sense to move beyond manual methods.
-    </p>
+    <p><?php echo t('marketing.articles.dental_case_tracking_vs_spreadsheets.sections..body_2'); ?></p>
 
-    <h2>How Spreadsheets Are Used for Case Tracking</h2>
+    <h2><?php echo t('marketing.articles.dental_case_tracking_vs_spreadsheets.sections.how_spreadsheets_are_used_for_case_tracking.heading'); ?></h2>
     
-    <p>
-      Spreadsheets are often the first tool practices reach for when they need to track cases outside their PMS. Common approaches include:
-    </p>
+    <p><?php echo t('marketing.articles.dental_case_tracking_vs_spreadsheets.sections.how_spreadsheets_are_used_for_case_tracking.body_3'); ?></p>
     
     <ul>
-      <li><strong>Basic tracking:</strong> A simple list of active cases with columns for patient name, case type, lab, and status. Someone updates it when things change.</li>
-      <li><strong>Manual updates:</strong> Staff add rows when cases start and update status as cases move through stages. This requires discipline and consistency.</li>
-      <li><strong>Shared documents:</strong> The spreadsheet lives in Google Sheets or a shared drive so multiple people can access it. In theory, everyone sees the same information.</li>
+      <li><strong><?php echo t('marketing.articles.dental_case_tracking_vs_spreadsheets.sections.how_spreadsheets_are_used_for_case_tracking.list_items.1.title'); ?></strong> <?php echo t('marketing.articles.dental_case_tracking_vs_spreadsheets.sections.how_spreadsheets_are_used_for_case_tracking.list_items.1.body'); ?></li>
+      <li><strong><?php echo t('marketing.articles.dental_case_tracking_vs_spreadsheets.sections.how_spreadsheets_are_used_for_case_tracking.list_items.2.title'); ?></strong> <?php echo t('marketing.articles.dental_case_tracking_vs_spreadsheets.sections.how_spreadsheets_are_used_for_case_tracking.list_items.2.body'); ?></li>
+      <li><strong><?php echo t('marketing.articles.dental_case_tracking_vs_spreadsheets.sections.how_spreadsheets_are_used_for_case_tracking.list_items.3.title'); ?></strong> <?php echo t('marketing.articles.dental_case_tracking_vs_spreadsheets.sections.how_spreadsheets_are_used_for_case_tracking.list_items.3.body'); ?></li>
     </ul>
     
-    <p>
-      For a small practice with a handful of active cases, this can work. The problems emerge when volume increases, more people are involved, or cases span longer timeframes.
-    </p>
+    <p><?php echo t('marketing.articles.dental_case_tracking_vs_spreadsheets.sections.how_spreadsheets_are_used_for_case_tracking.body_4'); ?></p>
 
-    <h2>Where Spreadsheets Fail</h2>
+    <h2><?php echo t('marketing.articles.dental_case_tracking_vs_spreadsheets.sections.where_spreadsheets_fail.heading'); ?></h2>
     
-    <p>
-      Spreadsheets weren't designed for case tracking. They're general-purpose tools, and that flexibility becomes a liability when you need structure and reliability.
-    </p>
+    <p><?php echo t('marketing.articles.dental_case_tracking_vs_spreadsheets.sections.where_spreadsheets_fail.body_5'); ?></p>
     
     <ul>
-      <li><strong>No ownership:</strong> A spreadsheet shows data, but it doesn't enforce accountability. There's no clear assignment of who is responsible for each case or each step.</li>
-      <li><strong>No real-time visibility:</strong> Spreadsheets are only as current as the last update. If someone forgets to update a row, the information is stale, and no one knows it.</li>
-      <li><strong>Easy to forget updates:</strong> Updating a spreadsheet is a manual task that competes with everything else. When things get busy, updates slip. Cases fall out of sync with reality.</li>
-      <li><strong>No alerting for delays:</strong> A spreadsheet won't tell you that a case has been sitting in the same status for two weeks. It just displays whatever was entered. You have to notice problems yourself.</li>
-      <li><strong>Breaks with multi-step workflows:</strong> Complex cases move through multiple stages with different owners and dependencies. Spreadsheets flatten this into rows and columns, losing the structure that makes tracking useful.</li>
+      <li><strong><?php echo t('marketing.articles.dental_case_tracking_vs_spreadsheets.sections.where_spreadsheets_fail.list_items.4.title'); ?></strong> <?php echo t('marketing.articles.dental_case_tracking_vs_spreadsheets.sections.where_spreadsheets_fail.list_items.4.body'); ?></li>
+      <li><strong><?php echo t('marketing.articles.dental_case_tracking_vs_spreadsheets.sections.where_spreadsheets_fail.list_items.5.title'); ?></strong> <?php echo t('marketing.articles.dental_case_tracking_vs_spreadsheets.sections.where_spreadsheets_fail.list_items.5.body'); ?></li>
+      <li><strong><?php echo t('marketing.articles.dental_case_tracking_vs_spreadsheets.sections.where_spreadsheets_fail.list_items.6.title'); ?></strong> <?php echo t('marketing.articles.dental_case_tracking_vs_spreadsheets.sections.where_spreadsheets_fail.list_items.6.body'); ?></li>
+      <li><strong><?php echo t('marketing.articles.dental_case_tracking_vs_spreadsheets.sections.where_spreadsheets_fail.list_items.7.title'); ?></strong> <?php echo t('marketing.articles.dental_case_tracking_vs_spreadsheets.sections.where_spreadsheets_fail.list_items.7.body'); ?></li>
+      <li><strong><?php echo t('marketing.articles.dental_case_tracking_vs_spreadsheets.sections.where_spreadsheets_fail.list_items.8.title'); ?></strong> <?php echo t('marketing.articles.dental_case_tracking_vs_spreadsheets.sections.where_spreadsheets_fail.list_items.8.body'); ?></li>
     </ul>
     
-    <p>
-      The result: cases slip through the cracks, delays go unnoticed, and staff spend time chasing down information instead of moving cases forward.
-    </p>
+    <p><?php echo t('marketing.articles.dental_case_tracking_vs_spreadsheets.sections.where_spreadsheets_fail.body_6'); ?></p>
 
-    <h2>What Dental Case Tracking Software Does Differently</h2>
+    <h2><?php echo t('marketing.articles.dental_case_tracking_vs_spreadsheets.sections.what_dental_case_tracking_software_does_differently.heading'); ?></h2>
     
-    <p>
-      Dental case tracking software is built specifically for managing multi-step dental cases. Instead of a blank grid, it provides structure that matches how cases actually move through a practice.
-    </p>
+    <p><?php echo t('marketing.articles.dental_case_tracking_vs_spreadsheets.sections.what_dental_case_tracking_software_does_differently.body_7'); ?></p>
     
     <ul>
-      <li><strong>Structured case tracking:</strong> Cases have defined fields, statuses, and stages. The system knows what a case looks like and what information matters.</li>
-      <li><strong>Ownership and accountability:</strong> Every case has an assigned owner. When a case changes hands, ownership transfers explicitly. There's no ambiguity about who is responsible.</li>
-      <li><strong>Visibility across the lifecycle:</strong> See all active cases in one view. Filter by status, case type, or owner. Know exactly where things stand without asking anyone.</li>
-      <li><strong>Tracks lab dependencies:</strong> See which cases are waiting on labs, when they were sent, and when they're expected back. Know immediately when something is overdue.</li>
-      <li><strong>Identifies stalled cases:</strong> Cases that haven't moved in too long surface automatically. You don't have to remember to check. The system shows you what needs attention.</li>
+      <li><strong><?php echo t('marketing.articles.dental_case_tracking_vs_spreadsheets.sections.what_dental_case_tracking_software_does_differently.list_items.9.title'); ?></strong> <?php echo t('marketing.articles.dental_case_tracking_vs_spreadsheets.sections.what_dental_case_tracking_software_does_differently.list_items.9.body'); ?></li>
+      <li><strong><?php echo t('marketing.articles.dental_case_tracking_vs_spreadsheets.sections.what_dental_case_tracking_software_does_differently.list_items.10.title'); ?></strong> <?php echo t('marketing.articles.dental_case_tracking_vs_spreadsheets.sections.what_dental_case_tracking_software_does_differently.list_items.10.body'); ?></li>
+      <li><strong><?php echo t('marketing.articles.dental_case_tracking_vs_spreadsheets.sections.what_dental_case_tracking_software_does_differently.list_items.11.title'); ?></strong> <?php echo t('marketing.articles.dental_case_tracking_vs_spreadsheets.sections.what_dental_case_tracking_software_does_differently.list_items.11.body'); ?></li>
+      <li><strong><?php echo t('marketing.articles.dental_case_tracking_vs_spreadsheets.sections.what_dental_case_tracking_software_does_differently.list_items.12.title'); ?></strong> <?php echo t('marketing.articles.dental_case_tracking_vs_spreadsheets.sections.what_dental_case_tracking_software_does_differently.list_items.12.body'); ?></li>
+      <li><strong><?php echo t('marketing.articles.dental_case_tracking_vs_spreadsheets.sections.what_dental_case_tracking_software_does_differently.list_items.13.title'); ?></strong> <?php echo t('marketing.articles.dental_case_tracking_vs_spreadsheets.sections.what_dental_case_tracking_software_does_differently.list_items.13.body'); ?></li>
     </ul>
     
-    <p>
-      The difference isn't just features. It's that dental case tracking software is designed around the problem, while spreadsheets require you to build and maintain the solution yourself.
-    </p>
+    <p><?php echo t('marketing.articles.dental_case_tracking_vs_spreadsheets.sections.what_dental_case_tracking_software_does_differently.body_8'); ?></p>
 
-    <h2>When to Move Beyond Spreadsheets</h2>
+    <h2><?php echo t('marketing.articles.dental_case_tracking_vs_spreadsheets.sections.when_to_move_beyond_spreadsheets.heading'); ?></h2>
     
-    <p>
-      Spreadsheets can work for simple situations, but certain signals suggest it's time for a dedicated system:
-    </p>
+    <p><?php echo t('marketing.articles.dental_case_tracking_vs_spreadsheets.sections.when_to_move_beyond_spreadsheets.body_9'); ?></p>
     
     <ul>
-      <li><strong>Increasing case volume:</strong> More cases mean more rows, more updates, and more chances for things to fall through. If your spreadsheet is getting unwieldy, that's a sign.</li>
-      <li><strong>More lab coordination:</strong> If you're working with multiple labs and tracking shipments, returns, and delays, a spreadsheet quickly becomes insufficient. See our guide to <a href="<?= $baseUrl . ($articleUrls['article_lab_tracking'] ?? 'dental-lab-case-tracking') ?>" class="content-link" style="color: var(--primary-color); text-decoration: none; font-weight: 500;">dental lab case tracking</a> for a closer look at this specific problem.</li>
-      <li><strong>More staff involved:</strong> When multiple people need to update and reference case status, a shared spreadsheet creates confusion. Who updated what? Is this current?</li>
-      <li><strong>Frequent delays or remakes:</strong> If cases are regularly stalling, getting lost, or requiring rework, the tracking method itself may be part of the problem.</li>
+      <li><strong><?php echo t('marketing.articles.dental_case_tracking_vs_spreadsheets.sections.when_to_move_beyond_spreadsheets.list_items.14.title'); ?></strong> <?php echo t('marketing.articles.dental_case_tracking_vs_spreadsheets.sections.when_to_move_beyond_spreadsheets.list_items.14.body'); ?></li>
+      <li><strong><?php echo t('marketing.articles.dental_case_tracking_vs_spreadsheets.sections.when_to_move_beyond_spreadsheets.list_items.15.title'); ?></strong> <?php echo t('marketing.articles.dental_case_tracking_vs_spreadsheets.sections.when_to_move_beyond_spreadsheets.list_items.15.body'); ?> <a href="<?= $baseUrl . ($articleUrls['article_lab_tracking'] ?? 'dental-lab-case-tracking') ?>" class="content-link" style="color: var(--primary-color); text-decoration: none; font-weight: 500;"><?php echo t('marketing.articles.dental_case_tracking_vs_spreadsheets.sections.when_to_move_beyond_spreadsheets.list_items.15.link'); ?></a> <?php echo t('marketing.articles.dental_case_tracking_vs_spreadsheets.sections.when_to_move_beyond_spreadsheets.list_items.15.body_2'); ?></li>
+      <li><strong><?php echo t('marketing.articles.dental_case_tracking_vs_spreadsheets.sections.when_to_move_beyond_spreadsheets.list_items.16.title'); ?></strong> <?php echo t('marketing.articles.dental_case_tracking_vs_spreadsheets.sections.when_to_move_beyond_spreadsheets.list_items.16.body'); ?></li>
+      <li><strong><?php echo t('marketing.articles.dental_case_tracking_vs_spreadsheets.sections.when_to_move_beyond_spreadsheets.list_items.17.title'); ?></strong> <?php echo t('marketing.articles.dental_case_tracking_vs_spreadsheets.sections.when_to_move_beyond_spreadsheets.list_items.17.body'); ?></li>
     </ul>
     
-    <p>
-      Moving to dental case tracking software isn't about abandoning what works. It's about recognizing when the current approach has reached its limits.
-    </p>
+    <p><?php echo t('marketing.articles.dental_case_tracking_vs_spreadsheets.sections.when_to_move_beyond_spreadsheets.body_10'); ?></p>
 
-    <h2>Where DentaTrak Fits</h2>
+    <h2><?php echo t('marketing.articles.dental_case_tracking_vs_spreadsheets.sections.where_dentatrak_fits.heading'); ?></h2>
     
-    <p>
-      DentaTrak is designed to replace informal tracking methods with a structured system built specifically for dental case workflows.
-    </p>
+    <p><?php echo t('marketing.articles.dental_case_tracking_vs_spreadsheets.sections.where_dentatrak_fits.body_11'); ?></p>
     
-    <p>
-      It gives every case a status, an owner, and a next step. It tracks cases across their full lifecycle, from prep to lab to delivery. It makes delays visible before they become problems.
-    </p>
+    <p><?php echo t('marketing.articles.dental_case_tracking_vs_spreadsheets.sections.where_dentatrak_fits.body_12'); ?></p>
     
     <div class="highlight-box">
-      <h3>DentaTrak vs spreadsheets</h3>
-      <p>
-        Spreadsheets require you to build and maintain your own tracking system. DentaTrak provides a ready-made structure designed for dental case workflows, with ownership, visibility, and accountability built in.
-      </p>
+      <h3><?php echo t('marketing.articles.dental_case_tracking_vs_spreadsheets.sections.where_dentatrak_fits.subheading_1'); ?></h3>
+      <p><?php echo t('marketing.articles.dental_case_tracking_vs_spreadsheets.sections.where_dentatrak_fits.body_13'); ?></p>
     </div>
     
-    <p>
-      If your practice has outgrown spreadsheets, or if you're seeing cases slip through the cracks, dental case tracking software like DentaTrak can provide the structure and visibility you need.
-    </p>
+    <p><?php echo t('marketing.articles.dental_case_tracking_vs_spreadsheets.sections.where_dentatrak_fits.body_14'); ?></p>
     
-    <p>
-      For more on how dental case tracking works, see our <a href="<?= $baseUrl . ($articleUrls['article_dental_case_tracking_software'] ?? 'dental-case-tracking-software') ?>" style="color: var(--primary-color); text-decoration: none; font-weight: 500;">detailed guide</a>.
+    <p><?php echo t('marketing.articles.dental_case_tracking_vs_spreadsheets.sections.where_dentatrak_fits.body_15'); ?> <a href="<?= $baseUrl . ($articleUrls['article_dental_case_tracking_software'] ?? 'dental-case-tracking-software') ?>" style="color: var(--primary-color); text-decoration: none; font-weight: 500;"><?php echo t('marketing.articles.dental_case_tracking_vs_spreadsheets.sections.where_dentatrak_fits.links.1'); ?></a>.
     </p>
 
     <div class="cta-section">
-      <h2>Ready to move beyond spreadsheets?</h2>
-      <p>Try DentaTrak free for 90 days. Set up your practice and begin tracking cases in minutes.</p>
-      <a href="<?= $baseUrl ?>login.php" class="btn-white">Start 90-Day Free Trial</a>
-      <p style="margin-top: 16px; font-size: 0.9rem;"><a href="<?= $baseUrl ?>login.php" style="color: rgba(255,255,255,0.75); text-decoration: underline; text-underline-offset: 2px;">Already have an account? Log in</a></p>
+      <h2><?php echo t('marketing.articles.dental_case_tracking_vs_spreadsheets.sections.ready_to_move_beyond_spreadsheets.heading'); ?></h2>
+      <p><?php echo t('marketing.articles.dental_case_tracking_vs_spreadsheets.cta.body'); ?></p>
+      <a href="<?= $baseUrl ?>login.php" class="btn-white"><?php echo t('marketing.navigation.start_trial'); ?></a>
+      <p style="margin-top: 16px; font-size: 0.9rem;"><a href="<?= $baseUrl ?>login.php" style="color: rgba(255,255,255,0.75); text-decoration: underline; text-underline-offset: 2px;"><?php echo t('marketing.cta.already_account'); ?></a></p>
     </div>
   </main>
 
   <!-- Footer -->
   <footer class="footer">
     <div class="footer-inner">
-      <a href="<?= $baseUrl ?>" class="footer-wordmark" aria-label="DentaTrak home"><span class="denta">Denta</span><span class="trak">Trak</span></a>
+      <a href="<?= $baseUrl ?>" class="footer-wordmark" aria-label="<?php echo htmlspecialchars(t('marketing.accessibility.home_aria')); ?>"><span class="denta">Denta</span><span class="trak">Trak</span></a>
       <div class="footer-links">
-        <a href="<?= $baseUrl . ($articleUrls['page_about'] ?? 'about') ?>" class="footer-link">About</a>
-        <a href="<?= $baseUrl . ($articleUrls['page_resources'] ?? 'resources') ?>" class="footer-link">Resources</a>
-        <a href="<?= $baseUrl ?>privacy.php" class="footer-link">Privacy</a>
-        <a href="<?= $baseUrl ?>terms.php" class="footer-link">Terms</a>
-        <a href="<?= $baseUrl ?>" class="footer-link">Home</a>
+        <a href="<?= $baseUrl . ($articleUrls['page_about'] ?? 'about') ?>" class="footer-link"><?php echo t('marketing.footer.about'); ?></a>
+        <a href="<?= $baseUrl . ($articleUrls['page_resources'] ?? 'resources') ?>" class="footer-link"><?php echo t('marketing.navigation.resources'); ?></a>
+        <a href="<?= $baseUrl ?>privacy.php" class="footer-link"><?php echo t('marketing.footer.privacy'); ?></a>
+        <a href="<?= $baseUrl ?>terms.php" class="footer-link"><?php echo t('marketing.footer.terms'); ?></a>
+        <a href="<?= $baseUrl ?>" class="footer-link"><?php echo t('marketing.navigation.home'); ?></a>
       </div>
-      <span class="footer-copy">&copy; <?php echo date('Y'); ?> <?php echo htmlspecialchars($appName); ?>. All rights reserved.</span>
+      <span class="footer-copy">&copy; <?php echo date('Y'); ?> <?php echo htmlspecialchars($appName); ?>. <?php echo t('marketing.footer.copyright'); ?></span>
     </div>
   </footer>
 </body>

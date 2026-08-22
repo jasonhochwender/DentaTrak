@@ -34,7 +34,7 @@ try {
 
     if (!$user) {
         http_response_code(404);
-        echo json_encode(['error' => 'User not found']);
+        echo json_encode(['error' => t('billing.errors.user_not_found')]);
         exit;
     }
 
@@ -149,6 +149,6 @@ try {
 } catch (PDOException $e) {
     error_log('Billing API error: ' . $e->getMessage());
     http_response_code(500);
-    echo json_encode(['error' => 'Internal server error']);
+    echo json_encode(['error' => t('billing.errors.internal')]);
 }
 ?>
