@@ -307,32 +307,39 @@
   align-items: center;
   gap: 8px;
   font-size: 0.8rem;
-  opacity: 0.9;
-  background: rgba(255, 255, 255, 0.15);
+  color: #ffffff;
+  opacity: 0.95;
+  background: rgba(255, 255, 255, 0.18);
+  border: 1px solid rgba(255, 255, 255, 0.25);
   padding: 8px 14px;
   border-radius: 20px;
   backdrop-filter: blur(10px);
+  transition: background 0.2s ease, border-color 0.2s ease, opacity 0.2s ease;
 }
 
 .trust-item svg {
-  opacity: 0.9;
+  color: #ffffff;
+  fill: currentColor;
+  opacity: 0.95;
 }
 
 a.trust-item,
-a.trust-item:hover,
 a.trust-item:focus,
 a.trust-item:active {
-  color: inherit;
+  color: #ffffff;
   text-decoration: none;
 }
 
 a.trust-item:hover {
-  background: rgba(255, 255, 255, 0.28);
+  background: rgba(255, 255, 255, 0.32);
+  border-color: rgba(255, 255, 255, 0.45);
   opacity: 1;
+  text-decoration: underline;
+  text-underline-offset: 2px;
 }
 
 a.trust-item:focus-visible {
-  outline: 2px solid rgba(255, 255, 255, 0.5);
+  outline: 2px solid rgba(255, 255, 255, 0.75);
   outline-offset: 2px;
 }
 
