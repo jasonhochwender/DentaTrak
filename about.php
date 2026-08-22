@@ -11,7 +11,6 @@ $articleUrls = $appConfig['public_urls'] ?? [];
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <!-- Google Analytics -->
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-MBJDENR3H2"></script>
   <script>
     window.dataLayer = window.dataLayer || [];
@@ -24,7 +23,6 @@ $articleUrls = $appConfig['public_urls'] ?? [];
   <title><?php echo htmlspecialchars(t('marketing.seo.about.title')); ?></title>
   <link rel="canonical" href="https://dentatrak.com/about">
 
-  <!-- Favicon / App Icons -->
   <link rel="icon" type="image/x-icon" href="favicon.ico">
   <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
   <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
@@ -34,12 +32,38 @@ $articleUrls = $appConfig['public_urls'] ?? [];
 
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="<?= $baseUrl ?>css/marketing.css">
+  <style>
+    .content.about-page { max-width: 780px; }
+
+    .about-hero { text-align: center; margin-bottom: 56px; padding-top: 20px; }
+    .about-hero h1 { font-size: clamp(2rem, 5vw, 3rem); line-height: 1.15; margin-bottom: 14px; }
+    .about-hero-lead { font-size: 1.25rem; font-weight: 600; color: var(--text-primary); margin-bottom: 14px; }
+    .about-hero p { color: var(--text-secondary); line-height: 1.7; max-width: 620px; margin: 0 auto; }
+
+    .about-origin { background: linear-gradient(180deg, #f0f6ff 0%, #f8fafc 100%); border: 1px solid #e2ebf8; border-radius: var(--radius-lg); padding: 36px 40px; margin-bottom: 56px; }
+    .about-origin h2 { font-size: 1.5rem; font-weight: 700; line-height: 1.25; margin-top: 0; margin-bottom: 20px; color: var(--text-primary); }
+    .about-origin p { color: var(--text-secondary); line-height: 1.8; margin-bottom: 18px; max-width: 680px; }
+    .about-origin p:last-child { margin-bottom: 0; }
+
+    .about-section { margin-bottom: 56px; }
+    .about-section h2 { font-size: 1.5rem; font-weight: 700; margin-bottom: 16px; color: var(--text-primary); line-height: 1.25; }
+    .about-section p { color: var(--text-secondary); line-height: 1.8; margin-bottom: 16px; }
+    .about-section p:last-child { margin-bottom: 0; }
+
+    .content-link { color: var(--primary-color); text-decoration: none; font-weight: 500; }
+    .content-link:hover { text-decoration: underline; }
+
+    @media (max-width: 720px) {
+      .content.about-page { padding-left: 20px; padding-right: 20px; }
+      .about-hero h1 { font-size: 1.9rem; }
+      .about-origin { padding: 28px 24px; }
+    }
+  </style>
 </head>
 <body>
-  <!-- Navigation -->
   <nav class="nav">
     <div class="nav-inner">
-      <a href="<?= $baseUrl ?>" class="nav-logo" aria-label="<?php echo htmlspecialchars(t('marketing.accessibility.home_aria')); ?>"><img src="images/main.png" alt="<?php echo htmlspecialchars(t('marketing.accessibility.logo_alt')); ?>" style="height: auto; width: auto; max-width: 140px; object-fit: contain; display: block;"></a>
+      <a href="<?= $baseUrl ?>" class="nav-logo" aria-label="<?php echo htmlspecialchars(t('marketing.accessibility.home_aria')); ?>"><img src="<?= $baseUrl ?>images/main.png" alt="<?php echo htmlspecialchars(t('marketing.accessibility.logo_alt')); ?>" style="height: auto; width: auto; max-width: 140px; object-fit: contain; display: block;"></a>
       <div class="nav-actions">
         <a href="<?= $baseUrl ?>login.php" class="nav-login"><?php echo t('marketing.navigation.log_in'); ?></a>
         <a href="<?= $baseUrl ?>login.php" class="nav-cta"><?php echo t('marketing.navigation.start_trial'); ?></a>
@@ -48,60 +72,39 @@ $articleUrls = $appConfig['public_urls'] ?? [];
     </div>
   </nav>
 
-  <!-- Main Content -->
-  <main class="content no-breadcrumb">
-    <h1><?php echo t('marketing.about.h1'); ?></h1>
+  <main class="content no-breadcrumb about-page">
+    <div class="about-hero">
+      <h1><?php echo t('marketing.about.h1'); ?></h1>
+      <p class="about-hero-lead"><?php echo t('marketing.about.hero_lead'); ?></p>
+      <p><?php echo t('marketing.about.hero_intro'); ?></p>
+    </div>
 
-    <h2><?php echo t('marketing.about.what_is_title'); ?></h2>
+    <section class="about-origin" aria-labelledby="origin-heading">
+      <h2 id="origin-heading"><?php echo t('marketing.about.origin_title'); ?></h2>
+      <p><?php echo t('marketing.about.origin_body_1'); ?></p>
+      <p><?php echo t('marketing.about.origin_body_2'); ?></p>
+      <p><?php echo t('marketing.about.origin_body_3'); ?></p>
+    </section>
 
-    <p>
-      <?php echo t('marketing.about.what_is_body'); ?>
-    </p>
+    <section class="about-section" aria-labelledby="philosophy-heading">
+      <h2 id="philosophy-heading"><?php echo t('marketing.about.philosophy_title'); ?></h2>
+      <p><?php echo t('marketing.about.philosophy_body_1'); ?></p>
+      <p><?php echo t('marketing.about.philosophy_body_2'); ?></p>
+      <p><a href="<?= $baseUrl . ($articleUrls['article_vs_pms'] ?? 'dental-case-tracking-software-vs-pms') ?>" class="content-link"><?php echo t('marketing.about.pms_cta'); ?></a></p>
+    </section>
 
-    <h2><?php echo t('marketing.about.why_built_title'); ?></h2>
-
-    <p>
-      <?php echo t('marketing.about.why_built_body'); ?>
-    </p>
-
-    <h2><?php echo t('marketing.about.problem_title'); ?></h2>
-
-    <p>
-      Most dental practices manage complex, multi-step cases without a dedicated system. Case information ends up scattered across memory, sticky notes, spreadsheets, and notes buried in a practice management system. Problems are usually only discovered after they've already cost the practice time, chair capacity, or a patient's trust. DentaTrak exists to give every case a clear status and owner so delays are visible before they become costly. Read more in our <a href="<?= $baseUrl . ($articleUrls['article_dental_case_tracking_software'] ?? 'dental-case-tracking-software') ?>" class="content-link">dental case tracking software</a> overview.
-    </p>
-
-    <h2><?php echo t('marketing.about.who_for_title'); ?></h2>
-
-    <ul>
-      <li><?php echo t('marketing.about.who_for_1'); ?></li>
-      <li><?php echo t('marketing.about.who_for_2'); ?></li>
-    </ul>
-
-    <p>
-      <?php echo t('marketing.about.who_for_body'); ?>
-    </p>
-
-    <h2><?php echo t('marketing.about.differs_title'); ?></h2>
-
-    <p>
-      DentaTrak does not replace a practice management system (PMS). A PMS handles scheduling, billing, and patient records. DentaTrak focuses specifically on the workflow of multi-step cases (status, ownership, and stalled-case visibility) which most PMS platforms were not built to track. DentaTrak works alongside your existing PMS with no data migration required. See our full comparison in <a href="<?= $baseUrl . ($articleUrls['article_vs_pms'] ?? 'dental-case-tracking-software-vs-pms') ?>" class="content-link">dental case tracking software vs. PMS</a>.
-    </p>
-
-    <h2><?php echo t('marketing.about.contact_title'); ?></h2>
-
-    <p>
-      <?php echo t('marketing.about.contact_body'); ?> <a href="mailto:<?php echo t('marketing.about.contact_email'); ?>" class="content-link"><?php echo t('marketing.about.contact_email'); ?></a>.
-    </p>
+    <section class="about-section" aria-labelledby="closing-heading">
+      <h2 id="closing-heading"><?php echo t('marketing.about.closing_title'); ?></h2>
+      <p><?php echo t('marketing.about.closing_body'); ?></p>
+    </section>
 
     <div class="cta-section">
       <h2><?php echo t('marketing.about.cta_title'); ?></h2>
       <p><?php echo t('marketing.about.cta_lead'); ?></p>
       <a href="<?= $baseUrl ?>login.php" class="btn-white"><?php echo t('marketing.navigation.start_trial'); ?></a>
-      <p style="margin-top: 16px; font-size: 0.9rem;"><a href="<?= $baseUrl ?>login.php" style="color: rgba(255,255,255,0.75); text-decoration: underline; text-underline-offset: 2px;"><?php echo t('marketing.cta.already_account'); ?></a></p>
     </div>
   </main>
 
-  <!-- Footer -->
   <footer class="footer">
     <div class="footer-inner">
       <a href="<?= $baseUrl ?>" class="footer-wordmark" aria-label="<?php echo htmlspecialchars(t('marketing.accessibility.home_aria')); ?>"><span class="denta">Denta</span><span class="trak">Trak</span></a>

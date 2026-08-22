@@ -1128,6 +1128,7 @@ input#practiceName {
   font-weight: 400;
   line-height: 1.45;
   text-align: left;
+  text-transform: none;
   white-space: normal;
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.18);
   opacity: 0;
