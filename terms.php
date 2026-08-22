@@ -19,6 +19,8 @@ $appName = $appConfig['appName'] ?? 'DentaTrak';
   </script>
   
   <title>Terms of Service - DentaTrak</title>
+  <meta name="description" content="DentaTrak terms of service.">
+  <link rel="canonical" href="https://dentatrak.com/terms">
 
   <!-- Favicon / App Icons -->
   <link rel="icon" type="image/x-icon" href="favicon.ico">

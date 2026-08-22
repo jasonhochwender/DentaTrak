@@ -22,13 +22,13 @@ $articleUrls = $appConfig['public_urls'] ?? [];
 
   <meta name="description" content="<?php echo htmlspecialchars(t("marketing.articles.dental_remake_cost.seo.description")); ?>">
   <title><?php echo htmlspecialchars(t("marketing.articles.dental_remake_cost.seo.title")); ?></title>
-  <link rel="canonical" href="https://dentatrak.com/resources/dental-remake-cost">
+  <link rel="canonical" href="https://dentatrak.com/dental-remake-cost">
 
   <!-- Open Graph -->
   <meta property="og:title" content="<?php echo htmlspecialchars(t("marketing.articles.dental_remake_cost.seo.title")); ?>">
   <meta property="og:description" content="<?php echo htmlspecialchars(t("marketing.articles.dental_remake_cost.seo.description")); ?>">
   <meta property="og:type" content="article">
-  <meta property="og:url" content="https://dentatrak.com/resources/dental-remake-cost">
+  <meta property="og:url" content="https://dentatrak.com/dental-remake-cost">
 
   <!-- Favicon / App Icons -->
   <link rel="icon" type="image/x-icon" href="favicon.ico">
@@ -51,7 +51,7 @@ $articleUrls = $appConfig['public_urls'] ?? [];
     "publisher": { "@type": "Organization", "name": "DentaTrak" },
     "datePublished": "2026-08-08",
     "dateModified": "2026-08-08",
-    "mainEntityOfPage": "https://dentatrak.com/resources/dental-remake-cost"
+    "mainEntityOfPage": "https://dentatrak.com/dental-remake-cost"
   }
   </script>
 
@@ -63,7 +63,7 @@ $articleUrls = $appConfig['public_urls'] ?? [];
     "itemListElement": [
       { "@type": "ListItem", "position": 1, "name": <?php echo json_encode(t("marketing.navigation.home"), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>, "item": "https://dentatrak.com/" },
       { "@type": "ListItem", "position": 2, "name": <?php echo json_encode(t("marketing.navigation.resources"), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>, "item": "https://dentatrak.com/resources" },
-      { "@type": "ListItem", "position": 3, "name": <?php echo json_encode(t("marketing.articles.dental_remake_cost.h1"), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>, "item": "https://dentatrak.com/resources/dental-remake-cost" }
+      { "@type": "ListItem", "position": 3, "name": <?php echo json_encode(t("marketing.articles.dental_remake_cost.h1"), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>, "item": "https://dentatrak.com/dental-remake-cost" }
     ]
   }
   </script>

@@ -43,6 +43,7 @@ $sessionTimeout = isset($_GET['timeout']) && $_GET['timeout'] == '1';
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow">
   
   <!-- Google Analytics -->
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-MBJDENR3H2"></script>

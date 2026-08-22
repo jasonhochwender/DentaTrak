@@ -335,7 +335,7 @@ $articleUrls = $appConfig['public_urls'] ?? [];
         <a href="#problem"><?php echo t('marketing.navigation.problem'); ?></a>
         <a href="#how-it-works"><?php echo t('marketing.navigation.how_it_works'); ?></a>
         <a href="#pricing"><?php echo t('marketing.navigation.pricing'); ?></a>
-        <a href="<?= $baseUrl ?>resources/"><?php echo t('marketing.navigation.resources'); ?></a>
+        <a href="<?= $baseUrl . ($articleUrls['page_resources'] ?? 'resources') ?>"><?php echo t('marketing.navigation.resources'); ?></a>
         <a href="<?= $baseUrl ?>login.php"><?php echo t('marketing.navigation.sign_in'); ?></a>
         <a href="<?= $baseUrl ?>login.php" class="nav-cta"><?php echo t('marketing.navigation.start_free'); ?></a>
         <?php echo renderLanguageSelector('api/set-session-locale.php', getResolvedLocale(), false); ?>
@@ -690,7 +690,7 @@ $articleUrls = $appConfig['public_urls'] ?? [];
           </div>
           <div>
             <h4><?php echo t('marketing.footer.resources'); ?></h4>
-            <a href="<?= $baseUrl ?>resources/"><?php echo t('marketing.footer.resources'); ?></a>
+            <a href="<?= $baseUrl . ($articleUrls['page_resources'] ?? 'resources') ?>"><?php echo t('marketing.footer.resources'); ?></a>
             <a href="<?= $baseUrl . ($articleUrls['page_about'] ?? 'about') ?>"><?php echo t('marketing.footer.about'); ?></a>
             <a href="mailto:<?php echo t('marketing.footer.support_email'); ?>"><?php echo t('marketing.footer.support'); ?></a>
           </div>
