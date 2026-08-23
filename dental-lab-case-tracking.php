@@ -177,13 +177,19 @@ $articleUrls = $appConfig['public_urls'] ?? [];
 
     <h2><?php echo t('marketing.articles.dental_lab_case_tracking.sections.how_dentatrak_tracks_lab_dependencies.heading'); ?></h2>
 
-    <p><?php echo t('marketing.articles.dental_lab_case_tracking.sections.how_dentatrak_tracks_lab_dependencies.body_2'); ?> <a href="<?= $baseUrl . ($articleUrls['article_dental_case_tracking_software'] ?? 'dental-case-tracking-software') ?>" class="content-link"><?php echo t('marketing.articles.dental_lab_case_tracking.sections.how_dentatrak_tracks_lab_dependencies.links.1'); ?></a> <?php echo t('marketing.articles.dental_lab_case_tracking.sections.how_dentatrak_tracks_lab_dependencies.body_3'); ?></p>
+    <p><?php echo t('marketing.articles.dental_lab_case_tracking.sections.how_dentatrak_tracks_lab_dependencies.body_2'); ?> <a href="<?= $baseUrl . ($articleUrls['article_dental_case_tracking_software'] ?? 'dental-case-tracking-software') ?>" class="content-link"><?php echo t('marketing.articles.dental_lab_case_tracking.sections.how_dentatrak_tracks_lab_dependencies.links.0'); ?></a> <?php echo t('marketing.articles.dental_lab_case_tracking.sections.how_dentatrak_tracks_lab_dependencies.body_3'); ?></p>
 
-    <p><?php echo t('marketing.articles.dental_lab_case_tracking.sections.how_dentatrak_tracks_lab_dependencies.body_4'); ?> <a href="<?= $baseUrl . ($articleUrls['article_crown_bridge'] ?? 'crown-and-bridge-case-tracking') ?>" class="content-link"><?php echo t('marketing.articles.dental_lab_case_tracking.sections.how_dentatrak_tracks_lab_dependencies.links.2'); ?></a> <?php echo t('marketing.articles.dental_lab_case_tracking.sections.how_dentatrak_tracks_lab_dependencies.body_5'); ?></p>
+    <p><?php echo t('marketing.articles.dental_lab_case_tracking.sections.how_dentatrak_tracks_lab_dependencies.body_4'); ?> <a href="<?= $baseUrl . ($articleUrls['article_crown_bridge'] ?? 'crown-and-bridge-case-tracking') ?>" class="content-link"><?php echo t('marketing.articles.dental_lab_case_tracking.sections.how_dentatrak_tracks_lab_dependencies.links.1'); ?></a> <?php echo t('marketing.articles.dental_lab_case_tracking.sections.how_dentatrak_tracks_lab_dependencies.body_5'); ?></p>
 
     <h2><?php echo t('marketing.articles.dental_lab_case_tracking.sections.reducing_remakes_through_better_visibility.heading'); ?></h2>
 
-    <p><?php echo t('marketing.articles.dental_lab_case_tracking.sections.reducing_remakes_through_better_visibility.body_6'); ?></p>
+    <p>
+      <?php
+        $remakeCostUrl = $baseUrl . ($articleUrls['article_dental_remake_cost'] ?? 'dental-remake-cost');
+        $remakeCostLink = '<a href="' . $remakeCostUrl . '" class="content-link">' . t('marketing.articles.dental_lab_case_tracking.sections.reducing_remakes_through_better_visibility.link_label') . '</a>';
+        echo t('marketing.articles.dental_lab_case_tracking.sections.reducing_remakes_through_better_visibility.body_6', ['link' => $remakeCostLink]);
+      ?>
+    </p>
 
     <h2><?php echo t('marketing.articles.dental_lab_case_tracking.sections.frequently_asked_questions.heading'); ?></h2>
 

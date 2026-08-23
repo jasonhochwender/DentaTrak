@@ -2420,7 +2420,8 @@
                                 "title": "Follow through to delivery"
                             }
                         },
-                        "body_14": "This process works whether you're using software, a spreadsheet, or a whiteboard. The key is consistency: every case gets tracked the same way, every time."
+                        "body_14": "This process works whether you're using software, a spreadsheet, or a whiteboard. The key is consistency: every case gets tracked the same way, every time. For the visual version of this process, see {link}.",
+                        "link_label": "how a visual dental case workflow works"
                     },
                     "where_dentatrak_fits": {
                         "heading": "Where DentaTrak Fits",
@@ -2981,10 +2982,10 @@
             "dental_lab_case_tracking": {
                 "title": "Dental Lab Case Tracking for Dental Practices | DentaTrak",
                 "h1": "Dental Lab Case Tracking for Dental Practices",
-                "description": "Track every case sent to the dental lab (shipping dates, expected returns, overdue cases, and remakes) in one place. See how DentaTrak keeps lab cases visible.",
+                "description": "Track every case a dental practice sends to an outside dental lab (shipping dates, expected returns, overdue cases, and remakes) in one place. See how DentaTrak keeps lab cases visible.",
                 "seo": {
                     "title": "Dental Lab Case Tracking for Dental Practices | DentaTrak",
-                    "description": "Track every case sent to the dental lab (shipping dates, expected returns, overdue cases, and remakes) in one place. See how DentaTrak keeps lab cases visible."
+                    "description": "Track every case a dental practice sends to an outside dental lab (shipping dates, expected returns, overdue cases, and remakes) in one place. See how DentaTrak keeps lab cases visible."
                 },
                 "meta": {
                     "by": "By",
@@ -3055,7 +3056,6 @@
                         "body_2": "DentaTrak tracks lab-dependent cases as part of its full case lifecycle: the sent date and expected return date are recorded when a case goes out, and cases that pass their expected return date are surfaced automatically rather than requiring someone to check. This is part of the same case record used to track ownership, status, and handoffs across the practice. See the full",
                         "links": [
                             "dental case tracking software",
-                            "crown and bridge case tracking",
                             "crown and bridge case tracking"
                         ],
                         "body_3": "overview for how this fits together.",
@@ -3064,7 +3064,8 @@
                     },
                     "reducing_remakes_through_better_visibility": {
                         "heading": "Reducing Remakes Through Better Visibility",
-                        "body_6": "Not every remake is preventable, but some are the direct result of a breakdown in communication rather than a clinical issue, such as a shade mismatch that wasn't caught before a case went out, or a case that sat too long and needed to be redone because circumstances changed. Recording remakes alongside case status makes it possible to see whether a pattern exists."
+                        "body_6": "Not every remake is preventable, but some are the direct result of a breakdown in communication rather than a clinical issue, such as a shade mismatch that wasn't caught before a case went out, or a case that sat too long and needed to be redone because circumstances changed. Recording remakes alongside case status makes it possible to see whether a pattern exists. For more on the real cost of remakes, see {link}.",
+                    "link_label": "what dental remakes really cost your practice"
                     },
                     "frequently_asked_questions": {
                         "heading": "Frequently Asked Questions"

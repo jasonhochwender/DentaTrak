@@ -413,6 +413,8 @@ $articleUrls = $appConfig['public_urls'] ?? [];
 
     <p><?php echo t('marketing.articles.visual_dental_case_workflow.sections..body_3'); ?></p>
 
+    <p><?php echo t('marketing.articles.visual_dental_case_workflow.sections..body_3'); ?></p>
+
     <h2><?php echo t('marketing.articles.visual_dental_case_workflow.sections.complex_dental_cases_are_processes_not_records.heading'); ?></h2>
 
     <p><?php echo t('marketing.articles.visual_dental_case_workflow.sections.complex_dental_cases_are_processes_not_records.body_4'); ?></p>

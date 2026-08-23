@@ -465,7 +465,13 @@ $articleUrls = $appConfig['public_urls'] ?? [];
         <strong><?php echo t('marketing.articles.how_to_track.sections.step_by_step_process_to_track_dental_cases.list_items.15.title'); ?></strong> <?php echo t('marketing.articles.how_to_track.sections.step_by_step_process_to_track_dental_cases.list_items.15.body'); ?></li>
     </ol>
     
-    <p><?php echo t('marketing.articles.how_to_track.sections.step_by_step_process_to_track_dental_cases.body_14'); ?></p>
+    <p>
+      <?php
+        $visualWorkflowUrl = $baseUrl . ($articleUrls['article_visual_workflow'] ?? 'visual-dental-case-workflow');
+        $visualWorkflowLink = '<a href="' . $visualWorkflowUrl . '" style="color: var(--primary-color); text-decoration: none; font-weight: 500;">' . t('marketing.articles.how_to_track.sections.step_by_step_process_to_track_dental_cases.link_label') . '</a>';
+        echo t('marketing.articles.how_to_track.sections.step_by_step_process_to_track_dental_cases.body_14', ['link' => $visualWorkflowLink]);
+      ?>
+    </p>
 
     <h2><?php echo t('marketing.articles.how_to_track.sections.where_dentatrak_fits.heading'); ?></h2>
     
