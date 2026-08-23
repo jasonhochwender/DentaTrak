@@ -30,6 +30,48 @@ $articleUrls = $appConfig['public_urls'] ?? [];
   <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
   <link rel="manifest" href="site.webmanifest">
 
+  <!-- Structured Data: AboutPage, Organization, SoftwareApplication, Person -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "Organization",
+        "@id": "https://dentatrak.com/#organization",
+        "name": "DentaTrak",
+        "url": "https://dentatrak.com/",
+        "logo": "https://dentatrak.com/images/logo-large.png",
+        "email": "support@dentatrak.com"
+      },
+      {
+        "@type": "SoftwareApplication",
+        "@id": "https://dentatrak.com/#software",
+        "name": "DentaTrak",
+        "applicationCategory": "BusinessApplication",
+        "operatingSystem": "Web",
+        "description": "DentaTrak is dental case tracking software for dental practices. See your entire case workflow at a glance and follow every crown, implant, and lab case from prep to delivery.",
+        "url": "https://dentatrak.com/",
+        "publisher": { "@id": "https://dentatrak.com/#organization" }
+      },
+      {
+        "@type": "Person",
+        "@id": "https://dentatrak.com/about#william-verrillo",
+        "name": "Dr. William Verrillo",
+        "jobTitle": "Practicing dentist",
+        "url": "https://dentatrak.com/about"
+      },
+      {
+        "@type": "AboutPage",
+        "@id": "https://dentatrak.com/about",
+        "url": "https://dentatrak.com/about",
+        "name": "About DentaTrak",
+        "mainEntity": { "@id": "https://dentatrak.com/#organization" },
+        "about": { "@id": "https://dentatrak.com/about#william-verrillo" }
+      }
+    ]
+  }
+  </script>
+
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="<?= $baseUrl ?>css/marketing.css">
   <style>

@@ -51,11 +51,24 @@ $articleUrls = $appConfig['public_urls'] ?? [];
     "@context": "https://schema.org",
     "@type": "Article",
     "headline": <?php echo json_encode(t("marketing.articles.how_to_track.h1"), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>,
-    "author": { "@type": "Person", "name": "Dr. William Verrillo" },
-    "publisher": { "@type": "Organization", "name": "DentaTrak" },
-    "datePublished": "2026-04-01",
+    "author": { "@id": "https://dentatrak.com/about#william-verrillo" },
+    "publisher": { "@id": "https://dentatrak.com/#organization" },
+    "datePublished": "2026-08-08",
     "dateModified": "2026-08-08",
     "mainEntityOfPage": "https://dentatrak.com/how-to-track-dental-cases"
+  }
+  </script>
+
+  <!-- Structured Data: BreadcrumbList -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      { "@type": "ListItem", "position": 1, "name": <?php echo json_encode(t('marketing.navigation.home'), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>, "item": "https://dentatrak.com/" },
+      { "@type": "ListItem", "position": 2, "name": <?php echo json_encode(t('marketing.navigation.resources'), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>, "item": "https://dentatrak.com/resources" },
+      { "@type": "ListItem", "position": 3, "name": <?php echo json_encode(t('marketing.articles.how_to_track.h1'), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>, "item": "https://dentatrak.com/how-to-track-dental-cases" }
+    ]
   }
   </script>
 

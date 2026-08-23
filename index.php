@@ -36,67 +36,44 @@ $articleUrls = $appConfig['public_urls'] ?? [];
 
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
 
-  <!-- Structured Data: Organization -->
+  <!-- Structured Data: Organization, WebSite, SoftwareApplication -->
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
-    "@type": "Organization",
-    "name": <?php echo json_encode($appName, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>,
-    "url": "https://dentatrak.com/",
-    "email": <?php echo json_encode(t('marketing.footer.support_email'), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>
-  }
-  </script>
-
-  <!-- Structured Data: WebSite -->
-  <script type="application/ld+json">
-  {
-    "@context": "https://schema.org",
-    "@type": "WebSite",
-    "name": <?php echo json_encode($appName, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>,
-    "url": "https://dentatrak.com/"
-  }
-  </script>
-
-  <!-- Structured Data: SoftwareApplication (pricing mirrors the Pricing section on this page) -->
-  <script type="application/ld+json">
-  {
-    "@context": "https://schema.org",
-    "@type": "SoftwareApplication",
-    "name": <?php echo json_encode($appName, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>,
-    "applicationCategory": "BusinessApplication",
-    "operatingSystem": "Web",
-    "description": <?php echo json_encode(t('marketing.seo.index.description'), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>,
-    "url": "https://dentatrak.com/",
-    "featureList": [
-      "Visual case workflow board with six built-in stages",
-      "Customizable workflow stage names",
-      "Case ownership and assignment",
-      "Due dates and past-due visibility",
-      "Lab and referral dependency tracking",
-      "Case files and case information in one place",
-      "Practice Insights and Smart Recommendations"
-    ],
-    "offers": [
+    "@graph": [
       {
-        "@type": "Offer",
-        "name": <?php echo json_encode(t('marketing.pricing.operate'), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>,
-        "price": "249.00",
-        "priceCurrency": "USD",
-        "url": "https://dentatrak.com/#pricing"
+        "@type": "Organization",
+        "@id": "https://dentatrak.com/#organization",
+        "name": <?php echo json_encode($appName, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>,
+        "url": "https://dentatrak.com/",
+        "logo": "https://dentatrak.com/images/logo-large.png",
+        "email": <?php echo json_encode(t('marketing.footer.support_email'), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>
       },
       {
-        "@type": "Offer",
-        "name": <?php echo json_encode(t('marketing.pricing.control'), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>,
-        "price": "499.00",
-        "priceCurrency": "USD",
-        "url": "https://dentatrak.com/#pricing"
+        "@type": "WebSite",
+        "@id": "https://dentatrak.com/#website",
+        "name": <?php echo json_encode($appName, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>,
+        "url": "https://dentatrak.com/",
+        "publisher": { "@id": "https://dentatrak.com/#organization" }
       },
       {
-        "@type": "Offer",
-        "name": <?php echo json_encode(t('marketing.pricing.scale'), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>,
-        "price": "999.00",
-        "priceCurrency": "USD",
-        "url": "https://dentatrak.com/#pricing"
+        "@type": "SoftwareApplication",
+        "@id": "https://dentatrak.com/#software",
+        "name": <?php echo json_encode($appName, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>,
+        "applicationCategory": "BusinessApplication",
+        "operatingSystem": "Web",
+        "description": <?php echo json_encode(t('marketing.seo.index.description'), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>,
+        "url": "https://dentatrak.com/",
+        "publisher": { "@id": "https://dentatrak.com/#organization" },
+        "featureList": [
+          "Visual case workflow board with six built-in stages",
+          "Customizable workflow stage names",
+          "Case ownership and assignment",
+          "Due dates and past-due visibility",
+          "Lab and referral dependency tracking",
+          "Case files and case information in one place",
+          "Practice Insights and Smart Recommendations"
+        ]
       }
     ]
   }

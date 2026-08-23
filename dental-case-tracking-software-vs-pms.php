@@ -52,8 +52,8 @@ $articleUrls = $appConfig['public_urls'] ?? [];
     "@context": "https://schema.org",
     "@type": "Article",
     "headline": <?php echo json_encode(t("marketing.articles.dental_case_tracking_software_vs_pms.h1"), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>,
-    "author": { "@type": "Person", "name": "Dr. William Verrillo" },
-    "publisher": { "@type": "Organization", "name": "DentaTrak" },
+    "author": { "@id": "https://dentatrak.com/about#william-verrillo" },
+    "publisher": { "@id": "https://dentatrak.com/#organization" },
     "datePublished": "2026-08-08",
     "dateModified": "2026-08-08",
     "mainEntityOfPage": "https://dentatrak.com/dental-case-tracking-software-vs-pms"
