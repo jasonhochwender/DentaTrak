@@ -2091,10 +2091,11 @@
                     "by": "By",
                     "published": "Published"
                 },
-                "intro": "Dental case tracking software helps dental practices monitor multi-step cases from preparation through lab work, referrals, scheduling, delivery, and completion. It gives each case a status, owner, and next step so delays can be identified before they affect the patient.",
+                "intro": "Dental case tracking software helps dental practices monitor multi-step cases from preparation through lab work, referrals, scheduling, delivery, and completion. It gives each case a status, owner, and next step so delays can be identified before they affect the patient. A practice management system remains the system for scheduling, billing, and patient records. Case tracking software follows the operational journey of the case itself.",
                 "what_it_is": {
                     "heading": "What Dental Case Tracking Software Is",
-                    "body_1": "Dental case tracking software is a system dedicated to following a case through every stage of its lifecycle, not just the appointment on the calendar, but everything that happens between appointments: the lab fabricating the restoration, the specialist completing a referral, the front desk waiting to hear a case is ready.",
+                    "body_1": "Dental case tracking software is a system dedicated to following a case through every stage of its lifecycle, not just the appointment on the calendar, but everything that happens between appointments: the lab fabricating the restoration, the specialist completing a referral, the front desk waiting to hear a case is ready. See {link} for the step-by-step process.",
+                    "link_label": "how to track a dental case from start to finish",
                     "body_2": "DentaTrak is dental case tracking software designed for dental practices. It gives every case a status, an owner, and a next step so nothing is lost between labs, referrals, and internal handoffs."
                 },
                 "why_practices_need": {
@@ -2168,7 +2169,9 @@
                     "vs_pms_link_label": "dental case tracking software vs. PMS"
                 },
                 "how_it_works": {
-                    "heading": "How DentaTrak Works",
+                    "heading": "How DentaTrak's Case Tracking Works",
+                    "intro": "DentaTrak uses a visual board to move cases through stages, from the case being created through delivery. See {link} for the thinking behind visual dental case workflows.",
+                    "intro_link_label": "visual dental case workflow",
                     "steps": [
                         {
                             "title": "Enter the case",
@@ -2245,7 +2248,8 @@
                 },
                 "pms": {
                     "heading": "How DentaTrak Works Alongside a PMS",
-                    "body": "DentaTrak does not replace your practice management software. Your PMS handles scheduling, billing, and patient records. DentaTrak handles something different: tracking the workflow of multi-step cases.",
+                    "body": "DentaTrak does not replace your practice management software. Your PMS handles scheduling, billing, and patient records. DentaTrak handles something different: tracking the workflow of multi-step cases. See {link} for a full comparison.",
+                    "link_label": "dental case tracking software vs. PMS",
                     "items": [
                         {
                             "title": "Complements scheduling and billing:",
@@ -3535,7 +3539,7 @@
         },
         "hero": {
             "title": "Know where every dental case stands.",
-            "lead": "DentaTrak gives your team one place to track dental cases, deadlines, assignments, lab activity, files, shipping, and revisions from start to delivery.",
+            "lead": "DentaTrak is visual dental case tracking software for dental practices. It gives your team one place to track dental cases, deadlines, assignments, lab activity, files, shipping, and revisions from start to delivery.",
             "start_free": "Start Free",
             "see_how": "See How It Works",
             "trial_note": "90-day free trial. No credit card required."
@@ -3549,6 +3553,8 @@
             "eyebrow": "How DentaTrak Works",
             "title": "One case record from start to delivery.",
             "lead": "Create the case once, keep it current as work moves, and let DentaTrak surface what needs attention.",
+            "body": "DentaTrak is one way to practice dental case tracking. To learn more about the category and why practices use it, see {link}.",
+            "link_label": "how dental case tracking works",
             "step1_title": "Create the case",
             "step1_body": "Start with one record. Add the patient, case type, due date, appointment, assignment, lab, notes, and files.",
             "step2_title": "Keep it current",

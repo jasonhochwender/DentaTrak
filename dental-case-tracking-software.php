@@ -160,7 +160,11 @@ $articleUrls = $appConfig['public_urls'] ?? [];
     <h2><?php echo t('marketing.articles.dental_case_tracking_software.what_it_is.heading'); ?></h2>
 
     <p>
-      <?php echo t('marketing.articles.dental_case_tracking_software.what_it_is.body_1'); ?>
+      <?php
+        $howToTrackUrl = $baseUrl . ($articleUrls['article_how_to_track'] ?? 'how-to-track-dental-cases');
+        $howToTrackLink = '<a href="' . $howToTrackUrl . '" class="content-link">' . t('marketing.articles.dental_case_tracking_software.what_it_is.link_label') . '</a>';
+        echo t('marketing.articles.dental_case_tracking_software.what_it_is.body_1', ['link' => $howToTrackLink]);
+      ?>
     </p>
 
     <p>
@@ -227,6 +231,14 @@ $articleUrls = $appConfig['public_urls'] ?? [];
     </p>
 
     <h2><?php echo t('marketing.articles.dental_case_tracking_software.how_it_works.heading'); ?></h2>
+
+    <p>
+      <?php
+        $visualWorkflowUrl = $baseUrl . ($articleUrls['article_visual_workflow'] ?? 'visual-dental-case-workflow');
+        $visualWorkflowLink = '<a href="' . $visualWorkflowUrl . '" class="content-link">' . t('marketing.articles.dental_case_tracking_software.how_it_works.intro_link_label') . '</a>';
+        echo t('marketing.articles.dental_case_tracking_software.how_it_works.intro', ['link' => $visualWorkflowLink]);
+      ?>
+    </p>
 
     <ol class="workflow-steps">
       <li>
@@ -315,7 +327,11 @@ $articleUrls = $appConfig['public_urls'] ?? [];
     <h2><?php echo t('marketing.articles.dental_case_tracking_software.pms.heading'); ?></h2>
 
     <p>
-      <?php echo t('marketing.articles.dental_case_tracking_software.pms.body'); ?>
+      <?php
+        $pmsVsUrl = $baseUrl . ($articleUrls['article_vs_pms'] ?? 'dental-case-tracking-software-vs-pms');
+        $pmsVsLink = '<a href="' . $pmsVsUrl . '" class="content-link">' . t('marketing.articles.dental_case_tracking_software.pms.link_label') . '</a>';
+        echo t('marketing.articles.dental_case_tracking_software.pms.body', ['link' => $pmsVsLink]);
+      ?>
     </p>
 
     <ul>

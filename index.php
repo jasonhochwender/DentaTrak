@@ -483,6 +483,13 @@ $articleUrls = $appConfig['public_urls'] ?? [];
       <span class="eyebrow"><?php echo t('marketing.workflow.eyebrow'); ?></span>
       <h2><?php echo t('marketing.workflow.title'); ?></h2>
       <p class="lead"><?php echo t('marketing.workflow.lead'); ?></p>
+      <p class="section-body">
+        <?php
+          $catUrl = $baseUrl . ($articleUrls['article_dental_case_tracking_software'] ?? 'dental-case-tracking-software');
+          $catLink = '<a href="' . $catUrl . '" class="content-link">' . t('marketing.workflow.link_label') . '</a>';
+          echo t('marketing.workflow.body', ['link' => $catLink]);
+        ?>
+      </p>
       <div class="steps-grid">
         <div class="step step-1">
           <div class="step-num">01</div>
