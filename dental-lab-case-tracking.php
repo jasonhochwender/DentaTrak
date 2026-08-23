@@ -177,7 +177,15 @@ $articleUrls = $appConfig['public_urls'] ?? [];
 
     <h2><?php echo t('marketing.articles.dental_lab_case_tracking.sections.how_dentatrak_tracks_lab_dependencies.heading'); ?></h2>
 
-    <p><?php echo t('marketing.articles.dental_lab_case_tracking.sections.how_dentatrak_tracks_lab_dependencies.body_2'); ?> <a href="<?= $baseUrl . ($articleUrls['article_dental_case_tracking_software'] ?? 'dental-case-tracking-software') ?>" class="content-link"><?php echo t('marketing.articles.dental_lab_case_tracking.sections.how_dentatrak_tracks_lab_dependencies.links.0'); ?></a> <?php echo t('marketing.articles.dental_lab_case_tracking.sections.how_dentatrak_tracks_lab_dependencies.body_3'); ?></p>
+    <p>
+      <?php
+        $labChecklistUrl = $baseUrl . ($articleUrls['article_checklist'] ?? 'dental-case-tracking-checklist');
+        $labChecklistLink = '<a href="' . $labChecklistUrl . '" class="content-link">' . t('marketing.articles.dental_lab_case_tracking.sections.how_dentatrak_tracks_lab_dependencies.checklist_link_label') . '</a>';
+        $labSoftwareUrl = $baseUrl . ($articleUrls['article_dental_case_tracking_software'] ?? 'dental-case-tracking-software');
+        $labSoftwareLink = '<a href="' . $labSoftwareUrl . '" class="content-link">' . t('marketing.articles.dental_lab_case_tracking.sections.how_dentatrak_tracks_lab_dependencies.links.0') . '</a>';
+        echo t('marketing.articles.dental_lab_case_tracking.sections.how_dentatrak_tracks_lab_dependencies.body_2') . ' ' . $labSoftwareLink . ' ' . t('marketing.articles.dental_lab_case_tracking.sections.how_dentatrak_tracks_lab_dependencies.body_3', ['link' => $labChecklistLink]);
+      ?>
+    </p>
 
     <p>
       <?php

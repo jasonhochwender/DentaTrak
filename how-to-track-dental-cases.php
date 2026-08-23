@@ -485,7 +485,13 @@ $articleUrls = $appConfig['public_urls'] ?? [];
     
     <p><?php echo t('marketing.articles.how_to_track.sections.where_dentatrak_fits.body_16'); ?></p>
     
-    <p><?php echo t('marketing.articles.how_to_track.sections.where_dentatrak_fits.body_17'); ?></p>
+    <p>
+      <?php
+        $checklistUrl = $baseUrl . ($articleUrls['article_checklist'] ?? 'dental-case-tracking-checklist');
+        $checklistLink = '<a href="' . $checklistUrl . '" style="color: var(--primary-color); text-decoration: none; font-weight: 500;">' . t('marketing.articles.how_to_track.sections.where_dentatrak_fits.link_label') . '</a>';
+        echo t('marketing.articles.how_to_track.sections.where_dentatrak_fits.body_17', ['link' => $checklistLink]);
+      ?>
+    </p>
     
     <div class="highlight-box">
       <h3><?php echo t('marketing.articles.how_to_track.sections.where_dentatrak_fits.subheading_5'); ?></h3>

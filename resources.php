@@ -182,6 +182,16 @@ $remakeCalcUrl = $baseUrl . ($articleUrls['article_dental_remake_cost'] ?? 'dent
           <p><?php echo t('marketing.resources.tool_calculator_desc'); ?></p>
           <span class="tool-cta"><?php echo t('marketing.resources.tool_calculator_cta'); ?></span>
         </a>
+        <a class="tool-card tool-card--tool" href="<?= $baseUrl . ($articleUrls['article_checklist'] ?? 'dental-case-tracking-checklist') ?>">
+          <span class="resource-type resource-type--tool"><?php echo t('marketing.resources.tool_checklist_type'); ?></span>
+          <svg class="tool-card__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M9 11l3 3L22 4"></path>
+            <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
+          </svg>
+          <h3><?php echo t('marketing.resources.tool_checklist_title'); ?></h3>
+          <p><?php echo t('marketing.resources.tool_checklist_desc'); ?></p>
+          <span class="tool-cta"><?php echo t('marketing.resources.tool_checklist_cta'); ?></span>
+        </a>
       </div>
       <div class="tool-privacy-callout">
         <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">

@@ -229,6 +229,13 @@ $articleUrls = $appConfig['public_urls'] ?? [];
         echo t('marketing.articles.dental_case_tracking_software.good_software.body_2', ['link' => $vsPmsLink]);
       ?>
     </p>
+    <p>
+      <?php
+        $softwareChecklistUrl = $baseUrl . ($articleUrls['article_checklist'] ?? 'dental-case-tracking-checklist');
+        $softwareChecklistLink = '<a href="' . $softwareChecklistUrl . '" class="content-link">' . t('marketing.articles.dental_case_tracking_software.good_software.checklist_link_label') . '</a>';
+        echo t('marketing.articles.dental_case_tracking_software.good_software.body_3', ['link' => $softwareChecklistLink]);
+      ?>
+    </p>
 
     <h2><?php echo t('marketing.articles.dental_case_tracking_software.how_it_works.heading'); ?></h2>
 

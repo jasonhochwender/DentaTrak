@@ -2166,7 +2166,9 @@
                         }
                     ],
                     "body_2": "Dental case tracking software is not a replacement for your practice management system. It fills a gap that PMS software was never designed to address: managing the workflow of complex, multi-step cases. See {link} for a full comparison.",
-                    "vs_pms_link_label": "dental case tracking software vs. PMS"
+                    "vs_pms_link_label": "dental case tracking software vs. PMS",
+                    "body_3": "For a practical, printable reference of what to track for each case, see {link}.",
+                    "checklist_link_label": "dental case tracking checklist"
                 },
                 "how_it_works": {
                     "heading": "How DentaTrak's Case Tracking Works",
@@ -2428,7 +2430,8 @@
                         "heading": "Where DentaTrak Fits",
                         "body_15": "DentaTrak is a dental case tracking system designed to manage this exact process.",
                         "body_16": "It gives every case a status, an owner, and a next step. It tracks cases across their full lifecycle, from initial treatment through final delivery. It makes delays visible early, so you can intervene before they become costly problems.",
-                        "body_17": "DentaTrak doesn't replace your practice management software. It fills a gap that PMS systems weren't designed to address: managing the workflow of complex, multi-step dental cases.",
+                        "body_17": "DentaTrak doesn't replace your practice management software. It fills a gap that PMS systems weren't designed to address: managing the workflow of complex, multi-step dental cases. For a printable reference of the information to track for each case, see {link}.",
+                        "link_label": "dental case tracking checklist",
                         "subheading_5": "What DentaTrak provides",
                         "body_18": "A dedicated system to track dental cases across labs, referrals, and internal handoffs. Clear ownership and accountability at every stage. Visibility into stalled cases before they affect patients or revenue."
                     },
@@ -2717,7 +2720,9 @@
                                 "title": "Shared documents:"
                             }
                         },
-                        "body_4": "For a small practice with a handful of active cases, this can work. The problems emerge when volume increases, more people are involved, or cases span longer timeframes."
+                        "body_4": "For a small practice with a handful of active cases, this can work. A {link} is a useful starting point to make sure your spreadsheet captures the right information. The problems emerge when volume increases, more people are involved, or cases span longer timeframes.",
+                        "checklist_link_label": "dental case tracking checklist",
+                        "body_5": ""
                     },
                     "where_spreadsheets_fail": {
                         "heading": "Where Spreadsheets Fail",
@@ -3062,7 +3067,8 @@
                             "crown and bridge case tracking",
                             "implant case tracking"
                         ],
-                        "body_3": "overview for how this fits together.",
+                        "body_3": "overview for how this fits together. You can use a {link} to track the same information in any system.",
+                        "checklist_link_label": "dental case tracking checklist",
                         "body_4": "Crown and bridge and implant cases are among the most common lab-dependent case types in a general practice. See our guides to {link} and {link2} for the specific workflows from prep to final seat.",
                         "body_5": ""
                     },
@@ -3541,6 +3547,133 @@
                 "cta": {
                     "body": "90-day free trial. No credit card required."
                 }
+            },
+            "dental_case_tracking_checklist": {
+                "title": "Dental Case Tracking Checklist | DentaTrak",
+                "h1": "Dental Case Tracking Checklist",
+                "description": "A practical dental case tracking checklist for crowns, implants, lab cases, referrals, and remakes. Track status, ownership, next steps, due dates, patient appointments, and stalled cases.",
+                "seo": {
+                    "title": "Dental Case Tracking Checklist | DentaTrak",
+                    "description": "A practical dental case tracking checklist for crowns, implants, lab cases, referrals, and remakes. Track status, ownership, next steps, due dates, patient appointments, and stalled cases."
+                },
+                "meta": {
+                    "by": "By",
+                    "published": "Published"
+                },
+                "intro": "Multi-step dental cases can lose visibility when the information needed to manage them is spread across the PMS, spreadsheets, inboxes, conversations, and staff memory. This checklist gives dental practices a simple, repeatable way to make sure every active case has the operational information needed to keep it moving. It can be used whether your practice tracks cases in DentaTrak, a spreadsheet, your PMS, or another workflow.",
+                "how_to_use": {
+                    "heading": "How to use this checklist",
+                    "body": "Use one checklist record for each active multi-step case. Update the information whenever responsibility, status, next action, or an external dependency changes. Review active cases at a consistent cadence that fits your practice, paying particular attention to handoffs and upcoming patient appointments. Close the case when the operational workflow is actually complete."
+                },
+                "checklist": {
+                    "heading": "The dental case tracking checklist",
+                    "print": "Print this checklist",
+                    "identification": {
+                        "heading": "Case identification",
+                        "note": "Use only the identifying information needed for workflow tracking. The full clinical record remains in the PMS or clinical chart.",
+                        "items": [
+                            "Internal patient or case reference",
+                            "Case type (crown, bridge, implant, denture, referral, other)",
+                            "Case start or preparation date"
+                        ]
+                    },
+                    "current_workflow": {
+                        "heading": "Current workflow",
+                        "items": [
+                            "Current status or stage",
+                            "Current case owner",
+                            "Specific next action",
+                            "Next action due date"
+                        ]
+                    },
+                    "timing": {
+                        "heading": "Timing and patient appointment",
+                        "items": [
+                            "Expected lab return or referral completion date, when applicable",
+                            "Patient's next relevant appointment",
+                            "Whether the case is expected to be ready for that appointment",
+                            "Whether a current delay puts that appointment at risk"
+                        ]
+                    },
+                    "external_dependencies": {
+                        "heading": "External dependencies",
+                        "items": [
+                            "Outside lab, specialist, referral provider, or other dependency",
+                            "Date sent or dependency started",
+                            "Expected return or completion date",
+                            "Whether the dependency is currently blocking progress",
+                            "Whether the expected return or completion is overdue"
+                        ]
+                    },
+                    "exceptions": {
+                        "heading": "Exceptions",
+                        "items": [
+                            "Whether the case requires a remake or revision",
+                            "Whether an expected item or required input is missing",
+                            "Whether the case has stalled or has had no expected movement",
+                            "Whether something outside the practice is blocking progress"
+                        ]
+                    },
+                    "completion": {
+                        "heading": "Completion",
+                        "items": [
+                            "Date completed, delivered, or seated, as applicable",
+                            "Final case status",
+                            "Whether any operational follow-up action remains"
+                        ]
+                    }
+                },
+                "case_types": {
+                    "heading": "Checklist by case type",
+                    "crown_bridge": {
+                        "title": "Crown and bridge",
+                        "body": "Pay particular attention to the lab handoff, expected return, whether the case will be ready for the patient appointment, and any remake or revision."
+                    },
+                    "implant": {
+                        "title": "Implants",
+                        "body": "Long-running cases with multiple phases need clear ownership, next action, and patient appointment awareness so they don't disappear between visits."
+                    },
+                    "lab": {
+                        "title": "Cases at outside labs",
+                        "body": "Track the date sent, the outside lab, expected return, overdue status, and whether the return will be ready for the patient appointment."
+                    },
+                    "referral": {
+                        "title": "Referrals",
+                        "body": "Record the outside provider, the expected next step, who is responsible for following up, and the return or completion dependency."
+                    },
+                    "remake": {
+                        "title": "Remakes and revisions",
+                        "body": "Keep the original case visible, record that a remake or revision occurred, and set a new expected return, owner, and next action."
+                    }
+                },
+                "does_not_replace": {
+                    "heading": "What this checklist does not replace",
+                    "body": "This is an operational workflow checklist. It does not replace the patient's clinical record, required clinical documentation, the PMS, professional judgment, or your practice's own policies and procedures. A workflow tracker should contain the operational information needed to understand case progress without unnecessarily duplicating clinical information."
+                },
+                "putting_into_practice": {
+                    "heading": "Putting the checklist into practice",
+                    "body_1": "This methodology can be implemented with different tools. A well-maintained spreadsheet can work. A practice might also use its PMS, a shared workflow, or dedicated case tracking software. The important thing is that the information stays current, visible, and usable by the people responsible for the case. See {link} for a comparison.",
+                    "link_label_1": "dental case tracking software vs. spreadsheets",
+                    "body_2": "DentaTrak provides a visual board for the same operational concepts: status, owner, next step, due date, external dependency, and patient appointment. See {link} for an overview.",
+                    "link_label_2": "dental case tracking software"
+                },
+                "closing": {
+                    "heading": "A checklist helps define what to keep visible",
+                    "body": "A checklist helps define the information a practice needs to keep visible. DentaTrak puts those same operational concepts into a visual workflow so the team can see case status, ownership, next steps, due dates, and upcoming appointments in one place."
+                },
+                "related_resources": {
+                    "heading": "Related resources",
+                    "items": [
+                        "How to Track Dental Cases Without Losing Them",
+                        "Dental Case Tracking Software",
+                        "Visual Dental Case Workflow",
+                        "Dental Lab Case Tracking",
+                        "Dental Case Tracking Software vs. Spreadsheets"
+                    ]
+                },
+                "cta": {
+                    "body": "90-day free trial. No credit card required."
+                }
             }
         },
         "hero": {
@@ -3666,6 +3799,10 @@
             "tool_calculator_desc": "A free tool for estimating the real cost of dental case remakes, including more than just the laboratory fee.",
             "tool_calculator_cta": "Calculate Remake Cost",
             "tool_calculator_type": "Calculator",
+            "tool_checklist_title": "Dental Case Tracking Checklist",
+            "tool_checklist_desc": "A printable checklist to make sure every multi-step dental case has the status, owner, next step, due date, and patient appointment information it needs.",
+            "tool_checklist_cta": "View checklist",
+            "tool_checklist_type": "Tool",
             "featured_heading": "Featured Resources",
             "featured_desc": "A few of the most useful guides to start with.",
             "browse_heading": "Browse Resources",

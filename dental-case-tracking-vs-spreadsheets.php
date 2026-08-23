@@ -372,7 +372,13 @@ $articleUrls = $appConfig['public_urls'] ?? [];
       <li><strong><?php echo t('marketing.articles.dental_case_tracking_vs_spreadsheets.sections.how_spreadsheets_are_used_for_case_tracking.list_items.3.title'); ?></strong> <?php echo t('marketing.articles.dental_case_tracking_vs_spreadsheets.sections.how_spreadsheets_are_used_for_case_tracking.list_items.3.body'); ?></li>
     </ul>
     
-    <p><?php echo t('marketing.articles.dental_case_tracking_vs_spreadsheets.sections.how_spreadsheets_are_used_for_case_tracking.body_4'); ?></p>
+    <p>
+      <?php
+        $vsChecklistUrl = $baseUrl . ($articleUrls['article_checklist'] ?? 'dental-case-tracking-checklist');
+        $vsChecklistLink = '<a href="' . $vsChecklistUrl . '" style="color: var(--primary-color); text-decoration: none; font-weight: 500;">' . t('marketing.articles.dental_case_tracking_vs_spreadsheets.sections.how_spreadsheets_are_used_for_case_tracking.checklist_link_label') . '</a>';
+        echo t('marketing.articles.dental_case_tracking_vs_spreadsheets.sections.how_spreadsheets_are_used_for_case_tracking.body_4', ['link' => $vsChecklistLink]);
+      ?>
+    </p>
 
     <h2><?php echo t('marketing.articles.dental_case_tracking_vs_spreadsheets.sections.where_spreadsheets_fail.heading'); ?></h2>
     
