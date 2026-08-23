@@ -2803,11 +2803,12 @@
                         "body_12": "It gives every case a status, an owner, and a next step. It tracks cases across their full lifecycle, from prep to lab to delivery. It makes delays visible before they become problems.",
                         "subheading_1": "DentaTrak vs spreadsheets",
                         "body_13": "Spreadsheets require you to build and maintain your own tracking system. DentaTrak provides a ready-made structure designed for dental case workflows, with ownership, visibility, and accountability built in.",
-                        "body_14": "If your practice has outgrown spreadsheets, or if you're seeing cases slip through the cracks, dental case tracking software like DentaTrak can provide the structure and visibility you need.",
+                        "body_14": "If your practice has outgrown spreadsheets, or if you're seeing cases slip through the cracks, dental case tracking software like DentaTrak can provide the structure and visibility you need. If you want to start with a spreadsheet, download our {link}.",
                         "body_15": "For more on how dental case tracking works, see our",
+                        "link_label": "free dental case tracking spreadsheet template",
                         "links": [
                             "detailed guide",
-                            "detailed guide"
+                            "dental case tracking software overview"
                         ]
                     },
                     "ready_to_move_beyond_spreadsheets": {
@@ -2864,7 +2865,8 @@
                     },
                     "do_you_need_both": {
                         "heading": "Do You Need Both?",
-                        "body_5": "If your practice handles crowns, bridges, implants, dentures, or referral-dependent treatments, and cases have ever gone quiet between appointments, a PMS alone is unlikely to give you the visibility to catch that early. Most practices keep their PMS for scheduling and billing and add dedicated case tracking for workflow visibility. The two aren't a replacement for one another."
+                        "body_5": "If your practice handles crowns, bridges, implants, dentures, or referral-dependent treatments, and cases have ever gone quiet between appointments, a PMS alone is unlikely to give you the visibility to catch that early. Most practices keep their PMS for scheduling and billing and add dedicated case tracking for workflow visibility. The two aren't a replacement for one another. For the practical tracking method behind this, see {link}.",
+                        "link_label": "how to track dental cases without losing them"
                     },
                     "how_dentatrak_complements_rather_than_replaces_a_pms": {
                         "heading": "How DentaTrak Complements Rather Than Replaces a PMS",
@@ -2885,7 +2887,7 @@
                         "body_6": "For a broader look at what dedicated case tracking software provides, see our",
                         "links": [
                             "dental case tracking software",
-                            "dental case tracking software"
+                            "dental case tracking software overview"
                         ],
                         "body_7": "overview."
                     },
@@ -3223,7 +3225,8 @@
                     "items": [
                         "Dental Case Tracking Software",
                         "Dental Lab Case Tracking",
-                        "Implant Case Tracking"
+                        "Implant Case Tracking",
+                        "What Dental Remakes Really Cost"
                     ]
                 },
                 "cta": {

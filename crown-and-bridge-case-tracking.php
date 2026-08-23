@@ -210,6 +210,7 @@ $articleUrls = $appConfig['public_urls'] ?? [];
         <li><a href="<?= $baseUrl . ($articleUrls['article_dental_case_tracking_software'] ?? 'dental-case-tracking-software') ?>"><?php echo t('marketing.articles.crown_and_bridge_case_tracking.related_resources.items.0'); ?></a></li>
         <li><a href="<?= $baseUrl . ($articleUrls['article_lab_tracking'] ?? 'dental-lab-case-tracking') ?>"><?php echo t('marketing.articles.crown_and_bridge_case_tracking.related_resources.items.1'); ?></a></li>
         <li><a href="<?= $baseUrl . ($articleUrls['article_implant'] ?? 'implant-case-tracking') ?>"><?php echo t('marketing.articles.crown_and_bridge_case_tracking.related_resources.items.2'); ?></a></li>
+        <li><a href="<?= $baseUrl . ($articleUrls['article_dental_remake_cost'] ?? 'dental-remake-cost') ?>"><?php echo t('marketing.articles.crown_and_bridge_case_tracking.related_resources.items.3'); ?></a></li>
       </ul>
     </div>
 

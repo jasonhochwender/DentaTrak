@@ -426,7 +426,13 @@ $articleUrls = $appConfig['public_urls'] ?? [];
       <p><?php echo t('marketing.articles.dental_case_tracking_vs_spreadsheets.sections.where_dentatrak_fits.body_13'); ?></p>
     </div>
     
-    <p><?php echo t('marketing.articles.dental_case_tracking_vs_spreadsheets.sections.where_dentatrak_fits.body_14'); ?></p>
+    <p>
+      <?php
+        $spreadsheetResourceUrl = $baseUrl . ($articleUrls['page_resources'] ?? 'resources');
+        $spreadsheetResourceLink = '<a href="' . $spreadsheetResourceUrl . '" style="color: var(--primary-color); text-decoration: none; font-weight: 500;">' . t('marketing.articles.dental_case_tracking_vs_spreadsheets.sections.where_dentatrak_fits.link_label') . '</a>';
+        echo t('marketing.articles.dental_case_tracking_vs_spreadsheets.sections.where_dentatrak_fits.body_14', ['link' => $spreadsheetResourceLink]);
+      ?>
+    </p>
     
     <p><?php echo t('marketing.articles.dental_case_tracking_vs_spreadsheets.sections.where_dentatrak_fits.body_15'); ?> <a href="<?= $baseUrl . ($articleUrls['article_dental_case_tracking_software'] ?? 'dental-case-tracking-software') ?>" style="color: var(--primary-color); text-decoration: none; font-weight: 500;"><?php echo t('marketing.articles.dental_case_tracking_vs_spreadsheets.sections.where_dentatrak_fits.links.1'); ?></a>.
     </p>

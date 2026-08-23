@@ -189,7 +189,13 @@ $articleUrls = $appConfig['public_urls'] ?? [];
 
     <h2><?php echo t('marketing.articles.dental_case_tracking_software_vs_pms.sections.do_you_need_both.heading'); ?></h2>
 
-    <p><?php echo t('marketing.articles.dental_case_tracking_software_vs_pms.sections.do_you_need_both.body_5'); ?></p>
+    <p>
+      <?php
+        $howToTrackUrl = $baseUrl . ($articleUrls['article_how_to_track'] ?? 'how-to-track-dental-cases');
+        $howToTrackLink = '<a href="' . $howToTrackUrl . '" style="color: var(--primary-color); text-decoration: none; font-weight: 500;">' . t('marketing.articles.dental_case_tracking_software_vs_pms.sections.do_you_need_both.link_label') . '</a>';
+        echo t('marketing.articles.dental_case_tracking_software_vs_pms.sections.do_you_need_both.body_5', ['link' => $howToTrackLink]);
+      ?>
+    </p>
 
     <h2><?php echo t('marketing.articles.dental_case_tracking_software_vs_pms.sections.how_dentatrak_complements_rather_than_replaces_a_pms.heading'); ?></h2>
 
