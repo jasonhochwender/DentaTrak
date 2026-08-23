@@ -1,6 +1,11 @@
 # Custom 404 Error Page
 ErrorDocument 404 /404.php
 
+# Disable directory indexes and automatic trailing-slash redirects that can
+# leak the internal Cloud Run container port (e.g. :8080) in self-referential URLs.
+Options -Indexes
+DirectorySlash Off
+
 # Clean URLs - rewrite /page to /page.php (production only)
 <IfModule mod_rewrite.c>
   RewriteEngine On
@@ -78,9 +83,6 @@ php_value error_reporting 22519
 # Browser caching for static assets
 <IfModule mod_expires.c>
   ExpiresActive On
-  
-  # Default expiration
-  ExpiresDefault "access plus 1 week"
   
   # CSS files - 1 year (use versioned URLs like ?v=20241227)
   ExpiresByType text/css "access plus 1 year"
