@@ -15,6 +15,12 @@ ErrorDocument 404 /404.php
   RewriteCond %{REQUEST_URI} ".*resources/DentaTrak(%20| )User(%20| )Guide\.pdf$" [NC]
   RewriteRule .* api/user-guide.php [L]
 
+  # Canonical redirect for trailing slash on /resources/ to /resources
+  RewriteCond %{HTTP_HOST} !^localhost(:[0-9]+)?$ [NC]
+  RewriteCond %{HTTP_HOST} !^127\.0\.0\.1(:[0-9]+)?$ [NC]
+  RewriteCond %{HTTP_HOST} ^([^:]+)
+  RewriteRule ^resources/$ https://%1/resources [L,R=301]
+
   # Resources landing page: /resources/ is a real directory, so the normal
   # clean-URL rewrite below would be skipped. Route it explicitly to
   # resources.php while keeping the actual directory contents protected.
@@ -36,12 +42,14 @@ ErrorDocument 404 /404.php
 <IfModule mod_rewrite.c>
   RewriteEngine On
   # Skip HTTPS redirect for localhost/development
-  RewriteCond %{HTTP_HOST} !^localhost$ [NC]
-  RewriteCond %{HTTP_HOST} !^127\.0\.0\.1$ [NC]
+  RewriteCond %{HTTP_HOST} !^localhost(:[0-9]+)?$ [NC]
+  RewriteCond %{HTTP_HOST} !^127\.0\.0\.1(:[0-9]+)?$ [NC]
   # Check both HTTPS flag and X-Forwarded-Proto header (for load balancers)
   RewriteCond %{HTTPS} off
   RewriteCond %{HTTP:X-Forwarded-Proto} !https
-  RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+  # Capture the host without any container port (Cloud Run may expose :8080 in HTTP_HOST)
+  RewriteCond %{HTTP_HOST} ^([^:]+)
+  RewriteRule ^(.*)$ https://%1%{REQUEST_URI} [L,R=301]
 </IfModule>
 
 # Suppress PHP deprecation warnings
