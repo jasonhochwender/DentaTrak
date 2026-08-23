@@ -426,7 +426,13 @@ $articleUrls = $appConfig['public_urls'] ?? [];
     <p><?php echo t('marketing.articles.how_to_track.sections.how_dental_cases_are_typically_tracked_and_why_it_fails.body_6'); ?></p>
     
     <h3><?php echo t('marketing.articles.how_to_track.sections.how_dental_cases_are_typically_tracked_and_why_it_fails.subheading_2'); ?></h3>
-    <p><?php echo t('marketing.articles.how_to_track.sections.how_dental_cases_are_typically_tracked_and_why_it_fails.body_7'); ?></p>
+    <p>
+      <?php
+        $vsSpreadsheetsUrl = $baseUrl . ($articleUrls['article_comparison'] ?? 'dental-case-tracking-vs-spreadsheets');
+        $vsSpreadsheetsLink = '<a href="' . $vsSpreadsheetsUrl . '" style="color: var(--primary-color); text-decoration: none; font-weight: 500;">' . t('marketing.articles.how_to_track.sections.how_dental_cases_are_typically_tracked_and_why_it_fails.link_label') . '</a>';
+        echo t('marketing.articles.how_to_track.sections.how_dental_cases_are_typically_tracked_and_why_it_fails.body_7', ['link' => $vsSpreadsheetsLink]);
+      ?>
+    </p>
     
     <h3><?php echo t('marketing.articles.how_to_track.sections.how_dental_cases_are_typically_tracked_and_why_it_fails.subheading_3'); ?></h3>
     <p><?php echo t('marketing.articles.how_to_track.sections.how_dental_cases_are_typically_tracked_and_why_it_fails.body_8'); ?></p>

@@ -2357,7 +2357,8 @@
                         "subheading_1": "Sticky notes and paper lists",
                         "body_6": "Quick to create, easy to lose. Sticky notes work for one person tracking a few cases, but they don't scale. Information isn't shared, and notes get buried, thrown away, or forgotten.",
                         "subheading_2": "Spreadsheets",
-                        "body_7": "Better than paper, but still fragile. Spreadsheets require manual updates, and they're only as current as the last person who edited them. They don't alert you when something stalls. They just sit there, waiting to be checked.",
+                        "body_7": "Better than paper, but still fragile. Spreadsheets require manual updates, and they're only as current as the last person who edited them. They don't alert you when something stalls. They just sit there, waiting to be checked. See {link} for a fuller comparison.",
+                        "link_label": "dental case tracking software vs. spreadsheets",
                         "subheading_3": "Notes in the PMS",
                         "body_8": "Some practices add case notes to patient records in their practice management software. But PMS systems aren't built to track dental cases across stages. Notes get buried in the patient chart, and there's no way to see all active cases at once or filter by status.",
                         "subheading_4": "Verbal communication",
@@ -3058,11 +3059,12 @@
                         "body_2": "DentaTrak tracks lab-dependent cases as part of its full case lifecycle: the sent date and expected return date are recorded when a case goes out, and cases that pass their expected return date are surfaced automatically rather than requiring someone to check. This is part of the same case record used to track ownership, status, and handoffs across the practice. See the full",
                         "links": [
                             "dental case tracking software",
-                            "crown and bridge case tracking"
+                            "crown and bridge case tracking",
+                            "implant case tracking"
                         ],
                         "body_3": "overview for how this fits together.",
-                        "body_4": "Crown and bridge cases are among the most common lab-dependent case types in a general practice. See our guide to",
-                        "body_5": "for the specific workflow from prep to final seat."
+                        "body_4": "Crown and bridge and implant cases are among the most common lab-dependent case types in a general practice. See our guides to {link} and {link2} for the specific workflows from prep to final seat.",
+                        "body_5": ""
                     },
                     "reducing_remakes_through_better_visibility": {
                         "heading": "Reducing Remakes Through Better Visibility",
@@ -3644,7 +3646,8 @@
             "philosophy_body_2": "DentaTrak focuses on the operational journey of the case itself: where cases stand, who is responsible, what's coming due, and what needs attention. This focused scope is intentional. DentaTrak complements the systems a practice already uses rather than requiring them to be replaced.",
             "pms_cta": "Compare DentaTrak with a PMS",
             "closing_title": "Built for the way dental cases actually move.",
-            "closing_body": "DentaTrak is particularly useful for cases involving multiple stages or handoffs, such as crowns, bridges, implants, dentures, lab-dependent restorative cases, and referral-dependent cases. Dental cases do not always move in a straight line, and DentaTrak was built around that reality.",
+            "closing_body": "DentaTrak is particularly useful for cases involving multiple stages or handoffs, such as crowns, bridges, implants, dentures, lab-dependent restorative cases, and referral-dependent cases. Dental cases do not always move in a straight line, and DentaTrak was built around that reality. See {link} for a fuller explanation of the category DentaTrak belongs to.",
+            "closing_link_label": "dental case tracking software",
             "cta_title": "Start tracking your cases",
             "cta_lead": "Try DentaTrak free for 90 days and see how it fits your practice's case workflow."
         },
@@ -3709,7 +3712,8 @@
         "hipaa": {
             "title": "HIPAA & Security",
             "h1": "HIPAA & Security",
-            "intro": "Built to protect sensitive dental case information. DentaTrak gives practices secure controls for managing patient-related case information, files, users, and access while supporting the safeguards important for HIPAA-conscious workflows.",
+            "intro": "Built to protect sensitive dental case information. DentaTrak gives practices secure controls for managing patient-related case information, files, users, and access while supporting the safeguards important for HIPAA-conscious workflows. This is part of DentaTrak's {link} for dental practices.",
+            "intro_link_label": "dental case tracking software",
             "trust_heading": "Security at a glance",
             "trust_baa_heading": "Business Associate Agreement",
             "trust_baa_body": "A BAA is part of DentaTrak onboarding before a practice begins using the platform for patient information.",

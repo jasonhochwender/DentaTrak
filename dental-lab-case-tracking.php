@@ -179,7 +179,15 @@ $articleUrls = $appConfig['public_urls'] ?? [];
 
     <p><?php echo t('marketing.articles.dental_lab_case_tracking.sections.how_dentatrak_tracks_lab_dependencies.body_2'); ?> <a href="<?= $baseUrl . ($articleUrls['article_dental_case_tracking_software'] ?? 'dental-case-tracking-software') ?>" class="content-link"><?php echo t('marketing.articles.dental_lab_case_tracking.sections.how_dentatrak_tracks_lab_dependencies.links.0'); ?></a> <?php echo t('marketing.articles.dental_lab_case_tracking.sections.how_dentatrak_tracks_lab_dependencies.body_3'); ?></p>
 
-    <p><?php echo t('marketing.articles.dental_lab_case_tracking.sections.how_dentatrak_tracks_lab_dependencies.body_4'); ?> <a href="<?= $baseUrl . ($articleUrls['article_crown_bridge'] ?? 'crown-and-bridge-case-tracking') ?>" class="content-link"><?php echo t('marketing.articles.dental_lab_case_tracking.sections.how_dentatrak_tracks_lab_dependencies.links.1'); ?></a> <?php echo t('marketing.articles.dental_lab_case_tracking.sections.how_dentatrak_tracks_lab_dependencies.body_5'); ?></p>
+    <p>
+      <?php
+        $crownBridgeUrl = $baseUrl . ($articleUrls['article_crown_bridge'] ?? 'crown-and-bridge-case-tracking');
+        $crownBridgeLink = '<a href="' . $crownBridgeUrl . '" class="content-link">' . t('marketing.articles.dental_lab_case_tracking.sections.how_dentatrak_tracks_lab_dependencies.links.1') . '</a>';
+        $implantUrl = $baseUrl . ($articleUrls['article_implant'] ?? 'implant-case-tracking');
+        $implantLink = '<a href="' . $implantUrl . '" class="content-link">' . t('marketing.articles.dental_lab_case_tracking.sections.how_dentatrak_tracks_lab_dependencies.links.2') . '</a>';
+        echo t('marketing.articles.dental_lab_case_tracking.sections.how_dentatrak_tracks_lab_dependencies.body_4', ['link' => $crownBridgeLink, 'link2' => $implantLink]);
+      ?>
+    </p>
 
     <h2><?php echo t('marketing.articles.dental_lab_case_tracking.sections.reducing_remakes_through_better_visibility.heading'); ?></h2>
 

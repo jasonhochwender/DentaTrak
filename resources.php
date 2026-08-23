@@ -222,6 +222,7 @@ $remakeCalcUrl = $baseUrl . ($articleUrls['article_dental_remake_cost'] ?? 'dent
       <ul class="category-list" aria-label="<?php echo htmlspecialchars(t('marketing.resources.browse_heading')); ?>">
         <li><a href="#cat-lab-workflows"><?php echo t('marketing.resources.group_lab_workflows'); ?></a></li>
         <li><a href="#cat-case-types"><?php echo t('marketing.resources.group_case_types'); ?></a></li>
+        <li><a href="#cat-practice-operations"><?php echo t('marketing.resources.group_practice_operations'); ?></a></li>
         <li><a href="#cat-comparisons"><?php echo t('marketing.resources.group_comparisons'); ?></a></li>
         <li><a href="#cat-security-privacy"><?php echo t('marketing.resources.group_security_privacy'); ?></a></li>
       </ul>
@@ -251,6 +252,18 @@ $remakeCalcUrl = $baseUrl . ($articleUrls['article_dental_remake_cost'] ?? 'dent
             <span class="resource-type resource-type--guide"><?php echo t('marketing.resources.type_guide'); ?></span>
             <h3><?php echo t('marketing.resources.card_implant_title'); ?></h3>
             <p><?php echo t('marketing.resources.card_implant_desc'); ?></p>
+            <span class="resource-cta"><?php echo t('marketing.resources.read_guide'); ?></span>
+          </a>
+        </div>
+      </div>
+
+      <div class="resource-category" id="cat-practice-operations">
+        <h3><?php echo t('marketing.resources.group_practice_operations'); ?></h3>
+        <div class="resource-grid">
+          <a class="resource-card" href="<?= $baseUrl . ($articleUrls['article_dental_remake_cost'] ?? 'dental-remake-cost') ?>">
+            <span class="resource-type resource-type--tool"><?php echo t('marketing.resources.type_tool'); ?></span>
+            <h3><?php echo t('marketing.resources.card_remake_cost_title'); ?></h3>
+            <p><?php echo t('marketing.resources.card_remake_cost_desc'); ?></p>
             <span class="resource-cta"><?php echo t('marketing.resources.read_guide'); ?></span>
           </a>
         </div>

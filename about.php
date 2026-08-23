@@ -137,7 +137,13 @@ $articleUrls = $appConfig['public_urls'] ?? [];
 
     <section class="about-section" aria-labelledby="closing-heading">
       <h2 id="closing-heading"><?php echo t('marketing.about.closing_title'); ?></h2>
-      <p><?php echo t('marketing.about.closing_body'); ?></p>
+      <p>
+        <?php
+          $aboutCatUrl = $baseUrl . ($articleUrls['article_dental_case_tracking_software'] ?? 'dental-case-tracking-software');
+          $aboutCatLink = '<a href="' . $aboutCatUrl . '" class="content-link">' . t('marketing.about.closing_link_label') . '</a>';
+          echo t('marketing.about.closing_body', ['link' => $aboutCatLink]);
+        ?>
+      </p>
     </section>
 
     <div class="cta-section">

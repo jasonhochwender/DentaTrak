@@ -103,7 +103,13 @@ $hipaaUrl = $baseUrl . ($articleUrls['page_hipaa_security'] ?? 'hipaa-security')
   <main class="content no-breadcrumb hipaa-page">
     <div class="hipaa-hero">
       <h1><?php echo t('marketing.hipaa.h1'); ?></h1>
-      <p><?php echo t('marketing.hipaa.intro'); ?></p>
+      <p>
+      <?php
+        $hipaaCatUrl = $baseUrl . ($articleUrls['article_dental_case_tracking_software'] ?? 'dental-case-tracking-software');
+        $hipaaCatLink = '<a href="' . $hipaaCatUrl . '" class="content-link">' . t('marketing.hipaa.intro_link_label') . '</a>';
+        echo t('marketing.hipaa.intro', ['link' => $hipaaCatLink]);
+      ?>
+    </p>
     </div>
 
     <section class="hipaa-trust" aria-labelledby="trust-heading">
