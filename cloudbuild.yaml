@@ -40,7 +40,6 @@ steps:
         'dtk-vpc-prod',
         '--add-cloudsql-instances',
         'dtk-prod-core:us-east1:dtk-sql-prod',
-        '--no-traffic',
         '--quiet'
       ]
 
