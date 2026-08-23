@@ -5,6 +5,10 @@ ErrorDocument 404 /404.php
 <IfModule mod_rewrite.c>
   RewriteEngine On
 
+  # Redirect direct /index.php requests to canonical root (avoids duplicate without user-selected canonical)
+  RewriteCond %{THE_REQUEST} ^[A-Z]{3,9}\ /[^?]*index\.php
+  RewriteRule ^index\.php$ / [R=301,L]
+
   # User Guide: clean public URL and prevent direct PDF indexing by forcing
   # all User Guide requests through the streaming endpoint that sets headers.
   RewriteRule ^resources/user-guide$ api/user-guide.php [L]
