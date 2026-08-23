@@ -1,11 +1,6 @@
 # Custom 404 Error Page
 ErrorDocument 404 /404.php
 
-# Disable directory indexes and automatic trailing-slash redirects that can
-# leak the internal Cloud Run container port (e.g. :8080) in self-referential URLs.
-Options -Indexes
-DirectorySlash Off
-
 # Clean URLs - rewrite /page to /page.php (production only)
 <IfModule mod_rewrite.c>
   RewriteEngine On
@@ -17,7 +12,7 @@ DirectorySlash Off
   # User Guide: clean public URL and prevent direct PDF indexing by forcing
   # all User Guide requests through the streaming endpoint that sets headers.
   RewriteRule ^resources/user-guide$ api/user-guide.php [L]
-  RewriteCond %{REQUEST_URI} ".*resources/DentaTrak(%20| )User(%20| )Guide\.pdf$" [NC]
+  RewriteCond %{REQUEST_URI} ".*resource-assets/DentaTrak(%20| )User(%20| )Guide\.pdf$" [NC]
   RewriteRule .* api/user-guide.php [L]
 
   # Canonical redirect for trailing slash on /resources/ to /resources
@@ -26,9 +21,7 @@ DirectorySlash Off
   RewriteCond %{HTTP_HOST} ^([^:]+)
   RewriteRule ^resources/$ https://%1/resources [L,R=301]
 
-  # Resources landing page: /resources/ is a real directory, so the normal
-  # clean-URL rewrite below would be skipped. Route it explicitly to
-  # resources.php while keeping the actual directory contents protected.
+  # Resources landing page: served by resources.php.
   RewriteRule ^resources/?$ resources.php [L]
   
   # Skip if the request is a real file or directory

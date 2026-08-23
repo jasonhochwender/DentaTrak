@@ -4,7 +4,7 @@
  * Serves the User Guide PDF without requiring authentication.
  */
 
-$pdfPath = __DIR__ . '/../resources/DentaTrak User Guide.pdf';
+$pdfPath = __DIR__ . '/../resource-assets/DentaTrak User Guide.pdf';
 
 // Always set the robots tag, even for 404
 header('X-Robots-Tag: noindex, nofollow');
