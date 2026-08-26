@@ -11,6 +11,7 @@ require_once __DIR__ . '/cases-cache.php';
 require_once __DIR__ . '/case-activity-log.php';
 require_once __DIR__ . '/lab-assignment-history.php';
 require_once __DIR__ . '/csrf.php';
+require_once __DIR__ . '/notification-service.php';
 
 // Set header to JSON
 header('Content-Type: application/json');
@@ -274,7 +275,18 @@ try {
     if (function_exists('recordCaseUpdate')) {
         recordCaseUpdate($caseId, 'assignment', null, $previousAssignee ?? null);
     }
-    
+
+    // Emit structured in-app notification for assignment change (Phase 2).
+    if ($assignedTo !== '' && $assignedTo !== $previousAssignee && $currentPracticeId) {
+        $categories = ['assignment_changed'];
+        $metadata = [
+            'assignment_set' => true,
+            'from_previous' => $previousAssignee !== '' && $previousAssignee !== null,
+        ];
+        $eventType = getPrimaryNotificationType($categories);
+        emitCaseNotificationEvent($currentPracticeId, $caseId, $currentUserId, $eventType, $categories, $metadata);
+    }
+
     // Return success
     echo json_encode([
         'success' => true,

@@ -315,8 +315,9 @@
 
 .notification-badge {
   position: absolute;
-  top: 4px;
-  right: 4px;
+  top: -8px;
+  right: -5px;
+  bottom: auto;
   min-width: 16px;
   height: 16px;
   padding: 0 4px;
@@ -328,6 +329,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  pointer-events: none;
+  z-index: 2;
 }
 
 .notification-badge:empty,
@@ -370,6 +373,24 @@
   color: var(--text-primary, #1f2937);
 }
 
+.case-view-loading,
+.case-view-error {
+  padding: 2rem 1rem;
+  text-align: center;
+  color: var(--text-secondary, #6b7280);
+}
+
+.case-view-error-text {
+  color: var(--danger, #dc2626);
+  margin: 0 0 1rem;
+}
+
+.case-view-error-actions {
+  display: flex;
+  justify-content: center;
+  gap: 0.75rem;
+}
+
 .notification-mark-all {
   font-size: 0.75rem;
   color: var(--primary-color, #1e40af);
@@ -379,8 +400,16 @@
   padding: 0;
 }
 
-.notification-mark-all:hover {
+.notification-mark-all:hover:not(:disabled):not([aria-disabled="true"]) {
   text-decoration: underline;
+}
+
+.notification-mark-all:disabled,
+.notification-mark-all[aria-disabled="true"] {
+  color: var(--text-tertiary, #9ca3af);
+  cursor: not-allowed;
+  opacity: 0.5;
+  text-decoration: none;
 }
 
 .notification-dropdown-list {

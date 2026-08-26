@@ -76,12 +76,11 @@ if ($method === 'GET') {
                 'practice_id' => $currentPracticeId
             ]);
             $result = $stmt->fetch(PDO::FETCH_ASSOC);
-            
+
             echo json_encode([
                 'success' => true,
                 'count' => (int)$result['count']
             ]);
-            
         } catch (PDOException $e) {
             error_log('[notifications] Error getting count: ' . $e->getMessage());
             http_response_code(500);
@@ -95,13 +94,13 @@ if ($method === 'GET') {
         
         try {
             $sql = "
-                SELECT n.id, n.notification_type, n.case_id, n.comment_id, 
+                SELECT n.id, n.notification_type, n.case_id, n.comment_id,
                        n.from_user_id, n.from_user_name, n.preview_text,
-                       n.is_read, n.created_at,
-                       c.patient_first_name, c.patient_last_name
+                       n.is_read, n.created_at, n.metadata_json, n.event_id,
+                       e.event_type, e.event_categories, e.metadata_json as event_metadata
                 FROM user_notifications n
-                LEFT JOIN cases_cache c ON n.case_id = c.case_id
-                WHERE n.user_id = :user_id 
+                LEFT JOIN notification_events e ON n.event_id = e.id
+                WHERE n.user_id = :user_id
                 AND n.practice_id = :practice_id
             ";
             
@@ -121,15 +120,36 @@ if ($method === 'GET') {
             
             // Format notifications
             $formatted = array_map(function($n) {
-                $patientName = trim(($n['patient_first_name'] ?? '') . ' ' . ($n['patient_last_name'] ?? ''));
+                $eventType = $n['event_type'] ?? $n['notification_type'];
+                $categories = [];
+                if (!empty($n['event_categories'])) {
+                    $decoded = json_decode($n['event_categories'], true);
+                    if (is_array($decoded)) {
+                        $categories = $decoded;
+                    }
+                }
+                if (empty($categories) && $n['notification_type'] === 'mention') {
+                    $categories = ['mention'];
+                }
+
+                $metadata = [];
+                $metadataSource = $n['metadata_json'] ?? $n['event_metadata'] ?? null;
+                if (!empty($metadataSource)) {
+                    $decoded = json_decode($metadataSource, true);
+                    if (is_array($decoded)) {
+                        $metadata = $decoded;
+                    }
+                }
+
                 return [
                     'id' => (int)$n['id'],
-                    'type' => $n['notification_type'],
+                    'type' => $eventType,
                     'case_id' => $n['case_id'],
                     'comment_id' => $n['comment_id'] ? (int)$n['comment_id'] : null,
                     'from_user_name' => $n['from_user_name'],
                     'preview' => $n['preview_text'],
-                    'patient_name' => $patientName ?: null,
+                    'categories' => $categories,
+                    'metadata' => $metadata,
                     'is_read' => (bool)$n['is_read'],
                     'created_at' => $n['created_at']
                 ];
@@ -139,7 +159,6 @@ if ($method === 'GET') {
                 'success' => true,
                 'notifications' => $formatted
             ]);
-            
         } catch (PDOException $e) {
             error_log('[notifications] Error listing: ' . $e->getMessage());
             http_response_code(500);

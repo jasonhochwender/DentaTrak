@@ -12,6 +12,7 @@ require_once __DIR__ . '/csrf.php';
 require_once __DIR__ . '/security-headers.php';
 require_once __DIR__ . '/tooth-number-parser.php';
 require_once __DIR__ . '/gcs-attachments.php';
+require_once __DIR__ . '/notification-service.php';
 
 // Set security headers
 setApiSecurityHeaders();
@@ -792,15 +793,22 @@ try {
         // using the exact same rule as update-case-status.php.
         $previousAssignedToForLabHistory = null;
         $previousStatusForRevision = null;
+        $beforeCase = null;
         try {
-            $prevStmt = $pdo->prepare("SELECT assigned_to, status FROM cases_cache WHERE case_id = :case_id LIMIT 1");
-            $prevStmt->execute(['case_id' => $_POST['caseId']]);
-            $prevRow = $prevStmt->fetch(PDO::FETCH_ASSOC);
-            if ($prevRow) {
-                if ($prevRow['assigned_to'] !== null) {
-                    $previousAssignedToForLabHistory = $prevRow['assigned_to'];
+            $beforeCase = getCaseFromCache($_POST['caseId']);
+            if ($beforeCase && is_array($beforeCase)) {
+                $previousAssignedToForLabHistory = $beforeCase['assignedTo'] ?? null;
+                $previousStatusForRevision = $beforeCase['status'] ?? null;
+            } else {
+                $prevStmt = $pdo->prepare("SELECT assigned_to, status FROM cases_cache WHERE case_id = :case_id LIMIT 1");
+                $prevStmt->execute(['case_id' => $_POST['caseId']]);
+                $prevRow = $prevStmt->fetch(PDO::FETCH_ASSOC);
+                if ($prevRow) {
+                    if ($prevRow['assigned_to'] !== null) {
+                        $previousAssignedToForLabHistory = $prevRow['assigned_to'];
+                    }
+                    $previousStatusForRevision = $prevRow['status'];
                 }
-                $previousStatusForRevision = $prevRow['status'];
             }
         } catch (Exception $e) {
             // Ignore errors fetching previous assignment/status; treated as unknown/empty.
@@ -1052,7 +1060,35 @@ try {
             if ($updatedCaseId && function_exists('recordCaseUpdate')) {
                 recordCaseUpdate($updatedCaseId, 'update');
             }
-            
+
+            // Emit structured in-app notification for the update (Phase 2).
+            // This runs before the final response so Cloud Run cannot throttle it.
+            if ($updatedCaseId && $currentPracticeId && $beforeCase && is_array($beforeCase)) {
+                try {
+                    $afterCase = getCaseFromCache($_POST['caseId']);
+                    if ($afterCase && is_array($afterCase)) {
+                        $deletedCount = is_array($filesToDelete) ? count($filesToDelete) : 0;
+                        $addedCount = 0;
+                        $beforeAttachments = $beforeCase['attachments'] ?? [];
+                        $afterAttachments = $afterCase['attachments'] ?? [];
+                        if (is_array($beforeAttachments) && is_array($afterAttachments)) {
+                            $addedCount = count($afterAttachments) - count($beforeAttachments) + $deletedCount;
+                            if ($addedCount < 0) {
+                                $addedCount = 0;
+                            }
+                        }
+
+                        $notificationData = buildUpdateCaseNotificationCategories($beforeCase, $afterCase, $addedCount, $deletedCount);
+                        if (!empty($notificationData['categories'])) {
+                            $eventType = getPrimaryNotificationType($notificationData['categories']);
+                            emitCaseNotificationEvent($currentPracticeId, $_POST['caseId'], $_SESSION['db_user_id'] ?? 0, $eventType, $notificationData['categories'], $notificationData['metadata']);
+                        }
+                    }
+                } catch (Throwable $e) {
+                    error_log('[update-case] notification emit error (non-fatal): ' . $e->getMessage());
+                }
+            }
+
             // Send response to client FIRST
             echo json_encode($result);
             
@@ -1100,6 +1136,7 @@ try {
 
                 }
             }
+
             exit;
         } else {
             http_response_code(500);

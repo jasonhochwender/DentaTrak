@@ -42,6 +42,17 @@ $csrfToken = generateCsrfToken();
 // Reset redirect counter when accessing main page
 $_SESSION['practice_setup_visits'] = 0;
 
+// If an unauthenticated user lands on a notification deep link, send them
+// through the login flow while preserving only the safe notification ID.
+if (empty($_SESSION['db_user_id'])) {
+    $loginUrl = 'login.php';
+    if (!empty($_GET['notification_id'])) {
+        $loginUrl .= '?notification_id=' . urlencode($_GET['notification_id']);
+    }
+    header('Location: ' . $loginUrl);
+    exit;
+}
+
 // Make sure we don't have conflicting flags set
 if (isset($_SESSION['current_practice_id']) && !empty($_SESSION['current_practice_id'])) {
     // If we have a practice ID, make sure we're not flagged for setup
@@ -473,6 +484,9 @@ if (isset($appConfig) && is_array($appConfig) && isset($appConfig['appName'])) {
   <!-- Load app.light.css directly (skip app.css @import chain) -->
   <link rel="stylesheet" href="css/app.light.css?v=20260821a">
   <link rel="stylesheet" href="css/app.css?v=20260807a">
+<?php if (isFeatureEnabled('SHOW_NOTIFICATIONS')): ?>
+  <link rel="stylesheet" href="css/notification-preferences.css?v=20250104">
+<?php endif; ?>
   
   <!-- Mobile responsiveness CSS -->
   <link rel="stylesheet" href="css/mobile.css?v=20250104c">
@@ -683,10 +697,15 @@ endif;
           <div id="notificationDropdown" class="notification-dropdown">
             <div class="notification-dropdown-header">
               <span class="notification-dropdown-title"><?php echo t('notifications.title'); ?></span>
-              <button type="button" class="notification-mark-all" onclick="markAllNotificationsRead()"><?php echo t('notifications.mark_all_read'); ?></button>
+              <button type="button" class="notification-mark-all" id="markAllNotificationsRead" onclick="markAllNotificationsRead()" disabled aria-disabled="true"><?php echo t('notifications.mark_all_read'); ?></button>
             </div>
             <div id="notificationList" class="notification-dropdown-list">
               <div class="notification-dropdown-empty"><?php echo t('notifications.loading'); ?></div>
+            </div>
+            <div class="notification-dropdown-footer">
+              <a href="#" id="notificationPanelPreferencesLink" class="notification-preferences-link">
+                <?php echo t('preferences.title'); ?>
+              </a>
             </div>
           </div>
         </div>
@@ -701,10 +720,15 @@ endif;
         </button>
         <div class="user-menu" id="userMenu">
 <?php if ($isCurrentUserPracticeAdmin): ?>
-<?php if (isFeatureEnabled('BILLING_ENABLED')): ?>
+          <a href="#" class="user-menu-item" id="settingsMenuItem"><?php echo t('settings.settings'); ?></a>
+<?php endif; ?>
+<?php if (isFeatureEnabled('SHOW_NOTIFICATIONS')): ?>
+          <a href="#" class="user-menu-item" id="notificationPreferencesMenuItem"><?php echo t('preferences.title'); ?></a>
+<?php endif; ?>
+<?php if ($isCurrentUserPracticeAdmin && isFeatureEnabled('BILLING_ENABLED')): ?>
           <a href="#" class="user-menu-item" id="billingMenuItem"><?php echo t('navigation.billing'); ?></a>
 <?php endif; ?>
-          <a href="#" class="user-menu-item" id="settingsMenuItem"><?php echo t('settings.settings'); ?></a>
+<?php if ($isCurrentUserPracticeAdmin): ?>
           <div class="user-menu-divider"></div>
 <?php endif; ?>
           <a href="#" class="user-menu-item" id="contactUsLink"><?php echo t('navigation.feedback'); ?></a>
@@ -1555,7 +1579,19 @@ endif;
           </div>
 
           <div class="modal-body">
-            <div class="case-modal-tabs">
+            <div id="caseViewLoading" class="case-view-loading" style="display:none;">
+              <p><?php echo t('cases.loading'); ?></p>
+            </div>
+
+            <div id="caseViewError" class="case-view-error" style="display:none;">
+              <p class="case-view-error-text"><?php echo t('cases.load_error'); ?></p>
+              <div class="case-view-error-actions">
+                <button type="button" class="btn btn-primary" id="caseViewRetry"><?php echo t('common.retry'); ?></button>
+                <button type="button" class="btn btn-secondary" id="caseViewErrorClose"><?php echo t('common.close'); ?></button>
+              </div>
+            </div>
+
+            <div id="caseViewTabs" class="case-modal-tabs">
               <button type="button" class="case-tab case-tab-active" data-tab="details"><?php echo t('cases.details'); ?></button>
 <?php if (isFeatureEnabled('SHOW_COMMENTS')): ?>
               <button type="button" class="case-tab" data-tab="comments"><?php echo t('cases.comments.title'); ?> <span id="caseCommentsCount" class="case-comments-count" style="display: none;">0</span></button>
@@ -2851,6 +2887,25 @@ endif;
   <script src="js/assignments.js?v=20250104" defer></script>
   <script src="js/case-comments.js?v=20250104" defer></script>
   <script src="js/notifications.js?v=20250104" defer></script>
+<?php if (isFeatureEnabled('SHOW_NOTIFICATIONS')): ?>
+  <script src="js/notification-preferences.js?v=20250104" defer></script>
+<?php endif; ?>
+  <script defer>
+    (function() {
+      <?php if (!empty($_GET['notification_id'])): ?>
+      try {
+        sessionStorage.setItem('pendingNotification', JSON.stringify({
+          notification_id: <?php echo (int)$_GET['notification_id']; ?>
+        }));
+      } catch (e) {}
+      <?php endif; ?>
+      window.addEventListener('DOMContentLoaded', function() {
+        if (typeof window.processPendingNotification === 'function') {
+          window.processPendingNotification();
+        }
+      });
+    })();
+  </script>
   <script src="js/activity-timeline.js?v=20250104" defer></script>
   <script src="js/clinical-details.js?v=20250104" defer></script>
   <script src="js/ask-dentatrak.js?v=20250104" defer></script>
@@ -3029,6 +3084,132 @@ endif;
       </div>
     </div>
   </div>
+
+<?php if (isFeatureEnabled('SHOW_NOTIFICATIONS')): ?>
+  <!-- Notification Preferences Modal -->
+  <div id="notificationPreferencesModal" class="modal" style="display:none;">
+    <div class="modal-content notification-preferences-modal">
+      <div class="modal-header">
+        <h2 class="modal-title"><?php echo t('preferences.title'); ?></h2>
+        <button type="button" class="btn-close" id="notificationPreferencesClose" aria-label="<?php echo t('common.close'); ?>"><span>&times;</span></button>
+      </div>
+      <div class="modal-body" id="notificationPreferencesBody">
+        <p class="notification-preferences-intro"><?php echo t('preferences.intro'); ?></p>
+
+        <div id="notificationPreferencesLoading" class="preferences-loading">Loading...</div>
+
+        <div id="notificationPreferencesError" class="preferences-error" style="display:none;">
+          <p class="notification-preferences-error-text"><?php echo t('preferences.load_error'); ?></p>
+          <div class="notification-preferences-error-actions">
+            <button type="button" class="btn btn-primary" id="notificationPreferencesRetry"><?php echo t('common.retry'); ?></button>
+            <button type="button" class="btn btn-secondary" id="notificationPreferencesErrorClose"><?php echo t('common.close'); ?></button>
+          </div>
+        </div>
+
+        <div id="notificationPreferencesControls" style="display:none;">
+          <div class="notification-preferences-master">
+            <label for="prefMaster" class="notification-preference-label">
+              <span class="notification-preference-title"><?php echo t('preferences.master_label'); ?></span>
+              <span class="switch">
+                <input type="checkbox" id="prefMaster" role="switch" aria-describedby="prefMasterHelp" disabled>
+                <span class="switch-slider" aria-hidden="true"></span>
+              </span>
+            </label>
+            <p id="prefMasterHelp" class="notification-preference-help"><?php echo t('preferences.master_help'); ?></p>
+          </div>
+
+          <div class="notification-preferences-list" id="notificationPreferencesList" role="group" aria-label="<?php echo t('preferences.event_controls'); ?>">
+          <div class="notification-preference-item" data-event="case_created">
+            <label for="pref_case_created" class="notification-preference-label">
+              <span class="notification-preference-title"><?php echo t('preferences.events.case_created'); ?></span>
+              <span class="switch">
+                <input type="checkbox" id="pref_case_created" role="switch" class="event-preference" data-event="case_created">
+                <span class="switch-slider" aria-hidden="true"></span>
+              </span>
+            </label>
+          </div>
+          <div class="notification-preference-item" data-event="assignment_changed">
+            <label for="pref_assignment_changed" class="notification-preference-label">
+              <span class="notification-preference-title"><?php echo t('preferences.events.assignment_changed'); ?></span>
+              <span class="switch">
+                <input type="checkbox" id="pref_assignment_changed" role="switch" class="event-preference" data-event="assignment_changed">
+                <span class="switch-slider" aria-hidden="true"></span>
+              </span>
+            </label>
+          </div>
+          <div class="notification-preference-item" data-event="file_added">
+            <label for="pref_file_added" class="notification-preference-label">
+              <span class="notification-preference-title"><?php echo t('preferences.events.file_added'); ?></span>
+              <span class="switch">
+                <input type="checkbox" id="pref_file_added" role="switch" class="event-preference" data-event="file_added">
+                <span class="switch-slider" aria-hidden="true"></span>
+              </span>
+            </label>
+          </div>
+          <div class="notification-preference-item" data-event="file_deleted">
+            <label for="pref_file_deleted" class="notification-preference-label">
+              <span class="notification-preference-title"><?php echo t('preferences.events.file_deleted'); ?></span>
+              <span class="switch">
+                <input type="checkbox" id="pref_file_deleted" role="switch" class="event-preference" data-event="file_deleted">
+                <span class="switch-slider" aria-hidden="true"></span>
+              </span>
+            </label>
+          </div>
+          <div class="notification-preference-item" data-event="notes_changed">
+            <label for="pref_notes_changed" class="notification-preference-label">
+              <span class="notification-preference-title"><?php echo t('preferences.events.notes_changed'); ?></span>
+              <span class="switch">
+                <input type="checkbox" id="pref_notes_changed" role="switch" class="event-preference" data-event="notes_changed">
+                <span class="switch-slider" aria-hidden="true"></span>
+              </span>
+            </label>
+          </div>
+          <div class="notification-preference-item" data-event="status_changed">
+            <label for="pref_status_changed" class="notification-preference-label">
+              <span class="notification-preference-title"><?php echo t('preferences.events.status_changed'); ?></span>
+              <span class="switch">
+                <input type="checkbox" id="pref_status_changed" role="switch" class="event-preference" data-event="status_changed">
+                <span class="switch-slider" aria-hidden="true"></span>
+              </span>
+            </label>
+          </div>
+          <div class="notification-preference-item" data-event="due_date_changed">
+            <label for="pref_due_date_changed" class="notification-preference-label">
+              <span class="notification-preference-title"><?php echo t('preferences.events.due_date_changed'); ?></span>
+              <span class="switch">
+                <input type="checkbox" id="pref_due_date_changed" role="switch" class="event-preference" data-event="due_date_changed">
+                <span class="switch-slider" aria-hidden="true"></span>
+              </span>
+            </label>
+          </div>
+          <div class="notification-preference-item" data-event="appointment_date_changed">
+            <label for="pref_appointment_date_changed" class="notification-preference-label">
+              <span class="notification-preference-title"><?php echo t('preferences.events.appointment_date_changed'); ?></span>
+              <span class="switch">
+                <input type="checkbox" id="pref_appointment_date_changed" role="switch" class="event-preference" data-event="appointment_date_changed">
+                <span class="switch-slider" aria-hidden="true"></span>
+              </span>
+            </label>
+          </div>
+          <div class="notification-preference-item" data-event="case_details_changed">
+            <label for="pref_case_details_changed" class="notification-preference-label">
+              <span class="notification-preference-title"><?php echo t('preferences.events.case_details_changed'); ?></span>
+              <span class="switch">
+                <input type="checkbox" id="pref_case_details_changed" role="switch" class="event-preference" data-event="case_details_changed">
+                <span class="switch-slider" aria-hidden="true"></span>
+              </span>
+            </label>
+          </div>
+        </div>
+      </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" id="notificationPreferencesCancel"><?php echo t('common.cancel'); ?></button>
+        <button type="button" class="btn btn-primary" id="notificationPreferencesSave"><?php echo t('common.save'); ?></button>
+      </div>
+    </div>
+  </div>
+<?php endif; ?>
 </body>
 </html>
 <?php

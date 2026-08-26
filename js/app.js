@@ -512,7 +512,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     window.assignmentLabels.push(label);
-    window.assignmentLabelsMeta.push({ id: null, label: label, isLab: newLabelIsLab });
+    window.assignmentLabelsMeta.push({ id: null, label: label, isLab: newLabelIsLab, recipients: [] });
 
     displayAssignmentLabels();
     newAssignmentLabelInput.value = '';
@@ -745,6 +745,79 @@ document.addEventListener('DOMContentLoaded', function () {
       labelSpan.textContent = label;
 
       item.appendChild(labelSpan);
+
+      // Recipient checkbox selector for the label (admin only).
+      if (window.isPracticeAdmin && window.practiceUsers && window.practiceUsers.length > 0) {
+        var currentRecipients = window.assignmentLabelsMeta[idx] ? (window.assignmentLabelsMeta[idx].recipients || []) : [];
+        var selectedCount = currentRecipients.length;
+
+        var details = document.createElement('details');
+        details.className = 'assignment-label-recipients';
+        details.setAttribute('data-idx', idx);
+        details.style.marginLeft = '0';
+
+        var summary = document.createElement('summary');
+        summary.className = 'assignment-label-recipients-summary';
+        summary.textContent = (t('settings.users.shared_assignment_labels.recipients.label') || 'People notified for this label') +
+          ' (' + (selectedCount === 0
+            ? (t('settings.users.shared_assignment_labels.recipients.none') || 'No one')
+            : t('settings.users.shared_assignment_labels.recipients.selected_count', { count: selectedCount })) +
+          ')';
+        details.appendChild(summary);
+
+        var list = document.createElement('div');
+        list.className = 'recipient-list';
+        list.style.maxHeight = '160px';
+        list.style.overflowY = 'auto';
+        list.style.marginTop = '6px';
+
+        window.practiceUsers.forEach(function(user) {
+          var cbId = 'recipient-' + idx + '-' + user.id;
+          var row = document.createElement('div');
+          row.className = 'recipient-row';
+          row.style.display = 'flex';
+          row.style.alignItems = 'center';
+          row.style.gap = '6px';
+          row.style.padding = '2px 0';
+
+          var checkbox = document.createElement('input');
+          checkbox.type = 'checkbox';
+          checkbox.id = cbId;
+          checkbox.value = user.id;
+          checkbox.checked = currentRecipients.indexOf(user.id) !== -1;
+          checkbox.setAttribute('data-user-id', user.id);
+
+          var userLabel = document.createElement('label');
+          userLabel.htmlFor = cbId;
+          userLabel.textContent = (user.firstName + ' ' + user.lastName).trim() + ' <' + user.email + '>';
+          userLabel.title = t('settings.users.shared_assignment_labels.recipients.toggle_label', { email: user.email }) || '';
+          userLabel.style.cursor = 'pointer';
+
+          checkbox.addEventListener('change', function() {
+            var userId = parseInt(this.getAttribute('data-user-id'), 10);
+            var meta = window.assignmentLabelsMeta && window.assignmentLabelsMeta[idx];
+            if (!meta) return;
+            if (this.checked) {
+              if (meta.recipients.indexOf(userId) === -1) meta.recipients.push(userId);
+            } else {
+              meta.recipients = meta.recipients.filter(function(id) { return id !== userId; });
+            }
+            var count = meta.recipients.length;
+            summary.textContent = (t('settings.users.shared_assignment_labels.recipients.label') || 'People notified for this label') +
+              ' (' + (count === 0
+                ? (t('settings.users.shared_assignment_labels.recipients.none') || 'No one')
+                : t('settings.users.shared_assignment_labels.recipients.selected_count', { count: count })) +
+              ')';
+          });
+
+          row.appendChild(checkbox);
+          row.appendChild(userLabel);
+          list.appendChild(row);
+        });
+
+        details.appendChild(list);
+        item.appendChild(details);
+      }
 
       // Lab checkbox - only rendered while SHOW_LAB_INSIGHTS is enabled.
       if (showLabInsights) {
@@ -1248,6 +1321,7 @@ document.addEventListener('DOMContentLoaded', function () {
             data.practiceCreatorHasGoogleAccount !== false,
             data.isGoogleDriveConnected === true,
             data.assignmentLabelsDetailed || [],
+            data.practiceUsers || [],
             data.isLabUsers || {},
             data.showLabInsights === true,
             data.workflowStageLabels || {}
@@ -1428,12 +1502,13 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   // Apply loaded settings to form fields
-  function applyUserSettings(preferences, loadedGmailUsers, loadedGmailLogins, loadedAdminUsers, practiceName, logoPath, loadedAssignmentLabels, isPracticeAdmin, practiceCreatorEmail, displayName, legalName, loadedLimitedVisibilityUsers, loadedCanViewAnalyticsUsers, loadedCanEditCasesUsers, practiceCreatorHasGoogleAccount, isGoogleDriveConnected, loadedAssignmentLabelsDetailed, loadedIsLabUsers, showLabInsights, loadedWorkflowStageLabels) {
+  function applyUserSettings(preferences, loadedGmailUsers, loadedGmailLogins, loadedAdminUsers, practiceName, logoPath, loadedAssignmentLabels, isPracticeAdmin, practiceCreatorEmail, displayName, legalName, loadedLimitedVisibilityUsers, loadedCanViewAnalyticsUsers, loadedCanEditCasesUsers, practiceCreatorHasGoogleAccount, isGoogleDriveConnected, loadedAssignmentLabelsDetailed, loadedPracticeUsers, loadedIsLabUsers, showLabInsights, loadedWorkflowStageLabels) {
     window.isPracticeAdmin = !!isPracticeAdmin;
     window.practiceCreatorEmail = (practiceCreatorEmail || '').toLowerCase() || null;
     window.practiceCreatorHasGoogleAccount = practiceCreatorHasGoogleAccount !== false;
     window.isGoogleDriveConnected = isGoogleDriveConnected === true;
     window.showLabInsights = showLabInsights === true;
+    window.practiceUsers = loadedPracticeUsers || [];
 
     // Fully-resolved workflow-stage display labels for the current
     // practice (see get-settings.php's `workflowStageLabels` field and
@@ -1660,7 +1735,8 @@ document.addEventListener('DOMContentLoaded', function () {
         return {
           id: (detailed && typeof detailed.id === 'number') ? detailed.id : null,
           label: label,
-          isLab: !!(detailed && detailed.isLab)
+          isLab: !!(detailed && detailed.isLab),
+          recipients: (detailed && Array.isArray(detailed.recipients)) ? detailed.recipients : []
         };
       });
       displayAssignmentLabels();
@@ -1670,9 +1746,11 @@ document.addEventListener('DOMContentLoaded', function () {
       displayAssignmentLabels();
     }
 
-    // Capture original values for change detection after a short delay
-    // to ensure all DOM updates are complete
-    setTimeout(captureOriginalSettingsValues, 100);
+    // Capture original values immediately. All state that needs to be
+    // snapshotted is already in window.assignmentLabelsMeta; the label list
+    // DOM is reconstructed from that state, so a setTimeout is unnecessary
+    // and creates a race where rapid user edits beat the snapshot.
+    captureOriginalSettingsValues();
   }
 
   // Store original settings values for change detection
@@ -1708,7 +1786,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     var labelsMetaCopy = (window.assignmentLabelsMeta || []).map(function(m) {
-      return { id: m.id, isLab: !!m.isLab };
+      return { id: m.id, isLab: !!m.isLab, recipients: (m.recipients || []).slice() };
     });
 
     var workflowStageLabelInputsCopy = {};
@@ -1806,12 +1884,19 @@ document.addEventListener('DOMContentLoaded', function () {
       if (currentLabels[i] !== orig.assignmentLabels[i]) return true;
     }
 
-    // Check Lab designation on assignment labels (index-aligned metadata)
+    // Check Lab designation and notification recipients on assignment labels
     var currentLabelsMeta = window.assignmentLabelsMeta || [];
     var origLabelsMeta = orig.assignmentLabelsMeta || [];
     if (currentLabelsMeta.length !== origLabelsMeta.length) return true;
     for (var i = 0; i < currentLabelsMeta.length; i++) {
       if (!!currentLabelsMeta[i].isLab !== !!origLabelsMeta[i].isLab) return true;
+
+      var currentRecipients = currentLabelsMeta[i].recipients || [];
+      var origRecipients = origLabelsMeta[i].recipients || [];
+      if (currentRecipients.length !== origRecipients.length) return true;
+      for (var j = 0; j < currentRecipients.length; j++) {
+        if (currentRecipients[j] !== origRecipients[j]) return true;
+      }
     }
 
     // Check user permission maps
@@ -3343,7 +3428,8 @@ document.addEventListener('DOMContentLoaded', function () {
           return {
             id: m.id,
             label: (window.assignmentLabels && window.assignmentLabels[idx] !== undefined) ? window.assignmentLabels[idx] : m.label,
-            isLab: !!m.isLab
+            isLab: !!m.isLab,
+            recipients: Array.isArray(m.recipients) ? m.recipients : []
           };
         }), // Stable-ID payload: preserves label identity through renames
         limitedVisibilityUsers: window.limitedVisibilityUsers || {}, // Add limited visibility map
@@ -3545,7 +3631,7 @@ document.addEventListener('DOMContentLoaded', function () {
             return item.label;
           });
           window.assignmentLabelsMeta = data.assignmentLabelsDetailed.map(function(item) {
-            return { id: item.id, label: item.label, isLab: !!item.isLab };
+            return { id: item.id, label: item.label, isLab: !!item.isLab, recipients: item.recipients || [] };
           });
           displayAssignmentLabels();
         }
@@ -3711,7 +3797,7 @@ document.addEventListener('DOMContentLoaded', function () {
   var cancelBtn = document.getElementById('createCaseCancel');
   var submitBtn = document.getElementById('createCaseSubmit');
 
-  var caseModalTabs = document.querySelector('.case-modal-tabs');
+  var caseModalTabs = document.getElementById('caseViewTabs');
   var caseDetailsTab = document.querySelector('.case-tab[data-tab="details"]');
   var caseCommentsTab = document.querySelector('.case-tab[data-tab="comments"]');
   var caseHistoryTab = document.querySelector('.case-tab[data-tab="history"]');
@@ -3719,7 +3805,14 @@ document.addEventListener('DOMContentLoaded', function () {
   var caseHistoryPanel = document.getElementById('caseRevisionHistoryPanel');
   var caseHistoryContainer = document.getElementById('caseRevisionHistory');
   var createCaseForm = document.getElementById('createCaseForm');
+  var caseViewLoading = document.getElementById('caseViewLoading');
+  var caseViewError = document.getElementById('caseViewError');
+  var caseViewRetry = document.getElementById('caseViewRetry');
+  var caseViewErrorClose = document.getElementById('caseViewErrorClose');
   var currentEditCaseId = null;
+  var pendingViewCaseId = null;
+  var viewCaseTimings = null;
+  window.viewCaseTimings = viewCaseTimings;
 
   function setCaseModalActiveTab(tabName) {
     if (tabName !== 'history' && tabName !== 'comments') {
@@ -4524,6 +4617,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
       createCaseModal.style.display = 'block';
       document.body.style.overflow = 'hidden'; // Prevent scrolling behind modal
+      resetCaseViewState();
 
       // Opening any case here (new or edit, via editCaseHandler()) always
       // establishes a normal, non-archive context - remove any leftover
@@ -4889,16 +4983,62 @@ document.addEventListener('DOMContentLoaded', function () {
   /**
    * Open a case by its ID (used by notifications)
    */
-  window.openCaseById = function(caseId) {
-    if (!caseId) return;
+  var openingCaseById = false;
 
+  function setViewCaseLoading() {
+    if (caseViewLoading) caseViewLoading.style.display = 'block';
+    if (caseViewError) caseViewError.style.display = 'none';
+    if (createCaseForm) createCaseForm.style.display = 'none';
+    if (caseModalTabs) caseModalTabs.style.display = 'none';
+    if (caseCommentsPanel) caseCommentsPanel.style.display = 'none';
+    if (caseHistoryPanel) caseHistoryPanel.style.display = 'none';
+  }
+
+  function setViewCaseError() {
+    if (caseViewLoading) caseViewLoading.style.display = 'none';
+    if (caseViewError) caseViewError.style.display = 'block';
+    if (createCaseForm) createCaseForm.style.display = 'none';
+    if (caseModalTabs) caseModalTabs.style.display = 'none';
+  }
+
+  function resetCaseViewState() {
+    if (caseViewLoading) caseViewLoading.style.display = 'none';
+    if (caseViewError) caseViewError.style.display = 'none';
+    if (createCaseForm) createCaseForm.style.display = 'block';
+    if (caseModalTabs) caseModalTabs.style.display = 'flex';
+  }
+
+  window.openCaseById = function(caseId) {
+    if (!caseId || openingCaseById) return;
+    openingCaseById = true;
+    pendingViewCaseId = caseId;
+
+    viewCaseTimings = window.viewCaseTimings = {
+      shellStart: performance.now(),
+      shellVisible: null,
+      fieldsPopulated: null
+    };
+
+    var caseModal = document.getElementById('createCaseModal');
+    if (caseModal) {
+      caseModal.style.display = 'block';
+      setViewCaseLoading();
+      var modalTitle = caseModal.querySelector('.modal-title');
+      if (modalTitle) {
+        modalTitle.textContent = t('cases.loading') || 'Loading case...';
+      }
+      if (viewCaseTimings) viewCaseTimings.shellVisible = performance.now() - viewCaseTimings.shellStart;
+    }
+
+    var fetchStart = performance.now();
     fetch('api/get-case.php?id=' + encodeURIComponent(caseId), {
       credentials: 'same-origin'
     })
     .then(function(response) { return response.json(); })
     .then(function(data) {
+      openingCaseById = false;
       if (data.success && data.case) {
-        openCaseModalForView(data.case);
+        openCaseModalForView(data.case, fetchStart);
         // Switch to comments tab after opening
         setTimeout(function() {
           var commentsTab = document.querySelector('.case-tab[data-tab="comments"]');
@@ -4907,20 +5047,22 @@ document.addEventListener('DOMContentLoaded', function () {
           }
         }, 100);
       } else {
+        setViewCaseError();
         if (typeof showToast === 'function') {
-          showToast(t('cases.toast.open_failed'), 'error');
+          showToast(data.message || t('cases.toast.open_failed'), 'error');
         }
       }
     })
     .catch(function(error) {
-
+      openingCaseById = false;
+      setViewCaseError();
       if (typeof showToast === 'function') {
         showToast(t('cases.toast.open_error'), 'error');
       }
     });
   };
 
-  function openCaseModalForView(caseData) {
+  function openCaseModalForView(caseData, fetchStart) {
     if (createCaseModal) {
       createCaseModal.style.display = 'block';
 
@@ -4932,6 +5074,12 @@ document.addEventListener('DOMContentLoaded', function () {
 
       // Populate the form with case data
       populateCreateCaseForm(caseData);
+
+      // Reveal the populated form and tabs
+      resetCaseViewState();
+      if (viewCaseTimings) {
+        viewCaseTimings.fieldsPopulated = performance.now() - viewCaseTimings.shellStart;
+      }
 
       // Change modal title to "View Case"
       var modalTitle = createCaseModal.querySelector('.modal-title');
@@ -5022,6 +5170,10 @@ document.addEventListener('DOMContentLoaded', function () {
   }
   if (closeBtn) closeBtn.addEventListener('click', closeCreateCaseWithCheck);
   if (cancelBtn) cancelBtn.addEventListener('click', closeCreateCaseWithCheck);
+  if (caseViewRetry) caseViewRetry.addEventListener('click', function() {
+    if (pendingViewCaseId) openCaseById(pendingViewCaseId);
+  });
+  if (caseViewErrorClose) caseViewErrorClose.addEventListener('click', closeCreateCaseWithCheck);
 
 
   // Unsaved changes tracking
@@ -7709,6 +7861,7 @@ document.addEventListener('DOMContentLoaded', function () {
             data.practiceCreatorHasGoogleAccount !== false,
             data.isGoogleDriveConnected === true,
             data.assignmentLabelsDetailed || [],
+            data.practiceUsers || [],
             data.isLabUsers || {},
             data.showLabInsights === true,
             data.workflowStageLabels || {}

@@ -1,0 +1,186 @@
+/* Notification Preferences Modal */
+
+.notification-preferences-modal {
+  width: 90%;
+  max-width: 520px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.notification-preferences-intro {
+  margin: 0 0 1rem;
+  color: var(--text-secondary, #666);
+  font-size: 0.95rem;
+  line-height: 1.4;
+}
+
+.notification-preferences-master {
+  padding: 1rem;
+  border: 1px solid var(--border-color, #ddd);
+  border-radius: 8px;
+  margin-bottom: 1rem;
+  background: var(--bg-elevated, #fff);
+}
+
+.notification-preferences-list {
+  padding: 0.5rem;
+  border: 1px solid var(--border-color, #ddd);
+  border-radius: 8px;
+  background: var(--bg-elevated, #fff);
+}
+
+.notification-preferences-list.disabled {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.notification-preference-item {
+  padding: 0.75rem 0.5rem;
+  border-bottom: 1px solid var(--border-color, #eee);
+}
+
+.notification-preference-item:last-child {
+  border-bottom: none;
+}
+
+.notification-preference-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  cursor: pointer;
+}
+
+.notification-preference-title {
+  flex: 1;
+  line-height: 1.3;
+}
+
+.notification-preference-help {
+  margin: 0.5rem 0 0;
+  font-size: 0.85rem;
+  color: var(--text-secondary, #888);
+}
+
+/* Switch control */
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 48px;
+  height: 26px;
+  flex-shrink: 0;
+}
+
+.switch input {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+  z-index: 1;
+}
+
+.switch-slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #ccc;
+  transition: 0.2s;
+  border-radius: 26px;
+}
+
+.switch-slider::before {
+  position: absolute;
+  content: "";
+  height: 20px;
+  width: 20px;
+  left: 3px;
+  bottom: 3px;
+  background-color: white;
+  transition: 0.2s;
+  border-radius: 50%;
+}
+
+.switch input:checked + .switch-slider {
+  background-color: var(--primary-color, #2563eb);
+}
+
+.switch input:focus + .switch-slider {
+  outline: 2px solid var(--primary-color, #2563eb);
+  outline-offset: 2px;
+}
+
+.switch input:checked + .switch-slider::before {
+  transform: translateX(22px);
+}
+
+.switch input:disabled + .switch-slider {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.notification-dropdown-footer {
+  padding: 0.75rem 1rem;
+  text-align: center;
+  border-top: 1px solid var(--border-color, #eee);
+}
+
+.notification-preferences-link {
+  font-size: 0.85rem;
+  color: var(--primary-color, #2563eb);
+  text-decoration: none;
+}
+
+.notification-preferences-link:hover {
+  text-decoration: underline;
+}
+
+/* Loading and error states */
+.preferences-loading {
+  padding: 2rem 1rem;
+  text-align: center;
+  color: var(--text-secondary, #888);
+}
+
+.preferences-error {
+  padding: 2rem 1rem;
+  text-align: center;
+  color: var(--danger, #dc2626);
+}
+
+.notification-preferences-error-text {
+  margin: 0 0 1rem;
+}
+
+.notification-preferences-error-actions {
+  display: flex;
+  justify-content: center;
+  gap: 0.75rem;
+}
+
+#notificationPreferencesSave:disabled,
+#notificationPreferencesSave[aria-disabled="true"] {
+  opacity: 0.55;
+  cursor: not-allowed;
+  filter: grayscale(60%);
+}
+
+@media (max-width: 480px) {
+  .notification-preferences-modal {
+    width: 96%;
+  }
+
+  .notification-preference-label {
+    align-items: flex-start;
+  }
+
+  .notification-preference-title {
+    padding-right: 0.5rem;
+  }
+}

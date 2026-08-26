@@ -242,10 +242,21 @@ if (isset($data['assignmentLabelsDetailed']) && is_array($data['assignmentLabels
         if (mb_strlen($labelText) > 150) {
             $labelText = mb_substr($labelText, 0, 150);
         }
+        $recipients = [];
+        if (isset($item['recipients']) && is_array($item['recipients'])) {
+            foreach ($item['recipients'] as $r) {
+                if (is_numeric($r) && (int)$r > 0) {
+                    $recipients[] = (int)$r;
+                }
+            }
+            $recipients = array_values(array_unique($recipients));
+        }
+
         $assignmentLabelsDetailed[] = [
             'id' => (isset($item['id']) && is_numeric($item['id']) && (int)$item['id'] > 0) ? (int)$item['id'] : null,
             'label' => $labelText,
             'isLab' => !empty($item['isLab']),
+            'recipients' => $recipients,
         ];
     }
 }
@@ -714,6 +725,8 @@ try {
                         }
 
                         foreach ($removedRows as $row) {
+                            $stmt = $pdo->prepare("DELETE FROM practice_assignment_label_recipients WHERE label_id = :id AND practice_id = :practice_id");
+                            $stmt->execute(['id' => $row['id'], 'practice_id' => $currentPracticeId]);
                             $stmt = $pdo->prepare("DELETE FROM practice_assignment_labels WHERE id = :id AND practice_id = :practice_id");
                             $stmt->execute(['id' => $row['id'], 'practice_id' => $currentPracticeId]);
                             // Legacy payload can't distinguish "designation
@@ -809,6 +822,35 @@ try {
                         respondAssignmentLabelsInUse($blockedLabels);
                     }
 
+                    // Fetch all active user IDs legitimately belonging to this
+                    // practice before the transaction so we can reject cross-practice
+                    // recipient IDs and label IDs before any writes occur.
+                    $validUserIdsStmt = $pdo->prepare("
+                        SELECT pu.user_id
+                        FROM practice_users pu
+                        JOIN users u ON pu.user_id = u.id
+                        WHERE pu.practice_id = :practice_id AND u.is_active = 1
+                    ");
+                    $validUserIdsStmt->execute([':practice_id' => $currentPracticeId]);
+                    $validUserIds = [];
+                    foreach ($validUserIdsStmt->fetchAll(PDO::FETCH_ASSOC) as $urow) {
+                        $validUserIds[(int)$urow['user_id']] = true;
+                    }
+
+                    // Validate every submitted recipient before we lock rows.
+                    foreach ($assignmentLabelsDetailed as $item) {
+                        foreach ($item['recipients'] as $recipientUserId) {
+                            if (!isset($validUserIds[(int)$recipientUserId])) {
+                                http_response_code(409);
+                                echo json_encode([
+                                    'success' => false,
+                                    'message' => t('api.settings.invalid_recipients')
+                                ]);
+                                exit;
+                            }
+                        }
+                    }
+
                     $pdo->beginTransaction();
                     try {
                         $sortOrder = 0;
@@ -816,11 +858,13 @@ try {
                             $labelText = $item['label'];
                             $newIsLab = !empty($item['isLab']) ? 1 : 0;
                             $id = $item['id'];
+                            $labelId = null;
 
                             if ($id !== null && isset($existingRowsById[$id])) {
                                 $oldRow = $existingRowsById[$id];
                                 $oldLabel = $oldRow['label'];
                                 $oldIsLab = (int)$oldRow['is_lab'];
+                                $labelId = $id;
 
                                 $stmt = $pdo->prepare("UPDATE practice_assignment_labels SET label = :label, sort_order = :sort_order, is_lab = :is_lab WHERE id = :id AND practice_id = :practice_id");
                                 $stmt->execute([
@@ -865,15 +909,40 @@ try {
                                     'sort_order' => $sortOrder,
                                     'is_lab' => $newIsLab
                                 ]);
-                                $newId = (int)$pdo->lastInsertId();
+                                $labelId = (int)$pdo->lastInsertId();
                                 if ($newIsLab === 1) {
-                                    initializeOpenLabPeriodsForEntity($currentPracticeId, 'label', $newId, $labelText);
+                                    initializeOpenLabPeriodsForEntity($currentPracticeId, 'label', $labelId, $labelText);
                                 }
                             }
+
+                            // Persist notification/recipient mappings.
+                            if ($labelId !== null) {
+                                $delStmt = $pdo->prepare("DELETE FROM practice_assignment_label_recipients WHERE practice_id = :practice_id AND label_id = :label_id");
+                                $delStmt->execute([
+                                    ':practice_id' => $currentPracticeId,
+                                    ':label_id' => $labelId
+                                ]);
+
+                                $insStmt = $pdo->prepare("INSERT INTO practice_assignment_label_recipients (practice_id, label_id, user_id) VALUES (:practice_id, :label_id, :user_id)");
+                                foreach ($item['recipients'] as $recipientUserId) {
+                                    if (isset($validUserIds[(int)$recipientUserId])) {
+                                        $insStmt->execute([
+                                            ':practice_id' => $currentPracticeId,
+                                            ':label_id' => $labelId,
+                                            ':user_id' => (int)$recipientUserId
+                                        ]);
+                                    } else {
+                                        userLog("Rejected cross-practice or unknown recipient user_id {$recipientUserId} for label {$labelId}", true);
+                                    }
+                                }
+                            }
+
                             $sortOrder++;
                         }
 
                         foreach ($removedRows as $row) {
+                            $stmt = $pdo->prepare("DELETE FROM practice_assignment_label_recipients WHERE label_id = :id AND practice_id = :practice_id");
+                            $stmt->execute(['id' => $row['id'], 'practice_id' => $currentPracticeId]);
                             $stmt = $pdo->prepare("DELETE FROM practice_assignment_labels WHERE id = :id AND practice_id = :practice_id");
                             $stmt->execute(['id' => $row['id'], 'practice_id' => $currentPracticeId]);
                             if (!empty($row['is_lab'])) {
@@ -1201,13 +1270,25 @@ try {
     // reopening) could re-insert it as a duplicate instead of updating it.
     $freshLabelsStmt = $pdo->prepare("SELECT id, label, is_lab FROM practice_assignment_labels WHERE practice_id = :practice_id ORDER BY sort_order ASC, id ASC");
     $freshLabelsStmt->execute(['practice_id' => $currentPracticeId]);
-    $freshAssignmentLabelsDetailed = array_map(function($row) {
+    $freshAssignmentLabels = $freshLabelsStmt->fetchAll(PDO::FETCH_ASSOC);
+    $freshLabelIds = array_map(function ($row) { return (int)$row['id']; }, $freshAssignmentLabels);
+    $freshRecipientsByLabel = [];
+    if (!empty($freshLabelIds)) {
+        $placeholders = implode(',', array_fill(0, count($freshLabelIds), '?'));
+        $freshRecipientsStmt = $pdo->prepare("SELECT label_id, user_id FROM practice_assignment_label_recipients WHERE practice_id = ? AND label_id IN ({$placeholders})");
+        $freshRecipientsStmt->execute(array_merge([$currentPracticeId], $freshLabelIds));
+        while ($r = $freshRecipientsStmt->fetch(PDO::FETCH_ASSOC)) {
+            $freshRecipientsByLabel[(int)$r['label_id']][] = (int)$r['user_id'];
+        }
+    }
+    $freshAssignmentLabelsDetailed = array_map(function($row) use ($freshRecipientsByLabel) {
         return [
             'id' => (int)$row['id'],
             'label' => $row['label'],
-            'isLab' => (bool)$row['is_lab']
+            'isLab' => (bool)$row['is_lab'],
+            'recipients' => $freshRecipientsByLabel[(int)$row['id']] ?? []
         ];
-    }, $freshLabelsStmt->fetchAll(PDO::FETCH_ASSOC));
+    }, $freshAssignmentLabels);
 
     echo json_encode([
         'success' => true,

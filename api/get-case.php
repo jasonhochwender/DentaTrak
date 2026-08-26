@@ -37,17 +37,8 @@ try {
     // case data is loaded/returned below.
     requireCaseAccess($caseId, $currentPracticeId);
 
-    // Get all cases from cache
-    $cases = getAllCasesFromCache();
-    
-    // Find the specific case
-    $targetCase = null;
-    foreach ($cases as $case) {
-        if (isset($case['id']) && $case['id'] === $caseId) {
-            $targetCase = $case;
-            break;
-        }
-    }
+    // Fetch only the requested case from the cache.
+    $targetCase = getSingleCaseFromCache($caseId, $currentPracticeId);
 
     if ($targetCase === null) {
         http_response_code(404);
@@ -55,33 +46,12 @@ try {
         exit;
     }
 
-    // Get case files if drive folder exists
-    $files = [];
-    if (isset($targetCase['driveFolderId']) && !empty($targetCase['driveFolderId'])) {
-        try {
-            $currentPracticeId = $_SESSION['current_practice_id'] ?? 0;
-            $files = getDriveFolderFiles($currentPracticeId, $targetCase['driveFolderId']);
-        } catch (Throwable $e) {
-            error_log('Error getting case files: ' . $e->getMessage());
-            $files = [];
-        }
-    }
+    // Attachments are already included in the single-case cache row.
+    $files = $targetCase['attachments'] ?? [];
 
-    // Get case activity/history
+    // Activity is not needed for the initial View Case render; the UI loads
+    // revision history and comments on demand after the primary form appears.
     $activity = [];
-    try {
-        // Use the existing function from case-activity-log.php
-        if (function_exists('getCaseActivity')) {
-            $activity = getCaseActivity($caseId);
-        } else {
-            // Fallback: try to load the function if not available
-            require_once __DIR__ . '/case-activity-log.php';
-            $activity = getCaseActivity($caseId);
-        }
-    } catch (Throwable $e) {
-        error_log('Error getting case activity: ' . $e->getMessage());
-        $activity = [];
-    }
 
     // getAllCasesFromCache() already returns cases with PII decrypted.
     // Do not decrypt again — double decryption corrupts the data.

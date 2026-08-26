@@ -126,7 +126,11 @@ if (!empty($_SESSION['db_user_id']) && !checkSessionTimeout()) {
     // Session timed out - redirect to login if this is a page request (not API)
     $isApiRequest = strpos($_SERVER['REQUEST_URI'] ?? '', '/api/') !== false;
     if (!$isApiRequest) {
-        header('Location: /login.php?timeout=1');
+        $loginRedirect = '/login.php?timeout=1';
+        if (!empty($_GET['notification_id'])) {
+            $loginRedirect .= '&notification_id=' . urlencode($_GET['notification_id']);
+        }
+        header('Location: ' . $loginRedirect);
         exit;
     }
 }

@@ -962,6 +962,128 @@ function getAllCasesFromCache() {
 }
 
 /**
+ * Load and decrypt a single case from the cache by case_id and practice_id.
+ * This is used by one-case views (e.g. notification View case) to avoid
+ * loading the entire practice board into memory.
+ *
+ * @param string $caseId
+ * @param int    $practiceId
+ * @return array|null
+ */
+function getSingleCaseFromCache($caseId, $practiceId) {
+    global $pdo;
+    if (!$pdo || empty($caseId) || empty($practiceId)) {
+        return null;
+    }
+
+    try {
+        $stmt = $pdo->prepare("
+            SELECT *
+            FROM cases_cache
+            WHERE case_id = :case_id
+              AND practice_id = :practice_id
+            LIMIT 1
+        ");
+        $stmt->execute([
+            'case_id' => $caseId,
+            'practice_id' => $practiceId
+        ]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        if (!$row) {
+            return null;
+        }
+
+        $attachments = [];
+        if (!empty($row['attachments_json'])) {
+            $decoded = json_decode($row['attachments_json'], true);
+            if (is_array($decoded)) {
+                $attachments = $decoded;
+            }
+        }
+
+        $revisions = [];
+        if (!empty($row['revisions_json'])) {
+            $decoded = json_decode($row['revisions_json'], true);
+            if (is_array($decoded)) {
+                $revisions = $decoded;
+            }
+        }
+
+        $clinicalDetails = [];
+        if (!empty($row['clinical_details_json'])) {
+            $decoded = json_decode($row['clinical_details_json'], true);
+            if (is_array($decoded)) {
+                $clinicalDetails = $decoded;
+            }
+        }
+
+        $case = [
+            'id' => $row['case_id'],
+            'driveFolderId' => $row['drive_folder_id'],
+            'patientFirstName' => $row['patient_first_name'],
+            'patientLastName' => $row['patient_last_name'],
+            'patientDOB' => $row['patient_dob'],
+            'patientGender' => $row['patient_gender'] ?? null,
+            'dentistName' => $row['dentist_name'],
+            'caseType' => $row['case_type'],
+            'toothShade' => $row['tooth_shade'],
+            'material' => $row['material'],
+            'dueDate' => $row['due_date'],
+            'patientAppointmentDate' => $row['patient_appointment_date'],
+            'creationDate' => $row['creation_date'],
+            'lastUpdateDate' => $row['last_update_date'],
+            'status' => $row['status'],
+            'statusChangedAt' => !empty($row['status_changed_at']) ? date('c', strtotime($row['status_changed_at'])) : null,
+            'notes' => $row['notes'],
+            'carrier' => $row['carrier'] ?? null,
+            'trackingNumber' => $row['tracking_number'] ?? null,
+            'customCarrier' => $row['custom_carrier'] ?? null,
+            'revisions' => $revisions,
+            'attachments' => $attachments,
+            'clinicalDetails' => $clinicalDetails,
+            'archived' => isset($row['archived']) ? $row['archived'] : false,
+            'archivedDate' => $row['archived_date'] ?? null,
+            'revisionCount' => isset($row['revision_count']) ? (int)$row['revision_count'] : 0,
+            'version' => (int)($row['version'] ?? 1),
+            'assignedTo' => $row['assigned_to'] ?? null,
+            'createdByUserId' => isset($row['created_by_user_id']) ? (int)$row['created_by_user_id'] : null,
+            'createdByName' => 'Unknown',
+        ];
+
+        // Decrypt PII fields before returning
+        try {
+            if (class_exists('PIIEncryption')) {
+                $case = PIIEncryption::decryptCaseData($case);
+            }
+        } catch (Exception $e) {
+            // Continue with encrypted data if decryption fails
+        }
+
+        // Resolve creator display name for the single case
+        if (!empty($case['createdByUserId'])) {
+            try {
+                $userStmt = $pdo->prepare("SELECT first_name, last_name FROM users WHERE id = :id LIMIT 1");
+                $userStmt->execute(['id' => $case['createdByUserId']]);
+                $creator = $userStmt->fetch(PDO::FETCH_ASSOC);
+                if ($creator) {
+                    $name = trim(($creator['first_name'] ?? '') . ' ' . ($creator['last_name'] ?? ''));
+                    if ($name !== '') {
+                        $case['createdByName'] = $name;
+                    }
+                }
+            } catch (Exception $e) {
+                // Leave as Unknown on error
+            }
+        }
+
+        return $case;
+    } catch (PDOException $e) {
+        error_log('[cases_cache] Error loading single case: ' . $e->getMessage());
+        return null;
+    }
+}
+
+/**
  * Record a case update for real-time notifications.
  * This allows other users to see changes without refreshing.
  * 

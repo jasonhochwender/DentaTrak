@@ -10,7 +10,7 @@ $FEATURE_DEFAULTS = [
                                     // Set BILLING_ENABLED=true in .env (local) or Cloud Run env vars (prod)
                                     // only after Stripe is fully configured.
     'SHOW_BILLING' => false,
-    'SHOW_NOTIFICATIONS' => false,
+    'SHOW_NOTIFICATIONS' => false,  // Off globally until Phase 3 rollout approval
     'SHOW_AT_RISK' => false,
     'SHOW_COMMENTS' => false,
     'SHOW_REVISION_HISTORY' => false,
@@ -20,7 +20,7 @@ $FEATURE_DEFAULTS = [
     'SHOW_DEV_TOOLS' => false,
     'SHOW_REVISION_COUNT' => true,
     'SHOW_GOOGLE_DRIVE_BACKUP' => false,
-    'SHOW_TOUR' => true,
+    'SHOW_TOUR' => false,
     'SHOW_LAB_INSIGHTS' => true,   // Lab Insights foundation (assignment-history
                                     // tracking, Lab designation on users/labels).
                                     // Must remain OFF until analytics/UI are built
@@ -68,6 +68,19 @@ function isFeatureEnabled($featureName) {
         }
 
         return false;
+    }
+
+    // In local/test environments, allow a session-level override for
+    // test fixtures.  This is never available in Cloud Run because the
+    // override is keyed to a trusted server-side environment indicator,
+    // not a user-controlled HTTP_HOST.
+    if ($featureName === 'SHOW_NOTIFICATIONS' && session_status() === PHP_SESSION_ACTIVE) {
+        $currentEnv = $appConfig['current_environment'] ?? 'production';
+        $isTestMode = in_array($currentEnv, ['development', 'test', 'local'], true)
+            || getenv('DENTATRAK_TEST_MODE') === 'true';
+        if ($isTestMode && isset($_SESSION[$featureName])) {
+            return (bool)$_SESSION[$featureName];
+        }
     }
 
     // Return default value

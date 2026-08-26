@@ -295,11 +295,13 @@ try {
     // Get regular users (non-admin users for this practice)
     $gmailUsers = [];
     $gmailUserLogins = [];
+    $practiceUsers = [];
+
     try {
         userLog("Attempting to retrieve regular users for practice ID: {$currentPracticeId}", false);
         
         $stmt = $pdo->prepare("
-            SELECT u.email, u.last_login_at, 
+            SELECT u.id, u.email, u.first_name, u.last_name, u.last_login_at,
                    IFNULL(pu.limited_visibility, 0) as limited_visibility,
                    IFNULL(pu.can_view_analytics, 1) as can_view_analytics,
                    IFNULL(pu.can_edit_cases, 1) as can_edit_cases,
@@ -313,6 +315,12 @@ try {
         
         while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
             $email = $row['email'];
+            $practiceUsers[] = [
+                'id' => (int)$row['id'],
+                'email' => $email,
+                'firstName' => $row['first_name'] ?? '',
+                'lastName' => $row['last_name'] ?? '',
+            ];
             // Avoid duplicates and don't include emails already in admin list
             if (!in_array($email, $adminUsers) && !in_array($email, $gmailUsers)) {
                 $gmailUsers[] = $email;
@@ -359,6 +367,25 @@ try {
                     ];
                 }
             }
+            // Load recipient mappings for the returned labels.
+            $labelIds = array_map(function ($item) { return (int)$item['id']; }, $assignmentLabelsDetailed);
+            if (!empty($labelIds)) {
+                $placeholders = implode(',', array_fill(0, count($labelIds), '?'));
+                $recipientStmt = $pdo->prepare("
+                    SELECT label_id, user_id
+                    FROM practice_assignment_label_recipients
+                    WHERE practice_id = ? AND label_id IN ({$placeholders})
+                ");
+                $recipientStmt->execute(array_merge([$currentPracticeId], $labelIds));
+                $recipientsByLabel = [];
+                while ($r = $recipientStmt->fetch(PDO::FETCH_ASSOC)) {
+                    $recipientsByLabel[(int)$r['label_id']][] = (int)$r['user_id'];
+                }
+                foreach ($assignmentLabelsDetailed as $i => $item) {
+                    $assignmentLabelsDetailed[$i]['recipients'] = $recipientsByLabel[$item['id']] ?? [];
+                }
+            }
+
             userLog("Retrieved " . count($assignmentLabels) . " assignment labels for practice ID: {$currentPracticeId}", false);
         } catch (PDOException $e) {
             userLog("Error retrieving assignment labels: " . $e->getMessage(), true);
@@ -435,6 +462,7 @@ try {
         $responseCanEditCasesUsers = $canEditCasesUsers;
         $responseIsLabUsers = $isLabUsers;
         $responseAssignmentLabelsDetailed = $assignmentLabelsDetailed;
+        $responsePracticeUsers = $practiceUsers;
         $responsePracticeCreatorEmail = $practiceCreatorEmail;
         $responseLegalName = $legalName;
         $responsePracticeAddress = $practiceAddress;
@@ -460,6 +488,7 @@ try {
         $responseCanEditCasesUsers = [];
         $responseIsLabUsers = [];
         $responseAssignmentLabelsDetailed = [];
+        $responsePracticeUsers = [];
         $responsePracticeCreatorEmail = null;
         $responseLegalName = '';
         $responsePracticeAddress = '';
@@ -491,6 +520,7 @@ try {
         'storedUserLocale' => $storedUserLocale,
         'fallbackLocale' => getFallbackLocale(),
         'isLabUsers' => $responseIsLabUsers,
+        'practiceUsers' => $responsePracticeUsers,
         'showLabInsights' => isFeatureEnabled('SHOW_LAB_INSIGHTS'),
         'isPracticeAdmin' => $isPracticeAdmin,
         'practiceCreatorEmail' => $responsePracticeCreatorEmail,

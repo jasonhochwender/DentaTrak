@@ -77,6 +77,17 @@ $sessionTimeout = isset($_GET['timeout']) && $_GET['timeout'] == '1';
   <script src="js/i18n.js"></script>
   <!-- No external Google libraries needed for server-side OAuth flow -->
   <script src="js/app.js"></script>
+  <?php if (!empty($_GET['notification_id'])): ?>
+  <script>
+    (function() {
+      try {
+        sessionStorage.setItem('pendingNotification', JSON.stringify({
+          notification_id: <?php echo (int)$_GET['notification_id']; ?>
+        }));
+      } catch (e) {}
+    })();
+  </script>
+  <?php endif; ?>
 </head>
 <?php 
   // Determine environment for visual cues

@@ -4,6 +4,7 @@
         "save": "Save",
         "close": "Close",
         "ok": "OK",
+        "retry": "Retry",
         "loading": "Loading...",
         "loading_application": "Loading application...",
         "error": "Error",
@@ -147,6 +148,8 @@
         "clinical_details": "Clinical Details",
         "no_cases_in_stage": "No cases in this stage.",
         "no_cases_found": "No cases found.",
+        "loading": "Loading case...",
+        "load_error": "Unable to load this case. Please try again.",
         "loading_cases": "Loading cases...",
         "case_created": "Case created successfully.",
         "case_updated": "Case updated successfully.",
@@ -642,6 +645,13 @@
                     "label_name": "Label Name",
                     "save": "Save",
                     "cancel": "Cancel"
+                },
+                "recipients": {
+                    "label": "People notified for this label",
+                    "placeholder": "Search people...",
+                    "selected_count": "{count} selected",
+                    "none": "No one",
+                    "toggle_label": "Toggle {email}"
                 }
             }
         },
@@ -1718,7 +1728,63 @@
     "notifications": {
         "title": "Notifications",
         "mark_all_read": "Mark all read",
-        "loading": "Loading..."
+        "loading": "Loading...",
+        "empty": "No notifications",
+        "view_case": "View case",
+        "mention": "{from} mentioned you in a case.",
+        "case_created": "{from} created an assigned case.",
+        "assignment_changed": "{from} assigned a case to you.",
+        "status_changed": "{from} changed the status of an assigned case.",
+        "file_added": "{from} added a file to an assigned case.",
+        "file_deleted": "{from} removed a file from an assigned case.",
+        "notes_changed": "{from} updated notes on an assigned case.",
+        "due_date_changed": "{from} updated the due date of an assigned case.",
+        "appointment_date_changed": "{from} updated the appointment date of an assigned case.",
+        "case_details_changed": "{from} updated an assigned case.",
+        "email": {
+            "subject": "DentaTrak case notification",
+            "body": "<p>Hello,</p><p>{eventDescription}</p><p><a href=\"{viewCaseUrl}\" style=\"padding:10px 16px;background:#2563eb;color:#fff;text-decoration:none;border-radius:5px;\">{viewCaseLabel}</a></p><p>{signInPrompt}</p><p style=\"font-size:small;color:#666;\">{preferenceExplanation} <a href=\"{preferencesUrl}\">{preferencesLabel}</a>. {footerSupport}</p>",
+            "text_body": "Hello,\n\n{eventDescription}\n\n{viewCaseLabel}: {viewCaseUrl}\n\n{signInPrompt}\n\n{preferenceExplanation} {preferencesLabel}: {preferencesUrl}\n\n{footerSupport}",
+            "view_case": "View case",
+            "sign_in_prompt": "Sign in to DentaTrak to view the case securely.",
+            "preference_explanation": "You are receiving this because you are associated with the assigned case.",
+            "footer_support": "Need help? Contact your practice administrator.",
+            "event": {
+                "case_created": "A case was created and assigned to you.",
+                "assignment_changed": "A case was assigned to you.",
+                "file_added": "A file was added to an assigned case.",
+                "file_deleted": "A file was removed from an assigned case.",
+                "notes_changed": "Notes or instructions were updated on an assigned case.",
+                "status_changed": "The status of an assigned case changed.",
+                "due_date_changed": "The due date of an assigned case changed.",
+                "appointment_date_changed": "The appointment date of an assigned case changed.",
+                "case_details_changed": "Details of an assigned case changed."
+            }
+        }
+    },
+    "app": {
+        "name": "DentaTrak"
+    },
+    "preferences": {
+        "title": "Notification Preferences",
+        "intro": "Choose when DentaTrak should email you about cases assigned to you.",
+        "master_label": "Email notifications",
+        "master_help": "Turn this off to stop all email notifications. Individual choices are preserved.",
+        "event_controls": "Email event options",
+        "events": {
+            "case_created": "A case is created and assigned to me",
+            "assignment_changed": "A case is assigned to me",
+            "file_added": "A file is added",
+            "file_deleted": "A file is removed",
+            "notes_changed": "Notes or instructions are updated",
+            "status_changed": "Status or workflow stage changes",
+            "due_date_changed": "Due date changes",
+            "appointment_date_changed": "Patient appointment date changes",
+            "case_details_changed": "Other case details change"
+        },
+        "load_error": "Could not load notification preferences.",
+        "save_error": "Could not save notification preferences.",
+        "save_success": "Notification preferences saved."
     },
     "ask_dentatrak": {
         "ask_app": "Ask {appName}",
@@ -1858,6 +1924,7 @@
             "reload_required_labels": "Please reload the page before making changes to Assignment Labels.",
             "duplicate_labels": "Duplicate label(s): {labels}",
             "assignment_labels_out_of_date": "Assignment Label data is out of date. Please reload Settings and try again.",
+            "invalid_recipients": "One or more selected recipients are not active members of this practice. Please refresh Settings and try again.",
             "saved_success": "Settings saved successfully"
         },
         "email": {

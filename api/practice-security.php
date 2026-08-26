@@ -624,6 +624,8 @@ function getCurrentUserEmail() {
  * @return bool
  */
 function canUserAccessCase($case, $practiceId = null) {
+    global $pdo;
+
     if (!is_array($case)) {
         return false;
     }
@@ -649,7 +651,44 @@ function canUserAccessCase($case, $practiceId = null) {
     $assignedTo = $case['assigned_to'] ?? $case['assignedTo'] ?? '';
     $assignedTo = strtolower(trim((string)$assignedTo));
 
-    return $assignedTo !== '' && $assignedTo === $currentEmail;
+    if ($assignedTo === '') {
+        return false;
+    }
+
+    // 1. Direct email assignment.
+    if ($assignedTo === $currentEmail) {
+        return true;
+    }
+
+    // 2. Label-based assignment: the case is assigned to a label in this
+    //    practice and the current user is explicitly mapped to that label.
+    //    This is real-time; removing a mapping or reassigning the case
+    //    immediately revokes access. Access is not granted by is_lab or role.
+    $currentUserId = $_SESSION['db_user_id'] ?? null;
+    if (!$pdo || !$currentUserId) {
+        return false;
+    }
+
+    try {
+        $stmt = $pdo->prepare("
+            SELECT 1
+            FROM practice_assignment_labels l
+            JOIN practice_assignment_label_recipients r ON r.label_id = l.id
+            WHERE l.practice_id = :practice_id
+              AND LOWER(TRIM(l.label)) = :label
+              AND r.user_id = :user_id
+            LIMIT 1
+        ");
+        $stmt->execute([
+            ':practice_id' => $practiceId,
+            ':label' => $assignedTo,
+            ':user_id' => $currentUserId,
+        ]);
+        return (bool) $stmt->fetchColumn();
+    } catch (PDOException $e) {
+        error_log('[practice-security] Label access lookup failed: ' . $e->getMessage());
+        return false;
+    }
 }
 
 /**

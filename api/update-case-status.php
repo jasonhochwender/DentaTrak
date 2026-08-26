@@ -7,6 +7,7 @@ require_once __DIR__ . '/cases-cache.php';
 require_once __DIR__ . '/case-activity-log.php';
 require_once __DIR__ . '/lab-assignment-history.php';
 require_once __DIR__ . '/csrf.php';
+require_once __DIR__ . '/notification-service.php';
 
 // Disable PHP error display for API - return only JSON
 ini_set('display_errors', '0');
@@ -143,6 +144,18 @@ if ($driveFolderId === '') {
         updateCaseStatusInCache($caseId, $status, $lastUpdateDate);
     }
 
+    // Emit structured in-app notification for a meaningful status change (Phase 2).
+    if ($oldStatus !== null && $oldStatus !== $status && $currentPracticeId) {
+        $categories = ['status_changed'];
+        $metadata = [
+            'from_status' => $oldStatus,
+            'to_status' => $status,
+            'regression' => $isRegression,
+        ];
+        $eventType = getPrimaryNotificationType($categories);
+        emitCaseNotificationEvent($currentPracticeId, $caseId, $_SESSION['db_user_id'] ?? 0, $eventType, $categories, $metadata);
+    }
+
     // Log status change activity
     $activityMeta = [
         'source' => 'update-case-status.php',
@@ -236,7 +249,19 @@ try {
         
         // Update the local cache only
         updateCaseStatusInCache($caseId, $status, $lastUpdateDate);
-        
+
+        // Emit structured in-app notification for a meaningful status change (Phase 2).
+        if ($oldStatus !== null && $oldStatus !== $status && $currentPracticeId) {
+            $categories = ['status_changed'];
+            $metadata = [
+                'from_status' => $oldStatus,
+                'to_status' => $status,
+                'regression' => false,
+            ];
+            $eventType = getPrimaryNotificationType($categories);
+            emitCaseNotificationEvent($currentPracticeId, $caseId, $_SESSION['db_user_id'] ?? 0, $eventType, $categories, $metadata);
+        }
+
         // Log status change activity
         logCaseActivity(
             $caseId,
@@ -341,6 +366,18 @@ try {
 
     // Update local cache
     updateCaseStatusInCache($caseId, $status, $existingCaseData['lastUpdateDate']);
+
+    // Emit structured in-app notification for a meaningful status change (Phase 2).
+    if ($oldStatus !== null && $oldStatus !== $status && $currentPracticeId) {
+        $categories = ['status_changed'];
+        $metadata = [
+            'from_status' => $oldStatus,
+            'to_status' => $status,
+            'regression' => $isRegression,
+        ];
+        $eventType = getPrimaryNotificationType($categories);
+        emitCaseNotificationEvent($currentPracticeId, $caseId, $_SESSION['db_user_id'] ?? 0, $eventType, $categories, $metadata);
+    }
 
     // Log activity
     $activityMeta = [

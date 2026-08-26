@@ -12,6 +12,7 @@ require_once __DIR__ . '/csrf.php';
 require_once __DIR__ . '/security-headers.php';
 require_once __DIR__ . '/tooth-number-parser.php';
 require_once __DIR__ . '/gcs-attachments.php';
+require_once __DIR__ . '/notification-service.php';
 
 // Set security headers
 setApiSecurityHeaders();
@@ -480,6 +481,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             recordCaseUpdate($createdCaseId, 'create');
         }
 
+        // Emit structured in-app notification for the new case (Phase 2).
+        // This runs before the final response so Cloud Run cannot throttle it.
+        if ($createdCaseId && $currentPracticeId) {
+            try {
+                $attachmentsForNotify = $result['caseData']['attachments'] ?? [];
+                $categories = buildCreateCaseNotificationCategories($result['caseData'], $attachmentsForNotify);
+                $metadata = buildCreateCaseNotificationMetadata($result['caseData'], $attachmentsForNotify);
+                $eventType = getPrimaryNotificationType($categories);
+                emitCaseNotificationEvent($currentPracticeId, $createdCaseId, $_SESSION['db_user_id'] ?? 0, $eventType, $categories, $metadata);
+            } catch (Throwable $e) {
+                error_log('[create-case] notification emit error (non-fatal): ' . $e->getMessage());
+            }
+        }
+
         // Resolve creator display name for the new-case response so the
         // Kanban card and edit modal can show the creator immediately.
         if (isset($result['caseData']['createdByUserId']) && !isset($result['caseData']['createdByName']) && $pdo) {
@@ -537,6 +552,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 error_log('[create-case] Backup error (non-blocking): ' . $e->getMessage());
             }
         }
+
         exit;
     } else {
         http_response_code(500);
