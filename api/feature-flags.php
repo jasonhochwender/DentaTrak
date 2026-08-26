@@ -36,12 +36,9 @@ $FEATURE_DEFAULTS = [
 function isFeatureEnabled($featureName) {
     global $FEATURE_DEFAULTS, $appConfig;
 
-    // Check environment variable first (process env, then Dotenv-populated $_ENV)
-    $envValue = getenv($featureName);
-    if ($envValue === false) {
-        $envValue = $_ENV[$featureName] ?? null;
-    }
-    if ($envValue !== false && $envValue !== null && $envValue !== '') {
+    // Check environment variable (process env, Dotenv-populated $_ENV, $_SERVER)
+    $envValue = getEnvVar($featureName);
+    if ($envValue !== null && $envValue !== '') {
         return filter_var($envValue, FILTER_VALIDATE_BOOLEAN);
     }
 
@@ -55,7 +52,7 @@ function isFeatureEnabled($featureName) {
         }
 
         // Cloud Run = production = hidden
-        if (getenv('K_SERVICE')) {
+        if (getEnvVar('K_SERVICE')) {
             return false;
         }
 
@@ -77,7 +74,7 @@ function isFeatureEnabled($featureName) {
     if ($featureName === 'SHOW_NOTIFICATIONS' && session_status() === PHP_SESSION_ACTIVE) {
         $currentEnv = $appConfig['current_environment'] ?? 'production';
         $isTestMode = in_array($currentEnv, ['development', 'test', 'local'], true)
-            || getenv('DENTATRAK_TEST_MODE') === 'true';
+            || getEnvVar('DENTATRAK_TEST_MODE', 'false') === 'true';
         if ($isTestMode && isset($_SESSION[$featureName])) {
             return (bool)$_SESSION[$featureName];
         }

@@ -79,4 +79,29 @@ function runNotificationPhase4Migration(PDO $pdo): array
 if (PHP_SAPI === 'cli') {
     $result = runNotificationPhase4Migration($pdo);
     echo json_encode($result) . PHP_EOL;
+    exit;
+}
+
+// Web-safe entry point for Cloud Run / one-click deployment.
+$isWebEntryPoint = isset($_SERVER['SCRIPT_FILENAME']) && realpath($_SERVER['SCRIPT_FILENAME']) === realpath(__FILE__);
+if ($isWebEntryPoint) {
+    if (session_status() === PHP_SESSION_NONE) {
+        session_start();
+    }
+    $environment = $appConfig['current_environment'] ?? $appConfig['environment'] ?? 'production';
+    $testMode = getEnvVar('DENTATRAK_TEST_MODE', 'false') === 'true'
+        || ($appConfig['test_mode'] ?? false) === true
+        || $environment === 'development';
+    $isAdmin = isset($_SESSION['user_role']) && $_SESSION['user_role'] === 'admin';
+
+    if (!$testMode && !$isAdmin) {
+        http_response_code(403);
+        echo json_encode(['success' => false, 'message' => 'Forbidden: admin or test mode required']);
+        exit;
+    }
+
+    $result = runNotificationPhase4Migration($pdo);
+    header('Content-Type: application/json');
+    echo json_encode($result);
+    exit;
 }

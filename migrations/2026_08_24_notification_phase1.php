@@ -270,7 +270,7 @@ if ($isMigrationEntryPoint) {
             session_start();
         }
         $environment = $appConfig['current_environment'] ?? $appConfig['environment'] ?? 'production';
-        $testMode = getenv('DENTATRAK_TEST_MODE') === 'true'
+        $testMode = getEnvVar('DENTATRAK_TEST_MODE', 'false') === 'true'
             || ($appConfig['test_mode'] ?? false) === true
             || $environment === 'development';
         $isAdmin = isset($_SESSION['user_role']) && $_SESSION['user_role'] === 'admin';
