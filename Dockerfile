@@ -23,9 +23,10 @@ RUN curl -sS https://getcomposer.org/installer | php -- \
 # ---------- Environment ----------
 ENV PORT=8080
 
-# ---------- Apache must listen on $PORT ----------
+# ---------- Apache must listen on $PORT and allow .htaccess ----------
 RUN sed -i "s/80/${PORT}/g" /etc/apache2/ports.conf \
- && sed -i "s/:80/:${PORT}/g" /etc/apache2/sites-enabled/000-default.conf
+ && sed -i "s/:80/:${PORT}/g" /etc/apache2/sites-enabled/000-default.conf \
+ && sed -i 's/AllowOverride None/AllowOverride All/g' /etc/apache2/sites-enabled/000-default.conf
 
 # ---------- Apache document root (adjust only if needed) ----------
 # If your app uses /public, keep this. Otherwise remove both lines.
