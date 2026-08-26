@@ -1,15 +1,6 @@
 # Custom 404 Error Page
 ErrorDocument 404 /404.php
 
-# Expose Authorization header to PHP for the queue worker and other APIs.
-SetEnvIf Authorization "(.*)" HTTP_AUTHORIZATION=$1
-
-<IfModule mod_rewrite.c>
-  RewriteEngine On
-  RewriteCond %{HTTP:Authorization} ^(.*)$
-  RewriteRule .* - [e=HTTP_AUTHORIZATION:%1,NE]
-</IfModule>
-
 # Clean URLs - rewrite /page to /page.php (production only)
 <IfModule mod_rewrite.c>
   RewriteEngine On

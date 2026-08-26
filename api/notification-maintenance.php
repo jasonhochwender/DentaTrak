@@ -9,6 +9,7 @@
 
 require_once __DIR__ . '/appConfig.php';
 require_once __DIR__ . '/session.php';
+require_once __DIR__ . '/queue-worker-auth.php';
 
 header('Content-Type: application/json');
 
@@ -18,29 +19,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
-$workerToken = getEnvVar('QUEUE_WORKER_TOKEN');
-$isTestMode = getEnvVar('DENTATRAK_TEST_MODE') === 'true' || ($appConfig['current_environment'] ?? 'production') !== 'production';
-if (!$workerToken && $isTestMode) {
-    $workerToken = 'dentatrak-test-worker-token';
-}
-$submittedToken = '';
-
-$authHeader = $_SERVER['HTTP_AUTHORIZATION'] ?? '';
-if (strpos($authHeader, 'Bearer ') === 0) {
-    $submittedToken = substr($authHeader, 7);
-}
-
-if (!$submittedToken) {
-    http_response_code(401);
-    echo json_encode(['success' => false, 'message' => 'Unauthorized']);
-    exit;
-}
-
-if (!$workerToken || !hash_equals($workerToken, $submittedToken)) {
-    http_response_code(403);
-    echo json_encode(['success' => false, 'message' => 'Forbidden']);
-    exit;
-}
+requireQueueWorkerToken();
 
 if (!isset($pdo) || !($pdo instanceof PDO)) {
     http_response_code(500);

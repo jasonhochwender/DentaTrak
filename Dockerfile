@@ -23,10 +23,9 @@ RUN curl -sS https://getcomposer.org/installer | php -- \
 # ---------- Environment ----------
 ENV PORT=8080
 
-# ---------- Apache must listen on $PORT and allow .htaccess ----------
+# ---------- Apache must listen on $PORT ----------
 RUN sed -i "s/80/${PORT}/g" /etc/apache2/ports.conf \
- && sed -i "s/:80/:${PORT}/g" /etc/apache2/sites-enabled/000-default.conf \
- && sed -i 's/AllowOverride None/AllowOverride All/g' /etc/apache2/sites-enabled/000-default.conf
+ && sed -i "s/:80/:${PORT}/g" /etc/apache2/sites-enabled/000-default.conf
 
 # ---------- Apache document root (adjust only if needed) ----------
 # If your app uses /public, keep this. Otherwise remove both lines.
@@ -34,7 +33,7 @@ ENV APACHE_DOCUMENT_ROOT=/var/www/html/public
 RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/sites-available/*.conf
 
 # ---------- Enable Apache modules ----------
-RUN a2enmod rewrite headers expires setenvif
+RUN a2enmod rewrite headers expires
 
 # ---------- PHP upload/size limits for large dental scan files (STL, etc.) ----------
 COPY php.ini /usr/local/etc/php/conf.d/99-custom.ini
