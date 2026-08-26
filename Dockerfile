@@ -33,7 +33,7 @@ ENV APACHE_DOCUMENT_ROOT=/var/www/html/public
 RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/sites-available/*.conf
 
 # ---------- Enable Apache modules ----------
-RUN a2enmod rewrite headers expires
+RUN a2enmod rewrite headers expires setenvif
 
 # ---------- PHP upload/size limits for large dental scan files (STL, etc.) ----------
 COPY php.ini /usr/local/etc/php/conf.d/99-custom.ini
