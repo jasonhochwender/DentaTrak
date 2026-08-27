@@ -174,7 +174,7 @@ try {
     $abutmentTypes = ['Stock', 'Custom', 'Ti-Base'];
     $implantSystems = ['Nobel Biocare', 'Straumann', 'Zimmer Biomet', 'Dentsply Sirona', 'BioHorizons', 'Neodent'];
     $platformSizes = ['3.5mm', '4.0mm', '4.5mm', '5.0mm', '5.5mm', '6.0mm'];
-    $dentureJaws = ['Upper', 'Lower', 'Both'];
+    $dentureJaws = ['Maxillary', 'Mandibular', 'Both'];
     $dentureTypes = ['Full', 'Partial', 'Immediate', 'Overdenture'];
     $gingivalShades = ['Light Pink', 'Pink', 'Dark Pink', 'Natural'];
     $partialMaterials = ['Chrome Cobalt', 'Acrylic', 'Flexible', 'Titanium'];

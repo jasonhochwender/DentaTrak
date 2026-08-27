@@ -262,6 +262,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'Partial' => ['partialJaw', 'teethToReplace', 'partialMaterial', 'partialGingivalShade'],
     ];
 
+    // Validate canonical Jaw values (applies to Denture and Partial)
+    $validJawValues = ['Maxillary', 'Mandibular', 'Both'];
+    foreach (['dentureJaw', 'partialJaw'] as $jawField) {
+        if (!empty($clinicalDetails[$jawField]) && !in_array($clinicalDetails[$jawField], $validJawValues, true)) {
+            http_response_code(400);
+            echo json_encode([
+                'success' => false,
+                'message' => t('validation.invalid_value'),
+                'field' => 'clinical' . ucfirst($jawField)
+            ]);
+            exit;
+        }
+    }
+
     // Check clinical fields for current case type
     if (isset($caseTypeClinicalFields[$caseType])) {
         foreach ($caseTypeClinicalFields[$caseType] as $clinicalField) {

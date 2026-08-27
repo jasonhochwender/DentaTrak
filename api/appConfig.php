@@ -364,7 +364,7 @@ Here is the workflow data to analyze:
         'implantSites' => false,            // Implant Surgical Guide: Implant Sites
 
         // Clinical Details - Denture
-        'dentureJaw' => false,              // Denture: Jaw (Upper/Lower/Both)
+        'dentureJaw' => false,              // Denture: Jaw (Maxillary/Mandibular/Both)
         'dentureType' => false,             // Denture: Type
         'gingivalShade' => false,           // Denture: Gingival Shade
 

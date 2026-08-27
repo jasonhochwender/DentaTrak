@@ -491,7 +491,7 @@ try {
                 ];
             case 'Denture':
                 $details = [
-                    'dentureJaw' => random_int(0, 1) ? 'Maxillary' : 'Mandibular',
+                    'dentureJaw' => ['Maxillary', 'Mandibular', 'Both'][random_int(0, 2)],
                     'dentureType' => random_int(0, 1) ? 'Immediate' : 'Definitive',
                 ];
                 if (random_int(1, 100) <= 50) {
@@ -505,7 +505,7 @@ try {
                     $teeth[] = $toothNumbers[array_rand($toothNumbers)];
                 }
                 $details = [
-                    'partialJaw' => random_int(0, 1) ? 'Maxillary' : 'Mandibular',
+                    'partialJaw' => ['Maxillary', 'Mandibular', 'Both'][random_int(0, 2)],
                     'teethToReplace' => $joinTeeth($teeth),
                     'partialMaterial' => ['Cast Metal', 'Valplast Flex Resin', 'Acrylic Base', 'Interim Acrylic'][random_int(0, 3)],
                 ];

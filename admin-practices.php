@@ -146,7 +146,8 @@ $userEmail = $_SESSION['user_email'] ?? '';
             background: white;
             border-radius: 12px;
             box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-            overflow: hidden;
+            overflow: visible;
+            min-width: 0;
         }
         
         .table-header {
@@ -166,23 +167,101 @@ $userEmail = $_SESSION['user_email'] ?? '';
         .practices-table {
             width: 100%;
             border-collapse: collapse;
+            table-layout: fixed;
         }
-        
+
         .practices-table th,
         .practices-table td {
-            padding: 12px 16px;
+            padding: 10px 12px;
             text-align: left;
             border-bottom: 1px solid #e5e7eb;
             vertical-align: top;
+            min-width: 0;
+            white-space: normal;
+            word-wrap: normal;
+            overflow-wrap: normal;
         }
-        
-        .practices-table td:first-child {
-            max-width: 180px;
-            word-wrap: break-word;
-        }
-        
-        .practices-table td:last-child {
+
+        .practices-table th {
+            background: #f9fafb;
+            font-weight: 600;
+            color: #374151;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
             white-space: nowrap;
+            line-height: 1.2;
+        }
+
+        .practices-table th.col-practice,
+        .practices-table td.col-practice {
+            width: 40%;
+            min-width: 180px;
+        }
+
+        .practices-table th.col-account,
+        .practices-table td.col-account {
+            width: 24%;
+            min-width: 120px;
+        }
+
+        .practices-table th.col-usage,
+        .practices-table td.col-usage {
+            width: 24%;
+            min-width: 120px;
+        }
+
+        .practices-table th.col-actions,
+        .practices-table td.col-actions {
+            width: 100px;
+            min-width: 100px;
+            overflow: visible;
+        }
+
+        .practice-name {
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            line-height: 1.3;
+            font-weight: 600;
+            font-size: 0.95rem;
+        }
+
+        .practice-legal {
+            display: block;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            color: #6b7280;
+            font-size: 0.75rem;
+            margin-top: 2px;
+        }
+
+        .account-detail {
+            display: block;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            color: #6b7280;
+            font-size: 0.75rem;
+            margin-top: 4px;
+            max-width: 100%;
+        }
+
+        .usage-primary,
+        .usage-secondary {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            max-width: 100%;
+            font-size: 0.85rem;
+        }
+
+        .usage-secondary {
+            color: #6b7280;
+            font-size: 0.75rem;
+            margin-top: 2px;
         }
         
         .practices-table th {
@@ -201,10 +280,13 @@ $userEmail = $_SESSION['user_email'] ?? '';
         .status-badge {
             display: inline-flex;
             align-items: center;
+            flex-wrap: nowrap;
             padding: 4px 10px;
             border-radius: 9999px;
             font-size: 0.8rem;
             font-weight: 500;
+            white-space: nowrap;
+            max-width: 100%;
         }
         
         .status-badge.active {
@@ -230,10 +312,13 @@ $userEmail = $_SESSION['user_email'] ?? '';
         .baa-badge {
             display: inline-flex;
             align-items: center;
+            flex-wrap: wrap;
             padding: 4px 10px;
             border-radius: 9999px;
             font-size: 0.75rem;
             font-weight: 500;
+            white-space: normal;
+            max-width: 100%;
         }
         
         .baa-badge.accepted {
@@ -494,6 +579,7 @@ $userEmail = $_SESSION['user_email'] ?? '';
             border-radius: 12px;
             box-shadow: 0 1px 3px rgba(0,0,0,0.1);
             overflow: hidden;
+            min-width: 0;
         }
         
         .detail-panel-empty {
@@ -567,14 +653,72 @@ $userEmail = $_SESSION['user_email'] ?? '';
             background: #eff6ff !important;
         }
         
-        .compact-actions {
-            display: flex;
-            gap: 6px;
+        .col-actions {
+            position: relative;
+            text-align: right;
         }
-        
-        .compact-actions .action-btn {
+
+        .actions-toggle {
             padding: 4px 8px;
             font-size: 0.75rem;
+            background: #f3f4f6;
+            color: #374151;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+
+        .actions-toggle:hover,
+        .actions-toggle:focus-visible {
+            background: #e5e7eb;
+            outline: 2px solid #3b82f6;
+            outline-offset: 2px;
+        }
+
+        .actions-menu {
+            display: none;
+            position: absolute;
+            right: 0;
+            top: calc(100% + 4px);
+            min-width: 170px;
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            z-index: 1000;
+            padding: 4px;
+            text-align: left;
+        }
+
+        .actions-menu.active {
+            display: block;
+        }
+
+        .action-menu-item {
+            display: block;
+            width: 100%;
+            padding: 8px 12px;
+            background: none;
+            border: none;
+            border-radius: 4px;
+            text-align: left;
+            font-size: 0.85rem;
+            color: #374151;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+
+        .action-menu-item:hover,
+        .action-menu-item:focus-visible {
+            background: #f3f4f6;
+            outline: none;
+        }
+
+        .action-menu-item--danger:hover,
+        .action-menu-item--danger:focus-visible {
+            background: #fee2e2;
+            color: #991b1b;
         }
         
         .view-toggle {
@@ -696,9 +840,7 @@ $userEmail = $_SESSION['user_email'] ?? '';
             text-transform: none;
             letter-spacing: 0;
         }
-        .practices-table td:first-child {
-            max-width: 200px;
-        }
+
         .practices-table strong {
             font-size: 0.9rem;
             font-weight: 600;
@@ -1013,24 +1155,18 @@ $userEmail = $_SESSION['user_email'] ?? '';
         function renderPractices() {
             const visible = visiblePractices();
             if (visible.length === 0) {
-                document.getElementById('practicesTableBody').innerHTML = 
+                document.getElementById('practicesTableBody').innerHTML =
                     '<div class="empty-state">' + t('admin_practices.no_practices_view') + '</div>';
                 return;
             }
-            
+
             let html = '<table class="practices-table"><thead><tr>' +
-                '<th>' + t('admin_practices.table_practice_name') + '</th>' +
-                '<th>' + t('admin_practices.table_status') + '</th>' +
-                '<th>' + t('admin_practices.table_plan') + '</th>' +
-                '<th>' + t('admin_practices.table_subscription') + '</th>' +
-                '<th>' + t('admin_practices.table_owner') + '</th>' +
-                '<th>' + t('admin_practices.table_baa') + '</th>' +
-                '<th>' + t('admin_practices.table_users') + '</th>' +
-                '<th>' + t('admin_practices.table_active_cases') + '</th>' +
-                '<th>' + t('admin_practices.table_last_activity') + '</th>' +
-                '<th>' + t('admin_practices.table_actions') + '</th>' +
+                '<th class="col-practice">' + t('admin_practices.table_practice_name') + '</th>' +
+                '<th class="col-account">Account</th>' +
+                '<th class="col-usage">Usage</th>' +
+                '<th class="col-actions">' + t('admin_practices.table_actions') + '</th>' +
                 '</tr></thead><tbody>';
-            
+
             visible.forEach(practice => {
                 const isActive = practice.is_active === true || practice.is_active === '1' || practice.is_active === 1;
                 const statusClass = isActive ? 'active' : 'inactive';
@@ -1039,53 +1175,103 @@ $userEmail = $_SESSION['user_email'] ?? '';
                 const sub = practice.subscription || {};
                 const planDisplay = escapeHtml(sub.plan_display || '—');
                 const subscriptionStatusClass = adminSubscriptionStatusClass(sub.status);
-                let subscriptionText = escapeHtml(sub.status_display || t('admin_practices.no_subscription'));
-                if (sub.is_trialing && sub.trial_display) {
-                    const days = (typeof sub.trial_days_remaining === 'number') ? sub.trial_days_remaining : null;
-                    const trialClass = (days !== null && days < 0) ? 'trial-expired' : ((days !== null && days <= 14) ? 'trial-urgent' : 'trial-normal');
-                    subscriptionText += ' · <span class="' + trialClass + '">' + escapeHtml(sub.trial_display) + '</span>';
+                const subscriptionStatusText = escapeHtml(sub.status_display || t('admin_practices.no_subscription'));
+                let accountDetailRaw;
+                let accountDetailTitle;
+                if (!planDisplay || planDisplay === '—') {
+                    accountDetailRaw = subscriptionStatusText;
+                    if (sub.is_trialing && sub.trial_display) {
+                        accountDetailRaw += ' · ' + escapeHtml(sub.trial_display);
+                    }
+                } else {
+                    accountDetailRaw = planDisplay + ' · ' + subscriptionStatusText;
+                    if (sub.is_trialing && sub.trial_display) {
+                        accountDetailRaw += ' · ' + escapeHtml(sub.trial_display);
+                    }
                 }
-                const ownerDisplay = escapeHtml(sub.owner_email || '—');
+                accountDetailTitle = accountDetailRaw.replace(/"/g, '&quot;');
 
-                const baaClass = practice.baa_accepted ? 'accepted' : 'pending';
-                const baaText = practice.baa_accepted ? t('admin_practices.baa_accepted') : t('admin_practices.baa_pending');
+                const userCount = practice.user_count || 0;
+                const activeCases = practice.adoption?.active_cases || 0;
+                const userLabel = userCount === 1 ? '1 user' : userCount + ' users';
+                const caseLabel = activeCases === 1 ? '1 case' : activeCases + ' cases';
+                const usagePrimaryText = userLabel + ' · ' + caseLabel;
+                const usagePrimaryTitle = escapeHtml(usagePrimaryText).replace(/"/g, '&quot;');
+                const lastActivity = formatRelativeTimestamp(practice.adoption?.last_activity, t('admin_practices.no_activity_recorded'));
+
+                const practiceNameRaw = practice.practice_name || practice.legal_name || t('admin_practices.unnamed');
+                const practiceName = escapeHtml(practiceNameRaw).replace(/'/g, "\\'");
+                const practiceTitle = escapeHtml(practiceNameRaw).replace(/"/g, '&quot;');
+                const legalNameRaw = practice.legal_name || '';
+                const legalName = legalNameRaw && legalNameRaw !== practiceNameRaw ? escapeHtml(legalNameRaw) : '';
+                const legalNameTitle = legalName ? escapeHtml(legalNameRaw).replace(/"/g, '&quot;') : '';
                 const selectedClass = selectedPracticeId === practice.id ? 'selected' : '';
-                const hideButton = practice.is_hidden
-                    ? '<button class="action-btn success" onclick="unhidePractice(' + practice.id + ')">' + t('admin_practices.unhide_button') + '</button>'
-                    : '<button class="action-btn secondary" onclick="hidePractice(' + practice.id + ')">' + t('admin_practices.hide_button') + '</button>';
+
+                const reactivateItem = !isActive
+                    ? '<button type="button" class="action-menu-item" role="menuitem" onclick="reactivatePractice(' + practice.id + ', \'' + practiceName + '\'); closeAllActionsMenus();">' + t('admin_practices.reactivate_button') + '</button>'
+                    : '';
+                const deactivateItem = isActive
+                    ? '<button type="button" class="action-menu-item action-menu-item--danger" role="menuitem" onclick="deactivatePractice(' + practice.id + ', \'' + practiceName + '\'); closeAllActionsMenus();">' + t('admin_practices.deactivate_button') + '</button>'
+                    : '';
+                const hideUnhideItem = practice.is_hidden
+                    ? '<button type="button" class="action-menu-item" role="menuitem" onclick="confirmUnhidePractice(' + practice.id + ', \'' + practiceName + '\'); closeAllActionsMenus();">' + t('admin_practices.unhide_button') + '</button>'
+                    : '<button type="button" class="action-menu-item" role="menuitem" onclick="confirmHidePractice(' + practice.id + ', \'' + practiceName + '\'); closeAllActionsMenus();">' + t('admin_practices.hide_button') + '</button>';
 
                 html += '<tr class="practice-row ' + selectedClass + '" onclick="selectPractice(' + practice.id + ')" data-practice-id="' + practice.id + '">' +
-                    '<td>' +
-                        '<strong>' + escapeHtml(practice.practice_name || practice.legal_name || t('admin_practices.unnamed')) + '</strong>' +
-                        (practice.legal_name && practice.legal_name !== practice.practice_name
-                            ? '<br><small style="color: #6b7280;">' + escapeHtml(practice.legal_name) + '</small>'
-                            : '') +
+                    '<td class="col-practice">' +
+                        '<strong class="practice-name" title="' + practiceTitle + '">' + escapeHtml(practiceNameRaw) + '</strong>' +
+                        (legalName ? '<small class="practice-legal" title="' + legalNameTitle + '">' + legalName + '</small>' : '') +
                     '</td>' +
-                    '<td><span class="status-badge ' + statusClass + '">' + statusText + '</span>' +
-                        (!isActive && practice.years_inactive > 0
-                            ? '<br><small style="color: #6b7280;">' + practice.years_inactive + ' yrs</small>'
-                            : '') +
+                    '<td class="col-account">' +
+                        '<span class="status-badge ' + statusClass + '">' + statusText + '</span>' +
+                        '<small class="account-detail" title="' + accountDetailTitle + '">' + escapeHtml(accountDetailRaw) + '</small>' +
                     '</td>' +
-                    '<td>' + planDisplay + '</td>' +
-                    '<td><span class="status-badge ' + subscriptionStatusClass + '">' + subscriptionText + '</span></td>' +
-                    '<td>' + ownerDisplay + '</td>' +
-                    '<td><span class="baa-badge ' + baaClass + '">' + baaText + '</span></td>' +
-                    '<td>' + (practice.user_count || 0) + '</td>' +
-                    '<td>' + (practice.adoption?.active_cases || 0) + '</td>' +
-                    '<td>' + formatRelativeTimestamp(practice.adoption?.last_activity, t('admin_practices.no_activity_recorded')) + '</td>' +
-                    '<td class="compact-actions" onclick="event.stopPropagation()">' +
-                        (isActive
-                            ? '<button class="action-btn danger" onclick="deactivatePractice(' + practice.id + ', \'' + escapeHtml(practice.practice_name || '').replace(/'/g, "\\'") + '\')">' + t('admin_practices.deactivate_button_short') + '</button>'
-                            : '<button class="action-btn success" onclick="reactivatePractice(' + practice.id + ')">' + t('admin_practices.reactivate_button') + '</button>') +
-                        hideButton +
+                    '<td class="col-usage">' +
+                        '<div class="usage-primary" title="' + usagePrimaryTitle + '">' + usagePrimaryText + '</div>' +
+                        '<div class="usage-secondary">Last: ' + lastActivity + '</div>' +
+                    '</td>' +
+                    '<td class="col-actions" onclick="event.stopPropagation()">' +
+                        '<button class="action-btn actions-toggle" type="button" aria-haspopup="true" aria-expanded="false" aria-label="Actions for ' + practiceName + '" onclick="toggleActionsMenu(event, ' + practice.id + ')">' + t('admin_practices.table_actions') + '</button>' +
+                        '<div class="actions-menu" id="actionsMenu-' + practice.id + '" role="menu" aria-label="Actions for ' + practiceName + '">' +
+                            reactivateItem +
+                            deactivateItem +
+                            hideUnhideItem +
+                        '</div>' +
                     '</td>' +
                     '</tr>';
             });
-            
+
             html += '</tbody></table>';
             document.getElementById('practicesTableBody').innerHTML = html;
         }
-        
+
+        function toggleActionsMenu(event, practiceId) {
+            event.stopPropagation();
+            const menu = document.getElementById('actionsMenu-' + practiceId);
+            if (!menu) return;
+            const wasOpen = menu.classList.contains('active');
+            closeAllActionsMenus();
+            if (!wasOpen) {
+                menu.classList.add('active');
+                const toggle = menu.previousElementSibling;
+                if (toggle) toggle.setAttribute('aria-expanded', 'true');
+            }
+        }
+
+        function closeAllActionsMenus() {
+            document.querySelectorAll('.actions-menu.active').forEach(menu => {
+                menu.classList.remove('active');
+                const toggle = menu.previousElementSibling;
+                if (toggle) toggle.setAttribute('aria-expanded', 'false');
+            });
+        }
+
+        document.addEventListener('click', function(event) {
+            if (!event.target.closest('.col-actions')) {
+                closeAllActionsMenus();
+            }
+        });
+
         function selectPractice(practiceId) {
             selectedPracticeId = practiceId;
             
@@ -1746,7 +1932,22 @@ $userEmail = $_SESSION['user_email'] ?? '';
                 '<h4>Security</h4>' +
                 '<div class="settings-row"><span class="settings-label">Two-Factor Authentication Enabled</span><span class="settings-value">' + yesNo(settings.security.two_factor_authentication_enabled) + '</span></div>' +
                 '</div>';
-            
+
+            const selected = practices.find(p => p.id === selectedPracticeId);
+            if (selected) {
+                const isHidden = !!selected.is_hidden;
+                const pName = escapeHtml(selected.practice_name || selected.legal_name || t('admin_practices.unnamed')).replace(/'/g, "\\'");
+                const visibilityLabel = isHidden ? 'This practice is hidden from the default All Practices list.' : 'This practice is visible in the default All Practices list.';
+                const visibilityButton = isHidden
+                    ? '<button class="action-btn success" onclick="confirmUnhidePractice(' + selectedPracticeId + ', \'' + pName + '\')">' + t('admin_practices.unhide_button') + '</button>'
+                    : '<button class="action-btn secondary" onclick="confirmHidePractice(' + selectedPracticeId + ', \'' + pName + '\')">' + t('admin_practices.hide_button') + '</button>';
+                html += '<div class="settings-card">' +
+                    '<h4>Practice Visibility</h4>' +
+                    '<p style="font-size: 0.85rem; color: #6b7280; margin: 0 0 12px;">' + escapeHtml(visibilityLabel) + ' Hiding does not affect access, cases, subscriptions, notifications, or PHI records.</p>' +
+                    '<div class="settings-row">' + visibilityButton + '</div>' +
+                    '</div>';
+            }
+
             document.getElementById('detailContent').innerHTML = html;
         }
         
@@ -1912,8 +2113,9 @@ $userEmail = $_SESSION['user_email'] ?? '';
             });
         }
         
-        function reactivatePractice(practiceId) {
-            if (!confirm('Are you sure you want to reactivate this practice? Users will be able to log in again.')) {
+        function reactivatePractice(practiceId, practiceName) {
+            const name = practiceName || 'this practice';
+            if (!window.confirm('Reactivate practice "' + name + '"?\n\nUsers will be able to log in again.')) {
                 return;
             }
             
@@ -1937,6 +2139,20 @@ $userEmail = $_SESSION['user_email'] ?? '';
             });
         }
         
+        function confirmHidePractice(practiceId, practiceName) {
+            const message = 'Hide practice "' + practiceName + '"?\n\nThis only removes it from the default All Practices list. It does NOT delete, deactivate, archive, or affect access, cases, subscriptions, notifications, or PHI records.';
+            if (window.confirm(message)) {
+                hidePractice(practiceId);
+            }
+        }
+
+        function confirmUnhidePractice(practiceId, practiceName) {
+            const message = 'Unhide practice "' + practiceName + '"?\n\nIt will return to the default All Practices list.';
+            if (window.confirm(message)) {
+                unhidePractice(practiceId);
+            }
+        }
+
         function hidePractice(practiceId) {
             fetch('api/admin-practices.php?action=hide', {
                 method: 'POST',
@@ -1947,6 +2163,7 @@ $userEmail = $_SESSION['user_email'] ?? '';
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
+                    showAdminToast(data.message || 'Practice hidden');
                     loadPractices();
                 } else {
                     alert('Error: ' + (data.message || 'Failed to hide practice'));
@@ -1956,7 +2173,7 @@ $userEmail = $_SESSION['user_email'] ?? '';
                 alert('Error: ' + error.message);
             });
         }
-        
+
         function unhidePractice(practiceId) {
             fetch('api/admin-practices.php?action=unhide', {
                 method: 'POST',
@@ -1967,6 +2184,7 @@ $userEmail = $_SESSION['user_email'] ?? '';
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
+                    showAdminToast(data.message || 'Practice unhidden');
                     loadPractices();
                 } else {
                     alert('Error: ' + (data.message || 'Failed to unhide practice'));

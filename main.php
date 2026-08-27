@@ -1748,6 +1748,7 @@ endif;
                       <option value=""><?php echo t('select.select_jaw'); ?></option>
                       <option value="Maxillary"><?php echo t('options.jaw.maxillary'); ?></option>
                       <option value="Mandibular"><?php echo t('options.jaw.mandibular'); ?></option>
+                      <option value="Both"><?php echo t('options.jaw.both'); ?></option>
                     </select>
                   </div>
                   <div class="form-field clinical-field" data-case-types="Denture">
@@ -1770,6 +1771,7 @@ endif;
                       <option value=""><?php echo t('select.select_jaw'); ?></option>
                       <option value="Maxillary"><?php echo t('options.jaw.maxillary'); ?></option>
                       <option value="Mandibular"><?php echo t('options.jaw.mandibular'); ?></option>
+                      <option value="Both"><?php echo t('options.jaw.both'); ?></option>
                     </select>
                   </div>
                   <div class="form-field clinical-field" data-case-types="Partial" data-conditionally-required="true">

@@ -2021,7 +2021,8 @@
         },
         "jaw": {
             "maxillary": "Maxillary",
-            "mandibular": "Mandibular"
+            "mandibular": "Mandibular",
+            "both": "Both"
         },
         "denture_type": {
             "immediate": "Immediate",
