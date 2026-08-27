@@ -660,21 +660,22 @@ function getListAdoptionMetrics(PDO $pdo, array $practiceIds): array {
     $metrics = [];
     foreach ($practiceIds as $id) {
         $metrics[(int)$id] = [
-            'active_cases' => 0,
+            'total_cases' => 0,
             'last_activity' => null,
         ];
     }
 
-    // Active cases per practice
-    $activeStmt = $pdo->prepare("
+    // Total cases per practice (same definition as the right-detail compliance panel:
+    // active, completed, delivered, and archived — all rows in cases_cache).
+    $totalStmt = $pdo->prepare("
         SELECT practice_id, COUNT(*) as cnt
         FROM cases_cache
-        WHERE practice_id IN ($placeholders) AND archived = 0 AND status != 'Delivered'
+        WHERE practice_id IN ($placeholders)
         GROUP BY practice_id
     ");
-    $activeStmt->execute($practiceIds);
-    foreach ($activeStmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
-        $metrics[(int)$row['practice_id']]['active_cases'] = (int)$row['cnt'];
+    $totalStmt->execute($practiceIds);
+    foreach ($totalStmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+        $metrics[(int)$row['practice_id']]['total_cases'] = (int)$row['cnt'];
     }
 
     // Last activity per practice
@@ -796,7 +797,7 @@ function handleGetRequest($action) {
                 $ownedCount = $ownerId ? (int)($ownedCounts[$ownerId] ?? 1) : 0;
                 $practice['subscription'] = buildSubscriptionInfo($owner, $owner, $ownedCount);
                 $practice['adoption'] = $adoptionMetrics[(int)$practice['id']] ?? [
-                    'active_cases' => 0,
+                    'total_cases' => 0,
                     'last_activity' => null,
                 ];
             }

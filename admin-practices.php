@@ -1192,9 +1192,9 @@ $userEmail = $_SESSION['user_email'] ?? '';
                 accountDetailTitle = accountDetailRaw.replace(/"/g, '&quot;');
 
                 const userCount = practice.user_count || 0;
-                const activeCases = practice.adoption?.active_cases || 0;
+                const totalCases = practice.adoption?.total_cases || 0;
                 const userLabel = userCount === 1 ? '1 user' : userCount + ' users';
-                const caseLabel = activeCases === 1 ? '1 case' : activeCases + ' cases';
+                const caseLabel = totalCases === 1 ? '1 case' : totalCases + ' cases';
                 const usagePrimaryText = userLabel + ' · ' + caseLabel;
                 const usagePrimaryTitle = escapeHtml(usagePrimaryText).replace(/"/g, '&quot;');
                 const lastActivity = formatRelativeTimestamp(practice.adoption?.last_activity, t('admin_practices.no_activity_recorded'));
