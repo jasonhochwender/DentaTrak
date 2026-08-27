@@ -12,9 +12,15 @@ $isProduction = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
     || (!empty($_SERVER['SERVER_PORT']) && $_SERVER['SERVER_PORT'] == 443);
 
 // Session timeout configuration
-define('SESSION_TIMEOUT', 30 * 60);      // 30 minutes of inactivity
-define('SESSION_WARNING_TIME', 5 * 60);  // Warn 5 minutes before timeout
-define('SESSION_GC_LIFETIME', 60 * 60);  // 1 hour - GC lifetime must exceed timeout to allow keepalive
+$sessionTimeout = (int)(getenv('SESSION_TIMEOUT') ?: ($_ENV['SESSION_TIMEOUT'] ?? 3600));
+$sessionTimeout = max(300, min(86400, $sessionTimeout)); // clamp between 5 min and 24 hours
+$sessionWarningTime = (int)(getenv('SESSION_WARNING_TIME') ?: ($_ENV['SESSION_WARNING_TIME'] ?? 300));
+$sessionWarningTime = max(60, min($sessionTimeout - 60, $sessionWarningTime)); // at least 60s, before timeout
+$sessionGcLifetime = (int)($sessionTimeout * 1.5);
+
+define('SESSION_TIMEOUT', $sessionTimeout);        // inactivity timeout (default 60 minutes)
+define('SESSION_WARNING_TIME', $sessionWarningTime); // warning before timeout (default 5 minutes)
+define('SESSION_GC_LIFETIME', $sessionGcLifetime);  // must exceed timeout to allow keepalive
 
 // Start the session if not already started
 if (session_status() === PHP_SESSION_NONE) {

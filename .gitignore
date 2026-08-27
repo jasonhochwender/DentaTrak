@@ -104,6 +104,7 @@ node_modules/
 !/tests/download-zip-streaming-test.php
 !/tests/download-zip-memory-test.php
 !/tests/download-zip-headers-test.php
+!/tests/session-timeout-test.php
 /testResults/
 /test-results/
 /playwright-report/

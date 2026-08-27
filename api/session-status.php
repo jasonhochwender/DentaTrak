@@ -19,7 +19,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         echo json_encode([
             'success' => true,
             'message' => $action === 'extend' ? 'Session extended' : 'Activity recorded',
-            'timeRemaining' => SESSION_TIMEOUT,
+            'timeRemaining' => getSessionTimeRemaining(),
+            'timeout' => SESSION_TIMEOUT,
             'warningTime' => SESSION_WARNING_TIME
         ]);
         exit;

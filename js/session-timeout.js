@@ -7,7 +7,7 @@
   'use strict';
   
   // Configuration (will be updated from server)
-  var sessionTimeout = 30 * 60 * 1000;  // 30 minutes in ms
+  var sessionTimeout = 60 * 60 * 1000;  // 60 minutes in ms
   var warningTime = 5 * 60 * 1000;      // 5 minutes warning in ms
   var checkInterval = 60 * 1000;         // Check every minute
   
