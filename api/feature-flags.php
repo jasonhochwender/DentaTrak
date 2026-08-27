@@ -25,6 +25,8 @@ $FEATURE_DEFAULTS = [
                                     // tracking, Lab designation on users/labels).
                                     // Must remain OFF until analytics/UI are built
                                     // and explicitly approved for rollout.
+    'SHOW_CASE_DOWNLOAD_ALL' => false, // Bulk case attachment ZIP download.
+                                       // Default false until controlled rollout.
 ];
 
 /**

@@ -7728,6 +7728,9 @@ document.addEventListener('DOMContentLoaded', function () {
           });
         }
       });
+
+      // Update bulk download button based on eligible attachments
+      updateDownloadAllButton(caseData);
     }
 
     // Open the modal (will show tabs because caseId is set on the form)
@@ -8862,6 +8865,119 @@ document.addEventListener('DOMContentLoaded', function () {
 
       if (typeof showToast === 'function') {
         showToast(t('attachments.download_failed', {message: error.message}), 'error');
+      }
+    });
+  }
+
+  // Show or hide the "Download All" attachments button.
+  // Case data is authoritative; this is a local preview of availability.
+  function updateDownloadAllButton(caseData) {
+    var container = document.getElementById('attachmentDownloadAll');
+    var btn = document.getElementById('downloadAllAttachmentsBtn');
+    var statusEl = document.getElementById('downloadAllAttachmentsStatus');
+    if (!container || !btn) return;
+
+    // Enforce the server-side feature flag independently in the UI.
+    if (!window.featureFlags || !window.featureFlags.SHOW_CASE_DOWNLOAD_ALL) {
+      container.style.display = 'none';
+      if (statusEl) statusEl.textContent = '';
+      return;
+    }
+
+    var bulkZipMaxBytes = (typeof window.bulkZipMaxBytes === 'number' && window.bulkZipMaxBytes > 0)
+      ? window.bulkZipMaxBytes
+      : null;
+    var attachments = caseData.attachments || [];
+    var eligible = 0;
+    var knownTotal = 0;
+    var hasUnknownSize = false;
+    if (Array.isArray(attachments)) {
+      attachments.forEach(function(file) {
+        if (file.storageType === 'gcs' && file.storagePath && file.fileName) {
+          eligible++;
+          if (typeof file.size === 'number' && file.size > 0) {
+            knownTotal += file.size;
+          } else {
+            hasUnknownSize = true;
+          }
+        }
+      });
+    }
+
+    if (eligible >= 2) {
+      container.style.display = 'block';
+      // Disable only when all sizes are known and exceed the validated limit.
+      if (bulkZipMaxBytes !== null && !hasUnknownSize && knownTotal > bulkZipMaxBytes) {
+        btn.disabled = true;
+        btn.textContent = t('attachments.download_all') + ' (too large)';
+        if (statusEl) statusEl.textContent = t('attachments.download_all_bundle_too_large');
+      } else {
+        btn.disabled = false;
+        btn.textContent = t('attachments.download_all');
+        if (statusEl) statusEl.textContent = '';
+        btn.onclick = function(e) {
+          e.preventDefault();
+          downloadCaseAttachmentsZip(caseData.id);
+        };
+      }
+    } else {
+      container.style.display = 'none';
+      if (statusEl) statusEl.textContent = '';
+    }
+  }
+
+  // Download all eligible attachments for a single case as one ZIP.
+  function downloadCaseAttachmentsZip(caseId) {
+    var btn = document.getElementById('downloadAllAttachmentsBtn');
+    var statusEl = document.getElementById('downloadAllAttachmentsStatus');
+    if (!caseId) {
+      if (statusEl) statusEl.textContent = t('attachments.download_all_no_eligible');
+      return;
+    }
+
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = t('attachments.download_all_preparing');
+    }
+    if (statusEl) statusEl.textContent = t('attachments.download_all_preparing');
+
+    fetch('api/download-case-attachments-zip.php', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRF-Token': csrfToken
+      },
+      credentials: 'same-origin',
+      body: JSON.stringify({ case_id: caseId })
+    })
+    .then(function(response) {
+      var contentType = response.headers.get('Content-Type') || '';
+      if (contentType.indexOf('application/zip') !== -1 && response.ok) {
+        return response.blob().then(function(blob) {
+          var url = window.URL.createObjectURL(blob);
+          var a = document.createElement('a');
+          a.href = url;
+          a.download = 'case-' + caseId + '-attachments.zip';
+          document.body.appendChild(a);
+          a.click();
+          window.URL.revokeObjectURL(url);
+          document.body.removeChild(a);
+          if (statusEl) statusEl.textContent = '';
+          if (btn) {
+            btn.disabled = false;
+            btn.textContent = t('attachments.download_all');
+          }
+        });
+      }
+      return response.json().then(function(data) {
+        throw new Error(data.error || 'Download request failed');
+      });
+    })
+    .catch(function(error) {
+      if (statusEl) statusEl.textContent = t('attachments.download_all_failed', {message: error.message});
+      if (btn) {
+        btn.disabled = false;
+        btn.textContent = t('attachments.download_all');
       }
     });
   }

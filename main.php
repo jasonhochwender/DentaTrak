@@ -19,6 +19,7 @@ require_once __DIR__ . '/api/session.php';
 
 // Load configuration
 require_once __DIR__ . '/api/appConfig.php';
+require_once __DIR__ . '/api/case-zip-helpers.php';
 
 // Load CSRF and security headers
 require_once __DIR__ . '/api/csrf.php';
@@ -602,6 +603,7 @@ if (isset($appConfig) && is_array($appConfig) && isset($appConfig['appName'])) {
 <!-- Feature Flags for JavaScript -->
 <script>
 window.featureFlags = <?php echo getFeatureFlagsJson(); ?>;
+window.bulkZipMaxBytes = <?php echo (int)getBulkZipMaxSize(); ?>;
 </script>
 
 <div class="main-container">
@@ -1916,6 +1918,15 @@ endif;
                   <div class="selected-files" id="completedDesigns-files" data-type="completedDesigns" data-api-type="CompletedDesigns"></div>
                 </div>
               </div>
+
+<?php if (isFeatureEnabled('SHOW_CASE_DOWNLOAD_ALL')): ?>
+              <div class="attachment-download-all" id="attachmentDownloadAll" style="display: none;">
+                <button type="button" class="btn-secondary" id="downloadAllAttachmentsBtn" aria-label="<?php echo t('attachments.download_all_aria'); ?>">
+                  <?php echo t('attachments.download_all'); ?>
+                </button>
+                <span id="downloadAllAttachmentsStatus" class="download-all-status" aria-live="polite" aria-atomic="true"></span>
+              </div>
+<?php endif; ?>
 
               <div class="form-field case-creator-meta">
                 <label><?php echo t('cases.created_by'); ?></label>
