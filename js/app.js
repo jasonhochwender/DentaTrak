@@ -8880,7 +8880,10 @@ document.addEventListener('DOMContentLoaded', function () {
     // Enforce the server-side feature flag independently in the UI.
     if (!window.featureFlags || !window.featureFlags.SHOW_CASE_DOWNLOAD_ALL) {
       container.style.display = 'none';
-      if (statusEl) statusEl.textContent = '';
+      if (statusEl) {
+        statusEl.textContent = '';
+        statusEl.style.display = 'none';
+      }
       return;
     }
 
@@ -8910,11 +8913,17 @@ document.addEventListener('DOMContentLoaded', function () {
       if (bulkZipMaxBytes !== null && !hasUnknownSize && knownTotal > bulkZipMaxBytes) {
         btn.disabled = true;
         btn.textContent = t('attachments.download_all') + ' (too large)';
-        if (statusEl) statusEl.textContent = t('attachments.download_all_bundle_too_large');
+        if (statusEl) {
+          statusEl.textContent = t('attachments.download_all_bundle_too_large');
+          statusEl.style.display = 'block';
+        }
       } else {
         btn.disabled = false;
         btn.textContent = t('attachments.download_all');
-        if (statusEl) statusEl.textContent = '';
+        if (statusEl) {
+          statusEl.textContent = '';
+          statusEl.style.display = 'none';
+        }
         btn.onclick = function(e) {
           e.preventDefault();
           downloadCaseAttachmentsZip(caseData.id);
@@ -8922,16 +8931,27 @@ document.addEventListener('DOMContentLoaded', function () {
       }
     } else {
       container.style.display = 'none';
-      if (statusEl) statusEl.textContent = '';
+      if (statusEl) {
+        statusEl.textContent = '';
+        statusEl.style.display = 'none';
+      }
     }
   }
 
   // Download all eligible attachments for a single case as one ZIP.
+  // 1. Performs a lightweight authenticated preflight request that repeats all
+  //    authoritative checks without downloading attachment contents.
+  // 2. Only submits the hidden download form after the preflight succeeds.
+  // 3. Uses a form+iframe so the browser can stream arbitrarily large archives
+  //    directly to disk instead of buffering the whole ZIP in JavaScript.
   function downloadCaseAttachmentsZip(caseId) {
     var btn = document.getElementById('downloadAllAttachmentsBtn');
     var statusEl = document.getElementById('downloadAllAttachmentsStatus');
     if (!caseId) {
-      if (statusEl) statusEl.textContent = t('attachments.download_all_no_eligible');
+      if (statusEl) {
+        statusEl.textContent = t('attachments.download_all_no_eligible');
+        statusEl.style.display = 'block';
+      }
       return;
     }
 
@@ -8939,9 +8959,12 @@ document.addEventListener('DOMContentLoaded', function () {
       btn.disabled = true;
       btn.textContent = t('attachments.download_all_preparing');
     }
-    if (statusEl) statusEl.textContent = t('attachments.download_all_preparing');
+    if (statusEl) {
+      statusEl.textContent = t('attachments.download_all_preparing');
+      statusEl.style.display = 'block';
+    }
 
-    fetch('api/download-case-attachments-zip.php', {
+    fetch('api/preflight-download-case-attachments-zip.php', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -8951,30 +8974,71 @@ document.addEventListener('DOMContentLoaded', function () {
       body: JSON.stringify({ case_id: caseId })
     })
     .then(function(response) {
-      var contentType = response.headers.get('Content-Type') || '';
-      if (contentType.indexOf('application/zip') !== -1 && response.ok) {
-        return response.blob().then(function(blob) {
-          var url = window.URL.createObjectURL(blob);
-          var a = document.createElement('a');
-          a.href = url;
-          a.download = 'case-' + caseId + '-attachments.zip';
-          document.body.appendChild(a);
-          a.click();
-          window.URL.revokeObjectURL(url);
-          document.body.removeChild(a);
-          if (statusEl) statusEl.textContent = '';
-          if (btn) {
-            btn.disabled = false;
-            btn.textContent = t('attachments.download_all');
-          }
-        });
-      }
-      return response.json().then(function(data) {
-        throw new Error(data.error || 'Download request failed');
+      return response.json().catch(function() {
+        throw new Error(t('attachments.download_all_failed'));
       });
     })
+    .then(function(data) {
+      if (!data || !data.success) {
+        throw new Error(data && data.error ? data.error : t('attachments.download_all_failed'));
+      }
+
+      if (statusEl) {
+        statusEl.textContent = t('attachments.download_started');
+        statusEl.style.display = 'block';
+      }
+
+      // Submit the real download form; the browser streams the ZIP to disk.
+      var iframeName = 'dt-zip-download-' + Date.now();
+      var iframe = document.createElement('iframe');
+      iframe.name = iframeName;
+      iframe.style.display = 'none';
+      iframe.setAttribute('aria-hidden', 'true');
+      document.body.appendChild(iframe);
+
+      var form = document.createElement('form');
+      form.method = 'POST';
+      form.action = 'api/download-case-attachments-zip.php';
+      form.target = iframeName;
+      form.style.display = 'none';
+
+      function addInput(name, value) {
+        var input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = name;
+        input.value = value;
+        form.appendChild(input);
+      }
+      addInput('case_id', caseId);
+      addInput('csrf_token', csrfToken);
+
+      document.body.appendChild(form);
+      form.submit();
+
+      setTimeout(function() {
+        if (btn) {
+          btn.disabled = false;
+          btn.textContent = t('attachments.download_all');
+        }
+        if (statusEl) {
+          statusEl.textContent = '';
+          statusEl.style.display = 'none';
+        }
+        if (form.parentNode) {
+          document.body.removeChild(form);
+        }
+        setTimeout(function() {
+          if (iframe.parentNode) {
+            document.body.removeChild(iframe);
+          }
+        }, 30000);
+      }, 1000);
+    })
     .catch(function(error) {
-      if (statusEl) statusEl.textContent = t('attachments.download_all_failed', {message: error.message});
+      if (statusEl) {
+        statusEl.textContent = t('attachments.download_all_failed', {message: error.message});
+        statusEl.style.display = 'block';
+      }
       if (btn) {
         btn.disabled = false;
         btn.textContent = t('attachments.download_all');

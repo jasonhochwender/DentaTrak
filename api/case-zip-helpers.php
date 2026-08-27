@@ -10,24 +10,30 @@
  * Return the validated maximum synchronous ZIP size in bytes.
  * Controlled by the DENTATRAK_BULK_ZIP_MAX_BYTES environment variable.
  *
- * - Default: 33,554,432 bytes (32 MiB)
- * - Hard cap: 67,108,864 bytes (64 MiB) because the Cloud Run container's
- *   temporary filesystem is memory-backed. 64 MiB of source files plus 64 MiB
- *   of ZIP output, plus PHP and request overhead, still fits a 256 MiB
- *   Cloud Run instance with a safety margin.
+ * - Default: 5,368,709,120 bytes (5 GiB)
+ * - Hard cap: 5,368,709,120 bytes (5 GiB)
+ *
+ * With ZipStream-PHP streaming directly to php://output, source attachments
+ * and the finished ZIP are not stored in /tmp, so the only per-byte memory
+ * cost is the stream buffers used by the library and the GCS client.
  *
  * @return int
  */
 function getBulkZipMaxSize(): int {
-    $default = 32 * 1024 * 1024; // 33,554,432 bytes
-    $maxAllowed = 64 * 1024 * 1024; // 67,108,864 bytes
+    $default = 5 * 1024 * 1024 * 1024; // 5,368,709,120 bytes (5 GiB)
+    $maxAllowed = $default;
 
     $env = getEnvVar('DENTATRAK_BULK_ZIP_MAX_BYTES', (string)$default);
-    if ($env === null || $env === '' || !is_numeric($env)) {
+    if ($env === null || $env === '') {
         return $default;
     }
 
-    $value = (int)$env;
+    // Reject non-integers, decimals, hex, octal, overflows, and strings
+    // larger than PHP_INT_MAX before any cast.
+    $value = filter_var($env, FILTER_VALIDATE_INT);
+    if ($value === false) {
+        return $default;
+    }
     if ($value <= 0) {
         return $default;
     }
@@ -35,6 +41,84 @@ function getBulkZipMaxSize(): int {
         return $maxAllowed;
     }
     return $value;
+}
+
+/**
+ * Check that the ZipStream-PHP library is available.
+ *
+ * Returns a safe, localized error string if the dependency is missing,
+ * or null if it is ready. The message intentionally omits paths,
+ * class names, or stack traces.
+ *
+ * @return string|null
+ */
+function getZipStreamDependencyError(): ?string {
+    if (!class_exists('ZipStream\ZipStream')) {
+        return t('attachments.download_all_failed', ['message' => 'ZIP streaming library unavailable']);
+    }
+    return null;
+}
+
+/**
+ * Build the eligible attachment list for a case-level ZIP.
+ *
+ * Shared logic used by both the preflight and the actual download endpoint.
+ * It performs the exact-path checks, GCS existence verification, size
+ * validation, and filename sanitization. No ZIP or attachment content is
+ * downloaded; only metadata is read from GCS.
+ *
+ * @param array  $case       The cases_cache row from requireCaseAccess()
+ * @param string|int $practiceId Current practice
+ * @param \Google\Cloud\Storage\Bucket $bucket GCS bucket
+ * @return array ['eligible' => [...], 'totalActualSize' => int]
+ */
+function getEligibleZipAttachments(array $case, $practiceId, $bucket): array {
+    $attachments = [];
+    if (!empty($case['attachments_json'])) {
+        $decoded = json_decode($case['attachments_json'], true);
+        if (is_array($decoded)) {
+            $attachments = $decoded;
+        }
+    }
+
+    $eligible = [];
+    $totalActualSize = 0;
+    $usedNames = [];
+
+    foreach ($attachments as $att) {
+        $storagePath = $att['storagePath'] ?? '';
+        $fileName = $att['fileName'] ?? ($att['name'] ?? '');
+        $storageType = $att['storageType'] ?? '';
+
+        if ($storageType !== 'gcs' || empty($storagePath) || empty($fileName)) {
+            continue;
+        }
+
+        if (!isValidAttachmentPath($storagePath, $practiceId, $case['case_id'])) {
+            continue;
+        }
+
+        $object = $bucket->object($storagePath);
+        if (!$object->exists()) {
+            continue;
+        }
+
+        $info = $object->info();
+        $actualSize = (int)($info['size'] ?? 0);
+
+        $zipName = sanitizeZipFilename($fileName, $usedNames);
+        $usedNames[] = strtolower($zipName);
+
+        $eligible[] = [
+            'storagePath' => $storagePath,
+            'fileName' => $fileName,
+            'zipName' => $zipName,
+            'size' => $actualSize,
+        ];
+        $totalActualSize += $actualSize;
+    }
+
+    return ['eligible' => $eligible, 'totalActualSize' => $totalActualSize];
 }
 
 /**

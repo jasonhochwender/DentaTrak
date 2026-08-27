@@ -422,6 +422,7 @@
         "download_all_aria": "Download all eligible attachments for this case",
         "download_all_preparing": "Preparing download…",
         "download_all_no_eligible": "There are not enough eligible attachments to download.",
+        "download_started": "Your download has started.",
         "download_all_bundle_too_large": "The attachment bundle is too large for immediate download. Please download files individually.",
         "download_all_failed": "Failed to download attachments: {message}",
         "download_all_empty": "No eligible attachments were found to include.",

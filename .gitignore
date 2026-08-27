@@ -100,7 +100,10 @@ node_modules/
 # ===========================================
 
 # Test files - NEVER deploy to production
-/tests/
+/tests/*
+!/tests/download-zip-streaming-test.php
+!/tests/download-zip-memory-test.php
+!/tests/download-zip-headers-test.php
 /testResults/
 /test-results/
 /playwright-report/

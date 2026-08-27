@@ -2,21 +2,25 @@
 /**
  * Secure case-level bulk attachment download.
  *
- * Downloads all eligible GCS attachments for a single case as one ZIP.
+ * Streams all eligible GCS attachments for a single case as one ZIP directly
+ * to php://output using ZipStream-PHP. No source files and no completed ZIP
+ * are written to the temporary filesystem.
+ *
  * Single-case only. No multi-case, board, practice, or search-result
  * bulk download is supported.
  *
  * POST /api/download-case-attachments-zip.php
- * Request body (JSON):
+ * Request body (form or JSON):
  *   case_id  - the case identifier
  *   csrf_token (optional if X-CSRF-Token header is sent)
  *
  * On success: application/zip stream with attachment disposition.
- * On failure: JSON error.
+ * On failure: JSON error before any ZIP content is written.
  */
 
 require_once __DIR__ . '/session.php';
 require_once __DIR__ . '/appConfig.php';
+require_once __DIR__ . '/../vendor/autoload.php';
 require_once __DIR__ . '/feature-flags.php';
 require_once __DIR__ . '/practice-security.php';
 require_once __DIR__ . '/gcs-storage.php';
@@ -24,6 +28,19 @@ require_once __DIR__ . '/case-zip-helpers.php';
 require_once __DIR__ . '/case-activity-log.php';
 require_once __DIR__ . '/csrf.php';
 require_once __DIR__ . '/security-headers.php';
+
+use ZipStream\ZipStream;
+use ZipStream\CompressionMethod;
+
+// Defense in depth: fail before any output if the ZIP library is missing.
+$zipStreamError = getZipStreamDependencyError();
+if ($zipStreamError !== null) {
+    error_log('[DownloadAllZIP] ZipStream-PHP dependency is missing at download time.');
+    http_response_code(500);
+    header('Content-Type: application/json');
+    echo json_encode(['success' => false, 'error' => $zipStreamError]);
+    exit;
+}
 
 setApiSecurityHeaders();
 
@@ -54,34 +71,23 @@ if (!$userId) {
 
 requireCsrfToken();
 
-$input = json_decode(file_get_contents('php://input'), true);
-if (!is_array($input) || empty($input['case_id'])) {
+// Accept either a form POST or a JSON body.
+if (!empty($_POST['case_id'])) {
+    $caseId = $_POST['case_id'];
+} else {
+    $input = json_decode(file_get_contents('php://input'), true);
+    $caseId = $input['case_id'] ?? '';
+}
+
+if (empty($caseId)) {
     http_response_code(400);
     header('Content-Type: application/json');
     echo json_encode(['success' => false, 'error' => 'Missing required field: case_id']);
     exit;
 }
 
-$caseId = $input['case_id'];
-
 // Authoritative case access (includes Assigned Only and cross-practice checks).
 $case = requireCaseAccess($caseId, $currentPracticeId);
-
-// Load attachments from server-side case data only.
-$attachments = [];
-if (!empty($case['attachments_json'])) {
-    $decoded = json_decode($case['attachments_json'], true);
-    if (is_array($decoded)) {
-        $attachments = $decoded;
-    }
-}
-
-$MAX_IMMEDIATE_SIZE = getBulkZipMaxSize();
-
-// Build the eligible list from authoritative case data and GCS metadata.
-$eligible = [];
-$totalActualSize = 0;
-$usedNames = [];
 
 $bucket = null;
 try {
@@ -94,50 +100,12 @@ try {
     exit;
 }
 
-foreach ($attachments as $att) {
-    $storagePath = $att['storagePath'] ?? '';
-    $fileName = $att['fileName'] ?? ($att['name'] ?? '');
-    $storageType = $att['storageType'] ?? '';
-    $storedSize = (int)($att['size'] ?? 0);
+// Build the eligible list using the same shared logic as the preflight endpoint.
+$result = getEligibleZipAttachments($case, $currentPracticeId, $bucket);
+$eligible = $result['eligible'];
+$totalActualSize = $result['totalActualSize'];
 
-    // Only completed, current GCS attachments are eligible.
-    if ($storageType !== 'gcs' || empty($storagePath) || empty($fileName)) {
-        continue;
-    }
-
-    // Reject any record that does not have the exact case prefix.
-    if (!isValidAttachmentPath($storagePath, $currentPracticeId, $caseId)) {
-        continue;
-    }
-
-    $object = $bucket->object($storagePath);
-
-    // Drop missing or inaccessible objects; this also catches deletions that
-    // occurred after the page was rendered.
-    if (!$object->exists()) {
-        continue;
-    }
-
-    $info = $object->info();
-    $actualSize = (int)($info['size'] ?? 0);
-
-    // If we have both values, report a size mismatch but use the authoritative
-    // GCS size for limit and ZIP calculation.
-    if ($storedSize > 0 && $actualSize !== $storedSize) {
-        error_log('[DownloadAllZIP] Size mismatch for ' . $storagePath . ': stored=' . $storedSize . ', actual=' . $actualSize);
-    }
-
-    $zipName = sanitizeZipFilename($fileName, $usedNames);
-    $usedNames[] = strtolower($zipName);
-
-    $eligible[] = [
-        'storagePath' => $storagePath,
-        'fileName' => $fileName,
-        'zipName' => $zipName,
-        'size' => $actualSize,
-    ];
-    $totalActualSize += $actualSize;
-}
+$MAX_IMMEDIATE_SIZE = getBulkZipMaxSize();
 
 if (count($eligible) < 2) {
     http_response_code(400);
@@ -153,102 +121,71 @@ if ($totalActualSize > $MAX_IMMEDIATE_SIZE) {
     exit;
 }
 
-if (!class_exists('ZipArchive')) {
-    http_response_code(500);
-    header('Content-Type: application/json');
-    echo json_encode(['success' => false, 'error' => 'ZIP generation is not available on this server.']);
-    exit;
+// Once we start the ZIP, headers are committed; JSON errors are no longer possible.
+while (ob_get_level() > 0) {
+    @ob_end_clean();
 }
 
+// Allow the same-origin hidden iframe to receive the attachment download;
+// preflight and all other endpoints still use DENY.
+header('X-Frame-Options: SAMEORIGIN');
+header("Content-Security-Policy: frame-ancestors 'self'");
+header('Content-Type: application/zip');
 $zipBaseName = 'case-' . preg_replace('/[^a-zA-Z0-9_-]/', '_', $caseId) . '-attachments';
-$zipFile = tempnam(sys_get_temp_dir(), 'dt_zip_') . '.zip';
-$zip = new ZipArchive();
+header('Content-Disposition: attachment; filename="' . $zipBaseName . '.zip"');
+header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+header('Pragma: no-cache');
+header('X-Content-Type-Options: nosniff');
+header('X-Accel-Buffering: no');
+header('Content-Encoding: identity');
+http_response_code(200);
 
-$opened = $zip->open($zipFile, ZipArchive::CREATE | ZipArchive::OVERWRITE);
-if ($opened !== true) {
-    http_response_code(500);
-    header('Content-Type: application/json');
-    echo json_encode(['success' => false, 'error' => 'Unable to create ZIP archive.']);
-    exit;
-}
+// Allow the script to outlive short PHP and Apache timeouts. The Cloud Run
+// platform timeout is still the outer bound and is not changed here.
+set_time_limit(0);
+ignore_user_abort(true);
 
-$zipMembers = [];
-$tempFiles = [];
+$zip = new ZipStream(
+    outputStream: fopen('php://output', 'wb'),
+    sendHttpHeaders: false,
+    defaultCompressionMethod: CompressionMethod::STORE,
+    enableZip64: true,
+    defaultEnableZeroHeader: true,
+    flushOutput: true,
+);
 
 try {
     foreach ($eligible as $item) {
         $object = $bucket->object($item['storagePath']);
-
-        $tempFile = tempnam(sys_get_temp_dir(), 'dt_att_');
-        $tempFiles[] = $tempFile;
-
         $stream = $object->downloadAsStream();
-        $handle = fopen($tempFile, 'wb');
-        while (!$stream->eof()) {
-            fwrite($handle, $stream->read(8192));
-        }
-        fclose($handle);
 
-        $zip->addFile($tempFile, $item['zipName']);
-        $zipMembers[] = $item['zipName'];
+        $zip->addFileFromPsr7Stream(
+            fileName: $item['zipName'],
+            stream: $stream,
+            compressionMethod: CompressionMethod::STORE,
+            exactSize: $item['size'],
+            enableZeroHeader: true,
+        );
+
+        // Release the GCS stream handle immediately.
+        if ($stream->isSeekable() || method_exists($stream, 'close')) {
+            $stream->close();
+        }
     }
+
+    $zip->finish();
+
+    // Record that the server generated the ZIP; we cannot prove client delivery.
+    logCaseActivity($caseId, 'attachments_zip_generated', null, null, [
+        'user_id' => $userId,
+        'file_count' => count($eligible),
+        'total_size' => $totalActualSize,
+    ]);
 } catch (Exception $e) {
-    $zip->close();
-    foreach ($tempFiles as $tempFile) {
-        if (file_exists($tempFile)) {
-            @unlink($tempFile);
-        }
-    }
-    if (file_exists($zipFile)) {
-        @unlink($zipFile);
-    }
-    error_log('[DownloadAllZIP] Error building ZIP for case ' . $caseId . ': ' . $e->getMessage());
-    http_response_code(500);
-    header('Content-Type: application/json');
-    echo json_encode(['success' => false, 'error' => t('attachments.download_all_failed', ['message' => 'Failed to build attachment archive'])]);
+    error_log('[DownloadAllZIP] Stream error for case ' . $caseId . ': ' . $e->getMessage());
+    // Headers and partial ZIP bytes may already be in transit. We cannot
+    // recover safely, so we exit without sending additional JSON/HTML.
     exit;
 }
 
-if (count($zipMembers) === 0) {
-    $zip->close();
-    foreach ($tempFiles as $tempFile) {
-        if (file_exists($tempFile)) {
-            @unlink($tempFile);
-        }
-    }
-    if (file_exists($zipFile)) {
-        @unlink($zipFile);
-    }
-    http_response_code(400);
-    header('Content-Type: application/json');
-    echo json_encode(['success' => false, 'error' => t('attachments.download_all_empty')]);
-    exit;
-}
-
-$zip->close();
-
-// Record that the server generated the ZIP; we cannot prove client delivery.
-logCaseActivity($caseId, 'attachments_zip_generated', null, null, [
-    'user_id' => $userId,
-    'file_count' => count($zipMembers),
-    'total_size' => (int)filesize($zipFile),
-]);
-
-// Stream the ZIP and clean up.
-header('Content-Type: application/zip');
-header('Content-Disposition: attachment; filename="' . $zipBaseName . '.zip"');
-header('Content-Length: ' . filesize($zipFile));
-header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
-header('Pragma: no-cache');
-header('X-Content-Type-Options: nosniff');
-http_response_code(200);
-
-readfile($zipFile);
-
-@unlink($zipFile);
-foreach ($tempFiles as $tempFile) {
-    if (file_exists($tempFile)) {
-        @unlink($tempFile);
-    }
-}
 exit;

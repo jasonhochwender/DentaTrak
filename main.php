@@ -1924,7 +1924,7 @@ endif;
                 <button type="button" class="btn-secondary" id="downloadAllAttachmentsBtn" aria-label="<?php echo t('attachments.download_all_aria'); ?>">
                   <?php echo t('attachments.download_all'); ?>
                 </button>
-                <span id="downloadAllAttachmentsStatus" class="download-all-status" aria-live="polite" aria-atomic="true"></span>
+                <div id="downloadAllAttachmentsStatus" class="error-message" style="display: none; margin-top: 4px;" aria-live="polite" aria-atomic="true"></div>
               </div>
 <?php endif; ?>
 
