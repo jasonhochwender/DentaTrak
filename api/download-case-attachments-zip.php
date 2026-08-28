@@ -89,6 +89,11 @@ if (empty($caseId)) {
 // Authoritative case access (includes Assigned Only and cross-practice checks).
 $case = requireCaseAccess($caseId, $currentPracticeId);
 
+// Release the per-session advisory lock before any long-running GCS/ZIP work.
+// Auth, CSRF, practice context, and case access are already in local variables.
+$_SESSION['last_activity'] = time();
+session_write_close();
+
 $bucket = null;
 try {
     $bucket = getGcsBucket();

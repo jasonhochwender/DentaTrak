@@ -2922,7 +2922,7 @@ endif;
 
   <!-- Load JavaScript last -->
   <script src="js/toast.js?v=20250104" defer></script>
-  <script src="js/session-timeout.js?v=20250119" defer></script>
+  <script src="js/session-timeout.js?v=20260829" defer></script>
   <script src="js/gcs-upload.js?v=20260303c" defer></script>
   <script type="importmap">
   {

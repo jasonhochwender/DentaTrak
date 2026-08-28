@@ -105,6 +105,11 @@ node_modules/
 !/tests/download-zip-memory-test.php
 !/tests/download-zip-headers-test.php
 !/tests/session-timeout-test.php
+!/tests/session-db-handler-test.php
+!/tests/session-security-concurrency-test.php
+!/tests/session-concurrency-test.php
+!/tests/session-lock-timeout-test.php
+!/tests/session-download-lock-test.php
 !/tests/case-type-bite-rim-test.php
 !/tests/workflow-columns-test.php
 !/tests/workflow-columns-api-test.php

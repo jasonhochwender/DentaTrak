@@ -72,7 +72,8 @@ try {
     }
     requireCaseAccess($caseId, $currentPracticeId);
 
-    // Log the print activity
+    // Log the print activity while the session is still open; it uses the
+    // current user id and is not long-running.
     if ($caseId) {
         $patientName = trim(($caseData['patientFirstName'] ?? '') . ' ' . ($caseData['patientLastName'] ?? ''));
         logCaseActivity(
@@ -89,7 +90,12 @@ try {
         // Log PHI access for HIPAA compliance (printing = exporting PHI)
         logPHIAccess('print_case', $caseId);
     }
-    
+
+    // Release the per-session advisory lock before the potentially long PDF
+    // rendering; the request is already authorized and will not write session.
+    $_SESSION['last_activity'] = time();
+    session_write_close();
+
     // Check if GD extension is available for image processing
     $gdAvailable = extension_loaded('gd') || extension_loaded('gd2');
     if (!$gdAvailable) {

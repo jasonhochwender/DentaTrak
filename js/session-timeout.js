@@ -84,11 +84,29 @@
     fetch('api/session-status.php', {
       credentials: 'same-origin'
     })
-    .then(function(response) { return response.json(); })
+    .then(function(response) {
+      // A 503 from the session store is a transient lock timeout or store
+      // failure, not a logout. Treat it as retryable and continue polling.
+      if (response.status === 503) {
+        console.warn('Session store temporarily unavailable (503). Will retry.');
+        return { retry: true };
+      }
+      if (!response.ok) {
+        console.warn('Session status request failed with status ' + response.status + '. Will retry.');
+        return { retry: true };
+      }
+      return response.json();
+    })
     .then(function(data) {
-      if (!data.success || !data.loggedIn) {
-        // Session expired or not logged in
-        handleSessionExpired();
+      if (data && data.retry) {
+        // Temporary store or network failure; do not log the user out.
+        return;
+      }
+      if (!data || !data.success || !data.loggedIn) {
+        // Server reports no valid session. Do not assume inactivity; the
+        // session may have been lost for other reasons, so show a generic
+        // sign-in message instead of the inactivity timeout message.
+        redirectToLogin('session_expired=1');
         return;
       }
       
@@ -175,7 +193,9 @@
       
       if (remaining <= 0) {
         clearInterval(countdownInterval);
-        handleSessionExpired();
+        // Countdown reached zero because the user stayed inactive for the
+        // full timeout period, so this is a genuine inactivity timeout.
+        redirectToLogin('timeout=1');
       }
     }
     
@@ -230,13 +250,26 @@
   }
   
   /**
-   * Handle session expiration
+   * Handle session expiration reported by the server status check.
    */
   function handleSessionExpired() {
     hideWarningModal();
-    
-    // Redirect to login with timeout message
-    window.location.href = 'login.php?timeout=1';
+    redirectToLogin('session_expired=1');
+  }
+
+  /**
+   * Redirect to login with the appropriate query string.
+   * timeout=1 is used only for genuine client-side inactivity timeout.
+   * session_expired=1 is used when the server reports the session missing
+   * or otherwise invalid, so the user sees a generic message.
+   */
+  function redirectToLogin(params) {
+    var url = 'login.php?' + params;
+    var notificationId = new URLSearchParams(window.location.search).get('notification_id');
+    if (notificationId) {
+      url += '&notification_id=' + encodeURIComponent(notificationId);
+    }
+    window.location.href = url;
   }
   
   // Initialize when DOM is ready

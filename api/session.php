@@ -1,15 +1,11 @@
 <?php
 /**
  * Session management
- * 
- * This file handles session configuration and initialization.
- * Also handles "Remember Me" auto-login via persistent tokens.
+ *
+ * This file handles session timeout configuration and "Remember Me" auto-login.
+ * The actual session storage is configured in appConfig.php, which now uses the
+ * shared PDO session handler instead of container-local files.
  */
-
-// Detect if we're in production (HTTPS) or development
-$isProduction = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') 
-    || (!empty($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https')
-    || (!empty($_SERVER['SERVER_PORT']) && $_SERVER['SERVER_PORT'] == 443);
 
 // Session timeout configuration
 $sessionTimeout = (int)(getenv('SESSION_TIMEOUT') ?: ($_ENV['SESSION_TIMEOUT'] ?? 3600));
@@ -22,45 +18,13 @@ define('SESSION_TIMEOUT', $sessionTimeout);        // inactivity timeout (defaul
 define('SESSION_WARNING_TIME', $sessionWarningTime); // warning before timeout (default 5 minutes)
 define('SESSION_GC_LIFETIME', $sessionGcLifetime);  // must exceed timeout to allow keepalive
 
-// Start the session if not already started
+// Set GC lifetime before appConfig.php starts the session so the PDO handler picks it up
 if (session_status() === PHP_SESSION_NONE) {
-    // Set secure session parameters BEFORE starting session
-    ini_set('session.cookie_httponly', 1);
-    ini_set('session.use_only_cookies', 1);
-    ini_set('session.cookie_secure', $isProduction ? 1 : 0);
-    ini_set('session.cookie_samesite', 'Lax');
-
-    // Set session GC lifetime - must exceed timeout to allow keepalive during long uploads
     ini_set('session.gc_maxlifetime', SESSION_GC_LIFETIME);
-    ini_set('session.cookie_lifetime', 0); // Session cookie (expires on browser close) by default
-    
-    // Set session storage path
-    if (getenv('K_SERVICE')) {
-        // Cloud Run: use /tmp for session storage (only writable path)
-        session_save_path('/tmp');
-    } else {
-        // Local development: use a sessions folder in the project to avoid permission issues
-        $localSessionPath = __DIR__ . '/../sessions';
-        if (!is_dir($localSessionPath)) {
-            @mkdir($localSessionPath, 0700, true);
-        }
-        if (is_dir($localSessionPath) && is_writable($localSessionPath)) {
-            session_save_path($localSessionPath);
-        }
-    }
-    
-    session_set_cookie_params([
-        'lifetime' => 0, // Session cookie - expires when browser closes
-        'path' => '/',
-        'domain' => '',
-        'secure' => $isProduction,
-        'httponly' => true,
-        'samesite' => 'Lax'
-    ]);
-    
-    // Suppress session warnings (can occur during concurrent test runs)
-    @session_start();
 }
+
+// Load app configuration and start the session with the shared PDO handler
+require_once __DIR__ . '/appConfig.php';
 
 /**
  * Regenerates the session ID and updates last activity time
@@ -72,11 +36,27 @@ function regenerateSession() {
     }
     
     // Regenerate session ID periodically
-    if (!isset($_SESSION['last_regeneration']) || 
+    if (!isset($_SESSION['last_regeneration']) ||
         $_SESSION['last_regeneration'] < time() - 300) {
-        
-        @session_regenerate_id(true);
+
+        $oldId = session_id();
+
+        // Update the regeneration timestamp first so it is included in the
+        // new session row written by markRotated().
         $_SESSION['last_regeneration'] = time();
+
+        // Use delete_old_session=false so the handler can manage a tightly
+        // bounded 30-second rotation mapping. markRotated() makes the old id
+        // expire immediately while keeping in-flight requests valid.
+        @session_regenerate_id(false);
+
+        $newId = session_id();
+        if ($oldId !== $newId && $newId !== '') {
+            $handler = $GLOBALS['pdoSessionHandler'] ?? null;
+            if ($handler instanceof PdoSessionHandler) {
+                $handler->markRotated($oldId, $newId);
+            }
+        }
     }
 }
 

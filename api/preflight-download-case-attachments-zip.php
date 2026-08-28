@@ -82,6 +82,11 @@ if (empty($caseId)) {
 // Authoritative case access (includes Assigned Only and cross-practice checks).
 $case = requireCaseAccess($caseId, $currentPracticeId);
 
+// Release the per-session advisory lock before the GCS metadata and
+// attachment-size work; the outcome is still only read-only JSON.
+$_SESSION['last_activity'] = time();
+session_write_close();
+
 $bucket = null;
 try {
     $bucket = getGcsBucket();

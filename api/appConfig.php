@@ -548,6 +548,9 @@ try {
         $appConfig['show_dev_tools'] = $showDevTools;
     }
 
+    // Make the database connection available globally for session handler and remember-me logic
+    $GLOBALS['pdo'] = $pdo;
+
 } catch (PDOException $e) {
     error_log('Database connection failed: ' . $e->getMessage());
     http_response_code(503);
@@ -563,21 +566,27 @@ try {
 }
 
 
+// Shared PDO session handler. Loaded before any session_start() so tests
+// or pages that already have an active session can still access it.
+require_once __DIR__ . '/session-db-handler.php';
+
 // Start session (Cloud Run safe)
 if (session_status() === PHP_SESSION_NONE) {
-    if (IS_CLOUD_RUN) {
-        // Cloud Run: use /tmp for session storage (only writable path)
-        session_save_path('/tmp');
-    } else {
-        // Local development: use a sessions folder in the project
-        $localSessionPath = __DIR__ . '/../sessions';
-        if (!is_dir($localSessionPath)) {
-            @mkdir($localSessionPath, 0700, true);
-        }
-        if (is_dir($localSessionPath) && is_writable($localSessionPath)) {
-            session_save_path($localSessionPath);
-        }
+    // Ensure the session lives long enough on the storage layer. The
+    // inactivity timeout itself remains controlled by last_activity.
+    $gcLifetime = (int) ini_get('session.gc_maxlifetime');
+    if ($gcLifetime < 5400) {
+        ini_set('session.gc_maxlifetime', 5400);
     }
+    // Use the php_serialize handler so the payload is a single binary-safe
+    // string that the database handler can store and retrieve without parsing.
+    if (ini_get('session.serialize_handler') !== 'php_serialize') {
+        ini_set('session.serialize_handler', 'php_serialize');
+    }
+    // Store session data in the application database so it is shared across
+    // all Cloud Run instances. Container-local /tmp storage causes sessions
+    // to be lost when requests are routed to different instances.
+    registerPdoSessionHandler($pdo);
 
     // Set secure session cookie parameters
     session_set_cookie_params([
@@ -589,8 +598,26 @@ if (session_status() === PHP_SESSION_NONE) {
         'samesite' => 'Lax'
     ]);
 
-    // Suppress session warnings (can occur during concurrent test runs)
-    @session_start();
+    // Suppress session warnings (can occur during concurrent test runs).
+    // A bounded session lock timeout is a transient store failure and must
+    // not be treated as an empty session or logout.
+    try {
+        $started = @session_start();
+        if ($started === false || session_status() !== PHP_SESSION_ACTIVE) {
+            throw new Exception('Session start failed');
+        }
+    } catch (Exception $e) {
+        http_response_code(503);
+        $requestUri = $_SERVER['REQUEST_URI'] ?? '/';
+        if (strpos($requestUri, '/api/') !== false) {
+            header('Content-Type: application/json');
+            echo json_encode(['success' => false, 'retry' => true, 'message' => 'Session store temporarily unavailable.']);
+        } else {
+            header('Content-Type: text/plain');
+            echo 'Session store temporarily unavailable. Please retry.';
+        }
+        exit;
+    }
 }
 
 // Make the i18n helper functions and active locale available everywhere

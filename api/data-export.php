@@ -167,6 +167,9 @@ function handleExportRequest(int $userId, int $practiceId, string $userEmail): v
         
         // Process export immediately (synchronous for simplicity)
         // In production, this could be queued for async processing
+        // Release the session lock before the long export work.
+        $_SESSION['last_activity'] = time();
+        session_write_close();
         processExport($exportId, $userId, $practiceId, $userEmail);
         
         echo json_encode([
@@ -231,7 +234,7 @@ function processExport(int $exportId, int $userId, int $practiceId, string $user
         // same set of authorized cases - a limited user must not receive activity/history
         // entries for cases outside their own assignment either.
         $isLimitedVisibilityExport = hasLimitedVisibility($practiceId);
-        $exportUserEmail = $isLimitedVisibilityExport ? getCurrentUserEmail() : null;
+        $exportUserEmail = $isLimitedVisibilityExport ? $userEmail : null;
         if ($isLimitedVisibilityExport) {
             $cases = array_filter($cases, function ($case) use ($exportUserEmail) {
                 $assignedTo = strtolower(trim((string)($case['assigned_to'] ?? '')));
