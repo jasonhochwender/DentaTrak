@@ -1868,7 +1868,22 @@ endif;
                 </div>
               </div>
 
-              <h3 class="attachments-title"><?php echo t('cases.attachments_optional'); ?></h3>
+              <div class="attachments-section-header">
+                <h3 class="attachments-title"><?php echo t('cases.attachments_optional'); ?></h3>
+<?php if (isFeatureEnabled('SHOW_CASE_DOWNLOAD_ALL')): ?>
+                <div class="attachment-download-all" id="attachmentDownloadAll" style="display: none;">
+                  <button type="button" class="btn-secondary" id="downloadAllAttachmentsBtn">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                      <polyline points="7 10 12 15 17 10"></polyline>
+                      <line x1="12" y1="15" x2="12" y2="3"></line>
+                    </svg>
+                    <span class="download-all-label"><?php echo t('attachments.download_all'); ?></span>
+                  </button>
+                  <div id="downloadAllAttachmentsStatus" class="error-message" style="display: none;" aria-live="polite" aria-atomic="true"></div>
+                </div>
+<?php endif; ?>
+              </div>
               <div class="attachments-grid">
                 <div class="attachment-group">
                   <div class="attachment-header"><?php echo t('attachments.photos'); ?></div>
@@ -1921,14 +1936,6 @@ endif;
                 </div>
               </div>
 
-<?php if (isFeatureEnabled('SHOW_CASE_DOWNLOAD_ALL')): ?>
-              <div class="attachment-download-all" id="attachmentDownloadAll" style="display: none;">
-                <button type="button" class="btn-secondary" id="downloadAllAttachmentsBtn" aria-label="<?php echo t('attachments.download_all_aria'); ?>">
-                  <?php echo t('attachments.download_all'); ?>
-                </button>
-                <div id="downloadAllAttachmentsStatus" class="error-message" style="display: none; margin-top: 4px;" aria-live="polite" aria-atomic="true"></div>
-              </div>
-<?php endif; ?>
 
               <div class="form-field case-creator-meta">
                 <label><?php echo t('cases.created_by'); ?></label>

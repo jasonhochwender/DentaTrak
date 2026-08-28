@@ -2472,6 +2472,54 @@ body {
   margin-bottom: 10px;
 }
 
+.attachments-section-header {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-top: 24px;
+  margin-bottom: 10px;
+}
+
+.attachments-section-header .attachments-title {
+  margin: 0;
+  padding-top: 0;
+}
+
+.attachment-download-all {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.attachment-download-all .btn-secondary {
+  background: #eff6ff;
+  color: #1e40af;
+  border-color: #bfdbfe;
+  font-weight: 600;
+}
+
+.attachment-download-all .btn-secondary:hover:not(:disabled) {
+  background: #dbeafe;
+  border-color: #93c5fd;
+}
+
+.attachment-download-all .btn-secondary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.attachment-download-all .btn-secondary:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+}
+
+.attachment-download-all .error-message {
+  margin-top: 4px;
+  font-size: 0.85rem;
+}
+
 .shipping-fields {
   display: grid;
   grid-template-columns: 1fr 1fr;

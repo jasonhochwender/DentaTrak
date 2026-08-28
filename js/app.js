@@ -8890,6 +8890,7 @@ document.addEventListener('DOMContentLoaded', function () {
   function updateDownloadAllButton(caseData) {
     var container = document.getElementById('attachmentDownloadAll');
     var btn = document.getElementById('downloadAllAttachmentsBtn');
+    var btnLabel = btn ? btn.querySelector('.download-all-label') : null;
     var statusEl = document.getElementById('downloadAllAttachmentsStatus');
     if (!container || !btn) return;
 
@@ -8928,14 +8929,18 @@ document.addEventListener('DOMContentLoaded', function () {
       // Disable only when all sizes are known and exceed the validated limit.
       if (bulkZipMaxBytes !== null && !hasUnknownSize && knownTotal > bulkZipMaxBytes) {
         btn.disabled = true;
-        btn.textContent = t('attachments.download_all') + ' (too large)';
+        var tooLargeLabel = t('attachments.download_all') + ' (' + eligible + ')';
+        if (btnLabel) btnLabel.textContent = tooLargeLabel;
+        btn.setAttribute('aria-label', t('attachments.download_all_aria') + ' (' + eligible + ')' + ' — ' + t('attachments.download_all_bundle_too_large'));
         if (statusEl) {
           statusEl.textContent = t('attachments.download_all_bundle_too_large');
           statusEl.style.display = 'block';
         }
       } else {
         btn.disabled = false;
-        btn.textContent = t('attachments.download_all');
+        var downloadLabel = t('attachments.download_all') + ' (' + eligible + ')';
+        if (btnLabel) btnLabel.textContent = downloadLabel;
+        btn.setAttribute('aria-label', t('attachments.download_all_aria') + ' (' + eligible + ')');
         if (statusEl) {
           statusEl.textContent = '';
           statusEl.style.display = 'none';
@@ -8973,7 +8978,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
     if (btn) {
       btn.disabled = true;
-      btn.textContent = t('attachments.download_all_preparing');
+      var prepLabel = btn.querySelector('.download-all-label');
+      if (prepLabel) prepLabel.textContent = t('attachments.download_all_preparing');
     }
     if (statusEl) {
       statusEl.textContent = t('attachments.download_all_preparing');
@@ -9034,7 +9040,8 @@ document.addEventListener('DOMContentLoaded', function () {
       setTimeout(function() {
         if (btn) {
           btn.disabled = false;
-          btn.textContent = t('attachments.download_all');
+          var labelEl = btn.querySelector('.download-all-label');
+          if (labelEl) labelEl.textContent = t('attachments.download_all');
         }
         if (statusEl) {
           statusEl.textContent = '';
@@ -9057,7 +9064,8 @@ document.addEventListener('DOMContentLoaded', function () {
       }
       if (btn) {
         btn.disabled = false;
-        btn.textContent = t('attachments.download_all');
+        var labelEl = btn.querySelector('.download-all-label');
+        if (labelEl) labelEl.textContent = t('attachments.download_all');
       }
     });
   }
