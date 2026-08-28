@@ -513,13 +513,14 @@ function getAdoptionForPractice(PDO $pdo, int $practiceId, ?array $users = null)
         }
     }
 
-    // Active cases: same as Practice Insights (archived=0 and not Delivered)
+    // Active cases: archived=0 and not the practice's terminal (last) column
+    $terminalStatus = getLastActiveWorkflowColumnId($practiceId);
     $activeStmt = $pdo->prepare("
         SELECT COUNT(*)
         FROM cases_cache
-        WHERE practice_id = :practice_id AND archived = 0 AND status != 'Delivered'
+        WHERE practice_id = :practice_id AND archived = 0 AND status != :terminal
     ");
-    $activeStmt->execute(['practice_id' => $practiceId]);
+    $activeStmt->execute(['practice_id' => $practiceId, 'terminal' => $terminalStatus]);
     $activeCases = (int)$activeStmt->fetchColumn();
 
     // Cases created in last 30 rolling days
@@ -532,22 +533,22 @@ function getAdoptionForPractice(PDO $pdo, int $practiceId, ?array $users = null)
     $createdStmt->execute(['practice_id' => $practiceId]);
     $createdLast30 = (int)$createdStmt->fetchColumn();
 
-    // Delivered in last 30 rolling days, using status_changed_at primary and activity log fallback
-    $deliveredStmt = $pdo->prepare("
+    // Terminal-column cases in last 30 rolling days
+    $terminalStmt = $pdo->prepare("
         SELECT COUNT(DISTINCT c.case_id)
         FROM cases_cache c
         LEFT JOIN (
             SELECT case_id, MAX(created_at) as delivered_at
             FROM case_activity_log
-            WHERE event_type = 'status_changed' AND new_status = 'Delivered'
+            WHERE event_type = 'status_changed' AND new_status = :terminal
             GROUP BY case_id
         ) l ON l.case_id = c.case_id
         WHERE c.practice_id = :practice_id
-          AND c.status = 'Delivered'
+          AND c.status = :terminal
           AND COALESCE(c.status_changed_at, l.delivered_at) >= DATE_SUB(NOW(), INTERVAL 30 DAY)
     ");
-    $deliveredStmt->execute(['practice_id' => $practiceId]);
-    $deliveredLast30 = (int)$deliveredStmt->fetchColumn();
+    $terminalStmt->execute(['practice_id' => $practiceId, 'terminal' => $terminalStatus]);
+    $deliveredLast30 = (int)$terminalStmt->fetchColumn();
 
     // Demo data count
     $demoStmt = $pdo->prepare("
@@ -640,6 +641,8 @@ function getAdoptionForPractice(PDO $pdo, int $practiceId, ?array $users = null)
         'active_cases' => $activeCases,
         'created_last_30_days' => $createdLast30,
         'delivered_last_30_days' => $deliveredLast30,
+        'terminal_status' => $terminalStatus,
+        'terminal_label' => resolveWorkflowStageLabelForPractice($terminalStatus, $practiceId),
         'demo_case_count' => $demoCaseCount,
         'last_case_activity' => $lastCaseActivity,
         'last_activity' => $lastActivity,

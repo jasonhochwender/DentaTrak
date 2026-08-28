@@ -1493,7 +1493,7 @@ $userEmail = $_SESSION['user_email'] ?? '';
             html += metric('Most Recent Login', formatRelativeTimestamp(adoption.most_recent_login, 'No recorded login'));
             html += metric('Active Cases', adoption.active_cases);
             html += metric('Cases Created Last 30 Days', adoption.created_last_30_days);
-            html += metric('Delivered Last 30 Days', adoption.delivered_last_30_days);
+            html += metric((adoption.terminal_label || 'Delivered') + ' Last 30 Days', adoption.delivered_last_30_days);
             html += metric('Last Activity', formatRelativeTimestamp(adoption.last_activity, 'No activity recorded'));
 
             if (adoption.demo_case_count > 0) {
