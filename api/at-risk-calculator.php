@@ -27,12 +27,12 @@ define('AT_RISK_APPROACHING_DUE_DAYS', 3);  // Days before due date to check for
  * @param array $activityData Optional activity log data for the case
  * @return array ['isAtRisk' => bool, 'reasons' => array of reason strings]
  */
-function calculateAtRiskStatus($case, $activityData = null) {
+function calculateAtRiskStatus($case, $activityData = null, $terminalStatus = 'Delivered') {
     $reasons = [];
     
     // Skip delivered/completed cases - they're not at risk
     $status = $case['status'] ?? '';
-    if ($status === 'Delivered') {
+    if ($status === $terminalStatus) {
         return ['isAtRisk' => false, 'reasons' => []];
     }
     
@@ -252,7 +252,7 @@ function checkMultipleReassignments($case, $activityData = null) {
  * @param PDO $pdo Database connection for activity lookup
  * @return array Map of case_id => ['isAtRisk' => bool, 'reasons' => array]
  */
-function batchCalculateAtRiskStatus($cases, $pdo = null) {
+function batchCalculateAtRiskStatus($cases, $pdo = null, $terminalStatus = 'Delivered') {
     $results = [];
     $caseIds = array_column($cases, 'id');
     
@@ -287,7 +287,7 @@ function batchCalculateAtRiskStatus($cases, $pdo = null) {
         if (!$caseId) continue;
         
         $activity = $activityMap[$caseId] ?? [];
-        $results[$caseId] = calculateAtRiskStatus($case, $activity);
+        $results[$caseId] = calculateAtRiskStatus($case, $activity, $terminalStatus);
     }
     
     return $results;

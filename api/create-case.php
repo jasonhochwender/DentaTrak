@@ -308,7 +308,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // getWorkflowStageOrder() (cases-cache.php). Reject anything else
     // outright rather than silently coercing it, so an unrecognized string
     // (e.g. a future custom display label) can never be persisted.
-    if (isset($caseData['status']) && !isValidWorkflowStatus($caseData['status'])) {
+    if (isset($caseData['status']) && !isValidWorkflowStatusForPractice($caseData['status'], $currentPracticeId)) {
         http_response_code(400);
         echo json_encode([
             'success' => false,
@@ -471,7 +471,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
 
                 // Calculate At Risk status for the newly created case
-                $atRiskStatus = calculateAtRiskStatus($result['caseData'], null);
+                $atRiskStatus = calculateAtRiskStatus($result['caseData'], null, getLastActiveWorkflowColumnId($currentPracticeId));
                 $result['caseData']['atRisk'] = $atRiskStatus;
 
                 // Check if Google Drive backup is enabled - store data for deferred processing
@@ -601,7 +601,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'dueDate'         => $caseData['dueDate'] ?? '',
             'creationDate'    => date('c'),
             'lastUpdateDate'  => date('c'),
-            'status'          => $caseData['status'] ?? 'Originated',
+            'status'          => $caseData['status'] ?? getFirstActiveWorkflowColumnId($currentPracticeId),
             'notes'           => $caseData['notes'] ?? '',
             'assignedTo'      => $caseData['assignedTo'] ?? '',
             'revisions'       => [],

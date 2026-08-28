@@ -3,6 +3,7 @@
 require_once __DIR__ . '/session.php'; // centralized session handling
 header('Content-Type: application/json');
 require_once __DIR__ . '/practice-security.php';
+require_once __DIR__ . '/workflow-stages.php';
 require_once __DIR__ . '/cases-cache.php';
 require_once __DIR__ . '/case-activity-log.php';
 require_once __DIR__ . '/lab-assignment-history.php';
@@ -19,6 +20,7 @@ setApiSecurityHeaders();
 
 // SECURITY: Require valid practice context before any case operations
 $currentPracticeId = requireValidPracticeContext();
+$terminalStatus = getLastActiveWorkflowColumnId($currentPracticeId);
 
 // Validate CSRF token for POST requests
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -760,7 +762,7 @@ try {
         // outright rather than silently coercing it, so an unrecognized
         // string (e.g. a future custom display label) can never be
         // persisted via Edit Case save.
-        if (isset($caseData['status']) && !isValidWorkflowStatus($caseData['status'])) {
+        if (isset($caseData['status']) && !isValidWorkflowStatusForPractice($caseData['status'], $currentPracticeId)) {
             http_response_code(400);
             echo json_encode([
                 'success' => false,
@@ -840,7 +842,7 @@ try {
         // or double-count.
         if ($result['success'] && isset($result['caseData']) && is_array($result['caseData'])) {
             $newStatusForRevision = $result['caseData']['status'] ?? null;
-            if (isBackwardStatusMovement($previousStatusForRevision, $newStatusForRevision)) {
+            if (isBackwardStatusMovement($previousStatusForRevision, $newStatusForRevision, $currentPracticeId)) {
                 $newRevisionCount = incrementCaseRevisionCount($_POST['caseId']);
                 $result['caseData']['revisionCount'] = $newRevisionCount;
                 $result['isRegression'] = true;
@@ -878,7 +880,7 @@ try {
         // the case's final assignedTo for this request.
         if ($result['success'] && isset($result['caseData']['status'])) {
             $newStatusForLabPeriod = $result['caseData']['status'];
-            if ($newStatusForLabPeriod === 'Delivered') {
+            if ($newStatusForLabPeriod === $terminalStatus) {
                 closeOpenLabPeriodForDeliveredCase($_POST['caseId'], $currentPracticeId);
             } else {
                 reopenLabPeriodOnDeliveredRegression($_POST['caseId'], $currentPracticeId, $previousStatusForRevision, $newStatusForLabPeriod);
@@ -1066,7 +1068,7 @@ try {
             
             // Calculate At Risk status for the updated case
             if (isset($result['caseData']) && is_array($result['caseData'])) {
-                $atRiskStatus = calculateAtRiskStatus($result['caseData'], null);
+                $atRiskStatus = calculateAtRiskStatus($result['caseData'], null, getLastActiveWorkflowColumnId($currentPracticeId));
                 $result['caseData']['atRisk'] = $atRiskStatus;
             }
             

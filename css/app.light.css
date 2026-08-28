@@ -1967,13 +1967,17 @@ body {
   border-radius: var(--radius-lg) var(--radius-lg) 0 0;
 }
 
-/* Per-column accent colors - refined palette */
-.kanban-column:nth-child(1)::before { background: linear-gradient(90deg, var(--status-originated), #60a5fa); }
-.kanban-column:nth-child(2)::before { background: linear-gradient(90deg, var(--status-external), #a78bfa); }
-.kanban-column:nth-child(3)::before { background: linear-gradient(90deg, var(--status-designed), #f472b6); }
-.kanban-column:nth-child(4)::before { background: linear-gradient(90deg, var(--status-manufactured), #fbbf24); }
-.kanban-column:nth-child(5)::before { background: linear-gradient(90deg, var(--status-received), #22d3ee); }
-.kanban-column:nth-child(6)::before { background: linear-gradient(90deg, var(--status-delivered), #34d399); }
+/* Per-column accent colors - stable per colorKey, not per position */
+.kanban-column.workflow-color-0::before { background: linear-gradient(90deg, var(--status-originated), #60a5fa); }
+.kanban-column.workflow-color-1::before { background: linear-gradient(90deg, var(--status-external), #a78bfa); }
+.kanban-column.workflow-color-2::before { background: linear-gradient(90deg, var(--status-designed), #f472b6); }
+.kanban-column.workflow-color-3::before { background: linear-gradient(90deg, var(--status-manufactured), #fbbf24); }
+.kanban-column.workflow-color-4::before { background: linear-gradient(90deg, var(--status-received), #22d3ee); }
+.kanban-column.workflow-color-5::before { background: linear-gradient(90deg, var(--status-delivered), #34d399); }
+.kanban-column.workflow-color-6::before { background: linear-gradient(90deg, #8b5cf6, #c4b5fd); }
+.kanban-column.workflow-color-7::before { background: linear-gradient(90deg, #06b6d4, #67e8f9); }
+.kanban-column.workflow-color-8::before { background: linear-gradient(90deg, #f59e0b, #fbbf24); }
+.kanban-column.workflow-color-9::before { background: linear-gradient(90deg, #ec4899, #f9a8d4); }
 
 .kanban-column-title {
   font-size: 0.85rem;

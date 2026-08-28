@@ -23,6 +23,10 @@ var csrfToken = document.querySelector('meta[name="csrf-token"]') ? document.que
  * @returns {string} CSS class name
  */
 function getWorkflowStatusCssClass(status) {
+  var defaults = ['Originated', 'Sent To External Lab', 'Designed', 'Manufactured', 'Received From External Lab', 'Delivered'];
+  if (defaults.indexOf(status) === -1) {
+    return 'kanban-card-custom';
+  }
   return 'kanban-card-' + String(status || '').toLowerCase().replace(/\s+/g, '-');
 }
 window.getWorkflowStatusCssClass = getWorkflowStatusCssClass;
@@ -56,6 +60,9 @@ var defaultWorkflowStageLabels = {
 function getStageLabel(internalStatus) {
   if (window.workflowStageLabels && Object.prototype.hasOwnProperty.call(window.workflowStageLabels, internalStatus)) {
     return window.workflowStageLabels[internalStatus];
+  }
+  if (window.allWorkflowStageLabels && Object.prototype.hasOwnProperty.call(window.allWorkflowStageLabels, internalStatus)) {
+    return window.allWorkflowStageLabels[internalStatus];
   }
   var normalized = String(internalStatus).toLowerCase().replace(/\s+/g, '_');
   var key = 'cases.status.' + normalized;
@@ -1333,7 +1340,9 @@ document.addEventListener('DOMContentLoaded', function () {
             data.practiceUsers || [],
             data.isLabUsers || {},
             data.showLabInsights === true,
-            data.workflowStageLabels || {}
+            data.workflowStageLabels || {},
+            data.workflowColumns || null,
+            data.currentPracticeId
           );
 
           // Apply locale selections to the settings form
@@ -1516,7 +1525,7 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   // Apply loaded settings to form fields
-  function applyUserSettings(preferences, loadedGmailUsers, loadedGmailLogins, loadedAdminUsers, practiceName, logoPath, loadedAssignmentLabels, isPracticeAdmin, practiceCreatorEmail, displayName, legalName, loadedLimitedVisibilityUsers, loadedCanViewAnalyticsUsers, loadedCanEditCasesUsers, practiceCreatorHasGoogleAccount, isGoogleDriveConnected, loadedAssignmentLabelsDetailed, loadedPracticeUsers, loadedIsLabUsers, showLabInsights, loadedWorkflowStageLabels) {
+  function applyUserSettings(preferences, loadedGmailUsers, loadedGmailLogins, loadedAdminUsers, practiceName, logoPath, loadedAssignmentLabels, isPracticeAdmin, practiceCreatorEmail, displayName, legalName, loadedLimitedVisibilityUsers, loadedCanViewAnalyticsUsers, loadedCanEditCasesUsers, practiceCreatorHasGoogleAccount, isGoogleDriveConnected, loadedAssignmentLabelsDetailed, loadedPracticeUsers, loadedIsLabUsers, showLabInsights, loadedWorkflowStageLabels, loadedWorkflowColumns, serverCurrentPracticeId) {
     window.isPracticeAdmin = !!isPracticeAdmin;
     window.practiceCreatorEmail = (practiceCreatorEmail || '').toLowerCase() || null;
     window.practiceCreatorHasGoogleAccount = practiceCreatorHasGoogleAccount !== false;
@@ -1532,6 +1541,22 @@ document.addEventListener('DOMContentLoaded', function () {
       ? loadedWorkflowStageLabels
       : {};
 
+    // Persisted workflow columns for the draft editor.
+    // Reject settings responses that belong to a different practice than the
+    // page was rendered for (e.g. after a practice switch in another tab).
+    var pagePracticeId = window.currentPracticeId;
+    var serverPracticeId = serverCurrentPracticeId || (loadedWorkflowColumns && loadedWorkflowColumns.practiceId) || null;
+    if (pagePracticeId && serverPracticeId && parseInt(serverPracticeId, 10) !== parseInt(pagePracticeId, 10)) {
+      if (typeof console !== 'undefined' && console.warn) {
+        console.warn('[workflow] Settings response practice mismatch; clearing workflow snapshot. page=' + pagePracticeId + ' server=' + serverPracticeId);
+      }
+      window.workflowColumnsSnapshot = { fingerprint: '', active: [], archived: [] };
+    } else {
+      window.workflowColumnsSnapshot = (loadedWorkflowColumns && typeof loadedWorkflowColumns === 'object')
+        ? loadedWorkflowColumns
+        : { fingerprint: '', active: [], archived: [] };
+    }
+
     // Apply to the Settings inputs, Kanban headers, and status dropdown.
     // The board is already server-rendered with these same resolved
     // labels on first paint (see main.php), so on initial load this is a
@@ -1545,6 +1570,13 @@ document.addEventListener('DOMContentLoaded', function () {
     window.tourCompleted = !!preferences.tour_completed;
     window.tourSettingsLoaded = true;
     window.dispatchEvent(new Event('toursettingsloaded'));
+
+    // Initialize workflow column handlers after the admin flag is known and
+    // the Settings DOM has been rendered. The earlier startup call returns
+    // before this flag is set, so it is re-driven here.
+    if (typeof initWorkflowColumnsManager === 'function') {
+      initWorkflowColumnsManager();
+    }
 
     if (!window.isPracticeAdmin) {
       if (addGmailUserBtn) addGmailUserBtn.disabled = true;
@@ -1870,6 +1902,11 @@ document.addEventListener('DOMContentLoaded', function () {
     });
     if (workflowStageInputsChanged) return true;
 
+    // Check workflow column draft.
+    if (typeof window.workflowColumnsHasUnsavedChanges === 'function' && window.workflowColumnsHasUnsavedChanges()) {
+      return true;
+    }
+
     // Check arrays (users, labels)
     var currentGmailUsers = window.gmailUsers || [];
     var currentAdminUsers = window.adminUsers || [];
@@ -2121,6 +2158,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
   if (settingsCancelBtn) {
     settingsCancelBtn.addEventListener('click', function() {
+      // Close Settings triggers the centralized unsaved-changes modal if needed.
       closeSettingsBillingModal(false);
     });
   }
@@ -3411,14 +3449,15 @@ document.addEventListener('DOMContentLoaded', function () {
       // Practice logo settings
       var logoPathToSave = window.pendingLogoPath || window.currentLogoPath || '';
 
-      // Workflow Stage Names - keyed by the six fixed internal statuses
-      // (never by display text). Server-side normalizeWorkflowStageLabelsForSave()
-      // is authoritative for trimming/validating/dropping blanks - this is
-      // just the raw current input values.
+      // Workflow Stage Names - keyed by the practice's active internal
+      // column ids (including custom columns). Server-side
+      // normalizeWorkflowStageLabelsForSave() is authoritative for
+      // trimming/validating/dropping blanks - this is just the raw current
+      // input values.
       var workflowStageLabels = {};
-      document.querySelectorAll('.workflow-stage-label-input').forEach(function(input) {
-        if (input.dataset.internalStatus) {
-          workflowStageLabels[input.dataset.internalStatus] = input.value;
+      document.querySelectorAll('.workflow-column-label-input').forEach(function(input) {
+        if (input.dataset.internalId) {
+          workflowStageLabels[input.dataset.internalId] = input.value;
         }
       });
 
@@ -3452,7 +3491,9 @@ document.addEventListener('DOMContentLoaded', function () {
         canViewAnalyticsUsers: window.canViewAnalyticsUsers || {}, // Add analytics permission map
         canEditCasesUsers: window.canEditCasesUsers || {}, // Add edit cases permission map
         isLabUsers: window.isLabUsers || {}, // Add Lab designation map (Lab Insights foundation)
-        workflowStageLabels: workflowStageLabels // Practice-specific stage display-label overrides
+        workflowStageLabels: workflowStageLabels, // Practice-specific stage display-label overrides
+        workflowColumns: (typeof window.getWorkflowColumnsPayload === 'function' ? window.getWorkflowColumnsPayload() : null),
+        expectedPracticeId: window.currentPracticeId
       };
 
       if (practiceDefaultLanguage) {
@@ -3478,24 +3519,8 @@ document.addEventListener('DOMContentLoaded', function () {
     saveSettingsBtn.addEventListener('click', saveSettings);
   }
 
-  // Restore Defaults (Workflow Stage Names) - resets the six visible
-  // inputs to their default stage names (read from each row's own fixed
-  // left-hand label, so there is no second hardcoded six-item list on the
-  // client). This is a CLIENT-SIDE FIELD RESET ONLY: it does not call any
-  // API and does not save - hasUnsavedSettingsChanges() picks up the
-  // change live (it compares current input values against the snapshot
-  // taken when Settings last loaded), so the existing Save/Cancel and
-  // close-with-unsaved-changes flows apply exactly as they would for any
-  // other manually-edited field.
-  var restoreWorkflowStageDefaultsBtn = document.getElementById('restoreWorkflowStageDefaultsBtn');
-  if (restoreWorkflowStageDefaultsBtn) {
-    restoreWorkflowStageDefaultsBtn.addEventListener('click', function() {
-      document.querySelectorAll('.workflow-stage-label-input').forEach(function(input) {
-        var labelEl = document.querySelector('label[for="' + input.id + '"]');
-        input.value = labelEl ? labelEl.textContent.trim() : (input.dataset.internalStatus || '');
-      });
-    });
-  }
+  // Initialize the workflow column manager (add/reorder/archive/restore).
+  initWorkflowColumnsManager();
 
   // Add Enter key handler for settings form
   if (settingsForm) {
@@ -3616,6 +3641,8 @@ document.addEventListener('DOMContentLoaded', function () {
     // Show loading state
     var saveSettingsBtn = document.getElementById('saveSettings');
     var originalText = saveSettingsBtn.textContent;
+    var workflowColumnsSubmitted = !!(formData && formData.workflowColumns) &&
+      (typeof window.workflowColumnsHasUnsavedChanges === 'function' ? window.workflowColumnsHasUnsavedChanges() : true);
     saveSettingsBtn.textContent = t('settings.common.saving');
     saveSettingsBtn.disabled = true;
 
@@ -3627,7 +3654,38 @@ document.addEventListener('DOMContentLoaded', function () {
       },
       body: JSON.stringify(formData)
     })
-    .then(response => response.json())
+    .then(function (response) {
+      // Always read as text first so HTML errors do not break JSON parsing.
+      return response.text().then(function (text) {
+        var contentType = (response.headers.get('content-type') || '').toLowerCase();
+        if (!contentType || contentType.indexOf('application/json') === -1) {
+          return { ok: response.ok, status: response.status, contentType: contentType, raw: text, json: null, notJson: true };
+        }
+        var parsed = null;
+        var jsonError = null;
+        try {
+          parsed = text ? JSON.parse(text) : null;
+        } catch (e) {
+          jsonError = e.message;
+        }
+        return { ok: response.ok, status: response.status, contentType: contentType, raw: text, json: parsed, jsonError: jsonError };
+      });
+    })
+    .then(function (result) {
+      if (result.notJson) {
+        console.error('[saveSettings] non-JSON response', result.status, result.contentType, result.raw.substring(0, 500));
+        throw new Error('The server returned an invalid response. Check the local PHP error log.');
+      }
+      if (result.jsonError) {
+        console.error('[saveSettings] JSON parse error', result.jsonError, result.raw.substring(0, 500));
+        throw new Error('The server returned an invalid response. Check the local PHP error log.');
+      }
+      if (!result.json) {
+        console.error('[saveSettings] empty response', result.status, result.raw.substring(0, 500));
+        throw new Error('The server returned an invalid response. Check the local PHP error log.');
+      }
+      return result.json;
+    })
     .then(data => {
       if (data.success) {
         // Settings saved successfully
@@ -3663,36 +3721,96 @@ document.addEventListener('DOMContentLoaded', function () {
           }
         }
 
-        // Reset button state
-        saveSettingsBtn.textContent = originalText;
-        saveSettingsBtn.disabled = false;
+        // Refresh the workflow draft from the persisted snapshot.
+        if (data.workflowColumns) {
+          window.workflowColumnsSnapshot = data.workflowColumns;
+          if (typeof initWorkflowColumnsManager === 'function') {
+            initWorkflowColumnsManager();
+          }
+        }
 
-        // Close the settings modal (force close since we just saved)
+        // Close the settings modal only when everything succeeds.
         closeSettingsBillingModal(true);
 
         // Show success toast
         if (typeof Toast !== 'undefined') {
           Toast.success(t('settings.messages.save_success_title'), t('settings.messages.save_success_message'));
         }
+
+        // If the workflow structure changed, perform a controlled full-page
+        // reload so the server-rendered board, status selectors, and filters
+        // pick up the new configuration.
+        if (workflowColumnsSubmitted) {
+          setTimeout(function () {
+            window.location.reload();
+          }, 600);
+        }
       } else {
-        // Reset button state
-        saveSettingsBtn.textContent = originalText;
-        saveSettingsBtn.disabled = false;
+        // Show the server's specific validation message when available.
+        // If the server points to the workflow columns, or if the request
+        // contained workflow data, surface the error in the Workflow Columns
+        // section so the admin can see it in context.
+        if (data.field === 'workflowColumns' || workflowColumnsSubmitted) {
+          var workflowError = document.getElementById('workflowColumnsError');
+          if (workflowError) {
+            workflowError.textContent = data.message || t('settings.workflow_columns.save_failed');
+            workflowError.style.display = 'block';
+            workflowError.hidden = false;
+            if (workflowError.scrollIntoView) {
+              workflowError.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
+          } else {
+            showToast(data.message || t('settings.workflow_columns.save_failed'), 'error');
+          }
+          // Surface the error on the specific column name input.
+          var inputs = document.querySelectorAll('.workflow-column-label-input');
+          var focused = false;
+          if (data.invalidId) {
+            for (var k = 0; k < inputs.length; k++) {
+              if (inputs[k].dataset.internalId === data.invalidId) {
+                inputs[k].classList.add('workflow-column-name-invalid');
+                inputs[k].focus();
+                focused = true;
+                break;
+              }
+            }
+          }
+          if (!focused) {
+            for (var j = 0; j < inputs.length; j++) {
+              if ((inputs[j].value || '').trim() === '') {
+                inputs[j].classList.add('workflow-column-name-invalid');
+                inputs[j].focus();
+                break;
+              }
+            }
+          }
+        } else {
+          showToast(data.message || t('settings.messages.save_error'), 'error');
+        }
 
-        // Show the server's specific validation message when available
-        // (e.g. "Cannot delete label(s) still in use...") rather than a
-        // generic failure message.
-        showToast(data.message || t('settings.messages.save_error'), 'error');
-
-        // A stale client (missing the stable-ID label payload while Lab
-        // Insights is enabled) was rejected to avoid corrupting Lab
-        // identity - refresh in-memory settings so assignmentLabelsMeta
-        // picks up current ids/isLab values instead of retrying blind.
         if (data.reload_required) {
           loadSettings();
         }
       }
     })
+    .catch(function (error) {
+      // Ensure the button is always restored and the modal stays open.
+      var workflowError = document.getElementById('workflowColumnsError');
+      if (workflowError) {
+        workflowError.textContent = error && error.message ? error.message : t('settings.messages.save_error');
+        workflowError.style.display = 'block';
+        workflowError.hidden = false;
+        if (workflowError.scrollIntoView) {
+          workflowError.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+      } else {
+        showToast(error && error.message ? error.message : t('settings.messages.save_error'), 'error');
+      }
+    })
+    .finally(function () {
+      saveSettingsBtn.textContent = originalText;
+      saveSettingsBtn.disabled = false;
+    });
   }
 
   // Toggle visibility of past due days input based on checkbox
@@ -7883,7 +8001,9 @@ document.addEventListener('DOMContentLoaded', function () {
             data.practiceUsers || [],
             data.isLabUsers || {},
             data.showLabInsights === true,
-            data.workflowStageLabels || {}
+            data.workflowStageLabels || {},
+            data.workflowColumns || null,
+            data.currentPracticeId
           );
 
           // Set localStorage values for past due and coming due highlighting
@@ -10997,3 +11117,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
   })();
 });
+
+/**
+ * Workflow column management in Settings > Display & Behavior.
+ * Handles add, rename (via the Settings save button), reorder, archive,
+ * and restore. All structural changes call /api/workflow-columns.php.
+ */

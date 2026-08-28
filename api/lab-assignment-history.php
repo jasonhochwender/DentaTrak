@@ -35,6 +35,7 @@
  */
 
 require_once __DIR__ . '/appConfig.php';
+require_once __DIR__ . '/workflow-stages.php';
 
 /**
  * Ensure the case_lab_assignment_periods table exists.
@@ -522,7 +523,9 @@ function reopenLabPeriodOnDeliveredRegression($caseId, $practiceId, $oldStatus, 
     if (!$pdo || !$caseId || !$practiceId) {
         return;
     }
-    if ($oldStatus !== 'Delivered' || $newStatus === 'Delivered') {
+    // "Delivered" here means the practice's current terminal (last) column.
+    $terminal = getLastActiveWorkflowColumnId($practiceId);
+    if ($oldStatus !== $terminal || $newStatus === $terminal) {
         return;
     }
 

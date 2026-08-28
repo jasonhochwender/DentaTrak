@@ -444,7 +444,7 @@
             "download_url_failed": "Failed to get download URL",
             "invalid_stl": "The file does not appear to be a valid STL.",
             "invalid_obj": "The file does not appear to be a valid OBJ.",
-                "invalid_ply": "The file does not appear to be a valid PLY.",
+            "invalid_ply": "The file does not appear to be a valid PLY.",
             "unsupported_3d_format": "Unsupported 3D model format",
             "pdf_not_loaded": "PDF viewer library is not loaded.",
             "page_info_of": "Page {page} of {total}",
@@ -749,6 +749,91 @@
                 "label": "Locale Diagnostics",
                 "description": "View resolved and stored locale values for troubleshooting."
             }
+        },
+        "workflow_columns": {
+            "title": "Workflow Columns",
+            "description": "Customize the stages used on your case board. The first and last columns are required.",
+            "count": "{count} of {max} columns",
+            "add": "+ Add Column",
+            "add_short": "Add Column",
+            "add_disabled_max": "You have reached the maximum of 10 columns.",
+            "rename": "Rename",
+            "reorder": "Reorder",
+
+            "archive": "Archive",
+            "archive_loading": "Checking cases in this column...",
+            "restore": "Restore",
+            "archived_heading": "Archived Columns ({count})",
+            "no_archived": "No archived columns",
+            "required": "Required",
+            "cannot_archive_protected": "The first and last columns cannot be archived.",
+            "cannot_move_protected": "The first and last columns cannot be moved.",
+            "min_active_required": "At least {min} active columns are required.",
+            "max_reached": "A workflow may have at most {max} columns.",
+            "placeholder": "New column name",
+            "name_required": "Column name is required.",
+            "name_too_long": "Column name cannot exceed {max} characters.",
+            "duplicate_name": "An active column with that name already exists.",
+            "not_found": "Column not found.",
+            "already_archived": "Column is already archived.",
+            "not_archived": "Column is not archived.",
+            "destination_label": "Destination column for affected cases",
+            "destination_select": "Choose a destination...",
+            "move_cases_prompt": "Move {count} case(s) to",
+
+            "destination_required": "Please select a destination column for the active cases in this column.",
+            "affected_cases": "This column has {count} active case(s).",
+            "archive_affected_in_column": "{count} active case(s) are currently in \"{columnName}.\"",
+            "archived": "Column archived and {count} case(s) moved.",
+
+
+            "invalid_action": "Invalid workflow column action.",
+            "order_required": "Column order is required.",
+            "order_mismatch": "Column order does not match active columns.",
+            "order_invalid": "Column order contains unknown or duplicate columns.",
+            "first_position_protected": "The first column must remain in the first position.",
+            "last_position_protected": "The last column must remain in the last position.",
+            "archive_count_failed": "Unable to count cases in this column.",
+            "move_failed": "Unable to move cases while archiving the column.",
+            "save_failed": "Unable to save workflow columns.",
+            "stale_configuration": "Workflow columns changed in another session. Refresh Settings and try again.",
+            "saved": "Workflow columns saved.",
+            "invalid_destination": "Selected destination is not a valid active column.",
+            "migration_required": "Workflow column management requires the database migration. Run migrations/2026_08_28_workflow_columns.php to enable it.",
+            "migration_required_short": "Migration required",
+            "reorder_up": "Move up",
+            "reorder_down": "Move down",
+            "reset_to_default": "Reset to Default",
+            "reset_loading": "Checking cases affected by reset...",
+
+            "reset_affected_cases": "{count} active case(s) currently use custom columns. They will be moved to the selected default destination.",
+            "unsaved_changes": "Unsaved changes",
+            "practice_context_changed": "The active practice changed. Refresh DentaTrak and try again.",
+
+
+
+
+
+
+
+
+            "dismiss": "Dismiss",
+            "restore_max_active": "You can have up to {max} active workflow columns. Archive another column before restoring this one.",
+            "restore_name_conflict": "An active column named \"{name}\" already exists. Rename it or the archived column before restoring.",
+            "remove_not_temporary": "Only unsaved new columns can be removed.",
+            "remove_protected": "Required first and last columns cannot be removed.",
+            "remove": "Remove",
+            "archive_not_temporary": "Unsaved new columns must be removed, not archived.",
+            "first_last_protected": "The first and last columns cannot be archived.",
+            "destination_same": "Destination cannot be the same as the archived column.",
+
+
+            "no_valid_destinations": "No valid destination column is available for the cases in this column.",
+
+            "aria_remove": "Remove unsaved column",
+            "aria_restore": "Restore archived column",
+            "aria_reorder_up": "Move column up",
+            "aria_reorder_down": "Move column down"
         }
     },
     "insights": {
@@ -3152,7 +3237,7 @@
                     "reducing_remakes_through_better_visibility": {
                         "heading": "Reducing Remakes Through Better Visibility",
                         "body_6": "Not every remake is preventable, but some are the direct result of a breakdown in communication rather than a clinical issue, such as a shade mismatch that wasn't caught before a case went out, or a case that sat too long and needed to be redone because circumstances changed. Recording remakes alongside case status makes it possible to see whether a pattern exists. For more on the real cost of remakes, see {link}.",
-                    "link_label": "what dental remakes really cost your practice"
+                        "link_label": "what dental remakes really cost your practice"
                     },
                     "frequently_asked_questions": {
                         "heading": "Frequently Asked Questions"

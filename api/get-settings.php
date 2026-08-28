@@ -400,9 +400,13 @@ try {
     // operational board/UI data every practice member needs (not
     // admin-only configuration), so - like assignmentLabels below - it is
     // included unconditionally, regardless of $isPracticeAdmin.
-    $workflowStageLabels = getResolvedWorkflowStageLabels(
-        $currentPracticeId ? getWorkflowStageLabelOverridesForPractice($currentPracticeId) : []
-    );
+    // Fully-resolved practice-specific workflow stage/column labels. The
+    // for-practice variant includes any custom columns stored in
+    // practices.workflow_columns, with legacy workflow_stage_labels overrides
+    // layered on top.
+    $workflowStageLabels = $currentPracticeId
+        ? getResolvedWorkflowStageLabelsForPractice($currentPracticeId)
+        : getResolvedWorkflowStageLabels([]);
 
     // Normalize preferences and provide defaults
     if (!$preferences) {
@@ -501,6 +505,7 @@ try {
     // Return preferences, admin users, regular users, practice name, logo path, assignment labels, and BAA info
     echo json_encode([
         'success' => true,
+        'currentPracticeId' => (int)$currentPracticeId,
         'preferences' => $preferences,
         'adminUsers' => $adminUsers,
         'gmailUsers' => $gmailUsers,
@@ -513,6 +518,7 @@ try {
         'assignmentLabels' => $assignmentLabels,
         'assignmentLabelsDetailed' => $responseAssignmentLabelsDetailed,
         'workflowStageLabels' => $workflowStageLabels,
+        'workflowColumns' => $isPracticeAdmin ? buildWorkflowColumnsSnapshot($currentPracticeId) : null,
         'language' => $userLocale,
         'practiceDefaultLanguage' => $practiceDefaultLocale,
         'usePracticeDefault' => $usePracticeDefault,

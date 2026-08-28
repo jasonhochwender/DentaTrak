@@ -13,6 +13,7 @@ error_reporting(E_ALL & ~E_DEPRECATED & ~E_USER_DEPRECATED);
 require_once __DIR__ . '/appConfig.php';
 require_once __DIR__ . '/practice-security.php';
 require_once __DIR__ . '/cases-cache.php';
+require_once __DIR__ . '/workflow-stages.php';
 require_once __DIR__ . '/google-drive.php';
 require_once __DIR__ . '/case-activity-log.php';
 require_once __DIR__ . '/encryption.php';
@@ -137,13 +138,15 @@ try {
         }
     }
 
+    $lastStageId = $currentPracticeId ? getLastActiveWorkflowColumnId($currentPracticeId) : 'Delivered';
+
     if ($deliveredHideDays > 0) {
         $cutoffTimestamp = strtotime('-' . $deliveredHideDays . ' days');
         $filtered = [];
         $currentPracticeId = $_SESSION['current_practice_id'] ?? 0;
 
         foreach ($cases as $case) {
-            if (!isset($case['status']) || $case['status'] !== 'Delivered') {
+            if (!isset($case['status']) || $case['status'] !== $lastStageId) {
                 $filtered[] = $case;
                 continue;
             }
@@ -178,7 +181,7 @@ try {
                     logCaseActivity(
                         $caseId,
                         'case_archived_auto',
-                        'Delivered',
+                        $lastStageId,
                         null,
                         [
                             'source' => 'list-cases.php',
@@ -258,9 +261,9 @@ try {
     // Apply late cases filter if requested
     $lateOnly = $_GET['late_only'] ?? '';
     if ($lateOnly === 'true') {
-        $cases = array_filter($cases, function($case) use ($pastDueDays) {
-            // Exclude delivered cases - they can't be late if they're completed
-            if (isset($case['status']) && $case['status'] === 'Delivered') {
+        $cases = array_filter($cases, function($case) use ($pastDueDays, $lastStageId) {
+            // Exclude terminal-stage cases - they can't be late if they're completed
+            if (isset($case['status']) && $case['status'] === $lastStageId) {
                 return false;
             }
 
@@ -278,9 +281,9 @@ try {
     // Apply due soon filter if requested
     $dueSoon = $_GET['due_soon'] ?? '';
     if ($dueSoon === 'true') {
-        $cases = array_filter($cases, function($case) use ($comingDueDays) {
-            // Exclude delivered cases
-            if (isset($case['status']) && $case['status'] === 'Delivered') {
+        $cases = array_filter($cases, function($case) use ($comingDueDays, $lastStageId) {
+            // Exclude terminal-stage cases
+            if (isset($case['status']) && $case['status'] === $lastStageId) {
                 return false;
             }
 
@@ -299,9 +302,9 @@ try {
     // Mirror the Kanban card's effective urgency classification (Late > Appt Risk > Due Soon).
     $apptRiskOnly = $_GET['appt_risk_only'] ?? '';
     if ($apptRiskOnly === 'true') {
-        $cases = array_filter($cases, function($case) use ($highlightPastDue, $pastDueDays, $highlightAppointmentRisk, $appointmentRiskDays) {
-            // Delivered cases are never urgent
-            if (isset($case['status']) && $case['status'] === 'Delivered') {
+        $cases = array_filter($cases, function($case) use ($highlightPastDue, $pastDueDays, $highlightAppointmentRisk, $appointmentRiskDays, $lastStageId) {
+            // Terminal-stage cases are never urgent
+            if (isset($case['status']) && $case['status'] === $lastStageId) {
                 return false;
             }
 

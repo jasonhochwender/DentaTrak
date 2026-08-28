@@ -18,6 +18,10 @@ header('Content-Type: application/json');
 // SECURITY: Require valid practice context - NO FALLBACKS
 $practiceId = requireValidPracticeContext();
 
+// Practice-specific terminal (last) status. Stored in $GLOBALS so SQL
+// strings can interpolate it consistently without hard-coding 'Delivered'.
+$GLOBALS['workflowTerminalStatus'] = getLastActiveWorkflowColumnId($practiceId);
+
 // SECURITY: Insights (can_view_analytics) gates access to analytics data.
 // This was previously stored/toggleable in Settings but never enforced by
 // any backend endpoint.
@@ -70,7 +74,7 @@ $typePeriod = $_GET['type_period'] ?? 'active'; // Default: active cases
 // Helper function to build time period WHERE clause
 function buildTimePeriodClause($period, $dateColumn = 'creation_date') {
     if ($period === 'active') {
-        return "AND status != 'Delivered'";
+        return "AND status != '{$GLOBALS['workflowTerminalStatus']}'";
     } elseif ($period === 'all') {
         return "";
     } else {
@@ -107,7 +111,7 @@ try {
     $stmt = $pdo->prepare("
         SELECT COUNT(*) as total
         FROM cases_cache
-        WHERE practice_id = :practice_id AND archived = 0 AND status != 'Delivered'
+        WHERE practice_id = :practice_id AND archived = 0 AND status != '{$GLOBALS['workflowTerminalStatus']}'
     ");
     $stmt->execute(['practice_id' => $practiceId]);
     $metrics['totalActiveCases'] = (int)$stmt->fetchColumn();
@@ -122,7 +126,7 @@ try {
     // including any that have since been archived. Uses cases_cache.status_changed_at
     // as the primary delivery timestamp. If that is unavailable, falls back to the
     // most recent case_activity_log entry where event_type = 'status_changed' and
-    // new_status = 'Delivered'. If neither exists, the case is not counted.
+    // new_status = '{$GLOBALS['workflowTerminalStatus']}'. If neither exists, the case is not counted.
     $stmt = $pdo->prepare("
         SELECT COUNT(DISTINCT c.case_id) as total
         FROM cases_cache c
@@ -130,11 +134,11 @@ try {
             SELECT case_id, MAX(created_at) as delivered_at
             FROM case_activity_log
             WHERE event_type = 'status_changed'
-              AND new_status = 'Delivered'
+              AND new_status = '{$GLOBALS['workflowTerminalStatus']}'
             GROUP BY case_id
         ) l ON l.case_id = c.case_id
         WHERE c.practice_id = :practice_id
-          AND c.status = 'Delivered'
+          AND c.status = '{$GLOBALS['workflowTerminalStatus']}'
           AND MONTH(STR_TO_DATE(LEFT(COALESCE(c.status_changed_at, l.delivered_at), 10), '%Y-%m-%d')) = MONTH(CURRENT_DATE())
           AND YEAR(STR_TO_DATE(LEFT(COALESCE(c.status_changed_at, l.delivered_at), 10), '%Y-%m-%d')) = YEAR(CURRENT_DATE())
     ");
@@ -147,14 +151,14 @@ try {
     $stmt = $pdo->prepare("
         SELECT due_date, patient_appointment_date, status
         FROM cases_cache
-        WHERE practice_id = :practice_id AND archived = 0 AND status != 'Delivered'
+        WHERE practice_id = :practice_id AND archived = 0 AND status != '{$GLOBALS['workflowTerminalStatus']}'
     ");
     $stmt->execute(['practice_id' => $practiceId]);
     $activeForFlow = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     foreach ($activeForFlow as $case) {
         $status = $case['status'] ?? '';
-        if ($status === 'Delivered') {
+        if ($status === $GLOBALS['workflowTerminalStatus']) {
             continue;
         }
 
@@ -230,7 +234,7 @@ try {
             ) as avg_duration
             FROM cases_cache 
             WHERE practice_id = :practice_id
-            AND status = 'Delivered'
+            AND status = '{$GLOBALS['workflowTerminalStatus']}'
         ");
         $stmt->execute(['practice_id' => $practiceId]);
         $avgDuration = $stmt->fetchColumn();
@@ -246,7 +250,7 @@ try {
             FROM cases_cache 
             WHERE practice_id = :practice_id
             AND archived = 0
-            AND status != 'Delivered'
+            AND status != '{$GLOBALS['workflowTerminalStatus']}'
             AND due_date IS NOT NULL
             AND due_date != ''
             AND STR_TO_DATE(LEFT(due_date, 10), '%Y-%m-%d') < CURRENT_DATE()
@@ -264,7 +268,7 @@ try {
             FROM cases_cache 
             WHERE practice_id = :practice_id
             AND archived = 0
-            AND status != 'Delivered'
+            AND status != '{$GLOBALS['workflowTerminalStatus']}'
             AND due_date IS NOT NULL
             AND due_date != ''
             AND STR_TO_DATE(LEFT(due_date, 10), '%Y-%m-%d') BETWEEN CURRENT_DATE() AND DATE_ADD(CURRENT_DATE(), INTERVAL 7 DAY)
@@ -282,7 +286,7 @@ try {
             FROM cases_cache 
             WHERE practice_id = :practice_id
             AND archived = 0
-            AND status != 'Delivered'
+            AND status != '{$GLOBALS['workflowTerminalStatus']}'
             AND (assigned_to IS NULL OR assigned_to = '')
         ");
         $stmt->execute(['practice_id' => $practiceId]);
@@ -298,7 +302,7 @@ try {
             SELECT * FROM cases_cache 
             WHERE practice_id = :practice_id
             AND archived = 0
-            AND status != 'Delivered'
+            AND status != '{$GLOBALS['workflowTerminalStatus']}'
         ");
         $stmt->execute(['practice_id' => $practiceId]);
         $activeCasesForRisk = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -357,7 +361,7 @@ try {
             WHERE practice_id = :practice_id
             $statusClause
             GROUP BY status
-            ORDER BY " . getWorkflowStageOrderCaseSql() . "
+            ORDER BY " . getWorkflowStageOrderCaseSqlForPractice($practiceId) . "
         ");
         $stmt->execute(['practice_id' => $practiceId]);
         $statusDistribution = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -379,7 +383,7 @@ try {
                     '%Y-%m'
                 ) as month,
                 COUNT(*) as cases_created,
-                SUM(CASE WHEN status = 'Delivered' THEN 1 ELSE 0 END) as cases_delivered
+                SUM(CASE WHEN status = '{$GLOBALS['workflowTerminalStatus']}' THEN 1 ELSE 0 END) as cases_delivered
             FROM cases_cache 
             WHERE practice_id = :practice_id
             AND STR_TO_DATE(LEFT(COALESCE(creation_date, CURRENT_DATE()), 10), '%Y-%m-%d') >= DATE_SUB(CURRENT_DATE(), INTERVAL $months MONTH)
@@ -452,7 +456,7 @@ try {
                     ELSE assigned_to 
                 END as assignee,
                 COUNT(*) as cases_count,
-                SUM(CASE WHEN status = 'Delivered' THEN 1 ELSE 0 END) as completed_cases
+                SUM(CASE WHEN status = '{$GLOBALS['workflowTerminalStatus']}' THEN 1 ELSE 0 END) as completed_cases
             FROM cases_cache 
             WHERE practice_id = ?
         ";
@@ -550,12 +554,12 @@ try {
                 )) as max_days_in_status
             FROM cases_cache 
             WHERE practice_id = :practice_id
-            AND status != 'Delivered'
+            AND status != '{$GLOBALS['workflowTerminalStatus']}'
             AND archived = 0
             AND status_changed_at IS NOT NULL
             $durationClause
             GROUP BY status
-            ORDER BY " . getWorkflowStageOrderCaseSql() . "
+            ORDER BY " . getWorkflowStageOrderCaseSqlForPractice($practiceId) . "
         ");
         $stmt->execute(['practice_id' => $practiceId]);
         $statusDurationData = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -591,7 +595,7 @@ try {
                 COUNT(*) as delivered_cases
             FROM cases_cache 
             WHERE practice_id = :practice_id
-            AND status = 'Delivered'
+            AND status = '{$GLOBALS['workflowTerminalStatus']}'
             AND archived = 0
             AND creation_date IS NOT NULL
         ");

@@ -165,9 +165,34 @@ $isCurrentUserPracticeAdmin = isPracticeAdmin($currentPracticeId);
 // and revision logic all continue to use the fixed internal status values
 // and never derive from $resolvedWorkflowStageLabels.
 require_once __DIR__ . '/api/workflow-stages.php';
-$resolvedWorkflowStageLabels = getResolvedWorkflowStageLabels(
-    getWorkflowStageLabelOverridesForPractice($currentPracticeId)
-);
+$resolvedWorkflowStageLabels = $currentPracticeId
+    ? getResolvedWorkflowStageLabelsForPractice($currentPracticeId)
+    : getResolvedWorkflowStageLabels([]);
+$workflowColumns = $currentPracticeId ? getWorkflowColumnsForPractice($currentPracticeId) : [];
+$workflowColumnsActive = [];
+$workflowColumnsArchived = [];
+foreach ($workflowColumns as $column) {
+    if (empty($column['archived'])) {
+        $workflowColumnsActive[] = $column;
+    } else {
+        $workflowColumnsArchived[] = $column;
+    }
+}
+$workflowColumnColorKeys = [];
+foreach ($workflowColumns as $column) {
+    $workflowColumnColorKeys[$column['id']] = (int)($column['colorKey'] ?? 0);
+}
+$workflowColumnCount = count($workflowColumnsActive);
+$workflowMaxColumns = 10;
+$workflowStageOrder = array_keys($resolvedWorkflowStageLabels);
+$allWorkflowStageLabels = $resolvedWorkflowStageLabels;
+foreach ($workflowColumnsArchived as $column) {
+    $label = $column['label'];
+    if (isset($resolvedWorkflowStageLabels[$column['id']]) && $resolvedWorkflowStageLabels[$column['id']] !== '') {
+        $label = $resolvedWorkflowStageLabels[$column['id']];
+    }
+    $allWorkflowStageLabels[$column['id']] = $label;
+}
 
 // BAA ACCESS CONTROL GATE
 // Block access to PHI until BAA is accepted
@@ -464,7 +489,7 @@ if (isset($appConfig) && is_array($appConfig) && isset($appConfig['appName'])) {
   <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
   
   <!-- Preload critical resources -->
-  <link rel="preload" href="js/app.js?v=20260820b" as="script">
+  <link rel="preload" href="js/app.js?v=20260828d" as="script">
   <link rel="preload" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
   <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap"></noscript>
   
@@ -511,7 +536,7 @@ if (isset($appConfig) && is_array($appConfig) && isset($appConfig['appName'])) {
   <!-- Feature-specific CSS - loaded on demand -->
   <link rel="preload" href="css/revision-history.css?v=20241210" as="style" onload="this.onload=null;this.rel='stylesheet'">
   <link rel="preload" href="css/delete-button.css?v=20241210" as="style" onload="this.onload=null;this.rel='stylesheet'">
-  <link rel="preload" href="css/settings-billing.css?v=20260807f" as="style" onload="this.onload=null;this.rel='stylesheet'">
+  <link rel="preload" href="css/settings-billing.css?v=20260828c" as="style" onload="this.onload=null;this.rel='stylesheet'">
   <link rel="preload" href="css/feedback.css?v=20241210" as="style" onload="this.onload=null;this.rel='stylesheet'">
   <link rel="preload" href="css/kanban-dragdrop.css?v=20241210" as="style" onload="this.onload=null;this.rel='stylesheet'">
   <link rel="preload" href="css/case-creation.css?v=20241210" as="style" onload="this.onload=null;this.rel='stylesheet'">
@@ -537,7 +562,7 @@ if (isset($appConfig) && is_array($appConfig) && isset($appConfig['appName'])) {
   <noscript>
     <link rel="stylesheet" href="css/revision-history.css?v=20241210">
     <link rel="stylesheet" href="css/delete-button.css?v=20241210">
-    <link rel="stylesheet" href="css/settings-billing.css?v=20260807f">
+    <link rel="stylesheet" href="css/settings-billing.css?v=20260828c">
     <link rel="stylesheet" href="css/feedback.css?v=20241210">
     <link rel="stylesheet" href="css/kanban-dragdrop.css?v=20241210">
     <link rel="stylesheet" href="css/case-creation.css?v=20241210">
@@ -567,6 +592,11 @@ if (isset($appConfig) && is_array($appConfig) && isset($appConfig['appName'])) {
   <script>
     window.__i18n = <?php echo getTranslationsJsonForJs(); ?>;
     window.__caseTypeMap = <?php echo json_encode(getCaseTypeMapForJs(), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
+    window.workflowStageOrder = <?php echo json_encode($workflowStageOrder, JSON_UNESCAPED_UNICODE); ?>;
+    window.allWorkflowStageLabels = <?php echo json_encode($allWorkflowStageLabels, JSON_UNESCAPED_UNICODE); ?>;
+    window.workflowTerminal = <?php echo json_encode(['id' => getLastActiveWorkflowColumnId($currentPracticeId ?: null), 'label' => resolveWorkflowStageLabelForPractice(getLastActiveWorkflowColumnId($currentPracticeId ?: null), $currentPracticeId ?: null)], JSON_UNESCAPED_UNICODE); ?>;
+    window.currentPracticeId = <?php echo (int)$currentPracticeId; ?>;
+    window.workflowColumnsEndpoint = <?php echo json_encode('api/workflow-columns.php', JSON_UNESCAPED_UNICODE); ?>;
   </script>
 </head>
 <?php 
@@ -856,66 +886,21 @@ endif;
         </div>
       </div>
 
-      <section class="kanban-board">
-        <div class="kanban-column" data-status="Originated">
+      <section class="kanban-board" id="kanbanBoard">
+        <?php foreach ($resolvedWorkflowStageLabels as $status => $label):
+          $isCustomColumn = (strpos($status, 'Custom-') === 0);
+          $colorKey = (int)($workflowColumnColorKeys[$status] ?? 0);
+        ?>
+        <div class="kanban-column<?= $isCustomColumn ? ' kanban-column-custom' : '' ?> workflow-color-<?= $colorKey ?>" data-status="<?= htmlspecialchars($status) ?>">
           <div class="kanban-column-header">
-            <h2 class="kanban-column-title"><?= htmlspecialchars($resolvedWorkflowStageLabels['Originated']) ?></h2>
+            <h2 class="kanban-column-title"><?= htmlspecialchars($label) ?></h2>
             <span class="kanban-column-count">0</span>
           </div>
           <div class="kanban-column-body">
             <p class="kanban-empty"><?php echo t('cases.no_cases_in_stage'); ?></p>
           </div>
         </div>
-
-        <div class="kanban-column" data-status="Sent To External Lab">
-          <div class="kanban-column-header">
-            <h2 class="kanban-column-title"><?= htmlspecialchars($resolvedWorkflowStageLabels['Sent To External Lab']) ?></h2>
-            <span class="kanban-column-count">0</span>
-          </div>
-          <div class="kanban-column-body">
-            <p class="kanban-empty"><?php echo t('cases.no_cases_in_stage'); ?></p>
-          </div>
-        </div>
-
-        <div class="kanban-column" data-status="Designed">
-          <div class="kanban-column-header">
-            <h2 class="kanban-column-title"><?= htmlspecialchars($resolvedWorkflowStageLabels['Designed']) ?></h2>
-            <span class="kanban-column-count">0</span>
-          </div>
-          <div class="kanban-column-body">
-            <p class="kanban-empty"><?php echo t('cases.no_cases_in_stage'); ?></p>
-          </div>
-        </div>
-
-        <div class="kanban-column" data-status="Manufactured">
-          <div class="kanban-column-header">
-            <h2 class="kanban-column-title"><?= htmlspecialchars($resolvedWorkflowStageLabels['Manufactured']) ?></h2>
-            <span class="kanban-column-count">0</span>
-          </div>
-          <div class="kanban-column-body">
-            <p class="kanban-empty"><?php echo t('cases.no_cases_in_stage'); ?></p>
-          </div>
-        </div>
-
-        <div class="kanban-column" data-status="Received From External Lab">
-          <div class="kanban-column-header">
-            <h2 class="kanban-column-title"><?= htmlspecialchars($resolvedWorkflowStageLabels['Received From External Lab']) ?></h2>
-            <span class="kanban-column-count">0</span>
-          </div>
-          <div class="kanban-column-body">
-            <p class="kanban-empty"><?php echo t('cases.no_cases_in_stage'); ?></p>
-          </div>
-        </div>
-
-        <div class="kanban-column" data-status="Delivered">
-          <div class="kanban-column-header">
-            <h2 class="kanban-column-title"><?= htmlspecialchars($resolvedWorkflowStageLabels['Delivered']) ?></h2>
-            <span class="kanban-column-count">0</span>
-          </div>
-          <div class="kanban-column-body">
-            <p class="kanban-empty"><?php echo t('cases.no_cases_in_stage'); ?></p>
-          </div>
-        </div>
+        <?php endforeach; ?>
       </section>
         </div>
         <!-- End Cases Tab -->
@@ -1817,12 +1802,9 @@ endif;
                   <label for="status"><?php echo t('cases.status_label'); ?> <span class="required">*</span></label>
                   <select id="status" name="status" required>
                     <option value=""><?php echo t('select.select_status'); ?></option>
-                    <option value="Originated" selected><?= htmlspecialchars($resolvedWorkflowStageLabels['Originated']) ?></option>
-                    <option value="Sent To External Lab"><?= htmlspecialchars($resolvedWorkflowStageLabels['Sent To External Lab']) ?></option>
-                    <option value="Designed"><?= htmlspecialchars($resolvedWorkflowStageLabels['Designed']) ?></option>
-                    <option value="Manufactured"><?= htmlspecialchars($resolvedWorkflowStageLabels['Manufactured']) ?></option>
-                    <option value="Received From External Lab"><?= htmlspecialchars($resolvedWorkflowStageLabels['Received From External Lab']) ?></option>
-                    <option value="Delivered"><?= htmlspecialchars($resolvedWorkflowStageLabels['Delivered']) ?></option>
+                    <?php foreach ($resolvedWorkflowStageLabels as $status => $label): ?>
+                    <option value="<?= htmlspecialchars($status) ?>"<?= ($status === $workflowStageOrder[0] ? ' selected' : '') ?>><?= htmlspecialchars($label) ?></option>
+                    <?php endforeach; ?>
                   </select>
                 </div>
 
@@ -2005,7 +1987,7 @@ endif;
           </div>
         </div>
       </div>
-      
+
       <!-- Feedback Success Modal -->
       <div id="feedbackSuccessModal" class="modal">
         <div class="modal-content feedback-success-modal">
@@ -2450,39 +2432,86 @@ endif;
 
                       <div class="settings-divider"></div>
 
-                      <div class="settings-group workflow-stage-labels-group">
-                        <h4 class="subsection-title"><?php echo t('settings.display.workflow_stage_names.title'); ?></h4>
-                        <p class="field-note-inline"><?php echo t('settings.display.workflow_stage_names.description'); ?></p>
-
-                        <div class="workflow-stage-labels-grid">
-                          <span class="workflow-stage-labels-col-heading"><?php echo t('settings.display.workflow_stage_names.stage'); ?></span>
-                          <span class="workflow-stage-labels-col-heading"><?php echo t('settings.display.workflow_stage_names.display_name'); ?></span>
-
-                          <label for="workflowStageLabelOriginated"><?php echo t('cases.status.originated'); ?></label>
-                          <input type="text" id="workflowStageLabelOriginated" class="workflow-stage-label-input" data-internal-status="Originated" maxlength="40" value="<?= htmlspecialchars($resolvedWorkflowStageLabels['Originated']) ?>" <?= $isAdmin ? '' : 'disabled' ?>>
-
-                          <label for="workflowStageLabelSentToExternalLab"><?php echo t('cases.status.sent_to_external_lab'); ?></label>
-                          <input type="text" id="workflowStageLabelSentToExternalLab" class="workflow-stage-label-input" data-internal-status="Sent To External Lab" maxlength="40" value="<?= htmlspecialchars($resolvedWorkflowStageLabels['Sent To External Lab']) ?>" <?= $isAdmin ? '' : 'disabled' ?>>
-
-                          <label for="workflowStageLabelDesigned"><?php echo t('cases.status.designed'); ?></label>
-                          <input type="text" id="workflowStageLabelDesigned" class="workflow-stage-label-input" data-internal-status="Designed" maxlength="40" value="<?= htmlspecialchars($resolvedWorkflowStageLabels['Designed']) ?>" <?= $isAdmin ? '' : 'disabled' ?>>
-
-                          <label for="workflowStageLabelManufactured"><?php echo t('cases.status.manufactured'); ?></label>
-                          <input type="text" id="workflowStageLabelManufactured" class="workflow-stage-label-input" data-internal-status="Manufactured" maxlength="40" value="<?= htmlspecialchars($resolvedWorkflowStageLabels['Manufactured']) ?>" <?= $isAdmin ? '' : 'disabled' ?>>
-
-                          <label for="workflowStageLabelReceivedFromExternalLab"><?php echo t('cases.status.received_from_external_lab'); ?></label>
-                          <input type="text" id="workflowStageLabelReceivedFromExternalLab" class="workflow-stage-label-input" data-internal-status="Received From External Lab" maxlength="40" value="<?= htmlspecialchars($resolvedWorkflowStageLabels['Received From External Lab']) ?>" <?= $isAdmin ? '' : 'disabled' ?>>
-
-                          <label for="workflowStageLabelDelivered"><?php echo t('cases.status.delivered'); ?></label>
-                          <input type="text" id="workflowStageLabelDelivered" class="workflow-stage-label-input" data-internal-status="Delivered" maxlength="40" value="<?= htmlspecialchars($resolvedWorkflowStageLabels['Delivered']) ?>" <?= $isAdmin ? '' : 'disabled' ?>>
-
-                          <?php if ($isAdmin): ?>
-                          <div class="workflow-stage-labels-actions">
-                            <button type="button" id="restoreWorkflowStageDefaultsBtn" class="btn-secondary"><?php echo t('settings.display.workflow_stage_names.restore_defaults'); ?></button>
-                          </div>
-                          <?php endif; ?>
+                      <?php
+                        $workflowColumnMissing = !$pdo || !ensureWorkflowColumnsColumn();
+                        if ($isAdmin && $workflowColumnMissing):
+                      ?>
+                      <div class="error-message" style="display:block; margin-bottom:12px;">
+                        <?php echo t('settings.workflow_columns.migration_required'); ?>
+                      </div>
+                      <?php endif; ?>
+                      <div class="settings-group workflow-columns-group" id="workflowColumnsManager">
+                        <div class="workflow-columns-header">
+                          <h4 class="subsection-title"><?php echo t('settings.workflow_columns.title'); ?></h4>
+                          <p class="field-note-inline" id="workflowColumnsCount" data-count="<?= (int)$workflowColumnCount ?>" data-max="<?= (int)$workflowMaxColumns ?>"><?php echo t('settings.workflow_columns.count', ['count' => $workflowColumnCount, 'max' => $workflowMaxColumns]); ?></p>
                         </div>
-                        <div class="error-message" id="workflowStageLabelsError"></div>
+                        <p class="field-note-inline workflow-columns-description"><?php echo t('settings.workflow_columns.description'); ?></p>
+
+                        <div id="workflowColumnsConfirmation" class="workflow-columns-confirmation" hidden></div>
+
+                        <div class="workflow-columns-list" id="workflowColumnsList" role="list" aria-label="<?php echo t('settings.workflow_columns.title'); ?>">
+                          <?php
+                            $activeCount = count($workflowColumnsActive);
+                            foreach ($workflowColumnsActive as $index => $column):
+                              $isFirst = ($index === 0);
+                              $isLast = ($index === $activeCount - 1);
+                              $canMoveUp = $isAdmin && ($index > 1);
+                              $canMoveDown = $isAdmin && ($index < $activeCount - 2);
+                              $isCustom = (strpos($column['id'], 'Custom-') === 0);
+                          ?>
+                          <div class="workflow-column-row<?= $isCustom ? ' workflow-column-row-custom' : '' ?>" role="listitem" data-column-id="<?= htmlspecialchars($column['id']) ?>" data-is-first="<?= $isFirst ? '1' : '0' ?>" data-is-last="<?= $isLast ? '1' : '0' ?>">
+                            <span class="workflow-column-position"><?= $index + 1 ?></span>
+                            <label for="workflowColumnLabel<?= $index ?>" class="sr-only"><?= t('settings.workflow_columns.rename') ?></label>
+                            <input type="text" id="workflowColumnLabel<?= $index ?>" class="workflow-column-label-input" value="<?= htmlspecialchars($resolvedWorkflowStageLabels[$column['id']] ?? $column['label']) ?>" maxlength="40" data-internal-id="<?= htmlspecialchars($column['id']) ?>" <?= $isAdmin ? '' : 'disabled' ?>>
+                            <?php if ($isAdmin && !$isFirst && !$isLast): ?>
+                            <div class="workflow-column-controls" data-column-id="<?= htmlspecialchars($column['id']) ?>">
+                              <?php if ($workflowColumnMissing): ?>
+                              <span class="field-note-inline"><?= t('settings.workflow_columns.migration_required_short') ?></span>
+                              <?php else: ?>
+                              <?php if ($canMoveUp): ?>
+                              <button type="button" class="workflow-column-move-up" data-action="move-up" aria-label="<?= t('settings.workflow_columns.aria_reorder_up') ?>">&#8593; <?= t('settings.workflow_columns.reorder_up') ?></button>
+                              <?php endif; ?>
+                              <?php if ($canMoveDown): ?>
+                              <button type="button" class="workflow-column-move-down" data-action="move-down" aria-label="<?= t('settings.workflow_columns.aria_reorder_down') ?>">&#8595; <?= t('settings.workflow_columns.reorder_down') ?></button>
+                              <?php endif; ?>
+                              <?php if (!$isFirst && !$isLast): ?>
+                              <button type="button" class="workflow-column-archive" data-action="archive" aria-label="<?= t('settings.workflow_columns.aria_archive_confirm') ?>"><?= t('settings.workflow_columns.archive') ?></button>
+                              <?php endif; ?>
+                              <?php endif; ?>
+                            </div>
+                            <?php elseif ($isFirst || $isLast): ?>
+                            <span class="workflow-column-protected-note" title="<?= t('settings.workflow_columns.cannot_archive_protected') ?>"><?= t('settings.workflow_columns.required') ?></span>
+                            <?php endif; ?>
+                          </div>
+                          <?php endforeach; ?>
+                        </div>
+
+                        <?php if ($isAdmin): ?>
+                        <div class="workflow-columns-actions">
+                          <button type="button" id="addWorkflowColumnBtn" class="btn-secondary"<?= ($workflowColumnCount >= $workflowMaxColumns || $workflowColumnMissing) ? ' disabled' : '' ?>><?= t('settings.workflow_columns.add') ?></button>
+                          <button type="button" id="resetWorkflowColumnsBtn" class="btn-outline-warning"<?= $workflowColumnMissing ? ' disabled' : '' ?>><?= t('settings.workflow_columns.reset_to_default') ?></button>
+                          <span id="addWorkflowColumnNote" class="field-note-inline"<?= ($workflowColumnCount >= $workflowMaxColumns && !$workflowColumnMissing) ? '' : ' style="display:none;"' ?>>
+                            <?= $workflowColumnMissing ? t('settings.workflow_columns.migration_required_short') : t('settings.workflow_columns.add_disabled_max') ?>
+                          </span>
+                        </div>
+
+                        <div id="addWorkflowColumnForm" style="display:none; margin-top:10px;">
+                          <input type="text" id="newWorkflowColumnName" maxlength="40" placeholder="<?= t('settings.workflow_columns.placeholder') ?>">
+                          <button type="button" id="saveNewWorkflowColumnBtn" class="btn-primary"><?= t('common.save') ?></button>
+                          <button type="button" id="cancelNewWorkflowColumnBtn" class="btn-cancel"><?= t('common.cancel') ?></button>
+                        </div>
+
+                        <button type="button" id="workflowArchivedListToggle" class="workflow-archived-toggle" aria-expanded="false" aria-controls="workflowArchivedList">
+                          <span class="workflow-archived-chevron" aria-hidden="true">▶</span>
+                          <span id="workflowArchivedCount" class="workflow-archived-count"><?= t('settings.workflow_columns.archived_heading', ['count' => 0]) ?></span>
+                        </button>
+                        <div class="workflow-archived-list" id="workflowArchivedList" role="list" aria-label="<?= t('settings.workflow_columns.archived_heading', ['count' => 0]) ?>" hidden>
+                          <p class="workflow-archived-empty" id="workflowArchivedEmpty" hidden><?= t('settings.workflow_columns.no_archived') ?></p>
+                        </div>
+                        <?php endif; ?>
+
+                        <div class="error-message" id="workflowColumnsError"></div>
+                        <div class="success-message" id="workflowColumnsSuccess" style="display:none;"></div>
                       </div>
                       
                       <?php if (!$isAdmin): ?>
@@ -2904,7 +2933,9 @@ endif;
   }
   </script>
   <script src="js/i18n.js?v=20260820" defer></script>
-  <script src="js/app.js?v=20260820b" defer></script>
+  <script src="js/workflow-draft.js?v=20260829f" defer></script>
+  <script src="js/workflow-draft-ui.js?v=20260829f" defer></script>
+  <script src="js/app.js?v=20260829a" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js" defer></script>
   <script type="module" src="js/attachment-viewer.js?v=20260820a" defer></script>
   <script src="js/card-delete-fixed.js?v=20250104" defer></script>

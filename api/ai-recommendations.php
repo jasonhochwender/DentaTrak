@@ -221,17 +221,19 @@ function gatherAnalyticsData($pdo, $practiceId) {
     $stmt->execute($filterParams);
     $data['cases_by_type'] = $stmt->fetchAll(PDO::FETCH_KEY_PAIR);
 
-    // Overdue cases (due_date < today and status not 'Completed' or 'Shipped')
+    // Overdue cases (due_date < today and status not the practice's terminal column)
     $today = date('Y-m-d');
+    $terminalStatus = getLastActiveWorkflowColumnId($currentPracticeId);
+    $legacyDone = ['Completed', 'Shipped'];
     $stmt = $pdo->prepare("
         SELECT COUNT(*)
         FROM cases_cache
         WHERE $practiceFilter
         AND archived = 0
         AND due_date < ?
-        AND status NOT IN ('Completed', 'Shipped', 'Delivered')
+        AND status NOT IN (?, ?, ?)
     ");
-    $stmt->execute(array_merge($filterParams, [$today]));
+    $stmt->execute(array_merge($filterParams, [$today, $terminalStatus, $legacyDone[0], $legacyDone[1]]));
     $data['overdue_cases'] = (int)$stmt->fetchColumn();
 
     // Cases due this week
@@ -242,9 +244,9 @@ function gatherAnalyticsData($pdo, $practiceId) {
         WHERE $practiceFilter
         AND archived = 0
         AND due_date BETWEEN ? AND ?
-        AND status NOT IN ('Completed', 'Shipped', 'Delivered')
+        AND status NOT IN (?, ?, ?)
     ");
-    $stmt->execute(array_merge($filterParams, [$today, $weekEnd]));
+    $stmt->execute(array_merge($filterParams, [$today, $weekEnd, $terminalStatus, $legacyDone[0], $legacyDone[1]]));
     $data['cases_due_this_week'] = (int)$stmt->fetchColumn();
 
     // Cases created in last 30 days
@@ -258,15 +260,15 @@ function gatherAnalyticsData($pdo, $practiceId) {
     $stmt->execute(array_merge($filterParams, [$thirtyDaysAgo]));
     $data['cases_created_last_30_days'] = (int)$stmt->fetchColumn();
 
-    // Cases completed in last 30 days
+    // Cases completed in last 30 days (terminal + legacy done statuses)
     $stmt = $pdo->prepare("
         SELECT COUNT(*)
         FROM cases_cache
         WHERE $practiceFilter
-        AND status IN ('Completed', 'Shipped', 'Delivered')
+        AND status IN (?, ?, ?)
         AND STR_TO_DATE(LEFT(COALESCE(last_update_date, CURRENT_DATE()), 10), '%Y-%m-%d') >= ?
     ");
-    $stmt->execute(array_merge($filterParams, [$thirtyDaysAgo]));
+    $stmt->execute(array_merge($filterParams, [$terminalStatus, $legacyDone[0], $legacyDone[1], $thirtyDaysAgo]));
     $data['cases_completed_last_30_days'] = (int)$stmt->fetchColumn();
 
     // Workload distribution (cases per assignee - no names, just counts)

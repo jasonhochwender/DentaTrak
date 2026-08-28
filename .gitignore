@@ -106,6 +106,17 @@ node_modules/
 !/tests/download-zip-headers-test.php
 !/tests/session-timeout-test.php
 !/tests/case-type-bite-rim-test.php
+!/tests/workflow-columns-test.php
+!/tests/workflow-columns-api-test.php
+!/tests/workflow-archive-sql-test.php
+!/tests/workflow-practice-context-test.php
+!/tests/workflow-columns-side-effects-test.php
+!/tests/workflow-remove-isolation-test.php
+!/tests/workflow-restore-test.php
+!/tests/workflow-restore-dom-test.php
+!/tests/workflow-reset-defaults-test.php
+!/tests/workflow-reset-sql-test.php
+!/tests/workflow-init-runtime-test.php
 /testResults/
 /test-results/
 /playwright-report/

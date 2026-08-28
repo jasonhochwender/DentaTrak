@@ -25,6 +25,10 @@ require_once __DIR__ . '/appConfig.php';
 /** Maximum length (in characters) of a practice-specific stage label. */
 const WORKFLOW_STAGE_LABEL_MAX_LENGTH = 40;
 
+/** Minimum and maximum number of workflow columns. */
+const WORKFLOW_MIN_COLUMNS = 3;
+const WORKFLOW_MAX_COLUMNS = 10;
+
 /**
  * The one authoritative workflow-stage definition: internal status =>
  * ['order' => <int>, 'defaultLabel' => <string>]. Do not add a second,
@@ -84,10 +88,10 @@ function getWorkflowStageOrder() {
  * @return string
  */
 function buildWorkflowStagesPromptText($practiceId) {
-    $overrides = $practiceId ? getWorkflowStageLabelOverridesForPractice($practiceId) : [];
-    $labels = array_map(function ($status) use ($overrides) {
-        return resolveWorkflowStageLabel($status, $overrides);
-    }, getValidWorkflowStatuses());
+    $statuses = $practiceId ? getValidWorkflowStatusesForPractice($practiceId) : getValidWorkflowStatuses();
+    $labels = array_map(function ($status) use ($practiceId) {
+        return resolveWorkflowStageLabelForPractice($status, $practiceId);
+    }, $statuses);
     return implode(' → ', $labels);
 }
 
@@ -278,6 +282,29 @@ function getResolvedWorkflowStageLabels($practiceOverrides) {
  * would require backfilling every existing practice, and no case-data
  * migration of any kind.
  */
+function saveWorkflowStageLabelOverridesForPractice($practiceId, array $overrides) {
+    global $pdo;
+
+    if (!$pdo || empty($practiceId)) {
+        return false;
+    }
+
+    ensureWorkflowStageLabelsColumn();
+
+    $json = empty($overrides) ? null : json_encode($overrides);
+    try {
+        $stmt = $pdo->prepare("UPDATE practices SET workflow_stage_labels = :labels WHERE id = :id");
+        $stmt->execute([
+            'labels' => $json,
+            'id' => $practiceId,
+        ]);
+        return true;
+    } catch (PDOException $e) {
+        error_log('[workflow-stages] Error saving workflow_stage_labels: ' . $e->getMessage());
+        return false;
+    }
+}
+
 function ensureWorkflowStageLabelsColumn() {
     global $pdo;
     static $done = false;
@@ -295,6 +322,36 @@ function ensureWorkflowStageLabelsColumn() {
     } catch (PDOException $e) {
         error_log('[workflow-stages] Error adding practices.workflow_stage_labels: ' . $e->getMessage());
     }
+}
+
+/**
+ * Idempotent/self-healing schema helper for practices.workflow_columns.
+ * Stores the practice-specific column list: array of {id, label, position,
+ * archived} objects. The first (position 0) and last (highest position)
+ * columns are required system positions and may not be archived.
+ */
+function ensureWorkflowColumnsColumn() {
+    global $pdo;
+    static $checked = false;
+    static $exists = false;
+
+    if ($checked || !$pdo) {
+        return $exists;
+    }
+
+    try {
+        $stmt = $pdo->query("SHOW COLUMNS FROM practices LIKE 'workflow_columns'");
+        $exists = ($stmt->rowCount() > 0);
+        if (!$exists) {
+            error_log('[workflow-stages] practices.workflow_columns column is missing. Run migrations/2026_08_28_workflow_columns.php before using workflow column management.');
+        }
+        $checked = true;
+    } catch (PDOException $e) {
+        error_log('[workflow-stages] Error checking practices.workflow_columns: ' . $e->getMessage());
+        $exists = false;
+    }
+
+    return $exists;
 }
 
 /**
@@ -377,7 +434,7 @@ function validateWorkflowStageLabelValue($rawValue) {
  *   "use default"). `errors` maps status => error message for any invalid
  *   entries; `valid` is true only when `errors` is empty.
  */
-function normalizeWorkflowStageLabelsForSave($input) {
+function normalizeWorkflowStageLabelsForSave($input, $practiceId = null) {
     $overrides = [];
     $errors = [];
 
@@ -385,7 +442,7 @@ function normalizeWorkflowStageLabelsForSave($input) {
         return ['valid' => true, 'overrides' => $overrides, 'errors' => $errors];
     }
 
-    $validStatuses = getValidWorkflowStatuses();
+    $validStatuses = $practiceId ? getValidWorkflowStatusesForPractice($practiceId) : getValidWorkflowStatuses();
 
     foreach ($input as $status => $rawValue) {
         if (!is_string($status) || !in_array($status, $validStatuses, true)) {
@@ -409,4 +466,360 @@ function normalizeWorkflowStageLabelsForSave($input) {
         'overrides' => $overrides,
         'errors' => $errors,
     ];
+}
+
+/* ============================================================
+   PRACTICE-SPECIFIC WORKFLOW COLUMNS (add/reorder/archive/restore)
+   ============================================================ */
+
+/**
+ * Fetch the raw workflow_columns JSON for a practice and return a normalized
+ * array of column objects. Falls back to the default six-stage list when no
+ * custom column configuration exists.
+ */
+function getWorkflowColumnsForPractice($practiceId, $forUpdate = false) {
+    global $pdo;
+
+    if (!$pdo || empty($practiceId)) {
+        return getDefaultWorkflowColumns();
+    }
+
+    if (!ensureWorkflowColumnsColumn()) {
+        return getDefaultWorkflowColumns();
+    }
+
+    try {
+        $sql = $forUpdate
+            ? "SELECT workflow_columns FROM practices WHERE id = :id LIMIT 1 FOR UPDATE"
+            : "SELECT workflow_columns FROM practices WHERE id = :id LIMIT 1";
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute(['id' => $practiceId]);
+        $raw = $stmt->fetchColumn();
+
+        if ($raw === false || $raw === null || $raw === '') {
+            return getDefaultWorkflowColumns();
+        }
+
+        $decoded = json_decode($raw, true);
+        if (!is_array($decoded) || empty($decoded)) {
+            return getDefaultWorkflowColumns();
+        }
+
+        return normalizeWorkflowColumns($decoded);
+    } catch (PDOException $e) {
+        error_log('[workflow-stages] Error reading practices.workflow_columns: ' . $e->getMessage());
+        return getDefaultWorkflowColumns();
+    }
+}
+
+/**
+ * Persist the workflow column list for a practice. Called only by validated
+ * admin endpoints after all rules have been enforced.
+ */
+function saveWorkflowColumnsForPractice($practiceId, array $columns) {
+    global $pdo;
+
+    if (!$pdo || empty($practiceId)) {
+        return false;
+    }
+
+    if (!ensureWorkflowColumnsColumn()) {
+        error_log('[workflow-stages] Cannot save workflow columns: practices.workflow_columns column does not exist.');
+        return false;
+    }
+
+    try {
+        $columns = normalizeWorkflowColumnColorKeys($columns);
+        $stmt = $pdo->prepare("UPDATE practices SET workflow_columns = :columns WHERE id = :id");
+        $stmt->execute([
+            'columns' => json_encode($columns),
+            'id' => $practiceId,
+        ]);
+        return true;
+    } catch (PDOException $e) {
+        error_log('[workflow-stages] Error saving practices.workflow_columns: ' . $e->getMessage());
+        return false;
+    }
+}
+
+/**
+ * Default six-column list, in the canonical order. This is the fallback for
+ * practices that have not customized their workflow columns yet.
+ */
+function getDefaultWorkflowColumns() {
+    $defaults = getWorkflowStageDefinitions();
+    $columns = [];
+    foreach ($defaults as $id => $definition) {
+        $columns[] = [
+            'id' => $id,
+            'label' => $definition['defaultLabel'],
+            'position' => $definition['order'],
+            'archived' => false,
+            'colorKey' => $definition['order'],
+        ];
+    }
+    return normalizeWorkflowColumnColorKeys($columns);
+}
+
+/**
+ * Sanitize/normalize a workflow_columns array read from storage. Enforces the
+ * fields each row must have and assigns reasonable fallbacks for legacy data.
+ */
+function normalizeWorkflowColumns(array $columns) {
+    $valid = [];
+    $seenIds = [];
+
+    foreach ($columns as $column) {
+        if (!is_array($column) || empty($column['id'])) {
+            continue;
+        }
+
+        $id = trim($column['id']);
+        if ($id === '' || in_array($id, $seenIds, true)) {
+            continue;
+        }
+
+        $seenIds[] = $id;
+        $valid[] = [
+            'id' => $id,
+            'label' => is_string($column['label'] ?? null) ? sanitizeWorkflowStageLabelText($column['label']) : $id,
+            'position' => is_int($column['position'] ?? null) ? $column['position'] : count($valid),
+            'archived' => !empty($column['archived']),
+        ];
+    }
+
+    if (empty($valid)) {
+        return getDefaultWorkflowColumns();
+    }
+
+    // Re-sort by position so the board renders in order, then ensure every
+    // column has a unique, stable color key.
+    usort($valid, function ($a, $b) {
+        return $a['position'] <=> $b['position'];
+    });
+
+    $valid = normalizeWorkflowColumnColorKeys($valid);
+
+    return $valid;
+}
+
+/**
+ * Fully-resolved map of active (non-archived) internal column id => display
+ * label for a practice, in board order. Applies the legacy
+ * workflow_stage_labels overrides first, then the column's own stored label,
+ * then any default label from getWorkflowStageDefinitions().
+ */
+/**
+ * Build a client-side draft snapshot from persisted workflow columns.
+ */
+function buildWorkflowColumnsSnapshot($practiceId) {
+    $columns = getWorkflowColumnsForPractice($practiceId);
+    $defaults = getWorkflowStageDefaultLabels();
+    $active = [];
+    $archived = [];
+    $activeCount = 0;
+
+    foreach ($columns as $column) {
+        $item = [
+            'id' => $column['id'],
+            'label' => $column['label'] ?? '',
+            'display' => (!empty($column['label']) ? $column['label'] : ($defaults[$column['id']] ?? $column['id'])),
+            'position' => (int)($column['position'] ?? 0),
+            'archived' => !empty($column['archived']),
+            'colorKey' => (int)($column['colorKey'] ?? 0),
+            'isFirst' => false,
+            'isLast' => false,
+            'isNew' => false,
+            'tempId' => null
+        ];
+        if (!empty($column['archived'])) {
+            $archived[] = $item;
+        } else {
+            $active[] = $item;
+            $activeCount++;
+        }
+    }
+
+    usort($active, function ($a, $b) { return $a['position'] <=> $b['position']; });
+    usort($archived, function ($a, $b) { return $a['position'] <=> $b['position']; });
+    if (!empty($active)) {
+        $active[0]['isFirst'] = true;
+        $active[count($active) - 1]['isLast'] = true;
+    }
+
+    return [
+        'practiceId' => (int)$practiceId,
+        'fingerprint' => md5(json_encode($columns)),
+        'active' => $active,
+        'archived' => $archived
+    ];
+}
+
+function getResolvedWorkflowStageLabelsForPractice($practiceId) {
+    $columns = getWorkflowColumnsForPractice($practiceId);
+    $overrides = getWorkflowStageLabelOverridesForPractice($practiceId);
+    $defaults = getWorkflowStageDefaultLabels();
+    $resolved = [];
+
+    foreach ($columns as $column) {
+        if (!empty($column['archived'])) {
+            continue;
+        }
+
+        $id = $column['id'];
+        if (isset($overrides[$id]) && $overrides[$id] !== '') {
+            $label = $overrides[$id];
+        } elseif ($column['label'] !== '' && $column['label'] !== $id) {
+            $label = $column['label'];
+        } elseif (isset($defaults[$id])) {
+            $label = $defaults[$id];
+        } else {
+            $label = $id;
+        }
+
+        $resolved[$id] = $label;
+    }
+
+    return $resolved;
+}
+
+/**
+ * Internal status id => position (order) for a practice's active columns.
+ */
+function getWorkflowStageOrderForPractice($practiceId) {
+    $columns = getWorkflowColumnsForPractice($practiceId);
+    $order = [];
+    foreach ($columns as $column) {
+        if (empty($column['archived'])) {
+            $order[$column['id']] = $column['position'];
+        }
+    }
+    return $order;
+}
+
+/**
+ * List the active internal status ids for a practice.
+ */
+function getValidWorkflowStatusesForPractice($practiceId) {
+    return array_keys(getResolvedWorkflowStageLabelsForPractice($practiceId));
+}
+
+/**
+ * Return the internal id of the first active (position 0) workflow column.
+ */
+function getFirstActiveWorkflowColumnId($practiceId) {
+    $columns = getWorkflowColumnsForPractice($practiceId);
+    foreach ($columns as $c) {
+        if (empty($c['archived'])) {
+            return $c['id'];
+        }
+    }
+    return 'Originated';
+}
+
+/**
+ * Return the internal id of the last active workflow column. Used for
+ * Delivered-style final-stage logic while remaining configurable.
+ */
+function getLastActiveWorkflowColumnId($practiceId) {
+    $columns = getWorkflowColumnsForPractice($practiceId);
+    $last = 'Delivered';
+    foreach ($columns as $c) {
+        if (empty($c['archived'])) {
+            $last = $c['id'];
+        }
+    }
+    return $last;
+}
+
+/**
+ * True if $status is an active workflow status for this practice.
+ */
+function isValidWorkflowStatusForPractice($status, $practiceId) {
+    return is_string($status) && in_array($status, getValidWorkflowStatusesForPractice($practiceId), true);
+}
+
+/**
+ * Build an ORDER BY CASE SQL fragment for a practice's active columns.
+ */
+function getWorkflowStageOrderCaseSqlForPractice($practiceId, $column = 'status') {
+    $order = getWorkflowStageOrderForPractice($practiceId);
+    if (empty($order)) {
+        return "1";
+    }
+
+    $lines = ['CASE'];
+    foreach ($order as $status => $index) {
+        $lines[] = "    WHEN {$column} = '" . str_replace("'", "''", $status) . "' THEN " . ($index + 1);
+    }
+    $lines[] = '    ELSE ' . (count($order) + 1);
+    $lines[] = 'END';
+    return implode("\n", $lines);
+}
+
+const WORKFLOW_COLOR_COUNT = 10;
+
+/**
+ * Ensure every active column has a unique colorKey between 0 and 9.
+ * Existing keys are preserved when possible; missing or duplicate keys are
+ * reassigned using the lowest available index. Canonical columns prefer 0-5.
+ *
+ * @param array $columns Array of column arrays (active and archived).
+ * @return array Columns with normalized colorKey values.
+ */
+function normalizeWorkflowColumnColorKeys(array $columns) {
+    $defaultOrder = ['Originated', 'Sent To External Lab', 'Designed', 'Manufactured', 'Received From External Lab', 'Delivered'];
+    $used = [];
+    $needKeys = [];
+
+    // First pass: reserve existing unique keys; collect rows needing keys.
+    foreach ($columns as $i => $column) {
+        $key = isset($column['colorKey']) ? (int)$column['colorKey'] : -1;
+        if ($key >= 0 && $key < WORKFLOW_COLOR_COUNT && !in_array($key, $used, true)) {
+            $used[] = $key;
+            $columns[$i]['colorKey'] = $key;
+        } else {
+            $columns[$i]['colorKey'] = -1;
+            $needKeys[] = $i;
+        }
+    }
+
+    // Second pass: prefer canonical defaults for the six standard statuses.
+    foreach ($needKeys as $k => $i) {
+        $id = $columns[$i]['id'] ?? '';
+        $preferred = array_search($id, $defaultOrder, true);
+        if ($preferred !== false && !in_array($preferred, $used, true)) {
+            $columns[$i]['colorKey'] = $preferred;
+            $used[] = $preferred;
+            unset($needKeys[$k]);
+        }
+    }
+
+    // Final pass: assign lowest available key to any remaining rows.
+    foreach ($needKeys as $i) {
+        for ($k = 0; $k < WORKFLOW_COLOR_COUNT; $k++) {
+            if (!in_array($k, $used, true)) {
+                $columns[$i]['colorKey'] = $k;
+                $used[] = $k;
+                break;
+            }
+        }
+    }
+
+    return $columns;
+}
+
+/**
+ * Same as resolveWorkflowStageLabel() but for a specific practice. Resolves
+ * both the six default stages and any custom columns.
+ */
+function resolveWorkflowStageLabelForPractice($internalStatus, $practiceId) {
+    $resolved = getResolvedWorkflowStageLabelsForPractice($practiceId);
+    if (isset($resolved[$internalStatus])) {
+        return $resolved[$internalStatus];
+    }
+
+    // Unknown status (e.g., a case stranded in an archived column) returns
+    // the raw id as a safety net, never throws or invents a label.
+    return $internalStatus;
 }

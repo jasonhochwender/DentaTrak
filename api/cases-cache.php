@@ -441,11 +441,11 @@ function updateCaseAssignedToInCache($caseId, $assignedTo) {
  * drag/drop via update-case-status.php, and Edit Case save via
  * update-case.php) agrees on when a revision should be recorded.
  */
-function isBackwardStatusMovement($oldStatus, $newStatus) {
+function isBackwardStatusMovement($oldStatus, $newStatus, $practiceId = null) {
     if ($oldStatus === null || $oldStatus === $newStatus) {
         return false;
     }
-    $stageOrder = getWorkflowStageOrder();
+    $stageOrder = $practiceId ? getWorkflowStageOrderForPractice($practiceId) : getWorkflowStageOrder();
     $oldIndex = isset($stageOrder[$oldStatus]) ? $stageOrder[$oldStatus] : -1;
     $newIndex = isset($stageOrder[$newStatus]) ? $stageOrder[$newStatus] : -1;
     // Backward movement = new stage has lower index than old stage

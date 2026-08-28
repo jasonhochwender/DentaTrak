@@ -13,6 +13,7 @@ require_once __DIR__ . '/lab-assignment-history.php';
 require_once __DIR__ . '/workflow-stages.php';
 require_once __DIR__ . '/csrf.php';
 require_once __DIR__ . '/practice-invite-email.php';
+require_once __DIR__ . '/workflow-columns-service.php';
 
 // Start session if not already started
 if (session_status() === PHP_SESSION_NONE) {
@@ -21,6 +22,12 @@ if (session_status() === PHP_SESSION_NONE) {
 
 // Set header to JSON
 header('Content-Type: application/json');
+
+set_exception_handler(function (Throwable $e) {
+    http_response_code(500);
+    echo json_encode(['success' => false, 'message' => 'Server error: ' . $e->getMessage(), 'field' => null]);
+    exit;
+});
 
 // SECURITY: Require valid practice context for settings that affect practice data
 $currentPracticeId = requireValidPracticeContext();
@@ -60,16 +67,52 @@ if (!$data) {
 $workflowStageLabelsInput = isset($data['workflowStageLabels']) && is_array($data['workflowStageLabels'])
     ? $data['workflowStageLabels']
     : [];
-$workflowStageLabelsResult = normalizeWorkflowStageLabelsForSave($workflowStageLabelsInput);
-if (!$workflowStageLabelsResult['valid']) {
-    http_response_code(400);
-    echo json_encode([
-        'success' => false,
-        'message' => t('api.settings.invalid_workflow_stages', ['message' => implode('; ', $workflowStageLabelsResult['errors'])]),
-        'errors' => $workflowStageLabelsResult['errors'],
-        'field' => 'workflowStageLabels'
-    ]);
-    exit;
+
+// If a full workflow draft is included, save it transactionally and use its
+// own label overrides. The structural validation happens inside the service.
+if (isset($data['workflowColumns']) && is_array($data['workflowColumns'])) {
+    if (isset($data['expectedPracticeId']) && (int)$data['expectedPracticeId'] !== (int)$currentPracticeId) {
+        http_response_code(409);
+        echo json_encode([
+            'success' => false,
+            'message' => 'The active practice changed. Refresh DentaTrak and try again.',
+            'diagnosticCode' => 'PRACTICE_CONTEXT_CHANGED'
+        ]);
+        exit;
+    }
+    $workflowDraftResult = saveWorkflowColumnsDraft($currentPracticeId, $userId, $data['workflowColumns']);
+    if (!$workflowDraftResult['success']) {
+        http_response_code(422);
+        $isLocalhost = in_array($_SERVER['REMOTE_ADDR'] ?? '', ['127.0.0.1', '::1'], true);
+        $diagnostic = $isLocalhost ? [
+            'diagnosticCode' => $workflowDraftResult['diagnosticCode'] ?? null,
+            'diagnosticStage' => $workflowDraftResult['diagnosticStage'] ?? null,
+            'diagnosticType' => $workflowDraftResult['diagnosticType'] ?? null,
+            'diagnosticMessage' => $workflowDraftResult['diagnosticMessage'] ?? null
+        ] : [];
+        echo json_encode(array_merge([
+            'success' => false,
+            'message' => $workflowDraftResult['message'],
+            'field' => 'workflowColumns',
+            'invalidId' => $workflowDraftResult['invalidId'] ?? null,
+            'invalidPosition' => $workflowDraftResult['invalidPosition'] ?? null
+        ], $diagnostic));
+        exit;
+    }
+    $workflowStageLabelsInput = [];
+    $workflowStageLabelsResult = ['valid' => true, 'overrides' => []];
+} else {
+    $workflowStageLabelsResult = normalizeWorkflowStageLabelsForSave($workflowStageLabelsInput, $currentPracticeId);
+    if (!$workflowStageLabelsResult['valid']) {
+        http_response_code(400);
+        echo json_encode([
+            'success' => false,
+            'message' => t('api.settings.invalid_workflow_stages', ['message' => implode('; ', $workflowStageLabelsResult['errors'])]),
+            'errors' => $workflowStageLabelsResult['errors'],
+            'field' => 'workflowStageLabels'
+        ]);
+        exit;
+    }
 }
 $workflowStageLabelOverridesToSave = $workflowStageLabelsResult['overrides'];
 
@@ -602,13 +645,27 @@ try {
 
             // Workflow Stage Names - already validated atomically above
             // (before any writes in this request) via
-            // normalizeWorkflowStageLabelsForSave(). Persist only the
-            // overrides that differ from the default label; an empty
-            // result clears the column back to NULL (all defaults).
+            // normalizeWorkflowStageLabelsForSave(). Merge the submitted
+            // active-column overrides with any existing archived-column
+            // label overrides so archived custom labels are not erased
+            // while the active list is saved.
             ensureWorkflowStageLabelsColumn();
-            $workflowStageLabelsJson = empty($workflowStageLabelOverridesToSave)
+            $existingOverrides = getWorkflowStageLabelOverridesForPractice($currentPracticeId);
+            $mergedOverrides = $existingOverrides;
+            foreach ($workflowStageLabelsResult['overrides'] as $id => $label) {
+                $mergedOverrides[$id] = $label;
+            }
+            // Remove any active-column id that is being intentionally cleared.
+            $activeIds = getValidWorkflowStatusesForPractice($currentPracticeId);
+            foreach ($workflowStageLabelsInput as $id => $rawValue) {
+                if (in_array($id, $activeIds, true) && is_string($rawValue) && trim($rawValue) === '') {
+                    unset($mergedOverrides[$id]);
+                }
+            }
+
+            $workflowStageLabelsJson = empty($mergedOverrides)
                 ? null
-                : json_encode($workflowStageLabelOverridesToSave);
+                : json_encode($mergedOverrides);
             $stmt = $pdo->prepare("UPDATE practices SET workflow_stage_labels = :labels WHERE id = :practice_id");
             $stmt->execute([
                 'labels' => $workflowStageLabelsJson,
@@ -1298,15 +1355,16 @@ try {
         // persisted (normalized: trimmed, blanks removed) - the client
         // uses this to update window.workflowStageLabels, the Kanban
         // headers, and the status dropdown immediately, with no reload.
-        'workflowStageLabels' => getResolvedWorkflowStageLabels($workflowStageLabelOverridesToSave)
+        'workflowStageLabels' => getResolvedWorkflowStageLabelsForPractice($currentPracticeId),
+        'workflowColumns' => buildWorkflowColumnsSnapshot($currentPracticeId)
     ]);
     
-} catch (PDOException $e) {
+} catch (Throwable $e) {
     http_response_code(500);
     echo json_encode([
         'success' => false,
         'message' => t('settings.messages.save_error')
     ]);
-    
+
     userLog("Error saving user settings: " . $e->getMessage(), true);
 }

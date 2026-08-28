@@ -97,7 +97,7 @@
         if (newStatus) {
           return 'Changed status to ' + newStatus;
         }
-        return 'Changed status to Originated';
+        return 'Changed status to ' + (typeof getStageLabel === 'function' ? getStageLabel('Originated') : 'Originated');
       
       case 'case_regression':
         if (newStatus) {
@@ -214,7 +214,7 @@
         } else if (newStatus) {
           desc = 'Changed status to ' + newStatus + ' (revision)';
         } else {
-          desc = 'Changed status to Originated (revision)';
+          desc = 'Changed status to ' + (typeof getStageLabel === 'function' ? getStageLabel('Originated') : 'Originated') + ' (revision)';
         }
         break;
       case 'case_regression':

@@ -3,6 +3,7 @@
 require_once __DIR__ . '/session.php'; // centralized session handling
 header('Content-Type: application/json');
 require_once __DIR__ . '/practice-security.php';
+require_once __DIR__ . '/workflow-stages.php';
 require_once __DIR__ . '/cases-cache.php';
 require_once __DIR__ . '/case-activity-log.php';
 require_once __DIR__ . '/lab-assignment-history.php';
@@ -16,6 +17,7 @@ error_reporting(E_ALL & ~E_DEPRECATED & ~E_USER_DEPRECATED);
 
 // SECURITY: Require valid practice context before any case operations
 $currentPracticeId = requireValidPracticeContext();
+$terminalStatus = getLastActiveWorkflowColumnId($currentPracticeId);
 
 // Check if it's a POST request
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -54,7 +56,7 @@ if ($caseId === '' || $status === '') {
 // client DOM state - reject anything else outright rather than silently
 // coercing it, so an unrecognized string (e.g. a future custom display
 // label) can never be written to cases_cache.status.
-if (!isValidWorkflowStatus($status)) {
+if (!isValidWorkflowStatusForPractice($status, $currentPracticeId)) {
     http_response_code(400);
     echo json_encode([
         'success' => false,
@@ -113,7 +115,7 @@ if ($driveFolderId === '') {
         $newVersion = $versionResult['newVersion'];
         
         // Check if this is a regression
-        if (isBackwardStatusMovement($oldStatus, $status)) {
+        if (isBackwardStatusMovement($oldStatus, $status, $currentPracticeId)) {
             $isRegression = true;
             $revisionCount = incrementCaseRevisionCount($caseId);
         }
@@ -135,7 +137,7 @@ if ($driveFolderId === '') {
         }
 
         // Check if this is a regression (ANY backward stage movement)
-        if (isBackwardStatusMovement($oldStatus, $status)) {
+        if (isBackwardStatusMovement($oldStatus, $status, $currentPracticeId)) {
             $isRegression = true;
             $revisionCount = incrementCaseRevisionCount($caseId);
         }
@@ -190,7 +192,7 @@ if ($driveFolderId === '') {
     // lab-assignment-history.php's design rules - these are the two
     // deliberate exceptions to "status changes never touch periods."
     // Safe/idempotent no-ops otherwise.
-    if ($status === 'Delivered') {
+    if ($status === $terminalStatus) {
         closeOpenLabPeriodForDeliveredCase($caseId, $currentPracticeId);
     } else {
         reopenLabPeriodOnDeliveredRegression($caseId, $currentPracticeId, $oldStatus, $status);
@@ -278,7 +280,7 @@ try {
         // Lab Insights: close on delivery, or reopen a new period if this
         // is a regression back from Delivered while still lab-assigned
         // (see lab-assignment-history.php docblocks).
-        if ($status === 'Delivered') {
+        if ($status === $terminalStatus) {
             closeOpenLabPeriodForDeliveredCase($caseId, $currentPracticeId);
         } else {
             reopenLabPeriodOnDeliveredRegression($caseId, $currentPracticeId, $oldStatus, $status);
@@ -349,7 +351,7 @@ try {
     $isRegression = false;
     $revisionCount = getCaseRevisionCount($caseId);
     
-    if (isBackwardStatusMovement($oldStatus, $status)) {
+    if (isBackwardStatusMovement($oldStatus, $status, $currentPracticeId)) {
         $isRegression = true;
         $revisionCount = incrementCaseRevisionCount($caseId);
         // Store regression count in case data for Google Drive backup
@@ -413,7 +415,7 @@ try {
     // Lab Insights: close on delivery, or reopen a new period if this is a
     // regression back from Delivered while still lab-assigned (see
     // lab-assignment-history.php docblocks).
-    if ($status === 'Delivered') {
+    if ($status === $terminalStatus) {
         closeOpenLabPeriodForDeliveredCase($caseId, $currentPracticeId);
     } else {
         reopenLabPeriodOnDeliveredRegression($caseId, $currentPracticeId, $oldStatus, $status);

@@ -135,8 +135,11 @@
     var warningThreshold = 5;
     var criticalThreshold = 10;
     
-    // Check each status for potential bottlenecks
-    var statusOrder = ['Originated', 'Sent To External Lab', 'Designed', 'Manufactured', 'Received From External Lab'];
+    // Check each active status for potential bottlenecks. Use the
+    // practice-specific stage labels provided by the server.
+    var statusOrder = (typeof window.workflowStageOrder === 'object' && Array.isArray(window.workflowStageOrder))
+      ? window.workflowStageOrder
+      : ['Originated', 'Sent To External Lab', 'Designed', 'Manufactured', 'Received From External Lab', 'Delivered'];
     
     statusOrder.forEach(function(status) {
       var count = parseInt(statusCounts[status] || 0, 10);

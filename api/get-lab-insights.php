@@ -69,6 +69,7 @@ require_once __DIR__ . '/feature-flags.php';
 require_once __DIR__ . '/billing-bypass.php';
 require_once __DIR__ . '/subscription-access.php';
 require_once __DIR__ . '/lab-assignment-history.php';
+require_once __DIR__ . '/workflow-stages.php';
 require_once __DIR__ . '/encryption.php';
 
 header('Content-Type: application/json');
@@ -119,17 +120,10 @@ if ($rangeParam !== 'all') {
 }
 $now = new DateTimeImmutable('now');
 
-// Authoritative terminal-status definition, taken directly from the app's
-// own workflow stage order (api/update-case-status.php's $workflowStageOrder,
-// where 'Delivered' is the final/highest stage) and matching the same check
-// already used throughout api/get-analytics.php ("status != 'Delivered'").
-// DentaTrak's case workflow is a fixed, non-configurable set of stages (no
-// per-practice custom statuses), so 'Delivered' is the only terminal status
-// today. This is expressed as a list (not a single literal) so a future
-// additional terminal stage only requires updating this one array - every
-// current-workload computation below (summary cards, lab table, and the
-// workload drill-down) reads from this single source.
-$TERMINAL_CASE_STATUSES = ['Delivered'];
+// Authoritative terminal-status definition: the highest active workflow
+// column for this practice. With configurable columns, the last position is
+// still the terminal stage, but the internal id is practice-specific.
+$TERMINAL_CASE_STATUSES = [getLastActiveWorkflowColumnId($practiceId)];
 
 function labIsLate($caseRow, DateTimeImmutable $now, array $terminalStatuses) {
     if (!$caseRow) { return false; }

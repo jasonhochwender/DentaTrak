@@ -117,10 +117,13 @@ function ensureCaseActivityLogTable() {
  *                                historical/demo events. Defaults to NOW() for all normal,
  *                                real-time callers (unchanged behavior).
  */
-function logCaseActivity($caseId, $eventType, $oldStatus = null, $newStatus = null, array $meta = [], $createdAt = null) {
+function logCaseActivity($caseId, $eventType, $oldStatus = null, $newStatus = null, array $meta = [], $createdAt = null, $throwOnFailure = false) {
     global $pdo;
 
     if (!$pdo || !$caseId || !$eventType) {
+        if ($throwOnFailure) {
+            throw new Exception('logCaseActivity: missing case id, event type, or database');
+        }
         return;
     }
 
@@ -170,6 +173,9 @@ function logCaseActivity($caseId, $eventType, $oldStatus = null, $newStatus = nu
             'created_at' => $createdAt !== null ? $createdAt : date('Y-m-d H:i:s'),
         ]);
     } catch (PDOException $e) {
+        if ($throwOnFailure) {
+            throw $e;
+        }
         // Do not break the main flow if logging fails; just log the error.
         error_log('[case_activity_log] Error logging activity: ' . $e->getMessage());
     }
