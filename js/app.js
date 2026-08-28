@@ -1109,9 +1109,12 @@ document.addEventListener('DOMContentLoaded', function () {
 
   function openUserMenu() {
     if (userMenu && userMenuToggle && !userMenu.classList.contains('open')) {
+      // Only one header dropdown/panel should be open at a time
+      if (window.closeNotificationDropdown) window.closeNotificationDropdown();
+      closePracticeSwitcher();
+
       userMenu.classList.add('open');
       userMenuToggle.setAttribute('aria-expanded', 'true');
-      closePracticeSwitcher();
     }
   }
 
@@ -1274,6 +1277,11 @@ document.addEventListener('DOMContentLoaded', function () {
       return;
     }
 
+    // Close any open header dropdown/panel so only one surface is open
+    if (window.closeUserMenu) window.closeUserMenu();
+    if (window.closeNotificationDropdown) window.closeNotificationDropdown();
+    if (window.closePracticeSwitcher) window.closePracticeSwitcher();
+
     // Show the modal
     settingsBillingModal.style.display = 'block';
 
@@ -1285,6 +1293,7 @@ document.addEventListener('DOMContentLoaded', function () {
     // browser to interpret the tap as the start of a scroll/chain gesture
     // instead of a click, which cancels the synthetic click event entirely.
     document.body.style.overflow = 'hidden';
+    document.documentElement.style.overflow = 'hidden';
 
     // Initialize settings twisties and restore their state
     initSettingsTwisties();
@@ -1465,6 +1474,11 @@ document.addEventListener('DOMContentLoaded', function () {
       panels.forEach(function(panel) {
         panel.classList.toggle('settings-panel-active', panel.getAttribute('data-twisty-id') === target);
       });
+      // Show the selected section at the top of the right-side content area
+      var panelsContainer = document.querySelector('#settingsForm .settings-panels');
+      if (panelsContainer) {
+        panelsContainer.scrollTop = 0;
+      }
     }
 
     var savedTarget = null;
@@ -1962,6 +1976,7 @@ document.addEventListener('DOMContentLoaded', function () {
           // User chose "Close Without Saving" - close the modal and reload original values
           settingsBillingModal.style.display = 'none';
           document.body.style.overflow = '';
+          document.documentElement.style.overflow = '';
           resetLogoUploadState();
           loadSettings();
         });
@@ -1970,6 +1985,7 @@ document.addEventListener('DOMContentLoaded', function () {
       // No unsaved changes or force closing, close immediately
       settingsBillingModal.style.display = 'none';
       document.body.style.overflow = '';
+      document.documentElement.style.overflow = '';
 
       // Reset logo upload state when closing without saving
       if (!forceClose) {

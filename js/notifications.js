@@ -79,6 +79,10 @@
     var dropdown = document.getElementById('notificationDropdown');
     if (!dropdown) return;
 
+    // Only one header dropdown/panel should be open at a time
+    if (window.closeUserMenu) window.closeUserMenu();
+    if (window.closePracticeSwitcher) window.closePracticeSwitcher();
+
     dropdown.classList.add('open');
     notificationDropdownOpen = true;
 
@@ -481,5 +485,7 @@
   // Expose deep-link helpers for the main.php resume path
   window.openNotificationDestination = openNotificationDestination;
   window.processPendingNotification = processPendingNotification;
+  window.closeNotificationDropdown = closeNotificationDropdown;
+  window.openNotificationDropdown = openNotificationDropdown;
 
 })();

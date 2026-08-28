@@ -92,6 +92,12 @@
 
   function openPreferences() {
     if (!modal) return;
+
+    // Only one dropdown/panel/modal should be open at a time
+    if (window.closeUserMenu) window.closeUserMenu();
+    if (window.closeNotificationDropdown) window.closeNotificationDropdown();
+    if (window.closePracticeSwitcher) window.closePracticeSwitcher();
+
     modal.style.display = 'flex';
     document.body.style.overflow = 'hidden';
     showLoading();
