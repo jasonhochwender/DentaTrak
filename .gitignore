@@ -105,6 +105,7 @@ node_modules/
 !/tests/download-zip-memory-test.php
 !/tests/download-zip-headers-test.php
 !/tests/session-timeout-test.php
+!/tests/case-type-bite-rim-test.php
 /testResults/
 /test-results/
 /playwright-report/

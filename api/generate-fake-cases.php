@@ -132,6 +132,7 @@ try {
         'Bridge',
         'Implant',
         'AOX',
+        'Bite Rim',
         'Denture',
         'Partial',
         'Veneer',

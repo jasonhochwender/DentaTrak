@@ -348,6 +348,7 @@ try {
         'Denture' => 2,
         'Partial' => 2,
         'AOX' => 1,
+        'Bite Rim' => 1,
         'Orthodontic Appliance' => 1,
     ];
 
@@ -939,8 +940,8 @@ try {
     // 2) HISTORICAL / COMPLETED CASES (previous months, for Insights)
     // ------------------------------------------------------------------
     $caseTypesHistorical = ['Crown', 'Bridge', 'Implant Crown', 'Implant Surgical Guide',
-        'Denture', 'Partial', 'Veneer', 'Inlay/Onlay', 'AOX', 'Orthodontic Appliance'];
-    $caseTypeWeights = [8, 4, 2, 1, 2, 2, 3, 2, 1, 1]; // mirrors the active-case mix
+        'Denture', 'Partial', 'Veneer', 'Inlay/Onlay', 'AOX', 'Bite Rim', 'Orthodontic Appliance'];
+    $caseTypeWeights = [8, 4, 2, 1, 2, 2, 3, 2, 1, 1, 1]; // mirrors the active-case mix
     $caseTypeWeightedPool = [];
     foreach ($caseTypesHistorical as $ci => $ct) {
         for ($w = 0; $w < $caseTypeWeights[$ci]; $w++) {
@@ -952,7 +953,7 @@ try {
         'Crown' => [7, 14], 'Veneer' => [7, 14], 'Inlay/Onlay' => [6, 12],
         'Bridge' => [12, 22], 'Denture' => [14, 24], 'Partial' => [12, 20],
         'Implant Crown' => [18, 32], 'Implant Surgical Guide' => [16, 28], 'AOX' => [21, 35],
-        'Orthodontic Appliance' => [14, 28],
+        'Bite Rim' => [7, 14], 'Orthodontic Appliance' => [14, 28],
     ];
 
     $monthBaseBySize = $datasetConfig[$dataset]['monthBaseCount'];

@@ -381,6 +381,7 @@ function getCaseTypeMap() {
         'Implant Crown'         => 'implant_crown',
         'Implant Surgical Guide'=> 'implant_surgical_guide',
         'AOX'                   => 'aox',
+        'Bite Rim'              => 'bite_rim',
         'Denture'               => 'denture',
         'Partial'               => 'partial',
         'Veneer'                => 'veneer',

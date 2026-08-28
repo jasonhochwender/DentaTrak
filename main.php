@@ -797,6 +797,7 @@ endif;
               <option value="Bridge"><?php echo t('case_types.bridge'); ?></option>
               <option value="Implant"><?php echo t('case_types.implant'); ?></option>
               <option value="AOX"><?php echo t('case_types.aox'); ?></option>
+              <option value="Bite Rim"><?php echo t('case_types.bite_rim'); ?></option>
               <option value="Denture"><?php echo t('case_types.denture'); ?></option>
               <option value="Partial"><?php echo t('case_types.partial'); ?></option>
               <option value="Veneer"><?php echo t('case_types.veneer'); ?></option>
@@ -1664,6 +1665,7 @@ endif;
                     <option value="Implant Crown"><?php echo t('case_types.implant_crown'); ?></option>
                     <option value="Implant Surgical Guide"><?php echo t('case_types.implant_surgical_guide'); ?></option>
                     <option value="AOX"><?php echo t('case_types.aox'); ?></option>
+                    <option value="Bite Rim"><?php echo t('case_types.bite_rim'); ?></option>
                     <option value="Denture"><?php echo t('case_types.denture'); ?></option>
                     <option value="Partial"><?php echo t('case_types.partial'); ?></option>
                     <option value="Veneer"><?php echo t('case_types.veneer'); ?></option>
@@ -2096,6 +2098,7 @@ endif;
                   <option value="Bridge"><?php echo t('case_types.bridge'); ?></option>
                   <option value="Implant"><?php echo t('case_types.implant'); ?></option>
                   <option value="AOX"><?php echo t('case_types.aox'); ?></option>
+                  <option value="Bite Rim"><?php echo t('case_types.bite_rim'); ?></option>
                   <option value="Denture"><?php echo t('case_types.denture'); ?></option>
                   <option value="Veneer"><?php echo t('case_types.veneer'); ?></option>
                   <option value="Inlay/Onlay"><?php echo t('case_types.inlay_onlay'); ?></option>
@@ -2778,6 +2781,7 @@ endif;
             <option value="Bridge"><?php echo t('case_types.bridge'); ?></option>
             <option value="Implant"><?php echo t('case_types.implant'); ?></option>
             <option value="AOX"><?php echo t('case_types.aox'); ?></option>
+            <option value="Bite Rim"><?php echo t('case_types.bite_rim'); ?></option>
             <option value="Denture"><?php echo t('case_types.denture'); ?></option>
             <option value="Partial"><?php echo t('case_types.partial'); ?></option>
             <option value="Veneer"><?php echo t('case_types.veneer'); ?></option>
