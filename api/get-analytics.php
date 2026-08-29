@@ -6,6 +6,7 @@
 
 require_once __DIR__ . '/session.php';
 require_once __DIR__ . '/practice-security.php';
+require_once __DIR__ . '/workflow-stages.php';
 
 // Start session if not already started
 if (session_status() === PHP_SESSION_NONE) {
@@ -37,7 +38,6 @@ if (!canViewAnalytics($practiceId)) {
 // Load configuration
 require_once __DIR__ . '/appConfig.php';
 require_once __DIR__ . '/at-risk-calculator.php';
-require_once __DIR__ . '/workflow-stages.php';
 
 // Match the local calendar-day semantics used by the Kanban board
 // (see js/app.js getCalendarDayDiff() and api/list-cases.php).

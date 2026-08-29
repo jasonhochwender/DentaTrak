@@ -126,7 +126,22 @@
   }
 
   // Load Analytics Pro data
+  function setAnalyticsLoading(isLoading) {
+    var el = document.getElementById('apLoading');
+    if (el) { el.style.display = isLoading ? 'flex' : 'none'; }
+  }
+
+  function setAnalyticsError(message) {
+    var el = document.getElementById('apError');
+    var text = document.getElementById('apErrorText');
+    if (el) { el.style.display = message ? 'flex' : 'none'; }
+    if (text && message) { text.textContent = message; }
+  }
+
   function loadAnalyticsPro() {
+    setAnalyticsLoading(true);
+    setAnalyticsError('');
+
     const teamPeriod = document.getElementById('apTeamPeriod')?.value || '12';
     const teamFilter = document.getElementById('apTeamFilter')?.value || 'both';
     const volumePeriod = document.getElementById('apVolumePeriod')?.value || '12';
@@ -144,16 +159,25 @@
         return response.json();
       })
       .then(data => {
+        setAnalyticsLoading(false);
         if (data && data.success) {
           const payload = data.data || {};
           renderAnalyticsPro(payload);
           apDataLoaded = true;
         } else {
-          // API returned a structured error; UI toast handles display
+          const msg = (data && data.message) ? data.message : (t('insights.error.analytics_data') || 'Unable to load analytics data.');
+          setAnalyticsError(msg);
+          if (typeof console !== 'undefined' && console.error) {
+            console.error('[Practice Insights] API returned an error:', data);
+          }
         }
       })
       .catch(error => {
-        // Network/parse failure; UI toast handles display
+        setAnalyticsLoading(false);
+        setAnalyticsError(t('insights.error.analytics_data') || 'Unable to load analytics data. Please try again.');
+        if (typeof console !== 'undefined' && console.error) {
+          console.error('[Practice Insights] Failed to load analytics data:', error);
+        }
       });
   }
 
@@ -669,7 +693,15 @@
   };
 
   // Setup event listeners for dropdowns
+  var eventListenersInitialized = false;
   function initializeEventListeners() {
+    if (eventListenersInitialized) {
+      // Restore filters without re-attaching listeners on every tab visit.
+      restoreSavedFilters();
+      return;
+    }
+    eventListenersInitialized = true;
+
     // Restore saved filter values from localStorage (always do this)
     restoreSavedFilters();
 

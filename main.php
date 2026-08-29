@@ -1422,6 +1422,16 @@ endif;
               <div class="ap-loading-spinner"></div>
               <p class="ap-loading-text"><?= t('insights.loading.analytics') ?></p>
             </div>
+
+            <!-- Error Overlay -->
+            <div class="ap-error" id="apError" style="display: none;">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="15" y1="9" x2="9" y2="15"></line>
+                <line x1="9" y1="9" x2="15" y2="15"></line>
+              </svg>
+              <p id="apErrorText"><?= t('insights.error.analytics') ?></p>
+            </div>
           </div>
         </div>
         <!-- End Insights Tab -->
@@ -1565,6 +1575,16 @@ endif;
             <div class="ap-loading" id="liLoading" style="display: none;">
               <div class="ap-loading-spinner"></div>
               <p class="ap-loading-text"><?= t('insights.labs.loading') ?></p>
+            </div>
+
+            <!-- Error Overlay -->
+            <div class="li-error" id="liError" style="display: none;">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="15" y1="9" x2="9" y2="15"></line>
+                <line x1="9" y1="9" x2="15" y2="15"></line>
+              </svg>
+              <p id="liErrorText"><?= t('insights.error.labs') ?></p>
             </div>
           </div>
         </div>

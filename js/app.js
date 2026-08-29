@@ -9518,6 +9518,9 @@ document.addEventListener('DOMContentLoaded', function () {
       st.setAttribute('aria-selected', isActive ? 'true' : 'false');
     });
 
+    setInsightsLoading(view, true);
+    setInsightsError(view, '');
+
     if (view === 'practice') {
       loadAnalyticsScripts();
     } else if (view === 'labs') {
@@ -9641,6 +9644,26 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   // Lazy load Chart.js and analytics-pro.js
+  // Helpers for visible loading and failure states inside Insights tabs.
+  function setInsightsLoading(view, isLoading) {
+    var loadingId = view === 'labs' ? 'liLoading' : 'apLoading';
+    if (typeof document !== 'undefined' && document.getElementById) {
+      var el = document.getElementById(loadingId);
+      if (el) { el.style.display = isLoading ? 'flex' : 'none'; }
+    }
+  }
+
+  function setInsightsError(view, message) {
+    var errorId = view === 'labs' ? 'liError' : 'apError';
+    var textId = view === 'labs' ? 'liErrorText' : 'apErrorText';
+    if (typeof document !== 'undefined' && document.getElementById) {
+      var el = document.getElementById(errorId);
+      var text = document.getElementById(textId);
+      if (el) { el.style.display = message ? 'flex' : 'none'; }
+      if (text && message) { text.textContent = message; }
+    }
+  }
+
   var analyticsScriptsLoaded = false;
   var analyticsScriptsLoading = false;
   var analyticsScriptLoadFailed = false;
@@ -9656,6 +9679,8 @@ document.addEventListener('DOMContentLoaded', function () {
       return;
     }
     if (analyticsScriptLoadFailed) {
+      setInsightsLoading('practice', false);
+      setInsightsError('practice', t('insights.error.analytics_js_failed') || 'Unable to load analytics components. Please refresh.');
       if (typeof console !== 'undefined' && console.warn) {
         console.warn('[Practice Insights] analytics-pro.js previously failed; skipping.');
       }
@@ -9672,6 +9697,8 @@ document.addEventListener('DOMContentLoaded', function () {
       if (err) {
         analyticsScriptsLoading = false;
         analyticsScriptLoadFailed = true;
+        setInsightsLoading('practice', false);
+        setInsightsError('practice', t('insights.error.chart_js_failed') || 'Unable to load chart library. Please refresh.');
         if (typeof console !== 'undefined' && console.warn) {
           console.warn('[Practice Insights] Chart.js not available:', err && err.message ? err.message : err);
         }
@@ -9680,6 +9707,8 @@ document.addEventListener('DOMContentLoaded', function () {
       if (typeof Chart === 'undefined') {
         analyticsScriptsLoading = false;
         analyticsScriptLoadFailed = true;
+        setInsightsLoading('practice', false);
+        setInsightsError('practice', t('insights.error.chart_js_failed') || 'Chart library is not available. Please refresh.');
         if (typeof console !== 'undefined' && console.warn) {
           console.warn('[Practice Insights] Chart.js not defined after load.');
         }
@@ -9695,6 +9724,8 @@ document.addEventListener('DOMContentLoaded', function () {
       analyticsScript.onerror = function() {
         analyticsScriptsLoading = false;
         analyticsScriptLoadFailed = true;
+        setInsightsLoading('practice', false);
+        setInsightsError('practice', t('insights.error.analytics_js_failed') || 'Unable to load analytics components. Please refresh.');
         if (typeof console !== 'undefined' && console.error) {
           console.error('[Practice Insights] Failed to load analytics-pro.js');
         }
@@ -9719,6 +9750,8 @@ document.addEventListener('DOMContentLoaded', function () {
       return;
     }
     if (labInsightsScriptLoadFailed) {
+      setInsightsLoading('labs', false);
+      setInsightsError('labs', t('insights.error.labs_js_failed') || 'Unable to load lab insights. Please refresh.');
       if (typeof console !== 'undefined' && console.warn) {
         console.warn('[Lab Insights] lab-insights.js previously failed; skipping.');
       }
@@ -9735,6 +9768,8 @@ document.addEventListener('DOMContentLoaded', function () {
       if (err) {
         labInsightsScriptsLoading = false;
         labInsightsScriptLoadFailed = true;
+        setInsightsLoading('labs', false);
+        setInsightsError('labs', t('insights.error.chart_js_failed') || 'Unable to load chart library. Please refresh.');
         if (typeof console !== 'undefined' && console.warn) {
           console.warn('[Lab Insights] Chart.js not available:', err && err.message ? err.message : err);
         }
@@ -9743,6 +9778,8 @@ document.addEventListener('DOMContentLoaded', function () {
       if (typeof Chart === 'undefined') {
         labInsightsScriptsLoading = false;
         labInsightsScriptLoadFailed = true;
+        setInsightsLoading('labs', false);
+        setInsightsError('labs', t('insights.error.chart_js_failed') || 'Chart library is not available. Please refresh.');
         if (typeof console !== 'undefined' && console.warn) {
           console.warn('[Lab Insights] Chart.js not defined after load.');
         }
@@ -9758,6 +9795,8 @@ document.addEventListener('DOMContentLoaded', function () {
       labInsightsScript.onerror = function() {
         labInsightsScriptsLoading = false;
         labInsightsScriptLoadFailed = true;
+        setInsightsLoading('labs', false);
+        setInsightsError('labs', t('insights.error.labs_js_failed') || 'Unable to load lab insights. Please refresh.');
         if (typeof console !== 'undefined' && console.error) {
           console.error('[Lab Insights] Failed to load lab-insights.js');
         }

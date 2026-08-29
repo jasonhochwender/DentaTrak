@@ -705,6 +705,26 @@
   color: var(--ap-text-muted);
 }
 
+.ap-error,
+.li-error {
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  text-align: center;
+  color: var(--ap-danger, #ef4444);
+  font-size: 0.95rem;
+}
+
+.ap-error svg,
+.li-error svg {
+  width: 48px;
+  height: 48px;
+  stroke: var(--ap-danger, #ef4444);
+  margin-bottom: 16px;
+}
+
 /* ========================================
    Empty States
    ======================================== */

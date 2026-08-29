@@ -125,6 +125,7 @@ node_modules/
 !/tests/insights-loader-test.php
 !/tests/billing-header-visibility-test.php
 !/tests/billing-flash-render-test.php
+!/tests/analytics-api-test.php
 /testResults/
 /test-results/
 /playwright-report/

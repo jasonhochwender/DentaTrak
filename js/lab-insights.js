@@ -48,6 +48,13 @@
     if (el) { el.style.display = isLoading ? 'flex' : 'none'; }
   }
 
+  function setError(message) {
+    var el = document.getElementById('liError');
+    var text = document.getElementById('liErrorText');
+    if (el) { el.style.display = message ? 'flex' : 'none'; }
+    if (text && message) { text.textContent = message; }
+  }
+
   function showEmptyStates(hasLabs, hasHistory) {
     var noLabs = document.getElementById('liNoLabsEmptyState');
     var noHistory = document.getElementById('liNoHistoryEmptyState');
@@ -304,6 +311,7 @@
 
   function fetchAndRender() {
     setLoading(true);
+    setError('');
     var range = document.getElementById('liRangeSelect') ? document.getElementById('liRangeSelect').value : '12';
 
     fetch('api/get-lab-insights.php?range=' + encodeURIComponent(range), { credentials: 'same-origin' })
@@ -316,12 +324,18 @@
       .then(function (data) {
         setLoading(false);
         if (!data || !data.success) {
+          setError((data && data.message) ? data.message : (t('insights.error.labs_data') || 'Unable to load lab insights.'));
           return;
         }
+        setError('');
         render(data);
       })
-      .catch(function () {
+      .catch(function (error) {
         setLoading(false);
+        setError(t('insights.error.labs_data') || 'Unable to load lab insights. Please try again.');
+        if (typeof console !== 'undefined' && console.error) {
+          console.error('[Lab Insights] Failed to load lab insights:', error);
+        }
       });
   }
 
