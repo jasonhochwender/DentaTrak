@@ -122,6 +122,7 @@ node_modules/
 !/tests/workflow-reset-defaults-test.php
 !/tests/workflow-reset-sql-test.php
 !/tests/workflow-init-runtime-test.php
+!/tests/insights-loader-test.php
 /testResults/
 /test-results/
 /playwright-report/

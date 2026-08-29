@@ -9586,17 +9586,26 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   }
 
-  applyInitialInsightsHash();
-  window.addEventListener('hashchange', applyInitialInsightsHash);
-
   // Lazy load Chart.js (shared by both Practice Insights and Lab Insights)
+  // Declared before any activation function so the callback queue is always
+  // initialized, even when Practice Insights is triggered by the initial hash.
   var chartJsLoaded = false;
   var chartJsLoading = false;
+  var chartJsLoadFailed = false;
   var chartJsCallbacks = [];
   function ensureChartJsLoaded(callback) {
     if (chartJsLoaded) {
-      callback();
+      callback(null);
       return;
+    }
+    if (chartJsLoadFailed) {
+      callback(new Error('Chart.js previously failed to load'));
+      return;
+    }
+    // Defensive: the queue must exist before any push. This guards against
+    // accidental future reordering; the real fix is the call order below.
+    if (!chartJsCallbacks) {
+      chartJsCallbacks = [];
     }
     chartJsCallbacks.push(callback);
     if (chartJsLoading) {
@@ -9607,31 +9616,83 @@ document.addEventListener('DOMContentLoaded', function () {
     chartScript.src = 'https://cdn.jsdelivr.net/npm/chart.js';
     chartScript.onload = function() {
       chartJsLoaded = true;
-      chartJsCallbacks.forEach(function(cb) { cb(); });
+      chartJsLoading = false;
+      var cbs = chartJsCallbacks;
       chartJsCallbacks = [];
+      cbs.forEach(function(cb) { cb(null); });
+    };
+    chartScript.onerror = function() {
+      chartJsLoading = false;
+      chartJsLoadFailed = true;
+      if (typeof console !== 'undefined' && console.error) {
+        console.error('[Chart.js] Failed to load Chart.js from ' + chartScript.src);
+      }
+      // Drain the callback queue and inform the dependent loaders so they can
+      // fail locally without blocking the rest of DentaTrak.
+      var cbs = chartJsCallbacks;
+      chartJsCallbacks = [];
+      cbs.forEach(function(cb) { cb(new Error('Chart.js failed to load from ' + chartScript.src)); });
     };
     document.body.appendChild(chartScript);
   }
 
   // Lazy load Chart.js and analytics-pro.js
   var analyticsScriptsLoaded = false;
+  var analyticsScriptsLoading = false;
+  var analyticsScriptLoadFailed = false;
+  function refreshAnalyticsProData() {
+    if (typeof window.loadAnalyticsProData === 'function') {
+      setTimeout(function() { window.loadAnalyticsProData(); }, 100);
+    }
+  }
   function loadAnalyticsScripts() {
     if (analyticsScriptsLoaded) {
       // Scripts already loaded, just refresh data
-      if (typeof window.loadAnalyticsProData === 'function') {
-        setTimeout(function() { window.loadAnalyticsProData(); }, 100);
+      refreshAnalyticsProData();
+      return;
+    }
+    if (analyticsScriptLoadFailed) {
+      if (typeof console !== 'undefined' && console.warn) {
+        console.warn('[Practice Insights] analytics-pro.js previously failed; skipping.');
       }
       return;
     }
+    if (analyticsScriptsLoading) {
+      // Already loading; the in-flight request will call loadAnalyticsProData
+      // once analytics-pro.js is ready.
+      return;
+    }
 
-    ensureChartJsLoaded(function() {
+    analyticsScriptsLoading = true;
+    ensureChartJsLoaded(function(err) {
+      if (err) {
+        analyticsScriptsLoading = false;
+        analyticsScriptLoadFailed = true;
+        if (typeof console !== 'undefined' && console.warn) {
+          console.warn('[Practice Insights] Chart.js not available:', err && err.message ? err.message : err);
+        }
+        return;
+      }
+      if (typeof Chart === 'undefined') {
+        analyticsScriptsLoading = false;
+        analyticsScriptLoadFailed = true;
+        if (typeof console !== 'undefined' && console.warn) {
+          console.warn('[Practice Insights] Chart.js not defined after load.');
+        }
+        return;
+      }
       var analyticsScript = document.createElement('script');
       analyticsScript.src = 'js/analytics-pro.js?v=' + Date.now();
       analyticsScript.onload = function() {
         analyticsScriptsLoaded = true;
-        // Initialize analytics after script loads
-        if (typeof window.loadAnalyticsProData === 'function') {
-          setTimeout(function() { window.loadAnalyticsProData(); }, 100);
+        analyticsScriptsLoading = false;
+        refreshAnalyticsProData();
+      };
+      analyticsScript.onerror = function() {
+        analyticsScriptsLoading = false;
+        analyticsScriptLoadFailed = true;
+        if (typeof console !== 'undefined' && console.error) {
+          console.error('[Practice Insights] Failed to load analytics-pro.js');
         }
       };
       document.body.appendChild(analyticsScript);
@@ -9640,26 +9701,73 @@ document.addEventListener('DOMContentLoaded', function () {
 
   // Lazy load Chart.js and lab-insights.js
   var labInsightsScriptsLoaded = false;
+  var labInsightsScriptsLoading = false;
+  var labInsightsScriptLoadFailed = false;
+  function refreshLabInsightsData() {
+    if (typeof window.loadLabInsightsData === 'function') {
+      setTimeout(function() { window.loadLabInsightsData(); }, 100);
+    }
+  }
   function loadLabInsightsScripts() {
     if (labInsightsScriptsLoaded) {
-      if (typeof window.loadLabInsightsData === 'function') {
-        setTimeout(function() { window.loadLabInsightsData(); }, 100);
+      // Scripts already loaded, just refresh data
+      refreshLabInsightsData();
+      return;
+    }
+    if (labInsightsScriptLoadFailed) {
+      if (typeof console !== 'undefined' && console.warn) {
+        console.warn('[Lab Insights] lab-insights.js previously failed; skipping.');
       }
       return;
     }
+    if (labInsightsScriptsLoading) {
+      // Already loading; the in-flight request will call loadLabInsightsData
+      // once lab-insights.js is ready.
+      return;
+    }
 
-    ensureChartJsLoaded(function() {
+    labInsightsScriptsLoading = true;
+    ensureChartJsLoaded(function(err) {
+      if (err) {
+        labInsightsScriptsLoading = false;
+        labInsightsScriptLoadFailed = true;
+        if (typeof console !== 'undefined' && console.warn) {
+          console.warn('[Lab Insights] Chart.js not available:', err && err.message ? err.message : err);
+        }
+        return;
+      }
+      if (typeof Chart === 'undefined') {
+        labInsightsScriptsLoading = false;
+        labInsightsScriptLoadFailed = true;
+        if (typeof console !== 'undefined' && console.warn) {
+          console.warn('[Lab Insights] Chart.js not defined after load.');
+        }
+        return;
+      }
       var labInsightsScript = document.createElement('script');
       labInsightsScript.src = 'js/lab-insights.js?v=' + Date.now();
       labInsightsScript.onload = function() {
         labInsightsScriptsLoaded = true;
-        if (typeof window.loadLabInsightsData === 'function') {
-          setTimeout(function() { window.loadLabInsightsData(); }, 100);
+        labInsightsScriptsLoading = false;
+        refreshLabInsightsData();
+      };
+      labInsightsScript.onerror = function() {
+        labInsightsScriptsLoading = false;
+        labInsightsScriptLoadFailed = true;
+        if (typeof console !== 'undefined' && console.error) {
+          console.error('[Lab Insights] Failed to load lab-insights.js');
         }
       };
       document.body.appendChild(labInsightsScript);
     });
   }
+
+  // Deep-link and initial-hash activation for Practice / Lab Insights.
+  // This must run after the lazy-load helpers above are fully initialized so
+  // that calling activateInsightsSubview('practice') can safely queue a
+  // Chart.js callback in chartJsCallbacks.
+  applyInitialInsightsHash();
+  window.addEventListener('hashchange', applyInitialInsightsHash);
 
   // Practice Insights / Lab Insights already re-fetch and re-render (via
   // loadAnalyticsProData()/loadLabInsightsData()) every time their tab is
