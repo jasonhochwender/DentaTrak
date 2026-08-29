@@ -67,9 +67,25 @@ $results[] = '12. Passive background polling does not reset last_activity: ' . (
     runPhp("session_id('sesspass'); session_start(); \$now = time(); \$_SESSION['db_user_id']=1; \$_SESSION['last_activity'] = \$now - 10; \$_SERVER['SCRIPT_NAME']='/api/check-updates.php'; require '$baseDir/api/bootstrap.php'; require '$baseDir/api/session.php'; echo (\$_SESSION['last_activity'] == \$now - 10) ? 'PASS' : 'FAIL';") === 'PASS' ? 'PASS' : 'FAIL'
 );
 
+$results[] = '14. session-status.php GET does not reset last_activity: ' . (
+    runPhp("session_id('sessstatget'); session_start(); \$now = time(); \$_SESSION['db_user_id']=1; \$_SESSION['last_activity'] = \$now - 10; \$_SERVER['SCRIPT_NAME']='/api/session-status.php'; require '$baseDir/api/bootstrap.php'; require '$baseDir/api/session.php'; echo (\$_SESSION['last_activity'] == \$now - 10) ? 'PASS' : 'FAIL';") === 'PASS' ? 'PASS' : 'FAIL'
+);
+
+$results[] = '15. notifications.php GET does not reset last_activity: ' . (
+    runPhp("session_id('sessnotifget'); session_start(); \$now = time(); \$_SESSION['db_user_id']=1; \$_SESSION['last_activity'] = \$now - 10; \$_SERVER['SCRIPT_NAME']='/api/notifications.php'; require '$baseDir/api/bootstrap.php'; require '$baseDir/api/session.php'; echo (\$_SESSION['last_activity'] == \$now - 10) ? 'PASS' : 'FAIL';") === 'PASS' ? 'PASS' : 'FAIL'
+);
+
+$results[] = '16. notifications.php POST (genuine action) resets last_activity: ' . (
+    runPhp("session_id('sessnotifpost'); session_start(); \$now = time(); \$_SESSION['db_user_id']=1; \$_SESSION['last_activity'] = \$now - 10; \$_SERVER['SCRIPT_NAME']='/api/notifications.php'; \$_SERVER['REQUEST_METHOD']='POST'; require '$baseDir/api/bootstrap.php'; require '$baseDir/api/session.php'; echo (\$_SESSION['last_activity'] > \$now - 10) ? 'PASS' : 'FAIL';") === 'PASS' ? 'PASS' : 'FAIL'
+);
+
+$results[] = '17. session-status.php POST (activity ping) resets last_activity: ' . (
+    runPhp("session_id('sessstatpost'); session_start(); \$now = time(); \$_SESSION['db_user_id']=1; \$_SESSION['last_activity'] = \$now - 10; \$_SERVER['SCRIPT_NAME']='/api/session-status.php'; \$_SERVER['REQUEST_METHOD']='POST'; require '$baseDir/api/bootstrap.php'; require '$baseDir/api/session.php'; echo (\$_SESSION['last_activity'] > \$now - 10) ? 'PASS' : 'FAIL';") === 'PASS' ? 'PASS' : 'FAIL'
+);
+
 // JavaScript fallback check
 $js = file_get_contents(__DIR__ . '/../js/session-timeout.js');
-$results[] = '13. JS sessionTimeout fallback 3600000: ' . (
+$results[] = '18. JS sessionTimeout fallback 3600000: ' . (
     strpos($js, 'var sessionTimeout = 60 * 60 * 1000') !== false ? 'PASS' : 'FAIL'
 );
 

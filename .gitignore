@@ -105,6 +105,7 @@ node_modules/
 !/tests/download-zip-memory-test.php
 !/tests/download-zip-headers-test.php
 !/tests/session-timeout-test.php
+!/tests/session-timeout-js-test.js
 !/tests/session-db-handler-test.php
 !/tests/session-security-concurrency-test.php
 !/tests/session-concurrency-test.php

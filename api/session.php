@@ -122,10 +122,14 @@ if (!empty($_SESSION['db_user_id']) && !checkSessionTimeout()) {
 }
 
 // Update last activity time - but NOT for passive/polling endpoints
-// This ensures the inactivity timer only resets on actual user activity
+// This ensures the inactivity timer only resets on actual user activity.
+// GET/HEAD requests to polling endpoints are passive; POST/PUT/DELETE actions
+// on those same endpoints are genuine user activity and still reset the timer.
 $currentScript = basename($_SERVER['SCRIPT_NAME'] ?? '');
-$passiveEndpoints = ['session-status.php', 'get-notifications.php', 'check-updates.php'];
-if (!in_array($currentScript, $passiveEndpoints)) {
+$passiveEndpoints = ['session-status.php', 'notifications.php', 'check-updates.php'];
+$requestMethod = strtoupper($_SERVER['REQUEST_METHOD'] ?? 'GET');
+$isPassive = in_array($currentScript, $passiveEndpoints) && in_array($requestMethod, ['GET', 'HEAD']);
+if (!$isPassive) {
     $_SESSION['last_activity'] = time();
 }
 
