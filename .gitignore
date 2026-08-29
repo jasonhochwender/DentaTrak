@@ -127,6 +127,10 @@ node_modules/
 !/tests/billing-header-visibility-test.php
 !/tests/billing-flash-render-test.php
 !/tests/analytics-api-test.php
+!/tests/admin-practices-auth-test.php
+!/tests/admin-practices-csrf-and-auth-test.php
+!/tests/admin-practices-subscription-test.php
+!/tests/admin-practices-extend-trial-integration-test.php
 /testResults/
 /test-results/
 /playwright-report/

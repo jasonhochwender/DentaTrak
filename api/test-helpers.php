@@ -107,6 +107,11 @@ switch ($action) {
     case 'get_practice_user':
         handleGetPracticeUser($pdo, $input);
         break;
+
+    case 'make_legacy_trial':
+        handleMakeLegacyTrial($pdo, $input);
+        break;
+
     default:
         http_response_code(400);
         echo json_encode(['success' => false, 'message' => 'Invalid action']);
@@ -1055,6 +1060,81 @@ function handleSeedOwnedPractices($pdo, $input) {
 }
 
 /**
+ * Simulate a pre-migration practice that has legacy trial data but no
+ * authoritative owner-level subscriptions row. Test-only.
+ */
+function handleMakeLegacyTrial($pdo, $input) {
+    $email = strtolower(trim($input['email'] ?? ''));
+    $trialEndsAt = trim($input['trial_ends_at'] ?? '');
+
+    if (empty($email) || empty($trialEndsAt)) {
+        http_response_code(400);
+        echo json_encode(['success' => false, 'message' => 'email and trial_ends_at are required']);
+        return;
+    }
+
+    try {
+        $stmt = $pdo->prepare("SELECT id FROM users WHERE email = :email");
+        $stmt->execute(['email' => $email]);
+        $userId = $stmt->fetchColumn();
+
+        if (!$userId) {
+            http_response_code(404);
+            echo json_encode(['success' => false, 'message' => 'User not found. Run setup_test_user first.']);
+            return;
+        }
+
+        $pdo->beginTransaction();
+
+        // Delete any owner-level subscription to simulate pre-migration state.
+        $pdo->prepare("DELETE FROM subscriptions WHERE owner_user_id = :owner_user_id")
+            ->execute(['owner_user_id' => $userId]);
+
+        // Stamp legacy trial data on the most recently created practice for this user.
+        $practiceStmt = $pdo->prepare("
+            SELECT p.id
+            FROM practices p
+            JOIN practice_users pu ON p.id = pu.practice_id
+            WHERE pu.user_id = :user_id AND pu.is_owner = 1
+            ORDER BY p.id DESC
+            LIMIT 1
+        ");
+        $practiceStmt->execute(['user_id' => $userId]);
+        $practiceId = $practiceStmt->fetchColumn();
+
+        if ($practiceId) {
+            $pdo->prepare("
+                UPDATE practices
+                SET trial_ends_at = :trial_ends_at,
+                    subscription_status = 'trialing',
+                    subscription_updated_at = UTC_TIMESTAMP()
+                WHERE id = :practice_id
+            ")->execute([
+                'trial_ends_at' => $trialEndsAt,
+                'practice_id' => $practiceId,
+            ]);
+        }
+
+        $pdo->commit();
+
+        echo json_encode([
+            'success' => true,
+            'message' => 'Legacy trial simulated',
+            'user_id' => (int)$userId,
+            'practice_id' => (int)$practiceId,
+            'trial_ends_at' => $trialEndsAt,
+        ]);
+    } catch (PDOException $e) {
+        if ($pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
+        error_log('[test-helpers] make_legacy_trial error: ' . $e->getMessage());
+        http_response_code(500);
+        echo json_encode(['success' => false, 'message' => 'Legacy setup failed: ' . $e->getMessage()]);
+    }
+}
+
+/**
  * Clean up test user data (for test isolation)
  */
 function handleCleanupTestUser($pdo, $input) {
@@ -1073,6 +1153,12 @@ function handleCleanupTestUser($pdo, $input) {
         return;
     }
 
+    if (!$pdo) {
+        http_response_code(500);
+        echo json_encode(['success' => false, 'message' => 'Database connection unavailable']);
+        return;
+    }
+
     try {
         // Get user ID
         $stmt = $pdo->prepare("SELECT id FROM users WHERE email = :email");
@@ -1084,23 +1170,61 @@ function handleCleanupTestUser($pdo, $input) {
             return;
         }
 
-        $userId = $user['id'];
+        $userId = (int)$user['id'];
 
-        // Delete user's cases (cascade should handle related data)
-        $stmt = $pdo->prepare("
-            DELETE c FROM cases c
-            JOIN practices p ON c.practice_id = p.id
-            JOIN practice_users pu ON p.id = pu.practice_id
-            WHERE pu.user_id = :user_id
-        ");
-        $stmt->execute(['user_id' => $userId]);
+        $pdo->beginTransaction();
 
-        // Note: We don't delete the user or practice - just clean up test data
-        // This allows the test user to persist between test runs
+        // Resolve practices this user owns/memberships before removing the mapping.
+        $practiceStmt = $pdo->prepare("SELECT practice_id FROM practice_users WHERE user_id = :user_id");
+        $practiceStmt->execute(['user_id' => $userId]);
+        $practiceIds = $practiceStmt->fetchAll(PDO::FETCH_COLUMN);
 
-        echo json_encode(['success' => true, 'message' => 'Test data cleaned up']);
+        // Delete case data from either known table name; ignore missing tables.
+        if (!empty($practiceIds)) {
+            $caseTables = ['cases', 'cases_cache'];
+            $placeholders = implode(',', array_fill(0, count($practiceIds), '?'));
+            foreach ($caseTables as $table) {
+                try {
+                    $tableExists = $pdo->query("SHOW TABLES LIKE '{$table}'")->fetchColumn();
+                    if ($tableExists) {
+                        $deleteStmt = $pdo->prepare("DELETE FROM {$table} WHERE practice_id IN ({$placeholders})");
+                        $deleteStmt->execute(array_values($practiceIds));
+                    }
+                } catch (PDOException $caseEx) {
+                    // Either table name is wrong or it is not present in this schema.
+                    // Continue cleaning up the rest of the fixture.
+                }
+            }
+        }
+
+        // Remove membership mappings.
+        $pdo->prepare("DELETE FROM practice_users WHERE user_id = :user_id")
+            ->execute(['user_id' => $userId]);
+
+        // Remove the owner-level subscription for this user.
+        $pdo->prepare("DELETE FROM subscriptions WHERE owner_user_id = :user_id")
+            ->execute(['user_id' => $userId]);
+
+        // Remove the test practices owned by this user.
+        if (!empty($practiceIds)) {
+            $placeholders = implode(',', array_fill(0, count($practiceIds), '?'));
+            $pdo->prepare("DELETE FROM practices WHERE id IN ({$placeholders})")
+                ->execute($practiceIds);
+        }
+
+        // Finally remove the test user.
+        $pdo->prepare("DELETE FROM users WHERE id = :user_id")
+            ->execute(['user_id' => $userId]);
+
+        $pdo->commit();
+
+        echo json_encode(['success' => true, 'message' => 'Test user and fixtures removed']);
 
     } catch (PDOException $e) {
+        if ($pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
+        error_log('[test-helpers] cleanup_test_user failed: ' . $e->getMessage());
         http_response_code(500);
         echo json_encode(['success' => false, 'message' => 'Cleanup failed']);
     }

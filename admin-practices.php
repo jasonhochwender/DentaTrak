@@ -2,7 +2,7 @@
 /**
  * Admin Practices Management Page
  * 
- * HIPAA Compliance Dashboard for system administrators
+ * Practice & Subscription Management for system administrators
  * - View all practices with compliance status
  * - Activate/deactivate practices
  * - View PHI access logs
@@ -11,8 +11,12 @@
 
 require_once __DIR__ . '/api/session.php';
 require_once __DIR__ . '/api/appConfig.php';
+require_once __DIR__ . '/api/csrf.php';
 require_once __DIR__ . '/api/security-headers.php';
 setSecurityHeaders();
+
+// Generate a CSRF token for state-changing admin actions
+$csrfToken = generateCsrfToken();
 
 // Check if user is logged in
 if (empty($_SESSION['db_user_id'])) {
@@ -23,7 +27,10 @@ if (empty($_SESSION['db_user_id'])) {
 // Load dev tools access control
 require_once __DIR__ . '/api/dev-tools-access.php';
 
-// Check if current user can access admin pages (super user OR dev environment)
+// Check if current user can access admin pages. In production/UAT/Cloud Run
+// only configured super users are allowed. The 'development' exception applies
+// only to the local MAMP environment and must never be used for production
+// deployments or exposed to the network.
 $userEmail = $_SESSION['user_email'] ?? '';
 $isDev = ($appConfig['current_environment'] ?? '') === 'development';
 $canAccess = isSuperUser($appConfig, $userEmail) || $isDev;
@@ -42,6 +49,7 @@ $userEmail = $_SESSION['user_email'] ?? '';
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="robots" content="noindex, nofollow">
+    <meta name="csrf-token" content="<?php echo htmlspecialchars($csrfToken); ?>">
     <title><?php echo htmlspecialchars(t('admin_practices.title')); ?> - <?php echo htmlspecialchars($appConfig['appName']); ?></title>
 
     <!-- Favicon / App Icons -->
@@ -247,6 +255,12 @@ $userEmail = $_SESSION['user_email'] ?? '';
             font-size: 0.75rem;
             margin-top: 4px;
             max-width: 100%;
+        }
+
+        .trial-urgent,
+        .trial-expired {
+            color: #dc2626;
+            font-weight: 500;
         }
 
         .usage-primary,
@@ -930,6 +944,11 @@ $userEmail = $_SESSION['user_email'] ?? '';
 </head>
 <body>
     <div class="admin-container">
+        <?php if ($isDev && !isSuperUser($appConfig, $userEmail)): ?>
+        <div class="dev-mode-notice" style="background: #fff7ed; border: 1px solid #fdba74; color: #9a3412; padding: 12px 16px; border-radius: 6px; margin-bottom: 16px; font-weight: 500;">
+            Development environment: admin tools are open to any authenticated user for local testing. In production, only super users can access this page.
+        </div>
+        <?php endif; ?>
         <div class="admin-header">
             <div>
                 <h1>🏥 <?php echo t('admin_practices.title'); ?></h1>
@@ -1042,10 +1061,23 @@ $userEmail = $_SESSION['user_email'] ?? '';
     
     <script>
         window.__i18n = <?php echo getTranslationsJsonForJs(); ?>;
+        window.csrfToken = <?php echo json_encode($csrfToken); ?>;
     </script>
     <script src="js/i18n.js"></script>
     <script>
         const yesNo = value => value ? t('common.yes') : t('common.no');
+
+        function postJson(url, payload) {
+            return fetch(url, {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-Token': window.csrfToken || ''
+                },
+                body: JSON.stringify(Object.assign({}, payload, { csrf_token: window.csrfToken || '' }))
+            });
+        }
 
         function formatRelativeTimestamp(dateStr, emptyLabel = '—') {
             if (!dateStr || dateStr === '0000-00-00 00:00:00') {
@@ -1086,6 +1118,7 @@ $userEmail = $_SESSION['user_email'] ?? '';
             switch (status) {
                 case 'active': return 'success';
                 case 'trialing': return 'warning';
+                case 'trial_expired': return 'danger';
                 case 'past_due':
                 case 'unpaid': return 'danger';
                 case 'canceled':
@@ -1173,23 +1206,23 @@ $userEmail = $_SESSION['user_email'] ?? '';
                 const statusText = isActive ? t('admin_practices.status_active') : t('admin_practices.status_inactive');
 
                 const sub = practice.subscription || {};
-                const planDisplay = escapeHtml(sub.plan_display || '—');
                 const subscriptionStatusClass = adminSubscriptionStatusClass(sub.status);
                 const subscriptionStatusText = escapeHtml(sub.status_display || t('admin_practices.no_subscription'));
+
                 let accountDetailRaw;
-                let accountDetailTitle;
-                if (!planDisplay || planDisplay === '—') {
+                let accountDetailClass = '';
+                if (!sub.has_subscription) {
                     accountDetailRaw = subscriptionStatusText;
-                    if (sub.is_trialing && sub.trial_display) {
-                        accountDetailRaw += ' · ' + escapeHtml(sub.trial_display);
-                    }
+                } else if (sub.is_trialing || sub.status === 'trial_expired') {
+                    accountDetailRaw = escapeHtml(sub.trial_line || '');
+                    accountDetailClass = sub.trial_class || '';
+                } else if (sub.plan_display && sub.plan_display !== '—') {
+                    accountDetailRaw = escapeHtml(sub.plan_display) + ' · ' + subscriptionStatusText;
                 } else {
-                    accountDetailRaw = planDisplay + ' · ' + subscriptionStatusText;
-                    if (sub.is_trialing && sub.trial_display) {
-                        accountDetailRaw += ' · ' + escapeHtml(sub.trial_display);
-                    }
+                    accountDetailRaw = subscriptionStatusText;
                 }
-                accountDetailTitle = accountDetailRaw.replace(/"/g, '&quot;');
+
+                const accountDetailTitle = accountDetailRaw.replace(/"/g, '&quot;');
 
                 const userCount = practice.user_count || 0;
                 const totalCases = practice.adoption?.total_cases || 0;
@@ -1224,7 +1257,7 @@ $userEmail = $_SESSION['user_email'] ?? '';
                     '</td>' +
                     '<td class="col-account">' +
                         '<span class="status-badge ' + statusClass + '">' + statusText + '</span>' +
-                        '<small class="account-detail" title="' + accountDetailTitle + '">' + escapeHtml(accountDetailRaw) + '</small>' +
+                        '<small class="account-detail ' + accountDetailClass + '" title="' + accountDetailTitle + '">' + escapeHtml(accountDetailRaw) + '</small>' +
                     '</td>' +
                     '<td class="col-usage">' +
                         '<div class="usage-primary" title="' + usagePrimaryTitle + '">' + usagePrimaryText + '</div>' +
@@ -1418,9 +1451,9 @@ $userEmail = $_SESSION['user_email'] ?? '';
 
             html += row('Plan', subscription.plan_display);
             html += row('Subscription Status', subscription.status_display);
-            html += row('Trial Status', subscription.is_trialing ? 'In Trial' : (subscription.has_subscription ? 'Not in Trial' : '—'));
+            html += row('Trial Status', subscription.trial_status || (subscription.has_subscription ? 'Not on Trial' : '—'));
             html += row('Trial End Date', subscription.trial_ends_at ? formatDate(subscription.trial_ends_at) : '—');
-            html += row('Trial Time Remaining', subscription.trial_display || '—');
+            html += row('Trial Time Remaining', subscription.trial_time_remaining || subscription.trial_display || '—');
             html += row('Subscription Owner', subscription.owner_email || '—');
             html += row('Practices Using Subscription', subscription.owned_practice_count !== null ? String(subscription.owned_practice_count) : '—');
             html += row('Capacity', subscription.capacity_display || '—');
@@ -1432,14 +1465,176 @@ $userEmail = $_SESSION['user_email'] ?? '';
 
             html += '</div>';
 
+            if (subscription.is_trialing) {
+                html += '<div style="margin-top: 16px;">' +
+                    '<button class="action-btn primary" id="extendTrialBtn" onclick="openExtendTrialModal()">' + t('admin_practices.extend_trial_button') + '</button>' +
+                    '</div>';
+            }
+
             if (!subscription.has_subscription) {
                 html += '<div class="retention-warning" style="margin-top: 16px;">' +
-                    '<h4>No Subscription Record</h4>' +
-                    '<p>This practice has no associated subscription. It may be a legacy practice or the subscription data has not been migrated yet.</p>' +
+                    '<h4>' + t('admin_practices.no_subscription_record_title') + '</h4>' +
+                    '<p>' + t('admin_practices.no_subscription_record_text') + '</p>' +
                     '</div>';
             }
 
             document.getElementById('detailContent').innerHTML = html;
+        }
+
+        let currentExtendTrialState = { practiceId: null, subscription: null, sending: false };
+
+        function openExtendTrialModal() {
+            const practice = practices.find(p => p.id === selectedPracticeId);
+            const subscription = practice ? (practice.subscription || {}) : {};
+            if (!subscription.is_trialing || !subscription.trial_ends_at) {
+                alert(t('admin_practices.extend_trial_not_active'));
+                return;
+            }
+
+            currentExtendTrialState = { practiceId: selectedPracticeId, subscription: subscription, sending: false, affectedPractices: [] };
+
+            const select = document.getElementById('extendTrialLength');
+            select.innerHTML = '';
+            for (let i = 1; i <= 24; i++) {
+                const option = document.createElement('option');
+                option.value = String(i);
+                option.textContent = i + ' ' + (i === 1 ? t('admin_practices.month_singular') : t('admin_practices.month_plural'));
+                select.appendChild(option);
+            }
+
+            const emailGroup = document.getElementById('extendTrialEmailGroup');
+            if (subscription.owner_email) {
+                emailGroup.style.display = 'block';
+                document.getElementById('extendTrialSendEmail').checked = false;
+                document.getElementById('extendTrialRecipient').textContent = t('admin_practices.extend_trial_recipient') + ' ' + subscription.owner_email;
+            } else {
+                emailGroup.style.display = 'none';
+            }
+
+            const affectedGroup = document.getElementById('extendTrialAffectedGroup');
+            affectedGroup.style.display = 'none';
+
+            fetch('api/admin-practices.php?action=affected_practices&practice_id=' + selectedPracticeId, { credentials: 'same-origin' })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success && data.affected_practices) {
+                        currentExtendTrialState.affectedPractices = data.affected_practices;
+                        renderAffectedPractices(data.affected_practices);
+                    }
+                });
+
+            updateExtendTrialPreview();
+            document.getElementById('extendTrialModal').classList.add('active');
+        }
+
+        function renderAffectedPractices(affected) {
+            const group = document.getElementById('extendTrialAffectedGroup');
+            if (!group) return;
+
+            const names = affected.map(ap => escapeHtml(ap.name));
+            const intro = document.getElementById('extendTrialAffectedIntro');
+            const list = document.getElementById('extendTrialAffectedList');
+
+            if (affected.length === 0) {
+                group.style.display = 'none';
+                return;
+            }
+
+            group.style.display = 'block';
+
+            if (affected.length === 1) {
+                intro.textContent = t('admin_practices.extend_trial_affected_single') + ' ' + names[0] + '.';
+                list.innerHTML = '';
+                list.style.display = 'none';
+            } else {
+                intro.textContent = t('admin_practices.extend_trial_affected_multiple');
+                list.innerHTML = names.map(name => '<li>' + name + '</li>').join('');
+                list.style.display = 'block';
+            }
+        }
+
+        function updateExtendTrialPreview() {
+            const subscription = currentExtendTrialState.subscription || {};
+            if (!subscription.trial_ends_at) return;
+
+            const months = parseInt(document.getElementById('extendTrialLength').value || '1', 10);
+            const currentEnd = parseDateUTC(subscription.trial_ends_at);
+            // Calendar-month addition in JS; prefer the last day of the target month.
+            const sourceYear = currentEnd.getUTCFullYear();
+            const sourceMonth = currentEnd.getUTCMonth();
+            const sourceDay = currentEnd.getUTCDate();
+            const sourceFirst = new Date(Date.UTC(sourceYear, sourceMonth, 1));
+            const sourceLast = new Date(Date.UTC(sourceYear, sourceMonth + 1, 0)).getUTCDate();
+            const isLastDayOfSource = sourceDay === sourceLast;
+
+            const targetMonth = sourceMonth + months;
+            const targetYear = sourceYear + Math.floor(targetMonth / 12);
+            const targetMonthIndex = ((targetMonth % 12) + 12) % 12;
+            const targetFirst = new Date(Date.UTC(targetYear, targetMonthIndex, 1));
+            const targetLast = new Date(Date.UTC(targetYear, targetMonthIndex + 1, 0)).getUTCDate();
+            const targetDay = (isLastDayOfSource || sourceDay > targetLast) ? targetLast : sourceDay;
+            const newEnd = new Date(Date.UTC(targetYear, targetMonthIndex, targetDay));
+
+            currentExtendTrialState.previewNewEnd = newEnd.toISOString();
+            document.getElementById('extendTrialPreviewDate').textContent = formatDate(currentExtendTrialState.previewNewEnd);
+        }
+
+        function toggleExtendTrialEmail() {
+            const checked = document.getElementById('extendTrialSendEmail').checked;
+            currentExtendTrialState.sendEmail = checked;
+        }
+
+        function confirmExtendTrial() {
+            if (currentExtendTrialState.sending) return;
+
+            const months = parseInt(document.getElementById('extendTrialLength').value || '0', 10);
+            if (!months || months < 1 || months > 24) {
+                alert(t('admin_practices.extend_trial_invalid_months'));
+                return;
+            }
+
+            currentExtendTrialState.sending = true;
+            const btn = document.getElementById('confirmExtendTrialBtn');
+            if (btn) btn.textContent = t('admin_practices.extend_trial_processing');
+
+            const sendEmail = !!document.getElementById('extendTrialSendEmail').checked;
+
+            postJson('api/admin-practices.php?action=extend_trial', {
+                practice_id: currentExtendTrialState.practiceId,
+                extension_months: months,
+                send_email: sendEmail
+            })
+            .then(response => response.json().then(data => ({ response, data })))
+            .then(({ response, data }) => {
+                currentExtendTrialState.sending = false;
+                if (btn) btn.textContent = t('admin_practices.extend_trial_button');
+
+                if (response.ok && data.success) {
+                    closeModal('extendTrialModal');
+
+                    // Update the cached subscription for every affected practice.
+                    const affectedIds = data.affected_practice_ids || [];
+                    if (data.subscription) {
+                        practices.forEach(function(p) {
+                            if (affectedIds.indexOf(p.id) !== -1) {
+                                p.subscription = data.subscription;
+                            }
+                        });
+                    }
+
+                    renderPractices();
+                    loadSubscriptionTab(currentExtendTrialState.practiceId);
+
+                    showAdminToast(data.message);
+                } else {
+                    alert(data.message || t('admin_practices.extend_trial_failed'));
+                }
+            })
+            .catch(error => {
+                currentExtendTrialState.sending = false;
+                if (btn) btn.textContent = t('admin_practices.extend_trial_button');
+                alert(t('admin_practices.extend_trial_failed') + ': ' + error.message);
+            });
         }
 
         function loadAdoptionTab(practiceId) {
@@ -1799,12 +1994,7 @@ $userEmail = $_SESSION['user_email'] ?? '';
                 payload.custom_message = customMessage;
             }
 
-            fetch('api/admin-practices.php?action=send_email', {
-                method: 'POST',
-                credentials: 'same-origin',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            })
+            postJson('api/admin-practices.php?action=send_email', payload)
                 .then(response => response.json().then(data => ({ response, data })))
                 .then(({ response, data }) => {
                     currentEmailState.sending = false;
@@ -2084,14 +2274,9 @@ $userEmail = $_SESSION['user_email'] ?? '';
             btn.disabled = true;
             btn.textContent = 'Deactivating...';
             
-            fetch('api/admin-practices.php?action=deactivate', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                credentials: 'same-origin',
-                body: JSON.stringify({
-                    practice_id: selectedPracticeId,
-                    reason: reason
-                })
+            postJson('api/admin-practices.php?action=deactivate', {
+                practice_id: selectedPracticeId,
+                reason: reason
             })
             .then(response => response.json())
             .then(data => {
@@ -2119,12 +2304,7 @@ $userEmail = $_SESSION['user_email'] ?? '';
                 return;
             }
             
-            fetch('api/admin-practices.php?action=reactivate', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                credentials: 'same-origin',
-                body: JSON.stringify({ practice_id: practiceId })
-            })
+            postJson('api/admin-practices.php?action=reactivate', { practice_id: practiceId })
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
@@ -2154,12 +2334,7 @@ $userEmail = $_SESSION['user_email'] ?? '';
         }
 
         function hidePractice(practiceId) {
-            fetch('api/admin-practices.php?action=hide', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                credentials: 'same-origin',
-                body: JSON.stringify({ practice_id: practiceId })
-            })
+            postJson('api/admin-practices.php?action=hide', { practice_id: practiceId })
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
@@ -2175,12 +2350,7 @@ $userEmail = $_SESSION['user_email'] ?? '';
         }
 
         function unhidePractice(practiceId) {
-            fetch('api/admin-practices.php?action=unhide', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                credentials: 'same-origin',
-                body: JSON.stringify({ practice_id: practiceId })
-            })
+            postJson('api/admin-practices.php?action=unhide', { practice_id: practiceId })
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
@@ -2234,18 +2404,35 @@ $userEmail = $_SESSION['user_email'] ?? '';
             return { text: text, title: formatDateTime(dateStr) };
         }
 
-        function formatDate(dateStr) {
-            if (!dateStr) return 'N/A';
-            const date = new Date(dateStr);
-            return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+        function parseDateUTC(dateStr) {
+            if (!dateStr) return null;
+            // Already a full ISO 8601 / RFC 3339 timestamp (e.g. 2026-08-29T22:19:09Z)
+            if (/Z$|[+-]\d{2}:?\d{2}$/.test(String(dateStr))) {
+                return new Date(dateStr);
+            }
+            // MySQL / DATETIME with optional time: parse as UTC so the display
+            // matches the server-side calendar-day calculation.
+            const parts = String(dateStr).match(/^(\d{4})-(\d{2})-(\d{2})(?:[ T](\d{2}):(\d{2}):(\d{2}))?/);
+            if (!parts) return new Date(dateStr);
+            return new Date(Date.UTC(+parts[1], +parts[2] - 1, +parts[3], +(parts[4] || 0), +(parts[5] || 0), +(parts[6] || 0)));
         }
-        
-        function formatDateTime(dateStr) {
-            if (!dateStr) return 'N/A';
-            const date = new Date(dateStr);
-            return date.toLocaleDateString('en-US', { 
+
+        function formatDate(dateStr) {
+            const date = parseDateUTC(dateStr);
+            if (!date) return 'N/A';
+            return date.toLocaleDateString('en-US', {
                 year: 'numeric', month: 'short', day: 'numeric',
-                hour: '2-digit', minute: '2-digit'
+                timeZone: 'UTC'
+            });
+        }
+
+        function formatDateTime(dateStr) {
+            const date = parseDateUTC(dateStr);
+            if (!date) return 'N/A';
+            return date.toLocaleDateString('en-US', {
+                year: 'numeric', month: 'short', day: 'numeric',
+                hour: '2-digit', minute: '2-digit',
+                timeZone: 'UTC'
             });
         }
         
@@ -2409,6 +2596,44 @@ $userEmail = $_SESSION['user_email'] ?? '';
             });
         });
     </script>
+
+    <!-- Extend Trial Modal -->
+    <div class="modal" id="extendTrialModal">
+        <div class="modal-content" style="max-width: 520px;">
+            <div class="modal-header">
+                <h3><?php echo t('admin_practices.extend_trial_title'); ?></h3>
+                <button class="modal-close" onclick="closeModal('extendTrialModal')">&times;</button>
+            </div>
+            <div id="extendTrialContent">
+                <div class="form-group">
+                    <label for="extendTrialLength"><?php echo t('admin_practices.extend_trial_length_label'); ?></label>
+                    <select id="extendTrialLength" class="form-control" onchange="updateExtendTrialPreview()" style="width: 100%; padding: 8px; border: 1px solid #d1d5db; border-radius: 6px;"></select>
+                </div>
+                <div class="form-group">
+                    <p style="margin: 0; color: #1f2937;">
+                        <?php echo t('admin_practices.extend_trial_preview_prefix'); ?>
+                        <strong id="extendTrialPreviewDate"></strong>
+                    </p>
+                </div>
+                <div class="form-group" id="extendTrialAffectedGroup" style="display: none;">
+                    <label><?php echo t('admin_practices.extend_trial_affected_label'); ?></label>
+                    <p style="margin: 0; color: #1f2937;" id="extendTrialAffectedIntro"></p>
+                    <ul style="margin: 8px 0 0; padding-left: 20px; color: #6b7280; font-size: 0.85rem;" id="extendTrialAffectedList"></ul>
+                </div>
+                <div class="form-group" id="extendTrialEmailGroup" style="display: none;">
+                    <label>
+                        <input type="checkbox" id="extendTrialSendEmail" onchange="toggleExtendTrialEmail()">
+                        <?php echo t('admin_practices.extend_trial_send_email'); ?>
+                    </label>
+                    <p style="margin: 8px 0 0; color: #6b7280; font-size: 0.85rem;" id="extendTrialRecipient"></p>
+                </div>
+                <div class="modal-actions" style="margin-top: 20px;">
+                    <button class="action-btn" onclick="closeModal('extendTrialModal')"><?php echo t('common.cancel'); ?></button>
+                    <button class="action-btn primary" id="confirmExtendTrialBtn" onclick="confirmExtendTrial()"><?php echo t('admin_practices.extend_trial_button'); ?></button>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- Send Email Modal -->
     <div class="modal" id="emailModal">

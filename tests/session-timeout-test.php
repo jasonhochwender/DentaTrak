@@ -67,6 +67,10 @@ $results[] = '12. Passive background polling does not reset last_activity: ' . (
     runPhp("session_id('sesspass'); session_start(); \$now = time(); \$_SESSION['db_user_id']=1; \$_SESSION['last_activity'] = \$now - 10; \$_SERVER['SCRIPT_NAME']='/api/check-updates.php'; require '$baseDir/api/bootstrap.php'; require '$baseDir/api/session.php'; echo (\$_SESSION['last_activity'] == \$now - 10) ? 'PASS' : 'FAIL';") === 'PASS' ? 'PASS' : 'FAIL'
 );
 
+$results[] = '13. check-updates.php POST resets last_activity: ' . (
+    runPhp("session_id('sesscheckpost'); session_start(); \$now = time(); \$_SESSION['db_user_id']=1; \$_SESSION['last_activity'] = \$now - 10; \$_SERVER['SCRIPT_NAME']='/api/check-updates.php'; \$_SERVER['REQUEST_METHOD']='POST'; require '$baseDir/api/bootstrap.php'; require '$baseDir/api/session.php'; echo (\$_SESSION['last_activity'] > \$now - 10) ? 'PASS' : 'FAIL';") === 'PASS' ? 'PASS' : 'FAIL'
+);
+
 $results[] = '14. session-status.php GET does not reset last_activity: ' . (
     runPhp("session_id('sessstatget'); session_start(); \$now = time(); \$_SESSION['db_user_id']=1; \$_SESSION['last_activity'] = \$now - 10; \$_SERVER['SCRIPT_NAME']='/api/session-status.php'; require '$baseDir/api/bootstrap.php'; require '$baseDir/api/session.php'; echo (\$_SESSION['last_activity'] == \$now - 10) ? 'PASS' : 'FAIL';") === 'PASS' ? 'PASS' : 'FAIL'
 );

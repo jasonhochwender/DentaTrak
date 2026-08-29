@@ -13,12 +13,14 @@
 
 require_once __DIR__ . '/session.php';
 require_once __DIR__ . '/appConfig.php';
+require_once __DIR__ . '/csrf.php';
 require_once __DIR__ . '/hipaa-compliance.php';
 require_once __DIR__ . '/practice-security.php';
 require_once __DIR__ . '/workflow-stages.php';
 require_once __DIR__ . '/lab-assignment-history.php';
 require_once __DIR__ . '/subscription-owner.php';
 require_once __DIR__ . '/plan-entitlements.php';
+require_once __DIR__ . '/admin-subscription-helpers.php';
 require_once __DIR__ . '/email-sender.php';
 
 header('Content-Type: application/json');
@@ -33,7 +35,12 @@ if (empty($_SESSION['db_user_id'])) {
 // Load dev tools access control
 require_once __DIR__ . '/dev-tools-access.php';
 
-// Check if current user can access admin pages (super user OR dev environment)
+// Authorization: admin tools require either super-user privileges or an
+// explicit development environment. The 'development' environment is the
+// MAMP local DB configuration (127.0.0.1:3308); it must be strictly local and
+// isolated, never exposed to the network or used with production data. In
+// production, UAT, and Cloud Run, only configured super users can access these
+// endpoints. All state-changing actions below enforce CSRF.
 $userEmail = $_SESSION['user_email'] ?? '';
 $isDev = ($appConfig['current_environment'] ?? '') === 'development';
 $canAccess = isSuperUser($appConfig, $userEmail) || $isDev;
@@ -117,125 +124,7 @@ function logAdminEmail($adminUserId, $adminEmail, $recipientUserId, $recipientEm
     }
 }
 
-/**
- * Build a normalized, display-friendly subscription info array for admin use.
- *
- * @param array|null $sub      subscriptions row (or null)
- * @param array|null $owner    owner user row (or null)
- * @param int        $ownedCount number of practices this owner has
- * @return array
- */
-function buildSubscriptionInfo(?array $sub, ?array $owner, int $ownedCount): array {
-    if (empty($sub) || empty($sub['plan'])) {
-        $ownerId = $owner ? (int)($owner['owner_user_id'] ?? $owner['id'] ?? null) : null;
-        return [
-            'has_subscription' => false,
-            'plan' => null,
-            'plan_display' => '—',
-            'status' => 'no_subscription',
-            'status_display' => 'No Subscription',
-            'is_trialing' => false,
-            'trial_ends_at' => null,
-            'trial_days_remaining' => null,
-            'trial_display' => '',
-            'owner_user_id' => $ownerId,
-            'owner_email' => $owner ? ($owner['owner_email'] ?? $owner['email'] ?? null) : null,
-            'owner_name' => $owner ? trim(($owner['owner_first_name'] ?? $owner['first_name'] ?? '') . ' ' . ($owner['owner_last_name'] ?? $owner['last_name'] ?? '')) : null,
-            'owned_practice_count' => $ownedCount,
-            'max_practices' => null,
-            'capacity_display' => '—',
-            'stripe_customer_id' => null,
-            'stripe_subscription_id' => null,
-            'current_period_ends_at' => null,
-            'billing_interval' => null,
-            'cancel_at_period_end' => false,
-            'subscription_updated_at' => null,
-        ];
-    }
 
-    $plan = $sub['plan'] ?? null;
-    $maxPractices = null;
-    $capacityDisplay = '';
-    if (!empty($plan)) {
-        $maxPractices = getMaxOwnedPractices($plan);
-        if ($maxPractices === null) {
-            $capacityDisplay = 'Practices: ' . $ownedCount;
-        } else {
-            $capacityDisplay = 'Practices: ' . $ownedCount . ' of ' . $maxPractices;
-        }
-    }
-
-    $status = $sub['status'] ?? null;
-    $statusDisplay = 'Unknown';
-    if (!empty($status)) {
-        $statusDisplay = match ($status) {
-            'trialing' => 'Trial',
-            'active' => 'Active',
-            'past_due' => 'Past Due',
-            'unpaid' => 'Unpaid',
-            'canceled' => 'Canceled',
-            'incomplete' => 'Incomplete',
-            'incomplete_expired' => 'Incomplete Expired',
-            default => ucfirst(str_replace('_', ' ', $status)),
-        };
-    }
-
-    $trialEndsAt = null;
-    $trialDaysRemaining = null;
-    $trialDisplay = '';
-    $isTrialing = ($status === 'trialing');
-    if ($isTrialing && !empty($sub['trial_ends_at'])) {
-        $trialEndsAt = $sub['trial_ends_at'];
-        try {
-            $end = new DateTimeImmutable($trialEndsAt, new DateTimeZone('UTC'));
-            $now = new DateTimeImmutable('now', new DateTimeZone('UTC'));
-            $endDate = $end->setTime(0, 0, 0);
-            $nowDate = $now->setTime(0, 0, 0);
-            $diff = $nowDate->diff($endDate);
-            $days = (int)$diff->format('%r%a');
-
-            if ($days > 1) {
-                $trialDisplay = $days . ' days left';
-                $trialDaysRemaining = $days;
-            } elseif ($days === 1) {
-                $trialDisplay = '1 day left';
-                $trialDaysRemaining = 1;
-            } elseif ($days === 0) {
-                $trialDisplay = 'Ends today';
-                $trialDaysRemaining = 0;
-            } else {
-                $trialDisplay = 'Trial expired';
-                $trialDaysRemaining = $days;
-            }
-        } catch (Throwable $e) {
-            $trialDisplay = '';
-        }
-    }
-
-    return [
-        'has_subscription' => true,
-        'plan' => $plan,
-        'plan_display' => !empty($plan) ? getPlanDisplayName($plan) : '—',
-        'status' => $status,
-        'status_display' => $statusDisplay,
-        'is_trialing' => $isTrialing,
-        'trial_ends_at' => $trialEndsAt,
-        'trial_days_remaining' => $trialDaysRemaining,
-        'trial_display' => $trialDisplay,
-        'owner_user_id' => $owner ? (int)($owner['owner_user_id'] ?? $owner['id'] ?? null) : null,
-        'owner_email' => $owner ? ($owner['owner_email'] ?? $owner['email'] ?? null) : null,
-        'owner_name' => $owner ? trim(($owner['owner_first_name'] ?? $owner['first_name'] ?? '') . ' ' . ($owner['owner_last_name'] ?? $owner['last_name'] ?? '')) : null,
-        'owned_practice_count' => $ownedCount,
-        'max_practices' => $maxPractices,
-        'capacity_display' => $capacityDisplay,
-        'stripe_customer_id' => $sub['stripe_customer_id'] ?? null,
-        'stripe_subscription_id' => $sub['stripe_subscription_id'] ?? null,
-        'current_period_ends_at' => $sub['current_period_ends_at'] ?? null,
-        'billing_interval' => $sub['billing_interval'] ?? null,
-        'cancel_at_period_end' => !empty($sub['cancel_at_period_end']),
-        'subscription_updated_at' => $sub['subscription_updated_at'] ?? null,
-    ];
-}
 
 /**
  * Compose and send an admin-triggered practice-user email.
@@ -760,14 +649,24 @@ function handleGetRequest($action) {
                         s.cancel_at_period_end,
                         s.subscription_updated_at,
                         s.stripe_event_created,
-                        s.created_at
+                        s.created_at,
+                        p.trial_ends_at AS practice_trial_ends_at,
+                        p.subscription_status AS practice_subscription_status,
+                        p.subscription_plan AS practice_plan,
+                        p.billing_interval AS practice_billing_interval,
+                        p.current_period_ends_at AS practice_current_period_ends_at,
+                        p.stripe_customer_id AS practice_stripe_customer_id,
+                        p.stripe_subscription_id AS practice_stripe_subscription_id,
+                        p.cancel_at_period_end AS practice_cancel_at_period_end,
+                        p.subscription_updated_at AS practice_subscription_updated_at
                     FROM practice_users pu
                     JOIN users u ON u.id = pu.user_id
+                    JOIN practices p ON p.id = pu.practice_id
                     LEFT JOIN subscriptions s ON s.owner_user_id = u.id
                     WHERE pu.practice_id IN ($placeholders)
                       AND pu.is_owner = 1
                 ");
-                $stmt->execute($practiceIds);
+                $stmt->execute(array_values($practiceIds));
                 $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
                 foreach ($rows as $row) {
                     $ownerMap[(int)$row['practice_id']] = $row;
@@ -785,7 +684,7 @@ function handleGetRequest($action) {
                         WHERE user_id IN ($opPlaceholders) AND is_owner = 1
                         GROUP BY user_id
                     ");
-                    $countStmt->execute($ownerUserIds);
+                    $countStmt->execute(array_values($ownerUserIds));
                     $ownedCounts = $countStmt->fetchAll(PDO::FETCH_KEY_PAIR);
                 }
             }
@@ -896,6 +795,39 @@ function handleGetRequest($action) {
             ]);
             break;
 
+        case 'affected_practices':
+            $practiceId = $_GET['practice_id'] ?? null;
+            if (!$practiceId || !is_numeric($practiceId)) {
+                http_response_code(400);
+                echo json_encode(['success' => false, 'message' => 'Valid practice ID required']);
+                return;
+            }
+
+            $ownerUserId = getSubscriptionOwnerUserId($pdo, (int)$practiceId);
+            if (!$ownerUserId) {
+                http_response_code(400);
+                echo json_encode(['success' => false, 'message' => 'Could not resolve subscription owner for this practice']);
+                return;
+            }
+
+            $affectedStmt = $pdo->prepare("
+                SELECT p.id, p.practice_name, p.legal_name, p.display_name
+                FROM practice_users pu
+                JOIN practices p ON p.id = pu.practice_id
+                WHERE pu.user_id = ? AND pu.is_owner = 1
+                ORDER BY p.practice_name, p.id
+            ");
+            $affectedStmt->execute([$ownerUserId]);
+            $affected = $affectedStmt->fetchAll(PDO::FETCH_ASSOC);
+            foreach ($affected as &$ap) {
+                $ap['name'] = $ap['practice_name'] ?: ($ap['legal_name'] ?: ($ap['display_name'] ?: 'Unnamed'));
+                unset($ap['practice_name'], $ap['legal_name'], $ap['display_name']);
+            }
+            unset($ap);
+
+            echo json_encode(['success' => true, 'affected_practices' => $affected]);
+            break;
+
         default:
             http_response_code(400);
             echo json_encode(['success' => false, 'message' => 'Invalid action']);
@@ -903,8 +835,17 @@ function handleGetRequest($action) {
 }
 
 function handlePostRequest($action) {
+    global $pdo;
     $input = json_decode(file_get_contents('php://input'), true);
-    
+
+    // Enforce CSRF token for all state-changing POST actions. This is checked
+    // before any case handler so no DB or email side effects occur without it.
+    if (!validateCsrfToken($input['csrf_token'] ?? null)) {
+        http_response_code(403);
+        echo json_encode(['success' => false, 'message' => 'Invalid or missing CSRF token']);
+        return;
+    }
+
     switch ($action) {
         case 'deactivate':
             // Deactivate a practice
@@ -1091,10 +1032,504 @@ function handlePostRequest($action) {
             }
             break;
 
+        case 'extend_trial':
+            handleExtendTrial($input);
+            break;
+
         default:
             http_response_code(400);
             echo json_encode(['success' => false, 'message' => 'Invalid action']);
     }
+}
+
+/**
+ * Load all practices owned by a subscription owner.
+ *
+ * @return array List of [id, name] practice records.
+ */
+function loadAffectedPracticesForOwner(PDO $pdo, int $ownerUserId): array {
+    $stmt = $pdo->prepare("
+        SELECT p.id, p.practice_name, p.legal_name, p.display_name
+        FROM practice_users pu
+        JOIN practices p ON p.id = pu.practice_id
+        WHERE pu.user_id = ? AND pu.is_owner = 1
+        ORDER BY p.practice_name, p.id
+    ");
+    $stmt->execute([$ownerUserId]);
+    $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    foreach ($rows as &$row) {
+        $row['name'] = $row['practice_name'] ?: ($row['legal_name'] ?: ($row['display_name'] ?: 'Unnamed'));
+        unset($row['practice_name'], $row['legal_name'], $row['display_name']);
+    }
+    unset($row);
+    return $rows;
+}
+
+/**
+ * Resolve or create the authoritative owner-level subscriptions row.
+ *
+ * If a row already exists, it is returned unchanged unless it lacks a trial end
+ * date and a legacy practice row contains a later one (backfill without
+ * replacing later authoritative data). If no row exists, a new one is created
+ * from the latest legacy trial data for this owner.
+ *
+ * This must be called inside a transaction so the SELECT ... FOR UPDATE lock
+ * protects against duplicate inserts.
+ */
+function resolveOrBackfillSubscriptionForOwner(PDO $pdo, int $ownerUserId): ?array {
+    // Latest legacy trial data among all practices owned by this owner.
+    $legacyStmt = $pdo->prepare("
+        SELECT p.trial_ends_at,
+               p.subscription_status,
+               p.billing_interval,
+               p.current_period_ends_at,
+               p.stripe_customer_id,
+               p.stripe_subscription_id,
+               p.cancel_at_period_end
+        FROM practice_users pu
+        JOIN practices p ON p.id = pu.practice_id
+        WHERE pu.user_id = :owner_user_id
+          AND pu.is_owner = 1
+          AND p.trial_ends_at IS NOT NULL
+        ORDER BY p.trial_ends_at DESC
+        LIMIT 1
+    ");
+    $legacyStmt->execute(['owner_user_id' => $ownerUserId]);
+    $legacy = $legacyStmt->fetch(PDO::FETCH_ASSOC);
+
+    // Lock the owner row (or confirm it does not exist) for the transaction.
+    $subStmt = $pdo->prepare("
+        SELECT id, owner_user_id, plan, billing_interval, status, trial_ends_at,
+               current_period_ends_at, cancel_at_period_end, stripe_customer_id,
+               stripe_subscription_id, subscription_updated_at
+        FROM subscriptions
+        WHERE owner_user_id = :owner_user_id
+        FOR UPDATE
+    ");
+    $subStmt->execute(['owner_user_id' => $ownerUserId]);
+    $sub = $subStmt->fetch(PDO::FETCH_ASSOC);
+
+    if (!empty($sub) && !empty($sub['trial_ends_at'])) {
+        // Authoritative row with a trial end date already exists; never replace.
+        return $sub;
+    }
+
+    if (empty($legacy) || empty($legacy['trial_ends_at'])) {
+        return null;
+    }
+
+    $backfillEnd = $legacy['trial_ends_at'];
+    $backfillStatus = $legacy['subscription_status'] ?: 'trialing';
+
+    if (!empty($sub)) {
+        // Row exists but has no usable trial end; backfill if the legacy end is
+        // later than the existing one (or the existing one is null).
+        $existingEnd = null;
+        if (!empty($sub['trial_ends_at'])) {
+            try {
+                $existingEnd = new DateTimeImmutable($sub['trial_ends_at'], new DateTimeZone('UTC'));
+            } catch (Throwable $e) {
+                $existingEnd = null;
+            }
+        }
+        try {
+            $legacyEnd = new DateTimeImmutable($backfillEnd, new DateTimeZone('UTC'));
+        } catch (Throwable $e) {
+            return null;
+        }
+        $shouldUpdate = ($existingEnd === null) || ($existingEnd < $legacyEnd);
+
+        if ($shouldUpdate) {
+            $updateStmt = $pdo->prepare("
+                UPDATE subscriptions
+                SET trial_ends_at = :trial_ends_at,
+                    status = COALESCE(status, :status),
+                    billing_interval = COALESCE(billing_interval, :billing_interval),
+                    current_period_ends_at = COALESCE(current_period_ends_at, :current_period_ends_at),
+                    stripe_customer_id = COALESCE(stripe_customer_id, :stripe_customer_id),
+                    stripe_subscription_id = COALESCE(stripe_subscription_id, :stripe_subscription_id),
+                    cancel_at_period_end = COALESCE(cancel_at_period_end, :cancel_at_period_end),
+                    subscription_updated_at = UTC_TIMESTAMP()
+                WHERE owner_user_id = :owner_user_id
+            ");
+            $updateStmt->execute([
+                'trial_ends_at' => $backfillEnd,
+                'status' => $backfillStatus,
+                'billing_interval' => $legacy['billing_interval'] ?? null,
+                'current_period_ends_at' => $legacy['current_period_ends_at'] ?? null,
+                'stripe_customer_id' => $legacy['stripe_customer_id'] ?? null,
+                'stripe_subscription_id' => $legacy['stripe_subscription_id'] ?? null,
+                'cancel_at_period_end' => $legacy['cancel_at_period_end'] ?? 0,
+                'owner_user_id' => $ownerUserId,
+            ]);
+        }
+
+        $subStmt->execute(['owner_user_id' => $ownerUserId]);
+        return $subStmt->fetch(PDO::FETCH_ASSOC);
+    }
+
+    // No row and no duplicate is possible because of the FOR UPDATE read above.
+    $insertStmt = $pdo->prepare("
+        INSERT INTO subscriptions (
+            owner_user_id, status, trial_ends_at, billing_interval, current_period_ends_at,
+            stripe_customer_id, stripe_subscription_id, cancel_at_period_end, subscription_updated_at
+        ) VALUES (
+            :owner_user_id, :status, :trial_ends_at, :billing_interval, :current_period_ends_at,
+            :stripe_customer_id, :stripe_subscription_id, :cancel_at_period_end, UTC_TIMESTAMP()
+        )
+        ON DUPLICATE KEY UPDATE id = id
+    ");
+    $insertStmt->execute([
+        'owner_user_id' => $ownerUserId,
+        'status' => $backfillStatus,
+        'trial_ends_at' => $backfillEnd,
+        'billing_interval' => $legacy['billing_interval'] ?? null,
+        'current_period_ends_at' => $legacy['current_period_ends_at'] ?? null,
+        'stripe_customer_id' => $legacy['stripe_customer_id'] ?? null,
+        'stripe_subscription_id' => $legacy['stripe_subscription_id'] ?? null,
+        'cancel_at_period_end' => $legacy['cancel_at_period_end'] ?? 0,
+    ]);
+
+    $subStmt->execute(['owner_user_id' => $ownerUserId]);
+    return $subStmt->fetch(PDO::FETCH_ASSOC);
+}
+
+/**
+ * Validate that the resolved subscription is in an active trial state.
+ *
+ * @return string|null Error message, or null if the trial can be extended.
+ */
+function getTrialExtensionError(array $sub): ?string {
+    $trialEndsAt = $sub['trial_ends_at'] ?? null;
+    if (empty($trialEndsAt)) {
+        return 'This practice is not currently on a trial';
+    }
+
+    try {
+        $today = (new DateTimeImmutable('now', new DateTimeZone('UTC')))->setTime(0, 0, 0);
+        $end = (new DateTimeImmutable($trialEndsAt, new DateTimeZone('UTC')))->setTime(0, 0, 0);
+        if ($end < $today) {
+            return 'This trial has already expired and cannot be extended';
+        }
+    } catch (Throwable $e) {
+        return 'Could not parse existing trial end date';
+    }
+
+    $status = $sub['status'] ?? null;
+    $stripeSubscriptionId = $sub['stripe_subscription_id'] ?? null;
+
+    // A Stripe subscription that is not explicitly trialing means the account
+    // has converted to a paid subscription or is in a terminal state.
+    if (!empty($stripeSubscriptionId) && $status !== 'trialing') {
+        return 'This practice is already on a paid subscription and cannot have its trial extended';
+    }
+
+    // Only 'trialing' or no status (legacy backfill) can represent an active
+    // trial. Any other explicit status is not a trial.
+    if (!empty($status) && $status !== 'trialing') {
+        return 'This practice is not currently on an active trial';
+    }
+
+    return null;
+}
+
+/**
+ * Extend the DentaTrak trial for a practice's subscription owner.
+ *
+ * Authorization is already enforced by the caller. This action requires a valid
+ * CSRF token, validates the extension length server-side (1-24 calendar months),
+ * resolves all practices affected by the owner's subscription, backfills an
+ * authoritative subscriptions row from legacy practice data when needed, updates
+ * the trial end in a transaction, optionally emails the owner, and writes an
+ * admin audit log entry.
+ */
+function handleExtendTrial(array $input): void {
+    global $pdo;
+
+    // CSRF is validated by handlePostRequest before this function is called.
+
+    $practiceId = $input['practice_id'] ?? null;
+    $extensionMonths = $input['extension_months'] ?? null;
+    $sendEmail = !empty($input['send_email']);
+
+    if (!$practiceId || !is_numeric($practiceId)) {
+        http_response_code(400);
+        echo json_encode(['success' => false, 'message' => 'Practice ID is required']);
+        return;
+    }
+
+    $practiceId = (int)$practiceId;
+
+    if (!is_int($extensionMonths) && !is_numeric($extensionMonths)) {
+        http_response_code(400);
+        echo json_encode(['success' => false, 'message' => 'Extension length is required']);
+        return;
+    }
+
+    $extensionMonths = (int)$extensionMonths;
+    if ($extensionMonths < 1 || $extensionMonths > 24) {
+        http_response_code(400);
+        echo json_encode(['success' => false, 'message' => 'Extension length must be between 1 and 24 months']);
+        return;
+    }
+
+    if (!$pdo) {
+        http_response_code(500);
+        echo json_encode(['success' => false, 'message' => 'Database connection unavailable']);
+        return;
+    }
+
+    $ownerUserId = getSubscriptionOwnerUserId($pdo, $practiceId);
+    if (!$ownerUserId) {
+        http_response_code(400);
+        echo json_encode(['success' => false, 'message' => 'Could not resolve a valid subscription owner for this practice']);
+        return;
+    }
+
+    $ownerStmt = $pdo->prepare("SELECT id, email, first_name, last_name, locale FROM users WHERE id = ? LIMIT 1");
+    $ownerStmt->execute([$ownerUserId]);
+    $ownerUser = $ownerStmt->fetch(PDO::FETCH_ASSOC);
+
+    if (!$ownerUser) {
+        http_response_code(400);
+        echo json_encode(['success' => false, 'message' => 'Could not resolve a valid subscription owner for this practice']);
+        return;
+    }
+
+    // Resolve all practices affected by this owner's subscription. This is used
+    // in the confirmation, the audit log, and the client-side refresh.
+    $affectedPractices = loadAffectedPracticesForOwner($pdo, $ownerUserId);
+
+    try {
+        $pdo->beginTransaction();
+
+        $sub = resolveOrBackfillSubscriptionForOwner($pdo, $ownerUserId);
+
+        if (empty($sub)) {
+            $pdo->rollBack();
+            http_response_code(400);
+            echo json_encode(['success' => false, 'message' => 'This practice has no active trial or legacy trial data to extend']);
+            return;
+        }
+
+        $extensionError = getTrialExtensionError($sub);
+        if ($extensionError) {
+            $pdo->rollBack();
+            http_response_code(400);
+            echo json_encode(['success' => false, 'message' => $extensionError]);
+            return;
+        }
+
+        $oldEnd = new DateTimeImmutable($sub['trial_ends_at'], new DateTimeZone('UTC'));
+        $newEnd = addCalendarMonths($oldEnd, $extensionMonths);
+        $newEndFormatted = $newEnd->format('Y-m-d H:i:s');
+        $previousEndFormatted = $sub['trial_ends_at'];
+
+        $updateStmt = $pdo->prepare("
+            UPDATE subscriptions
+            SET trial_ends_at = :trial_ends_at,
+                status = COALESCE(status, 'trialing'),
+                subscription_updated_at = UTC_TIMESTAMP()
+            WHERE owner_user_id = :owner_user_id
+              AND (status IS NULL OR status = 'trialing')
+        ");
+        $updateStmt->execute([
+            'trial_ends_at' => $newEndFormatted,
+            'owner_user_id' => $ownerUserId,
+        ]);
+
+        if ($updateStmt->rowCount() === 0) {
+            $pdo->rollBack();
+            http_response_code(400);
+            echo json_encode(['success' => false, 'message' => 'This practice is not currently on an active trial']);
+            return;
+        }
+
+        $pdo->commit();
+    } catch (PDOException $e) {
+        $pdo->rollBack();
+        error_log('[admin-practices] Error extending trial: ' . $e->getMessage());
+        http_response_code(500);
+        echo json_encode(['success' => false, 'message' => 'Failed to extend trial due to a database error']);
+        return;
+    }
+
+    // Re-fetch the updated subscription row and all affected practice counts.
+    $updatedSub = getSubscriptionForOwner($pdo, $ownerUserId);
+    $displaySub = buildSubscriptionInfo($updatedSub ?: [], $ownerUser, count($affectedPractices));
+
+    $emailResultState = 'not_requested';
+    $emailResult = ['success' => false, 'provider' => null, 'error' => null];
+    $emailMessage = null;
+
+    if ($sendEmail) {
+        $emailResult = sendTrialExtensionEmail(
+            $pdo,
+            (int)($_SESSION['db_user_id'] ?? 0),
+            $_SESSION['user_email'] ?? '',
+            $practiceId,
+            (int)$ownerUser['id'],
+            $ownerUser,
+            $extensionMonths,
+            $newEndFormatted
+        );
+
+        if ($emailResult['success']) {
+            $emailResultState = 'sent';
+        } else {
+            $emailResultState = 'failed';
+            $emailMessage = $emailResult['error'] ?? 'The notification email could not be sent.';
+        }
+    }
+
+    $affectedPracticeNames = array_column($affectedPractices, 'name');
+
+    $successMessage = buildTrialExtensionMessage(
+        $extensionMonths,
+        $affectedPracticeNames,
+        $emailResultState,
+        $emailMessage
+    );
+
+    logAdminAction('trial_extended', [
+        'practice_id' => $practiceId,
+        'affected_practices' => $affectedPractices,
+        'affected_practice_names' => $affectedPracticeNames,
+        'owner_user_id' => $ownerUserId,
+        'previous_trial_ends_at' => $previousEndFormatted,
+        'new_trial_ends_at' => $newEndFormatted,
+        'extension_months' => $extensionMonths,
+        'email_result' => $emailResultState,
+        'email_provider' => $emailResult['provider'] ?? null,
+        'email_error' => $emailMessage,
+    ]);
+
+    echo json_encode([
+        'success' => true,
+        'message' => $successMessage,
+        'subscription' => $displaySub,
+        'affected_practices' => $affectedPractices,
+        'affected_practice_ids' => array_column($affectedPractices, 'id'),
+        'email_result' => $emailResultState,
+        'email_message' => $emailMessage,
+    ]);
+}
+
+/**
+ * Build a user-visible success message that makes clear whether one or many
+ * practices were affected and whether the email succeeded.
+ */
+function buildTrialExtensionMessage(int $extensionMonths, array $names, string $emailResult, ?string $emailError): string {
+    $monthLabel = $extensionMonths === 1 ? 'month' : 'months';
+    $base = 'Trial extended by ' . $extensionMonths . ' ' . $monthLabel;
+
+    if (count($names) === 1) {
+        $base .= ' for ' . $names[0];
+    } else {
+        $base .= ' for ' . count($names) . ' practices using this subscription: ' . implode(', ', $names);
+    }
+
+    if ($emailResult === 'sent') {
+        $base .= '. Notification email sent.';
+    } elseif ($emailResult === 'failed') {
+        $base .= '. The trial was extended, but the notification email could not be sent. The trial extension has still been applied.';
+    }
+
+    return $base;
+}
+
+/**
+ * Send a trial extension notification to the subscription owner.
+ *
+ * This uses the existing sendAppEmail infrastructure. It does not roll back the
+ * trial extension on email failure, but returns a safe failure message so the
+ * caller can report it without exposing mail-system details to the browser.
+ * Technical failures are written to the server error log.
+ *
+ * @return array { success: bool, provider: ?string, error: ?string }
+ */
+function sendTrialExtensionEmail(
+    PDO $pdo,
+    int $adminUserId,
+    string $adminEmail,
+    int $practiceId,
+    int $recipientUserId,
+    array $owner,
+    int $extensionMonths,
+    string $newTrialEndsAt
+): array {
+    global $appConfig;
+
+    $toEmail = $owner['email'] ?? '';
+    if (!$toEmail) {
+        return ['success' => false, 'provider' => null, 'error' => 'No recipient email address for subscription owner'];
+    }
+
+    $firstName = trim($owner['first_name'] ?? '');
+    $supportEmail = $appConfig['support_email'] ?? 'support@dentatrak.com';
+
+    try {
+        $newEnd = new DateTimeImmutable($newTrialEndsAt, new DateTimeZone('UTC'));
+        $newEndDate = $newEnd->format('M j, Y');
+    } catch (Throwable $e) {
+        $newEndDate = $newTrialEndsAt;
+    }
+
+    $monthLabel = $extensionMonths === 1
+        ? t('admin_practices.month_singular')
+        : t('admin_practices.month_plural');
+
+    $greeting = t('admin_practices.email_trial_extended_greeting', ['name' => $firstName ?: 'there']);
+
+    $html = '<!DOCTYPE html><html><body>';
+    $html .= '<p>' . escapeHtmlEmail($greeting) . '</p>';
+    $html .= '<p>' . escapeHtmlEmail(t('admin_practices.email_trial_extended_body_1', ['months' => $extensionMonths . ' ' . $monthLabel])) . '</p>';
+    $html .= '<p>' . escapeHtmlEmail(t('admin_practices.email_trial_extended_body_2', ['date' => $newEndDate])) . '</p>';
+    $html .= '<p>' . escapeHtmlEmail(t('admin_practices.email_trial_extended_body_3')) . '</p>';
+    $html .= '<p>' . escapeHtmlEmail(t('admin_practices.email_trial_extended_closing')) . '<br>' . escapeHtmlEmail(t('admin_practices.email_trial_extended_team')) . '</p>';
+    $html .= '</body></html>';
+
+    $text = $greeting . "\n\n" .
+        t('admin_practices.email_trial_extended_body_1', ['months' => $extensionMonths . ' ' . $monthLabel]) . "\n\n" .
+        t('admin_practices.email_trial_extended_body_2', ['date' => $newEndDate]) . "\n\n" .
+        t('admin_practices.email_trial_extended_body_3') . "\n\n" .
+        t('admin_practices.email_trial_extended_closing') . "\n" .
+        t('admin_practices.email_trial_extended_team');
+
+    $subject = t('admin_practices.email_trial_extended_subject');
+
+    $result = sendAppEmail($toEmail, $subject, $html, $text, $supportEmail);
+
+    $success = !empty($result['success']);
+    $provider = $result['provider'] ?? null;
+    $technicalError = $result['error'] ?? null;
+
+    if (!$success && $technicalError) {
+        error_log('[admin-practices] Trial extension email failed for ' . $toEmail . ': ' . $technicalError);
+    }
+
+    logAdminEmail(
+        $adminUserId,
+        $adminEmail,
+        $recipientUserId,
+        $toEmail,
+        $practiceId,
+        'trial_extended',
+        $subject,
+        $success,
+        $provider,
+        $technicalError
+    );
+
+    return [
+        'success' => $success,
+        'provider' => $provider,
+        'error' => $success ? null : 'The notification email could not be sent. The trial extension has still been applied.',
+    ];
+}
+
+function escapeHtmlEmail(string $text): string {
+    return htmlspecialchars($text, ENT_QUOTES, 'UTF-8');
 }
 
 function getPracticeUsers($practiceId) {
