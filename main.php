@@ -34,6 +34,11 @@ require_once __DIR__ . '/api/feature-flags.php';
 // Load practice permission helpers (canViewAnalytics, etc.)
 require_once __DIR__ . '/api/practice-security.php';
 
+// Billing-bypass patterns must be available before deciding whether to render
+// any billing UI in the first paint, so the link does not flash on load and
+// then get hidden by client-side JavaScript.
+require_once __DIR__ . '/api/billing-bypass.php';
+
 // Set security headers for this page
 setSecurityHeaders();
 
@@ -155,6 +160,8 @@ $userCanViewAnalytics = canViewAnalytics($currentPracticeId);
 // authoritative practice_users.role column. This only controls UI
 // visibility; every underlying API independently enforces this server-side.
 $isCurrentUserPracticeAdmin = isPracticeAdmin($currentPracticeId);
+
+
 
 // Practice-specific workflow-stage display labels, resolved once here so
 // both the Kanban board and Settings > Display & Behavior can render the
@@ -358,6 +365,16 @@ if (!isset($_SESSION['user'])) {
 
 // Store user info for display
 $user = $_SESSION['user'];
+
+// Billing link in the user header is shown only when billing and the legacy
+// billing-link feature are enabled, the current user is a practice admin, and
+// the user's email is not in the billing-bypass list. This must match the
+// hide_billing_ui logic in api/billing.php to avoid a visible link that is
+// hidden after the async billing info call returns.
+$showBillingHeader = isFeatureEnabled('BILLING_ENABLED')
+    && isFeatureEnabled('SHOW_BILLING')
+    && $isCurrentUserPracticeAdmin
+    && shouldShowBillingUI($user['email'] ?? '');
 
 // Fetch current practice information for header
 $currentPracticeId = $_SESSION['current_practice_id'] ?? 0;
@@ -703,8 +720,8 @@ window.bulkZipMaxBytes = <?php echo (int)getBulkZipMaxSize(); ?>;
         <div class="user-info">
           <span class="user-name"><?php echo htmlspecialchars($user['name'] ?? 'User'); ?></span>
           <span class="user-email"><?php echo htmlspecialchars($user['email'] ?? ''); ?></span>
-<?php if (isFeatureEnabled('BILLING_ENABLED') && $isCurrentUserPracticeAdmin): ?>
-          <a href="billing.php" class="billing-link" id="userBillingTier"><?php echo t('navigation.billing'); ?></a>
+<?php if ($showBillingHeader): ?>
+          <a href="billing.php" class="billing-link" id="userBillingTier" style="visibility: hidden;"><?php echo t('navigation.billing'); ?></a>
 <?php endif; ?>
         </div>
 
@@ -757,7 +774,7 @@ endif;
 <?php if (isFeatureEnabled('SHOW_NOTIFICATIONS')): ?>
           <a href="#" class="user-menu-item" id="notificationPreferencesMenuItem"><?php echo t('preferences.title'); ?></a>
 <?php endif; ?>
-<?php if ($isCurrentUserPracticeAdmin && isFeatureEnabled('BILLING_ENABLED')): ?>
+<?php if ($showBillingHeader): ?>
           <a href="#" class="user-menu-item" id="billingMenuItem"><?php echo t('navigation.billing'); ?></a>
 <?php endif; ?>
 <?php if ($isCurrentUserPracticeAdmin): ?>

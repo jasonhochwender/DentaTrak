@@ -123,6 +123,8 @@ node_modules/
 !/tests/workflow-reset-sql-test.php
 !/tests/workflow-init-runtime-test.php
 !/tests/insights-loader-test.php
+!/tests/billing-header-visibility-test.php
+!/tests/billing-flash-render-test.php
 /testResults/
 /test-results/
 /playwright-report/

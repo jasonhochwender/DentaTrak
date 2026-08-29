@@ -9259,6 +9259,9 @@ document.addEventListener('DOMContentLoaded', function () {
               window.location.href = 'billing.php';
             } : null;
             billingTierElement.style.cursor = showLink ? 'pointer' : 'default';
+            // Reveal the link only after the authoritative billing text is set,
+            // preventing a flash of the placeholder "Billing" label.
+            billingTierElement.style.visibility = 'visible';
           }
         }
 
@@ -9278,6 +9281,7 @@ document.addEventListener('DOMContentLoaded', function () {
         const billingTierElement = document.getElementById('userBillingTier');
         if (billingTierElement) {
           billingTierElement.textContent = t('billing.link.evaluate_plan');
+          billingTierElement.style.visibility = 'visible';
         }
       });
   }
