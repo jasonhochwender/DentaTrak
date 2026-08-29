@@ -145,9 +145,14 @@ $articleUrls = $appConfig['public_urls'] ?? [];
     .app-brand img { height: auto; width: auto; max-width: 105px; object-fit: contain; display: block; }
     .app-practice { font-size: 0.78rem; color: var(--dt-ink-muted); padding: 4px 10px; background: #fff; border: 1px solid var(--dt-border); border-radius: 100px; }
     .app-tabs { display: flex; align-items: center; gap: 8px; padding: 10px 20px; background: #fafafa; border-bottom: 1px solid var(--dt-border); font-size: 0.85rem; font-weight: 600; }
-    .app-tab { padding: 6px 12px; border-radius: 8px; color: var(--dt-ink-muted); }
+    .app-tab { padding: 6px 12px; border-radius: 8px; color: var(--dt-ink-muted); background: transparent; border: 1px solid transparent; font: inherit; font-size: 0.85rem; font-weight: 600; cursor: pointer; transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease; }
+    .app-tab:hover { color: var(--dt-ink); }
+    .app-tab:focus-visible { outline: 2px solid var(--dt-blue-light); outline-offset: 2px; }
     .app-tab.active { background: #fff; color: var(--dt-ink); border: 1px solid var(--dt-border); }
     .app-filter { margin-left: auto; font-size: 0.78rem; color: var(--dt-ink-muted); font-weight: 500; }
+    .app-views { position: relative; min-height: 420px; transition: height 0.4s ease; }
+    .app-view { position: absolute; top: 0; left: 0; width: 100%; opacity: 0; transform: translateY(12px); pointer-events: none; transition: opacity 0.4s ease, transform 0.4s ease; }
+    .app-view.active { opacity: 1; transform: translateY(0); pointer-events: auto; z-index: 1; }
     .app-board { padding: 20px; }
 
     .board { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 12px; }
@@ -174,7 +179,87 @@ $articleUrls = $appConfig['public_urls'] ?? [];
     .case-card.late { border-left: 3px solid #dc2626; }
     .case-card.appt { border-left: 3px solid #8b5cf6; }
 
-    /* Problem */
+    /* Demo Insights view */
+    .demo-insights { padding: 24px 20px; }
+    .di-header { margin-bottom: 20px; }
+    .di-header h3 { font-size: 1.15rem; font-weight: 700; color: var(--dt-ink); margin-bottom: 2px; }
+    .di-header p { font-size: 0.78rem; color: var(--dt-ink-muted); }
+
+    .di-metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 20px; }
+    .di-metric { background: #fff; border: 1px solid var(--dt-border); border-radius: 14px; padding: 16px 14px; box-shadow: 0 1px 2px rgba(0,0,0,0.04); transition: transform 0.2s ease, box-shadow 0.2s ease; }
+    .di-metric:hover { transform: translateY(-2px); box-shadow: 0 8px 20px -8px rgba(0,0,0,0.08); }
+    .di-metric-value { font-size: 1.75rem; font-weight: 700; line-height: 1; margin-bottom: 6px; color: var(--dt-ink); }
+    .di-metric-label { font-size: 0.65rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--dt-ink-muted); }
+    .di-metric.due .di-metric-value { color: #1d4ed8; }
+    .di-metric.late .di-metric-value { color: #dc2626; }
+    .di-metric.delivered .di-metric-value { color: #15803d; }
+
+    .di-charts { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
+    .di-chart { background: #fff; border: 1px solid var(--dt-border); border-radius: 16px; padding: 16px; box-shadow: 0 1px 2px rgba(0,0,0,0.04); }
+    .di-chart-title { font-size: 0.85rem; font-weight: 600; color: var(--dt-ink); margin-bottom: 12px; }
+    .di-donut { width: 100%; height: 160px; }
+    .di-donut svg { display: block; width: 100%; height: 100%; }
+    .di-donut-track { fill: none; stroke: #f3f4f6; stroke-width: 10; }
+    .di-donut-seg { fill: none; stroke-width: 10; stroke-linecap: round; transition: stroke-dasharray 0.8s ease, stroke-dashoffset 0.8s ease; }
+    .di-legend { display: flex; flex-wrap: wrap; gap: 8px 14px; margin-top: 10px; font-size: 0.65rem; color: var(--dt-ink-muted); }
+    .di-legend span { display: inline-flex; align-items: center; gap: 5px; }
+    .di-legend-dot { width: 7px; height: 7px; border-radius: 50%; }
+
+    .di-line-chart { width: 100%; height: 160px; }
+    .di-line-chart svg { display: block; width: 100%; height: 100%; overflow: visible; }
+    .di-line-grid { stroke: #f3f4f6; stroke-width: 1; }
+    .di-line-area { fill: url(#diAreaGradient); transition: opacity 0.6s ease; }
+    .di-line-path { fill: none; stroke: var(--dt-blue); stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 1000; stroke-dashoffset: 1000; transition: stroke-dashoffset 1s ease; }
+    .di-line-dot { fill: #fff; stroke: var(--dt-blue); stroke-width: 2; r: 3; opacity: 0; transition: opacity 0.3s ease; }
+    .di-line-chart.animated .di-line-path { stroke-dashoffset: 0; }
+    .di-line-chart.animated .di-line-dot { opacity: 1; }
+
+    .di-split { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
+    .di-card { background: #fff; border: 1px solid var(--dt-border); border-radius: 16px; padding: 16px; box-shadow: 0 1px 2px rgba(0,0,0,0.04); }
+    .di-card h4 { font-size: 0.78rem; font-weight: 600; color: var(--dt-ink-muted); text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 12px; }
+    .di-bar { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; font-size: 0.7rem; }
+    .di-bar:last-child { margin-bottom: 0; }
+    .di-bar-label { width: 80px; color: var(--dt-ink-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .di-bar-track { flex: 1; height: 6px; background: #f3f4f6; border-radius: 3px; overflow: hidden; }
+    .di-bar-fill { height: 100%; border-radius: 3px; width: 0; transition: width 0.7s ease; }
+    .di-bar-value { width: 22px; text-align: right; color: var(--dt-ink); font-weight: 600; }
+    .di-kpis { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .di-kpi { background: #f9fafb; border-radius: 12px; padding: 12px; }
+    .di-kpi-value { font-size: 1.3rem; font-weight: 700; color: var(--dt-ink); }
+    .di-kpi-label { font-size: 0.68rem; color: var(--dt-ink-muted); }
+
+    .di-smart { background: #fff; border: 1px solid var(--dt-border); border-left: 4px solid #f59e0b; border-radius: 16px; padding: 16px; display: flex; gap: 12px; align-items: flex-start; box-shadow: 0 1px 2px rgba(0,0,0,0.04); }
+    .di-smart-icon { flex-shrink: 0; width: 34px; height: 34px; border-radius: 50%; background: #fef3c7; color: #b45309; display: flex; align-items: center; justify-content: center; }
+    .di-smart-icon svg { width: 18px; height: 18px; stroke: currentColor; }
+    .di-smart h4 { font-size: 0.8rem; font-weight: 700; margin-bottom: 4px; }
+    .di-smart p { font-size: 0.75rem; color: var(--dt-ink-secondary); line-height: 1.5; }
+
+    /* Problem visual animation */
+    .problem-connections { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1; }
+    .problem-connections line { stroke-width: 1.5; stroke-linecap: round; opacity: 0; transition: opacity 0.5s ease; }
+    .fragment { transition: transform 0.55s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.35s ease; }
+    .problem-case { transition: transform 0.55s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.55s ease; }
+    .problem-visual.is-converging .fragment { transition-duration: 0.8s; }
+    .problem-visual.is-converging .problem-case { transform: translateY(-6px); box-shadow: var(--dt-shadow), 0 0 0 1px rgba(30,64,175,0.08); }
+
+    /* Problem fragment outward spread on hover/enter */
+    .problem-visual.is-active .f-1 { transform: translate(-10px, -10px) rotate(-3deg); }
+    .problem-visual.is-active .f-2 { transform: translate(10px, -8px) rotate(3deg); }
+    .problem-visual.is-active .f-3 { transform: translate(-14px, 4px) rotate(-2deg); }
+    .problem-visual.is-active .f-4 { transform: translate(12px, 6px) rotate(2deg); }
+    .problem-visual.is-active .f-5 { transform: translate(-8px, 14px) rotate(-1deg); }
+    .problem-visual.is-active .f-6 { transform: translate(10px, 16px) rotate(2deg); }
+
+    /* Problem connections visible when converged */
+    .problem-visual.is-converging .problem-connections line { opacity: 0.65; }
+
+    /* Problem visual reduced motion fallback */
+    @media (prefers-reduced-motion: reduce) {
+      .app-view, .app-views, .fragment, .problem-case, .problem-connections line { transition: none; }
+      .di-line-path, .di-donut-seg, .di-bar-fill, .di-metric-value { transition: none; }
+      .problem-visual.is-active .fragment { transform: none; }
+      .problem-visual.is-converging .problem-case { transform: none; }
+    }
     .problem { background: var(--dt-cream); }
     .problem-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 64px; align-items: center; }
     .problem-visual { position: relative; min-height: 360px; display: grid; place-items: center; }
@@ -283,6 +368,11 @@ $articleUrls = $appConfig['public_urls'] ?? [];
       .fragment { position: relative; inset: auto !important; top: auto !important; left: auto !important; right: auto !important; margin: 8px; }
       .problem-visual { display: flex; flex-wrap: wrap; justify-content: center; }
       .problem-case { width: 100%; max-width: 320px; }
+      .problem-connections { display: none; }
+      .problem-visual.is-active .fragment,
+      .problem-visual.is-converging .problem-case { transform: none !important; }
+      .di-metrics, .di-charts, .di-split { grid-template-columns: 1fr; }
+      .di-metric-value { font-size: 1.45rem; }
       .steps-grid { grid-template-columns: 1fr; }
       .attention-board { grid-template-columns: 1fr; }
       .plans { grid-template-columns: 1fr; max-width: 600px; margin: 0 auto; }
@@ -337,115 +427,267 @@ $articleUrls = $appConfig['public_urls'] ?? [];
           </div>
           <span class="app-practice">Demo Dental Practice</span>
         </div>
-        <div class="app-tabs">
-          <span class="app-tab active">Cases</span>
-          <span class="app-tab">Practice Insights</span>
-          <span class="app-tab">Lab Insights</span>
-          <span class="app-filter">Filters: All Cases</span>
+        <div class="app-tabs" role="tablist" aria-label="Product preview">
+          <button class="app-tab active" id="demo-tab-cases" role="tab" aria-selected="true" aria-controls="demo-cases">Cases</button>
+          <button class="app-tab" id="demo-tab-insights" role="tab" aria-selected="false" aria-controls="demo-insights" tabindex="-1">Insights</button>
+          <span class="app-filter" id="demo-filter">Filters: All Cases</span>
         </div>
-        <div class="app-board">
-          <div class="board">
-            <div class="board-col">
-              <div class="board-stage stage-originated"><span>Originated</span><span class="stage-count">2</span></div>
-              <div class="case-card due">
-                <h4>Hannah Lindqvist</h4>
-                <div class="case-type">Crown</div>
-                <div class="case-meta">Due: Mar 12</div>
-                <div class="case-meta">Patient Appt: Mar 10</div>
-                <div class="case-meta">Dr. Rivera</div>
-                <span class="case-flag flag-due">Due Soon</span>
-              </div>
-              <div class="case-card">
-                <h4>Michael Torres</h4>
-                <div class="case-type">Implant</div>
-                <div class="case-meta">Due: Mar 18</div>
-                <div class="case-meta">Front Desk &middot; Atlas Dental Lab</div>
+        <div class="app-views" id="demo-views">
+          <div class="app-view active" id="demo-cases" role="tabpanel" aria-labelledby="demo-tab-cases">
+            <div class="app-board">
+              <div class="board">
+                <div class="board-col">
+                  <div class="board-stage stage-originated"><span>Originated</span><span class="stage-count">2</span></div>
+                  <div class="case-card due">
+                    <h4>Hannah Lindqvist</h4>
+                    <div class="case-type">Crown</div>
+                    <div class="case-meta">Due: Mar 12</div>
+                    <div class="case-meta">Patient Appt: Mar 10</div>
+                    <div class="case-meta">Dr. Rivera</div>
+                    <span class="case-flag flag-due">Due Soon</span>
+                  </div>
+                  <div class="case-card">
+                    <h4>Michael Torres</h4>
+                    <div class="case-type">Implant</div>
+                    <div class="case-meta">Due: Mar 18</div>
+                    <div class="case-meta">Front Desk &middot; Atlas Dental Lab</div>
+                  </div>
+                </div>
+
+                <div class="board-col">
+                  <div class="board-stage stage-lab"><span>Sent To External Lab</span><span class="stage-count">2</span></div>
+                  <div class="case-card late">
+                    <h4>Justin Vance</h4>
+                    <div class="case-type">Partial</div>
+                    <div class="case-meta">Due: Mar 16</div>
+                    <div class="case-meta">Precision Dental Lab</div>
+                    <div class="case-meta">Revision 2</div>
+                    <span class="case-flag flag-late">Late</span>
+                  </div>
+                  <div class="case-card">
+                    <h4>Emily Sanders</h4>
+                    <div class="case-type">Bridge</div>
+                    <div class="case-meta">Due: Mar 18</div>
+                    <div class="case-meta">Dr. Chen &middot; SmileCraft Lab</div>
+                  </div>
+                </div>
+
+                <div class="board-col hide-mobile">
+                  <div class="board-stage stage-designed"><span>Designed</span><span class="stage-count">2</span></div>
+                  <div class="case-card appt">
+                    <h4>Sofia Patel</h4>
+                    <div class="case-type">Veneer</div>
+                    <div class="case-meta">Due: Mar 22</div>
+                    <div class="case-meta">Patient Appt: Mar 14</div>
+                    <div class="case-meta">Design Team</div>
+                    <span class="case-flag flag-appt">Appt Risk</span>
+                  </div>
+                  <div class="case-card">
+                    <h4>David Okafor</h4>
+                    <div class="case-type">Crown</div>
+                    <div class="case-meta">Due: Mar 23</div>
+                    <div class="case-meta">Dr. Lin</div>
+                  </div>
+                </div>
+
+                <div class="board-col hide-mobile">
+                  <div class="board-stage stage-manufactured"><span>Manufactured</span><span class="stage-count">3</span></div>
+                  <div class="case-card">
+                    <h4>Ava Moreno</h4>
+                    <div class="case-type">Crown</div>
+                    <div class="case-meta">Due: Mar 24</div>
+                    <div class="case-meta">Precision Dental Lab</div>
+                  </div>
+                  <div class="case-card due">
+                    <h4>Noah Kim</h4>
+                    <div class="case-type">Inlay</div>
+                    <div class="case-meta">Due: Mar 26</div>
+                    <div class="case-meta">Dr. Ortiz</div>
+                    <span class="case-flag flag-due">Due Soon</span>
+                  </div>
+                  <div class="case-card">
+                    <h4>Olivia Brooks</h4>
+                    <div class="case-type">Onlay</div>
+                    <div class="case-meta">Due: Mar 28</div>
+                    <div class="case-meta">Dr. Patel</div>
+                  </div>
+                </div>
+
+                <div class="board-col hide-mobile">
+                  <div class="board-stage stage-received"><span>Received From External Lab</span><span class="stage-count">2</span></div>
+                  <div class="case-card">
+                    <h4>Marcus Webb</h4>
+                    <div class="case-type">Implant</div>
+                    <div class="case-meta">Seat: Mar 27</div>
+                    <div class="case-meta">Patient Appt: Mar 19</div>
+                    <div class="case-meta">Dr. Patel</div>
+                  </div>
+                  <div class="case-card">
+                    <h4>Grace Hall</h4>
+                    <div class="case-type">Bridge</div>
+                    <div class="case-meta">Seat: Mar 29</div>
+                    <div class="case-meta">Dr. Chen</div>
+                  </div>
+                </div>
+
+                <div class="board-col hide-mobile">
+                  <div class="board-stage stage-delivered"><span>Delivered</span><span class="stage-count">1</span></div>
+                  <div class="case-card">
+                    <h4>Isabella Reed</h4>
+                    <div class="case-type">Crown</div>
+                    <div class="case-meta">Delivered: Mar 4</div>
+                    <div class="case-meta">Dr. Chen</div>
+                  </div>
+                </div>
               </div>
             </div>
+          </div>
 
-            <div class="board-col">
-              <div class="board-stage stage-lab"><span>Sent To External Lab</span><span class="stage-count">2</span></div>
-              <div class="case-card late">
-                <h4>Justin Vance</h4>
-                <div class="case-type">Partial</div>
-                <div class="case-meta">Due: Mar 16</div>
-                <div class="case-meta">Precision Dental Lab</div>
-                <div class="case-meta">Revision 2</div>
-                <span class="case-flag flag-late">Late</span>
+          <div class="app-view" id="demo-insights" role="tabpanel" aria-labelledby="demo-tab-insights" aria-hidden="true">
+            <div class="demo-insights">
+              <div class="di-header">
+                <h3>Insights</h3>
+                <p>Practice and lab performance in one place</p>
               </div>
-              <div class="case-card">
-                <h4>Emily Sanders</h4>
-                <div class="case-type">Bridge</div>
-                <div class="case-meta">Due: Mar 18</div>
-                <div class="case-meta">Dr. Chen &middot; SmileCraft Lab</div>
-              </div>
-            </div>
 
-            <div class="board-col hide-mobile">
-              <div class="board-stage stage-designed"><span>Designed</span><span class="stage-count">2</span></div>
-              <div class="case-card appt">
-                <h4>Sofia Patel</h4>
-                <div class="case-type">Veneer</div>
-                <div class="case-meta">Due: Mar 22</div>
-                <div class="case-meta">Patient Appt: Mar 14</div>
-                <div class="case-meta">Design Team</div>
-                <span class="case-flag flag-appt">Appt Risk</span>
+              <div class="di-metrics" id="di-metrics">
+                <div class="di-metric" data-target="11" data-prefix="">
+                  <div class="di-metric-value" data-value="11">0</div>
+                  <div class="di-metric-label">Active Cases</div>
+                </div>
+                <div class="di-metric due" data-target="2" data-prefix="">
+                  <div class="di-metric-value" data-value="2">0</div>
+                  <div class="di-metric-label">Due Soon</div>
+                </div>
+                <div class="di-metric late" data-target="1" data-prefix="">
+                  <div class="di-metric-value" data-value="1">0</div>
+                  <div class="di-metric-label">Late</div>
+                </div>
+                <div class="di-metric delivered" data-target="1" data-prefix="">
+                  <div class="di-metric-value" data-value="1">0</div>
+                  <div class="di-metric-label">Delivered</div>
+                </div>
               </div>
-              <div class="case-card">
-                <h4>David Okafor</h4>
-                <div class="case-type">Crown</div>
-                <div class="case-meta">Due: Mar 23</div>
-                <div class="case-meta">Dr. Lin</div>
-              </div>
-            </div>
 
-            <div class="board-col hide-mobile">
-              <div class="board-stage stage-manufactured"><span>Manufactured</span><span class="stage-count">3</span></div>
-              <div class="case-card">
-                <h4>Ava Moreno</h4>
-                <div class="case-type">Crown</div>
-                <div class="case-meta">Due: Mar 24</div>
-                <div class="case-meta">Precision Dental Lab</div>
-              </div>
-              <div class="case-card due">
-                <h4>Noah Kim</h4>
-                <div class="case-type">Inlay</div>
-                <div class="case-meta">Due: Mar 26</div>
-                <div class="case-meta">Dr. Ortiz</div>
-                <span class="case-flag flag-due">Due Soon</span>
-              </div>
-              <div class="case-card">
-                <h4>Olivia Brooks</h4>
-                <div class="case-type">Onlay</div>
-                <div class="case-meta">Due: Mar 28</div>
-                <div class="case-meta">Dr. Patel</div>
-              </div>
-            </div>
+              <div class="di-charts">
+                <div class="di-chart">
+                  <div class="di-chart-title">Case Flow Status</div>
+                  <div class="di-donut" id="di-donut">
+                    <svg viewBox="0 0 100 100" aria-label="Case flow status donut chart">
+                      <circle class="di-donut-track" cx="50" cy="50" r="40"></circle>
+                      <circle class="di-donut-seg" cx="50" cy="50" r="40" stroke="#22c55e" stroke-dasharray="0 251.2" data-pct="59" transform="rotate(-90 50 50)"></circle>
+                      <circle class="di-donut-seg" cx="50" cy="50" r="40" stroke="#3b82f6" stroke-dasharray="0 251.2" data-pct="17" transform="rotate(-90 50 50)"></circle>
+                      <circle class="di-donut-seg" cx="50" cy="50" r="40" stroke="#8b5cf6" stroke-dasharray="0 251.2" data-pct="8" transform="rotate(-90 50 50)"></circle>
+                      <circle class="di-donut-seg" cx="50" cy="50" r="40" stroke="#dc2626" stroke-dasharray="0 251.2" data-pct="8" transform="rotate(-90 50 50)"></circle>
+                      <circle class="di-donut-seg" cx="50" cy="50" r="40" stroke="#14b8a6" stroke-dasharray="0 251.2" data-pct="8" transform="rotate(-90 50 50)"></circle>
+                    </svg>
+                  </div>
+                  <div class="di-legend" aria-hidden="true">
+                    <span><span class="di-legend-dot" style="background:#22c55e"></span>On Track (7)</span>
+                    <span><span class="di-legend-dot" style="background:#3b82f6"></span>Due Soon (2)</span>
+                    <span><span class="di-legend-dot" style="background:#8b5cf6"></span>Appt Risk (1)</span>
+                    <span><span class="di-legend-dot" style="background:#dc2626"></span>Late (1)</span>
+                    <span><span class="di-legend-dot" style="background:#14b8a6"></span>Delivered (1)</span>
+                  </div>
+                </div>
 
-            <div class="board-col hide-mobile">
-              <div class="board-stage stage-received"><span>Received From External Lab</span><span class="stage-count">2</span></div>
-              <div class="case-card">
-                <h4>Marcus Webb</h4>
-                <div class="case-type">Implant</div>
-                <div class="case-meta">Seat: Mar 27</div>
-                <div class="case-meta">Patient Appt: Mar 19</div>
-                <div class="case-meta">Dr. Patel</div>
+                <div class="di-chart">
+                  <div class="di-chart-title">Monthly Case Volume</div>
+                  <div class="di-line-chart" id="di-line-chart">
+                    <svg viewBox="0 0 240 140" aria-label="Monthly case volume chart">
+                      <defs>
+                        <linearGradient id="diAreaGradient" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stop-color="rgba(30,64,175,0.18)"></stop>
+                          <stop offset="100%" stop-color="rgba(30,64,175,0)"></stop>
+                        </linearGradient>
+                      </defs>
+                      <line class="di-line-grid" x1="0" y1="35" x2="240" y2="35"></line>
+                      <line class="di-line-grid" x1="0" y1="70" x2="240" y2="70"></line>
+                      <line class="di-line-grid" x1="0" y1="105" x2="240" y2="105"></line>
+                      <path class="di-line-area" d="M0,140 L0,110 C40,100 80,90 120,70 S200,40 240,20 L240,140 Z" style="fill:url(#diAreaGradient)"></path>
+                      <path class="di-line-path" d="M0,110 C40,100 80,90 120,70 S200,40 240,20"></path>
+                      <circle class="di-line-dot" cx="0" cy="110" r="3"></circle>
+                      <circle class="di-line-dot" cx="120" cy="70" r="3"></circle>
+                      <circle class="di-line-dot" cx="240" cy="20" r="3"></circle>
+                      <text x="0" y="135" font-size="8" fill="#6b7280">Jan</text>
+                      <text x="110" y="135" font-size="8" fill="#6b7280">Feb</text>
+                      <text x="225" y="135" font-size="8" fill="#6b7280">Mar</text>
+                    </svg>
+                  </div>
+                </div>
               </div>
-              <div class="case-card">
-                <h4>Grace Hall</h4>
-                <div class="case-type">Bridge</div>
-                <div class="case-meta">Seat: Mar 29</div>
-                <div class="case-meta">Dr. Chen</div>
-              </div>
-            </div>
 
-            <div class="board-col hide-mobile">
-              <div class="board-stage stage-delivered"><span>Delivered</span><span class="stage-count">1</span></div>
-              <div class="case-card">
-                <h4>Isabella Reed</h4>
-                <div class="case-type">Crown</div>
-                <div class="case-meta">Delivered: Mar 4</div>
-                <div class="case-meta">Dr. Chen</div>
+              <div class="di-split">
+                <div class="di-card">
+                  <h4>Practice &amp; Lab Performance</h4>
+                  <div class="di-kpis">
+                    <div class="di-kpi">
+                      <div class="di-kpi-value">1</div>
+                      <div class="di-kpi-label">Appointment Risk</div>
+                    </div>
+                    <div class="di-kpi">
+                      <div class="di-kpi-value">8.2 <small style="font-size:0.65rem;font-weight:500;color:var(--dt-ink-muted)">days</small></div>
+                      <div class="di-kpi-label">Avg. Lab Turnaround</div>
+                    </div>
+                  </div>
+                  <div style="margin-top:12px;">
+                    <div class="di-bar">
+                      <div class="di-bar-label">Precision</div>
+                      <div class="di-bar-track"><div class="di-bar-fill" style="background:#3b82f6;" data-width="45"></div></div>
+                      <div class="di-bar-value">5</div>
+                    </div>
+                    <div class="di-bar">
+                      <div class="di-bar-label">Atlas</div>
+                      <div class="di-bar-track"><div class="di-bar-fill" style="background:#8b5cf6;" data-width="18"></div></div>
+                      <div class="di-bar-value">2</div>
+                    </div>
+                    <div class="di-bar">
+                      <div class="di-bar-label">SmileCraft</div>
+                      <div class="di-bar-track"><div class="di-bar-fill" style="background:#14b8a6;" data-width="18"></div></div>
+                      <div class="di-bar-value">2</div>
+                    </div>
+                    <div class="di-bar">
+                      <div class="di-bar-label">In-House</div>
+                      <div class="di-bar-track"><div class="di-bar-fill" style="background:#f59e0b;" data-width="18"></div></div>
+                      <div class="di-bar-value">2</div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="di-card">
+                  <h4>Turnaround Trend</h4>
+                  <div class="di-line-chart" id="di-trend-chart" style="height:120px;">
+                    <svg viewBox="0 0 200 120" aria-label="Average turnaround trend">
+                      <line class="di-line-grid" x1="0" y1="30" x2="200" y2="30"></line>
+                      <line class="di-line-grid" x1="0" y1="60" x2="200" y2="60"></line>
+                      <line class="di-line-grid" x1="0" y1="90" x2="200" y2="90"></line>
+                      <defs>
+                        <linearGradient id="diAreaGradient2" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stop-color="rgba(30,64,175,0.18)"></stop>
+                          <stop offset="100%" stop-color="rgba(30,64,175,0)"></stop>
+                        </linearGradient>
+                      </defs>
+                      <path class="di-line-area" d="M0,120 L0,100 C50,95 100,85 150,55 S175,35 200,25 L200,120 Z" style="fill:url(#diAreaGradient2)"></path>
+                      <path class="di-line-path" d="M0,100 C50,95 100,85 150,55 S175,35 200,25"></path>
+                      <circle class="di-line-dot" cx="0" cy="100" r="3"></circle>
+                      <circle class="di-line-dot" cx="100" cy="85" r="3"></circle>
+                      <circle class="di-line-dot" cx="200" cy="25" r="3"></circle>
+                      <text x="0" y="115" font-size="8" fill="#6b7280">Wk 1</text>
+                      <text x="90" y="115" font-size="8" fill="#6b7280">Wk 2</text>
+                      <text x="180" y="115" font-size="8" fill="#6b7280">Wk 3</text>
+                    </svg>
+                  </div>
+                </div>
+              </div>
+
+              <div class="di-smart">
+                <div class="di-smart-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a7 7 0 0 1 7 7c0 2.38-1.19 4.5-3 5.74V17a2 2 0 0 1-2 2H10a2 2 0 0 1-2-2v-2.26C6.19 13.5 5 11.38 5 9a7 7 0 0 1 7-7z"></path><line x1="12" y1="22" x2="12" y2="19"></line></svg>
+                </div>
+                <div>
+                  <h4>Smart Recommendation</h4>
+                  <p>Hannah Lindqvist's crown is due soon and her patient appointment is Mar 10. Confirm Precision Dental Lab will deliver by Mar 9 to avoid a chair-side delay.</p>
+                </div>
               </div>
             </div>
           </div>
@@ -462,13 +704,16 @@ $articleUrls = $appConfig['public_urls'] ?? [];
           <h2><?php echo t('marketing.problem.title'); ?></h2>
           <p class="lead"><?php echo t('marketing.problem.lead'); ?></p>
         </div>
-        <div class="problem-visual">
-          <div class="fragment f-1"><strong>Patient Appointment</strong><small>Mar 19 &middot; 10:30 AM &middot; Hannah L.</small></div>
-          <div class="fragment f-2"><strong>Lab Update</strong><small>Precision Dental Lab &middot; Revision 2</small></div>
-          <div class="fragment f-3"><strong>Shipping</strong><small>Tracking 1Z84&hellip; &middot; Arrives Thu</small></div>
-          <div class="fragment f-4"><strong>Case File</strong><small>Crown #14 &middot; Due Mar 18</small></div>
-          <div class="fragment f-5"><strong>Team Message</strong><small>"Did the lab send this back yet?"</small></div>
-          <div class="fragment f-6"><strong>Assigned To</strong><small>Front Desk</small></div>
+        <div class="problem-visual" id="problem-visual" tabindex="0" aria-label="Illustration: scattered case information becomes one coordinated case record. Tap to replay.">
+          <svg class="problem-connections" aria-hidden="true" preserveAspectRatio="none" id="problem-connections">
+            <g id="problem-connections-group"></g>
+          </svg>
+          <div class="fragment f-1" data-color="#8b5cf6"><strong>Patient Appointment</strong><small>Mar 19 &middot; 10:30 AM &middot; Hannah L.</small></div>
+          <div class="fragment f-2" data-color="#3b82f6"><strong>Lab Update</strong><small>Precision Dental Lab &middot; Revision 2</small></div>
+          <div class="fragment f-3" data-color="#f59e0b"><strong>Shipping</strong><small>Tracking 1Z84&hellip; &middot; Arrives Thu</small></div>
+          <div class="fragment f-4" data-color="#22c55e"><strong>Case File</strong><small>Crown #14 &middot; Due Mar 18</small></div>
+          <div class="fragment f-5" data-color="#64748b"><strong>Team Message</strong><small>"Did the lab send this back yet?"</small></div>
+          <div class="fragment f-6" data-color="#06b6d4"><strong>Assigned To</strong><small>Front Desk</small></div>
           <div class="problem-case">
             <h3>Hannah Lindqvist</h3>
             <p>Crown #14 &middot; Due Mar 18<br>Dr. Rivera &middot; Precision Dental Lab<br>Patient appt Mar 19 &middot; Revision 2</p>
@@ -691,6 +936,346 @@ $articleUrls = $appConfig['public_urls'] ?? [];
       </div>
     </div>
   </footer>
+
+  <script>
+    (function() {
+      'use strict';
+
+      // ============================================================
+      // Product preview demo: Cases / Insights
+      // ============================================================
+      var demoViews = document.getElementById('demo-views');
+      var demoCases = document.getElementById('demo-cases');
+      var demoInsights = document.getElementById('demo-insights');
+      var tabCases = document.getElementById('demo-tab-cases');
+      var tabInsights = document.getElementById('demo-tab-insights');
+      var demoFilter = document.getElementById('demo-filter');
+      var appTabs = document.querySelectorAll('.app-tab');
+      var appViews = document.querySelectorAll('.app-view');
+      var demoSwitching = false;
+      var insightsAnimated = false;
+      var demoInView = false;
+
+      function setViewHeight() {
+        if (!demoViews || !demoCases || !demoInsights) return;
+        var active = document.querySelector('.app-view.active');
+        if (!active) return;
+        // Measure the active panel's natural height
+        demoViews.style.height = active.scrollHeight + 'px';
+      }
+
+      function animateMetricValue(el, target, duration) {
+        var start = 0;
+        var startTime = null;
+        function step(timestamp) {
+          if (!startTime) startTime = timestamp;
+          var progress = Math.min((timestamp - startTime) / duration, 1);
+          var current = Math.floor(start + (target - start) * progress);
+          el.textContent = current;
+          if (progress < 1) {
+            requestAnimationFrame(step);
+          } else {
+            el.textContent = target;
+          }
+        }
+        requestAnimationFrame(step);
+      }
+
+      function animateDemoInsights() {
+        if (insightsAnimated) return;
+        insightsAnimated = true;
+
+        // Animate metric values
+        var metricValues = document.querySelectorAll('#di-metrics .di-metric-value');
+        metricValues.forEach(function(el) {
+          var target = parseInt(el.getAttribute('data-value'), 10) || 0;
+          el.textContent = '0';
+          if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+            animateMetricValue(el, target, 700);
+          } else {
+            el.textContent = target;
+          }
+        });
+
+        // Animate donut chart segments
+        var donut = document.getElementById('di-donut');
+        if (donut) {
+          var segs = donut.querySelectorAll('.di-donut-seg');
+          var cumulative = 0;
+          var circumference = 2 * Math.PI * 40; // ~251.2
+          segs.forEach(function(seg) {
+            var pct = parseFloat(seg.getAttribute('data-pct')) || 0;
+            var offset = -cumulative * circumference / 100;
+            var visible = pct * circumference / 100;
+            // Start hidden (dash length 0) with the correct offset so the
+            // final arc starts at the right point around the circle.
+            seg.style.strokeDasharray = '0 ' + circumference;
+            seg.style.strokeDashoffset = offset;
+            if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+              setTimeout(function() {
+                seg.style.strokeDasharray = visible + ' ' + circumference;
+              }, 50);
+            } else {
+              seg.style.strokeDasharray = visible + ' ' + circumference;
+            }
+            cumulative += pct;
+          });
+        }
+
+        // Animate line charts
+        var lineCharts = demoInsights.querySelectorAll('.di-line-chart');
+        lineCharts.forEach(function(chart) {
+          chart.classList.add('animated');
+        });
+
+        // Animate bars
+        var fills = demoInsights.querySelectorAll('.di-bar-fill');
+        fills.forEach(function(fill) {
+          var width = fill.getAttribute('data-width') || '0';
+          fill.style.width = '0';
+          if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+            setTimeout(function() {
+              fill.style.width = width + '%';
+            }, 100);
+          } else {
+            fill.style.width = width + '%';
+          }
+        });
+      }
+
+      function switchDemoView(viewName) {
+        if (demoSwitching) return;
+        demoSwitching = true;
+
+        var nextView = viewName === 'insights' ? demoInsights : demoCases;
+        var nextTab = viewName === 'insights' ? tabInsights : tabCases;
+        if (!nextView || !nextTab) return;
+
+        if (demoFilter) {
+          demoFilter.textContent = viewName === 'insights' ? 'Last 30 days' : 'Filters: All Cases';
+        }
+        appTabs.forEach(function(tab) {
+          var isNext = tab === nextTab;
+          tab.classList.toggle('active', isNext);
+          tab.setAttribute('aria-selected', isNext ? 'true' : 'false');
+          tab.setAttribute('tabindex', isNext ? '0' : '-1');
+        });
+
+        appViews.forEach(function(view) {
+          var isNext = view === nextView;
+          view.classList.toggle('active', isNext);
+          view.setAttribute('aria-hidden', isNext ? 'false' : 'true');
+        });
+
+        setViewHeight();
+
+        if (viewName === 'insights' && demoInView) {
+          setTimeout(function() {
+            animateDemoInsights();
+          }, 100);
+        }
+
+        setTimeout(function() {
+          demoSwitching = false;
+        }, 450);
+      }
+
+      if (tabCases && tabInsights) {
+        tabCases.addEventListener('click', function() { switchDemoView('cases'); });
+        tabInsights.addEventListener('click', function() { switchDemoView('insights'); });
+
+        // Keyboard support: Left/Right arrows, Home/End
+        appTabs.forEach(function(tab) {
+          tab.addEventListener('keydown', function(e) {
+            if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
+              e.preventDefault();
+              switchDemoView(tab === tabCases ? 'insights' : 'cases');
+            } else if (e.key === 'Home') {
+              e.preventDefault();
+              switchDemoView('cases');
+            } else if (e.key === 'End') {
+              e.preventDefault();
+              switchDemoView('insights');
+            }
+          });
+        });
+      }
+
+      // Observe demo visibility to pause/resume animations
+      if ('IntersectionObserver' in window) {
+        var demoObserver = new IntersectionObserver(function(entries) {
+          entries.forEach(function(entry) {
+            demoInView = entry.isIntersecting;
+            if (entry.isIntersecting && demoInsights && demoInsights.classList.contains('active') && !insightsAnimated) {
+              animateDemoInsights();
+            }
+          });
+        }, { threshold: 0.3 });
+        if (demoViews) demoObserver.observe(demoViews);
+      } else {
+        demoInView = true;
+      }
+
+      // Set initial view height once fonts/rendering settle
+      if (window.requestAnimationFrame) {
+        requestAnimationFrame(function() {
+          setViewHeight();
+          if (demoInsights) {
+            // Pre-animate on initial load if prefers-reduced-motion is on
+            if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+              animateDemoInsights();
+            }
+          }
+        });
+      } else {
+        setViewHeight();
+      }
+      window.addEventListener('resize', setViewHeight);
+
+      // ============================================================
+      // Problem illustration: fragmented information becomes one case
+      // ============================================================
+      var problemVisual = document.getElementById('problem-visual');
+      var problemConnections = document.getElementById('problem-connections');
+      var problemGroup = document.getElementById('problem-connections-group');
+      var fragments = document.querySelectorAll('.fragment');
+      var problemCase = document.querySelector('.problem-case');
+      var illustrationInView = false;
+      var hasAnimated = false;
+      var hoverTimer = null;
+      var reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+      function updateConnectionLines() {
+        if (!problemVisual || !problemConnections || !problemCase || !problemGroup) return;
+        // Skip on mobile where fragments are no longer absolute
+        if (window.getComputedStyle(fragments[0]).position !== 'absolute') {
+          problemGroup.innerHTML = '';
+          return;
+        }
+
+        var visualRect = problemVisual.getBoundingClientRect();
+        var caseRect = problemCase.getBoundingClientRect();
+        var cx = (caseRect.left - visualRect.left) + caseRect.width / 2;
+        var cy = (caseRect.top - visualRect.top) + caseRect.height / 2;
+
+        var svgWidth = visualRect.width;
+        var svgHeight = visualRect.height;
+        problemConnections.setAttribute('viewBox', '0 0 ' + svgWidth + ' ' + svgHeight);
+
+        var lines = [];
+        fragments.forEach(function(fragment) {
+          var rect = fragment.getBoundingClientRect();
+          var fx = (rect.left - visualRect.left) + rect.width / 2;
+          var fy = (rect.top - visualRect.top) + rect.height / 2;
+          var color = fragment.getAttribute('data-color') || '#9ca3af';
+          lines.push('<line x1="' + fx.toFixed(1) + '" y1="' + fy.toFixed(1) + '" x2="' + cx.toFixed(1) + '" y2="' + cy.toFixed(1) + '" stroke="' + color + '"></line>');
+        });
+        problemGroup.innerHTML = lines.join('');
+      }
+
+      function spreadFragments() {
+        if (!problemVisual) return;
+        problemVisual.classList.add('is-active');
+      }
+
+      function convergeFragments() {
+        if (!problemVisual) return;
+        problemVisual.classList.remove('is-active');
+        if (reduceMotion) {
+          problemVisual.classList.add('is-converging');
+          updateConnectionLines();
+          return;
+        }
+        problemVisual.classList.add('is-converging');
+        // Update connection lines after the inward animation completes so the
+        // lines draw from the converged positions and do not detach mid-motion.
+        setTimeout(function() {
+          if (!problemVisual) return;
+          updateConnectionLines();
+        }, 900);
+      }
+
+      function resetIllustration() {
+        if (!problemVisual) return;
+        problemVisual.classList.remove('is-active', 'is-converging');
+      }
+
+      function playIllustrationOnce() {
+        if (hasAnimated || reduceMotion) return;
+        spreadFragments();
+        setTimeout(function() {
+          convergeFragments();
+        }, 400);
+        hasAnimated = true;
+      }
+
+      function playHoverIn() {
+        if (reduceMotion) {
+          problemVisual.classList.add('is-converging');
+          updateConnectionLines();
+          return;
+        }
+        clearTimeout(hoverTimer);
+        spreadFragments();
+        hoverTimer = setTimeout(function() {
+          convergeFragments();
+        }, 400);
+      }
+
+      function playHoverOut() {
+        clearTimeout(hoverTimer);
+        resetIllustration();
+      }
+
+      if (problemVisual && !reduceMotion) {
+        problemVisual.addEventListener('mouseenter', playHoverIn);
+        problemVisual.addEventListener('mouseleave', playHoverOut);
+        problemVisual.addEventListener('focus', playHoverIn, true);
+        problemVisual.addEventListener('blur', playHoverOut, true);
+
+        // Tap/click to replay on touch or keyboard-activated devices.
+        // Click does not fire during scroll, so it will not replay while the
+        // user is simply scrolling past the section.
+        problemVisual.addEventListener('click', function() {
+          if (problemVisual.classList.contains('is-active') || problemVisual.classList.contains('is-converging')) {
+            resetIllustration();
+            setTimeout(playHoverIn, 80);
+          } else {
+            playHoverIn();
+          }
+        });
+      } else if (problemVisual && reduceMotion) {
+        // Reduced motion: keep the resting layout; connection lines fade in on
+        // hover/focus/click, but the cards themselves do not move.
+      }
+
+      // Trigger once when substantially in viewport on mobile/no-hover
+      if ('IntersectionObserver' in window && problemVisual) {
+        var problemObserver = new IntersectionObserver(function(entries) {
+          entries.forEach(function(entry) {
+            if (entry.isIntersecting && !illustrationInView) {
+              illustrationInView = true;
+              if (window.matchMedia('(pointer: coarse)').matches || reduceMotion) {
+                playIllustrationOnce();
+              }
+            }
+          });
+        }, { threshold: 0.4 });
+        problemObserver.observe(problemVisual);
+      }
+
+      // Recalculate connection lines on resize (debounced)
+      var resizeTimer;
+      window.addEventListener('resize', function() {
+        clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(function() {
+          if (problemVisual && problemVisual.classList.contains('is-converging')) {
+            updateConnectionLines();
+          }
+        }, 150);
+      });
+    })();
+  </script>
 
 </body>
 </html>
