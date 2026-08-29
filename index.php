@@ -421,20 +421,14 @@ $articleUrls = $appConfig['public_urls'] ?? [];
       opacity: 0;
       visibility: hidden;
       transform: translateY(20px);
-      transition: opacity 0.6s cubic-bezier(0.22, 1, 0.36, 1),
-                  transform 0.6s cubic-bezier(0.22, 1, 0.36, 1),
+      transition: opacity 0.8s cubic-bezier(0.22, 1, 0.36, 1),
+                  transform 0.8s cubic-bezier(0.22, 1, 0.36, 1),
                   box-shadow 0.25s ease,
                   visibility 0s;
       will-change: opacity, transform;
     }
     .reveal-left { transform: translateX(-20px); }
     .reveal-right { transform: translateX(20px); }
-    .reveal-stagger-1 { transition-delay: 0ms; }
-    .reveal-stagger-2 { transition-delay: 120ms; }
-    .reveal-stagger-3 { transition-delay: 240ms; }
-    .reveal-stagger-4 { transition-delay: 360ms; }
-    .reveal-stagger-5 { transition-delay: 480ms; }
-    .reveal-stagger-6 { transition-delay: 600ms; }
 
     .reveal.is-revealed,
     .reveal-left.is-revealed,
@@ -449,7 +443,7 @@ $articleUrls = $appConfig['public_urls'] ?? [];
     /* Step icon animations (triggered after card reveal) */
     .step-icon { transform-origin: center; }
     .step-icon-animated .step-icon {
-      animation-duration: 0.5s;
+      animation-duration: 0.6s;
       animation-fill-mode: both;
     }
     .step-1.step-icon-animated .step-icon { animation-name: stepPlus; }
@@ -471,7 +465,7 @@ $articleUrls = $appConfig['public_urls'] ?? [];
     }
 
     /* Product view status pulse */
-    .status-pulse .case-flag { display: inline-block; animation: statusPulse 0.5s ease; }
+    .status-pulse .case-flag { display: inline-block; animation: statusPulse 0.6s ease; }
     @keyframes statusPulse {
       0% { transform: scale(1); }
       50% { transform: scale(1.12); }
@@ -493,8 +487,8 @@ $articleUrls = $appConfig['public_urls'] ?? [];
       .reveal-left,
       .reveal-right {
         transform: translateY(12px);
-        transition: opacity 0.4s cubic-bezier(0.22, 1, 0.36, 1),
-                    transform 0.4s cubic-bezier(0.22, 1, 0.36, 1),
+        transition: opacity 0.6s cubic-bezier(0.22, 1, 0.36, 1),
+                    transform 0.6s cubic-bezier(0.22, 1, 0.36, 1),
                     box-shadow 0.25s ease,
                     visibility 0s;
       }
@@ -874,19 +868,19 @@ $articleUrls = $appConfig['public_urls'] ?? [];
         ?>
       </p>
       <div class="steps-grid">
-        <div class="step step-1" data-reveal data-reveal-stagger="1">
+        <div class="step step-1" data-reveal data-reveal-stagger="1" data-reveal-delay="150">
           <div class="step-num">01</div>
           <svg class="step-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>
           <h3><?php echo t('marketing.workflow.step1_title'); ?></h3>
           <p><?php echo t('marketing.workflow.step1_body'); ?></p>
         </div>
-        <div class="step step-2" data-reveal data-reveal-stagger="2">
+        <div class="step step-2" data-reveal data-reveal-stagger="2" data-reveal-delay="150">
           <div class="step-num">02</div>
           <svg class="step-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"></path><path d="M16 16h5v5"></path></svg>
           <h3><?php echo t('marketing.workflow.step2_title'); ?></h3>
           <p><?php echo t('marketing.workflow.step2_body'); ?></p>
         </div>
-        <div class="step step-3" data-reveal data-reveal-stagger="3">
+        <div class="step step-3" data-reveal data-reveal-stagger="3" data-reveal-delay="150">
           <div class="step-num">03</div>
           <svg class="step-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
           <h3><?php echo t('marketing.workflow.step3_title'); ?></h3>
@@ -902,9 +896,9 @@ $articleUrls = $appConfig['public_urls'] ?? [];
       <h2 data-reveal><?php echo t('marketing.attention.title'); ?></h2>
       <p class="lead" data-reveal><?php echo t('marketing.attention.lead'); ?></p>
       <div class="attention-board">
-        <div class="attention-col" data-reveal data-reveal-stagger="1">
+        <div class="attention-col" data-reveal data-reveal-stagger="1" data-reveal-delay="150">
           <div class="attention-title late"><?php echo t('marketing.attention.late'); ?></div>
-          <div class="case-card late" data-reveal data-reveal-delay="120">
+          <div class="case-card late" data-reveal data-reveal-stagger="1" data-reveal-delay="250">
             <h4>Justin Vance</h4>
             <div class="case-type">Partial</div>
             <div class="case-meta">Due: Mar 16</div>
@@ -913,9 +907,9 @@ $articleUrls = $appConfig['public_urls'] ?? [];
             <span class="case-flag flag-late">Late</span>
           </div>
         </div>
-        <div class="attention-col" data-reveal data-reveal-stagger="2">
+        <div class="attention-col" data-reveal data-reveal-stagger="2" data-reveal-delay="150">
           <div class="attention-title due"><?php echo t('marketing.attention.due_soon'); ?></div>
-          <div class="case-card due" data-reveal data-reveal-delay="240">
+          <div class="case-card due" data-reveal data-reveal-stagger="2" data-reveal-delay="250">
             <h4>Hannah Lindqvist</h4>
             <div class="case-type">Crown</div>
             <div class="case-meta">Due: Mar 12</div>
@@ -924,9 +918,9 @@ $articleUrls = $appConfig['public_urls'] ?? [];
             <span class="case-flag flag-due">Due Soon</span>
           </div>
         </div>
-        <div class="attention-col" data-reveal data-reveal-stagger="3">
+        <div class="attention-col" data-reveal data-reveal-stagger="3" data-reveal-delay="150">
           <div class="attention-title appt"><?php echo t('marketing.attention.appointment_risk'); ?></div>
-          <div class="case-card appt" data-reveal data-reveal-delay="360">
+          <div class="case-card appt" data-reveal data-reveal-stagger="3" data-reveal-delay="250">
             <h4>Sofia Patel</h4>
             <div class="case-type">Veneer</div>
             <div class="case-meta">Due: Mar 22</div>
@@ -935,9 +929,9 @@ $articleUrls = $appConfig['public_urls'] ?? [];
             <span class="case-flag flag-appt">Appt Risk</span>
           </div>
         </div>
-        <div class="attention-col" data-reveal data-reveal-stagger="4">
+        <div class="attention-col" data-reveal data-reveal-stagger="4" data-reveal-delay="150">
           <div class="attention-title ready"><?php echo t('marketing.attention.ready'); ?></div>
-          <div class="case-card" data-reveal data-reveal-delay="480">
+          <div class="case-card" data-reveal data-reveal-stagger="4" data-reveal-delay="250">
             <h4>Sarah Bennett</h4>
             <div class="case-type">Bridge</div>
             <div class="case-meta">Received: Mar 4</div>
@@ -957,7 +951,7 @@ $articleUrls = $appConfig['public_urls'] ?? [];
           <div class="founder-name">Dr. William Verrillo</div>
           <div class="founder-role">Practicing Dentist &middot; DentaTrak Co-Founder</div>
         </div>
-        <div class="founder-copy" data-reveal data-reveal-dir="right">
+        <div class="founder-copy" data-reveal data-reveal-dir="right" data-reveal-delay="100">
           <span class="eyebrow"><?php echo t('marketing.founder.eyebrow'); ?></span>
           <h2><?php echo t('marketing.founder.title'); ?></h2>
           <p class="lead"><?php echo t('marketing.founder.lead'); ?></p>
@@ -974,7 +968,7 @@ $articleUrls = $appConfig['public_urls'] ?? [];
         <p class="lead"><?php echo t('marketing.pricing.lead'); ?></p>
       </div>
       <div class="plans">
-        <div class="plan" data-reveal data-reveal-stagger="1">
+        <div class="plan" data-reveal data-reveal-stagger="1" data-reveal-delay="150">
           <div class="plan-name"><?php echo t('marketing.pricing.operate'); ?></div>
           <div class="plan-price"><?php echo t('marketing.pricing.operate_price_month'); ?><span><?php echo t('marketing.pricing.per_month'); ?></span></div>
           <div class="plan-annual"><?php echo t('marketing.pricing.operate_annual'); ?></div>
@@ -986,7 +980,7 @@ $articleUrls = $appConfig['public_urls'] ?? [];
             <li><?php echo t('marketing.pricing.operate_features_3'); ?></li>
           </ul>
         </div>
-        <div class="plan featured" data-reveal data-reveal-stagger="2">
+        <div class="plan featured" data-reveal data-reveal-stagger="2" data-reveal-delay="150">
           <span class="plan-popular"><?php echo t('marketing.pricing.most_popular'); ?></span>
           <div class="plan-name"><?php echo t('marketing.pricing.control'); ?></div>
           <div class="plan-price"><?php echo t('marketing.pricing.control_price_month'); ?><span><?php echo t('marketing.pricing.per_month'); ?></span></div>
@@ -1002,7 +996,7 @@ $articleUrls = $appConfig['public_urls'] ?? [];
             <li><?php echo t('marketing.pricing.control_features_6'); ?></li>
           </ul>
         </div>
-        <div class="plan" data-reveal data-reveal-stagger="3">
+        <div class="plan" data-reveal data-reveal-stagger="3" data-reveal-delay="150">
           <div class="plan-name"><?php echo t('marketing.pricing.scale'); ?></div>
           <div class="plan-price"><?php echo t('marketing.pricing.scale_price_month'); ?><span><?php echo t('marketing.pricing.per_month'); ?></span></div>
           <div class="plan-annual"><?php echo t('marketing.pricing.scale_annual'); ?></div>
@@ -1022,8 +1016,8 @@ $articleUrls = $appConfig['public_urls'] ?? [];
   <section class="section final-cta">
     <div class="container">
       <h2 data-reveal><?php echo t('marketing.cta.final_title'); ?></h2>
-      <p class="lead" data-reveal><?php echo t('marketing.cta.final_lead'); ?></p>
-      <div data-reveal>
+      <p class="lead" data-reveal data-reveal-delay="75"><?php echo t('marketing.cta.final_lead'); ?></p>
+      <div data-reveal data-reveal-delay="150">
         <a href="<?= $baseUrl ?>login.php" class="btn btn-primary"><?php echo t('marketing.cta.start_free'); ?></a>
         <a href="<?= $baseUrl ?>login.php" class="btn btn-secondary"><?php echo t('marketing.cta.sign_in'); ?></a>
       </div>
@@ -1422,6 +1416,10 @@ $articleUrls = $appConfig['public_urls'] ?? [];
         if (!revealElements.length) return;
 
         var reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        var isMobile = window.matchMedia('(max-width: 900px)').matches;
+        var staggerStep = isMobile ? 80 : 140;
+        var groupMultiplier = isMobile ? 0.5 : 1;
+        var rootMargin = isMobile ? '0px 0px -12% 0px' : '0px 0px -25% 0px';
 
         function cleanRevealClasses(el) {
           el.classList.remove('reveal', 'reveal-up', 'reveal-left', 'reveal-right');
@@ -1434,6 +1432,13 @@ $articleUrls = $appConfig['public_urls'] ?? [];
             el.classList.add('is-revealed');
             el.style.transitionDelay = '';
           });
+        }
+
+        function setRevealDelay(el) {
+          var stagger = parseInt(el.getAttribute('data-reveal-stagger'), 10) || 0;
+          var group = parseInt(el.getAttribute('data-reveal-delay'), 10) || 0;
+          var delay = Math.round((group * groupMultiplier) + (stagger > 1 ? (stagger - 1) * staggerStep : 0));
+          el.style.transitionDelay = delay + 'ms';
         }
 
         function onRevealTransitionEnd(el, cb) {
@@ -1482,14 +1487,26 @@ $articleUrls = $appConfig['public_urls'] ?? [];
         }
 
         try {
+          // Re-order pricing stagger indices by visual position so the featured
+          // plan still leads naturally on mobile where .plan.featured has order:-1.
+          var planEls = Array.prototype.slice.call(document.querySelectorAll('.plan'));
+          if (planEls.length > 1) {
+            planEls.sort(function(a, b) {
+              var ar = a.getBoundingClientRect();
+              var br = b.getBoundingClientRect();
+              if (Math.abs(ar.top - br.top) > 2) return ar.top - br.top;
+              return ar.left - br.left;
+            });
+            planEls.forEach(function(plan, i) {
+              plan.setAttribute('data-reveal-stagger', i + 1);
+            });
+          }
+
           revealElements.forEach(function(el) {
             var dir = el.getAttribute('data-reveal-dir') || 'up';
-            var stagger = el.getAttribute('data-reveal-stagger');
             el.classList.add('reveal');
             if (dir !== 'up') el.classList.add('reveal-' + dir);
-            if (stagger) el.classList.add('reveal-stagger-' + stagger);
-            var delay = el.getAttribute('data-reveal-delay');
-            if (delay) el.style.transitionDelay = delay + 'ms';
+            setRevealDelay(el);
           });
 
           var observer = new IntersectionObserver(function(entries, obs) {
@@ -1503,7 +1520,7 @@ $articleUrls = $appConfig['public_urls'] ?? [];
                 handlePricingEmphasis(el);
               }
             });
-          }, { threshold: 0.15 });
+          }, { threshold: 0, rootMargin: rootMargin });
 
           revealElements.forEach(function(el) {
             observer.observe(el);
