@@ -389,6 +389,144 @@ $articleUrls = $appConfig['public_urls'] ?? [];
       .board-col:nth-child(n+4) { display: none; }
       .footer-grid { flex-direction: column; }
     }
+
+    /* ============================================================
+       Scroll reveal and section animations (remaining landing sections)
+       ============================================================ */
+
+    /* Base transitions for hover on interactive cards */
+    .step { transition: transform 0.25s ease, box-shadow 0.25s ease; }
+    .step:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 16px 40px -12px rgba(0,0,0,0.1);
+    }
+
+    .plan { transition: transform 0.25s ease, box-shadow 0.25s ease; }
+    .plan:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 18px 48px -12px rgba(0,0,0,0.12);
+    }
+    .plan.featured:hover {
+      box-shadow: 0 18px 48px -12px rgba(0,0,0,0.12);
+    }
+
+    .founder-card { transition: transform 0.3s ease, box-shadow 0.3s ease; }
+    .founder-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 16px 40px -12px rgba(0,0,0,0.08);
+    }
+
+    /* Scroll reveal core */
+    .reveal {
+      opacity: 0;
+      visibility: hidden;
+      transform: translateY(20px);
+      transition: opacity 0.6s cubic-bezier(0.22, 1, 0.36, 1),
+                  transform 0.6s cubic-bezier(0.22, 1, 0.36, 1),
+                  box-shadow 0.25s ease,
+                  visibility 0s;
+      will-change: opacity, transform;
+    }
+    .reveal-left { transform: translateX(-20px); }
+    .reveal-right { transform: translateX(20px); }
+    .reveal-stagger-1 { transition-delay: 0ms; }
+    .reveal-stagger-2 { transition-delay: 120ms; }
+    .reveal-stagger-3 { transition-delay: 240ms; }
+    .reveal-stagger-4 { transition-delay: 360ms; }
+    .reveal-stagger-5 { transition-delay: 480ms; }
+    .reveal-stagger-6 { transition-delay: 600ms; }
+
+    .reveal.is-revealed,
+    .reveal-left.is-revealed,
+    .reveal-right.is-revealed,
+    .is-revealed {
+      opacity: 1;
+      visibility: visible;
+      transform: none;
+      will-change: auto;
+    }
+
+    /* Step icon animations (triggered after card reveal) */
+    .step-icon { transform-origin: center; }
+    .step-icon-animated .step-icon {
+      animation-duration: 0.5s;
+      animation-fill-mode: both;
+    }
+    .step-1.step-icon-animated .step-icon { animation-name: stepPlus; }
+    .step-2.step-icon-animated .step-icon { animation-name: stepRefresh; }
+    .step-3.step-icon-animated .step-icon { animation-name: stepAlert; }
+
+    @keyframes stepPlus {
+      from { opacity: 0; transform: scale(0.6); }
+      to { opacity: 1; transform: scale(1); }
+    }
+    @keyframes stepRefresh {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+    @keyframes stepAlert {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.15); }
+      100% { transform: scale(1); }
+    }
+
+    /* Product view status pulse */
+    .status-pulse .case-flag { display: inline-block; animation: statusPulse 0.5s ease; }
+    @keyframes statusPulse {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.12); }
+      100% { transform: scale(1); }
+    }
+
+    /* Pricing featured emphasis (applied after all three plans have revealed) */
+    .plan.featured.is-featured-emphasized {
+      box-shadow: 0 0 0 4px rgba(30,64,175,0.08), 0 18px 48px -12px rgba(0,0,0,0.12);
+    }
+    .plan.featured.is-featured-emphasized:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 18px 48px -12px rgba(0,0,0,0.12);
+    }
+
+    /* Mobile and tablet reveal sizing */
+    @media (max-width: 900px) {
+      .reveal,
+      .reveal-left,
+      .reveal-right {
+        transform: translateY(12px);
+        transition: opacity 0.4s cubic-bezier(0.22, 1, 0.36, 1),
+                    transform 0.4s cubic-bezier(0.22, 1, 0.36, 1),
+                    box-shadow 0.25s ease,
+                    visibility 0s;
+      }
+      .reveal.is-revealed,
+      .reveal-left.is-revealed,
+      .reveal-right.is-revealed,
+      .is-revealed {
+        transform: translateY(0);
+      }
+    }
+
+    /* Reduced motion: show everything immediately, no movement/animation */
+    @media (prefers-reduced-motion: reduce) {
+      .reveal, .reveal-left, .reveal-right,
+      .reveal.is-revealed, .reveal-left.is-revealed, .reveal-right.is-revealed,
+      .is-revealed {
+        opacity: 1 !important;
+        visibility: visible !important;
+        transform: none !important;
+        transition: none !important;
+        animation: none !important;
+        will-change: auto !important;
+      }
+      .step-icon-animated .step-icon,
+      .status-pulse .case-flag,
+      .plan.featured.is-featured-emphasized {
+        animation: none !important;
+        transform: none !important;
+        box-shadow: none !important;
+      }
+      html { scroll-behavior: auto; }
+    }
   </style>
 </head>
 <body>
@@ -725,10 +863,10 @@ $articleUrls = $appConfig['public_urls'] ?? [];
 
   <section id="how-it-works" class="section">
     <div class="container">
-      <span class="eyebrow"><?php echo t('marketing.workflow.eyebrow'); ?></span>
-      <h2><?php echo t('marketing.workflow.title'); ?></h2>
-      <p class="lead"><?php echo t('marketing.workflow.lead'); ?></p>
-      <p class="section-body">
+      <span class="eyebrow" data-reveal><?php echo t('marketing.workflow.eyebrow'); ?></span>
+      <h2 data-reveal><?php echo t('marketing.workflow.title'); ?></h2>
+      <p class="lead" data-reveal><?php echo t('marketing.workflow.lead'); ?></p>
+      <p class="section-body" data-reveal>
         <?php
           $catUrl = $baseUrl . ($articleUrls['article_dental_case_tracking_software'] ?? 'dental-case-tracking-software');
           $catLink = '<a href="' . $catUrl . '" class="content-link">' . t('marketing.workflow.link_label') . '</a>';
@@ -736,19 +874,19 @@ $articleUrls = $appConfig['public_urls'] ?? [];
         ?>
       </p>
       <div class="steps-grid">
-        <div class="step step-1">
+        <div class="step step-1" data-reveal data-reveal-stagger="1">
           <div class="step-num">01</div>
           <svg class="step-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>
           <h3><?php echo t('marketing.workflow.step1_title'); ?></h3>
           <p><?php echo t('marketing.workflow.step1_body'); ?></p>
         </div>
-        <div class="step step-2">
+        <div class="step step-2" data-reveal data-reveal-stagger="2">
           <div class="step-num">02</div>
           <svg class="step-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"></path><path d="M16 16h5v5"></path></svg>
           <h3><?php echo t('marketing.workflow.step2_title'); ?></h3>
           <p><?php echo t('marketing.workflow.step2_body'); ?></p>
         </div>
-        <div class="step step-3">
+        <div class="step step-3" data-reveal data-reveal-stagger="3">
           <div class="step-num">03</div>
           <svg class="step-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
           <h3><?php echo t('marketing.workflow.step3_title'); ?></h3>
@@ -760,13 +898,13 @@ $articleUrls = $appConfig['public_urls'] ?? [];
 
   <section class="section attention">
     <div class="container">
-      <span class="eyebrow"><?php echo t('marketing.attention.eyebrow'); ?></span>
-      <h2><?php echo t('marketing.attention.title'); ?></h2>
-      <p class="lead"><?php echo t('marketing.attention.lead'); ?></p>
+      <span class="eyebrow" data-reveal><?php echo t('marketing.attention.eyebrow'); ?></span>
+      <h2 data-reveal><?php echo t('marketing.attention.title'); ?></h2>
+      <p class="lead" data-reveal><?php echo t('marketing.attention.lead'); ?></p>
       <div class="attention-board">
-        <div class="attention-col">
+        <div class="attention-col" data-reveal data-reveal-stagger="1">
           <div class="attention-title late"><?php echo t('marketing.attention.late'); ?></div>
-          <div class="case-card late">
+          <div class="case-card late" data-reveal data-reveal-delay="120">
             <h4>Justin Vance</h4>
             <div class="case-type">Partial</div>
             <div class="case-meta">Due: Mar 16</div>
@@ -775,9 +913,9 @@ $articleUrls = $appConfig['public_urls'] ?? [];
             <span class="case-flag flag-late">Late</span>
           </div>
         </div>
-        <div class="attention-col">
+        <div class="attention-col" data-reveal data-reveal-stagger="2">
           <div class="attention-title due"><?php echo t('marketing.attention.due_soon'); ?></div>
-          <div class="case-card due">
+          <div class="case-card due" data-reveal data-reveal-delay="240">
             <h4>Hannah Lindqvist</h4>
             <div class="case-type">Crown</div>
             <div class="case-meta">Due: Mar 12</div>
@@ -786,9 +924,9 @@ $articleUrls = $appConfig['public_urls'] ?? [];
             <span class="case-flag flag-due">Due Soon</span>
           </div>
         </div>
-        <div class="attention-col">
+        <div class="attention-col" data-reveal data-reveal-stagger="3">
           <div class="attention-title appt"><?php echo t('marketing.attention.appointment_risk'); ?></div>
-          <div class="case-card appt">
+          <div class="case-card appt" data-reveal data-reveal-delay="360">
             <h4>Sofia Patel</h4>
             <div class="case-type">Veneer</div>
             <div class="case-meta">Due: Mar 22</div>
@@ -797,9 +935,9 @@ $articleUrls = $appConfig['public_urls'] ?? [];
             <span class="case-flag flag-appt">Appt Risk</span>
           </div>
         </div>
-        <div class="attention-col">
+        <div class="attention-col" data-reveal data-reveal-stagger="4">
           <div class="attention-title ready"><?php echo t('marketing.attention.ready'); ?></div>
-          <div class="case-card">
+          <div class="case-card" data-reveal data-reveal-delay="480">
             <h4>Sarah Bennett</h4>
             <div class="case-type">Bridge</div>
             <div class="case-meta">Received: Mar 4</div>
@@ -814,12 +952,12 @@ $articleUrls = $appConfig['public_urls'] ?? [];
   <section class="section founder">
     <div class="container">
       <div class="founder-grid">
-        <div class="founder-card">
+        <div class="founder-card" data-reveal data-reveal-dir="left">
           <div class="founder-initials">D<span>r.</span> V</div>
           <div class="founder-name">Dr. William Verrillo</div>
           <div class="founder-role">Practicing Dentist &middot; DentaTrak Co-Founder</div>
         </div>
-        <div>
+        <div class="founder-copy" data-reveal data-reveal-dir="right">
           <span class="eyebrow"><?php echo t('marketing.founder.eyebrow'); ?></span>
           <h2><?php echo t('marketing.founder.title'); ?></h2>
           <p class="lead"><?php echo t('marketing.founder.lead'); ?></p>
@@ -830,13 +968,13 @@ $articleUrls = $appConfig['public_urls'] ?? [];
 
   <section id="pricing" class="section pricing">
     <div class="container">
-      <div class="pricing-intro">
+      <div class="pricing-intro" data-reveal>
         <span class="eyebrow"><?php echo t('marketing.pricing.eyebrow'); ?></span>
         <h2><?php echo t('marketing.pricing.title'); ?></h2>
         <p class="lead"><?php echo t('marketing.pricing.lead'); ?></p>
       </div>
       <div class="plans">
-        <div class="plan">
+        <div class="plan" data-reveal data-reveal-stagger="1">
           <div class="plan-name"><?php echo t('marketing.pricing.operate'); ?></div>
           <div class="plan-price"><?php echo t('marketing.pricing.operate_price_month'); ?><span><?php echo t('marketing.pricing.per_month'); ?></span></div>
           <div class="plan-annual"><?php echo t('marketing.pricing.operate_annual'); ?></div>
@@ -848,7 +986,7 @@ $articleUrls = $appConfig['public_urls'] ?? [];
             <li><?php echo t('marketing.pricing.operate_features_3'); ?></li>
           </ul>
         </div>
-        <div class="plan featured">
+        <div class="plan featured" data-reveal data-reveal-stagger="2">
           <span class="plan-popular"><?php echo t('marketing.pricing.most_popular'); ?></span>
           <div class="plan-name"><?php echo t('marketing.pricing.control'); ?></div>
           <div class="plan-price"><?php echo t('marketing.pricing.control_price_month'); ?><span><?php echo t('marketing.pricing.per_month'); ?></span></div>
@@ -864,7 +1002,7 @@ $articleUrls = $appConfig['public_urls'] ?? [];
             <li><?php echo t('marketing.pricing.control_features_6'); ?></li>
           </ul>
         </div>
-        <div class="plan">
+        <div class="plan" data-reveal data-reveal-stagger="3">
           <div class="plan-name"><?php echo t('marketing.pricing.scale'); ?></div>
           <div class="plan-price"><?php echo t('marketing.pricing.scale_price_month'); ?><span><?php echo t('marketing.pricing.per_month'); ?></span></div>
           <div class="plan-annual"><?php echo t('marketing.pricing.scale_annual'); ?></div>
@@ -883,9 +1021,9 @@ $articleUrls = $appConfig['public_urls'] ?? [];
 
   <section class="section final-cta">
     <div class="container">
-      <h2><?php echo t('marketing.cta.final_title'); ?></h2>
-      <p class="lead"><?php echo t('marketing.cta.final_lead'); ?></p>
-      <div>
+      <h2 data-reveal><?php echo t('marketing.cta.final_title'); ?></h2>
+      <p class="lead" data-reveal><?php echo t('marketing.cta.final_lead'); ?></p>
+      <div data-reveal>
         <a href="<?= $baseUrl ?>login.php" class="btn btn-primary"><?php echo t('marketing.cta.start_free'); ?></a>
         <a href="<?= $baseUrl ?>login.php" class="btn btn-secondary"><?php echo t('marketing.cta.sign_in'); ?></a>
       </div>
@@ -894,7 +1032,7 @@ $articleUrls = $appConfig['public_urls'] ?? [];
 
   <section class="trust">
     <div class="container">
-      <div class="trust-items">
+      <div class="trust-items" data-reveal>
         <span><?php echo t('marketing.security.practice_based_access'); ?></span>
         <span><?php echo t('marketing.security.user_permissions'); ?></span>
         <span><?php echo t('marketing.security.encrypted_data_storage'); ?></span>
@@ -1274,6 +1412,107 @@ $articleUrls = $appConfig['public_urls'] ?? [];
           }
         }, 150);
       });
+
+      // ============================================================
+      // Shared scroll reveal for remaining landing sections
+      // ============================================================
+      (function() {
+        var revealSelector = '[data-reveal]';
+        var revealElements = document.querySelectorAll(revealSelector);
+        if (!revealElements.length) return;
+
+        var reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+        function cleanRevealClasses(el) {
+          el.classList.remove('reveal', 'reveal-up', 'reveal-left', 'reveal-right');
+          el.classList.remove('reveal-stagger-1', 'reveal-stagger-2', 'reveal-stagger-3', 'reveal-stagger-4', 'reveal-stagger-5', 'reveal-stagger-6');
+        }
+
+        function revealAll() {
+          revealElements.forEach(function(el) {
+            cleanRevealClasses(el);
+            el.classList.add('is-revealed');
+            el.style.transitionDelay = '';
+          });
+        }
+
+        function onRevealTransitionEnd(el, cb) {
+          function handler(e) {
+            if (e.propertyName === 'transform') {
+              el.removeEventListener('transitionend', handler);
+              cleanRevealClasses(el);
+              if (cb) cb();
+            }
+          }
+          el.addEventListener('transitionend', handler);
+        }
+
+        function handleStepIcon(el) {
+          if (!el.classList.contains('step')) return;
+          onRevealTransitionEnd(el, function() {
+            el.classList.add('step-icon-animated');
+          });
+        }
+
+        function handleStatusPulse(el) {
+          if (!el.classList.contains('case-card') || !el.closest('.attention-col')) return;
+          onRevealTransitionEnd(el, function() {
+            el.classList.add('status-pulse');
+          });
+        }
+
+        function handlePricingEmphasis(el) {
+          if (!el.classList.contains('plan')) return;
+          onRevealTransitionEnd(el, function() {
+            var plans = document.querySelectorAll('.plan');
+            var allRevealed = true;
+            plans.forEach(function(plan) {
+              if (!plan.classList.contains('is-revealed')) allRevealed = false;
+            });
+            if (allRevealed) {
+              var featured = document.querySelector('.plan.featured');
+              if (featured) featured.classList.add('is-featured-emphasized');
+            }
+          });
+        }
+
+        if (reduceMotion || !('IntersectionObserver' in window)) {
+          revealAll();
+          return;
+        }
+
+        try {
+          revealElements.forEach(function(el) {
+            var dir = el.getAttribute('data-reveal-dir') || 'up';
+            var stagger = el.getAttribute('data-reveal-stagger');
+            el.classList.add('reveal');
+            if (dir !== 'up') el.classList.add('reveal-' + dir);
+            if (stagger) el.classList.add('reveal-stagger-' + stagger);
+            var delay = el.getAttribute('data-reveal-delay');
+            if (delay) el.style.transitionDelay = delay + 'ms';
+          });
+
+          var observer = new IntersectionObserver(function(entries, obs) {
+            entries.forEach(function(entry) {
+              if (entry.isIntersecting) {
+                var el = entry.target;
+                el.classList.add('is-revealed');
+                obs.unobserve(el);
+                handleStepIcon(el);
+                handleStatusPulse(el);
+                handlePricingEmphasis(el);
+              }
+            });
+          }, { threshold: 0.15 });
+
+          revealElements.forEach(function(el) {
+            observer.observe(el);
+          });
+        } catch (e) {
+          // If the reveal engine fails at runtime, make sure content remains visible.
+          revealAll();
+        }
+      })();
     })();
   </script>
 
