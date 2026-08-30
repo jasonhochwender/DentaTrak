@@ -1131,6 +1131,43 @@ $userEmail = $_SESSION['user_email'] ?? '';
         let practices = [];
         let selectedPracticeId = null;
         let currentView = 'all';
+
+        // Counter and helper to prevent stale tab requests (slower/older responses
+        // from a previously selected practice or tab cannot overwrite the current view).
+        let lastTabRequestId = 0;
+
+        function isCurrentTabRequest(requestId, practiceId) {
+            return requestId === lastTabRequestId && practiceId === selectedPracticeId;
+        }
+
+        function loadTab(url, renderFn, tabName, practiceId) {
+            const requestId = ++lastTabRequestId;
+
+            fetch(url, { credentials: 'same-origin' })
+                .then(response => {
+                    if (!isCurrentTabRequest(requestId, practiceId)) return null;
+                    if (!response.ok) throw new Error('HTTP ' + response.status);
+                    return response.json();
+                })
+                .then(data => {
+                    if (!isCurrentTabRequest(requestId, practiceId)) return;
+                    if (data && data.success) {
+                        renderFn(data);
+                    } else {
+                        const message = data && data.message ? data.message : 'Unknown error';
+                        document.getElementById('detailContent').innerHTML =
+                            '<div class="empty-state">Error loading ' + escapeHtml(tabName) + ': ' + escapeHtml(message) +
+                            '<br><button type="button" class="action-btn" style="margin-top: 12px;" onclick="showTab(\'' + tabName + '\', ' + practiceId + ')">Retry</button></div>';
+                    }
+                })
+                .catch(error => {
+                    if (!isCurrentTabRequest(requestId, practiceId)) return;
+                    console.error('[' + tabName + ' tab] ' + error.message);
+                    document.getElementById('detailContent').innerHTML =
+                        '<div class="empty-state">Failed to load ' + escapeHtml(tabName) + ': ' + escapeHtml(error.message) +
+                        '<br><button type="button" class="action-btn" style="margin-top: 12px;" onclick="showTab(\'' + tabName + '\', ' + practiceId + ')">Retry</button></div>';
+                });
+        }
         
         // Load practices on page load
         document.addEventListener('DOMContentLoaded', loadPractices);
@@ -1372,16 +1409,7 @@ $userEmail = $_SESSION['user_email'] ?? '';
         }
         
         function loadComplianceTab(practiceId) {
-            fetch('api/admin-practices.php?action=compliance&practice_id=' + practiceId, { credentials: 'same-origin' })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        renderComplianceTab(data.compliance);
-                    } else {
-                        document.getElementById('detailContent').innerHTML = 
-                            '<div class="empty-state">Error: ' + (data.message || 'Unknown error') + '</div>';
-                    }
-                });
+            loadTab('api/admin-practices.php?action=compliance&practice_id=' + practiceId, data => renderComplianceTab(data.compliance), 'compliance', practiceId);
         }
         
         function renderComplianceTab(compliance) {
@@ -1638,16 +1666,7 @@ $userEmail = $_SESSION['user_email'] ?? '';
         }
 
         function loadAdoptionTab(practiceId) {
-            fetch('api/admin-practices.php?action=adoption&practice_id=' + practiceId, { credentials: 'same-origin' })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        renderAdoptionTab(data.adoption);
-                    } else {
-                        document.getElementById('detailContent').innerHTML =
-                            '<div class="empty-state">Error: ' + (data.message || 'Unknown error') + '</div>';
-                    }
-                });
+            loadTab('api/admin-practices.php?action=adoption&practice_id=' + practiceId, data => renderAdoptionTab(data.adoption), 'usage', practiceId);
         }
 
         function renderAdoptionTab(adoption) {
@@ -1672,6 +1691,11 @@ $userEmail = $_SESSION['user_email'] ?? '';
                     (sub.is_trialing && sub.trial_display ? ' • ' + escapeHtml(sub.trial_display) : '') +
                     '</div>' +
                     '</div>';
+            }
+
+            const hasActivity = adoption.total_users > 0 || adoption.active_cases > 0 || adoption.created_last_30_days > 0 || adoption.delivered_last_30_days > 0 || adoption.last_activity;
+            if (!hasActivity) {
+                html += '<div class="empty-state" style="margin-bottom: 16px; text-align: left;">No usage or adoption data has been recorded for this practice yet.<br><small>Metrics will appear once users log in and cases are created or updated.</small></div>';
             }
 
             const metric = (label, value) => {
@@ -1704,16 +1728,7 @@ $userEmail = $_SESSION['user_email'] ?? '';
         }
 
         function loadPHITab(practiceId) {
-            fetch('api/admin-practices.php?action=phi_log&practice_id=' + practiceId + '&limit=100', { credentials: 'same-origin' })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        renderPHITab(data.log);
-                    } else {
-                        document.getElementById('detailContent').innerHTML = 
-                            '<div class="empty-state">Error: ' + (data.message || 'Unknown error') + '</div>';
-                    }
-                });
+            loadTab('api/admin-practices.php?action=phi_log&practice_id=' + practiceId + '&limit=100', data => renderPHITab(data.log), 'phi', practiceId);
         }
         
         function renderPHITab(log) {
@@ -1750,17 +1765,10 @@ $userEmail = $_SESSION['user_email'] ?? '';
         }
         
         function loadUsersTab(practiceId) {
-            fetch('api/admin-practices.php?action=users&practice_id=' + practiceId, { credentials: 'same-origin' })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        currentPracticeUsers = data.users || [];
-                        renderUsersTab(data.users);
-                    } else {
-                        document.getElementById('detailContent').innerHTML = 
-                            '<div class="empty-state">Error: ' + (data.message || 'Unknown error') + '</div>';
-                    }
-                });
+            loadTab('api/admin-practices.php?action=users&practice_id=' + practiceId, data => {
+                currentPracticeUsers = data.users || [];
+                renderUsersTab(data.users);
+            }, 'users', practiceId);
         }
         
         function renderUsersTab(users) {
@@ -2028,16 +2036,7 @@ $userEmail = $_SESSION['user_email'] ?? '';
         }
         
         function loadSettingsTab(practiceId) {
-            fetch('api/admin-practices.php?action=settings&practice_id=' + practiceId, { credentials: 'same-origin' })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        renderSettingsTab(data.settings);
-                    } else {
-                        document.getElementById('detailContent').innerHTML =
-                            '<div class="empty-state">Error: ' + (data.message || 'Unknown error') + '</div>';
-                    }
-                });
+            loadTab('api/admin-practices.php?action=settings&practice_id=' + practiceId, data => renderSettingsTab(data.settings), 'settings', practiceId);
         }
         
         function renderSettingsTab(settings) {
@@ -2152,9 +2151,14 @@ $userEmail = $_SESSION['user_email'] ?? '';
                     if (data.success) {
                         renderComplianceDetails(data.compliance);
                     } else {
-                        document.getElementById('complianceDetails').innerHTML = 
+                        document.getElementById('complianceDetails').innerHTML =
                             '<div class="empty-state">Error: ' + (data.message || 'Unknown error') + '</div>';
                     }
+                })
+                .catch(error => {
+                    console.error('[compliance modal]', error);
+                    document.getElementById('complianceDetails').innerHTML =
+                        '<div class="empty-state">Failed to load compliance details: ' + escapeHtml(error.message) + '</div>';
                 });
         }
         
@@ -2226,9 +2230,14 @@ $userEmail = $_SESSION['user_email'] ?? '';
                     if (data.success) {
                         renderPHILog(data.log);
                     } else {
-                        document.getElementById('phiLogContent').innerHTML = 
+                        document.getElementById('phiLogContent').innerHTML =
                             '<div class="empty-state">Error: ' + (data.message || 'Unknown error') + '</div>';
                     }
+                })
+                .catch(error => {
+                    console.error('[phi log modal]', error);
+                    document.getElementById('phiLogContent').innerHTML =
+                        '<div class="empty-state">Failed to load PHI log: ' + escapeHtml(error.message) + '</div>';
                 });
         }
         

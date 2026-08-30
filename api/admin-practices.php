@@ -24,6 +24,55 @@ require_once __DIR__ . '/admin-subscription-helpers.php';
 require_once __DIR__ . '/email-sender.php';
 
 header('Content-Type: application/json');
+ob_start();
+
+// Suppress raw PHP error output for this API boundary. Errors are still logged;
+// unexpected ones are converted below to a safe JSON 500 response.
+ini_set('display_errors', '0');
+
+// Catch any uncaught Throwable (Error or Exception) anywhere in this script and
+// return a safe JSON 500 without exposing SQL, paths, or stack traces.
+set_exception_handler(function (Throwable $e) {
+    error_log('[admin-practices] Unexpected error: ' . $e->getMessage() . ' in ' . $e->getFile() . ':' . $e->getLine());
+
+    while (ob_get_level() > 0) {
+        ob_end_clean();
+    }
+
+    if (!headers_sent()) {
+        http_response_code(500);
+        header('Content-Type: application/json');
+    }
+
+    echo json_encode(['success' => false, 'error' => 'Unable to load practice information.']);
+    exit;
+});
+
+// Last-resort guard for fatal PHP errors (E_ERROR, E_PARSE, E_COMPILE_ERROR, etc.).
+register_shutdown_function(function () {
+    $error = error_get_last();
+    if (!$error) {
+        return;
+    }
+
+    $fatalTypes = [E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR, E_USER_ERROR];
+    if (!in_array($error['type'], $fatalTypes, true)) {
+        return;
+    }
+
+    error_log('[admin-practices] Fatal error: ' . $error['message'] . ' in ' . $error['file'] . ':' . $error['line']);
+
+    while (ob_get_level() > 0) {
+        ob_end_clean();
+    }
+
+    if (!headers_sent()) {
+        http_response_code(500);
+        header('Content-Type: application/json');
+    }
+
+    echo json_encode(['success' => false, 'error' => 'Unable to load practice information.']);
+});
 
 // Check if user is logged in
 if (empty($_SESSION['db_user_id'])) {
@@ -365,16 +414,40 @@ TEXT;
 $method = $_SERVER['REQUEST_METHOD'];
 $action = $_GET['action'] ?? '';
 
-switch ($method) {
-    case 'GET':
-        handleGetRequest($action);
-        break;
-    case 'POST':
-        handlePostRequest($action);
-        break;
-    default:
-        http_response_code(405);
-        echo json_encode(['success' => false, 'message' => 'Method not allowed']);
+try {
+    switch ($method) {
+        case 'GET':
+            handleGetRequest($action);
+            break;
+        case 'POST':
+            handlePostRequest($action);
+            break;
+        default:
+            http_response_code(405);
+            echo json_encode(['success' => false, 'message' => 'Method not allowed']);
+    }
+} catch (Throwable $e) {
+    // Unexpected server error: log full context, then return a safe JSON 500
+    // without exposing SQL, paths, or stack traces to the client.
+    error_log('[admin-practices] Unexpected error: ' . $e->getMessage() . ' in ' . $e->getFile() . ':' . $e->getLine());
+
+    if (!headers_sent()) {
+        http_response_code(500);
+        header('Content-Type: application/json');
+    }
+
+    // Discard any partial output (warnings, stack traces) that may have leaked.
+    while (ob_get_level() > 0) {
+        ob_end_clean();
+    }
+
+    echo json_encode(['success' => false, 'error' => 'Unable to load practice information.']);
+    exit;
+}
+
+// Normal flow: flush the buffered JSON output.
+while (ob_get_level() > 0) {
+    ob_end_flush();
 }
 
 /**
@@ -429,14 +502,14 @@ function getAdoptionForPractice(PDO $pdo, int $practiceId, ?array $users = null)
         LEFT JOIN (
             SELECT case_id, MAX(created_at) as delivered_at
             FROM case_activity_log
-            WHERE event_type = 'status_changed' AND new_status = :terminal
+            WHERE event_type = 'status_changed' AND new_status = :terminal_inner
             GROUP BY case_id
         ) l ON l.case_id = c.case_id
         WHERE c.practice_id = :practice_id
-          AND c.status = :terminal
+          AND c.status = :terminal_outer
           AND COALESCE(c.status_changed_at, l.delivered_at) >= DATE_SUB(NOW(), INTERVAL 30 DAY)
     ");
-    $terminalStmt->execute(['practice_id' => $practiceId, 'terminal' => $terminalStatus]);
+    $terminalStmt->execute(['practice_id' => $practiceId, 'terminal_inner' => $terminalStatus, 'terminal_outer' => $terminalStatus]);
     $deliveredLast30 = (int)$terminalStmt->fetchColumn();
 
     // Demo data count
