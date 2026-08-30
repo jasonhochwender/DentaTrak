@@ -93,7 +93,8 @@ if ($pathCaseId !== '' && strpos($pathCaseId, 'pending_') !== 0) {
 
 // Authorization is complete. Release the session lock before the GCS stream
 // so a slow transfer does not block other requests for this session.
-$_SESSION['last_activity'] = time();
+// Do NOT refresh last_activity here; image loads are automatic/background and
+// must not extend the inactivity timeout.
 session_write_close();
 
 try {

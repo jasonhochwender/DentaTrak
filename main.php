@@ -2957,7 +2957,7 @@ endif;
 
   <!-- Load JavaScript last -->
   <script src="js/toast.js?v=20250104" defer></script>
-  <script src="js/session-timeout.js?v=20260829" defer></script>
+  <?php require_once __DIR__ . '/api/auth-timeout-script.php'; ?>
   <script src="js/gcs-upload.js?v=20260303c" defer></script>
   <script type="importmap">
   {
@@ -2967,7 +2967,6 @@ endif;
     }
   }
   </script>
-  <script src="js/i18n.js?v=20260820" defer></script>
   <script src="js/workflow-draft.js?v=20260829f" defer></script>
   <script src="js/workflow-draft-ui.js?v=20260829f" defer></script>
   <script src="js/app.js?v=20260829b" defer></script>

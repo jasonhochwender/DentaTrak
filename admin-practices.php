@@ -1059,10 +1059,9 @@ $userEmail = $_SESSION['user_email'] ?? '';
     </div>
     
     <script>
-        window.__i18n = <?php echo getTranslationsJsonForJs(); ?>;
         window.csrfToken = <?php echo json_encode($csrfToken); ?>;
     </script>
-    <script src="js/i18n.js"></script>
+    <?php require_once __DIR__ . '/api/auth-timeout-script.php'; ?>
     <script>
         const yesNo = value => value ? t('common.yes') : t('common.no');
 

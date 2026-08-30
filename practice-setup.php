@@ -178,10 +178,7 @@ $appName = $appConfig['appName'];
 
     <link rel="stylesheet" href="css/app.css">
     <link rel="stylesheet" href="css/practice-setup.css">
-    <script>
-        window.__i18n = <?php echo getTranslationsJsonForJs(); ?>;
-    </script>
-    <script src="js/i18n.js"></script>
+    <?php require_once __DIR__ . '/api/auth-timeout-script.php'; ?>
 </head>
 <body class="practice-setup-body <?php echo $envClass; ?>">
     <!-- Animated Background -->

@@ -232,6 +232,10 @@ function createSandbox() {
         if (fetchCalls.length === 0) throw new Error('No fetch calls to resolve');
         fetchCalls[fetchCalls.length - 1].promise.resolve(response);
       },
+      resolveFetchAt(index, response) {
+        if (!fetchCalls[index]) throw new Error('No fetch call at index ' + index);
+        fetchCalls[index].promise.resolve(response);
+      },
     },
   };
 
@@ -245,6 +249,30 @@ function runInSandbox() {
   const context = vm.createContext(sandbox);
   vm.runInContext(source, context, { filename: 'session-timeout.js' });
   return sandbox;
+}
+
+function makeJsonResponse(data) {
+  return {
+    status: 200,
+    ok: true,
+    json: () => {
+      const t = new Thenable();
+      t.resolve(data);
+      return t;
+    },
+  };
+}
+
+function makeEmptyResponse(status) {
+  return {
+    status: status,
+    ok: status >= 200 && status < 300,
+    json: () => {
+      const t = new Thenable();
+      t.resolve({});
+      return t;
+    },
+  };
 }
 
 function test(name, fn) {
@@ -270,9 +298,9 @@ test('Page initialization does not immediately ping the server', () => {
   assertEqual(activityPings.length, 0, 'activity pings at init');
 });
 
-test('User activity events are wired: mousedown, keydown, scroll, touchstart, click', () => {
+test('User activity events include click, keydown, scroll, touchstart, pointerdown', () => {
   const s = runInSandbox();
-  const expected = ['mousedown', 'keydown', 'scroll', 'touchstart', 'click'];
+  const expected = ['mousedown', 'keydown', 'scroll', 'touchstart', 'click', 'pointerdown'];
   for (const ev of expected) {
     assertTrue(Array.isArray(s._test.listeners.document[ev]) && s._test.listeners.document[ev].length > 0, `${ev} listener registered`);
   }
@@ -296,7 +324,7 @@ function testActivityPing(eventName) {
   });
 }
 
-['mousedown', 'keydown', 'scroll', 'touchstart', 'click'].forEach(testActivityPing);
+['mousedown', 'keydown', 'scroll', 'touchstart', 'click', 'pointerdown'].forEach(testActivityPing);
 
 test('Window focus does not reset the timeout', () => {
   const s = runInSandbox();
@@ -314,9 +342,9 @@ test('mousemove is not a user-activity event in session-timeout.js', () => {
   assertFalse(s._test.listeners.document['mousemove'] && s._test.listeners.document['mousemove'].length > 0, 'no mousemove listener in session-timeout.js');
 });
 
-test('Automated session-status polling does not send an activity ping', () => {
+test('Automated session-status polling is a GET, not an activity ping', () => {
   const s = runInSandbox();
-  // After init there is a 5s initial check and a 60s interval. Tick 60s.
+  // After init the first check fires at 5s. Tick 60s to trigger it.
   s._test.tick(60000);
   const last = s._test.fetchCalls[s._test.fetchCalls.length - 1];
   assertTrue(last && last.url === 'api/session-status.php' && (!last.options || last.options.method !== 'POST'), 'automated status check is a GET');
@@ -333,23 +361,15 @@ test('Automated session-status polling does not send an activity ping', () => {
 
 test('Warning modal appears with approximately 300 seconds remaining', () => {
   const s = runInSandbox();
-  s._test.tick(60000); // trigger the scheduled checkSessionStatus
-  const response = {
-    status: 200,
-    ok: true,
-    json: () => {
-      const t = new Thenable();
-      t.resolve({
-        success: true,
-        loggedIn: true,
-        timeRemaining: 300,
-        timeout: 3600,
-        warningTime: 300,
-        showWarning: true,
-      });
-      return t;
-    },
-  };
+  s._test.tick(60000); // trigger the initial scheduled checkSessionStatus
+  const response = makeJsonResponse({
+    success: true,
+    loggedIn: true,
+    timeRemaining: 300,
+    timeout: 3600,
+    warningTime: 300,
+    showWarning: true,
+  });
   s._test.resolveLastFetch(response);
   assertTrue(s._test.elementsById['sessionTimeoutModal'], 'warning modal was created');
   const countdown = s._test.elementsById['sessionCountdown'];
@@ -357,28 +377,61 @@ test('Warning modal appears with approximately 300 seconds remaining', () => {
   assertEqual(countdown.textContent, '5:00', 'countdown starts around 300 seconds');
 });
 
-test('Countdown expires and redirects to timeout URL after the warning period', () => {
+test('Countdown reaches zero, asks the server, then redirects to timeout URL', () => {
   const s = runInSandbox();
   s._test.tick(60000);
-  const response = {
-    status: 200,
-    ok: true,
-    json: () => {
-      const t = new Thenable();
-      t.resolve({
-        success: true,
-        loggedIn: true,
-        timeRemaining: 300,
-        timeout: 3600,
-        warningTime: 300,
-        showWarning: true,
-      });
-      return t;
-    },
-  };
+  const response = makeJsonResponse({
+    success: true,
+    loggedIn: true,
+    timeRemaining: 300,
+    timeout: 3600,
+    warningTime: 300,
+    showWarning: true,
+  });
   s._test.resolveLastFetch(response);
-  s._test.tick(300000); // advance the full 300-second warning countdown
-  assertEqual(s.window.location.href, 'login.php?timeout=1', 'redirects to timeout login');
+  // Advance the full 300-second warning countdown.
+  s._test.tick(300000);
+  // The countdown asked the server; resolve that server call as an inactivity timeout.
+  const expiredResponse = makeJsonResponse({
+    success: false,
+    loggedIn: false,
+    reason: 'inactivity',
+    timeRemaining: 0,
+    timeout: 3600,
+    warningTime: 300,
+  });
+  s._test.resolveLastFetch(expiredResponse);
+  assertEqual(s.window.location.href, 'login.php?timeout=1', 'redirects to timeout login after server confirms');
+});
+
+test('Server 401 (unrelated reason) redirects to generic session expired', () => {
+  const s = runInSandbox();
+  s._test.tick(60000);
+  const response = makeJsonResponse({
+    success: false,
+    loggedIn: false,
+    reason: null,
+    timeRemaining: 0,
+    timeout: 3600,
+    warningTime: 300,
+  });
+  s._test.resolveLastFetch(response);
+  assertEqual(s.window.location.href, 'login.php?session_expired=1', 'redirects to generic expired login');
+});
+
+test('timeRemaining of 0 on a still-loggedIn-looking response redirects', () => {
+  const s = runInSandbox();
+  s._test.tick(60000);
+  const response = makeJsonResponse({
+    success: true,
+    loggedIn: true,
+    timeRemaining: 0,
+    timeout: 3600,
+    warningTime: 300,
+    showWarning: false,
+  });
+  s._test.resolveLastFetch(response);
+  assertEqual(s.window.location.href, 'login.php?session_expired=1', 'redirects when server reports zero time');
 });
 
 console.log(results.join('\n'));

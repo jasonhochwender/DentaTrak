@@ -675,10 +675,7 @@ $baaVersion = 'v1.0-2026-08-07';
     </div>
     
     <script src="js/toast.js"></script>
-    <script>
-        window.__i18n = <?php echo getTranslationsJsonForJs(); ?>;
-    </script>
-    <script src="js/i18n.js"></script>
+    <?php require_once __DIR__ . '/api/auth-timeout-script.php'; ?>
     <script>
         var IS_CREATING_NEW_PRACTICE = <?php echo $isCreatingNewPractice ? 'true' : 'false'; ?>;
         var ENTITLEMENT_BLOCKED = <?php echo $entitlementBlocked ? 'true' : 'false'; ?>;

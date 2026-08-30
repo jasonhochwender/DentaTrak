@@ -141,6 +141,10 @@ try {
 
     $result = generateSignedUploadUrl($objectPath, $contentType);
 
+    // Mark an active upload so the ping.php keepalive can extend the session
+    // only while a real upload is in progress.
+    $_SESSION['last_upload_ping'] = time();
+
     echo json_encode([
         'success'       => true,
         'signed_url'    => $result['signed_url'],

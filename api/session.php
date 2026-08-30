@@ -17,6 +17,7 @@ $sessionGcLifetime = (int)($sessionTimeout * 1.5);
 define('SESSION_TIMEOUT', $sessionTimeout);        // inactivity timeout (default 60 minutes)
 define('SESSION_WARNING_TIME', $sessionWarningTime); // warning before timeout (default 5 minutes)
 define('SESSION_GC_LIFETIME', $sessionGcLifetime);  // must exceed timeout to allow keepalive
+define('UPLOAD_PING_WINDOW', $sessionTimeout);      // upload keepalive is only valid for the current inactivity window
 
 // Set GC lifetime before appConfig.php starts the session so the PDO handler picks it up
 if (session_status() === PHP_SESSION_NONE) {
@@ -64,33 +65,67 @@ function regenerateSession() {
 regenerateSession();
 
 /**
+ * Determine the authoritative inactivity reference timestamp for the session.
+ * Uses the later of the server-recorded last_activity and the client-reported
+ * last_user_action_at so that both full-page loads and JavaScript-tracked
+ * genuine interactions keep the deadline accurate.
+ *
+ * @return int Unix timestamp, or 0 if neither value is set
+ */
+function getSessionInactivityReference() {
+    $lastActivity = $_SESSION['last_activity'] ?? 0;
+    $lastUserAction = $_SESSION['last_user_action_at'] ?? 0;
+    return max($lastActivity, $lastUserAction);
+}
+
+/**
+ * Fully expire a session due to inactivity:
+ * - Clear and invalidate the remember-me token
+ * - Destroy the PHP session
+ */
+function expireInactivitySession() {
+    // Load the remember-me helpers if they are not already available.
+    // unified-identity.php defines clearRememberMeCookie(), which both
+    // deletes the matching token from the database and expires the cookie.
+    if (!function_exists('clearRememberMeCookie')) {
+        $unifiedIdentityPath = __DIR__ . '/unified-identity.php';
+        if (file_exists($unifiedIdentityPath)) {
+            require_once $unifiedIdentityPath;
+        }
+    }
+
+    if (function_exists('clearRememberMeCookie')) {
+        clearRememberMeCookie();
+    }
+
+    session_unset();
+    session_destroy();
+}
+
+/**
  * Check if session has timed out due to inactivity
  * @return bool True if session is still valid, false if timed out
  */
 function checkSessionTimeout() {
-    // Skip timeout check for API endpoints that check session status
+    // session-status.php is the client-visible status endpoint and handles
+    // its own timeout enforcement so it can return a JSON reason to the client.
     $currentScript = basename($_SERVER['SCRIPT_NAME'] ?? '');
     if ($currentScript === 'session-status.php') {
         return true;
     }
-    
-    if (isset($_SESSION['last_activity'])) {
-        $inactiveTime = time() - $_SESSION['last_activity'];
-        
+
+    $lastReference = getSessionInactivityReference();
+    if ($lastReference > 0) {
+        $inactiveTime = time() - $lastReference;
+
         if ($inactiveTime > SESSION_TIMEOUT) {
-            // Session has timed out - destroy it
-            session_unset();
-            session_destroy();
-            
-            // NOTE: Do NOT clear remember_token cookie here!
-            // The Remember Me cookie should persist across session timeouts
-            // so users can be auto-logged in when they return.
-            // The cookie is only cleared on explicit logout.
-            
+            // Session has timed out. Destroy the session and clear the remember
+            // token so the user cannot be silently auto-logged back in.
+            expireInactivitySession();
             return false;
         }
     }
-    
+
     return true;
 }
 
@@ -99,11 +134,12 @@ function checkSessionTimeout() {
  * @return int Seconds remaining before timeout
  */
 function getSessionTimeRemaining() {
-    if (!isset($_SESSION['last_activity'])) {
+    $lastReference = getSessionInactivityReference();
+    if ($lastReference <= 0) {
         return SESSION_TIMEOUT;
     }
-    
-    $elapsed = time() - $_SESSION['last_activity'];
+
+    $elapsed = time() - $lastReference;
     return max(0, SESSION_TIMEOUT - $elapsed);
 }
 
@@ -121,16 +157,46 @@ if (!empty($_SESSION['db_user_id']) && !checkSessionTimeout()) {
     }
 }
 
-// Update last activity time - but NOT for passive/polling endpoints
-// This ensures the inactivity timer only resets on actual user activity.
-// GET/HEAD requests to polling endpoints are passive; POST/PUT/DELETE actions
-// on those same endpoints are genuine user activity and still reset the timer.
+// Update inactivity timestamps, but only for genuine user activity.
+// Background polling, analytics, status checks, and read-only API GETs must
+// NOT refresh the deadline. Page loads and mutating requests (POST/PUT/DELETE)
+// are genuine. The upload keepalive endpoint is also treated as genuine because
+// the user is actively uploading.
 $currentScript = basename($_SERVER['SCRIPT_NAME'] ?? '');
-$passiveEndpoints = ['session-status.php', 'notifications.php', 'check-updates.php'];
+$scriptPath = $_SERVER['SCRIPT_NAME'] ?? '';
+$passiveEndpoints = ['notifications.php', 'check-updates.php'];
 $requestMethod = strtoupper($_SERVER['REQUEST_METHOD'] ?? 'GET');
 $isPassive = in_array($currentScript, $passiveEndpoints) && in_array($requestMethod, ['GET', 'HEAD']);
-if (!$isPassive) {
-    $_SESSION['last_activity'] = time();
+$isApiRead = strpos($scriptPath, '/api/') !== false && in_array($requestMethod, ['GET', 'HEAD']);
+$isPageLoad = strpos($scriptPath, '/api/') === false && $requestMethod === 'GET';
+$isMutating = in_array($requestMethod, ['POST', 'PUT', 'DELETE', 'PATCH']);
+
+// session-status.php performs its own timeout enforcement and its own
+// timestamp updates (for activity/extend), so it must not be updated here.
+$isSelfHandled = ($currentScript === 'session-status.php');
+
+if (!$isPassive && !$isSelfHandled) {
+    if ($currentScript === 'ping.php') {
+        // Long-running upload keepalive. Only renew when the browser recently
+        // obtained an upload signed URL; otherwise this endpoint could be used
+        // as an unconditional background keepalive.
+        $lastUploadPing = $_SESSION['last_upload_ping'] ?? 0;
+        if ($lastUploadPing > 0 && (time() - $lastUploadPing) <= UPLOAD_PING_WINDOW) {
+            $_SESSION['last_activity'] = time();
+            $_SESSION['last_upload_ping'] = time(); // slide the window
+        }
+    } elseif ($isMutating) {
+        // State-changing actions such as creating/updating a case,
+        // marking a notification read, changing a setting, etc.
+        $_SESSION['last_activity'] = time();
+        $_SESSION['last_user_action_at'] = time();
+    } elseif ($isPageLoad) {
+        // Navigating to an authenticated page such as main.php or admin-practices.php
+        $_SESSION['last_activity'] = time();
+    }
+    // API read GETs (e.g. list-cases, get-case, billing status) do NOT refresh
+    // the inactivity timer. The user's click/scroll/touch that triggered the
+    // request will be recorded by the JS activity ping instead.
 }
 
 // ============================================

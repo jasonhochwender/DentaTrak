@@ -958,6 +958,10 @@ function setupUserSession($user, $authMethod = 'email') {
         'picture' => $user['profile_picture'] ?? ''
     ];
 
+    // Start the inactivity clock at the moment of login.
+    $_SESSION['last_activity'] = time();
+    $_SESSION['last_user_action_at'] = time();
+
     // Resolve and persist the active locale from user/practice preferences
     if (!empty($_SESSION['current_practice_id'])) {
         setResolvedLocale(resolveLocale(null, $user['id'], $_SESSION['current_practice_id']));
