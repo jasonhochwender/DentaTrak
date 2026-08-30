@@ -3520,7 +3520,11 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   // Initialize the workflow column manager (add/reorder/archive/restore).
-  initWorkflowColumnsManager();
+  // Guard against transient script-order issues in environments where
+  // workflow-draft-ui.js has not yet executed at DOMContentLoaded.
+  if (typeof initWorkflowColumnsManager === 'function') {
+    initWorkflowColumnsManager();
+  }
 
   // Add Enter key handler for settings form
   if (settingsForm) {

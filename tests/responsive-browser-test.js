@@ -33,26 +33,20 @@ async function run() {
 
   const browser = await chromium.launch({ headless: true });
   const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
-  const page = await context.newPage();
 
-  // 1. Log in via the in-page API so cookies are set in this browser context.
-  await page.goto(`${BASE_URL}/login.php`);
-  const loginResult = await page.evaluate(
-    async ({ email, password }) => {
-      const res = await fetch('api/auth-email.php', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'login', email, password }),
-      });
-      return res.json();
-    },
-    { email: EMAIL, password: PASSWORD }
-  );
-
+  // 1. Log in via an API request so the context cookie jar has the session
+  // before the first main.php load. Using context.request avoids the race
+  // between fetch() Set-Cookie and the next navigation.
+  const loginRes = await context.request.post(`${BASE_URL}/api/auth-email.php`, {
+    data: { action: 'login', email: EMAIL, password: PASSWORD },
+    headers: { 'Content-Type': 'application/json' },
+  });
+  const loginResult = await loginRes.json();
   if (!loginResult || loginResult.success === false) {
     throw new Error('Login failed: ' + JSON.stringify(loginResult));
   }
 
+  const page = await context.newPage();
   await page.goto(`${BASE_URL}/main.php`);
   await page.waitForLoadState('networkidle');
   // The notification panel JS is deferred; wait for it before any viewport tests.
