@@ -32,6 +32,15 @@ function getWorkflowStatusCssClass(status) {
 window.getWorkflowStatusCssClass = getWorkflowStatusCssClass;
 
 /**
+ * Determine whether the current viewport is a phone width. Used to keep
+ * drag-and-drop and the desktop card layout disabled on phones while
+ * the mobile kanban carousel and compact cards take over.
+ */
+function isTouchPhone() {
+  return window.matchMedia('(max-width: 480px)').matches;
+}
+
+/**
  * Resolve the practice-specific display label for an internal workflow
  * status. window.workflowStageLabels is populated from get-settings.php's
  * fully-resolved `workflowStageLabels` map (see applyUserSettings()) - it
@@ -6626,8 +6635,15 @@ document.addEventListener('DOMContentLoaded', function () {
 
   // Initialize drag-and-drop for Kanban board
   function initKanbanDragDrop() {
-    // Disable drag-and-drop if trial expired
+    // Disable drag-and-drop if trial expired or on phone widths
     if (billingInfo && billingInfo.is_trial && billingInfo.trial_expired) {
+      return;
+    }
+    if (isTouchPhone()) {
+      // Phones use the column carousel and card action menu instead.
+      document.querySelectorAll('.kanban-card').forEach(card => {
+        card.setAttribute('draggable', 'false');
+      });
       return;
     }
 
@@ -7216,6 +7232,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
       caseCard.innerHTML =
         '<button type="button" class="kanban-card-edit" title="' + t('cases.edit_case') + '">✎</button>' +
+        '<button type="button" class="kanban-card-mobile-menu-toggle" aria-haspopup="true" aria-expanded="false" aria-label="' + t('common.actions') + '">⋮</button>' +
         '<div class="kanban-card-header">' +
         '  <h3 class="kanban-card-title">' + (displayData.patientFirstName || '') + ' ' + (displayData.patientLastName || '') + '</h3>' +
         revisionCountLine +
@@ -7395,9 +7412,14 @@ document.addEventListener('DOMContentLoaded', function () {
         editCaseHandler(cardData);
       });
 
-      // Make the card draggable
-      caseCard.setAttribute('draggable', 'true');
-      addDragListeners(caseCard);
+      // Make the card draggable only on desktop; phones use the action menu
+      // and swipe-to-column behavior instead of drag-and-drop.
+      if (!isTouchPhone()) {
+        caseCard.setAttribute('draggable', 'true');
+        addDragListeners(caseCard);
+      } else {
+        caseCard.setAttribute('draggable', 'false');
+      }
 
       // Trigger the cards updated event
       window.triggerCardsUpdated();
@@ -10700,6 +10722,10 @@ document.addEventListener('DOMContentLoaded', function () {
             window.updateColumnCounts();
           }
 
+          // Notify listeners that the board has been repopulated.
+          // Mobile kanban navigation uses this to restore the selected column.
+          window.dispatchEvent(new CustomEvent('cardsLoaded'));
+
           // Apply past due highlighting
           if (typeof updatePastDueHighlighting === 'function') {
             updatePastDueHighlighting();
@@ -11269,6 +11295,14 @@ document.addEventListener('DOMContentLoaded', function () {
     // Expose functions globally for real-time updates module
     window.addCaseToKanban = addCaseToKanban;
     window.updateColumnCounts = updateColumnCounts;
+
+    // Expose mobile kanban helpers so js/mobile-kanban.js can reuse the
+    // existing authoritative case actions and status-change path.
+    window.editCaseHandler = editCaseHandler;
+    window.printCase = printCase;
+    window.deleteCase = deleteCase;
+    window.showDeleteConfirmation = showDeleteConfirmation;
+    window.updateCardStatus = updateCardStatus;
 
     // Allow notification panel to close the settings modal when it opens.
     window.closeSettingsBillingModal = closeSettingsBillingModal;

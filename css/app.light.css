@@ -1921,6 +1921,14 @@ body {
 }
 
 /* Kanban board layout on main page */
+/* Desktop-only: the mobile column nav and card menu are not used. */
+.mobile-kanban-nav,
+.kanban-card-mobile-menu-toggle,
+.kanban-card-mobile-menu,
+.mobile-kanban-nav .sr-only {
+  display: none;
+}
+
 .kanban-board {
   display: grid;
   gap: 20px;

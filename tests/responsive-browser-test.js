@@ -239,13 +239,18 @@ async function run() {
         const collapsed = await page.evaluate(() => {
           const bar = document.getElementById('kanbanFiltersBar');
           const archived = document.getElementById('viewArchivedBtn');
+          const nav = document.getElementById('mobileKanbanNav');
           const firstCol = document.querySelector('.kanban-column');
+          const archivedRect = archived ? archived.getBoundingClientRect() : null;
+          const navRect = nav ? nav.getBoundingClientRect() : null;
+          const firstColRect = firstCol ? firstCol.getBoundingClientRect() : null;
           return {
             bar: bar ? bar.getBoundingClientRect() : null,
             barDisplay: bar ? getComputedStyle(bar).display : null,
-            archivedBottom: archived ? archived.getBoundingClientRect().bottom : null,
-            firstColTop: firstCol ? firstCol.getBoundingClientRect().top : null,
-            gap: archived && firstCol ? firstCol.getBoundingClientRect().top - archived.getBoundingClientRect().bottom : null,
+            archivedBottom: archivedRect ? archivedRect.bottom : null,
+            navBottom: navRect ? navRect.bottom : null,
+            firstColTop: firstColRect ? firstColRect.top : null,
+            gap: firstColRect ? firstColRect.top - (navRect ? navRect.bottom : (archivedRect ? archivedRect.bottom : 0)) : null,
           };
         });
 
@@ -255,7 +260,7 @@ async function run() {
           failures.push(`${vp.name}: collapsed filter bar still occupies layout (height=${collapsed.bar.height}, display=${collapsed.barDisplay})`);
         }
         if (collapsed && typeof collapsed.gap === 'number' && collapsed.gap > 60) {
-          failures.push(`${vp.name}: large collapsed gap between Archived Cases and first column (${collapsed.gap.toFixed(1)}px)`);
+          failures.push(`${vp.name}: large collapsed gap between mobile navigation and first column (${collapsed.gap.toFixed(1)}px)`);
         }
 
         // Open filters and inspect vertical layout.

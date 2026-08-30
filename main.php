@@ -906,6 +906,17 @@ endif;
         </div>
       </div>
 
+      <nav class="mobile-kanban-nav" id="mobileKanbanNav" aria-label="Workflow columns">
+        <button type="button" id="mobileKanbanPrev" class="mobile-kanban-prev" aria-label="Previous workflow column" disabled>&lsaquo;</button>
+        <select class="mobile-kanban-select" id="mobileKanbanSelect" aria-label="Select workflow column">
+          <?php foreach ($resolvedWorkflowStageLabels as $status => $label): ?>
+            <option value="<?= htmlspecialchars($status) ?>"><?= htmlspecialchars($label) ?></option>
+          <?php endforeach; ?>
+        </select>
+        <button type="button" id="mobileKanbanNext" class="mobile-kanban-next" aria-label="Next workflow column">&rsaquo;</button>
+        <span class="sr-only" id="kanbanNavAnnouncer" aria-live="polite" aria-atomic="true"></span>
+      </nav>
+
       <section class="kanban-board" id="kanbanBoard">
         <?php foreach ($resolvedWorkflowStageLabels as $status => $label):
           $isCustomColumn = (strpos($status, 'Custom-') === 0);
@@ -2975,6 +2986,7 @@ endif;
   <script src="js/workflow-draft.js?v=20260829f" defer></script>
   <script src="js/workflow-draft-ui.js?v=20260829f" defer></script>
   <script src="js/app.js?v=20260829b" defer></script>
+  <script src="js/mobile-kanban.js?v=20260829b" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js" defer></script>
   <script type="module" src="js/attachment-viewer.js?v=20260820a" defer></script>
   <script src="js/card-delete-fixed.js?v=20250104" defer></script>

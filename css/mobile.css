@@ -1422,3 +1422,384 @@
     max-width: none;
   }
 }
+
+/* ===========================================
+   16. KANBAN BOARD — phone carousel
+   =========================================== */
+
+@media (max-width: 480px) {
+  .mobile-kanban-nav,
+  .dashboard-toolbar,
+  .kanban-filters-bar {
+    flex: 0 0 auto;
+  }
+
+  .mobile-kanban-nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 8px 12px;
+    margin-bottom: 12px;
+    background: var(--background-white);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-xs);
+  }
+
+  .mobile-kanban-prev,
+  .mobile-kanban-next {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    min-width: 40px;
+    border: none;
+    border-radius: var(--radius-md);
+    background: var(--background-subtle);
+    color: var(--text-primary);
+    font-size: 1.4rem;
+    line-height: 1;
+    cursor: pointer;
+    transition: background 0.15s ease;
+  }
+
+  .mobile-kanban-prev:disabled,
+  .mobile-kanban-next:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+
+  .mobile-kanban-select {
+    flex: 1;
+    min-width: 0;
+    height: 40px;
+    padding: 0 8px;
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+    background: var(--background-white);
+    color: var(--text-primary);
+    font-size: 0.9rem;
+    font-weight: 500;
+  }
+
+  /* The Cases tab becomes a flex column so the board can fill the remaining
+     viewport height and the columns scroll vertically inside it. */
+  .main-body,
+  .main-container {
+    display: flex;
+    flex-direction: column;
+    min-height: 100dvh;
+  }
+
+  .main-header {
+    flex: 0 0 auto;
+  }
+
+  main.dashboard {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-height: 0;
+    padding: 12px;
+    overflow: hidden;
+  }
+
+  .main-tabs {
+    flex: 0 0 auto;
+  }
+
+  .main-tab-content {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+
+  .main-tab-pane#cases-tab.active {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-height: 0;
+    padding-top: 0;
+  }
+
+  #cases-tab.active .dashboard {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .main-copyright {
+    display: none;
+  }
+
+  .kanban-board {
+    display: flex;
+    flex: 1 1 auto;
+    min-height: 0;
+    flex-wrap: nowrap;
+    gap: 0;
+    align-items: stretch;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    touch-action: pan-x;
+    padding: 0 0 10px 0;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+
+  .kanban-board::-webkit-scrollbar {
+    display: none;
+  }
+
+  .kanban-column {
+    flex: 0 0 calc(100% - 16px);
+    width: calc(100% - 16px);
+    min-width: calc(100% - 16px);
+    max-width: 440px;
+    scroll-snap-align: center;
+    scroll-snap-stop: always;
+    min-height: 280px;
+    height: auto;
+    padding: 10px 12px 12px 12px;
+    margin: 0 8px;
+    box-sizing: border-box;
+    overflow: hidden;
+    touch-action: pan-y;
+  }
+
+  .kanban-column:first-child {
+    margin-left: 0;
+  }
+
+  .kanban-column:last-child {
+    margin-right: 0;
+  }
+
+  .kanban-column-header {
+    flex: 0 0 auto;
+    margin-bottom: 8px;
+    padding-bottom: 8px;
+  }
+
+  .kanban-column-title {
+    font-size: 0.95rem;
+  }
+
+  .kanban-column-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: 8px;
+    border: none;
+    background: transparent;
+    align-items: stretch;
+    touch-action: pan-y;
+  }
+
+  /* Prevent horizontal drag-to-scroll confusion on cards */
+  .kanban-card {
+    cursor: pointer;
+    touch-action: pan-y;
+  }
+
+  .kanban-card[draggable="true"] {
+    -webkit-user-drag: none;
+  }
+
+  /* Compact cards: hide desktop-only rows and actions on phones */
+  .kanban-card .kanban-card-edit,
+  .kanban-card .card-delete-btn,
+  .kanban-card .kanban-card-dates,
+  .kanban-card .kanban-card-actions {
+    display: none !important;
+  }
+
+  .kanban-card {
+    padding: 10px 12px;
+    margin-bottom: 10px;
+    min-height: auto;
+  }
+
+  .kanban-card-header {
+    margin-bottom: 6px;
+    padding-right: 34px; /* reserve space for the menu button */
+  }
+
+  .kanban-card-title {
+    font-size: 0.95rem;
+    max-width: 100%;
+    white-space: normal;
+  }
+
+  .kanban-card-content {
+    font-size: 0.8rem;
+    line-height: 1.4;
+  }
+
+  .kanban-card-content p {
+    margin: 2px 0;
+  }
+
+  .kanban-card-content .dentist-row {
+    flex-wrap: wrap;
+  }
+
+  .kanban-card-assignment {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 6px;
+    flex-wrap: wrap;
+  }
+
+  .kanban-card-assignment .assignment-label {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    flex-shrink: 0;
+  }
+
+  .kanban-card-assignment .assignment-select {
+    flex: 1;
+    min-width: 0;
+    font-size: 0.8rem;
+    padding: 3px 6px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border-light);
+    background: var(--background-white);
+    color: var(--text-primary);
+  }
+
+  .revision-count-line,
+  .at-risk-indicator,
+  .late-indicator,
+  .appointment-risk-indicator {
+    font-size: 0.7rem;
+  }
+
+  /* Mobile-only card action menu toggle */
+  .kanban-card-mobile-menu-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    min-width: 34px;
+    border: none;
+    border-radius: var(--radius-full);
+    background: var(--background-subtle);
+    color: var(--text-secondary);
+    font-size: 1.1rem;
+    line-height: 1;
+    cursor: pointer;
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    z-index: 10;
+  }
+
+  .kanban-card-mobile-menu-toggle:focus {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 2px;
+  }
+
+  /* Fixed-position card action menu (appended to body by JS) */
+  .kanban-card-mobile-menu {
+    position: fixed;
+    display: none;
+    min-width: 180px;
+    max-width: min(260px, calc(100vw - 32px));
+    background: var(--background-white);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-medium);
+    padding: 8px 0;
+    z-index: 300;
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .kanban-card-mobile-menu.open {
+    display: flex;
+  }
+
+  .mobile-card-menu-item {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    min-height: 44px;
+    padding: 10px 16px;
+    box-sizing: border-box;
+    border: none;
+    background: transparent;
+    color: var(--text-primary);
+    font-size: 0.9rem;
+    text-align: left;
+    cursor: pointer;
+    transition: background 0.15s ease;
+  }
+
+  .mobile-card-menu-item:hover,
+  .mobile-card-menu-item:focus {
+    background: var(--background-subtle);
+  }
+
+  .mobile-card-menu-item.danger {
+    color: #dc2626;
+  }
+
+  .mobile-card-menu-item .mobile-card-move-select {
+    flex: 0 0 auto;
+    min-width: 0;
+    width: 100%;
+    max-width: 100%;
+    margin: 0;
+    padding: 4px 6px;
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-sm);
+    background: var(--background-white);
+    color: var(--text-primary);
+    font-size: 0.85rem;
+    box-sizing: border-box;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .mobile-card-menu-item[data-action="move"] {
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: center;
+    gap: 6px;
+    padding: 12px 16px;
+  }
+
+  .mobile-card-menu-item[data-action="move"] .mobile-card-move-label {
+    flex: 0 0 auto;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+  }
+
+  .mobile-card-menu-item[data-action="move"] .mobile-card-move-select {
+    flex: 0 0 auto;
+    width: 100%;
+    margin: 0;
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .kanban-board {
+    scroll-behavior: auto;
+  }
+}
