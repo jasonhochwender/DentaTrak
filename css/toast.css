@@ -13,8 +13,10 @@
   position: relative;
   display: flex;
   align-items: center;
-  min-width: 250px;
+  min-width: 0;
   max-width: 350px;
+  max-width: min(350px, calc(100vw - 40px));
+  width: auto;
   background-color: #fff;
   color: #333;
   box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1), 0 3px 3px rgba(0, 0, 0, 0.05);
@@ -24,6 +26,7 @@
   transform: translateX(120%);
   transition: transform 0.3s ease;
   overflow: hidden;
+  box-sizing: border-box;
 }
 
 .toast.show {

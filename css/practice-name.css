@@ -8,6 +8,12 @@
   text-align: left;
   /* Reserve space to prevent CLS */
   min-height: 1.3em;
+  /* Prevent long practice names from overflowing the header */
+  min-width: 0;
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* Dark theme support */
@@ -58,6 +64,11 @@
   font-weight: 500;
   color: #666;
   opacity: 0.9;
+  min-width: 0;
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .practice-switcher-icon {

@@ -1,6 +1,7 @@
 /* Feedback Modal Styles */
 .feedback-modal {
   max-width: 500px;
+  max-width: min(500px, 95vw);
 }
 
 .feedback-modal .modal-header {
@@ -129,6 +130,7 @@
 /* Success Modal */
 .feedback-success-modal {
   max-width: 400px;
+  max-width: min(400px, 95vw);
   text-align: center;
   overflow: hidden;
 }

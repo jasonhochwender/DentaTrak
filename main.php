@@ -744,7 +744,12 @@ endif;
           <div id="notificationDropdown" class="notification-dropdown">
             <div class="notification-dropdown-header">
               <span class="notification-dropdown-title"><?php echo t('notifications.title'); ?></span>
-              <button type="button" class="notification-mark-all" id="markAllNotificationsRead" onclick="markAllNotificationsRead()" disabled aria-disabled="true"><?php echo t('notifications.mark_all_read'); ?></button>
+              <div class="notification-header-actions">
+                <button type="button" class="notification-dropdown-close" id="notificationDropdownClose" aria-label="<?php echo t('common.close'); ?>" title="<?php echo t('common.close'); ?>">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                </button>
+                <button type="button" class="notification-mark-all" id="markAllNotificationsRead" onclick="markAllNotificationsRead()" disabled aria-disabled="true"><?php echo t('notifications.mark_all_read'); ?></button>
+              </div>
             </div>
             <div id="notificationList" class="notification-dropdown-list">
               <div class="notification-dropdown-empty"><?php echo t('notifications.loading'); ?></div>

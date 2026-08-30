@@ -116,13 +116,16 @@
 }
 
 .archived-search {
-  flex: 0 0 320px;
+  flex: 1 1 320px;
   order: -1;
   margin-right: 20px;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .archived-search input {
   width: 100%;
+  box-sizing: border-box;
   padding: 8px 12px;
   border: 1px solid #e2e8f0;
   border-radius: 6px;
@@ -267,6 +270,8 @@
 
 .archived-cases-modal .archived-search {
   margin-right: 0;
+  flex: 1 1 0;
+  min-width: 0;
 }
 
 .archived-cases-modal .archived-search input {

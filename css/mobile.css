@@ -10,21 +10,19 @@
    =========================================== */
 
 @media (max-width: 480px) {
-  /* Prevent horizontal overflow on body and main containers */
-  html, body {
-    overflow-x: hidden !important;
-    max-width: 100vw !important;
+  /* Prevent the root container from overflowing the viewport. The actual
+     overflow sources (modals, fixed-width inputs, panels) are fixed in the
+     base styles; this is a narrow guard for the root layout on phones. */
+  .main-container {
+    max-width: 100%;
+    padding: 12px;
+    box-sizing: border-box;
   }
 
-  .dashboard,
-  .main-content,
-  .tab-content,
-  .tab-pane,
-  #insightsTab,
-  #casesTab {
-    overflow-x: hidden !important;
-    max-width: 100% !important;
-    width: 100% !important;
+  .dashboard {
+    overflow-x: hidden;
+    max-width: 100%;
+    width: 100%;
     box-sizing: border-box;
   }
 
@@ -69,6 +67,13 @@
     min-width: 0;
     width: 92%;
     max-width: 95vw;
+    margin: 24px auto;
+    box-sizing: border-box;
+  }
+
+  .modal-body {
+    max-height: calc(90vh - 110px);
+    max-height: calc(90dvh - 110px);
   }
 }
 
@@ -135,18 +140,24 @@
     display: none; /* Hide user info on very small screens */
   }
 
-  .user-avatar-button,
+  .user-avatar-button {
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    min-height: 44px;
+  }
+
   .profile-image {
-    width: 36px;
-    height: 36px;
-    min-width: 36px;
-    min-height: 36px;
+    width: 40px;
+    height: 40px;
+    min-width: 40px;
+    min-height: 40px;
   }
 
   .notification-bell {
-    width: 36px;
-    height: 36px;
-    min-width: 36px;
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
   }
 
   .notification-bell svg {
@@ -172,8 +183,8 @@
   }
 }
 
-/* Slightly larger mobile screens - show truncated email */
-@media (min-width: 481px) and (max-width: 640px) {
+/* Slightly larger mobile screens and tablets - show truncated email */
+@media (min-width: 481px) and (max-width: 900px) {
   .main-header {
     padding: 14px 20px;
   }
@@ -334,7 +345,9 @@
     width: 100% !important;
     max-width: 100% !important;
     height: 100vh !important;
+    height: 100dvh !important;
     max-height: 100vh !important;
+    max-height: 100dvh !important;
     margin: 0 !important;
     border-radius: 0 !important;
     display: flex;
@@ -350,8 +363,9 @@
     font-size: 1.1rem;
   }
 
-  #createCaseModal .modal-body {
-    flex: 1;
+  #createCaseModal .modal-content.create-case-modal .modal-body {
+    flex: 1 1 auto;
+    min-height: 0;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
     padding: 16px;
@@ -437,7 +451,9 @@
     width: 100% !important;
     max-width: 100% !important;
     height: 100vh !important;
+    height: 100dvh !important;
     max-height: 100vh !important;
+    max-height: 100dvh !important;
     margin: 0 !important;
     border-radius: 0 !important;
     display: flex;
@@ -449,8 +465,9 @@
     padding: 14px 16px;
   }
 
-  #archivedCasesModal .modal-body {
-    flex: 1;
+  #archivedCasesModal .modal-content.archived-cases-modal .modal-body {
+    flex: 1 1 auto;
+    min-height: 0;
     overflow: hidden;
     padding: 12px;
     display: flex;
@@ -824,7 +841,9 @@
     max-width: 100% !important;
     min-width: 100% !important;
     height: 100vh !important;
+    height: 100dvh !important;
     max-height: 100vh !important;
+    max-height: 100dvh !important;
     margin: 0 !important;
     border-radius: 0 !important;
     display: flex !important;
@@ -836,8 +855,9 @@
     padding: 14px 16px;
   }
 
-  #feedbackModal .modal-body {
-    flex: 1;
+  #feedbackModal .modal-content.contact-modal .modal-body {
+    flex: 1 1 auto;
+    min-height: 0;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
     padding: 16px;
@@ -926,6 +946,7 @@
     min-width: auto !important;
     height: auto !important;
     max-height: 90vh !important;
+    max-height: 90dvh !important;
     margin: auto !important;
     border-radius: 12px !important;
   }
@@ -984,7 +1005,9 @@
     max-width: 100% !important;
     min-width: 100% !important;
     height: 100vh !important;
+    height: 100dvh !important;
     max-height: 100vh !important;
+    max-height: 100dvh !important;
     margin: 0 !important;
     border-radius: 0 !important;
     display: flex !important;
@@ -996,8 +1019,9 @@
     padding: 14px 16px;
   }
 
-  #settingsBillingModal .modal-body {
-    flex: 1;
+  #settingsBillingModal .modal-content.settings-billing-modal .modal-body {
+    flex: 1 1 auto;
+    min-height: 0;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
     padding: 12px;
@@ -1086,14 +1110,73 @@
    =========================================== */
 
 @media (max-width: 480px) {
-  /* Generic modal styles */
-  .modal,
-  [class*="modal"] {
+  /* Generic modal shell: the .modal-body owns vertical scrolling so the
+     header, footer, and controls are always reachable. The overlay itself
+     does not scroll; only the .modal-body does. */
+  .modal {
     overflow: hidden;
   }
 
-  .modal-content {
-    max-height: 100vh;
+  .modal > .modal-content {
+    width: 100% !important;
+    min-width: 100% !important;
+    max-width: 100% !important;
+    height: 100vh !important;
+    height: 100dvh !important;
+    min-height: 100vh !important;
+    min-height: 100dvh !important;
+    max-height: 100vh !important;
+    max-height: 100dvh !important;
+    margin: 0 !important;
+    border-radius: 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    box-sizing: border-box !important;
+  }
+
+  .modal > .modal-content .modal-header,
+  .modal > .modal-content .modal-footer {
+    flex: 0 0 auto;
+  }
+
+  .modal > .modal-content .modal-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    max-height: none !important;
+  }
+
+  /* Small confirmation / success / rename / restricted modals keep an
+     auto-height, centered presentation instead of full-screen. */
+  .modal > .modal-content.delete-confirm-modal,
+  .modal > .modal-content.feedback-success-modal,
+  .modal > .modal-content.rename-label-modal,
+  .modal > .modal-content.confirm-modal-content {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: 90vh !important;
+    max-height: 90dvh !important;
+    width: 90% !important;
+    max-width: 420px !important;
+    min-width: 0 !important;
+    margin: 0 !important;
+    border-radius: 12px !important;
+    display: block !important;
+  }
+
+  .modal > .modal-content.delete-confirm-modal .modal-body,
+  .modal > .modal-content.feedback-success-modal .modal-body,
+  .modal > .modal-content.rename-label-modal .modal-body,
+  .modal > .modal-content.confirm-modal-content .modal-body {
+    flex: 0 0 auto;
+    max-height: 70vh !important;
+    max-height: 70dvh !important;
+    overflow-y: auto;
   }
 
   /* Close buttons - ensure tappable */
@@ -1105,6 +1188,32 @@
     display: flex;
     align-items: center;
     justify-content: center;
+  }
+
+  /* Position modal close buttons as a flex item so the 44x44 touch target
+     stays inside the header and does not overlap the title. */
+  .modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .modal-title {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .btn-close {
+    position: relative;
+    top: auto;
+    right: auto;
+    width: 44px;
+    height: 44px;
+    flex: 0 0 44px;
   }
 
   /* Form inputs - prevent iOS zoom */
@@ -1166,7 +1275,9 @@
     width: 100% !important;
     max-width: 100% !important;
     height: 100vh !important;
+    height: 100dvh !important;
     max-height: 100vh !important;
+    max-height: 100dvh !important;
     margin: 0 !important;
     border-radius: 0 !important;
   }
@@ -1175,14 +1286,16 @@
   #caseDetailModal .modal-content {
     height: 100%;
     max-height: 100vh;
+    max-height: 100dvh;
     display: flex;
     flex-direction: column;
     border-radius: 0;
   }
 
-  .case-detail-modal .modal-body,
-  #caseDetailModal .modal-body {
-    flex: 1;
+  .case-detail-modal .modal-content .modal-body,
+  #caseDetailModal .modal-content .modal-body {
+    flex: 1 1 auto;
+    min-height: 0;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
     padding: 12px;
@@ -1207,19 +1320,47 @@
    =========================================== */
 
 @media (max-width: 480px) {
-  .notification-dropdown {
+  /* Use the wrapper to raise specificity so these rules defeat the later
+     .notification-dropdown desktop rule in case-comments.css, which otherwise
+     re-applies position: absolute, top: 100%, width: 360px and clips the
+     sheet to the 44px bell wrapper. */
+  .notification-bell-wrapper .notification-dropdown {
     position: fixed;
-    top: 60px;
-    left: 8px;
-    right: 8px;
-    width: auto;
-    max-width: none;
-    max-height: calc(100vh - 80px);
-    border-radius: 12px;
+    top: 0;
+    right: 0;
+    left: auto;
+    width: min(380px, 100vw);
+    max-width: 100%;
+    height: 100%;
+    max-height: 100%;
+    margin: 0;
+    border-radius: 0;
+    box-sizing: border-box;
+    /* !important because case-comments.css is loaded after mobile.css and
+       sets a desktop z-index of 1000 that we need to override on phones. */
+    z-index: 200 !important;
+    /* Keep the side sheet within the safe areas on notched devices. */
+    padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) 0;
   }
 
-  .notification-dropdown-list {
-    max-height: calc(100vh - 160px);
+  .notification-bell-wrapper .notification-dropdown-list {
+    max-height: calc(100vh - 130px);
+    max-height: calc(100dvh - 130px);
+    -webkit-overflow-scrolling: touch;
+    overflow-y: auto;
+  }
+
+  .notification-bell-wrapper .notification-dropdown-close {
+    display: inline-flex;
+  }
+}
+
+/* Cap the dropdown width on smaller tablets so it never exceeds the
+   viewport even when the header is at the right edge. */
+@media (min-width: 481px) and (max-width: 768px) {
+  .notification-bell-wrapper .notification-dropdown {
+    width: min(360px, calc(100vw - 16px));
+    box-sizing: border-box;
   }
 }
 
@@ -1236,6 +1377,7 @@
     width: auto;
     max-width: none;
     max-height: calc(100vh - 80px);
+    max-height: calc(100dvh - 80px);
     overflow-y: auto;
   }
 

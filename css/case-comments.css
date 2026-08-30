@@ -296,8 +296,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
+  width: 44px;
+  height: 44px;
   border-radius: 8px;
   cursor: pointer;
   transition: background-color 0.15s ease;
@@ -365,12 +365,43 @@
   justify-content: space-between;
   padding: 12px 16px;
   border-bottom: 1px solid var(--border-light, #e5e7eb);
+  gap: 12px;
+}
+
+.notification-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.notification-dropdown-close {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  background: transparent;
+  border: none;
+  color: var(--text-secondary, #6b7280);
+  cursor: pointer;
+  border-radius: 6px;
+}
+
+.notification-dropdown-close:hover,
+.notification-dropdown-close:focus {
+  background: var(--background-subtle, #f3f4f6);
+  color: var(--text-primary, #1f2937);
 }
 
 .notification-dropdown-title {
   font-size: 0.875rem;
   font-weight: 600;
   color: var(--text-primary, #1f2937);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .case-view-loading,

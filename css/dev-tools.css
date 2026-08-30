@@ -7,7 +7,9 @@
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   border-radius: 12px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-  z-index: 9999;
+  /* Keep dev tools below modal backdrops (z-index 100) so they cannot block
+     modal controls on mobile, while still remaining above normal page content. */
+  z-index: 50;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   font-size: 13px;
   transition: all 0.3s ease;
@@ -323,8 +325,8 @@
 @media (max-width: 480px) {
   .dev-tools-panel {
     bottom: 8px;
-    left: 8px;
-    right: auto;
+    right: 8px;
+    left: auto;
     max-width: calc(100vw - 16px);
   }
 

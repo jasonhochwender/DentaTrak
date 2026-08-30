@@ -11,6 +11,7 @@
   var notificationsLoading = false;
   var lastNotificationsLoad = 0;
   var notificationCacheTtl = 30000; // 30 seconds
+  var bodyOverflowBeforeNotifications = null;
 
   /**
    * Initialize notifications
@@ -52,6 +53,14 @@
       toggleNotificationDropdown();
     });
 
+    var closeBtn = document.getElementById('notificationDropdownClose');
+    if (closeBtn) {
+      closeBtn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        closeNotificationDropdown();
+      });
+    }
+
     // Close dropdown when clicking outside
     document.addEventListener('click', function(e) {
       var dropdown = document.getElementById('notificationDropdown');
@@ -82,9 +91,17 @@
     // Only one header dropdown/panel should be open at a time
     if (window.closeUserMenu) window.closeUserMenu();
     if (window.closePracticeSwitcher) window.closePracticeSwitcher();
+    if (window.closeSettingsBillingModal) window.closeSettingsBillingModal(true);
 
     dropdown.classList.add('open');
     notificationDropdownOpen = true;
+
+    // Prevent background scrolling on the mobile side sheet, but do not change
+    // the desktop dropdown behavior.
+    if (window.innerWidth <= 480) {
+      bodyOverflowBeforeNotifications = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+    }
 
     // If we already have rendered rows and the cache is fresh, do not refetch.
     var list = document.getElementById('notificationList');
@@ -107,6 +124,11 @@
       dropdown.classList.remove('open');
     }
     notificationDropdownOpen = false;
+
+    if (bodyOverflowBeforeNotifications !== null) {
+      document.body.style.overflow = bodyOverflowBeforeNotifications || '';
+      bodyOverflowBeforeNotifications = null;
+    }
   }
 
   /**

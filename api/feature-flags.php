@@ -10,7 +10,7 @@ $FEATURE_DEFAULTS = [
                                     // Set BILLING_ENABLED=true in .env (local) or Cloud Run env vars (prod)
                                     // only after Stripe is fully configured.
     'SHOW_BILLING' => false,
-    'SHOW_NOTIFICATIONS' => false,  // Off globally until Phase 3 rollout approval
+    'SHOW_NOTIFICATIONS' => true,  // Off globally until Phase 3 rollout approval
     'SHOW_AT_RISK' => false,
     'SHOW_COMMENTS' => false,
     'SHOW_REVISION_HISTORY' => false,

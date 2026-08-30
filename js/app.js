@@ -11266,6 +11266,9 @@ document.addEventListener('DOMContentLoaded', function () {
     window.addCaseToKanban = addCaseToKanban;
     window.updateColumnCounts = updateColumnCounts;
 
+    // Allow notification panel to close the settings modal when it opens.
+    window.closeSettingsBillingModal = closeSettingsBillingModal;
+
   })();
 });
 
