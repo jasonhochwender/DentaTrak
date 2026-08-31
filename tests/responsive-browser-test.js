@@ -418,6 +418,54 @@ async function run() {
     }
   }
 
+  // 7. Login page: HIPAA pill must sit above the white section with room to
+  // breathe on phone viewports. Use a fresh incognito context so the existing
+  // session cookie does not redirect /login.php to /main.php.
+  const loginContext = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+  const loginPage = await loginContext.newPage();
+  for (const vp of viewports.filter(v => v.width <= 480)) {
+    await loginPage.setViewportSize({ width: vp.width, height: vp.height });
+    await loginPage.goto(`${BASE_URL}/login.php`);
+    await loginPage.waitForLoadState('networkidle');
+    await loginPage.waitForTimeout(300);
+
+    const loginMetrics = await loginPage.evaluate(() => {
+      const html = document.documentElement;
+      const hero = document.querySelector('.login-hero');
+      const badge = document.querySelector('.trust-item');
+      const container = document.querySelector('.login-container');
+      const heroRect = hero ? hero.getBoundingClientRect() : null;
+      const badgeRect = badge ? badge.getBoundingClientRect() : null;
+      const containerRect = container ? container.getBoundingClientRect() : null;
+      const form = document.querySelector('.login-card, .google-signin-btn, .email-signin-toggle');
+      return {
+        heroBottom: heroRect ? heroRect.bottom : null,
+        badgeBottom: badgeRect ? badgeRect.bottom : null,
+        containerTop: containerRect ? containerRect.top : null,
+        gap: heroRect && badgeRect ? heroRect.bottom - badgeRect.bottom : null,
+        docOverflowX: html.scrollWidth - html.clientWidth,
+        formExists: !!form,
+      };
+    });
+
+    console.log(`${vp.name} login: gap=${loginMetrics.gap ? loginMetrics.gap.toFixed(1) : null}, docOverflowX=${loginMetrics.docOverflowX}`);
+
+    if (loginMetrics.docOverflowX > 0) {
+      failures.push(`${vp.name} (${vp.width}px): login page horizontal overflow (${loginMetrics.docOverflowX}px)`);
+    }
+    if (!loginMetrics.formExists) {
+      failures.push(`${vp.name} (${vp.width}px): login form not present`);
+    }
+    if (loginMetrics.gap === null) {
+      failures.push(`${vp.name} (${vp.width}px): login page hero or badge not found`);
+    } else if (loginMetrics.gap < 20) {
+      failures.push(`${vp.name} (${vp.width}px): HIPAA pill gap too small (${loginMetrics.gap.toFixed(1)}px, expected >= 20px)`);
+    } else if (loginMetrics.badgeBottom !== null && loginMetrics.containerTop !== null && loginMetrics.badgeBottom > loginMetrics.containerTop) {
+      failures.push(`${vp.name} (${vp.width}px): HIPAA pill overlaps white sign-in section`);
+    }
+  }
+  await loginContext.close();
+
   await browser.close();
 
   if (failures.length) {

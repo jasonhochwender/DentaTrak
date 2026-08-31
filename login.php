@@ -68,7 +68,7 @@ $sessionExpired = isset($_GET['session_expired']) && $_GET['session_expired'] ==
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/app.css">
-  <link rel="stylesheet" href="css/login.css">
+  <link rel="stylesheet" href="css/login.css?v=20260831b">
   
   <!-- Internationalization bootstrap -->
   <script>

@@ -595,7 +595,7 @@ a.trust-item:focus-visible {
   }
   
   .login-hero {
-    padding: 36px;
+    padding: 36px 36px 40px;
     min-height: auto;
     /* Desktop vertically centers the branding group inside a tall hero
        panel; on the stacked mobile layout that centers it inside a much
@@ -669,7 +669,7 @@ a.trust-item:focus-visible {
   }
   
   .login-hero {
-    padding: 28px;
+    padding: 28px 28px 32px;
   }
   
   .hero-icon {
