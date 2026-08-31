@@ -3980,12 +3980,15 @@ document.addEventListener('DOMContentLoaded', function () {
 
     if (createCaseForm) {
       createCaseForm.classList.toggle('case-tab-panel-active', tabName === 'details');
+      createCaseForm.style.display = tabName === 'details' ? 'block' : 'none';
     }
     if (caseCommentsPanel) {
       caseCommentsPanel.classList.toggle('case-tab-panel-active', tabName === 'comments');
+      caseCommentsPanel.style.display = tabName === 'comments' ? 'block' : 'none';
     }
     if (caseHistoryPanel) {
       caseHistoryPanel.classList.toggle('case-tab-panel-active', tabName === 'history');
+      caseHistoryPanel.style.display = tabName === 'history' ? 'block' : 'none';
     }
   }
 
@@ -4762,9 +4765,20 @@ document.addEventListener('DOMContentLoaded', function () {
         return;
       }
 
+      // Remember the element that opened the modal so focus can be restored on close.
+      if (document.activeElement && !caseModalOpener) {
+        caseModalOpener = document.activeElement;
+      }
+
       createCaseModal.style.display = 'block';
       document.body.style.overflow = 'hidden'; // Prevent scrolling behind modal
       resetCaseViewState();
+
+      // New cases have no summary; editing cases render their summary
+      // after populateCreateCaseForm()/editCaseHandler() sets the data.
+      if (window.MobileCaseModal && typeof window.MobileCaseModal.renderSummary === 'function') {
+        window.MobileCaseModal.renderSummary(null);
+      }
 
       // Opening any case here (new or edit, via editCaseHandler()) always
       // establishes a normal, non-archive context - remove any leftover
@@ -4863,6 +4877,30 @@ document.addEventListener('DOMContentLoaded', function () {
 
       // Reset modal state after viewing
       resetCreateCaseFormToNew();
+
+      // Clear mobile summary and section headings so the next case opens fresh.
+      if (window.MobileCaseModal && typeof window.MobileCaseModal.clearMobileState === 'function') {
+        window.MobileCaseModal.clearMobileState();
+      }
+
+      // Restore the previously active mobile Kanban column/position.
+      if (window.MobileKanban && typeof window.MobileKanban.restoreActiveColumn === 'function' && window.matchMedia('(max-width: 480px)').matches) {
+        setTimeout(function() {
+          window.MobileKanban.restoreActiveColumn(false);
+        }, 50);
+      }
+
+      // Restore focus to the control or card that opened the modal when practical.
+      if (caseModalOpener && typeof caseModalOpener.focus === 'function') {
+        try {
+          if (caseModalOpener.tabIndex >= 0 || /^(BUTTON|A|INPUT|SELECT|TEXTAREA)$/.test(caseModalOpener.tagName)) {
+            caseModalOpener.focus();
+          }
+        } catch (e) {
+          // Ignore focus errors for non-focusable elements.
+        }
+      }
+      caseModalOpener = null;
 
       // Reset any view-only modifications
       var form = document.getElementById('createCaseForm');
@@ -5018,6 +5056,11 @@ document.addEventListener('DOMContentLoaded', function () {
     // Load and display existing files
     if (caseData.files && Array.isArray(caseData.files)) {
       displayExistingFiles(caseData.files);
+    }
+
+    // Render the compact mobile case summary (phone viewports only).
+    if (window.MobileCaseModal && typeof window.MobileCaseModal.renderSummary === 'function') {
+      window.MobileCaseModal.renderSummary(caseData);
     }
   }
 
@@ -5211,6 +5254,11 @@ document.addEventListener('DOMContentLoaded', function () {
 
   function openCaseModalForView(caseData, fetchStart) {
     if (createCaseModal) {
+      // Remember the element that opened the modal so focus can be restored on close.
+      if (document.activeElement && !caseModalOpener) {
+        caseModalOpener = document.activeElement;
+      }
+
       createCaseModal.style.display = 'block';
 
       // Remove any existing "Back to Archived Cases" button (only relevant when coming from archived modal)
@@ -5327,6 +5375,7 @@ document.addEventListener('DOMContentLoaded', function () {
   var originalFormData = null;
   var hasUnsavedChanges = false;
   var isSubmitting = false;
+  var caseModalOpener = null;
 
   function trackFormChanges() {
     var form = document.getElementById('createCaseForm');
@@ -7506,6 +7555,16 @@ document.addEventListener('DOMContentLoaded', function () {
       return;
     }
 
+    // Preserve the active mobile column so it can be restored after the modal closes.
+    if (window.MobileKanban && typeof window.MobileKanban.saveActiveColumn === 'function' && window.matchMedia('(max-width: 480px)').matches) {
+      window.MobileKanban.saveActiveColumn();
+    }
+
+    // Remember the element that opened the modal so focus can be restored on close.
+    if (document.activeElement && !caseModalOpener) {
+      caseModalOpener = document.activeElement;
+    }
+
     // Get form and modal elements
     var form = document.getElementById('createCaseForm');
     var modalTitle = document.querySelector('.modal-title');
@@ -7926,6 +7985,11 @@ document.addEventListener('DOMContentLoaded', function () {
         btn.innerHTML = '';
       });
     }, 500); // Half second delay should be enough
+
+    // Render the compact mobile case summary (phone viewports only).
+    if (window.MobileCaseModal && typeof window.MobileCaseModal.renderSummary === 'function') {
+      window.MobileCaseModal.renderSummary(caseData);
+    }
   }
 
   // Display At Risk indicator in case detail view
@@ -11303,6 +11367,11 @@ document.addEventListener('DOMContentLoaded', function () {
     window.deleteCase = deleteCase;
     window.showDeleteConfirmation = showDeleteConfirmation;
     window.updateCardStatus = updateCardStatus;
+
+    // Expose day-diff helpers so the mobile case modal can reuse the same
+    // past-due / coming-due / appointment-risk calculations as the board.
+    window.getCalendarDayDiff = getCalendarDayDiff;
+    window.getDueWarningText = getDueWarningText;
 
     // Allow notification panel to close the settings modal when it opens.
     window.closeSettingsBillingModal = closeSettingsBillingModal;

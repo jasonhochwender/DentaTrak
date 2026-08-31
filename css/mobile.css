@@ -9,6 +9,11 @@
    - Prevent horizontal overflow globally
    =========================================== */
 
+/* Mobile-only section headings are hidden by default and shown only on phones. */
+.mobile-section-heading {
+  display: none;
+}
+
 @media (max-width: 480px) {
   /* Prevent the root container from overflowing the viewport. The actual
      overflow sources (modals, fixed-width inputs, panels) are fixed in the
@@ -336,9 +341,11 @@
    =========================================== */
 
 @media (max-width: 480px) {
-  /* Modal container - full screen */
+  /* Modal container - full screen with safe-area insets */
   #createCaseModal.modal {
     padding: 0;
+    align-items: flex-start;
+    justify-content: flex-start;
   }
 
   #createCaseModal .modal-content.create-case-modal {
@@ -352,11 +359,17 @@
     border-radius: 0 !important;
     display: flex;
     flex-direction: column;
+    box-sizing: border-box;
+    padding: env(safe-area-inset-top) 0 env(safe-area-inset-bottom) 0;
   }
 
   #createCaseModal .modal-header {
     flex-shrink: 0;
     padding: 14px 16px;
+    position: relative;
+    z-index: 11;
+    background: var(--background-white, #fff);
+    border-bottom: 1px solid var(--border-light, #e5e7eb);
   }
 
   #createCaseModal .modal-title {
@@ -368,23 +381,177 @@
     min-height: 0;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
-    padding: 16px;
-    padding-bottom: 20px;
+    padding: 0 16px 20px;
+    box-sizing: border-box;
   }
 
-  /* Case modal tabs */
-  .case-modal-tabs {
+  /* Case modal tabs - sticky beneath the header */
+  #createCaseModal .case-modal-tabs {
+    position: sticky;
+    top: 0;
+    z-index: 10;
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
-    margin-bottom: 16px;
+    margin: 0 -16px 16px;
+    padding: 12px 16px;
+    background: var(--background-white, #fff);
+    border-bottom: 1px solid var(--border-light, #e5e7eb);
   }
 
-  .case-tab {
+  #createCaseModal .case-tab {
     flex: 1;
     min-width: 80px;
+    min-height: 44px;
     padding: 8px 12px;
+    font-size: 0.85rem;
+    border-radius: var(--radius-md, 6px);
+    border: 1px solid var(--border-light, #e5e7eb);
+    background: var(--background-subtle, #f8fafc);
+    color: var(--text-secondary, #6b7280);
+    cursor: pointer;
+    text-align: center;
+    box-sizing: border-box;
+  }
+
+  #createCaseModal .case-tab.case-tab-active {
+    background: var(--primary-color, #3b82f6);
+    color: #fff;
+    border-color: var(--primary-color, #3b82f6);
+  }
+
+  #createCaseModal .case-tab.case-tab-disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  #createCaseModal .case-tab-panel {
+    display: none;
+    padding-top: 4px;
+  }
+
+  #createCaseModal .case-tab-panel.case-tab-panel-active {
+    display: block;
+  }
+
+  /* Compact mobile case summary (scrollable, not sticky) */
+  #createCaseModal .mobile-case-summary {
+    margin: 0 0 16px;
+    padding: 12px;
+    background: var(--background-subtle, #f8fafc);
+    border: 1px solid var(--border-light, #e5e7eb);
+    border-radius: var(--radius-md, 6px);
+  }
+
+  .mobile-case-summary-card {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .mobile-case-summary-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .mobile-case-summary-label {
+    flex: 0 0 auto;
     font-size: 0.8rem;
+    color: var(--text-secondary, #6b7280);
+    font-weight: 500;
+  }
+
+  .mobile-case-summary-value {
+    flex: 1 1 auto;
+    text-align: right;
+    font-size: 0.9rem;
+    color: var(--text-primary, #111827);
+    word-break: break-word;
+    overflow-wrap: break-word;
+    min-width: 0;
+  }
+
+  .mobile-case-summary-patient {
+    font-weight: 600;
+  }
+
+  .mobile-case-summary-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 8px;
+  }
+
+  .mobile-case-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 3px 8px;
+    border-radius: 9999px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    white-space: nowrap;
+    line-height: 1.3;
+  }
+
+  .mobile-case-badge-late {
+    background: #fef2f2;
+    color: #b91c1c;
+    border: 1px solid #fecaca;
+  }
+
+  .mobile-case-badge-appointment-risk {
+    background: #f3e8ff;
+    color: #7e22ce;
+    border: 1px solid #e9d5ff;
+  }
+
+  .mobile-case-badge-due-soon {
+    background: #eff6ff;
+    color: #1d4ed8;
+    border: 1px solid #dbeafe;
+  }
+
+  .mobile-case-badge-revisions {
+    background: #fef3c7;
+    color: #92400e;
+    border: 1px solid #fde68a;
+  }
+
+  /* Mobile section headings */
+  #createCaseModal .mobile-section-heading {
+    display: block;
+    width: 100%;
+    margin: 20px 0 8px;
+    padding: 0 0 6px;
+    border-bottom: 1px solid var(--border-light, #e5e7eb);
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-primary, #111827);
+    line-height: 1.3;
+    scroll-margin-top: 72px;
+  }
+
+  #createCaseModal .mobile-section-heading:first-of-type {
+    margin-top: 4px;
+  }
+
+  /* Section navigator */
+  #createCaseModal .mobile-section-navigator {
+    margin: 0 0 12px;
+    padding: 0;
+  }
+
+  #createCaseModal .mobile-section-navigator-select {
+    width: 100%;
+    min-height: 40px;
+    padding: 8px 12px;
+    font-size: 16px;
+    border: 1px solid var(--border-light, #e5e7eb);
+    border-radius: var(--radius-md, 6px);
+    background-color: #fff;
+    color: var(--text-primary, #111827);
   }
 
   /* Form grid - single column on mobile */
@@ -423,6 +590,26 @@
     font-size: 16px;
   }
 
+  /* Shipping fields stacked on phone */
+  #createCaseModal .shipping-fields {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  #createCaseModal .shipping-fields .form-field,
+  #createCaseModal .shipping-fields .custom-carrier-field {
+    width: 100%;
+  }
+
+  /* The Details form is the only long, scrollable tab panel. Add bottom
+     padding equal to the sticky footer height so the final content scrolls
+     fully above the footer without affecting Comments/History. */
+  #createCaseModal #createCaseForm {
+    padding-bottom: max(80px, calc(56px + env(safe-area-inset-bottom)));
+    box-sizing: border-box;
+  }
+
   /* Attachment sections */
   .attachment-section {
     margin-top: 16px;
@@ -431,6 +618,113 @@
   .file-button {
     width: 100%;
     justify-content: center;
+    min-height: 44px;
+    padding: 10px 16px;
+  }
+
+  /* Attachment rows: stack filename and actions on very narrow screens */
+  #createCaseModal .attachments-grid {
+    gap: 16px;
+  }
+
+  #createCaseModal .attachment-group {
+    padding: 12px;
+  }
+
+  #createCaseModal .attachment-header {
+    font-size: 0.85rem;
+    font-weight: 600;
+    margin-bottom: 8px;
+  }
+
+  #createCaseModal .selected-file {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 12px;
+  }
+
+  #createCaseModal .selected-file > span:first-child,
+  #createCaseModal .selected-file > a:first-child {
+    flex: 1 1 100%;
+    max-width: 100%;
+    white-space: normal;
+    overflow-wrap: break-word;
+    word-break: break-word;
+  }
+
+  #createCaseModal .selected-file .attachment-view-link,
+  #createCaseModal .selected-file .attachment-download-link,
+  #createCaseModal .selected-file .file-remove {
+    flex: 0 0 auto;
+    min-height: 36px;
+    display: inline-flex;
+    align-items: center;
+    padding: 6px 10px;
+  }
+
+  /* Download All */
+  #createCaseModal .attachment-download-all {
+    margin-top: 8px;
+    width: 100%;
+  }
+
+  #createCaseModal .attachment-download-all button {
+    width: 100%;
+    justify-content: center;
+    min-height: 44px;
+  }
+
+  /* Comments and History: remove nested scroll, keep one body scroll */
+  #createCaseModal .case-comments-list,
+  #createCaseModal .case-revision-history {
+    max-height: none;
+    overflow-y: visible;
+  }
+
+  #createCaseModal .case-comments-section {
+    margin-top: 0;
+    border-top: none;
+    padding-top: 0;
+  }
+
+  #createCaseModal .case-comment {
+    gap: 10px;
+    padding: 12px;
+  }
+
+  #createCaseModal .case-comment-text {
+    word-break: break-word;
+    overflow-wrap: break-word;
+  }
+
+  #createCaseModal .case-comment-input {
+    min-height: 80px;
+    font-size: 16px;
+  }
+
+  #createCaseModal .case-comment-submit {
+    min-height: 40px;
+    min-width: 80px;
+  }
+
+  #createCaseModal .revision-item {
+    padding: 12px;
+    word-break: break-word;
+    overflow-wrap: break-word;
+  }
+
+  #createCaseModal .revision-header,
+  #createCaseModal .revision-description,
+  #createCaseModal .revision-detail {
+    word-break: break-word;
+    overflow-wrap: break-word;
+  }
+
+  /* Sticky footer safe area */
+  #createCaseModal .modal-footer.create-case-footer {
+    padding-bottom: max(12px, env(safe-area-inset-bottom));
   }
 }
 

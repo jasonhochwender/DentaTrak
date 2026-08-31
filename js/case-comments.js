@@ -13,6 +13,7 @@
   var mentionSearchTerm = '';
   var mentionStartPos = -1;
   var selectedMentionIndex = 0;
+  var activeLoadId = 0;
 
   /**
    * Initialize comments for a case
@@ -31,15 +32,16 @@
     var list = document.getElementById('caseCommentsList');
     if (!list) return;
 
+    var loadId = ++activeLoadId;
     fetch('api/case-comments.php?case_id=' + encodeURIComponent(caseId), {
       credentials: 'same-origin'
     })
     .then(function(response) { return response.json(); })
     .then(function(data) {
-      if (data.success) {
+      if (data.success && loadId === activeLoadId) {
         renderComments(data.comments);
         updateCommentCount(data.comments.length);
-        
+
         // Mark notifications for this case as read
         markCaseNotificationsRead(caseId);
       }

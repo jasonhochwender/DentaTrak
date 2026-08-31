@@ -504,7 +504,7 @@ if (isset($appConfig) && is_array($appConfig) && isset($appConfig['appName'])) {
   <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
   
   <!-- Preload critical resources -->
-  <link rel="preload" href="js/app.js?v=20260829b" as="script">
+  <link rel="preload" href="js/app.js?v=20260830c" as="script">
   <link rel="preload" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
   <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap"></noscript>
   
@@ -530,7 +530,7 @@ if (isset($appConfig) && is_array($appConfig) && isset($appConfig['appName'])) {
 <?php endif; ?>
   
   <!-- Mobile responsiveness CSS -->
-  <link rel="stylesheet" href="css/mobile.css?v=20250104c">
+  <link rel="stylesheet" href="css/mobile.css?v=20250830c">
   
   <!-- Non-critical CSS - deferred loading -->
   <?php if (isFeatureEnabled('SHOW_TOUR')): ?>
@@ -2985,13 +2985,14 @@ endif;
   </script>
   <script src="js/workflow-draft.js?v=20260829f" defer></script>
   <script src="js/workflow-draft-ui.js?v=20260829f" defer></script>
-  <script src="js/app.js?v=20260829b" defer></script>
+  <script src="js/app.js?v=20260830c" defer></script>
+  <script src="js/mobile-case-modal.js?v=20260830c" defer></script>
   <script src="js/mobile-kanban.js?v=20260829b" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js" defer></script>
   <script type="module" src="js/attachment-viewer.js?v=20260820a" defer></script>
   <script src="js/card-delete-fixed.js?v=20250104" defer></script>
   <script src="js/assignments.js?v=20250104" defer></script>
-  <script src="js/case-comments.js?v=20250104" defer></script>
+  <script src="js/case-comments.js?v=20250830b" defer></script>
   <script src="js/notifications.js?v=20250104" defer></script>
 <?php if (isFeatureEnabled('SHOW_NOTIFICATIONS')): ?>
   <script src="js/notification-preferences.js?v=20250104" defer></script>

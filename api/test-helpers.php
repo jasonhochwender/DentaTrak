@@ -12,6 +12,8 @@ require_once __DIR__ . '/subscription-owner.php';
 require_once __DIR__ . '/scale-subscription-addons.php';
 require_once __DIR__ . '/stripe-webhook-guard.php';
 require_once __DIR__ . '/workflow-stages.php';
+require_once __DIR__ . '/encryption.php';
+require_once __DIR__ . '/cases-cache.php';
 
 // SECURITY CHECK: Only allow in development environment
 $environment = $appConfig['current_environment'] ?? $appConfig['environment'] ?? 'production';
@@ -32,7 +34,13 @@ if (!$testMode && $environment !== 'development') {
     exit;
 }
 
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
 header('Content-Type: application/json');
+
+define('TEST_CASE_MARKER', 'DentaTrakTest');
 
 // Get JSON input
 $jsonInput = file_get_contents('php://input');
@@ -88,6 +96,12 @@ switch ($action) {
         break;
     case 'cleanup_test_data':
         handleCleanupTestData($pdo, $input);
+        break;
+    case 'list_test_cases':
+        handleListTestCases($pdo, $input);
+        break;
+    case 'delete_test_cases':
+        handleDeleteTestCases($pdo, $input);
         break;
     case 'get_last_app_email':
         handleGetLastAppEmail($appConfig, $input);
@@ -1519,6 +1533,167 @@ function handleCleanupTestData($pdo, $input) {
             $pdo->rollBack();
         }
         error_log('[test-helpers] cleanup_test_data error: ' . $e->getMessage());
+        http_response_code(500);
+        echo json_encode(['success' => false, 'message' => 'Cleanup failed: ' . $e->getMessage()]);
+    }
+}
+
+/**
+ * List test case IDs in the current practice that carry the TEST_CASE_MARKER.
+ * Returns case IDs only; does not delete anything. This lets a test run discover
+ * and then delete its own previously-created cases without scanning the whole board.
+ */
+function handleListTestCases($pdo, $input) {
+    $currentPracticeId = $_SESSION['current_practice_id'] ?? null;
+    if (!$currentPracticeId) {
+        http_response_code(400);
+        echo json_encode(['success' => false, 'message' => 'No current practice in session']);
+        return;
+    }
+
+    try {
+        $stmt = $pdo->prepare("SELECT case_id FROM cases_cache WHERE practice_id = :practice_id");
+        $stmt->execute(['practice_id' => $currentPracticeId]);
+        $caseIds = $stmt->fetchAll(PDO::FETCH_COLUMN);
+
+        $markedIds = [];
+        foreach ($caseIds as $caseId) {
+            $case = getCaseFromCache($caseId);
+            if (!$case) continue;
+
+            $firstName = $case['patientFirstName'] ?? '';
+            $notes = $case['notes'] ?? '';
+            if (stripos($firstName, TEST_CASE_MARKER) === 0 || stripos($notes, TEST_CASE_MARKER) === 0) {
+                $markedIds[] = $caseId;
+            }
+        }
+
+        echo json_encode([
+            'success' => true,
+            'case_ids' => $markedIds,
+            'marker' => TEST_CASE_MARKER,
+        ]);
+    } catch (PDOException $e) {
+        error_log('[test-helpers] list_test_cases error: ' . $e->getMessage());
+        http_response_code(500);
+        echo json_encode(['success' => false, 'message' => 'List failed: ' . $e->getMessage()]);
+    }
+}
+
+/**
+ * Delete only specific test-marked cases that were created by the current test run.
+ *
+ * Requirements:
+ * - Caller must be in a test environment (already gated by this file's top-level checks).
+ * - A current practice must be in the session.
+ * - Each requested case must exist, belong to the current practice, and be marked
+ *   with the TEST_CASE_MARKER prefix in patient_first_name or notes.
+ * - Only the requested case IDs are deleted; unrelated cases, comments,
+ *   assignments, activity, etc., are left untouched.
+ * - This cannot be activated in production because the endpoint itself is blocked
+ *   when the environment is production.
+ */
+function handleDeleteTestCases($pdo, $input) {
+    $currentPracticeId = $_SESSION['current_practice_id'] ?? null;
+    if (!$currentPracticeId) {
+        http_response_code(400);
+        echo json_encode(['success' => false, 'message' => 'No current practice in session']);
+        return;
+    }
+
+    $requestedIds = $input['case_ids'] ?? [];
+    if (!is_array($requestedIds) || empty($requestedIds)) {
+        http_response_code(400);
+        echo json_encode(['success' => false, 'message' => 'case_ids array is required']);
+        return;
+    }
+
+    // De-duplicate while preserving order.
+    $uniqueIds = array_values(array_unique($requestedIds));
+
+    try {
+        $selectSql = "
+            SELECT case_id, practice_id, patient_first_name, notes
+            FROM cases_cache
+            WHERE case_id = :case_id
+            FOR UPDATE
+        ";
+        $selectStmt = $pdo->prepare($selectSql);
+
+        $results = [];
+        $deletable = [];
+
+        $pdo->beginTransaction();
+
+        foreach ($uniqueIds as $caseId) {
+            if (!is_string($caseId) || $caseId === '') {
+                $results[] = ['case_id' => (string) $caseId, 'deleted' => false, 'reason' => 'invalid_id'];
+                continue;
+            }
+
+            $selectStmt->execute(['case_id' => $caseId]);
+            $row = $selectStmt->fetch(PDO::FETCH_ASSOC);
+
+            if (!$row) {
+                $results[] = ['case_id' => $caseId, 'deleted' => false, 'reason' => 'not_found'];
+                continue;
+            }
+
+            if ((int) $row['practice_id'] !== (int) $currentPracticeId) {
+                $results[] = ['case_id' => $caseId, 'deleted' => false, 'reason' => 'wrong_practice'];
+                continue;
+            }
+
+            // Decrypt PII before marker check because the cache stores encrypted values.
+            $decrypted = [];
+            if (class_exists('PIIEncryption')) {
+                $decrypted = PIIEncryption::decryptCaseData([
+                    'patientFirstName' => $row['patient_first_name'] ?? null,
+                    'notes' => $row['notes'] ?? null,
+                ]);
+            }
+
+            $firstName = $decrypted['patientFirstName'] ?? '';
+            $notes = $decrypted['notes'] ?? '';
+            $isMarked = (stripos($firstName, TEST_CASE_MARKER) === 0 || stripos($notes, TEST_CASE_MARKER) === 0);
+
+            if (!$isMarked) {
+                $results[] = ['case_id' => $caseId, 'deleted' => false, 'reason' => 'not_marked'];
+                continue;
+            }
+
+            $deletable[] = $caseId;
+            $results[] = ['case_id' => $caseId, 'deleted' => true, 'reason' => null];
+        }
+
+        if (!empty($deletable)) {
+            $inClause = implode(',', array_fill(0, count($deletable), '?'));
+
+            $pdo->prepare("DELETE FROM case_comments WHERE case_id COLLATE utf8mb4_general_ci IN ($inClause)")->execute($deletable);
+            $pdo->prepare("DELETE FROM case_assignments WHERE case_id COLLATE utf8mb4_general_ci IN ($inClause)")->execute($deletable);
+            $pdo->prepare("DELETE FROM case_lab_assignment_periods WHERE case_id COLLATE utf8mb4_general_ci IN ($inClause)")->execute($deletable);
+            $pdo->prepare("DELETE FROM case_label_assignments WHERE case_id COLLATE utf8mb4_general_ci IN ($inClause)")->execute($deletable);
+            $pdo->prepare("DELETE FROM case_activity_log WHERE case_id COLLATE utf8mb4_general_ci IN ($inClause)")->execute($deletable);
+            $pdo->prepare("DELETE FROM cases_cache WHERE case_id COLLATE utf8mb4_general_ci IN ($inClause)")->execute($deletable);
+        }
+
+        $pdo->commit();
+
+        $deletedCount = count(array_filter($results, function ($r) { return $r['deleted']; }));
+        $failedCount = count($results) - $deletedCount;
+
+        echo json_encode([
+            'success' => true,
+            'message' => 'Deleted ' . $deletedCount . ' test case(s); ' . $failedCount . ' rejected.',
+            'marker' => TEST_CASE_MARKER,
+            'results' => $results,
+            'summary' => ['deleted' => $deletedCount, 'failed' => $failedCount]
+        ]);
+    } catch (PDOException $e) {
+        if ($pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
+        error_log('[test-helpers] delete_test_cases error: ' . $e->getMessage());
         http_response_code(500);
         echo json_encode(['success' => false, 'message' => 'Cleanup failed: ' . $e->getMessage()]);
     }

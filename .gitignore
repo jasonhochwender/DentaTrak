@@ -129,6 +129,7 @@ node_modules/
 !/tests/responsive-css-audit-test.php
 !/tests/responsive-browser-test.js
 !/tests/mobile-kanban-test.js
+!/tests/mobile-case-modal-test.js
 screenshots/
 !/tests/billing-header-visibility-test.php
 !/tests/billing-flash-render-test.php

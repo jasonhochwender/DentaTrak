@@ -11,6 +11,7 @@ const BASE = 'http://localhost/DentaTrak';
 const EMAIL = 'e2e_test_browser2@dentatrak.com';
 const PASSWORD = 'TestPass123!';
 const SCREEN_DIR = path.join(__dirname, '..', 'screenshots');
+const TEST_MARKER = 'DentaTrakTest';
 
 const STATUSES = [
   'Originated',
@@ -41,14 +42,16 @@ async function login(context) {
 async function createCase(page, status) {
   const csrf = await page.$eval('meta[name="csrf-token"]', el => el.content);
   const body = new URLSearchParams({
-    patientFirstName: 'Test',
-    patientLastName: 'Patient 1',
+    patientFirstName: TEST_MARKER + '-Test',
+    patientLastName: 'Patient ' + status.replace(/\s+/g, ''),
     patientDOB: '1990-01-01',
     patientGender: 'Male',
     dentistName: 'Dr. Test',
     caseType: 'Bite Rim',
     dueDate: '2026-09-06',
     status: status,
+    notes: TEST_MARKER + ' mobile kanban test case',
+    assignedTo: EMAIL,
     csrf_token: csrf,
   }).toString();
   const res = await page.evaluate(async ({ url, body }) => {
@@ -66,7 +69,7 @@ async function createCase(page, status) {
   return res;
 }
 
-async function deleteCase(page, id) {
+async function archiveCase(page, id) {
   const csrf = await page.$eval('meta[name="csrf-token"]', el => el.content);
   await page.evaluate(async ({ url, body }) => {
     await fetch(url, {
@@ -79,6 +82,44 @@ async function deleteCase(page, id) {
     url: `${BASE}/api/delete-case.php`,
     body: { caseId: id, csrf_token: csrf },
   });
+}
+
+async function deleteTestCases(page, ids) {
+  const csrf = await page.$eval('meta[name="csrf-token"]', el => el.content);
+  const res = await page.evaluate(async ({ url, body }) => {
+    const r = await fetch(url, {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    return r.json();
+  }, { url: `${BASE}/api/test-helpers.php`, body: { action: 'delete_test_cases', case_ids: ids, csrf_token: csrf } });
+  console.log('deleteTestCases', res);
+  return res;
+}
+
+async function listTestCaseIds(page) {
+  const csrf = await page.$eval('meta[name="csrf-token"]', el => el.content);
+  const res = await page.evaluate(async ({ url, body }) => {
+    const r = await fetch(url, {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    return r.json();
+  }, { url: `${BASE}/api/test-helpers.php`, body: { action: 'list_test_cases', csrf_token: csrf } });
+  console.log('listTestCases', res);
+  return res.success ? res.case_ids : [];
+}
+
+async function getCaseExists(page, id) {
+  const res = await page.evaluate(async ({ url }) => {
+    const r = await fetch(url, { credentials: 'same-origin' });
+    return r.json();
+  }, { url: `${BASE}/api/get-case.php?id=${encodeURIComponent(id)}` });
+  return res.success === true;
 }
 
 async function seed(page) {
@@ -98,12 +139,6 @@ async function seed(page) {
     }
   }
   return created;
-}
-
-async function cleanup(page, ids) {
-  for (const id of ids) {
-    await deleteCase(page, id);
-  }
 }
 
 function getCaseId(card) {
@@ -154,15 +189,77 @@ async function run() {
   await page.goto(`${BASE}/main.php`);
   await page.waitForLoadState('networkidle');
 
+  const failures = [];
+  let seededIds = [];
+  let nonTestId = null;
+
+  try {
+  // Remove any previously-created test cases from earlier runs in this practice.
+  const preExisting = await listTestCaseIds(page);
+  if (preExisting.length > 0) {
+    await deleteTestCases(page, preExisting);
+  }
+
+  // 0. Scoped cleanup: prove the helper rejects unmarked cases.
+  const csrf = await page.$eval('meta[name="csrf-token"]', el => el.content);
+  const unmarkedBody = new URLSearchParams({
+    patientFirstName: 'KeepMe',
+    patientLastName: 'Safe',
+    patientDOB: '1990-01-01',
+    patientGender: 'Male',
+    dentistName: 'Dr. Test',
+    caseType: 'Veneer',
+    dueDate: '2026-09-06',
+    status: 'Originated',
+    notes: 'Do not delete',
+    assignedTo: EMAIL,
+    csrf_token: csrf,
+  }).toString();
+  const unmarkedRes = await page.evaluate(async ({ url, body }) => {
+    const r = await fetch(url, {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body,
+    });
+    return r.json();
+  }, { url: `${BASE}/api/create-case.php`, body: unmarkedBody });
+  if (!unmarkedRes.success) failures.push('failed to create unmarked case: ' + JSON.stringify(unmarkedRes));
+  nonTestId = (unmarkedRes.caseData || unmarkedRes.case || unmarkedRes).id || (unmarkedRes.caseData || unmarkedRes.case || unmarkedRes).caseId || (unmarkedRes.caseData || unmarkedRes.case || unmarkedRes).case_id;
+
+  const probeCase = await createCase(page, 'Originated');
+  const probeId = (probeCase.caseData || probeCase.case || probeCase).id || (probeCase.caseData || probeCase.case || probeCase).caseId || (probeCase.caseData || probeCase.case || probeCase).case_id;
+
+  const scopeRes = await deleteTestCases(page, [nonTestId, probeId, 'not-a-real-id-000']);
+  if (!scopeRes.success) failures.push('delete_test_cases failed: ' + JSON.stringify(scopeRes));
+
+  const probeResult = scopeRes.results.find(r => r.case_id === probeId);
+  if (!probeResult || !probeResult.deleted) failures.push('test case not deleted: ' + JSON.stringify(probeResult));
+
+  const nonTestResult = scopeRes.results.find(r => r.case_id === nonTestId);
+  if (!nonTestResult || nonTestResult.deleted || nonTestResult.reason !== 'not_marked') {
+    failures.push('non-test case was deleted or wrong reason: ' + JSON.stringify(nonTestResult));
+  }
+
+  const fakeResult = scopeRes.results.find(r => r.case_id === 'not-a-real-id-000');
+  if (!fakeResult || fakeResult.deleted || fakeResult.reason !== 'not_found') {
+    failures.push('fake id not rejected as not_found: ' + JSON.stringify(fakeResult));
+  }
+
+  const nonTestStillExists = await getCaseExists(page, nonTestId);
+  if (!nonTestStillExists) failures.push('non-test case was removed by cleanup');
+
+  // Archive the non-test case now that the assertion passed.
+  await archiveCase(page, nonTestId);
+
   const ids = await seed(page);
+  seededIds = ids;
   console.log('Seeded case IDs:', ids);
 
   await page.goto(`${BASE}/main.php`);
   await page.waitForLoadState('networkidle');
   await page.setViewportSize({ width: 412, height: 915 });
   await page.waitForTimeout(500);
-
-  const failures = [];
 
   // Functional tests at 412 px.
   // 1. Mobile nav and board.
@@ -229,6 +326,13 @@ async function run() {
 
     // 4a. Archive via menu and canonical confirmation.
     if (firstCardId) {
+      // Snapshot the column count before archiving so the assertion is
+      // relative (not dependent on any left-over fixture state).
+      const beforeArchive = await page.evaluate(() => {
+        const count = document.querySelector('[data-status="Originated"] .kanban-column-count');
+        return count ? parseInt(count.textContent, 10) : null;
+      });
+
       await page.click('.mobile-card-menu-archive');
 
       // Wait for the existing archive confirmation modal and click its Archive button.
@@ -249,16 +353,21 @@ async function run() {
         const count = document.querySelector('[data-status="Originated"] .kanban-column-count');
         return { stillOnBoard: !!activeCard, originatedCount: count ? count.textContent : null, cardDisplay: activeCard ? getComputedStyle(activeCard.closest('.kanban-card')).display : null };
       }, firstCardId);
-      console.log('after archive', afterArchive);
+      console.log('after archive', afterArchive, 'before', beforeArchive);
       if (afterArchive.stillOnBoard) failures.push('archived case still on active board');
-      if (afterArchive.originatedCount !== '0') failures.push('Originated column count not 0 after archive: ' + afterArchive.originatedCount);
+      if (beforeArchive !== null && parseInt(afterArchive.originatedCount, 10) !== beforeArchive - 1) {
+        failures.push('Originated column count did not decrease by 1 after archive: before=' + beforeArchive + ' after=' + afterArchive.originatedCount);
+      }
 
       // Verify the case appears in Archived Cases.
       await page.click('#viewArchivedBtn');
+      try {
+        await page.waitForResponse(res => res.url().includes('get-archived-cases.php') && res.status() === 200, { timeout: 10000 });
+      } catch (e) { /* ignore; waitForFunction is the real check */ }
       await page.waitForFunction((expectedId) => {
         const tbody = document.getElementById('archivedCasesTableBody');
         return tbody ? tbody.innerHTML.includes(expectedId) : false;
-      }, firstCardId, { timeout: 5000 }).catch(() => {});
+      }, firstCardId, { timeout: 10000 }).catch(() => {});
       const archivedCase = await page.evaluate((expectedId) => {
         const tbody = document.getElementById('archivedCasesTableBody');
         return tbody ? tbody.innerHTML.includes(expectedId) : false;
@@ -402,10 +511,15 @@ async function run() {
     }
   }
 
-  // Cleanup.
-  await cleanup(page, ids);
-
-  await browser.close();
+  } finally {
+    // Always attempt to delete only the test cases this run created.
+    try {
+      await deleteTestCases(page, seededIds);
+    } catch (e) {
+      console.error('deleteTestCases in finally failed:', e);
+    }
+    await browser.close();
+  }
 
   if (failures.length) {
     console.error('FAILURES:', failures);

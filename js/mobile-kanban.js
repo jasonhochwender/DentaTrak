@@ -110,6 +110,19 @@
     updateNav(index);
   }
 
+  function saveActiveColumn(status) {
+    if (!isPhone() || !columnSelect) return;
+    if (status && getColumnByStatus(status)) {
+      columnSelect.value = status;
+    } else {
+      var index = getActiveIndex();
+      var columns = getColumns();
+      if (index >= 0 && columns[index]) {
+        columnSelect.value = columns[index].dataset.status;
+      }
+    }
+  }
+
   function restoreActiveColumn(animate) {
     if (!isPhone() || !columnSelect) return;
     var saved = columnSelect.value;
@@ -165,6 +178,8 @@
     e.stopPropagation();
 
     var cardData = getCardData(card);
+    var column = card ? card.closest('.kanban-column') : null;
+    saveActiveColumn(column ? column.dataset.status : null);
     if (window.editCaseHandler) {
       window.editCaseHandler(cardData);
     }
@@ -202,6 +217,8 @@
 
       if (action === 'edit') {
         hideMenu();
+        var editColumn = card ? card.closest('.kanban-column') : null;
+        saveActiveColumn(editColumn ? editColumn.dataset.status : null);
         if (window.editCaseHandler) window.editCaseHandler(getCardData(card));
       } else if (action === 'print') {
         hideMenu();
@@ -409,6 +426,8 @@
     init: init,
     goToColumn: goToColumn,
     getActiveIndex: getActiveIndex,
+    saveActiveColumn: saveActiveColumn,
+    restoreActiveColumn: restoreActiveColumn,
     showMenu: showMenu,
     hideMenu: hideMenu,
     isPhone: isPhone
