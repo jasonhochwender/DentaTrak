@@ -20,8 +20,8 @@ $hipaaUrl = $baseUrl . ($articleUrls['page_hipaa_security'] ?? 'hipaa-security')
     gtag('config', 'G-MBJDENR3H2');
   </script>
 
-  <meta name="description" content="<?php echo htmlspecialchars(t('marketing.seo.hipaa.description')); ?>">
-  <title><?php echo htmlspecialchars(t('marketing.seo.hipaa.title')); ?></title>
+  <meta name="description" content="<?php echo htmlspecialchars(t('marketing.hipaa.description')); ?>">
+  <title><?php echo htmlspecialchars(t('marketing.hipaa.title')); ?></title>
   <link rel="canonical" href="https://dentatrak.com/hipaa-security">
 
   <link rel="icon" type="image/x-icon" href="favicon.ico">
@@ -102,13 +102,11 @@ $hipaaUrl = $baseUrl . ($articleUrls['page_hipaa_security'] ?? 'hipaa-security')
   <main class="content no-breadcrumb hipaa-page">
     <div class="hipaa-hero">
       <h1><?php echo t('marketing.hipaa.h1'); ?></h1>
-      <p>
       <?php
         $hipaaCatUrl = $baseUrl . ($articleUrls['article_dental_case_tracking_software'] ?? 'dental-case-tracking-software');
         $hipaaCatLink = '<a href="' . $hipaaCatUrl . '" class="content-link">' . t('marketing.hipaa.intro_link_label') . '</a>';
         echo t('marketing.hipaa.intro', ['link' => $hipaaCatLink]);
       ?>
-    </p>
     </div>
 
     <section class="hipaa-trust" aria-labelledby="trust-heading">
@@ -162,32 +160,36 @@ $hipaaUrl = $baseUrl . ($articleUrls['page_hipaa_security'] ?? 'hipaa-security')
           <p><?php echo t('marketing.hipaa.sessions_body'); ?></p>
         </div>
         <div class="hipaa-card">
+          <h3><?php echo t('marketing.hipaa.application_safeguards_heading'); ?></h3>
+          <p><?php echo t('marketing.hipaa.application_safeguards_body'); ?></p>
+        </div>
+        <div class="hipaa-card">
           <h3><?php echo t('marketing.hipaa.retention_heading'); ?></h3>
           <p><?php echo t('marketing.hipaa.retention_body'); ?></p>
         </div>
       </div>
-      <p class="hipaa-safeguards-note"><?php echo t('marketing.hipaa.headers_body'); ?></p>
     </section>
 
     <section class="hipaa-section" aria-labelledby="shared-heading">
       <h2 id="shared-heading"><?php echo t('marketing.hipaa.shared_responsibility_heading'); ?></h2>
-      <p><?php echo t('marketing.hipaa.shared_responsibility_body'); ?></p>
+      <?php echo t('marketing.hipaa.shared_responsibility_body'); ?>
       <h3 id="responsibilities-heading"><?php echo t('marketing.hipaa.practice_responsibilities_heading'); ?></h3>
       <p><?php echo t('marketing.hipaa.practice_responsibilities_body'); ?></p>
       <ul class="hipaa-list">
-        <?php for ($i = 1; $i <= 5; $i++) : ?>
+        <?php for ($i = 1; $i <= 11; $i++) : ?>
           <li><?php echo t('marketing.hipaa.responsibilities_item_' . $i); ?></li>
         <?php endfor; ?>
       </ul>
     </section>
 
+    <section class="hipaa-section" aria-labelledby="baa-heading">
+      <h2 id="baa-heading"><?php echo t('marketing.hipaa.baa_heading'); ?></h2>
+      <p><?php echo t('marketing.hipaa.baa_body'); ?></p>
+    </section>
+
     <section class="hipaa-section hipaa-contact-section" aria-labelledby="contact-heading">
       <h2 id="contact-heading"><?php echo t('marketing.hipaa.contact_heading'); ?></h2>
       <p class="hipaa-contact"><?php echo t('marketing.hipaa.contact_body'); ?></p>
-      <div class="hipaa-cta">
-        <a href="<?= $baseUrl ?>login.php" class="nav-cta" style="padding: 14px 32px;"><?php echo t('marketing.hipaa.cta_primary'); ?></a>
-        <a href="mailto:privacy@dentatrak.com" class="btn-ghost"><?php echo t('marketing.hipaa.cta_secondary'); ?></a>
-      </div>
     </section>
   </main>
 
