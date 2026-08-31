@@ -1843,7 +1843,7 @@
     scroll-snap-type: x mandatory;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
-    touch-action: pan-x;
+    touch-action: pan-x pan-y pinch-zoom;
     padding: 0 0 10px 0;
     max-width: 100%;
     box-sizing: border-box;
@@ -1866,7 +1866,6 @@
     margin: 0 8px;
     box-sizing: border-box;
     overflow: hidden;
-    touch-action: pan-y;
   }
 
   .kanban-column:first-child {
@@ -1896,13 +1895,10 @@
     border: none;
     background: transparent;
     align-items: stretch;
-    touch-action: pan-y;
   }
 
-  /* Prevent horizontal drag-to-scroll confusion on cards */
   .kanban-card {
     cursor: pointer;
-    touch-action: pan-y;
   }
 
   .kanban-card[draggable="true"] {

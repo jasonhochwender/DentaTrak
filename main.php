@@ -530,7 +530,7 @@ if (isset($appConfig) && is_array($appConfig) && isset($appConfig['appName'])) {
 <?php endif; ?>
   
   <!-- Mobile responsiveness CSS -->
-  <link rel="stylesheet" href="css/mobile.css?v=20250830c">
+  <link rel="stylesheet" href="css/mobile.css?v=20260831a">
   
   <!-- Non-critical CSS - deferred loading -->
   <?php if (isFeatureEnabled('SHOW_TOUR')): ?>

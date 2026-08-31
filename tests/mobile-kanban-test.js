@@ -138,7 +138,127 @@ async function seed(page) {
       console.log('create-case response for', status, JSON.stringify(res).slice(0, 200));
     }
   }
+  // Create a few extra Originated cases so the first column's body overflows,
+  // enabling vertical-scroll verification.
+  for (let i = 0; i < 4; i++) {
+    const res = await createCase(page, 'Originated');
+    if (res.success && res.caseData && res.caseData.id) {
+      created.push(res.caseData.id);
+    } else if (res.case && res.case.id) {
+      created.push(res.case.id);
+    } else if (res.caseData && res.caseData.caseId) {
+      created.push(res.caseData.caseId);
+    } else if (res.caseId) {
+      created.push(res.caseId);
+    }
+  }
   return created;
+}
+
+async function dispatchTouch(page, points) {
+  const cdp = await page.context().newCDPSession(page);
+  for (let i = 0; i < points.length; i++) {
+    const type = i === 0 ? 'touchStart' : (i === points.length - 1 ? 'touchEnd' : 'touchMove');
+    const touchPoints = i === points.length - 1 ? [] : [{ x: Math.round(points[i].x), y: Math.round(points[i].y) }];
+    await cdp.send('Input.dispatchTouchEvent', { type, touchPoints });
+    if (i > 0 && i < points.length - 1) {
+      await page.waitForTimeout(16);
+    }
+  }
+}
+
+function getSwipePoints(start, end, steps) {
+  const points = [];
+  for (let i = 0; i <= steps; i++) {
+    points.push({
+      x: start.x + (end.x - start.x) * (i / steps),
+      y: start.y + (end.y - start.y) * (i / steps),
+    });
+  }
+  return points;
+}
+
+async function performHorizontalSwipe(page, direction) {
+  const geometry = await page.evaluate(() => {
+    const board = document.getElementById('kanbanBoard');
+    const boardRect = board ? board.getBoundingClientRect() : null;
+    const activeIdx = window.MobileKanban ? window.MobileKanban.getActiveIndex() : 0;
+    const columns = board ? Array.from(board.querySelectorAll('.kanban-column')) : [];
+    const col = columns[activeIdx] || columns[0];
+    const card = col ? col.querySelector('.kanban-card') : null;
+    const cardRect = card ? card.getBoundingClientRect() : null;
+    return {
+      boardRect: boardRect ? { x: boardRect.x, y: boardRect.y, width: boardRect.width, height: boardRect.height } : null,
+      cardRect: cardRect ? { x: cardRect.x, y: cardRect.y, width: cardRect.width, height: cardRect.height } : null,
+    };
+  });
+
+  if (!geometry.cardRect) throw new Error('No card found to start swipe');
+
+  // Long horizontal drag across the active column's card.
+  const rect = geometry.cardRect;
+  const startX = direction === 'next' ? rect.x + rect.width * 0.95 : rect.x + rect.width * 0.05;
+  const endX = direction === 'next' ? rect.x + rect.width * 0.05 : rect.x + rect.width * 0.95;
+  const y = rect.y + rect.height * 0.5;
+  const points = getSwipePoints({ x: startX, y }, { x: endX, y }, 18);
+  await dispatchTouch(page, points);
+  // Wait for snap/momentum.
+  await page.waitForTimeout(1200);
+}
+
+async function performVerticalSwipe(page) {
+  const geometry = await page.evaluate(() => {
+    const board = document.getElementById('kanbanBoard');
+    const col = board ? board.querySelector('.kanban-column') : null;
+    const body = col ? col.querySelector('.kanban-column-body') : null;
+    const bodyRect = body ? body.getBoundingClientRect() : null;
+    return {
+      bodyRect: bodyRect ? { x: bodyRect.x, y: bodyRect.y, width: bodyRect.width, height: bodyRect.height } : null,
+    };
+  });
+  if (!geometry.bodyRect) throw new Error('No column body found for vertical swipe');
+  const rect = geometry.bodyRect;
+  const x = rect.x + rect.width * 0.5;
+  const startY = rect.y + rect.height * 0.45;
+  const endY = rect.y + rect.height * 0.05;
+  const points = getSwipePoints({ x, y: startY }, { x, y: endY }, 14);
+  await dispatchTouch(page, points);
+  await page.waitForTimeout(800);
+}
+
+async function performPinch(page) {
+  const cdp = await page.context().newCDPSession(page);
+  const boardRect = await page.evaluate(() => {
+    const board = document.getElementById('kanbanBoard');
+    const r = board ? board.getBoundingClientRect() : null;
+    return r ? { x: r.x + r.width / 2, y: r.y + r.height / 2 } : null;
+  });
+  if (!boardRect) throw new Error('No board found for pinch');
+
+  await page.evaluate(() => {
+    window.__pinchEvents = [];
+    const board = document.getElementById('kanbanBoard');
+    if (board) {
+      ['touchstart', 'touchmove', 'touchend', 'touchcancel'].forEach(type => {
+        board.addEventListener(type, function(e) {
+          window.__pinchEvents.push({
+            type: e.type,
+            defaultPrevented: e.defaultPrevented,
+            touchCount: e.touches.length,
+            target: e.target.className,
+          });
+        }, { passive: true, once: type === 'touchstart' });
+      });
+    }
+  });
+
+  await cdp.send('Input.synthesizePinchGesture', {
+    x: Math.round(boardRect.x),
+    y: Math.round(boardRect.y),
+    scaleFactor: 1.5,
+    relativeSpeed: 1,
+  });
+  await page.waitForTimeout(1000);
 }
 
 function getCaseId(card) {
@@ -272,6 +392,7 @@ async function run() {
     return {
       boardDisplay: board ? getComputedStyle(board).display : null,
       overflowX: board ? getComputedStyle(board).overflowX : null,
+      touchAction: board ? getComputedStyle(board).touchAction : null,
       scrollWidth: board ? board.scrollWidth : null,
       clientWidth: board ? board.clientWidth : null,
       columns: cols.map(c => ({ status: c.dataset.status, width: c.getBoundingClientRect().width })),
@@ -282,14 +403,64 @@ async function run() {
   if (boardMetrics.overflowX !== 'auto') failures.push('kanban-board not overflow-x:auto');
   if (!boardMetrics.columns.length) failures.push('no columns rendered');
   if (boardMetrics.columns.length && boardMetrics.columns[0].width < 340) failures.push('first column too narrow: ' + boardMetrics.columns[0].width);
+  if (boardMetrics.touchAction === 'none' || boardMetrics.touchAction === 'pan-x') {
+    failures.push('board touch-action does not permit vertical or zoom: ' + boardMetrics.touchAction);
+  }
 
-  // 2. Navigate to second column.
+  // 2. Genuine horizontal touch swipe between columns.
   if (await page.evaluate(() => typeof window.MobileKanban === 'object')) {
-    await page.evaluate(() => window.MobileKanban.goToColumn(1, true));
-    await page.waitForTimeout(400);
-    const activeIndex = await page.evaluate(() => window.MobileKanban.getActiveIndex());
-    console.log('active index after goToColumn(1)', activeIndex);
-    if (activeIndex !== 1) failures.push('goToColumn(1) did not activate index 1');
+    await performHorizontalSwipe(page, 'next');
+    const afterNext = await page.evaluate(() => {
+      const board = document.getElementById('kanbanBoard');
+      return {
+        scrollLeft: board ? board.scrollLeft : null,
+        activeIndex: window.MobileKanban ? window.MobileKanban.getActiveIndex() : null,
+        selectorValue: document.getElementById('mobileKanbanSelect') ? document.getElementById('mobileKanbanSelect').value : null,
+        prevDisabled: document.getElementById('mobileKanbanPrev') ? document.getElementById('mobileKanbanPrev').disabled : null,
+        modalOpen: document.getElementById('createCaseModal') ? document.getElementById('createCaseModal').style.display : null,
+      };
+    });
+    console.log('after next swipe', afterNext);
+    if (afterNext.activeIndex !== 1) failures.push('swipe to next column did not land on index 1: ' + JSON.stringify(afterNext));
+    if (afterNext.selectorValue !== 'Sent To External Lab') failures.push('selector did not update to Sent To External Lab: ' + afterNext.selectorValue);
+    if (afterNext.prevDisabled) failures.push('Previous button should be enabled after swipe to second column');
+    if (afterNext.modalOpen === 'block') failures.push('swipe opened the case modal; should not');
+    if (afterNext.scrollLeft < 120) failures.push('board did not scroll far enough to change column; scrollLeft=' + afterNext.scrollLeft);
+
+    await performHorizontalSwipe(page, 'prev');
+    const afterPrev = await page.evaluate(() => {
+      const board = document.getElementById('kanbanBoard');
+      return {
+        scrollLeft: board ? board.scrollLeft : null,
+        activeIndex: window.MobileKanban ? window.MobileKanban.getActiveIndex() : null,
+        selectorValue: document.getElementById('mobileKanbanSelect') ? document.getElementById('mobileKanbanSelect').value : null,
+        prevDisabled: document.getElementById('mobileKanbanPrev') ? document.getElementById('mobileKanbanPrev').disabled : null,
+      };
+    });
+    console.log('after prev swipe', afterPrev);
+    if (afterPrev.activeIndex !== 0) failures.push('swipe back did not land on index 0: ' + JSON.stringify(afterPrev));
+    if (afterPrev.selectorValue !== 'Originated') failures.push('selector did not return to Originated: ' + afterPrev.selectorValue);
+    if (!afterPrev.prevDisabled) failures.push('Previous button should be disabled on first column');
+    if (afterPrev.scrollLeft > 50) failures.push('board did not return to first column; scrollLeft=' + afterPrev.scrollLeft);
+
+    // Vertical swipe in the first column should scroll the page, not the board.
+    const beforeVertical = await page.evaluate(() => {
+      const board = document.getElementById('kanbanBoard');
+      return { pageScrollY: window.pageYOffset, boardScrollLeft: board ? board.scrollLeft : null };
+    });
+    await performVerticalSwipe(page);
+    const afterVertical = await page.evaluate(() => {
+      const board = document.getElementById('kanbanBoard');
+      return {
+        pageScrollY: window.pageYOffset,
+        boardScrollLeft: board ? board.scrollLeft : null,
+        modalOpen: document.getElementById('createCaseModal') ? document.getElementById('createCaseModal').style.display : null,
+      };
+    });
+    console.log('after vertical swipe', afterVertical);
+    if (afterVertical.pageScrollY <= beforeVertical.pageScrollY) failures.push('vertical swipe did not scroll the page: before=' + beforeVertical.pageScrollY + ' after=' + afterVertical.pageScrollY);
+    if (afterVertical.modalOpen === 'block') failures.push('vertical swipe opened the case modal; should not');
+    if (afterVertical.boardScrollLeft > 120) failures.push('vertical swipe moved the board to a different column; scrollLeft=' + afterVertical.boardScrollLeft);
   } else {
     failures.push('window.MobileKanban not exposed');
   }
@@ -509,6 +680,68 @@ async function run() {
     } else {
       await page.screenshot({ path: path.join(SCREEN_DIR, `mobile-kanban-action-menu-${vp.width}.png`) });
     }
+  }
+
+  // 7. Genuine touch swipes across additional phone widths.
+  const SWIPE_VIEWPORTS = VIEWPORTS.filter(vp => vp.width !== 412);
+  for (const vp of SWIPE_VIEWPORTS) {
+    await page.goto(`${BASE}/main.php`);
+    await page.waitForLoadState('networkidle');
+    await page.setViewportSize({ width: vp.width, height: vp.height });
+    await page.waitForTimeout(500);
+
+    await performHorizontalSwipe(page, 'next');
+    const afterNextVp = await page.evaluate(() => {
+      const board = document.getElementById('kanbanBoard');
+      return {
+        scrollLeft: board ? board.scrollLeft : null,
+        activeIndex: window.MobileKanban ? window.MobileKanban.getActiveIndex() : null,
+        selectorValue: document.getElementById('mobileKanbanSelect') ? document.getElementById('mobileKanbanSelect').value : null,
+        prevDisabled: document.getElementById('mobileKanbanPrev') ? document.getElementById('mobileKanbanPrev').disabled : null,
+      };
+    });
+    console.log(vp.name, 'after next swipe', afterNextVp);
+    if (afterNextVp.activeIndex !== 1) failures.push(`${vp.name}: swipe to next did not select second column`);
+    if (afterNextVp.selectorValue !== 'Sent To External Lab') failures.push(`${vp.name}: selector did not update after next swipe: ${afterNextVp.selectorValue}`);
+    if (afterNextVp.prevDisabled) failures.push(`${vp.name}: Previous should be enabled after next swipe`);
+
+    await performHorizontalSwipe(page, 'prev');
+    const afterPrevVp = await page.evaluate(() => {
+      const board = document.getElementById('kanbanBoard');
+      return {
+        scrollLeft: board ? board.scrollLeft : null,
+        activeIndex: window.MobileKanban ? window.MobileKanban.getActiveIndex() : null,
+        selectorValue: document.getElementById('mobileKanbanSelect') ? document.getElementById('mobileKanbanSelect').value : null,
+        prevDisabled: document.getElementById('mobileKanbanPrev') ? document.getElementById('mobileKanbanPrev').disabled : null,
+      };
+    });
+    console.log(vp.name, 'after prev swipe', afterPrevVp);
+    if (afterPrevVp.activeIndex !== 0) failures.push(`${vp.name}: swipe to prev did not select first column`);
+    if (afterPrevVp.selectorValue !== 'Originated') failures.push(`${vp.name}: selector did not return to Originated after prev swipe: ${afterPrevVp.selectorValue}`);
+    if (!afterPrevVp.prevDisabled) failures.push(`${vp.name}: Previous should be disabled on first column`);
+  }
+
+  // 8. Pinch-to-zoom over the board.
+  await page.goto(`${BASE}/main.php`);
+  await page.waitForLoadState('networkidle');
+  await page.setViewportSize({ width: 412, height: 915 });
+  await page.waitForTimeout(500);
+  const beforeScale = await page.evaluate(() => { return window.visualViewport ? window.visualViewport.scale : null; });
+  await performPinch(page);
+  const afterPinch = await page.evaluate(() => {
+    return {
+      scale: window.visualViewport ? window.visualViewport.scale : null,
+      events: window.__pinchEvents || [],
+    };
+  });
+  console.log('after pinch', { beforeScale, afterPinch });
+  if (afterPinch.scale === null) {
+    failures.push('visualViewport not available to verify pinch-to-zoom');
+  } else if (afterPinch.scale <= beforeScale + 0.05) {
+    failures.push('pinch-to-zoom did not change visualViewport scale: before=' + beforeScale + ' after=' + afterPinch.scale);
+  }
+  if (afterPinch.events.some(e => e.defaultPrevented)) {
+    failures.push('a pinch touch event was defaultPrevented: ' + JSON.stringify(afterPinch.events.filter(e => e.defaultPrevented)));
   }
 
   } finally {
