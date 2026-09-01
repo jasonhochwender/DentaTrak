@@ -504,7 +504,7 @@ if (isset($appConfig) && is_array($appConfig) && isset($appConfig['appName'])) {
   <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
   
   <!-- Preload critical resources -->
-  <link rel="preload" href="js/app.js?v=20260830c" as="script">
+  <link rel="preload" href="js/app.js?v=20260831c" as="script">
   <link rel="preload" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
   <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap"></noscript>
   
@@ -530,7 +530,7 @@ if (isset($appConfig) && is_array($appConfig) && isset($appConfig['appName'])) {
 <?php endif; ?>
   
   <!-- Mobile responsiveness CSS -->
-  <link rel="stylesheet" href="css/mobile.css?v=20260831a">
+  <link rel="stylesheet" href="css/mobile.css?v=20260831b">
   
   <!-- Non-critical CSS - deferred loading -->
   <?php if (isFeatureEnabled('SHOW_TOUR')): ?>
@@ -611,6 +611,7 @@ if (isset($appConfig) && is_array($appConfig) && isset($appConfig['appName'])) {
     window.allWorkflowStageLabels = <?php echo json_encode($allWorkflowStageLabels, JSON_UNESCAPED_UNICODE); ?>;
     window.workflowTerminal = <?php echo json_encode(['id' => getLastActiveWorkflowColumnId($currentPracticeId ?: null), 'label' => resolveWorkflowStageLabelForPractice(getLastActiveWorkflowColumnId($currentPracticeId ?: null), $currentPracticeId ?: null)], JSON_UNESCAPED_UNICODE); ?>;
     window.currentPracticeId = <?php echo (int)$currentPracticeId; ?>;
+    window.userCanViewAnalytics = <?php echo $userCanViewAnalytics ? 'true' : 'false'; ?>;
     window.workflowColumnsEndpoint = <?php echo json_encode('api/workflow-columns.php', JSON_UNESCAPED_UNICODE); ?>;
   </script>
 </head>
@@ -936,7 +937,6 @@ endif;
         </div>
         <!-- End Cases Tab -->
 
-        <?php if ($userCanViewAnalytics): ?>
         <!-- Insights Tab (consolidated analytics + AI) -->
         <div class="main-tab-pane" id="insights-tab">
           <div class="analytics-pro">
@@ -1109,7 +1109,7 @@ endif;
                     </div>
                   </div>
                   <div class="ap-chart-container">
-                    <canvas id="apStatusChart"></canvas>
+                    <canvas id="apStatusChart" role="img" aria-label="Status distribution chart"></canvas>
                   </div>
                 </div>
 
@@ -1131,7 +1131,7 @@ endif;
                     </div>
                   </div>
                   <div class="ap-chart-container">
-                    <canvas id="apTypeChart"></canvas>
+                    <canvas id="apTypeChart" role="img" aria-label="Case type breakdown chart"></canvas>
                   </div>
                 </div>
               </div>
@@ -1194,7 +1194,7 @@ endif;
                     </div>
                   </div>
                   <div class="ap-chart-container">
-                    <canvas id="apVolumeChart"></canvas>
+                    <canvas id="apVolumeChart" role="img" aria-label="Monthly case volume chart"></canvas>
                   </div>
                 </div>
 
@@ -1222,7 +1222,7 @@ endif;
                     </div>
                   </div>
                   <div class="ap-chart-container">
-                    <canvas id="apTeamChart"></canvas>
+                    <canvas id="apTeamChart" role="img" aria-label="Team performance chart"></canvas>
                   </div>
                 </div>
               </div>
@@ -1291,7 +1291,7 @@ endif;
                     </div>
                   </div>
                   <div class="ap-chart-container">
-                    <canvas id="apDurationChart"></canvas>
+                    <canvas id="apDurationChart" role="img" aria-label="Status duration chart"></canvas>
                   </div>
                 </div>
 
@@ -1304,7 +1304,7 @@ endif;
                     </div>
                   </div>
                   <div class="ap-chart-container">
-                    <canvas id="apLifecycleChart"></canvas>
+                    <canvas id="apLifecycleChart" role="img" aria-label="Lifecycle distribution chart"></canvas>
                   </div>
                 </div>
               </div>
@@ -1363,7 +1363,7 @@ endif;
                   </div>
                 </div>
                 <div class="ap-chart-container">
-                  <canvas id="apTrendsChart"></canvas>
+                  <canvas id="apTrendsChart" role="img" aria-label="Year over year trends chart"></canvas>
                 </div>
               </div>
 
@@ -1579,7 +1579,7 @@ endif;
                 </div>
                 <div class="ap-chart-card full-width">
                   <div class="ap-chart-container">
-                    <canvas id="liTrendChart"></canvas>
+                    <canvas id="liTrendChart" role="img" aria-label="Lab case trend chart"></canvas>
                   </div>
                 </div>
               </div>
@@ -1603,7 +1603,6 @@ endif;
           </div>
         </div>
         <!-- End Lab Insights Tab -->
-        <?php endif; ?>
         <?php endif; ?>
       </div>
       <!-- End Tab Content -->
@@ -2985,7 +2984,7 @@ endif;
   </script>
   <script src="js/workflow-draft.js?v=20260829f" defer></script>
   <script src="js/workflow-draft-ui.js?v=20260829f" defer></script>
-  <script src="js/app.js?v=20260830c" defer></script>
+  <script src="js/app.js?v=20260831c" defer></script>
   <script src="js/mobile-case-modal.js?v=20260830c" defer></script>
   <script src="js/mobile-kanban.js?v=20260829b" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js" defer></script>

@@ -25,7 +25,10 @@ const viewports = [
   { name: 'iPhone 14 Pro Max / large phone', width: 480, height: 932 },
   { name: 'iPad Mini portrait', width: 768, height: 1024 },
   { name: 'Small tablet landscape', width: 880, height: 600 },
+  { name: 'iPad landscape / laptop', width: 1024, height: 768 },
   { name: 'Desktop', width: 1280, height: 900 },
+  { name: 'Large desktop', width: 1920, height: 1080 },
+  { name: 'Ultrawide', width: 2048, height: 1080 },
 ];
 
 async function run() {
@@ -51,6 +54,10 @@ async function run() {
   await page.waitForLoadState('networkidle');
   // The notification panel JS is deferred; wait for it before any viewport tests.
   await page.waitForFunction(() => typeof window.openNotificationDropdown === 'function', null, { timeout: 10000 });
+  // Settings/Billing surfaces are guarded by window.isPracticeAdmin, which is
+  // set after loadSettings() finishes. Make sure it is available before any
+  // test attempts to open the Settings modal.
+  await page.waitForFunction(() => window.isPracticeAdmin === true, null, { timeout: 10000 });
 
   const failures = [];
 
@@ -77,7 +84,10 @@ async function run() {
       const html = document.documentElement;
       const header = document.querySelector('.main-header');
       const input = document.querySelector('.dashboard-search-input, .kanban-search-field input, #kanbanSearchInput');
+      const searchField = document.querySelector('.kanban-search-field');
       const board = document.querySelector('.kanban-board');
+      const filtersBar = document.getElementById('kanbanFiltersBar');
+      const filtersRow = document.querySelector('.kanban-filters-row');
 
       function rectInfo(el) {
         if (!el) return null;
@@ -92,6 +102,9 @@ async function run() {
         innerHeight: window.innerHeight,
         header: rectInfo(header),
         search: input ? { ...rectInfo(input), placeholder: input.placeholder } : null,
+        searchField: searchField ? { ...rectInfo(searchField), flex: getComputedStyle(searchField).flex } : null,
+        filtersBar: filtersBar ? { ...rectInfo(filtersBar), overflowX: getComputedStyle(filtersBar).overflowX } : null,
+        filtersRow: filtersRow ? { ...rectInfo(filtersRow) } : null,
         kanban: board ? { scrollWidth: board.scrollWidth, clientWidth: board.clientWidth } : null,
       };
     });
@@ -105,6 +118,21 @@ async function run() {
     }
     if (metrics.search && metrics.search.right > metrics.clientWidth + 0.5) {
       failures.push(`${vp.name} (${vp.width}px): search input overflows viewport (right=${metrics.search.right})`);
+    }
+
+    // Search field should not exceed 480px on desktop, nor overflow the
+    // viewport on phones. The input itself should remain inside the field.
+    if (metrics.searchField) {
+      console.log(`${vp.name}: searchField=${JSON.stringify(metrics.searchField)}`);
+      if (vp.width >= 641 && metrics.searchField.width > 480 + 0.5) {
+        failures.push(`${vp.name} (${vp.width}px): search field width (${metrics.searchField.width.toFixed(1)}) exceeds 480px desktop cap`);
+      }
+      if (vp.width < 641 && metrics.searchField.width > metrics.clientWidth + 0.5) {
+        failures.push(`${vp.name} (${vp.width}px): search field overflows viewport (right=${metrics.searchField.right.toFixed(1)})`);
+      }
+      if (metrics.search && metrics.search.width > metrics.searchField.width + 0.5) {
+        failures.push(`${vp.name} (${vp.width}px): search input is wider than its field (input=${metrics.search.width.toFixed(1)}, field=${metrics.searchField.width.toFixed(1)})`);
+      }
     }
 
     console.log(`${vp.name}: scrollWidth=${metrics.scrollWidth}, clientWidth=${metrics.clientWidth}, search=${JSON.stringify(metrics.search)}, kanban=${JSON.stringify(metrics.kanban)}`);
@@ -415,6 +443,98 @@ async function run() {
       }
     } catch (e) {
       failures.push(`${vp.name}: Archived Cases modal check failed - ${e.message}`);
+    }
+
+    // 7. Settings modal: no horizontal overflow and correct scroll behavior.
+    try {
+      if (vp.width > 720) {
+        // Open via the user menu; the handler requires isPracticeAdmin and is
+        // a desktop/tablet-only surface.
+        await page.evaluate(() => {
+          const o = document.getElementById('pageLoadingOverlay');
+          if (o) { o.style.display = 'none'; o.style.opacity = '0'; }
+        });
+        const userToggle = await page.$('#userMenuToggle');
+        if (userToggle) await userToggle.click();
+        await page.waitForTimeout(200);
+        const settingsItem = await page.$('#settingsMenuItem');
+        if (settingsItem) await settingsItem.click();
+        await page.waitForSelector('#settingsBillingModal', { state: 'visible', timeout: 5000 });
+
+        for (const target of ['practice','display','authorized','security','data-privacy']) {
+          const nav = await page.$(`.settings-nav-item[data-nav-target="${target}"]`);
+          if (nav) await nav.click();
+          await page.waitForTimeout(200);
+          const sectionOk = await page.evaluate(() => {
+            const panels = document.querySelector('.settings-panels');
+            const content = document.querySelector('.settings-panels .settings-twisty.settings-panel-active .settings-twisty-content');
+            const form = document.getElementById('settingsForm');
+            const modal = document.querySelector('#settingsBillingModal .modal-content');
+            const footer = document.querySelector('#settingsForm .button-container');
+            return {
+              panelsOk: panels ? panels.scrollWidth <= panels.clientWidth + 0.5 : false,
+              contentOk: content ? content.scrollWidth <= content.clientWidth + 0.5 : false,
+              formOk: form ? form.scrollWidth <= form.clientWidth + 0.5 : false,
+              modalRight: modal ? modal.getBoundingClientRect().right : null,
+              footerVisible: footer ? (footer.getBoundingClientRect().bottom <= window.innerHeight) : false,
+            };
+          });
+          if (!sectionOk.panelsOk) failures.push(`${vp.name}: Settings "${target}" right pane horizontal overflow`);
+          if (!sectionOk.contentOk) failures.push(`${vp.name}: Settings "${target}" content horizontal overflow`);
+          if (!sectionOk.formOk) failures.push(`${vp.name}: Settings "${target}" form horizontal overflow`);
+          if (sectionOk.modalRight > vp.width + 0.5) failures.push(`${vp.name}: Settings "${target}" modal overflows viewport (${sectionOk.modalRight})`);
+          if (!sectionOk.footerVisible) failures.push(`${vp.name}: Settings "${target}" footer off-screen`);
+        }
+
+        const beforeNavTop = await page.evaluate(() => { const n = document.querySelector('.settings-nav'); return n ? n.getBoundingClientRect().top : null; });
+        await page.evaluate(() => { const p = document.querySelector('.settings-panels'); if (p) p.scrollTop = p.scrollHeight; });
+        await page.waitForTimeout(200);
+        const afterNavTop = await page.evaluate(() => { const n = document.querySelector('.settings-nav'); return n ? n.getBoundingClientRect().top : null; });
+        if (beforeNavTop !== null && afterNavTop !== null && Math.abs(beforeNavTop - afterNavTop) > 1) {
+          failures.push(`${vp.name}: Settings left nav moved when right pane was scrolled`);
+        }
+
+        if (vp.width === 768) {
+          await page.click('.settings-nav-item[data-nav-target="display"]');
+          await page.waitForTimeout(200);
+          await page.screenshot({ path: path.join(SCREEN_DIR, 'settings-display-768.png') });
+          await page.click('.settings-nav-item[data-nav-target="authorized"]');
+          await page.waitForTimeout(200);
+          await page.screenshot({ path: path.join(SCREEN_DIR, 'settings-authorized-768.png') });
+        }
+        if (vp.width === 1280) {
+          await page.click('.settings-nav-item[data-nav-target="display"]');
+          await page.waitForTimeout(200);
+          await page.screenshot({ path: path.join(SCREEN_DIR, 'settings-display-1280.png') });
+        }
+
+        await page.evaluate(() => { const m = document.getElementById('settingsBillingModal'); if (m) m.style.display = 'none'; document.body.style.overflow = ''; });
+      } else {
+        await page.evaluate(() => { if (typeof window.openSettingsBillingModal === 'function') window.openSettingsBillingModal(); });
+        await page.waitForTimeout(300);
+        const settingsVisible = await page.evaluate(() => { const m = document.getElementById('settingsBillingModal'); return m && getComputedStyle(m).display !== 'none'; });
+        if (settingsVisible) {
+          failures.push(`${vp.name}: Settings modal should not be visible on phone`);
+        }
+      }
+    } catch (e) {
+      failures.push(`${vp.name}: Settings modal check failed - ${e.message}`);
+    }
+
+    // 8. Cases filter screenshots at requested sizes.
+    if ([412, 1280, 2048].includes(vp.width)) {
+      try {
+        const filterToggle = await page.$('#kanbanFilterToggle');
+        if (filterToggle) {
+          await filterToggle.click();
+          await page.waitForTimeout(300);
+          await page.screenshot({ path: path.join(SCREEN_DIR, `filters-expanded-${vp.width}.png`) });
+          await filterToggle.click();
+          await page.waitForTimeout(200);
+        }
+      } catch (e) {
+        failures.push(`${vp.name}: filter screenshot failed - ${e.message}`);
+      }
     }
   }
 

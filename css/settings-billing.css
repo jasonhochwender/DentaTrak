@@ -2761,3 +2761,154 @@ input#practiceName {
   font-size: 14px;
   color: var(--text-secondary);
 }
+
+/* ============================================
+   DESKTOP SETTINGS RIGHT-PANE OVERFLOW FIX
+   --------------------------------------------
+   The right-hand settings panels were generating
+   a horizontal scrollbar because long labels and
+   inline value groups used white-space: nowrap
+   and a fixed flex-basis without min-width: 0.
+   The rules below are narrowly scoped to the
+   Settings modal so they cannot leak to the rest
+   of the app.
+   ============================================ */
+
+/* Right pane track must be allowed to shrink
+   below the width of its overflowing children. */
+#settingsBillingModal .settings-layout {
+  grid-template-columns: 210px minmax(0, 1fr);
+}
+
+#settingsBillingModal .settings-panels,
+#settingsBillingModal .settings-panels .settings-twisty,
+#settingsBillingModal .settings-panels .settings-twisty-content {
+  min-width: 0;
+}
+
+/* Form rows wrap when they cannot fit on one line. */
+#settingsBillingModal .option-row,
+#settingsBillingModal .option-row-inline,
+#settingsBillingModal .past-due-inline-settings {
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+/* Labels and helper text wrap without clipping. */
+#settingsBillingModal .option-row label,
+#settingsBillingModal .option-row .option-text,
+#settingsBillingModal .option-row .field-note-inline,
+#settingsBillingModal .option-row .field-note,
+#settingsBillingModal .settings-sublabel {
+  white-space: normal;
+  overflow-wrap: break-word;
+  min-width: 0;
+}
+
+/* Inputs, selects, and textareas stay inside the
+   available width and do not force overflow. */
+#settingsBillingModal .option-row input[type="text"],
+#settingsBillingModal .option-row input[type="number"],
+#settingsBillingModal .option-row input[type="email"],
+#settingsBillingModal .option-row input[type="url"],
+#settingsBillingModal .option-row input[type="tel"],
+#settingsBillingModal .option-row input[type="password"],
+#settingsBillingModal .option-row select,
+#settingsBillingModal .option-row textarea {
+  min-width: 0;
+  max-width: 100%;
+}
+
+#settingsBillingModal input#practiceName,
+#settingsBillingModal .theme-dropdown {
+  flex: 1;
+  min-width: 140px;
+}
+
+/* Inline rows keep a 140px label and a flexible
+   value group. The value group can shrink but is
+   given a comfortable minimum so it wraps cleanly
+   before becoming unusably narrow. */
+#settingsBillingModal .option-row-inline > label {
+  flex: 0 0 140px;
+  min-width: 0;
+}
+
+#settingsBillingModal .inline-value-group {
+  flex: 1;
+  min-width: 180px;
+}
+
+/* Add User field and permission grid: keep inputs/buttons inside the pane. */
+#settingsBillingModal .gmail-input-row {
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+#settingsBillingModal .gmail-input {
+  flex: 1 1 200px;
+  min-width: 0;
+  box-sizing: border-box;
+  max-width: 100%;
+}
+
+#settingsBillingModal .gmail-input,
+#settingsBillingModal .add-gmail-btn,
+#settingsBillingModal .workflow-column-label-input,
+#settingsBillingModal .workflow-column-controls button,
+#settingsBillingModal .workflow-columns-confirmation select,
+#settingsBillingModal .workflow-columns-confirmation .field-note,
+#settingsBillingModal .workflow-confirmation-actions button {
+  box-sizing: border-box;
+}
+
+#settingsBillingModal .workflow-column-label-input {
+  min-width: 0;
+  max-width: 100%;
+}
+
+#settingsBillingModal .workflow-columns-header,
+#settingsBillingModal .workflow-columns-actions,
+#settingsBillingModal .workflow-confirmation-actions,
+#settingsBillingModal #addWorkflowColumnForm {
+  flex-wrap: wrap;
+}
+
+/* Permission table: allow header text to wrap rather than forcing a
+   horizontal track that is wider than the grid can actually give it. */
+#settingsBillingModal .practice-user-header,
+#settingsBillingModal .practice-user-row {
+  min-width: 0;
+}
+
+#settingsBillingModal .practice-user-header > *,
+#settingsBillingModal .practice-user-row > * {
+  min-width: 0;
+  white-space: normal;
+  overflow-wrap: break-word;
+}
+
+#settingsBillingModal .practice-user-row .user-email-text {
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+}
+
+/* The Settings modal is too narrow at 1024/1280 with the generic
+   .modal-content 55% width. Give it a usable minimum so the right
+   pane can host the Practice Users grid and inline inputs without
+   being squeezed to the point of horizontal scroll. */
+#settingsBillingModal .settings-billing-modal {
+  min-width: min(720px, 92vw);
+  max-width: min(900px, 95vw);
+}
+
+/* Contain any remaining internal scrollable content (long workflow
+   names, long emails) so the parent panes do not create a horizontal
+   scrollbar. The inputs/cells still own their own overflow clipping. */
+#settingsBillingModal .workflow-column-row,
+#settingsBillingModal .gmail-user-item,
+#settingsBillingModal .practice-user-row,
+#settingsBillingModal .practice-user-header {
+  overflow: hidden;
+}

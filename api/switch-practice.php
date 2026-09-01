@@ -116,7 +116,14 @@ try {
         'from_practice_id' => $oldPracticeId,
         'to_practice_id' => $newPracticeId
     ]);
-    
+
+    // Commit the new practice context immediately so any subsequent request
+    // on the same session cannot observe stale state while this process is
+    // still winding down (defensive against fast-following API/page loads).
+    if (session_status() === PHP_SESSION_ACTIVE) {
+        session_write_close();
+    }
+
     echo json_encode([
         'success' => true,
         'practice' => [

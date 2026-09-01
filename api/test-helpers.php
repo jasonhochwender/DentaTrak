@@ -14,6 +14,11 @@ require_once __DIR__ . '/stripe-webhook-guard.php';
 require_once __DIR__ . '/workflow-stages.php';
 require_once __DIR__ . '/encryption.php';
 require_once __DIR__ . '/cases-cache.php';
+require_once __DIR__ . '/case-activity-log.php';
+require_once __DIR__ . '/practice-security.php';
+require_once __DIR__ . '/lab-assignment-history.php';
+require_once __DIR__ . '/subscription-access.php';
+require_once __DIR__ . '/feature-flags.php';
 
 // SECURITY CHECK: Only allow in development environment
 $environment = $appConfig['current_environment'] ?? $appConfig['environment'] ?? 'production';
@@ -122,6 +127,22 @@ switch ($action) {
         handleGetPracticeUser($pdo, $input);
         break;
 
+    case 'seed_lab_insights_data':
+        handleSeedLabInsightsData($pdo, $input);
+        break;
+
+    case 'cleanup_lab_insights_data':
+        handleCleanupLabInsightsData($pdo, $input);
+        break;
+
+    case 'set_practice_member_permissions':
+        handleSetPracticeMemberPermissions($pdo, $input);
+        break;
+
+    case 'delete_test_users':
+        handleDeleteTestUsers($pdo, $input);
+        break;
+
     case 'make_legacy_trial':
         handleMakeLegacyTrial($pdo, $input);
         break;
@@ -166,7 +187,7 @@ function handleVerifyEmail($pdo, $input) {
 function handleSetupTestUser($pdo, $input) {
     $email = strtolower(trim($input['email'] ?? ''));
     $password = $input['password'] ?? '';
-    $firstName = trim($input['firstName'] ?? 'E2E');
+    $firstName = trim($input['firstName'] ?? TEST_CASE_MARKER);
     $lastName = trim($input['lastName'] ?? 'Test');
     $practiceName = trim($input['practiceName'] ?? 'E2E Test Practice');
 
@@ -190,8 +211,19 @@ function handleSetupTestUser($pdo, $input) {
             $userId = $existingUser['id'];
 
             // Ensure email is verified and reset created_at to prevent trial expiration
-            $stmt = $pdo->prepare("UPDATE users SET email_verified = 1, created_at = NOW() WHERE id = :id");
-            $stmt->execute(['id' => $userId]);
+            $stmt = $pdo->prepare("
+                UPDATE users
+                SET email_verified = 1,
+                    created_at = NOW(),
+                    first_name = :first_name,
+                    last_name = :last_name
+                WHERE id = :id
+            ");
+            $stmt->execute([
+                'id' => $userId,
+                'first_name' => $firstName,
+                'last_name' => $lastName,
+            ]);
         } else {
             // Create new user
             $passwordHash = password_hash($password, PASSWORD_BCRYPT);
@@ -355,30 +387,47 @@ function handleSetupTestUser($pdo, $input) {
 function handleSetupPracticeMember($pdo, $input) {
     $email = strtolower(trim($input['email'] ?? ''));
     $password = $input['password'] ?? '';
-    $firstName = trim($input['firstName'] ?? 'E2E');
+    $firstName = trim($input['firstName'] ?? TEST_CASE_MARKER);
     $lastName = trim($input['lastName'] ?? 'Member');
     $adminEmail = strtolower(trim($input['adminEmail'] ?? ''));
+    $explicitPracticeId = !empty($input['practiceId']) ? (int)$input['practiceId'] : 0;
     $role = ($input['role'] ?? 'user') === 'admin' ? 'admin' : 'user';
     $limitedVisibility = !empty($input['limitedVisibility']) ? 1 : 0;
+    $canViewAnalytics = !empty($input['canViewAnalytics']) ? 1 : 0;
+    $canEditCases = !empty($input['canEditCases']) ? 1 : 0;
 
-    if (empty($email) || empty($password) || empty($adminEmail)) {
+    if (empty($email) || empty($password) || (empty($adminEmail) && !$explicitPracticeId)) {
         http_response_code(400);
-        echo json_encode(['success' => false, 'message' => 'email, password, and adminEmail are required']);
+        echo json_encode(['success' => false, 'message' => 'email, password, and adminEmail or practiceId are required']);
         return;
     }
 
     try {
-        // Resolve the practice from the existing admin's membership
-        $stmt = $pdo->prepare("
-            SELECT p.id
-            FROM practices p
-            JOIN practice_users pu ON p.id = pu.practice_id
-            JOIN users u ON u.id = pu.user_id
-            WHERE u.email = :admin_email
-            LIMIT 1
-        ");
-        $stmt->execute(['admin_email' => $adminEmail]);
-        $practiceId = $stmt->fetchColumn();
+        $practiceId = null;
+
+        // Use an explicit practice_id if provided; this is more reliable when the
+        // same admin email might belong to multiple practices across fixture runs.
+        if ($explicitPracticeId) {
+            $stmt = $pdo->prepare("SELECT 1 FROM practices WHERE id = :practice_id");
+            $stmt->execute(['practice_id' => $explicitPracticeId]);
+            if ($stmt->fetchColumn()) {
+                $practiceId = $explicitPracticeId;
+            }
+        }
+
+        // Resolve from the existing admin's owned membership if no explicit id.
+        if (!$practiceId && $adminEmail) {
+            $stmt = $pdo->prepare("
+                SELECT p.id
+                FROM practices p
+                JOIN practice_users pu ON p.id = pu.practice_id
+                JOIN users u ON u.id = pu.user_id
+                WHERE u.email = :admin_email AND pu.is_owner = 1
+                LIMIT 1
+            ");
+            $stmt->execute(['admin_email' => $adminEmail]);
+            $practiceId = $stmt->fetchColumn();
+        }
 
         if (!$practiceId) {
             http_response_code(404);
@@ -394,8 +443,15 @@ function handleSetupPracticeMember($pdo, $input) {
         $userId = $stmt->fetchColumn();
 
         if ($userId) {
-            $stmt = $pdo->prepare("UPDATE users SET email_verified = 1 WHERE id = :id");
-            $stmt->execute(['id' => $userId]);
+            $passwordHash = password_hash($password, PASSWORD_BCRYPT);
+            $stmt = $pdo->prepare("
+                UPDATE users
+                SET email_verified = 1,
+                    password_hash = :password_hash,
+                    auth_method = 'email'
+                WHERE id = :id
+            ");
+            $stmt->execute(['id' => $userId, 'password_hash' => $passwordHash]);
         } else {
             $passwordHash = password_hash($password, PASSWORD_BCRYPT);
             $stmt = $pdo->prepare("
@@ -437,25 +493,31 @@ function handleSetupPracticeMember($pdo, $input) {
         if ($stmt->fetchColumn()) {
             $stmt = $pdo->prepare("
                 UPDATE practice_users
-                SET role = :role, limited_visibility = :limited_visibility
+                SET role = :role, limited_visibility = :limited_visibility,
+                    can_view_analytics = :can_view_analytics,
+                    can_edit_cases = :can_edit_cases
                 WHERE practice_id = :practice_id AND user_id = :user_id
             ");
             $stmt->execute([
                 'role' => $role,
                 'limited_visibility' => $limitedVisibility,
+                'can_view_analytics' => $canViewAnalytics,
+                'can_edit_cases' => $canEditCases,
                 'practice_id' => $practiceId,
                 'user_id' => $userId
             ]);
         } else {
             $stmt = $pdo->prepare("
-                INSERT INTO practice_users (practice_id, user_id, role, is_owner, limited_visibility)
-                VALUES (:practice_id, :user_id, :role, FALSE, :limited_visibility)
+                INSERT INTO practice_users (practice_id, user_id, role, is_owner, limited_visibility, can_view_analytics, can_edit_cases)
+                VALUES (:practice_id, :user_id, :role, FALSE, :limited_visibility, :can_view_analytics, :can_edit_cases)
             ");
             $stmt->execute([
                 'practice_id' => $practiceId,
                 'user_id' => $userId,
                 'role' => $role,
-                'limited_visibility' => $limitedVisibility
+                'limited_visibility' => $limitedVisibility,
+                'can_view_analytics' => $canViewAnalytics,
+                'can_edit_cases' => $canEditCases
             ]);
         }
 
@@ -1544,7 +1606,7 @@ function handleCleanupTestData($pdo, $input) {
  * and then delete its own previously-created cases without scanning the whole board.
  */
 function handleListTestCases($pdo, $input) {
-    $currentPracticeId = $_SESSION['current_practice_id'] ?? null;
+    $currentPracticeId = isset($input['practice_id']) ? (int)$input['practice_id'] : ($_SESSION['current_practice_id'] ?? null);
     if (!$currentPracticeId) {
         http_response_code(400);
         echo json_encode(['success' => false, 'message' => 'No current practice in session']);
@@ -1594,7 +1656,7 @@ function handleListTestCases($pdo, $input) {
  *   when the environment is production.
  */
 function handleDeleteTestCases($pdo, $input) {
-    $currentPracticeId = $_SESSION['current_practice_id'] ?? null;
+    $currentPracticeId = isset($input['practice_id']) ? (int)$input['practice_id'] : ($_SESSION['current_practice_id'] ?? null);
     if (!$currentPracticeId) {
         http_response_code(400);
         echo json_encode(['success' => false, 'message' => 'No current practice in session']);
@@ -1824,4 +1886,435 @@ function handleGetPracticeUser(PDO $pdo, array $input) {
     }
 
     echo json_encode(['success' => true, 'practice_user' => $row]);
+}
+
+/**
+ * Delete specific test-member users by email and their practice membership rows.
+ * Only available in development/test. Cascades (ON DELETE CASCADE) remove
+ * practices the deleted user owns, but the helper explicitly removes
+ * practice_users and practice_assignment_label_recipients rows first.
+ *
+ * Input: { marker: 'DentaTrakTest', emails: [ ... ] }
+ *
+ * SAFETY: The caller must supply the shared TEST_CASE_MARKER. Every target
+ * user must have first_name starting with that marker. Requests that omit the
+ * marker, target unmarked users, or exceed the per-call limit are rejected
+ * before any row is deleted.
+ */
+function handleDeleteTestUsers($pdo, $input) {
+    $marker = $input['marker'] ?? '';
+    if ($marker !== TEST_CASE_MARKER) {
+        http_response_code(400);
+        echo json_encode(['success' => false, 'message' => 'Invalid or missing test marker']);
+        return;
+    }
+
+    $emails = $input['emails'] ?? [];
+    if (!is_array($emails) || empty($emails)) {
+        http_response_code(400);
+        echo json_encode(['success' => false, 'message' => 'emails array is required']);
+        return;
+    }
+
+    $maxBatch = 50;
+    if (count($emails) > $maxBatch) {
+        http_response_code(400);
+        echo json_encode(['success' => false, 'message' => "At most {$maxBatch} emails may be supplied"]);
+        return;
+    }
+
+    try {
+        $placeholders = implode(',', array_fill(0, count($emails), '?'));
+
+        // Find user IDs for these emails and verify they are marked test users.
+        $stmt = $pdo->prepare("
+            SELECT id, email, first_name
+            FROM users
+            WHERE email IN ($placeholders)
+        ");
+        $stmt->execute($emails);
+        $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        $foundEmails = array_map(function($u) { return strtolower($u['email']); }, $users);
+        $missing = array_diff(array_map('strtolower', $emails), $foundEmails);
+        if (!empty($missing)) {
+            http_response_code(404);
+            echo json_encode(['success' => false, 'message' => 'One or more target users do not exist', 'missing' => array_values($missing)]);
+            return;
+        }
+
+        foreach ($users as $u) {
+            $fn = $u['first_name'] ?? '';
+            if (strpos($fn, TEST_CASE_MARKER) !== 0) {
+                http_response_code(403);
+                echo json_encode(['success' => false, 'message' => 'Refusing to delete unmarked user: ' . $u['email']]);
+                return;
+            }
+        }
+
+        $userIds = array_map(function($u) { return (int)$u['id']; }, $users);
+
+        if (!empty($userIds)) {
+            $idPlaceholders = implode(',', array_fill(0, count($userIds), '?'));
+
+            // Remove membership rows that would otherwise block user deletion.
+            $pdo->prepare("DELETE FROM practice_users WHERE user_id IN ($idPlaceholders)")->execute($userIds);
+            $pdo->prepare("DELETE FROM practice_assignment_label_recipients WHERE user_id IN ($idPlaceholders)")->execute($userIds);
+
+            // Delete the users. Owned practices and dependent tables cascade.
+            $pdo->prepare("DELETE FROM users WHERE id IN ($idPlaceholders)")->execute($userIds);
+        }
+
+        echo json_encode([
+            'success' => true,
+            'deleted' => count($userIds),
+            'emails' => array_map(function($u) { return $u['email']; }, $users)
+        ]);
+    } catch (PDOException $e) {
+        error_log('[test-helpers] delete_test_users error: ' . $e->getMessage());
+        http_response_code(500);
+        echo json_encode(['success' => false, 'message' => 'Delete test users failed']);
+    }
+}
+
+/**
+ * Set a practice member's can_view_analytics and can_edit_cases flags.
+ * Used by Playwright tests to exercise the Insights permission matrix.
+ */
+function handleSetPracticeMemberPermissions($pdo, $input) {
+    $sessionPracticeId = requireValidPracticeContext();
+    $practiceId = isset($input['practice_id']) ? (int)$input['practice_id'] : 0;
+    if ($practiceId !== $sessionPracticeId) {
+        http_response_code(403);
+        echo json_encode(['success' => false, 'message' => 'Invalid practice context']);
+        return;
+    }
+
+    if (!isPracticeAdmin($practiceId)) {
+        http_response_code(403);
+        echo json_encode(['success' => false, 'message' => 'Admin privileges required']);
+        return;
+    }
+
+    $email = strtolower(trim($input['email'] ?? ''));
+    $canViewAnalytics = !empty($input['canViewAnalytics']) ? 1 : 0;
+    $canEditCases = !empty($input['canEditCases']) ? 1 : 0;
+
+    if (empty($email) || !$practiceId) {
+        http_response_code(400);
+        echo json_encode(['success' => false, 'message' => 'email and practice_id are required']);
+        return;
+    }
+
+    try {
+        $stmt = $pdo->prepare("
+            UPDATE practice_users
+            SET can_view_analytics = :can_view_analytics,
+                can_edit_cases = :can_edit_cases
+            WHERE practice_id = :practice_id
+              AND user_id = (SELECT id FROM users WHERE email = :email LIMIT 1)
+        ");
+        $stmt->execute([
+            'can_view_analytics' => $canViewAnalytics,
+            'can_edit_cases' => $canEditCases,
+            'practice_id' => $practiceId,
+            'email' => $email,
+        ]);
+
+        echo json_encode([
+            'success' => true,
+            'message' => 'Permissions updated',
+            'affected' => $stmt->rowCount(),
+        ]);
+    } catch (PDOException $e) {
+        error_log('[test-helpers] set_practice_member_permissions error: ' . $e->getMessage());
+        http_response_code(500);
+        echo json_encode(['success' => false, 'message' => 'Permission update failed']);
+    }
+}
+
+/**
+ * Seed scoped Lab Insights fixture data. Available only in development/test.
+ *
+ * Creates test lab-designated assignment labels, cases, and
+ * case_lab_assignment_periods so the mobile Insights test can verify the
+ * populated Lab table, sorting, drill-down, trend chart, and permissions.
+ * All records are tagged with DentaTrakTest* markers and are removed by
+ * cleanup_lab_insights_data.
+ *
+ * Input: { } (uses session practice)
+ * Output: { success, practice_id, labs: {key: name}, cases: [...], labelIds: [...] }
+ */
+function handleSeedLabInsightsData($pdo, $input) {
+    // requireValidPracticeContext() enforces authenticated membership.
+    $practiceId = requireValidPracticeContext();
+    if (!$practiceId) {
+        return;
+    }
+
+    ensureLabAssignmentHistoryTable();
+    ensureLabDesignationColumns();
+
+    $caseMarker = TEST_CASE_MARKER;
+    $labMarker = $caseMarker . 'Lab';
+    $now = new DateTimeImmutable('now');
+
+    $resolved = getResolvedWorkflowStageLabelsForPractice($practiceId);
+    $statusIds = array_keys($resolved);
+    $firstStatus = $statusIds[0] ?? 'Originated';
+    $midStatus = $statusIds[1] ?? $firstStatus;
+    $terminalStatus = getLastActiveWorkflowColumnId($practiceId);
+
+    $labNameByKey = [
+        'Alpha' => $labMarker . '-Alpha',
+        'BetaLong' => $labMarker . '-Very Long External Dental Laboratory Name For Wrapping Test',
+        'Gamma' => $labMarker . '-GammaNoCompleted',
+    ];
+
+    // Create lab labels.
+    $labIds = [];
+    $sortOrder = 9000;
+    $insertLabelStmt = $pdo->prepare("
+        INSERT INTO practice_assignment_labels (practice_id, label, sort_order, is_lab)
+        VALUES (:practice_id, :label, :sort_order, 1)
+    ");
+    foreach ($labNameByKey as $key => $label) {
+        $insertLabelStmt->execute([
+            'practice_id' => $practiceId,
+            'label' => $label,
+            'sort_order' => $sortOrder++,
+        ]);
+        $labIds[$key] = (int)$pdo->lastInsertId();
+    }
+
+    // Helper to insert a case cache row and initial activity log.
+    $caseIdList = [];
+    $caseIndex = 0;
+    function insertLabCase($pdo, $practiceId, $patientFirst, $patientLast, $assignedTo, $status, $dueDate, $caseType) {
+        $caseId = 'dt-lab-' . bin2hex(random_bytes(8));
+        $now = date('Y-m-d H:i:s');
+        $caseData = [
+            'id' => $caseId,
+            'patientFirstName' => $patientFirst,
+            'patientLastName' => $patientLast,
+            'patientDOB' => '1980-01-01',
+            'patientGender' => 'Male',
+            'dentistName' => 'Dr. Test',
+            'caseType' => $caseType,
+            'toothShade' => 'A1',
+            'material' => 'Zirconia',
+            'dueDate' => $dueDate,
+            'patientAppointmentDate' => '',
+            'creationDate' => $now,
+            'lastUpdateDate' => $now,
+            'status' => $status,
+            'statusChangedAt' => $now,
+            'notes' => TEST_CASE_MARKER . ' lab insights seed',
+            'assignedTo' => $assignedTo,
+            'attachments' => [],
+            'revisions' => [],
+            'clinicalDetails' => [],
+            'carrier' => '',
+            'trackingNumber' => '',
+            'customCarrier' => '',
+            'practice_id' => $practiceId,
+            'createdByUserId' => $_SESSION['db_user_id'] ?? null,
+        ];
+        $encrypted = PIIEncryption::encryptCaseData($caseData);
+        saveCaseToCache($encrypted);
+        logCaseActivity($caseId, 'case_created', null, $status, ['seed' => true]);
+        return $caseId;
+    }
+
+    // Helper to insert a lab assignment period.
+    function insertLabPeriod($pdo, $practiceId, $caseId, $labelId, $label, $startedAt, $endedAt = null, $endReason = null) {
+        $pdo->prepare("
+            INSERT INTO case_lab_assignment_periods (
+                case_id, practice_id, assignee_type, user_id, label_id,
+                label_text_normalized, assignee_display_name_snapshot,
+                is_lab_snapshot, started_at, ended_at, end_reason, history_quality
+            ) VALUES (
+                :case_id, :practice_id, 'label', NULL, :label_id,
+                :label_text, :display_name, 1, :started_at, :ended_at, :end_reason, 'observed'
+            )
+        ")->execute([
+            'case_id' => $caseId,
+            'practice_id' => $practiceId,
+            'label_id' => $labelId,
+            'label_text' => mb_strtolower(trim($label)),
+            'display_name' => $label,
+            'started_at' => $startedAt,
+            'ended_at' => $endedAt,
+            'end_reason' => $endReason,
+        ]);
+    }
+
+    // Alpha lab: mixed active, completed, late, transfer, revision.
+    $alpha = $labNameByKey['Alpha'];
+    $alphaId = $labIds['Alpha'];
+
+    $a1 = insertLabCase($pdo, $practiceId, TEST_CASE_MARKER . '-A1', 'Smith', $alpha, $midStatus, $now->format('Y-m-d'), 'Crown');
+    insertLabPeriod($pdo, $practiceId, $a1, $alphaId, $alpha, $now->modify('-20 days')->format('Y-m-d H:i:s'));
+    $caseIdList[] = $a1;
+
+    $a2 = insertLabCase($pdo, $practiceId, TEST_CASE_MARKER . '-A2', 'Jones', $alpha, $midStatus, $now->modify('-10 days')->format('Y-m-d'), 'Bridge');
+    insertLabPeriod($pdo, $practiceId, $a2, $alphaId, $alpha, $now->modify('-18 days')->format('Y-m-d H:i:s'));
+    $caseIdList[] = $a2;
+
+    $a3 = insertLabCase($pdo, $practiceId, TEST_CASE_MARKER . '-A3', 'Doe', $alpha, $terminalStatus, $now->modify('-56 days')->format('Y-m-d'), 'Veneer');
+    insertLabPeriod($pdo, $practiceId, $a3, $alphaId, $alpha,
+        $now->modify('-60 days')->format('Y-m-d H:i:s'),
+        $now->modify('-55 days')->format('Y-m-d H:i:s'),
+        'delivered');
+    $caseIdList[] = $a3;
+
+    $a4 = insertLabCase($pdo, $practiceId, TEST_CASE_MARKER . '-A4', 'Wilson', $alpha, $terminalStatus, $now->modify('-65 days')->format('Y-m-d'), 'Crown');
+    insertLabPeriod($pdo, $practiceId, $a4, $alphaId, $alpha,
+        $now->modify('-80 days')->format('Y-m-d H:i:s'),
+        $now->modify('-70 days')->format('Y-m-d H:i:s'),
+        'delivered');
+    $caseIdList[] = $a4;
+
+    // Alpha transfer: first Alpha, then Long (BetaLong).
+    $long = $labNameByKey['BetaLong'];
+    $longId = $labIds['BetaLong'];
+    $a5 = insertLabCase($pdo, $practiceId, TEST_CASE_MARKER . '-A5', 'Brown', $long, $midStatus, $now->modify('+14 days')->format('Y-m-d'), 'Bridge');
+    insertLabPeriod($pdo, $practiceId, $a5, $alphaId, $alpha,
+        $now->modify('-40 days')->format('Y-m-d H:i:s'),
+        $now->modify('-35 days')->format('Y-m-d H:i:s'),
+        'reassigned_to_lab');
+    insertLabPeriod($pdo, $practiceId, $a5, $longId, $long, $now->modify('-35 days')->format('Y-m-d H:i:s'));
+    $caseIdList[] = $a5;
+
+    // Alpha revision: completed with a regression logged during the period.
+    $a6 = insertLabCase($pdo, $practiceId, TEST_CASE_MARKER . '-A6', 'Taylor', $alpha, $terminalStatus, $now->modify('-75 days')->format('Y-m-d'), 'Veneer');
+    insertLabPeriod($pdo, $practiceId, $a6, $alphaId, $alpha,
+        $now->modify('-90 days')->format('Y-m-d H:i:s'),
+        $now->modify('-80 days')->format('Y-m-d H:i:s'),
+        'delivered');
+    logCaseActivity($a6, 'case_regression', null, null, ['seed' => true], $now->modify('-85 days')->format('Y-m-d H:i:s'));
+    $caseIdList[] = $a6;
+
+    // BetaLong lab: one active, one completed, to exercise long-name wrapping.
+    $b1 = insertLabCase($pdo, $practiceId, TEST_CASE_MARKER . '-B1', 'Anderson', $long, $midStatus, $now->modify('+21 days')->format('Y-m-d'), 'Crown');
+    insertLabPeriod($pdo, $practiceId, $b1, $longId, $long, $now->modify('-12 days')->format('Y-m-d H:i:s'));
+    $caseIdList[] = $b1;
+
+    $b2 = insertLabCase($pdo, $practiceId, TEST_CASE_MARKER . '-B2', 'Thomas', $long, $terminalStatus, $now->modify('-25 days')->format('Y-m-d'), 'Bridge');
+    insertLabPeriod($pdo, $practiceId, $b2, $longId, $long,
+        $now->modify('-30 days')->format('Y-m-d H:i:s'),
+        $now->modify('-20 days')->format('Y-m-d H:i:s'),
+        'delivered');
+    $caseIdList[] = $b2;
+
+    // Gamma lab: only active cases (no completed periods).
+    $gamma = $labNameByKey['Gamma'];
+    $gammaId = $labIds['Gamma'];
+    for ($i = 1; $i <= 3; $i++) {
+        $due = $i === 2 ? $now->modify('-5 days')->format('Y-m-d') : $now->modify('+10 days')->format('Y-m-d');
+        $g = insertLabCase($pdo, $practiceId, TEST_CASE_MARKER . '-G' . $i, 'Gamma' . $i, $gamma, $midStatus, $due, $i === 3 ? 'Veneer' : 'Crown');
+        insertLabPeriod($pdo, $practiceId, $g, $gammaId, $gamma, $now->modify('-' . ($i * 5) . ' days')->format('Y-m-d H:i:s'));
+        $caseIdList[] = $g;
+    }
+
+    echo json_encode([
+        'success' => true,
+        'practice_id' => $practiceId,
+        'labs' => $labNameByKey,
+        'labKeys' => array_map(function ($k) use ($labIds) { return 'label:' . $labIds[$k]; }, array_keys($labIds)),
+        'case_ids' => $caseIdList,
+        'label_ids' => array_values($labIds),
+    ]);
+}
+
+/**
+ * Remove all records created by handleSeedLabInsightsData in the current practice.
+ * Scoped to the authenticated session practice and DentaTrakTest* markers.
+ */
+function handleCleanupLabInsightsData($pdo, $input) {
+    $sessionPracticeId = requireValidPracticeContext();
+    $inputPracticeId = isset($input['practice_id']) ? (int)$input['practice_id'] : 0;
+    $practiceId = $inputPracticeId ?: $sessionPracticeId;
+    if (!$practiceId || $practiceId !== $sessionPracticeId) {
+        http_response_code(400);
+        echo json_encode(['success' => false, 'message' => 'No valid current practice in session']);
+        return;
+    }
+
+    $labMarker = TEST_CASE_MARKER . 'Lab';
+    $deleted = [
+        'cases' => 0,
+        'lab_periods' => 0,
+        'activity_log' => 0,
+        'labels' => 0,
+    ];
+
+    try {
+        // Find all test lab labels in this practice.
+        $labelStmt = $pdo->prepare("
+            SELECT id FROM practice_assignment_labels
+            WHERE practice_id = :practice_id AND (label LIKE :marker OR label LIKE :marker_dash)
+        ");
+        $labelStmt->execute([
+            'practice_id' => $practiceId,
+            'marker' => $labMarker . '%',
+            'marker_dash' => $labMarker . '-%',
+        ]);
+        $labelIds = $labelStmt->fetchAll(PDO::FETCH_COLUMN);
+
+        // Delete label recipients for these labels.
+        if (!empty($labelIds)) {
+            $inLabels = implode(',', array_fill(0, count($labelIds), '?'));
+            $pdo->prepare("DELETE FROM practice_assignment_label_recipients WHERE label_id IN ($inLabels)")
+                ->execute($labelIds);
+        }
+
+        // Find test cases in this practice by decrypting patient first name and notes.
+        $caseStmt = $pdo->prepare("SELECT * FROM cases_cache WHERE practice_id = :practice_id");
+        $caseStmt->execute(['practice_id' => $practiceId]);
+        $caseIds = [];
+        foreach ($caseStmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+            $decrypted = class_exists('PIIEncryption')
+                ? PIIEncryption::decryptCaseData([
+                    'patientFirstName' => $row['patient_first_name'] ?? null,
+                    'notes' => $row['notes'] ?? null,
+                ])
+                : ['patientFirstName' => $row['patient_first_name'], 'notes' => $row['notes']];
+            $firstName = $decrypted['patientFirstName'] ?? '';
+            $notes = $decrypted['notes'] ?? '';
+            if (stripos($firstName, TEST_CASE_MARKER) === 0 || stripos($notes, TEST_CASE_MARKER) === 0) {
+                $caseIds[] = $row['case_id'];
+            }
+        }
+
+        if (!empty($caseIds)) {
+            $inCases = implode(',', array_fill(0, count($caseIds), '?'));
+            $pdo->prepare("DELETE FROM case_comments WHERE case_id COLLATE utf8mb4_general_ci IN ($inCases)")->execute($caseIds);
+            $pdo->prepare("DELETE FROM case_assignments WHERE case_id COLLATE utf8mb4_general_ci IN ($inCases)")->execute($caseIds);
+            $pdo->prepare("DELETE FROM case_lab_assignment_periods WHERE case_id COLLATE utf8mb4_general_ci IN ($inCases)")->execute($caseIds);
+            $pdo->prepare("DELETE FROM case_label_assignments WHERE case_id COLLATE utf8mb4_general_ci IN ($inCases)")->execute($caseIds);
+            $pdo->prepare("DELETE FROM case_activity_log WHERE case_id COLLATE utf8mb4_general_ci IN ($inCases)")->execute($caseIds);
+            $pdo->prepare("DELETE FROM cases_cache WHERE case_id COLLATE utf8mb4_general_ci IN ($inCases)")->execute($caseIds);
+            $deleted['cases'] = count($caseIds);
+            $deleted['activity_log'] = count($caseIds);
+        }
+
+        // Delete any periods for the test labels that were not caught by case_id.
+        if (!empty($labelIds)) {
+            $inLabels = implode(',', array_fill(0, count($labelIds), '?'));
+            $periodStmt = $pdo->prepare("DELETE FROM case_lab_assignment_periods WHERE label_id IN ($inLabels) AND practice_id = ?");
+            $periodStmt->execute(array_merge($labelIds, [$practiceId]));
+            $deleted['lab_periods'] = $periodStmt->rowCount();
+
+            $labelDelStmt = $pdo->prepare("DELETE FROM practice_assignment_labels WHERE id IN ($inLabels) AND practice_id = ?");
+            $labelDelStmt->execute(array_merge($labelIds, [$practiceId]));
+            $deleted['labels'] = $labelDelStmt->rowCount();
+        }
+
+        echo json_encode(['success' => true, 'deleted' => $deleted]);
+    } catch (PDOException $e) {
+        error_log('[test-helpers] cleanup_lab_insights_data error: ' . $e->getMessage());
+        http_response_code(500);
+        echo json_encode(['success' => false, 'message' => 'Cleanup failed: ' . $e->getMessage()]);
+    }
 }

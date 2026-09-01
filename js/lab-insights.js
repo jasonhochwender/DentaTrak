@@ -38,6 +38,17 @@
     return div.innerHTML;
   }
 
+  function setChartAriaLabel(canvas, title, labels, values, valueFormatter) {
+    if (!canvas) { return; }
+    var fmt = valueFormatter || function(v) { return String(v); };
+    var summary = (labels || []).map(function(label, i) {
+      var val = (values && typeof values[i] !== 'undefined') ? fmt(values[i]) : '';
+      return label + ': ' + val;
+    }).join('; ');
+    canvas.setAttribute('role', 'img');
+    canvas.setAttribute('aria-label', title + '. ' + summary);
+  }
+
   function attachTooltip(containerEl, text, alignRight) {
     if (!containerEl || typeof window.createInfoTooltip !== 'function') { return; }
     containerEl.appendChild(window.createInfoTooltip(text, !!alignRight));
@@ -77,6 +88,15 @@
     if (noLabs) { noLabs.style.display = 'none'; }
     if (noHistory) { noHistory.style.display = 'none'; }
     if (content) { content.style.display = 'block'; }
+  }
+
+  function clearLabTable() {
+    liLabs = [];
+    liWorkloadByLab = {};
+    liExpandedLabKey = null;
+    var tbody = document.getElementById('liLabTableBody');
+    if (tbody) { tbody.innerHTML = ''; }
+    renderSortIndicators();
   }
 
   function renderSummary(summary) {
@@ -244,6 +264,7 @@
       };
     });
 
+    var isNarrow = window.innerWidth < 480;
     var ctx = canvas.getContext('2d');
     liChart = new Chart(ctx, {
       type: 'line',
@@ -251,10 +272,34 @@
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        scales: { y: { beginAtZero: true, ticks: { precision: 0 } } },
-        plugins: { legend: { position: 'bottom' } },
-      },
+        scales: {
+          x: {
+            ticks: {
+              autoSkip: true,
+              maxRotation: (isNarrow ? 45 : 0),
+              font: { size: (isNarrow ? 12 : 10), family: "'Poppins', sans-serif" }
+            }
+          },
+          y: { beginAtZero: true, ticks: { precision: 0, font: { size: (isNarrow ? 12 : 10), family: "'Poppins', sans-serif" } } }
+        },
+        plugins: {
+          legend: {
+            position: 'bottom',
+            labels: {
+              font: { size: (isNarrow ? 11 : 11), family: "'Poppins', sans-serif" },
+              usePointStyle: true,
+              pointStyle: 'circle',
+              padding: isNarrow ? 8 : 12,
+              boxWidth: isNarrow ? 10 : 12
+            }
+          }
+        }
+      }
     });
+
+    var ariaLabels = (trend.labels || []);
+    var ariaValues = datasets.length > 0 ? datasets[0].data : [];
+    setChartAriaLabel(canvas, 'Lab case trend', ariaLabels, ariaValues, function(v) { return v + ' cases'; });
   }
 
   function attachStaticTooltips() {
@@ -291,11 +336,6 @@
 
   function render(data) {
     showEmptyStates(data.hasLabs, data.hasHistory);
-    if (!data.hasLabs || !data.hasHistory) {
-      return;
-    }
-
-    renderSummary(data.summary);
 
     liLabs = data.labs || [];
     liWorkloadByLab = {};
@@ -304,6 +344,18 @@
       liWorkloadByLab[row.labKey].push(row);
     });
 
+    if (!data.hasLabs || !data.hasHistory) {
+      clearLabTable();
+      if (liChart) {
+        liChart.destroy();
+        liChart = null;
+      }
+      var trendSection = document.getElementById('liTrendSection');
+      if (trendSection) { trendSection.style.display = 'none'; }
+      return;
+    }
+
+    renderSummary(data.summary);
     attachStaticTooltips();
     renderTable();
     renderTrend(data.trend);
@@ -373,4 +425,21 @@
     }
     fetchAndRender();
   };
+
+  // Resize and orientation-change handler so the Lab trend chart refits its
+  // container when the viewport changes or the tab becomes visible.
+  var liResizeTimeout;
+  function resizeLabChart() {
+    if (liChart && typeof liChart.resize === 'function') {
+      liChart.resize();
+    }
+  }
+  window.addEventListener('resize', function () {
+    clearTimeout(liResizeTimeout);
+    liResizeTimeout = setTimeout(resizeLabChart, 150);
+  });
+  window.addEventListener('orientationchange', function () {
+    setTimeout(resizeLabChart, 300);
+  });
+  document.addEventListener('insightsVisible', resizeLabChart);
 })();

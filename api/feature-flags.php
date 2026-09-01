@@ -6,10 +6,10 @@
 
 // Default feature states
 $FEATURE_DEFAULTS = [
-    'BILLING_ENABLED' => false,     // Master billing feature flag — false = billing completely disabled.
+    'BILLING_ENABLED' => true,     // Master billing feature flag — false = billing completely disabled.
                                     // Set BILLING_ENABLED=true in .env (local) or Cloud Run env vars (prod)
                                     // only after Stripe is fully configured.
-    'SHOW_BILLING' => false,
+    'SHOW_BILLING' => true,
     'SHOW_NOTIFICATIONS' => true,  // Off globally until Phase 3 rollout approval
     'SHOW_AT_RISK' => false,
     'SHOW_COMMENTS' => false,
@@ -25,7 +25,7 @@ $FEATURE_DEFAULTS = [
                                     // tracking, Lab designation on users/labels).
                                     // Must remain OFF until analytics/UI are built
                                     // and explicitly approved for rollout.
-    'SHOW_CASE_DOWNLOAD_ALL' => false, // Bulk case attachment ZIP download.
+    'SHOW_CASE_DOWNLOAD_ALL' => true, // Bulk case attachment ZIP download.
                                        // Default false until controlled rollout.
 ];
 

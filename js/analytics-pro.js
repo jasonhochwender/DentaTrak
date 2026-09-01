@@ -259,7 +259,12 @@
       statusData[status] = (statusData[status] || 0) + Number(item.count || 0);
     });
 
-    if (Object.keys(statusData).length === 0) return;
+    const labels = Object.keys(statusData).map(function(status) {
+      return (typeof getStageLabel === 'function') ? getStageLabel(status) : status;
+    });
+    const values = Object.values(statusData);
+
+    if (labels.length === 0) { setChartAriaLabel(ctx.canvas, 'Status distribution', [t('insights.charts.no_data')], [0]); return; }
 
     apCharts['apStatusChart'] = new Chart(ctx, {
       type: 'doughnut',
@@ -267,12 +272,10 @@
         // statusData is keyed by the fixed internal status; only the
         // chart's visible labels are resolved to the practice-specific
         // display label, Object.values(statusData) stays aligned.
-        labels: Object.keys(statusData).map(function(status) {
-          return (typeof getStageLabel === 'function') ? getStageLabel(status) : status;
-        }),
+        labels: labels,
         datasets: [{
-          data: Object.values(statusData),
-          backgroundColor: colors.chartColors.slice(0, Object.keys(statusData).length),
+          data: values,
+          backgroundColor: colors.chartColors.slice(0, labels.length),
           borderWidth: 0,
           hoverOffset: 4
         }]
@@ -282,18 +285,11 @@
         maintainAspectRatio: false,
         cutout: '65%',
         plugins: {
-          legend: {
-            position: 'bottom',
-            labels: {
-              padding: 16,
-              usePointStyle: true,
-              pointStyle: 'circle',
-              font: { size: 11, family: "'Poppins', sans-serif" }
-            }
-          }
+          legend: getMobileLegendOptions()
         }
       }
     });
+    setChartAriaLabel(ctx.canvas, 'Status distribution', labels, values, function(v) { return v + ' cases'; });
   }
 
   // Case Type Chart (Bar)
@@ -307,15 +303,18 @@
       typeData[type] = (typeData[type] || 0) + Number(item.count || 0);
     });
 
-    if (Object.keys(typeData).length === 0) return;
+    const labels = Object.keys(typeData);
+    const values = Object.values(typeData);
+
+    if (labels.length === 0) { setChartAriaLabel(ctx.canvas, 'Case type breakdown', [t('insights.charts.no_data')], [0]); return; }
 
     apCharts['apTypeChart'] = new Chart(ctx, {
       type: 'bar',
       data: {
-        labels: Object.keys(typeData),
+        labels: labels,
         datasets: [{
           label: t('insights.charts.dataset_cases'),
-          data: Object.values(typeData),
+          data: values,
           backgroundColor: colors.secondary,
           borderRadius: 6,
           borderSkipped: false
@@ -325,21 +324,22 @@
         responsive: true,
         maintainAspectRatio: false,
         plugins: {
-          legend: { display: false }
+          legend: getMobileLegendOptions()
         },
         scales: {
           x: {
             grid: { display: false },
-            ticks: { font: { size: 10, family: "'Poppins', sans-serif" } }
+            ticks: { font: { size: (window.innerWidth < 480 ? 13 : 10), family: "'Poppins', sans-serif" }, autoSkip: true, maxRotation: (window.innerWidth < 480 ? 45 : 0), minRotation: 0 }
           },
           y: {
             beginAtZero: true,
             grid: { color: 'rgba(0,0,0,0.05)' },
-            ticks: { font: { size: 10, family: "'Poppins', sans-serif" } }
+            ticks: { font: { size: (window.innerWidth < 480 ? 13 : 10), family: "'Poppins', sans-serif" }, autoSkip: true, maxRotation: (window.innerWidth < 480 ? 45 : 0), minRotation: 0 }
           }
         }
       }
     });
+    setChartAriaLabel(ctx.canvas, 'Case type breakdown', labels, values, function(v) { return v + ' cases'; });
   }
 
   // Monthly Volume Chart (Line)
@@ -357,7 +357,7 @@
       delivered.push(Number(item.cases_delivered || 0));
     });
 
-    if (labels.length === 0) return;
+    if (labels.length === 0) { setChartAriaLabel(ctx.canvas, 'Monthly case volume', [t('insights.charts.no_data')], [0]); return; }
 
     apCharts['apVolumeChart'] = new Chart(ctx, {
       type: 'line',
@@ -391,28 +391,22 @@
         maintainAspectRatio: false,
         interaction: { intersect: false, mode: 'index' },
         plugins: {
-          legend: {
-            position: 'bottom',
-            labels: {
-              padding: 16,
-              usePointStyle: true,
-              font: { size: 11, family: "'Poppins', sans-serif" }
-            }
-          }
+          legend: getMobileLegendOptions()
         },
         scales: {
           x: {
             grid: { display: false },
-            ticks: { font: { size: 10, family: "'Poppins', sans-serif" } }
+            ticks: { font: { size: (window.innerWidth < 480 ? 13 : 10), family: "'Poppins', sans-serif" }, autoSkip: true, maxRotation: (window.innerWidth < 480 ? 45 : 0), minRotation: 0 }
           },
           y: {
             beginAtZero: true,
             grid: { color: 'rgba(0,0,0,0.05)' },
-            ticks: { font: { size: 10, family: "'Poppins', sans-serif" } }
+            ticks: { font: { size: (window.innerWidth < 480 ? 13 : 10), family: "'Poppins', sans-serif" }, autoSkip: true, maxRotation: (window.innerWidth < 480 ? 45 : 0), minRotation: 0 }
           }
         }
       }
     });
+    setChartAriaLabel(ctx.canvas, 'Monthly case volume', labels, created, function(v) { return v + ' created'; });
   }
 
   // Team Performance Chart (Horizontal Bar)
@@ -426,15 +420,18 @@
       teamData[assignee] = Number(item.cases_count || 0);
     });
 
-    if (Object.keys(teamData).length === 0) return;
+    const labels = Object.keys(teamData);
+    const values = Object.values(teamData);
+
+    if (labels.length === 0) { setChartAriaLabel(ctx.canvas, 'Cases by assignee', [t('insights.charts.no_data')], [0]); return; }
 
     apCharts['apTeamChart'] = new Chart(ctx, {
       type: 'bar',
       data: {
-        labels: Object.keys(teamData),
+        labels: labels,
         datasets: [{
           label: t('insights.charts.dataset_cases'),
-          data: Object.values(teamData),
+          data: values,
           backgroundColor: colors.primaryLight,
           borderRadius: 6,
           borderSkipped: false
@@ -445,21 +442,22 @@
         responsive: true,
         maintainAspectRatio: false,
         plugins: {
-          legend: { display: false }
+          legend: getMobileLegendOptions()
         },
         scales: {
           x: {
             beginAtZero: true,
             grid: { color: 'rgba(0,0,0,0.05)' },
-            ticks: { font: { size: 10, family: "'Poppins', sans-serif" } }
+            ticks: { font: { size: (window.innerWidth < 480 ? 13 : 10), family: "'Poppins', sans-serif" }, autoSkip: true, maxRotation: (window.innerWidth < 480 ? 45 : 0), minRotation: 0 }
           },
           y: {
             grid: { display: false },
-            ticks: { font: { size: 10, family: "'Poppins', sans-serif" } }
+            ticks: { font: { size: (window.innerWidth < 480 ? 13 : 10), family: "'Poppins', sans-serif" }, autoSkip: true, maxRotation: (window.innerWidth < 480 ? 45 : 0), minRotation: 0 }
           }
         }
       }
     });
+    setChartAriaLabel(ctx.canvas, 'Cases by assignee', labels, values, function(v) { return v + ' cases'; });
   }
 
   // Year-over-Year Trends Chart
@@ -486,7 +484,7 @@
       }
     });
 
-    if (labels.length === 0) return;
+    if (labels.length === 0) { setChartAriaLabel(ctx.canvas, 'Year-over-year trends', [t('insights.charts.no_data')], [0]); return; }
 
     apCharts['apTrendsChart'] = new Chart(ctx, {
       type: 'line',
@@ -523,28 +521,22 @@
         maintainAspectRatio: false,
         interaction: { intersect: false, mode: 'index' },
         plugins: {
-          legend: {
-            position: 'bottom',
-            labels: {
-              padding: 16,
-              usePointStyle: true,
-              font: { size: 11, family: "'Poppins', sans-serif" }
-            }
-          }
+          legend: getMobileLegendOptions()
         },
         scales: {
           x: {
             grid: { display: false },
-            ticks: { font: { size: 10, family: "'Poppins', sans-serif" } }
+            ticks: { font: { size: (window.innerWidth < 480 ? 13 : 10), family: "'Poppins', sans-serif" }, autoSkip: true, maxRotation: (window.innerWidth < 480 ? 45 : 0), minRotation: 0 }
           },
           y: {
             beginAtZero: true,
             grid: { color: 'rgba(0,0,0,0.05)' },
-            ticks: { font: { size: 10, family: "'Poppins', sans-serif" } }
+            ticks: { font: { size: (window.innerWidth < 480 ? 13 : 10), family: "'Poppins', sans-serif" }, autoSkip: true, maxRotation: (window.innerWidth < 480 ? 45 : 0), minRotation: 0 }
           }
         }
       }
     });
+    setChartAriaLabel(ctx.canvas, 'Year-over-year trends', labels, currentYearData, function(v) { return v + ' this year'; });
   }
 
   // Cases Created by User breakdown
@@ -686,6 +678,34 @@
     return div.innerHTML;
   }
 
+  // Shared legend options: bottom, compact on narrow screens, point style.
+  function getMobileLegendOptions() {
+    const isNarrow = window.innerWidth < 480;
+    return {
+      display: true,
+      position: 'bottom',
+      labels: {
+        padding: isNarrow ? 8 : 12,
+        boxWidth: isNarrow ? 10 : 12,
+        usePointStyle: true,
+        pointStyle: 'circle',
+        font: { size: isNarrow ? 11 : 11, family: "'Poppins', sans-serif" }
+      }
+    };
+  }
+
+  // Accessible text summary for chart canvases.
+  function setChartAriaLabel(canvas, title, labels, values, valueFormatter) {
+    if (!canvas) return;
+    const fmt = valueFormatter || function(v) { return String(v); };
+    const summary = (labels || []).map(function(label, i) {
+      const val = (values && typeof values[i] !== 'undefined') ? fmt(values[i]) : '';
+      return label + ': ' + val;
+    }).join('; ');
+    canvas.setAttribute('role', 'img');
+    canvas.setAttribute('aria-label', title + '. ' + summary);
+  }
+
   // Expose load function globally
   window.loadAnalyticsProData = function() {
     initializeEventListeners();
@@ -760,7 +780,7 @@
       maxDays.push(Number(item.max_days_in_status || 0));
     });
 
-    if (labels.length === 0) return;
+    if (labels.length === 0) { setChartAriaLabel(ctx.canvas, 'Status duration', [t('insights.charts.no_data')], [0]); return; }
 
     apCharts['apDurationChart'] = new Chart(ctx, {
       type: 'bar',
@@ -772,6 +792,7 @@
             data: avgDays,
             backgroundColor: colors.primary,
             borderRadius: 6,
+            maxBarThickness: (window.innerWidth < 480 ? 24 : 48),
             borderSkipped: false
           },
           {
@@ -779,6 +800,7 @@
             data: minDays,
             backgroundColor: colors.success,
             borderRadius: 6,
+            maxBarThickness: (window.innerWidth < 480 ? 24 : 48),
             borderSkipped: false
           },
           {
@@ -786,6 +808,7 @@
             data: maxDays,
             backgroundColor: colors.danger,
             borderRadius: 6,
+            maxBarThickness: (window.innerWidth < 480 ? 24 : 48),
             borderSkipped: false
           }
         ]
@@ -795,28 +818,22 @@
         maintainAspectRatio: false,
         interaction: { intersect: false, mode: 'index' },
         plugins: {
-          legend: {
-            position: 'bottom',
-            labels: {
-              padding: 16,
-              usePointStyle: true,
-              font: { size: 11, family: "'Poppins', sans-serif" }
-            }
-          }
+          legend: getMobileLegendOptions()
         },
         scales: {
           x: {
             grid: { display: false },
-            ticks: { font: { size: 10, family: "'Poppins', sans-serif" } }
+            ticks: { font: { size: (window.innerWidth < 480 ? 13 : 10), family: "'Poppins', sans-serif" }, autoSkip: true, maxRotation: (window.innerWidth < 480 ? 45 : 0), minRotation: 0 }
           },
           y: {
             beginAtZero: true,
             grid: { color: 'rgba(0,0,0,0.05)' },
-            ticks: { font: { size: 10, family: "'Poppins', sans-serif" } }
+            ticks: { font: { size: (window.innerWidth < 480 ? 13 : 10), family: "'Poppins', sans-serif" }, autoSkip: true, maxRotation: (window.innerWidth < 480 ? 45 : 0), minRotation: 0 }
           }
         }
       }
     });
+    setChartAriaLabel(ctx.canvas, 'Status duration', labels, avgDays, function(v) { return v + ' days'; });
   }
 
   // Lifecycle Distribution Chart (Bar)
@@ -834,36 +851,42 @@
             label: t('insights.charts.dataset_days'),
             data: [0],
             backgroundColor: colors.slate,
-            borderRadius: 6
+            borderRadius: 6,
+            maxBarThickness: (window.innerWidth < 480 ? 24 : 48)
           }]
         },
         options: {
           responsive: true,
           maintainAspectRatio: false,
           plugins: {
-            legend: { display: false }
+            legend: getMobileLegendOptions()
           },
           scales: {
             y: { beginAtZero: true }
           }
         }
       });
+      setChartAriaLabel(ctx.canvas, 'Lifecycle distribution', [t('insights.charts.no_data')], [0]);
       return;
     }
+
+    const lifecycleLabels = [t('insights.charts.lifecycle_fastest'), t('insights.charts.lifecycle_average'), t('insights.charts.lifecycle_slowest')];
+    const lifecycleValues = [
+      Number(data.min_total_days || 0),
+      Number(data.avg_total_days || 0),
+      Number(data.max_total_days || 0)
+    ];
 
     apCharts['apLifecycleChart'] = new Chart(ctx, {
       type: 'bar',
       data: {
-        labels: [t('insights.charts.lifecycle_fastest'), t('insights.charts.lifecycle_average'), t('insights.charts.lifecycle_slowest')],
+        labels: lifecycleLabels,
         datasets: [{
           label: t('insights.charts.dataset_days'),
-          data: [
-            Number(data.min_total_days || 0),
-            Number(data.avg_total_days || 0),
-            Number(data.max_total_days || 0)
-          ],
+          data: lifecycleValues,
           backgroundColor: [colors.success, colors.primary, colors.danger],
           borderRadius: 6,
+          maxBarThickness: (window.innerWidth < 480 ? 24 : 48),
           borderSkipped: false
         }]
       },
@@ -871,7 +894,7 @@
         responsive: true,
         maintainAspectRatio: false,
         plugins: {
-          legend: { display: false },
+          legend: getMobileLegendOptions(),
           tooltip: {
             callbacks: {
               label: function(context) {
@@ -883,16 +906,17 @@
         scales: {
           x: {
             grid: { display: false },
-            ticks: { font: { size: 10, family: "'Poppins', sans-serif" } }
+            ticks: { font: { size: (window.innerWidth < 480 ? 13 : 10), family: "'Poppins', sans-serif" }, autoSkip: true, maxRotation: (window.innerWidth < 480 ? 45 : 0), minRotation: 0 }
           },
           y: {
             beginAtZero: true,
             grid: { color: 'rgba(0,0,0,0.05)' },
-            ticks: { font: { size: 10, family: "'Poppins', sans-serif" } }
+            ticks: { font: { size: (window.innerWidth < 480 ? 13 : 10), family: "'Poppins', sans-serif" }, autoSkip: true, maxRotation: (window.innerWidth < 480 ? 45 : 0), minRotation: 0 }
           }
         }
       }
     });
+    setChartAriaLabel(ctx.canvas, 'Lifecycle distribution', lifecycleLabels, lifecycleValues, function(v) { return v + ' days'; });
   }
 
   // Initialize immediately since this script is lazy-loaded after DOMContentLoaded
@@ -922,5 +946,26 @@
       loadAnalyticsPro();
     }
   });
+
+  // Resize and orientation-change handler: Chart.js responsive does not always
+  // notice when the Insights tab becomes visible or the viewport changes on a
+  // phone. Call resize() explicitly so charts fit the new container size.
+  var resizeTimeout;
+  function resizeCharts() {
+    Object.keys(apCharts).forEach(function(key) {
+      var chart = apCharts[key];
+      if (chart && typeof chart.resize === 'function') {
+        chart.resize();
+      }
+    });
+  }
+  window.addEventListener('resize', function() {
+    clearTimeout(resizeTimeout);
+    resizeTimeout = setTimeout(resizeCharts, 150);
+  });
+  window.addEventListener('orientationchange', function() {
+    setTimeout(resizeCharts, 300);
+  });
+  document.addEventListener('insightsVisible', resizeCharts);
 
 })();

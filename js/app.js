@@ -9597,10 +9597,29 @@ document.addEventListener('DOMContentLoaded', function () {
   const mainTabPanes = document.querySelectorAll('.main-tab-pane');
   const insightsSubtabs = document.querySelectorAll('.insights-subtab');
 
+  // Remember the last selected Insights subview (Practice or Lab) so that
+  // switching between the Cases and Insights top tabs does not reset it.
+  const INSIGHTS_VIEW_KEY = 'lastInsightsSubview';
+  function getDefaultInsightsSubview() {
+    try {
+      const saved = sessionStorage.getItem(INSIGHTS_VIEW_KEY);
+      if (saved === 'practice' || saved === 'labs') { return saved; }
+    } catch (e) { /* storage unavailable */ }
+    return 'practice';
+  }
+  function saveInsightsSubview(view) {
+    try {
+      if (view === 'practice' || view === 'labs') {
+        sessionStorage.setItem(INSIGHTS_VIEW_KEY, view);
+      }
+    } catch (e) { /* storage unavailable */ }
+  }
+
   function activateInsightsSubview(view, updateHash) {
     updateHash = updateHash !== false;
     mainTabPanes.forEach(p => p.classList.remove('active'));
-    document.getElementById(view === 'labs' ? 'lab-insights-tab' : 'insights-tab').classList.add('active');
+    const targetPane = document.getElementById(view === 'labs' ? 'lab-insights-tab' : 'insights-tab');
+    if (targetPane) { targetPane.classList.add('active'); }
 
     insightsSubtabs.forEach(st => {
       const isActive = st.dataset.insightsSubtab === view;
@@ -9611,6 +9630,8 @@ document.addEventListener('DOMContentLoaded', function () {
     setInsightsLoading(view, true);
     setInsightsError(view, '');
 
+    saveInsightsSubview(view);
+
     if (view === 'practice') {
       loadAnalyticsScripts();
     } else if (view === 'labs') {
@@ -9620,6 +9641,13 @@ document.addEventListener('DOMContentLoaded', function () {
     if (updateHash && window.history.replaceState) {
       window.history.replaceState(null, null, '#insights/' + view);
     }
+
+    // Notify any chart listeners that the Insights pane is now visible so
+    // they can recompute their dimensions after the tab change.
+    setTimeout(function () {
+      document.dispatchEvent(new CustomEvent('insightsVisible'));
+      try { window.dispatchEvent(new Event('resize')); } catch (e) {}
+    }, 0);
   }
 
   mainTabs.forEach(tab => {
@@ -9629,6 +9657,12 @@ document.addEventListener('DOMContentLoaded', function () {
       // Check if user has access to analytics
       if (targetTab === 'analytics' && billingInfo && !billingInfo.has_analytics) {
         showToast(t('insights.upgrade.analytics_control'), 'warning');
+        return;
+      }
+
+      // Block Insights tab when the user lacks analytics permission or the trial is expired
+      if (targetTab === 'insights' && !window.userCanViewAnalytics) {
+        showToast(t('insights.no_permission'), 'warning');
         return;
       }
 
@@ -9646,9 +9680,10 @@ document.addEventListener('DOMContentLoaded', function () {
       tab.classList.add('active');
       document.getElementById(targetTab + '-tab').classList.add('active');
 
-      // Insights top tab defaults to the Practice sub-tab
+      // Insights top tab restores the last selected Practice/Lab subview
+      // instead of always defaulting to Practice.
       if (targetTab === 'insights') {
-        activateInsightsSubview('practice', false);
+        activateInsightsSubview(getDefaultInsightsSubview(), false);
       }
     });
   });
@@ -9657,6 +9692,10 @@ document.addEventListener('DOMContentLoaded', function () {
     st.addEventListener('click', () => {
       const view = st.dataset.insightsSubtab;
       if (!view) { return; }
+      if (!window.userCanViewAnalytics) {
+        showToast(t('insights.no_permission'), 'warning');
+        return;
+      }
       // Keep the top Insights tab active; just switch the subview
       mainTabPanes.forEach(p => p.classList.remove('active'));
       activateInsightsSubview(view);
@@ -9667,18 +9706,22 @@ document.addEventListener('DOMContentLoaded', function () {
   function applyInitialInsightsHash() {
     const hash = (window.location.hash || '').replace(/^#/, '');
     if (hash === 'insights' || hash === 'insights/practice') {
+      const pane = document.getElementById('insights-tab');
+      if (!pane) { return; }
       mainTabs.forEach(t => t.classList.remove('active'));
       mainTabPanes.forEach(p => p.classList.remove('active'));
       const insightsTab = document.querySelector('.main-tab[data-tab="insights"]');
       if (insightsTab) { insightsTab.classList.add('active'); }
-      document.getElementById('insights-tab').classList.add('active');
-      activateInsightsSubview('practice', false);
+      pane.classList.add('active');
+      activateInsightsSubview(getDefaultInsightsSubview(), false);
     } else if (hash === 'insights/labs') {
+      const pane = document.getElementById('lab-insights-tab');
+      if (!pane) { return; }
       mainTabs.forEach(t => t.classList.remove('active'));
       mainTabPanes.forEach(p => p.classList.remove('active'));
       const insightsTab = document.querySelector('.main-tab[data-tab="insights"]');
       if (insightsTab) { insightsTab.classList.add('active'); }
-      document.getElementById('lab-insights-tab').classList.add('active');
+      pane.classList.add('active');
       activateInsightsSubview('labs', false);
     }
   }
