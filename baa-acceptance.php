@@ -670,12 +670,6 @@ $baaVersion = 'v1.0-2026-08-07';
                     </label>
                 </div>
 
-                <div class="checkbox-group">
-                    <input type="checkbox" id="practiceAuthorityAck" name="practiceAuthorityAck">
-                    <label for="practiceAuthorityAck">
-                        <?php echo t('onboarding.baa.authority_ack_text', [], 'I confirm that I am authorized to create and administer this Practice, that each Practice added to this account is covered by the applicable DentaTrak subscription, and that I will not use DentaTrak to provide access to unrelated dental practices or circumvent subscription limits. I agree to the <a href="terms.php" target="_blank">Terms of Service</a> and acknowledge the <a href="privacy.php" target="_blank">Privacy Policy</a>.'); ?>
-                    </label>
-                </div>
             </form>
             <?php endif; ?>
         </div>
@@ -731,11 +725,10 @@ $baaVersion = 'v1.0-2026-08-07';
             const organizationTypeOther = document.getElementById('organizationTypeOther');
             const otherOrgGroup = document.getElementById('otherOrgGroup');
             const labNotice = document.getElementById('labNotice');
-            const practiceAuthorityAck = document.getElementById('practiceAuthorityAck');
 
             function updateAcceptButton() {
                 const orgOk = !IS_CREATING_NEW_PRACTICE || (organizationType.value && (organizationType.value !== 'other' || organizationTypeOther.value.trim()));
-                acceptBtn.disabled = !(authorizedCheckbox.checked && practiceAuthorityAck.checked && orgOk);
+                acceptBtn.disabled = !(authorizedCheckbox.checked && orgOk);
             }
 
             // Show/hide lab notice and other description based on selection
@@ -752,7 +745,6 @@ $baaVersion = 'v1.0-2026-08-07';
 
             // Enable/disable accept button based on checkboxes and organization type
             authorizedCheckbox.addEventListener('change', updateAcceptButton);
-            practiceAuthorityAck.addEventListener('change', updateAcceptButton);
 
             // Clear error highlighting when users interact with fields
             const fieldIds = ['legalName', 'practiceAddress', 'signerName', 'signerTitle', 'organizationType', 'organizationTypeOther'];
@@ -820,13 +812,6 @@ $baaVersion = 'v1.0-2026-08-07';
                     };
                 }
 
-                if (IS_CREATING_NEW_PRACTICE && !practiceAuthorityAck.checked) {
-                    return {
-                        title: t('onboarding.baa.authority_required_title'),
-                        message: t('onboarding.baa.authority_required_message')
-                    };
-                }
-
                 return null;
             }
 
@@ -864,7 +849,6 @@ $baaVersion = 'v1.0-2026-08-07';
                     if (organizationType.value === 'other') {
                         data.organizationTypeOther = organizationTypeOther.value.trim();
                     }
-                    data.practiceAuthorityAck = practiceAuthorityAck.checked;
                 }
                 
                 try {

@@ -111,12 +111,6 @@ if ($creatingNew) {
         exit;
     }
 
-    if (empty($data['practiceAuthorityAck']) || $data['practiceAuthorityAck'] !== true) {
-        http_response_code(400);
-        echo json_encode(['success' => false, 'message' => t('onboarding.baa.api.practice_authority_required')]);
-        exit;
-    }
-
     // Organization type validation for self-service creation happens here.
     // The authoritative approval check for laboratories is performed later,
     // after the schema has been verified, using the durable

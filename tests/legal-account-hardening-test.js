@@ -108,7 +108,6 @@ async function attemptBaa(page, email, orgType) {
   await page.fill('#signerName', 'DentaTrakTest Signer');
   await page.fill('#signerTitle', 'Authorized Agent');
   await page.check('#authorizedToBind');
-  await page.check('#practiceAuthorityAck');
 
   const csrf = await page.locator('meta[name="csrf-token"]').getAttribute('content') || '';
   const data = {
@@ -117,7 +116,6 @@ async function attemptBaa(page, email, orgType) {
     signerName: await page.inputValue('#signerName'),
     signerTitle: await page.inputValue('#signerTitle'),
     authorizedToBind: await page.isChecked('#authorizedToBind'),
-    practiceAuthorityAck: await page.isChecked('#practiceAuthorityAck'),
     organizationType: orgType,
     new: true
   };

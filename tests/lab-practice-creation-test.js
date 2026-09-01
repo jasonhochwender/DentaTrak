@@ -58,7 +58,6 @@ async function attemptBaa(page, email, orgType) {
   await page.fill('#signerName', 'DentaTrakTest Signer');
   await page.fill('#signerTitle', 'Authorized Agent');
   await page.check('#authorizedToBind');
-  await page.check('#practiceAuthorityAck');
 
   const acceptBtn = await page.locator('#acceptBtn');
   if (await acceptBtn.isDisabled()) return { disabled: true };
@@ -70,7 +69,6 @@ async function attemptBaa(page, email, orgType) {
     signerName: await page.inputValue('#signerName'),
     signerTitle: await page.inputValue('#signerTitle'),
     authorizedToBind: await page.isChecked('#authorizedToBind'),
-    practiceAuthorityAck: await page.isChecked('#practiceAuthorityAck'),
     organizationType: orgType,
     new: true
   };
