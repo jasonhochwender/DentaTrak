@@ -521,6 +521,32 @@ function handleSetupPracticeMember($pdo, $input) {
             ]);
         }
 
+        // Optional: grant this user access to specific assignment labels (used
+        // by Lab Insights tests for Assigned Only users whose cases are routed
+        // to lab labels rather than to their personal email).
+        $labelIds = $input['labelIds'] ?? [];
+        if (is_array($labelIds) && !empty($labelIds)) {
+            $checkStmt = $pdo->prepare("
+                SELECT 1
+                FROM practice_assignment_labels
+                WHERE id = :id AND practice_id = :practice_id
+            ");
+            $insertStmt = $pdo->prepare("
+                INSERT IGNORE INTO practice_assignment_label_recipients (practice_id, label_id, user_id)
+                VALUES (:practice_id, :label_id, :user_id)
+            ");
+            foreach ($labelIds as $labelId) {
+                $labelId = (int)$labelId;
+                if ($labelId <= 0) {
+                    continue;
+                }
+                $checkStmt->execute([':id' => $labelId, ':practice_id' => $practiceId]);
+                if ($checkStmt->fetchColumn()) {
+                    $insertStmt->execute([':practice_id' => $practiceId, ':label_id' => $labelId, ':user_id' => $userId]);
+                }
+            }
+        }
+
         $pdo->commit();
 
         echo json_encode([

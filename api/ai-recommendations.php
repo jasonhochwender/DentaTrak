@@ -116,6 +116,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 try {
+    // SECURITY: Scope analytics (and therefore any AI input) to the cases the
+    // current user is authorized to view, using the same rule as Practice
+    // Insights and Lab Insights. Non-limited users get every practice case.
+    ensureAuthorizedCaseIdsTempTable($practiceId);
+
     // Gather aggregated analytics data (NO PII)
     $analyticsData = gatherAnalyticsData($pdo, $practiceId);
 
@@ -180,21 +185,17 @@ function gatherAnalyticsData($pdo, $practiceId) {
     // practice's recommendations). A practice with zero matching cases
     // must see zero, not another practice's data.
     //
-    // For Assigned Only (limited_visibility) users, additionally scope to
-    // their own assigned cases so Insights + Assigned Only together return
-    // authorized data only, rather than denying access outright.
+    // Authorization is performed by the temp table built by
+    // ensureAuthorizedCaseIdsTempTable() before this function runs. Every
+    // cases_cache query below INNER JOINs that table, so the practice filter
+    // stays the same for all users and label-based assignments are respected.
     $practiceFilter = "practice_id = ?";
     $filterParams = [$practiceId];
-    if (hasLimitedVisibility($practiceId)) {
-        $scopeEmail = getCurrentUserEmail();
-        $practiceFilter = "practice_id = ? AND LOWER(assigned_to) = ?";
-        $filterParams = [$practiceId, $scopeEmail ?? ''];
-    }
 
     // Total cases by status
     $stmt = $pdo->prepare("
         SELECT status, COUNT(*) as count
-        FROM cases_cache
+        FROM cases_cache INNER JOIN authorized_case_ids a ON a.case_id = cases_cache.case_id COLLATE utf8mb4_unicode_ci
         WHERE $practiceFilter AND archived = 0
         GROUP BY status
     ");
@@ -202,19 +203,19 @@ function gatherAnalyticsData($pdo, $practiceId) {
     $data['cases_by_status'] = $stmt->fetchAll(PDO::FETCH_KEY_PAIR);
 
     // Total active cases
-    $stmt = $pdo->prepare("SELECT COUNT(*) FROM cases_cache WHERE $practiceFilter AND archived = 0");
+    $stmt = $pdo->prepare("SELECT COUNT(*) FROM cases_cache INNER JOIN authorized_case_ids a ON a.case_id = cases_cache.case_id COLLATE utf8mb4_unicode_ci WHERE $practiceFilter AND archived = 0");
     $stmt->execute($filterParams);
     $data['total_active_cases'] = (int)$stmt->fetchColumn();
 
     // Total archived cases
-    $stmt = $pdo->prepare("SELECT COUNT(*) FROM cases_cache WHERE $practiceFilter AND archived = 1");
+    $stmt = $pdo->prepare("SELECT COUNT(*) FROM cases_cache INNER JOIN authorized_case_ids a ON a.case_id = cases_cache.case_id COLLATE utf8mb4_unicode_ci WHERE $practiceFilter AND archived = 1");
     $stmt->execute($filterParams);
     $data['total_archived_cases'] = (int)$stmt->fetchColumn();
 
     // Cases by type
     $stmt = $pdo->prepare("
         SELECT case_type, COUNT(*) as count
-        FROM cases_cache
+        FROM cases_cache INNER JOIN authorized_case_ids a ON a.case_id = cases_cache.case_id COLLATE utf8mb4_unicode_ci
         WHERE $practiceFilter AND archived = 0
         GROUP BY case_type
     ");
@@ -227,7 +228,7 @@ function gatherAnalyticsData($pdo, $practiceId) {
     $legacyDone = ['Completed', 'Shipped'];
     $stmt = $pdo->prepare("
         SELECT COUNT(*)
-        FROM cases_cache
+        FROM cases_cache INNER JOIN authorized_case_ids a ON a.case_id = cases_cache.case_id COLLATE utf8mb4_unicode_ci
         WHERE $practiceFilter
         AND archived = 0
         AND due_date < ?
@@ -240,7 +241,7 @@ function gatherAnalyticsData($pdo, $practiceId) {
     $weekEnd = date('Y-m-d', strtotime('+7 days'));
     $stmt = $pdo->prepare("
         SELECT COUNT(*)
-        FROM cases_cache
+        FROM cases_cache INNER JOIN authorized_case_ids a ON a.case_id = cases_cache.case_id COLLATE utf8mb4_unicode_ci
         WHERE $practiceFilter
         AND archived = 0
         AND due_date BETWEEN ? AND ?
@@ -253,7 +254,7 @@ function gatherAnalyticsData($pdo, $practiceId) {
     $thirtyDaysAgo = date('Y-m-d', strtotime('-30 days'));
     $stmt = $pdo->prepare("
         SELECT COUNT(*)
-        FROM cases_cache
+        FROM cases_cache INNER JOIN authorized_case_ids a ON a.case_id = cases_cache.case_id COLLATE utf8mb4_unicode_ci
         WHERE $practiceFilter
         AND STR_TO_DATE(LEFT(COALESCE(creation_date, CURRENT_DATE()), 10), '%Y-%m-%d') >= ?
     ");
@@ -263,7 +264,7 @@ function gatherAnalyticsData($pdo, $practiceId) {
     // Cases completed in last 30 days (terminal + legacy done statuses)
     $stmt = $pdo->prepare("
         SELECT COUNT(*)
-        FROM cases_cache
+        FROM cases_cache INNER JOIN authorized_case_ids a ON a.case_id = cases_cache.case_id COLLATE utf8mb4_unicode_ci
         WHERE $practiceFilter
         AND status IN (?, ?, ?)
         AND STR_TO_DATE(LEFT(COALESCE(last_update_date, CURRENT_DATE()), 10), '%Y-%m-%d') >= ?
@@ -276,7 +277,7 @@ function gatherAnalyticsData($pdo, $practiceId) {
         SELECT
             CASE WHEN assigned_to IS NULL OR assigned_to = '' THEN 'Unassigned' ELSE 'Assigned' END as assignment_status,
             COUNT(*) as count
-        FROM cases_cache
+        FROM cases_cache INNER JOIN authorized_case_ids a ON a.case_id = cases_cache.case_id COLLATE utf8mb4_unicode_ci
         WHERE $practiceFilter AND archived = 0
         GROUP BY assignment_status
     ");
@@ -286,7 +287,7 @@ function gatherAnalyticsData($pdo, $practiceId) {
     // Count of unique assignees
     $stmt = $pdo->prepare("
         SELECT COUNT(DISTINCT assigned_to)
-        FROM cases_cache
+        FROM cases_cache INNER JOIN authorized_case_ids a ON a.case_id = cases_cache.case_id COLLATE utf8mb4_unicode_ci
         WHERE $practiceFilter AND archived = 0 AND assigned_to IS NOT NULL AND assigned_to != ''
     ");
     $stmt->execute($filterParams);
@@ -303,7 +304,7 @@ function gatherAnalyticsData($pdo, $practiceId) {
     // Cases by material (for case types that use materials)
     $stmt = $pdo->prepare("
         SELECT material, COUNT(*) as count
-        FROM cases_cache
+        FROM cases_cache INNER JOIN authorized_case_ids a ON a.case_id = cases_cache.case_id COLLATE utf8mb4_unicode_ci
         WHERE $practiceFilter AND archived = 0 AND material IS NOT NULL AND material != ''
         GROUP BY material
     ");

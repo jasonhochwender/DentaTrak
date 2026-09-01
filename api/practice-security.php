@@ -593,6 +593,65 @@ function verifyRecordBelongsToPractice($recordPracticeId) {
  *
  * @return string|null Lowercase-trimmed email, or null if not logged in.
  */
+function ensureAuthorizedCaseIdsTempTable($practiceId) {
+    global $pdo;
+
+    if (!$pdo || !$practiceId) {
+        return;
+    }
+
+    try {
+        $pdo->exec("CREATE TEMPORARY TABLE IF NOT EXISTS authorized_case_ids (case_id VARCHAR(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL PRIMARY KEY)");
+    } catch (PDOException $e) {
+        error_log('[practice-security] Failed to create authorized_case_ids: ' . $e->getMessage());
+        return;
+    }
+
+    $limited = hasLimitedVisibility($practiceId);
+    $currentUserId = $_SESSION['db_user_id'] ?? null;
+    $currentEmail = getCurrentUserEmail();
+
+    if (!$limited) {
+        $stmt = $pdo->prepare("
+            INSERT IGNORE INTO authorized_case_ids (case_id)
+            SELECT c.case_id
+            FROM cases_cache c
+            WHERE c.practice_id = :practice_id
+        ");
+        $stmt->execute([':practice_id' => $practiceId]);
+        return;
+    }
+
+    if (!$currentEmail || !$currentUserId) {
+        return;
+    }
+
+    $stmt = $pdo->prepare("
+        INSERT IGNORE INTO authorized_case_ids (case_id)
+        SELECT c.case_id
+        FROM cases_cache c
+        WHERE c.practice_id = :practice_id
+          AND (
+              LOWER(TRIM(c.assigned_to)) = :user_email
+              OR EXISTS (
+                  SELECT 1
+                  FROM practice_assignment_labels l
+                  JOIN practice_assignment_label_recipients r ON r.label_id = l.id
+                  WHERE l.practice_id = :label_practice_id
+                    AND r.user_id = :user_id
+                    AND LOWER(TRIM(l.label)) COLLATE utf8mb4_unicode_ci
+                        = LOWER(TRIM(c.assigned_to)) COLLATE utf8mb4_unicode_ci
+              )
+          )
+    ");
+    $stmt->execute([
+        ':practice_id'        => $practiceId,
+        ':label_practice_id'  => $practiceId,
+        ':user_email'          => $currentEmail,
+        ':user_id'             => $currentUserId,
+    ]);
+}
+
 function getCurrentUserEmail() {
     global $pdo;
 

@@ -87,6 +87,12 @@ function buildTimePeriodClause($period, $dateColumn = 'creation_date') {
 }
 
 try {
+    // SECURITY: Build a per-request authorized case list. All `cases_cache`
+    // queries below INNER JOIN to this temp table so every aggregate is scoped
+    // by the same rule canUserAccessCase() uses (direct assignment + label
+    // recipients). For non-limited users the table contains every practice case.
+    ensureAuthorizedCaseIdsTempTable($practiceId);
+
     // Core Metrics
     $metrics = [];
     
@@ -110,7 +116,7 @@ try {
     // Total Active Cases - active, non-archived, non-delivered workflow cases
     $stmt = $pdo->prepare("
         SELECT COUNT(*) as total
-        FROM cases_cache
+        FROM cases_cache INNER JOIN authorized_case_ids a ON a.case_id = cases_cache.case_id COLLATE utf8mb4_unicode_ci
         WHERE practice_id = :practice_id AND archived = 0 AND status != '{$GLOBALS['workflowTerminalStatus']}'
     ");
     $stmt->execute(['practice_id' => $practiceId]);
@@ -129,7 +135,7 @@ try {
     // new_status = '{$GLOBALS['workflowTerminalStatus']}'. If neither exists, the case is not counted.
     $stmt = $pdo->prepare("
         SELECT COUNT(DISTINCT c.case_id) as total
-        FROM cases_cache c
+        FROM cases_cache c INNER JOIN authorized_case_ids a ON a.case_id = c.case_id COLLATE utf8mb4_unicode_ci
         LEFT JOIN (
             SELECT case_id, MAX(created_at) as delivered_at
             FROM case_activity_log
@@ -150,7 +156,7 @@ try {
     $caseFlow = ['onTrack' => 0, 'dueSoon' => 0, 'appointmentRisk' => 0, 'late' => 0];
     $stmt = $pdo->prepare("
         SELECT due_date, patient_appointment_date, status
-        FROM cases_cache
+        FROM cases_cache INNER JOIN authorized_case_ids a ON a.case_id = cases_cache.case_id COLLATE utf8mb4_unicode_ci
         WHERE practice_id = :practice_id AND archived = 0 AND status != '{$GLOBALS['workflowTerminalStatus']}'
     ");
     $stmt->execute(['practice_id' => $practiceId]);
@@ -201,7 +207,7 @@ try {
     // Total Archived Cases - cases that are archived (archived = 1)
     $stmt = $pdo->prepare("
         SELECT COUNT(*) as total
-        FROM cases_cache 
+        FROM cases_cache INNER JOIN authorized_case_ids a ON a.case_id = cases_cache.case_id COLLATE utf8mb4_unicode_ci
         WHERE practice_id = :practice_id AND archived = 1
     ");
     $stmt->execute(['practice_id' => $practiceId]);
@@ -211,7 +217,7 @@ try {
     try {
         $stmt = $pdo->prepare("
             SELECT COUNT(*) as total
-            FROM cases_cache 
+            FROM cases_cache INNER JOIN authorized_case_ids a ON a.case_id = cases_cache.case_id COLLATE utf8mb4_unicode_ci
             WHERE practice_id = :practice_id
             AND MONTH(STR_TO_DATE(LEFT(COALESCE(creation_date, CURRENT_DATE()), 10), '%Y-%m-%d')) = MONTH(CURRENT_DATE())
             AND YEAR(STR_TO_DATE(LEFT(COALESCE(creation_date, CURRENT_DATE()), 10), '%Y-%m-%d')) = YEAR(CURRENT_DATE())
@@ -219,7 +225,7 @@ try {
         $stmt->execute(['practice_id' => $practiceId]);
         $metrics['casesThisMonth'] = (int)$stmt->fetchColumn();
     } catch (Exception $e) {
-        $stmt = $pdo->query("SELECT COUNT(*) as total FROM cases_cache");
+        $stmt = $pdo->query("SELECT COUNT(*) as total FROM cases_cache INNER JOIN authorized_case_ids a ON a.case_id = cases_cache.case_id COLLATE utf8mb4_unicode_ci");
         $metrics['casesThisMonth'] = (int)$stmt->fetchColumn();
     }
     
@@ -232,7 +238,7 @@ try {
                     STR_TO_DATE(LEFT(COALESCE(creation_date, CURRENT_DATE()), 10), '%Y-%m-%d')
                 )
             ) as avg_duration
-            FROM cases_cache 
+            FROM cases_cache INNER JOIN authorized_case_ids a ON a.case_id = cases_cache.case_id COLLATE utf8mb4_unicode_ci
             WHERE practice_id = :practice_id
             AND status = '{$GLOBALS['workflowTerminalStatus']}'
         ");
@@ -247,7 +253,7 @@ try {
     try {
         $stmt = $pdo->prepare("
             SELECT COUNT(*) as total
-            FROM cases_cache 
+            FROM cases_cache INNER JOIN authorized_case_ids a ON a.case_id = cases_cache.case_id COLLATE utf8mb4_unicode_ci
             WHERE practice_id = :practice_id
             AND archived = 0
             AND status != '{$GLOBALS['workflowTerminalStatus']}'
@@ -265,7 +271,7 @@ try {
     try {
         $stmt = $pdo->prepare("
             SELECT COUNT(*) as total
-            FROM cases_cache 
+            FROM cases_cache INNER JOIN authorized_case_ids a ON a.case_id = cases_cache.case_id COLLATE utf8mb4_unicode_ci
             WHERE practice_id = :practice_id
             AND archived = 0
             AND status != '{$GLOBALS['workflowTerminalStatus']}'
@@ -283,7 +289,7 @@ try {
     try {
         $stmt = $pdo->prepare("
             SELECT COUNT(*) as total
-            FROM cases_cache 
+            FROM cases_cache INNER JOIN authorized_case_ids a ON a.case_id = cases_cache.case_id COLLATE utf8mb4_unicode_ci
             WHERE practice_id = :practice_id
             AND archived = 0
             AND status != '{$GLOBALS['workflowTerminalStatus']}'
@@ -299,7 +305,7 @@ try {
     try {
         // Get active cases for At Risk calculation
         $stmt = $pdo->prepare("
-            SELECT * FROM cases_cache 
+            SELECT * FROM cases_cache INNER JOIN authorized_case_ids a ON a.case_id = cases_cache.case_id COLLATE utf8mb4_unicode_ci
             WHERE practice_id = :practice_id
             AND archived = 0
             AND status != '{$GLOBALS['workflowTerminalStatus']}'
@@ -316,7 +322,7 @@ try {
         // Total cases with at least 1 regression (active, non-archived)
         $stmt = $pdo->prepare("
             SELECT COUNT(*) as total
-            FROM cases_cache 
+            FROM cases_cache INNER JOIN authorized_case_ids a ON a.case_id = cases_cache.case_id COLLATE utf8mb4_unicode_ci
             WHERE practice_id = :practice_id
             AND archived = 0
             AND revision_count > 0
@@ -327,7 +333,7 @@ try {
         // Cases with multiple regressions (2+)
         $stmt = $pdo->prepare("
             SELECT COUNT(*) as total
-            FROM cases_cache 
+            FROM cases_cache INNER JOIN authorized_case_ids a ON a.case_id = cases_cache.case_id COLLATE utf8mb4_unicode_ci
             WHERE practice_id = :practice_id
             AND archived = 0
             AND revision_count >= 2
@@ -338,7 +344,7 @@ try {
         // Total regression count across all active cases
         $stmt = $pdo->prepare("
             SELECT COALESCE(SUM(revision_count), 0) as total
-            FROM cases_cache 
+            FROM cases_cache INNER JOIN authorized_case_ids a ON a.case_id = cases_cache.case_id COLLATE utf8mb4_unicode_ci
             WHERE practice_id = :practice_id
             AND archived = 0
         ");
@@ -357,7 +363,7 @@ try {
             SELECT 
                 status,
                 COUNT(*) as count
-            FROM cases_cache 
+            FROM cases_cache INNER JOIN authorized_case_ids a ON a.case_id = cases_cache.case_id COLLATE utf8mb4_unicode_ci
             WHERE practice_id = :practice_id
             $statusClause
             GROUP BY status
@@ -384,7 +390,7 @@ try {
                 ) as month,
                 COUNT(*) as cases_created,
                 SUM(CASE WHEN status = '{$GLOBALS['workflowTerminalStatus']}' THEN 1 ELSE 0 END) as cases_delivered
-            FROM cases_cache 
+            FROM cases_cache INNER JOIN authorized_case_ids a ON a.case_id = cases_cache.case_id COLLATE utf8mb4_unicode_ci
             WHERE practice_id = :practice_id
             AND STR_TO_DATE(LEFT(COALESCE(creation_date, CURRENT_DATE()), 10), '%Y-%m-%d') >= DATE_SUB(CURRENT_DATE(), INTERVAL $months MONTH)
             GROUP BY month
@@ -411,7 +417,7 @@ try {
                     ELSE case_type 
                 END as case_type,
                 COUNT(*) as count
-            FROM cases_cache 
+            FROM cases_cache INNER JOIN authorized_case_ids a ON a.case_id = cases_cache.case_id COLLATE utf8mb4_unicode_ci
             WHERE practice_id = :practice_id
             $typeClause
             GROUP BY case_type
@@ -457,7 +463,7 @@ try {
                 END as assignee,
                 COUNT(*) as cases_count,
                 SUM(CASE WHEN status = '{$GLOBALS['workflowTerminalStatus']}' THEN 1 ELSE 0 END) as completed_cases
-            FROM cases_cache 
+            FROM cases_cache INNER JOIN authorized_case_ids a ON a.case_id = cases_cache.case_id COLLATE utf8mb4_unicode_ci
             WHERE practice_id = ?
         ";
         
@@ -505,7 +511,7 @@ try {
                 COALESCE(u.first_name, '') as first_name,
                 COALESCE(u.last_name, '') as last_name,
                 COUNT(*) as cases_count
-            FROM cases_cache c
+            FROM cases_cache c INNER JOIN authorized_case_ids a ON a.case_id = c.case_id COLLATE utf8mb4_unicode_ci
             LEFT JOIN users u ON u.id = c.created_by_user_id
             WHERE c.practice_id = :practice_id
             AND c.archived = 0
@@ -552,7 +558,7 @@ try {
                     CURRENT_DATE(),
                     STR_TO_DATE(LEFT(COALESCE(status_changed_at, creation_date, CURRENT_DATE()), 10), '%Y-%m-%d')
                 )) as max_days_in_status
-            FROM cases_cache 
+            FROM cases_cache INNER JOIN authorized_case_ids a ON a.case_id = cases_cache.case_id COLLATE utf8mb4_unicode_ci
             WHERE practice_id = :practice_id
             AND status != '{$GLOBALS['workflowTerminalStatus']}'
             AND archived = 0
@@ -593,7 +599,7 @@ try {
                     STR_TO_DATE(LEFT(creation_date, 10), '%Y-%m-%d')
                 )) as max_total_days,
                 COUNT(*) as delivered_cases
-            FROM cases_cache 
+            FROM cases_cache INNER JOIN authorized_case_ids a ON a.case_id = cases_cache.case_id COLLATE utf8mb4_unicode_ci
             WHERE practice_id = :practice_id
             AND status = '{$GLOBALS['workflowTerminalStatus']}'
             AND archived = 0
@@ -650,7 +656,7 @@ try {
             SELECT 
                 DATE_FORMAT(STR_TO_DATE(LEFT(creation_date, 10), '%Y-%m-%d'), '%Y-%m') as month,
                 COUNT(*) as count
-            FROM cases_cache 
+            FROM cases_cache INNER JOIN authorized_case_ids a ON a.case_id = cases_cache.case_id COLLATE utf8mb4_unicode_ci
             WHERE practice_id = :practice_id
             AND YEAR(STR_TO_DATE(LEFT(creation_date, 10), '%Y-%m-%d')) = :currentYear
             GROUP BY month
@@ -664,7 +670,7 @@ try {
             SELECT 
                 DATE_FORMAT(STR_TO_DATE(LEFT(creation_date, 10), '%Y-%m-%d'), '%Y-%m') as month,
                 COUNT(*) as count
-            FROM cases_cache 
+            FROM cases_cache INNER JOIN authorized_case_ids a ON a.case_id = cases_cache.case_id COLLATE utf8mb4_unicode_ci
             WHERE practice_id = :practice_id
             AND YEAR(STR_TO_DATE(LEFT(creation_date, 10), '%Y-%m-%d')) = :lastYear
             GROUP BY month

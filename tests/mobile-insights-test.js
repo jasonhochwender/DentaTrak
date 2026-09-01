@@ -84,7 +84,7 @@ async function callTestHelperPage(page, action, extra = {}) {
   }, { url: `${BASE}/api/test-helpers.php`, payload });
 }
 
-async function setupPracticeMember(page, { email, role = 'user', canViewAnalytics = 0, canEditCases = 0, limitedVisibility = 0, adminEmail = EMAIL, practiceId = null }, attempts = 3) {
+async function setupPracticeMember(page, { email, role = 'user', canViewAnalytics = 0, canEditCases = 0, limitedVisibility = 0, adminEmail = EMAIL, practiceId = null, labelIds = [] }, attempts = 3) {
   const payload = {
     email,
     password: TEST_USER_PASSWORD,
@@ -97,6 +97,7 @@ async function setupPracticeMember(page, { email, role = 'user', canViewAnalytic
     adminEmail,
   };
   if (practiceId) payload.practiceId = practiceId;
+  if (Array.isArray(labelIds) && labelIds.length) payload.labelIds = labelIds;
   for (let i = 0; i < attempts; i++) {
     if (i > 0) await page.waitForTimeout(1500);
     const res = await callTestHelperPage(page, 'setup_practice_member', payload);
@@ -629,7 +630,7 @@ async function run() {
     ]);
     await setupPracticeMember(page, { email: LAB_ADMIN_EMAIL, role: 'admin', canViewAnalytics: 1, canEditCases: 1, practiceId: primaryPracticeId });
     await setupPracticeMember(page, { email: LAB_USER_EMAIL, role: 'user', canViewAnalytics: 1, canEditCases: 1, practiceId: primaryPracticeId });
-    await setupPracticeMember(page, { email: LAB_ASSIGNED_EMAIL, role: 'user', canViewAnalytics: 1, canEditCases: 0, limitedVisibility: 1, practiceId: primaryPracticeId });
+    await setupPracticeMember(page, { email: LAB_ASSIGNED_EMAIL, role: 'user', canViewAnalytics: 1, canEditCases: 0, limitedVisibility: 1, practiceId: primaryPracticeId, labelIds: labSeed.label_ids });
     await setupPracticeMember(page, { email: LAB_NOANALYTICS_EMAIL, role: 'user', canViewAnalytics: 0, canEditCases: 0, practiceId: primaryPracticeId });
 
     // --- 3b. Cross practice ---

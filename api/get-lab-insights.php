@@ -106,6 +106,11 @@ if (!hasControlAccess($pdo, $practiceId, $userEmail)) {
     exit;
 }
 
+// SECURITY: Build a per-request authorized case list. All `cases_cache` and
+// `case_lab_assignment_periods` queries below INNER JOIN to this temp table
+// so every lab metric, drill-down row, and trend is scoped by the same rule
+// canUserAccessCase() uses. For non-limited users the table contains every
+// practice case.
 ensureLabAssignmentHistoryTable();
 ensureLabDesignationColumns();
 
@@ -139,6 +144,12 @@ function labIsLate($caseRow, DateTimeImmutable $now, array $terminalStatuses) {
 }
 
 try {
+    // SECURITY: Build a per-request authorized case list. All `cases_cache`
+    // and `case_lab_assignment_periods` queries below INNER JOIN to this temp
+    // table so every lab metric, drill-down row, and trend is scoped by the
+    // same rule canUserAccessCase() uses.
+    ensureAuthorizedCaseIdsTempTable($practiceId);
+
     // ── Lab identity universe: currently-designated labs UNION any identity
     // that appears in this practice's assignment history (so removed/renamed
     // labs still show up with their historical snapshot, per spec section 8). ─
@@ -178,11 +189,12 @@ try {
     // All assignment periods this practice has ever recorded for a lab
     // identity (is_lab_snapshot=1). One query, no per-lab N+1.
     $stmt = $pdo->prepare("
-        SELECT id, case_id, assignee_type, user_id, label_id, assignee_display_name_snapshot,
+        SELECT id, case_lab_assignment_periods.case_id, assignee_type, user_id, label_id, assignee_display_name_snapshot,
                started_at, ended_at, end_reason, history_quality
         FROM case_lab_assignment_periods
+        INNER JOIN authorized_case_ids a ON a.case_id = case_lab_assignment_periods.case_id COLLATE utf8mb4_unicode_ci
         WHERE practice_id = :practice_id AND is_lab_snapshot = 1
-        ORDER BY case_id ASC, started_at ASC
+        ORDER BY case_lab_assignment_periods.case_id ASC, started_at ASC
     ");
     $stmt->execute(['practice_id' => $practiceId]);
     $allPeriods = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -244,9 +256,9 @@ try {
         foreach ($chunks as $chunk) {
             $placeholders = implode(',', array_fill(0, count($chunk), '?'));
             $stmt = $pdo->prepare("
-                SELECT case_id, status, due_date, archived, case_type
-                FROM cases_cache
-                WHERE practice_id = ? AND case_id IN ($placeholders)
+                SELECT cases_cache.case_id, status, due_date, archived, case_type
+                FROM cases_cache INNER JOIN authorized_case_ids a ON a.case_id = cases_cache.case_id COLLATE utf8mb4_unicode_ci
+                WHERE practice_id = ? AND cases_cache.case_id IN ($placeholders)
             ");
             $stmt->execute(array_merge([$practiceId], $chunk));
             foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
@@ -350,9 +362,9 @@ try {
     $currentWorkloadCaseIds = [];   // labKey => [caseId => true]
     $currentWorkloadLateCount = []; // labKey => int
     $stmt = $pdo->prepare("
-        SELECT case_id, status, due_date, archived, case_type, assigned_to,
+        SELECT cases_cache.case_id, status, due_date, archived, case_type, assigned_to,
                patient_first_name, patient_last_name
-        FROM cases_cache
+        FROM cases_cache INNER JOIN authorized_case_ids a ON a.case_id = cases_cache.case_id COLLATE utf8mb4_unicode_ci
         WHERE practice_id = :practice_id AND archived = 0
     ");
     $stmt->execute(['practice_id' => $practiceId]);
@@ -685,7 +697,7 @@ try {
         'trend' => $trend,
     ]);
 
-} catch (PDOException $e) {
+} catch (Throwable $e) {
     error_log('[get-lab-insights] ' . $e->getMessage());
     http_response_code(500);
     echo json_encode(['success' => false, 'message' => 'Internal server error']);
