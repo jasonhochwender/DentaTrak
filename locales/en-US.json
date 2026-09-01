@@ -1586,6 +1586,19 @@
                 "database_error": "Database error occurred",
                 "success": "BAA accepted successfully"
             },
+            "organization_information_title": "Organization Information",
+            "organization_type_label": "Organization type",
+            "organization_type_placeholder": "Select an organization type",
+            "organization_type_dental_practice": "Dental Practice",
+            "organization_type_dso": "DSO or Practice Management Organization",
+            "organization_type_lab": "Dental Laboratory",
+            "organization_type_other": "Other",
+            "organization_type_other_label": "Please describe your organization",
+            "organization_type_other_placeholder": "Briefly describe your organization",
+            "lab_participation_notice": "Dental laboratories currently participate through invitations from subscribing dental practices. If you believe your organization needs an approved partnership arrangement, please contact support@dentatrak.com.",
+            "authority_ack_text": "I confirm that I am authorized to create and administer this Practice, that each Practice added to this account is covered by the applicable DentaTrak subscription, and that I will not use DentaTrak to provide access to unrelated dental practices or circumvent subscription limits. I agree to the <a href=\"terms.php\" target=\"_blank\">Terms of Service</a> and acknowledge the <a href=\"privacy.php\" target=\"_blank\">Privacy Policy</a>.",
+            "authority_required_title": "Authority Required",
+            "authority_required_message": "Please confirm you are authorized to create and administer this Practice and agree to the Terms of Service and Privacy Policy.",
             "terms_title": "Business Associate Agreement Terms"
         },
         "invitation": {
@@ -2086,7 +2099,7 @@
             "heading": "Verify your email address",
             "intro": "Thanks for signing up for {appName}! Please verify your email address to complete your registration.",
             "code": "Your verification code is {code}.",
-            "expiry": "This link will expire in {count} minutes.",
+            "expiry": "This link will expire in 24 hours.",
             "cta": "Verify Email"
         },
         "password_setup": {

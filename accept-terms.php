@@ -93,6 +93,10 @@ $appName = $appConfig['appName'] ?? 'DentaTrak';
     <meta name="terms-return-to" content="<?php echo htmlspecialchars($returnTo); ?>">
     <title><?php echo htmlspecialchars(t('terms.page_title')) . ' - ' . htmlspecialchars($appName); ?></title>
     <link rel="stylesheet" href="css/app.css">
+    <script>
+        window.__i18n = <?php echo getTranslationsJsonForJs(); ?>;
+    </script>
+    <script src="js/i18n.js"></script>
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
