@@ -18,6 +18,9 @@ require_once __DIR__ . '/billing-bypass.php';
 require_once __DIR__ . '/scale-subscription-addons.php';
 require_once __DIR__ . '/email-sender.php';
 require_once __DIR__ . '/welcome-email.php';
+require_once __DIR__ . '/dev-tools-access.php';
+require_once __DIR__ . '/schema-helpers.php';
+require_once __DIR__ . '/practice-creation-policy.php';
 
 // Start session if not already started
 if (session_status() === PHP_SESSION_NONE) {
@@ -84,6 +87,42 @@ if ($data['authorizedToBind'] !== true) {
     exit;
 }
 
+// Resolve whether this is a new-practice creation before validating
+// practice-creation specific fields.
+$practiceId = $_SESSION['current_practice_id'] ?? null;
+$creatingNew = !empty($data['new']) || !$practiceId;
+
+// Account classification and authority checks are only required when
+// creating a new Practice through self-service BAA acceptance. Existing
+// BAA updates are limited to the practice's legal/address information.
+if ($creatingNew) {
+    $validOrgTypes = ['dental_practice', 'dso', 'lab', 'other'];
+    $organizationType = $data['organizationType'] ?? '';
+
+    if (!in_array($organizationType, $validOrgTypes, true)) {
+        http_response_code(400);
+        echo json_encode(['success' => false, 'message' => t('onboarding.baa.api.organization_type_required')]);
+        exit;
+    }
+
+    if ($organizationType === 'other' && empty($data['organizationTypeOther'])) {
+        http_response_code(400);
+        echo json_encode(['success' => false, 'message' => t('onboarding.baa.api.organization_type_other_required')]);
+        exit;
+    }
+
+    if (empty($data['practiceAuthorityAck']) || $data['practiceAuthorityAck'] !== true) {
+        http_response_code(400);
+        echo json_encode(['success' => false, 'message' => t('onboarding.baa.api.practice_authority_required')]);
+        exit;
+    }
+
+    // Organization type validation for self-service creation happens here.
+    // The authoritative approval check for laboratories is performed later,
+    // after the schema has been verified, using the durable
+    // users.lab_practice_creation_approved flag and the super-user list.
+}
+
 // Sanitize inputs
 $legalName = trim($data['legalName']);
 $practiceAddress = trim($data['practiceAddress']);
@@ -107,30 +146,9 @@ if (strlen($signerName) > 255 || strlen($signerTitle) > 255) {
 $baaVersion = 'v1.0-2026-08-07';
 
 try {
-    // Ensure BAA columns exist (run migration if needed)
-    $stmt = $pdo->query("SHOW COLUMNS FROM practices LIKE 'baa_accepted'");
-    if ($stmt->rowCount() === 0) {
-        // Need to run migration - add columns
-        $columnsToAdd = [
-            'legal_name' => "VARCHAR(255) DEFAULT NULL",
-            'display_name' => "VARCHAR(255) DEFAULT NULL",
-            'practice_address' => "TEXT DEFAULT NULL",
-            'baa_accepted' => "TINYINT(1) NOT NULL DEFAULT 0",
-            'baa_accepted_at' => "TIMESTAMP NULL DEFAULT NULL",
-            'baa_version' => "VARCHAR(50) DEFAULT NULL",
-            'baa_accepted_by_user_id' => "INT UNSIGNED DEFAULT NULL",
-            'baa_signer_name' => "VARCHAR(255) DEFAULT NULL",
-            'baa_signer_title' => "VARCHAR(255) DEFAULT NULL"
-        ];
-
-        foreach ($columnsToAdd as $col => $def) {
-            try {
-                $pdo->exec("ALTER TABLE practices ADD COLUMN `{$col}` {$def}");
-            } catch (PDOException $e) {
-                // Column might already exist
-            }
-        }
-    }
+    // Verify that the legal/account-classification migration has been applied.
+    // This endpoint does not perform DDL; it fails closed if the schema is not current.
+    requireAccountClassificationSchema($pdo);
 
     // Check if user has a practice or needs to create one. $creatingNew is
     // true either when the client explicitly signaled it (the page was
@@ -156,6 +174,11 @@ try {
         $ownerEmailStmt = $pdo->prepare("SELECT email FROM users WHERE id = :id");
         $ownerEmailStmt->execute(['id' => $userId]);
         $ownerEmail = $ownerEmailStmt->fetchColumn() ?: '';
+
+        // Authoritative Practice-creation policy. This centralizes the lab-
+        // creation approval check, the organization-type change guard, and the
+        // rejection of users.role = 'admin' as DentaTrak written approval.
+        requirePracticeCreationAllowed($pdo, $appConfig, (int)$userId, $organizationType);
 
         $pdo->beginTransaction();
 
@@ -285,6 +308,38 @@ try {
         $_SESSION['needs_practice_setup'] = false;
         $_SESSION['needs_baa_acceptance'] = false;
 
+        // Record account classification and Terms acceptance for the creating
+        // user. This is the authoritative version record for new users.
+        $termsVersion = '2026-09-01';
+        $orgOther = ($organizationType === 'other' && !empty($data['organizationTypeOther']))
+            ? trim($data['organizationTypeOther'])
+            : null;
+        $updateUser = $pdo->prepare("
+            UPDATE users
+            SET organization_type = :organization_type,
+                organization_type_other = :organization_type_other,
+                terms_accepted_version = :terms_accepted_version,
+                terms_accepted_at = NOW()
+            WHERE id = :user_id
+        ");
+        $updateUser->execute([
+            'organization_type' => $organizationType,
+            'organization_type_other' => $orgOther,
+            'terms_accepted_version' => $termsVersion,
+            'user_id' => $userId,
+        ]);
+
+        // Record the classification on the newly created Practice as well.
+        $updatePractice = $pdo->prepare("
+            UPDATE practices
+            SET organization_type = :organization_type
+            WHERE id = :practice_id
+        ");
+        $updatePractice->execute([
+            'organization_type' => $organizationType,
+            'practice_id' => $practiceId,
+        ]);
+
         userLog("Created new practice with BAA acceptance: {$legalName} (ID: {$practiceId})", false);
 
         // Send welcome email only for the very first owned practice
@@ -293,6 +348,9 @@ try {
         }
 
     } else {
+        // Existing-practice BAA acceptance is a protected administrator action.
+        requireCurrentTermsAcceptedForApi((int)$userId);
+
         // Practice exists - check if BAA already accepted
         $stmt = $pdo->prepare("SELECT baa_accepted, legal_name FROM practices WHERE id = :id");
         $stmt->execute(['id' => $practiceId]);

@@ -321,7 +321,7 @@ function getUserPracticePermissions($practiceId = null) {
         // (see get-settings.php schema migration) so a missing/legacy row
         // never silently denies access due to a NULL value.
         $stmt = $pdo->prepare("
-            SELECT role, is_owner, limited_visibility,
+            SELECT role, is_owner, limited_visibility, is_lab,
                    IFNULL(can_view_analytics, 1) AS can_view_analytics,
                    IFNULL(can_edit_cases, 1) AS can_edit_cases
             FROM practice_users 
@@ -341,6 +341,7 @@ function getUserPracticePermissions($practiceId = null) {
             'role' => $row['role'],
             'is_owner' => (bool)$row['is_owner'],
             'is_admin' => $row['role'] === 'admin',
+            'is_lab' => (bool)$row['is_lab'],
             'limited_visibility' => (bool)$row['limited_visibility'],
             'can_view_analytics' => (bool)$row['can_view_analytics'],
             'can_edit_cases' => (bool)$row['can_edit_cases']
@@ -359,6 +360,149 @@ function getUserPracticePermissions($practiceId = null) {
 function canViewAnalytics($practiceId = null) {
     $permissions = getUserPracticePermissions($practiceId);
     return $permissions && $permissions['can_view_analytics'];
+}
+
+/**
+ * Check if the current user is flagged as an external collaborator
+ * (e.g., a dental laboratory or other outside party) in the given practice.
+ *
+ * @param int|null $practiceId Practice ID (defaults to session practice)
+ * @return bool True if the user is an external collaborator
+ */
+function isLabCollaborator($practiceId = null) {
+    $permissions = getUserPracticePermissions($practiceId);
+    return $permissions && $permissions['is_lab'];
+}
+
+/**
+ * Require that the current user is not a lab collaborator in the given practice.
+ * Returns a 403 JSON response and exits if they are.
+ *
+ * @param int|null $practiceId Practice ID (defaults to session practice)
+ */
+function requireNotLabCollaborator($practiceId = null, $message = 'Access denied. Lab collaborators may not perform this action.') {
+    if (isLabCollaborator($practiceId)) {
+        http_response_code(403);
+        echo json_encode(['success' => false, 'message' => $message]);
+        exit;
+    }
+}
+
+/**
+ * Returns the current material Terms of Service version that must be accepted
+ * by owners and administrators.
+ */
+function currentTermsVersion(): string {
+    return '2026-09-01';
+}
+
+/**
+ * Check whether the user has accepted the current Terms of Service.
+ *
+ * @param int $userId User ID to check.
+ * @return bool True if the user has accepted the current version.
+ */
+function hasAcceptedCurrentTerms(int $userId): bool {
+    global $pdo;
+
+    if (!$pdo) {
+        return false;
+    }
+
+    try {
+        $stmt = $pdo->prepare("
+            SELECT terms_accepted_version, terms_accepted_at
+            FROM users
+            WHERE id = :user_id
+        ");
+        $stmt->execute(['user_id' => $userId]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if (!$row || empty($row['terms_accepted_at'])) {
+            return false;
+        }
+
+        return ($row['terms_accepted_version'] === currentTermsVersion());
+    } catch (PDOException $e) {
+        return false;
+    }
+}
+
+/**
+ * Check whether the user is an owner or administrator of at least one practice.
+ *
+ * @param int $userId User ID to check.
+ * @return bool True if the user owns or administers a Practice.
+ */
+function isOwnerOrAdminOfAnyPractice(int $userId): bool {
+    global $pdo;
+
+    if (!$pdo || !$userId) {
+        return false;
+    }
+
+    try {
+        $stmt = $pdo->prepare("
+            SELECT 1
+            FROM practice_users
+            WHERE user_id = :user_id AND (is_owner = 1 OR role = 'admin')
+            LIMIT 1
+        ");
+        $stmt->execute(['user_id' => $userId]);
+        return (bool)$stmt->fetchColumn();
+    } catch (PDOException $e) {
+        return false;
+    }
+}
+
+/**
+ * Determine whether the user is an owner/administrator who has not yet
+ * accepted the current Terms of Service. Returns false for ordinary invited
+ * users so they are not blocked from urgent case access.
+ */
+function currentTermsAcceptanceRequired(int $userId): bool {
+    return isOwnerOrAdminOfAnyPractice($userId) && !hasAcceptedCurrentTerms($userId);
+}
+
+/**
+ * Require current Terms acceptance for a page request. Redirects to the
+ * accept-terms page when an owner/administrator has not accepted.
+ */
+function requireCurrentTermsAcceptedForPage(int $userId): void {
+    if (!currentTermsAcceptanceRequired($userId)) {
+        return;
+    }
+
+    global $appConfig;
+    $acceptUrl = rtrim($appConfig['baseUrl'] ?? '', '/') . '/accept-terms.php';
+    header('Location: ' . $acceptUrl);
+    exit;
+}
+
+/**
+ * Require current Terms acceptance for an API request. Returns a structured
+ * 403 error when an owner/administrator has not accepted.
+ */
+function requireCurrentTermsAcceptedForApi(int $userId): void {
+    if (!currentTermsAcceptanceRequired($userId)) {
+        return;
+    }
+
+    global $appConfig;
+    $acceptUrl = rtrim($appConfig['baseUrl'] ?? '', '/') . '/accept-terms.php';
+    $apiUrl = rtrim($appConfig['baseUrl'] ?? '', '/') . '/api/accept-terms.php';
+
+    http_response_code(403);
+    header('Content-Type: application/json');
+    echo json_encode([
+        'success' => false,
+        'error_code' => 'TERMS_REQUIRED',
+        'message' => 'The current Terms of Service and Privacy Policy must be accepted before performing this action.',
+        'terms_version' => currentTermsVersion(),
+        'accept_url' => $acceptUrl,
+        'accept_api_url' => $apiUrl,
+    ]);
+    exit;
 }
 
 /**

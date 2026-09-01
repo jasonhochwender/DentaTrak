@@ -40,6 +40,13 @@ $userId = $_SESSION['db_user_id'];
 // the per-section role checks further below.
 requirePracticeAdmin($currentPracticeId);
 
+// External collaborators may not administer Practice settings or invite users.
+requireNotLabCollaborator($currentPracticeId, t('settings.external_collaborator_denied'));
+
+// Owners and administrators must accept the current Terms before changing
+// Practice settings.
+requireCurrentTermsAcceptedForApi((int)$userId);
+
 // Validate CSRF token for POST requests
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     requireCsrfToken();

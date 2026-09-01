@@ -71,7 +71,7 @@ $_SESSION['needs_practice_setup'] = true;
     <p>You will be redirected to the practice setup page on your next login.</p>
     
     <div>
-        <a href="index.php" class="button">Go to Login</a>
+        <a href="login.php" class="button">Go to Sign In</a>
         <a href="practice-setup.php" class="button">Go to Practice Setup</a>
     </div>
     

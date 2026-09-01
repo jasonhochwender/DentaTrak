@@ -73,7 +73,10 @@
         "profile_picture": "Profile picture",
         "expand_collapse": "Expand/collapse",
         "enter_case_count": "Enter a number of cases between 1 and 500.",
-        "resetting": "Resetting..."
+        "resetting": "Resetting...",
+        "back_to_sign_in": "Back to Sign In",
+        "all_rights_reserved": "All rights reserved.",
+        "back_to_sign_in_arrow": "← Back to Sign In"
     },
     "navigation": {
         "cases": "Cases",
@@ -759,7 +762,6 @@
             "add_disabled_max": "You have reached the maximum of 10 columns.",
             "rename": "Rename",
             "reorder": "Reorder",
-
             "archive": "Archive",
             "archive_loading": "Checking cases in this column...",
             "restore": "Restore",
@@ -780,13 +782,10 @@
             "destination_label": "Destination column for affected cases",
             "destination_select": "Choose a destination...",
             "move_cases_prompt": "Move {count} case(s) to",
-
             "destination_required": "Please select a destination column for the active cases in this column.",
             "affected_cases": "This column has {count} active case(s).",
             "archive_affected_in_column": "{count} active case(s) are currently in \"{columnName}.\"",
             "archived": "Column archived and {count} case(s) moved.",
-
-
             "invalid_action": "Invalid workflow column action.",
             "order_required": "Column order is required.",
             "order_mismatch": "Column order does not match active columns.",
@@ -805,18 +804,9 @@
             "reorder_down": "Move down",
             "reset_to_default": "Reset to Default",
             "reset_loading": "Checking cases affected by reset...",
-
             "reset_affected_cases": "{count} active case(s) currently use custom columns. They will be moved to the selected default destination.",
             "unsaved_changes": "Unsaved changes",
             "practice_context_changed": "The active practice changed. Refresh DentaTrak and try again.",
-
-
-
-
-
-
-
-
             "dismiss": "Dismiss",
             "restore_max_active": "You can have up to {max} active workflow columns. Archive another column before restoring this one.",
             "restore_name_conflict": "An active column named \"{name}\" already exists. Rename it or the archived column before restoring.",
@@ -826,10 +816,7 @@
             "archive_not_temporary": "Unsaved new columns must be removed, not archived.",
             "first_last_protected": "The first and last columns cannot be archived.",
             "destination_same": "Destination cannot be the same as the archived column.",
-
-
             "no_valid_destinations": "No valid destination column is available for the cases in this column.",
-
             "aria_remove": "Remove unsaved column",
             "aria_restore": "Restore archived column",
             "aria_reorder_up": "Move column up",
@@ -1458,6 +1445,28 @@
             "failed_fetch_practices": "Failed to fetch practices",
             "failed_switch_practice": "Failed to switch practice",
             "method_not_allowed": "Method not allowed"
+        },
+        "set_password": {
+            "title": "Set Your Password",
+            "create_for": "Create a password for {email}",
+            "invalid_token": "Invalid or expired link",
+            "new_password_label": "New Password",
+            "new_password_placeholder": "Create a password",
+            "confirm_password_label": "Confirm Password",
+            "confirm_password_placeholder": "Confirm your password",
+            "requirements_length": "At least 8 characters",
+            "requirements_upper": "One uppercase letter",
+            "requirements_number": "One number",
+            "requirements_special": "One special character",
+            "set_button": "Set Password",
+            "setting": "Setting password...",
+            "success_title": "Password Set Successfully!",
+            "success_message": "You can now sign in with your email and password.",
+            "sign_in": "Sign In",
+            "error": "Failed to set password",
+            "unknown_error": "An error occurred. Please try again.",
+            "match_yes": "Passwords match",
+            "match_no": "Passwords do not match"
         }
     },
     "validation": {
@@ -1576,7 +1585,8 @@
                 "baa_already_accepted": "BAA has already been accepted for this practice. Legal name cannot be changed.",
                 "database_error": "Database error occurred",
                 "success": "BAA accepted successfully"
-            }
+            },
+            "terms_title": "Business Associate Agreement Terms"
         },
         "invitation": {
             "existing_account_title": "You already have an account",
@@ -1729,8 +1739,6 @@
         "no_message_yet": "(no message yet)",
         "month_singular": "month",
         "month_plural": "months",
-        "no_subscription_record_title": "No Subscription Record",
-        "no_subscription_record_text": "This practice has no associated subscription. It may be a legacy practice or the subscription data has not been migrated yet.",
         "extend_trial_button": "Extend Trial",
         "extend_trial_title": "Extend Trial",
         "extend_trial_length_label": "Extension length",
@@ -4091,5 +4099,47 @@
             "cta_primary": "Start Free",
             "cta_secondary": "Contact Sales"
         }
+    },
+    "legal": {
+        "terms": {
+            "title": "Terms of Service",
+            "meta_description": "DentaTrak terms of service.",
+            "modal_title": "Terms of Service"
+        },
+        "privacy": {
+            "title": "Privacy Policy",
+            "meta_description": "DentaTrak privacy policy and data practices.",
+            "modal_title": "Privacy Policy"
+        }
+    },
+    "terms": {
+        "page_title": "Accept Updated Terms",
+        "already_accepted_title": "Terms Already Accepted",
+        "already_accepted_message": "You have already accepted the current DentaTrak Terms of Service and Privacy Policy (effective {date}).",
+        "updated_title": "Updated Terms of Service and Privacy Policy",
+        "updated_intro": "Before you continue with administrative features, please review and accept the updated DentaTrak legal terms.",
+        "baa_note": "Accepting these terms does not create or modify any Business Associate Agreement. Your existing BAA remains in effect for the applicable Practice.",
+        "review_terms": "Terms of Service",
+        "review_privacy": "Privacy Policy",
+        "effective": "effective {date}",
+        "checkbox_label": "I have read and agree to the {terms} and acknowledge the {privacy}, including the Practice account, external collaborator, and subscription-limit provisions. This acceptance is made on behalf of the Practice or Customer I represent.",
+        "accept_button": "Accept and Continue",
+        "sign_out": "Sign Out",
+        "continue": "Continue to DentaTrak",
+        "loading": "Loading...",
+        "success": "Terms accepted. Redirecting...",
+        "network_error": "Network error. Please try again.",
+        "generic_error": "Unable to record acceptance. Please try again.",
+        "errors": {
+            "unauthenticated": "Authentication required.",
+            "method_not_allowed": "Method not allowed.",
+            "admin_only": "Administrator or owner access required.",
+            "acceptance_required": "Acceptance is required.",
+            "version_mismatch": "The terms version submitted is not current. Please reload the page and try again.",
+            "missing_version": "Terms version is required.",
+            "accepted": "Terms acceptance recorded.",
+            "database": "Unable to record terms acceptance."
+        },
+        "required": "You must accept the current Terms of Service and Privacy Policy to continue."
     }
 }

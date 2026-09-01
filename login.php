@@ -450,170 +450,42 @@ $sessionExpired = isset($_GET['session_expired']) && $_GET['session_expired'] ==
         </div>
         
         <p class="login-disclaimer">
-          <?php echo t('auth.login.disclaimer', ['privacy' => '<a href="#" id="privacyLink">' . t('auth.login.privacy_policy') . '</a>', 'terms' => '<a href="#" id="termsLink">' . t('auth.login.terms_of_use') . '</a>']); ?>
+          <?php echo t('auth.login.disclaimer', ['privacy' => '<a href="privacy.php" id="privacyLink" class="legal-link">' . t('auth.login.privacy_policy') . '</a>', 'terms' => '<a href="terms.php" id="termsLink" class="legal-link">' . t('auth.login.terms_of_use') . '</a>']); ?>
         </p>
       </div>
       
       <div class="login-copyright">
-        &copy; <?php echo date('Y'); ?> <?php echo htmlspecialchars($appName); ?>. All rights reserved.
+        &copy; <?php echo date('Y') . ' ' . htmlspecialchars($appName) . '. ' . t('common.all_rights_reserved'); ?>
       </div>
     </div>
   </div>
 
-  <!-- Privacy Policy Modal -->
-  <div id="privacyModal" class="modal">
-    <div class="modal-content">
-      <button class="btn-close"><span>&times;</span></button>
-      <div class="modal-header">
-        <h2 class="modal-title"><?php echo htmlspecialchars($appName); ?> Privacy Policy</h2>
-      </div>
-      <div class="modal-body" id="privacyContent">
-        <p><strong>Effective Date:</strong> August 7, 2026</p>
-        
-        <p>This Privacy Policy explains how <?php echo htmlspecialchars($appName); ?> ("we," "us," or "our") collects, uses, and protects your information when you use our dental case tracking service ("Service"). <?php echo htmlspecialchars($appName); ?> is a case management tool designed for dental practices.</p>
-        
-        <h4>1. Information We Collect</h4>
-        <p>We collect the following types of information:</p>
-        <ul>
-          <li><strong>Account Information:</strong> Your name and email address, used to create and manage your account</li>
-          <li><strong>Authentication Data:</strong> Information necessary to verify your identity when you sign in</li>
-          <li><strong>Practice and Case Data:</strong> Information you and your team enter into the Service, including patient case details, notes, due dates, and related practice information</li>
-        </ul>
-        
-        <h4>2. Google OAuth Disclosure</h4>
-        <p><?php echo htmlspecialchars($appName); ?> uses Google OAuth solely for authentication purposes. When you sign in with Google:</p>
-        <ul>
-          <li>We access only your basic profile information (name and email address)</li>
-          <li>We use this information only to identify your account and enable sign-in</li>
-          <li>We do not sell, share, or transfer your Google user data to any third parties</li>
-          <li>We do not use your Google data for advertising or any purpose unrelated to providing the Service</li>
-        </ul>
-        
-        <h4>3. How We Use Your Information</h4>
-        <p>We use your information to:</p>
-        <ul>
-          <li>Provide access to your account and the Service</li>
-          <li>Enable your dental practice to track and manage cases</li>
-          <li>Deliver the core functionality of the Service</li>
-          <li>Communicate with you about your account or the Service</li>
-        </ul>
-        
-        <h4>4. Data Protection</h4>
-        <p>We take reasonable measures to protect your information, including:</p>
-        <ul>
-          <li>Encryption of data during transmission and storage</li>
-          <li>Access controls to limit who can view your data</li>
-          <li>Regular review of our security practices</li>
-        </ul>
-        
-        <h4>5. Data Sharing</h4>
-        <p>We do not sell your information. We share your data only:</p>
-        <ul>
-          <li>With service providers who help us operate the Service (under appropriate agreements)</li>
-          <li>When required by law or to protect our rights</li>
-          <li>With your consent</li>
-        </ul>
-        
-        <h4>6. Your Rights</h4>
-        <p>You may:</p>
-        <ul>
-          <li><strong>Access your data:</strong> Request a copy of the information we hold about you</li>
-          <li><strong>Correct your data:</strong> Update inaccurate information in your account</li>
-          <li><strong>Delete your data:</strong> Request deletion of your account and associated data</li>
-          <li><strong>Revoke access:</strong> Remove <?php echo htmlspecialchars($appName); ?>'s access to your Google account at any time through your Google account settings</li>
-        </ul>
-        <p>To exercise these rights, contact us at <a href="mailto:privacy@dentatrak.com">privacy@dentatrak.com</a>.</p>
-        
-        <h4>7. Data Retention</h4>
-        <p>We retain your data while your account is active. If you request account deletion, we will remove your data within 30 days, unless we are required to retain it for legal reasons.</p>
-        
-        <h4>8. Changes to This Policy</h4>
-        <p>We may update this Privacy Policy from time to time. We will post changes on this page and update the effective date. Continued use of the Service after changes constitutes acceptance of the updated policy.</p>
-        
-        <h4>9. Contact Us</h4>
-        <p>If you have questions about this Privacy Policy or our data practices, please contact us at:</p>
-        <p><a href="mailto:privacy@dentatrak.com">privacy@dentatrak.com</a></p>
-      </div>
-      <div class="modal-footer">
-        <button class="btn-primary modal-close-btn">Close</button>
-      </div>
-    </div>
   </div>
+</div>
 
-  <!-- Terms of Service Modal -->
-  <div id="termsModal" class="modal">
-    <div class="modal-content">
-      <button class="btn-close"><span>&times;</span></button>
-      <div class="modal-header">
-        <h2 class="modal-title"><?php echo htmlspecialchars($appName); ?> Terms of Service</h2>
-      </div>
-      <div class="modal-body" id="termsContent">
-        <p><strong>Effective Date:</strong> August 7, 2026</p>
-        
-        <p>These Terms of Service ("Terms") govern your use of <?php echo htmlspecialchars($appName); ?> ("Service"), a case tracking application provided to dental practices. By using the Service, you agree to these Terms.</p>
-        
-        <h4>1. Service Description</h4>
-        <p><?php echo htmlspecialchars($appName); ?> is a case management tool that helps dental practices track and manage dental cases. The Service is intended for use by dental professionals and their authorized staff.</p>
-        
-        <h4>2. Account Security</h4>
-        <p>You are responsible for:</p>
-        <ul>
-          <li>Keeping your login credentials secure</li>
-          <li>All activity that occurs under your account</li>
-          <li>Notifying us promptly if you suspect unauthorized access to your account</li>
-          <li>Ensuring that only authorized personnel in your practice access the Service</li>
-        </ul>
-        
-        <h4>3. Acceptable Use</h4>
-        <p>You agree to use the Service only for its intended purpose of dental case management. You agree not to:</p>
-        <ul>
-          <li>Attempt to gain unauthorized access to the Service or its systems</li>
-          <li>Use the Service for any unlawful purpose</li>
-          <li>Interfere with or disrupt the Service</li>
-          <li>Copy, modify, or distribute any part of the Service</li>
-          <li>Use the Service in any way that could harm other users</li>
-        </ul>
-        
-        <h4>4. Your Data</h4>
-        <p>You retain ownership of all data you enter into the Service. You are responsible for the accuracy and legality of the information you store. You are also responsible for complying with all applicable laws regarding patient data and privacy.</p>
-        
-        <h4>5. Disclaimer of Warranties</h4>
-        <p>The Service is provided "as is" without warranties of any kind, express or implied. We do not warrant that the Service will be uninterrupted, error-free, or completely secure. We do not provide legal, medical, or compliance advice.</p>
-        
-        <h4>6. Limitation of Liability</h4>
-        <p>To the maximum extent permitted by law, <?php echo htmlspecialchars($appName); ?> and its operators shall not be liable for any indirect, incidental, special, consequential, or punitive damages arising from your use of the Service. This includes, but is not limited to:</p>
-        <ul>
-          <li>Loss of data or unauthorized access to your data</li>
-          <li>Service interruptions or downtime</li>
-          <li>Your failure to comply with applicable laws or regulations</li>
-          <li>Any decisions made based on information in the Service</li>
-        </ul>
-        <p>Our total liability for any claims related to the Service shall not exceed the amount you paid us, if any, in the twelve months preceding the claim.</p>
-        
-        <h4>7. Termination</h4>
-        <p>We may suspend or terminate your access to the Service at any time, with or without cause. You may also stop using the Service at any time. Upon termination:</p>
-        <ul>
-          <li>Your right to use the Service ends immediately</li>
-          <li>You may request export of your data within 30 days</li>
-          <li>We may delete your data after 30 days</li>
-        </ul>
-        
-        <h4>8. Changes to Terms</h4>
-        <p>We may update these Terms from time to time. We will post changes on this page and update the effective date. Continued use of the Service after changes constitutes acceptance of the updated Terms.</p>
-        
-        <h4>9. Governing Law</h4>
-        <p>These Terms are governed by the laws of the United States. Any disputes shall be resolved in accordance with applicable federal and state law.</p>
-        
-        <h4>10. Contact Us</h4>
-        <p>If you have questions about these Terms, please contact us at:</p>
-        <p><a href="mailto:support@dentatrak.com">support@dentatrak.com</a></p>
-      </div>
-      <div class="modal-footer">
-        <button class="btn-primary modal-close-btn">Close</button>
-      </div>
+<!-- Legal modals -->
+<div class="modal" id="termsModal" role="dialog" aria-modal="true" aria-labelledby="termsModalTitle" tabindex="-1">
+  <div class="modal-content" role="document">
+    <div class="modal-header">
+      <h2 class="modal-title" id="termsModalTitle"><?php echo htmlspecialchars(t('legal.terms.modal_title')); ?></h2>
+      <button type="button" class="btn-close" aria-label="<?php echo htmlspecialchars(t('common.close')); ?>">&times;</button>
+    </div>
+    <div class="modal-body" id="termsModalBody">
+      <?php require_once __DIR__ . '/partials/legal-terms.php'; ?>
     </div>
   </div>
-  
+</div>
+
+<div class="modal" id="privacyModal" role="dialog" aria-modal="true" aria-labelledby="privacyModalTitle" tabindex="-1">
+  <div class="modal-content" role="document">
+    <div class="modal-header">
+      <h2 class="modal-title" id="privacyModalTitle"><?php echo htmlspecialchars(t('legal.privacy.modal_title')); ?></h2>
+      <button type="button" class="btn-close" aria-label="<?php echo htmlspecialchars(t('common.close')); ?>">&times;</button>
+    </div>
+    <div class="modal-body" id="privacyModalBody">
+      <?php require_once __DIR__ . '/partials/legal-privacy.php'; ?>
+    </div>
+  </div>
 </div>
 
 <script src="js/app.js"></script>
@@ -1358,31 +1230,70 @@ const termsLink = document.getElementById('termsLink');
 const privacyModal = document.getElementById('privacyModal');
 const termsModal = document.getElementById('termsModal');
 
-function openModal(modal) {
-  if (modal) {
-    modal.classList.add('active');
-    document.body.style.overflow = 'hidden';
-  }
+let activeModal = null;
+let modalOpener = null;
+
+function getFocusable(modal) {
+  return Array.from(modal.querySelectorAll(
+    'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+  )).filter(function(el) {
+    return el.offsetParent !== null && !el.disabled && el.tabIndex >= 0;
+  });
+}
+
+function openModal(modal, opener) {
+  if (!modal) return;
+  activeModal = modal;
+  modalOpener = opener || document.activeElement;
+  modal.classList.add('active');
+  document.body.style.overflow = 'hidden';
+  modal.setAttribute('tabindex', '-1');
+  modal.focus({ preventScroll: true });
+  modal.addEventListener('keydown', trapFocus);
 }
 
 function closeModal(modal) {
-  if (modal) {
-    modal.classList.remove('active');
-    document.body.style.overflow = '';
+  if (!modal) return;
+  modal.classList.remove('active');
+  document.body.style.overflow = '';
+  modal.removeEventListener('keydown', trapFocus);
+  activeModal = null;
+  if (modalOpener && typeof modalOpener.focus === 'function') {
+    modalOpener.focus({ preventScroll: true });
+  }
+  modalOpener = null;
+}
+
+function trapFocus(e) {
+  if (e.key !== 'Tab' || !activeModal) return;
+  const focusable = getFocusable(activeModal);
+  if (focusable.length === 0) return;
+  const first = focusable[0];
+  const last = focusable[focusable.length - 1];
+  if (e.shiftKey) {
+    if (document.activeElement === first) {
+      e.preventDefault();
+      last.focus();
+    }
+  } else {
+    if (document.activeElement === last) {
+      e.preventDefault();
+      first.focus();
+    }
   }
 }
 
 if (privacyLink && privacyModal) {
   privacyLink.addEventListener('click', function(e) {
     e.preventDefault();
-    openModal(privacyModal);
+    openModal(privacyModal, this);
   });
 }
 
 if (termsLink && termsModal) {
   termsLink.addEventListener('click', function(e) {
     e.preventDefault();
-    openModal(termsModal);
+    openModal(termsModal, this);
   });
 }
 
@@ -1405,10 +1316,8 @@ document.querySelectorAll('.modal').forEach(function(modal) {
 
 // Close modal with Escape key
 document.addEventListener('keydown', function(e) {
-  if (e.key === 'Escape') {
-    document.querySelectorAll('.modal.active').forEach(function(modal) {
-      closeModal(modal);
-    });
+  if (e.key === 'Escape' && activeModal) {
+    closeModal(activeModal);
   }
 });
 

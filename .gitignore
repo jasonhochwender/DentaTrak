@@ -141,6 +141,8 @@ screenshots/
 !/tests/admin-practices-extend-trial-integration-test.php
 !/tests/admin-practices-usage-tab-test.php
 !/tests/admin-practices-usage-tab-js-test.js
+!/tests/lab-practice-creation-test.js
+!/tests/legal-account-hardening-test.js
 !/tests/admin-practices-api-error-test.php
 !/tests/force-admin-error.php
 !/tests/admin-practices-force-error-guard-test.php

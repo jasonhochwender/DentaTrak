@@ -56,18 +56,18 @@ session_start();
 </head>
 <body>
     <div class="container">
-        <h2>🔧 Authentication Reset</h2>
-        <p class="success">✓ Authentication tokens have been cleared</p>
+        <h2>Authentication Reset</h2>
+        <p class="success">Authentication tokens have been cleared</p>
         
         <div class="warning">
-            <strong>⚠️ Important:</strong> You must sign in again to continue.
+            <strong>Important:</strong> You must sign in again to continue.
         </div>
         
         <p class="info">Please sign in again to restore access to the application.</p>
         
         <div style="margin: 30px 0;">
-            <a href="api/oauth-start.php" class="btn">🔐 Sign In with Google</a>
-            <a href="index.php" class="btn" style="background: #6c757d;">🏠 Back to Login</a>
+            <a href="api/oauth-start.php" class="btn">Sign In with Google</a>
+            <a href="login.php" class="btn" style="background: #6c757d;">Back to Sign In</a>
         </div>
     </div>
     

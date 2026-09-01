@@ -132,6 +132,23 @@ try {
     $hasRememberCookie = strpos($r['headers'], 'Set-Cookie: remember_token=') !== false;
     $results[] = '2. Login sets remember_token cookie: ' . ($hasRememberCookie ? 'PASS' : 'FAIL');
 
+    // 2b. Accept current Terms (owners/admins must accept before accessing main.php)
+    $csrfRes = httpRequest($base . '/accept-terms.php', 'GET', null, $cookieFile);
+    $csrfToken = null;
+    if (preg_match('/<meta name="csrf-token" content="([^"]+)"/', $csrfRes['body'], $m)) {
+        $csrfToken = $m[1];
+    }
+    if ($csrfToken) {
+        $r = httpRequest($base . '/api/accept-terms.php', 'POST', [
+            'accepted' => true,
+            'terms_version' => '2026-09-01',
+            'csrf_token' => $csrfToken,
+        ], $cookieFile);
+        $results[] = '2b. Terms accepted: ' . ($r['code'] === 200 ? 'PASS' : 'FAIL');
+    } else {
+        $results[] = '2b. Terms accepted: SKIP';
+    }
+
     // 3. main.php loads while session is active
     $r = httpRequest($base . '/main.php', 'GET', null, $cookieFile);
     $results[] = '3. main.php active session returns 200: ' . ($r['code'] === 200 ? 'PASS' : 'FAIL');

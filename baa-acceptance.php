@@ -20,7 +20,7 @@ $csrfToken = generateCsrfToken();
 
 // Check if user is logged in
 if (!isset($_SESSION['user']) || !isset($_SESSION['db_user_id'])) {
-    header('Location: index.php');
+    header('Location: ' . $loginUrl);
     exit;
 }
 
@@ -146,6 +146,7 @@ if ($entitlementBlocked && !empty($entitlement['upgrade_target'])) {
 $envValue = $appConfig['environment'] ?? 'production';
 $envClass = ($envValue === 'production') ? 'env-prod' : 'env-dev';
 $appName = $appConfig['appName'] ?? 'Dental Case Manager';
+$loginUrl = rtrim($appConfig['baseUrl'] ?? '', '/') . '/login.php';
 
 // Current BAA version
 $baaVersion = 'v1.0-2026-08-07';
@@ -564,6 +565,30 @@ $baaVersion = 'v1.0-2026-08-07';
             <div id="successMessage" class="success-message"></div>
             
             <form id="baaForm" novalidate>
+                <div class="form-section" id="orgTypeSection">
+                    <div class="form-section-title"><?php echo t('onboarding.baa.organization_information_title', [], 'Organization Information'); ?></div>
+
+                    <div class="form-group">
+                        <label for="organizationType"><?php echo t('onboarding.baa.organization_type_label', [], 'Organization type'); ?> <span class="required">*</span></label>
+                        <select id="organizationType" name="organizationType" style="width: 100%; padding: 12px 14px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 0.95rem;">
+                            <option value=""><?php echo t('onboarding.baa.organization_type_placeholder', [], 'Select an organization type'); ?></option>
+                            <option value="dental_practice"><?php echo t('onboarding.baa.organization_type_dental_practice', [], 'Dental Practice'); ?></option>
+                            <option value="dso"><?php echo t('onboarding.baa.organization_type_dso', [], 'DSO or Practice Management Organization'); ?></option>
+                            <option value="lab"><?php echo t('onboarding.baa.organization_type_lab', [], 'Dental Laboratory'); ?></option>
+                            <option value="other"><?php echo t('onboarding.baa.organization_type_other', [], 'Other'); ?></option>
+                        </select>
+                    </div>
+
+                    <div class="form-group" id="otherOrgGroup" style="display: none;">
+                        <label for="organizationTypeOther"><?php echo t('onboarding.baa.organization_type_other_label', [], 'Please describe your organization'); ?> <span class="required">*</span></label>
+                        <input type="text" id="organizationTypeOther" name="organizationTypeOther" placeholder="<?php echo t('onboarding.baa.organization_type_other_placeholder', [], 'Briefly describe your organization'); ?>">
+                    </div>
+
+                    <div class="form-group" id="labNotice" style="display: none; background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 8px; padding: 12px; color: #0369a1; font-size: 0.9rem; line-height: 1.5;">
+                        <?php echo t('onboarding.baa.lab_participation_notice', [], 'Dental laboratories currently participate through invitations from subscribing dental practices. If you believe your organization needs an approved partnership arrangement, please contact support@dentatrak.com.'); ?>
+                    </div>
+                </div>
+
                 <div class="form-section">
                     <div class="form-section-title"><?php echo t('onboarding.baa.practice_information_title', [], 'Practice Information'); ?></div>
                     
@@ -594,7 +619,7 @@ $baaVersion = 'v1.0-2026-08-07';
                 </div>
                 
                 <div class="form-section">
-                    <div class="form-section-title">Business Associate Agreement Terms</div>
+                    <div class="form-section-title"><?php echo t('onboarding.baa.terms_title'); ?></div>
                     
                     <div class="baa-terms">
                         <h3>1. Purpose</h3>
@@ -642,6 +667,13 @@ $baaVersion = 'v1.0-2026-08-07';
                     <input type="checkbox" id="authorizedToBind" name="authorizedToBind">
                     <label for="authorizedToBind">
                         <strong><?php echo t('onboarding.baa.authorized_to_bind_label'); ?></strong> <?php echo t('onboarding.baa.authorized_to_bind_text'); ?>
+                    </label>
+                </div>
+
+                <div class="checkbox-group">
+                    <input type="checkbox" id="practiceAuthorityAck" name="practiceAuthorityAck">
+                    <label for="practiceAuthorityAck">
+                        <?php echo t('onboarding.baa.authority_ack_text', [], 'I confirm that I am authorized to create and administer this Practice, that each Practice added to this account is covered by the applicable DentaTrak subscription, and that I will not use DentaTrak to provide access to unrelated dental practices or circumvent subscription limits. I agree to the <a href="terms.php" target="_blank">Terms of Service</a> and acknowledge the <a href="privacy.php" target="_blank">Privacy Policy</a>.'); ?>
                     </label>
                 </div>
             </form>
@@ -695,15 +727,38 @@ $baaVersion = 'v1.0-2026-08-07';
             const successMessage = document.getElementById('successMessage');
             const loadingOverlay = document.getElementById('loadingOverlay');
             
-            // Enable/disable accept button based on checkbox
-            authorizedCheckbox.addEventListener('change', function() {
-                acceptBtn.disabled = !this.checked;
+            const organizationType = document.getElementById('organizationType');
+            const organizationTypeOther = document.getElementById('organizationTypeOther');
+            const otherOrgGroup = document.getElementById('otherOrgGroup');
+            const labNotice = document.getElementById('labNotice');
+            const practiceAuthorityAck = document.getElementById('practiceAuthorityAck');
+
+            function updateAcceptButton() {
+                const orgOk = !IS_CREATING_NEW_PRACTICE || (organizationType.value && (organizationType.value !== 'other' || organizationTypeOther.value.trim()));
+                acceptBtn.disabled = !(authorizedCheckbox.checked && practiceAuthorityAck.checked && orgOk);
+            }
+
+            // Show/hide lab notice and other description based on selection
+            organizationType.addEventListener('change', function() {
+                labNotice.style.display = (this.value === 'lab') ? 'block' : 'none';
+                otherOrgGroup.style.display = (this.value === 'other') ? 'block' : 'none';
+                if (this.value !== 'other') {
+                    organizationTypeOther.value = '';
+                }
+                updateAcceptButton();
             });
-            
+
+            organizationTypeOther.addEventListener('input', updateAcceptButton);
+
+            // Enable/disable accept button based on checkboxes and organization type
+            authorizedCheckbox.addEventListener('change', updateAcceptButton);
+            practiceAuthorityAck.addEventListener('change', updateAcceptButton);
+
             // Clear error highlighting when users interact with fields
-            const fieldIds = ['legalName', 'practiceAddress', 'signerName', 'signerTitle'];
+            const fieldIds = ['legalName', 'practiceAddress', 'signerName', 'signerTitle', 'organizationType', 'organizationTypeOther'];
             fieldIds.forEach(fieldId => {
                 const field = document.getElementById(fieldId);
+                if (!field) return;
                 field.addEventListener('input', function() {
                     this.style.borderColor = '';
                     this.style.boxShadow = '';
@@ -712,8 +767,12 @@ $baaVersion = 'v1.0-2026-08-07';
                     this.style.borderColor = '';
                     this.style.boxShadow = '';
                 });
+                field.addEventListener('change', function() {
+                    this.style.borderColor = '';
+                    this.style.boxShadow = '';
+                });
             });
-            
+
             // Form validation with enhanced feedback
             function validateForm() {
                 const fields = [
@@ -722,14 +781,21 @@ $baaVersion = 'v1.0-2026-08-07';
                     { id: 'signerName', name: t('onboarding.baa.signer_name_label'), value: document.getElementById('signerName').value.trim() },
                     { id: 'signerTitle', name: t('onboarding.baa.signer_title_label'), value: document.getElementById('signerTitle').value.trim() }
                 ];
-                
+
+                if (IS_CREATING_NEW_PRACTICE) {
+                    fields.push({ id: 'organizationType', name: t('onboarding.baa.organization_type_label', [], 'Organization type'), value: organizationType.value });
+                    if (organizationType.value === 'other') {
+                        fields.push({ id: 'organizationTypeOther', name: t('onboarding.baa.organization_type_other_label', [], 'Organization description'), value: organizationTypeOther.value.trim() });
+                    }
+                }
+
                 // Clear previous error styles
                 fields.forEach(field => {
                     const element = document.getElementById(field.id);
                     element.style.borderColor = '';
                     element.style.boxShadow = '';
                 });
-                
+
                 // Check each required field
                 for (const field of fields) {
                     if (!field.value) {
@@ -738,14 +804,14 @@ $baaVersion = 'v1.0-2026-08-07';
                         element.style.borderColor = '#dc2626';
                         element.style.boxShadow = '0 0 0 3px rgba(220, 38, 38, 0.1)';
                         element.focus();
-                        
+
                         return {
                             title: t('onboarding.baa.required_field_title'),
                             message: t('onboarding.baa.required_field_message', {field: field.name})
                         };
                     }
                 }
-                
+
                 // Check authorization checkbox
                 if (!authorizedCheckbox.checked) {
                     return {
@@ -753,14 +819,21 @@ $baaVersion = 'v1.0-2026-08-07';
                         message: t('onboarding.baa.authorization_required_message')
                     };
                 }
-                
+
+                if (IS_CREATING_NEW_PRACTICE && !practiceAuthorityAck.checked) {
+                    return {
+                        title: t('onboarding.baa.authority_required_title'),
+                        message: t('onboarding.baa.authority_required_message')
+                    };
+                }
+
                 return null;
             }
-            
+
             // Form submission
             form.addEventListener('submit', async function(e) {
                 e.preventDefault();
-                
+
                 const validationError = validateForm();
                 if (validationError) {
                     if (typeof Toast !== 'undefined') {
@@ -772,11 +845,11 @@ $baaVersion = 'v1.0-2026-08-07';
                     successMessage.style.display = 'none';
                     return;
                 }
-                
+
                 errorMessage.style.display = 'none';
                 loadingOverlay.style.display = 'flex';
                 acceptBtn.disabled = true;
-                
+
                 const data = {
                     legalName: document.getElementById('legalName').value.trim(),
                     practiceAddress: document.getElementById('practiceAddress').value.trim(),
@@ -785,6 +858,14 @@ $baaVersion = 'v1.0-2026-08-07';
                     authorizedToBind: authorizedCheckbox.checked,
                     new: IS_CREATING_NEW_PRACTICE
                 };
+
+                if (IS_CREATING_NEW_PRACTICE) {
+                    data.organizationType = organizationType.value;
+                    if (organizationType.value === 'other') {
+                        data.organizationTypeOther = organizationTypeOther.value.trim();
+                    }
+                    data.practiceAuthorityAck = practiceAuthorityAck.checked;
+                }
                 
                 try {
                     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || '';

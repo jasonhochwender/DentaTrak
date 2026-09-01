@@ -147,6 +147,14 @@ switch ($action) {
         handleMakeLegacyTrial($pdo, $input);
         break;
 
+    case 'get_test_user_record':
+        handleGetTestUserRecord($pdo, $input);
+        break;
+
+    case 'get_test_practice_record':
+        handleGetTestPracticeRecord($pdo, $input);
+        break;
+
     default:
         http_response_code(400);
         echo json_encode(['success' => false, 'message' => 'Invalid action']);
@@ -2342,5 +2350,81 @@ function handleCleanupLabInsightsData($pdo, $input) {
         error_log('[test-helpers] cleanup_lab_insights_data error: ' . $e->getMessage());
         http_response_code(500);
         echo json_encode(['success' => false, 'message' => 'Cleanup failed: ' . $e->getMessage()]);
+    }
+}
+
+/**
+ * Look up a test user record by email. Returns fields relevant to legal/account
+ * hardening verification, including Terms and classification columns.
+ */
+function handleGetTestUserRecord(PDO $pdo, array $input) {
+    $email = strtolower(trim($input['email'] ?? ''));
+    if (!$email) {
+        http_response_code(400);
+        echo json_encode(['success' => false, 'message' => 'email is required']);
+        return;
+    }
+
+    try {
+        $stmt = $pdo->prepare("
+            SELECT id, email, role, organization_type, organization_type_other,
+                   lab_practice_creation_approved, terms_accepted_version, terms_accepted_at,
+                   first_name
+            FROM users
+            WHERE email = :email
+            LIMIT 1
+        ");
+        $stmt->execute(['email' => $email]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if (!$row) {
+            http_response_code(404);
+            echo json_encode(['success' => false, 'message' => 'User not found']);
+            return;
+        }
+
+        echo json_encode(['success' => true, 'user' => $row]);
+    } catch (PDOException $e) {
+        error_log('[test-helpers] get_test_user_record error: ' . $e->getMessage());
+        http_response_code(500);
+        echo json_encode(['success' => false, 'message' => 'Database error']);
+    }
+}
+
+/**
+ * Look up a test practice record by id. Returns fields relevant to BAA and
+ * legal/account hardening verification.
+ */
+function handleGetTestPracticeRecord(PDO $pdo, array $input) {
+    $practiceId = isset($input['practice_id']) ? (int)$input['practice_id'] : 0;
+    if (!$practiceId) {
+        http_response_code(400);
+        echo json_encode(['success' => false, 'message' => 'practice_id is required']);
+        return;
+    }
+
+    try {
+        $stmt = $pdo->prepare("
+            SELECT id, practice_id, practice_name, legal_name, display_name,
+                   baa_accepted, baa_accepted_at, baa_version, baa_accepted_by_user_id,
+                   organization_type, created_by
+            FROM practices
+            WHERE id = :practice_id
+            LIMIT 1
+        ");
+        $stmt->execute(['practice_id' => $practiceId]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if (!$row) {
+            http_response_code(404);
+            echo json_encode(['success' => false, 'message' => 'Practice not found']);
+            return;
+        }
+
+        echo json_encode(['success' => true, 'practice' => $row]);
+    } catch (PDOException $e) {
+        error_log('[test-helpers] get_test_practice_record error: ' . $e->getMessage());
+        http_response_code(500);
+        echo json_encode(['success' => false, 'message' => 'Database error']);
     }
 }

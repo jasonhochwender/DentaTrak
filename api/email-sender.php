@@ -106,7 +106,7 @@ function sendAppEmail(string $toEmail, string $subject, string $htmlBody, ?strin
     }
 
     // Fail closed: require valid API key before attempting to send
-    $resendApiKey = getenv('RESEND_API_KEY');
+    $resendApiKey = getEnvVar('RESEND_API_KEY');
     if (!$resendApiKey || $resendApiKey === 'YOUR_RESEND_API_KEY_HERE' || strpos($resendApiKey, 're_') !== 0) {
         error_log('[email] Resend API key not configured or invalid');
         return [
@@ -181,19 +181,23 @@ function sendViaResendApi(string $apiKey, array $payload, string $toEmail): arra
     
     // Resend returns 200 on success
     if ($httpCode === 200) {
+        $decoded = json_decode($responseBody, true);
         return [
             'success' => true,
             'provider' => 'resend',
-            'status_code' => $httpCode
+            'status_code' => $httpCode,
+            'message_id' => $decoded['id'] ?? null
         ];
     }
     
     // Log API errors server-side but return generic message to caller
     error_log('[email] Resend API error for ' . $toEmail . ': HTTP ' . $httpCode . ' ' . $responseBody);
+    $decoded = json_decode($responseBody, true);
     return [
         'success' => false,
         'provider' => 'resend',
         'error' => t('api.email.delivery_failed'),
-        'status_code' => $httpCode
+        'status_code' => $httpCode,
+        'resend_error' => $decoded['message'] ?? null
     ];
 }

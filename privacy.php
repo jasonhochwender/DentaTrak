@@ -3,12 +3,13 @@ require_once __DIR__ . '/api/appConfig.php';
 require_once __DIR__ . '/api/security-headers.php';
 setSecurityHeaders();
 $appName = $appConfig['appName'] ?? 'DentaTrak';
+$loginUrl = rtrim($appConfig['baseUrl'] ?? '', '/') . '/login.php';
 ?><!DOCTYPE html>
 <html lang="<?php echo getHtmlLang(); ?>">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  
+
   <!-- Google Analytics -->
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-MBJDENR3H2"></script>
   <script>
@@ -17,9 +18,9 @@ $appName = $appConfig['appName'] ?? 'DentaTrak';
     gtag('js', new Date());
     gtag('config', 'G-MBJDENR3H2');
   </script>
-  
-  <title>Privacy Policy - DentaTrak</title>
-  <meta name="description" content="DentaTrak privacy policy and data practices.">
+
+  <title><?php echo htmlspecialchars(t('legal.privacy.title')) . ' - ' . htmlspecialchars($appName); ?></title>
+  <meta name="description" content="<?php echo htmlspecialchars(t('legal.privacy.meta_description')); ?>">
   <link rel="canonical" href="https://dentatrak.com/privacy">
 
   <!-- Favicon / App Icons -->
@@ -97,83 +98,17 @@ $appName = $appConfig['appName'] ?? 'DentaTrak';
 </head>
 <body>
   <div class="policy-container">
-    <a href="index.php" class="back-link">← Back to Sign In</a>
-    
+    <a href="<?php echo htmlspecialchars($loginUrl); ?>" class="back-link">← <?php echo t('common.back_to_sign_in'); ?></a>
+
     <div class="policy-header">
-      <h1>Privacy Policy</h1>
-      <p class="app-name">DentaTrak</p>
+      <h1><?php echo t('legal.privacy.title'); ?></h1>
+      <p class="app-name"><?php echo htmlspecialchars($appName); ?></p>
     </div>
-    
-    <div class="policy-content">
-      <p><strong>Effective Date:</strong> August 7, 2026</p>
-      
-      <p>This Privacy Policy explains how DentaTrak ("we," "us," or "our") collects, uses, and protects your information when you use our dental case tracking service ("Service"). DentaTrak is a case management tool designed for dental practices.</p>
-      
-      <h4>1. Information We Collect</h4>
-      <p>We collect the following types of information:</p>
-      <ul>
-        <li><strong>Account Information:</strong> Your name and email address, used to create and manage your account</li>
-        <li><strong>Authentication Data:</strong> Information necessary to verify your identity when you sign in</li>
-        <li><strong>Practice and Case Data:</strong> Information you and your team enter into the Service, including patient case details, notes, due dates, and related practice information</li>
-      </ul>
-      
-      <h4>2. Google OAuth Disclosure</h4>
-      <p>DentaTrak uses Google OAuth solely for authentication purposes. When you sign in with Google:</p>
-      <ul>
-        <li>We access only your basic profile information (name and email address)</li>
-        <li>We use this information only to identify your account and enable sign-in</li>
-        <li>We do not sell, share, or transfer your Google user data to any third parties</li>
-        <li>We do not use your Google data for advertising or any purpose unrelated to providing the Service</li>
-      </ul>
-      
-      <h4>3. How We Use Your Information</h4>
-      <p>We use your information to:</p>
-      <ul>
-        <li>Provide access to your account and the Service</li>
-        <li>Enable your dental practice to track and manage cases</li>
-        <li>Deliver the core functionality of the Service</li>
-        <li>Communicate with you about your account or the Service</li>
-      </ul>
-      
-      <h4>4. Data Protection</h4>
-      <p>We take reasonable measures to protect your information, including:</p>
-      <ul>
-        <li>Encryption of data during transmission and storage</li>
-        <li>Access controls to limit who can view your data</li>
-        <li>Regular review of our security practices</li>
-      </ul>
-      
-      <h4>5. Data Sharing</h4>
-      <p>We do not sell your information. We share your data only:</p>
-      <ul>
-        <li>With service providers who help us operate the Service (under appropriate agreements)</li>
-        <li>When required by law or to protect our rights</li>
-        <li>With your consent</li>
-      </ul>
-      
-      <h4>6. Your Rights</h4>
-      <p>You may:</p>
-      <ul>
-        <li><strong>Access your data:</strong> Request a copy of the information we hold about you</li>
-        <li><strong>Correct your data:</strong> Update inaccurate information in your account</li>
-        <li><strong>Delete your data:</strong> Request deletion of your account and associated data</li>
-        <li><strong>Revoke access:</strong> Remove DentaTrak's access to your Google account at any time through your Google account settings</li>
-      </ul>
-      <p>To exercise these rights, contact us at <a href="mailto:privacy@dentatrak.com">privacy@dentatrak.com</a>.</p>
-      
-      <h4>7. Data Retention</h4>
-      <p>We retain your data while your account is active. If you request account deletion, we will remove your data within 30 days, unless we are required to retain it for legal reasons.</p>
-      
-      <h4>8. Changes to This Policy</h4>
-      <p>We may update this Privacy Policy from time to time. We will post changes on this page and update the effective date. Continued use of the Service after changes constitutes acceptance of the updated policy.</p>
-      
-      <h4>9. Contact Us</h4>
-      <p>If you have questions about this Privacy Policy or our data practices, please contact us at:</p>
-      <p><a href="mailto:privacy@dentatrak.com">privacy@dentatrak.com</a></p>
-    </div>
-    
+
+    <?php require_once __DIR__ . '/partials/legal-privacy.php'; ?>
+
     <div class="policy-footer">
-      &copy; <?php echo date('Y'); ?> DentaTrak. All rights reserved.
+      &copy; <?php echo date('Y') . ' ' . htmlspecialchars($appName) . '. ' . t('common.all_rights_reserved'); ?>
     </div>
   </div>
 </body>

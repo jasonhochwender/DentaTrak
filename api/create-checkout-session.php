@@ -67,6 +67,13 @@ if (!isPracticeAdmin($currentPracticeId) && !isPracticeOwner($currentPracticeId)
     exit;
 }
 
+// External collaborators such as labs may not initiate or change subscriptions.
+requireNotLabCollaborator($currentPracticeId, t('billing.errors.external_collaborator_billing'));
+
+// Owners and administrators must accept the current Terms before changing
+// subscriptions or billing.
+requireCurrentTermsAcceptedForApi((int)$userId);
+
 // ── Bypass users must not reach Stripe ──────────────────────────────────────
 $userStmt = $pdo->prepare("SELECT email FROM users WHERE id = ?");
 $userStmt->execute([$userId]);

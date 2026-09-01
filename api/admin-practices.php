@@ -16,6 +16,7 @@ require_once __DIR__ . '/appConfig.php';
 require_once __DIR__ . '/csrf.php';
 require_once __DIR__ . '/hipaa-compliance.php';
 require_once __DIR__ . '/practice-security.php';
+require_once __DIR__ . '/schema-helpers.php';
 require_once __DIR__ . '/workflow-stages.php';
 require_once __DIR__ . '/lab-assignment-history.php';
 require_once __DIR__ . '/subscription-owner.php';
@@ -101,44 +102,8 @@ if (!$canAccess) {
 }
 
 /**
- * Ensure the admin practice email audit log table exists.
- */
-function ensureAdminEmailLogSchema() {
-    global $pdo;
-    static $initialized = false;
-
-    if ($initialized || !$pdo) {
-        return;
-    }
-
-    try {
-        $pdo->exec("CREATE TABLE IF NOT EXISTS admin_email_log (
-            id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-            admin_user_id BIGINT UNSIGNED NOT NULL,
-            admin_email VARCHAR(255),
-            recipient_user_id BIGINT UNSIGNED NOT NULL,
-            recipient_email VARCHAR(255) NOT NULL,
-            practice_id BIGINT UNSIGNED NOT NULL,
-            email_type VARCHAR(64) NOT NULL,
-            email_subject VARCHAR(255) NOT NULL,
-            sent_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-            success TINYINT(1) NOT NULL DEFAULT 0,
-            provider VARCHAR(64) DEFAULT NULL,
-            error_message TEXT,
-            INDEX idx_practice_id (practice_id),
-            INDEX idx_recipient_user_id (recipient_user_id),
-            INDEX idx_admin_user_id (admin_user_id),
-            INDEX idx_sent_at (sent_at)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
-
-        $initialized = true;
-    } catch (PDOException $e) {
-        error_log('[admin-practices] Error ensuring admin email log schema: ' . $e->getMessage());
-    }
-}
-
-/**
- * Record an admin email action to the audit log.
+ * Record an admin email action to the audit log. The admin_email_log table must
+ * already exist (created by migrations/2026_09_01_admin_email_log.php).
  */
 function logAdminEmail($adminUserId, $adminEmail, $recipientUserId, $recipientEmail, $practiceId, $emailType, $subject, $success, $provider = null, $error = null) {
     global $pdo;
@@ -146,8 +111,6 @@ function logAdminEmail($adminUserId, $adminEmail, $recipientUserId, $recipientEm
     if (!$pdo) {
         return false;
     }
-
-    ensureAdminEmailLogSchema();
 
     try {
         $stmt = $pdo->prepare("
@@ -172,8 +135,6 @@ function logAdminEmail($adminUserId, $adminEmail, $recipientUserId, $recipientEm
         return false;
     }
 }
-
-
 
 /**
  * Compose and send an admin-triggered practice-user email.
@@ -919,6 +880,12 @@ function handlePostRequest($action) {
         return;
     }
 
+    // Owners and administrators must accept the current Terms before performing
+    // DentaTrak administrative mutations.
+    if (isset($_SESSION['db_user_id'])) {
+        requireCurrentTermsAcceptedForApi((int)$_SESSION['db_user_id']);
+    }
+
     switch ($action) {
         case 'deactivate':
             // Deactivate a practice
@@ -1109,9 +1076,70 @@ function handlePostRequest($action) {
             handleExtendTrial($input);
             break;
 
+        case 'set_user_classification':
+            handleSetUserClassification($input);
+            break;
+
         default:
             http_response_code(400);
             echo json_encode(['success' => false, 'message' => 'Invalid action']);
+    }
+}
+
+/**
+ * Set a user's authoritative account classification and lab-creation approval.
+ * Super-user only; any change is written to users.organization_type,
+ * users.organization_type_other, and users.lab_practice_creation_approved.
+ */
+function handleSetUserClassification(array $input): void {
+    global $pdo;
+
+    $userId = (int)($input['user_id'] ?? 0);
+    $organizationType = $input['organization_type'] ?? null;
+    $organizationTypeOther = $input['organization_type_other'] ?? null;
+    $approved = $input['lab_practice_creation_approved'] ?? null;
+
+    if (!$userId) {
+        http_response_code(400);
+        echo json_encode(['success' => false, 'message' => 'user_id is required']);
+        return;
+    }
+
+    $validTypes = ['dental_practice', 'dso', 'lab', 'other', null];
+    if ($organizationType !== null && !in_array($organizationType, $validTypes, true)) {
+        http_response_code(400);
+        echo json_encode(['success' => false, 'message' => 'Invalid organization_type']);
+        return;
+    }
+
+    requireAccountClassificationSchema($pdo);
+
+    try {
+        $stmt = $pdo->prepare("
+            UPDATE users
+            SET organization_type = :organization_type,
+                organization_type_other = :organization_type_other,
+                lab_practice_creation_approved = :lab_practice_creation_approved
+            WHERE id = :user_id
+        ");
+        $stmt->execute([
+            'organization_type' => $organizationType,
+            'organization_type_other' => $organizationTypeOther,
+            'lab_practice_creation_approved' => ($approved === true || $approved === 1 || $approved === '1') ? 1 : 0,
+            'user_id' => $userId,
+        ]);
+
+        logAdminAction('set_user_classification', [
+            'user_id' => $userId,
+            'organization_type' => $organizationType,
+            'lab_practice_creation_approved' => $approved,
+        ]);
+
+        echo json_encode(['success' => true, 'message' => 'User classification updated']);
+    } catch (PDOException $e) {
+        error_log('[admin-practices] Error setting user classification: ' . $e->getMessage());
+        http_response_code(500);
+        echo json_encode(['success' => false, 'message' => 'Unable to update user classification']);
     }
 }
 

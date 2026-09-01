@@ -37,9 +37,24 @@ require_once '{$base}/api/appConfig.php';
 \$_SESSION['last_activity'] = time();
 \$_SESSION['last_regeneration'] = time();
 
+// The Terms-acceptance gate redirects owners/admins who have not accepted the
+// current Terms. For this billing-render fixture, record acceptance for the
+// test user and restore the original value afterward.
+\$origTermsStmt = \$pdo->prepare("SELECT terms_accepted_version, terms_accepted_at FROM users WHERE id = ?");
+\$origTermsStmt->execute([21]);
+\$origTerms = \$origTermsStmt->fetch(PDO::FETCH_ASSOC);
+\$pdo->prepare("UPDATE users SET terms_accepted_version = '2026-09-01', terms_accepted_at = NOW() WHERE id = ?")->execute([21]);
+
 ob_start();
 require '{$base}/main.php';
 \$html = ob_get_clean();
+
+if (\$origTerms) {
+    \$pdo->prepare("UPDATE users SET terms_accepted_version = ?, terms_accepted_at = ? WHERE id = ?")
+        ->execute([\$origTerms['terms_accepted_version'], \$origTerms['terms_accepted_at'], 21]);
+} else {
+    \$pdo->prepare("UPDATE users SET terms_accepted_version = NULL, terms_accepted_at = NULL WHERE id = ?")->execute([21]);
+}
 
 echo 'userBillingTier_present:' . (strpos(\$html, 'id="userBillingTier"') !== false ? 'yes' : 'no') . "\n";
 echo 'userBillingTier_hidden_initially:' . (strpos(\$html, 'id="userBillingTier" style="visibility: hidden;"') !== false ? 'yes' : 'no') . "\n";
@@ -71,9 +86,21 @@ require_once '{$base}/api/appConfig.php';
 \$_SESSION['last_activity'] = time();
 \$_SESSION['last_regeneration'] = time();
 
+\$origTermsStmt = \$pdo->prepare("SELECT terms_accepted_version, terms_accepted_at FROM users WHERE id = ?");
+\$origTermsStmt->execute([334]);
+\$origTerms = \$origTermsStmt->fetch(PDO::FETCH_ASSOC);
+\$pdo->prepare("UPDATE users SET terms_accepted_version = '2026-09-01', terms_accepted_at = NOW() WHERE id = ?")->execute([334]);
+
 ob_start();
 require '{$base}/main.php';
 \$html = ob_get_clean();
+
+if (\$origTerms) {
+    \$pdo->prepare("UPDATE users SET terms_accepted_version = ?, terms_accepted_at = ? WHERE id = ?")
+        ->execute([\$origTerms['terms_accepted_version'], \$origTerms['terms_accepted_at'], 334]);
+} else {
+    \$pdo->prepare("UPDATE users SET terms_accepted_version = NULL, terms_accepted_at = NULL WHERE id = ?")->execute([334]);
+}
 
 echo 'userBillingTier_present:' . (strpos(\$html, 'id="userBillingTier"') !== false ? 'yes' : 'no') . "\n";
 echo 'billingMenuItem_present:' . (strpos(\$html, 'id="billingMenuItem"') !== false ? 'yes' : 'no') . "\n";

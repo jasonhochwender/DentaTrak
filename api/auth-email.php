@@ -83,6 +83,7 @@ switch ($action) {
 }
 
 function handleRegister($pdo, $input) {
+    global $appConfig;
     $email = trim($input['email'] ?? '');
     $password = $input['password'] ?? '';
     $confirmPassword = $input['confirmPassword'] ?? '';

@@ -76,6 +76,12 @@ if (!isset($_SESSION['current_practice_id']) || empty($_SESSION['current_practic
 $currentPracticeId = $_SESSION['current_practice_id'];
 $userId = $_SESSION['db_user_id'] ?? null;
 
+// Existing owners and administrators must accept the current Terms of Service
+// and Privacy Policy before accessing administrative features. The
+// accept-terms.php page is limited to owners/admins and will not block
+// ordinary invited users from urgent case access.
+requireCurrentTermsAcceptedForPage((int)$userId);
+
 // Resolve locale state for settings UI
 $userLocale = null;
 $practiceDefaultLocale = 'en-US';

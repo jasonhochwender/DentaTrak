@@ -1409,6 +1409,9 @@ a.trust-item:focus-visible {
   padding: 20px 28px;
   background: linear-gradient(135deg, #3b82f6 0%, #6366f1 100%);
   border: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
 
 .modal-title {
@@ -1555,4 +1558,106 @@ a.trust-item:focus-visible {
 .two-factor-input-group input::placeholder {
   color: #cbd5e1;
   letter-spacing: 8px;
+}
+
+/* ============================================
+   LEGAL MODAL ACCESSIBILITY & MOBILE
+   ============================================ */
+.modal {
+  overflow: hidden;
+}
+
+.modal.active {
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.modal:focus {
+  outline: none;
+}
+
+.modal-content {
+  max-height: min(80vh, 720px);
+  margin: auto;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.modal-body {
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  flex: 1;
+}
+
+.modal .btn-close {
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-left: 16px;
+  padding: 0;
+}
+
+.modal .btn-close:hover,
+.modal .btn-close:focus {
+  background: rgba(255, 255, 255, 0.35);
+}
+
+.modal .btn-close:focus {
+  outline: 2px solid #fff;
+  outline-offset: 2px;
+}
+
+@media (max-width: 480px) {
+  .modal.active {
+    padding: 0;
+  }
+
+  .modal-content {
+    max-width: 100%;
+    width: 100%;
+    height: 100%;
+    max-height: 100%;
+    border-radius: 0;
+    margin: 0;
+    padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  }
+
+  .modal-header {
+    padding: 16px 20px;
+    flex-shrink: 0;
+  }
+
+  .modal-title {
+    font-size: 1.1rem;
+  }
+
+  .modal-body {
+    padding: 20px;
+  }
+
+  .modal .btn-close {
+    width: 44px;
+    height: 44px;
+    font-size: 1.75rem;
+  }
+}
+
+@media (max-width: 320px) {
+  .modal-title {
+    font-size: 1rem;
+  }
+
+  .modal-body {
+    padding: 16px;
+    font-size: 0.9rem;
+  }
 }

@@ -66,6 +66,23 @@ async function apiCall(requester, method, path, body = null) {
   return lastRes;
 }
 
+async function acceptTermsIfNeeded(requester) {
+  const termsPage = await requester.get(`${BASE}/accept-terms.php`);
+  const status = termsPage.status();
+  const text = await termsPage.text();
+  if (status >= 300 || status < 200) return;
+  const csrfMatch = text.match(/<meta name="csrf-token" content="([^"]+)">/);
+  const versionMatch = text.match(/<meta name="terms-version" content="([^"]+)">/);
+  if (!csrfMatch || !versionMatch) return;
+  await requester.post(`${BASE}/api/accept-terms.php`, {
+    data: { accepted: true, terms_version: versionMatch[1] },
+    headers: {
+      'Content-Type': 'application/json',
+      'X-CSRF-Token': csrfMatch[1],
+    },
+  });
+}
+
 async function callTestHelperPage(page, action, extra = {}) {
   const payload = { action, ...extra };
   return page.evaluate(async ({ url, payload }) => {
@@ -536,6 +553,7 @@ async function withUser(browser, email, practiceId, check, reEnsure = true, admi
       switchRes = await apiCall(uPage.request, 'post', '/api/switch-practice.php', { practice_id: practiceId });
       if (!switchRes.body || !switchRes.body.success) throw new Error(`Switch for ${email} failed after re-ensure: ${JSON.stringify(switchRes)}`);
     }
+    await acceptTermsIfNeeded(uPage.request);
     await safeGoto(uPage, `${BASE}/main.php`);
     await check(uPage, uPage.request);
   } finally {
@@ -588,6 +606,7 @@ async function run() {
   });
   page.on('requestfailed', req => console.log('[NETWORK FAIL]', req.failure().errorText, req.url()));
   await login(page.request, EMAIL, PASSWORD);
+  await acceptTermsIfNeeded(page.request);
   await safeGoto(page, `${BASE}/main.php`);
   await setSubscriptionPlan(page, EMAIL, 'control');
 

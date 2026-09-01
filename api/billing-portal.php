@@ -46,6 +46,13 @@ try {
         exit;
     }
 
+    // Owners and administrators must accept the current Terms before viewing
+    // or managing billing.
+    requireCurrentTermsAcceptedForApi((int)$userId);
+
+    // External collaborators such as labs may not view or manage billing.
+    requireNotLabCollaborator($currentPracticeId, t('billing.errors.external_collaborator_billing'));
+
     // ── Bypass check (partners / internal users) ─────────────────────────────
     $userStmt = $pdo->prepare("SELECT email FROM users WHERE id = ?");
     $userStmt->execute([$userId]);

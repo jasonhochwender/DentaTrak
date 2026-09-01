@@ -30,6 +30,7 @@ if (!empty($token)) {
 }
 
 $appName = $appConfig['appName'] ?? 'DentalFlow';
+$loginUrl = rtrim($appConfig['baseUrl'] ?? '', '/') . '/login.php';
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -37,7 +38,7 @@ $appName = $appConfig['appName'] ?? 'DentalFlow';
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="robots" content="noindex, nofollow">
-    <title>Set Password - <?php echo htmlspecialchars($appName); ?></title>
+    <title><?php echo htmlspecialchars(t('auth.set_password.title')) . ' - ' . htmlspecialchars($appName); ?></title>
 
     <!-- Favicon / App Icons -->
     <link rel="icon" type="image/x-icon" href="favicon.ico">
@@ -48,6 +49,8 @@ $appName = $appConfig['appName'] ?? 'DentalFlow';
 
     <link rel="stylesheet" href="css/app.css">
     <link rel="stylesheet" href="css/login.css">
+    <script>window.__i18n = <?php echo getTranslationsJsonForJs(); ?>;</script>
+    <script src="js/i18n.js"></script>
 </head>
 <body class="login-body">
     <div class="login-bg-shapes">
@@ -60,9 +63,9 @@ $appName = $appConfig['appName'] ?? 'DentalFlow';
         <div class="login-container" style="max-width: 480px;">
             <div class="login-card">
                 <div class="login-card-header">
-                    <h2>Set Your Password</h2>
+                    <h2><?php echo t('auth.set_password.title'); ?></h2>
                     <?php if ($tokenValid): ?>
-                        <p>Create a password for <?php echo htmlspecialchars($userEmail); ?></p>
+                        <p><?php echo t('auth.set_password.create_for', ['email' => htmlspecialchars($userEmail)]); ?></p>
                     <?php endif; ?>
                 </div>
                 
@@ -76,32 +79,32 @@ $appName = $appConfig['appName'] ?? 'DentalFlow';
                         <p><?php echo htmlspecialchars($tokenError); ?></p>
                     </div>
                     <div class="reset-form-footer" style="text-align: center; margin-top: 20px;">
-                        <a href="index.php">← Back to Sign In</a>
+                        <a href="<?php echo htmlspecialchars($loginUrl); ?>">← <?php echo t('common.back_to_sign_in'); ?></a>
                     </div>
                 <?php else: ?>
                     <form id="setPasswordForm" class="email-form">
                         <input type="hidden" id="token" name="token" value="<?php echo htmlspecialchars($token); ?>">
                         
                         <div class="form-group">
-                            <label for="password">New Password</label>
-                            <input type="password" id="password" name="password" required placeholder="Create a password" autocomplete="new-password">
+                            <label for="password"><?php echo t('auth.set_password.new_password_label'); ?></label>
+                            <input type="password" id="password" name="password" required placeholder="<?php echo t('auth.set_password.new_password_placeholder'); ?>" autocomplete="new-password">
                             <div class="password-requirements">
-                                <span class="req" id="reqLength">✗ At least 8 characters</span>
-                                <span class="req" id="reqUpper">✗ One uppercase letter</span>
-                                <span class="req" id="reqNumber">✗ One number</span>
-                                <span class="req" id="reqSpecial">✗ One special character</span>
+                                <span class="req" id="reqLength">✗ <?php echo t('auth.set_password.requirements_length'); ?></span>
+                                <span class="req" id="reqUpper">✗ <?php echo t('auth.set_password.requirements_upper'); ?></span>
+                                <span class="req" id="reqNumber">✗ <?php echo t('auth.set_password.requirements_number'); ?></span>
+                                <span class="req" id="reqSpecial">✗ <?php echo t('auth.set_password.requirements_special'); ?></span>
                             </div>
                         </div>
                         
                         <div class="form-group">
-                            <label for="confirmPassword">Confirm Password</label>
-                            <input type="password" id="confirmPassword" name="confirmPassword" required placeholder="Confirm your password" autocomplete="new-password">
+                            <label for="confirmPassword"><?php echo t('auth.set_password.confirm_password_label'); ?></label>
+                            <input type="password" id="confirmPassword" name="confirmPassword" required placeholder="<?php echo t('auth.set_password.confirm_password_placeholder'); ?>" autocomplete="new-password">
                             <div id="passwordMatch" class="password-match"></div>
                         </div>
                         
                         <div id="formError" class="form-error" style="display: none;"></div>
                         
-                        <button type="submit" class="email-submit-btn" id="submitBtn" disabled>Set Password</button>
+                        <button type="submit" class="email-submit-btn" id="submitBtn" disabled><?php echo t('auth.set_password.set_button'); ?></button>
                     </form>
                     
                     <div id="successMessage" style="display: none;">
@@ -111,10 +114,10 @@ $appName = $appConfig['appName'] ?? 'DentalFlow';
                                     <polyline points="20 6 9 17 4 12"/>
                                 </svg>
                             </div>
-                            <h3>Password Set Successfully!</h3>
-                            <p>You can now sign in with your email and password.</p>
+                            <h3><?php echo t('auth.set_password.success_title'); ?></h3>
+                            <p><?php echo t('auth.set_password.success_message'); ?></p>
                         </div>
-                        <a href="index.php" class="email-submit-btn" style="display: block; text-align: center; text-decoration: none; margin-top: 20px;">Sign In</a>
+                        <a href="<?php echo htmlspecialchars($loginUrl); ?>" class="email-submit-btn" style="display: block; text-align: center; text-decoration: none; margin-top: 20px;"><?php echo t('auth.set_password.sign_in'); ?></a>
                     </div>
                 <?php endif; ?>
             </div>
@@ -143,37 +146,37 @@ $appName = $appConfig['appName'] ?? 'DentalFlow';
             let allValid = true;
             
             if (pwd.length >= 8) {
-                reqLength.textContent = '✓ At least 8 characters';
+                reqLength.textContent = '✓ ' + t('auth.set_password.requirements_length');
                 reqLength.classList.add('valid');
             } else {
-                reqLength.textContent = '✗ At least 8 characters';
+                reqLength.textContent = '✗ ' + t('auth.set_password.requirements_length');
                 reqLength.classList.remove('valid');
                 allValid = false;
             }
             
             if (/[A-Z]/.test(pwd)) {
-                reqUpper.textContent = '✓ One uppercase letter';
+                reqUpper.textContent = '✓ ' + t('auth.set_password.requirements_upper');
                 reqUpper.classList.add('valid');
             } else {
-                reqUpper.textContent = '✗ One uppercase letter';
+                reqUpper.textContent = '✗ ' + t('auth.set_password.requirements_upper');
                 reqUpper.classList.remove('valid');
                 allValid = false;
             }
             
             if (/[0-9]/.test(pwd)) {
-                reqNumber.textContent = '✓ One number';
+                reqNumber.textContent = '✓ ' + t('auth.set_password.requirements_number');
                 reqNumber.classList.add('valid');
             } else {
-                reqNumber.textContent = '✗ One number';
+                reqNumber.textContent = '✗ ' + t('auth.set_password.requirements_number');
                 reqNumber.classList.remove('valid');
                 allValid = false;
             }
             
             if (/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(pwd)) {
-                reqSpecial.textContent = '✓ One special character';
+                reqSpecial.textContent = '✓ ' + t('auth.set_password.requirements_special');
                 reqSpecial.classList.add('valid');
             } else {
-                reqSpecial.textContent = '✗ One special character';
+                reqSpecial.textContent = '✗ ' + t('auth.set_password.requirements_special');
                 reqSpecial.classList.remove('valid');
                 allValid = false;
             }
@@ -192,11 +195,11 @@ $appName = $appConfig['appName'] ?? 'DentalFlow';
             }
             
             if (pwd === confirm) {
-                passwordMatch.textContent = '✓ Passwords match';
+                passwordMatch.textContent = '✓ ' + t('auth.set_password.match_yes');
                 passwordMatch.className = 'password-match match';
                 return true;
             } else {
-                passwordMatch.textContent = '✗ Passwords do not match';
+                passwordMatch.textContent = '✗ ' + t('auth.set_password.match_no');
                 passwordMatch.className = 'password-match no-match';
                 return false;
             }
@@ -225,7 +228,7 @@ $appName = $appConfig['appName'] ?? 'DentalFlow';
             
             formError.style.display = 'none';
             submitBtn.disabled = true;
-            submitBtn.textContent = 'Setting password...';
+            submitBtn.textContent = t('auth.set_password.setting');
             
             fetch('api/request-password-setup.php', {
                 method: 'POST',
@@ -244,15 +247,15 @@ $appName = $appConfig['appName'] ?? 'DentalFlow';
                     successMessage.style.display = 'block';
                 } else {
                     submitBtn.disabled = false;
-                    submitBtn.textContent = 'Set Password';
-                    formError.textContent = data.message || 'Failed to set password';
+                    submitBtn.textContent = t('auth.set_password.set_button');
+                    formError.textContent = data.message || t('auth.set_password.error');
                     formError.style.display = 'block';
                 }
             })
             .catch(error => {
                 submitBtn.disabled = false;
-                submitBtn.textContent = 'Set Password';
-                formError.textContent = 'An error occurred. Please try again.';
+                submitBtn.textContent = t('auth.set_password.set_button');
+                formError.textContent = t('auth.set_password.unknown_error');
                 formError.style.display = 'block';
             });
         });

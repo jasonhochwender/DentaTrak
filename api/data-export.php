@@ -36,6 +36,12 @@ $currentPracticeId = requireValidPracticeContext();
 $userId = $_SESSION['db_user_id'];
 $userEmail = $_SESSION['user_email'] ?? '';
 
+// External collaborators may not export Practice data.
+requireNotLabCollaborator($currentPracticeId, t('export.external_collaborator_denied'));
+
+// Owners and administrators must accept the current Terms before exporting data.
+requireCurrentTermsAcceptedForApi((int)$userId);
+
 // Handle different actions
 $action = $_GET['action'] ?? $_POST['action'] ?? 'request';
 
