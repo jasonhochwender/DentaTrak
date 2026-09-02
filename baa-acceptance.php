@@ -28,23 +28,19 @@ $userId = $_SESSION['db_user_id'];
 $userEmail = $_SESSION['user_email'] ?? '';
 $userName = $_SESSION['user_name'] ?? '';
 
-// If explicitly starting a brand new practice (e.g. "Create My Own Practice"
-// from the practice chooser, or "Create New Practice" from the in-app
-// practice switcher), this page must not check/prefill against the OLD
-// practice's BAA/legal info - the form below should always start blank and
-// this page should never redirect to main.php just because some OTHER
-// practice already has an accepted BAA.
+// Determine whether this page is creating a new Practice or updating an
+// existing one. Three cases are handled:
+// 1. Explicit ?new=1 from the practice chooser/switcher -> new Practice.
+// 2. User has no Practice memberships at all -> initial new-Practice onboarding.
+// 3. User has at least one Practice membership -> update the current practice
+//    if current_practice_id is set; otherwise require practice selection first.
 //
-// IMPORTANT: unlike an earlier version of this check, $_SESSION['current_
-// practice_id'] is intentionally left untouched here. Destroying it as a
-// side effect of merely LOADING this page (rather than successfully
-// completing or explicitly canceling it) orphaned the session - main.php
-// would bounce the user to practice-setup.php if they abandoned the form
-// or a validation error stopped them from submitting. The "create a new
-// practice rather than update the current one" decision is instead made
-// explicitly via a `new` flag sent to api/accept-baa.php on submit (see
-// the IS_CREATING_NEW_PRACTICE JS var below), not by session presence.
-$isCreatingNewPractice = (isset($_GET['new']) && $_GET['new'] === '1');
+// current_practice_id is intentionally left untouched on this page, so a
+// partially completed or abandoned form does not orphan the session.
+$practiceStmt = $pdo->prepare("SELECT 1 FROM practice_users WHERE user_id = :user_id LIMIT 1");
+$practiceStmt->execute(['user_id' => $userId]);
+$hasNoPractices = !$practiceStmt->fetch();
+$isCreatingNewPractice = (isset($_GET['new']) && $_GET['new'] === '1') || $hasNoPractices;
 
 // A Cancel action can safely return the user to whichever practice they
 // were already on - this only applies when they already had a valid

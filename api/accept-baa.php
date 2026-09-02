@@ -145,16 +145,25 @@ try {
     requireAccountClassificationSchema($pdo);
 
     // Check if user has a practice or needs to create one. $creatingNew is
-    // true either when the client explicitly signaled it (the page was
-    // loaded via ?new=1 - see baa-acceptance.php's IS_CREATING_NEW_PRACTICE),
-    // or when the user genuinely has no current practice at all. Relying on
-    // an explicit flag - rather than solely on $_SESSION['current_practice_id']
-    // being absent - means an ADDITIONAL practice can be created for a user
-    // who already has one, without requiring the session to be cleared just
-    // to load the form (which previously orphaned the session if the user
-    // abandoned or failed to submit the form).
+    // true when the client explicitly signaled it (?new=1 / IS_CREATING_NEW_PRACTICE)
+    // or when the user has no Practice memberships at all. It is NOT inferred
+    // solely from a missing current_practice_id, because an existing member may
+    // have a temporarily absent current_practice_id and should not silently
+    // create another Practice.
     $practiceId = $_SESSION['current_practice_id'] ?? null;
-    $creatingNew = !empty($data['new']) || !$practiceId;
+    $practiceStmt = $pdo->prepare("SELECT 1 FROM practice_users WHERE user_id = :user_id LIMIT 1");
+    $practiceStmt->execute(['user_id' => $userId]);
+    $hasNoPractices = !$practiceStmt->fetch();
+    $creatingNew = !empty($data['new']) || $hasNoPractices;
+
+    // An existing member must have a selected practice to update; they cannot
+    // use this endpoint as a backdoor to create an additional Practice without
+    // either an explicit ?new=1 or the practice-selection flow.
+    if (!$creatingNew && !$practiceId) {
+        http_response_code(400);
+        echo json_encode(['success' => false, 'message' => t('onboarding.baa.api.missing_fields', ['fields' => 'current practice'])]);
+        exit;
+    }
 
     if ($creatingNew) {
         // A subscription belongs to the OWNER (this user), not to any one
