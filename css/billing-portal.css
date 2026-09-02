@@ -3,7 +3,7 @@
 
 /* ── Modal shell ──────────────────────────────────────────────────────────── */
 .billing-portal-modal {
-  max-width: 720px;
+  max-width: 1120px;
   width: 92%;
   /* Prevent inheriting the base .modal-content min-width: 835px
      (app.light.css), which would otherwise force this modal wider
@@ -426,15 +426,16 @@
 /* ── Plan selection grid ──────────────────────────────────────────────────── */
 .bp-plan-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 18px;
   margin: 0 0 8px;
+  min-width: 0;
 }
 
 /* Two across before dropping to a single column, so cards never get too
    narrow to read on smaller modal widths. */
-@media (max-width: 860px) {
-  .bp-plan-grid { grid-template-columns: repeat(2, 1fr); }
+@media (max-width: 1100px) {
+  .bp-plan-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
 @media (max-width: 520px) {
@@ -450,6 +451,7 @@
   display: flex;
   flex-direction: column;
   gap: 4px;
+  min-width: 0;
   transition: border-color 0.15s, box-shadow 0.15s;
 }
 
@@ -538,13 +540,14 @@
 }
 
 .bp-plan-price {
-  font-size: 1.5rem;
+  font-size: clamp(1.1rem, 2.2vw, 1.5rem);
   font-weight: 800;
   color: #1e40af;
   margin: 4px 0 2px;
   display: flex;
   align-items: baseline;
   gap: 2px;
+  min-width: 0;
 }
 
 .bp-plan-per {
