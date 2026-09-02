@@ -32,6 +32,48 @@ function getWorkflowStatusCssClass(status) {
 window.getWorkflowStatusCssClass = getWorkflowStatusCssClass;
 
 /**
+ * Return the internal status id of the practice's final (last active)
+ * workflow column. Uses the persisted workflow column snapshot when available;
+ * otherwise falls back to the last visible kanban column in the DOM, and only
+ * finally falls back to the legacy 'Delivered' default. This keeps the
+ * correct final column for every user (including non-admins) and before
+ * settings snapshots have loaded.
+ */
+function getFinalWorkflowColumnStatus() {
+  var snapshot = (typeof window !== 'undefined' && window.workflowColumnsSnapshot) || null;
+  var active = snapshot && snapshot.active;
+  if (Array.isArray(active) && active.length > 0) {
+    var last = active[active.length - 1];
+    if (last && typeof last.id === 'string') {
+      return last.id;
+    }
+  }
+
+  // If the snapshot is missing (e.g. non-admin users), derive the final
+  // column from the actual rendered board columns.
+  if (typeof document !== 'undefined') {
+    var columns = document.querySelectorAll('.kanban-column');
+    if (columns.length > 0) {
+      var lastColumn = columns[columns.length - 1];
+      if (lastColumn && typeof lastColumn.dataset.status === 'string') {
+        return lastColumn.dataset.status;
+      }
+    }
+  }
+
+  return 'Delivered';
+}
+
+/**
+ * Determine whether a case status corresponds to the final workflow column
+ * for the current practice. Completed cases in this column should not show
+ * Late / Due Soon / Appointment Risk warnings.
+ */
+function isFinalWorkflowColumn(status) {
+  return status === getFinalWorkflowColumnStatus();
+}
+
+/**
  * Determine whether the current viewport is a phone width. Used to keep
  * drag-and-drop and the desktop card layout disabled on phones while
  * the mobile kanban carousel and compact cards take over.
@@ -246,7 +288,7 @@ window.triggerCardsUpdated = function() {
 };
 
 // Styled confirmation modal function (replaces browser confirm())
-function showConfirmModal(title, message, onConfirm, onCancel, preventBackgroundClose) {
+function showConfirmModal(title, message, onConfirm, onCancel, preventBackgroundClose, returnFocus) {
   var modal = document.getElementById('confirmModal');
   var titleEl = document.getElementById('confirmModalTitle');
   var messageEl = document.getElementById('confirmModalMessage');
@@ -267,6 +309,29 @@ function showConfirmModal(title, message, onConfirm, onCancel, preventBackground
   messageEl.textContent = message || t('common.confirm_message');
   modal.style.display = 'block';
 
+  function closeConfirmModal() {
+    modal.style.display = 'none';
+    modal.onclick = null;
+    if (escapeHandler) {
+      document.removeEventListener('keydown', escapeHandler, true);
+    }
+    if (returnFocus && returnFocus.focus && !returnFocus.disabled) {
+      returnFocus.focus();
+    }
+  }
+
+  // Escape dismisses only the confirm modal. Use capture phase so this runs
+  // before the Settings modal's own Escape handler and prevents it from also
+  // closing the parent modal.
+  function escapeHandler(e) {
+    if (e.key === 'Escape' && modal.style.display === 'block') {
+      closeConfirmModal();
+      if (onCancel) onCancel();
+      e.stopImmediatePropagation();
+    }
+  }
+  document.addEventListener('keydown', escapeHandler, true);
+
   // Clean up old event listeners by cloning buttons
   var newOkBtn = okBtn.cloneNode(true);
   var newCancelBtn = cancelBtn.cloneNode(true);
@@ -275,12 +340,12 @@ function showConfirmModal(title, message, onConfirm, onCancel, preventBackground
 
   // Add new event listeners
   newOkBtn.addEventListener('click', function() {
-    modal.style.display = 'none';
+    closeConfirmModal();
     if (onConfirm) onConfirm();
   });
 
   newCancelBtn.addEventListener('click', function() {
-    modal.style.display = 'none';
+    closeConfirmModal();
     if (onCancel) onCancel();
   });
 
@@ -288,7 +353,8 @@ function showConfirmModal(title, message, onConfirm, onCancel, preventBackground
   if (!preventBackgroundClose) {
     modal.onclick = function(e) {
       if (e.target === modal) {
-        modal.style.display = 'none';
+        e.stopPropagation();
+        closeConfirmModal();
         if (onCancel) onCancel();
       }
     };
@@ -1999,13 +2065,17 @@ document.addEventListener('DOMContentLoaded', function () {
   var settingsUnsavedDialogOpen = false;
 
   function closeSettingsBillingModal(forceClose) {
-    // Rename Assignment Label is a child modal opened from within Settings.
-    // While it's open, Settings must not close through ANY path (X, Cancel,
-    // outside-click, Escape, or a force-close) - otherwise Settings' state
-    // (backdrop, body scroll lock) would be torn down while the child modal
-    // is still visually on top of it, leaving things inconsistent.
+    // Rename Assignment Label and the reusable Confirm modal are opened as
+    // child modals from within Settings. While either is open, Settings must
+    // not close through ANY path (X, Cancel, outside-click, Escape, or a
+    // force-close) - otherwise Settings' state (backdrop, body scroll lock)
+    // would be torn down while the child modal is still on top.
     var renameLabelModal = document.getElementById('renameAssignmentLabelModal');
     if (renameLabelModal && renameLabelModal.style.display === 'block') {
+      return;
+    }
+    var confirmModal = document.getElementById('confirmModal');
+    if (confirmModal && confirmModal.style.display === 'block') {
       return;
     }
     if (settingsBillingModal) {
@@ -7100,7 +7170,7 @@ document.addEventListener('DOMContentLoaded', function () {
       var apptDayDiff = null;
 
       // Past Due (red) takes top precedence
-      if (status !== 'Delivered' && caseData.dueDate) {
+      if (!isFinalWorkflowColumn(status) && caseData.dueDate) {
         var pastDueDays = parseInt(localStorage.getItem('past_due_days') || '1', 10);
         dueDayDiff = getCalendarDayDiff(caseData.dueDate);
 
@@ -7116,7 +7186,7 @@ document.addEventListener('DOMContentLoaded', function () {
       // Appointment Risk (purple) if not already Late
       // Outranks Coming Due so an appointment-within-threshold case is purple
       // even when it is also within the coming-due window.
-      if (!isPastDue && status !== 'Delivered' && caseData.patientAppointmentDate && highlightAppointmentRisk) {
+      if (!isPastDue && !isFinalWorkflowColumn(status) && caseData.patientAppointmentDate && highlightAppointmentRisk) {
         var appointmentRiskDays = parseInt(localStorage.getItem('appointment_risk_days') || '3', 10);
         apptDayDiff = getCalendarDayDiff(caseData.patientAppointmentDate);
         if (apptDayDiff !== null && apptDayDiff <= appointmentRiskDays) {
@@ -7127,7 +7197,7 @@ document.addEventListener('DOMContentLoaded', function () {
       }
 
       // Coming Due (blue) if not already Late or Appointment Risk
-      if (!isPastDue && !isAppointmentRisk && status !== 'Delivered' && caseData.dueDate) {
+      if (!isPastDue && !isAppointmentRisk && !isFinalWorkflowColumn(status) && caseData.dueDate) {
         var comingDueDays = parseInt(localStorage.getItem('coming_due_days') || '5', 10);
         dueDayDiff = dueDayDiff !== null ? dueDayDiff : getCalendarDayDiff(caseData.dueDate);
         if (dueDayDiff !== null && dueDayDiff >= 0 && dueDayDiff <= comingDueDays) {
@@ -7288,8 +7358,8 @@ document.addEventListener('DOMContentLoaded', function () {
         '</div>' +
         '<div class="kanban-card-content">' +
         '  <p><strong>' + t('cases.type') + ':</strong> ' + (getCaseTypeDisplayLabel(displayData.caseType) || '') + '</p>' +
-        '  <p><strong>' + t('cases.due_label') + ':</strong> ' + formatDate(displayData.dueDate) + (dueIndicatorText ? '<span class="late-indicator">' + dueIndicatorText + '</span>' : '') + '</p>' +
-        (displayData.patientAppointmentDate ? '  <p><strong>' + t('cases.patient_appointment_short') + ':</strong> ' + formatDate(displayData.patientAppointmentDate) + (apptRiskText ? '<span class="appointment-risk-indicator">' + apptRiskText + '</span>' : '') + '</p>' : '') +
+        '  <p><strong>' + t('cases.due_label') + ':</strong> ' + formatDate(displayData.dueDate) + '<span class="late-indicator">' + (dueIndicatorText || '') + '</span></p>' +
+        (displayData.patientAppointmentDate ? '  <p><strong>' + t('cases.patient_appointment_short') + ':</strong> ' + formatDate(displayData.patientAppointmentDate) + '<span class="appointment-risk-indicator">' + (apptRiskText || '') + '</span></p>' : '') +
         '  <p class="dentist-row"><strong>' + t('cases.dentist') + ':</strong> ' + (displayData.dentistName || '') + attachmentIndicatorHtml + '</p>' +
         '  <div class="kanban-card-assignment">' +
         '    <div class="assignment-label"><strong>' + t('cases.assigned_to') + '</strong></div>' +
@@ -8262,32 +8332,35 @@ document.addEventListener('DOMContentLoaded', function () {
   // This is the single source of truth used both when cards are created and when
   // settings are updated, so the visual state matches the filter logic.
   function applyUrgencyHighlighting(caseData) {
-    var highlightPastDue = localStorage.getItem('highlight_past_due') === 'true';
-    var highlightComingDue = localStorage.getItem('highlight_coming_due') === 'true';
-    var highlightAppointmentRisk = localStorage.getItem('highlight_appointment_risk') === 'true';
-
-    // Don't highlight cases in the Delivered board (they are essentially closed)
-    if (caseData.status === 'Delivered') return;
-
-    // Find the card element
+    // Find the card element first so we can clear stale highlights even when
+    // the case has moved into the final workflow column.
     var cardElement = document.querySelector('[data-case-id="' + caseData.id + '"]');
     if (!cardElement) return;
     var card = cardElement.closest('.kanban-card');
     if (!card) return;
 
-    var pastDueDays = parseInt(localStorage.getItem('past_due_days') || '1', 10);
-    var comingDueDays = parseInt(localStorage.getItem('coming_due_days') || '5', 10);
-    var appointmentRiskDays = parseInt(localStorage.getItem('appointment_risk_days') || '3', 10);
-
     var lateIndicator = card.querySelector('.late-indicator');
     var apptIndicator = card.querySelector('.appointment-risk-indicator');
 
-    // Clear previous state
+    // Clear previous state before re-evaluating so moving into the final
+    // workflow column immediately removes Late/Due Soon/Appointment Risk warnings.
     card.classList.remove('kanban-card-past-due');
     card.classList.remove('kanban-card-coming-due');
     card.classList.remove('kanban-card-appointment-risk');
     if (lateIndicator) lateIndicator.textContent = '';
     if (apptIndicator) apptIndicator.textContent = '';
+
+    // Don't highlight cases in the final workflow column (they are essentially closed).
+    // The final column is the last active workflow column for this practice.
+    if (isFinalWorkflowColumn(caseData.status)) return;
+
+    var highlightPastDue = localStorage.getItem('highlight_past_due') === 'true';
+    var highlightComingDue = localStorage.getItem('highlight_coming_due') === 'true';
+    var highlightAppointmentRisk = localStorage.getItem('highlight_appointment_risk') === 'true';
+
+    var pastDueDays = parseInt(localStorage.getItem('past_due_days') || '1', 10);
+    var comingDueDays = parseInt(localStorage.getItem('coming_due_days') || '5', 10);
+    var appointmentRiskDays = parseInt(localStorage.getItem('appointment_risk_days') || '3', 10);
 
     // Red late treatment takes top precedence
     var daysUntil = null;
@@ -11378,7 +11451,9 @@ document.addEventListener('DOMContentLoaded', function () {
               exportDataBtn.innerHTML = '<span class="btn-icon">📥</span> ' + t('settings.data_privacy.export.button');
             });
           },
-          null // No action needed on cancel
+          null, // No action needed on cancel
+          false,
+          exportDataBtn
         );
       });
     }

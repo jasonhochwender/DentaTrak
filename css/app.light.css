@@ -2892,6 +2892,13 @@ body {
   z-index: 150;
 }
 
+/* The reusable confirmation modal is used as a child modal of Settings for
+   the Data & Privacy export action. Settings has z-index 101, so bump the
+   confirm modal just above it while keeping it below toasts/tooltips. */
+#confirmModal {
+  z-index: 150;
+}
+
 .modal-header {
   margin: 0;
   padding: 20px 28px;

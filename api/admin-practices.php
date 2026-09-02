@@ -1992,9 +1992,9 @@ function getPracticeSettings($practiceId) {
     global $pdo;
     
     $preferences = getRepresentativeUserPreferences($practiceId);
-    $workflowLabels = getResolvedWorkflowStageLabels(
-        getWorkflowStageLabelOverridesForPractice($practiceId)
-    );
+    // Use the practice's saved workflow-column configuration so custom and
+    // renamed columns are included, in the configured board order.
+    $workflowLabels = getResolvedWorkflowStageLabelsForPractice($practiceId);
     $users = getPracticeUsers($practiceId);
     $labels = getPracticeAssignmentLabelsForSettings($practiceId);
     $twoFactorEnabled = getTwoFactorEnabledForPractice($practiceId);

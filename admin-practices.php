@@ -2474,10 +2474,11 @@ $userEmail = $_SESSION['user_email'] ?? '';
                 <head>
                     <title>Practice Report - ${escapeHtml(practice.practice_name || 'Practice')}</title>
                     <style>
-                        body { font-family: Arial, sans-serif; padding: 20px; font-size: 12px; }
+                        body { font-family: Arial, sans-serif; padding: 24px 40px; font-size: 12px; }
                         h1 { font-size: 18px; margin-bottom: 5px; }
                         h2 { font-size: 14px; margin-top: 20px; border-bottom: 1px solid #ccc; padding-bottom: 5px; }
                         .header-info { color: #666; margin-bottom: 20px; }
+                        .table-wrapper { width: 100%; overflow-x: auto; }
                         table { width: 100%; border-collapse: collapse; margin-top: 10px; }
                         th, td { border: 1px solid #ddd; padding: 6px 8px; text-align: left; }
                         th { background: #f5f5f5; font-weight: bold; }
@@ -2487,6 +2488,7 @@ $userEmail = $_SESSION['user_email'] ?? '';
                         .detail-value { font-weight: bold; }
                         .status-active { color: green; }
                         .status-inactive { color: red; }
+                        @media (max-width: 640px) { body { padding: 16px 20px; } }
                         @media print { body { padding: 0; } }
                     </style>
                 </head>
@@ -2533,46 +2535,50 @@ $userEmail = $_SESSION['user_email'] ?? '';
                     </div>
                     
                     <h2>Users (${users.length})</h2>
-                    <table>
-                        <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Admin</th><th>Assigned Only</th><th>Insights</th><th>Edit Cases</th><th>Lab</th><th>Active</th></tr></thead>
-                        <tbody>
-                            ${users.length === 0 ? '<tr><td colspan="9" style="text-align:center;">No users</td></tr>' :
-                              users.map(u => {
-                                const isOwner = u.is_owner;
-                                const isAdmin = isOwner || u.role === 'admin';
-                                const assignedOnly = !isOwner && u.limited_visibility;
-                                const insights = isOwner || u.can_view_analytics;
-                                const editCases = isOwner || u.can_edit_cases;
-                                const lab = u.is_lab;
-                                return `<tr>
-                                  <td>${escapeHtml([u.first_name, u.last_name].filter(Boolean).join(' ') || '-')}</td>
-                                  <td>${escapeHtml(u.email)}</td>
-                                  <td>${isOwner ? 'Owner' : 'User'}</td>
-                                  <td style="text-align:center;">${yesNo(isAdmin)}</td>
-                                  <td style="text-align:center;">${yesNo(assignedOnly)}</td>
-                                  <td style="text-align:center;">${yesNo(insights)}</td>
-                                  <td style="text-align:center;">${yesNo(editCases)}</td>
-                                  <td style="text-align:center;">${yesNo(lab)}</td>
-                                  <td style="text-align:center;">${yesNo(u.is_active)}</td>
-                                </tr>`;
-                              }).join('')}
-                        </tbody>
-                    </table>
+                    <div class="table-wrapper">
+                        <table>
+                            <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Admin</th><th>Assigned Only</th><th>Insights</th><th>Edit Cases</th><th>Lab</th><th>Active</th></tr></thead>
+                            <tbody>
+                                ${users.length === 0 ? '<tr><td colspan="9" style="text-align:center;">No users</td></tr>' :
+                                  users.map(u => {
+                                    const isOwner = u.is_owner;
+                                    const isAdmin = isOwner || u.role === 'admin';
+                                    const assignedOnly = !isOwner && u.limited_visibility;
+                                    const insights = isOwner || u.can_view_analytics;
+                                    const editCases = isOwner || u.can_edit_cases;
+                                    const lab = u.is_lab;
+                                    return `<tr>
+                                      <td>${escapeHtml([u.first_name, u.last_name].filter(Boolean).join(' ') || '-')}</td>
+                                      <td>${escapeHtml(u.email)}</td>
+                                      <td>${isOwner ? 'Owner' : 'User'}</td>
+                                      <td style="text-align:center;">${yesNo(isAdmin)}</td>
+                                      <td style="text-align:center;">${yesNo(assignedOnly)}</td>
+                                      <td style="text-align:center;">${yesNo(insights)}</td>
+                                      <td style="text-align:center;">${yesNo(editCases)}</td>
+                                      <td style="text-align:center;">${yesNo(lab)}</td>
+                                      <td style="text-align:center;">${yesNo(u.is_active)}</td>
+                                    </tr>`;
+                                  }).join('')}
+                            </tbody>
+                        </table>
+                    </div>
                     
                     <h2>PHI Access Log (Last ${phiLog.length} entries)</h2>
-                    <table>
-                        <thead><tr><th>Date/Time</th><th>User</th><th>Action</th><th>Case ID</th><th>IP Address</th></tr></thead>
-                        <tbody>
-                            ${phiLog.length === 0 ? '<tr><td colspan="5" style="text-align:center;">No PHI access records</td></tr>' :
-                              phiLog.map(e => `<tr>
-                                <td>${formatDateTime(e.accessed_at)}</td>
-                                <td>${escapeHtml(e.user_email || 'Unknown')}</td>
-                                <td>${escapeHtml(e.access_type.replace(/_/g, ' '))}</td>
-                                <td style="font-family: monospace;">${escapeHtml(e.case_id || '-')}</td>
-                                <td style="font-family: monospace;">${escapeHtml(e.ip_address || '-')}</td>
-                              </tr>`).join('')}
-                        </tbody>
-                    </table>
+                    <div class="table-wrapper">
+                        <table>
+                            <thead><tr><th>Date/Time</th><th>User</th><th>Action</th><th>Case ID</th><th>IP Address</th></tr></thead>
+                            <tbody>
+                                ${phiLog.length === 0 ? '<tr><td colspan="5" style="text-align:center;">No PHI access records</td></tr>' :
+                                  phiLog.map(e => `<tr>
+                                    <td>${formatDateTime(e.accessed_at)}</td>
+                                    <td>${escapeHtml(e.user_email || 'Unknown')}</td>
+                                    <td>${escapeHtml(e.access_type.replace(/_/g, ' '))}</td>
+                                    <td style="font-family: monospace;">${escapeHtml(e.case_id || '-')}</td>
+                                    <td style="font-family: monospace;">${escapeHtml(e.ip_address || '-')}</td>
+                                  </tr>`).join('')}
+                            </tbody>
+                        </table>
+                    </div>
                 </body>
                 </html>
             `;
