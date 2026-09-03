@@ -536,7 +536,7 @@ if (isset($appConfig) && is_array($appConfig) && isset($appConfig['appName'])) {
 <?php endif; ?>
   
   <!-- Mobile responsiveness CSS -->
-  <link rel="stylesheet" href="css/mobile.css?v=20260831d">
+  <link rel="stylesheet" href="css/mobile.css?v=20260903a">
   
   <!-- Non-critical CSS - deferred loading -->
   <?php if (isFeatureEnabled('SHOW_TOUR')): ?>
@@ -573,7 +573,7 @@ if (isset($appConfig) && is_array($appConfig) && isset($appConfig['appName'])) {
   <link rel="preload" href="css/logo-upload.css?v=20260807a" as="style" onload="this.onload=null;this.rel='stylesheet'">
   <link rel="preload" href="css/dev-tools.css?v=20241210" as="style" onload="this.onload=null;this.rel='stylesheet'">
   <link rel="preload" href="css/analytics-pro.css?v=20241231" as="style" onload="this.onload=null;this.rel='stylesheet'">
-  <link rel="preload" href="css/attachment-viewer.css?v=20260819b" as="style" onload="this.onload=null;this.rel='stylesheet'">
+  <link rel="preload" href="css/attachment-viewer.css?v=20260903a" as="style" onload="this.onload=null;this.rel='stylesheet'">
 <?php if (isFeatureEnabled('SHOW_LAB_INSIGHTS')): ?>
   <link rel="preload" href="css/lab-insights.css?v=20260815" as="style" onload="this.onload=null;this.rel='stylesheet'">
 <?php endif; ?>
@@ -602,7 +602,7 @@ if (isset($appConfig) && is_array($appConfig) && isset($appConfig['appName'])) {
 <?php if (isFeatureEnabled('SHOW_LAB_INSIGHTS')): ?>
     <link rel="stylesheet" href="css/lab-insights.css?v=20260815">
 <?php endif; ?>
-    <link rel="stylesheet" href="css/attachment-viewer.css?v=20260819b">
+    <link rel="stylesheet" href="css/attachment-viewer.css?v=20260903a">
 <?php if (isFeatureEnabled('BILLING_ENABLED')): ?>
     <link rel="stylesheet" href="css/billing-portal.css?v=20260805">
 <?php endif; ?>
@@ -2994,7 +2994,7 @@ endif;
   <script src="js/mobile-case-modal.js?v=20260830c" defer></script>
   <script src="js/mobile-kanban.js?v=20260829b" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js" defer></script>
-  <script type="module" src="js/attachment-viewer.js?v=20260820a" defer></script>
+  <script type="module" src="js/attachment-viewer.js?v=20260903a" defer></script>
   <script src="js/card-delete-fixed.js?v=20250104" defer></script>
   <script src="js/assignments.js?v=20250104" defer></script>
   <script src="js/case-comments.js?v=20250830b" defer></script>

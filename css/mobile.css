@@ -95,7 +95,9 @@
     padding: 12px 12px;
     gap: 8px;
     justify-content: space-between;
-    overflow: hidden;
+    /* Must stay overflow: visible - the avatar/user menu, notification and
+       language dropdowns are absolutely positioned children that open below
+       the header. overflow: hidden clipped them so taps hit the dashboard. */
   }
 
   .main-brand {
@@ -787,17 +789,55 @@
     flex-direction: column;
   }
 
-  /* Search and filter controls */
-  #archivedCasesModal .archived-search-row {
-    flex-direction: column;
-    gap: 8px;
-    margin-bottom: 12px;
+  /* Search and filter controls - stack search above a 2-column filter grid
+     so the selects never overflow the modal. */
+  #archivedCasesModal .archived-search-header {
+    padding: 10px 12px 6px;
   }
 
-  #archivedCasesModal .archived-search-row input,
-  #archivedCasesModal .archived-search-row select {
+  #archivedCasesModal .archived-filters {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+    padding: 10px;
+  }
+
+  #archivedCasesModal .archived-search {
+    flex: 1 1 auto;
     width: 100%;
+    min-width: 0;
+  }
+
+  #archivedCasesModal .archived-search input {
+    width: 100%;
+    min-height: 44px;
+    height: 44px;
     font-size: 16px;
+    box-sizing: border-box;
+  }
+
+  #archivedCasesModal .archived-filter-controls {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 8px;
+    width: 100%;
+    min-width: 0;
+  }
+
+  #archivedCasesModal .archived-filter-controls select {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
+    min-height: 44px;
+    height: 44px;
+    font-size: 16px;
+  }
+
+  #archivedCasesModal .archived-filter-controls .btn-clear-filters {
+    grid-column: 1 / -1;
+    min-height: 44px;
+    height: 44px;
   }
 
   /* Table container - horizontal scroll */
@@ -827,30 +867,71 @@
     border-top: 1px solid #e5e7eb;
   }
 
-  .archived-pagination {
+  /* Intentional two-row footer:
+       row 1: rows-per-page select | Close
+       row 2: Previous | Page x of y | Next */
+  #archivedCasesModal .archived-pagination {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 8px;
+    margin-top: 0;
+    padding: 0;
+    border-top: none;
+    background: transparent;
+  }
+
+  #archivedCasesModal .pagination-left {
+    grid-column: 1;
+    grid-row: 1;
+    min-width: 0;
+  }
+
+  #archivedCasesModal .pagination-right {
+    grid-column: 2;
+    grid-row: 1;
     display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
+    justify-content: flex-end;
+  }
+
+  #archivedCasesModal .pagination-center {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    display: flex;
+    flex-wrap: nowrap;
+    justify-content: space-between;
     align-items: center;
-    gap: 6px;
+    gap: 8px;
+    min-width: 0;
   }
 
-  .archived-pagination .pagination-left,
-  .archived-pagination .pagination-right {
+  #archivedCasesModal .pagination-center span {
+    flex: 1 1 auto;
+    min-width: 0;
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: 0.85rem;
+    padding: 8px 6px;
+  }
+
+  #archivedCasesModal .archived-pagination button {
+    min-width: 44px;
+    min-height: 44px;
+    padding: 8px 12px;
+    font-size: 0.85rem;
+    white-space: nowrap;
+    flex: 0 0 auto;
+    box-sizing: border-box;
+  }
+
+  #archivedCasesModal .archived-pagination select {
     width: 100%;
-    justify-content: center;
-    margin-bottom: 8px;
-  }
-
-  .archived-pagination button {
-    min-width: 36px;
-    min-height: 36px;
-    padding: 6px 10px;
-    font-size: 0.8rem;
-  }
-
-  .archived-pagination select {
-    font-size: 14px;
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
+    min-height: 44px;
+    font-size: 16px;
     padding: 6px 8px;
   }
 }
