@@ -44,16 +44,6 @@
       return;
     }
 
-    // Product decision: Billing is desktop/tablet-only on phones. Central
-    // guard here covers every call site (menu click, any future direct
-    // call) so phone users never land inside the admin/Stripe UI.
-    if (window.matchMedia('(max-width: 720px)').matches) {
-      if (typeof window.showMobileRestrictedModal === 'function') {
-        window.showMobileRestrictedModal('billing');
-      }
-      return;
-    }
-
     modal  = document.getElementById('billingPortalModal');
     bodyEl = document.getElementById('billingPortalBody');
     if (!modal || !bodyEl) return;

@@ -1500,41 +1500,14 @@
 }
 
 /* ===========================================
-   PRODUCT DECISION: Settings & Billing are
-   desktop/tablet-only on phones (<=720px).
-   ------------------------------------------------
-   Hides the two menu items by stable ID (not a
-   positional selector - see removed-rule note
-   below). This is a presentation-only guard; the
-   real enforcement is the matchMedia() check inside
-   openSettingsBillingModal() / window.openBillingPortal()
-   in js/app.js and js/billing-portal.js, which also
-   covers direct/programmatic calls (e.g. the Ctrl+,
-   shortcut) that never touch this menu markup.
-   =========================================== */
-@media (max-width: 720px) {
-  #settingsMenuItem,
-  #billingMenuItem {
-    display: none;
-  }
-}
-
-/* ===========================================
    8. SETTINGS MODAL & TAKE A TOUR (Mobile)
    - Hide tour on mobile
    =========================================== */
 
 @media (max-width: 480px) {
-  /* NOTE: A rule used to live here hiding the Settings link in the user
-     menu via `.user-menu-item[href="#"]:first-of-type` (comment: "not
-     mobile-optimized"). That positional selector no longer reliably
-     targets Settings - it hides whichever menu item happens to render
-     first (e.g. Billing, when BILLING_ENABLED), and everything below
-     this block already makes the Settings modal itself usable on mobile
-     (full-screen layout, scrollable content, adjusted twisty padding).
-     Removed rather than left in place hiding the wrong/an inconsistent
-     item. Superseded by the dedicated <=720px rule above anyway, which
-     now hides both items by stable ID. */
+  /* Settings and Billing are now reachable through the normal mobile
+     user menu; the rules below make the Settings modal usable on small
+     screens (full-screen layout, scrollable content, adjusted twisty padding). */
 
   /* Hide Tour link in user menu on mobile */
   #startTourLink {
@@ -1631,6 +1604,13 @@
     width: 100%;
   }
 
+  /* Checkboxes/radios in Settings should keep their native size, especially
+     inside flex rows like assignment-label recipient lists. */
+  #settingsBillingModal input[type="checkbox"],
+  #settingsBillingModal input[type="radio"] {
+    width: auto;
+  }
+
   /* Save/Cancel buttons */
   #settingsBillingModal .button-container {
     display: flex;
@@ -1643,6 +1623,42 @@
     width: 100%;
     padding: 12px 16px;
     min-height: 44px;
+  }
+
+  /* Shared Assignment Label cards - keep readable in narrow Settings modal */
+  .assignment-label-card {
+    padding: 12px;
+    gap: 6px;
+  }
+
+  .assignment-label-header {
+    gap: 8px;
+  }
+
+  .assignment-label-card .assignment-actions {
+    width: 100%;
+    margin-left: 0;
+    justify-content: flex-end;
+  }
+
+  .assignment-label-card .edit-assignment-label,
+  .assignment-label-card .assignment-delete-btn {
+    min-height: 36px;
+    padding: 0 10px;
+  }
+
+  .assignment-label-recipients-summary {
+    padding: 10px;
+    margin: 0 -12px;
+    font-size: 13px;
+  }
+
+  .recipient-list {
+    padding: 8px 0 8px 14px;
+  }
+
+  .recipient-row label {
+    font-size: 13px;
   }
 
   /* Hide tour elements on mobile */

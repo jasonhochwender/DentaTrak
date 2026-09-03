@@ -510,7 +510,7 @@ if (isset($appConfig) && is_array($appConfig) && isset($appConfig['appName'])) {
   <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
   
   <!-- Preload critical resources -->
-  <link rel="preload" href="js/app.js?v=20260831c" as="script">
+  <link rel="preload" href="js/app.js?v=20260831f" as="script">
   <link rel="preload" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
   <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap"></noscript>
   
@@ -529,14 +529,14 @@ if (isset($appConfig) && is_array($appConfig) && isset($appConfig['appName'])) {
   </style>
   
   <!-- Load app.light.css directly (skip app.css @import chain) -->
-  <link rel="stylesheet" href="css/app.light.css?v=20260821a">
+  <link rel="stylesheet" href="css/app.light.css?v=20260831f">
   <link rel="stylesheet" href="css/app.css?v=20260807a">
 <?php if (isFeatureEnabled('SHOW_NOTIFICATIONS')): ?>
   <link rel="stylesheet" href="css/notification-preferences.css?v=20250104">
 <?php endif; ?>
   
   <!-- Mobile responsiveness CSS -->
-  <link rel="stylesheet" href="css/mobile.css?v=20260831b">
+  <link rel="stylesheet" href="css/mobile.css?v=20260831d">
   
   <!-- Non-critical CSS - deferred loading -->
   <?php if (isFeatureEnabled('SHOW_TOUR')): ?>
@@ -557,7 +557,7 @@ if (isset($appConfig) && is_array($appConfig) && isset($appConfig['appName'])) {
   <!-- Feature-specific CSS - loaded on demand -->
   <link rel="preload" href="css/revision-history.css?v=20241210" as="style" onload="this.onload=null;this.rel='stylesheet'">
   <link rel="preload" href="css/delete-button.css?v=20241210" as="style" onload="this.onload=null;this.rel='stylesheet'">
-  <link rel="preload" href="css/settings-billing.css?v=20260828c" as="style" onload="this.onload=null;this.rel='stylesheet'">
+  <link rel="preload" href="css/settings-billing.css?v=20260831d" as="style" onload="this.onload=null;this.rel='stylesheet'">
   <link rel="preload" href="css/feedback.css?v=20241210" as="style" onload="this.onload=null;this.rel='stylesheet'">
   <link rel="preload" href="css/kanban-dragdrop.css?v=20241210" as="style" onload="this.onload=null;this.rel='stylesheet'">
   <link rel="preload" href="css/case-creation.css?v=20241210" as="style" onload="this.onload=null;this.rel='stylesheet'">
@@ -583,7 +583,7 @@ if (isset($appConfig) && is_array($appConfig) && isset($appConfig['appName'])) {
   <noscript>
     <link rel="stylesheet" href="css/revision-history.css?v=20241210">
     <link rel="stylesheet" href="css/delete-button.css?v=20241210">
-    <link rel="stylesheet" href="css/settings-billing.css?v=20260828c">
+    <link rel="stylesheet" href="css/settings-billing.css?v=20260831d">
     <link rel="stylesheet" href="css/feedback.css?v=20241210">
     <link rel="stylesheet" href="css/kanban-dragdrop.css?v=20241210">
     <link rel="stylesheet" href="css/case-creation.css?v=20241210">
@@ -2990,7 +2990,7 @@ endif;
   </script>
   <script src="js/workflow-draft.js?v=20260829f" defer></script>
   <script src="js/workflow-draft-ui.js?v=20260829f" defer></script>
-  <script src="js/app.js?v=20260831c" defer></script>
+  <script src="js/app.js?v=20260831f" defer></script>
   <script src="js/mobile-case-modal.js?v=20260830c" defer></script>
   <script src="js/mobile-kanban.js?v=20260829b" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js" defer></script>
@@ -3023,7 +3023,7 @@ endif;
   <script src="js/ask-dentatrak.js?v=20250104" defer></script>
   <script src="js/insights.js?v=20250104" defer></script>
 <?php if (isFeatureEnabled('BILLING_ENABLED')): ?>
-  <script src="js/billing-portal.js?v=20260805" defer></script>
+  <script src="js/billing-portal.js?v=20260831f" defer></script>
 <?php endif; ?>
   <script src="js/patient-search.js?v=20250105c" defer></script>
   <script src="js/realtime-updates.js?v=20250119f" defer></script>
@@ -3138,25 +3138,6 @@ endif;
     </div>
   </div>
 
-  <!-- Mobile Restricted Feature Modal (reusable) -->
-  <!-- Shown instead of Settings/Billing on phone-sized screens (<=720px).
-       Reuses the .confirm-modal-content / .confirm-modal-footer styling
-       from the Confirmation Modal above so no new CSS is required. -->
-  <div id="mobileRestrictedModal" class="modal confirm-modal">
-    <div class="modal-content confirm-modal-content">
-      <div class="modal-header">
-        <h2 class="modal-title" id="mobileRestrictedTitle"><?php echo t('settings.messages.mobile_title'); ?></h2>
-      </div>
-      <div class="modal-body">
-        <p id="mobileRestrictedMessage"><?php echo t('settings.messages.mobile_message'); ?></p>
-        <p id="mobileRestrictedSubtext" style="margin-top:10px;font-size:0.85rem;color:var(--text-secondary);line-height:1.5;"></p>
-      </div>
-      <div class="modal-footer confirm-modal-footer">
-        <button type="button" class="btn-primary" id="mobileRestrictedClose"><?php echo t('common.close'); ?></button>
-      </div>
-    </div>
-  </div>
-  
   <!-- Chart.js and Analytics Pro are lazy-loaded when Analytics tab is clicked -->
   
   <!-- Shepherd.js Tour - deferred since not needed immediately -->

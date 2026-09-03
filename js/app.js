@@ -363,33 +363,6 @@ function showConfirmModal(title, message, onConfirm, onCancel, preventBackground
   }
 }
 
-// Product decision: Settings and Billing are desktop/tablet-only
-// administrative surfaces. On phones (<=720px) this shows a lightweight
-// message instead. Called from a central guard inside openSettingsBillingModal()
-// and window.openBillingPortal() so every existing/future call site
-// (menu click, Ctrl+, shortcut, etc.) is covered without duplicating the
-// check in each handler.
-function showMobileRestrictedModal(type) {
-  var modal = document.getElementById('mobileRestrictedModal');
-  var titleEl = document.getElementById('mobileRestrictedTitle');
-  var messageEl = document.getElementById('mobileRestrictedMessage');
-  var subtextEl = document.getElementById('mobileRestrictedSubtext');
-  if (!modal || !titleEl || !messageEl || !subtextEl) return;
-
-  if (type === 'billing') {
-    titleEl.textContent = t('billing.billing');
-    messageEl.textContent = t('billing.errors.desktop_tablet_only');
-    subtextEl.textContent = t('billing.errors.desktop_tablet_only_subtext');
-  } else {
-    titleEl.textContent = t('settings.messages.mobile_title');
-    messageEl.textContent = t('settings.messages.mobile_message');
-    subtextEl.textContent = t('settings.messages.mobile_subtext');
-  }
-
-  modal.style.display = 'block';
-}
-window.showMobileRestrictedModal = showMobileRestrictedModal;
-
 // Simple wrapper around the Toast system used throughout the app
 function showToast(message, type) {
   if (!message) return;
@@ -819,91 +792,28 @@ document.addEventListener('DOMContentLoaded', function () {
     var showLabInsights = !!window.showLabInsights;
 
     window.assignmentLabels.forEach(function(label, idx) {
+      var meta = window.assignmentLabelsMeta && window.assignmentLabelsMeta[idx];
+      var currentRecipients = meta ? (meta.recipients || []) : [];
+      var selectedCount = currentRecipients.length;
+
       var item = document.createElement('div');
-      item.className = 'gmail-user-item';
+      item.className = 'gmail-user-item assignment-label-card';
+
+      // Card header: label name (with lab indicator when enabled) on the left,
+      // Rename/Delete on the right.
+      var header = document.createElement('div');
+      header.className = 'assignment-label-header';
+
+      var nameGroup = document.createElement('div');
+      nameGroup.className = 'assignment-label-name-group';
 
       var labelSpan = document.createElement('span');
       labelSpan.className = 'gmail-user-email';
       labelSpan.textContent = label;
-
-      item.appendChild(labelSpan);
-
-      // Recipient checkbox selector for the label (admin only).
-      if (window.isPracticeAdmin && window.practiceUsers && window.practiceUsers.length > 0) {
-        var currentRecipients = window.assignmentLabelsMeta[idx] ? (window.assignmentLabelsMeta[idx].recipients || []) : [];
-        var selectedCount = currentRecipients.length;
-
-        var details = document.createElement('details');
-        details.className = 'assignment-label-recipients';
-        details.setAttribute('data-idx', idx);
-        details.style.marginLeft = '0';
-
-        var summary = document.createElement('summary');
-        summary.className = 'assignment-label-recipients-summary';
-        summary.textContent = (t('settings.users.shared_assignment_labels.recipients.label') || 'People notified for this label') +
-          ' (' + (selectedCount === 0
-            ? (t('settings.users.shared_assignment_labels.recipients.none') || 'No one')
-            : t('settings.users.shared_assignment_labels.recipients.selected_count', { count: selectedCount })) +
-          ')';
-        details.appendChild(summary);
-
-        var list = document.createElement('div');
-        list.className = 'recipient-list';
-        list.style.maxHeight = '160px';
-        list.style.overflowY = 'auto';
-        list.style.marginTop = '6px';
-
-        window.practiceUsers.forEach(function(user) {
-          var cbId = 'recipient-' + idx + '-' + user.id;
-          var row = document.createElement('div');
-          row.className = 'recipient-row';
-          row.style.display = 'flex';
-          row.style.alignItems = 'center';
-          row.style.gap = '6px';
-          row.style.padding = '2px 0';
-
-          var checkbox = document.createElement('input');
-          checkbox.type = 'checkbox';
-          checkbox.id = cbId;
-          checkbox.value = user.id;
-          checkbox.checked = currentRecipients.indexOf(user.id) !== -1;
-          checkbox.setAttribute('data-user-id', user.id);
-
-          var userLabel = document.createElement('label');
-          userLabel.htmlFor = cbId;
-          userLabel.textContent = (user.firstName + ' ' + user.lastName).trim() + ' <' + user.email + '>';
-          userLabel.title = t('settings.users.shared_assignment_labels.recipients.toggle_label', { email: user.email }) || '';
-          userLabel.style.cursor = 'pointer';
-
-          checkbox.addEventListener('change', function() {
-            var userId = parseInt(this.getAttribute('data-user-id'), 10);
-            var meta = window.assignmentLabelsMeta && window.assignmentLabelsMeta[idx];
-            if (!meta) return;
-            if (this.checked) {
-              if (meta.recipients.indexOf(userId) === -1) meta.recipients.push(userId);
-            } else {
-              meta.recipients = meta.recipients.filter(function(id) { return id !== userId; });
-            }
-            var count = meta.recipients.length;
-            summary.textContent = (t('settings.users.shared_assignment_labels.recipients.label') || 'People notified for this label') +
-              ' (' + (count === 0
-                ? (t('settings.users.shared_assignment_labels.recipients.none') || 'No one')
-                : t('settings.users.shared_assignment_labels.recipients.selected_count', { count: count })) +
-              ')';
-          });
-
-          row.appendChild(checkbox);
-          row.appendChild(userLabel);
-          list.appendChild(row);
-        });
-
-        details.appendChild(list);
-        item.appendChild(details);
-      }
+      nameGroup.appendChild(labelSpan);
 
       // Lab checkbox - only rendered while SHOW_LAB_INSIGHTS is enabled.
       if (showLabInsights) {
-        var meta = window.assignmentLabelsMeta && window.assignmentLabelsMeta[idx];
         var labWrapper = document.createElement('label');
         labWrapper.className = 'assignment-label-lab-checkbox';
         labWrapper.title = t('settings.users.practice_users.lab_tooltip');
@@ -919,22 +829,16 @@ document.addEventListener('DOMContentLoaded', function () {
 
         labWrapper.appendChild(labCheckbox);
         labWrapper.appendChild(document.createTextNode(t('settings.users.practice_users.lab')));
-        item.appendChild(labWrapper);
+        nameGroup.appendChild(labWrapper);
       }
 
+      header.appendChild(nameGroup);
+
       // Edit/delete controls are only rendered for Practice Administrators.
-      // Non-admins can still see the label list (it's used when assigning
-      // cases) but cannot manage it - matches the server-side enforcement
-      // in save-settings.php (role === 'admin').
       if (window.isPracticeAdmin) {
-        // Container for action icons on the right
         var actions = document.createElement('div');
         actions.className = 'assignment-actions';
-        actions.style.display = 'flex';
-        actions.style.alignItems = 'center';
-        actions.style.gap = '8px';
 
-        // Edit button (same style as card edit: ✎)
         var editBtn = document.createElement('button');
         editBtn.type = 'button';
         editBtn.className = 'edit-assignment-label';
@@ -942,11 +846,9 @@ document.addEventListener('DOMContentLoaded', function () {
         editBtn.title = t('settings.users.shared_assignment_labels.actions.edit');
         editBtn.setAttribute('data-label', label);
         editBtn.addEventListener('click', function() {
-          var labelToEdit = this.getAttribute('data-label');
-          editAssignmentLabel(labelToEdit);
+          editAssignmentLabel(this.getAttribute('data-label'));
         });
 
-        // Remove button (reuse the same trash SVG as case card delete)
         var removeBtn = document.createElement('button');
         removeBtn.type = 'button';
         removeBtn.className = 'assignment-delete-btn';
@@ -958,16 +860,75 @@ document.addEventListener('DOMContentLoaded', function () {
           '  <line x1="10" y1="11" x2="10" y2="17"></line>' +
           '  <line x1="14" y1="11" x2="14" y2="17"></line>' +
           '</svg>';
-        removeBtn.style.color = '#e53935';
         removeBtn.setAttribute('data-label', label);
         removeBtn.addEventListener('click', function() {
-          var labelToRemove = this.getAttribute('data-label');
-          removeAssignmentLabel(labelToRemove);
+          removeAssignmentLabel(this.getAttribute('data-label'));
         });
 
         actions.appendChild(editBtn);
         actions.appendChild(removeBtn);
-        item.appendChild(actions);
+        header.appendChild(actions);
+      }
+
+      item.appendChild(header);
+
+      // Recipient notification section (admin only).
+      if (window.isPracticeAdmin && window.practiceUsers && window.practiceUsers.length > 0) {
+        function buildSummaryText(count) {
+          return (t('settings.users.shared_assignment_labels.recipients.label') || 'People notified when this label changes') +
+            ' (' + (count === 0
+              ? (t('settings.users.shared_assignment_labels.recipients.none') || 'None')
+              : t('settings.users.shared_assignment_labels.recipients.selected_count', { count: count })) +
+            ')';
+        }
+
+        var details = document.createElement('details');
+        details.className = 'assignment-label-recipients';
+        details.setAttribute('data-idx', idx);
+
+        var summary = document.createElement('summary');
+        summary.className = 'assignment-label-recipients-summary';
+        summary.textContent = buildSummaryText(selectedCount);
+        details.appendChild(summary);
+
+        var list = document.createElement('div');
+        list.className = 'recipient-list';
+
+        window.practiceUsers.forEach(function(user) {
+          var cbId = 'recipient-' + idx + '-' + user.id;
+          var row = document.createElement('div');
+          row.className = 'recipient-row';
+
+          var checkbox = document.createElement('input');
+          checkbox.type = 'checkbox';
+          checkbox.id = cbId;
+          checkbox.value = user.id;
+          checkbox.checked = currentRecipients.indexOf(user.id) !== -1;
+          checkbox.setAttribute('data-user-id', user.id);
+
+          var userLabel = document.createElement('label');
+          userLabel.htmlFor = cbId;
+          userLabel.textContent = (user.firstName + ' ' + user.lastName).trim() + ' <' + user.email + '>';
+          userLabel.title = t('settings.users.shared_assignment_labels.recipients.toggle_label', { email: user.email }) || '';
+
+          checkbox.addEventListener('change', function() {
+            var userId = parseInt(this.getAttribute('data-user-id'), 10);
+            if (!meta) return;
+            if (this.checked) {
+              if (meta.recipients.indexOf(userId) === -1) meta.recipients.push(userId);
+            } else {
+              meta.recipients = meta.recipients.filter(function(id) { return id !== userId; });
+            }
+            summary.textContent = buildSummaryText(meta.recipients.length);
+          });
+
+          row.appendChild(checkbox);
+          row.appendChild(userLabel);
+          list.appendChild(row);
+        });
+
+        details.appendChild(list);
+        item.appendChild(details);
       }
 
       labelsList.appendChild(item);
@@ -1343,14 +1304,6 @@ document.addEventListener('DOMContentLoaded', function () {
     // every underlying settings API independently re-verifies this too.
     if (!window.isPracticeAdmin) {
       showToast(t('settings.messages.admin_only'), 'error');
-      return;
-    }
-
-    // Product decision: Settings is desktop/tablet-only on phones. Central
-    // guard here covers every call site (menu click, Ctrl+, shortcut) so
-    // phone users never land inside the admin UI, even via direct calls.
-    if (window.matchMedia('(max-width: 720px)').matches) {
-      showMobileRestrictedModal('settings');
       return;
     }
 
@@ -2218,20 +2171,6 @@ document.addEventListener('DOMContentLoaded', function () {
   if (settingsBillingClose) {
     settingsBillingClose.addEventListener('click', function() {
       closeSettingsBillingModal(false);
-    });
-  }
-
-  // Mobile Restricted Modal (Settings/Billing on phones) - Close button + backdrop click
-  var mobileRestrictedModalEl = document.getElementById('mobileRestrictedModal');
-  var mobileRestrictedCloseBtn = document.getElementById('mobileRestrictedClose');
-  if (mobileRestrictedCloseBtn && mobileRestrictedModalEl) {
-    mobileRestrictedCloseBtn.addEventListener('click', function() {
-      mobileRestrictedModalEl.style.display = 'none';
-    });
-    mobileRestrictedModalEl.addEventListener('click', function(e) {
-      if (e.target === mobileRestrictedModalEl) {
-        mobileRestrictedModalEl.style.display = 'none';
-      }
     });
   }
 
@@ -6580,14 +6519,6 @@ document.addEventListener('DOMContentLoaded', function () {
   document.addEventListener('keydown', function(event) {
     if (event.key === 'Escape' && deleteConfirmModal && deleteConfirmModal.style.display === 'block') {
       closeDeleteConfirmation();
-    }
-  });
-
-  // Escape key handler for the Mobile Restricted Modal (Settings/Billing on phones)
-  document.addEventListener('keydown', function(event) {
-    var mrModal = document.getElementById('mobileRestrictedModal');
-    if (event.key === 'Escape' && mrModal && mrModal.style.display === 'block') {
-      mrModal.style.display = 'none';
     }
   });
 

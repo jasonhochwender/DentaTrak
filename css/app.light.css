@@ -2899,6 +2899,12 @@ body {
   z-index: 150;
 }
 
+/* The Billing portal modal can be opened from the user menu while Settings
+   is still open, so it must paint above the Settings layer. */
+#billingPortalModal {
+  z-index: 160;
+}
+
 .modal-header {
   margin: 0;
   padding: 20px 28px;

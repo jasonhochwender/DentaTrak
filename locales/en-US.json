@@ -658,10 +658,10 @@
                     "cancel": "Cancel"
                 },
                 "recipients": {
-                    "label": "People notified for this label",
+                    "label": "People notified when this label changes",
                     "placeholder": "Search people...",
-                    "selected_count": "{count} selected",
-                    "none": "No one",
+                    "selected_count": "{count}",
+                    "none": "None",
                     "toggle_label": "Toggle {email}"
                 }
             }
