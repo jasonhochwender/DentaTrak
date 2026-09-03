@@ -32,6 +32,24 @@ function getWorkflowStatusCssClass(status) {
 window.getWorkflowStatusCssClass = getWorkflowStatusCssClass;
 
 /**
+ * Normalize a boolean-ish preference value from the server/localStorage.
+ * Handles JS booleans, numbers, and strings (e.g. "0", "1", "true", "false").
+ * Empty/null/undefined falls back to the caller-supplied default.
+ */
+function toBoolean(value, defaultValue) {
+  if (typeof value === 'boolean') return value;
+  if (value === null || value === undefined) return defaultValue;
+  if (typeof value === 'number') return value !== 0;
+  if (typeof value === 'string') {
+    var s = value.trim().toLowerCase();
+    if (s === 'false' || s === '0' || s === 'no' || s === 'off' || s === '') return false;
+    if (s === 'true' || s === '1' || s === 'yes' || s === 'on') return true;
+  }
+  return defaultValue;
+}
+window.toBoolean = toBoolean;
+
+/**
  * Return the internal status id of the practice's final (last active)
  * workflow column. Uses the persisted workflow column snapshot when available;
  * otherwise falls back to the last visible kanban column in the DOM, and only
@@ -1595,7 +1613,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     // Set tour completion status for Shepherd.js
-    window.tourCompleted = !!preferences.tour_completed;
+    window.tourCompleted = toBoolean(preferences.tour_completed, false);
     window.tourSettingsLoaded = true;
     window.dispatchEvent(new Event('toursettingsloaded'));
 
@@ -1644,14 +1662,21 @@ document.addEventListener('DOMContentLoaded', function () {
     window.pendingLogoPath = '';
     window.logoMarkedForRemoval = false;
 
-    // Apply checkbox values
-    const allowCardDelete = preferences.allow_card_delete !== undefined ? !!preferences.allow_card_delete : true;
-    // Sync checkbox with database value
+    // Apply checkbox values - use toBoolean to handle DB strings like "0" / "1".
+    const allowCardDelete = toBoolean(preferences.allow_card_delete, true);
+    const highlightPastDue = toBoolean(preferences.highlight_past_due, true);
+    const highlightComingDue = toBoolean(preferences.highlight_coming_due, false);
+    const highlightAppointmentRisk = toBoolean(preferences.highlight_appointment_risk, true);
+
+    // Sync checkboxes with database value
     const allowCardDeleteCheckbox = document.getElementById('allowCardDelete');
     if (allowCardDeleteCheckbox) {
       allowCardDeleteCheckbox.checked = allowCardDelete;
     }
-    document.getElementById('highlightPastDue').checked = !!preferences.highlight_past_due;
+    const highlightPastDueCheckbox = document.getElementById('highlightPastDue');
+    if (highlightPastDueCheckbox) {
+      highlightPastDueCheckbox.checked = highlightPastDue;
+    }
 
     // Apply allow card delete preference to show/hide archive buttons
     var mainContainer = document.querySelector('.main-container');
@@ -1659,27 +1684,15 @@ document.addEventListener('DOMContentLoaded', function () {
     var dashboard = document.querySelector('.dashboard');
 
     if (mainContainer) {
-      if (allowCardDelete) {
-        mainContainer.classList.add('allow-card-delete');
-      } else {
-        mainContainer.classList.remove('allow-card-delete');
-      }
+      mainContainer.classList.toggle('allow-card-delete', allowCardDelete);
     }
 
     if (cardContainer) {
-      if (allowCardDelete) {
-        cardContainer.classList.add('allow-card-delete');
-      } else {
-        cardContainer.classList.remove('allow-card-delete');
-      }
+      cardContainer.classList.toggle('allow-card-delete', allowCardDelete);
     }
 
     if (dashboard) {
-      if (allowCardDelete) {
-        dashboard.classList.add('allow-card-delete');
-      } else {
-        dashboard.classList.remove('allow-card-delete');
-      }
+      dashboard.classList.toggle('allow-card-delete', allowCardDelete);
     }
 
     // Save allow card delete preference in localStorage
@@ -1698,39 +1711,47 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     // Apply coming due values
-    document.getElementById('highlightComingDue').checked = !!preferences.highlight_coming_due;
     const comingDueDaysInput = document.getElementById('comingDueDays');
     if (comingDueDaysInput) {
       comingDueDaysInput.value = preferences.coming_due_days || 5;
     }
 
     // Save coming due preferences in localStorage
-    localStorage.setItem('highlight_coming_due', preferences.highlight_coming_due ? 'true' : 'false');
+    localStorage.setItem('highlight_coming_due', highlightComingDue ? 'true' : 'false');
     localStorage.setItem('coming_due_days', (preferences.coming_due_days || 5).toString());
 
     // Apply appointment risk values
-    document.getElementById('highlightAppointmentRisk').checked = !!preferences.highlight_appointment_risk;
     const appointmentRiskDaysInput = document.getElementById('appointmentRiskDays');
     if (appointmentRiskDaysInput) {
       appointmentRiskDaysInput.value = preferences.appointment_risk_days || 3;
     }
 
     // Save appointment risk preferences in localStorage
-    localStorage.setItem('highlight_appointment_risk', preferences.highlight_appointment_risk ? 'true' : 'false');
+    localStorage.setItem('highlight_appointment_risk', highlightAppointmentRisk ? 'true' : 'false');
     localStorage.setItem('appointment_risk_days', (preferences.appointment_risk_days || 3).toString());
+
+    // Sync checkboxes for coming due and appointment risk
+    const highlightComingDueCheckbox = document.getElementById('highlightComingDue');
+    if (highlightComingDueCheckbox) {
+      highlightComingDueCheckbox.checked = highlightComingDue;
+    }
+    const highlightAppointmentRiskCheckbox = document.getElementById('highlightAppointmentRisk');
+    if (highlightAppointmentRiskCheckbox) {
+      highlightAppointmentRiskCheckbox.checked = highlightAppointmentRisk;
+    }
 
     // Update conditional visibility
     const pastDueSettings = document.getElementById('pastDueSettings');
     if (pastDueSettings) {
-      pastDueSettings.classList.toggle('hidden', !preferences.highlight_past_due);
+      pastDueSettings.classList.toggle('hidden', !highlightPastDue);
     }
     const comingDueSettings = document.getElementById('comingDueSettings');
     if (comingDueSettings) {
-      comingDueSettings.classList.toggle('hidden', !preferences.highlight_coming_due);
+      comingDueSettings.classList.toggle('hidden', !highlightComingDue);
     }
     const appointmentRiskSettings = document.getElementById('appointmentRiskSettings');
     if (appointmentRiskSettings) {
-      appointmentRiskSettings.classList.toggle('hidden', !preferences.highlight_appointment_risk);
+      appointmentRiskSettings.classList.toggle('hidden', !highlightAppointmentRisk);
     }
 
     // Apply Google Drive backup setting - fetch from practice-level API
@@ -7290,7 +7311,7 @@ document.addEventListener('DOMContentLoaded', function () {
         '<div class="kanban-card-content">' +
         '  <p><strong>' + t('cases.type') + ':</strong> ' + (getCaseTypeDisplayLabel(displayData.caseType) || '') + '</p>' +
         '  <p><strong>' + t('cases.due_label') + ':</strong> ' + formatDate(displayData.dueDate) + '<span class="late-indicator">' + (dueIndicatorText || '') + '</span></p>' +
-        (displayData.patientAppointmentDate ? '  <p><strong>' + t('cases.patient_appointment_short') + ':</strong> ' + formatDate(displayData.patientAppointmentDate) + '<span class="appointment-risk-indicator">' + (apptRiskText || '') + '</span></p>' : '') +
+        (displayData.patientAppointmentDate ? '  <p class="kanban-card-appointment-row"><strong>' + t('cases.patient_appointment_short') + ':</strong> ' + formatDate(displayData.patientAppointmentDate) + (apptRiskText ? '<span class="appointment-risk-indicator">' + apptRiskText + '</span>' : '') + '</p>' : '') +
         '  <p class="dentist-row"><strong>' + t('cases.dentist') + ':</strong> ' + (displayData.dentistName || '') + attachmentIndicatorHtml + '</p>' +
         '  <div class="kanban-card-assignment">' +
         '    <div class="assignment-label"><strong>' + t('cases.assigned_to') + '</strong></div>' +
@@ -8097,21 +8118,22 @@ document.addEventListener('DOMContentLoaded', function () {
             data.currentPracticeId
           );
 
-          // Set localStorage values for past due and coming due highlighting
+          // Set localStorage values for past due and coming due highlighting.
+          // toBoolean guards against numeric/boolean values being sent as strings.
           if (data.preferences.highlight_past_due !== undefined) {
-            localStorage.setItem('highlight_past_due', data.preferences.highlight_past_due ? 'true' : 'false');
+            localStorage.setItem('highlight_past_due', toBoolean(data.preferences.highlight_past_due, true) ? 'true' : 'false');
           }
           if (data.preferences.past_due_days !== undefined) {
             localStorage.setItem('past_due_days', data.preferences.past_due_days.toString());
           }
           if (data.preferences.highlight_coming_due !== undefined) {
-            localStorage.setItem('highlight_coming_due', data.preferences.highlight_coming_due ? 'true' : 'false');
+            localStorage.setItem('highlight_coming_due', toBoolean(data.preferences.highlight_coming_due, false) ? 'true' : 'false');
           }
           if (data.preferences.coming_due_days !== undefined) {
             localStorage.setItem('coming_due_days', data.preferences.coming_due_days.toString());
           }
           if (data.preferences.highlight_appointment_risk !== undefined) {
-            localStorage.setItem('highlight_appointment_risk', data.preferences.highlight_appointment_risk ? 'true' : 'false');
+            localStorage.setItem('highlight_appointment_risk', toBoolean(data.preferences.highlight_appointment_risk, true) ? 'true' : 'false');
           }
           if (data.preferences.appointment_risk_days !== undefined) {
             localStorage.setItem('appointment_risk_days', data.preferences.appointment_risk_days.toString());
@@ -8249,14 +8271,38 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   }
 
+  // Remove the purple APPT RISK badge element (if any) from a card. The badge is
+  // only ever rendered when the case qualifies, so removing the node entirely
+  // avoids leaving an empty styled span behind.
+  function removeAppointmentRiskBadge(card) {
+    var apptIndicator = card.querySelector('.appointment-risk-indicator');
+    if (apptIndicator) apptIndicator.remove();
+  }
+
+  // Add the purple APPT RISK badge to the card's appointment row, creating the
+  // span only when the case actually qualifies.
+  function addAppointmentRiskBadge(card) {
+    var row = card.querySelector('.kanban-card-appointment-row');
+    if (!row) return;
+    var apptIndicator = row.querySelector('.appointment-risk-indicator');
+    if (!apptIndicator) {
+      apptIndicator = document.createElement('span');
+      apptIndicator.className = 'appointment-risk-indicator';
+      row.appendChild(apptIndicator);
+    }
+    apptIndicator.textContent = t('cases.risk.appointment_abbreviation');
+  }
+
   // Function to clear highlighting from a specific card
   function clearCardHighlighting(card) {
     card.classList.remove('kanban-card-past-due');
     card.classList.remove('kanban-card-coming-due');
+    card.classList.remove('kanban-card-appointment-risk');
     var lateIndicator = card.querySelector('.late-indicator');
     if (lateIndicator) {
       lateIndicator.textContent = '';
     }
+    removeAppointmentRiskBadge(card);
   }
 
   // Apply the full urgency hierarchy (Late > Appt Risk > Coming Due) to a card.
@@ -8271,7 +8317,6 @@ document.addEventListener('DOMContentLoaded', function () {
     if (!card) return;
 
     var lateIndicator = card.querySelector('.late-indicator');
-    var apptIndicator = card.querySelector('.appointment-risk-indicator');
 
     // Clear previous state before re-evaluating so moving into the final
     // workflow column immediately removes Late/Due Soon/Appointment Risk warnings.
@@ -8279,7 +8324,7 @@ document.addEventListener('DOMContentLoaded', function () {
     card.classList.remove('kanban-card-coming-due');
     card.classList.remove('kanban-card-appointment-risk');
     if (lateIndicator) lateIndicator.textContent = '';
-    if (apptIndicator) apptIndicator.textContent = '';
+    removeAppointmentRiskBadge(card);
 
     // Don't highlight cases in the final workflow column (they are essentially closed).
     // The final column is the last active workflow column for this practice.
@@ -8311,9 +8356,7 @@ document.addEventListener('DOMContentLoaded', function () {
       var daysUntilAppt = getCalendarDayDiff(caseData.patientAppointmentDate);
       if (daysUntilAppt !== null && daysUntilAppt <= appointmentRiskDays) {
         card.classList.add('kanban-card-appointment-risk');
-        if (apptIndicator) {
-          apptIndicator.textContent = 'APPT RISK';
-        }
+        addAppointmentRiskBadge(card);
         return;
       }
     }
@@ -10736,21 +10779,6 @@ document.addEventListener('DOMContentLoaded', function () {
       }
     }
   });
-
-  // Fallback: Force archive buttons to be visible after 2 seconds if settings haven't loaded
-  setTimeout(() => {
-    var archiveButtons = document.querySelectorAll('.card-delete-btn');
-    var hasVisibleButtons = Array.from(archiveButtons).some(btn =>
-      window.getComputedStyle(btn).display !== 'none'
-    );
-
-    if (!hasVisibleButtons && archiveButtons.length > 0) {
-      var dashboard = document.querySelector('.dashboard');
-      if (dashboard) {
-        dashboard.classList.add('allow-card-delete');
-      }
-    }
-  }, 2000);
 
   // Kanban Filter Functionality
   function initKanbanFilters() {

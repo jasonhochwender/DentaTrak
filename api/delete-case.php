@@ -53,26 +53,33 @@ if ($currentPracticeId) {
     }
 }
 
-// Check user preferences to see if card deletion is allowed
-// Since the checkbox is checked by default in the UI, we allow archiving by default
-// regardless of the database preference value
+// Check user preferences to see if individual card archiving is allowed.
+// A genuinely missing setting (no preferences row / NULL column) falls back to
+// the application default of TRUE, matching get-settings.php and the UI default.
+// A database/query failure is NOT treated as "allowed": we cannot verify the
+// setting, so fail closed with a server error and leave the case unchanged.
 try {
     $stmt = $pdo->prepare("
-        SELECT allow_card_delete 
-        FROM user_preferences 
+        SELECT allow_card_delete
+        FROM user_preferences
         WHERE user_id = :user_id
     ");
     $stmt->execute(['user_id' => $userId]);
     $preferenceValue = $stmt->fetchColumn();
-    // Allow archiving by default since the UI checkbox is checked by default
-    $allowCardDelete = true;
 } catch (PDOException $e) {
-    $allowCardDelete = true; // Default to true on error
     error_log("Error checking user preferences: " . $e->getMessage());
+    http_response_code(500);
+    echo json_encode(['success' => false, 'message' => t('api.archive.archive_error', ['message' => 'unable to verify archive permission'])]);
+    exit;
 }
+// fetchColumn() returns false when there is no row; a NULL column is also "unset".
+// Otherwise PDO may return the TINYINT as a string or int; cast for an
+// authoritative true/false. A stored 0 disables individual archiving.
+$allowCardDelete = ($preferenceValue === false || $preferenceValue === null)
+    ? true
+    : (bool)((int)$preferenceValue);
 
-// Only allow archiving if card deletion/archiving is allowed in preferences
-// (Admin requirement removed - if user can see the button, they can use it)
+// Only allow individual archiving if the practice setting explicitly allows it.
 if (!$allowCardDelete) {
     http_response_code(403);
     echo json_encode(['success' => false, 'message' => t('api.archive.no_permission')]);

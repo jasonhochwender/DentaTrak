@@ -510,7 +510,7 @@ if (isset($appConfig) && is_array($appConfig) && isset($appConfig['appName'])) {
   <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
   
   <!-- Preload critical resources -->
-  <link rel="preload" href="js/app.js?v=20260831f" as="script">
+  <link rel="preload" href="js/app.js?v=20260903a" as="script">
   <link rel="preload" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
   <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap"></noscript>
   
@@ -529,7 +529,7 @@ if (isset($appConfig) && is_array($appConfig) && isset($appConfig['appName'])) {
   </style>
   
   <!-- Load app.light.css directly (skip app.css @import chain) -->
-  <link rel="stylesheet" href="css/app.light.css?v=20260831f">
+  <link rel="stylesheet" href="css/app.light.css?v=20260903a">
   <link rel="stylesheet" href="css/app.css?v=20260807a">
 <?php if (isFeatureEnabled('SHOW_NOTIFICATIONS')): ?>
   <link rel="stylesheet" href="css/notification-preferences.css?v=20250104">
@@ -2990,7 +2990,7 @@ endif;
   </script>
   <script src="js/workflow-draft.js?v=20260829f" defer></script>
   <script src="js/workflow-draft-ui.js?v=20260829f" defer></script>
-  <script src="js/app.js?v=20260831f" defer></script>
+  <script src="js/app.js?v=20260903a" defer></script>
   <script src="js/mobile-case-modal.js?v=20260830c" defer></script>
   <script src="js/mobile-kanban.js?v=20260829b" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js" defer></script>

@@ -2222,6 +2222,12 @@ body {
   vertical-align: middle;
 }
 
+/* Hide empty badge containers so they don't render as colored dashes/placeholders */
+.late-indicator:empty,
+.appointment-risk-indicator:empty {
+  display: none;
+}
+
 /* Kanban Card Actions */
 .kanban-card-actions {
   margin-top: 10px;

@@ -435,9 +435,14 @@ try {
         if (!isset($preferences['delivered_hide_days'])) $preferences['delivered_hide_days'] = 120;
         if (!isset($preferences['tour_completed'])) $preferences['tour_completed'] = false;
         if (!isset($preferences['google_drive_backup'])) $preferences['google_drive_backup'] = false;
-        // Convert tour_completed to boolean
+        // Convert boolean preference columns to real booleans before JSON encoding.
+        // PDO returns TINYINT values as strings, so a disabled setting like
+        // allow_card_delete = 0 would otherwise be sent as "0" and truthy in JS.
+        $preferences['allow_card_delete'] = (bool)$preferences['allow_card_delete'];
+        $preferences['highlight_past_due'] = (bool)$preferences['highlight_past_due'];
+        $preferences['highlight_coming_due'] = (bool)$preferences['highlight_coming_due'];
+        $preferences['highlight_appointment_risk'] = (bool)$preferences['highlight_appointment_risk'];
         $preferences['tour_completed'] = (bool)$preferences['tour_completed'];
-        // Convert google_drive_backup to boolean
         $preferences['google_drive_backup'] = (bool)$preferences['google_drive_backup'];
     }
 
