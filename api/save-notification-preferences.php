@@ -78,6 +78,11 @@ if (!validateCsrfToken($submittedToken)) {
 }
 
 $supported = array_merge(['all'], getSupportedEmailEventTypes());
+$commentsEnabled = isFeatureEnabled('SHOW_COMMENTS');
+$visibleSupported = array_values(array_filter($supported, function ($type) use ($commentsEnabled) {
+    return $type !== 'mention' || $commentsEnabled;
+}));
+
 $submitted = $input['preferences'] ?? null;
 
 if (!is_array($submitted) || empty($submitted)) {
@@ -110,9 +115,9 @@ foreach ($submitted as $entry) {
         exit;
     }
 
-    if (!in_array($eventType, $supported, true)) {
+    if (!in_array($eventType, $visibleSupported, true)) {
         http_response_code(400);
-        echo json_encode(['success' => false, 'message' => 'Unknown event type: ' . $eventType]);
+        echo json_encode(['success' => false, 'message' => 'Unknown or hidden event type: ' . $eventType]);
         exit;
     }
 
@@ -133,14 +138,17 @@ foreach ($submitted as $entry) {
 try {
     $pdo->beginTransaction();
 
-    // Remove all existing email preferences for this user/practice
+    // Remove existing visible email preferences for this user/practice.
+    // Hidden preferences (e.g., mention when Comments is disabled) are preserved.
+    $inClause = implode(',', array_fill(0, count($visibleSupported), '?'));
     $delStmt = $pdo->prepare("
         DELETE FROM user_notification_preferences
-        WHERE user_id = :user_id
-          AND practice_id = :practice_id
+        WHERE user_id = ?
+          AND practice_id = ?
           AND channel = 'email'
+          AND event_type IN ({$inClause})
     ");
-    $delStmt->execute(['user_id' => $userId, 'practice_id' => $practiceId]);
+    $delStmt->execute(array_merge([$userId, $practiceId], $visibleSupported));
 
     // Insert only disabled (non-default) preferences
     if (!empty($normalized)) {
@@ -168,6 +176,8 @@ try {
     foreach ($preferences as $p) {
         if ($p['event_type'] === 'all') {
             $all = $p;
+        } elseif ($p['event_type'] === 'mention' && !isFeatureEnabled('SHOW_COMMENTS')) {
+            continue;
         } else {
             $events[] = $p;
         }

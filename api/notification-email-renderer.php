@@ -34,6 +34,10 @@ function renderNotificationEmail($locale, $subjectKey, $bodyKey, array $template
         'from' => $actorName,
     ]);
 
+    $preferenceExplanationKey = ($eventType === 'mention')
+        ? 'notifications.email.preference_explanation_mention'
+        : 'notifications.email.preference_explanation';
+
     $params = [
         'appName' => tForLocale($locale, 'app.name'),
         'eventDescription' => $eventDescription,
@@ -42,7 +46,7 @@ function renderNotificationEmail($locale, $subjectKey, $bodyKey, array $template
         'preferencesUrl' => $preferencesUrl,
         'preferencesLabel' => tForLocale($locale, 'preferences.title'),
         'signInPrompt' => tForLocale($locale, 'notifications.email.sign_in_prompt'),
-        'preferenceExplanation' => tForLocale($locale, 'notifications.email.preference_explanation'),
+        'preferenceExplanation' => tForLocale($locale, $preferenceExplanationKey),
         'footerSupport' => tForLocale($locale, 'notifications.email.footer_support'),
     ];
 

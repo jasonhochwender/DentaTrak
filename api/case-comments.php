@@ -7,10 +7,19 @@
 
 require_once __DIR__ . '/session.php';
 require_once __DIR__ . '/appConfig.php';
+require_once __DIR__ . '/feature-flags.php';
 require_once __DIR__ . '/practice-security.php';
 require_once __DIR__ . '/case-activity-log.php';
+require_once __DIR__ . '/notification-service.php';
+require_once __DIR__ . '/csrf.php';
 
 header('Content-Type: application/json');
+
+if (!isFeatureEnabled('SHOW_COMMENTS')) {
+    http_response_code(404);
+    echo json_encode(['success' => false, 'message' => 'Not found']);
+    exit;
+}
 
 /**
  * Ensure the case_comments table exists
@@ -51,9 +60,9 @@ function ensureCaseCommentsTable() {
     }
 }
 
-/**
- * Ensure the user_notifications table exists
- */
+// Keep user_notifications bootstrapped with the same columns the rest of the
+// notification system expects, in case this endpoint is reached before the
+// Phase 1 migration or api/notifications.php has run.
 function ensureUserNotificationsTable() {
     global $pdo;
     static $initialized = false;
@@ -74,6 +83,9 @@ function ensureUserNotificationsTable() {
         preview_text VARCHAR(255) DEFAULT NULL,
         is_read BOOLEAN DEFAULT FALSE,
         read_at DATETIME DEFAULT NULL,
+        metadata_json LONGTEXT,
+        event_id BIGINT UNSIGNED DEFAULT NULL,
+        expires_at DATETIME DEFAULT NULL,
         created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
         INDEX idx_user_id (user_id),
         INDEX idx_practice_id (practice_id),
@@ -84,112 +96,39 @@ function ensureUserNotificationsTable() {
 
     try {
         $pdo->exec($sql);
-        $initialized = true;
     } catch (PDOException $e) {
-        error_log('[user_notifications] Error creating table: ' . $e->getMessage());
+        error_log('[case_comments] Error creating user_notifications table: ' . $e->getMessage());
+        return;
     }
-}
 
-/**
- * Extract @mentions from comment text
- * Returns array of mentioned identifiers (emails or names)
- */
-function extractMentions($text) {
-    $mentions = [];
-    // Match @name patterns (alphanumeric, dots, underscores, hyphens)
-    if (preg_match_all('/@([a-zA-Z0-9._-]+)/', $text, $matches)) {
-        $mentions = array_unique($matches[1]);
-    }
-    return $mentions;
-}
+    // If an older table already exists without the notification-service columns,
+    // add them idempotently (mirrors the Phase 1 migration).
+    $columns = [
+        'metadata_json' => "ALTER TABLE user_notifications ADD COLUMN metadata_json LONGTEXT",
+        'expires_at'    => "ALTER TABLE user_notifications ADD COLUMN expires_at DATETIME DEFAULT NULL",
+        'event_id'      => "ALTER TABLE user_notifications ADD COLUMN event_id BIGINT UNSIGNED DEFAULT NULL",
+    ];
 
-/**
- * Resolve mention identifiers to user records
- */
-function resolveMentions($mentionIdentifiers, $practiceId) {
-    global $pdo;
-    $resolved = [];
-    
-    if (empty($mentionIdentifiers)) {
-        return $resolved;
-    }
-    
-    foreach ($mentionIdentifiers as $identifier) {
-        // Search by name or email prefix
-        $stmt = $pdo->prepare("
-            SELECT u.id, u.email, u.first_name, u.last_name 
-            FROM users u
-            JOIN practice_users pu ON u.id = pu.user_id
-            WHERE pu.practice_id = :practice_id
-            AND (
-                LOWER(CONCAT(IFNULL(u.first_name, ''), ' ', IFNULL(u.last_name, ''))) LIKE LOWER(:name_pattern)
-                OR LOWER(u.email) LIKE LOWER(:email_pattern)
-                OR LOWER(CONCAT(IFNULL(u.first_name, ''), IFNULL(u.last_name, ''))) LIKE LOWER(:name_no_space)
-            )
-            LIMIT 1
-        ");
-        $stmt->execute([
-            'practice_id' => $practiceId,
-            'name_pattern' => '%' . $identifier . '%',
-            'email_pattern' => $identifier . '%',
-            'name_no_space' => '%' . $identifier . '%'
-        ]);
-        $user = $stmt->fetch(PDO::FETCH_ASSOC);
-        if ($user) {
-            $fullName = trim(($user['first_name'] ?? '') . ' ' . ($user['last_name'] ?? ''));
-            $resolved[] = [
-                'user_id' => (int)$user['id'],
-                'email' => $user['email'],
-                'name' => $fullName ?: $user['email'],
-                'mention' => $identifier
-            ];
-        }
-    }
-    
-    return $resolved;
-}
-
-/**
- * Create notification records for mentioned users
- */
-function createMentionNotifications($commentId, $caseId, $practiceId, $mentions, $fromUserId, $fromUserName, $commentText) {
-    global $pdo;
-    
-    // Create preview text (first 100 chars)
-    $preview = mb_strlen($commentText) > 100 
-        ? mb_substr($commentText, 0, 100) . '...' 
-        : $commentText;
-    
-    foreach ($mentions as $mention) {
-        // Don't notify yourself
-        if ($mention['user_id'] == $fromUserId) {
-            continue;
-        }
-        
+    foreach ($columns as $col => $alterSql) {
         try {
-            $stmt = $pdo->prepare("
-                INSERT INTO user_notifications 
-                (user_id, practice_id, notification_type, case_id, comment_id, from_user_id, from_user_name, preview_text)
-                VALUES (:user_id, :practice_id, 'mention', :case_id, :comment_id, :from_user_id, :from_user_name, :preview_text)
-            ");
-            $stmt->execute([
-                'user_id' => $mention['user_id'],
-                'practice_id' => $practiceId,
-                'case_id' => $caseId,
-                'comment_id' => $commentId,
-                'from_user_id' => $fromUserId,
-                'from_user_name' => $fromUserName,
-                'preview_text' => $preview
-            ]);
+            $quotedCol = $pdo->quote($col);
+            $stmt = $pdo->query("SHOW COLUMNS FROM user_notifications LIKE {$quotedCol}");
+            if ($stmt->rowCount() === 0) {
+                $pdo->exec($alterSql);
+            }
         } catch (PDOException $e) {
-            error_log('[notifications] Error creating mention notification: ' . $e->getMessage());
+            error_log('[case_comments] Error extending user_notifications: ' . $e->getMessage());
         }
     }
+
+    $initialized = true;
 }
 
 // Ensure tables exist
 ensureCaseCommentsTable();
 ensureUserNotificationsTable();
+
+$method = $_SERVER['REQUEST_METHOD'];
 
 // SECURITY: Require valid practice context
 $currentPracticeId = requireValidPracticeContext();
@@ -197,12 +136,98 @@ $userId = $_SESSION['db_user_id'];
 $userEmail = $_SESSION['user_email'] ?? '';
 $userName = $_SESSION['user_name'] ?? $userEmail;
 
-$method = $_SERVER['REQUEST_METHOD'];
+// Validate CSRF for all state-changing requests.
+if ($method === 'POST') {
+    $inputForCsrf = json_decode(file_get_contents('php://input'), true) ?: [];
+    $csrfToken = $_SERVER['HTTP_X_CSRF_TOKEN'] ?? ($inputForCsrf['csrf_token'] ?? null);
+    if (!validateCsrfToken($csrfToken)) {
+        http_response_code(403);
+        echo json_encode(['success' => false, 'message' => 'Invalid or missing CSRF token']);
+        exit;
+    }
+    // Reset so the action below can re-read the body.
+    $input = $inputForCsrf;
+}
+
+/**
+ * Resolve submitted mention selections to active, case-authorized user records.
+ *
+ * The client sends the user IDs selected from autocomplete.  The server is the
+ * authority: it looks each submitted ID up against the current practice's active
+ * members and the specific case's access rules, excludes the comment author,
+ * deduplicates, and records the client-supplied display token in mentions_json.
+ *
+ * @param array  $mentionData Array of ['user_id' => int, 'mention' => string]
+ * @param int    $practiceId
+ * @param string $caseId
+ * @param int    $authorUserId
+ * @return array Resolved mentions with keys: user_id, email, name, mention
+ */
+function resolveSubmittedMentions($mentionData, $practiceId, $caseId, $authorUserId) {
+    $resolved = [];
+
+    if (empty($mentionData) || !$practiceId || !$caseId) {
+        return $resolved;
+    }
+
+    $authorizedUsers = getCaseAuthorizedUsers($practiceId, $caseId);
+    if (empty($authorizedUsers)) {
+        return $resolved;
+    }
+
+    // Index authorized users by user ID for exact, unambiguous lookup.
+    $authorizedById = [];
+    foreach ($authorizedUsers as $user) {
+        $authorizedById[(int)$user['id']] = $user;
+    }
+
+    $seenUserIds = [];
+
+    foreach ($mentionData as $entry) {
+        $submittedUserId = isset($entry['user_id']) ? (int)$entry['user_id'] : 0;
+        $displayToken = isset($entry['mention']) ? trim($entry['mention']) : '';
+
+        if ($submittedUserId <= 0) {
+            continue;
+        }
+
+        // Do not trust the client: the selected user must be active, a member,
+        // and explicitly authorized to access this case.
+        if (!isset($authorizedById[$submittedUserId])) {
+            continue;
+        }
+
+        // Never notify the comment author, even on a self-mention.
+        if ($submittedUserId === (int)$authorUserId) {
+            continue;
+        }
+
+        // Deduplicate multiple tokens for the same user.
+        if (isset($seenUserIds[$submittedUserId])) {
+            continue;
+        }
+
+        $user = $authorizedById[$submittedUserId];
+        $firstName = (string)($user['first_name'] ?? '');
+        $lastName = (string)($user['last_name'] ?? '');
+        $fullName = trim($firstName . ' ' . $lastName);
+
+        $resolved[] = [
+            'user_id' => $submittedUserId,
+            'email' => $user['email'],
+            'name' => $fullName ?: $user['email'],
+            'mention' => $displayToken ?: ($fullName ? preg_replace('/\s+/', '', $fullName) : ''),
+        ];
+        $seenUserIds[$submittedUserId] = true;
+    }
+
+    return $resolved;
+}
 
 if ($method === 'GET') {
     // Get comments for a case
     $caseId = $_GET['case_id'] ?? null;
-    
+
     if (!$caseId) {
         http_response_code(400);
         echo json_encode(['success' => false, 'message' => 'Case ID required']);
@@ -211,7 +236,7 @@ if ($method === 'GET') {
 
     // SECURITY: Assigned Only users may only view comments on cases assigned to them.
     requireCaseAccess($caseId, $currentPracticeId);
-    
+
     try {
         $stmt = $pdo->prepare("
             SELECT id, case_id, user_id, user_name, user_email, comment_text, 
@@ -225,9 +250,9 @@ if ($method === 'GET') {
             'case_id' => $caseId,
             'practice_id' => $currentPracticeId
         ]);
-        
+
         $comments = $stmt->fetchAll(PDO::FETCH_ASSOC);
-        
+
         // Format comments for response
         $formattedComments = array_map(function($comment) {
             return [
@@ -242,27 +267,26 @@ if ($method === 'GET') {
                 'created_at' => $comment['created_at']
             ];
         }, $comments);
-        
+
         echo json_encode([
             'success' => true,
             'comments' => $formattedComments
         ]);
-        
+
     } catch (PDOException $e) {
         error_log('[case_comments] Error fetching comments: ' . $e->getMessage());
         http_response_code(500);
         echo json_encode(['success' => false, 'message' => 'Error fetching comments']);
     }
-    
+
 } elseif ($method === 'POST') {
-    $input = json_decode(file_get_contents('php://input'), true);
     $action = $input['action'] ?? 'create';
-    
+
     if ($action === 'create') {
         // Create a new comment
         $caseId = $input['case_id'] ?? null;
         $commentText = trim($input['text'] ?? '');
-        
+
         if (!$caseId || empty($commentText)) {
             http_response_code(400);
             echo json_encode(['success' => false, 'message' => 'Case ID and comment text required']);
@@ -271,11 +295,11 @@ if ($method === 'GET') {
 
         // SECURITY: Assigned Only users may only comment on cases assigned to them.
         requireCaseAccess($caseId, $currentPracticeId);
-        
-        // Extract and resolve mentions
-        $mentionIdentifiers = extractMentions($commentText);
-        $resolvedMentions = resolveMentions($mentionIdentifiers, $currentPracticeId);
-        
+
+        // Resolve submitted mentions against active, case-authorized users.
+        $submittedMentions = $input['mentions'] ?? [];
+        $resolvedMentions = resolveSubmittedMentions($submittedMentions, $currentPracticeId, $caseId, $userId);
+
         try {
             $stmt = $pdo->prepare("
                 INSERT INTO case_comments 
@@ -291,14 +315,23 @@ if ($method === 'GET') {
                 'comment_text' => $commentText,
                 'mentions_json' => !empty($resolvedMentions) ? json_encode($resolvedMentions) : null
             ]);
-            
+
             $commentId = $pdo->lastInsertId();
-            
-            // Create notifications for mentioned users
+
+            // Create in-app and email notifications for mentioned users.
+            // This reuses the existing notification-service queue/worker path and
+            // respects the SHOW_NOTIFICATIONS master flag.
             if (!empty($resolvedMentions)) {
-                createMentionNotifications($commentId, $caseId, $currentPracticeId, $resolvedMentions, $userId, $userName, $commentText);
+                emitMentionNotificationEvent(
+                    $currentPracticeId,
+                    $caseId,
+                    $userId,
+                    $userName,
+                    $commentId,
+                    $resolvedMentions
+                );
             }
-            
+
             // Log to case activity
             ensureCaseActivityLogTable();
             logCaseActivity($caseId, 'comment_added', null, null, [
@@ -306,7 +339,7 @@ if ($method === 'GET') {
                 'has_mentions' => !empty($resolvedMentions),
                 'mention_count' => count($resolvedMentions)
             ]);
-            
+
             echo json_encode([
                 'success' => true,
                 'comment' => [
@@ -321,42 +354,25 @@ if ($method === 'GET') {
                     'created_at' => date('Y-m-d H:i:s')
                 ]
             ]);
-            
+
         } catch (PDOException $e) {
             error_log('[case_comments] Error creating comment: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'message' => 'Error creating comment']);
         }
-        
+
     } elseif ($action === 'delete') {
         // Soft delete a comment (admin only)
         $commentId = $input['comment_id'] ?? null;
-        
+
         if (!$commentId) {
             http_response_code(400);
             echo json_encode(['success' => false, 'message' => 'Comment ID required']);
             exit;
         }
-        
-        // Check if user is admin
-        $stmt = $pdo->prepare("
-            SELECT role FROM practice_users 
-            WHERE user_id = :user_id AND practice_id = :practice_id
-        ");
-        $stmt->execute([
-            'user_id' => $userId,
-            'practice_id' => $currentPracticeId
-        ]);
-        $userRole = $stmt->fetchColumn();
-        
-        if ($userRole !== 'admin') {
-            http_response_code(403);
-            echo json_encode(['success' => false, 'message' => 'Only admins can delete comments']);
-            exit;
-        }
-        
+
         try {
-            // Get comment info for audit
+            // Get comment info for audit and access verification
             $stmt = $pdo->prepare("
                 SELECT case_id, user_name FROM case_comments 
                 WHERE id = :id AND practice_id = :practice_id
@@ -366,13 +382,34 @@ if ($method === 'GET') {
                 'practice_id' => $currentPracticeId
             ]);
             $comment = $stmt->fetch(PDO::FETCH_ASSOC);
-            
+
             if (!$comment) {
                 http_response_code(404);
                 echo json_encode(['success' => false, 'message' => 'Comment not found']);
                 exit;
             }
-            
+
+            // SECURITY: Verify the requesting user can access the comment's case
+            // in addition to the admin role requirement.
+            requireCaseAccess($comment['case_id'], $currentPracticeId);
+
+            // Check if user is admin
+            $stmt = $pdo->prepare("
+                SELECT role FROM practice_users 
+                WHERE user_id = :user_id AND practice_id = :practice_id
+            ");
+            $stmt->execute([
+                'user_id' => $userId,
+                'practice_id' => $currentPracticeId
+            ]);
+            $userRole = $stmt->fetchColumn();
+
+            if ($userRole !== 'admin') {
+                http_response_code(403);
+                echo json_encode(['success' => false, 'message' => 'Only admins can delete comments']);
+                exit;
+            }
+
             // Soft delete
             $stmt = $pdo->prepare("
                 UPDATE case_comments 
@@ -384,23 +421,23 @@ if ($method === 'GET') {
                 'practice_id' => $currentPracticeId,
                 'deleted_by' => $userId
             ]);
-            
+
             // Log deletion
             ensureCaseActivityLogTable();
             logCaseActivity($comment['case_id'], 'comment_deleted', null, null, [
                 'comment_id' => (int)$commentId,
                 'original_author' => $comment['user_name']
             ]);
-            
+
             echo json_encode(['success' => true]);
-            
+
         } catch (PDOException $e) {
             error_log('[case_comments] Error deleting comment: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'message' => 'Error deleting comment']);
         }
     }
-    
+
 } else {
     http_response_code(405);
     echo json_encode(['success' => false, 'message' => 'Method not allowed']);

@@ -1892,6 +1892,7 @@
             "view_case": "View case",
             "sign_in_prompt": "Sign in to DentaTrak to view the case securely.",
             "preference_explanation": "You are receiving this because you are associated with the assigned case.",
+            "preference_explanation_mention": "You are receiving this because someone mentioned you in a case comment.",
             "footer_support": "Need help? Contact your practice administrator.",
             "event": {
                 "case_created": "A case was created and assigned to you.",
@@ -1902,7 +1903,8 @@
                 "status_changed": "The status of an assigned case changed.",
                 "due_date_changed": "The due date of an assigned case changed.",
                 "appointment_date_changed": "The appointment date of an assigned case changed.",
-                "case_details_changed": "Details of an assigned case changed."
+                "case_details_changed": "Details of an assigned case changed.",
+                "mention": "You were mentioned in a case comment."
             }
         }
     },
@@ -1924,7 +1926,8 @@
             "status_changed": "Status or workflow stage changes",
             "due_date_changed": "Due date changes",
             "appointment_date_changed": "Patient appointment date changes",
-            "case_details_changed": "Other case details change"
+            "case_details_changed": "Other case details change",
+            "mention": "Someone @mentions me in a comment"
         },
         "load_error": "Could not load notification preferences.",
         "save_error": "Could not save notification preferences.",

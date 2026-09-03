@@ -59,6 +59,10 @@ foreach ($preferences as $p) {
     if ($p['event_type'] === 'all') {
         $all = $p;
     } else {
+        // Hide the mention email preference when Comments is disabled.
+        if ($p['event_type'] === 'mention' && !isFeatureEnabled('SHOW_COMMENTS')) {
+            continue;
+        }
         $events[] = $p;
     }
 }

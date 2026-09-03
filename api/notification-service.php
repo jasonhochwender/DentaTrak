@@ -213,6 +213,148 @@ function emitCaseNotificationEvent($practiceId, $caseId, $actorUserId, $eventTyp
 }
 
 /**
+ * Emit a structured mention notification for a newly created comment.
+ *
+ * Creates one notification_events row and one user_notifications row per
+ * mentioned recipient. Queues a PHI-free email for each recipient whose
+ * preferences allow mention email. In-app rows are created independently of
+ * email opt-out; disabling mention email only suppresses the queue row.
+ *
+ * @param int    $practiceId
+ * @param string $caseId
+ * @param int    $actorUserId
+ * @param string $actorName
+ * @param int    $commentId
+ * @param array  $resolvedMentions Array of [user_id, email, name, mention]
+ * @return array|null ['event_id' => int, 'recipient_count' => int, 'queued_count' => int]
+ */
+function emitMentionNotificationEvent($practiceId, $caseId, $actorUserId, $actorName, $commentId, array $resolvedMentions) {
+    global $pdo;
+
+    if (!isset($pdo) || !($pdo instanceof PDO)) {
+        return null;
+    }
+
+    require_once __DIR__ . '/feature-flags.php';
+    if (!isFeatureEnabled('SHOW_NOTIFICATIONS')) {
+        return null;
+    }
+
+    if (!$practiceId || !$caseId || !$actorUserId || !$commentId || empty($resolvedMentions)) {
+        return null;
+    }
+
+    // Deduplicate by user_id and remove the author.
+    $recipients = [];
+    foreach ($resolvedMentions as $mention) {
+        $recipientId = (int)($mention['user_id'] ?? 0);
+        if ($recipientId <= 0 || $recipientId === (int)$actorUserId) {
+            continue;
+        }
+        if (!isset($recipients[$recipientId])) {
+            $recipients[$recipientId] = $mention;
+        }
+    }
+
+    if (empty($recipients)) {
+        return null;
+    }
+
+    try {
+        $actorName = $actorName ?: _getNotificationUserDisplayName($actorUserId);
+        $categories = ['mention'];
+
+        $pdo->beginTransaction();
+
+        $eventStmt = $pdo->prepare("
+            INSERT INTO notification_events
+                (practice_id, case_id, actor_user_id, event_type, event_categories, metadata_json, created_at)
+            VALUES
+                (:practice_id, :case_id, :actor_user_id, :event_type, :event_categories, :metadata_json, NOW())
+        ");
+        $eventStmt->execute([
+            'practice_id' => (int)$practiceId,
+            'case_id' => (string)$caseId,
+            'actor_user_id' => (int)$actorUserId,
+            'event_type' => 'mention',
+            'event_categories' => json_encode(array_values($categories)),
+            'metadata_json' => json_encode(['comment_id' => (int)$commentId]),
+        ]);
+        $eventId = (int)$pdo->lastInsertId();
+
+        $recipientStmt = $pdo->prepare("
+            INSERT INTO user_notifications
+                (user_id, practice_id, notification_type, case_id, comment_id, from_user_id, from_user_name,
+                 preview_text, metadata_json, event_id, expires_at, created_at)
+            VALUES
+                (:user_id, :practice_id, :notification_type, :case_id, :comment_id, :from_user_id, :from_user_name,
+                 NULL, :metadata_json, :event_id, DATE_ADD(NOW(), INTERVAL 90 DAY), NOW())
+        ");
+
+        $queueStmt = $pdo->prepare("
+            INSERT INTO notification_email_queue
+                (event_id, notification_id, user_id, practice_id, locale, subject_key, body_key,
+                 template_data_json, category_keys_json, status, scheduled_at, created_at)
+            VALUES
+                (:event_id, :notification_id, :user_id, :practice_id, :locale, :subject_key, :body_key,
+                 :template_data_json, :category_keys_json, 'pending', NOW(), NOW())
+        ");
+
+        $inserted = 0;
+        $queued = 0;
+        foreach ($recipients as $recipientId => $mention) {
+            $recipientStmt->execute([
+                'user_id' => (int)$recipientId,
+                'practice_id' => (int)$practiceId,
+                'notification_type' => 'mention',
+                'case_id' => (string)$caseId,
+                'comment_id' => (int)$commentId,
+                'from_user_id' => (int)$actorUserId,
+                'from_user_name' => $actorName,
+                'metadata_json' => json_encode(['comment_id' => (int)$commentId]),
+                'event_id' => $eventId,
+            ]);
+            $notificationId = (int)$pdo->lastInsertId();
+            $inserted++;
+
+            if (userWantsEmailNotification($pdo, (int)$recipientId, (int)$practiceId, $categories)) {
+                $recipientLocale = resolveEmailLocale((int)$recipientId, (int)$practiceId);
+                $queueStmt->execute([
+                    'event_id' => $eventId,
+                    'notification_id' => $notificationId,
+                    'user_id' => (int)$recipientId,
+                    'practice_id' => (int)$practiceId,
+                    'locale' => (string)$recipientLocale,
+                    'subject_key' => 'notifications.email.subject',
+                    'body_key' => 'notifications.email.body',
+                    'template_data_json' => json_encode([
+                        'from' => $actorName,
+                        'event_type' => 'mention',
+                    ]),
+                    'category_keys_json' => json_encode(array_values($categories)),
+                ]);
+                $queued++;
+            }
+        }
+
+        $pdo->commit();
+
+        return [
+            'event_id' => $eventId,
+            'recipient_count' => $inserted,
+            'queued_count' => $queued,
+        ];
+
+    } catch (Throwable $e) {
+        if (isset($pdo) && $pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
+        error_log('[notification-service] emitMentionNotificationEvent error: ' . $e->getMessage());
+        return null;
+    }
+}
+
+/**
  * Determine the primary event type from a list of categories.
  */
 function getPrimaryNotificationType(array $categories) {

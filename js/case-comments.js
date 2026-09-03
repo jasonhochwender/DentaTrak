@@ -14,12 +14,15 @@
   var mentionStartPos = -1;
   var selectedMentionIndex = 0;
   var activeLoadId = 0;
+  var selectedMentions = []; // { user_id, token, name }
 
   /**
    * Initialize comments for a case
    */
   window.initCaseComments = function(caseId) {
     currentCaseId = caseId;
+    selectedMentions = [];
+    closeMentionAutocomplete();
     loadComments(caseId);
     loadPracticeUsers();
     setupCommentInput();
@@ -109,7 +112,11 @@
    * Load practice users for @mention autocomplete
    */
   function loadPracticeUsers() {
-    fetch('api/get-practice-users.php', {
+    var practiceUsersUrl = 'api/get-practice-users.php';
+    if (currentCaseId) {
+      practiceUsersUrl += '?case_id=' + encodeURIComponent(currentCaseId);
+    }
+    fetch(practiceUsersUrl, {
       credentials: 'same-origin'
     })
     .then(function(response) { return response.json(); })
@@ -166,9 +173,37 @@
   }
 
   /**
+   * Remove any selected mention whose display token is no longer present in the
+   * comment text, for example because the user backspaced part of it.
+   */
+  function syncSelectedMentions(input) {
+    if (selectedMentions.length === 0) {
+      return;
+    }
+    var text = input.value || '';
+    selectedMentions = selectedMentions.filter(function(mention) {
+      var token = mention.token;
+      if (!token) {
+        return false;
+      }
+      var pattern = new RegExp('@' + escapeRegExp(token) + '(?![a-zA-Z0-9._-])', 'g');
+      return pattern.test(text);
+    });
+  }
+
+  /**
+   * Escape a string for use inside a RegExp.
+   */
+  function escapeRegExp(string) {
+    return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  }
+
+  /**
    * Check if user is typing a @mention
    */
   function checkForMention(input) {
+    syncSelectedMentions(input);
+
     var text = input.value;
     var cursorPos = input.selectionStart;
     
@@ -215,7 +250,11 @@
       mentionAutocompleteOpen = true;
       
       // Try to load users and then show autocomplete
-      fetch('api/get-practice-users.php', { credentials: 'same-origin' })
+      var retryUrl = 'api/get-practice-users.php';
+      if (currentCaseId) {
+        retryUrl += '?case_id=' + encodeURIComponent(currentCaseId);
+      }
+      fetch(retryUrl, { credentials: 'same-origin' })
         .then(function(response) { return response.json(); })
         .then(function(data) {
           if (data.success && data.users) {
@@ -243,7 +282,7 @@
     } else {
       dropdown.innerHTML = filtered.map(function(user, index) {
         var initials = getInitials(user.name || user.email);
-        return '<div class="mention-autocomplete-item' + (index === selectedMentionIndex ? ' selected' : '') + '" data-user-id="' + user.id + '" data-user-name="' + escapeHtml(user.name || user.email) + '">' +
+        return '<div class="mention-autocomplete-item' + (index === selectedMentionIndex ? ' selected' : '') + '" data-user-id="' + user.id + '" data-user-name="' + escapeHtml(user.name || user.email) + '" data-user-email="' + escapeHtml(user.email) + '">' +
           '<div class="mention-autocomplete-avatar">' + initials + '</div>' +
           '<div class="mention-autocomplete-info">' +
           '<div class="mention-autocomplete-name">' + escapeHtml(user.name || t('common.unknown')) + '</div>' +
@@ -303,19 +342,35 @@
     }
 
     var selectedItem = items[selectedMentionIndex];
+    var userId = parseInt(selectedItem.getAttribute('data-user-id'), 10);
     var userName = selectedItem.getAttribute('data-user-name');
+    var userEmail = selectedItem.getAttribute('data-user-email') || '';
     
-    // Replace @searchTerm with @username
+    // Replace @searchTerm with a display token derived from the selected user's name.
     var text = input.value;
     var beforeMention = text.substring(0, mentionStartPos);
     var afterMention = text.substring(mentionStartPos + 1 + mentionSearchTerm.length);
     
-    // Use name without spaces for mention
-    var mentionName = userName.replace(/\s+/g, '');
-    input.value = beforeMention + '@' + mentionName + ' ' + afterMention;
+    // Use the user's full name with spaces and punctuation stripped; the regex
+    // in case-comments.php and highlightMentions allows alphanumerics, dots,
+    // underscores and hyphens.
+    var displayName = (userName || userEmail).replace(/[^a-zA-Z0-9._-]/g, '');
+    if (!displayName) {
+      displayName = 'user' + userId;
+    }
+    
+    input.value = beforeMention + '@' + displayName + ' ' + afterMention;
+    
+    // Record the exact user ID selected.  Server-side validation will reverify
+    // active membership and case access, so the client-supplied ID is not trusted.
+    selectedMentions.push({
+      user_id: userId,
+      token: displayName,
+      name: userName
+    });
     
     // Set cursor after mention
-    var newCursorPos = mentionStartPos + mentionName.length + 2;
+    var newCursorPos = mentionStartPos + displayName.length + 2;
     input.setSelectionRange(newCursorPos, newCursorPos);
     input.focus();
 
@@ -361,13 +416,15 @@
       body: JSON.stringify({
         action: 'create',
         case_id: currentCaseId,
-        text: text
+        text: text,
+        mentions: selectedMentions
       })
     })
     .then(function(response) { return response.json(); })
     .then(function(data) {
       if (data.success) {
         input.value = '';
+        selectedMentions = [];
         loadComments(currentCaseId);
         
         // Show success feedback

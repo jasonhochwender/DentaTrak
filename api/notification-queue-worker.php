@@ -162,13 +162,20 @@ try {
                 $case = $caseStmt->fetch(PDO::FETCH_ASSOC);
                 if (!$case) {
                     $cancelReason = 'case_deleted';
-                } elseif (!canUserAccessCase($case, (int)$row['practice_id'])) {
+                } elseif (!canUserAccessCase($case, (int)$row['practice_id'], (int)$row['user_id'])) {
                     $cancelReason = 'access_revoked';
                 }
             }
 
+            // Mention recipients are selected explicitly at comment time and were
+            // already verified to be active, case-authorized users. Do not apply
+            // the assignment/label revocation check that is specific to case
+            // assignment notifications.
+            $categories = json_decode($row['category_keys_json'] ?? '[]', true) ?: [];
+            $isMention = in_array('mention', $categories, true);
+
             // Current direct assignment or Assignment Label mapping
-            if (!$cancelReason && !empty($case)) {
+            if (!$cancelReason && !empty($case) && !$isMention) {
                 $assignedTo = strtolower(trim((string)($case['assigned_to'] ?? '')));
                 $userEmail = strtolower(trim((string)$row['email']));
 
@@ -198,7 +205,6 @@ try {
 
             // Current preferences
             if (!$cancelReason) {
-                $categories = json_decode($row['category_keys_json'] ?? '[]', true) ?: [];
                 if (!userWantsEmailNotification($pdo, (int)$row['user_id'], (int)$row['practice_id'], $categories)) {
                     $cancelReason = 'email_preferences_disabled';
                 }

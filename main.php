@@ -3312,6 +3312,17 @@ endif;
               </span>
             </label>
           </div>
+          <?php if (isFeatureEnabled('SHOW_COMMENTS')): ?>
+          <div class="notification-preference-item" data-event="mention">
+            <label for="pref_mention" class="notification-preference-label">
+              <span class="notification-preference-title"><?php echo t('preferences.events.mention'); ?></span>
+              <span class="switch">
+                <input type="checkbox" id="pref_mention" role="switch" class="event-preference" data-event="mention">
+                <span class="switch-slider" aria-hidden="true"></span>
+              </span>
+            </label>
+          </div>
+          <?php endif; ?>
         </div>
       </div>
       </div>

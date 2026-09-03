@@ -7,6 +7,7 @@
 require_once __DIR__ . '/session.php';
 require_once __DIR__ . '/appConfig.php';
 require_once __DIR__ . '/practice-security.php';
+require_once __DIR__ . '/csrf.php';
 
 header('Content-Type: application/json');
 
@@ -33,6 +34,9 @@ function ensureUserNotificationsTable() {
         preview_text VARCHAR(255) DEFAULT NULL,
         is_read BOOLEAN DEFAULT FALSE,
         read_at DATETIME DEFAULT NULL,
+        metadata_json LONGTEXT,
+        event_id BIGINT UNSIGNED DEFAULT NULL,
+        expires_at DATETIME DEFAULT NULL,
         created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
         INDEX idx_user_id (user_id),
         INDEX idx_practice_id (practice_id),
@@ -43,10 +47,31 @@ function ensureUserNotificationsTable() {
 
     try {
         $pdo->exec($sql);
-        $initialized = true;
     } catch (PDOException $e) {
         error_log('[user_notifications] Error creating table: ' . $e->getMessage());
+        return;
     }
+
+    // Backfill columns added by the Phase 1 migration if an older table exists.
+    $columns = [
+        'metadata_json' => "ALTER TABLE user_notifications ADD COLUMN metadata_json LONGTEXT",
+        'expires_at'    => "ALTER TABLE user_notifications ADD COLUMN expires_at DATETIME DEFAULT NULL",
+        'event_id'      => "ALTER TABLE user_notifications ADD COLUMN event_id BIGINT UNSIGNED DEFAULT NULL",
+    ];
+
+    foreach ($columns as $col => $alterSql) {
+        try {
+            $quotedCol = $pdo->quote($col);
+            $stmt = $pdo->query("SHOW COLUMNS FROM user_notifications LIKE {$quotedCol}");
+            if ($stmt->rowCount() === 0) {
+                $pdo->exec($alterSql);
+            }
+        } catch (PDOException $e) {
+            error_log('[user_notifications] Error extending table: ' . $e->getMessage());
+        }
+    }
+
+    $initialized = true;
 }
 
 // Ensure table exists
@@ -167,7 +192,16 @@ if ($method === 'GET') {
     }
     
 } elseif ($method === 'POST') {
-    $input = json_decode(file_get_contents('php://input'), true);
+    $rawInput = file_get_contents('php://input');
+    $input = json_decode($rawInput, true) ?: [];
+
+    $csrfToken = $_SERVER['HTTP_X_CSRF_TOKEN'] ?? ($input['csrf_token'] ?? null);
+    if (!validateCsrfToken($csrfToken)) {
+        http_response_code(403);
+        echo json_encode(['success' => false, 'message' => 'Invalid or missing CSRF token']);
+        exit;
+    }
+
     $action = $input['action'] ?? 'mark_read';
     
     if ($action === 'mark_read') {

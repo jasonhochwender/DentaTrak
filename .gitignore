@@ -144,6 +144,7 @@ screenshots/
 !/tests/lab-practice-creation-test.js
 !/tests/legal-account-hardening-test.js
 !/tests/admin-practices-api-error-test.php
+!/tests/case-comments-mention-test.php
 !/tests/force-admin-error.php
 !/tests/admin-practices-force-error-guard-test.php
 /testResults/

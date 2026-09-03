@@ -796,22 +796,26 @@ function ensureAuthorizedCaseIdsTempTable($practiceId) {
     ]);
 }
 
-function getCurrentUserEmail() {
+function getUserEmail($userId) {
     global $pdo;
 
-    if (!isset($_SESSION['db_user_id']) || !$pdo) {
+    if (!$pdo || !$userId) {
         return null;
     }
 
     try {
         $stmt = $pdo->prepare("SELECT email FROM users WHERE id = :id LIMIT 1");
-        $stmt->execute(['id' => $_SESSION['db_user_id']]);
+        $stmt->execute(['id' => (int)$userId]);
         $email = $stmt->fetchColumn();
         return $email ? strtolower(trim($email)) : null;
     } catch (PDOException $e) {
-        error_log('[practice-security] Error resolving current user email: ' . $e->getMessage());
+        error_log('[practice-security] Error resolving user email for ' . (int)$userId . ': ' . $e->getMessage());
         return null;
     }
+}
+
+function getCurrentUserEmail() {
+    return getUserEmail($_SESSION['db_user_id'] ?? null);
 }
 
 /**
@@ -826,7 +830,7 @@ function getCurrentUserEmail() {
  * @param int|null $practiceId Defaults to session practice.
  * @return bool
  */
-function canUserAccessCase($case, $practiceId = null) {
+function canUserAccessCase($case, $practiceId = null, $userId = null) {
     global $pdo;
 
     if (!is_array($case)) {
@@ -837,16 +841,45 @@ function canUserAccessCase($case, $practiceId = null) {
         $practiceId = $_SESSION['current_practice_id'] ?? null;
     }
 
+    if ($userId === null) {
+        $userId = $_SESSION['db_user_id'] ?? null;
+    }
+
     $casePracticeId = $case['practice_id'] ?? $case['practiceId'] ?? null;
     if (!$practiceId || !$casePracticeId || (int)$casePracticeId !== (int)$practiceId) {
         return false;
     }
 
-    if (!hasLimitedVisibility($practiceId)) {
-        return true;
+    // Determine limited visibility for the specific user (session or supplied).
+    $limitedVisibility = false;
+    if ($pdo && $practiceId && $userId) {
+        try {
+            $stmt = $pdo->prepare("
+                SELECT IFNULL(pu.limited_visibility, 0) as limited_visibility
+                FROM practice_users pu
+                JOIN users u ON u.id = pu.user_id
+                JOIN practices p ON p.id = pu.practice_id
+                WHERE pu.user_id = :user_id
+                  AND pu.practice_id = :practice_id
+                  AND u.is_active = 1
+                  AND (p.is_active = 1 OR p.is_active IS NULL)
+                LIMIT 1
+            ");
+            $stmt->execute([':user_id' => (int)$userId, ':practice_id' => (int)$practiceId]);
+            $row = $stmt->fetch(PDO::FETCH_ASSOC);
+            $limitedVisibility = !empty($row['limited_visibility']);
+        } catch (PDOException $e) {
+            error_log('[practice-security] Limited-visibility lookup failed: ' . $e->getMessage());
+            return false;
+        }
     }
 
-    $currentEmail = getCurrentUserEmail();
+    if (!$limitedVisibility) {
+        // Non-limited active practice members have case access.
+        return !empty($userId);
+    }
+
+    $currentEmail = getUserEmail($userId);
     if (!$currentEmail) {
         return false;
     }
@@ -864,11 +897,8 @@ function canUserAccessCase($case, $practiceId = null) {
     }
 
     // 2. Label-based assignment: the case is assigned to a label in this
-    //    practice and the current user is explicitly mapped to that label.
-    //    This is real-time; removing a mapping or reassigning the case
-    //    immediately revokes access. Access is not granted by is_lab or role.
-    $currentUserId = $_SESSION['db_user_id'] ?? null;
-    if (!$pdo || !$currentUserId) {
+    //    practice and the user is explicitly mapped to that label.
+    if (!$pdo || !$userId) {
         return false;
     }
 
@@ -885,7 +915,7 @@ function canUserAccessCase($case, $practiceId = null) {
         $stmt->execute([
             ':practice_id' => $practiceId,
             ':label' => $assignedTo,
-            ':user_id' => $currentUserId,
+            ':user_id' => (int)$userId,
         ]);
         return (bool) $stmt->fetchColumn();
     } catch (PDOException $e) {
@@ -954,6 +984,94 @@ function requireCaseAccess($caseId, $practiceId = null) {
     }
 
     return $case;
+}
+
+/**
+ * Get active practice users who are authorized to access the given case.
+ *
+ * Honors the existing Assigned Only / limited-visibility rules and label
+ * mappings. Used for @mention autocomplete and server-side mention resolution
+ * so users can only mention people who could actually open the notification.
+ *
+ * @param int    $practiceId
+ * @param string $caseId
+ * @return array Array of user rows with keys: id, email, first_name, last_name.
+ */
+function getCaseAuthorizedUsers($practiceId, $caseId) {
+    global $pdo;
+
+    if (!$pdo || !$practiceId || !$caseId) {
+        return [];
+    }
+
+    try {
+        $caseStmt = $pdo->prepare("SELECT case_id, assigned_to FROM cases_cache WHERE case_id = :case_id AND practice_id = :practice_id LIMIT 1");
+        $caseStmt->execute(['case_id' => $caseId, 'practice_id' => (int)$practiceId]);
+        $case = $caseStmt->fetch(PDO::FETCH_ASSOC);
+
+        if (!$case) {
+            return [];
+        }
+
+        $assignedTo = strtolower(trim((string)($case['assigned_to'] ?? '')));
+
+        // Base query: all active members of the practice.
+        $baseSql = "
+            SELECT u.id, u.email, u.first_name, u.last_name, IFNULL(pu.limited_visibility, 0) as limited_visibility
+            FROM users u
+            JOIN practice_users pu ON pu.user_id = u.id
+            JOIN practices p ON p.id = pu.practice_id
+            WHERE pu.practice_id = :practice_id
+              AND u.is_active = 1
+              AND (p.is_active = 1 OR p.is_active IS NULL)
+        ";
+
+        $usersStmt = $pdo->prepare($baseSql . " ORDER BY u.first_name, u.last_name, u.email");
+        $usersStmt->execute(['practice_id' => (int)$practiceId]);
+        $users = $usersStmt->fetchAll(PDO::FETCH_ASSOC);
+
+        if ($assignedTo === '') {
+            // Unassigned cases are only visible to non-limited users.
+            return array_values(array_filter($users, function ($user) {
+                return !(bool)$user['limited_visibility'];
+            }));
+        }
+
+        // Find limited users who are directly assigned to this case.
+        $directStmt = $pdo->prepare($baseSql . "
+            AND IFNULL(pu.limited_visibility, 0) = 1
+            AND LOWER(TRIM(u.email)) = :assigned_to
+        ");
+        $directStmt->execute(['practice_id' => (int)$practiceId, 'assigned_to' => $assignedTo]);
+        $directIds = array_map('intval', $directStmt->fetchAll(PDO::FETCH_COLUMN));
+
+        // Find limited users mapped to the assigned label.
+        $labelStmt = $pdo->prepare($baseSql . "
+            AND IFNULL(pu.limited_visibility, 0) = 1
+            AND EXISTS (
+                SELECT 1
+                FROM practice_assignment_label_recipients r
+                JOIN practice_assignment_labels l ON l.id = r.label_id
+                WHERE r.user_id = u.id
+                  AND l.practice_id = :label_practice_id
+                  AND LOWER(TRIM(l.label)) = :assigned_to
+            )
+        ");
+        $labelStmt->execute(['practice_id' => (int)$practiceId, 'assigned_to' => $assignedTo, 'label_practice_id' => (int)$practiceId]);
+        $labelIds = array_map('intval', $labelStmt->fetchAll(PDO::FETCH_COLUMN));
+
+        $allowedLimited = array_flip(array_merge($directIds, $labelIds));
+
+        return array_values(array_filter($users, function ($user) use ($allowedLimited) {
+            if (!(bool)$user['limited_visibility']) {
+                return true;
+            }
+            return isset($allowedLimited[(int)$user['id']]);
+        }));
+    } catch (PDOException $e) {
+        error_log('[practice-security] getCaseAuthorizedUsers error: ' . $e->getMessage());
+        return [];
+    }
 }
 
 /**
