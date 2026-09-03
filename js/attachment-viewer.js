@@ -98,6 +98,16 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
   document.addEventListener('mousemove', onImageMouseMove);
   document.addEventListener('mouseup', onImageMouseUp);
 
+  // Trigger a resize/refit after entering or exiting fullscreen so the
+  // renderer/pdf/image fit the restored modal dimensions.
+  ['fullscreenchange', 'webkitfullscreenchange'].forEach(function(eventName) {
+    document.addEventListener(eventName, function() {
+      window.dispatchEvent(new Event('resize'));
+      if (currentMode === 'image') imageFit();
+      else if (currentMode === 'pdf') pdfFit();
+    });
+  });
+
   function getCsrfToken() {
     return window.csrfToken || ((document.querySelector('meta[name="csrf-token"]') || {}).content || '');
   }
@@ -823,6 +833,7 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
     if (!modal) return;
     modal.style.display = 'none';
     document.body.style.overflow = '';
+    document.documentElement.style.overflow = '';
     disposeViewer();
     const fsElement = document.fullscreenElement || document.webkitFullscreenElement;
     if (fsElement) {
@@ -892,6 +903,7 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
     loadingEl.style.display = 'flex';
     modal.style.display = 'flex';
     document.body.style.overflow = 'hidden';
+    document.documentElement.style.overflow = 'hidden';
 
     fetchAttachmentContent(storagePath)
       .then(function(buffer) {

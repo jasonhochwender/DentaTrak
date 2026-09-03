@@ -645,3 +645,189 @@
     transform: scale(0.9);
   }
 }
+
+/* ============================================================
+   Scoped legal modals (login page only: #termsModal / #privacyModal)
+   - main.php and its specialized modals are never matched by these
+     ID selectors, so they continue to use app.light.css / mobile.css.
+   ============================================================ */
+
+#termsModal,
+#privacyModal {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(15, 23, 42, 0.4);
+  backdrop-filter: blur(4px);
+  z-index: 100;
+  overflow-y: auto;
+  box-sizing: border-box;
+}
+
+#termsModal .modal-content,
+#privacyModal .modal-content {
+  background-color: var(--background-white, #ffffff);
+  margin: 50px auto;
+  padding: 0;
+  border-radius: 12px;
+  width: min(900px, 92%);
+  min-width: 0;
+  max-width: 92%;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15), 0 5px 10px rgba(0, 0, 0, 0.08);
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--border-light, #e2e8f0);
+  box-sizing: border-box;
+}
+
+#termsModal .modal-header,
+#privacyModal .modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 0;
+  padding: 18px 24px;
+  background: linear-gradient(135deg, var(--primary-color, #2563eb) 0%, var(--primary-light, #3b82f6) 100%);
+  border: none;
+  position: relative;
+}
+
+#termsModal .modal-title,
+#privacyModal .modal-title {
+  margin: 0;
+  font-size: 1.25rem;
+  color: white;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  max-width: calc(100% - 48px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  box-sizing: border-box;
+}
+
+#termsModal .modal-body,
+#privacyModal .modal-body {
+  line-height: 1.7;
+  color: var(--text-secondary, #475569);
+  max-height: 60vh;
+  max-height: 60dvh;
+  overflow-y: auto;
+  padding: 24px;
+  box-sizing: border-box;
+}
+
+#termsModal .modal-body h3,
+#privacyModal .modal-body h3,
+#termsModal .modal-body h4,
+#privacyModal .modal-body h4 {
+  color: var(--text-primary, #111827);
+  margin-top: 1.5em;
+  margin-bottom: 0.6em;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+#termsModal .modal-body p,
+#privacyModal .modal-body p,
+#termsModal .modal-body ul,
+#privacyModal .modal-body ul,
+#termsModal .modal-body li,
+#privacyModal .modal-body li {
+  color: var(--text-primary, #111827);
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+#termsModal .btn-close,
+#privacyModal .btn-close {
+  background: transparent;
+  border: none;
+  color: white;
+  font-size: 1.5rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 4px;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  flex-shrink: 0;
+  box-sizing: border-box;
+}
+
+#termsModal .btn-close:hover,
+#privacyModal .btn-close:hover {
+  background-color: rgba(255, 255, 255, 0.15);
+}
+
+@media (max-width: 480px) {
+  #termsModal .modal-content,
+  #privacyModal .modal-content {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    height: 100vh;
+    height: 100dvh;
+    max-height: 100vh;
+    max-height: 100dvh;
+    margin: 0;
+    border-radius: 0;
+  }
+
+  #termsModal,
+  #privacyModal {
+    padding: 0;
+    overflow: hidden;
+  }
+
+  #termsModal .modal-header,
+  #privacyModal .modal-header {
+    padding: 14px 16px;
+    flex-shrink: 0;
+  }
+
+  #termsModal .modal-title,
+  #privacyModal .modal-title {
+    font-size: 1.05rem;
+    max-width: calc(100% - 48px);
+  }
+
+  #termsModal .modal-body,
+  #privacyModal .modal-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    max-height: none;
+    overflow-y: auto;
+    padding: 16px;
+    -webkit-overflow-scrolling: touch;
+    font-size: 1rem;
+  }
+
+  #termsModal .modal-body h3,
+  #privacyModal .modal-body h3 {
+    font-size: 1.05rem;
+  }
+
+  #termsModal .modal-body h4,
+  #privacyModal .modal-body h4 {
+    font-size: 1rem;
+  }
+
+  #termsModal .modal-body p,
+  #privacyModal .modal-body p,
+  #termsModal .modal-body li,
+  #privacyModal .modal-body li {
+    font-size: 0.95rem;
+  }
+
+  #termsModal .modal-body ul,
+  #privacyModal .modal-body ul {
+    padding-left: 1.2em;
+  }
+}

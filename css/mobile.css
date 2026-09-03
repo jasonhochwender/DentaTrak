@@ -92,48 +92,59 @@
 
 @media (max-width: 480px) {
   .main-header {
-    padding: 12px 16px;
+    padding: 12px 12px;
     gap: 8px;
+    justify-content: space-between;
+    overflow: hidden;
   }
 
   .main-brand {
     gap: 10px;
-    flex: 1;
-    min-width: 0; /* Allow flex shrinking */
+    flex: 1 1 auto;
+    min-width: 0;
+    justify-content: flex-start;
+    align-items: center;
   }
 
   .main-logo {
-    height: 36px;
-    width: 36px;
+    height: 40px;
+    width: auto;
     flex-shrink: 0;
   }
 
-  .main-header h1 {
-    font-size: 1.1rem;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  .app-title-container {
-    min-width: 0;
-    flex: 1;
-  }
-
+  .main-header h1,
   .app-title-container h1 {
     font-size: 1rem;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    max-width: 100%;
+    min-width: 0;
+  }
+
+  .app-title-container {
+    min-width: 0;
+    flex: 1 1 auto;
+    text-align: left;
+    overflow: hidden;
   }
 
   .practice-name,
   .practice-switcher-name {
-    font-size: 0.7rem;
-    max-width: 120px;
+    font-size: 0.75rem;
+    max-width: 100%;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+  }
+
+  .practice-switcher-btn {
+    display: inline-flex;
+    align-items: center;
+    width: 100%;
+    min-height: 40px;
+    padding: 2px 4px;
+    box-sizing: border-box;
   }
 
   .user-profile {
@@ -602,11 +613,11 @@
     width: 100%;
   }
 
-  /* The Details form is the only long, scrollable tab panel. Add bottom
-     padding equal to the sticky footer height so the final content scrolls
-     fully above the footer without affecting Comments/History. */
+  /* The Details form is the only long, scrollable tab panel. The
+     attachments grid now provides the bottom padding so the final
+     upload control can scroll fully above the sticky footer without
+     affecting Comments/History. */
   #createCaseModal #createCaseForm {
-    padding-bottom: max(80px, calc(56px + env(safe-area-inset-bottom)));
     box-sizing: border-box;
   }
 
@@ -616,19 +627,27 @@
   }
 
   .file-button {
+    display: flex;
     width: 100%;
+    box-sizing: border-box;
     justify-content: center;
+    align-items: center;
     min-height: 44px;
-    padding: 10px 16px;
+    padding: 8px 12px;
+    font-size: 0.85rem;
+    border-radius: 6px;
   }
 
   /* Attachment rows: stack filename and actions on very narrow screens */
   #createCaseModal .attachments-grid {
     gap: 16px;
+    padding-bottom: max(100px, calc(64px + env(safe-area-inset-bottom)));
   }
 
   #createCaseModal .attachment-group {
     padding: 12px;
+    box-sizing: border-box;
+    width: 100%;
   }
 
   #createCaseModal .attachment-header {

@@ -94,6 +94,26 @@ $loginUrl = rtrim($appConfig['baseUrl'] ?? '', '/') . '/login.php';
     .back-link:hover {
       text-decoration: underline;
     }
+    @media (max-width: 480px) {
+      .policy-container {
+        padding: 20px 16px;
+      }
+      .policy-content {
+        padding: 20px;
+        border-radius: 8px;
+      }
+      .policy-content h4,
+      .policy-content h3 {
+        font-size: 1.05rem;
+      }
+      .policy-content p,
+      .policy-content li {
+        font-size: 0.95rem;
+      }
+      .policy-content ul {
+        padding-left: 1.2em;
+      }
+    }
   </style>
 </head>
 <body>

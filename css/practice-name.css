@@ -21,9 +21,9 @@
   color: #ccc;
 }
 
-/* Make logo larger */
+/* Make logo larger on desktop; mobile.css overrides for phones */
 .main-logo {
-  height: 56px !important;
+  height: 56px;
   width: auto;
 }
 
