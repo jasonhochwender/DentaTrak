@@ -23,6 +23,10 @@
     currentCaseId = caseId;
     selectedMentions = [];
     closeMentionAutocomplete();
+    // Drop the previous case's list and count before this case's data arrives.
+    var list = document.getElementById('caseCommentsList');
+    if (list) list.innerHTML = '';
+    updateCommentCount(0);
     loadComments(caseId);
     loadPracticeUsers();
     setupCommentInput();
@@ -138,6 +142,12 @@
     var submitBtn = document.getElementById('caseCommentSubmit');
     
     if (!input) return;
+
+    // The input and submit button are static markup shared by every case, so
+    // bind their listeners once; re-binding on each opened case would stack
+    // handlers and submit the same comment multiple times.
+    if (input.dataset.commentListenersBound) return;
+    input.dataset.commentListenersBound = '1';
 
     // Input event for @mention detection
     input.addEventListener('input', function(e) {
@@ -535,8 +545,10 @@
    */
   window.clearCaseComments = function() {
     currentCaseId = null;
+    activeLoadId++; // invalidate any in-flight load for the previous case
     var list = document.getElementById('caseCommentsList');
     if (list) list.innerHTML = '';
+    updateCommentCount(0);
     var input = document.getElementById('caseCommentInput');
     if (input) input.value = '';
     closeMentionAutocomplete();

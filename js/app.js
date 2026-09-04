@@ -4280,7 +4280,12 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   function loadCaseRevisionHistory(caseId) {
-    if (!caseHistoryContainer) return;
+    // Establish the active case first: the Comments and History tabs derive
+    // their enabled state from currentEditCaseId. This must not depend on the
+    // History panel existing - when SHOW_REVISION_HISTORY is off there is no
+    // #caseRevisionHistory element, and returning early here left
+    // currentEditCaseId null, so the Comments tab stayed disabled and never
+    // loaded for an existing case.
     currentEditCaseId = caseId || null;
     setCaseModalActiveTab('details');
 
@@ -4292,6 +4297,10 @@ document.addEventListener('DOMContentLoaded', function () {
         window.clearCaseComments();
       }
     }
+
+    // Everything below renders the Revision History panel, which only exists
+    // when SHOW_REVISION_HISTORY is enabled.
+    if (!caseHistoryContainer) return;
 
     if (!caseId) {
       caseHistoryContainer.innerHTML = '';
@@ -4907,6 +4916,10 @@ document.addEventListener('DOMContentLoaded', function () {
 
       // Reset modal state after viewing
       resetCreateCaseFormToNew();
+
+      // Clear the active case so the Comments/History tabs are disabled and
+      // hold no stale comments or counts until the next case is opened.
+      loadCaseRevisionHistory(null);
 
       // Clear mobile summary and section headings so the next case opens fresh.
       if (window.MobileCaseModal && typeof window.MobileCaseModal.clearMobileState === 'function') {
