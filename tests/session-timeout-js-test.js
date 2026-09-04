@@ -85,11 +85,13 @@ class Thenable {
   }
 }
 
-function createSandbox() {
+function createSandbox(opts) {
+  opts = opts || {};
   let now = 70000;
   let nextTimerId = 1;
   const timers = [];
   const fetchCalls = [];
+  const toastCalls = [];
   const listeners = { document: {}, window: {} };
   const elementsById = {};
 
@@ -110,6 +112,12 @@ function createSandbox() {
         el.children.push(child);
         if (child.id) elementsById[child.id] = child;
       },
+      removeChild(child) {
+        const idx = el.children.indexOf(child);
+        if (idx !== -1) el.children.splice(idx, 1);
+        child.parentNode = null;
+        return child;
+      },
       addEventListener(event, handler) {
         el._listeners[event] = el._listeners[event] || [];
         el._listeners[event].push(handler);
@@ -128,7 +136,7 @@ function createSandbox() {
   const body = makeElement('body');
 
   const document = {
-    readyState: 'complete',
+    readyState: opts.readyState || 'complete',
     body: body,
     _listeners: listeners.document,
     addEventListener(event, handler, _opts) {
@@ -187,7 +195,7 @@ function createSandbox() {
       return promise;
     },
     t(key, params) { return key + (params ? ' ' + JSON.stringify(params) : ''); },
-    showToast() {},
+    showToast(msg, type) { toastCalls.push({ msg, type }); },
     Math,
     JSON,
     encodeURIComponent,
@@ -218,8 +226,23 @@ function createSandbox() {
         }
       },
       fetchCalls,
+      toastCalls,
+      timers,
       listeners,
       elementsById,
+      // Emulate a real button click: the browser dispatches pointerdown,
+      // mousedown and click to the document (bubbling) and the button's own
+      // click listeners fire. touchstart is added for touch devices.
+      clickExtendButton(touch) {
+        const seq = touch ? ['touchstart', 'pointerdown', 'mousedown', 'click'] : ['pointerdown', 'mousedown', 'click'];
+        const btn = elementsById['sessionExtendBtn'];
+        seq.forEach(ev => {
+          if (ev === 'click' && btn && !btn.disabled) {
+            (btn._listeners.click || []).slice().forEach(h => h({ type: 'click' }));
+          }
+          (listeners.document[ev] || []).slice().forEach(h => h({ type: ev }));
+        });
+      },
       triggerDocumentEvent(event) {
         const handlers = (listeners.document[event] || []).slice();
         for (const h of handlers) h({ type: event });
@@ -244,8 +267,8 @@ function createSandbox() {
   return sandbox;
 }
 
-function runInSandbox() {
-  const sandbox = createSandbox();
+function runInSandbox(opts) {
+  const sandbox = createSandbox(opts);
   const context = vm.createContext(sandbox);
   vm.runInContext(source, context, { filename: 'session-timeout.js' });
   return sandbox;
@@ -432,6 +455,100 @@ test('timeRemaining of 0 on a still-loggedIn-looking response redirects', () => 
   });
   s._test.resolveLastFetch(response);
   assertEqual(s.window.location.href, 'login.php?session_expired=1', 'redirects when server reports zero time');
+});
+
+// ---- Stay Logged In: one click => one request, one toast ----
+
+function extendPosts(s) {
+  return s._test.fetchCalls.filter(c => {
+    if (!c.options || c.options.method !== 'POST' || !c.options.body) return false;
+    try { return JSON.parse(c.options.body).action === 'extend'; } catch (e) { return false; }
+  });
+}
+
+function showWarning(s) {
+  s._test.tick(60000);
+  s._test.resolveLastFetch(makeJsonResponse({
+    success: true, loggedIn: true, timeRemaining: 300, timeout: 3600, warningTime: 300, showWarning: true,
+  }));
+  assertTrue(s._test.elementsById['sessionTimeoutModal'], 'warning modal created');
+}
+
+function extendOk() {
+  return makeJsonResponse({ success: true, message: 'Session extended', timeRemaining: 3600, timeout: 3600, warningTime: 300, showWarning: false });
+}
+
+[false, true].forEach(touch => {
+  const label = touch ? 'touch tap' : 'mouse click';
+  test(`Single Stay Logged In ${label} sends exactly one extend request and one success toast`, () => {
+    const s = runInSandbox();
+    showWarning(s);
+    s._test.clickExtendButton(touch);
+    assertEqual(extendPosts(s).length, 1, 'extend requests after one click');
+    assertTrue(s._test.elementsById['sessionExtendBtn'].disabled, 'button disabled while request in flight');
+    assertEqual(s._test.toastCalls.length, 0, 'no toast before the server confirms');
+    s._test.resolveLastFetch(extendOk());
+    assertEqual(s._test.toastCalls.length, 1, 'success toasts after confirmed response');
+    assertEqual(s._test.toastCalls[0].type, 'success', 'toast type');
+    assertEqual(s._test.toastCalls[0].msg, 'session.extended', 'toast message key');
+    assertFalse(s._test.elementsById['sessionTimeoutModal'].parentNode, 'modal removed from body');
+    assertEqual(s._test.timers.filter(t => t.type === 'interval').length, 0, 'countdown interval cleared');
+    assertFalse(s._test.elementsById['sessionExtendBtn'].disabled, 'button re-enabled after response');
+  });
+});
+
+test('Rapid repeated Stay Logged In clicks produce one request and one toast', () => {
+  const s = runInSandbox();
+  showWarning(s);
+  for (let i = 0; i < 5; i++) s._test.clickExtendButton(false);
+  assertEqual(extendPosts(s).length, 1, 'extend requests after five rapid clicks');
+  s._test.resolveLastFetch(extendOk());
+  assertEqual(s._test.toastCalls.length, 1, 'success toasts after five rapid clicks');
+});
+
+test('After extending, warning does not reappear until the next server-reported threshold', () => {
+  const s = runInSandbox();
+  showWarning(s);
+  s._test.clickExtendButton(false);
+  s._test.resolveLastFetch(extendOk());
+  const before = s._test.fetchCalls.length;
+  // Old fast warning-mode poll would fire at 10s; the normal 60s cadence must apply.
+  s._test.tick(30000);
+  assertEqual(s._test.fetchCalls.length, before, 'no status poll within 30s of extending');
+  assertEqual(s._test.timers.filter(t => t.type === 'timeout').length, 1, 'exactly one pending session-check timer');
+  s._test.tick(30000);
+  assertEqual(s._test.fetchCalls.length, before + 1, 'normal status poll fires at 60s');
+  s._test.resolveLastFetch(makeJsonResponse({ success: true, loggedIn: true, timeRemaining: 3540, timeout: 3600, warningTime: 300, showWarning: false }));
+  assertFalse(s._test.elementsById['sessionTimeoutModal'].parentNode, 'modal still hidden');
+  assertEqual(s._test.toastCalls.length, 1, 'no additional toasts afterwards');
+});
+
+test('Document activity while the warning is shown does not send extension requests', () => {
+  const s = runInSandbox();
+  showWarning(s);
+  ['keydown', 'scroll', 'pointerdown', 'mousedown', 'click', 'touchstart'].forEach(ev => s._test.triggerDocumentEvent(ev));
+  s._test.tick(2000);
+  assertEqual(extendPosts(s).length, 0, 'extend requests from document activity');
+  assertEqual(s._test.toastCalls.length, 0, 'toasts from document activity');
+});
+
+test('Server rejecting the extension redirects to login instead of toasting', () => {
+  const s = runInSandbox();
+  showWarning(s);
+  s._test.clickExtendButton(false);
+  s._test.resolveLastFetch(makeJsonResponse({ success: false, loggedIn: false }));
+  assertEqual(s.window.location.href, 'login.php?session_expired=1', 'redirect on rejected extension');
+  assertEqual(s._test.toastCalls.length, 0, 'no toast on rejected extension');
+});
+
+test('Duplicate initialization does not register duplicate activity listeners or polls', () => {
+  const s = runInSandbox({ readyState: 'loading' });
+  const ready = s.document._listeners['DOMContentLoaded'];
+  assertTrue(ready && ready.length === 1, 'init deferred to DOMContentLoaded');
+  ready[0]();
+  ready[0](); // a second DOMContentLoaded dispatch must be a no-op
+  assertEqual(s._test.listeners.document['click'].length, 1, 'click listeners after duplicate init');
+  assertEqual(s._test.timers.filter(t => t.type === 'timeout').length, 1, 'pending session-check timers after duplicate init');
 });
 
 console.log(results.join('\n'));

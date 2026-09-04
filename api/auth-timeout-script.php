@@ -13,4 +13,4 @@ require_once __DIR__ . '/i18n.php';
     window.__i18n = <?php echo getTranslationsJsonForJs(); ?>;
 </script>
 <script src="js/i18n.js?v=20260820"></script>
-<script src="js/session-timeout.js?v=2026083001" defer></script>
+<script src="js/session-timeout.js?v=2026090401" defer></script>

@@ -13,16 +13,24 @@
   var warningCheckInterval = 10 * 1000;  // Faster checks while warning is visible
   var initialCheckDelay = 5 * 1000;      // First status check after 5 seconds
   var sessionCheckTimer = null;
+  var sessionCheckGeneration = 0;
 
   var warningModal = null;
   var countdownInterval = null;
   var lastActivityTime = Date.now();
   var isWarningShown = false;
+  var isExtending = false;
+  var initialized = false;
 
   /**
    * Initialize session timeout monitoring
    */
   function init() {
+    // Guard against duplicate initialization so activity listeners and
+    // status polls are never registered more than once.
+    if (initialized) return;
+    initialized = true;
+
     // Track user activity
     trackActivity();
 
@@ -38,11 +46,17 @@
     if (sessionCheckTimer) {
       clearTimeout(sessionCheckTimer);
     }
+    // Each call starts a new polling chain. A status request that was already
+    // in flight when the chain was replaced must not reschedule itself,
+    // otherwise two chains would poll concurrently.
+    var generation = ++sessionCheckGeneration;
     sessionCheckTimer = setTimeout(function runAndReschedule() {
       checkSessionStatus().then(function(data) {
+        if (generation !== sessionCheckGeneration) return;
         var nextInterval = (data && data.showWarning) ? warningCheckInterval : checkInterval;
         sessionCheckTimer = setTimeout(runAndReschedule, nextInterval);
       }).catch(function() {
+        if (generation !== sessionCheckGeneration) return;
         sessionCheckTimer = setTimeout(runAndReschedule, checkInterval);
       });
     }, initialDelay);
@@ -64,13 +78,17 @@
 
     activityEvents.forEach(function(event) {
       document.addEventListener(event, function() {
-        lastActivityTime = Date.now();
-
-        // If warning is shown and user is active, extend session immediately
+        // While the warning modal is shown it covers the whole page, so the
+        // only decision the user can make is via its buttons. A single tap on
+        // "Stay Logged In" fires pointerdown, mousedown, touchstart and click
+        // at the document level as well as the button's own click; treating
+        // each of those as an extension caused several requests and toasts
+        // per click. Let the button handler alone perform the extension.
         if (isWarningShown) {
-          extendSession();
           return;
         }
+
+        lastActivityTime = Date.now();
 
         // Debounced ping to server to reset inactivity timer
         // Only ping if we haven't pinged recently
@@ -265,6 +283,16 @@
    * Extend the session
    */
   function extendSession() {
+    // Only one extension request may be in flight; rapid repeated clicks
+    // must not produce additional requests or toasts.
+    if (isExtending) return;
+    isExtending = true;
+
+    var extendBtn = document.getElementById('sessionExtendBtn');
+    if (extendBtn) {
+      extendBtn.disabled = true;
+    }
+
     fetch('api/session-status.php', {
       method: 'POST',
       headers: {
@@ -278,6 +306,11 @@
       if (data.success) {
         hideWarningModal();
         lastActivityTime = Date.now();
+        lastServerPing = Date.now();
+
+        // The session was just extended: drop the fast warning-mode poll and
+        // restart the normal check cadence from now.
+        scheduleSessionCheck(checkInterval);
 
         // Show confirmation toast if available
         if (typeof showToast === 'function') {
@@ -290,6 +323,13 @@
     })
     .catch(function(error) {
       console.error('Failed to extend session:', error);
+    })
+    .then(function() {
+      isExtending = false;
+      var btn = document.getElementById('sessionExtendBtn');
+      if (btn) {
+        btn.disabled = false;
+      }
     });
   }
 
