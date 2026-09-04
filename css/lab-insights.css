@@ -178,25 +178,9 @@
   z-index: 2;
 }
 
-/* Table-header tooltips cannot escape the .li-table-wrap overflow box when
-   positioned above the <th>. Keep them on the same row, to the right of the
-   trigger, so they render fully without being clipped. */
-.li-table th .dt-tooltip.dt-tooltip-align-right .dt-tooltip-bubble {
-  bottom: auto;
-  top: 0;
-  left: calc(100% + 9px);
-  right: auto;
-  transform: none;
-}
-
-.li-table th .dt-tooltip.dt-tooltip-align-right .dt-tooltip-bubble::after {
-  top: 2px;
-  left: -10px;
-  right: auto;
-  transform: none;
-  border-top-color: transparent;
-  border-right-color: #1e293b;
-}
+/* Table-header tooltips are rendered by the shared body-level
+   .dt-tooltip-layer (js/app.js), which positions itself from the trigger's
+   viewport rect, so they are no longer clipped by .li-table-wrap. */
 
 @media (max-width: 720px) {
   .li-summary-grid {

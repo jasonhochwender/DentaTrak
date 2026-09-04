@@ -510,7 +510,7 @@ if (isset($appConfig) && is_array($appConfig) && isset($appConfig['appName'])) {
   <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
   
   <!-- Preload critical resources -->
-  <link rel="preload" href="js/app.js?v=20260904a" as="script">
+  <link rel="preload" href="js/app.js?v=20260905a" as="script">
   <link rel="preload" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
   <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap"></noscript>
   
@@ -557,7 +557,7 @@ if (isset($appConfig) && is_array($appConfig) && isset($appConfig['appName'])) {
   <!-- Feature-specific CSS - loaded on demand -->
   <link rel="preload" href="css/revision-history.css?v=20241210" as="style" onload="this.onload=null;this.rel='stylesheet'">
   <link rel="preload" href="css/delete-button.css?v=20241210" as="style" onload="this.onload=null;this.rel='stylesheet'">
-  <link rel="preload" href="css/settings-billing.css?v=20260831d" as="style" onload="this.onload=null;this.rel='stylesheet'">
+  <link rel="preload" href="css/settings-billing.css?v=20260905a" as="style" onload="this.onload=null;this.rel='stylesheet'">
   <link rel="preload" href="css/feedback.css?v=20241210" as="style" onload="this.onload=null;this.rel='stylesheet'">
   <link rel="preload" href="css/kanban-dragdrop.css?v=20241210" as="style" onload="this.onload=null;this.rel='stylesheet'">
   <link rel="preload" href="css/case-creation.css?v=20241210" as="style" onload="this.onload=null;this.rel='stylesheet'">
@@ -575,7 +575,7 @@ if (isset($appConfig) && is_array($appConfig) && isset($appConfig['appName'])) {
   <link rel="preload" href="css/analytics-pro.css?v=20241231" as="style" onload="this.onload=null;this.rel='stylesheet'">
   <link rel="preload" href="css/attachment-viewer.css?v=20260903a" as="style" onload="this.onload=null;this.rel='stylesheet'">
 <?php if (isFeatureEnabled('SHOW_LAB_INSIGHTS')): ?>
-  <link rel="preload" href="css/lab-insights.css?v=20260815" as="style" onload="this.onload=null;this.rel='stylesheet'">
+  <link rel="preload" href="css/lab-insights.css?v=20260905a" as="style" onload="this.onload=null;this.rel='stylesheet'">
 <?php endif; ?>
 <?php if (isFeatureEnabled('BILLING_ENABLED')): ?>
   <link rel="preload" href="css/billing-portal.css?v=20260805" as="style" onload="this.onload=null;this.rel='stylesheet'">
@@ -583,7 +583,7 @@ if (isset($appConfig) && is_array($appConfig) && isset($appConfig['appName'])) {
   <noscript>
     <link rel="stylesheet" href="css/revision-history.css?v=20241210">
     <link rel="stylesheet" href="css/delete-button.css?v=20241210">
-    <link rel="stylesheet" href="css/settings-billing.css?v=20260831d">
+    <link rel="stylesheet" href="css/settings-billing.css?v=20260905a">
     <link rel="stylesheet" href="css/feedback.css?v=20241210">
     <link rel="stylesheet" href="css/kanban-dragdrop.css?v=20241210">
     <link rel="stylesheet" href="css/case-creation.css?v=20241210">
@@ -600,7 +600,7 @@ if (isset($appConfig) && is_array($appConfig) && isset($appConfig['appName'])) {
     <link rel="stylesheet" href="css/dev-tools.css?v=20241210">
     <link rel="stylesheet" href="css/analytics-pro.css?v=20241231">
 <?php if (isFeatureEnabled('SHOW_LAB_INSIGHTS')): ?>
-    <link rel="stylesheet" href="css/lab-insights.css?v=20260815">
+    <link rel="stylesheet" href="css/lab-insights.css?v=20260905a">
 <?php endif; ?>
     <link rel="stylesheet" href="css/attachment-viewer.css?v=20260903a">
 <?php if (isFeatureEnabled('BILLING_ENABLED')): ?>
@@ -2990,7 +2990,7 @@ endif;
   </script>
   <script src="js/workflow-draft.js?v=20260829f" defer></script>
   <script src="js/workflow-draft-ui.js?v=20260829f" defer></script>
-  <script src="js/app.js?v=20260904a" defer></script>
+  <script src="js/app.js?v=20260905a" defer></script>
   <script src="js/mobile-case-modal.js?v=20260830c" defer></script>
   <script src="js/mobile-kanban.js?v=20260829b" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js" defer></script>

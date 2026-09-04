@@ -1068,8 +1068,8 @@ input#practiceName {
 .practice-user-header,
 .practice-user-row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 56px 70px 94px 42px;
-  column-gap: 6px;
+  grid-template-columns: minmax(0, 1fr) 62px 74px 112px 66px;
+  column-gap: 8px;
   align-items: center;
 }
 
@@ -1077,7 +1077,25 @@ input#practiceName {
    (js/app.js toggles this modifier class on the same elements). */
 .practice-user-header.has-lab-column,
 .practice-user-row.has-lab-column {
-  grid-template-columns: minmax(0, 1fr) 56px 70px 94px 48px 42px;
+  grid-template-columns: minmax(0, 1fr) 62px 74px 112px 58px 66px;
+}
+
+/* Per-cell labels exist for the stacked phone-card layout only. */
+.practice-user-cell-label {
+  display: none;
+}
+
+/* Badges sit on their own line beneath the address so a long email is
+   not squeezed into a few characters by "You" + "Creator". */
+.practice-user-row .user-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 3px;
+}
+
+.practice-user-row .user-badges .admin-badge {
+  margin-left: 0;
 }
 
 /* Prevent the User column (badges + long emails) from overflowing into
@@ -1091,13 +1109,17 @@ input#practiceName {
 
 .practice-user-row .gmail-user-email {
   display: flex;
-  align-items: center;
-  gap: 6px;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0;
   min-width: 0;
+  max-width: 100%;
   overflow: hidden;
 }
 
 .practice-user-row .user-email-text {
+  display: block;
+  max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1212,13 +1234,31 @@ input#practiceName {
   outline-offset: 2px;
 }
 
+/* The inline bubble is only the aria-describedby text source: kept in the
+   DOM but visually hidden. The visible tooltip is the body-level
+   .dt-tooltip-layer (positioned by js/app.js from the trigger's viewport
+   rect) so it can never be clipped by overflow:hidden / scrolling
+   ancestors such as the Settings modal panels or grid rows. */
 .dt-tooltip-bubble {
   position: absolute;
-  bottom: calc(100% + 9px);
-  left: 50%;
-  transform: translateX(-50%);
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  border: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.dt-tooltip-layer {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 3000; /* above #settingsBillingModal (101) and child modals */
   width: max-content;
-  max-width: 210px;
+  max-width: 240px;
   background-color: #1e293b;
   color: #f8fafc;
   padding: 8px 11px;
@@ -1228,43 +1268,56 @@ input#practiceName {
   line-height: 1.45;
   text-align: left;
   text-transform: none;
+  letter-spacing: normal;
   white-space: normal;
+  overflow-wrap: break-word;
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.18);
   opacity: 0;
   visibility: hidden;
   pointer-events: none;
   transition: opacity 0.12s ease;
-  z-index: 1000;
 }
 
-.dt-tooltip-bubble::after {
-  content: '';
-  position: absolute;
-  top: 100%;
-  left: 50%;
-  transform: translateX(-50%);
-  border: 5px solid transparent;
-  border-top-color: #1e293b;
-}
-
-.dt-tooltip-trigger:hover + .dt-tooltip-bubble,
-.dt-tooltip-trigger:focus-visible + .dt-tooltip-bubble {
+.dt-tooltip-layer.is-visible {
   opacity: 1;
   visibility: visible;
 }
 
-/* Edge-aware variant so tooltips near the right edge of the modal
-   don't get clipped */
-.dt-tooltip.dt-tooltip-align-right .dt-tooltip-bubble {
-  left: auto;
-  right: -6px;
-  transform: none;
+.dt-tooltip-layer-arrow {
+  position: absolute;
+  width: 0;
+  height: 0;
+  border: 5px solid transparent;
+  transform: translateX(-50%);
 }
 
-.dt-tooltip.dt-tooltip-align-right .dt-tooltip-bubble::after {
-  left: auto;
-  right: 10px;
-  transform: none;
+.dt-tooltip-layer[data-placement="above"] .dt-tooltip-layer-arrow {
+  top: 100%;
+  border-top-color: #1e293b;
+}
+
+.dt-tooltip-layer[data-placement="below"] .dt-tooltip-layer-arrow {
+  bottom: 100%;
+  border-bottom-color: #1e293b;
+}
+
+.dt-tooltip-layer[data-placement="right"] .dt-tooltip-layer-arrow,
+.dt-tooltip-layer[data-placement="left"] .dt-tooltip-layer-arrow {
+  transform: translateY(-50%);
+}
+
+.dt-tooltip-layer[data-placement="right"] .dt-tooltip-layer-arrow {
+  right: 100%;
+  border-right-color: #1e293b;
+}
+
+.dt-tooltip-layer[data-placement="left"] .dt-tooltip-layer-arrow {
+  left: 100%;
+  border-left-color: #1e293b;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dt-tooltip-layer { transition: none; }
 }
 
 .practice-user-row .gmail-user-email {
@@ -2249,8 +2302,10 @@ input#practiceName {
    instead of a compact wrapped row. Using `overflow-x: auto` with
    `flex-wrap: nowrap`, and sizing each tab to its own label instead of
    100%, keeps every tab on one line, fully readable, with the row
-   scrolling horizontally instead of wrapping or compressing. */
-@media (max-width: 720px) {
+   scrolling horizontally instead of wrapping or compressing.
+   Applies up to 900px so tablets (768px) give the Practice Users grid the
+   full modal width instead of sharing it with a 210px sidebar. */
+@media (max-width: 900px) {
   .settings-layout {
     grid-template-columns: 1fr;
   }
@@ -2259,18 +2314,31 @@ input#practiceName {
     flex-direction: row;
     flex-wrap: nowrap;
     overflow-x: auto;
+    overflow-y: hidden;
     -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+    scroll-snap-type: x proximity;
     gap: 6px;
-    padding: 0 0 12px 0;
+    padding: 0 0 10px 0;
     margin-bottom: 12px;
     border-right: none;
     border-bottom: 1px solid var(--border-light);
     position: static;
+    /* Fade the trailing edge so a partially visible tab is not the only
+       hint that more sections exist. */
+    -webkit-mask-image: linear-gradient(to right, #000 0, #000 calc(100% - 28px), transparent 100%);
+    mask-image: linear-gradient(to right, #000 0, #000 calc(100% - 28px), transparent 100%);
   }
 
   .settings-nav-item {
     width: auto;
     flex: 0 0 auto;
+    scroll-snap-align: start;
+    padding: 8px 12px;
+  }
+
+  .settings-nav-item:last-child {
+    margin-right: 28px;
   }
 
   .settings-panels {
@@ -2361,68 +2429,81 @@ input#practiceName {
   .inline-value-group input[type="text"] {
     max-width: 100%;
   }
+}
 
-  /* ------------------------------------------------
-     Practice Users & Roles -> stacked cards
-     ------------------------------------------------ */
+/* ------------------------------------------------
+   Practice Users & Roles -> stacked user cards
+   Applies up to 640px: below that the six fixed
+   permission tracks no longer fit beside a readable
+   User column, so the grid is not forced into the
+   narrow viewport.
+   ------------------------------------------------ */
+@media (max-width: 640px) {
   .practice-user-header {
     display: none;
   }
 
-  .practice-user-row {
+  #settingsBillingModal .practice-user-row {
     display: flex;
     flex-direction: column;
+    align-items: stretch;
     gap: 0;
-    padding: 12px;
+    padding: 10px 12px 4px;
     margin-bottom: 10px;
     border: 1px solid var(--border-light);
     border-radius: 8px;
   }
 
   .practice-user-row .gmail-user-info {
-    margin-bottom: 8px;
+    margin-bottom: 6px;
   }
 
-  .practice-user-admin-cell,
-  .practice-user-analytics-cell,
-  .practice-user-limited-cell,
-  .practice-user-remove-cell {
+  .practice-user-row .user-email-text {
+    font-weight: 500;
+  }
+
+  .practice-user-row .user-badges {
+    margin-top: 4px;
+  }
+
+  /* One permission per row: translated label (+ its own info icon) on the
+     left, control on the right. Labels come from js/app.js so they are
+     localized rather than hardcoded CSS content. */
+  #settingsBillingModal .practice-user-admin-cell,
+  #settingsBillingModal .practice-user-analytics-cell,
+  #settingsBillingModal .practice-user-limited-cell,
+  #settingsBillingModal .practice-user-lab-cell,
+  #settingsBillingModal .practice-user-remove-cell {
     display: flex;
     align-items: center;
     justify-content: space-between;
+    gap: 12px;
     text-align: left;
-    padding: 8px 0;
+    min-height: 44px;
+    padding: 6px 0;
     border-top: 1px solid var(--border-light);
   }
 
-  .practice-user-admin-cell::before,
-  .practice-user-analytics-cell::before,
-  .practice-user-limited-cell::before {
-    font-size: 13px;
+  .practice-user-cell-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 14px;
     color: var(--text-secondary);
     font-weight: 500;
   }
 
-  .practice-user-admin-cell::before {
-    content: "Admin";
+  #settingsBillingModal .practice-user-admin-cell input[type="checkbox"],
+  #settingsBillingModal .practice-user-analytics-cell input[type="checkbox"],
+  #settingsBillingModal .practice-user-limited-cell input[type="checkbox"],
+  #settingsBillingModal .practice-user-lab-cell input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
+    margin: 0;
+    flex-shrink: 0;
   }
 
-  .practice-user-analytics-cell::before {
-    content: "Insights";
-  }
-
-  .practice-user-limited-cell::before {
-    content: "Assigned Only";
-  }
-
-  .practice-user-admin-cell input[type="checkbox"],
-  .practice-user-analytics-cell input[type="checkbox"],
-  .practice-user-limited-cell input[type="checkbox"] {
-    width: 18px;
-    height: 18px;
-  }
-
-  /* Remove cell only renders a button for rows where removal is actually
+  /* Remove cell only renders content for rows where removal is actually
      allowed (see displayPracticeUsers() in app.js) - collapse the empty
      cell entirely rather than showing a "Remove" row with nothing in it. */
   .practice-user-remove-cell:empty {
@@ -2431,17 +2512,25 @@ input#practiceName {
     padding: 0;
   }
 
-  .practice-user-remove-cell:not(:empty)::before {
-    content: "Remove";
-    font-size: 13px;
-    color: var(--text-secondary);
-    font-weight: 500;
+  #settingsBillingModal .practice-user-remove-cell:not(:empty) {
+    margin-top: 2px;
+    border-top: 1px solid var(--border-light);
   }
 
-  .remove-gmail-user {
-    font-size: 22px;
-    padding: 4px 8px;
+  .practice-user-remove-cell .remove-gmail-user {
+    font-size: 20px;
+    line-height: 1;
+    width: 40px;
+    height: 36px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid #fecaca;
+    border-radius: 6px;
+    background: #fff5f5;
+    flex-shrink: 0;
   }
+
 }
 
 /* ============================================
@@ -2552,10 +2641,10 @@ input#practiceName {
   padding-bottom: 4px;
 }
 
-@media (max-width: 720px) {
+@media (max-width: 900px) {
   #settingsBillingModal #settingsForm .settings-layout {
     grid-template-columns: 1fr;
-    grid-template-rows: auto 1fr;
+    grid-template-rows: auto minmax(0, 1fr);
   }
 }
 
@@ -2973,8 +3062,9 @@ input#practiceName {
   flex-wrap: wrap;
 }
 
-/* Permission table: allow header text to wrap rather than forcing a
-   horizontal track that is wider than the grid can actually give it. */
+/* Permission table: the column tracks are sized for their labels
+   (see .practice-user-header grid-template-columns), so header text
+   stays on one line. Only the flexible User column may shrink. */
 #settingsBillingModal .practice-user-header,
 #settingsBillingModal .practice-user-row {
   min-width: 0;
@@ -2983,8 +3073,21 @@ input#practiceName {
 #settingsBillingModal .practice-user-header > *,
 #settingsBillingModal .practice-user-row > * {
   min-width: 0;
-  white-space: normal;
-  overflow-wrap: break-word;
+}
+
+#settingsBillingModal .practice-user-header > *,
+#settingsBillingModal .practice-user-remove-header {
+  white-space: nowrap;
+  overflow-wrap: normal;
+}
+
+#settingsBillingModal .practice-user-remove-header {
+  text-align: center;
+}
+
+#settingsBillingModal .practice-user-remove-cell {
+  display: flex;
+  justify-content: center;
 }
 
 #settingsBillingModal .practice-user-row .user-email-text {
@@ -2993,21 +3096,105 @@ input#practiceName {
   overflow: hidden;
 }
 
-/* The Settings modal is too narrow at 1024/1280 with the generic
-   .modal-content 55% width. Give it a usable minimum so the right
-   pane can host the Practice Users grid and inline inputs without
-   being squeezed to the point of horizontal scroll. */
+/* The Settings modal was too narrow for the Practice Users grid with
+   the generic .modal-content 55% width. Use the viewport generously
+   (still inside it) so the right pane can host the grid, badges, and
+   inline inputs without truncating identifiers. */
 #settingsBillingModal .settings-billing-modal {
+  width: min(960px, 94vw);
   min-width: min(720px, 92vw);
-  max-width: min(900px, 95vw);
+  max-width: min(960px, 94vw);
 }
 
 /* Contain any remaining internal scrollable content (long workflow
    names, long emails) so the parent panes do not create a horizontal
-   scrollbar. The inputs/cells still own their own overflow clipping. */
+   scrollbar. The email cell owns its own ellipsis clipping; rows are
+   not clipped so nothing inside them can be cut off. */
 #settingsBillingModal .workflow-column-row,
-#settingsBillingModal .gmail-user-item,
-#settingsBillingModal .practice-user-row,
-#settingsBillingModal .practice-user-header {
+#settingsBillingModal .gmail-user-item:not(.practice-user-row):not(.practice-user-header) {
   overflow: hidden;
+}
+
+/* ============================================
+   PHONE OVERRIDES THAT MUST WIN THE CASCADE
+   --------------------------------------------
+   These intentionally sit after the desktop
+   right-pane rules above (same specificity, so
+   source order decides). Complements the <=480px
+   card layout block earlier in this file.
+   ============================================ */
+@media (max-width: 640px) {
+  /* Email may wrap on user cards instead of truncating to a few chars. */
+  #settingsBillingModal .practice-user-row .user-email-text {
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  #settingsBillingModal .practice-user-remove-cell:not(:empty) {
+    justify-content: space-between;
+  }
+}
+
+@media (max-width: 480px) {
+  /* Add User: in the stacked column layout the desktop flex-basis (200px)
+     would become the input's HEIGHT. Keep it a normal single-line field. */
+  #settingsBillingModal .gmail-input {
+    flex: 0 0 auto;
+    min-height: 44px;
+    padding: 10px 12px;
+  }
+
+  #settingsBillingModal .add-gmail-btn {
+    margin-left: 0;
+    min-height: 44px;
+  }
+
+  /* Phones: a single scroll owner (.settings-panels). Header, section nav
+     and the Save/Cancel bar stay put; the body/tab wrappers must not also
+     scroll or the three nested scrollers fight each other. */
+  #settingsBillingModal .modal-content.settings-billing-modal .modal-body {
+    overflow: hidden;
+    padding: 10px 12px 0;
+  }
+
+  #settingsBillingModal .tab-content-scroll {
+    overflow: hidden;
+  }
+
+  #settingsBillingModal #settingsForm .settings-panels {
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 8px;
+  }
+
+  #settingsBillingModal .settings-twisty-content {
+    padding: 10px 12px;
+  }
+
+  #settingsBillingModal .settings-group {
+    gap: 10px;
+  }
+
+  #settingsBillingModal .option-row {
+    gap: 4px;
+  }
+
+  /* Save/Cancel share one row so they do not consume a third of the
+     screen; padded for the home-indicator safe area. */
+  #settingsBillingModal #settingsForm .button-container {
+    flex-direction: row;
+    gap: 10px;
+    padding: 10px 0 calc(10px + env(safe-area-inset-bottom, 0px));
+  }
+
+  #settingsBillingModal #settingsForm .button-container button {
+    flex: 1 1 0;
+    width: auto;
+    min-height: 44px;
+    padding: 10px 12px;
+  }
+
+  #settingsBillingModal #settingsForm .button-container #saveSettings {
+    flex: 1.4 1 0;
+  }
 }

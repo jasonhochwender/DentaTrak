@@ -1524,7 +1524,14 @@ document.addEventListener('DOMContentLoaded', function () {
 
     function activate(target) {
       navItems.forEach(function(item) {
-        item.classList.toggle('active', item.getAttribute('data-nav-target') === target);
+        var isActive = item.getAttribute('data-nav-target') === target;
+        item.classList.toggle('active', isActive);
+        item.setAttribute('aria-current', isActive ? 'true' : 'false');
+        // On phones the nav is a horizontally scrolling row; keep the
+        // active tab in view so users can see where they are.
+        if (isActive && typeof item.scrollIntoView === 'function') {
+          try { item.scrollIntoView({ block: 'nearest', inline: 'center' }); } catch (e) { /* older browsers */ }
+        }
       });
       panels.forEach(function(panel) {
         panel.classList.toggle('settings-panel-active', panel.getAttribute('data-twisty-id') === target);
@@ -1534,6 +1541,7 @@ document.addEventListener('DOMContentLoaded', function () {
       if (panelsContainer) {
         panelsContainer.scrollTop = 0;
       }
+      if (window.dtTooltipLayer) window.dtTooltipLayer.hide();
     }
 
     var savedTarget = null;
@@ -2039,6 +2047,7 @@ document.addEventListener('DOMContentLoaded', function () {
   var settingsUnsavedDialogOpen = false;
 
   function closeSettingsBillingModal(forceClose) {
+    if (window.dtTooltipLayer) window.dtTooltipLayer.hide();
     // Rename Assignment Label and the reusable Confirm modal are opened as
     // child modals from within Settings. While either is open, Settings must
     // not close through ANY path (X, Cancel, outside-click, Escape, or a
@@ -2961,11 +2970,16 @@ document.addEventListener('DOMContentLoaded', function () {
     var trigger = document.createElement('button');
     trigger.type = 'button';
     trigger.className = 'dt-tooltip-trigger';
-    trigger.textContent = 'i';
     trigger.setAttribute('aria-describedby', tooltipId);
     trigger.setAttribute('aria-label', t('settings.common.more_info'));
+    trigger.setAttribute('aria-expanded', 'false');
     trigger.textContent = t('settings.common.info_trigger') || 'i';
 
+    // The inline bubble is the persistent, screen-reader-only description
+    // target for aria-describedby. The visible tooltip is rendered in a
+    // body-level layer (see dtTooltipLayer below) so it can never be
+    // clipped by a scrolling/overflow:hidden ancestor such as the Settings
+    // modal panels or the Practice Users grid rows.
     var bubble = document.createElement('span');
     bubble.className = 'dt-tooltip-bubble';
     bubble.setAttribute('role', 'tooltip');
@@ -2980,14 +2994,151 @@ document.addEventListener('DOMContentLoaded', function () {
   // reuse the exact same tooltip markup/style instead of duplicating it.
   window.createInfoTooltip = createInfoTooltip;
 
-  // Escape dismisses an open tooltip by blurring its trigger.
-  // Isolated listener -- does not interact with any other keyboard
-  // handlers (e.g. the settings form's Enter-to-save handler).
-  document.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape' && document.activeElement && document.activeElement.classList && document.activeElement.classList.contains('dt-tooltip-trigger')) {
-      document.activeElement.blur();
+  // Body-level tooltip layer shared by every .dt-tooltip-trigger. Positioned
+  // from the trigger's viewport rect (position: fixed), flips above/below and
+  // clamps to the viewport, follows scroll/resize, and closes on Escape,
+  // focus loss, outside interaction, or when the trigger leaves the DOM.
+  var dtTooltipLayer = (function() {
+    var layer = null;
+    var arrow = null;
+    var activeTrigger = null;
+    var openedByPointer = false;
+    var shownAt = 0;
+    var EDGE = 8;
+    var GAP = 9;
+
+    function ensureLayer() {
+      if (layer) return layer;
+      layer = document.createElement('div');
+      layer.className = 'dt-tooltip-layer';
+      layer.setAttribute('aria-hidden', 'true');
+      arrow = document.createElement('span');
+      arrow.className = 'dt-tooltip-layer-arrow';
+      layer.appendChild(document.createElement('span'));
+      layer.appendChild(arrow);
+      document.body.appendChild(layer);
+      return layer;
     }
-  });
+
+    function textFor(trigger) {
+      var id = trigger.getAttribute('aria-describedby');
+      var src = id ? document.getElementById(id) : null;
+      return src ? src.textContent : '';
+    }
+
+    function position() {
+      if (!activeTrigger || !layer) return;
+      if (!activeTrigger.isConnected) { hide(); return; }
+      var rect = activeTrigger.getBoundingClientRect();
+      if (rect.width === 0 && rect.height === 0) { hide(); return; }
+      var vw = window.innerWidth;
+      var vh = window.innerHeight;
+      // Fully hidden by a scroll container -> close rather than float.
+      if (rect.bottom < 0 || rect.top > vh || rect.right < 0 || rect.left > vw) { hide(); return; }
+
+      layer.style.maxWidth = Math.min(240, vw - EDGE * 2) + 'px';
+      var lw = layer.offsetWidth;
+      var lh = layer.offsetHeight;
+      var cx = rect.left + rect.width / 2;
+      var placement = 'above';
+      var top;
+      if (rect.top - GAP - lh >= EDGE) {
+        top = rect.top - GAP - lh;
+      } else if (rect.bottom + GAP + lh <= vh - EDGE) {
+        placement = 'below';
+        top = rect.bottom + GAP;
+      } else if (rect.right + GAP + lw <= vw - EDGE) {
+        placement = 'right';
+      } else {
+        placement = 'left';
+      }
+
+      var left;
+      if (placement === 'above' || placement === 'below') {
+        left = Math.min(Math.max(EDGE, cx - lw / 2), vw - EDGE - lw);
+        arrow.style.left = Math.min(Math.max(10, cx - left), lw - 10) + 'px';
+        arrow.style.top = '';
+      } else {
+        top = Math.min(Math.max(EDGE, rect.top + rect.height / 2 - lh / 2), vh - EDGE - lh);
+        left = placement === 'right' ? rect.right + GAP : rect.left - GAP - lw;
+        arrow.style.top = Math.min(Math.max(10, rect.top + rect.height / 2 - top), lh - 10) + 'px';
+        arrow.style.left = '';
+      }
+      layer.style.top = Math.round(top) + 'px';
+      layer.style.left = Math.round(left) + 'px';
+      layer.setAttribute('data-placement', placement);
+    }
+
+    function show(trigger, viaPointer) {
+      if (!trigger) return;
+      if (activeTrigger && activeTrigger !== trigger) hide();
+      ensureLayer();
+      if (activeTrigger !== trigger) shownAt = Date.now();
+      activeTrigger = trigger;
+      openedByPointer = !!viaPointer;
+      layer.firstChild.textContent = textFor(trigger);
+      layer.classList.add('is-visible');
+      trigger.setAttribute('aria-expanded', 'true');
+      position();
+    }
+
+    function hide() {
+      if (activeTrigger) activeTrigger.setAttribute('aria-expanded', 'false');
+      activeTrigger = null;
+      if (layer) layer.classList.remove('is-visible');
+    }
+
+    function triggerFrom(target) {
+      return target && target.closest ? target.closest('.dt-tooltip-trigger') : null;
+    }
+
+    document.addEventListener('mouseover', function(e) {
+      var trig = triggerFrom(e.target);
+      if (trig && trig !== activeTrigger) show(trig, true);
+    });
+    document.addEventListener('mouseout', function(e) {
+      var trig = triggerFrom(e.target);
+      if (trig && trig === activeTrigger && openedByPointer && document.activeElement !== trig) hide();
+    });
+    document.addEventListener('focusin', function(e) {
+      var trig = triggerFrom(e.target);
+      if (trig) { show(trig, false); } else if (activeTrigger) { hide(); }
+    });
+    document.addEventListener('focusout', function(e) {
+      var trig = triggerFrom(e.target);
+      if (trig && trig === activeTrigger) hide();
+    });
+    // Tap / click toggles (touch devices have no hover). Triggers are
+    // type="button" so this never submits the surrounding settings form.
+    // A tap emits mouseover/focusin (which already opened the tooltip)
+    // before click, so a click within the same interaction keeps it open
+    // instead of immediately toggling it closed.
+    document.addEventListener('click', function(e) {
+      var trig = triggerFrom(e.target);
+      if (trig) {
+        e.preventDefault();
+        var sameInteraction = activeTrigger === trig && (Date.now() - shownAt) < 400;
+        if (activeTrigger === trig && !sameInteraction) { hide(); } else { show(trig, false); }
+      }
+    });
+    document.addEventListener('pointerdown', function(e) {
+      if (activeTrigger && !triggerFrom(e.target)) hide();
+    }, true);
+    // Capture phase + stopImmediatePropagation, matching the confirm/rename
+    // child-modal pattern: the first Escape dismisses only the tooltip and
+    // does not also close the Settings modal underneath.
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape' && activeTrigger) {
+        hide();
+        e.stopImmediatePropagation();
+      }
+    }, true);
+    document.addEventListener('scroll', function() { if (activeTrigger) position(); }, true);
+    window.addEventListener('resize', function() { if (activeTrigger) position(); });
+
+    return { hide: hide, position: position };
+  })();
+  window.dtTooltipLayer = dtTooltipLayer;
 
   // Combined practice users grid (admins + authorized users)
   function displayPracticeUsers() {
@@ -3135,29 +3286,49 @@ document.addEventListener('DOMContentLoaded', function () {
       var emailTextSpan = document.createElement('span');
       emailTextSpan.className = 'user-email-text';
       emailTextSpan.textContent = email;
+      // Full address stays in the DOM text (screen readers get it even when
+      // the visual is ellipsized) and is also exposed on hover via title.
       emailTextSpan.title = email;
       userEmail.appendChild(emailTextSpan);
 
-      if (isCurrent) {
-        var youBadge = document.createElement('span');
-        youBadge.className = 'admin-badge';
-        youBadge.textContent = t('settings.users.practice_users.badge_you');
-        userEmail.appendChild(youBadge);
-      }
-
-      if (isCreator) {
-        var creatorBadge = document.createElement('span');
-        creatorBadge.className = 'admin-badge';
-        creatorBadge.textContent = t('settings.users.practice_users.badge_creator');
-        userEmail.appendChild(creatorBadge);
+      if (isCurrent || isCreator) {
+        var badges = document.createElement('span');
+        badges.className = 'user-badges';
+        if (isCurrent) {
+          var youBadge = document.createElement('span');
+          youBadge.className = 'admin-badge';
+          youBadge.textContent = t('settings.users.practice_users.badge_you');
+          badges.appendChild(youBadge);
+        }
+        if (isCreator) {
+          var creatorBadge = document.createElement('span');
+          creatorBadge.className = 'admin-badge';
+          creatorBadge.textContent = t('settings.users.practice_users.badge_creator');
+          badges.appendChild(creatorBadge);
+        }
+        userEmail.appendChild(badges);
       }
 
       infoWrapper.appendChild(userEmail);
       row.appendChild(infoWrapper);
 
+      // Per-cell label (translated) shown only in the stacked phone-card
+      // layout, where the shared header row is hidden. Carries its own
+      // info tooltip so help stays attached to the correct permission.
+      function cellLabel(labelKey, tooltipKey) {
+        var lbl = document.createElement('span');
+        lbl.className = 'practice-user-cell-label';
+        var txt = document.createElement('span');
+        txt.textContent = t(labelKey);
+        lbl.appendChild(txt);
+        if (tooltipKey) lbl.appendChild(createInfoTooltip(t(tooltipKey)));
+        return lbl;
+      }
+
       // Admin checkbox cell
       var adminCell = document.createElement('div');
       adminCell.className = 'practice-user-admin-cell';
+      adminCell.appendChild(cellLabel('settings.users.practice_users.admin', 'settings.users.practice_users.admin_tooltip'));
       var adminCheckbox = document.createElement('input');
       adminCheckbox.type = 'checkbox';
       adminCheckbox.className = 'practice-user-admin-checkbox';
@@ -3187,6 +3358,7 @@ document.addEventListener('DOMContentLoaded', function () {
       // Analytics checkbox cell
       var analyticsCell = document.createElement('div');
       analyticsCell.className = 'practice-user-analytics-cell';
+      analyticsCell.appendChild(cellLabel('settings.users.practice_users.insights', 'settings.users.practice_users.insights_tooltip'));
       var analyticsCheckbox = document.createElement('input');
       analyticsCheckbox.type = 'checkbox';
       // Default to true if not set
@@ -3211,6 +3383,7 @@ document.addEventListener('DOMContentLoaded', function () {
       // Limited Visibility checkbox cell
       var limitedCell = document.createElement('div');
       limitedCell.className = 'practice-user-limited-cell';
+      limitedCell.appendChild(cellLabel('settings.users.practice_users.assigned_only', 'settings.users.practice_users.assigned_only_tooltip'));
       var limitedCheckbox = document.createElement('input');
       limitedCheckbox.type = 'checkbox';
       limitedCheckbox.checked = !!(window.limitedVisibilityUsers && window.limitedVisibilityUsers[email]);
@@ -3233,6 +3406,7 @@ document.addEventListener('DOMContentLoaded', function () {
       if (showLabInsights) {
         var labCell = document.createElement('div');
         labCell.className = 'practice-user-lab-cell';
+        labCell.appendChild(cellLabel('settings.users.practice_users.lab', 'settings.users.practice_users.lab_tooltip'));
         var labCheckbox = document.createElement('input');
         labCheckbox.type = 'checkbox';
         labCheckbox.checked = !!(window.isLabUsers && window.isLabUsers[email]);
@@ -3258,10 +3432,12 @@ document.addEventListener('DOMContentLoaded', function () {
 
       var canRemove = window.isPracticeAdmin && !isCreator && !isCurrent;
       if (canRemove) {
+        removeCell.appendChild(cellLabel('settings.users.practice_users.remove', null));
         var removeBtn = document.createElement('button');
         removeBtn.type = 'button';
         removeBtn.className = 'remove-gmail-user';
         removeBtn.innerHTML = '&times;';
+        removeBtn.setAttribute('aria-label', t('settings.users.practice_users.remove') + ' ' + email);
         removeBtn.setAttribute('data-email', email);
         removeBtn.addEventListener('click', function() {
           var emailToRemove = this.getAttribute('data-email');

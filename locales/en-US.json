@@ -3894,7 +3894,7 @@
         "hero": {
             "title": "Know where every dental case stands.",
             "lead": "DentaTrak is visual dental case tracking software for dental practices. It gives your team one place to track dental cases, deadlines, assignments, lab activity, files, shipping, and revisions from start to delivery.",
-            "start_free": "Start Free",
+            "start_free": "Start Your 90-Day Free Trial",
             "see_how": "See How It Works",
             "trial_note": "90-day free trial. No credit card required."
         },
@@ -3934,6 +3934,8 @@
             "eyebrow": "Pricing",
             "title": "Simple plans for practices of different sizes.",
             "lead": "Every plan includes the core DentaTrak case workflow. Start with a 90-day free trial. No credit card required.",
+            "transparency_title": "Straightforward pricing. No sales call required.",
+            "transparency_body": "You should not have to schedule a meeting just to find out what software costs. DentaTrak publishes its pricing clearly so you can decide whether it fits your practice.",
             "operate": "Operate",
             "control": "Control",
             "scale": "Scale",
@@ -3972,13 +3974,75 @@
             "google_sign_in": "Google sign-in supported"
         },
         "cta": {
-            "final_title": "Give your practice a clearer way to manage dental cases.",
-            "final_lead": "Start a 90-day free trial and see how DentaTrak helps your team stay on top of every case.",
-            "start_free": "Start Free",
+            "final_title": "See DentaTrak your way.",
+            "final_lead": "We would be happy to give you a personal walkthrough. Prefer to explore on your own? DentaTrak was designed so you can begin immediately without sitting through a required demo.",
+            "no_credit_card": "No credit card required.",
+            "start_free": "Start Your 90-Day Free Trial",
             "sign_in": "Sign In",
             "ready_title": "Ready to track your cases?",
             "ready_lead": "Try DentaTrak free for 90 days. Set up your practice and begin tracking cases in minutes.",
             "already_account": "Already have an account? Log in"
+        },
+        "insights_section": {
+            "eyebrow": "Practice & Lab Insights",
+            "title": "See where cases are moving and where they are slowing down.",
+            "lead": "Practice and Lab Insights turn everyday activity into a clearer view of case volume, deadlines, and lab turnaround so you can act before delays affect patient appointments.",
+            "included": "Practice Insights, Lab Insights, and Smart Recommendations are included in the Control and Scale plans.",
+            "features": {
+                "1_title": "Case volume and status",
+                "1_body": "Track active, due soon, late, and delivered cases at a glance.",
+                "2_title": "Appointment risk and lab turnaround",
+                "2_body": "Spot cases where the patient appointment may arrive before the case is ready and compare lab turnaround times.",
+                "3_title": "Lab comparisons and Smart Recommendations",
+                "3_body": "Compare workload, late rates, revisions, and direct transfers by lab and receive practical, data-based suggestions."
+            }
+        },
+        "security_section": {
+            "eyebrow": "Security",
+            "title": "Your cases stay private. Your team stays in control.",
+            "lead": "DentaTrak checks practice membership and user permissions before showing case details or opening a file, helping keep sensitive information limited to the people responsible for the work.",
+            "link": "Read more about HIPAA & Security",
+            "panel_title": "Access is checked before anything is shown.",
+            "stages": {
+                "1": "Secure sign-in",
+                "2": "Practice confirmed",
+                "3": "Permissions applied",
+                "4": "Authorized case access"
+            },
+            "trust": {
+                "1": "Encrypted in transit and at rest",
+                "2": "Signed, short-lived file access",
+                "3": "BAA available"
+            },
+            "cards": {
+                "1_title": "Separate practice workspaces",
+                "1_body": "Case information stays within the correct practice. Cross-practice requests are blocked before information is returned.",
+                "2_title": "Access shaped by each user’s role",
+                "2_body": "Owners, administrators, and standard users receive appropriate access. Assigned Only users see only the cases assigned to them.",
+                "3_title": "Files protected until they are opened",
+                "3_body": "Attachments require authorization and use signed, short-lived links instead of permanent public file addresses.",
+                "4_title": "Patient details stay out of email",
+                "4_body": "Notification emails explain that activity occurred without including patient or case details. Users return to the authenticated application to view the information."
+            }
+        },
+        "mobile_section": {
+            "eyebrow": "Mobile Browser",
+            "title": "Keep cases moving wherever work happens.",
+            "lead": "DentaTrak works in your phone's browser, so your team can review cases, update workflows, view files, and respond to activity away from a desktop.",
+            "pill": "Works in your browser. No app download required.",
+            "features": {
+                "1_title": "Swipe through your workflow",
+                "1_body": "Move between Kanban columns with a swipe or scroll and update status from the card menu.",
+                "2_title": "Open and update complete cases",
+                "2_body": "View and edit the full case modal with the section navigator, status, assignments, and notes.",
+                "3_title": "View files, notifications, and Insights",
+                "3_body": "Open attachments, check notifications, and access Practice and Lab Insights for permitted users."
+            }
+        },
+        "demo": {
+            "request_demo": "Request a Personal Demo",
+            "subject": "DentaTrak Personal Demo Request",
+            "hero_link": "See how it works"
         },
         "about": {
             "title": "About DentaTrak",

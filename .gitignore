@@ -174,3 +174,6 @@ pnpm-lock.yaml
 php_errors.log
 error_log
 documentation/Google Cloud Setup.docx
+
+# Windsurf skills installed locally only (never commit local skill files)
+/.windsurf/skills/
