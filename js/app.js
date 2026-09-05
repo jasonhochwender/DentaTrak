@@ -1176,6 +1176,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
       userMenu.classList.add('open');
       userMenuToggle.setAttribute('aria-expanded', 'true');
+      cleanupUserMenuDividers();
     }
   }
 
@@ -1187,6 +1188,36 @@ document.addEventListener('DOMContentLoaded', function () {
       userMenu.classList.remove('open');
       userMenuToggle.setAttribute('aria-expanded', 'false');
     }
+  }
+
+  // On phones, suppress any .user-menu-divider that no longer has a visible
+  // .user-menu-item on both sides (e.g. Settings and Billing hidden on a phone
+  // leaves the admin-group divider stranded). Reset on wider viewports.
+  function cleanupUserMenuDividers() {
+    if (!userMenu) return;
+    var isPhone = window.matchMedia('(max-width: 767px)').matches;
+    var dividers = userMenu.querySelectorAll('.user-menu-divider');
+    dividers.forEach(function(divider) {
+      if (!isPhone) {
+        divider.style.display = '';
+        return;
+      }
+
+      function hasVisibleItem(dir) {
+        var el = divider[dir];
+        while (el) {
+          if (el.classList && el.classList.contains('user-menu-item')) {
+            if (window.getComputedStyle(el).display !== 'none') return true;
+          }
+          el = el[dir];
+        }
+        return false;
+      }
+
+      var visibleBefore = hasVisibleItem('previousElementSibling');
+      var visibleAfter = hasVisibleItem('nextElementSibling');
+      divider.style.display = (visibleBefore && visibleAfter) ? '' : 'none';
+    });
   }
 
   // Make menu helpers available to the tour and other consumers
@@ -1208,6 +1239,11 @@ document.addEventListener('DOMContentLoaded', function () {
     document.addEventListener('click', function () {
       closeUserMenu();
     });
+
+    // Keep menu dividers tidy when the viewport moves across the phone
+    // breakpoint (and on load, so the initial hidden state is correct).
+    window.addEventListener('resize', cleanupUserMenuDividers);
+    cleanupUserMenuDividers();
   }
 
   // Practice Switcher event handlers
@@ -1312,8 +1348,27 @@ document.addEventListener('DOMContentLoaded', function () {
   var settingsBillingClose = document.getElementById('settingsBillingClose');
   var settingsCancelBtn = document.getElementById('settingsCancel');
 
+  // Phone-sized viewport check used by the Settings open guard and resize handler.
+  function isPhoneViewport() {
+    return window.matchMedia('(max-width: 767px)').matches;
+  }
+
   function openSettingsBillingModal() {
     if (!settingsBillingModal) return;
+
+    // UI restriction: Practice Settings is not supported on phone-sized screens.
+    // This guard covers menu clicks, Ctrl/Cmd+, shortcuts, direct function calls,
+    // and any stale element that tries to open the modal below 768px.
+    if (isPhoneViewport()) {
+      var phoneTitle = t('settings.messages.phone_unavailable_title') || 'Practice settings';
+      var phoneMessage = t('settings.messages.phone_unavailable') || 'Practice settings are available on a desktop or tablet. You can continue using cases, notifications, attachments, and Insights on this device.';
+      if (typeof Toast !== 'undefined' && Toast.info) {
+        Toast.info(phoneTitle, phoneMessage, { duration: 6000 });
+      } else {
+        alert(phoneMessage);
+      }
+      return;
+    }
 
     // SECURITY: Settings is an admin-only surface. This guard covers every
     // call site (menu click, Ctrl+ shortcut, or any future direct call) so
@@ -2091,6 +2146,17 @@ document.addEventListener('DOMContentLoaded', function () {
         resetLogoUploadState();
       }
     }
+  }
+
+  // If the viewport shrinks to a phone width while Settings is open, close it
+  // cleanly so the backdrop and body scroll lock are not left behind.
+  var phoneViewportMediaQuery = window.matchMedia('(max-width: 767px)');
+  if (phoneViewportMediaQuery && typeof phoneViewportMediaQuery.addEventListener === 'function') {
+    phoneViewportMediaQuery.addEventListener('change', function(e) {
+      if (e.matches && settingsBillingModal && settingsBillingModal.style.display === 'block') {
+        closeSettingsBillingModal(true);
+      }
+    });
   }
 
   /**
@@ -11638,6 +11704,11 @@ document.addEventListener('DOMContentLoaded', function () {
     // past-due / coming-due / appointment-risk calculations as the board.
     window.getCalendarDayDiff = getCalendarDayDiff;
     window.getDueWarningText = getDueWarningText;
+
+    // Expose the Settings modal open/close functions for tests, keyboard
+    // shortcuts, and programmatic callers. openSettingsBillingModal enforces
+    // its own phone-viewport and admin guards.
+    window.openSettingsBillingModal = openSettingsBillingModal;
 
     // Allow notification panel to close the settings modal when it opens.
     window.closeSettingsBillingModal = closeSettingsBillingModal;

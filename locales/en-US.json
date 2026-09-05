@@ -507,6 +507,8 @@
             "mobile_title": "Settings",
             "mobile_message": "Settings are available on desktop or tablet.",
             "mobile_subtext": "Please use DentaTrak on a larger screen to manage practice settings, users, security, and data preferences.",
+            "phone_unavailable_title": "Practice settings",
+            "phone_unavailable": "Practice settings are available on a desktop or tablet. You can continue using cases, notifications, attachments, and Insights on this device.",
             "unsaved_message": "You have unsaved changes. Are you sure you want to close without saving?",
             "save_success_title": "Settings Updated",
             "save_success_message": "Your settings have been saved successfully.",

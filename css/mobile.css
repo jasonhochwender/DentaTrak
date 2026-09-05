@@ -231,6 +231,17 @@
   }
 }
 
+/* Hide Practice Settings and User Guide in the user menu on phones
+   (below 768px). A client-side guard in js/app.js prevents the Settings
+   modal from opening through shortcuts, direct calls, or stale elements.
+   The User Guide itself and its public URL are unchanged. */
+@media (max-width: 767px) {
+  #settingsMenuItem,
+  #userGuideLink {
+    display: none !important;
+  }
+}
+
 /* ===========================================
    2. CASES VIEW - Toolbar & Buttons
    - View Archived Cases button fully visible
