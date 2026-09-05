@@ -364,21 +364,61 @@ $hipaaUrl = $baseUrl . ($articleUrls['page_hipaa_security'] ?? 'hipaa-security')
     @media (max-width: 900px) {
       .site-nav a:not(.nav-cta) { display: none; }
       .site-nav { gap: 16px; }
-      .problem-grid, .founder-grid { grid-template-columns: 1fr; text-align: center; }
-      .problem .lead, .founder .lead { margin-left: auto; margin-right: auto; }
-      .problem-visual { min-height: 320px; order: -1; }
-      .fragment { position: relative; inset: auto !important; top: auto !important; left: auto !important; right: auto !important; margin: 8px; }
-      .problem-visual { display: flex; flex-wrap: wrap; justify-content: center; }
-      .problem-case { width: 100%; max-width: 320px; }
-      .problem-connections { display: none; }
-      .problem-visual.is-active .fragment,
-      .problem-visual.is-converging .problem-case { transform: none !important; }
+      .founder-grid { grid-template-columns: 1fr; text-align: center; }
+      .founder .lead { margin-left: auto; margin-right: auto; }
       .di-metrics, .di-charts, .di-split { grid-template-columns: 1fr; }
       .di-metric-value { font-size: 1.45rem; }
       .steps-grid { grid-template-columns: 1fr; }
       .attention-board { grid-template-columns: 1fr; }
       .plans { grid-template-columns: 1fr; max-width: 600px; margin: 0 auto; }
       .plan.featured { order: -1; }
+    }
+
+    /* Phone layout for the problem section: text first, then a compact
+       two-column grid of source fragments with the consolidated case card
+       spanning the full width beneath them. */
+    @media (max-width: 767px) {
+      .problem-grid { grid-template-columns: 1fr; text-align: center; gap: 28px; }
+      .problem .lead { margin-left: auto; margin-right: auto; }
+      .problem-visual {
+        order: 0;
+        min-height: auto;
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 10px;
+        place-items: stretch;
+      }
+      .problem-visual .fragment {
+        position: relative;
+        inset: auto !important;
+        top: auto !important;
+        left: auto !important;
+        right: auto !important;
+        bottom: auto !important;
+        margin: 0;
+        padding: 10px;
+        max-width: none;
+        width: auto;
+        min-height: 70px;
+        font-size: 0.75rem;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: flex-start;
+      }
+      .problem-visual .fragment strong { font-size: 0.78rem; }
+      .problem-visual .fragment small { font-size: 0.65rem; line-height: 1.35; margin-top: 3px; }
+      .problem-case {
+        grid-column: 1 / -1;
+        max-width: none;
+        width: auto;
+        padding: 16px;
+      }
+      .problem-case h3 { font-size: 1rem; }
+      .problem-case p { font-size: 0.8rem; }
+      .problem-connections { display: none; }
+      .problem-visual.is-active .fragment,
+      .problem-visual.is-converging .problem-case { transform: none !important; }
     }
 
     @media (max-width: 720px) {
@@ -745,7 +785,7 @@ $hipaaUrl = $baseUrl . ($articleUrls['page_hipaa_security'] ?? 'hipaa-security')
     .m-save-btn { width: 100%; background: var(--dt-blue); color: #fff; border: none; border-radius: 10px; padding: 10px; font-size: 0.75rem; font-weight: 600; cursor: pointer; }
 
     @media (max-width: 1100px) {
-      .m-device-secondary { right: -30px; }
+      .m-device-secondary { right: 10px; }
     }
     @media (max-width: 900px) {
       .mobile-showcase { grid-template-columns: 1fr; text-align: center; }

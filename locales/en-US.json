@@ -3908,13 +3908,13 @@
         "workflow": {
             "eyebrow": "How DentaTrak Works",
             "title": "One case record from start to delivery.",
-            "lead": "Create the case once, keep it current as work moves, and let DentaTrak surface what needs attention.",
+            "lead": "Create the case once, track it through each stage, and let DentaTrak highlight what needs attention.",
             "body": "DentaTrak is one way to practice dental case tracking. To learn more about the category and why practices use it, see {link}.",
             "link_label": "how dental case tracking works",
             "step1_title": "Create the case",
             "step1_body": "Start with one record. Add the patient, case type, due date, appointment, assignment, lab, notes, and files.",
-            "step2_title": "Keep it current",
-            "step2_body": "Move the case through your workflow, update assignments, add files and designs, and track lab and shipping activity in one place.",
+            "step2_title": "Track every step",
+            "step2_body": "Move the case through each stage, update assignments, add files and designs, and track lab and shipping activity in one place.",
             "step3_title": "See what needs attention",
             "step3_body": "Due Soon, Late, and Appointment Risk flags help your team find cases that need follow-up without checking every case manually."
         },
@@ -3937,7 +3937,7 @@
             "title": "Simple plans for practices of different sizes.",
             "lead": "Every plan includes the core DentaTrak case workflow. Start with a 90-day free trial. No credit card required.",
             "transparency_title": "Straightforward pricing. No sales call required.",
-            "transparency_body": "You should not have to schedule a meeting just to find out what software costs. DentaTrak publishes its pricing clearly so you can decide whether it fits your practice.",
+            "transparency_body": "You shouldn’t have to schedule a meeting just to find out what software costs. DentaTrak publishes its pricing clearly so you can decide whether it fits your practice.",
             "operate": "Operate",
             "control": "Control",
             "scale": "Scale",
@@ -4004,7 +4004,7 @@
             "title": "Your cases stay private. Your team stays in control.",
             "lead": "DentaTrak checks practice membership and user permissions before showing case details or opening a file, helping keep sensitive information limited to the people responsible for the work.",
             "link": "Read more about HIPAA & Security",
-            "panel_title": "Access is checked before anything is shown.",
+            "panel_title": "Case information is shown only to authorized users.",
             "stages": {
                 "1": "Secure sign-in",
                 "2": "Practice confirmed",
@@ -4021,10 +4021,10 @@
                 "1_body": "Case information stays within the correct practice. Cross-practice requests are blocked before information is returned.",
                 "2_title": "Access shaped by each user’s role",
                 "2_body": "Owners, administrators, and standard users receive appropriate access. Assigned Only users see only the cases assigned to them.",
-                "3_title": "Files protected until they are opened",
-                "3_body": "Attachments require authorization and use signed, short-lived links instead of permanent public file addresses.",
-                "4_title": "Patient details stay out of email",
-                "4_body": "Notification emails explain that activity occurred without including patient or case details. Users return to the authenticated application to view the information."
+                "3_title": "Secure file access",
+                "3_body": "Attachments are encrypted in transit and at rest and opened through signed, short-lived links available only to authorized users.",
+                "4_title": "Keep patient information secure",
+                "4_body": "DentaTrak never includes patient or case details in notification emails. Team members can communicate through comments and @mentions inside DentaTrak, where authorized users sign in to view the case."
             }
         },
         "mobile_section": {
