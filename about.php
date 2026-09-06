@@ -40,6 +40,7 @@ $articleUrls = $appConfig['public_urls'] ?? [];
         "name": "DentaTrak",
         "url": "https://dentatrak.com/",
         "logo": "https://dentatrak.com/images/logo-large.png",
+        "founder": { "@id": "https://dentatrak.com/about#william-verrillo" },
         "email": "support@dentatrak.com"
       },
       {
@@ -48,16 +49,25 @@ $articleUrls = $appConfig['public_urls'] ?? [];
         "name": "DentaTrak",
         "applicationCategory": "BusinessApplication",
         "operatingSystem": "Web",
-        "description": "DentaTrak is dental case tracking software for dental practices. See your entire case workflow at a glance and follow every crown, implant, and lab case from prep to delivery.",
+        "description": <?php echo json_encode(t('marketing.seo.index.description'), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>,
         "url": "https://dentatrak.com/",
-        "publisher": { "@id": "https://dentatrak.com/#organization" }
+        "publisher": { "@id": "https://dentatrak.com/#organization" },
+        "creator": { "@id": "https://dentatrak.com/about#william-verrillo" }
       },
       {
         "@type": "Person",
         "@id": "https://dentatrak.com/about#william-verrillo",
         "name": "Dr. William Verrillo",
-        "jobTitle": "Practicing dentist",
-        "url": "https://dentatrak.com/about"
+        "honorificSuffix": "DDS",
+        "jobTitle": "Dentist",
+        "url": "https://dentatrak.com/about",
+        "image": "https://dentatrak.com/images/dr-william-verrillo-dds.webp",
+        "worksFor": {
+          "@type": "Organization",
+          "name": "Premier Implant and Denture Center",
+          "url": "https://premierimplantsanddentures.com/"
+        },
+        "sameAs": ["https://premierimplantsanddentures.com/dr-william-verrillo/"]
       },
       {
         "@type": "AboutPage",
@@ -90,6 +100,16 @@ $articleUrls = $appConfig['public_urls'] ?? [];
     .about-section h2 { font-size: 1.5rem; font-weight: 700; margin-bottom: 16px; color: var(--text-primary); line-height: 1.25; }
     .about-section p { color: var(--text-secondary); line-height: 1.8; margin-bottom: 16px; }
     .about-section p:last-child { margin-bottom: 0; }
+
+    .about-founder { display: grid; grid-template-columns: 224px minmax(0, 1fr); gap: 32px; align-items: start; }
+    .about-founder img { display: block; width: 100%; height: auto; border-radius: var(--radius-lg); }
+    .about-founder h2 { margin-top: 0; }
+    .about-founder .content-link { text-decoration: underline; text-underline-offset: 3px; }
+
+    @media (max-width: 767px) {
+      .about-founder { grid-template-columns: minmax(0, 1fr); gap: 24px; }
+      .about-founder img { max-width: 280px; justify-self: center; }
+    }
 
     .content-link { color: var(--primary-color); text-decoration: none; font-weight: 500; }
     .content-link:hover { text-decoration: underline; }
@@ -125,6 +145,15 @@ $articleUrls = $appConfig['public_urls'] ?? [];
       <p><?php echo t('marketing.about.origin_body_1'); ?></p>
       <p><?php echo t('marketing.about.origin_body_2'); ?></p>
       <p><?php echo t('marketing.about.origin_body_3'); ?></p>
+    </section>
+
+    <section class="about-section about-founder" aria-labelledby="founder-heading">
+      <img src="<?= $baseUrl ?>images/dr-william-verrillo-dds.webp" alt="Dr. William Verrillo, DDS" width="664" height="784" loading="lazy" decoding="async">
+      <div>
+        <h2 id="founder-heading"><?php echo t('marketing.about.founder_name'); ?></h2>
+        <p><?php echo t('marketing.about.founder_bio'); ?></p>
+        <p><a href="https://premierimplantsanddentures.com/dr-william-verrillo/" class="content-link"><?php echo t('marketing.about.founder_profile'); ?></a></p>
+      </div>
     </section>
 
     <section class="about-section" aria-labelledby="philosophy-heading">

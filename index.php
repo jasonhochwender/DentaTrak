@@ -10,6 +10,27 @@ $articleUrls = $appConfig['public_urls'] ?? [];
 require_once __DIR__ . '/api/csrf.php';
 $csrfToken = generateCsrfToken();
 $hipaaUrl = $baseUrl . ($articleUrls['page_hipaa_security'] ?? 'hipaa-security');
+$softwareOffers = [];
+foreach (['operate', 'control', 'scale'] as $plan) {
+    foreach (['month' => 'P1M', 'year' => 'P1Y'] as $interval => $duration) {
+        $price = $appConfig['stripe']['display_prices'][$plan][$interval] / 100;
+        $softwareOffers[] = [
+            '@type' => 'Offer',
+            'name' => t('marketing.pricing.' . $plan) . ($interval === 'month' ? ' — monthly billing' : ' — annual billing'),
+            'url' => 'https://dentatrak.com/#pricing',
+            'price' => $price,
+            'priceCurrency' => 'USD',
+            'description' => t('marketing.hero.trial_note'),
+            'seller' => ['@id' => 'https://dentatrak.com/#organization'],
+            'priceSpecification' => [
+                '@type' => 'UnitPriceSpecification',
+                'price' => $price,
+                'priceCurrency' => 'USD',
+                'billingDuration' => $duration,
+            ],
+        ];
+    }
+}
 ?><!DOCTYPE html>
 <html lang="<?php echo getHtmlLang(); ?>">
 <head>
@@ -49,6 +70,7 @@ $hipaaUrl = $baseUrl . ($articleUrls['page_hipaa_security'] ?? 'hipaa-security')
         "name": <?php echo json_encode($appName, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>,
         "url": "https://dentatrak.com/",
         "logo": "https://dentatrak.com/images/logo-large.png",
+        "founder": { "@id": "https://dentatrak.com/about#william-verrillo" },
         "email": <?php echo json_encode(t('marketing.footer.support_email'), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>
       },
       {
@@ -67,15 +89,23 @@ $hipaaUrl = $baseUrl . ($articleUrls['page_hipaa_security'] ?? 'hipaa-security')
         "description": <?php echo json_encode(t('marketing.seo.index.description'), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>,
         "url": "https://dentatrak.com/",
         "publisher": { "@id": "https://dentatrak.com/#organization" },
+        "creator": { "@id": "https://dentatrak.com/about#william-verrillo" },
+        "image": "https://dentatrak.com/images/logo-large.png",
         "featureList": [
-          "Visual case workflow board with six built-in stages",
-          "Customizable workflow stage names",
-          "Case ownership and assignment",
-          "Due dates and past-due visibility",
-          "Lab and referral dependency tracking",
-          "Case files and case information in one place",
-          "Practice Insights and Smart Recommendations"
-        ]
+          "Visual dental case workflow tracking",
+          "Case status, ownership, and assignments",
+          "Due dates, late cases, and appointment-risk visibility",
+          "Lab activity and turnaround tracking",
+          "Case files and supported 3D dental files",
+          "Shipping information",
+          "Practice and Lab Insights on Control and Scale plans",
+          "Smart Recommendations on Control and Scale plans",
+          "In-app notifications",
+          "Case comments and @mentions",
+          "Mobile-browser access",
+          "Role-based access and secure file access"
+        ],
+        "offers": <?php echo json_encode($softwareOffers, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>
       }
     ]
   }
@@ -124,6 +154,7 @@ $hipaaUrl = $baseUrl . ($articleUrls['page_hipaa_security'] ?? 'hipaa-security')
     .site-header .container { height: 72px; display: flex; align-items: center; justify-content: space-between; }
     .site-logo img { height: auto; width: auto; max-width: 140px; object-fit: contain; display: block; }
     .site-nav { display: flex; align-items: center; gap: 28px; }
+    .site-nav .nav-divider { height: 20px; border-inline-start: 1px solid var(--dt-border); flex-shrink: 0; }
     .site-nav a { font-size: 0.9rem; font-weight: 500; color: var(--dt-ink-secondary); }
     .site-nav a:hover { color: var(--dt-blue); }
     .site-nav a.nav-cta,
@@ -362,7 +393,7 @@ $hipaaUrl = $baseUrl . ($articleUrls['page_hipaa_security'] ?? 'hipaa-security')
     @media (max-width: 640px) { .footer-wordmark { font-size: 18px; } }
 
     @media (max-width: 900px) {
-      .site-nav a:not(.nav-cta) { display: none; }
+      .site-nav a:not(.nav-cta), .site-nav .nav-divider { display: none; }
       .site-nav { gap: 16px; }
       .founder-grid { grid-template-columns: 1fr; text-align: center; }
       .founder .lead { margin-left: auto; margin-right: auto; }
@@ -880,6 +911,7 @@ $hipaaUrl = $baseUrl . ($articleUrls['page_hipaa_security'] ?? 'hipaa-security')
         <a href="#problem"><?php echo t('marketing.navigation.problem'); ?></a>
         <a href="#how-it-works"><?php echo t('marketing.navigation.how_it_works'); ?></a>
         <a href="#pricing"><?php echo t('marketing.navigation.pricing'); ?></a>
+        <span class="nav-divider" aria-hidden="true"></span>
         <a href="<?= $baseUrl . ($articleUrls['page_resources'] ?? 'resources') ?>"><?php echo t('marketing.navigation.resources'); ?></a>
         <a href="<?= $baseUrl ?>login.php"><?php echo t('marketing.navigation.sign_in'); ?></a>
         <a href="<?= $baseUrl ?>login.php" class="nav-cta"><?php echo t('marketing.navigation.start_free'); ?></a>
