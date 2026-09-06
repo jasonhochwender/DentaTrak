@@ -1486,6 +1486,18 @@
     },
     "onboarding": {
         "practice": {
+            "choose_title": "Choose a practice",
+            "choose_subtitle": "Select where you’d like to work.",
+            "remember_next": "Automatically open the practice I select next time",
+            "group_owned": "Owned by you",
+            "group_shared": "Shared with you",
+            "role_administrator": "Administrator",
+            "role_user": "User",
+            "role_assigned_only": "Assigned Only",
+            "create_new_action": "Create a new practice",
+            "sign_out": "Sign out",
+            "load_error": "We couldn’t load your practices. Please refresh the page and try again.",
+            "selection_failed": "We couldn’t open the practice or confirm that your preference was saved. Please try again.",
             "welcome_title": "Welcome to DentaTrak",
             "welcome_subtitle_single_unowned": "You already have access to an existing practice. Continue there, or create your own.",
             "welcome_subtitle_multiple": "Select which practice you'd like to work with",

@@ -2721,7 +2721,9 @@ document.addEventListener('DOMContentLoaded', function () {
   window.gmailUserLogins = {}; // Map of email -> last_login_at timestamp (or null)
   window.adminUsers = []; // Will store all admin users - use window to ensure global scope
   window.assignmentLabels = []; // Will store free-text assignment labels for cases
-  window.isPracticeAdmin = false;
+  if (typeof window.isPracticeAdmin === 'undefined') {
+    window.isPracticeAdmin = false;
+  }
   window.practiceCreatorEmail = null; // Lowercased email of the practice creator
   var addGmailUserBtn = document.getElementById('addGmailUser');
   var newGmailUserInput = document.getElementById('newGmailUser');

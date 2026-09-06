@@ -555,6 +555,9 @@ $baaVersion = 'v1.0-2026-08-07';
             <?php else: ?>
             <div class="baa-intro">
                 <p><?php echo t('onboarding.baa.welcome_user', ['name' => htmlspecialchars($userName ?: 'there')]); ?> <?php echo t('onboarding.baa.intro_text'); ?></p>
+                <?php if ($isCreatingNewPractice): ?>
+                <p><?php echo t('onboarding.practice.create_practice_intro'); ?></p>
+                <?php endif; ?>
             </div>
             
             <div id="errorMessage" class="error-message"></div>
