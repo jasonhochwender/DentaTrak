@@ -178,23 +178,9 @@ try {
             }
         }
 
-        // Determine if current user is an admin for this practice
-        try {
-            $stmt = $pdo->prepare("
-                SELECT role 
-                FROM practice_users 
-                WHERE practice_id = :practice_id AND user_id = :user_id
-                LIMIT 1
-            ");
-            $stmt->execute([
-                'practice_id' => $currentPracticeId,
-                'user_id' => $userId
-            ]);
-            $role = $stmt->fetchColumn();
-            $isPracticeAdmin = ($role === 'admin');
-        } catch (PDOException $e) {
-            userLog("Error determining practice admin status: " . $e->getMessage(), true);
-        }
+        // Determine if current user is an admin for this practice.
+        // isPracticeAdmin() enforces active user, active practice, and active membership.
+        $isPracticeAdmin = isPracticeAdmin($currentPracticeId);
     }
     
     // Get admin users (all users with role='admin' or is_owner=TRUE for this practice)
@@ -241,6 +227,7 @@ try {
                 FROM users u
                 LEFT JOIN practice_users pu ON u.id = pu.user_id AND pu.practice_id = :practice_id
                 WHERE u.id = :user_id
+                  AND u.is_active = 1
             ");
             $stmt->execute([
                 'user_id' => $practiceCreatorId,
@@ -261,14 +248,17 @@ try {
         
         // Then get other admin users
         $stmt = $pdo->prepare("
-            SELECT u.email, 
+            SELECT u.email,
                    IFNULL(pu.limited_visibility, 0) as limited_visibility,
                    IFNULL(pu.can_view_analytics, 1) as can_view_analytics,
                    IFNULL(pu.can_edit_cases, 1) as can_edit_cases,
                    IFNULL(pu.is_lab, 0) as is_lab
             FROM users u
             JOIN practice_users pu ON u.id = pu.user_id
-            WHERE pu.practice_id = :practice_id AND pu.role = 'admin' AND pu.user_id != :creator_id
+            WHERE pu.practice_id = :practice_id
+              AND pu.role = 'admin'
+              AND pu.user_id != :creator_id
+              AND u.is_active = 1
             ORDER BY pu.created_at ASC
         ");
         $stmt->execute([
@@ -308,7 +298,9 @@ try {
                    IFNULL(pu.is_lab, 0) as is_lab
             FROM users u
             JOIN practice_users pu ON u.id = pu.user_id
-            WHERE pu.practice_id = :practice_id AND pu.role = 'user'
+            WHERE pu.practice_id = :practice_id
+              AND pu.role = 'user'
+              AND u.is_active = 1
             ORDER BY pu.created_at ASC
         ");
         $stmt->execute(['practice_id' => $currentPracticeId]);

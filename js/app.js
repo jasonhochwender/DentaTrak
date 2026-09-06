@@ -237,14 +237,36 @@ function secureFetch(url, options) {
  * Updates session and reloads the page to ensure clean context
  * @param {string|number} practiceId - The practice ID to switch to
  */
-async function switchPractice(practiceId) {
+async function switchPractice(practiceId, triggerElement) {
   if (!practiceId) return;
 
-  // Show loading indicator
+  // Prevent duplicate switch requests.
+  if (window.switchPracticeInProgress) return;
+  window.switchPracticeInProgress = true;
+
+  // Show loading indicator and disable the control that triggered the switch.
   var loadingOverlay = document.getElementById('pageLoadingOverlay');
   if (loadingOverlay) {
     loadingOverlay.style.display = 'flex';
     loadingOverlay.style.opacity = '1';
+  }
+
+  if (triggerElement && typeof triggerElement.setAttribute === 'function') {
+    triggerElement.setAttribute('aria-busy', 'true');
+    triggerElement.disabled = true;
+  }
+
+  function restoreControls() {
+    window.switchPracticeInProgress = false;
+    if (loadingOverlay) {
+      loadingOverlay.style.display = 'none';
+      loadingOverlay.style.opacity = '0';
+    }
+    if (triggerElement && typeof triggerElement.removeAttribute === 'function') {
+      triggerElement.removeAttribute('aria-busy');
+      triggerElement.disabled = false;
+      triggerElement.focus();
+    }
   }
 
   try {
@@ -260,23 +282,14 @@ async function switchPractice(practiceId) {
     var data = await response.json();
 
     if (data.success) {
-      // Reload the page to get fresh context for the new practice
+      // Reload the page to get fresh context for the new practice.
       window.location.reload();
     } else {
-      // Hide loading overlay
-      if (loadingOverlay) {
-        loadingOverlay.style.display = 'none';
-      }
-
-      // Show error
-      showToast(data.error || t('practice_switcher.switch_failed'), 'error');
+      restoreControls();
+      showToast(data.message || data.error || t('practice_switcher.switch_failed'), 'error');
     }
   } catch (error) {
-
-    // Hide loading overlay
-    if (loadingOverlay) {
-      loadingOverlay.style.display = 'none';
-    }
+    restoreControls();
 
     if (typeof NetworkErrorHandler !== 'undefined') {
       NetworkErrorHandler.handle(error, 'switching practice');
@@ -1277,7 +1290,7 @@ document.addEventListener('DOMContentLoaded', function () {
           return;
         }
 
-        switchPractice(practiceId);
+        switchPractice(practiceId, this);
       });
     });
   }

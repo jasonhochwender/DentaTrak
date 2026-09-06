@@ -122,12 +122,21 @@ foreach (getSupportedLocales() as $code => $meta) {
     }
 }
 
-// SECURITY: Verify user is actually a member of this practice
+// SECURITY: Verify user is an active member of an active practice.
+// practice_users has no is_active column; an active membership is an existing
+// row where both the user and the practice are active.
 if ($userId && $currentPracticeId) {
     try {
         $membershipStmt = $pdo->prepare("
-            SELECT 1 FROM practice_users 
-            WHERE user_id = :user_id AND practice_id = :practice_id
+            SELECT 1
+            FROM practice_users pu
+            JOIN practices p ON p.id = pu.practice_id
+            JOIN users u ON u.id = pu.user_id
+            WHERE pu.user_id = :user_id
+              AND pu.practice_id = :practice_id
+              AND u.is_active = 1
+              AND (p.is_active = 1 OR p.is_active IS NULL)
+            LIMIT 1
         ");
         $membershipStmt->execute([
             'user_id' => $userId,
@@ -411,14 +420,20 @@ if ($currentPracticeId) {
                 }
             }
             
-            // Fetch all practices user belongs to (for practice switcher)
+            // Fetch all active practices the user belongs to (for practice switcher).
+            // practice_users has no is_active column; membership is active when both
+            // the user and the practice are active.
             $userId = $_SESSION['db_user_id'] ?? 0;
             if ($userId) {
                 $stmt = $pdo->prepare("
-                    SELECT p.id, p.practice_name, p.logo_path, pu.role, pu.is_owner
+                    SELECT p.id, p.practice_name, p.logo_path, p.organization_type,
+                           pu.role, pu.is_owner, IFNULL(pu.is_lab, 0) AS is_lab
                     FROM practices p
                     JOIN practice_users pu ON p.id = pu.practice_id
+                    JOIN users u ON u.id = pu.user_id
                     WHERE pu.user_id = :user_id
+                      AND u.is_active = 1
+                      AND (p.is_active = 1 OR p.is_active IS NULL)
                     ORDER BY p.practice_name ASC
                 ");
                 $stmt->execute(['user_id' => $userId]);
@@ -510,7 +525,7 @@ if (isset($appConfig) && is_array($appConfig) && isset($appConfig['appName'])) {
   <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
   
   <!-- Preload critical resources -->
-  <link rel="preload" href="js/app.js?v=20260905c" as="script">
+  <link rel="preload" href="js/app.js?v=20260906a" as="script">
   <link rel="preload" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
   <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap"></noscript>
   
@@ -2991,7 +3006,7 @@ endif;
   </script>
   <script src="js/workflow-draft.js?v=20260829f" defer></script>
   <script src="js/workflow-draft-ui.js?v=20260829f" defer></script>
-  <script src="js/app.js?v=20260905c" defer></script>
+  <script src="js/app.js?v=20260906a" defer></script>
   <script src="js/mobile-case-modal.js?v=20260830c" defer></script>
   <script src="js/mobile-kanban.js?v=20260829b" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js" defer></script>

@@ -147,6 +147,11 @@ screenshots/
 !/tests/case-comments-mention-test.php
 !/tests/force-admin-error.php
 !/tests/admin-practices-force-error-guard-test.php
+!/tests/switch-practice-defensive-test.php
+!/tests/practice-access-defensive-test.php
+!/tests/practice-security-authorization-test.php
+!/tests/select-practice-defensive-test.php
+!/tests/header-switcher-browser-test.js
 /testResults/
 /test-results/
 /playwright-report/

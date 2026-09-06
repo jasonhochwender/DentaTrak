@@ -104,17 +104,26 @@ function verifyPracticeAccess($practiceId = null) {
         return false;
     }
     
-    // Verify user is a member of this practice
+    // Verify user is an active member of an active practice.
+    // practices.is_active defaults to TRUE and may be NULL for legacy rows,
+    // so both 1 and NULL are treated as active.
     try {
         $stmt = $pdo->prepare("
-            SELECT 1 FROM practice_users 
-            WHERE user_id = :user_id AND practice_id = :practice_id
+            SELECT 1
+            FROM practice_users pu
+            JOIN practices p ON p.id = pu.practice_id
+            JOIN users u ON u.id = pu.user_id
+            WHERE pu.user_id = :user_id
+              AND pu.practice_id = :practice_id
+              AND u.is_active = 1
+              AND (p.is_active = 1 OR p.is_active IS NULL)
+            LIMIT 1
         ");
         $stmt->execute([
             'user_id' => $userId,
             'practice_id' => $practiceId
         ]);
-        return (bool)$stmt->fetchColumn();
+        return (bool) $stmt->fetchColumn();
     } catch (PDOException $e) {
         error_log('[practice-security] Error verifying access: ' . $e->getMessage());
         return false;
@@ -146,8 +155,15 @@ function getUserPracticeRole($practiceId = null) {
     
     try {
         $stmt = $pdo->prepare("
-            SELECT role FROM practice_users 
-            WHERE user_id = :user_id AND practice_id = :practice_id
+            SELECT pu.role
+            FROM practice_users pu
+            JOIN practices p ON p.id = pu.practice_id
+            JOIN users u ON u.id = pu.user_id
+            WHERE pu.user_id = :user_id
+              AND pu.practice_id = :practice_id
+              AND u.is_active = 1
+              AND (p.is_active = 1 OR p.is_active IS NULL)
+            LIMIT 1
         ");
         $stmt->execute([
             'user_id' => $userId,
@@ -194,14 +210,21 @@ function isPracticeOwner($practiceId = null) {
     
     try {
         $stmt = $pdo->prepare("
-            SELECT is_owner FROM practice_users 
-            WHERE user_id = :user_id AND practice_id = :practice_id
+            SELECT pu.is_owner
+            FROM practice_users pu
+            JOIN practices p ON p.id = pu.practice_id
+            JOIN users u ON u.id = pu.user_id
+            WHERE pu.user_id = :user_id
+              AND pu.practice_id = :practice_id
+              AND u.is_active = 1
+              AND (p.is_active = 1 OR p.is_active IS NULL)
+            LIMIT 1
         ");
         $stmt->execute([
             'user_id' => $userId,
             'practice_id' => $practiceId
         ]);
-        return (bool)$stmt->fetchColumn();
+        return (bool) $stmt->fetchColumn();
     } catch (PDOException $e) {
         return false;
     }
@@ -320,19 +343,27 @@ function getUserPracticePermissions($practiceId = null) {
         // IFNULL(...,1) matches the DEFAULT TRUE intent of these columns
         // (see get-settings.php schema migration) so a missing/legacy row
         // never silently denies access due to a NULL value.
+        // practices.is_active defaults to TRUE and may be NULL for legacy rows,
+        // so both 1 and NULL are treated as active.
         $stmt = $pdo->prepare("
-            SELECT role, is_owner, limited_visibility, is_lab,
-                   IFNULL(can_view_analytics, 1) AS can_view_analytics,
-                   IFNULL(can_edit_cases, 1) AS can_edit_cases
-            FROM practice_users 
-            WHERE user_id = :user_id AND practice_id = :practice_id
+            SELECT pu.role, pu.is_owner, pu.limited_visibility, pu.is_lab,
+                   IFNULL(pu.can_view_analytics, 1) AS can_view_analytics,
+                   IFNULL(pu.can_edit_cases, 1) AS can_edit_cases
+            FROM practice_users pu
+            JOIN practices p ON p.id = pu.practice_id
+            JOIN users u ON u.id = pu.user_id
+            WHERE pu.user_id = :user_id
+              AND pu.practice_id = :practice_id
+              AND u.is_active = 1
+              AND (p.is_active = 1 OR p.is_active IS NULL)
+            LIMIT 1
         ");
         $stmt->execute([
             'user_id' => $userId,
             'practice_id' => $practiceId
         ]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
-        
+
         if (!$row) {
             return null;
         }
@@ -640,12 +671,21 @@ function requireValidPracticeContext($verifyMembership = true) {
         exit;
     }
     
-    // Optionally verify user is actually a member of this practice
+    // Optionally verify user is an active member of an active practice.
+    // practices.is_active defaults to TRUE and may be NULL for legacy rows,
+    // so both 1 and NULL are treated as active.
     if ($verifyMembership && $pdo) {
         try {
             $stmt = $pdo->prepare("
-                SELECT 1 FROM practice_users 
-                WHERE user_id = :user_id AND practice_id = :practice_id
+                SELECT 1
+                FROM practice_users pu
+                JOIN practices p ON p.id = pu.practice_id
+                JOIN users u ON u.id = pu.user_id
+                WHERE pu.user_id = :user_id
+                  AND pu.practice_id = :practice_id
+                  AND u.is_active = 1
+                  AND (p.is_active = 1 OR p.is_active IS NULL)
+                LIMIT 1
             ");
             $stmt->execute([
                 'user_id' => $userId,
@@ -1089,4 +1129,95 @@ function getCaseAuthorizedUsers($practiceId, $caseId) {
  */
 function canEditCase($practiceId = null) {
     return canEditCases($practiceId);
+}
+
+/**
+ * Centralized, fail-closed practice session activation.
+ *
+ * Validates that the authenticated user is active, the target practice is
+ * active, and an active membership connects them. On success it clears
+ * practice-specific session caches and hydrates the session with the
+ * authoritative membership row (role, ownership, permissions, lab status,
+ * and practice organization type) so the chooser and header switcher cannot
+ * drift out of sync.
+ *
+ * This function intentionally does NOT save a default-practice preference or
+ * log security events; callers handle request-specific behavior such as
+ * preference saving, redirects, or audit logging.
+ *
+ * @param int $practiceId
+ * @return array {success: bool, code: int, message: string, practice: array|null}
+ */
+function activatePracticeSession($practiceId) {
+    global $pdo;
+
+    if (session_status() === PHP_SESSION_NONE) {
+        session_start();
+    }
+
+    if (!isset($_SESSION['db_user_id'])) {
+        return ['success' => false, 'code' => 401, 'message' => t('auth.errors.not_authenticated'), 'practice' => null];
+    }
+
+    $userId = $_SESSION['db_user_id'];
+
+    // Membership state: practice_users has no is_active column; an active
+    // membership is simply an existing row where the user and practice are active.
+    try {
+        $stmt = $pdo->prepare("
+            SELECT p.id,
+                   p.practice_id AS uuid,
+                   p.practice_name,
+                   p.organization_type,
+                   p.baa_accepted,
+                   pu.role,
+                   pu.is_owner,
+                   IFNULL(pu.limited_visibility, 0) AS limited_visibility,
+                   IFNULL(pu.can_view_analytics, 1) AS can_view_analytics,
+                   IFNULL(pu.can_edit_cases, 1) AS can_edit_cases,
+                   IFNULL(pu.is_lab, 0) AS is_lab
+            FROM practice_users pu
+            JOIN practices p ON p.id = pu.practice_id
+            JOIN users u ON u.id = pu.user_id
+            WHERE pu.practice_id = :practice_id AND pu.user_id = :user_id
+              AND u.is_active = 1
+              AND (p.is_active = 1 OR p.is_active IS NULL)
+            LIMIT 1
+        ");
+        $stmt->execute(['practice_id' => $practiceId, 'user_id' => $userId]);
+        $practice = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if (!$practice) {
+            return ['success' => false, 'code' => 403, 'message' => t('auth.errors.no_access_practice'), 'practice' => null];
+        }
+
+        // Clear practice-specific caches before switching context.
+        unset($_SESSION['cases_cache'], $_SESSION['practice_users_cache'], $_SESSION['practice_settings_cache']);
+
+        $_SESSION['current_practice_id'] = (int) $practice['id'];
+        $_SESSION['practice_name'] = $practice['practice_name'];
+        $_SESSION['practice_role'] = $practice['role'];
+        $_SESSION['practice_is_owner'] = (bool) $practice['is_owner'];
+        $_SESSION['practice_organization_type'] = $practice['organization_type'];
+        $_SESSION['practice_permissions'] = [
+            'limited_visibility' => (bool) $practice['limited_visibility'],
+            'can_view_analytics' => (bool) $practice['can_view_analytics'],
+            'can_edit_cases' => (bool) $practice['can_edit_cases'],
+            'is_lab' => (bool) $practice['is_lab']
+        ];
+
+        // Clear routing flags used by the login chooser.
+        $_SESSION['needs_practice_setup'] = false;
+        $_SESSION['needs_practice_selection'] = false;
+        $_SESSION['has_multiple_practices'] = false;
+        $_SESSION['practice_setup_visits'] = 0;
+        $_SESSION['from_practice_setup'] = false;
+
+        setResolvedLocale(resolveLocale(null, $userId, (int) $practice['id']));
+
+        return ['success' => true, 'code' => 200, 'message' => '', 'practice' => $practice];
+    } catch (PDOException $e) {
+        error_log('[practice-security] activatePracticeSession failed: ' . $e->getMessage());
+        return ['success' => false, 'code' => 500, 'message' => t('auth.errors.error_selecting_practice'), 'practice' => null];
+    }
 }

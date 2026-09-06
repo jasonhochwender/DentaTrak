@@ -41,8 +41,17 @@ async function login(requester, email, password) {
   if (!body.success) throw new Error(`Login failed for ${email}: ${JSON.stringify(body)}`);
 }
 
-async function apiCall(requester, method, path, body = null) {
+async function getCsrfToken(requester) {
+  const res = await requester.get(`${BASE}/practice-setup.php`);
+  const text = await res.text();
+  const match = text.match(/<meta name="csrf-token" content="([^"]+)"/);
+  return match ? match[1] : '';
+}
+
+async function apiCall(requester, method, path, body = null, csrf = null) {
   const url = `${BASE}${path}`;
+  const headers = { 'Content-Type': 'application/json' };
+  if (csrf) headers['X-CSRF-Token'] = csrf;
   let lastRes;
   for (let attempt = 0; attempt < 4; attempt++) {
     if (attempt > 0) await new Promise(r => setTimeout(r, attempt === 1 ? 1000 : 2500));
@@ -52,7 +61,7 @@ async function apiCall(requester, method, path, body = null) {
     } else {
       res = await requester.post(url, {
         data: body,
-        headers: { 'Content-Type': 'application/json' },
+        headers,
       });
     }
     const status = res.status();
@@ -167,15 +176,18 @@ async function cleanupLabInsightsData(page) {
 }
 
 async function switchPractice(page, practiceId) {
-  return page.evaluate(async ({ url, practiceId }) => {
+  const csrf = await page.$eval('meta[name="csrf-token"]', el => el.content).catch(() => '');
+  return page.evaluate(async ({ url, practiceId, csrf }) => {
+    const headers = { 'Content-Type': 'application/json' };
+    if (csrf) headers['X-CSRF-Token'] = csrf;
     const r = await fetch(url, {
       method: 'POST',
       credentials: 'same-origin',
-      headers: { 'Content-Type': 'application/json' },
+      headers,
       body: JSON.stringify({ practice_id: practiceId }),
     });
     return r.json();
-  }, { url: `${BASE}/api/switch-practice.php`, practiceId });
+  }, { url: `${BASE}/api/switch-practice.php`, practiceId, csrf });
 }
 
 async function safeSwitchPractice(page, practiceId, attempts = 3) {
@@ -532,7 +544,8 @@ async function withUser(browser, email, practiceId, check, reEnsure = true, admi
     uPage.on('requestfailed', req => console.log(`[${email} NETWORK FAIL]`, req.failure().errorText, req.url()));
     blockBackgroundPolls(uPage);
     await login(uPage.request, email, TEST_USER_PASSWORD);
-    let switchRes = await apiCall(uPage.request, 'post', '/api/switch-practice.php', { practice_id: practiceId });
+    const switchCsrf = await getCsrfToken(uPage.request);
+    let switchRes = await apiCall(uPage.request, 'post', '/api/switch-practice.php', { practice_id: practiceId }, switchCsrf);
     if (!switchRes.body || !switchRes.body.success) {
       if (!reEnsure) throw new Error(`Switch for ${email} failed: ${JSON.stringify(switchRes)}`);
       console.log(`Switch for ${email} failed, re-ensuring membership:`, JSON.stringify(switchRes.body || switchRes.raw));
@@ -550,7 +563,8 @@ async function withUser(browser, email, practiceId, check, reEnsure = true, admi
       if (adminEmail) ensurePayload.adminEmail = adminEmail;
       const ensure = await apiCall(uPage.request, 'post', '/api/test-helpers.php', ensurePayload);
       console.log('Re-ensure membership:', ensure.body || ensure.raw);
-      switchRes = await apiCall(uPage.request, 'post', '/api/switch-practice.php', { practice_id: practiceId });
+      const switchCsrf2 = await getCsrfToken(uPage.request);
+      switchRes = await apiCall(uPage.request, 'post', '/api/switch-practice.php', { practice_id: practiceId }, switchCsrf2);
       if (!switchRes.body || !switchRes.body.success) throw new Error(`Switch for ${email} failed after re-ensure: ${JSON.stringify(switchRes)}`);
     }
     await acceptTermsIfNeeded(uPage.request);
@@ -661,7 +675,7 @@ async function run() {
     console.log('Cross member:', crossMember);
 
     // Ensure the shared page context is on the primary practice before the viewport loop
-    await apiCall(page.request, 'post', '/api/switch-practice.php', { practice_id: primaryPracticeId });
+    await safeSwitchPractice(page, primaryPracticeId);
 
     // --- 4. Viewport geometry coverage ---
     for (const vp of VIEWPORTS) {

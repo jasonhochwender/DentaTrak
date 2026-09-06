@@ -835,12 +835,22 @@ function userHasPracticeAccess($userId, $practiceId) {
     if (!$pdo || !$userId || !$practiceId) return false;
     
     try {
+        // An active membership requires an existing practice_users row where
+        // both the user and the practice are active. practice_users has no
+        // is_active column of its own.
         $stmt = $pdo->prepare("
-            SELECT 1 FROM practice_users 
-            WHERE user_id = :user_id AND practice_id = :practice_id
+            SELECT 1
+            FROM practice_users pu
+            JOIN practices p ON p.id = pu.practice_id
+            JOIN users u ON u.id = pu.user_id
+            WHERE pu.user_id = :user_id
+              AND pu.practice_id = :practice_id
+              AND u.is_active = 1
+              AND (p.is_active = 1 OR p.is_active IS NULL)
+            LIMIT 1
         ");
         $stmt->execute(['user_id' => $userId, 'practice_id' => $practiceId]);
-        return (bool)$stmt->fetchColumn();
+        return (bool) $stmt->fetchColumn();
     } catch (PDOException $e) {
         return false;
     }
@@ -858,15 +868,24 @@ function getUserPractices($userId, $includeInactive = false) {
     if (!$pdo || !$userId) return [];
     
     try {
-        // By default, only return active practices
-        $activeFilter = $includeInactive ? '' : 'AND (p.is_active = 1 OR p.is_active IS NULL)';
+        // By default, only return active practices. The user must also be
+        // active; a deactivated user has no accessible practices.
+        $activePracticeFilter = $includeInactive ? '' : 'AND (p.is_active = 1 OR p.is_active IS NULL)';
         
         $stmt = $pdo->prepare("
             SELECT p.id, p.practice_id as uuid, p.practice_name, pu.role, pu.is_owner,
-                   p.is_active, p.deactivated_at, p.data_deletion_eligible_at
+                   p.is_active, p.deactivated_at, p.data_deletion_eligible_at,
+                   p.organization_type,
+                   IFNULL(pu.is_lab, 0) AS is_lab,
+                   IFNULL(pu.limited_visibility, 0) AS limited_visibility,
+                   IFNULL(pu.can_view_analytics, 1) AS can_view_analytics,
+                   IFNULL(pu.can_edit_cases, 1) AS can_edit_cases
             FROM practices p
             JOIN practice_users pu ON p.id = pu.practice_id
-            WHERE pu.user_id = :user_id $activeFilter
+            JOIN users u ON u.id = pu.user_id
+            WHERE pu.user_id = :user_id
+              AND u.is_active = 1
+              $activePracticeFilter
         ");
         $stmt->execute(['user_id' => $userId]);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
