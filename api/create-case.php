@@ -123,7 +123,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     foreach ($allFields as $field) {
         // Default: first 8 fields are required, rest are optional
         $defaultRequired = in_array($field, ['patientFirstName', 'patientLastName', 'patientDOB',
-                                              'patientGender', 'dentistName', 'caseType', 'dueDate', 'status']);
+                                              'patientGender', 'dentistName', 'caseType', 'status']);
         $isRequired = $fieldRequirements[$field] ?? $defaultRequired;
         if ($isRequired) {
             $requiredFields[] = $field;
@@ -146,11 +146,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     foreach ($optionalFields as $field) {
         if (isset($_POST[$field]) && $_POST[$field] !== '') {
             $caseData[$field] = $_POST[$field];
-        } elseif (($field === 'notes' || $field === 'carrier' || $field === 'trackingNumber' || $field === 'customCarrier' || $field === 'patientAppointmentDate') && isset($_POST[$field])) {
+        } elseif (($field === 'notes' || $field === 'carrier' || $field === 'trackingNumber' || $field === 'customCarrier' || $field === 'patientAppointmentDate' || $field === 'dueDate') && isset($_POST[$field])) {
             // Notes can be empty string; carrier/tracking number are always
             // captured (even when cleared) so the cache stays in sync.
             $caseData[$field] = $_POST[$field];
         }
+    }
+
+    // Normalize a blank Due Date to null so the database layer stores it
+    // consistently and downstream date logic treats it as unset.
+    if (!isset($caseData['dueDate']) || $caseData['dueDate'] === '') {
+        $caseData['dueDate'] = null;
     }
 
     // Trim and cap shipping metadata (tracking numbers vary by carrier,

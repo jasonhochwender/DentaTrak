@@ -231,6 +231,7 @@ function gatherAnalyticsData($pdo, $practiceId) {
         FROM cases_cache INNER JOIN authorized_case_ids a ON a.case_id = cases_cache.case_id COLLATE utf8mb4_unicode_ci
         WHERE $practiceFilter
         AND archived = 0
+        AND due_date IS NOT NULL AND due_date != ''
         AND due_date < ?
         AND status NOT IN (?, ?, ?)
     ");
@@ -244,6 +245,7 @@ function gatherAnalyticsData($pdo, $practiceId) {
         FROM cases_cache INNER JOIN authorized_case_ids a ON a.case_id = cases_cache.case_id COLLATE utf8mb4_unicode_ci
         WHERE $practiceFilter
         AND archived = 0
+        AND due_date IS NOT NULL AND due_date != ''
         AND due_date BETWEEN ? AND ?
         AND status NOT IN (?, ?, ?)
     ");

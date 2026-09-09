@@ -1859,9 +1859,9 @@ endif;
               <!-- Continue with workflow fields -->
               <div class="modal-form-grid date-status-row">
                 <div class="form-field">
-                  <label for="dueDate"><?php echo t('cases.due_date'); ?> <span class="required">*</span></label>
+                  <label for="dueDate"><?php echo t('cases.due_date'); ?></label>
                   <input id="dueDate" name="dueDate" type="date"
-                         placeholder="<?php echo t('common.date_format'); ?>" title="<?php echo t('common.date_format'); ?>" required>
+                         placeholder="<?php echo t('common.date_format'); ?>" title="<?php echo t('common.date_format'); ?>">
                 </div>
 
                 <div class="form-field">

@@ -336,7 +336,7 @@ Here is the workflow data to analyze:
         // Case Information
         'dentistName' => true,
         'caseType' => true,
-        'dueDate' => true,
+        'dueDate' => false,
         'status' => true,
 
         // Optional global fields - set to true to make required

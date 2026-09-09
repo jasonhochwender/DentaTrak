@@ -464,6 +464,7 @@ function buildUpdateCaseNotificationCategories(array $before, array $after, $fil
     $newDue = $after['dueDate'] ?? '';
     if (($oldDue !== '' || $newDue !== '') && $oldDue !== $newDue) {
         $categories[] = 'due_date_changed';
+        $metadata['due_date_removed'] = ($newDue === '');
     }
 
     // Patient appointment date change

@@ -7580,7 +7580,7 @@ document.addEventListener('DOMContentLoaded', function () {
         '</div>' +
         '<div class="kanban-card-content">' +
         '  <p><strong>' + t('cases.type') + ':</strong> ' + (getCaseTypeDisplayLabel(displayData.caseType) || '') + '</p>' +
-        '  <p><strong>' + t('cases.due_label') + ':</strong> ' + formatDate(displayData.dueDate) + '<span class="late-indicator">' + (dueIndicatorText || '') + '</span></p>' +
+        '  <p><strong>' + t('cases.due_label') + ':</strong> ' + (displayData.dueDate ? formatDate(displayData.dueDate) : '\u2014') + '<span class="late-indicator">' + (dueIndicatorText || '') + '</span></p>' +
         (displayData.patientAppointmentDate ? '  <p class="kanban-card-appointment-row"><strong>' + t('cases.patient_appointment_short') + ':</strong> ' + formatDate(displayData.patientAppointmentDate) + (apptRiskText ? '<span class="appointment-risk-indicator">' + apptRiskText + '</span>' : '') + '</p>' : '') +
         '  <p class="dentist-row"><strong>' + t('cases.dentist') + ':</strong> ' + (displayData.dentistName || '') + attachmentIndicatorHtml + '</p>' +
         '  <div class="kanban-card-assignment">' +
@@ -7930,15 +7930,19 @@ document.addEventListener('DOMContentLoaded', function () {
     if (form.material) form.material.value = caseData.material || '';
 
     // Handle due date carefully
-    if (form.dueDate && caseData.dueDate) {
-      try {
-        var dueDate = new Date(caseData.dueDate);
-        // Check if date is valid before setting
-        if (!isNaN(dueDate.getTime())) {
-          form.dueDate.value = dueDate.toISOString().split('T')[0];
+    if (form.dueDate) {
+      if (caseData.dueDate) {
+        try {
+          var dueDate = new Date(caseData.dueDate);
+          // Check if date is valid before setting
+          if (!isNaN(dueDate.getTime())) {
+            form.dueDate.value = dueDate.toISOString().split('T')[0];
+          }
+        } catch (e) {
+          // Error formatting due date
         }
-      } catch (e) {
-        // Error formatting due date
+      } else {
+        form.dueDate.value = '';
       }
     }
 

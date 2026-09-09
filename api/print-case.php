@@ -753,7 +753,7 @@ function generatePrintableHTML($caseData, $attachments = [], $gdAvailable = true
             <?php endif; ?>
             <div class="field">
                 <div class="field-label"><?php echo t('print.due_date'); ?>:</div>
-                <div class="field-value"><?php echo htmlspecialchars(formatDate($caseData['dueDate'])); ?></div>
+                <div class="field-value"><?php echo htmlspecialchars(!empty($caseData['dueDate']) ? formatDate($caseData['dueDate']) : ''); ?></div>
             </div>
             <div class="field">
                 <div class="field-label"><?php echo t('print.status'); ?>:</div>

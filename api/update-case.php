@@ -568,8 +568,8 @@ try {
         
         foreach ($allFields as $field) {
             // Default: first 8 fields are required, rest are optional
-            $defaultRequired = in_array($field, ['patientFirstName', 'patientLastName', 'patientDOB', 
-                                                  'patientGender', 'dentistName', 'caseType', 'dueDate', 'status']);
+            $defaultRequired = in_array($field, ['patientFirstName', 'patientLastName', 'patientDOB',
+                                                  'patientGender', 'dentistName', 'caseType', 'status']);
             $isRequired = $fieldRequirements[$field] ?? $defaultRequired;
             if ($isRequired) {
                 $requiredFields[] = $field;
@@ -599,7 +599,7 @@ try {
         foreach ($optionalFields as $field) {
             if (isset($_POST[$field]) && $_POST[$field] !== '') {
                 $caseData[$field] = $_POST[$field];
-            } elseif (($field === 'notes' || $field === 'assignedTo' || $field === 'carrier' || $field === 'trackingNumber' || $field === 'customCarrier' || $field === 'patientAppointmentDate') && isset($_POST[$field])) {
+            } elseif (($field === 'notes' || $field === 'assignedTo' || $field === 'carrier' || $field === 'trackingNumber' || $field === 'customCarrier' || $field === 'patientAppointmentDate' || $field === 'dueDate') && isset($_POST[$field])) {
                 // Notes, Assigned To, carrier and tracking number can be intentionally submitted as an
                 // empty string (clearing an assignment). This key MUST still
                 // be captured here - updateCaseInDatabaseOnly() below does
@@ -612,6 +612,13 @@ try {
             }
         }
         
+        // Normalize a blank Due Date to null so updateCaseInDatabaseOnly()
+        // can distinguish "intentionally cleared" from an unset value and
+        // the cache layer stores it as NULL.
+        if (!isset($caseData['dueDate']) || $caseData['dueDate'] === '') {
+            $caseData['dueDate'] = null;
+        }
+
         // Add clinical details (case-type-specific fields)
         // Clinical details come as JSON from frontend getClinicalDetailsData()
         $clinicalDetails = [];

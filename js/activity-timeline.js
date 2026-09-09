@@ -91,7 +91,7 @@
         return 'Labels';
       
       case 'due_date_changed':
-        return 'Due date';
+        return (meta.due_date_removed ? 'Due date removed' : 'Due date');
       
       case 'case_revision':
         if (newStatus) {

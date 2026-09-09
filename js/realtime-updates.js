@@ -360,8 +360,8 @@
     
     // Update due date
     var dateEl = card.querySelector('.kanban-card-date-value');
-    if (dateEl && caseData.dueDate) {
-      dateEl.textContent = formatDate(caseData.dueDate);
+    if (dateEl) {
+      dateEl.textContent = caseData.dueDate ? formatDate(caseData.dueDate) : '\u2014';
     }
     
     // Update assigned to badge
