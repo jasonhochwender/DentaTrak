@@ -576,7 +576,7 @@ if (isset($appConfig) && is_array($appConfig) && isset($appConfig['appName'])) {
   <link rel="preload" href="css/feedback.css?v=20241210" as="style" onload="this.onload=null;this.rel='stylesheet'">
   <link rel="preload" href="css/kanban-dragdrop.css?v=20241210" as="style" onload="this.onload=null;this.rel='stylesheet'">
   <link rel="preload" href="css/case-creation.css?v=20241210" as="style" onload="this.onload=null;this.rel='stylesheet'">
-  <link rel="preload" href="css/case-comments.css?v=20260904b" as="style" onload="this.onload=null;this.rel='stylesheet'">
+  <link rel="preload" href="css/case-comments.css?v=20260909a" as="style" onload="this.onload=null;this.rel='stylesheet'">
   <link rel="preload" href="css/activity-timeline.css?v=20241230" as="style" onload="this.onload=null;this.rel='stylesheet'">
   <link rel="preload" href="css/insights.css?v=20241230" as="style" onload="this.onload=null;this.rel='stylesheet'">
   <link rel="preload" href="css/at-risk.css?v=20241231" as="style" onload="this.onload=null;this.rel='stylesheet'">
@@ -602,7 +602,7 @@ if (isset($appConfig) && is_array($appConfig) && isset($appConfig['appName'])) {
     <link rel="stylesheet" href="css/feedback.css?v=20241210">
     <link rel="stylesheet" href="css/kanban-dragdrop.css?v=20241210">
     <link rel="stylesheet" href="css/case-creation.css?v=20241210">
-    <link rel="stylesheet" href="css/case-comments.css?v=20260904b">
+    <link rel="stylesheet" href="css/case-comments.css?v=20260909a">
     <link rel="stylesheet" href="css/activity-timeline.css?v=20241230">
     <link rel="stylesheet" href="css/insights.css?v=20241230">
     <link rel="stylesheet" href="css/at-risk.css?v=20241231">
@@ -773,6 +773,10 @@ endif;
                 </button>
                 <button type="button" class="notification-mark-all" id="markAllNotificationsRead" onclick="markAllNotificationsRead()" disabled aria-disabled="true"><?php echo t('notifications.mark_all_read'); ?></button>
               </div>
+            </div>
+            <div class="notification-dropdown-filters" role="tablist" aria-label="<?php echo t('notifications.filter_label'); ?>">
+              <button type="button" class="notification-filter-btn active" data-filter="all" role="tab" aria-selected="true" onclick="switchNotificationFilter('all')"><?php echo t('notifications.all'); ?></button>
+              <button type="button" class="notification-filter-btn" data-filter="unread" role="tab" aria-selected="false" onclick="switchNotificationFilter('unread')"><?php echo t('notifications.unread'); ?></button>
             </div>
             <div id="notificationList" class="notification-dropdown-list">
               <div class="notification-dropdown-empty"><?php echo t('notifications.loading'); ?></div>
@@ -3014,7 +3018,7 @@ endif;
   <script src="js/card-delete-fixed.js?v=20250104" defer></script>
   <script src="js/assignments.js?v=20250104" defer></script>
   <script src="js/case-comments.js?v=20260904a" defer></script>
-  <script src="js/notifications.js?v=20250104" defer></script>
+  <script src="js/notifications.js?v=20260909a" defer></script>
 <?php if (isFeatureEnabled('SHOW_NOTIFICATIONS')): ?>
   <script src="js/notification-preferences.js?v=20250104" defer></script>
 <?php endif; ?>

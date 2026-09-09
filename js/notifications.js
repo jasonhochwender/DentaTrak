@@ -12,6 +12,7 @@
   var lastNotificationsLoad = 0;
   var notificationCacheTtl = 30000; // 30 seconds
   var bodyOverflowBeforeNotifications = null;
+  var currentNotificationFilter = 'all';
 
   /**
    * Initialize notifications
@@ -177,7 +178,11 @@
     list.innerHTML = '<div class="notification-dropdown-empty">Loading...</div>';
 
     var requestStart = performance.now();
-    fetch('api/notifications.php?limit=20', {
+    var url = 'api/notifications.php?limit=20';
+    if (currentNotificationFilter === 'unread') {
+      url += '&unread_only=true';
+    }
+    fetch(url, {
       credentials: 'same-origin'
     })
     .then(function(response) { return response.json(); })
@@ -228,12 +233,15 @@
     if (!list) return;
 
     if (!notifications || notifications.length === 0) {
+      var emptyMessage = currentNotificationFilter === 'unread'
+        ? (t('notifications.no_unread') || 'No unread notifications')
+        : (t('notifications.empty') || 'No notifications');
       list.innerHTML = '<div class="notification-dropdown-empty">' +
         '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">' +
         '<path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>' +
         '<path d="M13.73 21a2 2 0 0 1-3.46 0"></path>' +
         '</svg>' +
-        '<div>' + t('notifications.empty') + '</div>' +
+        '<div>' + emptyMessage + '</div>' +
         '</div>';
       updateMarkAllReadState();
       return;
@@ -243,6 +251,7 @@
       var initials = getInitials(n.from_user_name);
       var timeAgo = formatTimeAgo(n.created_at);
       var text = getNotificationText(n);
+      var dismissLabel = t('notifications.dismiss') || 'Dismiss';
 
       return '<div class="notification-item' + (n.is_read ? '' : ' unread') + '" ' +
         'data-notification-id="' + n.id + '" ' +
@@ -254,6 +263,11 @@
         '<div class="notification-item-meta">' +
         '<span>' + timeAgo + '</span>' +
         '<span class="notification-item-case">' + t('notifications.view_case') + '</span>' +
+        '<button type="button" class="notification-item-dismiss" ' +
+        'aria-label="' + escapeHtml(dismissLabel) + '" ' +
+        'data-notification-id="' + n.id + '" ' +
+        'onclick="event.stopPropagation(); window.dismissNotification(' + n.id + ')">' +
+        escapeHtml(dismissLabel) + '</button>' +
         '</div>' +
         '</div>' +
         (n.is_read ? '' : '<div class="notification-unread-dot"></div>') +
@@ -386,6 +400,8 @@
       })
     })
     .then(function() {
+      // Invalidate the cached list so the next panel open reflects the read state.
+      lastNotificationsLoad = 0;
       refreshNotificationCount();
     })
     .catch(function(error) {
@@ -438,6 +454,84 @@
     .catch(function(error) {
       console.error('Error marking all notifications read:', error);
     });
+  };
+
+  /**
+   * Dismiss a single notification from the current user's panel.
+   */
+  window.dismissNotification = function(notificationId) {
+    if (!notificationId) return;
+
+    var csrfToken = document.querySelector('meta[name="csrf-token"]');
+    csrfToken = csrfToken ? csrfToken.getAttribute('content') : '';
+
+    var row = document.querySelector('#notificationList .notification-item[data-notification-id="' + notificationId + '"]');
+    if (row) {
+      row.style.opacity = '0.5';
+      row.setAttribute('aria-busy', 'true');
+    }
+
+    fetch('api/notifications.php', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRF-Token': csrfToken
+      },
+      credentials: 'same-origin',
+      body: JSON.stringify({
+        action: 'dismiss',
+        notification_id: notificationId
+      })
+    })
+    .then(function(response) { return response.json(); })
+    .then(function(data) {
+      if (data.success) {
+        if (row) {
+          row.remove();
+        }
+        // If the row was unread, refresh the badge count.
+        if (row && row.classList.contains('unread')) {
+          refreshNotificationCount();
+        }
+        // Re-render empty state if the list is now empty.
+        var list = document.getElementById('notificationList');
+        if (list && !list.querySelector('.notification-item')) {
+          renderNotifications([]);
+        }
+        updateMarkAllReadState();
+      } else {
+        if (row) {
+          row.style.opacity = '';
+          row.removeAttribute('aria-busy');
+        }
+        console.error('Dismiss notification failed:', data.message);
+      }
+    })
+    .catch(function(error) {
+      if (row) {
+        row.style.opacity = '';
+        row.removeAttribute('aria-busy');
+      }
+      console.error('Error dismissing notification:', error);
+    });
+  };
+
+  /**
+   * Switch the notification list filter between All and Unread.
+   */
+  window.switchNotificationFilter = function(filter) {
+    if (filter !== 'all' && filter !== 'unread') return;
+    currentNotificationFilter = filter;
+
+    var buttons = document.querySelectorAll('.notification-filter-btn');
+    buttons.forEach(function(btn) {
+      var isActive = btn.getAttribute('data-filter') === filter;
+      btn.classList.toggle('active', isActive);
+      btn.setAttribute('aria-selected', isActive ? 'true' : 'false');
+    });
+
+    lastNotificationsLoad = 0;
+    loadNotifications();
   };
 
   /**

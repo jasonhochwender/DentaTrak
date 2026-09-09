@@ -638,6 +638,12 @@ function _getCaseAssignedTo($caseId) {
 function _getNotificationUserDisplayName($userId) {
     global $pdo;
 
+    // System-generated notifications (no actor) are attributed to the app itself.
+    if (!$userId || (int)$userId === 0) {
+        $systemLabel = (string)t('notifications.system_label');
+        return $systemLabel !== '' ? $systemLabel : 'DentaTrak';
+    }
+
     if (isset($_SESSION['db_user_id']) && (int)$_SESSION['db_user_id'] === (int)$userId
         && isset($_SESSION['first_name'])) {
         $name = trim($_SESSION['first_name'] . ' ' . ($_SESSION['last_name'] ?? ''));
@@ -647,7 +653,8 @@ function _getNotificationUserDisplayName($userId) {
     }
 
     if (!isset($pdo) || !($pdo instanceof PDO)) {
-        return 'Unknown';
+        $teamLabel = (string)t('notifications.team_member');
+        return $teamLabel !== '' ? $teamLabel : 'A team member';
     }
 
     try {
@@ -656,13 +663,16 @@ function _getNotificationUserDisplayName($userId) {
         $u = $stmt->fetch(PDO::FETCH_ASSOC);
         if ($u) {
             $name = trim(($u['first_name'] ?? '') . ' ' . ($u['last_name'] ?? ''));
-            return $name !== '' ? $name : 'Unknown';
+            if ($name !== '') {
+                return $name;
+            }
         }
     } catch (Throwable $e) {
         error_log('[notification-service] _getNotificationUserDisplayName error: ' . $e->getMessage());
     }
 
-    return 'Unknown';
+    $teamLabel = (string)t('notifications.team_member');
+    return $teamLabel !== '' ? $teamLabel : 'A team member';
 }
 
 /**

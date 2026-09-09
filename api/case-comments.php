@@ -83,6 +83,7 @@ function ensureUserNotificationsTable() {
         preview_text VARCHAR(255) DEFAULT NULL,
         is_read BOOLEAN DEFAULT FALSE,
         read_at DATETIME DEFAULT NULL,
+        dismissed_at DATETIME DEFAULT NULL,
         metadata_json LONGTEXT,
         event_id BIGINT UNSIGNED DEFAULT NULL,
         expires_at DATETIME DEFAULT NULL,
@@ -90,6 +91,7 @@ function ensureUserNotificationsTable() {
         INDEX idx_user_id (user_id),
         INDEX idx_practice_id (practice_id),
         INDEX idx_is_read (is_read),
+        INDEX idx_dismissed_at (dismissed_at),
         INDEX idx_created_at (created_at),
         INDEX idx_case_id (case_id)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;";
