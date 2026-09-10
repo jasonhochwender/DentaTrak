@@ -131,6 +131,7 @@ node_modules/
 !/tests/mobile-kanban-test.js
 !/tests/mobile-case-modal-test.js
 !/tests/mobile-insights-test.js
+!/tests/notification-navigation-test.js
 screenshots/
 !/tests/billing-header-visibility-test.php
 !/tests/billing-flash-render-test.php

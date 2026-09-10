@@ -136,7 +136,7 @@
    * Refresh notification count
    */
   window.refreshNotificationCount = function() {
-    fetch('api/notifications.php?action=count', {
+    return fetch('api/notifications.php?action=count', {
       credentials: 'same-origin'
     })
     .then(function(response) { return response.json(); })
@@ -226,6 +226,71 @@
   }
 
   /**
+   * Parse a notification metadata value, which may be an object or a
+   * JSON-encoded string from legacy or third-party sources.
+   */
+  function parseNotificationMetadata(n) {
+    if (!n.metadata) {
+      return null;
+    }
+    if (typeof n.metadata === 'string') {
+      try {
+        return JSON.parse(n.metadata);
+      } catch (e) {
+        return null;
+      }
+    }
+    if (typeof n.metadata === 'object' && n.metadata !== null) {
+      return n.metadata;
+    }
+    return null;
+  }
+
+  /**
+   * Resolve the most relevant case-modal tab for a notification.
+   * Explicit categories take precedence; if they are absent, fall back to
+   * the notification type. Anything unknown defaults to Details.
+   */
+  function resolveNotificationTab(type, categories) {
+    type = (type || '').toString();
+    categories = Array.isArray(categories) ? categories : [];
+
+    if (categories.indexOf('details') !== -1) {
+      return 'details';
+    }
+    if (categories.indexOf('comments') !== -1 || categories.indexOf('mention') !== -1) {
+      return 'comments';
+    }
+    if (categories.indexOf('files') !== -1) {
+      return 'files';
+    }
+
+    if (type === 'mention' || type === 'comment' || type === 'new_comment' || type === 'comment_reply') {
+      return 'comments';
+    }
+    if (type === 'file_added' || type === 'file_deleted' || type === 'file_changed' || type === 'attachment_added') {
+      return 'files';
+    }
+
+    return 'details';
+  }
+
+  /**
+   * Resolve a specific comment identifier for the notification, preferring
+   * the top-level row and falling back to metadata.
+   */
+  function resolveNotificationCommentId(n) {
+    if (n.comment_id) {
+      return String(n.comment_id);
+    }
+    var metadata = parseNotificationMetadata(n);
+    if (metadata && (metadata.comment_id || metadata.commentId)) {
+      return String(metadata.comment_id || metadata.commentId);
+    }
+    return null;
+  }
+
+  /**
    * Render notifications list
    */
   function renderNotifications(notifications) {
@@ -252,10 +317,16 @@
       var timeAgo = formatTimeAgo(n.created_at);
       var text = getNotificationText(n);
       var dismissLabel = t('notifications.dismiss') || 'Dismiss';
+      var tab = resolveNotificationTab(n.type, n.categories);
+      var commentId = resolveNotificationCommentId(n);
+      var tabAttr = 'data-tab="' + escapeHtml(tab) + '" ';
+      var commentAttr = commentId ? 'data-comment-id="' + escapeHtml(commentId) + '" ' : '';
 
       return '<div class="notification-item' + (n.is_read ? '' : ' unread') + '" ' +
         'data-notification-id="' + n.id + '" ' +
         'data-case-id="' + escapeHtml(n.case_id || '') + '" ' +
+        tabAttr +
+        commentAttr +
         'onclick="window.handleNotificationClick(this)">' +
         '<div class="notification-item-avatar">' + initials + '</div>' +
         '<div class="notification-item-content">' +
@@ -307,10 +378,14 @@
     .then(function(data) {
       openingNotificationDestination = false;
       if (data.success) {
+        var options = {
+          tab: resolveNotificationTab(data.type, data.categories),
+          commentId: data.comment_id ? String(data.comment_id) : null
+        };
         if (data.is_archived && typeof window.viewArchivedCase === 'function') {
           window.viewArchivedCase(data.case_id);
         } else if (typeof window.openCaseById === 'function') {
-          window.openCaseById(data.case_id);
+          window.openCaseById(data.case_id, options);
         }
       } else if (data.code === 'practice_mismatch') {
         // Save the intended destination and switch practice safely.
@@ -362,32 +437,47 @@
   window.handleNotificationClick = function(element) {
     var notificationId = element.getAttribute('data-notification-id');
     var caseId = element.getAttribute('data-case-id');
-
-    // Mark as read asynchronously without blocking the case open.
-    markNotificationRead(notificationId);
+    var tab = element.getAttribute('data-tab') || 'details';
+    var commentId = element.getAttribute('data-comment-id') || null;
+    var options = { tab: tab };
+    if (commentId) {
+      options.commentId = commentId;
+    }
 
     // Close dropdown
     closeNotificationDropdown();
 
-    // In-app: the authenticated list already returned a case_id for this user,
-    // so open the authorized case modal directly. get-case.php will still
-    // enforce current practice membership and canUserAccessCase().
-    // Email/logged-out deep links continue to use the secure destination API.
+    // Start navigation immediately. get-case.php and the destination endpoint
+    // continue to enforce practice membership and case access. Read-state
+    // persistence is best-effort and must not block opening the case.
+    // In-app rows carry the resolved tab/comment hint; email/logged-out deep
+    // links rely on the secure notification-destination API.
     if (caseId && !element.hasAttribute('data-require-destination')) {
-      openCaseById(caseId);
-    } else if (notificationId) {
+      if (typeof window.openCaseById === 'function') {
+        window.openCaseById(caseId, options);
+      }
+    } else if (notificationId && element.hasAttribute('data-require-destination')) {
       openNotificationDestination(notificationId);
     }
+
+    // Mark as read in the background; the UI is only updated when the server
+    // confirms. If the request fails, the case has already opened and the
+    // notification stays unread.
+    markNotificationRead(notificationId);
   };
 
   /**
    * Mark notification as read
    */
   function markNotificationRead(notificationId) {
+    if (!notificationId) {
+      return Promise.resolve();
+    }
+
     var csrfToken = document.querySelector('meta[name="csrf-token"]');
     csrfToken = csrfToken ? csrfToken.getAttribute('content') : '';
 
-    fetch('api/notifications.php', {
+    return fetch('api/notifications.php', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -399,13 +489,37 @@
         notification_id: notificationId
       })
     })
-    .then(function() {
+    .then(function(response) { return response.json(); })
+    .then(function(data) {
+      if (!data || data.success === false) {
+        if (typeof showToast === 'function') {
+          showToast(data && data.message ? data.message : t('notifications.mark_read_error'), 'error');
+        }
+        lastNotificationsLoad = 0;
+        return refreshNotificationCount();
+      }
+
+      // Update the rendered row immediately so the panel feels responsive.
+      var row = document.querySelector('#notificationList .notification-item[data-notification-id="' + notificationId + '"]');
+      if (row) {
+        row.classList.remove('unread');
+        var dot = row.querySelector('.notification-unread-dot');
+        if (dot) {
+          dot.remove();
+        }
+      }
+
+      updateMarkAllReadState();
+
       // Invalidate the cached list so the next panel open reflects the read state.
       lastNotificationsLoad = 0;
-      refreshNotificationCount();
+      return refreshNotificationCount();
     })
     .catch(function(error) {
       console.error('Error marking notification read:', error);
+      if (typeof showToast === 'function') {
+        showToast(t('notifications.mark_read_error_retry'), 'error');
+      }
     });
   }
 

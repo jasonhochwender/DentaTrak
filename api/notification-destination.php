@@ -45,9 +45,13 @@ function resolveNotificationDestination($notificationId) {
 
     // 1. Verify notification ownership and resolve case_id from the row
     $stmt = $pdo->prepare("
-        SELECT id, user_id, practice_id, case_id
-        FROM user_notifications
-        WHERE id = :id
+        SELECT n.id, n.user_id, n.practice_id, n.case_id,
+               n.notification_type, n.comment_id, n.metadata_json,
+               e.event_type, e.event_categories
+        FROM user_notifications n
+        LEFT JOIN notification_events e ON n.event_id = e.id
+          AND e.practice_id = n.practice_id
+        WHERE n.id = :id
         LIMIT 1
     ");
     $stmt->execute(['id' => (int)$notificationId]);
@@ -119,12 +123,30 @@ function resolveNotificationDestination($notificationId) {
     }
 
     $isArchived = !empty($case['archived']);
+    $categories = json_decode($notification['event_categories'] ?? '', true);
+    $categories = is_array($categories) ? $categories : [];
+    $metadata = json_decode($notification['metadata_json'] ?? '', true);
+    $metadata = is_array($metadata) ? $metadata : [];
+    $commentId = null;
+    foreach ([$notification['comment_id'] ?? null, $metadata['comment_id'] ?? null] as $candidate) {
+        if (!is_int($candidate) && !is_string($candidate)) {
+            continue;
+        }
+        $validatedId = filter_var($candidate, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+        if ($validatedId !== false) {
+            $commentId = $validatedId;
+            break;
+        }
+    }
 
     return [
         'success' => true,
         'case_id' => $caseId,
         'notification_id' => (int)$notificationId,
         'is_archived' => $isArchived,
+        'type' => $notification['event_type'] ?? $notification['notification_type'],
+        'categories' => $categories,
+        'comment_id' => $commentId,
     ];
 }
 

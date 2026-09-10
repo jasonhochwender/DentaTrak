@@ -82,6 +82,7 @@ try {
 
     echo json_encode([
         'success' => true,
+        'can_edit' => canEditCases($currentPracticeId) && empty($targetCase['archived']),
         'case' => $decryptedCase,
         'files' => $files,
         'activity' => $activity

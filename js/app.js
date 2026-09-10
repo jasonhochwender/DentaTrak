@@ -4245,6 +4245,8 @@ document.addEventListener('DOMContentLoaded', function () {
   var caseViewErrorClose = document.getElementById('caseViewErrorClose');
   var currentEditCaseId = null;
   var pendingViewCaseId = null;
+  var pendingCaseOpenOptions = null;
+  var caseOpenRequestId = 0;
   var viewCaseTimings = null;
   window.viewCaseTimings = viewCaseTimings;
 
@@ -5154,6 +5156,10 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   function closeCreateCase() {
+    ++caseOpenRequestId;
+    openingCaseById = false;
+    pendingViewCaseId = null;
+    pendingCaseOpenOptions = null;
     if (createCaseModal) {
       createCaseModal.style.display = 'none';
       document.body.style.overflow = ''; // Restore scrolling
@@ -5210,6 +5216,12 @@ document.addEventListener('DOMContentLoaded', function () {
           input.removeAttribute('readonly');
           input.style.backgroundColor = '';
           input.style.cursor = '';
+          if (input._caseViewDisabled !== undefined) {
+            input.disabled = input._caseViewDisabled;
+            delete input._caseViewDisabled;
+            input.style.opacity = '';
+            input.style.color = '';
+          }
         });
 
         // Re-enable file inputs
@@ -5487,8 +5499,16 @@ document.addEventListener('DOMContentLoaded', function () {
   function setViewCaseError() {
     if (caseViewLoading) caseViewLoading.style.display = 'none';
     if (caseViewError) caseViewError.style.display = 'block';
-    if (createCaseForm) createCaseForm.style.display = 'none';
     if (caseModalTabs) caseModalTabs.style.display = 'none';
+
+    // Clear stale case data so a failed load does not expose the prior case.
+    if (typeof loadCaseRevisionHistory === 'function') {
+      loadCaseRevisionHistory(null);
+    }
+    if (typeof resetCreateCaseFormToNew === 'function') {
+      resetCreateCaseFormToNew();
+    }
+    if (createCaseForm) createCaseForm.style.display = 'none';
   }
 
   function resetCaseViewState() {
@@ -5498,10 +5518,29 @@ document.addEventListener('DOMContentLoaded', function () {
     if (caseModalTabs) caseModalTabs.style.display = 'flex';
   }
 
-  window.openCaseById = function(caseId) {
-    if (!caseId || openingCaseById) return;
+  window.openCaseById = function(caseId, options) {
+    if (!caseId || !createCaseModal || !createCaseForm || window.isPrintingCase || isSubmitting) {
+      return Promise.resolve(false);
+    }
+    options = options || {};
+    if (hasUnsavedChanges) {
+      showUnsavedChangesWarning(function() {
+        closeCreateCase();
+        window.openCaseById(caseId, options);
+      });
+      return Promise.resolve(false);
+    }
+
+    closeCreateCase();
+    var requestId = ++caseOpenRequestId;
     openingCaseById = true;
-    pendingViewCaseId = caseId;
+    pendingViewCaseId = String(caseId);
+    pendingCaseOpenOptions = {
+      tab: ['comments', 'files'].indexOf(options.tab) !== -1 ? options.tab : 'details',
+      commentId: options.commentId ? String(options.commentId) : null
+    };
+    var destination = pendingCaseOpenOptions;
+    caseModalOpener = document.activeElement;
 
     viewCaseTimings = window.viewCaseTimings = {
       shellStart: performance.now(),
@@ -5512,6 +5551,7 @@ document.addEventListener('DOMContentLoaded', function () {
     var caseModal = document.getElementById('createCaseModal');
     if (caseModal) {
       caseModal.style.display = 'block';
+      document.body.style.overflow = 'hidden';
       setViewCaseLoading();
       var modalTitle = caseModal.querySelector('.modal-title');
       if (modalTitle) {
@@ -5521,34 +5561,63 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     var fetchStart = performance.now();
-    fetch('api/get-case.php?id=' + encodeURIComponent(caseId), {
+    return fetch('api/get-case.php?id=' + encodeURIComponent(caseId), {
       credentials: 'same-origin'
     })
-    .then(function(response) { return response.json(); })
+    .then(function(response) {
+      if (!response.ok) throw new Error('Case unavailable');
+      return response.json();
+    })
     .then(function(data) {
+      if (requestId !== caseOpenRequestId || caseModal.style.display === 'none') return false;
       openingCaseById = false;
-      if (data.success && data.case) {
-        openCaseModalForView(data.case, fetchStart);
-        // Switch to comments tab after opening
-        setTimeout(function() {
-          var commentsTab = document.querySelector('.case-tab[data-tab="comments"]');
-          if (commentsTab) {
-            commentsTab.click();
-          }
-        }, 100);
+      if (!data.success || !data.case || String(data.case.id || data.case.case_id) !== String(caseId)) {
+        throw new Error('Case unavailable');
+      }
+      var archived = data.case.archived === true || data.case.archived === 1 || data.case.archived === '1' ||
+                     data.case.is_archived === true || data.case.is_archived === 1 || data.case.is_archived === '1';
+      if (archived && typeof billingInfo !== 'undefined' && billingInfo && billingInfo.is_trial && billingInfo.trial_expired) {
+        closeCreateCase();
+        showUpgradeModal();
+        return false;
+      }
+      if (!archived && data.can_edit === true) {
+        if (!checkBillingForCaseCreation()) {
+          closeCreateCase();
+          return false;
+        }
+        editCaseHandler(data.case);
       } else {
-        setViewCaseError();
-        if (typeof showToast === 'function') {
-          showToast(data.message || t('cases.toast.open_failed'), 'error');
+        openCaseModalForView(data.case, fetchStart);
+      }
+      if (viewCaseTimings) viewCaseTimings.fieldsPopulated = performance.now() - viewCaseTimings.shellStart;
+      if (destination.tab === 'comments' && caseCommentsTab && caseCommentsPanel) {
+        // Switch to comments tab after opening
+        setCaseModalActiveTab('comments');
+        if (destination.commentId && typeof window.focusCaseComment === 'function') {
+          window.focusCaseComment(String(caseId), destination.commentId);
+        }
+      } else {
+        setCaseModalActiveTab('details');
+        if (destination.tab === 'files') {
+          var attachmentsHeading = createCaseForm.querySelector('.attachments-title');
+          if (attachmentsHeading) {
+            attachmentsHeading.setAttribute('tabindex', '-1');
+            attachmentsHeading.focus({ preventScroll: true });
+            attachmentsHeading.scrollIntoView({ block: 'start', behavior: 'auto' });
+          }
         }
       }
+      return true;
     })
     .catch(function(error) {
+      if (requestId !== caseOpenRequestId || caseModal.style.display === 'none') return false;
       openingCaseById = false;
       setViewCaseError();
       if (typeof showToast === 'function') {
         showToast(t('cases.toast.open_error'), 'error');
       }
+      return false;
     });
   };
 
@@ -5601,6 +5670,7 @@ document.addEventListener('DOMContentLoaded', function () {
           if (input.type !== 'button' && input.type !== 'submit' && input.type !== 'file') {
             if (input.tagName === 'SELECT') {
               // Disable select dropdowns but keep consistent styling
+              if (input._caseViewDisabled === undefined) input._caseViewDisabled = input.disabled;
               input.disabled = true;
               input.style.backgroundColor = '#f8fafc';
               input.style.cursor = 'default';
@@ -5666,7 +5736,9 @@ document.addEventListener('DOMContentLoaded', function () {
   if (closeBtn) closeBtn.addEventListener('click', closeCreateCaseWithCheck);
   if (cancelBtn) cancelBtn.addEventListener('click', closeCreateCaseWithCheck);
   if (caseViewRetry) caseViewRetry.addEventListener('click', function() {
-    if (pendingViewCaseId) openCaseById(pendingViewCaseId);
+    if (pendingViewCaseId && typeof openCaseById === 'function') {
+      openCaseById(pendingViewCaseId, pendingCaseOpenOptions);
+    }
   });
   if (caseViewErrorClose) caseViewErrorClose.addEventListener('click', closeCreateCaseWithCheck);
 

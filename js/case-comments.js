@@ -96,9 +96,13 @@
     }).join('');
 
     list.innerHTML = html;
-    
-    // Scroll to bottom
-    list.scrollTop = list.scrollHeight;
+
+    applyPendingCommentFocus();
+
+    // Scroll to bottom when a notification is not driving focus.
+    if (!pendingCommentFocus) {
+      list.scrollTop = list.scrollHeight;
+    }
   }
 
   /**
@@ -540,6 +544,53 @@
     return div.innerHTML;
   }
 
+  var pendingCommentFocus = null;
+
+  /**
+   * Request that a specific comment be highlighted once the current case's
+   * comments have loaded. This is used by notification deep links.
+   */
+  window.focusCaseComment = function(caseId, commentId) {
+    pendingCommentFocus = {
+      caseId: String(caseId || ''),
+      commentId: String(commentId || '')
+    };
+  };
+
+  /**
+   * Clear the pending comment focus request.
+   */
+  function clearPendingCommentFocus() {
+    pendingCommentFocus = null;
+  }
+
+  /**
+   * Highlight and scroll to a specific comment in the rendered list.
+   */
+  function applyPendingCommentFocus() {
+    if (!pendingCommentFocus) return;
+    if (String(currentCaseId) !== pendingCommentFocus.caseId) {
+      clearPendingCommentFocus();
+      return;
+    }
+
+    var list = document.getElementById('caseCommentsList');
+    if (!list) {
+      clearPendingCommentFocus();
+      return;
+    }
+
+    var commentId = pendingCommentFocus.commentId;
+    var selector = '.case-comment[data-comment-id="' + commentId.replace(/"/g, '\\"') + '"]';
+    var el = list.querySelector(selector);
+    if (el) {
+      el.classList.add('case-comment-focused');
+      el.scrollIntoView({ block: 'center', behavior: 'auto' });
+    }
+
+    clearPendingCommentFocus();
+  }
+
   /**
    * Clear comments when modal closes
    */
@@ -549,6 +600,7 @@
     var list = document.getElementById('caseCommentsList');
     if (list) list.innerHTML = '';
     updateCommentCount(0);
+    clearPendingCommentFocus();
     var input = document.getElementById('caseCommentInput');
     if (input) input.value = '';
     closeMentionAutocomplete();
