@@ -970,20 +970,55 @@ function getAllCasesFromCache() {
  * @param int    $practiceId
  * @return array|null
  */
-function getSingleCaseFromCache($caseId, $practiceId) {
+function getSingleCaseFromCache($caseId, $practiceId, $mode = 'full') {
     global $pdo;
     if (!$pdo || empty($caseId) || empty($practiceId)) {
         return null;
     }
 
-    try {
-        $stmt = $pdo->prepare("
-            SELECT *
-            FROM cases_cache
-            WHERE case_id = :case_id
-              AND practice_id = :practice_id
+    $mode = in_array($mode, ['full', 'core', 'heavy']) ? $mode : 'full';
+
+    if ($mode === 'full') {
+        $core = getSingleCaseFromCache($caseId, $practiceId, 'core');
+        if ($core === null) {
+            return null;
+        }
+        $heavy = getSingleCaseFromCache($caseId, $practiceId, 'heavy');
+        if ($heavy === null) {
+            $heavy = ['attachments' => [], 'revisions' => []];
+        }
+        return array_merge($core, $heavy);
+    }
+
+    if ($mode === 'heavy') {
+        $sql = "
+            SELECT c.attachments_json, c.revisions_json
+            FROM cases_cache c
+            WHERE c.case_id = :case_id
+              AND c.practice_id = :practice_id
             LIMIT 1
-        ");
+        ";
+    } else {
+        $sql = "
+            SELECT
+                c.case_id, c.drive_folder_id, c.patient_first_name, c.patient_last_name,
+                c.patient_dob, c.patient_gender, c.dentist_name, c.case_type, c.tooth_shade,
+                c.material, c.due_date, c.patient_appointment_date, c.creation_date,
+                c.last_update_date, c.status, c.status_changed_at, c.notes, c.assigned_to,
+                c.carrier, c.tracking_number, c.custom_carrier, c.practice_id,
+                c.created_by_user_id, c.archived, c.archived_date, c.revision_count,
+                c.version, c.demo_generation_run_id, c.clinical_details_json,
+                u.first_name AS creator_first_name, u.last_name AS creator_last_name
+            FROM cases_cache c
+            LEFT JOIN users u ON c.created_by_user_id = u.id
+            WHERE c.case_id = :case_id
+              AND c.practice_id = :practice_id
+            LIMIT 1
+        ";
+    }
+
+    try {
+        $stmt = $pdo->prepare($sql);
         $stmt->execute([
             'case_id' => $caseId,
             'practice_id' => $practiceId
@@ -993,21 +1028,31 @@ function getSingleCaseFromCache($caseId, $practiceId) {
             return null;
         }
 
-        $attachments = [];
-        if (!empty($row['attachments_json'])) {
-            $decoded = json_decode($row['attachments_json'], true);
-            if (is_array($decoded)) {
-                $attachments = $decoded;
+        if ($mode === 'heavy') {
+            $attachments = [];
+            if (!empty($row['attachments_json'])) {
+                $decoded = json_decode($row['attachments_json'], true);
+                if (is_array($decoded)) {
+                    $attachments = $decoded;
+                }
             }
+
+            $revisions = [];
+            if (!empty($row['revisions_json'])) {
+                $decoded = json_decode($row['revisions_json'], true);
+                if (is_array($decoded)) {
+                    $revisions = $decoded;
+                }
+            }
+
+            return [
+                'attachments' => $attachments,
+                'revisions' => $revisions,
+            ];
         }
 
+        $attachments = [];
         $revisions = [];
-        if (!empty($row['revisions_json'])) {
-            $decoded = json_decode($row['revisions_json'], true);
-            if (is_array($decoded)) {
-                $revisions = $decoded;
-            }
-        }
 
         $clinicalDetails = [];
         if (!empty($row['clinical_details_json'])) {
@@ -1059,21 +1104,10 @@ function getSingleCaseFromCache($caseId, $practiceId) {
             // Continue with encrypted data if decryption fails
         }
 
-        // Resolve creator display name for the single case
-        if (!empty($case['createdByUserId'])) {
-            try {
-                $userStmt = $pdo->prepare("SELECT first_name, last_name FROM users WHERE id = :id LIMIT 1");
-                $userStmt->execute(['id' => $case['createdByUserId']]);
-                $creator = $userStmt->fetch(PDO::FETCH_ASSOC);
-                if ($creator) {
-                    $name = trim(($creator['first_name'] ?? '') . ' ' . ($creator['last_name'] ?? ''));
-                    if ($name !== '') {
-                        $case['createdByName'] = $name;
-                    }
-                }
-            } catch (Exception $e) {
-                // Leave as Unknown on error
-            }
+        // Resolve creator display name from the joined users table
+        $name = trim(($row['creator_first_name'] ?? '') . ' ' . ($row['creator_last_name'] ?? ''));
+        if ($name !== '') {
+            $case['createdByName'] = $name;
         }
 
         return $case;

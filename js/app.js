@@ -4244,8 +4244,10 @@ document.addEventListener('DOMContentLoaded', function () {
   var caseViewRetry = document.getElementById('caseViewRetry');
   var caseViewErrorClose = document.getElementById('caseViewErrorClose');
   var currentEditCaseId = null;
+  var currentEditCaseData = null;
   var pendingViewCaseId = null;
   var pendingCaseOpenOptions = null;
+  var pendingAttachmentScroll = false;
   var caseOpenRequestId = 0;
   var viewCaseTimings = null;
   window.viewCaseTimings = viewCaseTimings;
@@ -4278,6 +4280,10 @@ document.addEventListener('DOMContentLoaded', function () {
     if (caseHistoryPanel) {
       caseHistoryPanel.classList.toggle('case-tab-panel-active', tabName === 'history');
       caseHistoryPanel.style.display = tabName === 'history' ? 'block' : 'none';
+    }
+
+    if (window.viewCaseTimings) {
+      window.viewCaseTimings.tabActivated = performance.now() - window.viewCaseTimings.shellStart;
     }
   }
 
@@ -5069,6 +5075,9 @@ document.addEventListener('DOMContentLoaded', function () {
       }
 
       createCaseModal.style.display = 'block';
+      if (window.viewCaseTimings) {
+        window.viewCaseTimings.modalVisible = performance.now() - window.viewCaseTimings.shellStart;
+      }
       document.body.style.overflow = 'hidden'; // Prevent scrolling behind modal
       resetCaseViewState();
 
@@ -5160,6 +5169,7 @@ document.addEventListener('DOMContentLoaded', function () {
     openingCaseById = false;
     pendingViewCaseId = null;
     pendingCaseOpenOptions = null;
+    pendingAttachmentScroll = false;
     if (createCaseModal) {
       createCaseModal.style.display = 'none';
       document.body.style.overflow = ''; // Restore scrolling
@@ -5543,9 +5553,18 @@ document.addEventListener('DOMContentLoaded', function () {
     caseModalOpener = document.activeElement;
 
     viewCaseTimings = window.viewCaseTimings = {
+      source: 'notification',
       shellStart: performance.now(),
       shellVisible: null,
-      fieldsPopulated: null
+      getCaseRequestStart: null,
+      getCaseResponseMs: null,
+      getCaseParseMs: null,
+      getCaseServerMs: null,
+      editCaseHandlerStart: null,
+      editCaseHandlerEnd: null,
+      fieldsPopulated: null,
+      tabActivated: null,
+      modalUsable: null
     };
 
     var caseModal = document.getElementById('createCaseModal');
@@ -5560,15 +5579,24 @@ document.addEventListener('DOMContentLoaded', function () {
       if (viewCaseTimings) viewCaseTimings.shellVisible = performance.now() - viewCaseTimings.shellStart;
     }
 
+    viewCaseTimings.getCaseRequestStart = performance.now();
     var fetchStart = performance.now();
-    return fetch('api/get-case.php?id=' + encodeURIComponent(caseId), {
+    var coreUrl = 'api/get-case.php?id=' + encodeURIComponent(caseId) + '&view=core';
+    return fetch(coreUrl, {
       credentials: 'same-origin'
     })
     .then(function(response) {
+      if (viewCaseTimings) {
+        viewCaseTimings.getCaseResponseMs = performance.now() - viewCaseTimings.getCaseRequestStart;
+      }
       if (!response.ok) throw new Error('Case unavailable');
       return response.json();
     })
     .then(function(data) {
+      if (viewCaseTimings) {
+        viewCaseTimings.getCaseParseMs = performance.now() - viewCaseTimings.getCaseRequestStart - (viewCaseTimings.getCaseResponseMs || 0);
+        viewCaseTimings.getCaseServerMs = typeof data.serverTimeMs === 'number' ? data.serverTimeMs : null;
+      }
       if (requestId !== caseOpenRequestId || caseModal.style.display === 'none') return false;
       openingCaseById = false;
       if (!data.success || !data.case || String(data.case.id || data.case.case_id) !== String(caseId)) {
@@ -5581,6 +5609,7 @@ document.addEventListener('DOMContentLoaded', function () {
         showUpgradeModal();
         return false;
       }
+      if (viewCaseTimings) viewCaseTimings.editCaseHandlerStart = performance.now() - viewCaseTimings.shellStart;
       if (!archived && data.can_edit === true) {
         if (!checkBillingForCaseCreation()) {
           closeCreateCase();
@@ -5590,7 +5619,10 @@ document.addEventListener('DOMContentLoaded', function () {
       } else {
         openCaseModalForView(data.case, fetchStart);
       }
-      if (viewCaseTimings) viewCaseTimings.fieldsPopulated = performance.now() - viewCaseTimings.shellStart;
+      if (viewCaseTimings) {
+        viewCaseTimings.editCaseHandlerEnd = performance.now() - viewCaseTimings.shellStart;
+        viewCaseTimings.fieldsPopulated = performance.now() - viewCaseTimings.shellStart;
+      }
       if (destination.tab === 'comments' && caseCommentsTab && caseCommentsPanel) {
         // Switch to comments tab after opening
         setCaseModalActiveTab('comments');
@@ -5600,14 +5632,25 @@ document.addEventListener('DOMContentLoaded', function () {
       } else {
         setCaseModalActiveTab('details');
         if (destination.tab === 'files') {
-          var attachmentsHeading = createCaseForm.querySelector('.attachments-title');
+          // Scroll to the Attachments heading as soon as the Details form is
+          // visible. If the heading has not been rendered yet, defer to the
+          // heavy-data follow-up.
+          var attachmentsHeading = createCaseForm ? createCaseForm.querySelector('.attachments-title') : null;
           if (attachmentsHeading) {
             attachmentsHeading.setAttribute('tabindex', '-1');
             attachmentsHeading.focus({ preventScroll: true });
             attachmentsHeading.scrollIntoView({ block: 'start', behavior: 'auto' });
+            pendingAttachmentScroll = false;
+          } else {
+            pendingAttachmentScroll = true;
           }
         }
       }
+
+      // Load heavy attachments/clinical data in the background now that the
+      // modal is already usable with the core fields.
+      loadCaseHeavyData(caseId, requestId, destination);
+
       return true;
     })
     .catch(function(error) {
@@ -5621,7 +5664,64 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   };
 
+  function loadCaseHeavyData(caseId, requestId, destination) {
+    if (viewCaseTimings) viewCaseTimings.heavyRequestStart = performance.now() - viewCaseTimings.shellStart;
+    fetch('api/get-case.php?id=' + encodeURIComponent(caseId) + '&view=heavy', {
+      credentials: 'same-origin'
+    })
+    .then(function(response) {
+      if (!response.ok) throw new Error('Heavy case data unavailable');
+      return response.json();
+    })
+    .then(function(data) {
+      if (requestId !== caseOpenRequestId || caseModal.style.display === 'none') return;
+      if (!data.success || !data.case) return;
+      if (String(currentEditCaseId) !== String(caseId)) return;
+
+      if (viewCaseTimings) viewCaseTimings.heavyLoaded = performance.now() - viewCaseTimings.shellStart;
+
+      if (currentEditCaseData && data.case) {
+        if (Array.isArray(data.case.attachments)) {
+          currentEditCaseData.attachments = data.case.attachments;
+        }
+        if (Array.isArray(data.case.revisions)) {
+          currentEditCaseData.revisions = data.case.revisions;
+        }
+      }
+
+      if (typeof displayExistingFiles === 'function' && data.files && data.files.length) {
+        displayExistingFiles(data.files);
+      }
+
+      // Clinical details are part of the core payload and are populated
+      // synchronously before the modal becomes editable; the heavy follow-up
+      // must never overwrite user-editable values.
+
+      if (pendingAttachmentScroll) {
+        pendingAttachmentScroll = false;
+        if (destination && destination.tab === 'files') {
+          var attachmentsHeading = createCaseForm ? createCaseForm.querySelector('.attachments-title') : null;
+          if (attachmentsHeading) {
+            attachmentsHeading.setAttribute('tabindex', '-1');
+            attachmentsHeading.focus({ preventScroll: true });
+            attachmentsHeading.scrollIntoView({ block: 'start', behavior: 'auto' });
+          }
+        }
+      }
+    })
+    .catch(function(error) {
+      // Heavy data is secondary; failing to load attachments/clinical details
+      // should not break the core case editing experience.
+      if (typeof console !== 'undefined' && console.warn) {
+        console.warn('Failed to load heavy case data:', error);
+      }
+    });
+  }
+
   function openCaseModalForView(caseData, fetchStart) {
+    currentEditCaseId = caseData.id || caseData.case_id || null;
+    currentEditCaseData = caseData;
+
     if (createCaseModal) {
       // Remember the element that opened the modal so focus can be restored on close.
       if (document.activeElement && !caseModalOpener) {
@@ -5629,6 +5729,9 @@ document.addEventListener('DOMContentLoaded', function () {
       }
 
       createCaseModal.style.display = 'block';
+      if (window.viewCaseTimings) {
+        window.viewCaseTimings.modalVisible = performance.now() - window.viewCaseTimings.shellStart;
+      }
 
       // Remove any existing "Back to Archived Cases" button (only relevant when coming from archived modal)
       var existingBackBtn = createCaseModal.querySelector('.back-to-archived');
@@ -7914,6 +8017,28 @@ document.addEventListener('DOMContentLoaded', function () {
 
   // Function to handle case editing
   function editCaseHandler(caseData) {
+    if (!window.viewCaseTimings) {
+      window.viewCaseTimings = {
+        source: 'kanban',
+        shellStart: performance.now(),
+        shellVisible: null,
+        getCaseRequestStart: null,
+        getCaseResponseMs: null,
+        getCaseParseMs: null,
+        getCaseServerMs: null,
+        editCaseHandlerStart: null,
+        editCaseHandlerEnd: null,
+        fieldsPopulated: null,
+        tabActivated: null,
+        modalUsable: null
+      };
+    }
+    window.viewCaseTimings.editCaseHandlerStart = performance.now() - window.viewCaseTimings.shellStart;
+
+    // Remember the current case data for later heavy/secondary updates.
+    currentEditCaseId = caseData.id || caseData.case_id || null;
+    currentEditCaseData = caseData;
+
     // Check if any case is currently being printed
     if (window.isPrintingCase) {
       return;
@@ -8357,6 +8482,13 @@ document.addEventListener('DOMContentLoaded', function () {
     // Render the compact mobile case summary (phone viewports only).
     if (window.MobileCaseModal && typeof window.MobileCaseModal.renderSummary === 'function') {
       window.MobileCaseModal.renderSummary(caseData);
+    }
+
+    if (window.viewCaseTimings) {
+      window.viewCaseTimings.editCaseHandlerEnd = performance.now() - window.viewCaseTimings.shellStart;
+      if (!window.viewCaseTimings.fieldsPopulated) {
+        window.viewCaseTimings.fieldsPopulated = window.viewCaseTimings.editCaseHandlerEnd;
+      }
     }
   }
 

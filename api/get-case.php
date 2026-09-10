@@ -20,12 +20,13 @@ require_once __DIR__ . '/hipaa-compliance.php';
 
 // SECURITY: Require valid practice context before accessing any data
 $currentPracticeId = requireValidPracticeContext();
+$caseStart = microtime(true);
 
 try {
 
     // Get case ID from request
     $caseId = isset($_GET['id']) ? trim($_GET['id']) : '';
-    
+
     if (empty($caseId)) {
         http_response_code(400);
         echo json_encode(['success' => false, 'message' => 'Case ID is required']);
@@ -35,10 +36,30 @@ try {
     // SECURITY: Verify this case belongs to the current practice and, for
     // limited-visibility users, is assigned to them. Must happen BEFORE any
     // case data is loaded/returned below.
+    $authStart = microtime(true);
     requireCaseAccess($caseId, $currentPracticeId);
+    $authMs = round((microtime(true) - $authStart) * 1000, 2);
 
-    // Fetch only the requested case from the cache.
-    $targetCase = getSingleCaseFromCache($caseId, $currentPracticeId);
+    $view = isset($_GET['view']) ? trim($_GET['view']) : 'full';
+    if (!in_array($view, ['core', 'heavy', 'full'])) {
+        $view = 'full';
+    }
+
+    // Fetch the requested view. The 'core' view intentionally omits the heavy
+    // JSON columns (attachments_json, revisions_json, clinical_details_json)
+    // so the modal can become usable as quickly as possible. Heavy data is
+    // loaded in a follow-up request once the modal is already visible.
+    $cacheStart = microtime(true);
+    if ($view === 'full') {
+        // Default call keeps the original two-argument contract for callers
+        // that do not pass a view parameter.
+        $targetCase = getSingleCaseFromCache($caseId, $currentPracticeId);
+    } elseif ($view === 'core') {
+        $targetCase = getSingleCaseFromCache($caseId, $currentPracticeId, 'core');
+    } else {
+        $targetCase = getSingleCaseFromCache($caseId, $currentPracticeId, 'heavy');
+    }
+    $caseFetchMs = round((microtime(true) - $cacheStart) * 1000, 2);
 
     if ($targetCase === null) {
         http_response_code(404);
@@ -46,47 +67,41 @@ try {
         exit;
     }
 
-    // Attachments are already included in the single-case cache row.
-    $files = $targetCase['attachments'] ?? [];
-
-    // Activity is not needed for the initial View Case render; the UI loads
-    // revision history and comments on demand after the primary form appears.
+    $decryptedCase = $targetCase;
+    $files = $decryptedCase['attachments'] ?? [];
     $activity = [];
 
-    // getAllCasesFromCache() already returns cases with PII decrypted.
-    // Do not decrypt again — double decryption corrupts the data.
-    $decryptedCase = $targetCase;
-
-    // Resolve creator display name from the historical user record.
-    // A user may no longer be a current practice member, but we still display
-    // the historical attribution from the cases_cache.created_by_user_id value.
-    $decryptedCase['createdByName'] = 'Unknown';
-    if (!empty($decryptedCase['createdByUserId'])) {
-        try {
-            $userStmt = $pdo->prepare("SELECT first_name, last_name FROM users WHERE id = :id LIMIT 1");
-            $userStmt->execute(['id' => $decryptedCase['createdByUserId']]);
-            $creator = $userStmt->fetch(PDO::FETCH_ASSOC);
-            if ($creator) {
-                $name = trim(($creator['first_name'] ?? '') . ' ' . ($creator['last_name'] ?? ''));
-                if ($name !== '') {
-                    $decryptedCase['createdByName'] = $name;
-                }
-            }
-        } catch (Exception $e) {
-            // Leave as Unknown on error
-        }
+    // Log PHI access for HIPAA compliance. The initial core/fetch is the
+    // logical "view case" event; the heavy follow-up for attachments is
+    // audited separately so one user action does not create two view_case rows.
+    $logStart = microtime(true);
+    if ($view === 'heavy') {
+        logPHIAccess('view_case_attachments', $caseId);
+    } else {
+        logPHIAccess('view_case', $caseId);
     }
+    $logMs = round((microtime(true) - $logStart) * 1000, 2);
 
-    // Log PHI access for HIPAA compliance
-    logPHIAccess('view_case', $caseId);
+    $serverTimeMs = round((microtime(true) - $caseStart) * 1000, 2);
 
-    echo json_encode([
+    $response = [
         'success' => true,
+        'view' => $view,
         'can_edit' => canEditCases($currentPracticeId) && empty($targetCase['archived']),
+        'serverTimeMs' => $serverTimeMs,
+        'authMs' => $authMs,
+        'caseFetchMs' => $caseFetchMs,
+        'logMs' => $logMs,
         'case' => $decryptedCase,
         'files' => $files,
         'activity' => $activity
-    ]);
+    ];
+
+    if ($view === 'core') {
+        $response['heavy_available'] = true;
+    }
+
+    echo json_encode($response);
 
 } catch (Throwable $e) {
     error_log('Error in get-case.php: ' . $e->getMessage());
