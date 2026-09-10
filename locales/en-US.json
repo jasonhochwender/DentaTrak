@@ -3981,16 +3981,16 @@
             "body": "DentaTrak is one way to practice dental case tracking. To learn more about the category and why practices use it, see {link}.",
             "link_label": "how dental case tracking works",
             "step1_title": "Create the case",
-            "step1_body": "Start with one record. Add the patient, case type, due date, appointment, assignment, lab, notes, and files.",
+            "step1_body": "Start with one record. Add the patient, case type, lab, appointment details, and any other information your team needs.",
             "step2_title": "Track every step",
             "step2_body": "Move the case through each stage, update assignments, add files and designs, and track lab and shipping activity in one place.",
             "step3_title": "See what needs attention",
-            "step3_body": "Due Soon, Late, and Appointment Risk flags help your team find cases that need follow-up without checking every case manually."
+            "step3_body": "Due Soon, Late, Appointment Risk, and optional Case Review Tracking help your team see what needs follow-up without checking every case manually."
         },
         "attention": {
             "eyebrow": "Product View",
             "title": "See what needs attention without checking every case.",
-            "lead": "Status, assignment, due date, and appointment risk are visible at a glance so your team knows where to focus.",
+            "lead": "Switch between a visual workflow board and a compact, sortable list. Track assignments, deadlines, appointment risk, and whether a case still needs review.",
             "late": "Late",
             "due_soon": "Due Soon",
             "appointment_risk": "Appointment Risk",

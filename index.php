@@ -188,6 +188,29 @@ foreach (['operate', 'control', 'scale'] as $plan) {
     .app-view.active { opacity: 1; transform: translateY(0); pointer-events: auto; z-index: 1; }
     .app-board { padding: 20px; }
 
+    /* Board / List view toggle in the product preview */
+    .demo-toolbar { display: flex; justify-content: flex-end; margin-bottom: 14px; }
+    .demo-view-toggle { display: inline-flex; background: #fff; border: 1px solid var(--dt-border); border-radius: 8px; padding: 2px; gap: 2px; }
+    .demo-view-toggle button { padding: 4px 14px; font-size: 0.72rem; font-weight: 600; font-family: inherit; border: none; background: transparent; color: var(--dt-ink-muted); border-radius: 6px; cursor: pointer; transition: background 0.15s ease, color 0.15s ease; }
+    .demo-view-toggle button.active { background: var(--dt-blue); color: #fff; }
+    .demo-view-toggle button:focus-visible { outline: 2px solid var(--dt-blue-light); outline-offset: 2px; }
+
+    /* Demo List view: compact sortable rows with one expanded detail row */
+    .demo-list { border: 1px solid var(--dt-border); border-radius: 10px; overflow: hidden; background: #fff; }
+    .demo-list-row { display: grid; grid-template-columns: 18px minmax(0,1.3fr) minmax(0,0.6fr) minmax(0,1fr) minmax(0,0.7fr) minmax(0,0.95fr); align-items: center; gap: 8px; padding: 9px 12px; border-bottom: 1px solid #eef0f3; font-size: 0.75rem; color: var(--dt-ink-secondary); }
+    .demo-list-row.demo-list-head { background: #fafafa; font-size: 0.58rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--dt-ink-muted); padding-top: 8px; padding-bottom: 8px; }
+    .demo-list-row:last-child { border-bottom: none; }
+    .demo-caret { color: var(--dt-ink-muted); font-size: 0.62rem; }
+    .demo-list-name { font-weight: 700; color: var(--dt-ink); }
+    .demo-list-status { display: inline-block; padding: 2px 8px; font-size: 0.6rem; font-weight: 600; border-radius: 999px; background: #f3f4f6; color: var(--dt-ink-secondary); white-space: nowrap; }
+    .demo-list-status.is-late { background: #fee2e2; color: #b91c1c; }
+    .demo-list-status.is-due { background: #eff6ff; color: #1d4ed8; }
+    .review-chip { display: inline-block; font-size: 0.55rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; padding: 2px 7px; border-radius: 999px; white-space: nowrap; }
+    .review-chip.needs-review { background: #fef3c7; color: #92400e; }
+    .review-chip.reviewed { background: #d1fae5; color: #065f46; }
+    .demo-list-detail { background: #f9fafb; padding: 10px 12px 10px 38px; border-bottom: 1px solid #eef0f3; display: flex; flex-wrap: wrap; gap: 4px 22px; font-size: 0.7rem; color: var(--dt-ink-muted); line-height: 1.5; }
+    .demo-list-detail strong { color: var(--dt-ink-secondary); font-weight: 600; }
+
     .board { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 12px; }
     .board-col { min-width: 0; }
     .board-stage { display: flex; align-items: center; justify-content: space-between; gap: 6px; padding: 10px 0; font-size: 0.6rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--dt-ink-muted); border-top: 3px solid var(--dt-border); border-bottom: 1px solid var(--dt-border); margin-bottom: 10px; line-height: 1.35; }
@@ -208,6 +231,8 @@ foreach (['operate', 'control', 'scale'] as $plan) {
     .flag-due { color: #1d4ed8; background: #eff6ff; }
     .flag-late { color: #b91c1c; background: #fee2e2; }
     .flag-appt { color: #7c3aed; background: #ede9fe; }
+    .flag-needs-review { color: #92400e; background: #fef3c7; }
+    .flag-reviewed { color: #065f46; background: #d1fae5; }
     .case-card.due { border-left: 3px solid #3b82f6; }
     .case-card.late { border-left: 3px solid #dc2626; }
     .case-card.appt { border-left: 3px solid #8b5cf6; }
@@ -460,6 +485,9 @@ foreach (['operate', 'control', 'scale'] as $plan) {
       .footer-nav { flex-direction: column; gap: 32px; }
       .board { grid-template-columns: repeat(3, 1fr); }
       .board-col:nth-child(n+4) { display: none; }
+      .demo-list-row { grid-template-columns: 18px minmax(0,1.4fr) minmax(0,0.7fr) minmax(0,1fr); }
+      .demo-list-row .optional { display: none; }
+      .demo-list-detail { padding-left: 12px; }
       .footer-grid { flex-direction: column; }
     }
 
@@ -945,6 +973,13 @@ foreach (['operate', 'control', 'scale'] as $plan) {
         <div class="app-views" id="demo-views">
           <div class="app-view active" id="demo-cases" role="tabpanel" aria-labelledby="demo-tab-cases">
             <div class="app-board">
+              <div class="demo-toolbar">
+                <div class="demo-view-toggle" role="group" aria-label="Case view">
+                  <button type="button" id="demo-view-board" class="active" aria-pressed="true">Board</button>
+                  <button type="button" id="demo-view-list" aria-pressed="false">List</button>
+                </div>
+              </div>
+              <div id="demo-board-view">
               <div class="board">
                 <div class="board-col">
                   <div class="board-stage stage-originated"><span>Originated</span><span class="stage-count">2</span></div>
@@ -979,6 +1014,7 @@ foreach (['operate', 'control', 'scale'] as $plan) {
                     <div class="case-type">Bridge</div>
                     <div class="case-meta">Due: Mar 18</div>
                     <div class="case-meta">Dr. Chen &middot; SmileCraft Lab</div>
+                    <span class="case-flag flag-needs-review">Needs Review</span>
                   </div>
                 </div>
 
@@ -1047,6 +1083,67 @@ foreach (['operate', 'control', 'scale'] as $plan) {
                     <div class="case-type">Crown</div>
                     <div class="case-meta">Delivered: Mar 4</div>
                     <div class="case-meta">Dr. Chen</div>
+                    <span class="case-flag flag-reviewed">Reviewed</span>
+                  </div>
+                </div>
+              </div>
+              </div>
+
+              <div id="demo-list-view" hidden>
+                <div class="demo-list" role="table" aria-label="Case list preview">
+                  <div class="demo-list-row demo-list-head" role="row">
+                    <span aria-hidden="true"></span>
+                    <span role="columnheader">Patient</span>
+                    <span role="columnheader">Type</span>
+                    <span role="columnheader" class="optional">Status</span>
+                    <span role="columnheader" class="optional">Due</span>
+                    <span role="columnheader">Review</span>
+                  </div>
+                  <div class="demo-list-row" role="row">
+                    <span class="demo-caret" aria-hidden="true">&#9662;</span>
+                    <span class="demo-list-name">Justin Vance</span>
+                    <span>Partial</span>
+                    <span class="optional"><span class="demo-list-status is-late">Sent To External Lab</span></span>
+                    <span class="optional">Mar 16</span>
+                    <span><span class="review-chip needs-review">Needs Review</span></span>
+                  </div>
+                  <div class="demo-list-detail">
+                    <span><strong>Created</strong> Mar 2 &middot; Dr. Rivera</span>
+                    <span><strong>Status Changed</strong> Mar 6</span>
+                    <span><strong>Lab</strong> Precision Dental Lab</span>
+                    <span><strong>Notes</strong> Shade mismatch &mdash; verify photos before remake.</span>
+                  </div>
+                  <div class="demo-list-row" role="row">
+                    <span class="demo-caret" aria-hidden="true">&#9656;</span>
+                    <span class="demo-list-name">Hannah Lindqvist</span>
+                    <span>Crown</span>
+                    <span class="optional"><span class="demo-list-status is-due">Originated</span></span>
+                    <span class="optional">Mar 12</span>
+                    <span><span class="review-chip needs-review">Needs Review</span></span>
+                  </div>
+                  <div class="demo-list-row" role="row">
+                    <span class="demo-caret" aria-hidden="true">&#9656;</span>
+                    <span class="demo-list-name">Sofia Patel</span>
+                    <span>Veneer</span>
+                    <span class="optional"><span class="demo-list-status">Designed</span></span>
+                    <span class="optional">Mar 22</span>
+                    <span><span class="review-chip reviewed">Reviewed</span></span>
+                  </div>
+                  <div class="demo-list-row" role="row">
+                    <span class="demo-caret" aria-hidden="true">&#9656;</span>
+                    <span class="demo-list-name">Marcus Webb</span>
+                    <span>Implant</span>
+                    <span class="optional"><span class="demo-list-status">Received</span></span>
+                    <span class="optional">Mar 27</span>
+                    <span><span class="review-chip reviewed">Reviewed</span></span>
+                  </div>
+                  <div class="demo-list-row" role="row">
+                    <span class="demo-caret" aria-hidden="true">&#9656;</span>
+                    <span class="demo-list-name">Isabella Reed</span>
+                    <span>Crown</span>
+                    <span class="optional"><span class="demo-list-status">Delivered</span></span>
+                    <span class="optional">Mar 4</span>
+                    <span><span class="review-chip reviewed">Reviewed</span></span>
                   </div>
                 </div>
               </div>
@@ -1973,6 +2070,32 @@ foreach (['operate', 'control', 'scale'] as $plan) {
             }
           });
         });
+      }
+
+      // Board / List toggle inside the demo Cases panel
+      var demoViewBoardBtn = document.getElementById('demo-view-board');
+      var demoViewListBtn = document.getElementById('demo-view-list');
+      var demoBoardView = document.getElementById('demo-board-view');
+      var demoListView = document.getElementById('demo-list-view');
+
+      function setDemoCaseView(mode) {
+        if (!demoBoardView || !demoListView) return;
+        var isList = mode === 'list';
+        demoBoardView.hidden = isList;
+        demoListView.hidden = !isList;
+        if (demoViewBoardBtn) {
+          demoViewBoardBtn.classList.toggle('active', !isList);
+          demoViewBoardBtn.setAttribute('aria-pressed', isList ? 'false' : 'true');
+        }
+        if (demoViewListBtn) {
+          demoViewListBtn.classList.toggle('active', isList);
+          demoViewListBtn.setAttribute('aria-pressed', isList ? 'true' : 'false');
+        }
+        setViewHeight();
+      }
+      if (demoViewBoardBtn && demoViewListBtn) {
+        demoViewBoardBtn.addEventListener('click', function() { setDemoCaseView('board'); });
+        demoViewListBtn.addEventListener('click', function() { setDemoCaseView('list'); });
       }
 
       // Observe demo visibility to pause/resume animations
