@@ -516,6 +516,14 @@
   margin-bottom: 2px;
 }
 
+.notification-item-context {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--text-primary, #1f2937);
+  line-height: 1.4;
+  margin-bottom: 2px;
+}
+
 .notification-item-text strong {
   font-weight: 600;
   color: var(--text-primary, #1f2937);

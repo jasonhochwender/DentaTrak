@@ -7,6 +7,7 @@
 require_once __DIR__ . '/session.php';
 require_once __DIR__ . '/appConfig.php';
 require_once __DIR__ . '/practice-security.php';
+require_once __DIR__ . '/encryption.php';
 require_once __DIR__ . '/csrf.php';
 
 header('Content-Type: application/json');
@@ -141,17 +142,43 @@ if ($method === 'GET') {
         // List notifications
         $limit = min((int)($_GET['limit'] ?? 20), 50);
         $unreadOnly = isset($_GET['unread_only']) && $_GET['unread_only'] === 'true';
-        
+
+        // Resolve access context once for the whole list. Limited-visibility
+        // users only see case context for cases directly assigned to them or
+        // to a practice label they are mapped to.
+        $permissions = getUserPracticePermissions($currentPracticeId);
+        $limitedVisibility = !empty($permissions['limited_visibility']);
+        $currentEmail = getCurrentUserEmail();
+        $userLabels = [];
+        if ($limitedVisibility && $pdo) {
+            $labelStmt = $pdo->prepare("
+                SELECT LOWER(TRIM(l.label)) as label
+                FROM practice_assignment_labels l
+                JOIN practice_assignment_label_recipients r ON r.label_id = l.id
+                WHERE l.practice_id = :practice_id
+                  AND r.user_id = :user_id
+            ");
+            $labelStmt->execute([
+                'practice_id' => $currentPracticeId,
+                'user_id' => $userId
+            ]);
+            $userLabels = $labelStmt->fetchAll(PDO::FETCH_COLUMN);
+        }
+
         try {
             $sql = "
                 SELECT n.id, n.notification_type, n.case_id, n.comment_id,
                        n.from_user_id, n.from_user_name, n.preview_text,
                        n.is_read, n.created_at, n.metadata_json, n.event_id,
                        e.event_type, e.event_categories, e.metadata_json as event_metadata,
-                       u.first_name as actor_first_name, u.last_name as actor_last_name
+                       u.first_name as actor_first_name, u.last_name as actor_last_name,
+                       c.patient_first_name, c.patient_last_name, c.case_type,
+                       c.assigned_to
                 FROM user_notifications n
                 LEFT JOIN notification_events e ON n.event_id = e.id
                 LEFT JOIN users u ON u.id = n.from_user_id
+                LEFT JOIN cases_cache c ON n.case_id = c.case_id
+                    AND c.practice_id = n.practice_id
                 WHERE n.user_id = :user_id
                 AND n.practice_id = :practice_id
                 AND n.dismissed_at IS NULL
@@ -172,7 +199,7 @@ if ($method === 'GET') {
             $notifications = $stmt->fetchAll(PDO::FETCH_ASSOC);
             
             // Format notifications
-            $formatted = array_map(function($n) {
+            $formatted = array_map(function($n) use ($currentEmail, $limitedVisibility, $userLabels) {
                 $eventType = $n['event_type'] ?? $n['notification_type'];
                 $categories = [];
                 if (!empty($n['event_categories'])) {
@@ -215,6 +242,54 @@ if ($method === 'GET') {
                     }
                 }
 
+                // Resolve safe patient/case display context for notifications tied
+                // to a case. The case must still exist, belong to the current
+                // practice, and be accessible to the current user.
+                $patientDisplayName = null;
+                $caseDisplayName = null;
+                if (!empty($n['case_id']) && (!empty($n['patient_first_name']) || !empty($n['patient_last_name']))) {
+                    $canShowContext = true;
+
+                    if ($limitedVisibility) {
+                        $assignedTo = strtolower(trim((string)($n['assigned_to'] ?? '')));
+                        if ($assignedTo === '' || ($assignedTo !== ($currentEmail ?? '') && !in_array($assignedTo, $userLabels, true))) {
+                            $canShowContext = false;
+                        }
+                    }
+
+                    if ($canShowContext && class_exists('PIIEncryption')) {
+                        $pii = [];
+                        if (!empty($n['patient_first_name'])) {
+                            $pii['patientFirstName'] = $n['patient_first_name'];
+                        }
+                        if (!empty($n['patient_last_name'])) {
+                            $pii['patientLastName'] = $n['patient_last_name'];
+                        }
+
+                        try {
+                            $pii = PIIEncryption::decryptCaseData($pii);
+                        } catch (Exception $e) {
+                            $pii = [];
+                        }
+
+                        $first = isset($pii['patientFirstName']) ? trim($pii['patientFirstName']) : '';
+                        $last = isset($pii['patientLastName']) ? trim($pii['patientLastName']) : '';
+                        $name = trim($first . ' ' . $last);
+                        if ($name !== '') {
+                            $patientDisplayName = $name;
+                        }
+                    }
+
+                    if ($canShowContext) {
+                        // Only case_type is used as the case descriptor. Shade,
+                        // material, or tooth numbers from other fields are not
+                        // included here so the display remains accurate.
+                        if (!empty($n['case_type'])) {
+                            $caseDisplayName = $n['case_type'];
+                        }
+                    }
+                }
+
                 return [
                     'id' => (int)$n['id'],
                     'type' => $eventType,
@@ -225,7 +300,9 @@ if ($method === 'GET') {
                     'categories' => $categories,
                     'metadata' => $metadata,
                     'is_read' => (bool)$n['is_read'],
-                    'created_at' => $n['created_at']
+                    'created_at' => $n['created_at'],
+                    'patient_display_name' => $patientDisplayName,
+                    'case_display_name' => $caseDisplayName
                 ];
             }, $notifications);
             

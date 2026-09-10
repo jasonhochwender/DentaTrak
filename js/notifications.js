@@ -204,6 +204,24 @@
   }
 
   /**
+   * Format patient and case display context for the notification panel.
+   * Returns an empty string if either cannot be safely resolved.
+   */
+  function formatNotificationContext(patient, caseName) {
+    if (!patient && !caseName) {
+      return '';
+    }
+    var parts = [];
+    if (patient) {
+      parts.push(patient);
+    }
+    if (caseName) {
+      parts.push(caseName);
+    }
+    return parts.join(' · ');
+  }
+
+  /**
    * Translate a notification type into a concise, non-PHI description.
    */
   function getNotificationText(n) {
@@ -316,6 +334,10 @@
       var initials = getInitials(n.from_user_name);
       var timeAgo = formatTimeAgo(n.created_at);
       var text = getNotificationText(n);
+      var context = formatNotificationContext(n.patient_display_name, n.case_display_name);
+      var contextHtml = context
+        ? '<div class="notification-item-context">' + escapeHtml(context) + '</div>'
+        : '';
       var dismissLabel = t('notifications.dismiss') || 'Dismiss';
       var tab = resolveNotificationTab(n.type, n.categories);
       var commentId = resolveNotificationCommentId(n);
@@ -330,6 +352,7 @@
         'onclick="window.handleNotificationClick(this)">' +
         '<div class="notification-item-avatar">' + initials + '</div>' +
         '<div class="notification-item-content">' +
+        contextHtml +
         '<div class="notification-item-text">' + escapeHtml(text) + '</div>' +
         '<div class="notification-item-meta">' +
         '<span>' + timeAgo + '</span>' +
