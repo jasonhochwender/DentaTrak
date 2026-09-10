@@ -158,6 +158,25 @@ if ($driveFolderId === '') {
         emitCaseNotificationEvent($currentPracticeId, $caseId, $_SESSION['db_user_id'] ?? 0, $eventType, $categories, $metadata);
     }
 
+    // Reset review status when a different user makes a meaningful status change.
+    if (function_exists('resetCaseReviewIfDifferentUser')) {
+        $wasReset = resetCaseReviewIfDifferentUser($caseId, $currentPracticeId, $_SESSION['db_user_id'] ?? null);
+        if ($wasReset) {
+            logCaseActivity(
+                $caseId,
+                'review_status_changed',
+                'reviewed',
+                'needs_review',
+                [
+                    'review_status' => 'needs_review',
+                    'review_status_changed_by_user_id' => $_SESSION['db_user_id'] ?? null,
+                    'source' => 'update-case-status.php',
+                    'reason' => 'status_changed_by_other_user',
+                ]
+            );
+        }
+    }
+
     // Log status change activity
     $activityMeta = [
         'source' => 'update-case-status.php',
@@ -210,7 +229,12 @@ if ($driveFolderId === '') {
     if ($newVersion !== null) {
         $responseData['version'] = $newVersion;
     }
-    
+
+    // Record status change for real-time notifications to other users
+    if (function_exists('recordCaseUpdate')) {
+        recordCaseUpdate($caseId, 'status', $oldStatus, null);
+    }
+
     echo json_encode([
         'success' => true,
         'message' => $isRegression 
@@ -411,6 +435,25 @@ try {
 
     // Include regression count in response
     $existingCaseData['revisionCount'] = $revisionCount;
+
+    // Reset review status when a different user makes a meaningful status change.
+    if (function_exists('resetCaseReviewIfDifferentUser')) {
+        $wasReset = resetCaseReviewIfDifferentUser($caseId, $currentPracticeId, $_SESSION['db_user_id'] ?? null);
+        if ($wasReset) {
+            logCaseActivity(
+                $caseId,
+                'review_status_changed',
+                'reviewed',
+                'needs_review',
+                [
+                    'review_status' => 'needs_review',
+                    'review_status_changed_by_user_id' => $_SESSION['db_user_id'] ?? null,
+                    'source' => 'update-case-status.php',
+                    'reason' => 'status_changed_by_other_user',
+                ]
+            );
+        }
+    }
 
     // Lab Insights: close on delivery, or reopen a new period if this is a
     // regression back from Delivered while still lab-assigned (see

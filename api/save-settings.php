@@ -691,6 +691,22 @@ try {
                 ]);
                 userLog("Updated practice default locale for practice {$currentPracticeId} to '{$practiceDefaultLanguage}'", false);
             }
+
+            // Case Review Tracking (admin-only, practice-level). Defaults to
+            // OFF; a missing column is treated as OFF and skipped rather than
+            // failing the whole settings save.
+            if (isset($data['caseReviewTrackingEnabled'])) {
+                $caseReviewTrackingEnabled = (bool)$data['caseReviewTrackingEnabled'];
+                $checkStmt = $pdo->query("SHOW COLUMNS FROM practices LIKE 'case_review_tracking_enabled'");
+                if ($checkStmt && $checkStmt->rowCount() > 0) {
+                    $stmt = $pdo->prepare("UPDATE practices SET case_review_tracking_enabled = :enabled WHERE id = :practice_id");
+                    $stmt->execute([
+                        'enabled' => $caseReviewTrackingEnabled ? 1 : 0,
+                        'practice_id' => $currentPracticeId
+                    ]);
+                    userLog("Updated case review tracking for practice {$currentPracticeId} to " . ($caseReviewTrackingEnabled ? 'enabled' : 'disabled'), false);
+                }
+            }
         } else {
             // Not an admin; log any attempted changes to practice name or logo
             if (!empty($practiceName) || $logoAction === 'remove') {

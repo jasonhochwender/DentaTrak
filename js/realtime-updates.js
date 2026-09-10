@@ -345,6 +345,7 @@
   function updateCardContent(card, caseData) {
     // Update the stored JSON data
     card.dataset.caseJson = JSON.stringify(caseData);
+    card.dataset.caseId = caseData.id || '';
     
     // Update patient name
     var nameEl = card.querySelector('.kanban-card-title');
@@ -383,6 +384,74 @@
       assignedBadge.remove();
     }
     
+    // Update review status badge
+    var isReviewed = caseData.reviewStatus === 'reviewed';
+    var reviewClass = isReviewed ? 'reviewed' : 'needs-review';
+    var reviewText = isReviewed ? t('cases.reviewed') : t('cases.needs_review');
+    var reviewTooltip = '';
+    if (isReviewed && caseData.reviewedAt) {
+      var reviewerName = caseData.reviewedByName || 'Unknown';
+      reviewTooltip = reviewerName + ' · ' + formatDate(caseData.reviewedAt, true);
+    } else {
+      reviewTooltip = isReviewed ? t('cases.mark_needs_review') : t('cases.mark_reviewed');
+    }
+    var reviewAriaLabel = isReviewed ? t('cases.mark_needs_review_aria') : t('cases.mark_reviewed_aria');
+    var reviewBadge = card.querySelector('.kanban-card-review');
+    if (!reviewBadge) {
+      var header = card.querySelector('.kanban-card-header');
+      if (header) {
+        reviewBadge = document.createElement('button');
+        reviewBadge.type = 'button';
+        reviewBadge.className = 'kanban-card-review ' + reviewClass;
+        reviewBadge.setAttribute('data-case-id', caseData.id || '');
+        reviewBadge.addEventListener('click', function(e) {
+          e.preventDefault();
+          e.stopPropagation();
+          if (reviewBadge.disabled || reviewBadge.getAttribute('aria-disabled') === 'true') {
+            return;
+          }
+          var liveData = {};
+          try {
+            liveData = JSON.parse(card.dataset.caseJson || '{}');
+          } catch (err) {
+            liveData = {};
+          }
+          if (!liveData.id || liveData.archived) {
+            return;
+          }
+          window.updateCaseReviewStatus(liveData.id, liveData.reviewStatus !== 'reviewed');
+        });
+        reviewBadge.addEventListener('mousedown', function(e) {
+          e.stopPropagation();
+        });
+        reviewBadge.addEventListener('dragstart', function(e) {
+          e.preventDefault();
+          e.stopPropagation();
+        });
+        var headerEditBtn = header.querySelector('.kanban-card-edit');
+        if (headerEditBtn) {
+          header.insertBefore(reviewBadge, headerEditBtn);
+        } else {
+          header.appendChild(reviewBadge);
+        }
+      }
+    }
+    if (reviewBadge) {
+      reviewBadge.className = 'kanban-card-review ' + reviewClass;
+      reviewBadge.textContent = reviewText;
+      reviewBadge.setAttribute('aria-label', reviewAriaLabel);
+      reviewBadge.setAttribute('data-case-id', caseData.id || '');
+      reviewBadge.title = reviewTooltip ? reviewTooltip.replace(/"/g, '&quot;') : '';
+    }
+
+    // If a Review Status filter is active and the case no longer matches,
+    // re-run the normal filtered board refresh so the card leaves the view.
+    var reviewFilter = document.getElementById('filterReviewStatus');
+    var activeReviewFilter = reviewFilter ? reviewFilter.value : '';
+    if (activeReviewFilter && caseData.reviewStatus && caseData.reviewStatus !== activeReviewFilter && typeof window.applyFilters === 'function') {
+      window.applyFilters();
+    }
+
     // Add visual feedback
     card.classList.add('card-updated');
     setTimeout(function() {
@@ -526,5 +595,10 @@
     stop: stopPolling,
     checkNow: checkForUpdates
   };
-  
+
+  // Expose card-content updater so immediate client-side actions (e.g.
+  // review status changes) can refresh a single card without rebuilding it.
+  window.updateCardContent = updateCardContent;
+  window.findCardByCaseId = findCardByCaseId;
+
 })();

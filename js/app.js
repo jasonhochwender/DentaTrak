@@ -1646,6 +1646,37 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   }
 
+  // Apply the practice-level Case Review Tracking flag to the UI.
+  // When OFF, all review-specific UI is hidden via the case-review-tracking-off
+  // body class and any active Review Status filter is cleared so cases are not
+  // left invisibly filtered. When ON, existing review state is shown again.
+  function applyCaseReviewTrackingEnabled(enabled) {
+    window.caseReviewTrackingEnabled = !!enabled;
+    var off = !window.caseReviewTrackingEnabled;
+    document.body.classList.toggle('case-review-tracking-off', off);
+
+    // If the feature is being turned off while a Review Status filter is
+    // active, clear it and refresh the board so cases are not hidden.
+    var reviewFilter = document.getElementById('filterReviewStatus');
+    if (off && reviewFilter && reviewFilter.value) {
+      reviewFilter.value = '';
+      if (typeof window.applyFilters === 'function') {
+        window.applyFilters();
+      }
+    }
+
+    // Re-evaluate the modal review panel if a case is currently loaded.
+    var reviewContainer = document.getElementById('reviewStatusContainer');
+    if (reviewContainer) {
+      if (off) {
+        reviewContainer.style.display = 'none';
+      } else if (typeof currentEditCaseData !== 'undefined' && currentEditCaseData && currentEditCaseData.id) {
+        renderReviewStatus(currentEditCaseData);
+      }
+    }
+  }
+  window.applyCaseReviewTrackingEnabled = applyCaseReviewTrackingEnabled;
+
   // Apply loaded settings to form fields
   function applyUserSettings(preferences, loadedGmailUsers, loadedGmailLogins, loadedAdminUsers, practiceName, logoPath, loadedAssignmentLabels, isPracticeAdmin, practiceCreatorEmail, displayName, legalName, loadedLimitedVisibilityUsers, loadedCanViewAnalyticsUsers, loadedCanEditCasesUsers, practiceCreatorHasGoogleAccount, isGoogleDriveConnected, loadedAssignmentLabelsDetailed, loadedPracticeUsers, loadedIsLabUsers, showLabInsights, loadedWorkflowStageLabels, loadedWorkflowColumns, serverCurrentPracticeId) {
     window.isPracticeAdmin = !!isPracticeAdmin;
@@ -1654,6 +1685,11 @@ document.addEventListener('DOMContentLoaded', function () {
     window.isGoogleDriveConnected = isGoogleDriveConnected === true;
     window.showLabInsights = showLabInsights === true;
     window.practiceUsers = loadedPracticeUsers || [];
+    window.caseReviewTrackingEnabled = toBoolean(preferences.case_review_tracking_enabled, false);
+
+    if (typeof applyCaseReviewTrackingEnabled === 'function') {
+      applyCaseReviewTrackingEnabled(window.caseReviewTrackingEnabled);
+    }
 
     // Fully-resolved workflow-stage display labels for the current
     // practice (see get-settings.php's `workflowStageLabels` field and
@@ -1784,6 +1820,12 @@ document.addEventListener('DOMContentLoaded', function () {
     const deliveredHideDaysInput = document.getElementById('deliveredHideDays');
     if (deliveredHideDaysInput) {
       deliveredHideDaysInput.value = (typeof preferences.delivered_hide_days === 'number' ? preferences.delivered_hide_days : 0);
+    }
+
+    // Apply Case Review Tracking checkbox (practice-level)
+    const caseReviewTrackingEnabledCheckbox = document.getElementById('caseReviewTrackingEnabled');
+    if (caseReviewTrackingEnabledCheckbox) {
+      caseReviewTrackingEnabledCheckbox.checked = window.caseReviewTrackingEnabled;
     }
 
     // Apply coming due values
@@ -1978,6 +2020,7 @@ document.addEventListener('DOMContentLoaded', function () {
       highlightAppointmentRisk: document.getElementById('highlightAppointmentRisk')?.checked || false,
       appointmentRiskDays: document.getElementById('appointmentRiskDays')?.value || '3',
       deliveredHideDays: document.getElementById('deliveredHideDays')?.value || '0',
+      caseReviewTrackingEnabled: document.getElementById('caseReviewTrackingEnabled')?.checked || false,
       googleDriveBackup: document.getElementById('googleDriveBackup')?.checked || false,
       gmailUsers: window.gmailUsers ? window.gmailUsers.slice() : [],
       adminUsers: window.adminUsers ? window.adminUsers.slice() : [],
@@ -2009,6 +2052,7 @@ document.addEventListener('DOMContentLoaded', function () {
     if ((document.getElementById('highlightAppointmentRisk')?.checked || false) !== orig.highlightAppointmentRisk) return true;
     if ((document.getElementById('appointmentRiskDays')?.value || '3') !== orig.appointmentRiskDays) return true;
     if ((document.getElementById('deliveredHideDays')?.value || '0') !== orig.deliveredHideDays) return true;
+    if ((document.getElementById('caseReviewTrackingEnabled')?.checked || false) !== orig.caseReviewTrackingEnabled) return true;
     if ((document.getElementById('googleDriveBackup')?.checked || false) !== orig.googleDriveBackup) return true;
 
     // Check logo changes
@@ -3734,6 +3778,10 @@ document.addEventListener('DOMContentLoaded', function () {
       var deliveredHideDaysInput = document.getElementById('deliveredHideDays');
       var deliveredHideDays = deliveredHideDaysInput ? parseInt(deliveredHideDaysInput.value || '0', 10) : 0;
 
+      // Case Review Tracking (practice-level, admin-only)
+      var caseReviewTrackingEnabledInput = document.getElementById('caseReviewTrackingEnabled');
+      var caseReviewTrackingEnabled = caseReviewTrackingEnabledInput ? caseReviewTrackingEnabledInput.checked : false;
+
       // Practice settings - use displayName (editable) instead of practiceName
       var displayNameInput = document.getElementById('displayName');
       var displayName = displayNameInput ? displayNameInput.value.trim() : '';
@@ -3768,6 +3816,7 @@ document.addEventListener('DOMContentLoaded', function () {
         highlightAppointmentRisk: highlightAppointmentRisk,
         appointmentRiskDays: appointmentRiskDays,
         deliveredHideDays: deliveredHideDays,
+        caseReviewTrackingEnabled: caseReviewTrackingEnabled,
         googleDriveBackup: googleDriveBackup,
         displayName: displayName, // New: editable display name
         practiceName: practiceName, // Legacy: kept for backwards compatibility
@@ -3906,6 +3955,11 @@ document.addEventListener('DOMContentLoaded', function () {
     // Store delivered hide days in localStorage for client awareness (even though filtering is server-side)
     if (typeof formData.deliveredHideDays !== 'undefined') {
       localStorage.setItem('delivered_hide_days', String(formData.deliveredHideDays));
+    }
+
+    // Apply Case Review Tracking immediately
+    if (typeof formData.caseReviewTrackingEnabled !== 'undefined') {
+      applyCaseReviewTrackingEnabled(formData.caseReviewTrackingEnabled);
     }
 
     // Apply logo changes immediately based on committed values
@@ -5051,6 +5105,11 @@ document.addEventListener('DOMContentLoaded', function () {
       regressionIndicator.remove();
     }
 
+    // Hide review status panel for new case
+    if (typeof renderReviewStatus === 'function') {
+      renderReviewStatus(null);
+    }
+
     // Clear clinical details fields for new case
     if (typeof clearClinicalDetailsFields === 'function') {
       clearClinicalDetailsFields();
@@ -5384,7 +5443,226 @@ document.addEventListener('DOMContentLoaded', function () {
     if (window.MobileCaseModal && typeof window.MobileCaseModal.renderSummary === 'function') {
       window.MobileCaseModal.renderSummary(caseData);
     }
+
+    // Render review status controls (hidden for new/unsaved cases)
+    renderReviewStatus(caseData);
   }
+
+  /**
+   * Render the review status panel in the case modal.
+   * Pass null or a case without an id to hide it.
+   */
+  function renderReviewStatus(caseData) {
+    var container = document.getElementById('reviewStatusContainer');
+    var valueEl = document.getElementById('reviewStatusValue');
+    var timestampEl = document.getElementById('reviewStatusTimestamp');
+    var actionBtn = document.getElementById('reviewStatusAction');
+    if (!container || !valueEl || !timestampEl || !actionBtn) return;
+
+    if (!window.caseReviewTrackingEnabled) {
+      container.style.display = 'none';
+      actionBtn.onclick = null;
+      return;
+    }
+
+    if (!caseData || !caseData.id) {
+      container.style.display = 'none';
+      actionBtn.onclick = null;
+      return;
+    }
+
+    var isReviewed = caseData.reviewStatus === 'reviewed';
+    var reviewedAt = caseData.reviewedAt;
+    var reviewedByName = caseData.reviewedByName || 'Unknown';
+
+    container.classList.remove('reviewed', 'needs-review');
+    container.classList.add(isReviewed ? 'reviewed' : 'needs-review');
+
+    valueEl.textContent = isReviewed ? t('cases.reviewed') : t('cases.needs_review');
+
+    if (isReviewed && reviewedAt) {
+      timestampEl.textContent = t('cases.reviewed_by_timestamp', {
+        name: reviewedByName,
+        timestamp: formatDate(reviewedAt, true)
+      });
+      timestampEl.style.display = 'block';
+    } else {
+      timestampEl.textContent = '';
+      timestampEl.style.display = 'none';
+    }
+
+    actionBtn.textContent = isReviewed ? t('cases.mark_needs_review') : t('cases.mark_reviewed');
+    actionBtn.dataset.reviewed = isReviewed ? 'true' : 'false';
+    actionBtn.disabled = !!caseData.archived;
+
+    actionBtn.onclick = function() {
+      if (actionBtn.disabled) return;
+      window.updateCaseReviewStatus(caseData.id, !isReviewed);
+    };
+
+    container.style.display = '';
+  }
+
+  /**
+   * Apply review-state changes to an existing Kanban card without rebuilding it.
+   * Merges only the review fields into card.dataset.caseJson and updates the
+   * badge DOM in place. Used by both the card badge and the modal review action.
+   */
+  window.applyReviewStateToCard = function(caseId, reviewData) {
+    if (!reviewData) return false;
+
+    var card = (typeof window.findCardByCaseId === 'function')
+      ? window.findCardByCaseId(caseId)
+      : document.querySelector('.kanban-card[data-case-id="' + caseId + '"], .kanban-card[data-case_id="' + caseId + '"], .kanban-card[data-id="' + caseId + '"]');
+    if (!card) return false;
+
+    var cardData = {};
+    try {
+      cardData = JSON.parse(card.dataset.caseJson || '{}');
+    } catch (e) {
+      cardData = {};
+    }
+
+    cardData.reviewStatus = reviewData.reviewStatus || 'needs_review';
+    cardData.reviewedAt = reviewData.reviewedAt || null;
+    cardData.reviewedByUserId = reviewData.reviewedByUserId || null;
+    cardData.reviewedByName = reviewData.reviewedByName || 'Unknown';
+    if (typeof reviewData.archived !== 'undefined') {
+      cardData.archived = !!reviewData.archived;
+    }
+    card.dataset.caseJson = JSON.stringify(cardData);
+    card.dataset.caseId = caseId;
+
+    var isReviewed = cardData.reviewStatus === 'reviewed';
+    var reviewText = isReviewed ? t('cases.reviewed') : t('cases.needs_review');
+    var reviewTooltip = '';
+    if (isReviewed && cardData.reviewedAt) {
+      reviewTooltip = (cardData.reviewedByName || 'Unknown') + ' · ' + formatDate(cardData.reviewedAt, true);
+    } else {
+      reviewTooltip = isReviewed ? t('cases.mark_needs_review') : t('cases.mark_reviewed');
+    }
+    var reviewAriaLabel = isReviewed ? t('cases.mark_needs_review_aria') : t('cases.mark_reviewed_aria');
+
+    var reviewBadge = card.querySelector('.kanban-card-review');
+    if (!reviewBadge) {
+      var header = card.querySelector('.kanban-card-header');
+      if (header) {
+        reviewBadge = document.createElement('button');
+        reviewBadge.type = 'button';
+        reviewBadge.className = 'kanban-card-review';
+        reviewBadge.setAttribute('data-case-id', caseId);
+        reviewBadge.addEventListener('click', function(e) {
+          e.preventDefault();
+          e.stopPropagation();
+          if (reviewBadge.disabled || reviewBadge.getAttribute('aria-disabled') === 'true') return;
+          var liveData = {};
+          try { liveData = JSON.parse(card.dataset.caseJson || '{}'); } catch (err) { liveData = {}; }
+          if (!liveData.id || liveData.archived) return;
+          window.updateCaseReviewStatus(liveData.id, liveData.reviewStatus !== 'reviewed');
+        });
+        reviewBadge.addEventListener('mousedown', function(e) { e.stopPropagation(); });
+        reviewBadge.addEventListener('dragstart', function(e) { e.preventDefault(); e.stopPropagation(); });
+        var headerEditBtn = header.querySelector('.kanban-card-edit');
+        if (headerEditBtn) {
+          header.insertBefore(reviewBadge, headerEditBtn);
+        } else {
+          header.appendChild(reviewBadge);
+        }
+      }
+    }
+
+    if (reviewBadge) {
+      reviewBadge.className = 'kanban-card-review ' + (isReviewed ? 'reviewed' : 'needs-review');
+      reviewBadge.textContent = reviewText;
+      reviewBadge.setAttribute('aria-label', reviewAriaLabel);
+      reviewBadge.setAttribute('data-case-id', caseId);
+      reviewBadge.title = reviewTooltip.replace(/"/g, '&quot;');
+      reviewBadge.disabled = !!cardData.archived;
+      reviewBadge.classList.remove('loading');
+    }
+
+    // If a Review Status filter is active and the case no longer matches,
+    // re-run the normal filtered board refresh so the card leaves the view.
+    var reviewFilter = document.getElementById('filterReviewStatus');
+    var activeReviewFilter = reviewFilter ? reviewFilter.value : '';
+    if (activeReviewFilter && cardData.reviewStatus !== activeReviewFilter && typeof window.applyFilters === 'function') {
+      window.applyFilters();
+    }
+
+    return true;
+  };
+
+  /**
+   * Call the server to mark a case as reviewed or needs review.
+   */
+  window.updateCaseReviewStatus = function(caseId, reviewed) {
+    if (!window.caseReviewTrackingEnabled) {
+      showToast(t('cases.review_tracking_disabled'), 'error');
+      return;
+    }
+
+    var actionBtn = document.getElementById('reviewStatusAction');
+    var cardBadges = document.querySelectorAll('.kanban-card-review[data-case-id="' + caseId + '"]');
+    var isArchived = false;
+
+    if (actionBtn) {
+      actionBtn.disabled = true;
+    }
+    cardBadges.forEach(function(badge) {
+      badge.disabled = true;
+      badge.classList.add('loading');
+    });
+
+    fetch('api/update-case-review.php', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRF-Token': csrfToken
+      },
+      body: JSON.stringify({ caseId: caseId, reviewed: reviewed })
+    })
+    .then(function(response) { return response.json(); })
+    .then(function(data) {
+      if (data.success && data.reviewData) {
+        isArchived = !!data.reviewData.archived;
+
+        // Update the currently loaded case data and re-render the panel
+        if (currentEditCaseData && (currentEditCaseData.id === data.reviewData.id || currentEditCaseData.case_id === data.reviewData.id)) {
+          currentEditCaseData.reviewStatus = data.reviewData.reviewStatus;
+          currentEditCaseData.reviewedAt = data.reviewData.reviewedAt;
+          currentEditCaseData.reviewedByUserId = data.reviewData.reviewedByUserId;
+          currentEditCaseData.reviewedByName = data.reviewData.reviewedByName;
+        }
+        renderReviewStatus(data.reviewData);
+
+        // Update the Kanban card if visible
+        window.applyReviewStateToCard(caseId, data.reviewData);
+
+        if (data.changed !== false) {
+          showToast(data.message, 'success');
+        }
+      } else {
+        showToast(data.message || t('common.error'), 'error');
+      }
+    })
+    .catch(function(err) {
+      if (typeof console !== 'undefined' && console.error) {
+        console.error('Review status update failed: ' + err.message);
+      }
+      showToast(t('common.error'), 'error');
+    })
+    .finally(function() {
+      if (actionBtn && !isArchived) {
+        actionBtn.disabled = false;
+      }
+      cardBadges.forEach(function(badge) {
+        badge.classList.remove('loading');
+        if (!isArchived) {
+          badge.disabled = false;
+        }
+      });
+    });
+  };
 
   // Show/hide the custom carrier field and clear it when not applicable.
   function toggleCustomCarrierField() {
@@ -7647,7 +7925,11 @@ document.addEventListener('DOMContentLoaded', function () {
         revisionCount: caseData.revisionCount || 0,
         version: caseData.version || 1,
         createdByUserId: caseData.createdByUserId || null,
-        createdByName: caseData.createdByName || 'Unknown'
+        createdByName: caseData.createdByName || 'Unknown',
+        reviewedAt: caseData.reviewedAt || null,
+        reviewedByUserId: caseData.reviewedByUserId || null,
+        reviewedByName: caseData.reviewedByName || 'Unknown',
+        reviewStatus: caseData.reviewStatus || 'needs_review'
       };
 
       // Assignment info stored in completeData.assignedTo
@@ -7682,9 +7964,14 @@ document.addEventListener('DOMContentLoaded', function () {
         revisionCount: completeData.revisionCount || 0,
         version: completeData.version || 1,
         createdByUserId: completeData.createdByUserId || null,
-        createdByName: completeData.createdByName || 'Unknown'
+        createdByName: completeData.createdByName || 'Unknown',
+        reviewedAt: completeData.reviewedAt || null,
+        reviewedByUserId: completeData.reviewedByUserId || null,
+        reviewedByName: completeData.reviewedByName || 'Unknown',
+        reviewStatus: completeData.reviewStatus || 'needs_review'
       };
       caseCard.dataset.caseJson = JSON.stringify(displayData);
+      caseCard.dataset.caseId = displayData.id;
 
       var creationDate = caseData.creationDate || new Date().toISOString();
       var lastUpdateDate = caseData.lastUpdateDate || new Date().toISOString();
@@ -7746,12 +8033,29 @@ document.addEventListener('DOMContentLoaded', function () {
         revisionCountLine = '<div class="revision-count-line">' + t('cases.revisions_count', {count: revisionCount}) + '</div>';
       }
 
+      // Build review status badge
+      var isReviewed = displayData.reviewStatus === 'reviewed';
+      var reviewClass = isReviewed ? 'reviewed' : 'needs-review';
+      var reviewText = isReviewed ? t('cases.reviewed') : t('cases.needs_review');
+      var reviewTooltip = '';
+      if (isReviewed && displayData.reviewedAt) {
+        reviewTooltip = (displayData.reviewedByName || 'Unknown') + ' · ' + formatDate(displayData.reviewedAt, true);
+      } else {
+        reviewTooltip = isReviewed ? t('cases.mark_needs_review') : t('cases.mark_reviewed');
+      }
+      var reviewAriaLabel = isReviewed ? t('cases.mark_needs_review_aria') : t('cases.mark_reviewed_aria');
+      var reviewTitleAttr = ' title="' + escapeHtml(reviewTooltip).replace(/"/g, '&quot;') + '"';
+      var reviewBadgeHtml = '<button type="button" class="kanban-card-review ' + reviewClass + '" data-case-id="' + escapeHtml(displayData.id) + '" aria-label="' + escapeHtml(reviewAriaLabel) + '"' + reviewTitleAttr + '>' + reviewText + '</button>';
+
       caseCard.innerHTML =
-        '<button type="button" class="kanban-card-edit" title="' + t('cases.edit_case') + '">✎</button>' +
         '<button type="button" class="kanban-card-mobile-menu-toggle" aria-haspopup="true" aria-expanded="false" aria-label="' + t('common.actions') + '">⋮</button>' +
         '<div class="kanban-card-header">' +
-        '  <h3 class="kanban-card-title">' + (displayData.patientFirstName || '') + ' ' + (displayData.patientLastName || '') + '</h3>' +
+        '  <div>' +
+        '    <h3 class="kanban-card-title">' + (displayData.patientFirstName || '') + ' ' + (displayData.patientLastName || '') + '</h3>' +
         revisionCountLine +
+        '  </div>' +
+        reviewBadgeHtml +
+        '  <button type="button" class="kanban-card-edit" title="' + t('cases.edit_case') + '">✎</button>' +
         '</div>' +
         '<div class="kanban-card-content">' +
         '  <p><strong>' + t('cases.type') + ':</strong> ' + (getCaseTypeDisplayLabel(displayData.caseType) || '') + '</p>' +
@@ -7899,6 +8203,43 @@ document.addEventListener('DOMContentLoaded', function () {
 
           // Print the case
           printCase(cardData);
+        });
+      }
+
+      // Add click event for the review status badge
+      var reviewBadge = caseCard.querySelector('.kanban-card-review');
+      if (reviewBadge) {
+        reviewBadge.addEventListener('click', function(e) {
+          e.preventDefault();
+          e.stopPropagation();
+
+          if (reviewBadge.disabled || reviewBadge.getAttribute('aria-disabled') === 'true') {
+            return;
+          }
+
+          var rawData = caseCard.dataset.caseJson;
+          var cardData;
+          try {
+            cardData = JSON.parse(rawData || '{}');
+          } catch (e) {
+            cardData = {};
+          }
+
+          if (!cardData.id || cardData.archived) {
+            return;
+          }
+
+          var currentlyReviewed = cardData.reviewStatus === 'reviewed';
+          window.updateCaseReviewStatus(cardData.id, !currentlyReviewed);
+        });
+
+        reviewBadge.addEventListener('mousedown', function(e) {
+          e.stopPropagation();
+        });
+
+        reviewBadge.addEventListener('dragstart', function(e) {
+          e.preventDefault();
+          e.stopPropagation();
         });
       }
 
@@ -8222,6 +8563,9 @@ document.addEventListener('DOMContentLoaded', function () {
         form.assignedTo.value = currentAssignee;
       }
     }
+
+    // Render review status panel
+    renderReviewStatus(caseData);
 
     // Clear file selections
     clearFileSelections();
@@ -11263,6 +11607,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const patientSearch = document.getElementById('patientSearch');
     const filterCaseType = document.getElementById('filterCaseType');
     const filterAssignedTo = document.getElementById('filterAssignedTo');
+    const filterReviewStatus = document.getElementById('filterReviewStatus');
     const filterCarrier = document.getElementById('filterCarrier');
     const filterLateCases = document.getElementById('filterLateCases');
     const filterDueSoon = document.getElementById('filterDueSoon');
@@ -11279,6 +11624,7 @@ document.addEventListener('DOMContentLoaded', function () {
         const searchTerm = patientSearch ? patientSearch.value.trim() : '';
         const caseType = filterCaseType ? filterCaseType.value : '';
         const assignedTo = filterAssignedTo ? filterAssignedTo.value : '';
+        const reviewStatus = filterReviewStatus ? filterReviewStatus.value : '';
         const carrier = filterCarrier ? filterCarrier.value : '';
         const lateOnly = filterLateCases ? filterLateCases.checked : false;
         const dueSoon = filterDueSoon ? filterDueSoon.checked : false;
@@ -11290,6 +11636,7 @@ document.addEventListener('DOMContentLoaded', function () {
         if (searchTerm) params.append('search', searchTerm);
         if (caseType) params.append('case_type', caseType);
         if (assignedTo) params.append('assigned_to', assignedTo);
+        if (reviewStatus) params.append('review_status', reviewStatus);
         if (carrier) params.append('carrier', carrier);
         if (lateOnly) params.append('late_only', 'true');
         if (dueSoon) params.append('due_soon', 'true');
@@ -11350,7 +11697,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
           // Update filter active indicator
           if (kanbanFilterActiveDot) {
-            const hasActiveFilters = !!(searchTerm || caseType || assignedTo || carrier || lateOnly || dueSoon || atRiskOnly);
+            const hasActiveFilters = !!(searchTerm || caseType || assignedTo || reviewStatus || carrier || lateOnly || dueSoon || atRiskOnly);
             kanbanFilterActiveDot.style.display = hasActiveFilters ? 'block' : 'none';
           }
         })
@@ -11379,6 +11726,10 @@ document.addEventListener('DOMContentLoaded', function () {
 
     if (filterAssignedTo) {
       filterAssignedTo.addEventListener('change', applyFilters);
+    }
+
+    if (filterReviewStatus) {
+      filterReviewStatus.addEventListener('change', applyFilters);
     }
 
     if (filterCarrier) {
@@ -11417,6 +11768,7 @@ document.addEventListener('DOMContentLoaded', function () {
         if (patientSearch) patientSearch.value = '';
         if (filterCaseType) filterCaseType.value = '';
         if (filterAssignedTo) filterAssignedTo.value = '';
+        if (filterReviewStatus) filterReviewStatus.value = '';
         if (filterCarrier) filterCarrier.value = '';
         if (filterLateCases) filterLateCases.checked = false;
         if (filterDueSoon) filterDueSoon.checked = false;

@@ -133,6 +133,54 @@
   }
 }
 
+/* Review status badge on Kanban cards */
+.kanban-card-review {
+  display: inline-block;
+  font-size: 0.6rem;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+  text-transform: uppercase;
+  padding: 2px 5px;
+  border-radius: 9px;
+  margin-left: auto;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 90px;
+  line-height: 1.3;
+  text-align: center;
+  cursor: pointer;
+  border: none;
+  font-family: inherit;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.kanban-card-review.needs-review {
+  color: #92400e;
+  background: #fef3c7;
+  font-weight: 600;
+}
+
+.kanban-card-review.reviewed {
+  color: #15803d;
+  background: #f0fdf4;
+  font-weight: 500;
+}
+
+.kanban-card-review:hover:not(:disabled):not(.loading):not([aria-disabled="true"]),
+.kanban-card-review:focus-visible:not(:disabled):not(.loading):not([aria-disabled="true"]) {
+  outline: 2px solid currentColor;
+  outline-offset: 1px;
+}
+
+.kanban-card-review:disabled,
+.kanban-card-review.loading,
+.kanban-card-review[aria-disabled="true"] {
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
 /* Enhanced hover states */
 .kanban-card:not(.dragging):not(.updating):hover {
   transform: translateY(-2px);
@@ -143,4 +191,10 @@
 .kanban-card.dragging {
   /* Hide the default drag preview for better custom styling */
   opacity: 0.8;
+}
+
+/* Case Review Tracking (practice-level) */
+.case-review-tracking-off .case-review-feature,
+.case-review-tracking-off .kanban-card-review {
+  display: none !important;
 }

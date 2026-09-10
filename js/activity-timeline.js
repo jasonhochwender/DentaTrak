@@ -104,7 +104,13 @@
           return 'Changed status to ' + newStatus;
         }
         return 'Changed status';
-      
+
+      case 'review_status_changed':
+        if (newStatus === 'reviewed') {
+          return 'Marked ' + t('cases.reviewed').toLowerCase();
+        }
+        return 'Marked ' + t('cases.needs_review').toLowerCase();
+
       default:
         return eventType.replace(/_/g, ' ').replace(/\b\w/g, function(l) {
           return l.toUpperCase();
@@ -224,6 +230,19 @@
           desc = 'Changed status to ' + newStatus + ' (revision)';
         } else {
           desc = 'Changed status (revision)';
+        }
+        break;
+      case 'review_status_changed':
+        var reviewLabelReviewed = t('cases.reviewed');
+        var reviewLabelNeedsReview = t('cases.needs_review');
+        var resolvedOld = oldStatus === 'reviewed' ? reviewLabelReviewed : (oldStatus === 'needs_review' ? reviewLabelNeedsReview : oldStatus);
+        var resolvedNew = newStatus === 'reviewed' ? reviewLabelReviewed : (newStatus === 'needs_review' ? reviewLabelNeedsReview : newStatus);
+        if (resolvedOld && resolvedNew) {
+          desc = 'Review status changed from ' + resolvedOld + ' to ' + resolvedNew;
+        } else if (resolvedNew) {
+          desc = 'Review status changed to ' + resolvedNew;
+        } else {
+          desc = 'Review status changed';
         }
         break;
       default:

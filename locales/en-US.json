@@ -130,6 +130,17 @@
         "created_by": "Created By",
         "created": "Created",
         "updated": "Updated",
+        "review_status": "Review Status",
+        "needs_review": "Needs Review",
+        "reviewed": "Reviewed",
+        "mark_reviewed": "Mark Reviewed",
+        "mark_needs_review": "Mark Needs Review",
+        "marked_reviewed": "Case marked reviewed",
+        "marked_needs_review": "Case marked as needing review",
+        "mark_reviewed_aria": "Mark case reviewed",
+        "mark_needs_review_aria": "Mark case as needing review",
+        "review_tracking_disabled": "Case review tracking is not enabled for this practice.",
+        "reviewed_by_timestamp": "Reviewed by {name} · {timestamp}",
         "in_status": "In Status",
         "type": "Type",
         "due": {
@@ -326,6 +337,10 @@
         "due_soon": "Due soon",
         "appt_risk": "Appt Risk",
         "at_risk_only": "At Risk only",
+        "review_status": "Review Status",
+        "all_review_status": "All",
+        "needs_review": "Needs Review",
+        "reviewed": "Reviewed",
         "search_placeholder": "Search patient, dentist, or tracking number"
     },
     "archive": {
@@ -568,6 +583,10 @@
             "appointment_risk": {
                 "label": "Highlight appointment risk",
                 "days_label": "Days before patient appointment:"
+            },
+            "case_review": {
+                "label": "Case Review Tracking",
+                "enable": "Enable case review tracking"
             },
             "google_drive": {
                 "label": "Backup case data to Google Drive",

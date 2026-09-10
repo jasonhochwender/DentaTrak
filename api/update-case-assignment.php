@@ -267,6 +267,25 @@ try {
     // Update local cache with new assignment
     updateCaseAssignedToInCache($caseId, $assignedTo);
 
+    // Reset review status when a different user changes assignment.
+    if (function_exists('resetCaseReviewIfDifferentUser')) {
+        $wasReset = resetCaseReviewIfDifferentUser($caseId, $currentPracticeId, $currentUserId);
+        if ($wasReset) {
+            logCaseActivity(
+                $caseId,
+                'review_status_changed',
+                'reviewed',
+                'needs_review',
+                [
+                    'review_status' => 'needs_review',
+                    'review_status_changed_by_user_id' => $currentUserId,
+                    'source' => 'update-case-assignment.php',
+                    'reason' => 'assignment_changed_by_other_user',
+                ]
+            );
+        }
+    }
+
     // Lab Insights foundation: record any lab-assignment-period transition.
     // No-op for practices/entities with no Lab-designated user or label.
     recordLabAssignmentChange($caseId, $currentPracticeId, $previousAssignee, $assignedTo);

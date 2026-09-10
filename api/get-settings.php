@@ -123,6 +123,7 @@ try {
     $practiceName = '';
     $logoPath = '';
     $isPracticeAdmin = false;
+    $caseReviewTrackingEnabled = false;
     
     // BAA-related fields
     $legalName = '';
@@ -143,27 +144,39 @@ try {
         } catch (Exception $e) {
             $hasBaaColumns = false;
         }
-        
-        if ($hasBaaColumns) {
-            $stmt = $pdo->prepare("
-                SELECT created_by, practice_name, logo_path,
-                       legal_name, display_name, practice_address,
-                       baa_accepted, baa_accepted_at, baa_version,
-                       baa_signer_name, baa_signer_title
-                FROM practices WHERE id = :practice_id
-            ");
-        } else {
-            $stmt = $pdo->prepare("
-                SELECT created_by, practice_name, logo_path
-                FROM practices WHERE id = :practice_id
-            ");
+
+        // Check if the case-review-tracking practice setting exists. Absent
+        // column resolves safely to OFF for existing practices.
+        $hasCaseReviewTrackingColumn = false;
+        try {
+            $checkStmt = $pdo->query("SHOW COLUMNS FROM practices LIKE 'case_review_tracking_enabled'");
+            $hasCaseReviewTrackingColumn = $checkStmt->rowCount() > 0;
+        } catch (Exception $e) {
+            $hasCaseReviewTrackingColumn = false;
         }
+
+        $practiceSelectCols = 'created_by, practice_name, logo_path';
+        if ($hasBaaColumns) {
+            $practiceSelectCols .= ',
+                legal_name, display_name, practice_address,
+                baa_accepted, baa_accepted_at, baa_version,
+                baa_signer_name, baa_signer_title';
+        }
+        if ($hasCaseReviewTrackingColumn) {
+            $practiceSelectCols .= ', case_review_tracking_enabled';
+        }
+
+        $stmt = $pdo->prepare("
+            SELECT {$practiceSelectCols}
+            FROM practices WHERE id = :practice_id
+        ");
         $stmt->execute(['practice_id' => $currentPracticeId]);
         $practiceInfo = $stmt->fetch(PDO::FETCH_ASSOC);
         if ($practiceInfo) {
             $practiceCreatorId = $practiceInfo['created_by'];
             $practiceName = $practiceInfo['practice_name'] ?? '';
             $logoPath = $practiceInfo['logo_path'] ?? '';
+            $caseReviewTrackingEnabled = (bool)($practiceInfo['case_review_tracking_enabled'] ?? false);
             
             // BAA fields (only if columns exist)
             if ($hasBaaColumns) {
@@ -438,6 +451,10 @@ try {
         $preferences['google_drive_backup'] = (bool)$preferences['google_drive_backup'];
     }
 
+    // Practice-level Case Review Tracking flag. Defaults to OFF when the
+    // column is absent so existing practices are not opted in unexpectedly.
+    $preferences['case_review_tracking_enabled'] = $caseReviewTrackingEnabled;
+
     // Check if Google Drive is available for this practice
     // Drive is available if: current user has a Drive token OR the practice creator signed up with Google
     $currentUserHasDriveToken = isset($_SESSION['google_drive_token']) && !empty($_SESSION['google_drive_token']);
@@ -526,6 +543,7 @@ try {
         'practiceUsers' => $responsePracticeUsers,
         'showLabInsights' => isFeatureEnabled('SHOW_LAB_INSIGHTS'),
         'isPracticeAdmin' => $isPracticeAdmin,
+        'caseReviewTrackingEnabled' => $caseReviewTrackingEnabled,
         'practiceCreatorEmail' => $responsePracticeCreatorEmail,
         'practiceCreatorHasGoogleAccount' => ($practiceCreatorAuthMethod === 'google' || $practiceCreatorAuthMethod === 'both'),
         'isGoogleDriveConnected' => $isGoogleDriveConnected,

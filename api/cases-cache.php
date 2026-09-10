@@ -78,11 +78,15 @@ function ensureCasesCacheTable() {
         archived_date VARCHAR(50) DEFAULT NULL,
         practice_id INT UNSIGNED DEFAULT NULL,
         created_by_user_id INT UNSIGNED DEFAULT NULL,
+        reviewed_at DATETIME DEFAULT NULL,
+        reviewed_by_user_id INT UNSIGNED DEFAULT NULL,
         INDEX idx_status (status),
         INDEX idx_due_date (due_date),
         INDEX idx_archived (archived),
         INDEX idx_practice_id (practice_id),
-        INDEX idx_created_by_user_id (created_by_user_id)
+        INDEX idx_created_by_user_id (created_by_user_id),
+        INDEX idx_reviewed_at (reviewed_at),
+        INDEX idx_reviewed_by_user_id (reviewed_by_user_id)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;";
 
     try {
@@ -183,6 +187,8 @@ function saveCaseToCache(array $caseData) {
                 custom_carrier,
                 practice_id,
                 created_by_user_id,
+                reviewed_at,
+                reviewed_by_user_id,
                 demo_generation_run_id
             ) VALUES (
                 :case_id,
@@ -211,6 +217,8 @@ function saveCaseToCache(array $caseData) {
                 :custom_carrier,
                 :practice_id,
                 :created_by_user_id,
+                :reviewed_at,
+                :reviewed_by_user_id,
                 :demo_generation_run_id
             )
             ON DUPLICATE KEY UPDATE
@@ -272,6 +280,8 @@ function saveCaseToCache(array $caseData) {
             'custom_carrier' => $customCarrier,
             'practice_id' => $practiceId,
             'created_by_user_id' => isset($caseData['createdByUserId']) ? ($caseData['createdByUserId'] !== '' ? (int)$caseData['createdByUserId'] : null) : null,
+            'reviewed_at' => null,
+            'reviewed_by_user_id' => null,
             'demo_generation_run_id' => $demoRunId,
         ]);
     } catch (PDOException $e) {
@@ -353,23 +363,29 @@ function getCaseFromCache($caseId) {
             'createdByUserId' => isset($row['created_by_user_id']) ? (int)$row['created_by_user_id'] : null,
             'revisionCount' => (int)($row['revision_count'] ?? 0),
             'version' => (int)($row['version'] ?? 1),
+            'reviewedAt' => !empty($row['reviewed_at']) ? date('c', strtotime($row['reviewed_at'])) : null,
+            'reviewedByUserId' => isset($row['reviewed_by_user_id']) ? (int)$row['reviewed_by_user_id'] : null,
+            'reviewStatus' => !empty($row['reviewed_at']) ? 'reviewed' : 'needs_review',
         ];
 
-        // Resolve creator display name for single-case responses
-        $case['createdByName'] = 'Unknown';
-        if (!empty($case['createdByUserId'])) {
+        // Resolve creator and reviewer display names for single-case responses
+        $userIds = array_filter([$case['createdByUserId'], $case['reviewedByUserId']]);
+        $userMap = [];
+        if (!empty($userIds)) {
             try {
-                $userStmt = $pdo->prepare("SELECT first_name, last_name FROM users WHERE id = :id LIMIT 1");
-                $userStmt->execute(['id' => $case['createdByUserId']]);
-                $creator = $userStmt->fetch(PDO::FETCH_ASSOC);
-                if ($creator) {
-                    $name = trim(($creator['first_name'] ?? '') . ' ' . ($creator['last_name'] ?? ''));
-                    $case['createdByName'] = $name !== '' ? $name : 'Unknown';
+                $placeholders = implode(',', array_fill(0, count($userIds), '?'));
+                $userStmt = $pdo->prepare("SELECT id, first_name, last_name FROM users WHERE id IN ($placeholders)");
+                $userStmt->execute(array_values($userIds));
+                while ($u = $userStmt->fetch(PDO::FETCH_ASSOC)) {
+                    $name = trim(($u['first_name'] ?? '') . ' ' . ($u['last_name'] ?? ''));
+                    $userMap[(int)$u['id']] = $name !== '' ? $name : 'Unknown';
                 }
             } catch (Exception $e) {
-                error_log('[cases_cache] Error resolving creator name: ' . $e->getMessage());
+                error_log('[cases_cache] Error resolving user names: ' . $e->getMessage());
             }
         }
+        $case['createdByName'] = $userMap[$case['createdByUserId']] ?? 'Unknown';
+        $case['reviewedByName'] = $userMap[$case['reviewedByUserId']] ?? 'Unknown';
 
         // Decrypt PII fields before returning
         try {
@@ -922,6 +938,10 @@ function getAllCasesFromCache() {
             'assignedTo' => $row['assigned_to'] ?? null,
             'createdByUserId' => isset($row['created_by_user_id']) ? (int)$row['created_by_user_id'] : null,
             'createdByName' => 'Unknown',
+            'reviewedAt' => !empty($row['reviewed_at']) ? date('c', strtotime($row['reviewed_at'])) : null,
+            'reviewedByUserId' => isset($row['reviewed_by_user_id']) ? (int)$row['reviewed_by_user_id'] : null,
+            'reviewedByName' => 'Unknown',
+            'reviewStatus' => !empty($row['reviewed_at']) ? 'reviewed' : 'needs_review',
         ];
 
         // Decrypt PII fields before returning
@@ -936,25 +956,32 @@ function getAllCasesFromCache() {
         $cases[] = $case;
     }
 
-    // Resolve creator display names in a single query for the list response
-    $creatorIds = array_filter(array_unique(array_map(function ($c) { return $c['createdByUserId'] ?? null; }, $cases)));
-    if (!empty($creatorIds)) {
-        $placeholders = implode(',', array_fill(0, count($creatorIds), '?'));
+    // Resolve creator and reviewer display names in a single query for the list response
+    $userIds = array_filter(array_unique(array_merge(
+        array_map(function ($c) { return $c['createdByUserId'] ?? null; }, $cases),
+        array_map(function ($c) { return $c['reviewedByUserId'] ?? null; }, $cases)
+    )));
+    if (!empty($userIds)) {
+        $placeholders = implode(',', array_fill(0, count($userIds), '?'));
         try {
             $userStmt = $pdo->prepare("SELECT id, first_name, last_name FROM users WHERE id IN ($placeholders)");
-            $userStmt->execute(array_values($creatorIds));
+            $userStmt->execute(array_values($userIds));
             $userMap = [];
             while ($u = $userStmt->fetch(PDO::FETCH_ASSOC)) {
                 $name = trim(($u['first_name'] ?? '') . ' ' . ($u['last_name'] ?? ''));
                 $userMap[(int)$u['id']] = $name !== '' ? $name : 'Unknown';
             }
             foreach ($cases as &$case) {
-                $id = $case['createdByUserId'] ?? null;
-                $case['createdByName'] = ($id && isset($userMap[$id])) ? $userMap[$id] : 'Unknown';
+                $case['createdByName'] = ($case['createdByUserId'] && isset($userMap[$case['createdByUserId']]))
+                    ? $userMap[$case['createdByUserId']]
+                    : 'Unknown';
+                $case['reviewedByName'] = ($case['reviewedByUserId'] && isset($userMap[$case['reviewedByUserId']]))
+                    ? $userMap[$case['reviewedByUserId']]
+                    : 'Unknown';
             }
             unset($case);
         } catch (Exception $e) {
-            error_log('[cases_cache] Error resolving creator names: ' . $e->getMessage());
+            error_log('[cases_cache] Error resolving user names: ' . $e->getMessage());
         }
     }
 
@@ -1008,9 +1035,12 @@ function getSingleCaseFromCache($caseId, $practiceId, $mode = 'full') {
                 c.carrier, c.tracking_number, c.custom_carrier, c.practice_id,
                 c.created_by_user_id, c.archived, c.archived_date, c.revision_count,
                 c.version, c.demo_generation_run_id, c.clinical_details_json,
-                u.first_name AS creator_first_name, u.last_name AS creator_last_name
+                c.reviewed_at, c.reviewed_by_user_id,
+                u.first_name AS creator_first_name, u.last_name AS creator_last_name,
+                ru.first_name AS reviewer_first_name, ru.last_name AS reviewer_last_name
             FROM cases_cache c
             LEFT JOIN users u ON c.created_by_user_id = u.id
+            LEFT JOIN users ru ON c.reviewed_by_user_id = ru.id
             WHERE c.case_id = :case_id
               AND c.practice_id = :practice_id
             LIMIT 1
@@ -1093,6 +1123,10 @@ function getSingleCaseFromCache($caseId, $practiceId, $mode = 'full') {
             'assignedTo' => $row['assigned_to'] ?? null,
             'createdByUserId' => isset($row['created_by_user_id']) ? (int)$row['created_by_user_id'] : null,
             'createdByName' => 'Unknown',
+            'reviewedAt' => !empty($row['reviewed_at']) ? date('c', strtotime($row['reviewed_at'])) : null,
+            'reviewedByUserId' => isset($row['reviewed_by_user_id']) ? (int)$row['reviewed_by_user_id'] : null,
+            'reviewedByName' => 'Unknown',
+            'reviewStatus' => !empty($row['reviewed_at']) ? 'reviewed' : 'needs_review',
         ];
 
         // Decrypt PII fields before returning
@@ -1104,16 +1138,119 @@ function getSingleCaseFromCache($caseId, $practiceId, $mode = 'full') {
             // Continue with encrypted data if decryption fails
         }
 
-        // Resolve creator display name from the joined users table
-        $name = trim(($row['creator_first_name'] ?? '') . ' ' . ($row['creator_last_name'] ?? ''));
-        if ($name !== '') {
-            $case['createdByName'] = $name;
+        // Resolve creator and reviewer display names from the joined users table
+        $creatorName = trim(($row['creator_first_name'] ?? '') . ' ' . ($row['creator_last_name'] ?? ''));
+        if ($creatorName !== '') {
+            $case['createdByName'] = $creatorName;
+        }
+
+        $reviewerName = trim(($row['reviewer_first_name'] ?? '') . ' ' . ($row['reviewer_last_name'] ?? ''));
+        if ($reviewerName !== '') {
+            $case['reviewedByName'] = $reviewerName;
         }
 
         return $case;
     } catch (PDOException $e) {
         error_log('[cases_cache] Error loading single case: ' . $e->getMessage());
         return null;
+    }
+}
+
+/**
+ * Update the review state for a case.
+ *
+ * @param string $caseId
+ * @param int|null $practiceId
+ * @param int|null $userId The reviewing user (or null to clear)
+ * @param bool $reviewed True to mark reviewed, false to mark needs review
+ * @return bool
+ */
+function updateCaseReviewStatus($caseId, $practiceId, $userId, $reviewed) {
+    global $pdo;
+    if (!$pdo || empty($caseId) || empty($practiceId)) {
+        return false;
+    }
+
+    try {
+        if ($reviewed) {
+            $stmt = $pdo->prepare("
+                UPDATE cases_cache
+                SET reviewed_at = NOW(), reviewed_by_user_id = :reviewed_by_user_id
+                WHERE case_id = :case_id AND practice_id = :practice_id
+            ");
+            $stmt->execute([
+                'case_id' => $caseId,
+                'practice_id' => $practiceId,
+                'reviewed_by_user_id' => $userId ? (int)$userId : null,
+            ]);
+        } else {
+            $stmt = $pdo->prepare("
+                UPDATE cases_cache
+                SET reviewed_at = NULL, reviewed_by_user_id = NULL
+                WHERE case_id = :case_id AND practice_id = :practice_id
+            ");
+            $stmt->execute([
+                'case_id' => $caseId,
+                'practice_id' => $practiceId,
+            ]);
+        }
+        return true;
+    } catch (PDOException $e) {
+        error_log('[cases_cache] Error updating review status: ' . $e->getMessage());
+        return false;
+    }
+}
+
+/**
+ * Reset a case to Needs Review when a meaningful change is made by a user
+ * other than the reviewing user. Changes by the same reviewer are not reset.
+ *
+ * @param string $caseId
+ * @param int|null $practiceId
+ * @param int|null $actingUserId The user making the current change
+ * @return bool True if the review state was reset
+ */
+function resetCaseReviewIfDifferentUser($caseId, $practiceId, $actingUserId) {
+    global $pdo;
+    if (!$pdo || empty($caseId) || empty($practiceId) || !$actingUserId) {
+        return false;
+    }
+
+    try {
+        $stmt = $pdo->prepare("
+            SELECT reviewed_by_user_id
+            FROM cases_cache
+            WHERE case_id = :case_id AND practice_id = :practice_id
+            LIMIT 1
+        ");
+        $stmt->execute([
+            'case_id' => $caseId,
+            'practice_id' => $practiceId,
+        ]);
+        $reviewedBy = $stmt->fetchColumn();
+
+        if ($reviewedBy === false || $reviewedBy === null) {
+            return false;
+        }
+
+        if ((int)$reviewedBy === (int)$actingUserId) {
+            return false;
+        }
+
+        $stmt = $pdo->prepare("
+            UPDATE cases_cache
+            SET reviewed_at = NULL, reviewed_by_user_id = NULL
+            WHERE case_id = :case_id AND practice_id = :practice_id
+        ");
+        $stmt->execute([
+            'case_id' => $caseId,
+            'practice_id' => $practiceId,
+        ]);
+
+        return true;
+    } catch (PDOException $e) {
+        error_log('[cases_cache] Error resetting review status: ' . $e->getMessage());
+        return false;
     }
 }
 

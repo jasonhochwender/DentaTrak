@@ -546,6 +546,27 @@ input#practiceName {
   text-align: left;
 }
 
+/* Case Review Tracking: this row is :nth-child(1) of its own settings-group,
+   so the 40px .option-text hack above must be overridden with matching
+   specificity. Label keeps auto width and the checkbox + caption sit a
+   modest distance to its right (not pushed to the far edge). */
+.option-row.option-row-case-review > label {
+  flex: 0 0 auto;
+  min-width: 0;
+  white-space: normal;
+}
+
+.option-row.option-row-case-review > input[type="checkbox"] {
+  margin-left: 20px;
+}
+
+.option-row.option-row-case-review .option-text {
+  width: auto;
+  min-width: 0;
+  white-space: normal;
+  overflow-wrap: break-word;
+}
+
 /* Position radio buttons in exact alignment */
 .option-row input[type="radio"] {
   vertical-align: middle;

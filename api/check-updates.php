@@ -58,9 +58,11 @@ try {
                cc.patient_dob, cc.patient_gender, cc.drive_folder_id,
                cc.clinical_details_json, cc.attachments_json, cc.revisions_json,
                cc.creation_date, cc.last_update_date, cc.status_changed_at,
-               cc.revision_count
+               cc.revision_count, cc.reviewed_at, cc.reviewed_by_user_id,
+               reviewer.first_name AS reviewer_first_name, reviewer.last_name AS reviewer_last_name
         FROM case_updates cu
         JOIN cases_cache cc ON cu.case_id = cc.case_id
+        LEFT JOIN users reviewer ON cc.reviewed_by_user_id = reviewer.id
         WHERE cu.practice_id = :practice_id 
           AND cu.updated_at > FROM_UNIXTIME(:since)
         ORDER BY cu.updated_at DESC
@@ -107,6 +109,10 @@ try {
             'lastUpdateDate' => $row['last_update_date'],
             'statusChangedAt' => $row['status_changed_at'],
             'revisionCount' => (int)($row['revision_count'] ?? 0),
+            'reviewedAt' => !empty($row['reviewed_at']) ? date('c', strtotime($row['reviewed_at'])) : null,
+            'reviewedByUserId' => isset($row['reviewed_by_user_id']) ? (int)$row['reviewed_by_user_id'] : null,
+            'reviewedByName' => trim(($row['reviewer_first_name'] ?? '') . ' ' . ($row['reviewer_last_name'] ?? '')) ?: 'Unknown',
+            'reviewStatus' => !empty($row['reviewed_at']) ? 'reviewed' : 'needs_review',
         ];
         
         // Parse JSON fields

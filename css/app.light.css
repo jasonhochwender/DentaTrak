@@ -2062,6 +2062,9 @@ body {
   position: relative;
   transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
   box-sizing: border-box;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
   /* Reserve space to prevent CLS */
   min-height: 120px;
   contain: layout style;
@@ -2083,6 +2086,29 @@ body {
 
 .kanban-card-header {
   margin-bottom: 10px;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  min-width: 0;
+}
+
+.kanban-card-header > div:first-child {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.kanban-card-header .kanban-card-review {
+  flex: 0 1 auto;
+  min-width: 0;
+  margin-top: 2px;
+}
+
+.kanban-card-header .kanban-card-edit {
+  position: static;
+  top: auto;
+  right: auto;
+  flex: 0 0 auto;
+  margin-top: 2px;
 }
 
 /* Dentist row with attachment indicator */
@@ -2125,7 +2151,7 @@ body {
   text-overflow: ellipsis;
   overflow: hidden;
   white-space: nowrap;
-  max-width: calc(100% - 28px);
+  max-width: 100%;
   letter-spacing: -0.01em;
 }
 
@@ -2484,6 +2510,62 @@ body {
 
 .required {
   color: #e53935;
+}
+
+/* Review status panel in the case modal */
+.review-status-field {
+  margin-bottom: 0;
+}
+
+.review-status-field .review-status-row {
+  display: flex;
+  align-items: center;
+  gap: 8px 12px;
+  flex-wrap: wrap;
+  min-height: 34px;
+}
+
+.review-status-field .review-status-value {
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.review-status-field .review-status-timestamp {
+  font-size: 0.8rem;
+  color: #64748b;
+}
+
+.review-status-field .review-status-action {
+  margin-left: auto;
+  padding: 5px 10px;
+  border-radius: 6px;
+  border: 1px solid currentColor;
+  background: transparent;
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  color: #475569;
+}
+
+.review-status-field .review-status-action:hover {
+  background: #f1f5f9;
+}
+
+.review-status-field .review-status-action:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.review-status-field.needs-review .review-status-value {
+  color: #b45309;
+}
+
+.review-status-field.reviewed .review-status-value {
+  color: #15803d;
+}
+
+.review-status-field.reviewed .review-status-timestamp {
+  color: #166534;
 }
 
 .attachments-title,

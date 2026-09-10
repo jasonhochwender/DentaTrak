@@ -1079,6 +1079,26 @@ try {
                 $result['caseData']['atRisk'] = $atRiskStatus;
             }
             
+            // Reset review status when a different user makes a meaningful change.
+            if ($updatedCaseId && function_exists('resetCaseReviewIfDifferentUser')) {
+                $wasReset = resetCaseReviewIfDifferentUser($updatedCaseId, $currentPracticeId, $_SESSION['db_user_id'] ?? null);
+                if ($wasReset) {
+                    ensureCaseActivityLogTable();
+                    logCaseActivity(
+                        $updatedCaseId,
+                        'review_status_changed',
+                        'reviewed',
+                        'needs_review',
+                        [
+                            'review_status' => 'needs_review',
+                            'review_status_changed_by_user_id' => $_SESSION['db_user_id'] ?? null,
+                            'source' => 'update-case.php',
+                            'reason' => 'meaningful_change_by_other_user',
+                        ]
+                    );
+                }
+            }
+
             // Record update for real-time notifications to other users
             if ($updatedCaseId && function_exists('recordCaseUpdate')) {
                 recordCaseUpdate($updatedCaseId, 'update');

@@ -152,6 +152,8 @@ screenshots/
 !/tests/practice-access-defensive-test.php
 !/tests/practice-security-authorization-test.php
 !/tests/select-practice-defensive-test.php
+!/tests/review-status-test.php
+!/tests/case-review-tracking-test.php
 !/tests/header-switcher-browser-test.js
 /testResults/
 /test-results/

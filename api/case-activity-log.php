@@ -30,6 +30,12 @@ function sanitizeCaseActivityMeta(array $meta) {
         // include here so the activity timeline can render "Assigned to X".
         'assigned_to',
         'old_assigned_to',
+        // Review status audit fields. The reviewer user ID is operational
+        // (not patient PII/PHI) and lets the timeline render the actor.
+        'review_status',
+        'reviewed_by_user_id',
+        'reviewed_by_name',
+        'review_status_changed_by_user_id',
     ];
 
     $clean = [];
@@ -47,7 +53,7 @@ function sanitizeCaseActivityMeta(array $meta) {
     }
 
     // Ensure numeric fields are numeric
-    foreach (['delivered_hide_days', 'count', 'files_deleted', 'fields_count', 'attachment_count'] as $numKey) {
+    foreach (['delivered_hide_days', 'count', 'files_deleted', 'fields_count', 'attachment_count', 'reviewed_by_user_id', 'review_status_changed_by_user_id'] as $numKey) {
         if (isset($clean[$numKey]) && is_numeric($clean[$numKey])) {
             $clean[$numKey] = (int)$clean[$numKey];
         }

@@ -652,8 +652,21 @@ if (isset($appConfig) && is_array($appConfig) && isset($appConfig['appName'])) {
   $showDevTools = canAccessDevTools($appConfig, $userEmail);
   $isSuperUserInProd = $showDevTools && isProductionOrUAT($appConfig);
   $environmentDisplayName = getEnvironmentDisplayName($appConfig);
+
+  // Practice-level Case Review Tracking flag. Defaults to OFF so existing
+  // practices do not show review UI before Settings is loaded.
+  $caseReviewTrackingClass = 'case-review-tracking-off';
+  try {
+      $caseReviewStmt = $pdo->prepare("SELECT case_review_tracking_enabled FROM practices WHERE id = :practice_id");
+      $caseReviewStmt->execute(['practice_id' => $currentPracticeId]);
+      if ($caseReviewStmt->fetchColumn()) {
+          $caseReviewTrackingClass = '';
+      }
+  } catch (Throwable $e) {
+      $caseReviewTrackingClass = 'case-review-tracking-off';
+  }
 ?>
-<body class="main-body <?php echo $envClass; ?>">
+<body class="main-body <?php echo trim($envClass . ' ' . $caseReviewTrackingClass); ?>">
   <!-- Full-page loading overlay -->
   <div id="pageLoadingOverlay" class="page-loading-overlay">
     <div class="overlay-content">
@@ -888,6 +901,15 @@ endif;
             <select id="filterAssignedTo">
               <option value=""><?php echo t('filters.anyone'); ?></option>
               <!-- Options populated dynamically -->
+            </select>
+          </div>
+
+          <div class="kanban-filter-field case-review-feature">
+            <label for="filterReviewStatus"><?php echo t('filters.review_status'); ?></label>
+            <select id="filterReviewStatus">
+              <option value=""><?php echo t('filters.all_review_status'); ?></option>
+              <option value="needs_review"><?php echo t('filters.needs_review'); ?></option>
+              <option value="reviewed"><?php echo t('filters.reviewed'); ?></option>
             </select>
           </div>
 
@@ -1891,6 +1913,17 @@ endif;
                   </select>
                 </div>
 
+                <div id="reviewStatusContainer" class="form-field review-status-field needs-review case-review-feature" style="display: none;">
+                  <label for="reviewStatusAction"><?php echo t('cases.review_status'); ?></label>
+                  <div class="review-status-row">
+                    <span id="reviewStatusValue" class="review-status-value"><?php echo t('cases.needs_review'); ?></span>
+                    <span id="reviewStatusTimestamp" class="review-status-timestamp"></span>
+                    <button type="button" id="reviewStatusAction" class="review-status-action" data-reviewed="false">
+                      <?php echo t('cases.mark_reviewed'); ?>
+                    </button>
+                  </div>
+                </div>
+
                 <div class="form-field form-field-notes">
                   <label for="notes"><?php echo t('cases.notes'); ?></label>
                   <div class="char-counter-wrapper">
@@ -2463,6 +2496,16 @@ endif;
                           <label for="deliveredHideDays"><?php echo t('settings.display.auto_archive.label'); ?></label>
                           <input type="number" id="deliveredHideDays" name="deliveredHideDays" min="0" max="365" value="120" class="number-input" <?= $isAdmin ? '' : 'disabled' ?>>
                           <span class="option-text"><?php echo t('settings.display.auto_archive.unit'); ?></span>
+                        </div>
+                      </div>
+
+                      <div class="settings-divider"></div>
+
+                      <div class="settings-group">
+                        <div class="option-row option-row-case-review">
+                          <label for="caseReviewTrackingEnabled"><?php echo t('settings.display.case_review.label'); ?></label>
+                          <input type="checkbox" id="caseReviewTrackingEnabled" name="caseReviewTrackingEnabled" <?= $isAdmin ? '' : 'disabled' ?>>
+                          <span class="option-text"><?php echo t('settings.display.case_review.enable'); ?></span>
                         </div>
                       </div>
                       

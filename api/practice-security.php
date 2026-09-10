@@ -420,6 +420,37 @@ function requireNotLabCollaborator($practiceId = null, $message = 'Access denied
 }
 
 /**
+ * Check whether the Case Review Tracking feature is enabled for the practice.
+ * Defaults to OFF when the column is missing or the practice cannot be read.
+ *
+ * @param int|null $practiceId Practice ID (defaults to session practice)
+ * @return bool True if review tracking is enabled
+ */
+function isCaseReviewTrackingEnabled($practiceId = null) {
+    global $pdo;
+
+    if (!$pdo) {
+        return false;
+    }
+
+    if ($practiceId === null) {
+        $practiceId = $_SESSION['current_practice_id'] ?? null;
+    }
+
+    if (!$practiceId) {
+        return false;
+    }
+
+    try {
+        $stmt = $pdo->prepare("SELECT case_review_tracking_enabled FROM practices WHERE id = :practice_id");
+        $stmt->execute(['practice_id' => $practiceId]);
+        return (bool)$stmt->fetchColumn();
+    } catch (Throwable $e) {
+        return false;
+    }
+}
+
+/**
  * Returns the current material Terms of Service version that must be accepted
  * by owners and administrators.
  */

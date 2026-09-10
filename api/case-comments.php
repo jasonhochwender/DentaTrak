@@ -11,6 +11,7 @@ require_once __DIR__ . '/feature-flags.php';
 require_once __DIR__ . '/practice-security.php';
 require_once __DIR__ . '/case-activity-log.php';
 require_once __DIR__ . '/notification-service.php';
+require_once __DIR__ . '/cases-cache.php';
 require_once __DIR__ . '/csrf.php';
 
 header('Content-Type: application/json');
@@ -341,6 +342,30 @@ if ($method === 'GET') {
                 'has_mentions' => !empty($resolvedMentions),
                 'mention_count' => count($resolvedMentions)
             ]);
+
+            // Reset review status when a different user adds a comment or @mention.
+            if (function_exists('resetCaseReviewIfDifferentUser')) {
+                $wasReset = resetCaseReviewIfDifferentUser($caseId, $currentPracticeId, $userId);
+                if ($wasReset) {
+                    logCaseActivity(
+                        $caseId,
+                        'review_status_changed',
+                        'reviewed',
+                        'needs_review',
+                        [
+                            'review_status' => 'needs_review',
+                            'review_status_changed_by_user_id' => $userId,
+                            'source' => 'case-comments.php',
+                            'reason' => !empty($resolvedMentions) ? 'mention_added' : 'comment_added',
+                        ]
+                    );
+                }
+            }
+
+            // Notify other clients that the case changed
+            if (function_exists('recordCaseUpdate')) {
+                recordCaseUpdate($caseId, 'update');
+            }
 
             echo json_encode([
                 'success' => true,

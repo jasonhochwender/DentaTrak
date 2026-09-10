@@ -230,6 +230,21 @@ try {
         $cases = array_values($cases);
     }
 
+    // Review Status filtering is only honored while the practice-level Case
+    // Review Tracking feature is enabled. When disabled, a stale or manually
+    // supplied review_status parameter must not hide cases.
+    $filterReviewStatus = $_GET['review_status'] ?? '';
+    $caseReviewTrackingEnabled = isCaseReviewTrackingEnabled($currentPracticeId);
+    if (!$caseReviewTrackingEnabled) {
+        $filterReviewStatus = '';
+    }
+    if (in_array($filterReviewStatus, ['needs_review', 'reviewed'], true)) {
+        $cases = array_filter($cases, function($case) use ($filterReviewStatus) {
+            return ($case['reviewStatus'] ?? 'needs_review') === $filterReviewStatus;
+        });
+        $cases = array_values($cases);
+    }
+
     // Load current user urgency settings from the database each request.
     // Do not rely on stale session preferences; the Kanban uses locally
     // stored (localStorage) values that can get out of sync with $_SESSION.
