@@ -1674,6 +1674,11 @@ document.addEventListener('DOMContentLoaded', function () {
         renderReviewStatus(currentEditCaseData);
       }
     }
+
+    // The List View review column appears/disappears with this flag.
+    if (window.caseListView && typeof window.caseListView.scheduleRefresh === 'function') {
+      window.caseListView.scheduleRefresh();
+    }
   }
   window.applyCaseReviewTrackingEnabled = applyCaseReviewTrackingEnabled;
 
@@ -5589,6 +5594,11 @@ document.addEventListener('DOMContentLoaded', function () {
       window.applyFilters();
     }
 
+    // Notify secondary surfaces (e.g. List View) that card data changed.
+    if (typeof window.triggerCardsUpdated === 'function') {
+      window.triggerCardsUpdated();
+    }
+
     return true;
   };
 
@@ -5661,6 +5671,11 @@ document.addEventListener('DOMContentLoaded', function () {
           badge.disabled = false;
         }
       });
+      // Notify secondary surfaces (e.g. List View) even on failure so a
+      // loading chip clears instead of sticking.
+      if (typeof window.triggerCardsUpdated === 'function') {
+        window.triggerCardsUpdated();
+      }
     });
   };
 
@@ -7692,6 +7707,10 @@ document.addEventListener('DOMContentLoaded', function () {
           card.classList.remove(previousStatusClass);
           card.classList.add(getWorkflowStatusCssClass(newStatus));
 
+          if (typeof window.triggerCardsUpdated === 'function') {
+            window.triggerCardsUpdated();
+          }
+
           // Update date display
           const dateValue = card.querySelector('.date-value:last-child');
           if (dateValue) {
@@ -7745,6 +7764,10 @@ document.addEventListener('DOMContentLoaded', function () {
         card.classList.remove(getWorkflowStatusCssClass(newStatus));
         card.classList.add(previousStatusClass);
 
+        if (typeof window.triggerCardsUpdated === 'function') {
+          window.triggerCardsUpdated();
+        }
+
         // Restore date
         const dateValue = card.querySelector('.date-value:last-child');
         if (dateValue && previousLastUpdateDate) {
@@ -7767,6 +7790,9 @@ document.addEventListener('DOMContentLoaded', function () {
             cardData.version = error.currentData.version;
             cardData.lastUpdateDate = error.currentData.lastUpdateDate || previousLastUpdateDate;
             card.dataset.caseJson = JSON.stringify(cardData);
+            if (typeof window.triggerCardsUpdated === 'function') {
+              window.triggerCardsUpdated();
+            }
 
             // Move card to the column matching the server-authoritative
             // status, found via the fixed data-status attribute (never

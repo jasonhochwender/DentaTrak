@@ -457,6 +457,11 @@
     setTimeout(function() {
       card.classList.remove('card-updated');
     }, 2000);
+
+    // Notify secondary surfaces (e.g. List View) that card data changed.
+    if (typeof window.triggerCardsUpdated === 'function') {
+      window.triggerCardsUpdated();
+    }
   }
   
   /**
@@ -514,6 +519,11 @@
     setTimeout(function() {
       card.classList.remove('card-moved');
     }, 2000);
+
+    // Notify secondary surfaces (e.g. List View) that card data changed.
+    if (typeof window.triggerCardsUpdated === 'function') {
+      window.triggerCardsUpdated();
+    }
   }
   
   /**
@@ -523,6 +533,10 @@
     card.classList.add('card-removing');
     setTimeout(function() {
       card.remove();
+      // Notify secondary surfaces (e.g. List View) that a card was removed.
+      if (typeof window.triggerCardsUpdated === 'function') {
+        window.triggerCardsUpdated();
+      }
     }, 300);
   }
   

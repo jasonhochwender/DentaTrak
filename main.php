@@ -575,6 +575,7 @@ if (isset($appConfig) && is_array($appConfig) && isset($appConfig['appName'])) {
   <link rel="preload" href="css/settings-billing.css?v=20260905a" as="style" onload="this.onload=null;this.rel='stylesheet'">
   <link rel="preload" href="css/feedback.css?v=20241210" as="style" onload="this.onload=null;this.rel='stylesheet'">
   <link rel="preload" href="css/kanban-dragdrop.css?v=20241210" as="style" onload="this.onload=null;this.rel='stylesheet'">
+  <link rel="preload" href="css/case-list.css?v=20260910a" as="style" onload="this.onload=null;this.rel='stylesheet'">
   <link rel="preload" href="css/case-creation.css?v=20241210" as="style" onload="this.onload=null;this.rel='stylesheet'">
   <link rel="preload" href="css/case-comments.css?v=20260909a" as="style" onload="this.onload=null;this.rel='stylesheet'">
   <link rel="preload" href="css/activity-timeline.css?v=20241230" as="style" onload="this.onload=null;this.rel='stylesheet'">
@@ -601,6 +602,7 @@ if (isset($appConfig) && is_array($appConfig) && isset($appConfig['appName'])) {
     <link rel="stylesheet" href="css/settings-billing.css?v=20260905a">
     <link rel="stylesheet" href="css/feedback.css?v=20241210">
     <link rel="stylesheet" href="css/kanban-dragdrop.css?v=20241210">
+    <link rel="stylesheet" href="css/case-list.css?v=20260910a">
     <link rel="stylesheet" href="css/case-creation.css?v=20241210">
     <link rel="stylesheet" href="css/case-comments.css?v=20260909a">
     <link rel="stylesheet" href="css/activity-timeline.css?v=20241230">
@@ -676,7 +678,7 @@ if (isset($appConfig) && is_array($appConfig) && isset($appConfig['appName'])) {
   </div>
   
   <!-- Hidden data element to store user email for JavaScript -->
-<div id="userEmailData" data-email="<?php echo htmlspecialchars($user['email'] ?? ''); ?>" style="display: none;"></div>
+<div id="userEmailData" data-email="<?php echo htmlspecialchars($user['email'] ?? ''); ?>" data-user-id="<?php echo (int)($_SESSION['db_user_id'] ?? 0); ?>" style="display: none;"></div>
 
 <!-- CSRF Token for secure API requests -->
 <meta name="csrf-token" content="<?php echo htmlspecialchars($csrfToken); ?>">
@@ -850,6 +852,10 @@ endif;
           <div class="dashboard-toolbar">
             <button type="button" class="create-case-button">+ <?php echo t('cases.create_new_case'); ?></button>
             <div class="dashboard-toolbar-right">
+              <div class="case-view-toggle" role="group" aria-label="<?php echo t('cases.list.view_toggle_aria'); ?>">
+                <button type="button" id="boardViewToggle" class="case-view-btn active" aria-pressed="true"><?php echo t('cases.list.view_board'); ?></button>
+                <button type="button" id="listViewToggle" class="case-view-btn" aria-pressed="false"><?php echo t('cases.list.view_list'); ?></button>
+              </div>
               <button type="button" id="kanbanFilterToggle" class="filter-toggle-button">
                 <?php echo t('filters.filters'); ?>
                 <span id="kanbanFilterActiveDot" class="filter-active-dot" aria-hidden="true"></span>
@@ -982,6 +988,10 @@ endif;
         </div>
         <?php endforeach; ?>
       </section>
+
+      <!-- Compact List View: populated by js/case-list.js as a projection
+           of the rendered Kanban cards (same filtered case set). -->
+      <section class="case-list-view" id="caseListView" aria-label="<?php echo t('cases.list.view_list'); ?>" hidden></section>
         </div>
         <!-- End Cases Tab -->
 
@@ -3090,6 +3100,7 @@ endif;
 <?php endif; ?>
   <script src="js/patient-search.js?v=20250105c" defer></script>
   <script src="js/realtime-updates.js?v=20250119f" defer></script>
+  <script src="js/case-list.js?v=20260910a" defer></script>
   
 <?php if ($showDevTools): ?>
 <!-- Dev Tools JavaScript -->

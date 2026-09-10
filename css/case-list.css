@@ -1,0 +1,517 @@
+/* ============================================
+   Case List View
+   Compact, high-density alternative to the Kanban board.
+   Toggled via body.case-view-list (JS: js/case-list.js).
+   ============================================ */
+
+/* ---------- Board / List view toggle ---------- */
+
+.case-view-toggle {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+  background: var(--background-subtle);
+  padding: 2px;
+  gap: 2px;
+}
+
+.case-view-btn {
+  appearance: none;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 500;
+  padding: 5px 12px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  line-height: 1.2;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.case-view-btn:hover {
+  color: var(--text-primary);
+}
+
+.case-view-btn.active {
+  background: var(--background-white);
+  color: var(--text-primary);
+  box-shadow: var(--shadow-xs);
+}
+
+.case-view-btn:focus-visible {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 1px;
+}
+
+/* ---------- View visibility ---------- */
+
+.case-view-list .kanban-board,
+.case-view-list .mobile-kanban-nav {
+  display: none !important;
+}
+
+/* ---------- List container ---------- */
+
+.case-list-view {
+  background: var(--background-white);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-xs);
+  overflow: auto;
+  max-height: calc(100vh - 220px);
+}
+
+/* While filters/search refetch, the board carries .loading - dim the list
+   the same way so neither view flashes stale content. */
+.case-view-list .kanban-board.loading + .case-list-view {
+  opacity: 0.55;
+  transition: opacity 0.15s ease;
+}
+
+/* ---------- Table ---------- */
+
+.case-list-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  font-size: 0.82rem;
+}
+
+.case-list-table thead {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--background-subtle);
+}
+
+.cl-th {
+  text-align: left;
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  padding: 0;
+  border-bottom: 1px solid var(--border-light);
+  white-space: nowrap;
+}
+
+.cl-sort-btn {
+  appearance: none;
+  border: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-transform: inherit;
+  letter-spacing: inherit;
+  width: 100%;
+  text-align: left;
+  padding: 8px 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.cl-sort-btn:hover {
+  color: var(--text-primary);
+}
+
+.cl-sort-btn:focus-visible {
+  outline: 2px solid var(--primary-color);
+  outline-offset: -2px;
+}
+
+.cl-th.sorted .cl-sort-btn {
+  color: var(--primary-color);
+}
+
+.cl-sort-arrow {
+  font-size: 0.6rem;
+  line-height: 1;
+}
+
+/* Column sizing - patient gets the flexible share. */
+.cl-expand-th { width: 34px; }
+.cl-review    { width: 110px; }
+.cl-patient   { width: 21%; }
+.cl-type      { width: 9%; }
+.cl-status    { width: 12%; }
+.cl-assigned  { width: 11%; }
+.cl-due       { width: 12%; }
+.cl-appt      { width: 11%; }
+.cl-dentist   { width: 12%; }
+.cl-updated   { width: 11%; }
+
+/* ---------- Rows ---------- */
+
+.case-list-row {
+  border-bottom: 1px solid var(--border-light);
+  cursor: pointer;
+  transition: background 0.1s ease;
+}
+
+.case-list-row:hover {
+  background: var(--background-subtle);
+}
+
+.case-list-row:focus-within {
+  background: var(--background-subtle);
+}
+
+.cl-td {
+  padding: 7px 8px;
+  vertical-align: middle;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--text-primary);
+}
+
+.cl-expand-td {
+  padding: 4px 2px;
+  width: 34px;
+  /* 30px content box must fit the 24px chevron button without
+     triggering text-overflow: ellipsis from .cl-td */
+  text-overflow: clip;
+}
+
+.case-list-expand {
+  appearance: none;
+  border: none;
+  background: transparent;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--text-secondary);
+  border-radius: var(--radius-sm);
+}
+
+.case-list-expand:hover {
+  background: var(--border-light);
+  color: var(--text-primary);
+}
+
+.case-list-expand:focus-visible {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 1px;
+}
+
+.cl-chevron {
+  display: inline-block;
+  width: 0;
+  height: 0;
+  border-left: 5px solid currentColor;
+  border-top: 4px solid transparent;
+  border-bottom: 4px solid transparent;
+  transition: transform 0.15s ease;
+}
+
+.case-list-expand.expanded .cl-chevron {
+  transform: rotate(90deg);
+}
+
+/* Patient name opens the case */
+.case-list-open {
+  appearance: none;
+  border: none;
+  background: transparent;
+  padding: 0;
+  font: inherit;
+  font-weight: 600;
+  color: var(--text-primary);
+  cursor: pointer;
+  text-align: left;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.case-list-open:hover {
+  color: var(--primary-color);
+  text-decoration: underline;
+}
+
+.case-list-open:focus-visible {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 1px;
+}
+
+/* Workflow status chip */
+.case-list-status {
+  display: inline-block;
+  font-size: 0.72rem;
+  font-weight: 500;
+  padding: 2px 8px;
+  border-radius: 10px;
+  background: var(--background-subtle);
+  border: 1px solid var(--border-light);
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+/* Compact urgency flags */
+.case-list-flag {
+  display: inline-block;
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+  text-transform: uppercase;
+  padding: 1px 5px;
+  border-radius: 8px;
+  margin-left: 4px;
+  vertical-align: middle;
+}
+
+.cl-flag-late {
+  color: #b91c1c;
+  background: #fef2f2;
+}
+
+.cl-flag-duesoon {
+  color: #1d4ed8;
+  background: #eff6ff;
+}
+
+.cl-flag-appt {
+  color: #7e22ce;
+  background: #faf5ff;
+}
+
+.cl-flag-atrisk {
+  color: #c2410c;
+  background: #fff7ed;
+}
+
+.cl-due-late {
+  color: #b91c1c;
+  font-weight: 600;
+}
+
+.cl-appt-risk {
+  color: #7e22ce;
+  font-weight: 600;
+}
+
+/* Review chip inside the list reuses .kanban-card-review styles;
+   margin-left:auto (designed for flex headers) is neutralized here.
+   The chip is a button, not text - clip rather than ellipsizing it. */
+.cl-td.cl-review {
+  text-overflow: clip;
+}
+
+.cl-review .case-list-review {
+  margin-left: 0;
+}
+
+/* ---------- Expanded detail row ---------- */
+
+.case-list-detail-row td {
+  padding: 0;
+  border-bottom: 1px solid var(--border-light);
+  background: var(--background-subtle);
+}
+
+.cl-detail-panel {
+  padding: 10px 14px 12px 42px;
+}
+
+.cl-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 6px 20px;
+}
+
+.cl-detail-item {
+  display: flex;
+  gap: 6px;
+  min-width: 0;
+  font-size: 0.78rem;
+}
+
+.cl-detail-label {
+  color: var(--text-secondary);
+  font-weight: 600;
+  flex: 0 0 auto;
+}
+
+.cl-detail-label::after {
+  content: ':';
+}
+
+.cl-detail-value {
+  color: var(--text-primary);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cl-detail-notes {
+  margin-top: 8px;
+  font-size: 0.78rem;
+  display: flex;
+  gap: 6px;
+}
+
+.cl-detail-notes .cl-detail-value {
+  white-space: pre-wrap;
+}
+
+.case-list-open-detail {
+  margin-top: 10px;
+  appearance: none;
+  border: 1px solid var(--border-light);
+  background: var(--background-white);
+  color: var(--primary-color);
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 5px 12px;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+}
+
+.case-list-open-detail:hover {
+  background: var(--background-subtle);
+}
+
+.case-list-open-detail:focus-visible {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 1px;
+}
+
+/* ---------- Empty / loading / error states ---------- */
+
+.case-list-state {
+  padding: 40px 16px;
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+}
+
+/* ---------- Mobile: stacked compact rows ---------- */
+
+@media (max-width: 768px) {
+  .case-list-view {
+    max-height: none;
+    border: none;
+    background: transparent;
+    box-shadow: none;
+    overflow: visible;
+  }
+
+  .case-list-table,
+  .case-list-table tbody {
+    display: block;
+    width: 100%;
+  }
+
+  .case-list-table thead {
+    display: none;
+  }
+
+  .case-list-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 2px 10px;
+    padding: 10px 12px;
+    margin-bottom: 8px;
+    background: var(--background-white);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-xs);
+  }
+
+  .cl-td {
+    padding: 0;
+    white-space: normal;
+  }
+
+  /* Order: chevron, patient, review chip, status on the first line;
+     the labeled secondary fields wrap below. */
+  .cl-expand-td { order: 0; width: 24px; padding: 0; }
+  .cl-patient   { order: 1; flex: 1 1 auto; min-width: 0; }
+  .cl-review    { order: 2; flex: 0 0 auto; }
+  .cl-status    { order: 3; flex: 0 0 auto; }
+
+  .cl-type,
+  .cl-assigned,
+  .cl-due,
+  .cl-appt,
+  .cl-dentist,
+  .cl-updated {
+    order: 4;
+    flex: 1 1 45%;
+    min-width: 120px;
+    font-size: 0.76rem;
+  }
+
+  .cl-td[data-label]::before {
+    content: attr(data-label) ': ';
+    font-weight: 600;
+    color: var(--text-secondary);
+  }
+
+  /* Primary fields carry their own visual identity - no repeated labels. */
+  .cl-patient[data-label]::before,
+  .cl-status[data-label]::before,
+  .cl-review[data-label]::before {
+    content: none;
+  }
+
+  /* Hide lower-value columns on phones; they remain available
+     inside the expanded detail panel. */
+  .cl-dentist,
+  .cl-type,
+  .cl-updated {
+    display: none;
+  }
+
+  .case-list-detail-row td {
+    display: block;
+    padding: 0;
+    margin-top: -8px;
+    margin-bottom: 8px;
+    border: none;
+    background: transparent;
+  }
+
+  .case-list-detail-row {
+    display: block;
+  }
+
+  .cl-detail-panel {
+    padding: 10px 12px;
+    background: var(--background-white);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-xs);
+  }
+
+  .cl-detail-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  .case-list-view {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}
