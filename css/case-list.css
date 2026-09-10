@@ -326,52 +326,59 @@
 }
 
 .cl-detail-panel {
-  padding: 10px 14px 12px 42px;
+  padding: 12px 14px 12px 42px;
 }
 
+/* Compact labeled blocks: label on top, value lines beneath. Auto-fill
+   keeps 2-3 columns at desktop widths and collapses to fewer on narrow. */
 .cl-detail-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-  gap: 6px 20px;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 10px 28px;
 }
 
-.cl-detail-item {
-  display: flex;
-  gap: 6px;
+.cl-detail-block {
   min-width: 0;
-  font-size: 0.78rem;
 }
 
 .cl-detail-label {
-  color: var(--text-secondary);
+  display: block;
+  font-size: 0.66rem;
   font-weight: 600;
-  flex: 0 0 auto;
-}
-
-.cl-detail-label::after {
-  content: ':';
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  margin-bottom: 2px;
 }
 
 .cl-detail-value {
-  color: var(--text-primary);
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.cl-detail-notes {
-  margin-top: 8px;
   font-size: 0.78rem;
-  display: flex;
-  gap: 6px;
+  color: var(--text-primary);
+  line-height: 1.35;
+  overflow-wrap: break-word;
 }
 
-.cl-detail-notes .cl-detail-value {
-  white-space: pre-wrap;
+/* Long values (e.g. notes preview) span the full grid width. */
+.cl-detail-wide {
+  grid-column: 1 / -1;
+}
+
+.cl-detail-notes-text {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  white-space: normal;
+}
+
+/* Footer keeps the Open case action attached to the panel, right-aligned. */
+.cl-detail-footer {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 10px;
 }
 
 .case-list-open-detail {
-  margin-top: 10px;
   appearance: none;
   border: 1px solid var(--border-light);
   background: var(--background-white);
@@ -400,6 +407,14 @@
   text-align: center;
   color: var(--text-secondary);
   font-size: 0.85rem;
+}
+
+/* ---------- Mid widths: drop the least-used column so headers don't clip ---------- */
+
+@media (min-width: 769px) and (max-width: 1100px) {
+  .case-list-table .cl-appt {
+    display: none;
+  }
 }
 
 /* ---------- Mobile: stacked compact rows ---------- */

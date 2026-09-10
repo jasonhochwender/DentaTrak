@@ -461,60 +461,86 @@
     return html;
   }
 
-  function detailField(label, value) {
-    if (!value) return '';
-    return '<div class="cl-detail-item"><span class="cl-detail-label">' + esc(label) + '</span>' +
-      '<span class="cl-detail-value">' + esc(value) + '</span></div>';
+  /**
+   * One field block in the expanded detail grid: label on top, value lines
+   * beneath. Lines are omitted when empty so fields don't render hollow.
+   */
+  function detailBlock(label, lines) {
+    var values = (Array.isArray(lines) ? lines : [lines]).filter(function (v) {
+      return v !== '' && v !== null && v !== undefined;
+    });
+    if (values.length === 0) return '';
+    return '<div class="cl-detail-block">' +
+      '<div class="cl-detail-label">' + esc(label) + '</div>' +
+      values.map(function (v) {
+        return '<div class="cl-detail-value">' + esc(v) + '</div>';
+      }).join('') +
+      '</div>';
   }
 
   function buildDetailRow(caseData, reviewEnabled) {
-    var items = '';
+    // Only fields not already visible in the collapsed row. The row itself
+    // shows Patient, Type, Status, Assigned To, Due, Appointment, Dentist,
+    // Updated (and Review state) - repeating them here just adds noise.
+    var blocks = '';
 
-    items += detailField(tr('cases.list.created'), formatListDateTime(caseData.creationDate) +
-      (caseData.createdByName && caseData.createdByName !== 'Unknown' ? ' \u00B7 ' + caseData.createdByName : ''));
-    items += detailField(tr('cases.list.updated'), formatListDateTime(caseData.lastUpdateDate));
-    items += detailField(tr('cases.list.status_changed'), formatListDateTime(caseData.statusChangedAt));
-    items += detailField(tr('cases.list.assigned'), caseData.assignedTo || '');
-    items += detailField(tr('cases.list.tracking'), caseData.trackingNumber || '');
-    items += detailField(tr('cases.carrier'), caseData.customCarrier || caseData.carrier || '');
-    items += detailField(tr('cases.list.dentist'), caseData.dentistName || '');
+    // --- Secondary timing details ---
+    blocks += detailBlock(tr('cases.list.created'), [
+      formatListDateTime(caseData.creationDate),
+      (caseData.createdByName && caseData.createdByName !== 'Unknown')
+        ? tr('cases.list.created_by_name').replace('{name}', caseData.createdByName)
+        : ''
+    ]);
+    blocks += detailBlock(tr('cases.list.status_changed'), [
+      formatListDateTime(caseData.statusChangedAt)
+    ]);
+
+    // --- Review details (feature-gated; details only, not the badge text) ---
+    if (reviewEnabled) {
+      if (caseData.reviewStatus === 'reviewed') {
+        blocks += detailBlock(tr('cases.list.review_details'), [
+          tr('cases.list.reviewed_by_name').replace('{name}', caseData.reviewedByName || 'Unknown'),
+          formatListDateTime(caseData.reviewedAt)
+        ]);
+      } else {
+        blocks += detailBlock(tr('cases.list.review_details'), [
+          tr('cases.needs_review')
+        ]);
+      }
+    }
+
+    // --- Operational details, only when present ---
+    blocks += detailBlock(tr('cases.list.tracking'), [caseData.trackingNumber]);
+    blocks += detailBlock(tr('cases.carrier'), [caseData.customCarrier || caseData.carrier]);
 
     var attachments = Array.isArray(caseData.attachments) ? caseData.attachments : [];
     if (attachments.length > 0) {
-      items += detailField(tr('cases.list.attachments'), String(attachments.length));
+      blocks += detailBlock(tr('cases.list.attachments'), [String(attachments.length)]);
     }
-
     if (caseData.revisionCount) {
-      items += detailField(tr('cases.list.revisions'), String(caseData.revisionCount));
+      blocks += detailBlock(tr('cases.list.revisions'), [String(caseData.revisionCount)]);
     }
 
-    if (reviewEnabled) {
-      var reviewText;
-      if (caseData.reviewStatus === 'reviewed' && caseData.reviewedAt) {
-        reviewText = tr('cases.reviewed_by_timestamp')
-          .replace('{name}', caseData.reviewedByName || 'Unknown')
-          .replace('{timestamp}', formatListDateTime(caseData.reviewedAt));
-      } else {
-        reviewText = tr('cases.needs_review');
-      }
-      items += detailField(tr('cases.review_status'), reviewText);
-    }
-
-    var notesPreview = '';
+    // --- Notes preview: its own full-width row ---
+    var notesRow = '';
     if (caseData.notes) {
       var trimmed = String(caseData.notes).trim();
       if (trimmed.length > 160) trimmed = trimmed.substring(0, 160) + '\u2026';
-      notesPreview = '<div class="cl-detail-notes"><span class="cl-detail-label">' + esc(tr('cases.list.notes')) + '</span>' +
-        '<span class="cl-detail-value">' + esc(trimmed) + '</span></div>';
+      if (trimmed) {
+        notesRow = '<div class="cl-detail-block cl-detail-wide">' +
+          '<div class="cl-detail-label">' + esc(tr('cases.list.notes')) + '</div>' +
+          '<div class="cl-detail-value cl-detail-notes-text">' + esc(trimmed) + '</div></div>';
+      }
     }
 
-    var openBtn = '<button type="button" class="case-list-open-detail" data-case-id="' + esc(caseData.id) + '">' +
-      esc(tr('cases.list.open_case')) + '</button>';
+    var openBtn = '<div class="cl-detail-footer">' +
+      '<button type="button" class="case-list-open-detail" data-case-id="' + esc(caseData.id) + '">' +
+      esc(tr('cases.list.open_case')) + '</button></div>';
 
     return '<tr class="case-list-detail-row" data-case-id="' + esc(caseData.id) + '">' +
       '<td colspan="' + columnCount() + '"><div class="cl-detail-panel">' +
-      '<div class="cl-detail-grid">' + items + '</div>' +
-      notesPreview + openBtn +
+      '<div class="cl-detail-grid">' + blocks + notesRow + '</div>' +
+      openBtn +
       '</div></td></tr>';
   }
 
