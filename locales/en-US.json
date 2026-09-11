@@ -99,6 +99,7 @@
         "create_case": "Create Case",
         "create_new_case": "Create New Case",
         "update_case": "Update Case",
+        "save_all_changes": "Save All Changes",
         "edit_case": "Edit Case",
         "view_case": "View Case",
         "assigned_to": "Assigned To",
@@ -345,7 +346,9 @@
             "payload_too_large": "The request is too large. STL files must be under 250MB, images under 25MB.",
             "invalid_case_data": "Error: Invalid case data",
             "print_in_progress": "Another case is currently being printed. Please wait for it to complete.",
-            "document_error": "Error generating document. Please try again."
+            "document_error": "Error generating document. Please try again.",
+            "nothing_to_save": "No changes to save.",
+            "case_saved_comment_failed": "Case saved, but the comment could not be posted. It is still in the comment box - try saving again."
         },
         "creating_case": "Creating Case...",
         "updating_case": "Updating Case...",

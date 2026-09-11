@@ -156,6 +156,7 @@ screenshots/
 !/tests/case-review-tracking-test.php
 !/tests/case-list-view-test.php
 !/tests/case-list-view-e2e-test.js
+!/tests/case-save-all-e2e-test.js
 !/tests/header-switcher-browser-test.js
 /testResults/
 /test-results/

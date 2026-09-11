@@ -4341,6 +4341,12 @@ document.addEventListener('DOMContentLoaded', function () {
       caseHistoryPanel.style.display = tabName === 'history' ? 'block' : 'none';
     }
 
+    // The Comments-tab submit label depends on pending case edits ("Add
+    // Comment" vs "Save All Changes") - refresh it whenever tabs switch.
+    if (typeof window.updateCaseCommentSubmitState === 'function') {
+      window.updateCaseCommentSubmitState();
+    }
+
     if (window.viewCaseTimings) {
       window.viewCaseTimings.tabActivated = performance.now() - window.viewCaseTimings.shellStart;
     }
@@ -5436,7 +5442,7 @@ document.addEventListener('DOMContentLoaded', function () {
     // Update submit button text
     var submitBtn = document.getElementById('createCaseSubmit');
     if (submitBtn) {
-      submitBtn.textContent = t('cases.update_case');
+      submitBtn.textContent = t('cases.save_all_changes');
     }
 
     // Load and display existing files
@@ -5826,7 +5832,7 @@ document.addEventListener('DOMContentLoaded', function () {
       return Promise.resolve(false);
     }
     options = options || {};
-    if (hasUnsavedChanges) {
+    if (hasUnsavedWork()) {
       showUnsavedChangesWarning(function() {
         closeCreateCase();
         window.openCaseById(caseId, options);
@@ -6144,6 +6150,96 @@ document.addEventListener('DOMContentLoaded', function () {
   var hasUnsavedChanges = false;
   var isSubmitting = false;
   var caseModalOpener = null;
+  // Set by saveAllCaseChanges() while a case save runs with a pending comment
+  // draft - consumed by resetFormAndClose()/handleCaseSubmissionError().
+  var pendingPostSaveComment = false;
+  // Guards the submit click handler against re-entering saveAllCaseChanges()
+  // when the orchestrator itself triggers the click.
+  var caseFormSubmitDirect = false;
+
+  // Expose case-form dirty state to the comments module (its own closure).
+  window.caseFormHasUnsavedChanges = function() {
+    return hasUnsavedChanges;
+  };
+
+  // Unsaved work = modified case fields OR an unposted comment draft.
+  function hasUnsavedWork() {
+    var commentDraft = typeof window.caseCommentHasDraft === 'function' &&
+      window.caseCommentHasDraft();
+    return hasUnsavedChanges || commentDraft;
+  }
+
+  /**
+   * Shared save for the case modal: saves modified case details AND posts a
+   * non-empty comment draft, regardless of which tab initiated it. The case
+   * save runs through the existing submit handler (validation, uploads,
+   * update-case.php); when a comment draft exists it is flagged with
+   * pendingPostSaveComment and posted once the case save resolves - before
+   * the modal closes on success, or alongside the error on failure.
+   */
+  function saveAllCaseChanges() {
+    var form = document.getElementById('createCaseForm');
+    var isUpdate = !!(form && form.dataset.caseId);
+
+    if (!isUpdate) {
+      // Create mode: the Comments tab is unavailable for unsaved cases, so
+      // this behaves exactly like the plain create submit. dispatchEvent is
+      // used instead of click() because a nested click() is dropped when the
+      // trigger was itself a programmatic click (conflict retry, Enter key).
+      submitBtn.dispatchEvent(new Event('click'));
+      return;
+    }
+
+    var hasCommentDraft = typeof window.caseCommentHasDraft === 'function' &&
+      window.caseCommentHasDraft();
+
+    if (isSubmitting) {
+      // A case save is already in flight - flag the draft so the running save
+      // posts it before the modal closes; do not start a second submission.
+      if (hasCommentDraft) pendingPostSaveComment = true;
+      return;
+    }
+    var commentInFlight = typeof window.caseCommentInFlight === 'function'
+      ? window.caseCommentInFlight() : null;
+    if (commentInFlight) {
+      // A comment POST is still running - retry once it settles instead of
+      // dropping this save. A successful post clears the draft (case-only
+      // save proceeds); a failed post keeps it so nothing is lost.
+      commentInFlight.then(function() { saveAllCaseChanges(); });
+      return;
+    }
+
+    if (!hasUnsavedChanges && !hasCommentDraft) {
+      if (typeof showToast === 'function') {
+        showToast(t('cases.toast.nothing_to_save'), 'info');
+      }
+      return;
+    }
+
+    if (hasUnsavedChanges) {
+      // Validate pending case edits before anything is submitted. On failure
+      // nothing is saved - the comment draft and edits stay in place so the
+      // user can fix the fields and retry once.
+      if (!validateCaseForm(form)) {
+        return;
+      }
+      pendingPostSaveComment = hasCommentDraft;
+      caseFormSubmitDirect = true;
+      // dispatchEvent, not click(): a nested click() on the same button is
+      // silently dropped (click-in-progress flag) when this save was itself
+      // triggered by a programmatic click - e.g. the conflict dialog's
+      // "Keep My Version" or the Enter-key shortcut.
+      submitBtn.dispatchEvent(new Event('click'));
+      caseFormSubmitDirect = false;
+      if (!isSubmitting) pendingPostSaveComment = false; // submit was blocked
+      return;
+    }
+
+    if (hasCommentDraft && typeof window.postCaseComment === 'function') {
+      window.postCaseComment();
+    }
+  }
+  window.saveAllCaseChanges = saveAllCaseChanges;
 
   function trackFormChanges() {
     var form = document.getElementById('createCaseForm');
@@ -6188,6 +6284,12 @@ document.addEventListener('DOMContentLoaded', function () {
     // Check if form data has changed
     var currentFormData = new FormData(form);
     hasUnsavedChanges = !formDataEqual(originalFormData, currentFormData);
+
+    // Keep the Comments-tab submit button label in sync ("Add Comment" vs
+    // "Save All Changes" when case edits are pending).
+    if (typeof window.updateCaseCommentSubmitState === 'function') {
+      window.updateCaseCommentSubmitState();
+    }
   }
 
   function formDataEqual(formData1, formData2) {
@@ -6297,7 +6399,7 @@ document.addEventListener('DOMContentLoaded', function () {
       return;
     }
 
-    if (hasUnsavedChanges) {
+    if (hasUnsavedWork()) {
       showUnsavedChangesWarning(function() {
         closeCreateCase();
       });
@@ -6432,109 +6534,139 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   });
 
+  /**
+   * Validate the case form: globally required fields, case-type conditional
+   * fields, Crown tooth numbering, and the notes length limit. On failure the
+   * affected fields are highlighted, the modal switches to the Details tab
+   * (errors live there even when the save was triggered from another tab),
+   * and the first error is scrolled into view. Returns true when the form is
+   * safe to submit.
+   */
+  function validateCaseForm(form) {
+    var isValid = true;
+
+    // Helper function to add field error
+    function addFieldError(field, message) {
+      field.classList.add('field-error');
+      if (!field.nextElementSibling || !field.nextElementSibling.classList.contains('error-message')) {
+        var errorMessage = document.createElement('div');
+        errorMessage.className = 'error-message';
+        errorMessage.textContent = message || t('validation.required');
+        field.parentNode.insertBefore(errorMessage, field.nextSibling);
+      }
+    }
+
+    // Helper function to clear field error
+    function clearFieldError(field) {
+      field.classList.remove('field-error');
+      if (field.nextElementSibling && field.nextElementSibling.classList.contains('error-message')) {
+        field.nextElementSibling.remove();
+      }
+    }
+
+    // Check all globally required fields (fields with required attribute)
+    var requiredFields = form.querySelectorAll('[required]');
+
+    requiredFields.forEach(function(field) {
+      if (!field.value) {
+        isValid = false;
+        addFieldError(field, 'This field is required');
+      } else {
+        clearFieldError(field);
+      }
+    });
+
+    // Check case-type-specific conditionally required fields
+    var caseType = form.querySelector('#caseType');
+    var currentCaseType = caseType ? caseType.value : '';
+
+    // Find all conditionally required fields that are visible for the current case type
+    var conditionalFields = form.querySelectorAll('[data-conditionally-required="true"]');
+
+    conditionalFields.forEach(function(fieldContainer) {
+      var caseTypes = fieldContainer.dataset.caseTypes || '';
+      var caseTypeList = caseTypes.split(',').map(function(t) { return t.trim(); });
+
+      // Only validate if this field is visible for the current case type
+      if (caseTypeList.includes(currentCaseType)) {
+        var input = fieldContainer.querySelector('input, select, textarea');
+        if (input && !input.value) {
+          isValid = false;
+          addFieldError(input, t('cases.clinical.validation.required_for_case_type', {caseType: getCaseTypeDisplayLabel(currentCaseType)}));
+        } else if (input) {
+          clearFieldError(input);
+        }
+      }
+    });
+
+    // ============================================
+    // TOOTH NUMBER VALIDATION ON SUBMIT
+    // Business Rule: For Crown case type, validates tooth number
+    // using standard dental numbering (1-32 for adult teeth).
+    // ============================================
+    if (currentCaseType === 'Crown' && window.toothNumberValidation) {
+      var toothNumberInput = document.getElementById('clinicalToothNumber');
+      if (toothNumberInput && toothNumberInput.value.trim() !== '') {
+        var toothResult = window.toothNumberValidation.validateToothNumber(toothNumberInput.value);
+        if (!toothResult.valid) {
+          isValid = false;
+          window.toothNumberValidation.showFieldError(toothNumberInput, toothResult.error);
+        }
+      }
+    }
+
+    // ============================================
+    // CASE NOTES CHARACTER LIMIT VALIDATION ON SUBMIT
+    // Business Rule: Notes field is limited to 3,000 characters.
+    // ============================================
+    var notesField = document.getElementById('notes');
+    if (notesField && notesField.value.length > 3000) {
+      isValid = false;
+      addFieldError(notesField, t('validation.notes_max', {max: 3000}));
+    }
+
+    if (!isValid) {
+      // Errors live on the Details tab - switch to it when the save was
+      // triggered from another tab so the highlighted fields are visible.
+      if (typeof setCaseModalActiveTab === 'function') {
+        setCaseModalActiveTab('details');
+      }
+      // Scroll to top of modal to show errors
+      var modalContent = form.closest('.modal-content');
+      if (modalContent) {
+        modalContent.scrollTop = 0;
+      }
+      // Also scroll the first error field into view
+      var firstError = form.querySelector('.field-error');
+      if (firstError) {
+        firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        firstError.focus();
+      }
+    }
+
+    return isValid;
+  }
+
   // Form validation and submission with enhanced UX
   if (submitBtn) {
     submitBtn.addEventListener('click', function() {
       var form = document.getElementById('createCaseForm');
-      var isValid = true;
+      var isUpdateMode = !!(form && form.dataset.caseId);
+
+      // Edit mode: route through the shared save so a pending comment draft
+      // posts together with case changes. caseFormSubmitDirect is set by
+      // saveAllCaseChanges() itself when it forwards the click.
+      if (isUpdateMode && !caseFormSubmitDirect) {
+        saveAllCaseChanges();
+        return;
+      }
 
       // Prevent multiple submissions
       if (isSubmitting) {
         return false;
       }
 
-      // Helper function to add field error
-      function addFieldError(field, message) {
-        field.classList.add('field-error');
-        if (!field.nextElementSibling || !field.nextElementSibling.classList.contains('error-message')) {
-          var errorMessage = document.createElement('div');
-          errorMessage.className = 'error-message';
-          errorMessage.textContent = message || t('validation.required');
-          field.parentNode.insertBefore(errorMessage, field.nextSibling);
-        }
-      }
-
-      // Helper function to clear field error
-      function clearFieldError(field) {
-        field.classList.remove('field-error');
-        if (field.nextElementSibling && field.nextElementSibling.classList.contains('error-message')) {
-          field.nextElementSibling.remove();
-        }
-      }
-
-      // Check all globally required fields (fields with required attribute)
-      var requiredFields = form.querySelectorAll('[required]');
-
-      requiredFields.forEach(function(field) {
-        if (!field.value) {
-          isValid = false;
-          addFieldError(field, 'This field is required');
-        } else {
-          clearFieldError(field);
-        }
-      });
-
-      // Check case-type-specific conditionally required fields
-      var caseType = form.querySelector('#caseType');
-      var currentCaseType = caseType ? caseType.value : '';
-
-      // Find all conditionally required fields that are visible for the current case type
-      var conditionalFields = form.querySelectorAll('[data-conditionally-required="true"]');
-
-      conditionalFields.forEach(function(fieldContainer) {
-        var caseTypes = fieldContainer.dataset.caseTypes || '';
-        var caseTypeList = caseTypes.split(',').map(function(t) { return t.trim(); });
-
-        // Only validate if this field is visible for the current case type
-        if (caseTypeList.includes(currentCaseType)) {
-          var input = fieldContainer.querySelector('input, select, textarea');
-          if (input && !input.value) {
-            isValid = false;
-            addFieldError(input, t('cases.clinical.validation.required_for_case_type', {caseType: getCaseTypeDisplayLabel(currentCaseType)}));
-          } else if (input) {
-            clearFieldError(input);
-          }
-        }
-      });
-
-      // ============================================
-      // TOOTH NUMBER VALIDATION ON SUBMIT
-      // Business Rule: For Crown case type, validates tooth number
-      // using standard dental numbering (1-32 for adult teeth).
-      // ============================================
-      if (currentCaseType === 'Crown' && window.toothNumberValidation) {
-        var toothNumberInput = document.getElementById('clinicalToothNumber');
-        if (toothNumberInput && toothNumberInput.value.trim() !== '') {
-          var toothResult = window.toothNumberValidation.validateToothNumber(toothNumberInput.value);
-          if (!toothResult.valid) {
-            isValid = false;
-            window.toothNumberValidation.showFieldError(toothNumberInput, toothResult.error);
-          }
-        }
-      }
-
-      // ============================================
-      // CASE NOTES CHARACTER LIMIT VALIDATION ON SUBMIT
-      // Business Rule: Notes field is limited to 3,000 characters.
-      // ============================================
-      var notesField = document.getElementById('notes');
-      if (notesField && notesField.value.length > 3000) {
-        isValid = false;
-        addFieldError(notesField, t('validation.notes_max', {max: 3000}));
-      }
-
-      if (!isValid) {
-        // Scroll to top of modal to show errors
-        var modalContent = form.closest('.modal-content');
-        if (modalContent) {
-          modalContent.scrollTop = 0;
-        }
-        // Also scroll the first error field into view
-        var firstError = form.querySelector('.field-error');
-        if (firstError) {
-          firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          firstError.focus();
-        }
+      if (!validateCaseForm(form)) {
         return false;
       }
 
@@ -6786,13 +6918,22 @@ document.addEventListener('DOMContentLoaded', function () {
     submitBtn.classList.add('error');
     submitBtn.innerHTML = '<span class="btn-error"></span> ' + t('common.error');
 
+    // The comment draft is an independent record - post it even though the
+    // case save failed, so the user's reply is not silently left behind.
+    if (pendingPostSaveComment) {
+      pendingPostSaveComment = false;
+      if (typeof window.postCaseComment === 'function') {
+        window.postCaseComment();
+      }
+    }
+
     // Handle concurrent edit conflict
     if (error.conflict) {
       showConcurrentEditConflictDialog(error, form);
       // Reset button immediately for conflict
       submitBtn.classList.remove('error');
       submitBtn.disabled = false;
-      submitBtn.innerHTML = isUpdate ? t('cases.update_case') : t('cases.create_case');
+      submitBtn.innerHTML = isUpdate ? t('cases.save_all_changes') : t('cases.create_case');
       isSubmitting = false;
       return;
     }
@@ -6828,7 +6969,7 @@ document.addEventListener('DOMContentLoaded', function () {
     setTimeout(() => {
       submitBtn.classList.remove('error');
       submitBtn.disabled = false;
-      submitBtn.innerHTML = isUpdate ? t('cases.update_case') : t('cases.create_case');
+      submitBtn.innerHTML = isUpdate ? t('cases.save_all_changes') : t('cases.create_case');
       isSubmitting = false;
     }, 2000);
   }
@@ -7036,7 +7177,33 @@ document.addEventListener('DOMContentLoaded', function () {
     isSubmitting = false;
     submitBtn.disabled = false;
     submitBtn.classList.remove('success');
-    submitBtn.innerHTML = isUpdate ? t('cases.update_case') : t('cases.create_case');
+    submitBtn.innerHTML = isUpdate ? t('cases.save_all_changes') : t('cases.create_case');
+
+    // A comment draft was pending when the case saved - post it now and only
+    // close once it succeeds, so the modal never resets with work left over.
+    if (pendingPostSaveComment && typeof window.postCaseComment === 'function') {
+      pendingPostSaveComment = false;
+      window.postCaseComment().then(function(commentPosted) {
+        if (commentPosted) {
+          closeCreateCase();
+          form.reset();
+          clearFileSelections();
+        } else {
+          // Case saved; the comment is the only thing left. Re-baseline the
+          // form so the just-saved values are not treated as unsaved edits,
+          // and keep the draft in place for retry.
+          originalFormData = new FormData(form);
+          hasUnsavedChanges = false;
+          if (typeof showToast === 'function') {
+            showToast(t('cases.toast.case_saved_comment_failed'), 'error');
+          }
+          if (typeof window.updateCaseCommentSubmitState === 'function') {
+            window.updateCaseCommentSubmitState();
+          }
+        }
+      });
+      return;
+    }
 
     closeCreateCase();
     form.reset();
@@ -8433,7 +8600,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Update modal title to indicate editing mode
     if (modalTitle) modalTitle.textContent = t('cases.edit_case');
-    if (submitBtn) submitBtn.textContent = t('cases.update_case');
+    if (submitBtn) submitBtn.textContent = t('cases.save_all_changes');
 
     // Show revision indicator in modal header if case has revisions
     var revisionCount = caseData.revisionCount || 0;

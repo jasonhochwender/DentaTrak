@@ -15,6 +15,8 @@
   var selectedMentionIndex = 0;
   var activeLoadId = 0;
   var selectedMentions = []; // { user_id, token, name }
+  var commentSubmitting = false;
+  var commentInFlightPromise = null;
 
   /**
    * Initialize comments for a case
@@ -30,6 +32,11 @@
     loadComments(caseId);
     loadPracticeUsers();
     setupCommentInput();
+    commentSubmitting = false;
+    updateSubmitButton(
+      document.getElementById('caseCommentInput'),
+      document.getElementById('caseCommentSubmit')
+    );
   };
 
   /**
@@ -396,31 +403,75 @@
    * Update submit button state
    */
   function updateSubmitButton(input, submitBtn) {
-    if (submitBtn) {
-      submitBtn.disabled = !input.value.trim();
-    }
+    if (!submitBtn) return;
+    submitBtn.disabled = commentSubmitting || !input.value.trim();
+    // When case-detail edits are pending, this button saves those too - say so.
+    var caseDirty = typeof window.caseFormHasUnsavedChanges === 'function' &&
+      window.caseFormHasUnsavedChanges();
+    submitBtn.textContent = caseDirty
+      ? t('cases.save_all_changes')
+      : t('cases.comments.add_comment');
   }
 
   /**
-   * Submit a new comment
+   * Refresh the comment submit button from app.js (form dirtiness changes,
+   * tab switches) without needing access to the input element.
    */
-  function submitComment() {
+  window.updateCaseCommentSubmitState = function() {
+    updateSubmitButton(
+      document.getElementById('caseCommentInput'),
+      document.getElementById('caseCommentSubmit')
+    );
+  };
+
+  /**
+   * True while a comment POST is in flight - callers can skip re-submitting.
+   */
+  window.caseCommentSubmitting = function() {
+    return commentSubmitting;
+  };
+
+  /**
+   * The in-flight comment POST promise, or null. Lets the shared save wait
+   * for the running request instead of silently dropping a save triggered
+   * while the comment is still submitting.
+   */
+  window.caseCommentInFlight = function() {
+    return commentInFlightPromise;
+  };
+
+  /**
+   * True when the comment box holds an unsubmitted draft.
+   */
+  window.caseCommentHasDraft = function() {
+    var input = document.getElementById('caseCommentInput');
+    return !!(input && input.value.trim());
+  };
+
+  /**
+   * Submit a new comment. Returns a Promise resolving to true when the draft
+   * was posted (or there was nothing to post) and false on failure - the
+   * draft is left intact on failure so it can be retried without duplicates.
+   */
+  function postComment() {
     var input = document.getElementById('caseCommentInput');
     var submitBtn = document.getElementById('caseCommentSubmit');
-    
-    if (!input || !currentCaseId) return;
-    
+
+    if (!input || !currentCaseId) return Promise.resolve(false);
+
     var text = input.value.trim();
-    if (!text) return;
+    if (!text) return Promise.resolve(true);
+    if (commentSubmitting) return commentInFlightPromise || Promise.resolve(false);
 
     // Disable while submitting
+    commentSubmitting = true;
     if (submitBtn) submitBtn.disabled = true;
     input.disabled = true;
 
     var csrfToken = document.querySelector('meta[name="csrf-token"]');
     csrfToken = csrfToken ? csrfToken.getAttribute('content') : '';
 
-    fetch('api/case-comments.php', {
+    commentInFlightPromise = fetch('api/case-comments.php', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -440,16 +491,17 @@
         input.value = '';
         selectedMentions = [];
         loadComments(currentCaseId);
-        
+
         // Show success feedback
         if (typeof showToast === 'function') {
           showToast(t('comments.toast_added'), 'success');
         }
-      } else {
-        if (typeof showToast === 'function') {
-          showToast(data.message || t('comments.toast_add_error'), 'error');
-        }
+        return true;
       }
+      if (typeof showToast === 'function') {
+        showToast(data.message || t('comments.toast_add_error'), 'error');
+      }
+      return false;
     })
     .catch(function(error) {
       console.error('Error submitting comment:', error);
@@ -458,12 +510,33 @@
       } else if (typeof showToast === 'function') {
         showToast(t('comments.toast_add_error_retry'), 'error');
       }
+      return false;
     })
     .finally(function() {
+      commentSubmitting = false;
+      commentInFlightPromise = null;
       input.disabled = false;
-      if (submitBtn) submitBtn.disabled = false;
+      updateSubmitButton(input, submitBtn);
       input.focus();
     });
+
+    return commentInFlightPromise;
+  }
+
+  // Public poster used by the shared "Save All Changes" flow.
+  window.postCaseComment = postComment;
+
+  /**
+   * Comment submit entry point (button click / Enter). Routes through the
+   * shared save so pending case-detail edits are saved together with the
+   * comment instead of being left behind.
+   */
+  function submitComment() {
+    if (typeof window.saveAllCaseChanges === 'function') {
+      window.saveAllCaseChanges();
+      return;
+    }
+    postComment();
   }
 
   /**

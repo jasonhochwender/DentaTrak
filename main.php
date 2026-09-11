@@ -525,7 +525,7 @@ if (isset($appConfig) && is_array($appConfig) && isset($appConfig['appName'])) {
   <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
   
   <!-- Preload critical resources -->
-  <link rel="preload" href="js/app.js?v=20260906a" as="script">
+  <link rel="preload" href="js/app.js?v=20260911a" as="script">
   <link rel="preload" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
   <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap"></noscript>
   
@@ -2043,10 +2043,6 @@ endif;
                 <span id="createdByDisplay" class="case-meta-value"><?php echo t('common.unknown'); ?></span>
               </div>
 
-              <div class="modal-footer create-case-footer">
-                <button type="button" class="btn-primary" id="createCaseSubmit"><?php echo t('cases.create_case'); ?></button>
-                <button type="button" class="btn-cancel" id="createCaseCancel"><?php echo t('common.cancel'); ?></button>
-              </div>
             </form>
 
 <?php if (isFeatureEnabled('SHOW_COMMENTS')): ?>
@@ -2080,6 +2076,13 @@ endif;
               </div>
             </div>
 <?php endif; ?>
+
+            <!-- Shared footer - visible on every tab so "Save All Changes" is
+                 always reachable when case edits or a comment draft exist. -->
+            <div class="modal-footer create-case-footer">
+              <button type="button" class="btn-primary" id="createCaseSubmit"><?php echo t('cases.create_case'); ?></button>
+              <button type="button" class="btn-cancel" id="createCaseCancel"><?php echo t('common.cancel'); ?></button>
+            </div>
           </div>
         </div>
       </div>
@@ -3063,14 +3066,14 @@ endif;
   </script>
   <script src="js/workflow-draft.js?v=20260829f" defer></script>
   <script src="js/workflow-draft-ui.js?v=20260829f" defer></script>
-  <script src="js/app.js?v=20260906a" defer></script>
+  <script src="js/app.js?v=20260911a" defer></script>
   <script src="js/mobile-case-modal.js?v=20260830c" defer></script>
   <script src="js/mobile-kanban.js?v=20260829b" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js" defer></script>
   <script type="module" src="js/attachment-viewer.js?v=20260903a" defer></script>
   <script src="js/card-delete-fixed.js?v=20250104" defer></script>
   <script src="js/assignments.js?v=20250104" defer></script>
-  <script src="js/case-comments.js?v=20260904a" defer></script>
+  <script src="js/case-comments.js?v=20260911a" defer></script>
   <script src="js/notifications.js?v=20260909a" defer></script>
 <?php if (isFeatureEnabled('SHOW_NOTIFICATIONS')): ?>
   <script src="js/notification-preferences.js?v=20250104" defer></script>
