@@ -26,6 +26,7 @@ if (empty($_SESSION['db_user_id'])) {
 
 // Load dev tools access control
 require_once __DIR__ . '/api/dev-tools-access.php';
+require_once __DIR__ . '/api/feature-flags.php';
 
 // Check if current user can access admin pages. In production/UAT/Cloud Run
 // only configured super users are allowed. The 'development' exception applies
@@ -810,6 +811,29 @@ $userEmail = $_SESSION['user_email'] ?? '';
         .settings-list li {
             margin-bottom: 4px;
         }
+
+        .settings-number-input {
+            width: 60px;
+            padding: 3px 6px;
+            border: 1px solid #d1d5db;
+            border-radius: 4px;
+            font-size: 0.85rem;
+        }
+
+        .settings-number-input:disabled {
+            background: #f3f4f6;
+            color: #9ca3af;
+        }
+
+        .settings-sublabel {
+            font-size: 0.8rem;
+            color: #6b7280;
+            font-weight: 400;
+        }
+
+        .hidden {
+            display: none !important;
+        }
         /* Compact UI overrides */
         .admin-header {
             margin-bottom: 16px;
@@ -1060,6 +1084,7 @@ $userEmail = $_SESSION['user_email'] ?? '';
     
     <script>
         window.csrfToken = <?php echo json_encode($csrfToken); ?>;
+        window.showGoogleDriveBackupSetting = <?php echo isFeatureEnabled('SHOW_GOOGLE_DRIVE_BACKUP') ? 'true' : 'false'; ?>;
     </script>
     <?php require_once __DIR__ . '/api/auth-timeout-script.php'; ?>
     <script>
@@ -2033,30 +2058,119 @@ $userEmail = $_SESSION['user_email'] ?? '';
             setTimeout(() => toast.remove(), 3000);
         }
         
+        let currentSettingsPracticeId = null;
+
         function loadSettingsTab(practiceId) {
+            currentSettingsPracticeId = practiceId;
             loadTab('api/admin-practices.php?action=settings&practice_id=' + practiceId, data => renderSettingsTab(data.settings), 'settings', practiceId);
+        }
+
+        // Match main Settings > Display & Behavior: the day-threshold inputs
+        // are hidden and disabled when their highlight toggle is off.
+        function syncPracticeSettingInputs() {
+            const pairs = [
+                ['psHighlightPastDue', 'psPastDueDays'],
+                ['psHighlightComingDue', 'psComingDueDays'],
+                ['psHighlightAppointmentRisk', 'psAppointmentRiskDays']
+            ];
+            pairs.forEach(function(pair) {
+                const toggle = document.getElementById(pair[0]);
+                const wrap = document.getElementById(pair[1] + 'Wrap');
+                const input = document.getElementById(pair[1]);
+                if (toggle && wrap && input) {
+                    wrap.classList.toggle('hidden', !toggle.checked);
+                    input.disabled = !toggle.checked;
+                }
+            });
+        }
+
+        document.addEventListener('change', function(e) {
+            if (e.target && e.target.id && e.target.id.indexOf('psHighlight') === 0) {
+                syncPracticeSettingInputs();
+            }
+        });
+
+        function savePracticeSettings(practiceId) {
+            const status = document.getElementById('psSaveStatus');
+            const btn = document.getElementById('psSaveSettingsBtn');
+            if (btn) btn.disabled = true;
+            if (status) status.textContent = 'Saving…';
+
+            const settings = {
+                allow_card_delete: document.getElementById('psAllowCardDelete').checked,
+                delivered_hide_days: document.getElementById('psDeliveredHideDays').value,
+                case_review_tracking_enabled: document.getElementById('psCaseReviewTracking').checked,
+                highlight_past_due: document.getElementById('psHighlightPastDue').checked,
+                past_due_days: document.getElementById('psPastDueDays').value,
+                highlight_coming_due: document.getElementById('psHighlightComingDue').checked,
+                coming_due_days: document.getElementById('psComingDueDays').value,
+                highlight_appointment_risk: document.getElementById('psHighlightAppointmentRisk').checked,
+                appointment_risk_days: document.getElementById('psAppointmentRiskDays').value
+            };
+            const gd = document.getElementById('psGoogleDriveBackup');
+            if (gd) settings.google_drive_backup = gd.checked;
+
+            postJson('api/admin-practices.php?action=save_settings', {
+                practice_id: practiceId,
+                settings: settings
+            }).then(r => r.json()).then(data => {
+                if (data && data.success) {
+                    if (status) { status.textContent = 'Saved'; status.style.color = '#16a34a'; }
+                    renderSettingsTab(data.settings);
+                    syncPracticeSettingInputs();
+                } else {
+                    if (status) { status.textContent = (data && data.message) || 'Save failed'; status.style.color = '#dc2626'; }
+                }
+                if (btn) btn.disabled = false;
+            }).catch(err => {
+                if (status) { status.textContent = 'Save failed: ' + err.message; status.style.color = '#dc2626'; }
+                if (btn) btn.disabled = false;
+            });
         }
         
         function renderSettingsTab(settings) {
+            const cm = settings.case_management || {};
+            const hl = settings.due_date_highlighting || {};
+
+            // Editable Display & Behavior settings - same controls, ranges,
+            // and conditional visibility as Settings > Display & Behavior.
             let html = '<div class="settings-card">' +
-                '<h4>Case Management</h4>' +
-                '<div class="settings-row"><span class="settings-label">Allow Archiving Individual Cases</span><span class="settings-value">' + yesNo(settings.case_management.allow_archiving_individual_cases) + '</span></div>' +
-                '<div class="settings-row"><span class="settings-label">Auto-Archive Delivered Cases</span><span class="settings-value">' + yesNo(settings.case_management.auto_archive_delivered_cases) + '</span></div>' +
-                (settings.case_management.archive_delivered_cases_after_days > 0
-                    ? '<div class="settings-row"><span class="settings-label">Archive Delivered After Days</span><span class="settings-value">' + settings.case_management.archive_delivered_cases_after_days + '</span></div>'
-                    : '') +
+                '<h4>Display &amp; Behavior</h4>' +
+                '<div class="settings-row"><span class="settings-label">Allow Archiving Individual Cases</span><span class="settings-value">' +
+                    '<input type="checkbox" id="psAllowCardDelete" ' + (cm.allow_archiving_individual_cases ? 'checked' : '') + '></span></div>' +
+                '<div class="settings-row"><span class="settings-label">Auto-Archive Delivered Cases After (days, 0 = off)</span><span class="settings-value">' +
+                    '<input type="number" id="psDeliveredHideDays" min="0" max="365" class="settings-number-input" value="' + (cm.delivered_hide_days != null ? cm.delivered_hide_days : 120) + '"></span></div>' +
+                '<div class="settings-row"><span class="settings-label">Case Review Tracking</span><span class="settings-value">' +
+                    '<input type="checkbox" id="psCaseReviewTracking" ' + (settings.case_review_tracking_enabled ? 'checked' : '') + '></span></div>' +
                 '</div>';
-            
+
             html += '<div class="settings-card">' +
                 '<h4>Due Date Highlighting</h4>' +
-                '<div class="settings-row"><span class="settings-label">Highlight Past Due</span><span class="settings-value">' + yesNo(settings.due_date_highlighting.highlight_past_due) + '</span></div>' +
-                (settings.due_date_highlighting.highlight_past_due
-                    ? '<div class="settings-row"><span class="settings-label">Past Due Threshold (days)</span><span class="settings-value">' + settings.due_date_highlighting.past_due_days + '</span></div>'
-                    : '') +
-                '<div class="settings-row"><span class="settings-label">Highlight Coming Due</span><span class="settings-value">' + yesNo(settings.due_date_highlighting.highlight_coming_due) + '</span></div>' +
-                (settings.due_date_highlighting.highlight_coming_due
-                    ? '<div class="settings-row"><span class="settings-label">Coming Due Window (days)</span><span class="settings-value">' + settings.due_date_highlighting.coming_due_days + '</span></div>'
-                    : '') +
+                '<div class="settings-row"><span class="settings-label">Highlight Past Due</span><span class="settings-value">' +
+                    '<input type="checkbox" id="psHighlightPastDue" ' + (hl.highlight_past_due ? 'checked' : '') + '>' +
+                    ' <span id="psPastDueDaysWrap"><label for="psPastDueDays" class="settings-sublabel">days</label> ' +
+                    '<input type="number" id="psPastDueDays" min="1" max="99" class="settings-number-input" value="' + (hl.past_due_days != null ? hl.past_due_days : 1) + '"></span></span></div>' +
+                '<div class="settings-row"><span class="settings-label">Highlight Coming Due</span><span class="settings-value">' +
+                    '<input type="checkbox" id="psHighlightComingDue" ' + (hl.highlight_coming_due ? 'checked' : '') + '>' +
+                    ' <span id="psComingDueDaysWrap"><label for="psComingDueDays" class="settings-sublabel">days</label> ' +
+                    '<input type="number" id="psComingDueDays" min="1" max="99" class="settings-number-input" value="' + (hl.coming_due_days != null ? hl.coming_due_days : 5) + '"></span></span></div>' +
+                '<div class="settings-row"><span class="settings-label">Highlight Appointment Risk</span><span class="settings-value">' +
+                    '<input type="checkbox" id="psHighlightAppointmentRisk" ' + (hl.highlight_appointment_risk ? 'checked' : '') + '>' +
+                    ' <span id="psAppointmentRiskDaysWrap"><label for="psAppointmentRiskDays" class="settings-sublabel">days</label> ' +
+                    '<input type="number" id="psAppointmentRiskDays" min="0" max="99" class="settings-number-input" value="' + (hl.appointment_risk_days != null ? hl.appointment_risk_days : 3) + '"></span></span></div>' +
+                '</div>';
+
+            if (window.showGoogleDriveBackupSetting) {
+                html += '<div class="settings-card">' +
+                    '<h4>Backup</h4>' +
+                    '<div class="settings-row"><span class="settings-label">Google Drive Backup</span><span class="settings-value">' +
+                        '<input type="checkbox" id="psGoogleDriveBackup" ' + (settings.google_drive_backup ? 'checked' : '') + '></span></div>' +
+                    '</div>';
+            }
+
+            html += '<div class="settings-card">' +
+                '<button type="button" class="action-btn" id="psSaveSettingsBtn" onclick="savePracticeSettings(' + currentSettingsPracticeId + ')">Save Display &amp; Behavior Settings</button>' +
+                ' <span id="psSaveStatus" style="font-size: 0.85rem; margin-left: 8px;"></span>' +
                 '</div>';
             
             html += '<div class="settings-card">' +
@@ -2136,8 +2250,9 @@ $userEmail = $_SESSION['user_email'] ?? '';
             }
 
             document.getElementById('detailContent').innerHTML = html;
+            syncPracticeSettingInputs();
         }
-        
+
         function viewCompliance(practiceId) {
             selectedPracticeId = practiceId;
             document.getElementById('complianceDetails').innerHTML = '<div class="loading">' + t('common.loading') + '</div>';
