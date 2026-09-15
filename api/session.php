@@ -199,6 +199,22 @@ if (!$isPassive && !$isSelfHandled) {
     // request will be recorded by the JS activity ping instead.
 }
 
+// Record the authenticated user's most recently observed browser/OS for the
+// internal Practice Admin tools. Session-throttled (see user-environment.php);
+// failures are logged and swallowed so they never interrupt normal use.
+if (!empty($_SESSION['db_user_id'])) {
+    $pdo = $GLOBALS['pdo'] ?? null;
+    if ($pdo instanceof PDO) {
+        $envPath = __DIR__ . '/user-environment.php';
+        if (file_exists($envPath)) {
+            require_once $envPath;
+        }
+        if (function_exists('maybeRecordUserEnvironment')) {
+            maybeRecordUserEnvironment($pdo, (int)$_SESSION['db_user_id']);
+        }
+    }
+}
+
 // ============================================
 // REMEMBER ME AUTO-LOGIN
 // Security: Validates persistent token and restores session

@@ -1815,6 +1815,7 @@ $userEmail = $_SESSION['user_email'] ?? '';
                 '<th data-sort="name" style="cursor: pointer;">User ↕</th>' +
                 '<th data-sort="role" style="cursor: pointer;">Role ↕</th>' +
                 '<th data-sort="last-login" style="cursor: pointer;">Last Login ↕</th>' +
+                '<th>Last seen environment</th>' +
                 '<th data-sort="created-at" style="cursor: pointer;">Account Created ↕</th>' +
                 '<th data-sort="status" style="cursor: pointer;">Status ↕</th>' +
                 '<th>Actions</th>' +
@@ -1833,6 +1834,18 @@ $userEmail = $_SESSION['user_email'] ?? '';
                 const login = formatRelativeLogin(user.last_login);
                 const loginClass = user.last_login ? '' : ' style="color: #9ca3af;"';
 
+                // Most recently observed browser/OS; NULL timestamp means the
+                // user has not used the app since environment capture shipped.
+                let envHtml;
+                if (user.last_env_seen_at) {
+                    const envTime = formatRelativeTimestamp(user.last_env_seen_at);
+                    envHtml = escapeHtml(user.last_env_browser || 'Unknown') +
+                        '<br><small class="text-muted">' + escapeHtml(user.last_env_os || 'Unknown') +
+                        ' · ' + envTime + '</small>';
+                } else {
+                    envHtml = '<span class="text-muted">Not yet recorded</span>';
+                }
+
                 let status = 'Active';
                 let statusClass = '';
                 if (user.is_active === false || user.is_active === 0 || user.is_active === '0') {
@@ -1847,13 +1860,16 @@ $userEmail = $_SESSION['user_email'] ?? '';
                     '<td data-name="' + escapeHtml(name.toLowerCase()) + '"><strong>' + escapeHtml(name) + '</strong><br><small class="text-muted">' + escapeHtml(user.email) + '</small></td>' +
                     '<td data-role="' + escapeHtml(role) + '">' + escapeHtml(role) + '</td>' +
                     '<td data-last-login="' + (user.last_login || '') + '" title="' + escapeHtml(login.title) + '"' + loginClass + '>' + escapeHtml(login.text) + '</td>' +
+                    '<td>' + envHtml + '</td>' +
                     '<td data-created-at="' + (user.user_created_at || '') + '">' + formatDate(user.user_created_at) + '</td>' +
                     '<td data-status="' + escapeHtml(status) + '"' + statusClass + '>' + escapeHtml(status) + '</td>' +
                     '<td><button class="action-btn primary" onclick="openEmailModal(event, ' + selectedPracticeId + ', ' + user.id + ')">Email</button></td>' +
                     '</tr>';
             });
 
-            html += '</tbody></table></div>';
+            html += '</tbody></table></div>' +
+                '<p style="font-size: 0.8rem; color: #6b7280; margin-top: 8px;">' +
+                'Last seen environment reflects the most recently used browser/device for each user; detection may be approximate.</p>';
             document.getElementById('detailContent').innerHTML = html;
 
             // Attach lightweight column sorting

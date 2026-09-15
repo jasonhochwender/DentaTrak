@@ -158,6 +158,7 @@ screenshots/
 !/tests/case-list-view-e2e-test.js
 !/tests/case-save-all-e2e-test.js
 !/tests/admin-practices-settings-parity-test.php
+!/tests/user-environment-test.php
 !/tests/header-switcher-browser-test.js
 /testResults/
 /test-results/

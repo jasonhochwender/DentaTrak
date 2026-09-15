@@ -1646,6 +1646,9 @@ function getPracticeUsers($practiceId) {
         $puColumns = $pdo->query("SHOW COLUMNS FROM practice_users")->fetchAll(PDO::FETCH_COLUMN);
         
         $hasLastLoginAt = in_array('last_login_at', $userColumns);
+        $hasLastEnv = in_array('last_env_browser', $userColumns)
+            && in_array('last_env_os', $userColumns)
+            && in_array('last_env_seen_at', $userColumns);
         $hasIsOwner = in_array('is_owner', $puColumns);
         $hasIsActive = in_array('is_active', $userColumns);
         $hasEmailVerified = in_array('email_verified', $userColumns);
@@ -1655,6 +1658,9 @@ function getPracticeUsers($practiceId) {
         $hasIsLab = in_array('is_lab', $puColumns);
 
         $lastLoginSelect = $hasLastLoginAt ? 'u.last_login_at as last_login' : 'NULL as last_login';
+        $lastEnvSelect = $hasLastEnv
+            ? 'u.last_env_browser, u.last_env_os, u.last_env_seen_at'
+            : 'NULL as last_env_browser, NULL as last_env_os, NULL as last_env_seen_at';
         $isOwnerSelect = $hasIsOwner ? 'IFNULL(pu.is_owner, 0) as is_owner' : '0 as is_owner';
         $isActiveSelect = $hasIsActive ? 'IFNULL(u.is_active, 1) as is_active' : '1 as is_active';
         $emailVerifiedSelect = $hasEmailVerified ? 'IFNULL(u.email_verified, 0) as email_verified' : '1 as email_verified';
@@ -1672,6 +1678,7 @@ function getPracticeUsers($practiceId) {
                 IFNULL(u.last_name, '') as last_name,
                 u.created_at as user_created_at,
                 $lastLoginSelect,
+                $lastEnvSelect,
                 IFNULL(pu.role, 'user') as role,
                 $isOwnerSelect,
                 $isActiveSelect,
