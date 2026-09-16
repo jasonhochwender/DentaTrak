@@ -362,6 +362,13 @@
   }
 
   function fetchAndRender() {
+    // Plan entitlement is emitted by main.php; anything other than a strict
+    // true (including an evaluation failure) must not fetch protected data.
+    if (window.userHasControlAccess !== true) {
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
     setError('');
     var range = document.getElementById('liRangeSelect') ? document.getElementById('liRangeSelect').value : '12';
@@ -375,10 +382,15 @@
 
     fetch('api/get-lab-insights.php?range=' + encodeURIComponent(range), { credentials: 'same-origin', headers: headers })
       .then(function (response) {
-        if (!response.ok) {
-          throw new Error('Request failed with status ' + response.status);
-        }
-        return response.json();
+        return response.json().then(function (data) {
+          if (!response.ok) {
+            var err = new Error('Request failed with status ' + response.status);
+            err.serverMessage = data && data.message;
+            err.errorCode = data && data.error_code;
+            throw err;
+          }
+          return data;
+        });
       })
       .then(function (data) {
         setLoading(false);
@@ -394,7 +406,12 @@
       })
       .catch(function (error) {
         setLoading(false);
-        setError(t('insights.error.labs_data') || 'Unable to load lab insights. Please try again.');
+        // A mid-session entitlement loss surfaces the server's message
+        // (e.g. upgrade_required) rather than a generic failure.
+        var catchMsg = (error && error.errorCode === 'upgrade_required' && error.serverMessage)
+          ? error.serverMessage
+          : (t('insights.error.labs_data') || 'Unable to load lab insights. Please try again.');
+        setError(catchMsg);
         if (typeof console !== 'undefined' && console.error) {
           console.error('[Lab Insights] Failed to load lab insights:', error);
         }

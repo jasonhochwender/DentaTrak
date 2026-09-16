@@ -10628,20 +10628,29 @@ document.addEventListener('DOMContentLoaded', function () {
     setInsightsLoading(view, true);
     setInsightsError(view, '');
 
+    // Insights data requires a Control-plan entitlement in addition to the
+    // analytics permission. main.php emits window.userHasControlAccess
+    // (true / false / null = evaluation failed) and renders the upgrade or
+    // error state whenever it is not true, so protected data must never be
+    // fetched unless it is exactly true.
+    var hasInsightsAccess = window.userHasControlAccess === true;
+
     // Mark a pending Insights visit: the next data load for this view carries
     // the X-Insights-Visit header so the server records a last-viewed
     // timestamp once the screen actually renders successfully. Refresh
     // buttons, filter changes, and settingsUpdated refetches never set this
     // flag, so background data refreshes do not count as visits.
     window.__insightsVisitPending = window.__insightsVisitPending || {};
-    window.__insightsVisitPending[view] = true;
+    window.__insightsVisitPending[view] = hasInsightsAccess;
 
     saveInsightsSubview(view);
 
-    if (view === 'practice') {
-      loadAnalyticsScripts();
-    } else if (view === 'labs') {
-      loadLabInsightsScripts();
+    if (hasInsightsAccess) {
+      if (view === 'practice') {
+        loadAnalyticsScripts();
+      } else if (view === 'labs') {
+        loadLabInsightsScripts();
+      }
     }
 
     if (updateHash && window.history.replaceState) {

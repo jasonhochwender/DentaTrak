@@ -139,6 +139,13 @@
   }
 
   function loadAnalyticsPro() {
+    // Plan entitlement is emitted by main.php; anything other than a strict
+    // true (including an evaluation failure) must not fetch protected data.
+    if (window.userHasControlAccess !== true) {
+      setAnalyticsLoading(false);
+      return;
+    }
+
     setAnalyticsLoading(true);
     setAnalyticsError('');
 
@@ -163,8 +170,15 @@
       headers: headers
     })
       .then(response => {
-        if (!response.ok) throw new Error('HTTP ' + response.status);
-        return response.json();
+        return response.json().then(data => {
+          if (!response.ok) {
+            var err = new Error('HTTP ' + response.status);
+            err.serverMessage = data && data.message;
+            err.errorCode = data && data.error_code;
+            throw err;
+          }
+          return data;
+        });
       })
       .then(data => {
         setAnalyticsLoading(false);
@@ -185,7 +199,12 @@
       })
       .catch(error => {
         setAnalyticsLoading(false);
-        setAnalyticsError(t('insights.error.analytics_data') || 'Unable to load analytics data. Please try again.');
+        // A mid-session entitlement loss surfaces the server's message
+        // (e.g. upgrade_required) rather than a generic failure.
+        var catchMsg = (error && error.errorCode === 'upgrade_required' && error.serverMessage)
+          ? error.serverMessage
+          : (t('insights.error.analytics_data') || 'Unable to load analytics data. Please try again.');
+        setAnalyticsError(catchMsg);
         if (typeof console !== 'undefined' && console.error) {
           console.error('[Practice Insights] Failed to load analytics data:', error);
         }
@@ -582,6 +601,10 @@
   // isManual=true: user-initiated Refresh, bypasses aiRecommendationsLoaded guard.
   // isManual=false (default): auto-load, skipped if already loaded successfully.
   function loadAIRecommendations(isManual) {
+    // Smart Recommendations is Control-gated server-side; never fetch without
+    // a confirmed entitlement.
+    if (window.userHasControlAccess !== true) return;
+
     const container = document.getElementById('apRecommendations');
     const aiRefreshBtn = document.getElementById('apRefreshAI');
 

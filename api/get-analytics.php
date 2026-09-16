@@ -37,7 +37,31 @@ if (!canViewAnalytics($practiceId)) {
 
 // Load configuration
 require_once __DIR__ . '/appConfig.php';
+require_once __DIR__ . '/billing-bypass.php';
+require_once __DIR__ . '/subscription-access.php';
 require_once __DIR__ . '/at-risk-calculator.php';
+
+// Plan entitlement: Practice Insights requires a Control-or-higher plan in
+// addition to the per-user analytics permission above. hasControlAccess()
+// already encodes active trials, founder/billing bypasses, and the
+// BILLING_ENABLED=false bypass. This must run before any analytics query or
+// visit recording so a denied request produces no data and no side effects.
+$userId = $_SESSION['db_user_id'] ?? null;
+$userEmail = '';
+if ($userId) {
+    $emailStmt = $pdo->prepare("SELECT email FROM users WHERE id = ?");
+    $emailStmt->execute([$userId]);
+    $userEmail = $emailStmt->fetchColumn() ?: '';
+}
+if (!hasControlAccess($pdo, $practiceId, $userEmail)) {
+    http_response_code(403);
+    echo json_encode([
+        'success' => false,
+        'message' => 'Practice Insights requires the Control plan',
+        'error_code' => 'upgrade_required'
+    ]);
+    exit;
+}
 
 // Match the local calendar-day semantics used by the Kanban board
 // (see js/app.js getCalendarDayDiff() and api/list-cases.php).

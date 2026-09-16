@@ -402,6 +402,24 @@ $showBillingHeader = isFeatureEnabled('BILLING_ENABLED')
 // Fetch current practice information for header
 $currentPracticeId = $_SESSION['current_practice_id'] ?? 0;
 
+// Plan entitlement for the Insights screens (Practice Insights, Lab
+// Insights, Smart Recommendations). Distinct from $userCanViewAnalytics
+// above: can_view_analytics controls whether the tab is offered at all,
+// while hasControlAccess() controls whether the panes render data or an
+// upgrade state. hasControlAccess() already encodes active trials,
+// founder/billing bypasses, and BILLING_ENABLED=false. null = the check
+// could not be evaluated - the UI then shows a recoverable error state and
+// the API still enforces the entitlement independently.
+require_once __DIR__ . '/api/subscription-access.php';
+$userHasControlAccess = null;
+try {
+    $userHasControlAccess = $currentPracticeId
+        ? hasControlAccess($pdo, (int)$currentPracticeId, (string)($user['email'] ?? ''))
+        : false;
+} catch (Throwable $e) {
+    error_log('[insights] Unable to evaluate Control plan entitlement');
+}
+
 // Get practice name and logo
 $practiceName = 'My Practice'; // Default
 $practiceLogoPath = ''; // Default
@@ -534,7 +552,7 @@ if (isset($appConfig) && is_array($appConfig) && isset($appConfig['appName'])) {
   <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
   
   <!-- Preload critical resources -->
-  <link rel="preload" href="js/app.js?v=20260916d" as="script">
+  <link rel="preload" href="js/app.js?v=20260916e" as="script">
   <link rel="preload" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
   <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap"></noscript>
   
@@ -597,7 +615,7 @@ if (isset($appConfig) && is_array($appConfig) && isset($appConfig['appName'])) {
   <link rel="preload" href="css/practice-name.css?v=20241210" as="style" onload="this.onload=null;this.rel='stylesheet'">
   <link rel="preload" href="css/logo-upload.css?v=20260807a" as="style" onload="this.onload=null;this.rel='stylesheet'">
   <link rel="preload" href="css/dev-tools.css?v=20241210" as="style" onload="this.onload=null;this.rel='stylesheet'">
-  <link rel="preload" href="css/analytics-pro.css?v=20241231" as="style" onload="this.onload=null;this.rel='stylesheet'">
+  <link rel="preload" href="css/analytics-pro.css?v=20260916" as="style" onload="this.onload=null;this.rel='stylesheet'">
   <link rel="preload" href="css/attachment-viewer.css?v=20260903a" as="style" onload="this.onload=null;this.rel='stylesheet'">
 <?php if (isFeatureEnabled('SHOW_LAB_INSIGHTS')): ?>
   <link rel="preload" href="css/lab-insights.css?v=20260905a" as="style" onload="this.onload=null;this.rel='stylesheet'">
@@ -624,7 +642,7 @@ if (isset($appConfig) && is_array($appConfig) && isset($appConfig['appName'])) {
     <link rel="stylesheet" href="css/practice-name.css?v=20241210">
     <link rel="stylesheet" href="css/logo-upload.css?v=20260807a">
     <link rel="stylesheet" href="css/dev-tools.css?v=20241210">
-    <link rel="stylesheet" href="css/analytics-pro.css?v=20241231">
+    <link rel="stylesheet" href="css/analytics-pro.css?v=20260916">
 <?php if (isFeatureEnabled('SHOW_LAB_INSIGHTS')): ?>
     <link rel="stylesheet" href="css/lab-insights.css?v=20260905a">
 <?php endif; ?>
@@ -644,6 +662,7 @@ if (isset($appConfig) && is_array($appConfig) && isset($appConfig['appName'])) {
     window.workflowTerminal = <?php echo json_encode(['id' => getLastActiveWorkflowColumnId($currentPracticeId ?: null), 'label' => resolveWorkflowStageLabelForPractice(getLastActiveWorkflowColumnId($currentPracticeId ?: null), $currentPracticeId ?: null)], JSON_UNESCAPED_UNICODE); ?>;
     window.currentPracticeId = <?php echo (int)$currentPracticeId; ?>;
     window.userCanViewAnalytics = <?php echo $userCanViewAnalytics ? 'true' : 'false'; ?>;
+    window.userHasControlAccess = <?php echo $userHasControlAccess === true ? 'true' : ($userHasControlAccess === false ? 'false' : 'null'); ?>;
     window.isPracticeAdmin = <?php echo $isCurrentUserPracticeAdmin ? 'true' : 'false'; ?>;
     window.workflowColumnsEndpoint = <?php echo json_encode('api/workflow-columns.php', JSON_UNESCAPED_UNICODE); ?>;
   </script>
@@ -1018,9 +1037,50 @@ endif;
         </div>
         <!-- End Cases Tab -->
 
+        <?php
+        // Full-pane Insights gate state, rendered in place of the analytics
+        // content when the practice lacks the Control entitlement
+        // ($userHasControlAccess === false) or the check could not be
+        // evaluated (null). Built once and reused by both Insights panes.
+        // Mirrors the ap-upgrade-overlay visual language.
+        ob_start();
+        if ($userHasControlAccess === false) {
+            ?>
+            <div class="insights-upgrade-screen">
+              <div class="insights-upgrade-card">
+                <div class="ap-upgrade-overlay-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                  </svg>
+                </div>
+                <h3><?= t('insights.upgrade.screen_title') ?></h3>
+                <p><?= t('insights.upgrade.screen_description') ?></p>
+<?php if (isFeatureEnabled('BILLING_ENABLED') && $isCurrentUserPracticeAdmin): ?>
+                <a href="billing.php" class="ap-upgrade-btn"><?= t('insights.upgrade.button') ?></a>
+<?php else: ?>
+                <p class="insights-upgrade-note"><?= t('insights.upgrade.contact_admin') ?></p>
+<?php endif; ?>
+              </div>
+            </div>
+            <?php
+        } else {
+            ?>
+            <div class="insights-upgrade-screen">
+              <div class="insights-upgrade-card">
+                <h3><?= t('insights.upgrade.unavailable_title') ?></h3>
+                <p><?= t('insights.upgrade.unavailable_description') ?></p>
+                <button type="button" class="ap-upgrade-btn" onclick="window.location.reload()"><?= t('common.retry') ?></button>
+              </div>
+            </div>
+            <?php
+        }
+        $insightsGateScreen = ob_get_clean();
+        ?>
+
         <!-- Insights Tab (consolidated analytics + AI) -->
         <div class="main-tab-pane" id="insights-tab">
           <div class="analytics-pro">
+<?php if ($userHasControlAccess === true): ?>
             <div class="insights-subtabs" id="insightsSubtabs" role="tablist">
               <button type="button" class="insights-subtab active" data-insights-subtab="practice" role="tab" aria-selected="true"><?= t('insights.navigation.practice') ?></button>
               <?php if (isFeatureEnabled('SHOW_LAB_INSIGHTS')): ?>
@@ -1527,6 +1587,9 @@ endif;
               </svg>
               <p id="apErrorText"><?= t('insights.error.analytics') ?></p>
             </div>
+<?php else: ?>
+<?php echo $insightsGateScreen; ?>
+<?php endif; ?>
           </div>
         </div>
         <!-- End Insights Tab -->
@@ -1535,6 +1598,7 @@ endif;
         <!-- Lab Insights Tab -->
         <div class="main-tab-pane" id="lab-insights-tab">
           <div class="analytics-pro li-root">
+<?php if ($userHasControlAccess === true): ?>
             <div class="insights-subtabs" id="labInsightsSubtabs" role="tablist">
               <button type="button" class="insights-subtab" data-insights-subtab="practice" role="tab" aria-selected="false"><?= t('insights.navigation.practice') ?></button>
               <?php if (isFeatureEnabled('SHOW_LAB_INSIGHTS')): ?>
@@ -1681,6 +1745,9 @@ endif;
               </svg>
               <p id="liErrorText"><?= t('insights.error.labs') ?></p>
             </div>
+<?php else: ?>
+<?php echo $insightsGateScreen; ?>
+<?php endif; ?>
           </div>
         </div>
         <!-- End Lab Insights Tab -->
@@ -3092,7 +3159,7 @@ endif;
   <script src="js/workflow-draft-ui.js?v=20260829f" defer></script>
   <script type="application/json" id="caseViewBootstrap"><?= json_encode($caseViewBootstrap, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?></script>
   <script src="js/case-filter-sort.js?v=20260916f" defer></script>
-  <script src="js/app.js?v=20260916d" defer></script>
+  <script src="js/app.js?v=20260916e" defer></script>
   <script src="js/mobile-case-modal.js?v=20260830c" defer></script>
   <script src="js/mobile-kanban.js?v=20260916b" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js" defer></script>

@@ -847,6 +847,94 @@
   transform: translateY(-1px);
 }
 
+/* Full-pane Insights gate state (upgrade or entitlement-error), rendered
+   server-side in place of all analytics content when the practice lacks the
+   Control entitlement. Mirrors the ap-upgrade-overlay visual language. */
+.insights-upgrade-screen {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 420px;
+  padding: 48px 24px;
+}
+
+.insights-upgrade-card {
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 12px;
+  padding: 32px;
+  text-align: center;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  border: 1px solid #e2e8f0;
+  max-width: 420px;
+}
+
+.insights-upgrade-card .ap-upgrade-overlay-icon {
+  margin-bottom: 16px;
+}
+
+.insights-upgrade-card h3 {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #1e293b;
+  margin: 0 0 8px 0;
+}
+
+.insights-upgrade-card p {
+  font-size: 0.875rem;
+  color: #64748b;
+  margin: 0 0 16px 0;
+  line-height: 1.5;
+}
+
+.insights-upgrade-card p:last-child {
+  margin-bottom: 0;
+}
+
+.insights-upgrade-card .insights-upgrade-note {
+  font-size: 0.8rem;
+  color: #94a3b8;
+}
+
+.insights-upgrade-card .ap-upgrade-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 20px;
+  background: linear-gradient(135deg, #1e40af 0%, #2563eb 100%);
+  color: white;
+  font-size: 0.875rem;
+  font-weight: 500;
+  border: none;
+  border-radius: 8px;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(30, 64, 175, 0.3);
+}
+
+.insights-upgrade-card .ap-upgrade-btn:hover {
+  background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%);
+  box-shadow: 0 4px 12px rgba(30, 64, 175, 0.4);
+  transform: translateY(-1px);
+}
+
+[data-theme="dark"] .insights-upgrade-card {
+  background: rgba(15, 23, 42, 0.95);
+  border-color: #334155;
+}
+
+[data-theme="dark"] .insights-upgrade-card h3 {
+  color: #f1f5f9;
+}
+
+[data-theme="dark"] .insights-upgrade-card p {
+  color: #94a3b8;
+}
+
+[data-theme="dark"] .insights-upgrade-card .insights-upgrade-note {
+  color: #64748b;
+}
+
 /* Dark theme */
 [data-theme="dark"] .ap-upgrade-overlay {
   background: rgba(15, 23, 42, 0.95);

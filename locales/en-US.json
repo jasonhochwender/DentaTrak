@@ -1092,7 +1092,12 @@
             "lab_insights_title": "Lab Insights",
             "lab_insights_description": "Unlock lab workload, turnaround, current late cases, and revision comparisons across the labs your practice works with.",
             "button": "Upgrade to Control",
-            "analytics_control": "Analytics is available on Control plan. Upgrade to access analytics features."
+            "analytics_control": "Analytics is available on Control plan. Upgrade to access analytics features.",
+            "screen_title": "Unlock Insights with Control",
+            "screen_description": "Practice Insights, Lab Insights, and Smart Recommendations are included with the Control and Scale plans.",
+            "contact_admin": "Contact your practice administrator to upgrade your plan.",
+            "unavailable_title": "Insights unavailable",
+            "unavailable_description": "We couldn't verify your plan. Please try again."
         }
     },
     "users": {
