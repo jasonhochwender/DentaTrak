@@ -151,8 +151,16 @@
 
     const apiUrl = `api/get-analytics.php?team_period=${teamPeriod}&team_filter=${teamFilter}&volume_period=${volumePeriod}&status_period=${statusPeriod}&type_period=${typePeriod}&duration_period=${durationPeriod}`;
 
+    // A pending flag set by activateInsightsSubview() marks this request as a
+    // screen visit; it is cleared only when the screen renders successfully.
+    const headers = {};
+    if (window.__insightsVisitPending && window.__insightsVisitPending.practice) {
+      headers['X-Insights-Visit'] = '1';
+    }
+
     fetch(apiUrl, {
-      credentials: 'same-origin'
+      credentials: 'same-origin',
+      headers: headers
     })
       .then(response => {
         if (!response.ok) throw new Error('HTTP ' + response.status);
@@ -161,6 +169,9 @@
       .then(data => {
         setAnalyticsLoading(false);
         if (data && data.success) {
+          if (window.__insightsVisitPending) {
+            window.__insightsVisitPending.practice = false;
+          }
           const payload = data.data || {};
           renderAnalyticsPro(payload);
           apDataLoaded = true;

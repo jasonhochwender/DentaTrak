@@ -394,6 +394,60 @@ function canViewAnalytics($practiceId = null) {
 }
 
 /**
+ * Record that the current session user just successfully loaded an Insights
+ * screen in the given practice. Updates the matching last-viewed column on
+ * the caller's own practice_users membership row.
+ *
+ * Timestamps are written with UTC_TIMESTAMP() - an explicit UTC convention
+ * that does not depend on the connection time_zone - and are returned to
+ * admin tooling as ISO 8601 values with a +00:00 offset.
+ *
+ * This is strictly best-effort: any failure is logged and swallowed so a
+ * tracking problem can never break the Insights screen that triggered it.
+ * Callers must only invoke this on the successful-response path of an
+ * Insights data endpoint, after practice membership and feature permissions
+ * have already been verified.
+ *
+ * @param int    $userId     Session user ID (never client-supplied)
+ * @param int    $practiceId Verified session practice ID
+ * @param string $feature    'practice' (Practice Insights) or 'labs' (Lab Insights)
+ * @return bool True when the membership row was updated
+ */
+function recordInsightsVisit($userId, $practiceId, $feature) {
+    global $pdo;
+
+    if (!$pdo || !$userId || !$practiceId) {
+        return false;
+    }
+
+    $columns = [
+        'practice' => 'practice_insights_viewed_at',
+        'labs'     => 'lab_insights_viewed_at',
+    ];
+
+    if (!isset($columns[$feature])) {
+        return false;
+    }
+    $column = $columns[$feature];
+
+    try {
+        $stmt = $pdo->prepare("
+            UPDATE practice_users
+            SET {$column} = UTC_TIMESTAMP()
+            WHERE user_id = :user_id AND practice_id = :practice_id
+        ");
+        $stmt->execute([
+            'user_id' => $userId,
+            'practice_id' => $practiceId,
+        ]);
+        return $stmt->rowCount() > 0;
+    } catch (Throwable $e) {
+        error_log('[insights-usage] Failed to record visit: ' . $e->getMessage());
+        return false;
+    }
+}
+
+/**
  * Check if the current user is flagged as an external collaborator
  * (e.g., a dental laboratory or other outside party) in the given practice.
  *

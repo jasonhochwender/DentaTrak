@@ -10617,6 +10617,14 @@ document.addEventListener('DOMContentLoaded', function () {
     setInsightsLoading(view, true);
     setInsightsError(view, '');
 
+    // Mark a pending Insights visit: the next data load for this view carries
+    // the X-Insights-Visit header so the server records a last-viewed
+    // timestamp once the screen actually renders successfully. Refresh
+    // buttons, filter changes, and settingsUpdated refetches never set this
+    // flag, so background data refreshes do not count as visits.
+    window.__insightsVisitPending = window.__insightsVisitPending || {};
+    window.__insightsVisitPending[view] = true;
+
     saveInsightsSubview(view);
 
     if (view === 'practice') {

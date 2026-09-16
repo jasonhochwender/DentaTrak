@@ -366,7 +366,14 @@
     setError('');
     var range = document.getElementById('liRangeSelect') ? document.getElementById('liRangeSelect').value : '12';
 
-    fetch('api/get-lab-insights.php?range=' + encodeURIComponent(range), { credentials: 'same-origin' })
+    // A pending flag set by activateInsightsSubview() marks this request as a
+    // screen visit; it is cleared only when the screen renders successfully.
+    var headers = {};
+    if (window.__insightsVisitPending && window.__insightsVisitPending.labs) {
+      headers['X-Insights-Visit'] = '1';
+    }
+
+    fetch('api/get-lab-insights.php?range=' + encodeURIComponent(range), { credentials: 'same-origin', headers: headers })
       .then(function (response) {
         if (!response.ok) {
           throw new Error('Request failed with status ' + response.status);
@@ -380,6 +387,9 @@
           return;
         }
         setError('');
+        if (window.__insightsVisitPending) {
+          window.__insightsVisitPending.labs = false;
+        }
         render(data);
       })
       .catch(function (error) {

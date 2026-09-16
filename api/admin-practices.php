@@ -21,6 +21,9 @@ require_once __DIR__ . '/workflow-stages.php';
 require_once __DIR__ . '/lab-assignment-history.php';
 require_once __DIR__ . '/subscription-owner.php';
 require_once __DIR__ . '/plan-entitlements.php';
+require_once __DIR__ . '/feature-flags.php';
+require_once __DIR__ . '/billing-bypass.php';
+require_once __DIR__ . '/subscription-access.php';
 require_once __DIR__ . '/admin-subscription-helpers.php';
 require_once __DIR__ . '/email-sender.php';
 
@@ -792,9 +795,15 @@ function handleGetRequest($action) {
             }
             
             $users = getPracticeUsers($practiceId);
+            // Lab Insights is available to a practice's members only when the
+            // SHOW_LAB_INSIGHTS flag is on AND the practice has Control-level
+            // access - the same gates api/get-lab-insights.php enforces.
+            $labInsightsAvailable = isFeatureEnabled('SHOW_LAB_INSIGHTS')
+                && hasControlAccess($pdo, (int)$practiceId, '');
             echo json_encode([
                 'success' => true,
-                'users' => $users
+                'users' => $users,
+                'lab_insights_available' => $labInsightsAvailable
             ]);
             break;
             
@@ -1656,6 +1665,8 @@ function getPracticeUsers($practiceId) {
         $hasCanViewAnalytics = in_array('can_view_analytics', $puColumns);
         $hasCanEditCases = in_array('can_edit_cases', $puColumns);
         $hasIsLab = in_array('is_lab', $puColumns);
+        $hasInsightsVisits = in_array('practice_insights_viewed_at', $puColumns)
+            && in_array('lab_insights_viewed_at', $puColumns);
 
         $lastLoginSelect = $hasLastLoginAt ? 'u.last_login_at as last_login' : 'NULL as last_login';
         $lastEnvSelect = $hasLastEnv
@@ -1668,6 +1679,9 @@ function getPracticeUsers($practiceId) {
         $canViewAnalyticsSelect = $hasCanViewAnalytics ? 'IFNULL(pu.can_view_analytics, 0) as can_view_analytics' : '0 as can_view_analytics';
         $canEditCasesSelect = $hasCanEditCases ? 'IFNULL(pu.can_edit_cases, 0) as can_edit_cases' : '0 as can_edit_cases';
         $isLabSelect = $hasIsLab ? 'IFNULL(pu.is_lab, 0) as is_lab' : '0 as is_lab';
+        $insightsVisitsSelect = $hasInsightsVisits
+            ? 'pu.practice_insights_viewed_at, pu.lab_insights_viewed_at'
+            : 'NULL as practice_insights_viewed_at, NULL as lab_insights_viewed_at';
         $orderBy = $hasIsOwner ? 'pu.is_owner DESC, pu.role, u.email' : 'pu.role, u.email';
 
         $sql = "
@@ -1687,6 +1701,7 @@ function getPracticeUsers($practiceId) {
                 $canViewAnalyticsSelect,
                 $canEditCasesSelect,
                 $isLabSelect,
+                $insightsVisitsSelect,
                 pu.created_at as joined_at
             FROM practice_users pu
             JOIN users u ON pu.user_id = u.id
@@ -1696,7 +1711,23 @@ function getPracticeUsers($practiceId) {
         
         $stmt = $pdo->prepare($sql);
         $stmt->execute([$practiceId]);
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        // Insights visit columns are stored in UTC (written with
+        // UTC_TIMESTAMP()); emit ISO 8601 values with an explicit +00:00
+        // offset so the frontend never guesses a timezone.
+        foreach ($rows as &$row) {
+            foreach (['practice_insights_viewed_at', 'lab_insights_viewed_at'] as $col) {
+                if (!empty($row[$col])) {
+                    $row[$col] = gmdate('Y-m-d\TH:i:sP', strtotime($row[$col] . ' UTC'));
+                } else {
+                    $row[$col] = null;
+                }
+            }
+        }
+        unset($row);
+
+        return $rows;
     } catch (PDOException $e) {
         error_log('[admin-practices] Error getting practice users: ' . $e->getMessage());
         return [];

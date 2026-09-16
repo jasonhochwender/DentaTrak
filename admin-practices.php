@@ -1790,11 +1790,11 @@ $userEmail = $_SESSION['user_email'] ?? '';
         function loadUsersTab(practiceId) {
             loadTab('api/admin-practices.php?action=users&practice_id=' + practiceId, data => {
                 currentPracticeUsers = data.users || [];
-                renderUsersTab(data.users);
+                renderUsersTab(data.users, data.lab_insights_available);
             }, 'users', practiceId);
         }
         
-        function renderUsersTab(users) {
+        function renderUsersTab(users, labInsightsAvailable) {
             if (!users || users.length === 0) {
                 document.getElementById('detailContent').innerHTML =
                     '<div class="empty-state">No users found</div>';
@@ -1816,6 +1816,8 @@ $userEmail = $_SESSION['user_email'] ?? '';
                 '<th data-sort="role" style="cursor: pointer;">Role ↕</th>' +
                 '<th data-sort="last-login" style="cursor: pointer;">Last Login ↕</th>' +
                 '<th>Last seen environment</th>' +
+                '<th>Practice Insights</th>' +
+                '<th>Lab Insights</th>' +
                 '<th data-sort="created-at" style="cursor: pointer;">Account Created ↕</th>' +
                 '<th data-sort="status" style="cursor: pointer;">Status ↕</th>' +
                 '<th>Actions</th>' +
@@ -1846,6 +1848,27 @@ $userEmail = $_SESSION['user_email'] ?? '';
                     envHtml = '<span class="text-muted">Not yet recorded</span>';
                 }
 
+                // Insights usage tracking: NULL means the user has not loaded
+                // the screen since tracking shipped (NOT proof they never
+                // used it). Eligibility mirrors the server-side gates:
+                // can_view_analytics for both screens, plus practice-level
+                // availability for Lab Insights (feature flag + Control).
+                const canViewAnalytics = user.can_view_analytics === true
+                    || user.can_view_analytics === 1
+                    || user.can_view_analytics === '1';
+                const practiceInsightsHtml = !canViewAnalytics
+                    ? '<span class="text-muted">No access</span>'
+                    : (user.practice_insights_viewed_at
+                        ? formatRelativeTimestamp(user.practice_insights_viewed_at)
+                        : '<span class="text-muted">No visit recorded</span>');
+                const labInsightsHtml = !labInsightsAvailable
+                    ? '<span class="text-muted">Not available</span>'
+                    : (!canViewAnalytics
+                        ? '<span class="text-muted">No access</span>'
+                        : (user.lab_insights_viewed_at
+                            ? formatRelativeTimestamp(user.lab_insights_viewed_at)
+                            : '<span class="text-muted">No visit recorded</span>'));
+
                 let status = 'Active';
                 let statusClass = '';
                 if (user.is_active === false || user.is_active === 0 || user.is_active === '0') {
@@ -1861,6 +1884,8 @@ $userEmail = $_SESSION['user_email'] ?? '';
                     '<td data-role="' + escapeHtml(role) + '">' + escapeHtml(role) + '</td>' +
                     '<td data-last-login="' + (user.last_login || '') + '" title="' + escapeHtml(login.title) + '"' + loginClass + '>' + escapeHtml(login.text) + '</td>' +
                     '<td>' + envHtml + '</td>' +
+                    '<td>' + practiceInsightsHtml + '</td>' +
+                    '<td>' + labInsightsHtml + '</td>' +
                     '<td data-created-at="' + (user.user_created_at || '') + '">' + formatDate(user.user_created_at) + '</td>' +
                     '<td data-status="' + escapeHtml(status) + '"' + statusClass + '>' + escapeHtml(status) + '</td>' +
                     '<td><button class="action-btn primary" onclick="openEmailModal(event, ' + selectedPracticeId + ', ' + user.id + ')">Email</button></td>' +
@@ -1869,7 +1894,9 @@ $userEmail = $_SESSION['user_email'] ?? '';
 
             html += '</tbody></table></div>' +
                 '<p style="font-size: 0.8rem; color: #6b7280; margin-top: 8px;">' +
-                'Last seen environment reflects the most recently used browser/device for each user; detection may be approximate.</p>';
+                'Last seen environment reflects the most recently used browser/device for each user; detection may be approximate. ' +
+                'Insights visits are recorded only from when this tracking was introduced; ' +
+                '&ldquo;No visit recorded&rdquo; does not mean the user has never used Insights.</p>';
             document.getElementById('detailContent').innerHTML = html;
 
             // Attach lightweight column sorting

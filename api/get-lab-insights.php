@@ -217,7 +217,11 @@ try {
     }
 
     if (!$hasLiveLabs && !$hasAnyHistory) {
-        // Empty state: no labs configured, no history at all.
+        // Empty state: no labs configured, no history at all. This is still a
+        // successful screen load - a pending visit must be recorded here too.
+        if (($_SERVER['HTTP_X_INSIGHTS_VISIT'] ?? '') === '1') {
+            recordInsightsVisit((int)($userId ?? $_SESSION['db_user_id'] ?? 0), $practiceId, 'labs');
+        }
         echo json_encode([
             'success' => true,
             'hasLabs' => false,
@@ -681,6 +685,14 @@ try {
         'directLabTransfers' => $totalTransfers,
         'multiLabCases' => $multiLabCaseCount,
     ];
+
+    // Record a Lab Insights visit only for screen-activation loads
+    // (X-Insights-Visit header) that produced a successful payload. Refresh,
+    // range-change, and background refetches omit the header and never
+    // advance the timestamp.
+    if (($_SERVER['HTTP_X_INSIGHTS_VISIT'] ?? '') === '1') {
+        recordInsightsVisit((int)($userId ?? $_SESSION['db_user_id'] ?? 0), $practiceId, 'labs');
+    }
 
     echo json_encode([
         'success' => true,

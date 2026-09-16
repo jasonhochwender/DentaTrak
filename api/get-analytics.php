@@ -771,6 +771,15 @@ try {
         'lifecycle' => $lifecycleData
     ];
     
+    // Record a Practice Insights visit only when the client marked this as a
+    // screen-activation load (X-Insights-Visit header) AND the payload above
+    // computed successfully - failed loads never reach this line. Refresh
+    // buttons, filter changes, and settings-triggered refetches omit the
+    // header, so only an actual screen visit advances the timestamp.
+    if (($_SERVER['HTTP_X_INSIGHTS_VISIT'] ?? '') === '1') {
+        recordInsightsVisit((int)($_SESSION['db_user_id'] ?? 0), $practiceId, 'practice');
+    }
+
     echo json_encode([
         'success' => true,
         'data' => [

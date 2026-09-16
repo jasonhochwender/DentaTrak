@@ -164,6 +164,7 @@ screenshots/
 !/tests/admin-practices-settings-parity-test.php
 !/tests/user-environment-test.php
 !/tests/header-switcher-browser-test.js
+!/tests/insights-usage-tracking-e2e-test.js
 /testResults/
 /test-results/
 /playwright-report/
