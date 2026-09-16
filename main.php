@@ -615,7 +615,7 @@ if (isset($appConfig) && is_array($appConfig) && isset($appConfig['appName'])) {
   <link rel="preload" href="css/practice-name.css?v=20241210" as="style" onload="this.onload=null;this.rel='stylesheet'">
   <link rel="preload" href="css/logo-upload.css?v=20260807a" as="style" onload="this.onload=null;this.rel='stylesheet'">
   <link rel="preload" href="css/dev-tools.css?v=20241210" as="style" onload="this.onload=null;this.rel='stylesheet'">
-  <link rel="preload" href="css/analytics-pro.css?v=20260916" as="style" onload="this.onload=null;this.rel='stylesheet'">
+  <link rel="preload" href="css/analytics-pro.css?v=20260916a" as="style" onload="this.onload=null;this.rel='stylesheet'">
   <link rel="preload" href="css/attachment-viewer.css?v=20260903a" as="style" onload="this.onload=null;this.rel='stylesheet'">
 <?php if (isFeatureEnabled('SHOW_LAB_INSIGHTS')): ?>
   <link rel="preload" href="css/lab-insights.css?v=20260905a" as="style" onload="this.onload=null;this.rel='stylesheet'">
@@ -642,7 +642,7 @@ if (isset($appConfig) && is_array($appConfig) && isset($appConfig['appName'])) {
     <link rel="stylesheet" href="css/practice-name.css?v=20241210">
     <link rel="stylesheet" href="css/logo-upload.css?v=20260807a">
     <link rel="stylesheet" href="css/dev-tools.css?v=20241210">
-    <link rel="stylesheet" href="css/analytics-pro.css?v=20260916">
+    <link rel="stylesheet" href="css/analytics-pro.css?v=20260916a">
 <?php if (isFeatureEnabled('SHOW_LAB_INSIGHTS')): ?>
     <link rel="stylesheet" href="css/lab-insights.css?v=20260905a">
 <?php endif; ?>
@@ -1271,8 +1271,11 @@ endif;
                       </select>
                     </div>
                   </div>
-                  <div class="ap-chart-container">
-                    <canvas id="apTypeChart" role="img" aria-label="Case type breakdown chart"></canvas>
+                  <div class="ap-chart-scroll">
+                    <div class="ap-chart-container">
+                      <canvas id="apTypeChart" role="img" aria-label="Case type breakdown chart"></canvas>
+                      <p class="insights-empty-state" id="apTypeChartEmpty" style="display: none; width: 100%;"><?= t('insights.empty.no_data') ?></p>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -1293,10 +1296,22 @@ endif;
                   <h2 class="ap-section-title"><?= t('insights.sections.cases_created_by_user') ?></h2>
                   <p class="ap-section-subtitle"><?= t('insights.sections.cases_created_by_user_subtitle') ?></p>
                 </div>
+                <div class="ap-section-actions">
+                  <select class="ap-select" id="apCreatorPeriod">
+                    <option value="all" selected><?= t('insights.filters.all_time') ?></option>
+                    <option value="active"><?= t('insights.filters.active_cases') ?></option>
+                    <option value="3"><?= t('insights.filters.last_n_months', ['count' => 3]) ?></option>
+                    <option value="6"><?= t('insights.filters.last_n_months', ['count' => 6]) ?></option>
+                    <option value="12"><?= t('insights.filters.last_n_months', ['count' => 12]) ?></option>
+                  </select>
+                </div>
               </div>
 
-              <div class="ap-insights-grid" id="apCreatorBreakdown" style="min-height: 3rem;">
-                <p class="insights-empty-state" id="apCreatorBreakdownEmpty" style="width: 100%;"><?= t('insights.creators.empty') ?></p>
+              <div class="ap-chart-scroll">
+                <div class="ap-chart-container" id="apCreatorBreakdown">
+                  <canvas id="apCreatorChart" role="img" aria-label="Cases created by user chart"></canvas>
+                  <p class="insights-empty-state" id="apCreatorBreakdownEmpty" style="display: none; width: 100%;"><?= t('insights.creators.empty') ?></p>
+                </div>
               </div>
             </div>
 

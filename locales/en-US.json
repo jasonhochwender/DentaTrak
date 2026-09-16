@@ -1020,6 +1020,7 @@
         },
         "creators": {
             "empty": "No creator data available.",
+            "unknown": "Unknown user",
             "case_one": "1 case",
             "case_other": "{count} cases"
         },
@@ -1161,8 +1162,8 @@
                 "benefit_2": "Unlimited users",
                 "benefit_3": "Built for larger practices and teams",
                 "benefit_4": "Practice Insights",
-                "benefit_5": "Lab Insights",
-                "benefit_6": "Smart Recommendations"
+                "benefit_5": "Smart Recommendations",
+                "benefit_6": "Lab Insights"
             },
             "scale": {
                 "practices": "5 practices included",
@@ -4064,8 +4065,8 @@
             "control_features_2": "Unlimited users",
             "control_features_3": "Up to 2 practices",
             "control_features_4": "Practice Insights",
-            "control_features_5": "Lab Insights",
-            "control_features_6": "Smart Recommendations",
+            "control_features_5": "Smart Recommendations",
+            "control_features_6": "Lab Insights",
             "scale_description": "For organizations managing multiple practices and larger teams.",
             "scale_features_1": "Everything in Control",
             "scale_features_2": "Up to 5 practices included",

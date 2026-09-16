@@ -381,6 +381,23 @@
   min-height: 280px;
 }
 
+/* Scroll wrapper for horizontal breakdown charts (case types, creators):
+   the inner container grows with the number of rows while the wrapper caps
+   the visible height, so many categories scroll instead of hiding labels. */
+.ap-chart-scroll {
+  max-height: 420px;
+  overflow-y: auto;
+}
+
+.ap-chart-scroll .ap-chart-container {
+  min-height: 0;
+}
+
+/* Right-aligned controls inside a section header (e.g. creator scope select) */
+.ap-section-actions {
+  margin-left: auto;
+}
+
 /* ========================================
    Status Cards - Operational Overview
    ======================================== */

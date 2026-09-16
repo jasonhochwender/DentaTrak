@@ -445,7 +445,7 @@ try {
             WHERE practice_id = :practice_id
             $typeClause
             GROUP BY case_type
-            ORDER BY count DESC
+            ORDER BY count DESC, case_type ASC
         ");
         $stmt->execute(['practice_id' => $practiceId]);
         $caseTypeBreakdown = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -541,8 +541,7 @@ try {
             AND c.archived = 0
             $creatorClause
             GROUP BY c.created_by_user_id, u.first_name, u.last_name
-            ORDER BY cases_count DESC
-            LIMIT 10
+            ORDER BY cases_count DESC, first_name ASC, last_name ASC
         ");
         $stmt->execute(['practice_id' => $practiceId]);
         $creatorBreakdown = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -550,7 +549,7 @@ try {
         foreach ($creatorBreakdown as &$row) {
             $row['creator'] = trim(($row['first_name'] ?? '') . ' ' . ($row['last_name'] ?? ''));
             if ($row['creator'] === '') {
-                $row['creator'] = 'Unknown';
+                $row['creator'] = 'Unknown user';
             }
             unset($row['first_name'], $row['last_name']);
         }
