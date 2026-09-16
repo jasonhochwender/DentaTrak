@@ -61,7 +61,9 @@ function sendPracticeInviteEmail(string $toEmail, ?string $firstName, string $pr
   <p>{$existingIntroHtml}</p>
   <p>{$newIntroHtml}</p>
   <p><a href="{$loginUrl}" target="_blank" rel="noopener noreferrer">{$openDentatrak}</a></p>
+  <!-- User Guide link temporarily removed until the guide is updated; restore to re-enable.
   <p>{$appName} User Guide<br><a href="{$userGuideUrl}" target="_blank" rel="noopener noreferrer">{$viewUserGuide}</a></p>
+  -->
   <p>{$helpHtml}</p>
   <p>{$thanks}<br>{$team}</p>
 </body>
@@ -72,7 +74,8 @@ HTML;
         $existingIntroText . "\n\n" .
         $newIntroText . "\n\n" .
         $openDentatrak . ": {$loginUrl}\n\n" .
-        $appName . " User Guide: {$userGuideUrl}\n\n" .
+        // User Guide link temporarily removed until the guide is updated; restore to re-enable.
+        // $appName . " User Guide: {$userGuideUrl}\n\n" .
         $helpPlain . "\n\n" .
         $thanks . "\n" .
         $team;

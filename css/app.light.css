@@ -1762,6 +1762,7 @@ body {
 .case-sort-section h3 { margin: 0 0 4px; font-size: 0.9rem; font-weight: 600; }
 .case-sort-section > p { margin: 0; font-size: 0.8rem; color: var(--text-secondary); }
 #caseSortSummary { display: none; } /* Temporarily hidden; keep element for possible restore */
+#caseSortGuidance { display: none; } /* Temporarily hidden; keep element for possible restore */
 .case-sort-row { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: flex-end; margin-top: 8px; }
 .case-sort-field { flex: 0 1 200px; }
 .case-sort-direction { flex: 0 1 150px; }
@@ -1808,6 +1809,13 @@ body {
   font-weight: 500;
   margin-bottom: 4px;
   color: var(--text-secondary);
+}
+
+/* Search label styled as a section label like the Sorting heading */
+.kanban-filters-row .kanban-search-field > label {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: inherit;
 }
 
 /* Labels filter - compact width */

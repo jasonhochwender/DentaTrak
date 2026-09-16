@@ -61,21 +61,24 @@ function sendWelcomeEmail(PDO $pdo, int $userId, string $practiceName, array $ap
 <body>
   <p>{$greetingHtml}</p>
   <p>{$introHtml}</p>
+  <!-- User Guide link temporarily removed until the guide is updated; restore to re-enable.
   <p>Get started with the <a href="{$userGuideUrl}" target="_blank" rel="noopener noreferrer">{$cta}</a>.</p>
+  -->
   <p>{$footerHtml}</p>
   <p>{$thanks}<br>{$team}</p>
 </body>
 </html>
 HTML;
 
+    // User Guide link temporarily removed until the guide is updated; restore to re-enable.
+    $userGuideText = ''; // "{$cta}: {$userGuideUrl}\n\n"
+
     $textBody = <<<TEXT
 {$greetingText}
 
 {$introText}
 
-{$cta}: {$userGuideUrl}
-
-{$footerText}
+{$userGuideText}{$footerText}
 
 {$thanks}
 {$team}
