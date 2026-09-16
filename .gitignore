@@ -165,6 +165,10 @@ screenshots/
 !/tests/user-environment-test.php
 !/tests/header-switcher-browser-test.js
 !/tests/insights-usage-tracking-e2e-test.js
+!/tests/case-filter-sort-test.js
+!/tests/case-view-preferences-test.php
+!/tests/case-filter-sort-e2e-test.js
+!/tests/case-filter-sort-isolation-e2e-test.js
 /testResults/
 /test-results/
 /playwright-report/

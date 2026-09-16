@@ -245,6 +245,7 @@
   }
 
   function assignedDisplay(assignedTo) {
+    if (window.caseFilterSort) return window.caseFilterSort.assignedDisplay(assignedTo);
     if (!assignedTo) return '';
     var value = String(assignedTo);
     return value.indexOf('@') !== -1 ? value.split('@')[0] : value;
@@ -311,6 +312,7 @@
   }
 
   function sortCases(cases) {
+    if (window.caseFilterSort) return window.caseFilterSort.sortCases(cases, 'list');
     var sorter = SORTERS[sortKey];
     if (!sorter) return cases;
     var sorted = cases.slice();
@@ -342,18 +344,21 @@
   }
 
   function sortableTh(label, key, extraClass) {
-    var active = sortKey === key;
-    var ariaSort = active ? (sortDir === 'asc' ? 'ascending' : 'descending') : 'none';
-    var arrow = active ? (sortDir === 'asc' ? ' \u25B2' : ' \u25BC') : '';
-    return '<th class="cl-th ' + (extraClass || '') + (active ? ' sorted' : '') + '" aria-sort="' + ariaSort + '">' +
-      '<button type="button" class="cl-sort-btn" data-sort-key="' + key + '" aria-label="' + esc(label) + '">' +
+    var order = window.caseFilterSort ? window.caseFilterSort.effectiveSort('list') : [{ field: sortKey, direction: sortDir }];
+    var priority = order.findIndex(function (c) { return c.field === key; });
+    var active = priority >= 0;
+    var direction = active ? order[priority].direction : 'asc';
+    var ariaSort = active && order.length === 1 ? ' aria-sort="' + (direction === 'asc' ? 'ascending' : 'descending') + '"' : '';
+    var arrow = active ? (direction === 'asc' ? ' \u25B2' : ' \u25BC') + (order.length > 1 ? ' ' + (priority + 1) : '') : '';
+    return '<th class="cl-th ' + (extraClass || '') + (active ? ' sorted' : '') + '"' + ariaSort + '>' +
+      '<button type="button" class="cl-sort-btn" data-sort-key="' + key + '" aria-describedby="caseListSortSummary" aria-label="' + esc(label) + '">' +
       esc(label) + '<span class="cl-sort-arrow" aria-hidden="true">' + arrow + '</span>' +
       '</button></th>';
   }
 
   function buildTable(cases) {
     var reviewEnabled = reviewTrackingEnabled();
-    var html = '<table class="case-list-table"><thead><tr>' +
+    var html = '<table class="case-list-table"><caption class="sr-only" id="caseListSortSummary">' + esc(window.caseFilterSort ? window.caseFilterSort.summary() : '') + '</caption><thead><tr>' +
       '<th class="cl-th cl-expand-th" aria-label="' + esc(tr('cases.list.expand')) + '"></th>';
 
     if (reviewEnabled) {
@@ -581,7 +586,38 @@
       html = buildTable(sortCases(cases));
     }
 
-    lv.innerHTML = html;
+    var existing = lv.querySelector('table');
+    var template = document.createElement('template');
+    template.innerHTML = html;
+    var next = template.content.querySelector('table');
+    if (!existing || !existing.tHead || !next.tHead) {
+      lv.innerHTML = html;
+      return;
+    }
+    var focusKey = document.activeElement && document.activeElement.dataset.sortKey;
+    if (existing.tHead.innerHTML !== next.tHead.innerHTML) existing.tHead.innerHTML = next.tHead.innerHTML;
+    if (existing.caption && next.caption) existing.caption.textContent = next.caption.textContent;
+    var body = existing.tBodies[0];
+    var rows = new Map(Array.from(body.rows).map(function (row) { return [row.className + ':' + row.dataset.caseId, row]; }));
+    Array.from(next.tBodies[0].rows).forEach(function (row, index) {
+      var key = row.className + ':' + row.dataset.caseId;
+      var old = rows.get(key);
+      var oldTrigger = old && old.querySelector('.case-actions-toggle');
+      var newTrigger = row.querySelector('.case-actions-toggle');
+      if (oldTrigger && newTrigger) {
+        newTrigger.setAttribute('aria-expanded', oldTrigger.getAttribute('aria-expanded'));
+        if (oldTrigger.hasAttribute('aria-controls')) newTrigger.setAttribute('aria-controls', oldTrigger.getAttribute('aria-controls'));
+      }
+      if (old && old.outerHTML === row.outerHTML) row = old;
+      else if (old) old.replaceWith(row);
+      rows.delete(key);
+      if (body.rows[index] !== row) body.insertBefore(row, body.rows[index] || null);
+    });
+    rows.forEach(function (row) { row.remove(); });
+    if (focusKey) {
+      var focus = lv.querySelector('[data-sort-key="' + focusKey + '"]');
+      if (focus) focus.focus();
+    }
   }
 
   function refresh(force) {
@@ -686,6 +722,10 @@
         e.preventDefault();
         var key = sortBtn.getAttribute('data-sort-key');
         if (!key || !SORTERS[key]) return;
+        if (window.caseFilterSort) {
+          window.caseFilterSort.headerClick(key);
+          return;
+        }
         if (sortKey === key) {
           sortDir = sortDir === 'asc' ? 'desc' : 'asc';
         } else {
@@ -770,6 +810,7 @@
     // or when card content changes (realtime, review toggles, drag/drop).
     window.addEventListener('cardsLoaded', scheduleRefresh);
     window.addEventListener('cardsUpdated', scheduleRefresh);
+    window.addEventListener('caseSortChanged', function () { refresh(); });
 
     // The patient search also applies a client-side card hide
     // (patient-search.js) that fires before the server-side refetch

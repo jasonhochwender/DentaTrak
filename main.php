@@ -168,6 +168,15 @@ if ($userId && $currentPracticeId) {
 // ai-recommendations.php remain the authoritative server-side enforcement.
 $userCanViewAnalytics = canViewAnalytics($currentPracticeId);
 
+require_once __DIR__ . '/api/case-view-preferences-store.php';
+$caseViewBootstrap = ['userId' => (int)$userId, 'practiceId' => (int)$currentPracticeId, 'preferences' => normalizeCaseViewPreferences([]), 'available' => true];
+try {
+    $caseViewBootstrap['preferences'] = loadCaseViewPreferences($pdo, (int)$userId, (int)$currentPracticeId);
+} catch (Throwable $e) {
+    $caseViewBootstrap['available'] = false;
+    error_log('[case-view-preferences] Unable to load preferences');
+}
+
 // Billing, Settings, and practice-wide data export are administrative
 // surfaces - only practice admins may see or use them. Computed the same
 // way as $userCanViewAnalytics: per-practice-membership, recomputed on
@@ -525,7 +534,7 @@ if (isset($appConfig) && is_array($appConfig) && isset($appConfig['appName'])) {
   <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
   
   <!-- Preload critical resources -->
-  <link rel="preload" href="js/app.js?v=20260916c" as="script">
+  <link rel="preload" href="js/app.js?v=20260916d" as="script">
   <link rel="preload" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
   <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap"></noscript>
   
@@ -544,7 +553,7 @@ if (isset($appConfig) && is_array($appConfig) && isset($appConfig['appName'])) {
   </style>
   
   <!-- Load app.light.css directly (skip app.css @import chain) -->
-  <link rel="stylesheet" href="css/app.light.css?v=20260916b">
+  <link rel="stylesheet" href="css/app.light.css?v=20260916d">
   <link rel="stylesheet" href="css/app.css?v=20260807a">
 <?php if (isFeatureEnabled('SHOW_NOTIFICATIONS')): ?>
   <link rel="stylesheet" href="css/notification-preferences.css?v=20250104">
@@ -856,7 +865,7 @@ endif;
                 <button type="button" id="boardViewToggle" class="case-view-btn active" aria-pressed="true"><?php echo t('cases.list.view_board'); ?></button>
                 <button type="button" id="listViewToggle" class="case-view-btn" aria-pressed="false"><?php echo t('cases.list.view_list'); ?></button>
               </div>
-              <button type="button" id="kanbanFilterToggle" class="filter-toggle-button">
+              <button type="button" id="kanbanFilterToggle" class="filter-toggle-button" aria-controls="kanbanFiltersBar" aria-expanded="false">
                 <?php echo t('filters.filters'); ?>
                 <span id="kanbanFilterActiveDot" class="filter-active-dot" aria-hidden="true"></span>
               </button>
@@ -958,6 +967,20 @@ endif;
           <div class="kanban-filter-field kanban-filter-actions">
             <button type="button" id="clearFiltersBtn" class="filter-clear-btn"><?php echo t('filters.clear_filters'); ?></button>
           </div>
+        </div>
+        <section class="case-sort-section" aria-labelledby="caseSortHeading">
+          <h3 id="caseSortHeading"><?= t('filters.sort_heading') ?></h3>
+          <p id="caseSortGuidance"><?= t('filters.sort_guidance') ?></p>
+          <div id="caseSortRows"></div>
+          <div class="case-sort-actions">
+            <button type="button" id="addCaseSort" class="filter-clear-btn"><?= t('filters.add_sort') ?></button>
+            <button type="button" id="resetCaseSort" class="filter-clear-btn"><?= t('filters.reset_sort') ?></button>
+          </div>
+          <p id="caseSortSummary" role="status" aria-live="polite"></p>
+        </section>
+        <div id="caseViewSaveError" role="status" hidden>
+          <span></span>
+          <button type="button" id="retryCaseViewSave" class="filter-clear-btn"><?= t('common.retry') ?></button>
         </div>
       </div>
 
@@ -3067,7 +3090,9 @@ endif;
   </script>
   <script src="js/workflow-draft.js?v=20260829f" defer></script>
   <script src="js/workflow-draft-ui.js?v=20260829f" defer></script>
-  <script src="js/app.js?v=20260916c" defer></script>
+  <script type="application/json" id="caseViewBootstrap"><?= json_encode($caseViewBootstrap, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?></script>
+  <script src="js/case-filter-sort.js?v=20260916d" defer></script>
+  <script src="js/app.js?v=20260916d" defer></script>
   <script src="js/mobile-case-modal.js?v=20260830c" defer></script>
   <script src="js/mobile-kanban.js?v=20260916b" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js" defer></script>
@@ -3102,10 +3127,10 @@ endif;
 <?php if (isFeatureEnabled('BILLING_ENABLED')): ?>
   <script src="js/billing-portal.js?v=20260831f" defer></script>
 <?php endif; ?>
-  <script src="js/patient-search.js?v=20250105c" defer></script>
+  <script src="js/patient-search.js?v=20260916d" defer></script>
   <script src="js/realtime-updates.js?v=20260916b" defer></script>
-  <script src="js/case-list.js?v=20260916b" defer></script>
-  <script src="js/case-actions-menu.js?v=20260916b" defer></script>
+  <script src="js/case-list.js?v=20260916d" defer></script>
+  <script src="js/case-actions-menu.js?v=20260916d" defer></script>
   
 <?php if ($showDevTools): ?>
 <!-- Dev Tools JavaScript -->

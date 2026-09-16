@@ -23,6 +23,7 @@ document.addEventListener('DOMContentLoaded', function() {
   const FILTER_STORAGE_KEY = 'kanban_filters_v1';
 
   function loadSavedFilters() {
+    if (window.caseFilterSort) return {};
     if (!window.localStorage) return {};
     try {
       const raw = localStorage.getItem(FILTER_STORAGE_KEY);
@@ -45,6 +46,7 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
   function saveFilters() {
+    if (window.caseFilterSort) return;
     if (!window.localStorage) return;
     try {
       localStorage.setItem(FILTER_STORAGE_KEY, JSON.stringify(getCurrentFilters()));
@@ -54,6 +56,7 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
   function updateFilterActiveIndicatorWithValues(caseTypeVal, assignedVal) {
+    if (window.caseFilterSort) { window.caseFilterSort.indicator(); return; }
     const anyFilterActive = !!(caseTypeVal || assignedVal);
     if (filterActiveDot) {
       filterActiveDot.classList.toggle('active', anyFilterActive);
@@ -187,6 +190,7 @@ document.addEventListener('DOMContentLoaded', function() {
     filterToggle.addEventListener('click', function() {
       const isOpen = filterBar.classList.contains('filters-open');
       filterBar.classList.toggle('filters-open', !isOpen);
+      filterToggle.setAttribute('aria-expanded', String(!isOpen));
       saveFilters();
       updateFilterActiveIndicatorWithValues(
         filterCaseType ? filterCaseType.value : '',
@@ -386,6 +390,7 @@ document.addEventListener('DOMContentLoaded', function() {
   function resetSearch() {
     searchInput.value = '';
     applySearchAndFilters();
+    if (window.caseFilterSort && window.applyFilters) window.applyFilters();
   }
   
   // Event handler for input changes (debounced for performance)

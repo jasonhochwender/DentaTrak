@@ -349,6 +349,7 @@
     }
     window.addEventListener('scroll', repositionOrClose, true);
     window.addEventListener('resize', repositionOrClose);
+    window.addEventListener('caseSortChanged', function () { requestAnimationFrame(repositionOrClose); });
 
     // Re-rendering cards/rows orphans the anchor - close the open menu.
     window.addEventListener('cardsLoaded', function () { close(false); });

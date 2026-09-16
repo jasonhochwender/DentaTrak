@@ -270,6 +270,7 @@ async function switchPractice(practiceId, triggerElement) {
   }
 
   try {
+    if (window.caseFilterSort) await window.caseFilterSort.flush();
     var response = await secureFetch('api/switch-practice.php', {
       method: 'POST',
       headers: {
@@ -7826,6 +7827,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Add drop targets to all columns
     kanbanColumns.forEach(column => {
+      if (column.dataset.dropBound) return;
+      column.dataset.dropBound = 'true';
       column.addEventListener('dragover', e => {
         e.preventDefault(); // Allow drop
         column.classList.add('drag-over');
@@ -7873,6 +7876,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
   // Add drag event listeners to a card
   function addDragListeners(card) {
+    if (card.dataset.dragBound) return;
+    card.dataset.dragBound = 'true';
     // Generate a unique ID if the card doesn't have one
     if (!card.id) {
       card.id = 'case-' + Math.random().toString(36).substring(2, 9);
@@ -7979,6 +7984,7 @@ document.addEventListener('DOMContentLoaded', function () {
         targetColumn.appendChild(card);
       }
 
+      if (window.caseFilterSort) window.caseFilterSort.rememberCard(card);
       // Add visual feedback
       card.classList.add('updating');
     });
@@ -8497,6 +8503,7 @@ document.addEventListener('DOMContentLoaded', function () {
       } else if (columnBody) {
         columnBody.appendChild(caseCard);
       }
+      if (window.caseFilterSort) window.caseFilterSort.rememberCard(caseCard);
 
       // Add click event for the review status badge
       var reviewBadge = caseCard.querySelector('.kanban-card-review');
@@ -9068,7 +9075,8 @@ document.addEventListener('DOMContentLoaded', function () {
     var loadingStartTime = Date.now();
     var minLoadingTime = 1000; // Show loading for at least this many ms for UX
 
-    fetch('api/list-cases.php', {
+    var requestId = window.caseFilterSort ? window.caseFilterSort.nextRequest() : 0;
+    fetch('api/list-cases.php?' + (window.caseFilterSort ? window.caseFilterSort.query() : ''), {
       method: 'GET',
       credentials: 'same-origin'
     })
@@ -9076,6 +9084,7 @@ document.addEventListener('DOMContentLoaded', function () {
       return response.json();
     })
     .then(function (data) {
+      if (window.caseFilterSort && !window.caseFilterSort.currentRequest(requestId)) { hideLoader(); return; }
       if (!data || !data.success || !Array.isArray(data.cases)) {
         hideLoader();
         return;
@@ -9105,13 +9114,15 @@ document.addEventListener('DOMContentLoaded', function () {
       });
 
       // Add all cases at once (no stagger) to prevent CLS
-      data.cases.forEach(function (caseData) {
+      var renderLoadedCases = function () { data.cases.forEach(function (caseData) {
         // Deep clone to ensure we don't lose data
         var clonedCase = JSON.parse(JSON.stringify(caseData));
 
         // Each case from the API already has status, dueDate, etc.
         addCaseToKanban(clonedCase);
-      });
+      }); };
+      if (window.caseFilterSort) window.caseFilterSort.withBoardRender(renderLoadedCases);
+      else renderLoadedCases();
 
       // All cases added, apply past due highlighting
       if (typeof updatePastDueHighlighting === 'function') {
@@ -11745,6 +11756,7 @@ document.addEventListener('DOMContentLoaded', function () {
     let filterTimeout;
 
     function applyFilters() {
+      const requestId = window.caseFilterSort ? window.caseFilterSort.nextRequest() : 0;
       clearTimeout(filterTimeout);
       filterTimeout = setTimeout(() => {
         const searchTerm = patientSearch ? patientSearch.value.trim() : '';
@@ -11780,6 +11792,7 @@ document.addEventListener('DOMContentLoaded', function () {
         })
         .then(response => response.json())
         .then(data => {
+          if (window.caseFilterSort && !window.caseFilterSort.currentRequest(requestId)) return;
           if (!data || !data.success || !Array.isArray(data.cases)) {
             return;
           }
@@ -11802,10 +11815,12 @@ document.addEventListener('DOMContentLoaded', function () {
           });
 
           // Add filtered cases
-          filteredCases.forEach(caseData => {
+          const renderFilteredCases = () => filteredCases.forEach(caseData => {
             const clonedCase = JSON.parse(JSON.stringify(caseData));
             addCaseToKanban(clonedCase);
           });
+          if (window.caseFilterSort) window.caseFilterSort.withBoardRender(renderFilteredCases);
+          else renderFilteredCases();
 
           // Reconcile column counts from the actual rendered cards
           if (typeof window.updateColumnCounts === 'function') {
@@ -11825,6 +11840,7 @@ document.addEventListener('DOMContentLoaded', function () {
           if (kanbanFilterActiveDot) {
             const hasActiveFilters = !!(searchTerm || caseType || assignedTo || reviewStatus || carrier || lateOnly || dueSoon || atRiskOnly);
             kanbanFilterActiveDot.style.display = hasActiveFilters ? 'block' : 'none';
+            if (window.caseFilterSort) window.caseFilterSort.indicator();
           }
         })
         .catch(error => {
