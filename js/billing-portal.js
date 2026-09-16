@@ -353,7 +353,6 @@
         'billing.plans.operate.benefit_2',
         'billing.plans.operate.benefit_3',
         'billing.plans.operate.benefit_4',
-        'billing.plans.operate.benefit_5',
       ],
     },
     control: {
@@ -365,6 +364,7 @@
         'billing.plans.control.benefit_3',
         'billing.plans.control.benefit_4',
         'billing.plans.control.benefit_5',
+        'billing.plans.control.benefit_6',
       ],
     },
     scale: {

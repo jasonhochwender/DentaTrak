@@ -1147,17 +1147,17 @@
                 "practices": "1 practice",
                 "benefit_1": "Unlimited case tracking",
                 "benefit_2": "Up to 5 users",
-                "benefit_3": "Analytics and insights",
-                "benefit_4": "Case assignments and workflow tracking",
-                "benefit_5": "Practice management tools"
+                "benefit_3": "Case assignments and workflow tracking",
+                "benefit_4": "Practice management tools"
             },
             "control": {
                 "practices": "Up to 2 practices",
                 "benefit_1": "Everything in Operate",
                 "benefit_2": "Unlimited users",
                 "benefit_3": "Built for larger practices and teams",
-                "benefit_4": "Expanded operational visibility",
-                "benefit_5": "Advanced practice oversight"
+                "benefit_4": "Practice Insights",
+                "benefit_5": "Lab Insights",
+                "benefit_6": "Smart Recommendations"
             },
             "scale": {
                 "practices": "5 practices included",

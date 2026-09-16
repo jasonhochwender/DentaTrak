@@ -3125,7 +3125,7 @@ endif;
   <script src="js/ask-dentatrak.js?v=20250104" defer></script>
   <script src="js/insights.js?v=20250104" defer></script>
 <?php if (isFeatureEnabled('BILLING_ENABLED')): ?>
-  <script src="js/billing-portal.js?v=20260831f" defer></script>
+  <script src="js/billing-portal.js?v=20260916a" defer></script>
 <?php endif; ?>
   <script src="js/patient-search.js?v=20260916d" defer></script>
   <script src="js/realtime-updates.js?v=20260916b" defer></script>
