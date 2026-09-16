@@ -2266,11 +2266,9 @@
     -webkit-user-drag: none;
   }
 
-  /* Compact cards: hide desktop-only rows and actions on phones */
-  .kanban-card .kanban-card-edit,
-  .kanban-card .card-delete-btn,
-  .kanban-card .kanban-card-dates,
-  .kanban-card .kanban-card-actions {
+  /* Compact cards: hide the dense date rows on phones (case actions live
+     in the shared three-dot menu, which stays visible). */
+  .kanban-card .kanban-card-dates {
     display: none !important;
   }
 
@@ -2282,7 +2280,6 @@
 
   .kanban-card-header {
     margin-bottom: 6px;
-    padding-right: 34px; /* reserve space for the menu button */
   }
 
   .kanban-card-title {
@@ -2336,116 +2333,10 @@
     font-size: 0.7rem;
   }
 
-  /* Mobile-only card action menu toggle */
-  .kanban-card-mobile-menu-toggle {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 34px;
-    height: 34px;
-    min-width: 34px;
-    border: none;
-    border-radius: var(--radius-full);
-    background: var(--background-subtle);
-    color: var(--text-secondary);
-    font-size: 1.1rem;
-    line-height: 1;
-    cursor: pointer;
-    position: absolute;
-    top: 8px;
-    right: 8px;
-    z-index: 10;
-  }
-
-  .kanban-card-mobile-menu-toggle:focus {
-    outline: 2px solid var(--primary-color);
-    outline-offset: 2px;
-  }
-
-  /* Fixed-position card action menu (appended to body by JS) */
-  .kanban-card-mobile-menu {
-    position: fixed;
-    display: none;
-    min-width: 180px;
-    max-width: min(260px, calc(100vw - 32px));
-    background: var(--background-white);
-    border: 1px solid var(--border-light);
-    border-radius: var(--radius-lg);
-    box-shadow: var(--shadow-medium);
-    padding: 8px 0;
-    z-index: 300;
-    flex-direction: column;
-    gap: 0;
-  }
-
-  .kanban-card-mobile-menu.open {
-    display: flex;
-  }
-
-  .mobile-card-menu-item {
-    display: flex;
-    align-items: center;
-    width: 100%;
-    min-height: 44px;
-    padding: 10px 16px;
-    box-sizing: border-box;
-    border: none;
-    background: transparent;
-    color: var(--text-primary);
-    font-size: 0.9rem;
-    text-align: left;
-    cursor: pointer;
-    transition: background 0.15s ease;
-  }
-
-  .mobile-card-menu-item:hover,
-  .mobile-card-menu-item:focus {
-    background: var(--background-subtle);
-  }
-
-  .mobile-card-menu-item.danger {
-    color: #dc2626;
-  }
-
-  .mobile-card-menu-item .mobile-card-move-select {
-    flex: 0 0 auto;
-    min-width: 0;
-    width: 100%;
-    max-width: 100%;
-    margin: 0;
-    padding: 4px 6px;
-    border: 1px solid var(--border-light);
-    border-radius: var(--radius-sm);
-    background: var(--background-white);
-    color: var(--text-primary);
-    font-size: 0.85rem;
-    box-sizing: border-box;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  .mobile-card-menu-item[data-action="move"] {
-    flex-direction: column;
-    align-items: stretch;
-    justify-content: center;
-    gap: 6px;
-    padding: 12px 16px;
-  }
-
-  .mobile-card-menu-item[data-action="move"] .mobile-card-move-label {
-    flex: 0 0 auto;
-    font-size: 0.85rem;
-    color: var(--text-secondary);
-  }
-
-  .mobile-card-menu-item[data-action="move"] .mobile-card-move-select {
-    flex: 0 0 auto;
-    width: 100%;
-    margin: 0;
-    min-width: 0;
-    max-width: 100%;
-    box-sizing: border-box;
+  /* Touch-size the shared Case actions toggle on phones */
+  .kanban-card .case-actions-toggle {
+    width: 38px;
+    height: 38px;
   }
 }
 

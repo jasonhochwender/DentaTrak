@@ -269,7 +269,7 @@ function getCaseId(card) {
 async function openFirstCardMenu(page) {
   const opened = await page.evaluate(() => {
     const card = document.querySelector('.kanban-card');
-    const toggle = card ? card.querySelector('.kanban-card-mobile-menu-toggle') : null;
+    const toggle = card ? card.querySelector('.case-actions-toggle') : null;
     if (toggle) {
       toggle.click();
       return true;
@@ -283,17 +283,17 @@ async function openFirstCardMenu(page) {
 
 async function getMenuState(page) {
   return page.evaluate(() => {
-    const m = document.getElementById('kanbanCardMobileMenu');
-    const select = m ? m.querySelector('.mobile-card-move-select') : null;
-    const archive = m ? m.querySelector('.mobile-card-menu-archive') : null;
+    const m = document.getElementById('caseActionsMenu');
+    const select = m ? m.querySelector('.case-actions-move-select') : null;
+    const archive = m ? m.querySelector('.case-actions-archive') : null;
     return {
-      exists: !!m,
+      exists: !!(m && m.classList.contains('open')),
       display: m ? getComputedStyle(m).display : null,
       classList: m ? m.className : '',
       rect: m ? m.getBoundingClientRect() : null,
       selectRect: select ? select.getBoundingClientRect() : null,
       archiveText: archive ? archive.textContent : null,
-      archiveDisplay: archive ? getComputedStyle(archive).display : null,
+      archivePresent: !!archive,
     };
   });
 }
@@ -478,13 +478,13 @@ async function run() {
 
   const menuOpened = await openFirstCardMenu(page);
   if (!menuOpened) {
-    failures.push('kanban-card-mobile-menu-toggle not found');
+    failures.push('case-actions-toggle not found');
   } else {
     const menuState = await getMenuState(page);
     console.log('menu state', menuState);
-    if (!menuState.exists || menuState.display !== 'flex') failures.push('mobile card menu did not open');
+    if (!menuState.exists || menuState.display !== 'flex') failures.push('case actions menu did not open');
     if (menuState.archiveText !== 'Archive') failures.push('menu archive text was: ' + menuState.archiveText);
-    if (menuState.archiveDisplay !== 'flex') failures.push('archive action not visible for permitted user');
+    if (!menuState.archivePresent) failures.push('archive action not rendered for permitted user');
     if (menuState.selectRect && menuState.rect) {
       if (menuState.selectRect.right > menuState.rect.right + 1) {
         failures.push('status selector right edge (' + menuState.selectRect.right + ') exceeds menu right edge (' + menuState.rect.right + ')');
@@ -504,7 +504,7 @@ async function run() {
         return count ? parseInt(count.textContent, 10) : null;
       });
 
-      await page.click('.mobile-card-menu-archive');
+      await page.click('.case-actions-archive');
 
       // Wait for the existing archive confirmation modal and click its Archive button.
       try {
@@ -570,7 +570,7 @@ async function run() {
         const targetStatus = 'Designed';
         const responsePromise = page.waitForResponse(res => res.url().includes('update-case-status.php') && res.status() === 200, { timeout: 10000 });
         await page.evaluate((status) => {
-          const select = document.querySelector('.kanban-card-mobile-menu .mobile-card-move-select');
+          const select = document.querySelector('#caseActionsMenu .case-actions-move-select');
           if (select) {
             select.value = status;
             select.dispatchEvent(new Event('change', { bubbles: true }));
@@ -606,17 +606,19 @@ async function run() {
     const unauthorizedOpened = await openFirstCardMenu(page);
     if (unauthorizedOpened) {
       const unauthorized = await page.evaluate(() => {
-        const m = document.getElementById('kanbanCardMobileMenu');
-        const archive = m ? m.querySelector('.mobile-card-menu-archive') : null;
-        return archive ? getComputedStyle(archive).display : 'missing';
+        const m = document.getElementById('caseActionsMenu');
+        const archive = m ? m.querySelector('.case-actions-archive') : null;
+        const sep = m ? m.querySelector('.case-actions-separator') : null;
+        return { archive: !!archive, separator: !!sep };
       });
-      console.log('unauthorized archive display', unauthorized);
-      if (unauthorized !== 'none') failures.push('archive action visible when not permitted: ' + unauthorized);
+      console.log('unauthorized archive state', unauthorized);
+      if (unauthorized.archive) failures.push('archive action rendered when not permitted');
+      if (unauthorized.separator) failures.push('separator rendered when archive hidden');
     }
   }
 
   // 5. Card tap opens edit modal.
-  await page.evaluate(() => { if (window.MobileKanban) window.MobileKanban.hideMenu(); });
+  await page.evaluate(() => { if (window.caseActionsMenu) window.caseActionsMenu.close(false); });
   await page.waitForTimeout(200);
   await page.goto(`${BASE}/main.php`);
   await page.waitForLoadState('networkidle');
@@ -649,8 +651,8 @@ async function run() {
 
     await openFirstCardMenu(page);
     const layout = await page.evaluate(() => {
-      const m = document.getElementById('kanbanCardMobileMenu');
-      const s = m ? m.querySelector('.mobile-card-move-select') : null;
+      const m = document.getElementById('caseActionsMenu');
+      const s = m ? m.querySelector('.case-actions-move-select') : null;
       const mr = m ? m.getBoundingClientRect() : null;
       const sr = s ? s.getBoundingClientRect() : null;
       return {
@@ -673,7 +675,7 @@ async function run() {
     if (layout.selectRight && layout.selectRight > vp.width + 1) {
       failures.push(`${vp.name}: select right edge (${layout.selectRight}px) exceeds viewport width (${vp.width}px)`);
     }
-    await page.evaluate(() => { if (window.MobileKanban) window.MobileKanban.hideMenu(); });
+    await page.evaluate(() => { if (window.caseActionsMenu) window.caseActionsMenu.close(false); });
 
     if (vp.width === 412) {
       await page.screenshot({ path: path.join(SCREEN_DIR, 'mobile-kanban-action-menu-412.png') });

@@ -336,9 +336,9 @@
   }
 
   function columnCount() {
-    // chevron + patient + type + status + assigned + due + appt + dentist + updated,
-    // plus review when tracking is enabled
-    return reviewTrackingEnabled() ? 10 : 9;
+    // chevron + patient + type + status + assigned + due + appt + dentist +
+    // updated + actions, plus review when tracking is enabled
+    return reviewTrackingEnabled() ? 11 : 10;
   }
 
   function sortableTh(label, key, extraClass) {
@@ -368,6 +368,7 @@
       sortableTh(tr('cases.list.appointment'), 'appointment', 'cl-appt') +
       sortableTh(tr('cases.list.dentist'), 'dentist', 'cl-dentist') +
       sortableTh(tr('cases.list.updated'), 'updated', 'cl-updated') +
+      '<th class="cl-th cl-actions-th" aria-label="' + esc(tr('cases.actions_menu')) + '"></th>' +
       '</tr></thead><tbody>';
 
     cases.forEach(function (caseData) {
@@ -456,6 +457,13 @@
 
     // Updated
     html += '<td class="cl-td cl-updated" data-label="' + esc(tr('cases.list.updated')) + '">' + esc(formatListDate(caseData.lastUpdateDate) || '\u2014') + '</td>';
+
+    // Case actions menu (shared with board cards via case-actions-menu.js)
+    html += '<td class="cl-td cl-actions">' +
+      '<button type="button" class="case-actions-toggle" data-case-id="' + esc(id) + '"' +
+      ' aria-label="' + esc(tr('cases.actions_menu')) + '"' +
+      ' title="' + esc(tr('cases.actions_menu')) + '"' +
+      ' aria-haspopup="menu" aria-expanded="false">⋮</button></td>';
 
     html += '</tr>';
     return html;

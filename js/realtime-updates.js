@@ -428,9 +428,9 @@
           e.preventDefault();
           e.stopPropagation();
         });
-        var headerEditBtn = header.querySelector('.kanban-card-edit');
-        if (headerEditBtn) {
-          header.insertBefore(reviewBadge, headerEditBtn);
+        var headerActionsBtn = header.querySelector('.case-actions-toggle');
+        if (headerActionsBtn) {
+          header.insertBefore(reviewBadge, headerActionsBtn);
         } else {
           header.appendChild(reviewBadge);
         }

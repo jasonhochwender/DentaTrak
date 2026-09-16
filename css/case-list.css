@@ -139,7 +139,7 @@
 /* Column sizing - patient gets the flexible share. */
 .cl-expand-th { width: 34px; }
 .cl-review    { width: 110px; }
-.cl-patient   { width: 21%; }
+.cl-patient   { width: 20%; }
 .cl-type      { width: 9%; }
 .cl-status    { width: 12%; }
 .cl-assigned  { width: 11%; }
@@ -147,6 +147,8 @@
 .cl-appt      { width: 11%; }
 .cl-dentist   { width: 12%; }
 .cl-updated   { width: 11%; }
+.cl-actions-th,
+.cl-actions   { width: 44px; }
 
 /* ---------- Rows ---------- */
 
@@ -462,6 +464,8 @@
   .cl-patient   { order: 1; flex: 1 1 auto; min-width: 0; }
   .cl-review    { order: 2; flex: 0 0 auto; }
   .cl-status    { order: 3; flex: 0 0 auto; }
+  /* Keep the actions toggle on the first line, pinned to the row's right edge */
+  .cl-actions   { order: 3; flex: 0 0 auto; margin-left: auto; width: auto; padding: 0; }
 
   .cl-type,
   .cl-assigned,

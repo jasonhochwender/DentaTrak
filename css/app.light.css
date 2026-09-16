@@ -1921,10 +1921,8 @@ body {
 }
 
 /* Kanban board layout on main page */
-/* Desktop-only: the mobile column nav and card menu are not used. */
+/* Desktop-only: the mobile column nav is not used. */
 .mobile-kanban-nav,
-.kanban-card-mobile-menu-toggle,
-.kanban-card-mobile-menu,
 .mobile-kanban-nav .sr-only {
   display: none;
 }
@@ -2103,14 +2101,6 @@ body {
   margin-top: 2px;
 }
 
-.kanban-card-header .kanban-card-edit {
-  position: static;
-  top: auto;
-  right: auto;
-  flex: 0 0 auto;
-  margin-top: 2px;
-}
-
 /* Dentist row with attachment indicator */
 .dentist-row {
   display: flex;
@@ -2261,84 +2251,130 @@ body {
   border-top: 1px solid var(--border-light);
 }
 
-.kanban-card-print {
-  background: var(--primary-color);
-  color: white;
-  border: 2px solid transparent; /* Add border for focus state */
-  padding: 7px 14px;
-  border-radius: var(--radius-md);
-  font-size: 0.75rem;
-  font-weight: 600; /* Slightly bolder for better contrast */
-  cursor: pointer;
-  transition: all 0.2s ease;
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  font-family: 'Poppins', system-ui, sans-serif;
-  box-shadow: var(--shadow-small);
-}
+/* ---------- Shared "Case actions" menu (board cards + list rows) ---------- */
 
-.kanban-card-print:hover {
-  background: var(--primary-dark);
-  transform: translateY(-1px);
-  box-shadow: var(--shadow-medium);
-}
-
-.kanban-card-print:focus {
-  outline: none;
-  border-color: #fbbf24; /* Yellow focus border for high contrast */
-  box-shadow: 0 0 0 3px rgba(251, 191, 36, 0.3); /* Strong focus ring */
-}
-
-.kanban-card-print:active {
-  transform: translateY(0);
-  box-shadow: var(--shadow-small);
-}
-
-.kanban-card-print:disabled {
-  background: var(--text-light);
-  cursor: not-allowed;
-  transform: none;
-  box-shadow: none;
-}
-
-.kanban-card-edit {
-  position: absolute;
-  top: 12px;
-  right: 10px;
+.case-actions-toggle {
   width: 26px;
   height: 26px;
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
   border-radius: var(--radius-full);
-  background-color: var(--primary-color);
-  border: 2px solid var(--background-white);
+  background: var(--background-subtle);
+  border: 1px solid var(--border-light);
+  color: var(--text-secondary);
+  font-size: 1rem;
+  line-height: 1;
+  padding: 0 0 4px 0; /* optically centers the ⋮ glyph */
   cursor: pointer;
-  color: #ffffff;
-  transition: all 0.2s ease;
-  font-size: 0.85rem;
-  box-shadow: var(--shadow-small);
-  z-index: 10;
+  transition: background 0.15s ease, color 0.15s ease;
+  flex: 0 0 auto;
 }
 
-.kanban-card-edit:hover {
-  background-color: var(--primary-dark);
-  transform: scale(1.1);
-  box-shadow: var(--shadow-medium);
+.case-actions-toggle:hover {
+  background: var(--border-light);
+  color: var(--text-primary);
 }
 
-/* Touch-oriented devices: grow the clickable circle without enlarging
-   the "✎" glyph itself (font-size is untouched), and pull the
-   top/right offsets in slightly so the larger circle stays anchored
-   near the same corner instead of intruding further over the card. */
+.case-actions-toggle:focus-visible {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 2px;
+}
+
+.kanban-card-header .case-actions-toggle {
+  margin-top: 2px;
+}
+
 @media (pointer: coarse) {
-  .kanban-card-edit {
+  .case-actions-toggle {
     width: 38px;
     height: 38px;
-    top: 8px;
-    right: 6px;
   }
+}
+
+/* Fixed-position menu appended to <body> so it is never clipped by
+   scrollable board/list containers. */
+.case-actions-menu {
+  position: fixed;
+  display: none;
+  min-width: 160px;
+  max-width: min(240px, calc(100vw - 32px));
+  background: var(--background-white);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-medium);
+  padding: 6px 0;
+  z-index: 300;
+  flex-direction: column;
+}
+
+.case-actions-menu.open {
+  display: flex;
+}
+
+.case-actions-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 36px;
+  padding: 8px 16px;
+  box-sizing: border-box;
+  border: none;
+  background: transparent;
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: 0.85rem;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.case-actions-menu-item:hover,
+.case-actions-menu-item:focus {
+  background: var(--background-subtle);
+  outline: none;
+}
+
+.case-actions-menu-item.danger {
+  color: #f44336;
+}
+
+.case-actions-separator {
+  height: 1px;
+  margin: 4px 0;
+  background: var(--border-light);
+}
+
+.case-actions-move {
+  flex-wrap: wrap;
+  cursor: default;
+}
+
+.case-actions-move:hover {
+  background: transparent;
+}
+
+.case-actions-move-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  width: 100%;
+  margin-bottom: 4px;
+}
+
+.case-actions-move-select {
+  width: 100%;
+  min-height: 36px;
+  padding: 6px 8px;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-sm);
+  background: var(--background-white);
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: 0.85rem;
 }
 
 /* Visual environment indicator in main container */

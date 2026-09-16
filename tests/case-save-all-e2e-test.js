@@ -215,9 +215,12 @@ async function run() {
     }, aId);
     const cardEl = cardHandle.asElement();
     if (!cardEl) throw new Error('seeded card not found on board');
-    const editBtn = await cardEl.$('.kanban-card-edit');
-    if (!editBtn) throw new Error('card edit button not found');
-    await editBtn.click();
+    const actionsToggle = await cardEl.$('.case-actions-toggle');
+    if (!actionsToggle) throw new Error('card actions toggle not found');
+    await actionsToggle.click();
+    const editItem = await page.$('#caseActionsMenu [data-action="edit"]');
+    if (!editItem) throw new Error('case actions Edit item not found');
+    await editItem.click();
     await page.waitForFunction(() => {
       const f = document.getElementById('patientFirstName');
       return f && f.value.length > 0;

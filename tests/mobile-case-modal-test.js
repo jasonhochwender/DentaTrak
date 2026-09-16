@@ -129,14 +129,18 @@ async function getCaseExists(page, id) {
 }
 
 async function openCaseModal(page, caseId) {
-  await page.waitForSelector(`.kanban-card [data-case-id="${caseId}"]`, { state: 'visible', timeout: 10000 });
+  await page.waitForSelector(`.kanban-card[data-case-id="${caseId}"]`, { state: 'visible', timeout: 10000 });
   await page.evaluate((id) => {
-    const el = document.querySelector(`.kanban-card [data-case-id="${id}"]`);
-    const card = el ? el.closest('.kanban-card') : null;
+    const card = document.querySelector(`.kanban-card[data-case-id="${id}"]`);
     if (card) {
-      // Prefer the existing card click handler over the edit button.
-      const edit = card.querySelector('.kanban-card-edit');
-      (edit || card).click();
+      // Open via the shared Case actions menu; fall back to a card click.
+      const toggle = card.querySelector('.case-actions-toggle');
+      if (toggle) {
+        toggle.click();
+        const item = document.querySelector('#caseActionsMenu [data-action="edit"]');
+        if (item) { item.click(); return; }
+      }
+      card.click();
     }
   }, caseId);
   await page.waitForFunction(() => {

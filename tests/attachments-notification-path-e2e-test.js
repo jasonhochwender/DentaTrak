@@ -248,7 +248,8 @@ let fatalError = null;
 
     /* --- 5. Board path still renders attachments --- */
     const cardSelector = `.kanban-card[data-case-id="${caseA}"]`;
-    await page.click(`${cardSelector} .kanban-card-edit`);
+    await page.click(`${cardSelector} .case-actions-toggle`);
+    await page.click('#caseActionsMenu [data-action="edit"]');
     await page.waitForSelector('#createCaseForm .selected-file.existing-file', { state: 'attached', timeout: 15000 });
     const boardInfo = await renderedAttachmentInfo(page);
     check('board path renders all 3 attachments', boardInfo.count === 3, JSON.stringify(boardInfo.names));

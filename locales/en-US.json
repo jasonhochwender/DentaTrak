@@ -143,6 +143,8 @@
         "review_tracking_disabled": "Case review tracking is not enabled for this practice.",
         "reviewed_by_timestamp": "Reviewed by {name} · {timestamp}",
         "unnamed_patient": "Unnamed Patient",
+        "actions_menu": "Case actions",
+        "move_to": "Move to",
         "list": {
             "view_toggle_aria": "Case view",
             "view_board": "Board",

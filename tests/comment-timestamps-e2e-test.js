@@ -235,7 +235,8 @@ let fatalError = null;
     check('board card exists for test case', !!hasCard);
     if (hasCard) {
       // Board cards open the modal through their edit affordance.
-      await page.click(`${cardSelector} .kanban-card-edit`);
+      await page.click(`${cardSelector} .case-actions-toggle`);
+      await page.click('#caseActionsMenu [data-action="edit"]');
       // Modal opens on the details tab — the comments panel is hidden but
       // still populated, so wait for attached (not visible).
       await page.waitForSelector('#caseCommentsList .case-comment', { state: 'attached', timeout: 15000 });
@@ -269,7 +270,8 @@ let fatalError = null;
 
     // --- 60s refresh timer: starts with comments, stops on every close path ---
     // (a) X button -> closeCreateCaseWithCheck -> clearCaseComments
-    await page.click(`${cardSelector} .kanban-card-edit`);
+    await page.click(`${cardSelector} .case-actions-toggle`);
+      await page.click('#caseActionsMenu [data-action="edit"]');
     await page.waitForSelector('#caseCommentsList .case-comment', { state: 'attached', timeout: 15000 });
     const timerA = await page.evaluate(() => window.__timerProbe.commentTimerId());
     check('refresh timer started with comments', timerA !== null, String(timerA));
@@ -280,7 +282,8 @@ let fatalError = null;
     check('timer cleared on X-button close', clearedA);
 
     // (b) Escape -> closeCreateCaseWithCheck -> clearCaseComments
-    await page.click(`${cardSelector} .kanban-card-edit`);
+    await page.click(`${cardSelector} .case-actions-toggle`);
+      await page.click('#caseActionsMenu [data-action="edit"]');
     await page.waitForSelector('#caseCommentsList .case-comment', { state: 'attached', timeout: 15000 });
     const timerB = await page.evaluate(() => window.__timerProbe.commentTimerId());
     check('refresh timer restarted on reopen', timerB !== null && timerB !== timerA, String(timerB));
@@ -293,7 +296,8 @@ let fatalError = null;
     // (c) Bypass path: modal hidden without cleanup (e.g. "Back to Archived
     // Cases" or closeModals() while another modal overlays) -> the next tick
     // must self-stop.
-    await page.click(`${cardSelector} .kanban-card-edit`);
+    await page.click(`${cardSelector} .case-actions-toggle`);
+      await page.click('#caseActionsMenu [data-action="edit"]');
     await page.waitForSelector('#caseCommentsList .case-comment', { state: 'attached', timeout: 15000 });
     const timerC = await page.evaluate(() => window.__timerProbe.commentTimerId());
     await page.evaluate(() => { document.getElementById('createCaseModal').style.display = 'none'; });

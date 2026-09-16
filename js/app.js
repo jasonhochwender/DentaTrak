@@ -2862,74 +2862,6 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   });
 
-  // Delegated handler for delete/archive buttons
-  // Ensures delete buttons work even for dynamically created cards
-  document.addEventListener('click', function(e) {
-    var target = e.target;
-
-    // Check if clicked element is a delete button or is inside one
-    var deleteButton = target.closest('.card-delete-btn');
-    if (deleteButton) {
-      e.preventDefault();
-      e.stopPropagation();
-
-      // Check if any case is currently being printed
-      if (window.isPrintingCase) {
-        return;
-      }
-
-      // Find the case card
-      var caseCard = deleteButton.closest('.kanban-card');
-      if (!caseCard) return;
-
-      // Get case data from the data attribute
-      var rawData = caseCard.dataset.caseJson;
-      var cardData;
-      try {
-        cardData = JSON.parse(rawData);
-      } catch(e) {
-        cardData = {};
-      }
-
-      // Show delete confirmation
-      if (cardData.id) {
-        showDeleteConfirmation(caseCard, cardData.patientFirstName + ' ' + cardData.patientLastName, function() {
-          deleteCase(cardData.id, caseCard);
-        });
-      }
-      return;
-    }
-
-    // Check if clicked element is an edit button or is inside one
-    var editButton = target.closest('.kanban-card-edit');
-    if (editButton) {
-      e.preventDefault();
-      e.stopPropagation();
-
-      // Check if any case is currently being printed
-      if (window.isPrintingCase) {
-        return;
-      }
-
-      // Find the case card
-      var caseCard = editButton.closest('.kanban-card');
-      if (!caseCard) return;
-
-      // Get case data from the data attribute
-      var rawData = caseCard.dataset.caseJson;
-      var cardData;
-      try {
-        cardData = JSON.parse(rawData);
-      } catch(e) {
-        cardData = {};
-      }
-
-      // Open the modal for editing
-      editCaseHandler(cardData);
-      return;
-    }
-  });
-
   // Function to add a Gmail user
   function addGmailUser() {
     if (!window.isPracticeAdmin) {
@@ -5573,9 +5505,9 @@ document.addEventListener('DOMContentLoaded', function () {
         });
         reviewBadge.addEventListener('mousedown', function(e) { e.stopPropagation(); });
         reviewBadge.addEventListener('dragstart', function(e) { e.preventDefault(); e.stopPropagation(); });
-        var headerEditBtn = header.querySelector('.kanban-card-edit');
-        if (headerEditBtn) {
-          header.insertBefore(reviewBadge, headerEditBtn);
+        var headerActionsBtn = header.querySelector('.case-actions-toggle');
+        if (headerActionsBtn) {
+          header.insertBefore(reviewBadge, headerActionsBtn);
         } else {
           header.appendChild(reviewBadge);
         }
@@ -8501,14 +8433,13 @@ document.addEventListener('DOMContentLoaded', function () {
       var reviewBadgeHtml = '<button type="button" class="kanban-card-review ' + reviewClass + '" data-case-id="' + escapeHtml(displayData.id) + '" aria-label="' + escapeHtml(reviewAriaLabel) + '"' + reviewTitleAttr + '>' + reviewText + '</button>';
 
       caseCard.innerHTML =
-        '<button type="button" class="kanban-card-mobile-menu-toggle" aria-haspopup="true" aria-expanded="false" aria-label="' + t('common.actions') + '">⋮</button>' +
         '<div class="kanban-card-header">' +
         '  <div>' +
         '    <h3 class="kanban-card-title">' + (displayData.patientFirstName || '') + ' ' + (displayData.patientLastName || '') + '</h3>' +
         revisionCountLine +
         '  </div>' +
         reviewBadgeHtml +
-        '  <button type="button" class="kanban-card-edit" title="' + t('cases.edit_case') + '">✎</button>' +
+        '  <button type="button" class="case-actions-toggle" data-case-id="' + displayData.id + '" title="' + t('cases.actions_menu') + '" aria-label="' + t('cases.actions_menu') + '" aria-haspopup="menu" aria-expanded="false">⋮</button>' +
         '</div>' +
         '<div class="kanban-card-content">' +
         '  <p><strong>' + t('cases.type') + ':</strong> ' + (getCaseTypeDisplayLabel(displayData.caseType) || '') + '</p>' +
@@ -8526,23 +8457,9 @@ document.addEventListener('DOMContentLoaded', function () {
         atRiskHtml +
         '</div>' +
         '<div class="kanban-card-dates">' +
-        '  <div style="display: flex; justify-content: space-between; align-items: flex-start;">' +
-        '    <div>' +
-        '      <div><span class="date-label">' + t('cases.created') + ':</span> <span class="date-value">' + formatDate(creationDate, false) + '</span></div>' +
-        '      <div><span class="date-label">' + t('cases.updated') + ':</span> <span class="date-value">' + formatDate(lastUpdateDate, false) + '</span></div>' +
-        (window.featureFlags && window.featureFlags.SHOW_IN_STATUS ? '      <div><span class="date-label">' + t('cases.in_status') + ':</span> <span class="date-value days-in-status">' + getDaysInStatus(displayData.statusChangedAt) + '</span></div>' : '') +
-        '    </div>' +
-        '    <button type="button" class="card-delete-btn" title="' + t('archive.confirm.archive_title') + '" data-case-id="' + displayData.id + '" style="margin-left: 10px; flex-shrink: 0; position: static !important; bottom: auto !important; right: auto !important;">' +
-        '      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
-        '        <rect x="3" y="3" width="18" height="4" rx="1" ry="1"></rect>' +
-        '        <path d="M5 7h14v14H5z"></path>' +
-        '        <path d="M10 12h4"></path>' +
-        '      </svg>' +
-        '    </button>' +
-        '  </div>' +
-        '</div>' +
-        '<div class="kanban-card-actions">' +
-        '  <button type="button" class="kanban-card-print" title="' + t('common.print') + '" aria-label="' + t('common.print') + '" data-case-id="' + displayData.id + '" style="width: 100%; justify-content: center;">🖨️ ' + t('common.print') + '</button>' +
+        '  <div><span class="date-label">' + t('cases.created') + ':</span> <span class="date-value">' + formatDate(creationDate, false) + '</span></div>' +
+        '  <div><span class="date-label">' + t('cases.updated') + ':</span> <span class="date-value">' + formatDate(lastUpdateDate, false) + '</span></div>' +
+        (window.featureFlags && window.featureFlags.SHOW_IN_STATUS ? '  <div><span class="date-label">' + t('cases.in_status') + ':</span> <span class="date-value days-in-status">' + getDaysInStatus(displayData.statusChangedAt) + '</span></div>' : '') +
         '</div>';
 
       // Initialize the assignment dropdown BEFORE adding to DOM
@@ -8579,84 +8496,6 @@ document.addEventListener('DOMContentLoaded', function () {
         columnBody.insertBefore(caseCard, firstExistingCard);
       } else if (columnBody) {
         columnBody.appendChild(caseCard);
-      }
-
-      // Add click event for the edit button
-      var editButton = caseCard.querySelector('.kanban-card-edit');
-      if (editButton) {
-        editButton.addEventListener('click', function(e) {
-          // Prevent event from propagating to parent elements
-          e.stopPropagation();
-
-          // Check if any case is currently being printed
-          if (window.isPrintingCase) {
-            return;
-          }
-
-          // Get case data from the data attribute
-          var rawData = caseCard.dataset.caseJson;
-
-          var cardData;
-          try {
-            cardData = JSON.parse(rawData);
-          } catch(e) {
-            // Error parsing card data
-            cardData = {}; // Default empty object if parse fails
-          }
-
-          // Open the modal for editing
-          editCaseHandler(cardData);
-        });
-      }
-
-      // Add click event for the delete button
-      var deleteButton = caseCard.querySelector('.card-delete-btn');
-      if (deleteButton) {
-        deleteButton.addEventListener('click', function(e) {
-          // Prevent event from propagating to parent elements
-          e.stopPropagation();
-
-          // Get case data from the data attribute
-          var rawData = caseCard.dataset.caseJson;
-
-          var cardData;
-          try {
-            cardData = JSON.parse(rawData);
-          } catch(e) {
-            // Error parsing card data
-            cardData = {}; // Default empty object if parse fails
-          }
-
-          // Show delete confirmation
-          if (cardData.id) {
-            showDeleteConfirmation(caseCard, cardData.patientFirstName + ' ' + cardData.patientLastName, function() {
-              deleteCase(cardData.id, caseCard);
-            });
-          }
-        });
-      }
-
-      // Add click event for the print button
-      var printButton = caseCard.querySelector('.kanban-card-print');
-      if (printButton) {
-        printButton.addEventListener('click', function(e) {
-          // Prevent event from propagating to parent elements
-          e.stopPropagation();
-
-          // Get case data from the data attribute
-          var rawData = caseCard.dataset.caseJson;
-
-          var cardData;
-          try {
-            cardData = JSON.parse(rawData);
-          } catch(e) {
-            // Error parsing card data
-            cardData = {}; // Default empty object if parse fails
-          }
-
-          // Print the case
-          printCase(cardData);
-        });
       }
 
       // Add click event for the review status badge
@@ -9968,18 +9807,10 @@ document.addEventListener('DOMContentLoaded', function () {
         window.isPrintingCase = false;
         window.currentlyPrintingCaseId = null;
 
-        // Reset any stuck print buttons
-        var printButtons = document.querySelectorAll('.kanban-card-print');
-        printButtons.forEach(function(btn) {
-          if (btn.disabled && btn.textContent.includes('Generating')) {
-            btn.disabled = false;
-            btn.textContent = '🖨️ Print';
-          }
-        });
-
-        // Reset all edit buttons
-        var editButtons = document.querySelectorAll('.kanban-card-edit');
-        editButtons.forEach(function(button) {
+        // Reset all case-actions toggles
+        var stuckToggles = document.querySelectorAll('.case-actions-toggle');
+        stuckToggles.forEach(function(button) {
+          button.disabled = false;
           button.classList.remove('printing-disabled');
           button.style.opacity = '';
           button.style.cursor = '';
@@ -9992,21 +9823,14 @@ document.addEventListener('DOMContentLoaded', function () {
           select.style.opacity = '';
           select.style.cursor = '';
         });
-
-        // Reset all delete/archive buttons
-        var deleteButtons = document.querySelectorAll('.card-delete-btn');
-        deleteButtons.forEach(function(button) {
-          button.disabled = false;
-          button.classList.remove('printing-disabled');
-          button.style.opacity = '';
-          button.style.cursor = '';
-        });
       }
     }, 60000); // 60 second timeout (matches server-side limit)
 
-    // Disable all edit buttons visually during printing
-    var editButtons = document.querySelectorAll('.kanban-card-edit');
-    editButtons.forEach(function(button) {
+    // Disable all case-actions toggles during printing (Edit/Print/Archive
+    // all live inside the menu now; disabling the trigger blocks them all)
+    var actionToggles = document.querySelectorAll('.case-actions-toggle');
+    actionToggles.forEach(function(button) {
+      button.disabled = true;
       button.classList.add('printing-disabled');
       button.style.opacity = '0.5';
       button.style.cursor = 'not-allowed';
@@ -10019,22 +9843,6 @@ document.addEventListener('DOMContentLoaded', function () {
       select.style.opacity = '0.5';
       select.style.cursor = 'not-allowed';
     });
-
-    // Disable all delete/archive buttons completely during printing
-    var deleteButtons = document.querySelectorAll('.card-delete-btn');
-    deleteButtons.forEach(function(button) {
-      button.disabled = true;
-      button.classList.add('printing-disabled');
-      button.style.opacity = '0.5';
-      button.style.cursor = 'not-allowed';
-    });
-
-    // Show loading state
-    var printButton = document.querySelector('.kanban-card-print[data-case-id="' + caseData.id + '"]');
-    if (printButton) {
-      printButton.disabled = true;
-      printButton.textContent = '🖨️ Generating...';
-    }
 
     // Call the API to generate document
     // Add practice name to case data
@@ -10112,18 +9920,13 @@ document.addEventListener('DOMContentLoaded', function () {
       }
     })
     .finally(() => {
-      // Reset print button state
-      if (printButton) {
-        printButton.disabled = false;
-        printButton.textContent = '🖨️ Print';
-      }
-
       window.isPrintingCase = false;
       window.currentlyPrintingCaseId = null;
 
-      // Re-enable all edit buttons visually after printing
-      var editButtons = document.querySelectorAll('.kanban-card-edit');
-      editButtons.forEach(function(button) {
+      // Re-enable all case-actions toggles after printing
+      var actionToggles = document.querySelectorAll('.case-actions-toggle');
+      actionToggles.forEach(function(button) {
+        button.disabled = false;
         button.classList.remove('printing-disabled');
         button.style.opacity = '';
         button.style.cursor = '';
@@ -10135,15 +9938,6 @@ document.addEventListener('DOMContentLoaded', function () {
         select.disabled = false;
         select.style.opacity = '';
         select.style.cursor = '';
-      });
-
-      // Re-enable all delete/archive buttons completely after printing
-      var deleteButtons = document.querySelectorAll('.card-delete-btn');
-      deleteButtons.forEach(function(button) {
-        button.disabled = false;
-        button.classList.remove('printing-disabled');
-        button.style.opacity = '';
-        button.style.cursor = '';
       });
     });
   }
