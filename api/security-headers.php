@@ -45,7 +45,11 @@ function setSecurityHeaders() {
         "font-src 'self' https://fonts.gstatic.com data:",
         "img-src 'self' data: https: blob:",
         "connect-src 'self' https://*.google.com https://*.googleapis.com https://api.openai.com https://cdn.jsdelivr.net https://www.googletagmanager.com https://*.google-analytics.com https://*.analytics.google.com",
-        "frame-src https://*.google.com",
+        // 'self' is required for the Download All feature: it submits a hidden
+        // form into a same-origin iframe (api/download-case-attachments-zip.php).
+        // Pages still send X-Frame-Options: DENY, so 'self' here does not make
+        // app pages framable; the ZIP endpoint opts in with SAMEORIGIN.
+        "frame-src 'self' https://*.google.com",
         "object-src 'none'",
         "base-uri 'self'",
         "form-action 'self' https://accounts.google.com",

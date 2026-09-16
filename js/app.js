@@ -5964,6 +5964,7 @@ document.addEventListener('DOMContentLoaded', function () {
   };
 
   function loadCaseHeavyData(caseId, requestId, destination) {
+    var caseModal = document.getElementById('createCaseModal');
     if (viewCaseTimings) viewCaseTimings.heavyRequestStart = performance.now() - viewCaseTimings.shellStart;
     fetch('api/get-case.php?id=' + encodeURIComponent(caseId) + '&view=heavy', {
       credentials: 'same-origin'
@@ -5982,6 +5983,9 @@ document.addEventListener('DOMContentLoaded', function () {
       if (currentEditCaseData && data.case) {
         if (Array.isArray(data.case.attachments)) {
           currentEditCaseData.attachments = data.case.attachments;
+          // The core view omits attachments; now that the heavy payload has
+          // arrived, re-evaluate Download All eligibility for this case.
+          updateDownloadAllButton(currentEditCaseData);
         }
         if (Array.isArray(data.case.revisions)) {
           currentEditCaseData.revisions = data.case.revisions;
@@ -8978,9 +8982,12 @@ document.addEventListener('DOMContentLoaded', function () {
         }
       });
 
-      // Update bulk download button based on eligible attachments
-      updateDownloadAllButton(caseData);
     }
+
+    // Update bulk download button based on eligible attachments. This must run
+    // for every case open - not only when the case has attachments - so the
+    // control never leaks a previous case's enabled state.
+    updateDownloadAllButton(caseData);
 
     // Open the modal (will show tabs because caseId is set on the form)
     openCreateCase();
@@ -10235,28 +10242,87 @@ document.addEventListener('DOMContentLoaded', function () {
   // 1. Performs a lightweight authenticated preflight request that repeats all
   //    authoritative checks without downloading attachment contents.
   // 2. Only submits the hidden download form after the preflight succeeds.
-  // 3. Uses a form+iframe so the browser can stream arbitrarily large archives
-  //    directly to disk instead of buffering the whole ZIP in JavaScript.
+  // 3. Uses a persistent hidden iframe so the browser can stream arbitrarily
+  //    large archives directly to disk instead of buffering the whole ZIP in
+  //    JavaScript. The iframe is never removed: detaching the frame that
+  //    initiated a download can abort it mid-stream in some browsers.
+  // 4. Detects browser handoff via a short-lived cookie (dt_zip_dl_<token>)
+  //    that the server sets when it starts emitting the ZIP response, and
+  //    detects failures by reading the JSON error document that error
+  //    responses load into the same-origin iframe.
+  var zipDownloadInFlight = false;
+  var ZIP_DOWNLOAD_HANDOFF_TIMEOUT_MS = 240000;
+
+  function getZipDownloadFrame() {
+    var frame = document.getElementById('dtZipDownloadFrame');
+    if (!frame) {
+      frame = document.createElement('iframe');
+      frame.id = 'dtZipDownloadFrame';
+      frame.name = 'dtZipDownloadFrame';
+      frame.title = 'attachment download';
+      frame.style.display = 'none';
+      frame.setAttribute('aria-hidden', 'true');
+      document.body.appendChild(frame);
+    }
+    return frame;
+  }
+
+  // If the download endpoint returned a JSON error document, it is rendered
+  // inside the hidden iframe; extract its message. Returns null when the
+  // frame holds no readable document (about:blank or a converted download).
+  function readZipIframeError(frame) {
+    try {
+      var doc = frame.contentDocument;
+      if (!doc || !doc.body || doc.URL === 'about:blank') return null;
+      var text = (doc.body.textContent || '').trim();
+      if (!text) return null;
+      try {
+        var data = JSON.parse(text);
+        if (data && (data.error || data.message)) {
+          return String(data.error || data.message);
+        }
+      } catch (parseErr) {
+        // Non-JSON response body (e.g. an HTML error page).
+      }
+      return t('attachments.download_all_failed', { message: 'Unexpected response from the server' });
+    } catch (e) {
+      return null;
+    }
+  }
+
   function downloadCaseAttachmentsZip(caseId) {
     var btn = document.getElementById('downloadAllAttachmentsBtn');
     var statusEl = document.getElementById('downloadAllAttachmentsStatus');
-    if (!caseId) {
+    var btnLabel = btn ? btn.querySelector('.download-all-label') : null;
+
+    function setStatus(message) {
       if (statusEl) {
-        statusEl.textContent = t('attachments.download_all_no_eligible');
-        statusEl.style.display = 'block';
+        statusEl.textContent = message || '';
+        statusEl.style.display = message ? 'block' : 'none';
       }
+    }
+    function restoreButton() {
+      if (btn) {
+        btn.disabled = false;
+        if (btnLabel) btnLabel.textContent = t('attachments.download_all');
+      }
+    }
+
+    if (!caseId) {
+      setStatus(t('attachments.download_all_no_eligible'));
       return;
     }
 
+    if (zipDownloadInFlight) {
+      setStatus(t('attachments.download_all_in_progress'));
+      return;
+    }
+    zipDownloadInFlight = true;
     if (btn) {
       btn.disabled = true;
-      var prepLabel = btn.querySelector('.download-all-label');
-      if (prepLabel) prepLabel.textContent = t('attachments.download_all_preparing');
+      if (btnLabel) btnLabel.textContent = t('attachments.download_all_preparing');
     }
-    if (statusEl) {
-      statusEl.textContent = t('attachments.download_all_preparing');
-      statusEl.style.display = 'block';
-    }
+    setStatus(t('attachments.download_all_preparing'));
 
     fetch('api/preflight-download-case-attachments-zip.php', {
       method: 'POST',
@@ -10269,31 +10335,55 @@ document.addEventListener('DOMContentLoaded', function () {
     })
     .then(function(response) {
       return response.json().catch(function() {
-        throw new Error(t('attachments.download_all_failed'));
+        throw new Error(t('attachments.download_all_failed', { message: 'Unexpected response from the server' }));
       });
     })
     .then(function(data) {
       if (!data || !data.success) {
-        throw new Error(data && data.error ? data.error : t('attachments.download_all_failed'));
+        throw new Error(data && data.error ? data.error : t('attachments.download_all_failed', { message: 'Request failed' }));
       }
 
-      if (statusEl) {
-        statusEl.textContent = t('attachments.download_started');
-        statusEl.style.display = 'block';
+      var token = 'dl' + Date.now().toString(36) + Math.random().toString(36).slice(2, 12);
+      var cookieName = 'dt_zip_dl_' + token;
+      document.cookie = cookieName + '=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/';
+
+      var frame = getZipDownloadFrame();
+      var settled = false;
+      var pollTimer = null;
+      var deadlineTimer = null;
+
+      function finish(kind, detail) {
+        if (settled) return;
+        settled = true;
+        zipDownloadInFlight = false;
+        if (pollTimer) clearInterval(pollTimer);
+        if (deadlineTimer) clearTimeout(deadlineTimer);
+        frame.onload = null;
+        document.cookie = cookieName + '=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/';
+        restoreButton();
+        if (kind === 'handoff') {
+          setStatus(t('attachments.download_started'));
+        } else if (kind === 'timeout') {
+          setStatus(t('attachments.download_all_timeout'));
+        } else {
+          setStatus(t('attachments.download_all_failed', { message: detail || 'Request failed' }));
+        }
       }
 
-      // Submit the real download form; the browser streams the ZIP to disk.
-      var iframeName = 'dt-zip-download-' + Date.now();
-      var iframe = document.createElement('iframe');
-      iframe.name = iframeName;
-      iframe.style.display = 'none';
-      iframe.setAttribute('aria-hidden', 'true');
-      document.body.appendChild(iframe);
+      // Error responses render a JSON document inside the same-origin iframe
+      // and fire load; a successful ZIP response becomes a browser download
+      // and never produces a readable document.
+      frame.onload = function() {
+        var serverError = readZipIframeError(frame);
+        if (serverError !== null) {
+          finish('error', serverError);
+        }
+      };
 
       var form = document.createElement('form');
       form.method = 'POST';
       form.action = 'api/download-case-attachments-zip.php';
-      form.target = iframeName;
+      form.target = frame.name;
       form.style.display = 'none';
 
       function addInput(name, value) {
@@ -10305,40 +10395,32 @@ document.addEventListener('DOMContentLoaded', function () {
       }
       addInput('case_id', caseId);
       addInput('csrf_token', csrfToken);
+      addInput('download_token', token);
 
       document.body.appendChild(form);
       form.submit();
-
       setTimeout(function() {
-        if (btn) {
-          btn.disabled = false;
-          var labelEl = btn.querySelector('.download-all-label');
-          if (labelEl) labelEl.textContent = t('attachments.download_all');
-        }
-        if (statusEl) {
-          statusEl.textContent = '';
-          statusEl.style.display = 'none';
-        }
         if (form.parentNode) {
-          document.body.removeChild(form);
+          form.parentNode.removeChild(form);
         }
-        setTimeout(function() {
-          if (iframe.parentNode) {
-            document.body.removeChild(iframe);
-          }
-        }, 30000);
       }, 1000);
+
+      // The server sets the handoff cookie with the ZIP response headers;
+      // observing it proves the browser received the download response. It
+      // does not prove the file finished saving to disk.
+      pollTimer = setInterval(function() {
+        if (document.cookie.indexOf(cookieName + '=1') !== -1) {
+          finish('handoff');
+        }
+      }, 500);
+      deadlineTimer = setTimeout(function() {
+        finish('timeout');
+      }, ZIP_DOWNLOAD_HANDOFF_TIMEOUT_MS);
     })
     .catch(function(error) {
-      if (statusEl) {
-        statusEl.textContent = t('attachments.download_all_failed', {message: error.message});
-        statusEl.style.display = 'block';
-      }
-      if (btn) {
-        btn.disabled = false;
-        var labelEl = btn.querySelector('.download-all-label');
-        if (labelEl) labelEl.textContent = t('attachments.download_all');
-      }
+      zipDownloadInFlight = false;
+      setStatus(t('attachments.download_all_failed', { message: error.message }));
+      restoreButton();
     });
   }
 

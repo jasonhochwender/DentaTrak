@@ -94,7 +94,8 @@ try {
     error_log('[DownloadAllZIP] Storage backend unavailable: ' . $e->getMessage());
     http_response_code(500);
     header('Content-Type: application/json');
-    echo json_encode(['success' => false, 'error' => t('attachments.download_all_failed', ['message' => 'Storage backend unavailable'])]);
+    // Bare reason only: the client wraps it in the localized failure template.
+    echo json_encode(['success' => false, 'error' => 'Storage backend unavailable']);
     exit;
 }
 

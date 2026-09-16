@@ -72,11 +72,22 @@ if (!$userId) {
 requireCsrfToken();
 
 // Accept either a form POST or a JSON body.
+$input = null;
 if (!empty($_POST['case_id'])) {
     $caseId = $_POST['case_id'];
+    $downloadToken = $_POST['download_token'] ?? '';
 } else {
     $input = json_decode(file_get_contents('php://input'), true);
     $caseId = $input['case_id'] ?? '';
+    $downloadToken = $input['download_token'] ?? '';
+}
+
+// Optional client-generated token used only to confirm browser handoff: when
+// the ZIP headers are sent, a short-lived readable cookie named
+// dt_zip_dl_<token> lets the page tell "download handed to the browser" apart
+// from an error document rendered inside the hidden iframe.
+if (!is_string($downloadToken) || !preg_match('/^[A-Za-z0-9_-]{8,64}$/', $downloadToken)) {
+    $downloadToken = '';
 }
 
 if (empty($caseId)) {
@@ -101,7 +112,8 @@ try {
     error_log('[DownloadAllZIP] Storage backend unavailable: ' . $e->getMessage());
     http_response_code(500);
     header('Content-Type: application/json');
-    echo json_encode(['success' => false, 'error' => t('attachments.download_all_failed', ['message' => 'Storage backend unavailable'])]);
+    // Bare reason only: the client wraps it in the localized failure template.
+    echo json_encode(['success' => false, 'error' => 'Storage backend unavailable']);
     exit;
 }
 
@@ -143,6 +155,22 @@ header('Pragma: no-cache');
 header('X-Content-Type-Options: nosniff');
 header('X-Accel-Buffering: no');
 header('Content-Encoding: identity');
+
+// Signal browser handoff: the client polls for this cookie to learn that the
+// ZIP response reached the browser. Not HttpOnly so document.cookie can see
+// it; the token value is an opaque client-generated nonce, not a credential.
+if ($downloadToken !== '') {
+    $isSecure = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
+        || (($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https');
+    setcookie('dt_zip_dl_' . $downloadToken, '1', [
+        'expires' => time() + 3600,
+        'path' => '/',
+        'secure' => $isSecure,
+        'httponly' => false,
+        'samesite' => 'Lax',
+    ]);
+}
+
 http_response_code(200);
 
 // Allow the script to outlive short PHP and Apache timeouts. The Cloud Run

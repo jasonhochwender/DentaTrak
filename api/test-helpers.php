@@ -108,6 +108,9 @@ switch ($action) {
     case 'delete_test_cases':
         handleDeleteTestCases($pdo, $input);
         break;
+    case 'set_case_attachments':
+        handleSetCaseAttachments($pdo, $input);
+        break;
     case 'get_last_app_email':
         handleGetLastAppEmail($appConfig, $input);
         break;
@@ -1792,6 +1795,88 @@ function handleDeleteTestCases($pdo, $input) {
         error_log('[test-helpers] delete_test_cases error: ' . $e->getMessage());
         http_response_code(500);
         echo json_encode(['success' => false, 'message' => 'Cleanup failed: ' . $e->getMessage()]);
+    }
+}
+
+/**
+ * Set attachments_json on a test-marked case for Download All testing.
+ *
+ * Only updates cases in the caller's current practice that carry the
+ * TEST_CASE_MARKER prefix, so fixture attachment metadata can never be
+ * written to a real case. The attachment entries describe object metadata
+ * only; no file contents are stored.
+ */
+function handleSetCaseAttachments($pdo, $input) {
+    $currentPracticeId = isset($input['practice_id']) ? (int)$input['practice_id'] : ($_SESSION['current_practice_id'] ?? null);
+    if (!$currentPracticeId) {
+        http_response_code(400);
+        echo json_encode(['success' => false, 'message' => 'No current practice in session']);
+        return;
+    }
+
+    $caseId = $input['case_id'] ?? '';
+    $attachments = $input['attachments'] ?? [];
+    if (!is_string($caseId) || $caseId === '' || !is_array($attachments)) {
+        http_response_code(400);
+        echo json_encode(['success' => false, 'message' => 'case_id and attachments array are required']);
+        return;
+    }
+    if (count($attachments) > 50) {
+        http_response_code(400);
+        echo json_encode(['success' => false, 'message' => 'Too many attachment entries']);
+        return;
+    }
+
+    try {
+        $stmt = $pdo->prepare("SELECT case_id, practice_id, patient_first_name, notes FROM cases_cache WHERE case_id = :case_id LIMIT 1");
+        $stmt->execute(['case_id' => $caseId]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if (!$row) {
+            http_response_code(404);
+            echo json_encode(['success' => false, 'message' => 'Case not found']);
+            return;
+        }
+        if ((int)$row['practice_id'] !== (int)$currentPracticeId) {
+            http_response_code(403);
+            echo json_encode(['success' => false, 'message' => 'Case belongs to a different practice']);
+            return;
+        }
+
+        $decrypted = [];
+        if (class_exists('PIIEncryption')) {
+            $decrypted = PIIEncryption::decryptCaseData([
+                'patientFirstName' => $row['patient_first_name'] ?? null,
+                'notes' => $row['notes'] ?? null,
+            ]);
+        }
+        $firstName = $decrypted['patientFirstName'] ?? '';
+        $notes = $decrypted['notes'] ?? '';
+        if (stripos($firstName, TEST_CASE_MARKER) !== 0 && stripos($notes, TEST_CASE_MARKER) !== 0) {
+            http_response_code(403);
+            echo json_encode(['success' => false, 'message' => 'Case is not test-marked']);
+            return;
+        }
+
+        $clean = [];
+        foreach ($attachments as $att) {
+            if (!is_array($att)) continue;
+            $clean[] = [
+                'fileName' => (string)($att['fileName'] ?? 'file'),
+                'storageType' => (string)($att['storageType'] ?? 'gcs'),
+                'storagePath' => (string)($att['storagePath'] ?? ''),
+                'size' => (int)($att['size'] ?? 0),
+            ];
+        }
+
+        $update = $pdo->prepare("UPDATE cases_cache SET attachments_json = :json WHERE case_id = :case_id");
+        $update->execute(['json' => json_encode($clean), 'case_id' => $caseId]);
+
+        echo json_encode(['success' => true, 'case_id' => $caseId, 'attachment_count' => count($clean)]);
+    } catch (PDOException $e) {
+        error_log('[test-helpers] set_case_attachments error: ' . $e->getMessage());
+        http_response_code(500);
+        echo json_encode(['success' => false, 'message' => 'Update failed: ' . $e->getMessage()]);
     }
 }
 

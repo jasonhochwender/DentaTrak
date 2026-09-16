@@ -2652,9 +2652,11 @@ body {
   outline-offset: 2px;
 }
 
-.attachment-download-all .error-message {
+.attachment-download-all .download-all-status {
   margin-top: 4px;
   font-size: 0.85rem;
+  font-weight: 500;
+  color: #e53935;
 }
 
 .shipping-fields {
