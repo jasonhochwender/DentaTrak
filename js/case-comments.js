@@ -670,8 +670,13 @@
   function startCommentTimeRefresh() {
     stopCommentTimeRefresh();
     commentTimeRefreshTimer = setInterval(function() {
+      var modal = document.getElementById('createCaseModal');
       var list = document.getElementById('caseCommentsList');
-      if (!list || !list.querySelector('.case-comment-time[data-ts]')) {
+      // Stop when the modal is hidden by ANY path - including ones that skip
+      // clearCaseComments() (e.g. the "Back to Archived Cases" button or the
+      // generic closeModals() when another modal overlays this one).
+      if (!modal || modal.style.display !== 'block' ||
+          !list || !list.querySelector('.case-comment-time[data-ts]')) {
         stopCommentTimeRefresh();
         return;
       }

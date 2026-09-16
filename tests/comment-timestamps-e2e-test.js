@@ -146,6 +146,31 @@ let fatalError = null;
   page.on('console', m => { if (m.type() === 'error') consoleErrors.push(m.text()); });
   page.on('pageerror', e => consoleErrors.push('PAGEERROR: ' + e.message));
 
+  // Probe setInterval/clearInterval before page scripts run so the comment
+  // timestamp refresh timer can be observed deterministically (no 60s waits).
+  await page.addInitScript(() => {
+    const probe = { created: [], cleared: new Set() };
+    const origSet = window.setInterval.bind(window);
+    const origClear = window.clearInterval.bind(window);
+    window.setInterval = function(cb, delay, ...args) {
+      const id = origSet(cb, delay, ...args);
+      probe.created.push({ id, commentTimer: String(cb).includes('caseCommentsList'), cb });
+      return id;
+    };
+    window.clearInterval = function(id) { probe.cleared.add(id); return origClear(id); };
+    window.__timerProbe = {
+      commentTimerId: () => {
+        const m = probe.created.filter(c => c.commentTimer);
+        return m.length ? m[m.length - 1].id : null;
+      },
+      isCleared: (id) => probe.cleared.has(id),
+      tick: (id) => {
+        const e = probe.created.find(c => c.id === id);
+        if (e) e.cb();
+      },
+    };
+  });
+
   try {
     await login(context);
     await page.goto(`${BASE}/main.php?_=${Date.now()}`, { waitUntil: 'networkidle' });
@@ -236,8 +261,46 @@ let fatalError = null;
           `list=${listLabel && listLabel.text}`);
         await closeCaseModal(page);
       }
-      await page.click('#listViewToggle').catch(() => {});
+      // Restore board view via the explicit board button (idempotent) and
+      // wait for the card to be visible again before moving on.
+      await page.click('#boardViewToggle').catch(() => {});
+      await page.waitForSelector(cardSelector, { state: 'visible', timeout: 15000 });
     }
+
+    // --- 60s refresh timer: starts with comments, stops on every close path ---
+    // (a) X button -> closeCreateCaseWithCheck -> clearCaseComments
+    await page.click(`${cardSelector} .kanban-card-edit`);
+    await page.waitForSelector('#caseCommentsList .case-comment', { state: 'attached', timeout: 15000 });
+    const timerA = await page.evaluate(() => window.__timerProbe.commentTimerId());
+    check('refresh timer started with comments', timerA !== null, String(timerA));
+    await page.click('#createCaseClose');
+    await page.waitForFunction(() => document.getElementById('createCaseModal').style.display !== 'block');
+    const clearedA = timerA !== null &&
+      await page.evaluate((id) => window.__timerProbe.isCleared(id), timerA);
+    check('timer cleared on X-button close', clearedA);
+
+    // (b) Escape -> closeCreateCaseWithCheck -> clearCaseComments
+    await page.click(`${cardSelector} .kanban-card-edit`);
+    await page.waitForSelector('#caseCommentsList .case-comment', { state: 'attached', timeout: 15000 });
+    const timerB = await page.evaluate(() => window.__timerProbe.commentTimerId());
+    check('refresh timer restarted on reopen', timerB !== null && timerB !== timerA, String(timerB));
+    await page.keyboard.press('Escape');
+    await page.waitForFunction(() => document.getElementById('createCaseModal').style.display !== 'block');
+    const clearedB = timerB !== null &&
+      await page.evaluate((id) => window.__timerProbe.isCleared(id), timerB);
+    check('timer cleared on Escape close', clearedB);
+
+    // (c) Bypass path: modal hidden without cleanup (e.g. "Back to Archived
+    // Cases" or closeModals() while another modal overlays) -> the next tick
+    // must self-stop.
+    await page.click(`${cardSelector} .kanban-card-edit`);
+    await page.waitForSelector('#caseCommentsList .case-comment', { state: 'attached', timeout: 15000 });
+    const timerC = await page.evaluate(() => window.__timerProbe.commentTimerId());
+    await page.evaluate(() => { document.getElementById('createCaseModal').style.display = 'none'; });
+    await page.evaluate((id) => window.__timerProbe.tick(id), timerC);
+    const clearedC = timerC !== null &&
+      await page.evaluate((id) => window.__timerProbe.isCleared(id), timerC);
+    check('timer self-stops on hidden modal (bypass close)', clearedC);
 
     // --- Invalid/missing timestamps must not read "Just now" ---
     await page.route('**/api/case-comments.php*', route => {
@@ -260,10 +323,11 @@ let fatalError = null;
     await closeCaseModal(page);
     await page.unroute('**/api/case-comments.php*');
 
-    // The realtime-updates poller's in-flight fetch is aborted by page.reload()
-    // — unrelated background noise, not a comment-timestamp error.
+    // The realtime-updates and notification-count pollers' in-flight fetches
+    // are aborted by page.reload() — unrelated background noise, not a
+    // comment-timestamp error.
     const realErrors = consoleErrors.filter(e =>
-      !/favicon|404|checkForUpdates|realtime-updates/.test(e));
+      !/favicon|404|checkForUpdates|realtime-updates|notification count/.test(e));
     check('no page console errors', realErrors.length === 0, realErrors.slice(0, 3).join(' | '));
   } catch (err) {
     fatalError = err;

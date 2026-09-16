@@ -3074,7 +3074,7 @@ endif;
   <script type="module" src="js/attachment-viewer.js?v=20260903a" defer></script>
   <script src="js/card-delete-fixed.js?v=20250104" defer></script>
   <script src="js/assignments.js?v=20250104" defer></script>
-  <script src="js/case-comments.js?v=20260915a" defer></script>
+  <script src="js/case-comments.js?v=20260916a" defer></script>
   <script src="js/notifications.js?v=20260915a" defer></script>
 <?php if (isFeatureEnabled('SHOW_NOTIFICATIONS')): ?>
   <script src="js/notification-preferences.js?v=20250104" defer></script>
