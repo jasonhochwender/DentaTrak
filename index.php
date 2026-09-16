@@ -1812,6 +1812,7 @@ foreach (['operate', 'control', 'scale'] as $plan) {
           <p><?php echo t('marketing.pricing.operate_description'); ?></p>
           <ul>
             <li><?php echo t('marketing.pricing.operate_features_1'); ?></li>
+            <li><?php echo t('marketing.pricing.operate_features_attachments'); ?></li>
             <li><?php echo t('marketing.pricing.operate_features_2'); ?></li>
             <li><?php echo t('marketing.pricing.operate_features_3'); ?></li>
           </ul>

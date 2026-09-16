@@ -350,6 +350,7 @@
       practices_key: 'billing.plans.operate.practices',
       benefit_keys: [
         'billing.plans.operate.benefit_1',
+        'billing.plans.operate.benefit_attachments',
         'billing.plans.operate.benefit_2',
         'billing.plans.operate.benefit_3',
         'billing.plans.operate.benefit_4',

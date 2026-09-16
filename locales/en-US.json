@@ -1152,6 +1152,7 @@
             "operate": {
                 "practices": "1 practice",
                 "benefit_1": "Unlimited case tracking",
+                "benefit_attachments": "Unlimited case attachments",
                 "benefit_2": "Up to 5 users",
                 "benefit_3": "Case assignments and workflow tracking",
                 "benefit_4": "Practice management tools"
@@ -4058,6 +4059,7 @@
             "per_month": "/month",
             "operate_description": "For a single practice that wants a clear, shared way to keep cases organized.",
             "operate_features_1": "Unlimited cases",
+            "operate_features_attachments": "Unlimited case attachments",
             "operate_features_2": "Up to 5 users",
             "operate_features_3": "1 practice",
             "control_description": "For practices that want deeper visibility, unlimited users, and more control over case operations.",

@@ -552,7 +552,7 @@ if (isset($appConfig) && is_array($appConfig) && isset($appConfig['appName'])) {
   <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
   
   <!-- Preload critical resources -->
-  <link rel="preload" href="js/app.js?v=20260916e" as="script">
+  <link rel="preload" href="js/app.js?v=20260916f" as="script">
   <link rel="preload" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
   <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap"></noscript>
   
@@ -3161,7 +3161,7 @@ endif;
   <!-- Load JavaScript last -->
   <script src="js/toast.js?v=20250104" defer></script>
   <?php require_once __DIR__ . '/api/auth-timeout-script.php'; ?>
-  <script src="js/gcs-upload.js?v=20260303c" defer></script>
+  <script src="js/gcs-upload.js?v=20260916" defer></script>
   <script type="importmap">
   {
     "imports": {
@@ -3174,7 +3174,7 @@ endif;
   <script src="js/workflow-draft-ui.js?v=20260829f" defer></script>
   <script type="application/json" id="caseViewBootstrap"><?= json_encode($caseViewBootstrap, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?></script>
   <script src="js/case-filter-sort.js?v=20260916f" defer></script>
-  <script src="js/app.js?v=20260916e" defer></script>
+  <script src="js/app.js?v=20260916f" defer></script>
   <script src="js/mobile-case-modal.js?v=20260830c" defer></script>
   <script src="js/mobile-kanban.js?v=20260916b" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js" defer></script>
@@ -3207,7 +3207,7 @@ endif;
   <script src="js/ask-dentatrak.js?v=20250104" defer></script>
   <script src="js/insights.js?v=20250104" defer></script>
 <?php if (isFeatureEnabled('BILLING_ENABLED')): ?>
-  <script src="js/billing-portal.js?v=20260916a" defer></script>
+  <script src="js/billing-portal.js?v=20260916b" defer></script>
 <?php endif; ?>
   <script src="js/patient-search.js?v=20260916d" defer></script>
   <script src="js/realtime-updates.js?v=20260916b" defer></script>

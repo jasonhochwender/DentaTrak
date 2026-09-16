@@ -56,7 +56,7 @@ function processGcsAttachments($gcsFilesJson, $practiceId) {
     // Enforce file count
     if (count($gcsFiles) > $maxFileCount) {
         $result['success'] = false;
-        $result['errors'][] = "Maximum {$maxFileCount} files per case. You submitted " . count($gcsFiles) . ".";
+        $result['errors'][] = "Maximum {$maxFileCount} files per upload. You submitted " . count($gcsFiles) . ".";
         return $result;
     }
     

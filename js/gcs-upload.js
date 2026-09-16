@@ -154,7 +154,7 @@
 
       // --- Enforce file count ---
       if (allFiles.length > GCS_MAX_FILE_COUNT) {
-        reject(new Error('Maximum ' + GCS_MAX_FILE_COUNT + ' files per case. You selected ' + allFiles.length + '.'));
+        reject(new Error('Maximum ' + GCS_MAX_FILE_COUNT + ' files per upload. You selected ' + allFiles.length + '.'));
         return;
       }
 

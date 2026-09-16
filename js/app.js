@@ -7133,7 +7133,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Show appropriate error message
     // Errors from gcs-upload.js already contain user-friendly text
-    // (e.g. "STL files must be under 250MB", "Maximum 15 files per case")
+    // (e.g. "STL files must be under 250MB", "Maximum 15 files per upload")
     // so we pass them through directly.
     var errorMessage;
     var msg = error.message || '';
