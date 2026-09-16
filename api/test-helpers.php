@@ -111,6 +111,9 @@ switch ($action) {
     case 'set_case_attachments':
         handleSetCaseAttachments($pdo, $input);
         break;
+    case 'set_comment_created_at':
+        handleSetCommentCreatedAt($pdo, $input);
+        break;
     case 'get_last_app_email':
         handleGetLastAppEmail($appConfig, $input);
         break;
@@ -1861,12 +1864,16 @@ function handleSetCaseAttachments($pdo, $input) {
         $clean = [];
         foreach ($attachments as $att) {
             if (!is_array($att)) continue;
-            $clean[] = [
+            $entry = [
                 'fileName' => (string)($att['fileName'] ?? 'file'),
                 'storageType' => (string)($att['storageType'] ?? 'gcs'),
                 'storagePath' => (string)($att['storagePath'] ?? ''),
                 'size' => (int)($att['size'] ?? 0),
             ];
+            if (isset($att['type']) && is_string($att['type']) && $att['type'] !== '') {
+                $entry['type'] = $att['type'];
+            }
+            $clean[] = $entry;
         }
 
         $update = $pdo->prepare("UPDATE cases_cache SET attachments_json = :json WHERE case_id = :case_id");
@@ -1875,6 +1882,77 @@ function handleSetCaseAttachments($pdo, $input) {
         echo json_encode(['success' => true, 'case_id' => $caseId, 'attachment_count' => count($clean)]);
     } catch (PDOException $e) {
         error_log('[test-helpers] set_case_attachments error: ' . $e->getMessage());
+        http_response_code(500);
+        echo json_encode(['success' => false, 'message' => 'Update failed: ' . $e->getMessage()]);
+    }
+}
+
+/**
+ * Backdate created_at on a comment belonging to a test-marked case in the
+ * caller's current practice, for comment-timestamp regression tests.
+ * Accepts minutes_ago (int, >= 0) — the stored value is set to
+ * NOW() - minutes_ago in the DB session timezone, matching how real
+ * comments are written.
+ */
+function handleSetCommentCreatedAt($pdo, $input) {
+    $currentPracticeId = isset($input['practice_id']) ? (int)$input['practice_id'] : ($_SESSION['current_practice_id'] ?? null);
+    if (!$currentPracticeId) {
+        http_response_code(400);
+        echo json_encode(['success' => false, 'message' => 'No current practice in session']);
+        return;
+    }
+
+    $commentId = isset($input['comment_id']) ? (int)$input['comment_id'] : 0;
+    $minutesAgo = isset($input['minutes_ago']) ? (int)$input['minutes_ago'] : -1;
+    if ($commentId <= 0 || $minutesAgo < 0 || $minutesAgo > 60 * 24 * 365) {
+        http_response_code(400);
+        echo json_encode(['success' => false, 'message' => 'comment_id and minutes_ago (0..525600) are required']);
+        return;
+    }
+
+    try {
+        $stmt = $pdo->prepare(
+            "SELECT cc.id, cc.practice_id, c.patient_first_name, c.notes
+             FROM case_comments cc
+             INNER JOIN cases_cache c ON c.case_id = cc.case_id AND c.practice_id = cc.practice_id
+             WHERE cc.id = :id AND cc.practice_id = :pid LIMIT 1"
+        );
+        $stmt->execute(['id' => $commentId, 'pid' => $currentPracticeId]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if (!$row) {
+            http_response_code(404);
+            echo json_encode(['success' => false, 'message' => 'Comment not found']);
+            return;
+        }
+
+        $decrypted = [];
+        if (class_exists('PIIEncryption')) {
+            $decrypted = PIIEncryption::decryptCaseData([
+                'patientFirstName' => $row['patient_first_name'] ?? null,
+                'notes' => $row['notes'] ?? null,
+            ]);
+        }
+        $firstName = $decrypted['patientFirstName'] ?? '';
+        $notes = $decrypted['notes'] ?? '';
+        if (stripos($firstName, TEST_CASE_MARKER) !== 0 && stripos($notes, TEST_CASE_MARKER) !== 0) {
+            http_response_code(403);
+            echo json_encode(['success' => false, 'message' => 'Case is not test-marked']);
+            return;
+        }
+
+        $update = $pdo->prepare(
+            "UPDATE case_comments SET created_at = DATE_SUB(NOW(), INTERVAL :mins MINUTE) WHERE id = :id"
+        );
+        $update->bindValue(':mins', $minutesAgo, PDO::PARAM_INT);
+        $update->bindValue(':id', $commentId, PDO::PARAM_INT);
+        $update->execute();
+
+        $check = $pdo->prepare("SELECT created_at FROM case_comments WHERE id = :id");
+        $check->execute(['id' => $commentId]);
+        echo json_encode(['success' => true, 'comment_id' => $commentId, 'created_at' => $check->fetchColumn()]);
+    } catch (PDOException $e) {
+        error_log('[test-helpers] set_comment_created_at error: ' . $e->getMessage());
         http_response_code(500);
         echo json_encode(['success' => false, 'message' => 'Update failed: ' . $e->getMessage()]);
     }

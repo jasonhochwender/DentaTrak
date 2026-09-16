@@ -243,7 +243,8 @@ if ($method === 'GET') {
     try {
         $stmt = $pdo->prepare("
             SELECT id, case_id, user_id, user_name, user_email, comment_text, 
-                   mentions_json, is_deleted, created_at
+                   mentions_json, is_deleted, created_at,
+                   UNIX_TIMESTAMP(created_at) AS created_ts
             FROM case_comments
             WHERE case_id = :case_id 
             AND practice_id = :practice_id
@@ -267,7 +268,13 @@ if ($method === 'GET') {
                 'text' => $comment['is_deleted'] ? '[Comment removed]' : $comment['comment_text'],
                 'mentions' => $comment['mentions_json'] ? json_decode($comment['mentions_json'], true) : [],
                 'is_deleted' => (bool)$comment['is_deleted'],
-                'created_at' => $comment['created_at']
+                // Emit ISO-8601 UTC: the stored DATETIME carries no timezone, so
+                // UNIX_TIMESTAMP() interprets it in the DB session timezone and
+                // returns the real epoch. A bare 'Y-m-d H:i:s' string would be
+                // mis-parsed by browsers as browser-local time.
+                'created_at' => isset($comment['created_ts']) && $comment['created_ts'] !== null
+                    ? gmdate('c', (int)$comment['created_ts'])
+                    : null
             ];
         }, $comments);
 
@@ -362,6 +369,28 @@ if ($method === 'GET') {
                 }
             }
 
+            // A comment is case activity: bump the case's Updated timestamp so
+            // Updated sorting reflects it. The editable fields are unchanged,
+            // so the optimistic-lock version is intentionally left alone.
+            try {
+                $pdo->prepare("UPDATE cases_cache SET last_update_date = :lud WHERE case_id = :cid")
+                    ->execute(['lud' => date('c'), 'cid' => $caseId]);
+            } catch (PDOException $e) {
+                error_log('[case_comments] Failed to bump last_update_date: ' . $e->getMessage());
+            }
+
+            // Read back the stored timestamp so the response reports the value
+            // MySQL actually wrote (CURRENT_TIMESTAMP uses the DB session
+            // timezone, which can differ from PHP's).
+            $createdTs = null;
+            try {
+                $tsStmt = $pdo->prepare("SELECT UNIX_TIMESTAMP(created_at) FROM case_comments WHERE id = :id");
+                $tsStmt->execute(['id' => $commentId]);
+                $createdTs = $tsStmt->fetchColumn();
+            } catch (PDOException $e) {
+                error_log('[case_comments] Failed to read back created_at: ' . $e->getMessage());
+            }
+
             // Notify other clients that the case changed
             if (function_exists('recordCaseUpdate')) {
                 recordCaseUpdate($caseId, 'update');
@@ -378,7 +407,9 @@ if ($method === 'GET') {
                     'text' => $commentText,
                     'mentions' => $resolvedMentions,
                     'is_deleted' => false,
-                    'created_at' => date('Y-m-d H:i:s')
+                    'created_at' => $createdTs !== null && $createdTs !== false
+                        ? gmdate('c', (int)$createdTs)
+                        : null
                 ]
             ]);
 

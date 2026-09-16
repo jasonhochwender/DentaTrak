@@ -2599,7 +2599,13 @@ body {
 .attachment-download-all {
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
+  /* Pin children to the right edge so the button does not jump left when the
+     (wider) status line appears below it. margin-left:auto also keeps the
+     block right-aligned when the header wraps to a second row. */
+  align-items: flex-end;
+  margin-left: auto;
+  max-width: 100%;
+  min-width: 0;
 }
 
 .attachment-download-all .btn-secondary {
@@ -2656,6 +2662,20 @@ body {
   margin-top: 4px;
   font-size: 0.85rem;
   font-weight: 500;
+  color: #e53935;
+  /* Wrap within the header's right edge instead of widening the column. */
+  max-width: 100%;
+  text-align: right;
+  overflow-wrap: break-word;
+}
+
+.attachments-load-status {
+  margin-bottom: 8px;
+  font-size: 0.85rem;
+  color: #6b7280;
+}
+
+.attachments-load-status.is-error {
   color: #e53935;
 }
 

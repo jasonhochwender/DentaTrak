@@ -5792,6 +5792,233 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   /**
+   * Render a case's stored attachments into the attachment group containers.
+   * Shared by editCaseHandler() (synchronous board/list path, where the case
+   * payload already carries attachments) and loadCaseHeavyData() (async
+   * notification/deep-link path, where attachments arrive in the follow-up
+   * heavy response). The caller is responsible for clearing the containers
+   * beforehand (clearFileSelections) so a re-render cannot duplicate rows.
+   */
+  function renderExistingAttachments(attachments) {
+    if (!attachments || !Array.isArray(attachments) || attachments.length === 0) {
+      return;
+    }
+
+    // Group attachments by type
+    var attachmentsByType = {};
+    attachments.forEach(function(attachment) {
+      // The type from API (Photos, IntraoralScans) may not match our HTML IDs exactly
+      var type = attachment.type;
+      // Make sure to convert to match our HTML container IDs
+      var typeMapping = {
+        'Photos': 'photos',
+        'Intraoral': 'intraoralScans',
+        'IntraoralScans': 'intraoralScans',
+        'Facial': 'facialScans',
+        'FacialScans': 'facialScans',
+        'Photogrammetry': 'photogrammetry',
+        'CompletedDesigns': 'completedDesigns',
+        'Completed': 'completedDesigns'
+      };
+
+      // Try to map the type, fallback to lowercase if not found
+      var mappedType = typeMapping[type] || (type ? String(type).toLowerCase() : 'documents');
+      if (!attachmentsByType[mappedType]) {
+        attachmentsByType[mappedType] = [];
+      }
+      attachmentsByType[mappedType].push(attachment);
+    });
+
+    // Display in the appropriate containers
+    Object.keys(attachmentsByType).forEach(function(type) {
+      // First look for containers with matching data-api-type attribute
+      var container = document.querySelector('.selected-files[data-api-type="' + type + '"]');
+
+      if (!container) {
+        // Try different selector formats until we find a matching container
+        var containerSelectors = [
+          '#' + type.toLowerCase() + '-files',  // Standard format: #photos-files
+          '#' + type + '-files',               // Capitalized: #Photos-files
+          '[data-type="' + type.toLowerCase() + '"]', // data-type attribute
+          '[id$="-' + type.toLowerCase() + '-files"]', // Ends with pattern
+          '[id$="' + type.toLowerCase() + '"]',  // Contains type name
+          '.selected-files'                    // Any selected-files container
+        ];
+
+        // Try each selector until we find a matching container
+        containerSelectors.some(function(selector) {
+          var el = document.querySelector(selector);
+          if (el) {
+            container = el;
+            return true; // Break the loop once we find a container
+          }
+          return false;
+        });
+
+        // If no container found, fallback to the first one
+        if (!container) {
+          container = document.querySelector('.selected-files');
+        }
+      }
+
+      if (container) {
+        attachmentsByType[type].forEach(function(file) {
+          // Create the file element
+          var fileElement = document.createElement('div');
+          fileElement.className = 'selected-file existing-file';
+
+          // Get the file path for local files
+          var filePath = file.path || '';
+          var fileId = file.id || '';
+          fileElement.dataset.fileId = fileId;
+          fileElement.dataset.attachmentId = fileId;
+
+          // Determine if this is a GCS-stored file or a legacy local/Drive file
+          var isGcsFile = (file.storageType === 'gcs' && file.storagePath);
+
+          // Determine file extension for viewer support
+          var fileExt = (file.fileName || '').split('.').pop().toLowerCase();
+
+          // Create the filename label
+          var nameSpan;
+          if (filePath && !isGcsFile) {
+            // Legacy local file path for viewing
+            var viewUrl = '/' + filePath;
+            nameSpan = document.createElement('a');
+            nameSpan.href = viewUrl;
+            nameSpan.target = '_blank';
+            nameSpan.rel = 'noopener noreferrer';
+            nameSpan.style.cssText = 'color: #2563eb; text-decoration: none; cursor: pointer;';
+            nameSpan.title = 'Click to view: ' + file.fileName;
+            nameSpan.textContent = file.fileName;
+
+            // Add hover effect
+            nameSpan.addEventListener('mouseenter', function() {
+              this.style.textDecoration = 'underline';
+            });
+            nameSpan.addEventListener('mouseleave', function() {
+              this.style.textDecoration = 'none';
+            });
+          } else {
+            nameSpan = document.createElement('span');
+            nameSpan.title = file.fileName;
+            nameSpan.textContent = file.fileName;
+            nameSpan.style.cssText = 'color: #374151;';
+          }
+
+          // View link for supported preview formats
+          var viewableExts = ['stl', 'obj', 'ply', 'jpg', 'jpeg', 'png', 'webp', 'pdf'];
+          var viewLink = null;
+          if (isGcsFile && viewableExts.indexOf(fileExt) !== -1) {
+            viewLink = document.createElement('a');
+            viewLink.href = '#';
+            viewLink.className = 'attachment-view-link';
+            viewLink.textContent = t('common.view');
+            viewLink.title = 'Open in File Viewer';
+            viewLink.dataset.storagePath = file.storagePath;
+            viewLink.dataset.fileName = file.fileName;
+            viewLink.dataset.fileType = file.fileType || file.mimeType || fileExt;
+            viewLink.addEventListener('click', function(e) {
+              e.preventDefault();
+              if (typeof openAttachmentViewer === 'function') {
+                try {
+                  openAttachmentViewer(this.dataset.storagePath, this.dataset.fileName, this.dataset.fileType);
+                } catch (err) {
+                  console.error('Attachment viewer failed to open:', err);
+                  showToast(t('attachments.preview_unavailable'), 'error');
+                }
+              } else {
+                console.error('openAttachmentViewer is not available');
+                showToast(t('attachments.preview_unavailable'), 'error');
+              }
+            });
+          }
+
+          // Download link
+          var downloadLink = null;
+          if (isGcsFile) {
+            downloadLink = document.createElement('a');
+            downloadLink.href = '#';
+            downloadLink.className = 'attachment-download-link';
+            downloadLink.textContent = t('common.download');
+            downloadLink.dataset.storagePath = file.storagePath;
+            downloadLink.dataset.fileName = file.fileName;
+            downloadLink.addEventListener('click', function(e) {
+              e.preventDefault();
+              openGcsFile(this.dataset.storagePath, this.dataset.fileName);
+            });
+          } else if (filePath) {
+            downloadLink = document.createElement('a');
+            downloadLink.href = '/' + filePath;
+            downloadLink.download = file.fileName;
+            downloadLink.className = 'attachment-download-link';
+            downloadLink.textContent = t('common.download');
+          }
+
+          // Create a simple delete button with visible styling
+          var deleteBtn = document.createElement('button');
+          deleteBtn.type = 'button';
+          deleteBtn.className = 'file-remove';
+          deleteBtn.title = 'Mark file for deletion (will be removed when you update the case)';
+          deleteBtn.textContent = '❌';
+
+          // Add event listener directly to the button
+          deleteBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+
+            var currentFileElement = this.parentElement;
+
+            // Mark the file element for deletion
+            currentFileElement.classList.add('marked-for-deletion');
+            currentFileElement.style.opacity = '0.5';
+            currentFileElement.style.textDecoration = 'line-through';
+
+            // Hide the delete button after marking
+            this.style.display = 'none';
+
+            // Add a visual indicator that it's marked for deletion
+            var indicator = document.createElement('span');
+            indicator.textContent = ' ' + t('attachments.will_be_deleted');
+            indicator.style.color = '#dc3545';
+            indicator.style.fontSize = '12px';
+            indicator.style.fontStyle = 'italic';
+            currentFileElement.appendChild(indicator);
+
+            // Mark form as having unsaved changes
+            hasUnsavedChanges = true;
+          });
+
+          // Group View and Download together so they sit beside each other
+          var actionsContainer = document.createElement('div');
+          actionsContainer.className = 'attachment-actions';
+          if (viewLink) {
+            actionsContainer.appendChild(viewLink);
+            if (downloadLink) {
+              var separator = document.createElement('span');
+              separator.className = 'attachment-actions-separator';
+              separator.textContent = '|';
+              actionsContainer.appendChild(separator);
+            }
+          }
+          if (downloadLink) {
+            actionsContainer.appendChild(downloadLink);
+          }
+
+          // Assemble the elements in order: name, actions, remove
+          fileElement.appendChild(nameSpan);
+          if (actionsContainer.childNodes.length > 0) {
+            fileElement.appendChild(actionsContainer);
+          }
+          fileElement.appendChild(deleteBtn);
+
+          container.appendChild(fileElement);
+        });
+      }
+    });
+  }
+
+  /**
    * Open a case by its ID (used by notifications)
    */
   var openingCaseById = false;
@@ -5966,6 +6193,7 @@ document.addEventListener('DOMContentLoaded', function () {
   function loadCaseHeavyData(caseId, requestId, destination) {
     var caseModal = document.getElementById('createCaseModal');
     if (viewCaseTimings) viewCaseTimings.heavyRequestStart = performance.now() - viewCaseTimings.shellStart;
+    setAttachmentsLoadState('loading');
     fetch('api/get-case.php?id=' + encodeURIComponent(caseId) + '&view=heavy', {
       credentials: 'same-origin'
     })
@@ -5984,7 +6212,9 @@ document.addEventListener('DOMContentLoaded', function () {
         if (Array.isArray(data.case.attachments)) {
           currentEditCaseData.attachments = data.case.attachments;
           // The core view omits attachments; now that the heavy payload has
-          // arrived, re-evaluate Download All eligibility for this case.
+          // arrived, render the stored files through the same renderer the
+          // board/list path uses and re-evaluate Download All eligibility.
+          renderExistingAttachments(data.case.attachments);
           updateDownloadAllButton(currentEditCaseData);
         }
         if (Array.isArray(data.case.revisions)) {
@@ -5992,9 +6222,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }
       }
 
-      if (typeof displayExistingFiles === 'function' && data.files && data.files.length) {
-        displayExistingFiles(data.files);
-      }
+      setAttachmentsLoadState('ready');
 
       // Clinical details are part of the core payload and are populated
       // synchronously before the modal becomes editable; the heavy follow-up
@@ -6014,11 +6242,39 @@ document.addEventListener('DOMContentLoaded', function () {
     })
     .catch(function(error) {
       // Heavy data is secondary; failing to load attachments/clinical details
-      // should not break the core case editing experience.
+      // should not break the core case editing experience. Surface an honest
+      // error state only if this response still belongs to the open case.
       if (typeof console !== 'undefined' && console.warn) {
         console.warn('Failed to load heavy case data:', error);
       }
+      if (requestId !== caseOpenRequestId || caseModal.style.display === 'none') return;
+      if (String(currentEditCaseId) !== String(caseId)) return;
+      setAttachmentsLoadState('error');
     });
+  }
+
+  /**
+   * Show/hide the attachments loading indicator in the case modal's
+   * attachments section. 'loading' while the heavy fetch is in flight,
+   * 'error' when it failed, 'ready'/null clears it so a genuinely empty
+   * case is visually distinct from a failed load.
+   */
+  function setAttachmentsLoadState(state) {
+    var el = document.getElementById('attachmentsLoadStatus');
+    if (!el) return;
+    if (state === 'loading') {
+      el.textContent = t('attachments.loading');
+      el.classList.remove('is-error');
+      el.style.display = 'block';
+    } else if (state === 'error') {
+      el.textContent = t('attachments.load_error');
+      el.classList.add('is-error');
+      el.style.display = 'block';
+    } else {
+      el.textContent = '';
+      el.classList.remove('is-error');
+      el.style.display = 'none';
+    }
   }
 
   function openCaseModalForView(caseData, fetchStart) {
@@ -8766,223 +9022,13 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Clear file selections
     clearFileSelections();
+    // A stale heavy-load error/loading note must not leak into this case.
+    setAttachmentsLoadState(null);
 
-    // Display existing attachments if any
-    if (caseData.attachments && Array.isArray(caseData.attachments) && caseData.attachments.length > 0) {
-      // Group attachments by type
-      var attachmentsByType = {};
-      caseData.attachments.forEach(function(attachment) {
-        // The type from API (Photos, IntraoralScans) may not match our HTML IDs exactly
-        var type = attachment.type;
-        // Make sure to convert to match our HTML container IDs
-        var typeMapping = {
-          'Photos': 'photos',
-          'Intraoral': 'intraoralScans',
-          'IntraoralScans': 'intraoralScans',
-          'Facial': 'facialScans',
-          'FacialScans': 'facialScans',
-          'Photogrammetry': 'photogrammetry',
-          'CompletedDesigns': 'completedDesigns',
-          'Completed': 'completedDesigns'
-        };
+    // Display existing attachments if any (shared with the async heavy-data
+    // path so all entry points render identical attachment lists).
+    renderExistingAttachments(caseData.attachments);
 
-        // Try to map the type, fallback to lowercase if not found
-        var mappedType = typeMapping[type] || type.toLowerCase();
-        if (!attachmentsByType[mappedType]) {
-          attachmentsByType[mappedType] = [];
-        }
-        attachmentsByType[mappedType].push(attachment);
-      });
-
-      // Display in the appropriate containers
-      Object.keys(attachmentsByType).forEach(function(type) {
-        // First look for containers with matching data-api-type attribute
-        var container = document.querySelector('.selected-files[data-api-type="' + type + '"]');
-
-        if (!container) {
-          // Try different selector formats until we find a matching container
-          var containerSelectors = [
-            '#' + type.toLowerCase() + '-files',  // Standard format: #photos-files
-            '#' + type + '-files',               // Capitalized: #Photos-files
-            '[data-type="' + type.toLowerCase() + '"]', // data-type attribute
-            '[id$="-' + type.toLowerCase() + '-files"]', // Ends with pattern
-            '[id$="' + type.toLowerCase() + '"]',  // Contains type name
-            '.selected-files'                    // Any selected-files container
-          ];
-
-          // Try each selector until we find a matching container
-          containerSelectors.some(function(selector) {
-            var el = document.querySelector(selector);
-            if (el) {
-              container = el;
-              return true; // Break the loop once we find a container
-            }
-            return false;
-          });
-
-          // If no container found, fallback to the first one
-          if (!container) {
-            container = document.querySelector('.selected-files');
-          }
-        }
-
-        if (container) {
-          attachmentsByType[type].forEach(function(file) {
-            // Create the file element
-            var fileElement = document.createElement('div');
-            fileElement.className = 'selected-file existing-file';
-
-            // Get the file path for local files
-            var filePath = file.path || '';
-            var fileId = file.id || '';
-            fileElement.dataset.fileId = fileId;
-            fileElement.dataset.attachmentId = fileId;
-
-            // Determine if this is a GCS-stored file or a legacy local/Drive file
-            var isGcsFile = (file.storageType === 'gcs' && file.storagePath);
-
-            // Determine file extension for viewer support
-            var fileExt = (file.fileName || '').split('.').pop().toLowerCase();
-
-            // Create the filename label
-            var nameSpan;
-            if (filePath && !isGcsFile) {
-              // Legacy local file path for viewing
-              var viewUrl = '/' + filePath;
-              nameSpan = document.createElement('a');
-              nameSpan.href = viewUrl;
-              nameSpan.target = '_blank';
-              nameSpan.rel = 'noopener noreferrer';
-              nameSpan.style.cssText = 'color: #2563eb; text-decoration: none; cursor: pointer;';
-              nameSpan.title = 'Click to view: ' + file.fileName;
-              nameSpan.textContent = file.fileName;
-
-              // Add hover effect
-              nameSpan.addEventListener('mouseenter', function() {
-                this.style.textDecoration = 'underline';
-              });
-              nameSpan.addEventListener('mouseleave', function() {
-                this.style.textDecoration = 'none';
-              });
-            } else {
-              nameSpan = document.createElement('span');
-              nameSpan.title = file.fileName;
-              nameSpan.textContent = file.fileName;
-              nameSpan.style.cssText = 'color: #374151;';
-            }
-
-            // View link for supported preview formats
-            var viewableExts = ['stl', 'obj', 'ply', 'jpg', 'jpeg', 'png', 'webp', 'pdf'];
-            var viewLink = null;
-            if (isGcsFile && viewableExts.indexOf(fileExt) !== -1) {
-              viewLink = document.createElement('a');
-              viewLink.href = '#';
-              viewLink.className = 'attachment-view-link';
-              viewLink.textContent = t('common.view');
-              viewLink.title = 'Open in File Viewer';
-              viewLink.dataset.storagePath = file.storagePath;
-              viewLink.dataset.fileName = file.fileName;
-              viewLink.dataset.fileType = file.fileType || file.mimeType || fileExt;
-              viewLink.addEventListener('click', function(e) {
-                e.preventDefault();
-                if (typeof openAttachmentViewer === 'function') {
-                  try {
-                    openAttachmentViewer(this.dataset.storagePath, this.dataset.fileName, this.dataset.fileType);
-                  } catch (err) {
-                    console.error('Attachment viewer failed to open:', err);
-                    showToast(t('attachments.preview_unavailable'), 'error');
-                  }
-                } else {
-                  console.error('openAttachmentViewer is not available');
-                  showToast(t('attachments.preview_unavailable'), 'error');
-                }
-              });
-            }
-
-            // Download link
-            var downloadLink = null;
-            if (isGcsFile) {
-              downloadLink = document.createElement('a');
-              downloadLink.href = '#';
-              downloadLink.className = 'attachment-download-link';
-              downloadLink.textContent = t('common.download');
-              downloadLink.dataset.storagePath = file.storagePath;
-              downloadLink.dataset.fileName = file.fileName;
-              downloadLink.addEventListener('click', function(e) {
-                e.preventDefault();
-                openGcsFile(this.dataset.storagePath, this.dataset.fileName);
-              });
-            } else if (filePath) {
-              downloadLink = document.createElement('a');
-              downloadLink.href = '/' + filePath;
-              downloadLink.download = file.fileName;
-              downloadLink.className = 'attachment-download-link';
-              downloadLink.textContent = t('common.download');
-            }
-
-            // Create a simple delete button with visible styling
-            var deleteBtn = document.createElement('button');
-            deleteBtn.type = 'button';
-            deleteBtn.className = 'file-remove';
-            deleteBtn.title = 'Mark file for deletion (will be removed when you update the case)';
-            deleteBtn.textContent = '❌';
-
-            // Add event listener directly to the button
-            deleteBtn.addEventListener('click', function(e) {
-              e.preventDefault();
-              e.stopPropagation();
-
-              var currentFileElement = this.parentElement;
-
-              // Mark the file element for deletion
-              currentFileElement.classList.add('marked-for-deletion');
-              currentFileElement.style.opacity = '0.5';
-              currentFileElement.style.textDecoration = 'line-through';
-
-              // Hide the delete button after marking
-              this.style.display = 'none';
-
-              // Add a visual indicator that it's marked for deletion
-              var indicator = document.createElement('span');
-              indicator.textContent = ' ' + t('attachments.will_be_deleted');
-              indicator.style.color = '#dc3545';
-              indicator.style.fontSize = '12px';
-              indicator.style.fontStyle = 'italic';
-              currentFileElement.appendChild(indicator);
-
-              // Mark form as having unsaved changes
-              hasUnsavedChanges = true;
-            });
-
-            // Group View and Download together so they sit beside each other
-            var actionsContainer = document.createElement('div');
-            actionsContainer.className = 'attachment-actions';
-            if (viewLink) {
-              actionsContainer.appendChild(viewLink);
-              if (downloadLink) {
-                var separator = document.createElement('span');
-                separator.className = 'attachment-actions-separator';
-                separator.textContent = '|';
-                actionsContainer.appendChild(separator);
-              }
-            }
-            if (downloadLink) {
-              actionsContainer.appendChild(downloadLink);
-            }
-
-            // Assemble the elements in order: name, actions, remove
-            fileElement.appendChild(nameSpan);
-            if (actionsContainer.childNodes.length > 0) {
-              fileElement.appendChild(actionsContainer);
-            }
-            fileElement.appendChild(deleteBtn);
-
-            container.appendChild(fileElement);
-          });
-        }
-      });
-
-    }
 
     // Update bulk download button based on eligible attachments. This must run
     // for every case open - not only when the case has attachments - so the
@@ -10204,7 +10250,10 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     if (eligible >= 2) {
-      container.style.display = 'block';
+      // Must be 'flex', not 'block': an inline display:block overrides the
+      // stylesheet's column flexbox, which is what keeps the button pinned to
+      // the right edge when the (wider) status line appears.
+      container.style.display = 'flex';
       // Disable only when all sizes are known and exceed the validated limit.
       if (bulkZipMaxBytes !== null && !hasUnknownSize && knownTotal > bulkZipMaxBytes) {
         btn.disabled = true;

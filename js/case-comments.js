@@ -86,6 +86,11 @@
     var html = comments.map(function(comment) {
       var initials = getInitials(comment.user_name);
       var timeAgo = formatTimeAgo(comment.created_at);
+      var exactTime = formatCommentTimestamp(comment.created_at);
+      var commentDate = new Date(comment.created_at);
+      var tsAttr = comment.created_at && !isNaN(commentDate.getTime())
+        ? ' data-ts="' + commentDate.getTime() + '"'
+        : '';
       var textHtml = comment.is_deleted 
         ? '<span class="deleted-text">' + escapeHtml(comment.text) + '</span>'
         : highlightMentions(escapeHtml(comment.text));
@@ -95,7 +100,7 @@
         '<div class="case-comment-content">' +
         '<div class="case-comment-header">' +
         '<span class="case-comment-author">' + escapeHtml(comment.user_name) + '</span>' +
-        '<span class="case-comment-time">' + timeAgo + '</span>' +
+        '<span class="case-comment-time"' + tsAttr + ' title="' + escapeHtml(exactTime) + '">' + timeAgo + '</span>' +
         '</div>' +
         '<div class="case-comment-text">' + textHtml + '</div>' +
         '</div>' +
@@ -103,6 +108,7 @@
     }).join('');
 
     list.innerHTML = html;
+    startCommentTimeRefresh();
 
     applyPendingCommentFocus();
 
@@ -589,10 +595,14 @@
   }
 
   /**
-   * Format time ago
+   * Format time ago. Returns an honest fallback for missing/invalid input —
+   * never "Just now", which would misrepresent the comment's real age.
    */
   function formatTimeAgo(dateString) {
     var date = new Date(dateString);
+    if (!dateString || isNaN(date.getTime())) {
+      return t('comments.time_ago.unavailable');
+    }
     var now = new Date();
     var diffMs = now - date;
     var diffMins = Math.floor(diffMs / 60000);
@@ -608,6 +618,20 @@
   }
 
   /**
+   * Exact local date+time for the timestamp tooltip.
+   */
+  function formatCommentTimestamp(dateString) {
+    var date = new Date(dateString);
+    if (!dateString || isNaN(date.getTime())) {
+      return t('comments.time_ago.unavailable');
+    }
+    if (window.I18n && typeof I18n.formatDate === 'function') {
+      return I18n.formatDate(date, { style: 'short', timeStyle: 'short' });
+    }
+    return date.toLocaleString();
+  }
+
+  /**
    * Escape HTML
    */
   function escapeHtml(text) {
@@ -618,6 +642,7 @@
   }
 
   var pendingCommentFocus = null;
+  var commentTimeRefreshTimer = null;
 
   /**
    * Request that a specific comment be highlighted once the current case's
@@ -635,6 +660,32 @@
    */
   function clearPendingCommentFocus() {
     pendingCommentFocus = null;
+  }
+
+  /**
+   * Refresh relative-time labels while the modal stays open.
+   * One interval only — startCommentTimeRefresh() clears any previous timer
+   * so re-renders never stack duplicates.
+   */
+  function startCommentTimeRefresh() {
+    stopCommentTimeRefresh();
+    commentTimeRefreshTimer = setInterval(function() {
+      var list = document.getElementById('caseCommentsList');
+      if (!list || !list.querySelector('.case-comment-time[data-ts]')) {
+        stopCommentTimeRefresh();
+        return;
+      }
+      list.querySelectorAll('.case-comment-time[data-ts]').forEach(function(el) {
+        el.textContent = formatTimeAgo(new Date(parseInt(el.getAttribute('data-ts'), 10)));
+      });
+    }, 60000);
+  }
+
+  function stopCommentTimeRefresh() {
+    if (commentTimeRefreshTimer) {
+      clearInterval(commentTimeRefreshTimer);
+      commentTimeRefreshTimer = null;
+    }
   }
 
   /**
@@ -670,6 +721,7 @@
   window.clearCaseComments = function() {
     currentCaseId = null;
     activeLoadId++; // invalidate any in-flight load for the previous case
+    stopCommentTimeRefresh();
     var list = document.getElementById('caseCommentsList');
     if (list) list.innerHTML = '';
     updateCommentCount(0);

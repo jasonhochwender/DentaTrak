@@ -170,6 +170,7 @@ if ($method === 'GET') {
                 SELECT n.id, n.notification_type, n.case_id, n.comment_id,
                        n.from_user_id, n.from_user_name, n.preview_text,
                        n.is_read, n.created_at, n.metadata_json, n.event_id,
+                       UNIX_TIMESTAMP(n.created_at) AS created_ts,
                        e.event_type, e.event_categories, e.metadata_json as event_metadata,
                        u.first_name as actor_first_name, u.last_name as actor_last_name,
                        c.patient_first_name, c.patient_last_name, c.case_type,
@@ -300,7 +301,11 @@ if ($method === 'GET') {
                     'categories' => $categories,
                     'metadata' => $metadata,
                     'is_read' => (bool)$n['is_read'],
-                    'created_at' => $n['created_at'],
+                    // ISO-8601 UTC: the stored DATETIME has no timezone marker;
+                    // UNIX_TIMESTAMP() interprets it in the DB session timezone.
+                    'created_at' => isset($n['created_ts']) && $n['created_ts'] !== null
+                        ? gmdate('c', (int)$n['created_ts'])
+                        : null,
                     'patient_display_name' => $patientDisplayName,
                     'case_display_name' => $caseDisplayName
                 ];

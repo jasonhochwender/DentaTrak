@@ -469,6 +469,8 @@
         "delete_file": "Delete File",
         "will_be_deleted": "(will be deleted)",
         "preview_unavailable": "Unable to open this attachment preview. You can still download the file.",
+        "loading": "Loading attachments…",
+        "load_error": "Unable to load attachments. Please try again.",
         "download_failed": "Failed to download file: {message}",
         "download_all": "Download All",
         "download_all_aria": "Download all eligible attachments for this case",
@@ -2072,6 +2074,7 @@
         "toast_add_error_retry": "Error adding comment. Please try again.",
         "time_ago": {
             "just_now": "just now",
+            "unavailable": "Time unavailable",
             "minutes": "{count}m ago",
             "hours": "{count}h ago",
             "days": "{count}d ago"
