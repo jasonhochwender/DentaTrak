@@ -174,9 +174,9 @@
         return '<option value="' + f + '"' + (f === c.field ? ' selected' : '') + (criteria.some(function (other, j) { return j !== i && other.field === f; }) ? ' disabled' : '') + '>' + esc(label(f)) + '</option>';
       }).join('');
       var dirs = directions(c.field);
-      return '<div class="case-sort-row" data-index="' + i + '"><div><label for="caseSortField' + i + '">' + esc(tr(i ? 'filters.then_by' : 'filters.sort_by')) + '</label>' +
+      return '<div class="case-sort-row" data-index="' + i + '"><div class="kanban-filter-field case-sort-field"><label for="caseSortField' + i + '">' + esc(tr(i ? 'filters.then_by' : 'filters.sort_by')) + '</label>' +
         '<select id="caseSortField' + i + '" data-sort-field aria-describedby="caseSortGuidance">' + choices + '</select></div>' +
-        '<div><label for="caseSortDirection' + i + '">' + esc(tr('filters.direction')) + '</label><select id="caseSortDirection' + i + '" data-sort-direction' + (!c.field ? ' disabled' : '') + '>' +
+        '<div class="kanban-filter-field case-sort-direction"' + (!c.field ? ' hidden' : '') + '><label for="caseSortDirection' + i + '">' + esc(tr('filters.direction')) + '</label><select id="caseSortDirection' + i + '" data-sort-direction' + (!c.field ? ' disabled' : '') + '>' +
         ['asc', 'desc'].map(function (dir) { return '<option value="' + dir + '"' + (c.direction === dir ? ' selected' : '') + '>' + esc(dirs[dir]) + '</option>'; }).join('') + '</select></div>' +
         (i ? '<button type="button" class="filter-clear-btn" data-remove-sort aria-label="' + esc(tr('filters.remove_sort') + ' ' + (i + 1)) + '">' + esc(tr('common.remove')) + '</button>' : '') + '</div>';
     }).join('');

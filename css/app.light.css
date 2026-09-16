@@ -1758,18 +1758,27 @@ body {
   overflow: visible;
 }
 
-.case-sort-section { margin-top: 16px; padding-top: 12px; border-top: 1px solid #cbd5e1; }
-.case-sort-section h3 { margin: 0; font-size: 1rem; }
-.case-sort-section p { font-size: 0.85rem; color: var(--text-secondary); }
-.case-sort-row, .case-sort-actions { display: flex; flex-wrap: wrap; gap: 12px; align-items: end; margin-top: 12px; }
-.case-sort-row > div { flex: 1 1 160px; min-width: 0; }
-.case-sort-row label { display: block; font-size: 0.8rem; margin-bottom: 4px; }
-.case-sort-row select { width: 100%; min-height: 44px; padding: 8px; border: 1px solid #94a3b8; border-radius: 6px; background: var(--bg-primary, white); color: var(--text-primary, #111827); }
-.case-sort-section button { min-height: 44px; }
+.case-sort-section { margin-top: 12px; padding-top: 10px; border-top: 1px solid rgba(148, 163, 184, 0.4); }
+.case-sort-section h3 { margin: 0 0 4px; font-size: 0.9rem; font-weight: 600; }
+.case-sort-section > p { margin: 0; font-size: 0.8rem; color: var(--text-secondary); }
+#caseSortSummary { display: none; } /* Temporarily hidden; keep element for possible restore */
+.case-sort-row { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: flex-end; margin-top: 8px; }
+.case-sort-field { flex: 0 1 200px; }
+.case-sort-direction { flex: 0 1 150px; }
+.case-sort-direction[hidden] { display: none; }
+.case-sort-row [data-remove-sort] { flex: 0 0 auto; }
+.case-sort-actions { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; margin-top: 8px; }
 .case-sort-section button:disabled { opacity: 0.5; cursor: not-allowed; }
 .case-sort-section :focus-visible { outline: 2px solid #2563eb; outline-offset: 2px; }
-#caseViewSaveError { margin-top: 12px; color: #991b1b; }
+#caseViewSaveError { margin-top: 8px; font-size: 0.8rem; color: #991b1b; }
 #caseViewSaveError[hidden] { display: none; }
+
+@media (max-width: 768px) {
+  .case-sort-field { flex: 1 1 160px; }
+  .case-sort-direction { flex: 1 1 130px; }
+  .case-sort-section select,
+  .case-sort-section button { min-height: 44px; }
+}
 
 .kanban-filters-row {
   display: flex;

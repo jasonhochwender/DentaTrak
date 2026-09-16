@@ -16,6 +16,7 @@
         "unknown_error": "Unknown error",
         "confirm": "Confirm",
         "confirm_message": "Are you sure?",
+        "remove": "Remove",
         "not_applicable": "N/A",
         "invalid_date": "Invalid Date",
         "date_format": "mm/dd/yyyy",
