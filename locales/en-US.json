@@ -1151,7 +1151,7 @@
             "most_popular": "Most Popular",
             "operate": {
                 "practices": "1 practice",
-                "benefit_1": "Unlimited case tracking",
+                "benefit_1": "Unlimited cases",
                 "benefit_attachments": "Unlimited case attachments",
                 "benefit_2": "Up to 5 users",
                 "benefit_3": "Case assignments and workflow tracking",
@@ -1161,14 +1161,15 @@
                 "practices": "Up to 2 practices",
                 "benefit_1": "Everything in Operate",
                 "benefit_2": "Unlimited users",
-                "benefit_3": "Built for larger practices and teams",
                 "benefit_4": "Practice Insights",
                 "benefit_5": "Smart Recommendations",
                 "benefit_6": "Lab Insights"
             },
             "scale": {
                 "practices": "5 practices included",
-                "benefit_1": "Everything in Control, plus support for additional practices as your organization grows",
+                "benefit_1": "Everything in Control",
+                "benefit_2": "Unlimited users",
+                "benefit_3": "Support for larger multi-practice organizations",
                 "additional_practices_month": "Additional practices: {amount}/month each",
                 "additional_practices_year": "Additional practices: {amount}/year each"
             }
