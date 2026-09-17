@@ -4111,8 +4111,8 @@
         "security_section": {
             "eyebrow": "Security",
             "title": "Your cases stay private. Your team stays in control.",
-            "lead": "DentaTrak checks practice membership and user permissions before showing case details or opening a file, helping keep sensitive information limited to the people responsible for the work.",
-            "link": "Read more about HIPAA & Security",
+            "lead": "DentaTrak encrypts sensitive patient data, verifies practice membership and case authorization on the server, and keeps attachments behind private, short-lived access — so case information stays limited to the people responsible for the work.",
+            "link": "See how DentaTrak protects your data",
             "panel_title": "Case information is shown only to authorized users.",
             "stages": {
                 "1": "Secure sign-in",
@@ -4121,20 +4121,24 @@
                 "4": "Authorized case access"
             },
             "trust": {
-                "1": "Encrypted in transit and at rest",
-                "2": "Signed, short-lived file access",
-                "3": "BAA available"
+                "1": "AES-256 encryption for patient data",
+                "2": "2FA and role-based access",
+                "3": "BAAs for practices and cloud hosting"
             },
             "cards": {
-                "1_title": "Separate practice workspaces",
-                "1_body": "Case information stays within the correct practice. Cross-practice requests are blocked before information is returned.",
-                "2_title": "Access shaped by each user’s role",
-                "2_body": "Owners, administrators, and standard users receive appropriate access. Assigned Only users see only the cases assigned to them.",
-                "3_title": "Secure file access",
-                "3_body": "Attachments are encrypted in transit and at rest and opened through signed, short-lived links available only to authorized users.",
-                "4_title": "Keep patient information secure",
-                "4_body": "DentaTrak never includes patient or case details in notification emails. Team members can communicate through comments and @mentions inside DentaTrak, where authorized users sign in to view the case."
-            }
+                "1_title": "Practice data stays isolated",
+                "1_body": "Server-side authorization verifies practice membership and case access before protected information is returned.",
+                "2_title": "Control who can access your data",
+                "2_body": "Role-based permissions, Assigned Only access, two-factor authentication, and immediate access revocation keep case information limited to the right people.",
+                "3_title": "Private files stay private",
+                "3_body": "Attachments are stored in private cloud storage and accessed through short-lived signed URLs after authorization checks.",
+                "4_title": "Security activity is recorded",
+                "4_body": "DentaTrak records protected case access, workflow changes, assignments, comments, downloads, and security events.",
+                "5_title": "Private notifications",
+                "5_body": "DentaTrak keeps patient and case details out of notification emails. Team members sign in securely to view protected information and collaborate through comments and @mentions."
+            },
+            "baa_title": "BAA-backed from practice to cloud.",
+            "baa_body": "DentaTrak requires a Business Associate Agreement for practices using the platform with protected health information, and maintains a BAA with its cloud hosting provider."
         },
         "mobile_section": {
             "eyebrow": "Mobile Browser",

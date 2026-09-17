@@ -650,7 +650,11 @@ foreach (['operate', 'control', 'scale'] as $plan) {
     .security-card:nth-child(2) .security-card-icon { background: #f0fdf4; color: #15803d; }
     .security-card:nth-child(3) .security-card-icon { background: #fff7ed; color: #c2410c; }
     .security-card:nth-child(4) .security-card-icon { background: #faf5ff; color: #7c3aed; }
+    .security-card:nth-child(5) .security-card-icon { background: #fff1f2; color: #be123c; }
     .security-card:nth-child(3) .security-card-icon svg { color: #ea580c; }
+    .security-baa { text-align: center; margin-top: 36px; }
+    .security-baa-title { font-size: 1.05rem; font-weight: 700; color: var(--dt-ink); margin-bottom: 6px; }
+    .security-baa p { font-size: 0.92rem; color: var(--dt-ink-secondary); line-height: 1.6; max-width: 640px; margin: 0 auto; }
     @media (max-width: 900px) {
       .security-panel { padding: 28px 20px; }
       .security-flow { flex-direction: column; }
@@ -1595,17 +1599,23 @@ foreach (['operate', 'control', 'scale'] as $plan) {
         1 => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
         2 => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg>',
         3 => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>',
-        4 => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>',
+        4 => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>',
+        5 => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>',
       ];
       ?>
       <div class="security-cards" data-reveal>
-        <?php for ($i = 1; $i <= 4; $i++) : ?>
+        <?php for ($i = 1; $i <= 5; $i++) : ?>
         <div class="security-card">
           <div class="security-card-icon" aria-hidden="true"><?php echo $securityIcons[$i]; ?></div>
           <h3><?php echo t('marketing.security_section.cards.' . $i . '_title'); ?></h3>
           <p><?php echo t('marketing.security_section.cards.' . $i . '_body'); ?></p>
         </div>
         <?php endfor; ?>
+      </div>
+
+      <div class="security-baa" data-reveal>
+        <div class="security-baa-title"><?php echo t('marketing.security_section.baa_title'); ?></div>
+        <p><?php echo t('marketing.security_section.baa_body'); ?></p>
       </div>
     </div>
   </section>
