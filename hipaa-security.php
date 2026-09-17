@@ -113,40 +113,121 @@ $hipaaUrl = $baseUrl . ($articleUrls['page_hipaa_security'] ?? 'hipaa-security')
       <h2 id="trust-heading"><?php echo t('marketing.hipaa.trust_heading'); ?></h2>
       <div class="hipaa-trust-grid">
         <div class="hipaa-trust-item">
+          <svg class="hipaa-trust-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+          <h3><?php echo t('marketing.hipaa.trust_encryption_heading'); ?></h3>
+          <p><?php echo t('marketing.hipaa.trust_encryption_body'); ?></p>
+        </div>
+        <div class="hipaa-trust-item">
+          <svg class="hipaa-trust-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"></path></svg>
+          <h3><?php echo t('marketing.hipaa.trust_app_encryption_heading'); ?></h3>
+          <p><?php echo t('marketing.hipaa.trust_app_encryption_body'); ?></p>
+        </div>
+        <div class="hipaa-trust-item">
+          <svg class="hipaa-trust-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect><line x1="12" y1="18" x2="12.01" y2="18"></line></svg>
+          <h3><?php echo t('marketing.hipaa.trust_2fa_heading'); ?></h3>
+          <p><?php echo t('marketing.hipaa.trust_2fa_body'); ?></p>
+        </div>
+        <div class="hipaa-trust-item">
+          <svg class="hipaa-trust-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+          <h3><?php echo t('marketing.hipaa.trust_isolation_heading'); ?></h3>
+          <p><?php echo t('marketing.hipaa.trust_isolation_body'); ?></p>
+        </div>
+        <div class="hipaa-trust-item">
+          <svg class="hipaa-trust-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><line x1="17" y1="8" x2="22" y2="8"></line><line x1="22" y1="8" x2="19" y2="11"></line><line x1="22" y1="8" x2="19" y2="5"></line></svg>
+          <h3><?php echo t('marketing.hipaa.trust_rbac_heading'); ?></h3>
+          <p><?php echo t('marketing.hipaa.trust_rbac_body'); ?></p>
+        </div>
+        <div class="hipaa-trust-item">
+          <svg class="hipaa-trust-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line></svg>
+          <h3><?php echo t('marketing.hipaa.trust_revocation_heading'); ?></h3>
+          <p><?php echo t('marketing.hipaa.trust_revocation_body'); ?></p>
+        </div>
+        <div class="hipaa-trust-item">
+          <svg class="hipaa-trust-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+          <h3><?php echo t('marketing.hipaa.trust_audit_heading'); ?></h3>
+          <p><?php echo t('marketing.hipaa.trust_audit_body'); ?></p>
+        </div>
+        <div class="hipaa-trust-item">
+          <svg class="hipaa-trust-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+          <h3><?php echo t('marketing.hipaa.trust_files_heading'); ?></h3>
+          <p><?php echo t('marketing.hipaa.trust_files_body'); ?></p>
+        </div>
+        <div class="hipaa-trust-item">
+          <svg class="hipaa-trust-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+          <h3><?php echo t('marketing.hipaa.trust_sessions_heading'); ?></h3>
+          <p><?php echo t('marketing.hipaa.trust_sessions_body'); ?></p>
+        </div>
+        <div class="hipaa-trust-item">
+          <svg class="hipaa-trust-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><ellipse cx="12" cy="5" rx="9" ry="3"></ellipse><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path></svg>
+          <h3><?php echo t('marketing.hipaa.trust_backups_heading'); ?></h3>
+          <p><?php echo t('marketing.hipaa.trust_backups_body'); ?></p>
+        </div>
+        <div class="hipaa-trust-item">
           <svg class="hipaa-trust-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/></svg>
           <h3><?php echo t('marketing.hipaa.trust_baa_heading'); ?></h3>
           <p><?php echo t('marketing.hipaa.trust_baa_body'); ?></p>
         </div>
-        <div class="hipaa-trust-item">
-          <svg class="hipaa-trust-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
-          <h3><?php echo t('marketing.hipaa.trust_data_heading'); ?></h3>
-          <p><?php echo t('marketing.hipaa.trust_data_body'); ?></p>
+      </div>
+    </section>
+
+    <section class="hipaa-safeguards" aria-labelledby="encryption-heading">
+      <h2 id="encryption-heading"><?php echo t('marketing.hipaa.encryption_heading'); ?></h2>
+      <p class="section-lead"><?php echo t('marketing.hipaa.encryption_lead'); ?></p>
+      <div class="hipaa-grid">
+        <div class="hipaa-card">
+          <h3><?php echo t('marketing.hipaa.encryption_app_heading'); ?></h3>
+          <p><?php echo t('marketing.hipaa.encryption_app_body'); ?></p>
         </div>
-        <div class="hipaa-trust-item">
-          <svg class="hipaa-trust-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
-          <h3><?php echo t('marketing.hipaa.trust_access_heading'); ?></h3>
-          <p><?php echo t('marketing.hipaa.trust_access_body'); ?></p>
+        <div class="hipaa-card">
+          <h3><?php echo t('marketing.hipaa.encryption_infra_heading'); ?></h3>
+          <p><?php echo t('marketing.hipaa.encryption_infra_body'); ?></p>
         </div>
-        <div class="hipaa-trust-item">
-          <svg class="hipaa-trust-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
-          <h3><?php echo t('marketing.hipaa.trust_files_heading'); ?></h3>
-          <p><?php echo t('marketing.hipaa.trust_files_body'); ?></p>
+        <div class="hipaa-card">
+          <h3><?php echo t('marketing.hipaa.encryption_transit_heading'); ?></h3>
+          <p><?php echo t('marketing.hipaa.encryption_transit_body'); ?></p>
+        </div>
+        <div class="hipaa-card">
+          <h3><?php echo t('marketing.hipaa.encryption_passwords_heading'); ?></h3>
+          <p><?php echo t('marketing.hipaa.encryption_passwords_body'); ?></p>
         </div>
       </div>
     </section>
 
-    <section class="hipaa-safeguards" aria-labelledby="safeguards-heading">
-      <h2 id="safeguards-heading"><?php echo t('marketing.hipaa.safeguards_heading'); ?></h2>
-      <p class="section-lead"><?php echo t('marketing.hipaa.safeguards_lead'); ?></p>
+    <section class="hipaa-safeguards" aria-labelledby="access-heading">
+      <h2 id="access-heading"><?php echo t('marketing.hipaa.access_heading'); ?></h2>
+      <p class="section-lead"><?php echo t('marketing.hipaa.access_lead'); ?></p>
       <div class="hipaa-grid">
         <div class="hipaa-card">
-          <h3><?php echo t('marketing.hipaa.data_protection_heading'); ?></h3>
-          <p><?php echo t('marketing.hipaa.data_protection_body'); ?></p>
+          <h3><?php echo t('marketing.hipaa.twofa_heading'); ?></h3>
+          <p><?php echo t('marketing.hipaa.twofa_body'); ?></p>
         </div>
         <div class="hipaa-card">
-          <h3><?php echo t('marketing.hipaa.access_controls_heading'); ?></h3>
-          <p><?php echo t('marketing.hipaa.access_controls_body'); ?></p>
+          <h3><?php echo t('marketing.hipaa.isolation_heading'); ?></h3>
+          <p><?php echo t('marketing.hipaa.isolation_body'); ?></p>
         </div>
+        <div class="hipaa-card">
+          <h3><?php echo t('marketing.hipaa.roles_heading'); ?></h3>
+          <p><?php echo t('marketing.hipaa.roles_body'); ?></p>
+        </div>
+        <div class="hipaa-card">
+          <h3><?php echo t('marketing.hipaa.revocation_heading'); ?></h3>
+          <p><?php echo t('marketing.hipaa.revocation_body'); ?></p>
+        </div>
+        <div class="hipaa-card">
+          <h3><?php echo t('marketing.hipaa.sessions_heading'); ?></h3>
+          <p><?php echo t('marketing.hipaa.sessions_body'); ?></p>
+        </div>
+        <div class="hipaa-card">
+          <h3><?php echo t('marketing.hipaa.signin_heading'); ?></h3>
+          <p><?php echo t('marketing.hipaa.signin_body'); ?></p>
+        </div>
+      </div>
+    </section>
+
+    <section class="hipaa-safeguards" aria-labelledby="platform-heading">
+      <h2 id="platform-heading"><?php echo t('marketing.hipaa.platform_heading'); ?></h2>
+      <p class="section-lead"><?php echo t('marketing.hipaa.platform_lead'); ?></p>
+      <div class="hipaa-grid">
         <div class="hipaa-card">
           <h3><?php echo t('marketing.hipaa.files_heading'); ?></h3>
           <p><?php echo t('marketing.hipaa.files_body'); ?></p>
@@ -156,12 +237,16 @@ $hipaaUrl = $baseUrl . ($articleUrls['page_hipaa_security'] ?? 'hipaa-security')
           <p><?php echo t('marketing.hipaa.audit_body'); ?></p>
         </div>
         <div class="hipaa-card">
-          <h3><?php echo t('marketing.hipaa.sessions_heading'); ?></h3>
-          <p><?php echo t('marketing.hipaa.sessions_body'); ?></p>
-        </div>
-        <div class="hipaa-card">
           <h3><?php echo t('marketing.hipaa.application_safeguards_heading'); ?></h3>
           <p><?php echo t('marketing.hipaa.application_safeguards_body'); ?></p>
+        </div>
+        <div class="hipaa-card">
+          <h3><?php echo t('marketing.hipaa.infrastructure_heading'); ?></h3>
+          <p><?php echo t('marketing.hipaa.infrastructure_body'); ?></p>
+        </div>
+        <div class="hipaa-card">
+          <h3><?php echo t('marketing.hipaa.backups_heading'); ?></h3>
+          <p><?php echo t('marketing.hipaa.backups_body'); ?></p>
         </div>
         <div class="hipaa-card">
           <h3><?php echo t('marketing.hipaa.retention_heading'); ?></h3>
@@ -184,7 +269,17 @@ $hipaaUrl = $baseUrl . ($articleUrls['page_hipaa_security'] ?? 'hipaa-security')
 
     <section class="hipaa-section" aria-labelledby="baa-heading">
       <h2 id="baa-heading"><?php echo t('marketing.hipaa.baa_heading'); ?></h2>
-      <p><?php echo t('marketing.hipaa.baa_body'); ?></p>
+      <?php echo t('marketing.hipaa.baa_body'); ?>
+    </section>
+
+    <section class="hipaa-section" aria-labelledby="assurance-heading">
+      <h2 id="assurance-heading"><?php echo t('marketing.hipaa.assurance_heading'); ?></h2>
+      <?php echo t('marketing.hipaa.assurance_body'); ?>
+    </section>
+
+    <section class="hipaa-section" aria-labelledby="report-heading">
+      <h2 id="report-heading"><?php echo t('marketing.hipaa.report_heading'); ?></h2>
+      <p><?php echo t('marketing.hipaa.report_body'); ?></p>
     </section>
 
     <section class="hipaa-section hipaa-contact-section" aria-labelledby="contact-heading">
