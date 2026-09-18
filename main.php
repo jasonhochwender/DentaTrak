@@ -857,7 +857,9 @@ endif;
           <?php if (isFeatureEnabled('SHOW_TOUR')): ?>
           <a href="#" class="user-menu-item" id="startTourLink"><?php echo t('navigation.take_tour'); ?></a>
           <?php endif; ?>
+          <!-- User Guide link temporarily hidden from the menu. Restore by removing this comment wrapper.
           <a href="<?php echo htmlspecialchars($appConfig['user_guide_url'], ENT_QUOTES, 'UTF-8'); ?>" class="user-menu-item" id="userGuideLink" target="_blank" rel="noopener noreferrer"><?php echo t('navigation.user_guide'); ?></a>
+          -->
           <div class="user-menu-divider"></div>
           <a href="api/logout.php" class="user-menu-item"><?php echo t('navigation.logout'); ?></a>
         </div>
