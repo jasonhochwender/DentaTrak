@@ -306,7 +306,7 @@ function trashDriveFolder($folderId) {
  * @param array $files The uploaded files data
  * @return array Status and message
  */
-function createCase($caseData, $files, $originalCaseData = null, $gcsAttachments = []) {
+function createCase($caseData, $files, $originalCaseData = null, $gcsAttachments = [], ?int $practiceId = null) {
     global $pdo;
     
     // Use original data if provided, otherwise use encrypted data
@@ -317,11 +317,11 @@ function createCase($caseData, $files, $originalCaseData = null, $gcsAttachments
         // The data should remain encrypted when stored in Google Drive
         
         // Check if Google Drive backup is enabled
-        $backupEnabled = isGoogleDriveBackupEnabled();
+        $backupEnabled = isGoogleDriveBackupEnabled($practiceId);
         
         // If backup is not enabled, create a cache-only case
         if (!$backupEnabled) {
-            return createCacheOnlyCase($caseData, $files, $originalCaseData, $gcsAttachments);
+            return createCacheOnlyCase($caseData, $files, $originalCaseData, $gcsAttachments, $practiceId);
         }
         
         $client = getGoogleClient();
@@ -329,7 +329,7 @@ function createCase($caseData, $files, $originalCaseData = null, $gcsAttachments
         // Check for valid access token - if not available and backup is enabled, fall back to cache-only
         if (!$client->getAccessToken() || $client->isAccessTokenExpired()) {
             // Google Drive token expired but backup was enabled - create cache-only with warning
-            $result = createCacheOnlyCase($caseData, $files, $originalCaseData, $gcsAttachments);
+            $result = createCacheOnlyCase($caseData, $files, $originalCaseData, $gcsAttachments, $practiceId);
             if ($result['success']) {
                 $result['warning'] = 'Google Drive session expired. Case saved locally only. Reconnect Google Drive from Settings to enable backup.';
             }
@@ -337,7 +337,7 @@ function createCase($caseData, $files, $originalCaseData = null, $gcsAttachments
         }
         
         $service = new Google_Service_Drive($client);
-        $practiceId = isset($_SESSION['current_practice_id']) ? (int)$_SESSION['current_practice_id'] : 0;
+        $practiceId = $practiceId ?? (isset($_SESSION['current_practice_id']) ? (int)$_SESSION['current_practice_id'] : 0);
         $rootFolderId = getPracticeRootFolder($practiceId);
         
         // Create unique case ID and timestamp
@@ -381,6 +381,7 @@ function createCase($caseData, $files, $originalCaseData = null, $gcsAttachments
             'trackingNumber' => $caseData['trackingNumber'] ?? '',
             'customCarrier' => $caseData['customCarrier'] ?? '',
             'createdByUserId' => $caseData['createdByUserId'] ?? null,
+            'practice_id' => $practiceId,
             'revisions' => [],
             'attachments' => []
         ];
@@ -388,7 +389,7 @@ function createCase($caseData, $files, $originalCaseData = null, $gcsAttachments
         // Process GCS attachments first (new direct-to-GCS upload flow)
         if (!empty($gcsAttachments)) {
             // Move files from pending path to final case path
-            $practiceId = $_SESSION['current_practice_id'] ?? 0;
+            $practiceId = $practiceId ?? ($_SESSION['current_practice_id'] ?? 0);
             if (function_exists('finalizeGcsAttachmentPaths')) {
                 $gcsAttachments = finalizeGcsAttachmentPaths($gcsAttachments, $practiceId, $caseId);
             }
@@ -761,7 +762,7 @@ function removeFileFromBackup($backupFolderId, $fileName) {
  * @param array $files The uploaded files data
  * @return array Status and message
  */
-function createCacheOnlyCase($caseData, $files, $originalCaseData = null, $gcsAttachments = []) {
+function createCacheOnlyCase($caseData, $files, $originalCaseData = null, $gcsAttachments = [], ?int $practiceId = null) {
     global $pdo;
     
     // Use original data if provided, otherwise use encrypted data
@@ -770,7 +771,7 @@ function createCacheOnlyCase($caseData, $files, $originalCaseData = null, $gcsAt
     try {
         // Create unique case ID
         $caseId = uniqid() . bin2hex(random_bytes(4));
-        $practiceId = isset($_SESSION['current_practice_id']) ? (int)$_SESSION['current_practice_id'] : 0;
+        $practiceId = $practiceId ?? (isset($_SESSION['current_practice_id']) ? (int)$_SESSION['current_practice_id'] : 0);
         
         // Prepare the complete case data (keeping PII encrypted)
         $completeCase = [
@@ -794,6 +795,7 @@ function createCacheOnlyCase($caseData, $files, $originalCaseData = null, $gcsAt
             'trackingNumber' => $caseData['trackingNumber'] ?? '',
             'customCarrier' => $caseData['customCarrier'] ?? '',
             'createdByUserId' => $caseData['createdByUserId'] ?? null,
+            'practice_id' => $practiceId,
             'revisions' => [],
             'attachments' => []
         ];
@@ -871,10 +873,10 @@ function createCacheOnlyCase($caseData, $files, $originalCaseData = null, $gcsAt
  * Backup is a practice-level setting stored in the practices table.
  * @return bool Whether backup is enabled for the practice
  */
-function isGoogleDriveBackupEnabled() {
+function isGoogleDriveBackupEnabled(?int $practiceId = null) {
     global $pdo;
     
-    $practiceId = $_SESSION['current_practice_id'] ?? 0;
+    $practiceId = $practiceId ?? ($_SESSION['current_practice_id'] ?? 0);
     if (!$practiceId) {
         return false;
     }
@@ -893,10 +895,10 @@ function isGoogleDriveBackupEnabled() {
  * Check if the practice has a Google Drive folder configured.
  * @return bool Whether the practice has a Drive folder set up
  */
-function isPracticeCreatorDriveConnected() {
+function isPracticeCreatorDriveConnected(?int $practiceId = null) {
     global $pdo;
     
-    $practiceId = $_SESSION['current_practice_id'] ?? 0;
+    $practiceId = $practiceId ?? ($_SESSION['current_practice_id'] ?? 0);
     if (!$practiceId) {
         return false;
     }

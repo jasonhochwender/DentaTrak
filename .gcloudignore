@@ -21,6 +21,9 @@ tsconfig.json
 README.md
 .env.example
 scripts/**
+# cloudbuild.yaml's final step runs this provisioning script inside the
+# build workspace, so it must survive the source upload.
+!scripts/provision-integration-worker.sh
 deploy.cmd
 
 # Local config
@@ -29,3 +32,12 @@ deploy.cmd
 .gitignore
 .dockerignore
 cloudbuild.yaml
+
+# Local runtime data (gitignored; must never upload to the build -
+# sessions/exports/logs can contain user data and sit under the docroot)
+sessions/
+logs/
+exports/
+uploads/*
+!uploads/.htaccess
+!uploads/logos/

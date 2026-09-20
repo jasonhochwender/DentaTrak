@@ -27,6 +27,11 @@ $FEATURE_DEFAULTS = [
                                     // and explicitly approved for rollout.
     'SHOW_CASE_DOWNLOAD_ALL' => true, // Bulk case attachment ZIP download.
                                        // Default false until controlled rollout.
+    'SHOW_PMS_INTEGRATIONS' => false, // PMS integration surface (connections,
+                                       // credentials, mappings, sync runs,
+                                       // events, guided Open Dental onboarding).
+                                       // Must remain OFF until the first
+                                       // integration is end-to-end approved.
 ];
 
 /**

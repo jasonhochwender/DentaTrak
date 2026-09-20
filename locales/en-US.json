@@ -576,7 +576,8 @@
             "display": "Display & Behavior",
             "users": "Practice Users & Roles",
             "security": "Security",
-            "data_privacy": "Data & Privacy"
+            "data_privacy": "Data & Privacy",
+            "integrations": "Integrations"
         },
         "messages": {
             "admin_only": "Settings are only available to practice administrators.",
@@ -903,6 +904,108 @@
             "aria_restore": "Restore archived column",
             "aria_reorder_up": "Move column up",
             "aria_reorder_down": "Move column down"
+        },
+        "external_collaborator_denied": "External collaborators cannot change these settings.",
+        "integrations": {
+            "title": "Integrations",
+            "description": "Connect DentaTrak to external practice management systems to keep case information in sync.",
+            "connect": "Connect",
+            "configure": "Manage",
+            "disconnect": "Disconnect",
+            "reenable": "Re-enable",
+            "test_connection": "Test Connection",
+            "testing": "Testing...",
+            "disconnect_confirm_title": "Disconnect integration",
+            "disconnect_confirm_message": "Disconnect this integration? Automatic lab case updates will stop and no new cases will be imported, but imported cases and record mappings are preserved. You can re-enable it later.",
+            "status": {
+                "not_connected": "Not connected",
+                "connected": "Connected",
+                "pending": "Pending verification",
+                "error": "Error",
+                "disabled": "Disabled"
+            },
+            "meta": {
+                "connection": "Connection:",
+                "auto_updates": "Automatic lab case updates:",
+                "auto_updates_on": "Active",
+                "auto_updates_off": "Not active",
+                "last_event_received": "Last event received:",
+                "last_case_write": "Last successful import/update:",
+                "cases_imported": "Cases imported:",
+                "delivery_issue": "Last delivery issue:",
+                "connection_issue": "Connection issue:",
+                "never": "Never"
+            },
+            "providers": {
+                "open_dental": {
+                    "name": "Open Dental",
+                    "description": "Connect DentaTrak to Open Dental to automatically import new lab cases and keep Open Dental-managed case details up to date."
+                }
+            },
+            "modal": {
+                "title": "Configure {provider}",
+                "description": "Enter the integration credentials provided by your practice management system. These are integration credentials, not your login username and password.",
+                "developer_key": "Developer key",
+                "customer_key": "Customer key",
+                "configured": "Configured — enter a new value to replace it, or leave blank to keep the current key.",
+                "not_configured": "Not configured",
+                "credentials_note": "Credentials are stored encrypted and are never displayed again after saving."
+            },
+            "messages": {
+                "saved": "Open Dental configuration saved. Connection verification is not yet complete.",
+                "disconnected": "Integration disconnected. Imported cases and record mappings were preserved.",
+                "reenabled": "Integration re-enabled. Connection verification is not yet complete.",
+                "load_failed": "Unable to load integration status.",
+                "save_failed": "Unable to save integration settings.",
+                "disconnect_failed": "Unable to disconnect the integration.",
+                "test_succeeded": "Connection verified. Open Dental responded successfully.",
+                "test_succeeded_next": "To start importing lab cases automatically, close this window and click \"Enable automatic updates\".",
+                "test_failed": "Connection test failed. See the error on the integration card.",
+                "subscribed": "Automatic lab case updates enabled.",
+                "unsubscribed": "Automatic lab case updates disabled.",
+                "subscribe_failed": "Unable to enable automatic lab case updates.",
+                "key_generated": "Connection key generated. Copy it and add it in Open Dental (Step 2).",
+                "generate_failed": "Unable to generate a connection key. Please try again, or contact DentaTrak support."
+            },
+            "subscription": {
+                "enable": "Enable automatic updates",
+                "disable": "Disable automatic updates",
+                "disable_confirm": "Stop automatically importing Open Dental lab case changes? The connection stays active and existing cases are kept."
+            },
+            "setup": {
+                "title": "Set up {provider}",
+                "description": "Follow these steps to connect DentaTrak to your Open Dental system.",
+                "step1_title": "Step 1: Generate your connection key",
+                "step1_desc": "DentaTrak creates a unique Open Dental connection key for your practice. You only need to do this once.",
+                "generate_key": "Generate Open Dental Connection Key",
+                "generating": "Generating...",
+                "key_label": "Your Open Dental connection key",
+                "copy_key": "Copy",
+                "copied": "Copied",
+                "key_once_note": "This key is shown only once. Copy it now - you will paste it into Open Dental in Step 2.",
+                "key_configured": "A connection key is already configured for this practice.",
+                "regenerate_key": "Regenerate key (replaces the existing key)",
+                "step2_title": "Step 2: Add the key in Open Dental",
+                "step2_desc": "In your Open Dental software:",
+                "step2_a": "Go to Setup > Advanced Setup > API.",
+                "step2_b": "Make sure API access is enabled, then click Add Key in the lower left.",
+                "step2_c": "Paste the connection key from Step 1 and make sure it is Enabled.",
+                "step3_title": "Step 3: Confirm the eConnector is running",
+                "step3_desc": "The Open Dental API requires the eConnector service. It is usually already running if your practice uses Open Dental eServices. If it is not running or cannot be installed, contact your IT administrator or Open Dental support.",
+                "econnector_link": "Open Dental eConnector documentation",
+                "step4_title": "Step 4: Test the connection",
+                "step4_desc": "Once the key is added in Open Dental, verify that everything is working."
+            },
+            "errors": {
+                "key_not_installed": "No connection key is configured yet. Generate a key in Step 1, add it in Open Dental, then test again.",
+                "credentials_rejected": "Open Dental rejected the connection key. Confirm the key was pasted correctly in Setup > Advanced Setup > API and that it is Enabled.",
+                "server_config": "The Open Dental integration is not fully configured on the DentaTrak server. Please contact DentaTrak support.",
+                "unreachable": "DentaTrak could not reach your Open Dental system. Check that the eConnector is running, then try again.",
+                "econnector_offline": "Open Dental reports your office's eConnector is not running. On your Open Dental server, confirm the eConnector service is started and the computer is online, then test again.",
+                "unexpected": "Open Dental returned an unexpected response. Please try again, or contact support if it persists.",
+                "subscribe_version": "Automatic lab case updates require Open Dental version 25.4.14 or later. Update Open Dental, then try again.",
+                "no_key": "Generate your connection key in Step 1 before testing."
+            }
         }
     },
     "insights": {
@@ -1893,6 +1996,7 @@
         "veneer": "Veneer",
         "inlay_onlay": "Inlay/Onlay",
         "orthodontic_appliance": "Orthodontic Appliance",
+        "needs_classification": "Needs Classification",
         "mixed": "Mixed Case Type",
         "unknown": "Unknown"
     },
@@ -2187,6 +2291,36 @@
         "email": {
             "service_not_configured": "Email service not configured",
             "delivery_failed": "Email delivery failed"
+        },
+        "integrations": {
+            "error_generic": "An unexpected error occurred. Please try again.",
+            "disabled": "Integrations are not available.",
+            "unknown_action": "Unknown integration action.",
+            "method_not_allowed": "Method not allowed",
+            "invalid_provider": "Unsupported integration provider.",
+            "invalid_credential_key": "Unsupported credential field.",
+            "not_found": "Integration connection not found.",
+            "disabled_connection": "This integration is disabled. Re-enable it before changing settings.",
+            "no_supported_settings": "No supported settings were provided.",
+            "saved_unverified": "Configuration saved. Connection verification is not yet complete.",
+            "settings_saved": "Integration settings saved.",
+            "disconnected": "Integration disconnected. Imported cases and record mappings were preserved.",
+            "reenabled": "Integration re-enabled. Connection verification is not yet complete.",
+            "not_disabled": "Only a disabled integration can be re-enabled.",
+            "test_succeeded": "Connection verified. Open Dental responded successfully.",
+            "test_failed": "Connection test failed. Check the error shown on the integration card.",
+            "subscription_needs_active": "Verify the connection before enabling automatic updates.",
+            "subscription_exists": "Automatic lab case updates are already enabled.",
+            "provider_no_events": "This integration does not support automatic updates.",
+            "subscription_failed": "Open Dental could not enable automatic lab case updates.",
+            "subscribed": "Automatic lab case updates enabled.",
+            "no_subscription": "Automatic lab case updates are not enabled.",
+            "unsubscribed": "Automatic lab case updates disabled.",
+            "unsubscribed_remote_failed": "Automatic updates disabled locally, but Open Dental could not be reached to retire the remote subscription. Stray events will be ignored.",
+            "server_not_configured": "The Open Dental integration is not configured on this server. Please contact DentaTrak support.",
+            "key_exists": "A connection key already exists for this practice. Regenerate it to replace the existing key.",
+            "key_generated": "Connection key generated.",
+            "generate_failed": "Unable to generate a connection key. Please try again, or contact DentaTrak support."
         }
     },
     "email": {

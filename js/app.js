@@ -1087,11 +1087,15 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   // Event listeners for closing modals
-  // Exclude create case modal close button and settings modal close button - they have their own handlers with unsaved changes check
+  // Exclude create case modal close button, settings modal close button, and
+  // the integration config modal close button - they have their own handlers
+  // (unsaved-changes checks / child-modal cleanup). Routing them through the
+  // generic closeModals() would hide EVERY open modal including parents.
   var createCaseCloseBtn = document.getElementById('createCaseClose');
   var settingsBillingCloseBtn = document.getElementById('settingsBillingClose');
+  var integrationConfigCloseBtn = document.getElementById('integrationConfigClose');
   closeBtns.forEach(btn => {
-    if (btn !== createCaseCloseBtn && btn !== settingsBillingCloseBtn) {
+    if (btn !== createCaseCloseBtn && btn !== settingsBillingCloseBtn && btn !== integrationConfigCloseBtn) {
       btn.addEventListener('click', closeModals);
     }
   });
@@ -1121,6 +1125,17 @@ document.addEventListener('DOMContentLoaded', function () {
         e.preventDefault();
         e.stopPropagation();
         closeSettingsBillingModal(false);
+        return;
+      }
+      // The integration config modal is a child of Settings - its backdrop
+      // click must close only itself, never every open modal.
+      var integrationModal = document.getElementById('integrationConfigModal');
+      if (e.target === integrationModal) {
+        e.preventDefault();
+        e.stopPropagation();
+        if (typeof window.closeIntegrationConfigModal === 'function') {
+          window.closeIntegrationConfigModal();
+        }
         return;
       }
       closeModals();
@@ -1422,6 +1437,12 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Initialize the Settings left-nav (drives which section panel is shown)
     initSettingsNav();
+
+    // Load integration connection state when the Integrations panel exists
+    // (no-op when SHOW_PMS_INTEGRATIONS is off and nothing was rendered).
+    if (window.initIntegrationsPanel) {
+      initIntegrationsPanel();
+    }
 
     // Load user settings
     loadSettings();
@@ -2179,6 +2200,12 @@ document.addEventListener('DOMContentLoaded', function () {
     if (confirmModal && confirmModal.style.display === 'block') {
       return;
     }
+    // The Open Dental setup modal is a child of Settings - Settings must not
+    // close underneath it (its own Escape/X/backdrop dismiss it alone).
+    var integrationModal = document.getElementById('integrationConfigModal');
+    if (integrationModal && integrationModal.style.display === 'block') {
+      return;
+    }
     if (settingsBillingModal) {
       // Check for unsaved changes unless force closing
       if (!forceClose && hasUnsavedSettingsChanges()) {
@@ -2194,6 +2221,11 @@ document.addEventListener('DOMContentLoaded', function () {
           settingsBillingModal.style.display = 'none';
           document.body.style.overflow = '';
           document.documentElement.style.overflow = '';
+          // Tear down any stale child-modal state so reopening Settings
+          // never resurrects the integration setup modal.
+          if (typeof window.closeIntegrationConfigModal === 'function') {
+            window.closeIntegrationConfigModal();
+          }
           resetLogoUploadState();
           loadSettings();
         });
@@ -2203,6 +2235,11 @@ document.addEventListener('DOMContentLoaded', function () {
       settingsBillingModal.style.display = 'none';
       document.body.style.overflow = '';
       document.documentElement.style.overflow = '';
+      // Tear down any stale child-modal state so reopening Settings never
+      // resurrects the integration setup modal.
+      if (typeof window.closeIntegrationConfigModal === 'function') {
+        window.closeIntegrationConfigModal();
+      }
 
       // Reset logo upload state when closing without saving
       if (!forceClose) {
@@ -4380,7 +4417,11 @@ document.addEventListener('DOMContentLoaded', function () {
       var description = '';
       switch (evt.event_type) {
         case 'case_created':
-          description = 'Case created by ' + userName;
+          if (evt.meta && evt.meta.source === 'integration:open_dental') {
+            description = 'Case automatically created from Open Dental';
+          } else {
+            description = 'Case created by ' + userName;
+          }
           break;
         case 'case_updated':
         case 'fields_updated':
@@ -7680,8 +7721,9 @@ document.addEventListener('DOMContentLoaded', function () {
   var materialField = materialElement ? materialElement.closest('.form-field') : null;
 
   if (caseTypeSelect && materialField) {
-    // Case types that require the material field
-    var caseTypesRequiringMaterial = [
+    // Case types that require the material field (canonical list injected
+    // from api/case-types.php; literal fallback for non-main.php contexts)
+    var caseTypesRequiringMaterial = window.__caseTypesRequiringMaterial || [
       "Crown", "Bridge", "Implant", "AOX", "Veneer", "Inlay/Onlay"
     ];
 
@@ -12447,3 +12489,692 @@ document.addEventListener('DOMContentLoaded', function () {
  * Handles add, rename (via the Settings save button), reorder, archive,
  * and restore. All structural changes call /api/workflow-columns.php.
  */
+
+/**
+ * Settings > Integrations (PMS connections) - Phase B
+ *
+ * Provider-agnostic card UI driven by api/integrations.php. Provider UI
+ * metadata lives in INTEGRATION_PROVIDER_SPECS below; adding a provider is
+ * a spec entry plus a card in main.php, not a restructure.
+ *
+ * SECURITY: this module never stores, logs, or echoes credential values.
+ * Secrets travel only in the POST body of the configure request; blank
+ * fields mean "keep existing credential" server-side.
+ */
+(function () {
+    'use strict';
+
+    var INTEGRATION_PROVIDER_SPECS = {
+        open_dental: {
+            // Guided onboarding: the practice's Customer Key is generated
+            // through the Open Dental Developer Portal API (generate_key
+            // action). No credential fields - the admin never sees or types
+            // developer secrets.
+            guided: true,
+            credentialFields: []
+        }
+    };
+
+    var integrationsState = {
+        loaded: false,
+        connectionsByProvider: {},   // provider -> public connection projection
+        configProvider: null,
+        returnFocusEl: null          // element to refocus when the child modal closes
+    };
+
+    function integrationsPost(payload) {
+        return fetch('api/integrations.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken },
+            body: JSON.stringify(payload)
+        }).then(function (r) { return r.json(); });
+    }
+
+    function statusLabelKey(status) {
+        switch (status) {
+            case 'active':   return 'settings.integrations.status.connected';
+            case 'pending':  return 'settings.integrations.status.pending';
+            case 'error':    return 'settings.integrations.status.error';
+            case 'disabled': return 'settings.integrations.status.disabled';
+            default:         return 'settings.integrations.status.not_connected';
+        }
+    }
+
+    function esc(s) {
+        var d = document.createElement('div');
+        d.textContent = s == null ? '' : String(s);
+        return d.innerHTML;
+    }
+
+    function setBadge(provider, status) {
+        var badge = document.getElementById('integrationStatusBadge-' + provider);
+        if (!badge) return;
+        badge.textContent = t(statusLabelKey(status || 'none'));
+        badge.className = 'integration-status-badge' +
+            (status && status !== 'none' ? ' integration-status-' + status : '');
+    }
+
+    function renderMeta(provider, conn) {
+        var meta = document.getElementById('integrationMeta-' + provider);
+        if (!meta) return;
+        if (!conn) { meta.innerHTML = ''; return; }
+
+        var never = t('settings.integrations.meta.never');
+        var row = function (labelKey, valueHtml) {
+            return '<div class="integration-meta-row"><span class="integration-meta-label">'
+                + esc(t(labelKey)) + '</span><span>' + valueHtml + '</span></div>';
+        };
+
+        // 1. Connection - reflects the verified/active connection state.
+        var html = row('settings.integrations.meta.connection', esc(t(statusLabelKey(conn.status))));
+
+        if (conn.status === 'active' || conn.status === 'error') {
+            // 2. Automatic lab case updates - driven by the real event
+            //    subscription state, not the connection.
+            var sub = conn.subscription || null;
+            var subActive = !!(sub && sub.status === 'active');
+            html += row('settings.integrations.meta.auto_updates', esc(
+                subActive ? t('settings.integrations.meta.auto_updates_on')
+                          : t('settings.integrations.meta.auto_updates_off')));
+
+            // 3/4. Activity: when a lab case notification last arrived, and
+            //      when it last created or updated a DentaTrak case.
+            html += row('settings.integrations.meta.last_event_received',
+                esc((sub && sub.last_event_received_at) || never));
+            html += row('settings.integrations.meta.last_case_write',
+                esc(conn.last_case_write_at || never));
+
+            if (sub && sub.cases_imported !== undefined && sub.cases_imported !== null) {
+                html += row('settings.integrations.meta.cases_imported', esc(String(sub.cases_imported)));
+            }
+            if (sub && sub.last_failure_reason) {
+                html += '<div class="integration-meta-row"><span class="integration-meta-label">'
+                    + esc(t('settings.integrations.meta.delivery_issue')) + '</span><span class="integration-meta-error">'
+                    + esc(sub.last_failure_reason) + '</span></div>';
+            }
+        }
+
+        if (conn.status === 'error' && conn.last_error) {
+            html += '<div class="integration-meta-row"><span class="integration-meta-label">'
+                + esc(t('settings.integrations.meta.connection_issue')) + '</span><span class="integration-meta-error">'
+                + esc(conn.last_error) + '</span></div>';
+        }
+
+        meta.innerHTML = html;
+    }
+
+    function renderActions(provider, conn) {
+        var card = document.getElementById('integrationCard-' + provider);
+        if (!card) return;
+        var status = conn ? conn.status : 'none';
+        var show = function (cls, visible) {
+            var btn = card.querySelector('.integration-action-' + cls);
+            if (btn) btn.style.display = visible ? '' : 'none';
+        };
+        show('connect',    status === 'none');
+        show('configure',  status === 'pending' || status === 'active' || status === 'error' || status === 'disabled');
+        show('test',       status === 'pending' || status === 'active' || status === 'error');
+        show('disconnect', status === 'pending' || status === 'active' || status === 'error');
+        show('reenable',   status === 'disabled');
+        var subActive = status === 'active' && conn && conn.subscription && conn.subscription.status === 'active';
+        show('subscribe',   status === 'active' && !subActive);
+        show('unsubscribe', subActive);
+    }
+
+    function renderProvider(provider) {
+        var conn = integrationsState.connectionsByProvider[provider] || null;
+        setBadge(provider, conn ? conn.status : 'none');
+        renderMeta(provider, conn);
+        renderActions(provider, conn);
+    }
+
+    function loadIntegrations() {
+        var panelErr = document.getElementById('integrationsPanelError');
+        return fetch('api/integrations.php?action=list')
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+                if (!data.success) {
+                    if (panelErr) { panelErr.textContent = data.message || t('settings.integrations.messages.load_failed'); panelErr.style.display = ''; }
+                    return;
+                }
+                integrationsState.connectionsByProvider = {};
+                (data.connections || []).forEach(function (conn) {
+                    integrationsState.connectionsByProvider[conn.provider] = conn;
+                });
+                integrationsState.loaded = true;
+                Object.keys(INTEGRATION_PROVIDER_SPECS).forEach(renderProvider);
+                // The config modal can open before the list resolves - if it
+                // is open, refresh Step 1 with the just-loaded key state so a
+                // stored key never presents as "no key" (which would invite a
+                // generate click that the server correctly 409s).
+                if (integrationsState.configProvider) {
+                    renderGuidedKeyState(
+                        integrationsState.connectionsByProvider[integrationsState.configProvider] || null
+                    );
+                }
+            })
+            .catch(function () {
+                if (panelErr) { panelErr.textContent = t('settings.integrations.messages.load_failed'); panelErr.style.display = ''; }
+            });
+    }
+
+    // ------------------------- Configure modal -------------------------
+
+    function openIntegrationConfig(provider, openerEl) {
+        var modal = document.getElementById('integrationConfigModal');
+        var spec = INTEGRATION_PROVIDER_SPECS[provider];
+        if (!modal || !spec) return;
+
+        integrationsState.configProvider = provider;
+        integrationsState.returnFocusEl = openerEl || null;
+        var conn = integrationsState.connectionsByProvider[provider] || null;
+        var configuredKeys = (conn && conn.credential_keys) || [];
+
+        document.getElementById('integrationConfigTitle').textContent =
+            spec.guided
+                ? t('settings.integrations.setup.title', { provider: t('settings.integrations.providers.open_dental.name') })
+                : t('settings.integrations.modal.title', { provider: t('settings.integrations.providers.open_dental.name') });
+        document.getElementById('integrationConfigDescription').textContent =
+            spec.guided
+                ? t('settings.integrations.setup.description')
+                : t('settings.integrations.modal.description');
+
+        // Guided providers render the step-by-step setup; the generic
+        // credential form + Save button apply only to unguided providers.
+        var guided = document.getElementById('integrationGuidedSetup');
+        var saveBtn = document.getElementById('integrationConfigSave');
+        var credNote = document.getElementById('integrationCredentialsNote');
+        var cancelBtn = document.getElementById('integrationConfigCancel');
+        if (guided) guided.style.display = spec.guided ? '' : 'none';
+        if (saveBtn) saveBtn.style.display = spec.guided ? 'none' : '';
+        if (credNote) credNote.style.display = spec.guided ? 'none' : '';
+        if (cancelBtn) cancelBtn.textContent = spec.guided ? t('common.close') : t('common.cancel');
+        if (spec.guided) {
+            integrationsState.keyJustGenerated = false;
+            renderGuidedKeyState(conn);
+            var guidance = document.getElementById('integrationTestGuidance');
+            if (guidance) { guidance.textContent = ''; guidance.style.display = 'none'; }
+            // Refresh connection state - the list may still be in flight from
+            // panel init, and stale data would show the wrong Step 1 state.
+            loadIntegrations();
+        }
+
+        var fields = document.getElementById('integrationCredentialFields');
+        fields.innerHTML = '';
+        spec.credentialFields.forEach(function (field) {
+            var isConfigured = configuredKeys.indexOf(field.key) !== -1;
+            var wrap = document.createElement('div');
+            wrap.className = 'form-field integration-credential-field';
+            var label = document.createElement('label');
+            label.setAttribute('for', 'integrationCred-' + field.key);
+            label.textContent = t(field.labelKey);
+            var input = document.createElement('input');
+            input.id = 'integrationCred-' + field.key;
+            input.type = 'password';
+            input.autocomplete = 'off';
+            input.setAttribute('data-credential-key', field.key);
+            var hint = document.createElement('div');
+            hint.className = 'configured-hint';
+            hint.textContent = isConfigured
+                ? t('settings.integrations.modal.configured')
+                : t('settings.integrations.modal.not_configured');
+            wrap.appendChild(label);
+            wrap.appendChild(input);
+            wrap.appendChild(hint);
+            fields.appendChild(wrap);
+        });
+
+        var err = document.getElementById('integrationConfigError');
+        err.textContent = '';
+        err.style.display = 'none';
+
+        modal.style.display = 'block';
+    }
+
+    function closeIntegrationConfig() {
+        var modal = document.getElementById('integrationConfigModal');
+        if (modal) modal.style.display = 'none';
+        integrationsState.configProvider = null;
+        // Clear any typed secrets from the DOM so they cannot linger.
+        var fields = document.getElementById('integrationCredentialFields');
+        if (fields) fields.innerHTML = '';
+        // The generated Customer Key must not survive in the DOM after the
+        // modal closes (any close path: X, Close, Escape, backdrop, parent
+        // modal teardown).
+        var keyValue = document.getElementById('integrationKeyValue');
+        if (keyValue) keyValue.textContent = '';
+        var keyReady = document.getElementById('integrationKeyReady');
+        if (keyReady) keyReady.style.display = 'none';
+        integrationsState.keyJustGenerated = false;
+        // Return focus to the button that opened the modal.
+        if (integrationsState.returnFocusEl && document.contains(integrationsState.returnFocusEl)) {
+            try { integrationsState.returnFocusEl.focus(); } catch (e) {}
+        }
+        integrationsState.returnFocusEl = null;
+    }
+
+    // ------------------------- Guided Open Dental setup -----------------
+
+    /**
+     * Step 1 state: Generate (no key yet) / show-once key (just generated) /
+     * configured (key exists - offer explicit Regenerate).
+     */
+    function renderGuidedKeyState(conn) {
+        // A freshly generated key is being shown once on screen - a late
+        // loadIntegrations() resolution must never wipe it out.
+        if (integrationsState.keyJustGenerated) return;
+        var hasKey = !!(conn && conn.credential_keys && conn.credential_keys.indexOf('customer_key') !== -1);
+        var genWrap = document.getElementById('integrationKeyGenerateWrap');
+        var keyReady = document.getElementById('integrationKeyReady');
+        var keyExisting = document.getElementById('integrationKeyExisting');
+        var keyValue = document.getElementById('integrationKeyValue');
+        if (keyValue) keyValue.textContent = '';
+        if (keyReady) keyReady.style.display = 'none';
+        if (genWrap) genWrap.style.display = hasKey ? 'none' : '';
+        if (keyExisting) keyExisting.style.display = hasKey ? '' : 'none';
+    }
+
+    /**
+     * Show an error at the bottom of the child modal and bring it into
+     * view - the body scrolls independently, so a fresh error can sit
+     * below the fold while the admin is looking at Step 1.
+     */
+    function showIntegrationModalError(text) {
+        var err = document.getElementById('integrationConfigError');
+        if (!err) return;
+        err.textContent = text;
+        err.style.display = '';
+        if (typeof err.scrollIntoView === 'function') {
+            err.scrollIntoView({ block: 'nearest' });
+        }
+    }
+
+    function generateIntegrationKey(regenerate) {
+        var provider = integrationsState.configProvider || 'open_dental';
+        var err = document.getElementById('integrationConfigError');
+        var genBtn = document.getElementById('integrationGenerateKey');
+        var regenBtn = document.getElementById('integrationRegenerateKey');
+        var busyBtn = regenerate ? regenBtn : genBtn;
+        if (busyBtn) {
+            busyBtn.disabled = true;
+            busyBtn.dataset.originalLabel = busyBtn.textContent;
+            busyBtn.textContent = t('settings.integrations.setup.generating');
+        }
+        integrationsPost({ action: 'generate_key', provider: provider, regenerate: !!regenerate })
+            .then(function (data) {
+                if (busyBtn) { busyBtn.disabled = false; busyBtn.textContent = busyBtn.dataset.originalLabel; }
+                if (data.success) {
+                    err.textContent = '';
+                    err.style.display = 'none';
+                    // Show the key once, in place - Copy button beside it.
+                    integrationsState.keyJustGenerated = true;
+                    var genWrap = document.getElementById('integrationKeyGenerateWrap');
+                    var keyReady = document.getElementById('integrationKeyReady');
+                    var keyExisting = document.getElementById('integrationKeyExisting');
+                    var keyValue = document.getElementById('integrationKeyValue');
+                    if (genWrap) genWrap.style.display = 'none';
+                    if (keyExisting) keyExisting.style.display = 'none';
+                    if (keyValue) keyValue.textContent = data.customer_key;
+                    if (keyReady) keyReady.style.display = '';
+                    if (data.connection) {
+                        integrationsState.connectionsByProvider[provider] = data.connection;
+                        renderProvider(provider);
+                    }
+                    showToast(data.message || t('settings.integrations.messages.key_generated'), 'success');
+                } else {
+                    showIntegrationModalError(data.message || t('settings.integrations.messages.generate_failed'));
+                }
+            })
+            .catch(function () {
+                if (busyBtn) { busyBtn.disabled = false; busyBtn.textContent = busyBtn.dataset.originalLabel; }
+                showIntegrationModalError(t('settings.integrations.messages.generate_failed'));
+            });
+    }
+
+    function copyIntegrationKey() {
+        var keyValue = document.getElementById('integrationKeyValue');
+        var copyBtn = document.getElementById('integrationKeyCopy');
+        var text = keyValue ? keyValue.textContent : '';
+        if (!text) return;
+        var done = function () {
+            if (copyBtn) {
+                copyBtn.textContent = t('settings.integrations.setup.copied');
+                setTimeout(function () {
+                    copyBtn.textContent = t('settings.integrations.setup.copy_key');
+                }, 2000);
+            }
+        };
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(done, done);
+        } else {
+            // Fallback for older browsers/HTTP contexts.
+            var ta = document.createElement('textarea');
+            ta.value = text;
+            document.body.appendChild(ta);
+            ta.select();
+            try { document.execCommand('copy'); } catch (e) {}
+            document.body.removeChild(ta);
+            done();
+        }
+    }
+
+    /**
+     * Map a safe server error_code to next-step guidance for the admin.
+     * Codes come from OpenDentalApiException categories - never raw errors.
+     */
+    function testErrorGuidance(errorCode) {
+        switch (errorCode) {
+            case 'credentials_missing':
+                return t('settings.integrations.errors.key_not_installed');
+            case 'auth':
+                return t('settings.integrations.errors.credentials_rejected');
+            case 'server_config_missing':
+                return t('settings.integrations.errors.server_config');
+            case 'econnector_offline':
+                return t('settings.integrations.errors.econnector_offline');
+            case 'network':
+            case 'timeout':
+            case 'server_error':
+                return t('settings.integrations.errors.unreachable');
+            default:
+                return t('settings.integrations.errors.unexpected');
+        }
+    }
+
+    function testIntegrationFromModal() {
+        var provider = integrationsState.configProvider;
+        var conn = provider && integrationsState.connectionsByProvider[provider];
+        var guidance = document.getElementById('integrationTestGuidance');
+        var testBtn = document.getElementById('integrationModalTest');
+        if (!conn) {
+            if (guidance) {
+                guidance.textContent = t('settings.integrations.errors.no_key');
+                guidance.style.display = '';
+            }
+            return;
+        }
+        if (testBtn) {
+            testBtn.disabled = true;
+            testBtn.textContent = t('settings.integrations.testing');
+        }
+        integrationsPost({ action: 'test_connection', connection_id: conn.id })
+            .then(function (data) {
+                if (testBtn) {
+                    testBtn.disabled = false;
+                    testBtn.textContent = t('settings.integrations.test_connection');
+                }
+                if (data.connection) {
+                    integrationsState.connectionsByProvider[provider] = data.connection;
+                    renderProvider(provider);
+                }
+                if (data.success) {
+                    if (guidance) {
+                        var subActive = data.connection && data.connection.subscription
+                            && data.connection.subscription.status === 'active';
+                        guidance.textContent = t('settings.integrations.messages.test_succeeded')
+                            + (subActive ? '' : ' ' + t('settings.integrations.messages.test_succeeded_next'));
+                        guidance.style.display = '';
+                    }
+                    showToast(data.message || t('settings.integrations.messages.test_succeeded'), 'success');
+                } else if (guidance) {
+                    guidance.textContent = testErrorGuidance(data.error_code);
+                    guidance.style.display = '';
+                    if (typeof guidance.scrollIntoView === 'function') {
+                        guidance.scrollIntoView({ block: 'nearest' });
+                    }
+                }
+            })
+            .catch(function () {
+                if (testBtn) {
+                    testBtn.disabled = false;
+                    testBtn.textContent = t('settings.integrations.test_connection');
+                }
+                if (guidance) {
+                    guidance.textContent = t('settings.integrations.errors.unexpected');
+                    guidance.style.display = '';
+                    if (typeof guidance.scrollIntoView === 'function') {
+                        guidance.scrollIntoView({ block: 'nearest' });
+                    }
+                }
+            });
+    }
+
+    function saveIntegrationConfig() {
+        var provider = integrationsState.configProvider;
+        var spec = provider && INTEGRATION_PROVIDER_SPECS[provider];
+        if (!spec) return;
+
+        var err = document.getElementById('integrationConfigError');
+        var credentials = {};
+        spec.credentialFields.forEach(function (field) {
+            var input = document.getElementById('integrationCred-' + field.key);
+            var value = input ? input.value : '';
+            if (value !== '') {
+                credentials[field.key] = value; // non-empty only; blank = keep
+            }
+        });
+
+        var saveBtn = document.getElementById('integrationConfigSave');
+        saveBtn.disabled = true;
+        integrationsPost({ action: 'configure', provider: provider, credentials: credentials })
+            .then(function (data) {
+                saveBtn.disabled = false;
+                if (data.success) {
+                    closeIntegrationConfig();
+                    showToast(data.message || t('settings.integrations.messages.saved'), 'success');
+                    loadIntegrations();
+                } else {
+                    err.textContent = data.message || t('settings.integrations.messages.save_failed');
+                    err.style.display = '';
+                }
+            })
+            .catch(function () {
+                saveBtn.disabled = false;
+                err.textContent = t('settings.integrations.messages.save_failed');
+                err.style.display = '';
+            });
+    }
+
+    // ------------------------- Other actions ---------------------------
+
+    function disconnectIntegration(provider) {
+        var conn = integrationsState.connectionsByProvider[provider];
+        if (!conn) return;
+        showConfirmModal(
+            t('settings.integrations.disconnect_confirm_title'),
+            t('settings.integrations.disconnect_confirm_message'),
+            function () {
+                integrationsPost({ action: 'disconnect', connection_id: conn.id })
+                    .then(function (data) {
+                        if (data.success) {
+                            showToast(data.message || t('settings.integrations.messages.disconnected'), 'success');
+                            loadIntegrations();
+                        } else {
+                            showToast(data.message || t('settings.integrations.messages.disconnect_failed'), 'error');
+                        }
+                    })
+                    .catch(function () { showToast(t('settings.integrations.messages.disconnect_failed'), 'error'); });
+            }
+        );
+    }
+
+    function testIntegrationConnection(provider) {
+        var conn = integrationsState.connectionsByProvider[provider];
+        if (!conn) return;
+        var card = document.getElementById('integrationCard-' + provider);
+        var btn = card ? card.querySelector('.integration-action-test') : null;
+        var originalLabel = btn ? btn.textContent : '';
+        if (btn) {
+            btn.disabled = true;
+            btn.textContent = t('settings.integrations.testing');
+        }
+        integrationsPost({ action: 'test_connection', connection_id: conn.id })
+            .then(function (data) {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.textContent = originalLabel;
+                }
+                if (data.success) {
+                    showToast(data.message || t('settings.integrations.messages.test_succeeded'), 'success');
+                } else {
+                    showToast(testErrorGuidance(data.error_code), 'error');
+                }
+                loadIntegrations();
+            })
+            .catch(function () {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.textContent = originalLabel;
+                }
+                showToast(t('settings.integrations.messages.test_failed'), 'error');
+            });
+    }
+
+    function subscribeIntegration(provider) {
+        var conn = integrationsState.connectionsByProvider[provider];
+        if (!conn) return;
+        integrationsPost({ action: 'subscribe', connection_id: conn.id })
+            .then(function (data) {
+                if (data.success) {
+                    showToast(data.message || t('settings.integrations.messages.subscribed'), 'success');
+                    loadIntegrations();
+                } else {
+                    // bad_request on subscribe almost always means the office
+                    // runs an Open Dental version too old for lab case
+                    // notifications (LabCase watch needs OD 25.4.14+).
+                    var msg = data.error_code === 'bad_request'
+                        ? t('settings.integrations.errors.subscribe_version')
+                        : (data.message || t('settings.integrations.messages.subscribe_failed'));
+                    showToast(msg, 'error');
+                }
+            })
+            .catch(function () { showToast(t('settings.integrations.messages.subscribe_failed'), 'error'); });
+    }
+
+    function unsubscribeIntegration(provider) {
+        var conn = integrationsState.connectionsByProvider[provider];
+        if (!conn) return;
+        showConfirmModal(
+            t('settings.integrations.subscription.disable'),
+            t('settings.integrations.subscription.disable_confirm'),
+            function () {
+                integrationsPost({ action: 'unsubscribe', connection_id: conn.id })
+                    .then(function (data) {
+                        if (data.success) {
+                            showToast(data.message || t('settings.integrations.messages.unsubscribed'), 'success');
+                            loadIntegrations();
+                        } else {
+                            showToast(data.message || t('settings.integrations.messages.subscribe_failed'), 'error');
+                        }
+                    })
+                    .catch(function () { showToast(t('settings.integrations.messages.subscribe_failed'), 'error'); });
+            }
+        );
+    }
+
+    function reenableIntegration(provider) {
+        var conn = integrationsState.connectionsByProvider[provider];
+        if (!conn) return;
+        integrationsPost({ action: 'reenable', connection_id: conn.id })
+            .then(function (data) {
+                if (data.success) {
+                    showToast(data.message || t('settings.integrations.messages.reenabled'), 'success');
+                    loadIntegrations();
+                } else {
+                    showToast(data.message || t('settings.integrations.messages.save_failed'), 'error');
+                }
+            })
+            .catch(function () { showToast(t('settings.integrations.messages.save_failed'), 'error'); });
+    }
+
+    // ------------------------- Wiring ---------------------------------
+
+    function initIntegrationsPanel() {
+        var list = document.querySelector('.integrations-list');
+        if (!list) return; // flag off -> nothing rendered
+
+        document.querySelectorAll('.integration-action-connect, .integration-action-configure').forEach(function (btn) {
+            if (btn.dataset.integrationInit) return;
+            btn.dataset.integrationInit = '1';
+            btn.addEventListener('click', function () {
+                openIntegrationConfig(btn.getAttribute('data-provider'), btn);
+            });
+        });
+        document.querySelectorAll('.integration-action-test').forEach(function (btn) {
+            if (btn.dataset.integrationInit) return;
+            btn.dataset.integrationInit = '1';
+            btn.addEventListener('click', function () {
+                testIntegrationConnection(btn.getAttribute('data-provider'));
+            });
+        });
+        document.querySelectorAll('.integration-action-disconnect').forEach(function (btn) {
+            if (btn.dataset.integrationInit) return;
+            btn.dataset.integrationInit = '1';
+            btn.addEventListener('click', function () {
+                disconnectIntegration(btn.getAttribute('data-provider'));
+            });
+        });
+        document.querySelectorAll('.integration-action-subscribe').forEach(function (btn) {
+            if (btn.dataset.integrationInit) return;
+            btn.dataset.integrationInit = '1';
+            btn.addEventListener('click', function () {
+                subscribeIntegration(btn.getAttribute('data-provider'));
+            });
+        });
+        document.querySelectorAll('.integration-action-unsubscribe').forEach(function (btn) {
+            if (btn.dataset.integrationInit) return;
+            btn.dataset.integrationInit = '1';
+            btn.addEventListener('click', function () {
+                unsubscribeIntegration(btn.getAttribute('data-provider'));
+            });
+        });
+        document.querySelectorAll('.integration-action-reenable').forEach(function (btn) {
+            if (btn.dataset.integrationInit) return;
+            btn.dataset.integrationInit = '1';
+            btn.addEventListener('click', function () {
+                reenableIntegration(btn.getAttribute('data-provider'));
+            });
+        });
+
+
+
+        var closeBtn = document.getElementById('integrationConfigClose');
+        var cancelBtn = document.getElementById('integrationConfigCancel');
+        var saveBtn = document.getElementById('integrationConfigSave');
+        if (closeBtn && !closeBtn.dataset.integrationInit) { closeBtn.dataset.integrationInit = '1'; closeBtn.addEventListener('click', closeIntegrationConfig); }
+        if (cancelBtn && !cancelBtn.dataset.integrationInit) { cancelBtn.dataset.integrationInit = '1'; cancelBtn.addEventListener('click', closeIntegrationConfig); }
+        if (saveBtn && !saveBtn.dataset.integrationInit) { saveBtn.dataset.integrationInit = '1'; saveBtn.addEventListener('click', saveIntegrationConfig); }
+
+        var genBtn = document.getElementById('integrationGenerateKey');
+        var regenBtn = document.getElementById('integrationRegenerateKey');
+        var copyBtn = document.getElementById('integrationKeyCopy');
+        var modalTestBtn = document.getElementById('integrationModalTest');
+        if (genBtn && !genBtn.dataset.integrationInit) { genBtn.dataset.integrationInit = '1'; genBtn.addEventListener('click', function () { generateIntegrationKey(false); }); }
+        if (regenBtn && !regenBtn.dataset.integrationInit) { regenBtn.dataset.integrationInit = '1'; regenBtn.addEventListener('click', function () { generateIntegrationKey(true); }); }
+        if (copyBtn && !copyBtn.dataset.integrationInit) { copyBtn.dataset.integrationInit = '1'; copyBtn.addEventListener('click', copyIntegrationKey); }
+        if (modalTestBtn && !modalTestBtn.dataset.integrationInit) { modalTestBtn.dataset.integrationInit = '1'; modalTestBtn.addEventListener('click', testIntegrationFromModal); }
+
+        // This modal opens ON TOP of Settings, so Escape must dismiss only
+        // it - never the parent. Capture phase + stopPropagation runs before
+        // the document-level Settings/global Escape handlers (all bubble).
+        if (!document.documentElement.dataset.integrationEscapeInit) {
+            document.documentElement.dataset.integrationEscapeInit = '1';
+            document.addEventListener('keydown', function (e) {
+                var m = document.getElementById('integrationConfigModal');
+                if (e.key === 'Escape' && m && m.style.display === 'block') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    closeIntegrationConfig();
+                }
+            }, true);
+        }
+
+        loadIntegrations();
+    }
+
+    // Settings teardown calls this so the child modal can never survive in
+    // a stale open state when the parent closes through another path.
+    window.closeIntegrationConfigModal = closeIntegrationConfig;
+
+    window.initIntegrationsPanel = initIntegrationsPanel;
+})();

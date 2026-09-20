@@ -43,5 +43,13 @@ steps:
         '--quiet'
       ]
 
+  # ---------- Ensure integration event worker schedule (idempotent) ----------
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: bash
+    args:
+      [
+        'scripts/provision-integration-worker.sh'
+      ]
+
 images:
   - us-east1-docker.pkg.dev/dtk-prod-core/app-repo/dtk-app-prod:$COMMIT_SHA

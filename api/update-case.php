@@ -710,17 +710,11 @@ try {
             $caseData['clinicalDetails'] = $clinicalDetails;
         }
         
-        // Validate CASE-TYPE-SPECIFIC required fields from config
-        
-        // Map case types to their clinical fields
-        $caseTypeClinicalFields = [
-            'Crown' => ['toothNumber'],
-            'Bridge' => ['abutmentTeeth', 'ponticTeeth'],
-            'Implant Crown' => ['implantToothNumber', 'abutmentType', 'implantSystem', 'platformSize', 'scanBodyUsed'],
-            'Implant Surgical Guide' => ['implantSites'],
-            'Denture' => ['dentureJaw', 'dentureType', 'gingivalShade'],
-            'Partial' => ['partialJaw', 'teethToReplace', 'partialMaterial', 'partialGingivalShade'],
-        ];
+        // Validate CASE-TYPE-SPECIFIC required fields from config.
+        // Shared canonical map (api/case-types.php); 'Needs Classification'
+        // has no clinical-field requirements by design.
+        require_once __DIR__ . '/case-types.php';
+        $caseTypeClinicalFields = getCaseTypeClinicalFields();
 
         // Validate canonical Jaw values (applies to Denture and Partial)
         $validJawValues = ['Maxillary', 'Mandibular', 'Both'];

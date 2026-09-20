@@ -1263,20 +1263,21 @@ function resetCaseReviewIfDifferentUser($caseId, $practiceId, $actingUserId) {
  * @param string|null $previousStatus Previous status (for status changes)
  * @param string|null $previousAssignedTo Previous assignee (for assignment changes)
  */
-function recordCaseUpdate($caseId, $updateType, $previousStatus = null, $previousAssignedTo = null) {
+function recordCaseUpdate($caseId, $updateType, $previousStatus = null, $previousAssignedTo = null, ?int $practiceId = null, ?string $updatedBy = null) {
     global $pdo;
     if (!$pdo || empty($caseId)) {
         return;
     }
     
-    // Get practice ID from session
-    $practiceId = $_SESSION['current_practice_id'] ?? null;
+    // Practice ID: explicit parameter (trusted callers like the integration
+    // worker pass it directly) or session fallback for the web path.
+    $practiceId = $practiceId ?? ($_SESSION['current_practice_id'] ?? null);
     if (!$practiceId) {
         return;
     }
     
-    // Get current user email
-    $updatedBy = $_SESSION['user_email'] ?? 'unknown';
+    // Actor: explicit parameter or session email fallback.
+    $updatedBy = $updatedBy ?? ($_SESSION['user_email'] ?? 'unknown');
     
     // Ensure table exists
     ensureCaseUpdatesTable();

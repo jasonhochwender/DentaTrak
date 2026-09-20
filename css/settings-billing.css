@@ -3219,3 +3219,246 @@ input#practiceName {
     flex: 1.4 1 0;
   }
 }
+
+/* ------------------------------------------------------------------
+   Settings > Integrations (PMS connection cards) - Phase B
+   Provider-agnostic: cards are rendered per provider from the
+   $integrationProviders registry in main.php; JS fills state.
+   ------------------------------------------------------------------ */
+.integrations-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.integration-card {
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 14px 16px;
+  background: #fff;
+}
+
+.integration-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.integration-provider-name {
+  font-weight: 600;
+  font-size: 15px;
+  color: #111827;
+}
+
+.integration-status-badge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  background: #f3f4f6;
+  color: #4b5563;
+  white-space: nowrap;
+}
+
+.integration-status-badge.integration-status-active {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.integration-status-badge.integration-status-pending {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.integration-status-badge.integration-status-error {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.integration-status-badge.integration-status-disabled {
+  background: #e5e7eb;
+  color: #6b7280;
+}
+
+.integration-card-description {
+  margin: 8px 0 0;
+  font-size: 13px;
+  color: #4b5563;
+  line-height: 1.45;
+}
+
+.integration-card-meta {
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+  color: #374151;
+}
+
+.integration-meta-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.integration-meta-label {
+  font-weight: 600;
+  color: #374151;
+}
+
+.integration-meta-error {
+  color: #991b1b;
+  font-size: 12px;
+  word-break: break-word;
+}
+
+.integration-card-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+  flex-wrap: wrap;
+}
+
+.integration-credential-field .configured-hint {
+  font-size: 12px;
+  color: #166534;
+  margin-top: 2px;
+}
+
+/* Guided Open Dental onboarding (key generation + install steps) */
+.integration-setup-steps {
+  margin: 0;
+  padding-left: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.integration-setup-step {
+  font-size: 13px;
+  color: #374151;
+}
+
+.integration-step-title {
+  font-weight: 600;
+  font-size: 14px;
+  color: #111827;
+  margin-bottom: 4px;
+}
+
+.integration-step-desc {
+  margin: 0 0 8px;
+  font-size: 13px;
+  color: #4b5563;
+  line-height: 1.45;
+}
+
+.integration-substeps {
+  margin: 0;
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 13px;
+  color: #374151;
+}
+
+.integration-key-label {
+  display: block;
+  font-weight: 600;
+  font-size: 13px;
+  color: #374151;
+  margin-bottom: 4px;
+}
+
+.integration-key-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.integration-key-value {
+  display: inline-block;
+  padding: 8px 12px;
+  background: #f3f4f6;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-family: monospace;
+  font-size: 14px;
+  letter-spacing: 0.5px;
+  color: #111827;
+  word-break: break-all;
+  user-select: all;
+}
+
+.integration-test-guidance {
+  margin-top: 10px;
+  padding: 10px 12px;
+  border-radius: 6px;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  font-size: 13px;
+  color: #1e40af;
+  line-height: 1.45;
+}
+
+/* ------------------------------------------------------------------
+   Integration configuration modal layout (child of Settings).
+
+   This modal is nested inside #settingsBillingModal, so the Settings
+   descendant rules (#settingsBillingModal .modal-body { overflow:
+   hidden; display: flex; ... }) leak into the child's .modal-body and
+   beat the generic .modal-body { overflow-y: auto } on specificity.
+   That silently clipped the guided setup below Step 1. Scope an
+   explicit scroll layout here (same specificity, later in source):
+
+   - .modal-content is the flex root, capped inside the viewport.
+   - Header and footer stay fixed; only .modal-body scrolls.
+   - Extra bottom padding keeps the last step clear of the footer.
+   ------------------------------------------------------------------ */
+#integrationConfigModal .modal-content.integration-config-modal {
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100vh - 60px);
+  max-height: calc(100dvh - 60px);
+  overflow: hidden;
+}
+
+#integrationConfigModal .modal-header {
+  flex-shrink: 0;
+}
+
+#integrationConfigModal .modal-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 24px 28px 32px;
+}
+
+#integrationConfigModal .modal-footer {
+  flex-shrink: 0;
+}
+
+/* Narrow/small-desktop viewports: use the width and keep the height
+   cap tight so backdrop margin + content never exceed the screen. */
+@media (max-width: 640px) {
+  #integrationConfigModal .modal-content.integration-config-modal {
+    width: 94vw;
+    min-width: 0;
+    max-width: 94vw;
+    margin: 16px auto;
+    max-height: calc(100vh - 32px);
+    max-height: calc(100dvh - 32px);
+  }
+
+  #integrationConfigModal .modal-body {
+    padding: 18px 18px 28px;
+  }
+}

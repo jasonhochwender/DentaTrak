@@ -13,3 +13,10 @@
 - Filter/sort unit checks: `node tests/case-filter-sort-test.js` and `php tests/case-view-preferences-test.php` (no database).
 - Local browser/API checks: `node tests/case-filter-sort-e2e-test.js` (`DT_BROWSER=chromium|firefox|webkit`, local test credentials via `DENTATRAK_TEST_EMAIL`/`DENTATRAK_TEST_PASSWORD`) and `node tests/case-filter-sort-isolation-e2e-test.js` (creates and cleans its own local user/practice fixtures). Run suites sharing the same account sequentially.
 - Related regressions: `php tests/case-list-view-test.php`, `php tests/practice-security-authorization-test.php`, `php tests/responsive-css-audit-test.php`, and `node tests/case-actions-menu-e2e-test.js`.
+
+# PMS integration event worker
+
+- Queued Open Dental webhook events (`integration_external_events` -> fetch -> normalize -> exact-once case import) are drained by `IntegrationEvents::processDue()`.
+- **Production**: Cloud Scheduler job `dtk-prod-integration-event-worker` POSTs `https://dtk-app-prod-1029275239454.us-east1.run.app/api/integration-event-worker.php` every minute with the `X-Queue-Worker-Token` header (Secret Manager `dtk-prod-queue-worker-token`, same mechanism as `notification-queue-worker.php`). Provisioning is idempotent via `scripts/provision-integration-worker.sh`, invoked at the end of `cloudbuild.yaml`. Overlapping invocations are safe (atomic claims).
+- **Local development**: `php api/integrations/process-events.php [--limit=25] [--watch[=seconds]]` (CLI), or POST the endpoint with the dev `QUEUE_WORKER_TOKEN` header. Windows Task Scheduler alternative: run `php.exe C:\MAMP\htdocs\DentaTrak\api\integrations\process-events.php` every minute.
+- Events are claimed atomically (conditional UPDATE with `claimed_at`), transient failures (network/timeout/5xx/429/eConnector offline) retry with bounded linear backoff (max 10 attempts, cap 300s, honors Retry-After), permanent failures park as `failed`, and stale `processing` rows are reclaimed 10 minutes after their last claim.

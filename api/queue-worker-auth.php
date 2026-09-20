@@ -7,10 +7,9 @@
  */
 
 function requireQueueWorkerToken(): void {
-    $workerToken = getenv('QUEUE_WORKER_TOKEN');
-    if ($workerToken === false) {
-        $workerToken = '';
-    }
+    // getenv() covers real env vars (Cloud Run secretKeyRef); getEnvVar()
+    // additionally resolves $_ENV so local .env development works too.
+    $workerToken = getEnvVar('QUEUE_WORKER_TOKEN') ?? '';
 
     $submittedToken = $_SERVER['HTTP_X_QUEUE_WORKER_TOKEN'] ?? '';
 

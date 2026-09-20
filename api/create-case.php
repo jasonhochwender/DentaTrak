@@ -256,17 +256,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $caseData['clinicalDetails'] = $clinicalDetails;
     }
 
-    // Validate CASE-TYPE-SPECIFIC required fields from config
-
-    // Map case types to their clinical fields
-    $caseTypeClinicalFields = [
-        'Crown' => ['toothNumber'],
-        'Bridge' => ['abutmentTeeth', 'ponticTeeth'],
-        'Implant Crown' => ['implantToothNumber', 'abutmentType', 'implantSystem', 'platformSize', 'scanBodyUsed'],
-        'Implant Surgical Guide' => ['implantSites'],
-        'Denture' => ['dentureJaw', 'dentureType', 'gingivalShade'],
-        'Partial' => ['partialJaw', 'teethToReplace', 'partialMaterial', 'partialGingivalShade'],
-    ];
+    // Validate CASE-TYPE-SPECIFIC required fields from config.
+    // The field map is canonical (api/case-types.php) so create/edit can
+    // never diverge; 'Needs Classification' has no entry by design.
+    require_once __DIR__ . '/case-types.php';
+    $caseTypeClinicalFields = getCaseTypeClinicalFields();
 
     // Validate canonical Jaw values (applies to Denture and Partial)
     $validJawValues = ['Maxillary', 'Mandibular', 'Both'];
@@ -353,185 +347,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         unset($att);
     }
 
-    // Encrypt PII before storing
-    $encryptedCaseData = PIIEncryption::encryptCaseData($caseData);
+    // Delegate the shared creation pipeline to CaseService. This endpoint
+    // retains only request concerns (session, CSRF, billing, POST parsing,
+    // validation, GCS verification); persistence, encryption, activity,
+    // notifications, and Drive backup orchestration live in the service so
+    // the trusted integration import path can reuse them verbatim.
+    require_once __DIR__ . '/CaseService.php';
+    $result = CaseService::create($caseData, [
+        'practice_id'          => (int)$currentPracticeId,
+        'created_by_user_id'   => isset($_SESSION['db_user_id']) ? (int)$_SESSION['db_user_id'] : null,
+        'actor_user_id'        => isset($_SESSION['db_user_id']) ? (int)$_SESSION['db_user_id'] : null,
+        'source'               => 'create-case.php',
+        'notify'               => true,
+        'files'                => $_FILES,
+        'gcs_attachments'      => $gcsAttachments,
+        'required_fields'      => $requiredFields,
+        'validate'             => false, // request validation already ran above
+        'simulate_on_implode_bug' => true,
+        'defer_drive_backup'   => true,
+    ]);
 
-    // Process the case creation with both original and encrypted data
-    // Pass GCS attachments as 4th parameter; $_FILES may be empty with GCS flow
-    $result = createCase($encryptedCaseData, $_FILES, $caseData, $gcsAttachments);
-
-    // If the Google PHP client explodes with an implode() error on PHP 8,
-    // fall back to a simulated case so the UI can still function.
-    if (!$result['success'] && isset($result['message']) && strpos($result['message'], 'implode(') !== false) {
-        error_log('Google client implode error in create-case.php: ' . $result['message']);
-
-        $simulatedCase = [
-            'id'              => 'sim_' . uniqid(),
-            'driveFolderId'   => null,
-            'patientFirstName'=> $caseData['patientFirstName'], // Use original data for UI
-            'patientLastName' => $caseData['patientLastName'],
-            'patientDOB'      => $caseData['patientDOB'],
-            'patientGender'   => $caseData['patientGender'] ?? null,
-            'dentistName'     => $caseData['dentistName'],
-            'caseType'        => $caseData['caseType'],
-            'toothShade'      => $caseData['toothShade'] ?? null,
-            'material'        => $caseData['material'] ?? null,
-            'dueDate'         => $caseData['dueDate'],
-            'patientAppointmentDate' => $caseData['patientAppointmentDate'] ?? '',
-            'creationDate'    => date('c'),
-            'lastUpdateDate'  => date('c'),
-            'status'          => $caseData['status'],
-            'notes'           => $caseData['notes'] ?? '',
-            'assignedTo'      => $caseData['assignedTo'] ?? '',
-            'carrier'         => $caseData['carrier'] ?? '',
-            'trackingNumber'  => $caseData['trackingNumber'] ?? '',
-            'customCarrier'   => $caseData['customCarrier'] ?? '',
-            'clinicalDetails' => $caseData['clinicalDetails'] ?? null,
-            'createdByUserId' => $caseData['createdByUserId'] ?? null,
-            'revisions'       => [],
-            'attachments'     => []
-        ];
-
-        $result = [
-            'success'  => true,
-            'message'  => t('api.cases.created_local'),
-            'caseData' => $simulatedCase
-        ];
-    }
 
     // Return the result
     if ($result['success']) {
-        if (isset($result['caseData']) && is_array($result['caseData'])) {
-            // Save ENCRYPTED data to cache (re-encrypt the decrypted data returned from createCase)
-            $encryptedForCache = PIIEncryption::encryptCaseData($result['caseData']);
-            saveCaseToCache($encryptedForCache);
-
-            // Lab Insights foundation: record the initial assignment transition.
-            // No-op when the initial assignee is not a lab-designated user/label.
-            $createdCaseId = $result['caseData']['id'] ?? null;
-            if ($createdCaseId && $currentPracticeId) {
-                recordLabAssignmentChange($createdCaseId, $currentPracticeId, '', $result['caseData']['assignedTo'] ?? '');
-            }
-
-            // Update user's case count
-            $currentPracticeId = $_SESSION['current_practice_id'] ?? 0;
-            if ($currentPracticeId) {
-                $stmt = $pdo->prepare("SELECT COUNT(*) FROM cases_cache WHERE practice_id = ? AND archived = 0");
-                $stmt->execute([$currentPracticeId]);
-                $newCaseCount = (int)$stmt->fetchColumn();
-
-                $stmt = $pdo->prepare("UPDATE users SET case_count = ? WHERE id = ?");
-                $stmt->execute([$newCaseCount, $_SESSION['db_user_id']]);
-            }
-
-            // Log case creation activity
-            $createdCaseId = $result['caseData']['id'] ?? null;
-            $createdStatus = $result['caseData']['status'] ?? null;
-            if ($createdCaseId) {
-                logCaseActivity(
-                    $createdCaseId,
-                    'case_created',
-                    null,
-                    $createdStatus,
-                    [
-                        'source' => 'create-case.php',
-                        'has_attachments' => !empty($result['caseData']['attachments']),
-                        'has_notes' => !empty($result['caseData']['notes'])
-                    ]
-                );
-
-                // Also log in the user activity log (no patient identifiers)
-                if (function_exists('logUserActivity') && isset($_SESSION['db_user_id'])) {
-                    logUserActivity((int)$_SESSION['db_user_id'], 'create_case', "User created case {$createdCaseId}");
-                }
-
-                // Log attachment details (if any attachments are present)
-                $attachments = $result['caseData']['attachments'] ?? [];
-                if (is_array($attachments) && count($attachments) > 0) {
-                    logCaseActivity(
-                        $createdCaseId,
-                        'attachments_added',
-                        null,
-                        null,
-                        [
-                            'count' => count($attachments),
-                            'source' => 'create-case.php',
-                            'attachment_count' => count($attachments),
-                        ]
-                    );
-                }
-
-                // Log notes details if notes were provided
-                $notes = $result['caseData']['notes'] ?? '';
-                if ($notes !== '') {
-                    logCaseActivity(
-                        $createdCaseId,
-                        'notes_updated',
-                        null,
-                        null,
-                        [
-                            'length' => strlen($notes),
-                            'source' => 'create-case.php',
-                        ]
-                    );
-                }
-
-                // Calculate At Risk status for the newly created case
-                $atRiskStatus = calculateAtRiskStatus($result['caseData'], null, getLastActiveWorkflowColumnId($currentPracticeId));
-                $result['caseData']['atRisk'] = $atRiskStatus;
-
-                // Check if Google Drive backup is enabled - store data for deferred processing
-                $doBackup = false;
-                $backupData = null;
-                if (isGoogleDriveBackupEnabled()) {
-                    $doBackup = true;
-                    $backupData = [
-                        'caseData' => $result['caseData'],
-                        'caseId' => $createdCaseId,
-                        'practiceId' => $_SESSION['current_practice_id'] ?? 0,
-                        'practiceName' => getCurrentPracticeName(),
-                        'attachments' => $result['caseData']['attachments'] ?? []
-                    ];
-                }
-            }
-        }
-
-        // Record create for real-time notifications to other users
-        if ($createdCaseId && function_exists('recordCaseUpdate')) {
-            recordCaseUpdate($createdCaseId, 'create');
-        }
-
-        // Emit structured in-app notification for the new case (Phase 2).
-        // This runs before the final response so Cloud Run cannot throttle it.
-        if ($createdCaseId && $currentPracticeId) {
-            try {
-                $attachmentsForNotify = $result['caseData']['attachments'] ?? [];
-                $categories = buildCreateCaseNotificationCategories($result['caseData'], $attachmentsForNotify);
-                $metadata = buildCreateCaseNotificationMetadata($result['caseData'], $attachmentsForNotify);
-                $eventType = getPrimaryNotificationType($categories);
-                emitCaseNotificationEvent($currentPracticeId, $createdCaseId, $_SESSION['db_user_id'] ?? 0, $eventType, $categories, $metadata);
-            } catch (Throwable $e) {
-                error_log('[create-case] notification emit error (non-fatal): ' . $e->getMessage());
-            }
-        }
-
-        // Resolve creator display name for the new-case response so the
-        // Kanban card and edit modal can show the creator immediately.
-        if (isset($result['caseData']['createdByUserId']) && !isset($result['caseData']['createdByName']) && $pdo) {
-            try {
-                $creatorStmt = $pdo->prepare("SELECT first_name, last_name FROM users WHERE id = :id LIMIT 1");
-                $creatorStmt->execute(['id' => (int)$result['caseData']['createdByUserId']]);
-                $creator = $creatorStmt->fetch(PDO::FETCH_ASSOC);
-                if ($creator) {
-                    $name = trim(($creator['first_name'] ?? '') . ' ' . ($creator['last_name'] ?? ''));
-                    if ($name !== '') {
-                        $result['caseData']['createdByName'] = $name;
-                    }
-                }
-            } catch (Exception $e) {
-                // Leave as Unknown on lookup error
-            }
-        }
+        $doBackup = !empty($result['backupData']);
+        $backupData = $result['backupData'] ?? null;
 
         // Send response to client FIRST, then do backup
         echo json_encode($result);

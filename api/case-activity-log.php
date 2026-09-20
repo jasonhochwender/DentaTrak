@@ -36,6 +36,13 @@ function sanitizeCaseActivityMeta(array $meta) {
         'reviewed_by_user_id',
         'reviewed_by_name',
         'review_status_changed_by_user_id',
+        // Integration provenance for imported cases. 'integration' is the
+        // provider slug (e.g. "open_dental") and 'external_event_id' is the
+        // internal integration_external_events row id - neither is PHI and
+        // neither exposes external/PMS identifiers in activity output.
+        'integration',
+        'external_event_id',
+        'notes_truncated',
     ];
 
     $clean = [];
@@ -123,7 +130,7 @@ function ensureCaseActivityLogTable() {
  *                                historical/demo events. Defaults to NOW() for all normal,
  *                                real-time callers (unchanged behavior).
  */
-function logCaseActivity($caseId, $eventType, $oldStatus = null, $newStatus = null, array $meta = [], $createdAt = null, $throwOnFailure = false) {
+function logCaseActivity($caseId, $eventType, $oldStatus = null, $newStatus = null, array $meta = [], $createdAt = null, $throwOnFailure = false, ?int $actorUserId = null, ?string $actorEmail = null) {
     global $pdo;
 
     if (!$pdo || !$caseId || !$eventType) {
@@ -135,12 +142,16 @@ function logCaseActivity($caseId, $eventType, $oldStatus = null, $newStatus = nu
 
     ensureCaseActivityLogTable();
 
-    $userId = isset($_SESSION['db_user_id']) ? (int)$_SESSION['db_user_id'] : null;
-    $userEmail = null;
-    if (isset($_SESSION['user']) && is_array($_SESSION['user']) && !empty($_SESSION['user']['email'])) {
-        $userEmail = $_SESSION['user']['email'];
-    } else if (isset($_SESSION['user_email']) && !empty($_SESSION['user_email'])) {
-        $userEmail = $_SESSION['user_email'];
+    // Actor: explicit override (trusted server-side callers such as
+    // CaseService) or the web session. NULL = system-generated event.
+    $userId = $actorUserId ?? (isset($_SESSION['db_user_id']) ? (int)$_SESSION['db_user_id'] : null);
+    $userEmail = $actorEmail;
+    if ($userEmail === null) {
+        if (isset($_SESSION['user']) && is_array($_SESSION['user']) && !empty($_SESSION['user']['email'])) {
+            $userEmail = $_SESSION['user']['email'];
+        } else if (isset($_SESSION['user_email']) && !empty($_SESSION['user_email'])) {
+            $userEmail = $_SESSION['user_email'];
+        }
     }
 
     $sanitizedMeta = sanitizeCaseActivityMeta($meta);

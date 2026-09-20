@@ -387,6 +387,7 @@ function getCaseTypeMap() {
         'Veneer'                => 'veneer',
         'Inlay/Onlay'           => 'inlay_onlay',
         'Orthodontic Appliance' => 'orthodontic_appliance',
+        'Needs Classification'  => 'needs_classification',
         'Mixed'                 => 'mixed',
         'Mixed Case Type'       => 'mixed',
     ];

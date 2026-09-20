@@ -126,28 +126,13 @@ try {
         }
     }
     
-    // Option pools matching the main PHP UI dropdowns
-    $caseTypes = [
-        'Crown',
-        'Bridge',
-        'Implant',
-        'AOX',
-        'Bite Rim',
-        'Denture',
-        'Partial',
-        'Veneer',
-        'Inlay/Onlay',
-        'Orthodontic Appliance'
-    ];
+    // Option pools matching the canonical case-type definitions
+    // (api/case-types.php). 'Needs Classification' is excluded - demo cases
+    // should look classified.
+    require_once __DIR__ . '/case-types.php';
+    $caseTypes = array_values(array_diff(getCanonicalCaseTypes(), [CASE_TYPE_NEEDS_CLASSIFICATION]));
 
-    $caseTypesRequiringMaterial = [
-        'Crown',
-        'Bridge',
-        'Implant',
-        'AOX',
-        'Veneer',
-        'Inlay/Onlay'
-    ];
+    $caseTypesRequiringMaterial = getCaseTypesRequiringMaterial();
 
     $materials = [
         'Zirconia',

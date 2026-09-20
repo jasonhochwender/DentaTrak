@@ -27,3 +27,12 @@ README.md
 .env.example
 scripts/
 deploy.cmd
+
+# Local runtime data (gitignored; must never bake into the image -
+# sessions/exports/logs can contain user data and sit under the docroot)
+sessions/
+logs/
+exports/
+uploads/*
+!uploads/.htaccess
+!uploads/logos/

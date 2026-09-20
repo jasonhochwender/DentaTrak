@@ -196,6 +196,7 @@ $isCurrentUserPracticeAdmin = isPracticeAdmin($currentPracticeId);
 // and revision logic all continue to use the fixed internal status values
 // and never derive from $resolvedWorkflowStageLabels.
 require_once __DIR__ . '/api/workflow-stages.php';
+require_once __DIR__ . '/api/case-types.php';
 $resolvedWorkflowStageLabels = $currentPracticeId
     ? getResolvedWorkflowStageLabelsForPractice($currentPracticeId)
     : getResolvedWorkflowStageLabels([]);
@@ -657,6 +658,7 @@ if (isset($appConfig) && is_array($appConfig) && isset($appConfig['appName'])) {
   <script>
     window.__i18n = <?php echo getTranslationsJsonForJs(); ?>;
     window.__caseTypeMap = <?php echo json_encode(getCaseTypeMapForJs(), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
+    window.__caseTypesRequiringMaterial = <?php echo json_encode(array_values(getCaseTypesRequiringMaterial()), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
     window.workflowStageOrder = <?php echo json_encode($workflowStageOrder, JSON_UNESCAPED_UNICODE); ?>;
     window.allWorkflowStageLabels = <?php echo json_encode($allWorkflowStageLabels, JSON_UNESCAPED_UNICODE); ?>;
     window.workflowTerminal = <?php echo json_encode(['id' => getLastActiveWorkflowColumnId($currentPracticeId ?: null), 'label' => resolveWorkflowStageLabelForPractice(getLastActiveWorkflowColumnId($currentPracticeId ?: null), $currentPracticeId ?: null)], JSON_UNESCAPED_UNICODE); ?>;
@@ -919,16 +921,7 @@ endif;
             <label for="filterCaseType"><?php echo t('cases.case_type'); ?></label>
             <select id="filterCaseType">
               <option value=""><?php echo t('filters.all_types'); ?></option>
-              <option value="Crown"><?php echo t('case_types.crown'); ?></option>
-              <option value="Bridge"><?php echo t('case_types.bridge'); ?></option>
-              <option value="Implant"><?php echo t('case_types.implant'); ?></option>
-              <option value="AOX"><?php echo t('case_types.aox'); ?></option>
-              <option value="Bite Rim"><?php echo t('case_types.bite_rim'); ?></option>
-              <option value="Denture"><?php echo t('case_types.denture'); ?></option>
-              <option value="Partial"><?php echo t('case_types.partial'); ?></option>
-              <option value="Veneer"><?php echo t('case_types.veneer'); ?></option>
-              <option value="Inlay/Onlay"><?php echo t('case_types.inlay_onlay'); ?></option>
-              <option value="Orthodontic Appliance"><?php echo t('case_types.orthodontic_appliance'); ?></option>
+              <?php echo renderCaseTypeOptions(getFilterableCaseTypes()); ?>
             </select>
           </div>
 
@@ -1860,17 +1853,7 @@ endif;
                   <label for="caseType"><?php echo t('cases.case_type'); ?> <span class="required">*</span></label>
                   <select id="caseType" name="caseType" required>
                     <option value=""><?php echo t('select.select_case_type'); ?></option>
-                    <option value="Crown"><?php echo t('case_types.crown'); ?></option>
-                    <option value="Bridge"><?php echo t('case_types.bridge'); ?></option>
-                    <option value="Implant Crown"><?php echo t('case_types.implant_crown'); ?></option>
-                    <option value="Implant Surgical Guide"><?php echo t('case_types.implant_surgical_guide'); ?></option>
-                    <option value="AOX"><?php echo t('case_types.aox'); ?></option>
-                    <option value="Bite Rim"><?php echo t('case_types.bite_rim'); ?></option>
-                    <option value="Denture"><?php echo t('case_types.denture'); ?></option>
-                    <option value="Partial"><?php echo t('case_types.partial'); ?></option>
-                    <option value="Veneer"><?php echo t('case_types.veneer'); ?></option>
-                    <option value="Inlay/Onlay"><?php echo t('case_types.inlay_onlay'); ?></option>
-                    <option value="Orthodontic Appliance"><?php echo t('case_types.orthodontic_appliance'); ?></option>
+                    <?php echo renderCaseTypeOptions(getAllKnownCaseTypes()); ?>
                   </select>
                 </div>
 
@@ -2313,16 +2296,7 @@ endif;
                 <label for="archivedCaseType" class="sr-only"><?php echo t('archive.fields.case_type'); ?></label>
                 <select id="archivedCaseType">
                   <option value=""><?php echo t('filters.all_types'); ?></option>
-                  <option value="Crown"><?php echo t('case_types.crown'); ?></option>
-                  <option value="Bridge"><?php echo t('case_types.bridge'); ?></option>
-                  <option value="Implant"><?php echo t('case_types.implant'); ?></option>
-                  <option value="AOX"><?php echo t('case_types.aox'); ?></option>
-                  <option value="Bite Rim"><?php echo t('case_types.bite_rim'); ?></option>
-                  <option value="Denture"><?php echo t('case_types.denture'); ?></option>
-                  <option value="Veneer"><?php echo t('case_types.veneer'); ?></option>
-                  <option value="Inlay/Onlay"><?php echo t('case_types.inlay_onlay'); ?></option>
-                  <option value="Partial"><?php echo t('case_types.partial'); ?></option>
-                  <option value="Orthodontic Appliance"><?php echo t('case_types.orthodontic_appliance'); ?></option>
+                  <?php echo renderCaseTypeOptions(getFilterableCaseTypes()); ?>
                 </select>
                 <button type="button" class="btn-clear-filters" id="archivedClearFilters"><?php echo t('filters.clear_filters'); ?></button>
               </div>
@@ -2447,6 +2421,9 @@ endif;
                       <button type="button" class="settings-nav-item" data-nav-target="authorized"><?php echo t('settings.navigation.users'); ?></button>
                       <button type="button" class="settings-nav-item" data-nav-target="security"><?php echo t('settings.navigation.security'); ?></button>
                       <button type="button" class="settings-nav-item" data-nav-target="data-privacy"><?php echo t('settings.navigation.data_privacy'); ?></button>
+                      <?php if (isFeatureEnabled('SHOW_PMS_INTEGRATIONS')): ?>
+                      <button type="button" class="settings-nav-item" data-nav-target="integrations"><?php echo t('settings.navigation.integrations'); ?></button>
+                      <?php endif; ?>
                     </nav>
                     <div class="settings-panels">
 
@@ -2949,7 +2926,55 @@ endif;
                       </div>
                     </div>
                   </div>
-                  
+
+                  <?php if (isFeatureEnabled('SHOW_PMS_INTEGRATIONS')): ?>
+                  <?php
+                  // Provider cards render from this registry so additional PMS
+                  // providers slot in without restructuring the panel. The JS
+                  // in app.js keys off data-provider and fills connection
+                  // state from api/integrations.php.
+                  $integrationProviders = [
+                      'open_dental' => [
+                          'name_key' => 'settings.integrations.providers.open_dental.name',
+                          'desc_key' => 'settings.integrations.providers.open_dental.description',
+                      ],
+                  ];
+                  ?>
+                  <div class="settings-twisty" data-twisty-id="integrations">
+                    <button type="button" class="settings-twisty-header">
+                      <span class="settings-twisty-arrow"></span>
+                      <span class="settings-twisty-title"><?php echo t('settings.integrations.title'); ?></span>
+                    </button>
+                    <div class="settings-twisty-content">
+                      <div class="settings-group">
+                        <p class="section-description"><?php echo t('settings.integrations.description'); ?></p>
+                        <div id="integrationsPanelError" class="error-message" style="display:none;"></div>
+                        <div class="integrations-list">
+                          <?php foreach ($integrationProviders as $providerKey => $providerDef): ?>
+                          <div class="integration-card" data-provider="<?php echo htmlspecialchars($providerKey); ?>" id="integrationCard-<?php echo htmlspecialchars($providerKey); ?>">
+                            <div class="integration-card-top">
+                              <span class="integration-provider-name"><?php echo t($providerDef['name_key']); ?></span>
+                              <span class="integration-status-badge" id="integrationStatusBadge-<?php echo htmlspecialchars($providerKey); ?>"><?php echo t('settings.integrations.status.not_connected'); ?></span>
+                            </div>
+                            <p class="integration-card-description"><?php echo t($providerDef['desc_key']); ?></p>
+                            <div class="integration-card-meta" id="integrationMeta-<?php echo htmlspecialchars($providerKey); ?>"></div>
+                            <div class="integration-card-actions">
+                              <button type="button" class="btn-secondary integration-action-connect" data-provider="<?php echo htmlspecialchars($providerKey); ?>"><?php echo t('settings.integrations.connect'); ?></button>
+                              <button type="button" class="btn-secondary integration-action-configure" data-provider="<?php echo htmlspecialchars($providerKey); ?>" style="display:none;"><?php echo t('settings.integrations.configure'); ?></button>
+                              <button type="button" class="btn-secondary integration-action-test" data-provider="<?php echo htmlspecialchars($providerKey); ?>" style="display:none;"><?php echo t('settings.integrations.test_connection'); ?></button>
+                              <button type="button" class="btn-secondary integration-action-subscribe" data-provider="<?php echo htmlspecialchars($providerKey); ?>" style="display:none;"><?php echo t('settings.integrations.subscription.enable'); ?></button>
+                              <button type="button" class="btn-secondary integration-action-unsubscribe" data-provider="<?php echo htmlspecialchars($providerKey); ?>" style="display:none;"><?php echo t('settings.integrations.subscription.disable'); ?></button>
+                              <button type="button" class="btn-secondary integration-action-reenable" data-provider="<?php echo htmlspecialchars($providerKey); ?>" style="display:none;"><?php echo t('settings.integrations.reenable'); ?></button>
+                              <button type="button" class="btn-delete-confirm integration-action-disconnect" data-provider="<?php echo htmlspecialchars($providerKey); ?>" style="display:none;"><?php echo t('settings.integrations.disconnect'); ?></button>
+                            </div>
+                          </div>
+                          <?php endforeach; ?>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <?php endif; ?>
+
                     </div>
                   </div>
 
@@ -2963,6 +2988,76 @@ endif;
           </div>
         </div>
       </div>
+      <!-- Integration Configuration Modal (PMS credentials) -->
+      <?php if (isFeatureEnabled('SHOW_PMS_INTEGRATIONS')): ?>
+      <div id="integrationConfigModal" class="modal">
+        <div class="modal-content integration-config-modal">
+          <div class="modal-header">
+            <h2 class="modal-title" id="integrationConfigTitle"></h2>
+            <button type="button" class="btn-close" id="integrationConfigClose"><span>&times;</span></button>
+          </div>
+          <div class="modal-body">
+            <p id="integrationConfigDescription" class="section-description"></p>
+            <div id="integrationCredentialFields"></div>
+
+            <!-- Guided Open Dental onboarding (key generation + install steps) -->
+            <div id="integrationGuidedSetup" style="display:none;">
+              <ol class="integration-setup-steps">
+                <li class="integration-setup-step">
+                  <div class="integration-step-title"><?php echo t('settings.integrations.setup.step1_title'); ?></div>
+                  <p class="integration-step-desc"><?php echo t('settings.integrations.setup.step1_desc'); ?></p>
+                  <div id="integrationKeyGenerateWrap">
+                    <button type="button" class="btn-primary" id="integrationGenerateKey"><?php echo t('settings.integrations.setup.generate_key'); ?></button>
+                  </div>
+                  <div id="integrationKeyReady" style="display:none;">
+                    <label class="integration-key-label" for="integrationKeyValue"><?php echo t('settings.integrations.setup.key_label'); ?></label>
+                    <div class="integration-key-row">
+                      <code id="integrationKeyValue" class="integration-key-value"></code>
+                      <button type="button" class="btn-secondary" id="integrationKeyCopy"><?php echo t('settings.integrations.setup.copy_key'); ?></button>
+                    </div>
+                    <p class="field-note"><?php echo t('settings.integrations.setup.key_once_note'); ?></p>
+                  </div>
+                  <div id="integrationKeyExisting" style="display:none;">
+                    <p class="configured-hint"><?php echo t('settings.integrations.setup.key_configured'); ?></p>
+                    <button type="button" class="btn-secondary" id="integrationRegenerateKey"><?php echo t('settings.integrations.setup.regenerate_key'); ?></button>
+                  </div>
+                </li>
+                <li class="integration-setup-step">
+                  <div class="integration-step-title"><?php echo t('settings.integrations.setup.step2_title'); ?></div>
+                  <p class="integration-step-desc"><?php echo t('settings.integrations.setup.step2_desc'); ?></p>
+                  <ol class="integration-substeps">
+                    <li><?php echo t('settings.integrations.setup.step2_a'); ?></li>
+                    <li><?php echo t('settings.integrations.setup.step2_b'); ?></li>
+                    <li><?php echo t('settings.integrations.setup.step2_c'); ?></li>
+                  </ol>
+                </li>
+                <li class="integration-setup-step">
+                  <div class="integration-step-title"><?php echo t('settings.integrations.setup.step3_title'); ?></div>
+                  <p class="integration-step-desc"><?php echo t('settings.integrations.setup.step3_desc'); ?></p>
+                  <p class="integration-step-desc">
+                    <a href="https://www.opendental.com/manual/econnector.html" target="_blank" rel="noopener noreferrer"><?php echo t('settings.integrations.setup.econnector_link'); ?></a>
+                  </p>
+                </li>
+                <li class="integration-setup-step">
+                  <div class="integration-step-title"><?php echo t('settings.integrations.setup.step4_title'); ?></div>
+                  <p class="integration-step-desc"><?php echo t('settings.integrations.setup.step4_desc'); ?></p>
+                  <button type="button" class="btn-primary" id="integrationModalTest"><?php echo t('settings.integrations.test_connection'); ?></button>
+                  <div id="integrationTestGuidance" class="integration-test-guidance" style="display:none;"></div>
+                </li>
+              </ol>
+            </div>
+
+            <div class="error-message" id="integrationConfigError"></div>
+            <p class="field-note" id="integrationCredentialsNote"><?php echo t('settings.integrations.modal.credentials_note'); ?></p>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn-primary" id="integrationConfigSave"><?php echo t('common.save'); ?></button>
+            <button type="button" class="btn-cancel" id="integrationConfigCancel"><?php echo t('common.cancel'); ?></button>
+          </div>
+        </div>
+      </div>
+      <?php endif; ?>
+
       <div class="main-copyright">&copy; <?php echo date('Y'); ?> <?php echo htmlspecialchars($appConfig['appName']); ?>. All rights reserved.</div>
     </main>
   </div>
@@ -3053,16 +3148,7 @@ endif;
           <label for="devCaseType" class="sr-only"><?php echo t('dev_tools.test_case_type'); ?></label>
           <select id="devCaseType" class="dev-select">
             <option value="Mixed"><?php echo t('case_types.mixed'); ?></option>
-            <option value="Crown"><?php echo t('case_types.crown'); ?></option>
-            <option value="Bridge"><?php echo t('case_types.bridge'); ?></option>
-            <option value="Implant"><?php echo t('case_types.implant'); ?></option>
-            <option value="AOX"><?php echo t('case_types.aox'); ?></option>
-            <option value="Bite Rim"><?php echo t('case_types.bite_rim'); ?></option>
-            <option value="Denture"><?php echo t('case_types.denture'); ?></option>
-            <option value="Partial"><?php echo t('case_types.partial'); ?></option>
-            <option value="Veneer"><?php echo t('case_types.veneer'); ?></option>
-            <option value="Inlay/Onlay"><?php echo t('case_types.inlay_onlay'); ?></option>
-            <option value="Orthodontic Appliance"><?php echo t('case_types.orthodontic_appliance'); ?></option>
+            <?php echo renderCaseTypeOptions(array_diff(getCanonicalCaseTypes(), [CASE_TYPE_NEEDS_CLASSIFICATION])); ?>
           </select>
           <label for="devCaseCount" class="sr-only"><?php echo t('dev_tools.test_case_count'); ?></label>
           <input type="number" id="devCaseCount" class="dev-input" placeholder="<?php echo t('dev_tools.count_placeholder'); ?>" value="10" min="1" max="100">
