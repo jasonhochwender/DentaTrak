@@ -31,4 +31,17 @@ foreach (['filterLateCases' => 'false', 'patientSearch' => [], 'filterCarrier' =
 checkPreference('obsolete saved criteria discarded', normalizeCaseViewPreferences(['sort' => [['field' => 'retired', 'direction' => 'asc']]])['sort'] === []);
 checkPreference('reset sort preserves filters', normalizeCaseViewPreferences(['filters' => $valid['filters'], 'sort' => []])['filters']['patientSearch'] === 'Amy');
 checkPreference('removed assignee retained as exact saved selection', normalizeCaseViewPreferences(['filters' => ['filterAssignedTo' => 'former@example.test']])['filters']['filterAssignedTo'] === 'former@example.test');
+// Regression: every case type the filter select offers must survive strict
+// save validation - a stale hardcoded allowlist rejected 'Implant Crown'
+// and four other offered values, producing the intermittent save toast.
+require_once __DIR__ . '/../api/case-types.php';
+foreach (getFilterableCaseTypes() as $caseType) {
+    $accepted = true;
+    try { normalizeCaseViewPreferences(['filters' => ['filterCaseType' => $caseType]], true); }
+    catch (InvalidArgumentException $e) { $accepted = false; }
+    checkPreference('filterable case type accepted: ' . $caseType, $accepted);
+}
+$rejected = false;
+try { normalizeCaseViewPreferences(['filters' => ['filterCaseType' => 'not a real type']], true); } catch (InvalidArgumentException $e) { $rejected = true; }
+checkPreference('unknown case type still rejected', $rejected);
 echo "$count validation checks passed (no database).\n";
