@@ -4568,6 +4568,13 @@ document.addEventListener('DOMContentLoaded', function () {
         case 'case_restored':
           description = 'Case restored by ' + userName;
           break;
+        case 'source_deleted':
+          if (evt.meta && evt.meta.source === 'integration:open_dental') {
+            description = 'Source lab case was deleted in Open Dental';
+          } else {
+            description = 'Source record was deleted in the connected system';
+          }
+          break;
         default:
           description = (evt.event_type || 'Activity').replace(/_/g, ' ').replace(/\b\w/g, function(l) { return l.toUpperCase(); }) + ' by ' + userName;
           break;
@@ -12592,6 +12599,31 @@ document.addEventListener('DOMContentLoaded', function () {
                     + esc(t('settings.integrations.meta.delivery_issue')) + '</span><span class="integration-meta-error">'
                     + esc(sub.last_failure_reason) + '</span></div>';
             }
+
+            // Deletion watch state - only surfaced when relevant (not a
+            // plain "not_configured" on a connection without updates on).
+            if (sub && sub.deletion_watch && sub.deletion_watch !== 'not_configured') {
+                html += row('settings.integrations.meta.deletion_watch', esc(
+                    t('settings.integrations.meta.deletion_watch_' + sub.deletion_watch)));
+            }
+
+            // 5. Existing lab case import - one-line outcome of the most
+            //    recent admin-initiated import (counts only, never PHI).
+            var bf = conn.backfill || null;
+            if (bf && bf.status) {
+                var bfText;
+                if (bf.status === 'running') {
+                    bfText = t('settings.integrations.import.in_progress');
+                } else if (bf.status === 'failed') {
+                    bfText = t('settings.integrations.import.failed');
+                } else {
+                    bfText = t('settings.integrations.import.summary', {
+                        imported: bf.imported, existing: bf.existing,
+                        skipped: bf.skipped, failed: bf.failed
+                    });
+                }
+                html += row('settings.integrations.meta.last_import', esc(bfText));
+            }
         }
 
         if (conn.status === 'error' && conn.last_error) {
@@ -12617,8 +12649,25 @@ document.addEventListener('DOMContentLoaded', function () {
         show('disconnect', status === 'pending' || status === 'active' || status === 'error');
         show('reenable',   status === 'disabled');
         var subActive = status === 'active' && conn && conn.subscription && conn.subscription.status === 'active';
-        show('subscribe',   status === 'active' && !subActive);
+        // The LabCaseDeleted watch may be absent on connections subscribed
+        // before it existed - re-offer subscribe so it can be repaired.
+        // 'unsupported' (OD < 26.1.6) is terminal - never re-offered.
+        var delWatch = subActive ? (conn.subscription.deletion_watch || null) : null;
+        var delWatchMissing = subActive && delWatch !== 'active' && delWatch !== 'unsupported';
+        show('subscribe',   status === 'active' && (!subActive || delWatchMissing));
         show('unsubscribe', subActive);
+
+        // Historical import controls appear only on a verified connection;
+        // the controls lock while an import run is in flight.
+        var importBlock = document.getElementById('integrationImport-' + provider);
+        if (importBlock) {
+            importBlock.style.display = (status === 'active') ? '' : 'none';
+            var running = !!(conn && conn.backfill && conn.backfill.status === 'running');
+            var importBtn = card.querySelector('.integration-action-import');
+            var scopeSel = document.getElementById('integrationImportScope-' + provider);
+            if (importBtn) importBtn.disabled = running;
+            if (scopeSel) scopeSel.disabled = running;
+        }
     }
 
     function renderProvider(provider) {
@@ -13087,6 +13136,64 @@ document.addEventListener('DOMContentLoaded', function () {
             .catch(function () { showToast(t('settings.integrations.messages.save_failed'), 'error'); });
     }
 
+    // --------------------- Historical import ---------------------------
+
+    function importExistingLabCases(provider) {
+        var conn = integrationsState.connectionsByProvider[provider];
+        if (!conn) return;
+        var scopeSel = document.getElementById('integrationImportScope-' + provider);
+        var days = scopeSel ? parseInt(scopeSel.value, 10) : 90;
+        showConfirmModal(
+            t('settings.integrations.import.confirm_title'),
+            t('settings.integrations.import.confirm_message'),
+            function () {
+                integrationsPost({ action: 'import_existing', connection_id: conn.id, days: days })
+                    .then(function (data) {
+                        if (data.success) {
+                            if (data.connection) {
+                                integrationsState.connectionsByProvider[provider] = data.connection;
+                                renderProvider(provider);
+                            }
+                            showToast(data.message || t('settings.integrations.import.started'), 'success');
+                            pollImport(provider);
+                        } else {
+                            showToast(data.message || t('settings.integrations.import.start_failed'), 'error');
+                        }
+                    })
+                    .catch(function () { showToast(t('settings.integrations.import.start_failed'), 'error'); });
+            }
+        );
+    }
+
+    // Refresh the card while an import runs so the completion summary
+    // appears without a manual reload. Bounded (~2 min); the persisted
+    // backfill projection still shows the final result on the next load.
+    function pollImport(provider) {
+        if (integrationsState.importPollTimer) {
+            clearTimeout(integrationsState.importPollTimer);
+        }
+        var tries = 0;
+        var tick = function () {
+            tries++;
+            fetch('api/integrations.php?action=list')
+                .then(function (r) { return r.json(); })
+                .then(function (data) {
+                    if (!data.success) { return; }
+                    (data.connections || []).forEach(function (c) {
+                        integrationsState.connectionsByProvider[c.provider] = c;
+                    });
+                    renderProvider(provider);
+                    var bf = integrationsState.connectionsByProvider[provider]
+                        && integrationsState.connectionsByProvider[provider].backfill;
+                    if (bf && bf.status === 'running' && tries < 24) {
+                        integrationsState.importPollTimer = setTimeout(tick, 5000);
+                    }
+                })
+                .catch(function () { /* transient poll failure - next tick retries */ });
+        };
+        integrationsState.importPollTimer = setTimeout(tick, 4000);
+    }
+
     // ------------------------- Wiring ---------------------------------
 
     function initIntegrationsPanel() {
@@ -13133,6 +13240,13 @@ document.addEventListener('DOMContentLoaded', function () {
             btn.dataset.integrationInit = '1';
             btn.addEventListener('click', function () {
                 reenableIntegration(btn.getAttribute('data-provider'));
+            });
+        });
+        document.querySelectorAll('.integration-action-import').forEach(function (btn) {
+            if (btn.dataset.integrationInit) return;
+            btn.dataset.integrationInit = '1';
+            btn.addEventListener('click', function () {
+                importExistingLabCases(btn.getAttribute('data-provider'));
             });
         });
 

@@ -3324,6 +3324,28 @@ input#practiceName {
   flex-wrap: wrap;
 }
 
+/* Historical lab case import controls inside the provider card */
+.integration-import {
+  margin-top: 12px;
+}
+
+.integration-import-controls {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.integration-import-scope {
+  font-size: 13px;
+  padding: 6px 8px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  color: #374151;
+  background: #fff;
+  max-width: 100%;
+}
+
 .integration-credential-field .configured-hint {
   font-size: 12px;
   color: #166534;

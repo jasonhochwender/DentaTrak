@@ -934,6 +934,12 @@
                 "cases_imported": "Cases imported:",
                 "delivery_issue": "Last delivery issue:",
                 "connection_issue": "Connection issue:",
+                "last_import": "Existing lab case import:",
+                "deletion_watch": "Deletion updates:",
+                "deletion_watch_active": "On - told when a lab case is deleted in Open Dental",
+                "deletion_watch_unsupported": "Not available on this Open Dental version",
+                "deletion_watch_error": "Could not be set up - try enabling automatic updates again",
+                "deletion_watch_not_configured": "Off",
                 "never": "Never"
             },
             "providers": {
@@ -971,6 +977,21 @@
                 "enable": "Enable automatic updates",
                 "disable": "Disable automatic updates",
                 "disable_confirm": "Stop automatically importing Open Dental lab case changes? The connection stays active and existing cases are kept."
+            },
+            "import": {
+                "button": "Import existing lab cases",
+                "scope_aria": "Choose how far back to look for existing lab cases",
+                "scope_30": "Lab cases from the last 30 days",
+                "scope_90": "Lab cases from the last 90 days",
+                "scope_180": "Lab cases from the last 6 months",
+                "scope_365": "Lab cases from the last 12 months",
+                "confirm_title": "Import existing lab cases",
+                "confirm_message": "DentaTrak will look for lab cases created in Open Dental during the selected period and add any that are not already here. Cases already in DentaTrak are never duplicated or changed.",
+                "started": "Import started. Lab cases will be added in the background - you can keep working.",
+                "start_failed": "Unable to start the import. Please try again.",
+                "in_progress": "Import in progress...",
+                "summary": "{imported} imported, {existing} already in DentaTrak, {skipped} outside the selected period, {failed} failed",
+                "failed": "The last import could not finish. You can run it again."
             },
             "setup": {
                 "title": "Set up {provider}",
@@ -2320,7 +2341,12 @@
             "server_not_configured": "The Open Dental integration is not configured on this server. Please contact DentaTrak support.",
             "key_exists": "A connection key already exists for this practice. Regenerate it to replace the existing key.",
             "key_generated": "Connection key generated.",
-            "generate_failed": "Unable to generate a connection key. Please try again, or contact DentaTrak support."
+            "generate_failed": "Unable to generate a connection key. Please try again, or contact DentaTrak support.",
+            "import_needs_active": "Verify the connection before importing existing lab cases.",
+            "import_invalid_range": "Choose a valid import range.",
+            "import_in_progress": "An import is already in progress for this integration.",
+            "import_failed": "Unable to start the import. Please try again.",
+            "import_started": "Import started. Existing lab cases will be added in the background."
         }
     },
     "email": {

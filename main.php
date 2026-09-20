@@ -2958,6 +2958,17 @@ endif;
                             </div>
                             <p class="integration-card-description"><?php echo t($providerDef['desc_key']); ?></p>
                             <div class="integration-card-meta" id="integrationMeta-<?php echo htmlspecialchars($providerKey); ?>"></div>
+                            <div class="integration-import" id="integrationImport-<?php echo htmlspecialchars($providerKey); ?>" style="display:none;">
+                              <div class="integration-import-controls">
+                                <select class="integration-import-scope" id="integrationImportScope-<?php echo htmlspecialchars($providerKey); ?>" aria-label="<?php echo htmlspecialchars(t('settings.integrations.import.scope_aria')); ?>">
+                                  <option value="30"><?php echo t('settings.integrations.import.scope_30'); ?></option>
+                                  <option value="90" selected><?php echo t('settings.integrations.import.scope_90'); ?></option>
+                                  <option value="180"><?php echo t('settings.integrations.import.scope_180'); ?></option>
+                                  <option value="365"><?php echo t('settings.integrations.import.scope_365'); ?></option>
+                                </select>
+                                <button type="button" class="btn-secondary integration-action-import" data-provider="<?php echo htmlspecialchars($providerKey); ?>"><?php echo t('settings.integrations.import.button'); ?></button>
+                              </div>
+                            </div>
                             <div class="integration-card-actions">
                               <button type="button" class="btn-secondary integration-action-connect" data-provider="<?php echo htmlspecialchars($providerKey); ?>"><?php echo t('settings.integrations.connect'); ?></button>
                               <button type="button" class="btn-secondary integration-action-configure" data-provider="<?php echo htmlspecialchars($providerKey); ?>" style="display:none;"><?php echo t('settings.integrations.configure'); ?></button>

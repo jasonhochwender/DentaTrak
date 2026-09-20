@@ -37,7 +37,20 @@ require_once __DIR__ . '/../CaseService.php';
 
 class IntegrationEvents {
 
-    const EVENT_ENTITY_LABCASE = 'labcase';
+    const EVENT_ENTITY_LABCASE         = 'labcase';
+    const EVENT_ENTITY_LABCASE_DELETED = 'labcase_deleted';
+    /** Synthetic internal event: enumerate one page of historical LabCases. */
+    const EVENT_ENTITY_LABCASE_SCAN    = 'labcase_scan';
+
+    /** Allowed admin-initiated historical import windows (days). */
+    const BACKFILL_SCOPES = [30, 90, 180, 365];
+    /** Page size the scan requests - mirrors the adapter's documented
+     *  hard cap (OpenDentalAdapter::PAGE_LIMIT), kept local so this class
+     *  stays provider-agnostic and never references the adapter class. */
+    const BACKFILL_PAGE_LIMIT = 100;
+    /** Safety cap on scanned pages so a pathological server response can
+     *  never page forever (100 rows/page -> 10k rows max scanned). */
+    const BACKFILL_MAX_PAGES = 100;
 
     const STATUS_RECEIVED    = 'received';
     const STATUS_PROCESSING  = 'processing';
@@ -148,13 +161,23 @@ class IntegrationEvents {
         $externalId  = (int)$event['external_entity_id'];
 
         // A delete-watch event has nothing to fetch - the record is gone.
-        // Phase E: never delete the DentaTrak case; the diagnostic below
-        // notes whether a mapped case was left intact.
-        if ($event['external_entity_type'] === self::EVENT_ENTITY_LABCASE . '_deleted') {
+        // Never delete the DentaTrak case: it is its own operational record
+        // after import. The mapping gains a source_deleted_at marker (which
+        // doubles as the idempotency guard for the activity entry).
+        if ($event['external_entity_type'] === self::EVENT_ENTITY_LABCASE_DELETED) {
             $existing = SyncEngine::findMapping($pdo, (int)$connection['id'], SyncEngine::ENTITY_CASE, (string)$externalId);
+            $marked = self::markSourceDeleted($pdo, (int)$connection['id'], $connection, (string)$externalId, $eventId);
             return self::finalize($pdo, $eventId, self::STATUS_ENTITY_GONE,
                 'External record reported deleted.' .
-                ($existing && $existing['internal_id'] ? ' Linked DentaTrak case left intact.' : ''));
+                ($existing && $existing['internal_id'] ? ' Linked DentaTrak case left intact.' : '') .
+                ($marked ? ' Source deletion recorded.' : ''));
+        }
+
+        // A backfill scan event enumerates one page of historical LabCases
+        // and enqueues a normal 'labcase' event per in-scope row - those
+        // flow through the same exact-once import path as live webhooks.
+        if ($event['external_entity_type'] === self::EVENT_ENTITY_LABCASE_SCAN) {
+            return self::processScanEvent($pdo, $eventId, $event, $connection, $adapter, $credentials);
         }
 
         // The entity fetch is adapter-specific today (only open_dental
@@ -172,6 +195,9 @@ class IntegrationEvents {
         }
 
         if (!is_array($row)) {
+            // 404 on fetch = the source record is gone upstream; mark the
+            // mapping exactly like a LabCaseDeleted watch event would.
+            self::markSourceDeleted($pdo, (int)$connection['id'], $connection, (string)$externalId, $eventId);
             return self::finalize($pdo, $eventId, self::STATUS_ENTITY_GONE,
                 'External record no longer exists.');
         }
@@ -352,6 +378,19 @@ class IntegrationEvents {
                 'Mapped DentaTrak case no longer exists; update skipped.');
         }
 
+        // The source record demonstrably exists (we just fetched it), so a
+        // stale source_deleted_at marker from an earlier delete event/404
+        // is cleared - the marker must reflect current upstream reality.
+        try {
+            $pdo->prepare("
+                UPDATE integration_entity_mappings
+                SET source_deleted_at = NULL
+                WHERE id = :id AND source_deleted_at IS NOT NULL
+            ")->execute([':id' => (int)$mapping['id']]);
+        } catch (Throwable $e) {
+            // Pre-migration schema (column absent) - marker unsupported.
+        }
+
         // column => [canonical value, is-encrypted, null-means-keep]
         $fieldSpec = [
             'due_date'                 => [$canonical->dueDate, false, false],
@@ -473,6 +512,318 @@ class IntegrationEvents {
 
         return self::finalize($pdo, $eventId, self::STATUS_PROCESSED,
             'Case updated: ' . count($changedFields) . ' field(s).');
+    }
+
+    /**
+     * Mark a case mapping's upstream source as deleted and record a single
+     * case activity entry. The DentaTrak case itself is NEVER touched -
+     * after import it is its own operational record.
+     *
+     * Idempotent: the UPDATE only transitions NULL -> timestamp, and the
+     * activity entry is written only on that transition (rowCount > 0), so
+     * replayed delete events and repeated 404s produce exactly one entry.
+     *
+     * @return bool true when this call performed the first mark
+     */
+    private static function markSourceDeleted(PDO $pdo, int $connectionId, array $connection, string $externalId, int $eventId): bool {
+        $mapping = SyncEngine::findMapping($pdo, $connectionId, SyncEngine::ENTITY_CASE, $externalId);
+        if (!$mapping) {
+            return false;
+        }
+        try {
+            $stmt = $pdo->prepare("
+                UPDATE integration_entity_mappings
+                SET source_deleted_at = NOW()
+                WHERE id = :id AND source_deleted_at IS NULL
+            ");
+            $stmt->execute([':id' => (int)$mapping['id']]);
+        } catch (Throwable $e) {
+            // Pre-migration schema (column absent) must not break event
+            // processing - the delete is still finalized below.
+            error_log('[IntegrationEvents] source_deleted_at unavailable: ' . $e->getMessage());
+            return false;
+        }
+        if ($stmt->rowCount() === 0) {
+            return false; // already marked - replay
+        }
+
+        $caseId = $mapping['internal_id'] ?? null;
+        if ($caseId && function_exists('logCaseActivity')) {
+            logCaseActivity((string)$caseId, 'source_deleted', null, null, [
+                'source'            => 'integration:' . ($connection['provider'] ?? 'unknown'),
+                'integration'       => $connection['provider'] ?? 'unknown',
+                'external_event_id' => $eventId,
+                'reason'            => 'source_deleted',
+            ]);
+        }
+        return true;
+    }
+
+    // ----------------------------------------------------------------------
+    // Historical backfill (admin-initiated existing-LabCase import)
+    // ----------------------------------------------------------------------
+    //
+    // The LabCases list endpoint has no server-side date filter (documented
+    // params: PatNum, LaboratoryNum, AptNum, PlannedAptNum, ProvNum), so a
+    // bounded window is enforced by scanning pages and filtering on the
+    // row's DateTimeCreated (DateTStamp fallback) client-side.
+    //
+    // To keep the admin's browser request instant and to reuse the existing
+    // claim/retry machinery, enumeration runs as 'labcase_scan' events in
+    // the queue - one page per event, chaining the next offset until a
+    // short page ends the scan. Each in-scope LabCaseNum becomes a normal
+    // 'labcase' event (dedup key "bf:{run}:{num}") that flows through the
+    // exact same fetch -> normalize -> exact-once import path as a live
+    // webhook event. Backfill therefore can never duplicate a live-imported
+    // case or resurrect a deliberately deleted one.
+    // ----------------------------------------------------------------------
+
+    /**
+     * Begin an admin-initiated historical import. Enqueues the first scan
+     * event; returns ['run_id' => int]. Throws RuntimeException when a
+     * backfill is already running for this connection.
+     */
+    public static function startBackfill(PDO $pdo, array $connection, int $scopeDays): int {
+        if (!in_array($scopeDays, self::BACKFILL_SCOPES, true)) {
+            throw new InvalidArgumentException('Unsupported import range.');
+        }
+        if (self::backfillInProgress($pdo, (int)$connection['id'])) {
+            throw new RuntimeException('An import is already in progress.');
+        }
+
+        $runId = SyncEngine::beginRun($pdo, (int)$connection['id'], SyncEngine::RUN_BACKFILL);
+        self::updateBackfillConfig($pdo, (int)$connection['id'], [
+            'run_id'           => $runId,
+            'scope_days'       => $scopeDays,
+            'started_at'       => gmdate('Y-m-d H:i:s'),
+            'scan_finished_at' => null,
+            'error'            => null,
+        ]);
+
+        self::record($pdo, (int)$connection['id'], self::EVENT_ENTITY_LABCASE_SCAN,
+            '0', self::scanDedupKey($runId, $scopeDays, 0), null);
+        return $runId;
+    }
+
+    /** Dedup key for one scan-page event: "bfscan:{run}:{scope}:{offset}". */
+    private static function scanDedupKey(int $runId, int $scopeDays, int $offset): string {
+        return "bfscan:{$runId}:{$scopeDays}:{$offset}";
+    }
+
+    /** Dedup key for one backfilled LabCase event: "bf:{run}:{labCaseNum}". */
+    private static function backfillDedupKey(int $runId, string $labCaseNum): string {
+        return "bf:{$runId}:{$labCaseNum}";
+    }
+
+    /**
+     * True while any event belonging to the latest backfill run is still
+     * pending - covers scanning, queued case imports, and retries. A run
+     * whose events all finalized (or failed permanently) never blocks a
+     * new import, so an abandoned run self-heals.
+     */
+    public static function backfillInProgress(PDO $pdo, int $connectionId): bool {
+        $config = self::getBackfillConfig(
+            IntegrationManager::findConnection($pdo, $connectionId) ?? []
+        );
+        $runId = (int)($config['run_id'] ?? 0);
+        if ($runId <= 0) {
+            return false;
+        }
+        $stmt = $pdo->prepare("
+            SELECT 1 FROM integration_external_events
+            WHERE connection_id = :id
+              AND status IN (:received, :processing)
+              AND (provider_event_id LIKE :scan OR provider_event_id LIKE :cases)
+            LIMIT 1
+        ");
+        $stmt->execute([
+            ':id'        => $connectionId,
+            ':received'  => self::STATUS_RECEIVED,
+            ':processing'=> self::STATUS_PROCESSING,
+            ':scan'      => "bfscan:{$runId}:%",
+            ':cases'     => "bf:{$runId}:%",
+        ]);
+        return (bool)$stmt->fetchColumn();
+    }
+
+    /** The config_json.backfill block, or null when never imported. */
+    public static function getBackfillConfig(array $connection): ?array {
+        $config = json_decode((string)($connection['config_json'] ?? ''), true);
+        $bf = is_array($config) ? ($config['backfill'] ?? null) : null;
+        return is_array($bf) ? $bf : null;
+    }
+
+    /** Merge fields into config_json.backfill (non-secret bookkeeping). */
+    public static function updateBackfillConfig(PDO $pdo, int $connectionId, array $fields): void {
+        $connection = IntegrationManager::findConnection($pdo, $connectionId);
+        if (!$connection) {
+            return;
+        }
+        $config = json_decode((string)($connection['config_json'] ?? ''), true);
+        if (!is_array($config)) {
+            $config = [];
+        }
+        $bf = isset($config['backfill']) && is_array($config['backfill']) ? $config['backfill'] : [];
+        $config['backfill'] = array_merge($bf, $fields);
+        $pdo->prepare("UPDATE integration_connections SET config_json = :c WHERE id = :id")
+            ->execute([':c' => json_encode($config), ':id' => $connectionId]);
+    }
+
+    /**
+     * Process one scan-page event: fetch a single /labcases page, enqueue a
+     * 'labcase' event for every row inside the requested window, then chain
+     * the next page (or mark the scan finished on a short page). One page
+     * per event keeps each worker invocation cheap and naturally paces the
+     * rate-limited API (~1 req/5s) across scheduler ticks.
+     */
+    private static function processScanEvent(PDO $pdo, int $eventId, array $event, array $connection, $adapter, array $credentials): array {
+        if (!method_exists($adapter, 'listLabCases')) {
+            return self::finalize($pdo, $eventId, self::STATUS_FAILED,
+                'Adapter cannot list external records.');
+        }
+        if (!preg_match('/^bfscan:(\d+):(\d+):(\d+)$/', (string)$event['provider_event_id'], $m)) {
+            return self::finalize($pdo, $eventId, self::STATUS_FAILED,
+                'Malformed scan event.');
+        }
+        $runId     = (int)$m[1];
+        $scopeDays = (int)$m[2];
+        $offset    = (int)$m[3];
+        $connectionId = (int)$connection['id'];
+
+        try {
+            $page = $adapter->listLabCases($credentials, [], $offset);
+        } catch (Throwable $e) {
+            $out = self::handleFetchFailure($pdo, $eventId, $event, $e);
+            if ($out['outcome'] === 'failed') {
+                self::updateBackfillConfig($pdo, $connectionId, [
+                    'error' => 'Scan stopped: ' . substr($e->getMessage(), 0, 300),
+                ]);
+                SyncEngine::failRun($pdo, $runId, 'Scan failed: ' . substr($e->getMessage(), 0, 300));
+            }
+            return $out;
+        }
+        if (!is_array($page)) {
+            return self::finalize($pdo, $eventId, self::STATUS_FAILED,
+                'External record list was malformed.');
+        }
+
+        $cutoff = gmdate('Y-m-d H:i:s', time() - $scopeDays * 86400);
+        $enqueued = 0;
+        foreach ($page as $raw) {
+            if (!is_array($raw)) {
+                continue;
+            }
+            // Normalize only to reuse the adapter's own field extraction
+            // (id + sentinel-safe dates) - no PHI leaves this scope.
+            try {
+                $canonical = $adapter->normalizeCase($raw);
+            } catch (Throwable $e) {
+                continue; // unparseable row - skip, never blocks the scan
+            }
+            $labCaseNum = $canonical->externalCaseId;
+            if ($labCaseNum === null || $labCaseNum === '') {
+                continue;
+            }
+            // Window check: row creation time (fallback: last-modified).
+            // Rows with no decidable date are skipped so the window stays
+            // bounded - unbounded lifetime history is never imported.
+            $created = $canonical->metadata['date_time_created']
+                ?? $canonical->metadata['date_tstamp']
+                ?? null;
+            if ($created === null || strcmp((string)$created, $cutoff) < 0) {
+                continue;
+            }
+            self::record($pdo, $connectionId, self::EVENT_ENTITY_LABCASE,
+                $labCaseNum, self::backfillDedupKey($runId, $labCaseNum),
+                $canonical->metadata['date_tstamp'] ?? null);
+            $enqueued++;
+        }
+        $pageCount = count($page);
+        SyncEngine::incrementRunCounter($pdo, $runId, 'cases_seen', $pageCount);
+        if ($pageCount - $enqueued > 0) {
+            SyncEngine::incrementRunCounter($pdo, $runId, 'cases_skipped', $pageCount - $enqueued);
+        }
+
+        $nextOffset = $offset + $pageCount;
+        if ($pageCount >= self::BACKFILL_PAGE_LIMIT && $nextOffset < self::BACKFILL_MAX_PAGES * self::BACKFILL_PAGE_LIMIT) {
+            // Full page - chain the next offset. INSERT IGNORE semantics in
+            // record() make a retry of this scan event harmless.
+            self::record($pdo, $connectionId, self::EVENT_ENTITY_LABCASE_SCAN,
+                (string)$nextOffset, self::scanDedupKey($runId, $scopeDays, $nextOffset), null);
+            return self::finalize($pdo, $eventId, self::STATUS_PROCESSED,
+                "Scanned {$pageCount} record(s); continuing.");
+        }
+
+        // Short page (or scan cap) - enumeration finished. The run closes
+        // here; per-case import outcomes live on the queued 'labcase'
+        // events and are summarized by backfillProjection().
+        self::updateBackfillConfig($pdo, $connectionId, [
+            'scan_finished_at' => gmdate('Y-m-d H:i:s'),
+        ]);
+        SyncEngine::completeRun($pdo, $runId);
+        return self::finalize($pdo, $eventId, self::STATUS_PROCESSED,
+            "Scan complete; {$enqueued} case(s) queued.");
+    }
+
+    /**
+     * UI-facing summary of the most recent backfill for a connection, or
+     * null when no import has ever run. Counts derive from the queued event
+     * rows so they are always consistent with reality:
+     *   imported - processed events that created a case (no stored message)
+     *   existing - processed events that found an existing mapping/case
+     *   skipped  - entity_gone (deleted upstream before import)
+     *   failed   - terminally failed events
+     *   pending  - still queued/processing
+     */
+    public static function backfillProjection(PDO $pdo, array $connection): ?array {
+        $bf = self::getBackfillConfig($connection);
+        if ($bf === null || empty($bf['run_id'])) {
+            return null;
+        }
+        $runId = (int)$bf['run_id'];
+
+        $stmt = $pdo->prepare("
+            SELECT
+                SUM(CASE WHEN status IN ('received','processing') THEN 1 ELSE 0 END) AS pending,
+                SUM(CASE WHEN status = 'processed' AND (last_error IS NULL OR last_error = '') THEN 1 ELSE 0 END) AS imported,
+                SUM(CASE WHEN status = 'processed' AND last_error IS NOT NULL AND last_error <> '' THEN 1 ELSE 0 END) AS existing,
+                SUM(CASE WHEN status = 'entity_gone' THEN 1 ELSE 0 END) AS skipped,
+                SUM(CASE WHEN status = 'failed' THEN 1 ELSE 0 END) AS failed
+            FROM integration_external_events
+            WHERE connection_id = :id AND provider_event_id LIKE :prefix
+        ");
+        $stmt->execute([':id' => (int)$connection['id'], ':prefix' => "bf:{$runId}:%"]);
+        $c = $stmt->fetch(PDO::FETCH_ASSOC) ?: [];
+
+        $pending = (int)($c['pending'] ?? 0);
+        $scanPending = (function () use ($pdo, $connection, $runId) {
+            $s = $pdo->prepare("
+                SELECT COUNT(*) FROM integration_external_events
+                WHERE connection_id = :id AND provider_event_id LIKE :prefix
+                  AND status IN ('received','processing')
+            ");
+            $s->execute([':id' => (int)$connection['id'], ':prefix' => "bfscan:{$runId}:%"]);
+            return (int)$s->fetchColumn();
+        })();
+
+        if (!empty($bf['error'])) {
+            $status = 'failed';
+        } elseif ($pending > 0 || $scanPending > 0 || empty($bf['scan_finished_at'])) {
+            $status = 'running';
+        } else {
+            $status = 'completed';
+        }
+
+        return [
+            'status'       => $status,
+            'scope_days'   => (int)($bf['scope_days'] ?? 0),
+            'started_at'   => $bf['started_at'] ?? null,
+            'imported'     => (int)($c['imported'] ?? 0),
+            'existing'     => (int)($c['existing'] ?? 0),
+            'skipped'      => (int)($c['skipped'] ?? 0),
+            'failed'       => (int)($c['failed'] ?? 0),
+            'pending'      => $pending + $scanPending,
+        ];
     }
 
     /**
@@ -803,6 +1154,11 @@ class IntegrationEvents {
             'last_failure_reason'   => $sub['last_failure_reason'] ?? null,
             'last_event_received_at'=> $lastEvent->fetchColumn() ?: null,
             'cases_imported'        => (int)$imported->fetchColumn(),
+            // LabCaseDeleted watch: 'active' when a delete subscription is
+            // registered, 'unsupported' when the office's OD version is too
+            // old (v26.1.6+ required), 'not_configured' otherwise.
+            'deletion_watch'        => !empty($sub['enabled']) && !empty($sub['deleted_subscription_num']) ? 'active'
+                : (($sub['deleted_watch'] ?? null) === 'unsupported' ? 'unsupported' : 'not_configured'),
         ];
     }
 }

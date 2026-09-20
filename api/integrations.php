@@ -389,17 +389,21 @@ if ($action === 'disconnect') {
     ");
     $stmt->execute([':id' => $connectionId]);
 
-    // Best-effort: retire the remote event subscription so Open Dental
+    // Best-effort: retire the remote event subscriptions so Open Dental
     // stops firing into a disabled connection. Never blocks disconnect.
     $sub = IntegrationEvents::getSubscriptionConfig($connection);
-    if ($sub !== null && !empty($sub['enabled']) && !empty($sub['subscription_num'])) {
+    $subNums = array_filter([
+        (int)($sub['subscription_num'] ?? 0),
+        (int)($sub['deleted_subscription_num'] ?? 0),
+    ]);
+    if ($sub !== null && !empty($sub['enabled']) && $subNums) {
         try {
             $adapter = IntegrationManager::getAdapter($connection);
             if (method_exists($adapter, 'disableSubscription')) {
-                $adapter->disableSubscription(
-                    IntegrationManager::getConnectionCredentials($pdo, $connectionId),
-                    (int)$sub['subscription_num']
-                );
+                $credentials = IntegrationManager::getConnectionCredentials($pdo, $connectionId);
+                foreach ($subNums as $subNum) {
+                    $adapter->disableSubscription($credentials, $subNum);
+                }
             }
         } catch (Throwable $e) {
             error_log('[integrations] remote subscription disable failed for connection ' . $connectionId);
@@ -586,7 +590,14 @@ if ($action === 'subscribe') {
     }
 
     $existing = IntegrationEvents::getSubscriptionConfig($connection);
-    if ($existing !== null && !empty($existing['enabled'])) {
+    $labCaseActive = $existing !== null && !empty($existing['enabled']);
+    // The LabCaseDeleted watch may still be missing on connections
+    // subscribed before it existed (needs OD v26.1.6+) - subscribe repairs
+    // it rather than treating "already active" as fully configured.
+    $deletedConfigured = $labCaseActive
+        && (!empty($existing['deleted_subscription_num'])
+            || ($existing['deleted_watch'] ?? null) === 'unsupported');
+    if ($labCaseActive && $deletedConfigured) {
         echo json_encode([
             'success'    => true,
             'message'    => t('api.integrations.subscription_exists'),
@@ -619,37 +630,93 @@ if ($action === 'subscribe') {
         $workstation = ($local && gethostname()) ? (string)gethostname() : OpenDentalAdapter::ALL_WORKSTATIONS;
     }
 
-    $token = IntegrationEvents::generateCallbackToken();
-    $endpointUrl = IntegrationEvents::buildCallbackUrl(
-        (string)($appConfig['app_base_url'] ?? ''), $connectionId, $token
-    );
+    $credentials = IntegrationManager::getConnectionCredentials($pdo, $connectionId);
 
-    try {
-        $created = $adapter->createLabCaseSubscription(
-            IntegrationManager::getConnectionCredentials($pdo, $connectionId),
-            [
-                'endpoint_url'    => $endpointUrl,
-                'workstation'     => $workstation,
-                'polling_seconds' => $pollingSeconds,
-                'note'            => 'DentaTrak LabCase change notifications',
-            ]
+    if (!$labCaseActive) {
+        $token = IntegrationEvents::generateCallbackToken();
+        $endpointUrl = IntegrationEvents::buildCallbackUrl(
+            (string)($appConfig['app_base_url'] ?? ''), $connectionId, $token
         );
-    } catch (Throwable $e) {
-        error_log('[integrations] subscription create failed: ' . $e->getMessage());
-        integrationsFail(502, t('api.integrations.subscription_failed'),
-            $e instanceof OpenDentalApiException ? $e->category : 'unexpected');
+
+        try {
+            $created = $adapter->createLabCaseSubscription(
+                $credentials,
+                [
+                    'endpoint_url'    => $endpointUrl,
+                    'workstation'     => $workstation,
+                    'polling_seconds' => $pollingSeconds,
+                    'note'            => 'DentaTrak LabCase change notifications',
+                ]
+            );
+        } catch (Throwable $e) {
+            error_log('[integrations] subscription create failed: ' . $e->getMessage());
+            integrationsFail(502, t('api.integrations.subscription_failed'),
+                $e instanceof OpenDentalApiException ? $e->category : 'unexpected');
+        }
+
+        IntegrationEvents::updateSubscriptionConfig($pdo, $connectionId, [
+            'enabled'           => true,
+            'subscription_num'  => (int)$created['SubscriptionNum'],
+            'watch_table'       => 'LabCase',
+            'polling_seconds'   => $pollingSeconds,
+            'workstation'       => $workstation,
+            'callback_key_hash' => IntegrationEvents::hashCallbackToken($token),
+            'subscribed_at'     => gmdate('Y-m-d H:i:s'),
+            'disabled_at'       => null,
+        ]);
     }
 
-    IntegrationEvents::updateSubscriptionConfig($pdo, $connectionId, [
-        'enabled'           => true,
-        'subscription_num'  => (int)$created['SubscriptionNum'],
-        'watch_table'       => 'LabCase',
-        'polling_seconds'   => $pollingSeconds,
-        'workstation'       => $workstation,
-        'callback_key_hash' => IntegrationEvents::hashCallbackToken($token),
-        'subscribed_at'     => gmdate('Y-m-d H:i:s'),
-        'disabled_at'       => null,
-    ]);
+    // Deletion watch (best-effort, never fails the request): a second
+    // subscription on the same callback URL; the Event-Type header tells
+    // deliveries apart. OD < 26.1.6 rejects LabCaseDeleted - record
+    // 'unsupported' so this is never retried pointlessly on every call.
+    if (!$deletedConfigured) {
+        $delEndpoint = $endpointUrl ?? null;
+        if ($delEndpoint === null) {
+            // Repair path: the LabCase subscription already exists but its
+            // callback URL is not persisted - rebuild it from scratch with a
+            // fresh token and point BOTH subscriptions at it, so the stored
+            // hash and the registered URLs stay consistent.
+            $token = IntegrationEvents::generateCallbackToken();
+            $delEndpoint = IntegrationEvents::buildCallbackUrl(
+                (string)($appConfig['app_base_url'] ?? ''), $connectionId, $token
+            );
+            try {
+                $adapter->updateSubscription($credentials, (int)$existing['subscription_num'], [
+                    'EndPointUrl' => $delEndpoint,
+                ]);
+                IntegrationEvents::updateSubscriptionConfig($pdo, $connectionId, [
+                    'callback_key_hash' => IntegrationEvents::hashCallbackToken($token),
+                ]);
+            } catch (Throwable $e) {
+                error_log('[integrations] callback URL repair failed for connection ' . $connectionId);
+                $delEndpoint = null;
+            }
+        }
+        if ($delEndpoint !== null) {
+            try {
+                $delCreated = $adapter->createLabCaseSubscription($credentials, [
+                    'endpoint_url'    => $delEndpoint,
+                    'workstation'     => $workstation,
+                    'polling_seconds' => $pollingSeconds,
+                    'watch_table'     => OpenDentalAdapter::WATCH_TABLE_LABCASE_DELETED,
+                    'note'            => 'DentaTrak LabCase deletion notifications',
+                ]);
+                IntegrationEvents::updateSubscriptionConfig($pdo, $connectionId, [
+                    'deleted_subscription_num' => (int)$delCreated['SubscriptionNum'],
+                    'deleted_watch'            => 'active',
+                ]);
+            } catch (OpenDentalApiException $e) {
+                IntegrationEvents::updateSubscriptionConfig($pdo, $connectionId, [
+                    'deleted_watch' => $e->category === 'bad_request' ? 'unsupported' : 'error',
+                ]);
+            } catch (Throwable $e) {
+                IntegrationEvents::updateSubscriptionConfig($pdo, $connectionId, [
+                    'deleted_watch' => 'error',
+                ]);
+            }
+        }
+    }
 
     logIntegrationAdminAction($userId, 'integration_subscribed', $currentPracticeId, $connection['provider'], $connectionId);
 
@@ -681,13 +748,17 @@ if ($action === 'unsubscribe') {
     }
 
     $remoteOk = true;
-    if (!empty($sub['subscription_num'])) {
+    $subNums = array_filter([
+        (int)($sub['subscription_num'] ?? 0),
+        (int)($sub['deleted_subscription_num'] ?? 0),
+    ]);
+    if ($subNums) {
         try {
             $adapter = IntegrationManager::getAdapter($connection);
-            $adapter->disableSubscription(
-                IntegrationManager::getConnectionCredentials($pdo, $connectionId),
-                (int)$sub['subscription_num']
-            );
+            $credentials = IntegrationManager::getConnectionCredentials($pdo, $connectionId);
+            foreach ($subNums as $subNum) {
+                $adapter->disableSubscription($credentials, $subNum);
+            }
         } catch (Throwable $e) {
             // Still mark locally disabled: the webhook drops strays when
             // enabled=false, and a retry can be attempted later.
@@ -706,6 +777,59 @@ if ($action === 'unsubscribe') {
     echo json_encode([
         'success'    => true,
         'message'    => $remoteOk ? t('api.integrations.unsubscribed') : t('api.integrations.unsubscribed_remote_failed'),
+        'connection' => IntegrationManager::toPublicConnection($pdo, IntegrationManager::findConnection($pdo, $connectionId)),
+    ]);
+    exit;
+}
+
+// -------------------------------------------------------------------------
+// POST import_existing: admin-initiated historical LabCase import.
+//
+// The request only STARTS the import - it never holds open while records
+// are fetched. Open Dental's LabCases list has no server-side date filter,
+// so a 'labcase_scan' queue event enumerates pages through the existing
+// worker, and each in-scope row becomes a normal 'labcase' event that
+// flows through the exact-once import path. Cases already imported via
+// live events (or a previous import) are never duplicated.
+//
+// The admin picks a bounded window; there is deliberately no "import
+// everything ever" option.
+// -------------------------------------------------------------------------
+if ($action === 'import_existing') {
+    $connectionId = (int)($body['connection_id'] ?? 0);
+    $connection = IntegrationManager::getConnectionForPractice($pdo, $currentPracticeId, $connectionId);
+    if (!$connection) {
+        integrationsFail(404, t('api.integrations.not_found'));
+    }
+    if ($connection['status'] !== 'active') {
+        // Import requires working credentials - same gate as subscribing.
+        integrationsFail(409, t('api.integrations.import_needs_active'));
+    }
+
+    $days = (int)($body['days'] ?? 0);
+    if (!in_array($days, IntegrationEvents::BACKFILL_SCOPES, true)) {
+        integrationsFail(400, t('api.integrations.import_invalid_range'));
+    }
+
+    $adapter = IntegrationManager::getAdapter($connection);
+    if (!method_exists($adapter, 'listLabCases')) {
+        integrationsFail(400, t('api.integrations.provider_no_events'));
+    }
+
+    try {
+        IntegrationEvents::startBackfill($pdo, $connection, $days);
+    } catch (RuntimeException $e) {
+        integrationsFail(409, t('api.integrations.import_in_progress'));
+    } catch (Throwable $e) {
+        error_log('[integrations] import start failed: ' . $e->getMessage());
+        integrationsFail(502, t('api.integrations.import_failed'));
+    }
+
+    logIntegrationAdminAction($userId, 'integration_backfill_started', $currentPracticeId, $connection['provider'], $connectionId);
+
+    echo json_encode([
+        'success'    => true,
+        'message'    => t('api.integrations.import_started'),
         'connection' => IntegrationManager::toPublicConnection($pdo, IntegrationManager::findConnection($pdo, $connectionId)),
     ]);
     exit;

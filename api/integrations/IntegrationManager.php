@@ -226,6 +226,9 @@ class IntegrationManager {
             'credentials_configured'  => IntegrationCredentials::countForConnection($pdo, (int)$connection['id']) > 0,
             'credential_keys'         => IntegrationCredentials::listKeys($pdo, (int)$connection['id']),
             'subscription'            => IntegrationEvents::subscriptionProjection($pdo, $connection),
+            // Latest admin-initiated historical import state (null when
+            // never run). Counts-only projection - no PHI, no credentials.
+            'backfill'                => IntegrationEvents::backfillProjection($pdo, $connection),
             // Most recent real case write (create/update) performed by an
             // integration worker for this connection - derived from the
             // realtime case_updates feed, so no-op events, test-connection

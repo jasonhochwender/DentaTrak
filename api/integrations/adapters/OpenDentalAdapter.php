@@ -465,6 +465,7 @@ class OpenDentalAdapter implements PmsAdapterInterface {
         $allowed = ['PatNum', 'LaboratoryNum', 'AptNum', 'PlannedAptNum', 'ProvNum'];
         $params = array_intersect_key($filters, array_flip($allowed));
         $params['Offset'] = $offset;
+        $params['Limit']  = self::PAGE_LIMIT;
         $page = $this->get('/labcases', $credentials, $params);
         return is_array($page) ? $page : [];
     }
@@ -557,16 +558,24 @@ class OpenDentalAdapter implements PmsAdapterInterface {
     }
 
     /**
-     * POST /subscriptions for WatchTable: LabCase.
-     * @param array $params endpoint_url, workstation, polling_seconds, note
+     * POST /subscriptions for WatchTable: LabCase (or LabCaseDeleted when
+     * $params['watch_table'] asks for it - the only other watch DentaTrak
+     * subscribes to).
+     * @param array $params endpoint_url, workstation, polling_seconds, note,
+     *                      watch_table
      * @return array Decoded subscription (SubscriptionNum, DateTimeStart,
      *               failure fields) - contains no PHI.
      */
     public function createLabCaseSubscription(array $credentials, array $params): array {
+        $watchTable = (string)($params['watch_table'] ?? self::WATCH_TABLE_LABCASE);
+        if (!in_array($watchTable, [self::WATCH_TABLE_LABCASE, self::WATCH_TABLE_LABCASE_DELETED], true)) {
+            throw new OpenDentalApiException('bad_request', 400, '/subscriptions',
+                'Unsupported watch table.');
+        }
         $body = [
             'EndPointUrl'    => (string)($params['endpoint_url'] ?? ''),
             'Workstation'    => (string)($params['workstation'] ?? self::ALL_WORKSTATIONS),
-            'WatchTable'     => self::WATCH_TABLE_LABCASE,
+            'WatchTable'     => $watchTable,
             'PollingSeconds' => (int)($params['polling_seconds'] ?? self::DEFAULT_POLLING_SECONDS),
         ];
         if (!empty($params['note'])) {
