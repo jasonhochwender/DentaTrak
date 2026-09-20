@@ -1,5 +1,7 @@
 <?php
 
+require_once __DIR__ . '/case-types.php';
+
 function normalizeCaseViewPreferences($value, bool $strict = false): array {
     $defaults = [
         'patientSearch' => '', 'filterCaseType' => '', 'filterAssignedTo' => '',
@@ -28,7 +30,10 @@ function normalizeCaseViewPreferences($value, bool $strict = false): array {
         $defaults[$key] = is_string($v) ? trim($v) : $v;
     }
     $allowedValues = [
-        'filterCaseType' => ['', 'Crown', 'Bridge', 'Implant', 'AOX', 'Bite Rim', 'Denture', 'Partial', 'Veneer', 'Inlay/Onlay', 'Orthodontic Appliance'],
+        // Canonical + legacy case types - the same list the filter <select>
+        // offers (getFilterableCaseTypes). A private hardcoded copy drifted
+        // and rejected offered values like 'Implant Crown' with a 400.
+        'filterCaseType' => array_merge([''], getAllKnownCaseTypes()),
         'filterReviewStatus' => ['', 'reviewed', 'needs_review'],
         'filterCarrier' => ['', 'UPS', 'FedEx', 'USPS', 'DHL', 'Other'],
     ];
