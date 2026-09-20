@@ -20,10 +20,11 @@ tsconfig.json
 *.md
 README.md
 .env.example
-scripts/**
-# cloudbuild.yaml's final step runs this provisioning script inside the
-# build workspace, so it must survive the source upload.
-!scripts/provision-integration-worker.sh
+# cloudbuild.yaml's final step runs provision-integration-worker.sh inside the
+# build workspace, so it must survive the source upload; exclude the others.
+scripts/ci-deploy.yml
+scripts/deploy.sh
+scripts/setup-gcs-cors.sh
 deploy.cmd
 
 # Local config
