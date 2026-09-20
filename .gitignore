@@ -199,3 +199,6 @@ documentation/Google Cloud Setup.docx
 
 # Windsurf skills installed locally only (never commit local skill files)
 /.windsurf/skills/
+
+# Windows reserved-name artifact from local test proc_open sinks
+NUL

@@ -42,3 +42,6 @@ exports/
 uploads/*
 !uploads/.htaccess
 !uploads/logos/
+
+# Windows reserved-name artifact created by local test proc_open sinks
+NUL
