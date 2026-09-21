@@ -964,7 +964,11 @@ function setupUserSession($user, $authMethod = 'email') {
     
     $_SESSION['db_user_id'] = $user['id'];
     $_SESSION['user_email'] = $user['email'];
-    $_SESSION['user_name'] = trim(($user['first_name'] ?? '') . ' ' . ($user['last_name'] ?? ''));
+    // Email fallback: invited members can have an email-only users row with
+    // no first/last name yet - keep user_name usable for comments,
+    // notifications, and any other session-driven display surface.
+    $sessionName = trim(($user['first_name'] ?? '') . ' ' . ($user['last_name'] ?? ''));
+    $_SESSION['user_name'] = $sessionName !== '' ? $sessionName : ($user['email'] ?? '');
     $_SESSION['user_picture'] = $user['profile_picture'] ?? '';
     $_SESSION['user_role'] = $user['role'] ?? 'user';
     $_SESSION['auth_method'] = $authMethod;

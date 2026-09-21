@@ -98,6 +98,23 @@ try {
         $canCreateCases = $currentCaseCount < $tierConfig['max_cases'];
     }
 
+    // The values above meter the acting user's personal billing_tier and
+    // account age - legacy per-user state that predates multi-user
+    // practices. Practice-level subscription access is the sole authority
+    // for whether new cases can be created (matches api/create-case.php)
+    // and for the trial-gated UI restrictions driven by is_trial /
+    // trial_expired below, so an invited member's own account state can
+    // never gate actions covered by the practice's subscription.
+    if ($currentPracticeId > 0 && !$isBypassUser) {
+        $practiceAccess = getPracticeSubscriptionAccess($pdo, $currentPracticeId);
+        if ($practiceAccess !== null) {
+            $canCreateCases     = (bool)$practiceAccess['full_access'];
+            $isTrial            = ($practiceAccess['status'] ?? '') === 'trialing';
+            $trialExpired       = (bool)$practiceAccess['trial_expired'];
+            $trialDaysRemaining = $practiceAccess['trial_days_remaining'];
+        }
+    }
+
     // Update case count in users table
     if ($currentCaseCount !== $user['case_count']) {
         $stmt = $pdo->prepare("UPDATE users SET case_count = ? WHERE id = ?");

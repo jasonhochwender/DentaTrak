@@ -5,6 +5,7 @@ require_once __DIR__ . '/appConfig.php';
 // getValidWorkflowStatuses(), and isValidWorkflowStatus() are defined
 // there and used by isBackwardStatusMovement() below.
 require_once __DIR__ . '/workflow-stages.php';
+require_once __DIR__ . '/user-display.php';
 
 function ensureDemoGenerationRunsSchema() {
     global $pdo;
@@ -374,11 +375,10 @@ function getCaseFromCache($caseId) {
         if (!empty($userIds)) {
             try {
                 $placeholders = implode(',', array_fill(0, count($userIds), '?'));
-                $userStmt = $pdo->prepare("SELECT id, first_name, last_name FROM users WHERE id IN ($placeholders)");
+                $userStmt = $pdo->prepare("SELECT id, first_name, last_name, email FROM users WHERE id IN ($placeholders)");
                 $userStmt->execute(array_values($userIds));
                 while ($u = $userStmt->fetch(PDO::FETCH_ASSOC)) {
-                    $name = trim(($u['first_name'] ?? '') . ' ' . ($u['last_name'] ?? ''));
-                    $userMap[(int)$u['id']] = $name !== '' ? $name : 'Unknown';
+                    $userMap[(int)$u['id']] = formatUserDisplayName($u['first_name'] ?? '', $u['last_name'] ?? '', $u['email'] ?? '');
                 }
             } catch (Exception $e) {
                 error_log('[cases_cache] Error resolving user names: ' . $e->getMessage());
@@ -964,12 +964,11 @@ function getAllCasesFromCache() {
     if (!empty($userIds)) {
         $placeholders = implode(',', array_fill(0, count($userIds), '?'));
         try {
-            $userStmt = $pdo->prepare("SELECT id, first_name, last_name FROM users WHERE id IN ($placeholders)");
+            $userStmt = $pdo->prepare("SELECT id, first_name, last_name, email FROM users WHERE id IN ($placeholders)");
             $userStmt->execute(array_values($userIds));
             $userMap = [];
             while ($u = $userStmt->fetch(PDO::FETCH_ASSOC)) {
-                $name = trim(($u['first_name'] ?? '') . ' ' . ($u['last_name'] ?? ''));
-                $userMap[(int)$u['id']] = $name !== '' ? $name : 'Unknown';
+                $userMap[(int)$u['id']] = formatUserDisplayName($u['first_name'] ?? '', $u['last_name'] ?? '', $u['email'] ?? '');
             }
             foreach ($cases as &$case) {
                 $case['createdByName'] = ($case['createdByUserId'] && isset($userMap[$case['createdByUserId']]))
@@ -1037,7 +1036,9 @@ function getSingleCaseFromCache($caseId, $practiceId, $mode = 'full') {
                 c.version, c.demo_generation_run_id, c.clinical_details_json,
                 c.reviewed_at, c.reviewed_by_user_id,
                 u.first_name AS creator_first_name, u.last_name AS creator_last_name,
-                ru.first_name AS reviewer_first_name, ru.last_name AS reviewer_last_name
+                u.email AS creator_email,
+                ru.first_name AS reviewer_first_name, ru.last_name AS reviewer_last_name,
+                ru.email AS reviewer_email
             FROM cases_cache c
             LEFT JOIN users u ON c.created_by_user_id = u.id
             LEFT JOIN users ru ON c.reviewed_by_user_id = ru.id
@@ -1139,15 +1140,12 @@ function getSingleCaseFromCache($caseId, $practiceId, $mode = 'full') {
         }
 
         // Resolve creator and reviewer display names from the joined users table
-        $creatorName = trim(($row['creator_first_name'] ?? '') . ' ' . ($row['creator_last_name'] ?? ''));
-        if ($creatorName !== '') {
-            $case['createdByName'] = $creatorName;
-        }
-
-        $reviewerName = trim(($row['reviewer_first_name'] ?? '') . ' ' . ($row['reviewer_last_name'] ?? ''));
-        if ($reviewerName !== '') {
-            $case['reviewedByName'] = $reviewerName;
-        }
+        $case['createdByName'] = formatUserDisplayName(
+            $row['creator_first_name'] ?? '', $row['creator_last_name'] ?? '', $row['creator_email'] ?? ''
+        );
+        $case['reviewedByName'] = formatUserDisplayName(
+            $row['reviewer_first_name'] ?? '', $row['reviewer_last_name'] ?? '', $row['reviewer_email'] ?? ''
+        );
 
         return $case;
     } catch (PDOException $e) {

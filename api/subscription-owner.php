@@ -35,7 +35,16 @@ function getSubscriptionOwnerUserId(PDO $pdo, int $practiceId): ?int {
     ");
     $stmt->execute(['practice_id' => $practiceId]);
     $id = $stmt->fetchColumn();
-    return $id !== false ? (int)$id : null;
+    if ($id !== false) {
+        return (int)$id;
+    }
+
+    // Legacy practices created before is_owner existed (or whose owner row
+    // was rebuilt without it) still record the creator on practices.created_by.
+    $stmt = $pdo->prepare("SELECT created_by FROM practices WHERE id = :practice_id LIMIT 1");
+    $stmt->execute(['practice_id' => $practiceId]);
+    $createdBy = $stmt->fetchColumn();
+    return ($createdBy !== false && $createdBy !== null) ? (int)$createdBy : null;
 }
 
 /**

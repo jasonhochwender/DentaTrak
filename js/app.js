@@ -4468,8 +4468,9 @@ document.addEventListener('DOMContentLoaded', function () {
       var body = document.createElement('div');
       body.className = 'revision-body';
 
-      // Get user name for display
-      var userName = evt.user_email ? evt.user_email.split('@')[0] : 'System';
+      // Get user name for display - prefer the server-resolved display name
+      // (full name or account email), then the raw event email local-part.
+      var userName = evt.user_name || (evt.user_email ? evt.user_email.split('@')[0] : 'System');
       userName = userName.charAt(0).toUpperCase() + userName.slice(1);
 
       // Check if this is a revision/regression event (backward move)

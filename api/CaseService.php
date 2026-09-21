@@ -260,11 +260,12 @@ class CaseService {
         // Creator display name for immediate UI rendering.
         if (isset($result['caseData']['createdByUserId']) && !isset($result['caseData']['createdByName']) && $pdo) {
             try {
-                $creatorStmt = $pdo->prepare("SELECT first_name, last_name FROM users WHERE id = :id LIMIT 1");
+                $creatorStmt = $pdo->prepare("SELECT first_name, last_name, email FROM users WHERE id = :id LIMIT 1");
                 $creatorStmt->execute(['id' => (int)$result['caseData']['createdByUserId']]);
                 $creator = $creatorStmt->fetch(PDO::FETCH_ASSOC);
                 if ($creator) {
-                    $name = trim(($creator['first_name'] ?? '') . ' ' . ($creator['last_name'] ?? ''));
+                    require_once __DIR__ . '/user-display.php';
+                    $name = formatUserDisplayName($creator['first_name'] ?? '', $creator['last_name'] ?? '', $creator['email'] ?? '', '');
                     if ($name !== '') {
                         $result['caseData']['createdByName'] = $name;
                     }

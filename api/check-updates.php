@@ -18,6 +18,7 @@ try {
     require_once __DIR__ . '/session.php';
     require_once __DIR__ . '/practice-security.php';
     require_once __DIR__ . '/cases-cache.php';
+    require_once __DIR__ . '/user-display.php';
     require_once __DIR__ . '/encryption.php';
 } catch (Exception $e) {
     error_log('check-updates.php include error: ' . $e->getMessage());
@@ -59,7 +60,8 @@ try {
                cc.clinical_details_json, cc.attachments_json, cc.revisions_json,
                cc.creation_date, cc.last_update_date, cc.status_changed_at,
                cc.revision_count, cc.reviewed_at, cc.reviewed_by_user_id,
-               reviewer.first_name AS reviewer_first_name, reviewer.last_name AS reviewer_last_name
+               reviewer.first_name AS reviewer_first_name, reviewer.last_name AS reviewer_last_name,
+               reviewer.email AS reviewer_email
         FROM case_updates cu
         JOIN cases_cache cc ON cu.case_id = cc.case_id
         LEFT JOIN users reviewer ON cc.reviewed_by_user_id = reviewer.id
@@ -111,7 +113,7 @@ try {
             'revisionCount' => (int)($row['revision_count'] ?? 0),
             'reviewedAt' => !empty($row['reviewed_at']) ? date('c', strtotime($row['reviewed_at'])) : null,
             'reviewedByUserId' => isset($row['reviewed_by_user_id']) ? (int)$row['reviewed_by_user_id'] : null,
-            'reviewedByName' => trim(($row['reviewer_first_name'] ?? '') . ' ' . ($row['reviewer_last_name'] ?? '')) ?: 'Unknown',
+            'reviewedByName' => formatUserDisplayName($row['reviewer_first_name'] ?? '', $row['reviewer_last_name'] ?? '', $row['reviewer_email'] ?? ''),
             'reviewStatus' => !empty($row['reviewed_at']) ? 'reviewed' : 'needs_review',
         ];
         

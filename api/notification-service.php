@@ -644,9 +644,13 @@ function _getNotificationUserDisplayName($userId) {
         return $systemLabel !== '' ? $systemLabel : 'DentaTrak';
     }
 
-    if (isset($_SESSION['db_user_id']) && (int)$_SESSION['db_user_id'] === (int)$userId
-        && isset($_SESSION['first_name'])) {
-        $name = trim($_SESSION['first_name'] . ' ' . ($_SESSION['last_name'] ?? ''));
+    if (isset($_SESSION['db_user_id']) && (int)$_SESSION['db_user_id'] === (int)$userId) {
+        // user_name is name-or-email (see unified-identity.php login), so
+        // this covers members whose users row has no first/last name yet.
+        $name = trim((string)($_SESSION['user_name'] ?? ''));
+        if ($name === '' && isset($_SESSION['first_name'])) {
+            $name = trim($_SESSION['first_name'] . ' ' . ($_SESSION['last_name'] ?? ''));
+        }
         if ($name !== '') {
             return $name;
         }
@@ -658,11 +662,15 @@ function _getNotificationUserDisplayName($userId) {
     }
 
     try {
-        $stmt = $pdo->prepare("SELECT first_name, last_name FROM users WHERE id = :id LIMIT 1");
+        $stmt = $pdo->prepare("SELECT first_name, last_name, email FROM users WHERE id = :id LIMIT 1");
         $stmt->execute(['id' => (int)$userId]);
         $u = $stmt->fetch(PDO::FETCH_ASSOC);
         if ($u) {
-            $name = trim(($u['first_name'] ?? '') . ' ' . ($u['last_name'] ?? ''));
+            // Practice members can have an email-only users row (provisioned
+            // without first/last name); fall back to email before the
+            // generic team label so the actor stays identifiable.
+            require_once __DIR__ . '/user-display.php';
+            $name = formatUserDisplayName($u['first_name'] ?? '', $u['last_name'] ?? '', $u['email'] ?? '', '');
             if ($name !== '') {
                 return $name;
             }

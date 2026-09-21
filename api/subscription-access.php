@@ -277,11 +277,55 @@ function getPracticeSubscriptionAccess(PDO $pdo, int $practiceId): ?array {
         return null;
     }
 
+    // Billing bypass is an account-level exemption attached to the
+    // subscription OWNER, not to whichever member happens to be acting.
+    // Evaluating it here means every member of an exempt practice inherits
+    // the bypass; previously callers checked the acting user's email, so
+    // staff of a bypassed owner hit "No active subscription found" on a
+    // practice the owner could use freely. It is evaluated before touching
+    // the subscriptions table so it also holds if that table is missing.
+    require_once __DIR__ . '/billing-bypass.php';
+    $ownerEmail = '';
+    try {
+        $ownerEmailStmt = $pdo->prepare("SELECT email FROM users WHERE id = :id LIMIT 1");
+        $ownerEmailStmt->execute(['id' => $ownerUserId]);
+        $ownerEmail = (string)($ownerEmailStmt->fetchColumn() ?: '');
+    } catch (PDOException $e) {
+        error_log('[subscription-access] owner email lookup failed: ' . $e->getMessage());
+    }
+
+    if ($ownerEmail !== '' && function_exists('isBillingBypassEmail') && isBillingBypassEmail($ownerEmail)) {
+        try {
+            $subscription = getSubscriptionForOwner($pdo, $ownerUserId);
+        } catch (PDOException $e) {
+            $subscription = null;
+        }
+        return [
+            'status'                  => 'active',
+            'full_access'             => true,
+            'read_only'               => false,
+            'locked_out'              => false,
+            'show_billing_warning'    => false,
+            'show_trial_banner'       => false,
+            'trial_expired'           => false,
+            'trial_days_remaining'    => null,
+            'trial_ends_at'           => $subscription['trial_ends_at'] ?? null,
+            'current_period_ends_at'  => $subscription['current_period_ends_at'] ?? null,
+            'access_message'          => '',
+            // Bypass accounts are treated as Control tier - matches
+            // getEffectiveBillingTier() in billing-bypass.php - so
+            // hasControlAccess() still passes for the whole practice.
+            'subscription_plan'       => $subscription['plan'] ?? 'control',
+        ];
+    }
+
     try {
         $subscription = getSubscriptionForOwner($pdo, $ownerUserId);
+
         if (!$subscription) {
-            // Owner has no subscriptions row yet (e.g. migration hasn't run) —
-            // fail open, matches the previous "treat as trialing" behavior.
+            // Owner has no subscriptions row (e.g. an account that predates
+            // the per-owner subscriptions model and was never migrated).
+            // Evaluates to canonical status 'none' = read-only.
             return getSubscriptionAccess([]);
         }
 
@@ -299,7 +343,9 @@ function getPracticeSubscriptionAccess(PDO $pdo, int $practiceId): ?array {
             'billing_interval'       => $subscription['billing_interval'],
         ]);
     } catch (PDOException $e) {
-        // subscriptions table may not exist yet — fail open (treat as trialing)
+        // subscriptions table may not exist yet — evaluate an empty row,
+        // which yields full access when billing is disabled and canonical
+        // 'none' (read-only) when it is enabled.
         if (strpos($e->getMessage(), 'Unknown column') !== false || strpos($e->getMessage(), "doesn't exist") !== false) {
             error_log('[subscription-access] subscriptions table missing — run migrate-subscription-owner.php');
             return getSubscriptionAccess([]);

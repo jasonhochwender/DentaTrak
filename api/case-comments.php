@@ -137,7 +137,9 @@ $method = $_SERVER['REQUEST_METHOD'];
 $currentPracticeId = requireValidPracticeContext();
 $userId = $_SESSION['db_user_id'];
 $userEmail = $_SESSION['user_email'] ?? '';
-$userName = $_SESSION['user_name'] ?? $userEmail;
+// Session user_name is '' for members provisioned with an email-only users
+// row - fall back to the account email so comments stay attributable.
+$userName = trim((string)($_SESSION['user_name'] ?? '')) !== '' ? $_SESSION['user_name'] : $userEmail;
 
 // Validate CSRF for all state-changing requests.
 if ($method === 'POST') {
