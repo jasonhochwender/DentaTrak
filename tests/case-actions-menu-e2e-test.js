@@ -425,6 +425,71 @@ async function closeCaseModal(page) {
       getComputedStyle(document.getElementById('regressionRemakePrompt')).display);
     check('forward move does not show remake prompt', fwdPrompt === 'none', fwdPrompt);
 
+    /* ---------- 8f. Record Remake closes on success; history strip fills ---------- */
+    await page.evaluate((id) => {
+      const card = document.querySelector(`.kanban-card[data-case-id="${id}"]`);
+      window.editCaseHandler(JSON.parse(card.dataset.caseJson));
+    }, caseA);
+    await page.waitForFunction(() => {
+      const b = document.getElementById('recordRemakeBtn');
+      return b && !b.hidden;
+    }, undefined, { timeout: 15000 });
+    await page.click('#recordRemakeBtn');
+    await page.waitForSelector('#remakeModal', { state: 'visible', timeout: 10000 });
+
+    // Submit a real remake: reason + attribution are required.
+    await page.evaluate(() => {
+      const r = document.getElementById('remakeReason');
+      r.value = [...r.options].find(o => o.value).value;
+      const a = document.getElementById('remakeAttribution');
+      a.value = [...a.options].find(o => o.value).value;
+    });
+    await page.click('#remakeSubmit');
+    await page.waitForFunction(() =>
+      getComputedStyle(document.getElementById('remakeModal')).display === 'none',
+      undefined, { timeout: 15000 });
+    check('successful Record Remake closes the remake modal', true);
+    const caseModalStillOpen = await page.evaluate(() =>
+      getComputedStyle(document.getElementById('createCaseModal')).display !== 'none');
+    check('underlying case modal stays open after record', caseModalStillOpen);
+
+    await page.waitForFunction(() => {
+      const s = document.getElementById('caseRemakeHistory');
+      return s && s.style.display !== 'none'
+        && document.querySelectorAll('#caseRemakeHistoryList .remake-item').length >= 1;
+    }, undefined, { timeout: 15000 });
+    const stripInfo = await page.evaluate(() => ({
+      items: document.querySelectorAll('#caseRemakeHistoryList .remake-item').length,
+      count: document.getElementById('caseRemakeHistoryCount').textContent,
+      firstTitle: document.querySelector('#caseRemakeHistoryList .remake-item-title').textContent.trim(),
+      status: document.querySelector('#caseRemakeHistoryList .remake-status').textContent.trim(),
+    }));
+    check('remake history strip shows the recorded remake', stripInfo.items >= 1, JSON.stringify(stripInfo));
+    check('strip shows Remake #n with in-progress state + count',
+      /Remake #\d+/.test(stripInfo.firstTitle) && /In progress|Open/.test(stripInfo.status) && stripInfo.count.includes('('),
+      JSON.stringify(stripInfo));
+
+    // Validation failure keeps the modal open.
+    await page.click('#recordRemakeBtn');
+    await page.waitForSelector('#remakeModal', { state: 'visible', timeout: 10000 });
+    await page.click('#remakeSubmit');
+    await page.waitForTimeout(400);
+    const errStillOpen = await page.evaluate(() =>
+      getComputedStyle(document.getElementById('remakeModal')).display !== 'none'
+      && !document.getElementById('remakeModalError').hidden);
+    check('validation failure keeps remake modal open with error', errStillOpen);
+    await page.click('#remakeCancel');
+    await page.waitForTimeout(250);
+
+    // Mark complete directly from the history strip.
+    await page.click('#caseRemakeHistoryList .remake-complete-btn');
+    await page.waitForFunction(() => {
+      const s = document.querySelector('#caseRemakeHistoryList .remake-status');
+      return s && /Completed/.test(s.textContent);
+    }, undefined, { timeout: 15000 });
+    check('strip Mark complete updates the entry to completed', true);
+    await closeCaseModal(page);
+
     /* ---------- 9. Archive failure keeps the card + shows error ---------- */
     await page.route('**/api/delete-case.php', route => route.fulfill({
       status: 500, contentType: 'application/json',

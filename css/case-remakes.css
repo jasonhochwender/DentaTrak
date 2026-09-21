@@ -206,3 +206,68 @@
     order: 3;
   }
 }
+
+/* Remake History strip in the case modal (Details tab). Compact and
+   collapsible; only rendered when the case has structured remakes. */
+.remake-history-strip {
+  margin: 0 0 16px;
+  border: 1px solid var(--border-light, #e3e8ef);
+  border-radius: 8px;
+  background: var(--dt-surface-alt, #f8fafc);
+}
+
+.remake-history-strip-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 9px 12px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+}
+
+.remake-history-strip-label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-secondary, #5f6b7a);
+}
+
+.remake-history-strip-count {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--text-secondary, #5f6b7a);
+}
+
+.remake-history-strip-caret {
+  margin-left: auto;
+  transition: transform 0.15s ease;
+  color: var(--text-secondary, #5f6b7a);
+}
+
+.remake-history-strip-header[aria-expanded="false"] .remake-history-strip-caret {
+  transform: rotate(-90deg);
+}
+
+.remake-history-strip-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 0 12px 12px;
+  max-height: 260px;
+  overflow-y: auto;
+}
+
+.remake-history-strip-list .remake-item {
+  background: var(--background-white, #fff);
+}
+
+@media (max-width: 480px) {
+  .remake-history-strip-list .remake-item-meta {
+    word-break: break-word;
+  }
+}

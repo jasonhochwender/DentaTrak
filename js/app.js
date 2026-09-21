@@ -5080,6 +5080,10 @@ document.addEventListener('DOMContentLoaded', function () {
 
     var newCaseRemakeBtn = document.getElementById('recordRemakeBtn');
     if (newCaseRemakeBtn) newCaseRemakeBtn.hidden = true;
+    if (form) delete form.dataset.caseArchived;
+    if (typeof window.loadCaseRemakeHistory === 'function') {
+      window.loadCaseRemakeHistory(null);
+    }
 
     if (modalTitle) modalTitle.textContent = t('cases.create_new_case');
     if (submitBtn) submitBtn.textContent = t('cases.create_case');
@@ -5471,6 +5475,10 @@ document.addEventListener('DOMContentLoaded', function () {
     var recordRemakeBtn = document.getElementById('recordRemakeBtn');
     if (recordRemakeBtn) {
       recordRemakeBtn.hidden = !(caseData && (caseData.id || caseData.case_id) && !caseData.archived);
+    }
+    form.dataset.caseArchived = caseData && caseData.archived ? '1' : '0';
+    if (typeof window.loadCaseRemakeHistory === 'function') {
+      window.loadCaseRemakeHistory(caseData && (caseData.id || caseData.case_id), { archived: !!(caseData && caseData.archived) });
     }
 
     // Render review status controls (hidden for new/unsaved cases)
@@ -8969,6 +8977,10 @@ document.addEventListener('DOMContentLoaded', function () {
     var recordRemakeBtn = document.getElementById('recordRemakeBtn');
     if (recordRemakeBtn) {
       recordRemakeBtn.hidden = !(caseData && (caseData.id || caseData.case_id) && !caseData.archived);
+    }
+    form.dataset.caseArchived = caseData && caseData.archived ? '1' : '0';
+    if (typeof window.loadCaseRemakeHistory === 'function') {
+      window.loadCaseRemakeHistory(caseData && (caseData.id || caseData.case_id), { archived: !!(caseData && caseData.archived) });
     }
 
     // Render review status panel

@@ -1904,6 +1904,21 @@ endif;
               </div>
 <?php endif; ?>
 
+              <!-- Remake History strip - compact, collapsible, only visible
+                   when the saved case actually has structured remake records
+                   (case_remake_events). Workflow regressions never appear
+                   here; populated by case-remakes.js. -->
+              <div id="caseRemakeHistory" class="remake-history-strip" style="display: none;">
+                <button type="button" class="remake-history-strip-header" id="caseRemakeHistoryToggle" aria-expanded="true">
+                  <span class="remake-history-strip-label"><?php echo t('remakes.history_heading'); ?></span>
+                  <span class="remake-history-strip-count" id="caseRemakeHistoryCount"></span>
+                  <svg class="remake-history-strip-caret" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <polyline points="6 9 12 15 18 9"></polyline>
+                  </svg>
+                </button>
+                <div id="caseRemakeHistoryList" class="remake-history-strip-list"></div>
+              </div>
+
               <div class="modal-form-grid">
                 <div class="form-field">
                   <label for="patientFirstName"><?php echo t('cases.patient_first_name'); ?> <span class="required">*</span></label>

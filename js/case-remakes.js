@@ -46,6 +46,45 @@
     return label && label.indexOf(prefix) !== 0 ? label : code;
   }
 
+  /* One remake entry, shared by the Record Remake modal list and the
+     Remake History strip in the case modal. showComplete controls whether
+     an open remake offers "Mark complete" (hidden for archived cases -
+     the server rejects state changes on them). openLabel lets the case
+     modal say "In progress" while the modal keeps its "Open" chip. */
+  function remakeItemHtml(r, showComplete, openLabel) {
+    var open = !r.completed_at;
+    var meta = [];
+
+    meta.push(esc(remakeLabel('remakes.reasons', r.reason_code)));
+    meta.push(esc(remakeLabel('remakes.attribution', r.attribution)));
+    if (r.lab_name) {
+      meta.push(esc(t('remakes.lab_label')) + ': ' + esc(r.lab_name));
+    }
+    meta.push(esc(t('remakes.initiated_label')) + ' ' + esc(formatDateTime(r.initiated_at)));
+    if (r.completed_at) {
+      meta.push(esc(t('remakes.completed_label')) + ' ' + esc(formatDateTime(r.completed_at)));
+    }
+    var creator = r.created_by_first_name
+      ? (r.created_by_first_name + ' ' + (r.created_by_last_name || '')).trim()
+      : (r.created_by_email || '');
+    if (creator) {
+      meta.push(esc(t('remakes.recorded_by', { name: creator })));
+    }
+
+    return '<div class="remake-item" data-remake-id="' + esc(r.id) + '">' +
+      '<div class="remake-item-header">' +
+        '<span class="remake-item-title">' + esc(t('remakes.number_label', { number: r.remake_number })) + '</span>' +
+        '<span class="remake-status ' + (open ? 'remake-status-open' : 'remake-status-completed') + '">' +
+          esc(open ? (openLabel || t('remakes.open')) : t('remakes.completed')) +
+        '</span>' +
+      '</div>' +
+      '<p class="remake-item-meta">' + meta.join(' &middot; ') + '</p>' +
+      (r.notes ? '<p class="remake-item-notes">' + esc(r.notes) + '</p>' : '') +
+      (open && showComplete ? '<button type="button" class="remake-complete-btn" data-remake-id="' + esc(r.id) + '">' +
+        esc(t('remakes.mark_complete')) + '</button>' : '') +
+      '</div>';
+  }
+
   function renderHistory(remakes) {
     var list = el('remakeHistoryList');
     if (!list) return;
@@ -55,50 +94,23 @@
       return;
     }
 
-    var html = '';
-    remakes.forEach(function (r) {
-      var open = !r.completed_at;
-      var meta = [];
-
-      meta.push(esc(remakeLabel('remakes.reasons', r.reason_code)));
-      meta.push(esc(remakeLabel('remakes.attribution', r.attribution)));
-      if (r.lab_name) {
-        meta.push(esc(t('remakes.lab_label')) + ': ' + esc(r.lab_name));
-      }
-      meta.push(esc(t('remakes.initiated_label')) + ' ' + esc(formatDateTime(r.initiated_at)));
-      if (r.completed_at) {
-        meta.push(esc(t('remakes.completed_label')) + ' ' + esc(formatDateTime(r.completed_at)));
-      }
-      var creator = r.created_by_first_name
-        ? (r.created_by_first_name + ' ' + (r.created_by_last_name || '')).trim()
-        : (r.created_by_email || '');
-      if (creator) {
-        meta.push(esc(t('remakes.recorded_by', { name: creator })));
-      }
-
-      html += '<div class="remake-item" data-remake-id="' + esc(r.id) + '">' +
-        '<div class="remake-item-header">' +
-          '<span class="remake-item-title">' + esc(t('remakes.number_label', { number: r.remake_number })) + '</span>' +
-          '<span class="remake-status ' + (open ? 'remake-status-open' : 'remake-status-completed') + '">' +
-            esc(open ? t('remakes.open') : t('remakes.completed')) +
-          '</span>' +
-        '</div>' +
-        '<p class="remake-item-meta">' + meta.join(' &middot; ') + '</p>' +
-        (r.notes ? '<p class="remake-item-notes">' + esc(r.notes) + '</p>' : '') +
-        (open ? '<button type="button" class="remake-complete-btn" data-remake-id="' + esc(r.id) + '">' +
-          esc(t('remakes.mark_complete')) + '</button>' : '') +
-        '</div>';
-    });
-
-    list.innerHTML = html;
+    list.innerHTML = remakes.map(function (r) { return remakeItemHtml(r, true); }).join('');
   }
+
+  /* Remake records are cached per case for the page session so the case
+     modal's Remake History strip can reuse data the modal already fetched
+     (and vice versa). Entries are invalidated whenever this module
+     records or completes a remake. */
+  var caseRemakesCache = {};
 
   function loadRemakes() {
     if (!currentCaseId) return;
     fetch('api/case-remakes.php?caseId=' + encodeURIComponent(currentCaseId))
       .then(function (res) { return res.json(); })
       .then(function (data) {
-        renderHistory(data && data.remakes ? data.remakes : []);
+        var remakes = data && data.remakes ? data.remakes : [];
+        caseRemakesCache[currentCaseId] = remakes;
+        renderHistory(remakes);
       })
       .catch(function () {
         renderHistory([]);
@@ -114,11 +126,11 @@
 
   // Keep the open case modal's activity timeline in sync when the remake
   // was recorded for the case currently being viewed/edited.
-  function refreshActivityTimeline() {
+  function refreshActivityTimeline(caseId) {
     var form = document.getElementById('createCaseForm');
     if (typeof window.loadActivityTimeline === 'function'
-        && form && form.dataset && form.dataset.caseId === currentCaseId) {
-      window.loadActivityTimeline(currentCaseId);
+        && form && form.dataset && form.dataset.caseId === caseId) {
+      window.loadActivityTimeline(caseId);
     }
   }
 
@@ -168,13 +180,18 @@
       .then(function (res) { return res.json(); })
       .then(function (data) {
         if (data && data.success) {
-          el('remakeReason').value = '';
-          el('remakeAttribution').value = '';
-          el('remakeNotes').value = '';
-          el('remakeOtherHint').hidden = true;
-          showError('');
-          loadRemakes();
-          refreshActivityTimeline();
+          // Remake is saved - close the form (openModal resets it for the
+          // next use) and refresh surrounding context. The modal stays
+          // open on validation/API/network errors so nothing looks saved
+          // when it wasn't.
+          var recordedCaseId = currentCaseId;
+          delete caseRemakesCache[recordedCaseId];
+          closeModal();
+          refreshActivityTimeline(recordedCaseId);
+          refreshCaseRemakeHistory(recordedCaseId, true);
+          if (typeof window.showToast === 'function') {
+            window.showToast(t('api.remakes.recorded'), 'success');
+          }
         } else {
           showError((data && data.message) || t('remakes.record_error'));
         }
@@ -188,24 +205,32 @@
       });
   }
 
-  function completeRemake(remakeId, btn) {
-    if (!currentCaseId || !remakeId) return;
-    if (btn) btn.disabled = true;
-
-    secureFetch('api/case-remakes.php', {
+  /* Shared completion request - the idempotent 'complete' action is used
+     by both the remake modal's history list and the case modal's Remake
+     History strip, so the POST lives in one place. */
+  function requestCompleteRemake(remakeId, caseId) {
+    return secureFetch('api/case-remakes.php', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         action: 'complete',
-        caseId: currentCaseId,
+        caseId: caseId,
         remakeId: remakeId
       })
-    })
-      .then(function (res) { return res.json(); })
+    }).then(function (res) { return res.json(); });
+  }
+
+  function completeRemake(remakeId, btn) {
+    if (!currentCaseId || !remakeId) return;
+    if (btn) btn.disabled = true;
+
+    requestCompleteRemake(remakeId, currentCaseId)
       .then(function (data) {
         if (data && data.success) {
+          delete caseRemakesCache[currentCaseId];
           loadRemakes();
-          refreshActivityTimeline();
+          refreshActivityTimeline(currentCaseId);
+          refreshCaseRemakeHistory(currentCaseId, true);
         } else {
           showError((data && data.message) || t('remakes.complete_error'));
           if (btn) btn.disabled = false;
@@ -217,12 +242,146 @@
       });
   }
 
+  /* ---- Remake History strip in the case modal (Details tab) ----
+
+     Compact, collapsible strip rendered only when the saved case actually
+     has structured remake records (case_remake_events via
+     api/case-remakes.php - workflow regressions never appear here).
+     Fetching never blocks the rest of the modal: a failure only marks the
+     strip area, and cached results are reused when available. */
+  function hideCaseRemakeHistory() {
+    var strip = document.getElementById('caseRemakeHistory');
+    if (strip) strip.style.display = 'none';
+  }
+
+  function renderCaseRemakeHistory(remakes, archived) {
+    var strip = document.getElementById('caseRemakeHistory');
+    var list = document.getElementById('caseRemakeHistoryList');
+    var count = document.getElementById('caseRemakeHistoryCount');
+    if (!strip || !list) return;
+
+    if (!remakes || remakes.length === 0) {
+      strip.style.display = 'none';
+      return;
+    }
+
+    list.innerHTML = remakes.map(function (r) {
+      return remakeItemHtml(r, !archived, t('remakes.in_progress'));
+    }).join('');
+    if (count) count.textContent = '(' + remakes.length + ')';
+    strip.style.display = '';
+  }
+
+  function renderCaseRemakeHistoryError() {
+    var strip = document.getElementById('caseRemakeHistory');
+    var list = document.getElementById('caseRemakeHistoryList');
+    var count = document.getElementById('caseRemakeHistoryCount');
+    if (!strip || !list) return;
+    list.innerHTML = '<p class="remake-empty">' + esc(t('remakes.history_load_error')) + '</p>';
+    if (count) count.textContent = '';
+    strip.style.display = '';
+  }
+
+  // Refresh the strip after a record/complete, but only when the case
+  // modal is open for that same case. form.dataset.caseArchived (set by
+  // app.js alongside the modal's other case state) keeps Mark complete
+  // suppressed on archived views.
+  function refreshCaseRemakeHistory(caseId, force) {
+    var form = document.getElementById('createCaseForm');
+    if (form && form.dataset && form.dataset.caseId === caseId) {
+      window.loadCaseRemakeHistory(caseId, {
+        force: !!force,
+        archived: form.dataset.caseArchived === '1'
+      });
+    }
+  }
+
+  /* Called by app.js whenever the case modal shows a case (edit, view, or
+     archived view). caseId falsy hides the strip (new-case state).
+     opts.archived suppresses Mark complete on historical entries. */
+  window.loadCaseRemakeHistory = function (caseId, opts) {
+    opts = opts || {};
+    var strip = document.getElementById('caseRemakeHistory');
+    if (!strip) return;
+    if (!caseId) {
+      hideCaseRemakeHistory();
+      return;
+    }
+    strip.dataset.caseId = caseId;
+    if (opts.archived !== undefined) {
+      strip.dataset.archived = opts.archived ? '1' : '0';
+    }
+    var archived = strip.dataset.archived === '1';
+
+    var cached = caseRemakesCache[caseId];
+    if (cached && !opts.force) {
+      renderCaseRemakeHistory(cached, archived);
+      return;
+    }
+
+    if (typeof secureFetch !== 'function') {
+      renderCaseRemakeHistory([], archived);
+      return;
+    }
+    secureFetch('api/case-remakes.php?caseId=' + encodeURIComponent(caseId))
+      .then(function (res) { return res.json(); })
+      .then(function (data) {
+        if (strip.dataset.caseId !== caseId) return; // modal switched cases
+        if (!data || !data.success || !data.remakes) {
+          renderCaseRemakeHistoryError();
+          return;
+        }
+        caseRemakesCache[caseId] = data.remakes;
+        renderCaseRemakeHistory(data.remakes, archived);
+      })
+      .catch(function () {
+        if (strip.dataset.caseId !== caseId) return;
+        renderCaseRemakeHistoryError();
+      });
+  };
+
   document.addEventListener('DOMContentLoaded', function () {
     var close = el('remakeModalClose');
     var cancel = el('remakeCancel');
     var submit = el('remakeSubmit');
     var reason = el('remakeReason');
     var modal = el('remakeModal');
+    var stripToggle = document.getElementById('caseRemakeHistoryToggle');
+    var stripList = document.getElementById('caseRemakeHistoryList');
+
+    if (stripToggle && stripList) {
+      stripToggle.addEventListener('click', function () {
+        var expanded = stripToggle.getAttribute('aria-expanded') === 'true';
+        stripToggle.setAttribute('aria-expanded', expanded ? 'false' : 'true');
+        stripList.hidden = expanded;
+      });
+    }
+
+    // "Mark complete" inside the case-modal strip reuses the shared
+    // idempotent completion request - no duplicated completion logic.
+    if (stripList) {
+      stripList.addEventListener('click', function (e) {
+        var completeBtn = e.target.closest ? e.target.closest('.remake-complete-btn') : null;
+        if (!completeBtn) return;
+        var strip = document.getElementById('caseRemakeHistory');
+        var caseId = strip && strip.dataset ? strip.dataset.caseId : null;
+        if (!caseId) return;
+        completeBtn.disabled = true;
+        requestCompleteRemake(completeBtn.getAttribute('data-remake-id'), caseId)
+          .then(function (data) {
+            if (data && data.success) {
+              delete caseRemakesCache[caseId];
+              refreshCaseRemakeHistory(caseId, true);
+              refreshActivityTimeline(caseId);
+            } else {
+              completeBtn.disabled = false;
+            }
+          })
+          .catch(function () {
+            completeBtn.disabled = false;
+          });
+      });
+    }
 
     if (close) close.addEventListener('click', closeModal);
     if (cancel) cancel.addEventListener('click', closeModal);
