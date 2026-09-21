@@ -1104,56 +1104,23 @@ endif;
             </div>
 
             <!-- Metrics Grid -->
-            <div class="ap-metrics-grid">
+            <div class="ap-metrics-grid ap-metrics-grid--compact">
               <div class="ap-metric-card accent-blue">
-                <div class="ap-metric-header">
-                  <div class="ap-metric-icon">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
-                      <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-                      <line x1="16" y1="2" x2="16" y2="6"></line>
-                      <line x1="8" y1="2" x2="8" y2="6"></line>
-                      <line x1="3" y1="10" x2="21" y2="10"></line>
-                    </svg>
-                  </div>
-                </div>
                 <div class="ap-metric-value" id="apCasesThisMonth">-</div>
                 <div class="ap-metric-label"><?= t('insights.metrics.new_this_month') ?></div>
               </div>
 
               <div class="ap-metric-card accent-green">
-                <div class="ap-metric-header">
-                  <div class="ap-metric-icon">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
-                      <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
-                      <polyline points="22 4 12 14.01 9 11.01"></polyline>
-                    </svg>
-                  </div>
-                </div>
                 <div class="ap-metric-value" id="apActiveCases">-</div>
                 <div class="ap-metric-label"><?= t('insights.metrics.active_cases') ?></div>
               </div>
 
               <div class="ap-metric-card accent-green">
-                <div class="ap-metric-header">
-                  <div class="ap-metric-icon">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
-                      <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
-                      <polyline points="22 4 12 14.01 9 11.01"></polyline>
-                    </svg>
-                  </div>
-                </div>
                 <div class="ap-metric-value" id="apDelivered">-</div>
                 <div class="ap-metric-label"><?= t('insights.metrics.delivered_this_month') ?></div>
               </div>
 
               <div class="ap-metric-card accent-orange">
-                <div class="ap-metric-header">
-                  <div class="ap-metric-icon">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
-                      <path d="M21 8v13H3V8M1 3h22v5H1zM10 12h4"/>
-                    </svg>
-                  </div>
-                </div>
                 <div class="ap-metric-value" id="apArchived">-</div>
                 <div class="ap-metric-label"><?= t('insights.metrics.archived') ?></div>
               </div>
@@ -1210,6 +1177,53 @@ endif;
                   <div class="ap-status-value" id="apLate">0</div>
                   <div class="ap-status-label"><?= t('insights.sections.late_label') ?></div>
                 </div>
+              </div>
+            </div>
+
+            <!-- Smart Recommendations (Control tier - blur for Operate) -->
+            <div class="ap-section ap-control-only" data-control-feature="smart-recommendations" id="aiRecommendationsSection">
+              <div class="ap-section-header">
+                <div class="ap-section-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                  </svg>
+                </div>
+                <div>
+                  <h2 class="ap-section-title"><?= t('insights.recs.title') ?></h2>
+                  <p class="ap-section-subtitle"><?= t('insights.recs.subtitle_practice') ?></p>
+                </div>
+                <div class="ap-section-actions">
+                  <button type="button" class="ap-btn ap-btn-secondary" id="apRefreshAI">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M23 4v6h-6M1 20v-6h6M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/>
+                    </svg>
+                    <?= t('insights.navigation.refresh') ?>
+                  </button>
+                </div>
+              </div>
+
+              <div class="ap-section-content">
+                <ul class="ap-rec-list" id="apRecommendations">
+                  <!-- Loading State -->
+                  <li class="ap-rec ap-rec-empty" id="apAILoading">
+                    <span class="ap-rec-text"><?= t('insights.ai.analyzing') ?></span>
+                  </li>
+                </ul>
+                <button type="button" class="ap-rec-more" id="apRecsMore" style="display: none;"></button>
+              </div>
+
+              <!-- Upgrade overlay (shown when locked) -->
+              <div class="ap-upgrade-overlay">
+                <div class="ap-upgrade-overlay-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                  </svg>
+                </div>
+                <h3><?= t('insights.upgrade.recommendations_title') ?></h3>
+                <p><?= t('insights.upgrade.recommendations_description') ?></p>
+<?php if (isFeatureEnabled('BILLING_ENABLED') && $isCurrentUserPracticeAdmin): ?>
+                <a href="billing.php" class="ap-upgrade-btn"><?= t('insights.upgrade.button') ?></a>
+<?php endif; ?>
               </div>
             </div>
 
@@ -1275,40 +1289,6 @@ endif;
                       <p class="insights-empty-state" id="apTypeChartEmpty" style="display: none; width: 100%;"><?= t('insights.empty.no_data') ?></p>
                     </div>
                   </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- Cases Created by User Section -->
-            <div class="ap-section">
-              <div class="ap-section-header">
-                <div class="ap-section-icon">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                    <circle cx="9" cy="7" r="4"></circle>
-                    <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
-                    <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-                  </svg>
-                </div>
-                <div>
-                  <h2 class="ap-section-title"><?= t('insights.sections.cases_created_by_user') ?></h2>
-                  <p class="ap-section-subtitle"><?= t('insights.sections.cases_created_by_user_subtitle') ?></p>
-                </div>
-                <div class="ap-section-actions">
-                  <select class="ap-select" id="apCreatorPeriod">
-                    <option value="all" selected><?= t('insights.filters.all_time') ?></option>
-                    <option value="active"><?= t('insights.filters.active_cases') ?></option>
-                    <option value="3"><?= t('insights.filters.last_n_months', ['count' => 3]) ?></option>
-                    <option value="6"><?= t('insights.filters.last_n_months', ['count' => 6]) ?></option>
-                    <option value="12"><?= t('insights.filters.last_n_months', ['count' => 12]) ?></option>
-                  </select>
-                </div>
-              </div>
-
-              <div class="ap-chart-scroll">
-                <div class="ap-chart-container" id="apCreatorBreakdown">
-                  <canvas id="apCreatorChart" role="img" aria-label="Cases created by user chart"></canvas>
-                  <p class="insights-empty-state" id="apCreatorBreakdownEmpty" style="display: none; width: 100%;"><?= t('insights.creators.empty') ?></p>
                 </div>
               </div>
             </div>
@@ -1537,51 +1517,37 @@ endif;
               </div>
             </div>
 
-            <!-- AI Recommendations Section (Control tier - blur for Operate) -->
-            <div class="ap-section ap-control-only" data-control-feature="smart-recommendations" id="aiRecommendationsSection">
-              <div class="ap-ai-section">
-                <div class="ap-ai-header">
-                  <div class="ap-ai-title-group">
-                    <span class="ap-ai-badge">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
-                      </svg>
-                      <?= t('insights.ai.badge') ?>
-                    </span>
-                    <div>
-                      <h2 class="ap-ai-title"><?= t('insights.ai.title') ?></h2>
-                      <p class="ap-ai-subtitle"><?= t('insights.ai.subtitle') ?></p>
-                    </div>
-                  </div>
-                  <button type="button" class="ap-btn ap-btn-secondary" id="apRefreshAI">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                      <path d="M23 4v6h-6M1 20v-6h6M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/>
-                    </svg>
-                    <?= t('insights.navigation.refresh') ?>
-                  </button>
+            <!-- Cases Created by User Section -->
+            <div class="ap-section">
+              <div class="ap-section-header">
+                <div class="ap-section-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                    <circle cx="9" cy="7" r="4"></circle>
+                    <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                    <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                  </svg>
                 </div>
-
-                <div class="ap-recommendations-list" id="apRecommendations">
-                  <!-- Loading State -->
-                  <div class="ap-loading" id="apAILoading">
-                    <div class="ap-loading-spinner"></div>
-                    <p class="ap-loading-text"><?= t('insights.ai.analyzing') ?></p>
-                  </div>
+                <div>
+                  <h2 class="ap-section-title"><?= t('insights.sections.cases_created_by_user') ?></h2>
+                  <p class="ap-section-subtitle"><?= t('insights.sections.cases_created_by_user_subtitle') ?></p>
+                </div>
+                <div class="ap-section-actions">
+                  <select class="ap-select" id="apCreatorPeriod">
+                    <option value="all" selected><?= t('insights.filters.all_time') ?></option>
+                    <option value="active"><?= t('insights.filters.active_cases') ?></option>
+                    <option value="3"><?= t('insights.filters.last_n_months', ['count' => 3]) ?></option>
+                    <option value="6"><?= t('insights.filters.last_n_months', ['count' => 6]) ?></option>
+                    <option value="12"><?= t('insights.filters.last_n_months', ['count' => 12]) ?></option>
+                  </select>
                 </div>
               </div>
 
-              <!-- Upgrade overlay (shown when locked) -->
-              <div class="ap-upgrade-overlay">
-                <div class="ap-upgrade-overlay-icon">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
-                  </svg>
+              <div class="ap-chart-scroll">
+                <div class="ap-chart-container" id="apCreatorBreakdown">
+                  <canvas id="apCreatorChart" role="img" aria-label="Cases created by user chart"></canvas>
+                  <p class="insights-empty-state" id="apCreatorBreakdownEmpty" style="display: none; width: 100%;"><?= t('insights.creators.empty') ?></p>
                 </div>
-                <h3><?= t('insights.upgrade.recommendations_title') ?></h3>
-                <p><?= t('insights.upgrade.recommendations_description') ?></p>
-<?php if (isFeatureEnabled('BILLING_ENABLED') && $isCurrentUserPracticeAdmin): ?>
-                <a href="billing.php" class="ap-upgrade-btn"><?= t('insights.upgrade.button') ?></a>
-<?php endif; ?>
               </div>
             </div>
 
@@ -1672,7 +1638,7 @@ endif;
                    metrics layer is unavailable (performance: null) -->
               <div id="liLegacy">
               <!-- Summary Cards -->
-              <div class="ap-metrics-grid li-summary-grid">
+              <div class="ap-metrics-grid li-summary-grid ap-metrics-grid--compact">
                 <div class="ap-metric-card accent-blue">
                   <div class="ap-metric-value" id="liActiveLabs">-</div>
                   <div class="ap-metric-label"><?= t('insights.metrics.active_labs') ?></div>
@@ -1704,6 +1670,13 @@ endif;
               <!-- Lab Performance Table -->
               <div class="ap-section li-inner-section">
                 <div class="ap-section-header">
+                  <div class="ap-section-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+                      <line x1="18" y1="20" x2="18" y2="10"></line>
+                      <line x1="12" y1="20" x2="12" y2="4"></line>
+                      <line x1="6" y1="20" x2="6" y2="14"></line>
+                    </svg>
+                  </div>
                   <div>
                     <h2 class="ap-section-title"><?= t('insights.sections.lab_performance') ?></h2>
                     <p class="ap-section-subtitle"><?= t('insights.sections.lab_performance_subtitle') ?></p>
@@ -1733,6 +1706,12 @@ endif;
               <!-- Trend -->
               <div class="ap-section li-inner-section" id="liTrendSection" style="display: none;">
                 <div class="ap-section-header">
+                  <div class="ap-section-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+                      <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline>
+                      <polyline points="17 6 23 6 23 12"></polyline>
+                    </svg>
+                  </div>
                   <div>
                     <h2 class="ap-section-title"><?= t('insights.sections.cases_assigned_over_time') ?></h2>
                     <p class="ap-section-subtitle"><?= t('insights.sections.cases_assigned_over_time_subtitle') ?></p>
@@ -1749,22 +1728,34 @@ endif;
               <!-- Lab Performance Intelligence layout (drives off the
                    additive `performance` payload from get-lab-insights.php) -->
               <div id="liPerf" style="display: none;">
-                <div class="ap-metrics-grid li-summary-grid" id="liPerfSummary"></div>
-                <div class="li-now-strip" id="liPerfNow"></div>
+                <div class="ap-metrics-grid li-summary-grid ap-metrics-grid--compact" id="liPerfSummary"></div>
+                <div class="ap-now-strip" id="liPerfNow"></div>
 
                 <div class="ap-section li-inner-section" id="liRecs" style="display: none;">
                   <div class="ap-section-header">
+                    <div class="ap-section-icon">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+                        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                      </svg>
+                    </div>
                     <div>
                       <h2 class="ap-section-title"><?= t('insights.recs.title') ?></h2>
                       <p class="ap-section-subtitle"><?= t('insights.recs.subtitle') ?></p>
                     </div>
                   </div>
-                  <ul class="li-rec-list" id="liRecsList"></ul>
-                  <button type="button" class="li-rec-more" id="liRecsMore" style="display: none;"></button>
+                  <ul class="ap-rec-list" id="liRecsList"></ul>
+                  <button type="button" class="ap-rec-more" id="liRecsMore" style="display: none;"></button>
                 </div>
 
                 <div class="ap-section li-inner-section">
                   <div class="ap-section-header">
+                    <div class="ap-section-icon">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="18" y1="20" x2="18" y2="10"></line>
+                        <line x1="12" y1="20" x2="12" y2="4"></line>
+                        <line x1="6" y1="20" x2="6" y2="14"></line>
+                      </svg>
+                    </div>
                     <div>
                       <h2 class="ap-section-title"><?= t('insights.perf.sections.lab_performance') ?></h2>
                       <p class="ap-section-subtitle"><?= t('insights.perf.sections.lab_performance_subtitle') ?></p>
@@ -1791,17 +1782,31 @@ endif;
 
                 <div class="ap-section li-inner-section" id="liLabDetail" style="display: none;">
                   <div class="ap-section-header">
+                    <div class="ap-section-icon">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
+                        <rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect>
+                      </svg>
+                    </div>
                     <div>
                       <h2 class="ap-section-title" id="liLabDetailTitle"><?= t('insights.perf.detail.title') ?></h2>
                       <p class="ap-section-subtitle" id="liLabDetailSubtitle"></p>
                     </div>
-                    <select class="ap-select" id="liLabDetailSelect" aria-label="<?= t('insights.perf.detail.select_label') ?>"></select>
+                    <div class="ap-section-actions">
+                      <select class="ap-select" id="liLabDetailSelect" aria-label="<?= t('insights.perf.detail.select_label') ?>"></select>
+                    </div>
                   </div>
                   <div id="liLabDetailBody"></div>
                 </div>
 
                 <div class="ap-section li-inner-section" id="liRevisionsSection" style="display: none;">
                   <div class="ap-section-header">
+                    <div class="ap-section-icon">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="1 4 1 10 7 10"></polyline>
+                        <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
+                      </svg>
+                    </div>
                     <div>
                       <h2 class="ap-section-title"><?= t('insights.perf.revisions.title') ?></h2>
                       <p class="ap-section-subtitle"><?= t('insights.perf.revisions.subtitle') ?></p>

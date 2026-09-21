@@ -252,10 +252,10 @@
       var openCases = perfTotalOpenCases();
       var openRemakes = p.openRemakes || 0;
       now.innerHTML =
-        '<span class="li-now-caption">' + escapeHtml(t('insights.perf.context.right_now')) + '</span>' +
-        '<span class="li-now-chip"><strong>' + escapeHtml(fmtCount(openCases)) + '</strong> ' +
+        '<span class="ap-now-caption">' + escapeHtml(t('insights.perf.context.right_now')) + '</span>' +
+        '<span class="ap-now-chip"><strong>' + escapeHtml(fmtCount(openCases)) + '</strong> ' +
           escapeHtml(t('insights.perf.summary.open_cases').toLowerCase()) + '</span>' +
-        '<span class="li-now-chip"><strong>' + escapeHtml(fmtCount(openRemakes)) + '</strong> ' +
+        '<span class="ap-now-chip"><strong>' + escapeHtml(fmtCount(openRemakes)) + '</strong> ' +
           escapeHtml(t('insights.perf.summary.open_remakes').toLowerCase()) + '</span>';
     }
   }
@@ -323,7 +323,7 @@
       : (Array.isArray(recs) ? recs : []);
     if (recs.length === 0) {
       section.style.display = 'block';
-      list.innerHTML = '<li class="li-rec li-rec-empty">' +
+      list.innerHTML = '<li class="ap-rec ap-rec-empty">' +
         escapeHtml(t('insights.recs.empty')) + '</li>';
       moreBtn.style.display = 'none';
       return;
@@ -333,12 +333,12 @@
     var html = '';
     recs.forEach(function (rec, idx) {
       var severity = rec.severity || 'info';
-      var hidden = idx >= LI_RECS_PREVIEW ? ' li-rec-collapsed' : '';
-      html += '<li class="li-rec li-rec-' + escapeHtml(severity) + hidden + '">' +
-        '<span class="li-rec-severity">' + escapeHtml(recSeverityLabel(severity)) + '</span>' +
-        '<span class="li-rec-text">' +
-        '<strong class="li-rec-title">' + escapeHtml(recHeading(rec)) + '</strong> ' +
-        '<span class="li-rec-msg">' + escapeHtml(recMessage(rec)) + '</span>' +
+      var hidden = idx >= LI_RECS_PREVIEW ? ' ap-rec-collapsed' : '';
+      html += '<li class="ap-rec ap-rec-' + escapeHtml(severity) + hidden + '">' +
+        '<span class="ap-rec-severity">' + escapeHtml(recSeverityLabel(severity)) + '</span>' +
+        '<span class="ap-rec-text">' +
+        '<strong class="ap-rec-title">' + escapeHtml(recHeading(rec)) + '</strong> ' +
+        '<span class="ap-rec-msg">' + escapeHtml(recMessage(rec)) + '</span>' +
         '</span></li>';
     });
     list.innerHTML = html;
@@ -348,16 +348,16 @@
       moreBtn.style.display = '';
       moreBtn.textContent = I18n.pluralize(extra, 'insights.recs.more');
       moreBtn.onclick = function () {
-        var collapsed = list.querySelectorAll('.li-rec-collapsed');
+        var collapsed = list.querySelectorAll('.ap-rec-collapsed');
         var showing = collapsed.length === 0;
         if (showing) {
           recs.forEach(function (rec, idx) {
             if (idx >= LI_RECS_PREVIEW && list.children[idx]) {
-              list.children[idx].classList.add('li-rec-collapsed');
+              list.children[idx].classList.add('ap-rec-collapsed');
             }
           });
         } else {
-          collapsed.forEach(function (el) { el.classList.remove('li-rec-collapsed'); });
+          collapsed.forEach(function (el) { el.classList.remove('ap-rec-collapsed'); });
         }
         moreBtn.textContent = showing
           ? I18n.pluralize(extra, 'insights.recs.more')
@@ -557,18 +557,23 @@
 
     html += '</div>'; // .li-detail-stats
 
-    // ── Trend ──
+    // ── Trend (contained chart card, aligned with Practice Insights) ──
     html += '<div class="li-detail-block">' +
-      '<div class="li-detail-block-header">' +
-      '<h3 class="li-detail-heading">' + escapeHtml(t('insights.perf.detail.trend')) + '</h3>' +
+      '<div class="ap-chart-card full-width">' +
+      '<div class="ap-chart-header">' +
+      '<div>' +
+      '<h3 class="ap-chart-title">' + escapeHtml(t('insights.perf.detail.trend')) + '</h3>' +
+      '<p class="ap-chart-description">' + escapeHtml(t('insights.perf.detail.trend_subtitle')) + '</p>' +
+      '</div>' +
+      '<div class="ap-chart-controls">' +
       '<select class="ap-select li-trend-select" id="liTrendMetricSelect" aria-label="' +
         escapeHtml(t('insights.perf.detail.trend_metric')) + '">' +
       '<option value="turnaroundDays"' + (liTrendMetric === 'turnaroundDays' ? ' selected' : '') + '>' + escapeHtml(t('insights.perf.detail.trend_turnaround')) + '</option>' +
       '<option value="onTimePct"' + (liTrendMetric === 'onTimePct' ? ' selected' : '') + '>' + escapeHtml(t('insights.perf.detail.trend_on_time')) + '</option>' +
       '<option value="volumeUniqueCases"' + (liTrendMetric === 'volumeUniqueCases' ? ' selected' : '') + '>' + escapeHtml(t('insights.perf.detail.trend_volume')) + '</option>' +
       '<option value="remakeRatePct"' + (liTrendMetric === 'remakeRatePct' ? ' selected' : '') + '>' + escapeHtml(t('insights.perf.detail.trend_remake_rate')) + '</option>' +
-      '</select></div>' +
-      '<div class="ap-chart-card full-width"><div class="ap-chart-container li-trend-chart">' +
+      '</select></div></div>' +
+      '<div class="ap-chart-container li-trend-chart">' +
       '<canvas id="liPerfTrendChart" role="img" aria-label="Lab performance trend"></canvas>' +
       '</div></div></div>';
 

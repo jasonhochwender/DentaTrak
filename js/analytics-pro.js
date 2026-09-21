@@ -640,7 +640,7 @@
     // Clear any previous state and show loading indicator inside the container.
     // The static #apAILoading child is intentionally replaced here — it is inside
     // #apRecommendations and would be wiped by innerHTML anyway.
-    container.innerHTML = '<div class="ap-loading"><div class="ap-loading-spinner"></div><p class="ap-loading-text">' + t('insights.ai.generating') + '</p></div>';
+    container.innerHTML = '<li class="ap-rec ap-rec-empty"><span class="ap-rec-text">' + escapeHtml(t('insights.ai.generating')) + '</span></li>';
 
     fetch('api/ai-recommendations.php', { credentials: 'same-origin' })
       .then(response => response.json())
@@ -672,57 +672,59 @@
       });
   }
 
-  // Display AI Recommendations
+  // Display AI Recommendations as shared compact recommendation rows —
+  // the same visual treatment as Lab Insights Smart Recommendations.
+  // API priority maps onto the shared severity scale.
+  const AP_RECS_PREVIEW = 3;
+  const AP_PRIORITY_TO_SEVERITY = { high: 'attention', medium: 'watch', low: 'info' };
+
   function displayRecommendations(container, recommendations) {
-    recommendations.forEach(rec => {
-      const item = document.createElement('div');
-      item.className = 'ap-recommendation-item';
+    const moreBtn = document.getElementById('apRecsMore');
+    recommendations.forEach((rec, idx) => {
+      const severity = AP_PRIORITY_TO_SEVERITY[rec.priority] || 'info';
+      const item = document.createElement('li');
+      item.className = 'ap-rec ap-rec-' + severity + (idx >= AP_RECS_PREVIEW ? ' ap-rec-collapsed' : '');
 
-      const iconClass = rec.category || 'efficiency';
-      const iconSvg = getCategoryIcon(iconClass);
-
-      item.innerHTML = `
-        <div class="ap-recommendation-icon ${iconClass}">
-          ${iconSvg}
-        </div>
-        <div class="ap-recommendation-content">
-          <div class="ap-recommendation-header">
-            <h4 class="ap-recommendation-title">${escapeHtml(rec.title)}</h4>
-            <span class="ap-recommendation-priority ${rec.priority || 'medium'}">${t('insights.priority.' + (rec.priority || 'medium'))}</span>
-          </div>
-          <p class="ap-recommendation-description">${escapeHtml(rec.description)}</p>
-        </div>
-      `;
+      item.innerHTML =
+        '<span class="ap-rec-severity">' + escapeHtml(t('insights.recs.severity.' + severity)) + '</span>' +
+        '<span class="ap-rec-text">' +
+        '<strong class="ap-rec-title">' + escapeHtml(rec.title) + '</strong> ' +
+        '<span class="ap-rec-msg">' + escapeHtml(rec.description) + '</span>' +
+        '</span>';
 
       container.appendChild(item);
     });
-  }
 
-  // Get category icon SVG
-  function getCategoryIcon(category) {
-    const icons = {
-      efficiency: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>',
-      quality: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>',
-      scheduling: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>',
-      workload: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
-      communication: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>'
-    };
-    return icons[category] || icons.efficiency;
+    const extra = recommendations.length - AP_RECS_PREVIEW;
+    if (moreBtn && extra > 0) {
+      moreBtn.style.display = '';
+      moreBtn.textContent = I18n.pluralize(extra, 'insights.recs.more');
+      moreBtn.onclick = function () {
+        const collapsed = container.querySelectorAll('.ap-rec-collapsed');
+        const showing = collapsed.length === 0;
+        if (showing) {
+          for (let i = AP_RECS_PREVIEW; i < container.children.length; i++) {
+            container.children[i].classList.add('ap-rec-collapsed');
+          }
+        } else {
+          collapsed.forEach(el => el.classList.remove('ap-rec-collapsed'));
+        }
+        moreBtn.textContent = showing
+          ? I18n.pluralize(extra, 'insights.recs.more')
+          : t('insights.recs.less');
+      };
+    } else if (moreBtn) {
+      moreBtn.style.display = 'none';
+      moreBtn.onclick = null;
+    }
   }
 
   // Show AI error
   function showAIError(container, message) {
-    const errorEl = document.createElement('div');
-    errorEl.className = 'ap-empty-state';
-    errorEl.innerHTML = `
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <circle cx="12" cy="12" r="10"/>
-        <line x1="12" y1="8" x2="12" y2="12"/>
-        <line x1="12" y1="16" x2="12.01" y2="16"/>
-      </svg>
-      <p>${escapeHtml(message)}</p>
-    `;
-    container.appendChild(errorEl);
+    const item = document.createElement('li');
+    item.className = 'ap-rec ap-rec-empty';
+    item.innerHTML = '<span class="ap-rec-text">' + escapeHtml(message) + '</span>';
+    container.appendChild(item);
   }
 
   // Escape HTML

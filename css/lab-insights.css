@@ -4,78 +4,10 @@
    wherever possible. Only genuinely new UI (the sortable performance table,
    empty states, and the workload drill-down row) gets new rules here. */
 
-.li-summary-grid {
-  grid-template-columns: repeat(5, 1fr);
-  gap: 12px;
-  margin-bottom: 12px;
-}
-
-/* Compact summary cards: the overview is a headline row, not the main
-   content - keep values readable but reduce the vertical footprint so the
-   Lab Performance table is reachable sooner. */
-.li-summary-grid .ap-metric-card {
-  padding: 14px 16px;
-  border-radius: 12px;
-}
-
-.li-summary-grid .ap-metric-card .ap-metric-value {
-  font-size: 1.5rem;
-  margin-bottom: 4px;
-}
-
-.li-summary-grid .ap-metric-card .ap-metric-label {
-  font-size: 0.68rem;
-  letter-spacing: 0.04em;
-  line-height: 1.3;
-}
-
-.li-summary-grid .ap-metric-card .li-metric-note {
-  font-size: 0.66rem;
-}
-
-@media (max-width: 1200px) {
-  .li-summary-grid {
-    grid-template-columns: repeat(3, 1fr);
-  }
-}
-
-/* "Right now" strip: current-state metrics (open cases / open remakes)
-   visually separated from the selected-period cards so users don't read
-   them as part of the date range. */
-.li-now-strip {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 8px 12px;
-  margin: 0 2px 8px;
-  font-size: 0.78rem;
-  color: var(--text-secondary);
-}
-
-.li-now-caption {
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  font-size: 0.68rem;
-  color: var(--text-secondary);
-}
-
-.li-now-caption::after {
-  content: ':';
-}
-
-.li-now-chip {
-  background: var(--background-subtle);
-  border: 1px solid var(--border-light);
-  border-radius: 999px;
-  padding: 3px 12px;
-  white-space: nowrap;
-}
-
-.li-now-chip strong {
-  color: var(--text-primary);
-  font-weight: 600;
-}
+/* Compact KPI cards, the "Right now" strip, secondary metric text, and
+   Smart Recommendation rows now live in css/analytics-pro.css as shared
+   design-language classes (.ap-metrics-grid--compact, .ap-now-*, .ap-rec-*,
+   .ap-metric-note) used by both Insights tabs. */
 
 .li-inner-section {
   margin-top: 20px;
@@ -253,21 +185,6 @@
 
 /* ── Lab Performance Intelligence layout ─────────────────────────────── */
 
-/* Small contextual line under a metric value (sample size, benchmark,
-   coverage, previous period). Kept muted so it reads as context, not a
-   second value. */
-.li-metric-note {
-  margin-top: 4px;
-  font-size: 0.72rem;
-  font-weight: 400;
-  line-height: 1.35;
-  color: var(--text-secondary);
-}
-
-.li-value-muted {
-  color: var(--text-secondary);
-}
-
 .li-table td .li-metric-note {
   white-space: normal;
   max-width: 180px;
@@ -322,24 +239,11 @@
   border-top: 1px solid var(--border-light);
 }
 
-.li-detail-block-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  flex-wrap: wrap;
-  margin-bottom: 4px;
-}
-
 .li-detail-heading {
   margin: 0 0 10px;
   font-size: 0.95rem;
   font-weight: 600;
   color: var(--text-primary);
-}
-
-.li-detail-block-header .li-detail-heading {
-  margin-bottom: 0;
 }
 
 .li-trend-select {
@@ -433,13 +337,6 @@
   margin-bottom: 4px;
 }
 
-/* Quieter sample-size / context notes - guardrails stay visible but stop
-   competing with the values they annotate. */
-.li-metric-note-quiet {
-  font-size: 0.66rem;
-  opacity: 0.75;
-}
-
 /* Compact trend chart - the shared .ap-chart-container is 280px which is
    oversized for a secondary drill-down chart. */
 .li-trend-chart {
@@ -453,109 +350,14 @@
   }
 }
 
-/* ── Smart Recommendations ─────────────────────────────────────────── */
-
-.li-rec-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.li-rec {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  padding: 10px 14px;
-  border: 1px solid var(--border-light);
-  border-left-width: 3px;
-  border-radius: 8px;
-  background: var(--background-subtle);
-  font-size: 0.85rem;
-  line-height: 1.45;
-}
-
-.li-rec-attention { border-left-color: #d97706; }
-.li-rec-watch { border-left-color: #2563eb; }
-.li-rec-improvement { border-left-color: #059669; }
-.li-rec-info { border-left-color: #94a3b8; }
-
-.li-rec-severity {
-  flex-shrink: 0;
-  font-size: 0.66rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  padding: 2px 8px;
-  border-radius: 999px;
-  margin-top: 1px;
-}
-
-.li-rec-attention .li-rec-severity { color: #92400e; background: #fef3c7; }
-.li-rec-watch .li-rec-severity { color: #1e40af; background: #dbeafe; }
-.li-rec-improvement .li-rec-severity { color: #065f46; background: #d1fae5; }
-.li-rec-info .li-rec-severity { color: #475569; background: #e2e8f0; }
-
-.li-rec-text {
-  min-width: 0;
-}
-
-.li-rec-title {
-  font-weight: 600;
-  color: var(--text-primary);
-}
-
-.li-rec-msg {
-  color: var(--text-secondary);
-}
-
-.li-rec-empty {
-  border-left-color: var(--border-light);
-  color: var(--text-secondary);
-}
-
-.li-rec-collapsed {
-  display: none;
-}
-
-.li-rec-more {
-  margin-top: 10px;
-  background: none;
-  border: none;
-  padding: 0;
-  font-size: 0.8rem;
-  font-weight: 600;
-  color: var(--primary-color);
-  cursor: pointer;
-}
-
-.li-rec-more:hover {
-  text-decoration: underline;
-}
-
 @media (max-width: 720px) {
-  .li-summary-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
   .li-detail-stats {
     grid-template-columns: repeat(2, 1fr);
   }
   .li-bar-row {
     grid-template-columns: minmax(90px, 40%) 1fr 24px;
   }
-  .li-detail-block-header {
-    flex-direction: column;
-    align-items: flex-start;
-  }
   .li-trend-select {
     width: 100%;
-  }
-}
-
-@media (max-width: 400px) {
-  .li-summary-grid {
-    grid-template-columns: 1fr;
   }
 }

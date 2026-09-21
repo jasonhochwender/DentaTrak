@@ -1145,6 +1145,7 @@
                 "avg_days_late": "Avg Days Late",
                 "current_workload": "Current Workload",
                 "trend": "Trend",
+                "trend_subtitle": "Monthly values for the selected metric and scope.",
                 "trend_metric": "Metric",
                 "trend_turnaround": "Avg turnaround",
                 "trend_on_time": "On-time %",
@@ -1200,6 +1201,7 @@
         "recs": {
             "title": "Smart Recommendations",
             "subtitle": "Observations from this period's metrics. Applies to all labs regardless of the lab detail selection.",
+            "subtitle_practice": "AI-assisted observations from your practice analytics. Review each suggestion before acting.",
             "empty": "No notable changes identified for this period.",
             "more_one": "Show 1 more",
             "more_other": "Show {count} more",
