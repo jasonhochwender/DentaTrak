@@ -1855,7 +1855,7 @@ endif;
     </main>
 
       <!-- Create Case Modal -->
-      <div id="createCaseModal" class="modal">
+      <div id="createCaseModal" class="modal" tabindex="-1">
         <div class="modal-content create-case-modal">
           <div class="modal-header">
             <h2 class="modal-title"><?php echo t('cases.create_new_case'); ?></h2>
@@ -1913,14 +1913,13 @@ endif;
               </div>
 <?php endif; ?>
 
-              <!-- Workflow: operational state of the loaded case, first
-                   section under the metadata for Edit Case. Status is
-                   edit-only - new cases enter the first active workflow
-                   stage automatically (derived server-side in
-                   create-case.php). For Create Case the whole section is
-                   hidden and Assigned To is relocated into the dates row
-                   by app.js. No visible section title: the controls read
-                   as part of the form body. -->
+              <!-- Workflow: operational state of the case, first section
+                   under the metadata for both Create and Edit. Status is
+                   display-only (disabled) for new cases - they always
+                   enter the first active workflow stage automatically
+                   (derived server-side in create-case.php). Assigned To
+                   stays editable in both modes. No visible section title:
+                   the controls read as part of the form body. -->
               <div id="workflowSection" class="workflow-section">
                 <div class="modal-form-grid workflow-grid">
                   <div class="form-field" id="statusFieldWrap">

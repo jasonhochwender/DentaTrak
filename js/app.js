@@ -5312,11 +5312,16 @@ document.addEventListener('DOMContentLoaded', function () {
         }, 100);
       }
 
-      // Focus on the first input field
+      // Initial focus: Create Case starts on Patient First Name; Edit Case
+      // focuses the modal container so no editable field jumps the caret.
       setTimeout(function() {
-        var firstInput = createCaseModal.querySelector('input:not([type="hidden"]):not([type="file"]):not([readonly])');
-        if (firstInput) {
-          firstInput.focus();
+        if (isUpdate) {
+          createCaseModal.focus();
+        } else {
+          var firstField = document.getElementById('patientFirstName');
+          if (firstField) {
+            firstField.focus();
+          }
         }
       }, 150); // Small delay to ensure modal is fully displayed
     }
@@ -5839,11 +5844,13 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   }
 
-  /** Show/hide modal chrome that depends on saved-vs-new state: the meta
-      row (Created By) and the Status field. Status is edit-only - new
-      cases always enter the practice's first active workflow stage, which
-      create-case.php derives server-side, so the select is hidden,
-      non-required, and disabled for Create Case. */
+  /** Sync modal chrome that depends on saved-vs-new state: the meta row
+      (Created By) and the Status field. The Workflow section renders in
+      the same position for Create and Edit. Status stays disabled and
+      non-required for Create Case - new cases always enter the practice's
+      first active workflow stage, which create-case.php derives
+      server-side, so the disabled select is display-only and never
+      submitted. */
   function updateCaseModalMeta() {
     var meta = document.getElementById('caseModalMeta');
     var form = document.getElementById('createCaseForm');
@@ -5853,30 +5860,16 @@ document.addEventListener('DOMContentLoaded', function () {
 
     var statusWrap = document.getElementById('statusFieldWrap');
     var status = document.getElementById('status');
-    if (statusWrap && status) {
-      statusWrap.style.display = isUpdate ? '' : 'none';
+    if (status) {
       status.disabled = !isUpdate;
       if (isUpdate) {
         status.setAttribute('required', '');
       } else {
         status.removeAttribute('required');
       }
-    }
-
-    // The Workflow section is Edit Case only. For Create Case it would
-    // hold nothing but Assigned To, so the section is hidden and the
-    // Assigned To field is relocated into the dates row instead.
-    var workflowSection = document.getElementById('workflowSection');
-    var assignedWrap = document.getElementById('assignedToFieldWrap');
-    var workflowGrid = workflowSection ? workflowSection.querySelector('.workflow-grid') : null;
-    var dateRow = form.querySelector('.date-status-row');
-    if (workflowSection) workflowSection.style.display = isUpdate ? '' : 'none';
-    if (assignedWrap && workflowGrid && dateRow) {
-      if (isUpdate && assignedWrap.parentElement !== workflowGrid) {
-        workflowGrid.appendChild(assignedWrap);
-      } else if (!isUpdate && assignedWrap.parentElement !== dateRow) {
-        dateRow.insertBefore(assignedWrap, dateRow.firstChild);
-      }
+      // The required marker only makes sense while Status is editable.
+      var requiredMark = statusWrap ? statusWrap.querySelector('.required') : null;
+      if (requiredMark) requiredMark.style.display = isUpdate ? '' : 'none';
     }
   }
 
