@@ -1919,9 +1919,9 @@ endif;
                    stage automatically (derived server-side in
                    create-case.php). For Create Case the whole section is
                    hidden and Assigned To is relocated into the dates row
-                   by app.js. -->
+                   by app.js. No visible section title: the controls read
+                   as part of the form body. -->
               <div id="workflowSection" class="workflow-section">
-                <h3 class="workflow-title"><?php echo t('cases.workflow'); ?></h3>
                 <div class="modal-form-grid workflow-grid">
                   <div class="form-field" id="statusFieldWrap">
                     <label for="status"><?php echo t('cases.status_label'); ?> <span class="required">*</span></label>

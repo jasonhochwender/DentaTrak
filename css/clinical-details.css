@@ -98,12 +98,6 @@
   border-bottom-color: #334155;
 }
 
-/* Workflow section title shares the clinical-details title treatment. */
-[data-theme="dark"] .workflow-title {
-  color: #e2e8f0;
-  border-bottom-color: #334155;
-}
-
 [data-theme="dark"] .clinical-field label {
   color: #94a3b8;
 }

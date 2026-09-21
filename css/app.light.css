@@ -2572,31 +2572,10 @@ body {
 }
 
 /* Workflow section - operational state (Status / Assigned To / Review
-   Status) grouped directly under the core identifying fields. Title
-   mirrors .clinical-details-title so sections read consistently. */
+   Status) grouped directly under the core identifying fields, rendered
+   without a visible section title. */
 .workflow-section {
   margin: 20px 0 4px;
-}
-
-.workflow-title {
-  font-size: 0.9375rem;
-  font-weight: 600;
-  color: #334155;
-  margin: 0 0 12px 0;
-  padding-bottom: 8px;
-  border-bottom: 1px solid #e2e8f0;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.workflow-title::before {
-  content: '';
-  display: inline-block;
-  width: 4px;
-  height: 16px;
-  background: #0ea5e9;
-  border-radius: 2px;
 }
 
 .workflow-section .review-status-field {

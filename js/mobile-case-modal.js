@@ -197,11 +197,6 @@
     var caseType = getElement('caseType');
     insertSectionHeading(caseType, 'case', tOr('cases.case_details', 'Case Details'), 'beforeparent');
 
-    // Workflow — style the existing section title (Status / Assigned To /
-    // Review Status; Status itself is hidden in Create Case)
-    var workflowTitle = form.querySelector('.workflow-title');
-    styleExistingHeading(workflowTitle, 'workflow');
-
     // Clinical Details — style the existing conditional section title
     var clinicalTitle = form.querySelector('.clinical-details-title');
     styleExistingHeading(clinicalTitle, 'clinical');
