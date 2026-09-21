@@ -224,7 +224,7 @@
     var grid = document.getElementById('liPerfSummary');
     if (!grid) { return; }
     var p = practice || {};
-    var t = p.turnaround || {};
+    var ta = p.turnaround || {};
     var ot = p.onTime || {};
     var rm = p.remakes || {};
 
@@ -237,7 +237,7 @@
     var html = '';
     html += summaryCard(t('insights.perf.summary.lab_cases'), escapeHtml(fmtCount(p.volume && p.volume.uniqueCases)), 'accent-blue');
     html += summaryCard(t('insights.perf.summary.avg_turnaround'),
-      metricValueHtml(t.avgDays, t.n, t.sufficient, fmtDays), 'accent-green');
+      metricValueHtml(ta.avgDays, ta.n, ta.sufficient, fmtDays), 'accent-green');
     html += summaryCard(t('insights.perf.summary.on_time'), onTimeHtml, 'accent-green');
     html += summaryCard(t('insights.perf.summary.remake_rate'),
       metricValueHtml(rm.remakeRatePct, rm.rateDenominator, rm.rateSufficient, fmtPercent), 'accent-orange');
@@ -686,14 +686,25 @@
     liPerfLabs = (liPerf.labs || []).slice();
     if (!liSelectedLab) { liSelectedLab = 'practice'; }
 
+    try {
+      renderPerfSummary(liPerf.practice);
+      renderPerfTable();
+      renderLabDetailSelect();
+      renderPerfDetail();
+      renderRevisionsSection(data.labs || []);
+    } catch (e) {
+      // Any render failure must not break the page - restore the legacy
+      // layout and let the existing renderers handle the payload.
+      if (typeof console !== 'undefined' && console.error) {
+        console.error('[Lab Insights] Performance render failed, using legacy layout:', e);
+      }
+      perfWrap.style.display = 'none';
+      legacy.style.display = 'block';
+      return false;
+    }
+
     legacy.style.display = 'none';
     perfWrap.style.display = 'block';
-
-    renderPerfSummary(liPerf.practice);
-    renderPerfTable();
-    renderLabDetailSelect();
-    renderPerfDetail();
-    renderRevisionsSection(data.labs || []);
     return true;
   }
 
