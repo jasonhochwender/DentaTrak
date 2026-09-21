@@ -66,8 +66,9 @@
     if (field === 'review') return tr(c.reviewStatus === 'reviewed' ? 'cases.reviewed' : 'cases.needs_review');
     if (field === 'status') return c.status ? (typeof getStageLabel === 'function' ? getStageLabel(c.status) : c.status) : '';
     if (field === 'type') {
-      var option = Array.from(document.querySelectorAll('#filterCaseType option')).find(function (o) { return o.value === c.caseType; });
-      return c.caseType ? (option ? option.textContent : c.caseType) : '';
+      return c.caseType
+        ? (typeof getCaseTypeDisplayLabel === 'function' ? getCaseTypeDisplayLabel(c.caseType) : c.caseType)
+        : '';
     }
     return '';
   }
@@ -213,6 +214,14 @@
           var option = document.createElement('option'); option.value = saved; option.textContent = saved; option.title = tr('filters.saved_value'); el.appendChild(option);
         }
         el.value = saved;
+        // Case-type aliases saved before dedup (e.g. 'Mixed') no longer have
+        // their own option - restore via the slug-mate ('Mixed Case Type').
+        if (key === 'filterCaseType' && saved && el.value !== saved && typeof getCaseTypeSlug === 'function') {
+          var savedSlug = getCaseTypeSlug(saved);
+          Array.from(el.options).forEach(function (o) {
+            if (getCaseTypeSlug(o.value) === savedSlug) el.value = o.value;
+          });
+        }
       }
     });
     if (document.body.classList.contains('case-review-tracking-off')) document.getElementById('filterReviewStatus').value = '';

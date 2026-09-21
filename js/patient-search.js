@@ -73,6 +73,17 @@ document.addEventListener('DOMContentLoaded', function() {
   // Apply saved basic filter values (except Assigned To, which depends on async options)
   if (filterCaseType && savedFilters.caseType) {
     filterCaseType.value = savedFilters.caseType;
+    // Legacy alias saved previously (e.g. 'Mixed') has no option - restore
+    // via the slug-mate so the saved filter keeps working.
+    if (filterCaseType.value !== savedFilters.caseType && typeof getCaseTypeSlug === 'function') {
+      var savedSlug = getCaseTypeSlug(savedFilters.caseType);
+      for (var oi = 0; oi < filterCaseType.options.length; oi++) {
+        if (getCaseTypeSlug(filterCaseType.options[oi].value) === savedSlug) {
+          filterCaseType.value = filterCaseType.options[oi].value;
+          break;
+        }
+      }
+    }
   }
   if (filterDueFromInput && savedFilters.dueFrom) {
     filterDueFromInput.value = savedFilters.dueFrom;
@@ -308,10 +319,12 @@ document.addEventListener('DOMContentLoaded', function() {
         matchesSearch = matchesPatient || matchesDentist;
       }
 
-      // Case Type filter
+      // Case Type filter - match on the normalized slug so legacy aliases
+      // ('Mixed' vs 'Mixed Case Type') resolve through the single option.
       let matchesCaseType = true;
       if (selectedCaseType) {
-        matchesCaseType = cardData.caseType === selectedCaseType;
+        const slug = typeof getCaseTypeSlug === 'function' ? getCaseTypeSlug : function (v) { return v; };
+        matchesCaseType = slug(cardData.caseType) === slug(selectedCaseType);
       }
 
       // Assigned To filter: prefer cardData.assignedTo, fall back to window.caseAssignments

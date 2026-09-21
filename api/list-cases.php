@@ -18,6 +18,7 @@ require_once __DIR__ . '/google-drive.php';
 require_once __DIR__ . '/case-activity-log.php';
 require_once __DIR__ . '/encryption.php';
 require_once __DIR__ . '/at-risk-calculator.php';
+require_once __DIR__ . '/case-types.php';
 
 // Ensure appointment-risk preference columns exist before querying user_preferences
 if (isset($pdo)) {
@@ -216,8 +217,12 @@ try {
 
     $filterCaseType = $_GET['case_type'] ?? '';
     if ($filterCaseType !== '') {
-        $cases = array_filter($cases, function($case) use ($filterCaseType) {
-            return ($case['caseType'] ?? '') === $filterCaseType;
+        // Match on the normalized slug, not the raw string: legacy aliases
+        // ('Mixed' vs 'Mixed Case Type') share a slug and must filter
+        // through the single selectable option.
+        $filterCaseTypeSlug = normalizeCaseType($filterCaseType);
+        $cases = array_filter($cases, function($case) use ($filterCaseTypeSlug) {
+            return normalizeCaseType((string)($case['caseType'] ?? '')) === $filterCaseTypeSlug;
         });
         $cases = array_values($cases);
     }

@@ -5348,7 +5348,22 @@ document.addEventListener('DOMContentLoaded', function () {
     if (patientDOB) patientDOB.value = caseData.patientDOB || caseData.patient_dob || '';
     if (patientGender) patientGender.value = caseData.patientGender || caseData.patient_gender || '';
     if (dentistName) dentistName.value = caseData.dentistName || caseData.dentist_name || '';
-    if (caseType) caseType.value = caseData.caseType || caseData.case_type || '';
+    if (caseType) {
+      var storedCaseType = caseData.caseType || caseData.case_type || '';
+      caseType.value = storedCaseType;
+      // Legacy aliases may not have their own option (the select offers one
+      // representative per slug group). Fall back to the slug-mate so a
+      // stored 'Mixed' still displays "Mixed Case Type" as selected.
+      if (storedCaseType && caseType.value !== storedCaseType && typeof getCaseTypeSlug === 'function') {
+        var storedSlug = getCaseTypeSlug(storedCaseType);
+        for (var oi = 0; oi < caseType.options.length; oi++) {
+          if (getCaseTypeSlug(caseType.options[oi].value) === storedSlug) {
+            caseType.value = caseType.options[oi].value;
+            break;
+          }
+        }
+      }
+    }
     if (toothShade) toothShade.value = caseData.toothShade || caseData.tooth_shade || '';
     if (material) material.value = caseData.material || '';
     if (dueDate) dueDate.value = caseData.dueDate || caseData.due_date || '';
@@ -11179,9 +11194,13 @@ document.addEventListener('DOMContentLoaded', function () {
         }
       }
 
-      // Case type filter
-      if (caseType && case_.case_type !== caseType) {
-        return false;
+      // Case type filter - slug-aware so legacy aliases ('Mixed' vs
+      // 'Mixed Case Type') resolve through the single selectable option.
+      if (caseType) {
+        const slug = typeof getCaseTypeSlug === 'function' ? getCaseTypeSlug : function (v) { return v; };
+        if (slug(case_.case_type) !== slug(caseType)) {
+          return false;
+        }
       }
 
       return true;

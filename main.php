@@ -1853,7 +1853,7 @@ endif;
                   <label for="caseType"><?php echo t('cases.case_type'); ?> <span class="required">*</span></label>
                   <select id="caseType" name="caseType" required>
                     <option value=""><?php echo t('select.select_case_type'); ?></option>
-                    <?php echo renderCaseTypeOptions(getAllKnownCaseTypes()); ?>
+                    <?php echo renderCaseTypeOptions(getSelectableCaseTypes()); ?>
                   </select>
                 </div>
 

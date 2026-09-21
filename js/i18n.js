@@ -184,6 +184,16 @@
   };
 
   /**
+   * Return the normalized slug for a stored/legacy case type value.
+   * Aliases ('Mixed', 'Mixed Case Type') share a slug; unmapped values
+   * fall back to the raw string.
+   */
+  global.getCaseTypeSlug = function (stored) {
+    var map = global.__caseTypeMap || {};
+    return map[stored] || stored;
+  };
+
+  /**
    * Return a translated display label for a stored/legacy case type value.
    * Uses window.__caseTypeMap (stored -> slug) and falls back to the raw value.
    */

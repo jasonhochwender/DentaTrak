@@ -75,12 +75,44 @@ function isCanonicalCaseType(string $type): bool {
 }
 
 /**
- * Case types offered by case_type FILTERS. Includes canonical values plus
- * legacy values that may still exist in stored data, so a stored 'Implant'
- * row remains reachable by an exact-match filter.
+ * Case types SELECTABLE in dropdowns: canonical values plus one
+ * representative per legacy alias group, deduplicated by the
+ * normalizeCaseType() slug. 'Mixed' and 'Mixed Case Type' share the
+ * 'mixed' slug (same display label), so offering both renders a visible
+ * duplicate. The deduplicated representative is preferred explicitly per
+ * slug; all stored alias values remain accepted by getAllKnownCaseTypes()
+ * and resolve to the same label and filter slug.
+ */
+function getSelectableCaseTypes(): array {
+    $preferred = [
+        'mixed' => 'Mixed Case Type',
+    ];
+    $selectable = getCanonicalCaseTypes();
+    $seenSlugs = array_map('normalizeCaseType', $selectable);
+    $legacyBySlug = [];
+    foreach (getLegacyCaseTypes() as $type) {
+        $legacyBySlug[normalizeCaseType($type)][] = $type;
+    }
+    foreach ($legacyBySlug as $slug => $values) {
+        if (in_array($slug, $seenSlugs, true)) {
+            continue;
+        }
+        $seenSlugs[] = $slug;
+        $selectable[] = in_array($preferred[$slug] ?? '', $values, true)
+            ? $preferred[$slug]
+            : end($values);
+    }
+    return $selectable;
+}
+
+/**
+ * Case types offered by case_type FILTERS. Matches the selectable list so
+ * each displayed label appears exactly once; filter matching is slug-aware
+ * (see list-cases.php / patient-search.js / archived filters), so stored
+ * alias values like 'Mixed' remain reachable through their shared slug.
  */
 function getFilterableCaseTypes(): array {
-    return getAllKnownCaseTypes();
+    return getSelectableCaseTypes();
 }
 
 /**
