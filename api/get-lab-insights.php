@@ -70,6 +70,7 @@ require_once __DIR__ . '/billing-bypass.php';
 require_once __DIR__ . '/subscription-access.php';
 require_once __DIR__ . '/lab-assignment-history.php';
 require_once __DIR__ . '/lab-performance-metrics.php';
+require_once __DIR__ . '/lab-recommendations.php';
 require_once __DIR__ . '/workflow-stages.php';
 require_once __DIR__ . '/encryption.php';
 
@@ -695,8 +696,12 @@ try {
     // the current Lab Insights UI keeps working. Failures here never break
     // the existing payload.
     $performance = null;
+    $recommendations = null;
     try {
         $performance = computeLabPerformanceMetrics($pdo, $practiceId, $rangeStart, $now);
+        if (is_array($performance)) {
+            $recommendations = buildLabRecommendations($performance);
+        }
     } catch (Throwable $perfEx) {
         error_log('[get-lab-insights] performance metrics failed: ' . $perfEx->getMessage());
     }
@@ -723,6 +728,7 @@ try {
         'currentWorkload' => $currentWorkload,
         'trend' => $trend,
         'performance' => $performance,
+        'recommendations' => $recommendations,
     ]);
 
 } catch (Throwable $e) {

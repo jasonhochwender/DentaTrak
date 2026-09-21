@@ -181,7 +181,7 @@
     }
     var note = '';
     if (!sufficient) {
-      note = '<div class="li-metric-note">' +
+      note = '<div class="li-metric-note li-metric-note-quiet">' +
         escapeHtml(I18n.pluralize(n, 'insights.perf.context.based_on_cases')) + '</div>';
     }
     return '<span class="' + (sufficient ? '' : 'li-value-muted') + '">' +
@@ -243,13 +243,21 @@
       metricValueHtml(rm.remakeRatePct, rm.rateDenominator, rm.rateSufficient, fmtPercent), 'accent-orange');
     html += summaryCard(t('insights.perf.summary.lab_remake_rate'),
       metricValueHtml(rm.labAttributedRatePct, rm.rateDenominator, rm.rateSufficient, fmtPercent), 'accent-orange');
-    html += summaryCard(t('insights.perf.summary.open_cases'),
-      escapeHtml(fmtCount(perfTotalOpenCases())) +
-      '<div class="li-metric-note">' + escapeHtml(t('insights.perf.context.workload_now')) + '</div>', 'accent-blue');
-    html += summaryCard(t('insights.perf.summary.open_remakes'),
-      escapeHtml(fmtCount(p.openRemakes)) +
-      '<div class="li-metric-note">' + escapeHtml(t('insights.perf.context.workload_now')) + '</div>', 'accent-blue');
     grid.innerHTML = html;
+
+    // Current-state metrics get their own strip so the "now" semantics are
+    // visually separated from the selected-period cards.
+    var now = document.getElementById('liPerfNow');
+    if (now) {
+      var openCases = perfTotalOpenCases();
+      var openRemakes = p.openRemakes || 0;
+      now.innerHTML =
+        '<span class="li-now-caption">' + escapeHtml(t('insights.perf.context.right_now')) + '</span>' +
+        '<span class="li-now-chip"><strong>' + escapeHtml(fmtCount(openCases)) + '</strong> ' +
+          escapeHtml(t('insights.perf.summary.open_cases').toLowerCase()) + '</span>' +
+        '<span class="li-now-chip"><strong>' + escapeHtml(fmtCount(openRemakes)) + '</strong> ' +
+          escapeHtml(t('insights.perf.summary.open_remakes').toLowerCase()) + '</span>';
+    }
   }
 
   function perfTotalOpenCases() {
@@ -258,6 +266,107 @@
       total += (l.workload && l.workload.openCases) || 0;
     });
     return total;
+  }
+
+  // ======================================================================
+  // Smart Recommendations
+  // ======================================================================
+
+  var LI_RECS_PREVIEW = 3;
+  var LI_RECS_PLURAL_TYPES = {
+    multi_remake: true,
+    late_workload_lab: true,
+    late_workload_practice: true
+  };
+
+  /** Map a structured recommendation object to localized display text. */
+  function recMessage(rec) {
+    var params = rec.params || {};
+    // Resolve code params to display labels (reason/attribution catalogs).
+    if (params.reasonCode) {
+      params.reasonLabel = t('remakes.reasons.' + params.reasonCode) || params.reasonCode;
+    }
+    if (params.attrCode) {
+      params.attrLabel = t('remakes.attribution.' + params.attrCode) || params.attrCode;
+    }
+    if (params.type === 'Unknown') {
+      params.type = t('insights.perf.detail.unknown_type');
+    }
+    var key = 'insights.recs.msg.' + rec.type;
+    if (LI_RECS_PLURAL_TYPES[rec.type]) {
+      return I18n.pluralize(params.count || 1, key, params);
+    }
+    return t(key, params);
+  }
+
+  function recHeading(rec) {
+    return t('insights.recs.heading.' + rec.type) || rec.title || '';
+  }
+
+  function recSeverityLabel(severity) {
+    var known = { attention: 1, watch: 1, improvement: 1, info: 1 };
+    return known[severity] ? t('insights.recs.severity.' + severity) : '';
+  }
+
+  /**
+   * Render structured recommendation objects produced by
+   * api/lab-recommendations.php. The frontend performs no metric math; it
+   * only maps each item's params through i18n templates.
+   */
+  function renderRecommendations(recs) {
+    var section = document.getElementById('liRecs');
+    var list = document.getElementById('liRecsList');
+    var moreBtn = document.getElementById('liRecsMore');
+    if (!section || !list || !moreBtn) { return; }
+
+    recs = (recs && Array.isArray(recs.items)) ? recs.items
+      : (Array.isArray(recs) ? recs : []);
+    if (recs.length === 0) {
+      section.style.display = 'block';
+      list.innerHTML = '<li class="li-rec li-rec-empty">' +
+        escapeHtml(t('insights.recs.empty')) + '</li>';
+      moreBtn.style.display = 'none';
+      return;
+    }
+
+    section.style.display = 'block';
+    var html = '';
+    recs.forEach(function (rec, idx) {
+      var severity = rec.severity || 'info';
+      var hidden = idx >= LI_RECS_PREVIEW ? ' li-rec-collapsed' : '';
+      html += '<li class="li-rec li-rec-' + escapeHtml(severity) + hidden + '">' +
+        '<span class="li-rec-severity">' + escapeHtml(recSeverityLabel(severity)) + '</span>' +
+        '<span class="li-rec-text">' +
+        '<strong class="li-rec-title">' + escapeHtml(recHeading(rec)) + '</strong> ' +
+        '<span class="li-rec-msg">' + escapeHtml(recMessage(rec)) + '</span>' +
+        '</span></li>';
+    });
+    list.innerHTML = html;
+
+    var extra = recs.length - LI_RECS_PREVIEW;
+    if (extra > 0) {
+      moreBtn.style.display = '';
+      moreBtn.textContent = I18n.pluralize(extra, 'insights.recs.more');
+      moreBtn.onclick = function () {
+        var collapsed = list.querySelectorAll('.li-rec-collapsed');
+        var showing = collapsed.length === 0;
+        if (showing) {
+          recs.forEach(function (rec, idx) {
+            if (idx >= LI_RECS_PREVIEW && list.children[idx]) {
+              list.children[idx].classList.add('li-rec-collapsed');
+            }
+          });
+        } else {
+          collapsed.forEach(function (el) { el.classList.remove('li-rec-collapsed'); });
+        }
+        moreBtn.textContent = showing
+          ? I18n.pluralize(extra, 'insights.recs.more')
+          : t('insights.recs.less');
+      };
+    } else {
+      moreBtn.style.display = 'none';
+      moreBtn.onclick = null;
+    }
   }
 
   function renderPerfTable() {
@@ -298,8 +407,11 @@
       var labAttrHtml = metricValueHtml(rm.labAttributedRatePct, rm.rateDenominator, rm.rateSufficient, fmtPercent);
 
       var wl = lab.workload;
-      var workloadHtml = escapeHtml(fmtCount(wl.openCases)) +
-        ' <span class="li-muted">(' + escapeHtml(t('insights.perf.context.workload_now')) + ')</span>';
+      var workloadHtml = escapeHtml(I18n.pluralize(wl.openCases || 0, 'insights.perf.context.cases_count'));
+      if ((wl.late || 0) > 0) {
+        workloadHtml += '<div class="li-metric-note li-metric-note-quiet">' +
+          escapeHtml(I18n.pluralize(wl.late, 'insights.perf.context.late_count')) + '</div>';
+      }
 
       row.innerHTML =
         '<td>' + nameCell + '</td>' +
@@ -369,8 +481,9 @@
     section.style.display = 'block';
 
     var isPractice = (liSelectedLab === 'practice' || !liSelectedLab);
-    var scopeName = isPractice ? t('insights.perf.detail.practice_option') : d.name;
-    title.textContent = scopeName;
+    // Static section title; the lab selector already names the scope, so
+    // repeating it here just duplicates text.
+    title.textContent = t('insights.perf.detail.title');
 
     var t8n = d.turnaround || {};
     var ot = d.onTime || {};
@@ -434,10 +547,10 @@
     html += detailStatCard(t('insights.perf.detail.avg_days_late'),
       metricValueHtml(dl.avgDays, dl.n, dl.n >= (liPerf.meta ? liPerf.meta.minSampleSize : 5), fmtDays));
 
-    var wlHtml = escapeHtml(fmtCount(wl.openCases));
-    if (wl.late > 0) {
-      wlHtml += ' <span class="li-days-late">' + escapeHtml(fmtCount(wl.late)) +
-        ' ' + escapeHtml(t('insights.perf.detail.late_suffix')) + '</span>';
+    var wlHtml = escapeHtml(I18n.pluralize(wl.openCases || 0, 'insights.perf.context.cases_count'));
+    if ((wl.late || 0) > 0) {
+      wlHtml += '<div class="li-metric-note li-metric-note-quiet">' +
+        escapeHtml(I18n.pluralize(wl.late, 'insights.perf.context.late_count')) + '</div>';
     }
     wlHtml += '<div class="li-metric-note">' + escapeHtml(t('insights.perf.context.workload_now')) + '</div>';
     html += detailStatCard(t('insights.perf.detail.current_workload'), wlHtml);
@@ -455,7 +568,7 @@
       '<option value="volumeUniqueCases"' + (liTrendMetric === 'volumeUniqueCases' ? ' selected' : '') + '>' + escapeHtml(t('insights.perf.detail.trend_volume')) + '</option>' +
       '<option value="remakeRatePct"' + (liTrendMetric === 'remakeRatePct' ? ' selected' : '') + '>' + escapeHtml(t('insights.perf.detail.trend_remake_rate')) + '</option>' +
       '</select></div>' +
-      '<div class="ap-chart-card full-width"><div class="ap-chart-container">' +
+      '<div class="ap-chart-card full-width"><div class="ap-chart-container li-trend-chart">' +
       '<canvas id="liPerfTrendChart" role="img" aria-label="Lab performance trend"></canvas>' +
       '</div></div></div>';
 
@@ -587,6 +700,19 @@
     if (!series || months.length === 0) { return; }
 
     var values = months.map(function (m) { return series[liTrendMetric][m]; });
+
+    // Trim leading months that have no data for the selected metric so short
+    // histories don't render a long run of empty axis before the first real
+    // point. Trailing months stay: they represent the rest of the selected range.
+    var firstDataIdx = 0;
+    while (firstDataIdx < values.length && (values[firstDataIdx] === null || values[firstDataIdx] === undefined)) {
+      firstDataIdx++;
+    }
+    if (firstDataIdx > 0 && firstDataIdx < values.length) {
+      months = months.slice(firstDataIdx);
+      values = values.slice(firstDataIdx);
+    }
+
     var isBar = liTrendMetric === 'volumeUniqueCases';
     var isPct = liTrendMetric === 'onTimePct' || liTrendMetric === 'remakeRatePct';
     var color = '#1e40af';
@@ -688,6 +814,16 @@
 
     try {
       renderPerfSummary(liPerf.practice);
+      try {
+        renderRecommendations(data.recommendations);
+      } catch (recErr) {
+        // A bad recommendation item must not take down the perf layout.
+        if (typeof console !== 'undefined' && console.error) {
+          console.error('[Lab Insights] Recommendations render failed:', recErr);
+        }
+        var recSection = document.getElementById('liRecs');
+        if (recSection) { recSection.style.display = 'none'; }
+      }
       renderPerfTable();
       renderLabDetailSelect();
       renderPerfDetail();

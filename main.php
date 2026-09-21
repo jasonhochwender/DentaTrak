@@ -1750,6 +1750,18 @@ endif;
                    additive `performance` payload from get-lab-insights.php) -->
               <div id="liPerf" style="display: none;">
                 <div class="ap-metrics-grid li-summary-grid" id="liPerfSummary"></div>
+                <div class="li-now-strip" id="liPerfNow"></div>
+
+                <div class="ap-section li-inner-section" id="liRecs" style="display: none;">
+                  <div class="ap-section-header">
+                    <div>
+                      <h2 class="ap-section-title"><?= t('insights.recs.title') ?></h2>
+                      <p class="ap-section-subtitle"><?= t('insights.recs.subtitle') ?></p>
+                    </div>
+                  </div>
+                  <ul class="li-rec-list" id="liRecsList"></ul>
+                  <button type="button" class="li-rec-more" id="liRecsMore" style="display: none;"></button>
+                </div>
 
                 <div class="ap-section li-inner-section">
                   <div class="ap-section-header">
