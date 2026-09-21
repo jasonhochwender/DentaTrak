@@ -254,4 +254,94 @@
   });
 
   window.openCaseRemakesModal = openModal;
+
+  /* Explicit Record Remake button in the case modal footer (active cases
+     only - app.js shows/hides it from populateCreateCaseForm and
+     editCaseHandler). Reuses the same modal and endpoint as the
+     actions-menu item. */
+  var footerRemakeBtn = document.getElementById('recordRemakeBtn');
+  if (footerRemakeBtn) {
+    footerRemakeBtn.addEventListener('click', function () {
+      var form = document.getElementById('createCaseForm');
+      var caseId = form && form.dataset ? form.dataset.caseId : null;
+      if (caseId) {
+        openModal(caseId);
+      }
+    });
+  }
+})();
+
+/* Regression -> remake prompt.
+
+   After a successful backward workflow move, the app calls
+   window.promptRemakeForRegression(caseId). The move itself - and its
+   case_regression activity + revision increment - is already saved before
+   this prompt opens, so it is a classification aid only, never a gate.
+   "Yes" opens the structured remake form above (which shows existing
+   remake history); "No"/dismiss simply closes. A remake is created only
+   through the explicit form submit - nothing is recorded here. */
+(function () {
+  var prompt = document.getElementById('regressionRemakePrompt');
+  var openNote = document.getElementById('regressionRemakePromptOpen');
+  var yesBtn = document.getElementById('regressionRemakeYes');
+  var noBtn = document.getElementById('regressionRemakeNo');
+  var closeBtn = document.getElementById('regressionRemakePromptClose');
+  if (!prompt || !yesBtn || !noBtn || !closeBtn) return;
+
+  var promptCaseId = null;
+  var previousFocus = null;
+
+  function closePrompt() {
+    prompt.style.display = 'none';
+    promptCaseId = null;
+    if (previousFocus && document.contains(previousFocus)) {
+      try { previousFocus.focus(); } catch (e) {}
+    }
+    previousFocus = null;
+  }
+
+  yesBtn.addEventListener('click', function () {
+    var id = promptCaseId;
+    closePrompt();
+    if (id && typeof window.openCaseRemakesModal === 'function') {
+      window.openCaseRemakesModal(id);
+    }
+  });
+  noBtn.addEventListener('click', closePrompt);
+  closeBtn.addEventListener('click', closePrompt);
+  prompt.addEventListener('mousedown', function (e) {
+    if (e.target === prompt) closePrompt();
+  });
+
+  // Escape takes priority over other modals' handlers while this prompt is
+  // on top (capture phase, same convention as the confirm modal in app.js).
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && prompt.style.display === 'block') {
+      e.preventDefault();
+      e.stopPropagation();
+      closePrompt();
+    }
+  }, true);
+
+  window.promptRemakeForRegression = function (caseId) {
+    if (!caseId || prompt.style.display === 'block') return;
+    promptCaseId = caseId;
+    previousFocus = document.activeElement;
+    if (openNote) openNote.hidden = true;
+    prompt.style.display = 'block';
+    try { yesBtn.focus(); } catch (e) {}
+
+    // Surface an existing open remake without blocking the prompt. On any
+    // failure the prompt still works with the default copy.
+    if (typeof secureFetch === 'function' && openNote) {
+      secureFetch('api/case-remakes.php?caseId=' + encodeURIComponent(caseId))
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+          if (promptCaseId !== caseId || !data || !data.success) return;
+          var hasOpen = (data.remakes || []).some(function (r) { return !r.completed_at; });
+          if (hasOpen) openNote.hidden = false;
+        })
+        .catch(function () {});
+    }
+  };
 })();

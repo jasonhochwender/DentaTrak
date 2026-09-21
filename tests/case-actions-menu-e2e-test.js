@@ -193,7 +193,7 @@ async function closeCaseModal(page) {
 
     await openCardMenu(page, caseA);
     const snap = await menuSnapshot(page);
-    check('menu opens with Edit/Print/divider/Archive order', snap.open && snap.items.join(',') === 'edit,print,|,archive', snap.items && snap.items.join(','));
+    check('menu opens with Edit/Print/Remake/divider/Archive order', snap.open && snap.items.join(',') === 'edit,print,remake,|,archive', snap.items && snap.items.join(','));
     check('menu is position:fixed appended to body (no container clipping)', snap.position === 'fixed' && snap.parent === 'body', snap.position + '/' + snap.parent);
     check('focus moved into the menu on open', snap.focused === 'edit', snap.focused);
     check('menu inside viewport', snap.rect && snap.rect.left >= 0 && snap.rect.right <= snap.vw + 1 && snap.rect.top >= 0 && snap.rect.bottom <= snap.vh + 1, JSON.stringify(snap.rect));
@@ -212,10 +212,13 @@ async function closeCaseModal(page) {
     check('ArrowDown moves focus to Print', afterDown.focused === 'print', afterDown.focused);
     await page.keyboard.press('ArrowDown');
     const afterDown2 = await menuSnapshot(page);
-    check('second ArrowDown wraps to Archive', afterDown2.focused === 'archive', afterDown2.focused);
+    check('second ArrowDown moves to Remake', afterDown2.focused === 'remake', afterDown2.focused);
+    await page.keyboard.press('ArrowDown');
+    const afterDown3 = await menuSnapshot(page);
+    check('third ArrowDown moves to Archive', afterDown3.focused === 'archive', afterDown3.focused);
     await page.keyboard.press('ArrowUp');
     const afterUp = await menuSnapshot(page);
-    check('ArrowUp moves back to Print', afterUp.focused === 'print', afterUp.focused);
+    check('ArrowUp moves back to Remake', afterUp.focused === 'remake', afterUp.focused);
     await page.keyboard.press('Escape');
     const afterEsc = await page.evaluate((id) => ({
       open: window.caseActionsMenu.isOpen(),
@@ -282,6 +285,145 @@ async function closeCaseModal(page) {
     const printed = await page.evaluate(() => window.__printedWith);
     check('board Print called printCase with the card payload', String(printed) === String(caseA), String(printed));
     check('menu closed after Print selection', !(await page.evaluate(() => window.caseActionsMenu.isOpen())));
+
+    /* ---------- 8b. Record Remake (board) opens the structured remake modal ---------- */
+    await openCardMenu(page, caseA);
+    await page.click('#caseActionsMenu [data-action="remake"]');
+    await page.waitForSelector('#remakeModal', { state: 'visible', timeout: 10000 });
+    const remakeModalInfo = await page.evaluate(() => ({
+      open: getComputedStyle(document.getElementById('remakeModal')).display !== 'none',
+      reasonSelect: !!document.getElementById('remakeReason'),
+      attributionSelect: !!document.getElementById('remakeAttribution'),
+      notesField: !!document.getElementById('remakeNotes'),
+      submitBtn: !!document.getElementById('remakeSubmit'),
+    }));
+    check('board Record Remake opens structured remake modal', remakeModalInfo.open, JSON.stringify(remakeModalInfo));
+    check('remake modal has reason/attribution/notes/submit', remakeModalInfo.reasonSelect && remakeModalInfo.attributionSelect && remakeModalInfo.notesField && remakeModalInfo.submitBtn, JSON.stringify(remakeModalInfo));
+    check('menu closed after Remake selection', !(await page.evaluate(() => window.caseActionsMenu.isOpen())));
+    await page.click('#remakeCancel');
+    await page.waitForTimeout(200);
+
+    /* ---------- 8c. Regression -> remake prompt (post-save classifier) ---------- */
+    await page.evaluate((id) => window.promptRemakeForRegression(id), caseA);
+    await page.waitForSelector('#regressionRemakePrompt', { state: 'visible', timeout: 10000 });
+    const promptInfo = await page.evaluate(() => ({
+      title: document.getElementById('regressionRemakePromptTitle').textContent.trim(),
+      focused: document.activeElement && document.activeElement.id,
+      yesText: document.getElementById('regressionRemakeYes').textContent.trim(),
+      noText: document.getElementById('regressionRemakeNo').textContent.trim(),
+    }));
+    check('regression prompt opens with focused Yes button', promptInfo.focused === 'regressionRemakeYes', JSON.stringify(promptInfo));
+    check('prompt has Yes/No classification buttons', /remake/i.test(promptInfo.yesText) && /workflow/i.test(promptInfo.noText), JSON.stringify(promptInfo));
+
+    // "No, just a workflow change" closes without opening the remake form.
+    await page.click('#regressionRemakeNo');
+    await page.waitForTimeout(250);
+    const afterNo = await page.evaluate(() => ({
+      prompt: getComputedStyle(document.getElementById('regressionRemakePrompt')).display,
+      remake: getComputedStyle(document.getElementById('remakeModal')).display,
+    }));
+    check('choosing No closes prompt, opens no remake form', afterNo.prompt === 'none' && afterNo.remake === 'none', JSON.stringify(afterNo));
+
+    // "Yes" transitions into the structured remake modal for the same case.
+    await page.evaluate((id) => window.promptRemakeForRegression(id), caseA);
+    await page.waitForSelector('#regressionRemakePrompt', { state: 'visible', timeout: 10000 });
+    await page.click('#regressionRemakeYes');
+    await page.waitForSelector('#remakeModal', { state: 'visible', timeout: 10000 });
+    const afterYes = await page.evaluate(() => ({
+      prompt: getComputedStyle(document.getElementById('regressionRemakePrompt')).display,
+      remake: getComputedStyle(document.getElementById('remakeModal')).display,
+    }));
+    check('choosing Yes closes prompt and opens remake form', afterYes.prompt === 'none' && afterYes.remake !== 'none', JSON.stringify(afterYes));
+    await page.click('#remakeCancel');
+    await page.waitForTimeout(200);
+
+    // Escape dismisses without side effects.
+    await page.evaluate((id) => window.promptRemakeForRegression(id), caseA);
+    await page.waitForSelector('#regressionRemakePrompt', { state: 'visible', timeout: 10000 });
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(250);
+    const afterEscPrompt = await page.evaluate(() => ({
+      prompt: getComputedStyle(document.getElementById('regressionRemakePrompt')).display,
+      remake: getComputedStyle(document.getElementById('remakeModal')).display,
+    }));
+    check('Escape dismisses prompt without opening remake form', afterEscPrompt.prompt === 'none' && afterEscPrompt.remake === 'none', JSON.stringify(afterEscPrompt));
+
+    /* ---------- 8d. Case-modal footer Record Remake (active case) ---------- */
+    await page.evaluate((id) => {
+      const card = document.querySelector(`.kanban-card[data-case-id="${id}"]`);
+      window.editCaseHandler(JSON.parse(card.dataset.caseJson));
+    }, caseA);
+    await page.waitForFunction(() => {
+      const m = document.getElementById('createCaseModal');
+      return m && getComputedStyle(m).display !== 'none';
+    }, undefined, { timeout: 15000 });
+    await page.waitForFunction(() => {
+      const b = document.getElementById('recordRemakeBtn');
+      return b && !b.hidden;
+    }, undefined, { timeout: 15000 });
+    check('footer Record Remake visible on active case modal', true);
+    await page.click('#recordRemakeBtn');
+    await page.waitForSelector('#remakeModal', { state: 'visible', timeout: 10000 });
+    check('footer Record Remake opens the remake modal', true);
+    await page.click('#remakeCancel');
+    await page.waitForTimeout(200);
+    await closeCaseModal(page);
+
+    /* ---------- 8e. Real status moves drive the prompt end-to-end ---------- */
+    // Cards move optimistically in the DOM before the API resolves - always
+    // wait on dataset.caseJson.status (written only on success) so the next
+    // move carries the current optimistic-lock version.
+    const fwdStatus = await page.evaluate((id) => {
+      const card = document.querySelector(`.kanban-card[data-case-id="${id}"]`);
+      const cols = [...document.querySelectorAll('.kanban-column')];
+      const curIdx = cols.indexOf(card.closest('.kanban-column'));
+      if (curIdx === 0 && cols.length > 1) {
+        const target = cols[1].querySelector('.kanban-column-body');
+        window.updateCardStatus(card, JSON.parse(card.dataset.caseJson), cols[1].dataset.status, target);
+        return cols[1].dataset.status;
+      }
+      return null;
+    }, caseA);
+    if (fwdStatus) {
+      await page.waitForFunction(({ id, status }) => {
+        const card = document.querySelector(`.kanban-card[data-case-id="${id}"]`);
+        return card && JSON.parse(card.dataset.caseJson).status === status;
+      }, { id: caseA, status: fwdStatus }, { timeout: 15000 });
+    }
+
+    // Backward move: server saves the regression, then the prompt appears.
+    const backStatus = await page.evaluate((id) => {
+      const card = document.querySelector(`.kanban-card[data-case-id="${id}"]`);
+      const cols = [...document.querySelectorAll('.kanban-column')];
+      const curIdx = cols.indexOf(card.closest('.kanban-column'));
+      const targetCol = cols[curIdx - 1];
+      window.updateCardStatus(card, JSON.parse(card.dataset.caseJson), targetCol.dataset.status, targetCol.querySelector('.kanban-column-body'));
+      return targetCol.dataset.status;
+    }, caseA);
+    await page.waitForFunction(({ id, status }) => {
+      const card = document.querySelector(`.kanban-card[data-case-id="${id}"]`);
+      return card && JSON.parse(card.dataset.caseJson).status === status;
+    }, { id: caseA, status: backStatus }, { timeout: 15000 });
+    await page.waitForSelector('#regressionRemakePrompt', { state: 'visible', timeout: 15000 });
+    check('real backward move shows remake prompt after save', true);
+    await page.click('#regressionRemakeNo');
+    await page.waitForTimeout(300);
+    const revAfterBack = await page.evaluate((id) =>
+      JSON.parse(document.querySelector(`.kanban-card[data-case-id="${id}"]`).dataset.caseJson).revisionCount, caseA);
+    check('backward move still records revision count (no remake auto-created)', revAfterBack >= 1, revAfterBack);
+
+    // Forward move: no prompt.
+    await page.evaluate((id) => {
+      const card = document.querySelector(`.kanban-card[data-case-id="${id}"]`);
+      const cols = [...document.querySelectorAll('.kanban-column')];
+      const curIdx = cols.indexOf(card.closest('.kanban-column'));
+      const targetCol = cols[curIdx + 1];
+      window.updateCardStatus(card, JSON.parse(card.dataset.caseJson), targetCol.dataset.status, targetCol.querySelector('.kanban-column-body'));
+    }, caseA);
+    await page.waitForTimeout(2500);
+    const fwdPrompt = await page.evaluate(() =>
+      getComputedStyle(document.getElementById('regressionRemakePrompt')).display);
+    check('forward move does not show remake prompt', fwdPrompt === 'none', fwdPrompt);
 
     /* ---------- 9. Archive failure keeps the card + shows error ---------- */
     await page.route('**/api/delete-case.php', route => route.fulfill({
@@ -374,7 +516,7 @@ async function closeCaseModal(page) {
     await page.click(`.case-list-row[data-case-id="${caseA}"] .case-actions-toggle`);
     await page.waitForSelector('#caseActionsMenu.open', { state: 'attached', timeout: 5000 });
     const rowSnap = await menuSnapshot(page);
-    check('list menu order Edit/Print/divider/Archive', rowSnap.items.join(',') === 'edit,print,|,archive', rowSnap.items.join(','));
+    check('list menu order Edit/Print/Remake/divider/Archive', rowSnap.items.join(',') === 'edit,print,remake,|,archive', rowSnap.items.join(','));
 
     await page.click('#caseActionsMenu [data-action="edit"]');
     await page.waitForFunction(() => {
@@ -404,7 +546,7 @@ async function closeCaseModal(page) {
 
     await openCardMenu(page, caseA);
     const offSnap = await menuSnapshot(page);
-    check('archive OFF (board): only Edit,Print — no divider', offSnap.items.join(',') === 'edit,print', offSnap.items.join(','));
+    check('archive OFF (board): Edit,Print,Remake — no divider', offSnap.items.join(',') === 'edit,print,remake', offSnap.items.join(','));
     await page.keyboard.press('Escape');
 
     await page.click('#listViewToggle');
@@ -412,7 +554,7 @@ async function closeCaseModal(page) {
     await page.click(`.case-list-row[data-case-id="${caseA}"] .case-actions-toggle`);
     await page.waitForSelector('#caseActionsMenu.open', { state: 'attached', timeout: 5000 });
     const offListSnap = await menuSnapshot(page);
-    check('archive OFF (list): only Edit,Print — no divider', offListSnap.items.join(',') === 'edit,print', offListSnap.items.join(','));
+    check('archive OFF (list): Edit,Print,Remake — no divider', offListSnap.items.join(',') === 'edit,print,remake', offListSnap.items.join(','));
     await page.keyboard.press('Escape');
 
     // Server still enforces even if the menu were bypassed

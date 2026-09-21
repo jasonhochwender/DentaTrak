@@ -5078,6 +5078,9 @@ document.addEventListener('DOMContentLoaded', function () {
       delete form.dataset.originalCaseData;
     }
 
+    var newCaseRemakeBtn = document.getElementById('recordRemakeBtn');
+    if (newCaseRemakeBtn) newCaseRemakeBtn.hidden = true;
+
     if (modalTitle) modalTitle.textContent = t('cases.create_new_case');
     if (submitBtn) submitBtn.textContent = t('cases.create_case');
 
@@ -5461,6 +5464,13 @@ document.addEventListener('DOMContentLoaded', function () {
     // Render the compact mobile case summary (phone viewports only).
     if (window.MobileCaseModal && typeof window.MobileCaseModal.renderSummary === 'function') {
       window.MobileCaseModal.renderSummary(caseData);
+    }
+
+    // Record Remake is an explicit action for active saved cases; hidden
+    // for new cases and archived read-only views (server rejects archived).
+    var recordRemakeBtn = document.getElementById('recordRemakeBtn');
+    if (recordRemakeBtn) {
+      recordRemakeBtn.hidden = !(caseData && (caseData.id || caseData.case_id) && !caseData.archived);
     }
 
     // Render review status controls (hidden for new/unsaved cases)
@@ -7147,6 +7157,10 @@ document.addEventListener('DOMContentLoaded', function () {
 
   // Optimized success handler
   function handleCaseSubmissionSuccess(data, form, submitBtn, isUpdate) {
+    // A backward status change saved through Edit Case may be a remake -
+    // capture the id now because resetFormAndClose clears dataset.caseId.
+    var regressionCaseId = (isUpdate && data.isRegression === true) ? form.dataset.caseId : null;
+
     // Show success animation
     submitBtn.classList.remove('submitting');
     submitBtn.classList.add('success');
@@ -7176,6 +7190,10 @@ document.addEventListener('DOMContentLoaded', function () {
       // Reset and close after success animation
       setTimeout(() => {
         resetFormAndClose(form, submitBtn, isUpdate);
+        // Ask whether the backward move was a remake (move already saved).
+        if (regressionCaseId && typeof window.promptRemakeForRegression === 'function') {
+          window.promptRemakeForRegression(regressionCaseId);
+        }
       }, 800);
     });
   }
@@ -8168,6 +8186,13 @@ document.addEventListener('DOMContentLoaded', function () {
           // Remove updating class after a short delay
           setTimeout(() => card.classList.remove('updating'), 300);
         });
+
+        // A backward move may be a remake - ask, never auto-record. The
+        // move and its case_regression/revision record are already saved.
+        if (data.isRegression === true && typeof window.promptRemakeForRegression === 'function') {
+          var regressionCaseId = cardData.id || cardData.case_id;
+          setTimeout(function () { window.promptRemakeForRegression(regressionCaseId); }, 400);
+        }
       } else {
         throw new Error(data.message || 'Update failed');
       }
@@ -8937,6 +8962,13 @@ document.addEventListener('DOMContentLoaded', function () {
         // Fallback if function not available
         form.assignedTo.value = currentAssignee;
       }
+    }
+
+    // Record Remake is an explicit action for active saved cases; hidden
+    // for archived read-only views (server rejects archived regardless).
+    var recordRemakeBtn = document.getElementById('recordRemakeBtn');
+    if (recordRemakeBtn) {
+      recordRemakeBtn.hidden = !(caseData && (caseData.id || caseData.case_id) && !caseData.archived);
     }
 
     // Render review status panel

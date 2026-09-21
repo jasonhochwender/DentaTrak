@@ -2262,6 +2262,7 @@ endif;
             <div class="modal-footer create-case-footer">
               <button type="button" class="btn-primary" id="createCaseSubmit"><?php echo t('cases.create_case'); ?></button>
               <button type="button" class="btn-cancel" id="createCaseCancel"><?php echo t('common.cancel'); ?></button>
+              <button type="button" class="btn-remake-action" id="recordRemakeBtn" hidden><?php echo t('remakes.record_remake'); ?></button>
             </div>
           </div>
         </div>
@@ -2341,6 +2342,29 @@ endif;
           <div class="modal-footer">
             <button type="button" class="btn-primary" id="remakeSubmit"><?php echo t('remakes.submit'); ?></button>
             <button type="button" class="btn-cancel" id="remakeCancel"><?php echo t('common.cancel'); ?></button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Regression → Remake Prompt
+           Shown after a successful backward workflow move. The move (and its
+           regression/revision record) is already saved - this prompt only
+           asks whether it was also a true remake. It never blocks or undoes
+           the workflow change. -->
+      <div id="regressionRemakePrompt" class="modal">
+        <div class="modal-content regression-prompt-modal" role="alertdialog"
+             aria-labelledby="regressionRemakePromptTitle" aria-describedby="regressionRemakePromptBody">
+          <div class="modal-header">
+            <h2 class="modal-title" id="regressionRemakePromptTitle"><?php echo t('remakes.regression_prompt_title'); ?></h2>
+            <button type="button" class="btn-close" id="regressionRemakePromptClose" aria-label="<?php echo t('common.close'); ?>"><span>&times;</span></button>
+          </div>
+          <div class="modal-body">
+            <p id="regressionRemakePromptBody" class="regression-prompt-body"><?php echo t('remakes.regression_prompt_body'); ?></p>
+            <p id="regressionRemakePromptOpen" class="regression-prompt-open" role="note" hidden><?php echo t('remakes.regression_prompt_open'); ?></p>
+          </div>
+          <div class="modal-footer regression-prompt-footer">
+            <button type="button" class="btn-primary" id="regressionRemakeYes"><?php echo t('remakes.regression_prompt_yes'); ?></button>
+            <button type="button" class="btn-cancel" id="regressionRemakeNo"><?php echo t('remakes.regression_prompt_no'); ?></button>
           </div>
         </div>
       </div>

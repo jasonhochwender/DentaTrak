@@ -428,6 +428,11 @@
         "load_error": "Unable to load remakes.",
         "record_error": "Unable to record the remake. Please try again.",
         "complete_error": "Unable to mark the remake complete. Please try again.",
+        "regression_prompt_title": "Is this case being remade?",
+        "regression_prompt_body": "This case moved backward in the workflow. If the lab or practice is redoing the case, record it as a remake so it can be included in Lab Insights.",
+        "regression_prompt_open": "This case already has an open remake. Record another only if this is a separate redo.",
+        "regression_prompt_yes": "Yes, record a remake",
+        "regression_prompt_no": "No, just a workflow change",
         "reasons": {
             "fit_issue": "Fit issue",
             "shade_color": "Shade / color issue",

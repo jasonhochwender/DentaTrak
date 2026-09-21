@@ -133,3 +133,76 @@
   opacity: 0.6;
   cursor: default;
 }
+
+/* Regression -> remake prompt (small focused dialog shown after a
+   successful backward workflow move). */
+.regression-prompt-modal {
+  max-width: 420px;
+  width: 92%;
+}
+
+.regression-prompt-body {
+  margin: 0;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: var(--text-primary, #1f2a37);
+}
+
+.regression-prompt-open {
+  margin: 12px 0 0;
+  padding: 8px 12px;
+  border-radius: 6px;
+  background: #fef6e7;
+  border: 1px solid #f3ddae;
+  color: #8a5a00;
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+
+.regression-prompt-footer {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 480px) {
+  .regression-prompt-modal {
+    width: calc(100% - 24px);
+  }
+  .regression-prompt-footer .btn-primary,
+  .regression-prompt-footer .btn-cancel {
+    flex: 1 1 100%;
+  }
+}
+
+/* Explicit Record Remake action in the case-modal footer (active cases only -
+   populated/hidden by app.js alongside the other edit-mode controls). */
+.btn-remake-action {
+  margin-left: auto;
+  padding: 8px 14px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  border: 1px solid var(--border-medium, #d5dce4);
+  border-radius: 6px;
+  background: var(--background-white, #fff);
+  color: var(--text-primary, #1f2a37);
+  cursor: pointer;
+}
+
+.btn-remake-action:hover {
+  background: var(--dt-surface-alt, #f1f5f9);
+  border-color: var(--text-secondary, #5f6b7a);
+}
+
+.btn-remake-action:focus-visible {
+  outline: 2px solid var(--dt-focus, #2563eb);
+  outline-offset: 2px;
+}
+
+@media (max-width: 480px) {
+  .btn-remake-action {
+    margin-left: 0;
+    flex: 1 1 100%;
+    order: 3;
+  }
+}
