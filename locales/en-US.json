@@ -1287,17 +1287,15 @@
                 "practices": "Up to 2 practices",
                 "benefit_1": "Everything in Operate",
                 "benefit_2": "Unlimited users",
-                "benefit_4": "Practice Insights",
+                "benefit_4": "Practice and Lab Insights",
                 "benefit_5": "Smart Recommendations",
-                "benefit_6": "Lab Insights",
-                "benefit_7": "Open Dental integration"
+                "benefit_6": "Open Dental integration"
             },
             "scale": {
                 "practices": "5 practices included",
                 "benefit_1": "Everything in Control",
                 "benefit_2": "Unlimited users",
                 "benefit_3": "Support for larger multi-practice organizations",
-                "benefit_4": "Open Dental integration",
                 "additional_practices_month": "Additional practices: {amount}/month each",
                 "additional_practices_year": "Additional practices: {amount}/year each"
             }
@@ -4232,15 +4230,13 @@
             "control_features_1": "Everything in Operate",
             "control_features_2": "Unlimited users",
             "control_features_3": "Up to 2 practices",
-            "control_features_4": "Practice Insights",
+            "control_features_4": "Practice and Lab Insights",
             "control_features_5": "Smart Recommendations",
-            "control_features_6": "Lab Insights",
-            "control_features_7": "Open Dental integration",
+            "control_features_6": "Open Dental integration",
             "scale_description": "For organizations managing multiple practices and larger teams.",
             "scale_features_1": "Everything in Control",
             "scale_features_2": "Up to 5 practices included",
             "scale_features_3": "Additional practices available",
-            "scale_features_4": "Open Dental integration",
             "scale_addon_title": "Add more practices",
             "scale_addon_month": "+$99/month per additional practice",
             "scale_addon_year": "+$990/year per additional practice"

@@ -1841,7 +1841,6 @@ foreach (['operate', 'control', 'scale'] as $plan) {
             <li><?php echo t('marketing.pricing.control_features_4'); ?></li>
             <li><?php echo t('marketing.pricing.control_features_5'); ?></li>
             <li><?php echo t('marketing.pricing.control_features_6'); ?></li>
-            <li><?php echo t('marketing.pricing.control_features_7'); ?></li>
           </ul>
         </div>
         <div class="plan" data-reveal data-reveal-stagger="3" data-reveal-delay="150">
@@ -1854,7 +1853,6 @@ foreach (['operate', 'control', 'scale'] as $plan) {
             <li><?php echo t('marketing.pricing.scale_features_1'); ?></li>
             <li><?php echo t('marketing.pricing.scale_features_2'); ?></li>
             <li><?php echo t('marketing.pricing.scale_features_3'); ?></li>
-            <li><?php echo t('marketing.pricing.scale_features_4'); ?></li>
           </ul>
           <div class="plan-extra"><strong><?php echo t('marketing.pricing.scale_addon_title'); ?></strong><br><?php echo t('marketing.pricing.scale_addon_month'); ?><br><?php echo t('marketing.pricing.scale_addon_year'); ?></div>
         </div>
