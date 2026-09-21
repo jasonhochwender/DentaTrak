@@ -40,6 +40,7 @@ require_once __DIR__ . '/practice-security.php';
 require_once __DIR__ . '/cases-cache.php';
 require_once __DIR__ . '/case-activity-log.php';
 require_once __DIR__ . '/lab-assignment-history.php';
+require_once __DIR__ . '/remakes.php';
 require_once __DIR__ . '/encryption.php';
 require_once __DIR__ . '/dev-tools-access.php';
 require_once __DIR__ . '/csrf.php';
@@ -675,7 +676,89 @@ try {
         $pdo->prepare("UPDATE practice_users SET is_lab = 1 WHERE practice_id = :practice_id AND user_id = :user_id")
             ->execute(['practice_id' => $currentPracticeId, 'user_id' => $labUser['id']]);
     }
+
+    // Second lab as a lab-flagged assignment label, so demo Lab Performance
+    // metrics span multiple lab identities (user-based + label-based).
+    $labLabelId = null;
+    $labLabelName = 'Pacific Ceramics Lab';
+    if ($labUserAvailable) {
+        $lblStmt = $pdo->prepare("SELECT id FROM practice_assignment_labels WHERE practice_id = :p AND label = :l LIMIT 1");
+        $lblStmt->execute(['p' => $currentPracticeId, 'l' => $labLabelName]);
+        $labLabelId = $lblStmt->fetchColumn();
+        if (!$labLabelId) {
+            $pdo->prepare("INSERT INTO practice_assignment_labels (practice_id, label, sort_order, is_lab) VALUES (:p, :l, 99, 1)")
+                ->execute(['p' => $currentPracticeId, 'l' => $labLabelName]);
+            $labLabelId = (int)$pdo->lastInsertId();
+        } else {
+            $pdo->prepare("UPDATE practice_assignment_labels SET is_lab = 1 WHERE id = :id")
+                ->execute(['id' => $labLabelId]);
+            $labLabelId = (int)$labLabelId;
+        }
+    }
+    $labLabelAvailable = ($labLabelId !== null && $labLabelId !== false);
+    $remakesWritten = 0;
+
     ensureLabAssignmentHistoryTable();
+    ensureCaseRemakeEventsTable();
+
+    // Structured remake generation — realistic distribution across the
+    // reason/attribution catalogs so Lab Performance metrics have variety:
+    // ~80% of remakes complete, a minority of cases see a second remake.
+    $demoRemakeReasons = [
+        'fit_issue', 'fit_issue', 'fit_issue', 'shade_color', 'shade_color',
+        'esthetics', 'occlusion_bite', 'margins', 'contacts', 'incorrect_design',
+        'incorrect_material', 'damage_breakage', 'missing_incorrect_item',
+        'scan_impression_issue', 'prescription_instruction',
+        'patient_related_change', 'practice_requested_change', 'lab_error', 'other',
+    ];
+    $demoRemakeAttributions = [
+        'lab_related', 'lab_related', 'lab_related', 'lab_related',
+        'practice_related', 'practice_related', 'practice_related',
+        'patient_related', 'patient_related',
+        'scan_impression_related', 'unclear', 'other',
+    ];
+    $insertDemoRemake = function ($caseId, $remakeNumber, $labPeriodId, $initiatedTs, $completedTs, $createdByUserId)
+        use ($pdo, $currentPracticeId, $demoRemakeReasons, $demoRemakeAttributions, &$remakesWritten) {
+        $reason = $demoRemakeReasons[array_rand($demoRemakeReasons)];
+        $attribution = $demoRemakeAttributions[array_rand($demoRemakeAttributions)];
+        $notes = ($reason === 'other' || random_int(1, 100) <= 25)
+            ? 'Demo remake note — see case record for context.'
+            : null;
+
+        $pdo->prepare("
+            INSERT INTO case_remake_events (
+                case_id, practice_id, remake_number, reason_code, attribution,
+                notes, initiated_at, completed_at, lab_period_id, created_by_user_id
+            ) VALUES (
+                :case_id, :practice_id, :remake_number, :reason_code, :attribution,
+                :notes, :initiated_at, :completed_at, :lab_period_id, :created_by_user_id
+            )
+        ")->execute([
+            'case_id' => $caseId,
+            'practice_id' => $currentPracticeId,
+            'remake_number' => $remakeNumber,
+            'reason_code' => $reason,
+            'attribution' => $attribution,
+            'notes' => $notes,
+            'initiated_at' => date('Y-m-d H:i:s', $initiatedTs),
+            'completed_at' => $completedTs !== null ? date('Y-m-d H:i:s', $completedTs) : null,
+            'lab_period_id' => $labPeriodId,
+            'created_by_user_id' => $createdByUserId,
+        ]);
+
+        $meta = [
+            'remake_id' => (int)$pdo->lastInsertId(),
+            'remake_number' => $remakeNumber,
+            'remake_reason' => $reason,
+            'remake_attribution' => $attribution,
+            'lab_period_id' => $labPeriodId,
+        ];
+        logCaseActivity($caseId, 'remake_initiated', null, null, $meta, date('Y-m-d H:i:s', $initiatedTs));
+        if ($completedTs !== null) {
+            logCaseActivity($caseId, 'remake_completed', null, null, $meta, date('Y-m-d H:i:s', $completedTs));
+        }
+        $remakesWritten++;
+    };
 
     $activeCreatedByNames = [];
     foreach ($staffUsers as $u) {
@@ -811,7 +894,9 @@ try {
         if ($showcaseKey === 'unassigned') {
             $def['assignedTo'] = '';
         } elseif ($labUserAvailable && in_array($idx, $labCaseIndices, true)) {
-            $def['assignedTo'] = $labUser['email'];
+            $def['assignedTo'] = ($labLabelAvailable && random_int(1, 100) <= 30)
+                ? $labLabelName
+                : $labUser['email'];
         } else {
             $def['assignedTo'] = $pickAssignee($def['statusIdx']);
         }
@@ -872,7 +957,12 @@ try {
         $encrypted = PIIEncryption::encryptCaseData($caseData);
         saveCaseToCache($encrypted);
         $activeCreated++;
+        $activeLabAssignee = null;
         if ($labUserAvailable && strcasecmp($def['assignedTo'], $labUser['email']) === 0) {
+            $activeLabAssignee = ['type' => 'user', 'id' => $labUser['id'], 'name' => $labUser['email']];
+            $labActiveCaseCount++;
+        } elseif ($labLabelAvailable && strcasecmp($def['assignedTo'], $labLabelName) === 0) {
+            $activeLabAssignee = ['type' => 'label', 'id' => $labLabelId, 'name' => $labLabelName];
             $labActiveCaseCount++;
         }
 
@@ -881,21 +971,36 @@ try {
             $def['assignedTo'], $def['notes'], false
         );
 
-        // Open a backdated lab assignment period for lab-assigned active cases.
-        if ($labUserAvailable && strcasecmp($def['assignedTo'], $labUser['email']) === 0) {
+        // Open a lab assignment period for lab-assigned active cases, with
+        // the case-type/due-date snapshots the metrics layer reads.
+        if ($activeLabAssignee !== null) {
             $labStartTs = date('Y-m-d H:i:s', min($def['creationTs'] + 300, $now));
             $pdo->prepare("
                 INSERT INTO case_lab_assignment_periods
-                    (case_id, practice_id, assignee_type, user_id, label_id, label_text_normalized, assignee_display_name_snapshot, is_lab_snapshot, started_at, ended_at, end_reason, history_quality)
+                    (case_id, practice_id, assignee_type, user_id, label_id, label_text_normalized, assignee_display_name_snapshot, is_lab_snapshot, started_at, ended_at, end_reason, history_quality, case_type_snapshot, due_date_snapshot)
                 VALUES
-                    (:case_id, :practice_id, 'user', :user_id, NULL, NULL, :display_name, 1, :started_at, NULL, NULL, 'backfilled_unknown_start')
+                    (:case_id, :practice_id, :assignee_type, :user_id, :label_id, NULL, :display_name, 1, :started_at, NULL, NULL, 'observed', :case_type_snapshot, :due_date_snapshot)
             ")->execute([
                 'case_id' => $caseId,
                 'practice_id' => $currentPracticeId,
-                'user_id' => $labUser['id'],
-                'display_name' => $labUser['email'],
+                'assignee_type' => $activeLabAssignee['type'],
+                'user_id' => $activeLabAssignee['type'] === 'user' ? $activeLabAssignee['id'] : null,
+                'label_id' => $activeLabAssignee['type'] === 'label' ? $activeLabAssignee['id'] : null,
+                'display_name' => $activeLabAssignee['name'],
                 'started_at' => $labStartTs,
+                'case_type_snapshot' => $def['caseType'],
+                'due_date_snapshot' => date('Y-m-d', $def['dueTs']),
             ]);
+            $activeLabPeriodId = (int)$pdo->lastInsertId();
+
+            // A small share of active lab cases carry an open remake.
+            if (random_int(1, 100) <= 8) {
+                $remakeInitiated = min($now - 3600, strtotime($labStartTs) + random_int(86400, 172800));
+                $insertDemoRemake(
+                    $caseId, 1, $activeLabPeriodId, $remakeInitiated, null,
+                    $createdByUserId
+                );
+            }
         }
 
         // Comment showcase
@@ -995,8 +1100,14 @@ try {
                 $revisions = 2;
             }
 
+            $histLabAssignee = null;
             if ($labUserAvailable && random_int(1, 100) <= 20) {
-                $assignedTo = $labUser['email'];
+                if ($labLabelAvailable && random_int(1, 100) <= 35) {
+                    $histLabAssignee = ['type' => 'label', 'id' => $labLabelId, 'name' => $labLabelName];
+                } else {
+                    $histLabAssignee = ['type' => 'user', 'id' => $labUser['id'], 'name' => $labUser['email']];
+                }
+                $assignedTo = $histLabAssignee['name'];
                 $labHistoricalCaseCount++;
             } else {
                 $assignedTo = $staffAvailable ? $staffWeightedPool[array_rand($staffWeightedPool)] : ($labUserAvailable ? $labUser['email'] : '');
@@ -1071,20 +1182,50 @@ try {
             );
 
             // Backdated, closed lab assignment period for historical lab cases.
-            if ($labUserAvailable && strcasecmp($assignedTo, $labUser['email']) === 0) {
+            // Snapshots preserve the case type/due date as the lab saw them.
+            // Most periods are 'observed' (the demo simulates a practice that
+            // has been tracking assignments live); a minority are
+            // 'backfilled_unknown_start' so coverage indicators stay honest.
+            if ($histLabAssignee !== null) {
+                $quality = (random_int(1, 100) <= 15) ? 'backfilled_unknown_start' : 'observed';
                 $pdo->prepare("
                     INSERT INTO case_lab_assignment_periods
-                        (case_id, practice_id, assignee_type, user_id, label_id, label_text_normalized, assignee_display_name_snapshot, is_lab_snapshot, started_at, ended_at, end_reason, history_quality)
+                        (case_id, practice_id, assignee_type, user_id, label_id, label_text_normalized, assignee_display_name_snapshot, is_lab_snapshot, started_at, ended_at, end_reason, history_quality, case_type_snapshot, due_date_snapshot)
                     VALUES
-                        (:case_id, :practice_id, 'user', :user_id, NULL, NULL, :display_name, 1, :started_at, :ended_at, 'delivered', 'backfilled_unknown_start')
+                        (:case_id, :practice_id, :assignee_type, :user_id, :label_id, NULL, :display_name, 1, :started_at, :ended_at, 'delivered', :quality, :case_type_snapshot, :due_date_snapshot)
                 ")->execute([
                     'case_id' => $caseId,
                     'practice_id' => $currentPracticeId,
-                    'user_id' => $labUser['id'],
-                    'display_name' => $labUser['email'],
+                    'assignee_type' => $histLabAssignee['type'],
+                    'user_id' => $histLabAssignee['type'] === 'user' ? $histLabAssignee['id'] : null,
+                    'label_id' => $histLabAssignee['type'] === 'label' ? $histLabAssignee['id'] : null,
+                    'display_name' => $histLabAssignee['name'],
                     'started_at' => date('Y-m-d H:i:s', $creationTs + 300),
                     'ended_at' => date('Y-m-d H:i:s', $archivedTs),
+                    'quality' => $quality,
+                    'case_type_snapshot' => $caseType,
+                    'due_date_snapshot' => date('Y-m-d', $dueTs),
                 ]);
+                $histPeriodId = (int)$pdo->lastInsertId();
+
+                // ~12% of lab-bound cases get a structured remake; ~1 in 5 of
+                // those gets a second. Initiated mid-period; ~80% complete.
+                if (random_int(1, 100) <= 12) {
+                    $remakeCount = (random_int(1, 100) <= 20) ? 2 : 1;
+                    $periodStartTs = $creationTs + 300;
+                    for ($rNum = 1; $rNum <= $remakeCount; $rNum++) {
+                        $span = max(86400, $archivedTs - $periodStartTs);
+                        $initiatedTs = $periodStartTs + random_int(86400, (int)($span * 0.7));
+                        $completedTs = null;
+                        if (random_int(1, 100) <= 80) {
+                            $completedTs = min($now, $initiatedTs + random_int(86400, 6 * 86400));
+                        }
+                        $insertDemoRemake(
+                            $caseId, $rNum, $histPeriodId, $initiatedTs, $completedTs,
+                            $createdByUserId
+                        );
+                    }
+                }
             }
         }
     }
@@ -1104,11 +1245,13 @@ try {
         'success' => true,
         'run_id' => $runId,
         'message' => "Generated {$activeCreated} active case(s) and {$historicalCreated} historical case(s) for the current practice. "
-            . "{$labActiveCaseCount} active and {$labHistoricalCaseCount} historical case(s) were associated with lab@dentatrak.com.",
+            . "{$labActiveCaseCount} active and {$labHistoricalCaseCount} historical case(s) were associated with lab@dentatrak.com. "
+            . "{$remakesWritten} remake event(s) recorded.",
         'activeCasesCreated' => $activeCreated,
         'historicalCasesCreated' => $historicalCreated,
         'activityRecordsWritten' => $activityRecordsWritten,
         'commentsWritten' => $commentsWritten,
+        'remakesWritten' => $remakesWritten,
         'labUserUsed' => $labUserAvailable,
         'labActiveCasesAssigned' => $labActiveCaseCount,
         'labHistoricalCasesAssigned' => $labHistoricalCaseCount,

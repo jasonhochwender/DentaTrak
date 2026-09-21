@@ -69,6 +69,7 @@ require_once __DIR__ . '/feature-flags.php';
 require_once __DIR__ . '/billing-bypass.php';
 require_once __DIR__ . '/subscription-access.php';
 require_once __DIR__ . '/lab-assignment-history.php';
+require_once __DIR__ . '/lab-performance-metrics.php';
 require_once __DIR__ . '/workflow-stages.php';
 require_once __DIR__ . '/encryption.php';
 
@@ -232,6 +233,7 @@ try {
             'labs' => [],
             'currentWorkload' => [],
             'trend' => null,
+            'performance' => null,
         ]);
         exit;
     }
@@ -686,6 +688,19 @@ try {
         'multiLabCases' => $multiLabCaseCount,
     ];
 
+    // ── Lab Performance Intelligence metrics (new layer) ────────────────
+    // Structured per-lab/practice metrics from lab-performance-metrics.php —
+    // the reusable service future Practice Insights / Smart Recommendations
+    // will consume. Kept additive: the legacy fields above are unchanged so
+    // the current Lab Insights UI keeps working. Failures here never break
+    // the existing payload.
+    $performance = null;
+    try {
+        $performance = computeLabPerformanceMetrics($pdo, $practiceId, $rangeStart, $now);
+    } catch (Throwable $perfEx) {
+        error_log('[get-lab-insights] performance metrics failed: ' . $perfEx->getMessage());
+    }
+
     // Record a Lab Insights visit only for screen-activation loads
     // (X-Insights-Visit header) that produced a successful payload. Refresh,
     // range-change, and background refetches omit the header and never
@@ -707,6 +722,7 @@ try {
         }, $labMetrics)),
         'currentWorkload' => $currentWorkload,
         'trend' => $trend,
+        'performance' => $performance,
     ]);
 
 } catch (Throwable $e) {
