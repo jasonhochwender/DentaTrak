@@ -10,6 +10,7 @@ require_once __DIR__ . '/user-manager.php';
 require_once __DIR__ . '/google-drive.php';
 require_once __DIR__ . '/cases-cache.php';
 require_once __DIR__ . '/case-activity-log.php';
+require_once __DIR__ . '/lab-assignment-history.php';
 require_once __DIR__ . '/csrf.php';
 require_once __DIR__ . '/security-headers.php';
 
@@ -122,6 +123,15 @@ try {
 
     // Archive the case in cache instead of deleting it
     archiveCaseInCache($caseId);
+
+    // Lab Insights: archiving removes the case from active workflow - close
+    // any open lab-assignment period so the lab is not left looking
+    // responsible for a case that is no longer live.
+    try {
+        closeOpenLabPeriodForCaseRemoval($caseId, $currentPracticeId, 'case_archived');
+    } catch (Throwable $e) {
+        error_log("Error closing lab period for archived case {$caseId}: " . $e->getMessage());
+    }
 
     // Update user's case count
     if ($currentPracticeId) {

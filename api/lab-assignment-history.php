@@ -60,7 +60,9 @@ function ensureLabAssignmentHistoryTable() {
         is_lab_snapshot TINYINT(1) NOT NULL DEFAULT 1,
         started_at DATETIME NOT NULL,
         ended_at DATETIME DEFAULT NULL,
-        end_reason ENUM('reassigned_to_lab','reassigned_to_internal','lab_designation_removed','case_deleted','delivered') DEFAULT NULL,
+        end_reason ENUM('reassigned_to_lab','reassigned_to_internal','lab_designation_removed','case_archived','case_deleted','delivered') DEFAULT NULL,
+        case_type_snapshot VARCHAR(100) DEFAULT NULL,
+        due_date_snapshot VARCHAR(50) DEFAULT NULL,
         history_quality ENUM('observed','backfilled_unknown_start') NOT NULL DEFAULT 'observed',
         created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
         INDEX idx_case_id (case_id),
@@ -78,13 +80,14 @@ function ensureLabAssignmentHistoryTable() {
     }
 
     ensureDeliveredEndReason();
+    ensurePeriodSnapshotColumns();
 }
 
 /**
- * Self-healing migration: add 'delivered' to the end_reason ENUM for
- * databases created before this value existed. Idempotent / no-op once
- * the column already includes it (matches the existing auto-migration
- * convention used throughout this codebase).
+ * Self-healing migration: keep the end_reason ENUM complete for databases
+ * created before later values existed ('delivered', then 'case_archived').
+ * Idempotent / no-op once the column already includes every value (matches
+ * the existing auto-migration convention used throughout this codebase).
  */
 function ensureDeliveredEndReason() {
     global $pdo;
@@ -98,11 +101,67 @@ function ensureDeliveredEndReason() {
     try {
         $stmt = $pdo->query("SHOW COLUMNS FROM case_lab_assignment_periods LIKE 'end_reason'");
         $col = $stmt->fetch(PDO::FETCH_ASSOC);
-        if ($col && strpos($col['Type'], "'delivered'") === false) {
-            $pdo->exec("ALTER TABLE case_lab_assignment_periods MODIFY COLUMN end_reason ENUM('reassigned_to_lab','reassigned_to_internal','lab_designation_removed','case_deleted','delivered') DEFAULT NULL");
+        if ($col && (strpos($col['Type'], "'delivered'") === false || strpos($col['Type'], "'case_archived'") === false)) {
+            $pdo->exec("ALTER TABLE case_lab_assignment_periods MODIFY COLUMN end_reason ENUM('reassigned_to_lab','reassigned_to_internal','lab_designation_removed','case_archived','case_deleted','delivered') DEFAULT NULL");
         }
     } catch (PDOException $e) {
-        error_log('[lab-assignment-history] Error adding delivered end_reason: ' . $e->getMessage());
+        error_log('[lab-assignment-history] Error updating end_reason values: ' . $e->getMessage());
+    }
+}
+
+/**
+ * Self-healing migration: add the immutable point-in-time case snapshots
+ * (case_type_snapshot, due_date_snapshot) to case_lab_assignment_periods.
+ * Snapshots are captured when a period OPENS so historical lab metrics do
+ * not depend on mutable cases_cache fields (or on the case row still
+ * existing at all). Existing rows keep NULL - never backfill guesses.
+ */
+function ensurePeriodSnapshotColumns() {
+    global $pdo;
+    static $checked = false;
+
+    if ($checked || !$pdo) {
+        return;
+    }
+    $checked = true;
+
+    try {
+        $stmt = $pdo->query("SHOW COLUMNS FROM case_lab_assignment_periods LIKE 'case_type_snapshot'");
+        if ($stmt->rowCount() === 0) {
+            $pdo->exec("ALTER TABLE case_lab_assignment_periods ADD COLUMN case_type_snapshot VARCHAR(100) DEFAULT NULL COMMENT 'cases_cache.case_type value captured when this period opened'");
+        }
+        $stmt = $pdo->query("SHOW COLUMNS FROM case_lab_assignment_periods LIKE 'due_date_snapshot'");
+        if ($stmt->rowCount() === 0) {
+            $pdo->exec("ALTER TABLE case_lab_assignment_periods ADD COLUMN due_date_snapshot VARCHAR(50) DEFAULT NULL COMMENT 'cases_cache.due_date value captured when this period opened'");
+        }
+    } catch (PDOException $e) {
+        error_log('[lab-assignment-history] Error adding snapshot columns: ' . $e->getMessage());
+    }
+}
+
+/**
+ * Fetch the point-in-time snapshot values recorded when a lab period opens.
+ * Reads cases_cache directly (plaintext non-PII columns only); missing or
+ * deleted rows yield NULLs - never fabricated values.
+ */
+function getCasePeriodSnapshot($caseId, $practiceId) {
+    global $pdo;
+
+    if (!$pdo || !$caseId || !$practiceId) {
+        return ['case_type_snapshot' => null, 'due_date_snapshot' => null];
+    }
+
+    try {
+        $stmt = $pdo->prepare("SELECT case_type, due_date FROM cases_cache WHERE case_id = :case_id AND practice_id = :practice_id LIMIT 1");
+        $stmt->execute(['case_id' => $caseId, 'practice_id' => $practiceId]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        return [
+            'case_type_snapshot' => $row ? $row['case_type'] : null,
+            'due_date_snapshot'  => $row ? $row['due_date'] : null,
+        ];
+    } catch (PDOException $e) {
+        error_log('[lab-assignment-history] Error reading period snapshot: ' . $e->getMessage());
+        return ['case_type_snapshot' => null, 'due_date_snapshot' => null];
     }
 }
 
@@ -307,15 +366,18 @@ function recordLabAssignmentChange($caseId, $practiceId, $oldAssignedToText, $ne
         ]);
 
         if (!$check->fetchColumn()) {
+            $snapshot = getCasePeriodSnapshot($caseId, $practiceId);
             $stmt = $pdo->prepare("
                 INSERT INTO case_lab_assignment_periods (
                     case_id, practice_id, assignee_type, user_id, label_id,
                     label_text_normalized, assignee_display_name_snapshot,
-                    is_lab_snapshot, started_at, ended_at, end_reason, history_quality
+                    is_lab_snapshot, started_at, ended_at, end_reason,
+                    case_type_snapshot, due_date_snapshot, history_quality
                 ) VALUES (
                     :case_id, :practice_id, :assignee_type, :user_id, :label_id,
                     :label_text_normalized, :display_name,
-                    1, :started_at, NULL, NULL, 'observed'
+                    1, :started_at, NULL, NULL,
+                    :case_type_snapshot, :due_date_snapshot, 'observed'
                 )
             ");
             $stmt->execute([
@@ -327,6 +389,8 @@ function recordLabAssignmentChange($caseId, $practiceId, $oldAssignedToText, $ne
                 'label_text_normalized' => $new['label_text_normalized'],
                 'display_name' => $new['display_name'],
                 'started_at' => $now,
+                'case_type_snapshot' => $snapshot['case_type_snapshot'],
+                'due_date_snapshot' => $snapshot['due_date_snapshot'],
             ]);
         }
     }
@@ -379,11 +443,13 @@ function initializeOpenLabPeriodsForEntity($practiceId, $type, $entityId, $displ
         INSERT INTO case_lab_assignment_periods (
             case_id, practice_id, assignee_type, user_id, label_id,
             label_text_normalized, assignee_display_name_snapshot,
-            is_lab_snapshot, started_at, ended_at, end_reason, history_quality
+            is_lab_snapshot, started_at, ended_at, end_reason,
+            case_type_snapshot, due_date_snapshot, history_quality
         ) VALUES (
             :case_id, :practice_id, :assignee_type, :user_id, :label_id,
             :label_text_normalized, :display_name,
-            1, :started_at, NULL, NULL, 'backfilled_unknown_start'
+            1, :started_at, NULL, NULL,
+            :case_type_snapshot, :due_date_snapshot, 'backfilled_unknown_start'
         )
     ");
 
@@ -398,6 +464,7 @@ function initializeOpenLabPeriodsForEntity($practiceId, $type, $entityId, $displ
             continue; // Already has an open period for this exact identity.
         }
 
+        $snapshot = getCasePeriodSnapshot($caseId, $practiceId);
         $insertStmt->execute([
             'case_id' => $caseId,
             'practice_id' => $practiceId,
@@ -407,6 +474,8 @@ function initializeOpenLabPeriodsForEntity($practiceId, $type, $entityId, $displ
             'label_text_normalized' => $labelTextNormalized,
             'display_name' => $displayName,
             'started_at' => $now,
+            'case_type_snapshot' => $snapshot['case_type_snapshot'],
+            'due_date_snapshot' => $snapshot['due_date_snapshot'],
         ]);
     }
 }
@@ -569,15 +638,18 @@ function reopenLabPeriodOnDeliveredRegression($caseId, $practiceId, $oldStatus, 
     }
 
     $now = date('Y-m-d H:i:s');
+    $snapshot = getCasePeriodSnapshot($caseId, $practiceId);
     $stmt = $pdo->prepare("
         INSERT INTO case_lab_assignment_periods (
             case_id, practice_id, assignee_type, user_id, label_id,
             label_text_normalized, assignee_display_name_snapshot,
-            is_lab_snapshot, started_at, ended_at, end_reason, history_quality
+            is_lab_snapshot, started_at, ended_at, end_reason,
+            case_type_snapshot, due_date_snapshot, history_quality
         ) VALUES (
             :case_id, :practice_id, :assignee_type, :user_id, :label_id,
             :label_text_normalized, :display_name,
-            1, :started_at, NULL, NULL, 'observed'
+            1, :started_at, NULL, NULL,
+            :case_type_snapshot, :due_date_snapshot, 'observed'
         )
     ");
     $stmt->execute([
@@ -589,5 +661,76 @@ function reopenLabPeriodOnDeliveredRegression($caseId, $practiceId, $oldStatus, 
         'label_text_normalized' => $resolved['label_text_normalized'],
         'display_name' => $resolved['display_name'],
         'started_at' => $now,
+        'case_type_snapshot' => $snapshot['case_type_snapshot'],
+        'due_date_snapshot' => $snapshot['due_date_snapshot'],
+    ]);
+}
+
+/**
+ * Case leaves active workflow (archived or deleted). Closes the case's OWN
+ * open lab-assignment period (if any) with the supplied end_reason so the
+ * lab is not left looking responsible for a case that is no longer live.
+ *
+ * Semantics of the reason (caller's choice):
+ *   - 'case_archived'  - manual archive or delivered_hide_days auto-archive.
+ *                        The case row is preserved; this is a soft removal.
+ *   - 'case_deleted'   - hard deletion of the cases_cache row (dev tools).
+ * Never pass 'delivered' here - that value is reserved for real terminal
+ * completion via closeOpenLabPeriodForDeliveredCase().
+ *
+ * Only open rows (ended_at IS NULL) are touched; historical closed periods
+ * and their snapshots are never modified. No-op when no period is open.
+ */
+function closeOpenLabPeriodForCaseRemoval($caseId, $practiceId, $reason) {
+    global $pdo;
+
+    if (!$pdo || !$caseId || !$practiceId) {
+        return;
+    }
+    if (!in_array($reason, ['case_archived', 'case_deleted'], true)) {
+        return;
+    }
+
+    ensureLabAssignmentHistoryTable();
+
+    $stmt = $pdo->prepare("
+        UPDATE case_lab_assignment_periods
+        SET ended_at = :ended_at, end_reason = :reason
+        WHERE case_id = :case_id AND practice_id = :practice_id
+          AND ended_at IS NULL
+    ");
+    $stmt->execute([
+        'ended_at' => date('Y-m-d H:i:s'),
+        'reason' => $reason,
+        'case_id' => $caseId,
+        'practice_id' => $practiceId,
+    ]);
+}
+
+/**
+ * Bulk variant of closeOpenLabPeriodForCaseRemoval(): closes every open lab
+ * period across a whole practice. Used by the dev-tool wipe paths
+ * (delete-all-cases.php, reset-all-data.php) where individual case_ids are
+ * not iterated with the history helper. Only 'case_deleted' is meaningful
+ * for these callers - the rows are being permanently removed.
+ */
+function closeOpenLabPeriodsForPractice($practiceId, $reason = 'case_deleted') {
+    global $pdo;
+
+    if (!$pdo || !$practiceId || $reason !== 'case_deleted') {
+        return;
+    }
+
+    ensureLabAssignmentHistoryTable();
+
+    $stmt = $pdo->prepare("
+        UPDATE case_lab_assignment_periods
+        SET ended_at = :ended_at, end_reason = :reason
+        WHERE practice_id = :practice_id AND ended_at IS NULL
+    ");
+    $stmt->execute([
+        'ended_at' => date('Y-m-d H:i:s'),
+        'reason' => $reason,
+        'practice_id' => $practiceId,
     ]);
 }

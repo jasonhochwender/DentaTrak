@@ -21,6 +21,7 @@ require_once __DIR__ . '/google-drive.php';
 require_once __DIR__ . '/csrf.php';
 require_once __DIR__ . '/security-headers.php';
 require_once __DIR__ . '/dev-tools-access.php';
+require_once __DIR__ . '/lab-assignment-history.php';
 
 header('Content-Type: application/json');
 setApiSecurityHeaders();
@@ -175,6 +176,12 @@ try {
         // Delete cases for this practice (check if table exists)
         $casesDeleted = 0;
         try {
+            // Lab Insights: permanent deletion - close any open
+            // lab-assignment periods before the rows go away.
+            try {
+                closeOpenLabPeriodsForPractice($practiceId, 'case_deleted');
+            } catch (Throwable $e) {
+            }
             $stmt = $pdo->prepare("DELETE FROM cases_cache WHERE practice_id = ?");
             $stmt->execute([$practiceId]);
             $casesDeleted = $stmt->rowCount();

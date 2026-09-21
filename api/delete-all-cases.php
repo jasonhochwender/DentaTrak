@@ -16,6 +16,7 @@ ini_set('display_errors', 0);
 require_once __DIR__ . '/session.php';
 require_once __DIR__ . '/google-drive.php';
 require_once __DIR__ . '/cases-cache.php';
+require_once __DIR__ . '/lab-assignment-history.php';
 require_once __DIR__ . '/dev-tools-access.php';
 require_once __DIR__ . '/csrf.php';
 require_once __DIR__ . '/gcs-attachments.php';
@@ -73,7 +74,15 @@ try {
     $stmt = $pdo->prepare("SELECT case_id, drive_folder_id, attachments_json FROM cases_cache WHERE practice_id = ?");
     $stmt->execute([$currentPracticeId]);
     $cases = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    
+
+    // Lab Insights: these are permanent deletions - close any open
+    // lab-assignment periods so no lab is left looking responsible for
+    // removed cases. Failure must not block the wipe.
+    try {
+        closeOpenLabPeriodsForPractice($currentPracticeId, 'case_deleted');
+    } catch (Throwable $e) {
+    }
+
     $deletedCount = 0;
     $errors = [];
     

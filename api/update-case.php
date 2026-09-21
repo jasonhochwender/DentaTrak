@@ -59,36 +59,56 @@ try {
             // Get existing case data from cache to preserve attachments and other fields
             $existingCase = getCaseFromCache($caseData['id']);
 
-            // Detect a dueDate change BEFORE the merge below overwrites it,
-            // so callers (and case_updated activity logging) can tell
-            // whether the due date was edited. Scoped to dueDate only (not
-            // a full field diff) since dueDate is the one field consumers
-            // currently depend on for historical accuracy (Lab Insights'
-            // Late Delivery Rate excludes cases whose due date was edited
-            // after their lab period completed - see get-lab-insights.php).
-            // PII fields are intentionally NOT compared here: $existingCase
-            // holds still-encrypted ciphertext from the DB while incoming
-            // $caseData holds plaintext from the request, so a naive
-            // comparison would always appear "changed" for those fields.
+            // Detect meaningful field changes BEFORE the merge below
+            // overwrites $caseData, so callers (and case_updated activity
+            // logging) can tell which fields were edited. Field set and
+            // comparison style mirror the Drive path in updateCase() below
+            // so the audit trail is identical regardless of which path ran.
+            // $existingCase holds still-encrypted PII ciphertext from the DB,
+            // so it is decrypted for comparison only - the merge still uses
+            // the original encrypted values.
             $changedFields = [];
-            if ($existingCase && is_array($existingCase) && array_key_exists('dueDate', $caseData)) {
-                $oldDueDate = $existingCase['dueDate'] ?? null;
-                $newDueDate = $caseData['dueDate'] ?? null;
-                if ($oldDueDate !== $newDueDate) {
-                    $changedFields[] = 'dueDate';
+            if ($existingCase && is_array($existingCase)) {
+                $existingForDiff = PIIEncryption::decryptCaseData($existingCase);
+
+                // Strict comparisons (null and '' are distinct), matching
+                // the Drive path's required-field checks.
+                foreach (['patientFirstName', 'patientLastName', 'patientDOB', 'dentistName',
+                          'caseType', 'dueDate', 'status'] as $field) {
+                    if (array_key_exists($field, $caseData)
+                        && ($existingForDiff[$field] ?? null) !== ($caseData[$field] ?? null)) {
+                        $changedFields[] = $field;
+                    }
                 }
-            }
-            if ($existingCase && is_array($existingCase) && array_key_exists('patientAppointmentDate', $caseData)) {
-                $oldApptDate = $existingCase['patientAppointmentDate'] ?? null;
-                $newApptDate = $caseData['patientAppointmentDate'] ?? null;
-                if ($oldApptDate !== $newApptDate) {
-                    $changedFields[] = 'patientAppointmentDate';
+
+                // Lenient comparisons (null and '' both mean empty), matching
+                // the Drive path's optional-field checks.
+                foreach (['material', 'patientAppointmentDate', 'notes', 'patientGender',
+                          'carrier', 'trackingNumber', 'customCarrier',
+                          'assignedTo', 'toothShade'] as $field) {
+                    if (array_key_exists($field, $caseData)
+                        && ($existingForDiff[$field] ?? '') !== ($caseData[$field] ?? '')) {
+                        $changedFields[] = $field;
+                    }
+                }
+
+                if (array_key_exists('clinicalDetails', $caseData)
+                    && json_encode($existingForDiff['clinicalDetails'] ?? []) !== json_encode($caseData['clinicalDetails'] ?? [])) {
+                    $changedFields[] = 'clinicalDetails';
                 }
             }
 
             // Merge existing case data with new data (new data takes precedence)
             if ($existingCase && is_array($existingCase)) {
                 $caseData = array_merge($existingCase, $caseData);
+            }
+
+            // Server-authoritative status timestamp: when this save actually
+            // transitions the case status, stamp status_changed_at now.
+            // The merged value otherwise just carries the stored one
+            // forward, so a non-status save can never modify it.
+            if (in_array('status', $changedFields, true)) {
+                $caseData['statusChangedAt'] = date('c');
             }
             
             $existingAttachments = [];
@@ -381,7 +401,26 @@ try {
             if (($existingCaseData['customCarrier'] ?? '') !== ($caseData['customCarrier'] ?? '')) {
                 $changedFields[] = 'customCarrier';
             }
-            
+            // Assigned To and Tooth Shade were silently writable without an
+            // audit trail - a lab reassignment via Edit Case is exactly the
+            // kind of change changed_fields exists to record.
+            if (array_key_exists('assignedTo', $caseData)
+                && ($existingCaseData['assignedTo'] ?? '') !== ($caseData['assignedTo'] ?? '')) {
+                $changedFields[] = 'assignedTo';
+            }
+            if (array_key_exists('toothShade', $caseData)
+                && ($existingCaseData['toothShade'] ?? '') !== ($caseData['toothShade'] ?? '')) {
+                $changedFields[] = 'toothShade';
+            }
+
+            // Server-authoritative status timestamp: when this save actually
+            // transitions the case status, stamp status_changed_at now.
+            // statusChangedAt is never copied from $caseData, so a non-status
+            // save (or a stale client-supplied value) cannot modify it.
+            if (in_array('status', $changedFields, true)) {
+                $existingCaseData['statusChangedAt'] = date('c');
+            }
+
             $existingCaseData['patientFirstName'] = $caseData['patientFirstName'];
             $existingCaseData['patientLastName'] = $caseData['patientLastName'];
             $existingCaseData['patientDOB'] = $caseData['patientDOB'];

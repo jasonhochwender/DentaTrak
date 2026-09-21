@@ -16,6 +16,7 @@ require_once __DIR__ . '/cases-cache.php';
 require_once __DIR__ . '/workflow-stages.php';
 require_once __DIR__ . '/google-drive.php';
 require_once __DIR__ . '/case-activity-log.php';
+require_once __DIR__ . '/lab-assignment-history.php';
 require_once __DIR__ . '/encryption.php';
 require_once __DIR__ . '/at-risk-calculator.php';
 require_once __DIR__ . '/case-types.php';
@@ -175,7 +176,24 @@ try {
 
             if ($caseId) {
                 if ($archived || !$driveFolderId) {
-                    deleteCaseFromCache($caseId);
+                    // Soft-archive: keep the cases_cache row (flagged
+                    // archived) so historical fields - case type, due date,
+                    // appointment date, final metadata - survive for
+                    // analytics. Active-case queries filter archived=1, so
+                    // the case still disappears from the board exactly as
+                    // delivered_hide_days intends, and it becomes restorable
+                    // through the existing Archived view like a manually
+                    // archived case.
+                    archiveCaseInCache($caseId);
+
+                    // The case has left active workflow - close any open
+                    // lab-assignment period (e.g. one backfilled open after
+                    // the terminal-status close already ran) so no lab is
+                    // left looking responsible for a hidden case.
+                    try {
+                        closeOpenLabPeriodForCaseRemoval($caseId, $currentPracticeId, 'case_archived');
+                    } catch (Throwable $e) {
+                    }
                 }
 
                 try {

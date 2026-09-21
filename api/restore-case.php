@@ -6,6 +6,7 @@
 
 require_once __DIR__ . '/appConfig.php';
 require_once __DIR__ . '/practice-security.php';
+require_once __DIR__ . '/case-activity-log.php';
 require_once __DIR__ . '/csrf.php';
 
 // Start session if not already started
@@ -56,6 +57,22 @@ try {
     $result = $updateStmt->execute(['case_id' => $caseId]);
     
     if ($result) {
+        // Activity history: mirror the manual-archive event so a restore
+        // never leaves an unexplained gap in the case timeline. Actor is
+        // taken from the session by logCaseActivity(); metadata carries no
+        // PHI (sanitized allowlist).
+        try {
+            logCaseActivity(
+                $caseId,
+                'case_restored',
+                null,
+                $caseInfo['status'] ?? null,
+                ['source' => 'restore-case.php']
+            );
+        } catch (Throwable $e) {
+            error_log('Error logging case_restored activity: ' . $e->getMessage());
+        }
+
         // Update user's case count
         if ($currentPracticeId) {
             $stmt = $pdo->prepare("SELECT COUNT(*) FROM cases_cache WHERE practice_id = ? AND archived = 0");
