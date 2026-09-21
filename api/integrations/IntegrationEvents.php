@@ -35,6 +35,7 @@ require_once __DIR__ . '/IntegrationManager.php';
 require_once __DIR__ . '/SyncEngine.php';
 require_once __DIR__ . '/../CaseService.php';
 require_once __DIR__ . '/../billing-bypass.php';
+require_once __DIR__ . '/../subscription-owner.php';
 require_once __DIR__ . '/../subscription-access.php';
 
 class IntegrationEvents {
@@ -157,7 +158,16 @@ class IntegrationEvents {
         // of writing to cases. The event is finalized as failed and the
         // connection parked 'disabled' so later deliveries short-circuit at
         // the check above; nothing is deleted and re-upgrade can re-enable.
-        if (!hasControlAccess($pdo, (int)$connection['practice_id'], '')) {
+        // The entitlement is the practice's, so the bypass check uses the
+        // subscription OWNER's email (there is no acting user in the worker).
+        $ownerEmail = '';
+        $ownerUserId = getSubscriptionOwnerUserId($pdo, (int)$connection['practice_id']);
+        if ($ownerUserId !== null) {
+            $emailStmt = $pdo->prepare("SELECT email FROM users WHERE id = :id");
+            $emailStmt->execute([':id' => $ownerUserId]);
+            $ownerEmail = (string)($emailStmt->fetchColumn() ?: '');
+        }
+        if (!hasControlAccess($pdo, (int)$connection['practice_id'], $ownerEmail)) {
             self::suspendForPlanEntitlement($pdo, $connection);
             return self::finalize($pdo, $eventId, self::STATUS_FAILED,
                 'Plan entitlement required for integration.');

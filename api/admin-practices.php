@@ -675,7 +675,17 @@ function buildAdminIntegrationStatus($pdo, int $practiceId, array $connectionRow
     $entitled = false;
     if ($pdo instanceof PDO) {
         try {
-            $entitled = hasControlAccess($pdo, $practiceId, '');
+            // Practice-level entitlement: the billing-bypass check applies to
+            // the subscription OWNER's email (an owner's bypass arrangement
+            // entitles the practice; there is no acting user here).
+            $ownerEmail = '';
+            $ownerUserId = getSubscriptionOwnerUserId($pdo, $practiceId);
+            if ($ownerUserId !== null) {
+                $emailStmt = $pdo->prepare("SELECT email FROM users WHERE id = :id");
+                $emailStmt->execute([':id' => $ownerUserId]);
+                $ownerEmail = (string)($emailStmt->fetchColumn() ?: '');
+            }
+            $entitled = hasControlAccess($pdo, $practiceId, $ownerEmail);
         } catch (Throwable $e) {
             $entitled = false;
         }
@@ -918,8 +928,17 @@ function handleGetRequest($action) {
             // Lab Insights is available to a practice's members only when the
             // SHOW_LAB_INSIGHTS flag is on AND the practice has Control-level
             // access - the same gates api/get-lab-insights.php enforces.
+            // There is no acting user here, so the billing-bypass check uses
+            // the subscription owner's email (owner bypass = practice access).
+            $ownerEmailForPractice = '';
+            $ownerUserIdForPractice = getSubscriptionOwnerUserId($pdo, (int)$practiceId);
+            if ($ownerUserIdForPractice !== null) {
+                $emailStmt = $pdo->prepare("SELECT email FROM users WHERE id = :id");
+                $emailStmt->execute([':id' => $ownerUserIdForPractice]);
+                $ownerEmailForPractice = (string)($emailStmt->fetchColumn() ?: '');
+            }
             $labInsightsAvailable = isFeatureEnabled('SHOW_LAB_INSIGHTS')
-                && hasControlAccess($pdo, (int)$practiceId, '');
+                && hasControlAccess($pdo, (int)$practiceId, $ownerEmailForPractice);
             echo json_encode([
                 'success' => true,
                 'users' => $users,

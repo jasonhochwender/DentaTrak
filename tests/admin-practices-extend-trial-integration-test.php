@@ -23,6 +23,12 @@
 
 $base = __DIR__ . '/..';
 
+// Loaded up front (not mid-test) so appConfig's session bootstrap runs before
+// any output. Provides $pdo for stamping fixture terms acceptance.
+require_once $base . '/api/appConfig.php';
+require_once $base . '/api/practice-security.php';
+global $pdo;
+
 $passed = 0;
 $failed = 0;
 
@@ -259,6 +265,10 @@ try {
     // ---------------------------------------------------------------------------
     $multiPracticeId = setupOwner($baseUrl, $multiEmail, 'Multi-Practice Owner');
     $emailsToClean[] = $multiEmail;
+    // Fixture owners must accept the current Terms before the terms-gated
+    // admin POSTs (extend_trial) will succeed.
+    $pdo->prepare("UPDATE users SET terms_accepted_version = :v, terms_accepted_at = NOW() WHERE email = :e")
+        ->execute([':v' => currentTermsVersion(), ':e' => $multiEmail]);
     $multiJar = tempnam(sys_get_temp_dir(), 'cookie');
     $login = loginOwner($baseUrl, $multiEmail, $multiJar);
     $cookie = $login['cookie'];
@@ -336,6 +346,8 @@ try {
     // ---------------------------------------------------------------------------
     $legacyPracticeId = setupOwner($baseUrl, $legacyEmail, 'Legacy Trial Practice');
     $emailsToClean[] = $legacyEmail;
+    $pdo->prepare("UPDATE users SET terms_accepted_version = :v, terms_accepted_at = NOW() WHERE email = :e")
+        ->execute([':v' => currentTermsVersion(), ':e' => $legacyEmail]);
 
     // Simulate a legacy practice with no owner-level subscriptions row.
     $legacyDate = (new DateTimeImmutable('now', new DateTimeZone('UTC')))->add(new DateInterval('P90D'))->format('Y-m-d H:i:s');
