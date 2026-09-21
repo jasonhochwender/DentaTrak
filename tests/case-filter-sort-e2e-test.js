@@ -53,12 +53,18 @@ async function boardIds(page, ids, status = 'Originated') {
     for (const [patientLastName, caseType, dueDate] of [['Zulu', 'Veneer', '2027-03-01'], ['Alpha', 'Veneer', '2027-01-01'], ['Beta', 'Denture', '2027-02-01']]) {
       const r = await context.request.post(BASE + '/api/create-case.php', { form: {
         patientFirstName: marker, patientLastName, patientDOB: '1990-01-01', patientGender: 'Female', dentistName: 'Dr Sort',
-        caseType, dueDate, status: patientLastName === 'Beta' ? 'Designed' : 'Originated', notes: marker, csrf_token: token,
+        caseType, dueDate, notes: marker, csrf_token: token,
         // Veneer requires Material (canonical case-type rule in case-types.php).
         material: caseType === 'Veneer' ? 'Zirconia' : '',
       } });
       const d = await r.json(); assert.equal(d.success, true, JSON.stringify(d));
       const c = d.caseData || d.case || d; ids.push(String(c.id || c.caseId));
+      // create-case.php always lands new cases in the first workflow stage;
+      // fixtures move cases afterward via the status endpoint.
+      if (patientLastName === 'Beta') {
+        const mv = await context.request.post(BASE + '/api/update-case-status.php', { headers: { 'X-CSRF-Token': token }, data: { caseId: ids[ids.length - 1], status: 'Designed' } });
+        assert.equal((await mv.json()).success, true, 'move Beta to Designed');
+      }
     }
     await open(page);
     await page.click('#kanbanFilterToggle');

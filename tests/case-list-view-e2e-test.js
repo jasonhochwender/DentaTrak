@@ -31,6 +31,7 @@ async function login(context) {
 
 async function createCase(page, overrides) {
   const csrf = await page.$eval('meta[name="csrf-token"]', el => el.content);
+  const { status: wantedStatus, ...rest } = overrides || {};
   const data = Object.assign({
     patientFirstName: TEST_MARKER,
     patientLastName: 'Alpha',
@@ -40,11 +41,10 @@ async function createCase(page, overrides) {
     caseType: 'Veneer',
     material: 'Zirconia', // Veneer requires Material (canonical rule)
     dueDate: '2026-12-15',
-    status: 'Originated',
     notes: TEST_MARKER + ' seeded case',
     assignedTo: EMAIL,
     csrf_token: csrf,
-  }, overrides);
+  }, rest);
   const body = new URLSearchParams(data).toString();
   const res = await page.evaluate(async ({ url, body }) => {
     const r = await fetch(url, {
@@ -55,7 +55,21 @@ async function createCase(page, overrides) {
     });
     return r.json();
   }, { url: `${BASE}/api/create-case.php`, body });
-  return res.caseData || res.case || res;
+  const created = res.caseData || res.case || res;
+  // create-case.php derives the first workflow stage itself; a requested
+  // status is applied afterward through the status endpoint.
+  const createdId = created && (created.id || created.caseId || created.case_id);
+  if (wantedStatus && wantedStatus !== 'Originated' && createdId) {
+    await page.evaluate(async ({ url, body }) => {
+      await fetch(url, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': body.csrf_token },
+        body: JSON.stringify({ caseId: body.caseId, status: body.status }),
+      });
+    }, { url: `${BASE}/api/update-case-status.php`, body: { caseId: createdId, status: wantedStatus, csrf_token: csrf } });
+  }
+  return created;
 }
 
 async function deleteTestCases(page, ids) {

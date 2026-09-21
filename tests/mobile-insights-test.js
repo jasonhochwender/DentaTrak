@@ -221,7 +221,6 @@ async function createCase(page, status, caseType = 'Bite Rim') {
     dentistName: 'Dr. Test',
     caseType: caseType,
     dueDate: '2026-09-06',
-    status: status,
     notes: TEST_MARKER + ' mobile insights test case',
     assignedTo: EMAIL,
     csrf_token: csrf,
@@ -235,6 +234,20 @@ async function createCase(page, status, caseType = 'Bite Rim') {
     });
     return r.json();
   }, { url: `${BASE}/api/create-case.php`, body: body });
+  // create-case.php derives the first workflow stage itself; a requested
+  // status is applied afterward through the status endpoint.
+  const created = res && (res.caseData || res.case || res);
+  const createdId = created && (created.id || created.caseId || created.case_id);
+  if (res && res.success && createdId && status !== 'Originated') {
+    await page.evaluate(async ({ url, body }) => {
+      await fetch(url, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': body.csrf_token },
+        body: JSON.stringify({ caseId: body.caseId, status: body.status }),
+      });
+    }, { url: `${BASE}/api/update-case-status.php`, body: { caseId: createdId, status, csrf_token: csrf } });
+  }
   return res;
 }
 

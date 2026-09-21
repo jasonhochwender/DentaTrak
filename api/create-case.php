@@ -130,6 +130,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 
+    // Status is never a client input on create: new cases always enter the
+    // practice's first active workflow stage (derived below), so it is not
+    // collected as a required field even though case_required_fields marks
+    // it required for the update path.
+    $requiredFields = array_values(array_diff($requiredFields, ['status']));
+
     $caseData = [];
     $missingFields = [];
 
@@ -315,20 +321,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     }
 
-    // Authoritative status validation: when a status is supplied, it must
-    // be one of the six internal workflow values defined by
-    // getWorkflowStageOrder() (cases-cache.php). Reject anything else
-    // outright rather than silently coercing it, so an unrecognized string
-    // (e.g. a future custom display label) can never be persisted.
-    if (isset($caseData['status']) && !isValidWorkflowStatusForPractice($caseData['status'], $currentPracticeId)) {
-        http_response_code(400);
-        echo json_encode([
-            'success' => false,
-            'message' => t('api.cases.invalid_status'),
-            'field' => 'status'
-        ]);
-        exit;
-    }
+    // Authoritative create-time status: new cases always land in the
+    // practice's first active workflow column (same canonical default the
+    // integration import path uses). Any client-submitted status is
+    // discarded - the create endpoint cannot be used to jump stages, and
+    // update-case.php remains the only web path that changes status.
+    $caseData['status'] = getFirstActiveWorkflowColumnId($currentPracticeId);
 
     // Process GCS file uploads (if any).
     // SECURITY: Attachment metadata is verified server-side against the

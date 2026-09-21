@@ -175,12 +175,14 @@
   }
 }
 
-/* Explicit Record Remake action in the case-modal footer (active cases only -
-   populated/hidden by app.js alongside the other edit-mode controls). */
+/* Explicit Record Remake action inside the Remake History header row
+   (active saved cases only - populated/hidden by app.js alongside the
+   other edit-mode controls). */
 .btn-remake-action {
   margin-left: auto;
-  padding: 8px 14px;
-  font-size: 0.85rem;
+  flex-shrink: 0;
+  padding: 5px 10px;
+  font-size: 0.8rem;
   font-weight: 500;
   border: 1px solid var(--border-medium, #d5dce4);
   border-radius: 6px;
@@ -199,16 +201,9 @@
   outline-offset: 2px;
 }
 
-@media (max-width: 480px) {
-  .btn-remake-action {
-    margin-left: 0;
-    flex: 1 1 100%;
-    order: 3;
-  }
-}
-
-/* Remake History strip in the case modal (Details tab). Compact and
-   collapsible; only rendered when the case has structured remakes. */
+/* Remake History strip in the case modal (Details tab). Collapsed state
+   is a single compact row: title + count + latest summary on the toggle,
+   Record Remake on the right. Expanded state lists full remake cards. */
 .remake-history-strip {
   margin: 0 0 16px;
   border: 1px solid var(--border-light, #e3e8ef);
@@ -216,12 +211,20 @@
   background: var(--dt-surface-alt, #f8fafc);
 }
 
+.remake-history-strip-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 10px;
+}
+
 .remake-history-strip-header {
   display: flex;
   align-items: center;
   gap: 8px;
-  width: 100%;
-  padding: 9px 12px;
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 3px 2px;
   background: none;
   border: none;
   cursor: pointer;
@@ -229,9 +232,23 @@
   text-align: left;
 }
 
+.remake-history-strip-header:disabled {
+  cursor: default;
+  color: inherit;
+}
+
+/* No remakes yet: the strip is a one-row "Remake History - Record
+   Remake" action area with nothing to expand. */
+.remake-history-empty .remake-history-strip-count,
+.remake-history-empty .remake-history-strip-summary,
+.remake-history-empty .remake-history-strip-caret {
+  display: none;
+}
+
 .remake-history-strip-label {
   font-size: 0.78rem;
   font-weight: 600;
+  white-space: nowrap;
   text-transform: uppercase;
   letter-spacing: 0.04em;
   color: var(--text-secondary, #5f6b7a);
@@ -279,11 +296,27 @@
   overflow-y: auto;
 }
 
+/* The hidden attribute loses to display:flex above, so the collapsed
+   state needs an explicit rule - without it the list renders even when
+   hidden is set. */
+.remake-history-strip-list[hidden] {
+  display: none;
+}
+
 .remake-history-strip-list .remake-item {
   background: var(--background-white, #fff);
 }
 
 @media (max-width: 480px) {
+  .remake-history-strip-row {
+    flex-wrap: wrap;
+  }
+  .remake-history-strip-header {
+    flex: 1 1 100%;
+  }
+  .remake-history-strip-row .btn-remake-action {
+    margin-left: 0;
+  }
   .remake-history-strip-list .remake-item-meta {
     word-break: break-word;
   }

@@ -193,13 +193,18 @@
     var caseType = getElement('caseType');
     insertSectionHeading(caseType, 'case', tOr('cases.case_details', 'Case Details'), 'beforeparent');
 
+    // Workflow — style the existing section title (Status / Assigned To /
+    // Review Status; Status itself is hidden in Create Case)
+    var workflowTitle = form.querySelector('.workflow-title');
+    styleExistingHeading(workflowTitle, 'workflow');
+
     // Clinical Details — style the existing conditional section title
     var clinicalTitle = form.querySelector('.clinical-details-title');
     styleExistingHeading(clinicalTitle, 'clinical');
 
-    // Scheduling and Assignment — before the date/status grid
+    // Scheduling — before the dates grid (Due Date / Appointment / Notes)
     var dateGrid = form.querySelector('.modal-form-grid.date-status-row');
-    insertSectionHeading(dateGrid, 'scheduling', tOr('cases.scheduling', 'Scheduling and Assignment'), 'before');
+    insertSectionHeading(dateGrid, 'scheduling', tOr('cases.scheduling', 'Scheduling'), 'before');
 
     // Notes — before the notes field (inside the scheduling grid)
     var notes = getElement('notes');

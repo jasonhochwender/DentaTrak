@@ -2540,17 +2540,16 @@ body {
   grid-column: 1 / -1;
 }
 
-/* Compact metadata row in the case modal header area (Created By,
-   review status, Record Remake) - only shown for saved cases. */
+/* Compact provenance line under the case-modal tabs (Created By only) -
+   muted, single-line metadata for saved cases. */
 .case-modal-meta {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
   gap: 6px 16px;
-  padding: 6px 0 10px;
-  margin-bottom: 4px;
-  border-bottom: 1px solid var(--border-light, #e3e8ef);
+  padding: 4px 0 8px;
   font-size: 0.8rem;
+  color: var(--text-secondary, #5f6b7a);
 }
 
 .case-meta-item {
@@ -2568,23 +2567,40 @@ body {
 }
 
 .case-meta-value {
-  color: var(--text-primary, #1f2a37);
+  color: var(--text-secondary, #5f6b7a);
   font-weight: 500;
 }
 
-.case-modal-meta .review-status-field {
-  display: inline-flex;
-  margin-bottom: 0;
+/* Workflow section - operational state (Status / Assigned To / Review
+   Status) grouped directly under the core identifying fields. Title
+   mirrors .clinical-details-title so sections read consistently. */
+.workflow-section {
+  margin: 20px 0 4px;
 }
 
-.case-modal-meta .btn-remake-action {
-  margin-left: auto;
+.workflow-title {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: #334155;
+  margin: 0 0 12px 0;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #e2e8f0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
-@media (max-width: 480px) {
-  .case-modal-meta .btn-remake-action {
-    margin-left: 0;
-  }
+.workflow-title::before {
+  content: '';
+  display: inline-block;
+  width: 4px;
+  height: 16px;
+  background: #0ea5e9;
+  border-radius: 2px;
+}
+
+.workflow-section .review-status-field {
+  margin-top: 12px;
 }
 
 .required {

@@ -195,6 +195,8 @@
         "attachments_optional": "Attachments (optional)",
         "select_files": "Select files",
         "clinical_details": "Clinical Details",
+        "workflow": "Workflow",
+        "scheduling": "Scheduling",
         "no_cases_in_stage": "No cases in this stage.",
         "no_cases_found": "No cases found.",
         "loading": "Loading case...",

@@ -59,11 +59,16 @@ function check(name, value) { assert.ok(value, name); checks++; console.log('PAS
     for (const [status, dueDate] of [['Designed', '2027-01-01'], ['Originated', '2027-03-01']]) {
       const response = await owner.request.post(BASE + '/api/create-case.php', { form: {
         csrf_token: ownerToken, patientFirstName: 'DentaTrakTest', patientLastName: suffix,
-        patientDOB: '1990-01-01', patientGender: 'Female', dentistName: 'Dr Sort', caseType: 'Veneer', status, dueDate,
+        patientDOB: '1990-01-01', patientGender: 'Female', dentistName: 'Dr Sort', caseType: 'Veneer', dueDate,
         material: 'Zirconia', // Veneer requires Material (canonical rule)
       } });
       const result = await response.json(); assert.equal(result.success, true, JSON.stringify(result));
       const c = result.caseData || result.case || result; caseIds.push(String(c.id || c.caseId));
+      // New cases always start in the first workflow stage; move afterward.
+      if (status !== 'Originated') {
+        const mv = await owner.request.post(BASE + '/api/update-case-status.php', { headers: { 'X-CSRF-Token': ownerToken }, data: { caseId: caseIds[caseIds.length - 1], status } });
+        assert.equal((await mv.json()).success, true, 'move to ' + status);
+      }
     }
     await loaded();
     await page.evaluate(() => window.caseFilterSort.setSort([{ field: 'due', direction: 'asc' }]));

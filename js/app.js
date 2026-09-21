@@ -5146,10 +5146,10 @@ document.addEventListener('DOMContentLoaded', function () {
       resetCaseTypeSelect(document.getElementById('caseType'));
     }
 
-    // Hide the saved-case meta row (Created By / review / Record Remake)
-    // and collapse the empty shipping section for the fresh form.
-    var caseMeta = document.getElementById('caseModalMeta');
-    if (caseMeta) caseMeta.style.display = 'none';
+    // Hide the saved-case meta row (Created By) and restore the edit-only
+    // Status field to its create-mode hidden/disabled state, then collapse
+    // the empty shipping section for the fresh form.
+    updateCaseModalMeta();
     updateShippingSectionState();
 
     var newCaseRemakeBtn = document.getElementById('recordRemakeBtn');
@@ -5838,14 +5838,29 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   }
 
-  /** Show/hide the modal meta row (Created By, review status, Record
-      Remake) - only meaningful for saved cases. */
+  /** Show/hide modal chrome that depends on saved-vs-new state: the meta
+      row (Created By) and the Status field. Status is edit-only - new
+      cases always enter the practice's first active workflow stage, which
+      create-case.php derives server-side, so the select is hidden,
+      non-required, and disabled for Create Case. */
   function updateCaseModalMeta() {
     var meta = document.getElementById('caseModalMeta');
     var form = document.getElementById('createCaseForm');
     if (!meta || !form) return;
     var isUpdate = !!(form.dataset && form.dataset.caseId);
     meta.style.display = isUpdate ? '' : 'none';
+
+    var statusWrap = document.getElementById('statusFieldWrap');
+    var status = document.getElementById('status');
+    if (statusWrap && status) {
+      statusWrap.style.display = isUpdate ? '' : 'none';
+      status.disabled = !isUpdate;
+      if (isUpdate) {
+        status.setAttribute('required', '');
+      } else {
+        status.removeAttribute('required');
+      }
+    }
   }
 
   /** Expand the shipping section only when it holds values; otherwise
@@ -7182,11 +7197,12 @@ document.addEventListener('DOMContentLoaded', function () {
         // Build FormData WITHOUT file binaries - only text fields
         var formData = new FormData();
 
-        // Copy all non-file form fields
+        // Copy all non-file form fields (disabled controls - e.g. the
+        // edit-only Status select in Create Case - are never submitted)
         var formElements = form.elements;
         for (var i = 0; i < formElements.length; i++) {
           var el = formElements[i];
-          if (el.name && el.type !== 'file' && el.type !== 'submit' && el.type !== 'button') {
+          if (el.name && !el.disabled && el.type !== 'file' && el.type !== 'submit' && el.type !== 'button') {
             formData.append(el.name, el.value);
           }
         }

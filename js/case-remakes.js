@@ -251,7 +251,16 @@
      strip area, and cached results are reused when available. */
   function hideCaseRemakeHistory() {
     var strip = document.getElementById('caseRemakeHistory');
-    if (strip) strip.style.display = 'none';
+    if (!strip) return;
+    strip.style.display = 'none';
+    strip.classList.remove('remake-history-empty');
+    var toggle = document.getElementById('caseRemakeHistoryToggle');
+    var list = document.getElementById('caseRemakeHistoryList');
+    if (toggle) {
+      toggle.setAttribute('aria-expanded', 'false');
+      toggle.disabled = false;
+    }
+    if (list) list.hidden = true;
   }
 
   /* Collapsed-state summary: "Latest: Fit issue · Lab-related · In
@@ -274,18 +283,36 @@
     var list = document.getElementById('caseRemakeHistoryList');
     var count = document.getElementById('caseRemakeHistoryCount');
     var summary = document.getElementById('caseRemakeHistorySummary');
+    var toggle = document.getElementById('caseRemakeHistoryToggle');
+    var recordBtn = document.getElementById('recordRemakeBtn');
     if (!strip || !list) return;
 
-    if (!remakes || remakes.length === 0) {
-      strip.style.display = 'none';
+    var hasRemakes = !!(remakes && remakes.length > 0);
+    // app.js decides Record Remake visibility (saved, non-archived); when
+    // it is offered, the strip stays as a compact one-row action area even
+    // with no history to expand.
+    var canRecord = !!(recordBtn && !recordBtn.hidden);
+
+    if (!hasRemakes && !canRecord) {
+      hideCaseRemakeHistory();
       return;
     }
 
-    list.innerHTML = remakes.map(function (r) {
-      return remakeItemHtml(r, !archived, t('remakes.in_progress'));
-    }).join('');
-    if (count) count.textContent = '(' + remakes.length + ')';
-    if (summary) summary.textContent = remakeSummaryText(remakes);
+    list.innerHTML = hasRemakes
+      ? remakes.map(function (r) {
+          return remakeItemHtml(r, !archived, t('remakes.in_progress'));
+        }).join('')
+      : '';
+    if (count) count.textContent = hasRemakes ? '(' + remakes.length + ')' : '';
+    if (summary) summary.textContent = hasRemakes ? remakeSummaryText(remakes) : '';
+    strip.classList.toggle('remake-history-empty', !hasRemakes);
+    if (toggle) {
+      // Every open starts collapsed; when there is nothing to expand the
+      // header is a label row, not a control.
+      toggle.setAttribute('aria-expanded', 'false');
+      toggle.disabled = !hasRemakes;
+    }
+    list.hidden = true;
     strip.style.display = '';
   }
 
@@ -298,11 +325,15 @@
     list.innerHTML = '<p class="remake-empty">' + esc(t('remakes.history_load_error')) + '</p>';
     if (count) count.textContent = '';
     if (summary) summary.textContent = '';
+    strip.classList.remove('remake-history-empty');
     // Expand so the error is visible even though the strip defaults to
     // collapsed.
     list.hidden = false;
     var toggle = document.getElementById('caseRemakeHistoryToggle');
-    if (toggle) toggle.setAttribute('aria-expanded', 'true');
+    if (toggle) {
+      toggle.setAttribute('aria-expanded', 'true');
+      toggle.disabled = false;
+    }
     strip.style.display = '';
   }
 
