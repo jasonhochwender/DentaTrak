@@ -38,6 +38,7 @@ require_once __DIR__ . '/api/practice-security.php';
 // any billing UI in the first paint, so the link does not flash on load and
 // then get hidden by client-side JavaScript.
 require_once __DIR__ . '/api/billing-bypass.php';
+require_once __DIR__ . '/api/remakes.php';
 
 // Set security headers for this page
 setSecurityHeaders();
@@ -606,6 +607,7 @@ if (isset($appConfig) && is_array($appConfig) && isset($appConfig['appName'])) {
   <link rel="preload" href="css/case-list.css?v=20260916b" as="style" onload="this.onload=null;this.rel='stylesheet'">
   <link rel="preload" href="css/case-creation.css?v=20241210" as="style" onload="this.onload=null;this.rel='stylesheet'">
   <link rel="preload" href="css/case-comments.css?v=20260909a" as="style" onload="this.onload=null;this.rel='stylesheet'">
+  <link rel="preload" href="css/case-remakes.css?v=20260922a" as="style" onload="this.onload=null;this.rel='stylesheet'">
   <link rel="preload" href="css/activity-timeline.css?v=20241230" as="style" onload="this.onload=null;this.rel='stylesheet'">
   <link rel="preload" href="css/insights.css?v=20241230" as="style" onload="this.onload=null;this.rel='stylesheet'">
   <link rel="preload" href="css/at-risk.css?v=20241231" as="style" onload="this.onload=null;this.rel='stylesheet'">
@@ -633,6 +635,7 @@ if (isset($appConfig) && is_array($appConfig) && isset($appConfig['appName'])) {
     <link rel="stylesheet" href="css/case-list.css?v=20260916b">
     <link rel="stylesheet" href="css/case-creation.css?v=20241210">
     <link rel="stylesheet" href="css/case-comments.css?v=20260909a">
+    <link rel="stylesheet" href="css/case-remakes.css?v=20260922a">
     <link rel="stylesheet" href="css/activity-timeline.css?v=20241230">
     <link rel="stylesheet" href="css/insights.css?v=20241230">
     <link rel="stylesheet" href="css/at-risk.css?v=20241231">
@@ -2201,6 +2204,61 @@ endif;
         </div>
       </div>
 
+      <!-- Record Remake Modal -->
+      <div id="remakeModal" class="modal">
+        <div class="modal-content remake-modal">
+          <div class="modal-header">
+            <h2 class="modal-title"><?php echo t('remakes.modal_title'); ?></h2>
+            <button type="button" class="btn-close" id="remakeModalClose"><span>&times;</span></button>
+          </div>
+
+          <div class="modal-body">
+            <p class="remake-modal-subtitle"><?php echo t('remakes.modal_subtitle'); ?></p>
+            <div id="remakeModalError" class="remake-error" role="alert" hidden></div>
+
+            <div class="form-field">
+              <label for="remakeReason"><?php echo t('remakes.reason_label'); ?> <span class="required">*</span></label>
+              <select id="remakeReason" name="remakeReason">
+                <option value=""><?php echo t('remakes.reason_placeholder'); ?></option>
+                <?php foreach (getRemakeReasons() as $remakeCode => $remakeKey): ?>
+                <option value="<?php echo $remakeCode; ?>"><?php echo t($remakeKey); ?></option>
+                <?php endforeach; ?>
+              </select>
+            </div>
+
+            <div class="form-field">
+              <label for="remakeAttribution"><?php echo t('remakes.attribution_label'); ?> <span class="required">*</span></label>
+              <select id="remakeAttribution" name="remakeAttribution">
+                <option value=""><?php echo t('remakes.attribution_placeholder'); ?></option>
+                <?php foreach (getRemakeAttributions() as $remakeCode => $remakeKey): ?>
+                <option value="<?php echo $remakeCode; ?>"><?php echo t($remakeKey); ?></option>
+                <?php endforeach; ?>
+              </select>
+              <p class="remake-field-hint"><?php echo t('remakes.attribution_hint'); ?></p>
+            </div>
+
+            <div class="form-field">
+              <label for="remakeNotes"><?php echo t('remakes.notes_label'); ?></label>
+              <textarea id="remakeNotes" name="remakeNotes" rows="3" maxlength="2000"
+                        placeholder="<?php echo t('remakes.notes_placeholder'); ?>"></textarea>
+              <p id="remakeOtherHint" class="remake-field-hint" hidden><?php echo t('remakes.notes_other_hint'); ?></p>
+            </div>
+
+            <div class="remake-history-block">
+              <h3 class="remake-history-heading"><?php echo t('remakes.history_heading'); ?></h3>
+              <div id="remakeHistoryList" class="remake-history-list">
+                <p class="remake-empty"><?php echo t('remakes.empty'); ?></p>
+              </div>
+            </div>
+          </div>
+
+          <div class="modal-footer">
+            <button type="button" class="btn-primary" id="remakeSubmit"><?php echo t('remakes.submit'); ?></button>
+            <button type="button" class="btn-cancel" id="remakeCancel"><?php echo t('common.cancel'); ?></button>
+          </div>
+        </div>
+      </div>
+
       <!-- Feedback Success Modal -->
       <div id="feedbackSuccessModal" class="modal">
         <div class="modal-content feedback-success-modal">
@@ -3326,6 +3384,7 @@ endif;
   <script src="js/realtime-updates.js?v=20260916b" defer></script>
   <script src="js/case-list.js?v=20260916d" defer></script>
   <script src="js/case-actions-menu.js?v=20260916d" defer></script>
+  <script src="js/case-remakes.js?v=20260922a" defer></script>
   
 <?php if ($showDevTools): ?>
 <!-- Dev Tools JavaScript -->

@@ -86,6 +86,16 @@
       
       case 'case_restored':
         return 'Restored';
+
+      case 'remake_initiated':
+        var remakeReason = meta.remake_reason ? t('remakes.reasons.' + meta.remake_reason) : '';
+        if (remakeReason && remakeReason.indexOf('remakes.') !== 0) {
+          return 'Remake #' + (meta.remake_number || '?') + ' - ' + remakeReason;
+        }
+        return 'Remake #' + (meta.remake_number || '?') + ' recorded';
+
+      case 'remake_completed':
+        return 'Remake #' + (meta.remake_number || '?') + ' completed';
       
       case 'labels_updated':
         return 'Labels';

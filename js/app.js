@@ -4568,6 +4568,18 @@ document.addEventListener('DOMContentLoaded', function () {
         case 'case_restored':
           description = 'Case restored by ' + userName;
           break;
+        case 'remake_initiated':
+          var remakeReasonLabel = evt.meta && evt.meta.remake_reason ? t('remakes.reasons.' + evt.meta.remake_reason) : '';
+          var remakeAttributionLabel = evt.meta && evt.meta.remake_attribution ? t('remakes.attribution.' + evt.meta.remake_attribution) : '';
+          if (remakeReasonLabel && remakeReasonLabel.indexOf('remakes.') === 0) remakeReasonLabel = '';
+          if (remakeAttributionLabel && remakeAttributionLabel.indexOf('remakes.') === 0) remakeAttributionLabel = '';
+          var remakeDetail = remakeReasonLabel + (remakeAttributionLabel ? ' (' + remakeAttributionLabel + ')' : '');
+          description = 'Remake #' + (evt.meta && evt.meta.remake_number || '?') +
+            (remakeDetail ? ' recorded: ' + remakeDetail : ' recorded') + ' by ' + userName;
+          break;
+        case 'remake_completed':
+          description = 'Remake #' + (evt.meta && evt.meta.remake_number || '?') + ' marked complete by ' + userName;
+          break;
         case 'source_deleted':
           if (evt.meta && evt.meta.source === 'integration:open_dental') {
             description = 'Source lab case was deleted in Open Dental';

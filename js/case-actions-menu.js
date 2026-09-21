@@ -139,6 +139,9 @@
 
     parts.push('<button type="button" class="case-actions-menu-item" data-action="edit" role="menuitem">' + esc(t('common.edit')) + '</button>');
     parts.push('<button type="button" class="case-actions-menu-item" data-action="print" role="menuitem">' + esc(t('common.print')) + '</button>');
+    if (!cardData.archived) {
+      parts.push('<button type="button" class="case-actions-menu-item" data-action="remake" role="menuitem">' + esc(t('remakes.record_remake')) + '</button>');
+    }
 
     var showArchive = isArchiveAllowed() && !cardData.archived;
     if (showArchive) {
@@ -264,6 +267,13 @@
     } else if (action === 'print') {
       close(true);
       if (typeof window.printCase === 'function') window.printCase(cardData);
+    } else if (action === 'remake') {
+      close(false);
+      if (window.isPrintingCase) return;
+      if (cardData && cardData.archived) return;
+      if (typeof window.openCaseRemakesModal === 'function') {
+        window.openCaseRemakesModal(ctx.caseId);
+      }
     } else if (action === 'archive') {
       close(false);
       if (window.isPrintingCase) return;

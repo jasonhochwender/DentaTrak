@@ -1,0 +1,135 @@
+/* Record Remake modal - mirrors the case-comments / delete-confirm
+   styling conventions (modal-content + form-field + btn-*). */
+
+.remake-modal {
+  max-width: 480px;
+  width: 92%;
+}
+
+.remake-modal-subtitle {
+  margin: 0 0 16px;
+  font-size: 0.85rem;
+  color: var(--text-secondary, #5f6b7a);
+  line-height: 1.45;
+}
+
+.remake-error {
+  margin: 0 0 12px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  background: #fdecea;
+  border: 1px solid #f5c6c0;
+  color: #a32b1f;
+  font-size: 0.85rem;
+}
+
+.remake-field-hint {
+  margin: 4px 0 0;
+  font-size: 0.75rem;
+  color: var(--text-secondary, #5f6b7a);
+}
+
+.remake-history-block {
+  margin-top: 20px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border-light, #e3e8ef);
+}
+
+.remake-history-heading {
+  margin: 0 0 10px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-secondary, #5f6b7a);
+}
+
+.remake-history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.remake-empty {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--text-secondary, #5f6b7a);
+}
+
+.remake-item {
+  padding: 10px 12px;
+  border: 1px solid var(--border-light, #e3e8ef);
+  border-radius: 8px;
+  background: var(--background-subtle, #f8fafc);
+}
+
+.remake-item-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.remake-item-title {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-primary, #1f2a37);
+}
+
+.remake-status {
+  flex-shrink: 0;
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 999px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.remake-status-open {
+  background: #fff4d6;
+  color: #8a6100;
+}
+
+.remake-status-completed {
+  background: #e3f4e6;
+  color: #1e7b34;
+}
+
+.remake-item-meta {
+  margin: 0;
+  font-size: 0.78rem;
+  color: var(--text-secondary, #5f6b7a);
+  line-height: 1.5;
+}
+
+.remake-item-notes {
+  margin: 6px 0 0;
+  font-size: 0.8rem;
+  color: var(--text-primary, #1f2a37);
+  white-space: pre-wrap;
+}
+
+.remake-complete-btn {
+  margin-top: 6px;
+  padding: 4px 10px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  border: 1px solid var(--border-medium, #d5dce4);
+  border-radius: 6px;
+  background: var(--background-white, #fff);
+  color: var(--text-primary, #1f2a37);
+  cursor: pointer;
+}
+
+.remake-complete-btn:hover {
+  background: var(--dt-surface-alt, #f1f5f9);
+}
+
+.remake-complete-btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}

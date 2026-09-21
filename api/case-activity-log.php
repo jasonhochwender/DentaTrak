@@ -43,6 +43,13 @@ function sanitizeCaseActivityMeta(array $meta) {
         'integration',
         'external_event_id',
         'notes_truncated',
+        // Remake tracking: stable codes/ids only - reason and attribution
+        // are enum-like codes (not free text), so no PHI can leak through.
+        'remake_id',
+        'remake_number',
+        'remake_reason',
+        'remake_attribution',
+        'lab_period_id',
     ];
 
     $clean = [];
@@ -60,7 +67,7 @@ function sanitizeCaseActivityMeta(array $meta) {
     }
 
     // Ensure numeric fields are numeric
-    foreach (['delivered_hide_days', 'count', 'files_deleted', 'fields_count', 'attachment_count', 'reviewed_by_user_id', 'review_status_changed_by_user_id'] as $numKey) {
+    foreach (['delivered_hide_days', 'count', 'files_deleted', 'fields_count', 'attachment_count', 'reviewed_by_user_id', 'review_status_changed_by_user_id', 'remake_id', 'remake_number', 'lab_period_id'] as $numKey) {
         if (isset($clean[$numKey]) && is_numeric($clean[$numKey])) {
             $clean[$numKey] = (int)$clean[$numKey];
         }
