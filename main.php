@@ -1668,6 +1668,9 @@ endif;
 <?php endif; ?>
               </div>
 
+              <!-- Legacy Lab Insights layout - rendered when the performance
+                   metrics layer is unavailable (performance: null) -->
+              <div id="liLegacy">
               <!-- Summary Cards -->
               <div class="ap-metrics-grid li-summary-grid">
                 <div class="ap-metric-card accent-blue">
@@ -1738,6 +1741,72 @@ endif;
                 <div class="ap-chart-card full-width">
                   <div class="ap-chart-container">
                     <canvas id="liTrendChart" role="img" aria-label="Lab case trend chart"></canvas>
+                  </div>
+                </div>
+              </div>
+              </div><!-- /#liLegacy -->
+
+              <!-- Lab Performance Intelligence layout (drives off the
+                   additive `performance` payload from get-lab-insights.php) -->
+              <div id="liPerf" style="display: none;">
+                <div class="ap-metrics-grid li-summary-grid" id="liPerfSummary"></div>
+
+                <div class="ap-section li-inner-section">
+                  <div class="ap-section-header">
+                    <div>
+                      <h2 class="ap-section-title"><?= t('insights.perf.sections.lab_performance') ?></h2>
+                      <p class="ap-section-subtitle"><?= t('insights.perf.sections.lab_performance_subtitle') ?></p>
+                    </div>
+                  </div>
+                  <div class="li-table-wrap">
+                    <table class="li-table" id="liPerfTable">
+                      <thead>
+                        <tr>
+                          <th data-sort="name"><?= t('insights.perf.table.lab') ?></th>
+                          <th data-sort="cases"><?= t('insights.perf.table.cases') ?></th>
+                          <th data-sort="turnaround"><?= t('insights.perf.table.avg_turnaround') ?></th>
+                          <th data-sort="onTime"><?= t('insights.perf.table.on_time') ?></th>
+                          <th data-sort="remakeRate"><?= t('insights.perf.table.remake_rate') ?></th>
+                          <th data-sort="labAttrRate"><?= t('insights.perf.table.lab_attributed') ?></th>
+                          <th data-sort="workload"><?= t('insights.perf.table.current_workload') ?></th>
+                        </tr>
+                      </thead>
+                      <tbody id="liPerfTableBody"></tbody>
+                    </table>
+                  </div>
+                  <p class="li-table-footnote"><?= t('insights.perf.context.workload_now_note') ?></p>
+                </div>
+
+                <div class="ap-section li-inner-section" id="liLabDetail" style="display: none;">
+                  <div class="ap-section-header">
+                    <div>
+                      <h2 class="ap-section-title" id="liLabDetailTitle"><?= t('insights.perf.detail.title') ?></h2>
+                      <p class="ap-section-subtitle" id="liLabDetailSubtitle"></p>
+                    </div>
+                    <select class="ap-select" id="liLabDetailSelect" aria-label="<?= t('insights.perf.detail.select_label') ?>"></select>
+                  </div>
+                  <div id="liLabDetailBody"></div>
+                </div>
+
+                <div class="ap-section li-inner-section" id="liRevisionsSection" style="display: none;">
+                  <div class="ap-section-header">
+                    <div>
+                      <h2 class="ap-section-title"><?= t('insights.perf.revisions.title') ?></h2>
+                      <p class="ap-section-subtitle"><?= t('insights.perf.revisions.subtitle') ?></p>
+                    </div>
+                  </div>
+                  <p class="li-revision-note"><?= t('insights.perf.revisions.note') ?></p>
+                  <div class="li-table-wrap">
+                    <table class="li-table">
+                      <thead>
+                        <tr>
+                          <th><?= t('insights.perf.table.lab') ?></th>
+                          <th><?= t('insights.perf.revisions.count_header') ?></th>
+                          <th><?= t('insights.perf.revisions.rate_header') ?></th>
+                        </tr>
+                      </thead>
+                      <tbody id="liRevisionsBody"></tbody>
+                    </table>
                   </div>
                 </div>
               </div>

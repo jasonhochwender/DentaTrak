@@ -708,8 +708,8 @@ try {
         'fit_issue', 'fit_issue', 'fit_issue', 'shade_color', 'shade_color',
         'esthetics', 'occlusion_bite', 'margins', 'contacts', 'incorrect_design',
         'incorrect_material', 'damage_breakage', 'missing_incorrect_item',
-        'scan_impression_issue', 'prescription_instruction',
-        'patient_related_change', 'practice_requested_change', 'lab_error', 'other',
+        'scan_impression', 'prescription_instruction',
+        'patient_change', 'practice_requested', 'lab_error', 'other',
     ];
     $demoRemakeAttributions = [
         'lab_related', 'lab_related', 'lab_related', 'lab_related',

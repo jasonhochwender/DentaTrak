@@ -182,8 +182,203 @@
    .dt-tooltip-layer (js/app.js), which positions itself from the trigger's
    viewport rect, so they are no longer clipped by .li-table-wrap. */
 
+/* ── Lab Performance Intelligence layout ─────────────────────────────── */
+
+/* Small contextual line under a metric value (sample size, benchmark,
+   coverage, previous period). Kept muted so it reads as context, not a
+   second value. */
+.li-metric-note {
+  margin-top: 4px;
+  font-size: 0.72rem;
+  font-weight: 400;
+  line-height: 1.35;
+  color: var(--text-secondary);
+}
+
+.li-value-muted {
+  color: var(--text-secondary);
+}
+
+.li-table td .li-metric-note {
+  white-space: normal;
+  max-width: 180px;
+}
+
+.li-table-footnote {
+  margin: 8px 4px 0;
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+.li-lab-row-selected {
+  background: var(--background-subtle);
+  box-shadow: inset 3px 0 0 var(--primary-color);
+}
+
+/* Lab detail */
+.li-detail-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 12px;
+  margin: 4px 0 8px;
+}
+
+.li-stat {
+  background: var(--background-subtle);
+  border: 1px solid var(--border-light);
+  border-radius: 8px;
+  padding: 12px 14px;
+  min-width: 0;
+}
+
+.li-stat-value {
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  line-height: 1.2;
+  word-break: break-word;
+}
+
+.li-stat-label {
+  margin-top: 4px;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-secondary);
+}
+
+.li-detail-block {
+  margin-top: 24px;
+  padding-top: 18px;
+  border-top: 1px solid var(--border-light);
+}
+
+.li-detail-block-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 4px;
+}
+
+.li-detail-heading {
+  margin: 0 0 10px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.li-detail-block-header .li-detail-heading {
+  margin-bottom: 0;
+}
+
+.li-trend-select {
+  min-width: 170px;
+}
+
+/* Remake breakdown bars */
+.li-remake-breakdowns {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 20px;
+  margin-top: 14px;
+}
+
+.li-breakdown-title {
+  margin: 0 0 10px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-secondary);
+}
+
+.li-bar-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.li-bar-row {
+  display: grid;
+  grid-template-columns: minmax(110px, 42%) 1fr 28px;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.8rem;
+}
+
+.li-bar-label {
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.li-bar-track {
+  display: block;
+  height: 8px;
+  border-radius: 4px;
+  background: var(--background-subtle);
+  overflow: hidden;
+}
+
+.li-bar-fill {
+  display: block;
+  height: 100%;
+  border-radius: 4px;
+  background: var(--primary-color);
+}
+
+.li-bar-count {
+  text-align: right;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.li-remake-explainer {
+  margin: 12px 0 0;
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  max-width: 640px;
+}
+
+.li-remake-empty {
+  margin: 0;
+  font-size: 0.85rem;
+}
+
+.li-revision-note {
+  margin: 0 0 10px;
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+  max-width: 640px;
+  line-height: 1.5;
+}
+
+.li-remake-stats {
+  margin-bottom: 4px;
+}
+
 @media (max-width: 720px) {
   .li-summary-grid {
     grid-template-columns: repeat(2, 1fr);
+  }
+  .li-detail-stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .li-bar-row {
+    grid-template-columns: minmax(90px, 40%) 1fr 24px;
+  }
+  .li-detail-block-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .li-trend-select {
+    width: 100%;
   }
 }

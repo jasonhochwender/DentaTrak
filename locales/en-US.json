@@ -1104,6 +1104,94 @@
             "lab": "Labs",
             "refresh": "Refresh"
         },
+        "error": {
+            "analytics": "Unable to load Practice Insights.",
+            "labs": "Unable to load Lab Insights.",
+            "analytics_data": "Unable to load analytics data. Please try again.",
+            "labs_data": "Unable to load lab insights. Please try again."
+        },
+        "perf": {
+            "sections": {
+                "lab_performance": "Lab Performance",
+                "lab_performance_subtitle": "Click a lab for detail. Click a column header to sort.",
+                "overview": "Overview"
+            },
+            "table": {
+                "lab": "Lab",
+                "cases": "Cases",
+                "avg_turnaround": "Avg Turnaround",
+                "on_time": "On-Time",
+                "remake_rate": "Remake Rate",
+                "lab_attributed": "Lab-Attributed",
+                "current_workload": "Current Workload",
+                "removed_suffix": " (no longer a lab)"
+            },
+            "summary": {
+                "lab_cases": "Lab Cases",
+                "avg_turnaround": "Avg Turnaround",
+                "on_time": "On-Time Rate",
+                "remake_rate": "Remake Rate",
+                "lab_remake_rate": "Lab-Attributed Remakes",
+                "open_cases": "Open Lab Cases",
+                "open_remakes": "Open Remakes"
+            },
+            "detail": {
+                "title": "Lab Detail",
+                "select_label": "Select a lab",
+                "practice_option": "All labs (practice-wide)",
+                "performance": "Performance",
+                "completed_cases": "Completed Cases",
+                "median_turnaround": "Median Turnaround",
+                "avg_days_late": "Avg Days Late",
+                "current_workload": "Current Workload",
+                "trend": "Trend",
+                "trend_metric": "Metric",
+                "trend_turnaround": "Avg turnaround",
+                "trend_on_time": "On-time %",
+                "trend_volume": "Case volume",
+                "trend_remake_rate": "Remake rate",
+                "case_types": "Performance by Case Type",
+                "case_type_col": "Case Type",
+                "remakes": "Remakes",
+                "total_events": "Remake Events",
+                "cases_with_remakes": "Cases With Remakes",
+                "multi_remake_cases": "Cases With Multiple Remakes",
+                "avg_duration": "Avg Remake Duration",
+                "open_remakes": "Open Remakes",
+                "reasons": "Remake Reasons",
+                "attribution": "Remake Attribution",
+                "remake_explainer": "Remake rate counts cases that needed any re-do. Lab-attributed rate counts only remakes marked lab-related - a remake is not automatically a lab quality issue.",
+                "no_remakes": "No remakes recorded in this period.",
+                "no_case_types": "No case-type data in this period.",
+                "no_workload": "Nothing in progress at this lab right now.",
+                "workload_heading": "Currently at this lab",
+                "late_suffix": "late",
+                "unknown_type": "Unknown"
+            },
+            "context": {
+                "based_on_cases_one": "Based on 1 case",
+                "based_on_cases_other": "Based on {count} cases",
+                "not_enough_data": "Not enough data",
+                "due_date_coverage": "{pct}% of completed cases had a due date",
+                "vs_faster": "{delta} days faster than practice average",
+                "vs_slower": "{delta} days slower than practice average",
+                "vs_above": "{delta} pts above practice average",
+                "vs_below": "{delta} pts below practice average",
+                "vs_similar": "Similar to practice average",
+                "prev_period": "Prev: {value}",
+                "workload_now": "now",
+                "workload_now_note": "Current workload reflects what is at each lab right now, regardless of the selected date range.",
+                "engagements_one": "1 lab engagement",
+                "engagements_other": "{count} lab engagements"
+            },
+            "revisions": {
+                "title": "Workflow Regressions (Revisions)",
+                "subtitle": "Backward status moves - not the same as remakes",
+                "note": "Revisions count cases that moved backward in the workflow. They are not remakes - a regression only becomes a remake when someone explicitly records one.",
+                "count_header": "Regressions",
+                "rate_header": "Regression Rate"
+            }
+        },
         "metrics": {
             "new_this_month": "New This Month",
             "active_cases": "Active Cases",

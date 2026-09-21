@@ -1,8 +1,16 @@
 /**
- * Lab Insights v1 - client-side rendering only.
+ * Lab Insights - client-side rendering only.
+ *
  * All metrics are computed authoritatively server-side in
- * api/get-lab-insights.php; this file fetches, renders, sorts (client-side,
+ * api/get-lab-insights.php. This file fetches, renders, sorts (client-side,
  * over already-fetched data - no extra requests), and manages empty states.
+ *
+ * Two layouts:
+ *  - Performance layout (default): driven by the additive `performance`
+ *    payload from api/lab-performance-metrics.php (volume / turnaround /
+ *    on-time / remakes / trends / benchmarks / coverage).
+ *  - Legacy layout: rendered when `performance` is null so the page keeps
+ *    working if the metrics layer ever fails.
  *
  * Control-only gating reuses the exact same [data-control-feature] blur
  * mechanism as Practice Insights (js/analytics-pro.js's
@@ -18,13 +26,25 @@
   var liExpandedLabKey = null;
   var liWorkloadByLab = {};
 
+  var liPerf = null;            // last performance payload
+  var liPerfLabs = [];          // performance.labs (sorted view)
+  var liPerfSort = { key: 'turnaround', dir: 'asc' };
+  var liSelectedLab = null;     // labKey or 'practice'
+  var liTrendMetric = 'turnaroundDays';
+  var liPerfChart = null;
+
   function fmtDays(value) {
-    if (value === null || value === undefined) { return '\u2014'; }
+    if (value === null || value === undefined) { return '—'; }
+    return I18n.pluralize(value, 'insights.metrics.days');
+  }
+
+  function fmtDaysShort(value) {
+    if (value === null || value === undefined) { return '—'; }
     return I18n.pluralize(value, 'insights.metrics.days');
   }
 
   function fmtPercent(value) {
-    if (value === null || value === undefined) { return '\u2014'; }
+    if (value === null || value === undefined) { return '—'; }
     return value + '%';
   }
 
@@ -99,11 +119,593 @@
     renderSortIndicators();
   }
 
+  // ======================================================================
+  // Performance layout (new)
+  // ======================================================================
+
+  function perfSortValue(lab, key) {
+    switch (key) {
+      case 'name': return lab.name;
+      case 'cases': return lab.volume ? lab.volume.uniqueCases : null;
+      case 'turnaround': return lab.turnaround ? lab.turnaround.avgDays : null;
+      case 'onTime': return lab.onTime ? lab.onTime.pct : null;
+      case 'remakeRate': return lab.remakes ? lab.remakes.remakeRatePct : null;
+      case 'labAttrRate': return lab.remakes ? lab.remakes.labAttributedRatePct : null;
+      case 'workload': return lab.workload ? lab.workload.openCases : null;
+      default: return null;
+    }
+  }
+
+  function sortPerfLabs() {
+    var key = liPerfSort.key;
+    var dir = liPerfSort.dir === 'asc' ? 1 : -1;
+    liPerfLabs.sort(function (a, b) {
+      var av = perfSortValue(a, key);
+      var bv = perfSortValue(b, key);
+      if (av === null && bv === null) { return 0; }
+      if (av === null) { return 1; }
+      if (bv === null) { return -1; }
+      if (typeof av === 'string') {
+        return dir * av.localeCompare(bv);
+      }
+      return dir * (av - bv);
+    });
+  }
+
+  function renderPerfSortIndicators() {
+    var headers = document.querySelectorAll('#liPerfTable thead th');
+    headers.forEach(function (th) {
+      th.classList.remove('li-sort-active');
+      var existingArrow = th.querySelector('.li-sort-arrow');
+      if (existingArrow) { existingArrow.remove(); }
+      if (th.dataset.sort === liPerfSort.key) {
+        th.classList.add('li-sort-active');
+        var arrow = document.createElement('span');
+        arrow.className = 'li-sort-arrow';
+        arrow.textContent = liPerfSort.dir === 'asc' ? '▲' : '▼';
+        th.appendChild(arrow);
+      }
+    });
+  }
+
+  /**
+   * Render a metric value honoring the backend's sample-size signal.
+   * n=0 → "—" + "Not enough data"; n<min → muted value + "Based on N cases";
+   * n>=min → normal value.
+   */
+  function metricValueHtml(value, n, sufficient, formatter) {
+    var fmt = formatter || function (v) { return String(v); };
+    if (value === null || value === undefined || n === 0) {
+      return '<span class="li-muted">—</span><div class="li-metric-note">' +
+        escapeHtml(t('insights.perf.context.not_enough_data')) + '</div>';
+    }
+    var note = '';
+    if (!sufficient) {
+      note = '<div class="li-metric-note">' +
+        escapeHtml(I18n.pluralize(n, 'insights.perf.context.based_on_cases')) + '</div>';
+    }
+    return '<span class="' + (sufficient ? '' : 'li-value-muted') + '">' +
+      escapeHtml(fmt(value)) + '</span>' + note;
+  }
+
+  /** "1.4 days faster than practice average" / "...pts above/below" / "Similar..." */
+  function vsPracticeText(bench, kind) {
+    if (!bench || bench.sufficient !== true || bench.delta === null || bench.delta === undefined) {
+      return '';
+    }
+    var d = bench.delta;
+    if (kind === 'days') {
+      if (Math.abs(d) < 0.5) { return t('insights.perf.context.vs_similar'); }
+      return d < 0
+        ? t('insights.perf.context.vs_faster', { delta: Math.abs(d) })
+        : t('insights.perf.context.vs_slower', { delta: d });
+    }
+    // percentage points
+    if (Math.abs(d) < 1) { return t('insights.perf.context.vs_similar'); }
+    return d > 0
+      ? t('insights.perf.context.vs_above', { delta: d })
+      : t('insights.perf.context.vs_below', { delta: Math.abs(d) });
+  }
+
+  function prevPeriodText(prev, formatter) {
+    if (!prev || prev.previous === null || prev.previous === undefined) { return ''; }
+    return t('insights.perf.context.prev_period', { value: formatter(prev.previous) });
+  }
+
+  /** One practice-level summary card. */
+  function summaryCard(label, valueHtml, accent, extraClass) {
+    return '<div class="ap-metric-card ' + accent + ' ' + (extraClass || '') + '">' +
+      '<div class="ap-metric-value">' + valueHtml + '</div>' +
+      '<div class="ap-metric-label">' + escapeHtml(label) + '</div>' +
+      '</div>';
+  }
+
+  function renderPerfSummary(practice) {
+    var grid = document.getElementById('liPerfSummary');
+    if (!grid) { return; }
+    var p = practice || {};
+    var t = p.turnaround || {};
+    var ot = p.onTime || {};
+    var rm = p.remakes || {};
+
+    var onTimeHtml = metricValueHtml(ot.pct, ot.n, ot.sufficient, fmtPercent);
+    if (ot.n > 0 && ot.dueDateCoveragePct !== null && ot.dueDateCoveragePct < 100) {
+      onTimeHtml += '<div class="li-metric-note">' +
+        escapeHtml(t('insights.perf.context.due_date_coverage', { pct: ot.dueDateCoveragePct })) + '</div>';
+    }
+
+    var html = '';
+    html += summaryCard(t('insights.perf.summary.lab_cases'), escapeHtml(fmtCount(p.volume && p.volume.uniqueCases)), 'accent-blue');
+    html += summaryCard(t('insights.perf.summary.avg_turnaround'),
+      metricValueHtml(t.avgDays, t.n, t.sufficient, fmtDays), 'accent-green');
+    html += summaryCard(t('insights.perf.summary.on_time'), onTimeHtml, 'accent-green');
+    html += summaryCard(t('insights.perf.summary.remake_rate'),
+      metricValueHtml(rm.remakeRatePct, rm.rateDenominator, rm.rateSufficient, fmtPercent), 'accent-orange');
+    html += summaryCard(t('insights.perf.summary.lab_remake_rate'),
+      metricValueHtml(rm.labAttributedRatePct, rm.rateDenominator, rm.rateSufficient, fmtPercent), 'accent-orange');
+    html += summaryCard(t('insights.perf.summary.open_cases'),
+      escapeHtml(fmtCount(perfTotalOpenCases())) +
+      '<div class="li-metric-note">' + escapeHtml(t('insights.perf.context.workload_now')) + '</div>', 'accent-blue');
+    html += summaryCard(t('insights.perf.summary.open_remakes'),
+      escapeHtml(fmtCount(p.openRemakes)) +
+      '<div class="li-metric-note">' + escapeHtml(t('insights.perf.context.workload_now')) + '</div>', 'accent-blue');
+    grid.innerHTML = html;
+  }
+
+  function perfTotalOpenCases() {
+    var total = 0;
+    (liPerfLabs || []).forEach(function (l) {
+      total += (l.workload && l.workload.openCases) || 0;
+    });
+    return total;
+  }
+
+  function renderPerfTable() {
+    var tbody = document.getElementById('liPerfTableBody');
+    if (!tbody) { return; }
+    tbody.innerHTML = '';
+    sortPerfLabs();
+    renderPerfSortIndicators();
+
+    liPerfLabs.forEach(function (lab) {
+      var row = document.createElement('tr');
+      row.className = 'li-lab-row' + (liSelectedLab === lab.labKey ? ' li-lab-row-selected' : '');
+      row.dataset.labKey = lab.labKey;
+      row.tabIndex = 0;
+      row.setAttribute('role', 'button');
+      row.setAttribute('aria-label', lab.name);
+
+      var nameCell = lab.isLive
+        ? '<span class="li-lab-name" title="' + escapeHtml(lab.name) + '">' + escapeHtml(lab.name) + '</span>'
+        : '<span class="li-lab-name li-lab-name-removed" title="' + escapeHtml(lab.name) +
+          escapeHtml(t('insights.perf.table.removed_suffix')) + '">' + escapeHtml(lab.name) + '</span>';
+
+      var turnHtml = metricValueHtml(
+        lab.turnaround.avgDays, lab.turnaround.n, lab.turnaround.sufficient, fmtDays);
+      var turnBench = vsPracticeText(lab.benchmarks.vsPractice.avgTurnaroundDays, 'days');
+      if (turnBench) {
+        turnHtml += '<div class="li-metric-note">' + escapeHtml(turnBench) + '</div>';
+      }
+
+      var onTimeHtml = metricValueHtml(lab.onTime.pct, lab.onTime.n, lab.onTime.sufficient, fmtPercent);
+      var onTimeBench = vsPracticeText(lab.benchmarks.vsPractice.onTimePct, 'pts');
+      if (onTimeBench) {
+        onTimeHtml += '<div class="li-metric-note">' + escapeHtml(onTimeBench) + '</div>';
+      }
+
+      var rm = lab.remakes;
+      var remakeHtml = metricValueHtml(rm.remakeRatePct, rm.rateDenominator, rm.rateSufficient, fmtPercent);
+      var labAttrHtml = metricValueHtml(rm.labAttributedRatePct, rm.rateDenominator, rm.rateSufficient, fmtPercent);
+
+      var wl = lab.workload;
+      var workloadHtml = escapeHtml(fmtCount(wl.openCases)) +
+        ' <span class="li-muted">(' + escapeHtml(t('insights.perf.context.workload_now')) + ')</span>';
+
+      row.innerHTML =
+        '<td>' + nameCell + '</td>' +
+        '<td>' + escapeHtml(fmtCount(lab.volume.uniqueCases)) + '</td>' +
+        '<td>' + turnHtml + '</td>' +
+        '<td>' + onTimeHtml + '</td>' +
+        '<td>' + remakeHtml + '</td>' +
+        '<td>' + labAttrHtml + '</td>' +
+        '<td>' + workloadHtml + '</td>';
+
+      row.addEventListener('click', function () { selectLab(lab.labKey); });
+      row.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          selectLab(lab.labKey);
+        }
+      });
+      tbody.appendChild(row);
+    });
+  }
+
+  function renderLabDetailSelect() {
+    var sel = document.getElementById('liLabDetailSelect');
+    if (!sel) { return; }
+    var current = sel.value;
+    sel.innerHTML = '';
+    var optAll = document.createElement('option');
+    optAll.value = 'practice';
+    optAll.textContent = t('insights.perf.detail.practice_option');
+    sel.appendChild(optAll);
+    liPerfLabs.forEach(function (lab) {
+      var opt = document.createElement('option');
+      opt.value = lab.labKey;
+      opt.textContent = lab.name;
+      sel.appendChild(opt);
+    });
+    sel.value = liSelectedLab || current || 'practice';
+  }
+
+  /** Resolve the aggregate block for the selected scope (lab or 'practice'). */
+  function selectedScopeData() {
+    if (!liPerf) { return null; }
+    if (liSelectedLab === 'practice' || !liSelectedLab) {
+      return liPerf.practice;
+    }
+    for (var i = 0; i < liPerfLabs.length; i++) {
+      if (liPerfLabs[i].labKey === liSelectedLab) { return liPerfLabs[i]; }
+    }
+    return liPerf.practice;
+  }
+
+  function detailStatCard(label, valueHtml) {
+    return '<div class="li-stat">' +
+      '<div class="li-stat-value">' + valueHtml + '</div>' +
+      '<div class="li-stat-label">' + escapeHtml(label) + '</div></div>';
+  }
+
+  function renderPerfDetail() {
+    var section = document.getElementById('liLabDetail');
+    var body = document.getElementById('liLabDetailBody');
+    var title = document.getElementById('liLabDetailTitle');
+    var subtitle = document.getElementById('liLabDetailSubtitle');
+    if (!section || !body) { return; }
+
+    var d = selectedScopeData();
+    if (!d) { section.style.display = 'none'; return; }
+    section.style.display = 'block';
+
+    var isPractice = (liSelectedLab === 'practice' || !liSelectedLab);
+    var scopeName = isPractice ? t('insights.perf.detail.practice_option') : d.name;
+    title.textContent = scopeName;
+
+    var t8n = d.turnaround || {};
+    var ot = d.onTime || {};
+    var dl = d.daysLate || {};
+    var rm = d.remakes || {};
+    var wl = d.workload || {};
+    if (isPractice) {
+      // Practice scope has no per-lab workload block - aggregate the labs.
+      wl = { openCases: 0, openPeriods: 0, late: 0, withDueDate: 0 };
+      liPerfLabs.forEach(function (l) {
+        var w = l.workload || {};
+        wl.openCases += w.openCases || 0;
+        wl.openPeriods += w.openPeriods || 0;
+        wl.late += w.late || 0;
+        wl.withDueDate += 0; // per-lab denominator is not pooled
+      });
+    }
+    var vol = d.volume || {};
+    var comp = d.completed || {};
+    var bench = d.benchmarks || {};
+    var prev = bench.previousPeriod || null;
+    var vs = bench.vsPractice || {};
+
+    subtitle.textContent = isPractice
+      ? t('insights.perf.detail.practice_option')
+      : (d.isLive ? '' : t('insights.perf.table.removed_suffix'));
+
+    var html = '<div class="li-detail-stats">';
+
+    // Cases + completed
+    var casesHtml = escapeHtml(fmtCount(vol.uniqueCases));
+    if (vol.engagements && vol.engagements !== vol.uniqueCases) {
+      casesHtml += '<div class="li-metric-note">' + escapeHtml(
+        I18n.pluralize(vol.engagements, 'insights.perf.context.engagements')) + '</div>';
+    }
+    html += detailStatCard(t('insights.perf.summary.lab_cases'), casesHtml);
+    html += detailStatCard(t('insights.perf.detail.completed_cases'), escapeHtml(fmtCount(comp.uniqueCases)));
+
+    // Turnaround w/ vsPractice + prev period
+    var turnHtml = metricValueHtml(t8n.avgDays, t8n.n, t8n.sufficient, fmtDays);
+    var vb = vsPracticeText(vs.avgTurnaroundDays, 'days');
+    if (vb) { turnHtml += '<div class="li-metric-note">' + escapeHtml(vb) + '</div>'; }
+    var pb = prevPeriodText(prev && prev.avgTurnaroundDays, fmtDays);
+    if (pb) { turnHtml += '<div class="li-metric-note">' + escapeHtml(pb) + '</div>'; }
+    html += detailStatCard(t('insights.perf.summary.avg_turnaround'), turnHtml);
+
+    html += detailStatCard(t('insights.perf.detail.median_turnaround'),
+      metricValueHtml(t8n.medianDays, t8n.n, t8n.sufficient, fmtDays));
+
+    var onTimeHtml = metricValueHtml(ot.pct, ot.n, ot.sufficient, fmtPercent);
+    var ob = vsPracticeText(vs.onTimePct, 'pts');
+    if (ob) { onTimeHtml += '<div class="li-metric-note">' + escapeHtml(ob) + '</div>'; }
+    var opb = prevPeriodText(prev && prev.onTimePct, fmtPercent);
+    if (opb) { onTimeHtml += '<div class="li-metric-note">' + escapeHtml(opb) + '</div>'; }
+    if (ot.n > 0 && ot.dueDateCoveragePct !== null && ot.dueDateCoveragePct < 100) {
+      onTimeHtml += '<div class="li-metric-note">' +
+        escapeHtml(t('insights.perf.context.due_date_coverage', { pct: ot.dueDateCoveragePct })) + '</div>';
+    }
+    html += detailStatCard(t('insights.perf.summary.on_time'), onTimeHtml);
+
+    html += detailStatCard(t('insights.perf.detail.avg_days_late'),
+      metricValueHtml(dl.avgDays, dl.n, dl.n >= (liPerf.meta ? liPerf.meta.minSampleSize : 5), fmtDays));
+
+    var wlHtml = escapeHtml(fmtCount(wl.openCases));
+    if (wl.late > 0) {
+      wlHtml += ' <span class="li-days-late">' + escapeHtml(fmtCount(wl.late)) +
+        ' ' + escapeHtml(t('insights.perf.detail.late_suffix')) + '</span>';
+    }
+    wlHtml += '<div class="li-metric-note">' + escapeHtml(t('insights.perf.context.workload_now')) + '</div>';
+    html += detailStatCard(t('insights.perf.detail.current_workload'), wlHtml);
+
+    html += '</div>'; // .li-detail-stats
+
+    // ── Trend ──
+    html += '<div class="li-detail-block">' +
+      '<div class="li-detail-block-header">' +
+      '<h3 class="li-detail-heading">' + escapeHtml(t('insights.perf.detail.trend')) + '</h3>' +
+      '<select class="ap-select li-trend-select" id="liTrendMetricSelect" aria-label="' +
+        escapeHtml(t('insights.perf.detail.trend_metric')) + '">' +
+      '<option value="turnaroundDays"' + (liTrendMetric === 'turnaroundDays' ? ' selected' : '') + '>' + escapeHtml(t('insights.perf.detail.trend_turnaround')) + '</option>' +
+      '<option value="onTimePct"' + (liTrendMetric === 'onTimePct' ? ' selected' : '') + '>' + escapeHtml(t('insights.perf.detail.trend_on_time')) + '</option>' +
+      '<option value="volumeUniqueCases"' + (liTrendMetric === 'volumeUniqueCases' ? ' selected' : '') + '>' + escapeHtml(t('insights.perf.detail.trend_volume')) + '</option>' +
+      '<option value="remakeRatePct"' + (liTrendMetric === 'remakeRatePct' ? ' selected' : '') + '>' + escapeHtml(t('insights.perf.detail.trend_remake_rate')) + '</option>' +
+      '</select></div>' +
+      '<div class="ap-chart-card full-width"><div class="ap-chart-container">' +
+      '<canvas id="liPerfTrendChart" role="img" aria-label="Lab performance trend"></canvas>' +
+      '</div></div></div>';
+
+    // ── Case-type performance ──
+    var types = d.caseTypes || {};
+    var typeKeys = Object.keys(types);
+    html += '<div class="li-detail-block">' +
+      '<h3 class="li-detail-heading">' + escapeHtml(t('insights.perf.detail.case_types')) + '</h3>';
+    if (typeKeys.length === 0) {
+      html += '<p class="li-muted">' + escapeHtml(t('insights.perf.detail.no_case_types')) + '</p>';
+    } else {
+      typeKeys.sort(function (a, b) { return (types[b].uniqueCases || 0) - (types[a].uniqueCases || 0); });
+      html += '<div class="li-table-wrap"><table class="li-table li-type-table"><thead><tr>' +
+        '<th>' + escapeHtml(t('insights.perf.detail.case_type_col')) + '</th>' +
+        '<th>' + escapeHtml(t('insights.perf.table.cases')) + '</th>' +
+        '<th>' + escapeHtml(t('insights.perf.table.avg_turnaround')) + '</th>' +
+        '<th>' + escapeHtml(t('insights.perf.table.on_time')) + '</th>' +
+        '<th>' + escapeHtml(t('insights.perf.table.remake_rate')) + '</th>' +
+        '</tr></thead><tbody>';
+      typeKeys.forEach(function (type) {
+        var ct = types[type];
+        var typeName = type === 'Unknown' ? t('insights.perf.detail.unknown_type') : type;
+        var ctBench = (bench.caseTypes && bench.caseTypes[type] && bench.caseTypes[type].avgTurnaroundDays)
+          ? bench.caseTypes[type].avgTurnaroundDays : null;
+        var ctTurn = metricValueHtml(ct.avgTurnaroundDays, ct.turnaroundN, ct.turnaroundN >= (liPerf.meta ? liPerf.meta.minSampleSize : 5), fmtDays);
+        if (ctBench) {
+          var faster = ctBench.delta < 0;
+          ctTurn += '<div class="li-metric-note">' + escapeHtml(
+            faster
+              ? t('insights.perf.context.vs_faster', { delta: Math.abs(ctBench.delta) })
+              : (Math.abs(ctBench.delta) < 0.5
+                  ? t('insights.perf.context.vs_similar')
+                  : t('insights.perf.context.vs_slower', { delta: ctBench.delta }))) + '</div>';
+        }
+        html += '<tr>' +
+          '<td>' + escapeHtml(typeName) + '</td>' +
+          '<td>' + escapeHtml(fmtCount(ct.uniqueCases)) + '</td>' +
+          '<td>' + ctTurn + '</td>' +
+          '<td>' + metricValueHtml(ct.onTimePct, ct.onTimeN, ct.onTimeN >= (liPerf.meta ? liPerf.meta.minSampleSize : 5), fmtPercent) + '</td>' +
+          '<td>' + metricValueHtml(ct.remakeRatePct, ct.uniqueCases, ct.sufficient, fmtPercent) + '</td>' +
+          '</tr>';
+      });
+      html += '</tbody></table></div>';
+    }
+    html += '</div>';
+
+    // ── Remakes ──
+    html += '<div class="li-detail-block">' +
+      '<h3 class="li-detail-heading">' + escapeHtml(t('insights.perf.detail.remakes')) + '</h3>';
+
+    if ((rm.total || 0) === 0) {
+      html += '<p class="li-muted li-remake-empty">' + escapeHtml(t('insights.perf.detail.no_remakes')) + '</p>';
+    } else {
+      html += '<div class="li-detail-stats li-remake-stats">';
+      html += detailStatCard(t('insights.perf.detail.total_events'), escapeHtml(fmtCount(rm.total)));
+      html += detailStatCard(t('insights.perf.detail.cases_with_remakes'), escapeHtml(fmtCount(rm.casesWithRemakes)));
+      html += detailStatCard(t('insights.perf.summary.remake_rate'),
+        metricValueHtml(rm.remakeRatePct, rm.rateDenominator, rm.rateSufficient, fmtPercent));
+      html += detailStatCard(t('insights.perf.summary.lab_remake_rate'),
+        metricValueHtml(rm.labAttributedRatePct, rm.rateDenominator, rm.rateSufficient, fmtPercent));
+      html += detailStatCard(t('insights.perf.detail.multi_remake_cases'), escapeHtml(fmtCount(rm.multiRemakeCases)));
+      html += detailStatCard(t('insights.perf.detail.open_remakes'),
+        escapeHtml(fmtCount(rm.openRemakes)) +
+        '<div class="li-metric-note">' + escapeHtml(t('insights.perf.context.workload_now')) + '</div>');
+      html += detailStatCard(t('insights.perf.detail.avg_duration'),
+        metricValueHtml(rm.avgDurationDays, rm.durationN, rm.durationN > 0, fmtDays));
+      html += '</div>';
+
+      html += '<p class="li-remake-explainer">' + escapeHtml(t('insights.perf.detail.remake_explainer')) + '</p>';
+
+      html += '<div class="li-remake-breakdowns">';
+      html += renderBreakdownBars(t('insights.perf.detail.reasons'), rm.reasons, 'remakes.reasons.');
+      html += renderBreakdownBars(t('insights.perf.detail.attribution'), rm.attributions, 'remakes.attribution.');
+      html += '</div>';
+    }
+    html += '</div>';
+
+    // ── Current workload drill-down (legacy patient rows, lab scope only) ──
+    if (!isPractice) {
+      var rows = liWorkloadByLab[liSelectedLab] || [];
+      html += '<div class="li-detail-block">' +
+        '<h3 class="li-detail-heading">' + escapeHtml(t('insights.perf.detail.workload_heading')) + '</h3>' +
+        renderWorkloadDrilldown(liSelectedLab) +
+        '</div>';
+    }
+
+    body.innerHTML = html;
+
+    var metricSel = document.getElementById('liTrendMetricSelect');
+    if (metricSel) {
+      metricSel.addEventListener('change', function () {
+        liTrendMetric = metricSel.value;
+        renderPerfTrendChart();
+      });
+    }
+    renderPerfTrendChart();
+  }
+
+  /** Horizontal CSS bars for reason/attribution breakdowns. */
+  function renderBreakdownBars(title, counts, i18nPrefix) {
+    if (!counts || Object.keys(counts).length === 0) {
+      return '<div class="li-breakdown"><h4 class="li-breakdown-title">' + escapeHtml(title) + '</h4>' +
+        '<p class="li-muted">' + escapeHtml(t('insights.perf.detail.no_remakes')) + '</p></div>';
+    }
+    var max = 0;
+    Object.keys(counts).forEach(function (k) { max = Math.max(max, counts[k]); });
+    var html = '<div class="li-breakdown"><h4 class="li-breakdown-title">' + escapeHtml(title) + '</h4><ul class="li-bar-list">';
+    Object.keys(counts).forEach(function (code) {
+      var label = t(i18nPrefix + code) || code;
+      var w = max > 0 ? Math.max(4, Math.round((counts[code] / max) * 100)) : 0;
+      html += '<li class="li-bar-row">' +
+        '<span class="li-bar-label">' + escapeHtml(label) + '</span>' +
+        '<span class="li-bar-track"><span class="li-bar-fill" style="width:' + w + '%"></span></span>' +
+        '<span class="li-bar-count">' + escapeHtml(fmtCount(counts[code])) + '</span>' +
+        '</li>';
+    });
+    html += '</ul></div>';
+    return html;
+  }
+
+  function renderPerfTrendChart() {
+    var canvas = document.getElementById('liPerfTrendChart');
+    if (!canvas || !liPerf || !liPerf.trends) { return; }
+    if (liPerfChart) { liPerfChart.destroy(); liPerfChart = null; }
+
+    var scope = (liSelectedLab && liSelectedLab !== 'practice') ? liSelectedLab : 'practice';
+    var series = liPerf.trends.series[scope];
+    var months = liPerf.trends.months || [];
+    if (!series || months.length === 0) { return; }
+
+    var values = months.map(function (m) { return series[liTrendMetric][m]; });
+    var isBar = liTrendMetric === 'volumeUniqueCases';
+    var isPct = liTrendMetric === 'onTimePct' || liTrendMetric === 'remakeRatePct';
+    var color = '#1e40af';
+
+    var isNarrow = window.innerWidth < 480;
+    liPerfChart = new Chart(canvas.getContext('2d'), {
+      type: isBar ? 'bar' : 'line',
+      data: {
+        labels: months,
+        datasets: [{
+          label: scope === 'practice'
+            ? t('insights.perf.detail.practice_option')
+            : (selectedScopeData() ? selectedScopeData().name : scope),
+          data: values,
+          borderColor: color,
+          backgroundColor: isBar ? color : color,
+          tension: 0.3,
+          fill: false,
+          spanGaps: true,
+        }],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          x: { ticks: { autoSkip: true, maxRotation: isNarrow ? 45 : 0, font: { size: isNarrow ? 12 : 10, family: "'Poppins', sans-serif" } } },
+          y: { beginAtZero: true, suggestedMax: isPct ? 100 : undefined,
+               ticks: { precision: isPct || isBar ? 0 : 1, font: { size: isNarrow ? 12 : 10, family: "'Poppins', sans-serif" } } },
+        },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label: function (item) {
+                var v = item.parsed.y;
+                if (v === null || v === undefined) { return t('insights.charts.no_data'); }
+                return isPct ? v + '%' : (isBar ? v + ' ' + t('insights.charts.dataset_cases') : I18n.pluralize(v, 'insights.metrics.days'));
+              },
+            },
+          },
+        },
+      },
+    });
+
+    setChartAriaLabel(canvas, 'Lab performance trend', months, values,
+      function (v) { return v === null ? 'no data' : String(v); });
+  }
+
+  function selectLab(labKey) {
+    liSelectedLab = labKey;
+    renderLabDetailSelect();
+    renderPerfTable();
+    renderPerfDetail();
+    var detail = document.getElementById('liLabDetail');
+    if (detail) {
+      detail.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      var sel = document.getElementById('liLabDetailSelect');
+      if (sel) { sel.focus({ preventScroll: true }); }
+    }
+  }
+
+  function renderRevisionsSection(labs) {
+    var section = document.getElementById('liRevisionsSection');
+    var tbody = document.getElementById('liRevisionsBody');
+    if (!section || !tbody) { return; }
+
+    var anyRevisions = (labs || []).some(function (l) { return (l.revisionCount || 0) > 0; });
+    if (!anyRevisions) {
+      section.style.display = 'none';
+      return;
+    }
+    section.style.display = 'block';
+    tbody.innerHTML = '';
+    labs.forEach(function (l) {
+      var tr = document.createElement('tr');
+      tr.innerHTML =
+        '<td><span class="li-lab-name">' + escapeHtml(l.name) + '</span></td>' +
+        '<td>' + escapeHtml(fmtCount(l.revisionCount)) + '</td>' +
+        '<td>' + escapeHtml(fmtPercent(l.revisionRate)) + '</td>';
+      tbody.appendChild(tr);
+    });
+  }
+
+  /** Render the performance layout; returns false when no perf payload. */
+  function renderPerformance(data) {
+    var perfWrap = document.getElementById('liPerf');
+    var legacy = document.getElementById('liLegacy');
+    if (!perfWrap || !legacy) { return false; }
+
+    if (!data.performance) {
+      perfWrap.style.display = 'none';
+      legacy.style.display = 'block';
+      return false;
+    }
+
+    liPerf = data.performance;
+    liPerfLabs = (liPerf.labs || []).slice();
+    if (!liSelectedLab) { liSelectedLab = 'practice'; }
+
+    legacy.style.display = 'none';
+    perfWrap.style.display = 'block';
+
+    renderPerfSummary(liPerf.practice);
+    renderPerfTable();
+    renderLabDetailSelect();
+    renderPerfDetail();
+    renderRevisionsSection(data.labs || []);
+    return true;
+  }
+
+  // ======================================================================
+  // Legacy layout (performance payload absent)
+  // ======================================================================
+
   function renderSummary(summary) {
     if (!summary) { return; }
     document.getElementById('liActiveLabs').textContent = fmtCount(summary.activeLabs);
     document.getElementById('liCasesAtLabs').textContent = fmtCount(summary.casesCurrentlyAtLabs);
-    document.getElementById('liAvgTurnaround').textContent = summary.avgTurnaroundDays !== null ? fmtDays(summary.avgTurnaroundDays) : '\u2014';
+    document.getElementById('liAvgTurnaround').textContent = summary.avgTurnaroundDays !== null ? fmtDays(summary.avgTurnaroundDays) : '—';
     document.getElementById('liLateCases').textContent = fmtCount(summary.lateCasesAtLabs);
     document.getElementById('liRevisions').textContent = fmtCount(summary.totalRevisions);
     document.getElementById('liDirectTransfers').textContent = fmtCount(summary.directLabTransfers);
@@ -136,7 +738,7 @@
         th.classList.add('li-sort-active');
         var arrow = document.createElement('span');
         arrow.className = 'li-sort-arrow';
-        arrow.textContent = liSort.dir === 'asc' ? '\u25B2' : '\u25BC';
+        arrow.textContent = liSort.dir === 'asc' ? '▲' : '▼';
         th.appendChild(arrow);
       }
     });
@@ -156,10 +758,10 @@
     rows.forEach(function (r) {
       html += '<tr>' +
         '<td>' + escapeHtml(r.patientName || r.caseId) + '</td>' +
-        '<td>' + escapeHtml(r.caseType || '\u2014') + '</td>' +
-        '<td>' + escapeHtml((r.status && typeof getStageLabel === 'function' ? getStageLabel(r.status) : r.status) || '\u2014') + '</td>' +
-        '<td>' + escapeHtml(r.dueDate || '\u2014') + '</td>' +
-        '<td>' + (r.daysLate !== null ? '<span class="li-days-late">' + escapeHtml(r.daysLate) + '</span>' : '\u2014') + '</td>' +
+        '<td>' + escapeHtml(r.caseType || '—') + '</td>' +
+        '<td>' + escapeHtml((r.status && typeof getStageLabel === 'function' ? getStageLabel(r.status) : r.status) || '—') + '</td>' +
+        '<td>' + escapeHtml(r.dueDate || '—') + '</td>' +
+        '<td>' + (r.daysLate !== null ? '<span class="li-days-late">' + escapeHtml(r.daysLate) + '</span>' : '—') + '</td>' +
         '</tr>';
     });
     html += '</tbody></table></div>';
@@ -185,19 +787,19 @@
 
       var turnaroundCell = (lab.avgTurnaroundDays !== null)
         ? escapeHtml(fmtDays(lab.avgTurnaroundDays))
-        : '<span class="li-muted">\u2014</span>';
+        : '<span class="li-muted">—</span>';
 
       var lateCell = (lab.lateCaseRate !== null)
         ? escapeHtml(fmtPercent(lab.lateCaseRate)) + ' <span class="li-muted">(' + fmtCount(lab.lateCaseCount) + ')</span>'
-        : '<span class="li-muted">\u2014</span>';
+        : '<span class="li-muted">—</span>';
 
       var lateDeliveryCell = (lab.lateDeliveryRate !== null)
         ? escapeHtml(fmtPercent(lab.lateDeliveryRate)) + ' <span class="li-muted">(' + fmtCount(lab.lateDeliverySampleSize) + ')</span>'
-        : '<span class="li-muted">\u2014</span>';
+        : '<span class="li-muted">—</span>';
 
       var revisionRateCell = (lab.revisionRate !== null)
         ? escapeHtml(fmtPercent(lab.revisionRate))
-        : '<span class="li-muted">\u2014</span>';
+        : '<span class="li-muted">—</span>';
 
       row.innerHTML =
         '<td>' + nameCell + '</td>' +
@@ -352,9 +954,18 @@
       }
       var trendSection = document.getElementById('liTrendSection');
       if (trendSection) { trendSection.style.display = 'none'; }
+      var perfWrap = document.getElementById('liPerf');
+      var legacyWrap = document.getElementById('liLegacy');
+      if (perfWrap) { perfWrap.style.display = 'none'; }
+      if (legacyWrap) { legacyWrap.style.display = 'none'; }
       return;
     }
 
+    if (renderPerformance(data)) {
+      return; // performance layout handled everything
+    }
+
+    // Legacy fallback (performance payload absent)
     renderSummary(data.summary);
     attachStaticTooltips();
     renderTable();
@@ -433,6 +1044,29 @@
       });
     });
 
+    var perfHeaders = document.querySelectorAll('#liPerfTable thead th');
+    perfHeaders.forEach(function (th) {
+      th.addEventListener('click', function () {
+        var key = th.dataset.sort;
+        if (liPerfSort.key === key) {
+          liPerfSort.dir = liPerfSort.dir === 'asc' ? 'desc' : 'asc';
+        } else {
+          liPerfSort.key = key;
+          liPerfSort.dir = (key === 'name') ? 'asc' : 'desc';
+        }
+        renderPerfTable();
+      });
+    });
+
+    var detailSelect = document.getElementById('liLabDetailSelect');
+    if (detailSelect) {
+      detailSelect.addEventListener('change', function () {
+        liSelectedLab = detailSelect.value;
+        renderPerfTable();
+        renderPerfDetail();
+      });
+    }
+
     var refreshBtn = document.getElementById('liRefreshData');
     if (refreshBtn) {
       refreshBtn.addEventListener('click', fetchAndRender);
@@ -453,20 +1087,23 @@
     fetchAndRender();
   };
 
-  // Resize and orientation-change handler so the Lab trend chart refits its
-  // container when the viewport changes or the tab becomes visible.
+  // Resize and orientation-change handler so the trend charts refit their
+  // containers when the viewport changes or the tab becomes visible.
   var liResizeTimeout;
-  function resizeLabChart() {
+  function resizeLabCharts() {
     if (liChart && typeof liChart.resize === 'function') {
       liChart.resize();
+    }
+    if (liPerfChart && typeof liPerfChart.resize === 'function') {
+      liPerfChart.resize();
     }
   }
   window.addEventListener('resize', function () {
     clearTimeout(liResizeTimeout);
-    liResizeTimeout = setTimeout(resizeLabChart, 150);
+    liResizeTimeout = setTimeout(resizeLabCharts, 150);
   });
   window.addEventListener('orientationchange', function () {
-    setTimeout(resizeLabChart, 300);
+    setTimeout(resizeLabCharts, 300);
   });
-  document.addEventListener('insightsVisible', resizeLabChart);
+  document.addEventListener('insightsVisible', resizeLabCharts);
 })();
