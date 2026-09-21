@@ -2951,13 +2951,26 @@ endif;
                         <div id="integrationsPanelError" class="error-message" style="display:none;"></div>
                         <div class="integrations-list">
                           <?php foreach ($integrationProviders as $providerKey => $providerDef): ?>
-                          <div class="integration-card" data-provider="<?php echo htmlspecialchars($providerKey); ?>" id="integrationCard-<?php echo htmlspecialchars($providerKey); ?>">
+                          <?php
+                          // Plan lock: Operate (and any non-Control-tier plan)
+                          // sees a descriptive locked card instead of action
+                          // buttons. $userHasControlAccess is the same
+                          // entitlement Lab Insights uses; null means the check
+                          // could not run, so the normal card renders and the
+                          // API still enforces the restriction.
+                          $providerLocked = ($userHasControlAccess === false);
+                          ?>
+                          <div class="integration-card<?php echo $providerLocked ? ' integration-card-locked' : ''; ?>" data-provider="<?php echo htmlspecialchars($providerKey); ?>"<?php echo $providerLocked ? ' data-locked="true"' : ''; ?> id="integrationCard-<?php echo htmlspecialchars($providerKey); ?>">
                             <div class="integration-card-top">
                               <span class="integration-provider-name"><?php echo t($providerDef['name_key']); ?></span>
-                              <span class="integration-status-badge" id="integrationStatusBadge-<?php echo htmlspecialchars($providerKey); ?>"><?php echo t('settings.integrations.status.not_connected'); ?></span>
+                              <span class="integration-status-badge<?php echo $providerLocked ? ' integration-status-locked' : ''; ?>" id="integrationStatusBadge-<?php echo htmlspecialchars($providerKey); ?>"><?php echo t($providerLocked ? 'settings.integrations.status.not_on_plan' : 'settings.integrations.status.not_connected'); ?></span>
                             </div>
                             <p class="integration-card-description"><?php echo t($providerDef['desc_key']); ?></p>
+                            <?php if ($providerLocked): ?>
+                            <p class="integration-locked-note"><?php echo t('settings.integrations.locked_note'); ?></p>
+                            <?php endif; ?>
                             <div class="integration-card-meta" id="integrationMeta-<?php echo htmlspecialchars($providerKey); ?>"></div>
+                            <?php if (!$providerLocked): ?>
                             <div class="integration-import" id="integrationImport-<?php echo htmlspecialchars($providerKey); ?>" style="display:none;">
                               <div class="integration-import-controls">
                                 <select class="integration-import-scope" id="integrationImportScope-<?php echo htmlspecialchars($providerKey); ?>" aria-label="<?php echo htmlspecialchars(t('settings.integrations.import.scope_aria')); ?>">
@@ -2978,6 +2991,7 @@ endif;
                               <button type="button" class="btn-secondary integration-action-reenable" data-provider="<?php echo htmlspecialchars($providerKey); ?>" style="display:none;"><?php echo t('settings.integrations.reenable'); ?></button>
                               <button type="button" class="btn-delete-confirm integration-action-disconnect" data-provider="<?php echo htmlspecialchars($providerKey); ?>" style="display:none;"><?php echo t('settings.integrations.disconnect'); ?></button>
                             </div>
+                            <?php endif; ?>
                           </div>
                           <?php endforeach; ?>
                         </div>

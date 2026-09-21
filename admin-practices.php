@@ -1487,10 +1487,10 @@ $userEmail = $_SESSION['user_email'] ?? '';
                 document.getElementById('detailContent').innerHTML = '<div class="empty-state">Practice not found</div>';
                 return;
             }
-            renderSubscriptionTab(practice.subscription || {});
+            renderSubscriptionTab(practice.subscription || {}, practice.integration || null);
         }
 
-        function renderSubscriptionTab(subscription) {
+        function renderSubscriptionTab(subscription, integration) {
             let html = '<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">';
 
             const row = (label, value) => {
@@ -1515,6 +1515,39 @@ $userEmail = $_SESSION['user_email'] ?? '';
             html += row('Cancel at Period End', subscription.cancel_at_period_end ? 'Yes' : 'No');
 
             html += '</div>';
+
+            // Compact Open Dental / PMS integration status. The backend
+            // reuses the customer-facing projection; only non-sensitive
+            // fields are present (no credentials, tokens, or config).
+            if (integration) {
+                const stateLabels = {
+                    'not_available_on_plan': 'Not available on plan',
+                    'not_configured': 'Not configured',
+                    'pending': 'Pending verification',
+                    'connected': 'Connected',
+                    'error': 'Error',
+                    'disabled': 'Disabled',
+                };
+                const stateLabel = stateLabels[integration.state] || integration.state || '—';
+                const conn = integration.connection || null;
+                const suspended = !integration.entitled && conn !== null;
+
+                html += '<h4 style="margin: 20px 0 12px; grid-column: 1 / -1;">Open Dental Integration</h4>' +
+                    '<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">';
+                html += row('Included on plan', integration.entitled ? 'Yes (Control/Scale)' : 'No');
+                html += row('Integration status', stateLabel);
+                if (suspended) {
+                    // Downgraded practice with a surviving connection: surface
+                    // the preserved state so admins can see it was configured.
+                    const connLabels = { 'active': 'Connected', 'pending': 'Pending verification', 'error': 'Error', 'disabled': 'Disabled' };
+                    html += row('Connection (pre-downgrade)', connLabels[conn.status] || conn.status || '—');
+                }
+                html += row('Automatic lab case updates', integration.auto_updates_active ? 'Active' : 'Not active');
+                html += row('Last event received', integration.last_event_received_at ? formatDate(integration.last_event_received_at) : '—');
+                html += row('Last case import/update', integration.last_case_write_at ? formatDate(integration.last_case_write_at) : '—');
+                html += row('Cases imported', String(integration.cases_imported || 0));
+                html += '</div>';
+            }
 
             if (subscription.is_trialing) {
                 html += '<div style="margin-top: 16px;">' +

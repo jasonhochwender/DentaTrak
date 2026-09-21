@@ -12677,12 +12677,60 @@ document.addEventListener('DOMContentLoaded', function () {
         renderActions(provider, conn);
     }
 
+    // Plan lock: render the locked card state without calling the API (the
+    // server returns 403 plan_required anyway). Used when PHP rendered the
+    // card with data-locked, and as the defensive path when the list call
+    // itself reports the entitlement failure.
+    function applyPlanLock(provider, serverMessage) {
+        var card = document.getElementById('integrationCard-' + provider);
+        if (!card) return;
+        card.classList.add('integration-card-locked');
+        card.setAttribute('data-locked', 'true');
+        var badge = document.getElementById('integrationStatusBadge-' + provider);
+        if (badge) {
+            badge.textContent = t('settings.integrations.status.not_on_plan');
+            badge.className = 'integration-status-badge integration-status-locked';
+        }
+        var actions = card.querySelector('.integration-card-actions');
+        if (actions) actions.style.display = 'none';
+        var importBlock = document.getElementById('integrationImport-' + provider);
+        if (importBlock) importBlock.style.display = 'none';
+        if (!card.querySelector('.integration-locked-note')) {
+            var note = document.createElement('p');
+            note.className = 'integration-locked-note';
+            note.textContent = serverMessage || t('settings.integrations.locked_note');
+            var meta = document.getElementById('integrationMeta-' + provider);
+            card.insertBefore(note, meta || null);
+        }
+    }
+
+    function allProviderCardsLocked() {
+        var cards = document.querySelectorAll('.integration-card[data-provider]');
+        if (!cards.length) return false;
+        for (var i = 0; i < cards.length; i++) {
+            if (cards[i].getAttribute('data-locked') !== 'true') return false;
+        }
+        return true;
+    }
+
     function loadIntegrations() {
         var panelErr = document.getElementById('integrationsPanelError');
+        // All cards server-rendered locked (plan not entitled): nothing to
+        // fetch - the API would answer 403 plan_required for every action.
+        if (allProviderCardsLocked()) {
+            integrationsState.loaded = true;
+            return Promise.resolve();
+        }
         return fetch('api/integrations.php?action=list')
             .then(function (r) { return r.json(); })
             .then(function (data) {
                 if (!data.success) {
+                    if (data.error_code === 'plan_required') {
+                        Object.keys(INTEGRATION_PROVIDER_SPECS).forEach(function (p) {
+                            applyPlanLock(p, data.message);
+                        });
+                        return;
+                    }
                     if (panelErr) { panelErr.textContent = data.message || t('settings.integrations.messages.load_failed'); panelErr.style.display = ''; }
                     return;
                 }

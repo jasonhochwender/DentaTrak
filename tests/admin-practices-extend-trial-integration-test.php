@@ -71,9 +71,10 @@ function startServer(int &$port) {
     }
 
     $stderrPath = sys_get_temp_dir() . '/dentatrak-server-' . $port . '.log';
+    @file_put_contents(sys_get_temp_dir() . '/dt-null-in.txt', '');
     $descriptors = [
-        0 => ['file', 'NUL', 'r'],
-        1 => ['file', 'NUL', 'w'],
+        0 => ['file', sys_get_temp_dir() . '/dt-null-in.txt', 'r'],
+        1 => ['file', sys_get_temp_dir() . '/dt-null-out.txt', 'w'],
         2 => ['file', $stderrPath, 'w'],
     ];
     $proc = proc_open("php -S 127.0.0.1:{$port} -t " . escapeshellarg($base), $descriptors, $pipes);

@@ -365,6 +365,7 @@
         'billing.plans.control.benefit_4',
         'billing.plans.control.benefit_5',
         'billing.plans.control.benefit_6',
+        'billing.plans.control.benefit_7',
       ],
     },
     scale: {
@@ -374,6 +375,7 @@
         'billing.plans.scale.benefit_1',
         'billing.plans.scale.benefit_2',
         'billing.plans.scale.benefit_3',
+        'billing.plans.scale.benefit_4',
       ],
       additional_price_keys: {
         month: 'billing.plans.scale.additional_practices_month',

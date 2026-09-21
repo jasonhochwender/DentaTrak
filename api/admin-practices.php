@@ -25,6 +25,8 @@ require_once __DIR__ . '/feature-flags.php';
 require_once __DIR__ . '/billing-bypass.php';
 require_once __DIR__ . '/subscription-access.php';
 require_once __DIR__ . '/admin-subscription-helpers.php';
+require_once __DIR__ . '/integrations/IntegrationManager.php';
+require_once __DIR__ . '/integrations/IntegrationEvents.php';
 require_once __DIR__ . '/email-sender.php';
 
 header('Content-Type: application/json');
@@ -652,6 +654,95 @@ function getListAdoptionMetrics(PDO $pdo, array $practiceIds): array {
     return $metrics;
 }
 
+/**
+ * Compact per-practice PMS integration status for the DevTools list/detail
+ * payload. Answers, without DB inspection: is Open Dental included on this
+ * plan, has it been configured, is it healthy, are automatic updates active,
+ * when was the last event/last case write, and how many cases were imported.
+ *
+ * Entitlement uses the single authoritative hasControlAccess() check; the
+ * connection projection reuses IntegrationManager::toPublicConnection() -
+ * the exact object the customer Integrations UI consumes - so no status
+ * logic is duplicated and no credentials/tokens/config internals are ever
+ * exposed.
+ *
+ * @param PDO|null $pdo
+ * @param int      $practiceId
+ * @param array    $connectionRows  Raw integration_connections rows for this
+ *                                  practice (batch-loaded by the caller).
+ */
+function buildAdminIntegrationStatus($pdo, int $practiceId, array $connectionRows): array {
+    $entitled = false;
+    if ($pdo instanceof PDO) {
+        try {
+            $entitled = hasControlAccess($pdo, $practiceId, '');
+        } catch (Throwable $e) {
+            $entitled = false;
+        }
+    }
+
+    // Prefer the Open Dental row; fall back to the first provider row so a
+    // future provider still surfaces something in DevTools.
+    $connectionRow = null;
+    foreach ($connectionRows as $row) {
+        if (($row['provider'] ?? '') === 'open_dental') {
+            $connectionRow = $row;
+            break;
+        }
+    }
+    if ($connectionRow === null && !empty($connectionRows)) {
+        $connectionRow = $connectionRows[0];
+    }
+
+    $public = null;
+    if ($connectionRow !== null && $pdo instanceof PDO) {
+        try {
+            $public = IntegrationManager::toPublicConnection($pdo, $connectionRow);
+        } catch (Throwable $e) {
+            $public = null;
+        }
+    }
+
+    $subscription = is_array($public['subscription'] ?? null) ? $public['subscription'] : [];
+    $autoUpdates = $entitled
+        && $public !== null
+        && ($public['status'] ?? '') === 'active'
+        && !empty($public['sync_enabled'])
+        && ($subscription['status'] ?? '') === 'active';
+
+    // Admin-facing state enum:
+    //   not_available_on_plan - practice's plan does not include the feature
+    //   not_configured        - entitled, but no connection exists yet
+    //   pending               - connection saved, verification pending
+    //   connected             - connection active
+    //   error                 - connection in error state
+    //   disabled              - connection disabled (manual or suspension)
+    if (!$entitled) {
+        $state = 'not_available_on_plan';
+    } elseif ($public === null) {
+        $state = 'not_configured';
+    } else {
+        $stateMap = [
+            'active'   => 'connected',
+            'pending'  => 'pending',
+            'error'    => 'error',
+            'disabled' => 'disabled',
+        ];
+        $state = $stateMap[$public['status'] ?? ''] ?? 'pending';
+    }
+
+    return [
+        'entitled'                => $entitled,
+        'state'                   => $state,
+        'provider'                => $public['provider'] ?? ($connectionRow['provider'] ?? null),
+        'auto_updates_active'     => $autoUpdates,
+        'last_event_received_at'  => $subscription['last_event_received_at'] ?? null,
+        'last_case_write_at'      => $public['last_case_write_at'] ?? null,
+        'cases_imported'          => (int)($subscription['cases_imported'] ?? 0),
+        'connection'              => $public,
+    ];
+}
+
 function handleGetRequest($action) {
     global $pdo;
     switch ($action) {
@@ -729,6 +820,30 @@ function handleGetRequest($action) {
             // Batch-load lightweight adoption metrics for all practices
             $adoptionMetrics = getListAdoptionMetrics($pdo, array_map('intval', $practiceIds));
 
+            // Batch-load PMS integration connections (one row per provider per
+            // practice). The public projection below is the same source of
+            // truth the customer-facing Integrations UI renders - DevTools
+            // never duplicates that status logic and never receives
+            // credentials, callback tokens, or config internals.
+            $connectionsByPractice = [];
+            if (!empty($practiceIds) && $pdo && isFeatureEnabled('SHOW_PMS_INTEGRATIONS')) {
+                $connPlaceholders = implode(',', array_fill(0, count($practiceIds), '?'));
+                try {
+                    $connStmt = $pdo->prepare("
+                        SELECT * FROM integration_connections
+                        WHERE practice_id IN ($connPlaceholders)
+                    ");
+                    $connStmt->execute(array_values($practiceIds));
+                    foreach ($connStmt->fetchAll(PDO::FETCH_ASSOC) as $connRow) {
+                        $connectionsByPractice[(int)$connRow['practice_id']][] = $connRow;
+                    }
+                } catch (PDOException $e) {
+                    // Integration tables may not exist in an old snapshot -
+                    // the block below degrades to a plain not-configured view.
+                    $connectionsByPractice = [];
+                }
+            }
+
             foreach ($practices as &$practice) {
                 $practice['is_hidden'] = in_array((int)$practice['id'], $hiddenIds, true);
                 $owner = $ownerMap[(int)$practice['id']] ?? null;
@@ -739,6 +854,11 @@ function handleGetRequest($action) {
                     'total_cases' => 0,
                     'last_activity' => null,
                 ];
+                $practice['integration'] = buildAdminIntegrationStatus(
+                    $pdo,
+                    (int)$practice['id'],
+                    $connectionsByPractice[(int)$practice['id']] ?? []
+                );
             }
             unset($practice);
             echo json_encode([

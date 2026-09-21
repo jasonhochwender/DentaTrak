@@ -3283,6 +3283,19 @@ input#practiceName {
   color: #6b7280;
 }
 
+.integration-status-badge.integration-status-locked {
+  background: #e0e7ff;
+  color: #3730a3;
+}
+
+.integration-locked-note {
+  margin: 8px 0 0;
+  font-size: 13px;
+  color: #4b5563;
+  line-height: 1.45;
+  font-style: italic;
+}
+
 .integration-card-description {
   margin: 8px 0 0;
   font-size: 13px;

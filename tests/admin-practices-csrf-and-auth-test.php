@@ -16,6 +16,16 @@
 
 $base = __DIR__ . '/..';
 
+// Loaded up front (not mid-test) so appConfig's session bootstrap runs before
+// any output. Provides $pdo for the DevTools integration-status fixtures.
+require_once $base . '/api/appConfig.php';
+require_once $base . '/api/practice-security.php';
+require_once $base . '/api/integrations/IntegrationManager.php';
+require_once $base . '/api/integrations/IntegrationEvents.php';
+require_once $base . '/api/integrations/IntegrationCredentials.php';
+require_once $base . '/api/subscription-owner.php';
+global $pdo;
+
 $passed = 0;
 $failed = 0;
 
@@ -64,9 +74,10 @@ function startServer(int &$port) {
     }
 
     $stderrPath = sys_get_temp_dir() . '/dentatrak-server-' . $port . '.log';
+    @file_put_contents(sys_get_temp_dir() . '/dt-null-in.txt', '');
     $descriptors = [
-        0 => ['file', 'NUL', 'r'],
-        1 => ['file', 'NUL', 'w'],
+        0 => ['file', sys_get_temp_dir() . '/dt-null-in.txt', 'r'],
+        1 => ['file', sys_get_temp_dir() . '/dt-null-out.txt', 'w'],
         2 => ['file', $stderrPath, 'w'],
     ];
     $proc = proc_open("php -S 127.0.0.1:{$port} -t " . escapeshellarg($base), $descriptors, $pipes);
@@ -266,6 +277,11 @@ try {
     $login = loginUser($baseUrl, $email, $cookieJar);
     $cookie = $login['cookie'];
 
+    // Fixture owner must have accepted the current Terms - admin-practices
+    // POST actions enforce requireCurrentTermsAcceptedForApi.
+    $pdo->prepare("UPDATE users SET terms_accepted_version = :v, terms_accepted_at = NOW() WHERE email = :e")
+        ->execute(['v' => currentTermsVersion(), 'e' => $email]);
+
     // Authenticated non-super user can read in development.
     $list = httpGet("{$baseUrl}/api/admin-practices.php?action=list", $cookie);
     assertEquals('authenticated GET list in development returns 200', 200, $list['code']);
@@ -369,6 +385,80 @@ try {
     ], $cookie);
     assertEquals('extend_trial with valid CSRF returns 200', 200, $extend['code'], $extend['body']);
     assertContains('extend_trial message mentions one practice', 'for CSRF Test Practice', $extend['body']);
+
+    // ---------------------------------------------------------------------------
+    // DevTools integration status block (admin list payload)
+    //
+    // The per-practice 'integration' object answers: plan entitled? configured?
+    // healthy? updates active? last event/last case write? cases imported? It
+    // must never carry credentials, tokens, or config internals.
+    // ---------------------------------------------------------------------------
+    $admConnId = null;
+    $secretMarker = 'UNIT-SECRET-ADMTEST-' . bin2hex(random_bytes(4));
+    try {
+        $pdo->exec("INSERT INTO integration_connections (practice_id, provider, status, sync_enabled, created_at)
+                    VALUES ({$practiceId}, 'open_dental', 'active', 1, NOW())");
+        $admConnId = (int)$pdo->lastInsertId();
+        IntegrationCredentials::store($pdo, $admConnId, 'customer_key', $secretMarker);
+        IntegrationEvents::updateSubscriptionConfig($pdo, $admConnId, [
+            'enabled' => true, 'watch_table' => 'LabCase', 'subscription_num' => 42,
+        ]);
+        IntegrationEvents::record($pdo, $admConnId, 'labcase', '555', 'admtest-dedup-1', null);
+        $pdo->exec("INSERT INTO integration_entity_mappings (connection_id, entity_type, external_id, internal_id, created_at)
+                    VALUES ({$admConnId}, 'case', '555', 'DT-ADMTEST-1', NOW())");
+
+        $findPractice = function (int $pid) use ($baseUrl, $cookie): ?array {
+            $r = httpGet("{$baseUrl}/api/admin-practices.php?action=list", $cookie);
+            $data = json_decode($r['body'], true);
+            foreach ($data['practices'] ?? [] as $p) {
+                if ((int)$p['id'] === $pid) { return $p; }
+            }
+            return null;
+        };
+
+        // Entitled (trialing fixture) + configured connection.
+        $p = $findPractice($practiceId);
+        assertTrue('devtools: integration block present', isset($p['integration']));
+        $integ = $p['integration'] ?? [];
+        assertEquals('devtools: entitled on trial', true, $integ['entitled'] ?? null);
+        assertEquals('devtools: state connected', 'connected', $integ['state'] ?? null);
+        assertEquals('devtools: auto updates active', true, $integ['auto_updates_active'] ?? null);
+        assertTrue('devtools: last event timestamp', !empty($integ['last_event_received_at']));
+        assertEquals('devtools: cases imported', 1, (int)($integ['cases_imported'] ?? -1));
+        assertEquals('devtools: connection projection reused', 'active', $integ['connection']['status'] ?? null);
+
+        // No secret material anywhere in the admin payload for this practice.
+        $r = httpGet("{$baseUrl}/api/admin-practices.php?action=list", $cookie);
+        assertTrue('devtools: no credential value in payload', strpos($r['body'], $secretMarker) === false);
+        assertTrue('devtools: no callback token field', strpos($r['body'], 'callback_token') === false);
+        assertTrue('devtools: no config_json internals', strpos($r['body'], 'config_json') === false);
+
+        // Downgrade to paid Operate -> not available on plan (data survives).
+        httpPost("{$baseUrl}/api/test-helpers.php", [
+            'action' => 'set_subscription_plan', 'email' => $email,
+            'plan' => 'operate', 'status' => 'active',
+        ]);
+        $p = $findPractice($practiceId);
+        $integ = $p['integration'] ?? [];
+        assertEquals('devtools operate: not entitled', false, $integ['entitled'] ?? null);
+        assertEquals('devtools operate: not_available_on_plan', 'not_available_on_plan', $integ['state'] ?? null);
+        assertEquals('devtools operate: updates not active', false, $integ['auto_updates_active'] ?? null);
+        assertEquals('devtools operate: connection projection still attached', 'active', $integ['connection']['status'] ?? null);
+        assertEquals('devtools operate: cases_imported retained', 1, (int)($integ['cases_imported'] ?? -1));
+
+        // Restore to trialing so cleanup-user semantics stay intact.
+        httpPost("{$baseUrl}/api/test-helpers.php", [
+            'action' => 'set_subscription_plan', 'email' => $email,
+            'plan' => 'operate', 'status' => 'trialing',
+        ]);
+    } finally {
+        if ($admConnId !== null) {
+            $pdo->exec("DELETE FROM integration_entity_mappings WHERE connection_id={$admConnId}");
+            $pdo->exec("DELETE FROM integration_external_events WHERE connection_id={$admConnId}");
+            $pdo->exec("DELETE FROM integration_credentials WHERE connection_id={$admConnId}");
+            $pdo->exec("DELETE FROM integration_connections WHERE id={$admConnId}");
+        }
+    }
 
     // Cleanup
     $cleanup = httpPost("{$baseUrl}/api/test-helpers.php", ['action' => 'cleanup_test_user', 'email' => $email]);

@@ -32,6 +32,8 @@ require_once __DIR__ . '/appConfig.php';
 require_once __DIR__ . '/practice-security.php';
 require_once __DIR__ . '/user-manager.php';
 require_once __DIR__ . '/feature-flags.php';
+require_once __DIR__ . '/billing-bypass.php';
+require_once __DIR__ . '/subscription-access.php';
 require_once __DIR__ . '/csrf.php';
 require_once __DIR__ . '/integrations/IntegrationManager.php';
 require_once __DIR__ . '/integrations/IntegrationCredentials.php';
@@ -82,6 +84,19 @@ requireCurrentTermsAcceptedForApi($userId);
 // integration operations while the foundation flag is off.
 if (!isFeatureEnabled('SHOW_PMS_INTEGRATIONS')) {
     integrationsFail(403, t('api.integrations.disabled'));
+}
+
+// Plan entitlement: PMS integration management is a Control-tier-and-above
+// capability. hasControlAccess() is the same authoritative check Lab
+// Insights/Smart Recommendations use - it encodes BILLING_ENABLED, billing
+// bypass accounts, active trials, and cumulative tiers. Every action below
+// (list, configure, generate_key, test_connection, subscribe, unsubscribe,
+// import_existing, disconnect, reenable, update_settings) is gated here, so
+// an Operate practice cannot bypass the restriction by calling endpoints
+// directly. The practice owner may still view status via the public page -
+// nothing secret is returned either way.
+if (!hasControlAccess($pdo, $currentPracticeId, (string)($_SESSION['user_email'] ?? ''))) {
+    integrationsFail(403, t('api.integrations.plan_required'), 'plan_required');
 }
 
 // Providers the management API will accept. The adapter registry in

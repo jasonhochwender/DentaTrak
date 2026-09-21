@@ -34,6 +34,8 @@
 require_once __DIR__ . '/IntegrationManager.php';
 require_once __DIR__ . '/SyncEngine.php';
 require_once __DIR__ . '/../CaseService.php';
+require_once __DIR__ . '/../billing-bypass.php';
+require_once __DIR__ . '/../subscription-access.php';
 
 class IntegrationEvents {
 
@@ -148,6 +150,17 @@ class IntegrationEvents {
         if (!$connection || $connection['status'] !== 'active') {
             return self::finalize($pdo, $eventId, self::STATUS_FAILED,
                 'Integration connection is not active.');
+        }
+
+        // Plan entitlement: if the practice downgraded after configuring (or
+        // its trial/subscription lapsed), the connection is suspended instead
+        // of writing to cases. The event is finalized as failed and the
+        // connection parked 'disabled' so later deliveries short-circuit at
+        // the check above; nothing is deleted and re-upgrade can re-enable.
+        if (!hasControlAccess($pdo, (int)$connection['practice_id'], '')) {
+            self::suspendForPlanEntitlement($pdo, $connection);
+            return self::finalize($pdo, $eventId, self::STATUS_FAILED,
+                'Plan entitlement required for integration.');
         }
 
         try {
@@ -1068,6 +1081,77 @@ class IntegrationEvents {
         return $row === false ? null : $row;
     }
 
+    /**
+     * Suspend an integration because the practice lost its plan entitlement
+     * (e.g. Control/Scale -> Operate downgrade, trial expiry, unpaid). The
+     * connection is parked 'disabled' with sync_enabled=0, any remote watch
+     * subscriptions are disabled best-effort so Open Dental stops firing,
+     * and queued events are drained as failed. Nothing is deleted -
+     * credentials, mappings, imported cases, and event history all survive,
+     * so a later re-upgrade + re-enable restores the integration without
+     * data loss.
+     *
+     * Invoked lazily by processEvent: the billing flow has no downgrade
+     * hook, so the worker path is the enforcement point. Idempotent - the
+     * status='disabled' row short-circuits all subsequent processing.
+     */
+    public static function suspendForPlanEntitlement(PDO $pdo, array $connection): void {
+        $connectionId = (int)$connection['id'];
+
+        $pdo->prepare("
+            UPDATE integration_connections
+            SET status = 'disabled', sync_enabled = 0
+            WHERE id = :id
+        ")->execute([':id' => $connectionId]);
+
+        // Best-effort: expire the remote watch subscriptions so the office's
+        // eConnector stops delivering into a disabled connection. Failures
+        // are safe - the webhook still acks-and-drops non-active connections.
+        $sub = self::getSubscriptionConfig($connection);
+        $subNums = array_filter([
+            (int)($sub['subscription_num'] ?? 0),
+            (int)($sub['deleted_subscription_num'] ?? 0),
+        ]);
+        if ($sub !== null && !empty($sub['enabled']) && $subNums) {
+            try {
+                $adapter = IntegrationManager::getAdapter($connection);
+                if (method_exists($adapter, 'disableSubscription')) {
+                    $credentials = IntegrationManager::getConnectionCredentials($pdo, $connectionId);
+                    foreach ($subNums as $subNum) {
+                        $adapter->disableSubscription($credentials, $subNum);
+                    }
+                }
+            } catch (Throwable $e) {
+                error_log('[IntegrationEvents] remote subscription disable failed during plan suspension (connection ' . $connectionId . ')');
+            }
+        }
+
+        self::updateSubscriptionConfig($pdo, $connectionId, [
+            'enabled'         => false,
+            'disabled_at'     => gmdate('Y-m-d H:i:s'),
+            'disabled_reason' => 'plan_entitlement',
+        ]);
+
+        // Park every queued event for this connection as failed so the
+        // worker does not keep retrying deliveries into a suspended
+        // connection. The currently-claimed event is finalized by the
+        // caller afterwards, so it is excluded here.
+        $pdo->prepare("
+            UPDATE integration_external_events
+            SET status = :failed, last_error = 'Plan entitlement required for integration.',
+                next_retry_at = NULL, processed_at = NOW()
+            WHERE connection_id = :id AND status IN (:received, :processing)
+        ")->execute([
+            ':failed'     => self::STATUS_FAILED,
+            ':id'         => $connectionId,
+            ':received'   => self::STATUS_RECEIVED,
+            ':processing' => self::STATUS_PROCESSING,
+        ]);
+
+        error_log('[IntegrationEvents] connection ' . $connectionId
+            . ' (practice ' . (int)$connection['practice_id'] . ') suspended - plan entitlement required');
+    }
+
     // ----------------------------------------------------------------------
     // Subscription metadata (stored in config_json.subscription)
     // ----------------------------------------------------------------------
@@ -1150,6 +1234,7 @@ class IntegrationEvents {
             'polling_seconds'       => isset($sub['polling_seconds']) ? (int)$sub['polling_seconds'] : null,
             'subscribed_at'         => $sub['subscribed_at'] ?? null,
             'disabled_at'           => $sub['disabled_at'] ?? null,
+            'disabled_reason'       => $sub['disabled_reason'] ?? null,
             'subsequent_failures'   => isset($sub['subsequent_failures']) ? (int)$sub['subsequent_failures'] : 0,
             'last_failure_reason'   => $sub['last_failure_reason'] ?? null,
             'last_event_received_at'=> $lastEvent->fetchColumn() ?: null,
