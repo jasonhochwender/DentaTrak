@@ -3172,7 +3172,7 @@ endif;
         <div class="test-case-controls">
           <label for="devCaseType" class="sr-only"><?php echo t('dev_tools.test_case_type'); ?></label>
           <select id="devCaseType" class="dev-select">
-            <option value="Mixed"><?php echo t('case_types.mixed'); ?></option>
+            <option value="Mixed Case Type"><?php echo t('case_types.mixed'); ?></option>
             <?php echo renderCaseTypeOptions(array_diff(getCanonicalCaseTypes(), [CASE_TYPE_NEEDS_CLASSIFICATION])); ?>
           </select>
           <label for="devCaseCount" class="sr-only"><?php echo t('dev_tools.test_case_count'); ?></label>
