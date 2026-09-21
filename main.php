@@ -661,7 +661,6 @@ if (isset($appConfig) && is_array($appConfig) && isset($appConfig['appName'])) {
   <script>
     window.__i18n = <?php echo getTranslationsJsonForJs(); ?>;
     window.__caseTypeMap = <?php echo json_encode(getCaseTypeMapForJs(), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
-    window.__caseTypesRequiringMaterial = <?php echo json_encode(array_values(getCaseTypesRequiringMaterial()), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
     window.workflowStageOrder = <?php echo json_encode($workflowStageOrder, JSON_UNESCAPED_UNICODE); ?>;
     window.allWorkflowStageLabels = <?php echo json_encode($allWorkflowStageLabels, JSON_UNESCAPED_UNICODE); ?>;
     window.workflowTerminal = <?php echo json_encode(['id' => getLastActiveWorkflowColumnId($currentPracticeId ?: null), 'label' => resolveWorkflowStageLabelForPractice(getLastActiveWorkflowColumnId($currentPracticeId ?: null), $currentPracticeId ?: null)], JSON_UNESCAPED_UNICODE); ?>;
@@ -1886,6 +1885,28 @@ endif;
 <?php endif; ?>
             </div>
 
+            <!-- Secondary case metadata/actions for saved cases: Created
+                 By, review status and Record Remake live here instead of
+                 inside the editable field grid or the submit footer.
+                 Hidden for new cases. -->
+            <div id="caseModalMeta" class="case-modal-meta" style="display: none;">
+              <span class="case-meta-item" id="caseCreatedByItem">
+                <span class="case-meta-label"><?php echo t('cases.created_by'); ?></span>
+                <span id="createdByDisplay" class="case-meta-value"><?php echo t('common.unknown'); ?></span>
+              </span>
+              <div id="reviewStatusContainer" class="review-status-field needs-review case-review-feature" style="display: none;">
+                <div class="review-status-row">
+                  <span class="case-meta-label"><?php echo t('cases.review_status'); ?></span>
+                  <span id="reviewStatusValue" class="review-status-value"><?php echo t('cases.needs_review'); ?></span>
+                  <span id="reviewStatusTimestamp" class="review-status-timestamp"></span>
+                  <button type="button" id="reviewStatusAction" class="review-status-action" data-reviewed="false">
+                    <?php echo t('cases.mark_reviewed'); ?>
+                  </button>
+                </div>
+              </div>
+              <button type="button" class="btn-remake-action" id="recordRemakeBtn" hidden><?php echo t('remakes.record_remake'); ?></button>
+            </div>
+
             <form id="createCaseForm" class="case-tab-panel case-tab-panel-active" enctype="multipart/form-data" novalidate>
 <?php if (isFeatureEnabled('SHOW_ACTIVITY_TIMELINE')): ?>
               <!-- Activity Timeline (visible when editing existing cases) -->
@@ -1909,14 +1930,15 @@ endif;
                    (case_remake_events). Workflow regressions never appear
                    here; populated by case-remakes.js. -->
               <div id="caseRemakeHistory" class="remake-history-strip" style="display: none;">
-                <button type="button" class="remake-history-strip-header" id="caseRemakeHistoryToggle" aria-expanded="true">
+                <button type="button" class="remake-history-strip-header" id="caseRemakeHistoryToggle" aria-expanded="false">
                   <span class="remake-history-strip-label"><?php echo t('remakes.history_heading'); ?></span>
                   <span class="remake-history-strip-count" id="caseRemakeHistoryCount"></span>
+                  <span class="remake-history-strip-summary" id="caseRemakeHistorySummary"></span>
                   <svg class="remake-history-strip-caret" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                     <polyline points="6 9 12 15 18 9"></polyline>
                   </svg>
                 </button>
-                <div id="caseRemakeHistoryList" class="remake-history-strip-list"></div>
+                <div id="caseRemakeHistoryList" class="remake-history-strip-list" hidden></div>
               </div>
 
               <div class="modal-form-grid">
@@ -1957,32 +1979,42 @@ endif;
                   <label for="caseType"><?php echo t('cases.case_type'); ?> <span class="required">*</span></label>
                   <select id="caseType" name="caseType" required>
                     <option value=""><?php echo t('select.select_case_type'); ?></option>
-                    <?php echo renderCaseTypeOptions(getSelectableCaseTypes()); ?>
+                    <?php echo renderCaseTypeOptions(getCreatableCaseTypes()); ?>
                   </select>
                 </div>
 
-                <div class="form-field">
-                  <label for="toothShade"><?php echo t('cases.tooth_shade'); ?></label>
-                  <input id="toothShade" name="toothShade" type="text" placeholder="<?php echo t('cases.clinical.placeholders.toothShade'); ?>" title="<?php echo t('cases.clinical.placeholders.toothShade'); ?>">
-                </div>
-
-                <div class="form-field">
-                  <label for="material"><?php echo t('cases.material'); ?></label>
-                  <select id="material" name="material">
-                    <option value=""><?php echo t('select.select_material'); ?></option>
-                    <option value="Zirconia"><?php echo t('options.materials.zirconia'); ?></option>
-                    <option value="Lithium Disilicate"><?php echo t('options.materials.lithium_disilicate'); ?></option>
-                    <option value="PFM"><?php echo t('options.materials.pfm'); ?></option>
-                    <option value="PFZ"><?php echo t('options.materials.pfz'); ?></option>
-                    <option value="3D Printed"><?php echo t('options.materials.3d_printed'); ?></option>
-                  </select>
-                </div>
               </div>
 
               <!-- Clinical Details Section (case-type-specific fields) -->
               <div id="clinicalDetailsSection" class="clinical-details-section" style="display: none;">
                 <h3 class="clinical-details-title"><?php echo t('cases.clinical.title'); ?></h3>
                 <div class="clinical-details-grid">
+                  <!-- Tooth Shade: clinical info, optional for every case type.
+                       It lists all known types so the Clinical section is
+                       reachable for every selected type, matching its prior
+                       always-visible behavior. -->
+                  <div class="form-field clinical-field" data-case-types="<?php echo htmlspecialchars(implode(',', getAllKnownCaseTypes())); ?>">
+                    <label for="toothShade"><?php echo t('cases.tooth_shade'); ?></label>
+                    <input id="toothShade" name="toothShade" type="text" placeholder="<?php echo t('cases.clinical.placeholders.toothShade'); ?>" title="<?php echo t('cases.clinical.placeholders.toothShade'); ?>">
+                  </div>
+
+                  <!-- Material: case-type-scoped. The applicability list is
+                       rendered from the canonical server map so client and
+                       server can never disagree; visibility, clear-on-hide
+                       and conditional requiredness all run through the
+                       clinical-field mechanism. -->
+                  <div class="form-field clinical-field" data-case-types="<?php echo htmlspecialchars(implode(',', getCaseTypesRequiringMaterial())); ?>" data-conditionally-required="true">
+                    <label for="material"><?php echo t('cases.material'); ?> <span class="required">*</span></label>
+                    <select id="material" name="material">
+                      <option value=""><?php echo t('select.select_material'); ?></option>
+                      <option value="Zirconia"><?php echo t('options.materials.zirconia'); ?></option>
+                      <option value="Lithium Disilicate"><?php echo t('options.materials.lithium_disilicate'); ?></option>
+                      <option value="PFM"><?php echo t('options.materials.pfm'); ?></option>
+                      <option value="PFZ"><?php echo t('options.materials.pfz'); ?></option>
+                      <option value="3D Printed"><?php echo t('options.materials.3d_printed'); ?></option>
+                    </select>
+                  </div>
+
                   <!-- Crown fields -->
                   <div class="form-field clinical-field" data-case-types="Crown" data-conditionally-required="true">
                     <label for="clinicalToothNumber"><?php echo t('cases.fields.clinical_toothNumber'); ?> <span class="required">*</span></label>
@@ -2117,17 +2149,6 @@ endif;
                   </select>
                 </div>
 
-                <div id="reviewStatusContainer" class="form-field review-status-field needs-review case-review-feature" style="display: none;">
-                  <label for="reviewStatusAction"><?php echo t('cases.review_status'); ?></label>
-                  <div class="review-status-row">
-                    <span id="reviewStatusValue" class="review-status-value"><?php echo t('cases.needs_review'); ?></span>
-                    <span id="reviewStatusTimestamp" class="review-status-timestamp"></span>
-                    <button type="button" id="reviewStatusAction" class="review-status-action" data-reviewed="false">
-                      <?php echo t('cases.mark_reviewed'); ?>
-                    </button>
-                  </div>
-                </div>
-
                 <div class="form-field form-field-notes">
                   <label for="notes"><?php echo t('cases.notes'); ?></label>
                   <div class="char-counter-wrapper">
@@ -2139,8 +2160,14 @@ endif;
                 </div>
               </div>
 
-              <h3 class="shipping-title"><?php echo t('cases.shipping_optional'); ?></h3>
-              <div class="shipping-fields">
+              <div class="shipping-section" id="shippingSection">
+                <button type="button" class="shipping-toggle" id="shippingToggle" aria-expanded="true" aria-controls="shippingFields">
+                  <span class="shipping-toggle-label"><?php echo t('cases.shipping_optional'); ?></span>
+                  <svg class="shipping-toggle-caret" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <polyline points="6 9 12 15 18 9"></polyline>
+                  </svg>
+                </button>
+                <div class="shipping-fields" id="shippingFields">
                 <div class="form-field">
                   <label for="carrier"><?php echo t('cases.carrier'); ?></label>
                   <select id="carrier" name="carrier">
@@ -2160,6 +2187,7 @@ endif;
                   <label for="trackingNumber"><?php echo t('cases.tracking_number'); ?></label>
                   <input type="text" id="trackingNumber" name="trackingNumber" placeholder="<?php echo t('cases.tracking_number_placeholder'); ?>" maxlength="100">
                   <a id="trackingNumberLink" class="tracking-number-link" href="#" target="_blank" rel="noopener noreferrer nofollow" style="display:none;"><?php echo t('cases.track_package'); ?></a>
+                </div>
                 </div>
               </div>
 
@@ -2182,61 +2210,90 @@ endif;
               <div id="attachmentsLoadStatus" class="attachments-load-status" role="status" aria-live="polite" style="display: none;"></div>
               <div class="attachments-grid">
                 <div class="attachment-group">
-                  <div class="attachment-header"><?php echo t('attachments.photos'); ?></div>
-                  <label class="file-button" tabindex="0">
-                    <?php echo t('cases.select_files'); ?>
-                    <input type="file" name="photos[]" multiple accept="image/*" class="attachment-input" data-type="photos">
-                  </label>
+                  <div class="attachment-row">
+                    <span class="attachment-header"><?php echo t('attachments.photos'); ?></span>
+                    <span class="attachment-count" data-attachment-count></span>
+                    <label class="file-button" tabindex="0">
+                      <?php echo t('attachments.add_files'); ?>
+                      <input type="file" name="photos[]" multiple accept="image/*" class="attachment-input" data-type="photos">
+                    </label>
+                  </div>
                   <!-- Make sure ID is both lowercase and matches API's Photos type -->
                   <div class="selected-files" id="photos-files" data-type="photos" data-api-type="Photos"></div>
                 </div>
 
                 <div class="attachment-group">
-                  <div class="attachment-header"><?php echo t('attachments.intraoral_scans'); ?></div>
-                  <label class="file-button" tabindex="0">
-                    <?php echo t('cases.select_files'); ?>
-                    <input type="file" name="intraoralScans[]" multiple class="attachment-input" data-type="intraoralScans">
-                  </label>
+                  <div class="attachment-row">
+                    <span class="attachment-header"><?php echo t('attachments.intraoral_scans'); ?></span>
+                    <span class="attachment-count" data-attachment-count></span>
+                    <label class="file-button" tabindex="0">
+                      <?php echo t('attachments.add_files'); ?>
+                      <input type="file" name="intraoralScans[]" multiple class="attachment-input" data-type="intraoralScans">
+                    </label>
+                  </div>
                   <!-- Make sure ID is both lowercase and matches API's IntraoralScans type -->
                   <div class="selected-files" id="intraoralScans-files" data-type="intraoralScans" data-api-type="IntraoralScans"></div>
                 </div>
 
                 <div class="attachment-group">
-                  <div class="attachment-header"><?php echo t('attachments.facial_scans'); ?></div>
-                  <label class="file-button" tabindex="0">
-                    <?php echo t('cases.select_files'); ?>
-                    <input type="file" name="facialScans[]" multiple class="attachment-input" data-type="facialScans">
-                  </label>
+                  <div class="attachment-row">
+                    <span class="attachment-header"><?php echo t('attachments.facial_scans'); ?></span>
+                    <span class="attachment-count" data-attachment-count></span>
+                    <label class="file-button" tabindex="0">
+                      <?php echo t('attachments.add_files'); ?>
+                      <input type="file" name="facialScans[]" multiple class="attachment-input" data-type="facialScans">
+                    </label>
+                  </div>
                   <!-- Make sure ID is both lowercase and matches API's FacialScans type -->
                   <div class="selected-files" id="facialScans-files" data-type="facialScans" data-api-type="FacialScans"></div>
                 </div>
 
                 <div class="attachment-group">
-                  <div class="attachment-header"><?php echo t('attachments.photogrammetry'); ?></div>
-                  <label class="file-button" tabindex="0">
-                    <?php echo t('cases.select_files'); ?>
-                    <input type="file" name="photogrammetry[]" multiple class="attachment-input" data-type="photogrammetry">
-                  </label>
+                  <div class="attachment-row">
+                    <span class="attachment-header"><?php echo t('attachments.photogrammetry'); ?></span>
+                    <span class="attachment-count" data-attachment-count></span>
+                    <label class="file-button" tabindex="0">
+                      <?php echo t('attachments.add_files'); ?>
+                      <input type="file" name="photogrammetry[]" multiple class="attachment-input" data-type="photogrammetry">
+                    </label>
+                  </div>
                   <!-- Make sure ID is both lowercase and matches API's Photogrammetry type -->
                   <div class="selected-files" id="photogrammetry-files" data-type="photogrammetry" data-api-type="Photogrammetry"></div>
                 </div>
 
                 <div class="attachment-group">
-                  <div class="attachment-header"><?php echo t('attachments.completed_designs'); ?></div>
-                  <label class="file-button" tabindex="0">
-                    <?php echo t('cases.select_files'); ?>
-                    <input type="file" name="completedDesigns[]" multiple class="attachment-input" data-type="completedDesigns">
-                  </label>
+                  <div class="attachment-row">
+                    <span class="attachment-header"><?php echo t('attachments.completed_designs'); ?></span>
+                    <span class="attachment-count" data-attachment-count></span>
+                    <label class="file-button" tabindex="0">
+                      <?php echo t('attachments.add_files'); ?>
+                      <input type="file" name="completedDesigns[]" multiple class="attachment-input" data-type="completedDesigns">
+                    </label>
+                  </div>
                   <!-- Make sure ID is both lowercase and matches API's CompletedDesigns type -->
                   <div class="selected-files" id="completedDesigns-files" data-type="completedDesigns" data-api-type="CompletedDesigns"></div>
                 </div>
+
+                <!-- Legacy stored types have no upload category - display
+                     them here only when an existing case carries them.
+                     Container ids must match the lookups in
+                     displayExistingFiles()/renderExistingAttachments(). -->
+                <div class="attachment-group attachment-group-legacy">
+                  <div class="attachment-row">
+                    <span class="attachment-header"><?php echo t('attachments.radiographs'); ?></span>
+                    <span class="attachment-count" data-attachment-count></span>
+                  </div>
+                  <div class="selected-files" id="radiographs-files" data-type="radiographs" data-api-type="Radiographs"></div>
+                </div>
+                <div class="attachment-group attachment-group-legacy">
+                  <div class="attachment-row">
+                    <span class="attachment-header"><?php echo t('attachments.documents'); ?></span>
+                    <span class="attachment-count" data-attachment-count></span>
+                  </div>
+                  <div class="selected-files" id="documents-files" data-type="documents" data-api-type="Documents"></div>
+                </div>
               </div>
 
-
-              <div class="form-field case-creator-meta">
-                <label><?php echo t('cases.created_by'); ?></label>
-                <span id="createdByDisplay" class="case-meta-value"><?php echo t('common.unknown'); ?></span>
-              </div>
 
             </form>
 
@@ -2277,7 +2334,6 @@ endif;
             <div class="modal-footer create-case-footer">
               <button type="button" class="btn-primary" id="createCaseSubmit"><?php echo t('cases.create_case'); ?></button>
               <button type="button" class="btn-cancel" id="createCaseCancel"><?php echo t('common.cancel'); ?></button>
-              <button type="button" class="btn-remake-action" id="recordRemakeBtn" hidden><?php echo t('remakes.record_remake'); ?></button>
             </div>
           </div>
         </div>

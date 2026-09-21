@@ -38,6 +38,7 @@ async function createCase(page, overrides) {
     patientGender: 'Male',
     dentistName: 'Dr. Test',
     caseType: 'Veneer',
+    material: 'Zirconia', // Veneer requires Material (canonical rule)
     dueDate: '2026-09-06',
     status: 'Originated',
     notes: TEST_MARKER + ' mobile case modal test case',
@@ -497,7 +498,7 @@ async function run() {
   await page.click('.case-tab[data-tab="details"]');
   await page.waitForTimeout(300);
   await page.evaluate(() => {
-    const shipping = document.querySelector('.shipping-title');
+    const shipping = document.querySelector('.shipping-section');
     if (shipping) shipping.scrollIntoView({ behavior: 'instant', block: 'start' });
   });
   await page.waitForTimeout(400);
@@ -563,12 +564,12 @@ async function run() {
 
   // 6b. Save/Cancel at bottom and footer spacing.
   await page.evaluate(() => {
-    const meta = document.querySelector('.case-creator-meta');
+    const meta = document.querySelector('.attachments-grid');
     if (meta) meta.scrollIntoView({ behavior: 'instant', block: 'start' });
   });
   await page.waitForTimeout(400);
   const footerSpacing = await page.evaluate(() => {
-    const meta = document.querySelector('.case-creator-meta');
+    const meta = document.querySelector('.attachments-grid');
     const footer = document.querySelector('.create-case-footer');
     const panel = document.querySelector('#createCaseForm.case-tab-panel-active');
     return {

@@ -329,6 +329,7 @@ async function run() {
     patientGender: 'Male',
     dentistName: 'Dr. Test',
     caseType: 'Veneer',
+    material: 'Zirconia', // Veneer requires Material (canonical rule)
     dueDate: '2026-09-06',
     status: 'Originated',
     notes: 'Do not delete',

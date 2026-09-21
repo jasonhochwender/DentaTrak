@@ -254,10 +254,26 @@
     if (strip) strip.style.display = 'none';
   }
 
+  /* Collapsed-state summary: "Latest: Fit issue · Lab-related · In
+     progress" so the strip stays one line until expanded. */
+  function remakeSummaryText(remakes) {
+    if (!remakes || remakes.length === 0) return '';
+    var latest = remakes.reduce(function (a, b) {
+      return ((b.remake_number || 0) > (a.remake_number || 0)) ? b : a;
+    });
+    var parts = [
+      remakeLabel('remakes.reasons', latest.reason_code),
+      remakeLabel('remakes.attribution', latest.attribution),
+      latest.completed_at ? t('remakes.completed') : t('remakes.in_progress')
+    ];
+    return t('remakes.latest_label') + ': ' + parts.join(' · ');
+  }
+
   function renderCaseRemakeHistory(remakes, archived) {
     var strip = document.getElementById('caseRemakeHistory');
     var list = document.getElementById('caseRemakeHistoryList');
     var count = document.getElementById('caseRemakeHistoryCount');
+    var summary = document.getElementById('caseRemakeHistorySummary');
     if (!strip || !list) return;
 
     if (!remakes || remakes.length === 0) {
@@ -269,6 +285,7 @@
       return remakeItemHtml(r, !archived, t('remakes.in_progress'));
     }).join('');
     if (count) count.textContent = '(' + remakes.length + ')';
+    if (summary) summary.textContent = remakeSummaryText(remakes);
     strip.style.display = '';
   }
 
@@ -276,9 +293,16 @@
     var strip = document.getElementById('caseRemakeHistory');
     var list = document.getElementById('caseRemakeHistoryList');
     var count = document.getElementById('caseRemakeHistoryCount');
+    var summary = document.getElementById('caseRemakeHistorySummary');
     if (!strip || !list) return;
     list.innerHTML = '<p class="remake-empty">' + esc(t('remakes.history_load_error')) + '</p>';
     if (count) count.textContent = '';
+    if (summary) summary.textContent = '';
+    // Expand so the error is visible even though the strip defaults to
+    // collapsed.
+    list.hidden = false;
+    var toggle = document.getElementById('caseRemakeHistoryToggle');
+    if (toggle) toggle.setAttribute('aria-expanded', 'true');
     strip.style.display = '';
   }
 
@@ -414,13 +438,13 @@
 
   window.openCaseRemakesModal = openModal;
 
-  /* Explicit Record Remake button in the case modal footer (active cases
-     only - app.js shows/hides it from populateCreateCaseForm and
+  /* Explicit Record Remake button in the case modal's meta row (active
+     cases only - app.js shows/hides it from populateCreateCaseForm and
      editCaseHandler). Reuses the same modal and endpoint as the
      actions-menu item. */
-  var footerRemakeBtn = document.getElementById('recordRemakeBtn');
-  if (footerRemakeBtn) {
-    footerRemakeBtn.addEventListener('click', function () {
+  var modalRemakeBtn = document.getElementById('recordRemakeBtn');
+  if (modalRemakeBtn) {
+    modalRemakeBtn.addEventListener('click', function () {
       var form = document.getElementById('createCaseForm');
       var caseId = form && form.dataset ? form.dataset.caseId : null;
       if (caseId) {

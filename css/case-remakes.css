@@ -243,8 +243,25 @@
   color: var(--text-secondary, #5f6b7a);
 }
 
+/* Collapsed-state one-line summary ("Latest: Fit issue · Lab-related ·
+   In progress") - hidden while the strip is expanded. */
+.remake-history-strip-summary {
+  font-size: 0.78rem;
+  font-weight: 400;
+  color: var(--text-secondary, #5f6b7a);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+.remake-history-strip-header[aria-expanded="true"] .remake-history-strip-summary {
+  display: none;
+}
+
 .remake-history-strip-caret {
   margin-left: auto;
+  flex-shrink: 0;
   transition: transform 0.15s ease;
   color: var(--text-secondary, #5f6b7a);
 }

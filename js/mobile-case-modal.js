@@ -205,17 +205,13 @@
     var notes = getElement('notes');
     insertSectionHeading(notes, 'notes', tOr('cases.notes', 'Notes'), 'beforeparent');
 
-    // Shipping — style the existing shipping title
-    var shippingTitle = form.querySelector('.shipping-title');
-    styleExistingHeading(shippingTitle, 'shipping');
+    // Shipping — heading above the collapsible shipping section
+    var shippingSection = form.querySelector('.shipping-section');
+    insertSectionHeading(shippingSection, 'shipping', tOr('cases.shipping', 'Shipping'), 'before');
 
     // Attachments — style the existing attachments title
     var attachmentsTitle = form.querySelector('.attachments-title');
     styleExistingHeading(attachmentsTitle, 'attachments');
-
-    // Case Metadata — before the creator meta block
-    var meta = form.querySelector('.case-creator-meta');
-    insertSectionHeading(meta, 'metadata', tOr('cases.created_by', 'Case Metadata'), 'before');
 
     addSectionNavigator();
 

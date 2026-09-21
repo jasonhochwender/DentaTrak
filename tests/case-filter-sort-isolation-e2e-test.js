@@ -60,6 +60,7 @@ function check(name, value) { assert.ok(value, name); checks++; console.log('PAS
       const response = await owner.request.post(BASE + '/api/create-case.php', { form: {
         csrf_token: ownerToken, patientFirstName: 'DentaTrakTest', patientLastName: suffix,
         patientDOB: '1990-01-01', patientGender: 'Female', dentistName: 'Dr Sort', caseType: 'Veneer', status, dueDate,
+        material: 'Zirconia', // Veneer requires Material (canonical rule)
       } });
       const result = await response.json(); assert.equal(result.success, true, JSON.stringify(result));
       const c = result.caseData || result.case || result; caseIds.push(String(c.id || c.caseId));

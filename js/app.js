@@ -481,6 +481,70 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   // Clear validation state (error classes and messages) from the create case form
+  // Inline field-error helpers shared by client validation and the
+  // server field-error mapping (missingFields/field responses).
+  function addCaseFieldError(field, message) {
+    if (!field) return;
+    field.classList.add('field-error');
+    if (!field.nextElementSibling || !field.nextElementSibling.classList.contains('error-message')) {
+      var errorMessage = document.createElement('div');
+      errorMessage.className = 'error-message';
+      errorMessage.textContent = message || t('validation.required');
+      field.parentNode.insertBefore(errorMessage, field.nextSibling);
+    }
+  }
+
+  function clearCaseFieldError(field) {
+    if (!field) return;
+    field.classList.remove('field-error');
+    if (field.nextElementSibling && field.nextElementSibling.classList.contains('error-message')) {
+      field.nextElementSibling.remove();
+    }
+  }
+
+  // Maps a server-reported field name to its form control id. Clinical
+  // fields arrive as 'clinical_<key>' (e.g. 'clinical_toothNumber' ->
+  // 'clinicalToothNumber'); general field names already match their ids.
+  function serverFieldToElementId(name) {
+    if (typeof name !== 'string') return null;
+    if (name.indexOf('clinical_') === 0) {
+      var key = name.slice(9);
+      return 'clinical' + key.charAt(0).toUpperCase() + key.slice(1);
+    }
+    return name;
+  }
+
+  // Renders inline errors for server-reported field failures
+  // (missingFields / field) so the user sees exactly which fields need
+  // attention instead of only a toast. Returns true when at least one
+  // field could be mapped and highlighted.
+  function applyServerFieldErrors(error) {
+    var names = [];
+    if (error && Array.isArray(error.missingFields)) {
+      names = names.concat(error.missingFields);
+    }
+    if (error && error.field) {
+      names.push(error.field);
+    }
+    var first = null;
+    names.forEach(function(name) {
+      var el = document.getElementById(serverFieldToElementId(name));
+      if (el) {
+        addCaseFieldError(el);
+        if (!first) first = el;
+      }
+    });
+    if (first) {
+      if (typeof setCaseModalActiveTab === 'function') {
+        setCaseModalActiveTab('details');
+      }
+      first.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      try { first.focus(); } catch (e) {}
+      return true;
+    }
+    return false;
+  }
+
   function clearCreateCaseErrors() {
     var form = document.getElementById('createCaseForm');
     if (!form) return;
@@ -5076,7 +5140,17 @@ document.addEventListener('DOMContentLoaded', function () {
       delete form.dataset.driveFolderId;
       delete form.dataset.caseVersion;
       delete form.dataset.originalCaseData;
+
+      // Drop any option injected for a previously-edited legacy case type
+      // so it can never become selectable on a new case.
+      resetCaseTypeSelect(document.getElementById('caseType'));
     }
+
+    // Hide the saved-case meta row (Created By / review / Record Remake)
+    // and collapse the empty shipping section for the fresh form.
+    var caseMeta = document.getElementById('caseModalMeta');
+    if (caseMeta) caseMeta.style.display = 'none';
+    updateShippingSectionState();
 
     var newCaseRemakeBtn = document.getElementById('recordRemakeBtn');
     if (newCaseRemakeBtn) newCaseRemakeBtn.hidden = true;
@@ -5203,6 +5277,19 @@ document.addEventListener('DOMContentLoaded', function () {
         });
         trackingInput.addEventListener('input', updateTrackingNumberLink);
         carrierInput.dataset.shippingListenersBound = '1';
+      }
+
+      // Shipping section toggle (expanded state is set per-case by
+      // updateShippingSectionState in the populate/reset paths).
+      var shippingToggle = document.getElementById('shippingToggle');
+      if (shippingToggle && !shippingToggle.dataset.bound) {
+        shippingToggle.addEventListener('click', function() {
+          var fields = document.getElementById('shippingFields');
+          var expanded = shippingToggle.getAttribute('aria-expanded') === 'true';
+          shippingToggle.setAttribute('aria-expanded', expanded ? 'false' : 'true');
+          if (fields) fields.hidden = expanded;
+        });
+        shippingToggle.dataset.bound = '1';
       }
 
       // Initialize assignment dropdown for a brand-new case only. When
@@ -5368,20 +5455,7 @@ document.addEventListener('DOMContentLoaded', function () {
     if (patientGender) patientGender.value = caseData.patientGender || caseData.patient_gender || '';
     if (dentistName) dentistName.value = caseData.dentistName || caseData.dentist_name || '';
     if (caseType) {
-      var storedCaseType = caseData.caseType || caseData.case_type || '';
-      caseType.value = storedCaseType;
-      // Legacy aliases may not have their own option (the select offers one
-      // representative per slug group). Fall back to the slug-mate so a
-      // stored 'Mixed' still displays "Mixed Case Type" as selected.
-      if (storedCaseType && caseType.value !== storedCaseType && typeof getCaseTypeSlug === 'function') {
-        var storedSlug = getCaseTypeSlug(storedCaseType);
-        for (var oi = 0; oi < caseType.options.length; oi++) {
-          if (getCaseTypeSlug(caseType.options[oi].value) === storedSlug) {
-            caseType.value = caseType.options[oi].value;
-            break;
-          }
-        }
-      }
+      setCaseTypeValue(caseType, caseData.caseType || caseData.case_type || '');
     }
     if (toothShade) toothShade.value = caseData.toothShade || caseData.tooth_shade || '';
     if (material) material.value = caseData.material || '';
@@ -5483,6 +5557,11 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Render review status controls (hidden for new/unsaved cases)
     renderReviewStatus(caseData);
+
+    // Meta row (Created By / review / Record Remake) and the collapsible
+    // shipping section track the loaded case's state.
+    updateCaseModalMeta();
+    updateShippingSectionState();
   }
 
   /**
@@ -5712,6 +5791,77 @@ document.addEventListener('DOMContentLoaded', function () {
   };
 
   // Show/hide the custom carrier field and clear it when not applicable.
+  /**
+   * Set the Case Type select to a stored value. Canonical types match an
+   * option directly; stored legacy aliases ('Mixed' vs 'Mixed Case Type')
+   * resolve through their shared slug; values with no option at all
+   * (e.g. legacy 'Implant') get a one-off injected option so the stored
+   * type round-trips through Edit instead of silently blanking. Options
+   * injected this way are removed by resetCaseTypeSelect() so they never
+   * become selectable for new cases.
+   */
+  function setCaseTypeValue(select, storedValue) {
+    if (!select) return;
+    resetCaseTypeSelect(select);
+    var stored = storedValue || '';
+    select.value = stored;
+    if (stored && select.value !== stored) {
+      if (typeof getCaseTypeSlug === 'function') {
+        var storedSlug = getCaseTypeSlug(stored);
+        for (var oi = 0; oi < select.options.length; oi++) {
+          if (getCaseTypeSlug(select.options[oi].value) === storedSlug) {
+            select.value = select.options[oi].value;
+            break;
+          }
+        }
+      }
+    }
+    if (stored && select.value !== stored) {
+      var opt = document.createElement('option');
+      opt.value = stored;
+      opt.dataset.legacyOption = '1';
+      opt.textContent = (typeof getCaseTypeDisplayLabel === 'function')
+        ? getCaseTypeDisplayLabel(stored)
+        : stored;
+      select.appendChild(opt);
+      select.value = stored;
+    }
+  }
+
+  /** Drop any option injected by setCaseTypeSelect for a legacy stored value. */
+  function resetCaseTypeSelect(select) {
+    if (!select) return;
+    for (var i = select.options.length - 1; i >= 0; i--) {
+      if (select.options[i].dataset && select.options[i].dataset.legacyOption === '1') {
+        select.remove(i);
+      }
+    }
+  }
+
+  /** Show/hide the modal meta row (Created By, review status, Record
+      Remake) - only meaningful for saved cases. */
+  function updateCaseModalMeta() {
+    var meta = document.getElementById('caseModalMeta');
+    var form = document.getElementById('createCaseForm');
+    if (!meta || !form) return;
+    var isUpdate = !!(form.dataset && form.dataset.caseId);
+    meta.style.display = isUpdate ? '' : 'none';
+  }
+
+  /** Expand the shipping section only when it holds values; otherwise
+      collapse it to a compact header. Never hides populated data. */
+  function updateShippingSectionState() {
+    var toggle = document.getElementById('shippingToggle');
+    var fields = document.getElementById('shippingFields');
+    if (!toggle || !fields) return;
+    var carrier = document.getElementById('carrier');
+    var tracking = document.getElementById('trackingNumber');
+    var custom = document.getElementById('customCarrier');
+    var hasValues = !!((carrier && carrier.value) || (tracking && tracking.value) || (custom && custom.value));
+    toggle.setAttribute('aria-expanded', hasValues ? 'true' : 'false');
+    fields.hidden = !hasValues;
+  }
+
   function toggleCustomCarrierField() {
     var carrier = document.getElementById('carrier');
     var customField = document.getElementById('customCarrierField');
@@ -6820,6 +6970,32 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   });
 
+  // Compact attachment categories: keep the per-category file count and
+  // the has-files styling in sync with every render path (new selections,
+  // existing-file rendering, removals, clears) via one observer instead
+  // of instrumenting each mutation site. Legacy groups
+  // (radiographs/documents) stay hidden until they hold files.
+  function refreshAttachmentGroupStates() {
+    document.querySelectorAll('.attachments-grid .attachment-group').forEach(function(group) {
+      var container = group.querySelector('.selected-files');
+      var count = container ? container.querySelectorAll('.selected-file').length : 0;
+      group.classList.toggle('has-files', count > 0);
+      var countEl = group.querySelector('[data-attachment-count]');
+      if (countEl) {
+        countEl.textContent = count > 0
+          ? t(count === 1 ? 'attachments.file_one' : 'attachments.file_other', {count: count})
+          : '';
+      }
+    });
+  }
+
+  if (typeof MutationObserver === 'function') {
+    var attachmentObserver = new MutationObserver(refreshAttachmentGroupStates);
+    document.querySelectorAll('.attachments-grid .selected-files').forEach(function(container) {
+      attachmentObserver.observe(container, { childList: true });
+    });
+  }
+
   /**
    * Validate the case form: globally required fields, case-type conditional
    * fields, Crown tooth numbering, and the notes length limit. On failure the
@@ -6831,24 +7007,11 @@ document.addEventListener('DOMContentLoaded', function () {
   function validateCaseForm(form) {
     var isValid = true;
 
-    // Helper function to add field error
-    function addFieldError(field, message) {
-      field.classList.add('field-error');
-      if (!field.nextElementSibling || !field.nextElementSibling.classList.contains('error-message')) {
-        var errorMessage = document.createElement('div');
-        errorMessage.className = 'error-message';
-        errorMessage.textContent = message || t('validation.required');
-        field.parentNode.insertBefore(errorMessage, field.nextSibling);
-      }
-    }
-
-    // Helper function to clear field error
-    function clearFieldError(field) {
-      field.classList.remove('field-error');
-      if (field.nextElementSibling && field.nextElementSibling.classList.contains('error-message')) {
-        field.nextElementSibling.remove();
-      }
-    }
+    // Inline error helpers are module-scoped (addCaseFieldError /
+    // clearCaseFieldError) so server-reported field errors render the
+    // same way; the no-arg call uses the localized validation.required.
+    var addFieldError = addCaseFieldError;
+    var clearFieldError = clearCaseFieldError;
 
     // Check all globally required fields (fields with required attribute)
     var requiredFields = form.querySelectorAll('[required]');
@@ -6856,7 +7019,7 @@ document.addEventListener('DOMContentLoaded', function () {
     requiredFields.forEach(function(field) {
       if (!field.value) {
         isValid = false;
-        addFieldError(field, 'This field is required');
+        addFieldError(field);
       } else {
         clearFieldError(field);
       }
@@ -6884,6 +7047,22 @@ document.addEventListener('DOMContentLoaded', function () {
         }
       }
     });
+
+    // Custom Carrier is required when Carrier = Other and a tracking
+    // number is provided - same rule the server enforces
+    // (api.cases.other_carrier_required).
+    var carrierSelect = document.getElementById('carrier');
+    var trackingInput = document.getElementById('trackingNumber');
+    var customCarrierInput = document.getElementById('customCarrier');
+    if (carrierSelect && trackingInput && customCarrierInput
+        && carrierSelect.value === 'Other'
+        && trackingInput.value.trim() !== ''
+        && customCarrierInput.value.trim() === '') {
+      isValid = false;
+      addFieldError(customCarrierInput, t('api.cases.other_carrier_required'));
+    } else if (customCarrierInput) {
+      clearFieldError(customCarrierInput);
+    }
 
     // ============================================
     // TOOTH NUMBER VALIDATION ON SUBMIT
@@ -7098,9 +7277,17 @@ document.addEventListener('DOMContentLoaded', function () {
               } else if (errorData.error) {
                 errorMessage = errorData.error;
               }
+
+              // Preserve field-targeted error info so the handler can
+              // render inline errors on the exact failing field(s).
+              var fieldError = new Error(errorMessage);
+              if (errorData.field) fieldError.field = errorData.field;
+              if (errorData.missingFields) fieldError.missingFields = errorData.missingFields;
+              throw fieldError;
             } catch (e) {
               if (e.sessionExpired) throw e; // Re-throw session errors
               if (e.conflict) throw e; // Re-throw conflict errors
+              if (e.field || e.missingFields) throw e; // Re-throw field errors
               // If not JSON, use the text directly (truncated)
               if (text && text.length > 0) {
                 errorMessage = text.substring(0, 200);
@@ -7256,6 +7443,10 @@ document.addEventListener('DOMContentLoaded', function () {
     } else {
       errorMessage = t(isUpdate ? 'cases.toast.update_failed' : 'cases.toast.create_failed', {message: msg});
     }
+
+    // Server field errors (missingFields / field) get the same inline
+    // treatment as client validation - the toast stays as a summary.
+    applyServerFieldErrors(error);
 
     showToast(errorMessage, 'error');
 
@@ -7775,33 +7966,11 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   }
 
-  // Handle conditional fields in the form
-  var caseTypeSelect = document.getElementById('caseType');
-  var materialElement = document.getElementById('material');
-  var materialField = materialElement ? materialElement.closest('.form-field') : null;
-
-  if (caseTypeSelect && materialField) {
-    // Case types that require the material field (canonical list injected
-    // from api/case-types.php; literal fallback for non-main.php contexts)
-    var caseTypesRequiringMaterial = window.__caseTypesRequiringMaterial || [
-      "Crown", "Bridge", "Implant", "AOX", "Veneer", "Inlay/Onlay"
-    ];
-
-    function updateMaterialVisibility() {
-      var selectedCaseType = caseTypeSelect.value;
-      var requiresMaterial = caseTypesRequiringMaterial.includes(selectedCaseType);
-
-      // Show/hide the material field based on case type
-      materialField.style.display = requiresMaterial ? 'block' : 'none';
-      document.getElementById('material').required = requiresMaterial;
-    }
-
-    // Set initial visibility
-    updateMaterialVisibility();
-
-    // Update when case type changes
-    caseTypeSelect.addEventListener('change', updateMaterialVisibility);
-  }
+  // Material is a .clinical-field inside Clinical Details: visibility,
+  // clear-on-hide and conditional requiredness are driven by
+  // updateClinicalFieldsVisibility() and the data-conditionally-required
+  // validation path (clinical-details.js), keyed off the same
+  // data-case-types list the server renders from getCaseTypesRequiringMaterial().
 
   // Function to calculate days in current status
   function getDaysInStatus(statusChangedAt) {
@@ -8858,21 +9027,20 @@ document.addEventListener('DOMContentLoaded', function () {
       } catch (e) {
         // Error formatting DOB
       }
+    } else if (form.patientDOB) {
+      form.patientDOB.value = '';
     }
 
     // Set patient gender
     if (form.patientGender) form.patientGender.value = caseData.patientGender || '';
 
     if (form.dentistName) form.dentistName.value = caseData.dentistName || '';
-    if (form.caseType) form.caseType.value = caseData.caseType || '';
+    if (form.caseType) setCaseTypeValue(form.caseType, caseData.caseType || '');
     if (form.toothShade) form.toothShade.value = caseData.toothShade || '';
 
-    // Trigger material field visibility update
-    if (typeof updateMaterialVisibility === 'function') {
-      updateMaterialVisibility();
-    }
-
-    // Set material value after visibility update
+    // Material value is set here; its visibility/required state is derived
+    // from caseType by setClinicalDetailsData() below (material is a
+    // .clinical-field now - no separate visibility call needed).
     if (form.material) form.material.value = caseData.material || '';
 
     // Handle due date carefully
@@ -8911,6 +9079,8 @@ document.addEventListener('DOMContentLoaded', function () {
             // Error formatting appointment date
           }
         }
+      } else {
+        form.patientAppointmentDate.value = '';
       }
     }
 
@@ -8921,6 +9091,7 @@ document.addEventListener('DOMContentLoaded', function () {
     if (form.trackingNumber) form.trackingNumber.value = caseData.trackingNumber || '';
     toggleCustomCarrierField();
     updateTrackingNumberLink();
+    updateShippingSectionState();
 
     // Load clinical details if available
     var clinicalDetails = caseData.clinicalDetails || caseData.clinical_details || null;
@@ -8931,6 +9102,10 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Store the case ID for update handling
     form.dataset.caseId = caseData.id || '';
+
+    // Meta row (Created By / review status / Record Remake) shows only
+    // for saved cases - dataset.caseId must be set first.
+    updateCaseModalMeta();
 
     // Store the drive folder ID for update handling
     if (caseData.driveFolderId) {

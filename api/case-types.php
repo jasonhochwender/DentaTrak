@@ -75,6 +75,18 @@ function isCanonicalCaseType(string $type): bool {
 }
 
 /**
+ * Case types offered by the create/edit case form: canonical only.
+ * Legacy aliases ('Implant', 'Mixed'/'Mixed Case Type') stay valid stored
+ * values via getAllKnownCaseTypes() and remain selectable in FILTERS via
+ * getSelectableCaseTypes(), but new cases must pick a canonical type.
+ * Editing a case stored under a legacy value re-injects that value into
+ * the select client-side so the stored type round-trips unchanged.
+ */
+function getCreatableCaseTypes(): array {
+    return getCanonicalCaseTypes();
+}
+
+/**
  * Case types SELECTABLE in dropdowns: canonical values plus one
  * representative per legacy alias group, deduplicated by the
  * normalizeCaseType() slug. 'Mixed' and 'Mixed Case Type' share the
@@ -126,7 +138,7 @@ function getCaseTypeClinicalFields(): array {
         'Crown' => ['toothNumber'],
         'Bridge' => ['abutmentTeeth', 'ponticTeeth'],
         'Implant Crown' => ['implantToothNumber', 'abutmentType', 'implantSystem', 'platformSize', 'scanBodyUsed'],
-        'Implant Surgical Guide' => ['implantSites'],
+        'Implant Surgical Guide' => ['implantSites', 'implantSystem', 'platformSize', 'scanBodyUsed'],
         'Denture' => ['dentureJaw', 'dentureType', 'gingivalShade'],
         'Partial' => ['partialJaw', 'teethToReplace', 'partialMaterial', 'partialGingivalShade'],
     ];

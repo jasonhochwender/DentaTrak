@@ -54,6 +54,8 @@ async function boardIds(page, ids, status = 'Originated') {
       const r = await context.request.post(BASE + '/api/create-case.php', { form: {
         patientFirstName: marker, patientLastName, patientDOB: '1990-01-01', patientGender: 'Female', dentistName: 'Dr Sort',
         caseType, dueDate, status: patientLastName === 'Beta' ? 'Designed' : 'Originated', notes: marker, csrf_token: token,
+        // Veneer requires Material (canonical case-type rule in case-types.php).
+        material: caseType === 'Veneer' ? 'Zirconia' : '',
       } });
       const d = await r.json(); assert.equal(d.success, true, JSON.stringify(d));
       const c = d.caseData || d.case || d; ids.push(String(c.id || c.caseId));

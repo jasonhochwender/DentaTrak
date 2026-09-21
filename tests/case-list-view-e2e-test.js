@@ -38,6 +38,7 @@ async function createCase(page, overrides) {
     patientGender: 'Female',
     dentistName: 'Dr. ListTest',
     caseType: 'Veneer',
+    material: 'Zirconia', // Veneer requires Material (canonical rule)
     dueDate: '2026-12-15',
     status: 'Originated',
     notes: TEST_MARKER + ' seeded case',

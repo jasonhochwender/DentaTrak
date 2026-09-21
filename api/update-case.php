@@ -778,7 +778,19 @@ try {
                 }
             }
         }
-        
+
+        // Material is a canonical case-type-scoped requirement - the same
+        // list the client uses (case-types.php). For types that do not use
+        // Material, force the stored value empty so a case-type switch can
+        // never leave a stale material behind.
+        if (in_array($caseType, getCaseTypesRequiringMaterial(), true)) {
+            if (empty($caseData['material']) && !in_array('material', $missingFields, true)) {
+                $missingFields[] = 'material';
+            }
+        } else {
+            $caseData['material'] = '';
+        }
+
         // Return error if required fields are missing
         if (!empty($missingFields)) {
             http_response_code(400);

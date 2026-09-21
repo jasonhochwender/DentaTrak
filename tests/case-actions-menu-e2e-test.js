@@ -481,7 +481,10 @@ async function closeCaseModal(page) {
     await page.click('#remakeCancel');
     await page.waitForTimeout(250);
 
-    // Mark complete directly from the history strip.
+    // Mark complete directly from the history strip - the strip defaults
+    // to collapsed, so expand it first.
+    await page.click('#caseRemakeHistoryToggle');
+    await page.waitForSelector('#caseRemakeHistoryList:not([hidden])', { timeout: 5000 });
     await page.click('#caseRemakeHistoryList .remake-complete-btn');
     await page.waitForFunction(() => {
       const s = document.querySelector('#caseRemakeHistoryList .remake-status');

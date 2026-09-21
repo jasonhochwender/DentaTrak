@@ -21,25 +21,30 @@ $results[] = 'Locale contains Bite Rim: ' . (
     ($locale['case_types']['bite_rim'] ?? null) === 'Bite Rim' ? 'PASS' : 'FAIL'
 );
 
-// main.php selectors
+// main.php selectors — rendered via renderCaseTypeOptions() from canonical lists
 $main = file_get_contents(__DIR__ . '/../main.php');
-$results[] = 'main.php case creation select contains Bite Rim: ' . (
-    (strpos($main, '<option value="Bite Rim">') !== false) ? 'PASS' : 'FAIL'
+require_once __DIR__ . '/../api/i18n.php';
+require_once __DIR__ . '/../api/case-types.php';
+$results[] = 'main.php case creation select uses creatable canonical types: ' . (
+    (strpos($main, 'renderCaseTypeOptions(getCreatableCaseTypes())') !== false
+        && in_array('Bite Rim', getCreatableCaseTypes(), true)) ? 'PASS' : 'FAIL'
 );
-$results[] = 'main.php kanban filter contains Bite Rim: ' . (
-    (preg_match('/<select id="filterCaseType"[^>]*>.*?<option value="Bite Rim">/s', $main) === 1) ? 'PASS' : 'FAIL'
+$results[] = 'main.php kanban filter uses filterable types incl. Bite Rim: ' . (
+    (preg_match('/<select id="filterCaseType"[^>]*>.*?renderCaseTypeOptions\(getFilterableCaseTypes\(\)\)/s', $main) === 1
+        && in_array('Bite Rim', getFilterableCaseTypes(), true)) ? 'PASS' : 'FAIL'
 );
-$results[] = 'main.php archived filter contains Bite Rim: ' . (
-    (preg_match('/<select id="archivedCaseType"[^>]*>.*?<option value="Bite Rim">/s', $main) === 1) ? 'PASS' : 'FAIL'
+$results[] = 'main.php archived filter uses filterable types incl. Bite Rim: ' . (
+    (preg_match('/<select id="archivedCaseType"[^>]*>.*?renderCaseTypeOptions\(getFilterableCaseTypes\(\)\)/s', $main) === 1) ? 'PASS' : 'FAIL'
 );
-$results[] = 'main.php devCaseType contains Bite Rim: ' . (
-    (preg_match('/<select id="devCaseType"[^>]*>.*?<option value="Bite Rim">/s', $main) === 1) ? 'PASS' : 'FAIL'
+$results[] = 'main.php devCaseType uses canonical types incl. Bite Rim: ' . (
+    (preg_match('/<select id="devCaseType"[^>]*>.*?getCanonicalCaseTypes\(\)/s', $main) === 1
+        && in_array('Bite Rim', getCanonicalCaseTypes(), true)) ? 'PASS' : 'FAIL'
 );
 
 // Demo / fake data generators
 $fake = file_get_contents(__DIR__ . '/../api/generate-fake-cases.php');
-$results[] = 'generate-fake-cases.php $caseTypes contains Bite Rim: ' . (
-    (strpos($fake, "'Bite Rim'") !== false) ? 'PASS' : 'FAIL'
+$results[] = 'generate-fake-cases.php $caseTypes derives canonical types (incl. Bite Rim): ' . (
+    (strpos($fake, 'getCanonicalCaseTypes()') !== false) ? 'PASS' : 'FAIL'
 );
 
 $demo = file_get_contents(__DIR__ . '/../api/generate-dental-practice-demo-data.php');
@@ -64,10 +69,9 @@ $results[] = 'get-lab-insights.php does not enumerate case types: ' . (
     (strpos($lab, 'case_type') !== false && !preg_match('/IN\s*\([^)]*Crown/', $lab)) ? 'PASS' : 'FAIL'
 );
 
-// JS material list unchanged
-$js = file_get_contents(__DIR__ . '/../js/app.js');
-$results[] = 'Bite Rim not in JS material-requiring list: ' . (
-    strpos($js, '"Bite Rim"') === false ? 'PASS' : 'FAIL'
+// Material-required list is server-canonical now
+$results[] = 'Bite Rim not in material-requiring list: ' . (
+    !in_array('Bite Rim', getCaseTypesRequiringMaterial(), true) ? 'PASS' : 'FAIL'
 );
 
 // Case creation/update do not reject unknown case types
