@@ -5861,6 +5861,22 @@ document.addEventListener('DOMContentLoaded', function () {
         status.removeAttribute('required');
       }
     }
+
+    // The Workflow section is Edit Case only. For Create Case it would
+    // hold nothing but Assigned To, so the section is hidden and the
+    // Assigned To field is relocated into the dates row instead.
+    var workflowSection = document.getElementById('workflowSection');
+    var assignedWrap = document.getElementById('assignedToFieldWrap');
+    var workflowGrid = workflowSection ? workflowSection.querySelector('.workflow-grid') : null;
+    var dateRow = form.querySelector('.date-status-row');
+    if (workflowSection) workflowSection.style.display = isUpdate ? '' : 'none';
+    if (assignedWrap && workflowGrid && dateRow) {
+      if (isUpdate && assignedWrap.parentElement !== workflowGrid) {
+        workflowGrid.appendChild(assignedWrap);
+      } else if (!isUpdate && assignedWrap.parentElement !== dateRow) {
+        dateRow.insertBefore(assignedWrap, dateRow.firstChild);
+      }
+    }
   }
 
   /** Expand the shipping section only when it holds values; otherwise

@@ -185,8 +185,12 @@
     }
     if (form.dataset.mobileSectionsBound === '1') return;
 
-    // Patient / Dentist — before the first form grid
-    var firstGrid = form.querySelector('.modal-form-grid');
+    // Patient / Dentist — before the core case grid (the Workflow section's
+    // grid now precedes it in the DOM, so anchor on the first patient field)
+    var patientField = getElement('patientFirstName');
+    var firstGrid = patientField && patientField.closest
+      ? patientField.closest('.modal-form-grid')
+      : form.querySelector('.modal-form-grid');
     insertSectionHeading(firstGrid, 'patient', tOr('cases.patient_information', 'Patient and Dentist'), 'before');
 
     // Case Details — before the case type field (inside the first grid)
@@ -389,6 +393,12 @@
     if (!form || form.querySelector('.mobile-section-navigator')) return;
 
     var headings = Array.from(form.querySelectorAll('.mobile-section-heading'));
+    // The Workflow section is hidden outright in Create Case; offering a
+    // jump target to it would scroll nowhere.
+    var workflowSection = getElement('workflowSection');
+    if (workflowSection && workflowSection.style.display === 'none') {
+      headings = headings.filter(function(h) { return !workflowSection.contains(h); });
+    }
     if (!headings.length) return;
 
     var label = tOr('cases.jump_to_section', 'Jump to section');
@@ -480,6 +490,7 @@
 
     removeSummary();
     removeSectionHeadings();
+    removeSectionNavigator();
 
     organizeSections();
 

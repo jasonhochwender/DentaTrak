@@ -1913,23 +1913,43 @@ endif;
               </div>
 <?php endif; ?>
 
-              <!-- Remake History strip - compact, collapsible, only visible
-                   when the saved case actually has structured remake records
-                   (case_remake_events). Workflow regressions never appear
-                   here; populated by case-remakes.js. -->
-              <div id="caseRemakeHistory" class="remake-history-strip" style="display: none;">
-                <div class="remake-history-strip-row">
-                  <button type="button" class="remake-history-strip-header" id="caseRemakeHistoryToggle" aria-expanded="false" aria-controls="caseRemakeHistoryList">
-                    <span class="remake-history-strip-label"><?php echo t('remakes.history_heading'); ?></span>
-                    <span class="remake-history-strip-count" id="caseRemakeHistoryCount"></span>
-                    <span class="remake-history-strip-summary" id="caseRemakeHistorySummary"></span>
-                    <svg class="remake-history-strip-caret" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                      <polyline points="6 9 12 15 18 9"></polyline>
-                    </svg>
-                  </button>
-                  <button type="button" class="btn-remake-action" id="recordRemakeBtn" hidden><?php echo t('remakes.record_remake'); ?></button>
+              <!-- Workflow: operational state of the loaded case, first
+                   section under the metadata for Edit Case. Status is
+                   edit-only - new cases enter the first active workflow
+                   stage automatically (derived server-side in
+                   create-case.php). For Create Case the whole section is
+                   hidden and Assigned To is relocated into the dates row
+                   by app.js. -->
+              <div id="workflowSection" class="workflow-section">
+                <h3 class="workflow-title"><?php echo t('cases.workflow'); ?></h3>
+                <div class="modal-form-grid workflow-grid">
+                  <div class="form-field" id="statusFieldWrap">
+                    <label for="status"><?php echo t('cases.status_label'); ?> <span class="required">*</span></label>
+                    <select id="status" name="status" required>
+                      <option value=""><?php echo t('select.select_status'); ?></option>
+                      <?php foreach ($resolvedWorkflowStageLabels as $status => $label): ?>
+                      <option value="<?= htmlspecialchars($status) ?>"<?= ($status === $workflowStageOrder[0] ? ' selected' : '') ?>><?= htmlspecialchars($label) ?></option>
+                      <?php endforeach; ?>
+                    </select>
+                  </div>
+
+                  <div class="form-field" id="assignedToFieldWrap">
+                    <label for="assignedTo"><?php echo t('cases.assigned_to'); ?></label>
+                    <select id="assignedTo" name="assignedTo">
+                      <option value=""><?php echo t('select.select_user'); ?></option>
+                    </select>
+                  </div>
                 </div>
-                <div id="caseRemakeHistoryList" class="remake-history-strip-list" hidden></div>
+                <div id="reviewStatusContainer" class="review-status-field needs-review case-review-feature" style="display: none;">
+                  <div class="review-status-row">
+                    <span class="case-meta-label"><?php echo t('cases.review_status'); ?></span>
+                    <span id="reviewStatusValue" class="review-status-value"><?php echo t('cases.needs_review'); ?></span>
+                    <span id="reviewStatusTimestamp" class="review-status-timestamp"></span>
+                    <button type="button" id="reviewStatusAction" class="review-status-action" data-reviewed="false">
+                      <?php echo t('cases.mark_reviewed'); ?>
+                    </button>
+                  </div>
+                </div>
               </div>
 
               <div class="modal-form-grid">
@@ -1974,42 +1994,6 @@ endif;
                   </select>
                 </div>
 
-              </div>
-
-              <!-- Workflow: operational state of the loaded case. Status is
-                   edit-only - new cases enter the first active workflow
-                   stage automatically (derived server-side in
-                   create-case.php), so app.js hides it for Create Case. -->
-              <div id="workflowSection" class="workflow-section">
-                <h3 class="workflow-title"><?php echo t('cases.workflow'); ?></h3>
-                <div class="modal-form-grid workflow-grid">
-                  <div class="form-field" id="statusFieldWrap">
-                    <label for="status"><?php echo t('cases.status_label'); ?> <span class="required">*</span></label>
-                    <select id="status" name="status" required>
-                      <option value=""><?php echo t('select.select_status'); ?></option>
-                      <?php foreach ($resolvedWorkflowStageLabels as $status => $label): ?>
-                      <option value="<?= htmlspecialchars($status) ?>"<?= ($status === $workflowStageOrder[0] ? ' selected' : '') ?>><?= htmlspecialchars($label) ?></option>
-                      <?php endforeach; ?>
-                    </select>
-                  </div>
-
-                  <div class="form-field">
-                    <label for="assignedTo"><?php echo t('cases.assigned_to'); ?></label>
-                    <select id="assignedTo" name="assignedTo">
-                      <option value=""><?php echo t('select.select_user'); ?></option>
-                    </select>
-                  </div>
-                </div>
-                <div id="reviewStatusContainer" class="review-status-field needs-review case-review-feature" style="display: none;">
-                  <div class="review-status-row">
-                    <span class="case-meta-label"><?php echo t('cases.review_status'); ?></span>
-                    <span id="reviewStatusValue" class="review-status-value"><?php echo t('cases.needs_review'); ?></span>
-                    <span id="reviewStatusTimestamp" class="review-status-timestamp"></span>
-                    <button type="button" id="reviewStatusAction" class="review-status-action" data-reviewed="false">
-                      <?php echo t('cases.mark_reviewed'); ?>
-                    </button>
-                  </div>
-                </div>
               </div>
 
               <!-- Clinical Details Section (case-type-specific fields) -->
@@ -2143,6 +2127,26 @@ endif;
                     <input id="clinicalPartialGingivalShade" name="clinicalPartialGingivalShade" type="text" placeholder="<?php echo t('cases.clinical.placeholders.partialGingivalShade'); ?>">
                   </div>
                 </div>
+              </div>
+
+              <!-- Remake History strip - compact, collapsible, sits between
+                   Clinical Details and dates so it does not interrupt the
+                   core case-editing flow. Only visible for saved cases;
+                   populated by case-remakes.js. Workflow regressions never
+                   appear here. -->
+              <div id="caseRemakeHistory" class="remake-history-strip" style="display: none;">
+                <div class="remake-history-strip-row">
+                  <button type="button" class="remake-history-strip-header" id="caseRemakeHistoryToggle" aria-expanded="false" aria-controls="caseRemakeHistoryList">
+                    <span class="remake-history-strip-label"><?php echo t('remakes.history_heading'); ?></span>
+                    <span class="remake-history-strip-count" id="caseRemakeHistoryCount"></span>
+                    <span class="remake-history-strip-summary" id="caseRemakeHistorySummary"></span>
+                    <svg class="remake-history-strip-caret" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <polyline points="6 9 12 15 18 9"></polyline>
+                    </svg>
+                  </button>
+                  <button type="button" class="btn-remake-action" id="recordRemakeBtn" hidden><?php echo t('remakes.record_remake'); ?></button>
+                </div>
+                <div id="caseRemakeHistoryList" class="remake-history-strip-list" hidden></div>
               </div>
 
               <!-- Dates and notes -->

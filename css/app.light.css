@@ -2631,7 +2631,6 @@ body {
 }
 
 .review-status-field .review-status-action {
-  margin-left: auto;
   padding: 5px 10px;
   border-radius: 6px;
   border: 1px solid currentColor;
