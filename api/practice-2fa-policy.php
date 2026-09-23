@@ -21,6 +21,7 @@ require_once __DIR__ . '/csrf.php';
 require_once __DIR__ . '/security-headers.php';
 require_once __DIR__ . '/practice-security.php';
 require_once __DIR__ . '/user-manager.php';
+require_once __DIR__ . '/2fa-recovery-helpers.php';
 
 header('Content-Type: application/json');
 setApiSecurityHeaders();
@@ -45,6 +46,9 @@ switch ($action) {
         break;
     case 'update':
         handleUpdate((int)$currentPracticeId, $userId);
+        break;
+    case 'send_member_recovery':
+        handleSendMemberRecovery((int)$currentPracticeId, $userId);
         break;
     default:
         http_response_code(400);
@@ -184,5 +188,76 @@ function handleUpdate(int $practiceId, int $userId): void {
         'message' => $enabled
             ? t('settings.security.practice_2fa.enabled_success')
             : t('settings.security.practice_2fa.disabled_success')
+    ]);
+}
+
+/**
+ * Admin-initiated 2FA recovery for a practice member.
+ *
+ * IMPORTANT: this does NOT disable the member's 2FA. It only issues the
+ * same member-verified emailed recovery token used by the self-service
+ * flow - the member still has to prove mailbox control AND re-verify
+ * their identity before anything resets. The request simply records who
+ * initiated it for audit.
+ */
+function handleSendMemberRecovery(int $practiceId, int $actorId): void {
+    global $pdo;
+
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+        http_response_code(405);
+        echo json_encode(['success' => false, 'message' => 'Method not allowed']);
+        return;
+    }
+
+    requireCsrfToken();
+
+    $data = json_decode(file_get_contents('php://input'), true) ?: [];
+    $memberId = (int)($data['member_id'] ?? 0);
+
+    // The target must be an active member of THIS practice with 2FA on -
+    // admins can never reach across practices or reset an account that
+    // has nothing to recover.
+    $stmt = $pdo->prepare("
+        SELECT u.id, u.email, u.first_name, u.totp_enabled
+        FROM practice_users pu
+        JOIN users u ON u.id = pu.user_id
+        WHERE pu.practice_id = :practice_id AND u.id = :member_id AND u.is_active = 1
+    ");
+    $stmt->execute(['practice_id' => $practiceId, 'member_id' => $memberId]);
+    $member = $stmt->fetch(PDO::FETCH_ASSOC);
+
+    if (!$member) {
+        http_response_code(404);
+        echo json_encode(['success' => false, 'message' => t('settings.security.practice_2fa.recovery_member_not_found')]);
+        return;
+    }
+    if (empty($member['totp_enabled'])) {
+        http_response_code(409);
+        echo json_encode(['success' => false, 'message' => t('settings.security.practice_2fa.recovery_not_needed')]);
+        return;
+    }
+
+    $token = issue2FAResetToken((int)$member['id'], $actorId);
+    if (!$token) {
+        http_response_code(500);
+        echo json_encode(['success' => false, 'message' => t('settings.security.practice_2fa.recovery_send_failed')]);
+        return;
+    }
+
+    send2FARecoveryEmail($member, $token, true);
+
+    logSecurityEvent('admin_2fa_reset_requested', [
+        'actor_user_id' => $actorId,
+        'affected_user_id' => (int)$member['id'],
+        'practice_id' => $practiceId
+    ]);
+    if (function_exists('logUserActivity')) {
+        logUserActivity($actorId, 'admin_2fa_reset_requested',
+            "Admin sent a 2FA recovery link to member {$member['id']} in practice {$practiceId}");
+    }
+
+    echo json_encode([
+        'success' => true,
+        'message' => t('settings.security.practice_2fa.recovery_sent')
     ]);
 }

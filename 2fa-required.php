@@ -344,6 +344,9 @@ $pageStrings = [
                         <?php echo t('two_fa_required.challenge.verify'); ?>
                     </button>
                 </div>
+                <p class="tfa-step" style="margin-top: 12px;">
+                    <a href="2fa-recovery.php"><?php echo t('auth.2fa_recovery.lost_authenticator'); ?></a>
+                </p>
             </div>
             <?php endif; ?>
 

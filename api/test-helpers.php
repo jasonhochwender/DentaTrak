@@ -161,6 +161,21 @@ switch ($action) {
         handleGetTestPracticeRecord($pdo, $input);
         break;
 
+    case 'expire_2fa_reset_tokens':
+        handleExpire2faResetTokens($pdo, $input);
+        break;
+    case 'count_remember_me_tokens':
+        handleCountRememberMeTokens($pdo, $input);
+        break;
+    case 'get_2fa_reset_token_state':
+        handleGet2faResetTokenState($pdo, $input);
+        break;
+    case 'force_2fa_reset_failure':
+        handleForce2faResetFailure($appConfig, $input);
+        break;
+    case 'clear_2fa_reset_failure':
+        handleClear2faResetFailure($appConfig, $input);
+        break;
     case 'clear_session_totp_verified':
         // Simulates a session that predates the per-session TOTP proof flag
         // (authenticated, 2FA configured, but no proof recorded yet) so tests
@@ -1969,6 +1984,95 @@ function handleSetCommentCreatedAt($pdo, $input) {
 /**
  * Return the most recent email recorded by the test-mode email sender.
  */
+/**
+ * Expire all active 2FA reset tokens for a test user (recovery-flow fixture).
+ */
+function handleExpire2faResetTokens($pdo, $input) {
+    $email = $input['email'] ?? '';
+    $stmt = $pdo->prepare("SELECT id FROM users WHERE email = :email");
+    $stmt->execute(['email' => $email]);
+    $userId = $stmt->fetchColumn();
+    if (!$userId) {
+        http_response_code(404);
+        echo json_encode(['success' => false, 'message' => 'User not found']);
+        return;
+    }
+    $pdo->prepare("UPDATE two_factor_reset_tokens SET expires_at = '2020-01-01 00:00:00' WHERE user_id = :id AND used = 0")
+        ->execute(['id' => $userId]);
+    echo json_encode(['success' => true]);
+}
+
+/**
+ * Count active remember-me tokens for a test user (recovery-flow fixture).
+ */
+function handleCountRememberMeTokens($pdo, $input) {
+    $email = $input['email'] ?? '';
+    $stmt = $pdo->prepare("SELECT id FROM users WHERE email = :email");
+    $stmt->execute(['email' => $email]);
+    $userId = $stmt->fetchColumn();
+    if (!$userId) {
+        http_response_code(404);
+        echo json_encode(['success' => false, 'message' => 'User not found']);
+        return;
+    }
+    $stmt = $pdo->prepare("SELECT COUNT(*) FROM remember_me_tokens WHERE user_id = :id");
+    $stmt->execute(['id' => $userId]);
+    echo json_encode(['success' => true, 'count' => (int)$stmt->fetchColumn()]);
+}
+
+/**
+ * Latest 2FA reset token row state for a test user (no token value exposed).
+ */
+function handleGet2faResetTokenState($pdo, $input) {
+    $email = $input['email'] ?? '';
+    $stmt = $pdo->prepare("SELECT id FROM users WHERE email = :email");
+    $stmt->execute(['email' => $email]);
+    $userId = $stmt->fetchColumn();
+    if (!$userId) {
+        http_response_code(404);
+        echo json_encode(['success' => false, 'message' => 'User not found']);
+        return;
+    }
+    $stmt = $pdo->prepare(
+        "SELECT used, expires_at, requested_by_user_id, created_at
+         FROM two_factor_reset_tokens WHERE user_id = :id
+         ORDER BY id DESC LIMIT 1"
+    );
+    $stmt->execute(['id' => $userId]);
+    $row = $stmt->fetch(PDO::FETCH_ASSOC);
+    $wm = null;
+    try {
+        $wm = $pdo->query("SELECT remember_me_revoked_after FROM users WHERE id = " . (int)$userId)
+            ->fetchColumn() ?: null;
+    } catch (PDOException $e) {}
+    echo json_encode(['success' => true, 'token' => $row ?: null, 'remember_me_revoked_after' => $wm]);
+}
+
+/**
+ * Arm the 2FA reset fault-injection hook (mirrors force-email-failure).
+ * The recovery endpoint throws mid-transaction while this file exists.
+ */
+function handleForce2faResetFailure(array $appConfig, array $input) {
+    $recordPath = __DIR__ . '/../testResults/force-2fa-reset-fail.json';
+    $recordDir = dirname($recordPath);
+    if (!is_dir($recordDir)) {
+        @mkdir($recordDir, 0750, true);
+    }
+    file_put_contents($recordPath, json_encode(['enabled' => true, 'timestamp' => date('c')]));
+    echo json_encode(['success' => true, 'message' => 'Forced 2FA reset failure enabled for test mode']);
+}
+
+/**
+ * Disarm the 2FA reset fault-injection hook.
+ */
+function handleClear2faResetFailure(array $appConfig, array $input) {
+    $recordPath = __DIR__ . '/../testResults/force-2fa-reset-fail.json';
+    if (file_exists($recordPath)) {
+        @unlink($recordPath);
+    }
+    echo json_encode(['success' => true, 'message' => 'Forced 2FA reset failure cleared']);
+}
+
 function handleGetLastAppEmail(array $appConfig, array $input) {
     $recordPath = __DIR__ . '/../testResults/last-email.json';
 

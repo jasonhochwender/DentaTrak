@@ -176,7 +176,16 @@ if ($twoFAStatus['enabled']) {
         'picture' => $dbUser['profile_picture'] ?? $pictureUrl
     ];
     $_SESSION['pending_2fa_db_user'] = $dbUser;
-    
+    $_SESSION['pending_2fa_timestamp'] = time();
+
+    // A lost-authenticator recovery in progress returns to the reset page:
+    // this fresh Google sign-in IS the identity proof for Google-only
+    // accounts (the token alone is never sufficient).
+    if (!empty($_SESSION['2fa_recovery_token'])) {
+        header('Location: ../2fa-reset.php?token=' . urlencode($_SESSION['2fa_recovery_token']));
+        exit;
+    }
+
     // Redirect to login page with 2FA flag
     header('Location: ../login.php?require_2fa=google');
     exit;

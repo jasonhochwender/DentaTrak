@@ -298,6 +298,9 @@ $sessionExpired = isset($_GET['session_expired']) && $_GET['session_expired'] ==
             <div id="twoFactorLoginError" class="form-error" style="display: none;"></div>
             <button type="button" id="verify2FALoginBtn" class="email-submit-btn"><?php echo t('auth.login.verify_and_sign_in'); ?></button>
             <button type="button" id="cancel2FALogin" class="link-btn" style="margin-top: 20px;">← <?php echo t('auth.login.back_to_login'); ?></button>
+            <div style="margin-top: 12px; text-align: center;">
+              <a href="2fa-recovery.php" class="link-btn" id="lostAuthenticatorLink"><?php echo t('auth.2fa_recovery.lost_authenticator'); ?></a>
+            </div>
           </div>
           <div class="email-form-footer">
             <button type="button" id="changeEmailBtn" class="link-btn">← <?php echo t('auth.login.use_different_email'); ?></button>

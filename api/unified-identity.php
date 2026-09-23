@@ -1354,9 +1354,11 @@ function validateRememberMeToken() {
     
     // Look up user
     try {
+        $hasRevocation = rememberMeRevocationColumnExists();
+        $revocationCol = $hasRevocation ? ', UNIX_TIMESTAMP(remember_me_revoked_after) AS remember_me_revoked_ts' : '';
         $stmt = $pdo->prepare("
             SELECT id, email, first_name, last_name, profile_picture,
-                   role, is_active, auth_method, email_verified
+                   role, is_active, auth_method, email_verified{$revocationCol}
             FROM users
             WHERE id = :id AND is_active = 1
         ");
@@ -1365,6 +1367,17 @@ function validateRememberMeToken() {
         
         if (!$user) {
             return null;
+        }
+
+        // Revocation watermark: cookies are stateless, so any cookie issued
+        // before a revocation event (2FA reset, password change, etc.) must
+        // be rejected. Issue time = expiry - lifetime. UNIX_TIMESTAMP keeps
+        // the comparison epoch-based regardless of PHP's timezone setting.
+        if ($hasRevocation && !empty($user['remember_me_revoked_ts'])) {
+            $issuedAt = (int)$expiry - (REMEMBER_ME_EXPIRY_DAYS * 24 * 60 * 60);
+            if ($issuedAt <= (int)$user['remember_me_revoked_ts']) {
+                return null;
+            }
         }
         
         return $user;
@@ -1478,6 +1491,34 @@ function revokeAllRememberMeTokens($userId) {
     } catch (PDOException $e) {
         // Silently fail - token cleanup is not critical
     }
+
+    // Stateless HMAC cookies (userId:expiry:signature) have no DB row - the
+    // revocation watermark is the only way to invalidate them. Validation
+    // rejects any cookie issued before this moment.
+    if (rememberMeRevocationColumnExists()) {
+        try {
+            $stmt = $pdo->prepare("UPDATE users SET remember_me_revoked_after = NOW() WHERE id = :id");
+            $stmt->execute(['id' => $userId]);
+        } catch (PDOException $e) {
+            // Pre-migration schemas resolve to column-missing
+        }
+    }
+}
+
+/**
+ * Whether users.remember_me_revoked_after exists (pre-migration safe).
+ */
+function rememberMeRevocationColumnExists() {
+    global $pdo;
+    static $exists = null;
+    if ($exists !== null) return $exists;
+    $exists = false;
+    try {
+        $exists = (bool)$pdo->query("SHOW COLUMNS FROM users LIKE 'remember_me_revoked_after'")->fetch();
+    } catch (PDOException $e) {
+        $exists = false;
+    }
+    return $exists;
 }
 
 /**

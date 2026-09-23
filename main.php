@@ -3335,6 +3335,7 @@ endif;
                                   <th scope="col"><?php echo t('settings.security.practice_2fa.col_user'); ?></th>
                                   <th scope="col"><?php echo t('settings.security.practice_2fa.col_role'); ?></th>
                                   <th scope="col"><?php echo t('settings.security.practice_2fa.col_status'); ?></th>
+                                  <th scope="col"><?php echo t('settings.security.practice_2fa.col_actions'); ?></th>
                                 </tr>
                               </thead>
                               <tbody id="practice2faMembersBody"></tbody>

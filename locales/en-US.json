@@ -918,6 +918,7 @@
                 "col_user": "User",
                 "col_role": "Role",
                 "col_status": "2FA Status",
+                "col_actions": "Actions",
                 "status_enabled": "Enabled",
                 "status_setup_required": "Setup Required",
                 "role_owner": "Owner",
@@ -928,6 +929,13 @@
                 "enabled_success": "Two-factor authentication is now required for all users in this practice.",
                 "disabled_success": "Practice-wide two-factor authentication requirement removed. Users who configured 2FA will keep it enabled.",
                 "actor_setup_required": "You must configure two-factor authentication on your own account before you can require it for this practice.",
+                "send_recovery": "Send 2FA recovery link",
+                "recovery_confirm_title": "Send 2FA recovery link?",
+                "recovery_confirm_message": "This sends {name} a secure recovery link by email. It does NOT disable their two-factor authentication — they must still verify their identity with the link and their password before 2FA is reset.",
+                "recovery_sent": "Recovery link sent to the member's email address on file.",
+                "recovery_member_not_found": "That user is not a member of this practice.",
+                "recovery_not_needed": "Two-factor authentication is not enabled for that member.",
+                "recovery_send_failed": "Failed to send the recovery link. Please try again.",
                 "error": "Failed to update the 2FA requirement. Please try again."
             }
         },
@@ -1948,6 +1956,33 @@
             "failed_switch_practice": "Failed to switch practice",
             "method_not_allowed": "Method not allowed"
         },
+        "2fa_recovery": {
+            "lost_authenticator": "Lost your authenticator?",
+            "title": "Two-Factor Recovery",
+            "subtitle": "Get a secure link to reset two-factor authentication on your account.",
+            "intro": "Enter the email address on your account. We'll send a secure recovery link if the account is eligible.",
+            "pending_intro": "We can send a secure recovery link to {email}.",
+            "email_label": "Email address",
+            "email_placeholder": "you@example.com",
+            "send_link": "Send recovery link",
+            "request_sent": "If an eligible account was found, we've sent instructions to the email address on file.",
+            "request_new_link": "Request a new recovery link",
+            "reset_title": "Reset Two-Factor Authentication",
+            "invalid_link": "This recovery link is invalid, expired, or has already been used. Please request a new one.",
+            "password_intro": "To protect your account, re-enter your DentaTrak password to finish resetting two-factor authentication.",
+            "password_label": "Current password",
+            "reset_button": "Reset two-factor authentication",
+            "wrong_password": "Incorrect password. Please try again.",
+            "google_intro": "This account signs in with Google. To protect your account, verify your identity with Google to finish resetting two-factor authentication.",
+            "google_verify_button": "Verify with Google",
+            "google_confirmed_intro": "Google verification complete. Confirm below to finish resetting two-factor authentication.",
+            "google_verify_required": "Please verify with Google before resetting two-factor authentication.",
+            "reset_success": "Two-factor authentication has been reset for your account.",
+            "reset_failed": "Two-factor authentication could not be reset. Please try again.",
+            "reenroll_note": "One of your practices requires two-factor authentication. You'll be asked to set it up again the next time you sign in before accessing that practice.",
+            "verifying": "Verifying...",
+            "error": "Something went wrong. Please try again."
+        },
         "set_password": {
             "title": "Set Your Password",
             "create_for": "Create a password for {email}",
@@ -2737,6 +2772,21 @@
             "intro": "We received a request to reset your password for your {appName} account.",
             "cta": "Reset Password",
             "expiry": "This link will expire in {count} minutes."
+        },
+        "2fa_recovery": {
+            "subject": "Two-Factor Recovery Link - {appName}",
+            "heading": "Two-Factor Authentication Recovery",
+            "intro": "We received a request to reset two-factor authentication on your {appName} account.",
+            "intro_admin": "A practice administrator initiated a two-factor authentication recovery for your {appName} account.",
+            "cta": "Reset Two-Factor Authentication",
+            "expiry": "This link will expire in {count} minutes.",
+            "verify_note": "To protect your account, you'll be asked to verify your identity again before anything is reset."
+        },
+        "2fa_reset_notice": {
+            "subject": "Two-Factor Authentication Reset - {appName}",
+            "heading": "Two-Factor Authentication Was Reset",
+            "intro": "Two-factor authentication was reset for your {appName} account. You can set it up again the next time you sign in.",
+            "action_needed": "If you did not perform this reset, please contact support immediately."
         },
         "welcome": {
             "subject": "Welcome to {appName}",

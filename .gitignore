@@ -167,6 +167,8 @@ screenshots/
 !/tests/insights-usage-tracking-e2e-test.js
 !/tests/practice-2fa-enforcement-test.php
 !/tests/practice-2fa-enforcement-e2e-test.js
+!/tests/2fa-recovery-test.php
+!/tests/2fa-recovery-e2e-test.js
 !/tests/case-filter-sort-test.js
 !/tests/case-view-preferences-test.php
 !/tests/case-filter-sort-e2e-test.js

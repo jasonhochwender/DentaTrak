@@ -13454,8 +13454,10 @@ document.addEventListener('DOMContentLoaded', function () {
         practice2faMembersToggle.style.display = counts.total ? 'inline' : 'none';
       }
       if (practice2faMembersBody) {
+        practice2faMemberMap = {};
         var html = '';
         (data.members || []).forEach(function(m) {
+          practice2faMemberMap[m.id] = m;
           var statusText = m.totp_enabled
             ? t('settings.security.practice_2fa.status_enabled')
             : t('settings.security.practice_2fa.status_setup_required');
@@ -13469,15 +13471,22 @@ document.addEventListener('DOMContentLoaded', function () {
           if (m.email && m.email !== nameCell) {
             nameCell += ' · ' + m.email;
           }
+          var actionCell = m.totp_enabled
+            ? '<button type="button" class="btn-link practice-2fa-recovery-btn" data-member-id="' + m.id + '">' +
+              practice2faEscape(t('settings.security.practice_2fa.send_recovery')) + '</button>'
+            : '';
           html += '<tr>' +
             '<td data-label="' + t('settings.security.practice_2fa.col_user') + '">' + practice2faEscape(nameCell) + '</td>' +
             '<td data-label="' + t('settings.security.practice_2fa.col_role') + '">' + practice2faEscape(roleText) + '</td>' +
             '<td data-label="' + t('settings.security.practice_2fa.col_status') + '"><span class="' + statusClass + '">' + practice2faEscape(statusText) + '</span></td>' +
+            '<td data-label="' + t('settings.security.practice_2fa.col_actions') + '">' + actionCell + '</td>' +
             '</tr>';
         });
         practice2faMembersBody.innerHTML = html;
       }
     }
+
+    var practice2faMemberMap = {};
 
     function practice2faLoadStatus() {
       if (!practiceRequire2fa) return;
@@ -13560,6 +13569,50 @@ document.addEventListener('DOMContentLoaded', function () {
           );
         } else {
           practice2faSave(false);
+        }
+      });
+    }
+
+    function practice2faSendRecovery(memberId) {
+      var member = practice2faMemberMap[memberId];
+      if (!member) return;
+      var name = member.name || member.email || '';
+      showConfirmModal(
+        t('settings.security.practice_2fa.recovery_confirm_title'),
+        t('settings.security.practice_2fa.recovery_confirm_message', { name: name }),
+        function() {
+          fetch('api/practice-2fa-policy.php?action=send_member_recovery', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-CSRF-Token': csrfToken
+            },
+            credentials: 'same-origin',
+            body: JSON.stringify({ member_id: memberId })
+          })
+          .then(function(r) { return r.json(); })
+          .then(function(data) {
+            if (data.success) {
+              practice2faShowSuccess(data.message || t('settings.security.practice_2fa.recovery_sent'));
+            } else {
+              practice2faShowError(data.message || t('settings.security.practice_2fa.recovery_send_failed'));
+            }
+          })
+          .catch(function() {
+            practice2faShowError(t('settings.security.practice_2fa.recovery_send_failed'));
+          });
+        },
+        null,
+        false,
+        null
+      );
+    }
+
+    if (practice2faMembers) {
+      practice2faMembers.addEventListener('click', function(e) {
+        var btn = e.target.closest('.practice-2fa-recovery-btn');
+        if (btn && btn.dataset.memberId) {
+          practice2faSendRecovery(parseInt(btn.dataset.memberId, 10));
         }
       });
     }
