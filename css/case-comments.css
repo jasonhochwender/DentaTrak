@@ -216,6 +216,176 @@
   cursor: not-allowed;
 }
 
+/* Comment image attachments — composer attach button + staged previews */
+.case-comment-actions-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.case-comment-attach {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  background: transparent;
+  border: 1px solid var(--border-medium, #d1d5db);
+  border-radius: 6px;
+  color: var(--text-secondary, #6b7280);
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.case-comment-attach:hover:not(:disabled),
+.case-comment-attach:focus-visible {
+  background: var(--background-subtle, #f3f4f6);
+  color: var(--primary-color, #1e40af);
+  border-color: var(--primary-color, #1e40af);
+}
+
+.case-comment-attach:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.case-comment-attach svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* Staged draft thumbnails */
+.case-comment-images-preview {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.case-comment-images-preview[hidden] {
+  display: none;
+}
+
+.case-comment-preview {
+  position: relative;
+  width: 56px;
+  height: 56px;
+  border-radius: 6px;
+  overflow: visible;
+  border: 1px solid var(--border-light, #e5e7eb);
+}
+
+.case-comment-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 6px;
+  display: block;
+}
+
+.case-comment-preview-remove {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: var(--text-primary, #1f2937);
+  color: #ffffff;
+  font-size: 12px;
+  line-height: 18px;
+  text-align: center;
+  cursor: pointer;
+}
+
+.case-comment-preview-remove:hover,
+.case-comment-preview-remove:focus-visible {
+  background: var(--danger, #dc2626);
+}
+
+/* Thumbnails rendered inside a posted comment */
+.case-comment-images {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.case-comment-image {
+  position: relative;
+  width: 96px;
+  height: 96px;
+  padding: 0;
+  border: 1px solid var(--border-light, #e5e7eb);
+  border-radius: 8px;
+  background: var(--background-subtle, #f3f4f6);
+  cursor: pointer;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.case-comment-image:hover,
+.case-comment-image:focus-visible {
+  border-color: var(--primary-color, #1e40af);
+  box-shadow: 0 0 0 2px rgba(30, 64, 175, 0.15);
+  outline: none;
+}
+
+.case-comment-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.case-comment-image-loading {
+  width: 18px;
+  height: 18px;
+  border: 2px solid var(--border-medium, #d1d5db);
+  border-top-color: var(--primary-color, #1e40af);
+  border-radius: 50%;
+  animation: case-comment-image-spin 0.8s linear infinite;
+}
+
+@keyframes case-comment-image-spin {
+  to { transform: rotate(360deg); }
+}
+
+.case-comment-image-broken {
+  flex-direction: column;
+  gap: 4px;
+  cursor: pointer;
+}
+
+.case-comment-image-broken svg {
+  width: 20px;
+  height: 20px;
+  color: var(--text-secondary, #9ca3af);
+  flex-shrink: 0;
+}
+
+.case-comment-image-broken span {
+  font-size: 0.5625rem;
+  line-height: 1.2;
+  color: var(--text-secondary, #9ca3af);
+  padding: 0 4px;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 767px) {
+  .case-comment-image {
+    width: 72px;
+    height: 72px;
+  }
+}
+
 /* @Mention Autocomplete Dropdown */
 .mention-autocomplete {
   position: absolute;
@@ -568,6 +738,27 @@
   background: #1f2937;
   border-color: #374151;
   color: #f9fafb;
+}
+
+.dark-mode .case-comment-attach {
+  border-color: #374151;
+  color: #9ca3af;
+}
+
+.dark-mode .case-comment-attach:hover:not(:disabled),
+.dark-mode .case-comment-attach:focus-visible {
+  background: #374151;
+  color: #93c5fd;
+  border-color: #93c5fd;
+}
+
+.dark-mode .case-comment-image {
+  background: #111827;
+  border-color: #374151;
+}
+
+.dark-mode .case-comment-preview {
+  border-color: #374151;
 }
 
 .dark-mode .mention-autocomplete {

@@ -528,6 +528,7 @@
   // Expose public API
   window.GCSUpload = {
     uploadFilesToGCS: uploadFilesToGCS,
+    uploadSingleFile: uploadSingleFile,
     formHasFiles: formHasFiles,
     getFormTotalFileSize: getFormTotalFileSize,
     formatFileSize: formatFileSize,

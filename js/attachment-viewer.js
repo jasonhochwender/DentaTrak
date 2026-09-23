@@ -114,7 +114,11 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
   document.addEventListener('keydown', function(e) {
     if (!modal || modal.style.display !== 'flex') return;
+    // This listener is registered before the case modal's Escape handler, so
+    // stopImmediatePropagation is what prevents one Escape from closing the
+    // underlying modal as well as the viewer.
     if (e.key === 'Escape') {
+      e.stopImmediatePropagation();
       closeViewer();
       return;
     }
@@ -124,9 +128,11 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
     if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
     if (e.key === 'ArrowLeft') {
       e.preventDefault();
+      e.stopImmediatePropagation();
       navigateAttachment(-1);
     } else if (e.key === 'ArrowRight') {
       e.preventDefault();
+      e.stopImmediatePropagation();
       navigateAttachment(1);
     }
   });
@@ -1138,5 +1144,17 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
   window.isAttachmentViewable = function(fileName) {
     return !!SUPPORTED_TYPES[(fileName || '').split('.').pop().toLowerCase()];
+  };
+
+  /**
+   * Fetch an attachment's bytes through the authorized content endpoint and
+   * return a blob object URL suitable for <img> thumbnails. Rejects on
+   * failure so callers can render their own fallback. Callers own the
+   * returned URL and must revokeObjectURL() it when done.
+   */
+  window.getAttachmentObjectUrl = function(storagePath) {
+    return fetchAttachmentContent(storagePath).then(function(buffer) {
+      return URL.createObjectURL(new Blob([buffer]));
+    });
   };
 })();

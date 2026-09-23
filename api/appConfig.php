@@ -122,6 +122,14 @@ Here is the workflow data to analyze:
         ],
     ],
 
+    // ── Case comment attachments ─────────────────────────────────────────
+    'comments' => [
+        // V1 product limit: images attached to a single comment. Enforced
+        // server-side in case-comments.php and mirrored client-side via
+        // window.commentImageMaxCount.
+        'max_images' => 6,
+    ],
+
     // ── Stripe configuration ────────────────────────────────────────────────
     // Built by a closure so validation failures abort config loading immediately
     // rather than surfacing as cryptic Stripe API errors at request time.

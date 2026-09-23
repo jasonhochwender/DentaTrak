@@ -12,6 +12,7 @@ require_once __DIR__ . '/practice-security.php';
 require_once __DIR__ . '/case-activity-log.php';
 require_once __DIR__ . '/notification-service.php';
 require_once __DIR__ . '/cases-cache.php';
+require_once __DIR__ . '/gcs-storage.php';
 require_once __DIR__ . '/csrf.php';
 
 header('Content-Type: application/json');
@@ -42,6 +43,7 @@ function ensureCaseCommentsTable() {
         user_email VARCHAR(255) NOT NULL,
         comment_text TEXT NOT NULL,
         mentions_json TEXT DEFAULT NULL,
+        attachments_json TEXT DEFAULT NULL,
         is_deleted BOOLEAN DEFAULT FALSE,
         deleted_at DATETIME DEFAULT NULL,
         deleted_by BIGINT UNSIGNED DEFAULT NULL,
@@ -55,10 +57,22 @@ function ensureCaseCommentsTable() {
 
     try {
         $pdo->exec($sql);
-        $initialized = true;
     } catch (PDOException $e) {
         error_log('[case_comments] Error creating table: ' . $e->getMessage());
     }
+
+    // Idempotent column add for installs where the table pre-dates comment
+    // image attachments.
+    try {
+        $stmt = $pdo->query("SHOW COLUMNS FROM case_comments LIKE 'attachments_json'");
+        if ($stmt->rowCount() === 0) {
+            $pdo->exec("ALTER TABLE case_comments ADD COLUMN attachments_json TEXT DEFAULT NULL");
+        }
+    } catch (PDOException $e) {
+        error_log('[case_comments] Error adding attachments_json column: ' . $e->getMessage());
+    }
+
+    $initialized = true;
 }
 
 // Keep user_notifications bootstrapped with the same columns the rest of the
@@ -229,6 +243,117 @@ function resolveSubmittedMentions($mentionData, $practiceId, $caseId, $authorUse
     return $resolved;
 }
 
+/**
+ * Verify client-submitted comment image metadata against GCS and normalize it
+ * for storage in case_comments.attachments_json.
+ *
+ * Mirrors processGcsAttachments() but stricter: image extensions only and the
+ * storage path must live under this exact case's comments/ folder, so the
+ * attachment-content.php case-access check covers every comment image.
+ *
+ * @param array  $images      Client metadata: storage_path, original_filename, content_type, file_size
+ * @param int    $practiceId
+ * @param string $caseId
+ * @return array ['success' => bool, 'attachments' => array, 'errors' => array]
+ */
+function processCommentImages($images, $practiceId, $caseId) {
+    global $appConfig;
+
+    $result = ['success' => true, 'attachments' => [], 'errors' => []];
+
+    if (!is_array($images) || empty($images)) {
+        return $result;
+    }
+
+    // Configured V1 cap (appConfig['comments']['max_images']); the composer
+    // enforces the same value via window.commentImageMaxCount.
+    $maxCount = (int)($appConfig['comments']['max_images'] ?? 6);
+    if (count($images) > $maxCount) {
+        $result['success'] = false;
+        $result['errors'][] = t('api.comments.too_many_images', [
+            'max' => $maxCount,
+            'count' => count($images),
+        ]);
+        return $result;
+    }
+
+    $imageExts = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'tiff', 'tif', 'bmp', 'svg'];
+    $sizeByType = $appConfig['gcs']['max_file_size_by_type'] ?? [];
+    $expectedPrefix = "cases/{$practiceId}/{$caseId}/comments/";
+
+    foreach ($images as $index => $imageInfo) {
+        $storagePath  = is_array($imageInfo) ? ($imageInfo['storage_path'] ?? '') : '';
+        $originalName = is_array($imageInfo) ? basename((string)($imageInfo['original_filename'] ?? '')) : '';
+        $contentType  = is_array($imageInfo) ? ($imageInfo['content_type'] ?? '') : '';
+        $fileSize     = is_array($imageInfo) ? (int)($imageInfo['file_size'] ?? 0) : 0;
+
+        if ($storagePath === '' || $originalName === '') {
+            $result['errors'][] = t('api.comments.image_missing_fields', ['index' => $index]);
+            $result['success'] = false;
+            continue;
+        }
+
+        // Path must be inside this case's comments/ folder - anything else is
+        // either another case's file or a case-attachment path, both rejected.
+        if (strpos($storagePath, $expectedPrefix) !== 0 || strpos($storagePath, '..') !== false) {
+            $result['errors'][] = t('api.comments.image_invalid_path', ['name' => $originalName]);
+            $result['success'] = false;
+            continue;
+        }
+
+        $ext = strtolower(pathinfo($originalName, PATHINFO_EXTENSION));
+        if (!in_array($ext, $imageExts)) {
+            $result['errors'][] = t('api.comments.image_not_image', ['name' => $originalName]);
+            $result['success'] = false;
+            continue;
+        }
+
+        // Confirm the upload actually exists in GCS with the claimed size/type.
+        $verification = verifyGcsUpload($storagePath, $fileSize, $contentType);
+        if (!$verification['valid']) {
+            $result['errors'][] = t('api.comments.image_verify_failed', [
+                'name' => $originalName,
+                'detail' => $verification['error'],
+            ]);
+            $result['success'] = false;
+            continue;
+        }
+
+        $actualSize = $verification['size'];
+        $maxForType = $sizeByType[$ext] ?? ($sizeByType['default'] ?? (100 * 1024 * 1024));
+        if ($actualSize > $maxForType) {
+            $result['errors'][] = t('api.comments.image_too_large', [
+                'name' => $originalName,
+                'limit' => round($maxForType / 1024 / 1024),
+                'ext' => $ext,
+            ]);
+            $result['success'] = false;
+            continue;
+        }
+
+        $result['attachments'][] = [
+            'fileName'    => $originalName,
+            'fileType'    => $contentType,
+            'size'        => $actualSize,
+            'storagePath' => $storagePath,
+            'storageType' => 'gcs',
+        ];
+    }
+
+    return $result;
+}
+
+/**
+ * Decode a comment's attachments_json into the response shape.
+ */
+function decodeCommentImages($attachmentsJson) {
+    if (empty($attachmentsJson)) {
+        return [];
+    }
+    $decoded = json_decode($attachmentsJson, true);
+    return is_array($decoded) ? $decoded : [];
+}
+
 if ($method === 'GET') {
     // Get comments for a case
     $caseId = $_GET['case_id'] ?? null;
@@ -245,7 +370,7 @@ if ($method === 'GET') {
     try {
         $stmt = $pdo->prepare("
             SELECT id, case_id, user_id, user_name, user_email, comment_text, 
-                   mentions_json, is_deleted, created_at,
+                   mentions_json, attachments_json, is_deleted, created_at,
                    UNIX_TIMESTAMP(created_at) AS created_ts
             FROM case_comments
             WHERE case_id = :case_id 
@@ -269,6 +394,9 @@ if ($method === 'GET') {
                 'user_email' => $comment['user_email'],
                 'text' => $comment['is_deleted'] ? '[Comment removed]' : $comment['comment_text'],
                 'mentions' => $comment['mentions_json'] ? json_decode($comment['mentions_json'], true) : [],
+                // Deleted comments mask their images the same way their text
+                // is masked, so removed content stays removed in the UI.
+                'images' => $comment['is_deleted'] ? [] : decodeCommentImages($comment['attachments_json']),
                 'is_deleted' => (bool)$comment['is_deleted'],
                 // Emit ISO-8601 UTC: the stored DATETIME carries no timezone, so
                 // UNIX_TIMESTAMP() interprets it in the DB session timezone and
@@ -298,10 +426,12 @@ if ($method === 'GET') {
         // Create a new comment
         $caseId = $input['case_id'] ?? null;
         $commentText = trim($input['text'] ?? '');
+        $submittedImages = $input['images'] ?? [];
 
-        if (!$caseId || empty($commentText)) {
+        // A comment must carry text, images, or both - never neither.
+        if (!$caseId || ($commentText === '' && empty($submittedImages))) {
             http_response_code(400);
-            echo json_encode(['success' => false, 'message' => 'Case ID and comment text required']);
+            echo json_encode(['success' => false, 'message' => t('api.comments.text_or_images_required')]);
             exit;
         }
 
@@ -312,11 +442,23 @@ if ($method === 'GET') {
         $submittedMentions = $input['mentions'] ?? [];
         $resolvedMentions = resolveSubmittedMentions($submittedMentions, $currentPracticeId, $caseId, $userId);
 
+        // Verify submitted image uploads exist in this case's comments/ folder
+        // with the claimed size/type before linking them to the comment.
+        $processedImages = processCommentImages($submittedImages, $currentPracticeId, $caseId);
+        if (!$processedImages['success']) {
+            http_response_code(400);
+            echo json_encode([
+                'success' => false,
+                'message' => t('api.comments.images_invalid', ['details' => implode('; ', $processedImages['errors'])])
+            ]);
+            exit;
+        }
+
         try {
             $stmt = $pdo->prepare("
                 INSERT INTO case_comments 
-                (case_id, practice_id, user_id, user_name, user_email, comment_text, mentions_json)
-                VALUES (:case_id, :practice_id, :user_id, :user_name, :user_email, :comment_text, :mentions_json)
+                (case_id, practice_id, user_id, user_name, user_email, comment_text, mentions_json, attachments_json)
+                VALUES (:case_id, :practice_id, :user_id, :user_name, :user_email, :comment_text, :mentions_json, :attachments_json)
             ");
             $stmt->execute([
                 'case_id' => $caseId,
@@ -325,7 +467,8 @@ if ($method === 'GET') {
                 'user_name' => $userName,
                 'user_email' => $userEmail,
                 'comment_text' => $commentText,
-                'mentions_json' => !empty($resolvedMentions) ? json_encode($resolvedMentions) : null
+                'mentions_json' => !empty($resolvedMentions) ? json_encode($resolvedMentions) : null,
+                'attachments_json' => !empty($processedImages['attachments']) ? json_encode($processedImages['attachments']) : null
             ]);
 
             $commentId = $pdo->lastInsertId();
@@ -349,7 +492,8 @@ if ($method === 'GET') {
             logCaseActivity($caseId, 'comment_added', null, null, [
                 'comment_id' => (int)$commentId,
                 'has_mentions' => !empty($resolvedMentions),
-                'mention_count' => count($resolvedMentions)
+                'mention_count' => count($resolvedMentions),
+                'image_count' => count($processedImages['attachments'])
             ]);
 
             // Reset review status when a different user adds a comment or @mention.
@@ -408,6 +552,7 @@ if ($method === 'GET') {
                     'user_email' => $userEmail,
                     'text' => $commentText,
                     'mentions' => $resolvedMentions,
+                    'images' => $processedImages['attachments'],
                     'is_deleted' => false,
                     'created_at' => $createdTs !== null && $createdTs !== false
                         ? gmdate('c', (int)$createdTs)

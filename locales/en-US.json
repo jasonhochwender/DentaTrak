@@ -2468,6 +2468,17 @@
             "minutes": "{count}m ago",
             "hours": "{count}h ago",
             "days": "{count}d ago"
+        },
+        "images": {
+            "add_button": "Add images",
+            "remove_image": "Remove image",
+            "unsupported_type": "\"{name}\" is not a supported image type.",
+            "too_large": "\"{name}\" exceeds the {limit} MB image limit.",
+            "too_many": "You can attach up to {max} images per comment.",
+            "upload_failed": "Couldn't upload \"{name}\". Your comment was not posted.",
+            "upload_unavailable": "Image upload is unavailable right now. Please try again.",
+            "preview_failed": "We couldn't preview this image.",
+            "view_image": "View image {name}"
         }
     },
     "assignments": {
@@ -2486,6 +2497,18 @@
             "invalid_storage_path": "Invalid storage path",
             "file_not_found": "File not found",
             "stream_failed": "Failed to stream attachment"
+        },
+        "comments": {
+            "text_or_images_required": "Case ID and comment text or images are required.",
+            "too_many_images": "Maximum {max} images per comment. You submitted {count}.",
+            "image_missing_fields": "Image #{index}: missing storage path or filename",
+            "image_invalid_path": "{name}: invalid storage path (access denied)",
+            "image_not_image": "{name}: only image files can be attached to comments",
+            "image_verify_failed": "{name}: {detail}",
+            "image_too_large": "{name}: exceeds {limit} MB limit for .{ext} files",
+            "images_invalid": "One or more images could not be attached: {details}",
+            "only_images_allowed": "Only image files can be attached to comments.",
+            "existing_case_required": "Comment images require an existing case ID."
         },
         "auth": {
             "session_expired": "Your session has expired. Please log in again."

@@ -1209,6 +1209,14 @@ document.addEventListener('DOMContentLoaded', function () {
   // Close modal with Escape key
   document.addEventListener('keydown', function(e) {
     if (e.key === 'Escape') {
+      // The attachment viewer overlays the case modal and has its own
+      // document-level Escape handler - let it dismiss first so one keypress
+      // does not close both layers.
+      var attachmentViewerModal = document.getElementById('attachmentViewerModal');
+      if (attachmentViewerModal && attachmentViewerModal.style.display === 'flex') {
+        return;
+      }
+
       // Always route case-modal Escape presses through
       // closeCreateCaseWithCheck() - never the generic closeModals() below -
       // regardless of hasUnsavedChanges, for the same reason as the

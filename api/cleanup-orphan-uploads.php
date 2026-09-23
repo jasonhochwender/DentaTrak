@@ -63,23 +63,56 @@ try {
         $stats['scanned']++;
         $name = $object->name();
         
-        // Only clean up "pending_" paths (files uploaded but case never created)
-        if (strpos($name, '/pending_') === false) {
+        $isPendingPath = strpos($name, '/pending_') !== false;
+        // Comment images upload straight into the case's comments/ folder; a
+        // file there that no comment row references was orphaned by a failed
+        // comment submission and is safe to sweep after the same age cutoff.
+        $isCommentPath = strpos($name, '/comments/') !== false;
+
+        if (!$isPendingPath && !$isCommentPath) {
             $stats['skipped']++;
             continue;
         }
-        
+
         try {
             $info = $object->info();
             $createdTime = strtotime($info['timeCreated'] ?? '');
-            
+
             if (!$createdTime || $createdTime >= $cutoffTime) {
                 // File is too new, skip
                 $stats['skipped']++;
                 continue;
             }
-            
-            // File is older than cutoff and in a pending path — delete it
+
+            if ($isCommentPath) {
+                // Skip files still referenced by a comment's attachments_json.
+                $pathParts = explode('/', $name);
+                $commentPracticeId = (int)($pathParts[1] ?? 0);
+                $referenced = false;
+                try {
+                    global $pdo;
+                    if ($pdo && $commentPracticeId > 0) {
+                        $likePath = '%' . str_replace(['%', '_'], ['\\%', '\\_'], $name) . '%';
+                        $refStmt = $pdo->prepare(
+                            "SELECT 1 FROM case_comments
+                             WHERE practice_id = :pid AND attachments_json LIKE :path ESCAPE '\\\\'
+                             LIMIT 1"
+                        );
+                        $refStmt->execute(['pid' => $commentPracticeId, 'path' => $likePath]);
+                        $referenced = (bool)$refStmt->fetchColumn();
+                    }
+                } catch (PDOException $e) {
+                    // Table missing or query failed - leave the file in place.
+                    $stats['skipped']++;
+                    continue;
+                }
+                if ($referenced) {
+                    $stats['skipped']++;
+                    continue;
+                }
+            }
+
+            // File is older than cutoff and unlinked — delete it
             $object->delete();
             $stats['deleted']++;
             $log("Deleted orphan: {$name} (created: " . date('Y-m-d H:i:s', $createdTime) . ")");

@@ -18,12 +18,29 @@
   var commentSubmitting = false;
   var commentInFlightPromise = null;
 
+  // Draft images staged in the composer: { id, file, previewUrl }.
+  // Files upload only when the comment is posted, so an abandoned draft can
+  // never leave orphaned objects in storage.
+  var pendingCommentImages = [];
+  var pendingImageSeq = 0;
+  // storagePath -> Promise<objectUrl> cache for rendered thread thumbnails;
+  // cleared when the case's comments are reset.
+  var commentImageUrlCache = new Map();
+
+  // V1 cap mirrors appConfig['comments']['max_images'], injected by main.php.
+  var COMMENT_IMAGE_MAX_COUNT =
+    (typeof window.commentImageMaxCount === 'number' && window.commentImageMaxCount > 0)
+      ? window.commentImageMaxCount : 6;
+  var COMMENT_IMAGE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'tiff', 'tif', 'bmp', 'svg'];
+
   /**
    * Initialize comments for a case
    */
   window.initCaseComments = function(caseId) {
     currentCaseId = caseId;
     selectedMentions = [];
+    resetPendingImages();
+    revokeCommentImageUrlCache();
     closeMentionAutocomplete();
     // Drop the previous case's list and count before this case's data arrives.
     var list = document.getElementById('caseCommentsList');
@@ -91,10 +108,22 @@
       var tsAttr = comment.created_at && !isNaN(commentDate.getTime())
         ? ' data-ts="' + commentDate.getTime() + '"'
         : '';
-      var textHtml = comment.is_deleted 
+      var textHtml = comment.is_deleted
         ? '<span class="deleted-text">' + escapeHtml(comment.text) + '</span>'
         : highlightMentions(escapeHtml(comment.text));
-      
+
+      var imagesHtml = '';
+      if (!comment.is_deleted && Array.isArray(comment.images) && comment.images.length > 0) {
+        imagesHtml = '<div class="case-comment-images">' + comment.images.map(function(image, imageIndex) {
+          var viewLabel = t('comments.images.view_image', { name: image.fileName || '' });
+          return '<button type="button" class="case-comment-image" ' +
+            'data-comment-id="' + comment.id + '" data-image-index="' + imageIndex + '" ' +
+            'aria-label="' + escapeHtml(viewLabel) + '" title="' + escapeHtml(image.fileName || '') + '">' +
+            '<span class="case-comment-image-loading" aria-hidden="true"></span>' +
+            '</button>';
+        }).join('') + '</div>';
+      }
+
       return '<div class="case-comment' + (comment.is_deleted ? ' is-deleted' : '') + '" data-comment-id="' + comment.id + '">' +
         '<div class="case-comment-avatar">' + initials + '</div>' +
         '<div class="case-comment-content">' +
@@ -103,11 +132,13 @@
         '<span class="case-comment-time"' + tsAttr + ' title="' + escapeHtml(exactTime) + '">' + timeAgo + '</span>' +
         '</div>' +
         '<div class="case-comment-text">' + textHtml + '</div>' +
+        imagesHtml +
         '</div>' +
         '</div>';
     }).join('');
 
     list.innerHTML = html;
+    hydrateCommentImageThumbs(list, comments);
     startCommentTimeRefresh();
 
     applyPendingCommentFocus();
@@ -127,6 +158,234 @@
       countEl.textContent = count;
       countEl.style.display = count > 0 ? '' : 'none';
     }
+  }
+
+  /* ------------------------------------------------------------------ *
+   * Comment image attachments                                          *
+   * ------------------------------------------------------------------ */
+
+  /**
+   * Load each rendered comment-image thumbnail through the authorized
+   * attachment-content endpoint and open the shared attachment viewer on
+   * click. `comments` is the same array renderComments just rendered.
+   */
+  function hydrateCommentImageThumbs(list, comments) {
+    var thumbs = list.querySelectorAll('.case-comment-image');
+    if (!thumbs.length) return;
+
+    var commentsById = {};
+    comments.forEach(function(comment) { commentsById[String(comment.id)] = comment; });
+
+    thumbs.forEach(function(thumb) {
+      var comment = commentsById[thumb.getAttribute('data-comment-id')];
+      var imageIndex = parseInt(thumb.getAttribute('data-image-index'), 10);
+      var image = comment && Array.isArray(comment.images) ? comment.images[imageIndex] : null;
+      if (!image || !image.storagePath) return;
+
+      thumb.addEventListener('click', function() {
+        if (typeof window.openAttachmentViewer === 'function') {
+          // Passing the comment's image list enables Previous/Next within
+          // just this comment's attachments.
+          window.openAttachmentViewer(image.storagePath, image.fileName, image.fileType, comment.images);
+        }
+      });
+
+      if (typeof window.getAttachmentObjectUrl !== 'function') {
+        markCommentImageBroken(thumb);
+        return;
+      }
+
+      getCommentImageObjectUrl(image.storagePath)
+        .then(function(objectUrl) {
+          if (!thumb.isConnected) return;
+          var img = document.createElement('img');
+          img.src = objectUrl;
+          img.alt = '';
+          img.loading = 'lazy';
+          thumb.textContent = '';
+          thumb.appendChild(img);
+        })
+        .catch(function() {
+          if (thumb.isConnected) markCommentImageBroken(thumb);
+        });
+    });
+  }
+
+  /**
+   * Blob object URL for a stored comment image, cached per storage path so a
+   * re-render does not re-fetch bytes. The promise is cached so concurrent
+   * renders share one request.
+   */
+  function getCommentImageObjectUrl(storagePath) {
+    var cached = commentImageUrlCache.get(storagePath);
+    if (!cached) {
+      cached = window.getAttachmentObjectUrl(storagePath).catch(function(err) {
+        commentImageUrlCache.delete(storagePath);
+        throw err;
+      });
+      commentImageUrlCache.set(storagePath, cached);
+    }
+    return cached;
+  }
+
+  function revokeCommentImageUrlCache() {
+    commentImageUrlCache.forEach(function(promise) {
+      promise.then(function(url) { URL.revokeObjectURL(url); }).catch(function() {});
+    });
+    commentImageUrlCache.clear();
+  }
+
+  /**
+   * Swap a thumbnail that failed to load for an in-place error placeholder -
+   * the rest of the thread keeps working.
+   */
+  function markCommentImageBroken(thumb) {
+    thumb.classList.add('case-comment-image-broken');
+    thumb.disabled = false; // still opens the viewer, which has its own error state + download
+    thumb.innerHTML =
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">' +
+      '<circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line>' +
+      '<line x1="12" y1="16" x2="12.01" y2="16"></line></svg>' +
+      '<span>' + escapeHtml(t('comments.images.preview_failed')) + '</span>';
+  }
+
+  /**
+   * True when a picked file is a supported comment image (extension and MIME
+   * both checked - MIME alone trusts the browser, extension alone trusts the
+   * name; the server re-verifies both against the stored object anyway).
+   */
+  function isSupportedCommentImage(file) {
+    var ext = (file.name.split('.').pop() || '').toLowerCase();
+    if (COMMENT_IMAGE_EXTENSIONS.indexOf(ext) === -1) return false;
+    return (file.type || '').indexOf('image/') === 0;
+  }
+
+  /**
+   * Stage picked files into the composer draft, reporting per-file failures
+   * so the user can remove or fix the offending selection.
+   */
+  function addPendingImages(files) {
+    var input = document.getElementById('caseCommentInput');
+    var submitBtn = document.getElementById('caseCommentSubmit');
+    var rejected = [];
+
+    Array.prototype.forEach.call(files, function(file) {
+      if (pendingCommentImages.length >= COMMENT_IMAGE_MAX_COUNT) {
+        rejected.push(t('comments.images.too_many', { max: COMMENT_IMAGE_MAX_COUNT }));
+        return false; // report once
+      }
+      if (!isSupportedCommentImage(file)) {
+        rejected.push(t('comments.images.unsupported_type', { name: file.name }));
+        return;
+      }
+      var maxSize = window.GCSUpload && window.GCSUpload.getMaxSizeForFile
+        ? window.GCSUpload.getMaxSizeForFile(file.name)
+        : 25 * 1024 * 1024;
+      if (file.size > maxSize) {
+        rejected.push(t('comments.images.too_large', {
+          name: file.name,
+          limit: Math.round(maxSize / 1024 / 1024)
+        }));
+        return;
+      }
+      pendingCommentImages.push({
+        id: 'cimg_' + (++pendingImageSeq),
+        file: file,
+        previewUrl: URL.createObjectURL(file)
+      });
+    });
+
+    // Deduplicate identical rejection messages (e.g. the max-count notice).
+    rejected.filter(function(msg, i) { return rejected.indexOf(msg) === i; })
+      .forEach(function(msg) {
+        if (typeof showToast === 'function') showToast(msg, 'error');
+      });
+
+    renderPendingImages();
+    updateSubmitButton(input, submitBtn);
+  }
+
+  function removePendingImage(id) {
+    var index = pendingCommentImages.findIndex(function(item) { return item.id === id; });
+    if (index === -1) return;
+    URL.revokeObjectURL(pendingCommentImages[index].previewUrl);
+    pendingCommentImages.splice(index, 1);
+    renderPendingImages();
+    updateSubmitButton(
+      document.getElementById('caseCommentInput'),
+      document.getElementById('caseCommentSubmit')
+    );
+  }
+
+  function resetPendingImages() {
+    pendingCommentImages.forEach(function(item) { URL.revokeObjectURL(item.previewUrl); });
+    pendingCommentImages = [];
+    renderPendingImages();
+  }
+
+  /**
+   * Render the staged-draft thumbnail strip above the composer actions.
+   */
+  function renderPendingImages() {
+    var strip = document.getElementById('caseCommentImagesPreview');
+    if (!strip) return;
+
+    if (pendingCommentImages.length === 0) {
+      strip.innerHTML = '';
+      strip.hidden = true;
+      return;
+    }
+
+    strip.innerHTML = '';
+    pendingCommentImages.forEach(function(item) {
+      var wrap = document.createElement('div');
+      wrap.className = 'case-comment-preview';
+
+      var img = document.createElement('img');
+      img.src = item.previewUrl;
+      img.alt = item.file.name;
+      wrap.appendChild(img);
+
+      var removeBtn = document.createElement('button');
+      removeBtn.type = 'button';
+      removeBtn.className = 'case-comment-preview-remove';
+      removeBtn.setAttribute('aria-label', t('comments.images.remove_image') + ': ' + item.file.name);
+      removeBtn.title = t('comments.images.remove_image');
+      removeBtn.textContent = '×';
+      removeBtn.addEventListener('click', function() { removePendingImage(item.id); });
+      wrap.appendChild(removeBtn);
+
+      strip.appendChild(wrap);
+    });
+    strip.hidden = false;
+  }
+
+  /**
+   * Upload every staged image through the existing signed-URL pipeline, then
+   * return the metadata array the comments endpoint expects. Rejects with a
+   * per-file message when any upload fails so the caller can keep the draft.
+   */
+  function uploadPendingCommentImages(csrfToken) {
+    if (pendingCommentImages.length === 0) return Promise.resolve([]);
+    if (!window.GCSUpload || typeof window.GCSUpload.uploadSingleFile !== 'function') {
+      var unavailable = new Error(t('comments.images.upload_unavailable'));
+      unavailable.isCommentImageError = true;
+      return Promise.reject(unavailable);
+    }
+    return Promise.all(pendingCommentImages.map(function(item) {
+      return window.GCSUpload.uploadSingleFile({
+        file: item.file,
+        fileId: item.id,
+        fileName: item.file.name,
+        contentType: item.file.type || 'image/jpeg',
+        fileSize: item.file.size,
+        uploadType: 'comments'
+      }, currentCaseId, csrfToken).catch(function(err) {
+        var wrapped = new Error(t('comments.images.upload_failed', { name: item.file.name }));
+        wrapped.isCommentImageError = true;
+        throw wrapped;
+      });
+    }));
   }
 
   /**
@@ -196,6 +455,20 @@
     // Submit button click
     if (submitBtn) {
       submitBtn.addEventListener('click', submitComment);
+    }
+
+    // Image attachment controls
+    var attachBtn = document.getElementById('caseCommentAttachBtn');
+    var imageInput = document.getElementById('caseCommentImageInput');
+    if (attachBtn && imageInput) {
+      attachBtn.addEventListener('click', function() { imageInput.click(); });
+      imageInput.addEventListener('change', function() {
+        if (imageInput.files && imageInput.files.length > 0) {
+          addPendingImages(imageInput.files);
+        }
+        // Reset so picking the same file twice still fires change.
+        imageInput.value = '';
+      });
     }
   }
 
@@ -410,7 +683,8 @@
    */
   function updateSubmitButton(input, submitBtn) {
     if (!submitBtn) return;
-    submitBtn.disabled = commentSubmitting || !input.value.trim();
+    var hasDraft = (input && input.value.trim()) || pendingCommentImages.length > 0;
+    submitBtn.disabled = commentSubmitting || !hasDraft;
     // When case-detail edits are pending, this button saves those too - say so.
     var caseDirty = typeof window.caseFormHasUnsavedChanges === 'function' &&
       window.caseFormHasUnsavedChanges();
@@ -451,7 +725,7 @@
    */
   window.caseCommentHasDraft = function() {
     var input = document.getElementById('caseCommentInput');
-    return !!(input && input.value.trim());
+    return !!(input && input.value.trim()) || pendingCommentImages.length > 0;
   };
 
   /**
@@ -466,36 +740,46 @@
     if (!input || !currentCaseId) return Promise.resolve(false);
 
     var text = input.value.trim();
-    if (!text) return Promise.resolve(true);
+    if (!text && pendingCommentImages.length === 0) return Promise.resolve(true);
     if (commentSubmitting) return commentInFlightPromise || Promise.resolve(false);
 
     // Disable while submitting
     commentSubmitting = true;
     if (submitBtn) submitBtn.disabled = true;
     input.disabled = true;
+    var attachBtn = document.getElementById('caseCommentAttachBtn');
+    if (attachBtn) attachBtn.disabled = true;
 
     var csrfToken = document.querySelector('meta[name="csrf-token"]');
     csrfToken = csrfToken ? csrfToken.getAttribute('content') : '';
 
-    commentInFlightPromise = fetch('api/case-comments.php', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-CSRF-Token': csrfToken
-      },
-      credentials: 'same-origin',
-      body: JSON.stringify({
-        action: 'create',
-        case_id: currentCaseId,
-        text: text,
-        mentions: selectedMentions
-      })
+    // Upload staged images first so the comment row is only created once its
+    // attachments actually exist in storage. A failed upload rejects before
+    // the POST, leaving the draft text and staged images intact for retry.
+    commentInFlightPromise = uploadPendingCommentImages(csrfToken)
+    .then(function(uploadedImages) {
+      return fetch('api/case-comments.php', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRF-Token': csrfToken
+        },
+        credentials: 'same-origin',
+        body: JSON.stringify({
+          action: 'create',
+          case_id: currentCaseId,
+          text: text,
+          mentions: selectedMentions,
+          images: uploadedImages
+        })
+      });
     })
     .then(function(response) { return response.json(); })
     .then(function(data) {
       if (data.success) {
         input.value = '';
         selectedMentions = [];
+        resetPendingImages();
         loadComments(currentCaseId);
 
         // Show success feedback
@@ -511,7 +795,14 @@
     })
     .catch(function(error) {
       console.error('Error submitting comment:', error);
-      if (typeof NetworkErrorHandler !== 'undefined') {
+      if (error && error.isCommentImageError) {
+        // Upload-level failure already carries a localized, file-specific
+        // message; the draft stays intact so the user can retry or remove
+        // the failing image.
+        if (typeof showToast === 'function') {
+          showToast(error.message, 'error');
+        }
+      } else if (typeof NetworkErrorHandler !== 'undefined') {
         NetworkErrorHandler.handle(error, 'adding comment');
       } else if (typeof showToast === 'function') {
         showToast(t('comments.toast_add_error_retry'), 'error');
@@ -522,6 +813,7 @@
       commentSubmitting = false;
       commentInFlightPromise = null;
       input.disabled = false;
+      if (attachBtn) attachBtn.disabled = false;
       updateSubmitButton(input, submitBtn);
       input.focus();
     });
@@ -733,6 +1025,8 @@
     clearPendingCommentFocus();
     var input = document.getElementById('caseCommentInput');
     if (input) input.value = '';
+    resetPendingImages();
+    revokeCommentImageUrlCache();
     closeMentionAutocomplete();
   };
 

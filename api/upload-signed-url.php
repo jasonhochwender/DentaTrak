@@ -77,8 +77,8 @@ try {
         exit;
     }
 
-    // Validate upload type
-    $validUploadTypes = ['photos', 'intraoralScans', 'facialScans', 'photogrammetry', 'completedDesigns'];
+    // Validate upload type. 'comments' carries images attached to case comments.
+    $validUploadTypes = ['photos', 'intraoralScans', 'facialScans', 'photogrammetry', 'completedDesigns', 'comments'];
     if (!in_array($uploadType, $validUploadTypes)) {
         http_response_code(400);
         echo json_encode(['success' => false, 'error' => 'Invalid upload_type. Must be one of: ' . implode(', ', $validUploadTypes)]);
@@ -100,6 +100,23 @@ try {
         http_response_code(400);
         echo json_encode(['success' => false, 'error' => 'File extension not allowed: .' . $ext]);
         exit;
+    }
+
+    // Comment images are image-only and always belong to an existing case
+    // (comments cannot exist before the case does), which also guarantees the
+    // requireCaseAccess() check below runs for every comment-image upload.
+    if ($uploadType === 'comments') {
+        $commentImageExts = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'tiff', 'tif', 'bmp', 'svg'];
+        if (!in_array($ext, $commentImageExts) || strpos($contentType, 'image/') !== 0) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'error' => t('api.comments.only_images_allowed')]);
+            exit;
+        }
+        if ($caseId === '' || $caseId === 'new') {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'error' => t('api.comments.existing_case_required')]);
+            exit;
+        }
     }
 
     // Validate file size — type-specific limits

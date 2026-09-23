@@ -554,7 +554,7 @@ if (isset($appConfig) && is_array($appConfig) && isset($appConfig['appName'])) {
   <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
   
   <!-- Preload critical resources -->
-  <link rel="preload" href="js/app.js?v=20260923a" as="script">
+  <link rel="preload" href="js/app.js?v=20260930a" as="script">
   <link rel="preload" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
   <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap"></noscript>
   
@@ -606,7 +606,7 @@ if (isset($appConfig) && is_array($appConfig) && isset($appConfig['appName'])) {
   <link rel="preload" href="css/kanban-dragdrop.css?v=20241210" as="style" onload="this.onload=null;this.rel='stylesheet'">
   <link rel="preload" href="css/case-list.css?v=20260916b" as="style" onload="this.onload=null;this.rel='stylesheet'">
   <link rel="preload" href="css/case-creation.css?v=20241210" as="style" onload="this.onload=null;this.rel='stylesheet'">
-  <link rel="preload" href="css/case-comments.css?v=20260909a" as="style" onload="this.onload=null;this.rel='stylesheet'">
+  <link rel="preload" href="css/case-comments.css?v=20260930a" as="style" onload="this.onload=null;this.rel='stylesheet'">
   <link rel="preload" href="css/case-remakes.css?v=20260922a" as="style" onload="this.onload=null;this.rel='stylesheet'">
   <link rel="preload" href="css/activity-timeline.css?v=20241230" as="style" onload="this.onload=null;this.rel='stylesheet'">
   <link rel="preload" href="css/insights.css?v=20241230" as="style" onload="this.onload=null;this.rel='stylesheet'">
@@ -634,7 +634,7 @@ if (isset($appConfig) && is_array($appConfig) && isset($appConfig['appName'])) {
     <link rel="stylesheet" href="css/kanban-dragdrop.css?v=20241210">
     <link rel="stylesheet" href="css/case-list.css?v=20260916b">
     <link rel="stylesheet" href="css/case-creation.css?v=20241210">
-    <link rel="stylesheet" href="css/case-comments.css?v=20260909a">
+    <link rel="stylesheet" href="css/case-comments.css?v=20260930a">
     <link rel="stylesheet" href="css/case-remakes.css?v=20260922a">
     <link rel="stylesheet" href="css/activity-timeline.css?v=20241230">
     <link rel="stylesheet" href="css/insights.css?v=20241230">
@@ -665,6 +665,7 @@ if (isset($appConfig) && is_array($appConfig) && isset($appConfig['appName'])) {
     window.allWorkflowStageLabels = <?php echo json_encode($allWorkflowStageLabels, JSON_UNESCAPED_UNICODE); ?>;
     window.workflowTerminal = <?php echo json_encode(['id' => getLastActiveWorkflowColumnId($currentPracticeId ?: null), 'label' => resolveWorkflowStageLabelForPractice(getLastActiveWorkflowColumnId($currentPracticeId ?: null), $currentPracticeId ?: null)], JSON_UNESCAPED_UNICODE); ?>;
     window.currentPracticeId = <?php echo (int)$currentPracticeId; ?>;
+    window.commentImageMaxCount = <?php echo (int)($appConfig['comments']['max_images'] ?? 6); ?>;
     window.userCanViewAnalytics = <?php echo $userCanViewAnalytics ? 'true' : 'false'; ?>;
     window.userHasControlAccess = <?php echo $userHasControlAccess === true ? 'true' : ($userHasControlAccess === false ? 'false' : 'null'); ?>;
     window.isPracticeAdmin = <?php echo $isCurrentUserPracticeAdmin ? 'true' : 'false'; ?>;
@@ -2325,9 +2326,20 @@ endif;
                 <div class="case-comment-input-wrapper">
                   <div id="mentionAutocomplete" class="mention-autocomplete"></div>
                   <textarea id="caseCommentInput" class="case-comment-input" placeholder="<?php echo t('cases.comments.placeholder'); ?>" rows="2"></textarea>
+                  <div id="caseCommentImagesPreview" class="case-comment-images-preview" hidden></div>
                   <div class="case-comment-actions">
                     <span class="case-comment-hint"><?php echo t('cases.comments.hint'); ?></span>
-                    <button type="button" id="caseCommentSubmit" class="case-comment-submit" disabled><?php echo t('cases.comments.add_comment'); ?></button>
+                    <div class="case-comment-actions-right">
+                      <input type="file" id="caseCommentImageInput" accept="image/jpeg,image/png,image/gif,image/webp,image/tiff,image/bmp,image/svg+xml" multiple hidden>
+                      <button type="button" id="caseCommentAttachBtn" class="case-comment-attach" title="<?php echo t('comments.images.add_button'); ?>" aria-label="<?php echo t('comments.images.add_button'); ?>">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                          <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                          <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                          <polyline points="21 15 16 10 5 21"></polyline>
+                        </svg>
+                      </button>
+                      <button type="button" id="caseCommentSubmit" class="case-comment-submit" disabled><?php echo t('cases.comments.add_comment'); ?></button>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -3526,7 +3538,7 @@ endif;
   <!-- Load JavaScript last -->
   <script src="js/toast.js?v=20250104" defer></script>
   <?php require_once __DIR__ . '/api/auth-timeout-script.php'; ?>
-  <script src="js/gcs-upload.js?v=20260916" defer></script>
+  <script src="js/gcs-upload.js?v=20260930a" defer></script>
   <script type="importmap">
   {
     "imports": {
@@ -3539,14 +3551,14 @@ endif;
   <script src="js/workflow-draft-ui.js?v=20260829f" defer></script>
   <script type="application/json" id="caseViewBootstrap"><?= json_encode($caseViewBootstrap, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?></script>
   <script src="js/case-filter-sort.js?v=20260916f" defer></script>
-  <script src="js/app.js?v=20260923a" defer></script>
+  <script src="js/app.js?v=20260930a" defer></script>
   <script src="js/mobile-case-modal.js?v=20260830c" defer></script>
   <script src="js/mobile-kanban.js?v=20260916b" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js" defer></script>
-  <script type="module" src="js/attachment-viewer.js?v=20260923a" defer></script>
+  <script type="module" src="js/attachment-viewer.js?v=20260930a" defer></script>
   <script src="js/card-delete-fixed.js?v=20250104" defer></script>
   <script src="js/assignments.js?v=20250104" defer></script>
-  <script src="js/case-comments.js?v=20260916a" defer></script>
+  <script src="js/case-comments.js?v=20260930a" defer></script>
   <script src="js/notifications.js?v=20260915a" defer></script>
 <?php if (isFeatureEnabled('SHOW_NOTIFICATIONS')): ?>
   <script src="js/notification-preferences.js?v=20250104" defer></script>
