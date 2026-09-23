@@ -11336,6 +11336,7 @@ document.addEventListener('DOMContentLoaded', function () {
     viewArchivedBtn.addEventListener('click', () => {
       archivedCasesModal.style.display = 'block';
       document.body.style.overflow = 'hidden'; // Prevent body scroll
+      loadArchivedDentists();
       loadArchivedCases();
     });
   }
@@ -11363,6 +11364,7 @@ document.addEventListener('DOMContentLoaded', function () {
     // Open archived cases modal
     viewArchivedBtn.addEventListener('click', () => {
       archivedCasesModal.style.display = 'block';
+      loadArchivedDentists();
       loadArchivedCases();
     });
   }
@@ -11382,34 +11384,49 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   });
 
-  // Search and filter functionality
+  // Search and filter functionality. archivedState is the single source of
+  // truth: DOM controls mirror it, queries are built from it, and Clear
+  // Filters resets it rather than clearing controls independently.
   const archivedSearch = document.getElementById('archivedSearch');
   const archivedPageSizeSelect = document.getElementById('archivedPageSize');
   const archivedDateRange = document.getElementById('archivedDateRange');
+  const archivedCreatedRange = document.getElementById('archivedCreatedRange');
   const archivedCaseType = document.getElementById('archivedCaseType');
+  const archivedStatus = document.getElementById('archivedStatus');
+  const archivedDentist = document.getElementById('archivedDentist');
   const archivedClearFilters = document.getElementById('archivedClearFilters');
+  const archivedCustomDates = document.getElementById('archivedCustomDates');
+  const archivedCreatedCustomDates = document.getElementById('archivedCreatedCustomDates');
+  const archivedFrom = document.getElementById('archivedFrom');
+  const archivedTo = document.getElementById('archivedTo');
+  const archivedCreatedFrom = document.getElementById('archivedCreatedFrom');
+  const archivedCreatedTo = document.getElementById('archivedCreatedTo');
+  const archivedDateError = document.getElementById('archivedDateError');
+  const archivedActiveFilters = document.getElementById('archivedActiveFilters');
 
-  // Single source of truth for archived filter defaults
   const archivedFilterDefaults = {
     search: '',
-    dateRange: '',
     caseType: '',
-    pageSize: '25'
+    status: '',
+    dentist: '',
+    archivedDays: '',
+    archivedFrom: '',
+    archivedTo: '',
+    createdDays: '',
+    createdFrom: '',
+    createdTo: '',
+    sort: 'archived',
+    dir: 'desc'
   };
+  let archivedState = Object.assign({}, archivedFilterDefaults);
+  let archivedSearchDebounce = null;
 
-  function getArchivedFilterValues() {
-    return {
-      search: archivedSearch ? archivedSearch.value : '',
-      dateRange: archivedDateRange ? archivedDateRange.value : '',
-      caseType: archivedCaseType ? archivedCaseType.value : '',
-      pageSize: archivedPageSizeSelect ? archivedPageSizeSelect.value : archivedFilterDefaults.pageSize
-    };
-  }
+  // Criteria keys that count as an "active filter" (sort/page excluded).
+  const archivedFilterKeys = ['search', 'caseType', 'status', 'dentist', 'archivedDays', 'archivedFrom', 'archivedTo', 'createdDays', 'createdFrom', 'createdTo'];
 
   function archivedFiltersAreActive() {
-    const v = getArchivedFilterValues();
-    return Object.keys(archivedFilterDefaults).some(function(key) {
-      return v[key] !== archivedFilterDefaults[key];
+    return archivedFilterKeys.some(function(key) {
+      return archivedState[key] !== archivedFilterDefaults[key];
     });
   }
 
@@ -11419,105 +11436,186 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   }
 
-  function clearArchivedFilters() {
-    if (archivedSearch) {
-      archivedSearch.value = archivedFilterDefaults.search;
-    }
-    if (archivedSearchClearBtn) {
-      archivedSearchClearBtn.style.display = 'none';
-    }
-    if (archivedDateRange) {
-      archivedDateRange.value = archivedFilterDefaults.dateRange;
-    }
-    if (archivedCaseType) {
-      archivedCaseType.value = archivedFilterDefaults.caseType;
-    }
-    if (archivedPageSizeSelect) {
-      archivedPageSizeSelect.value = archivedFilterDefaults.pageSize;
-    }
-    archivedPageSize = parseInt(archivedFilterDefaults.pageSize, 10);
-    filterArchivedCasesClientSide();
+  // Push archivedState into the DOM controls (used by Clear Filters and
+  // chip removal so UI can never diverge from state).
+  function syncArchivedControls() {
+    if (archivedSearch) archivedSearch.value = archivedState.search;
+    if (archivedSearchClearBtn) archivedSearchClearBtn.style.display = archivedState.search ? 'block' : 'none';
+    if (archivedCaseType) archivedCaseType.value = archivedState.caseType;
+    if (archivedStatus) archivedStatus.value = archivedState.status;
+    if (archivedDentist) archivedDentist.value = archivedState.dentist;
+    if (archivedDateRange) archivedDateRange.value = archivedState.archivedDays || (archivedState.archivedFrom || archivedState.archivedTo ? 'custom' : '');
+    if (archivedCreatedRange) archivedCreatedRange.value = archivedState.createdDays || (archivedState.createdFrom || archivedState.createdTo ? 'custom' : '');
+    if (archivedFrom) archivedFrom.value = archivedState.archivedFrom;
+    if (archivedTo) archivedTo.value = archivedState.archivedTo;
+    if (archivedCreatedFrom) archivedCreatedFrom.value = archivedState.createdFrom;
+    if (archivedCreatedTo) archivedCreatedTo.value = archivedState.createdTo;
+    if (archivedCustomDates) archivedCustomDates.hidden = !(archivedDateRange && archivedDateRange.value === 'custom');
+    if (archivedCreatedCustomDates) archivedCreatedCustomDates.hidden = !(archivedCreatedRange && archivedCreatedRange.value === 'custom');
+    updateArchivedSortHeaders();
   }
 
-  // Store all archived cases for client-side filtering
-  let allArchivedCases = [];
-  let filteredArchivedCases = [];
+  function hideArchivedDateError() {
+    if (archivedDateError) {
+      archivedDateError.hidden = true;
+      archivedDateError.textContent = '';
+    }
+  }
 
-  // Client-side search function
-  function filterArchivedCasesClientSide() {
-    const search = archivedSearch ? archivedSearch.value.toLowerCase().trim() : '';
-    const dateRange = archivedDateRange ? archivedDateRange.value : '';
-    const caseType = archivedCaseType ? archivedCaseType.value : '';
-
-    // Filter cases
-    filteredArchivedCases = allArchivedCases.filter(case_ => {
-      // Search filter (patient name + dentist) - handle both camelCase and snake_case
-      if (search.length >= 2) {
-        const patientFirstName = case_.patientFirstName || case_.patient_first_name || '';
-        const patientLastName = case_.patientLastName || case_.patient_last_name || '';
-        const dentistName = case_.dentistName || case_.dentist_name || '';
-
-        const fullName = (patientFirstName + ' ' + patientLastName).toLowerCase();
-        const dentistNameLower = dentistName.toLowerCase();
-
-        if (!fullName.includes(search) && !dentistNameLower.includes(search)) {
-          return false;
+  // Validate a custom range before it reaches the server. Returns false
+  // (and shows the localized error) when From is after To.
+  function archivedCustomRangeValid() {
+    const ranges = [
+      { from: archivedState.archivedFrom, to: archivedState.archivedTo },
+      { from: archivedState.createdFrom, to: archivedState.createdTo }
+    ];
+    for (const r of ranges) {
+      if (r.from && r.to && r.from > r.to) {
+        if (archivedDateError) {
+          archivedDateError.textContent = t('archive.filters.invalid_date_range');
+          archivedDateError.hidden = false;
         }
+        return false;
       }
+    }
+    hideArchivedDateError();
+    return true;
+  }
 
-      // Date range filter
-      if (dateRange > 0) {
-        const archivedDate = new Date(case_.archived_date);
-        const cutoffDate = new Date();
-        cutoffDate.setDate(cutoffDate.getDate() - parseInt(dateRange));
-        if (archivedDate < cutoffDate) {
-          return false;
-        }
-      }
-
-      // Case type filter - slug-aware so legacy aliases ('Mixed' vs
-      // 'Mixed Case Type') resolve through the single selectable option.
-      if (caseType) {
-        const slug = typeof getCaseTypeSlug === 'function' ? getCaseTypeSlug : function (v) { return v; };
-        if (slug(case_.case_type) !== slug(caseType)) {
-          return false;
-        }
-      }
-
-      return true;
+  function archivedQueryParams() {
+    return new URLSearchParams({
+      page: archivedCurrentPage,
+      pageSize: archivedPageSize,
+      search: archivedState.search,
+      caseType: archivedState.caseType,
+      status: archivedState.status,
+      dentist: archivedState.dentist,
+      archivedDays: archivedState.archivedDays,
+      archivedFrom: archivedState.archivedFrom,
+      archivedTo: archivedState.archivedTo,
+      createdDays: archivedState.createdDays,
+      createdFrom: archivedState.createdFrom,
+      createdTo: archivedState.createdTo,
+      sort: archivedState.sort,
+      dir: archivedState.dir
     });
+  }
 
-    // Reset to page 1 and display filtered results
+  // Render one removable chip per active criterion.
+  function renderArchivedChips() {
+    if (!archivedActiveFilters) return;
+    const chips = [];
+    const chip = function(key, label, value) {
+      chips.push({ key: key, label: label, value: value });
+    };
+    if (archivedState.search) chip('search', t('archive.active_filters.search'), archivedState.search);
+    if (archivedState.caseType) chip('caseType', t('archive.fields.case_type'), getCaseTypeDisplayLabel(archivedState.caseType) || archivedState.caseType);
+    if (archivedState.status) chip('status', t('archive.fields.status'), getStageLabel(archivedState.status) || archivedState.status);
+    if (archivedState.dentist) chip('dentist', t('archive.fields.dentist'), archivedState.dentist);
+    if (archivedState.archivedDays) {
+      chip('archivedDays', t('archive.fields.archived'), t('archive.filters.last_n_days', {count: parseInt(archivedState.archivedDays, 10)}));
+    } else if (archivedState.archivedFrom || archivedState.archivedTo) {
+      chip('archivedRange', t('archive.fields.archived'), (archivedState.archivedFrom || '…') + ' – ' + (archivedState.archivedTo || '…'));
+    }
+    if (archivedState.createdDays) {
+      chip('createdDays', t('archive.fields.created'), t('archive.filters.last_n_days', {count: parseInt(archivedState.createdDays, 10)}));
+    } else if (archivedState.createdFrom || archivedState.createdTo) {
+      chip('createdRange', t('archive.fields.created'), (archivedState.createdFrom || '…') + ' – ' + (archivedState.createdTo || '…'));
+    }
+
+    archivedActiveFilters.innerHTML = chips.map(function(c) {
+      return '<span class="archive-filter-chip">' +
+        '<span class="archive-filter-chip-label">' + escapeHtml(c.label) + ':</span> ' +
+        escapeHtml(c.value) +
+        ' <button type="button" class="archive-filter-chip-remove" data-chip="' + c.key + '" aria-label="' + escapeHtml(t('archive.filters.remove_filter', {name: c.label})) + '">&times;</button>' +
+        '</span>';
+    }).join('');
+    archivedActiveFilters.hidden = chips.length === 0;
+
+    archivedActiveFilters.querySelectorAll('.archive-filter-chip-remove').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        removeArchivedChip(btn.dataset.chip);
+      });
+    });
+  }
+
+  function removeArchivedChip(key) {
+    const clear = {
+      search: function() { archivedState.search = ''; },
+      caseType: function() { archivedState.caseType = ''; },
+      status: function() { archivedState.status = ''; },
+      dentist: function() { archivedState.dentist = ''; },
+      archivedDays: function() { archivedState.archivedDays = ''; },
+      archivedRange: function() { archivedState.archivedFrom = ''; archivedState.archivedTo = ''; },
+      createdDays: function() { archivedState.createdDays = ''; },
+      createdRange: function() { archivedState.createdFrom = ''; archivedState.createdTo = ''; }
+    };
+    if (clear[key]) clear[key]();
     archivedCurrentPage = 1;
-    displayPaginatedArchivedCases();
-    updateArchivedPagination(filteredArchivedCases.length);
-
-    const countSpan = document.getElementById('archivedCount');
-    countSpan.textContent = t('archive.pagination.results_count', {visible: Math.min(filteredArchivedCases.length, archivedPageSize), total: filteredArchivedCases.length});
-
-    updateArchivedClearFiltersButton();
+    syncArchivedControls();
+    loadArchivedCases();
   }
 
-  // Display paginated results from filtered data
-  function displayPaginatedArchivedCases() {
-    const startIndex = (archivedCurrentPage - 1) * archivedPageSize;
-    const endIndex = startIndex + archivedPageSize;
-    const pageData = filteredArchivedCases.slice(startIndex, endIndex);
-    displayArchivedCases(pageData);
+  // Sortable column headers: click toggles direction on the active column
+  // or switches columns with a sensible default direction.
+  function setArchivedSort(column) {
+    if (archivedState.sort === column) {
+      archivedState.dir = archivedState.dir === 'asc' ? 'desc' : 'asc';
+    } else {
+      archivedState.sort = column;
+      archivedState.dir = (column === 'archived' || column === 'created') ? 'desc' : 'asc';
+    }
+    archivedCurrentPage = 1;
+    updateArchivedSortHeaders();
+    loadArchivedCases();
   }
 
+  function updateArchivedSortHeaders() {
+    document.querySelectorAll('.archived-cases-table .archived-sort').forEach(function(btn) {
+      const th = btn.closest('th');
+      const active = btn.dataset.sort === archivedState.sort;
+      const dirLabel = archivedState.dir === 'asc' ? t('archive.sort.ascending') : t('archive.sort.descending');
+      if (th) {
+        if (active) {
+          th.setAttribute('aria-sort', archivedState.dir === 'asc' ? 'ascending' : 'descending');
+        } else {
+          th.removeAttribute('aria-sort');
+        }
+      }
+      btn.classList.toggle('sorted-asc', active && archivedState.dir === 'asc');
+      btn.classList.toggle('sorted-desc', active && archivedState.dir === 'desc');
+      btn.setAttribute('aria-label', active
+        ? t('archive.sort.sorted_by', {column: btn.textContent.trim(), direction: dirLabel})
+        : t('archive.sort.sort_by', {column: btn.textContent.trim()}));
+    });
+  }
+
+  function clearArchivedFilters() {
+    // One reset source of truth: state resets, controls re-sync, page 1.
+    // Page size is intentionally preserved.
+    archivedState = Object.assign({}, archivedFilterDefaults);
+    archivedCurrentPage = 1;
+    hideArchivedDateError();
+    syncArchivedControls();
+    loadArchivedCases();
+  }
+
+  var archivedSearchClearBtn = null;
   if (archivedSearch) {
     archivedSearch.addEventListener('input', () => {
-      filterArchivedCasesClientSide();
-      // Toggle clear button visibility
+      archivedState.search = archivedSearch.value;
       if (archivedSearchClearBtn) {
         archivedSearchClearBtn.style.display = archivedSearch.value.length > 0 ? 'block' : 'none';
       }
+      clearTimeout(archivedSearchDebounce);
+      archivedSearchDebounce = setTimeout(function() {
+        archivedCurrentPage = 1;
+        loadArchivedCases();
+      }, 300);
     });
 
     // Add clear button for archived search
     const archivedSearchContainer = archivedSearch.parentElement;
-    var archivedSearchClearBtn = null;
     if (archivedSearchContainer) {
       archivedSearchClearBtn = document.createElement('button');
       archivedSearchClearBtn.type = 'button';
@@ -11527,9 +11625,11 @@ document.addEventListener('DOMContentLoaded', function () {
       archivedSearchClearBtn.setAttribute('aria-label', t('archive.search.clear'))
 
       archivedSearchClearBtn.addEventListener('click', function() {
+        archivedState.search = '';
         archivedSearch.value = '';
         archivedSearchClearBtn.style.display = 'none';
-        filterArchivedCasesClientSide();
+        archivedCurrentPage = 1;
+        loadArchivedCases();
         archivedSearch.focus();
       });
 
@@ -11539,29 +11639,71 @@ document.addEventListener('DOMContentLoaded', function () {
 
   if (archivedPageSizeSelect) {
     archivedPageSizeSelect.addEventListener('change', () => {
-      archivedCurrentPage = 1;
       const newPageSize = parseInt(archivedPageSizeSelect.value);
       if (newPageSize > 0) {
         archivedPageSize = newPageSize;
-        displayPaginatedArchivedCases();
-        updateArchivedPagination(filteredArchivedCases.length);
-
-        const countSpan = document.getElementById('archivedCount');
-        countSpan.textContent = t('archive.pagination.results_count', {visible: Math.min(filteredArchivedCases.length, archivedPageSize), total: filteredArchivedCases.length});
-        updateArchivedClearFiltersButton();
+        archivedCurrentPage = 1;
+        loadArchivedCases();
       }
     });
   }
 
-  if (archivedDateRange) {
-    archivedDateRange.addEventListener('change', () => {
-      filterArchivedCasesClientSide();
+  // Preset/custom date selects. 'custom' reveals the From/To inputs; any
+  // other value clears the explicit bounds.
+  function bindArchivedDateSelect(selectEl, customEl, daysKey, fromKey, toKey) {
+    if (!selectEl) return;
+    selectEl.addEventListener('change', function() {
+      if (selectEl.value === 'custom') {
+        archivedState[daysKey] = '';
+        if (customEl) customEl.hidden = false;
+      } else {
+        archivedState[daysKey] = selectEl.value;
+        archivedState[fromKey] = '';
+        archivedState[toKey] = '';
+        if (customEl) customEl.hidden = true;
+      }
+      hideArchivedDateError();
+      archivedCurrentPage = 1;
+      loadArchivedCases();
     });
   }
+  bindArchivedDateSelect(archivedDateRange, archivedCustomDates, 'archivedDays', 'archivedFrom', 'archivedTo');
+  bindArchivedDateSelect(archivedCreatedRange, archivedCreatedCustomDates, 'createdDays', 'createdFrom', 'createdTo');
+
+  function bindArchivedDateInput(inputEl, key) {
+    if (!inputEl) return;
+    inputEl.addEventListener('change', function() {
+      archivedState[key] = inputEl.value;
+      archivedCurrentPage = 1;
+      loadArchivedCases();
+    });
+  }
+  bindArchivedDateInput(archivedFrom, 'archivedFrom');
+  bindArchivedDateInput(archivedTo, 'archivedTo');
+  bindArchivedDateInput(archivedCreatedFrom, 'createdFrom');
+  bindArchivedDateInput(archivedCreatedTo, 'createdTo');
 
   if (archivedCaseType) {
     archivedCaseType.addEventListener('change', () => {
-      filterArchivedCasesClientSide();
+      archivedState.caseType = archivedCaseType.value;
+      archivedCurrentPage = 1;
+      loadArchivedCases();
+    });
+  }
+
+  if (archivedStatus) {
+    archivedStatus.addEventListener('change', () => {
+      archivedState.status = archivedStatus.value;
+      archivedCurrentPage = 1;
+      loadArchivedCases();
+    });
+  }
+
+  if (archivedDentist) {
+    archivedDentist.addEventListener('change', () => {
+      archivedState.dentist = archivedDentist.value;
+      archivedCurrentPage = 1;
+      loadArchivedCases();
     });
   }
 
@@ -11569,6 +11711,29 @@ document.addEventListener('DOMContentLoaded', function () {
     archivedClearFilters.addEventListener('click', () => {
       clearArchivedFilters();
     });
+  }
+
+  document.querySelectorAll('.archived-cases-table .archived-sort').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      setArchivedSort(btn.dataset.sort);
+    });
+  });
+
+  // Populate the dentist filter from the practice's archived cases.
+  function loadArchivedDentists() {
+    if (!archivedDentist) return;
+    fetch('api/get-archived-cases.php?meta=1', { credentials: 'same-origin' })
+      .then(response => response.json())
+      .then(data => {
+        if (!data.success) return;
+        const current = archivedDentist.value;
+        archivedDentist.innerHTML = '<option value="">' + escapeHtml(t('archive.filters.all_dentists')) + '</option>' +
+          data.dentists.map(function(name) {
+            return '<option value="' + escapeHtml(name) + '">' + escapeHtml(name) + '</option>';
+          }).join('');
+        archivedDentist.value = current;
+      })
+      .catch(() => {});
   }
 
   // Pagination
@@ -11579,19 +11744,17 @@ document.addEventListener('DOMContentLoaded', function () {
     archivedPrevPage.addEventListener('click', () => {
       if (archivedCurrentPage > 1) {
         archivedCurrentPage--;
-        displayPaginatedArchivedCases();
-        updateArchivedPagination(filteredArchivedCases.length);
+        loadArchivedCases();
       }
     });
   }
 
   if (archivedNextPage) {
     archivedNextPage.addEventListener('click', () => {
-      const totalPages = Math.ceil(filteredArchivedCases.length / archivedPageSize);
+      const totalPages = Math.ceil(archivedTotalCount / archivedPageSize);
       if (archivedCurrentPage < totalPages) {
         archivedCurrentPage++;
-        displayPaginatedArchivedCases();
-        updateArchivedPagination(filteredArchivedCases.length);
+        loadArchivedCases();
       }
     });
   }
@@ -11600,33 +11763,41 @@ document.addEventListener('DOMContentLoaded', function () {
     const tbody = document.getElementById('archivedCasesTableBody');
     const countSpan = document.getElementById('archivedCount');
 
+    if (!archivedCustomRangeValid()) {
+      return;
+    }
+
     // Show loading state
     tbody.innerHTML = '<tr><td colspan="7" class="loading-row">' + t('archive.loading') + '</td></tr>';
     countSpan.textContent = t('common.loading');
 
-    // Load all archived cases at once (server-side pagination removed)
-    const params = new URLSearchParams({
-      page: 1,
-      pageSize: 1000, // Load all cases at once
-      search: '',
-      dateRange: '',
-      caseType: ''
-    });
-
-    fetch(`api/get-archived-cases.php?${params}`, {
+    fetch(`api/get-archived-cases.php?${archivedQueryParams()}`, {
       credentials: 'same-origin'
     })
     .then(response => response.json())
     .then(data => {
       if (data.success) {
-        allArchivedCases = data.cases;
-        filteredArchivedCases = [...data.cases]; // Start with all cases
+        archivedTotalCount = data.totalCount;
+        if (typeof data.totalArchived !== 'undefined') {
+          updateArchivedCasesBadge(data.totalArchived);
+        }
 
-        // Update the archived cases badge
-        updateArchivedCasesBadge(data.cases.length);
+        // If filters shrank the result set below the current page (e.g.
+        // after a restore), step back until rows appear.
+        if (data.cases.length === 0 && data.totalCount > 0 && archivedCurrentPage > 1) {
+          archivedCurrentPage = Math.ceil(data.totalCount / archivedPageSize) || 1;
+          loadArchivedCases();
+          return;
+        }
 
-        // Apply initial filters and display
-        filterArchivedCasesClientSide();
+        displayArchivedCases(data.cases);
+        updateArchivedPagination(archivedTotalCount);
+        renderArchivedChips();
+        updateArchivedClearFiltersButton();
+
+        const start = data.totalCount === 0 ? 0 : (archivedCurrentPage - 1) * archivedPageSize + 1;
+        const end = Math.min(archivedCurrentPage * archivedPageSize, data.totalCount);
+        countSpan.textContent = t('archive.pagination.results_range', {start: start, end: end, total: data.totalCount});
       } else {
         tbody.innerHTML = '<tr><td colspan="7" class="loading-row">' + t('archive.error.loading') + '</td></tr>';
         countSpan.textContent = t('archive.error.loading_count');
@@ -11674,14 +11845,25 @@ document.addEventListener('DOMContentLoaded', function () {
     const tbody = document.getElementById('archivedCasesTableBody');
 
     if (cases.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="7" class="loading-row">' + t('archive.empty.no_cases') + '</td></tr>';
+      if (archivedFiltersAreActive()) {
+        tbody.innerHTML = '<tr><td colspan="7" class="loading-row archived-empty-filtered">' +
+          escapeHtml(t('archive.empty.no_matches')) + ' ' +
+          '<button type="button" class="btn-clear-filters archived-empty-clear" id="archivedEmptyClear">' +
+          escapeHtml(t('archive.filters.clear_filters')) + '</button></td></tr>';
+        const emptyClear = document.getElementById('archivedEmptyClear');
+        if (emptyClear) {
+          emptyClear.addEventListener('click', clearArchivedFilters);
+        }
+      } else {
+        tbody.innerHTML = '<tr><td colspan="7" class="loading-row">' + escapeHtml(t('archive.empty.no_cases')) + '</td></tr>';
+      }
       return;
     }
 
     tbody.innerHTML = cases.map(case_ => `
       <tr>
-        <td>${case_.patientFirstName || case_.patient_first_name || ''} ${case_.patientLastName || case_.patient_last_name || ''}</td>
-        <td>${case_.dentistName || case_.dentist_name || ''}</td>
+        <td>${escapeHtml((case_.patientFirstName || case_.patient_first_name || '') + ' ' + (case_.patientLastName || case_.patient_last_name || '')).trim()}</td>
+        <td>${escapeHtml(case_.dentistName || case_.dentist_name || '')}</td>
         <td>${getCaseTypeDisplayLabel(case_.caseType || case_.case_type) || ''}</td>
         <td>${case_.status ? escapeHtml(getStageLabel(case_.status)) : ''}</td>
         <td>${formatDate(case_.creation_date, false)}</td>
@@ -12092,6 +12274,7 @@ document.addEventListener('DOMContentLoaded', function () {
         // Open the archived cases modal
         archivedCasesModal.style.display = 'block';
         document.body.style.overflow = 'hidden'; // Prevent body scroll
+        loadArchivedDentists();
         loadArchivedCases();
       }
     }

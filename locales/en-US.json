@@ -474,17 +474,39 @@
             "loading_count": "Error loading cases"
         },
         "empty": {
-            "no_cases": "No archived cases",
-            "no_matches": "No archived cases match your filters"
+            "no_cases": "There are currently no archived cases.",
+            "no_matches": "No archived cases match your current search and filters."
         },
         "search": {
-            "placeholder": "Search archived cases",
+            "placeholder": "Search archived cases...",
             "label": "Search archived cases",
             "clear": "Clear search"
         },
         "filters": {
             "all_dates": "All dates",
-            "last_n_days": "Last {count} days"
+            "last_n_days": "Last {count} days",
+            "all_statuses": "All statuses",
+            "all_dentists": "All dentists",
+            "custom_range": "Custom range",
+            "clear_filters": "Clear Filters",
+            "archived_label": "Archived date",
+            "created_label": "Created date",
+            "created_all": "All created dates",
+            "archived_from": "Archived from",
+            "archived_to": "Archived to",
+            "created_from": "Created from",
+            "created_to": "Created to",
+            "invalid_date_range": "The start date must be on or before the end date.",
+            "remove_filter": "Remove {name} filter"
+        },
+        "active_filters": {
+            "search": "Search"
+        },
+        "sort": {
+            "sort_by": "Sort by {column}",
+            "sorted_by": "Sorted by {column}, {direction}",
+            "ascending": "ascending",
+            "descending": "descending"
         },
         "fields": {
             "patient_name": "Patient Name",
@@ -500,7 +522,8 @@
             "previous": "Previous",
             "next": "Next",
             "page_info": "Page {current} of {total}",
-            "results_count": "Showing {visible} of {total} archived cases"
+            "results_count": "Showing {visible} of {total} archived cases",
+            "results_range": "Showing {start}–{end} of {total} archived cases"
         },
         "actions": {
             "view": "View",

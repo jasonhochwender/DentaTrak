@@ -554,7 +554,7 @@ if (isset($appConfig) && is_array($appConfig) && isset($appConfig['appName'])) {
   <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
   
   <!-- Preload critical resources -->
-  <link rel="preload" href="js/app.js?v=20260930a" as="script">
+  <link rel="preload" href="js/app.js?v=20261001a" as="script">
   <link rel="preload" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
   <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap"></noscript>
   
@@ -574,13 +574,13 @@ if (isset($appConfig) && is_array($appConfig) && isset($appConfig['appName'])) {
   
   <!-- Load app.light.css directly (skip app.css @import chain) -->
   <link rel="stylesheet" href="css/app.light.css?v=20260916i">
-  <link rel="stylesheet" href="css/app.css?v=20260807a">
+  <link rel="stylesheet" href="css/app.css?v=20261001a">
 <?php if (isFeatureEnabled('SHOW_NOTIFICATIONS')): ?>
   <link rel="stylesheet" href="css/notification-preferences.css?v=20250104">
 <?php endif; ?>
   
   <!-- Mobile responsiveness CSS -->
-  <link rel="stylesheet" href="css/mobile.css?v=20260916b">
+  <link rel="stylesheet" href="css/mobile.css?v=20261001a">
   
   <!-- Non-critical CSS - deferred loading -->
   <?php if (isFeatureEnabled('SHOW_TOUR')): ?>
@@ -2549,21 +2549,56 @@ endif;
                 <input type="text" id="archivedSearch" placeholder="<?php echo t('archive.search.placeholder'); ?>">
               </div>
               <div class="archived-filter-controls">
-                <label for="archivedDateRange" class="sr-only"><?php echo t('archive.filters.all_dates'); ?></label>
+                <label for="archivedCaseType" class="sr-only"><?php echo t('archive.fields.case_type'); ?></label>
+                <select id="archivedCaseType">
+                  <option value=""><?php echo t('filters.all_types'); ?></option>
+                  <?php echo renderCaseTypeOptions(getFilterableCaseTypes()); ?>
+                </select>
+                <label for="archivedStatus" class="sr-only"><?php echo t('archive.fields.status'); ?></label>
+                <select id="archivedStatus">
+                  <option value=""><?php echo t('archive.filters.all_statuses'); ?></option>
+                  <?php foreach ($allWorkflowStageLabels as $stageId => $stageLabel): ?>
+                  <option value="<?php echo htmlspecialchars($stageId, ENT_QUOTES); ?>"><?php echo htmlspecialchars($stageLabel); ?></option>
+                  <?php endforeach; ?>
+                </select>
+                <label for="archivedDentist" class="sr-only"><?php echo t('archive.fields.dentist'); ?></label>
+                <select id="archivedDentist">
+                  <option value=""><?php echo t('archive.filters.all_dentists'); ?></option>
+                </select>
+                <label for="archivedDateRange" class="sr-only"><?php echo t('archive.filters.archived_label'); ?></label>
                 <select id="archivedDateRange">
                   <option value=""><?php echo t('archive.filters.all_dates'); ?></option>
                   <option value="7"><?php echo t('archive.filters.last_n_days', ['count' => 7]); ?></option>
                   <option value="30"><?php echo t('archive.filters.last_n_days', ['count' => 30]); ?></option>
                   <option value="90"><?php echo t('archive.filters.last_n_days', ['count' => 90]); ?></option>
                   <option value="365"><?php echo t('archive.filters.last_n_days', ['count' => 365]); ?></option>
+                  <option value="custom"><?php echo t('archive.filters.custom_range'); ?></option>
                 </select>
-                <label for="archivedCaseType" class="sr-only"><?php echo t('archive.fields.case_type'); ?></label>
-                <select id="archivedCaseType">
-                  <option value=""><?php echo t('filters.all_types'); ?></option>
-                  <?php echo renderCaseTypeOptions(getFilterableCaseTypes()); ?>
+                <label for="archivedCreatedRange" class="sr-only"><?php echo t('archive.filters.created_label'); ?></label>
+                <select id="archivedCreatedRange">
+                  <option value=""><?php echo t('archive.filters.created_all'); ?></option>
+                  <option value="7"><?php echo t('archive.filters.last_n_days', ['count' => 7]); ?></option>
+                  <option value="30"><?php echo t('archive.filters.last_n_days', ['count' => 30]); ?></option>
+                  <option value="90"><?php echo t('archive.filters.last_n_days', ['count' => 90]); ?></option>
+                  <option value="365"><?php echo t('archive.filters.last_n_days', ['count' => 365]); ?></option>
+                  <option value="custom"><?php echo t('archive.filters.custom_range'); ?></option>
                 </select>
-                <button type="button" class="btn-clear-filters" id="archivedClearFilters"><?php echo t('filters.clear_filters'); ?></button>
+                <button type="button" class="btn-clear-filters" id="archivedClearFilters"><?php echo t('archive.filters.clear_filters'); ?></button>
               </div>
+              <div class="archived-custom-range" id="archivedCustomDates" hidden>
+                <label for="archivedFrom"><?php echo t('archive.filters.archived_from'); ?></label>
+                <input type="date" id="archivedFrom">
+                <label for="archivedTo"><?php echo t('archive.filters.archived_to'); ?></label>
+                <input type="date" id="archivedTo">
+              </div>
+              <div class="archived-custom-range" id="archivedCreatedCustomDates" hidden>
+                <label for="archivedCreatedFrom"><?php echo t('archive.filters.created_from'); ?></label>
+                <input type="date" id="archivedCreatedFrom">
+                <label for="archivedCreatedTo"><?php echo t('archive.filters.created_to'); ?></label>
+                <input type="date" id="archivedCreatedTo">
+              </div>
+              <div class="archived-date-error" id="archivedDateError" role="alert" hidden></div>
+              <div class="archived-active-filters" id="archivedActiveFilters" hidden></div>
             </div>
             <div class="archived-count">
               <span id="archivedCount"><?php echo t('common.loading'); ?></span>
@@ -2576,12 +2611,12 @@ endif;
               <table class="archived-cases-table">
                 <thead>
                   <tr>
-                    <th><?php echo t('archive.fields.patient_name'); ?></th>
-                    <th><?php echo t('archive.fields.dentist'); ?></th>
-                    <th><?php echo t('archive.fields.case_type'); ?></th>
-                    <th><?php echo t('archive.fields.status'); ?></th>
-                    <th><?php echo t('archive.fields.created'); ?></th>
-                    <th><?php echo t('archive.fields.archived'); ?></th>
+                    <th><button type="button" class="archived-sort" data-sort="patient"><?php echo t('archive.fields.patient_name'); ?></button></th>
+                    <th><button type="button" class="archived-sort" data-sort="dentist"><?php echo t('archive.fields.dentist'); ?></button></th>
+                    <th><button type="button" class="archived-sort" data-sort="case_type"><?php echo t('archive.fields.case_type'); ?></button></th>
+                    <th><button type="button" class="archived-sort" data-sort="status"><?php echo t('archive.fields.status'); ?></button></th>
+                    <th><button type="button" class="archived-sort" data-sort="created"><?php echo t('archive.fields.created'); ?></button></th>
+                    <th><button type="button" class="archived-sort" data-sort="archived"><?php echo t('archive.fields.archived'); ?></button></th>
                     <th><?php echo t('archive.fields.actions'); ?></th>
                   </tr>
                 </thead>
@@ -3551,7 +3586,7 @@ endif;
   <script src="js/workflow-draft-ui.js?v=20260829f" defer></script>
   <script type="application/json" id="caseViewBootstrap"><?= json_encode($caseViewBootstrap, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?></script>
   <script src="js/case-filter-sort.js?v=20260916f" defer></script>
-  <script src="js/app.js?v=20260930a" defer></script>
+  <script src="js/app.js?v=20261001a" defer></script>
   <script src="js/mobile-case-modal.js?v=20260830c" defer></script>
   <script src="js/mobile-kanban.js?v=20260916b" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js" defer></script>

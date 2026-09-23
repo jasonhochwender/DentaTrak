@@ -851,6 +851,48 @@
     height: 44px;
   }
 
+  /* Custom date ranges + chips: full-width rows, large touch targets */
+  #archivedCasesModal .archived-custom-range {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+  }
+
+  #archivedCasesModal .archived-custom-range[hidden] {
+    display: none;
+  }
+
+  #archivedCasesModal .archived-custom-range label {
+    font-size: 0.8rem;
+    flex: 0 0 auto;
+  }
+
+  #archivedCasesModal .archived-custom-range input[type="date"] {
+    flex: 1 1 0;
+    min-width: 0;
+    min-height: 44px;
+    font-size: 16px;
+    box-sizing: border-box;
+  }
+
+  #archivedCasesModal .archived-active-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    width: 100%;
+  }
+
+  #archivedCasesModal .archived-active-filters[hidden] {
+    display: none;
+  }
+
+  #archivedCasesModal .archive-filter-chip-remove {
+    min-width: 32px;
+    min-height: 32px;
+  }
+
   /* Table container - horizontal scroll */
   .archived-table-container {
     flex: 1;

@@ -438,6 +438,154 @@
   font-size: 13px;
 }
 
+/* Sortable column headers -- look like the existing uppercase labels,
+   become interactive on hover/focus, and expose direction via a small
+   triangle (state is also communicated through aria-sort on the th). */
+.archived-cases-modal .archived-cases-table th .archived-sort {
+  all: unset;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-light);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  border-radius: 4px;
+  padding: 2px 4px;
+  margin: -2px -4px;
+}
+
+.archived-cases-modal .archived-cases-table th .archived-sort:hover,
+.archived-cases-modal .archived-cases-table th .archived-sort:focus-visible {
+  color: var(--text-primary);
+  outline: none;
+  text-decoration: underline;
+}
+
+.archived-cases-modal .archived-cases-table th .archived-sort:focus-visible {
+  box-shadow: 0 0 0 2px var(--primary-color);
+}
+
+.archived-cases-modal .archived-cases-table th .archived-sort::after {
+  content: '';
+  font-size: 9px;
+  width: 1em;
+}
+
+.archived-cases-modal .archived-cases-table th .archived-sort.sorted-asc::after {
+  content: '▲';
+}
+
+.archived-cases-modal .archived-cases-table th .archived-sort.sorted-desc::after {
+  content: '▼';
+}
+
+/* Custom date-range rows inside the filter toolbar */
+.archived-cases-modal .archived-custom-range {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  flex-basis: 100%;
+}
+
+.archived-cases-modal .archived-custom-range[hidden] {
+  display: none;
+}
+
+.archived-cases-modal .archived-custom-range label {
+  font-size: 12px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.archived-cases-modal .archived-custom-range input[type="date"] {
+  height: 34px;
+  padding: 0 8px;
+  box-sizing: border-box;
+  border: 1px solid var(--border-medium);
+  border-radius: 8px;
+  font-size: 13px;
+  color: var(--text-primary);
+  background: var(--input-background, #fff);
+}
+
+.archived-cases-modal .archived-date-error {
+  flex-basis: 100%;
+  font-size: 12px;
+  color: var(--error-color, #dc2626);
+}
+
+/* Active-filter chips */
+.archived-cases-modal .archived-active-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  flex-basis: 100%;
+}
+
+.archived-cases-modal .archived-active-filters[hidden] {
+  display: none;
+}
+
+.archived-cases-modal .archive-filter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 6px 3px 10px;
+  background: var(--background-subtle);
+  border: 1px solid var(--border-medium);
+  border-radius: 999px;
+  font-size: 12px;
+  color: var(--text-primary);
+  max-width: 100%;
+}
+
+.archived-cases-modal .archive-filter-chip-label {
+  color: var(--text-light);
+  font-weight: 600;
+}
+
+.archived-cases-modal .archive-filter-chip-remove {
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+  padding: 2px 4px;
+  border-radius: 50%;
+}
+
+.archived-cases-modal .archive-filter-chip-remove:hover,
+.archived-cases-modal .archive-filter-chip-remove:focus-visible {
+  color: var(--text-primary);
+  background: var(--border-light);
+  outline: none;
+}
+
+.archived-cases-modal .archived-empty-filtered {
+  text-align: center;
+}
+
+.archived-cases-modal .archived-empty-clear {
+  margin-left: 8px;
+  padding: 4px 10px;
+  font-size: 12px;
+  border: 1px solid var(--border-medium);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.archived-cases-modal .archived-empty-clear:hover {
+  color: var(--text-primary);
+  background: var(--background-subtle);
+}
+
 .btn-restore {
   background: #10b981;
   color: white;
