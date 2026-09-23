@@ -20,6 +20,7 @@ $remakeCalcUrl = $baseUrl . ($articleUrls['article_dental_remake_cost'] ?? 'dent
     gtag('js', new Date());
     gtag('config', 'G-MBJDENR3H2');
   </script>
+  <?php require_once __DIR__ . '/partials/clarity.php'; ?>
 
   <meta name="description" content="<?php echo htmlspecialchars(t('marketing.seo.resources.description')); ?>">
   <title><?php echo htmlspecialchars(t('marketing.seo.resources.title')); ?></title>

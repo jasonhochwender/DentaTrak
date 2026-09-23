@@ -19,6 +19,7 @@ $hipaaUrl = $baseUrl . ($articleUrls['page_hipaa_security'] ?? 'hipaa-security')
     gtag('js', new Date());
     gtag('config', 'G-MBJDENR3H2');
   </script>
+  <?php require_once __DIR__ . '/partials/clarity.php'; ?>
 
   <meta name="description" content="<?php echo htmlspecialchars(t('marketing.hipaa.description')); ?>">
   <title><?php echo htmlspecialchars(t('marketing.hipaa.title')); ?></title>

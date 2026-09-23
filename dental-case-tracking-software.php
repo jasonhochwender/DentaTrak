@@ -19,6 +19,7 @@ $articleUrls = $appConfig['public_urls'] ?? [];
     gtag('js', new Date());
     gtag('config', 'G-MBJDENR3H2');
   </script>
+  <?php require_once __DIR__ . '/partials/clarity.php'; ?>
 
   <meta name="description" content="<?php echo htmlspecialchars(t('marketing.articles.dental_case_tracking_software.seo.description')); ?>">
 

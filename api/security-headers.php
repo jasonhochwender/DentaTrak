@@ -40,11 +40,11 @@ function setSecurityHeaders() {
     // Content Security Policy - restrict resource loading
     $csp = [
         "default-src 'self'",
-        "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.google.com https://*.googleapis.com https://*.gstatic.com https://cdn.jsdelivr.net https://www.googletagmanager.com",
+        "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.google.com https://*.googleapis.com https://*.gstatic.com https://cdn.jsdelivr.net https://www.googletagmanager.com https://www.clarity.ms",
         "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net",
         "font-src 'self' https://fonts.gstatic.com data:",
         "img-src 'self' data: https: blob:",
-        "connect-src 'self' https://*.google.com https://*.googleapis.com https://api.openai.com https://cdn.jsdelivr.net https://www.googletagmanager.com https://*.google-analytics.com https://*.analytics.google.com",
+        "connect-src 'self' https://*.google.com https://*.googleapis.com https://api.openai.com https://cdn.jsdelivr.net https://www.googletagmanager.com https://*.google-analytics.com https://*.analytics.google.com https://*.clarity.ms",
         // 'self' is required for the Download All feature: it submits a hidden
         // form into a same-origin iframe (api/download-case-attachments-zip.php).
         // Pages still send X-Frame-Options: DENY, so 'self' here does not make

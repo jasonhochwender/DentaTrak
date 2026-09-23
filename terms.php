@@ -18,6 +18,7 @@ $loginUrl = rtrim($appConfig['baseUrl'] ?? '', '/') . '/login.php';
     gtag('js', new Date());
     gtag('config', 'G-MBJDENR3H2');
   </script>
+  <?php require_once __DIR__ . '/partials/clarity.php'; ?>
 
   <title><?php echo htmlspecialchars(t('legal.terms.title')) . ' - ' . htmlspecialchars($appName); ?></title>
   <meta name="description" content="<?php echo htmlspecialchars(t('legal.terms.meta_description')); ?>">
