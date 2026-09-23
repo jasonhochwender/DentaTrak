@@ -72,16 +72,28 @@ $oldPracticeId = $_SESSION['current_practice_id'] ?? null;
 $result = activatePracticeSession($practiceId);
 
 if (!$result['success']) {
-    logSecurityEvent('practice_switch_denied', [
-        'attempted_practice_id' => $practiceId,
-        'reason' => $result['code'] === 403 ? 'no_access' : 'activation_error',
-        'message' => $result['message']
-    ]);
+    $twoFABlocked = !empty($result['error_code']) &&
+        in_array($result['error_code'], ['PRACTICE_2FA_SETUP_REQUIRED', 'PRACTICE_2FA_CHALLENGE_REQUIRED'], true);
+
+    // A 2FA block is expected routing, not a security violation - skip the
+    // denial log so genuine access-denied events stay distinguishable.
+    if (!$twoFABlocked) {
+        logSecurityEvent('practice_switch_denied', [
+            'attempted_practice_id' => $practiceId,
+            'reason' => $result['code'] === 403 ? 'no_access' : 'activation_error',
+            'message' => $result['message']
+        ]);
+    }
     http_response_code($result['code']);
-    echo json_encode([
+    $response = [
         'success' => false,
         'message' => $result['message']
-    ]);
+    ];
+    if (!empty($result['error_code'])) {
+        $response['error_code'] = $result['error_code'];
+        $response['redirect'] = $result['redirect'] ?? '2fa-required.php';
+    }
+    echo json_encode($response);
     exit;
 }
 

@@ -887,7 +887,8 @@
                     "error": "Failed to disable 2FA.",
                     "success_title": "2FA Disabled",
                     "success_message": "Two-factor authentication has been disabled.",
-                    "unknown_error": "An error occurred. Please try again."
+                    "unknown_error": "An error occurred. Please try again.",
+                    "blocked_by_practice": "This practice requires two-factor authentication. You cannot disable 2FA while you are signed in to this practice."
                 },
                 "setup": {
                     "step1": "Step 1: Scan this QR code with your authenticator app (Google Authenticator, Authy, etc.)",
@@ -904,6 +905,30 @@
                     "setup_title": "2FA Setup",
                     "unknown_error": "An error occurred. Please try again."
                 }
+            },
+            "practice_2fa": {
+                "title": "Practice-Wide Two-Factor Authentication",
+                "description": "Require all users in this practice to use two-factor authentication when signing in.",
+                "toggle_label": "Require Two-Factor Authentication for all users",
+                "state_required": "2FA Enforcement: Required",
+                "state_optional": "2FA Enforcement: Optional",
+                "summary": "{protected} protected · {needsSetup} need setup · {total} total",
+                "members_toggle": "View user 2FA status",
+                "members_toggle_hide": "Hide user 2FA status",
+                "col_user": "User",
+                "col_role": "Role",
+                "col_status": "2FA Status",
+                "status_enabled": "Enabled",
+                "status_setup_required": "Setup Required",
+                "role_owner": "Owner",
+                "role_admin": "Admin",
+                "role_member": "Member",
+                "confirm_title": "Require 2FA for this practice?",
+                "confirm_message": "All users will need to configure two-factor authentication before they can access this practice. Users who already have 2FA enabled will not need to set it up again.",
+                "enabled_success": "Two-factor authentication is now required for all users in this practice.",
+                "disabled_success": "Practice-wide two-factor authentication requirement removed. Users who configured 2FA will keep it enabled.",
+                "actor_setup_required": "You must configure two-factor authentication on your own account before you can require it for this practice.",
+                "error": "Failed to update the 2FA requirement. Please try again."
             }
         },
         "data_privacy": {
@@ -1773,6 +1798,7 @@
             "back_to_google_only": "Back",
             "set_up_password_title": "Set your password",
             "google_2fa_subtitle": "Enter the 6-digit code from your authenticator app to complete Google sign-in",
+            "remember_me_2fa_subtitle": "This browser was remembered. Enter the 6-digit code from your authenticator app to finish signing in",
             "2fa_invalid_code": "Please enter a valid 6-digit code.",
             "2fa_verifying": "Verifying...",
             "resend_success": "Verification email sent. Please check your inbox.",
@@ -1863,6 +1889,11 @@
             "email_not_verified": "Please verify your email before signing in. Check your inbox for the verification link.",
             "invalid_2fa": "Invalid authentication code. Please try again.",
             "2fa_required": "Please enter your two-factor authentication code.",
+            "practice_2fa_required": "This practice requires two-factor authentication. Complete the verification step to continue.",
+            "2fa_code_required": "Please enter your authentication code.",
+            "2fa_not_configured": "Two-factor authentication is not configured on this account.",
+            "2fa_verified": "Two-factor verification complete.",
+            "too_many_2fa_attempts": "Too many attempts. Please wait a few minutes and try again.",
             "passwords_not_match": "Passwords do not match",
             "password_min_length": "Password must be at least 8 characters long",
             "password_upper": "Password must contain at least one uppercase letter",
@@ -1952,6 +1983,34 @@
         "unauthorized": "You are not authorized to perform this action.",
         "not_found": "The requested resource was not found.",
         "network_error": "Network error. Please check your connection."
+    },
+    "two_fa_required": {
+        "title": "Two-Factor Authentication Required",
+        "subtitle": "This practice requires two-factor authentication",
+        "subtitle_practice": "{practice} requires two-factor authentication",
+        "intro_enroll": "Before you can access this practice, you need to set up two-factor authentication for your account. This is a one-time setup that protects the practice and your account.",
+        "intro_challenge": "Enter the verification code from your authenticator app to continue to this practice.",
+        "enroll": {
+            "description": "Your practice requires two-factor authentication. Set it up now to continue - it only takes a minute.",
+            "begin": "Set Up Two-Factor Authentication",
+            "step1": "Step 1: Scan this QR code with your authenticator app (Google Authenticator, Authy, etc.)",
+            "manual": "Or enter this code manually:",
+            "step2": "Step 2: Enter the 6-digit verification code from your app",
+            "code_label": "Verification code",
+            "verify": "Verify & Continue"
+        },
+        "challenge": {
+            "description": "Enter the 6-digit code from your authenticator app.",
+            "code_label": "Verification code",
+            "verify": "Verify & Continue"
+        },
+        "choose_practice": "Choose a different practice",
+        "sign_out": "Sign out",
+        "verifying": "Please wait...",
+        "errors": {
+            "unknown": "An error occurred. Please try again.",
+            "setup_failed": "Could not start 2FA setup. Please try again."
+        }
     },
     "onboarding": {
         "practice": {
@@ -2692,6 +2751,7 @@
             "existing_user_intro": "If you already have a {appName} account, sign in using the email address that received this message. The {practiceName} dental practice will be available when you sign in.",
             "new_user_intro": "If you don't have a {appName} account yet, create an account using this same email address. Once registration is complete, you'll be able to access the {practiceName} dental practice.",
             "open_dentatrak": "Open {appName}",
+            "requires_2fa": "This practice requires two-factor authentication. When you sign in, you'll be asked to set up two-factor authentication before you can access it.",
             "help": "If you have questions or need help, contact us at {supportEmail}.",
             "cta": "Open {appName}"
         },

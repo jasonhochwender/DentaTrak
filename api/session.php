@@ -248,6 +248,27 @@ function attemptRememberMeLogin() {
             $user = validateRememberMeToken();
             
             if ($user) {
+                // Personal 2FA must not be bypassed by Remember Me. The
+                // persistent token proves "this browser signed in before",
+                // never the second factor - so a user with TOTP configured
+                // is held in the same pending-2FA state used by the email
+                // and Google login paths and completes a fresh challenge
+                // before any full session exists. verify-google-2fa.php
+                // consumes this pending state generically.
+                require_once __DIR__ . '/totp.php';
+                $twoFAStatus = function_exists('get2FAStatus')
+                    ? get2FAStatus($user['id'])
+                    : ['enabled' => false];
+
+                if (!empty($twoFAStatus['enabled'])) {
+                    $_SESSION['pending_2fa_user_id'] = $user['id'];
+                    $_SESSION['pending_2fa_email'] = $user['email'];
+                    $_SESSION['pending_2fa_auth_method'] = 'remember_me';
+                    $_SESSION['pending_2fa_db_user'] = $user;
+                    $_SESSION['pending_2fa_timestamp'] = time();
+                    return false;
+                }
+
                 // Token is valid - set up session
                 if (function_exists('setupUserSession')) {
                     setupUserSession($user, 'remember_me');

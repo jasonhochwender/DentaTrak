@@ -11,6 +11,31 @@ var currentUserEmail = document.getElementById('userEmailData') ? document.getEl
 // CSRF Token for secure API requests
 var csrfToken = document.querySelector('meta[name="csrf-token"]') ? document.querySelector('meta[name="csrf-token"]').getAttribute('content') : '';
 
+// Practice-wide 2FA enforcement: if ANY API responds that the current
+// practice requires 2FA this session hasn't satisfied (e.g. enforcement
+// was enabled mid-session, or the session was restored via Remember Me),
+// route the whole app through the challenge/enrollment page instead of
+// leaving every subsequent request to fail. The response is cloned before
+// inspection so callers still receive the original untouched response.
+(function () {
+  var originalFetch = window.fetch;
+  window.fetch = function (input, init) {
+    return originalFetch.apply(this, arguments).then(function (response) {
+      if (!response.ok) {
+        try {
+          response.clone().json().then(function (data) {
+            if (data && (data.error_code === 'PRACTICE_2FA_SETUP_REQUIRED' ||
+                         data.error_code === 'PRACTICE_2FA_CHALLENGE_REQUIRED')) {
+              window.location.href = data.redirect || '2fa-required.php';
+            }
+          }).catch(function () {});
+        } catch (e) {}
+      }
+      return response;
+    });
+  };
+})();
+
 /**
  * Convert an internal workflow status value (e.g. 'Received From External
  * Lab') into its corresponding "kanban-card-*" CSS class name (e.g.
@@ -13370,6 +13395,183 @@ document.addEventListener('DOMContentLoaded', function () {
       cancelDisableTwoFactor.addEventListener('click', function() {
         if (twoFactorDisable) twoFactorDisable.style.display = 'none';
         if (twoFactorActions) twoFactorActions.style.display = 'flex';
+      });
+    }
+
+    // ============================================
+    // PRACTICE-WIDE 2FA ENFORCEMENT (owner/admin)
+    // ============================================
+    var practiceRequire2fa = document.getElementById('practiceRequire2fa');
+    var practice2faSummary = document.getElementById('practice2faSummary');
+    var practice2faMembersToggle = document.getElementById('practice2faMembersToggle');
+    var practice2faMembers = document.getElementById('practice2faMembers');
+    var practice2faMembersBody = document.getElementById('practice2faMembersBody');
+    var practice2faError = document.getElementById('practice2faError');
+    var practice2faSuccess = document.getElementById('practice2faSuccess');
+    var practice2faBusy = false;
+
+    function practice2faEscape(text) {
+      var div = document.createElement('div');
+      div.textContent = text == null ? '' : String(text);
+      return div.innerHTML;
+    }
+
+    function practice2faShowError(message) {
+      if (practice2faError) {
+        practice2faError.textContent = message || '';
+        practice2faError.style.display = message ? 'block' : 'none';
+      }
+      if (practice2faSuccess) practice2faSuccess.style.display = 'none';
+    }
+
+    function practice2faShowSuccess(message) {
+      if (practice2faSuccess) {
+        practice2faSuccess.textContent = message || '';
+        practice2faSuccess.style.display = message ? 'block' : 'none';
+      }
+      if (practice2faError) practice2faError.style.display = 'none';
+    }
+
+    function practice2faRenderStatus(data) {
+      if (practiceRequire2fa) {
+        practiceRequire2fa.checked = !!data.required;
+        practiceRequire2fa.disabled = false;
+      }
+      var counts = data.counts || { total: 0, enabled: 0, needs_setup: 0 };
+      if (practice2faSummary) {
+        var stateLabel = data.required
+          ? t('settings.security.practice_2fa.state_required')
+          : t('settings.security.practice_2fa.state_optional');
+        practice2faSummary.textContent = stateLabel + ' · ' +
+          t('settings.security.practice_2fa.summary', {
+            protected: counts.enabled,
+            needsSetup: counts.needs_setup,
+            total: counts.total
+          });
+        practice2faSummary.style.display = 'block';
+      }
+      if (practice2faMembersToggle) {
+        practice2faMembersToggle.style.display = counts.total ? 'inline' : 'none';
+      }
+      if (practice2faMembersBody) {
+        var html = '';
+        (data.members || []).forEach(function(m) {
+          var statusText = m.totp_enabled
+            ? t('settings.security.practice_2fa.status_enabled')
+            : t('settings.security.practice_2fa.status_setup_required');
+          var statusClass = m.totp_enabled ? 'status-badge status-enabled' : 'status-badge status-warning';
+          var roleText = m.is_owner
+            ? t('settings.security.practice_2fa.role_owner')
+            : (m.role === 'admin'
+                ? t('settings.security.practice_2fa.role_admin')
+                : t('settings.security.practice_2fa.role_member'));
+          var nameCell = (m.name || m.email || '');
+          if (m.email && m.email !== nameCell) {
+            nameCell += ' · ' + m.email;
+          }
+          html += '<tr>' +
+            '<td data-label="' + t('settings.security.practice_2fa.col_user') + '">' + practice2faEscape(nameCell) + '</td>' +
+            '<td data-label="' + t('settings.security.practice_2fa.col_role') + '">' + practice2faEscape(roleText) + '</td>' +
+            '<td data-label="' + t('settings.security.practice_2fa.col_status') + '"><span class="' + statusClass + '">' + practice2faEscape(statusText) + '</span></td>' +
+            '</tr>';
+        });
+        practice2faMembersBody.innerHTML = html;
+      }
+    }
+
+    function practice2faLoadStatus() {
+      if (!practiceRequire2fa) return;
+      fetch('api/practice-2fa-policy.php?action=status', { credentials: 'same-origin' })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          if (data.success) {
+            practice2faRenderStatus(data);
+          } else {
+            practice2faShowError(data.message || t('settings.security.practice_2fa.error'));
+          }
+        })
+        .catch(function() {
+          practice2faShowError(t('settings.security.practice_2fa.error'));
+        });
+    }
+
+    function practice2faSave(enabled) {
+      if (practice2faBusy || !practiceRequire2fa) return;
+      practice2faBusy = true;
+      practiceRequire2fa.disabled = true;
+      practice2faShowError('');
+      practice2faShowSuccess('');
+
+      fetch('api/practice-2fa-policy.php?action=update', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRF-Token': csrfToken
+        },
+        credentials: 'same-origin',
+        body: JSON.stringify({ enabled: enabled })
+      })
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        if (data.success) {
+          practice2faShowSuccess(data.message || '');
+          practice2faLoadStatus();
+          return;
+        }
+        // Revert the checkbox - the policy did not change.
+        practiceRequire2fa.checked = !enabled;
+        if (data.error_code === 'ACTOR_2FA_REQUIRED') {
+          // The actor must enroll first - route them through the existing
+          // blocking setup page, then they can re-apply the toggle.
+          practice2faShowError(data.message || t('settings.security.practice_2fa.actor_setup_required'));
+          if (data.redirect) {
+            setTimeout(function() { window.location.href = data.redirect; }, 1500);
+          }
+        } else {
+          practice2faShowError(data.message || t('settings.security.practice_2fa.error'));
+        }
+      })
+      .catch(function() {
+        practiceRequire2fa.checked = !enabled;
+        practice2faShowError(t('settings.security.practice_2fa.error'));
+      })
+      .finally(function() {
+        practice2faBusy = false;
+        if (practiceRequire2fa) practiceRequire2fa.disabled = false;
+      });
+    }
+
+    if (practiceRequire2fa) {
+      practiceRequire2fa.disabled = true; // until status loads
+      practice2faLoadStatus();
+
+      practiceRequire2fa.addEventListener('change', function() {
+        var enabled = practiceRequire2fa.checked;
+        if (enabled) {
+          // Revert immediately - only a confirmed save may leave it on.
+          practiceRequire2fa.checked = false;
+          showConfirmModal(
+            t('settings.security.practice_2fa.confirm_title'),
+            t('settings.security.practice_2fa.confirm_message'),
+            function() { practice2faSave(true); },
+            null,
+            false,
+            practiceRequire2fa
+          );
+        } else {
+          practice2faSave(false);
+        }
+      });
+    }
+
+    if (practice2faMembersToggle && practice2faMembers) {
+      practice2faMembersToggle.addEventListener('click', function() {
+        var open = practice2faMembers.style.display !== 'none';
+        practice2faMembers.style.display = open ? 'none' : 'block';
+        practice2faMembersToggle.setAttribute('aria-expanded', open ? 'false' : 'true');
+        practice2faMembersToggle.textContent = open
+          ? t('settings.security.practice_2fa.members_toggle')
+          : t('settings.security.practice_2fa.members_toggle_hide');
       });
     }
 

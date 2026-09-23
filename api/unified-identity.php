@@ -962,6 +962,24 @@ function setupUserSession($user, $authMethod = 'email') {
         ensureBypassUserTier($pdo, $user['id'], $user['email']);
     }
     
+    // Fresh authentication session: clear the per-session TOTP proof so
+    // practice-wide 2FA enforcement can distinguish "account has 2FA
+    // configured" from "THIS session passed the challenge". Callers that
+    // verified a TOTP code during this login re-set the flag immediately
+    // after setupUserSession() returns. Any stale pending-2FA challenge
+    // state (email, Google, or Remember Me) is cleared too - a completed
+    // login supersedes it.
+    unset(
+        $_SESSION['totp_verified'],
+        $_SESSION['pending_2fa_user_id'],
+        $_SESSION['pending_2fa_email'],
+        $_SESSION['pending_2fa_remember_me'],
+        $_SESSION['pending_2fa_timestamp'],
+        $_SESSION['pending_2fa_auth_method'],
+        $_SESSION['pending_2fa_user_data'],
+        $_SESSION['pending_2fa_db_user']
+    );
+
     $_SESSION['db_user_id'] = $user['id'];
     $_SESSION['user_email'] = $user['email'];
     // Email fallback: invited members can have an email-only users row with

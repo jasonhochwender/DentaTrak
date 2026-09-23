@@ -24,6 +24,16 @@ if (!$currentPracticeId || !isPracticeAdmin($currentPracticeId)) {
     exit;
 }
 
+// Practice-wide 2FA enforcement applies to every authenticated practice
+// surface, including billing - an unsatisfied session is routed through
+// the challenge/enrollment page first.
+if (practiceRequires2FA($currentPracticeId) && !session2FASatisfied()) {
+    $_SESSION['pending_2fa_practice_id'] = (int)$currentPracticeId;
+    unset($_SESSION['current_practice_id']);
+    header('Location: 2fa-required.php');
+    exit;
+}
+
 // ── Billing feature gate ────────────────────────────────────────────────────
 // When billing is disabled (the production default until Stripe is fully
 // configured), this entire page is unreachable.  Do this before loading

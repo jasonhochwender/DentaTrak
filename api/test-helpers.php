@@ -161,6 +161,14 @@ switch ($action) {
         handleGetTestPracticeRecord($pdo, $input);
         break;
 
+    case 'clear_session_totp_verified':
+        // Simulates a session that predates the per-session TOTP proof flag
+        // (authenticated, 2FA configured, but no proof recorded yet) so tests
+        // can exercise the challenge path used for such sessions.
+        unset($_SESSION['totp_verified']);
+        echo json_encode(['success' => true]);
+        break;
+
     default:
         http_response_code(400);
         echo json_encode(['success' => false, 'message' => 'Invalid action']);

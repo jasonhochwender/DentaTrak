@@ -15,6 +15,7 @@ require_once __DIR__ . '/appConfig.php';
 require_once __DIR__ . '/csrf.php';
 require_once __DIR__ . '/security-headers.php';
 require_once __DIR__ . '/totp.php';
+require_once __DIR__ . '/practice-security.php';
 
 header('Content-Type: application/json');
 setApiSecurityHeaders();
@@ -78,10 +79,13 @@ function handle2FAStatus(int $userId): void {
  * Generate new secret and QR code for setup
  */
 function handleSetup(int $userId, string $userEmail): void {
-    // Validate CSRF for POST
-    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-        requireCsrfToken();
+    // Secret generation is state-changing - POST + CSRF only.
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+        http_response_code(405);
+        echo json_encode(['success' => false, 'message' => 'Method not allowed']);
+        return;
     }
+    requireCsrfToken();
     
     // Check if 2FA is already enabled
     $status = get2FAStatus($userId);
@@ -186,6 +190,10 @@ function handleVerify(int $userId): void {
         return;
     }
     
+    // Successful enrollment verification IS a TOTP proof - mark this
+    // session so practice-wide enforcement admits the user immediately.
+    $_SESSION['totp_verified'] = true;
+    
     echo json_encode([
         'success' => true,
         'message' => 'Two-factor authentication has been enabled successfully.'
@@ -208,6 +216,22 @@ function handleDisable(int $userId): void {
     
     requireCsrfToken();
     
+    // Practice-wide enforcement: a user inside a 2FA-required practice may
+    // not remove their only authenticator - doing so would immediately
+    // violate the practice policy and block them on the next request.
+    // They can disable 2FA from a non-required practice or after the
+    // practice policy is lifted.
+    $currentPracticeId = $_SESSION['current_practice_id'] ?? null;
+    if ($currentPracticeId && function_exists('practiceRequires2FA') && practiceRequires2FA($currentPracticeId)) {
+        http_response_code(403);
+        echo json_encode([
+            'success' => false,
+            'error_code' => 'PRACTICE_2FA_DISABLE_BLOCKED',
+            'message' => t('settings.security.two_factor.disable.blocked_by_practice')
+        ]);
+        return;
+    }
+    
     // Disable 2FA
     if (!disable2FA($userId)) {
         http_response_code(500);
@@ -217,6 +241,9 @@ function handleDisable(int $userId): void {
         ]);
         return;
     }
+    
+    // The account no longer has an authenticator - drop any session proof.
+    unset($_SESSION['totp_verified']);
     
     echo json_encode([
         'success' => true,

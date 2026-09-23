@@ -269,6 +269,14 @@ $appName = $appConfig['appName'];
                     });
                     const data = await response.json();
                     if (!response.ok || !data.success || (remember && data.preference_saved !== true)) {
+                        // Practice-wide 2FA: the chosen practice requires a
+                        // verification/enrollment step before entry - follow
+                        // the server's redirect target.
+                        if (data && (data.error_code === 'PRACTICE_2FA_SETUP_REQUIRED' ||
+                                     data.error_code === 'PRACTICE_2FA_CHALLENGE_REQUIRED')) {
+                            window.location.assign(data.redirect || '2fa-required.php');
+                            return;
+                        }
                         throw new Error(data.message || <?php echo json_encode(t('onboarding.practice.selection_failed')); ?>);
                     }
                     window.location.assign('main.php');

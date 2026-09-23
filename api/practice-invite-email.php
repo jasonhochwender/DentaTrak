@@ -17,9 +17,13 @@ require_once __DIR__ . '/email-sender.php';
  * @param string   $practiceName Display name of the practice the user was added to.
  * @param array    $appConfig   Application configuration (must include app_base_url, user_guide_url, support_email).
  * @param int|null $practiceId  Practice ID for locale resolution.
+ * @param bool     $requires2fa Whether the practice enforces two-factor
+ *                              authentication for all members. When true an
+ *                              additional note tells the invitee they will
+ *                              be asked to set up 2FA on first access.
  * @return void
  */
-function sendPracticeInviteEmail(string $toEmail, ?string $firstName, string $practiceName, array $appConfig, ?int $practiceId = null): void {
+function sendPracticeInviteEmail(string $toEmail, ?string $firstName, string $practiceName, array $appConfig, ?int $practiceId = null, bool $requires2fa = false): void {
     $locale = resolveEmailLocale(null, $practiceId, null);
     $appName = $appConfig['appName'] ?? 'DentaTrak';
     $supportEmail = $appConfig['support_email'] ?? 'support@dentatrak.com';
@@ -42,6 +46,8 @@ function sendPracticeInviteEmail(string $toEmail, ?string $firstName, string $pr
     $existingIntroText = tForLocale($locale, 'email.practice_invite.existing_user_intro', ['appName' => $appName, 'practiceName' => $practiceName]);
     $newIntroHtml = tForLocale($locale, 'email.practice_invite.new_user_intro', ['appName' => $appName, 'practiceName' => $htmlPracticeName]);
     $newIntroText = tForLocale($locale, 'email.practice_invite.new_user_intro', ['appName' => $appName, 'practiceName' => $practiceName]);
+    $twoFaHtml = $requires2fa ? '<p>' . tForLocale($locale, 'email.practice_invite.requires_2fa') . '</p>' : '';
+    $twoFaText = $requires2fa ? tForLocale($locale, 'email.practice_invite.requires_2fa') . "\n\n" : '';
     $openDentatrak = tForLocale($locale, 'email.common.open_dentatrak', ['appName' => $appName]);
     $viewUserGuide = tForLocale($locale, 'email.common.view_user_guide');
     $helpPlain = tForLocale($locale, 'email.practice_invite.help', ['supportEmail' => $supportEmail]);
@@ -60,6 +66,7 @@ function sendPracticeInviteEmail(string $toEmail, ?string $firstName, string $pr
   <p>{$greetingHtml}</p>
   <p>{$existingIntroHtml}</p>
   <p>{$newIntroHtml}</p>
+  {$twoFaHtml}
   <p><a href="{$loginUrl}" target="_blank" rel="noopener noreferrer">{$openDentatrak}</a></p>
   <!-- User Guide link temporarily removed until the guide is updated; restore to re-enable.
   <p>{$appName} User Guide<br><a href="{$userGuideUrl}" target="_blank" rel="noopener noreferrer">{$viewUserGuide}</a></p>
@@ -73,6 +80,7 @@ HTML;
     $textBody = $greetingText . "\n\n" .
         $existingIntroText . "\n\n" .
         $newIntroText . "\n\n" .
+        $twoFaText .
         $openDentatrak . ": {$loginUrl}\n\n" .
         // User Guide link temporarily removed until the guide is updated; restore to re-enable.
         // $appName . " User Guide: {$userGuideUrl}\n\n" .

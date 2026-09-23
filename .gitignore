@@ -165,6 +165,8 @@ screenshots/
 !/tests/user-environment-test.php
 !/tests/header-switcher-browser-test.js
 !/tests/insights-usage-tracking-e2e-test.js
+!/tests/practice-2fa-enforcement-test.php
+!/tests/practice-2fa-enforcement-e2e-test.js
 !/tests/case-filter-sort-test.js
 !/tests/case-view-preferences-test.php
 !/tests/case-filter-sort-e2e-test.js

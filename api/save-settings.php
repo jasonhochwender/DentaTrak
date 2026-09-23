@@ -1284,13 +1284,21 @@ try {
                     $newUserStmt = $pdo->prepare("SELECT id, first_name, last_name, email FROM users WHERE id IN ({$placeholders})");
                     $newUserStmt->execute($newUserIds);
 
+                    // Let invitees know up front when the practice enforces
+                    // two-factor authentication - they will be routed through
+                    // 2FA setup before they can enter the practice.
+                    $inviteRequires2fa = function_exists('practiceRequires2FA')
+                        ? practiceRequires2FA($currentPracticeId)
+                        : false;
+
                     foreach ($newUserStmt->fetchAll(PDO::FETCH_ASSOC) as $newUser) {
                         sendPracticeInviteEmail(
                             $newUser['email'],
                             $newUser['first_name'] ?? null,
                             $practiceName,
                             $appConfig,
-                            (int)$currentPracticeId
+                            (int)$currentPracticeId,
+                            $inviteRequires2fa
                         );
                     }
                 } catch (Exception $e) {

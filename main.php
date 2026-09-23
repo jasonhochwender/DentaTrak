@@ -69,6 +69,12 @@ if (isset($_SESSION['current_practice_id']) && !empty($_SESSION['current_practic
 
 // Check if a practice is selected
 if (!isset($_SESSION['current_practice_id']) || empty($_SESSION['current_practice_id'])) {
+    // A practice held pending 2FA satisfaction routes to the
+    // challenge/enrollment page, not the practice chooser.
+    if (!empty($_SESSION['pending_2fa_practice_id'])) {
+        header('Location: 2fa-required.php');
+        exit;
+    }
     // Redirect to practice setup / BAA acceptance
     header('Location: practice-setup.php');
     exit;
@@ -158,6 +164,21 @@ if ($userId && $currentPracticeId) {
     } catch (PDOException $e) {
         error_log("[SECURITY] Error verifying practice membership: " . $e->getMessage());
     }
+}
+
+// SECURITY: Practice-wide 2FA enforcement. The user is authenticated and a
+// valid member, but if the practice requires 2FA this session must have
+// passed the TOTP challenge (or enrollment) before any practice content
+// renders. 2fa-required.php holds the practice as pending and routes back
+// here once the proof exists.
+require_once __DIR__ . '/api/practice-security.php';
+if ($userId && $currentPracticeId &&
+    practiceRequires2FA($currentPracticeId) &&
+    !session2FASatisfied()) {
+    $_SESSION['pending_2fa_practice_id'] = (int)$currentPracticeId;
+    unset($_SESSION['current_practice_id']);
+    header('Location: 2fa-required.php');
+    exit;
 }
 
 // Insights (analytics + Ask DentaTrak) visibility for the CURRENT practice.
@@ -554,7 +575,7 @@ if (isset($appConfig) && is_array($appConfig) && isset($appConfig['appName'])) {
   <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
   
   <!-- Preload critical resources -->
-  <link rel="preload" href="js/app.js?v=20261001b" as="script">
+  <link rel="preload" href="js/app.js?v=20261002a" as="script">
   <link rel="preload" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
   <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap"></noscript>
   
@@ -601,7 +622,7 @@ if (isset($appConfig) && is_array($appConfig) && isset($appConfig['appName'])) {
   <!-- Feature-specific CSS - loaded on demand -->
   <link rel="preload" href="css/revision-history.css?v=20241210" as="style" onload="this.onload=null;this.rel='stylesheet'">
   <link rel="preload" href="css/delete-button.css?v=20241210" as="style" onload="this.onload=null;this.rel='stylesheet'">
-  <link rel="preload" href="css/settings-billing.css?v=20261001a" as="style" onload="this.onload=null;this.rel='stylesheet'">
+  <link rel="preload" href="css/settings-billing.css?v=20261002a" as="style" onload="this.onload=null;this.rel='stylesheet'">
   <link rel="preload" href="css/feedback.css?v=20241210" as="style" onload="this.onload=null;this.rel='stylesheet'">
   <link rel="preload" href="css/kanban-dragdrop.css?v=20241210" as="style" onload="this.onload=null;this.rel='stylesheet'">
   <link rel="preload" href="css/case-list.css?v=20260916b" as="style" onload="this.onload=null;this.rel='stylesheet'">
@@ -629,7 +650,7 @@ if (isset($appConfig) && is_array($appConfig) && isset($appConfig['appName'])) {
   <noscript>
     <link rel="stylesheet" href="css/revision-history.css?v=20241210">
     <link rel="stylesheet" href="css/delete-button.css?v=20241210">
-    <link rel="stylesheet" href="css/settings-billing.css?v=20261001a">
+    <link rel="stylesheet" href="css/settings-billing.css?v=20261002a">
     <link rel="stylesheet" href="css/feedback.css?v=20241210">
     <link rel="stylesheet" href="css/kanban-dragdrop.css?v=20241210">
     <link rel="stylesheet" href="css/case-list.css?v=20260916b">
@@ -3294,6 +3315,35 @@ endif;
                             </div>
                           </div>
                         </div>
+                        <?php if ($isCurrentUserPracticeAdmin): ?>
+                        <!-- Practice-Wide 2FA Enforcement (owner/admin only) -->
+                        <div class="security-section practice-2fa-section">
+                          <h4 class="subsection-title"><?php echo t('settings.security.practice_2fa.title'); ?></h4>
+                          <p class="section-description"><?php echo t('settings.security.practice_2fa.description'); ?></p>
+                          <div class="option-row">
+                            <label for="practiceRequire2fa"><?php echo t('settings.security.practice_2fa.toggle_label'); ?></label>
+                            <input type="checkbox" id="practiceRequire2fa" name="practiceRequire2fa">
+                          </div>
+                          <div id="practice2faSummary" class="practice-2fa-summary" style="display: none;"></div>
+                          <button type="button" id="practice2faMembersToggle" class="btn-link practice-2fa-members-toggle" style="display: none;" aria-expanded="false">
+                            <?php echo t('settings.security.practice_2fa.members_toggle'); ?>
+                          </button>
+                          <div id="practice2faMembers" class="practice-2fa-members" style="display: none;">
+                            <table class="practice-2fa-table">
+                              <thead>
+                                <tr>
+                                  <th scope="col"><?php echo t('settings.security.practice_2fa.col_user'); ?></th>
+                                  <th scope="col"><?php echo t('settings.security.practice_2fa.col_role'); ?></th>
+                                  <th scope="col"><?php echo t('settings.security.practice_2fa.col_status'); ?></th>
+                                </tr>
+                              </thead>
+                              <tbody id="practice2faMembersBody"></tbody>
+                            </table>
+                          </div>
+                          <div id="practice2faError" class="form-error" style="display: none;"></div>
+                          <div id="practice2faSuccess" class="form-success" style="display: none;"></div>
+                        </div>
+                        <?php endif; ?>
                       </div>
                     </div>
                   </div>
@@ -3690,7 +3740,7 @@ endif;
   <script src="js/workflow-draft-ui.js?v=20260829f" defer></script>
   <script type="application/json" id="caseViewBootstrap"><?= json_encode($caseViewBootstrap, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?></script>
   <script src="js/case-filter-sort.js?v=20260916f" defer></script>
-  <script src="js/app.js?v=20261001b" defer></script>
+  <script src="js/app.js?v=20261002a" defer></script>
   <script src="js/mobile-case-modal.js?v=20260830c" defer></script>
   <script src="js/mobile-kanban.js?v=20260916b" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js" defer></script>

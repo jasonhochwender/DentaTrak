@@ -2146,6 +2146,78 @@ input#practiceName {
   gap: 12px;
 }
 
+/* Practice-Wide 2FA Enforcement (Settings > Security) */
+.practice-2fa-section {
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border-light);
+}
+
+.practice-2fa-summary {
+  font-size: 13px;
+  color: var(--text-light);
+  margin: 10px 0 6px;
+}
+
+.practice-2fa-members-toggle {
+  margin: 4px 0 10px;
+}
+
+.practice-2fa-members {
+  margin-top: 8px;
+  overflow-x: auto;
+}
+
+.practice-2fa-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.practice-2fa-table th,
+.practice-2fa-table td {
+  text-align: left;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.practice-2fa-table th {
+  font-weight: 600;
+  color: var(--text-light);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.status-badge.status-warning {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+@media (max-width: 768px) {
+  .practice-2fa-table thead {
+    display: none;
+  }
+  .practice-2fa-table tr {
+    display: block;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border-light);
+  }
+  .practice-2fa-table td {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    border-bottom: none;
+    padding: 4px 0;
+  }
+  .practice-2fa-table td::before {
+    content: attr(data-label);
+    font-weight: 600;
+    color: var(--text-light);
+  }
+}
+
 /* Data Export Styles */
 .data-export-section {
   padding: 0;

@@ -713,9 +713,123 @@ function getCurrentPracticeId() {
 }
 
 /**
+ * Practice-wide 2FA enforcement helpers.
+ *
+ * Session proof model: $_SESSION['totp_verified'] is set ONLY when a TOTP
+ * challenge (or initial enrollment verification) succeeds during THIS
+ * session. A stored totp_enabled flag on the user row proves the account
+ * has an authenticator configured, but is NOT proof this session passed
+ * the challenge (e.g. Remember Me restores, sessions predating the flag).
+ * setupUserSession() clears the flag on every new login so each
+ * authentication session must prove 2FA independently.
+ */
+
+/**
+ * Does the given practice require all users to use two-factor auth?
+ * Resolves to OFF when the require_2fa column has not been migrated yet,
+ * so existing practices keep working before/without the migration.
+ *
+ * @param int $practiceId
+ * @return bool
+ */
+function practiceRequires2FA($practiceId) {
+    global $pdo;
+    static $requires2fa = [];
+
+    $practiceId = (int)$practiceId;
+    if (!$practiceId || !$pdo) {
+        return false;
+    }
+
+    if (array_key_exists($practiceId, $requires2fa)) {
+        return $requires2fa[$practiceId];
+    }
+
+    try {
+        $colStmt = $pdo->query("SHOW COLUMNS FROM practices LIKE 'require_2fa'");
+        if (!$colStmt || !$colStmt->fetch()) {
+            return $requires2fa[$practiceId] = false;
+        }
+        $stmt = $pdo->prepare("SELECT require_2fa FROM practices WHERE id = :id");
+        $stmt->execute(['id' => $practiceId]);
+        return $requires2fa[$practiceId] = ((int)$stmt->fetchColumn() === 1);
+    } catch (PDOException $e) {
+        // Fail closed for a required-practice determination is wrong here:
+        // a transient DB error should not lock every user out. Log and
+        // resolve to not-required; the flag is re-checked next request.
+        error_log('[practice-security] practiceRequires2FA lookup failed: ' . $e->getMessage());
+        return false;
+    }
+}
+
+/**
+ * Does the user have an authenticator configured (any 2FA capability)?
+ * Distinct from session proof - see header note above.
+ *
+ * @param int $userId
+ * @return bool
+ */
+function userHas2FAConfigured($userId) {
+    global $pdo;
+
+    if (!$pdo || !$userId) {
+        return false;
+    }
+
+    try {
+        $stmt = $pdo->prepare("SELECT totp_enabled FROM users WHERE id = :id");
+        $stmt->execute(['id' => (int)$userId]);
+        return ((int)$stmt->fetchColumn() === 1);
+    } catch (PDOException $e) {
+        error_log('[practice-security] userHas2FAConfigured lookup failed: ' . $e->getMessage());
+        return false;
+    }
+}
+
+/**
+ * Has THIS session completed a 2FA challenge (or enrollment verification)?
+ *
+ * @return bool
+ */
+function session2FASatisfied() {
+    if (session_status() === PHP_SESSION_NONE) {
+        session_start();
+    }
+    return !empty($_SESSION['totp_verified']);
+}
+
+/**
+ * Determine whether a user/session may access a 2FA-required practice.
+ * Returns null when access is allowed; otherwise an array describing the
+ * required step:
+ *   - 'PRACTICE_2FA_SETUP_REQUIRED'     user has no authenticator enrolled
+ *   - 'PRACTICE_2FA_CHALLENGE_REQUIRED' enrolled but this session has not
+ *                                       passed the TOTP challenge
+ *
+ * @param int $practiceId
+ * @param int $userId
+ * @return array|null
+ */
+function getPractice2FABlock($practiceId, $userId) {
+    if (!practiceRequires2FA($practiceId)) {
+        return null;
+    }
+    if (session2FASatisfied()) {
+        return null;
+    }
+    return [
+        'error_code' => userHas2FAConfigured($userId)
+            ? 'PRACTICE_2FA_CHALLENGE_REQUIRED'
+            : 'PRACTICE_2FA_SETUP_REQUIRED',
+        'message' => t('auth.errors.practice_2fa_required'),
+        'redirect' => '2fa-required.php?practice_id=' . (int)$practiceId
+    ];
+}
+
+/**
  * CRITICAL: Require a valid practice context or fail with error.
  * Use this at the START of every API endpoint that accesses practice data.
- * 
+ *
  * @param bool $verifyMembership Also verify user is a member of the practice
  * @return int The validated practice ID
  */
@@ -805,6 +919,23 @@ function requireValidPracticeContext($verifyMembership = true) {
             ]);
             exit;
         }
+    }
+    
+    // Practice-wide 2FA enforcement: the user is a valid member of an active
+    // practice, but if the practice requires 2FA this session must have
+    // passed the challenge (or enrollment) before any practice resource is
+    // served. The distinct error_code lets the client route to the
+    // challenge/enrollment flow instead of a generic access-denied surface.
+    $twoFABlock = getPractice2FABlock((int)$practiceId, $userId);
+    if ($twoFABlock !== null) {
+        http_response_code(403);
+        echo json_encode([
+            'success' => false,
+            'message' => $twoFABlock['message'],
+            'error_code' => $twoFABlock['error_code'],
+            'redirect' => $twoFABlock['redirect']
+        ]);
+        exit;
     }
     
     return (int)$practiceId;
@@ -1276,6 +1407,23 @@ function activatePracticeSession($practiceId) {
             return ['success' => false, 'code' => 403, 'message' => t('auth.errors.no_access_practice'), 'practice' => null];
         }
 
+        // Practice-wide 2FA enforcement at the activation boundary: switching
+        // INTO a required practice without a satisfied session must fail
+        // BEFORE any session mutation, so the caller never lands in an
+        // unauthorized context. This is checked on every activation, not
+        // just at login, so practice switching cannot bypass the policy.
+        $twoFABlock = getPractice2FABlock((int)$practice['id'], $userId);
+        if ($twoFABlock !== null) {
+            return [
+                'success' => false,
+                'code' => 403,
+                'message' => $twoFABlock['message'],
+                'practice' => null,
+                'error_code' => $twoFABlock['error_code'],
+                'redirect' => $twoFABlock['redirect']
+            ];
+        }
+
         // Clear practice-specific caches before switching context.
         unset($_SESSION['cases_cache'], $_SESSION['practice_users_cache'], $_SESSION['practice_settings_cache']);
 
@@ -1297,6 +1445,9 @@ function activatePracticeSession($practiceId) {
         $_SESSION['has_multiple_practices'] = false;
         $_SESSION['practice_setup_visits'] = 0;
         $_SESSION['from_practice_setup'] = false;
+
+        // Successful activation resolves any held 2FA-pending target.
+        unset($_SESSION['pending_2fa_practice_id']);
 
         setResolvedLocale(resolveLocale(null, $userId, (int) $practice['id']));
 

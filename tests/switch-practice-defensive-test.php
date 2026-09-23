@@ -26,6 +26,22 @@ class FakeDatabase {
         }
         return new FakeStatement();
     }
+    public function query($sql) {
+        $GLOBALS['queries'][] = $sql;
+        if (!empty($GLOBALS['scenario']['query_failure'])) {
+            throw new \PDOException('SQLSTATE private database detail');
+        }
+        // SHOW COLUMNS probes (e.g. practices.require_2fa) resolve to
+        // "column missing" so practice-wide 2FA enforcement stays OFF in
+        // every defensive scenario below.
+        return new FakeQueryResult();
+    }
+}
+
+class FakeQueryResult {
+    public function fetch($mode = null) {
+        return false;
+    }
 }
 
 class FakeStatement {

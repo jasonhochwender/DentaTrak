@@ -21,6 +21,12 @@ if (function_exists('attemptRememberMeLogin')) {
     attemptRememberMeLogin();
 }
 
+// A Remember Me restore for a user who has personal 2FA configured does
+// not create a session - it leaves a pending-2FA challenge instead. The
+// login page must render the code prompt rather than the password form.
+$pendingRememberMe2FA = !empty($_SESSION['pending_2fa_user_id'])
+    && ($_SESSION['pending_2fa_auth_method'] ?? '') === 'remember_me';
+
 // ============================================
 // REDIRECT IF ALREADY LOGGED IN
 // Security: Includes users auto-logged in via Remember Me token
@@ -1364,13 +1370,19 @@ function showGoogle2FAInput() {
   }
 }
 
-// Check if we were redirected here for Google 2FA (must be after function definition)
+// Check if we were redirected here for Google 2FA, or held at a Remember
+// Me 2FA challenge (must be after function definition)
 (function checkGoogle2FA() {
   var urlParams = new URLSearchParams(window.location.search);
-  if (urlParams.get('require_2fa') === 'google') {
-    // Show 2FA form for Google sign-in
+  var pendingRememberMe = <?php echo $pendingRememberMe2FA ? 'true' : 'false'; ?>;
+  if (urlParams.get('require_2fa') === 'google' || pendingRememberMe) {
+    // Show 2FA form for server-pending 2FA (Google sign-in or Remember Me)
     pending2FAGoogle = true;
     showGoogle2FAInput();
+    if (pendingRememberMe) {
+      var twoFactorHeader = document.querySelector('.two-factor-header p');
+      if (twoFactorHeader) twoFactorHeader.textContent = t('auth.login.remember_me_2fa_subtitle');
+    }
     // Clean up URL
     window.history.replaceState({}, document.title, window.location.pathname);
   }

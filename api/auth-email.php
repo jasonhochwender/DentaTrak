@@ -201,6 +201,7 @@ function handleLogin($pdo, $input) {
     require_once __DIR__ . '/totp.php';
     
     $twoFAStatus = get2FAStatus($user['id']);
+    $totpVerifiedThisLogin = false;
     
     if ($twoFAStatus['enabled']) {
         // 2FA is enabled - check if code was provided
@@ -237,10 +238,18 @@ function handleLogin($pdo, $input) {
         unset($_SESSION['pending_2fa_email']);
         unset($_SESSION['pending_2fa_remember_me']);
         unset($_SESSION['pending_2fa_timestamp']);
+        $totpVerifiedThisLogin = true;
     }
     
     // Set up unified session
     setupUserSession($user, 'email');
+    
+    // Record per-session TOTP proof AFTER setupUserSession() (which clears
+    // the flag on every fresh login) so practice-wide 2FA enforcement can
+    // trust it for this session only.
+    if ($totpVerifiedThisLogin) {
+        $_SESSION['totp_verified'] = true;
+    }
     
     // ============================================
     // REMEMBER ME HANDLING

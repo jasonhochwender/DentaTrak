@@ -504,6 +504,28 @@ function resolveLoginPracticeSelection($userId) {
     $_SESSION['needs_practice_selection'] = $needsPracticeSelection;
     $_SESSION['has_multiple_practices'] = $hasMultiplePractices;
 
+    $redirect = ($needsPracticeSetup || $needsPracticeSelection) ? 'practice-setup.php' : 'main.php';
+
+    // Practice-wide 2FA enforcement: if the auto-selected practice requires
+    // 2FA and this session has not satisfied it, hold the practice as
+    // pending and route through the challenge/enrollment page instead of
+    // landing in an authorized practice context.
+    if ($selectedPracticeId !== null) {
+        $practiceSecurityPath = __DIR__ . '/practice-security.php';
+        if (file_exists($practiceSecurityPath)) {
+            require_once $practiceSecurityPath;
+        }
+        if (function_exists('practiceRequires2FA') &&
+            practiceRequires2FA($selectedPracticeId) &&
+            !(function_exists('session2FASatisfied') && session2FASatisfied())) {
+            $_SESSION['pending_2fa_practice_id'] = (int)$selectedPracticeId;
+            unset($_SESSION['current_practice_id'], $_SESSION['practice_uuid']);
+            $redirect = '2fa-required.php';
+        } else {
+            unset($_SESSION['pending_2fa_practice_id']);
+        }
+    }
+
     return [
         'practices' => $userPractices,
         'practice_count' => $practiceCount,
@@ -512,6 +534,6 @@ function resolveLoginPracticeSelection($userId) {
         'needs_practice_setup' => $needsPracticeSetup,
         'needs_practice_selection' => $needsPracticeSelection,
         'has_multiple_practices' => $hasMultiplePractices,
-        'redirect' => ($needsPracticeSetup || $needsPracticeSelection) ? 'practice-setup.php' : 'main.php'
+        'redirect' => $redirect
     ];
 }

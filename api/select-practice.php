@@ -130,11 +130,32 @@ if ($rememberPreference) {
 $result = activatePracticeSession($practiceId);
 
 if (!$result['success']) {
+    // Practice-wide 2FA block: a direct browser request (chooser form POST /
+    // GET link) must land on the challenge/enrollment page rather than a
+    // JSON error; API callers get the structured error_code instead.
+    $twoFABlocked = !empty($result['error_code']) &&
+        in_array($result['error_code'], ['PRACTICE_2FA_SETUP_REQUIRED', 'PRACTICE_2FA_CHALLENGE_REQUIRED'], true);
+    if ($twoFABlocked) {
+        $_SESSION['pending_2fa_practice_id'] = (int)$practiceId;
+        $acceptsJson = isset($_SERVER['HTTP_ACCEPT']) &&
+            strpos($_SERVER['HTTP_ACCEPT'], 'application/json') !== false;
+        $isAjax = isset($_SERVER['HTTP_X_REQUESTED_WITH']) ||
+            (isset($_SERVER['CONTENT_TYPE']) && strpos($_SERVER['CONTENT_TYPE'], 'application/json') !== false);
+        if (!$acceptsJson && !$isAjax) {
+            header('Location: ../2fa-required.php?practice_id=' . (int)$practiceId);
+            exit;
+        }
+    }
     http_response_code($result['code']);
-    echo json_encode([
+    $response = [
         'success' => false,
         'message' => $result['message']
-    ]);
+    ];
+    if (!empty($result['error_code'])) {
+        $response['error_code'] = $result['error_code'];
+        $response['redirect'] = $result['redirect'] ?? '2fa-required.php';
+    }
+    echo json_encode($response);
     exit;
 }
 

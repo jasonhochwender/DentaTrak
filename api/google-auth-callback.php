@@ -266,6 +266,11 @@ setcookie('login_preference', '', [
 $mode = $_SESSION['oauth_mode'] ?? 'redirect';
 unset($_SESSION['oauth_mode']);
 
+// Practice-wide 2FA: resolveLoginPracticeSelection() holds a required
+// practice as pending when this session hasn't satisfied the policy - the
+// user must land on the challenge/enrollment page, not main.php.
+$needs2FA = !empty($_SESSION['pending_2fa_practice_id']);
+
 if ($mode === 'popup') {
     // Return a small page whose only job is to update the opener and close itself
     ?><!DOCTYPE html>
@@ -276,27 +281,16 @@ if ($mode === 'popup') {
         <script>
         (function() {
           try {
+            var destination = <?php echo $needs2FA ? "'../2fa-required.php'" :
+                ((isset($_SESSION['needs_practice_setup']) && $_SESSION['needs_practice_setup']) ||
+                 (isset($_SESSION['needs_practice_selection']) && $_SESSION['needs_practice_selection'])
+                    ? "'../practice-setup.php'" : "'../main.php'"); ?>;
             if (window.opener && !window.opener.closed) {
-              // Check if we need to go to practice setup
-              var needsPracticeSetup = <?php echo isset($_SESSION['needs_practice_setup']) && $_SESSION['needs_practice_setup'] ? 'true' : 'false'; ?>;
-              var needsPracticeSelection = <?php echo isset($_SESSION['needs_practice_selection']) && $_SESSION['needs_practice_selection'] ? 'true' : 'false'; ?>;
-              
-              if (needsPracticeSetup || needsPracticeSelection) {
-                window.opener.location.href = '../practice-setup.php';
-              } else {
-                window.opener.location.href = '../main.php';
-              }
+              window.opener.location.href = destination;
               window.close();
             } else {
               // Fallback: just navigate this window
-              var needsPracticeSetup = <?php echo isset($_SESSION['needs_practice_setup']) && $_SESSION['needs_practice_setup'] ? 'true' : 'false'; ?>;
-              var needsPracticeSelection = <?php echo isset($_SESSION['needs_practice_selection']) && $_SESSION['needs_practice_selection'] ? 'true' : 'false'; ?>;
-              
-              if (needsPracticeSetup || needsPracticeSelection) {
-                window.location.href = '../practice-setup.php';
-              } else {
-                window.location.href = '../main.php';
-              }
+              window.location.href = destination;
             }
           } catch (e) {
             // If anything goes wrong, fallback to navigating this window
@@ -313,7 +307,9 @@ if ($mode === 'popup') {
 }
 
 // Determine where to redirect based on practice setup needs
-if (isset($_SESSION['needs_practice_setup']) && $_SESSION['needs_practice_setup'] ||
+if ($needs2FA) {
+    header('Location: ../2fa-required.php');
+} elseif (isset($_SESSION['needs_practice_setup']) && $_SESSION['needs_practice_setup'] ||
     isset($_SESSION['needs_practice_selection']) && $_SESSION['needs_practice_selection']) {
     header('Location: ../practice-setup.php');
 } else {

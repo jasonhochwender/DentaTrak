@@ -311,6 +311,17 @@ try {
         $_SESSION['needs_practice_setup'] = false;
         $_SESSION['needs_baa_acceptance'] = false;
 
+        // Practice-wide 2FA: if the activated practice requires 2FA and this
+        // session has not satisfied it, hold the practice as pending instead
+        // of leaving an authorized-looking practice context in the session.
+        if (function_exists('practiceRequires2FA') &&
+            function_exists('session2FASatisfied') &&
+            practiceRequires2FA($practiceId) &&
+            !session2FASatisfied()) {
+            $_SESSION['pending_2fa_practice_id'] = (int)$practiceId;
+            unset($_SESSION['current_practice_id']);
+        }
+
         // Record account classification and Terms acceptance for the creating
         // user. This is the authoritative version record for new users.
         $termsVersion = '2026-09-01';
