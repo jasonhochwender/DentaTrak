@@ -554,7 +554,7 @@ if (isset($appConfig) && is_array($appConfig) && isset($appConfig['appName'])) {
   <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
   
   <!-- Preload critical resources -->
-  <link rel="preload" href="js/app.js?v=20260916f" as="script">
+  <link rel="preload" href="js/app.js?v=20260923a" as="script">
   <link rel="preload" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
   <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap"></noscript>
   
@@ -619,7 +619,7 @@ if (isset($appConfig) && is_array($appConfig) && isset($appConfig['appName'])) {
   <link rel="preload" href="css/logo-upload.css?v=20260807a" as="style" onload="this.onload=null;this.rel='stylesheet'">
   <link rel="preload" href="css/dev-tools.css?v=20241210" as="style" onload="this.onload=null;this.rel='stylesheet'">
   <link rel="preload" href="css/analytics-pro.css?v=20260916a" as="style" onload="this.onload=null;this.rel='stylesheet'">
-  <link rel="preload" href="css/attachment-viewer.css?v=20260903a" as="style" onload="this.onload=null;this.rel='stylesheet'">
+  <link rel="preload" href="css/attachment-viewer.css?v=20260923a" as="style" onload="this.onload=null;this.rel='stylesheet'">
 <?php if (isFeatureEnabled('SHOW_LAB_INSIGHTS')): ?>
   <link rel="preload" href="css/lab-insights.css?v=20260905a" as="style" onload="this.onload=null;this.rel='stylesheet'">
 <?php endif; ?>
@@ -650,7 +650,7 @@ if (isset($appConfig) && is_array($appConfig) && isset($appConfig['appName'])) {
 <?php if (isFeatureEnabled('SHOW_LAB_INSIGHTS')): ?>
     <link rel="stylesheet" href="css/lab-insights.css?v=20260905a">
 <?php endif; ?>
-    <link rel="stylesheet" href="css/attachment-viewer.css?v=20260903a">
+    <link rel="stylesheet" href="css/attachment-viewer.css?v=20260923a">
 <?php if (isFeatureEnabled('BILLING_ENABLED')): ?>
     <link rel="stylesheet" href="css/billing-portal.css?v=20260805">
 <?php endif; ?>
@@ -3539,11 +3539,11 @@ endif;
   <script src="js/workflow-draft-ui.js?v=20260829f" defer></script>
   <script type="application/json" id="caseViewBootstrap"><?= json_encode($caseViewBootstrap, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?></script>
   <script src="js/case-filter-sort.js?v=20260916f" defer></script>
-  <script src="js/app.js?v=20260916f" defer></script>
+  <script src="js/app.js?v=20260923a" defer></script>
   <script src="js/mobile-case-modal.js?v=20260830c" defer></script>
   <script src="js/mobile-kanban.js?v=20260916b" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js" defer></script>
-  <script type="module" src="js/attachment-viewer.js?v=20260903a" defer></script>
+  <script type="module" src="js/attachment-viewer.js?v=20260923a" defer></script>
   <script src="js/card-delete-fixed.js?v=20250104" defer></script>
   <script src="js/assignments.js?v=20250104" defer></script>
   <script src="js/case-comments.js?v=20260916a" defer></script>
@@ -3705,6 +3705,7 @@ endif;
         <div class="attachment-viewer-title-wrap">
           <h2 class="attachment-viewer-title"><?php echo t('attachments.viewer.attachment'); ?></h2>
           <span class="attachment-viewer-type">STL</span>
+          <span class="attachment-viewer-position" style="display:none;"></span>
         </div>
         <div class="attachment-viewer-actions">
           <button type="button" class="attachment-viewer-btn attachment-viewer-prev" title="<?php echo t('attachments.viewer.previous_page'); ?>" disabled>&lt;</button>
@@ -3725,7 +3726,16 @@ endif;
           <div class="attachment-viewer-spinner"></div>
           <span><?php echo t('attachments.viewer.loading_preview'); ?></span>
         </div>
-        <div class="attachment-viewer-error"></div>
+        <div class="attachment-viewer-error">
+          <span class="attachment-viewer-error-text"></span>
+          <button type="button" class="attachment-viewer-btn attachment-viewer-error-download" style="display:none;"><?php echo t('attachments.viewer.download_file'); ?></button>
+        </div>
+        <button type="button" class="attachment-viewer-nav attachment-viewer-nav-prev" style="display:none;"
+                title="<?php echo t('attachments.viewer.previous_attachment'); ?>"
+                aria-label="<?php echo t('attachments.viewer.previous_attachment'); ?>">&#10094;</button>
+        <button type="button" class="attachment-viewer-nav attachment-viewer-nav-next" style="display:none;"
+                title="<?php echo t('attachments.viewer.next_attachment'); ?>"
+                aria-label="<?php echo t('attachments.viewer.next_attachment'); ?>">&#10095;</button>
       </div>
     </div>
   </div>

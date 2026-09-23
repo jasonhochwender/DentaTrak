@@ -199,6 +199,89 @@
   padding: 0 4px;
 }
 
+.attachment-viewer-position {
+  display: inline-block;
+  margin-top: 4px;
+  margin-left: 8px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #6b7280;
+  white-space: nowrap;
+}
+
+/* Previous/Next attachment controls - overlaid on the canvas edges. They
+   sit after the loading/error overlays in the DOM so they stay clickable
+   even when an attachment cannot be previewed. */
+.attachment-viewer-nav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 5;
+  width: 44px;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 8px;
+  background-color: rgba(17, 24, 39, 0.55);
+  color: #ffffff;
+  font-size: 1.6rem;
+  line-height: 1;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.attachment-viewer-nav:hover:not(:disabled) {
+  background-color: rgba(17, 24, 39, 0.8);
+}
+
+.attachment-viewer-nav:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.attachment-viewer-nav-prev {
+  left: 12px;
+}
+
+.attachment-viewer-nav-next {
+  right: 12px;
+}
+
+/* Empty state for file types the viewer cannot render */
+.attachment-viewer-unsupported {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  text-align: center;
+  padding: 24px;
+  box-sizing: border-box;
+  color: #374151;
+}
+
+.attachment-viewer-unsupported-icon {
+  color: #9ca3af;
+}
+
+.attachment-viewer-unsupported-name {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #111827;
+  word-break: break-all;
+  max-width: 100%;
+}
+
+.attachment-viewer-unsupported-msg {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #6b7280;
+}
+
 .attachment-viewer-btn:disabled,
 .attachment-viewer-btn.attachment-viewer-disabled {
   background-color: #e5e7eb;

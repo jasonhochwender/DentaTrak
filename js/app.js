@@ -6077,8 +6077,14 @@ document.addEventListener('DOMContentLoaded', function () {
           // Determine if this is a GCS-stored file or a legacy local/Drive file
           var isGcsFile = (file.storageType === 'gcs' && file.storagePath);
 
-          // Determine file extension for viewer support
-          var fileExt = (file.fileName || '').split('.').pop().toLowerCase();
+          // Stash the fields the attachment viewer needs on the row itself
+          // so the click handler can rebuild the full ordered attachment
+          // list (in displayed order) for Previous/Next navigation.
+          if (isGcsFile) {
+            fileElement.dataset.storagePath = file.storagePath;
+            fileElement.dataset.fileName = file.fileName;
+            fileElement.dataset.fileType = file.fileType || file.mimeType || '';
+          }
 
           // Create the filename label
           var nameSpan;
@@ -6107,23 +6113,33 @@ document.addEventListener('DOMContentLoaded', function () {
             nameSpan.style.cssText = 'color: #374151;';
           }
 
-          // View link for supported preview formats
-          var viewableExts = ['stl', 'obj', 'ply', 'jpg', 'jpeg', 'png', 'webp', 'pdf'];
+          // View link for every stored attachment. Types without a
+          // previewable renderer open the viewer's empty state (which still
+          // offers Download and Previous/Next navigation).
           var viewLink = null;
-          if (isGcsFile && viewableExts.indexOf(fileExt) !== -1) {
+          if (isGcsFile) {
             viewLink = document.createElement('a');
             viewLink.href = '#';
             viewLink.className = 'attachment-view-link';
             viewLink.textContent = t('common.view');
-            viewLink.title = 'Open in File Viewer';
-            viewLink.dataset.storagePath = file.storagePath;
-            viewLink.dataset.fileName = file.fileName;
-            viewLink.dataset.fileType = file.fileType || file.mimeType || fileExt;
+            viewLink.title = t('attachments.viewer.open_viewer');
             viewLink.addEventListener('click', function(e) {
               e.preventDefault();
               if (typeof openAttachmentViewer === 'function') {
                 try {
-                  openAttachmentViewer(this.dataset.storagePath, this.dataset.fileName, this.dataset.fileType);
+                  // Ordered exactly as displayed: every stored attachment
+                  // row in document order across the type containers.
+                  var rows = Array.prototype.slice.call(
+                    document.querySelectorAll('#createCaseForm .existing-file[data-storage-path]')
+                  );
+                  var list = rows.map(function(row) {
+                    return {
+                      storagePath: row.dataset.storagePath,
+                      fileName: row.dataset.fileName,
+                      fileType: row.dataset.fileType
+                    };
+                  });
+                  openAttachmentViewer(file.storagePath, file.fileName, file.fileType || file.mimeType || '', list);
                 } catch (err) {
                   console.error('Attachment viewer failed to open:', err);
                   showToast(t('attachments.preview_unavailable'), 'error');

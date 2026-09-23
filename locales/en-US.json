@@ -599,6 +599,11 @@
             "pdf_password_protected": "This PDF is password protected and cannot be previewed.",
             "pdf_load_failed": "Failed to load PDF: {message}",
             "preview_unavailable_toast": "Preview is not available for this file type.",
+            "preview_failed": "We couldn't preview this attachment.",
+            "previous_attachment": "Previous attachment",
+            "next_attachment": "Next attachment",
+            "attachment_position": "{current} of {total}",
+            "open_viewer": "Open in file viewer",
             "not_ready": "Viewer is not ready.",
             "viewer_error": "Viewer error: {message}",
             "fullscreen_not_supported": "Full screen not supported: {message}"

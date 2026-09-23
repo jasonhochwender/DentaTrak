@@ -74,6 +74,26 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
   const prevBtn = modal.querySelector('.attachment-viewer-prev');
   const nextBtn = modal.querySelector('.attachment-viewer-next');
   const pageInfo = modal.querySelector('.attachment-viewer-page-info');
+  const positionEl = modal.querySelector('.attachment-viewer-position');
+  const navPrevBtn = modal.querySelector('.attachment-viewer-nav-prev');
+  const navNextBtn = modal.querySelector('.attachment-viewer-nav-next');
+  const errorTextEl = modal.querySelector('.attachment-viewer-error-text');
+  const errorDownloadBtn = modal.querySelector('.attachment-viewer-error-download');
+
+  // Ordered list of the case's attachments currently represented by the
+  // viewer plus the index being shown. Entries are
+  // { storagePath, fileName, fileType } - one signed fetch per entry, so
+  // navigation never preloads or bypasses per-file authorization.
+  let attachmentList = [];
+  let attachmentIndex = 0;
+  // Sequence token: a stale fetch that resolves after the user has moved
+  // on must not overwrite the current attachment.
+  let attachmentLoadSeq = 0;
+
+  // Swipe state for touch navigation between attachments.
+  let navTouchStartX = 0;
+  let navTouchStartY = 0;
+  let navTouchActive = false;
 
   if (closeBtn) closeBtn.addEventListener('click', closeViewer);
   if (downloadBtn) downloadBtn.addEventListener('click', downloadCurrent);
@@ -84,16 +104,68 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
   if (zoomOutBtn) zoomOutBtn.addEventListener('click', zoomOut);
   if (prevBtn) prevBtn.addEventListener('click', pdfPrevPage);
   if (nextBtn) nextBtn.addEventListener('click', pdfNextPage);
+  if (navPrevBtn) navPrevBtn.addEventListener('click', function() { navigateAttachment(-1); });
+  if (navNextBtn) navNextBtn.addEventListener('click', function() { navigateAttachment(1); });
+  if (errorDownloadBtn) errorDownloadBtn.addEventListener('click', downloadCurrent);
 
   modal.addEventListener('click', function(e) {
     if (e.target === modal) closeViewer();
   });
 
   document.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape' && modal && modal.style.display === 'flex') {
+    if (!modal || modal.style.display !== 'flex') return;
+    if (e.key === 'Escape') {
       closeViewer();
+      return;
+    }
+    // Arrow-key navigation between attachments. Never steal keys from a
+    // focused form control inside the viewer.
+    const tag = e.target && e.target.tagName;
+    if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+    if (e.key === 'ArrowLeft') {
+      e.preventDefault();
+      navigateAttachment(-1);
+    } else if (e.key === 'ArrowRight') {
+      e.preventDefault();
+      navigateAttachment(1);
     }
   });
+
+  // Horizontal swipe navigation. Deliberately skipped for the 3D mode
+  // (OrbitControls owns single-finger drags) and for zoomed images, where
+  // a horizontal touch is a pan. At scale 1 an image swipe only pans
+  // harmlessly, so it doubles as a natural "pull to next" gesture.
+  if (canvasContainer) {
+    canvasContainer.addEventListener('touchstart', function(e) {
+      if (e.touches.length !== 1) {
+        navTouchActive = false;
+        return;
+      }
+      if (currentMode === '3d') {
+        navTouchActive = false;
+        return;
+      }
+      if (currentMode === 'image' && imageScale > 1) {
+        navTouchActive = false;
+        return;
+      }
+      navTouchActive = true;
+      navTouchStartX = e.touches[0].clientX;
+      navTouchStartY = e.touches[0].clientY;
+    }, { passive: true });
+    canvasContainer.addEventListener('touchend', function(e) {
+      if (!navTouchActive || !e.changedTouches || e.changedTouches.length !== 1) return;
+      navTouchActive = false;
+      const dx = e.changedTouches[0].clientX - navTouchStartX;
+      const dy = e.changedTouches[0].clientY - navTouchStartY;
+      if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) {
+        navigateAttachment(dx < 0 ? 1 : -1);
+      }
+    });
+    canvasContainer.addEventListener('touchcancel', function() {
+      navTouchActive = false;
+    });
+  }
 
   document.addEventListener('mousemove', onImageMouseMove);
   document.addEventListener('mouseup', onImageMouseUp);
@@ -184,7 +256,16 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
   function setError(message) {
     if (loadingEl) loadingEl.style.display = 'none';
     if (errorEl) {
-      errorEl.textContent = message || t('attachments.viewer.unable_to_load');
+      if (errorTextEl) {
+        errorTextEl.textContent = message || t('attachments.viewer.preview_failed');
+      } else {
+        errorEl.textContent = message || t('attachments.viewer.preview_failed');
+      }
+      // The header Download button is always present; mirror it inside the
+      // error state so a failed preview still offers a clear way out.
+      if (errorDownloadBtn) {
+        errorDownloadBtn.style.display = currentData && currentData.storagePath ? 'inline-flex' : 'none';
+      }
       errorEl.style.display = 'flex';
     }
   }
@@ -206,11 +287,16 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
   function setControlVisibility(mode) {
     const isImage = mode === 'image';
     const isPdf = mode === 'pdf';
+    const is3d = mode === '3d';
     if (zoomInBtn) zoomInBtn.style.display = isImage || isPdf ? 'inline-flex' : 'none';
     if (zoomOutBtn) zoomOutBtn.style.display = isImage || isPdf ? 'inline-flex' : 'none';
+    // Header prev/next are PDF *page* controls - separate from the
+    // attachment-level navigation overlaid on the canvas.
     if (prevBtn) prevBtn.style.display = isPdf ? 'inline-flex' : 'none';
     if (nextBtn) nextBtn.style.display = isPdf ? 'inline-flex' : 'none';
     if (pageInfo) pageInfo.style.display = isPdf ? 'inline-block' : 'none';
+    if (resetBtn) resetBtn.style.display = isImage || isPdf || is3d ? 'inline-flex' : 'none';
+    if (fitBtn) fitBtn.style.display = isImage || isPdf || is3d ? 'inline-flex' : 'none';
   }
 
   function zoomIn() {
@@ -843,6 +929,10 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
       }
     }
     currentData = null;
+    attachmentList = [];
+    attachmentIndex = 0;
+    attachmentLoadSeq++;
+    navTouchActive = false;
   }
 
   function toggleFullscreen() {
@@ -879,37 +969,112 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
     else fitCameraToObject(currentObject);
   }
 
-  window.openAttachmentViewer = function(storagePath, fileName, fileType) {
-    const ext = (fileName || '').split('.').pop().toLowerCase();
-    if (!SUPPORTED_TYPES[ext]) {
-      if (typeof window.showToast === 'function') {
-        window.showToast(t('attachments.viewer.preview_unavailable_toast'), 'info');
-      }
-      return;
-    }
-
-    if (!modal || !titleEl || !typeEl || !canvasContainer || !loadingEl) {
-      if (typeof window.showToast === 'function') {
-        window.showToast(t('attachments.viewer.not_ready'), 'error');
-      }
-      return;
-    }
-
-    currentData = { storagePath: storagePath, fileName: fileName, fileType: fileType, ext: ext };
-    titleEl.textContent = fileName || t('attachments.viewer.attachment');
-    typeEl.textContent = ext.toUpperCase();
+  /**
+   * Render the empty-state for a file type the viewer cannot display. The
+   * attachment stays in the navigation sequence - the user can keep moving
+   * through the set or download the file from here.
+   */
+  function renderUnsupported() {
     disposeViewer();
-    if (errorEl) errorEl.style.display = 'none';
-    loadingEl.style.display = 'flex';
-    modal.style.display = 'flex';
-    document.body.style.overflow = 'hidden';
-    document.documentElement.style.overflow = 'hidden';
+    currentMode = 'unsupported';
+    setControlVisibility('unsupported');
 
-    fetchAttachmentContent(storagePath)
+    const stage = document.createElement('div');
+    stage.className = 'attachment-viewer-unsupported';
+
+    const icon = document.createElement('div');
+    icon.className = 'attachment-viewer-unsupported-icon';
+    icon.setAttribute('aria-hidden', 'true');
+    icon.innerHTML = '<svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>';
+
+    const name = document.createElement('div');
+    name.className = 'attachment-viewer-unsupported-name';
+    name.textContent = currentData.fileName || t('attachments.viewer.attachment');
+
+    const msg = document.createElement('p');
+    msg.className = 'attachment-viewer-unsupported-msg';
+    msg.textContent = t('attachments.viewer.preview_unavailable_toast');
+
+    const dl = document.createElement('button');
+    dl.type = 'button';
+    dl.className = 'attachment-viewer-btn';
+    dl.textContent = t('attachments.viewer.download_file');
+    dl.addEventListener('click', downloadCurrent);
+
+    stage.appendChild(icon);
+    stage.appendChild(name);
+    stage.appendChild(msg);
+    stage.appendChild(dl);
+    canvasContainer.appendChild(stage);
+
+    if (loadingEl) loadingEl.style.display = 'none';
+    if (errorEl) errorEl.style.display = 'none';
+  }
+
+  /** Reflect the current position in the header and nav buttons. */
+  function updateNavState() {
+    const total = attachmentList.length;
+    if (positionEl) {
+      if (total > 1) {
+        positionEl.textContent = t('attachments.viewer.attachment_position', {
+          current: attachmentIndex + 1,
+          total: total
+        });
+        positionEl.style.display = '';
+      } else {
+        positionEl.style.display = 'none';
+      }
+    }
+    const showNav = total > 1;
+    if (navPrevBtn) {
+      navPrevBtn.style.display = showNav ? 'flex' : 'none';
+      navPrevBtn.disabled = attachmentIndex <= 0;
+    }
+    if (navNextBtn) {
+      navNextBtn.style.display = showNav ? 'flex' : 'none';
+      navNextBtn.disabled = attachmentIndex >= total - 1;
+    }
+  }
+
+  /**
+   * Load and render attachmentList[attachmentIndex]. Clears the previous
+   * attachment first so nothing stale shows while the fetch is in flight.
+   */
+  function loadCurrentAttachment() {
+    const item = attachmentList[attachmentIndex];
+    if (!item) return;
+
+    const ext = (item.fileName || '').split('.').pop().toLowerCase();
+    currentData = {
+      storagePath: item.storagePath,
+      fileName: item.fileName,
+      fileType: item.fileType,
+      ext: ext
+    };
+
+    titleEl.textContent = item.fileName || t('attachments.viewer.attachment');
+    typeEl.textContent = ext.toUpperCase();
+    updateNavState();
+
+    // disposeViewer() clears the canvas and resets image zoom/pan, PDF
+    // zoom/page state, and any 3D scene - each attachment opens fresh.
+    disposeViewer();
+    setControlVisibility(null); // hide per-mode controls while loading
+    if (errorEl) errorEl.style.display = 'none';
+
+    if (!SUPPORTED_TYPES[ext]) {
+      renderUnsupported();
+      return;
+    }
+
+    loadingEl.style.display = 'flex';
+    const seq = ++attachmentLoadSeq;
+
+    fetchAttachmentContent(item.storagePath)
       .then(function(buffer) {
-        console.log('Attachment content loaded:', buffer.byteLength, 'bytes, ext:', ext);
+        if (seq !== attachmentLoadSeq) return; // user already moved on
         if (SUPPORTED_IMAGE[ext]) {
-          renderImage(buffer, fileName, fileType);
+          renderImage(buffer, item.fileName, item.fileType);
         } else if (SUPPORTED_PDF[ext]) {
           renderPdf(buffer);
         } else {
@@ -917,12 +1082,58 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
         }
       })
       .catch(function(error) {
+        if (seq !== attachmentLoadSeq) return;
         console.error('Attachment viewer error:', error);
-        setError(error.message || t('attachments.viewer.unable_to_load'));
-        if (typeof window.showToast === 'function') {
-          window.showToast(t('attachments.viewer.viewer_error', {message: error.message}), 'error');
-        }
+        // Keep the viewer open: the error state offers Download and the
+        // attachment nav controls remain usable.
+        setError(error.message || t('attachments.viewer.preview_failed'));
       });
+  }
+
+  /** Move to the previous (-1) or next (1) attachment, clamped at the ends. */
+  function navigateAttachment(delta) {
+    const target = attachmentIndex + delta;
+    if (target < 0 || target >= attachmentList.length) return;
+    attachmentIndex = target;
+    loadCurrentAttachment();
+  }
+
+  /**
+   * Open the viewer.
+   *   openAttachmentViewer(storagePath, fileName, fileType)
+   *   openAttachmentViewer(storagePath, fileName, fileType, attachments)
+   * `attachments` is the ordered list for the case
+   * ([{storagePath, fileName, fileType}]); the entry matching storagePath
+   * (falling back to fileName) becomes the initial position. When omitted,
+   * the viewer represents just the one file and navigation is hidden.
+   */
+  window.openAttachmentViewer = function(storagePath, fileName, fileType, attachments) {
+    if (!modal || !titleEl || !typeEl || !canvasContainer || !loadingEl) {
+      if (typeof window.showToast === 'function') {
+        window.showToast(t('attachments.viewer.not_ready'), 'error');
+      }
+      return;
+    }
+
+    if (Array.isArray(attachments) && attachments.length > 0) {
+      attachmentList = attachments.filter(function(a) { return a && a.storagePath; });
+    } else {
+      attachmentList = [{ storagePath: storagePath, fileName: fileName, fileType: fileType }];
+    }
+
+    attachmentIndex = attachmentList.findIndex(function(a) {
+      return a.storagePath === storagePath;
+    });
+    if (attachmentIndex < 0 && fileName) {
+      attachmentIndex = attachmentList.findIndex(function(a) { return a.fileName === fileName; });
+    }
+    if (attachmentIndex < 0) attachmentIndex = 0;
+
+    modal.style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+    document.documentElement.style.overflow = 'hidden';
+
+    loadCurrentAttachment();
   };
 
   window.isAttachmentViewable = function(fileName) {
