@@ -10,8 +10,8 @@
  *
  * GET  /api/phi-access-log.php?<filters>
  *   Filters: preset (7|30|90|all|custom), from, to (Y-m-d, custom only),
- *   user_id, action, resource_type, case_id (contains), sort, dir,
- *   page, page_size.
+ *   user_id, action, resource_type, tracking_number (contains match on the
+ *   case's tracking number), sort, dir, page, page_size.
  *
  * POST /api/phi-access-log.php?action=export   (CSRF required)
  *   Same filters -> CSV download. The export itself is recorded as an
@@ -55,7 +55,7 @@ ensureHIPAASchema();
 
 // Whitelists - only these values may reach query construction.
 const PHI_AUDIT_RESOURCE_TYPES = ['case', 'attachment', 'comment_image', 'attachment_zip', 'practice_export', 'audit_report'];
-const PHI_AUDIT_SORTS = ['accessed_at', 'user_name', 'access_type', 'case_id', 'resource_type'];
+const PHI_AUDIT_SORTS = ['accessed_at', 'user_name', 'access_type', 'tracking_number', 'resource_type'];
 const PHI_AUDIT_CSV_LIMIT = 10000;
 const PHI_AUDIT_DEFAULT_DAYS = 30;
 
@@ -82,14 +82,22 @@ if (!$isExport && !empty($params['meta'])) {
 
 $sort = in_array($params['sort'] ?? '', PHI_AUDIT_SORTS, true) ? $params['sort'] : 'accessed_at';
 $dir = strtolower($params['dir'] ?? 'desc') === 'asc' ? 'ASC' : 'DESC';
-// user_name sorts on the resolved display name expression, not a raw column.
-$sortExpr = $sort === 'user_name'
-    ? "COALESCE(NULLIF(TRIM(CONCAT(u.first_name, ' ', u.last_name)), ''), pal.user_email)"
-    : 'pal.' . $sort;
+// user_name sorts on the resolved display name expression, not a raw column;
+// tracking_number sorts on the case's resolved tracking number, not the
+// internal case_id.
+$sortExpr = 'pal.' . $sort;
+if ($sort === 'user_name') {
+    $sortExpr = "COALESCE(NULLIF(TRIM(CONCAT(u.first_name, ' ', u.last_name)), ''), pal.user_email)";
+} elseif ($sort === 'tracking_number') {
+    $sortExpr = 'cc.tracking_number';
+}
 
+// The cases_cache join is constrained to the audit row's own practice so a
+// case_id belonging to another practice can never resolve a tracking number.
 $baseFrom = "
     FROM phi_access_log pal
     LEFT JOIN users u ON u.id = pal.user_id
+    LEFT JOIN cases_cache cc ON cc.case_id = pal.case_id AND cc.practice_id = pal.practice_id
     {$where}
 ";
 
@@ -98,7 +106,10 @@ try {
         $stmt = $pdo->prepare("
             SELECT pal.accessed_at, pal.user_email,
                    COALESCE(NULLIF(TRIM(CONCAT(u.first_name, ' ', u.last_name)), ''), pal.user_email) AS user_name,
-                   pal.access_type, pal.resource_type, pal.resource_id, pal.case_id, pal.meta_json, pal.ip_address
+                   pal.access_type, pal.resource_type, pal.resource_id,
+                   (pal.case_id IS NOT NULL) AS has_case,
+                   cc.tracking_number AS case_tracking_number,
+                   pal.meta_json, pal.ip_address
             {$baseFrom}
             ORDER BY {$sortExpr} {$dir}, pal.id {$dir}
             LIMIT " . PHI_AUDIT_CSV_LIMIT
@@ -119,8 +130,17 @@ try {
         $out = fopen('php://output', 'w');
         // Excel/Latin-1 friendliness is not needed here; UTF-8 + standard
         // escaping is sufficient and avoids a BOM altering the first header.
-        fputcsv($out, ['accessed_at', 'user', 'email', 'action', 'resource_type', 'resource_id', 'case_id', 'metadata', 'ip_address']);
+        fputcsv($out, ['accessed_at', 'user', 'email', 'action', 'resource_type', 'resource_id', 'tracking_number', 'metadata', 'ip_address']);
         foreach ($rows as $row) {
+            // The user-facing case reference is the tracking number. The raw
+            // internal case_id is never exported; an unresolvable linked case
+            // gets the same localized neutral value as the UI.
+            $caseRef = null;
+            if ($row['has_case']) {
+                $caseRef = ($row['case_tracking_number'] !== null && $row['case_tracking_number'] !== '')
+                    ? $row['case_tracking_number']
+                    : t('phiAudit.unavailable');
+            }
             fputcsv($out, [
                 $row['accessed_at'],
                 $row['user_name'],
@@ -131,7 +151,7 @@ try {
                 // contents. The basename keeps the CSV readable without
                 // exposing the internal object layout.
                 $row['resource_id'] !== null ? basename((string)$row['resource_id']) : null,
-                $row['case_id'],
+                $caseRef,
                 $row['meta_json'],
                 $row['ip_address'],
             ]);
@@ -159,7 +179,10 @@ try {
     $stmt = $pdo->prepare("
         SELECT pal.id, pal.accessed_at, pal.user_id, pal.user_email,
                COALESCE(NULLIF(TRIM(CONCAT(u.first_name, ' ', u.last_name)), ''), pal.user_email) AS user_name,
-               pal.access_type, pal.resource_type, pal.resource_id, pal.case_id, pal.meta_json, pal.ip_address
+               pal.access_type, pal.resource_type, pal.resource_id,
+               (pal.case_id IS NOT NULL) AS has_case,
+               cc.tracking_number AS case_tracking_number,
+               pal.meta_json, pal.ip_address
         {$baseFrom}
         ORDER BY {$sortExpr} {$dir}, pal.id {$dir}
         LIMIT :limit OFFSET :offset
@@ -243,13 +266,14 @@ function buildPhiAuditFilters(array $params, int $practiceId): array {
         $bind['filter_resource'] = $resourceType;
     }
 
-    $caseIdFilter = trim((string)($params['case_id'] ?? ''));
-    if ($caseIdFilter !== '') {
-        // Contains-match on the internal case ID (also matches tracking-style
-        // IDs). LIKE wildcards in user input are escaped.
-        $escaped = strtr($caseIdFilter, ['%' => '\\%', '_' => '\\_', '\\' => '\\\\']);
-        $clauses[] = "pal.case_id LIKE :filter_case_id ESCAPE '\\\\'";
-        $bind['filter_case_id'] = '%' . $escaped . '%';
+    $trackingFilter = trim((string)($params['tracking_number'] ?? ''));
+    if ($trackingFilter !== '') {
+        // Contains-match on the case's tracking number resolved through the
+        // practice-scoped cases_cache join. LIKE wildcards in user input are
+        // escaped. The internal case_id is never matched.
+        $escaped = strtr($trackingFilter, ['%' => '\\%', '_' => '\\_', '\\' => '\\\\']);
+        $clauses[] = "cc.tracking_number LIKE :filter_tracking ESCAPE '\\\\'";
+        $bind['filter_tracking'] = '%' . $escaped . '%';
     }
 
     return ['WHERE ' . implode(' AND ', $clauses), $bind];

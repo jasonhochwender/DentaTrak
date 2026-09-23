@@ -2925,8 +2925,8 @@
             "all_actions": "All Actions",
             "resource": "Resource",
             "all_resources": "All Resources",
-            "case_id": "Case ID",
-            "case_id_placeholder": "Case ID..."
+            "tracking_number": "Tracking #",
+            "tracking_number_placeholder": "Search tracking number..."
         },
         "fields": {
             "datetime": "Date / Time",
@@ -2960,6 +2960,7 @@
             "export_id": "Export #{id}"
         },
         "count": "Showing {from}–{to} of {total} events",
+        "unavailable": "Unavailable",
         "empty": "No PHI access events recorded yet.",
         "empty_filtered": "No PHI access events match the current filters.",
         "export_csv": "Export CSV",

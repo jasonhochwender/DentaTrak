@@ -2705,7 +2705,7 @@ endif;
                 <select id="phiAuditResource">
                   <option value=""><?php echo t('phiAudit.filters.all_resources'); ?></option>
                 </select>
-                <input type="text" id="phiAuditCaseId" placeholder="<?php echo t('phiAudit.filters.case_id_placeholder'); ?>" aria-label="<?php echo t('phiAudit.filters.case_id'); ?>">
+                <input type="text" id="phiAuditTracking" placeholder="<?php echo t('phiAudit.filters.tracking_number_placeholder'); ?>" aria-label="<?php echo t('phiAudit.filters.tracking_number'); ?>">
                 <button type="button" class="btn-clear-filters" id="phiAuditClearFilters"><?php echo t('archive.filters.clear_filters'); ?></button>
                 <button type="button" class="btn-secondary" id="phiAuditExportCsv"><?php echo t('phiAudit.export_csv'); ?></button>
               </div>
@@ -2732,7 +2732,7 @@ endif;
                     <th><button type="button" class="archived-sort" data-sort="user_name"><?php echo t('phiAudit.fields.user'); ?></button></th>
                     <th><button type="button" class="archived-sort" data-sort="access_type"><?php echo t('phiAudit.fields.action'); ?></button></th>
                     <th><button type="button" class="archived-sort" data-sort="resource_type"><?php echo t('phiAudit.fields.resource'); ?></button></th>
-                    <th><button type="button" class="archived-sort" data-sort="case_id"><?php echo t('phiAudit.fields.case'); ?></button></th>
+                    <th><button type="button" class="archived-sort" data-sort="tracking_number"><?php echo t('phiAudit.fields.case'); ?></button></th>
                     <th><?php echo t('phiAudit.fields.details'); ?></th>
                   </tr>
                 </thead>

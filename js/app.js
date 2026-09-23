@@ -12296,7 +12296,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const phiAuditUser = document.getElementById('phiAuditUser');
     const phiAuditAction = document.getElementById('phiAuditAction');
     const phiAuditResource = document.getElementById('phiAuditResource');
-    const phiAuditCaseId = document.getElementById('phiAuditCaseId');
+    const phiAuditTracking = document.getElementById('phiAuditTracking');
     const phiAuditClearFilters = document.getElementById('phiAuditClearFilters');
     const phiAuditExportCsv = document.getElementById('phiAuditExportCsv');
     const phiAuditCustomDates = document.getElementById('phiAuditCustomDates');
@@ -12316,7 +12316,7 @@ document.addEventListener('DOMContentLoaded', function () {
       userId: '',
       action: '',
       resourceType: '',
-      caseId: '',
+      trackingNumber: '',
       sort: 'accessed_at',
       dir: 'desc'
     };
@@ -12325,9 +12325,9 @@ document.addEventListener('DOMContentLoaded', function () {
     let phiAuditPageSize = 25;
     let phiAuditTotalCount = 0;
     let phiAuditMeta = null;
-    let phiAuditCaseIdDebounce = null;
+    let phiAuditTrackingDebounce = null;
 
-    const phiAuditFilterKeys = ['preset', 'from', 'to', 'userId', 'action', 'resourceType', 'caseId'];
+    const phiAuditFilterKeys = ['preset', 'from', 'to', 'userId', 'action', 'resourceType', 'trackingNumber'];
 
     function phiAuditActionLabel(action) {
       // t() returns '' for missing keys - fall back to the raw DB value.
@@ -12367,7 +12367,7 @@ document.addEventListener('DOMContentLoaded', function () {
       if (phiAuditUser) phiAuditUser.value = phiAuditState.userId;
       if (phiAuditAction) phiAuditAction.value = phiAuditState.action;
       if (phiAuditResource) phiAuditResource.value = phiAuditState.resourceType;
-      if (phiAuditCaseId) phiAuditCaseId.value = phiAuditState.caseId;
+      if (phiAuditTracking) phiAuditTracking.value = phiAuditState.trackingNumber;
       if (phiAuditFrom) phiAuditFrom.value = phiAuditState.from;
       if (phiAuditTo) phiAuditTo.value = phiAuditState.to;
       if (phiAuditCustomDates) phiAuditCustomDates.hidden = phiAuditState.preset !== 'custom';
@@ -12404,7 +12404,7 @@ document.addEventListener('DOMContentLoaded', function () {
         user_id: phiAuditState.userId,
         action: phiAuditState.action,
         resource_type: phiAuditState.resourceType,
-        case_id: phiAuditState.caseId,
+        tracking_number: phiAuditState.trackingNumber,
         sort: phiAuditState.sort,
         dir: phiAuditState.dir
       });
@@ -12441,7 +12441,7 @@ document.addEventListener('DOMContentLoaded', function () {
       if (phiAuditState.userId) chip('userId', t('phiAudit.filters.user'), phiAuditUserLabel(phiAuditState.userId));
       if (phiAuditState.action) chip('action', t('phiAudit.filters.action'), phiAuditActionLabel(phiAuditState.action));
       if (phiAuditState.resourceType) chip('resourceType', t('phiAudit.filters.resource'), phiAuditResourceLabel(phiAuditState.resourceType));
-      if (phiAuditState.caseId) chip('caseId', t('phiAudit.filters.case_id'), phiAuditState.caseId);
+      if (phiAuditState.trackingNumber) chip('trackingNumber', t('phiAudit.filters.tracking_number'), phiAuditState.trackingNumber);
 
       phiAuditActiveFilters.innerHTML = chips.map(function(c) {
         return '<span class="archive-filter-chip">' +
@@ -12465,7 +12465,7 @@ document.addEventListener('DOMContentLoaded', function () {
         userId: function() { phiAuditState.userId = ''; },
         action: function() { phiAuditState.action = ''; },
         resourceType: function() { phiAuditState.resourceType = ''; },
-        caseId: function() { phiAuditState.caseId = ''; }
+        trackingNumber: function() { phiAuditState.trackingNumber = ''; }
       };
       if (clear[key]) clear[key]();
       phiAuditCurrentPage = 1;
@@ -12519,6 +12519,16 @@ document.addEventListener('DOMContentLoaded', function () {
       if (!entry.resource_id) return '—';
       const base = String(entry.resource_id).split('/').pop();
       return escapeHtml(base);
+    }
+
+    function phiAuditCaseCell(entry) {
+      // The CASE column shows the case's tracking number resolved server-side
+      // through the practice-scoped cases_cache join. Events with no linked
+      // case show an em dash; a linked case that no longer resolves (deleted,
+      // or no tracking number) gets the localized neutral fallback - never
+      // the raw internal case_id.
+      if (!entry.has_case) return '—';
+      return entry.case_tracking_number || t('phiAudit.unavailable');
     }
 
     function phiAuditDetailsCell(entry) {
@@ -12626,7 +12636,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 '<td data-label="' + escapeHtml(t('phiAudit.fields.action')) + '">' + escapeHtml(phiAuditActionLabel(entry.access_type)) + '</td>' +
                 '<td data-label="' + escapeHtml(t('phiAudit.fields.resource')) + '">' + escapeHtml(phiAuditResourceLabel(entry.resource_type)) +
                   (entry.resource_id ? ' <span class="phi-audit-resource-id">' + phiAuditResourceCell(entry) + '</span>' : '') + '</td>' +
-                '<td data-label="' + escapeHtml(t('phiAudit.fields.case')) + '">' + escapeHtml(entry.case_id || '—') + '</td>' +
+                '<td data-label="' + escapeHtml(t('phiAudit.fields.case')) + '">' + escapeHtml(phiAuditCaseCell(entry)) + '</td>' +
                 '<td data-label="' + escapeHtml(t('phiAudit.fields.details')) + '">' + phiAuditDetailsCell(entry) + '</td>' +
                 '</tr>';
             }).join('');
@@ -12733,11 +12743,11 @@ document.addEventListener('DOMContentLoaded', function () {
       });
     }
 
-    if (phiAuditCaseId) {
-      phiAuditCaseId.addEventListener('input', function() {
-        phiAuditState.caseId = phiAuditCaseId.value;
-        clearTimeout(phiAuditCaseIdDebounce);
-        phiAuditCaseIdDebounce = setTimeout(function() {
+    if (phiAuditTracking) {
+      phiAuditTracking.addEventListener('input', function() {
+        phiAuditState.trackingNumber = phiAuditTracking.value;
+        clearTimeout(phiAuditTrackingDebounce);
+        phiAuditTrackingDebounce = setTimeout(function() {
           phiAuditCurrentPage = 1;
           loadPhiAuditLog();
         }, 300);
