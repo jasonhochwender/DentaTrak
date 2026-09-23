@@ -554,7 +554,7 @@ if (isset($appConfig) && is_array($appConfig) && isset($appConfig['appName'])) {
   <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
   
   <!-- Preload critical resources -->
-  <link rel="preload" href="js/app.js?v=20261001a" as="script">
+  <link rel="preload" href="js/app.js?v=20261001b" as="script">
   <link rel="preload" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
   <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap"></noscript>
   
@@ -580,7 +580,7 @@ if (isset($appConfig) && is_array($appConfig) && isset($appConfig['appName'])) {
 <?php endif; ?>
   
   <!-- Mobile responsiveness CSS -->
-  <link rel="stylesheet" href="css/mobile.css?v=20261001a">
+  <link rel="stylesheet" href="css/mobile.css?v=20261001b">
   
   <!-- Non-critical CSS - deferred loading -->
   <?php if (isFeatureEnabled('SHOW_TOUR')): ?>
@@ -601,7 +601,7 @@ if (isset($appConfig) && is_array($appConfig) && isset($appConfig['appName'])) {
   <!-- Feature-specific CSS - loaded on demand -->
   <link rel="preload" href="css/revision-history.css?v=20241210" as="style" onload="this.onload=null;this.rel='stylesheet'">
   <link rel="preload" href="css/delete-button.css?v=20241210" as="style" onload="this.onload=null;this.rel='stylesheet'">
-  <link rel="preload" href="css/settings-billing.css?v=20260905a" as="style" onload="this.onload=null;this.rel='stylesheet'">
+  <link rel="preload" href="css/settings-billing.css?v=20261001a" as="style" onload="this.onload=null;this.rel='stylesheet'">
   <link rel="preload" href="css/feedback.css?v=20241210" as="style" onload="this.onload=null;this.rel='stylesheet'">
   <link rel="preload" href="css/kanban-dragdrop.css?v=20241210" as="style" onload="this.onload=null;this.rel='stylesheet'">
   <link rel="preload" href="css/case-list.css?v=20260916b" as="style" onload="this.onload=null;this.rel='stylesheet'">
@@ -629,7 +629,7 @@ if (isset($appConfig) && is_array($appConfig) && isset($appConfig['appName'])) {
   <noscript>
     <link rel="stylesheet" href="css/revision-history.css?v=20241210">
     <link rel="stylesheet" href="css/delete-button.css?v=20241210">
-    <link rel="stylesheet" href="css/settings-billing.css?v=20260905a">
+    <link rel="stylesheet" href="css/settings-billing.css?v=20261001a">
     <link rel="stylesheet" href="css/feedback.css?v=20241210">
     <link rel="stylesheet" href="css/kanban-dragdrop.css?v=20241210">
     <link rel="stylesheet" href="css/case-list.css?v=20260916b">
@@ -2651,7 +2651,102 @@ endif;
           </div>
         </div>
       </div>
-      
+
+<?php if ($isCurrentUserPracticeAdmin): ?>
+      <!-- PHI Access Audit Modal (practice admins only) -->
+      <div id="phiAuditModal" class="modal">
+        <div class="modal-content archived-cases-modal">
+          <div class="modal-header">
+            <h2 class="modal-title"><?php echo t('phiAudit.title'); ?></h2>
+            <button type="button" class="btn-close" id="phiAuditClose"><span>&times;</span></button>
+          </div>
+
+          <div class="archived-search-header">
+            <div class="archived-filters">
+              <div class="archived-filter-controls">
+                <label for="phiAuditDateRange" class="sr-only"><?php echo t('phiAudit.filters.date_range'); ?></label>
+                <select id="phiAuditDateRange">
+                  <option value="7"><?php echo t('archive.filters.last_n_days', ['count' => 7]); ?></option>
+                  <option value="30" selected><?php echo t('archive.filters.last_n_days', ['count' => 30]); ?></option>
+                  <option value="90"><?php echo t('archive.filters.last_n_days', ['count' => 90]); ?></option>
+                  <option value="all"><?php echo t('phiAudit.filters.all_dates'); ?></option>
+                  <option value="custom"><?php echo t('archive.filters.custom_range'); ?></option>
+                </select>
+                <label for="phiAuditUser" class="sr-only"><?php echo t('phiAudit.filters.user'); ?></label>
+                <select id="phiAuditUser">
+                  <option value=""><?php echo t('phiAudit.filters.all_users'); ?></option>
+                </select>
+                <label for="phiAuditAction" class="sr-only"><?php echo t('phiAudit.filters.action'); ?></label>
+                <select id="phiAuditAction">
+                  <option value=""><?php echo t('phiAudit.filters.all_actions'); ?></option>
+                </select>
+                <label for="phiAuditResource" class="sr-only"><?php echo t('phiAudit.filters.resource'); ?></label>
+                <select id="phiAuditResource">
+                  <option value=""><?php echo t('phiAudit.filters.all_resources'); ?></option>
+                </select>
+                <input type="text" id="phiAuditCaseId" placeholder="<?php echo t('phiAudit.filters.case_id_placeholder'); ?>" aria-label="<?php echo t('phiAudit.filters.case_id'); ?>">
+                <button type="button" class="btn-clear-filters" id="phiAuditClearFilters"><?php echo t('archive.filters.clear_filters'); ?></button>
+                <button type="button" class="btn-secondary" id="phiAuditExportCsv"><?php echo t('phiAudit.export_csv'); ?></button>
+              </div>
+              <div class="archived-custom-range" id="phiAuditCustomDates" hidden>
+                <label for="phiAuditFrom"><?php echo t('phiAudit.filters.date_from'); ?></label>
+                <input type="date" id="phiAuditFrom">
+                <label for="phiAuditTo"><?php echo t('phiAudit.filters.date_to'); ?></label>
+                <input type="date" id="phiAuditTo">
+              </div>
+              <div class="archived-date-error" id="phiAuditDateError" role="alert" hidden></div>
+              <div class="archived-active-filters" id="phiAuditActiveFilters" hidden></div>
+            </div>
+            <div class="archived-count">
+              <span id="phiAuditCount"><?php echo t('common.loading'); ?></span>
+            </div>
+          </div>
+
+          <div class="modal-body">
+            <div class="archived-table-container">
+              <table class="archived-cases-table phi-audit-table">
+                <thead>
+                  <tr>
+                    <th><button type="button" class="archived-sort" data-sort="accessed_at"><?php echo t('phiAudit.fields.datetime'); ?></button></th>
+                    <th><button type="button" class="archived-sort" data-sort="user_name"><?php echo t('phiAudit.fields.user'); ?></button></th>
+                    <th><button type="button" class="archived-sort" data-sort="access_type"><?php echo t('phiAudit.fields.action'); ?></button></th>
+                    <th><button type="button" class="archived-sort" data-sort="resource_type"><?php echo t('phiAudit.fields.resource'); ?></button></th>
+                    <th><button type="button" class="archived-sort" data-sort="case_id"><?php echo t('phiAudit.fields.case'); ?></button></th>
+                    <th><?php echo t('phiAudit.fields.details'); ?></th>
+                  </tr>
+                </thead>
+                <tbody id="phiAuditTableBody">
+                  <tr><td colspan="6" class="loading-row"><?php echo t('archive.loading'); ?></td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="modal-footer">
+            <div class="archived-pagination">
+              <div class="pagination-left">
+                <label for="phiAuditPageSize" class="sr-only"><?php echo t('archive.pagination.per_page', ['count' => 25]); ?></label>
+                <select id="phiAuditPageSize">
+                  <option value="10"><?php echo t('archive.pagination.per_page', ['count' => 10]); ?></option>
+                  <option value="25" selected><?php echo t('archive.pagination.per_page', ['count' => 25]); ?></option>
+                  <option value="50"><?php echo t('archive.pagination.per_page', ['count' => 50]); ?></option>
+                  <option value="100"><?php echo t('archive.pagination.per_page', ['count' => 100]); ?></option>
+                </select>
+              </div>
+              <div class="pagination-center">
+                <button type="button" id="phiAuditPrevPage"><?php echo t('archive.pagination.previous'); ?></button>
+                <span id="phiAuditPageInfo"><?php echo t('archive.pagination.page_info', ['current' => 1, 'total' => 1]); ?></span>
+                <button type="button" id="phiAuditNextPage"><?php echo t('archive.pagination.next'); ?></button>
+              </div>
+              <div class="pagination-right">
+                <button type="button" class="btn-cancel" id="phiAuditFooterClose"><?php echo t('common.close'); ?></button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+<?php endif; ?>
+
 <?php if (isFeatureEnabled('BILLING_ENABLED')): ?>
       <!-- Billing Portal Modal -->
       <div id="billingPortalModal" class="modal" style="display:none;">
@@ -3222,6 +3317,15 @@ endif;
                           </button>
                           <p class="export-note"><?php echo t('settings.data_privacy.export.note'); ?></p>
                         </div>
+                        <?php if ($isCurrentUserPracticeAdmin): ?>
+                        <div class="phi-audit-section">
+                          <h4 class="subsection-title"><?php echo t('phiAudit.section.title'); ?></h4>
+                          <p class="section-description"><?php echo t('phiAudit.section.description'); ?></p>
+                          <button type="button" id="phiAuditOpenBtn" class="btn-secondary">
+                            <?php echo t('phiAudit.section.open_report'); ?>
+                          </button>
+                        </div>
+                        <?php endif; ?>
                       </div>
                     </div>
                   </div>
@@ -3586,7 +3690,7 @@ endif;
   <script src="js/workflow-draft-ui.js?v=20260829f" defer></script>
   <script type="application/json" id="caseViewBootstrap"><?= json_encode($caseViewBootstrap, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?></script>
   <script src="js/case-filter-sort.js?v=20260916f" defer></script>
-  <script src="js/app.js?v=20261001a" defer></script>
+  <script src="js/app.js?v=20261001b" defer></script>
   <script src="js/mobile-case-modal.js?v=20260830c" defer></script>
   <script src="js/mobile-kanban.js?v=20260916b" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js" defer></script>

@@ -2186,6 +2186,24 @@ input#practiceName {
   margin-top: 8px;
 }
 
+/* PHI Access Audit (Data & Privacy, admins only). The report modal opens
+   from inside the Settings modal, so it must stack above it (101). */
+#phiAuditModal.modal {
+  z-index: 200;
+}
+
+.phi-audit-section {
+  padding: 0;
+  margin-top: 20px;
+  border-top: 1px solid var(--border-color, #e5e7eb);
+  padding-top: 16px;
+}
+
+.phi-audit-resource-id {
+  font-size: 0.8em;
+  color: var(--text-light);
+}
+
 .btn-icon {
   font-size: 16px;
 }

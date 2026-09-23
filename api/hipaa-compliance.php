@@ -18,6 +18,107 @@ if (!defined('DATA_RETENTION_YEARS')) {
 }
 
 /**
+ * Stable machine-readable PHI access action names stored in
+ * phi_access_log.access_type. Keep the existing view_/print_ style values
+ * for continuity with rows already written; translate for display only - never
+ * rename stored values. Add new audit events as constants here rather than
+ * passing free-form strings to logPHIAccess().
+ */
+if (!defined('PHI_ACTION_CASE_VIEW')) {
+    define('PHI_ACTION_CASE_VIEW', 'view_case');
+    // Heavy follow-up payload (attachment metadata/clinical details) for a
+    // case open - kept distinct so one modal open is not two view_case rows.
+    define('PHI_ACTION_CASE_ATTACHMENTS_VIEW', 'view_case_attachments');
+    // Server-rendered printable case document (a distinct PHI disclosure).
+    define('PHI_ACTION_CASE_PRINT', 'print_case');
+    // Binary attachment/photo/PDF/STL/comment-image bytes streamed for
+    // in-app preview via api/attachment-content.php.
+    define('PHI_ACTION_ATTACHMENT_VIEW', 'view_attachment');
+    // Signed download URL issued via api/download-signed-url.php.
+    define('PHI_ACTION_ATTACHMENT_DOWNLOAD', 'download_attachment');
+    // One event for a whole Download-All ZIP, not one row per file.
+    define('PHI_ACTION_ATTACHMENTS_ZIP', 'download_attachments_zip');
+    // Practice-wide data export file generated (api/data-export.php).
+    define('PHI_ACTION_DATA_EXPORT', 'export_practice_data');
+    // Previously generated practice export actually downloaded.
+    define('PHI_ACTION_DATA_EXPORT_DOWNLOAD', 'download_practice_data_export');
+    // The PHI access audit report itself exported to CSV.
+    define('PHI_ACTION_AUDIT_REPORT_EXPORT', 'export_audit_report');
+}
+
+/**
+ * Allowlist of every value that may be stored in phi_access_log.access_type.
+ * logPHIAccess() refuses anything outside this set so endpoints cannot
+ * introduce free-form event names.
+ */
+function getPHIAccessActions(): array {
+    return [
+        PHI_ACTION_CASE_VIEW,
+        PHI_ACTION_CASE_ATTACHMENTS_VIEW,
+        PHI_ACTION_CASE_PRINT,
+        PHI_ACTION_ATTACHMENT_VIEW,
+        PHI_ACTION_ATTACHMENT_DOWNLOAD,
+        PHI_ACTION_ATTACHMENTS_ZIP,
+        PHI_ACTION_DATA_EXPORT,
+        PHI_ACTION_DATA_EXPORT_DOWNLOAD,
+        PHI_ACTION_AUDIT_REPORT_EXPORT,
+    ];
+}
+
+/**
+ * Default resource_type for each action when the caller does not supply a
+ * more specific one (e.g. comment_image instead of attachment).
+ */
+function getPHIAccessActionResourceType(string $action): string {
+    switch ($action) {
+        case PHI_ACTION_ATTACHMENT_VIEW:
+        case PHI_ACTION_ATTACHMENT_DOWNLOAD:
+            return 'attachment';
+        case PHI_ACTION_ATTACHMENTS_ZIP:
+            return 'attachment_zip';
+        case PHI_ACTION_DATA_EXPORT:
+        case PHI_ACTION_DATA_EXPORT_DOWNLOAD:
+            return 'practice_export';
+        case PHI_ACTION_AUDIT_REPORT_EXPORT:
+            return 'audit_report';
+        case PHI_ACTION_CASE_VIEW:
+        case PHI_ACTION_CASE_ATTACHMENTS_VIEW:
+        case PHI_ACTION_CASE_PRINT:
+        default:
+            return 'case';
+    }
+}
+
+/**
+ * Actions eligible for duplicate suppression. View-type events can be
+ * re-triggered by UI mechanics (viewer re-open, thumbnail retry, modal
+ * refetch) without representing a meaningfully separate human access, so an
+ * identical event inside the window is not recorded again. Downloads and
+ * exports are always logged - two rapid downloads ARE two disclosures.
+ */
+function getPHILogDedupeEligibleActions(): array {
+    return [
+        PHI_ACTION_CASE_VIEW,
+        PHI_ACTION_CASE_ATTACHMENTS_VIEW,
+        PHI_ACTION_ATTACHMENT_VIEW,
+    ];
+}
+
+// Conservative window: suppresses immediate re-requests (viewer reopen,
+// thumbnail retry) while still recording a genuinely separate later view.
+if (!defined('PHI_LOG_DEDUPE_SECONDS')) {
+    define('PHI_LOG_DEDUPE_SECONDS', 120);
+}
+
+/**
+ * Keys allowed inside phi_access_log.meta_json. Anything else the caller
+ * passes is dropped so the log never accumulates PHI or arbitrary payloads.
+ */
+function getPHILogMetaAllowedKeys(): array {
+    return ['view', 'file_count', 'total_size', 'export_id', 'file_size'];
+}
+
+/**
  * Ensure HIPAA-related database tables exist
  */
 function ensureHIPAASchema() {
@@ -46,7 +147,34 @@ function ensureHIPAASchema() {
             INDEX idx_access_type (access_type),
             INDEX idx_accessed_at (accessed_at)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
-        
+
+        // Resource columns added later for the admin audit report:
+        // resource_type (case/attachment/comment_image/...) and resource_id
+        // (internal identifier such as the GCS object path or export ID -
+        // never PHI payloads) plus meta_json for small whitelisted context.
+        $logColumns = $pdo->query("SHOW COLUMNS FROM phi_access_log")->fetchAll(PDO::FETCH_COLUMN);
+        if (!in_array('resource_type', $logColumns)) {
+            $pdo->exec("ALTER TABLE phi_access_log ADD COLUMN resource_type VARCHAR(50) DEFAULT NULL");
+        }
+        if (!in_array('resource_id', $logColumns)) {
+            $pdo->exec("ALTER TABLE phi_access_log ADD COLUMN resource_id VARCHAR(500) DEFAULT NULL");
+        }
+        if (!in_array('meta_json', $logColumns)) {
+            $pdo->exec("ALTER TABLE phi_access_log ADD COLUMN meta_json TEXT DEFAULT NULL");
+        }
+
+        // The admin audit report always queries WHERE practice_id = ? AND
+        // accessed_at BETWEEN ? AND ? ORDER BY accessed_at - the existing
+        // single-column indexes each satisfy only half of that predicate, so
+        // one composite index covers the actual query pattern.
+        $indexNames = [];
+        foreach ($pdo->query("SHOW INDEX FROM phi_access_log")->fetchAll(PDO::FETCH_ASSOC) as $idx) {
+            $indexNames[$idx['Key_name']] = true;
+        }
+        if (!isset($indexNames['idx_practice_accessed'])) {
+            $pdo->exec("ALTER TABLE phi_access_log ADD INDEX idx_practice_accessed (practice_id, accessed_at)");
+        }
+
         // Add active status and retention columns to practices if not exists
         $columns = $pdo->query("SHOW COLUMNS FROM practices")->fetchAll(PDO::FETCH_COLUMN);
         
@@ -83,48 +211,112 @@ function ensureHIPAASchema() {
 
 /**
  * Log PHI access event
- * 
- * @param string $accessType Type of access (view_case, view_case_list, export_case, print_case, etc.)
+ *
+ * Central audit write for every meaningful PHI read/disclosure. Callers must
+ * pass an allowlisted PHI_ACTION_* constant and may supply a resource type,
+ * an internal resource identifier (case ID, GCS object path, export ID), and
+ * small whitelisted metadata. Never pass PHI content (names, notes, comment
+ * text) in $meta - non-whitelisted keys are dropped.
+ *
+ * Failure behavior: a failed audit write is recorded via error_log and the
+ * underlying request is NOT blocked - the existing DentaTrak pattern treats
+ * audit persistence as best-effort so a logging outage cannot take down case
+ * access. Authorization always runs before this is called.
+ *
+ * @param string $accessType One of the PHI_ACTION_* constants
  * @param string|null $caseId Case ID if applicable
- * @param array $meta Additional metadata
+ * @param array $meta Whitelisted metadata keys only (see getPHILogMetaAllowedKeys)
+ * @param string|null $resourceType Defaults from the action when omitted
+ * @param string|null $resourceId Internal identifier (object path, export ID)
  */
-function logPHIAccess($accessType, $caseId = null, $meta = []) {
+function logPHIAccess($accessType, $caseId = null, $meta = [], $resourceType = null, $resourceId = null) {
     global $pdo;
-    
+
     if (!$pdo) return;
-    
+
     ensureHIPAASchema();
-    
+
     $userId = $_SESSION['db_user_id'] ?? null;
     $userEmail = $_SESSION['user_email'] ?? null;
     $practiceId = $_SESSION['current_practice_id'] ?? null;
-    
+
     if (!$userId || !$practiceId) return;
-    
+
+    if (!in_array($accessType, getPHIAccessActions(), true)) {
+        error_log('[HIPAA] Refusing non-allowlisted PHI access type: ' . $accessType);
+        return;
+    }
+
+    if ($resourceType === null) {
+        $resourceType = getPHIAccessActionResourceType($accessType);
+    }
+
+    // Only whitelisted, scalar metadata survives - the audit trail must not
+    // become a second store of PHI or free-form payloads.
+    $safeMeta = [];
+    foreach (getPHILogMetaAllowedKeys() as $key) {
+        if (array_key_exists($key, $meta) && (is_scalar($meta[$key]) || $meta[$key] === null)) {
+            $safeMeta[$key] = $meta[$key];
+        }
+    }
+    $metaJson = $safeMeta ? json_encode($safeMeta) : null;
+
     try {
+        // Duplicate suppression for view-type actions only: an identical view
+        // by the same user of the same resource inside a short window is UI
+        // mechanics (reopen/retry), not a new human access. Downloads and
+        // exports are never deduplicated.
+        if (in_array($accessType, getPHILogDedupeEligibleActions(), true)) {
+            $dupStmt = $pdo->prepare("
+                SELECT 1 FROM phi_access_log
+                WHERE practice_id = :practice_id
+                  AND user_id = :user_id
+                  AND access_type = :access_type
+                  AND case_id <=> :case_id
+                  AND resource_id <=> :resource_id
+                  AND accessed_at >= DATE_SUB(NOW(), INTERVAL " . PHI_LOG_DEDUPE_SECONDS . " SECOND)
+                LIMIT 1
+            ");
+            $dupStmt->execute([
+                'practice_id' => $practiceId,
+                'user_id' => $userId,
+                'access_type' => $accessType,
+                'case_id' => $caseId,
+                'resource_id' => $resourceId,
+            ]);
+            if ($dupStmt->fetchColumn()) {
+                return;
+            }
+        }
+
         $stmt = $pdo->prepare("
             INSERT INTO phi_access_log (
-                user_id, user_email, practice_id, case_id, 
-                access_type, ip_address, user_agent, accessed_at
+                user_id, user_email, practice_id, case_id,
+                access_type, resource_type, resource_id, meta_json,
+                ip_address, user_agent, accessed_at
             ) VALUES (
                 :user_id, :user_email, :practice_id, :case_id,
-                :access_type, :ip_address, :user_agent, NOW()
+                :access_type, :resource_type, :resource_id, :meta_json,
+                :ip_address, :user_agent, NOW()
             )
         ");
-        
+
         $stmt->execute([
             'user_id' => $userId,
             'user_email' => $userEmail,
             'practice_id' => $practiceId,
             'case_id' => $caseId,
             'access_type' => $accessType,
+            'resource_type' => $resourceType,
+            'resource_id' => $resourceId,
+            'meta_json' => $metaJson,
             'ip_address' => $_SERVER['REMOTE_ADDR'] ?? null,
             'user_agent' => substr($_SERVER['HTTP_USER_AGENT'] ?? '', 0, 500)
         ]);
-        
+
         // Also update practice last activity
         $pdo->prepare("UPDATE practices SET last_activity_at = NOW() WHERE id = ?")->execute([$practiceId]);
-        
+
     } catch (PDOException $e) {
         error_log('[HIPAA] Error logging PHI access: ' . $e->getMessage());
     }

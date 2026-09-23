@@ -18,6 +18,7 @@
 require_once __DIR__ . '/session.php';
 require_once __DIR__ . '/appConfig.php';
 require_once __DIR__ . '/practice-security.php';
+require_once __DIR__ . '/hipaa-compliance.php';
 require_once __DIR__ . '/gcs-storage.php';
 require_once __DIR__ . '/csrf.php';
 require_once __DIR__ . '/security-headers.php';
@@ -111,6 +112,15 @@ try {
     $info = $object->info();
     $contentType = $info['contentType'] ?? 'application/octet-stream';
     $size = (int)($info['size'] ?? 0);
+
+    // Audit the authorized PHI disclosure before streaming. Only reached
+    // after practice prefix, traversal, and per-case checks pass and the
+    // object exists - denied requests never produce a success row. The
+    // storage path is the internal resource identifier; comment images live
+    // under the case's comments/ folder so they audit as their own type.
+    $auditResourceType = (strpos($storagePath, '/comments/') !== false) ? 'comment_image' : 'attachment';
+    $auditCaseId = ($pathCaseId !== '' && strpos($pathCaseId, 'pending_') !== 0) ? $pathCaseId : null;
+    logPHIAccess(PHI_ACTION_ATTACHMENT_VIEW, $auditCaseId, [], $auditResourceType, $storagePath);
 
     // Stream the file contents
     header('Content-Type: ' . $contentType);

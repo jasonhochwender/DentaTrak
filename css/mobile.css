@@ -987,6 +987,202 @@
     font-size: 16px;
     padding: 6px 8px;
   }
+
+  /* PHI Access Audit modal reuses the archived-cases layout classes;
+     mirror the same mobile rules so it behaves identically. */
+  #phiAuditModal.modal {
+    padding: 0;
+  }
+
+  #phiAuditModal .modal-content.archived-cases-modal {
+    width: 100% !important;
+    max-width: 100% !important;
+    height: 100vh !important;
+    height: 100dvh !important;
+    max-height: 100vh !important;
+    max-height: 100dvh !important;
+    margin: 0 !important;
+    border-radius: 0 !important;
+    display: flex;
+    flex-direction: column;
+  }
+
+  #phiAuditModal .modal-header {
+    flex-shrink: 0;
+    padding: 14px 16px;
+  }
+
+  #phiAuditModal .modal-content.archived-cases-modal .modal-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: hidden;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+  }
+
+  #phiAuditModal .archived-search-header {
+    padding: 10px 12px 6px;
+  }
+
+  #phiAuditModal .archived-filters {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+    padding: 10px;
+  }
+
+  #phiAuditModal .archived-filter-controls {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 8px;
+    width: 100%;
+    min-width: 0;
+  }
+
+  #phiAuditModal .archived-filter-controls select,
+  #phiAuditModal .archived-filter-controls input {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
+    min-height: 44px;
+    height: 44px;
+    font-size: 16px;
+  }
+
+  #phiAuditModal .archived-filter-controls .btn-clear-filters,
+  #phiAuditModal .archived-filter-controls .btn-secondary {
+    min-height: 44px;
+    height: 44px;
+  }
+
+  #phiAuditModal .archived-custom-range {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+  }
+
+  #phiAuditModal .archived-custom-range[hidden] {
+    display: none;
+  }
+
+  #phiAuditModal .archived-custom-range label {
+    font-size: 0.8rem;
+    flex: 0 0 auto;
+  }
+
+  #phiAuditModal .archived-custom-range input[type="date"] {
+    flex: 1 1 0;
+    min-width: 0;
+    min-height: 44px;
+    font-size: 16px;
+    box-sizing: border-box;
+  }
+
+  #phiAuditModal .archived-active-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    width: 100%;
+  }
+
+  #phiAuditModal .archived-active-filters[hidden] {
+    display: none;
+  }
+
+  #phiAuditModal .archive-filter-chip-remove {
+    min-width: 32px;
+    min-height: 32px;
+  }
+
+  #phiAuditModal .archived-table-container {
+    flex: 1;
+    overflow-x: auto;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  #phiAuditModal .archived-cases-table th,
+  #phiAuditModal .archived-cases-table td {
+    padding: 8px 10px;
+    font-size: 0.75rem;
+    white-space: nowrap;
+  }
+
+  #phiAuditModal .modal-footer {
+    flex-shrink: 0;
+    padding: 10px 12px;
+    background: #fff;
+    border-top: 1px solid #e5e7eb;
+  }
+
+  #phiAuditModal .archived-pagination {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 8px;
+    margin-top: 0;
+    padding: 0;
+    border-top: none;
+    background: transparent;
+  }
+
+  #phiAuditModal .pagination-left {
+    grid-column: 1;
+    grid-row: 1;
+    min-width: 0;
+  }
+
+  #phiAuditModal .pagination-right {
+    grid-column: 2;
+    grid-row: 1;
+    display: flex;
+    justify-content: flex-end;
+  }
+
+  #phiAuditModal .pagination-center {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    display: flex;
+    flex-wrap: nowrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+  }
+
+  #phiAuditModal .pagination-center span {
+    flex: 1 1 auto;
+    min-width: 0;
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: 0.85rem;
+    padding: 8px 6px;
+  }
+
+  #phiAuditModal .archived-pagination button {
+    min-width: 44px;
+    min-height: 44px;
+    padding: 8px 12px;
+    font-size: 0.85rem;
+    white-space: nowrap;
+    flex: 0 0 auto;
+    box-sizing: border-box;
+  }
+
+  #phiAuditModal .archived-pagination select {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
+    min-height: 44px;
+    font-size: 16px;
+    padding: 6px 8px;
+  }
 }
 
 /* ===========================================

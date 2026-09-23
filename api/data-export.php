@@ -13,6 +13,7 @@
 require_once __DIR__ . '/session.php';
 require_once __DIR__ . '/appConfig.php';
 require_once __DIR__ . '/practice-security.php';
+require_once __DIR__ . '/hipaa-compliance.php';
 require_once __DIR__ . '/csrf.php';
 require_once __DIR__ . '/security-headers.php';
 require_once __DIR__ . '/cases-cache.php';
@@ -412,6 +413,14 @@ function processExport(int $exportId, int $userId, int $practiceId, string $user
             'id' => $exportId
         ]);
         
+        // Audit: the export file now exists and contains decrypted PII for the
+        // whole (or assigned subset of the) practice - a meaningful PHI event
+        // even before the download link is used.
+        logPHIAccess(PHI_ACTION_DATA_EXPORT, null, [
+            'export_id' => $exportId,
+            'file_size' => $fileSize,
+        ], 'practice_export', (string)$exportId);
+
         // ============================================
         // SEND EMAIL NOTIFICATION
         // ============================================
@@ -594,6 +603,12 @@ function handleExportDownload(int $userId): void {
         return;
     }
     
+    // Audit: the export payload actually leaves the server. Distinct from the
+    // generation event and never deduplicated.
+    logPHIAccess(PHI_ACTION_DATA_EXPORT_DOWNLOAD, null, [
+        'export_id' => $export['id'],
+    ], 'practice_export', (string)$export['id']);
+
     // ============================================
     // SERVE FILE DOWNLOAD
     // ============================================

@@ -23,6 +23,7 @@ require_once __DIR__ . '/appConfig.php';
 require_once __DIR__ . '/../vendor/autoload.php';
 require_once __DIR__ . '/feature-flags.php';
 require_once __DIR__ . '/practice-security.php';
+require_once __DIR__ . '/hipaa-compliance.php';
 require_once __DIR__ . '/gcs-storage.php';
 require_once __DIR__ . '/case-zip-helpers.php';
 require_once __DIR__ . '/case-activity-log.php';
@@ -137,6 +138,14 @@ if ($totalActualSize > $MAX_IMMEDIATE_SIZE) {
     echo json_encode(['success' => false, 'error' => t('attachments.download_all_bundle_too_large')]);
     exit;
 }
+
+// Audit one event for the whole ZIP disclosure - not one row per file.
+// Reached only after case access, CSRF, and eligibility/size checks pass.
+// Session is already write-closed above; logPHIAccess only reads $_SESSION.
+logPHIAccess(PHI_ACTION_ATTACHMENTS_ZIP, $caseId, [
+    'file_count' => count($eligible),
+    'total_size' => $totalActualSize,
+]);
 
 // Once we start the ZIP, headers are committed; JSON errors are no longer possible.
 while (ob_get_level() > 0) {

@@ -2797,6 +2797,65 @@
         "expired": "This download link has expired",
         "file_not_found": "Export file not found"
     },
+    "phiAudit": {
+        "title": "PHI Access Audit",
+        "section": {
+            "title": "PHI Access Audit",
+            "description": "Review who accessed protected health information: case views, attachment previews and downloads, exports, and print events.",
+            "open_report": "View PHI Access Audit"
+        },
+        "filters": {
+            "date_range": "Date Range",
+            "all_dates": "All Dates",
+            "date_from": "From",
+            "date_to": "To",
+            "user": "User",
+            "all_users": "All Users",
+            "action": "Action",
+            "all_actions": "All Actions",
+            "resource": "Resource",
+            "all_resources": "All Resources",
+            "case_id": "Case ID",
+            "case_id_placeholder": "Case ID..."
+        },
+        "fields": {
+            "datetime": "Date / Time",
+            "user": "User",
+            "action": "Action",
+            "resource": "Resource",
+            "case": "Case",
+            "details": "Details"
+        },
+        "actions": {
+            "view_case": "Viewed case",
+            "view_case_attachments": "Viewed case attachments",
+            "print_case": "Printed case",
+            "view_attachment": "Viewed attachment",
+            "download_attachment": "Downloaded attachment",
+            "download_attachments_zip": "Downloaded all attachments (ZIP)",
+            "export_practice_data": "Exported practice data",
+            "download_practice_data_export": "Downloaded practice data export",
+            "export_audit_report": "Exported PHI audit report"
+        },
+        "resources": {
+            "case": "Case",
+            "attachment": "Attachment",
+            "comment_image": "Comment image",
+            "attachment_zip": "Attachment ZIP",
+            "practice_export": "Practice export",
+            "audit_report": "Audit report"
+        },
+        "details": {
+            "file_count": "{count} files",
+            "export_id": "Export #{id}"
+        },
+        "count": "Showing {from}–{to} of {total} events",
+        "empty": "No PHI access events recorded yet.",
+        "empty_filtered": "No PHI access events match the current filters.",
+        "export_csv": "Export CSV",
+        "load_failed": "Failed to load the PHI access audit. Please try again.",
+        "access_denied": "Access denied. Only practice administrators can view the PHI access audit."
+    },
     "language_selector": {
         "label": "Language",
         "change_language": "Change language",

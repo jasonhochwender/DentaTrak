@@ -12258,6 +12258,512 @@ document.addEventListener('DOMContentLoaded', function () {
   // Load settings on page load to apply archive button visibility
   loadSettings();
 
+  // PHI Access Audit report (practice admins only). The markup only exists
+  // for admins (main.php gates it server-side) and the API re-checks
+  // isPracticeAdmin() - client checks here are convenience, not security.
+  const phiAuditModal = document.getElementById('phiAuditModal');
+  const phiAuditOpenBtn = document.getElementById('phiAuditOpenBtn');
+
+  if (phiAuditModal && phiAuditOpenBtn) {
+    const phiAuditClose = document.getElementById('phiAuditClose');
+    const phiAuditFooterClose = document.getElementById('phiAuditFooterClose');
+    const phiAuditDateRange = document.getElementById('phiAuditDateRange');
+    const phiAuditUser = document.getElementById('phiAuditUser');
+    const phiAuditAction = document.getElementById('phiAuditAction');
+    const phiAuditResource = document.getElementById('phiAuditResource');
+    const phiAuditCaseId = document.getElementById('phiAuditCaseId');
+    const phiAuditClearFilters = document.getElementById('phiAuditClearFilters');
+    const phiAuditExportCsv = document.getElementById('phiAuditExportCsv');
+    const phiAuditCustomDates = document.getElementById('phiAuditCustomDates');
+    const phiAuditFrom = document.getElementById('phiAuditFrom');
+    const phiAuditTo = document.getElementById('phiAuditTo');
+    const phiAuditDateError = document.getElementById('phiAuditDateError');
+    const phiAuditActiveFilters = document.getElementById('phiAuditActiveFilters');
+    const phiAuditPageSizeSelect = document.getElementById('phiAuditPageSize');
+    const phiAuditPrevPage = document.getElementById('phiAuditPrevPage');
+    const phiAuditNextPage = document.getElementById('phiAuditNextPage');
+
+    // Single source of truth - DOM controls mirror this state.
+    const phiAuditDefaults = {
+      preset: '30',
+      from: '',
+      to: '',
+      userId: '',
+      action: '',
+      resourceType: '',
+      caseId: '',
+      sort: 'accessed_at',
+      dir: 'desc'
+    };
+    let phiAuditState = Object.assign({}, phiAuditDefaults);
+    let phiAuditCurrentPage = 1;
+    let phiAuditPageSize = 25;
+    let phiAuditTotalCount = 0;
+    let phiAuditMeta = null;
+    let phiAuditCaseIdDebounce = null;
+
+    const phiAuditFilterKeys = ['preset', 'from', 'to', 'userId', 'action', 'resourceType', 'caseId'];
+
+    function phiAuditActionLabel(action) {
+      // t() returns '' for missing keys - fall back to the raw DB value.
+      return t('phiAudit.actions.' + action) || action;
+    }
+
+    function phiAuditResourceLabel(resourceType) {
+      if (!resourceType) return '';
+      return t('phiAudit.resources.' + resourceType) || resourceType;
+    }
+
+    function phiAuditFormatTimestamp(accessedAt) {
+      // accessed_at is server-local "Y-m-d H:i:s"; normalizing to "T" gives a
+      // reliable local-time parse for Intl formatting.
+      if (!accessedAt || typeof I18n === 'undefined' || !I18n.formatDate) {
+        return accessedAt || '';
+      }
+      const d = new Date(String(accessedAt).replace(' ', 'T'));
+      if (isNaN(d.getTime())) return accessedAt;
+      return I18n.formatDate(d, { style: 'short', timeStyle: 'short' });
+    }
+
+    function phiAuditFiltersActive() {
+      return phiAuditFilterKeys.some(function(key) {
+        return phiAuditState[key] !== phiAuditDefaults[key];
+      });
+    }
+
+    function updatePhiAuditClearButton() {
+      if (phiAuditClearFilters) {
+        phiAuditClearFilters.disabled = !phiAuditFiltersActive();
+      }
+    }
+
+    function syncPhiAuditControls() {
+      if (phiAuditDateRange) phiAuditDateRange.value = phiAuditState.preset;
+      if (phiAuditUser) phiAuditUser.value = phiAuditState.userId;
+      if (phiAuditAction) phiAuditAction.value = phiAuditState.action;
+      if (phiAuditResource) phiAuditResource.value = phiAuditState.resourceType;
+      if (phiAuditCaseId) phiAuditCaseId.value = phiAuditState.caseId;
+      if (phiAuditFrom) phiAuditFrom.value = phiAuditState.from;
+      if (phiAuditTo) phiAuditTo.value = phiAuditState.to;
+      if (phiAuditCustomDates) phiAuditCustomDates.hidden = phiAuditState.preset !== 'custom';
+      updatePhiAuditSortHeaders();
+      updatePhiAuditClearButton();
+    }
+
+    function hidePhiAuditDateError() {
+      if (phiAuditDateError) {
+        phiAuditDateError.hidden = true;
+        phiAuditDateError.textContent = '';
+      }
+    }
+
+    function phiAuditRangeValid() {
+      if (phiAuditState.preset === 'custom' && phiAuditState.from && phiAuditState.to && phiAuditState.from > phiAuditState.to) {
+        if (phiAuditDateError) {
+          phiAuditDateError.textContent = t('archive.filters.invalid_date_range');
+          phiAuditDateError.hidden = false;
+        }
+        return false;
+      }
+      hidePhiAuditDateError();
+      return true;
+    }
+
+    function phiAuditQueryParams() {
+      return new URLSearchParams({
+        page: phiAuditCurrentPage,
+        page_size: phiAuditPageSize,
+        preset: phiAuditState.preset,
+        from: phiAuditState.from,
+        to: phiAuditState.to,
+        user_id: phiAuditState.userId,
+        action: phiAuditState.action,
+        resource_type: phiAuditState.resourceType,
+        case_id: phiAuditState.caseId,
+        sort: phiAuditState.sort,
+        dir: phiAuditState.dir
+      });
+    }
+
+    function phiAuditDateChipLabel() {
+      if (phiAuditState.preset === 'custom') {
+        return (phiAuditState.from || '…') + ' – ' + (phiAuditState.to || '…');
+      }
+      if (phiAuditState.preset === 'all') {
+        return t('phiAudit.filters.all_dates');
+      }
+      return t('archive.filters.last_n_days', {count: parseInt(phiAuditState.preset, 10)});
+    }
+
+    function phiAuditUserLabel(userId) {
+      if (!phiAuditMeta || !phiAuditMeta.users) return userId;
+      const found = phiAuditMeta.users.find(function(u) { return String(u.id) === String(userId); });
+      if (!found) return userId;
+      return (found.full_name && found.full_name.trim()) ? found.full_name.trim() : found.email;
+    }
+
+    function renderPhiAuditChips() {
+      if (!phiAuditActiveFilters) return;
+      const chips = [];
+      const chip = function(key, label, value) {
+        chips.push({ key: key, label: label, value: value });
+      };
+      // The date range is always set (defaults to Last 30 Days), so it only
+      // earns a chip when the admin changed it away from the default.
+      if (phiAuditState.preset !== phiAuditDefaults.preset) {
+        chip('dateRange', t('phiAudit.filters.date_range'), phiAuditDateChipLabel());
+      }
+      if (phiAuditState.userId) chip('userId', t('phiAudit.filters.user'), phiAuditUserLabel(phiAuditState.userId));
+      if (phiAuditState.action) chip('action', t('phiAudit.filters.action'), phiAuditActionLabel(phiAuditState.action));
+      if (phiAuditState.resourceType) chip('resourceType', t('phiAudit.filters.resource'), phiAuditResourceLabel(phiAuditState.resourceType));
+      if (phiAuditState.caseId) chip('caseId', t('phiAudit.filters.case_id'), phiAuditState.caseId);
+
+      phiAuditActiveFilters.innerHTML = chips.map(function(c) {
+        return '<span class="archive-filter-chip">' +
+          '<span class="archive-filter-chip-label">' + escapeHtml(c.label) + ':</span> ' +
+          escapeHtml(c.value) +
+          ' <button type="button" class="archive-filter-chip-remove" data-chip="' + c.key + '" aria-label="' + escapeHtml(t('archive.filters.remove_filter', {name: c.label})) + '">&times;</button>' +
+          '</span>';
+      }).join('');
+      phiAuditActiveFilters.hidden = chips.length === 0;
+
+      phiAuditActiveFilters.querySelectorAll('.archive-filter-chip-remove').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+          removePhiAuditChip(btn.dataset.chip);
+        });
+      });
+    }
+
+    function removePhiAuditChip(key) {
+      const clear = {
+        dateRange: function() { phiAuditState.preset = '30'; phiAuditState.from = ''; phiAuditState.to = ''; },
+        userId: function() { phiAuditState.userId = ''; },
+        action: function() { phiAuditState.action = ''; },
+        resourceType: function() { phiAuditState.resourceType = ''; },
+        caseId: function() { phiAuditState.caseId = ''; }
+      };
+      if (clear[key]) clear[key]();
+      phiAuditCurrentPage = 1;
+      syncPhiAuditControls();
+      loadPhiAuditLog();
+    }
+
+    function setPhiAuditSort(column) {
+      if (phiAuditState.sort === column) {
+        phiAuditState.dir = phiAuditState.dir === 'asc' ? 'desc' : 'asc';
+      } else {
+        phiAuditState.sort = column;
+        phiAuditState.dir = column === 'accessed_at' ? 'desc' : 'asc';
+      }
+      phiAuditCurrentPage = 1;
+      updatePhiAuditSortHeaders();
+      loadPhiAuditLog();
+    }
+
+    function updatePhiAuditSortHeaders() {
+      document.querySelectorAll('.phi-audit-table .archived-sort').forEach(function(btn) {
+        const th = btn.closest('th');
+        const active = btn.dataset.sort === phiAuditState.sort;
+        const dirLabel = phiAuditState.dir === 'asc' ? t('archive.sort.ascending') : t('archive.sort.descending');
+        if (th) {
+          if (active) {
+            th.setAttribute('aria-sort', phiAuditState.dir === 'asc' ? 'ascending' : 'descending');
+          } else {
+            th.removeAttribute('aria-sort');
+          }
+        }
+        btn.classList.toggle('sorted-asc', active && phiAuditState.dir === 'asc');
+        btn.classList.toggle('sorted-desc', active && phiAuditState.dir === 'desc');
+        btn.setAttribute('aria-label', active
+          ? t('archive.sort.sorted_by', {column: btn.textContent.trim(), direction: dirLabel})
+          : t('archive.sort.sort_by', {column: btn.textContent.trim()}));
+      });
+    }
+
+    function clearPhiAuditFilters() {
+      phiAuditState = Object.assign({}, phiAuditDefaults);
+      phiAuditCurrentPage = 1;
+      hidePhiAuditDateError();
+      syncPhiAuditControls();
+      loadPhiAuditLog();
+    }
+
+    function phiAuditResourceCell(entry) {
+      // Show the basename of a storage path, never the full object layout.
+      // resource_id is safe internal metadata (path or export ID), not PHI.
+      if (!entry.resource_id) return '—';
+      const base = String(entry.resource_id).split('/').pop();
+      return escapeHtml(base);
+    }
+
+    function phiAuditDetailsCell(entry) {
+      let meta = {};
+      try { meta = entry.meta_json ? JSON.parse(entry.meta_json) : {}; } catch (e) { meta = {}; }
+      const parts = [];
+      if (meta.file_count !== undefined && meta.file_count !== null) {
+        parts.push(t('phiAudit.details.file_count', {count: meta.file_count}));
+      }
+      if (meta.export_id !== undefined && meta.export_id !== null) {
+        parts.push(t('phiAudit.details.export_id', {id: meta.export_id}));
+      }
+      return parts.length ? escapeHtml(parts.join(' · ')) : '—';
+    }
+
+    function loadPhiAuditMeta() {
+      fetch('api/phi-access-log.php?meta=1', { credentials: 'same-origin' })
+        .then(response => response.json())
+        .then(data => {
+          if (!data.success) return;
+          phiAuditMeta = data;
+          if (phiAuditUser) {
+            const current = phiAuditUser.value;
+            phiAuditUser.innerHTML = '<option value="">' + escapeHtml(t('phiAudit.filters.all_users')) + '</option>' +
+              data.users.map(function(u) {
+                const label = (u.full_name && u.full_name.trim()) ? u.full_name.trim() : u.email;
+                return '<option value="' + escapeHtml(String(u.id)) + '">' + escapeHtml(label) + '</option>';
+              }).join('');
+            phiAuditUser.value = current;
+          }
+          if (phiAuditAction) {
+            const current = phiAuditAction.value;
+            phiAuditAction.innerHTML = '<option value="">' + escapeHtml(t('phiAudit.filters.all_actions')) + '</option>' +
+              data.actions.map(function(a) {
+                return '<option value="' + escapeHtml(a) + '">' + escapeHtml(phiAuditActionLabel(a)) + '</option>';
+              }).join('');
+            phiAuditAction.value = current;
+          }
+          if (phiAuditResource) {
+            const current = phiAuditResource.value;
+            phiAuditResource.innerHTML = '<option value="">' + escapeHtml(t('phiAudit.filters.all_resources')) + '</option>' +
+              data.resourceTypes.map(function(r) {
+                return '<option value="' + escapeHtml(r) + '">' + escapeHtml(phiAuditResourceLabel(r)) + '</option>';
+              }).join('');
+            phiAuditResource.value = current;
+          }
+        })
+        .catch(() => {});
+    }
+
+    function loadPhiAuditLog() {
+      const tbody = document.getElementById('phiAuditTableBody');
+      const countSpan = document.getElementById('phiAuditCount');
+      if (!tbody) return;
+
+      if (!phiAuditRangeValid()) {
+        return;
+      }
+
+      tbody.innerHTML = '<tr><td colspan="6" class="loading-row">' + escapeHtml(t('archive.loading')) + '</td></tr>';
+      countSpan.textContent = t('common.loading');
+
+      fetch('api/phi-access-log.php?' + phiAuditQueryParams(), { credentials: 'same-origin' })
+        .then(response => response.json())
+        .then(data => {
+          if (!data.success) {
+            tbody.innerHTML = '<tr><td colspan="6" class="loading-row">' + escapeHtml(data.message || t('phiAudit.load_failed')) + '</td></tr>';
+            countSpan.textContent = '';
+            return;
+          }
+
+          phiAuditCurrentPage = data.page;
+          phiAuditPageSize = data.pageSize;
+          phiAuditTotalCount = data.total;
+
+          countSpan.textContent = t('phiAudit.count', {
+            from: data.showingFrom,
+            to: data.showingTo,
+            total: data.total
+          });
+
+          document.getElementById('phiAuditPageInfo').textContent = t('archive.pagination.page_info', {
+            current: data.page,
+            total: data.totalPages
+          });
+          if (phiAuditPrevPage) phiAuditPrevPage.disabled = data.page <= 1;
+          if (phiAuditNextPage) phiAuditNextPage.disabled = data.page >= data.totalPages;
+
+          if (!data.entries.length) {
+            if (phiAuditFiltersActive()) {
+              tbody.innerHTML = '<tr><td colspan="6" class="loading-row archived-empty-filtered">' +
+                escapeHtml(t('phiAudit.empty_filtered')) +
+                ' <button type="button" class="btn-clear-filters archived-empty-clear" id="phiAuditEmptyClear">' +
+                escapeHtml(t('archive.filters.clear_filters')) + '</button></td></tr>';
+              const emptyClear = document.getElementById('phiAuditEmptyClear');
+              if (emptyClear) emptyClear.addEventListener('click', clearPhiAuditFilters);
+            } else {
+              tbody.innerHTML = '<tr><td colspan="6" class="loading-row archived-empty-filtered">' + escapeHtml(t('phiAudit.empty')) + '</td></tr>';
+            }
+          } else {
+            tbody.innerHTML = data.entries.map(function(entry) {
+              return '<tr>' +
+                '<td data-label="' + escapeHtml(t('phiAudit.fields.datetime')) + '" title="' + escapeHtml(entry.accessed_at) + '">' + escapeHtml(phiAuditFormatTimestamp(entry.accessed_at)) + '</td>' +
+                '<td data-label="' + escapeHtml(t('phiAudit.fields.user')) + '">' + escapeHtml(entry.user_name || entry.user_email || '') + '</td>' +
+                '<td data-label="' + escapeHtml(t('phiAudit.fields.action')) + '">' + escapeHtml(phiAuditActionLabel(entry.access_type)) + '</td>' +
+                '<td data-label="' + escapeHtml(t('phiAudit.fields.resource')) + '">' + escapeHtml(phiAuditResourceLabel(entry.resource_type)) +
+                  (entry.resource_id ? ' <span class="phi-audit-resource-id">' + phiAuditResourceCell(entry) + '</span>' : '') + '</td>' +
+                '<td data-label="' + escapeHtml(t('phiAudit.fields.case')) + '">' + escapeHtml(entry.case_id || '—') + '</td>' +
+                '<td data-label="' + escapeHtml(t('phiAudit.fields.details')) + '">' + phiAuditDetailsCell(entry) + '</td>' +
+                '</tr>';
+            }).join('');
+          }
+
+          renderPhiAuditChips();
+          updatePhiAuditClearButton();
+        })
+        .catch(() => {
+          tbody.innerHTML = '<tr><td colspan="6" class="loading-row">' + escapeHtml(t('phiAudit.load_failed')) + '</td></tr>';
+          countSpan.textContent = '';
+        });
+    }
+
+    function exportPhiAuditCsv() {
+      // POST + CSRF because the export writes an audit row of its own; a
+      // hidden same-origin form hands the CSV response to the browser.
+      const form = document.createElement('form');
+      form.method = 'POST';
+      form.action = 'api/phi-access-log.php?action=export';
+      form.style.display = 'none';
+      const add = function(name, value) {
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = name;
+        input.value = value;
+        form.appendChild(input);
+      };
+      add('csrf_token', csrfToken);
+      const params = phiAuditQueryParams();
+      params.forEach(function(value, key) { add(key, value); });
+      document.body.appendChild(form);
+      form.submit();
+      setTimeout(function() {
+        if (form.parentNode) form.parentNode.removeChild(form);
+        // The export created an audit event; refresh so it is visible.
+        loadPhiAuditLog();
+      }, 1500);
+    }
+
+    phiAuditOpenBtn.addEventListener('click', function() {
+      phiAuditModal.style.display = 'block';
+      document.body.style.overflow = 'hidden';
+      if (!phiAuditMeta) loadPhiAuditMeta();
+      syncPhiAuditControls();
+      loadPhiAuditLog();
+    });
+
+    const closePhiAudit = function() {
+      phiAuditModal.style.display = 'none';
+      document.body.style.overflow = '';
+    };
+    if (phiAuditClose) phiAuditClose.addEventListener('click', closePhiAudit);
+    if (phiAuditFooterClose) phiAuditFooterClose.addEventListener('click', closePhiAudit);
+    window.addEventListener('click', function(e) {
+      if (e.target === phiAuditModal) closePhiAudit();
+    });
+
+    if (phiAuditDateRange) {
+      phiAuditDateRange.addEventListener('change', function() {
+        phiAuditState.preset = phiAuditDateRange.value;
+        if (phiAuditState.preset !== 'custom') {
+          phiAuditState.from = '';
+          phiAuditState.to = '';
+        }
+        if (phiAuditCustomDates) phiAuditCustomDates.hidden = phiAuditState.preset !== 'custom';
+        hidePhiAuditDateError();
+        phiAuditCurrentPage = 1;
+        loadPhiAuditLog();
+      });
+    }
+
+    [phiAuditFrom, phiAuditTo].forEach(function(inputEl, idx) {
+      if (!inputEl) return;
+      const key = idx === 0 ? 'from' : 'to';
+      inputEl.addEventListener('change', function() {
+        phiAuditState[key] = inputEl.value;
+        phiAuditCurrentPage = 1;
+        loadPhiAuditLog();
+      });
+    });
+
+    if (phiAuditUser) {
+      phiAuditUser.addEventListener('change', function() {
+        phiAuditState.userId = phiAuditUser.value;
+        phiAuditCurrentPage = 1;
+        loadPhiAuditLog();
+      });
+    }
+
+    if (phiAuditAction) {
+      phiAuditAction.addEventListener('change', function() {
+        phiAuditState.action = phiAuditAction.value;
+        phiAuditCurrentPage = 1;
+        loadPhiAuditLog();
+      });
+    }
+
+    if (phiAuditResource) {
+      phiAuditResource.addEventListener('change', function() {
+        phiAuditState.resourceType = phiAuditResource.value;
+        phiAuditCurrentPage = 1;
+        loadPhiAuditLog();
+      });
+    }
+
+    if (phiAuditCaseId) {
+      phiAuditCaseId.addEventListener('input', function() {
+        phiAuditState.caseId = phiAuditCaseId.value;
+        clearTimeout(phiAuditCaseIdDebounce);
+        phiAuditCaseIdDebounce = setTimeout(function() {
+          phiAuditCurrentPage = 1;
+          loadPhiAuditLog();
+        }, 300);
+      });
+    }
+
+    if (phiAuditClearFilters) {
+      phiAuditClearFilters.addEventListener('click', clearPhiAuditFilters);
+    }
+
+    if (phiAuditExportCsv) {
+      phiAuditExportCsv.addEventListener('click', exportPhiAuditCsv);
+    }
+
+    if (phiAuditPageSizeSelect) {
+      phiAuditPageSizeSelect.addEventListener('change', function() {
+        const newSize = parseInt(phiAuditPageSizeSelect.value, 10);
+        if (newSize > 0) {
+          phiAuditPageSize = newSize;
+          phiAuditCurrentPage = 1;
+          loadPhiAuditLog();
+        }
+      });
+    }
+
+    if (phiAuditPrevPage) {
+      phiAuditPrevPage.addEventListener('click', function() {
+        if (phiAuditCurrentPage > 1) {
+          phiAuditCurrentPage--;
+          loadPhiAuditLog();
+        }
+      });
+    }
+
+    if (phiAuditNextPage) {
+      phiAuditNextPage.addEventListener('click', function() {
+        const totalPages = Math.max(1, Math.ceil(phiAuditTotalCount / phiAuditPageSize));
+        if (phiAuditCurrentPage < totalPages) {
+          phiAuditCurrentPage++;
+          loadPhiAuditLog();
+        }
+      });
+    }
+
+    document.querySelectorAll('.phi-audit-table .archived-sort').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        setPhiAuditSort(btn.dataset.sort);
+      });
+    });
+  }
+
   // Keyboard shortcut for opening archived cases: Ctrl+Shift+A (or Cmd+Shift+A on Mac)
   document.addEventListener('keydown', function(e) {
     // Check for Ctrl+Shift+A or Cmd+Shift+A

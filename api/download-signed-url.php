@@ -20,6 +20,7 @@
 require_once __DIR__ . '/session.php';
 header('Content-Type: application/json');
 require_once __DIR__ . '/practice-security.php';
+require_once __DIR__ . '/hipaa-compliance.php';
 require_once __DIR__ . '/gcs-storage.php';
 require_once __DIR__ . '/csrf.php';
 require_once __DIR__ . '/security-headers.php';
@@ -94,6 +95,14 @@ try {
 
     // Generate short-lived signed download URL
     $signedUrl = generateSignedDownloadUrl($storagePath);
+
+    // Audit the authorized download grant. The signed URL is the disclosure
+    // event - GCS serves the bytes afterward without another app request, so
+    // issuing the URL is the reliable point to record. Never deduplicated:
+    // each issuance is a separate download grant.
+    $auditResourceType = (strpos($storagePath, '/comments/') !== false) ? 'comment_image' : 'attachment';
+    $auditCaseId = ($pathCaseId !== '' && strpos($pathCaseId, 'pending_') !== 0) ? $pathCaseId : null;
+    logPHIAccess(PHI_ACTION_ATTACHMENT_DOWNLOAD, $auditCaseId, [], $auditResourceType, $storagePath);
 
     global $appConfig;
     $expiry = $appConfig['gcs']['download_url_expiry'] ?? 300;
