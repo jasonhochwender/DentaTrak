@@ -498,13 +498,43 @@ function tForLocale($locale, $key, $params = []) {
  */
 function getSupportedLocales() {
     global $appConfig;
-    return $appConfig['i18n']['supported_locales'] ?? [
+    $supported = $appConfig['i18n']['supported_locales'] ?? [
         'en-US' => [
             'name' => 'English (United States)',
             'nativeName' => 'English (United States)',
             'enabled' => true,
         ],
     ];
+    return orderLocalesForDisplay($supported);
+}
+
+/**
+ * Order supported locales for display: English first, remaining locales
+ * alphabetical by their user-facing native name (not by locale code).
+ * Every selector surface iterates getSupportedLocales(), so the ordering
+ * is enforced once here for public pages, the app header, and Settings.
+ */
+function orderLocalesForDisplay($supported) {
+    if (!is_array($supported) || count($supported) < 2) {
+        return $supported;
+    }
+
+    $pinned = [];
+    $rest = $supported;
+    $englishCode = 'en-US';
+    if (isset($rest[$englishCode])) {
+        $pinned[$englishCode] = $rest[$englishCode];
+        unset($rest[$englishCode]);
+    }
+
+    $collator = class_exists('Collator') ? new Collator('root') : null;
+    uasort($rest, function ($a, $b) use ($collator) {
+        $nameA = $a['nativeName'] ?? $a['name'] ?? '';
+        $nameB = $b['nativeName'] ?? $b['name'] ?? '';
+        return $collator ? $collator->compare($nameA, $nameB) : strcasecmp($nameA, $nameB);
+    });
+
+    return $pinned + $rest;
 }
 
 /**
@@ -753,15 +783,37 @@ function renderLanguageSelector($saveUrl, $currentLocale, $showUsePracticeDefaul
     $html .= '  var menu = root.querySelector(".language-selector-menu");';
     $html .= '  var items = root.querySelectorAll(".language-selector-item");';
     $html .= '  if (!toggle || !menu) return;';
+    // Registered once so other top-level menus (user menu, notifications,
+    // practice switcher, Settings) can close every language selector instance.
+    $html .= '  if (!window.closeLanguageSelector) {';
+    $html .= '    window.closeLanguageSelector = function () {';
+    $html .= '      document.querySelectorAll(".language-selector-menu.open").forEach(function (m) {';
+    $html .= '        m.classList.remove("open");';
+    $html .= '        var t = m.parentElement ? m.parentElement.querySelector(".language-selector-toggle") : null;';
+    $html .= '        if (t) t.setAttribute("aria-expanded", "false");';
+    $html .= '      });';
+    $html .= '    };';
+    $html .= '  }';
+    $html .= '  function closeMenu() { menu.classList.remove("open"); toggle.setAttribute("aria-expanded", "false"); }';
     $html .= '  toggle.addEventListener("click", function (e) {';
     $html .= '    e.stopPropagation();';
     $html .= '    var isOpen = menu.classList.toggle("open");';
     $html .= '    toggle.setAttribute("aria-expanded", isOpen ? "true" : "false");';
+    $html .= '    if (isOpen) {';
+    $html .= '      if (window.closeUserMenu) window.closeUserMenu();';
+    $html .= '      if (window.closePracticeSwitcher) window.closePracticeSwitcher();';
+    $html .= '      if (window.closeNotificationDropdown) window.closeNotificationDropdown();';
+    $html .= '      if (window.closeSettingsBillingModal) window.closeSettingsBillingModal(true);';
+    $html .= '    }';
     $html .= '  });';
-    $html .= '  document.addEventListener("click", function () { menu.classList.remove("open"); toggle.setAttribute("aria-expanded", "false"); });';
+    $html .= '  document.addEventListener("click", function () { closeMenu(); });';
+    $html .= '  document.addEventListener("keydown", function (e) {';
+    $html .= '    if (e.key === "Escape" && menu.classList.contains("open")) { closeMenu(); toggle.focus(); }';
+    $html .= '  });';
     $html .= '  menu.addEventListener("click", function (e) { e.stopPropagation(); });';
     $html .= '  items.forEach(function (item) {';
     $html .= '    item.addEventListener("click", function () {';
+    $html .= '      closeMenu();';
     $html .= '      var value = item.getAttribute("data-locale");';
     $html .= '      if (item.getAttribute("data-use-practice-default") === "1") { value = "use_practice_default"; }';
     $html .= '      var body = JSON.stringify({ language: value });';

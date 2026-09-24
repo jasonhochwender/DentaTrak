@@ -1299,6 +1299,7 @@ document.addEventListener('DOMContentLoaded', function () {
       // Only one header dropdown/panel should be open at a time
       if (window.closeNotificationDropdown) window.closeNotificationDropdown();
       closePracticeSwitcher();
+      if (window.closeLanguageSelector) window.closeLanguageSelector();
 
       userMenu.classList.add('open');
       userMenuToggle.setAttribute('aria-expanded', 'true');
@@ -1379,8 +1380,12 @@ document.addEventListener('DOMContentLoaded', function () {
       var isOpen = practiceSwitcherDropdown.classList.contains('open');
       practiceSwitcherDropdown.classList.toggle('open', !isOpen);
       practiceSwitcherBtn.setAttribute('aria-expanded', (!isOpen).toString());
-      // Close user menu if open
-      closeUserMenu();
+      if (!isOpen) {
+        // Close other header dropdowns so only one surface is open
+        closeUserMenu();
+        if (window.closeNotificationDropdown) window.closeNotificationDropdown();
+        if (window.closeLanguageSelector) window.closeLanguageSelector();
+      }
     });
 
     // Close dropdown when clicking outside
@@ -1515,6 +1520,7 @@ document.addEventListener('DOMContentLoaded', function () {
     if (window.closeUserMenu) window.closeUserMenu();
     if (window.closeNotificationDropdown) window.closeNotificationDropdown();
     if (window.closePracticeSwitcher) window.closePracticeSwitcher();
+    if (window.closeLanguageSelector) window.closeLanguageSelector();
 
     // Show the modal
     settingsBillingModal.style.display = 'block';

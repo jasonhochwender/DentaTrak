@@ -2916,7 +2916,7 @@ endif;
                           <div class="inline-value-group">
                             <select id="practiceDefaultLanguage" name="practiceDefaultLanguage" class="settings-language-select" <?= $isAdmin ? '' : 'disabled' ?>>
                               <?php foreach ($supportedLanguages as $lang): ?>
-                              <option value="<?php echo htmlspecialchars($lang['value']); ?>" <?php echo ($practiceDefaultLocale === $lang['value']) ? 'selected' : ''; ?>><?php echo htmlspecialchars($lang['label']); ?></option>
+                              <option value="<?php echo htmlspecialchars($lang['value']); ?>" <?php echo ($practiceDefaultLocale === $lang['value']) ? 'selected' : ''; ?>><?php echo htmlspecialchars($lang['nativeName'] ?? $lang['label']); ?></option>
                               <?php endforeach; ?>
                             </select>
                             <span class="field-note-inline"><?php echo t('settings.practice.language.description'); ?></span>

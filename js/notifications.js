@@ -93,6 +93,7 @@
     if (window.closeUserMenu) window.closeUserMenu();
     if (window.closePracticeSwitcher) window.closePracticeSwitcher();
     if (window.closeSettingsBillingModal) window.closeSettingsBillingModal(true);
+    if (window.closeLanguageSelector) window.closeLanguageSelector();
 
     dropdown.classList.add('open');
     notificationDropdownOpen = true;
