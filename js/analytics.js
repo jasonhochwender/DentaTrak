@@ -823,20 +823,24 @@ document.addEventListener('DOMContentLoaded', function() {
     const lastYearNum = currentYear - 1;
     
     // Process the monthly data
+    const monthRows = [];
     monthlyData.forEach(item => {
       const month = new Date(item.month + '-01').getMonth();
-      const monthName = new Date(currentYear, month).toLocaleDateString('en-US', { month: 'short' });
-      
-      if (!labels.includes(monthName)) {
-        labels.push(monthName);
-        currentYearData.push(item.currentYear || 0);
-        lastYearData.push(item.lastYear || 0);
+      monthRows.push({
+        month: month,
+        label: I18n.formatMonth(month + 1, 'short'),
+        currentYear: item.currentYear || 0,
+        lastYear: item.lastYear || 0
+      });
+    });
+    monthRows.sort((a, b) => a.month - b.month);
+    monthRows.forEach(row => {
+      if (!labels.includes(row.label)) {
+        labels.push(row.label);
+        currentYearData.push(row.currentYear);
+        lastYearData.push(row.lastYear);
       }
     });
-    
-    // Sort by month
-    const monthOrder = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    labels.sort((a, b) => monthOrder.indexOf(a) - monthOrder.indexOf(b));
     
     chartInstances['trendsChart'] = new Chart(ctx, {
       type: 'line',

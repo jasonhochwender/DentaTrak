@@ -547,7 +547,7 @@
     if (!iso) return '\u2014';
     try {
       var d = new Date(iso);
-      return d.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+      return d.toLocaleDateString((window.I18n && I18n.locale) || 'en-US', { year: 'numeric', month: 'long', day: 'numeric' });
     } catch (e) { return iso; }
   }
 
@@ -557,7 +557,7 @@
     if (!iso) return '\u2014';
     try {
       var d = new Date(iso);
-      return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      return d.toLocaleDateString((window.I18n && I18n.locale) || 'en-US', { month: 'short', day: 'numeric' });
     } catch (e) { return iso; }
   }
 

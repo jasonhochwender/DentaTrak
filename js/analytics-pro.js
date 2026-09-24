@@ -235,9 +235,9 @@
 
     // Update trends insights
     const trends = insights.trends || {};
-    updateElement('apPeakMonth', trends.peakMonth || '-');
+    updateElement('apPeakMonth', trends.peakMonth ? I18n.formatMonth(trends.peakMonth, 'long') : '-');
     updateElement('apGrowthRate', (trends.growthRate || 0) + '%');
-    updateElement('apNextPeak', trends.nextPeak || '-');
+    updateElement('apNextPeak', trends.nextPeak ? I18n.formatMonth(trends.nextPeak, 'long') : '-');
 
     // Update lifecycle metrics
     const lifecycle = charts.lifecycle || {};
@@ -296,7 +296,7 @@
     });
     const values = Object.values(statusData);
 
-    if (labels.length === 0) { setChartAriaLabel(ctx.canvas, 'Status distribution', [t('insights.charts.no_data')], [0]); return; }
+    if (labels.length === 0) { setChartAriaLabel(ctx.canvas, t('insights.charts.status_distribution'), [t('insights.charts.no_data')], [0]); return; }
 
     apCharts['apStatusChart'] = new Chart(ctx, {
       type: 'doughnut',
@@ -321,7 +321,7 @@
         }
       }
     });
-    setChartAriaLabel(ctx.canvas, 'Status distribution', labels, values, function(v) { return v + ' cases'; });
+    setChartAriaLabel(ctx.canvas, t('insights.charts.status_distribution'), labels, values, function(v) { return t('insights.charts.cases_count', { count: v }); });
   }
 
   // Case Type Chart (horizontal bar — every type labeled, count at bar end)
@@ -344,7 +344,7 @@
     if (labels.length === 0) {
       setChartEmpty(canvas, emptyEl, true);
       if (container) container.style.height = 'auto';
-      setChartAriaLabel(canvas, 'Case type breakdown', [t('insights.charts.no_data')], [0]);
+      setChartAriaLabel(canvas, t('insights.charts.case_type_breakdown'), [t('insights.charts.no_data')], [0]);
       return;
     }
     setChartEmpty(canvas, emptyEl, false);
@@ -365,7 +365,7 @@
       options: horizontalBarOptions(),
       plugins: [apBarEndValuePlugin]
     });
-    setChartAriaLabel(canvas, 'Case type breakdown', labels, values, function(v) { return v + ' cases'; });
+    setChartAriaLabel(canvas, t('insights.charts.case_type_breakdown'), labels, values, function(v) { return I18n.pluralize(v, 'insights.creators.case'); });
   }
 
   // Monthly Volume Chart (Line)
@@ -383,7 +383,7 @@
       delivered.push(Number(item.cases_delivered || 0));
     });
 
-    if (labels.length === 0) { setChartAriaLabel(ctx.canvas, 'Monthly case volume', [t('insights.charts.no_data')], [0]); return; }
+    if (labels.length === 0) { setChartAriaLabel(ctx.canvas, t('insights.charts.monthly_case_volume'), [t('insights.charts.no_data')], [0]); return; }
 
     apCharts['apVolumeChart'] = new Chart(ctx, {
       type: 'line',
@@ -432,7 +432,7 @@
         }
       }
     });
-    setChartAriaLabel(ctx.canvas, 'Monthly case volume', labels, created, function(v) { return v + ' created'; });
+    setChartAriaLabel(ctx.canvas, t('insights.charts.monthly_case_volume'), labels, created, function(v) { return t('insights.charts.created_count', { count: v }); });
   }
 
   // Team Performance Chart (Horizontal Bar)
@@ -449,7 +449,7 @@
     const labels = Object.keys(teamData);
     const values = Object.values(teamData);
 
-    if (labels.length === 0) { setChartAriaLabel(ctx.canvas, 'Cases by assignee', [t('insights.charts.no_data')], [0]); return; }
+    if (labels.length === 0) { setChartAriaLabel(ctx.canvas, t('insights.charts.team_workload'), [t('insights.charts.no_data')], [0]); return; }
 
     apCharts['apTeamChart'] = new Chart(ctx, {
       type: 'bar',
@@ -483,7 +483,7 @@
         }
       }
     });
-    setChartAriaLabel(ctx.canvas, 'Cases by assignee', labels, values, function(v) { return v + ' cases'; });
+    setChartAriaLabel(ctx.canvas, t('insights.charts.team_workload'), labels, values, function(v) { return I18n.pluralize(v, 'insights.creators.case'); });
   }
 
   // Year-over-Year Trends Chart
@@ -501,16 +501,17 @@
 
     monthlyData.forEach(item => {
       if (item.month) {
-        // API returns month as short name like "Jan", "Feb", etc.
-        if (!labels.includes(item.month)) {
-          labels.push(item.month);
+        // API returns month as a 1-12 number; format it in the active locale
+        const monthLabel = I18n.formatMonth(item.month, 'short');
+        if (!labels.includes(monthLabel)) {
+          labels.push(monthLabel);
           currentYearData.push(item.currentYear || 0);
           lastYearData.push(item.lastYear || 0);
         }
       }
     });
 
-    if (labels.length === 0) { setChartAriaLabel(ctx.canvas, 'Year-over-year trends', [t('insights.charts.no_data')], [0]); return; }
+    if (labels.length === 0) { setChartAriaLabel(ctx.canvas, t('insights.charts.yoy_trends'), [t('insights.charts.no_data')], [0]); return; }
 
     apCharts['apTrendsChart'] = new Chart(ctx, {
       type: 'line',
@@ -562,7 +563,7 @@
         }
       }
     });
-    setChartAriaLabel(ctx.canvas, 'Year-over-year trends', labels, currentYearData, function(v) { return v + ' this year'; });
+    setChartAriaLabel(ctx.canvas, t('insights.charts.yoy_trends'), labels, currentYearData, function(v) { return t('insights.charts.this_year_count', { count: v }); });
   }
 
   // Cases Created by User (horizontal bar — every creator labeled, count at
@@ -587,7 +588,7 @@
     if (labels.length === 0) {
       setChartEmpty(canvas, emptyEl, true);
       if (container) container.style.height = 'auto';
-      setChartAriaLabel(canvas, 'Cases created by user', [t('insights.creators.empty')], [0]);
+      setChartAriaLabel(canvas, t('insights.charts.cases_by_creator'), [t('insights.creators.empty')], [0]);
       return;
     }
     setChartEmpty(canvas, emptyEl, false);
@@ -608,7 +609,7 @@
       options: horizontalBarOptions(),
       plugins: [apBarEndValuePlugin]
     });
-    setChartAriaLabel(canvas, 'Cases created by user', labels, values, function(v) { return v + ' cases'; });
+    setChartAriaLabel(canvas, t('insights.charts.cases_by_creator'), labels, values, function(v) { return I18n.pluralize(v, 'insights.creators.case'); });
   }
 
   // Clears the recommendations container — removes the loading indicator, stale errors,
@@ -919,7 +920,7 @@
       maxDays.push(Number(item.max_days_in_status || 0));
     });
 
-    if (labels.length === 0) { setChartAriaLabel(ctx.canvas, 'Status duration', [t('insights.charts.no_data')], [0]); return; }
+    if (labels.length === 0) { setChartAriaLabel(ctx.canvas, t('insights.charts.average_time_by_status'), [t('insights.charts.no_data')], [0]); return; }
 
     apCharts['apDurationChart'] = new Chart(ctx, {
       type: 'bar',
@@ -972,7 +973,7 @@
         }
       }
     });
-    setChartAriaLabel(ctx.canvas, 'Status duration', labels, avgDays, function(v) { return v + ' days'; });
+    setChartAriaLabel(ctx.canvas, t('insights.charts.average_time_by_status'), labels, avgDays, function(v) { return t('insights.charts.days_count', { count: v }); });
   }
 
   // Lifecycle Distribution Chart (Bar)
@@ -1005,7 +1006,7 @@
           }
         }
       });
-      setChartAriaLabel(ctx.canvas, 'Lifecycle distribution', [t('insights.charts.no_data')], [0]);
+      setChartAriaLabel(ctx.canvas, t('insights.charts.lifecycle_distribution'), [t('insights.charts.no_data')], [0]);
       return;
     }
 
@@ -1055,7 +1056,7 @@
         }
       }
     });
-    setChartAriaLabel(ctx.canvas, 'Lifecycle distribution', lifecycleLabels, lifecycleValues, function(v) { return v + ' days'; });
+    setChartAriaLabel(ctx.canvas, t('insights.charts.lifecycle_distribution'), lifecycleLabels, lifecycleValues, function(v) { return t('insights.charts.days_count', { count: v }); });
   }
 
   // Initialize immediately since this script is lazy-loaded after DOMContentLoaded

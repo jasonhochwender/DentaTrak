@@ -111,6 +111,19 @@
       return (d.getMonth() + 1) + '/' + d.getDate() + '/' + d.getFullYear();
     },
 
+    formatMonth: function (monthNumber, style) {
+      var m = parseInt(monthNumber, 10);
+      if (isNaN(m) || m < 1 || m > 12) {
+        return String(monthNumber);
+      }
+      var d = new Date(2000, m - 1, 1);
+      if (global.Intl && global.Intl.DateTimeFormat) {
+        return new global.Intl.DateTimeFormat(activeLocale, { month: style || 'short' }).format(d);
+      }
+      var fallback = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      return fallback[m - 1];
+    },
+
     formatNumber: function (number, options) {
       options = options || {};
       var n = Number(number);

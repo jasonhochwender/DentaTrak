@@ -2,7 +2,10 @@
 /**
  * Stylized 404 Page
  */
+require_once __DIR__ . '/api/appConfig.php';
 http_response_code(404);
+$homeUrl = rtrim($appConfig['baseUrl'] ?? '', '/') . '/';
+if ($homeUrl === '/') { $homeUrl = '/'; }
 ?>
 <!DOCTYPE html>
 <html lang="<?php echo getHtmlLang(); ?>">
@@ -10,7 +13,7 @@ http_response_code(404);
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="robots" content="noindex, nofollow">
-    <title>Page Not Found - DentaTrak</title>
+    <title><?php echo htmlspecialchars(t('errors.page_not_found.title')); ?> - DentaTrak</title>
 
     <!-- Favicon / App Icons -->
     <link rel="icon" type="image/x-icon" href="favicon.ico">
@@ -90,11 +93,11 @@ http_response_code(404);
     <div class="container">
         <div class="logo">DentaTrak</div>
         <div class="error-code">404</div>
-        <h1 class="error-title">Page Not Found</h1>
+        <h1 class="error-title"><?php echo htmlspecialchars(t('errors.page_not_found.title')); ?></h1>
         <p class="error-message">
-            The page you're looking for doesn't exist or you don't have permission to access it.
+            <?php echo htmlspecialchars(t('errors.page_not_found.message')); ?>
         </p>
-        <a href="/" class="btn">Go to Homepage</a>
+        <a href="<?php echo htmlspecialchars($homeUrl); ?>" class="btn"><?php echo htmlspecialchars(t('errors.page_not_found.home')); ?></a>
     </div>
 </body>
 </html>

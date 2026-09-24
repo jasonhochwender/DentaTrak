@@ -712,7 +712,28 @@ function renderLanguageSelector($saveUrl, $currentLocale, $showUsePracticeDefaul
         $items[] = '<button type="button" class="language-selector-item" data-locale="' . htmlspecialchars($code, ENT_QUOTES, 'UTF-8') . '"' . $selectedAttr . ' aria-pressed="' . ($code === $currentLocale ? 'true' : 'false') . '">' . $label . '</button>';
     }
 
-    $html = '<div class="language-selector" id="' . $selectedId . '" data-save-url="' . htmlspecialchars($saveUrl, ENT_QUOTES, 'UTF-8') . '"' . $csrfAttr . '>';
+    static $stylesEmitted = false;
+    $html = '';
+    if (!$stylesEmitted) {
+        // Selector styles live in app.light.css for the authenticated app, but
+        // public/auth pages load different stylesheets, so emit them here once
+        // to keep the selector self-contained. Var fallbacks cover both skins.
+        $stylesEmitted = true;
+        $html .= '<style>'
+            . '.language-selector{position:relative;display:inline-flex;align-items:center}'
+            . '.language-selector-toggle{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;background-color:transparent;border:1px solid rgba(148,163,184,0.6);border-radius:6px;font-size:0.8rem;font-weight:500;color:var(--text-secondary,#475569);cursor:pointer;transition:all 0.2s ease;font-family:inherit}'
+            . '.language-selector-toggle:hover,.language-selector-toggle:focus{border-color:var(--primary,var(--primary-color,#2563eb));color:var(--primary,var(--primary-color,#2563eb));outline:none}'
+            . '.language-selector-current{text-transform:uppercase;letter-spacing:0.02em}'
+            . '.language-selector-caret{opacity:0.7}'
+            . '.language-selector-menu{position:absolute;top:calc(100% + 6px);right:0;min-width:180px;background:var(--background-white,#fff);border:1px solid rgba(148,163,184,0.6);border-radius:8px;box-shadow:var(--shadow-medium,0 4px 12px rgba(0,0,0,0.12));display:none;flex-direction:column;padding:6px;z-index:1000}'
+            . '.language-selector-menu.open{display:flex}'
+            . '.language-selector-item{display:flex;align-items:center;width:100%;padding:8px 10px;background:transparent;border:none;border-radius:5px;font-size:0.85rem;color:var(--text-primary,#1e293b);text-align:left;cursor:pointer;transition:background 0.15s ease;font-family:inherit}'
+            . '.language-selector-item:hover,.language-selector-item:focus{background-color:rgba(37,99,235,0.08);color:var(--primary,var(--primary-color,#2563eb));outline:none}'
+            . '.language-selector-item[aria-current="true"]{font-weight:600}'
+            . '</style>';
+    }
+
+    $html .= '<div class="language-selector" id="' . $selectedId . '" data-save-url="' . htmlspecialchars($saveUrl, ENT_QUOTES, 'UTF-8') . '"' . $csrfAttr . '>';
     $html .= '<button type="button" class="language-selector-toggle" aria-haspopup="true" aria-expanded="false" aria-label="' . htmlspecialchars(t('language_selector.change_language')) . '">';
     $html .= '<span class="language-selector-current">' . htmlspecialchars($currentDisplay) . '</span>';
     $html .= '<svg class="language-selector-caret" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg>';

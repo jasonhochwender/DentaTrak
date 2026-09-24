@@ -50,7 +50,7 @@ set_exception_handler(function (Throwable $e) {
         header('Content-Type: application/json');
     }
 
-    echo json_encode(['success' => false, 'error' => 'Unable to load practice information.']);
+    echo json_encode(['success' => false, 'error' => t('api.admin.load_failed')]);
     exit;
 });
 
@@ -77,7 +77,7 @@ register_shutdown_function(function () {
         header('Content-Type: application/json');
     }
 
-    echo json_encode(['success' => false, 'error' => 'Unable to load practice information.']);
+    echo json_encode(['success' => false, 'error' => t('api.admin.load_failed')]);
 });
 
 // Check if user is logged in
@@ -407,7 +407,7 @@ try {
         ob_end_clean();
     }
 
-    echo json_encode(['success' => false, 'error' => 'Unable to load practice information.']);
+    echo json_encode(['success' => false, 'error' => t('api.admin.load_failed')]);
     exit;
 }
 

@@ -431,6 +431,12 @@ foreach (['operate', 'control', 'scale'] as $plan) {
       .plan.featured { order: -1; }
     }
 
+    @media (max-width: 480px) {
+      .site-nav { gap: 10px; }
+      .site-nav a.nav-cta { padding: 8px 12px; font-size: 0.85rem; }
+      .site-nav .language-selector-toggle { padding: 5px 8px; gap: 4px; font-size: 0.72rem; }
+    }
+
     /* Phone layout for the problem section: text first, then a compact
        two-column grid of source fragments with the consolidated case card
        spanning the full width beneath them. */
@@ -1641,8 +1647,8 @@ foreach (['operate', 'control', 'scale'] as $plan) {
             <?php echo t('marketing.mobile_section.pill'); ?>
           </p>
         </div>
-        <div class="mobile-phones" aria-label="Mobile browser product preview">
-          <div class="m-device m-device-primary" role="img" aria-label="Mobile Kanban board showing the Originated workflow column with multiple case cards, status indicators, and the next column peeking at the right.">
+        <div class="mobile-phones" aria-label="<?php echo htmlspecialchars(t('marketing.mock.phones_aria')); ?>">
+          <div class="m-device m-device-primary" role="img" aria-label="<?php echo htmlspecialchars(t('marketing.mock.kanban_aria')); ?>">
             <div class="m-notch"></div>
             <div class="m-screen">
               <div class="m-appbar">
@@ -1653,29 +1659,29 @@ foreach (['operate', 'control', 'scale'] as $plan) {
                   <span class="m-bell" aria-hidden="true">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
                   </span>
-                  <span class="m-appbar-practice">Demo Practice</span>
+                  <span class="m-appbar-practice"><?php echo t('marketing.mock.demo_practice'); ?></span>
                 </div>
               </div>
               <div class="m-searchbar">
                 <span class="m-search-icon" aria-hidden="true">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
                 </span>
-                <input type="text" placeholder="Search cases" aria-label="Search cases">
+                <input type="text" placeholder="<?php echo htmlspecialchars(t('marketing.mock.search_cases')); ?>" aria-label="<?php echo htmlspecialchars(t('marketing.mock.search_cases')); ?>">
                 <span class="m-filter-icon" aria-hidden="true">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/></svg>
                 </span>
               </div>
               <div class="m-kanban-nav">
-                <button type="button" class="m-kanban-prev" aria-label="Previous workflow column" disabled>&lsaquo;</button>
-                <select aria-label="Select workflow column">
-                  <option>Originated</option>
-                  <option>Sent To External Lab</option>
+                <button type="button" class="m-kanban-prev" aria-label="<?php echo htmlspecialchars(t('marketing.mock.prev_column')); ?>" disabled>&lsaquo;</button>
+                <select aria-label="<?php echo htmlspecialchars(t('marketing.mock.select_column')); ?>">
+                  <option><?php echo t('cases.status.originated'); ?></option>
+                  <option><?php echo t('cases.status.sent_to_external_lab'); ?></option>
                 </select>
-                <button type="button" class="m-kanban-next" aria-label="Next workflow column">&rsaquo;</button>
+                <button type="button" class="m-kanban-next" aria-label="<?php echo htmlspecialchars(t('marketing.mock.next_column')); ?>">&rsaquo;</button>
               </div>
               <div class="m-board">
                 <div class="m-board-header">
-                  <span class="m-board-title">Originated</span>
+                  <span class="m-board-title"><?php echo t('cases.status.originated'); ?></span>
                   <span class="m-board-count">4</span>
                 </div>
                 <div class="m-board-cards">
@@ -1683,54 +1689,54 @@ foreach (['operate', 'control', 'scale'] as $plan) {
                     <div class="m-case-top">
                       <div>
                         <h4>Hannah Lindqvist</h4>
-                        <span class="m-case-sub">Crown &middot; Precision Dental Lab</span>
+                        <span class="m-case-sub"><?php echo t('case_types.crown'); ?> &middot; Precision Dental Lab</span>
                       </div>
-                      <span class="m-case-flag due">Due Soon</span>
+                      <span class="m-case-flag due"><?php echo t('marketing.mock.due_soon'); ?></span>
                     </div>
                     <div class="m-case-details">
-                      <span><strong>Due:</strong> Mar 9</span>
-                      <span><strong>Assigned:</strong> Front Desk</span>
+                      <span><strong><?php echo t('marketing.mock.due_label'); ?></strong> Mar 9</span>
+                      <span><strong><?php echo t('marketing.mock.assigned_label'); ?></strong> <?php echo t('marketing.mock.front_desk'); ?></span>
                     </div>
-                    <div class="m-case-appt">Appt: Mar 10</div>
+                    <div class="m-case-appt"><?php echo t('marketing.mock.appt_label'); ?> Mar 10</div>
                   </div>
                   <div class="m-case-card">
                     <div class="m-case-top">
                       <div>
                         <h4>Justin Vance</h4>
-                        <span class="m-case-sub">Partial &middot; SmileCraft Lab</span>
+                        <span class="m-case-sub"><?php echo t('case_types.partial'); ?> &middot; SmileCraft Lab</span>
                       </div>
-                      <span class="m-case-flag late">Late</span>
+                      <span class="m-case-flag late"><?php echo t('marketing.mock.late'); ?></span>
                     </div>
                     <div class="m-case-details">
-                      <span><strong>Due:</strong> Mar 16</span>
-                      <span><strong>Assigned:</strong> Back Office</span>
+                      <span><strong><?php echo t('marketing.mock.due_label'); ?></strong> Mar 16</span>
+                      <span><strong><?php echo t('marketing.mock.assigned_label'); ?></strong> <?php echo t('marketing.mock.back_office'); ?></span>
                     </div>
                   </div>
                   <div class="m-case-card">
                     <div class="m-case-top">
                       <div>
                         <h4>Sofia Patel</h4>
-                        <span class="m-case-sub">Veneer &middot; Design Team</span>
+                        <span class="m-case-sub"><?php echo t('case_types.veneer'); ?> &middot; <?php echo t('marketing.mock.design_team'); ?></span>
                       </div>
-                      <span class="m-case-flag appt">Appt Risk</span>
+                      <span class="m-case-flag appt"><?php echo t('marketing.mock.appt_risk'); ?></span>
                     </div>
                     <div class="m-case-details">
-                      <span><strong>Due:</strong> Mar 12</span>
-                      <span><strong>Assigned:</strong> Dr. Verrillo</span>
+                      <span><strong><?php echo t('marketing.mock.due_label'); ?></strong> Mar 12</span>
+                      <span><strong><?php echo t('marketing.mock.assigned_label'); ?></strong> Dr. Verrillo</span>
                     </div>
-                    <div class="m-case-appt">Appt: Mar 14</div>
+                    <div class="m-case-appt"><?php echo t('marketing.mock.appt_label'); ?> Mar 14</div>
                   </div>
                   <div class="m-case-card">
                     <div class="m-case-top">
                       <div>
                         <h4>Sarah Bennett</h4>
-                        <span class="m-case-sub">Bridge &middot; ReadyMADE Lab</span>
+                        <span class="m-case-sub"><?php echo t('case_types.bridge'); ?> &middot; ReadyMADE Lab</span>
                       </div>
-                      <span class="m-case-flag ready">Ready</span>
+                      <span class="m-case-flag ready"><?php echo t('marketing.mock.ready'); ?></span>
                     </div>
                     <div class="m-case-details">
-                      <span><strong>Due:</strong> Mar 11</span>
-                      <span><strong>Assigned:</strong> Front Desk</span>
+                      <span><strong><?php echo t('marketing.mock.due_label'); ?></strong> Mar 11</span>
+                      <span><strong><?php echo t('marketing.mock.assigned_label'); ?></strong> <?php echo t('marketing.mock.front_desk'); ?></span>
                     </div>
                   </div>
                 </div>
@@ -1741,63 +1747,63 @@ foreach (['operate', 'control', 'scale'] as $plan) {
             </div>
           </div>
 
-          <div class="m-device m-device-secondary" role="img" aria-label="Mobile Edit Case modal with patient details, status, assignment, shipment, and attachments.">
+          <div class="m-device m-device-secondary" role="img" aria-label="<?php echo htmlspecialchars(t('marketing.mock.modal_aria')); ?>">
             <div class="m-notch"></div>
             <div class="m-screen">
               <div class="m-modal-header">
                 <span class="m-modal-back" aria-hidden="true">&larr;</span>
-                <span class="m-modal-title">Edit Case</span>
+                <span class="m-modal-title"><?php echo t('marketing.mock.edit_case'); ?></span>
                 <span class="m-modal-actions" aria-hidden="true">&middot;&middot;&middot;</span>
               </div>
               <div class="m-modal-tabs">
-                <span class="m-modal-tab active">Details</span>
-                <span class="m-modal-tab">Comments</span>
+                <span class="m-modal-tab active"><?php echo t('marketing.mock.details'); ?></span>
+                <span class="m-modal-tab"><?php echo t('marketing.mock.comments'); ?></span>
               </div>
               <div class="m-section-nav">
-                <select aria-label="Jump to section">
-                  <option>Jump to section</option>
+                <select aria-label="<?php echo htmlspecialchars(t('marketing.mock.jump_to_section')); ?>">
+                  <option><?php echo t('marketing.mock.jump_to_section'); ?></option>
                 </select>
               </div>
               <div class="m-modal-summary">
                 <div class="m-modal-patient">Sofia Patel</div>
-                <div class="m-modal-meta">Veneer &middot; SmileCraft Lab</div>
-                <span class="m-patient-status appt">Appt Risk</span>
+                <div class="m-modal-meta"><?php echo t('case_types.veneer'); ?> &middot; SmileCraft Lab</div>
+                <span class="m-patient-status appt"><?php echo t('marketing.mock.appt_risk'); ?></span>
               </div>
               <div class="m-modal-body">
                 <div class="m-field-row">
-                  <span class="m-field-label">Dentist</span>
+                  <span class="m-field-label"><?php echo t('marketing.mock.dentist'); ?></span>
                   <span class="m-field-value">Dr. Verrillo</span>
                 </div>
                 <div class="m-field-row">
-                  <span class="m-field-label">Due</span>
+                  <span class="m-field-label"><?php echo t('marketing.mock.due'); ?></span>
                   <span class="m-field-value">Mar 12</span>
                 </div>
                 <div class="m-field-row">
-                  <span class="m-field-label">Assigned</span>
+                  <span class="m-field-label"><?php echo t('marketing.mock.assigned'); ?></span>
                   <span class="m-field-value">Dr. Verrillo</span>
                 </div>
                 <div class="m-field-row">
-                  <span class="m-field-label">Appt</span>
+                  <span class="m-field-label"><?php echo t('marketing.mock.appt'); ?></span>
                   <span class="m-field-value">Mar 14, 2:00 PM</span>
                 </div>
                 <div class="m-field-row">
-                  <span class="m-field-label">Shipment</span>
+                  <span class="m-field-label"><?php echo t('marketing.mock.shipment'); ?></span>
                   <span class="m-field-value">Tracking #1Z999AA</span>
                 </div>
                 <div class="m-detail-block">
-                  <div class="m-block-label">Notes</div>
-                  <p>Patient appointment is Mar 14. Confirm lab can deliver the veneer by Mar 12 to avoid chair-side delay.</p>
+                  <div class="m-block-label"><?php echo t('marketing.mock.notes'); ?></div>
+                  <p><?php echo t('marketing.mock.notes_body'); ?></p>
                 </div>
                 <div class="m-detail-block">
-                  <div class="m-block-label">Attachments</div>
+                  <div class="m-block-label"><?php echo t('marketing.mock.attachments'); ?></div>
                   <div class="m-attachment-row">
                     <span class="m-attachment">scan_0314.stl</span>
-                    <span class="m-attachment-label">3D scan</span>
+                    <span class="m-attachment-label"><?php echo t('marketing.mock.scan_3d'); ?></span>
                   </div>
                 </div>
               </div>
               <div class="m-modal-footer">
-                <button type="button" class="m-save-btn">Save changes</button>
+                <button type="button" class="m-save-btn"><?php echo t('marketing.mock.save_changes'); ?></button>
               </div>
             </div>
           </div>
@@ -2535,13 +2541,13 @@ foreach (['operate', 'control', 'scale'] as $plan) {
 
           var result = validate();
           if (!result.valid) {
-            showStatus('Please correct the highlighted fields.', 'error');
+            showStatus(<?= json_encode(t('marketing.demo.invalid_fields')) ?>, 'error');
             return;
           }
 
           if (submitBtn.disabled) return;
           submitBtn.disabled = true;
-          submitBtn.textContent = 'Sending...';
+          submitBtn.textContent = <?= json_encode(t('marketing.demo.sending')) ?>;
 
           var formData = new FormData(form);
           fetch(form.action, {
@@ -2552,19 +2558,19 @@ foreach (['operate', 'control', 'scale'] as $plan) {
           .then(function(res) { return res.json(); })
           .then(function(data) {
             if (data && data.success) {
-              showStatus(data.message || 'Your demo request has been received. We’ll contact you shortly to find a time that works.', 'success');
+              showStatus(data.message || <?= json_encode(t('marketing.demo.success')) ?>, 'success');
               form.querySelectorAll('input:not([type=hidden]), textarea, select').forEach(function(el) { if (el.name !== 'csrf_token' && el.name !== 'website') el.disabled = true; });
               submitBtn.style.display = 'none';
             } else {
-              showStatus(data.message || 'Something went wrong. Please try again later.', 'error');
+              showStatus(data.message || <?= json_encode(t('errors.generic')) ?>, 'error');
               submitBtn.disabled = false;
-              submitBtn.textContent = 'Request Demo';
+              submitBtn.textContent = <?= json_encode(t('marketing.demo.submit')) ?>;
             }
           })
           .catch(function(err) {
-            showStatus('Something went wrong. Please try again later.', 'error');
+            showStatus(<?= json_encode(t('errors.generic')) ?>, 'error');
             submitBtn.disabled = false;
-            submitBtn.textContent = 'Request Demo';
+            submitBtn.textContent = <?= json_encode(t('marketing.demo.submit')) ?>;
           });
         });
 
@@ -2697,45 +2703,45 @@ foreach (['operate', 'control', 'scale'] as $plan) {
   <div class="demo-modal-overlay" id="demo-modal-overlay">
     <div class="demo-modal" id="demo-modal" role="dialog" aria-modal="true" aria-labelledby="demo-modal-title" aria-describedby="demo-modal-desc">
       <div class="demo-modal-header">
-        <h3 id="demo-modal-title">Request a Personal Demo</h3>
-        <button type="button" class="demo-modal-close" aria-label="Close demo request form" data-close-demo-modal>&times;</button>
+        <h3 id="demo-modal-title"><?php echo t('marketing.demo.request_demo'); ?></h3>
+        <button type="button" class="demo-modal-close" aria-label="<?php echo htmlspecialchars(t('marketing.demo.close_aria')); ?>" data-close-demo-modal>&times;</button>
       </div>
       <form class="demo-form" id="demo-form" action="<?= $baseUrl ?>api/demo-request.php" method="POST" novalidate>
         <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
-        <p id="demo-modal-desc" class="demo-modal-desc">Fill out the form below and we'll contact you to schedule a time.</p>
+        <p id="demo-modal-desc" class="demo-modal-desc"><?php echo t('marketing.demo.modal_desc'); ?></p>
         <div class="demo-form-grid">
           <div class="demo-field">
-            <label for="demo-name">Name <span aria-label="required">*</span></label>
+            <label for="demo-name"><?php echo t('marketing.demo.name'); ?> <span aria-label="<?php echo htmlspecialchars(t('marketing.demo.required_aria')); ?>">*</span></label>
             <input type="text" id="demo-name" name="name" required maxlength="100" autocomplete="name">
           </div>
           <div class="demo-field">
-            <label for="demo-email">Work email <span aria-label="required">*</span></label>
+            <label for="demo-email"><?php echo t('marketing.demo.email'); ?> <span aria-label="<?php echo htmlspecialchars(t('marketing.demo.required_aria')); ?>">*</span></label>
             <input type="email" id="demo-email" name="email" required maxlength="254" autocomplete="email">
           </div>
           <div class="demo-field">
-            <label for="demo-practice">Practice name <span aria-label="required">*</span></label>
+            <label for="demo-practice"><?php echo t('marketing.demo.practice'); ?> <span aria-label="<?php echo htmlspecialchars(t('marketing.demo.required_aria')); ?>">*</span></label>
             <input type="text" id="demo-practice" name="practice" required maxlength="120" autocomplete="organization">
           </div>
           <div class="demo-field">
-            <label for="demo-phone">Phone number</label>
+            <label for="demo-phone"><?php echo t('marketing.demo.phone'); ?></label>
             <input type="tel" id="demo-phone" name="phone" maxlength="30" autocomplete="tel">
           </div>
           <div class="demo-field demo-field-wide">
-            <label for="demo-preferred">Preferred day or time</label>
+            <label for="demo-preferred"><?php echo t('marketing.demo.preferred'); ?></label>
             <input type="text" id="demo-preferred" name="preferred" maxlength="120" autocomplete="off">
           </div>
           <div class="demo-field demo-field-wide">
-            <label for="demo-message">Additional message</label>
+            <label for="demo-message"><?php echo t('marketing.demo.message_label'); ?></label>
             <textarea id="demo-message" name="message" rows="3" maxlength="1000" autocomplete="off"></textarea>
           </div>
         </div>
         <div class="demo-form-actions">
-          <button type="submit" class="btn btn-primary" id="demo-submit">Request Demo</button>
-          <button type="button" class="btn btn-secondary" data-close-demo-modal>Cancel</button>
+          <button type="submit" class="btn btn-primary" id="demo-submit"><?php echo t('marketing.demo.submit'); ?></button>
+          <button type="button" class="btn btn-secondary" data-close-demo-modal><?php echo t('marketing.demo.cancel'); ?></button>
         </div>
         <div class="demo-form-status" id="demo-form-status" role="status" aria-live="polite" hidden></div>
         <div class="demo-field hp" aria-hidden="true">
-          <label for="demo-website">Do not fill this field</label>
+          <label for="demo-website"><?php echo t('marketing.demo.honeypot'); ?></label>
           <input type="text" name="website" id="demo-website" tabindex="-1" autocomplete="off">
         </div>
       </form>

@@ -30,7 +30,7 @@ if (!function_exists('requireBillingEnabled')) {
             }
             http_response_code(503);
             echo json_encode([
-                'error'      => 'Billing is not available.',
+                'error'      => t('billing.errors.billing_unavailable'),
                 'error_code' => 'BILLING_DISABLED',
             ]);
             exit;

@@ -26,7 +26,7 @@ function parseToothNumbers($value) {
     if (empty($value) || trim($value) === '') {
         return [
             'valid' => false,
-            'error' => 'At least one tooth number is required',
+            'error' => t('api.tooth.required'),
             'numbers' => [],
             'normalized' => ''
         ];
@@ -54,7 +54,7 @@ function parseToothNumbers($value) {
                 if (count($rangeParts) !== 2) {
                     return [
                         'valid' => false,
-                        'error' => 'Invalid range format: "' . $part . '"',
+                        'error' => t('api.tooth.invalid_range_format', ['part' => $part]),
                         'numbers' => [],
                         'normalized' => ''
                     ];
@@ -67,7 +67,7 @@ function parseToothNumbers($value) {
                 if (!ctype_digit($start) || !ctype_digit($end)) {
                     return [
                         'valid' => false,
-                        'error' => 'Enter valid tooth numbers (1-32), e.g. 14, 30 or 14-18',
+                        'error' => t('api.tooth.invalid_numbers'),
                         'numbers' => [],
                         'normalized' => ''
                     ];
@@ -80,7 +80,7 @@ function parseToothNumbers($value) {
                 if ($startNum < MIN_TOOTH_NUMBER || $startNum > MAX_TOOTH_NUMBER) {
                     return [
                         'valid' => false,
-                        'error' => 'Tooth number ' . $startNum . ' must be between 1 and 32',
+                        'error' => t('api.tooth.out_of_range', ['number' => $startNum]),
                         'numbers' => [],
                         'normalized' => ''
                     ];
@@ -88,7 +88,7 @@ function parseToothNumbers($value) {
                 if ($endNum < MIN_TOOTH_NUMBER || $endNum > MAX_TOOTH_NUMBER) {
                     return [
                         'valid' => false,
-                        'error' => 'Tooth number ' . $endNum . ' must be between 1 and 32',
+                        'error' => t('api.tooth.out_of_range', ['number' => $endNum]),
                         'numbers' => [],
                         'normalized' => ''
                     ];
@@ -98,7 +98,7 @@ function parseToothNumbers($value) {
                 if ($startNum > $endNum) {
                     return [
                         'valid' => false,
-                        'error' => 'Invalid range: start (' . $startNum . ') must be less than or equal to end (' . $endNum . ')',
+                        'error' => t('api.tooth.range_reversed', ['start' => $startNum, 'end' => $endNum]),
                         'numbers' => [],
                         'normalized' => ''
                     ];
@@ -113,7 +113,7 @@ function parseToothNumbers($value) {
                 if (!ctype_digit($part)) {
                     return [
                         'valid' => false,
-                        'error' => 'Enter valid tooth numbers (1-32), e.g. 14, 30 or 14-18',
+                        'error' => t('api.tooth.invalid_numbers'),
                         'numbers' => [],
                         'normalized' => ''
                     ];
@@ -124,7 +124,7 @@ function parseToothNumbers($value) {
                 if ($num < MIN_TOOTH_NUMBER || $num > MAX_TOOTH_NUMBER) {
                     return [
                         'valid' => false,
-                        'error' => 'Tooth number ' . $num . ' must be between 1 and 32',
+                        'error' => t('api.tooth.out_of_range', ['number' => $num]),
                         'numbers' => [],
                         'normalized' => ''
                     ];
@@ -138,7 +138,7 @@ function parseToothNumbers($value) {
     if (empty($allNumbers)) {
         return [
             'valid' => false,
-            'error' => 'At least one tooth number is required',
+            'error' => t('api.tooth.required'),
             'numbers' => [],
             'normalized' => ''
         ];

@@ -76,12 +76,13 @@
   var MAX_RETRIES = 2;
   var CONCURRENT_UPLOADS = 3;
 
-  // Friendly category labels for error messages
-  var FILE_CATEGORY_LABELS = {
-    stl: 'STL files', obj: '3D scan files', ply: '3D scan files', dcm: 'DICOM files',
-    jpg: 'Images', jpeg: 'Images', png: 'Images', gif: 'Images',
-    webp: 'Images', tiff: 'Images', tif: 'Images', bmp: 'Images', svg: 'SVG files',
-    pdf: 'PDF documents', zip: 'ZIP archives'
+  // Friendly category labels for error messages (translation keys under
+  // attachments.file_categories)
+  var FILE_CATEGORY_KEYS = {
+    stl: 'stl', obj: '3d_scan', ply: '3d_scan', dcm: 'dicom',
+    jpg: 'images', jpeg: 'images', png: 'images', gif: 'images',
+    webp: 'images', tiff: 'images', tif: 'images', bmp: 'images', svg: 'svg',
+    pdf: 'pdf', zip: 'zip'
   };
 
   /**
@@ -100,7 +101,12 @@
    * @returns {string}
    */
   function getCategoryLabel(ext) {
-    return FILE_CATEGORY_LABELS[ext] || 'Files of type .' + ext;
+    var key = FILE_CATEGORY_KEYS[ext];
+    if (key) {
+      var label = t('attachments.file_categories.' + key);
+      if (label) { return label; }
+    }
+    return t('attachments.file_categories.generic', { ext: ext }) || ('Files of type .' + ext);
   }
 
   /**
@@ -154,7 +160,7 @@
 
       // --- Enforce file count ---
       if (allFiles.length > GCS_MAX_FILE_COUNT) {
-        reject(new Error('Maximum ' + GCS_MAX_FILE_COUNT + ' files per upload. You selected ' + allFiles.length + '.'));
+        reject(new Error(t('attachments.upload_max_count', { max: GCS_MAX_FILE_COUNT, count: allFiles.length })));
         return;
       }
 
@@ -179,17 +185,17 @@
         oversized.forEach(function(o) {
           if (!seen[o.label]) {
             seen[o.label] = true;
-            msgs.push(o.label + ' must be under ' + formatFileSize(o.limit));
+            msgs.push(t('attachments.upload_category_limit', { category: o.label, limit: formatFileSize(o.limit) }));
           }
         });
         var names = oversized.map(function(o) { return o.name + ' (' + formatFileSize(o.size) + ')'; });
-        reject(new Error(msgs.join('. ') + '. Over-limit files: ' + names.join(', ')));
+        reject(new Error(t('attachments.upload_over_limit_files', { messages: msgs.join('. '), files: names.join(', ') })));
         return;
       }
 
       // --- Enforce total size ---
       if (totalSize > GCS_MAX_TOTAL_SIZE) {
-        reject(new Error('Total case upload cannot exceed ' + formatFileSize(GCS_MAX_TOTAL_SIZE) + '. Current total: ' + formatFileSize(totalSize) + '. Please remove some files.'));
+        reject(new Error(t('attachments.upload_total_exceeded', { max: formatFileSize(GCS_MAX_TOTAL_SIZE), total: formatFileSize(totalSize) })));
         return;
       }
 
@@ -219,7 +225,7 @@
           if (errors.length > 0) {
             var failedNames = errors.map(function(e) { return e.fileName; }).join(', ');
             console.error('[GCS-Upload] Upload batch failed:', errors.length, 'errors');
-            reject(new Error('Failed to upload: ' + failedNames + '. ' + errors[0].error));
+            reject(new Error(t('attachments.upload_failed_files', { files: failedNames, error: errors[0].error })));
           } else {
             console.log('[GCS-Upload] All', totalCount, 'files uploaded successfully');
             resolve(uploaded);
@@ -262,8 +268,7 @@
             activeCount--;
             
             // Check if we should retry (only for stall/network errors, not HTTP errors)
-            var isRetryable = err.message.indexOf('stalled') !== -1 || 
-                              err.message.indexOf('Network error') !== -1;
+            var isRetryable = err.uploadRetryable === true;
             
             if (isRetryable && item.retryCount < MAX_RETRIES) {
               item.retryCount++;
@@ -328,7 +333,7 @@
       if (!response.ok) {
         return response.json().then(function(data) {
           console.error('[GCS-Upload] [' + fileId + '] Signed URL error:', data);
-          throw new Error(data.error || 'Failed to get upload URL (status ' + response.status + ')');
+          throw new Error(data.error || t('attachments.upload_url_failed', { status: response.status }));
         });
       }
       return response.json();
@@ -336,7 +341,7 @@
     .then(function(data) {
       if (!data.success || !data.signed_url) {
         console.error('[GCS-Upload] [' + fileId + '] Invalid signed URL response:', data);
-        throw new Error(data.error || 'Failed to get signed upload URL');
+        throw new Error(data.error || t('attachments.upload_signed_url_failed'));
       }
 
       console.log('[GCS-Upload] [' + fileId + '] Got signed URL, starting PUT to GCS:', data.storage_path);
@@ -385,7 +390,7 @@
             cleanup();
             xhr.abort();
             logThroughput(false);
-            rejectUpload(new Error('Upload exceeded maximum allowed time (45 minutes). Please try with a smaller file or better connection.'));
+            rejectUpload(new Error(t('attachments.upload_timeout')));
             return;
           }
           
@@ -395,7 +400,9 @@
             cleanup();
             xhr.abort();
             logThroughput(false);
-            rejectUpload(new Error('Upload stalled (no progress for 90 seconds). Check your connection and retry.'));
+            var stalledError = new Error(t('attachments.upload_stalled'));
+            stalledError.uploadRetryable = true;
+            rejectUpload(stalledError);
             return;
           }
         }, STALL_CHECK_INTERVAL_MS);
@@ -434,7 +441,7 @@
           } else {
             logThroughput(false);
             console.error('[GCS-Upload] [' + fileId + '] GCS PUT failed:', xhr.status, xhr.statusText);
-            rejectUpload(new Error('Upload failed (HTTP status ' + xhr.status + '). Please retry.'));
+            rejectUpload(new Error(t('attachments.upload_http_failed', { status: xhr.status })));
           }
         });
         
@@ -442,7 +449,9 @@
           cleanup();
           logThroughput(false);
           console.error('[GCS-Upload] [' + fileId + '] GCS PUT network error');
-          rejectUpload(new Error('Network error during upload. Check your connection and retry.'));
+          var networkError = new Error(t('attachments.upload_network_error'));
+          networkError.uploadRetryable = true;
+          rejectUpload(networkError);
         });
         
         xhr.addEventListener('abort', function() {

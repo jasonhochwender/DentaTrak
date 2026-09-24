@@ -656,15 +656,15 @@ try {
         ],
         'workload' => [
             'utilization' => $metrics['totalActiveCases'] > 0 ? min(100, round(($metrics['totalActiveCases'] / 20) * 100)) : 0,
-            'topPerformer' => 'None',
-            'busiest' => 'None',
-            'capacity' => $metrics['totalActiveCases'] > 17 ? 'Near Capacity' : 'Optimal'
+            'topPerformer' => t('common.not_applicable'),
+            'busiest' => t('common.not_applicable'),
+            'capacity' => $metrics['totalActiveCases'] > 17 ? t('insights.advanced.near_capacity') : t('insights.advanced.optimal')
         ],
         'trends' => [
             'monthlyData' => [],
             'growthRate' => 0,
-            'peakMonth' => 'N/A',
-            'nextPeak' => 'N/A',
+            'peakMonth' => null,
+            'nextPeak' => null,
             'currentYear' => date('Y')
         ]
     ];
@@ -706,7 +706,7 @@ try {
         $monthlyData = [];
         $currentYearTotal = 0;
         $lastYearTotal = 0;
-        $maxCurrentMonth = '';
+        $maxCurrentMonthNum = null;
         $maxCurrentCount = 0;
         
         // Process all months for comparison
@@ -724,7 +724,7 @@ try {
                     $currentYearTotal += $currentCount;
                     if ($currentCount > $maxCurrentCount) {
                         $maxCurrentCount = $currentCount;
-                        $maxCurrentMonth = date('F', mktime(0, 0, 0, $month, 1, $currentYear));
+                        $maxCurrentMonthNum = $month;
                     }
                     break;
                 }
@@ -741,7 +741,7 @@ try {
             
             if ($currentCount > 0 || $lastCount > 0) {
                 $monthlyData[] = [
-                    'month' => date('M', mktime(0, 0, 0, $month, 1, $currentYear)),
+                    'month' => $month,
                     'currentYear' => $currentCount,
                     'lastYear' => $lastCount
                 ];
@@ -755,16 +755,16 @@ try {
         }
         
         // Find next peak month (simplified - use current year pattern)
-        $nextPeak = 'N/A';
+        $nextPeakNum = null;
         if (!empty($currentYearData)) {
-            $nextPeak = date('F', mktime(0, 0, 0, (date('n') + 1) % 12 + 1, 1, $currentYear));
+            $nextPeakNum = (int)((date('n') + 1) % 12 + 1);
         }
-        
+
         $advancedInsights['trends'] = [
             'monthlyData' => $monthlyData,
             'growthRate' => $growthRate,
-            'peakMonth' => $maxCurrentMonth ?: 'N/A',
-            'nextPeak' => $nextPeak,
+            'peakMonth' => $maxCurrentMonthNum,
+            'nextPeak' => $nextPeakNum,
             'currentYear' => $currentYear
         ];
         

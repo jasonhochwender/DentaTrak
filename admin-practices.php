@@ -977,9 +977,12 @@ $userEmail = $_SESSION['user_email'] ?? '';
                 <h1>🏥 <?php echo t('admin_practices.title'); ?></h1>
                 <div class="subtitle"><?php echo t('admin_practices.subtitle'); ?></div>
             </div>
-            <a href="main.php" class="back-link">
-                ← <?php echo t('admin_practices.back_to_dashboard'); ?>
-            </a>
+            <div style="display: flex; align-items: center; gap: 16px;">
+                <?php echo renderLanguageSelector('api/save-user-language.php', getResolvedLocale(), false, $csrfToken); ?>
+                <a href="main.php" class="back-link">
+                    ← <?php echo t('admin_practices.back_to_dashboard'); ?>
+                </a>
+            </div>
         </div>
         
         <div class="stats-grid" id="statsGrid">

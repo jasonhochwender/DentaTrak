@@ -119,7 +119,10 @@ $loginUrl = rtrim($appConfig['baseUrl'] ?? '', '/') . '/login.php';
 </head>
 <body>
   <div class="policy-container">
-    <a href="<?php echo htmlspecialchars($loginUrl); ?>" class="back-link">← <?php echo t('common.back_to_sign_in'); ?></a>
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+      <a href="<?php echo htmlspecialchars($loginUrl); ?>" class="back-link" style="margin-bottom: 0;">← <?php echo t('common.back_to_sign_in'); ?></a>
+      <?php echo renderLanguageSelector('api/set-session-locale.php', getResolvedLocale(), false); ?>
+    </div>
 
     <div class="policy-header">
       <h1><?php echo t('legal.terms.title'); ?></h1>

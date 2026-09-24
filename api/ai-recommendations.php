@@ -34,7 +34,7 @@ if (!canViewAnalytics($currentPracticeId)) {
     http_response_code(403);
     echo json_encode([
         'success' => false,
-        'error' => 'Access denied. You do not have permission to view analytics or AI insights.'
+        'error' => t('insights.errors.access_denied')
     ]);
     exit;
 }
@@ -59,7 +59,7 @@ if (!$billingEnabled) {
 
     if (!$user) {
         http_response_code(403);
-        echo json_encode(['error' => 'User not found']);
+        echo json_encode(['error' => t('billing.errors.user_not_found')]);
         exit;
     }
 
@@ -72,7 +72,7 @@ if (!$billingEnabled) {
 
 if (!$hasAccess) {
     http_response_code(403);
-    echo json_encode(['error' => 'Smart Recommendations require the Control plan', 'error_code' => 'upgrade_required']);
+    echo json_encode(['error' => t('insights.errors.plan_required'), 'error_code' => 'upgrade_required']);
     exit;
 }
 
@@ -89,7 +89,7 @@ if (!$practiceId) {
 
 if (!$practiceId) {
     http_response_code(400);
-    echo json_encode(['error' => 'No practice found']);
+    echo json_encode(['error' => t('admin_practices.practice_not_found')]);
     exit;
 }
 
@@ -99,7 +99,7 @@ $aiConfig = $appConfig[$aiProvider] ?? [];
 
 if (empty($aiConfig['api_key'])) {
     http_response_code(500);
-    echo json_encode(['error' => 'AI service not configured']);
+    echo json_encode(['error' => t('insights.errors.ai_not_configured')]);
     exit;
 }
 
@@ -149,12 +149,12 @@ try {
     // Map internal error codes to user-facing messages
     // config_error codes are permanent failures — the UI should not offer a retry
     $userMessage = match($errorMessage) {
-        'AI_QUOTA_EXCEEDED'     => 'AI service is temporarily unavailable due to high demand. Please try again in a few minutes.',
-        'AI_MODEL_UNAVAILABLE'  => 'Smart Recommendations are temporarily unavailable because the configured AI model could not be reached.',
-        'AI_INVALID_REQUEST'    => 'AI service configuration error. Please contact support.',
-        'AI_AUTH_ERROR'         => 'AI service configuration error. Please contact support.',
-        'AI_SERVICE_UNAVAILABLE' => 'AI service is currently unavailable. Please try again later.',
-        default                 => 'Unable to generate recommendations at this time. Please try again later.'
+        'AI_QUOTA_EXCEEDED'     => t('insights.errors.ai_quota'),
+        'AI_MODEL_UNAVAILABLE'  => t('insights.errors.ai_model_unavailable'),
+        'AI_INVALID_REQUEST'    => t('insights.errors.ai_config'),
+        'AI_AUTH_ERROR'         => t('insights.errors.ai_config'),
+        'AI_SERVICE_UNAVAILABLE' => t('insights.errors.ai_unavailable'),
+        default                 => t('insights.errors.unable_later')
     };
 
     $errorCode = match($errorMessage) {

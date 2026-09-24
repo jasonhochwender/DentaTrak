@@ -520,6 +520,9 @@ $baaVersion = 'v1.0-2026-08-07';
     </div>
     
     <div class="baa-container">
+        <div style="display: flex; justify-content: flex-end; margin-bottom: 8px;">
+            <?php echo renderLanguageSelector('api/save-user-language.php', getResolvedLocale(), false, $csrfToken); ?>
+        </div>
         <div class="baa-header">
             <div class="shield-icon">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">

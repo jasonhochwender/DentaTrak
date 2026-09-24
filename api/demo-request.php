@@ -14,7 +14,7 @@ header('Content-Type: application/json');
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     http_response_code(405);
-    echo json_encode(['success' => false, 'error' => 'method_not_allowed', 'message' => 'Method not allowed.']);
+    echo json_encode(['success' => false, 'error' => 'method_not_allowed', 'message' => t('api.method_not_allowed')]);
     exit;
 }
 
@@ -35,7 +35,7 @@ $ipLast = $_SESSION[$ipKey] ?? 0;
 
 if ($now - $last < 60 || $now - $ipLast < 60) {
     http_response_code(429);
-    echo json_encode(['success' => false, 'error' => 'rate_limited', 'message' => 'Please wait a moment before submitting again.']);
+    echo json_encode(['success' => false, 'error' => 'rate_limited', 'message' => t('marketing.demo.rate_limited')]);
     exit;
 }
 
@@ -54,39 +54,39 @@ function isEmpty($value) { return $value === ''; }
 function tooLong($value, $max) { return mb_strlen($value, 'UTF-8') > $max; }
 
 if (isEmpty($name) || tooLong($name, 100)) {
-    $fieldErrors['name'] = 'Name is required and must be 100 characters or less.';
+    $fieldErrors['name'] = t('marketing.demo.field_name_invalid');
 }
 
 if (isEmpty($email)) {
-    $fieldErrors['email'] = 'Work email is required.';
+    $fieldErrors['email'] = t('marketing.demo.field_email_required');
 } else {
     $sanitized = filter_var($email, FILTER_SANITIZE_EMAIL);
     if (!filter_var($sanitized, FILTER_VALIDATE_EMAIL) || tooLong($sanitized, 254)) {
-        $fieldErrors['email'] = 'Please enter a valid email address.';
+        $fieldErrors['email'] = t('validation.invalid_email');
     } else {
         $email = $sanitized;
     }
 }
 
 if (isEmpty($practice) || tooLong($practice, 120)) {
-    $fieldErrors['practice'] = 'Practice name is required and must be 120 characters or less.';
+    $fieldErrors['practice'] = t('marketing.demo.field_practice_invalid');
 }
 
 if (tooLong($phone, 30)) {
-    $fieldErrors['phone'] = 'Phone number is too long.';
+    $fieldErrors['phone'] = t('marketing.demo.field_phone_too_long');
 }
 
 if (tooLong($preferred, 120)) {
-    $fieldErrors['preferred'] = 'Preferred day or time is too long.';
+    $fieldErrors['preferred'] = t('marketing.demo.field_preferred_too_long');
 }
 
 if (tooLong($message, 1000)) {
-    $fieldErrors['message'] = 'Message is too long.';
+    $fieldErrors['message'] = t('marketing.demo.message_too_long');
 }
 
 if (!empty($fieldErrors)) {
     http_response_code(422);
-    echo json_encode(['success' => false, 'error' => 'validation', 'message' => 'Please correct the highlighted fields.', 'fields' => $fieldErrors]);
+    echo json_encode(['success' => false, 'error' => 'validation', 'message' => t('marketing.demo.invalid_fields'), 'fields' => $fieldErrors]);
     exit;
 }
 
@@ -125,7 +125,7 @@ $sendResult = sendAppEmail($supportEmail, $subject, $htmlBody, $plainText, $emai
 if (empty($sendResult['success'])) {
     error_log('[demo-request] Failed to send demo request from ' . $email . ': ' . ($sendResult['error'] ?? 'unknown'));
     http_response_code(500);
-    echo json_encode(['success' => false, 'error' => 'delivery_failed', 'message' => 'Something went wrong. Please try again later.']);
+    echo json_encode(['success' => false, 'error' => 'delivery_failed', 'message' => t('errors.generic')]);
     exit;
 }
 
@@ -135,5 +135,5 @@ $_SESSION[$ipKey] = $now;
 
 echo json_encode([
     'success' => true,
-    'message' => "Your demo request has been received. We'll contact you shortly to find a time that works."
+    'message' => t('marketing.demo.success')
 ]);

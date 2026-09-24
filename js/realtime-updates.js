@@ -201,7 +201,7 @@
       if (typeof window.updateColumnCounts === 'function') {
         window.updateColumnCounts();
       }
-      showUpdateToast('New case added: ' + getPatientName(caseData));
+      showUpdateToast(t('notifications.realtime.case_added', { name: getPatientName(caseData) }));
     }
   }
   
@@ -223,7 +223,8 @@
       // If status changed, move the card to the new column
       if (oldStatus && newStatus && oldStatus !== newStatus) {
         moveCardToColumn(existingCard, caseData, newStatus);
-        showUpdateToast(getPatientName(caseData) + ' moved to ' + newStatus);
+        var newStatusLabel = (typeof getStageLabel === 'function') ? getStageLabel(newStatus) : newStatus;
+        showUpdateToast(t('notifications.realtime.case_moved', { name: getPatientName(caseData), status: newStatusLabel }));
       } else {
         // Just update the card content
         updateCardContent(existingCard, caseData);
@@ -262,7 +263,7 @@
             if (typeof window.updateColumnCounts === 'function') {
               window.updateColumnCounts();
             }
-            showUpdateToast('Case assigned to you: ' + getPatientName(caseData), 'info');
+            showUpdateToast(t('notifications.realtime.assigned', { name: getPatientName(caseData) }), 'info');
           }
         } else {
           updateCardContent(existingCard, caseData);
@@ -274,7 +275,7 @@
           if (typeof window.updateColumnCounts === 'function') {
             window.updateColumnCounts();
           }
-          showUpdateToast('Case unassigned: ' + getPatientName(caseData), 'info');
+          showUpdateToast(t('notifications.realtime.unassigned', { name: getPatientName(caseData) }), 'info');
         }
       }
     } else {
@@ -297,7 +298,7 @@
       if (typeof window.updateColumnCounts === 'function') {
         window.updateColumnCounts();
       }
-      showUpdateToast('Case removed', 'info');
+      showUpdateToast(t('notifications.realtime.case_removed'), 'info');
     }
   }
   

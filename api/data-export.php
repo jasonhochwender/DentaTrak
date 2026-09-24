@@ -425,7 +425,7 @@ function processExport(int $exportId, int $userId, int $practiceId, string $user
         // ============================================
         // SEND EMAIL NOTIFICATION
         // ============================================
-        sendExportReadyEmail($userEmail, $downloadToken, $expiresAt, $fileSize);
+        sendExportReadyEmail($userEmail, $downloadToken, $expiresAt, $fileSize, $userId);
         
         // ============================================
         // AUDIT: Log export completion
@@ -453,7 +453,7 @@ function processExport(int $exportId, int $userId, int $practiceId, string $user
 /**
  * Send email notification when export is ready
  */
-function sendExportReadyEmail(string $email, string $token, string $expiresAt, int $fileSize): void {
+function sendExportReadyEmail(string $email, string $token, string $expiresAt, int $fileSize, ?int $userId = null): void {
     global $appConfig;
     
     // Build download URL from the application's own configured base URL
@@ -464,53 +464,72 @@ function sendExportReadyEmail(string $email, string $token, string $expiresAt, i
     $baseUrl = rtrim($appConfig['baseUrl'] ?? '', '/');
     $downloadUrl = $baseUrl . '/api/data-export.php?action=download&token=' . urlencode($token);
     
+    $locale = resolveEmailLocale($userId, null, null);
+
     $fileSizeFormatted = number_format($fileSize / 1024, 1) . ' KB';
-    $expiresFormatted = date('F j, Y \a\t g:i A', strtotime($expiresAt));
-    
+    if (class_exists('IntlDateFormatter')) {
+        $expiresFmt = new IntlDateFormatter($locale, IntlDateFormatter::LONG, IntlDateFormatter::SHORT);
+        $expiresFormatted = $expiresFmt->format(strtotime($expiresAt));
+    } else {
+        $expiresFormatted = formatDateTime($expiresAt, 'long');
+    }
+
     $appName = $appConfig['appName'] ?? 'DentaTrak';
-    $subject = "Your {$appName} Data Export is Ready";
-    
+    $subject = tForLocale($locale, 'email.data_export.subject', ['appName' => $appName]);
+    $greeting = tForLocale($locale, 'email.data_export.greeting');
+    $intro = tForLocale($locale, 'email.data_export.intro');
+    $cta = tForLocale($locale, 'email.data_export.cta');
+    $copyLink = tForLocale($locale, 'email.data_export.copy_link');
+    $fileSizeLabel = tForLocale($locale, 'email.data_export.file_size');
+    $linkExpiresLabel = tForLocale($locale, 'email.data_export.link_expires');
+    $expiry = tForLocale($locale, 'email.data_export.expiry');
+    $securityNote = tForLocale($locale, 'email.data_export.security_note');
+    $footer = tForLocale($locale, 'email.data_export.footer', ['appName' => $appName]);
+    $safeDownloadUrl = htmlspecialchars($downloadUrl, ENT_QUOTES, 'UTF-8');
+
     // HTML email body - matching app email style
     $htmlBody = "
     <html>
     <body style='font-family: Arial, sans-serif; line-height: 1.6; color: #333;'>
         <div style='max-width: 600px; margin: 0 auto; padding: 20px;'>
             <h2 style='color: #2563eb;'>{$appName}</h2>
-            <p>Hello,</p>
-            <p>Your data export is ready for download.</p>
+            <p>{$greeting}</p>
+            <p>{$intro}</p>
             <p style='text-align: center; margin: 30px 0;'>
-                <a href='{$downloadUrl}' style='background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;'>Download Your Data</a>
+                <a href='{$safeDownloadUrl}' style='background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;'>{$cta}</a>
             </p>
-            <p>Or copy and paste this link into your browser:</p>
-            <p style='word-break: break-all; color: #666;'>{$downloadUrl}</p>
+            <p>{$copyLink}</p>
+            <p style='word-break: break-all; color: #666;'>{$safeDownloadUrl}</p>
             <div style='background-color: #f3f4f6; padding: 15px; border-radius: 6px; margin: 20px 0;'>
-                <p style='margin: 5px 0;'><strong>File Size:</strong> {$fileSizeFormatted}</p>
-                <p style='margin: 5px 0;'><strong>Link Expires:</strong> {$expiresFormatted}</p>
+                <p style='margin: 5px 0;'><strong>{$fileSizeLabel}</strong> {$fileSizeFormatted}</p>
+                <p style='margin: 5px 0;'><strong>{$linkExpiresLabel}</strong> {$expiresFormatted}</p>
             </div>
-            <p><strong>This link will expire in 7 days.</strong> Please download your data before then.</p>
-            <p>For security, do not share this link with others.</p>
+            <p><strong>{$expiry}</strong></p>
+            <p>{$securityNote}</p>
             <hr style='border: none; border-top: 1px solid #eee; margin: 30px 0;'>
-            <p style='color: #666; font-size: 12px;'>This email was sent by {$appName}. Please do not reply to this email.</p>
+            <p style='color: #666; font-size: 12px;'>{$footer}</p>
         </div>
     </body>
     </html>
     ";
 
     // Plain text fallback
-    $textBody = "Hello,
+    $textIntro = tForLocale($locale, 'email.data_export.text_intro', ['appName' => $appName]);
+    $downloadLinkLabel = tForLocale($locale, 'email.data_export.download_link');
+    $textBody = "{$greeting}
 
-Your data export from {$appName} is ready for download.
+{$textIntro}
 
-Download Link: {$downloadUrl}
+{$downloadLinkLabel} {$downloadUrl}
 
-File Size: {$fileSizeFormatted}
-Link Expires: {$expiresFormatted}
+{$fileSizeLabel} {$fileSizeFormatted}
+{$linkExpiresLabel} {$expiresFormatted}
 
-This link will expire in 7 days. Please download your data before then.
+{$expiry}
 
-For security, do not share this link with others.
+{$securityNote}
 
-This email was sent by {$appName}.";
+{$footer}";
     
     // Send email using SendGrid
     $result = sendAppEmail($email, $subject, $htmlBody, $textBody);

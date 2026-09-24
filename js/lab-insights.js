@@ -574,7 +574,7 @@
       '<option value="remakeRatePct"' + (liTrendMetric === 'remakeRatePct' ? ' selected' : '') + '>' + escapeHtml(t('insights.perf.detail.trend_remake_rate')) + '</option>' +
       '</select></div></div>' +
       '<div class="ap-chart-container li-trend-chart">' +
-      '<canvas id="liPerfTrendChart" role="img" aria-label="Lab performance trend"></canvas>' +
+      '<canvas id="liPerfTrendChart" role="img" aria-label="' + escapeHtml(t('insights.labs.perf_trend_aria')) + '"></canvas>' +
       '</div></div></div>';
 
     // ── Case-type performance ──
@@ -762,8 +762,8 @@
       },
     });
 
-    setChartAriaLabel(canvas, 'Lab performance trend', months, values,
-      function (v) { return v === null ? 'no data' : String(v); });
+    setChartAriaLabel(canvas, t('insights.labs.perf_trend_aria'), months, values,
+      function (v) { return v === null ? t('insights.empty.no_data') : String(v); });
   }
 
   function selectLab(labKey) {
@@ -1053,7 +1053,7 @@
 
     var ariaLabels = (trend.labels || []);
     var ariaValues = datasets.length > 0 ? datasets[0].data : [];
-    setChartAriaLabel(canvas, 'Lab case trend', ariaLabels, ariaValues, function(v) { return v + ' cases'; });
+    setChartAriaLabel(canvas, t('insights.labs.case_trend_aria'), ariaLabels, ariaValues, function(v) { return I18n.pluralize(v, 'insights.creators.case'); });
   }
 
   function attachStaticTooltips() {

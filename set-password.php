@@ -33,7 +33,7 @@ $appName = $appConfig['appName'] ?? 'DentalFlow';
 $loginUrl = rtrim($appConfig['baseUrl'] ?? '', '/') . '/login.php';
 ?>
 <!DOCTYPE html>
-<html lang="en">
+<html lang="<?php echo getHtmlLang(); ?>">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -62,6 +62,9 @@ $loginUrl = rtrim($appConfig['baseUrl'] ?? '', '/') . '/login.php';
     <div class="login-wrapper" style="justify-content: center;">
         <div class="login-container" style="max-width: 480px;">
             <div class="login-card">
+                <div style="display: flex; justify-content: flex-end; margin-bottom: 8px;">
+                    <?php echo renderLanguageSelector('api/set-session-locale.php', getResolvedLocale(), false); ?>
+                </div>
                 <div class="login-card-header">
                     <h2><?php echo t('auth.set_password.title'); ?></h2>
                     <?php if ($tokenValid): ?>

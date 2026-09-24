@@ -50,6 +50,9 @@ if (!filter_var($billingEnabledRaw, FILTER_VALIDATE_BOOLEAN)) {
 setSecurityHeaders();
 
 require_once __DIR__ . '/api/appConfig.php';
+require_once __DIR__ . '/api/csrf.php';
+
+$billingCsrfToken = generateCsrfToken();
 
 // Get Stripe configuration
 $stripeConfig = $appConfig['stripe'] ?? [];
@@ -464,13 +467,14 @@ try {
 </head>
 <body>
     <div class="billing-page">
-        <nav class="billing-nav">
+        <nav class="billing-nav" style="display: flex; justify-content: space-between; align-items: center;">
             <a href="main.php" class="back-link">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M19 12H5M12 19l-7-7 7-7"/>
                 </svg>
                 <?php echo t('billing.back_to_dashboard'); ?>
             </a>
+            <?php echo renderLanguageSelector('api/save-user-language.php', getResolvedLocale(), false, $billingCsrfToken); ?>
         </nav>
         
         <div class="billing-header">

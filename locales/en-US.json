@@ -221,11 +221,120 @@
             "no_events": "No history yet.",
             "loading": "Loading revision history...",
             "error": "Unable to load revision history.",
-            "just_now": "Just now"
+            "just_now": "Just now",
+            "click_to_view": "Click to view revision history"
         },
         "activity": {
             "title": "Activity",
-            "empty": "No activity recorded yet."
+            "empty": "No activity recorded yet.",
+            "error": "Unable to load activity.",
+            "events": {
+                "created_integration": "Case automatically created from Open Dental",
+                "created": "Case created by {user}",
+                "updated": "Case updated by {user}",
+                "updated_with_details": "Updated by {user}: {details}",
+                "updated_fields": "Updated {fields} by {user}",
+                "field_changed": "{field}: \"{old}\" → \"{new}\"",
+                "field_set": "{field} set to \"{new}\"",
+                "field_cleared": "{field} cleared (was \"{old}\")",
+                "status_from_to": "Changed status from {old} to {new} by {user}",
+                "status_to": "Changed status to {new} by {user}",
+                "status_changed": "Status changed by {user}",
+                "status_from_to_revision": "Changed status from {old} to {new} (revision) by {user}",
+                "status_to_revision": "Changed status to {new} (revision) by {user}",
+                "status_changed_revision": "Status changed (revision) by {user}",
+                "files_added_named_one": "Added {count} file: {files} by {user}",
+                "files_added_named_other": "Added {count} files: {files} by {user}",
+                "files_added_one": "Added {count} file by {user}",
+                "files_added_other": "Added {count} files by {user}",
+                "files_updated": "Files updated by {user}",
+                "files_deleted_one": "Deleted {count} file by {user}",
+                "files_deleted_other": "Deleted {count} files by {user}",
+                "note_added": "Added note by {user}: \"{preview}\"",
+                "notes_updated_length": "Updated notes ({length} chars) by {user}",
+                "notes_updated": "Updated notes by {user}",
+                "reassigned": "Reassigned from {old} to {new} by {user}",
+                "assigned": "Assigned to {name} by {user}",
+                "assignment_updated": "Assignment updated by {user}",
+                "assignment_cleared_was": "Assignment cleared (was {name}) by {user}",
+                "assignment_cleared": "Assignment cleared by {user}",
+                "labels_added_one": "Added label: {labels} by {user}",
+                "labels_added_other": "Added labels: {labels} by {user}",
+                "labels_removed_one": "Removed label: {labels} by {user}",
+                "labels_removed_other": "Removed labels: {labels} by {user}",
+                "labels_updated": "Labels updated by {user}",
+                "due_date_from_to": "Due date changed from {old} to {new} by {user}",
+                "due_date_set": "Due date set to {new} by {user}",
+                "due_date_changed": "Due date changed by {user}",
+                "archived": "Case archived by {user}",
+                "archived_auto": "Case automatically archived",
+                "restored": "Case restored by {user}",
+                "remake_recorded": "Remake #{number} recorded: {detail} by {user}",
+                "remake_recorded_simple": "Remake #{number} recorded by {user}",
+                "remake_completed": "Remake #{number} marked complete by {user}",
+                "source_deleted_integration": "Source lab case was deleted in Open Dental",
+                "source_deleted": "Source record was deleted in the connected system",
+                "generic": "{event} by {user}"
+            },
+            "timeline": {
+                "created": "Created",
+                "status_to": "Changed status to {status}",
+                "status_changed": "Changed status",
+                "reassigned": "Reassigned",
+                "fields_count_one": "{count} field",
+                "fields_count_other": "{count} fields",
+                "updated": "Updated",
+                "note_added": "Added note",
+                "file_added_one": "+{count} file",
+                "file_added_other": "+{count} files",
+                "file_removed": "-1 file",
+                "archived": "Archived",
+                "restored": "Restored",
+                "remake_reason": "Remake #{number} - {reason}",
+                "remake_recorded": "Remake #{number} recorded",
+                "remake_completed": "Remake #{number} completed",
+                "labels": "Labels",
+                "due_date_removed": "Due date removed",
+                "due_date": "Due date",
+                "review_marked": "Marked {status}",
+                "full_created": "Case created",
+                "full_status_from_to": "Changed status from {old} to {new}",
+                "full_status_to": "Changed status to {new}",
+                "full_status_changed": "Changed status",
+                "full_reassigned": "Case reassigned",
+                "full_updated_fields": "Updated: {fields}",
+                "full_updated": "Case details updated",
+                "full_attachments_added_one": "{count} attachment added",
+                "full_attachments_added_other": "{count} attachments added",
+                "full_attachment_removed": "Attachment removed",
+                "full_status_from_to_revision": "Changed status from {old} to {new} (revision)",
+                "full_status_to_revision": "Changed status to {new} (revision)",
+                "full_status_changed_revision": "Changed status (revision)",
+                "full_review_from_to": "Review status changed from {old} to {new}",
+                "full_review_to": "Review status changed to {new}",
+                "full_review_changed": "Review status changed",
+                "by_user": "by {user}",
+                "by_user_line": "By {user}",
+                "system": "System",
+                "rel_now": "now",
+                "rel_min": "{count}m",
+                "rel_hour": "{count}h",
+                "rel_day": "{count}d",
+                "rel_week": "{count}w",
+                "fields": {
+                    "patientFirstName": "Name",
+                    "patientLastName": "Name",
+                    "patientDOB": "DOB",
+                    "dentistName": "Dentist",
+                    "caseType": "Type",
+                    "toothShade": "Shade",
+                    "material": "Material",
+                    "dueDate": "Due date",
+                    "status": "Status",
+                    "assignedTo": "Assigned",
+                    "notes": "Notes"
+                }
+            }
         },
         "risk": {
             "at_risk": "At Risk",
@@ -334,6 +443,8 @@
             "archive_error_retry": "Error archiving case. Please try again.",
             "status_update_failed": "Failed to update case status",
             "concurrent_edit": "This case was modified by another user. Refreshing...",
+            "modified_by_other": "This case was modified by another user.",
+            "session_expired_upload": "Your session expired during upload. Please log in again. Your files were uploaded successfully and can be attached after re-authentication.",
             "form_updated": "Form updated with their version",
             "open_failed": "Could not open case",
             "open_error": "Error opening case",
@@ -361,7 +472,13 @@
         "due_label": "Due",
         "status_label": "Status",
         "other_carrier_placeholder": "e.g. OnTrac",
-        "tracking_number_placeholder": "e.g. 1Z999AA10123456784"
+        "tracking_number_placeholder": "e.g. 1Z999AA10123456784",
+        "mobile_nav": {
+            "columns": "Workflow columns",
+            "prev": "Previous workflow column",
+            "select": "Select workflow column",
+            "next": "Next workflow column"
+        }
     },
     "filters": {
         "filter_by": "Filter by",
@@ -582,6 +699,30 @@
         "delete_file": "Delete File",
         "will_be_deleted": "(will be deleted)",
         "unnamed_file": "Unnamed file",
+        "remove_file": "Remove file",
+        "click_to_view": "Click to view: {name}",
+        "mark_for_deletion": "Mark file for deletion (will be removed when you update the case)",
+        "upload_max_count": "Maximum {max} files per upload. You selected {count}.",
+        "upload_category_limit": "{category} must be under {limit}",
+        "upload_over_limit_files": "{messages}. Over-limit files: {files}",
+        "upload_total_exceeded": "Total case upload cannot exceed {max}. Current total: {total}. Please remove some files.",
+        "upload_failed_files": "Failed to upload: {files}. {error}",
+        "upload_url_failed": "Failed to get upload URL (status {status})",
+        "upload_signed_url_failed": "Failed to get signed upload URL",
+        "upload_timeout": "Upload exceeded maximum allowed time (45 minutes). Please try with a smaller file or better connection.",
+        "upload_stalled": "Upload stalled (no progress for 90 seconds). Check your connection and retry.",
+        "upload_http_failed": "Upload failed (HTTP status {status}). Please retry.",
+        "upload_network_error": "Network error during upload. Check your connection and retry.",
+        "file_categories": {
+            "stl": "STL files",
+            "3d_scan": "3D scan files",
+            "dicom": "DICOM files",
+            "images": "Images",
+            "svg": "SVG files",
+            "pdf": "PDF documents",
+            "zip": "ZIP archives",
+            "generic": "Files of type .{ext}"
+        },
         "change_category": "Move to category",
         "preview_unavailable": "Unable to open this attachment preview. You can still download the file.",
         "loading": "Loading attachments…",
@@ -1430,7 +1571,13 @@
             "lifecycle_average": "Average",
             "lifecycle_slowest": "Slowest",
             "no_data": "No Data",
-            "axis_cases": "Number of Cases"
+            "axis_cases": "Number of Cases",
+            "cases_by_creator": "Cases created by user",
+            "created_count": "{count} created",
+            "cases_count": "{count} cases",
+            "days_count": "{count} days",
+            "this_year_count": "{count} this year",
+            "yoy_trends": "Year-over-year trends"
         },
         "filters": {
             "active_cases": "Active Cases",
@@ -1472,6 +1619,8 @@
             "days_late": "Days Late",
             "nothing_in_progress": "Nothing currently in progress at this lab.",
             "removed_suffix": " (removed)",
+            "perf_trend_aria": "Lab performance trend",
+            "case_trend_aria": "Lab case trend",
             "table_headers": {
                 "lab": "Lab",
                 "current_workload": "Current Workload",
@@ -1497,7 +1646,25 @@
             "connection_error": "Connection lost. Please check your internet and try again.",
             "error_default": "Unable to generate recommendations.",
             "try_again": "Try Again",
-            "try_again_seconds": "Try Again ({count}s)"
+            "try_again_seconds": "Try Again ({count}s)",
+            "try_again_minute": "Try again in a minute",
+            "generated_at": "Generated {time}",
+            "none_specific": "No specific recommendations at this time. Your practice is running well!",
+            "recommendation_fallback": "Recommendation {number}",
+            "priority_suffix": "{priority} priority"
+        },
+        "bottlenecks": {
+            "critical_backlog": "Critical backlog - immediate attention needed",
+            "building_up": "Building up - consider prioritizing",
+            "overdue_cases": "Overdue Cases",
+            "overdue_critical": "Multiple cases past due date - review immediately",
+            "overdue_warning": "Cases past due date - follow up needed",
+            "unassigned_cases": "Unassigned Cases",
+            "unassigned_message": "Cases without an owner - assign to team members",
+            "regressions": "Cases with Regressions",
+            "multiple_regressions": "{count} case(s) with multiple regressions - review quality",
+            "regressions_message": "Cases moved backward in workflow - may indicate rework",
+            "none": "No bottlenecks detected. Your workflow is running smoothly!"
         },
         "loading": {
             "analytics": "Loading analytics data..."
@@ -1506,7 +1673,8 @@
             "no_data": "No data available"
         },
         "advanced": {
-            "optimal": "Optimal"
+            "optimal": "Optimal",
+            "near_capacity": "Near Capacity"
         },
         "errors": {
             "loading_analytics": "Error loading analytics data: {message}",
@@ -1514,7 +1682,15 @@
             "no_recommendations": "No recommendations available",
             "failed_recommendations": "Failed to load AI recommendations. Please try again.",
             "connection_lost": "Connection lost. Please check your internet and try again.",
-            "unable_recommendations": "Unable to generate recommendations."
+            "unable_recommendations": "Unable to generate recommendations.",
+            "access_denied": "Access denied. You do not have permission to view analytics or AI insights.",
+            "plan_required": "Smart Recommendations require the Control plan",
+            "ai_not_configured": "AI service not configured",
+            "ai_quota": "AI service is temporarily unavailable due to high demand. Please try again in a few minutes.",
+            "ai_model_unavailable": "Smart Recommendations are temporarily unavailable because the configured AI model could not be reached.",
+            "ai_config": "AI service configuration error. Please contact support.",
+            "ai_unavailable": "AI service is currently unavailable. Please try again later.",
+            "unable_later": "Unable to generate recommendations at this time. Please try again later."
         },
         "upgrade": {
             "throughput_title": "Throughput Trends",
@@ -1718,7 +1894,8 @@
             "no_billing_account": "No billing account found for this practice. Please choose a plan first.",
             "unable_to_load": "Unable to load billing information. Please try again.",
             "admin_only_view": "Only practice administrators can view billing information.",
-            "unable_verify_billing": "Unable to verify billing status. Please refresh the page."
+            "unable_verify_billing": "Unable to verify billing status. Please refresh the page.",
+            "billing_unavailable": "Billing is not available."
         },
         "messages": {
             "readonly_notice": "You can view billing information. Only practice administrators can manage the subscription.",
@@ -2039,7 +2216,14 @@
         "generic": "Something went wrong. Please try again.",
         "unauthorized": "You are not authorized to perform this action.",
         "not_found": "The requested resource was not found.",
-        "network_error": "Network error. Please check your connection."
+        "network_error": "Network error. Please check your connection.",
+        "server_error_status": "Server error (status {status})",
+        "unexpected_response": "Unexpected response from the server",
+        "page_not_found": {
+            "title": "Page Not Found",
+            "message": "The page you're looking for doesn't exist or you don't have permission to access it.",
+            "home": "Go to Homepage"
+        }
     },
     "two_fa_required": {
         "title": "Two-Factor Authentication Required",
@@ -2470,6 +2654,13 @@
         "prompt_confirm": "Type \"CONFIRM\" to proceed:"
     },
     "notifications": {
+        "realtime": {
+            "case_added": "New case added: {name}",
+            "case_moved": "{name} moved to {status}",
+            "assigned": "Case assigned to you: {name}",
+            "unassigned": "Case unassigned: {name}",
+            "case_removed": "Case removed"
+        },
         "title": "Notifications",
         "mark_all_read": "Mark all read",
         "loading": "Loading...",
@@ -2627,6 +2818,7 @@
         "you_label": "{email} (You)"
     },
     "api": {
+        "method_not_allowed": "Method not allowed.",
         "attachment_content": {
             "method_not_allowed": "Method not allowed",
             "authentication_required": "Authentication required",
@@ -2651,6 +2843,21 @@
         },
         "auth": {
             "session_expired": "Your session has expired. Please log in again."
+        },
+        "download": {
+            "missing_case_id": "Missing required field: case_id",
+            "storage_unavailable": "Storage backend unavailable",
+            "url_failed": "Failed to generate download URL. Please try again."
+        },
+        "tooth": {
+            "required": "At least one tooth number is required",
+            "invalid_range_format": "Invalid range format: \"{part}\"",
+            "invalid_numbers": "Enter valid tooth numbers (1-32), e.g. 14, 30 or 14-18",
+            "out_of_range": "Tooth number {number} must be between 1 and 32",
+            "range_reversed": "Invalid range: start ({start}) must be less than or equal to end ({end})"
+        },
+        "admin": {
+            "load_failed": "Unable to load practice information."
         },
         "cases": {
             "access_denied": "Access denied. Please contact your administrator.",
@@ -2840,6 +3047,20 @@
         "signup": {
             "subject": "New {appName} User Signup",
             "body": "A new user has signed up for {appName}."
+        },
+        "data_export": {
+            "subject": "Your {appName} Data Export is Ready",
+            "greeting": "Hello,",
+            "intro": "Your data export is ready for download.",
+            "cta": "Download Your Data",
+            "copy_link": "Or copy and paste this link into your browser:",
+            "file_size": "File Size:",
+            "link_expires": "Link Expires:",
+            "expiry": "This link will expire in 7 days. Please download your data before then.",
+            "security_note": "For security, do not share this link with others.",
+            "footer": "This email was sent by {appName}. Please do not reply to this email.",
+            "text_intro": "Your data export from {appName} is ready for download.",
+            "download_link": "Download Link:"
         }
     },
     "options": {
@@ -4800,7 +5021,63 @@
         "demo": {
             "request_demo": "Request a Personal Demo",
             "subject": "DentaTrak Personal Demo Request",
-            "hero_link": "See how it works"
+            "hero_link": "See how it works",
+            "modal_desc": "Fill out the form below and we'll contact you to schedule a time.",
+            "close_aria": "Close demo request form",
+            "required_aria": "required",
+            "name": "Name",
+            "email": "Work email",
+            "practice": "Practice name",
+            "phone": "Phone number",
+            "preferred": "Preferred day or time",
+            "message_label": "Additional message",
+            "submit": "Request Demo",
+            "cancel": "Cancel",
+            "sending": "Sending...",
+            "invalid_fields": "Please correct the highlighted fields.",
+            "success": "Your demo request has been received. We'll contact you shortly to find a time that works.",
+            "rate_limited": "Please wait a moment before submitting again.",
+            "message_too_long": "Message is too long.",
+            "honeypot": "Do not fill this field",
+            "field_name_invalid": "Name is required and must be 100 characters or less.",
+            "field_email_required": "Work email is required.",
+            "field_practice_invalid": "Practice name is required and must be 120 characters or less.",
+            "field_phone_too_long": "Phone number is too long.",
+            "field_preferred_too_long": "Preferred day or time is too long."
+        },
+        "mock": {
+            "phones_aria": "Mobile browser product preview",
+            "kanban_aria": "Mobile Kanban board showing the Originated workflow column with multiple case cards, status indicators, and the next column peeking at the right.",
+            "modal_aria": "Mobile Edit Case modal with patient details, status, assignment, shipment, and attachments.",
+            "demo_practice": "Demo Practice",
+            "search_cases": "Search cases",
+            "prev_column": "Previous workflow column",
+            "select_column": "Select workflow column",
+            "next_column": "Next workflow column",
+            "due_soon": "Due Soon",
+            "late": "Late",
+            "appt_risk": "Appt Risk",
+            "ready": "Ready",
+            "due_label": "Due:",
+            "assigned_label": "Assigned:",
+            "appt_label": "Appt:",
+            "edit_case": "Edit Case",
+            "details": "Details",
+            "comments": "Comments",
+            "jump_to_section": "Jump to section",
+            "dentist": "Dentist",
+            "due": "Due",
+            "assigned": "Assigned",
+            "appt": "Appt",
+            "shipment": "Shipment",
+            "notes": "Notes",
+            "attachments": "Attachments",
+            "scan_3d": "3D scan",
+            "save_changes": "Save changes",
+            "front_desk": "Front Desk",
+            "back_office": "Back Office",
+            "design_team": "Design Team",
+            "notes_body": "Patient appointment is Mar 14. Confirm lab can deliver the veneer by Mar 12 to avoid chair-side delay."
         },
         "about": {
             "title": "About DentaTrak",

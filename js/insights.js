@@ -151,9 +151,9 @@
           stage: (typeof getStageLabel === 'function') ? getStageLabel(status) : status,
           count: count,
           severity: count >= criticalThreshold ? 'critical' : 'warning',
-          message: count >= criticalThreshold 
-            ? 'Critical backlog - immediate attention needed'
-            : 'Building up - consider prioritizing'
+          message: count >= criticalThreshold
+            ? t('insights.bottlenecks.critical_backlog')
+            : t('insights.bottlenecks.building_up')
         });
       }
     });
@@ -162,12 +162,12 @@
     var overdueCases = metrics.casesPastDue || 0;
     if (overdueCases > 0) {
       bottlenecks.unshift({
-        stage: 'Overdue Cases',
+        stage: t('insights.bottlenecks.overdue_cases'),
         count: overdueCases,
         severity: overdueCases >= 5 ? 'critical' : 'warning',
-        message: overdueCases >= 5 
-          ? 'Multiple cases past due date - review immediately'
-          : 'Cases past due date - follow up needed'
+        message: overdueCases >= 5
+          ? t('insights.bottlenecks.overdue_critical')
+          : t('insights.bottlenecks.overdue_warning')
       });
     }
     
@@ -175,10 +175,10 @@
     var unassignedCases = metrics.unassignedCases || 0;
     if (unassignedCases > 0) {
       bottlenecks.push({
-        stage: 'Unassigned Cases',
+        stage: t('insights.bottlenecks.unassigned_cases'),
         count: unassignedCases,
         severity: unassignedCases >= 5 ? 'critical' : 'warning',
-        message: 'Cases without an owner - assign to team members'
+        message: t('insights.bottlenecks.unassigned_message')
       });
     }
     
@@ -187,17 +187,17 @@
     if (casesWithRegressions > 0) {
       var multipleRegressions = metrics.casesWithMultipleRegressions || 0;
       bottlenecks.push({
-        stage: 'Cases with Regressions',
+        stage: t('insights.bottlenecks.regressions'),
         count: casesWithRegressions,
         severity: multipleRegressions >= 3 ? 'critical' : 'warning',
-        message: multipleRegressions > 0 
-          ? multipleRegressions + ' case(s) with multiple regressions - review quality'
-          : 'Cases moved backward in workflow - may indicate rework'
+        message: multipleRegressions > 0
+          ? t('insights.bottlenecks.multiple_regressions', { count: multipleRegressions })
+          : t('insights.bottlenecks.regressions_message')
       });
     }
     
     if (bottlenecks.length === 0) {
-      container.innerHTML = '<p class="insights-empty-state">No bottlenecks detected. Your workflow is running smoothly!</p>';
+      container.innerHTML = '<p class="insights-empty-state">' + escapeHtml(t('insights.bottlenecks.none')) + '</p>';
       return;
     }
     
@@ -221,13 +221,13 @@
     if (!container) return;
 
     if (!creatorBreakdown || !Array.isArray(creatorBreakdown) || creatorBreakdown.length === 0) {
-      container.innerHTML = '<p class="insights-empty-state" id="apCreatorBreakdownEmpty" style="width: 100%;">No creator data available.</p>';
+      container.innerHTML = '<p class="insights-empty-state" id="apCreatorBreakdownEmpty" style="width: 100%;">' + escapeHtml(t('insights.creators.empty')) + '</p>';
       return;
     }
 
     var html = '';
     creatorBreakdown.forEach(function(item) {
-      var name = escapeHtml(item.creator || 'Unknown');
+      var name = escapeHtml(item.creator || t('insights.creators.unknown'));
       var count = parseInt(item.cases_count || 0, 10);
       html += '<div class="ap-insight-card">' +
         '<div class="ap-insight-value">' + count + '</div>' +
@@ -249,7 +249,7 @@
     
     container.innerHTML = '<div class="insights-loading">' +
       '<div class="insights-loading-spinner"></div>' +
-      '<p>Analyzing your practice data...</p>' +
+      '<p>' + escapeHtml(t('insights.ai.analyzing')) + '</p>' +
       '</div>';
     
     fetch('api/ai-recommendations.php', {
@@ -274,10 +274,10 @@
         renderRecommendations(container, data.recommendations);
         
         if (timestampEl && data.generated_at) {
-          timestampEl.textContent = 'Generated ' + formatRelativeTime(data.generated_at);
+          timestampEl.textContent = t('insights.ai.generated_at', { time: formatRelativeTime(data.generated_at) });
         }
       } else {
-        container.innerHTML = '<p class="insights-empty-state">No recommendations available at this time.</p>';
+        container.innerHTML = '<p class="insights-empty-state">' + escapeHtml(t('insights.ai.none_available')) + '</p>';
       }
     })
     .catch(function(error) {
@@ -289,7 +289,7 @@
       }
       
       console.error('Error loading AI recommendations:', error);
-      showRecommendationsError(container, 'Unable to load recommendations. Please try again.');
+      showRecommendationsError(container, t('insights.ai.load_error'));
     });
   }
 
@@ -298,7 +298,7 @@
    */
   function renderRecommendations(container, recommendations) {
     if (!recommendations || recommendations.length === 0) {
-      container.innerHTML = '<p class="insights-empty-state">No specific recommendations at this time. Your practice is running well!</p>';
+      container.innerHTML = '<p class="insights-empty-state">' + escapeHtml(t('insights.ai.none_specific')) + '</p>';
       return;
     }
     
@@ -306,8 +306,9 @@
     
     recommendations.forEach(function(rec, index) {
       var priority = rec.priority || 'medium';
-      var title = rec.title || rec.category || 'Recommendation ' + (index + 1);
+      var title = rec.title || rec.category || t('insights.ai.recommendation_fallback', { number: index + 1 });
       var text = rec.recommendation || rec.text || rec.description || '';
+      var priorityLabel = t('insights.priority.' + String(priority).toLowerCase()) || priority;
       
       html += '<div class="insights-recommendation-item">' +
         '<div class="insights-recommendation-icon">' +
@@ -320,7 +321,7 @@
         '<div class="insights-recommendation-content">' +
         '<h4 class="insights-recommendation-title">' + escapeHtml(title) + '</h4>' +
         '<p class="insights-recommendation-text">' + escapeHtml(text) + '</p>' +
-        '<span class="insights-recommendation-priority ' + priority.toLowerCase() + '">' + priority + ' priority</span>' +
+        '<span class="insights-recommendation-priority ' + priority.toLowerCase() + '">' + escapeHtml(t('insights.ai.priority_suffix', { priority: priorityLabel })) + '</span>' +
         '</div>' +
         '</div>';
     });
@@ -332,7 +333,7 @@
    * Show error state for recommendations
    */
   function showRecommendationsError(container, message, errorCode) {
-    var retryText = errorCode === 'quota' ? 'Try again in a minute' : 'Try Again';
+    var retryText = errorCode === 'quota' ? t('insights.ai.try_again_minute') : t('insights.ai.try_again');
     
     container.innerHTML = '<div class="insights-error">' +
       '<svg class="insights-error-icon" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
@@ -356,13 +357,13 @@
     var diffMs = now - date;
     var diffMin = Math.floor(diffMs / 60000);
     
-    if (diffMin < 1) return 'just now';
-    if (diffMin < 60) return diffMin + ' minute' + (diffMin === 1 ? '' : 's') + ' ago';
-    
+    if (diffMin < 1) return t('common.relative.a_moment_ago');
+    if (diffMin < 60) return I18n.pluralize(diffMin, 'common.relative.minutes_ago');
+
     var diffHour = Math.floor(diffMin / 60);
-    if (diffHour < 24) return diffHour + ' hour' + (diffHour === 1 ? '' : 's') + ' ago';
-    
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+    if (diffHour < 24) return I18n.pluralize(diffHour, 'common.relative.hours_ago');
+
+    return date.toLocaleDateString((window.I18n && I18n.locale) || 'en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
   }
 
   /**

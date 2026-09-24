@@ -4529,7 +4529,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
       // Get user name for display - prefer the server-resolved display name
       // (full name or account email), then the raw event email local-part.
-      var userName = evt.user_name || (evt.user_email ? evt.user_email.split('@')[0] : 'System');
+      var userName = evt.user_name || (evt.user_email ? evt.user_email.split('@')[0] : t('cases.activity.timeline.system'));
       userName = userName.charAt(0).toUpperCase() + userName.slice(1);
 
       // Check if this is a revision/regression event (backward move)
@@ -4539,12 +4539,13 @@ document.addEventListener('DOMContentLoaded', function () {
       }
 
       var description = '';
+      var evKey = 'cases.activity.events.';
       switch (evt.event_type) {
         case 'case_created':
           if (evt.meta && evt.meta.source === 'integration:open_dental') {
-            description = 'Case automatically created from Open Dental';
+            description = t(evKey + 'created_integration');
           } else {
-            description = 'Case created by ' + userName;
+            description = t(evKey + 'created', { user: userName });
           }
           break;
         case 'case_updated':
@@ -4572,29 +4573,29 @@ document.addEventListener('DOMContentLoaded', function () {
                 var change = evt.meta.field_changes[field];
                 var fieldName = fieldMap[field] || field.replace(/([A-Z])/g, ' $1').replace(/^./, function(str) { return str.toUpperCase(); });
                 if (change.old && change.new) {
-                  changeDetails.push(fieldName + ': "' + change.old + '" → "' + change.new + '"');
+                  changeDetails.push(t(evKey + 'field_changed', { field: fieldName, old: change.old, new: change.new }));
                 } else if (change.new) {
-                  changeDetails.push(fieldName + ' set to "' + change.new + '"');
+                  changeDetails.push(t(evKey + 'field_set', { field: fieldName, new: change.new }));
                 } else if (change.old) {
-                  changeDetails.push(fieldName + ' cleared (was "' + change.old + '")');
+                  changeDetails.push(t(evKey + 'field_cleared', { field: fieldName, old: change.old }));
                 }
               });
               if (changeDetails.length > 0) {
-                description = 'Updated by ' + userName + ': ' + changeDetails.join('; ');
+                description = t(evKey + 'updated_with_details', { user: userName, details: changeDetails.join('; ') });
               } else {
                 var fieldNames = evt.meta.changed_fields.map(function(field) {
                   return fieldMap[field] || field.replace(/([A-Z])/g, ' $1').replace(/^./, function(str) { return str.toUpperCase(); });
                 });
-                description = 'Updated ' + fieldNames.join(', ') + ' by ' + userName;
+                description = t(evKey + 'updated_fields', { fields: fieldNames.join(', '), user: userName });
               }
             } else {
               var fieldNames = evt.meta.changed_fields.map(function(field) {
                 return fieldMap[field] || field.replace(/([A-Z])/g, ' $1').replace(/^./, function(str) { return str.toUpperCase(); });
               });
-              description = 'Updated ' + fieldNames.join(', ') + ' by ' + userName;
+              description = t(evKey + 'updated_fields', { fields: fieldNames.join(', '), user: userName });
             }
           } else {
-            description = 'Case updated by ' + userName;
+            description = t(evKey + 'updated', { user: userName });
           }
           break;
         case 'status_changed':
@@ -4604,11 +4605,11 @@ document.addEventListener('DOMContentLoaded', function () {
           var statusChangedOldLabel = evt.old_status ? getStageLabel(evt.old_status) : evt.old_status;
           var statusChangedNewLabel = evt.new_status ? getStageLabel(evt.new_status) : evt.new_status;
           if (statusChangedOldLabel && statusChangedNewLabel) {
-            description = 'Changed status from ' + statusChangedOldLabel + ' to ' + statusChangedNewLabel + ' by ' + userName;
+            description = t(evKey + 'status_from_to', { old: statusChangedOldLabel, new: statusChangedNewLabel, user: userName });
           } else if (statusChangedNewLabel) {
-            description = 'Changed status to ' + statusChangedNewLabel + ' by ' + userName;
+            description = t(evKey + 'status_to', { new: statusChangedNewLabel, user: userName });
           } else {
-            description = 'Status changed by ' + userName;
+            description = t(evKey + 'status_changed', { user: userName });
           }
           break;
         case 'case_revision':
@@ -4616,81 +4617,81 @@ document.addEventListener('DOMContentLoaded', function () {
           var revisionOldLabel = evt.old_status ? getStageLabel(evt.old_status) : evt.old_status;
           var revisionNewLabel = evt.new_status ? getStageLabel(evt.new_status) : evt.new_status;
           if (revisionOldLabel && revisionNewLabel) {
-            description = 'Changed status from ' + revisionOldLabel + ' to ' + revisionNewLabel + ' (revision) by ' + userName;
+            description = t(evKey + 'status_from_to_revision', { old: revisionOldLabel, new: revisionNewLabel, user: userName });
           } else if (revisionNewLabel) {
-            description = 'Changed status to ' + revisionNewLabel + ' (revision) by ' + userName;
+            description = t(evKey + 'status_to_revision', { new: revisionNewLabel, user: userName });
           } else {
-            description = 'Status changed (revision) by ' + userName;
+            description = t(evKey + 'status_changed_revision', { user: userName });
           }
           break;
         case 'attachments_added':
           var fileCount = (evt.meta && evt.meta.count) || (evt.meta && evt.meta.attachment_count) || 1;
           if (evt.meta && evt.meta.file_names && Array.isArray(evt.meta.file_names)) {
-            description = 'Added ' + fileCount + ' file' + (fileCount !== 1 ? 's' : '') + ': ' + evt.meta.file_names.join(', ') + ' by ' + userName;
+            description = I18n.pluralize(fileCount, evKey + 'files_added_named', { count: fileCount, files: evt.meta.file_names.join(', '), user: userName });
           } else {
-            description = 'Added ' + fileCount + ' file' + (fileCount !== 1 ? 's' : '') + ' by ' + userName;
+            description = I18n.pluralize(fileCount, evKey + 'files_added', { count: fileCount, user: userName });
           }
           break;
         case 'attachments_updated':
-          description = 'Files updated by ' + userName;
+          description = t(evKey + 'files_updated', { user: userName });
           break;
         case 'attachments_deleted':
         case 'attachment_deleted':
           var deletedCount = (evt.meta && evt.meta.files_deleted) || 1;
-          description = 'Deleted ' + deletedCount + ' file' + (deletedCount !== 1 ? 's' : '') + ' by ' + userName;
+          description = I18n.pluralize(deletedCount, evKey + 'files_deleted', { count: deletedCount, user: userName });
           break;
         case 'notes_updated':
           if (evt.meta && evt.meta.note_preview) {
-            description = 'Added note by ' + userName + ': "' + evt.meta.note_preview + '"';
+            description = t(evKey + 'note_added', { user: userName, preview: evt.meta.note_preview });
           } else if (evt.meta && evt.meta.notes_length) {
-            description = 'Updated notes (' + evt.meta.notes_length + ' chars) by ' + userName;
+            description = t(evKey + 'notes_updated_length', { user: userName, length: evt.meta.notes_length });
           } else {
-            description = 'Updated notes by ' + userName;
+            description = t(evKey + 'notes_updated', { user: userName });
           }
           break;
         case 'assignment_set':
         case 'assignment_changed':
           if (evt.meta && evt.meta.old_assigned_to && evt.meta.assigned_to) {
-            description = 'Reassigned from ' + evt.meta.old_assigned_to + ' to ' + evt.meta.assigned_to + ' by ' + userName;
+            description = t(evKey + 'reassigned', { old: evt.meta.old_assigned_to, new: evt.meta.assigned_to, user: userName });
           } else if (evt.meta && evt.meta.assigned_to) {
-            description = 'Assigned to ' + evt.meta.assigned_to + ' by ' + userName;
+            description = t(evKey + 'assigned', { name: evt.meta.assigned_to, user: userName });
           } else {
-            description = 'Assignment updated by ' + userName;
+            description = t(evKey + 'assignment_updated', { user: userName });
           }
           break;
         case 'assignment_cleared':
           if (evt.meta && evt.meta.old_assigned_to) {
-            description = 'Assignment cleared (was ' + evt.meta.old_assigned_to + ') by ' + userName;
+            description = t(evKey + 'assignment_cleared_was', { name: evt.meta.old_assigned_to, user: userName });
           } else {
-            description = 'Assignment cleared by ' + userName;
+            description = t(evKey + 'assignment_cleared', { user: userName });
           }
           break;
         case 'labels_updated':
           if (evt.meta && evt.meta.labels_added && evt.meta.labels_added.length > 0) {
-            description = 'Added label' + (evt.meta.labels_added.length > 1 ? 's' : '') + ': ' + evt.meta.labels_added.join(', ') + ' by ' + userName;
+            description = I18n.pluralize(evt.meta.labels_added.length, evKey + 'labels_added', { labels: evt.meta.labels_added.join(', '), user: userName });
           } else if (evt.meta && evt.meta.labels_removed && evt.meta.labels_removed.length > 0) {
-            description = 'Removed label' + (evt.meta.labels_removed.length > 1 ? 's' : '') + ': ' + evt.meta.labels_removed.join(', ') + ' by ' + userName;
+            description = I18n.pluralize(evt.meta.labels_removed.length, evKey + 'labels_removed', { labels: evt.meta.labels_removed.join(', '), user: userName });
           } else {
-            description = 'Labels updated by ' + userName;
+            description = t(evKey + 'labels_updated', { user: userName });
           }
           break;
         case 'due_date_changed':
           if (evt.meta && evt.meta.old_due_date && evt.meta.new_due_date) {
-            description = 'Due date changed from ' + evt.meta.old_due_date + ' to ' + evt.meta.new_due_date + ' by ' + userName;
+            description = t(evKey + 'due_date_from_to', { old: evt.meta.old_due_date, new: evt.meta.new_due_date, user: userName });
           } else if (evt.meta && evt.meta.new_due_date) {
-            description = 'Due date set to ' + evt.meta.new_due_date + ' by ' + userName;
+            description = t(evKey + 'due_date_set', { new: evt.meta.new_due_date, user: userName });
           } else {
-            description = 'Due date changed by ' + userName;
+            description = t(evKey + 'due_date_changed', { user: userName });
           }
           break;
         case 'case_archived':
-          description = 'Case archived by ' + userName;
+          description = t(evKey + 'archived', { user: userName });
           break;
         case 'case_archived_auto':
-          description = 'Case automatically archived';
+          description = t(evKey + 'archived_auto');
           break;
         case 'case_restored':
-          description = 'Case restored by ' + userName;
+          description = t(evKey + 'restored', { user: userName });
           break;
         case 'remake_initiated':
           var remakeReasonLabel = evt.meta && evt.meta.remake_reason ? t('remakes.reasons.' + evt.meta.remake_reason) : '';
@@ -4698,21 +4699,26 @@ document.addEventListener('DOMContentLoaded', function () {
           if (remakeReasonLabel && remakeReasonLabel.indexOf('remakes.') === 0) remakeReasonLabel = '';
           if (remakeAttributionLabel && remakeAttributionLabel.indexOf('remakes.') === 0) remakeAttributionLabel = '';
           var remakeDetail = remakeReasonLabel + (remakeAttributionLabel ? ' (' + remakeAttributionLabel + ')' : '');
-          description = 'Remake #' + (evt.meta && evt.meta.remake_number || '?') +
-            (remakeDetail ? ' recorded: ' + remakeDetail : ' recorded') + ' by ' + userName;
+          var remakeNumber = (evt.meta && evt.meta.remake_number) || '?';
+          description = remakeDetail
+            ? t(evKey + 'remake_recorded', { number: remakeNumber, detail: remakeDetail, user: userName })
+            : t(evKey + 'remake_recorded_simple', { number: remakeNumber, user: userName });
           break;
         case 'remake_completed':
-          description = 'Remake #' + (evt.meta && evt.meta.remake_number || '?') + ' marked complete by ' + userName;
+          description = t(evKey + 'remake_completed', { number: (evt.meta && evt.meta.remake_number) || '?', user: userName });
           break;
         case 'source_deleted':
           if (evt.meta && evt.meta.source === 'integration:open_dental') {
-            description = 'Source lab case was deleted in Open Dental';
+            description = t(evKey + 'source_deleted_integration');
           } else {
-            description = 'Source record was deleted in the connected system';
+            description = t(evKey + 'source_deleted');
           }
           break;
         default:
-          description = (evt.event_type || 'Activity').replace(/_/g, ' ').replace(/\b\w/g, function(l) { return l.toUpperCase(); }) + ' by ' + userName;
+          description = t(evKey + 'generic', {
+            event: (evt.event_type || 'Activity').replace(/_/g, ' ').replace(/\b\w/g, function(l) { return l.toUpperCase(); }),
+            user: userName
+          });
           break;
       }
 
@@ -6255,7 +6261,7 @@ document.addEventListener('DOMContentLoaded', function () {
             nameSpan.target = '_blank';
             nameSpan.rel = 'noopener noreferrer';
             nameSpan.style.cssText = 'color: #2563eb; text-decoration: none; cursor: pointer;';
-            nameSpan.title = 'Click to view: ' + displayName;
+            nameSpan.title = t('attachments.click_to_view', { name: displayName });
             nameSpan.textContent = displayName;
 
             // Add hover effect
@@ -6336,7 +6342,7 @@ document.addEventListener('DOMContentLoaded', function () {
           var deleteBtn = document.createElement('button');
           deleteBtn.type = 'button';
           deleteBtn.className = 'file-remove';
-          deleteBtn.title = 'Mark file for deletion (will be removed when you update the case)';
+          deleteBtn.title = t('attachments.mark_for_deletion');
           deleteBtn.textContent = '❌';
 
           // Add event listener directly to the button
@@ -7183,7 +7189,7 @@ document.addEventListener('DOMContentLoaded', function () {
         var deleteBtn = document.createElement('button');
         deleteBtn.type = 'button';
         deleteBtn.className = 'file-remove';
-        deleteBtn.title = 'Remove file';
+        deleteBtn.title = t('attachments.remove_file');
 
         // Assemble elements
         fileElement.appendChild(nameSpan);
@@ -7510,13 +7516,13 @@ document.addEventListener('DOMContentLoaded', function () {
         if (!response.ok) {
           // Read the response body to get the actual error message
           return response.text().then(text => {
-            var errorMessage = 'Server error (status ' + response.status + ')';
+            var errorMessage = t('errors.server_error_status', { status: response.status });
             try {
               var errorData = JSON.parse(text);
 
               // Handle 401 Unauthorized (session expired during upload)
               if (response.status === 401) {
-                var sessionError = new Error('Your session expired during upload. Please log in again. Your files were uploaded successfully and can be attached after re-authentication.');
+                var sessionError = new Error(t('cases.toast.session_expired_upload'));
                 sessionError.sessionExpired = true;
                 sessionError.uploadedFiles = gcsFiles; // Preserve uploaded file paths
                 throw sessionError;
@@ -7524,7 +7530,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
               // Handle 409 Conflict (concurrent edit detected)
               if (response.status === 409 && errorData.conflict) {
-                var conflictError = new Error(errorData.message || 'This case was modified by another user.');
+                var conflictError = new Error(errorData.message || t('cases.toast.modified_by_other'));
                 conflictError.conflict = true;
                 conflictError.currentData = errorData.currentData;
                 conflictError.currentVersion = errorData.currentVersion;
@@ -8576,7 +8582,7 @@ document.addEventListener('DOMContentLoaded', function () {
         // Handle 409 Conflict (concurrent edit)
         if (response.status === 409) {
           return response.json().then(data => {
-            var conflictError = new Error(data.message || 'This case was modified by another user.');
+            var conflictError = new Error(data.message || t('cases.toast.modified_by_other'));
             conflictError.conflict = true;
             conflictError.currentData = data.currentData;
             throw conflictError;
@@ -9541,7 +9547,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Build clinical Risk Summary HTML
     // Icon: small circle with dot (subtle indicator, not warning triangle)
-    var indicatorHtml = '<div id="caseDetailAtRisk" class="case-detail-at-risk" title="Click to view revision history">' +
+    var indicatorHtml = '<div id="caseDetailAtRisk" class="case-detail-at-risk" title="' + escapeHtml(t('cases.history.click_to_view')) + '">' +
       '<div class="case-detail-at-risk-icon">' +
       '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
       '<circle cx="12" cy="12" r="10"></circle>' +
@@ -10721,7 +10727,7 @@ document.addEventListener('DOMContentLoaded', function () {
       } catch (parseErr) {
         // Non-JSON response body (e.g. an HTML error page).
       }
-      return t('attachments.download_all_failed', { message: 'Unexpected response from the server' });
+      return t('attachments.download_all_failed', { message: t('errors.unexpected_response') });
     } catch (e) {
       return null;
     }
@@ -10772,7 +10778,7 @@ document.addEventListener('DOMContentLoaded', function () {
     })
     .then(function(response) {
       return response.json().catch(function() {
-        throw new Error(t('attachments.download_all_failed', { message: 'Unexpected response from the server' }));
+        throw new Error(t('attachments.download_all_failed', { message: t('errors.unexpected_response') }));
       });
     })
     .then(function(data) {

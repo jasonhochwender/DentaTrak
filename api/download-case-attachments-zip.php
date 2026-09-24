@@ -48,7 +48,7 @@ setApiSecurityHeaders();
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     http_response_code(405);
     header('Content-Type: application/json');
-    echo json_encode(['success' => false, 'error' => 'Method not allowed']);
+    echo json_encode(['success' => false, 'error' => t('api.attachment_content.method_not_allowed')]);
     exit;
 }
 
@@ -66,7 +66,7 @@ $userId = $_SESSION['db_user_id'] ?? null;
 if (!$userId) {
     http_response_code(401);
     header('Content-Type: application/json');
-    echo json_encode(['success' => false, 'error' => 'Authentication required']);
+    echo json_encode(['success' => false, 'error' => t('api.attachment_content.authentication_required')]);
     exit;
 }
 
@@ -94,7 +94,7 @@ if (!is_string($downloadToken) || !preg_match('/^[A-Za-z0-9_-]{8,64}$/', $downlo
 if (empty($caseId)) {
     http_response_code(400);
     header('Content-Type: application/json');
-    echo json_encode(['success' => false, 'error' => 'Missing required field: case_id']);
+    echo json_encode(['success' => false, 'error' => t('api.download.missing_case_id')]);
     exit;
 }
 
@@ -114,7 +114,7 @@ try {
     http_response_code(500);
     header('Content-Type: application/json');
     // Bare reason only: the client wraps it in the localized failure template.
-    echo json_encode(['success' => false, 'error' => 'Storage backend unavailable']);
+    echo json_encode(['success' => false, 'error' => t('api.download.storage_unavailable')]);
     exit;
 }
 

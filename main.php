@@ -1022,14 +1022,14 @@ endif;
         </div>
       </div>
 
-      <nav class="mobile-kanban-nav" id="mobileKanbanNav" aria-label="Workflow columns">
-        <button type="button" id="mobileKanbanPrev" class="mobile-kanban-prev" aria-label="Previous workflow column" disabled>&lsaquo;</button>
-        <select class="mobile-kanban-select" id="mobileKanbanSelect" aria-label="Select workflow column">
+      <nav class="mobile-kanban-nav" id="mobileKanbanNav" aria-label="<?= htmlspecialchars(t('cases.mobile_nav.columns')) ?>">
+        <button type="button" id="mobileKanbanPrev" class="mobile-kanban-prev" aria-label="<?= htmlspecialchars(t('cases.mobile_nav.prev')) ?>" disabled>&lsaquo;</button>
+        <select class="mobile-kanban-select" id="mobileKanbanSelect" aria-label="<?= htmlspecialchars(t('cases.mobile_nav.select')) ?>">
           <?php foreach ($resolvedWorkflowStageLabels as $status => $label): ?>
             <option value="<?= htmlspecialchars($status) ?>"><?= htmlspecialchars($label) ?></option>
           <?php endforeach; ?>
         </select>
-        <button type="button" id="mobileKanbanNext" class="mobile-kanban-next" aria-label="Next workflow column">&rsaquo;</button>
+        <button type="button" id="mobileKanbanNext" class="mobile-kanban-next" aria-label="<?= htmlspecialchars(t('cases.mobile_nav.next')) ?>">&rsaquo;</button>
         <span class="sr-only" id="kanbanNavAnnouncer" aria-live="polite" aria-atomic="true"></span>
       </nav>
 
@@ -2960,7 +2960,7 @@ endif;
                             <?php if ($baaAcceptedDisplay && $baaAcceptedAtDisplay): ?>
                             <div class="baa-info-item">
                               <span class="baa-info-label"><?php echo t('settings.practice.baa.accepted'); ?></span>
-                              <span class="baa-info-value"><?= htmlspecialchars(date('M j, Y, g:i A', strtotime($baaAcceptedAtDisplay))) ?></span>
+                              <span class="baa-info-value"><?= htmlspecialchars(formatDateTime($baaAcceptedAtDisplay, 'medium')) ?></span>
                             </div>
                             
                             <div class="baa-info-item">

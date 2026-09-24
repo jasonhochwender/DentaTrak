@@ -22,17 +22,17 @@
     var diffWeek = Math.floor(diffDay / 7);
     
     if (diffSec < 60) {
-      return 'now';
+      return t('cases.activity.timeline.rel_now');
     } else if (diffMin < 60) {
-      return diffMin + 'm';
+      return t('cases.activity.timeline.rel_min', { count: diffMin });
     } else if (diffHour < 24) {
-      return diffHour + 'h';
+      return t('cases.activity.timeline.rel_hour', { count: diffHour });
     } else if (diffDay < 7) {
-      return diffDay + 'd';
+      return t('cases.activity.timeline.rel_day', { count: diffDay });
     } else if (diffWeek < 4) {
-      return diffWeek + 'w';
+      return t('cases.activity.timeline.rel_week', { count: diffWeek });
     } else {
-      return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      return date.toLocaleDateString((window.I18n && I18n.locale) || 'en-US', { month: 'short', day: 'numeric' });
     }
   }
 
@@ -48,18 +48,19 @@
     var newStatus = event.new_status ? getStageLabel(event.new_status) : event.new_status;
     var meta = event.meta || {};
     
+    var tlKey = 'cases.activity.timeline.';
     switch (eventType) {
       case 'case_created':
-        return 'Created';
+        return t(tlKey + 'created');
       
       case 'status_changed':
         if (newStatus) {
-          return 'Changed status to ' + newStatus;
+          return t(tlKey + 'status_to', { status: newStatus });
         }
-        return 'Changed status';
+        return t(tlKey + 'status_changed');
       
       case 'assignment_changed':
-        return 'Reassigned';
+        return t(tlKey + 'reassigned');
       
       case 'case_updated':
       case 'fields_updated':
@@ -67,59 +68,59 @@
           if (meta.changed_fields.length === 1) {
             return formatFieldName(meta.changed_fields[0]);
           }
-          return meta.changed_fields.length + ' fields';
+          return I18n.pluralize(meta.changed_fields.length, tlKey + 'fields_count', { count: meta.changed_fields.length });
         }
-        return 'Updated';
+        return t(tlKey + 'updated');
       
       case 'notes_updated':
-        return 'Added note';
+        return t(tlKey + 'note_added');
       
       case 'attachments_added':
         var count = meta.count || meta.attachment_count || 1;
-        return count === 1 ? '+1 file' : '+' + count + ' files';
+        return I18n.pluralize(count, tlKey + 'file_added', { count: count });
       
       case 'attachment_deleted':
-        return '-1 file';
+        return t(tlKey + 'file_removed');
       
       case 'case_archived':
-        return 'Archived';
+        return t(tlKey + 'archived');
       
       case 'case_restored':
-        return 'Restored';
+        return t(tlKey + 'restored');
 
       case 'remake_initiated':
         var remakeReason = meta.remake_reason ? t('remakes.reasons.' + meta.remake_reason) : '';
         if (remakeReason && remakeReason.indexOf('remakes.') !== 0) {
-          return 'Remake #' + (meta.remake_number || '?') + ' - ' + remakeReason;
+          return t(tlKey + 'remake_reason', { number: (meta.remake_number || '?'), reason: remakeReason });
         }
-        return 'Remake #' + (meta.remake_number || '?') + ' recorded';
+        return t(tlKey + 'remake_recorded', { number: (meta.remake_number || '?') });
 
       case 'remake_completed':
-        return 'Remake #' + (meta.remake_number || '?') + ' completed';
+        return t(tlKey + 'remake_completed', { number: (meta.remake_number || '?') });
       
       case 'labels_updated':
-        return 'Labels';
+        return t(tlKey + 'labels');
       
       case 'due_date_changed':
-        return (meta.due_date_removed ? 'Due date removed' : 'Due date');
+        return t(tlKey + (meta.due_date_removed ? 'due_date_removed' : 'due_date'));
       
       case 'case_revision':
         if (newStatus) {
-          return 'Changed status to ' + newStatus;
+          return t(tlKey + 'status_to', { status: newStatus });
         }
-        return 'Changed status to ' + (typeof getStageLabel === 'function' ? getStageLabel('Originated') : 'Originated');
+        return t(tlKey + 'status_to', { status: (typeof getStageLabel === 'function' ? getStageLabel('Originated') : 'Originated') });
       
       case 'case_regression':
         if (newStatus) {
-          return 'Changed status to ' + newStatus;
+          return t(tlKey + 'status_to', { status: newStatus });
         }
-        return 'Changed status';
+        return t(tlKey + 'status_changed');
 
       case 'review_status_changed':
         if (newStatus === 'reviewed') {
-          return 'Marked ' + t('cases.reviewed').toLowerCase();
+          return t(tlKey + 'review_marked', { status: t('cases.reviewed').toLowerCase() });
         }
-        return 'Marked ' + t('cases.needs_review').toLowerCase();
+        return t(tlKey + 'review_marked', { status: t('cases.needs_review').toLowerCase() });
 
       default:
         return eventType.replace(/_/g, ' ').replace(/\b\w/g, function(l) {
@@ -132,21 +133,8 @@
    * Format field names for display
    */
   function formatFieldName(fieldName) {
-    var fieldMap = {
-      'patientFirstName': 'Name',
-      'patientLastName': 'Name',
-      'patientDOB': 'DOB',
-      'dentistName': 'Dentist',
-      'caseType': 'Type',
-      'toothShade': 'Shade',
-      'material': 'Material',
-      'dueDate': 'Due date',
-      'status': 'Status',
-      'assignedTo': 'Assigned',
-      'notes': 'Notes'
-    };
-    
-    return fieldMap[fieldName] || fieldName;
+    var translated = t('cases.activity.timeline.fields.' + fieldName);
+    return translated || fieldName;
   }
 
   /**
@@ -158,12 +146,12 @@
     
     var description = formatShortDescription(event);
     var time = formatShortTime(event.created_at);
-    var user = event.user_email ? event.user_email.split('@')[0] : 'System';
-    
-    chip.innerHTML = 
+    var user = event.user_email ? event.user_email.split('@')[0] : t('cases.activity.timeline.system');
+
+    chip.innerHTML =
       '<span class="activity-event-dot"></span>' +
       '<span class="activity-event-text">' + escapeHtml(description) + '</span>' +
-      '<span class="activity-event-user">by ' + escapeHtml(user) + '</span>' +
+      '<span class="activity-event-user">' + escapeHtml(t('cases.activity.timeline.by_user', { user: user })) + '</span>' +
       '<span class="activity-event-time">' + escapeHtml(time) + '</span>';
     
     // Add tooltip with full details
@@ -184,9 +172,10 @@
     var oldStatus = event.old_status ? getStageLabel(event.old_status) : event.old_status;
     var newStatus = event.new_status ? getStageLabel(event.new_status) : event.new_status;
     var meta = event.meta || {};
-    var user = event.user_email ? event.user_email.split('@')[0] : 'System';
+    var user = event.user_email ? event.user_email.split('@')[0] : t('cases.activity.timeline.system');
+    var tlKey = 'cases.activity.timeline.';
     var date = new Date(event.created_at);
-    var dateStr = date.toLocaleDateString('en-US', { 
+    var dateStr = date.toLocaleDateString((window.I18n && I18n.locale) || 'en-US', {
       month: 'short', day: 'numeric', year: 'numeric',
       hour: 'numeric', minute: '2-digit'
     });
@@ -195,51 +184,51 @@
     
     switch (eventType) {
       case 'case_created':
-        desc = 'Case created';
+        desc = t(tlKey + 'full_created');
         break;
       case 'status_changed':
         if (oldStatus && newStatus) {
-          desc = 'Changed status from ' + oldStatus + ' to ' + newStatus;
+          desc = t(tlKey + 'full_status_from_to', { old: oldStatus, new: newStatus });
         } else if (newStatus) {
-          desc = 'Changed status to ' + newStatus;
+          desc = t(tlKey + 'full_status_to', { new: newStatus });
         } else {
-          desc = 'Changed status';
+          desc = t(tlKey + 'full_status_changed');
         }
         break;
       case 'assignment_changed':
-        desc = 'Case reassigned';
+        desc = t(tlKey + 'full_reassigned');
         break;
       case 'case_updated':
       case 'fields_updated':
         if (meta.changed_fields && Array.isArray(meta.changed_fields)) {
-          desc = 'Updated: ' + meta.changed_fields.join(', ');
+          desc = t(tlKey + 'full_updated_fields', { fields: meta.changed_fields.join(', ') });
         } else {
-          desc = 'Case details updated';
+          desc = t(tlKey + 'full_updated');
         }
         break;
       case 'attachments_added':
         var count = meta.count || meta.attachment_count || 1;
-        desc = count + ' attachment(s) added';
+        desc = I18n.pluralize(count, tlKey + 'full_attachments_added', { count: count });
         break;
       case 'attachment_deleted':
-        desc = 'Attachment removed';
+        desc = t(tlKey + 'full_attachment_removed');
         break;
       case 'case_revision':
         if (oldStatus && newStatus) {
-          desc = 'Changed status from ' + oldStatus + ' to ' + newStatus + ' (revision)';
+          desc = t(tlKey + 'full_status_from_to_revision', { old: oldStatus, new: newStatus });
         } else if (newStatus) {
-          desc = 'Changed status to ' + newStatus + ' (revision)';
+          desc = t(tlKey + 'full_status_to_revision', { new: newStatus });
         } else {
-          desc = 'Changed status to ' + (typeof getStageLabel === 'function' ? getStageLabel('Originated') : 'Originated') + ' (revision)';
+          desc = t(tlKey + 'full_status_to_revision', { new: (typeof getStageLabel === 'function' ? getStageLabel('Originated') : 'Originated') });
         }
         break;
       case 'case_regression':
         if (oldStatus && newStatus) {
-          desc = 'Changed status from ' + oldStatus + ' to ' + newStatus + ' (revision)';
+          desc = t(tlKey + 'full_status_from_to_revision', { old: oldStatus, new: newStatus });
         } else if (newStatus) {
-          desc = 'Changed status to ' + newStatus + ' (revision)';
+          desc = t(tlKey + 'full_status_to_revision', { new: newStatus });
         } else {
-          desc = 'Changed status (revision)';
+          desc = t(tlKey + 'full_status_changed_revision');
         }
         break;
       case 'review_status_changed':
@@ -248,18 +237,18 @@
         var resolvedOld = oldStatus === 'reviewed' ? reviewLabelReviewed : (oldStatus === 'needs_review' ? reviewLabelNeedsReview : oldStatus);
         var resolvedNew = newStatus === 'reviewed' ? reviewLabelReviewed : (newStatus === 'needs_review' ? reviewLabelNeedsReview : newStatus);
         if (resolvedOld && resolvedNew) {
-          desc = 'Review status changed from ' + resolvedOld + ' to ' + resolvedNew;
+          desc = t(tlKey + 'full_review_from_to', { old: resolvedOld, new: resolvedNew });
         } else if (resolvedNew) {
-          desc = 'Review status changed to ' + resolvedNew;
+          desc = t(tlKey + 'full_review_to', { new: resolvedNew });
         } else {
-          desc = 'Review status changed';
+          desc = t(tlKey + 'full_review_changed');
         }
         break;
       default:
         desc = eventType.replace(/_/g, ' ');
     }
     
-    return desc + '\nBy ' + user + '\n' + dateStr;
+    return desc + '\n' + t(tlKey + 'by_user_line', { user: user }) + '\n' + dateStr;
   }
 
   /**
@@ -294,7 +283,7 @@
     container.style.display = 'block';
     
     // Show loading state
-    content.innerHTML = '<div class="activity-loading"><div class="activity-loading-spinner"></div>Loading...</div>';
+    content.innerHTML = '<div class="activity-loading"><div class="activity-loading-spinner"></div>' + escapeHtml(t('common.loading')) + '</div>';
     
     // Fetch activity data
     fetch('api/get-case-activity.php?caseId=' + encodeURIComponent(caseId), {
@@ -305,7 +294,7 @@
     })
     .then(function(data) {
       if (!data.success || !data.events || data.events.length === 0) {
-        content.innerHTML = '<p class="activity-empty-state">No activity recorded yet.</p>';
+        content.innerHTML = '<p class="activity-empty-state">' + escapeHtml(t('cases.activity.empty')) + '</p>';
         return;
       }
       
@@ -331,7 +320,7 @@
     })
     .catch(function(error) {
       console.error('Error loading activity timeline:', error);
-      content.innerHTML = '<p class="activity-empty-state">Unable to load activity.</p>';
+      content.innerHTML = '<p class="activity-empty-state">' + escapeHtml(t('cases.activity.error')) + '</p>';
     });
   };
 
@@ -351,7 +340,7 @@
   window.clearActivityTimeline = function() {
     var content = document.getElementById('activityTimelineContent');
     if (content) {
-      content.innerHTML = '<p class="activity-empty-state">No activity recorded yet.</p>';
+      content.innerHTML = '<p class="activity-empty-state">' + escapeHtml(t('cases.activity.empty')) + '</p>';
     }
     hideActivityTimeline();
   };

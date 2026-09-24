@@ -31,7 +31,7 @@ setApiSecurityHeaders();
 // Only accept POST
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     http_response_code(405);
-    echo json_encode(['success' => false, 'error' => 'Method not allowed']);
+    echo json_encode(['success' => false, 'error' => t('api.attachment_content.method_not_allowed')]);
     exit;
 }
 
@@ -41,7 +41,7 @@ $userId = $_SESSION['db_user_id'] ?? null;
 
 if (!$userId) {
     http_response_code(401);
-    echo json_encode(['success' => false, 'error' => 'Authentication required']);
+    echo json_encode(['success' => false, 'error' => t('api.attachment_content.authentication_required')]);
     exit;
 }
 
@@ -54,7 +54,7 @@ try {
     
     if (!$input) {
         http_response_code(400);
-        echo json_encode(['success' => false, 'error' => 'Invalid JSON request body']);
+        echo json_encode(['success' => false, 'error' => t('api.attachment_content.invalid_json')]);
         exit;
     }
 
@@ -63,7 +63,7 @@ try {
 
     if (empty($storagePath)) {
         http_response_code(400);
-        echo json_encode(['success' => false, 'error' => 'Missing required field: storage_path']);
+        echo json_encode(['success' => false, 'error' => t('api.attachment_content.missing_storage_path')]);
         exit;
     }
 
@@ -76,7 +76,7 @@ try {
             'attempted_practice_id' => explode('/', $storagePath)[1] ?? '',
         ]);
         http_response_code(403);
-        echo json_encode(['success' => false, 'error' => 'Access denied']);
+        echo json_encode(['success' => false, 'error' => t('api.attachment_content.access_denied')]);
         exit;
     }
 
@@ -87,7 +87,7 @@ try {
             'reason' => 'path_traversal',
         ]);
         http_response_code(400);
-        echo json_encode(['success' => false, 'error' => 'Invalid storage path']);
+        echo json_encode(['success' => false, 'error' => t('api.attachment_content.invalid_storage_path')]);
         exit;
     }
 
@@ -123,5 +123,5 @@ try {
 } catch (Exception $e) {
     error_log('[DownloadURL] Error generating signed URL: ' . $e->getMessage());
     http_response_code(500);
-    echo json_encode(['success' => false, 'error' => 'Failed to generate download URL. Please try again.']);
+    echo json_encode(['success' => false, 'error' => t('api.download.url_failed')]);
 }

@@ -27,7 +27,7 @@ $mainUrl = rtrim($appConfig['baseUrl'] ?? '', '/') . '/main.php';
 $termsUrl = rtrim($appConfig['baseUrl'] ?? '', '/') . '/terms.php';
 $privacyUrl = rtrim($appConfig['baseUrl'] ?? '', '/') . '/privacy.php';
 $termsVersion = currentTermsVersion();
-$termsDisplayDate = date('F j, Y', strtotime($termsVersion));
+$termsDisplayDate = formatDate(strtotime($termsVersion), 'long');
 
 function getSafeReturnUrl(string $returnTo, string $baseUrl): string {
     $main = rtrim($baseUrl, '/') . '/main.php';
@@ -77,8 +77,8 @@ if (hasAcceptedCurrentTerms($userId)) {
     $alreadyAccepted = true;
 } else {
     $alreadyAccepted = false;
-    $csrfToken = generateCsrfToken();
 }
+$csrfToken = $csrfToken ?? generateCsrfToken();
 
 $appName = $appConfig['appName'] ?? 'DentaTrak';
 ?><!DOCTYPE html>
@@ -197,6 +197,9 @@ $appName = $appConfig['appName'] ?? 'DentaTrak';
 </head>
 <body>
     <div class="terms-container">
+        <div style="display: flex; justify-content: flex-end; margin-bottom: 12px;">
+            <?php echo renderLanguageSelector('api/save-user-language.php', getResolvedLocale(), false, $csrfToken); ?>
+        </div>
         <div class="terms-card">
             <?php if ($alreadyAccepted): ?>
                 <h1><?php echo t('terms.already_accepted_title'); ?></h1>
