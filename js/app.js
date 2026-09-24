@@ -3191,6 +3191,32 @@ document.addEventListener('DOMContentLoaded', function () {
   // reuse the exact same tooltip markup/style instead of duplicating it.
   window.createInfoTooltip = createInfoTooltip;
 
+  // Display & Behavior tooltips: the setting label text itself is the
+  // trigger (dotted underline), no separate info icon. Reuses
+  // createInfoTooltip's bubble/id so the shared .dt-tooltip-trigger layer
+  // handling (hover, focus, click, Escape) applies unchanged.
+  [
+    ['caseReviewTrackingEnabled', 'settings.display.case_review.tooltip'],
+    ['highlightPastDue', 'settings.display.past_due.tooltip'],
+    ['highlightComingDue', 'settings.display.coming_due.tooltip'],
+    ['highlightAppointmentRisk', 'settings.display.appointment_risk.tooltip']
+  ].forEach(function(pair) {
+    var lbl = document.querySelector('label[for="' + pair[0] + '"]');
+    if (!lbl) {
+      return;
+    }
+    var bubble = createInfoTooltip(t(pair[1])).querySelector('.dt-tooltip-bubble');
+    var trigger = document.createElement('span');
+    trigger.className = 'dt-tooltip-trigger dt-tooltip-text';
+    trigger.tabIndex = 0;
+    trigger.setAttribute('aria-describedby', bubble.id);
+    while (lbl.firstChild) {
+      trigger.appendChild(lbl.firstChild);
+    }
+    lbl.appendChild(trigger);
+    lbl.appendChild(bubble);
+  });
+
   // Body-level tooltip layer shared by every .dt-tooltip-trigger. Positioned
   // from the trigger's viewport rect (position: fixed), flips above/below and
   // clamps to the viewport, follows scroll/resize, and closes on Escape,

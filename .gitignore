@@ -49,6 +49,10 @@
 # Documentation folder (flyers, marketing materials)
 /documentation/
 
+# Internal security documentation - internal-only, never commit to the
+# public repository (incident response plan, incident records)
+/docs/security/
+
 # ===========================================
 # IDE & EDITOR FILES
 # ===========================================

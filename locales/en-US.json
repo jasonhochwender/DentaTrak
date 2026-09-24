@@ -731,19 +731,23 @@
             },
             "past_due": {
                 "label": "Highlight past due cases",
-                "days_label": "Days past due before highlighting:"
+                "days_label": "Days past due before highlighting:",
+                "tooltip": "Visually highlights cases after they have been past due for the configured number of days."
             },
             "coming_due": {
                 "label": "Highlight cases coming due",
-                "days_label": "Days before due:"
+                "days_label": "Days before due:",
+                "tooltip": "Visually highlights cases when they are within the configured number of days of their due date."
             },
             "appointment_risk": {
                 "label": "Highlight appointment risk",
-                "days_label": "Days before patient appointment:"
+                "days_label": "Days before patient appointment:",
+                "tooltip": "Highlights cases when the patient appointment is approaching within the configured number of days."
             },
             "case_review": {
                 "label": "Case Review Tracking",
-                "enable": "Enable case review tracking"
+                "enable": "Enable case review tracking",
+                "tooltip": "Marks cases for review when another user makes changes, helping ensure updates are acknowledged."
             },
             "google_drive": {
                 "label": "Backup case data to Google Drive",

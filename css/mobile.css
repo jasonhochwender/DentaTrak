@@ -1912,6 +1912,10 @@
     font-size: 14px;
   }
 
+  .option-row .past-due-inline-settings {
+    margin-left: 0;
+  }
+
   /* Gmail users container */
   .gmail-users-container {
     width: 100%;

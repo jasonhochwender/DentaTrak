@@ -213,10 +213,8 @@
 .past-due-inline-settings {
   display: flex;
   align-items: center;
-  width: 100%;
-  margin-left: 0;
-  margin-top: 8px;
-  padding-left: 28px;
+  flex-wrap: wrap;
+  margin-left: 20px;
   font-size: 13px;
 }
 
@@ -497,6 +495,32 @@ input#practiceName {
   font-size: 14px;
   color: var(--text-secondary);
   white-space: nowrap;
+}
+
+/* Label-as-tooltip-trigger (Display & Behavior help text): muted dotted
+   underline instead of the circular icon. Not a link — same text color,
+   no solid underline. */
+.option-row label .dt-tooltip-text {
+  display: inline;
+  width: auto;
+  height: auto;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  line-height: inherit;
+  cursor: help;
+  text-decoration: underline dotted var(--text-light);
+  text-underline-offset: 3px;
+}
+
+.option-row label .dt-tooltip-text:hover,
+.option-row label .dt-tooltip-text:focus-visible {
+  background: none;
+  color: inherit;
+  text-decoration-color: var(--text-secondary);
 }
 
 /* Make disabled settings more visually obvious */
