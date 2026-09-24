@@ -118,6 +118,13 @@ body {
 
 .nav-cta:hover { background: var(--primary-light); }
 
+@media (max-width: 480px) {
+  .site-header { padding: 0 16px; }
+  .nav-actions { gap: 10px; }
+  .nav-cta { padding: 8px 12px; font-size: 0.8rem; }
+  .language-selector-toggle { padding: 5px 8px; gap: 4px; font-size: 0.72rem; }
+}
+
 /* Breadcrumbs */
 .breadcrumb-bar {
   max-width: 800px;
