@@ -3315,6 +3315,16 @@ endif;
                             </div>
                           </div>
                         </div>
+
+                        <!-- Account Sessions Section -->
+                        <div class="security-section">
+                          <h4 class="subsection-title"><?php echo t('settings.security.sessions.title'); ?></h4>
+                          <p class="section-description"><?php echo t('settings.security.sessions.description'); ?></p>
+                          <button type="button" id="signOutOtherSessionsBtn" class="btn-secondary">
+                            <?php echo t('settings.security.sessions.button'); ?>
+                          </button>
+                          <div id="signOutSessionsError" class="form-error" style="display: none;" role="alert"></div>
+                        </div>
                         <?php if ($isCurrentUserPracticeAdmin): ?>
                         <!-- Practice-Wide 2FA Enforcement (owner/admin only) -->
                         <div class="security-section practice-2fa-section">

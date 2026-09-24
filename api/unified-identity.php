@@ -977,7 +977,8 @@ function setupUserSession($user, $authMethod = 'email') {
         $_SESSION['pending_2fa_timestamp'],
         $_SESSION['pending_2fa_auth_method'],
         $_SESSION['pending_2fa_user_data'],
-        $_SESSION['pending_2fa_db_user']
+        $_SESSION['pending_2fa_db_user'],
+        $_SESSION['pending_2fa_auth_version']
     );
 
     $_SESSION['db_user_id'] = $user['id'];
@@ -1002,6 +1003,12 @@ function setupUserSession($user, $authMethod = 'email') {
     // Start the inactivity clock at the moment of login.
     $_SESSION['last_activity'] = time();
     $_SESSION['last_user_action_at'] = time();
+
+    // Stamp the account session generation at the moment of authentication.
+    // Account-wide revocation increments users.session_version; request-time
+    // enforcement in session.php rejects any session whose stamp is older.
+    // Read AFTER session_regenerate_id() so the stamp lands on the new row.
+    $_SESSION['auth_version'] = getUserSessionVersion($user['id']);
 
     // Resolve and persist the active locale from user/practice preferences
     if (!empty($_SESSION['current_practice_id'])) {
@@ -1478,18 +1485,22 @@ function deleteRememberMeTokenBySelector($selector) {
  * 
  * @param int $userId User ID
  */
-function revokeAllRememberMeTokens($userId) {
+function revokeAllRememberMeTokens($userId, $throwOnError = false) {
     global $pdo;
-    
+
     if (!$pdo || !$userId) return;
-    
+
     ensureRememberMeTable();
-    
+
     try {
         $stmt = $pdo->prepare("DELETE FROM remember_me_tokens WHERE user_id = :user_id");
         $stmt->execute(['user_id' => $userId]);
     } catch (PDOException $e) {
-        // Silently fail - token cleanup is not critical
+        // Silently fail - token cleanup is not critical for legacy callers;
+        // security-sensitive callers pass $throwOnError for fail-closed use.
+        if ($throwOnError) {
+            throw $e;
+        }
     }
 
     // Stateless HMAC cookies (userId:expiry:signature) have no DB row - the
@@ -1501,8 +1512,114 @@ function revokeAllRememberMeTokens($userId) {
             $stmt->execute(['id' => $userId]);
         } catch (PDOException $e) {
             // Pre-migration schemas resolve to column-missing
+            if ($throwOnError) {
+                throw $e;
+            }
         }
     }
+}
+
+/**
+ * Whether users.session_version exists (pre-migration safe).
+ */
+function sessionVersionColumnExists() {
+    global $pdo;
+    static $exists = null;
+    if ($exists !== null) return $exists;
+    $exists = false;
+    try {
+        $exists = (bool)$pdo->query("SHOW COLUMNS FROM users LIKE 'session_version'")->fetch();
+    } catch (PDOException $e) {
+        $exists = false;
+    }
+    return $exists;
+}
+
+/**
+ * Current account session generation for a user. Sessions created before a
+ * revocation carry an older stamp (or none - pre-feature sessions read as 0)
+ * and are rejected by the request-time check in session.php.
+ *
+ * @param int $userId
+ * @return int Current session version (0 when the column is absent)
+ */
+function getUserSessionVersion($userId) {
+    global $pdo;
+    if (!$pdo || !$userId || !sessionVersionColumnExists()) {
+        return 0;
+    }
+    $stmt = $pdo->prepare("SELECT COALESCE(session_version, 0) FROM users WHERE id = :id");
+    $stmt->execute(['id' => (int)$userId]);
+    return (int)$stmt->fetchColumn();
+}
+
+/**
+ * Increment the user's session generation, invalidating every authenticated
+ * session stamped with an older version. Monotonic - a session can never
+ * become valid again, and a login racing the bump reads either the old
+ * version (its session then fails closed on the next request) or the new one.
+ *
+ * @param int $userId
+ * @return int The new session version
+ * @throws PDOException when the update fails - callers decide fail-open/closed
+ */
+function bumpUserSessionVersion($userId) {
+    global $pdo;
+    if (!$pdo || !$userId || !sessionVersionColumnExists()) {
+        return 0;
+    }
+    $stmt = $pdo->prepare("
+        UPDATE users SET session_version = COALESCE(session_version, 0) + 1 WHERE id = :id
+    ");
+    $stmt->execute(['id' => (int)$userId]);
+    return getUserSessionVersion($userId);
+}
+
+/**
+ * Account-wide session revocation: "log this user out everywhere."
+ *
+ * Single supported path for security-event session invalidation. Bumps the
+ * user's session generation (killing all authenticated sessions account-wide,
+ * across every practice, on the next request each makes) and revokes
+ * remember-me state so an old cookie cannot silently restore access.
+ *
+ * The CURRENT session is not specially preserved here - callers that want
+ * to keep the calling session alive re-stamp $_SESSION['auth_version'] with
+ * the returned version immediately after this call.
+ *
+ * DB failures propagate: security-sensitive callers (password reset, 2FA
+ * reset) must treat a thrown exception as failure rather than reporting
+ * success while old sessions remain valid.
+ *
+ * @param int $userId Affected user
+ * @param string $reason Audit reason (password_reset, 2fa_reset, self_service, ...)
+ * @param int|null $actorId Acting user when different from the target
+ * @return int New session version
+ * @throws Throwable on DB failure
+ */
+function revokeAllUserSessions($userId, $reason = 'security_event', $actorId = null) {
+    global $pdo;
+
+    if (!$pdo || !$userId) {
+        throw new RuntimeException('revokeAllUserSessions: no database connection or user id');
+    }
+
+    $newVersion = bumpUserSessionVersion($userId);
+
+    // Strict mode: remember-me revocation failure must propagate so callers
+    // never report a security operation complete while cookies still work.
+    revokeAllRememberMeTokens($userId, true);
+
+    if (function_exists('logSecurityEvent')) {
+        logSecurityEvent('user_sessions_revoked', [
+            'affected_user_id' => (int)$userId,
+            'actor_user_id' => $actorId !== null ? (int)$actorId : (int)$userId,
+            'reason' => $reason,
+            'practice_id' => $_SESSION['current_practice_id'] ?? null,
+        ]);
+    }
+
+    return $newVersion;
 }
 
 /**

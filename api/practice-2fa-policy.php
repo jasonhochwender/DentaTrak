@@ -21,6 +21,7 @@ require_once __DIR__ . '/csrf.php';
 require_once __DIR__ . '/security-headers.php';
 require_once __DIR__ . '/practice-security.php';
 require_once __DIR__ . '/user-manager.php';
+require_once __DIR__ . '/unified-identity.php';
 require_once __DIR__ . '/2fa-recovery-helpers.php';
 
 header('Content-Type: application/json');
@@ -49,6 +50,9 @@ switch ($action) {
         break;
     case 'send_member_recovery':
         handleSendMemberRecovery((int)$currentPracticeId, $userId);
+        break;
+    case 'revoke_member_sessions':
+        handleRevokeMemberSessions((int)$currentPracticeId, $userId);
         break;
     default:
         http_response_code(400);
@@ -259,5 +263,84 @@ function handleSendMemberRecovery(int $practiceId, int $actorId): void {
     echo json_encode([
         'success' => true,
         'message' => t('settings.security.practice_2fa.recovery_sent')
+    ]);
+}
+
+/**
+ * Admin-initiated account-wide session revocation for a practice member.
+ *
+ * Signs the target member out of every browser and device on their
+ * DentaTrak account (all practices) and rejects their remember-me
+ * cookies. Uses the centralized revokeAllUserSessions() helper - the
+ * target must be an active member of THE CURRENT practice, so knowing
+ * a user ID never grants reach across tenant boundaries.
+ */
+function handleRevokeMemberSessions(int $practiceId, int $actorId): void {
+    global $pdo;
+
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+        http_response_code(405);
+        echo json_encode(['success' => false, 'message' => 'Method not allowed']);
+        return;
+    }
+
+    requireCsrfToken();
+
+    $data = json_decode(file_get_contents('php://input'), true) ?: [];
+    $memberId = (int)($data['member_id'] ?? 0);
+
+    // Same membership gate as send_member_recovery: the target must be an
+    // active member of this practice. A user ID alone is never sufficient.
+    $stmt = $pdo->prepare("
+        SELECT u.id
+        FROM practice_users pu
+        JOIN users u ON u.id = pu.user_id
+        WHERE pu.practice_id = :practice_id AND u.id = :member_id AND u.is_active = 1
+    ");
+    $stmt->execute(['practice_id' => $practiceId, 'member_id' => $memberId]);
+    $member = $stmt->fetch(PDO::FETCH_ASSOC);
+
+    if (!$member) {
+        http_response_code(404);
+        echo json_encode(['success' => false, 'message' => t('settings.security.practice_2fa.recovery_member_not_found')]);
+        return;
+    }
+
+    try {
+        $newVersion = revokeAllUserSessions((int)$member['id'], 'admin_revocation', $actorId);
+    } catch (Throwable $e) {
+        error_log('[practice-2fa-policy] member session revocation failed: ' . $e->getMessage());
+        logSecurityEvent('admin_user_sessions_revoke_failed', [
+            'actor_user_id' => $actorId,
+            'affected_user_id' => (int)$member['id'],
+            'practice_id' => $practiceId
+        ]);
+        http_response_code(500);
+        echo json_encode(['success' => false, 'message' => t('settings.security.practice_2fa.signout_failed')]);
+        return;
+    }
+
+    // Self-target keeps the admin's CURRENT session alive - same semantics
+    // as the self-service action. Every other session of the target
+    // (including the admin's own other devices when self-targeting) still
+    // carries the older stamp and fails on its next request.
+    if ($memberId === $actorId) {
+        $_SESSION['auth_version'] = $newVersion;
+    }
+
+    logSecurityEvent('admin_user_sessions_revoked', [
+        'actor_user_id' => $actorId,
+        'affected_user_id' => (int)$member['id'],
+        'practice_id' => $practiceId,
+        'reason' => 'admin_revocation'
+    ]);
+    if (function_exists('logUserActivity')) {
+        logUserActivity($actorId, 'admin_user_sessions_revoked',
+            "Admin signed out member {$member['id']} on all devices in practice {$practiceId}");
+    }
+
+    echo json_encode([
+        'success' => true,
+        'message' => t('settings.security.practice_2fa.signout_success')
     ]);
 }

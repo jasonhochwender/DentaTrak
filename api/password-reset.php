@@ -322,11 +322,13 @@ function handlePasswordReset($pdo, $input) {
         addAuthMethod($tokenData['user_id'], 'email', null, $passwordHash);
         
         // ============================================
-        // SECURITY: Invalidate all remember me tokens on password change
-        // This ensures any stolen tokens become useless after password reset
+        // SECURITY: Invalidate all sessions + remember-me tokens on password
+        // change. Runs BEFORE the token is marked used: if revocation fails,
+        // the exception surfaces a 500 and the reset link stays retryable
+        // instead of reporting success while old sessions remain valid.
         // ============================================
-        revokeAllRememberMeTokens($tokenData['user_id']);
-        
+        revokeAllUserSessions((int)$tokenData['user_id'], 'password_reset');
+
         // Mark token as used
         $stmt = $pdo->prepare("UPDATE password_reset_tokens SET used = 1 WHERE id = :id");
         $stmt->execute(['id' => $tokenData['id']]);
@@ -338,6 +340,12 @@ function handlePasswordReset($pdo, $input) {
         
     } catch (PDOException $e) {
         error_log('Password reset error: ' . $e->getMessage());
+        http_response_code(500);
+        echo json_encode(['success' => false, 'message' => 'An error occurred. Please try again.']);
+    } catch (Throwable $e) {
+        // Session revocation failure - password may already be updated, but
+        // the token was not consumed so the link remains retryable.
+        error_log('Password reset revocation error: ' . $e->getMessage());
         http_response_code(500);
         echo json_encode(['success' => false, 'message' => 'An error occurred. Please try again.']);
     }

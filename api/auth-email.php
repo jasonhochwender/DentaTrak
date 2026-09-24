@@ -212,6 +212,9 @@ function handleLogin($pdo, $input) {
             $_SESSION['pending_2fa_email'] = $email;
             $_SESSION['pending_2fa_remember_me'] = $rememberMe;
             $_SESSION['pending_2fa_timestamp'] = time();
+            // Session generation at pending creation - a revocation after
+            // this point must not let this challenge mint a valid session.
+            $_SESSION['pending_2fa_auth_version'] = getUserSessionVersion($user['id']);
             
             echo json_encode([
                 'success' => false,

@@ -254,6 +254,10 @@ function handleRecoveryComplete(array $input): void {
     if (function_exists('ensureRememberMeTable')) {
         ensureRememberMeTable();
     }
+    // Resolve once before the transaction - SHOW COLUMNS is a metadata
+    // read, not transactional, so it must not run inside.
+    $sessionVersionAvailable = function_exists('sessionVersionColumnExists')
+        && sessionVersionColumnExists();
 
     try {
         $pdo->beginTransaction();
@@ -293,6 +297,16 @@ function handleRecoveryComplete(array $input): void {
                 ->execute(['id' => $userId]);
         }
 
+        // Account-wide session revocation in the same transaction: bumping
+        // users.session_version invalidates every authenticated session
+        // stamped with an older version on its next request. Column presence
+        // is resolved before the transaction began (metadata read, not a
+        // transactional write), so pre-migration schemas degrade gracefully.
+        if ($sessionVersionAvailable) {
+            $pdo->prepare("UPDATE users SET session_version = COALESCE(session_version, 0) + 1 WHERE id = :id")
+                ->execute(['id' => $userId]);
+        }
+
         $pdo->commit();
     } catch (Throwable $e) {
         if ($pdo->inTransaction()) {
@@ -312,9 +326,9 @@ function handleRecoveryComplete(array $input): void {
 
     // Side effects only AFTER the security state is committed - session
     // rotation, audit rows, and email must never roll the reset back.
-    // Other live sessions are not keyed by user and cannot be revoked
-    // individually (documented limitation); this session is rotated and
-    // cleared instead.
+    // Other live sessions were invalidated by the committed version bump
+    // (they fail the session.php check on their next request); this
+    // session is rotated and cleared instead.
     unset(
         $_SESSION['totp_verified'],
         $_SESSION['pending_2fa_user_id'],
@@ -337,6 +351,11 @@ function handleRecoveryComplete(array $input): void {
             'affected_user_id' => $userId,
             'method' => $verificationMethod,
             'admin_initiated' => !empty($tokenRow['requested_by_user_id'])
+        ]);
+        logSecurityEvent('user_sessions_revoked_2fa_reset', [
+            'affected_user_id' => $userId,
+            'actor_user_id' => $userId,
+            'reason' => '2fa_reset'
         ]);
     }
     if (function_exists('logUserActivity')) {

@@ -177,6 +177,9 @@ if ($twoFAStatus['enabled']) {
     ];
     $_SESSION['pending_2fa_db_user'] = $dbUser;
     $_SESSION['pending_2fa_timestamp'] = time();
+    // Session generation at pending creation - a revocation after this
+    // point must not let this challenge mint a valid session.
+    $_SESSION['pending_2fa_auth_version'] = getUserSessionVersion($dbUser['id']);
 
     // A lost-authenticator recovery in progress returns to the reset page:
     // this fresh Google sign-in IS the identity proof for Google-only

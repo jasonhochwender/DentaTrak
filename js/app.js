@@ -13409,6 +13409,59 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     // ============================================
+    // SIGN OUT OF ALL OTHER SESSIONS (self-service)
+    // ============================================
+    var signOutOtherSessionsBtn = document.getElementById('signOutOtherSessionsBtn');
+    var signOutSessionsError = document.getElementById('signOutSessionsError');
+
+    if (signOutOtherSessionsBtn) {
+      signOutOtherSessionsBtn.addEventListener('click', function() {
+        showConfirmModal(
+          t('settings.security.sessions.confirm_title'),
+          t('settings.security.sessions.confirm_message'),
+          function() {
+            signOutOtherSessionsBtn.disabled = true;
+            if (signOutSessionsError) signOutSessionsError.style.display = 'none';
+
+            fetch('api/revoke-sessions.php', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': csrfToken
+              },
+              credentials: 'same-origin'
+            })
+            .then(function(response) { return response.json(); })
+            .then(function(data) {
+              if (data.success) {
+                if (typeof Toast !== 'undefined') {
+                  Toast.success(t('settings.security.sessions.revoke_success_title'), data.message || t('settings.security.sessions.revoke_success'));
+                } else {
+                  showToast(data.message || t('settings.security.sessions.revoke_success'), 'success');
+                }
+              } else if (signOutSessionsError) {
+                signOutSessionsError.textContent = data.message || t('settings.security.sessions.revoke_error');
+                signOutSessionsError.style.display = 'block';
+              }
+            })
+            .catch(function() {
+              if (signOutSessionsError) {
+                signOutSessionsError.textContent = t('settings.security.sessions.revoke_error');
+                signOutSessionsError.style.display = 'block';
+              }
+            })
+            .finally(function() {
+              signOutOtherSessionsBtn.disabled = false;
+            });
+          },
+          null,
+          false,
+          signOutOtherSessionsBtn
+        );
+      });
+    }
+
+    // ============================================
     // PRACTICE-WIDE 2FA ENFORCEMENT (owner/admin)
     // ============================================
     var practiceRequire2fa = document.getElementById('practiceRequire2fa');
@@ -13485,6 +13538,8 @@ document.addEventListener('DOMContentLoaded', function () {
             ? '<button type="button" class="btn-link practice-2fa-recovery-btn" data-member-id="' + m.id + '">' +
               practice2faEscape(t('settings.security.practice_2fa.send_recovery')) + '</button>'
             : '';
+          actionCell += '<button type="button" class="btn-link practice-2fa-signout-btn" data-member-id="' + m.id + '">' +
+            practice2faEscape(t('settings.security.practice_2fa.signout_sessions')) + '</button>';
           html += '<tr>' +
             '<td data-label="' + t('settings.security.practice_2fa.col_user') + '">' + practice2faEscape(nameCell) + '</td>' +
             '<td data-label="' + t('settings.security.practice_2fa.col_role') + '">' + practice2faEscape(roleText) + '</td>' +
@@ -13618,11 +13673,51 @@ document.addEventListener('DOMContentLoaded', function () {
       );
     }
 
+    function practice2faSignOutMember(memberId, triggerBtn) {
+      var member = practice2faMemberMap[memberId];
+      if (!member) return;
+      var name = member.name || member.email || '';
+      showConfirmModal(
+        t('settings.security.practice_2fa.signout_confirm_title'),
+        t('settings.security.practice_2fa.signout_confirm_message', { name: name }),
+        function() {
+          fetch('api/practice-2fa-policy.php?action=revoke_member_sessions', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-CSRF-Token': csrfToken
+            },
+            credentials: 'same-origin',
+            body: JSON.stringify({ member_id: memberId })
+          })
+          .then(function(r) { return r.json(); })
+          .then(function(data) {
+            if (data.success) {
+              practice2faShowSuccess(data.message || t('settings.security.practice_2fa.signout_success'));
+            } else {
+              practice2faShowError(data.message || t('settings.security.practice_2fa.signout_failed'));
+            }
+          })
+          .catch(function() {
+            practice2faShowError(t('settings.security.practice_2fa.signout_failed'));
+          });
+        },
+        null,
+        false,
+        triggerBtn || null
+      );
+    }
+
     if (practice2faMembers) {
       practice2faMembers.addEventListener('click', function(e) {
-        var btn = e.target.closest('.practice-2fa-recovery-btn');
-        if (btn && btn.dataset.memberId) {
-          practice2faSendRecovery(parseInt(btn.dataset.memberId, 10));
+        var recoveryBtn = e.target.closest('.practice-2fa-recovery-btn');
+        if (recoveryBtn && recoveryBtn.dataset.memberId) {
+          practice2faSendRecovery(parseInt(recoveryBtn.dataset.memberId, 10));
+          return;
+        }
+        var signoutBtn = e.target.closest('.practice-2fa-signout-btn');
+        if (signoutBtn && signoutBtn.dataset.memberId) {
+          practice2faSignOutMember(parseInt(signoutBtn.dataset.memberId, 10), signoutBtn);
         }
       });
     }

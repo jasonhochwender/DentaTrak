@@ -147,7 +147,14 @@ try {
     // Never store plaintext passwords
     // ============================================
     $newPasswordHash = password_hash($newPassword, PASSWORD_BCRYPT);
-    
+
+    // Table/DDL ensures must run BEFORE beginTransaction - CREATE TABLE
+    // (even IF NOT EXISTS) can implicit-commit and silently break the
+    // atomicity of the password change + revocation below.
+    if (function_exists('ensureRememberMeTable')) {
+        ensureRememberMeTable();
+    }
+
     // Begin transaction
     $pdo->beginTransaction();
     
@@ -165,22 +172,26 @@ try {
         ]);
         
         // ============================================
-        // SECURITY: Invalidate all Remember Me tokens for this user
-        // This ensures any stolen tokens become invalid
+        // SECURITY: Invalidate all Remember Me tokens and every OTHER
+        // authenticated session for this user. Runs inside the transaction
+        // so the password change and revocation commit or roll back
+        // together; the current session is re-stamped after commit.
         // ============================================
-        if (function_exists('revokeAllRememberMeTokens')) {
+        $newSessionVersion = null;
+        if (function_exists('revokeAllUserSessions')) {
+            $newSessionVersion = revokeAllUserSessions($userId, 'password_change', $userId);
+        } elseif (function_exists('revokeAllRememberMeTokens')) {
             revokeAllRememberMeTokens($userId);
         }
-        
-        // ============================================
-        // SECURITY: Invalidate other sessions (optional enhancement)
-        // For now, we keep the current session active
-        // ============================================
-        // Note: Full session invalidation would require a session store
-        // that tracks sessions by user ID. Current implementation
-        // relies on Remember Me token revocation for security.
-        
+
         $pdo->commit();
+
+        // Preserve THIS session only: re-stamp it with the new generation.
+        // Every other session still carries the older stamp and fails the
+        // session.php revocation check on its next request.
+        if ($newSessionVersion !== null) {
+            $_SESSION['auth_version'] = $newSessionVersion;
+        }
         
         // Log the password change (no sensitive data)
         if (function_exists('logUserActivity')) {

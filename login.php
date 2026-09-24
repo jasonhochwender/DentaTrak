@@ -45,6 +45,7 @@ $authError = isset($_GET['auth_error']) ? htmlspecialchars($_GET['auth_error']) 
 // Check for session timeout
 $sessionTimeout = isset($_GET['timeout']) && $_GET['timeout'] == '1';
 $sessionExpired = isset($_GET['session_expired']) && $_GET['session_expired'] == '1';
+$sessionRevoked = isset($_GET['revoked']) && $_GET['revoked'] == '1';
 ?><!DOCTYPE html>
 <html lang="<?php echo getHtmlLang(); ?>">
 <head>
@@ -199,6 +200,14 @@ $sessionExpired = isset($_GET['session_expired']) && $_GET['session_expired'] ==
               <polyline points="12 6 12 12 16 14"/>
             </svg>
             <p>Your session has ended. Please sign in again to continue.</p>
+          </div>
+        <?php elseif ($sessionRevoked): ?>
+          <div class="auth-error" style="background: #eff6ff; border-color: #bfdbfe; color: #1e40af;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"/>
+              <polyline points="12 6 12 12 16 14"/>
+            </svg>
+            <p><?php echo t('auth.session_revoked'); ?></p>
           </div>
         <?php elseif ($authError): ?>
           <div class="auth-error">

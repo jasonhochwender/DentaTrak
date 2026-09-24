@@ -157,6 +157,53 @@ if (!empty($_SESSION['db_user_id']) && !checkSessionTimeout()) {
     }
 }
 
+/**
+ * Whether the current authenticated session predates an account-wide
+ * revocation. Sessions are stamped with the user's session generation at
+ * login ($_SESSION['auth_version']); revokeAllUserSessions() increments
+ * users.session_version, so any session with an older stamp is invalid.
+ * Sessions predating this feature carry no stamp and read as version 0 -
+ * they stay valid until the user's first revocation event.
+ */
+function isUserSessionRevoked() {
+    if (!function_exists('getUserSessionVersion')) {
+        $unifiedIdentityPath = __DIR__ . '/unified-identity.php';
+        if (file_exists($unifiedIdentityPath)) {
+            require_once $unifiedIdentityPath;
+        }
+    }
+    if (!function_exists('getUserSessionVersion')) {
+        return false;
+    }
+    try {
+        return (int)($_SESSION['auth_version'] ?? 0) < getUserSessionVersion((int)$_SESSION['db_user_id']);
+    } catch (Throwable $e) {
+        // A transient lookup failure must not log everyone out on a DB blip.
+        // The version marker persists, so the next successful check still
+        // enforces the revocation.
+        error_log('[session] Session-version check failed: ' . $e->getMessage());
+        return false;
+    }
+}
+
+// Account-wide revocation check (only for logged-in users). Runs at the same
+// centralized boundary as the inactivity timeout so a revoked session fails
+// on its very next request - page, API, or practice switch - regardless of
+// what the client still holds.
+if (!empty($_SESSION['db_user_id']) && isUserSessionRevoked()) {
+    // Reuse the inactivity path: clears this browser's remember-me cookie and
+    // destroys the session server-side, wiping identity, practice context,
+    // pending-2FA state, and other security-sensitive session data.
+    expireInactivitySession();
+    $isApiRequest = strpos($_SERVER['REQUEST_URI'] ?? '', '/api/') !== false;
+    if (!$isApiRequest) {
+        header('Location: /login.php?revoked=1');
+        exit;
+    }
+    // API requests proceed with an empty session and hit their normal
+    // unauthenticated (401) path - no PHI or partial protected data.
+}
+
 // Update inactivity timestamps, but only for genuine user activity.
 // Background polling, analytics, status checks, and read-only API GETs must
 // NOT refresh the deadline. Page loads and mutating requests (POST/PUT/DELETE)
@@ -266,6 +313,10 @@ function attemptRememberMeLogin() {
                     $_SESSION['pending_2fa_auth_method'] = 'remember_me';
                     $_SESSION['pending_2fa_db_user'] = $user;
                     $_SESSION['pending_2fa_timestamp'] = time();
+                    // Session generation at pending creation - revocation
+                    // after this point must not let this challenge mint a
+                    // valid session.
+                    $_SESSION['pending_2fa_auth_version'] = getUserSessionVersion($user['id']);
                     return false;
                 }
 

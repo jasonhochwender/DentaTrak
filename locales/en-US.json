@@ -936,7 +936,22 @@
                 "recovery_member_not_found": "That user is not a member of this practice.",
                 "recovery_not_needed": "Two-factor authentication is not enabled for that member.",
                 "recovery_send_failed": "Failed to send the recovery link. Please try again.",
+                "signout_sessions": "Sign out on all devices",
+                "signout_confirm_title": "Sign out on all devices?",
+                "signout_confirm_message": "This will sign {name}'s DentaTrak account out on all browsers and devices, including any other practices they belong to. They will need to sign in again.",
+                "signout_success": "The member has been signed out on all devices.",
+                "signout_failed": "Failed to sign out the member's sessions. Please try again.",
                 "error": "Failed to update the 2FA requirement. Please try again."
+            },
+            "sessions": {
+                "title": "Active Sessions",
+                "description": "Sign your account out of every other browser and device where it is currently signed in. You will stay signed in on this device.",
+                "button": "Sign out of all other sessions",
+                "confirm_title": "Sign out of all other sessions?",
+                "confirm_message": "This will sign your DentaTrak account out on other browsers and devices. You will remain signed in on this device.",
+                "revoke_success_title": "Signed out",
+                "revoke_success": "Your account has been signed out on all other browsers and devices.",
+                "revoke_error": "Unable to sign out other sessions. Please try again."
             }
         },
         "data_privacy": {
@@ -1737,6 +1752,7 @@
         }
     },
     "auth": {
+        "session_revoked": "You have been signed out. Please sign in again to continue.",
         "login": {
             "title": "Welcome to DentaTrak",
             "subtitle": "Sign in to your account or enter your email to start your 90-day free trial.",

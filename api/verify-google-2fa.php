@@ -40,6 +40,39 @@ if (empty($_SESSION['pending_2fa_user_id']) || empty($_SESSION['pending_2fa_auth
     exit;
 }
 
+// Account-wide revocation: a pending challenge created before a revocation
+// event must not mint a new-generation session on completion. Pending state
+// is stamped with the session generation at creation; a stale stamp means
+// the account's sessions were revoked - clear it and force a fresh sign-in.
+if (function_exists('getUserSessionVersion')) {
+    $pendingVersion = (int)($_SESSION['pending_2fa_auth_version'] ?? 0);
+    try {
+        if ($pendingVersion < getUserSessionVersion((int)$_SESSION['pending_2fa_user_id'])) {
+            unset(
+                $_SESSION['pending_2fa_user_id'],
+                $_SESSION['pending_2fa_email'],
+                $_SESSION['pending_2fa_auth_method'],
+                $_SESSION['pending_2fa_remember_me'],
+                $_SESSION['pending_2fa_timestamp'],
+                $_SESSION['pending_2fa_user_data'],
+                $_SESSION['pending_2fa_db_user'],
+                $_SESSION['pending_2fa_practice_id'],
+                $_SESSION['pending_2fa_auth_version'],
+                $_SESSION['2fa_challenge_attempts']
+            );
+            http_response_code(401);
+            echo json_encode([
+                'success' => false,
+                'message' => 'Your sign-in session has expired. Please sign in again.'
+            ]);
+            exit;
+        }
+    } catch (Throwable $e) {
+        // Transient lookup failure - let the normal TOTP checks decide.
+        error_log('[verify-google-2fa] Session-version check failed: ' . $e->getMessage());
+    }
+}
+
 // Validate TOTP code format
 if (empty($totpCode) || strlen($totpCode) !== 6 || !ctype_digit($totpCode)) {
     http_response_code(400);
