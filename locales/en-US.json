@@ -4971,9 +4971,9 @@
             "assurance_heading": "Compliance and assurance",
             "assurance_body": "<p>DentaTrak is designed and operated to support HIPAA-compliant use and provides Business Associate Agreements to dental practices where applicable.</p><p>HIPAA does not provide an official government certification for software products, and no product alone can make a practice compliant. Compliance depends on how each practice configures and uses the platform, together with the administrative and physical safeguards under the practice's control.</p><p>DentaTrak does not currently claim SOC 2 or ISO 27001 certification. The controls described on this page reflect implemented product and infrastructure behavior.</p>",
             "report_heading": "Report a security concern",
-            "report_body": "If you believe you have identified a security issue or vulnerability in DentaTrak, contact <a class='content-link' href='mailto:support@dentatrak.com'>support@dentatrak.com</a> with a description of the concern. Please do not include patient health information in your report.",
+            "report_body": "If you believe you have identified a security issue or vulnerability in DentaTrak, or suspect that protected health information may have been exposed, contact <a class='content-link' href='mailto:security@dentatrak.com'>security@dentatrak.com</a> with a description of the concern. Please do not include patient health information in your report.",
             "contact_heading": "Questions about HIPAA or security?",
-            "contact_body": "For questions about DentaTrak security, privacy, data handling, or Business Associate Agreements, contact <a class='content-link' href='mailto:support@dentatrak.com'>support@dentatrak.com</a>.",
+            "contact_body": "For questions about DentaTrak security, privacy, data handling, or Business Associate Agreements, contact <a class='content-link' href='mailto:security@dentatrak.com'>security@dentatrak.com</a>.",
             "cta_primary": "Start Free",
             "cta_secondary": "Contact Sales"
         }
