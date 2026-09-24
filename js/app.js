@@ -10597,7 +10597,16 @@ document.addEventListener('DOMContentLoaded', function () {
     })
     .then(function(data) {
       if (data.success && data.signed_url) {
-        window.open(data.signed_url, '_blank');
+        // Signed URL carries Content-Disposition: attachment - navigate via a
+        // temporary anchor so the browser downloads in place rather than
+        // opening browser-viewable types (JPG/PNG/PDF) in a new tab.
+        var a = document.createElement('a');
+        a.href = data.signed_url;
+        a.download = fileName || '';
+        a.rel = 'noopener';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
       } else {
         throw new Error(data.error || 'Failed to get download URL');
       }

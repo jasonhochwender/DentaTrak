@@ -88,25 +88,59 @@ function generateSignedUploadUrl($objectPath, $contentType, $expiry = null) {
 }
 
 /**
+ * Build a header-safe Content-Disposition value forcing a file download.
+ *
+ * Produces an ASCII-quoted filename= fallback plus an RFC 5987 filename*=
+ * parameter when the name contains non-ASCII characters, so the original
+ * name (spaces, punctuation, UTF-8) survives the download.
+ *
+ * @param string $filename Original filename (may be empty)
+ * @return string Content-Disposition header value
+ */
+function buildAttachmentContentDisposition($filename) {
+    $filename = basename(str_replace('\\', '/', trim((string)$filename)));
+    $filename = preg_replace('/[\x00-\x1F\x7F]/', '', $filename);
+    if ($filename === '') {
+        return 'attachment';
+    }
+
+    $ascii = str_replace(['"', '\\', ';'], '_', preg_replace('/[^\x20-\x7E]/', '_', $filename));
+    $disposition = 'attachment; filename="' . $ascii . '"';
+    if ($ascii !== $filename) {
+        $disposition .= "; filename*=UTF-8''" . rawurlencode($filename);
+    }
+    return $disposition;
+}
+
+/**
  * Generate a signed GET URL for secure file download
  *
- * @param string $objectPath The full object path in the bucket
- * @param int    $expiry     URL expiry in seconds (default from config)
+ * @param string $objectPath       The full object path in the bucket
+ * @param int    $expiry           URL expiry in seconds (default from config)
+ * @param string $downloadFilename When non-empty, the signed response carries
+ *                                 Content-Disposition: attachment with this
+ *                                 filename so the browser saves instead of
+ *                                 rendering browser-viewable types inline.
  * @return string The signed download URL
  */
-function generateSignedDownloadUrl($objectPath, $expiry = null) {
+function generateSignedDownloadUrl($objectPath, $expiry = null, $downloadFilename = null) {
     global $appConfig;
 
     $expiry = $expiry ?? ($appConfig['gcs']['download_url_expiry'] ?? 300);
     $bucket = getGcsBucket();
     $object = $bucket->object($objectPath);
 
+    $options = [
+        'method' => 'GET',
+        'version' => 'v4',
+    ];
+    if ($downloadFilename !== null && trim($downloadFilename) !== '') {
+        $options['responseDisposition'] = buildAttachmentContentDisposition($downloadFilename);
+    }
+
     return $object->signedUrl(
         new \DateTime('+' . $expiry . ' seconds'),
-        [
-            'method' => 'GET',
-            'version' => 'v4',
-        ]
+        $options
     );
 }
 

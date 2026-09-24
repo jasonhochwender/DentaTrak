@@ -22,6 +22,7 @@ header('Content-Type: application/json');
 require_once __DIR__ . '/practice-security.php';
 require_once __DIR__ . '/hipaa-compliance.php';
 require_once __DIR__ . '/gcs-storage.php';
+require_once __DIR__ . '/attachment-display.php';
 require_once __DIR__ . '/csrf.php';
 require_once __DIR__ . '/security-headers.php';
 
@@ -102,8 +103,19 @@ try {
         requireCaseAccess($pathCaseId, $currentPracticeId);
     }
 
-    // Generate short-lived signed download URL
-    $signedUrl = generateSignedDownloadUrl($storagePath);
+    // Resolve the download filename: prefer the original name supplied by
+    // the client, else recover it from the "{uuid}-{name}" object tail.
+    // It is only used for Content-Disposition on the signed response.
+    $downloadFilename = trim($filename);
+    if ($downloadFilename === '') {
+        $downloadFilename = resolveAttachmentDisplayName(['fileName' => $storagePath])
+            ?? basename($storagePath);
+    }
+
+    // Generate short-lived signed download URL configured so GCS serves the
+    // object with Content-Disposition: attachment - browser-viewable types
+    // (JPG/PNG/PDF) then download instead of rendering inline.
+    $signedUrl = generateSignedDownloadUrl($storagePath, null, $downloadFilename);
 
     // Audit the authorized download grant. The signed URL is the disclosure
     // event - GCS serves the bytes afterward without another app request, so

@@ -242,7 +242,16 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
     fetchSignedUrl(storagePath, fileName)
       .then(function(data) {
         if (data.success && data.signed_url) {
-          window.open(data.signed_url, '_blank');
+          // The signed URL carries Content-Disposition: attachment, so a
+          // programmatic navigation triggers the download in place without
+          // a popup-blocked window.open or a discarded new tab.
+          var a = document.createElement('a');
+          a.href = data.signed_url;
+          a.download = fileName || '';
+          a.rel = 'noopener';
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
         } else {
           throw new Error(data.error || t('attachments.viewer.download_url_failed'));
         }
