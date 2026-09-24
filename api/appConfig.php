@@ -286,6 +286,16 @@ Here is the workflow data to analyze:
                 'nativeName' => 'Français (Canada)',
                 'enabled' => true,
             ],
+            'de-DE' => [
+                'name' => 'German (Germany)',
+                'nativeName' => 'Deutsch',
+                'enabled' => true,
+            ],
+            'it-IT' => [
+                'name' => 'Italian (Italy)',
+                'nativeName' => 'Italiano',
+                'enabled' => true,
+            ],
         ],
     ],
 
