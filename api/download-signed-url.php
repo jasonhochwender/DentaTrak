@@ -70,6 +70,11 @@ try {
     // SECURITY: Validate storage path belongs to this practice
     $expectedPrefix = "cases/{$currentPracticeId}/";
     if (strpos($storagePath, $expectedPrefix) !== 0) {
+        logSecurityEvent('attachment_access_denied', [
+            'endpoint' => 'download-signed-url',
+            'reason' => 'practice_prefix_mismatch',
+            'attempted_practice_id' => explode('/', $storagePath)[1] ?? '',
+        ]);
         http_response_code(403);
         echo json_encode(['success' => false, 'error' => 'Access denied']);
         exit;
@@ -77,6 +82,10 @@ try {
 
     // Prevent path traversal
     if (strpos($storagePath, '..') !== false) {
+        logSecurityEvent('attachment_access_denied', [
+            'endpoint' => 'download-signed-url',
+            'reason' => 'path_traversal',
+        ]);
         http_response_code(400);
         echo json_encode(['success' => false, 'error' => 'Invalid storage path']);
         exit;
@@ -100,9 +109,7 @@ try {
     // event - GCS serves the bytes afterward without another app request, so
     // issuing the URL is the reliable point to record. Never deduplicated:
     // each issuance is a separate download grant.
-    $auditResourceType = (strpos($storagePath, '/comments/') !== false) ? 'comment_image' : 'attachment';
-    $auditCaseId = ($pathCaseId !== '' && strpos($pathCaseId, 'pending_') !== 0) ? $pathCaseId : null;
-    logPHIAccess(PHI_ACTION_ATTACHMENT_DOWNLOAD, $auditCaseId, [], $auditResourceType, $storagePath);
+    auditAttachmentAccess(PHI_ACTION_ATTACHMENT_DOWNLOAD, $storagePath);
 
     global $appConfig;
     $expiry = $appConfig['gcs']['download_url_expiry'] ?? 300;

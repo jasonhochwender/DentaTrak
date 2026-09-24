@@ -76,9 +76,9 @@ try {
     // audited separately so one user action does not create two view_case rows.
     $logStart = microtime(true);
     if ($view === 'heavy') {
-        logPHIAccess('view_case_attachments', $caseId);
+        logPHIAccess(PHI_ACTION_CASE_ATTACHMENTS_VIEW, $caseId);
     } else {
-        logPHIAccess('view_case', $caseId);
+        logPHIAccess(PHI_ACTION_CASE_VIEW, $caseId);
     }
     $logMs = round((microtime(true) - $logStart) * 1000, 2);
 

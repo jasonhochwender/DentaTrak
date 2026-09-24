@@ -88,7 +88,7 @@ try {
         );
         
         // Log PHI access for HIPAA compliance (printing = exporting PHI)
-        logPHIAccess('print_case', $caseId);
+        logPHIAccess(PHI_ACTION_CASE_PRINT, $caseId);
     }
 
     // Release the per-session advisory lock before the potentially long PDF

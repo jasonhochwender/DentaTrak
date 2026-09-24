@@ -323,6 +323,42 @@ function logPHIAccess($accessType, $caseId = null, $meta = [], $resourceType = n
 }
 
 /**
+ * Central audit entry point for attachment file disclosures.
+ *
+ * The file-release endpoints (api/attachment-content.php streaming and
+ * api/download-signed-url.php signed grants) call this AFTER authorization so
+ * the case context and resource typing stay identical no matter which
+ * surface released the file. The audit identifier is the object path minus
+ * the user-supplied filename - an internal reference, never file content or
+ * a signed URL.
+ *
+ * Path shape: cases/{practiceId}/{caseId|pending_*}/{uploadType}/{uuid}-{name}
+ * Comment images live under a comments/ segment -> comment_image resource.
+ * Pending uploads precede case creation -> no case_id is recorded.
+ *
+ * @param string $accessType  PHI_ACTION_ATTACHMENT_VIEW or PHI_ACTION_ATTACHMENT_DOWNLOAD
+ * @param string $storagePath The GCS object path being disclosed
+ * @param array  $meta        Whitelisted metadata (see getPHILogMetaAllowedKeys)
+ */
+function auditAttachmentAccess($accessType, $storagePath, $meta = []) {
+    $pathParts = explode('/', $storagePath);
+    $pathCaseId = $pathParts[2] ?? '';
+    $resourceType = (strpos($storagePath, '/comments/') !== false) ? 'comment_image' : 'attachment';
+    $auditCaseId = ($pathCaseId !== '' && strpos($pathCaseId, 'pending_') !== 0) ? $pathCaseId : null;
+
+    // The object name is "{uuid}-{sanitized original filename}". The filename
+    // is user-supplied and can carry patient-identifying text, so resource_id
+    // keeps only the path down to the server-generated uuid segment - still
+    // enough to correlate the audit row to the exact stored object.
+    $objectName = end($pathParts);
+    $dashPos = strpos($objectName, '-');
+    $dirPath = implode('/', array_slice($pathParts, 0, -1));
+    $resourceId = ($dashPos !== false) ? ($dirPath . '/' . substr($objectName, 0, $dashPos)) : $dirPath;
+
+    logPHIAccess($accessType, $auditCaseId, $meta, $resourceType, $resourceId);
+}
+
+/**
  * Check if a practice is active
  * 
  * @param int $practiceId Practice ID

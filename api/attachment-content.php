@@ -70,6 +70,11 @@ if (empty($storagePath)) {
 // SECURITY: Validate storage path belongs to this practice
 $expectedPrefix = "cases/{$currentPracticeId}/";
 if (strpos($storagePath, $expectedPrefix) !== 0) {
+    logSecurityEvent('attachment_access_denied', [
+        'endpoint' => 'attachment-content',
+        'reason' => 'practice_prefix_mismatch',
+        'attempted_practice_id' => explode('/', $storagePath)[1] ?? '',
+    ]);
     http_response_code(403);
     header('Content-Type: application/json');
     echo json_encode(['success' => false, 'error' => t('api.attachment_content.access_denied')]);
@@ -78,6 +83,10 @@ if (strpos($storagePath, $expectedPrefix) !== 0) {
 
 // Prevent path traversal
 if (strpos($storagePath, '..') !== false) {
+    logSecurityEvent('attachment_access_denied', [
+        'endpoint' => 'attachment-content',
+        'reason' => 'path_traversal',
+    ]);
     http_response_code(400);
     header('Content-Type: application/json');
     echo json_encode(['success' => false, 'error' => t('api.attachment_content.invalid_storage_path')]);
@@ -115,12 +124,10 @@ try {
 
     // Audit the authorized PHI disclosure before streaming. Only reached
     // after practice prefix, traversal, and per-case checks pass and the
-    // object exists - denied requests never produce a success row. The
-    // storage path is the internal resource identifier; comment images live
-    // under the case's comments/ folder so they audit as their own type.
-    $auditResourceType = (strpos($storagePath, '/comments/') !== false) ? 'comment_image' : 'attachment';
-    $auditCaseId = ($pathCaseId !== '' && strpos($pathCaseId, 'pending_') !== 0) ? $pathCaseId : null;
-    logPHIAccess(PHI_ACTION_ATTACHMENT_VIEW, $auditCaseId, [], $auditResourceType, $storagePath);
+    // object exists - denied requests never produce a success row. Comment
+    // images live under the case's comments/ folder so they audit as their
+    // own type; the user-supplied filename is stripped from resource_id.
+    auditAttachmentAccess(PHI_ACTION_ATTACHMENT_VIEW, $storagePath);
 
     // Stream the file contents
     header('Content-Type: ' . $contentType);
