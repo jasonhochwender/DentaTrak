@@ -2936,6 +2936,69 @@ body {
   color: #c62828;
 }
 
+/* Existing attachment rows: name block with type badge + compact meta */
+.existing-file {
+  gap: 8px;
+}
+
+.existing-file .file-info {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.existing-file .file-name-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.file-type-badge {
+  flex: 0 0 auto;
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  padding: 1px 5px;
+  border-radius: 3px;
+  background: #e0f2fe;
+  color: #0369a1;
+  text-transform: uppercase;
+}
+
+.existing-file .file-name-text {
+  max-width: 240px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: inline-block;
+}
+
+.existing-file .file-meta {
+  font-size: 0.68rem;
+  color: #6b7280;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.existing-file .file-category-select {
+  flex: 0 0 auto;
+  max-width: 118px;
+  font-size: 0.7rem;
+  padding: 2px 4px;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  background: #fff;
+  color: #374151;
+}
+
+.existing-file .file-category-select:disabled {
+  opacity: 0.5;
+}
+
 /* Form validation */
 .field-error {
   border-color: #e53935 !important;

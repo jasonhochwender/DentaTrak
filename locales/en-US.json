@@ -581,6 +581,8 @@
         "delete_warning": "This action cannot be undone.",
         "delete_file": "Delete File",
         "will_be_deleted": "(will be deleted)",
+        "unnamed_file": "Unnamed file",
+        "change_category": "Move to category",
         "preview_unavailable": "Unable to open this attachment preview. You can still download the file.",
         "loading": "Loading attachments…",
         "load_error": "Unable to load attachments. Please try again.",

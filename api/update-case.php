@@ -52,8 +52,48 @@ try {
     // Load Google Drive integration
     require_once __DIR__ . '/google-drive.php';
 
+    // Apply attachment category reassignments to the case's own attachment
+    // records. This is a metadata-only change: the clinical category stored
+    // in attachment.type is updated in place; the storage object, its path,
+    // and every other field are untouched. Records are matched by stable
+    // attachment id first, then storagePath as a fallback. The target type
+    // is validated against the same canonical category list the upload
+    // pipeline uses (records store the ucfirst()ed form of it).
+    function applyAttachmentReassignments(array &$attachments, $reassignments) {
+        $validTypes = ['photos', 'intraoralScans', 'facialScans', 'photogrammetry', 'completedDesigns'];
+        $applied = 0;
+        if (!is_array($reassignments)) {
+            return $applied;
+        }
+        foreach ($reassignments as $reassignment) {
+            if (!is_array($reassignment)) {
+                continue;
+            }
+            $newType = $reassignment['type'] ?? null;
+            if (!in_array($newType, $validTypes, true)) {
+                continue;
+            }
+            $attachmentId = $reassignment['attachmentId'] ?? null;
+            $storagePath = $reassignment['storagePath'] ?? null;
+            if (!$attachmentId && !$storagePath) {
+                continue;
+            }
+            foreach ($attachments as &$attachment) {
+                $matches = ($attachmentId && isset($attachment['id']) && $attachment['id'] == $attachmentId)
+                    || ($storagePath && ($attachment['storagePath'] ?? '') === $storagePath);
+                if ($matches) {
+                    $attachment['type'] = ucfirst($newType);
+                    $applied++;
+                    break;
+                }
+            }
+            unset($attachment);
+        }
+        return $applied;
+    }
+
     // Function to update case in database only (when Google Drive fails)
-    function updateCaseInDatabaseOnly($caseData, $files = [], $filesToDelete = []) {
+    function updateCaseInDatabaseOnly($caseData, $files = [], $filesToDelete = [], $attachmentReassignments = []) {
         global $pdo;
         try {
             // Get existing case data from cache to preserve attachments and other fields
@@ -154,7 +194,12 @@ try {
                 }
                 $existingAttachments = array_values($existingAttachments);
             }
-            
+
+            // Category reassignments: metadata-only type updates on the
+            // case's own attachment records (deletions already applied, so a
+            // file cannot be both deleted and reassigned).
+            $reassignedCount = applyAttachmentReassignments($existingAttachments, $attachmentReassignments);
+
             // Process GCS file uploads (new direct-to-GCS flow).
             // SECURITY: Attachment metadata is verified server-side against the
             // actual GCS object (existence, size, MIME type, path ownership,
@@ -220,7 +265,8 @@ try {
                 'message' => t('api.cases.updated_db_only'),
                 'caseData' => $caseData,
                 'driveFolderId' => $caseData['driveFolderId'] ?? null,
-                'changedFields' => $changedFields
+                'changedFields' => $changedFields,
+                'attachmentsReassigned' => $reassignedCount
             ];
         } catch (Exception $e) {
             return [
@@ -231,23 +277,23 @@ try {
     }
 
     // Function to update a case in Google Drive
-    function updateCase($caseId, $caseData, $files, $filesToDelete = []) {
+    function updateCase($caseId, $caseData, $files, $filesToDelete = [], $attachmentReassignments = []) {
         global $pdo;
         try {
             // Check if Google Drive backup is enabled
             $backupEnabled = isGoogleDriveBackupEnabled();
-            
+
             // If backup is not enabled, just update the database
             if (!$backupEnabled) {
-                return updateCaseInDatabaseOnly($caseData, $files, $filesToDelete);
+                return updateCaseInDatabaseOnly($caseData, $files, $filesToDelete, $attachmentReassignments);
             }
-            
+
             $client = getGoogleClient();
-            
+
             // Check for valid access token - if not available, fall back to database-only update
             if (!$client->getAccessToken() || $client->isAccessTokenExpired()) {
                 // Google Drive token expired - update database only with warning
-                $result = updateCaseInDatabaseOnly($caseData, $files, $filesToDelete);
+                $result = updateCaseInDatabaseOnly($caseData, $files, $filesToDelete, $attachmentReassignments);
                 if ($result['success']) {
                     $result['warning'] = t('api.cases.google_drive_session_expired');
                 }
@@ -310,7 +356,7 @@ try {
                     }
                 } catch (Exception $e) {
                     // Continue without Google Drive - just update database
-                    return updateCaseInDatabaseOnly($caseData);
+                    return updateCaseInDatabaseOnly($caseData, $files, $filesToDelete, $attachmentReassignments);
                 }
             }
             
@@ -487,7 +533,15 @@ try {
                     ['files_deleted' => count($filesToDelete)]
                 );
             }
-            
+
+            // Category reassignments: metadata-only type updates on the
+            // case's own attachment records (deletions already applied, so a
+            // file cannot be both deleted and reassigned).
+            $reassignedCount = 0;
+            if (isset($existingCaseData['attachments']) && is_array($existingCaseData['attachments'])) {
+                $reassignedCount = applyAttachmentReassignments($existingCaseData['attachments'], $attachmentReassignments);
+            }
+
             // Process GCS file uploads (new direct-to-GCS flow).
             // SECURITY: Attachment metadata is verified server-side against the
             // actual GCS object (existence, size, MIME type, path ownership,
@@ -557,7 +611,8 @@ try {
                 'success' => true,
                 'message' => t('api.cases.updated_success'),
                 'caseData' => $existingCaseData, // Return decrypted data for UI
-                'changedFields' => $changedFields
+                'changedFields' => $changedFields,
+                'attachmentsReassigned' => $reassignedCount ?? 0
             ];
         } catch (Exception $e) {
 
@@ -852,6 +907,17 @@ try {
                 $filesToDelete = [];
             }
         }
+
+        // Category reassignments: [{attachmentId?, storagePath?, type}]
+        // validated and applied inside updateCase() against the case's own
+        // attachment records - never trusted to point at another case.
+        $attachmentReassignments = [];
+        if (isset($_POST['attachmentReassignments'])) {
+            $decodedReassignments = json_decode($_POST['attachmentReassignments'], true);
+            if (is_array($decodedReassignments)) {
+                $attachmentReassignments = $decodedReassignments;
+            }
+        }
         
         // Lab Insights foundation: capture the assignment text as it exists
         // BEFORE this update, so a genuine assignment change can be detected
@@ -882,7 +948,7 @@ try {
             // Ignore errors fetching previous assignment/status; treated as unknown/empty.
         }
 
-        $result = updateCase($_POST['caseId'], $caseData, $_FILES, $filesToDelete);
+        $result = updateCase($_POST['caseId'], $caseData, $_FILES, $filesToDelete, $attachmentReassignments);
 
         // Backend-enforced revision count: a backward stage transition must
         // increment the revision count regardless of whether the status
@@ -1073,6 +1139,22 @@ try {
                             null,
                             [
                                 'count' => count($attachments),
+                                'source' => 'update-case.php',
+                            ]
+                        );
+                    }
+
+                    // Log category reassignments applied this request (the
+                    // metadata-only move between clinical categories).
+                    $reassignedCount = (int)($result['attachmentsReassigned'] ?? 0);
+                    if ($reassignedCount > 0) {
+                        logCaseActivity(
+                            $updatedCaseId,
+                            'attachments_updated',
+                            null,
+                            null,
+                            [
+                                'reassigned_count' => $reassignedCount,
                                 'source' => 'update-case.php',
                             ]
                         );

@@ -46,6 +46,7 @@ try {
     require_once __DIR__ . '/case-activity-log.php';
     require_once __DIR__ . '/hipaa-compliance.php';
     require_once __DIR__ . '/gcs-storage.php';
+    require_once __DIR__ . '/attachment-display.php';
 
     // Set headers to prevent caching
     header('Cache-Control: no-cache, must-revalidate');
@@ -812,7 +813,7 @@ function generatePrintableHTML($caseData, $attachments = [], $gdAvailable = true
                 echo '</div>';
                 
                 foreach ($attachments as $attachment) {
-                    $fileName = $attachment['fileName'] ?? $attachment['name'] ?? t('common.unknown');
+                    $fileName = resolveAttachmentDisplayName($attachment) ?? t('attachments.unnamed_file');
                     $fileType = $attachment['type'] ?? t('common.unknown');
                     echo '<div class="field">';
                     echo '<div class="field-label">' . t('print.file') . ':</div>';
@@ -835,7 +836,7 @@ function generatePrintableHTML($caseData, $attachments = [], $gdAvailable = true
                 $documentAttachments = []; // PDF, DOC, ZIP, etc.
                 
                 foreach ($attachments as $attachment) {
-                    $fileName = $attachment['fileName'] ?? $attachment['name'] ?? 'Unknown';
+                    $fileName = resolveAttachmentDisplayName($attachment) ?? t('attachments.unnamed_file');
                     $ext = strtolower(pathinfo($fileName, PATHINFO_EXTENSION));
                     
                     if (in_array($ext, ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp'])) {
@@ -853,7 +854,7 @@ function generatePrintableHTML($caseData, $attachments = [], $gdAvailable = true
                     echo '<div class="file-header" style="background: #e8f5e9; border-color: #c8e6c9;">' . t('attachments.photos') . '</div>';
                     
                     foreach ($imageAttachments as $attachment) {
-                        $fileName = $attachment['fileName'] ?? $attachment['name'] ?? 'Unknown';
+                        $fileName = resolveAttachmentDisplayName($attachment) ?? t('attachments.unnamed_file');
                         $path = $attachment['storagePath'] ?? $attachment['path'] ?? '';
                         $isGcs = str_starts_with($path, 'cases/');
                         $isLocal = str_starts_with($path, 'uploads/');
@@ -909,7 +910,7 @@ function generatePrintableHTML($caseData, $attachments = [], $gdAvailable = true
                     echo '<ul style="margin: 10px 0; padding-left: 25px;">';
                     
                     foreach ($scanAttachments as $attachment) {
-                        $fileName = $attachment['fileName'] ?? $attachment['name'] ?? 'Unknown';
+                        $fileName = resolveAttachmentDisplayName($attachment) ?? t('attachments.unnamed_file');
                         $fileSize = $attachment['size'] ?? 0;
                         $sizeStr = $fileSize > 0 ? ' (' . formatFileSize($fileSize) . ')' : '';
                         
@@ -930,7 +931,7 @@ function generatePrintableHTML($caseData, $attachments = [], $gdAvailable = true
                     echo '<ul style="margin: 10px 0; padding-left: 25px;">';
                     
                     foreach ($documentAttachments as $attachment) {
-                        $fileName = $attachment['fileName'] ?? $attachment['name'] ?? 'Unknown';
+                        $fileName = resolveAttachmentDisplayName($attachment) ?? t('attachments.unnamed_file');
                         $fileSize = $attachment['size'] ?? 0;
                         $sizeStr = $fileSize > 0 ? ' (' . formatFileSize($fileSize) . ')' : '';
                         $ext = strtoupper(pathinfo($fileName, PATHINFO_EXTENSION));

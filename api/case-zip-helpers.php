@@ -6,6 +6,8 @@
  * designed to be independently testable. They perform no GCS I/O themselves.
  */
 
+require_once __DIR__ . '/attachment-display.php';
+
 /**
  * Return the validated maximum synchronous ZIP size in bytes.
  * Controlled by the DENTATRAK_BULK_ZIP_MAX_BYTES environment variable.
@@ -87,7 +89,14 @@ function getEligibleZipAttachments(array $case, $practiceId, $bucket): array {
 
     foreach ($attachments as $att) {
         $storagePath = $att['storagePath'] ?? '';
-        $fileName = $att['fileName'] ?? ($att['name'] ?? '');
+        // Safe display name only: a raw or flattened storage path stored in
+        // the name fields is never used as the ZIP entry name. Records with
+        // no name at all keep the previous skip behavior; a present but
+        // unrecoverable name falls back to a generic label.
+        $fileName = resolveAttachmentDisplayName($att);
+        if ($fileName === null && trim((string)($att['fileName'] ?? ($att['name'] ?? ''))) !== '') {
+            $fileName = t('attachments.unnamed_file');
+        }
         $storageType = $att['storageType'] ?? '';
 
         if ($storageType !== 'gcs' || empty($storagePath) || empty($fileName)) {

@@ -18,6 +18,7 @@ require_once __DIR__ . '/csrf.php';
 require_once __DIR__ . '/security-headers.php';
 require_once __DIR__ . '/cases-cache.php';
 require_once __DIR__ . '/workflow-stages.php';
+require_once __DIR__ . '/attachment-display.php';
 require_once __DIR__ . '/email-sender.php';
 require_once __DIR__ . '/encryption.php';
 
@@ -295,7 +296,7 @@ function processExport(int $exportId, int $userId, int $practiceId, string $user
             if (is_array($attachments)) {
                 foreach ($attachments as $attachment) {
                     $caseData['attachments'][] = [
-                        'fileName' => $attachment['fileName'] ?? $attachment['name'] ?? 'Unknown',
+                        'fileName' => resolveAttachmentDisplayName($attachment) ?? t('attachments.unnamed_file'),
                         'type' => $attachment['type'] ?? 'Unknown',
                         'uploadedAt' => $attachment['uploadedAt'] ?? null
                     ];

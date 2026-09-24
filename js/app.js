@@ -6059,6 +6059,101 @@ document.addEventListener('DOMContentLoaded', function () {
    * heavy response). The caller is responsible for clearing the containers
    * beforehand (clearFileSelections) so a re-render cannot duplicate rows.
    */
+  // The canonical upload categories. These values are the same upload_type
+  // keys upload-signed-url.php accepts and the data-api-type values the
+  // category containers use - records store their ucfirst()ed form in
+  // attachment.type (e.g. 'photos' -> 'Photos').
+  var ATTACHMENT_CATEGORIES = ['photos', 'intraoralScans', 'facialScans', 'photogrammetry', 'completedDesigns'];
+  var ATTACHMENT_CATEGORY_LABEL_KEYS = {
+    photos: 'attachments.photos',
+    intraoralScans: 'attachments.intraoral_scans',
+    facialScans: 'attachments.facial_scans',
+    photogrammetry: 'attachments.photogrammetry',
+    completedDesigns: 'attachments.completed_designs'
+  };
+
+  // Resolve a safe user-facing name for an attachment.
+  //
+  // New records always store the original browser filename in fileName/name.
+  // Some older records carry a storage-path-derived value instead: either a
+  // raw object path (cases/{practice}/{case}/{type}/{uuid}-{name}) or the
+  // same path with slashes flattened to underscores (cases_20_...). The raw
+  // or flattened path is internal data and is never shown directly; when the
+  // name looks like one of those shapes the original filename is recovered
+  // from the "{uuid}-{name}" tail the upload pipeline writes. When no safe
+  // name exists this returns null and the caller shows a generic label.
+  function resolveAttachmentDisplayName(file) {
+    var raw = '';
+    if (file && typeof file.fileName === 'string' && file.fileName.trim() !== '') {
+      raw = file.fileName.trim();
+    } else if (file && typeof file.name === 'string' && file.name.trim() !== '') {
+      raw = file.name.trim();
+    }
+    if (raw === '') {
+      return null;
+    }
+    var isPathLike = /[\/\\]/.test(raw) || /^cases_\d+(_|$)/.test(raw);
+    if (!isPathLike) {
+      return raw;
+    }
+    var base = raw.split(/[\/\\]/).pop();
+    var match = base.match(/^[a-f0-9]{13,32}-(.+)$/)
+      || raw.match(/(?:^|[\/\\_])[a-f0-9]{13,32}-(.+)$/);
+    var recovered = match ? match[match.length - 1].trim() : '';
+    return recovered !== '' ? recovered : null;
+  }
+
+  // Short uppercase label for the file-type badge. Derived from stored MIME
+  // metadata first, then the resolved filename extension, never from the
+  // storage path.
+  function attachmentTypeLabel(file) {
+    var mime = String((file && (file.fileType || file.mimeType)) || '').toLowerCase();
+    var name = resolveAttachmentDisplayName(file) || '';
+    var ext = '';
+    var dot = name.lastIndexOf('.');
+    if (dot > -1) {
+      ext = name.substring(dot + 1).toLowerCase();
+    }
+    if (mime.indexOf('jpeg') !== -1 || ext === 'jpg' || ext === 'jpeg') return 'JPG';
+    if (mime === 'image/png' || ext === 'png') return 'PNG';
+    if (mime === 'image/gif' || ext === 'gif') return 'GIF';
+    if (mime === 'image/webp' || ext === 'webp') return 'WEBP';
+    if (ext === 'stl' || mime.indexOf('stl') !== -1) return 'STL';
+    if (ext === 'obj' || mime.indexOf('obj') !== -1 || mime === 'application/x-tgif') return 'OBJ';
+    if (ext === 'ply' || mime.indexOf('ply') !== -1) return 'PLY';
+    if (mime === 'application/pdf' || ext === 'pdf') return 'PDF';
+    if (ext === 'dcm' || ext === 'dicom' || mime.indexOf('dicom') !== -1) return 'DCM';
+    if (mime.indexOf('image/') === 0) return 'IMG';
+    if (ext !== '') return ext.toUpperCase().substring(0, 5);
+    return 'FILE';
+  }
+
+  // Compact "size · upload date" metadata line. Each part is shown only when
+  // the record actually carries it; returns '' when neither exists.
+  function attachmentMetaText(file) {
+    var parts = [];
+    var size = file && file.size;
+    if (typeof size === 'number' && isFinite(size) && size > 0) {
+      if (window.GCSUpload && typeof window.GCSUpload.formatFileSize === 'function') {
+        parts.push(window.GCSUpload.formatFileSize(size));
+      } else if (size >= 1024 * 1024) {
+        parts.push((size / (1024 * 1024)).toFixed(1) + 'MB');
+      } else if (size >= 1024) {
+        parts.push((size / 1024).toFixed(1) + 'KB');
+      } else {
+        parts.push(size + ' bytes');
+      }
+    }
+    var uploadedAt = file && file.uploadedAt;
+    if (uploadedAt) {
+      var parsed = new Date(uploadedAt);
+      if (!isNaN(parsed.getTime())) {
+        parts.push(formatDate(uploadedAt, false));
+      }
+    }
+    return parts.join(' \u00B7 ');
+  }
+
   function renderExistingAttachments(attachments) {
     if (!attachments || !Array.isArray(attachments) || attachments.length === 0) {
       return;
@@ -6136,12 +6231,17 @@ document.addEventListener('DOMContentLoaded', function () {
           // Determine if this is a GCS-stored file or a legacy local/Drive file
           var isGcsFile = (file.storageType === 'gcs' && file.storagePath);
 
+          // Safe user-facing name: original filename from metadata, never a
+          // raw or flattened storage path (resolveAttachmentDisplayName
+          // recovers the name embedded in path-shaped legacy values).
+          var displayName = resolveAttachmentDisplayName(file) || t('attachments.unnamed_file');
+
           // Stash the fields the attachment viewer needs on the row itself
           // so the click handler can rebuild the full ordered attachment
           // list (in displayed order) for Previous/Next navigation.
           if (isGcsFile) {
             fileElement.dataset.storagePath = file.storagePath;
-            fileElement.dataset.fileName = file.fileName;
+            fileElement.dataset.fileName = displayName;
             fileElement.dataset.fileType = file.fileType || file.mimeType || '';
           }
 
@@ -6155,8 +6255,8 @@ document.addEventListener('DOMContentLoaded', function () {
             nameSpan.target = '_blank';
             nameSpan.rel = 'noopener noreferrer';
             nameSpan.style.cssText = 'color: #2563eb; text-decoration: none; cursor: pointer;';
-            nameSpan.title = 'Click to view: ' + file.fileName;
-            nameSpan.textContent = file.fileName;
+            nameSpan.title = 'Click to view: ' + displayName;
+            nameSpan.textContent = displayName;
 
             // Add hover effect
             nameSpan.addEventListener('mouseenter', function() {
@@ -6167,10 +6267,11 @@ document.addEventListener('DOMContentLoaded', function () {
             });
           } else {
             nameSpan = document.createElement('span');
-            nameSpan.title = file.fileName;
-            nameSpan.textContent = file.fileName;
+            nameSpan.title = displayName;
+            nameSpan.textContent = displayName;
             nameSpan.style.cssText = 'color: #374151;';
           }
+          nameSpan.className = 'file-name-text';
 
           // View link for every stored attachment. Types without a
           // previewable renderer open the viewer's empty state (which still
@@ -6198,7 +6299,7 @@ document.addEventListener('DOMContentLoaded', function () {
                       fileType: row.dataset.fileType
                     };
                   });
-                  openAttachmentViewer(file.storagePath, file.fileName, file.fileType || file.mimeType || '', list);
+                  openAttachmentViewer(file.storagePath, displayName, file.fileType || file.mimeType || '', list);
                 } catch (err) {
                   console.error('Attachment viewer failed to open:', err);
                   showToast(t('attachments.preview_unavailable'), 'error');
@@ -6218,7 +6319,7 @@ document.addEventListener('DOMContentLoaded', function () {
             downloadLink.className = 'attachment-download-link';
             downloadLink.textContent = t('common.download');
             downloadLink.dataset.storagePath = file.storagePath;
-            downloadLink.dataset.fileName = file.fileName;
+            downloadLink.dataset.fileName = displayName;
             downloadLink.addEventListener('click', function(e) {
               e.preventDefault();
               openGcsFile(this.dataset.storagePath, this.dataset.fileName);
@@ -6249,6 +6350,12 @@ document.addEventListener('DOMContentLoaded', function () {
             currentFileElement.classList.add('marked-for-deletion');
             currentFileElement.style.opacity = '0.5';
             currentFileElement.style.textDecoration = 'line-through';
+
+            // A deleted file cannot also be reassigned - lock the control.
+            var rowCategorySelect = currentFileElement.querySelector('.file-category-select');
+            if (rowCategorySelect) {
+              rowCategorySelect.disabled = true;
+            }
 
             // Hide the delete button after marking
             this.style.display = 'none';
@@ -6281,8 +6388,52 @@ document.addEventListener('DOMContentLoaded', function () {
             actionsContainer.appendChild(downloadLink);
           }
 
-          // Assemble the elements in order: name, actions, remove
-          fileElement.appendChild(nameSpan);
+          // Name block: file-type badge + filename, with compact metadata
+          // (size / upload date) underneath when the record carries it.
+          var fileInfo = document.createElement('div');
+          fileInfo.className = 'file-info';
+          var nameRow = document.createElement('div');
+          nameRow.className = 'file-name-row';
+          var typeBadge = document.createElement('span');
+          typeBadge.className = 'file-type-badge file-type-' + attachmentTypeLabel(file).toLowerCase();
+          typeBadge.textContent = attachmentTypeLabel(file);
+          nameRow.appendChild(typeBadge);
+          nameRow.appendChild(nameSpan);
+          fileInfo.appendChild(nameRow);
+          var metaText = attachmentMetaText(file);
+          if (metaText !== '') {
+            var metaEl = document.createElement('div');
+            metaEl.className = 'file-meta';
+            metaEl.textContent = metaText;
+            fileInfo.appendChild(metaEl);
+          }
+
+          // Category reassignment: metadata-only change applied on save by
+          // update-case.php. The select stays in the row so unauthorized
+          // paths never see a value - the server re-validates regardless.
+          var categorySelect = document.createElement('select');
+          categorySelect.className = 'file-category-select';
+          categorySelect.title = t('attachments.change_category');
+          categorySelect.setAttribute('aria-label', t('attachments.change_category'));
+          ATTACHMENT_CATEGORIES.forEach(function(cat) {
+            var opt = document.createElement('option');
+            opt.value = cat;
+            opt.textContent = t(ATTACHMENT_CATEGORY_LABEL_KEYS[cat]);
+            categorySelect.appendChild(opt);
+          });
+          if (ATTACHMENT_CATEGORIES.indexOf(type) !== -1) {
+            categorySelect.value = type;
+          }
+          // Original selection is what collectAttachmentReassignments()
+          // diffs against, so untouched rows never emit a change.
+          fileElement.dataset.originalCategory = categorySelect.value;
+          categorySelect.addEventListener('change', function() {
+            hasUnsavedChanges = true;
+          });
+
+          // Assemble the elements in order: name block, category, actions, remove
+          fileElement.appendChild(fileInfo);
+          fileElement.appendChild(categorySelect);
           if (actionsContainer.childNodes.length > 0) {
             fileElement.appendChild(actionsContainer);
           }
@@ -7332,6 +7483,13 @@ document.addEventListener('DOMContentLoaded', function () {
           formData.append('filesToDelete', JSON.stringify(filesToDelete));
         }
 
+        // Category reassignment is metadata-only - attachment records keep
+        // their storagePath; only the type value changes server-side.
+        var attachmentReassignments = collectAttachmentReassignments();
+        if (attachmentReassignments.length > 0) {
+          formData.append('attachmentReassignments', JSON.stringify(attachmentReassignments));
+        }
+
         // Submit case metadata (small payload, no binary data)
         var endpoint = isUpdate ? 'api/update-case.php' : 'api/create-case.php';
 
@@ -7449,6 +7607,35 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     return filesToDelete;
+  }
+
+  // Collect category changes made on existing attachment rows. Rows marked
+  // for deletion are skipped (deletion wins). Each entry carries the stable
+  // attachment id when present, storagePath as a fallback match key, and
+  // the target canonical category.
+  function collectAttachmentReassignments() {
+    var reassignments = [];
+    var rows = document.querySelectorAll('#createCaseForm .existing-file');
+    rows.forEach(function(row) {
+      if (row.classList.contains('marked-for-deletion')) {
+        return;
+      }
+      var select = row.querySelector('.file-category-select');
+      if (!select || select.value === row.dataset.originalCategory) {
+        return;
+      }
+      var item = { type: select.value };
+      if (row.dataset.attachmentId) {
+        item.attachmentId = row.dataset.attachmentId;
+      }
+      if (row.dataset.storagePath) {
+        item.storagePath = row.dataset.storagePath;
+      }
+      if (item.attachmentId || item.storagePath) {
+        reassignments.push(item);
+      }
+    });
+    return reassignments;
   }
 
   // Optimized success handler
