@@ -49,15 +49,16 @@ $rangeDays = ['7' => 7, '30' => 30, '90' => 90][$range] ?? null;
 $where = '1=1';
 $bind = [];
 if ($rangeDays !== null) {
-    $where = 'created_at >= DATE_SUB(NOW(), INTERVAL :days DAY)';
+    $where = 'u.created_at >= DATE_SUB(NOW(), INTERVAL :days DAY)';
     $bind[':days'] = $rangeDays;
 } elseif ($range === 'custom') {
-    $where = 'created_at >= :from AND created_at < DATE_ADD(:to, INTERVAL 1 DAY)';
+    $where = 'u.created_at >= :from AND u.created_at < DATE_ADD(:to, INTERVAL 1 DAY)';
     $bind[':from'] = $customFrom;
     $bind[':to'] = $customTo;
 }
 
 $tableMissing = false;
+$queryFailed = false;
 $summary = ['total' => 0, 'users' => 0, 'practices' => 0, 'answered' => 0,
             'clarify' => 0, 'errors' => 0, 'redirects' => 0, 'avg_latency' => null,
             'fb_up' => 0, 'fb_down' => 0];
@@ -69,7 +70,7 @@ $page = max(1, (int)($_GET['page'] ?? 1));
 $perPage = 50;
 
 try {
-    $baseSql = "FROM ask_dentatrak_usage WHERE {$where}";
+    $baseSql = "FROM ask_dentatrak_usage u WHERE {$where}";
     $stmt = $pdo->prepare("
         SELECT COUNT(*) total, COUNT(DISTINCT user_id) users, COUNT(DISTINCT practice_id) practices,
                SUM(outcome='answered') answered, SUM(outcome='clarification_requested') clarify,
@@ -119,7 +120,11 @@ try {
     $stmt->execute();
     $events = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } catch (Throwable $e) {
-    $tableMissing = true;
+    if ($e instanceof PDOException && $e->getCode() === '42S02') {
+        $tableMissing = true;
+    } else {
+        $queryFailed = true;
+    }
     error_log('[dev-ask-usage] query failed: ' . $e->getMessage());
 }
 
@@ -194,6 +199,8 @@ $successRate = $summary['total'] > 0 ? round(100 * $summary['answered'] / $summa
 
     <?php if ($tableMissing): ?>
         <div class="empty-note"><?php echo h(u('no_table', 'Telemetry table not present - run the migration first.')); ?></div>
+    <?php elseif ($queryFailed): ?>
+        <div class="empty-note"><?php echo h(u('query_failed', 'Usage data could not be loaded. See the application error log.')); ?></div>
     <?php elseif ($summary['total'] === 0): ?>
         <div class="empty-note"><?php echo h(u('no_data', 'No usage events in this range.')); ?></div>
     <?php else: ?>
