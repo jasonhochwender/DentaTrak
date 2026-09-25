@@ -2819,7 +2819,17 @@
         "help_3": "케이스 상태 및 병목 현황",
         "prompt_question": "무엇이 궁금하신가요?",
         "input_placeholder": "질문을 입력하세요...",
-        "send": "보내기"
+        "send": "보내기",
+        "menu_item": "{appName}에게 묻기",
+        "example_1": "랩 사용자를 추가하려면 어떻게 하나요?",
+        "example_2": "지난 90일 동안 몇 건의 케이스를 만들었나요?",
+        "example_3": "내 케이스 중 기한이 지난 것은 무엇인가요?",
+        "errors": {
+            "unavailable": "이 치과에서는 {appName}에게 묻기를 사용할 수 없습니다.",
+            "empty_query": "질문을 입력해 주세요.",
+            "no_answer": "해당 질문에 대한 답을 찾지 못했습니다. 기능 사용 방법이나 접근 가능한 케이스에 대해 물어보세요.",
+            "generic": "문제가 발생했습니다. 다시 시도해 주세요."
+        }
     },
     "tour": {
         "welcome_title": "{appName}에 오신 것을 환영합니다",
@@ -5378,5 +5388,16 @@
             "database": "약관 동의를 기록할 수 없습니다."
         },
         "required": "계속하려면 현재 서비스 이용약관 및 개인정보 처리방침에 동의해야 합니다."
+    },
+    "shortcuts": {
+        "scope_global": "전역",
+        "scope_attachment_viewer": "첨부 파일 뷰어",
+        "open_settings": "설정 열기",
+        "create_case": "새 케이스 만들기",
+        "view_archived_cases": "보관된 케이스 보기",
+        "open_feedback": "피드백 양식 열기",
+        "open_ask_dentatrak": "Ask DentaTrak 어시스턴트 열기",
+        "close_dialog": "활성 대화 상자 또는 패널 닫기",
+        "viewer_navigate": "첨부 파일 간 이동"
     }
 }

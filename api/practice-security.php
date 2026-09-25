@@ -1002,6 +1002,10 @@ function ensureAuthorizedCaseIdsTempTable($practiceId) {
 
     try {
         $pdo->exec("CREATE TEMPORARY TABLE IF NOT EXISTS authorized_case_ids (case_id VARCHAR(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL PRIMARY KEY)");
+        // Rebuild on every call: a stale temp table (e.g. reused connection
+        // or a second call after an in-request context change) would
+        // otherwise silently widen scope instead of re-deriving it.
+        $pdo->exec("DELETE FROM authorized_case_ids");
     } catch (PDOException $e) {
         error_log('[practice-security] Failed to create authorized_case_ids: ' . $e->getMessage());
         return;

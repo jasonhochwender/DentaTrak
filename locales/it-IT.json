@@ -2819,7 +2819,17 @@
         "help_3": "Stato dei casi e colli di bottiglia",
         "prompt_question": "Cosa vorresti sapere?",
         "input_placeholder": "Fai una domanda...",
-        "send": "Invia"
+        "send": "Invia",
+        "menu_item": "Chiedi a {appName}",
+        "example_1": "Come aggiungo un utente del laboratorio?",
+        "example_2": "Quanti casi ho creato negli ultimi 90 giorni?",
+        "example_3": "Quali dei miei casi sono in ritardo?",
+        "errors": {
+            "unavailable": "Chiedi a {appName} non è disponibile per il tuo studio.",
+            "empty_query": "Inserisci una domanda.",
+            "no_answer": "Non ho trovato una risposta. Prova a chiedere come usare una funzione o informazioni sui casi a cui hai accesso.",
+            "generic": "Si è verificato un errore. Riprova."
+        }
     },
     "tour": {
         "welcome_title": "Benvenuto in {appName}",
@@ -5378,5 +5388,16 @@
             "database": "Impossibile registrare l'accettazione dei termini."
         },
         "required": "Devi accettare gli attuali Termini di servizio e l'Informativa sulla privacy per continuare."
+    },
+    "shortcuts": {
+        "scope_global": "Globale",
+        "scope_attachment_viewer": "Visualizzatore di allegati",
+        "open_settings": "Apri Impostazioni",
+        "create_case": "Crea un nuovo caso",
+        "view_archived_cases": "Visualizza i casi archiviati",
+        "open_feedback": "Apri il modulo di feedback",
+        "open_ask_dentatrak": "Apri l\\u2019assistente Ask DentaTrak",
+        "close_dialog": "Chiudi la finestra di dialogo o il pannello attivo",
+        "viewer_navigate": "Spostati tra gli allegati"
     }
 }

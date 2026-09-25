@@ -707,6 +707,7 @@ try {
                     userLog("Updated case review tracking for practice {$currentPracticeId} to " . ($caseReviewTrackingEnabled ? 'enabled' : 'disabled'), false);
                 }
             }
+
         } else {
             // Not an admin; log any attempted changes to practice name or logo
             if (!empty($practiceName) || $logoAction === 'remove') {

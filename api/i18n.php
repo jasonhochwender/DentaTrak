@@ -855,6 +855,7 @@ function renderLanguageSelector($saveUrl, $currentLocale, $showUsePracticeDefaul
     $html .= '      if (window.closePracticeSwitcher) window.closePracticeSwitcher();';
     $html .= '      if (window.closeNotificationDropdown) window.closeNotificationDropdown();';
     $html .= '      if (window.closeSettingsBillingModal) window.closeSettingsBillingModal(true);';
+    $html .= '      if (window.askDentatrak) window.askDentatrak.close();';
     $html .= '    }';
     $html .= '  });';
     $html .= '  document.addEventListener("click", function () { closeMenu(); });';

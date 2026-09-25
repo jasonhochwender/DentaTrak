@@ -100,7 +100,17 @@
         "help_3": "Fallstatus und Engpässen",
         "prompt_question": "Was möchten Sie wissen?",
         "input_placeholder": "Stellen Sie eine Frage...",
-        "send": "Senden"
+        "send": "Senden",
+        "menu_item": "{appName} fragen",
+        "example_1": "Wie füge ich einen Laborbenutzer hinzu?",
+        "example_2": "Wie viele Fälle habe ich in den letzten 90 Tagen erstellt?",
+        "example_3": "Welche meiner Fälle sind überfällig?",
+        "errors": {
+            "unavailable": "{appName} fragen ist für Ihre Praxis nicht verfügbar.",
+            "empty_query": "Bitte geben Sie eine Frage ein.",
+            "no_answer": "Dazu habe ich keine Antwort gefunden. Fragen Sie, wie eine Funktion verwendet wird, oder nach den Fällen, auf die Sie Zugriff haben.",
+            "generic": "Es ist ein Fehler aufgetreten. Bitte versuchen Sie es erneut."
+        }
     },
     "feedback": {
         "title": "Erzählen Sie uns mehr über Ihre Erfahrung",
@@ -5378,5 +5388,16 @@
                 }
             }
         }
+    },
+    "shortcuts": {
+        "scope_global": "Global",
+        "scope_attachment_viewer": "Anlagen-Viewer",
+        "open_settings": "Einstellungen öffnen",
+        "create_case": "Neuen Fall erstellen",
+        "view_archived_cases": "Archivierte Fälle anzeigen",
+        "open_feedback": "Feedback-Formular öffnen",
+        "open_ask_dentatrak": "Den Assistenten Ask DentaTrak öffnen",
+        "close_dialog": "Aktives Dialogfeld oder Panel schließen",
+        "viewer_navigate": "Zwischen Anlagen wechseln"
     }
 }

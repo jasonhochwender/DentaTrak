@@ -2819,7 +2819,17 @@
         "help_3": "Estado de casos y cuellos de botella",
         "prompt_question": "¿Qué le gustaría saber?",
         "input_placeholder": "Haga una pregunta...",
-        "send": "Enviar"
+        "send": "Enviar",
+        "menu_item": "Pregunte a {appName}",
+        "example_1": "¿Cómo agrego un usuario de laboratorio?",
+        "example_2": "¿Cuántos casos creé en los últimos 90 días?",
+        "example_3": "¿Cuáles de mis casos están vencidos?",
+        "errors": {
+            "unavailable": "Pregunte a {appName} no está disponible para su consultorio.",
+            "empty_query": "Ingrese una pregunta.",
+            "no_answer": "No encontré una respuesta para eso. Pruebe preguntar cómo usar una función o sobre los casos a los que tiene acceso.",
+            "generic": "Lo siento, algo salió mal. Inténtelo de nuevo."
+        }
     },
     "tour": {
         "welcome_title": "Bienvenido a {appName}",
@@ -5378,5 +5388,16 @@
             "database": "No se pudo registrar la aceptación de los términos."
         },
         "required": "Debe aceptar los Términos de servicio y la Política de privacidad actuales para continuar."
+    },
+    "shortcuts": {
+        "scope_global": "Global",
+        "scope_attachment_viewer": "Visor de archivos adjuntos",
+        "open_settings": "Abrir Configuración",
+        "create_case": "Crear un caso nuevo",
+        "view_archived_cases": "Ver casos archivados",
+        "open_feedback": "Abrir el formulario de comentarios",
+        "open_ask_dentatrak": "Abrir el asistente Ask DentaTrak",
+        "close_dialog": "Cerrar el diálogo o panel activo",
+        "viewer_navigate": "Moverse entre archivos adjuntos"
     }
 }

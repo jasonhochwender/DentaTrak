@@ -190,7 +190,15 @@ if ($userId && $currentPracticeId &&
 // ai-recommendations.php remain the authoritative server-side enforcement.
 $userCanViewAnalytics = canViewAnalytics($currentPracticeId);
 
+// Ask DentaTrak availability: the global SHOW_AI_CHAT flag is the single
+// gate - deliberately NOT gated on can_view_analytics, since the assistant's
+// data tools apply the standard per-user case-authorization rules
+// themselves, so Assigned-Only members can also use it. api/ask-dentatrak.php
+// re-checks the flag server-side; this only controls UI visibility.
+$showAskDentatrak = isFeatureEnabled('SHOW_AI_CHAT');
+
 require_once __DIR__ . '/api/case-view-preferences-store.php';
+require_once __DIR__ . '/api/keyboard-shortcuts.php';
 $caseViewBootstrap = ['userId' => (int)$userId, 'practiceId' => (int)$currentPracticeId, 'preferences' => normalizeCaseViewPreferences([]), 'available' => true];
 try {
     $caseViewBootstrap['preferences'] = loadCaseViewPreferences($pdo, (int)$userId, (int)$currentPracticeId);
@@ -741,6 +749,7 @@ if (isset($appConfig) && is_array($appConfig) && isset($appConfig['appName'])) {
 <script>
 window.featureFlags = <?php echo getFeatureFlagsJson(); ?>;
 window.bulkZipMaxBytes = <?php echo (int)getBulkZipMaxSize(); ?>;
+window.dtKeyboardShortcuts = <?php echo json_encode(getLocalizedKeyboardShortcuts(), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
 </script>
 
 <div class="main-container">
@@ -878,6 +887,9 @@ endif;
 <?php endif; ?>
 <?php if ($isCurrentUserPracticeAdmin): ?>
           <div class="user-menu-divider"></div>
+<?php endif; ?>
+<?php if ($showAskDentatrak): ?>
+          <a href="#" class="user-menu-item" id="askDentatrakMenuItem"><span><?php echo t('ask_dentatrak.menu_item', ['appName' => htmlspecialchars($appName)]); ?></span><kbd class="user-menu-kbd" id="askDentatrakKbd" aria-hidden="true"></kbd></a>
 <?php endif; ?>
           <a href="#" class="user-menu-item" id="contactUsLink"><?php echo t('navigation.feedback'); ?></a>
           <?php if (isFeatureEnabled('SHOW_TOUR')): ?>
@@ -3021,7 +3033,7 @@ endif;
                           <span class="option-text"><?php echo t('settings.display.case_review.enable'); ?></span>
                         </div>
                       </div>
-                      
+
                       <div class="settings-divider"></div>
                       
                       <div class="settings-group">
@@ -3687,27 +3699,27 @@ endif;
   <!-- Toast notification container -->
   <div class="toast-container" id="toastContainer"></div>
 
-<?php if (isFeatureEnabled('SHOW_AI_CHAT') && $userCanViewAnalytics): ?>
+<?php if ($showAskDentatrak): ?>
   <!-- Floating Ask DentaTrak Button and Panel -->
-  <!-- Ask DentaTrak calls api/ai-recommendations.php, which is gated server-side
-       by canViewAnalytics() - hide the entry point when the current practice
-       membership doesn't have Insights access, consistent with the Insights tab. -->
+  <!-- Shown when the global SHOW_AI_CHAT flag is on (the only gate). Data
+       access is authorized per-tool in api/ask-dentatrak-tools.php, so no
+       can_view_analytics gate applies here. -->
   <div class="ask-dentatrak-floating" id="askDentatrakFloating">
-    <button type="button" class="ask-dentatrak-fab" id="askDentatrakFab" title="<?php echo t('ask_dentatrak.ask_app', ['appName' => htmlspecialchars($appName)]); ?>">
-      <svg class="fab-icon-default" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <circle cx="12" cy="12" r="10"></circle>
-        <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
-        <line x1="12" y1="17" x2="12.01" y2="17"></line>
-      </svg>
-      <svg class="fab-icon-close" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <line x1="18" y1="6" x2="6" y2="18"></line>
-        <line x1="6" y1="6" x2="18" y2="18"></line>
-      </svg>
-    </button>
-    <div class="ask-dentatrak-panel" id="askDentatrakPanel">
+    <!-- No persistent launcher: the panel opens only from the profile-menu
+         "Ask DentaTrak" item (askDentatrakMenuItem) and fully dismisses on
+         close. -->
+    <div class="ask-dentatrak-panel" id="askDentatrakPanel" role="dialog" aria-label="<?php echo t('ask_dentatrak.title', ['appName' => htmlspecialchars($appName)]); ?>">
       <div class="ask-panel-header">
-        <span class="ask-panel-title"><?php echo t('ask_dentatrak.title', ['appName' => htmlspecialchars($appName)]); ?></span>
-        <span class="ask-panel-subtitle"><?php echo t('ask_dentatrak.subtitle'); ?></span>
+        <div class="ask-panel-header-text">
+          <span class="ask-panel-title"><?php echo t('ask_dentatrak.title', ['appName' => htmlspecialchars($appName)]); ?></span>
+          <span class="ask-panel-subtitle"><?php echo t('ask_dentatrak.subtitle'); ?></span>
+        </div>
+        <button type="button" class="ask-panel-close" id="askDentatrakClose" aria-label="<?php echo t('common.close'); ?>" title="<?php echo t('common.close'); ?>">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
       </div>
       <div class="ask-panel-body">
         <div class="ask-panel-messages" id="askDentatrakMessages">
@@ -3718,8 +3730,12 @@ endif;
               <li><?php echo t('ask_dentatrak.help_2', ['appName' => htmlspecialchars($appName)]); ?></li>
               <li><?php echo t('ask_dentatrak.help_3'); ?></li>
             </ul>
-            <p><?php echo t('ask_dentatrak.prompt_question'); ?></p>
           </div>
+        </div>
+        <div class="ask-example-chips" id="askDentatrakChips">
+          <button type="button" class="ask-example-chip"><?php echo t('ask_dentatrak.example_1'); ?></button>
+          <button type="button" class="ask-example-chip"><?php echo t('ask_dentatrak.example_2'); ?></button>
+          <button type="button" class="ask-example-chip"><?php echo t('ask_dentatrak.example_3'); ?></button>
         </div>
       </div>
       <div class="ask-panel-input">

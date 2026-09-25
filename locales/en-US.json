@@ -2819,7 +2819,17 @@
         "help_3": "Case status and bottlenecks",
         "prompt_question": "What would you like to know?",
         "input_placeholder": "Ask a question...",
-        "send": "Send"
+        "send": "Send",
+        "menu_item": "Ask {appName}",
+        "example_1": "How do I add a lab user?",
+        "example_2": "How many cases did I create in the last 90 days?",
+        "example_3": "Which of my cases are overdue?",
+        "errors": {
+            "unavailable": "Ask {appName} isn't available for your practice.",
+            "empty_query": "Please enter a question.",
+            "no_answer": "I couldn't find an answer to that. Try asking how to use a feature, or about the cases you can access.",
+            "generic": "Sorry, something went wrong. Please try again."
+        }
     },
     "tour": {
         "welcome_title": "Welcome to {appName}",
@@ -5378,5 +5388,16 @@
             "database": "Unable to record terms acceptance."
         },
         "required": "You must accept the current Terms of Service and Privacy Policy to continue."
+    },
+    "shortcuts": {
+        "scope_global": "Global",
+        "scope_attachment_viewer": "Attachment viewer",
+        "open_settings": "Open Settings",
+        "create_case": "Create a new case",
+        "view_archived_cases": "View archived cases",
+        "open_feedback": "Open the feedback form",
+        "open_ask_dentatrak": "Open the Ask DentaTrak assistant",
+        "close_dialog": "Close the active dialog or panel",
+        "viewer_navigate": "Move between attachments"
     }
 }

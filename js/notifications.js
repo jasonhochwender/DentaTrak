@@ -94,6 +94,7 @@
     if (window.closePracticeSwitcher) window.closePracticeSwitcher();
     if (window.closeSettingsBillingModal) window.closeSettingsBillingModal(true);
     if (window.closeLanguageSelector) window.closeLanguageSelector();
+    if (window.askDentatrak) window.askDentatrak.close();
 
     dropdown.classList.add('open');
     notificationDropdownOpen = true;

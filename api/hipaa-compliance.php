@@ -44,6 +44,10 @@ if (!defined('PHI_ACTION_CASE_VIEW')) {
     define('PHI_ACTION_DATA_EXPORT_DOWNLOAD', 'download_practice_data_export');
     // The PHI access audit report itself exported to CSV.
     define('PHI_ACTION_AUDIT_REPORT_EXPORT', 'export_audit_report');
+    // An Ask DentaTrak assistant query that read authorized case/remake data.
+    // One event per executed data query; meta carries only the tool name and
+    // result count - never the question text or PHI content.
+    define('PHI_ACTION_ASK_QUERY', 'ask_dentatrak_query');
 }
 
 /**
@@ -62,6 +66,7 @@ function getPHIAccessActions(): array {
         PHI_ACTION_DATA_EXPORT,
         PHI_ACTION_DATA_EXPORT_DOWNLOAD,
         PHI_ACTION_AUDIT_REPORT_EXPORT,
+        PHI_ACTION_ASK_QUERY,
     ];
 }
 
@@ -81,6 +86,8 @@ function getPHIAccessActionResourceType(string $action): string {
             return 'practice_export';
         case PHI_ACTION_AUDIT_REPORT_EXPORT:
             return 'audit_report';
+        case PHI_ACTION_ASK_QUERY:
+            return 'ask_query';
         case PHI_ACTION_CASE_VIEW:
         case PHI_ACTION_CASE_ATTACHMENTS_VIEW:
         case PHI_ACTION_CASE_PRINT:
@@ -115,7 +122,7 @@ if (!defined('PHI_LOG_DEDUPE_SECONDS')) {
  * passes is dropped so the log never accumulates PHI or arbitrary payloads.
  */
 function getPHILogMetaAllowedKeys(): array {
-    return ['view', 'file_count', 'total_size', 'export_id', 'file_size'];
+    return ['view', 'file_count', 'total_size', 'export_id', 'file_size', 'tool', 'result_count'];
 }
 
 /**

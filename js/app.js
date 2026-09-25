@@ -1300,6 +1300,7 @@ document.addEventListener('DOMContentLoaded', function () {
       if (window.closeNotificationDropdown) window.closeNotificationDropdown();
       closePracticeSwitcher();
       if (window.closeLanguageSelector) window.closeLanguageSelector();
+      if (window.askDentatrak) window.askDentatrak.close();
 
       userMenu.classList.add('open');
       userMenuToggle.setAttribute('aria-expanded', 'true');
@@ -1385,6 +1386,7 @@ document.addEventListener('DOMContentLoaded', function () {
         closeUserMenu();
         if (window.closeNotificationDropdown) window.closeNotificationDropdown();
         if (window.closeLanguageSelector) window.closeLanguageSelector();
+        if (window.askDentatrak) window.askDentatrak.close();
       }
     });
 
@@ -1521,6 +1523,7 @@ document.addEventListener('DOMContentLoaded', function () {
     if (window.closeNotificationDropdown) window.closeNotificationDropdown();
     if (window.closePracticeSwitcher) window.closePracticeSwitcher();
     if (window.closeLanguageSelector) window.closeLanguageSelector();
+    if (window.askDentatrak) window.askDentatrak.close();
 
     // Show the modal
     settingsBillingModal.style.display = 'block';
@@ -2549,6 +2552,26 @@ document.addEventListener('DOMContentLoaded', function () {
       if ((event.ctrlKey || event.metaKey)) {
         event.preventDefault();
         openCreateCase();
+      }
+    }
+
+    // Add shortcut: Ctrl+/ (or Cmd+/) opens/focuses the Ask DentaTrak panel
+    if (event.key === '/') {
+      // Do not trigger the shortcut while the user is typing in a field
+      if (isTypingField) {
+        return;
+      }
+
+      // Do not trigger the shortcut while the page is loading
+      if (pageLoadingOverlay && pageLoadingOverlay.style.display !== 'none' && pageLoadingOverlay.style.opacity !== '0') {
+        return;
+      }
+
+      if ((event.ctrlKey || event.metaKey)) {
+        event.preventDefault();
+        if (window.askDentatrak) {
+          window.askDentatrak.open();
+        }
       }
     }
 

@@ -2819,7 +2819,17 @@
         "help_3": "Les statuts de cas et les goulots d'étranglement",
         "prompt_question": "Que souhaitez-vous savoir ?",
         "input_placeholder": "Posez une question...",
-        "send": "Envoyer"
+        "send": "Envoyer",
+        "menu_item": "Demander à {appName}",
+        "example_1": "Comment ajouter un utilisateur de laboratoire ?",
+        "example_2": "Combien de cas ai-je créés au cours des 90 derniers jours ?",
+        "example_3": "Lesquels de mes cas sont en retard ?",
+        "errors": {
+            "unavailable": "Demander à {appName} n'est pas disponible pour votre clinique.",
+            "empty_query": "Veuillez saisir une question.",
+            "no_answer": "Je n'ai pas trouvé de réponse à cette question. Essayez de demander comment utiliser une fonctionnalité, ou posez une question sur les cas auxquels vous avez accès.",
+            "generic": "Désolé, une erreur s'est produite. Veuillez réessayer."
+        }
     },
     "tour": {
         "welcome_title": "Bienvenue dans {appName}",
@@ -5378,5 +5388,16 @@
             "database": "Impossible d'enregistrer l'acceptation des conditions."
         },
         "required": "Vous devez accepter les conditions d'utilisation et la politique de confidentialité actuelles pour continuer."
+    },
+    "shortcuts": {
+        "scope_global": "Global",
+        "scope_attachment_viewer": "Visionneuse de pièces jointes",
+        "open_settings": "Ouvrir les paramètres",
+        "create_case": "Créer un nouveau cas",
+        "view_archived_cases": "Voir les cas archivés",
+        "open_feedback": "Ouvrir le formulaire de commentaires",
+        "open_ask_dentatrak": "Ouvrir l\\u2019assistant Ask DentaTrak",
+        "close_dialog": "Fermer la boîte de dialogue ou le panneau actif",
+        "viewer_navigate": "Naviguer entre les pièces jointes"
     }
 }

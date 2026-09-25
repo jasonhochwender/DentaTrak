@@ -3300,7 +3300,17 @@
         "help_3": "Status de casos e gargalos",
         "prompt_question": "O que você gostaria de saber?",
         "input_placeholder": "Faça uma pergunta...",
-        "send": "Enviar"
+        "send": "Enviar",
+        "menu_item": "Pergunte ao {appName}",
+        "example_1": "Como adiciono um usuário do laboratório?",
+        "example_2": "Quantos casos eu criei nos últimos 90 dias?",
+        "example_3": "Quais dos meus casos estão atrasados?",
+        "errors": {
+            "unavailable": "Pergunte ao {appName} não está disponível para sua clínica.",
+            "empty_query": "Digite uma pergunta.",
+            "no_answer": "Não encontrei uma resposta para isso. Tente perguntar como usar um recurso ou sobre os casos aos quais você tem acesso.",
+            "generic": "Desculpe, algo deu errado. Tente novamente."
+        }
     },
     "phiAudit": {
         "title": "Auditoria de acesso a PHI",
@@ -5378,5 +5388,16 @@
             "text_intro": "Sua exportação de dados do {appName} está pronta para download.",
             "download_link": "Link de download:"
         }
+    },
+    "shortcuts": {
+        "scope_global": "Global",
+        "scope_attachment_viewer": "Visualizador de anexos",
+        "open_settings": "Abrir configurações",
+        "create_case": "Criar um novo caso",
+        "view_archived_cases": "Ver casos arquivados",
+        "open_feedback": "Abrir o formulário de feedback",
+        "open_ask_dentatrak": "Abrir o assistente Ask DentaTrak",
+        "close_dialog": "Fechar a caixa de diálogo ou painel ativo",
+        "viewer_navigate": "Alternar entre anexos"
     }
 }
