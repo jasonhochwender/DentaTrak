@@ -301,6 +301,11 @@ Here is the workflow data to analyze:
                 'nativeName' => 'Русский',
                 'enabled' => true,
             ],
+            'ko-KR' => [
+                'name' => 'Korean (South Korea)',
+                'nativeName' => '한국어',
+                'enabled' => true,
+            ],
         ],
     ],
 

@@ -375,6 +375,8 @@ function getStripeLocale($locale) {
         'it-IT' => 'it',
         'ru'    => 'ru',
         'ru-RU' => 'ru',
+        'ko'    => 'ko',
+        'ko-KR' => 'ko',
     ];
     return $map[$locale] ?? null;
 }
@@ -411,6 +413,8 @@ function getActiveLanguageName() {
         'it-IT' => 'Italian (Italy)',
         'ru' => 'Russian',
         'ru-RU' => 'Russian (Russia)',
+        'ko' => 'Korean',
+        'ko-KR' => 'Korean (South Korea)',
     ];
 
     return $names[$activeLocale] ?? $activeLocale;

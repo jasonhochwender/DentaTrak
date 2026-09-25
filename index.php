@@ -58,7 +58,7 @@ foreach (['operate', 'control', 'scale'] as $plan) {
   <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png">
   <link rel="manifest" href="site.webmanifest">
 
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@400;500;600;700&family=Noto+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
 
   <!-- Structured Data: Organization, WebSite, SoftwareApplication -->
   <script type="application/ld+json">
@@ -132,7 +132,7 @@ foreach (['operate', 'control', 'scale'] as $plan) {
 
     * { margin: 0; padding: 0; box-sizing: border-box; }
     html { scroll-behavior: smooth; }
-    body { font-family: 'Poppins', 'Inter', system-ui, -apple-system, sans-serif; background: var(--dt-warm); color: var(--dt-ink); line-height: 1.6; }
+    body { font-family: 'Poppins', 'Inter', 'Noto Sans KR', system-ui, -apple-system, sans-serif; background: var(--dt-warm); color: var(--dt-ink); line-height: 1.6; }
     img { max-width: 100%; height: auto; display: block; }
     a { text-decoration: none; color: inherit; }
 
