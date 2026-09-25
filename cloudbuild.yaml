@@ -51,5 +51,13 @@ steps:
         'scripts/provision-integration-worker.sh'
       ]
 
+  # ---------- Ensure Ask usage telemetry retention schedule (idempotent) ----------
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: bash
+    args:
+      [
+        'scripts/provision-ask-usage-worker.sh'
+      ]
+
 images:
   - us-east1-docker.pkg.dev/dtk-prod-core/app-repo/dtk-app-prod:$COMMIT_SHA
