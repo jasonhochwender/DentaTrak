@@ -110,6 +110,10 @@
             "empty_query": "Bitte geben Sie eine Frage ein.",
             "no_answer": "Dazu habe ich keine Antwort gefunden. Fragen Sie, wie eine Funktion verwendet wird, oder nach den Fällen, auf die Sie Zugriff haben.",
             "generic": "Es ist ein Fehler aufgetreten. Bitte versuchen Sie es erneut."
+        },
+        "feedback": {
+            "helpful": "Hilfreich",
+            "not_helpful": "Nicht hilfreich"
         }
     },
     "feedback": {
@@ -357,7 +361,8 @@
         "prompt_about_to": "Sie sind dabei: {action}",
         "prompt_details": "{details}",
         "prompt_affect": "Diese Aktion wirkt sich NUR auf IHRE Praxis aus.",
-        "prompt_confirm": "Geben Sie „BESTÄTIGEN“ ein, um fortzufahren:"
+        "prompt_confirm": "Geben Sie „BESTÄTIGEN“ ein, um fortzufahren:",
+        "ask_usage": "Ask DentaTrak-Nutzung"
     },
     "tour": {
         "welcome_title": "Willkommen bei {appName}",
@@ -5399,5 +5404,48 @@
         "open_ask_dentatrak": "Den Assistenten Ask DentaTrak öffnen",
         "close_dialog": "Aktives Dialogfeld oder Panel schließen",
         "viewer_navigate": "Zwischen Anlagen wechseln"
+    },
+    "ask_usage": {
+        "title": "Ask DentaTrak-Nutzung",
+        "back": "Zurück zur App",
+        "range": "Zeitraum",
+        "range_7": "Letzte 7 Tage",
+        "range_30": "Letzte 30 Tage",
+        "range_90": "Letzte 90 Tage",
+        "range_all": "Gesamt",
+        "range_custom": "Benutzerdefiniert",
+        "from": "Von",
+        "to": "Bis",
+        "apply": "Anwenden",
+        "no_table": "Telemetrie-Tabelle fehlt — zuerst die Migration ausführen.",
+        "no_data": "Keine Nutzungsereignisse in diesem Zeitraum.",
+        "m_questions": "Fragen gesamt",
+        "m_users": "Eindeutige Nutzer",
+        "m_practices": "Eindeutige Praxen",
+        "m_answered": "Beantwortungsrate",
+        "m_clarify": "Rückfragen",
+        "m_errors": "Fehler",
+        "m_redirects": "Insights-Weiterleitungen",
+        "m_latency": "Ø Latenz",
+        "m_feedback": "Feedback (+ / -)",
+        "top_categories": "Top-Kategorien",
+        "top_topics": "Top-Themen",
+        "top_tools": "Verwendete Datentools",
+        "top_not_supported": "Nicht unterstützte Themen",
+        "top_clarify": "Themen mit Rückfragen",
+        "top_locales": "Nutzung nach Sprache",
+        "c_time": "Zeit",
+        "c_practice": "Praxis",
+        "c_user": "Nutzer",
+        "c_locale": "Sprache",
+        "c_category": "Kategorie",
+        "c_topic": "Thema",
+        "c_tool": "Tool",
+        "c_outcome": "Ergebnis",
+        "c_latency": "Latenz",
+        "c_feedback": "FB",
+        "page_of": "Seite",
+        "prev": "Zurück",
+        "next": "Weiter"
     }
 }

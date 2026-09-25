@@ -2729,7 +2729,8 @@
         "prompt_about_to": "You are about to: {action}",
         "prompt_details": "{details}",
         "prompt_affect": "This action will ONLY affect YOUR practice.",
-        "prompt_confirm": "Type \"CONFIRM\" to proceed:"
+        "prompt_confirm": "Type \"CONFIRM\" to proceed:",
+        "ask_usage": "Ask DentaTrak Usage"
     },
     "notifications": {
         "realtime": {
@@ -2829,6 +2830,10 @@
             "empty_query": "Please enter a question.",
             "no_answer": "I couldn't find an answer to that. Try asking how to use a feature, or about the cases you can access.",
             "generic": "Sorry, something went wrong. Please try again."
+        },
+        "feedback": {
+            "helpful": "Helpful",
+            "not_helpful": "Not helpful"
         }
     },
     "tour": {
@@ -5399,5 +5404,48 @@
         "open_ask_dentatrak": "Open the Ask DentaTrak assistant",
         "close_dialog": "Close the active dialog or panel",
         "viewer_navigate": "Move between attachments"
+    },
+    "ask_usage": {
+        "title": "Ask DentaTrak Usage",
+        "back": "Back to app",
+        "range": "Range",
+        "range_7": "Last 7 days",
+        "range_30": "Last 30 days",
+        "range_90": "Last 90 days",
+        "range_all": "All time",
+        "range_custom": "Custom",
+        "from": "From",
+        "to": "To",
+        "apply": "Apply",
+        "no_table": "Telemetry table not present — run the migration first.",
+        "no_data": "No usage events in this range.",
+        "m_questions": "Total questions",
+        "m_users": "Unique users",
+        "m_practices": "Unique practices",
+        "m_answered": "Answered rate",
+        "m_clarify": "Clarifications",
+        "m_errors": "Errors",
+        "m_redirects": "Insights redirects",
+        "m_latency": "Avg latency",
+        "m_feedback": "Feedback (+ / -)",
+        "top_categories": "Top categories",
+        "top_topics": "Top topics",
+        "top_tools": "Data tools used",
+        "top_not_supported": "Not-supported topics",
+        "top_clarify": "Clarification topics",
+        "top_locales": "Usage by language",
+        "c_time": "Time",
+        "c_practice": "Practice",
+        "c_user": "User",
+        "c_locale": "Locale",
+        "c_category": "Category",
+        "c_topic": "Topic",
+        "c_tool": "Tool",
+        "c_outcome": "Outcome",
+        "c_latency": "Latency",
+        "c_feedback": "FB",
+        "page_of": "Page",
+        "prev": "Previous",
+        "next": "Next"
     }
 }

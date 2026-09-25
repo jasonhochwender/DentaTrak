@@ -2729,7 +2729,8 @@
         "prompt_about_to": "Stai per: {action}",
         "prompt_details": "{details}",
         "prompt_affect": "Questa azione interesserà SOLO il TUO studio.",
-        "prompt_confirm": "Digita \"CONFIRM\" per procedere:"
+        "prompt_confirm": "Digita \"CONFIRM\" per procedere:",
+        "ask_usage": "Utilizzo di Ask DentaTrak"
     },
     "notifications": {
         "realtime": {
@@ -2829,6 +2830,10 @@
             "empty_query": "Inserisci una domanda.",
             "no_answer": "Non ho trovato una risposta. Prova a chiedere come usare una funzione o informazioni sui casi a cui hai accesso.",
             "generic": "Si è verificato un errore. Riprova."
+        },
+        "feedback": {
+            "helpful": "Utile",
+            "not_helpful": "Non utile"
         }
     },
     "tour": {
@@ -5399,5 +5404,48 @@
         "open_ask_dentatrak": "Apri l\\u2019assistente Ask DentaTrak",
         "close_dialog": "Chiudi la finestra di dialogo o il pannello attivo",
         "viewer_navigate": "Spostati tra gli allegati"
+    },
+    "ask_usage": {
+        "title": "Utilizzo di Ask DentaTrak",
+        "back": "Torna all\\u2019app",
+        "range": "Periodo",
+        "range_7": "Ultimi 7 giorni",
+        "range_30": "Ultimi 30 giorni",
+        "range_90": "Ultimi 90 giorni",
+        "range_all": "Tutto",
+        "range_custom": "Personalizzato",
+        "from": "Da",
+        "to": "A",
+        "apply": "Applica",
+        "no_table": "Tabella di telemetria assente — eseguire prima la migrazione.",
+        "no_data": "Nessun evento di utilizzo in questo periodo.",
+        "m_questions": "Domande totali",
+        "m_users": "Utenti unici",
+        "m_practices": "Studi unici",
+        "m_answered": "Tasso di risposta",
+        "m_clarify": "Chiarimenti",
+        "m_errors": "Errori",
+        "m_redirects": "Reindirizzamenti a Insights",
+        "m_latency": "Latenza media",
+        "m_feedback": "Feedback (+ / -)",
+        "top_categories": "Categorie principali",
+        "top_topics": "Argomenti principali",
+        "top_tools": "Strumenti dati utilizzati",
+        "top_not_supported": "Argomenti non supportati",
+        "top_clarify": "Argomenti con chiarimento",
+        "top_locales": "Utilizzo per lingua",
+        "c_time": "Ora",
+        "c_practice": "Studio",
+        "c_user": "Utente",
+        "c_locale": "Lingua",
+        "c_category": "Categoria",
+        "c_topic": "Argomento",
+        "c_tool": "Strumento",
+        "c_outcome": "Esito",
+        "c_latency": "Latenza",
+        "c_feedback": "FB",
+        "page_of": "Pagina",
+        "prev": "Precedente",
+        "next": "Successivo"
     }
 }

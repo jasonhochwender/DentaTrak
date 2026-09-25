@@ -44,6 +44,15 @@
     askInput = document.getElementById('askDentatrakInput');
     askSubmit = document.getElementById('askDentatrakSubmit');
 
+    // Populate every menu shortcut hint from the shared registry - one
+    // source of truth, platform-aware, nothing hardcoded per item. Runs even
+    // when the panel itself is feature-flagged off (other items still have
+    // hints to fill).
+    var kbdHints = document.querySelectorAll('.user-menu-kbd[data-shortcut]');
+    for (var i = 0; i < kbdHints.length; i++) {
+      kbdHints[i].textContent = shortcutHint(kbdHints[i].dataset.shortcut);
+    }
+
     if (!floatingContainer || !panel) return;
 
     if (closeButton) {
@@ -63,10 +72,6 @@
         if (window.closeUserMenu) window.closeUserMenu();
         openPanel();
       });
-    }
-    var kbdHint = document.getElementById('askDentatrakKbd');
-    if (kbdHint) {
-      kbdHint.textContent = shortcutHint('open_ask_dentatrak');
     }
 
     if (askSubmit) {
@@ -195,7 +200,7 @@
     sendQuery(query);
   }
 
-  function addMessage(content, type) {
+  function addMessage(content, type, usageId) {
     if (!messagesContainer) return;
 
     var messageDiv = document.createElement('div');
@@ -207,6 +212,9 @@
       // Assistant HTML is allowlist-sanitized server-side (p/strong/em/
       // ul/ol/li/br/code only); strip again defensively before injecting.
       messageDiv.innerHTML = sanitizeHtml(content);
+      if (usageId) {
+        messageDiv.appendChild(buildFeedbackBar(usageId));
+      }
     }
 
     messagesContainer.appendChild(messageDiv);
@@ -216,6 +224,59 @@
     if (history.length > MAX_HISTORY) {
       history = history.slice(-MAX_HISTORY);
     }
+  }
+
+  /**
+   * Optional thumbs feedback on one assistant response. Only the
+   * telemetry row id and the up/down value are sent - never content.
+   */
+  var THUMB_UP = '<svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path fill="currentColor" d="M6.5 15h6a1 1 0 0 0 .97-.76l1.2-5A1 1 0 0 0 13.7 8H10l.6-2.9A1.6 1.6 0 0 0 9 3.2L6.5 7H4.5v8h2zm-4-8h1a1 1 0 0 1 1 1v7a1 1 0 0 1-1 1h-1a1 1 0 0 1-1-1V8a1 1 0 0 1 1-1z"/></svg>';
+  var THUMB_DOWN = '<svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path fill="currentColor" d="M9.5 1h-6a1 1 0 0 0-.97.76l-1.2 5A1 1 0 0 0 2.3 8H6l-.6 2.9A1.6 1.6 0 0 0 7 12.8L9.5 9h2V1h-2zm4 8h-1a1 1 0 0 1-1-1V1a1 1 0 0 1 1-1h1a1 1 0 0 1 1 1v7a1 1 0 0 1-1 1z"/></svg>';
+
+  function buildFeedbackBar(usageId) {
+    var bar = document.createElement('div');
+    bar.className = 'ask-feedback';
+    [['up', THUMB_UP, 'ask_dentatrak.feedback.helpful', 'Helpful'],
+     ['down', THUMB_DOWN, 'ask_dentatrak.feedback.not_helpful', 'Not helpful']
+    ].forEach(function(cfg) {
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'ask-feedback-btn';
+      btn.dataset.value = cfg[0];
+      btn.innerHTML = cfg[1];
+      var label = lt(cfg[2], cfg[3]);
+      btn.title = label;
+      btn.setAttribute('aria-label', label);
+      bar.appendChild(btn);
+    });
+    bar.addEventListener('click', function(e) {
+      var btn = e.target.closest('.ask-feedback-btn');
+      if (!btn) return;
+      var siblings = bar.querySelectorAll('.ask-feedback-btn');
+      var wasSelected = btn.classList.contains('selected');
+      siblings.forEach(function(b) { b.classList.remove('selected'); });
+      var value = wasSelected ? 'none' : btn.dataset.value;
+      if (!wasSelected) btn.classList.add('selected');
+      sendFeedback(usageId, value);
+    });
+    return bar;
+  }
+
+  function sendFeedback(usageId, value) {
+    var csrfToken = document.querySelector('meta[name="csrf-token"]');
+    csrfToken = csrfToken ? csrfToken.getAttribute('content') : '';
+    fetch('api/ask-dentatrak-feedback.php', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken },
+      body: JSON.stringify({ usage_id: usageId, value: value }),
+      credentials: 'same-origin'
+    }).then(function(r) { return r.json(); }).then(function(data) {
+      if (data && data.success === false) {
+        // Revert the optimistic selection on failure.
+        var btn = messagesContainer && messagesContainer.querySelector('.ask-feedback-btn.selected');
+        if (btn) btn.classList.remove('selected');
+      }
+    }).catch(function() { /* feedback is best-effort; never surface */ });
   }
 
   function scrollToBottom() {
@@ -269,7 +330,7 @@
       removeLoading();
 
       if (data.success && data.response) {
-        addMessage(data.response, 'assistant');
+        addMessage(data.response, 'assistant', data.usage_id || null);
       } else if (data.error) {
         addMessage('<p>' + escapeHtml(data.error) + '</p>', 'assistant');
       } else {

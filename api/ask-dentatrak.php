@@ -39,6 +39,7 @@ require_once __DIR__ . '/remakes.php';
 require_once __DIR__ . '/hipaa-compliance.php';
 require_once __DIR__ . '/ask-dentatrak-tools.php';
 require_once __DIR__ . '/ask-dentatrak-help.php';
+require_once __DIR__ . '/ask-dentatrak-telemetry.php';
 
 header('Content-Type: application/json');
 
@@ -99,11 +100,24 @@ if (isset($input['history']) && is_array($input['history'])) {
     }
 }
 
+$telemetryStartedAt = microtime(true);
+$telemetryEvent = [
+    'user_id'     => (int)($_SESSION['db_user_id'] ?? 0),
+    'practice_id' => (int)$currentPracticeId,
+    'locale'      => function_exists('getActiveLocale') ? getActiveLocale() : null,
+];
+
 try {
-    $answer = askDentatrakAnswer($appConfig, $aiProvider, $aiConfig, $userQuery, $history, $currentPracticeId);
-    echo json_encode(['success' => true, 'response' => $answer]);
+    $result = askDentatrakAnswer($appConfig, $aiProvider, $aiConfig, $userQuery, $history, $currentPracticeId);
+    $telemetryEvent['latency_ms'] = (int)round((microtime(true) - $telemetryStartedAt) * 1000);
+    $telemetryEvent = array_merge($telemetryEvent, $result['telemetry'] ?? []);
+    $usageId = recordAskDentatrakUsage($telemetryEvent);
+    echo json_encode(['success' => true, 'response' => $result['html'], 'usage_id' => $usageId]);
 } catch (Exception $e) {
     error_log('Ask DentaTrak error: ' . $e->getMessage());
+    $telemetryEvent['latency_ms'] = (int)round((microtime(true) - $telemetryStartedAt) * 1000);
+    $telemetryEvent['outcome'] = 'model_error';
+    recordAskDentatrakUsage($telemetryEvent);
     $userMessage = match ($e->getMessage()) {
         'AI_QUOTA_EXCEEDED'      => t('insights.errors.ai_quota'),
         'AI_MODEL_UNAVAILABLE'   => t('insights.errors.ai_model_unavailable'),
@@ -120,8 +134,19 @@ try {
 
 /**
  * Planner + tool execution + composer.
+ *
+ * Returns ['html' => <answer>, 'telemetry' => [...]] where telemetry carries
+ * only allowlisted classification fields - never question text or content.
  */
-function askDentatrakAnswer($appConfig, string $provider, array $aiConfig, string $query, array $history, int $practiceId): string {
+function askDentatrakAnswer($appConfig, string $provider, array $aiConfig, string $query, array $history, int $practiceId): array {
+    $telemetry = [
+        'category' => null, 'intent' => null, 'normalized_topic' => null,
+        'tool_used' => null, 'outcome' => 'answered',
+    ];
+    $done = function (string $html) use (&$telemetry) {
+        return ['html' => $html, 'telemetry' => $telemetry];
+    };
+
     $plannerPrompt = buildAskPlannerPrompt($practiceId);
     $plannerUser = buildAskPlannerUserMessage($query, $history);
 
@@ -130,17 +155,33 @@ function askDentatrakAnswer($appConfig, string $provider, array $aiConfig, strin
 
     // The model ignored the JSON contract but wrote a usable reply.
     if ($plan === null) {
-        return sanitizeAskHtml($raw);
+        return $done(sanitizeAskHtml($raw));
     }
 
-    $action = $plan['action'] ?? 'answer';
+    // Model-declared classification - validated against fixed allowlists in
+    // ask-dentatrak-telemetry.php, so arbitrary text can never reach storage.
+    $telemetry['category'] = $plan['category'] ?? null;
+    $telemetry['intent'] = $plan['intent'] ?? null;
+    $telemetry['normalized_topic'] = $plan['topic'] ?? null;
 
-    if ($action === 'answer' || $action === 'clarify') {
-        return sanitizeAskHtml((string)($plan['answer'] ?? ''));
+    $action = $plan['action'] ?? 'answer';
+    $declaredCategory = askTelemetryCategory($telemetry['category']);
+    if ($declaredCategory === 'insights_redirect') {
+        $telemetry['outcome'] = 'insights_redirect';
+    } elseif ($declaredCategory === 'private_refusal') {
+        $telemetry['outcome'] = 'refused_private';
+    }
+
+    if ($action === 'clarify') {
+        $telemetry['outcome'] = 'clarification_requested';
+        return $done(sanitizeAskHtml((string)($plan['answer'] ?? '')));
     }
 
     if ($action !== 'tool') {
-        return sanitizeAskHtml((string)($plan['answer'] ?? ''));
+        if ($telemetry['outcome'] === 'answered' && $declaredCategory === 'out_of_scope') {
+            $telemetry['outcome'] = 'not_supported';
+        }
+        return $done(sanitizeAskHtml((string)($plan['answer'] ?? '')));
     }
 
     // Normalize single "tool" or multiple "tools" into a list.
@@ -158,15 +199,22 @@ function askDentatrakAnswer($appConfig, string $provider, array $aiConfig, strin
     $toolCalls = array_slice($toolCalls, 0, ASK_MAX_TOOLS_PER_TURN);
 
     if (!$toolCalls) {
-        return sanitizeAskHtml((string)($plan['answer'] ?? ''));
+        return $done(sanitizeAskHtml((string)($plan['answer'] ?? '')));
     }
 
+    $telemetry['category'] = 'case_data';
     $toolResults = [];
+    $ranTools = [];
+    $toolFailed = false;
     foreach ($toolCalls as $call) {
         $tool = (string)$call['tool'];
         $params = is_array($call['params']) ? $call['params'] : [];
         $result = runAskDentatrakTool($tool, $params, $practiceId);
         $toolResults[] = ['tool' => $tool, 'result' => $result];
+        $ranTools[] = $tool;
+        if (!($result['ok'] ?? false)) {
+            $toolFailed = true;
+        }
 
         // PHI audit: one event per executed data query. Metadata is limited
         // to the tool name and result size - never the question or content.
@@ -182,6 +230,10 @@ function askDentatrakAnswer($appConfig, string $provider, array $aiConfig, strin
         }
         logPHIAccess(PHI_ACTION_ASK_QUERY, $caseIdForLog, $meta);
     }
+    $telemetry['tool_used'] = $ranTools;
+    if ($toolFailed) {
+        $telemetry['outcome'] = 'tool_error';
+    }
 
     // Composer: render the answer strictly from authorized tool output.
     $composerPrompt = buildAskComposerPrompt();
@@ -195,7 +247,10 @@ function askDentatrakAnswer($appConfig, string $provider, array $aiConfig, strin
         // before falling back to the localized no-answer message.
         $answer = askCallProvider($provider, $aiConfig, $composerPrompt, $composerUser);
     }
-    return sanitizeAskHtml($answer);
+    if (trim($answer) === '') {
+        $telemetry['outcome'] = 'model_error';
+    }
+    return $done(sanitizeAskHtml($answer));
 }
 
 function askCallProvider(string $provider, array $aiConfig, string $systemPrompt, string $userPrompt): string {
@@ -243,6 +298,10 @@ function buildAskPlannerPrompt(int $practiceId): string {
         'include_archived' => 'true to include archived cases',
     ];
 
+    $classifyCategories = implode(', ', askTelemetryCategories());
+    $classifyIntents = implode(', ', askTelemetryIntents());
+    $classifyTopics = implode(', ', askTelemetryTopics());
+
     $toolSpec = json_encode([
         ['name' => 'count_cases', 'description' => 'Count authorized cases matching filters', 'params' => $caseFilters],
         ['name' => 'list_cases', 'description' => 'List authorized cases (bounded fields) matching filters', 'params' => array_merge($caseFilters, ['limit' => 'optional, max ' . ASK_TOOL_LIST_LIMIT])],
@@ -266,10 +325,15 @@ DATA TOOLS (server-side, already authorization-scoped to this user; you cannot a
 
 RULES - READ CAREFULLY:
 - OUTPUT STRICT JSON ONLY, one of:
-    {"action":"answer","answer":"<html answer>"}
-    {"action":"clarify","answer":"<short clarifying question as html>"}
-    {"action":"tool","tool":"<name>","params":{...}}
-    {"action":"tools","tools":[{"tool":"<name>","params":{...}}, ...]}   (max 3)
+    {"action":"answer","answer":"<html answer>","category":"<cat>","intent":"<intent>","topic":"<topic>"}
+    {"action":"clarify","answer":"<short clarifying question as html>","category":"<cat>","intent":"clarify","topic":"<topic>"}
+    {"action":"tool","tool":"<name>","params":{...},"category":"case_data","intent":"<intent>","topic":"<topic>"}
+    {"action":"tools","tools":[{"tool":"<name>","params":{...}}, ...],"category":"case_data","intent":"<intent>","topic":"<topic>"}   (max 3)
+- CLASSIFICATION (always include; pick ONLY from these lists):
+    category one of: {$classifyCategories}
+    intent one of: {$classifyIntents}
+    topic one of: {$classifyTopics}
+  Use category "insights_redirect" for Insights-boundary redirects, "private_refusal" for privacy refusals, "out_of_scope" for questions you cannot help with, "case_data" whenever a tool is requested. Use topic "other" when nothing fits. Never put question text into these fields.
 - For product-help questions, answer directly with concise steps.
 - For data questions, ALWAYS use a tool. Never invent numbers. If the question is ambiguous in a way that changes which data to fetch (e.g. unclear date window), use "clarify" with a short question instead of guessing.
 - Read-only: if the user asks you to DO something (create, edit, delete, invite, change settings), do NOT call a tool - explain how to do it in DentaTrak using the guide.

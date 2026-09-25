@@ -2729,7 +2729,8 @@
         "prompt_about_to": "Vous êtes sur le point de : {action}",
         "prompt_details": "{details}",
         "prompt_affect": "Cette action affectera UNIQUEMENT votre cabinet.",
-        "prompt_confirm": "Tapez \"CONFIRM\" pour continuer :"
+        "prompt_confirm": "Tapez \"CONFIRM\" pour continuer :",
+        "ask_usage": "Utilisation d\\u2019Ask DentaTrak"
     },
     "notifications": {
         "realtime": {
@@ -2829,6 +2830,10 @@
             "empty_query": "Veuillez saisir une question.",
             "no_answer": "Je n'ai pas trouvé de réponse à cette question. Essayez de demander comment utiliser une fonctionnalité, ou posez une question sur les cas auxquels vous avez accès.",
             "generic": "Désolé, une erreur s'est produite. Veuillez réessayer."
+        },
+        "feedback": {
+            "helpful": "Utile",
+            "not_helpful": "Pas utile"
         }
     },
     "tour": {
@@ -5399,5 +5404,48 @@
         "open_ask_dentatrak": "Ouvrir l\\u2019assistant Ask DentaTrak",
         "close_dialog": "Fermer la boîte de dialogue ou le panneau actif",
         "viewer_navigate": "Naviguer entre les pièces jointes"
+    },
+    "ask_usage": {
+        "title": "Utilisation d\\u2019Ask DentaTrak",
+        "back": "Retour à l\\u2019application",
+        "range": "Période",
+        "range_7": "7 derniers jours",
+        "range_30": "30 derniers jours",
+        "range_90": "90 derniers jours",
+        "range_all": "Tout",
+        "range_custom": "Personnalisé",
+        "from": "Du",
+        "to": "Au",
+        "apply": "Appliquer",
+        "no_table": "Table de télémétrie absente — exécutez d\\u2019abord la migration.",
+        "no_data": "Aucun événement d\\u2019utilisation sur cette période.",
+        "m_questions": "Questions totales",
+        "m_users": "Utilisateurs uniques",
+        "m_practices": "Cabinets uniques",
+        "m_answered": "Taux de réponse",
+        "m_clarify": "Clarifications",
+        "m_errors": "Erreurs",
+        "m_redirects": "Redirections Insights",
+        "m_latency": "Latence moyenne",
+        "m_feedback": "Avis (+ / -)",
+        "top_categories": "Principales catégories",
+        "top_topics": "Principaux sujets",
+        "top_tools": "Outils de données utilisés",
+        "top_not_supported": "Sujets non pris en charge",
+        "top_clarify": "Sujets avec clarification",
+        "top_locales": "Utilisation par langue",
+        "c_time": "Heure",
+        "c_practice": "Cabinet",
+        "c_user": "Utilisateur",
+        "c_locale": "Langue",
+        "c_category": "Catégorie",
+        "c_topic": "Sujet",
+        "c_tool": "Outil",
+        "c_outcome": "Résultat",
+        "c_latency": "Latence",
+        "c_feedback": "Avis",
+        "page_of": "Page",
+        "prev": "Précédent",
+        "next": "Suivant"
     }
 }

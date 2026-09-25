@@ -2729,7 +2729,8 @@
         "prompt_about_to": "Está a punto de: {action}",
         "prompt_details": "{details}",
         "prompt_affect": "Esta acción SOLO afectará a SU consultorio.",
-        "prompt_confirm": "Escriba \"CONFIRM\" para continuar:"
+        "prompt_confirm": "Escriba \"CONFIRM\" para continuar:",
+        "ask_usage": "Uso de Ask DentaTrak"
     },
     "notifications": {
         "realtime": {
@@ -2829,6 +2830,10 @@
             "empty_query": "Ingrese una pregunta.",
             "no_answer": "No encontré una respuesta para eso. Pruebe preguntar cómo usar una función o sobre los casos a los que tiene acceso.",
             "generic": "Lo siento, algo salió mal. Inténtelo de nuevo."
+        },
+        "feedback": {
+            "helpful": "Útil",
+            "not_helpful": "No útil"
         }
     },
     "tour": {
@@ -5399,5 +5404,48 @@
         "open_ask_dentatrak": "Abrir el asistente Ask DentaTrak",
         "close_dialog": "Cerrar el diálogo o panel activo",
         "viewer_navigate": "Moverse entre archivos adjuntos"
+    },
+    "ask_usage": {
+        "title": "Uso de Ask DentaTrak",
+        "back": "Volver a la aplicación",
+        "range": "Periodo",
+        "range_7": "Últimos 7 días",
+        "range_30": "Últimos 30 días",
+        "range_90": "Últimos 90 días",
+        "range_all": "Todo",
+        "range_custom": "Personalizado",
+        "from": "Desde",
+        "to": "Hasta",
+        "apply": "Aplicar",
+        "no_table": "La tabla de telemetría no existe — ejecute primero la migración.",
+        "no_data": "No hay eventos de uso en este periodo.",
+        "m_questions": "Preguntas totales",
+        "m_users": "Usuarios únicos",
+        "m_practices": "Clínicas únicas",
+        "m_answered": "Tasa de respuesta",
+        "m_clarify": "Aclaraciones",
+        "m_errors": "Errores",
+        "m_redirects": "Redirecciones a Insights",
+        "m_latency": "Latencia media",
+        "m_feedback": "Comentarios (+ / -)",
+        "top_categories": "Categorías principales",
+        "top_topics": "Temas principales",
+        "top_tools": "Herramientas de datos usadas",
+        "top_not_supported": "Temas no compatibles",
+        "top_clarify": "Temas con aclaración",
+        "top_locales": "Uso por idioma",
+        "c_time": "Hora",
+        "c_practice": "Clínica",
+        "c_user": "Usuario",
+        "c_locale": "Idioma",
+        "c_category": "Categoría",
+        "c_topic": "Tema",
+        "c_tool": "Herramienta",
+        "c_outcome": "Resultado",
+        "c_latency": "Latencia",
+        "c_feedback": "Valoración",
+        "page_of": "Página",
+        "prev": "Anterior",
+        "next": "Siguiente"
     }
 }

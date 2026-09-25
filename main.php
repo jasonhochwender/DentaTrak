@@ -877,7 +877,7 @@ endif;
         </button>
         <div class="user-menu" id="userMenu">
 <?php if ($isCurrentUserPracticeAdmin): ?>
-          <a href="#" class="user-menu-item" id="settingsMenuItem"><?php echo t('settings.settings'); ?></a>
+          <a href="#" class="user-menu-item" id="settingsMenuItem"><?php echo t('settings.settings'); ?><kbd class="user-menu-kbd" data-shortcut="open_settings" aria-hidden="true"></kbd></a>
 <?php endif; ?>
 <?php if (isFeatureEnabled('SHOW_NOTIFICATIONS')): ?>
           <a href="#" class="user-menu-item" id="notificationPreferencesMenuItem"><?php echo t('preferences.title'); ?></a>
@@ -889,9 +889,9 @@ endif;
           <div class="user-menu-divider"></div>
 <?php endif; ?>
 <?php if ($showAskDentatrak): ?>
-          <a href="#" class="user-menu-item" id="askDentatrakMenuItem"><span><?php echo t('ask_dentatrak.menu_item', ['appName' => htmlspecialchars($appName)]); ?></span><kbd class="user-menu-kbd" id="askDentatrakKbd" aria-hidden="true"></kbd></a>
+          <a href="#" class="user-menu-item" id="askDentatrakMenuItem"><span><?php echo t('ask_dentatrak.menu_item', ['appName' => htmlspecialchars($appName)]); ?></span><kbd class="user-menu-kbd" id="askDentatrakKbd" data-shortcut="open_ask_dentatrak" aria-hidden="true"></kbd></a>
 <?php endif; ?>
-          <a href="#" class="user-menu-item" id="contactUsLink"><?php echo t('navigation.feedback'); ?></a>
+          <a href="#" class="user-menu-item" id="contactUsLink"><?php echo t('navigation.feedback'); ?><kbd class="user-menu-kbd" data-shortcut="open_feedback" aria-hidden="true"></kbd></a>
           <?php if (isFeatureEnabled('SHOW_TOUR')): ?>
           <a href="#" class="user-menu-item" id="startTourLink"><?php echo t('navigation.take_tour'); ?></a>
           <?php endif; ?>
@@ -3690,6 +3690,7 @@ endif;
         <h4>👑 <?php echo t('dev_tools.admin_tools'); ?></h4>
         <div class="admin-links" style="display: flex; flex-direction: column; gap: 8px;">
           <a href="admin-practices.php" class="dev-btn" style="text-align: center; text-decoration: none;"><?php echo t('dev_tools.practice_administration'); ?></a>
+          <a href="dev-ask-usage.php" class="dev-btn" style="text-align: center; text-decoration: none;"><?php echo t('dev_tools.ask_usage'); ?></a>
         </div>
       </div>
     </div>

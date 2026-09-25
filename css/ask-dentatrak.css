@@ -180,6 +180,43 @@
   margin-bottom: 4px;
 }
 
+/* Optional thumbs feedback on assistant messages */
+.ask-feedback {
+  display: flex;
+  gap: 4px;
+  margin-top: 8px;
+  padding-top: 6px;
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.ask-feedback-btn {
+  background: none;
+  border: none;
+  padding: 3px 5px;
+  border-radius: 4px;
+  color: #9ca3af;
+  cursor: pointer;
+  line-height: 1;
+}
+
+.ask-feedback-btn:hover {
+  color: #4b5563;
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.ask-feedback-btn.selected {
+  color: #6366f1;
+}
+
+[data-theme="dark"] .ask-feedback {
+  border-top-color: rgba(255, 255, 255, 0.08);
+}
+
+[data-theme="dark"] .ask-feedback-btn:hover {
+  color: #d1d5db;
+  background: rgba(255, 255, 255, 0.08);
+}
+
 /* Loading message */
 .ask-message.loading {
   display: flex;
