@@ -103,13 +103,23 @@ try {
         requireCaseAccess($pathCaseId, $currentPracticeId);
     }
 
-    // Resolve the download filename: prefer the original name supplied by
-    // the client, else recover it from the "{uuid}-{name}" object tail.
-    // It is only used for Content-Disposition on the signed response.
-    $downloadFilename = trim($filename);
-    if ($downloadFilename === '') {
-        $downloadFilename = resolveAttachmentDisplayName(['fileName' => $storagePath])
-            ?? basename($storagePath);
+    // Resolve the download filename through the shared safe display-name
+    // resolver. The client-supplied value is run through it too: legacy
+    // records can carry a path-shaped fileName (cases/{p}/... or flattened
+    // cases_...), which the resolver either recovers from the "{uuid}-{name}"
+    // object tail or rejects, in which case the storage path itself is tried.
+    // The resolved name is only used for Content-Disposition on the signed
+    // response; raw storage paths must never become the saved filename.
+    $downloadFilename = resolveAttachmentDisplayName(['fileName' => $filename])
+        ?? resolveAttachmentDisplayName(['fileName' => $storagePath])
+        ?? basename($storagePath);
+
+    // Extension preservation: if the resolved name lost its extension but the
+    // stored object name carries one, restore it so the OS/file associations
+    // still work for the downloaded file.
+    $objectExt = pathinfo(basename($storagePath), PATHINFO_EXTENSION);
+    if ($objectExt !== '' && pathinfo($downloadFilename, PATHINFO_EXTENSION) === '') {
+        $downloadFilename .= '.' . $objectExt;
     }
 
     // Generate short-lived signed download URL configured so GCS serves the
