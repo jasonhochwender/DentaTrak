@@ -4962,7 +4962,7 @@
         },
         "hero": {
             "title": "Know where every dental case stands.",
-            "lead": "DentaTrak is visual dental case tracking software for dental practices. It gives your team one place to track dental cases, deadlines, assignments, lab activity, files, shipping, and revisions from start to delivery.",
+            "lead": "DentaTrak is visual dental case tracking software for dental practices. One shared place for your team to track cases, deadlines, assignments, lab activity, files, and conversations — with built-in insight into where work is slowing down.",
             "start_free": "Start Your 90-Day Free Trial",
             "see_how": "See How It Works",
             "trial_note": "90-day free trial. No credit card required."
@@ -4973,26 +4973,26 @@
             "lead": "Appointments, lab updates, files, shipping, and team knowledge each live separately. When the case story is split across texts, emails, spreadsheets, and memory, no one sees the full picture."
         },
         "workflow": {
-            "eyebrow": "How DentaTrak Works",
-            "title": "One case record from start to delivery.",
-            "lead": "Create the case once, track it through each stage, and let DentaTrak highlight what needs attention.",
+            "eyebrow": "Flexible Workflow",
+            "title": "Build the workflow around your practice.",
+            "lead": "Every practice works differently. DentaTrak adapts to how your team actually moves cases — not the other way around.",
             "body": "DentaTrak is one way to practice dental case tracking. To learn more about the category and why practices use it, see {link}.",
             "link_label": "how dental case tracking works",
             "step1_title": "Create the case",
             "step1_body": "Start with one record. Add the patient, case type, lab, appointment details, and any other information your team needs.",
-            "step2_title": "Track every step",
-            "step2_body": "Move the case through each stage, update assignments, add files and designs, and track lab and shipping activity in one place.",
-            "step3_title": "See what needs attention",
-            "step3_body": "Due Soon, Late, Appointment Risk, and optional Case Review Tracking help your team see what needs follow-up without checking every case manually."
+            "step2_title": "Shape the workflow",
+            "step2_body": "Add, rename, reorder, archive, and restore workflow stages so the board mirrors your real process. DentaTrak does not force every practice into a rigid, predefined pipeline.",
+            "step3_title": "Work it your way",
+            "step3_body": "Switch between the visual board and a compact list, filter and sort to find the right cases, assign owners, and archive or search completed work."
         },
         "attention": {
             "eyebrow": "Product View",
             "title": "See what needs attention without checking every case.",
-            "lead": "Switch between a visual workflow board and a compact, sortable list. Track assignments, deadlines, appointment risk, and whether a case still needs review.",
+            "lead": "DentaTrak watches the board so your team does not have to. Due Soon, Late, Appointment Risk, and Needs Review surface approaching deadlines, patient appointment conflicts, and cases changed by a teammate that still need a look.",
             "late": "Late",
             "due_soon": "Due Soon",
             "appointment_risk": "Appointment Risk",
-            "ready": "Ready"
+            "needs_review": "Needs Review"
         },
         "founder": {
             "eyebrow": "Built from Real Experience",
@@ -5035,7 +5035,10 @@
             "scale_features_3": "Additional practices available",
             "scale_addon_title": "Add more practices",
             "scale_addon_month": "+$99/month per additional practice",
-            "scale_addon_year": "+$990/year per additional practice"
+            "scale_addon_year": "+$990/year per additional practice",
+            "operate_features_4": "Flexible workflow stages and Board/List views",
+            "operate_features_5": "Comments, @mentions, and notifications",
+            "operate_features_6": "Ask DentaTrak in-product help"
         },
         "security": {
             "practice_based_access": "Practice-based access",
@@ -5056,15 +5059,15 @@
         "insights_section": {
             "eyebrow": "Practice & Lab Insights",
             "title": "See where cases are moving and where they are slowing down.",
-            "lead": "Practice and Lab Insights turn everyday activity into a clearer view of case volume, deadlines, and lab turnaround so you can act before delays affect patient appointments.",
+            "lead": "Practice and Lab Insights turn everyday activity into a clear view of case volume, workload, lab turnaround, and remakes — so you can spot where cases slow down and act before delays reach the patient.",
             "included": "Practice Insights, Lab Insights, and Smart Recommendations are included in the Control and Scale plans.",
             "features": {
                 "1_title": "Case volume and status",
                 "1_body": "Track active, due soon, late, and delivered cases at a glance.",
-                "2_title": "Appointment risk and lab turnaround",
-                "2_body": "Spot cases where the patient appointment may arrive before the case is ready and compare lab turnaround times.",
-                "3_title": "Lab comparisons and Smart Recommendations",
-                "3_body": "Compare workload, late rates, revisions, and direct transfers by lab and receive practical, data-based suggestions."
+                "2_title": "Turnaround and appointment risk",
+                "2_body": "Compare lab turnaround times and spot cases where the patient appointment may arrive before the case is ready.",
+                "3_title": "Lab comparison, remakes, and Smart Recommendations",
+                "3_body": "Compare workload, late rates, remakes, and revisions by lab — and get practical, data-based suggestions."
             }
         },
         "security_section": {
@@ -5350,6 +5353,64 @@
             "contact_body": "For questions about DentaTrak security, privacy, data handling, or Business Associate Agreements, contact <a class='content-link' href='mailto:security@dentatrak.com'>security@dentatrak.com</a>.",
             "cta_primary": "Start Free",
             "cta_secondary": "Contact Sales"
+        },
+        "collaboration": {
+            "eyebrow": "Collaboration",
+            "title": "Keep the conversation with the case.",
+            "lead": "Comments, mentions, images, and notifications live on the case record — so decisions and context stop scattering across texts, emails, and memory.",
+            "features": {
+                "1_title": "Comments and @mentions",
+                "1_body": "Discuss a case right where the work happens. Mention a teammate to pull them in — they get a notification instead of a lost text.",
+                "2_title": "Photos and files in context",
+                "2_body": "Attach images and files to the conversation so shade photos, scans, and notes stay connected to the case they belong to.",
+                "3_title": "Notifications and history",
+                "3_body": "Get notified when something changes and see the full activity history — who did what and when."
+            },
+            "mock_aria": "Case comment thread example showing comments, a mention, an image attachment, and activity updates.",
+            "mock_case": "Sofia Patel · Veneer",
+            "mock_tab": "Comments",
+            "mock_c1": "The updated shade photo is in. {mention} — please confirm the appointment time with the patient.",
+            "mock_c2": "Confirmed for Mar 14 at 2:00 PM.",
+            "mock_activity": "Status changed to Sent To External Lab · Mar 7",
+            "mock_composer": "Add a comment… Use @ to mention a teammate"
+        },
+        "ask": {
+            "name": "Ask DentaTrak",
+            "eyebrow": "In-Product Assistant",
+            "title": "Ask DentaTrak. Get practical answers.",
+            "lead": "An assistant built into DentaTrak that answers how-to questions and simple case questions — using only the information each user is already allowed to see.",
+            "features": {
+                "1_title": "How-to help, in place",
+                "1_body": "Ask things like “How do I add a lab user?” and get an answer drawn from the product itself, in your language.",
+                "2_title": "Simple case questions",
+                "2_body": "Ask things like “Which of my cases are overdue?” or “How many cases did I create in the last 90 days?” Ask DentaTrak only sees what your permissions already allow.",
+                "3_title": "Deeper analysis stays in Insights",
+                "3_body": "Trends, rankings, and lab comparisons redirect to Practice and Lab Insights, where those reports already live."
+            },
+            "note": "Ask DentaTrak is read-only and respects existing case permissions.",
+            "mock_aria": "Ask DentaTrak chat example showing an overdue-cases question and a how-to question.",
+            "mock_q1": "Which of my cases are overdue?",
+            "mock_a1": "2 of your cases are past their due date. They carry a red Late flag on the board.",
+            "mock_q2": "How do I add a lab user?",
+            "mock_a2": "Open Settings, choose your team, and add the user with the lab role. They will only see what their role allows.",
+            "mock_input": "Ask about DentaTrak or your cases…"
+        },
+        "pms": {
+            "eyebrow": "Integration",
+            "title": "Connect Open Dental.",
+            "lead": "Link your Open Dental practice so supported lab cases can appear in DentaTrak automatically — created once, with the fields Open Dental owns kept in sync.",
+            "note": "Available on Control and Scale plans.",
+            "flow_aria": "An Open Dental lab case becoming a DentaTrak case automatically.",
+            "mock_source": "New lab case received",
+            "mock_source_detail": "Crown · Patient appointment Mar 19",
+            "mock_target": "Case created in DentaTrak",
+            "mock_target_detail": "Synced automatically — no double entry."
+        },
+        "languages": {
+            "eyebrow": "Languages",
+            "title": "DentaTrak speaks your team’s language.",
+            "lead": "The product is localized throughout — workflows, notifications, Insights, and Ask DentaTrak — so every team member can work in the language they think in.",
+            "note": "English, German, Spanish, French, Canadian French, Italian, Brazilian Portuguese, Russian, and Korean."
         }
     },
     "legal": {

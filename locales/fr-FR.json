@@ -4962,7 +4962,7 @@
         },
         "hero": {
             "title": "Sachez où en est chaque cas dentaire.",
-            "lead": "DentaTrak est un logiciel de suivi visuel des cas dentaires pour les cabinets dentaires. Il offre à votre équipe un seul endroit pour suivre les cas, les échéances, les attributions, l'activité du laboratoire, les fichiers, les expéditions et les révisions du début à la livraison.",
+            "lead": "DentaTrak est un logiciel visuel de suivi des cas dentaires pour les cabinets dentaires. Un espace partagé où votre équipe suit cas, échéances, attributions, activité de laboratoire, fichiers et conversations — avec une vision intégrée de ce qui ralentit le travail.",
             "start_free": "Commencez votre essai gratuit de 90 jours",
             "see_how": "Voir le fonctionnement",
             "trial_note": "Essai gratuit de 90 jours. Aucune carte bancaire requise."
@@ -4973,26 +4973,26 @@
             "lead": "Les rendez-vous, les mises à jour du laboratoire, les fichiers, les expéditions et les connaissances de l'équipe sont chacun stockés séparément. Lorsque l'historique d'un cas est réparti entre SMS, e-mails, tableurs et mémoire, personne ne voit l'ensemble du tableau."
         },
         "workflow": {
-            "eyebrow": "Fonctionnement de DentaTrak",
-            "title": "Un seul dossier de cas du début à la livraison.",
-            "lead": "Créez le cas une seule fois, suivez-le à chaque étape et laissez DentaTrak signaler ce qui demande votre attention.",
+            "eyebrow": "Flux de travail flexible",
+            "title": "Construisez le flux de travail autour de votre cabinet.",
+            "lead": "Chaque cabinet travaille différemment. DentaTrak s\\u2019adapte à la façon dont votre équipe fait réellement avancer les cas — pas l\\u2019inverse.",
             "body": "DentaTrak est une façon de pratiquer le suivi des cas dentaires. Pour en savoir plus sur la catégorie et pourquoi les cabinets l'utilisent, consultez {link}.",
             "link_label": "comment fonctionne le suivi des cas dentaires",
             "step1_title": "Créer le cas",
             "step1_body": "Commencez avec un seul dossier. Ajoutez le patient, le type de cas, le laboratoire, les détails du rendez-vous et toute autre information dont votre équipe a besoin.",
-            "step2_title": "Suivre chaque étape",
-            "step2_body": "Faites progresser le cas à chaque étape, mettez à jour les attributions, ajoutez des fichiers et des conceptions, et suivez l'activité du laboratoire et des expéditions au même endroit.",
-            "step3_title": "Voir ce qui demande attention",
-            "step3_body": "Bientôt dû, En retard, Risque de rendez-vous et le suivi optionnel de révision des cas aident votre équipe à voir ce qui nécessite un suivi sans vérifier chaque cas manuellement."
+            "step2_title": "Façonnez le flux de travail",
+            "step2_body": "Ajoutez, renommez, réordonnez, archivez et restaurez des étapes de flux pour que le tableau reflète votre processus réel. DentaTrak n\\u2019impose à aucun cabinet un pipeline rigide et prédéfini.",
+            "step3_title": "Travaillez à votre façon",
+            "step3_body": "Basculez entre le tableau visuel et une liste compacte, filtrez et triez pour trouver les bons cas, attribuez des responsables, et archivez ou recherchez le travail terminé."
         },
         "attention": {
             "eyebrow": "Aperçu du produit",
             "title": "Voyez ce qui demande attention sans vérifier chaque cas.",
-            "lead": "Basculez entre un tableau de flux visuel et une liste compacte et triable. Suivez les attributions, les échéances, le risque de rendez-vous et si un cas nécessite encore une révision.",
+            "lead": "DentaTrak surveille le tableau pour que votre équipe n\\u2019ait pas à le faire. Bientôt dû, En retard, Risque de rendez-vous et Révision requise signalent les échéances proches, les conflits de rendez-vous et les cas modifiés par un collègue qui demandent encore un regard.",
             "late": "En retard",
             "due_soon": "Bientôt dû",
             "appointment_risk": "Risque de rendez-vous",
-            "ready": "Prêt"
+            "needs_review": "Révision requise"
         },
         "founder": {
             "eyebrow": "Conçu à partir d'une expérience réelle",
@@ -5035,7 +5035,10 @@
             "scale_features_3": "Cabinets supplémentaires disponibles",
             "scale_addon_title": "Ajouter plus de cabinets",
             "scale_addon_month": "+99 $/mois par cabinet supplémentaire",
-            "scale_addon_year": "+990 $/an par cabinet supplémentaire"
+            "scale_addon_year": "+990 $/an par cabinet supplémentaire",
+            "operate_features_4": "Étapes de flux flexibles et vues tableau/liste",
+            "operate_features_5": "Commentaires, @mentions et notifications",
+            "operate_features_6": "Aide Ask DentaTrak dans le produit"
         },
         "security": {
             "practice_based_access": "Accès basé sur le cabinet",
@@ -5056,15 +5059,15 @@
         "insights_section": {
             "eyebrow": "Practice et Lab Insights",
             "title": "Voyez où les cas avancent et où ils ralentissent.",
-            "lead": "Practice et Lab Insights transforment l'activité quotidienne en une vision plus claire du volume de cas, des échéances et des délais du laboratoire, afin que vous puissiez agir avant que les retards n'affectent les rendez-vous des patients.",
+            "lead": "Practice et Lab Insights transforment l\\u2019activité quotidienne en une vision claire du volume de cas, de la charge de travail, des délais de laboratoire et des reprises — pour repérer où les cas ralentissent avant que les retards n\\u2019atteignent le patient.",
             "included": "Practice Insights, Lab Insights et les recommandations intelligentes sont inclus dans les formules Control et Scale.",
             "features": {
                 "1_title": "Volume et statut des cas",
                 "1_body": "Suivez en un coup d'œil les cas actifs, bientôt dus, en retard et livrés.",
-                "2_title": "Risque de rendez-vous et délai du laboratoire",
-                "2_body": "Repérez les cas où le rendez-vous du patient pourrait arriver avant que le cas ne soit prêt et comparez les délais des laboratoires.",
-                "3_title": "Comparaisons de laboratoires et recommandations intelligentes",
-                "3_body": "Comparez la charge de travail, les taux de retard, les révisions et les transferts directs par laboratoire, et recevez des suggestions pratiques basées sur les données."
+                "2_title": "Délais et risque de rendez-vous",
+                "2_body": "Comparez les délais des laboratoires et repérez les cas où le rendez-vous du patient pourrait arriver avant que le travail soit prêt.",
+                "3_title": "Comparaison de laboratoires, reprises et Smart Recommendations",
+                "3_body": "Comparez charge de travail, taux de retard, reprises et révisions par laboratoire — et recevez des suggestions pratiques fondées sur les données."
             }
         },
         "security_section": {
@@ -5350,6 +5353,64 @@
             "contact_body": "Pour toute question sur la sécurité, la confidentialité, le traitement des données ou les accords de partenariat de DentaTrak, contactez <a class='content-link' href='mailto:security@dentatrak.com'>security@dentatrak.com</a>.",
             "cta_primary": "Commencer gratuitement",
             "cta_secondary": "Contacter le service commercial"
+        },
+        "collaboration": {
+            "eyebrow": "Collaboration",
+            "title": "Gardez la conversation avec le cas.",
+            "lead": "Commentaires, mentions, images et notifications vivent dans le dossier du cas — pour que décisions et contexte cessent de se disperser entre textos, e-mails et mémoire.",
+            "features": {
+                "1_title": "Commentaires et @mentions",
+                "1_body": "Discutez d\\u2019un cas là où le travail se fait. Mentionnez un collègue pour l\\u2019impliquer — il reçoit une notification plutôt qu\\u2019un texto perdu.",
+                "2_title": "Photos et fichiers en contexte",
+                "2_body": "Joignez images et fichiers à la conversation pour que photos de teinte, scans et notes restent liés au cas concerné.",
+                "3_title": "Notifications et historique",
+                "3_body": "Soyez notifié quand quelque chose change et consultez l\\u2019historique complet — qui a fait quoi et quand."
+            },
+            "mock_aria": "Exemple de fil de commentaires d\\u2019un cas avec commentaires, une mention, une image jointe et des mises à jour d\\u2019activité.",
+            "mock_case": "Sofia Patel · Facette",
+            "mock_tab": "Commentaires",
+            "mock_c1": "La photo de teinte mise à jour est arrivée. {mention} — veuillez confirmer l\\u2019heure du rendez-vous avec la patiente.",
+            "mock_c2": "Confirmé pour le 14 mars à 14 h 00.",
+            "mock_activity": "Statut changé en Envoyé au laboratoire externe · 7 mars",
+            "mock_composer": "Ajouter un commentaire… Utilisez @ pour mentionner un collègue"
+        },
+        "ask": {
+            "name": "Ask DentaTrak",
+            "eyebrow": "Assistant intégré",
+            "title": "Demandez à DentaTrak. Obtenez des réponses pratiques.",
+            "lead": "Un assistant intégré à DentaTrak qui répond aux questions d\\u2019utilisation et aux questions simples sur les cas — en n\\u2019utilisant que les informations que chaque utilisateur est déjà autorisé à voir.",
+            "features": {
+                "1_title": "Aide d\\u2019utilisation, sur place",
+                "1_body": "Demandez par exemple « Comment ajouter un utilisateur de laboratoire ? » et obtenez une réponse issue du produit lui-même, dans votre langue.",
+                "2_title": "Questions simples sur les cas",
+                "2_body": "Demandez « Quels sont mes cas en retard ? » ou « Combien de cas ai-je créés au cours des 90 derniers jours ? ». Ask DentaTrak ne voit que ce que vos permissions autorisent déjà.",
+                "3_title": "L\\u2019analyse approfondie reste dans Insights",
+                "3_body": "Tendances, classements et comparaisons de laboratoires renvoient vers Practice et Lab Insights, où ces rapports existent déjà."
+            },
+            "note": "Ask DentaTrak est en lecture seule et respecte les permissions existantes sur les cas.",
+            "mock_aria": "Exemple de conversation Ask DentaTrak avec une question sur les cas en retard et une question d\\u2019utilisation.",
+            "mock_q1": "Quels sont mes cas en retard ?",
+            "mock_a1": "2 de vos cas ont dépassé leur date d\\u2019échéance. Ils portent un badge rouge En retard sur le tableau.",
+            "mock_q2": "Comment ajouter un utilisateur de laboratoire ?",
+            "mock_a2": "Ouvrez Paramètres, choisissez votre équipe et ajoutez l\\u2019utilisateur avec le rôle laboratoire. Il ne verra que ce que son rôle autorise.",
+            "mock_input": "Posez une question sur DentaTrak ou vos cas…"
+        },
+        "pms": {
+            "eyebrow": "Intégration",
+            "title": "Connectez Open Dental.",
+            "lead": "Reliez votre cabinet Open Dental pour que les cas de laboratoire pris en charge apparaissent automatiquement dans DentaTrak — créés une seule fois, avec les champs qu\\u2019Open Dental possède tenus synchronisés.",
+            "note": "Disponible dans les plans Control et Scale.",
+            "flow_aria": "Un cas de laboratoire Open Dental devenant automatiquement un cas DentaTrak.",
+            "mock_source": "Nouveau cas de laboratoire reçu",
+            "mock_source_detail": "Couronne · Rendez-vous patient le 19 mars",
+            "mock_target": "Cas créé dans DentaTrak",
+            "mock_target_detail": "Synchronisé automatiquement — sans double saisie."
+        },
+        "languages": {
+            "eyebrow": "Langues",
+            "title": "DentaTrak parle la langue de votre équipe.",
+            "lead": "Le produit est localisé de bout en bout — flux de travail, notifications, Insights et Ask DentaTrak — pour que chaque membre de l\\u2019équipe travaille dans la langue dans laquelle il pense.",
+            "note": "Anglais, allemand, espagnol, français, français canadien, italien, portugais brésilien, russe et coréen."
         }
     },
     "legal": {

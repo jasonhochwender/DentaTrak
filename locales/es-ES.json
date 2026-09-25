@@ -4962,7 +4962,7 @@
         },
         "hero": {
             "title": "Sepa en qué punto está cada caso dental.",
-            "lead": "DentaTrak es un software visual de seguimiento de casos dentales para consultorios dentales. Le da a su equipo un solo lugar para supervisar casos dentales, fechas límite, asignaciones, actividad del laboratorio, archivos, envíos y revisiones de principio a entrega.",
+            "lead": "DentaTrak es software visual de seguimiento de casos dentales para clínicas dentales. Un solo lugar compartido donde su equipo sigue casos, plazos, asignaciones, actividad de laboratorio, archivos y conversaciones — con información integrada sobre dónde se está frenando el trabajo.",
             "start_free": "Inicie su prueba gratuita de 90 días",
             "see_how": "Vea cómo funciona",
             "trial_note": "Prueba gratuita de 90 días. No se requiere tarjeta de crédito."
@@ -4973,26 +4973,26 @@
             "lead": "Las citas, las actualizaciones del laboratorio, los archivos, los envíos y el conocimiento del equipo viven cada uno por separado. Cuando la historia del caso está repartida entre mensajes de texto, correos electrónicos, hojas de cálculo y la memoria, nadie ve el panorama completo."
         },
         "workflow": {
-            "eyebrow": "Cómo funciona DentaTrak",
-            "title": "Un registro de caso de principio a entrega.",
-            "lead": "Cree el caso una vez, sígalo a través de cada etapa y deje que DentaTrak resalte lo que necesita atención.",
+            "eyebrow": "Flujo de trabajo flexible",
+            "title": "Construya el flujo de trabajo alrededor de su clínica.",
+            "lead": "Cada clínica trabaja de forma distinta. DentaTrak se adapta a cómo su equipo realmente mueve los casos — no al revés.",
             "body": "DentaTrak es una forma de practicar el seguimiento de casos dentales. Para saber más sobre la categoría y por qué los consultorios la usan, consulte {link}.",
             "link_label": "cómo funciona el seguimiento de casos dentales",
             "step1_title": "Cree el caso",
             "step1_body": "Comience con un registro. Agregue el paciente, el tipo de caso, el laboratorio, los detalles de la cita y cualquier otra información que su equipo necesite.",
-            "step2_title": "Supervise cada paso",
-            "step2_body": "Mueva el caso por cada etapa, actualice las asignaciones, agregue archivos y diseños, y supervise la actividad del laboratorio y los envíos en un solo lugar.",
-            "step3_title": "Vea lo que necesita atención",
-            "step3_body": "Próximo a vencer, Atrasado, Riesgo de cita y el Seguimiento de revisión de casos opcional ayudan a su equipo a ver qué necesita seguimiento sin revisar cada caso manualmente."
+            "step2_title": "Modele el flujo de trabajo",
+            "step2_body": "Añada, renombre, reordene, archive y restaure etapas del flujo para que el tablero refleje su proceso real. DentaTrak no obliga a ninguna clínica a seguir una línea rígida y predefinida.",
+            "step3_title": "Trabaje a su manera",
+            "step3_body": "Alterne entre el tablero visual y una lista compacta, filtre y ordene para encontrar los casos correctos, asigne responsables y archive o busque el trabajo completado."
         },
         "attention": {
             "eyebrow": "Vista del producto",
             "title": "Vea lo que necesita atención sin revisar cada caso.",
-            "lead": "Alterne entre un tablero visual de flujo de trabajo y una lista compacta y ordenable. Supervise asignaciones, fechas límite, riesgo de citas y si un caso aún necesita revisión.",
+            "lead": "DentaTrak vigila el tablero para que su equipo no tenga que hacerlo. Próximo a vencer, Atrasado, Riesgo de cita y Requiere revisión muestran plazos cercanos, conflictos de citas y casos modificados por un compañero que aún necesitan revisión.",
             "late": "Atrasado",
             "due_soon": "Próximo a vencer",
             "appointment_risk": "Riesgo de cita",
-            "ready": "Listo"
+            "needs_review": "Requiere revisión"
         },
         "founder": {
             "eyebrow": "Creado desde la experiencia real",
@@ -5035,7 +5035,10 @@
             "scale_features_3": "Consultorios adicionales disponibles",
             "scale_addon_title": "Agregue más consultorios",
             "scale_addon_month": "+$99/mes por consultorio adicional",
-            "scale_addon_year": "+$990/año por consultorio adicional"
+            "scale_addon_year": "+$990/año por consultorio adicional",
+            "operate_features_4": "Etapas de flujo flexibles y vistas de tablero/lista",
+            "operate_features_5": "Comentarios, @menciones y notificaciones",
+            "operate_features_6": "Ayuda de Ask DentaTrak en el producto"
         },
         "security": {
             "practice_based_access": "Acceso basado en el consultorio",
@@ -5056,15 +5059,15 @@
         "insights_section": {
             "eyebrow": "Insights del consultorio y del laboratorio",
             "title": "Vea dónde avanzan los casos y dónde se están desacelerando.",
-            "lead": "Los Insights del consultorio y del laboratorio convierten la actividad diaria en una vista más clara del volumen de casos, las fechas límite y los tiempos de entrega del laboratorio para que pueda actuar antes de que los retrasos afecten las citas de los pacientes.",
+            "lead": "Practice y Lab Insights convierten la actividad diaria en una visión clara de volumen de casos, carga de trabajo, plazos de laboratorio y repeticiones — para detectar dónde se frenan los casos antes de que los retrasos lleguen al paciente.",
             "included": "Los Insights del consultorio, los Insights del laboratorio y las Recomendaciones inteligentes están incluidos en los planes Control y Scale.",
             "features": {
                 "1_title": "Volumen y estado de casos",
                 "1_body": "Supervise los casos activos, próximos a vencer, atrasados y entregados de un vistazo.",
-                "2_title": "Riesgo de cita y tiempo de entrega del laboratorio",
-                "2_body": "Detecte los casos donde la cita del paciente puede llegar antes de que el caso esté listo y compare los tiempos de entrega de los laboratorios.",
-                "3_title": "Comparaciones de laboratorios y Recomendaciones inteligentes",
-                "3_body": "Compare la carga de trabajo, las tasas de atraso, las revisiones y las transferencias directas por laboratorio y reciba sugerencias prácticas basadas en datos."
+                "2_title": "Plazo de entrega y riesgo de cita",
+                "2_body": "Compare los plazos de los laboratorios y detecte casos en los que la cita del paciente podría llegar antes de que el trabajo esté listo.",
+                "3_title": "Comparación de laboratorios, repeticiones y Smart Recommendations",
+                "3_body": "Compare carga de trabajo, tasas de retraso, repeticiones y revisiones por laboratorio — y reciba sugerencias prácticas basadas en datos."
             }
         },
         "security_section": {
@@ -5350,6 +5353,64 @@
             "contact_body": "Para preguntas sobre la seguridad, la privacidad, el manejo de datos o los Acuerdos de Asociado Comercial de DentaTrak, contacte a <a class='content-link' href='mailto:security@dentatrak.com'>security@dentatrak.com</a>.",
             "cta_primary": "Comenzar gratis",
             "cta_secondary": "Contactar a ventas"
+        },
+        "collaboration": {
+            "eyebrow": "Colaboración",
+            "title": "Mantenga la conversación junto al caso.",
+            "lead": "Comentarios, menciones, imágenes y notificaciones viven en el registro del caso — para que decisiones y contexto dejen de dispersarse entre mensajes, correos y memoria.",
+            "features": {
+                "1_title": "Comentarios y @menciones",
+                "1_body": "Comente un caso justo donde ocurre el trabajo. Mencione a un compañero para involucrarlo — recibirá una notificación en lugar de un mensaje perdido.",
+                "2_title": "Fotos y archivos en contexto",
+                "2_body": "Adjunte imágenes y archivos a la conversación para que fotos de color, escaneos y notas permanezcan conectados al caso al que pertenecen.",
+                "3_title": "Notificaciones e historial",
+                "3_body": "Reciba avisos cuando algo cambie y consulte el historial de actividad completo — quién hizo qué y cuándo."
+            },
+            "mock_aria": "Ejemplo de hilo de comentarios de un caso con comentarios, una mención, una imagen adjunta y actualizaciones de actividad.",
+            "mock_case": "Sofia Patel · Carilla",
+            "mock_tab": "Comentarios",
+            "mock_c1": "Ya está la foto de color actualizada. {mention} — por favor confirme la hora de la cita con la paciente.",
+            "mock_c2": "Confirmada para el 14 de marzo a las 14:00.",
+            "mock_activity": "Estado cambiado a Enviado a laboratorio externo · 7 de marzo",
+            "mock_composer": "Añadir un comentario… Use @ para mencionar a un compañero"
+        },
+        "ask": {
+            "name": "Ask DentaTrak",
+            "eyebrow": "Asistente en el producto",
+            "title": "Pregunte a DentaTrak. Obtenga respuestas prácticas.",
+            "lead": "Un asistente integrado en DentaTrak que responde preguntas de uso y preguntas sencillas sobre casos — usando solo la información que cada usuario ya puede ver.",
+            "features": {
+                "1_title": "Ayuda de uso, en el lugar",
+                "1_body": "Pregunte cosas como «¿Cómo añado un usuario de laboratorio?» y obtenga una respuesta basada en el propio producto, en su idioma.",
+                "2_title": "Preguntas sencillas sobre casos",
+                "2_body": "Pregunte «¿Cuáles de mis casos están atrasados?» o «¿Cuántos casos creé en los últimos 90 días?». Ask DentaTrak solo ve lo que sus permisos ya permiten.",
+                "3_title": "El análisis profundo sigue en Insights",
+                "3_body": "Tendencias, rankings y comparaciones de laboratorios se redirigen a Practice y Lab Insights, donde ya existen esos informes."
+            },
+            "note": "Ask DentaTrak es de solo lectura y respeta los permisos de casos existentes.",
+            "mock_aria": "Ejemplo de chat de Ask DentaTrak con una pregunta sobre casos atrasados y una pregunta de uso.",
+            "mock_q1": "¿Cuáles de mis casos están atrasados?",
+            "mock_a1": "2 de sus casos han superado su fecha límite. Muestran una marca roja de Atrasado en el tablero.",
+            "mock_q2": "¿Cómo añado un usuario de laboratorio?",
+            "mock_a2": "Abra Configuración, elija su equipo y añada el usuario con el rol de laboratorio. Solo verá lo que su rol permita.",
+            "mock_input": "Pregunte sobre DentaTrak o sus casos…"
+        },
+        "pms": {
+            "eyebrow": "Integración",
+            "title": "Conecte Open Dental.",
+            "lead": "Vincule su clínica de Open Dental para que los casos de laboratorio compatibles aparezcan en DentaTrak automáticamente — creados una vez y con los campos que Open Dental controla siempre sincronizados.",
+            "note": "Disponible en los planes Control y Scale.",
+            "flow_aria": "Un caso de laboratorio de Open Dental convertido automáticamente en un caso de DentaTrak.",
+            "mock_source": "Nuevo caso de laboratorio recibido",
+            "mock_source_detail": "Corona · Cita del paciente 19 de marzo",
+            "mock_target": "Caso creado en DentaTrak",
+            "mock_target_detail": "Sincronizado automáticamente — sin doble registro."
+        },
+        "languages": {
+            "eyebrow": "Idiomas",
+            "title": "DentaTrak habla el idioma de su equipo.",
+            "lead": "El producto está localizado por completo — flujos de trabajo, notificaciones, Insights y Ask DentaTrak — para que cada miembro del equipo trabaje en el idioma en que piensa.",
+            "note": "Inglés, alemán, español, francés, francés canadiense, italiano, portugués brasileño, ruso y coreano."
         }
     },
     "legal": {

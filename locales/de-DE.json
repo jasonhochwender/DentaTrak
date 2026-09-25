@@ -3395,15 +3395,15 @@
         "attention": {
             "eyebrow": "Produktansicht",
             "title": "Sehen Sie, was Aufmerksamkeit braucht, ohne jeden Fall zu prüfen.",
-            "lead": "Wechseln Sie zwischen einem visuellen Workflow-Board und einer kompakten, sortierbaren Liste. Verfolgen Sie Zuweisungen, Fristen, Terminrisiken und ob ein Fall noch geprüft werden muss.",
+            "lead": "DentaTrak behält das Board im Blick, damit Ihr Team nicht jeden Fall einzeln prüfen muss. Bald fällig, Verspätet, Terminrisiko und Prüfung nötig zeigen nahende Fristen, Terminkonflikte und von Kollegen geänderte Fälle, die noch geprüft werden müssen.",
             "late": "Verspätet",
             "due_soon": "Bald fällig",
             "appointment_risk": "Terminrisiko",
-            "ready": "Bereit"
+            "needs_review": "Prüfung nötig"
         },
         "hero": {
             "title": "Wissen Sie, wo jeder dentale Fall steht.",
-            "lead": "DentaTrak ist visuelle Fallverfolgungssoftware für Zahnarztpraxen. Es gibt Ihrem Team einen Ort, um dentale Fälle, Fristen, Zuweisungen, Laboraktivitäten, Dateien, Versand und Revisionen von Anfang bis Lieferung zu verfolgen.",
+            "lead": "DentaTrak ist visuelle Software zur Fallverfolgung für Zahnarztpraxen. Ein gemeinsamer Ort, an dem Ihr Team Fälle, Fristen, Zuweisungen, Laboraktivitäten, Dateien und Gespräche verfolgt — mit integriertem Einblick, wo die Arbeit ins Stocken gerät.",
             "start_free": "Starten Sie Ihre 90-tägige kostenlose Testphase",
             "see_how": "So funktioniert's",
             "trial_note": "90 Tage kostenlos testen. Keine Kreditkarte erforderlich."
@@ -3414,17 +3414,17 @@
             "lead": "Termine, Laboraktualisierungen, Dateien, Versand und Teamwissen existieren jeweils getrennt. Wenn die Fallgeschichte auf Textnachrichten, E-Mails, Tabellen und Erinnerungen verteilt ist, sieht niemand das ganze Bild."
         },
         "workflow": {
-            "eyebrow": "So funktioniert DentaTrak",
-            "title": "Ein Falldatensatz von Anfang bis Lieferung.",
-            "lead": "Legen Sie den Fall einmal an, verfolgen Sie ihn durch jede Phase und lassen Sie DentaTrak hervorheben, was Aufmerksamkeit braucht.",
+            "eyebrow": "Flexibler Workflow",
+            "title": "Bauen Sie den Workflow um Ihre Praxis.",
+            "lead": "Jede Praxis arbeitet anders. DentaTrak passt sich daran an, wie Ihr Team Fälle tatsächlich bearbeitet — nicht umgekehrt.",
             "body": "DentaTrak ist eine Möglichkeit, dentale Fallverfolgung zu praktizieren. Um mehr über die Kategorie zu erfahren und warum Praxen sie nutzen, siehe {link}.",
             "link_label": "wie dentale Fallverfolgung funktioniert",
             "step1_title": "Fall anlegen",
             "step1_body": "Beginnen Sie mit einem Datensatz. Fügen Sie Patient, Falltyp, Labor, Termindetails und alle anderen Informationen hinzu, die Ihr Team benötigt.",
-            "step2_title": "Jeden Schritt verfolgen",
-            "step2_body": "Bewegen Sie den Fall durch jede Phase, aktualisieren Sie Zuweisungen, fügen Sie Dateien und Designs hinzu und verfolgen Sie Labor- und Versandaktivitäten an einem Ort.",
-            "step3_title": "Sehen, was Aufmerksamkeit braucht",
-            "step3_body": "Bald fällig, Verspätet, Terminrisiko und die optionale Fallprüfungs-Nachverfolgung helfen Ihrem Team zu sehen, was Nachverfolgung braucht – ohne jeden Fall manuell zu prüfen."
+            "step2_title": "Gestalten Sie den Workflow",
+            "step2_body": "Fügen Sie Workflow-Phasen hinzu, benennen Sie sie um, ordnen Sie sie neu, archivieren und stellen Sie sie wieder her, damit das Board Ihren echten Prozess abbildet. DentaTrak zwingt keine Praxis in eine starre, vordefinierte Pipeline.",
+            "step3_title": "Arbeiten Sie auf Ihre Weise",
+            "step3_body": "Wechseln Sie zwischen visuellem Board und kompakter Liste, filtern und sortieren Sie, um die richtigen Fälle zu finden, weisen Sie Verantwortliche zu und archivieren oder durchsuchen Sie abgeschlossene Arbeit."
         },
         "founder": {
             "eyebrow": "Aus echter Erfahrung entstanden",
@@ -3488,15 +3488,15 @@
         "insights_section": {
             "eyebrow": "Practice & Lab Insights",
             "title": "Sehen Sie, wo Fälle vorankommen und wo sie sich verzögern.",
-            "lead": "Practice und Lab Insights verwandeln alltägliche Aktivitäten in einen klareren Blick auf Fallvolumen, Fristen und Labor-Durchlaufzeiten, damit Sie handeln können, bevor Verzögerungen Patiententermine beeinträchtigen.",
+            "lead": "Practice- und Lab-Insights verwandeln die tägliche Arbeit in einen klaren Blick auf Fallvolumen, Auslastung, Labordurchlaufzeiten und Remakes — damit Sie erkennen, wo Fälle ins Stocken geraten, bevor Verzögerungen den Patienten erreichen.",
             "included": "Practice Insights, Lab Insights und Intelligente Empfehlungen sind in den Tarifen Control und Scale enthalten.",
             "features": {
                 "1_title": "Fallvolumen und Status",
                 "1_body": "Verfolgen Sie aktive, bald fällige, verspätete und gelieferte Fälle auf einen Blick.",
-                "2_title": "Terminrisiko und Labor-Durchlaufzeit",
-                "2_body": "Erkennen Sie Fälle, bei denen der Patiententermin vor der Fertigstellung des Falls eintreffen könnte, und vergleichen Sie Labor-Durchlaufzeiten.",
-                "3_title": "Laborvergleiche und Intelligente Empfehlungen",
-                "3_body": "Vergleichen Sie Auslastung, Verspätungsraten, Revisionen und direkte Übermittlungen nach Labor und erhalten Sie praktische, datenbasierte Vorschläge."
+                "2_title": "Durchlaufzeit und Terminrisiko",
+                "2_body": "Vergleichen Sie Labordurchlaufzeiten und erkennen Sie Fälle, bei denen der Patiententermin vor der fertigen Arbeit liegen könnte.",
+                "3_title": "Laborvergleich, Remakes und Smart Recommendations",
+                "3_body": "Vergleichen Sie Auslastung, Verspätungsraten, Remakes und Revisionen nach Labor — und erhalten Sie praktische, datenbasierte Vorschläge."
             }
         },
         "mobile_section": {
@@ -3610,7 +3610,10 @@
             "scale_features_3": "Zusätzliche Praxen verfügbar",
             "scale_addon_title": "Weitere Praxen hinzufügen",
             "scale_addon_month": "+99 $/Monat pro zusätzlicher Praxis",
-            "scale_addon_year": "+990 $/Jahr pro zusätzlicher Praxis"
+            "scale_addon_year": "+990 $/Jahr pro zusätzlicher Praxis",
+            "operate_features_4": "Flexible Workflow-Phasen und Board-/Listenansicht",
+            "operate_features_5": "Kommentare, @Erwähnungen und Benachrichtigungen",
+            "operate_features_6": "Ask DentaTrak — Hilfe im Produkt"
         },
         "security_section": {
             "eyebrow": "Sicherheit",
@@ -5392,6 +5395,64 @@
                     "body": "90 Tage kostenlos testen. Keine Kreditkarte erforderlich."
                 }
             }
+        },
+        "collaboration": {
+            "eyebrow": "Zusammenarbeit",
+            "title": "Die Unterhaltung bleibt beim Fall.",
+            "lead": "Kommentare, Erwähnungen, Bilder und Benachrichtigungen leben im Falldatensatz — damit Entscheidungen und Kontext nicht in Texten, E-Mails und Erinnerungen verloren gehen.",
+            "features": {
+                "1_title": "Kommentare und @Erwähnungen",
+                "1_body": "Besprechen Sie einen Fall genau dort, wo die Arbeit passiert. Erwähnen Sie ein Teammitglied, um es einzubinden — es erhält eine Benachrichtigung statt einer verlorenen Nachricht.",
+                "2_title": "Fotos und Dateien im Kontext",
+                "2_body": "Fügen Sie der Unterhaltung Bilder und Dateien hinzu, damit Farbfotos, Scans und Notizen mit dem Fall verbunden bleiben, zu dem sie gehören.",
+                "3_title": "Benachrichtigungen und Verlauf",
+                "3_body": "Lassen Sie sich bei Änderungen benachrichtigen und sehen Sie den vollständigen Aktivitätsverlauf — wer was wann getan hat."
+            },
+            "mock_aria": "Beispiel eines Fall-Kommentarverlaufs mit Kommentaren, einer Erwähnung, einem Bildanhang und Aktivitätsmeldungen.",
+            "mock_case": "Sofia Patel · Veneer",
+            "mock_tab": "Kommentare",
+            "mock_c1": "Das aktualisierte Farbfoto ist da. {mention} — bitte bestätigen Sie den Termin mit der Patientin.",
+            "mock_c2": "Bestätigt für den 14. März um 14:00 Uhr.",
+            "mock_activity": "Status geändert zu An externes Labor gesendet · 7. März",
+            "mock_composer": "Kommentar hinzufügen… Mit @ ein Teammitglied erwähnen"
+        },
+        "ask": {
+            "name": "Ask DentaTrak",
+            "eyebrow": "Assistent im Produkt",
+            "title": "Fragen Sie DentaTrak. Erhalten Sie praktische Antworten.",
+            "lead": "Ein Assistent direkt in DentaTrak, der Anleitungsfragen und einfache Fallfragen beantwortet — und dabei nur Informationen verwendet, die der jeweilige Nutzer ohnehin sehen darf.",
+            "features": {
+                "1_title": "Anleitung direkt im Produkt",
+                "1_body": "Fragen Sie etwa „Wie füge ich einen Labornutzer hinzu?“ und erhalten Sie eine Antwort aus dem Produkt selbst — in Ihrer Sprache.",
+                "2_title": "Einfache Fallfragen",
+                "2_body": "Fragen Sie etwa „Welche meiner Fälle sind überfällig?“ oder „Wie viele Fälle habe ich in den letzten 90 Tagen angelegt?“. Ask DentaTrak sieht nur, was Ihre Berechtigungen ohnehin erlauben.",
+                "3_title": "Tiefere Auswertung bleibt in Insights",
+                "3_body": "Trends, Rankings und Laborvergleiche werden an Practice und Lab Insights weitergeleitet, wo diese Auswertungen bereits vorhanden sind."
+            },
+            "note": "Ask DentaTrak ist schreibgeschützt und respektiert bestehende Fallberechtigungen.",
+            "mock_aria": "Ask-DentaTrak-Chatbeispiel mit einer Frage zu überfälligen Fällen und einer Anleitungsfrage.",
+            "mock_q1": "Welche meiner Fälle sind überfällig?",
+            "mock_a1": "2 Ihrer Fälle haben das Fälligkeitsdatum überschritten. Sie tragen im Board eine rote Verspätet-Markierung.",
+            "mock_q2": "Wie füge ich einen Labornutzer hinzu?",
+            "mock_a2": "Öffnen Sie die Einstellungen, wählen Sie Ihr Team und fügen Sie den Nutzer mit der Labor-Rolle hinzu. Er sieht nur, was seine Rolle erlaubt.",
+            "mock_input": "Fragen Sie zu DentaTrak oder Ihren Fällen…"
+        },
+        "pms": {
+            "eyebrow": "Integration",
+            "title": "Verbinden Sie Open Dental.",
+            "lead": "Verknüpfen Sie Ihre Open-Dental-Praxis, damit unterstützte Laborfälle automatisch in DentaTrak erscheinen — einmal angelegt und in den Feldern synchron gehalten, die Open Dental besitzt.",
+            "note": "Verfügbar in den Control- und Scale-Tarifen.",
+            "flow_aria": "Ein Open-Dental-Laborfall wird automatisch zu einem DentaTrak-Fall.",
+            "mock_source": "Neuer Laborfall eingegangen",
+            "mock_source_detail": "Krone · Patiententermin 19. März",
+            "mock_target": "Fall in DentaTrak angelegt",
+            "mock_target_detail": "Automatisch synchronisiert — keine doppelte Erfassung."
+        },
+        "languages": {
+            "eyebrow": "Sprachen",
+            "title": "DentaTrak spricht die Sprache Ihres Teams.",
+            "lead": "Das Produkt ist durchgängig lokalisiert — Workflows, Benachrichtigungen, Insights und Ask DentaTrak — damit jedes Teammitglied in der Sprache arbeiten kann, in der es denkt.",
+            "note": "Englisch, Deutsch, Spanisch, Französisch, Kanadisches Französisch, Italienisch, Brasilianisches Portugiesisch, Russisch und Koreanisch."
         }
     },
     "shortcuts": {

@@ -94,6 +94,7 @@ foreach (['operate', 'control', 'scale'] as $plan) {
         "image": "https://dentatrak.com/images/logo-large.png",
         "featureList": [
           "Visual dental case workflow tracking",
+          "Customizable workflow stages",
           "Case status, ownership, and assignments",
           "Due dates, late cases, and appointment-risk visibility",
           "Lab activity and turnaround tracking",
@@ -101,8 +102,11 @@ foreach (['operate', 'control', 'scale'] as $plan) {
           "Shipping information",
           "Practice and Lab Insights on Control and Scale plans",
           "Smart Recommendations on Control and Scale plans",
+          "Ask DentaTrak in-product assistant",
+          "Open Dental lab case integration on Control and Scale plans",
           "In-app notifications",
           "Case comments and @mentions",
+          "Interface in nine languages",
           "Mobile-browser access",
           "Role-based access and secure file access"
         ],
@@ -362,6 +366,7 @@ foreach (['operate', 'control', 'scale'] as $plan) {
     .attention-title.due { color: #1d4ed8; border-color: #3b82f6; }
     .attention-title.appt { color: #7c3aed; border-color: #8b5cf6; }
     .attention-title.ready { color: #15803d; border-color: #22c55e; }
+    .attention-title.review { color: #b45309; border-color: #d97706; }
 
     /* Founder */
     .founder { background: #fff; }
@@ -768,6 +773,69 @@ foreach (['operate', 'control', 'scale'] as $plan) {
     }
     @media (max-width: 360px) {
       .is-metrics { grid-template-columns: 1fr; }
+    }
+
+    /* Collaboration: comment thread mockup */
+    .collab { background: #fff; }
+    .collab-grid, .ask-grid { display: grid; grid-template-columns: 0.46fr 0.54fr; gap: 56px; align-items: center; }
+    .ct-panel { background: #fff; border: 1px solid var(--dt-border); border-radius: 16px; box-shadow: 0 8px 24px -12px rgba(0,0,0,0.08); overflow: hidden; }
+    .ct-head { display: flex; align-items: center; justify-content: space-between; padding: 14px 18px; border-bottom: 1px solid var(--dt-border); background: var(--dt-warm); }
+    .ct-head strong { font-size: 0.85rem; color: var(--dt-ink); }
+    .ct-head span { font-size: 0.7rem; color: var(--dt-ink-muted); }
+    .ct-comment { display: flex; gap: 12px; padding: 14px 18px; border-bottom: 1px solid var(--dt-border); }
+    .ct-avatar { width: 32px; height: 32px; border-radius: 50%; background: var(--dt-blue); color: #fff; font-size: 0.62rem; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .ct-avatar.alt { background: #14b8a6; }
+    .ct-meta { font-size: 0.68rem; color: var(--dt-ink-muted); margin-bottom: 3px; }
+    .ct-meta strong { color: var(--dt-ink); font-weight: 600; }
+    .ct-body p { font-size: 0.82rem; color: var(--dt-ink-secondary); line-height: 1.5; margin: 0; }
+    .ct-mention { color: var(--dt-blue); font-weight: 600; }
+    .ct-attach { display: inline-flex; align-items: center; gap: 6px; margin-top: 8px; padding: 4px 10px; background: var(--dt-pale); border: 1px solid var(--dt-border); border-radius: 999px; font-size: 0.68rem; color: var(--dt-ink-secondary); }
+    .ct-attach svg { width: 12px; height: 12px; color: var(--dt-ink-muted); }
+    .ct-activity { display: flex; align-items: center; gap: 8px; padding: 12px 18px; font-size: 0.72rem; color: var(--dt-ink-muted); background: #fafbfc; }
+    .ct-activity svg { width: 13px; height: 13px; flex-shrink: 0; }
+    .ct-composer { display: flex; align-items: center; gap: 8px; padding: 12px 18px; border-top: 1px solid var(--dt-border); font-size: 0.74rem; color: var(--dt-ink-muted); }
+
+    /* Ask DentaTrak: chat mockup */
+    .ask { background: var(--dt-pale); }
+    .ask-panel { background: #fff; border: 1px solid var(--dt-border); border-radius: 16px; box-shadow: 0 8px 24px -12px rgba(0,0,0,0.08); overflow: hidden; }
+    .ask-head { display: flex; align-items: center; justify-content: space-between; padding: 14px 18px; border-bottom: 1px solid var(--dt-border); background: var(--dt-warm); }
+    .ask-head strong { font-size: 0.85rem; color: var(--dt-ink); }
+    .ask-head kbd { font-size: 0.62rem; font-weight: 600; color: var(--dt-ink-muted); background: #fff; border: 1px solid var(--dt-border); border-radius: 6px; padding: 2px 7px; font-family: inherit; }
+    .ask-body { padding: 16px 18px; display: flex; flex-direction: column; gap: 10px; }
+    .ask-msg { max-width: 82%; padding: 9px 13px; border-radius: 14px; font-size: 0.8rem; line-height: 1.5; }
+    .ask-msg.user { align-self: flex-end; background: var(--dt-blue); color: #fff; border-bottom-right-radius: 4px; }
+    .ask-msg.ai { align-self: flex-start; background: var(--dt-warm); border: 1px solid var(--dt-border); color: var(--dt-ink-secondary); border-bottom-left-radius: 4px; }
+    .ask-msg.ai strong { color: var(--dt-ink); }
+    .ask-input { display: flex; align-items: center; gap: 8px; margin: 0 18px 16px; padding: 9px 12px; border: 1px solid var(--dt-border); border-radius: 10px; font-size: 0.74rem; color: var(--dt-ink-muted); background: #fafbfc; }
+
+    /* Open Dental: compact integration flow */
+    .pms { background: #fff; }
+    .pms-inner { max-width: 780px; margin: 0 auto; text-align: center; }
+    .pms-inner .lead { margin: 0 auto 40px; }
+    .pms-flow { display: flex; align-items: center; justify-content: center; gap: 20px; }
+    .pms-card { background: #fff; border: 1px solid var(--dt-border); border-radius: 14px; padding: 16px 18px; text-align: left; min-width: 230px; box-shadow: 0 4px 14px -8px rgba(0,0,0,0.08); }
+    .pms-card-label { font-size: 0.64rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--dt-ink-muted); margin-bottom: 8px; }
+    .pms-card h4 { font-size: 0.9rem; font-weight: 700; color: var(--dt-ink); margin: 0 0 4px; }
+    .pms-card p { font-size: 0.74rem; color: var(--dt-ink-secondary); margin: 0; line-height: 1.5; }
+    .pms-arrow { color: var(--dt-blue); flex-shrink: 0; }
+    .pms-arrow svg { width: 30px; height: 30px; }
+    .pms-note { margin-top: 32px; font-size: 0.86rem; color: var(--dt-ink-muted); }
+
+    /* Languages */
+    .langs { background: var(--dt-cream); text-align: center; }
+    .langs .lead { margin: 0 auto 36px; }
+    .lang-grid { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; max-width: 760px; margin: 0 auto; }
+    .lang-chip { padding: 8px 18px; background: #fff; border: 1px solid var(--dt-border); border-radius: 999px; font-size: 0.88rem; font-weight: 500; color: var(--dt-ink-secondary); }
+    .lang-note { margin-top: 30px; font-size: 0.88rem; color: var(--dt-ink-muted); max-width: 620px; margin-left: auto; margin-right: auto; }
+
+    @media (max-width: 900px) {
+      .collab-grid, .ask-grid { grid-template-columns: 1fr; }
+      .pms-flow { flex-direction: column; }
+      .pms-arrow { transform: rotate(90deg); }
+    }
+    @media (max-width: 720px) {
+      .collab-grid, .ask-grid { gap: 40px; }
+      .pms-card { min-width: 0; width: 100%; max-width: 340px; }
     }
 
     /* Mobile browser: dark product section */
@@ -1376,6 +1444,107 @@ foreach (['operate', 'control', 'scale'] as $plan) {
     </div>
   </section>
 
+    <section class="section attention">
+    <div class="container">
+      <span class="eyebrow" data-reveal><?php echo t('marketing.attention.eyebrow'); ?></span>
+      <h2 data-reveal><?php echo t('marketing.attention.title'); ?></h2>
+      <p class="lead" data-reveal><?php echo t('marketing.attention.lead'); ?></p>
+      <div class="attention-board">
+        <div class="attention-col" data-reveal data-reveal-stagger="1" data-reveal-delay="150">
+          <div class="attention-title late"><?php echo t('marketing.attention.late'); ?></div>
+          <div class="case-card late" data-reveal data-reveal-stagger="1" data-reveal-delay="250">
+            <h4>Justin Vance</h4>
+            <div class="case-type">Partial</div>
+            <div class="case-meta">Due: Mar 16</div>
+            <div class="case-meta">Assigned: Front Desk</div>
+            <div class="case-meta">Precision Dental Lab &middot; Revision 2</div>
+            <span class="case-flag flag-late">Late</span>
+          </div>
+        </div>
+        <div class="attention-col" data-reveal data-reveal-stagger="2" data-reveal-delay="150">
+          <div class="attention-title due"><?php echo t('marketing.attention.due_soon'); ?></div>
+          <div class="case-card due" data-reveal data-reveal-stagger="2" data-reveal-delay="250">
+            <h4>Hannah Lindqvist</h4>
+            <div class="case-type">Crown</div>
+            <div class="case-meta">Due: Mar 12</div>
+            <div class="case-meta">Assigned: Dr. Rivera</div>
+            <div class="case-meta">Patient Appt: Mar 10</div>
+            <span class="case-flag flag-due">Due Soon</span>
+          </div>
+        </div>
+        <div class="attention-col" data-reveal data-reveal-stagger="3" data-reveal-delay="150">
+          <div class="attention-title appt"><?php echo t('marketing.attention.appointment_risk'); ?></div>
+          <div class="case-card appt" data-reveal data-reveal-stagger="3" data-reveal-delay="250">
+            <h4>Sofia Patel</h4>
+            <div class="case-type">Veneer</div>
+            <div class="case-meta">Due: Mar 22</div>
+            <div class="case-meta">Assigned: Design Team</div>
+            <div class="case-meta">Patient Appt: Mar 14</div>
+            <span class="case-flag flag-appt">Appt Risk</span>
+          </div>
+        </div>
+        <div class="attention-col" data-reveal data-reveal-stagger="4" data-reveal-delay="150">
+          <div class="attention-title review"><?php echo t('marketing.attention.needs_review'); ?></div>
+          <div class="case-card" data-reveal data-reveal-stagger="4" data-reveal-delay="250">
+            <h4>Sarah Bennett</h4>
+            <div class="case-type">Bridge</div>
+            <div class="case-meta">Received: Mar 4</div>
+            <div class="case-meta">Assigned: Dr. Chen</div>
+            <div class="case-meta">Precision Dental Lab</div>
+            <span class="case-flag flag-needs-review"><?php echo t('marketing.attention.needs_review'); ?></span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section collab">
+    <div class="container">
+      <div class="collab-grid" data-reveal>
+        <div class="insights-copy">
+          <span class="eyebrow"><?php echo t('marketing.collaboration.eyebrow'); ?></span>
+          <h2><?php echo t('marketing.collaboration.title'); ?></h2>
+          <p class="lead"><?php echo t('marketing.collaboration.lead'); ?></p>
+          <ul class="insights-callouts">
+            <?php for ($i = 1; $i <= 3; $i++) : ?>
+            <li>
+              <strong><?php echo t('marketing.collaboration.features.' . $i . '_title'); ?></strong>
+              <?php echo t('marketing.collaboration.features.' . $i . '_body'); ?>
+            </li>
+            <?php endfor; ?>
+          </ul>
+        </div>
+        <div class="ct-panel" role="img" aria-label="<?php echo htmlspecialchars(t('marketing.collaboration.mock_aria')); ?>">
+          <div class="ct-head">
+            <strong><?php echo t('marketing.collaboration.mock_case'); ?></strong>
+            <span><?php echo t('marketing.collaboration.mock_tab'); ?></span>
+          </div>
+          <div class="ct-comment">
+            <div class="ct-avatar" aria-hidden="true">DR</div>
+            <div class="ct-body">
+              <div class="ct-meta"><strong>Dr. Rivera</strong> &middot; Mar 6</div>
+              <p><?php echo t('marketing.collaboration.mock_c1', ['mention' => '<span class="ct-mention">@' . t('marketing.mock.front_desk') . '</span>']); ?></p>
+            </div>
+          </div>
+          <div class="ct-comment">
+            <div class="ct-avatar alt" aria-hidden="true">FD</div>
+            <div class="ct-body">
+              <div class="ct-meta"><strong><?php echo t('marketing.mock.front_desk'); ?></strong> &middot; Mar 6</div>
+              <p><?php echo t('marketing.collaboration.mock_c2'); ?></p>
+              <span class="ct-attach"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>shade_photo.jpg</span>
+            </div>
+          </div>
+          <div class="ct-activity">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+            <?php echo t('marketing.collaboration.mock_activity'); ?>
+          </div>
+          <div class="ct-composer"><?php echo t('marketing.collaboration.mock_composer'); ?></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!--SECTION_INSIGHTS_MOVED-->
   <section id="insights" class="section insights">
     <div class="container">
       <div class="insights-grid" data-reveal>
@@ -1480,56 +1649,83 @@ foreach (['operate', 'control', 'scale'] as $plan) {
     </div>
   </section>
 
-  <section class="section attention">
+  <section class="section ask">
     <div class="container">
-      <span class="eyebrow" data-reveal><?php echo t('marketing.attention.eyebrow'); ?></span>
-      <h2 data-reveal><?php echo t('marketing.attention.title'); ?></h2>
-      <p class="lead" data-reveal><?php echo t('marketing.attention.lead'); ?></p>
-      <div class="attention-board">
-        <div class="attention-col" data-reveal data-reveal-stagger="1" data-reveal-delay="150">
-          <div class="attention-title late"><?php echo t('marketing.attention.late'); ?></div>
-          <div class="case-card late" data-reveal data-reveal-stagger="1" data-reveal-delay="250">
-            <h4>Justin Vance</h4>
-            <div class="case-type">Partial</div>
-            <div class="case-meta">Due: Mar 16</div>
-            <div class="case-meta">Assigned: Front Desk</div>
-            <div class="case-meta">Precision Dental Lab &middot; Revision 2</div>
-            <span class="case-flag flag-late">Late</span>
+      <div class="ask-grid" data-reveal>
+        <div class="ask-panel" role="img" aria-label="<?php echo htmlspecialchars(t('marketing.ask.mock_aria')); ?>">
+          <div class="ask-head">
+            <strong><?php echo t('marketing.ask.name'); ?></strong>
+            <kbd>Ctrl + /</kbd>
           </div>
+          <div class="ask-body">
+            <div class="ask-msg user"><?php echo t('marketing.ask.mock_q1'); ?></div>
+            <div class="ask-msg ai"><?php echo t('marketing.ask.mock_a1'); ?></div>
+            <div class="ask-msg user"><?php echo t('marketing.ask.mock_q2'); ?></div>
+            <div class="ask-msg ai"><?php echo t('marketing.ask.mock_a2'); ?></div>
+          </div>
+          <div class="ask-input"><?php echo t('marketing.ask.mock_input'); ?></div>
         </div>
-        <div class="attention-col" data-reveal data-reveal-stagger="2" data-reveal-delay="150">
-          <div class="attention-title due"><?php echo t('marketing.attention.due_soon'); ?></div>
-          <div class="case-card due" data-reveal data-reveal-stagger="2" data-reveal-delay="250">
-            <h4>Hannah Lindqvist</h4>
-            <div class="case-type">Crown</div>
-            <div class="case-meta">Due: Mar 12</div>
-            <div class="case-meta">Assigned: Dr. Rivera</div>
-            <div class="case-meta">Patient Appt: Mar 10</div>
-            <span class="case-flag flag-due">Due Soon</span>
-          </div>
-        </div>
-        <div class="attention-col" data-reveal data-reveal-stagger="3" data-reveal-delay="150">
-          <div class="attention-title appt"><?php echo t('marketing.attention.appointment_risk'); ?></div>
-          <div class="case-card appt" data-reveal data-reveal-stagger="3" data-reveal-delay="250">
-            <h4>Sofia Patel</h4>
-            <div class="case-type">Veneer</div>
-            <div class="case-meta">Due: Mar 22</div>
-            <div class="case-meta">Assigned: Design Team</div>
-            <div class="case-meta">Patient Appt: Mar 14</div>
-            <span class="case-flag flag-appt">Appt Risk</span>
-          </div>
-        </div>
-        <div class="attention-col" data-reveal data-reveal-stagger="4" data-reveal-delay="150">
-          <div class="attention-title ready"><?php echo t('marketing.attention.ready'); ?></div>
-          <div class="case-card" data-reveal data-reveal-stagger="4" data-reveal-delay="250">
-            <h4>Sarah Bennett</h4>
-            <div class="case-type">Bridge</div>
-            <div class="case-meta">Received: Mar 4</div>
-            <div class="case-meta">Assigned: Dr. Chen</div>
-            <div class="case-meta">Precision Dental Lab</div>
-          </div>
+        <div class="insights-copy">
+          <span class="eyebrow"><?php echo t('marketing.ask.eyebrow'); ?></span>
+          <h2><?php echo t('marketing.ask.title'); ?></h2>
+          <p class="lead"><?php echo t('marketing.ask.lead'); ?></p>
+          <ul class="insights-callouts">
+            <?php for ($i = 1; $i <= 3; $i++) : ?>
+            <li>
+              <strong><?php echo t('marketing.ask.features.' . $i . '_title'); ?></strong>
+              <?php echo t('marketing.ask.features.' . $i . '_body'); ?>
+            </li>
+            <?php endfor; ?>
+          </ul>
+          <p class="section-note"><?php echo t('marketing.ask.note'); ?></p>
         </div>
       </div>
+    </div>
+  </section>
+
+  <section class="section pms">
+    <div class="container">
+      <div class="pms-inner" data-reveal>
+        <span class="eyebrow"><?php echo t('marketing.pms.eyebrow'); ?></span>
+        <h2><?php echo t('marketing.pms.title'); ?></h2>
+        <p class="lead"><?php echo t('marketing.pms.lead'); ?></p>
+        <div class="pms-flow" role="img" aria-label="<?php echo htmlspecialchars(t('marketing.pms.flow_aria')); ?>">
+          <div class="pms-card">
+            <div class="pms-card-label">Open Dental</div>
+            <h4><?php echo t('marketing.pms.mock_source'); ?></h4>
+            <p><?php echo t('marketing.pms.mock_source_detail'); ?></p>
+          </div>
+          <div class="pms-arrow" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+          </div>
+          <div class="pms-card">
+            <div class="pms-card-label">DentaTrak</div>
+            <h4><?php echo t('marketing.pms.mock_target'); ?></h4>
+            <p><?php echo t('marketing.pms.mock_target_detail'); ?></p>
+          </div>
+        </div>
+        <p class="pms-note"><?php echo t('marketing.pms.note'); ?></p>
+      </div>
+    </div>
+  </section>
+
+  <section class="section langs">
+    <div class="container" data-reveal>
+      <span class="eyebrow"><?php echo t('marketing.languages.eyebrow'); ?></span>
+      <h2><?php echo t('marketing.languages.title'); ?></h2>
+      <p class="lead"><?php echo t('marketing.languages.lead'); ?></p>
+      <div class="lang-grid">
+        <span class="lang-chip">English</span>
+        <span class="lang-chip">Deutsch</span>
+        <span class="lang-chip">Espa&ntilde;ol</span>
+        <span class="lang-chip">Fran&ccedil;ais</span>
+        <span class="lang-chip">Fran&ccedil;ais (Canada)</span>
+        <span class="lang-chip">Italiano</span>
+        <span class="lang-chip">Portugu&ecirc;s (Brasil)</span>
+        <span class="lang-chip">&#1056;&#1091;&#1089;&#1089;&#1082;&#1080;&#1081;</span>
+        <span class="lang-chip">&#54620;&#44397;&#50612;</span>
+      </div>
+      <p class="lang-note"><?php echo t('marketing.languages.note'); ?></p>
     </div>
   </section>
 
@@ -1830,6 +2026,9 @@ foreach (['operate', 'control', 'scale'] as $plan) {
           <ul>
             <li><?php echo t('marketing.pricing.operate_features_1'); ?></li>
             <li><?php echo t('marketing.pricing.operate_features_attachments'); ?></li>
+            <li><?php echo t('marketing.pricing.operate_features_4'); ?></li>
+            <li><?php echo t('marketing.pricing.operate_features_5'); ?></li>
+            <li><?php echo t('marketing.pricing.operate_features_6'); ?></li>
             <li><?php echo t('marketing.pricing.operate_features_2'); ?></li>
             <li><?php echo t('marketing.pricing.operate_features_3'); ?></li>
           </ul>
