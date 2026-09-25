@@ -2825,6 +2825,7 @@
         "list": {
             "view_toggle_aria": "Visualização de casos",
             "view_board": "Quadro",
+            "view_compact": "Compacto",
             "view_list": "Lista",
             "review": "Revisão",
             "patient": "Paciente",

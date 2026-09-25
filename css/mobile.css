@@ -183,15 +183,13 @@
     height: 18px;
   }
 
-  /* Language selector remains compact on mobile */
-  .language-selector-toggle {
-    padding: 5px 8px;
-    font-size: 0.75rem;
-  }
-
-  .language-selector-menu {
-    right: 0;
-    min-width: 160px;
+  /* Language selector is hidden in the phone header to save space. Scoped to
+     .main-header so it still beats the self-contained inline styles emitted
+     by renderLanguageSelector(). The selected language is unaffected - the
+     selector reappears on tablet/desktop (481px+) and the personal language
+     preference itself is untouched. */
+  .main-header .language-selector {
+    display: none;
   }
 
   /* User menu dropdown positioning */

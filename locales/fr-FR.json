@@ -163,6 +163,7 @@
         "list": {
             "view_toggle_aria": "Vue des cas",
             "view_board": "Tableau",
+            "view_compact": "Compact",
             "view_list": "Liste",
             "review": "Révision",
             "patient": "Patient",

@@ -18,6 +18,7 @@
   'use strict';
 
   var VIEW_KEY_PREFIX = 'caseViewMode_';
+  var DENSITY_KEY_PREFIX = 'caseViewDensity_';
   var REFRESH_DEBOUNCE_MS = 120;
 
   var expandedCaseId = null;
@@ -80,6 +81,58 @@
       localStorage.setItem(VIEW_KEY_PREFIX + userKeyPart(), mode);
     } catch (e) {
       // localStorage unavailable - view preference simply won't persist
+    }
+  }
+
+  /* ---------- Board density (standard | compact) ---------- */
+
+  function getSavedDensity() {
+    try {
+      return localStorage.getItem(DENSITY_KEY_PREFIX + userKeyPart()) === 'compact'
+        ? 'compact'
+        : 'standard';
+    } catch (e) {
+      return 'standard';
+    }
+  }
+
+  /**
+   * Presentation-only toggle: sets a class on the board container so the
+   * existing card markup is restyled, never re-rendered or mutated.
+   */
+  function setDensity(mode) {
+    var compact = mode === 'compact';
+    var board = document.getElementById('kanbanBoard');
+    if (board) board.classList.toggle('kanban-board-compact', compact);
+
+    try {
+      localStorage.setItem(DENSITY_KEY_PREFIX + userKeyPart(), compact ? 'compact' : 'standard');
+    } catch (e) {
+      // localStorage unavailable - density preference simply won't persist
+    }
+
+    syncModeButtons();
+  }
+
+  /**
+   * Keep the three-way Board | Compact | List segmented control in sync with
+   * the current view + density state. Exactly one button is active at a time.
+   */
+  function syncModeButtons() {
+    var list = document.body.classList.contains('case-view-list');
+    var board = document.getElementById('kanbanBoard');
+    var compact = !list && board && board.classList.contains('kanban-board-compact');
+    var states = {
+      boardViewToggle: !list && !compact,
+      compactViewToggle: !!compact,
+      listViewToggle: list
+    };
+    for (var id in states) {
+      var btn = document.getElementById(id);
+      if (btn) {
+        btn.classList.toggle('active', states[id]);
+        btn.setAttribute('aria-pressed', states[id] ? 'true' : 'false');
+      }
     }
   }
 
@@ -648,16 +701,7 @@
     document.body.classList.toggle('case-view-list', list);
     document.body.classList.toggle('case-view-board', !list);
 
-    var boardBtn = document.getElementById('boardViewToggle');
-    var listBtn = document.getElementById('listViewToggle');
-    if (boardBtn) {
-      boardBtn.classList.toggle('active', !list);
-      boardBtn.setAttribute('aria-pressed', list ? 'false' : 'true');
-    }
-    if (listBtn) {
-      listBtn.classList.toggle('active', list);
-      listBtn.setAttribute('aria-pressed', list ? 'true' : 'false');
-    }
+    syncModeButtons();
 
     var lv = listEl();
     if (lv) lv.hidden = !list;
@@ -798,13 +842,19 @@
     bindEvents();
 
     var boardBtn = document.getElementById('boardViewToggle');
+    var compactBtn = document.getElementById('compactViewToggle');
     var listBtn = document.getElementById('listViewToggle');
     if (boardBtn) {
-      boardBtn.addEventListener('click', function () { setView('board'); });
+      boardBtn.addEventListener('click', function () { setView('board'); setDensity('standard'); });
+    }
+    if (compactBtn) {
+      compactBtn.addEventListener('click', function () { setView('board'); setDensity('compact'); });
     }
     if (listBtn) {
       listBtn.addEventListener('click', function () { setView('list'); });
     }
+    // Apply the saved board density before the first card render.
+    setDensity(getSavedDensity());
 
     // Rebuild when the board re-renders (initial load + filter changes)
     // or when card content changes (realtime, review toggles, drag/drop).

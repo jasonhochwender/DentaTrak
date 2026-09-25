@@ -922,6 +922,7 @@ endif;
             <div class="dashboard-toolbar-right">
               <div class="case-view-toggle" role="group" aria-label="<?php echo t('cases.list.view_toggle_aria'); ?>">
                 <button type="button" id="boardViewToggle" class="case-view-btn active" aria-pressed="true"><?php echo t('cases.list.view_board'); ?></button>
+                <button type="button" id="compactViewToggle" class="case-view-btn" aria-pressed="false"><?php echo t('cases.list.view_compact'); ?></button>
                 <button type="button" id="listViewToggle" class="case-view-btn" aria-pressed="false"><?php echo t('cases.list.view_list'); ?></button>
               </div>
               <button type="button" id="kanbanFilterToggle" class="filter-toggle-button" aria-controls="kanbanFiltersBar" aria-expanded="false">

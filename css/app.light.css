@@ -2318,7 +2318,9 @@ body {
   color: var(--text-secondary);
   font-size: 1rem;
   line-height: 1;
-  padding: 0 0 4px 0; /* optically centers the ⋮ glyph */
+  /* True flex centering for the ⋮ glyph; the 1px top padding is a small
+     optical nudge because the glyph's ink sits slightly above midline. */
+  padding: 1px 0 0;
   cursor: pointer;
   transition: background 0.15s ease, color 0.15s ease;
   flex: 0 0 auto;
@@ -2336,6 +2338,101 @@ body {
 
 .kanban-card-header .case-actions-toggle {
   margin-top: 2px;
+}
+
+/* ---------- Compact board density ---------- */
+/* Presentation-only mode toggled by #boardDensityToggle: the same card
+   markup is restyled so more cases fit per column. Secondary fields are
+   hidden; workflow indicators (review, late/due-soon, appointment risk,
+   at-risk) and the actions menu stay visible in compact form. */
+.kanban-board-compact .kanban-card {
+  padding: 6px 10px 6px 12px;
+  margin-bottom: 6px;
+  min-height: 0;
+  border-left-width: 3px;
+  border-radius: var(--radius-md, 6px);
+}
+
+.kanban-board-compact .kanban-card-header {
+  margin-bottom: 2px;
+  gap: 4px;
+  align-items: center;
+}
+
+.kanban-board-compact .kanban-card-title {
+  font-size: 0.8rem;
+  margin: 0;
+}
+
+.kanban-board-compact .kanban-card-header .kanban-card-review,
+.kanban-board-compact .kanban-card-header .case-actions-toggle {
+  margin-top: 0;
+}
+
+.kanban-board-compact .kanban-card-review {
+  font-size: 0.6rem;
+  padding: 1px 5px;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.kanban-board-compact .case-actions-toggle {
+  width: 20px;
+  height: 20px;
+  font-size: 0.85rem;
+}
+
+.kanban-board-compact .kanban-card-content {
+  font-size: 0.72rem;
+  line-height: 1.35;
+}
+
+.kanban-board-compact .kanban-card-content p {
+  margin: 1px 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Drop "Type:"/"Due:" style labels so each remaining row shows only its value */
+.kanban-board-compact .kanban-card-content p strong {
+  display: none;
+}
+
+/* Secondary details removed in compact mode */
+.kanban-board-compact .revision-count-line,
+.kanban-board-compact .dentist-row,
+.kanban-board-compact .kanban-card-assignment,
+.kanban-board-compact .kanban-card-dates {
+  display: none;
+}
+
+/* Appointment row only earns space when it carries the risk indicator */
+.kanban-board-compact .kanban-card-appointment-row {
+  display: none;
+}
+
+.kanban-board-compact .kanban-card-appointment-row:has(.appointment-risk-indicator) {
+  display: block;
+}
+
+.kanban-board-compact .late-indicator,
+.kanban-board-compact .appointment-risk-indicator {
+  font-size: 0.58rem;
+  padding: 1px 4px;
+  margin-left: 4px;
+}
+
+.kanban-board-compact .at-risk-indicator {
+  margin: 2px 0 0;
+  padding: 2px 4px;
+  font-size: 0.65rem;
+}
+
+.kanban-board-compact .kanban-card-actions {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: none;
 }
 
 @media (pointer: coarse) {

@@ -782,6 +782,7 @@
         "list": {
             "view_toggle_aria": "Вид списка случаев",
             "view_board": "Доска",
+            "view_compact": "Компактный",
             "view_list": "Список",
             "review": "Проверка",
             "patient": "Пациент",

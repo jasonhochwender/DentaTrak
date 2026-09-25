@@ -163,6 +163,7 @@
         "list": {
             "view_toggle_aria": "케이스 보기",
             "view_board": "보드",
+            "view_compact": "컴팩트",
             "view_list": "목록",
             "review": "검토",
             "patient": "환자",

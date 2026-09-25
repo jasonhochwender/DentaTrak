@@ -911,6 +911,7 @@
         "list": {
             "view_toggle_aria": "Fallansicht",
             "view_board": "Board",
+            "view_compact": "Kompakt",
             "view_list": "Liste",
             "review": "Prüfung",
             "patient": "Patient",

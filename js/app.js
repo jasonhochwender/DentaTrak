@@ -1177,14 +1177,16 @@ document.addEventListener('DOMContentLoaded', function () {
 
   // Event listeners for closing modals
   // Exclude create case modal close button, settings modal close button, and
-  // the integration config modal close button - they have their own handlers
-  // (unsaved-changes checks / child-modal cleanup). Routing them through the
-  // generic closeModals() would hide EVERY open modal including parents.
+  // the integration config + PHI audit modal close buttons - they have their
+  // own handlers (unsaved-changes checks / child-modal cleanup). Routing them
+  // through the generic closeModals() would hide EVERY open modal including
+  // parents.
   var createCaseCloseBtn = document.getElementById('createCaseClose');
   var settingsBillingCloseBtn = document.getElementById('settingsBillingClose');
   var integrationConfigCloseBtn = document.getElementById('integrationConfigClose');
+  var phiAuditCloseBtn = document.getElementById('phiAuditClose');
   closeBtns.forEach(btn => {
-    if (btn !== createCaseCloseBtn && btn !== settingsBillingCloseBtn && btn !== integrationConfigCloseBtn) {
+    if (btn !== createCaseCloseBtn && btn !== settingsBillingCloseBtn && btn !== integrationConfigCloseBtn && btn !== phiAuditCloseBtn) {
       btn.addEventListener('click', closeModals);
     }
   });
@@ -1224,6 +1226,17 @@ document.addEventListener('DOMContentLoaded', function () {
         e.stopPropagation();
         if (typeof window.closeIntegrationConfigModal === 'function') {
           window.closeIntegrationConfigModal();
+        }
+        return;
+      }
+      // Same child-modal rule for the PHI audit modal - its backdrop click
+      // must close only itself, never the Settings modal beneath it.
+      var phiAuditModalEl = document.getElementById('phiAuditModal');
+      if (e.target === phiAuditModalEl) {
+        e.preventDefault();
+        e.stopPropagation();
+        if (typeof window.closePhiAuditModal === 'function') {
+          window.closePhiAuditModal();
         }
         return;
       }
@@ -12944,13 +12957,30 @@ document.addEventListener('DOMContentLoaded', function () {
 
     const closePhiAudit = function() {
       phiAuditModal.style.display = 'none';
-      document.body.style.overflow = '';
+      // Settings stays open underneath - keep page scroll locked while any
+      // modal is still visible.
+      if (!isAnyModalOpen()) {
+        document.body.style.overflow = '';
+      }
+      if (phiAuditOpenBtn && phiAuditOpenBtn.focus) {
+        phiAuditOpenBtn.focus();
+      }
     };
+    window.closePhiAuditModal = closePhiAudit;
     if (phiAuditClose) phiAuditClose.addEventListener('click', closePhiAudit);
     if (phiAuditFooterClose) phiAuditFooterClose.addEventListener('click', closePhiAudit);
-    window.addEventListener('click', function(e) {
-      if (e.target === phiAuditModal) closePhiAudit();
-    });
+    // Backdrop clicks are routed through the generic window click handler,
+    // which calls window.closePhiAuditModal for this modal.
+
+    // Child-modal Escape handling: run in the capture phase and stop the event
+    // so the Settings modal's own Escape handler never sees the keypress - one
+    // Escape closes only the audit modal.
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape' && phiAuditModal.style.display === 'block') {
+        e.stopImmediatePropagation();
+        closePhiAudit();
+      }
+    }, true);
 
     if (phiAuditDateRange) {
       phiAuditDateRange.addEventListener('change', function() {
