@@ -1,0 +1,46 @@
+#!/bin/sh
+# commit-msg hook — strip AI coding-tool attribution from commit messages.
+#
+# Removes whole lines that credit an AI coding tool for the commit, e.g.:
+#   Generated with [Devin](https://devin.ai)
+#   Generated with/by Devin | Windsurf | Codeium | Cascade | Cursor | Claude | Copilot | ChatGPT | OpenAI | Gemini | AI
+#   Created/written/produced by <same list>
+#   Co-Authored-By: <entry naming any of the tools above>
+#
+# Everything else is preserved, including legitimate human
+# "Co-Authored-By: Name <email>" trailers and normal message content.
+#
+# Activation (one-time, per clone):  git config core.hooksPath .githooks
+
+msg="$1"
+[ -f "$msg" ] || exit 0
+
+tmp="${msg}.hooktmp"
+
+# 1) "Generated/Created/Written ... with/by <tool>" lines.
+grep -viE '\b(generated|created|written|produced|authored|built)[[:space:]-](with|by|using|via)\b.*\b(devin|windsurf|codeium|cascade|cursor|claude|anthropic|copilot|chatgpt|openai|gemini|llm)\b' "$msg" \
+| grep -viE '\b(generated|created|written|produced|authored|built)[[:space:]-](with|by|using|via)\b.*\b(ai|artificial[[:space:]]+intelligence|coding[[:space:]]+agent|ai[[:space:]-](assistant|tool|coding[[:space:]]+agent))\b' \
+| grep -viE '\bco-?authored-?by[[:space:]]*:.*\b(devin|windsurf|codeium|cascade|cursor|claude|anthropic|copilot|chatgpt|openai|gemini|ai[[:space:]-]integration|ai[[:space:]-]assistant|coding[[:space:]]+agent)\b' \
+> "$tmp" || true
+
+# 2) Collapse runs of blank lines and drop trailing blank lines left behind.
+awk '
+  { lines[NR] = $0 }
+  END {
+    n = NR
+    while (n > 0 && lines[n] ~ /^[[:space:]]*$/) n--
+    blank = 0
+    for (i = 1; i <= n; i++) {
+      if (lines[i] ~ /^[[:space:]]*$/) {
+        blank++
+        if (blank <= 1) print ""
+      } else {
+        blank = 0
+        print lines[i]
+      }
+    }
+  }
+' "$tmp" > "$msg"
+
+rm -f "$tmp"
+exit 0

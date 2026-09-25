@@ -20,3 +20,10 @@
 - **Production**: Cloud Scheduler job `dtk-prod-integration-event-worker` POSTs `https://dtk-app-prod-1029275239454.us-east1.run.app/api/integration-event-worker.php` every minute with the `X-Queue-Worker-Token` header (Secret Manager `dtk-prod-queue-worker-token`, same mechanism as `notification-queue-worker.php`). Provisioning is idempotent via `scripts/provision-integration-worker.sh`, invoked at the end of `cloudbuild.yaml`. Overlapping invocations are safe (atomic claims).
 - **Local development**: `php api/integrations/process-events.php [--limit=25] [--watch[=seconds]]` (CLI), or POST the endpoint with the dev `QUEUE_WORKER_TOKEN` header. Windows Task Scheduler alternative: run `php.exe C:\MAMP\htdocs\DentaTrak\api\integrations\process-events.php` every minute.
 - Events are claimed atomically (conditional UPDATE with `claimed_at`), transient failures (network/timeout/5xx/429/eConnector offline) retry with bounded linear backoff (max 10 attempts, cap 300s, honors Retry-After), permanent failures park as `failed`, and stale `processing` rows are reclaimed 10 minutes after their last claim.
+
+# Commit-message attribution hook
+
+- `.githooks/commit-msg` strips AI coding-tool attribution lines/trailers (`Generated with/by Devin`, `Generated with Windsurf`, `Co-Authored-By:` entries naming Devin, Windsurf, Codeium, Cascade, Cursor, Claude, Copilot, ChatGPT, OpenAI, Gemini, or other AI coding agents). Human `Co-Authored-By` trailers and normal message content are preserved.
+- Git hooks are not shared automatically. Activate once per clone:
+  `git config core.hooksPath .githooks`
+- The hook is a POSIX shell script (works in Git Bash on Windows, macOS, Linux). Do not add attribution lines to commit messages manually; the hook will remove them.
