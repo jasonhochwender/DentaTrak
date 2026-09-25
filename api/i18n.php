@@ -291,16 +291,59 @@ function formatRelative($date) {
 }
 
 /**
+ * Resolve the CLDR plural category for a count in a locale.
+ *
+ * Languages without an entry keep the legacy one/other rule
+ * (count === 1), preserving existing behavior for all previously
+ * supported locales. Languages with richer CLDR categories (e.g.
+ * Russian one/few/many) get an explicit rule; non-integer counts
+ * resolve to 'other' per CLDR.
+ *
+ * @param string   $locale BCP-47 locale tag
+ * @param int|float $count
+ * @return string CLDR category: 'one', 'few', 'many', 'other'
+ */
+function pluralCategoryFor($locale, $count) {
+    $lang = strtolower(strtok(str_replace('_', '-', (string) $locale), '-'));
+
+    if ($lang === 'ru') {
+        // CLDR Russian: integers only — fractions always land in 'other'.
+        if (!is_numeric($count) || (float) $count !== (float) (int) $count) {
+            return 'other';
+        }
+        $n = abs((int) $count);
+        $mod10 = $n % 10;
+        $mod100 = $n % 100;
+        if ($mod10 === 1 && $mod100 !== 11) {
+            return 'one';
+        }
+        if ($mod10 >= 2 && $mod10 <= 4 && ($mod100 < 12 || $mod100 > 14)) {
+            return 'few';
+        }
+        return 'many';
+    }
+
+    return $count === 1 ? 'one' : 'other';
+}
+
+/**
  * Choose a singular or plural translation based on a count.
  *
  * @param int    $count
- * @param string $key     Base key that has '_one' and '_other' variants.
+ * @param string $key     Base key with '_one'/'_other' variants; locales may
+ *                        also provide '_few'/'_many' CLDR category variants.
  * @param array  $params
  * @return string
  */
 function pluralize($count, $key, $params = []) {
-    $suffix = $count === 1 ? '_one' : '_other';
-    $fullKey = $key . $suffix;
+    $category = pluralCategoryFor(getActiveLocale(), $count);
+    $fullKey = $key . '_' . $category;
+    if ($category !== 'other'
+        && getNestedTranslation(loadLocale(getActiveLocale()), $fullKey) === null) {
+        // Category variant absent in the active locale: degrade to '_other'
+        // rather than leaking the fallback-locale text for that variant.
+        $fullKey = $key . '_other';
+    }
     $params['count'] = $count;
     return t($fullKey, $params);
 }
@@ -330,6 +373,8 @@ function getStripeLocale($locale) {
         'pt-BR' => 'pt-BR',
         'it'    => 'it',
         'it-IT' => 'it',
+        'ru'    => 'ru',
+        'ru-RU' => 'ru',
     ];
     return $map[$locale] ?? null;
 }
@@ -364,6 +409,8 @@ function getActiveLanguageName() {
         'pt-BR' => 'Portuguese (Brazil)',
         'it' => 'Italian',
         'it-IT' => 'Italian (Italy)',
+        'ru' => 'Russian',
+        'ru-RU' => 'Russian (Russia)',
     ];
 
     return $names[$activeLocale] ?? $activeLocale;

@@ -576,8 +576,8 @@ if (isset($appConfig) && is_array($appConfig) && isset($appConfig['appName'])) {
   
   <!-- Preload critical resources -->
   <link rel="preload" href="js/app.js?v=20261002a" as="script">
-  <link rel="preload" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
-  <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap"></noscript>
+  <link rel="preload" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@400;500;600;700&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
+  <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@400;500;600;700&display=swap"></noscript>
   
   <!-- Critical CSS inlined to eliminate render-blocking -->
   <style>

@@ -82,7 +82,7 @@ $articleUrls = $appConfig['public_urls'] ?? [];
   }
   </script>
 
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="<?= $baseUrl ?>css/marketing.css">
   <style>
     .content.about-page { max-width: 780px; }

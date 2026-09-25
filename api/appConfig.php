@@ -296,6 +296,11 @@ Here is the workflow data to analyze:
                 'nativeName' => 'Italiano',
                 'enabled' => true,
             ],
+            'ru-RU' => [
+                'name' => 'Russian (Russia)',
+                'nativeName' => 'Русский',
+                'enabled' => true,
+            ],
         ],
     ],
 

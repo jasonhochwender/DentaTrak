@@ -190,9 +190,31 @@
 
     pluralize: function (count, key, params) {
       params = params || {};
-      var suffix = count === 1 ? '_one' : '_other';
+      // CLDR plural categories keyed by language subtag. Languages without
+      // an entry keep the legacy one/other rule (count === 1) so existing
+      // locale behavior is unchanged; 'ru' needs the one/few/many set.
+      var PLURAL_RULES = {
+        ru: function (n) {
+          if (typeof n !== 'number' || !isFinite(n) || Math.floor(n) !== n) return 'other';
+          n = Math.abs(n);
+          var mod10 = n % 10;
+          var mod100 = n % 100;
+          if (mod10 === 1 && mod100 !== 11) return 'one';
+          if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) return 'few';
+          return 'many';
+        }
+      };
+      var lang = String(activeLocale).split(/[-_]/)[0].toLowerCase();
+      var rule = PLURAL_RULES[lang];
+      var category = rule ? rule(count) : (count === 1 ? 'one' : 'other');
+      var fullKey = key + '_' + category;
+      if (category !== 'other' && getTranslation(activeLocale, fullKey) === null) {
+        // Category variant absent in the active locale: degrade to _other
+        // instead of falling through to fallback-locale text.
+        fullKey = key + '_other';
+      }
       params.count = count;
-      return t(key + suffix, params);
+      return t(fullKey, params);
     }
   };
 

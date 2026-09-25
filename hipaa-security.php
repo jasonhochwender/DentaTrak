@@ -31,7 +31,7 @@ $hipaaUrl = $baseUrl . ($articleUrls['page_hipaa_security'] ?? 'hipaa-security')
   <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png">
   <link rel="manifest" href="site.webmanifest">
 
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="<?= $baseUrl ?>css/marketing.css">
   <style>
     .content.hipaa-page { max-width: 920px; }
