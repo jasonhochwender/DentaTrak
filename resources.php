@@ -246,6 +246,12 @@ $remakeCalcUrl = $baseUrl . ($articleUrls['article_dental_remake_cost'] ?? 'dent
             <p><?php echo t('marketing.resources.card_lab_tracking_desc'); ?></p>
             <span class="resource-cta"><?php echo t('marketing.resources.read_guide'); ?></span>
           </a>
+          <a class="resource-card" href="<?= $baseUrl . ($articleUrls['article_case_mgmt_external_labs'] ?? 'dental-case-management-external-labs') ?>">
+            <span class="resource-type resource-type--guide"><?php echo t('marketing.resources.type_guide'); ?></span>
+            <h3><?php echo t('marketing.resources.card_external_labs_mgmt_title'); ?></h3>
+            <p><?php echo t('marketing.resources.card_external_labs_mgmt_desc'); ?></p>
+            <span class="resource-cta"><?php echo t('marketing.resources.read_guide'); ?></span>
+          </a>
         </div>
       </div>
 

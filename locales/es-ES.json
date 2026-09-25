@@ -4958,6 +4958,170 @@
                 "cta": {
                     "body": "Prueba gratuita de 90 días. No se requiere tarjeta de crédito."
                 }
+            },
+            "dental_case_management_external_labs": {
+                "title": "Software de gestión de casos para laboratorios externos | DentaTrak",
+                "h1": "Software de gestión de casos dentales para consultorios que usan laboratorios externos",
+                "description": "Qué debe registrar un software de gestión de casos dentales para consultorios que envían trabajos a laboratorios externos: flujo de trabajo, plazos, archivos, repeticiones y rendimiento del laboratorio.",
+                "seo": {
+                    "title": "Software de gestión de casos para laboratorios externos | DentaTrak",
+                    "description": "Qué debe registrar un software de gestión de casos dentales para consultorios que envían trabajos a laboratorios externos: flujo de trabajo, plazos, archivos, repeticiones y rendimiento del laboratorio."
+                },
+                "meta": {
+                    "by": "Por",
+                    "published": "Publicado",
+                    "date": "25 de septiembre de 2026"
+                },
+                "intro": "El software de gestión de casos dentales ofrece a los consultorios que envían trabajos a laboratorios externos una única vista operativa de cada caso: dónde está, quién es responsable del siguiente paso, qué vence y qué está en riesgo. Esta guía explica por qué los casos de laboratorio externo son difíciles de gestionar, qué capacidades importan más y cómo el software dedicado se compara con el PMS, las hojas de cálculo, el correo electrónico y los portales de laboratorio.",
+                "sections": {
+                    "why_external_lab_cases_are_hard_to_manage": {
+                        "heading": "Por qué los casos de laboratorio externo son difíciles de gestionar",
+                        "body_1": "Un solo caso de laboratorio pasa por más manos que la mayoría de las citas. La recepción agenda al paciente, un miembro del equipo captura escaneos o impresiones, el doctor revisa el diseño y el laboratorio fabrica la restauración, a menudo durante días o semanas. Cada paso tiene sus propias fechas, archivos e instrucciones, y el caso está fuera del consultorio durante buena parte de su ciclo de vida.",
+                        "body_2": "El problema rara vez es que al consultorio le falte información. Es que la información está fragmentada en sistemas que no se comunican entre sí:",
+                        "fragmentation": [
+                            "Notas del PMS y registros de citas",
+                            "Hilos de correo electrónico con el laboratorio",
+                            "Mensajes de texto entre miembros del equipo",
+                            "Hojas de cálculo con fechas de entrega",
+                            "El portal web del propio laboratorio",
+                            "Notas en papel y hojas de ruta",
+                            "Unidades compartidas con escaneos y fotos"
+                        ],
+                        "body_3": "Cuando la información del caso vive en siete lugares, nadie puede responder con fiabilidad a la pregunta operativa más simple: ¿dónde está este caso ahora y llegará a la cita del paciente? Los consultorios necesitan una vista actualizada de cada caso activo, no una reconstrucción armada después."
+                    },
+                    "what_software_should_track": {
+                        "heading": "Qué debe registrar el software de gestión de casos dentales",
+                        "body_1": "Como mínimo, un software dedicado de gestión de casos dentales debe mantener los detalles operativos de cada caso en un solo lugar:",
+                        "items": [
+                            "Una referencia clara del paciente y del caso",
+                            "El laboratorio asignado al caso",
+                            "El tipo de caso (corona, implante, dentadura, etc.)",
+                            "La etapa o estado actual del flujo de trabajo",
+                            "La fecha de entrega del laboratorio",
+                            "La próxima cita del paciente",
+                            "El miembro del equipo responsable del siguiente paso",
+                            "Archivos adjuntos al caso: escaneos, fotos, diseños y documentos",
+                            "Notas y comentarios del equipo",
+                            "Un historial de actividad que muestre qué cambió y cuándo",
+                            "Información de repeticiones cuando un caso debe rehacerse"
+                        ]
+                    },
+                    "why_a_pms_alone_may_not_be_enough": {
+                        "heading": "Por qué un PMS por sí solo puede no ser suficiente",
+                        "body_1": "Un sistema de gestión del consultorio es esencial: maneja la agenda, los registros de pacientes, la facturación y la documentación clínica. Sin embargo, la mayoría de los PMS no están pensados para ofrecer una vista compartida y filtrable de todos los casos de laboratorio en curso: en qué etapa está cada caso, qué vence esta semana o qué casos corren riesgo de no llegar a una cita programada. Muchos consultorios lo resuelven con campos de notas o informes, razonable con pocos casos pero que se complica cuando el volumen crece.",
+                        "link_label": "Software de seguimiento de casos dentales vs. PMS",
+                        "body_2": "Eso no convierte al PMS en el problema. Los dos sistemas responden preguntas distintas: el PMS es el sistema de registro del paciente y del negocio; la gestión de casos es la vista de trabajo de los casos que pasan por el laboratorio. Para un análisis detallado, vea {link}."
+                    },
+                    "why_spreadsheets_and_email_break_down": {
+                        "heading": "Por qué las hojas de cálculo y el correo empiezan a fallar",
+                        "body_1": "Las hojas de cálculo y el correo electrónico son los sistemas de seguimiento informal más comunes, y funcionan — hasta que dejan de hacerlo. Los fallos son predecibles:",
+                        "items": [
+                            "Cada actualización es manual, así que la hoja solo está tan al día como la última persona que recordó editarla",
+                            "Circulan varias versiones y no está claro cuál es la correcta",
+                            "No hay una responsabilidad clara del siguiente paso de cada caso",
+                            "Los recordatorios son débiles: nada avisa de un caso que está a punto de atrasarse",
+                            "La comunicación se dispersa entre bandejas de entrada y mensajes en lugar de quedarse con el caso",
+                            "Es difícil ver qué cambió desde ayer",
+                            "Es difícil detectar trabajo atrasado o en riesgo hasta que el paciente ya está en el sillón"
+                        ],
+                        "link_label": "Software de seguimiento de casos dentales vs. hojas de cálculo",
+                        "body_2": "Nada de esto significa que las hojas de cálculo sean inútiles: son flexibles y familiares. Pero como sistema operativo compartido para casos de laboratorio, piden al equipo que mantenga el sistema en lugar de que el sistema apoye al equipo. Para una comparación más completa, vea {link}."
+                    },
+                    "capabilities_that_matter_most": {
+                        "heading": "Las capacidades que más importan al trabajar con laboratorios externos",
+                        "intro": "Las listas de funciones varían, pero algunas capacidades separan de forma consistente una gestión de casos útil de otro lugar donde escribir notas.",
+                        "flexible_workflow": {
+                            "heading": "Un flujo de trabajo que se adapta a su consultorio",
+                            "body": "No hay dos consultorios que encaminen los casos de la misma manera. Busque un software que permita definir sus propias etapas de flujo de trabajo —agregar, renombrar, reordenar y archivar etapas a medida que el proceso cambia— en lugar de obligar a cada consultorio a un proceso rígido. Las vistas de tablero y lista, los filtros, el ordenamiento y las asignaciones importan porque cada rol necesita una vista distinta del mismo trabajo."
+                        },
+                        "attention_signals": {
+                            "heading": "Señales de atención, no solo campos de estado",
+                            "body": "Una columna de estado muestra dónde está un caso; no dice qué necesita su atención. Las señales útiles muestran el riesgo: casos próximos a vencer, casos ya atrasados, casos en los que la cita del paciente se acerca más rápido que el trabajo del laboratorio y casos que un compañero modificó y usted aún no revisó. La meta es ver los problemas antes de la cita, no después."
+                        },
+                        "communication": {
+                            "heading": "Comunicación vinculada al caso",
+                            "body": "Los comentarios y las @menciones en el registro del caso —con notificaciones cuando algo cambia— mantienen las decisiones y el contexto donde vive el trabajo. Poder añadir imágenes a un comentario evita que una foto de color o una captura de escaneo quede perdida en un hilo de mensajes. Un historial de actividad permite a cualquiera ver qué cambió, quién lo cambió y cuándo."
+                        },
+                        "files_and_scans": {
+                            "heading": "Archivos y escaneos en el registro del caso",
+                            "body": "Los casos de laboratorio externo llevan cargas de archivos reales: fotos, escaneos intraorales, escaneos faciales, registros de fotogrametría, diseños terminados y PDF. El software que mantiene todo eso adjunto al caso —en lugar de repartido entre unidades y bandejas— hace que quien abra el caso vea el mismo material que vio el laboratorio."
+                        },
+                        "remake_tracking": {
+                            "heading": "Registro estructurado de repeticiones",
+                            "link_label": "Lo que las repeticiones dentales realmente le cuestan a su consultorio",
+                            "body": "Las repeticiones son costosas en tiempo de sillón, tarifas de laboratorio y confianza del paciente, y además son una de las señales más claras de dónde se rompe un flujo de trabajo. Un software que registra las repeticiones como información estructurada —no como una nota enterrada en un hilo— permite ver patrones: qué laboratorios, qué tipos de caso, qué etapas. La {link} puede ayudar a cuantificar lo que las repeticiones ya le cuestan a un consultorio."
+                        },
+                        "performance_visibility": {
+                            "heading": "Visibilidad del rendimiento del consultorio y del laboratorio",
+                            "body": "Los datos de gestión de casos se vuelven más útiles cuando se agregan en vistas: tiempos de entrega, carga de trabajo actual, tasas de repetición, volumen de casos por estado y comparaciones entre los laboratorios que usa el consultorio. No es analítica genérica: responde las preguntas concretas de dónde se frenan los casos y qué relaciones con laboratorios funcionan."
+                        }
+                    },
+                    "where_dentatrak_fits": {
+                        "heading": "Dónde encaja DentaTrak",
+                        "body_1": "DentaTrak es un sistema dedicado de gestión de casos dentales construido precisamente en torno a estos flujos de trabajo. Los consultorios moldean el tablero según su proceso —etapas de flujo de trabajo personalizadas que pueden agregarse, renombrarse, reordenarse, archivarse y restaurarse— y trabajan en un tablero visual o en una lista compacta con filtros, ordenamiento y asignaciones.",
+                        "body_2": "La atención se maneja de forma explícita en lugar de depender de la memoria: las señales Próximo a vencer, Atrasado, Riesgo de cita y Requiere revisión muestran los casos que necesitan acción. Los comentarios, las @menciones, las imágenes en comentarios, las notificaciones y un historial completo de actividad mantienen la comunicación unida al caso, y las categorías estructuradas de adjuntos mantienen ordenados escaneos, fotos, diseños y documentos.",
+                        "body_3": "Para la visibilidad, Practice Insights y Lab Insights convierten los datos de casos en vistas de volumen, tiempos de entrega, riesgo de citas, repeticiones, carga de trabajo y comparación entre laboratorios, con Smart Recommendations que señalan dónde pueden mejorar los flujos de trabajo. Ask DentaTrak responde preguntas de uso y preguntas simples sobre casos dentro del producto, y la aplicación —incluidas las notificaciones y Ask DentaTrak— está disponible en nueve idiomas."
+                    },
+                    "open_dental_integration": {
+                        "heading": "Trabajar con Open Dental",
+                        "body_1": "Para consultorios que usan Open Dental, la integración de DentaTrak con Open Dental puede crear casos automáticamente a partir de la información de casos de laboratorio soportada: un nuevo caso de laboratorio en Open Dental aparece en el tablero de DentaTrak sin volver a ingresarlo, y los campos que administra Open Dental se mantienen sincronizados.",
+                        "body_2": "La integración es específica de Open Dental hoy. Los consultorios con otros sistemas de gestión pueden usar igualmente todo el flujo de trabajo de casos de DentaTrak —los casos se crean directamente—, pero no existe una conexión automática con todos los PMS."
+                    },
+                    "questions_to_ask": {
+                        "heading": "Preguntas para evaluar un software de gestión de casos dentales",
+                        "intro": "Una lista breve para comparar opciones según cómo trabaja realmente su consultorio:",
+                        "link_label": "cómo se protege la información de los pacientes",
+                        "items": [
+                            "¿Podemos adaptar las etapas del flujo de trabajo a nuestro proceso, en lugar de adoptar un proceso fijo?",
+                            "¿Vemos de un vistazo qué casos están atrasados, próximos a vencer o en riesgo de perder una cita?",
+                            "¿La comunicación queda unida al caso o vuelve a dispersarse en correos y mensajes?",
+                            "¿Pueden los escaneos, fotos, diseños y documentos vivir en el registro del caso?",
+                            "¿Se puede limitar el acceso apropiadamente por rol, y el proveedor describe {link}?",
+                            "¿Podemos registrar repeticiones como datos estructurados y no como anécdotas?",
+                            "¿Podemos comparar tiempos de entrega y tasas de repetición entre los laboratorios que usamos?",
+                            "¿Se integra junto a nuestros sistemas existentes, incluido el PMS, sin reemplazarlos?",
+                            "¿Puede cada miembro del equipo usarlo en el idioma en el que trabaja con más comodidad?"
+                        ]
+                    },
+                    "frequently_asked_questions": {
+                        "heading": "Preguntas frecuentes"
+                    },
+                    "conclusion": {
+                        "heading": "La meta es visibilidad, no más software",
+                        "body_1": "Los consultorios no necesitan otro lugar donde ingresar datos. Necesitan que el trabajo que ya ocurre —citas, escaneos, envíos al laboratorio— permanezca visible y conectado hasta que el caso se entregue. Cuando cada caso tiene un responsable claro, un plazo visible y sus archivos y conversaciones adjuntos, el trabajo con laboratorios externos deja de depender de la memoria. Ese es el estándar con el que vale la pena evaluar."
+                    },
+                    "see_whether_dentatrak_fits": {
+                        "heading": "Vea si DentaTrak se adapta a su flujo de trabajo con laboratorios"
+                    }
+                },
+                "faq": {
+                    "items": [
+                        {
+                            "question": "¿Qué es el software de gestión de casos dentales?",
+                            "answer": "El software de gestión de casos dentales es un sistema para seguir los casos de laboratorio a lo largo de todo su ciclo de vida —desde la creación hasta el trabajo del laboratorio, el regreso y la entrega— en una vista operativa compartida, en lugar de repartidos entre hojas de cálculo, correo electrónico y portales de laboratorio."
+                        },
+                        {
+                            "question": "¿El software de gestión de casos dentales es lo mismo que un PMS?",
+                            "answer": "No. Un sistema de gestión del consultorio es el sistema de registro para agenda, registros de pacientes, facturación y documentación clínica. El software de gestión de casos dentales lo complementa con una vista operativa del flujo de trabajo de los casos que pasan por laboratorios externos. La mayoría de los consultorios usa ambos."
+                        },
+                        {
+                            "question": "¿El software de gestión de casos reemplaza el portal de mi laboratorio?",
+                            "answer": "Por lo general no. El portal del laboratorio cubre el lado del laboratorio: enviar y consultar los casos de ese laboratorio. El software de gestión de casos cubre el lado del consultorio: cada caso, cada laboratorio y los pasos internos antes y después del trabajo del laboratorio. Muchos consultorios usan ambos."
+                        }
+                    ]
+                },
+                "related_resources": {
+                    "heading": "Recursos relacionados",
+                    "items": [
+                        "Seguimiento de casos de laboratorio dental",
+                        "Software de seguimiento de casos dentales",
+                        "Cómo hacer seguimiento de casos dentales sin perderlos",
+                        "Por qué la gestión visual del flujo de trabajo funciona para casos dentales complejos"
+                    ]
+                },
+                "cta": {
+                    "body": "Pruebe DentaTrak gratis durante 90 días. Configure su consultorio, defina sus etapas de flujo de trabajo y comience a seguir casos de laboratorios externos en minutos."
+                }
             }
         },
         "hero": {
@@ -5259,7 +5423,9 @@
             "card_hipaa_title": "HIPAA y seguridad",
             "card_hipaa_desc": "Conozca cómo DentaTrak protege la información de los pacientes, controla el acceso y apoya las responsabilidades HIPAA de su consultorio.",
             "card_hipaa_cta": "Conozca sobre HIPAA y seguridad",
-            "type_security": "Seguridad"
+            "type_security": "Seguridad",
+            "card_external_labs_mgmt_title": "Gestión de casos con laboratorios externos",
+            "card_external_labs_mgmt_desc": "Cómo los consultorios pueden gestionar casos de laboratorios externos, comunicación, archivos, plazos, repeticiones y rendimiento del laboratorio en un solo flujo de trabajo."
         },
         "hipaa": {
             "title": "HIPAA y seguridad | DentaTrak",

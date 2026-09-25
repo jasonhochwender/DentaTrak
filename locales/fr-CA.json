@@ -4958,6 +4958,170 @@
                 "cta": {
                     "body": "Essai gratuit de 90 jours. Aucune carte bancaire requise."
                 }
+            },
+            "dental_case_management_external_labs": {
+                "title": "Logiciel de gestion des cas pour laboratoires externes | DentaTrak",
+                "h1": "Logiciel de gestion des cas dentaires pour les cliniques qui travaillent avec des laboratoires externes",
+                "description": "Ce qu’un logiciel de gestion des cas dentaires doit suivre pour les cliniques qui envoient des cas à des laboratoires externes : flux de travail, échéances, fichiers, reprises et performance des laboratoires.",
+                "seo": {
+                    "title": "Logiciel de gestion des cas pour laboratoires externes | DentaTrak",
+                    "description": "Ce qu’un logiciel de gestion des cas dentaires doit suivre pour les cliniques qui envoient des cas à des laboratoires externes : flux de travail, échéances, fichiers, reprises et performance des laboratoires."
+                },
+                "meta": {
+                    "by": "Par",
+                    "published": "Publié",
+                    "date": "25 septembre 2026"
+                },
+                "intro": "Un logiciel de gestion des cas dentaires offre aux cliniques qui envoient des travaux à des laboratoires externes une vue opérationnelle unique de chaque cas : où il en est, qui est responsable de la prochaine étape, ce qui est dû et ce qui est à risque. Ce guide explique pourquoi les cas confiés à des laboratoires externes sont difficiles à gérer, quelles capacités comptent le plus et comment un logiciel dédié se compare au logiciel de gestion de clinique, aux tableurs, aux courriels et aux portails des laboratoires.",
+                "sections": {
+                    "why_external_lab_cases_are_hard_to_manage": {
+                        "heading": "Pourquoi les cas en laboratoire externe sont difficiles à gérer",
+                        "body_1": "Un seul cas de laboratoire passe entre plus de mains que la plupart des rendez-vous. La réception planifie le patient, un membre de l’équipe capture les empreintes ou scans, le dentiste valide la conception, et le laboratoire fabrique la restauration — souvent sur plusieurs jours ou semaines. Chaque étape a ses propres dates, fichiers et instructions, et le cas se trouve hors de la clinique pendant une part importante de son cycle de vie.",
+                        "body_2": "Le problème est rarement un manque d’information. C’est que l’information est fragmentée entre des systèmes qui ne communiquent pas entre eux :",
+                        "fragmentation": [
+                            "Notes du logiciel de gestion et dossiers de rendez-vous",
+                            "Fils de courriels avec le laboratoire",
+                            "Messages texte entre membres de l’équipe",
+                            "Tableurs suivant les dates d’échéance",
+                            "Le portail en ligne du laboratoire lui-même",
+                            "Notes papier et bordereaux d’accompagnement",
+                            "Disques partagés contenant scans et photos"
+                        ],
+                        "body_3": "Quand les informations d’un cas vivent dans sept endroits, personne ne peut répondre de façon fiable à la question opérationnelle la plus simple : où en est ce cas en ce moment, et sera-t-il prêt pour le rendez-vous du patient ? Les cliniques ont besoin d’une vue actuelle de chaque cas actif — pas d’une reconstruction assemblée après coup."
+                    },
+                    "what_software_should_track": {
+                        "heading": "Ce qu’un logiciel de gestion des cas dentaires doit suivre",
+                        "body_1": "Au minimum, un logiciel dédié de gestion des cas dentaires doit conserver les détails opérationnels de chaque cas au même endroit :",
+                        "items": [
+                            "Une référence claire du patient et du cas",
+                            "Le laboratoire assigné au cas",
+                            "Le type de cas (couronne, implant, prothèse, etc.)",
+                            "L’étape ou le statut actuel du flux de travail",
+                            "La date d’échéance du laboratoire",
+                            "La date du prochain rendez-vous du patient",
+                            "Le membre de l’équipe responsable de la prochaine étape",
+                            "Les fichiers attachés au cas — scans, photos, conceptions et documents",
+                            "Les notes et commentaires de l’équipe",
+                            "Un historique d’activité montrant ce qui a changé et quand",
+                            "Les informations de reprise quand un cas doit être refait"
+                        ]
+                    },
+                    "why_a_pms_alone_may_not_be_enough": {
+                        "heading": "Pourquoi un logiciel de gestion de clinique seul peut ne pas suffire",
+                        "body_1": "Un logiciel de gestion de clinique est essentiel : il gère la planification, les dossiers patients, la facturation et la documentation clinique. La plupart de ces plateformes ne sont toutefois pas conçues pour offrir une vue partagée et filtrable de tous les cas en cours au laboratoire — à quelle étape se trouve chaque cas, ce qui est dû cette semaine ou quels cas risquent de manquer un rendez-vous planifié. Beaucoup de cliniques contournent cela avec des champs de notes ou des rapports, ce qui convient pour quelques cas mais se tend quand le volume augmente.",
+                        "link_label": "Logiciel de suivi des cas dentaires vs. PMS",
+                        "body_2": "Cela ne fait pas du logiciel de gestion le problème. Les deux systèmes répondent à des questions différentes : le logiciel de gestion est le système de référence du patient et de l’activité ; la gestion des cas est la vue de travail des cas qui passent par le laboratoire. Pour une analyse détaillée, consultez {link}."
+                    },
+                    "why_spreadsheets_and_email_break_down": {
+                        "heading": "Pourquoi les tableurs et les courriels finissent par atteindre leurs limites",
+                        "body_1": "Les tableurs et les courriels sont les systèmes de suivi informels les plus répandus, et ils fonctionnent — jusqu’au jour où ce n’est plus le cas. Les modes de défaillance sont prévisibles :",
+                        "items": [
+                            "Chaque mise à jour est manuelle : le tableur n’est à jour que si la dernière personne a pensé à le modifier",
+                            "Plusieurs versions circulent et on ne sait plus laquelle est la bonne",
+                            "Aucun responsable fiable n’est défini pour la prochaine étape d’un cas",
+                            "Les rappels sont faibles — rien ne signale un cas sur le point d’être en retard",
+                            "La communication se disperse entre boîtes de réception et messages au lieu de rester attachée au cas",
+                            "Il est difficile de voir ce qui a changé depuis hier",
+                            "Il est difficile de repérer un travail en retard ou à risque avant que le patient ne soit déjà en fauteuil"
+                        ],
+                        "link_label": "Logiciel de suivi des cas dentaires vs. tableurs",
+                        "body_2": "Cela ne rend pas les tableurs inutiles — ils sont flexibles et familiers. Mais comme système opérationnel partagé pour les cas de laboratoire, ils demandent à l’équipe de maintenir le système au lieu que le système soutienne l’équipe. Pour une comparaison plus complète, consultez {link}."
+                    },
+                    "capabilities_that_matter_most": {
+                        "heading": "Les capacités qui comptent le plus avec des laboratoires externes",
+                        "intro": "Les listes de fonctionnalités varient, mais quelques capacités distinguent toujours une gestion des cas utile d’un simple endroit où taper des notes.",
+                        "flexible_workflow": {
+                            "heading": "Un flux de travail qui s’adapte à votre clinique",
+                            "body": "Aucune clinique n’achemine ses cas de la même manière. Cherchez un logiciel qui permet de définir vos propres étapes — les ajouter, les renommer, les réordonner et les archiver à mesure que le processus évolue — plutôt que d’imposer à chaque clinique un circuit rigide. Les vues tableau et liste, les filtres, le tri et l’attribution des cas comptent parce que chaque rôle a besoin d’une vue différente du même travail."
+                        },
+                        "attention_signals": {
+                            "heading": "Des signaux d’attention, pas seulement des statuts",
+                            "body": "Une colonne de statut montre où en est un cas ; elle ne dit pas ce qui réclame votre attention. Les signaux utiles font ressortir le risque : cas bientôt dus, cas déjà en retard, cas dont le rendez-vous patient approche plus vite que le travail du laboratoire, et cas modifiés par un collègue que vous n’avez pas encore passés en revue. L’objectif est de voir les problèmes avant le rendez-vous, pas après."
+                        },
+                        "communication": {
+                            "heading": "Une communication attachée au cas",
+                            "body": "Les commentaires et les @mentions attachés au dossier du cas — avec des notifications quand quelque chose change — gardent les décisions et le contexte là où vit le travail. Pouvoir ajouter des images à un commentaire évite qu’une photo de teinte ou une capture de scan ne se perde dans un fil de messages. Un historique d’activité permet à chacun de voir ce qui a changé, par qui et quand."
+                        },
+                        "files_and_scans": {
+                            "heading": "Fichiers et scans sur le dossier du cas",
+                            "body": "Les cas en laboratoire externe transportent de vraies charges de fichiers : photos, scans intraoraux, scans faciaux, données de photogrammétrie, conceptions finalisées et PDF. Un logiciel qui les garde attachés au cas — plutôt que dispersés entre disques et boîtes de réception — garantit que quiconque ouvre le cas voit les mêmes éléments que le laboratoire."
+                        },
+                        "remake_tracking": {
+                            "heading": "Un suivi structuré des reprises",
+                            "link_label": "Ce que les reprises dentaires coûtent vraiment à votre clinique",
+                            "body": "Les reprises coûtent cher en temps de fauteuil, en frais de laboratoire et en confiance du patient, et elles sont aussi l’un des signaux les plus clairs de l’endroit où un flux de travail se grippe. Un logiciel qui enregistre les reprises comme information structurée — et non comme une note noyée dans un fil — permet de voir les motifs : quels laboratoires, quels types de cas, quelles étapes. {link} peut aider à quantifier ce que les reprises coûtent déjà à une clinique."
+                        },
+                        "performance_visibility": {
+                            "heading": "Visibilité de la performance de la clinique et des laboratoires",
+                            "body": "Les données de gestion des cas deviennent plus utiles quand elles se regroupent en vues : délais de fabrication, charge de travail actuelle, taux de reprises, volume de cas par statut et comparaisons entre les laboratoires utilisés. Ce n’est pas de l’analytique générique — cela répond aux questions concrètes de savoir où les cas ralentissent et quelles relations avec les laboratoires fonctionnent."
+                        }
+                    },
+                    "where_dentatrak_fits": {
+                        "heading": "La place de DentaTrak",
+                        "body_1": "DentaTrak est un système dédié de gestion des cas dentaires construit précisément autour de ces flux de travail. Les cliniques façonnent le tableau selon leur processus — des étapes personnalisables qui peuvent être ajoutées, renommées, réordonnées, archivées et restaurées — et travaillent sur un tableau visuel ou une liste compacte avec filtres, tri et attribution des cas.",
+                        "body_2": "L’attention est gérée explicitement plutôt que de mémoire : les signaux « Bientôt dû », « En retard », « Risque de rendez-vous » et « Révision requise » font ressortir les cas qui demandent une action. Commentaires, @mentions, images dans les commentaires, notifications et historique complet d’activité gardent la communication attachée au cas, et les catégories de pièces jointes structurées gardent scans, photos, conceptions et documents organisés au lieu de dispersés.",
+                        "body_3": "Pour la visibilité, Practice Insights et Lab Insights transforment les données des cas en vues du volume, des délais, du risque de rendez-vous, des reprises, de la charge de travail et de la comparaison entre laboratoires — avec Smart Recommendations pour indiquer où les flux peuvent s’améliorer. Ask DentaTrak répond aux questions d’utilisation et aux questions simples sur les cas directement dans le produit, et l’application — y compris les notifications et Ask DentaTrak — accompagne les équipes en neuf langues."
+                    },
+                    "open_dental_integration": {
+                        "heading": "Travailler avec Open Dental",
+                        "body_1": "Pour les cliniques qui utilisent Open Dental, l’intégration Open Dental de DentaTrak peut créer automatiquement des cas à partir des informations de cas de laboratoire prises en charge — un nouveau cas de laboratoire dans Open Dental apparaît ainsi sur le tableau DentaTrak sans ressaisie, et les champs gérés par Open Dental restent synchronisés.",
+                        "body_2": "L’intégration est aujourd’hui spécifique à Open Dental. Les cliniques équipées d’autres logiciels de gestion peuvent utiliser l’ensemble du flux de cas de DentaTrak — les cas sont créés directement — mais il n’existe pas de connexion automatique avec tous les logiciels de gestion."
+                    },
+                    "questions_to_ask": {
+                        "heading": "Questions à poser pour évaluer un logiciel de gestion des cas dentaires",
+                        "intro": "Une courte liste de contrôle pour comparer les options à la façon dont votre clinique travaille réellement :",
+                        "link_label": "comment les informations des patients sont protégées",
+                        "items": [
+                            "Pouvons-nous façonner les étapes du flux de travail selon notre processus, plutôt que d’adopter un circuit figé ?",
+                            "Voyons-nous d’un coup d’œil quels cas sont en retard, bientôt dus ou à risque de manquer un rendez-vous ?",
+                            "La communication reste-t-elle attachée au cas, ou repart-elle dans les courriels et les textos ?",
+                            "Les scans, photos, conceptions et documents peuvent-ils vivre sur le dossier du cas ?",
+                            "L’accès peut-il être limité de façon appropriée par rôle, et le fournisseur décrit-il {link} ?",
+                            "Pouvons-nous suivre les reprises comme des données structurées plutôt que comme des anecdotes ?",
+                            "Pouvons-nous comparer les délais et les taux de reprise entre les laboratoires que nous utilisons ?",
+                            "Le logiciel s’intègre-t-il à nos systèmes existants, y compris le logiciel de gestion, sans les remplacer ?",
+                            "Chaque membre de l’équipe peut-il l’utiliser dans la langue avec laquelle il travaille le plus confortablement ?"
+                        ]
+                    },
+                    "frequently_asked_questions": {
+                        "heading": "Questions fréquentes"
+                    },
+                    "conclusion": {
+                        "heading": "L’objectif est la visibilité, pas plus de logiciel",
+                        "body_1": "Les cliniques n’ont pas besoin d’un endroit supplémentaire où saisir des données. Elles ont besoin que le travail déjà en cours — rendez-vous, scans, envois au laboratoire — reste visible et connecté jusqu’à la livraison du cas. Quand chaque cas a un responsable clair, une échéance visible et ses fichiers et conversations attachés, le travail avec les laboratoires externes ne dépend plus de la mémoire. C’est le critère selon lequel il vaut la peine d’évaluer."
+                    },
+                    "see_whether_dentatrak_fits": {
+                        "heading": "Voyez si DentaTrak convient à votre flux de travail avec les laboratoires"
+                    }
+                },
+                "faq": {
+                    "items": [
+                        {
+                            "question": "Qu’est-ce qu’un logiciel de gestion des cas dentaires ?",
+                            "answer": "Un logiciel de gestion des cas dentaires est un système qui suit les cas de laboratoire tout au long de leur cycle de vie — de la création au travail du laboratoire, au retour puis à la pose — dans une vue opérationnelle partagée, plutôt que dispersés entre tableurs, courriels et portails de laboratoires."
+                        },
+                        {
+                            "question": "Un logiciel de gestion des cas dentaires est-il la même chose qu’un logiciel de gestion de clinique ?",
+                            "answer": "Non. Un logiciel de gestion de clinique est le système de référence pour la planification, les dossiers patients, la facturation et la documentation clinique. La gestion des cas dentaires le complète avec une vue opérationnelle des cas qui passent par les laboratoires externes. La plupart des cliniques utilisent les deux."
+                        },
+                        {
+                            "question": "Un logiciel de gestion des cas remplace-t-il le portail de mon laboratoire ?",
+                            "answer": "Généralement non. Le portail du laboratoire couvre le côté laboratoire — soumission et suivi des cas de ce laboratoire. La gestion des cas couvre le côté clinique : chaque cas, chaque laboratoire, ainsi que les étapes internes avant et après le travail du laboratoire. Beaucoup de cliniques utilisent les deux."
+                        }
+                    ]
+                },
+                "related_resources": {
+                    "heading": "Ressources associées",
+                    "items": [
+                        "Suivi des cas des laboratoires dentaires",
+                        "Logiciel de suivi des cas dentaires",
+                        "Comment suivre les cas dentaires sans les perdre",
+                        "Pourquoi la gestion visuelle des flux fonctionne pour les cas dentaires complexes"
+                    ]
+                },
+                "cta": {
+                    "body": "Essayez DentaTrak gratuitement pendant 90 jours. Configurez votre clinique, définissez vos étapes de flux de travail et commencez à suivre vos cas de laboratoires externes en quelques minutes."
+                }
             }
         },
         "hero": {
@@ -5259,7 +5423,9 @@
             "card_hipaa_title": "HIPAA et sécurité",
             "card_hipaa_desc": "Découvrez comment DentaTrak protège les informations des patients, contrôle les accès et soutient les responsabilités HIPAA de votre clinique.",
             "card_hipaa_cta": "En savoir plus sur HIPAA et la sécurité",
-            "type_security": "Sécurité"
+            "type_security": "Sécurité",
+            "card_external_labs_mgmt_title": "Gestion des cas avec des laboratoires externes",
+            "card_external_labs_mgmt_desc": "Comment les cliniques peuvent gérer les cas en laboratoire externe, la communication, les fichiers, les échéances, les reprises et la performance des laboratoires dans un seul flux de travail."
         },
         "hipaa": {
             "title": "HIPAA et sécurité | DentaTrak",

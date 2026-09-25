@@ -3707,7 +3707,9 @@
             "card_hipaa_title": "HIPAA & Sicherheit",
             "card_hipaa_desc": "Erfahren Sie, wie DentaTrak Patienteninformationen schützt, Zugriffe kontrolliert und die HIPAA-Pflichten Ihrer Praxis unterstützt.",
             "card_hipaa_cta": "Über HIPAA & Sicherheit erfahren",
-            "type_security": "Sicherheit"
+            "type_security": "Sicherheit",
+            "card_external_labs_mgmt_title": "Fallmanagement für externe Labore",
+            "card_external_labs_mgmt_desc": "Wie Praxen Fälle in externen Laboren, Kommunikation, Dateien, Fristen, Neuanfertigungen und Laborleistung in einem Workflow verwalten."
         },
         "hipaa": {
             "title": "HIPAA & Sicherheit | DentaTrak",
@@ -5393,6 +5395,170 @@
                 },
                 "cta": {
                     "body": "90 Tage kostenlos testen. Keine Kreditkarte erforderlich."
+                }
+            },
+            "dental_case_management_external_labs": {
+                "title": "Fallmanagement-Software für externe Labore | DentaTrak",
+                "h1": "Fallmanagement-Software für Praxen mit externen Laboren",
+                "description": "Was eine Fallmanagement-Software für Praxen erfassen sollte, die Fälle an externe Labore senden – Workflow, Fristen, Dateien, Neuanfertigungen und Laborleistung.",
+                "seo": {
+                    "title": "Fallmanagement-Software für externe Labore | DentaTrak",
+                    "description": "Was eine Fallmanagement-Software für Praxen erfassen sollte, die Fälle an externe Labore senden – Workflow, Fristen, Dateien, Neuanfertigungen und Laborleistung."
+                },
+                "meta": {
+                    "by": "Von",
+                    "published": "Veröffentlicht",
+                    "date": "25. September 2026"
+                },
+                "intro": "Eine Fallmanagement-Software bietet Praxen, die Arbeiten an externe Labore senden, eine einzige operative Sicht auf jeden Fall: wo er steht, wer den nächsten Schritt übernimmt, was fällig ist und was gefährdet ist. Dieser Leitfaden erklärt, warum Fälle in externen Laboren schwer zu verwalten sind, welche Funktionen am wichtigsten sind und wie sich dedizierte Software von der Praxisverwaltung, Tabellen, E-Mail und Laborportalen unterscheidet.",
+                "sections": {
+                    "why_external_lab_cases_are_hard_to_manage": {
+                        "heading": "Warum Fälle in externen Laboren schwer zu verwalten sind",
+                        "body_1": "Ein einzelner Laborfall geht durch mehr Hände als die meisten Termine. Die Rezeption plant den Patienten, ein Teammitglied erstellt Scans oder Abformungen, ein Zahnarzt prüft das Design, und das Labor fertigt die Versorgung – oft über Tage oder Wochen. Jeder Schritt hat eigene Termine, Dateien und Anweisungen, und der Fall befindet sich einen erheblichen Teil seines Lebenszyklus außerhalb der Praxis.",
+                        "body_2": "Das Problem ist selten, dass der Praxis Informationen fehlen. Es ist, dass die Informationen über Systeme verteilt sind, die nicht miteinander kommunizieren:",
+                        "fragmentation": [
+                            "Notizen und Termineinträge in der Praxisverwaltung",
+                            "E-Mail-Verläufe mit dem Labor",
+                            "Textnachrichten zwischen Teammitgliedern",
+                            "Tabellen zur Nachverfolgung von Fristen",
+                            "Das eigene Online-Portal des Labors",
+                            "Papiernotizen und Begleitscheine",
+                            "Netzlaufwerke mit Scans und Fotos"
+                        ],
+                        "body_3": "Wenn Fallinformationen an sieben Orten liegen, kann niemand die einfachste operative Frage zuverlässig beantworten: Wo steht dieser Fall gerade, und wird er den Patiententermin schaffen? Praxen brauchen eine aktuelle Sicht auf jeden aktiven Fall – keine nachträglich zusammengesetzte Rekonstruktion."
+                    },
+                    "what_software_should_track": {
+                        "heading": "Was eine Fallmanagement-Software erfassen sollte",
+                        "body_1": "Mindestens sollte eine dedizierte Fallmanagement-Software die operativen Details jedes Falls an einem Ort halten:",
+                        "items": [
+                            "Eine klare Patienten- und Fallreferenz",
+                            "Das dem Fall zugewiesene Labor",
+                            "Die Fallart (Krone, Implantat, Prothese und so weiter)",
+                            "Die aktuelle Workflow-Stufe oder der Status",
+                            "Die Laborfrist",
+                            "Der nächste Termin des Patienten",
+                            "Das für den nächsten Schritt verantwortliche Teammitglied",
+                            "Dem Fall zugeordnete Dateien – Scans, Fotos, Designs und Dokumente",
+                            "Notizen und Kommentare des Teams",
+                            "Ein Verlauf, der zeigt, was sich wann geändert hat",
+                            "Informationen zu Neuanfertigungen, wenn ein Fall wiederholt werden muss"
+                        ]
+                    },
+                    "why_a_pms_alone_may_not_be_enough": {
+                        "heading": "Warum eine Praxisverwaltung allein möglicherweise nicht ausreicht",
+                        "body_1": "Ein Praxisverwaltungssystem ist unverzichtbar: Es steuert Terminplanung, Patientenakten, Abrechnung und klinische Dokumentation. Die meisten PMS-Plattformen sind jedoch nicht dafür gebaut, eine gemeinsame, filterbare Sicht auf alle laufenden Laborfälle zu bieten – in welcher Stufe sich jeder Fall befindet, was diese Woche fällig ist oder welche Fälle einen geplanten Termin gefährden. Viele Praxen helfen sich mit Notizfeldern oder Berichten, was bei wenigen Fällen funktioniert, aber mit wachsendem Volumen an Grenzen stößt.",
+                        "link_label": "Fallverfolgungssoftware vs. PMS",
+                        "body_2": "Damit ist die Praxisverwaltung nicht das Problem. Die beiden Systeme beantworten unterschiedliche Fragen: Das PMS ist das führende System für Patient und Geschäftsbetrieb; das Fallmanagement ist die Arbeitssicht auf Fälle, die durchs Labor laufen. Für einen detaillierten Vergleich siehe {link}."
+                    },
+                    "why_spreadsheets_and_email_break_down": {
+                        "heading": "Warum Tabellen und E-Mail an ihre Grenzen stoßen",
+                        "body_1": "Tabellen und E-Mail sind die häufigsten informellen Nachverfolgungssysteme – und sie funktionieren, bis sie es nicht mehr tun. Die Schwachstellen sind vorhersehbar:",
+                        "items": [
+                            "Jede Aktualisierung erfolgt manuell – die Tabelle ist nur so aktuell wie die letzte Person, die daran gedacht hat, sie zu bearbeiten",
+                            "Mehrere Versionen kursieren, und es ist unklar, welche stimmt",
+                            "Es gibt keine verlässliche Zuständigkeit für den nächsten Schritt eines Falls",
+                            "Erinnerungen sind schwach – nichts meldet einen Fall, der bald zu spät ist",
+                            "Die Kommunikation verstreut sich über Postfächer und Chatverläufe, statt beim Fall zu bleiben",
+                            "Es ist schwer zu sehen, was sich seit gestern geändert hat",
+                            "Verspätete oder gefährdete Arbeit fällt oft erst auf, wenn der Patient schon im Stuhl sitzt"
+                        ],
+                        "link_label": "Fallverfolgungssoftware vs. Tabellen",
+                        "body_2": "Das heißt nicht, dass Tabellen nutzlos sind – sie sind flexibel und vertraut. Aber als gemeinsames operatives System für Laborfälle verlangen sie dem Team, das System zu pflegen, statt dass das System das Team unterstützt. Für einen ausführlicheren Vergleich siehe {link}."
+                    },
+                    "capabilities_that_matter_most": {
+                        "heading": "Die wichtigsten Funktionen bei der Arbeit mit externen Laboren",
+                        "intro": "Funktionslisten unterscheiden sich, aber einige Fähigkeiten trennen zuverlässig nützliches Fallmanagement von einem weiteren Ort zum Notizen schreiben.",
+                        "flexible_workflow": {
+                            "heading": "Ein Workflow, der sich Ihrer Praxis anpasst",
+                            "body": "Keine zwei Praxen leiten Fälle gleich weiter. Achten Sie auf Software, mit der Sie eigene Workflow-Stufen definieren können – Stufen hinzufügen, umbenennen, neu anordnen und archivieren, wenn sich der Prozess ändert – statt jede Praxis in ein starres Schema zu zwingen. Board- und Listenansichten, Filter, Sortierung und Zuständigkeiten sind wichtig, weil verschiedene Rollen unterschiedliche Sichten auf dieselbe Arbeit brauchen."
+                        },
+                        "attention_signals": {
+                            "heading": "Aufmerksamkeitssignale statt nur Statusfelder",
+                            "body": "Eine Statusspalte zeigt, wo ein Fall steht; sie sagt nicht, was Ihre Aufmerksamkeit braucht. Die nützlichen Signale zeigen Risiken: bald fällige Fälle, bereits verspätete Fälle, Fälle, bei denen der Patiententermin schneller näher rückt als die Laborarbeit, und Fälle, die ein Teammitglied geändert hat und die noch nicht geprüft wurden. Ziel ist es, Probleme vor dem Termin zu sehen, nicht danach."
+                        },
+                        "communication": {
+                            "heading": "Kommunikation direkt am Fall",
+                            "body": "Kommentare und @Erwähnungen am Falldatensatz – mit Benachrichtigungen bei Änderungen – halten Entscheidungen und Kontext dort, wo die Arbeit stattfindet. Bilder in Kommentaren sorgen dafür, dass ein Farbfoto oder Scan-Screenshot nicht in einem Textverlauf verloren geht. Ein Verlauf zeigt jedem, was sich wann und durch wen geändert hat."
+                        },
+                        "files_and_scans": {
+                            "heading": "Dateien und Scans am Falldatensatz",
+                            "body": "Fälle in externen Laboren tragen echte Dateilasten: Fotos, Intraoralscans, Gesichtsscans, Photogrammetrie-Daten, fertige Designs und PDFs. Software, die diese am Fall hält – statt verstreut über Laufwerke und Postfächer – sorgt dafür, dass jeder, der den Fall öffnet, dasselbe Material sieht wie das Labor."
+                        },
+                        "remake_tracking": {
+                            "heading": "Strukturierte Erfassung von Neuanfertigungen",
+                            "link_label": "Was dentale Neuanfertigungen Ihre Praxis wirklich kosten",
+                            "body": "Neuanfertigungen sind teuer – an Behandlungszeit, Laborgebühren und Patientenvertrauen – und eines der deutlichsten Signale dafür, wo ein Workflow bricht. Software, die Neuanfertigungen strukturiert erfasst statt als Notiz in einem Verlauf, macht Muster sichtbar: welche Labore, welche Fallarten, welche Stufen. Der {link} hilft zu beziffern, was Neuanfertigungen eine Praxis bereits kosten."
+                        },
+                        "performance_visibility": {
+                            "heading": "Sichtbarkeit von Praxis- und Laborleistung",
+                            "body": "Fallmanagement-Daten werden wertvoller, wenn sie zu Übersichten zusammenlaufen: Durchlaufzeiten, aktuelle Auslastung, Neuanfertigungsraten, Fallvolumen nach Status und Vergleiche zwischen den genutzten Laboren. Das ist keine generische Analytik – es beantwortet die konkrete Frage, wo Fälle langsamer werden und welche Laborbeziehungen funktionieren."
+                        }
+                    },
+                    "where_dentatrak_fits": {
+                        "heading": "Wo DentaTrak einordnet",
+                        "body_1": "DentaTrak ist ein dediziertes Fallmanagement-System, das genau um diese Workflows gebaut ist. Praxen gestalten das Board passend zu ihrem Prozess – eigene Workflow-Stufen lassen sich hinzufügen, umbenennen, neu anordnen, archivieren und wiederherstellen – und arbeiten wahlweise auf einem visuellen Board oder in einer kompakten Liste mit Filtern, Sortierung und Zuständigkeiten.",
+                        "body_2": "Aufmerksamkeit wird explizit behandelt statt aus dem Gedächtnis: Die Kennzeichen „Bald fällig“, „Verspätet“, „Terminrisiko“ und „Prüfung nötig“ zeigen die Fälle, die Handlung brauchen. Kommentare, @Erwähnungen, Bilder in Kommentaren, Benachrichtigungen und ein vollständiger Verlauf halten die Kommunikation am Fall, und strukturierte Anhang-Kategorien halten Scans, Fotos, Designs und Dokumente geordnet statt verstreut.",
+                        "body_3": "Für die Übersicht machen Practice Insights und Lab Insights aus Falldaten Sichten auf Volumen, Durchlaufzeit, Terminrisiko, Neuanfertigungen, Auslastung und Laborvergleich – mit Smart Recommendations, die zeigen, wo Workflows besser werden können. Ask DentaTrak beantwortet Anwendungsfragen und einfache Fallfragen im Produkt, und die Anwendung – einschließlich Benachrichtigungen und Ask DentaTrak – unterstützt Teams in neun Sprachen."
+                    },
+                    "open_dental_integration": {
+                        "heading": "Zusammenarbeit mit Open Dental",
+                        "body_1": "Für Praxen mit Open Dental kann die Open-Dental-Integration von DentaTrak Fälle automatisch aus unterstützten Laborfall-Informationen anlegen – ein neuer Laborfall in Open Dental erscheint so ohne erneute Eingabe auf dem DentaTrak-Board, und die Felder, die Open Dental verwaltet, bleiben synchron.",
+                        "body_2": "Die Integration ist derzeit spezifisch für Open Dental. Praxen mit anderen Verwaltungssystemen können den vollen Fall-Workflow von DentaTrak trotzdem nutzen – Fälle werden direkt angelegt –, aber es gibt keine automatische Verbindung zu jedem PMS."
+                    },
+                    "questions_to_ask": {
+                        "heading": "Fragen bei der Auswahl einer Fallmanagement-Software",
+                        "intro": "Eine kurze Checkliste, um Optionen an der tatsächlichen Arbeitsweise Ihrer Praxis zu messen:",
+                        "link_label": "wie Patienteninformationen geschützt werden",
+                        "items": [
+                            "Können wir die Workflow-Stufen an unseren Prozess anpassen, statt ein starres Schema zu übernehmen?",
+                            "Sehen wir auf einen Blick, welche Fälle verspätet, bald fällig oder für einen Termin gefährdet sind?",
+                            "Bleibt die Kommunikation am Fall, oder verlagert sie sich zurück in E-Mail und Chats?",
+                            "Können Scans, Fotos, Designs und Dokumente am Falldatensatz liegen?",
+                            "Kann der Zugriff rollengerecht eingeschränkt werden, und beschreibt der Anbieter, {link}?",
+                            "Können wir Neuanfertigungen strukturiert erfassen statt anekdotisch?",
+                            "Können wir Durchlaufzeiten und Neuanfertigungsraten zwischen unseren Laboren vergleichen?",
+                            "Fügt es sich neben unsere bestehenden Systeme, einschließlich der Praxisverwaltung, ohne sie zu ersetzen?",
+                            "Kann jedes Teammitglied in der Sprache arbeiten, in der es am sichersten arbeitet?"
+                        ]
+                    },
+                    "frequently_asked_questions": {
+                        "heading": "Häufig gestellte Fragen"
+                    },
+                    "conclusion": {
+                        "heading": "Das Ziel ist Sichtbarkeit, nicht mehr Software",
+                        "body_1": "Praxen brauchen keinen weiteren Ort zum Dateneintragen. Sie brauchen, dass die bereits laufende Arbeit – Termine, Scans, Laboreinsendungen – sichtbar und verbunden bleibt, bis der Fall geliefert ist. Wenn jeder Fall einen klaren Verantwortlichen, eine sichtbare Frist sowie zugehörige Dateien und Gespräche hat, hängt die Arbeit mit externen Laboren nicht mehr vom Gedächtnis ab. Das ist der Maßstab, an dem sich eine Auswahl lohnt."
+                    },
+                    "see_whether_dentatrak_fits": {
+                        "heading": "Prüfen Sie, ob DentaTrak zu Ihrem Labor-Workflow passt"
+                    }
+                },
+                "faq": {
+                    "items": [
+                        {
+                            "question": "Was ist eine Fallmanagement-Software für Zahnarztpraxen?",
+                            "answer": "Eine Fallmanagement-Software für Zahnarztpraxen ist ein System, das Laborfälle über ihren gesamten Lebenszyklus verfolgt – von der Anlage über die Laborarbeit bis zu Rückkehr und Eingliederung – in einer gemeinsamen operativen Sicht statt verstreut über Tabellen, E-Mail und Laborportale."
+                        },
+                        {
+                            "question": "Ist Fallmanagement-Software dasselbe wie eine Praxisverwaltung?",
+                            "answer": "Nein. Ein Praxisverwaltungssystem ist das führende System für Terminplanung, Patientenakten, Abrechnung und klinische Dokumentation. Fallmanagement-Software ergänzt es um eine operative Workflow-Sicht auf Fälle in externen Laboren. Die meisten Praxen nutzen beides."
+                        },
+                        {
+                            "question": "Ersetzt Fallmanagement-Software das Portal meines Labors?",
+                            "answer": "Meist nicht. Ein Laborportal deckt die Seite des Labors ab – Einsendung und Status der Fälle dieses einen Labors. Fallmanagement-Software deckt die Seite der Praxis ab: jeden Fall, jedes Labor sowie die internen Schritte vor und nach der Laborarbeit. Viele Praxen nutzen beides."
+                        }
+                    ]
+                },
+                "related_resources": {
+                    "heading": "Verwandte Ressourcen",
+                    "items": [
+                        "Fallverfolgung im Dentallabor",
+                        "Software zur Fallverfolgung in der Zahnmedizin",
+                        "Dentale Fälle verfolgen, ohne sie zu verlieren",
+                        "Warum visuelles Workflow-Management bei komplexen dentalen Fällen funktioniert"
+                    ]
+                },
+                "cta": {
+                    "body": "Testen Sie DentaTrak 90 Tage kostenlos. Richten Sie Ihre Praxis ein, definieren Sie Ihre Workflow-Stufen und beginnen Sie in wenigen Minuten mit der Nachverfolgung externer Laborfälle."
                 }
             }
         },

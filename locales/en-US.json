@@ -4958,6 +4958,170 @@
                 "cta": {
                     "body": "90-day free trial. No credit card required."
                 }
+            },
+            "dental_case_management_external_labs": {
+                "title": "Dental Case Management Software for External Labs | DentaTrak",
+                "h1": "Dental Case Management Software for Practices Using External Labs",
+                "description": "What dental case management software should track for practices sending cases to external labs — workflow, deadlines, files, remakes, and lab performance.",
+                "seo": {
+                    "title": "Dental Case Management Software for External Labs | DentaTrak",
+                    "description": "What dental case management software should track for practices sending cases to external labs — workflow, deadlines, files, remakes, and lab performance."
+                },
+                "meta": {
+                    "by": "By",
+                    "published": "Published",
+                    "date": "September 25, 2026"
+                },
+                "intro": "Dental case management software gives practices that send work to outside labs a single operational view of every case: where it stands, who owns the next step, what is due, and what is at risk. This guide explains why external-lab cases are hard to manage, which capabilities matter most, and how dedicated software compares to the PMS, spreadsheets, email, and lab portals practices often rely on today.",
+                "sections": {
+                    "why_external_lab_cases_are_hard_to_manage": {
+                        "heading": "Why External-Lab Cases Are Hard to Manage",
+                        "body_1": "A single lab case passes through more hands than most appointments. The front desk schedules the patient, a team member captures scans or impressions, a doctor reviews the design, and the lab fabricates the restoration — often across days or weeks. Each step has its own dates, files, and instructions, and the case sits outside the practice for a significant part of its lifecycle.",
+                        "body_2": "The problem is rarely that the practice lacks information. It is that the information is fragmented across systems that do not talk to each other:",
+                        "fragmentation": [
+                            "PMS notes and appointment records",
+                            "Email threads with the lab",
+                            "Text messages between team members",
+                            "Spreadsheets tracking due dates",
+                            "The lab’s own online portal",
+                            "Paper notes and routing slips",
+                            "Shared drives holding scans and photos"
+                        ],
+                        "body_3": "When case information lives in seven places, nobody has a reliable answer to the simplest operational question: where does this case stand right now, and will it make the patient’s appointment? Practices need a current view of every active case — not a reconstruction assembled after the fact."
+                    },
+                    "what_software_should_track": {
+                        "heading": "What Dental Case Management Software Should Track",
+                        "body_1": "At minimum, dedicated dental case management software should keep the operational details of every case in one place:",
+                        "items": [
+                            "A clear patient and case reference",
+                            "The lab assigned to the case",
+                            "The case type (crown, implant, denture, and so on)",
+                            "The current workflow stage or status",
+                            "The lab due date",
+                            "The patient’s next appointment date",
+                            "The team member responsible for the next step",
+                            "Files attached to the case — scans, photos, designs, and documents",
+                            "Notes and comments from the team",
+                            "An activity history showing what changed and when",
+                            "Remake information when a case has to be redone"
+                        ]
+                    },
+                    "why_a_pms_alone_may_not_be_enough": {
+                        "heading": "Why a PMS Alone May Not Be Enough",
+                        "body_1": "A practice management system is essential: it runs scheduling, patient records, billing, insurance, and clinical documentation. Most PMS platforms, though, are not built to provide a shared, filterable view of every lab case in flight — which stage each case is in, what is due this week, or which cases risk missing a scheduled appointment. Many practices work around this with notes fields or reports, which is reasonable for a handful of cases but strains as volume grows.",
+                        "link_label": "Dental Case Tracking Software vs. PMS",
+                        "body_2": "That does not make the PMS the problem. The two systems answer different questions: the PMS is the system of record for the patient and the business; case management is the working view of cases moving through the lab. For a detailed breakdown, see {link}."
+                    },
+                    "why_spreadsheets_and_email_break_down": {
+                        "heading": "Why Spreadsheets and Email Start to Break Down",
+                        "body_1": "Spreadsheets and email are the most common informal tracking systems, and they work — until they do not. The failure modes are predictable:",
+                        "items": [
+                            "Every update is manual, so the sheet is only as current as the last person who remembered to edit it",
+                            "Multiple versions circulate and it is unclear which one is right",
+                            "There is no reliable ownership of the next step on a case",
+                            "Reminders are weak — nothing flags a case that is about to be late",
+                            "Communication scatters across inboxes and text threads instead of staying with the case",
+                            "It is hard to see what changed since yesterday",
+                            "It is hard to spot late or at-risk work until the patient is already in the chair"
+                        ],
+                        "link_label": "Dental Case Tracking Software vs. Spreadsheets",
+                        "body_2": "None of this means spreadsheets are useless — they are flexible and familiar. But as a shared operational system for lab cases, they ask the team to maintain the system instead of the system supporting the team. For a fuller comparison, see {link}."
+                    },
+                    "capabilities_that_matter_most": {
+                        "heading": "Capabilities That Matter Most When Working with External Labs",
+                        "intro": "Feature lists vary, but a few capabilities consistently separate useful case management from another place to type notes.",
+                        "flexible_workflow": {
+                            "heading": "A workflow that adapts to your practice",
+                            "body": "No two practices route cases the same way. Look for software that lets you define your own workflow stages — adding, renaming, reordering, and archiving stages as the process changes — rather than forcing every practice into one rigid pipeline. Board and list views, filtering, sorting, and case assignments matter because different roles need different views of the same work."
+                        },
+                        "attention_signals": {
+                            "heading": "Attention signals, not just status fields",
+                            "body": "A status column shows where a case is; it does not say what needs you. The useful signals surface risk: cases due soon, cases already late, cases where the patient’s appointment is approaching faster than the lab work, and cases a teammate changed that you have not reviewed yet. The goal is to see problems before the appointment, not after."
+                        },
+                        "communication": {
+                            "heading": "Communication tied to the case",
+                            "body": "Comments and @mentions attached to the case record — with notifications when something changes — keep decisions and context where the work lives. Being able to add images to a comment means a shade photo or scan screenshot does not end up stranded in a text thread. An activity history means anyone can see what changed, who changed it, and when."
+                        },
+                        "files_and_scans": {
+                            "heading": "Files and scans on the case record",
+                            "body": "External-lab cases carry real file payloads: photos, intraoral scans, facial scans, photogrammetry records, completed designs, and PDFs. Software that keeps these attached to the case — rather than spread across drives and inboxes — means whoever opens the case sees the same material the lab saw."
+                        },
+                        "remake_tracking": {
+                            "heading": "Structured remake tracking",
+                            "link_label": "Dental Remake Cost Calculator",
+                            "body": "Remakes are expensive in chair time, lab fees, and patient goodwill, and they are also one of the clearest signals of where a workflow breaks down. Software that records remakes as structured information — not a note buried in a thread — makes it possible to see patterns: which labs, which case types, which stages. The {link} can help quantify what remakes already cost a practice."
+                        },
+                        "performance_visibility": {
+                            "heading": "Practice and lab performance visibility",
+                            "body": "Case management data becomes more useful when it rolls up into visibility: turnaround times, current workload, remake rates, case volume by status, and comparisons across the labs a practice uses. This is not generic analytics — it answers the specific questions of where cases slow down and which lab relationships are working."
+                        }
+                    },
+                    "where_dentatrak_fits": {
+                        "heading": "Where DentaTrak Fits",
+                        "body_1": "DentaTrak is a dedicated dental case management system built around these workflows. Practices shape the board to match their process — custom workflow stages that can be added, renamed, reordered, archived, and restored — and work in either a visual board or a compact list view with filtering, sorting, and case assignments.",
+                        "body_2": "Attention is handled explicitly rather than by memory: Due Soon, Late, Appointment Risk, and Needs Review flags surface the cases that need action. Comments, @mentions, images in comments, notifications, and a full activity history keep communication attached to the case, and structured attachment categories keep scans, photos, designs, and documents organized instead of loose.",
+                        "body_3": "For visibility, Practice Insights and Lab Insights turn case data into views of volume, turnaround, appointment risk, remakes, workload, and lab comparison — with Smart Recommendations highlighting where workflows can improve. Ask DentaTrak answers how-to questions and simple case questions inside the product, and the application — including notifications and Ask DentaTrak — supports teams in nine languages."
+                    },
+                    "open_dental_integration": {
+                        "heading": "Working with Open Dental",
+                        "body_1": "For practices running Open Dental, DentaTrak’s Open Dental integration can create DentaTrak cases automatically from supported lab-case information — so a new lab case in Open Dental appears on the DentaTrak board without re-entering it, and the fields Open Dental owns stay in sync.",
+                        "body_2": "The integration is specific to Open Dental today. Practices on other practice management systems can still use DentaTrak’s full case workflow — cases are created directly — but there is no automatic connection to every PMS."
+                    },
+                    "questions_to_ask": {
+                        "heading": "Questions to Ask When Evaluating Dental Case Management Software",
+                        "intro": "A short checklist for comparing options against how the practice actually works:",
+                        "link_label": "how patient information is protected",
+                        "items": [
+                            "Can we shape the workflow stages to match our process, rather than adopting a fixed pipeline?",
+                            "Can we see at a glance which cases are late, due soon, or at risk of missing an appointment?",
+                            "Does communication stay attached to the case, or does it drift back into email and texts?",
+                            "Can scans, photos, designs, and documents live on the case record?",
+                            "Can access be limited appropriately by role, and does the vendor describe {link}?",
+                            "Can we track remakes as structured data rather than anecdote?",
+                            "Can we compare turnaround and remake rates across the labs we use?",
+                            "Does it fit alongside our existing systems, including our PMS, without replacing them?",
+                            "Can every member of our team use it in the language they are most comfortable working in?"
+                        ]
+                    },
+                    "frequently_asked_questions": {
+                        "heading": "Frequently Asked Questions"
+                    },
+                    "conclusion": {
+                        "heading": "The Goal Is Visibility, Not More Software",
+                        "body_1": "Practices do not need another place to enter data. They need the work that is already happening — appointments, scans, lab submissions — to stay visible and connected until the case is delivered. When every case has a clear owner, a visible deadline, and its files and conversations attached, external-lab work stops depending on memory. That is the standard worth evaluating against."
+                    },
+                    "see_whether_dentatrak_fits": {
+                        "heading": "See Whether DentaTrak Fits Your Lab Workflow"
+                    }
+                },
+                "faq": {
+                    "items": [
+                        {
+                            "question": "What is dental case management software?",
+                            "answer": "Dental case management software is a system for tracking lab cases through their full lifecycle — from creation through lab work, return, and delivery — in one shared operational view, rather than across spreadsheets, email, and lab portals."
+                        },
+                        {
+                            "question": "Is dental case management software the same as a PMS?",
+                            "answer": "No. A practice management system is the system of record for scheduling, patient records, billing, and clinical documentation. Dental case management software complements it with an operational workflow view of cases moving through external labs. Most practices use both."
+                        },
+                        {
+                            "question": "Does case management software replace my lab’s portal?",
+                            "answer": "Not usually. A lab portal covers the lab’s side — submitting and checking that lab’s cases. Case management software covers the practice’s side: every case, every lab, plus the internal steps before and after lab work. Many practices use both."
+                        }
+                    ]
+                },
+                "related_resources": {
+                    "heading": "Related resources",
+                    "items": [
+                        "Dental Lab Case Tracking",
+                        "Dental Case Tracking Software",
+                        "How to Track Dental Cases Without Losing Them",
+                        "Visual Dental Case Workflow"
+                    ]
+                },
+                "cta": {
+                    "body": "Try DentaTrak free for 90 days. Set up your practice, define your workflow stages, and begin tracking external-lab cases in minutes."
+                }
             }
         },
         "hero": {
@@ -5259,7 +5423,9 @@
             "card_hipaa_title": "HIPAA & Security",
             "card_hipaa_desc": "Learn how DentaTrak protects patient information, controls access, and supports your practice's HIPAA responsibilities.",
             "card_hipaa_cta": "Learn About HIPAA & Security",
-            "type_security": "Security"
+            "type_security": "Security",
+            "card_external_labs_mgmt_title": "Case Management for External Labs",
+            "card_external_labs_mgmt_desc": "How practices can manage external-lab cases, communication, files, deadlines, remakes, and lab performance in one workflow."
         },
         "hipaa": {
             "title": "HIPAA & Security | DentaTrak",

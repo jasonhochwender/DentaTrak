@@ -31,6 +31,7 @@ const INDEXNOW_PUBLIC_URLS = [
     'https://dentatrak.com/visual-dental-case-workflow',
     'https://dentatrak.com/dental-case-tracking-vs-spreadsheets',
     'https://dentatrak.com/dental-remake-cost',
+    'https://dentatrak.com/dental-case-management-external-labs',
     'https://dentatrak.com/resources',
     'https://dentatrak.com/about',
     'https://dentatrak.com/hipaa-security',
