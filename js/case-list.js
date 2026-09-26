@@ -96,6 +96,43 @@
     }
   }
 
+  /* ---------- Opt-in diagnostics ----------
+     Enable on any device by visiting main.php?dt_debug_view=1 once
+     (persists in localStorage); disable with ?dt_debug_view=0. Intended for
+     comparing a normal mobile session vs a clean/incognito session when
+     investigating stale-preference or stale-bundle issues. */
+  function viewDebugEnabled() {
+    try {
+      var q = new URLSearchParams(window.location.search).get('dt_debug_view');
+      if (q === '1') localStorage.setItem('dt_debug_view', '1');
+      if (q === '0') localStorage.removeItem('dt_debug_view');
+      return localStorage.getItem('dt_debug_view') === '1';
+    } catch (e) {
+      return false;
+    }
+  }
+
+  function vdbg(event, data) {
+    if (!viewDebugEnabled()) return;
+    try {
+      console.info('[case-view ' + event + ']', JSON.stringify(data));
+    } catch (e) { /* console unavailable */ }
+  }
+
+  function rawStoredPrefs() {
+    try {
+      return {
+        viewKey: VIEW_KEY_PREFIX + userKeyPart(),
+        view: localStorage.getItem(VIEW_KEY_PREFIX + userKeyPart()),
+        legacyView: localStorage.getItem(VIEW_KEY_PREFIX + legacyEmailKeyPart()),
+        densityKey: DENSITY_KEY_PREFIX + userKeyPart(),
+        density: localStorage.getItem(DENSITY_KEY_PREFIX + userKeyPart())
+      };
+    } catch (e) {
+      return { error: 'localStorage unavailable' };
+    }
+  }
+
   /**
    * Presentation-only toggle: sets a class on the board container so the
    * existing card markup is restyled, never re-rendered or mutated.
@@ -147,9 +184,14 @@
    * Any invalid, stale, or absent value falls back to 'board'.
    */
   function getSavedMode() {
-    if (getSavedView() === 'list') return 'list';
-    if (getSavedDensity() === 'compact') return 'compact';
-    return 'board';
+    var mode = 'board';
+    if (getSavedView() === 'list') mode = 'list';
+    else if (getSavedDensity() === 'compact') mode = 'compact';
+    vdbg('resolved-mode', {
+      stored: rawStoredPrefs(),
+      resolved: mode
+    });
+    return mode;
   }
 
   function applyMode(mode) {
@@ -159,6 +201,10 @@
       setView('board');
       setDensity(mode === 'compact' ? 'compact' : 'standard');
     }
+    vdbg('applied-mode', {
+      applied: mode,
+      stored: rawStoredPrefs()
+    });
   }
 
   function esc(value) {
@@ -878,6 +924,20 @@
     if (listBtn) {
       listBtn.addEventListener('click', function () { applyMode('list'); });
     }
+    if (viewDebugEnabled()) {
+      var selfScript = document.querySelector('script[src*="case-list.js"]');
+      vdbg('init', {
+        bundle: selfScript ? selfScript.src : 'unknown',
+        serviceWorker: 'serviceWorker' in navigator ? 'supported' : 'unsupported',
+        userAgent: navigator.userAgent
+      });
+      if ('serviceWorker' in navigator && navigator.serviceWorker.getRegistrations) {
+        navigator.serviceWorker.getRegistrations().then(function (regs) {
+          vdbg('sw-registrations', regs.map(function (r) { return r.scope; }));
+        });
+      }
+    }
+
     // Apply the saved mode (with legacy-key translation) before render.
     applyMode(getSavedMode());
 
