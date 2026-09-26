@@ -5140,15 +5140,17 @@
         "workflow": {
             "eyebrow": "Flujo de trabajo flexible",
             "title": "Construya el flujo de trabajo alrededor de su clínica.",
-            "lead": "Cada clínica trabaja de forma distinta. DentaTrak se adapta a cómo su equipo realmente mueve los casos — no al revés.",
-            "body": "DentaTrak es una forma de practicar el seguimiento de casos dentales. Para saber más sobre la categoría y por qué los consultorios la usan, consulte {link}.",
+            "lead": "Cada clínica trabaja de forma distinta. DentaTrak se adapta a cómo su equipo realmente gestiona los casos, desde el primer traspaso hasta la entrega final.",
+            "body": "Para saber más sobre la categoría y por qué los consultorios la usan, consulte {link}.",
             "link_label": "cómo funciona el seguimiento de casos dentales",
-            "step1_title": "Cree el caso",
-            "step1_body": "Comience con un registro. Agregue el paciente, el tipo de caso, el laboratorio, los detalles de la cita y cualquier otra información que su equipo necesite.",
-            "step2_title": "Modele el flujo de trabajo",
-            "step2_body": "Añada, renombre, reordene, archive y restaure etapas del flujo para que el tablero refleje su proceso real. DentaTrak no obliga a ninguna clínica a seguir una línea rígida y predefinida.",
-            "step3_title": "Trabaje a su manera",
-            "step3_body": "Alterne entre el tablero visual y una lista compacta, filtre y ordene para encontrar los casos correctos, asigne responsables y archive o busque el trabajo completado."
+            "step1_title": "Modele el flujo de trabajo",
+            "step1_body": "Configure DentaTrak para que coincida con la forma en que su clínica ya trabaja. Añada, renombre, reordene, archive y restaure etapas del flujo para que su tablero refleje su proceso real de casos, en lugar de obligar a su equipo a seguir un flujo predefinido.",
+            "step2_title": "Cree y siga el caso",
+            "step2_body": "Cree un único registro para el caso con el paciente, el tipo de caso, el laboratorio, los detalles de la cita, archivos, asignaciones y demás información que su equipo necesite. Todo permanece conectado al caso a medida que avanza por el flujo.",
+            "step3_title": "Mantenga alineados a su equipo y laboratorio",
+            "step3_body": "Mantenga la comunicación conectada al caso en lugar de dispersa entre correos, mensajes y notas adhesivas. Comparta actualizaciones y archivos, añada comentarios, mencione a miembros del equipo y mantenga a todos trabajando con la misma información.",
+            "step4_title": "Vea lo que necesita atención",
+            "step4_body": "Use la vista de tablero, compacta o de lista para trabajar como prefiera. Filtre, ordene, asigne, revise y encuentre rápidamente los casos que vencen pronto, van con retraso o necesitan atención."
         },
         "attention": {
             "eyebrow": "Vista del producto",

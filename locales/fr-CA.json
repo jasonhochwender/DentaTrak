@@ -5140,15 +5140,17 @@
         "workflow": {
             "eyebrow": "Flux de travail flexible",
             "title": "Construisez le flux de travail autour de votre cabinet.",
-            "lead": "Chaque cabinet travaille différemment. DentaTrak s\\u2019adapte à la façon dont votre équipe fait réellement avancer les cas — pas l\\u2019inverse.",
-            "body": "DentaTrak est une façon de pratiquer le suivi des cas dentaires. Pour en savoir plus sur la catégorie et pourquoi les cliniques l'utilisent, consultez {link}.",
+            "lead": "Chaque cabinet travaille différemment. DentaTrak s’adapte à la façon dont votre équipe gère réellement les cas, du premier transfert jusqu’à la livraison finale.",
+            "body": "Pour en savoir plus sur la catégorie et pourquoi les cliniques l’utilisent, consultez {link}.",
             "link_label": "comment fonctionne le suivi des cas dentaires",
-            "step1_title": "Créer le cas",
-            "step1_body": "Commencez avec un seul dossier. Ajoutez le patient, le type de cas, le laboratoire, les détails du rendez-vous et toute autre information dont votre équipe a besoin.",
-            "step2_title": "Façonnez le flux de travail",
-            "step2_body": "Ajoutez, renommez, réordonnez, archivez et restaurez des étapes de flux pour que le tableau reflète votre processus réel. DentaTrak n\\u2019impose à aucun cabinet un pipeline rigide et prédéfini.",
-            "step3_title": "Travaillez à votre façon",
-            "step3_body": "Basculez entre le tableau visuel et une liste compacte, filtrez et triez pour trouver les bons cas, attribuez des responsables, et archivez ou recherchez le travail terminé."
+            "step1_title": "Façonnez le flux de travail",
+            "step1_body": "Configurez DentaTrak pour correspondre à la façon dont votre cabinet travaille déjà. Ajoutez, renommez, réordonnez, archivez et restaurez des étapes de flux pour que votre tableau reflète votre processus réel de cas, au lieu d’imposer à votre équipe un flux prédéfini.",
+            "step2_title": "Créez et suivez le cas",
+            "step2_body": "Créez un seul dossier pour le cas avec le patient, le type de cas, le laboratoire, les détails du rendez-vous, les fichiers, les attributions et les autres informations dont votre équipe a besoin. Tout reste relié au cas au fil du flux de travail.",
+            "step3_title": "Gardez votre équipe et votre laboratoire alignés",
+            "step3_body": "Gardez la communication reliée au cas plutôt qu’éparpillée entre courriels, textos et notes autocollantes. Partagez mises à jour et fichiers, ajoutez des commentaires, mentionnez des membres de l’équipe et gardez tout le monde sur la même information.",
+            "step4_title": "Voyez ce qui demande attention",
+            "step4_body": "Utilisez la vue tableau, compacte ou liste pour travailler à votre façon. Filtrez, triez, attribuez, révisez et trouvez rapidement les cas qui arrivent bientôt à échéance, sont en retard ou demandent attention."
         },
         "attention": {
             "eyebrow": "Aperçu du produit",

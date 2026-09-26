@@ -4,6 +4,18 @@
  *
  * Accepts a public demo request, validates it, and forwards it to
  * the support team via the existing Resend email configuration.
+ *
+ * Spam protection is layered and passive (no user-facing challenge):
+ *   1. CSRF token            - session-bound, required for any POST
+ *   2. Honeypot              - hidden 'website' field; populated = spam
+ *   3. Timing                - session render timestamp; <3s = spam
+ *   4. Rate limit            - per-IP attempt/accepted caps (DB-backed)
+ *   5. Duplicate detection   - same normalized content within 15 min
+ *   6. Field allowlist       - unexpected POST keys rejected as spam
+ *
+ * Spam rejections return the same generic success payload as a real
+ * acceptance so bots cannot probe which rule fired. Each block is logged
+ * by category only - no form contents are logged.
  */
 
 require_once __DIR__ . '/appConfig.php';
@@ -20,24 +32,139 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 
 requireCsrfToken();
 
-// Honeypot: if this hidden field has a value, treat it as a quiet success for bots
-if (!empty($_POST['website'])) {
+/* ------------------------------------------------------------------ */
+/* Spam protection layer                                               */
+/* ------------------------------------------------------------------ */
+
+$now = time();
+$ip = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
+$ipHash = hash('sha256', 'dtk-demo-request|' . $ip);
+
+// Tunables - conservative values that should never affect a real user.
+define('DEMO_MIN_FILL_SECONDS', 3);      // form cannot be completed faster
+define('DEMO_SESSION_MIN_SECONDS', 60);  // one submission per minute per session
+define('DEMO_IP_ATTEMPTS_PER_HOUR', 30); // any POST attempts (spam probing)
+define('DEMO_IP_ACCEPTED_PER_HOUR', 5);  // real emails sent per IP
+define('DEMO_DUP_WINDOW_SECONDS', 900);  // identical resubmission window
+
+/**
+ * Lazily create the attempts table (same convention as login_attempts in
+ * unified-identity.php). Records every decision so rate limits work across
+ * sessions and Cloud Run instances, and so blocked traffic is auditable.
+ */
+function demoAttemptsTable(PDO $pdo) {
+    static $ready = false;
+    if ($ready) {
+        return;
+    }
+    $pdo->exec("
+        CREATE TABLE IF NOT EXISTS demo_request_attempts (
+            id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+            ip_hash CHAR(64) NOT NULL,
+            email_hash CHAR(64) DEFAULT NULL,
+            fingerprint CHAR(64) DEFAULT NULL,
+            reason VARCHAR(32) NOT NULL,
+            created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            KEY idx_ip_time (ip_hash, created_at),
+            KEY idx_fp_time (fingerprint, created_at),
+            KEY idx_created (created_at)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+    ");
+    $ready = true;
+}
+
+function demoRecordAttempt($reason, $emailHash = null, $fingerprint = null) {
+    global $pdo, $ipHash;
+    if (!($pdo instanceof PDO)) {
+        return;
+    }
+    try {
+        demoAttemptsTable($pdo);
+        $pdo->prepare(
+            'INSERT INTO demo_request_attempts (ip_hash, email_hash, fingerprint, reason) VALUES (:ip, :email, :fp, :reason)'
+        )->execute([
+            ':ip' => $ipHash,
+            ':email' => $emailHash,
+            ':fp' => $fingerprint,
+            ':reason' => $reason,
+        ]);
+    } catch (Throwable $e) {
+        error_log('[demo-request] attempt log failed: ' . $e->getMessage());
+    }
+}
+
+/**
+ * All spam rejections converge here: indistinguishable from a successful
+ * submission so bots cannot tell which rule fired. Only the reason category
+ * and a truncated IP hash are logged - never field contents.
+ */
+function demoSilentAccept($reason, $meta = []) {
+    demoRecordAttempt($reason, $meta['emailHash'] ?? null, $meta['fingerprint'] ?? null);
+
+    global $ipHash;
+    $bits = ['reason=' . $reason, 'ip=' . substr($ipHash, 0, 12)];
+    if (isset($meta['scope'])) {
+        $bits[] = 'scope=' . $meta['scope'];
+    }
+    if (isset($meta['elapsed'])) {
+        $bits[] = 'elapsed=' . $meta['elapsed'];
+    }
+    error_log('[demo-request] blocked ' . implode(' ', $bits));
+
     echo json_encode(['success' => true]);
     exit;
 }
 
-// Rate limit per IP/session
-$now = time();
-$ip = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
-$ipKey = 'demo_request_' . md5($ip);
-$last = $_SESSION['demo_request_last'] ?? 0;
-$ipLast = $_SESSION[$ipKey] ?? 0;
-
-if ($now - $last < 60 || $now - $ipLast < 60) {
-    http_response_code(429);
-    echo json_encode(['success' => false, 'error' => 'rate_limited', 'message' => t('marketing.demo.rate_limited')]);
-    exit;
+// 1) Honeypot: hidden field that humans never see or fill.
+if (!empty($_POST['website'])) {
+    demoSilentAccept('honeypot');
 }
+
+// 2) Unexpected fields: the real form posts an exact, fixed field set.
+$allowedFields = ['csrf_token', 'name', 'email', 'practice', 'phone', 'preferred', 'message', 'website'];
+$unexpected = array_diff(array_keys($_POST), $allowedFields);
+if (!empty($unexpected)) {
+    demoSilentAccept('unexpected_fields');
+}
+
+// 3) Timing: the form render stamps the session server-side; a submission
+//    arriving <3s after render (or with no render at all) is a bot.
+$renderedAt = $_SESSION['demo_form_rendered_at'] ?? null;
+$elapsed = is_numeric($renderedAt) ? ($now - (int) $renderedAt) : null;
+if ($elapsed === null || $elapsed < DEMO_MIN_FILL_SECONDS) {
+    demoSilentAccept('too_fast', ['elapsed' => $elapsed === null ? 'no-render' : $elapsed]);
+}
+
+// 4) Rate limits: session burst guard plus DB-backed per-IP caps.
+$last = $_SESSION['demo_request_last'] ?? 0;
+if ($now - $last < DEMO_SESSION_MIN_SECONDS) {
+    demoSilentAccept('rate_limit', ['scope' => 'session']);
+}
+if ($pdo instanceof PDO) {
+    try {
+        demoAttemptsTable($pdo);
+        $stmt = $pdo->prepare(
+            "SELECT
+                SUM(reason = 'accepted') AS accepted_cnt,
+                COUNT(*) AS attempt_cnt
+             FROM demo_request_attempts
+             WHERE ip_hash = :ip AND created_at > DATE_SUB(NOW(), INTERVAL 1 HOUR)"
+        );
+        $stmt->execute([':ip' => $ipHash]);
+        $row = $stmt->fetch() ?: [];
+        if ((int) ($row['attempt_cnt'] ?? 0) >= DEMO_IP_ATTEMPTS_PER_HOUR
+            || (int) ($row['accepted_cnt'] ?? 0) >= DEMO_IP_ACCEPTED_PER_HOUR) {
+            demoSilentAccept('rate_limit', ['scope' => 'ip']);
+        }
+    } catch (Throwable $e) {
+        // If the tracking store is unavailable, fail open rather than block.
+        error_log('[demo-request] rate-limit check failed: ' . $e->getMessage());
+    }
+}
+
+/* ------------------------------------------------------------------ */
+/* Field collection + validation                                       */
+/* ------------------------------------------------------------------ */
 
 // Collect and trim fields
 $name = trim($_POST['name'] ?? '');
@@ -90,6 +217,37 @@ if (!empty($fieldErrors)) {
     exit;
 }
 
+// 5) Duplicate submissions: same normalized email + content within the
+//    window counts as a resubmit (double-click, refresh-resubmit, bot loop).
+$norm = function ($v) {
+    return preg_replace('/\s+/', ' ', mb_strtolower(trim($v), 'UTF-8'));
+};
+$emailHash = hash('sha256', 'dtk-demo-email|' . $norm($email));
+$fingerprint = hash('sha256', 'dtk-demo-content|' . implode('|', [
+    $norm($email), $norm($name), $norm($practice), $norm($phone), $norm($message),
+]));
+if ($pdo instanceof PDO) {
+    try {
+        demoAttemptsTable($pdo);
+        $stmt = $pdo->prepare(
+            "SELECT 1 FROM demo_request_attempts
+             WHERE fingerprint = :fp AND reason = 'accepted'
+               AND created_at > DATE_SUB(NOW(), INTERVAL " . DEMO_DUP_WINDOW_SECONDS . " SECOND)
+             LIMIT 1"
+        );
+        $stmt->execute([':fp' => $fingerprint]);
+        if ($stmt->fetch()) {
+            demoSilentAccept('duplicate', ['emailHash' => $emailHash, 'fingerprint' => $fingerprint]);
+        }
+    } catch (Throwable $e) {
+        error_log('[demo-request] duplicate check failed: ' . $e->getMessage());
+    }
+}
+
+// Extension point for a future interactive challenge: verify a Cloudflare
+// Turnstile (or similar) token here and call demoSilentAccept('challenge')
+// on failure. Not needed while passive protection is sufficient.
+
 // Build the email to the support inbox, replying to the requester
 $supportEmail = $appConfig['support_email'] ?? 'support@dentatrak.com';
 $subject = 'DentaTrak Personal Demo Request';
@@ -129,9 +287,19 @@ if (empty($sendResult['success'])) {
     exit;
 }
 
-// Record successful submission timestamps
+// Record the accepted submission (also feeds the IP accepted-count limit)
+// and keep the session throttle.
 $_SESSION['demo_request_last'] = $now;
-$_SESSION[$ipKey] = $now;
+demoRecordAttempt('accepted', $emailHash, $fingerprint);
+
+// Opportunistic cleanup of old attempt rows (older than 7 days).
+if ($pdo instanceof PDO) {
+    try {
+        $pdo->exec("DELETE FROM demo_request_attempts WHERE created_at < DATE_SUB(NOW(), INTERVAL 7 DAY)");
+    } catch (Throwable $e) {
+        // Non-critical; rows are bounded anyway by volume.
+    }
+}
 
 echo json_encode([
     'success' => true,

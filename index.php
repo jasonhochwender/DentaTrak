@@ -9,6 +9,9 @@ $baseUrl = rtrim($appConfig['baseUrl'], '/') . '/';
 $articleUrls = $appConfig['public_urls'] ?? [];
 require_once __DIR__ . '/api/csrf.php';
 $csrfToken = generateCsrfToken();
+// Server-side render timestamp for the demo-request timing check:
+// api/demo-request.php rejects submissions that arrive implausibly fast.
+$_SESSION['demo_form_rendered_at'] = time();
 $hipaaUrl = $baseUrl . ($articleUrls['page_hipaa_security'] ?? 'hipaa-security');
 $softwareOffers = [];
 foreach (['operate', 'control', 'scale'] as $plan) {
@@ -340,21 +343,25 @@ foreach (['operate', 'control', 'scale'] as $plan) {
     .f-6 { bottom: 8%; right: 0; border-left: 3px solid #64748b; }
 
     /* How it works */
-    .steps-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; margin-top: 48px; }
+    .steps-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 24px; margin-top: 48px; }
     .step { background: #fff; border: 1px solid var(--dt-border); border-radius: var(--dt-radius); padding: 32px; position: relative; border-bottom: 3px solid var(--dt-border); }
     .step-1 { border-bottom-color: #3b82f6; }
     .step-2 { border-bottom-color: #8b5cf6; }
     .step-3 { border-bottom-color: #14b8a6; }
+    .step-4 { border-bottom-color: #f59e0b; }
     .step-num { width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; border-radius: 50%; font-size: 0.85rem; font-weight: 700; margin-bottom: 18px; color: #fff; }
     .step-1 .step-num { background: #3b82f6; }
     .step-2 .step-num { background: #8b5cf6; }
     .step-3 .step-num { background: #14b8a6; }
+    .step-4 .step-num { background: #f59e0b; }
     .step-icon { position: absolute; top: 28px; right: 28px; width: 22px; height: 22px; color: var(--dt-ink-muted); }
     .step-1 .step-icon { color: #3b82f6; }
     .step-2 .step-icon { color: #8b5cf6; }
     .step-3 .step-icon { color: #14b8a6; }
+    .step-4 .step-icon { color: #f59e0b; }
     .step h3 { font-size: 1.2rem; font-weight: 700; margin-bottom: 10px; }
     .step p { font-size: 0.95rem; color: var(--dt-ink-secondary); line-height: 1.6; }
+    .section-body { margin-top: 40px; }
 
     /* Attention */
     .attention { background: var(--dt-pale); text-align: center; }
@@ -559,9 +566,10 @@ foreach (['operate', 'control', 'scale'] as $plan) {
       animation-duration: 0.6s;
       animation-fill-mode: both;
     }
-    .step-1.step-icon-animated .step-icon { animation-name: stepPlus; }
-    .step-2.step-icon-animated .step-icon { animation-name: stepRefresh; }
-    .step-3.step-icon-animated .step-icon { animation-name: stepAlert; }
+    .step-1.step-icon-animated .step-icon { animation-name: stepRefresh; }
+    .step-2.step-icon-animated .step-icon { animation-name: stepPlus; }
+    .step-3.step-icon-animated .step-icon { animation-name: stepChat; }
+    .step-4.step-icon-animated .step-icon { animation-name: stepAlert; }
 
     @keyframes stepPlus {
       from { opacity: 0; transform: scale(0.6); }
@@ -570,6 +578,10 @@ foreach (['operate', 'control', 'scale'] as $plan) {
     @keyframes stepRefresh {
       from { transform: rotate(0deg); }
       to { transform: rotate(360deg); }
+    }
+    @keyframes stepChat {
+      from { opacity: 0; transform: translateY(5px); }
+      to { opacity: 1; transform: translateY(0); }
     }
     @keyframes stepAlert {
       0% { transform: scale(1); }
@@ -1414,6 +1426,32 @@ foreach (['operate', 'control', 'scale'] as $plan) {
       <span class="eyebrow" data-reveal><?php echo t('marketing.workflow.eyebrow'); ?></span>
       <h2 data-reveal><?php echo t('marketing.workflow.title'); ?></h2>
       <p class="lead" data-reveal><?php echo t('marketing.workflow.lead'); ?></p>
+      <div class="steps-grid">
+        <div class="step step-1" data-reveal data-reveal-stagger="1" data-reveal-delay="150">
+          <div class="step-num">01</div>
+          <svg class="step-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"></path><path d="M16 16h5v5"></path></svg>
+          <h3><?php echo t('marketing.workflow.step1_title'); ?></h3>
+          <p><?php echo t('marketing.workflow.step1_body'); ?></p>
+        </div>
+        <div class="step step-2" data-reveal data-reveal-stagger="2" data-reveal-delay="150">
+          <div class="step-num">02</div>
+          <svg class="step-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>
+          <h3><?php echo t('marketing.workflow.step2_title'); ?></h3>
+          <p><?php echo t('marketing.workflow.step2_body'); ?></p>
+        </div>
+        <div class="step step-3" data-reveal data-reveal-stagger="3" data-reveal-delay="150">
+          <div class="step-num">03</div>
+          <svg class="step-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+          <h3><?php echo t('marketing.workflow.step3_title'); ?></h3>
+          <p><?php echo t('marketing.workflow.step3_body'); ?></p>
+        </div>
+        <div class="step step-4" data-reveal data-reveal-stagger="4" data-reveal-delay="150">
+          <div class="step-num">04</div>
+          <svg class="step-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+          <h3><?php echo t('marketing.workflow.step4_title'); ?></h3>
+          <p><?php echo t('marketing.workflow.step4_body'); ?></p>
+        </div>
+      </div>
       <p class="section-body" data-reveal>
         <?php
           $catUrl = $baseUrl . ($articleUrls['article_dental_case_tracking_software'] ?? 'dental-case-tracking-software');
@@ -1421,26 +1459,6 @@ foreach (['operate', 'control', 'scale'] as $plan) {
           echo t('marketing.workflow.body', ['link' => $catLink]);
         ?>
       </p>
-      <div class="steps-grid">
-        <div class="step step-1" data-reveal data-reveal-stagger="1" data-reveal-delay="150">
-          <div class="step-num">01</div>
-          <svg class="step-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>
-          <h3><?php echo t('marketing.workflow.step1_title'); ?></h3>
-          <p><?php echo t('marketing.workflow.step1_body'); ?></p>
-        </div>
-        <div class="step step-2" data-reveal data-reveal-stagger="2" data-reveal-delay="150">
-          <div class="step-num">02</div>
-          <svg class="step-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"></path><path d="M16 16h5v5"></path></svg>
-          <h3><?php echo t('marketing.workflow.step2_title'); ?></h3>
-          <p><?php echo t('marketing.workflow.step2_body'); ?></p>
-        </div>
-        <div class="step step-3" data-reveal data-reveal-stagger="3" data-reveal-delay="150">
-          <div class="step-num">03</div>
-          <svg class="step-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
-          <h3><?php echo t('marketing.workflow.step3_title'); ?></h3>
-          <p><?php echo t('marketing.workflow.step3_body'); ?></p>
-        </div>
-      </div>
     </div>
   </section>
 

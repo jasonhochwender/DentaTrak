@@ -5140,15 +5140,17 @@
         "workflow": {
             "eyebrow": "Flexible Workflow",
             "title": "Build the workflow around your practice.",
-            "lead": "Every practice works differently. DentaTrak adapts to how your team actually moves cases — not the other way around.",
-            "body": "DentaTrak is one way to practice dental case tracking. To learn more about the category and why practices use it, see {link}.",
+            "lead": "Every practice works differently. DentaTrak adapts to how your team actually manages cases, from the first handoff to final delivery.",
+            "body": "To learn more about the category and why practices use it, see {link}.",
             "link_label": "how dental case tracking works",
-            "step1_title": "Create the case",
-            "step1_body": "Start with one record. Add the patient, case type, lab, appointment details, and any other information your team needs.",
-            "step2_title": "Shape the workflow",
-            "step2_body": "Add, rename, reorder, archive, and restore workflow stages so the board mirrors your real process. DentaTrak does not force every practice into a rigid, predefined pipeline.",
-            "step3_title": "Work it your way",
-            "step3_body": "Switch between the visual board and a compact list, filter and sort to find the right cases, assign owners, and archive or search completed work."
+            "step1_title": "Shape the workflow",
+            "step1_body": "Set up DentaTrak to match the way your practice already works. Add, rename, reorder, archive, and restore workflow stages so your board reflects your real case process instead of forcing your team into a predefined pipeline.",
+            "step2_title": "Create and track the case",
+            "step2_body": "Create one record for the case with the patient, case type, lab, appointment details, files, assignments, and other information your team needs. Everything stays connected to the case as it moves through the workflow.",
+            "step3_title": "Keep your team and lab aligned",
+            "step3_body": "Keep communication connected to the case instead of scattered across email, texts, and sticky notes. Share updates and files, add comments, mention team members, and keep everyone working from the same information.",
+            "step4_title": "See what needs attention",
+            "step4_body": "Use the board, compact, or list view to work the way you prefer. Filter, sort, assign, review, and quickly find cases that are due soon, running late, or need attention."
         },
         "attention": {
             "eyebrow": "Product View",

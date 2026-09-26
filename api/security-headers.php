@@ -40,7 +40,10 @@ function setSecurityHeaders() {
     // Content Security Policy - restrict resource loading
     $csp = [
         "default-src 'self'",
-        "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.google.com https://*.googleapis.com https://*.gstatic.com https://cdn.jsdelivr.net https://www.googletagmanager.com https://www.clarity.ms",
+        // scripts.clarity.ms: the clarity.ms/tag/{id} loader injects the
+        // recorder bundle from this domain; without it the tag loads but
+        // no session recording starts.
+        "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.google.com https://*.googleapis.com https://*.gstatic.com https://cdn.jsdelivr.net https://www.googletagmanager.com https://www.clarity.ms https://scripts.clarity.ms",
         "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net",
         "font-src 'self' https://fonts.gstatic.com data:",
         "img-src 'self' data: https: blob:",

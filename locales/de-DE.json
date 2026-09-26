@@ -3417,15 +3417,17 @@
         "workflow": {
             "eyebrow": "Flexibler Workflow",
             "title": "Bauen Sie den Workflow um Ihre Praxis.",
-            "lead": "Jede Praxis arbeitet anders. DentaTrak passt sich daran an, wie Ihr Team Fälle tatsächlich bearbeitet — nicht umgekehrt.",
-            "body": "DentaTrak ist eine Möglichkeit, dentale Fallverfolgung zu praktizieren. Um mehr über die Kategorie zu erfahren und warum Praxen sie nutzen, siehe {link}.",
+            "lead": "Jede Praxis arbeitet anders. DentaTrak passt sich daran an, wie Ihr Team Fälle tatsächlich verwaltet — von der ersten Übergabe bis zur finalen Lieferung.",
+            "body": "Um mehr über die Kategorie zu erfahren und warum Praxen sie nutzen, siehe {link}.",
             "link_label": "wie dentale Fallverfolgung funktioniert",
-            "step1_title": "Fall anlegen",
-            "step1_body": "Beginnen Sie mit einem Datensatz. Fügen Sie Patient, Falltyp, Labor, Termindetails und alle anderen Informationen hinzu, die Ihr Team benötigt.",
-            "step2_title": "Gestalten Sie den Workflow",
-            "step2_body": "Fügen Sie Workflow-Phasen hinzu, benennen Sie sie um, ordnen Sie sie neu, archivieren und stellen Sie sie wieder her, damit das Board Ihren echten Prozess abbildet. DentaTrak zwingt keine Praxis in eine starre, vordefinierte Pipeline.",
-            "step3_title": "Arbeiten Sie auf Ihre Weise",
-            "step3_body": "Wechseln Sie zwischen visuellem Board und kompakter Liste, filtern und sortieren Sie, um die richtigen Fälle zu finden, weisen Sie Verantwortliche zu und archivieren oder durchsuchen Sie abgeschlossene Arbeit."
+            "step1_title": "Gestalten Sie den Workflow",
+            "step1_body": "Richten Sie DentaTrak so ein, wie Ihre Praxis bereits arbeitet. Fügen Sie Workflow-Phasen hinzu, benennen Sie sie um, ordnen Sie sie neu, archivieren und stellen Sie sie wieder her, damit Ihr Board Ihren echten Fallprozess abbildet — statt Ihr Team in eine vordefinierte Pipeline zu zwingen.",
+            "step2_title": "Fall anlegen und verfolgen",
+            "step2_body": "Erstellen Sie einen Datensatz für den Fall mit Patient, Falltyp, Labor, Termindetails, Dateien, Zuweisungen und weiteren Informationen, die Ihr Team benötigt. Alles bleibt mit dem Fall verbunden, während er durch den Workflow läuft.",
+            "step3_title": "Team und Labor auf demselben Stand",
+            "step3_body": "Halten Sie die Kommunikation am Fall, statt sie über E-Mails, SMS und Notizzettel zu verstreuen. Teilen Sie Updates und Dateien, fügen Sie Kommentare hinzu, erwähnen Sie Teammitglieder — alle arbeiten mit denselben Informationen.",
+            "step4_title": "Sehen Sie, was Aufmerksamkeit braucht",
+            "step4_body": "Nutzen Sie Board-, Kompakt- oder Listenansicht — so wie Sie bevorzugt arbeiten. Filtern, sortieren, zuweisen, prüfen und schnell Fälle finden, die bald fällig sind, überfällig laufen oder Aufmerksamkeit brauchen."
         },
         "founder": {
             "eyebrow": "Aus echter Erfahrung entstanden",

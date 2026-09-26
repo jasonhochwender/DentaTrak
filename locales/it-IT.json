@@ -5140,15 +5140,17 @@
         "workflow": {
             "eyebrow": "Flusso di lavoro flessibile",
             "title": "Costruisci il flusso di lavoro intorno al tuo studio.",
-            "lead": "Ogni studio lavora in modo diverso. DentaTrak si adatta a come il tuo team muove realmente i casi — non il contrario.",
-            "body": "DentaTrak è un modo di fare tracciamento dei casi dentali. Per saperne di più sulla categoria e sul perché gli studi la usano, vedi {link}.",
+            "lead": "Ogni studio lavora in modo diverso. DentaTrak si adatta a come il tuo team gestisce realmente i casi, dal primo passaggio fino alla consegna finale.",
+            "body": "Per saperne di più sulla categoria e sul perché gli studi la usano, vedi {link}.",
             "link_label": "come funziona il tracciamento dei casi dentali",
-            "step1_title": "Crea il caso",
-            "step1_body": "Parti da un'unica scheda. Aggiungi paziente, tipo di caso, laboratorio, dettagli dell'appuntamento e qualsiasi altra informazione di cui il tuo team ha bisogno.",
-            "step2_title": "Dai forma al flusso di lavoro",
-            "step2_body": "Aggiungi, rinomina, riordina, archivia e ripristina le fasi del flusso affinché la bacheca rispecchi il tuo processo reale. DentaTrak non costringe nessuno studio in una pipeline rigida e predefinita.",
-            "step3_title": "Lavora a modo tuo",
-            "step3_body": "Passa dalla bacheca visuale all\\u2019elenco compatto, filtra e ordina per trovare i casi giusti, assegna responsabili e archivia o cerca il lavoro completato."
+            "step1_title": "Dai forma al flusso di lavoro",
+            "step1_body": "Configura DentaTrak per rispecchiare il modo in cui il tuo studio lavora già. Aggiungi, rinomina, riordina, archivia e ripristina le fasi del flusso affinché la tua bacheca rifletta il vero processo dei casi, invece di costringere il team in un percorso predefinito.",
+            "step2_title": "Crea e segui il caso",
+            "step2_body": "Crea un’unica scheda per il caso con paziente, tipo di caso, laboratorio, dettagli dell’appuntamento, file, assegnazioni e altre informazioni necessarie al team. Tutto resta collegato al caso mentre avanza nel flusso di lavoro.",
+            "step3_title": "Mantieni allineati team e laboratorio",
+            "step3_body": "Mantieni la comunicazione collegata al caso invece che dispersa tra email, messaggi e foglietti. Condividi aggiornamenti e file, aggiungi commenti, menziona i membri del team e fai lavorare tutti con le stesse informazioni.",
+            "step4_title": "Vedi cosa richiede attenzione",
+            "step4_body": "Usa la vista bacheca, compatta o elenco per lavorare come preferisci. Filtra, ordina, assegna, rivedi e trova rapidamente i casi in scadenza, in ritardo o che richiedono attenzione."
         },
         "attention": {
             "eyebrow": "Vista del prodotto",
