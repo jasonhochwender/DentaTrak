@@ -583,7 +583,7 @@ if (isset($appConfig) && is_array($appConfig) && isset($appConfig['appName'])) {
   <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
   
   <!-- Preload critical resources -->
-  <link rel="preload" href="js/app.js?v=20261002a" as="script">
+  <link rel="preload" href="js/app.js?v=20260925a" as="script">
   <link rel="preload" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@400;500;600;700&family=Noto+Sans+KR:wght@400;500;600;700&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
   <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@400;500;600;700&family=Noto+Sans+KR:wght@400;500;600;700&display=swap"></noscript>
   
@@ -602,14 +602,14 @@ if (isset($appConfig) && is_array($appConfig) && isset($appConfig['appName'])) {
   </style>
   
   <!-- Load app.light.css directly (skip app.css @import chain) -->
-  <link rel="stylesheet" href="css/app.light.css?v=20260916i">
+  <link rel="stylesheet" href="css/app.light.css?v=20260925a">
   <link rel="stylesheet" href="css/app.css?v=20261001a">
 <?php if (isFeatureEnabled('SHOW_NOTIFICATIONS')): ?>
   <link rel="stylesheet" href="css/notification-preferences.css?v=20250104">
 <?php endif; ?>
   
   <!-- Mobile responsiveness CSS -->
-  <link rel="stylesheet" href="css/mobile.css?v=20261001b">
+  <link rel="stylesheet" href="css/mobile.css?v=20260925a">
   
   <!-- Non-critical CSS - deferred loading -->
   <?php if (isFeatureEnabled('SHOW_TOUR')): ?>
@@ -633,7 +633,7 @@ if (isset($appConfig) && is_array($appConfig) && isset($appConfig['appName'])) {
   <link rel="preload" href="css/settings-billing.css?v=20261002a" as="style" onload="this.onload=null;this.rel='stylesheet'">
   <link rel="preload" href="css/feedback.css?v=20241210" as="style" onload="this.onload=null;this.rel='stylesheet'">
   <link rel="preload" href="css/kanban-dragdrop.css?v=20241210" as="style" onload="this.onload=null;this.rel='stylesheet'">
-  <link rel="preload" href="css/case-list.css?v=20260916b" as="style" onload="this.onload=null;this.rel='stylesheet'">
+  <link rel="preload" href="css/case-list.css?v=20260925a" as="style" onload="this.onload=null;this.rel='stylesheet'">
   <link rel="preload" href="css/case-creation.css?v=20241210" as="style" onload="this.onload=null;this.rel='stylesheet'">
   <link rel="preload" href="css/case-comments.css?v=20260930a" as="style" onload="this.onload=null;this.rel='stylesheet'">
   <link rel="preload" href="css/case-remakes.css?v=20260922a" as="style" onload="this.onload=null;this.rel='stylesheet'">
@@ -661,7 +661,7 @@ if (isset($appConfig) && is_array($appConfig) && isset($appConfig['appName'])) {
     <link rel="stylesheet" href="css/settings-billing.css?v=20261002a">
     <link rel="stylesheet" href="css/feedback.css?v=20241210">
     <link rel="stylesheet" href="css/kanban-dragdrop.css?v=20241210">
-    <link rel="stylesheet" href="css/case-list.css?v=20260916b">
+    <link rel="stylesheet" href="css/case-list.css?v=20260925a">
     <link rel="stylesheet" href="css/case-creation.css?v=20241210">
     <link rel="stylesheet" href="css/case-comments.css?v=20260930a">
     <link rel="stylesheet" href="css/case-remakes.css?v=20260922a">
@@ -3769,7 +3769,7 @@ endif;
   <script src="js/workflow-draft-ui.js?v=20260829f" defer></script>
   <script type="application/json" id="caseViewBootstrap"><?= json_encode($caseViewBootstrap, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?></script>
   <script src="js/case-filter-sort.js?v=20260916f" defer></script>
-  <script src="js/app.js?v=20261002a" defer></script>
+  <script src="js/app.js?v=20260925a" defer></script>
   <script src="js/mobile-case-modal.js?v=20260830c" defer></script>
   <script src="js/mobile-kanban.js?v=20260916b" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js" defer></script>
@@ -3806,7 +3806,7 @@ endif;
 <?php endif; ?>
   <script src="js/patient-search.js?v=20260916d" defer></script>
   <script src="js/realtime-updates.js?v=20260916b" defer></script>
-  <script src="js/case-list.js?v=20260916d" defer></script>
+  <script src="js/case-list.js?v=20260925a" defer></script>
   <script src="js/case-actions-menu.js?v=20260916d" defer></script>
   <script src="js/case-remakes.js?v=20260922a" defer></script>
   

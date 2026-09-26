@@ -136,6 +136,31 @@
     }
   }
 
+  /* ---------- Canonical view mode (board | compact | list) ---------- */
+
+  /**
+   * The three-way selector is backed by the two persisted keys used by the
+   * previous two-control implementation, so stored preferences translate:
+   *   view 'list'                        -> 'list'
+   *   view 'board' + density 'compact'   -> 'compact'
+   *   view 'board' + density 'standard'  -> 'board'
+   * Any invalid, stale, or absent value falls back to 'board'.
+   */
+  function getSavedMode() {
+    if (getSavedView() === 'list') return 'list';
+    if (getSavedDensity() === 'compact') return 'compact';
+    return 'board';
+  }
+
+  function applyMode(mode) {
+    if (mode === 'list') {
+      setView('list');
+    } else {
+      setView('board');
+      setDensity(mode === 'compact' ? 'compact' : 'standard');
+    }
+  }
+
   function esc(value) {
     return String(value == null ? '' : value)
       .replace(/&/g, '&amp;')
@@ -845,16 +870,16 @@
     var compactBtn = document.getElementById('compactViewToggle');
     var listBtn = document.getElementById('listViewToggle');
     if (boardBtn) {
-      boardBtn.addEventListener('click', function () { setView('board'); setDensity('standard'); });
+      boardBtn.addEventListener('click', function () { applyMode('board'); });
     }
     if (compactBtn) {
-      compactBtn.addEventListener('click', function () { setView('board'); setDensity('compact'); });
+      compactBtn.addEventListener('click', function () { applyMode('compact'); });
     }
     if (listBtn) {
-      listBtn.addEventListener('click', function () { setView('list'); });
+      listBtn.addEventListener('click', function () { applyMode('list'); });
     }
-    // Apply the saved board density before the first card render.
-    setDensity(getSavedDensity());
+    // Apply the saved mode (with legacy-key translation) before render.
+    applyMode(getSavedMode());
 
     // Rebuild when the board re-renders (initial load + filter changes)
     // or when card content changes (realtime, review toggles, drag/drop).
@@ -870,8 +895,6 @@
       searchInput.addEventListener('input', scheduleRefresh);
     }
 
-    // Apply the saved view (defaults to Board).
-    setView(getSavedView());
   }
 
   window.caseListView = {
