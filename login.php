@@ -251,6 +251,14 @@ $sessionRevoked = isset($_GET['revoked']) && $_GET['revoked'] == '1';
               <label for="checkEmail"><?php echo t('auth.login.email_label'); ?></label>
               <input type="email" id="checkEmail" name="email" required placeholder="<?php echo t('auth.login.email_placeholder'); ?>" autocomplete="username" value="<?php echo htmlspecialchars($rememberedEmail ?? '', ENT_QUOTES); ?>">
             </div>
+            <!-- Remember My Email Checkbox (prefill only - never authenticates) -->
+            <div class="remember-me-wrapper">
+              <label class="remember-me-label">
+                <input type="checkbox" id="rememberMe" name="rememberMe" class="remember-me-checkbox"<?php echo $rememberedEmail ? ' checked' : ''; ?>>
+                <span class="remember-me-checkmark"></span>
+                <span class="remember-me-text"><?php echo t('auth.login.remember_me'); ?></span>
+              </label>
+            </div>
             <div id="emailCheckError" class="form-error" style="display: none;"></div>
             <button type="submit" class="email-submit-btn" id="emailContinueBtn"><?php echo t('auth.login.continue'); ?></button>
           </form>
@@ -274,14 +282,6 @@ $sessionRevoked = isset($_GET['revoked']) && $_GET['revoked'] == '1';
                   <svg class="icon-hide" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
                 </button>
               </div>
-            </div>
-            <!-- Remember My Email Checkbox (prefill only - never authenticates) -->
-            <div class="remember-me-wrapper">
-              <label class="remember-me-label">
-                <input type="checkbox" id="rememberMe" name="rememberMe" class="remember-me-checkbox"<?php echo $rememberedEmail ? ' checked' : ''; ?>>
-                <span class="remember-me-checkmark"></span>
-                <span class="remember-me-text"><?php echo t('auth.login.remember_me'); ?></span>
-              </label>
             </div>
             <div id="loginError" class="form-error" style="display: none;"></div>
             <button type="submit" class="email-submit-btn" id="loginSubmitBtn"><?php echo t('auth.login.sign_in'); ?></button>
