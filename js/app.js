@@ -10983,8 +10983,14 @@ document.addEventListener('DOMContentLoaded', function () {
             }
 
             billingTierElement.textContent = displayText;
-            billingTierElement.onclick = showLink ? function() {
-              window.location.href = 'billing.php';
+            billingTierElement.onclick = showLink ? function(e) {
+              e.preventDefault();
+              e.stopPropagation();
+              if (typeof window.openBillingPortal === 'function') {
+                window.openBillingPortal();
+              } else {
+                window.location.href = 'billing.php';
+              }
             } : null;
             billingTierElement.style.cursor = showLink ? 'pointer' : 'default';
             // Reveal the link only after the authoritative billing text is set,
@@ -11112,6 +11118,25 @@ document.addEventListener('DOMContentLoaded', function () {
 
     return true;
   }
+
+  // Route every in-app billing.php link (header badge, upgrade buttons,
+  // locale-embedded anchors, modal CTAs) through the canonical Billing portal
+  // modal instead of the retired standalone page. The href is kept as a
+  // fallback: billing.php redirects to main.php?billing=1, which opens the
+  // same modal via the existing deep-link handler.
+  document.addEventListener('click', function(e) {
+    var link = e.target.closest && e.target.closest('a[href="billing.php"]');
+    if (!link || typeof window.openBillingPortal !== 'function') return;
+    e.preventDefault();
+    // The trial/upgrade prompt modals sit at z-index 10001, above the billing
+    // modal, so dismiss them before opening the portal.
+    ['trialExpiredModal', 'upgradePlanModal'].forEach(function(id) {
+      var m = document.getElementById(id);
+      if (m) m.remove();
+    });
+    document.body.style.overflow = '';
+    window.openBillingPortal();
+  });
 
   // Show trial expired modal with encouraging messaging
   function showTrialExpiredModal() {

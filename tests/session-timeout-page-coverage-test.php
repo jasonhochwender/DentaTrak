@@ -6,10 +6,12 @@
 
 $baseDir = __DIR__ . '/..';
 
+// billing.php was an authenticated page but is now a guarded redirect to
+// main.php?billing=1 - it renders no HTML, so the landing page (main.php)
+// carries the timeout script.
 $authenticatedPages = [
     'main.php',
     'admin-practices.php',
-    'billing.php',
     'practice-setup.php',
     'baa-acceptance.php',
 ];

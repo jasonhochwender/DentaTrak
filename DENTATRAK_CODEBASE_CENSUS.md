@@ -249,7 +249,7 @@ login · forgot-password · reset-password · set-password · verify-email · 2f
 - **Ask DentaTrak panel** (`askDentatrakPanel`).
 - **Dev tools panel** (`devToolsPanel`) — super-user only.
 - **Admin console** (`admin-practices.php`) — practice list, detail panel, modals (compliance, PHI log, deactivate, email, extend trial).
-- **Billing page** (`billing.php`).
+- **Billing page** (`billing.php`) — retired standalone page; guarded redirect to `main.php?billing=1`, which opens the Billing portal modal (`billingPortal`).
 
 ### Modals/dialogs (est. ~24 — counted `id="…Modal/Panel"` occurrences in `main.php` + `admin-practices.php` + `billing.php`)
 createCase · caseModal (details/comments/history tabs) · caseCommentsPanel · caseRevisionHistoryPanel · deleteConfirm · remake · feedback + feedbackSuccess · archivedCases · phiAudit · billingPortal · renameAssignmentLabel · settingsBilling (6-panel) · extendTrial · email · compliance · phiLog · deactivate · detailPanel · integrationConfig (+ guided setup, test) · googleDriveBackup · cardDelete · devToolsPanel · askDentatrakPanel · confirm (generic) · attachmentViewer · notificationPreferences · pageLoading/error overlays · control-plan upgrade overlays.
