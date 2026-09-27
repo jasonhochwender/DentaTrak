@@ -205,25 +205,26 @@ check('auth.errors keys', !empty($errors['practice_2fa_required']) && !empty($er
 check('disable blocked message key', !empty($security['two_factor']['disable']['blocked_by_practice']));
 check('invite 2fa note key', !empty($inviteKeys['requires_2fa']));
 
-// ---- Remember Me cannot bypass personal 2FA ----
-// The persistent token restores identity only; a user with totp_enabled
-// must be held at a pending-2FA challenge before any session exists -
-// regardless of whether any practice requires 2FA.
-$rmGuardPos  = strpos($sess, "get2FAStatus(\$user['id'])");
-$rmSetupPos  = strpos($sess, "setupUserSession(\$user, 'remember_me')");
-check('remember-me checks personal 2FA before creating a session',
-    $rmGuardPos !== false && $rmSetupPos !== false && $rmGuardPos < $rmSetupPos);
-check('remember-me holds 2FA users in pending state',
-    strpos($sess, "\$_SESSION['pending_2fa_auth_method'] = 'remember_me'") !== false
-    && strpos($sess, "\$_SESSION['pending_2fa_db_user']") !== false);
-check('remember-me pending path does not set up the session',
-    preg_match("/pending_2fa_auth_method'\] = 'remember_me';[^}]+return false;/s", $sess) === 1);
-check('login page detects pending remember-me challenge',
-    strpos($login, "\$pendingRememberMe2FA") !== false
-    && strpos($login, "pending_2fa_auth_method'] ?? '') === 'remember_me'") !== false);
-check('login page renders challenge for remember-me pending',
-    strpos($login, 'pendingRememberMe') !== false
-    && strpos($login, 'remember_me_2fa_subtitle') !== false);
+// ---- "Remember my email" is prefill-only; no token auto-auth remains ----
+// The persistent remember-me token mechanism was removed: no code path may
+// create a session from a cookie. Legacy remember_token cookies are cleared
+// on sight by the sweep in session.php.
+check('no remember-me session restore remains',
+    strpos($sess, 'attemptRememberMeLogin') === false
+    && strpos($ui, 'attemptRememberMeLogin') === false
+    && strpos($ui, 'validateRememberMeToken') === false
+    && strpos($ui, 'createRememberMeToken') === false);
+check('session.php sweeps legacy remember_token cookies',
+    strpos($sess, "\$_COOKIE['remember_token']") !== false
+    && strpos($sess, 'clearRememberMeCookie') !== false);
+check('remembered-email cookie is written post-login only',
+    strpos($auth, 'setRememberedEmailCookie') !== false
+    && strBefore($auth, 'setupUserSession($user', 'setRememberedEmailCookie'));
+check('remembered-email cookie cleared when box unchecked',
+    strpos($auth, 'clearRememberedEmailCookie') !== false);
+check('login page prefills remembered email server-side',
+    strpos($login, 'getRememberedEmail()') !== false
+    && strpos($login, 'htmlspecialchars($rememberedEmail') !== false);
 check('pending-verify endpoint has bounded attempts',
     strpos($vgoogle, "2fa_challenge_attempts") !== false
     && strpos($vgoogle, '429') !== false);
@@ -235,8 +236,9 @@ check('setupUserSession clears all pending-2FA state centrally',
     strpos($ui, "\$_SESSION['pending_2fa_auth_method']") !== false
     && strpos($ui, "\$_SESSION['pending_2fa_db_user']") !== false
     && strpos($ui, "\$_SESSION['pending_2fa_user_data']") !== false);
-check('remember_me_2fa_subtitle key exists',
-    !empty($locale['auth']['login']['remember_me_2fa_subtitle']));
+check('remember_me label updated + dead 2FA subtitle removed',
+    ($locale['auth']['login']['remember_me'] ?? '') === 'Remember my email'
+    && !isset($locale['auth']['login']['remember_me_2fa_subtitle']));
 
 // ---- CSS ----
 check('warning badge style', strpos($css, '.status-badge.status-warning') !== false);

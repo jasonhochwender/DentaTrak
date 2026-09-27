@@ -3,10 +3,8 @@
  * Verify 2FA Code for Pending Sign-In
  *
  * Completes any sign-in held in the server-side pending-2FA state after
- * TOTP verification. Used by the Google OAuth callback and by Remember Me
- * restores for users with personal 2FA configured - in both cases the
- * first factor already happened elsewhere and only the code is verified
- * here.
+ * TOTP verification. Used by the Google OAuth callback - the first factor
+ * already happened elsewhere and only the code is verified here.
  */
 
 require_once __DIR__ . '/session.php';
@@ -118,7 +116,7 @@ if (!$secret || !TOTP::verifyCode($secret, $totpCode)) {
 }
 
 // 2FA verified successfully - complete the login
-// Clear pending 2FA data (email + remember-me paths share these fields)
+// Clear pending 2FA data
 unset($_SESSION['pending_2fa_user_id']);
 unset($_SESSION['pending_2fa_auth_method']);
 unset($_SESSION['pending_2fa_user_data']);
@@ -153,8 +151,7 @@ $_SESSION['db_user_id'] = $dbUser['id'];
 $_SESSION['user_role'] = $dbUser['role'];
 
 // Record the login activity
-$methodLabel = $authMethod === 'remember_me' ? 'Remember Me' : 'Google OAuth';
-logUserActivity($dbUser['id'], 'login', 'User logged in via ' . $methodLabel . ' with 2FA');
+logUserActivity($dbUser['id'], 'login', 'User logged in via ' . $authMethod . ' with 2FA');
 
 // Create a session record
 createSessionRecord($dbUser['id'], session_id());

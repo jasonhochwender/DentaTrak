@@ -187,7 +187,7 @@ Status: **active** = wired into UI/routes today; **flagged** = behind a feature 
 - Google sign-in / unified identity linking (`user_auth_methods`).
 - Email verification (`email_verification_tokens`).
 - Password reset & first-time setup (`password_reset_tokens`, `password_setup_tokens`).
-- Remember-me tokens (`remember_me_tokens`).
+- "Remember my email" login prefill (30-day `remembered_email` cookie; never authenticates). Legacy `remember_me_tokens` table is unused - leftover rows are purged when encountered.
 - TOTP 2FA: setup, challenge, recovery, reset tokens; practice-level 2FA requirement (`practice_require_2fa` migration); Google-2FA verify.
 - User invitations to practices (`practice-invite-email.php`, `get-practice-users.php`).
 - Practice switching & selection (`select-practice.php`, `switch-practice.php`, `get-user-practices.php`).
@@ -294,7 +294,7 @@ Method: 32 JS feature modules + 3 partials + recurring markup structures (modals
 | `user_activity_log` (ext.) | — | Account activity (BAA acceptance etc.) | user_id |
 | `php_sessions` | 5 | DB session handler storage | — |
 | `php_session_rotations` | 4 | Session rotation hashes | — |
-| `remember_me_tokens` | 9 | Persistent login tokens | FK→users |
+| `remember_me_tokens` | 9 | Legacy persistent login tokens (deprecated - unused) | FK→users |
 | `user_auth_methods` | 8 | Auth method linking (password/Google) | FK→users |
 | `login_attempts` | 4 | Login throttling | — |
 | `email_verification_tokens` | 6 | Email verification | FK→users |
@@ -417,7 +417,7 @@ Inventory of implemented controls only (not a security assessment).
 | TOTP 2FA (setup/challenge/recovery/reset) | `2fa-*.php`, `TOTP` class, `verify-google-2fa.php`, `two_factor_reset_tokens`, QR via endroid |
 | Practice-level 2FA requirement | `practice-2fa-policy.php`, migration `2026_10_02` |
 | Session management (DB handler, rotation, inactivity timeout, revocation) | `session.php`, `session-db-handler.php` (`PdoSessionHandler`, `SessionLockException`), `php_sessions`, `php_session_rotations`, `session-status.php`, `revoke-sessions.php`, `user_session_version` migration |
-| Remember-me tokens | `remember_me_tokens`, `attemptRememberMeLogin()` |
+| Remember my email (login prefill only, 30 days; never authenticates) | `remembered_email` cookie helpers in `unified-identity.php`; legacy `remember_token` auth cookies cleared on sight in `session.php` |
 | CSRF protection | `csrf.php` (`generateCsrfToken`, `validateCsrfToken`, `requireCsrfToken`); used by ~8+ mutating endpoints |
 | Authorization / practice isolation | `practice-security.php` — `verifyPracticeAccess`, `requirePracticeAccess/Admin`, `getPracticeFilter`, `verifyCaseBelongsToPractice`, `requireValidPracticeContext`, `authorized_case_ids` temp-table scoping |
 | Role-based access | `getUserPracticeRole`, `isPracticeAdmin/Owner`, lab-collaborator & limited-visibility restrictions, `canEditCases`, `canViewAnalytics`, `canManageAssignmentLabels` |

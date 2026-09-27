@@ -48,7 +48,7 @@ check('token stored hashed only', strpos($migration, 'token_hash CHAR(64)') !== 
 check('token is single-use + expiring', strpos($migration, 'used BOOLEAN') !== false
     && strpos($migration, 'expires_at') !== false);
 check('migration records initiator', strpos($migration, 'requested_by_user_id') !== false);
-check('migration adds remember-me revocation watermark', strpos($migration, 'remember_me_revoked_after') !== false
+check('migration adds legacy remember-me revocation watermark', strpos($migration, 'remember_me_revoked_after') !== false
     && strpos($migration, 'SHOW COLUMNS FROM users LIKE') !== false);
 check('migration is idempotent', strpos($migration, 'CREATE TABLE IF NOT EXISTS') !== false);
 check('expiry uses DATETIME (no ON UPDATE drift)', strpos($migration, 'expires_at DATETIME NOT NULL') !== false
@@ -86,10 +86,8 @@ check('token claimed atomically inside transaction', strBefore($completeSrc, 'be
 $afterRowCount = substr($completeSrc, strpos($completeSrc, 'rowCount() !== 1'));
 check('claim failure rolls back before responding', strBefore($afterRowCount, 'rollBack()', 'invalid();'));
 check('disable failure throws to rollback', strpos($completeSrc, "throw new RuntimeException('disable2FA failed')") !== false);
-check('revocation errors propagate inside transaction', strpos($completeSrc, 'DELETE FROM remember_me_tokens WHERE user_id') !== false
-    && strpos($completeSrc, 'remember_me_revoked_after = NOW()') !== false);
-check('DDL kept outside transaction', strBefore($completeSrc, 'ensure2FAResetTokensTable($pdo)', 'beginTransaction()')
-    && strBefore($completeSrc, 'ensureRememberMeTable()', 'beginTransaction()'));
+check('session revocation inside transaction', strpos($completeSrc, 'session_version = COALESCE(session_version, 0) + 1') !== false);
+check('DDL kept outside transaction', strBefore($completeSrc, 'ensure2FAResetTokensTable($pdo)', 'beginTransaction()'));
 check('emails sent only after commit', strBefore($completeSrc, 'commit()', 'send2FAResetNotificationEmail'));
 check('audit written only after commit', strBefore($completeSrc, 'commit()', "user_2fa_reset_completed"));
 check('fault-injection hook is non-production only', strpos($completeSrc, 'force-2fa-reset-fail.json') !== false
@@ -102,13 +100,9 @@ check('Google-only uses pending google proof', strpos($recovery, "pending_2fa_au
     && strpos($recovery, "'google'") !== false);
 check('pending google proof is freshness-bounded', strpos($recovery, '<= 900') !== false);
 check('reset uses centralized disable2FA', strpos($recovery, 'disable2FA($userId)') !== false);
-check('remember-me revocation inside transaction', strBefore($completeSrc, 'DELETE FROM remember_me_tokens WHERE user_id', 'commit()')
-    && strBefore($completeSrc, 'remember_me_revoked_after = NOW()', 'commit()'));
-check('revocation stamps stateless-cookie watermark', strpos($uid, 'remember_me_revoked_after = NOW()') !== false);
-check('validation rejects cookies at/before watermark', strpos($uid, 'UNIX_TIMESTAMP(remember_me_revoked_after)') !== false
-    && strpos($uid, "remember_me_revoked_ts']") !== false
-    && strpos($uid, 'REMEMBER_ME_EXPIRY_DAYS') !== false);
-check('watermark column check is migration-safe', strpos($uid, "SHOW COLUMNS FROM users LIKE 'remember_me_revoked_after'") !== false);
+check('session_version bump inside transaction', strBefore($completeSrc, 'session_version = COALESCE(session_version, 0) + 1', 'commit()'));
+check('no remember-me token validation remains', strpos($uid, 'validateRememberMeToken') === false
+    && strpos($uid, 'remember_me_revoked_after = NOW()') === false);
 check('pending session state cleared', strpos($recovery, "pending_2fa_user_id'") !== false
     && strpos($recovery, "totp_verified'") !== false);
 check('session id rotated after reset', strpos($recovery, 'session_regenerate_id(true)') !== false);

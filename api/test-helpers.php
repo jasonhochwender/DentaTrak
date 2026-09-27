@@ -2040,12 +2040,7 @@ function handleGet2faResetTokenState($pdo, $input) {
     );
     $stmt->execute(['id' => $userId]);
     $row = $stmt->fetch(PDO::FETCH_ASSOC);
-    $wm = null;
-    try {
-        $wm = $pdo->query("SELECT remember_me_revoked_after FROM users WHERE id = " . (int)$userId)
-            ->fetchColumn() ?: null;
-    } catch (PDOException $e) {}
-    echo json_encode(['success' => true, 'token' => $row ?: null, 'remember_me_revoked_after' => $wm]);
+    echo json_encode(['success' => true, 'token' => $row ?: null]);
 }
 
 /**

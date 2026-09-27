@@ -20,8 +20,9 @@ $isAuthenticated = !empty($_SESSION['db_user_id']);
 // restore an expired session.
 if (!$isAuthenticated || $timeRemaining <= 0) {
     if ($timeRemaining <= 0 && $isAuthenticated) {
-        // Destroy the PHP session and clear/invalidate the remember-me token
-        // so the client cannot be silently auto-logged in again.
+        // Destroy the PHP session. The client cannot be silently logged back
+        // in - the next sign-in requires full credentials (the remembered-
+        // email cookie only pre-fills the login form, it never authenticates).
         expireInactivitySession();
     }
 

@@ -12,24 +12,19 @@ require_once __DIR__ . '/api/session.php';
 require_once __DIR__ . '/api/security-headers.php';
 setSecurityHeaders();
 
-// ============================================
-// REMEMBER ME AUTO-LOGIN
-// Attempt to auto-login user via persistent token cookie
-// Must be called AFTER appConfig.php and session.php are loaded
-// ============================================
-if (function_exists('attemptRememberMeLogin')) {
-    attemptRememberMeLogin();
-}
+require_once __DIR__ . '/api/unified-identity.php';
 
-// A Remember Me restore for a user who has personal 2FA configured does
-// not create a session - it leaves a pending-2FA challenge instead. The
-// login page must render the code prompt rather than the password form.
-$pendingRememberMe2FA = !empty($_SESSION['pending_2fa_user_id'])
-    && ($_SESSION['pending_2fa_auth_method'] ?? '') === 'remember_me';
+// ============================================
+// REMEMBERED EMAIL (prefill only - never authenticates)
+// "Remember my email" stores only the address on this browser so the form
+// can pre-fill it. Legacy remember_token authentication cookies are rejected
+// and cleared by the sweep in api/session.php before this point - no
+// automatic sign-in exists anymore.
+// ============================================
+$rememberedEmail = getRememberedEmail();
 
 // ============================================
 // REDIRECT IF ALREADY LOGGED IN
-// Security: Includes users auto-logged in via Remember Me token
 // ============================================
 if (!empty($_SESSION['db_user_id'])) {
     header('Location: main.php');
@@ -191,7 +186,7 @@ $sessionRevoked = isset($_GET['revoked']) && $_GET['revoked'] == '1';
               <circle cx="12" cy="12" r="10"/>
               <polyline points="12 6 12 12 16 14"/>
             </svg>
-            <p>Your session has expired due to inactivity. Please sign in again.</p>
+            <p><?php echo t('auth.login.session_timeout'); ?></p>
           </div>
         <?php elseif ($sessionExpired): ?>
           <div class="auth-error" style="background: #eff6ff; border-color: #bfdbfe; color: #1e40af;">
@@ -250,11 +245,11 @@ $sessionRevoked = isset($_GET['revoked']) && $_GET['revoked'] == '1';
         </div>
         
         <!-- Step 1: Email Entry -->
-        <div id="emailEntryForm" class="email-signin-form" style="display: none;">
+        <div id="emailEntryForm" class="email-signin-form" style="<?php echo $rememberedEmail ? 'display: block;' : 'display: none;'; ?>">
           <form id="emailCheckForm" class="email-form">
             <div class="form-group">
               <label for="checkEmail"><?php echo t('auth.login.email_label'); ?></label>
-              <input type="email" id="checkEmail" name="email" required placeholder="<?php echo t('auth.login.email_placeholder'); ?>" autocomplete="email">
+              <input type="email" id="checkEmail" name="email" required placeholder="<?php echo t('auth.login.email_placeholder'); ?>" autocomplete="username" value="<?php echo htmlspecialchars($rememberedEmail ?? '', ENT_QUOTES); ?>">
             </div>
             <div id="emailCheckError" class="form-error" style="display: none;"></div>
             <button type="submit" class="email-submit-btn" id="emailContinueBtn"><?php echo t('auth.login.continue'); ?></button>
@@ -265,7 +260,11 @@ $sessionRevoked = isset($_GET['revoked']) && $_GET['revoked'] == '1';
         <div id="passwordLoginForm" class="email-signin-form" style="display: none;">
           <div class="user-greeting" id="loginGreeting"></div>
           <form id="emailLoginForm" class="email-form">
-            <input type="hidden" id="loginEmail" name="email">
+            <!-- Username field for password managers: rendered but visually
+                 hidden (type="hidden" inputs are ignored by browsers when
+                 saving/filling credentials). Carries the email chosen in
+                 step 1 into this form so the saved credential is complete. -->
+            <input type="email" id="loginEmail" name="username" autocomplete="username" readonly tabindex="-1" aria-hidden="true" class="pm-username-field">
             <div class="form-group">
               <label for="loginPassword"><?php echo t('auth.login.password_label'); ?></label>
               <div class="password-input-wrapper">
@@ -276,10 +275,10 @@ $sessionRevoked = isset($_GET['revoked']) && $_GET['revoked'] == '1';
                 </button>
               </div>
             </div>
-            <!-- Remember Me Checkbox -->
+            <!-- Remember My Email Checkbox (prefill only - never authenticates) -->
             <div class="remember-me-wrapper">
               <label class="remember-me-label">
-                <input type="checkbox" id="rememberMe" name="rememberMe" class="remember-me-checkbox">
+                <input type="checkbox" id="rememberMe" name="rememberMe" class="remember-me-checkbox"<?php echo $rememberedEmail ? ' checked' : ''; ?>>
                 <span class="remember-me-checkmark"></span>
                 <span class="remember-me-text"><?php echo t('auth.login.remember_me'); ?></span>
               </label>
@@ -350,7 +349,8 @@ $sessionRevoked = isset($_GET['revoked']) && $_GET['revoked'] == '1';
         <div id="emailRegisterForm" class="email-signin-form" style="display: none;">
           <div class="user-greeting"><?php echo t('auth.login.create_account'); ?></div>
           <form id="emailRegForm" class="email-form">
-            <input type="hidden" id="regEmail" name="email">
+            <!-- Same password-manager username field as the login form -->
+            <input type="email" id="regEmail" name="username" autocomplete="username" readonly tabindex="-1" aria-hidden="true" class="pm-username-field">
             <div class="form-row">
               <div class="form-group half">
                 <label for="regFirstName"><?php echo t('auth.login.first_name'); ?></label>
@@ -659,9 +659,20 @@ document.addEventListener('DOMContentLoaded', function() {
     emailCheckError.style.display = 'none';
   }
   
-  // Check if user prefers email login and auto-expand if so
+  // Unchecking "Remember my email" clears the remembered address on this
+  // browser immediately (the cookie is also cleared server-side on any
+  // login submitted with the box unchecked).
+  document.getElementById('rememberMe')?.addEventListener('change', function(e) {
+    if (!e.target.checked) {
+      deleteCookie('remembered_email');
+    }
+  });
+
+  // Check if user prefers email login and auto-expand if so - or if a
+  // remembered email is prefilled (the form is already expanded server-side).
   const loginPreference = getCookie('login_preference');
-  if (loginPreference === 'email' && showEmailSignInBtn && emailEntryForm) {
+  const hasRememberedEmail = !!(document.getElementById('checkEmail')?.value);
+  if ((loginPreference === 'email' || hasRememberedEmail) && showEmailSignInBtn && emailEntryForm) {
     emailEntryForm.style.display = 'block';
     showEmailSignInBtn.innerHTML = `
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -968,7 +979,13 @@ document.addEventListener('DOMContentLoaded', function() {
           lastEnteredPassword = ''; // Clear stored password on successful login
           // Save preference for email login (expires in 30 days)
           setCookie('login_preference', 'email', 30);
-          window.location.href = data.redirect || 'main.php';
+          var redirectUrl = data.redirect || 'main.php';
+          // Let the browser offer to save the credential, then navigate.
+          offerPasswordSave(email, password).then(function() {
+            window.location.href = redirectUrl;
+          }, function() {
+            window.location.href = redirectUrl;
+          });
         } else if (data.requires_2fa) {
           // ============================================
           // TWO-FACTOR AUTHENTICATION REQUIRED
@@ -1051,7 +1068,10 @@ document.addEventListener('DOMContentLoaded', function() {
         if (data.success) {
           // Clear stored password on successful registration
           lastEnteredPassword = '';
-          
+          // Offer the new credential to the browser's password manager
+          // (fire-and-forget - the user proceeds to the sign-in form).
+          offerPasswordSave(email, password);
+
           if (data.requires_verification) {
             // Show verification required message
             hideAllForms();
@@ -1215,6 +1235,8 @@ document.addEventListener('DOMContentLoaded', function() {
         setPasswordBtn.textContent = t('auth.login.set_password_button');
         
         if (data.success) {
+          // Offer the newly set credential to the browser's password manager
+          offerPasswordSave(currentEmail, password);
           // Show success and switch to password login
           hideAllForms();
           document.getElementById('loginEmail').value = currentEmail;
@@ -1382,23 +1404,39 @@ function showGoogle2FAInput() {
   }
 }
 
-// Check if we were redirected here for Google 2FA, or held at a Remember
-// Me 2FA challenge (must be after function definition)
+// Check if we were redirected here for Google 2FA
+// (must be after function definition)
 (function checkGoogle2FA() {
   var urlParams = new URLSearchParams(window.location.search);
-  var pendingRememberMe = <?php echo $pendingRememberMe2FA ? 'true' : 'false'; ?>;
-  if (urlParams.get('require_2fa') === 'google' || pendingRememberMe) {
-    // Show 2FA form for server-pending 2FA (Google sign-in or Remember Me)
+  if (urlParams.get('require_2fa') === 'google') {
+    // Show 2FA form for server-pending 2FA (Google sign-in)
     pending2FAGoogle = true;
     showGoogle2FAInput();
-    if (pendingRememberMe) {
-      var twoFactorHeader = document.querySelector('.two-factor-header p');
-      if (twoFactorHeader) twoFactorHeader.textContent = t('auth.login.remember_me_2fa_subtitle');
-    }
     // Clean up URL
     window.history.replaceState({}, document.title, window.location.pathname);
   }
 })();
+
+// Offer the browser's credential manager the just-verified credentials so
+// it can save or update the stored password. Independent of the "Remember
+// my email" checkbox (which only prefills this form). The returned promise
+// resolves when the browser registers the prompt or after a short timeout,
+// so a redirect can never hang waiting for the user to answer the bubble.
+function offerPasswordSave(email, password) {
+  try {
+    if (!email || !password || !('PasswordCredential' in window)
+        || !navigator.credentials || !navigator.credentials.store) {
+      return Promise.resolve();
+    }
+    var cred = new PasswordCredential({ id: email, password: password });
+    return Promise.race([
+      navigator.credentials.store(cred).catch(function() {}),
+      new Promise(function(resolve) { setTimeout(resolve, 1500); })
+    ]).catch(function() {});
+  } catch (e) {
+    return Promise.resolve();
+  }
+}
 
 function show2FAInput(email, password, rememberMe, message) {
   // Store credentials for 2FA verification
@@ -1483,13 +1521,22 @@ if (verify2FABtn) {
     .then(function(response) { return response.json(); })
     .then(function(data) {
       if (data.success) {
+        var completedCreds = pending2FACredentials;
         pending2FACredentials = null;
         // Save email login preference if this was email 2FA (not Google 2FA)
         if (!pending2FAGoogle) {
           setCookie('login_preference', 'email', 30);
         }
         pending2FAGoogle = false;
-        window.location.href = data.redirect || 'main.php';
+        var redirectUrl = data.redirect || 'main.php';
+        // Offer the verified password to the browser's credential manager
+        // (email/password 2FA only - Google sign-in has no password here).
+        var done = function() { window.location.href = redirectUrl; };
+        if (completedCreds && completedCreds.email && completedCreds.password) {
+          offerPasswordSave(completedCreds.email, completedCreds.password).then(done, done);
+        } else {
+          done();
+        }
       } else {
         verify2FABtn.disabled = false;
         verify2FABtn.textContent = t('auth.login.verify_and_sign_in');

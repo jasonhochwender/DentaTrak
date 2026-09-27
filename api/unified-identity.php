@@ -1226,244 +1226,23 @@ function isAuthenticatedWithGoogle($email) {
 }
 
 // ============================================
-// REMEMBER ME FUNCTIONALITY
-// Security: Implements persistent login tokens for "Remember Me" feature
-// Tokens are stored hashed in the database, only the selector is stored in cookie
+// LEGACY REMEMBER-ME CLEANUP + REMEMBERED EMAIL
+// Security: "Remember my email" is a login-form convenience only - it
+// pre-fills the email field on this browser and never authenticates.
+// The old remember_token authentication cookies are no longer issued or
+// accepted anywhere: any code still calling them has been removed, and the
+// remaining helpers here only clear/expire legacy tokens when encountered.
 // ============================================
 
-define('REMEMBER_ME_COOKIE_NAME', 'remember_token');
-define('REMEMBER_ME_EXPIRY_DAYS', 30);
+define('REMEMBER_ME_COOKIE_NAME', 'remember_token'); // legacy auth cookie - cleared on sight
+define('REMEMBERED_EMAIL_COOKIE', 'remembered_email'); // prefill-only preference
+define('REMEMBERED_EMAIL_DAYS', 30);
 
 /**
- * Ensure the remember_me_tokens table exists
- * Security: Stores hashed tokens, not plain text
- */
-function ensureRememberMeTable() {
-    global $pdo;
-    static $initialized = false;
-    
-    if ($initialized || !$pdo) {
-        return;
-    }
-    
-    try {
-        $pdo->exec("
-            CREATE TABLE IF NOT EXISTS remember_me_tokens (
-                id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-                user_id INT UNSIGNED NOT NULL,
-                selector VARCHAR(64) NOT NULL UNIQUE,
-                token_hash VARCHAR(255) NOT NULL,
-                expires_at TIMESTAMP NOT NULL,
-                created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                last_used_at TIMESTAMP NULL,
-                user_agent VARCHAR(255) DEFAULT NULL,
-                ip_address VARCHAR(45) DEFAULT NULL,
-                
-                INDEX idx_user_id (user_id),
-                INDEX idx_selector (selector),
-                INDEX idx_expires (expires_at),
-                
-                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
-        ");
-        $initialized = true;
-    } catch (PDOException $e) {
-        if (strpos($e->getMessage(), '1050') === false) {
-            error_log('[unified-identity] Error creating remember_me_tokens table: ' . $e->getMessage());
-        }
-        $initialized = true;
-    }
-}
-
-/**
- * Create a remember me token for persistent login
- * Uses signed cookie approach - no database storage needed
- * 
- * @param int $userId User ID
- * @return string|false The cookie value (userId:expiry:signature) or false on failure
- */
-function createRememberMeToken($userId) {
-    if (!$userId) return false;
-    
-    // Create expiry timestamp (30 days from now)
-    $expiry = time() + (REMEMBER_ME_EXPIRY_DAYS * 24 * 60 * 60);
-    
-    // Create HMAC signature
-    $secret = getRememberMeSecret();
-    $signature = hash_hmac('sha256', $userId . ':' . $expiry, $secret);
-    
-    // Return the cookie value (userId:expiry:signature)
-    return $userId . ':' . $expiry . ':' . $signature;
-}
-
-/**
- * Set the remember me cookie
- * 
- * @param string $cookieValue The cookie value
- * @return bool Success status
- */
-function setRememberMeCookie($cookieValue) {
-    $isProduction = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') 
-        || (!empty($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https')
-        || (!empty($_SERVER['SERVER_PORT']) && $_SERVER['SERVER_PORT'] == 443);
-    
-    $expires = time() + (REMEMBER_ME_EXPIRY_DAYS * 24 * 60 * 60);
-    
-    return setcookie(REMEMBER_ME_COOKIE_NAME, $cookieValue, [
-        'expires' => $expires,
-        'path' => '/',
-        'domain' => '',
-        'secure' => $isProduction,
-        'httponly' => true,
-        'samesite' => 'Lax'
-    ]);
-}
-
-/**
- * Validate a remember me token and return the user
- * Uses a simpler signed cookie approach for reliability
- * 
- * @return array|null User data if valid, null otherwise
- */
-function validateRememberMeToken() {
-    global $pdo;
-    
-    if (!$pdo) {
-        return null;
-    }
-    
-    $cookieValue = $_COOKIE[REMEMBER_ME_COOKIE_NAME] ?? null;
-    if (!$cookieValue) {
-        return null;
-    }
-    
-    // New format: userId:expiry:signature
-    $parts = explode(':', $cookieValue);
-    if (count($parts) !== 3) {
-        // Try old format for backwards compatibility
-        return validateRememberMeTokenLegacy($cookieValue);
-    }
-    
-    list($userId, $expiry, $signature) = $parts;
-    
-    // Check expiry
-    if ((int)$expiry < time()) {
-        return null;
-    }
-    
-    // Verify signature
-    $secret = getRememberMeSecret();
-    $expectedSignature = hash_hmac('sha256', $userId . ':' . $expiry, $secret);
-    
-    if (!hash_equals($expectedSignature, $signature)) {
-        return null;
-    }
-    
-    // Look up user
-    try {
-        $hasRevocation = rememberMeRevocationColumnExists();
-        $revocationCol = $hasRevocation ? ', UNIX_TIMESTAMP(remember_me_revoked_after) AS remember_me_revoked_ts' : '';
-        $stmt = $pdo->prepare("
-            SELECT id, email, first_name, last_name, profile_picture,
-                   role, is_active, auth_method, email_verified{$revocationCol}
-            FROM users
-            WHERE id = :id AND is_active = 1
-        ");
-        $stmt->execute(['id' => $userId]);
-        $user = $stmt->fetch(PDO::FETCH_ASSOC);
-        
-        if (!$user) {
-            return null;
-        }
-
-        // Revocation watermark: cookies are stateless, so any cookie issued
-        // before a revocation event (2FA reset, password change, etc.) must
-        // be rejected. Issue time = expiry - lifetime. UNIX_TIMESTAMP keeps
-        // the comparison epoch-based regardless of PHP's timezone setting.
-        if ($hasRevocation && !empty($user['remember_me_revoked_ts'])) {
-            $issuedAt = (int)$expiry - (REMEMBER_ME_EXPIRY_DAYS * 24 * 60 * 60);
-            if ($issuedAt <= (int)$user['remember_me_revoked_ts']) {
-                return null;
-            }
-        }
-        
-        return $user;
-        
-    } catch (PDOException $e) {
-        return null;
-    }
-}
-
-/**
- * Legacy token validation for backwards compatibility
- */
-function validateRememberMeTokenLegacy($cookieValue) {
-    global $pdo;
-    
-    if (strpos($cookieValue, ':') === false) {
-        return null;
-    }
-    
-    list($selector, $token) = explode(':', $cookieValue, 2);
-    
-    if (empty($selector) || empty($token)) {
-        return null;
-    }
-    
-    try {
-        $stmt = $pdo->prepare("
-            SELECT rmt.user_id, rmt.token_hash, rmt.expires_at,
-                   u.id, u.email, u.first_name, u.last_name, u.profile_picture,
-                   u.role, u.is_active, u.auth_method, u.email_verified
-            FROM remember_me_tokens rmt
-            JOIN users u ON rmt.user_id = u.id
-            WHERE rmt.selector = :selector
-        ");
-        $stmt->execute(['selector' => $selector]);
-        $record = $stmt->fetch(PDO::FETCH_ASSOC);
-        
-        if (!$record || !$record['is_active']) {
-            return null;
-        }
-        
-        if (strtotime($record['expires_at']) < time()) {
-            return null;
-        }
-        
-        $tokenHash = hash('sha256', $token);
-        if (!hash_equals($record['token_hash'], $tokenHash)) {
-            return null;
-        }
-        
-        return [
-            'id' => $record['user_id'],
-            'email' => $record['email'],
-            'first_name' => $record['first_name'],
-            'last_name' => $record['last_name'],
-            'profile_picture' => $record['profile_picture'],
-            'role' => $record['role'],
-            'is_active' => $record['is_active'],
-            'auth_method' => $record['auth_method'],
-            'email_verified' => $record['email_verified']
-        ];
-        
-    } catch (PDOException $e) {
-        return null;
-    }
-}
-
-/**
- * Get or generate the Remember Me secret key
- */
-function getRememberMeSecret() {
-    global $appConfig;
-    // Use app secret or a default (should be configured in production)
-    return $appConfig['app_secret'] ?? 'dentatrak-remember-me-secret-key-2024';
-}
-
-/**
- * Delete a remember me token by selector
- * 
+ * Delete a legacy remember-me token row by selector.
+ * Best-effort cleanup only - the table may not exist on newer installs and
+ * the tokens are never accepted for authentication regardless.
+ *
  * @param string $selector Token selector
  */
 function deleteRememberMeTokenBySelector($selector) {
@@ -1480,9 +1259,11 @@ function deleteRememberMeTokenBySelector($selector) {
 }
 
 /**
- * Revoke all remember me tokens for a user
- * Security: Called on logout, password change, or suspected token theft
- * 
+ * Purge any legacy remember-me token rows for a user.
+ * Retained as a cleanup hook for session revocation, password change, and
+ * 2FA recovery paths: the tokens authenticate nothing anymore, but stale
+ * rows should not linger. Tolerates the table being absent entirely.
+ *
  * @param int $userId User ID
  */
 function revokeAllRememberMeTokens($userId, $throwOnError = false) {
@@ -1490,31 +1271,15 @@ function revokeAllRememberMeTokens($userId, $throwOnError = false) {
 
     if (!$pdo || !$userId) return;
 
-    ensureRememberMeTable();
-
     try {
         $stmt = $pdo->prepare("DELETE FROM remember_me_tokens WHERE user_id = :user_id");
         $stmt->execute(['user_id' => $userId]);
     } catch (PDOException $e) {
-        // Silently fail - token cleanup is not critical for legacy callers;
-        // security-sensitive callers pass $throwOnError for fail-closed use.
-        if ($throwOnError) {
+        // Missing table or other cleanup failure - never blocks the caller's
+        // security operation; the tokens are non-functional either way.
+        if ($throwOnError && strpos($e->getMessage(), '42S02') === false
+            && strpos($e->getMessage(), "doesn't exist") === false) {
             throw $e;
-        }
-    }
-
-    // Stateless HMAC cookies (userId:expiry:signature) have no DB row - the
-    // revocation watermark is the only way to invalidate them. Validation
-    // rejects any cookie issued before this moment.
-    if (rememberMeRevocationColumnExists()) {
-        try {
-            $stmt = $pdo->prepare("UPDATE users SET remember_me_revoked_after = NOW() WHERE id = :id");
-            $stmt->execute(['id' => $userId]);
-        } catch (PDOException $e) {
-            // Pre-migration schemas resolve to column-missing
-            if ($throwOnError) {
-                throw $e;
-            }
         }
     }
 }
@@ -1606,8 +1371,7 @@ function revokeAllUserSessions($userId, $reason = 'security_event', $actorId = n
 
     $newVersion = bumpUserSessionVersion($userId);
 
-    // Strict mode: remember-me revocation failure must propagate so callers
-    // never report a security operation complete while cookies still work.
+    // Purge any stale legacy remember-me token rows for the user.
     revokeAllRememberMeTokens($userId, true);
 
     if (function_exists('logSecurityEvent')) {
@@ -1623,23 +1387,10 @@ function revokeAllUserSessions($userId, $reason = 'security_event', $actorId = n
 }
 
 /**
- * Whether users.remember_me_revoked_after exists (pre-migration safe).
- */
-function rememberMeRevocationColumnExists() {
-    global $pdo;
-    static $exists = null;
-    if ($exists !== null) return $exists;
-    $exists = false;
-    try {
-        $exists = (bool)$pdo->query("SHOW COLUMNS FROM users LIKE 'remember_me_revoked_after'")->fetch();
-    } catch (PDOException $e) {
-        $exists = false;
-    }
-    return $exists;
-}
-
-/**
- * Clear the remember me cookie
+ * Clear a legacy remember-me authentication cookie wherever it is
+ * encountered. These cookies are never accepted for sign-in anymore - this
+ * only wipes the stale browser state and deletes any selector-based DB row
+ * it still references.
  */
 function clearRememberMeCookie() {
     if (isset($_COOKIE[REMEMBER_ME_COOKIE_NAME])) {
@@ -1663,18 +1414,92 @@ function clearRememberMeCookie() {
 }
 
 /**
- * Clean up expired remember me tokens (maintenance function)
+ * Clean up expired legacy remember-me token rows (maintenance function).
+ * No-op when the table does not exist.
  */
 function cleanupExpiredRememberMeTokens() {
     global $pdo;
-    
+
     if (!$pdo) return;
-    
-    ensureRememberMeTable();
-    
+
     try {
         $pdo->exec("DELETE FROM remember_me_tokens WHERE expires_at < NOW()");
     } catch (PDOException $e) {
-        error_log('[unified-identity] Error cleaning up remember me tokens: ' . $e->getMessage());
+        // Missing table on newer installs - nothing to clean.
     }
+}
+
+// ============================================
+// REMEMBERED EMAIL (login-form prefill only)
+// "Remember my email" stores ONLY the email address on this browser for 30
+// days so the login form can pre-fill it. It is never proof of identity and
+// grants no access - every sign-in still requires full credentials (and any
+// applicable 2FA). The cookie is readable by login-page JavaScript so
+// unchecking the box can clear it, matching the existing login_preference
+// cookie convention.
+// ============================================
+
+/**
+ * Store the email address on this browser for login-form prefill.
+ * Only a syntactically valid address is ever written.
+ *
+ * @param string $email Authenticated user's email (post-login only)
+ * @return bool Success status
+ */
+function setRememberedEmailCookie($email) {
+    $email = trim((string)$email);
+    if ($email === '' || strlen($email) > 254
+        || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        return false;
+    }
+
+    $secure = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
+        || (!empty($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https')
+        || (!empty($_SERVER['SERVER_PORT']) && $_SERVER['SERVER_PORT'] == 443);
+
+    return setcookie(REMEMBERED_EMAIL_COOKIE, $email, [
+        'expires' => time() + (REMEMBERED_EMAIL_DAYS * 24 * 60 * 60),
+        'path' => '/',
+        'domain' => '',
+        'secure' => $secure,
+        'httponly' => false, // login page JS clears it when the box is unchecked
+        'samesite' => 'Lax'
+    ]);
+}
+
+/**
+ * Clear the remembered-email cookie on this browser.
+ */
+function clearRememberedEmailCookie() {
+    $secure = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
+        || (!empty($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https');
+
+    setcookie(REMEMBERED_EMAIL_COOKIE, '', [
+        'expires' => time() - 3600,
+        'path' => '/',
+        'domain' => '',
+        'secure' => $secure,
+        'httponly' => false,
+        'samesite' => 'Lax'
+    ]);
+    // Same-request reads must not see the stale value.
+    unset($_COOKIE[REMEMBERED_EMAIL_COOKIE]);
+}
+
+/**
+ * The remembered email for login-form prefill, or null.
+ * This is untrusted browser input: validated for format and never used as
+ * proof of identity.
+ */
+function getRememberedEmail() {
+    $email = $_COOKIE[REMEMBERED_EMAIL_COOKIE] ?? null;
+    if (!is_string($email)) {
+        return null;
+    }
+    $email = trim($email);
+    if ($email === '' || strlen($email) > 254
+        || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        return null;
+    }
+    return $email;
 }

@@ -240,52 +240,57 @@ function extractCsrf(html) {
     const owner2faStatus = await owner.request.get(BASE + '/api/2fa-setup.php?action=status');
     check('owner personal 2FA survives policy disable', (await owner2faStatus.json()).enabled === true);
 
-    // ---- Re-enable for remember-me challenge flow ----
+    // ---- Re-enable for the remembered-email / 2FA flow ----
     const reEnable = await owner.request.post(BASE + '/api/practice-2fa-policy.php?action=update', {
       headers: { 'X-CSRF-Token': ownerToken },
       data: { enabled: true }
     });
     check('owner re-enables requirement', (await reEnable.json()).success === true);
 
-    // ---- Remember Me restore: enrolled member must re-prove 2FA ----
-    // Personal 2FA is a login-time control: the persistent cookie may
-    // remember identity but must never create a session that already
-    // satisfies (or skips) the second factor - regardless of practice
-    // policy.
+    // ---- "Remember my email": prefill-only, never authenticates ----
+    // The checkbox stores only the email address on this browser. A new
+    // browser carrying just that cookie (or a forged legacy remember_token)
+    // gets no session at all - full credentials and any required 2FA are
+    // still enforced.
     const rmCtx = await browser.newContext();
     const rmLogin = await login(rmCtx, memberEmail, {
       rememberMe: true,
       totpCode: totpCode(mSetupData.secret)
     });
-    check('member remember-me login with 2FA succeeds', rmLogin.success === true);
+    check('member login with remember-my-email + 2FA succeeds', rmLogin.success === true);
     const rmCookies = await rmCtx.cookies(BASE);
-    const rememberCookie = rmCookies.find(ck => ck.name === 'remember_token');
-    assert.ok(rememberCookie, 'remember_token cookie issued');
+    const emailCookie = rmCookies.find(ck => ck.name === 'remembered_email');
+    assert.ok(emailCookie, 'remembered_email cookie issued');
+    check('no remember_token auth cookie issued', !rmCookies.find(ck => ck.name === 'remember_token'));
 
     const restore = await browser.newContext();
-    await restore.addCookies([{ name: 'remember_token', value: rememberCookie.value, url: BASE }]);
-    // attemptRememberMeLogin() only runs on the login page. For a user
-    // with totp_enabled it must now leave a PENDING 2FA state - no
-    // authenticated session is created at all.
+    await restore.addCookies([
+      { name: 'remembered_email', value: emailCookie.value, url: BASE },
+      { name: 'remember_token', value: 'legacy:forged-cookie', url: BASE }
+    ]);
+    // No automatic sign-in exists anymore: the login page stays on login,
+    // prefills the email, and clears the legacy cookie on sight.
     const loginResp = await restore.request.get(BASE + '/login.php', { maxRedirects: 10 });
     const loginHtml = await loginResp.text();
-    check('remember-me restore stays on login for 2FA user', loginResp.url().includes('login.php'));
-    check('remember-me restore renders the 2FA challenge', loginHtml.includes('pendingRememberMe = true'));
+    check('remembered email alone does not authenticate', loginResp.url().includes('login.php'));
+    check('login page prefills the remembered email', loginHtml.includes(memberEmail));
+    const afterCookies = await restore.cookies(BASE);
+    check('legacy remember_token cleared on sight', !afterCookies.find(ck => ck.name === 'remember_token'));
 
-    // Pending state is not an authenticated session: practice APIs deny it.
+    // No authenticated session was created: practice APIs deny it.
     const pendingApi = await restore.request.get(BASE + '/api/practice-2fa-policy.php?action=status');
-    check('pending remember-me session has no authenticated access', pendingApi.status() === 401);
+    check('remembered email grants no authenticated access', pendingApi.status() === 401);
 
-    // Wrong-format code is rejected; the real code completes the sign-in.
+    // The pending-2FA verify endpoint still rejects requests with no
+    // pending challenge.
     const badCode = await restore.request.post(BASE + '/api/verify-google-2fa.php', {
       data: { totpCode: '1234' }
     });
-    check('pending challenge rejects malformed code', badCode.status() === 400);
-    const pendingVerify = await restore.request.post(BASE + '/api/verify-google-2fa.php', {
-      data: { totpCode: totpCode(mSetupData.secret) }
-    });
-    const pendingVerifyData = await pendingVerify.json();
-    check('pending challenge accepts valid TOTP', pendingVerifyData.success === true);
+    check('verify endpoint rejects request without pending state', badCode.status() === 400);
+
+    // Signing in on that browser still requires full credentials + TOTP.
+    const restoreLogin = await login(restore, memberEmail, { totpCode: totpCode(mSetupData.secret) });
+    check('2FA login succeeds on remembered-email browser', restoreLogin.success === true);
 
     // The completed session carries the proof flag, so the required
     // practice admits it without a second challenge.
@@ -341,15 +346,15 @@ function extractCsrf(html) {
     const rm2Login = await login(rm2, owner2Email, { rememberMe: true });
     check('owner2 fresh login', rm2Login.success === true);
 
-    // A user WITHOUT personal 2FA keeps the classic remember-me restore:
-    // no pending challenge, straight into an authenticated session.
+    // A user WITHOUT personal 2FA gets the same prefill-only behavior:
+    // the remembered-email cookie alone never auto-enters the app.
     const rm2Cookies = await rm2.cookies(BASE);
-    const rm2Cookie = rm2Cookies.find(ck => ck.name === 'remember_token');
-    assert.ok(rm2Cookie, 'remember_token cookie issued for non-2FA user');
+    const rm2EmailCookie = rm2Cookies.find(ck => ck.name === 'remembered_email');
+    assert.ok(rm2EmailCookie, 'remembered_email cookie issued for non-2FA user');
     const restore2 = await browser.newContext();
-    await restore2.addCookies([{ name: 'remember_token', value: rm2Cookie.value, url: BASE }]);
+    await restore2.addCookies([{ name: 'remembered_email', value: rm2EmailCookie.value, url: BASE }]);
     const loginResp2 = await restore2.request.get(BASE + '/login.php', { maxRedirects: 10 });
-    check('non-2FA remember-me restore auto-enters app', !loginResp2.url().includes('login.php'));
+    check('non-2FA remembered email does not auto-enter app', loginResp2.url().includes('login.php'));
     const rm2Token = await csrfFor(rm2);
     const foreignSel = await rm2.request.post(BASE + '/api/select-practice.php', {
       headers: { 'X-CSRF-Token': rm2Token, 'Accept': 'application/json' },

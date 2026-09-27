@@ -2,7 +2,9 @@
 /**
  * Session management
  *
- * This file handles session timeout configuration and "Remember Me" auto-login.
+ * This file handles session timeout configuration and clears any legacy
+ * remember-me authentication cookie a browser still presents - the "Remember
+ * my email" checkbox only pre-fills the login form and never authenticates.
  * The actual session storage is configured in appConfig.php, which now uses the
  * shared PDO session handler instead of container-local files.
  */
@@ -26,6 +28,17 @@ if (session_status() === PHP_SESSION_NONE) {
 
 // Load app configuration and start the session with the shared PDO handler
 require_once __DIR__ . '/appConfig.php';
+
+// Legacy remember-me authentication cookies are no longer issued or accepted
+// anywhere - "Remember my email" only pre-fills the login form. Clear the
+// stale token cookie (and any selector-based DB row it references) as soon
+// as a browser presents it, regardless of which page or endpoint was hit.
+if (!empty($_COOKIE['remember_token'])) {
+    require_once __DIR__ . '/unified-identity.php';
+    if (function_exists('clearRememberMeCookie')) {
+        clearRememberMeCookie();
+    }
+}
 
 /**
  * Regenerates the session ID and updates last activity time
@@ -79,25 +92,12 @@ function getSessionInactivityReference() {
 }
 
 /**
- * Fully expire a session due to inactivity:
- * - Clear and invalidate the remember-me token
- * - Destroy the PHP session
+ * Fully expire a session due to inactivity: destroy the PHP session.
+ * The remembered-email cookie (prefill only) is intentionally left alone -
+ * it is not an authentication artifact and may remain across sign-outs.
+ * Any legacy remember_token cookie was already cleared by the sweep above.
  */
 function expireInactivitySession() {
-    // Load the remember-me helpers if they are not already available.
-    // unified-identity.php defines clearRememberMeCookie(), which both
-    // deletes the matching token from the database and expires the cookie.
-    if (!function_exists('clearRememberMeCookie')) {
-        $unifiedIdentityPath = __DIR__ . '/unified-identity.php';
-        if (file_exists($unifiedIdentityPath)) {
-            require_once $unifiedIdentityPath;
-        }
-    }
-
-    if (function_exists('clearRememberMeCookie')) {
-        clearRememberMeCookie();
-    }
-
     session_unset();
     session_destroy();
 }
@@ -119,8 +119,8 @@ function checkSessionTimeout() {
         $inactiveTime = time() - $lastReference;
 
         if ($inactiveTime > SESSION_TIMEOUT) {
-            // Session has timed out. Destroy the session and clear the remember
-            // token so the user cannot be silently auto-logged back in.
+            // Session has timed out - destroy it. The user must complete a
+            // full credential login again; nothing restores access silently.
             expireInactivitySession();
             return false;
         }
@@ -191,9 +191,9 @@ function isUserSessionRevoked() {
 // on its very next request - page, API, or practice switch - regardless of
 // what the client still holds.
 if (!empty($_SESSION['db_user_id']) && isUserSessionRevoked()) {
-    // Reuse the inactivity path: clears this browser's remember-me cookie and
-    // destroys the session server-side, wiping identity, practice context,
-    // pending-2FA state, and other security-sensitive session data.
+    // Reuse the inactivity path: destroys the session server-side, wiping
+    // identity, practice context, pending-2FA state, and other
+    // security-sensitive session data.
     expireInactivitySession();
     $isApiRequest = strpos($_SERVER['REQUEST_URI'] ?? '', '/api/') !== false;
     if (!$isApiRequest) {
@@ -263,89 +263,9 @@ if (!empty($_SESSION['db_user_id'])) {
 }
 
 // ============================================
-// REMEMBER ME AUTO-LOGIN
-// Security: Validates persistent token and restores session
-// Only runs if user is not already logged in
+// REMEMBER-ME AUTO-LOGIN REMOVED
+// Persistent login tokens are no longer issued or accepted. The "Remember my
+// email" option stores only an email address for login-form prefill (see
+// unified-identity.php), and any legacy remember_token cookie is rejected and
+// cleared by the sweep at the top of this file.
 // ============================================
-function attemptRememberMeLogin() {
-    // Only attempt if not already logged in
-    if (!empty($_SESSION['db_user_id'])) {
-        return false;
-    }
-    
-    // Check if remember me cookie exists
-    if (empty($_COOKIE['remember_token'])) {
-        return false;
-    }
-    
-    // Access $pdo directly from GLOBALS - appConfig.php should already be loaded by the parent script
-    $pdo = $GLOBALS['pdo'] ?? null;
-    
-    if (!$pdo) {
-        return false;
-    }
-    
-    // Load unified identity functions if not already loaded
-    $unifiedIdentityPath = __DIR__ . '/unified-identity.php';
-    if (file_exists($unifiedIdentityPath)) {
-        require_once $unifiedIdentityPath;
-        
-        // Validate the remember me token
-        if (function_exists('validateRememberMeToken')) {
-            $user = validateRememberMeToken();
-            
-            if ($user) {
-                // Personal 2FA must not be bypassed by Remember Me. The
-                // persistent token proves "this browser signed in before",
-                // never the second factor - so a user with TOTP configured
-                // is held in the same pending-2FA state used by the email
-                // and Google login paths and completes a fresh challenge
-                // before any full session exists. verify-google-2fa.php
-                // consumes this pending state generically.
-                require_once __DIR__ . '/totp.php';
-                $twoFAStatus = function_exists('get2FAStatus')
-                    ? get2FAStatus($user['id'])
-                    : ['enabled' => false];
-
-                if (!empty($twoFAStatus['enabled'])) {
-                    $_SESSION['pending_2fa_user_id'] = $user['id'];
-                    $_SESSION['pending_2fa_email'] = $user['email'];
-                    $_SESSION['pending_2fa_auth_method'] = 'remember_me';
-                    $_SESSION['pending_2fa_db_user'] = $user;
-                    $_SESSION['pending_2fa_timestamp'] = time();
-                    // Session generation at pending creation - revocation
-                    // after this point must not let this challenge mint a
-                    // valid session.
-                    $_SESSION['pending_2fa_auth_version'] = getUserSessionVersion($user['id']);
-                    return false;
-                }
-
-                // Token is valid - set up session
-                if (function_exists('setupUserSession')) {
-                    setupUserSession($user, 'remember_me');
-                    
-                    // Resolve which practice (if any) to auto-select, or
-                    // whether the user needs to be sent to the existing
-                    // practice chooser. Same resolution used by every other
-                    // login path - see resolveLoginPracticeSelection() in
-                    // user-manager.php.
-                    $userManagerPath = __DIR__ . '/user-manager.php';
-                    if (file_exists($userManagerPath)) {
-                        require_once $userManagerPath;
-                    }
-                    if (function_exists('resolveLoginPracticeSelection')) {
-                        resolveLoginPracticeSelection($user['id']);
-                    }
-                    
-                    return true;
-                }
-            }
-        }
-    }
-    
-    return false;
-}
-
-// NOTE: attemptRememberMeLogin() is NOT called automatically here
-// It must be called explicitly by the parent script (e.g., login.php)
-// AFTER appConfig.php has been loaded to ensure $pdo is available

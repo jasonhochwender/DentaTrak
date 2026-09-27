@@ -148,13 +148,6 @@ try {
     // ============================================
     $newPasswordHash = password_hash($newPassword, PASSWORD_BCRYPT);
 
-    // Table/DDL ensures must run BEFORE beginTransaction - CREATE TABLE
-    // (even IF NOT EXISTS) can implicit-commit and silently break the
-    // atomicity of the password change + revocation below.
-    if (function_exists('ensureRememberMeTable')) {
-        ensureRememberMeTable();
-    }
-
     // Begin transaction
     $pdo->beginTransaction();
     
@@ -172,10 +165,10 @@ try {
         ]);
         
         // ============================================
-        // SECURITY: Invalidate all Remember Me tokens and every OTHER
-        // authenticated session for this user. Runs inside the transaction
-        // so the password change and revocation commit or roll back
-        // together; the current session is re-stamped after commit.
+        // SECURITY: Invalidate every OTHER authenticated session for this
+        // user. Runs inside the transaction so the password change and
+        // revocation commit or roll back together; the current session is
+        // re-stamped after commit.
         // ============================================
         $newSessionVersion = null;
         if (function_exists('revokeAllUserSessions')) {

@@ -224,52 +224,51 @@ function tokenFromEmail(email) {
     const st1 = (await helper({ action: 'get_2fa_reset_token_state', email: soloEmail })).token;
     check('token not consumed by wrong password', st1 && Number(st1.used) === 0);
 
-    // Give solo a remember-me cookie so revocation is provable: a 2FA login
-    // completes in one call when the TOTP code rides with rememberMe.
+    // "Remember my email" only stores a prefill cookie - no auth token is
+    // issued, so there is nothing for revocation to invalidate. Verify the
+    // cookie shape plus that prefill/legacy cookies grant no access.
     const soloRm = await browser.newContext();
     const rmLogin = await soloRm.request.post(BASE + '/api/auth-email.php', {
       data: { action: 'login', email: soloEmail, password, rememberMe: true, totpCode: totpCode(soloSecret) }
     });
-    check('2FA login with remember-me succeeds', (await rmLogin.json()).success === true);
-    const rmCookie = (await soloRm.cookies(BASE)).find(c => c.name === 'remember_token');
-    assert.ok(rmCookie, 'remember_token cookie issued');
+    check('2FA login with remember-my-email succeeds', (await rmLogin.json()).success === true);
+    const rmCookies = await soloRm.cookies(BASE);
+    const emailCookie = rmCookies.find(c => c.name === 'remembered_email');
+    check('remembered_email prefill cookie issued', !!emailCookie && decodeURIComponent(emailCookie.value) === soloEmail);
+    check('no remember_token auth cookie issued', !rmCookies.find(c => c.name === 'remember_token'));
     await soloRm.close();
 
     const done = await completeRecovery(anon3, resetCsrf, soloToken, password);
     check('valid token + password succeeds', done.status === 200 && done.data.success === true);
     check('optional-practice user not forced to re-enroll', done.data.requires_reenrollment === false);
 
-    // The old remember-me cookie must restore NOTHING after the reset -
-    // solo now has no 2FA, so a surviving cookie would be a full bypass.
+    // A remembered-email cookie plus a forged legacy remember_token must
+    // never create a session - the legacy cookie is cleared on sight.
     const stolen = await browser.newContext();
-    await stolen.addCookies([{ name: 'remember_token', value: rmCookie.value, url: BASE }]);
+    await stolen.addCookies([
+      { name: 'remembered_email', value: emailCookie.value, url: BASE },
+      { name: 'remember_token', value: 'forged:legacy-cookie', url: BASE }
+    ]);
     await stolen.request.get(BASE + '/login.php', { maxRedirects: 10 });
     const stolenApi = await stolen.request.get(BASE + '/api/practice-2fa-policy.php?action=status');
-    check('revoked remember-me cookie restores no session', stolenApi.status() === 401);
+    check('prefill/legacy cookies grant no session', stolenApi.status() === 401);
+    const stolenCookies = await stolen.cookies(BASE);
+    check('legacy remember_token cleared on sight', !stolenCookies.find(c => c.name === 'remember_token'));
     await stolen.close();
 
-    // Cookies issued AFTER the reset still work - revocation is a
-    // watermark, not a global kill of the feature. The watermark is
-    // second-precision: wait past the second boundary so this cookie
-    // provably post-dates it.
-    await new Promise(r => setTimeout(r, 1100));
+    // A post-reset login still works normally and re-issues the prefill
+    // cookie - account recovery does not affect "Remember my email".
     const rm2 = await browser.newContext();
     const rm2Login = await rm2.request.post(BASE + '/api/auth-email.php', {
       data: { action: 'login', email: soloEmail, password, rememberMe: true }
     });
     check('post-reset login succeeds without 2FA', (await rm2Login.json()).success === true);
-    const rm2Cookie = (await rm2.cookies(BASE)).find(c => c.name === 'remember_token');
-    const fresh = await browser.newContext();
-    await fresh.addCookies([{ name: 'remember_token', value: rm2Cookie.value, url: BASE }]);
-    await fresh.request.get(BASE + '/login.php', { maxRedirects: 10 });
-    const freshApi = await fresh.request.get(BASE + '/api/practice-2fa-policy.php?action=status');
-    check('post-reset remember-me cookie restores session', freshApi.status() !== 401);
+    const rm2Cookies = await rm2.cookies(BASE);
+    check('post-reset login re-issues prefill cookie only',
+      !!rm2Cookies.find(c => c.name === 'remembered_email') && !rm2Cookies.find(c => c.name === 'remember_token'));
     await rm2.close();
-    await fresh.close();
-    const st2full = await helper({ action: 'get_2fa_reset_token_state', email: soloEmail });
-    const st2 = st2full.token;
+    const st2 = (await helper({ action: 'get_2fa_reset_token_state', email: soloEmail })).token;
     check('token consumed after success', Number(st2.used) === 1);
-    check('remember-me watermark stamped at reset', !!st2full.remember_me_revoked_after);
 
     const replay = await completeRecovery(anon3, resetCsrf, soloToken, password);
     check('reused token rejected', replay.status === 400 && replay.data.success === false);
@@ -281,7 +280,10 @@ function tokenFromEmail(email) {
     check('security notification email sent', !!notice && /two-factor/i.test(JSON.stringify(notice)) && !tokenFromEmail(notice));
 
     // ---- Expired token ----
-    // Solo re-enrolls (optional practice allows it), then requests again.
+    // Solo's old session was revoked by the reset's version bump - sign in
+    // fresh (2FA now off, so password alone suffices) then re-enroll.
+    await login(solo, soloEmail);
+    await acceptTerms(solo);
     await enroll2FA(solo, BASE + '/main.php');
     const { ctx: anon4, csrf: anon4Csrf } = await recoveryPageCtx();
     await requestRecovery(anon4, anon4Csrf, soloEmail);
@@ -378,8 +380,7 @@ function tokenFromEmail(email) {
     await memberAnon.close();
 
     // ---- Required-practice behavior after reset (fresh session - the
-    // pre-existing member session is unaffected by design; other live
-    // sessions are not keyed by user and cannot be revoked today) ----
+    // reset's session_version bump revoked member's other live sessions) ----
     const member2 = await browser.newContext();
     const relogin = await login(member2, memberEmail);
     check('member signs in after reset (no 2FA left)', relogin.success === true && !relogin.requires_2fa);

@@ -1661,3 +1661,21 @@ a.trust-item:focus-visible {
     font-size: 0.9rem;
   }
 }
+
+/* Password-manager username field: rendered but invisible so browsers can
+   read/fill it for credential save and autofill. type="hidden" and
+   display:none inputs are ignored by Chrome's password manager. */
+.pm-username-field {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+  opacity: 0;
+  pointer-events: none;
+}

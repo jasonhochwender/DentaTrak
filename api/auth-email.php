@@ -210,7 +210,6 @@ function handleLogin($pdo, $input) {
             // Store partial auth in session for 2FA verification
             $_SESSION['pending_2fa_user_id'] = $user['id'];
             $_SESSION['pending_2fa_email'] = $email;
-            $_SESSION['pending_2fa_remember_me'] = $rememberMe;
             $_SESSION['pending_2fa_timestamp'] = time();
             // Session generation at pending creation - a revocation after
             // this point must not let this challenge mint a valid session.
@@ -239,7 +238,6 @@ function handleLogin($pdo, $input) {
         // Clear pending 2FA session data
         unset($_SESSION['pending_2fa_user_id']);
         unset($_SESSION['pending_2fa_email']);
-        unset($_SESSION['pending_2fa_remember_me']);
         unset($_SESSION['pending_2fa_timestamp']);
         $totpVerifiedThisLogin = true;
     }
@@ -255,15 +253,16 @@ function handleLogin($pdo, $input) {
     }
     
     // ============================================
-    // REMEMBER ME HANDLING
-    // Security: Creates persistent token if user checked "Remember Me"
-    // Token is stored hashed in DB, cookie is httpOnly and secure
+    // REMEMBERED EMAIL HANDLING
+    // "Remember my email" stores ONLY the email address on this browser for
+    // login-form prefill - it is never an authentication token. Unchecking
+    // clears the remembered email. Runs only after a fully successful login
+    // (including any required 2FA above).
     // ============================================
     if ($rememberMe) {
-        $tokenValue = createRememberMeToken($user['id']);
-        if ($tokenValue) {
-            setRememberMeCookie($tokenValue);
-        }
+        setRememberedEmailCookie($user['email'] ?? $email);
+    } else {
+        clearRememberedEmailCookie();
     }
     
     // Resolve which practice (if any) to auto-select, or whether the user

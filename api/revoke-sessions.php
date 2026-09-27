@@ -4,9 +4,7 @@
  *
  * POST - signs the current user out of every OTHER browser/device session.
  * The calling session is intentionally preserved: after the version bump,
- * it alone is re-stamped with the new session generation. Old remember-me
- * cookies for the account are rejected at the same time, so a revoked
- * device cannot silently sign back in.
+ * it alone is re-stamped with the new session generation.
  */
 
 require_once __DIR__ . '/appConfig.php';

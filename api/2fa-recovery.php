@@ -243,7 +243,7 @@ function handleRecoveryComplete(array $input): void {
     }
 
     // Identity verified - run the security-critical reset as ONE
-    // transaction: token claim + TOTP disable + remember-me revocation all
+    // transaction: token claim + TOTP disable + session revocation all
     // commit together or not at all. A failure mid-reset must never leave
     // the token consumed while 2FA stays enabled (the link would be dead
     // with nothing recovered).
@@ -251,9 +251,6 @@ function handleRecoveryComplete(array $input): void {
     // DDL/ensure calls run BEFORE beginTransaction - CREATE TABLE (even IF
     // NOT EXISTS) can implicit-commit and silently break the atomicity.
     ensure2FAResetTokensTable($pdo);
-    if (function_exists('ensureRememberMeTable')) {
-        ensureRememberMeTable();
-    }
     // Resolve once before the transaction - SHOW COLUMNS is a metadata
     // read, not transactional, so it must not run inside.
     $sessionVersionAvailable = function_exists('sessionVersionColumnExists')
@@ -284,17 +281,6 @@ function handleRecoveryComplete(array $input): void {
 
         if (!disable2FA($userId)) {
             throw new RuntimeException('disable2FA failed');
-        }
-
-        // Remember-me revocation with PROPAGATING errors - the shared
-        // revokeAllRememberMeTokens() swallows PDOExceptions, which would
-        // defeat this rollback guarantee, so the same two writes run here
-        // directly: legacy selector rows + the HMAC-cookie watermark.
-        $pdo->prepare("DELETE FROM remember_me_tokens WHERE user_id = :id")
-            ->execute(['id' => $userId]);
-        if (rememberMeRevocationColumnExists()) {
-            $pdo->prepare("UPDATE users SET remember_me_revoked_after = NOW() WHERE id = :id")
-                ->execute(['id' => $userId]);
         }
 
         // Account-wide session revocation in the same transaction: bumping
