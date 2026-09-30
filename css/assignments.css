@@ -52,3 +52,25 @@
   color: #94a3b8;
   cursor: wait;
 }
+
+
+/* Dark theme */
+[data-theme="dark"] .kanban-card-assignment {
+  border-top-color: var(--border-light);
+}
+
+[data-theme="dark"] .assignment-label {
+  color: var(--text-light);
+}
+
+[data-theme="dark"] .assignment-select {
+  background: #0f172a;
+  border-color: var(--border-medium);
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .assignment-select:disabled {
+  background-color: #16202f;
+  color: var(--text-muted);
+}
+

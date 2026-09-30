@@ -1153,3 +1153,63 @@
 .ap-rec-more:hover {
   text-decoration: underline;
 }
+
+/* ========================================
+   Dark theme - token remap + leftovers
+   ======================================== */
+[data-theme="dark"] .analytics-pro {
+  --ap-bg-primary: transparent;
+  --ap-bg-secondary: #1e293b;
+  --ap-bg-card: #1e293b;
+  --ap-bg-card-hover: #243349;
+  --ap-bg-accent: linear-gradient(135deg, rgba(96, 165, 250, 0.08) 0%, rgba(59, 130, 246, 0.12) 100%);
+  --ap-border: #334155;
+  --ap-border-accent: rgba(96, 165, 250, 0.35);
+  --ap-text-primary: #f1f5f9;
+  --ap-text-secondary: #cbd5e1;
+  --ap-text-muted: #94a3b8;
+  --ap-accent-primary: #60a5fa;
+  --ap-accent-secondary: #3b82f6;
+  --ap-accent-tertiary: #60a5fa;
+  --ap-gradient-primary: linear-gradient(135deg, #1e40af 0%, #2563eb 50%, #3b82f6 100%);
+  --ap-gradient-secondary: linear-gradient(135deg, #f97316 0%, #fb923c 100%);
+  --ap-gradient-success: linear-gradient(135deg, #059669 0%, #10b981 100%);
+  --ap-gradient-warning: linear-gradient(135deg, #d97706 0%, #f59e0b 100%);
+  --ap-gradient-card: linear-gradient(180deg, #1e293b 0%, #182338 100%);
+  --ap-success: #34d399;
+  --ap-warning: #fbbf24;
+  --ap-danger: #f87171;
+  --ap-primary: #60a5fa;
+  --ap-appointment-risk: #c084fc;
+  --ap-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4), 0 1px 2px rgba(0, 0, 0, 0.3);
+  --ap-shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.5), 0 2px 4px -1px rgba(0, 0, 0, 0.4);
+  --ap-shadow-lg: 0 10px 25px -5px rgba(0, 0, 0, 0.55), 0 8px 10px -6px rgba(0, 0, 0, 0.4);
+  --ap-shadow-glow: 0 0 0 3px rgba(96, 165, 250, 0.18);
+}
+
+/* Hardcoded leftovers that bypass the --ap-* tokens */
+
+[data-theme="dark"] .insights-subtab:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+[data-theme="dark"] .ap-metric-trend.up {
+  color: #34d399;
+  background: rgba(52, 211, 153, 0.15);
+}
+
+[data-theme="dark"] .ap-metric-trend.down {
+  color: #f87171;
+  background: rgba(248, 113, 113, 0.15);
+}
+
+/* Smart Recommendation severity chips */
+[data-theme="dark"] .ap-rec-attention { border-left-color: #f59e0b; }
+[data-theme="dark"] .ap-rec-watch { border-left-color: #60a5fa; }
+[data-theme="dark"] .ap-rec-improvement { border-left-color: #34d399; }
+[data-theme="dark"] .ap-rec-info { border-left-color: #64748b; }
+
+[data-theme="dark"] .ap-rec-attention .ap-rec-severity { color: #fcd34d; background: rgba(251, 191, 36, 0.15); }
+[data-theme="dark"] .ap-rec-watch .ap-rec-severity { color: #93c5fd; background: rgba(96, 165, 250, 0.15); }
+[data-theme="dark"] .ap-rec-improvement .ap-rec-severity { color: #6ee7b7; background: rgba(52, 211, 153, 0.15); }
+[data-theme="dark"] .ap-rec-info .ap-rec-severity { color: #cbd5e1; background: #334155; }

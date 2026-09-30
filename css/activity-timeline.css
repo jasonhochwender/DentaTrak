@@ -263,3 +263,40 @@
     max-width: 140px;
   }
 }
+
+
+/* Dark theme - remaining surfaces */
+[data-theme="dark"] .activity-event {
+  background: #1e293b;
+  border-color: var(--border-light);
+}
+
+[data-theme="dark"] .activity-event:hover {
+  border-color: var(--border-medium);
+}
+
+[data-theme="dark"] .activity-event-text {
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .activity-event-user {
+  color: var(--text-light);
+}
+
+[data-theme="dark"] .activity-event-time {
+  color: var(--text-muted);
+}
+
+[data-theme="dark"] .activity-connector {
+  background: var(--border-medium);
+}
+
+[data-theme="dark"] .activity-loading {
+  color: var(--text-light);
+}
+
+[data-theme="dark"] .activity-loading-spinner {
+  border-color: var(--border-light);
+  border-top-color: var(--primary-color);
+}
+

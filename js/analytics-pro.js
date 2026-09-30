@@ -762,7 +762,8 @@
       const ctx = chart.ctx;
       ctx.save();
       ctx.font = "11px 'Poppins', sans-serif";
-      ctx.fillStyle = '#64748b';
+      ctx.fillStyle = (typeof dtChartColors === 'function') ? dtChartColors().text
+        : (document.documentElement.getAttribute('data-theme') === 'dark' ? '#94a3b8' : '#64748b');
       ctx.textAlign = 'left';
       ctx.textBaseline = 'middle';
       meta.data.forEach(function(bar, i) {

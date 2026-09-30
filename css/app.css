@@ -979,3 +979,138 @@
     padding-left: 1.2em;
   }
 }
+
+
+/* Dark theme - archived cases + legacy analytics + misc surfaces */
+[data-theme="dark"] .analytics-placeholder,
+[data-theme="dark"] .analytics-placeholder p {
+  color: var(--text-light);
+}
+
+[data-theme="dark"] .analytics-placeholder h2 {
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .view-archived-button {
+  background: #1e293b;
+  color: var(--text-secondary);
+  border-color: var(--border-light);
+}
+
+[data-theme="dark"] .view-archived-button:hover {
+  background: #243349;
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .archived-search input,
+[data-theme="dark"] .archived-filter-controls select {
+  /* background-color only: the shorthand would reset the chevron's
+     no-repeat/position/size and tile it across the field. */
+  background-color: #0f172a;
+  border-color: var(--border-medium);
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .archived-summary,
+[data-theme="dark"] .loading-row,
+[data-theme="dark"] #archivedPageInfo {
+  color: var(--text-light);
+}
+
+[data-theme="dark"] .archived-table-container {
+  border-color: var(--border-light);
+}
+
+[data-theme="dark"] .archived-cases-table th {
+  background: #16202f;
+  color: var(--text-light);
+}
+
+[data-theme="dark"] .archived-cases-table td {
+  border-bottom-color: var(--border-light);
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .archived-cases-table tbody tr:hover {
+  background: #243349;
+}
+
+[data-theme="dark"] .archived-pagination button {
+  background: #1e293b;
+  border-color: var(--border-light);
+  color: var(--text-secondary);
+}
+
+[data-theme="dark"] .archived-pagination button:hover:not(:disabled) {
+  background: #243349;
+  color: var(--text-primary);
+}
+
+/* Sticky strips that were light surfaces (#f8fafc) inside the dark modal:
+   use the secondary dark surface so they stay visually separated from the
+   table without a light island. */
+[data-theme="dark"] .archived-search-header {
+  background: var(--background-subtle);
+  border-bottom-color: var(--border-light);
+}
+
+[data-theme="dark"] .archived-cases-modal .modal-footer {
+  background: var(--background-subtle);
+  border-top-color: var(--border-light);
+}
+
+/* Restore keeps its amber warning identity in dark: light-amber outline +
+   text by default, translucent amber fill on hover/focus instead of a
+   bright fill with white text (which was unreadable). */
+[data-theme="dark"] .archived-cases-modal .archived-actions .btn-restore {
+  color: #fcd34d;
+  border-color: rgba(251, 191, 36, 0.5);
+}
+
+[data-theme="dark"] .archived-cases-modal .archived-actions .btn-restore:hover,
+[data-theme="dark"] .archived-cases-modal .archived-actions .btn-restore:focus-visible {
+  background: rgba(251, 191, 36, 0.18);
+  border-color: #fbbf24;
+  color: #fde68a;
+}
+
+[data-theme="dark"] .archived-cases-modal .archived-actions .btn-restore:active {
+  background: rgba(251, 191, 36, 0.26);
+}
+
+[data-theme="dark"] .archived-cases-modal .archived-actions .btn-restore:disabled {
+  opacity: 0.5;
+}
+
+[data-theme="dark"] .workload-value,
+[data-theme="dark"] .prediction-count {
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .workload-label,
+[data-theme="dark"] .workload-stat,
+[data-theme="dark"] .info-icon {
+  color: var(--text-light);
+}
+
+[data-theme="dark"] .prediction-item {
+  background: #16202f;
+}
+
+[data-theme="dark"] .prediction-status {
+  color: var(--text-secondary);
+}
+
+[data-theme="dark"] .workload-item {
+  border-bottom-color: var(--border-light);
+}
+
+[data-theme="dark"] .analytics-section select {
+  background-color: #0f172a;
+  border-color: var(--border-medium) !important;
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .analytics-section select:focus {
+  border-color: var(--primary-color) !important;
+}

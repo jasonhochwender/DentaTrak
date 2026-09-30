@@ -185,3 +185,13 @@
     padding-right: 0.5rem;
   }
 }
+
+
+/* Dark theme - toggle switch */
+[data-theme="dark"] .switch-slider {
+  background-color: #475569;
+}
+
+[data-theme="dark"] .switch-slider::before {
+  background-color: #e2e8f0;
+}

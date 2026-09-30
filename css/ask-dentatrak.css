@@ -340,3 +340,37 @@
     max-height: 60vh;
   }
 }
+
+
+/* Dark theme - remaining surfaces */
+[data-theme="dark"] .ask-message.assistant {
+  background: #16202f;
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .ask-panel-input {
+  border-top-color: var(--border-light);
+}
+
+[data-theme="dark"] .ask-panel-input input {
+  background: #0f172a;
+  border-color: var(--border-medium);
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .ask-panel-input input::placeholder {
+  color: var(--text-muted);
+}
+
+[data-theme="dark"] .ask-panel-input button {
+  background: var(--primary-dark);
+}
+
+[data-theme="dark"] .ask-panel-input button:hover {
+  background: var(--primary-color);
+}
+
+[data-theme="dark"] .ask-feedback {
+  border-top-color: var(--border-light);
+}
+

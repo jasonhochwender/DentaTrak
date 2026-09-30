@@ -910,6 +910,12 @@
         },
         "display": {
             "title": "Pantalla y comportamiento",
+            "theme": {
+                "label": "Tema",
+                "system": "Sistema",
+                "light": "Claro",
+                "dark": "Oscuro"
+            },
             "allow_card_delete": "Permitir archivar casos individuales",
             "auto_archive": {
                 "label": "Archivar automáticamente los casos entregados después de",

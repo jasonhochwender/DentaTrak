@@ -198,3 +198,22 @@
 .case-review-tracking-off .kanban-card-review {
   display: none !important;
 }
+
+
+/* Dark theme */
+[data-theme="dark"] .kanban-column-body.drag-over {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.12) 0%, rgba(14, 165, 233, 0.12) 100%);
+}
+
+[data-theme="dark"] .kanban-card:not(.dragging):not(.updating):hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.45);
+}
+
+[data-theme="dark"] .kanban-card-review.needs-review {
+  color: #fcd34d;
+}
+
+[data-theme="dark"] .kanban-card-review.reviewed {
+  color: #34d399;
+}
+

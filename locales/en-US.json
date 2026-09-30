@@ -910,6 +910,12 @@
         },
         "display": {
             "title": "Display & Behavior",
+            "theme": {
+                "label": "Theme",
+                "system": "System",
+                "light": "Light",
+                "dark": "Dark"
+            },
             "allow_card_delete": "Allow archiving of individual cases",
             "auto_archive": {
                 "label": "Automatically archive delivered cases after",

@@ -518,3 +518,63 @@
     grid-template-columns: 1fr;
   }
 }
+
+
+/* Dark theme - remaining hardcoded surfaces */
+[data-theme="dark"] .insights-icon,
+[data-theme="dark"] .insights-section-title svg {
+  color: #818cf8;
+}
+
+[data-theme="dark"] .insights-stat-card:hover {
+  border-color: var(--border-medium);
+}
+
+[data-theme="dark"] .insights-stat-late .insights-stat-icon { background: rgba(248, 113, 113, 0.15); }
+[data-theme="dark"] .insights-stat-due .insights-stat-icon,
+[data-theme="dark"] .insights-stat-at-risk .insights-stat-icon { background: rgba(251, 191, 36, 0.15); }
+[data-theme="dark"] .insights-stat-unassigned .insights-stat-icon { background: rgba(167, 139, 250, 0.15); }
+[data-theme="dark"] .insights-stat-active .insights-stat-icon { background: rgba(52, 211, 153, 0.15); }
+
+[data-theme="dark"] .insights-timestamp {
+  color: var(--text-muted);
+}
+
+[data-theme="dark"] .insights-recommendation-item {
+  background: #16202f;
+}
+
+[data-theme="dark"] .insights-recommendation-icon {
+  background: rgba(129, 140, 248, 0.15);
+}
+
+[data-theme="dark"] .insights-recommendation-priority.high { background: rgba(248, 113, 113, 0.18); color: #fca5a5; }
+[data-theme="dark"] .insights-recommendation-priority.medium { background: rgba(251, 191, 36, 0.18); color: #fcd34d; }
+[data-theme="dark"] .insights-recommendation-priority.low { background: rgba(52, 211, 153, 0.18); color: #6ee7b7; }
+
+[data-theme="dark"] .insights-bottleneck-count {
+  background: #334155;
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .insights-bottleneck-item.warning .insights-bottleneck-count { background: rgba(251, 191, 36, 0.2); color: #fcd34d; }
+[data-theme="dark"] .insights-bottleneck-item.critical .insights-bottleneck-count { background: rgba(248, 113, 113, 0.2); color: #fca5a5; }
+
+[data-theme="dark"] .insights-loading-spinner {
+  border-color: #334155;
+  border-top-color: var(--primary-color);
+}
+
+[data-theme="dark"] .insights-empty-state,
+[data-theme="dark"] .insights-error-message {
+  color: var(--text-light);
+}
+
+[data-theme="dark"] .insights-retry-btn {
+  background: #4f46e5;
+}
+
+[data-theme="dark"] .insights-retry-btn:hover {
+  background: #6366f1;
+}
+

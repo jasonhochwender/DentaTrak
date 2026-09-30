@@ -321,3 +321,96 @@
     gap: 8px;
   }
 }
+
+
+/* Dark theme */
+[data-theme="dark"] .case-modal-tabs {
+  border-bottom-color: var(--border-light);
+}
+
+[data-theme="dark"] .case-tab {
+  color: var(--text-light);
+}
+
+[data-theme="dark"] .case-tab:hover:not(.case-tab-disabled) {
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .case-tab.case-tab-active {
+  color: var(--primary-light);
+}
+
+[data-theme="dark"] .case-tab.case-tab-disabled,
+[data-theme="dark"] .case-tab.case-tab-disabled:hover {
+  color: var(--text-muted);
+}
+
+[data-theme="dark"] .case-comments-count {
+  background: #334155;
+  color: var(--text-secondary);
+}
+
+[data-theme="dark"] .case-tab.case-tab-active .case-comments-count {
+  background: rgba(96, 165, 250, 0.2);
+  color: var(--primary-light);
+}
+
+[data-theme="dark"] .revision-item {
+  background: #1e293b;
+  border-color: var(--border-light);
+}
+
+[data-theme="dark"] .revision-item:hover {
+  border-color: var(--border-medium);
+}
+
+[data-theme="dark"] .revision-header {
+  color: var(--text-light);
+}
+
+[data-theme="dark"] .revision-body {
+  color: var(--text-secondary);
+}
+
+[data-theme="dark"] .revision-item.revision-highlight .revision-body,
+[data-theme="dark"] .revision-item[data-event-type="case_revision"] .revision-body,
+[data-theme="dark"] .revision-item[data-event-type="case_regression"] .revision-body {
+  color: #fca5a5;
+}
+
+[data-theme="dark"] .revision-meta {
+  color: var(--text-light);
+}
+
+[data-theme="dark"] .revision-meta-item strong {
+  color: var(--text-secondary);
+}
+
+[data-theme="dark"] .revision-empty-state {
+  color: var(--text-light);
+}
+
+[data-theme="dark"] .revision-loading {
+  color: var(--primary-light);
+}
+
+[data-theme="dark"] .revision-loading::before {
+  border-color: var(--border-medium);
+}
+
+[data-theme="dark"] .revision-error {
+  color: #f87171;
+}
+
+[data-theme="dark"] .case-revision-history::-webkit-scrollbar-track {
+  background: #16202f;
+}
+
+[data-theme="dark"] .case-revision-history::-webkit-scrollbar-thumb {
+  background: #475569;
+}
+
+[data-theme="dark"] .case-revision-history::-webkit-scrollbar-thumb:hover {
+  background: #64748b;
+}
+

@@ -104,13 +104,15 @@
 
 [data-theme="dark"] .clinical-field input,
 [data-theme="dark"] .clinical-field select {
-  background: #0f172a;
+  /* background-color only - the shorthand would reset repeat/position/size
+     and tile the chevron SVG across the field. */
+  background-color: #0f172a;
   border-color: #475569;
   color: #f1f5f9;
 }
 
 [data-theme="dark"] .clinical-field select {
-  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'></polyline></svg>");
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23cbd5e1' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'></polyline></svg>");
 }
 
 [data-theme="dark"] .clinical-field input:focus,
@@ -133,3 +135,20 @@
     padding: 12px 16px;
   }
 }
+
+
+/* Dark theme - remaining hardcoded field colors */
+[data-theme="dark"] .clinical-field input,
+[data-theme="dark"] .clinical-field select {
+  border-color: var(--border-medium);
+}
+
+[data-theme="dark"] .clinical-field input:focus,
+[data-theme="dark"] .clinical-field select:focus {
+  border-color: var(--primary-color);
+}
+
+[data-theme="dark"] .clinical-field input::placeholder {
+  color: var(--text-muted);
+}
+

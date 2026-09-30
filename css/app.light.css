@@ -1532,25 +1532,8 @@ body {
   text-shadow: 0 1px 2px rgba(0,0,0,0.1);
 }
 
-.archived-cases-modal .btn-close {
-  background: none;
-  border: none;
-  color: white;
-  font-size: 24px;
-  cursor: pointer;
-  padding: 0;
-  width: 30px;
-  height: 30px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-  transition: background-color 0.2s ease;
-}
-
-.archived-cases-modal .btn-close:hover {
-  background-color: rgba(255, 255, 255, 0.2);
-}
+/* Archived modal close button intentionally inherits the shared .btn-close
+   style - same size, hit area, placement, and hover as every other modal. */
 
 /* Fixed Search Header */
 .archived-search-header {
@@ -2051,6 +2034,7 @@ body {
   font-size: 0.85rem;
   font-weight: 600;
   margin: 0;
+  padding-left: 4px;
   color: var(--text-primary);
   white-space: nowrap;
   overflow: hidden;
@@ -2065,6 +2049,7 @@ body {
   min-width: 24px;
   height: 24px;
   padding: 0 8px;
+  margin: 2px 2px 0 0;
   border-radius: var(--radius-full);
   background-color: var(--background-muted);
   color: var(--text-secondary);
@@ -3433,13 +3418,19 @@ body {
 
 .btn-close {
   position: absolute;
-  top: 18px;
+  /* Vertically centered in the modal header (the header is the positioned
+     ancestor) so it aligns with the title across every modal, both themes. */
+  top: 50%;
+  transform: translateY(-50%);
   right: 20px;
-  background: rgba(255, 255, 255, 0.2);
-  border: none;
+  background: rgba(255, 255, 255, 0.28);
+  border: 1px solid rgba(255, 255, 255, 0.4);
   font-size: 1.2rem;
+  font-weight: 700;
   line-height: 1;
-  color: white;
+  /* Dark navy X on the translucent white circle reads clearly against the
+     blue modal header in both themes. */
+  color: #1e293b;
   cursor: pointer;
   width: 30px;
   height: 30px;
@@ -3455,10 +3446,16 @@ body {
 .btn-close span {
   display: block;
   margin-top: -2px;
+  font-weight: 700;
 }
 
 .btn-close:hover {
-  background: rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.4);
+}
+
+.btn-close:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.7);
+  outline-offset: 2px;
 }
 
 .btn-primary {
@@ -3561,7 +3558,7 @@ body {
 }
 
 .ai-chat-header .btn-close {
-  color: white;
+  color: #1e293b;
 }
 
 .ai-chat-header .btn-close:hover {

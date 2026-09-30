@@ -535,3 +535,13 @@
     -webkit-overflow-scrolling: touch;
   }
 }
+
+
+/* Dark theme - flag chips */
+[data-theme="dark"] .cl-flag-late { color: #fca5a5; background: rgba(248, 113, 113, 0.15); }
+[data-theme="dark"] .cl-flag-duesoon { color: #93c5fd; background: rgba(96, 165, 250, 0.15); }
+[data-theme="dark"] .cl-flag-appt { color: #d8b4fe; background: rgba(192, 132, 252, 0.15); }
+[data-theme="dark"] .cl-flag-atrisk { color: #fdba74; background: rgba(251, 146, 60, 0.15); }
+[data-theme="dark"] .cl-due-late { color: #fca5a5; }
+[data-theme="dark"] .cl-appt-risk { color: #d8b4fe; }
+

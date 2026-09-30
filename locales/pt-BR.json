@@ -4296,6 +4296,12 @@
         },
         "display": {
             "title": "Exibição e comportamento",
+            "theme": {
+                "label": "Tema",
+                "system": "Sistema",
+                "light": "Claro",
+                "dark": "Escuro"
+            },
             "allow_card_delete": "Permitir arquivamento de casos individuais",
             "auto_archive": {
                 "label": "Arquivar automaticamente casos entregues após",

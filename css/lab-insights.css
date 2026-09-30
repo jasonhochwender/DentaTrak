@@ -361,3 +361,19 @@
     width: 100%;
   }
 }
+
+
+/* Dark theme */
+[data-theme="dark"] .li-table thead th {
+  background: #16202f;
+  color: var(--text-light);
+}
+
+[data-theme="dark"] .li-workload-table th {
+  color: var(--text-light);
+}
+
+[data-theme="dark"] .li-days-late {
+  color: #f87171;
+}
+

@@ -786,7 +786,7 @@ function createDefaultUserPreferencesIfNeeded($userId) {
         if (!$stmt->fetchColumn()) {
             $stmt = $pdo->prepare("
                 INSERT INTO user_preferences (user_id, theme, allow_card_delete, highlight_past_due, past_due_days)
-                VALUES (:user_id, 'light', TRUE, TRUE, 7)
+                VALUES (:user_id, 'system', TRUE, TRUE, 7)
             ");
             $stmt->execute(['user_id' => $userId]);
         }

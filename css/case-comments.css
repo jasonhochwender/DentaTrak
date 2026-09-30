@@ -721,66 +721,66 @@
 }
 
 /* Dark mode support */
-.dark-mode .case-comment {
+[data-theme="dark"] .case-comment {
   background: #1f2937;
   border-color: #374151;
 }
 
-.dark-mode .case-comment-author {
+[data-theme="dark"] .case-comment-author {
   color: #f9fafb;
 }
 
-.dark-mode .case-comment-text {
+[data-theme="dark"] .case-comment-text {
   color: #e5e7eb;
 }
 
-.dark-mode .case-comment-input {
+[data-theme="dark"] .case-comment-input {
   background: #1f2937;
   border-color: #374151;
   color: #f9fafb;
 }
 
-.dark-mode .case-comment-attach {
+[data-theme="dark"] .case-comment-attach {
   border-color: #374151;
   color: #9ca3af;
 }
 
-.dark-mode .case-comment-attach:hover:not(:disabled),
-.dark-mode .case-comment-attach:focus-visible {
+[data-theme="dark"] .case-comment-attach:hover:not(:disabled),
+[data-theme="dark"] .case-comment-attach:focus-visible {
   background: #374151;
   color: #93c5fd;
   border-color: #93c5fd;
 }
 
-.dark-mode .case-comment-image {
+[data-theme="dark"] .case-comment-image {
   background: #111827;
   border-color: #374151;
 }
 
-.dark-mode .case-comment-preview {
+[data-theme="dark"] .case-comment-preview {
   border-color: #374151;
 }
 
-.dark-mode .mention-autocomplete {
+[data-theme="dark"] .mention-autocomplete {
   background: #1f2937;
   border-color: #374151;
 }
 
-.dark-mode .mention-autocomplete-item:hover,
-.dark-mode .mention-autocomplete-item.selected {
+[data-theme="dark"] .mention-autocomplete-item:hover,
+[data-theme="dark"] .mention-autocomplete-item.selected {
   background: #374151;
 }
 
-.dark-mode .notification-dropdown {
+[data-theme="dark"] .notification-dropdown {
   background: #1f2937;
   border-color: #374151;
 }
 
-.dark-mode .notification-item:hover {
+[data-theme="dark"] .notification-item:hover {
   background: #374151;
 }
 
-.dark-mode .notification-item.unread {
+[data-theme="dark"] .notification-item.unread {
   background: rgba(59, 130, 246, 0.1);
 }
 

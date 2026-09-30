@@ -540,6 +540,26 @@ if (isset($appConfig) && is_array($appConfig) && isset($appConfig['appName'])) {
   <link rel="canonical" href="<?php echo htmlspecialchars(rtrim($appConfig['baseUrl'] ?? 'https://dentatrak.com', '/') . ($_SERVER['REQUEST_URI'] ?? '/main.php')); ?>">
   <title><?php echo htmlspecialchars($appName . ' - Main'); ?></title>
 
+  <?php
+  // Resolve the saved theme preference before first paint so dark-mode users
+  // never see a light-theme flash. 'system' is resolved by the inline script
+  // via prefers-color-scheme; explicit light/dark applies directly.
+  $dtThemePreference = 'system';
+  try {
+      if (isset($pdo) && $pdo instanceof PDO && !empty($_SESSION['db_user_id'])) {
+          $themeStmt = $pdo->prepare("SELECT theme FROM user_preferences WHERE user_id = :uid");
+          $themeStmt->execute(['uid' => (int)$_SESSION['db_user_id']]);
+          $savedTheme = $themeStmt->fetchColumn();
+          if (in_array($savedTheme, ['light', 'dark', 'system'], true)) {
+              $dtThemePreference = $savedTheme;
+          }
+      }
+  } catch (Exception $e) { /* keep 'system' default */ }
+  ?>
+  <script>
+  (function(){var p=<?php echo json_encode($dtThemePreference); ?>;window.__dtThemePref=p;var m=p==='system'?((window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches)?'dark':'light'):p;document.documentElement.setAttribute('data-theme',m);})();
+  </script>
+
   <!-- Favicon / App Icons -->
   <link rel="icon" type="image/x-icon" href="favicon.ico">
   <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
@@ -604,6 +624,7 @@ if (isset($appConfig) && is_array($appConfig) && isset($appConfig['appName'])) {
   <!-- Load app.light.css directly (skip app.css @import chain) -->
   <link rel="stylesheet" href="css/app.light.css?v=20260925a">
   <link rel="stylesheet" href="css/app.css?v=20261001a">
+  <link rel="stylesheet" href="css/app.dark.css?v=20260930a">
 <?php if (isFeatureEnabled('SHOW_NOTIFICATIONS')): ?>
   <link rel="stylesheet" href="css/notification-preferences.css?v=20250104">
 <?php endif; ?>
@@ -3001,15 +3022,14 @@ endif;
                     </button>
                     <div class="settings-twisty-content">
                       <div class="settings-group">
-                        <!-- Theme selector hidden for now - may be added back later
                         <div class="option-row">
-                          <label for="theme">Select Theme</label>
+                          <label for="theme"><?php echo t('settings.display.theme.label'); ?></label>
                           <select id="theme" name="theme" class="theme-dropdown">
-                            <option value="light">Light</option>
-                            <option value="dark">Dark</option>
+                            <option value="system"><?php echo t('settings.display.theme.system'); ?></option>
+                            <option value="light"><?php echo t('settings.display.theme.light'); ?></option>
+                            <option value="dark"><?php echo t('settings.display.theme.dark'); ?></option>
                           </select>
                         </div>
-                        -->
 
                         <div class="settings-divider"></div>
 

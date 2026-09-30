@@ -910,6 +910,12 @@
         },
         "display": {
             "title": "표시 및 동작",
+            "theme": {
+                "label": "테마",
+                "system": "시스템",
+                "light": "라이트",
+                "dark": "다크"
+            },
             "allow_card_delete": "개별 케이스 보관 허용",
             "auto_archive": {
                 "label": "전달 완료 케이스를 자동 보관:",

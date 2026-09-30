@@ -2585,3 +2585,39 @@
     scroll-behavior: auto;
   }
 }
+
+
+/* Dark theme - hardcoded surfaces */
+[data-theme="dark"] .mobile-case-badge-late {
+  background: rgba(248, 113, 113, 0.15);
+  color: #fca5a5;
+  border-color: rgba(248, 113, 113, 0.4);
+}
+
+[data-theme="dark"] .mobile-case-badge-appointment-risk {
+  background: rgba(192, 132, 252, 0.15);
+  color: #d8b4fe;
+  border-color: rgba(192, 132, 252, 0.4);
+}
+
+[data-theme="dark"] .mobile-case-badge-due-soon {
+  background: rgba(96, 165, 250, 0.15);
+  color: #93c5fd;
+  border-color: rgba(96, 165, 250, 0.4);
+}
+
+[data-theme="dark"] .mobile-case-badge-revisions {
+  background: rgba(251, 191, 36, 0.15);
+  color: #fcd34d;
+  border-color: rgba(251, 191, 36, 0.4);
+}
+
+[data-theme="dark"] #createCaseModal .modal-footer.create-case-footer,
+[data-theme="dark"] #archivedCasesModal .modal-footer,
+[data-theme="dark"] #phiAuditModal .modal-footer,
+[data-theme="dark"] #feedbackModal .modal-footer,
+[data-theme="dark"] #feedbackForm .modal-footer {
+  background: #1e293b;
+  border-top-color: var(--border-light);
+}
+

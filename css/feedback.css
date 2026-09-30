@@ -190,3 +190,37 @@
     opacity: 1;
   }
 }
+
+
+/* Dark theme */
+[data-theme="dark"] .emoji-option {
+  border-color: var(--border-medium);
+}
+
+[data-theme="dark"] .emoji-option:hover {
+  border-color: var(--border-light);
+}
+
+[data-theme="dark"] .emoji-label {
+  color: var(--text-light);
+}
+
+[data-theme="dark"] #feedbackForm textarea {
+  background: #0f172a;
+  border-color: var(--border-medium);
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .feedback-modal .modal-footer,
+[data-theme="dark"] .success-body .modal-footer {
+  border-top-color: var(--border-light);
+}
+
+[data-theme="dark"] .success-message {
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .success-details {
+  color: var(--text-light);
+}
+

@@ -910,6 +910,12 @@
         },
         "display": {
             "title": "Visualizzazione e comportamento",
+            "theme": {
+                "label": "Tema",
+                "system": "Sistema",
+                "light": "Chiaro",
+                "dark": "Scuro"
+            },
             "allow_card_delete": "Consenti l'archiviazione di singoli casi",
             "auto_archive": {
                 "label": "Archivia automaticamente i casi consegnati dopo",

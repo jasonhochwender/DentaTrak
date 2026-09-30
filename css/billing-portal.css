@@ -43,21 +43,9 @@
   opacity: 0.9;
 }
 
-.billing-portal-modal .btn-close {
-  background: none;
-  border: none;
-  color: rgba(255,255,255,0.85);
-  font-size: 1.4rem;
-  cursor: pointer;
-  line-height: 1;
-  padding: 0 4px;
-  transition: opacity 0.15s;
-}
-
-.billing-portal-modal .btn-close:hover {
-  color: #fff;
-  opacity: 1;
-}
+/* Close button intentionally inherits the shared .btn-close circle style
+   (white translucent chip on the blue header) - no billing-specific override
+   so it matches every other modal. */
 
 .billing-portal-modal .modal-body {
   padding: 24px;
@@ -592,4 +580,73 @@
   border-radius: 7px;
   padding: 8px 12px;
   margin: 4px 0 16px;
+}
+
+
+/* Dark theme - remaining pale surfaces and badges */
+[data-theme="dark"] .bp-card-header {
+  background: #16202f;
+}
+
+[data-theme="dark"] .bp-empty-icon {
+  background: rgba(96, 165, 250, 0.15);
+}
+
+[data-theme="dark"] .bp-loading-spinner {
+  border-color: #334155;
+  border-top-color: var(--primary-color);
+}
+
+[data-theme="dark"] .bp-cancels-badge {
+  background: rgba(248, 113, 113, 0.15);
+  color: #fca5a5;
+}
+
+[data-theme="dark"] .bp-status-canceled,
+[data-theme="dark"] .bp-status-unknown {
+  background: #334155;
+}
+
+[data-theme="dark"] .bp-plan-name,
+[data-theme="dark"] .bp-plan-header-title,
+[data-theme="dark"] .bp-plan-price {
+  color: var(--primary-light);
+}
+
+[data-theme="dark"] .bp-cancel-notice {
+  background: rgba(251, 146, 60, 0.1);
+}
+
+[data-theme="dark"] .bp-mock-notice {
+  background: rgba(251, 191, 36, 0.1);
+}
+
+[data-theme="dark"] .bp-readonly-notice {
+  background: rgba(52, 211, 153, 0.1);
+}
+
+[data-theme="dark"] .bp-close-btn:hover {
+  background: #334155;
+}
+
+[data-theme="dark"] .bp-interval-toggle {
+  background: #0f172a;
+}
+
+[data-theme="dark"] .bp-interval-btn.active {
+  background: #334155;
+}
+
+[data-theme="dark"] .bp-plan-card:hover {
+  border-color: var(--primary-color);
+}
+
+[data-theme="dark"] .bp-plan-savings {
+  background: rgba(52, 211, 153, 0.15);
+  color: #6ee7b7;
+}
+
+[data-theme="dark"] .bp-plan-practices,
+[data-theme="dark"] .bp-plan-benefits li {
+  color: var(--text-secondary);
 }

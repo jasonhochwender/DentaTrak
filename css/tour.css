@@ -284,3 +284,30 @@
 .shepherd-element {
   margin: 16px;
 }
+
+
+/* Dark theme - shepherd popover */
+[data-theme="dark"] .shepherd-footer {
+  border-top-color: var(--border-light);
+}
+
+[data-theme="dark"] .shepherd-button.shepherd-button-secondary {
+  background: #334155;
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .shepherd-button.shepherd-button-secondary:hover {
+  background: #475569;
+}
+
+[data-theme="dark"] .shepherd-element[data-popper-placement^='top'] > .shepherd-arrow:before,
+[data-theme="dark"] .shepherd-element[data-popper-placement^='left'] > .shepherd-arrow:before,
+[data-theme="dark"] .shepherd-element[data-popper-placement^='right'] > .shepherd-arrow:before,
+[data-theme="dark"] .shepherd-element[data-popper-placement^='bottom'] > .shepherd-arrow:before {
+  background: #1e293b;
+}
+
+[data-theme="dark"] .shepherd-progress {
+  background: #334155;
+}
+

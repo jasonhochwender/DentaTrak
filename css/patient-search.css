@@ -111,3 +111,30 @@
 .kanban-card.filtered-in {
   animation: card-filter-in 0.15s ease forwards;
 }
+
+
+/* Dark theme */
+[data-theme="dark"] .dashboard-search-input {
+  background: #0f172a;
+  border-color: var(--border-medium);
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .kanban-search-field .dashboard-search-input {
+  border-color: var(--border-medium);
+}
+
+[data-theme="dark"] .dashboard-search-input::placeholder {
+  color: var(--text-muted);
+}
+
+[data-theme="dark"] .search-clear-btn:hover {
+  background-color: rgba(255, 255, 255, 0.08);
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .patient-name-highlight {
+  background-color: rgba(250, 204, 21, 0.25);
+  color: var(--text-primary);
+}
+

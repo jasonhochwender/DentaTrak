@@ -1,35 +1,1793 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@400;500;600;700&family=Noto+Sans+KR:wght@400;500;600;700&display=swap');
+/* Font loaded via HTML head for better performance */
 
-/* Dark Theme Variables */
-:root {
-  /* Common colors - Dark theme */
-  --primary-color: #4285f4; /* Slightly brighter Google blue for dark mode */
-  --accent-color: #00e5ff; /* Brighter dental/medical cyan */
-  --secondary-color: #0288d1; /* Adjusted blue */
-  --text-primary: #e0e0e0; /* Light text for dark background */
-  --text-secondary: #b0bec5; /* Medium light text */
-  --text-light: #78909c; /* Dimmed text */
-  --background-dark: #121212; /* Main dark background */
-  --background-surface: #1e1e1e; /* Card/surface background */
-  --shadow-small: 0 2px 5px rgba(0, 0, 0, 0.5);
-  --shadow-medium: 0 5px 15px rgba(0, 0, 0, 0.5);
-  --shadow-large: 0 12px 28px rgba(0, 0, 0, 0.5);
-  
-  /* Environment-specific colors for dark mode - placeholder values */
-  --dev-bg-dark: #3e2723; /* Dark brown for dev */
-  --dev-bg-gradient-start: #4e342e;
+/*
+ * Dark Theme
+ *
+ * Applied when <html data-theme="dark"> is set (resolved from the user's
+ * saved preference: system -> prefers-color-scheme, or explicit dark).
+ * Strategy: redefine the shared palette variables so every var() consumer
+ * re-themes automatically, then override the hardcoded light surfaces with
+ * attribute-scoped rules (higher specificity than the light defaults, so no
+ * !important is needed). Semantic/status colors keep their hue - only
+ * brightness is adjusted where needed for contrast on dark surfaces.
+ */
+
+[data-theme="dark"] {
+  /* Native controls (selects, checkboxes, scrollbars, autofill) render in the
+     dark palette instead of embedding light-theme chrome in dark surfaces. */
+  color-scheme: dark;
+
+  /* Primary palette - brighter for readability on dark */
+  --primary-color: #60a5fa;
+  --primary-light: #93c5fd;
+  --primary-dark: #3b82f6;
+  --primary-gradient: linear-gradient(135deg, #3b82f6 0%, #60a5fa 100%);
+  --primary: #60a5fa;
+
+  --secondary-color: #fb923c;
+  --accent-color: #fdba74;
+  --accent-light: #7c4a1e;
+
+  /* Status colors - slightly brightened for dark surfaces */
+  --status-originated: #60a5fa;
+  --status-external: #a78bfa;
+  --status-designed: #f472b6;
+  --status-manufactured: #fbbf24;
+  --status-received: #22d3ee;
+  --status-delivered: #34d399;
+  --status-in-transit: #fbbf24;
+  --status-exception: #f87171;
+  --status-returned: #a78bfa;
+
+  /* Neutral palette */
+  --text-primary: #f1f5f9;
+  --text-secondary: #cbd5e1;
+  --text-light: #94a3b8;
+  --text-muted: #64748b;
+
+  /* Backgrounds - the variable names keep their light-theme names but now
+     resolve to dark surfaces (var(--background-white) is a surface, not
+     literally white). */
+  --background-white: #1e293b;   /* slate-800: cards, modals, menus */
+  --background-subtle: #16202f;  /* page/section backgrounds */
+  --background-muted: #0f172a;   /* slate-900: deepest surfaces */
+  --border-light: #334155;       /* slate-700 */
+  --border-medium: #475569;      /* slate-600 */
+
+  /* Shadows - deeper on dark */
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-small: 0 1px 3px rgba(0, 0, 0, 0.45), 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-medium: 0 4px 6px -1px rgba(0, 0, 0, 0.5), 0 2px 4px -1px rgba(0, 0, 0, 0.4);
+  --shadow-large: 0 10px 15px -3px rgba(0, 0, 0, 0.55), 0 4px 6px -2px rgba(0, 0, 0, 0.45);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.6), 0 10px 10px -5px rgba(0, 0, 0, 0.45);
+
+  /* Alerts - brighter variants for dark readability */
+  --success-color: #34d399;
+  --warning-color: #fbbf24;
+  --error-color: #f87171;
+  --info-color: #60a5fa;
+
+  /* Highlighted case-card tokens: Late = red, Appointment Risk = violet,
+     Due Soon = blue. Hues are deliberately far apart so the states are
+     distinguishable at a glance on dark surfaces. */
+  --case-late-accent: #f87171;
+  --case-late-tint: rgba(220, 38, 38, 0.45);
+  --case-risk-accent: #c084fc;
+  --case-risk-tint: rgba(168, 85, 247, 0.38);
+  --case-duesoon-accent: #60a5fa;
+  --case-duesoon-tint: rgba(37, 99, 235, 0.38);
+  --case-highlight-fg: #e2e8f0;
+  --case-highlight-sub: #cbd5e1;
+
+  /* Aliases for component files that reference differently-named tokens
+     (notification-preferences.css) - they fall back to light values when
+     undefined, so define them here to theme the whole file at once. */
+  --border-color: var(--border-light);
+  --bg-elevated: var(--background-subtle);
+  --danger: var(--error-color);
+
+  /* Environment backgrounds */
+  --prod-bg-light: #0f172a;
+  --prod-bg-gradient-start: #0f172a;
+  --prod-bg-gradient-end: #1e293b;
+  --prod-accent-strip: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary-color) 100%);
+  --prod-text-primary: var(--text-primary);
+  --dev-bg-light: #292018;
+  --dev-bg-gradient-start: #292018;
   --dev-bg-gradient-end: #3e2723;
-  --dev-accent-strip: linear-gradient(to right, #ff9800, #ff5722);
-  
-  --prod-bg-dark: #0d1520; /* Dark blue for prod */
-  --prod-bg-gradient-start: #0d1520;
-  --prod-bg-gradient-end: #162537;
-  --prod-accent-strip: linear-gradient(to right, var(--primary-color), var(--accent-color));
+  --dev-text-primary: #fcd34d;
+
+  /* Keep radius vars untouched - layout is identical. */
 }
 
-/* 
- * Dark theme styles will be implemented here in the future.
- * This file currently serves as a placeholder with CSS variable definitions.
- *
- * The structure will mirror app.light.css but with dark mode color values and adjustments.
- */
+/* ---------------- Base surfaces ---------------- */
+
+[data-theme="dark"] body,
+[data-theme="dark"] .main-body,
+[data-theme="dark"] .env-prod {
+  background-color: #0f172a;
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .env-dev {
+  background-color: var(--dev-bg-light);
+  color: var(--dev-text-primary);
+}
+
+[data-theme="dark"] .env-uat {
+  background-color: #1e1b2e;
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .main-container,
+[data-theme="dark"] .main-content,
+[data-theme="dark"] .main-tab-content,
+[data-theme="dark"] .main-tab-pane,
+[data-theme="dark"] .dashboard {
+  background-color: transparent;
+  color: var(--text-primary);
+}
+
+/* ---------------- Header / navigation ---------------- */
+
+[data-theme="dark"] .main-header {
+  background-color: #1e293b;
+  border-bottom-color: var(--border-light);
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .main-brand .app-title-container h1,
+[data-theme="dark"] .app-title,
+[data-theme="dark"] .app-subtitle,
+[data-theme="dark"] .practice-switcher-name {
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .practice-switcher-btn {
+  color: var(--text-secondary);
+}
+
+[data-theme="dark"] .practice-switcher-btn:hover,
+[data-theme="dark"] .practice-switcher-btn:focus {
+  color: var(--text-primary);
+  background-color: #334155;
+}
+
+[data-theme="dark"] .practice-switcher-icon {
+  color: var(--text-light);
+}
+
+[data-theme="dark"] .practice-switcher-dropdown,
+[data-theme="dark"] .user-menu,
+[data-theme="dark"] .language-selector-menu,
+[data-theme="dark"] .autocomplete-dropdown,
+[data-theme="dark"] .case-actions-menu {
+  background-color: #1e293b;
+  border-color: var(--border-light);
+  box-shadow: var(--shadow-large);
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .practice-switcher-item,
+[data-theme="dark"] .user-menu-item,
+[data-theme="dark"] .language-selector-item,
+[data-theme="dark"] .case-actions-menu-item,
+[data-theme="dark"] .autocomplete-item {
+  color: var(--text-secondary);
+}
+
+[data-theme="dark"] .practice-switcher-item:hover,
+[data-theme="dark"] .practice-switcher-item.active,
+[data-theme="dark"] .user-menu-item:hover,
+[data-theme="dark"] .language-selector-item:hover,
+[data-theme="dark"] .language-selector-item:focus,
+[data-theme="dark"] .case-actions-menu-item:hover,
+[data-theme="dark"] .autocomplete-item:hover,
+[data-theme="dark"] .autocomplete-item.selected,
+[data-theme="dark"] .autocomplete-item.active {
+  background-color: #334155;
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .language-selector-item[aria-current="true"] {
+  color: var(--primary-color);
+}
+
+[data-theme="dark"] .user-menu-divider,
+[data-theme="dark"] .case-actions-separator,
+[data-theme="dark"] .settings-divider,
+[data-theme="dark"] .modal-footer,
+[data-theme="dark"] .kanban-column-header,
+[data-theme="dark"] .insights-section-header {
+  background-color: var(--border-light);
+  border-color: var(--border-light);
+}
+
+[data-theme="dark"] .user-menu-kbd {
+  border-color: rgba(148, 163, 184, 0.4);
+  color: var(--text-light);
+}
+
+[data-theme="dark"] .language-selector-toggle {
+  border-color: var(--border-medium);
+  color: var(--text-secondary);
+}
+
+[data-theme="dark"] .language-selector-toggle:hover,
+[data-theme="dark"] .language-selector-toggle:focus {
+  border-color: var(--primary-color);
+  color: var(--primary-color);
+}
+
+[data-theme="dark"] .logout-btn,
+[data-theme="dark"] .view-archived-button,
+[data-theme="dark"] .filter-toggle-button {
+  color: var(--text-secondary);
+  border-color: var(--border-light);
+}
+
+[data-theme="dark"] .logout-btn:hover,
+[data-theme="dark"] .view-archived-button:hover,
+[data-theme="dark"] .filter-toggle-button:hover {
+  color: var(--text-primary);
+  background-color: #334155;
+}
+
+/* ---------------- Toolbar / search / filters ---------------- */
+
+[data-theme="dark"] .dashboard-toolbar {
+  border-bottom-color: var(--border-light);
+}
+
+[data-theme="dark"] .dashboard-search-input,
+[data-theme="dark"] .kanban-search-field input,
+[data-theme="dark"] .kanban-filter-input,
+[data-theme="dark"] .archived-search input,
+[data-theme="dark"] .autocomplete-wrapper input,
+[data-theme="dark"] input[type="text"],
+[data-theme="dark"] input[type="email"],
+[data-theme="dark"] input[type="password"],
+[data-theme="dark"] input[type="number"],
+[data-theme="dark"] input[type="date"],
+[data-theme="dark"] input[type="search"],
+[data-theme="dark"] input[type="tel"],
+[data-theme="dark"] input[type="url"],
+[data-theme="dark"] textarea,
+[data-theme="dark"] select {
+  background-color: #16202f;
+  color: var(--text-primary);
+  border-color: var(--border-medium);
+}
+
+[data-theme="dark"] input::placeholder,
+[data-theme="dark"] textarea::placeholder {
+  color: var(--text-light);
+}
+
+[data-theme="dark"] input:focus,
+[data-theme="dark"] textarea:focus,
+[data-theme="dark"] select:focus {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.25);
+  outline: none;
+}
+
+/* Unified dark-mode select indicator: one light chevron for EVERY select,
+   regardless of which component stylesheet styled it (custom-arrow selects
+   with baked-in dark-gray SVGs, and native-arrow selects alike). Sets
+   repeat/position/size defensively so a background: shorthand elsewhere can
+   never produce a tiled indicator. Component rules with more specific
+   selectors (.clinical-field select etc.) still win but now agree on color.
+   Listboxes (select[multiple]/[size]) keep native rendering. */
+[data-theme="dark"] select:not([multiple]):not([size]) {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23e2e8f0' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'></polyline></svg>");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  background-size: 16px;
+  padding-right: 32px;
+}
+
+[data-theme="dark"] input:disabled,
+[data-theme="dark"] textarea:disabled,
+[data-theme="dark"] select:disabled,
+[data-theme="dark"] button:disabled {
+  color: var(--text-muted);
+  background-color: #16202f;
+  opacity: 0.65;
+}
+
+[data-theme="dark"] .kanban-filters-bar,
+[data-theme="dark"] .archived-filter-controls {
+  background-color: #1e293b;
+  border-color: var(--border-light);
+}
+
+[data-theme="dark"] .kanban-filter-labels,
+[data-theme="dark"] .kanban-filter-field label,
+[data-theme="dark"] .filter-checkbox-label,
+[data-theme="dark"] .case-sort-section label,
+[data-theme="dark"] .archived-filters label {
+  color: var(--text-secondary);
+}
+
+[data-theme="dark"] .filter-clear-btn,
+[data-theme="dark"] .archived-search-clear-btn,
+[data-theme="dark"] .search-clear-btn {
+  color: var(--text-light);
+}
+
+[data-theme="dark"] .filter-clear-btn:hover,
+[data-theme="dark"] .archived-search-clear-btn:hover,
+[data-theme="dark"] .search-clear-btn:hover {
+  color: var(--text-primary);
+  background-color: #334155;
+}
+
+/* ---------------- Kanban board / cards ---------------- */
+
+[data-theme="dark"] .kanban-column {
+  background-color: #16202f;
+  border-color: var(--border-light);
+}
+
+[data-theme="dark"] .kanban-column-title,
+[data-theme="dark"] .kanban-column-count {
+  color: var(--text-secondary);
+}
+
+[data-theme="dark"] .kanban-card {
+  background-color: #1e293b;
+  border-color: var(--border-light);
+  color: var(--text-primary);
+  box-shadow: var(--shadow-small);
+}
+
+[data-theme="dark"] .kanban-card:hover {
+  border-color: var(--border-medium);
+  box-shadow: var(--shadow-medium);
+}
+
+[data-theme="dark"] .kanban-card-title,
+[data-theme="dark"] .kanban-card-content,
+[data-theme="dark"] .kanban-card-dates,
+[data-theme="dark"] .case-meta-value {
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .kanban-card-header,
+[data-theme="dark"] .case-meta-label,
+[data-theme="dark"] .date-label {
+  color: var(--text-light);
+}
+
+[data-theme="dark"] .kanban-empty,
+[data-theme="dark"] .kanban-column-body {
+  color: var(--text-light);
+}
+
+[data-theme="dark"] .case-actions-toggle {
+  color: var(--text-light);
+}
+
+[data-theme="dark"] .case-actions-toggle:hover {
+  color: var(--text-primary);
+  background-color: #334155;
+}
+
+/* Card status accents keep their semantic hue (border-left) - unchanged.
+   The highlighted-card treatments (Late / Appointment Risk / Due Soon) are
+   defined once near the bottom of this file using the --case-* tokens. */
+
+[data-theme="dark"] .kanban-card-delivered {
+  opacity: 0.8;
+}
+
+[data-theme="dark"] .mobile-kanban-nav,
+[data-theme="dark"] .kanban-board-compact {
+  background-color: transparent;
+}
+
+/* Filter/sort utility buttons (Reset filters, Reset sort, Add another
+   sort, Retry) are pink-tinted in light mode; in dark they read as neutral
+   secondary chips that do not compete with primary actions. */
+[data-theme="dark"] .filter-clear-btn {
+  background-color: var(--background-subtle);
+  border-color: var(--border-medium);
+  color: var(--text-secondary);
+}
+
+[data-theme="dark"] .filter-clear-btn:hover:not(:disabled),
+[data-theme="dark"] .filter-clear-btn:focus-visible {
+  background-color: #243349;
+  border-color: var(--text-muted);
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .filter-clear-btn:active {
+  background-color: #334155;
+}
+
+[data-theme="dark"] .filter-clear-btn:disabled {
+  color: var(--text-muted);
+  opacity: 0.6;
+}
+
+/* ---------------- Compact & list views ---------------- */
+
+[data-theme="dark"] .case-list-view,
+[data-theme="dark"] .archived-table-container,
+[data-theme="dark"] .archived-cases-table {
+  background-color: #1e293b;
+  border-color: var(--border-light);
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .archived-cases-table th,
+[data-theme="dark"] table th,
+[data-theme="dark"] .case-list-row-header {
+  background-color: #16202f;
+  color: var(--text-light);
+  border-color: var(--border-light);
+}
+
+[data-theme="dark"] .archived-cases-table td,
+[data-theme="dark"] table td {
+  color: var(--text-primary);
+  border-color: var(--border-light);
+}
+
+[data-theme="dark"] .archived-cases-table tbody tr,
+[data-theme="dark"] table tbody tr,
+[data-theme="dark"] .case-list-row {
+  border-color: var(--border-light);
+}
+
+[data-theme="dark"] .archived-cases-table tbody tr:hover,
+[data-theme="dark"] table tbody tr:hover,
+[data-theme="dark"] .case-list-row:hover {
+  background-color: #243349;
+}
+
+[data-theme="dark"] .compact-case-card,
+[data-theme="dark"] .compact-row,
+[data-theme="dark"] .kanban-board-compact .kanban-card {
+  background-color: #1e293b;
+  border-color: var(--border-light);
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .compact-case-card:hover,
+[data-theme="dark"] .compact-row:hover {
+  background-color: #243349;
+  border-color: var(--border-medium);
+}
+
+/* ---------------- Modals ---------------- */
+
+[data-theme="dark"] .modal {
+  background-color: rgba(2, 6, 23, 0.65);
+}
+
+[data-theme="dark"] .modal-content,
+[data-theme="dark"] .confirm-modal,
+[data-theme="dark"] .archived-cases-modal,
+[data-theme="dark"] .create-case-modal,
+[data-theme="dark"] .contact-modal,
+[data-theme="dark"] .rename-label-modal,
+[data-theme="dark"] .ai-chat-modal {
+  background-color: #1e293b;
+  border-color: var(--border-light);
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .modal-header {
+  border-bottom-color: var(--border-light);
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .modal-title,
+[data-theme="dark"] .modal-header h2,
+[data-theme="dark"] .modal-header h3,
+[data-theme="dark"] .modal-body,
+[data-theme="dark"] .modal-body h3,
+[data-theme="dark"] .modal-body p,
+[data-theme="dark"] .doc-section {
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .modal-body label,
+[data-theme="dark"] .form-field label,
+[data-theme="dark"] .settings-group label,
+[data-theme="dark"] .option-row label {
+  color: var(--text-secondary);
+}
+
+/* The shared .btn-close keeps its translucent-white circle over the same
+   blue modal header in dark mode, so the dark navy X stays correct. */
+[data-theme="dark"] .btn-close {
+  color: #1e293b;
+}
+
+[data-theme="dark"] .btn-close:hover {
+  color: #0f172a;
+  background-color: rgba(255, 255, 255, 0.4);
+}
+
+[data-theme="dark"] .modal-close,
+[data-theme="dark"] .close {
+  color: var(--text-light);
+}
+
+[data-theme="dark"] .modal-close:hover,
+[data-theme="dark"] .close:hover {
+  color: var(--text-primary);
+  background-color: #334155;
+}
+
+/* ---------------- Forms ---------------- */
+
+[data-theme="dark"] .form-field input,
+[data-theme="dark"] .form-field textarea,
+[data-theme="dark"] .form-field select,
+[data-theme="dark"] .shipping-fields input,
+[data-theme="dark"] .review-status-field,
+[data-theme="dark"] .custom-carrier-field,
+[data-theme="dark"] .case-actions-move-select,
+[data-theme="dark"] .number-input,
+[data-theme="dark"] .theme-dropdown {
+  background-color: #16202f;
+  color: var(--text-primary);
+  border-color: var(--border-medium);
+}
+
+[data-theme="dark"] .field-error,
+[data-theme="dark"] .error-message {
+  color: var(--error-color);
+}
+
+[data-theme="dark"] .required {
+  color: var(--error-color);
+}
+
+[data-theme="dark"] .char-counter {
+  color: var(--text-light);
+}
+
+[data-theme="dark"] .emoji-option,
+[data-theme="dark"] .auth-step {
+  background-color: #16202f;
+  border-color: var(--border-light);
+}
+
+[data-theme="dark"] .emoji-option:hover,
+[data-theme="dark"] .emoji-option input[type="radio"]:checked + .emoji-face {
+  border-color: var(--primary-color);
+  background-color: rgba(96, 165, 250, 0.15);
+}
+
+/* ---------------- Buttons ---------------- */
+
+[data-theme="dark"] .btn-cancel,
+[data-theme="dark"] .file-button,
+[data-theme="dark"] .btn-secondary,
+[data-theme="dark"] .archived-actions button,
+[data-theme="dark"] .btn-restore {
+  background-color: #334155;
+  color: var(--text-primary);
+  border-color: var(--border-medium);
+}
+
+[data-theme="dark"] .btn-cancel:hover,
+[data-theme="dark"] .file-button:hover,
+[data-theme="dark"] .btn-secondary:hover,
+[data-theme="dark"] .archived-actions button:hover,
+[data-theme="dark"] .btn-restore:hover {
+  background-color: #475569;
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .btn-primary,
+[data-theme="dark"] .create-case-button,
+[data-theme="dark"] .btn-success,
+[data-theme="dark"] .ai-chat-send {
+  background-color: var(--primary-dark);
+  border-color: var(--primary-dark);
+  color: #f8fafc;
+}
+
+[data-theme="dark"] .btn-primary:hover,
+[data-theme="dark"] .create-case-button:hover,
+[data-theme="dark"] .btn-success:hover,
+[data-theme="dark"] .ai-chat-send:hover {
+  background-color: var(--primary-color);
+  border-color: var(--primary-color);
+  color: #0f172a;
+}
+
+/* ---------------- Settings ---------------- */
+
+[data-theme="dark"] .settings-twisty-header,
+[data-theme="dark"] .settings-twisty-title,
+[data-theme="dark"] .settings-section-title {
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .settings-twisty-header:hover {
+  background-color: #243349;
+}
+
+[data-theme="dark"] .settings-twisty-arrow {
+  color: var(--text-light);
+}
+
+[data-theme="dark"] .option-text,
+[data-theme="dark"] .option-description,
+[data-theme="dark"] .settings-help-text {
+  color: var(--text-light);
+}
+
+[data-theme="dark"] .option-row {
+  border-color: var(--border-light);
+}
+
+[data-theme="dark"] .support-card,
+[data-theme="dark"] .support-link {
+  background-color: #16202f;
+  border-color: var(--border-light);
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .support-icon {
+  color: var(--primary-color);
+}
+
+[data-theme="dark"] .language-selector-section,
+[data-theme="dark"] .workflow-section {
+  border-color: var(--border-light);
+}
+
+/* ---------------- Badges / indicators ---------------- */
+
+[data-theme="dark"] .attachment-indicator,
+[data-theme="dark"] .attachment-count,
+[data-theme="dark"] .archived-count-badge,
+[data-theme="dark"] .filter-active-dot {
+  color: var(--text-secondary);
+}
+
+[data-theme="dark"] .file-type-badge,
+[data-theme="dark"] .badge {
+  background-color: #334155;
+  color: var(--text-primary);
+}
+
+/* Tinted status badges: keep the semantic hue, use dark translucent fills */
+[data-theme="dark"] .badge-success,
+[data-theme="dark"] .status-badge.delivered,
+[data-theme="dark"] .badge-delivered {
+  background-color: rgba(52, 211, 153, 0.18);
+  color: #6ee7b7;
+  border-color: rgba(52, 211, 153, 0.4);
+}
+
+[data-theme="dark"] .badge-warning,
+[data-theme="dark"] .badge-manufactured,
+[data-theme="dark"] .badge-in-transit {
+  background-color: rgba(251, 191, 36, 0.15);
+  color: #fcd34d;
+  border-color: rgba(251, 191, 36, 0.4);
+}
+
+[data-theme="dark"] .badge-error,
+[data-theme="dark"] .badge-exception,
+[data-theme="dark"] .badge-danger {
+  background-color: rgba(248, 113, 113, 0.15);
+  color: #fca5a5;
+  border-color: rgba(248, 113, 113, 0.4);
+}
+
+[data-theme="dark"] .badge-info,
+[data-theme="dark"] .badge-originated {
+  background-color: rgba(96, 165, 250, 0.15);
+  color: #93c5fd;
+  border-color: rgba(96, 165, 250, 0.4);
+}
+
+/* ---------------- Attachments / files ---------------- */
+
+[data-theme="dark"] .attachments-section-header,
+[data-theme="dark"] .attachment-header {
+  color: var(--text-primary);
+  border-color: var(--border-light);
+}
+
+[data-theme="dark"] .attachment-row,
+[data-theme="dark"] .existing-file,
+[data-theme="dark"] .attachment-group {
+  background-color: #16202f;
+  border-color: var(--border-light);
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .attachment-row:hover,
+[data-theme="dark"] .existing-file:hover {
+  background-color: #243349;
+}
+
+[data-theme="dark"] .file-remove {
+  color: var(--error-color);
+}
+
+[data-theme="dark"] .attachment-download-all {
+  color: var(--primary-color);
+}
+
+/* ---------------- Pagination ---------------- */
+
+[data-theme="dark"] .pagination-center,
+[data-theme="dark"] .pagination-left,
+[data-theme="dark"] .pagination-right,
+[data-theme="dark"] .archived-pagination {
+  color: var(--text-secondary);
+}
+
+[data-theme="dark"] .pagination-center button,
+[data-theme="dark"] .archived-pagination button {
+  background-color: #334155;
+  color: var(--text-primary);
+  border-color: var(--border-medium);
+}
+
+[data-theme="dark"] .pagination-center button:hover:not(:disabled),
+[data-theme="dark"] .archived-pagination button:hover:not(:disabled) {
+  background-color: #475569;
+}
+
+/* ---------------- Tabs ---------------- */
+
+[data-theme="dark"] .main-tabs,
+[data-theme="dark"] .contact-tabs {
+  border-bottom-color: var(--border-light);
+}
+
+[data-theme="dark"] .main-tab,
+[data-theme="dark"] .contact-tab {
+  color: var(--text-light);
+}
+
+[data-theme="dark"] .main-tab:hover,
+[data-theme="dark"] .contact-tab:hover {
+  color: var(--text-primary);
+  background-color: #243349;
+}
+
+[data-theme="dark"] .main-tab.active,
+[data-theme="dark"] .contact-tab.active {
+  color: var(--primary-color);
+  border-bottom-color: var(--primary-color);
+}
+
+/* ---------------- Ask DentaTrak / AI chat ---------------- */
+
+[data-theme="dark"] .ai-chat-body,
+[data-theme="dark"] .ai-chat-messages {
+  background-color: #16202f;
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .ai-chat-header {
+  background-color: #1e293b;
+  border-bottom-color: var(--border-light);
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .ai-chat-title,
+[data-theme="dark"] .ai-status {
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .ai-message-content {
+  background-color: #1e293b;
+  color: var(--text-primary);
+  border-color: var(--border-light);
+}
+
+[data-theme="dark"] .ai-message.ai-message-user .ai-message-content {
+  background-color: var(--primary-dark);
+  color: #f8fafc;
+}
+
+[data-theme="dark"] .ai-chat-input-container {
+  background-color: #1e293b;
+  border-top-color: var(--border-light);
+}
+
+[data-theme="dark"] .ai-chat-input-container input,
+[data-theme="dark"] .ai-chat-input-container textarea {
+  background-color: #16202f;
+  color: var(--text-primary);
+  border-color: var(--border-medium);
+}
+
+[data-theme="dark"] .ai-typing-dot {
+  background-color: var(--text-light);
+}
+
+[data-theme="dark"] .ai-avatar,
+[data-theme="dark"] .ai-message-avatar {
+  background-color: #334155;
+  color: var(--text-primary);
+}
+
+/* ---------------- Notifications / auth prompts ---------------- */
+
+[data-theme="dark"] .auth-instructions,
+[data-theme="dark"] .auth-status,
+[data-theme="dark"] .auth-privacy-note {
+  color: var(--text-secondary);
+}
+
+[data-theme="dark"] .auth-error {
+  color: var(--error-color);
+}
+
+[data-theme="dark"] .notification-item,
+[data-theme="dark"] .notification-row {
+  color: var(--text-primary);
+  border-color: var(--border-light);
+}
+
+[data-theme="dark"] .notification-item:hover,
+[data-theme="dark"] .notification-row:hover {
+  background-color: #243349;
+}
+
+/* ---------------- Links ---------------- */
+
+[data-theme="dark"] a,
+[data-theme="dark"] .link-btn,
+[data-theme="dark"] .issue-link,
+[data-theme="dark"] .tracking-number-link,
+[data-theme="dark"] .billing-link {
+  color: var(--primary-light);
+}
+
+[data-theme="dark"] a:hover,
+[data-theme="dark"] .link-btn:hover {
+  color: #93c5fd;
+}
+
+/* ---------------- Empty states / misc text ---------------- */
+
+[data-theme="dark"] .empty-state,
+[data-theme="dark"] .empty-state-text,
+[data-theme="dark"] .autocomplete-no-results,
+[data-theme="dark"] .attachments-load-status,
+[data-theme="dark"] .case-modal-meta,
+[data-theme="dark"] .revision-count-line,
+[data-theme="dark"] .rename-label-modal p {
+  color: var(--text-light);
+}
+
+[data-theme="dark"] .issue-content,
+[data-theme="dark"] .issue-links,
+[data-theme="dark"] .quick-issues {
+  color: var(--text-secondary);
+}
+
+[data-theme="dark"] .selected-files,
+[data-theme="dark"] .date-value {
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .footer-links a,
+[data-theme="dark"] .main-copyright {
+  color: var(--text-light);
+}
+
+[data-theme="dark"] .avatar-placeholder,
+[data-theme="dark"] .profile-image {
+  background-color: #334155;
+  color: var(--text-primary);
+}
+
+/* ---------------- Scrollbars ---------------- */
+
+[data-theme="dark"] ::-webkit-scrollbar-track {
+  background: #0f172a;
+}
+
+[data-theme="dark"] ::-webkit-scrollbar-thumb {
+  background: #475569;
+  border-color: #0f172a;
+}
+
+[data-theme="dark"] ::-webkit-scrollbar-thumb:hover {
+  background: #64748b;
+}
+
+[data-theme="dark"] * {
+  scrollbar-color: #475569 #0f172a;
+}
+
+/* ---------------- Focus visibility ---------------- */
+
+[data-theme="dark"] :focus-visible {
+  outline-color: var(--primary-color);
+}
+
+/* Content images (practice logos, case photos, attachments) are never
+   recolored - nothing in this file targets img/svg content. */
+
+/* ---------------- Settings modal internals ---------------- */
+
+/* The modal surface itself stays solid - inner panes are transparent so the
+   single elevated background shows through them consistently. */
+[data-theme="dark"] .settings-billing-modal {
+  background-color: var(--background-white);
+  border-color: var(--border-light);
+}
+
+[data-theme="dark"] .settings-layout,
+[data-theme="dark"] .settings-panels,
+[data-theme="dark"] .settings-options,
+[data-theme="dark"] .tab-content-scroll,
+[data-theme="dark"] .tab-pane,
+[data-theme="dark"] .tab-content,
+[data-theme="dark"] .settings-section,
+[data-theme="dark"] .settings-group {
+  background-color: transparent;
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .settings-nav {
+  background-color: #16202f;
+  border-color: var(--border-light);
+}
+
+[data-theme="dark"] .settings-nav-item {
+  color: var(--text-secondary);
+}
+
+[data-theme="dark"] .settings-nav-item:hover {
+  background-color: #243349;
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .settings-nav-item.active,
+[data-theme="dark"] .settings-nav-item[aria-selected="true"] {
+  background-color: rgba(96, 165, 250, 0.15);
+  color: var(--primary-color);
+}
+
+[data-theme="dark"] .section-title,
+[data-theme="dark"] .subsection-title,
+[data-theme="dark"] .settings-label,
+[data-theme="dark"] .settings-section-label,
+[data-theme="dark"] .case-tab,
+[data-theme="dark"] .admin-user-email,
+[data-theme="dark"] .gmail-user-email,
+[data-theme="dark"] .legal-name-display,
+[data-theme="dark"] .baa-info-value,
+[data-theme="dark"] .card-number,
+[data-theme="dark"] .plan-details,
+[data-theme="dark"] .current-plan,
+[data-theme="dark"] .practice-2fa-summary,
+[data-theme="dark"] .recipient-row,
+[data-theme="dark"] .workflow-column-label-input,
+[data-theme="dark"] .integration-key-value {
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .section-description,
+[data-theme="dark"] .settings-sublabel,
+[data-theme="dark"] .gmail-user-last-login,
+[data-theme="dark"] .baa-info-label,
+[data-theme="dark"] .field-note-inline,
+[data-theme="dark"] .assignment-labels-hint,
+[data-theme="dark"] .export-note,
+[data-theme="dark"] .workflow-columns-description,
+[data-theme="dark"] .integration-step-desc,
+[data-theme="dark"] .integration-meta-label,
+[data-theme="dark"] .baa-status-section,
+[data-theme="dark"] .phi-audit-resource-id,
+[data-theme="dark"] .revision-empty-state {
+  color: var(--text-light);
+}
+
+[data-theme="dark"] .assignment-label-card,
+[data-theme="dark"] .integration-card,
+[data-theme="dark"] .admin-user-item,
+[data-theme="dark"] .gmail-user-item,
+[data-theme="dark"] .workflow-column-row,
+[data-theme="dark"] .baa-info-item,
+[data-theme="dark"] .payment-method,
+[data-theme="dark"] .security-section,
+[data-theme="dark"] .data-export-section,
+[data-theme="dark"] .integration-setup-step,
+[data-theme="dark"] .checkbox-item,
+[data-theme="dark"] .radio-item {
+  background-color: #16202f;
+  border-color: var(--border-light);
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .admin-input,
+[data-theme="dark"] .gmail-input,
+[data-theme="dark"] .settings-language-select,
+[data-theme="dark"] .readonly-field,
+[data-theme="dark"] .verification-input-group input,
+[data-theme="dark"] .integration-credential-field input,
+[data-theme="dark"] .disable-input-group input,
+[data-theme="dark"] .manual-entry input {
+  background-color: #0f172a;
+  color: var(--text-primary);
+  border-color: var(--border-medium);
+}
+
+[data-theme="dark"] .admin-badge,
+[data-theme="dark"] .baa-status-badge,
+[data-theme="dark"] .integration-status-badge,
+[data-theme="dark"] .status-badge,
+[data-theme="dark"] .premium-badge,
+[data-theme="dark"] .category-tag {
+  background-color: #334155;
+  color: var(--text-primary);
+  border-color: var(--border-medium);
+}
+
+[data-theme="dark"] .add-admin-btn,
+[data-theme="dark"] .add-gmail-btn,
+[data-theme="dark"] .btn-outline,
+[data-theme="dark"] .btn-download-baa,
+[data-theme="dark"] .btn-icon,
+[data-theme="dark"] .workflow-stage-labels-actions button,
+[data-theme="dark"] .workflow-columns-actions button {
+  background-color: #334155;
+  color: var(--text-primary);
+  border-color: var(--border-medium);
+}
+
+[data-theme="dark"] .add-admin-btn:hover,
+[data-theme="dark"] .add-gmail-btn:hover,
+[data-theme="dark"] .btn-outline:hover,
+[data-theme="dark"] .btn-download-baa:hover {
+  background-color: #475569;
+}
+
+[data-theme="dark"] .btn-outline-danger,
+[data-theme="dark"] .btn-outline-warning,
+[data-theme="dark"] .btn-danger,
+[data-theme="dark"] .remove-admin-user,
+[data-theme="dark"] .remove-gmail-user {
+  color: #fca5a5;
+  border-color: rgba(248, 113, 113, 0.5);
+}
+
+[data-theme="dark"] .btn-danger {
+  background-color: rgba(248, 113, 113, 0.15);
+}
+
+[data-theme="dark"] .btn-link,
+[data-theme="dark"] .notification-preferences-link {
+  color: var(--primary-light);
+}
+
+[data-theme="dark"] .dt-tooltip-bubble,
+[data-theme="dark"] .dt-tooltip-layer {
+  background-color: #0f172a;
+  color: var(--text-primary);
+  border-color: var(--border-medium);
+  box-shadow: var(--shadow-large);
+}
+
+[data-theme="dark"] .password-requirements,
+[data-theme="dark"] .password-match {
+  color: var(--text-light);
+}
+
+[data-theme="dark"] .form-error,
+[data-theme="dark"] .user-limit-warning {
+  color: #fca5a5;
+}
+
+[data-theme="dark"] .form-success {
+  color: #6ee7b7;
+}
+
+[data-theme="dark"] .two-factor-status,
+[data-theme="dark"] .status,
+[data-theme="dark"] .status-description {
+  color: var(--text-secondary);
+}
+
+/* ---------------- Case comments & notifications ---------------- */
+
+[data-theme="dark"] .case-comments-section,
+[data-theme="dark"] .case-comments-header,
+[data-theme="dark"] .case-comments-title {
+  color: var(--text-primary);
+  border-color: var(--border-light);
+}
+
+[data-theme="dark"] .case-comment {
+  background-color: #16202f;
+  border-color: var(--border-light);
+}
+
+[data-theme="dark"] .case-comment-text,
+[data-theme="dark"] .case-comment-author,
+[data-theme="dark"] .case-comment-content {
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .case-comment-time,
+[data-theme="dark"] .case-comment-hint,
+[data-theme="dark"] .case-comments-empty {
+  color: var(--text-light);
+}
+
+[data-theme="dark"] .case-comment-input,
+[data-theme="dark"] .case-comment-input-wrapper {
+  background-color: #0f172a;
+  border-color: var(--border-medium);
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .case-comment-avatar,
+[data-theme="dark"] .notification-item-avatar {
+  background-color: #334155;
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .mention-autocomplete,
+[data-theme="dark"] .notification-dropdown {
+  background-color: #1e293b;
+  border-color: var(--border-light);
+  box-shadow: var(--shadow-large);
+}
+
+[data-theme="dark"] .mention-autocomplete-item,
+[data-theme="dark"] .notification-item {
+  color: var(--text-secondary);
+  border-color: var(--border-light);
+}
+
+[data-theme="dark"] .mention-autocomplete-item:hover,
+[data-theme="dark"] .mention-autocomplete-item.active,
+[data-theme="dark"] .notification-item:hover {
+  background-color: #334155;
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .mention-autocomplete-name,
+[data-theme="dark"] .notification-item-text,
+[data-theme="dark"] .notification-item-case,
+[data-theme="dark"] .notification-dropdown-title {
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .mention-autocomplete-email,
+[data-theme="dark"] .mention-autocomplete-info,
+[data-theme="dark"] .mention-autocomplete-empty,
+[data-theme="dark"] .notification-item-meta,
+[data-theme="dark"] .notification-dropdown-empty,
+[data-theme="dark"] .notification-item-context {
+  color: var(--text-light);
+}
+
+[data-theme="dark"] .notification-dropdown-header {
+  border-bottom-color: var(--border-light);
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .notification-filter-btn {
+  color: var(--text-light);
+  background-color: transparent;
+  border-color: var(--border-light);
+}
+
+[data-theme="dark"] .notification-filter-btn.active,
+[data-theme="dark"] .notification-filter-btn:hover {
+  color: var(--primary-color);
+  background-color: rgba(96, 165, 250, 0.15);
+}
+
+[data-theme="dark"] .notification-mark-all,
+[data-theme="dark"] .notification-dropdown-close {
+  color: var(--text-light);
+}
+
+/* The bell is a native <button>; color-scheme: dark gives it a bright UA
+   border. Pin it to the theme border + the same surface as adjacent header
+   controls (avatar/language toggle). */
+[data-theme="dark"] .notification-bell {
+  color: var(--text-secondary);
+  border: 1px solid var(--border-light);
+  background-color: var(--background-white);
+}
+
+[data-theme="dark"] .notification-bell:hover,
+[data-theme="dark"] .notification-bell:focus-visible {
+  background-color: var(--background-subtle);
+  border-color: var(--border-medium);
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .notification-badge,
+[data-theme="dark"] .notification-unread-dot {
+  background-color: #ef4444;
+  color: #fff;
+}
+
+[data-theme="dark"] .notification-item-dismiss {
+  color: var(--text-light);
+}
+
+[data-theme="dark"] .notification-item-dismiss:hover {
+  color: var(--text-primary);
+  background-color: #475569;
+}
+
+[data-theme="dark"] .notification-dropdown-footer {
+  border-top-color: var(--border-light);
+}
+
+/* ---------------- Notification preferences ---------------- */
+
+[data-theme="dark"] .notification-preferences-modal,
+[data-theme="dark"] .notification-preferences-list {
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .notification-preference-item {
+  border-color: var(--border-light);
+}
+
+[data-theme="dark"] .notification-preference-title,
+[data-theme="dark"] .notification-preference-label {
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .notification-preference-help,
+[data-theme="dark"] .notification-preferences-intro,
+[data-theme="dark"] .preferences-error,
+[data-theme="dark"] .preferences-loading {
+  color: var(--text-light);
+}
+
+[data-theme="dark"] .switch .switch-slider {
+  background-color: #475569;
+}
+
+[data-theme="dark"] .switch input:checked + .switch-slider {
+  background-color: var(--primary-dark);
+}
+
+/* ---------------- Billing portal ---------------- */
+
+[data-theme="dark"] .billing-portal-modal .modal-content,
+[data-theme="dark"] .bp-card,
+[data-theme="dark"] .bp-plan-card {
+  background-color: #1e293b;
+  border-color: var(--border-light);
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .bp-plan-card--featured {
+  border-color: var(--primary-color);
+}
+
+[data-theme="dark"] .bp-card-header,
+[data-theme="dark"] .bp-plan-header,
+[data-theme="dark"] .bp-plan-name,
+[data-theme="dark"] .bp-plan-title,
+[data-theme="dark"] .bp-plan-price,
+[data-theme="dark"] .bp-field-value,
+[data-theme="dark"] .bp-plan-benefits li {
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .bp-plan-header-sub,
+[data-theme="dark"] .bp-plan-per,
+[data-theme="dark"] .bp-plan-note,
+[data-theme="dark"] .bp-plan-practices,
+[data-theme="dark"] .bp-field-label,
+[data-theme="dark"] .bp-empty-state,
+[data-theme="dark"] .bp-readonly-notice,
+[data-theme="dark"] .bp-cancel-notice {
+  color: var(--text-light);
+}
+
+[data-theme="dark"] .bp-choose-plan-btn,
+[data-theme="dark"] .bp-plan-select-btn,
+[data-theme="dark"] .bp-interval-btn {
+  background-color: #334155;
+  color: var(--text-primary);
+  border-color: var(--border-medium);
+}
+
+[data-theme="dark"] .bp-choose-plan-btn:hover,
+[data-theme="dark"] .bp-plan-select-btn:hover,
+[data-theme="dark"] .bp-interval-btn.active,
+[data-theme="dark"] .bp-interval-btn:hover {
+  background-color: var(--primary-dark);
+  border-color: var(--primary-dark);
+  color: #f8fafc;
+}
+
+[data-theme="dark"] .bp-status-badge {
+  background-color: #334155;
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .bp-status-active,
+[data-theme="dark"] .bp-status-trialing {
+  background-color: rgba(52, 211, 153, 0.18);
+  color: #6ee7b7;
+}
+
+[data-theme="dark"] .bp-status-past_due,
+[data-theme="dark"] .bp-status-unpaid {
+  background-color: rgba(248, 113, 113, 0.18);
+  color: #fca5a5;
+}
+
+[data-theme="dark"] .bp-error,
+[data-theme="dark"] .bp-mock-notice {
+  color: #fca5a5;
+}
+
+[data-theme="dark"] .bp-trial-banner {
+  background-color: rgba(251, 191, 36, 0.12);
+  color: #fcd34d;
+  border-color: rgba(251, 191, 36, 0.35);
+}
+
+[data-theme="dark"] .bp-close-btn {
+  color: var(--text-light);
+}
+
+[data-theme="dark"] .bp-loading-spinner,
+[data-theme="dark"] .bp-empty-icon {
+  color: var(--text-light);
+}
+
+/* ---------------- Attachment viewer ---------------- */
+
+[data-theme="dark"] .attachment-viewer-modal,
+[data-theme="dark"] .attachment-viewer-content {
+  background-color: #0f172a;
+}
+
+[data-theme="dark"] .attachment-viewer-header {
+  background-color: #1e293b;
+  border-bottom-color: var(--border-light);
+}
+
+[data-theme="dark"] .attachment-viewer-title,
+[data-theme="dark"] .attachment-viewer-title-wrap,
+[data-theme="dark"] .attachment-viewer-type,
+[data-theme="dark"] .attachment-viewer-page-info,
+[data-theme="dark"] .attachment-viewer-position {
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .attachment-viewer-btn,
+[data-theme="dark"] .attachment-viewer-nav-prev,
+[data-theme="dark"] .attachment-viewer-nav-next {
+  background-color: #334155;
+  color: var(--text-primary);
+  border-color: var(--border-medium);
+}
+
+/* attachment-viewer.css loads after this file, so the plain
+   .attachment-viewer-btn-close override needs its own scoped dark rule. */
+[data-theme="dark"] .attachment-viewer-btn.attachment-viewer-btn-close {
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .attachment-viewer-btn:hover,
+[data-theme="dark"] .attachment-viewer-nav-prev:hover,
+[data-theme="dark"] .attachment-viewer-nav-next:hover {
+  background-color: #475569;
+}
+
+[data-theme="dark"] .attachment-viewer-canvas,
+[data-theme="dark"] .attachment-viewer-image-stage {
+  background-color: #0b1120;
+}
+
+[data-theme="dark"] .attachment-viewer-error,
+[data-theme="dark"] .attachment-viewer-unsupported-msg {
+  color: var(--text-light);
+}
+
+[data-theme="dark"] .attachment-viewer-loading,
+[data-theme="dark"] .attachment-viewer-unsupported-icon {
+  color: var(--text-muted);
+}
+
+
+[data-theme="dark"] .create-case-modal .modal-content {
+  background-color: #1e293b;
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .kanban-column-body.drag-over,
+[data-theme="dark"] .kanban-column.drag-over {
+  background-color: rgba(96, 165, 250, 0.12);
+  border-color: var(--primary-color);
+}
+
+[data-theme="dark"] .kanban-card.dragging {
+  box-shadow: var(--shadow-xl);
+}
+
+/* ---------------- Case remakes ---------------- */
+
+[data-theme="dark"] .remake-modal,
+[data-theme="dark"] .regression-prompt-modal,
+[data-theme="dark"] .remake-item,
+[data-theme="dark"] .remake-history-strip-row {
+  background-color: #1e293b;
+  border-color: var(--border-light);
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .remake-item-title,
+[data-theme="dark"] .remake-history-heading,
+[data-theme="dark"] .remake-history-strip-label,
+[data-theme="dark"] .remake-history-strip-header {
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .remake-item-meta,
+[data-theme="dark"] .remake-item-notes,
+[data-theme="dark"] .remake-empty,
+[data-theme="dark"] .remake-history-empty,
+[data-theme="dark"] .remake-field-hint,
+[data-theme="dark"] .remake-history-strip-summary,
+[data-theme="dark"] .remake-modal-subtitle {
+  color: var(--text-light);
+}
+
+[data-theme="dark"] .remake-error {
+  color: #fca5a5;
+}
+
+/* ---------------- Tour (shepherd) ---------------- */
+
+[data-theme="dark"] .shepherd-element,
+[data-theme="dark"] .shepherd-content,
+[data-theme="dark"] .shepherd-header {
+  background-color: #1e293b;
+  color: var(--text-primary);
+  border-color: var(--border-light);
+}
+
+[data-theme="dark"] .shepherd-title {
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .shepherd-text,
+[data-theme="dark"] .shepherd-step-counter {
+  color: var(--text-secondary);
+}
+
+[data-theme="dark"] .shepherd-button {
+  background-color: var(--primary-dark);
+  color: #f8fafc;
+}
+
+[data-theme="dark"] .shepherd-button:hover {
+  background-color: var(--primary-color);
+  color: #0f172a;
+}
+
+[data-theme="dark"] .shepherd-cancel-icon {
+  color: var(--text-light);
+}
+
+[data-theme="dark"] .shepherd-modal-overlay-container {
+  fill: rgba(2, 6, 23, 0.6);
+}
+
+/* ---------------- Logo upload ---------------- */
+
+[data-theme="dark"] .logo-upload-label,
+[data-theme="dark"] .current-logo {
+  background-color: #16202f;
+  border-color: var(--border-medium);
+  color: var(--text-secondary);
+}
+
+[data-theme="dark"] .logo-upload-label:hover {
+  border-color: var(--primary-color);
+}
+
+[data-theme="dark"] .upload-text,
+[data-theme="dark"] .logo-upload-info {
+  color: var(--text-light);
+}
+
+[data-theme="dark"] .upload-icon {
+  color: var(--text-muted);
+}
+
+/* ---------------- Search highlight ---------------- */
+
+[data-theme="dark"] .patient-name-highlight {
+  color: var(--primary-light);
+}
+
+/* ---------------- Practice name / misc ---------------- */
+
+[data-theme="dark"] .practice-name,
+[data-theme="dark"] .selected-file {
+  color: var(--text-primary);
+}
+
+
+/* ---------------- Highlighted case cards (Late / Appointment Risk / Due Soon) ---------------- */
+
+[data-theme="dark"] .kanban-card-past-due,
+[data-theme="dark"] .case-card-past-due,
+[data-theme="dark"] .past-due {
+  border-color: var(--case-late-accent);
+  background: linear-gradient(135deg, #1e293b 0%, var(--case-late-tint) 100%);
+}
+
+[data-theme="dark"] .kanban-card-past-due .late-indicator,
+[data-theme="dark"] .case-card-past-due .late-indicator,
+[data-theme="dark"] .past-due .late-indicator {
+  color: #fff;
+  background-color: #dc2626;
+}
+
+[data-theme="dark"] .kanban-card-coming-due,
+[data-theme="dark"] .case-card-coming-due,
+[data-theme="dark"] .coming-due {
+  border-color: var(--case-duesoon-accent);
+  background: linear-gradient(135deg, #1e293b 0%, var(--case-duesoon-tint) 100%);
+}
+
+[data-theme="dark"] .kanban-card-coming-due .late-indicator,
+[data-theme="dark"] .case-card-coming-due .late-indicator,
+[data-theme="dark"] .coming-due .late-indicator {
+  color: #fff;
+  background-color: #2563eb;
+}
+
+[data-theme="dark"] .kanban-card-appointment-risk,
+[data-theme="dark"] .case-card-appointment-risk,
+[data-theme="dark"] .appointment-risk {
+  border-color: var(--case-risk-accent);
+  background: linear-gradient(135deg, #1e293b 0%, var(--case-risk-tint) 100%);
+}
+
+[data-theme="dark"] .kanban-card-appointment-risk .appointment-risk-indicator,
+[data-theme="dark"] .appointment-risk .appointment-risk-indicator {
+  color: #fff;
+  background-color: #a855f7;
+}
+
+/* Card text stays readable on the tinted highlight surfaces */
+[data-theme="dark"] .kanban-card-past-due .kanban-card-content,
+[data-theme="dark"] .kanban-card-coming-due .kanban-card-content,
+[data-theme="dark"] .kanban-card-appointment-risk .kanban-card-content,
+[data-theme="dark"] .case-card-past-due .kanban-card-content,
+[data-theme="dark"] .case-card-coming-due .kanban-card-content,
+[data-theme="dark"] .case-card-appointment-risk .kanban-card-content {
+  color: var(--case-highlight-fg);
+}
+
+[data-theme="dark"] .kanban-card-past-due .kanban-card-dates,
+[data-theme="dark"] .kanban-card-past-due .date-label,
+[data-theme="dark"] .kanban-card-coming-due .kanban-card-dates,
+[data-theme="dark"] .kanban-card-coming-due .date-label,
+[data-theme="dark"] .kanban-card-appointment-risk .kanban-card-dates,
+[data-theme="dark"] .kanban-card-appointment-risk .date-label {
+  color: var(--case-highlight-sub);
+}
+
+[data-theme="dark"] .revision-count-line {
+  color: #f87171;
+}
+
+/* ---------------- Settings modal - remaining surfaces ---------------- */
+
+[data-theme="dark"] .tab-navigation {
+  border-bottom-color: var(--border-light);
+}
+
+[data-theme="dark"] .tab-btn {
+  color: var(--text-light);
+}
+
+[data-theme="dark"] .tab-btn:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .tab-btn.active {
+  color: var(--primary-light);
+}
+
+[data-theme="dark"] .tab-pane h3,
+[data-theme="dark"] .settings-label,
+[data-theme="dark"] .settings-section-label,
+[data-theme="dark"] .option-text,
+[data-theme="dark"] .label-with-checkbox span,
+[data-theme="dark"] .legal-name-display,
+[data-theme="dark"] .current-plan h4,
+[data-theme="dark"] .payment-methods h4,
+[data-theme="dark"] .section-title {
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .settings-sublabel,
+[data-theme="dark"] .card-number,
+[data-theme="dark"] .card-expiry,
+[data-theme="dark"] .password-requirements .req {
+  color: var(--text-light);
+}
+
+[data-theme="dark"] .number-input,
+[data-theme="dark"] input#practiceName,
+[data-theme="dark"] .theme-dropdown,
+[data-theme="dark"] .admin-input,
+[data-theme="dark"] .gmail-input,
+[data-theme="dark"] .inline-value-group input[type="text"],
+[data-theme="dark"] .security-form input[type="password"],
+[data-theme="dark"] .security-form input[type="text"] {
+  background-color: #0f172a;
+  border-color: var(--border-medium);
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] #settingsForm input[disabled],
+[data-theme="dark"] #settingsForm select[disabled],
+[data-theme="dark"] .settings-language-select:disabled,
+[data-theme="dark"] .readonly-field {
+  background-color: #16202f !important;
+  color: var(--text-muted);
+  border-color: var(--border-light);
+}
+
+[data-theme="dark"] .admin-user-item {
+  background-color: rgba(251, 191, 36, 0.08);
+  border-color: rgba(251, 191, 36, 0.3);
+}
+
+[data-theme="dark"] .admin-badge {
+  background-color: rgba(251, 146, 60, 0.25);
+  color: #fdba74;
+}
+
+[data-theme="dark"] .user-limit-warning {
+  background: linear-gradient(135deg, rgba(251, 191, 36, 0.12) 0%, rgba(251, 191, 36, 0.18) 100%);
+}
+
+[data-theme="dark"] .user-limit-warning svg { color: #fbbf24; }
+[data-theme="dark"] .user-limit-warning a { color: #fcd34d; }
+[data-theme="dark"] .user-limit-warning a:hover { color: #fde68a; }
+
+[data-theme="dark"] .baa-status-badge.accepted { background-color: rgba(52, 211, 153, 0.18); color: #6ee7b7; }
+[data-theme="dark"] .baa-status-badge.pending { background-color: rgba(251, 191, 36, 0.18); color: #fcd34d; }
+
+[data-theme="dark"] .btn-download-baa-small {
+  background: #334155;
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .btn-download-baa-small:hover {
+  background: #475569;
+}
+
+[data-theme="dark"] .form-error {
+  background: rgba(248, 113, 113, 0.12);
+  color: #fca5a5;
+}
+
+[data-theme="dark"] .form-success {
+  background: rgba(52, 211, 153, 0.12);
+  color: #6ee7b7;
+}
+
+[data-theme="dark"] .btn-secondary {
+  background: #334155;
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .btn-secondary:hover {
+  background: #475569;
+}
+
+[data-theme="dark"] .current-plan,
+[data-theme="dark"] .payment-methods {
+  background-color: #16202f;
+}
+
+[data-theme="dark"] .status.active {
+  background-color: rgba(52, 211, 153, 0.18);
+  color: #6ee7b7;
+}
+
+[data-theme="dark"] .password-requirements .req.valid,
+[data-theme="dark"] .password-match.match {
+  color: #34d399;
+}
+
+[data-theme="dark"] .password-match.no-match {
+  color: #f87171;
+}
+
+[data-theme="dark"] .practice-user-header .gmail-user-email,
+[data-theme="dark"] .practice-user-admin-header,
+[data-theme="dark"] .practice-user-analytics-header,
+[data-theme="dark"] .practice-user-edit-header,
+[data-theme="dark"] .practice-user-limited-header,
+[data-theme="dark"] .practice-user-addlabels-header,
+[data-theme="dark"] .practice-user-lab-header,
+[data-theme="dark"] .practice-user-remove-header {
+  color: var(--text-light);
+}
+
+[data-theme="dark"] .error-message {
+  color: #fca5a5;
+}
+
+/* Settings modal scrollbars */
+[data-theme="dark"] .settings-panels::-webkit-scrollbar-track,
+[data-theme="dark"] .tab-content-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+[data-theme="dark"] .settings-panels::-webkit-scrollbar-thumb,
+[data-theme="dark"] .tab-content-scroll::-webkit-scrollbar-thumb,
+[data-theme="dark"] .case-comments-list::-webkit-scrollbar-thumb {
+  background: #475569;
+}
+
+[data-theme="dark"] .settings-panels::-webkit-scrollbar-thumb:hover,
+[data-theme="dark"] .tab-content-scroll::-webkit-scrollbar-thumb:hover,
+[data-theme="dark"] .case-comments-list::-webkit-scrollbar-thumb:hover {
+  background: #64748b;
+}
+
+/* Native checkbox/radio accents respect the theme */
+[data-theme="dark"] input[type="checkbox"],
+[data-theme="dark"] input[type="radio"] {
+  accent-color: var(--primary-color);
+}
+
+/* ---------------- Case comments - remaining surfaces ---------------- */
+
+[data-theme="dark"] .case-comment-submit:disabled {
+  background: #334155;
+  color: var(--text-muted);
+}
+
+[data-theme="dark"] .notification-item.unread {
+  background: rgba(96, 165, 250, 0.12);
+}
+
+[data-theme="dark"] .notification-item.unread:hover {
+  background: rgba(96, 165, 250, 0.18);
+}
+
+/* Integration card: provider name, notes, and semantic status badges stay
+   meaningful in dark mode (dark-tinted pill + light semantic text). */
+[data-theme="dark"] .integration-provider-name { color: var(--text-primary); }
+[data-theme="dark"] .integration-locked-note,
+[data-theme="dark"] .integration-card-description { color: var(--text-light); }
+[data-theme="dark"] .integration-meta-error { color: var(--error-color); }
+[data-theme="dark"] .integration-status-badge.integration-status-active { background: #064e3b; color: #a7f3d0; }
+[data-theme="dark"] .integration-status-badge.integration-status-pending { background: #78350f; color: #fde68a; }
+[data-theme="dark"] .integration-status-badge.integration-status-error { background: #7f1d1d; color: #fecaca; }
+[data-theme="dark"] .integration-status-badge.integration-status-disabled { background: #334155; color: #cbd5e1; }
+[data-theme="dark"] .integration-status-badge.integration-status-locked { background: #312e81; color: #c7d2fe; }

@@ -11,6 +11,115 @@ var currentUserEmail = document.getElementById('userEmailData') ? document.getEl
 // CSRF Token for secure API requests
 var csrfToken = document.querySelector('meta[name="csrf-token"]') ? document.querySelector('meta[name="csrf-token"]').getAttribute('content') : '';
 
+// Theme preference: 'system' | 'light' | 'dark'. 'system' resolves via the
+// OS/browser prefers-color-scheme media query; the resolved value is applied
+// to <html data-theme> which css/app.dark.css keys off.
+function dtResolveTheme(pref) {
+  if (pref === 'dark' || pref === 'light') return pref;
+  return (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light';
+}
+
+function dtApplyTheme(pref) {
+  window.__dtThemePref = (pref === 'dark' || pref === 'light' || pref === 'system') ? pref : 'system';
+  document.documentElement.setAttribute('data-theme', dtResolveTheme(window.__dtThemePref));
+  dtThemeAllCharts();
+}
+
+// Chart.js draws text/grid/tooltip colors onto the canvas imperatively, so CSS
+// variables cannot reach them. These helpers apply the theme palette to each
+// registered chart instance and to Chart.defaults for future charts.
+function dtChartColors() {
+  var dark = document.documentElement.getAttribute('data-theme') === 'dark';
+  return dark
+    ? { text: '#cbd5e1', grid: 'rgba(148, 163, 184, 0.15)', tooltipBg: '#0f172a', tooltipTitle: '#f1f5f9', tooltipBody: '#cbd5e1', tooltipBorder: '#475569' }
+    : { text: '#475569', grid: 'rgba(0, 0, 0, 0.05)', tooltipBg: '#ffffff', tooltipTitle: '#1f2937', tooltipBody: '#475569', tooltipBorder: '#e2e8f0' };
+}
+
+function dtChartApplyColors(chart) {
+  var c = dtChartColors();
+  var o = chart && chart.options;
+  if (!o) return;
+  // chart.options nodes are Chart.js resolver proxies; never assign a proxy
+  // back into its parent (o.x = o.x || {}) — that recurses inside Chart.js.
+  if (o.scales) {
+    Object.keys(o.scales).forEach(function (axis) {
+      var s = o.scales[axis];
+      if (!s) return;
+      var t = s.ticks; if (!t) { t = {}; s.ticks = t; }
+      t.color = c.text;
+      var g = s.grid; if (!g) { g = {}; s.grid = g; }
+      g.color = c.grid;
+      if (s.title) s.title.color = c.text;
+    });
+  }
+  var p = o.plugins;
+  if (!p) { p = {}; o.plugins = p; }
+  if (p.legend) {
+    var lbl = p.legend.labels; if (!lbl) { lbl = {}; p.legend.labels = lbl; }
+    lbl.color = c.text;
+  }
+  if (p.title) p.title.color = c.text;
+  if (p.tooltip) {
+    p.tooltip.backgroundColor = c.tooltipBg;
+    p.tooltip.titleColor = c.tooltipTitle;
+    p.tooltip.bodyColor = c.tooltipBody;
+    p.tooltip.footerColor = c.tooltipBody;
+    p.tooltip.borderColor = c.tooltipBorder;
+    p.tooltip.borderWidth = 1;
+  }
+  o.color = c.text;
+}
+
+window.__dtCharts = window.__dtCharts || [];
+
+// Wrap `new Chart(...)`: applies the current theme palette and registers the
+// instance so future theme switches re-theme it in place.
+function dtThemeChart(chart) {
+  if (!chart) return chart;
+  dtChartApplyColors(chart);
+  window.__dtCharts.push(chart);
+  if (document.documentElement.getAttribute('data-theme') === 'dark') {
+    try { chart.update('none'); } catch (e) {}
+  }
+  return chart;
+}
+
+function dtThemeAllCharts() {
+  var c = dtChartColors();
+  if (window.Chart) {
+    Chart.defaults.color = c.text;
+    Chart.defaults.borderColor = c.grid;
+    if (Chart.defaults.plugins) {
+      if (Chart.defaults.plugins.legend && Chart.defaults.plugins.legend.labels) {
+        Chart.defaults.plugins.legend.labels.color = c.text;
+      }
+      if (Chart.defaults.plugins.tooltip) {
+        Chart.defaults.plugins.tooltip.backgroundColor = c.tooltipBg;
+        Chart.defaults.plugins.tooltip.titleColor = c.tooltipTitle;
+        Chart.defaults.plugins.tooltip.bodyColor = c.tooltipBody;
+      }
+    }
+  }
+  window.__dtCharts = window.__dtCharts.filter(function (ch) {
+    return ch && ch.canvas && ch.canvas.isConnected;
+  });
+  window.__dtCharts.forEach(function (ch) {
+    dtChartApplyColors(ch);
+    try { ch.update('none'); } catch (e) {}
+  });
+}
+
+// Follow OS-level theme changes live while the saved preference is 'system'.
+(function () {
+  if (!window.matchMedia) return;
+  var mq = window.matchMedia('(prefers-color-scheme: dark)');
+  var onChange = function () {
+    if ((window.__dtThemePref || 'system') === 'system') dtApplyTheme('system');
+  };
+  if (mq.addEventListener) { mq.addEventListener('change', onChange); }
+  else if (mq.addListener) { mq.addListener(onChange); }
+})();
+
 // Practice-wide 2FA enforcement: if ANY API responds that the current
 // practice requires 2FA this session hasn't satisfied (e.g. enforcement
 // was enabled mid-session, or the session was restored via Remember Me),
@@ -1891,11 +2000,12 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     // Apply theme selection
-    const themeValue = preferences.theme || 'light';
+    const themeValue = preferences.theme || 'system';
     const themeDropdown = document.getElementById('theme');
     if (themeDropdown) {
       themeDropdown.value = themeValue;
     }
+    dtApplyTheme(themeValue);
 
     // Update practice name in header (use displayName if available)
     var nameToDisplay = displayName || practiceName;
@@ -2156,7 +2266,7 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     window.originalSettingsValues = {
-      theme: document.getElementById('theme')?.value || 'light',
+      theme: document.getElementById('theme')?.value || 'system',
       displayName: document.getElementById('displayName')?.value || '',
       allowCardDelete: document.getElementById('allowCardDelete')?.checked || false,
       highlightPastDue: document.getElementById('highlightPastDue')?.checked || false,
@@ -2188,7 +2298,7 @@ document.addEventListener('DOMContentLoaded', function () {
     if (!orig || Object.keys(orig).length === 0) return false;
 
     // Check simple form fields
-    if ((document.getElementById('theme')?.value || 'light') !== orig.theme) return true;
+    if ((document.getElementById('theme')?.value || 'system') !== orig.theme) return true;
     if ((document.getElementById('displayName')?.value || '') !== orig.displayName) return true;
     if ((document.getElementById('allowCardDelete')?.checked || false) !== orig.allowCardDelete) return true;
     if ((document.getElementById('highlightPastDue')?.checked || false) !== orig.highlightPastDue) return true;
@@ -3895,7 +4005,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
       // Get theme value from dropdown
       var themeDropdown = document.getElementById('theme');
-      var theme = themeDropdown ? themeDropdown.value : 'light';
+      var theme = themeDropdown ? themeDropdown.value : 'system';
 
       // Get checkbox values
       var allowCardDelete = document.getElementById('allowCardDelete').checked;
@@ -4057,7 +4167,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Apply theme immediately
     if (formData.theme) {
-      document.documentElement.setAttribute('data-theme', formData.theme);
+      dtApplyTheme(formData.theme);
     }
 
     // Update practice name in header immediately (prefer displayName over legacy practiceName)
@@ -8105,8 +8215,12 @@ document.addEventListener('DOMContentLoaded', function () {
     `;
 
     const content = document.createElement('div');
+    // Theme variables resolve against <html data-theme>; the fallbacks keep
+    // the original light palette when no theme is active.
     content.style.cssText = `
-      background: white;
+      background: var(--background-white, white);
+      color: var(--text-primary, #333);
+      border: 1px solid var(--border-light, transparent);
       padding: 30px;
       border-radius: 8px;
       max-width: 400px;
@@ -8115,18 +8229,18 @@ document.addEventListener('DOMContentLoaded', function () {
     `;
 
     content.innerHTML = `
-      <h3 style="margin: 0 0 15px 0; color: #f44336;">${t('archive.confirm.archive_title')}</h3>
-      <p style="margin: 0 0 20px 0; color: #333;">${t('archive.confirm.archive_message', {name: fileName})}</p>
-      <p style="margin: 0 0 20px 0; color: #666; font-size: 14px;">${t('archive.confirm.archive_undone')}</p>
-      <label style="display: flex; align-items: center; justify-content: center; gap: 8px; margin: 0 0 25px 0; color: #666; font-size: 13px; cursor: pointer;">
+      <h3 style="margin: 0 0 15px 0; color: var(--error-color, #f44336);">${t('archive.confirm.archive_title')}</h3>
+      <p style="margin: 0 0 20px 0; color: var(--text-primary, #333);">${t('archive.confirm.archive_message', {name: fileName})}</p>
+      <p style="margin: 0 0 20px 0; color: var(--text-secondary, #666); font-size: 14px;">${t('archive.confirm.archive_undone')}</p>
+      <label style="display: flex; align-items: center; justify-content: center; gap: 8px; margin: 0 0 25px 0; color: var(--text-secondary, #666); font-size: 13px; cursor: pointer;">
         <input type="checkbox" id="dontShowAgainCheckbox" style="cursor: pointer;">
         ${t('archive.dont_show_again')}
       </label>
       <div style="display: flex; gap: 10px; justify-content: center;">
         <button id="cancelBtn" style="
-          background: #e0e0e0;
-          color: #333;
-          border: none;
+          background: var(--background-muted, #e0e0e0);
+          color: var(--text-primary, #333);
+          border: 1px solid var(--border-medium, transparent);
           padding: 8px 20px;
           border-radius: 4px;
           cursor: pointer;
@@ -11437,6 +11551,22 @@ document.addEventListener('DOMContentLoaded', function () {
     chartScript.onload = function() {
       chartJsLoaded = true;
       chartJsLoading = false;
+      // Wrap the Chart constructor so every instance (current and future)
+      // gets the active theme palette and registers for live theme switches.
+      if (window.Chart && !window.Chart.__dtThemed) {
+        var RealChart = window.Chart;
+        window.Chart = new Proxy(RealChart, {
+          construct: function (target, args) {
+            return dtThemeChart(Reflect.construct(target, args));
+          },
+          get: function (target, prop) {
+            var v = target[prop];
+            return typeof v === 'function' ? v.bind(target) : v;
+          }
+        });
+        window.Chart.__dtThemed = true;
+      }
+      dtThemeAllCharts();
       var cbs = chartJsCallbacks;
       chartJsCallbacks = [];
       cbs.forEach(function(cb) { cb(null); });

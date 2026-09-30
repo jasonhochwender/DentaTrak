@@ -416,7 +416,7 @@ try {
     // Normalize preferences and provide defaults
     if (!$preferences) {
         $preferences = [
-            'theme' => 'light',
+            'theme' => 'system',
             'allow_card_delete' => true,
             'highlight_past_due' => true,
             'past_due_days' => 1,
@@ -429,7 +429,7 @@ try {
             'google_drive_backup' => false
         ];
     } else {
-        if (!isset($preferences['theme'])) $preferences['theme'] = 'light';
+        if (!isset($preferences['theme'])) $preferences['theme'] = 'system';
         if (!isset($preferences['allow_card_delete'])) $preferences['allow_card_delete'] = true;
         if (!isset($preferences['highlight_past_due'])) $preferences['highlight_past_due'] = true;
         if (!isset($preferences['past_due_days'])) $preferences['past_due_days'] = 1;

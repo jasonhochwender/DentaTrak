@@ -355,3 +355,64 @@
     padding: 12px;
   }
 }
+
+
+/* Dark theme */
+[data-theme="dark"] .dev-tools-content {
+  background: #1e293b;
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .dev-tools-section h4 {
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .env-btn {
+  border-color: var(--border-medium);
+  color: var(--text-secondary);
+  background: #16202f;
+}
+
+[data-theme="dark"] .env-btn:hover {
+  border-color: var(--border-light);
+}
+
+[data-theme="dark"] .env-btn.active {
+  color: #fff;
+}
+
+[data-theme="dark"] .dev-input,
+[data-theme="dark"] .dev-select {
+  background: #0f172a;
+  border-color: var(--border-medium);
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .dev-tools-content::-webkit-scrollbar-track {
+  background: #16202f;
+}
+
+[data-theme="dark"] .dev-tools-content::-webkit-scrollbar-thumb {
+  background: #475569;
+}
+
+[data-theme="dark"] .dev-tools-content::-webkit-scrollbar-thumb:hover {
+  background: #64748b;
+}
+
+[data-theme="dark"] .dev-tools-warning {
+  background: rgba(251, 191, 36, 0.12);
+}
+
+[data-theme="dark"] .dev-tools-warning strong {
+  color: #fcd34d;
+}
+
+[data-theme="dark"] .dev-tools-warning p {
+  color: #fbbf24;
+}
+
+[data-theme="dark"] .dev-demo-summary {
+  color: var(--text-light);
+}
+

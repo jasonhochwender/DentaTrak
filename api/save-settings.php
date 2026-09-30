@@ -123,10 +123,21 @@ if (isset($data['workflowColumns']) && is_array($data['workflowColumns'])) {
 }
 $workflowStageLabelOverridesToSave = $workflowStageLabelsResult['overrides'];
 
-// Validate data
-$theme = isset($data['theme']) ? $data['theme'] : 'light';
-if (!in_array($theme, ['light', 'dark'])) {
-    $theme = 'light';
+// Validate data. When the caller omits 'theme', keep the stored preference
+// rather than resetting an explicit choice to 'system'.
+$theme = null;
+if (isset($data['theme'])) {
+    $theme = in_array($data['theme'], ['light', 'dark', 'system'], true) ? $data['theme'] : 'system';
+}
+if ($theme === null) {
+    try {
+        $existingThemeStmt = $pdo->prepare("SELECT theme FROM user_preferences WHERE user_id = :uid");
+        $existingThemeStmt->execute(['uid' => $userId]);
+        $existingTheme = $existingThemeStmt->fetchColumn();
+        $theme = in_array($existingTheme, ['light', 'dark', 'system'], true) ? $existingTheme : 'system';
+    } catch (Exception $e) {
+        $theme = 'system';
+    }
 }
 
 $allowCardDelete = isset($data['allowCardDelete']) ? (bool)$data['allowCardDelete'] : false;
@@ -531,6 +542,15 @@ try {
     $stmt = $pdo->query("SHOW COLUMNS FROM user_preferences LIKE 'appointment_risk_days'");
     if ($stmt->rowCount() === 0) {
         $pdo->exec("ALTER TABLE user_preferences ADD COLUMN appointment_risk_days INT(11) DEFAULT 3");
+    }
+    // Ensure the theme enum accepts 'system' (added for the System/Light/Dark
+    // preference; older schemas may only allow 'light'/'dark').
+    $stmt = $pdo->query("SHOW COLUMNS FROM user_preferences LIKE 'theme'");
+    $themeCol = $stmt->fetch(PDO::FETCH_ASSOC);
+    if (!$themeCol) {
+        $pdo->exec("ALTER TABLE user_preferences ADD COLUMN theme ENUM('light','dark','system') DEFAULT 'system'");
+    } elseif (stripos($themeCol['Type'], "'system'") === false) {
+        $pdo->exec("ALTER TABLE user_preferences MODIFY theme ENUM('light','dark','system') DEFAULT 'system'");
     }
 
     // First, update user preferences
