@@ -629,11 +629,21 @@ try {
                 $stmt = $pdo->prepare("UPDATE practices SET logo_path = NULL WHERE id = :practice_id");
                 $stmt->execute(['practice_id' => $currentPracticeId]);
 
-                // Delete logo file if it exists on disk
+                // Delete logo backing object. GCS-backed logos are stored as
+                // an api/logo.php?p=<objectPath> URL; legacy logos are local
+                // uploads/logos/... files.
                 if ($currentLogoPath) {
-                    $fullPath = __DIR__ . '/../' . $currentLogoPath;
-                    if (file_exists($fullPath)) {
-                        @unlink($fullPath);
+                    if (strpos($currentLogoPath, 'api/logo.php?p=') === 0) {
+                        $objectPath = rawurldecode(substr($currentLogoPath, strlen('api/logo.php?p=')));
+                        if (preg_match('#^logos/' . (int)$currentPracticeId . '/[a-zA-Z0-9._-]+$#', $objectPath)) {
+                            require_once __DIR__ . '/gcs-storage.php';
+                            deleteGcsObject($objectPath);
+                        }
+                    } else {
+                        $fullPath = __DIR__ . '/../' . $currentLogoPath;
+                        if (file_exists($fullPath)) {
+                            @unlink($fullPath);
+                        }
                     }
                 }
 

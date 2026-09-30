@@ -126,29 +126,72 @@ try {
         exit;
     }
     
-    // Create uploads directory if it doesn't exist
-    $uploadsDir = __DIR__ . '/../uploads/logos';
-    if (!is_dir($uploadsDir)) {
-        mkdir($uploadsDir, 0755, true);
-    }
-    
-    // Generate unique filename
     $fileExtension = pathinfo($uploadedFile['name'], PATHINFO_EXTENSION);
-    $fileName = 'practice_' . $currentPracticeId . '_' . time() . '.' . $fileExtension;
-    $filePath = $uploadsDir . '/' . $fileName;
-    $relativePath = 'uploads/logos/' . $fileName;
-    
-    // Move uploaded file (staging only; DB is updated later on Save Settings)
-    if (move_uploaded_file($uploadedFile['tmp_name'], $filePath)) {
+    $gcsBucketName = trim($appConfig['gcs']['bucket_name'] ?? '');
+
+    if ($gcsBucketName !== '') {
+        // Cloud Run instances have an ephemeral filesystem: a logo written to
+        // the local uploads/ directory exists only on the instance that
+        // received the upload and disappears on redeploy, autoscaling, or
+        // instance recycling - which is why stored upload paths 404 after the
+        // session that uploaded them. With a bucket configured (production),
+        // store the logo in GCS and reference it through api/logo.php.
+        require_once __DIR__ . '/gcs-storage.php';
+
+        $objectPath = sprintf('logos/%d/%s.%s', $currentPracticeId, bin2hex(random_bytes(16)), $fileExtension);
+        $contentType = ($fileExtension === 'svg') ? 'image/svg+xml' : $actualMimeType;
+
+        try {
+            $bucket = getGcsBucket();
+            $bucket->upload(fopen($uploadedFile['tmp_name'], 'r'), [
+                'name' => $objectPath,
+                'metadata' => ['contentType' => $contentType],
+            ]);
+        } catch (Exception $e) {
+            error_log('[upload-logo] GCS upload failed: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'message' => 'Failed to save uploaded file']);
+            exit;
+        }
+
+        // logo_path stores the streaming URL so existing img src usage works
+        // unchanged; api/logo.php enforces session + practice membership.
+        $relativePath = 'api/logo.php?p=' . rawurlencode($objectPath);
+
         // Log the activity (staged upload)
         logUserActivity($userId, 'upload_logo_staged', 'User uploaded practice logo (staged, awaiting Save Settings)');
-        
+
         echo json_encode([
             'success' => true,
             'message' => 'Logo uploaded successfully',
             'logoPath' => $relativePath
         ]);
-        
+        exit;
+    }
+
+    // Local development without a GCS bucket: keep the original on-disk
+    // staging under uploads/logos.
+    $uploadsDir = __DIR__ . '/../uploads/logos';
+    if (!is_dir($uploadsDir)) {
+        mkdir($uploadsDir, 0755, true);
+    }
+
+    // Generate unique filename
+    $fileName = 'practice_' . $currentPracticeId . '_' . time() . '.' . $fileExtension;
+    $filePath = $uploadsDir . '/' . $fileName;
+    $relativePath = 'uploads/logos/' . $fileName;
+
+    // Move uploaded file (staging only; DB is updated later on Save Settings)
+    if (move_uploaded_file($uploadedFile['tmp_name'], $filePath)) {
+        // Log the activity (staged upload)
+        logUserActivity($userId, 'upload_logo_staged', 'User uploaded practice logo (staged, awaiting Save Settings)');
+
+        echo json_encode([
+            'success' => true,
+            'message' => 'Logo uploaded successfully',
+            'logoPath' => $relativePath
+        ]);
+
     } else {
         http_response_code(500);
         echo json_encode(['success' => false, 'message' => 'Failed to save uploaded file']);
