@@ -2603,7 +2603,9 @@
             "created_from": "Criado de",
             "created_to": "Criado até",
             "invalid_date_range": "A data inicial deve ser anterior ou igual à data final.",
-            "remove_filter": "Remover filtro {name}"
+            "remove_filter": "Remover filtro {name}",
+            "toggle": "Filtros",
+            "toggle_count": "Filtros ({count})"
         },
         "active_filters": {
             "search": "Pesquisa"

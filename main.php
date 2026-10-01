@@ -2599,10 +2599,17 @@ endif;
           <!-- Fixed Search Header -->
           <div class="archived-search-header">
             <div class="archived-filters">
-              <div class="archived-search">
-                <label for="archivedSearch" class="sr-only"><?php echo t('archive.search.placeholder'); ?></label>
-                <input type="text" id="archivedSearch" placeholder="<?php echo t('archive.search.placeholder'); ?>">
+              <div class="archived-search-row">
+                <div class="archived-search">
+                  <label for="archivedSearch" class="sr-only"><?php echo t('archive.search.placeholder'); ?></label>
+                  <input type="text" id="archivedSearch" placeholder="<?php echo t('archive.search.placeholder'); ?>">
+                </div>
+                <button type="button" class="archived-filters-toggle" id="archivedFiltersToggle" aria-expanded="true" aria-controls="archivedFilterPanel">
+                  <span class="archived-filters-toggle-label"><?php echo t('archive.filters.toggle'); ?></span>
+                  <span class="archived-filters-toggle-caret" aria-hidden="true">&#9662;</span>
+                </button>
               </div>
+              <div class="archived-filter-panel" id="archivedFilterPanel">
               <div class="archived-filter-controls">
                 <label for="archivedCaseType" class="sr-only"><?php echo t('archive.fields.case_type'); ?></label>
                 <select id="archivedCaseType">
@@ -2654,6 +2661,7 @@ endif;
               </div>
               <div class="archived-date-error" id="archivedDateError" role="alert" hidden></div>
               <div class="archived-active-filters" id="archivedActiveFilters" hidden></div>
+              </div>
             </div>
             <div class="archived-count">
               <span id="archivedCount"><?php echo t('common.loading'); ?></span>

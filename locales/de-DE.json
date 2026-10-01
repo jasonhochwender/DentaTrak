@@ -687,7 +687,9 @@
             "created_from": "Erstellt von",
             "created_to": "Erstellt bis",
             "invalid_date_range": "Das Startdatum muss am oder vor dem Enddatum liegen.",
-            "remove_filter": "Filter {name} entfernen"
+            "remove_filter": "Filter {name} entfernen",
+            "toggle": "Filter",
+            "toggle_count": "Filter ({count})"
         },
         "active_filters": {
             "search": "Suche"

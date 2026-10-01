@@ -505,7 +505,9 @@
             "created_from": "Создано с",
             "created_to": "Создано по",
             "invalid_date_range": "Дата начала должна быть не позже даты окончания.",
-            "remove_filter": "Убрать фильтр «{name}»"
+            "remove_filter": "Убрать фильтр «{name}»",
+            "toggle": "Фильтры",
+            "toggle_count": "Фильтры ({count})"
         },
         "active_filters": {
             "search": "Поиск"

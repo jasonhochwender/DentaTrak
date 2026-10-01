@@ -1501,6 +1501,18 @@ body {
   cursor: not-allowed;
 }
 
+/* Mobile-only collapsible filter panel. On desktop both wrappers are
+   display: contents so the original flex layout is unchanged, and the
+   Filters toggle is hidden. */
+.archived-search-row,
+.archived-filter-panel {
+  display: contents;
+}
+
+.archived-filters-toggle {
+  display: none;
+}
+
 /* Archived Cases Modal */
 .archived-cases-modal {
   max-width: 2200px;

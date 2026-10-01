@@ -798,8 +798,9 @@
     flex-direction: column;
   }
 
-  /* Search and filter controls - stack search above a 2-column filter grid
-     so the selects never overflow the modal. */
+  /* Search and filter controls - search stays visible beside a compact
+     Filters toggle; the dropdown grid lives in a collapsible panel that is
+     collapsed by default on mobile so the table gets the reclaimed space. */
   #archivedCasesModal .archived-search-header {
     padding: 10px 12px 6px;
   }
@@ -811,10 +812,63 @@
     padding: 10px;
   }
 
+  #archivedCasesModal .archived-search-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    min-width: 0;
+  }
+
   #archivedCasesModal .archived-search {
     flex: 1 1 auto;
     width: 100%;
     min-width: 0;
+  }
+
+  #archivedCasesModal .archived-filters-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    flex: 0 0 auto;
+    min-height: 44px;
+    padding: 8px 14px;
+    border: 1px solid rgba(148, 163, 184, 0.6);
+    border-radius: 8px;
+    background: var(--background-white);
+    color: var(--text-primary);
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    box-sizing: border-box;
+    white-space: nowrap;
+  }
+
+  #archivedCasesModal .archived-filters-toggle:hover {
+    background: var(--background-subtle);
+  }
+
+  #archivedCasesModal .archived-filters-toggle:focus-visible {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 2px;
+  }
+
+  #archivedCasesModal .archived-filters-toggle-caret {
+    font-size: 0.7rem;
+  }
+
+  #archivedCasesModal .archived-filter-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
+    min-width: 0;
+  }
+
+  /* Hidden panel is fully removed from layout and the tab order. */
+  #archivedCasesModal .archived-filter-panel[hidden] {
+    display: none;
   }
 
   #archivedCasesModal .archived-search input {
@@ -913,7 +967,7 @@
   /* Modal footer with pagination */
   #archivedCasesModal .modal-footer {
     flex-shrink: 0;
-    padding: 10px 12px;
+    padding: 8px 12px;
     background: #fff;
     border-top: 1px solid #e5e7eb;
   }
@@ -924,7 +978,7 @@
   #archivedCasesModal .archived-pagination {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
-    gap: 8px;
+    gap: 6px;
     margin-top: 0;
     padding: 0;
     border-top: none;
@@ -2619,5 +2673,27 @@
 [data-theme="dark"] #feedbackForm .modal-footer {
   background: #1e293b;
   border-top-color: var(--border-light);
+}
+
+/* Mobile-only archived filter toggle + page indicator in dark mode.
+   Lives here because mobile.css loads after app.dark.css and the media
+   query needs matching specificity. */
+@media (max-width: 480px) {
+  [data-theme="dark"] #archivedCasesModal .archived-filters-toggle {
+    background: var(--background-subtle);
+    border-color: var(--border-medium);
+    color: var(--text-primary);
+  }
+
+  [data-theme="dark"] #archivedCasesModal .archived-filters-toggle:hover {
+    background: #243349;
+  }
+}
+
+[data-theme="dark"] #archivedCasesModal .pagination-center span,
+[data-theme="dark"] #phiAuditModal .pagination-center span {
+  background: #1e293b;
+  border-color: var(--border-light);
+  color: var(--text-secondary);
 }
 

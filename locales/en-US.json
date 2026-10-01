@@ -649,7 +649,9 @@
             "created_from": "Created from",
             "created_to": "Created to",
             "invalid_date_range": "The start date must be on or before the end date.",
-            "remove_filter": "Remove {name} filter"
+            "remove_filter": "Remove {name} filter",
+            "toggle": "Filters",
+            "toggle_count": "Filters ({count})"
         },
         "active_filters": {
             "search": "Search"

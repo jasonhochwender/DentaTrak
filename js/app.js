@@ -11786,6 +11786,10 @@ document.addEventListener('DOMContentLoaded', function () {
     viewArchivedBtn.addEventListener('click', () => {
       archivedCasesModal.style.display = 'block';
       document.body.style.overflow = 'hidden'; // Prevent body scroll
+      // Compact layout opens with the filter panel collapsed so the list
+      // gets the reclaimed space; selections survive collapse/expand.
+      setArchivedFiltersExpanded(!archivedIsCompactLayout());
+      updateArchivedFiltersToggle();
       loadArchivedDentists();
       loadArchivedCases();
     });
@@ -11853,6 +11857,42 @@ document.addEventListener('DOMContentLoaded', function () {
   const archivedCreatedTo = document.getElementById('archivedCreatedTo');
   const archivedDateError = document.getElementById('archivedDateError');
   const archivedActiveFilters = document.getElementById('archivedActiveFilters');
+  const archivedFiltersToggle = document.getElementById('archivedFiltersToggle');
+  const archivedFiltersToggleLabel = archivedFiltersToggle ? archivedFiltersToggle.querySelector('.archived-filters-toggle-label') : null;
+  const archivedFilterPanel = document.getElementById('archivedFilterPanel');
+
+  // The Filters toggle + collapsible panel only exist for the compact
+  // mobile layout (css/mobile.css @media max-width: 480px). On desktop the
+  // panel wrappers are display:contents and the toggle is hidden, so all
+  // state changes below are no-ops there except for aria/label bookkeeping.
+  function archivedIsCompactLayout() {
+    return window.matchMedia('(max-width: 480px)').matches;
+  }
+
+  // Number of non-default dropdown filters (search text excluded).
+  function archivedDropdownFilterCount() {
+    let count = 0;
+    if (archivedState.caseType) count++;
+    if (archivedState.status) count++;
+    if (archivedState.dentist) count++;
+    if (archivedState.archivedDays || archivedState.archivedFrom || archivedState.archivedTo) count++;
+    if (archivedState.createdDays || archivedState.createdFrom || archivedState.createdTo) count++;
+    return count;
+  }
+
+  function updateArchivedFiltersToggle() {
+    if (!archivedFiltersToggleLabel) return;
+    const count = archivedDropdownFilterCount();
+    archivedFiltersToggleLabel.textContent = count > 0
+      ? t('archive.filters.toggle_count', {count: count})
+      : t('archive.filters.toggle');
+  }
+
+  function setArchivedFiltersExpanded(expanded) {
+    if (!archivedFiltersToggle || !archivedFilterPanel) return;
+    archivedFiltersToggle.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+    archivedFilterPanel.hidden = !expanded;
+  }
 
   const archivedFilterDefaults = {
     search: '',
@@ -11902,6 +11942,7 @@ document.addEventListener('DOMContentLoaded', function () {
     if (archivedCreatedTo) archivedCreatedTo.value = archivedState.createdTo;
     if (archivedCustomDates) archivedCustomDates.hidden = !(archivedDateRange && archivedDateRange.value === 'custom');
     if (archivedCreatedCustomDates) archivedCreatedCustomDates.hidden = !(archivedCreatedRange && archivedCreatedRange.value === 'custom');
+    updateArchivedFiltersToggle();
     updateArchivedSortHeaders();
   }
 
@@ -12160,6 +12201,17 @@ document.addEventListener('DOMContentLoaded', function () {
   if (archivedClearFilters) {
     archivedClearFilters.addEventListener('click', () => {
       clearArchivedFilters();
+    });
+  }
+
+  if (archivedFiltersToggle && archivedFilterPanel) {
+    archivedFiltersToggle.addEventListener('click', () => {
+      setArchivedFiltersExpanded(archivedFilterPanel.hidden);
+    });
+    // Bubbling change events fire after the per-control listeners above have
+    // already updated archivedState, so the count always reflects state.
+    archivedFilterPanel.addEventListener('change', () => {
+      updateArchivedFiltersToggle();
     });
   }
 
