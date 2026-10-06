@@ -23,7 +23,11 @@ ErrorDocument 404 /404.php
 
   # Resources landing page: served by resources.php.
   RewriteRule ^resources/?$ resources.php [L]
-  
+
+  # Public signup URL: login.php serves both sign-in and registration.
+  # Keeps pilot links such as /signup?source=fabg working.
+  RewriteRule ^signup$ login.php [L,QSA]
+
   # Skip if the request is a real file or directory
   RewriteCond %{REQUEST_FILENAME} !-f
   RewriteCond %{REQUEST_FILENAME} !-d

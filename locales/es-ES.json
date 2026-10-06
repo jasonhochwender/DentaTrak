@@ -554,6 +554,13 @@
         "reviewed": "Revisado",
         "search_placeholder": "Buscar paciente, dentista o número de seguimiento"
     },
+    "fabg": {
+        "welcome": {
+            "title": "Bienvenido, consultorio piloto de FABG",
+            "body": "Gracias por participar en el piloto FABG de DentaTrak. Tiene acceso gratuito a DentaTrak durante 90 días. Nos encantaría conocer sus comentarios mientras usa DentaTrak en su flujo de trabajo diario.",
+            "dismiss": "Entendido"
+        }
+    },
     "remakes": {
         "title": "Repeticiones",
         "record_remake": "Registrar repetición",
@@ -2019,7 +2026,7 @@
         "session_revoked": "Se ha cerrado su sesión. Inicie sesión de nuevo para continuar.",
         "login": {
             "title": "Bienvenido a DentaTrak",
-            "subtitle": "Inicie sesión en su cuenta o ingrese su correo electrónico para comenzar su prueba gratuita de 90 días.",
+            "subtitle": "Inicie sesión en su cuenta o ingrese su correo electrónico para probar DentaTrak gratis.",
             "welcome_title": "Bienvenido a {appName}",
             "headline": "Supervise cada caso. Entregue con confianza.",
             "tagline": "Visibilidad de casos para trabajos dentales complejos.",
@@ -2643,7 +2650,10 @@
         "email_trial_extended_body_2": "Su prueba ahora está disponible hasta el {date}.",
         "email_trial_extended_body_3": "Puede seguir usando DentaTrak con normalidad. No se requiere ninguna acción.",
         "email_trial_extended_closing": "Gracias,",
-        "email_trial_extended_team": "El equipo de DentaTrak"
+        "email_trial_extended_team": "El equipo de DentaTrak",
+        "fabg_badge": "Piloto FABG",
+        "fabg_card_title": "Programa piloto",
+        "fabg_card_desc": "Marque este consultorio como participante del piloto FABG. Esto es solo atribución: no cambia la duración de la prueba, la facturación ni el acceso."
     },
     "case_types": {
         "crown": "Corona",
@@ -3329,7 +3339,7 @@
             "sign_in": "Iniciar sesión",
             "log_in": "Iniciar sesión",
             "start_free": "Comenzar gratis",
-            "start_trial": "Iniciar prueba gratuita de 90 días",
+            "start_trial": "Pruebe DentaTrak gratis",
             "home": "Inicio",
             "about": "Acerca de",
             "support": "Soporte",
@@ -3359,7 +3369,7 @@
         "seo": {
             "index": {
                 "title": "DentaTrak - Software visual de seguimiento de casos dentales para consultorios",
-                "description": "DentaTrak es un software visual de seguimiento de casos dentales para consultorios dentales. Vea todo el flujo de trabajo de sus casos de un vistazo y siga cada caso de corona, implante y laboratorio desde la preparación hasta la entrega. Inicie una prueba gratuita de 90 días."
+                "description": "DentaTrak es un software visual de seguimiento de casos dentales para consultorios dentales. Vea todo el flujo de trabajo de sus casos de un vistazo y siga cada caso de corona, implante y laboratorio desde la preparación hasta la entrega. Pruebe DentaTrak gratis. No se requiere tarjeta de crédito."
             },
             "about": {
                 "title": "Acerca de DentaTrak | Software de seguimiento de casos dentales",
@@ -3378,7 +3388,7 @@
             "dental_case_tracking_software": {
                 "title": "Software de seguimiento de casos dentales | Supervise cada caso desde la preparación hasta la entrega | DentaTrak",
                 "h1": "Software de seguimiento de casos dentales para consultorios dentales",
-                "description": "DentaTrak es un software de seguimiento de casos dentales que da a cada caso de corona, implante y laboratorio un estado, un responsable y un siguiente paso, para que nada se pierda. Comience una prueba gratuita de 90 días.",
+                "description": "DentaTrak es un software de seguimiento de casos dentales que da a cada caso de corona, implante y laboratorio un estado, un responsable y un siguiente paso, para que nada se pierda. Pruebe DentaTrak gratis. No se requiere tarjeta de crédito.",
                 "meta": {
                     "by": "Por",
                     "published": "Publicado"
@@ -3593,7 +3603,7 @@
                 },
                 "seo": {
                     "title": "Software de seguimiento de casos dentales | Supervise cada caso desde la preparación hasta la entrega | DentaTrak",
-                    "description": "DentaTrak es un software de seguimiento de casos dentales que da a cada caso de corona, implante y laboratorio un estado, un responsable y un siguiente paso, para que nada se pierda. Comience una prueba gratuita de 90 días."
+                    "description": "DentaTrak es un software de seguimiento de casos dentales que da a cada caso de corona, implante y laboratorio un estado, un responsable y un siguiente paso, para que nada se pierda. Pruebe DentaTrak gratis. No se requiere tarjeta de crédito."
                 }
             },
             "how_to_track": {
@@ -3759,7 +3769,7 @@
                     }
                 },
                 "cta": {
-                    "body": "Pruebe DentaTrak gratis durante 90 días. Configure su consultorio y comience a supervisar casos en minutos."
+                    "body": "Pruebe DentaTrak gratis. No se requiere tarjeta de crédito. Configure su consultorio y comience a supervisar casos en minutos."
                 }
             },
             "visual_dental_case_workflow": {
@@ -3971,7 +3981,7 @@
                     }
                 },
                 "cta": {
-                    "body": "DentaTrak le da a su consultorio un tablero visual para supervisar casos complejos desde su creación hasta la entrega. Pruébelo gratis durante 90 días."
+                    "body": "DentaTrak le da a su consultorio un tablero visual para supervisar casos complejos desde su creación hasta la entrega. Pruébelo gratis. No se requiere tarjeta de crédito."
                 },
                 "intro": "en qué punto del proceso está cada caso ahora mismo",
                 "intro_2": "flujo",
@@ -4114,7 +4124,7 @@
                     }
                 },
                 "cta": {
-                    "body": "Pruebe DentaTrak gratis durante 90 días. Configure su consultorio y comience a supervisar casos en minutos."
+                    "body": "Pruebe DentaTrak gratis. No se requiere tarjeta de crédito. Configure su consultorio y comience a supervisar casos en minutos."
                 }
             },
             "dental_case_tracking_software_vs_pms": {
@@ -4276,7 +4286,7 @@
                     ]
                 },
                 "cta": {
-                    "body": "Pruebe DentaTrak gratis durante 90 días. Configure su consultorio y comience a supervisar casos en minutos."
+                    "body": "Pruebe DentaTrak gratis. No se requiere tarjeta de crédito. Configure su consultorio y comience a supervisar casos en minutos."
                 }
             },
             "dental_lab_case_tracking": {
@@ -4401,7 +4411,7 @@
                     ]
                 },
                 "cta": {
-                    "body": "Pruebe DentaTrak gratis durante 90 días. Configure su consultorio y comience a supervisar casos en minutos."
+                    "body": "Pruebe DentaTrak gratis. No se requiere tarjeta de crédito. Configure su consultorio y comience a supervisar casos en minutos."
                 }
             },
             "crown_and_bridge_case_tracking": {
@@ -4530,7 +4540,7 @@
                     ]
                 },
                 "cta": {
-                    "body": "Pruebe DentaTrak gratis durante 90 días. Configure su consultorio y comience a supervisar casos en minutos."
+                    "body": "Pruebe DentaTrak gratis. No se requiere tarjeta de crédito. Configure su consultorio y comience a supervisar casos en minutos."
                 }
             },
             "implant_case_tracking": {
@@ -4653,7 +4663,7 @@
                     ]
                 },
                 "cta": {
-                    "body": "Pruebe DentaTrak gratis durante 90 días. Configure su consultorio y comience a supervisar casos en minutos."
+                    "body": "Pruebe DentaTrak gratis. No se requiere tarjeta de crédito. Configure su consultorio y comience a supervisar casos en minutos."
                 }
             },
             "dental_remake_cost": {
@@ -4837,7 +4847,7 @@
                     ]
                 },
                 "cta": {
-                    "body": "Prueba gratuita de 90 días. No se requiere tarjeta de crédito."
+                    "body": "Pruebe DentaTrak gratis. No se requiere tarjeta de crédito."
                 }
             },
             "dental_case_tracking_checklist": {
@@ -4964,7 +4974,7 @@
                     ]
                 },
                 "cta": {
-                    "body": "Prueba gratuita de 90 días. No se requiere tarjeta de crédito."
+                    "body": "Pruebe DentaTrak gratis. No se requiere tarjeta de crédito."
                 }
             },
             "dental_case_management_external_labs": {
@@ -5128,16 +5138,16 @@
                     ]
                 },
                 "cta": {
-                    "body": "Pruebe DentaTrak gratis durante 90 días. Configure su consultorio, defina sus etapas de flujo de trabajo y comience a seguir casos de laboratorios externos en minutos."
+                    "body": "Pruebe DentaTrak gratis. No se requiere tarjeta de crédito. Configure su consultorio, defina sus etapas de flujo de trabajo y comience a seguir casos de laboratorios externos en minutos."
                 }
             }
         },
         "hero": {
             "title": "Sepa en qué punto está cada caso dental.",
             "lead": "DentaTrak es software visual de seguimiento de casos dentales para clínicas dentales. Un solo lugar compartido donde su equipo sigue casos, plazos, asignaciones, actividad de laboratorio, archivos y conversaciones — con información integrada sobre dónde se está frenando el trabajo.",
-            "start_free": "Inicie su prueba gratuita de 90 días",
+            "start_free": "Pruebe DentaTrak gratis",
             "see_how": "Vea cómo funciona",
-            "trial_note": "Prueba gratuita de 90 días. No se requiere tarjeta de crédito."
+            "trial_note": "Pruebe DentaTrak gratis. No se requiere tarjeta de crédito."
         },
         "problem": {
             "eyebrow": "El problema",
@@ -5176,7 +5186,7 @@
         "pricing": {
             "eyebrow": "Precios",
             "title": "Planes simples para consultorios de diferentes tamaños.",
-            "lead": "Cada plan incluye el flujo de trabajo de casos central de DentaTrak. Comience con una prueba gratuita de 90 días. No se requiere tarjeta de crédito.",
+            "lead": "Cada plan incluye el flujo de trabajo de casos central de DentaTrak. Pruebe DentaTrak gratis. No se requiere tarjeta de crédito.",
             "transparency_title": "Precios claros. No se requiere llamada de ventas.",
             "transparency_body": "No debería tener que programar una reunión solo para saber cuánto cuesta un software. DentaTrak publica sus precios claramente para que pueda decidir si se ajusta a su consultorio.",
             "operate": "Operate",
@@ -5224,10 +5234,10 @@
             "final_title": "Vea DentaTrak a su manera.",
             "final_lead": "Estaremos encantados de ofrecerle una demostración personal. ¿Prefiere explorar por su cuenta? DentaTrak fue diseñado para que pueda comenzar de inmediato sin tener que asistir a una demostración obligatoria.",
             "no_credit_card": "No se requiere tarjeta de crédito.",
-            "start_free": "Inicie su prueba gratuita de 90 días",
+            "start_free": "Pruebe DentaTrak gratis",
             "sign_in": "Iniciar sesión",
             "ready_title": "¿Listo para supervisar sus casos?",
-            "ready_lead": "Pruebe DentaTrak gratis durante 90 días. Configure su consultorio y comience a supervisar casos en minutos.",
+            "ready_lead": "Pruebe DentaTrak gratis. No se requiere tarjeta de crédito. Configure su consultorio y comience a supervisar casos en minutos.",
             "already_account": "¿Ya tiene una cuenta? Inicie sesión"
         },
         "insights_section": {
@@ -5371,7 +5381,7 @@
             "closing_body": "DentaTrak es particularmente útil para casos que involucran múltiples etapas o traspasos, como coronas, puentes, implantes, dentaduras, casos restauradores dependientes del laboratorio y casos dependientes de referencias. Los casos dentales no siempre se mueven en línea recta, y DentaTrak fue construido en torno a esa realidad. Consulte {link} para una explicación más completa de la categoría a la que pertenece DentaTrak.",
             "closing_link_label": "software de seguimiento de casos dentales",
             "cta_title": "Comience a supervisar sus casos",
-            "cta_lead": "Pruebe DentaTrak gratis durante 90 días y vea cómo se adapta al flujo de trabajo de casos de su consultorio."
+            "cta_lead": "Pruebe DentaTrak gratis y vea cómo se adapta al flujo de trabajo de casos de su consultorio. No se requiere tarjeta de crédito."
         },
         "resources": {
             "title": "Recursos de seguimiento de casos dentales | DentaTrak",

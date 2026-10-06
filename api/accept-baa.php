@@ -354,6 +354,24 @@ try {
             'practice_id' => $practiceId,
         ]);
 
+        // FABG pilot attribution: if this signup session arrived via
+        // ?source=fabg (captured on the signup page), durably mark the newly
+        // created practice. The session value is marketing source tagging
+        // only - it grants nothing and changes no billing/trial behavior.
+        // Guarded so practice creation never fails if the column is absent.
+        if (($_SESSION['signup_source'] ?? '') === 'fabg') {
+            try {
+                $fabgColumnCheck = $pdo->query("SHOW COLUMNS FROM practices LIKE 'fabg_pilot'");
+                if ($fabgColumnCheck && $fabgColumnCheck->rowCount() > 0) {
+                    $pdo->prepare("UPDATE practices SET fabg_pilot = 1 WHERE id = :id")
+                        ->execute(['id' => $practiceId]);
+                }
+            } catch (PDOException $e) {
+                error_log('[accept-baa] FABG pilot flag update failed: ' . $e->getMessage());
+            }
+        }
+        unset($_SESSION['signup_source']);
+
         userLog("Created new practice with BAA acceptance: {$legalName} (ID: {$practiceId})", false);
 
         // Send welcome email only for the very first owned practice

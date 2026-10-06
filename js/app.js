@@ -1294,11 +1294,43 @@ document.addEventListener('DOMContentLoaded', function () {
   var settingsBillingCloseBtn = document.getElementById('settingsBillingClose');
   var integrationConfigCloseBtn = document.getElementById('integrationConfigClose');
   var phiAuditCloseBtn = document.getElementById('phiAuditClose');
+  var fabgWelcomeCloseBtn = document.getElementById('fabgWelcomeClose');
   closeBtns.forEach(btn => {
-    if (btn !== createCaseCloseBtn && btn !== settingsBillingCloseBtn && btn !== integrationConfigCloseBtn && btn !== phiAuditCloseBtn) {
+    if (btn !== createCaseCloseBtn && btn !== settingsBillingCloseBtn && btn !== integrationConfigCloseBtn && btn !== phiAuditCloseBtn && btn !== fabgWelcomeCloseBtn) {
       btn.addEventListener('click', closeModals);
     }
   });
+
+  // FABG pilot welcome - one-time message rendered by main.php when the
+  // practice is fabg_pilot=1 and fabg_welcome_shown=0. Both dismissal paths
+  // (X and the primary button) persist the dismissal so it does not return.
+  var fabgWelcomeModal = document.getElementById('fabgWelcomeModal');
+  if (fabgWelcomeModal) {
+    var fabgWelcomeDismissed = false;
+    var dismissFabgWelcome = function() {
+      if (fabgWelcomeDismissed) return;
+      fabgWelcomeDismissed = true;
+      fetch('api/dismiss-fabg-welcome.php', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]')?.content || ''
+        },
+        body: '{}'
+      }).catch(function() { /* dismissal best-effort; modal still closes */ });
+      fabgWelcomeModal.style.display = 'none';
+      document.body.style.overflow = '';
+    };
+    fabgWelcomeModal.style.display = 'block';
+    document.body.style.overflow = 'hidden';
+    if (fabgWelcomeCloseBtn) {
+      fabgWelcomeCloseBtn.addEventListener('click', dismissFabgWelcome);
+    }
+    var fabgWelcomeDismissBtn = document.getElementById('fabgWelcomeDismiss');
+    if (fabgWelcomeDismissBtn) {
+      fabgWelcomeDismissBtn.addEventListener('click', dismissFabgWelcome);
+    }
+  }
 
   // Close modal when clicking outside of modal content
   window.addEventListener('click', function(e) {
@@ -1347,6 +1379,14 @@ document.addEventListener('DOMContentLoaded', function () {
         if (typeof window.closePhiAuditModal === 'function') {
           window.closePhiAuditModal();
         }
+        return;
+      }
+      // FABG welcome: a backdrop click counts as dismissal so the one-time
+      // message is also persisted (not just hidden until next login).
+      if (fabgWelcomeModal && e.target === fabgWelcomeModal && typeof dismissFabgWelcome === 'function') {
+        e.preventDefault();
+        e.stopPropagation();
+        dismissFabgWelcome();
         return;
       }
       closeModals();

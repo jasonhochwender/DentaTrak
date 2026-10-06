@@ -344,7 +344,20 @@ $userEmail = $_SESSION['user_email'] ?? '';
             background: #fef3c7;
             color: #92400e;
         }
-        
+
+        .fabg-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 2px 8px;
+            border-radius: 9999px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            white-space: nowrap;
+            background: #ede9fe;
+            color: #5b21b6;
+            vertical-align: middle;
+        }
+
         .action-btn {
             padding: 6px 12px;
             border: none;
@@ -1316,6 +1329,7 @@ $userEmail = $_SESSION['user_email'] ?? '';
                 html += '<tr class="practice-row ' + selectedClass + '" onclick="selectPractice(' + practice.id + ')" data-practice-id="' + practice.id + '">' +
                     '<td class="col-practice">' +
                         '<strong class="practice-name" title="' + practiceTitle + '">' + escapeHtml(practiceNameRaw) + '</strong>' +
+                        (practice.fabg_pilot ? ' <span class="fabg-badge" title="' + t('admin_practices.fabg_badge') + '">' + t('admin_practices.fabg_badge') + '</span>' : '') +
                         (legalName ? '<small class="practice-legal" title="' + legalNameTitle + '">' + legalName + '</small>' : '') +
                     '</td>' +
                     '<td class="col-account">' +
@@ -2179,6 +2193,7 @@ $userEmail = $_SESSION['user_email'] ?? '';
                 allow_card_delete: document.getElementById('psAllowCardDelete').checked,
                 delivered_hide_days: document.getElementById('psDeliveredHideDays').value,
                 case_review_tracking_enabled: document.getElementById('psCaseReviewTracking').checked,
+                fabg_pilot: document.getElementById('psFabgPilot').checked,
                 highlight_past_due: document.getElementById('psHighlightPastDue').checked,
                 past_due_days: document.getElementById('psPastDueDays').value,
                 highlight_coming_due: document.getElementById('psHighlightComingDue').checked,
@@ -2197,6 +2212,12 @@ $userEmail = $_SESSION['user_email'] ?? '';
                     if (status) { status.textContent = 'Saved'; status.style.color = '#16a34a'; }
                     renderSettingsTab(data.settings);
                     syncPracticeSettingInputs();
+                    // Keep the practice-list FABG badge in sync without a reload
+                    const saved = practices.find(p => p.id === practiceId);
+                    if (saved && data.settings) {
+                        saved.fabg_pilot = !!data.settings.fabg_pilot;
+                        renderPractices();
+                    }
                 } else {
                     if (status) { status.textContent = (data && data.message) || 'Save failed'; status.style.color = '#dc2626'; }
                 }
@@ -2308,6 +2329,13 @@ $userEmail = $_SESSION['user_email'] ?? '';
             }
             html += '</div>';
             
+            html += '<div class="settings-card">' +
+                '<h4>' + escapeHtml(t('admin_practices.fabg_card_title')) + '</h4>' +
+                '<p style="font-size: 0.85rem; color: #6b7280; margin: 0 0 12px;">' + escapeHtml(t('admin_practices.fabg_card_desc')) + '</p>' +
+                '<div class="settings-row"><span class="settings-label">' + escapeHtml(t('admin_practices.fabg_badge')) + '</span><span class="settings-value">' +
+                    '<input type="checkbox" id="psFabgPilot" ' + (settings.fabg_pilot ? 'checked' : '') + '></span></div>' +
+                '</div>';
+
             html += '<div class="settings-card">' +
                 '<h4>Security</h4>' +
                 '<div class="settings-row"><span class="settings-label">Two-Factor Authentication Enabled</span><span class="settings-value">' + yesNo(settings.security.two_factor_authentication_enabled) + '</span></div>' +

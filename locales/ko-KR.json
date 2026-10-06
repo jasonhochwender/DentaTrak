@@ -554,6 +554,13 @@
         "reviewed": "검토 완료",
         "search_placeholder": "환자, 치과의사 또는 추적 번호 검색"
     },
+    "fabg": {
+        "welcome": {
+            "title": "환영합니다, FABG 파일럿 치과",
+            "body": "DentaTrak FABG 파일럿에 참여해 주셔서 감사합니다. 90일 동안 DentaTrak을 무료로 이용하실 수 있습니다. 일상적인 업무 흐름에서 DentaTrak을 사용하시면서 피드백을 보내주시면 감사하겠습니다.",
+            "dismiss": "확인"
+        }
+    },
     "remakes": {
         "title": "재제작",
         "record_remake": "재제작 기록",
@@ -2019,7 +2026,7 @@
         "session_revoked": "로그아웃되었습니다. 계속하려면 다시 로그인해 주세요.",
         "login": {
             "title": "DentaTrak에 오신 것을 환영합니다",
-            "subtitle": "계정에 로그인하거나 이메일을 입력하여 90일 무료 체험을 시작하세요.",
+            "subtitle": "계정에 로그인하거나 이메일을 입력하여 DentaTrak을 무료로 체험해 보세요.",
             "welcome_title": "{appName}에 오신 것을 환영합니다",
             "headline": "모든 케이스를 추적하고, 자신 있게 전달하세요.",
             "tagline": "복잡한 치과 작업을 위한 케이스 가시성.",
@@ -2643,7 +2650,10 @@
         "email_trial_extended_body_2": "체험은 이제 {date}까지 이용할 수 있습니다.",
         "email_trial_extended_body_3": "평소처럼 DentaTrak을 계속 이용하시면 됩니다. 별도 조치가 필요하지 않습니다.",
         "email_trial_extended_closing": "감사합니다,",
-        "email_trial_extended_team": "DentaTrak 팀"
+        "email_trial_extended_team": "DentaTrak 팀",
+        "fabg_badge": "FABG 파일럿",
+        "fabg_card_title": "파일럿 프로그램",
+        "fabg_card_desc": "이 치과를 FABG 파일럿 참여 치과로 표시합니다. 이것은 출처 표시일 뿐이며 체험 기간, 결제 또는 접근 권한을 변경하지 않습니다."
     },
     "case_types": {
         "crown": "크라운",
@@ -3329,7 +3339,7 @@
             "sign_in": "로그인",
             "log_in": "로그인",
             "start_free": "무료 시작",
-            "start_trial": "90일 무료 체험 시작",
+            "start_trial": "DentaTrak 무료 체험",
             "home": "홈",
             "about": "소개",
             "support": "지원",
@@ -3359,7 +3369,7 @@
         "seo": {
             "index": {
                 "title": "DentaTrak - 치과를 위한 시각적 치과 케이스 추적 소프트웨어",
-                "description": "DentaTrak은 치과를 위한 시각적 치과 케이스 추적 소프트웨어입니다. 전체 케이스 작업 흐름을 한눈에 보고 모든 크라운, 임플란트, 기공소 케이스를 프렙부터 전달까지 추적하세요. 90일 무료 체험을 시작하세요."
+                "description": "DentaTrak은 치과를 위한 시각적 치과 케이스 추적 소프트웨어입니다. 전체 케이스 작업 흐름을 한눈에 보고 모든 크라운, 임플란트, 기공소 케이스를 프렙부터 전달까지 추적하세요. DentaTrak을 무료로 체험해 보세요. 신용카드 불필요."
             },
             "about": {
                 "title": "DentaTrak 소개 | 치과 케이스 추적 소프트웨어",
@@ -3378,7 +3388,7 @@
             "dental_case_tracking_software": {
                 "title": "치과 케이스 추적 소프트웨어 | 프렙부터 전달까지 모든 케이스 추적 | DentaTrak",
                 "h1": "치과를 위한 치과 케이스 추적 소프트웨어",
-                "description": "DentaTrak은 모든 크라운, 임플란트, 기공소 케이스에 상태, 담당자, 다음 단계를 부여하여 아무것도 놓치지 않는 치과 케이스 추적 소프트웨어입니다. 90일 무료 체험을 시작하세요.",
+                "description": "DentaTrak은 모든 크라운, 임플란트, 기공소 케이스에 상태, 담당자, 다음 단계를 부여하여 아무것도 놓치지 않는 치과 케이스 추적 소프트웨어입니다. DentaTrak을 무료로 체험해 보세요. 신용카드 불필요.",
                 "meta": {
                     "by": "작성:",
                     "published": "게시일"
@@ -3593,7 +3603,7 @@
                 },
                 "seo": {
                     "title": "치과 케이스 추적 소프트웨어 | 프렙부터 전달까지 모든 케이스 추적 | DentaTrak",
-                    "description": "DentaTrak은 모든 크라운, 임플란트, 기공소 케이스에 상태, 담당자, 다음 단계를 부여하여 아무것도 놓치지 않는 치과 케이스 추적 소프트웨어입니다. 90일 무료 체험을 시작하세요."
+                    "description": "DentaTrak은 모든 크라운, 임플란트, 기공소 케이스에 상태, 담당자, 다음 단계를 부여하여 아무것도 놓치지 않는 치과 케이스 추적 소프트웨어입니다. DentaTrak을 무료로 체험해 보세요. 신용카드 불필요."
                 }
             },
             "how_to_track": {
@@ -3759,7 +3769,7 @@
                     }
                 },
                 "cta": {
-                    "body": "DentaTrak을 90일 무료로 사용해 보세요. 몇 분 안에 치과를 설정하고 케이스 추적을 시작하세요."
+                    "body": "DentaTrak을 무료로 사용해 보세요. 신용카드 불필요. 몇 분 안에 치과를 설정하고 케이스 추적을 시작하세요."
                 }
             },
             "visual_dental_case_workflow": {
@@ -3971,7 +3981,7 @@
                     }
                 },
                 "cta": {
-                    "body": "DentaTrak은 시작부터 전달까지 복잡한 케이스를 추적하는 시각적 보드를 치과에 제공합니다. 90일 무료로 사용해 보세요."
+                    "body": "DentaTrak은 시작부터 전달까지 복잡한 케이스를 추적하는 시각적 보드를 치과에 제공합니다. 무료로 사용해 보세요. 신용카드 불필요."
                 },
                 "intro": "지금 각 케이스가 프로세스의 어디에 있는지에 대한 즉각적이고 공유된 이해",
                 "intro_2": "흐름에",
@@ -4097,7 +4107,7 @@
                     ]
                 },
                 "cta": {
-                    "body": "DentaTrak을 90일 무료로 사용해 보세요. 몇 분 안에 치과를 설정하고 케이스 추적을 시작하세요."
+                    "body": "DentaTrak을 무료로 사용해 보세요. 신용카드 불필요. 몇 분 안에 치과를 설정하고 케이스 추적을 시작하세요."
                 }
             },
             "dental_lab_case_tracking": {
@@ -4222,7 +4232,7 @@
                     ]
                 },
                 "cta": {
-                    "body": "DentaTrak을 90일 무료로 사용해 보세요. 몇 분 안에 치과를 설정하고 케이스 추적을 시작하세요."
+                    "body": "DentaTrak을 무료로 사용해 보세요. 신용카드 불필요. 몇 분 안에 치과를 설정하고 케이스 추적을 시작하세요."
                 }
             },
             "dental_case_tracking_checklist": {
@@ -4349,7 +4359,7 @@
                     ]
                 },
                 "cta": {
-                    "body": "90일 무료 체험. 신용카드 불필요."
+                    "body": "DentaTrak 무료 체험. 신용카드 불필요."
                 }
             },
             "crown_and_bridge_case_tracking": {
@@ -4478,7 +4488,7 @@
                     ]
                 },
                 "cta": {
-                    "body": "DentaTrak을 90일 무료로 사용해 보세요. 몇 분 안에 치과를 설정하고 케이스 추적을 시작하세요."
+                    "body": "DentaTrak을 무료로 사용해 보세요. 신용카드 불필요. 몇 분 안에 치과를 설정하고 케이스 추적을 시작하세요."
                 }
             },
             "dental_case_tracking_vs_spreadsheets": {
@@ -4618,7 +4628,7 @@
                     }
                 },
                 "cta": {
-                    "body": "DentaTrak을 90일 무료로 사용해 보세요. 몇 분 안에 치과를 설정하고 케이스 추적을 시작하세요."
+                    "body": "DentaTrak을 무료로 사용해 보세요. 신용카드 불필요. 몇 분 안에 치과를 설정하고 케이스 추적을 시작하세요."
                 }
             },
             "dental_case_tracking_software_vs_pms": {
@@ -4780,7 +4790,7 @@
                     ]
                 },
                 "cta": {
-                    "body": "DentaTrak을 90일 무료로 사용해 보세요. 몇 분 안에 치과를 설정하고 케이스 추적을 시작하세요."
+                    "body": "DentaTrak을 무료로 사용해 보세요. 신용카드 불필요. 몇 분 안에 치과를 설정하고 케이스 추적을 시작하세요."
                 }
             },
             "dental_remake_cost": {
@@ -4964,7 +4974,7 @@
                     ]
                 },
                 "cta": {
-                    "body": "90일 무료 체험. 신용카드 불필요."
+                    "body": "DentaTrak 무료 체험. 신용카드 불필요."
                 }
             },
             "dental_case_management_external_labs": {
@@ -5128,16 +5138,16 @@
                     ]
                 },
                 "cta": {
-                    "body": "DentaTrak을 90일 무료로 체험해 보세요. 치과를 설정하고, 워크플로 단계를 정의하고, 몇 분 만에 외부 기공 케이스 추적을 시작하세요."
+                    "body": "DentaTrak을 무료로 체험해 보세요. 신용카드 불필요. 치과를 설정하고, 워크플로 단계를 정의하고, 몇 분 만에 외부 기공 케이스 추적을 시작하세요."
                 }
             }
         },
         "hero": {
             "title": "모든 치과 케이스의 현재 상태를 파악하세요.",
             "lead": "DentaTrak은 치과 병·의원을 위한 시각적 치과 케이스 추적 소프트웨어입니다. 팀이 케이스, 기한, 배정, 기공소 활동, 파일, 대화를 함께 추적하는 하나의 공간 — 작업이 어디서 지연되는지 보여주는 인사이트가 내장되어 있습니다.",
-            "start_free": "90일 무료 체험 시작",
+            "start_free": "DentaTrak 무료 체험",
             "see_how": "작동 방식 보기",
-            "trial_note": "90일 무료 체험. 신용카드 불필요."
+            "trial_note": "DentaTrak 무료 체험. 신용카드 불필요."
         },
         "problem": {
             "eyebrow": "문제",
@@ -5176,7 +5186,7 @@
         "pricing": {
             "eyebrow": "요금",
             "title": "다양한 규모의 치과를 위한 간단한 요금제.",
-            "lead": "모든 요금제에 핵심 DentaTrak 케이스 작업 흐름이 포함됩니다. 90일 무료 체험으로 시작하세요. 신용카드 불필요.",
+            "lead": "모든 요금제에 핵심 DentaTrak 케이스 작업 흐름이 포함됩니다. DentaTrak을 무료로 체험해 보세요. 신용카드 불필요.",
             "transparency_title": "명확한 요금. 영업 통화 불필요.",
             "transparency_body": "소프트웨어 비용을 알기 위해 미팅을 잡을 필요가 없습니다. DentaTrak은 요금을 명확하게 공개하여 치과에 맞는지 결정할 수 있게 합니다.",
             "operate": "Operate",
@@ -5224,10 +5234,10 @@
             "final_title": "원하는 방식으로 DentaTrak을 경험하세요.",
             "final_lead": "개인 안내를 기꺼이 해드리겠습니다. 직접 살펴보시겠어요? DentaTrak은 필수 데모 없이 바로 시작할 수 있도록 설계되었습니다.",
             "no_credit_card": "신용카드 불필요.",
-            "start_free": "90일 무료 체험 시작",
+            "start_free": "DentaTrak 무료 체험",
             "sign_in": "로그인",
             "ready_title": "케이스를 추적할 준비가 되셨나요?",
-            "ready_lead": "DentaTrak을 90일 무료로 사용해 보세요. 몇 분 안에 치과를 설정하고 케이스 추적을 시작하세요.",
+            "ready_lead": "DentaTrak을 무료로 사용해 보세요. 신용카드 불필요. 몇 분 안에 치과를 설정하고 케이스 추적을 시작하세요.",
             "already_account": "이미 계정이 있으신가요? 로그인"
         },
         "insights_section": {
@@ -5371,7 +5381,7 @@
             "closing_body": "DentaTrak은 크라운, 브릿지, 임플란트, 덴처, 기공소 의존 보철 케이스, 의뢰 의존 케이스처럼 여러 단계나 인수인계가 있는 케이스에 특히 유용합니다. 치과 케이스가 항상 직선으로 움직이지는 않으며 DentaTrak은 그 현실을 바탕으로 만들어졌습니다. DentaTrak이 속한 분야에 대한 더 자세한 설명은 {link}을(를) 참조하세요.",
             "closing_link_label": "치과 케이스 추적 소프트웨어",
             "cta_title": "케이스 추적 시작",
-            "cta_lead": "DentaTrak을 90일 무료로 사용해 보고 치과의 케이스 작업 흐름에 어떻게 맞는지 확인하세요."
+            "cta_lead": "DentaTrak을 무료로 사용해 보고 치과의 케이스 작업 흐름에 어떻게 맞는지 확인하세요. 신용카드 불필요."
         },
         "resources": {
             "title": "치과 케이스 추적 리소스 | DentaTrak",

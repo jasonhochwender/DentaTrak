@@ -750,6 +750,24 @@ if (isset($appConfig) && is_array($appConfig) && isset($appConfig['appName'])) {
   } catch (Throwable $e) {
       $caseReviewTrackingClass = 'case-review-tracking-off';
   }
+
+  // FABG pilot welcome: shown once per practice until dismissed. Guarded so a
+  // missing practices.fabg_pilot column (pre-migration schema) never breaks
+  // the main view.
+  $showFabgWelcome = false;
+  try {
+      $fabgColCheck = $pdo->query("SHOW COLUMNS FROM practices LIKE 'fabg_pilot'");
+      if ($fabgColCheck && $fabgColCheck->rowCount() > 0) {
+          $fabgStmt = $pdo->prepare("SELECT fabg_pilot, fabg_welcome_shown FROM practices WHERE id = :practice_id");
+          $fabgStmt->execute(['practice_id' => $currentPracticeId]);
+          $fabgRow = $fabgStmt->fetch(PDO::FETCH_ASSOC);
+          $showFabgWelcome = $fabgRow
+              && !empty($fabgRow['fabg_pilot'])
+              && empty($fabgRow['fabg_welcome_shown']);
+      }
+  } catch (Throwable $e) {
+      $showFabgWelcome = false;
+  }
 ?>
 <body class="main-body <?php echo trim($envClass . ' ' . $caseReviewTrackingClass); ?>">
   <!-- Full-page loading overlay -->
@@ -3947,6 +3965,24 @@ endif;
       </div>
     </div>
   </div>
+
+  <?php if (!empty($showFabgWelcome)): ?>
+  <!-- FABG Pilot Welcome (one-time, dismissed permanently via api/dismiss-fabg-welcome.php) -->
+  <div id="fabgWelcomeModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="fabgWelcomeTitle">
+    <div class="modal-content fabg-welcome-modal">
+      <div class="modal-header">
+        <h2 class="modal-title" id="fabgWelcomeTitle"><?php echo t('fabg.welcome.title'); ?></h2>
+        <button type="button" class="btn-close" id="fabgWelcomeClose" aria-label="<?php echo t('common.close'); ?>"><span>&times;</span></button>
+      </div>
+      <div class="modal-body">
+        <p><?php echo t('fabg.welcome.body'); ?></p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn-primary" id="fabgWelcomeDismiss"><?php echo t('fabg.welcome.dismiss'); ?></button>
+      </div>
+    </div>
+  </div>
+  <?php endif; ?>
 
   <!-- Chart.js and Analytics Pro are lazy-loaded when Analytics tab is clicked -->
   

@@ -830,6 +830,24 @@ function handleGetRequest($action) {
             // Batch-load lightweight adoption metrics for all practices
             $adoptionMetrics = getListAdoptionMetrics($pdo, array_map('intval', $practiceIds));
 
+            // FABG pilot flags (guarded - practices.fabg_pilot may not exist
+            // on a pre-migration schema; absence degrades to all-false).
+            $fabgPracticeIds = [];
+            if (!empty($practiceIds) && $pdo) {
+                try {
+                    $fabgCheck = $pdo->query("SHOW COLUMNS FROM practices LIKE 'fabg_pilot'");
+                    if ($fabgCheck && $fabgCheck->rowCount() > 0) {
+                        $fabgPlaceholders = implode(',', array_fill(0, count($practiceIds), '?'));
+                        $fabgStmt = $pdo->prepare("SELECT id FROM practices WHERE fabg_pilot = 1 AND id IN ($fabgPlaceholders)");
+                        $fabgStmt->execute(array_values($practiceIds));
+                        $fabgPracticeIds = array_map('intval', $fabgStmt->fetchAll(PDO::FETCH_COLUMN));
+                    }
+                } catch (PDOException $e) {
+                    error_log('[admin-practices] Error loading FABG flags: ' . $e->getMessage());
+                    $fabgPracticeIds = [];
+                }
+            }
+
             // Batch-load PMS integration connections (one row per provider per
             // practice). The public projection below is the same source of
             // truth the customer-facing Integrations UI renders - DevTools
@@ -856,6 +874,7 @@ function handleGetRequest($action) {
 
             foreach ($practices as &$practice) {
                 $practice['is_hidden'] = in_array((int)$practice['id'], $hiddenIds, true);
+                $practice['fabg_pilot'] = in_array((int)$practice['id'], $fabgPracticeIds, true);
                 $owner = $ownerMap[(int)$practice['id']] ?? null;
                 $ownerId = $owner ? (int)$owner['owner_user_id'] : null;
                 $ownedCount = $ownerId ? (int)($ownedCounts[$ownerId] ?? 1) : 0;
@@ -2205,7 +2224,21 @@ function getPracticeSettings($practiceId) {
     } catch (PDOException $e) {
         error_log('[admin-practices] Error reading case review tracking: ' . $e->getMessage());
     }
-    
+
+    // Practice-level FABG pilot flag (practices table, guarded for
+    // pre-migration schemas).
+    $fabgPilot = false;
+    try {
+        $fabgCheck = $pdo->query("SHOW COLUMNS FROM practices LIKE 'fabg_pilot'");
+        if ($fabgCheck && $fabgCheck->rowCount() > 0) {
+            $fabgStmt = $pdo->prepare("SELECT fabg_pilot FROM practices WHERE id = ?");
+            $fabgStmt->execute([$practiceId]);
+            $fabgPilot = (bool)$fabgStmt->fetchColumn();
+        }
+    } catch (PDOException $e) {
+        error_log('[admin-practices] Error reading FABG pilot flag: ' . $e->getMessage());
+    }
+
     $userList = [];
     foreach ($users as $u) {
         $isOwner = !empty($u['is_owner']);
@@ -2247,6 +2280,7 @@ function getPracticeSettings($practiceId) {
             'appointment_risk_days' => isset($preferences['appointment_risk_days']) ? (int)$preferences['appointment_risk_days'] : 3
         ],
         'case_review_tracking_enabled' => $caseReviewTrackingEnabled,
+        'fabg_pilot' => $fabgPilot,
         'google_drive_backup' => isset($preferences['google_drive_backup']) ? (bool)$preferences['google_drive_backup'] : false,
         'workflow_stages' => $workflowLabels,
         'users' => $userList,
@@ -2395,9 +2429,30 @@ function handleSavePracticeSettings(array $input): void {
             }
         }
 
+        // Practice-level FABG pilot flag. Enabling also resets the one-time
+        // welcome flag so a manually enrolled practice still sees the pilot
+        // welcome message once on next entry.
+        if (array_key_exists('fabg_pilot', $settings)) {
+            $fabgCheck = $pdo->query("SHOW COLUMNS FROM practices LIKE 'fabg_pilot'");
+            if ($fabgCheck && $fabgCheck->rowCount() > 0) {
+                $fabgValue = !empty($settings['fabg_pilot']) ? 1 : 0;
+                if ($fabgValue === 1) {
+                    $stmt = $pdo->prepare("UPDATE practices SET fabg_pilot = 1, fabg_welcome_shown = 0 WHERE id = ?");
+                    $stmt->execute([$practiceId]);
+                } else {
+                    $stmt = $pdo->prepare("UPDATE practices SET fabg_pilot = 0 WHERE id = ?");
+                    $stmt->execute([$practiceId]);
+                }
+            }
+        }
+
         logAdminAction('practice_settings_updated', [
             'practice_id' => $practiceId,
-            'keys' => array_merge(array_keys($toWrite), array_key_exists('case_review_tracking_enabled', $settings) ? ['case_review_tracking_enabled'] : [])
+            'keys' => array_merge(
+                array_keys($toWrite),
+                array_key_exists('case_review_tracking_enabled', $settings) ? ['case_review_tracking_enabled'] : [],
+                array_key_exists('fabg_pilot', $settings) ? ['fabg_pilot'] : []
+            )
         ]);
 
         echo json_encode([

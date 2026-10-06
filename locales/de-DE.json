@@ -437,6 +437,13 @@
         "reviewed": "Geprüft",
         "search_placeholder": "Patient, Zahnarzt oder Fallnummer suchen"
     },
+    "fabg": {
+        "welcome": {
+            "title": "Willkommen, FABG-Pilotpraxis",
+            "body": "Vielen Dank für Ihre Teilnahme am DentaTrak-FABG-Pilotprogramm. Sie haben 90 Tage kostenlosen Zugang zu DentaTrak. Wir freuen uns über Ihr Feedback, während Sie DentaTrak in Ihrem Praxisalltag nutzen.",
+            "dismiss": "Verstanden"
+        }
+    },
     "print": {
         "title": "Patientenfallbericht",
         "case_report": "Fallbericht",
@@ -1415,7 +1422,7 @@
         "session_revoked": "Sie wurden abgemeldet. Bitte melden Sie sich erneut an, um fortzufahren.",
         "login": {
             "title": "Willkommen bei DentaTrak",
-            "subtitle": "Melden Sie sich bei Ihrem Konto an oder geben Sie Ihre E-Mail-Adresse ein, um Ihre 90-tägige kostenlose Testphase zu starten.",
+            "subtitle": "Melden Sie sich bei Ihrem Konto an oder geben Sie Ihre E-Mail-Adresse ein, um DentaTrak kostenlos zu testen.",
             "welcome_title": "Willkommen bei {appName}",
             "headline": "Verfolgen Sie jeden Fall. Liefern Sie Vertrauen.",
             "tagline": "Falltransparenz für komplexe zahnärztliche Arbeiten.",
@@ -3360,7 +3367,10 @@
         "email_trial_extended_body_2": "Ihre Testphase ist jetzt bis zum {date} verfügbar.",
         "email_trial_extended_body_3": "Sie können DentaTrak wie gewohnt weiter nutzen. Es ist keine Aktion erforderlich.",
         "email_trial_extended_closing": "Vielen Dank,",
-        "email_trial_extended_team": "Ihr DentaTrak-Team"
+        "email_trial_extended_team": "Ihr DentaTrak-Team",
+        "fabg_badge": "FABG-Pilot",
+        "fabg_card_title": "Pilotprogramm",
+        "fabg_card_desc": "Kennzeichnen Sie diese Praxis als Teilnehmer am FABG-Pilotprogramm. Dies dient nur der Zuordnung und ändert nichts an Testdauer, Abrechnung oder Zugriff."
     },
     "marketing": {
         "navigation": {
@@ -3371,7 +3381,7 @@
             "sign_in": "Anmelden",
             "log_in": "Einloggen",
             "start_free": "Kostenlos starten",
-            "start_trial": "90 Tage kostenlos testen",
+            "start_trial": "DentaTrak kostenlos testen",
             "home": "Startseite",
             "about": "Über uns",
             "support": "Support",
@@ -3385,7 +3395,7 @@
         "seo": {
             "index": {
                 "title": "DentaTrak – Visuelle Fallverfolgungssoftware für Zahnarztpraxen",
-                "description": "DentaTrak ist visuelle Fallverfolgungssoftware für Zahnarztpraxen. Behalten Sie Ihren gesamten Fall-Workflow im Blick und verfolgen Sie jede Krone, jedes Implantat und jeden Laborfall von der Präparation bis zur Lieferung. Starten Sie eine 90-tägige kostenlose Testphase."
+                "description": "DentaTrak ist visuelle Fallverfolgungssoftware für Zahnarztpraxen. Behalten Sie Ihren gesamten Fall-Workflow im Blick und verfolgen Sie jede Krone, jedes Implantat und jeden Laborfall von der Präparation bis zur Lieferung. Testen Sie DentaTrak kostenlos. Keine Kreditkarte erforderlich."
             },
             "about": {
                 "title": "Über DentaTrak | Software zur Fallverfolgung in der Zahnmedizin",
@@ -3412,9 +3422,9 @@
         "hero": {
             "title": "Wissen Sie, wo jeder dentale Fall steht.",
             "lead": "DentaTrak ist visuelle Software zur Fallverfolgung für Zahnarztpraxen. Ein gemeinsamer Ort, an dem Ihr Team Fälle, Fristen, Zuweisungen, Laboraktivitäten, Dateien und Gespräche verfolgt — mit integriertem Einblick, wo die Arbeit ins Stocken gerät.",
-            "start_free": "Starten Sie Ihre 90-tägige kostenlose Testphase",
+            "start_free": "Testen Sie DentaTrak kostenlos",
             "see_how": "So funktioniert's",
-            "trial_note": "90 Tage kostenlos testen. Keine Kreditkarte erforderlich."
+            "trial_note": "Testen Sie DentaTrak kostenlos. Keine Kreditkarte erforderlich."
         },
         "problem": {
             "eyebrow": "Das Problem",
@@ -3445,10 +3455,10 @@
             "final_title": "Sehen Sie DentaTrak auf Ihre Weise.",
             "final_lead": "Wir zeigen Ihnen DentaTrak gerne in einer persönlichen Führung. Möchten Sie lieber selbst erkunden? DentaTrak wurde so gestaltet, dass Sie sofort beginnen können – ohne Pflicht-Demo.",
             "no_credit_card": "Keine Kreditkarte erforderlich.",
-            "start_free": "Starten Sie Ihre 90-tägige kostenlose Testphase",
+            "start_free": "Testen Sie DentaTrak kostenlos",
             "sign_in": "Anmelden",
             "ready_title": "Bereit, Ihre Fälle zu verfolgen?",
-            "ready_lead": "Testen Sie DentaTrak 90 Tage kostenlos. Richten Sie Ihre Praxis ein und beginnen Sie in wenigen Minuten mit der Fallverfolgung.",
+            "ready_lead": "Testen Sie DentaTrak kostenlos. Keine Kreditkarte erforderlich. Richten Sie Ihre Praxis ein und beginnen Sie in wenigen Minuten mit der Fallverfolgung.",
             "already_account": "Haben Sie bereits ein Konto? Einloggen"
         },
         "footer": {
@@ -3493,7 +3503,7 @@
             "closing_body": "DentaTrak ist besonders nützlich für Fälle mit mehreren Phasen oder Übergaben, wie Kronen, Brücken, Implantate, Prothesen, laborabhängige Restaurationen und überweisungsabhängige Fälle. Dentale Fälle verlaufen nicht immer geradlinig, und DentaTrak wurde um diese Realität herum gebaut. Siehe {link} für eine ausführlichere Erklärung der Kategorie, zu der DentaTrak gehört.",
             "closing_link_label": "Software zur Fallverfolgung in der Zahnmedizin",
             "cta_title": "Beginnen Sie mit der Verfolgung Ihrer Fälle",
-            "cta_lead": "Testen Sie DentaTrak 90 Tage kostenlos und sehen Sie, wie es in den Fall-Workflow Ihrer Praxis passt."
+            "cta_lead": "Testen Sie DentaTrak kostenlos und sehen Sie, wie es in den Fall-Workflow Ihrer Praxis passt. Keine Kreditkarte erforderlich."
         },
         "insights_section": {
             "eyebrow": "Practice & Lab Insights",
@@ -3587,7 +3597,7 @@
         "pricing": {
             "eyebrow": "Preise",
             "title": "Einfache Tarife für Praxen verschiedener Größen.",
-            "lead": "Jeder Tarif enthält den Kern-Fall-Workflow von DentaTrak. Starten Sie mit einer 90-tägigen kostenlosen Testphase. Keine Kreditkarte erforderlich.",
+            "lead": "Jeder Tarif enthält den Kern-Fall-Workflow von DentaTrak. Testen Sie DentaTrak kostenlos. Keine Kreditkarte erforderlich.",
             "transparency_title": "Klare Preise. Kein Verkaufsgespräch erforderlich.",
             "transparency_body": "Sie sollten kein Meeting vereinbaren müssen, nur um zu erfahren, was Software kostet. DentaTrak veröffentlicht seine Preise klar, damit Sie entscheiden können, ob es zu Ihrer Praxis passt.",
             "operate": "Operate",
@@ -3818,7 +3828,7 @@
             "dental_case_tracking_software": {
                 "title": "Software zur Fallverfolgung in der Zahnmedizin | Jeden Fall von der Präparation bis zur Lieferung verfolgen | DentaTrak",
                 "h1": "Software zur Fallverfolgung in der Zahnmedizin für Zahnarztpraxen",
-                "description": "DentaTrak ist Fallverfolgungssoftware für die Zahnmedizin, die jeder Krone, jedem Implantat und jedem Laborfall einen Status, einen Verantwortlichen und einen nächsten Schritt gibt, damit nichts verloren geht. Starten Sie eine 90-tägige kostenlose Testphase.",
+                "description": "DentaTrak ist Fallverfolgungssoftware für die Zahnmedizin, die jeder Krone, jedem Implantat und jedem Laborfall einen Status, einen Verantwortlichen und einen nächsten Schritt gibt, damit nichts verloren geht. Testen Sie DentaTrak kostenlos. Keine Kreditkarte erforderlich.",
                 "meta": {
                     "by": "Von",
                     "published": "Veröffentlicht"
@@ -4033,7 +4043,7 @@
                 },
                 "seo": {
                     "title": "Software zur Fallverfolgung in der Zahnmedizin | Jeden Fall von der Präparation bis zur Lieferung verfolgen | DentaTrak",
-                    "description": "DentaTrak ist Fallverfolgungssoftware für die Zahnmedizin, die jeder Krone, jedem Implantat und jedem Laborfall einen Status, einen Verantwortlichen und einen nächsten Schritt gibt, damit nichts verloren geht. Starten Sie eine 90-tägige kostenlose Testphase."
+                    "description": "DentaTrak ist Fallverfolgungssoftware für die Zahnmedizin, die jeder Krone, jedem Implantat und jedem Laborfall einen Status, einen Verantwortlichen und einen nächsten Schritt gibt, damit nichts verloren geht. Testen Sie DentaTrak kostenlos. Keine Kreditkarte erforderlich."
                 }
             },
             "how_to_track": {
@@ -4199,7 +4209,7 @@
                     }
                 },
                 "cta": {
-                    "body": "Testen Sie DentaTrak 90 Tage kostenlos. Richten Sie Ihre Praxis ein und beginnen Sie in wenigen Minuten mit der Fallverfolgung."
+                    "body": "Testen Sie DentaTrak kostenlos. Keine Kreditkarte erforderlich. Richten Sie Ihre Praxis ein und beginnen Sie in wenigen Minuten mit der Fallverfolgung."
                 }
             },
             "visual_dental_case_workflow": {
@@ -4411,7 +4421,7 @@
                     }
                 },
                 "cta": {
-                    "body": "DentaTrak gibt Ihrer Praxis ein visuelles Board zur Verfolgung komplexer Fälle vom Anlegen bis zur Lieferung. Testen Sie es 90 Tage kostenlos."
+                    "body": "DentaTrak gibt Ihrer Praxis ein visuelles Board zur Verfolgung komplexer Fälle vom Anlegen bis zur Lieferung. Testen Sie es kostenlos. Keine Kreditkarte erforderlich."
                 },
                 "intro": "wo sich jeder Fall gerade im Prozess befindet",
                 "intro_2": "Ablauf",
@@ -4576,7 +4586,7 @@
                     ]
                 },
                 "cta": {
-                    "body": "Testen Sie DentaTrak 90 Tage kostenlos. Richten Sie Ihre Praxis ein und beginnen Sie in wenigen Minuten mit der Fallverfolgung."
+                    "body": "Testen Sie DentaTrak kostenlos. Keine Kreditkarte erforderlich. Richten Sie Ihre Praxis ein und beginnen Sie in wenigen Minuten mit der Fallverfolgung."
                 }
             },
             "dental_case_tracking_vs_spreadsheets": {
@@ -4716,7 +4726,7 @@
                     }
                 },
                 "cta": {
-                    "body": "Testen Sie DentaTrak 90 Tage kostenlos. Richten Sie Ihre Praxis ein und beginnen Sie in wenigen Minuten mit der Fallverfolgung."
+                    "body": "Testen Sie DentaTrak kostenlos. Keine Kreditkarte erforderlich. Richten Sie Ihre Praxis ein und beginnen Sie in wenigen Minuten mit der Fallverfolgung."
                 }
             },
             "dental_lab_case_tracking": {
@@ -4841,7 +4851,7 @@
                     ]
                 },
                 "cta": {
-                    "body": "Testen Sie DentaTrak 90 Tage kostenlos. Richten Sie Ihre Praxis ein und beginnen Sie in wenigen Minuten mit der Fallverfolgung."
+                    "body": "Testen Sie DentaTrak kostenlos. Keine Kreditkarte erforderlich. Richten Sie Ihre Praxis ein und beginnen Sie in wenigen Minuten mit der Fallverfolgung."
                 }
             },
             "crown_and_bridge_case_tracking": {
@@ -4970,7 +4980,7 @@
                     ]
                 },
                 "cta": {
-                    "body": "Testen Sie DentaTrak 90 Tage kostenlos. Richten Sie Ihre Praxis ein und beginnen Sie in wenigen Minuten mit der Fallverfolgung."
+                    "body": "Testen Sie DentaTrak kostenlos. Keine Kreditkarte erforderlich. Richten Sie Ihre Praxis ein und beginnen Sie in wenigen Minuten mit der Fallverfolgung."
                 }
             },
             "implant_case_tracking": {
@@ -5093,7 +5103,7 @@
                     ]
                 },
                 "cta": {
-                    "body": "Testen Sie DentaTrak 90 Tage kostenlos. Richten Sie Ihre Praxis ein und beginnen Sie in wenigen Minuten mit der Fallverfolgung."
+                    "body": "Testen Sie DentaTrak kostenlos. Keine Kreditkarte erforderlich. Richten Sie Ihre Praxis ein und beginnen Sie in wenigen Minuten mit der Fallverfolgung."
                 }
             },
             "dental_remake_cost": {
@@ -5277,7 +5287,7 @@
                     ]
                 },
                 "cta": {
-                    "body": "90 Tage kostenlos testen. Keine Kreditkarte erforderlich."
+                    "body": "Testen Sie DentaTrak kostenlos. Keine Kreditkarte erforderlich."
                 }
             },
             "dental_case_tracking_checklist": {
@@ -5404,7 +5414,7 @@
                     ]
                 },
                 "cta": {
-                    "body": "90 Tage kostenlos testen. Keine Kreditkarte erforderlich."
+                    "body": "Testen Sie DentaTrak kostenlos. Keine Kreditkarte erforderlich."
                 }
             },
             "dental_case_management_external_labs": {
@@ -5568,7 +5578,7 @@
                     ]
                 },
                 "cta": {
-                    "body": "Testen Sie DentaTrak 90 Tage kostenlos. Richten Sie Ihre Praxis ein, definieren Sie Ihre Workflow-Stufen und beginnen Sie in wenigen Minuten mit der Nachverfolgung externer Laborfälle."
+                    "body": "Testen Sie DentaTrak kostenlos. Keine Kreditkarte erforderlich. Richten Sie Ihre Praxis ein, definieren Sie Ihre Workflow-Stufen und beginnen Sie in wenigen Minuten mit der Nachverfolgung externer Laborfälle."
                 }
             }
         },

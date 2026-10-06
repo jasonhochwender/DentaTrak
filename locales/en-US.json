@@ -554,6 +554,13 @@
         "reviewed": "Reviewed",
         "search_placeholder": "Search patient, dentist, or tracking number"
     },
+    "fabg": {
+        "welcome": {
+            "title": "Welcome, FABG Pilot Practice",
+            "body": "Thanks for participating in the DentaTrak FABG pilot. You have complimentary access to DentaTrak for 90 days. We'd love your feedback as you use DentaTrak in your day-to-day workflow.",
+            "dismiss": "Got it"
+        }
+    },
     "remakes": {
         "title": "Remakes",
         "record_remake": "Record Remake",
@@ -2019,7 +2026,7 @@
         "session_revoked": "You have been signed out. Please sign in again to continue.",
         "login": {
             "title": "Welcome to DentaTrak",
-            "subtitle": "Sign in to your account or enter your email to start your 90-day free trial.",
+            "subtitle": "Sign in to your account or enter your email to try DentaTrak free.",
             "welcome_title": "Welcome to {appName}",
             "headline": "Track every case. Deliver confidence.",
             "tagline": "Case visibility for complex dental work.",
@@ -2643,7 +2650,10 @@
         "email_trial_extended_body_2": "Your trial is now available through {date}.",
         "email_trial_extended_body_3": "You can continue using DentaTrak as usual. No action is required.",
         "email_trial_extended_closing": "Thank you,",
-        "email_trial_extended_team": "The DentaTrak Team"
+        "email_trial_extended_team": "The DentaTrak Team",
+        "fabg_badge": "FABG Pilot",
+        "fabg_card_title": "Pilot Program",
+        "fabg_card_desc": "Mark this practice as participating in the FABG pilot. This is attribution only - it does not change trial length, billing, or access."
     },
     "case_types": {
         "crown": "Crown",
@@ -3329,7 +3339,7 @@
             "sign_in": "Sign In",
             "log_in": "Log In",
             "start_free": "Start Free",
-            "start_trial": "Start 90-Day Free Trial",
+            "start_trial": "Try DentaTrak Free",
             "home": "Home",
             "about": "About",
             "support": "Support",
@@ -3359,7 +3369,7 @@
         "seo": {
             "index": {
                 "title": "DentaTrak - Visual Dental Case Tracking Software for Practices",
-                "description": "DentaTrak is visual dental case tracking software for dental practices. See your entire case workflow at a glance and follow every crown, implant, and lab case from prep to delivery. Start a 90-day free trial."
+                "description": "DentaTrak is visual dental case tracking software for dental practices. See your entire case workflow at a glance and follow every crown, implant, and lab case from prep to delivery. Try DentaTrak free. No credit card required."
             },
             "about": {
                 "title": "About DentaTrak | Dental Case Tracking Software",
@@ -3378,7 +3388,7 @@
             "dental_case_tracking_software": {
                 "title": "Dental Case Tracking Software | Track Every Case from Prep to Delivery | DentaTrak",
                 "h1": "Dental Case Tracking Software for Dental Practices",
-                "description": "DentaTrak is dental case tracking software that gives every crown, implant, and lab case a status, owner, and next step, so nothing gets lost. Start a 90-day free trial.",
+                "description": "DentaTrak is dental case tracking software that gives every crown, implant, and lab case a status, owner, and next step, so nothing gets lost. Try DentaTrak free. No credit card required.",
                 "meta": {
                     "by": "By",
                     "published": "Published"
@@ -3593,7 +3603,7 @@
                 },
                 "seo": {
                     "title": "Dental Case Tracking Software | Track Every Case from Prep to Delivery | DentaTrak",
-                    "description": "DentaTrak is dental case tracking software that gives every crown, implant, and lab case a status, owner, and next step, so nothing gets lost. Start a 90-day free trial."
+                    "description": "DentaTrak is dental case tracking software that gives every crown, implant, and lab case a status, owner, and next step, so nothing gets lost. Try DentaTrak free. No credit card required."
                 }
             },
             "how_to_track": {
@@ -3759,7 +3769,7 @@
                     }
                 },
                 "cta": {
-                    "body": "Try DentaTrak free for 90 days. Set up your practice and begin tracking cases in minutes."
+                    "body": "Try DentaTrak free. No credit card required. Set up your practice and begin tracking cases in minutes."
                 }
             },
             "visual_dental_case_workflow": {
@@ -3971,7 +3981,7 @@
                     }
                 },
                 "cta": {
-                    "body": "DentaTrak gives your practice a visual board for tracking complex cases from origination through delivery. Try it free for 90 days."
+                    "body": "DentaTrak gives your practice a visual board for tracking complex cases from origination through delivery. Try it free. No credit card required."
                 },
                 "intro": "where each case is in the process right now",
                 "intro_2": "flow",
@@ -4114,7 +4124,7 @@
                     }
                 },
                 "cta": {
-                    "body": "Try DentaTrak free for 90 days. Set up your practice and begin tracking cases in minutes."
+                    "body": "Try DentaTrak free. No credit card required. Set up your practice and begin tracking cases in minutes."
                 }
             },
             "dental_case_tracking_software_vs_pms": {
@@ -4276,7 +4286,7 @@
                     ]
                 },
                 "cta": {
-                    "body": "Try DentaTrak free for 90 days. Set up your practice and begin tracking cases in minutes."
+                    "body": "Try DentaTrak free. No credit card required. Set up your practice and begin tracking cases in minutes."
                 }
             },
             "dental_lab_case_tracking": {
@@ -4401,7 +4411,7 @@
                     ]
                 },
                 "cta": {
-                    "body": "Try DentaTrak free for 90 days. Set up your practice and begin tracking cases in minutes."
+                    "body": "Try DentaTrak free. No credit card required. Set up your practice and begin tracking cases in minutes."
                 }
             },
             "crown_and_bridge_case_tracking": {
@@ -4530,7 +4540,7 @@
                     ]
                 },
                 "cta": {
-                    "body": "Try DentaTrak free for 90 days. Set up your practice and begin tracking cases in minutes."
+                    "body": "Try DentaTrak free. No credit card required. Set up your practice and begin tracking cases in minutes."
                 }
             },
             "implant_case_tracking": {
@@ -4653,7 +4663,7 @@
                     ]
                 },
                 "cta": {
-                    "body": "Try DentaTrak free for 90 days. Set up your practice and begin tracking cases in minutes."
+                    "body": "Try DentaTrak free. No credit card required. Set up your practice and begin tracking cases in minutes."
                 }
             },
             "dental_remake_cost": {
@@ -4837,7 +4847,7 @@
                     ]
                 },
                 "cta": {
-                    "body": "90-day free trial. No credit card required."
+                    "body": "Try DentaTrak free. No credit card required."
                 }
             },
             "dental_case_tracking_checklist": {
@@ -4964,7 +4974,7 @@
                     ]
                 },
                 "cta": {
-                    "body": "90-day free trial. No credit card required."
+                    "body": "Try DentaTrak free. No credit card required."
                 }
             },
             "dental_case_management_external_labs": {
@@ -5128,16 +5138,16 @@
                     ]
                 },
                 "cta": {
-                    "body": "Try DentaTrak free for 90 days. Set up your practice, define your workflow stages, and begin tracking external-lab cases in minutes."
+                    "body": "Try DentaTrak free. No credit card required. Set up your practice, define your workflow stages, and begin tracking external-lab cases in minutes."
                 }
             }
         },
         "hero": {
             "title": "Know where every dental case stands.",
             "lead": "DentaTrak is visual dental case tracking software for dental practices. One shared place for your team to track cases, deadlines, assignments, lab activity, files, and conversations — with built-in insight into where work is slowing down.",
-            "start_free": "Start Your 90-Day Free Trial",
+            "start_free": "Try DentaTrak Free",
             "see_how": "See How It Works",
-            "trial_note": "90-day free trial. No credit card required."
+            "trial_note": "Try DentaTrak free. No credit card required."
         },
         "problem": {
             "eyebrow": "The Problem",
@@ -5176,7 +5186,7 @@
         "pricing": {
             "eyebrow": "Pricing",
             "title": "Simple plans for practices of different sizes.",
-            "lead": "Every plan includes the core DentaTrak case workflow. Start with a 90-day free trial. No credit card required.",
+            "lead": "Every plan includes the core DentaTrak case workflow. Start with a Try DentaTrak free. No credit card required.",
             "transparency_title": "Straightforward pricing. No sales call required.",
             "transparency_body": "You shouldn’t have to schedule a meeting just to find out what software costs. DentaTrak publishes its pricing clearly so you can decide whether it fits your practice.",
             "operate": "Operate",
@@ -5224,10 +5234,10 @@
             "final_title": "See DentaTrak your way.",
             "final_lead": "We would be happy to give you a personal walkthrough. Prefer to explore on your own? DentaTrak was designed so you can begin immediately without sitting through a required demo.",
             "no_credit_card": "No credit card required.",
-            "start_free": "Start Your 90-Day Free Trial",
+            "start_free": "Try DentaTrak Free",
             "sign_in": "Sign In",
             "ready_title": "Ready to track your cases?",
-            "ready_lead": "Try DentaTrak free for 90 days. Set up your practice and begin tracking cases in minutes.",
+            "ready_lead": "Try DentaTrak free. No credit card required. Set up your practice and begin tracking cases in minutes.",
             "already_account": "Already have an account? Log in"
         },
         "insights_section": {
@@ -5371,7 +5381,7 @@
             "closing_body": "DentaTrak is particularly useful for cases involving multiple stages or handoffs, such as crowns, bridges, implants, dentures, lab-dependent restorative cases, and referral-dependent cases. Dental cases do not always move in a straight line, and DentaTrak was built around that reality. See {link} for a fuller explanation of the category DentaTrak belongs to.",
             "closing_link_label": "dental case tracking software",
             "cta_title": "Start tracking your cases",
-            "cta_lead": "Try DentaTrak free for 90 days and see how it fits your practice's case workflow."
+            "cta_lead": "Try DentaTrak free and see how it fits your practice's case workflow. No credit card required."
         },
         "resources": {
             "title": "Dental Case Tracking Resources | DentaTrak",

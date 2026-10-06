@@ -554,6 +554,13 @@
         "reviewed": "Révisé",
         "search_placeholder": "Rechercher un patient, un dentiste ou un numéro de suivi"
     },
+    "fabg": {
+        "welcome": {
+            "title": "Bienvenue, clinique pilote FABG",
+            "body": "Merci de participer au pilote FABG de DentaTrak. Vous bénéficiez d'un accès gratuit à DentaTrak pendant 90 jours. Vos commentaires sur l'utilisation de DentaTrak dans votre flux de travail quotidien nous intéressent.",
+            "dismiss": "Compris"
+        }
+    },
     "remakes": {
         "title": "Reprises",
         "record_remake": "Enregistrer une reprise",
@@ -2019,7 +2026,7 @@
         "session_revoked": "Vous avez été déconnecté. Veuillez vous reconnecter pour continuer.",
         "login": {
             "title": "Bienvenue dans DentaTrak",
-            "subtitle": "Connectez-vous à votre compte ou saisissez votre courriel pour commencer votre essai gratuit de 90 jours.",
+            "subtitle": "Connectez-vous à votre compte ou saisissez votre courriel pour essayer DentaTrak gratuitement.",
             "welcome_title": "Bienvenue dans {appName}",
             "headline": "Suivez chaque cas. Livrez en toute confiance.",
             "tagline": "Visibilité sur les cas pour les travaux dentaires complexes.",
@@ -2643,7 +2650,10 @@
         "email_trial_extended_body_2": "Votre essai est désormais disponible jusqu'au {date}.",
         "email_trial_extended_body_3": "Vous pouvez continuer à utiliser DentaTrak normalement. Aucune action n'est requise.",
         "email_trial_extended_closing": "Merci,",
-        "email_trial_extended_team": "L'équipe DentaTrak"
+        "email_trial_extended_team": "L'équipe DentaTrak",
+        "fabg_badge": "Pilote FABG",
+        "fabg_card_title": "Programme pilote",
+        "fabg_card_desc": "Marquez cette clinique comme participante au pilote FABG. Il s'agit uniquement d'une attribution : la durée d'essai, la facturation et l'accès restent inchangés."
     },
     "case_types": {
         "crown": "Couronne",
@@ -3329,7 +3339,7 @@
             "sign_in": "Se connecter",
             "log_in": "Connexion",
             "start_free": "Commencer gratuitement",
-            "start_trial": "Essai gratuit de 90 jours",
+            "start_trial": "Essayez DentaTrak gratuitement",
             "home": "Accueil",
             "about": "À propos",
             "support": "Assistance",
@@ -3359,7 +3369,7 @@
         "seo": {
             "index": {
                 "title": "DentaTrak - Logiciel de suivi visuel des cas dentaires pour les cliniques",
-                "description": "DentaTrak est un logiciel de suivi visuel des cas dentaires pour les cliniques dentaires. Visualisez l'ensemble de votre flux de cas en un coup d'œil et suivez chaque couronne, implant et cas de laboratoire de la préparation à la livraison. Commencez un essai gratuit de 90 jours."
+                "description": "DentaTrak est un logiciel de suivi visuel des cas dentaires pour les cliniques dentaires. Visualisez l'ensemble de votre flux de cas en un coup d'œil et suivez chaque couronne, implant et cas de laboratoire de la préparation à la livraison. Essayez DentaTrak gratuitement. Aucune carte bancaire requise."
             },
             "about": {
                 "title": "À propos de DentaTrak | Logiciel de suivi des cas dentaires",
@@ -3378,7 +3388,7 @@
             "dental_case_tracking_software": {
                 "title": "Logiciel de suivi des cas dentaires | Suivez chaque cas de la préparation à la livraison | DentaTrak",
                 "h1": "Logiciel de suivi des cas dentaires pour les cliniques dentaires",
-                "description": "DentaTrak est un logiciel de suivi des cas dentaires qui donne à chaque couronne, implant et cas de laboratoire un statut, un responsable et une prochaine étape, pour que rien ne se perde. Commencez un essai gratuit de 90 jours.",
+                "description": "DentaTrak est un logiciel de suivi des cas dentaires qui donne à chaque couronne, implant et cas de laboratoire un statut, un responsable et une prochaine étape, pour que rien ne se perde. Essayez DentaTrak gratuitement. Aucune carte bancaire requise.",
                 "meta": {
                     "by": "Par",
                     "published": "Publié"
@@ -3593,7 +3603,7 @@
                 },
                 "seo": {
                     "title": "Logiciel de suivi des cas dentaires | Suivez chaque cas de la préparation à la livraison | DentaTrak",
-                    "description": "DentaTrak est un logiciel de suivi des cas dentaires qui donne à chaque couronne, implant et cas de laboratoire un statut, un responsable et une prochaine étape, pour que rien ne se perde. Commencez un essai gratuit de 90 jours."
+                    "description": "DentaTrak est un logiciel de suivi des cas dentaires qui donne à chaque couronne, implant et cas de laboratoire un statut, un responsable et une prochaine étape, pour que rien ne se perde. Essayez DentaTrak gratuitement. Aucune carte bancaire requise."
                 }
             },
             "how_to_track": {
@@ -3759,7 +3769,7 @@
                     }
                 },
                 "cta": {
-                    "body": "Essayez DentaTrak gratuitement pendant 90 jours. Configurez votre clinique et commencez à suivre les cas en quelques minutes."
+                    "body": "Essayez DentaTrak gratuitement. Aucune carte bancaire requise. Configurez votre clinique et commencez à suivre les cas en quelques minutes."
                 }
             },
             "visual_dental_case_workflow": {
@@ -3971,7 +3981,7 @@
                     }
                 },
                 "cta": {
-                    "body": "DentaTrak offre à votre clinique un tableau visuel pour suivre les cas complexes de la création à la livraison. Essayez-le gratuitement pendant 90 jours."
+                    "body": "DentaTrak offre à votre clinique un tableau visuel pour suivre les cas complexes de la création à la livraison. Essayez-le gratuitement. Aucune carte bancaire requise."
                 },
                 "intro": "où en est chaque cas dans le processus en ce moment",
                 "intro_2": "flux",
@@ -4114,7 +4124,7 @@
                     }
                 },
                 "cta": {
-                    "body": "Essayez DentaTrak gratuitement pendant 90 jours. Configurez votre clinique et commencez à suivre les cas en quelques minutes."
+                    "body": "Essayez DentaTrak gratuitement. Aucune carte bancaire requise. Configurez votre clinique et commencez à suivre les cas en quelques minutes."
                 }
             },
             "dental_case_tracking_software_vs_pms": {
@@ -4276,7 +4286,7 @@
                     ]
                 },
                 "cta": {
-                    "body": "Essayez DentaTrak gratuitement pendant 90 jours. Configurez votre clinique et commencez à suivre les cas en quelques minutes."
+                    "body": "Essayez DentaTrak gratuitement. Aucune carte bancaire requise. Configurez votre clinique et commencez à suivre les cas en quelques minutes."
                 }
             },
             "dental_lab_case_tracking": {
@@ -4401,7 +4411,7 @@
                     ]
                 },
                 "cta": {
-                    "body": "Essayez DentaTrak gratuitement pendant 90 jours. Configurez votre clinique et commencez à suivre les cas en quelques minutes."
+                    "body": "Essayez DentaTrak gratuitement. Aucune carte bancaire requise. Configurez votre clinique et commencez à suivre les cas en quelques minutes."
                 }
             },
             "crown_and_bridge_case_tracking": {
@@ -4530,7 +4540,7 @@
                     ]
                 },
                 "cta": {
-                    "body": "Essayez DentaTrak gratuitement pendant 90 jours. Configurez votre clinique et commencez à suivre les cas en quelques minutes."
+                    "body": "Essayez DentaTrak gratuitement. Aucune carte bancaire requise. Configurez votre clinique et commencez à suivre les cas en quelques minutes."
                 }
             },
             "implant_case_tracking": {
@@ -4653,7 +4663,7 @@
                     ]
                 },
                 "cta": {
-                    "body": "Essayez DentaTrak gratuitement pendant 90 jours. Configurez votre clinique et commencez à suivre les cas en quelques minutes."
+                    "body": "Essayez DentaTrak gratuitement. Aucune carte bancaire requise. Configurez votre clinique et commencez à suivre les cas en quelques minutes."
                 }
             },
             "dental_remake_cost": {
@@ -4837,7 +4847,7 @@
                     ]
                 },
                 "cta": {
-                    "body": "Essai gratuit de 90 jours. Aucune carte bancaire requise."
+                    "body": "Essayez DentaTrak gratuitement. Aucune carte bancaire requise."
                 }
             },
             "dental_case_tracking_checklist": {
@@ -4964,7 +4974,7 @@
                     ]
                 },
                 "cta": {
-                    "body": "Essai gratuit de 90 jours. Aucune carte bancaire requise."
+                    "body": "Essayez DentaTrak gratuitement. Aucune carte bancaire requise."
                 }
             },
             "dental_case_management_external_labs": {
@@ -5128,16 +5138,16 @@
                     ]
                 },
                 "cta": {
-                    "body": "Essayez DentaTrak gratuitement pendant 90 jours. Configurez votre clinique, définissez vos étapes de flux de travail et commencez à suivre vos cas de laboratoires externes en quelques minutes."
+                    "body": "Essayez DentaTrak gratuitement. Aucune carte bancaire requise. Configurez votre clinique, définissez vos étapes de flux de travail et commencez à suivre vos cas de laboratoires externes en quelques minutes."
                 }
             }
         },
         "hero": {
             "title": "Sachez où en est chaque cas dentaire.",
             "lead": "DentaTrak est un logiciel visuel de suivi des cas dentaires pour les cabinets dentaires. Un espace partagé où votre équipe suit cas, échéances, attributions, activité de laboratoire, fichiers et conversations — avec une vision intégrée de ce qui ralentit le travail.",
-            "start_free": "Commencez votre essai gratuit de 90 jours",
+            "start_free": "Essayez DentaTrak gratuitement",
             "see_how": "Voir le fonctionnement",
-            "trial_note": "Essai gratuit de 90 jours. Aucune carte bancaire requise."
+            "trial_note": "Essayez DentaTrak gratuitement. Aucune carte bancaire requise."
         },
         "problem": {
             "eyebrow": "Le problème",
@@ -5176,7 +5186,7 @@
         "pricing": {
             "eyebrow": "Tarifs",
             "title": "Des forfaits simples pour des cliniques de toutes tailles.",
-            "lead": "Chaque forfait inclut le flux de cas DentaTrak de base. Commencez avec un essai gratuit de 90 jours. Aucune carte bancaire requise.",
+            "lead": "Chaque forfait inclut le flux de cas DentaTrak de base. Essayez DentaTrak gratuitement. Aucune carte bancaire requise.",
             "transparency_title": "Des tarifs transparents. Aucun appel commercial requis.",
             "transparency_body": "Vous ne devriez pas avoir à planifier un rendez-vous juste pour connaître le prix d'un logiciel. DentaTrak publie ses tarifs clairement pour que vous puissiez décider si cela convient à votre clinique.",
             "operate": "Operate",
@@ -5224,10 +5234,10 @@
             "final_title": "Découvrez DentaTrak à votre façon.",
             "final_lead": "Nous serions heureux de vous offrir une présentation personnalisée. Vous préférez explorer par vous-même ? DentaTrak a été conçu pour que vous puissiez commencer immédiatement sans démonstration obligatoire.",
             "no_credit_card": "Aucune carte bancaire requise.",
-            "start_free": "Commencez votre essai gratuit de 90 jours",
+            "start_free": "Essayez DentaTrak gratuitement",
             "sign_in": "Se connecter",
             "ready_title": "Prêt à suivre vos cas ?",
-            "ready_lead": "Essayez DentaTrak gratuitement pendant 90 jours. Configurez votre clinique et commencez à suivre des cas en quelques minutes.",
+            "ready_lead": "Essayez DentaTrak gratuitement. Aucune carte bancaire requise. Configurez votre clinique et commencez à suivre des cas en quelques minutes.",
             "already_account": "Vous avez déjà un compte ? Connectez-vous"
         },
         "insights_section": {
@@ -5371,7 +5381,7 @@
             "closing_body": "DentaTrak est particulièrement utile pour les cas impliquant plusieurs étapes ou transferts, comme les couronnes, les bridges, les implants, les prothèses amovibles, les cas de restauration dépendant du laboratoire et les cas dépendant de références. Les cas dentaires ne progressent pas toujours en ligne droite, et DentaTrak a été conçu autour de cette réalité. Consultez {link} pour une explication plus complète de la catégorie à laquelle DentaTrak appartient.",
             "closing_link_label": "logiciel de suivi des cas dentaires",
             "cta_title": "Commencez à suivre vos cas",
-            "cta_lead": "Essayez DentaTrak gratuitement pendant 90 jours et voyez comment il s'adapte au flux de cas de votre clinique."
+            "cta_lead": "Essayez DentaTrak gratuitement et voyez comment il s'adapte au flux de cas de votre clinique. Aucune carte bancaire requise."
         },
         "resources": {
             "title": "Ressources sur le suivi des cas dentaires | DentaTrak",

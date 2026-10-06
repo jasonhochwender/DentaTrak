@@ -23,6 +23,13 @@ require_once __DIR__ . '/api/unified-identity.php';
 // ============================================
 $rememberedEmail = getRememberedEmail();
 
+// Marketing/pilot source attribution (e.g. /login.php?source=fabg). The value
+// only tags the practice created during this signup session for FABG pilot
+// identification - it grants nothing and changes no authorization behavior.
+if (($_GET['source'] ?? '') === 'fabg') {
+    $_SESSION['signup_source'] = 'fabg';
+}
+
 // ============================================
 // REDIRECT IF ALREADY LOGGED IN
 // ============================================
