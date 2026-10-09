@@ -108,25 +108,37 @@ $telemetryEvent = [
 ];
 
 try {
+    // Development-only fault injection: lets the regression suite verify
+    // the Throwable boundary below produces a structured JSON error
+    // instead of a bare PHP fatal. Never reachable outside development.
+    if (($appConfig['current_environment'] ?? '') === 'development'
+        && !empty($input['__force_typeerror'])) {
+        throw new TypeError('simulated_typeerror_for_regression');
+    }
+
     $result = askDentatrakAnswer($appConfig, $aiProvider, $aiConfig, $userQuery, $history, $currentPracticeId);
     $telemetryEvent['latency_ms'] = (int)round((microtime(true) - $telemetryStartedAt) * 1000);
     $telemetryEvent = array_merge($telemetryEvent, $result['telemetry'] ?? []);
     $usageId = recordAskDentatrakUsage($telemetryEvent);
     echo json_encode(['success' => true, 'response' => $result['html'], 'usage_id' => $usageId]);
-} catch (Exception $e) {
-    error_log('Ask DentaTrak error: ' . $e->getMessage());
+} catch (Throwable $e) {
+    // Throwable, not just Exception: a TypeError (e.g. an unexpected
+    // planner payload reaching a typed helper) must still produce a
+    // structured JSON error - never a bare PHP fatal emitting a partial
+    // or non-JSON body. Diagnostics (class, message, file, line) go to
+    // the server log only; the client gets a localized message with no
+    // internals, patient data, prompts, or stack details.
+    error_log('Ask DentaTrak ' . get_class($e) . ': ' . $e->getMessage()
+        . ' in ' . $e->getFile() . ':' . $e->getLine());
     $telemetryEvent['latency_ms'] = (int)round((microtime(true) - $telemetryStartedAt) * 1000);
     $telemetryEvent['outcome'] = 'model_error';
-    recordAskDentatrakUsage($telemetryEvent);
-    $userMessage = match ($e->getMessage()) {
-        'AI_QUOTA_EXCEEDED'      => t('insights.errors.ai_quota'),
-        'AI_MODEL_UNAVAILABLE'   => t('insights.errors.ai_model_unavailable'),
-        'AI_INVALID_REQUEST',
-        'AI_AUTH_ERROR'          => t('insights.errors.ai_config'),
-        'AI_SERVICE_UNAVAILABLE' => t('insights.errors.ai_unavailable'),
-        default                  => t('insights.errors.unable_later'),
-    };
-    http_response_code(200); // frontend renders the error message in-panel
+    try {
+        recordAskDentatrakUsage($telemetryEvent);
+    } catch (Throwable $ignored) {
+        // Telemetry is best-effort; it must never break the error path.
+    }
+    [$status, $userMessage] = askDentatrakErrorResponse($e);
+    http_response_code($status); // 200 keeps the in-panel contract for mapped provider errors; 500 for unexpected faults
     echo json_encode(['success' => false, 'error' => $userMessage]);
 }
 

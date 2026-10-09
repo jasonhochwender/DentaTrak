@@ -180,6 +180,38 @@ check('every tool SELECT joins authorized_case_ids',
 check('no dynamic SQL from params (only bound placeholders)',
     preg_match('/\$\w+\s*\.\s*\$params|\$params\[[^\]]+\]\s*\.\s*[\'"]/', $src) === 0);
 
+/* ── 3c. Throwable boundary at the endpoint ───────────────────────────── */
+
+$endpoint = file_get_contents(__DIR__ . '/../api/ask-dentatrak.php');
+
+// A TypeError (not an Exception) must still yield a structured JSON error
+// with a localized retry message - never a bare fatal/non-JSON body.
+[$status, $msg] = askDentatrakErrorResponse(new TypeError('simulated_typeerror_for_regression'));
+check('TypeError maps to 500 + generic localized retry message',
+    $status === 500 && $msg === t('ask_dentatrak.errors.generic')
+    && strpos($msg, 'TypeError') === false && strpos($msg, 'simulated') === false
+    && stripos($msg, 'try again') !== false,
+    "$status " . json_encode($msg));
+
+[$status, $msg] = askDentatrakErrorResponse(new Exception('AI_SERVICE_UNAVAILABLE'));
+check('mapped provider failure keeps 200 in-panel contract',
+    $status === 200 && $msg === t('insights.errors.ai_unavailable'),
+    "$status " . json_encode($msg));
+
+[$status, $msg] = askDentatrakErrorResponse(new RuntimeException('AI_QUOTA_EXCEEDED'));
+check('quota failure maps to its localized message at 200',
+    $status === 200 && $msg === t('insights.errors.ai_quota'));
+
+check('endpoint catch covers Throwable, not just Exception',
+    strpos($endpoint, 'catch (Throwable') !== false
+    && strpos($endpoint, 'catch (Exception') === false,
+    'boundary must not silently pass Error types');
+
+check('dev fault injection is gated to the development environment',
+    strpos($endpoint, '__force_typeerror') !== false
+    && strpos($endpoint, "current_environment") !== false
+    && strpos($endpoint, "'development'") !== false);
+
 /* ── 4. PHI audit registration ────────────────────────────────────────── */
 
 check('ask_dentatrak_query is a registered PHI action',

@@ -236,6 +236,29 @@ function runAskDentatrakTool(string $tool, array $params, int $practiceId): arra
 }
 
 /**
+ * Map a failure at the endpoint boundary to [HTTP status, user message].
+ * Known provider failures (the AI_* message codes thrown by ai-client.php)
+ * keep the established 200 contract so the panel renders the localized
+ * reason. Anything else - TypeError and other unexpected server faults -
+ * is a 500 with a generic localized retry message; internal details go
+ * to the server log and never reach the client.
+ */
+function askDentatrakErrorResponse(Throwable $e): array {
+    $key = match ($e->getMessage()) {
+        'AI_QUOTA_EXCEEDED'      => 'insights.errors.ai_quota',
+        'AI_MODEL_UNAVAILABLE'   => 'insights.errors.ai_model_unavailable',
+        'AI_INVALID_REQUEST',
+        'AI_AUTH_ERROR'          => 'insights.errors.ai_config',
+        'AI_SERVICE_UNAVAILABLE' => 'insights.errors.ai_unavailable',
+        default                  => null,
+    };
+    if ($key !== null) {
+        return [200, t($key)];
+    }
+    return [500, t('ask_dentatrak.errors.generic')];
+}
+
+/**
  * Sanitize a string filter: bounded length, no control bytes. Stored as a
  * bound parameter, so this is belt-and-suspenders against junk input.
  */
