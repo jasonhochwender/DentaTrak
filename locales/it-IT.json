@@ -1500,9 +1500,9 @@
             }
         },
         "recs": {
-            "title": "Raccomandazioni intelligenti",
+            "title": "Raccomandazioni",
             "subtitle": "Osservazioni dalle metriche di questo periodo. Si applica a tutti i laboratori indipendentemente dalla selezione del dettaglio.",
-            "subtitle_practice": "Osservazioni assistite dall'IA basate sulle analisi del tuo studio. Valuta ogni suggerimento prima di agire.",
+            "subtitle_practice": "Osservazioni basate sulle analisi del tuo studio. Valuta ogni suggerimento prima di agire.",
             "empty": "Nessun cambiamento rilevante individuato per questo periodo.",
             "more_one": "Mostra 1 altra",
             "more_other": "Mostra altre {count}",
@@ -1713,11 +1713,11 @@
             }
         },
         "ai": {
-            "badge": "Basato su IA",
-            "title": "Raccomandazioni intelligenti",
+            "badge": "Personalizzato",
+            "title": "Raccomandazioni",
             "subtitle": "Insights personalizzati basati sui dati del tuo studio",
             "analyzing": "Analisi dei dati del tuo studio in corso...",
-            "generating": "Generazione delle raccomandazioni intelligenti…",
+            "generating": "Generazione delle raccomandazioni…",
             "none_available": "Nessuna raccomandazione disponibile al momento.",
             "load_error": "Caricamento delle raccomandazioni non riuscito. Riprova.",
             "empty_error": "Nessuna raccomandazione disponibile",
@@ -1758,16 +1758,16 @@
             "loading_analytics": "Errore durante il caricamento dei dati analitici: {message}",
             "loading_connection": "Errore durante il caricamento delle analisi. Controlla la connessione.",
             "no_recommendations": "Nessuna raccomandazione disponibile",
-            "failed_recommendations": "Caricamento delle raccomandazioni IA non riuscito. Riprova.",
+            "failed_recommendations": "Caricamento delle raccomandazioni non riuscito. Riprova.",
             "connection_lost": "Connessione persa. Controlla la connessione a internet e riprova.",
             "unable_recommendations": "Impossibile generare le raccomandazioni.",
-            "access_denied": "Accesso negato. Non hai l'autorizzazione per visualizzare analisi o Insights IA.",
-            "plan_required": "Le raccomandazioni intelligenti richiedono il piano Control",
-            "ai_not_configured": "Servizio IA non configurato",
-            "ai_quota": "Il servizio IA è temporaneamente non disponibile a causa dell'elevata richiesta. Riprova tra qualche minuto.",
-            "ai_model_unavailable": "Le raccomandazioni intelligenti sono temporaneamente non disponibili perché il modello IA configurato non è raggiungibile.",
-            "ai_config": "Errore di configurazione del servizio IA. Contatta l'assistenza.",
-            "ai_unavailable": "Il servizio IA non è al momento disponibile. Riprova più tardi.",
+            "access_denied": "Accesso negato. Non hai l'autorizzazione per visualizzare analisi o raccomandazioni.",
+            "plan_required": "Le raccomandazioni richiedono il piano Control",
+            "ai_not_configured": "Servizio di raccomandazioni non configurato",
+            "ai_quota": "Il servizio di raccomandazioni è temporaneamente non disponibile a causa dell'elevata richiesta. Riprova tra qualche minuto.",
+            "ai_model_unavailable": "Le raccomandazioni sono temporaneamente non disponibili perché il servizio di raccomandazioni non è raggiungibile.",
+            "ai_config": "Errore di configurazione del servizio di raccomandazioni. Contatta l'assistenza.",
+            "ai_unavailable": "Il servizio di raccomandazioni non è al momento disponibile. Riprova più tardi.",
             "unable_later": "Impossibile generare raccomandazioni al momento. Riprova più tardi."
         },
         "upgrade": {
@@ -1777,14 +1777,14 @@
             "duration_description": "Sblocca confronti storici, rilevamento delle anomalie e identificazione dei colli di bottiglia.",
             "yoy_title": "Tendenze anno su anno",
             "yoy_description": "Sblocca confronti storici, insights sulle stagioni di picco e metriche di crescita.",
-            "recommendations_title": "Raccomandazioni intelligenti",
-            "recommendations_description": "Ottieni insights basati sull'IA, rilevamento dei colli di bottiglia e raccomandazioni operative.",
+            "recommendations_title": "Raccomandazioni",
+            "recommendations_description": "Ottieni insights personalizzati, rilevamento dei colli di bottiglia e raccomandazioni operative.",
             "lab_insights_title": "Lab Insights",
             "lab_insights_description": "Sblocca carico di lavoro, tempi di consegna, casi attualmente in ritardo e confronti delle revisioni tra i laboratori con cui lavora il tuo studio.",
             "button": "Passa a Control",
             "analytics_control": "Le analisi sono disponibili sul piano Control. Esegui l'upgrade per accedere alle funzionalità analitiche.",
             "screen_title": "Sblocca Insights con Control",
-            "screen_description": "Practice Insights, Lab Insights e le raccomandazioni intelligenti sono inclusi nei piani Control e Scale.",
+            "screen_description": "Practice Insights, Lab Insights e le raccomandazioni sono inclusi nei piani Control e Scale.",
             "contact_admin": "Contatta l'amministratore dello studio per eseguire l'upgrade del piano.",
             "unavailable_title": "Insights non disponibili",
             "unavailable_description": "Non è stato possibile verificare il tuo piano. Riprova."
@@ -1853,7 +1853,7 @@
                 "benefit_1": "Tutto ciò che include Operate",
                 "benefit_2": "Utenti illimitati",
                 "benefit_4": "Practice Insights e Lab Insights",
-                "benefit_5": "Raccomandazioni intelligenti",
+                "benefit_5": "Raccomandazioni",
                 "benefit_6": "Integrazione con Open Dental"
             },
             "scale": {
@@ -5078,7 +5078,7 @@
                         "heading": "Dove si colloca DentaTrak",
                         "body_1": "DentaTrak è un sistema dedicato di gestione dei casi dentali costruito proprio intorno a questi flussi di lavoro. Gli studi modellano la bacheca sul proprio processo — fasi personalizzabili che si possono aggiungere, rinominare, riordinare, archiviare e ripristinare — e lavorano su una bacheca visuale o su un elenco compatto con filtri, ordinamento e assegnazioni.",
                         "body_2": "L’attenzione è gestita in modo esplicito anziché a memoria: i contrassegni In scadenza, In ritardo, Rischio appuntamento e Da revisionare fanno emergere i casi che richiedono azione. Commenti, @menzioni, immagini nei commenti, notifiche e una cronologia completa delle attività tengono la comunicazione legata al caso, e le categorie strutturate degli allegati mantengono scansioni, foto, design e documenti ordinati invece che dispersi.",
-                        "body_3": "Per la visibilità, Practice Insights e Lab Insights trasformano i dati dei casi in viste su volume, tempi di consegna, rischio appuntamenti, rifacimenti, carico di lavoro e confronto tra laboratori — con Smart Recommendations che indicano dove i flussi di lavoro possono migliorare. Ask DentaTrak risponde a domande d’uso e a semplici domande sui casi dentro il prodotto, e l’applicazione — incluse notifiche e Ask DentaTrak — supporta i team in nove lingue."
+                        "body_3": "Per la visibilità, Practice Insights e Lab Insights trasformano i dati dei casi in viste su volume, tempi di consegna, rischio appuntamenti, rifacimenti, carico di lavoro e confronto tra laboratori — con Raccomandazioni che indicano dove i flussi di lavoro possono migliorare. Ask DentaTrak risponde a domande d’uso e a semplici domande sui casi dentro il prodotto, e l’applicazione — incluse notifiche e Ask DentaTrak — supporta i team in nove lingue."
                     },
                     "open_dental_integration": {
                         "heading": "Lavorare con Open Dental",
@@ -5211,7 +5211,7 @@
             "control_features_2": "Utenti illimitati",
             "control_features_3": "Fino a 2 studi",
             "control_features_4": "Practice Insights e Lab Insights",
-            "control_features_5": "Raccomandazioni intelligenti",
+            "control_features_5": "Raccomandazioni",
             "control_features_6": "Integrazione con Open Dental",
             "scale_description": "Per le organizzazioni che gestiscono più studi e team più grandi.",
             "scale_features_1": "Tutto ciò che include Control",
@@ -5244,13 +5244,13 @@
             "eyebrow": "Practice Insights e Lab Insights",
             "title": "Vedi dove i casi avanzano e dove rallentano.",
             "lead": "Practice e Lab Insights trasformano l\\u2019attività quotidiana in una visione chiara di volume dei casi, carico di lavoro, tempi di laboratorio e rifacimenti — per individuare dove i casi rallentano prima che i ritardi raggiungano il paziente.",
-            "included": "Practice Insights, Lab Insights e le raccomandazioni intelligenti sono inclusi nei piani Control e Scale.",
+            "included": "Practice Insights, Lab Insights e le raccomandazioni sono inclusi nei piani Control e Scale.",
             "features": {
                 "1_title": "Volume e stato dei casi",
                 "1_body": "Tieni d'occhio a colpo d'occhio i casi attivi, in scadenza, in ritardo e consegnati.",
                 "2_title": "Tempi di consegna e rischio appuntamento",
                 "2_body": "Confronta i tempi dei laboratori e individua i casi in cui l\\u2019appuntamento del paziente potrebbe arrivare prima che il lavoro sia pronto.",
-                "3_title": "Confronto laboratori, rifacimenti e Smart Recommendations",
+                "3_title": "Confronto laboratori, rifacimenti e Raccomandazioni",
                 "3_body": "Confronta carico di lavoro, tassi di ritardo, rifacimenti e revisioni per laboratorio — e ricevi suggerimenti pratici basati sui dati."
             }
         },

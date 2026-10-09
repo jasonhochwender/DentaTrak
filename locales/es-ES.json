@@ -1500,9 +1500,9 @@
             }
         },
         "recs": {
-            "title": "Recomendaciones inteligentes",
+            "title": "Recomendaciones",
             "subtitle": "Observaciones a partir de las métricas de este período. Se aplican a todos los laboratorios independientemente de la selección de detalle de laboratorio.",
-            "subtitle_practice": "Observaciones asistidas por IA a partir de las analíticas de su consultorio. Revise cada sugerencia antes de actuar.",
+            "subtitle_practice": "Observaciones a partir de las analíticas de su consultorio. Revise cada sugerencia antes de actuar.",
             "empty": "No se identificaron cambios notables para este período.",
             "more_one": "Mostrar 1 más",
             "more_other": "Mostrar {count} más",
@@ -1713,11 +1713,11 @@
             }
         },
         "ai": {
-            "badge": "Con tecnología de IA",
-            "title": "Recomendaciones inteligentes",
+            "badge": "Personalizado",
+            "title": "Recomendaciones",
             "subtitle": "Insights personalizados basados en los datos de su consultorio",
             "analyzing": "Analizando los datos de su consultorio...",
-            "generating": "Generando recomendaciones inteligentes…",
+            "generating": "Generando recomendaciones…",
             "none_available": "No hay recomendaciones disponibles en este momento.",
             "load_error": "No se pudieron cargar las recomendaciones. Inténtelo de nuevo.",
             "empty_error": "No hay recomendaciones disponibles",
@@ -1758,16 +1758,16 @@
             "loading_analytics": "Error al cargar los datos de analíticas: {message}",
             "loading_connection": "Error al cargar las analíticas. Verifique su conexión.",
             "no_recommendations": "No hay recomendaciones disponibles",
-            "failed_recommendations": "No se pudieron cargar las recomendaciones de IA. Inténtelo de nuevo.",
+            "failed_recommendations": "No se pudieron cargar las recomendaciones. Inténtelo de nuevo.",
             "connection_lost": "Conexión perdida. Verifique su internet e inténtelo de nuevo.",
             "unable_recommendations": "No se pudieron generar las recomendaciones.",
-            "access_denied": "Acceso denegado. No tiene permiso para ver las analíticas ni las estadísticas de IA.",
-            "plan_required": "Las Recomendaciones Inteligentes requieren el plan Control",
-            "ai_not_configured": "El servicio de IA no está configurado",
-            "ai_quota": "El servicio de IA no está disponible temporalmente debido a la alta demanda. Inténtelo de nuevo en unos minutos.",
-            "ai_model_unavailable": "Las Recomendaciones Inteligentes no están disponibles temporalmente porque no se pudo acceder al modelo de IA configurado.",
-            "ai_config": "Error de configuración del servicio de IA. Póngase en contacto con soporte.",
-            "ai_unavailable": "El servicio de IA no está disponible actualmente. Inténtelo más tarde.",
+            "access_denied": "Acceso denegado. No tiene permiso para ver las analíticas ni las recomendaciones.",
+            "plan_required": "Las recomendaciones requieren el plan Control",
+            "ai_not_configured": "El servicio de recomendaciones no está configurado",
+            "ai_quota": "El servicio de recomendaciones no está disponible temporalmente debido a la alta demanda. Inténtelo de nuevo en unos minutos.",
+            "ai_model_unavailable": "Las recomendaciones no están disponibles temporalmente porque no se pudo acceder al servicio de recomendaciones.",
+            "ai_config": "Error de configuración del servicio de recomendaciones. Póngase en contacto con soporte.",
+            "ai_unavailable": "El servicio de recomendaciones no está disponible actualmente. Inténtelo más tarde.",
             "unable_later": "No se pueden generar recomendaciones en este momento. Inténtelo más tarde."
         },
         "upgrade": {
@@ -1777,14 +1777,14 @@
             "duration_description": "Desbloquee comparaciones históricas, detección de valores atípicos e identificación de cuellos de botella.",
             "yoy_title": "Tendencias interanuales",
             "yoy_description": "Desbloquee comparaciones históricas, insights de temporada alta y métricas de crecimiento.",
-            "recommendations_title": "Recomendaciones inteligentes",
-            "recommendations_description": "Obtenga insights con tecnología de IA, detección de cuellos de botella y recomendaciones prácticas.",
+            "recommendations_title": "Recomendaciones",
+            "recommendations_description": "Obtenga insights personalizados, detección de cuellos de botella y recomendaciones prácticas.",
             "lab_insights_title": "Insights del laboratorio",
             "lab_insights_description": "Desbloquee la carga de trabajo de los laboratorios, los tiempos de entrega, los casos atrasados actuales y las comparaciones de revisiones entre los laboratorios con los que trabaja su consultorio.",
             "button": "Actualizar a Control",
             "analytics_control": "Las analíticas están disponibles en el plan Control. Actualice para acceder a las funciones de analíticas.",
             "screen_title": "Desbloquee Insights con Control",
-            "screen_description": "Insights del consultorio, Insights del laboratorio y las Recomendaciones inteligentes están incluidos en los planes Control y Scale.",
+            "screen_description": "Insights del consultorio, Insights del laboratorio y las Recomendaciones están incluidos en los planes Control y Scale.",
             "contact_admin": "Contacte al administrador de su consultorio para actualizar su plan.",
             "unavailable_title": "Insights no disponibles",
             "unavailable_description": "No pudimos verificar su plan. Inténtelo de nuevo."
@@ -1853,7 +1853,7 @@
                 "benefit_1": "Todo lo de Operate",
                 "benefit_2": "Usuarios ilimitados",
                 "benefit_4": "Insights del consultorio y del laboratorio",
-                "benefit_5": "Recomendaciones inteligentes",
+                "benefit_5": "Recomendaciones",
                 "benefit_6": "Integración con Open Dental"
             },
             "scale": {
@@ -5078,7 +5078,7 @@
                         "heading": "Dónde encaja DentaTrak",
                         "body_1": "DentaTrak es un sistema dedicado de gestión de casos dentales construido precisamente en torno a estos flujos de trabajo. Los consultorios moldean el tablero según su proceso —etapas de flujo de trabajo personalizadas que pueden agregarse, renombrarse, reordenarse, archivarse y restaurarse— y trabajan en un tablero visual o en una lista compacta con filtros, ordenamiento y asignaciones.",
                         "body_2": "La atención se maneja de forma explícita en lugar de depender de la memoria: las señales Próximo a vencer, Atrasado, Riesgo de cita y Requiere revisión muestran los casos que necesitan acción. Los comentarios, las @menciones, las imágenes en comentarios, las notificaciones y un historial completo de actividad mantienen la comunicación unida al caso, y las categorías estructuradas de adjuntos mantienen ordenados escaneos, fotos, diseños y documentos.",
-                        "body_3": "Para la visibilidad, Practice Insights y Lab Insights convierten los datos de casos en vistas de volumen, tiempos de entrega, riesgo de citas, repeticiones, carga de trabajo y comparación entre laboratorios, con Smart Recommendations que señalan dónde pueden mejorar los flujos de trabajo. Ask DentaTrak responde preguntas de uso y preguntas simples sobre casos dentro del producto, y la aplicación —incluidas las notificaciones y Ask DentaTrak— está disponible en nueve idiomas."
+                        "body_3": "Para la visibilidad, Practice Insights y Lab Insights convierten los datos de casos en vistas de volumen, tiempos de entrega, riesgo de citas, repeticiones, carga de trabajo y comparación entre laboratorios, con Recomendaciones que señalan dónde pueden mejorar los flujos de trabajo. Ask DentaTrak responde preguntas de uso y preguntas simples sobre casos dentro del producto, y la aplicación —incluidas las notificaciones y Ask DentaTrak— está disponible en nueve idiomas."
                     },
                     "open_dental_integration": {
                         "heading": "Trabajar con Open Dental",
@@ -5211,7 +5211,7 @@
             "control_features_2": "Usuarios ilimitados",
             "control_features_3": "Hasta 2 consultorios",
             "control_features_4": "Insights del consultorio y del laboratorio",
-            "control_features_5": "Recomendaciones inteligentes",
+            "control_features_5": "Recomendaciones",
             "control_features_6": "Integración con Open Dental",
             "scale_description": "Para organizaciones que gestionan varios consultorios y equipos más grandes.",
             "scale_features_1": "Todo lo de Control",
@@ -5244,13 +5244,13 @@
             "eyebrow": "Insights del consultorio y del laboratorio",
             "title": "Vea dónde avanzan los casos y dónde se están desacelerando.",
             "lead": "Practice y Lab Insights convierten la actividad diaria en una visión clara de volumen de casos, carga de trabajo, plazos de laboratorio y repeticiones — para detectar dónde se frenan los casos antes de que los retrasos lleguen al paciente.",
-            "included": "Los Insights del consultorio, los Insights del laboratorio y las Recomendaciones inteligentes están incluidos en los planes Control y Scale.",
+            "included": "Los Insights del consultorio, los Insights del laboratorio y las Recomendaciones están incluidos en los planes Control y Scale.",
             "features": {
                 "1_title": "Volumen y estado de casos",
                 "1_body": "Supervise los casos activos, próximos a vencer, atrasados y entregados de un vistazo.",
                 "2_title": "Plazo de entrega y riesgo de cita",
                 "2_body": "Compare los plazos de los laboratorios y detecte casos en los que la cita del paciente podría llegar antes de que el trabajo esté listo.",
-                "3_title": "Comparación de laboratorios, repeticiones y Smart Recommendations",
+                "3_title": "Comparación de laboratorios, repeticiones y Recomendaciones",
                 "3_body": "Compare carga de trabajo, tasas de retraso, repeticiones y revisiones por laboratorio — y reciba sugerencias prácticas basadas en datos."
             }
         },

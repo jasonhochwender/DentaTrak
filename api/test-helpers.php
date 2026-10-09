@@ -96,6 +96,12 @@ switch ($action) {
     case 'get_ai_workflow_stages_prompt_text':
         handleGetAiWorkflowStagesPromptText($pdo, $input);
         break;
+    case 'run_ask_tool':
+        handleRunAskTool($pdo, $input);
+        break;
+    case 'get_ask_help_text':
+        handleGetAskHelpText($pdo, $input);
+        break;
     case 'get_export_file_by_id':
         handleGetExportFileById($pdo, $input);
         break;
@@ -1497,6 +1503,120 @@ function handleGetAiWorkflowStagesPromptText($pdo, $input) {
         'success' => true,
         'practice_id' => (int)$practiceId,
         'promptText' => buildWorkflowStagesPromptText((int)$practiceId),
+    ]);
+}
+
+/**
+ * Execute one Ask DentaTrak data tool as a specific practice member,
+ * WITHOUT any AI provider call. Exercises the real tool layer - including
+ * the authorized_case_ids scoping built from the member's own
+ * limited_visibility/label access - so tests can verify tool output (and
+ * thus what the composer sees) directly.
+ *
+ * Input: { email, tool, params?, practice_id? }
+ */
+function handleRunAskTool($pdo, $input) {
+    require_once __DIR__ . '/ask-dentatrak-tools.php';
+
+    $email = strtolower(trim($input['email'] ?? ''));
+    $tool = (string)($input['tool'] ?? '');
+    $params = isset($input['params']) && is_array($input['params']) ? $input['params'] : [];
+
+    if ($email === '' || $tool === '') {
+        http_response_code(400);
+        echo json_encode(['success' => false, 'message' => 'email and tool are required']);
+        return;
+    }
+
+    $stmt = $pdo->prepare("SELECT id FROM users WHERE email = :email AND is_active = 1");
+    $stmt->execute(['email' => $email]);
+    $userId = $stmt->fetchColumn();
+    if (!$userId) {
+        http_response_code(404);
+        echo json_encode(['success' => false, 'message' => 'User not found.']);
+        return;
+    }
+
+    // Default to the session's active practice (matches what the user is
+    // actually looking at); an explicit practice_id must still be one of
+    // theirs (the tool layer scopes regardless, but mismatched fixtures
+    // make confusing tests).
+    $practiceId = (int)($input['practice_id'] ?? 0);
+    if ($practiceId <= 0 && !empty($_SESSION['current_practice_id'])) {
+        $practiceId = (int)$_SESSION['current_practice_id'];
+    }
+    $membership = $pdo->prepare(
+        "SELECT practice_id FROM practice_users WHERE user_id = :uid AND practice_id = :pid"
+    );
+    if ($practiceId > 0) {
+        $membership->execute(['uid' => $userId, 'pid' => $practiceId]);
+        if (!$membership->fetchColumn()) {
+            http_response_code(403);
+            echo json_encode(['success' => false, 'message' => 'User is not a member of that practice.']);
+            return;
+        }
+    } else {
+        $p = $pdo->prepare("SELECT practice_id FROM practice_users WHERE user_id = :uid ORDER BY practice_id LIMIT 1");
+        $p->execute(['uid' => $userId]);
+        $practiceId = (int)$p->fetchColumn();
+    }
+    if (!$practiceId) {
+        http_response_code(404);
+        echo json_encode(['success' => false, 'message' => 'No practice membership found.']);
+        return;
+    }
+
+    // Tools read the requester from the session - same mechanism as the
+    // live endpoint.
+    $_SESSION['db_user_id'] = (int)$userId;
+    $_SESSION['current_practice_id'] = (int)$practiceId;
+    $_SESSION['user_email'] = $email;
+
+    $result = runAskDentatrakTool($tool, $params, (int)$practiceId);
+    echo json_encode(['success' => true, 'practice_id' => (int)$practiceId, 'tool' => $tool] + $result);
+}
+
+/**
+ * Return the product-guide corpus text built for a practice - the exact
+ * instructions embedded in the planner prompt. Lets tests verify the
+ * corpus against the real UI labels without an AI call.
+ *
+ * Input: { email, practice_id? }
+ */
+function handleGetAskHelpText($pdo, $input) {
+    require_once __DIR__ . '/ask-dentatrak-help.php';
+
+    $email = strtolower(trim($input['email'] ?? ''));
+    if ($email === '') {
+        http_response_code(400);
+        echo json_encode(['success' => false, 'message' => 'email is required']);
+        return;
+    }
+    $stmt = $pdo->prepare("SELECT id FROM users WHERE email = :email AND is_active = 1");
+    $stmt->execute(['email' => $email]);
+    $userId = $stmt->fetchColumn();
+    if (!$userId) {
+        http_response_code(404);
+        echo json_encode(['success' => false, 'message' => 'User not found.']);
+        return;
+    }
+    $p = $pdo->prepare("SELECT practice_id FROM practice_users WHERE user_id = :uid ORDER BY practice_id LIMIT 1");
+    $p->execute(['uid' => $userId]);
+    $practiceId = (int)($input['practice_id'] ?? $p->fetchColumn());
+    if (!$practiceId) {
+        http_response_code(404);
+        echo json_encode(['success' => false, 'message' => 'No practice membership found.']);
+        return;
+    }
+
+    $_SESSION['db_user_id'] = (int)$userId;
+    $_SESSION['current_practice_id'] = (int)$practiceId;
+    $_SESSION['user_email'] = $email;
+
+    echo json_encode([
+        'success' => true,
+        'practice_id' => $practiceId,
+        'helpText' => buildAskDentatrakHelpText($practiceId),
     ]);
 }
 

@@ -52,9 +52,13 @@ function askTelemetryTopics(): array {
         'needs_review', 'appointment_risk', 'integrations',
         'archive_history', 'remake_process', 'insights_feature',
         'preferences_notifications',
+        'roles_permissions', 'case_views', 'case_actions', 'comments',
+        'attachments', 'shipping_tracking', 'notifications',
+        'data_export', 'account_settings',
         // case data
         'cases_general', 'cases_due', 'cases_overdue', 'cases_by_status',
-        'cases_assigned', 'cases_by_lab', 'remakes', 'case_lookup',
+        'cases_assigned', 'cases_created', 'cases_by_lab', 'cases_metrics',
+        'turnaround', 'volume', 'remakes', 'case_lookup',
         'reference_values',
         // boundaries
         'private_company_info', 'unsupported_feature', 'other',

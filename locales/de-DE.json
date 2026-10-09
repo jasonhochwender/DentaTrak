@@ -1747,7 +1747,7 @@
                 "benefit_1": "Alles aus Operate",
                 "benefit_2": "Unbegrenzte Benutzer",
                 "benefit_4": "Practice und Lab Insights",
-                "benefit_5": "Intelligente Empfehlungen",
+                "benefit_5": "Empfehlungen",
                 "benefit_6": "Open-Dental-Integration"
             },
             "scale": {
@@ -2926,9 +2926,9 @@
             }
         },
         "recs": {
-            "title": "Intelligente Empfehlungen",
+            "title": "Empfehlungen",
             "subtitle": "Beobachtungen aus den Metriken dieses Zeitraums. Gilt für alle Labore unabhängig von der Labordetail-Auswahl.",
-            "subtitle_practice": "KI-gestützte Beobachtungen aus Ihren Praxisanalysen. Prüfen Sie jeden Vorschlag, bevor Sie handeln.",
+            "subtitle_practice": "Beobachtungen aus Ihren Praxisanalysen. Prüfen Sie jeden Vorschlag, bevor Sie handeln.",
             "empty": "Keine nennenswerten Änderungen für diesen Zeitraum festgestellt.",
             "more_one": "1 weiteren anzeigen",
             "more_other": "{count} weitere anzeigen",
@@ -3139,11 +3139,11 @@
             }
         },
         "ai": {
-            "badge": "KI-gestützt",
-            "title": "Intelligente Empfehlungen",
+            "badge": "Personalisiert",
+            "title": "Empfehlungen",
             "subtitle": "Personalisierte Einblicke basierend auf Ihren Praxisdaten",
             "analyzing": "Ihre Praxisdaten werden analysiert...",
-            "generating": "Intelligente Empfehlungen werden erstellt…",
+            "generating": "Empfehlungen werden erstellt…",
             "none_available": "Derzeit keine Empfehlungen verfügbar.",
             "load_error": "Empfehlungen konnten nicht geladen werden. Bitte versuchen Sie es erneut.",
             "empty_error": "Keine Empfehlungen verfügbar",
@@ -3184,16 +3184,16 @@
             "loading_analytics": "Fehler beim Laden der Analysedaten: {message}",
             "loading_connection": "Fehler beim Laden der Analysen. Bitte prüfen Sie Ihre Verbindung.",
             "no_recommendations": "Keine Empfehlungen verfügbar",
-            "failed_recommendations": "KI-Empfehlungen konnten nicht geladen werden. Bitte versuchen Sie es erneut.",
+            "failed_recommendations": "Empfehlungen konnten nicht geladen werden. Bitte versuchen Sie es erneut.",
             "connection_lost": "Verbindung unterbrochen. Bitte prüfen Sie Ihr Internet und versuchen Sie es erneut.",
             "unable_recommendations": "Empfehlungen konnten nicht erstellt werden.",
-            "access_denied": "Zugriff verweigert. Sie haben keine Berechtigung, Analysen oder KI-Insights einzusehen.",
-            "plan_required": "Intelligente Empfehlungen erfordern den Control-Tarif",
-            "ai_not_configured": "KI-Dienst nicht konfiguriert",
-            "ai_quota": "Der KI-Dienst ist aufgrund hoher Nachfrage vorübergehend nicht verfügbar. Bitte versuchen Sie es in ein paar Minuten erneut.",
-            "ai_model_unavailable": "Intelligente Empfehlungen sind vorübergehend nicht verfügbar, da das konfigurierte KI-Modell nicht erreicht werden konnte.",
-            "ai_config": "Konfigurationsfehler des KI-Dienstes. Bitte wenden Sie sich an den Support.",
-            "ai_unavailable": "Der KI-Dienst ist derzeit nicht verfügbar. Bitte versuchen Sie es später erneut.",
+            "access_denied": "Zugriff verweigert. Sie haben keine Berechtigung, Analysen oder Empfehlungen einzusehen.",
+            "plan_required": "Empfehlungen erfordern den Control-Tarif",
+            "ai_not_configured": "Empfehlungsdienst nicht konfiguriert",
+            "ai_quota": "Der Empfehlungsdienst ist aufgrund hoher Nachfrage vorübergehend nicht verfügbar. Bitte versuchen Sie es in ein paar Minuten erneut.",
+            "ai_model_unavailable": "Empfehlungen sind vorübergehend nicht verfügbar, da der Empfehlungsdienst nicht erreicht werden konnte.",
+            "ai_config": "Konfigurationsfehler des Empfehlungsdienstes. Bitte wenden Sie sich an den Support.",
+            "ai_unavailable": "Der Empfehlungsdienst ist derzeit nicht verfügbar. Bitte versuchen Sie es später erneut.",
             "unable_later": "Empfehlungen können derzeit nicht erstellt werden. Bitte versuchen Sie es später erneut."
         },
         "upgrade": {
@@ -3203,14 +3203,14 @@
             "duration_description": "Schalten Sie historische Vergleiche, Ausreißererkennung und Engpassidentifizierung frei.",
             "yoy_title": "Trends im Jahresvergleich",
             "yoy_description": "Schalten Sie historische Vergleiche, Hochsaison-Einblicke und Wachstumsmetriken frei.",
-            "recommendations_title": "Intelligente Empfehlungen",
-            "recommendations_description": "Erhalten Sie KI-gestützte Einblicke, Engpasserkennung und umsetzbare Empfehlungen.",
+            "recommendations_title": "Empfehlungen",
+            "recommendations_description": "Erhalten Sie personalisierte Einblicke, Engpasserkennung und umsetzbare Empfehlungen.",
             "lab_insights_title": "Lab Insights",
             "lab_insights_description": "Schalten Sie Laborauslastung, Durchlaufzeiten, aktuell verspätete Fälle und Revisionsvergleiche über die Labore frei, mit denen Ihre Praxis arbeitet.",
             "button": "Auf Control upgraden",
             "analytics_control": "Analysen sind im Control-Tarif verfügbar. Upgraden Sie, um auf Analysefunktionen zuzugreifen.",
             "screen_title": "Insights mit Control freischalten",
-            "screen_description": "Practice Insights, Lab Insights und Intelligente Empfehlungen sind in den Tarifen Control und Scale enthalten.",
+            "screen_description": "Practice Insights, Lab Insights und Empfehlungen sind in den Tarifen Control und Scale enthalten.",
             "contact_admin": "Wenden Sie sich an Ihren Praxisadministrator, um Ihren Tarif zu upgraden.",
             "unavailable_title": "Insights nicht verfügbar",
             "unavailable_description": "Wir konnten Ihren Tarif nicht verifizieren. Bitte versuchen Sie es erneut."
@@ -3509,13 +3509,13 @@
             "eyebrow": "Practice & Lab Insights",
             "title": "Sehen Sie, wo Fälle vorankommen und wo sie sich verzögern.",
             "lead": "Practice- und Lab-Insights verwandeln die tägliche Arbeit in einen klaren Blick auf Fallvolumen, Auslastung, Labordurchlaufzeiten und Remakes — damit Sie erkennen, wo Fälle ins Stocken geraten, bevor Verzögerungen den Patienten erreichen.",
-            "included": "Practice Insights, Lab Insights und Intelligente Empfehlungen sind in den Tarifen Control und Scale enthalten.",
+            "included": "Practice Insights, Lab Insights und Empfehlungen sind in den Tarifen Control und Scale enthalten.",
             "features": {
                 "1_title": "Fallvolumen und Status",
                 "1_body": "Verfolgen Sie aktive, bald fällige, verspätete und gelieferte Fälle auf einen Blick.",
                 "2_title": "Durchlaufzeit und Terminrisiko",
                 "2_body": "Vergleichen Sie Labordurchlaufzeiten und erkennen Sie Fälle, bei denen der Patiententermin vor der fertigen Arbeit liegen könnte.",
-                "3_title": "Laborvergleich, Remakes und Smart Recommendations",
+                "3_title": "Laborvergleich, Remakes und Empfehlungen",
                 "3_body": "Vergleichen Sie Auslastung, Verspätungsraten, Remakes und Revisionen nach Labor — und erhalten Sie praktische, datenbasierte Vorschläge."
             }
         },
@@ -3622,7 +3622,7 @@
             "control_features_2": "Unbegrenzte Benutzer",
             "control_features_3": "Bis zu 2 Praxen",
             "control_features_4": "Practice und Lab Insights",
-            "control_features_5": "Intelligente Empfehlungen",
+            "control_features_5": "Empfehlungen",
             "control_features_6": "Open-Dental-Integration",
             "scale_description": "Für Organisationen, die mehrere Praxen und größere Teams verwalten.",
             "scale_features_1": "Alles aus Control",
@@ -5518,7 +5518,7 @@
                         "heading": "Wo DentaTrak einordnet",
                         "body_1": "DentaTrak ist ein dediziertes Fallmanagement-System, das genau um diese Workflows gebaut ist. Praxen gestalten das Board passend zu ihrem Prozess – eigene Workflow-Stufen lassen sich hinzufügen, umbenennen, neu anordnen, archivieren und wiederherstellen – und arbeiten wahlweise auf einem visuellen Board oder in einer kompakten Liste mit Filtern, Sortierung und Zuständigkeiten.",
                         "body_2": "Aufmerksamkeit wird explizit behandelt statt aus dem Gedächtnis: Die Kennzeichen „Bald fällig“, „Verspätet“, „Terminrisiko“ und „Prüfung nötig“ zeigen die Fälle, die Handlung brauchen. Kommentare, @Erwähnungen, Bilder in Kommentaren, Benachrichtigungen und ein vollständiger Verlauf halten die Kommunikation am Fall, und strukturierte Anhang-Kategorien halten Scans, Fotos, Designs und Dokumente geordnet statt verstreut.",
-                        "body_3": "Für die Übersicht machen Practice Insights und Lab Insights aus Falldaten Sichten auf Volumen, Durchlaufzeit, Terminrisiko, Neuanfertigungen, Auslastung und Laborvergleich – mit Smart Recommendations, die zeigen, wo Workflows besser werden können. Ask DentaTrak beantwortet Anwendungsfragen und einfache Fallfragen im Produkt, und die Anwendung – einschließlich Benachrichtigungen und Ask DentaTrak – unterstützt Teams in neun Sprachen."
+                        "body_3": "Für die Übersicht machen Practice Insights und Lab Insights aus Falldaten Sichten auf Volumen, Durchlaufzeit, Terminrisiko, Neuanfertigungen, Auslastung und Laborvergleich – mit Empfehlungen, die zeigen, wo Workflows besser werden können. Ask DentaTrak beantwortet Anwendungsfragen und einfache Fallfragen im Produkt, und die Anwendung – einschließlich Benachrichtigungen und Ask DentaTrak – unterstützt Teams in neun Sprachen."
                     },
                     "open_dental_integration": {
                         "heading": "Zusammenarbeit mit Open Dental",

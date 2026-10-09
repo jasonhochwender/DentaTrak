@@ -104,7 +104,7 @@ foreach (['operate', 'control', 'scale'] as $plan) {
           "Case files and supported 3D dental files",
           "Shipping information",
           "Practice and Lab Insights on Control and Scale plans",
-          "Smart Recommendations on Control and Scale plans",
+          "Recommendations on Control and Scale plans",
           "Ask DentaTrak in-product assistant",
           "Open Dental lab case integration on Control and Scale plans",
           "In-app notifications",
@@ -1383,7 +1383,7 @@ foreach (['operate', 'control', 'scale'] as $plan) {
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a7 7 0 0 1 7 7c0 2.38-1.19 4.5-3 5.74V17a2 2 0 0 1-2 2H10a2 2 0 0 1-2-2v-2.26C6.19 13.5 5 11.38 5 9a7 7 0 0 1 7-7z"></path><line x1="12" y1="22" x2="12" y2="19"></line></svg>
                 </div>
                 <div>
-                  <h4>Smart Recommendation</h4>
+                  <h4>Recommendation</h4>
                   <p>Hannah Lindqvist's crown is due soon and her patient appointment is Mar 10. Confirm Precision Dental Lab will deliver by Mar 9 to avoid a chair-side delay.</p>
                 </div>
               </div>
@@ -1580,7 +1580,7 @@ foreach (['operate', 'control', 'scale'] as $plan) {
           </ul>
           <p class="section-note"><?php echo t('marketing.insights_section.included'); ?></p>
         </div>
-        <div class="insights-snapshot" role="img" aria-label="Practice and Lab Insights snapshot showing active cases, case flow status, monthly case volume, average lab turnaround, and a Smart Recommendation.">
+        <div class="insights-snapshot" role="img" aria-label="Practice and Lab Insights snapshot showing active cases, case flow status, monthly case volume, average lab turnaround, and a Recommendation.">
           <div class="is-header">
             <h3>Insights</h3>
             <p>Practice and lab performance in one place</p>
@@ -1658,7 +1658,7 @@ foreach (['operate', 'control', 'scale'] as $plan) {
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a7 7 0 0 1 7 7c0 2.38-1.19 4.5-3 5.74V17a2 2 0 0 1-2 2H10a2 2 0 0 1-2-2v-2.26C6.19 13.5 5 11.38 5 9a7 7 0 0 1 7-7z"></path><line x1="12" y1="22" x2="12" y2="19"></line></svg>
             </div>
             <div>
-              <h4>Smart Recommendation</h4>
+              <h4>Recommendation</h4>
               <p>Hannah Lindqvist's crown is due soon and her patient appointment is Mar 10. Confirm Precision Dental Lab will deliver by Mar 9 to avoid a chair-side delay.</p>
             </div>
           </div>
@@ -2891,7 +2891,7 @@ foreach (['operate', 'control', 'scale'] as $plan) {
             }, 700);
           }
 
-          // Smart Recommendation
+          // Recommendation
           var smart = snapshot.querySelector('.di-smart');
           if (smart) {
             smart.style.transition = 'none';

@@ -1694,7 +1694,7 @@
                         "heading": "Onde o DentaTrak se encaixa",
                         "body_1": "O DentaTrak é um sistema dedicado de gestão de casos odontológicos construído exatamente em torno desses fluxos de trabalho. As clínicas moldam o quadro ao próprio processo — etapas personalizadas que podem ser adicionadas, renomeadas, reordenadas, arquivadas e restauradas — e trabalham num quadro visual ou numa lista compacta com filtros, ordenação e atribuições.",
                         "body_2": "A atenção é tratada de forma explícita em vez de depender da memória: os sinais Prazo próximo, Atrasado, Risco para a consulta e Precisa de revisão destacam os casos que pedem ação. Comentários, @menções, imagens em comentários, notificações e um histórico completo de atividade mantêm a comunicação ligada ao caso, e categorias estruturadas de anexos mantêm escaneamentos, fotos, desenhos e documentos organizados em vez de soltos.",
-                        "body_3": "Para visibilidade, Practice Insights e Lab Insights transformam os dados dos casos em visões de volume, prazos de entrega, risco de consultas, repetições, carga de trabalho e comparação entre laboratórios — com Smart Recommendations apontando onde os fluxos podem melhorar. O Ask DentaTrak responde perguntas de uso e perguntas simples sobre casos dentro do produto, e o aplicativo — incluindo notificações e Ask DentaTrak — apoia equipes em nove idiomas."
+                        "body_3": "Para visibilidade, Practice Insights e Lab Insights transformam os dados dos casos em visões de volume, prazos de entrega, risco de consultas, repetições, carga de trabalho e comparação entre laboratórios — com Recomendações apontando onde os fluxos podem melhorar. O Ask DentaTrak responde perguntas de uso e perguntas simples sobre casos dentro do produto, e o aplicativo — incluindo notificações e Ask DentaTrak — apoia equipes em nove idiomas."
                     },
                     "open_dental_integration": {
                         "heading": "Trabalhando com o Open Dental",
@@ -1862,13 +1862,13 @@
             "eyebrow": "Practice e Lab Insights",
             "title": "Veja onde os casos estão avançando e onde estão travando.",
             "lead": "Practice e Lab Insights transformam a atividade diária numa visão clara de volume de casos, carga de trabalho, prazos de laboratório e retrabalhos — para identificar onde os casos estão travando antes que atrasos cheguem ao paciente.",
-            "included": "Practice Insights, Lab Insights e recomendações inteligentes estão incluídos nos planos Control e Scale.",
+            "included": "Practice Insights, Lab Insights e recomendações estão incluídos nos planos Control e Scale.",
             "features": {
                 "1_title": "Volume e status de casos",
                 "1_body": "Acompanhe casos ativos, com prazo próximo, atrasados e entregues rapidamente.",
                 "2_title": "Prazo de entrega e risco para a consulta",
                 "2_body": "Compare os prazos dos laboratórios e identifique casos em que a consulta do paciente pode chegar antes do trabalho ficar pronto.",
-                "3_title": "Comparação de laboratórios, retrabalhos e Smart Recommendations",
+                "3_title": "Comparação de laboratórios, retrabalhos e Recomendações",
                 "3_body": "Compare carga de trabalho, taxas de atraso, retrabalhos e revisões por laboratório — e receba sugestões práticas baseadas em dados."
             }
         },
@@ -1963,7 +1963,7 @@
             "control_features_2": "Usuários ilimitados",
             "control_features_3": "Até 2 clínicas",
             "control_features_4": "Practice e Lab Insights",
-            "control_features_5": "Recomendações inteligentes",
+            "control_features_5": "Recomendações",
             "control_features_6": "Integração com Open Dental",
             "scale_description": "Para organizações que gerenciam várias clínicas e equipes maiores.",
             "scale_features_1": "Tudo do Control",
@@ -4889,9 +4889,9 @@
             }
         },
         "recs": {
-            "title": "Recomendações inteligentes",
+            "title": "Recomendações",
             "subtitle": "Observações das métricas deste período. Aplica-se a todos os laboratórios, independentemente da seleção de detalhes.",
-            "subtitle_practice": "Observações assistidas por IA a partir das análises da sua clínica. Revise cada sugestão antes de agir.",
+            "subtitle_practice": "Observações a partir das análises da sua clínica. Revise cada sugestão antes de agir.",
             "empty": "Nenhuma mudança relevante identificada neste período.",
             "more_one": "Mostrar mais 1",
             "more_other": "Mostrar mais {count}",
@@ -5102,11 +5102,11 @@
             }
         },
         "ai": {
-            "badge": "Com IA",
-            "title": "Recomendações inteligentes",
+            "badge": "Personalizado",
+            "title": "Recomendações",
             "subtitle": "Insights personalizados com base nos dados da sua clínica",
             "analyzing": "Analisando os dados da sua clínica...",
-            "generating": "Gerando recomendações inteligentes…",
+            "generating": "Gerando recomendações…",
             "none_available": "Nenhuma recomendação disponível no momento.",
             "load_error": "Falha ao carregar as recomendações. Tente novamente.",
             "empty_error": "Nenhuma recomendação disponível",
@@ -5147,16 +5147,16 @@
             "loading_analytics": "Erro ao carregar os dados de análise: {message}",
             "loading_connection": "Erro ao carregar as análises. Verifique sua conexão.",
             "no_recommendations": "Nenhuma recomendação disponível",
-            "failed_recommendations": "Falha ao carregar as recomendações de IA. Tente novamente.",
+            "failed_recommendations": "Falha ao carregar as recomendações. Tente novamente.",
             "connection_lost": "Conexão perdida. Verifique sua internet e tente novamente.",
             "unable_recommendations": "Não foi possível gerar recomendações.",
-            "access_denied": "Acesso negado. Você não tem permissão para ver análises ou insights de IA.",
-            "plan_required": "As recomendações inteligentes exigem o plano Control",
-            "ai_not_configured": "Serviço de IA não configurado",
-            "ai_quota": "O serviço de IA está temporariamente indisponível devido à alta demanda. Tente novamente em alguns minutos.",
-            "ai_model_unavailable": "As recomendações inteligentes estão temporariamente indisponíveis porque o modelo de IA configurado não pôde ser alcançado.",
-            "ai_config": "Erro de configuração do serviço de IA. Contate o suporte.",
-            "ai_unavailable": "O serviço de IA está indisponível no momento. Tente novamente mais tarde.",
+            "access_denied": "Acesso negado. Você não tem permissão para ver análises ou recomendações.",
+            "plan_required": "As recomendações exigem o plano Control",
+            "ai_not_configured": "Serviço de recomendações não configurado",
+            "ai_quota": "O serviço de recomendações está temporariamente indisponível devido à alta demanda. Tente novamente em alguns minutos.",
+            "ai_model_unavailable": "As recomendações estão temporariamente indisponíveis porque o serviço de recomendações não pôde ser alcançado.",
+            "ai_config": "Erro de configuração do serviço de recomendações. Contate o suporte.",
+            "ai_unavailable": "O serviço de recomendações está indisponível no momento. Tente novamente mais tarde.",
             "unable_later": "Não foi possível gerar recomendações neste momento. Tente novamente mais tarde."
         },
         "upgrade": {
@@ -5166,14 +5166,14 @@
             "duration_description": "Desbloqueie comparações históricas, detecção de outliers e identificação de gargalos.",
             "yoy_title": "Tendências ano a ano",
             "yoy_description": "Desbloqueie comparações históricas, insights de alta temporada e métricas de crescimento.",
-            "recommendations_title": "Recomendações inteligentes",
-            "recommendations_description": "Obtenha insights com IA, detecção de gargalos e recomendações práticas.",
+            "recommendations_title": "Recomendações",
+            "recommendations_description": "Obtenha insights personalizados, detecção de gargalos e recomendações práticas.",
             "lab_insights_title": "Lab Insights",
             "lab_insights_description": "Desbloqueie carga de trabalho, prazos, casos atrasados atuais e comparações de revisões entre os laboratórios com os quais sua clínica trabalha.",
             "button": "Fazer upgrade para o Control",
             "analytics_control": "As análises estão disponíveis no plano Control. Faça upgrade para acessar os recursos de análise.",
             "screen_title": "Desbloqueie o Insights com o Control",
-            "screen_description": "Practice Insights, Lab Insights e recomendações inteligentes estão incluídos nos planos Control e Scale.",
+            "screen_description": "Practice Insights, Lab Insights e recomendações estão incluídos nos planos Control e Scale.",
             "contact_admin": "Contate o administrador da sua clínica para fazer upgrade do plano.",
             "unavailable_title": "Insights indisponível",
             "unavailable_description": "Não foi possível verificar seu plano. Tente novamente."
@@ -5234,7 +5234,7 @@
                 "benefit_1": "Tudo do Operate",
                 "benefit_2": "Usuários ilimitados",
                 "benefit_4": "Practice Insights e Lab Insights",
-                "benefit_5": "Recomendações inteligentes",
+                "benefit_5": "Recomendações",
                 "benefit_6": "Integração com Open Dental"
             },
             "scale": {

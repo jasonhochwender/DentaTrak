@@ -15,6 +15,7 @@
 
 require_once __DIR__ . '/practice-security.php';
 require_once __DIR__ . '/workflow-stages.php';
+require_once __DIR__ . '/encryption.php';
 
 const ASK_TOOL_LIST_LIMIT = 15;
 
@@ -26,6 +27,8 @@ function getAskDentatrakToolNames(): array {
         'count_cases',
         'list_cases',
         'aggregate_cases_by_status',
+        'aggregate_cases',
+        'case_metrics',
         'count_remakes',
         'get_case_summary',
         'get_reference_values',
@@ -58,6 +61,10 @@ function runAskDentatrakTool(string $tool, array $params, int $practiceId): arra
                 return ['ok' => true, 'data' => askToolListCases($pdo, $practiceId, $params)];
             case 'aggregate_cases_by_status':
                 return ['ok' => true, 'data' => askToolAggregateByStatus($pdo, $practiceId)];
+            case 'aggregate_cases':
+                return ['ok' => true, 'data' => askToolAggregateCases($pdo, $practiceId, $params)];
+            case 'case_metrics':
+                return ['ok' => true, 'data' => askToolCaseMetrics($pdo, $practiceId, $params)];
             case 'count_remakes':
                 return ['ok' => true, 'data' => askToolCountRemakes($pdo, $practiceId, $params)];
             case 'get_case_summary':
@@ -140,6 +147,18 @@ function askToolCaseFilters(int $practiceId, array $params): array {
         $where[] = 'c.status NOT IN (' . implode(',', $in) . ')';
     }
 
+    // Open (not-yet-done) cases only - "open cases" phrasing without
+    // implying a specific status.
+    if (!empty($params['open_only'])) {
+        $in = [];
+        foreach ($doneStatuses as $i => $s) { $in[] = ':open_done' . $i; $bind[':open_done' . $i] = $s; }
+        $where[] = 'c.status NOT IN (' . implode(',', $in) . ')';
+    }
+
+    if (!empty($params['missing_due_date'])) {
+        $where[] = "(c.due_date IS NULL OR c.due_date = '')";
+    }
+
     // "Due tomorrow" style windows: due_on today|tomorrow, or explicit ranges.
     if (($dueOn = askToolStr($params['due_on'] ?? null, 10)) !== null) {
         if ($dueOn === 'today') {
@@ -169,6 +188,24 @@ function askToolCaseFilters(int $practiceId, array $params): array {
         $where[] = "STR_TO_DATE(LEFT(COALESCE(c.creation_date, CURRENT_DATE()), 10), '%Y-%m-%d') >= :created_after";
         $bind[':created_after'] = date('Y-m-d', strtotime('-' . $days . ' days'));
     }
+    if (($from = askToolDate($params['created_from'] ?? null)) !== null) {
+        $where[] = "STR_TO_DATE(LEFT(COALESCE(c.creation_date, ''), 10), '%Y-%m-%d') >= :created_from";
+        $bind[':created_from'] = $from;
+    }
+    if (($to = askToolDate($params['created_to'] ?? null)) !== null) {
+        $where[] = "STR_TO_DATE(LEFT(COALESCE(c.creation_date, ''), 10), '%Y-%m-%d') <= :created_to";
+        $bind[':created_to'] = $to;
+    }
+
+    if (($days = askToolInt($params['updated_within_days'] ?? null, 0, 3660)) !== null) {
+        $where[] = "STR_TO_DATE(LEFT(COALESCE(c.last_update_date, CURRENT_DATE()), 10), '%Y-%m-%d') >= :updated_after";
+        $bind[':updated_after'] = date('Y-m-d', strtotime('-' . $days . ' days'));
+    }
+    // Stale cases: last_update_date at or before today - N days.
+    if (($days = askToolInt($params['not_updated_within_days'] ?? null, 1, 3660)) !== null) {
+        $where[] = "STR_TO_DATE(LEFT(COALESCE(c.last_update_date, '1970-01-01'), 10), '%Y-%m-%d') <= :stale_before";
+        $bind[':stale_before'] = date('Y-m-d', strtotime('-' . $days . ' days'));
+    }
 
     if (($days = askToolInt($params['completed_within_days'] ?? null, 0, 366)) !== null) {
         $in = [];
@@ -176,6 +213,39 @@ function askToolCaseFilters(int $practiceId, array $params): array {
         $where[] = 'c.status IN (' . implode(',', $in) . ')';
         $where[] = "STR_TO_DATE(LEFT(COALESCE(c.last_update_date, CURRENT_DATE()), 10), '%Y-%m-%d') >= :completed_after";
         $bind[':completed_after'] = date('Y-m-d', strtotime('-' . $days . ' days'));
+    }
+
+    // Completed in an explicit date range. Completion time = the moment the
+    // case entered the practice's terminal workflow stage: status_changed_at
+    // when present, else the latest status_changed activity-log entry into
+    // the terminal stage (same rule as Practice Insights "delivered").
+    $completedFrom = askToolDate($params['completed_from'] ?? null);
+    $completedTo = askToolDate($params['completed_to'] ?? null);
+    if ($completedFrom !== null || $completedTo !== null) {
+        $in = [];
+        foreach ($doneStatuses as $i => $s) { $in[] = ':cr_done' . $i; $bind[':cr_done' . $i] = $s; }
+        $where[] = 'c.status IN (' . implode(',', $in) . ')';
+        if ($completedFrom !== null) {
+            $where[] = 'DATE(' . askToolDeliveredDateExpr($bind, 'cf', $terminal) . ') >= :completed_from';
+            $bind[':completed_from'] = $completedFrom;
+        }
+        if ($completedTo !== null) {
+            $where[] = 'DATE(' . askToolDeliveredDateExpr($bind, 'ct', $terminal) . ') <= :completed_to';
+            $bind[':completed_to'] = $completedTo;
+        }
+    }
+
+    if (($assignee = askToolStr($params['assignee'] ?? null)) !== null) {
+        $where[] = "c.assigned_to LIKE :assignee";
+        $bind[':assignee'] = '%' . $assignee . '%';
+    }
+
+    // Case CREATOR is stored as created_by_user_id - distinct from the
+    // current assignee. Match on name or email of the creating user.
+    if (($creator = askToolStr($params['creator'] ?? null)) !== null) {
+        $where[] = "c.created_by_user_id IN (SELECT cu.id FROM users cu WHERE LOWER(cu.email) LIKE :creator OR LOWER(CONCAT_WS(' ', cu.first_name, cu.last_name)) LIKE :creator2)";
+        $bind[':creator'] = '%' . mb_strtolower($creator) . '%';
+        $bind[':creator2'] = '%' . mb_strtolower($creator) . '%';
     }
 
     if (!empty($params['assigned_to_me'])) {
@@ -209,12 +279,73 @@ function askToolCaseFilters(int $practiceId, array $params): array {
         }
     }
 
+    // Patient names are encrypted at rest, so a SQL LIKE can never match.
+    // Resolve matches after decryption (same approach as the cases list's
+    // filterCasesBySearch) and narrow the WHERE to the matching case_ids.
     if (($patient = askToolStr($params['patient_name'] ?? null)) !== null) {
-        $where[] = "CONCAT_WS(' ', c.patient_first_name, c.patient_last_name) LIKE :patient";
-        $bind[':patient'] = '%' . $patient . '%';
+        $ids = askToolCaseIdsForPatientName($pdo, $where, $bind, $patient);
+        if (!$ids) {
+            $where[] = '1 = 0';
+        } else {
+            $in = [];
+            foreach ($ids as $i => $id) { $in[] = ':pid' . $i; $bind[':pid' . $i] = $id; }
+            $where[] = 'c.case_id IN (' . implode(',', $in) . ')';
+        }
     }
 
     return [implode(' AND ', $where), $bind];
+}
+
+/**
+ * Decrypt one PII field for display. Legacy plaintext rows pass through
+ * unchanged when decryption fails (mirrors the cases-cache fallback).
+ */
+function askToolDecryptField($value) {
+    if ($value === null || $value === '') return $value;
+    try {
+        return PIIEncryption::decrypt($value);
+    } catch (Throwable $e) {
+        return $value;
+    }
+}
+
+/**
+ * Case ids whose decrypted patient name contains the needle. The
+ * candidates are pre-filtered by the WHERE/binds already built, so the
+ * lookup stays inside the same authorized scope as every other filter.
+ */
+function askToolCaseIdsForPatientName(PDO $pdo, array $where, array $bind, string $needle): array {
+    ensureAuthorizedCaseIdsTempTable((int)$bind[':practice_id']);
+    $stmt = $pdo->prepare(
+        "SELECT c.case_id, c.patient_first_name, c.patient_last_name
+         FROM cases_cache c
+         INNER JOIN authorized_case_ids a ON a.case_id = c.case_id COLLATE utf8mb4_unicode_ci
+         WHERE " . implode(' AND ', $where)
+    );
+    $stmt->execute($bind);
+
+    $needle = mb_strtolower($needle);
+    $ids = [];
+    foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+        $name = trim(askToolDecryptField($row['patient_first_name']) . ' ' . askToolDecryptField($row['patient_last_name']));
+        if ($name !== '' && mb_stripos($name, $needle) !== false) {
+            $ids[] = $row['case_id'];
+        }
+    }
+    return $ids;
+}
+
+/**
+ * Build the display patient/dentist names from encrypted row fields.
+ */
+function askToolNameFields(array &$row): void {
+    $first = askToolDecryptField($row['patient_first_name'] ?? null);
+    $last = askToolDecryptField($row['patient_last_name'] ?? null);
+    $row['patient_name'] = trim(($first ?? '') . ' ' . ($last ?? ''));
+    unset($row['patient_first_name'], $row['patient_last_name']);
+    if (array_key_exists('dentist_name', $row)) {
+        $row['dentist_name'] = askToolDecryptField($row['dentist_name']);
+    }
 }
 
 /**
@@ -263,23 +394,45 @@ function askToolListCases(PDO $pdo, int $practiceId, array $params): array {
     $countStmt->execute($bind);
     $total = (int)$countStmt->fetchColumn();
 
+    // Fixed ORDER BY allowlist - the model picks a key, never raw SQL.
+    $sort = askToolStr($params['sort'] ?? null, 20);
+    $sortOrder = (askToolStr($params['sort_order'] ?? null, 10) === 'asc') ? 'ASC' : 'DESC';
+    switch ($sort) {
+        case 'updated':
+            $orderBy = "STR_TO_DATE(LEFT(COALESCE(c.last_update_date, '1970-01-01'), 10), '%Y-%m-%d') $sortOrder, c.case_id ASC";
+            break;
+        case 'created':
+            $orderBy = "STR_TO_DATE(LEFT(COALESCE(c.creation_date, '1970-01-01'), 10), '%Y-%m-%d') $sortOrder, c.case_id ASC";
+            break;
+        default:
+            // Due-date order is the default: soonest first, no-due-date last.
+            $sort = 'due';
+            $orderBy = "(c.due_date IS NULL OR c.due_date = '') ASC, c.due_date ASC, c.case_id ASC";
+    }
+
     $stmt = $pdo->prepare(
         "SELECT c.case_id,
-                TRIM(CONCAT_WS(' ', c.patient_first_name, c.patient_last_name)) AS patient_name,
+                c.patient_first_name, c.patient_last_name,
                 c.dentist_name, c.case_type, c.status, c.due_date,
-                c.assigned_to, c.patient_appointment_date
+                c.assigned_to, c.patient_appointment_date, c.last_update_date
          FROM cases_cache c
          INNER JOIN authorized_case_ids a ON a.case_id = c.case_id COLLATE utf8mb4_unicode_ci
          WHERE $where
-         ORDER BY (c.due_date IS NULL OR c.due_date = '') ASC, c.due_date ASC, c.case_id ASC
+         ORDER BY $orderBy
          LIMIT " . (int)$limit
     );
     $stmt->execute($bind);
+    $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    foreach ($rows as &$row) {
+        askToolNameFields($row);
+    }
+    unset($row);
 
     return [
         'total_matching' => $total,
         'returned' => min($total, $limit),
-        'cases' => $stmt->fetchAll(PDO::FETCH_ASSOC),
+        'sorted_by' => $sort,
+        'cases' => $rows,
     ];
 }
 
@@ -371,7 +524,7 @@ function askToolGetCaseSummary(PDO $pdo, int $practiceId, array $params) {
 
     $stmt = $pdo->prepare(
         "SELECT c.case_id,
-                TRIM(CONCAT_WS(' ', c.patient_first_name, c.patient_last_name)) AS patient_name,
+                c.patient_first_name, c.patient_last_name,
                 c.dentist_name, c.case_type, c.material, c.status, c.due_date,
                 c.assigned_to, c.creation_date, c.last_update_date,
                 c.patient_appointment_date, c.archived, c.revision_count,
@@ -384,6 +537,10 @@ function askToolGetCaseSummary(PDO $pdo, int $practiceId, array $params) {
     );
     $stmt->execute($bind);
     $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    foreach ($rows as &$row) {
+        askToolNameFields($row);
+    }
+    unset($row);
 
     if (!$rows) {
         // Deliberately identical for "no such case" and "case you may not
@@ -447,4 +604,455 @@ function askToolGetReferenceValues(PDO $pdo, int $practiceId): array {
         'case_types' => $types->fetchAll(PDO::FETCH_COLUMN),
         'workflow_statuses' => array_combine($statuses, $statusLabels) ?: [],
     ];
+}
+
+/**
+ * Lab-designated assignee values for this practice: Lab-flagged shared
+ * assignment labels plus the emails of Lab-flagged practice members.
+ * Returned lowercased for matching against c.assigned_to (which stores the
+ * label text or member email).
+ */
+function askToolLabAssigneeValues(PDO $pdo, int $practiceId): array {
+    $labels = $pdo->prepare(
+        "SELECT label FROM practice_assignment_labels
+         WHERE practice_id = :p AND is_lab = 1"
+    );
+    $labels->execute([':p' => $practiceId]);
+
+    $users = $pdo->prepare(
+        "SELECT u.email FROM practice_users pu
+         JOIN users u ON u.id = pu.user_id
+         WHERE pu.practice_id = :p AND pu.is_lab = 1 AND u.email IS NOT NULL AND u.email != ''"
+    );
+    $users->execute([':p' => $practiceId]);
+
+    $values = [];
+    foreach (array_merge($labels->fetchAll(PDO::FETCH_COLUMN) ?: [], $users->fetchAll(PDO::FETCH_COLUMN) ?: []) as $v) {
+        $v = mb_strtolower(trim((string)$v));
+        if ($v !== '') $values[$v] = true;
+    }
+    return array_keys($values);
+}
+
+/**
+ * Grouped counts over authorized cases. group_by is allowlisted; every row
+ * still passes through the shared authorized-case filter set, so breakdowns
+ * can be combined with any supported case filter (overdue, lab, date
+ * ranges, etc.).
+ */
+function askToolAggregateCases(PDO $pdo, int $practiceId, array $params): array {
+    $groupBy = askToolStr($params['group_by'] ?? null, 20);
+    $allowed = ['assigned_to', 'created_by', 'lab', 'case_type', 'status'];
+    if (!in_array($groupBy, $allowed, true)) {
+        return ['error' => 'invalid_group_by', 'allowed' => $allowed];
+    }
+
+    [$where, $bind] = askToolCaseFilters($practiceId, $params);
+    $join = '';
+    $notes = [];
+
+    switch ($groupBy) {
+        case 'assigned_to':
+            $groupExpr = "CASE WHEN c.assigned_to IS NULL OR c.assigned_to = '' THEN '__unassigned__' ELSE TRIM(c.assigned_to) END";
+            break;
+        case 'lab':
+            $labValues = askToolLabAssigneeValues($pdo, $practiceId);
+            if (!$labValues) {
+                return ['group_by' => 'lab', 'groups' => [], 'total_matching' => 0,
+                        'note' => 'no_lab_assignees',
+                        'definition' => 'Lab = Lab-flagged shared assignment labels and Lab-flagged practice members. This practice has none configured.'];
+            }
+            $in = [];
+            foreach ($labValues as $i => $l) { $in[] = ':lv' . $i; $bind[':lv' . $i] = $l; }
+            $where .= ' AND LOWER(TRIM(c.assigned_to)) IN (' . implode(',', $in) . ')';
+            $groupExpr = 'TRIM(c.assigned_to)';
+            $notes[] = 'Counts cases whose CURRENT assignee is a lab. Historical lab work is not covered by this grouping.';
+            break;
+        case 'created_by':
+            $join = ' LEFT JOIN users cu ON cu.id = c.created_by_user_id';
+            $groupExpr = "COALESCE(NULLIF(TRIM(CONCAT_WS(' ', cu.first_name, cu.last_name)), ''), cu.email, '__unknown__')";
+            $notes[] = 'Creator = the user who created the case, which may differ from the current assignee.';
+            break;
+        case 'case_type':
+            $groupExpr = "COALESCE(NULLIF(TRIM(c.case_type), ''), '__no_case_type__')";
+            break;
+        case 'status':
+        default:
+            $groupExpr = 'c.status';
+            break;
+    }
+
+    $limit = askToolInt($params['limit'] ?? null, 1, 50) ?? 25;
+    $stmt = $pdo->prepare(
+        "SELECT $groupExpr AS grp, COUNT(*) AS cnt
+         FROM cases_cache c
+         INNER JOIN authorized_case_ids a ON a.case_id = c.case_id COLLATE utf8mb4_unicode_ci
+         $join
+         WHERE $where
+         GROUP BY grp
+         ORDER BY cnt DESC, grp ASC
+         LIMIT " . (int)$limit
+    );
+    $stmt->execute($bind);
+    $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    $sentinels = [
+        '__unassigned__' => '(unassigned)',
+        '__unknown__' => '(unknown creator)',
+        '__no_case_type__' => '(no case type)',
+    ];
+    $total = 0;
+    foreach ($rows as &$r) {
+        $total += (int)$r['cnt'];
+        if (isset($sentinels[$r['grp']])) $r['grp'] = $sentinels[$r['grp']];
+    }
+    unset($r);
+
+    // Flag which assignee groups are labs so answers can call them out.
+    if ($groupBy === 'assigned_to') {
+        $labSet = array_fill_keys(askToolLabAssigneeValues($pdo, $practiceId), true);
+        foreach ($rows as &$r) {
+            $r['is_lab'] = isset($labSet[mb_strtolower(trim((string)$r['grp']))]);
+        }
+        unset($r);
+    }
+
+    $groups = [];
+    foreach ($rows as $r) {
+        $g = ['name' => $r['grp'], 'count' => (int)$r['cnt']];
+        if (isset($r['is_lab'])) $g['is_lab'] = (bool)$r['is_lab'];
+        $groups[] = $g;
+    }
+
+    // Ties: name every group sharing the top count so "who has the most"
+    // is never answered with an arbitrary single winner.
+    $tiedAtTop = null;
+    if (count($groups) > 1 && $groups[0]['count'] === $groups[1]['count']) {
+        $topCount = $groups[0]['count'];
+        $tiedAtTop = array_map(
+            fn($g) => $g['name'],
+            array_values(array_filter($groups, fn($g) => $g['count'] === $topCount))
+        );
+    }
+
+    return [
+        'group_by' => $groupBy,
+        'groups' => $groups,
+        'tied_at_top' => $tiedAtTop,
+        'total_matching' => $total,
+        'note' => $notes ? implode(' ', $notes) : null,
+    ];
+}
+
+/**
+ * The shared "date the case reached the terminal workflow stage"
+ * expression. status_changed_at when present, else the latest
+ * status_changed activity-log entry into the terminal stage - the same
+ * rule Practice Insights uses for "delivered".
+ */
+function askToolDeliveredDateExpr(array &$bind, string $paramPrefix, string $terminal): string {
+    // Each call gets a unique placeholder: PDO/MySQL rejects a named
+    // parameter that appears more than once in a single statement, and
+    // callers embed this expression at several spots in one query.
+    static $seq = 0;
+    $key = ':' . $paramPrefix . '_' . (++$seq) . '_terminal';
+    $bind[$key] = $terminal;
+    return "COALESCE(c.status_changed_at, (SELECT MAX(l.created_at) FROM case_activity_log l WHERE l.case_id = c.case_id AND l.event_type = 'status_changed' AND l.new_status = $key))";
+}
+
+/**
+ * Computed metrics with explicit definitions. Each result carries its own
+ * `definition` text plus the inputs that shaped it (date range, scope),
+ * so the composer can state exactly what was measured - and cannot quietly
+ * blur currently-overdue vs completed-late, or creator vs assignee.
+ */
+function askToolCaseMetrics(PDO $pdo, int $practiceId, array $params): array {
+    $metric = askToolStr($params['metric'] ?? null, 40);
+    $allowed = ['open_overdue_share', 'late_completions', 'turnaround', 'volume', 'remake_rate'];
+    if (!in_array($metric, $allowed, true)) {
+        return ['error' => 'invalid_metric', 'allowed' => $allowed];
+    }
+
+    $today = date('Y-m-d');
+    $terminal = getLastActiveWorkflowColumnId($practiceId);
+    $doneStatuses = array_values(array_unique(array_filter([$terminal, 'Completed', 'Shipped'])));
+    $doneIn = function (array &$bind, string $prefix) use ($doneStatuses) {
+        $in = [];
+        foreach ($doneStatuses as $i => $s) { $in[] = ':' . $prefix . $i; $bind[':' . $prefix . $i] = $s; }
+        return implode(',', $in);
+    };
+    $authJoin = 'INNER JOIN authorized_case_ids a ON a.case_id = c.case_id COLLATE utf8mb4_unicode_ci';
+
+    switch ($metric) {
+
+        case 'open_overdue_share': {
+            // Denominator: authorized, non-archived, not in a done status
+            // ("open cases"). Numerator: open cases with due_date < today.
+            [$where, $bind] = askToolCaseFilters($practiceId, $params);
+            $bind[':practice_id'] = $practiceId;
+            $in = $doneIn($bind, 'oos_done');
+            $where .= " AND c.status NOT IN ($in)";
+
+            $openStmt = $pdo->prepare("SELECT COUNT(*) FROM cases_cache c $authJoin WHERE $where");
+            $openStmt->execute($bind);
+            $open = (int)$openStmt->fetchColumn();
+
+            $ovBind = $bind;
+            $ovBind[':oos_today'] = $today;
+            $ovStmt = $pdo->prepare("SELECT COUNT(*) FROM cases_cache c $authJoin WHERE $where AND c.due_date IS NOT NULL AND c.due_date != '' AND c.due_date < :oos_today");
+            $ovStmt->execute($ovBind);
+            $overdue = (int)$ovStmt->fetchColumn();
+
+            return [
+                'metric' => $metric,
+                'as_of' => $today,
+                'scope' => 'open cases (not archived, not in a done status)',
+                'open_cases' => $open,
+                'overdue_cases' => $overdue,
+                'pct' => $open > 0 ? round($overdue / $open * 100, 1) : null,
+                'summary' => $open > 0
+                    ? "$overdue of $open open cases are currently overdue (" . round($overdue / $open * 100, 1) . '%)'
+                    : 'There are no open cases, so no overdue share can be calculated',
+                'definition' => 'Currently overdue = open case whose due date is before today. Cases completed late in the past are not included.',
+            ];
+        }
+
+        case 'late_completions': {
+            // Cases that reached a done status inside [from, to]. Late =
+            // due date strictly before the delivered date. Cases with no
+            // due date are excluded from the rate and counted separately.
+            $from = askToolDate($params['from'] ?? null) ?? date('Y-m-d', strtotime('-30 days'));
+            $to = askToolDate($params['to'] ?? null) ?? $today;
+
+            [$where, $bind] = askToolCaseFilters($practiceId, $params);
+            $in = $doneIn($bind, 'lc_done');
+            $where .= " AND c.status IN ($in)";
+            $deliveredFrom = askToolDeliveredDateExpr($bind, 'lc', $terminal);
+            $deliveredTo = askToolDeliveredDateExpr($bind, 'lc', $terminal);
+            $deliveredLate = askToolDeliveredDateExpr($bind, 'lc', $terminal);
+            $where .= " AND DATE($deliveredFrom) >= :lc_from AND DATE($deliveredTo) <= :lc_to";
+            $bind[':lc_from'] = $from;
+            $bind[':lc_to'] = $to;
+
+            $row = $pdo->prepare(
+                "SELECT COUNT(*) AS total,
+                        SUM(CASE WHEN c.due_date IS NOT NULL AND c.due_date != '' THEN 1 ELSE 0 END) AS with_due,
+                        SUM(CASE WHEN c.due_date IS NOT NULL AND c.due_date != ''
+                                  AND STR_TO_DATE(LEFT(c.due_date,10),'%Y-%m-%d') < DATE($deliveredLate) THEN 1 ELSE 0 END) AS late
+                 FROM cases_cache c $authJoin WHERE $where"
+            );
+            $row->execute($bind);
+            $r = $row->fetch(PDO::FETCH_ASSOC) ?: [];
+
+            $withDue = (int)($r['with_due'] ?? 0);
+            $late = (int)($r['late'] ?? 0);
+            return [
+                'metric' => $metric,
+                'range' => ['from' => $from, 'to' => $to, 'inclusive' => true],
+                'completed_cases' => (int)($r['total'] ?? 0),
+                'completed_with_due_date' => $withDue,
+                'completed_without_due_date' => (int)($r['total'] ?? 0) - $withDue,
+                'completed_late' => $late,
+                'pct' => $withDue > 0 ? round($late / $withDue * 100, 1) : null,
+                'summary' => $withDue > 0
+                    ? "$late of $withDue cases completed between $from and $to were late (" . round($late / $withDue * 100, 1) . '%)'
+                    : ((int)($r['total'] ?? 0) > 0
+                        ? "No cases completed between $from and $to had a due date, so lateness cannot be measured"
+                        : "No cases were completed between $from and $to"),
+                'definition' => 'Completed late = case reached the final workflow stage after its due date. Completion date = the date it entered the final stage. Cases without a due date are excluded from the percentage.',
+            ];
+        }
+
+        case 'turnaround': {
+            // Delivered in [from, to]: days from creation_date to the date
+            // the case entered the terminal stage. Optional group_by=lab
+            // uses observed lab assignment periods that ended 'delivered'
+            // (the Lab Insights definition), not current assignment.
+            $from = askToolDate($params['from'] ?? null) ?? date('Y-m-d', strtotime('-90 days'));
+            $to = askToolDate($params['to'] ?? null) ?? $today;
+            $groupBy = askToolStr($params['group_by'] ?? null, 10);
+
+            if ($groupBy === 'lab') {
+                // Placeholder names differ per occurrence: PDO/MySQL
+                // rejects a named parameter used twice in one statement.
+                $stmt = $pdo->prepare(
+                    "SELECT p.assignee_display_name_snapshot AS lab,
+                            COUNT(DISTINCT p.case_id) AS cases,
+                            AVG(x.lab_days) AS avg_days
+                     FROM case_lab_assignment_periods p
+                     INNER JOIN authorized_case_ids a ON a.case_id = p.case_id COLLATE utf8mb4_unicode_ci
+                     JOIN (
+                         SELECT p2.case_id, p2.label_id, p2.user_id, p2.assignee_type,
+                                SUM(TIMESTAMPDIFF(SECOND, p2.started_at, p2.ended_at)) / 86400.0 AS lab_days
+                         FROM case_lab_assignment_periods p2
+                         WHERE p2.practice_id = :p_inner AND p2.is_lab_snapshot = 1
+                           AND p2.history_quality = 'observed' AND p2.end_reason = 'delivered'
+                           AND p2.ended_at >= :from_inner AND p2.ended_at < :to_inner
+                         GROUP BY p2.case_id, p2.label_id, p2.user_id, p2.assignee_type
+                     ) x ON x.case_id = p.case_id AND x.label_id = p.label_id
+                        AND x.user_id = p.user_id AND x.assignee_type = p.assignee_type
+                     WHERE p.practice_id = :p_outer AND p.is_lab_snapshot = 1
+                       AND p.history_quality = 'observed' AND p.end_reason = 'delivered'
+                       AND p.ended_at >= :from_outer AND p.ended_at < :to_outer
+                     GROUP BY p.assignee_display_name_snapshot, p.label_id, p.user_id, p.assignee_type
+                     ORDER BY avg_days DESC"
+                );
+                $stmt->execute([
+                    ':p_inner' => $practiceId,
+                    ':p_outer' => $practiceId,
+                    ':from_inner' => $from . ' 00:00:00',
+                    ':from_outer' => $from . ' 00:00:00',
+                    ':to_inner' => date('Y-m-d', strtotime($to . ' +1 day')) . ' 00:00:00',
+                    ':to_outer' => date('Y-m-d', strtotime($to . ' +1 day')) . ' 00:00:00',
+                ]);
+                $labs = [];
+                foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $r) {
+                    $labs[] = [
+                        'lab' => $r['lab'],
+                        'completed_cases' => (int)$r['cases'],
+                        'avg_turnaround_days' => round((float)$r['avg_days'], 1),
+                    ];
+                }
+                return [
+                    'metric' => $metric,
+                    'range' => ['from' => $from, 'to' => $to, 'inclusive' => true],
+                    'group_by' => 'lab',
+                    'labs' => $labs,
+                    'definition' => 'Lab turnaround = average days a case spent assigned to that lab (observed lab assignments that ended with the case being delivered). Cases with no recorded lab assignment are not included.',
+                ];
+            }
+
+            [$where, $bind] = askToolCaseFilters($practiceId, $params);
+            $in = $doneIn($bind, 'ta_done');
+            $where .= " AND c.status IN ($in)";
+            $where .= " AND DATE(" . askToolDeliveredDateExpr($bind, 'ta', $terminal) . ") >= :ta_from"
+                    . " AND DATE(" . askToolDeliveredDateExpr($bind, 'ta', $terminal) . ") <= :ta_to";
+            $where .= " AND c.creation_date IS NOT NULL AND c.creation_date != ''";
+            $bind[':ta_from'] = $from;
+            $bind[':ta_to'] = $to;
+
+            $dAvg = askToolDeliveredDateExpr($bind, 'ta', $terminal);
+            $dMin = askToolDeliveredDateExpr($bind, 'ta', $terminal);
+            $dMax = askToolDeliveredDateExpr($bind, 'ta', $terminal);
+            $row = $pdo->prepare(
+                "SELECT AVG(DATEDIFF(DATE($dAvg), STR_TO_DATE(LEFT(c.creation_date,10),'%Y-%m-%d'))) AS avg_days,
+                        MIN(DATEDIFF(DATE($dMin), STR_TO_DATE(LEFT(c.creation_date,10),'%Y-%m-%d'))) AS min_days,
+                        MAX(DATEDIFF(DATE($dMax), STR_TO_DATE(LEFT(c.creation_date,10),'%Y-%m-%d'))) AS max_days,
+                        COUNT(*) AS n
+                 FROM cases_cache c $authJoin WHERE $where"
+            );
+            $row->execute($bind);
+            $r = $row->fetch(PDO::FETCH_ASSOC) ?: [];
+
+            $avg = isset($r['avg_days']) ? round((float)$r['avg_days'], 1) : null;
+            return [
+                'metric' => $metric,
+                'range' => ['from' => $from, 'to' => $to, 'inclusive' => true],
+                'completed_cases' => (int)($r['n'] ?? 0),
+                'avg_turnaround_days' => $avg,
+                'min_days' => (int)($r['min_days'] ?? 0),
+                'max_days' => (int)($r['max_days'] ?? 0),
+                'summary' => $avg !== null
+                    ? "Average turnaround was $avg days across " . (int)$r['n'] . " case(s) completed between $from and $to"
+                    : "No cases were completed between $from and $to, so turnaround cannot be measured",
+                'definition' => 'Turnaround = calendar days from case creation to the date the case entered the final workflow stage. Only cases completed in the range are measured.',
+            ];
+        }
+
+        case 'volume': {
+            // Created and delivered counts for [from, to] vs the
+            // same-length window immediately before it.
+            $from = askToolDate($params['from'] ?? null) ?? date('Y-m-d', strtotime('-30 days'));
+            $to = askToolDate($params['to'] ?? null) ?? $today;
+            $len = (int)((strtotime($to) - strtotime($from)) / 86400) + 1;
+            $prevTo = date('Y-m-d', strtotime($from . ' -1 day'));
+            $prevFrom = date('Y-m-d', strtotime($from . ' -' . $len . ' days'));
+
+            $countRange = function (string $kind, string $f, string $t) use ($pdo, $practiceId, $authJoin, $doneIn, $terminal) {
+                $bind = [':p' => $practiceId];
+                if ($kind === 'created') {
+                    $where = "c.practice_id = :p AND STR_TO_DATE(LEFT(COALESCE(c.creation_date,''),10),'%Y-%m-%d') >= :f AND STR_TO_DATE(LEFT(COALESCE(c.creation_date,''),10),'%Y-%m-%d') <= :t";
+                } else {
+                    $in = $doneIn($bind, 'vd');
+                    $dF = askToolDeliveredDateExpr($bind, 'vt', $terminal);
+                    $dT = askToolDeliveredDateExpr($bind, 'vt', $terminal);
+                    $where = "c.practice_id = :p AND c.status IN ($in) AND DATE($dF) >= :f AND DATE($dT) <= :t";
+                }
+                $bind[':f'] = $f; $bind[':t'] = $t;
+                $stmt = $pdo->prepare("SELECT COUNT(*) FROM cases_cache c $authJoin WHERE $where");
+                $stmt->execute($bind);
+                return (int)$stmt->fetchColumn();
+            };
+
+            $created = $countRange('created', $from, $to);
+            $delivered = $countRange('delivered', $from, $to);
+            $prevCreated = $countRange('created', $prevFrom, $prevTo);
+            $prevDelivered = $countRange('delivered', $prevFrom, $prevTo);
+
+            $delta = function ($cur, $prev) {
+                if ($prev <= 0) return null;
+                return round(($cur - $prev) / $prev * 100, 1);
+            };
+
+            return [
+                'metric' => $metric,
+                'range' => ['from' => $from, 'to' => $to, 'inclusive' => true],
+                'previous_range' => ['from' => $prevFrom, 'to' => $prevTo, 'inclusive' => true],
+                'cases_created' => $created,
+                'cases_delivered' => $delivered,
+                'prev_cases_created' => $prevCreated,
+                'prev_cases_delivered' => $prevDelivered,
+                'created_change_pct' => $delta($created, $prevCreated),
+                'delivered_change_pct' => $delta($delivered, $prevDelivered),
+                'summary' => "$created cases created and $delivered delivered between $from and $to, versus $prevCreated created and $prevDelivered delivered in the prior equal period ($prevFrom to $prevTo)",
+                'definition' => 'Volume = cases created vs cases that reached the final workflow stage in each range. Archived cases are included as history. Percent change is null when the previous period had zero cases.',
+            ];
+        }
+
+        case 'remake_rate': {
+            // Remake events initiated in [from, to]. Rate = unique cases
+            // with at least one remake / cases completed in the range
+            // (same numerator convention as Lab Insights remake rate).
+            $from = askToolDate($params['from'] ?? null) ?? date('Y-m-d', strtotime('-90 days'));
+            $to = askToolDate($params['to'] ?? null) ?? $today;
+            $toTs = $to . ' 23:59:59';
+
+            $ev = $pdo->prepare(
+                "SELECT COUNT(*) AS events, COUNT(DISTINCT r.case_id) AS uniq_cases
+                 FROM case_remake_events r
+                 INNER JOIN authorized_case_ids a ON a.case_id = r.case_id COLLATE utf8mb4_unicode_ci
+                 WHERE r.practice_id = :p AND r.initiated_at >= :f AND r.initiated_at <= :t"
+            );
+            $ev->execute([':p' => $practiceId, ':f' => $from . ' 00:00:00', ':t' => $toTs]);
+            $er = $ev->fetch(PDO::FETCH_ASSOC) ?: [];
+
+            $bind = [':p' => $practiceId];
+            $in = $doneIn($bind, 'rr_done');
+            $dF = askToolDeliveredDateExpr($bind, 'rr', $terminal);
+            $dT = askToolDeliveredDateExpr($bind, 'rr', $terminal);
+            $comp = $pdo->prepare(
+                "SELECT COUNT(*) FROM cases_cache c $authJoin
+                 WHERE c.practice_id = :p AND c.status IN ($in)
+                   AND DATE($dF) >= :f2 AND DATE($dT) <= :t2"
+            );
+            $comp->execute($bind + [':f2' => $from, ':t2' => $to]);
+            $completed = (int)$comp->fetchColumn();
+
+            $uniq = (int)($er['uniq_cases'] ?? 0);
+            return [
+                'metric' => $metric,
+                'range' => ['from' => $from, 'to' => $to, 'inclusive' => true],
+                'remake_events' => (int)($er['events'] ?? 0),
+                'unique_cases_with_remake' => $uniq,
+                'completed_cases_in_range' => $completed,
+                'remake_rate_pct' => $completed > 0 ? round($uniq / $completed * 100, 1) : null,
+                'summary' => $completed > 0
+                    ? (int)($er['events'] ?? 0) . " remake event(s) affecting $uniq case(s) between $from and $to; remake rate is " . round($uniq / $completed * 100, 1) . "% of $completed completed cases"
+                    : (int)($er['events'] ?? 0) . " remake event(s) between $from and $to; no cases completed in the range, so no rate can be calculated",
+                'definition' => 'Remake rate = unique cases with at least one recorded remake, divided by cases completed in the range. A case with multiple remakes counts once.',
+            ];
+        }
+    }
+
+    return ['error' => 'invalid_metric', 'allowed' => $allowed];
 }

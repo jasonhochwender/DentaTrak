@@ -1253,7 +1253,7 @@ endif;
               </div>
             </div>
 
-            <!-- Smart Recommendations (Control tier - blur for Operate) -->
+            <!-- Recommendations (Control tier - blur for Operate) -->
             <div class="ap-section ap-control-only" data-control-feature="smart-recommendations" id="aiRecommendationsSection">
               <div class="ap-section-header">
                 <div class="ap-section-icon">
@@ -3838,7 +3838,22 @@ endif;
         }));
       } catch (e) {}
       <?php endif; ?>
+      <?php
+      // Case deep link (e.g. from Ask DentaTrak answers): openCaseById
+      // fetches through api/get-case.php, which enforces case access
+      // server-side - an out-of-scope id just resolves to unavailable.
+      $deepLinkCaseId = null;
+      if (!empty($_GET['case']) && is_string($_GET['case'])
+          && preg_match('/^[A-Za-z0-9_-]{1,64}$/', $_GET['case'])) {
+          $deepLinkCaseId = $_GET['case'];
+      }
+      ?>
       window.addEventListener('DOMContentLoaded', function() {
+        <?php if ($deepLinkCaseId !== null): ?>
+        if (typeof window.openCaseById === 'function') {
+          window.openCaseById(<?php echo json_encode($deepLinkCaseId); ?>);
+        }
+        <?php endif; ?>
         if (typeof window.processPendingNotification === 'function') {
           window.processPendingNotification();
         }

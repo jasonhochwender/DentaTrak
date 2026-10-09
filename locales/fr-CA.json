@@ -1500,9 +1500,9 @@
             }
         },
         "recs": {
-            "title": "Recommandations intelligentes",
+            "title": "Recommandations",
             "subtitle": "Observations issues des métriques de cette période. S'applique à tous les laboratoires quelle que soit la sélection du détail.",
-            "subtitle_practice": "Observations assistées par IA issues des analyses de votre clinique. Examinez chaque suggestion avant d'agir.",
+            "subtitle_practice": "Observations issues des analyses de votre clinique. Examinez chaque suggestion avant d'agir.",
             "empty": "Aucun changement notable identifié pour cette période.",
             "more_one": "Afficher 1 de plus",
             "more_other": "Afficher {count} de plus",
@@ -1713,11 +1713,11 @@
             }
         },
         "ai": {
-            "badge": "Propulsé par l'IA",
-            "title": "Recommandations intelligentes",
+            "badge": "Personnalisé",
+            "title": "Recommandations",
             "subtitle": "Analyses personnalisées basées sur les données de votre clinique",
             "analyzing": "Analyse des données de votre clinique...",
-            "generating": "Génération des recommandations intelligentes…",
+            "generating": "Génération des recommandations…",
             "none_available": "Aucune recommandation disponible pour le moment.",
             "load_error": "Échec du chargement des recommandations. Veuillez réessayer.",
             "empty_error": "Aucune recommandation disponible",
@@ -1758,16 +1758,16 @@
             "loading_analytics": "Erreur lors du chargement des données d'analyse : {message}",
             "loading_connection": "Erreur lors du chargement des analyses. Veuillez vérifier votre connexion.",
             "no_recommendations": "Aucune recommandation disponible",
-            "failed_recommendations": "Échec du chargement des recommandations IA. Veuillez réessayer.",
+            "failed_recommendations": "Échec du chargement des recommandations. Veuillez réessayer.",
             "connection_lost": "Connexion perdue. Veuillez vérifier votre connexion Internet et réessayer.",
             "unable_recommendations": "Impossible de générer les recommandations.",
-            "access_denied": "Accès refusé. Vous n'avez pas l'autorisation de consulter les analyses ou les statistiques IA.",
-            "plan_required": "Les recommandations intelligentes nécessitent le forfait Control",
-            "ai_not_configured": "Service IA non configuré",
-            "ai_quota": "Le service IA est temporairement indisponible en raison d'une forte demande. Veuillez réessayer dans quelques minutes.",
-            "ai_model_unavailable": "Les recommandations intelligentes sont temporairement indisponibles car le modèle d'IA configuré n'a pas pu être joint.",
-            "ai_config": "Erreur de configuration du service IA. Veuillez contacter l'assistance.",
-            "ai_unavailable": "Le service IA est actuellement indisponible. Veuillez réessayer plus tard.",
+            "access_denied": "Accès refusé. Vous n'avez pas l'autorisation de consulter les analyses ou les recommandations.",
+            "plan_required": "Les recommandations nécessitent le forfait Control",
+            "ai_not_configured": "Service de recommandations non configuré",
+            "ai_quota": "Le service de recommandations est temporairement indisponible en raison d'une forte demande. Veuillez réessayer dans quelques minutes.",
+            "ai_model_unavailable": "Les recommandations sont temporairement indisponibles car le service de recommandations n'a pas pu être joint.",
+            "ai_config": "Erreur de configuration du service de recommandations. Veuillez contacter l'assistance.",
+            "ai_unavailable": "Le service de recommandations est actuellement indisponible. Veuillez réessayer plus tard.",
             "unable_later": "Impossible de générer les recommandations pour le moment. Veuillez réessayer plus tard."
         },
         "upgrade": {
@@ -1777,14 +1777,14 @@
             "duration_description": "Débloquez les comparaisons historiques, la détection de valeurs aberrantes et l'identification des goulots d'étranglement.",
             "yoy_title": "Tendances annuelles",
             "yoy_description": "Débloquez les comparaisons historiques, les statistiques de haute saison et les métriques de croissance.",
-            "recommendations_title": "Recommandations intelligentes",
-            "recommendations_description": "Obtenez des analyses propulsées par l'IA, la détection de goulots d'étranglement et des recommandations exploitables.",
+            "recommendations_title": "Recommandations",
+            "recommendations_description": "Obtenez des analyses personnalisées, la détection de goulots d'étranglement et des recommandations exploitables.",
             "lab_insights_title": "Statistiques du laboratoire",
             "lab_insights_description": "Débloquez la charge des laboratoires, les délais d'exécution, les cas en retard actuels et les comparaisons de révisions entre les laboratoires avec lesquels votre clinique travaille.",
             "button": "Passer à Control",
             "analytics_control": "Les analyses sont disponibles sur le forfait Control. Passez à un forfait supérieur pour accéder aux fonctionnalités d'analyse.",
             "screen_title": "Débloquez les statistiques avec Control",
-            "screen_description": "Les statistiques de la clinique, les statistiques du laboratoire et les recommandations intelligentes sont incluses dans les forfaits Control et Scale.",
+            "screen_description": "Les statistiques de la clinique, les statistiques du laboratoire et les recommandations sont incluses dans les forfaits Control et Scale.",
             "contact_admin": "Contactez l'administrateur de votre clinique pour mettre à niveau votre forfait.",
             "unavailable_title": "Statistiques indisponibles",
             "unavailable_description": "Impossible de vérifier votre forfait. Veuillez réessayer."
@@ -1853,7 +1853,7 @@
                 "benefit_1": "Tout ce qui est inclus dans Operate",
                 "benefit_2": "Utilisateurs illimités",
                 "benefit_4": "Statistiques de la clinique et du laboratoire",
-                "benefit_5": "Recommandations intelligentes",
+                "benefit_5": "Recommandations",
                 "benefit_6": "Intégration Open Dental"
             },
             "scale": {
@@ -5078,7 +5078,7 @@
                         "heading": "La place de DentaTrak",
                         "body_1": "DentaTrak est un système dédié de gestion des cas dentaires construit précisément autour de ces flux de travail. Les cliniques façonnent le tableau selon leur processus — des étapes personnalisables qui peuvent être ajoutées, renommées, réordonnées, archivées et restaurées — et travaillent sur un tableau visuel ou une liste compacte avec filtres, tri et attribution des cas.",
                         "body_2": "L’attention est gérée explicitement plutôt que de mémoire : les signaux « Bientôt dû », « En retard », « Risque de rendez-vous » et « Révision requise » font ressortir les cas qui demandent une action. Commentaires, @mentions, images dans les commentaires, notifications et historique complet d’activité gardent la communication attachée au cas, et les catégories de pièces jointes structurées gardent scans, photos, conceptions et documents organisés au lieu de dispersés.",
-                        "body_3": "Pour la visibilité, Practice Insights et Lab Insights transforment les données des cas en vues du volume, des délais, du risque de rendez-vous, des reprises, de la charge de travail et de la comparaison entre laboratoires — avec Smart Recommendations pour indiquer où les flux peuvent s’améliorer. Ask DentaTrak répond aux questions d’utilisation et aux questions simples sur les cas directement dans le produit, et l’application — y compris les notifications et Ask DentaTrak — accompagne les équipes en neuf langues."
+                        "body_3": "Pour la visibilité, Practice Insights et Lab Insights transforment les données des cas en vues du volume, des délais, du risque de rendez-vous, des reprises, de la charge de travail et de la comparaison entre laboratoires — avec Recommandations pour indiquer où les flux peuvent s’améliorer. Ask DentaTrak répond aux questions d’utilisation et aux questions simples sur les cas directement dans le produit, et l’application — y compris les notifications et Ask DentaTrak — accompagne les équipes en neuf langues."
                     },
                     "open_dental_integration": {
                         "heading": "Travailler avec Open Dental",
@@ -5211,7 +5211,7 @@
             "control_features_2": "Utilisateurs illimités",
             "control_features_3": "Jusqu'à 2 cliniques",
             "control_features_4": "Practice et Lab Insights",
-            "control_features_5": "Recommandations intelligentes",
+            "control_features_5": "Recommandations",
             "control_features_6": "Intégration Open Dental",
             "scale_description": "Pour les organisations gérant plusieurs cliniques et des équipes plus grandes.",
             "scale_features_1": "Tout ce qui est dans Control",
@@ -5244,13 +5244,13 @@
             "eyebrow": "Practice et Lab Insights",
             "title": "Voyez où les cas avancent et où ils ralentissent.",
             "lead": "Practice et Lab Insights transforment l\\u2019activité quotidienne en une vision claire du volume de cas, de la charge de travail, des délais de laboratoire et des reprises — pour repérer où les cas ralentissent avant que les retards n\\u2019atteignent le patient.",
-            "included": "Practice Insights, Lab Insights et les recommandations intelligentes sont inclus dans les forfaits Control et Scale.",
+            "included": "Practice Insights, Lab Insights et les recommandations sont inclus dans les forfaits Control et Scale.",
             "features": {
                 "1_title": "Volume et statut des cas",
                 "1_body": "Suivez en un coup d'œil les cas actifs, bientôt dus, en retard et livrés.",
                 "2_title": "Délais et risque de rendez-vous",
                 "2_body": "Comparez les délais des laboratoires et repérez les cas où le rendez-vous du patient pourrait arriver avant que le travail soit prêt.",
-                "3_title": "Comparaison de laboratoires, reprises et Smart Recommendations",
+                "3_title": "Comparaison de laboratoires, reprises et Recommandations",
                 "3_body": "Comparez charge de travail, taux de retard, reprises et révisions par laboratoire — et recevez des suggestions pratiques fondées sur les données."
             }
         },

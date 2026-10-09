@@ -1500,9 +1500,9 @@
             }
         },
         "recs": {
-            "title": "Smart Recommendations",
+            "title": "Recommendations",
             "subtitle": "Observations from this period's metrics. Applies to all labs regardless of the lab detail selection.",
-            "subtitle_practice": "AI-assisted observations from your practice analytics. Review each suggestion before acting.",
+            "subtitle_practice": "Observations from your practice analytics. Review each suggestion before acting.",
             "empty": "No notable changes identified for this period.",
             "more_one": "Show 1 more",
             "more_other": "Show {count} more",
@@ -1713,11 +1713,11 @@
             }
         },
         "ai": {
-            "badge": "AI Powered",
-            "title": "Smart Recommendations",
+            "badge": "Personalized",
+            "title": "Recommendations",
             "subtitle": "Personalized insights based on your practice data",
             "analyzing": "Analyzing your practice data...",
-            "generating": "Generating Smart Recommendations…",
+            "generating": "Generating recommendations…",
             "none_available": "No recommendations available at this time.",
             "load_error": "Failed to load recommendations. Please try again.",
             "empty_error": "No recommendations available",
@@ -1758,16 +1758,16 @@
             "loading_analytics": "Error loading analytics data: {message}",
             "loading_connection": "Error loading analytics. Please check your connection.",
             "no_recommendations": "No recommendations available",
-            "failed_recommendations": "Failed to load AI recommendations. Please try again.",
+            "failed_recommendations": "Failed to load recommendations. Please try again.",
             "connection_lost": "Connection lost. Please check your internet and try again.",
             "unable_recommendations": "Unable to generate recommendations.",
-            "access_denied": "Access denied. You do not have permission to view analytics or AI insights.",
-            "plan_required": "Smart Recommendations require the Control plan",
-            "ai_not_configured": "AI service not configured",
-            "ai_quota": "AI service is temporarily unavailable due to high demand. Please try again in a few minutes.",
-            "ai_model_unavailable": "Smart Recommendations are temporarily unavailable because the configured AI model could not be reached.",
-            "ai_config": "AI service configuration error. Please contact support.",
-            "ai_unavailable": "AI service is currently unavailable. Please try again later.",
+            "access_denied": "Access denied. You do not have permission to view analytics or recommendations.",
+            "plan_required": "Recommendations require the Control plan",
+            "ai_not_configured": "Recommendations service not configured",
+            "ai_quota": "The recommendations service is temporarily unavailable due to high demand. Please try again in a few minutes.",
+            "ai_model_unavailable": "Recommendations are temporarily unavailable because the recommendations service could not be reached.",
+            "ai_config": "Recommendations service configuration error. Please contact support.",
+            "ai_unavailable": "The recommendations service is currently unavailable. Please try again later.",
             "unable_later": "Unable to generate recommendations at this time. Please try again later."
         },
         "upgrade": {
@@ -1777,14 +1777,14 @@
             "duration_description": "Unlock historical comparisons, outlier detection, and bottleneck identification.",
             "yoy_title": "Year-over-Year Trends",
             "yoy_description": "Unlock historical comparisons, peak season insights, and growth metrics.",
-            "recommendations_title": "Smart Recommendations",
-            "recommendations_description": "Get AI-powered insights, bottleneck detection, and actionable recommendations.",
+            "recommendations_title": "Recommendations",
+            "recommendations_description": "Get personalized insights, bottleneck detection, and actionable recommendations.",
             "lab_insights_title": "Lab Insights",
             "lab_insights_description": "Unlock lab workload, turnaround, current late cases, and revision comparisons across the labs your practice works with.",
             "button": "Upgrade to Control",
             "analytics_control": "Analytics is available on Control plan. Upgrade to access analytics features.",
             "screen_title": "Unlock Insights with Control",
-            "screen_description": "Practice Insights, Lab Insights, and Smart Recommendations are included with the Control and Scale plans.",
+            "screen_description": "Practice Insights, Lab Insights, and Recommendations are included with the Control and Scale plans.",
             "contact_admin": "Contact your practice administrator to upgrade your plan.",
             "unavailable_title": "Insights unavailable",
             "unavailable_description": "We couldn't verify your plan. Please try again."
@@ -1853,7 +1853,7 @@
                 "benefit_1": "Everything in Operate",
                 "benefit_2": "Unlimited users",
                 "benefit_4": "Practice and Lab Insights",
-                "benefit_5": "Smart Recommendations",
+                "benefit_5": "Recommendations",
                 "benefit_6": "Open Dental integration"
             },
             "scale": {
@@ -5078,7 +5078,7 @@
                         "heading": "Where DentaTrak Fits",
                         "body_1": "DentaTrak is a dedicated dental case management system built around these workflows. Practices shape the board to match their process — custom workflow stages that can be added, renamed, reordered, archived, and restored — and work in either a visual board or a compact list view with filtering, sorting, and case assignments.",
                         "body_2": "Attention is handled explicitly rather than by memory: Due Soon, Late, Appointment Risk, and Needs Review flags surface the cases that need action. Comments, @mentions, images in comments, notifications, and a full activity history keep communication attached to the case, and structured attachment categories keep scans, photos, designs, and documents organized instead of loose.",
-                        "body_3": "For visibility, Practice Insights and Lab Insights turn case data into views of volume, turnaround, appointment risk, remakes, workload, and lab comparison — with Smart Recommendations highlighting where workflows can improve. Ask DentaTrak answers how-to questions and simple case questions inside the product, and the application — including notifications and Ask DentaTrak — supports teams in nine languages."
+                        "body_3": "For visibility, Practice Insights and Lab Insights turn case data into views of volume, turnaround, appointment risk, remakes, workload, and lab comparison — with Recommendations highlighting where workflows can improve. Ask DentaTrak answers how-to questions and simple case questions inside the product, and the application — including notifications and Ask DentaTrak — supports teams in nine languages."
                     },
                     "open_dental_integration": {
                         "heading": "Working with Open Dental",
@@ -5211,7 +5211,7 @@
             "control_features_2": "Unlimited users",
             "control_features_3": "Up to 2 practices",
             "control_features_4": "Practice and Lab Insights",
-            "control_features_5": "Smart Recommendations",
+            "control_features_5": "Recommendations",
             "control_features_6": "Open Dental integration",
             "scale_description": "For organizations managing multiple practices and larger teams.",
             "scale_features_1": "Everything in Control",
@@ -5244,13 +5244,13 @@
             "eyebrow": "Practice & Lab Insights",
             "title": "See where cases are moving and where they are slowing down.",
             "lead": "Practice and Lab Insights turn everyday activity into a clear view of case volume, workload, lab turnaround, and remakes — so you can spot where cases slow down and act before delays reach the patient.",
-            "included": "Practice Insights, Lab Insights, and Smart Recommendations are included in the Control and Scale plans.",
+            "included": "Practice Insights, Lab Insights, and Recommendations are included in the Control and Scale plans.",
             "features": {
                 "1_title": "Case volume and status",
                 "1_body": "Track active, due soon, late, and delivered cases at a glance.",
                 "2_title": "Turnaround and appointment risk",
                 "2_body": "Compare lab turnaround times and spot cases where the patient appointment may arrive before the case is ready.",
-                "3_title": "Lab comparison, remakes, and Smart Recommendations",
+                "3_title": "Lab comparison, remakes, and Recommendations",
                 "3_body": "Compare workload, late rates, remakes, and revisions by lab — and get practical, data-based suggestions."
             }
         },

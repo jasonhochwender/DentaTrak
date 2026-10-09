@@ -544,7 +544,7 @@ $baaVersion = 'v1.0-2026-08-07';
 
             <?php if ($entitlement['upgrade_target'] === 'control'): ?>
             <p style="margin: 24px 0; color: #374151; line-height: 1.6;">
-                Upgrade to <strong>Control</strong> to own up to <?php echo getMaxOwnedPractices('control'); ?> practices under one account, plus advanced analytics and Smart Recommendations.
+                Upgrade to <strong>Control</strong> to own up to <?php echo getMaxOwnedPractices('control'); ?> practices under one account, plus advanced analytics and Recommendations.
             </p>
             <?php elseif ($entitlement['upgrade_target'] === 'scale'): ?>
             <p style="margin: 24px 0; color: #374151; line-height: 1.6;">
