@@ -130,10 +130,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 
-    // Status is never a client input on create: new cases always enter the
-    // practice's first active workflow stage (derived below), so it is not
-    // collected as a required field even though case_required_fields marks
-    // it required for the update path.
+    // Status is validated when submitted (below) but never required on
+    // create: an absent value falls back to the practice's first active
+    // workflow stage, so programmatic callers that omit it still succeed.
+    // case_required_fields marks it required for the update path only.
     $requiredFields = array_values(array_diff($requiredFields, ['status']));
 
     $caseData = [];
@@ -321,12 +321,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     }
 
-    // Authoritative create-time status: new cases always land in the
-    // practice's first active workflow column (same canonical default the
-    // integration import path uses). Any client-submitted status is
-    // discarded - the create endpoint cannot be used to jump stages, and
-    // update-case.php remains the only web path that changes status.
-    $caseData['status'] = getFirstActiveWorkflowColumnId($currentPracticeId);
+    // Create-time status: the form submits the workflow stage the user
+    // selected (preselected to the practice's first active column, so the
+    // default workflow is unchanged when the field is left untouched).
+    // An absent status falls back to that same canonical default - e.g.
+    // programmatic callers that do not send the field. A submitted status
+    // must be one of the practice's active workflow stages, identical to
+    // the update-case.php check, and is persisted as the case's initial
+    // status - CaseService records it via case_created with no fabricated
+    // transition from the default stage.
+    $submittedStatus = isset($_POST['status']) ? trim((string)$_POST['status']) : '';
+    if ($submittedStatus === '') {
+        $caseData['status'] = getFirstActiveWorkflowColumnId($currentPracticeId);
+    } elseif (!isValidWorkflowStatusForPractice($submittedStatus, $currentPracticeId)) {
+        http_response_code(400);
+        echo json_encode([
+            'success' => false,
+            'message' => t('api.cases.invalid_status'),
+            'field' => 'status'
+        ]);
+        exit;
+    } else {
+        $caseData['status'] = $submittedStatus;
+    }
 
     // Process GCS file uploads (if any).
     // SECURITY: Attachment metadata is verified server-side against the

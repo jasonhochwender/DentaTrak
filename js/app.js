@@ -6103,11 +6103,11 @@ document.addEventListener('DOMContentLoaded', function () {
 
   /** Sync modal chrome that depends on saved-vs-new state: the meta row
       (Created By) and the Status field. The Workflow section renders in
-      the same position for Create and Edit. Status stays disabled and
-      non-required for Create Case - new cases always enter the practice's
-      first active workflow stage, which create-case.php derives
-      server-side, so the disabled select is display-only and never
-      submitted. */
+      the same position for Create and Edit. Status is editable in both
+      modes: for a new case the select stays preselected to the practice's
+      first active workflow stage, so the default workflow is unchanged
+      unless the user deliberately picks another stage - create-case.php
+      validates the submitted value against the practice's active stages. */
   function updateCaseModalMeta() {
     var meta = document.getElementById('caseModalMeta');
     var form = document.getElementById('createCaseForm');
@@ -6118,15 +6118,10 @@ document.addEventListener('DOMContentLoaded', function () {
     var statusWrap = document.getElementById('statusFieldWrap');
     var status = document.getElementById('status');
     if (status) {
-      status.disabled = !isUpdate;
-      if (isUpdate) {
-        status.setAttribute('required', '');
-      } else {
-        status.removeAttribute('required');
-      }
-      // The required marker only makes sense while Status is editable.
+      status.disabled = false;
+      status.setAttribute('required', '');
       var requiredMark = statusWrap ? statusWrap.querySelector('.required') : null;
-      if (requiredMark) requiredMark.style.display = isUpdate ? '' : 'none';
+      if (requiredMark) requiredMark.style.display = '';
     }
   }
 
@@ -7631,8 +7626,8 @@ document.addEventListener('DOMContentLoaded', function () {
         // Build FormData WITHOUT file binaries - only text fields
         var formData = new FormData();
 
-        // Copy all non-file form fields (disabled controls - e.g. the
-        // edit-only Status select in Create Case - are never submitted)
+        // Copy all non-file form fields (disabled controls are never
+        // submitted)
         var formElements = form.elements;
         for (var i = 0; i < formElements.length; i++) {
           var el = formElements[i];

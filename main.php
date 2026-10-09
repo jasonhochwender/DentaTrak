@@ -1989,11 +1989,13 @@ endif;
 
               <!-- Workflow: operational state of the case, first section
                    under the metadata for both Create and Edit. Status is
-                   display-only (disabled) for new cases - they always
-                   enter the first active workflow stage automatically
-                   (derived server-side in create-case.php). Assigned To
-                   stays editable in both modes. No visible section title:
-                   the controls read as part of the form body. -->
+                   editable in both modes - for a new case the select is
+                   preselected to the practice's first active workflow
+                   stage (default unchanged) and create-case.php validates
+                   the submitted value against the practice's active
+                   stages. Assigned To stays editable in both modes. No
+                   visible section title: the controls read as part of the
+                   form body. -->
               <div id="workflowSection" class="workflow-section">
                 <div class="modal-form-grid workflow-grid">
                   <div class="form-field" id="statusFieldWrap">
