@@ -98,6 +98,31 @@ function askToolInt($value, int $min, int $max): ?int {
     return ($v >= $min && $v <= $max) ? $v : null;
 }
 
+/**
+ * Echo the recognized filters a caller actually passed, so results can
+ * disclose their population ("of cases assigned to you") and a narrowed
+ * zero result is attributable to the filter, not to the practice having
+ * no data.
+ */
+function askToolAppliedFilters(array $params): array {
+    static $known = [
+        'status', 'case_type', 'overdue', 'open_only', 'missing_due_date',
+        'due_on', 'due_within_days', 'due_from', 'due_to',
+        'created_within_days', 'created_from', 'created_to',
+        'updated_within_days', 'not_updated_within_days',
+        'completed_within_days', 'completed_from', 'completed_to',
+        'assigned_to_me', 'assignee', 'creator', 'unassigned', 'lab',
+        'patient_name', 'include_archived',
+    ];
+    $applied = [];
+    foreach ($known as $k) {
+        if (array_key_exists($k, $params) && $params[$k] !== null && $params[$k] !== '' && $params[$k] !== false) {
+            $applied[$k] = $params[$k];
+        }
+    }
+    return $applied;
+}
+
 function askToolDate($value): ?string {
     // Sanitize without truncating: truncation could turn a longer crafted
     // string into a valid-looking date; reject anything that isn't exactly
@@ -124,12 +149,27 @@ function askToolCaseFilters(int $practiceId, array $params): array {
     $terminal = getLastActiveWorkflowColumnId($practiceId);
     $doneStatuses = array_values(array_unique(array_filter([$terminal, 'Completed', 'Shipped'])));
 
-    $includeArchived = !empty($params['include_archived']);
+    // Completion-window queries are historical: a case completed in range
+    // stays "completed in range" even if it was later archived, so those
+    // filters imply archived inclusion regardless of the flag.
+    $includeArchived = !empty($params['include_archived'])
+        || !empty($params['completed_within_days'])
+        || askToolDate($params['completed_from'] ?? null) !== null
+        || askToolDate($params['completed_to'] ?? null) !== null;
     if (!$includeArchived) {
         $where[] = 'c.archived = 0';
     }
 
     if (($status = askToolStr($params['status'] ?? null)) !== null) {
+        // Accept either the stored column id or its display label (a
+        // renamed stage like "QA Passed" resolves to id "Delivered").
+        $resolved = getResolvedWorkflowStageLabelsForPractice($practiceId);
+        foreach ($resolved as $stageId => $stageLabel) {
+            if (mb_strtolower(trim((string)$stageLabel)) === mb_strtolower($status)) {
+                $status = $stageId;
+                break;
+            }
+        }
         $where[] = 'LOWER(TRIM(c.status)) = LOWER(:status)';
         $bind[':status'] = $status;
     }
@@ -155,11 +195,27 @@ function askToolCaseFilters(int $practiceId, array $params): array {
         $where[] = 'c.status NOT IN (' . implode(',', $in) . ')';
     }
 
+    // "Which cases are missing due dates" is an actionable workload
+    // question: it means OPEN cases. A done case's missing due date is
+    // history, not work. An explicit status/completion filter overrides.
     if (!empty($params['missing_due_date'])) {
         $where[] = "(c.due_date IS NULL OR c.due_date = '')";
+        if (empty($params['status']) && empty($params['completed_within_days'])
+            && askToolDate($params['completed_from'] ?? null) === null
+            && askToolDate($params['completed_to'] ?? null) === null) {
+            $in = [];
+            foreach ($doneStatuses as $i => $s) { $in[] = ':mdd_done' . $i; $bind[':mdd_done' . $i] = $s; }
+            $where[] = 'c.status NOT IN (' . implode(',', $in) . ')';
+        }
     }
 
     // "Due tomorrow" style windows: due_on today|tomorrow, or explicit ranges.
+    // Due-date questions are workload questions: they default to OPEN cases
+    // (a completed case's due date is history, not work). An explicit
+    // status/completion filter overrides the default.
+    $dueOpenDefault = empty($params['status']) && empty($params['completed_within_days'])
+        && askToolDate($params['completed_from'] ?? null) === null
+        && askToolDate($params['completed_to'] ?? null) === null;
     if (($dueOn = askToolStr($params['due_on'] ?? null, 10)) !== null) {
         if ($dueOn === 'today') {
             $where[] = "c.due_date = :due_on";
@@ -182,6 +238,14 @@ function askToolCaseFilters(int $practiceId, array $params): array {
     if (($to = askToolDate($params['due_to'] ?? null)) !== null) {
         $where[] = "c.due_date IS NOT NULL AND c.due_date != '' AND c.due_date <= :due_to_x";
         $bind[':due_to_x'] = $to;
+    }
+
+    $hasDueFilter = ($dueOn === 'today' || $dueOn === 'tomorrow')
+        || $days !== null || $from !== null || $to !== null;
+    if ($hasDueFilter && $dueOpenDefault) {
+        $in = [];
+        foreach ($doneStatuses as $i => $s) { $in[] = ':du_done' . $i; $bind[':du_done' . $i] = $s; }
+        $where[] = 'c.status NOT IN (' . implode(',', $in) . ')';
     }
 
     if (($days = askToolInt($params['created_within_days'] ?? null, 0, 366)) !== null) {
@@ -211,7 +275,7 @@ function askToolCaseFilters(int $practiceId, array $params): array {
         $in = [];
         foreach ($doneStatuses as $i => $s) { $in[] = ':cdone' . $i; $bind[':cdone' . $i] = $s; }
         $where[] = 'c.status IN (' . implode(',', $in) . ')';
-        $where[] = "STR_TO_DATE(LEFT(COALESCE(c.last_update_date, CURRENT_DATE()), 10), '%Y-%m-%d') >= :completed_after";
+        $where[] = 'DATE(' . askToolDeliveredDateExpr($bind, 'cw', $terminal) . ') >= :completed_after';
         $bind[':completed_after'] = date('Y-m-d', strtotime('-' . $days . ' days'));
     }
 
@@ -252,8 +316,18 @@ function askToolCaseFilters(int $practiceId, array $params): array {
         $where[] = '(' . askToolAssignedToMePredicate($bind) . ')';
     }
 
+    // "Which cases are unassigned" is also workload-shaped: open cases
+    // needing an assignee. Completed/archived cases without an assignee
+    // are history. An explicit status/completion filter overrides.
     if (!empty($params['unassigned'])) {
         $where[] = "(c.assigned_to IS NULL OR c.assigned_to = '')";
+        if (empty($params['status']) && empty($params['completed_within_days'])
+            && askToolDate($params['completed_from'] ?? null) === null
+            && askToolDate($params['completed_to'] ?? null) === null) {
+            $in = [];
+            foreach ($doneStatuses as $i => $s) { $in[] = ':un_done' . $i; $bind[':un_done' . $i] = $s; }
+            $where[] = 'c.status NOT IN (' . implode(',', $in) . ')';
+        }
     }
 
     // "Lab X" resolves to the practice's Lab-flagged assignment label(s).
@@ -379,7 +453,10 @@ function askToolCountCases(PDO $pdo, int $practiceId, array $params): array {
          WHERE $where"
     );
     $stmt->execute($bind);
-    return ['count' => (int)$stmt->fetchColumn()];
+    return [
+        'count' => (int)$stmt->fetchColumn(),
+        'filters_applied' => askToolAppliedFilters($params) ?: null,
+    ];
 }
 
 function askToolListCases(PDO $pdo, int $practiceId, array $params): array {
@@ -432,6 +509,7 @@ function askToolListCases(PDO $pdo, int $practiceId, array $params): array {
         'total_matching' => $total,
         'returned' => min($total, $limit),
         'sorted_by' => $sort,
+        'filters_applied' => askToolAppliedFilters($params) ?: null,
         'cases' => $rows,
     ];
 }
@@ -651,6 +729,29 @@ function askToolAggregateCases(PDO $pdo, int $practiceId, array $params): array 
     $join = '';
     $notes = [];
 
+    // "Who has the most cases" / "which labs have the most" means CURRENT
+    // WORKLOAD by default: when the caller gives no explicit population
+    // constraint, current-assignee groupings scope to open cases (not
+    // archived, not in a done status). An explicit status/done filter
+    // overrides the default.
+    $explicitPopulation = !empty($params['status']) || !empty($params['open_only'])
+        || !empty($params['overdue']) || !empty($params['include_archived'])
+        || !empty($params['completed_within_days'])
+        || askToolDate($params['completed_from'] ?? null) !== null
+        || askToolDate($params['completed_to'] ?? null) !== null;
+    $scope = !empty($params['include_archived'])
+        ? 'all authorized cases (including archived)'
+        : 'all authorized non-archived cases';
+    if (in_array($groupBy, ['assigned_to', 'lab'], true) && !$explicitPopulation) {
+        $terminal = getLastActiveWorkflowColumnId($practiceId);
+        $doneStatuses = array_values(array_unique(array_filter([$terminal, 'Completed', 'Shipped'])));
+        $in = [];
+        foreach ($doneStatuses as $i => $s) { $in[] = ':agg_done' . $i; $bind[':agg_done' . $i] = $s; }
+        $where .= ' AND c.status NOT IN (' . implode(',', $in) . ')';
+        $scope = 'open cases only (not archived, not in a done status) - current workload';
+        $notes[] = 'Grouped over open cases only (current workload). Ask for a specific status or include_archived to widen the scope.';
+    }
+
     switch ($groupBy) {
         case 'assigned_to':
             $groupExpr = "CASE WHEN c.assigned_to IS NULL OR c.assigned_to = '' THEN '__unassigned__' ELSE TRIM(c.assigned_to) END";
@@ -737,6 +838,8 @@ function askToolAggregateCases(PDO $pdo, int $practiceId, array $params): array 
 
     return [
         'group_by' => $groupBy,
+        'scope' => $scope,
+        'filters_applied' => askToolAppliedFilters($params) ?: null,
         'groups' => $groups,
         'tied_at_top' => $tiedAtTop,
         'total_matching' => $total,
@@ -757,7 +860,13 @@ function askToolDeliveredDateExpr(array &$bind, string $paramPrefix, string $ter
     static $seq = 0;
     $key = ':' . $paramPrefix . '_' . (++$seq) . '_terminal';
     $bind[$key] = $terminal;
-    return "COALESCE(c.status_changed_at, (SELECT MAX(l.created_at) FROM case_activity_log l WHERE l.case_id = c.case_id AND l.event_type = 'status_changed' AND l.new_status = $key))";
+    // status_changed_at is stamped on EVERY status change, so callers MUST
+    // pair this with a `c.status IN (<terminal>)` predicate - then the
+    // current status being terminal guarantees the stamp is the latest
+    // entry into the terminal stage. The activity-log fallback additionally
+    // accepts a 'case_created' event into the terminal stage so cases
+    // created directly in the final column still get a completion date.
+    return "COALESCE(c.status_changed_at, (SELECT MAX(l.created_at) FROM case_activity_log l WHERE l.case_id = c.case_id AND l.event_type IN ('status_changed','case_created') AND l.new_status = $key))";
 }
 
 /**
@@ -788,6 +897,11 @@ function askToolCaseMetrics(PDO $pdo, int $practiceId, array $params): array {
         case 'open_overdue_share': {
             // Denominator: authorized, non-archived, not in a done status
             // ("open cases"). Numerator: open cases with due_date < today.
+            // A caller-supplied `status` is meaningless here - the metric
+            // defines its own status predicate. Dropping it prevents
+            // status:"Open" from silently zeroing the denominator.
+            $applied = askToolAppliedFilters($params);
+            unset($applied['status'], $params['status']);
             [$where, $bind] = askToolCaseFilters($practiceId, $params);
             $bind[':practice_id'] = $practiceId;
             $in = $doneIn($bind, 'oos_done');
@@ -807,12 +921,15 @@ function askToolCaseMetrics(PDO $pdo, int $practiceId, array $params): array {
                 'metric' => $metric,
                 'as_of' => $today,
                 'scope' => 'open cases (not archived, not in a done status)',
+                'filters_applied' => $applied ?: null,
                 'open_cases' => $open,
                 'overdue_cases' => $overdue,
                 'pct' => $open > 0 ? round($overdue / $open * 100, 1) : null,
                 'summary' => $open > 0
                     ? "$overdue of $open open cases are currently overdue (" . round($overdue / $open * 100, 1) . '%)'
-                    : 'There are no open cases, so no overdue share can be calculated',
+                    : ($applied
+                        ? 'No open cases match the applied filters, so no overdue share can be calculated for that subset'
+                        : 'There are no open cases, so no overdue share can be calculated'),
                 'definition' => 'Currently overdue = open case whose due date is before today. Cases completed late in the past are not included.',
             ];
         }
@@ -821,9 +938,14 @@ function askToolCaseMetrics(PDO $pdo, int $practiceId, array $params): array {
             // Cases that reached a done status inside [from, to]. Late =
             // due date strictly before the delivered date. Cases with no
             // due date are excluded from the rate and counted separately.
+            // Archived cases are included: archiving is a visibility flag,
+            // not an un-completion - historical completions still count.
             $from = askToolDate($params['from'] ?? null) ?? date('Y-m-d', strtotime('-30 days'));
             $to = askToolDate($params['to'] ?? null) ?? $today;
 
+            $lcApplied = askToolAppliedFilters($params);
+            $params['include_archived'] = true;
+            unset($lcApplied['status'], $params['status']); // metric defines its own status scope
             [$where, $bind] = askToolCaseFilters($practiceId, $params);
             $in = $doneIn($bind, 'lc_done');
             $where .= " AND c.status IN ($in)";
@@ -849,6 +971,7 @@ function askToolCaseMetrics(PDO $pdo, int $practiceId, array $params): array {
             return [
                 'metric' => $metric,
                 'range' => ['from' => $from, 'to' => $to, 'inclusive' => true],
+                'filters_applied' => $lcApplied ?: null,
                 'completed_cases' => (int)($r['total'] ?? 0),
                 'completed_with_due_date' => $withDue,
                 'completed_without_due_date' => (int)($r['total'] ?? 0) - $withDue,
@@ -859,7 +982,7 @@ function askToolCaseMetrics(PDO $pdo, int $practiceId, array $params): array {
                     : ((int)($r['total'] ?? 0) > 0
                         ? "No cases completed between $from and $to had a due date, so lateness cannot be measured"
                         : "No cases were completed between $from and $to"),
-                'definition' => 'Completed late = case reached the final workflow stage after its due date. Completion date = the date it entered the final stage. Cases without a due date are excluded from the percentage.',
+                'definition' => 'Completed late = case reached the final workflow stage after its due date. Completion date = the date it entered the final stage. Cases without a due date are excluded from the percentage. Archived cases are included as history.',
             ];
         }
 
@@ -889,8 +1012,8 @@ function askToolCaseMetrics(PDO $pdo, int $practiceId, array $params): array {
                            AND p2.history_quality = 'observed' AND p2.end_reason = 'delivered'
                            AND p2.ended_at >= :from_inner AND p2.ended_at < :to_inner
                          GROUP BY p2.case_id, p2.label_id, p2.user_id, p2.assignee_type
-                     ) x ON x.case_id = p.case_id AND x.label_id = p.label_id
-                        AND x.user_id = p.user_id AND x.assignee_type = p.assignee_type
+                     ) x ON x.case_id = p.case_id AND x.label_id <=> p.label_id
+                        AND x.user_id <=> p.user_id AND x.assignee_type = p.assignee_type
                      WHERE p.practice_id = :p_outer AND p.is_lab_snapshot = 1
                        AND p.history_quality = 'observed' AND p.end_reason = 'delivered'
                        AND p.ended_at >= :from_outer AND p.ended_at < :to_outer
@@ -916,12 +1039,17 @@ function askToolCaseMetrics(PDO $pdo, int $practiceId, array $params): array {
                 return [
                     'metric' => $metric,
                     'range' => ['from' => $from, 'to' => $to, 'inclusive' => true],
+                    'filters_applied' => askToolAppliedFilters($params) ?: null,
                     'group_by' => 'lab',
                     'labs' => $labs,
                     'definition' => 'Lab turnaround = average days a case spent assigned to that lab (observed lab assignments that ended with the case being delivered). Cases with no recorded lab assignment are not included.',
                 ];
             }
 
+            // Same archived-as-history rule as late_completions.
+            $taApplied = askToolAppliedFilters($params);
+            $params['include_archived'] = true;
+            unset($taApplied['status'], $params['status']); // metric defines its own status scope
             [$where, $bind] = askToolCaseFilters($practiceId, $params);
             $in = $doneIn($bind, 'ta_done');
             $where .= " AND c.status IN ($in)";
@@ -948,6 +1076,7 @@ function askToolCaseMetrics(PDO $pdo, int $practiceId, array $params): array {
             return [
                 'metric' => $metric,
                 'range' => ['from' => $from, 'to' => $to, 'inclusive' => true],
+                'filters_applied' => $taApplied ?: null,
                 'completed_cases' => (int)($r['n'] ?? 0),
                 'avg_turnaround_days' => $avg,
                 'min_days' => (int)($r['min_days'] ?? 0),
@@ -955,7 +1084,7 @@ function askToolCaseMetrics(PDO $pdo, int $practiceId, array $params): array {
                 'summary' => $avg !== null
                     ? "Average turnaround was $avg days across " . (int)$r['n'] . " case(s) completed between $from and $to"
                     : "No cases were completed between $from and $to, so turnaround cannot be measured",
-                'definition' => 'Turnaround = calendar days from case creation to the date the case entered the final workflow stage. Only cases completed in the range are measured.',
+                'definition' => 'Turnaround = calendar days from case creation to the date the case entered the final workflow stage. Only cases completed in the range are measured. Archived cases are included as history.',
             ];
         }
 
@@ -997,6 +1126,7 @@ function askToolCaseMetrics(PDO $pdo, int $practiceId, array $params): array {
             return [
                 'metric' => $metric,
                 'range' => ['from' => $from, 'to' => $to, 'inclusive' => true],
+                'filters_applied' => askToolAppliedFilters($params) ?: null,
                 'previous_range' => ['from' => $prevFrom, 'to' => $prevTo, 'inclusive' => true],
                 'cases_created' => $created,
                 'cases_delivered' => $delivered,
@@ -1010,9 +1140,13 @@ function askToolCaseMetrics(PDO $pdo, int $practiceId, array $params): array {
         }
 
         case 'remake_rate': {
-            // Remake events initiated in [from, to]. Rate = unique cases
-            // with at least one remake / cases completed in the range
-            // (same numerator convention as Lab Insights remake rate).
+            // Numerator and denominator describe the SAME population:
+            // cases that reached a done status inside [from, to]. The rate
+            // asks "of the cases completed in this period, how many were
+            // ever remade" - so the numerator counts completed-in-range
+            // cases having at least one recorded remake event, NOT events
+            // on unrelated cases. remake_events (events initiated in the
+            // range, on any case) is still reported for transparency.
             $from = askToolDate($params['from'] ?? null) ?? date('Y-m-d', strtotime('-90 days'));
             $to = askToolDate($params['to'] ?? null) ?? $today;
             $toTs = $to . ' 23:59:59';
@@ -1026,30 +1160,37 @@ function askToolCaseMetrics(PDO $pdo, int $practiceId, array $params): array {
             $ev->execute([':p' => $practiceId, ':f' => $from . ' 00:00:00', ':t' => $toTs]);
             $er = $ev->fetch(PDO::FETCH_ASSOC) ?: [];
 
+            unset($params['status']); // metric defines its own status scope
             $bind = [':p' => $practiceId];
             $in = $doneIn($bind, 'rr_done');
             $dF = askToolDeliveredDateExpr($bind, 'rr', $terminal);
             $dT = askToolDeliveredDateExpr($bind, 'rr', $terminal);
             $comp = $pdo->prepare(
-                "SELECT COUNT(*) FROM cases_cache c $authJoin
+                "SELECT COUNT(DISTINCT c.case_id) AS completed,
+                        COUNT(DISTINCT CASE WHEN r.case_id IS NOT NULL THEN c.case_id END) AS remade
+                 FROM cases_cache c
+                 $authJoin
+                 LEFT JOIN case_remake_events r ON r.case_id = c.case_id
                  WHERE c.practice_id = :p AND c.status IN ($in)
                    AND DATE($dF) >= :f2 AND DATE($dT) <= :t2"
             );
             $comp->execute($bind + [':f2' => $from, ':t2' => $to]);
-            $completed = (int)$comp->fetchColumn();
+            $cr = $comp->fetch(PDO::FETCH_ASSOC) ?: [];
+            $completed = (int)($cr['completed'] ?? 0);
+            $remade = (int)($cr['remade'] ?? 0);
 
-            $uniq = (int)($er['uniq_cases'] ?? 0);
             return [
                 'metric' => $metric,
                 'range' => ['from' => $from, 'to' => $to, 'inclusive' => true],
+                'filters_applied' => askToolAppliedFilters($params) ?: null,
                 'remake_events' => (int)($er['events'] ?? 0),
-                'unique_cases_with_remake' => $uniq,
+                'completed_cases_with_remake' => $remade,
                 'completed_cases_in_range' => $completed,
-                'remake_rate_pct' => $completed > 0 ? round($uniq / $completed * 100, 1) : null,
+                'remake_rate_pct' => $completed > 0 ? round($remade / $completed * 100, 1) : null,
                 'summary' => $completed > 0
-                    ? (int)($er['events'] ?? 0) . " remake event(s) affecting $uniq case(s) between $from and $to; remake rate is " . round($uniq / $completed * 100, 1) . "% of $completed completed cases"
-                    : (int)($er['events'] ?? 0) . " remake event(s) between $from and $to; no cases completed in the range, so no rate can be calculated",
-                'definition' => 'Remake rate = unique cases with at least one recorded remake, divided by cases completed in the range. A case with multiple remakes counts once.',
+                    ? "$remade of $completed cases completed between $from and $to had a recorded remake (" . round($remade / $completed * 100, 1) . "%); " . (int)($er['events'] ?? 0) . " remake event(s) were initiated in the period"
+                    : (int)($er['events'] ?? 0) . " remake event(s) were initiated between $from and $to; no cases completed in the range, so no rate can be calculated",
+                'definition' => 'Remake rate = cases completed in the range that have at least one recorded remake, divided by all cases completed in the range. A case with multiple remakes counts once. Archived cases are included as history.',
             ];
         }
     }

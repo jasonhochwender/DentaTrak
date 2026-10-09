@@ -99,6 +99,9 @@ switch ($action) {
     case 'run_ask_tool':
         handleRunAskTool($pdo, $input);
         break;
+    case 'seed_ask_metrics':
+        handleSeedAskMetrics($pdo, $input);
+        break;
     case 'get_ask_help_text':
         handleGetAskHelpText($pdo, $input);
         break;
@@ -2817,4 +2820,202 @@ function handleGetTestPracticeRecord(PDO $pdo, array $input) {
         http_response_code(500);
         echo json_encode(['success' => false, 'message' => 'Database error']);
     }
+}
+
+/**
+ * Development-only deterministic fixture for Ask DentaTrak metric
+ * verification. Seeds a known set of cases (open/done/archived, with
+ * controlled creation dates, due dates, terminal-entry timestamps,
+ * assignments, creators), lab assignment periods and remake events, so
+ * every metric/aggregate output can be checked against hand-computed
+ * expectations. All rows carry the TEST_CASE_MARKER prefix for cleanup.
+ *
+ * Must be called while logged in as the practice admin.
+ *
+ * Input:  { member_email?: string }
+ * Output: { success, practice_id, cases: {key: case_id}, terminal_status,
+ *           member_user_id }
+ */
+function handleSeedAskMetrics($pdo, $input) {
+    require_once __DIR__ . '/remakes.php';
+
+    $practiceId = requireValidPracticeContext();
+    if (!$practiceId) {
+        return;
+    }
+
+    ensureLabAssignmentHistoryTable();
+    ensureLabDesignationColumns();
+    ensureCaseRemakeEventsTable();
+    ensureCasesCacheTable();
+
+    $memberEmail = strtolower(trim($input['member_email'] ?? ''));
+    $memberId = null;
+    if ($memberEmail !== '') {
+        $stmt = $pdo->prepare("SELECT id FROM users WHERE email = :e LIMIT 1");
+        $stmt->execute([':e' => $memberEmail]);
+        $memberId = (int)($stmt->fetchColumn() ?: 0) ?: null;
+    }
+
+    $resolved = getResolvedWorkflowStageLabelsForPractice($practiceId);
+    $statusIds = array_keys($resolved);
+    $firstStatus = $statusIds[0] ?? 'Originated';
+    $midStatus = $statusIds[1] ?? $firstStatus;
+    $terminal = getLastActiveWorkflowColumnId($practiceId);
+    $adminId = $_SESSION['db_user_id'] ?? null;
+
+    $ts = function ($days) { return date('Y-m-d H:i:s', strtotime(($days >= 0 ? '+' : '') . $days . ' days')); };
+    $dOnly = function ($days) { return date('Y-m-d', strtotime(($days >= 0 ? '+' : '') . $days . ' days')); };
+
+    $ids = [];
+
+    $insert = function ($key, $status, $createdOff, $changedOff, $dueOff, $assignedTo, $createdBy, $archived, $createdLogAt)
+        use ($pdo, $practiceId, &$ids, $ts, $dOnly) {
+        $caseId = 'dt-ask-' . bin2hex(random_bytes(8));
+        $created = $ts($createdOff);
+        $changed = $changedOff === null ? null : $ts($changedOff);
+        $due = $dueOff === null ? null : $dOnly($dueOff);
+        $caseData = [
+            'id' => $caseId,
+            'patientFirstName' => TEST_CASE_MARKER . '-Ask-' . $key,
+            'patientLastName' => 'Fixture',
+            'patientDOB' => '1980-01-01',
+            'patientGender' => 'Male',
+            'dentistName' => 'Dr. Ask Fixture',
+            'caseType' => 'Crown',
+            'toothShade' => 'A1',
+            'material' => 'Zirconia',
+            'dueDate' => $due ?? '',
+            'patientAppointmentDate' => '',
+            'creationDate' => $created,
+            'lastUpdateDate' => $created,
+            'status' => $status,
+            'statusChangedAt' => $changed,
+            'notes' => TEST_CASE_MARKER . ' ask metrics seed',
+            'assignedTo' => $assignedTo,
+            'attachments' => [],
+            'revisions' => [],
+            'clinicalDetails' => [],
+            'carrier' => '',
+            'trackingNumber' => '',
+            'customCarrier' => '',
+            'practice_id' => $practiceId,
+            'createdByUserId' => $createdBy,
+        ];
+        $encrypted = PIIEncryption::encryptCaseData($caseData);
+        saveCaseToCache($encrypted);
+        // Backdated creation log so created-in-terminal cases resolve a
+        // completion date via the activity-log fallback.
+        logCaseActivity($caseId, 'case_created', null, $status, ['seed' => 'ask-metrics'], $createdLogAt ?: $created);
+        if ($archived) {
+            $pdo->prepare("UPDATE cases_cache SET archived = 1, archived_date = :d WHERE case_id = :id")
+                ->execute([':d' => $ts($changedOff ?? 0), ':id' => $caseId]);
+        }
+        $ids[$key] = $caseId;
+        return $caseId;
+    };
+
+    $logStatusChange = function ($caseId, $old, $new, $at) {
+        logCaseActivity($caseId, 'status_changed', $old, $new, ['seed' => 'ask-metrics'], $at);
+    };
+
+    $remakeSeq = [];
+    $remake = function ($caseId, $at) use ($pdo, $practiceId, &$remakeSeq) {
+        $remakeSeq[$caseId] = ($remakeSeq[$caseId] ?? 0) + 1;
+        $pdo->prepare("
+            INSERT INTO case_remake_events (
+                case_id, practice_id, remake_number, reason_code, attribution,
+                notes, initiated_at, created_by_user_id
+            ) VALUES (
+                :case_id, :practice_id, :n, 'other', 'lab',
+                :notes, :at, :uid
+            )
+        ")->execute([
+            ':case_id' => $caseId,
+            ':practice_id' => $practiceId,
+            ':n' => $remakeSeq[$caseId],
+            ':notes' => TEST_CASE_MARKER . ' ask metrics seed',
+            ':at' => $at,
+            ':uid' => $_SESSION['db_user_id'] ?? null,
+        ]);
+    };
+
+    // Lab-flagged assignment labels so lab groupings resolve.
+    $labIds = [];
+    $sortOrder = 9100;
+    $insertLabel = $pdo->prepare("
+        INSERT INTO practice_assignment_labels (practice_id, label, sort_order, is_lab)
+        VALUES (:p, :label, :so, 1)
+    ");
+    foreach (['AskLabOne', 'AskLabTwo'] as $lab) {
+        $insertLabel->execute([':p' => $practiceId, ':label' => $lab, ':so' => $sortOrder++]);
+        $labIds[$lab] = (int)$pdo->lastInsertId();
+    }
+    $labPeriod = function ($caseId, $lab, $startedOff, $endedOff) use ($pdo, $practiceId, $labIds, $ts) {
+        $pdo->prepare("
+            INSERT INTO case_lab_assignment_periods (
+                case_id, practice_id, assignee_type, user_id, label_id,
+                label_text_normalized, assignee_display_name_snapshot,
+                is_lab_snapshot, started_at, ended_at, end_reason, history_quality
+            ) VALUES (
+                :case_id, :p, 'label', NULL, :lid, :lt, :dn, 1, :st, :en, 'delivered', 'observed'
+            )
+        ")->execute([
+            ':case_id' => $caseId,
+            ':p' => $practiceId,
+            ':lid' => $labIds[$lab],
+            ':lt' => mb_strtolower($lab),
+            ':dn' => $lab,
+            ':st' => $ts($startedOff),
+            ':en' => $ts($endedOff),
+        ]);
+    };
+
+    // ---- Open cases (non-terminal, not archived) ----
+    $insert('O1', $firstStatus, 0, 0, -1, 'Ask Alice', $adminId, false, null);
+    $insert('O2', $firstStatus, 0, 0, -10, 'AskLabOne', $adminId, false, null);
+    $insert('O3', $firstStatus, 0, 0, 7, 'Ask Bob', $adminId, false, null);
+    $insert('O4', $firstStatus, 0, 0, null, 'Ask Bob', $adminId, false, null);
+    $insert('O5', $firstStatus, 0, 0, null, '', $adminId, false, null);
+    $insert('O6', $firstStatus, 0, 0, 40, 'Ask Alice', $adminId, false, null);
+    $insert('M1', $firstStatus, 0, 0, 3, $memberEmail ?: '', $memberId, false, null);
+    $insert('M2', $firstStatus, 0, 0, 3, $memberEmail ?: '', $memberId, false, null);
+
+    // R1: completed at -8d, reopened at -2d - currently non-terminal, so it
+    // must NOT appear in completed cohorts despite its delivery history.
+    $insert('R1', $midStatus, -20, -2, -15, 'Ask Carol', $adminId, false, null);
+    $logStatusChange($ids['R1'], $midStatus, $terminal, $ts(-8));
+    $logStatusChange($ids['R1'], $terminal, $midStatus, $ts(-2));
+
+    // ---- Completed cases ----
+    $insert('L1', $terminal, -20, -5, 5, 'Ask Carol', $adminId, false, null);   // on-time
+    $insert('L2', $terminal, -25, -5, -10, 'Ask Carol', $adminId, false, null); // late
+    $insert('L3', $terminal, -15, -5, null, 'Ask Carol', $adminId, false, null);// no due date
+    $insert('L4', $terminal, -45, -40, -41, 'Ask Carol', $adminId, false, null);// outside 30d window
+    $insert('L5', $terminal, -30, -5, -10, 'Ask Carol', $adminId, true, null);  // late + archived
+    $insert('LU', $terminal, -20, -15, null, '', $adminId, false, null);        // done + unassigned
+    $insert('BD', $terminal, -38, -30, -31, 'Ask Carol', $adminId, false, null);// completed exactly at range start
+    $insert('CT', $terminal, -10, null, -12, 'Ask Carol', $adminId, false, $ts(-10)); // created-in-terminal
+
+    // ---- Remakes: on open cases (must NOT enter the completed-cohort
+    // numerator), on completed cases, and a multi-remake case counted once.
+    $remake($ids['O2'], $ts(-5));
+    $remake($ids['R1'], $ts(-6));
+    $remake($ids['L2'], $ts(-4));
+    $remake($ids['L5'], $ts(-4));
+    $remake($ids['L5'], $ts(-3));
+
+    // ---- Lab assignment periods that ended delivered (lab turnaround).
+    $labPeriod($ids['L1'], 'AskLabOne', -18, -5);
+    $labPeriod($ids['L2'], 'AskLabOne', -20, -5);
+    $labPeriod($ids['L3'], 'AskLabTwo', -10, -5);
+
+    echo json_encode([
+        'success' => true,
+        'practice_id' => (int)$practiceId,
+        'terminal_status' => $terminal,
+        'member_user_id' => $memberId,
+        'cases' => $ids,
+        'lab_labels' => ['AskLabOne', 'AskLabTwo'],
+    ]);
 }

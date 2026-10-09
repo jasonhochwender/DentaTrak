@@ -5421,6 +5421,10 @@ document.addEventListener('DOMContentLoaded', function () {
     if (submitBtn) submitBtn.textContent = t('cases.create_case');
 
     clearFileSelections();
+    // Attachment controls belong to the case that was open - a hidden
+    // Download All state or stale status must never leak into the next case.
+    resetDownloadAllControl();
+    setAttachmentsLoadState(null);
 
     // Reset shipping link for new case
     updateTrackingNumberLink();
@@ -5796,6 +5800,17 @@ document.addEventListener('DOMContentLoaded', function () {
     if (submitBtn) {
       submitBtn.textContent = t('cases.save_all_changes');
     }
+
+    // Reset attachment state for this case before rendering: clear any
+    // previously-rendered rows (displayExistingFiles only overwrites groups
+    // that have files), clear the load indicator, and re-evaluate Download
+    // All eligibility so a stale control from the previous case can never
+    // survive. For view=core payloads attachments arrive later via
+    // loadCaseHeavyData(), which re-renders and re-evaluates.
+    clearFileSelections();
+    setAttachmentsLoadState(null);
+    renderExistingAttachments(caseData.attachments);
+    updateDownloadAllButton(caseData);
 
     // Load and display existing files
     if (caseData.files && Array.isArray(caseData.files)) {
@@ -6348,6 +6363,13 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   function renderExistingAttachments(attachments) {
+    // Drop rows this renderer owns before deciding whether there is
+    // anything to render - an empty payload must still remove a previous
+    // case's files. Pending (not-yet-saved) selections use .selected-file
+    // without .existing-file and are preserved.
+    document.querySelectorAll('#createCaseForm .selected-files .existing-file').forEach(function(row) {
+      row.remove();
+    });
     if (!attachments || !Array.isArray(attachments) || attachments.length === 0) {
       return;
     }
@@ -6823,8 +6845,12 @@ document.addEventListener('DOMContentLoaded', function () {
     })
     .then(function(data) {
       if (requestId !== caseOpenRequestId || caseModal.style.display === 'none') return;
-      if (!data.success || !data.case) return;
       if (String(currentEditCaseId) !== String(caseId)) return;
+      if (!data.success || !data.case) {
+        resetDownloadAllControl();
+        setAttachmentsLoadState('error');
+        return;
+      }
 
       if (viewCaseTimings) viewCaseTimings.heavyLoaded = performance.now() - viewCaseTimings.shellStart;
 
@@ -6869,6 +6895,10 @@ document.addEventListener('DOMContentLoaded', function () {
       }
       if (requestId !== caseOpenRequestId || caseModal.style.display === 'none') return;
       if (String(currentEditCaseId) !== String(caseId)) return;
+      // A failed load must not leave the Download All control (or any other
+      // stale attachment state) visible for a case whose files we could not
+      // verify.
+      resetDownloadAllControl();
       setAttachmentsLoadState('error');
     });
   }
@@ -10804,6 +10834,24 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   }
 
+  // Fully reset the "Download All" control for a fresh case state: hidden,
+  // status cleared, and the click handler dropped so a stale binding can
+  // never download a previously-open case's attachments.
+  function resetDownloadAllControl() {
+    var container = document.getElementById('attachmentDownloadAll');
+    var btn = document.getElementById('downloadAllAttachmentsBtn');
+    var statusEl = document.getElementById('downloadAllAttachmentsStatus');
+    if (container) container.style.display = 'none';
+    if (btn) {
+      btn.onclick = null;
+      btn.disabled = false;
+    }
+    if (statusEl) {
+      statusEl.textContent = '';
+      statusEl.style.display = 'none';
+    }
+  }
+
   // Show or hide the "Download All" attachments button.
   // Case data is authoritative; this is a local preview of availability.
   function updateDownloadAllButton(caseData) {
@@ -10869,7 +10917,10 @@ document.addEventListener('DOMContentLoaded', function () {
         }
         btn.onclick = function(e) {
           e.preventDefault();
-          downloadCaseAttachmentsZip(caseData.id);
+          // Resolve the case at click time so the download always targets
+          // the case the user currently has open, not whatever case data
+          // this button happened to be rendered for.
+          downloadCaseAttachmentsZip(currentEditCaseId || caseData.id);
         };
       }
     } else {
@@ -12470,6 +12521,12 @@ document.addEventListener('DOMContentLoaded', function () {
       document.body.style.overflow = ''; // Restore body scroll
     }
 
+    // Claim the open-request slot: this both discards any in-flight heavy
+    // load for a previously opened case and guards below so a delayed
+    // response for a superseded archived-case request cannot overwrite the
+    // case the user has open now.
+    var requestId = ++caseOpenRequestId;
+
     // Load case data and open modal in read-only mode
     fetch(`api/get-case.php?id=${caseId}`, {
       credentials: 'same-origin'
@@ -12481,6 +12538,7 @@ document.addEventListener('DOMContentLoaded', function () {
       return response.json();
     })
     .then(function(data) {
+      if (requestId !== caseOpenRequestId) return;
       if (data.success && data.case) {
         if (typeof openCaseModalForView === 'function') {
           // Store the original close function
@@ -12564,6 +12622,7 @@ document.addEventListener('DOMContentLoaded', function () {
       }
     })
     .catch(error => {
+      if (requestId !== caseOpenRequestId) return;
       showToast(t('cases.toast.load_error'), 'error');
 
       // Restore archived modal if there was an error
