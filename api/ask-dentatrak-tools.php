@@ -20,6 +20,161 @@ require_once __DIR__ . '/encryption.php';
 const ASK_TOOL_LIST_LIMIT = 15;
 
 /**
+ * Calendar-day timezone for case due dates and operational reporting.
+ * The rest of the app (Kanban board, api/list-cases.php,
+ * api/get-analytics.php, api/get-archived-cases.php) anchors "today" and
+ * overdue/due-day math to America/New_York; Ask DentaTrak must resolve
+ * the same intended timezone rather than silently inheriting whatever
+ * the dev or production host's clock happens to be. Every "today",
+ * relative window, and date bound below goes through these helpers.
+ */
+const ASK_TOOL_TIMEZONE = 'America/New_York';
+
+function askToolNow(): DateTimeImmutable {
+    return new DateTimeImmutable('now', new DateTimeZone(ASK_TOOL_TIMEZONE));
+}
+
+function askToolToday(): string {
+    return askToolNow()->format('Y-m-d');
+}
+
+/** YYYY-MM-DD shifted by a relative modifier ("+1 day", "-30 days"). */
+function askToolDayShift(string $modifier, ?string $baseDate = null): string {
+    $d = $baseDate === null
+        ? askToolNow()
+        : new DateTimeImmutable($baseDate, new DateTimeZone(ASK_TOOL_TIMEZONE));
+    return $d->modify($modifier)->format('Y-m-d');
+}
+
+/** Signed whole-day difference between two YYYY-MM-DD dates (b - a). */
+function askToolDayDiff(string $fromDate, string $toDate): int {
+    $tz = new DateTimeZone(ASK_TOOL_TIMEZONE);
+    $diff = (new DateTimeImmutable($fromDate, $tz))->diff(new DateTimeImmutable($toDate, $tz));
+    return ($diff->invert ? -1 : 1) * (int)$diff->days;
+}
+
+/**
+ * Validate self-scope parameters against the words actually exchanged in
+ * the conversation. "my cases" / "my open cases" name the user's whole
+ * authorized population ("my" = the cases they can see) - they do NOT
+ * mean cases assigned to them. assigned_to_me (or an assignee/creator
+ * value naming the asking user) is honored only when the user explicitly
+ * asked about their own assignments/creations, or a prior turn clearly
+ * established that scope for a follow-up.
+ *
+ * Returns [validatedParams, scopeNoteOrNull]. A note describes what was
+ * removed so the answer can disclose the population actually used.
+ */
+function askToolValidateScopeParams(array $params, string $question, array $history): array {
+    $selfAssign = !empty($params['assigned_to_me']);
+    $selfCreator = false;
+    foreach (['assignee' => 'assign', 'creator' => 'creator'] as $k => $kind) {
+        $v = $params[$k] ?? null;
+        if (is_string($v) && askToolValueNamesSelf($v)) {
+            if ($kind === 'assign') $selfAssign = true; else $selfCreator = true;
+        }
+    }
+    if (!$selfAssign && !$selfCreator) {
+        return [$params, null];
+    }
+
+    $removed = [];
+    if ($selfAssign && !askToolConversationHasSelfScope($question, $history, 'assign')) {
+        if (!empty($params['assigned_to_me'])) {
+            unset($params['assigned_to_me']);
+            $removed[] = 'assigned_to_me';
+        }
+        if (isset($params['assignee']) && is_string($params['assignee']) && askToolValueNamesSelf($params['assignee'])) {
+            unset($params['assignee']);
+            $removed[] = 'assignee';
+        }
+    }
+    if ($selfCreator && !askToolConversationHasSelfScope($question, $history, 'creator')) {
+        if (isset($params['creator']) && is_string($params['creator']) && askToolValueNamesSelf($params['creator'])) {
+            unset($params['creator']);
+            $removed[] = 'creator';
+        }
+    }
+    if (!$removed) {
+        return [$params, null];
+    }
+    return [$params, 'A self-scope filter (' . implode(', ', $removed)
+        . ') was removed because the user did not explicitly ask for cases assigned to or created by themselves; '
+        . 'the results cover all cases the user is authorized to see.'];
+}
+
+/**
+ * True when a filter value would select the asking user themselves: it
+ * matches (or uniquely narrows to) the session user's email or name.
+ */
+function askToolValueNamesSelf(string $value): bool {
+    $value = mb_strtolower(trim($value));
+    if (mb_strlen($value) < 3) return false;
+    $me = [
+        mb_strtolower(trim((string)($_SESSION['user_email'] ?? ''))),
+        mb_strtolower(trim((string)($_SESSION['user_name'] ?? ''))),
+    ];
+    foreach ($me as $m) {
+        if (mb_strlen($m) < 3) continue;
+        if ($m === $value || mb_strpos($m, $value) !== false || mb_strpos($value, $m) !== false) {
+            return true;
+        }
+    }
+    return false;
+}
+
+/**
+ * Does the conversation explicitly establish a self-scope? Requires BOTH
+ * a scope stem (assignment for 'assign', creation for 'creator') and a
+ * first-person marker in the same USER message - bare "my cases" lacks a
+ * scope stem and therefore does not qualify. The user literally typing
+ * their own email/name also counts. Prior assistant turns that disclosed
+ * a self-assigned population ("cases assigned to you") establish it for
+ * follow-ups like "show me those".
+ */
+function askToolConversationHasSelfScope(string $question, array $history, string $kind): bool {
+    $selfRx = '/(?:\bme\b|\bmy\b|\bmine\b|\bmyself\b|\bi\b|\bi\'m\b|\bich\b|\bmir\b|\bmich\b|'
+        . '\bmein(?:e|en|em|er|es)?\b|\byo\b|\bmis?\b|\bmoi\b|\bmon\b|\bma\b|\bmes\b|\bje\b)/iu';
+    $assignRx = '/(?:\bassign\w*\b|\bworkload\b|\bqueue\b|\bhandl\w*\b|work(?:ing)? on\b|'
+        . 'zugewiesen\w*|zuweis\w*|zugeteil\w*|asign\w*|attribu\w*)/iu';
+    $creatorRx = '/(?:\bcreat\w*\b|\benter\w+\b|\bmade\b|\bsubmit\w*\b|\bregist\w*\b|'
+        . 'erstell\w*|angeleg\w*|eingetragen\w*|cread\w*|cre[ée]\w*|saisi\w*)/iu';
+    $scopeRx = $kind === 'creator' ? $creatorRx : $assignRx;
+
+    $userTexts = [$question];
+    foreach ($history as $m) {
+        if (($m['role'] ?? '') === 'user') $userTexts[] = (string)$m['content'];
+    }
+    foreach ($userTexts as $t) {
+        if ($t === '') continue;
+        // Explicit self-reference by literal email/name.
+        $email = mb_strtolower(trim((string)($_SESSION['user_email'] ?? '')));
+        $name = mb_strtolower(trim((string)($_SESSION['user_name'] ?? '')));
+        $lt = mb_strtolower($t);
+        if ((mb_strlen($email) >= 3 && mb_strpos($lt, $email) !== false)
+            || (mb_strlen($name) >= 3 && mb_strpos($lt, $name) !== false)) {
+            return true;
+        }
+        if (preg_match($scopeRx, $t) && preg_match($selfRx, $t)) {
+            return true;
+        }
+    }
+
+    // Assistant answers that told the user the population was theirs.
+    $establishedRx = $kind === 'creator'
+        ? '/created by you|you created|von dir erstellt|creados? por ti|créés? par vous/iu'
+        : '/assigned to you|your assigned|cases you\'?re assigned|your workload|'
+            . 'dir zugewiesen|deine zugewiesenen|te asign|vous sont assign|vos assign/iu';
+    foreach ($history as $m) {
+        if (($m['role'] ?? '') === 'assistant'
+            && preg_match($establishedRx, (string)$m['content'])) {
+            return true;
+        }
+    }
+    return false;
+}
+
+/**
  * The allowlisted tool names. The planner may only request these.
  */
 function getAskDentatrakToolNames(): array {
@@ -144,7 +299,7 @@ function askToolCaseFilters(int $practiceId, array $params): array {
     global $pdo;
     $where = ['c.practice_id = :practice_id'];
     $bind = [':practice_id' => $practiceId];
-    $today = date('Y-m-d');
+    $today = askToolToday();
 
     $terminal = getLastActiveWorkflowColumnId($practiceId);
     $doneStatuses = array_values(array_unique(array_filter([$terminal, 'Completed', 'Shipped'])));
@@ -222,14 +377,14 @@ function askToolCaseFilters(int $practiceId, array $params): array {
             $bind[':due_on'] = $today;
         } elseif ($dueOn === 'tomorrow') {
             $where[] = "c.due_date = :due_on";
-            $bind[':due_on'] = date('Y-m-d', strtotime('+1 day'));
+            $bind[':due_on'] = askToolDayShift('+1 day');
         }
     }
 
     if (($days = askToolInt($params['due_within_days'] ?? null, 0, 366)) !== null) {
         $where[] = "c.due_date IS NOT NULL AND c.due_date != '' AND c.due_date BETWEEN :due_from AND :due_to";
         $bind[':due_from'] = $today;
-        $bind[':due_to'] = date('Y-m-d', strtotime('+' . $days . ' days'));
+        $bind[':due_to'] = askToolDayShift('+' . $days . ' days');
     }
     if (($from = askToolDate($params['due_from'] ?? null)) !== null) {
         $where[] = "c.due_date IS NOT NULL AND c.due_date >= :due_from_x";
@@ -250,7 +405,7 @@ function askToolCaseFilters(int $practiceId, array $params): array {
 
     if (($days = askToolInt($params['created_within_days'] ?? null, 0, 366)) !== null) {
         $where[] = "STR_TO_DATE(LEFT(COALESCE(c.creation_date, CURRENT_DATE()), 10), '%Y-%m-%d') >= :created_after";
-        $bind[':created_after'] = date('Y-m-d', strtotime('-' . $days . ' days'));
+        $bind[':created_after'] = askToolDayShift('-' . $days . ' days');
     }
     if (($from = askToolDate($params['created_from'] ?? null)) !== null) {
         $where[] = "STR_TO_DATE(LEFT(COALESCE(c.creation_date, ''), 10), '%Y-%m-%d') >= :created_from";
@@ -263,12 +418,12 @@ function askToolCaseFilters(int $practiceId, array $params): array {
 
     if (($days = askToolInt($params['updated_within_days'] ?? null, 0, 3660)) !== null) {
         $where[] = "STR_TO_DATE(LEFT(COALESCE(c.last_update_date, CURRENT_DATE()), 10), '%Y-%m-%d') >= :updated_after";
-        $bind[':updated_after'] = date('Y-m-d', strtotime('-' . $days . ' days'));
+        $bind[':updated_after'] = askToolDayShift('-' . $days . ' days');
     }
     // Stale cases: last_update_date at or before today - N days.
     if (($days = askToolInt($params['not_updated_within_days'] ?? null, 1, 3660)) !== null) {
         $where[] = "STR_TO_DATE(LEFT(COALESCE(c.last_update_date, '1970-01-01'), 10), '%Y-%m-%d') <= :stale_before";
-        $bind[':stale_before'] = date('Y-m-d', strtotime('-' . $days . ' days'));
+        $bind[':stale_before'] = askToolDayShift('-' . $days . ' days');
     }
 
     if (($days = askToolInt($params['completed_within_days'] ?? null, 0, 366)) !== null) {
@@ -276,7 +431,7 @@ function askToolCaseFilters(int $practiceId, array $params): array {
         foreach ($doneStatuses as $i => $s) { $in[] = ':cdone' . $i; $bind[':cdone' . $i] = $s; }
         $where[] = 'c.status IN (' . implode(',', $in) . ')';
         $where[] = 'DATE(' . askToolDeliveredDateExpr($bind, 'cw', $terminal) . ') >= :completed_after';
-        $bind[':completed_after'] = date('Y-m-d', strtotime('-' . $days . ' days'));
+        $bind[':completed_after'] = askToolDayShift('-' . $days . ' days');
     }
 
     // Completed in an explicit date range. Completion time = the moment the
@@ -537,7 +692,7 @@ function askToolCountRemakes(PDO $pdo, int $practiceId, array $params): array {
     ];
     $bind = [
         ':practice_id' => $practiceId,
-        ':since' => date('Y-m-d H:i:s', strtotime('-' . $days . ' days')),
+        ':since' => askToolNow()->modify('-' . $days . ' days')->format('Y-m-d H:i:s'),
     ];
 
     if (($attr = askToolStr($params['attribution'] ?? null, 50)) !== null) {
@@ -882,7 +1037,7 @@ function askToolCaseMetrics(PDO $pdo, int $practiceId, array $params): array {
         return ['error' => 'invalid_metric', 'allowed' => $allowed];
     }
 
-    $today = date('Y-m-d');
+    $today = askToolToday();
     $terminal = getLastActiveWorkflowColumnId($practiceId);
     $doneStatuses = array_values(array_unique(array_filter([$terminal, 'Completed', 'Shipped'])));
     $doneIn = function (array &$bind, string $prefix) use ($doneStatuses) {
@@ -940,7 +1095,7 @@ function askToolCaseMetrics(PDO $pdo, int $practiceId, array $params): array {
             // due date are excluded from the rate and counted separately.
             // Archived cases are included: archiving is a visibility flag,
             // not an un-completion - historical completions still count.
-            $from = askToolDate($params['from'] ?? null) ?? date('Y-m-d', strtotime('-30 days'));
+            $from = askToolDate($params['from'] ?? null) ?? askToolDayShift('-30 days');
             $to = askToolDate($params['to'] ?? null) ?? $today;
 
             $lcApplied = askToolAppliedFilters($params);
@@ -991,7 +1146,7 @@ function askToolCaseMetrics(PDO $pdo, int $practiceId, array $params): array {
             // the case entered the terminal stage. Optional group_by=lab
             // uses observed lab assignment periods that ended 'delivered'
             // (the Lab Insights definition), not current assignment.
-            $from = askToolDate($params['from'] ?? null) ?? date('Y-m-d', strtotime('-90 days'));
+            $from = askToolDate($params['from'] ?? null) ?? askToolDayShift('-90 days');
             $to = askToolDate($params['to'] ?? null) ?? $today;
             $groupBy = askToolStr($params['group_by'] ?? null, 10);
 
@@ -1025,8 +1180,8 @@ function askToolCaseMetrics(PDO $pdo, int $practiceId, array $params): array {
                     ':p_outer' => $practiceId,
                     ':from_inner' => $from . ' 00:00:00',
                     ':from_outer' => $from . ' 00:00:00',
-                    ':to_inner' => date('Y-m-d', strtotime($to . ' +1 day')) . ' 00:00:00',
-                    ':to_outer' => date('Y-m-d', strtotime($to . ' +1 day')) . ' 00:00:00',
+                    ':to_inner' => askToolDayShift('+1 day', $to) . ' 00:00:00',
+                    ':to_outer' => askToolDayShift('+1 day', $to) . ' 00:00:00',
                 ]);
                 $labs = [];
                 foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $r) {
@@ -1091,11 +1246,11 @@ function askToolCaseMetrics(PDO $pdo, int $practiceId, array $params): array {
         case 'volume': {
             // Created and delivered counts for [from, to] vs the
             // same-length window immediately before it.
-            $from = askToolDate($params['from'] ?? null) ?? date('Y-m-d', strtotime('-30 days'));
+            $from = askToolDate($params['from'] ?? null) ?? askToolDayShift('-30 days');
             $to = askToolDate($params['to'] ?? null) ?? $today;
-            $len = (int)((strtotime($to) - strtotime($from)) / 86400) + 1;
-            $prevTo = date('Y-m-d', strtotime($from . ' -1 day'));
-            $prevFrom = date('Y-m-d', strtotime($from . ' -' . $len . ' days'));
+            $len = askToolDayDiff($from, $to) + 1;
+            $prevTo = askToolDayShift('-1 day', $from);
+            $prevFrom = askToolDayShift('-' . $len . ' days', $from);
 
             $countRange = function (string $kind, string $f, string $t) use ($pdo, $practiceId, $authJoin, $doneIn, $terminal) {
                 $bind = [':p' => $practiceId];
@@ -1147,7 +1302,7 @@ function askToolCaseMetrics(PDO $pdo, int $practiceId, array $params): array {
             // cases having at least one recorded remake event, NOT events
             // on unrelated cases. remake_events (events initiated in the
             // range, on any case) is still reported for transparency.
-            $from = askToolDate($params['from'] ?? null) ?? date('Y-m-d', strtotime('-90 days'));
+            $from = askToolDate($params['from'] ?? null) ?? askToolDayShift('-90 days');
             $to = askToolDate($params['to'] ?? null) ?? $today;
             $toTs = $to . ' 23:59:59';
 

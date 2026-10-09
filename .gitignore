@@ -210,3 +210,9 @@ documentation/Google Cloud Setup.docx
 
 # Windows reserved-name artifact from local test proc_open sinks
 NUL
+!/tests/ask-dentatrak-test.php
+!/tests/ask-dentatrak-e2e-test.js
+!/tests/ask-dentatrak-verify-e2e-test.js
+!/tests/ask-dentatrak-metrics-e2e-test.js
+!/tests/ask-dentatrak-custom-terminal-e2e-test.js
+!/tests/download-all-state-e2e-test.js
