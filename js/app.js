@@ -8144,11 +8144,18 @@ document.addEventListener('DOMContentLoaded', function () {
     var msg = error.message || '';
     if (error.name === 'AbortError') {
       errorMessage = t('cases.toast.timeout');
+    } else if (error.sessionExpired) {
+      // Session expired - the message is already localized and accurate
+      // (signed-URL 401 vs post-upload 401 carry different texts).
+      errorMessage = msg || t('cases.toast.session_expired_upload');
+    } else if (error.uploadStage) {
+      // Upload failures carry already-localized stage-accurate messages
+      // (validation, access, size/type, stall, per-file reasons). Pass them
+      // through instead of mapping everything to a connection guess.
+      errorMessage = msg || t('cases.toast.upload_failed');
     } else if (msg.indexOf('must be under') !== -1 || msg.indexOf('Maximum') !== -1 || msg.indexOf('cannot exceed') !== -1 || msg.indexOf('Over-limit') !== -1) {
       // Type-specific or aggregate limit error from frontend/backend validation
       errorMessage = msg;
-    } else if (msg.indexOf('Failed to upload') !== -1) {
-      errorMessage = t('cases.toast.upload_failed');
     } else if (msg.indexOf('upload URL') !== -1) {
       errorMessage = t('cases.toast.upload_prepare_failed');
     } else if (msg.indexOf('storage failed') !== -1) {

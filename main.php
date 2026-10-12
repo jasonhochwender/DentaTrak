@@ -2317,7 +2317,7 @@ endif;
                     <span class="attachment-count" data-attachment-count></span>
                     <label class="file-button" tabindex="0">
                       <?php echo t('attachments.add_files'); ?>
-                      <input type="file" name="intraoralScans[]" multiple class="attachment-input" data-type="intraoralScans">
+                      <input type="file" name="intraoralScans[]" multiple accept=".stl,.obj,.ply,.dcm,.jpg,.jpeg,.png,.gif,.webp,.tiff,.tif,.bmp,.svg,.pdf,.zip" class="attachment-input" data-type="intraoralScans">
                     </label>
                   </div>
                   <!-- Make sure ID is both lowercase and matches API's IntraoralScans type -->
@@ -2330,7 +2330,7 @@ endif;
                     <span class="attachment-count" data-attachment-count></span>
                     <label class="file-button" tabindex="0">
                       <?php echo t('attachments.add_files'); ?>
-                      <input type="file" name="facialScans[]" multiple class="attachment-input" data-type="facialScans">
+                      <input type="file" name="facialScans[]" multiple accept=".stl,.obj,.ply,.dcm,.jpg,.jpeg,.png,.gif,.webp,.tiff,.tif,.bmp,.svg,.pdf,.zip" class="attachment-input" data-type="facialScans">
                     </label>
                   </div>
                   <!-- Make sure ID is both lowercase and matches API's FacialScans type -->
@@ -2343,7 +2343,7 @@ endif;
                     <span class="attachment-count" data-attachment-count></span>
                     <label class="file-button" tabindex="0">
                       <?php echo t('attachments.add_files'); ?>
-                      <input type="file" name="photogrammetry[]" multiple class="attachment-input" data-type="photogrammetry">
+                      <input type="file" name="photogrammetry[]" multiple accept=".stl,.obj,.ply,.dcm,.jpg,.jpeg,.png,.gif,.webp,.tiff,.tif,.bmp,.svg,.pdf,.zip" class="attachment-input" data-type="photogrammetry">
                     </label>
                   </div>
                   <!-- Make sure ID is both lowercase and matches API's Photogrammetry type -->
@@ -2356,7 +2356,7 @@ endif;
                     <span class="attachment-count" data-attachment-count></span>
                     <label class="file-button" tabindex="0">
                       <?php echo t('attachments.add_files'); ?>
-                      <input type="file" name="completedDesigns[]" multiple class="attachment-input" data-type="completedDesigns">
+                      <input type="file" name="completedDesigns[]" multiple accept=".stl,.obj,.ply,.dcm,.jpg,.jpeg,.png,.gif,.webp,.tiff,.tif,.bmp,.svg,.pdf,.zip" class="attachment-input" data-type="completedDesigns">
                     </label>
                   </div>
                   <!-- Make sure ID is both lowercase and matches API's CompletedDesigns type -->

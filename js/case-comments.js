@@ -430,6 +430,11 @@
       return Promise.reject(unavailable);
     }
     return Promise.all(pendingCommentImages.map(function(item) {
+      // Files tagged by a previous attempt already live in storage - reuse
+      // their metadata so a retry never re-uploads them.
+      if (item.file.__gcsUploadedResult) {
+        return Promise.resolve(item.file.__gcsUploadedResult);
+      }
       return window.GCSUpload.uploadSingleFile({
         file: item.file,
         fileId: item.id,
@@ -437,9 +442,20 @@
         contentType: item.file.type || 'image/jpeg',
         fileSize: item.file.size,
         uploadType: 'comments'
-      }, currentCaseId, csrfToken).catch(function(err) {
-        var wrapped = new Error(t('comments.images.upload_failed', { name: item.file.name }));
+      }, currentCaseId, csrfToken).then(function(result) {
+        item.file.__gcsUploadedResult = result;
+        return result;
+      }).catch(function(err) {
+        // Surface the real reason (session, access, size/type, stall)
+        // instead of a bare "couldn't upload" that hides the cause.
+        var reason = err && err.message ? err.message.replace(/\.+$/, '') : '';
+        var wrapped = new Error(
+          reason
+            ? t('comments.images.upload_failed_reason', { name: item.file.name, reason: reason })
+            : t('comments.images.upload_failed', { name: item.file.name })
+        );
         wrapped.isCommentImageError = true;
+        if (err && err.sessionExpired) { wrapped.sessionExpired = true; }
         throw wrapped;
       });
     }));

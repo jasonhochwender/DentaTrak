@@ -49,6 +49,16 @@
     }
   }
 
+  // Extensions the server accepts for case attachments. Mirrors the extension
+  // lists in api/appConfig.php + api/upload-signed-url.php so obviously-wrong
+  // files are rejected in the browser instead of round-tripping to a 400 that
+  // used to surface as "check your internet connection".
+  var ALLOWED_EXTENSIONS = [
+    'stl', 'obj', 'ply', 'dcm',
+    'jpg', 'jpeg', 'png', 'gif', 'webp', 'tiff', 'tif', 'bmp', 'svg',
+    'pdf', 'zip'
+  ];
+
   // --- Type-specific per-file limits (must mirror appConfig.php) ---
   var FILE_SIZE_LIMITS = {
     // 3D scan files
@@ -110,6 +120,82 @@
   }
 
   /**
+   * Lowercased file extension (without dot), empty string when absent.
+   * @param {string} filename
+   * @returns {string}
+   */
+  function fileExt(filename) {
+    var parts = (filename || '').split('.');
+    return parts.length > 1 ? (parts.pop() || '').toLowerCase() : '';
+  }
+
+  /**
+   * Fire-and-forget upload-failure report so production failures can be
+   * correlated with server logs via request_id. Only sanitized enum/numeric
+   * fields are sent - never filenames, file contents, or patient data.
+   * @param {Object} info - {request_id?, stage, http_status?, error_class, file_size?, ext?, upload_type?}
+   */
+  function reportUploadFailure(info) {
+    try {
+      var meta = document.querySelector('meta[name="csrf-token"]');
+      var token = meta ? meta.getAttribute('content') : null;
+      if (!token) { return; }
+      fetch('api/log-upload-error.php', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRF-Token': token
+        },
+        credentials: 'same-origin',
+        keepalive: true,
+        body: JSON.stringify({
+          request_id: info.request_id || null,
+          stage: info.stage || 'unknown',
+          http_status: info.http_status || 0,
+          error_class: info.error_class || 'unknown',
+          file_size: info.file_size || 0,
+          ext: info.ext || '',
+          upload_type: info.upload_type || ''
+        })
+      }).catch(function() { /* reporting must never break uploads */ });
+    } catch (e) { /* ignore */ }
+  }
+
+  /**
+   * Map a signed-URL error response to a localized message. The server sends
+   * a machine-readable error_code (plus English fallback text); known codes
+   * map to client-side translations so the toast is never a misleading
+   * "check your internet connection".
+   * @param {number} status - HTTP status
+   * @param {Object} data - Parsed response body (may be empty)
+   * @returns {string} Localized user-facing message
+   */
+  function signedUrlErrorMessage(status, data) {
+    var code = (data && data.error_code) || '';
+    var serverMsg = (data && (data.message || data.error)) || '';
+    if (status === 401) {
+      return t('attachments.upload_errors.session_expired');
+    }
+    if (status === 403 || status === 404) {
+      return serverMsg || t('attachments.upload_errors.access_denied');
+    }
+    if (code) {
+      var params = {};
+      if (data.limit) { params.limit = data.limit; }
+      if (data.ext) { params.ext = data.ext; }
+      var localized = t('attachments.upload_errors.' + code, params);
+      if (localized) { return localized; }
+    }
+    if (status === 413) {
+      return t('attachments.upload_errors.payload_too_large');
+    }
+    if (status >= 500) {
+      return t('attachments.upload_errors.server_error', { status: status });
+    }
+    return serverMsg || t('attachments.upload_errors.unknown', { status: status });
+  }
+
+  /**
    * Upload all files from the case form to GCS via signed URLs
    * 
    * @param {HTMLFormElement} form - The case form element
@@ -160,7 +246,26 @@
 
       // --- Enforce file count ---
       if (allFiles.length > GCS_MAX_FILE_COUNT) {
-        reject(new Error(t('attachments.upload_max_count', { max: GCS_MAX_FILE_COUNT, count: allFiles.length })));
+        reportUploadFailure({ stage: 'client-validation', error_class: 'too_many', file_size: 0, ext: '', upload_type: allFiles[0].uploadType });
+        var vErr = new Error(t('attachments.upload_max_count', { max: GCS_MAX_FILE_COUNT, count: allFiles.length }));
+        vErr.uploadStage = 'client-validation';
+        reject(vErr);
+        return;
+      }
+
+      // --- Reject unsupported extensions before any upload begins ---
+      var unsupported = allFiles.filter(function(f) {
+        var ext = (f.fileName.split('.').pop() || '').toLowerCase();
+        return ALLOWED_EXTENSIONS.indexOf(ext) === -1;
+      });
+      if (unsupported.length > 0) {
+        unsupported.forEach(function(f) {
+          reportUploadFailure({ stage: 'client-validation', error_class: 'unsupported_type', file_size: f.fileSize, ext: fileExt(f.fileName), upload_type: f.uploadType });
+        });
+        var badNames = unsupported.map(function(f) { return f.fileName; }).join(', ');
+        var vErr = new Error(t('attachments.upload_unsupported_type', { files: badNames }));
+        vErr.uploadStage = 'client-validation';
+        reject(vErr);
         return;
       }
 
@@ -189,23 +294,41 @@
           }
         });
         var names = oversized.map(function(o) { return o.name + ' (' + formatFileSize(o.size) + ')'; });
-        reject(new Error(t('attachments.upload_over_limit_files', { messages: msgs.join('. '), files: names.join(', ') })));
+        oversized.forEach(function(f) {
+          reportUploadFailure({ stage: 'client-validation', error_class: 'too_large', file_size: f.size, ext: fileExt(f.name), upload_type: '' });
+        });
+        var vErr = new Error(t('attachments.upload_over_limit_files', { messages: msgs.join('. '), files: names.join(', ') }));
+        vErr.uploadStage = 'client-validation';
+        reject(vErr);
         return;
       }
 
       // --- Enforce total size ---
       if (totalSize > GCS_MAX_TOTAL_SIZE) {
-        reject(new Error(t('attachments.upload_total_exceeded', { max: formatFileSize(GCS_MAX_TOTAL_SIZE), total: formatFileSize(totalSize) })));
+        reportUploadFailure({ stage: 'client-validation', error_class: 'total_exceeded', file_size: totalSize, ext: '', upload_type: '' });
+        var vErr = new Error(t('attachments.upload_total_exceeded', { max: formatFileSize(GCS_MAX_TOTAL_SIZE), total: formatFileSize(totalSize) }));
+        vErr.uploadStage = 'client-validation';
+        reject(vErr);
         return;
       }
 
-      // Upload all files with controlled concurrency (max 3 parallel)
+      // Upload all files with controlled concurrency (max 3 parallel).
+      // Files tagged with __gcsUploadedResult already succeeded on a previous
+      // submit attempt - reuse their storage metadata instead of re-uploading.
       var uploaded = [];
       var errors = [];
-      var queue = allFiles.slice();
+      var queue = [];
+      allFiles.forEach(function(item) {
+        if (item.file && item.file.__gcsUploadedResult) {
+          console.log('[GCS-Upload] Reusing prior upload for:', item.fileName);
+          uploaded.push(item.file.__gcsUploadedResult);
+        } else {
+          queue.push(item);
+        }
+      });
       var activeCount = 0;
       var totalCount = allFiles.length;
-      var completedCount = 0;
+      var completedCount = uploaded.length;
       
       // Generate unique IDs for each file for tracking
       queue.forEach(function(item, idx) {
@@ -225,7 +348,14 @@
           if (errors.length > 0) {
             var failedNames = errors.map(function(e) { return e.fileName; }).join(', ');
             console.error('[GCS-Upload] Upload batch failed:', errors.length, 'errors');
-            reject(new Error(t('attachments.upload_failed_files', { files: failedNames, error: errors[0].error })));
+            var batchError = new Error(t('attachments.upload_failed_files', { files: failedNames, error: errors[0].error }));
+            // Structured failure info so the caller can classify instead of
+            // guessing from the message text.
+            batchError.uploadStage = 'batch';
+            batchError.uploadErrors = errors;
+            batchError.uploadedFiles = uploaded;
+            if (errors[0].sessionExpired) { batchError.sessionExpired = true; }
+            reject(batchError);
           } else {
             console.log('[GCS-Upload] All', totalCount, 'files uploaded successfully');
             resolve(uploaded);
@@ -255,6 +385,8 @@
           .then(function(result) {
             console.log('[GCS-Upload] [' + item.fileId + '] Upload complete:', item.fileName);
             uploaded.push(result);
+            // Tag the File so a resubmit can skip re-uploading it.
+            if (item.file) { item.file.__gcsUploadedResult = result; }
             completedCount++;
             activeCount--;
             if (onProgress) {
@@ -282,8 +414,16 @@
               }, delay);
             } else {
               // No more retries or non-retryable error
-              console.error('[GCS-Upload] [' + item.fileId + '] Upload failed permanently:', item.fileName, '-', err.message);
-              errors.push({ fileName: item.fileName, error: err.message });
+              console.error('[GCS-Upload] [' + item.fileId + '] Upload failed permanently:', item.fileName, '-', err.message, '(stage:', err.uploadStage || '?', 'status:', err.uploadHttpStatus || 0, 'request:', err.uploadRequestId || '-', ')');
+              errors.push({
+                fileName: item.fileName,
+                error: err.message,
+                stage: err.uploadStage || 'unknown',
+                httpStatus: err.uploadHttpStatus || 0,
+                errorClass: err.uploadErrorClass || 'unknown',
+                requestId: err.uploadRequestId || null,
+                sessionExpired: err.sessionExpired === true
+              });
               completedCount++;
               // Start next upload even on error (don't block queue)
               startNextUpload();
@@ -295,8 +435,11 @@
         startNextUpload();
       }
 
-      // Kick off initial batch (up to CONCURRENT_UPLOADS)
+      // Kick off initial batch (up to CONCURRENT_UPLOADS). checkCompletion
+      // also covers the all-files-already-uploaded retry path where the
+      // queue starts empty.
       startNextUpload();
+      checkCompletion();
     });
   }
 
@@ -309,10 +452,47 @@
    * @param {string} csrfToken - CSRF token
    * @returns {Promise<Object>} Uploaded file metadata
    */
+  /**
+   * Report every failed attempt (including each retry) so the server log
+   * shows per-attempt failures correlatable by request_id. Errors marked
+   * skipUploadReport (e.g. already-reported client validation) pass through.
+   */
   function uploadSingleFile(fileInfo, caseId, csrfToken) {
+    return uploadSingleFileAttempt(fileInfo, caseId, csrfToken).catch(function(err) {
+      if (err && !err.skipUploadReport) {
+        reportUploadFailure({
+          request_id: err.uploadRequestId || null,
+          stage: err.uploadStage || 'unknown',
+          http_status: err.uploadHttpStatus || 0,
+          error_class: err.uploadErrorClass || 'unknown',
+          file_size: fileInfo.fileSize || 0,
+          ext: fileExt(fileInfo.fileName),
+          upload_type: fileInfo.uploadType || ''
+        });
+      }
+      throw err;
+    });
+  }
+
+  function uploadSingleFileAttempt(fileInfo, caseId, csrfToken) {
     var fileId = fileInfo.fileId || 'unknown';
     console.log('[GCS-Upload] [' + fileId + '] Requesting signed URL for:', fileInfo.fileName, '(' + fileInfo.fileSize + ' bytes)');
-    // Step 1: Get signed URL from backend
+
+    function makeStageError(message, stage, status, errorClass, requestId) {
+      var err = new Error(message);
+      err.uploadStage = stage;
+      err.uploadHttpStatus = status || 0;
+      err.uploadErrorClass = errorClass || 'unknown';
+      err.uploadRequestId = requestId || null;
+      if (errorClass === 'session_expired') { err.sessionExpired = true; }
+      return err;
+    }
+
+    // Step 1: Get signed URL from backend (30s ceiling so a stalled request
+    // cannot leave the submit spinner running forever)
+    var signedUrlController = new AbortController();
+    var signedUrlTimeoutId = setTimeout(function() { signedUrlController.abort(); }, 30000);
+
     return fetch('api/upload-signed-url.php', {
       method: 'POST',
       headers: {
@@ -326,22 +506,56 @@
         file_size: fileInfo.fileSize,
         case_id: caseId,
         upload_type: fileInfo.uploadType
-      })
+      }),
+      signal: signedUrlController.signal
     })
     .then(function(response) {
+      clearTimeout(signedUrlTimeoutId);
       console.log('[GCS-Upload] [' + fileId + '] Signed URL response status:', response.status);
       if (!response.ok) {
-        return response.json().then(function(data) {
-          console.error('[GCS-Upload] [' + fileId + '] Signed URL error:', data);
-          throw new Error(data.error || t('attachments.upload_url_failed', { status: response.status }));
+        // Response may be non-JSON (proxy HTML error) - parse defensively.
+        return response.json().catch(function() { return {}; }).then(function(data) {
+          console.error('[GCS-Upload] [' + fileId + '] Signed URL error:', response.status, data);
+          var requestId = data.request_id || null;
+          var errorClass = 'unknown';
+          var retryable = false;
+          if (response.status === 401) {
+            errorClass = 'session_expired';
+          } else if (response.status === 403 || response.status === 404) {
+            errorClass = 'access_denied';
+          } else if (response.status === 413) {
+            errorClass = 'payload_too_large';
+          } else if (response.status === 400) {
+            errorClass = 'validation';
+          } else if (response.status >= 500 || response.status === 408 || response.status === 429) {
+            errorClass = 'server_error';
+            retryable = true;
+          }
+          var err = makeStageError(signedUrlErrorMessage(response.status, data), 'signed-url', response.status, errorClass, requestId);
+          err.uploadRetryable = retryable;
+          throw err;
         });
       }
       return response.json();
+    }, function(networkErr) {
+      clearTimeout(signedUrlTimeoutId);
+      // fetch() rejected - AbortError (timeout) or a genuine network failure.
+      var err;
+      if (networkErr && networkErr.name === 'AbortError') {
+        console.error('[GCS-Upload] [' + fileId + '] Signed URL request timed out');
+        err = makeStageError(t('attachments.upload_timeout'), 'signed-url', 0, 'timeout', null);
+      } else {
+        console.error('[GCS-Upload] [' + fileId + '] Signed URL request network failure:', networkErr && networkErr.message);
+        err = makeStageError(t('attachments.upload_network_error'), 'signed-url', 0, 'network', null);
+      }
+      err.uploadRetryable = true;
+      throw err;
     })
     .then(function(data) {
       if (!data.success || !data.signed_url) {
         console.error('[GCS-Upload] [' + fileId + '] Invalid signed URL response:', data);
-        throw new Error(data.error || t('attachments.upload_signed_url_failed'));
+        var badErr = makeStageError(signedUrlErrorMessage(200, data), 'signed-url', 200, 'invalid_response', data.request_id || null);
+        throw badErr;
       }
 
       console.log('[GCS-Upload] [' + fileId + '] Got signed URL, starting PUT to GCS:', data.storage_path);
@@ -390,17 +604,17 @@
             cleanup();
             xhr.abort();
             logThroughput(false);
-            rejectUpload(new Error(t('attachments.upload_timeout')));
+            rejectUpload(makeStageError(t('attachments.upload_timeout'), 'gcs-put', 0, 'timeout', data.request_id));
             return;
           }
-          
+
           // Check for stall (no progress)
           if (timeSinceProgress > STALL_TIMEOUT_MS) {
             console.error('[GCS-Upload] [' + fileId + '] Upload stalled - no progress for ' + Math.round(timeSinceProgress / 1000) + ' seconds');
             cleanup();
             xhr.abort();
             logThroughput(false);
-            var stalledError = new Error(t('attachments.upload_stalled'));
+            var stalledError = makeStageError(t('attachments.upload_stalled'), 'gcs-put', 0, 'stalled', data.request_id);
             stalledError.uploadRetryable = true;
             rejectUpload(stalledError);
             return;
@@ -440,16 +654,20 @@
             });
           } else {
             logThroughput(false);
-            console.error('[GCS-Upload] [' + fileId + '] GCS PUT failed:', xhr.status, xhr.statusText);
-            rejectUpload(new Error(t('attachments.upload_http_failed', { status: xhr.status })));
+            console.error('[GCS-Upload] [' + fileId + '] GCS PUT failed:', xhr.status, xhr.statusText, '(request:', data.request_id || '-', ')');
+            // Transient GCS rejections (expired URL 403, rate limit, server
+            // errors) are retried with a fresh signed URL by the caller.
+            var putError = makeStageError(t('attachments.upload_http_failed', { status: xhr.status }), 'gcs-put', xhr.status, 'put_rejected', data.request_id);
+            putError.uploadRetryable = (xhr.status === 403 || xhr.status === 408 || xhr.status === 429 || xhr.status >= 500);
+            rejectUpload(putError);
           }
         });
-        
+
         xhr.addEventListener('error', function() {
           cleanup();
           logThroughput(false);
           console.error('[GCS-Upload] [' + fileId + '] GCS PUT network error');
-          var networkError = new Error(t('attachments.upload_network_error'));
+          var networkError = makeStageError(t('attachments.upload_network_error'), 'gcs-put', 0, 'network', data.request_id);
           networkError.uploadRetryable = true;
           rejectUpload(networkError);
         });

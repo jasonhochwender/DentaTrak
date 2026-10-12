@@ -220,3 +220,5 @@ NUL
 !/tests/archived-case-comments-e2e-test.js
 !/tests/practice-user-restore-test.php
 !/tests/practice-user-restore-e2e-test.js
+!/tests/upload-failure-handling-test.php
+!/tests/upload-failure-e2e-test.js
