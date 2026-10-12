@@ -436,7 +436,21 @@ if ($method === 'GET') {
         }
 
         // SECURITY: Assigned Only users may only comment on cases assigned to them.
-        requireCaseAccess($caseId, $currentPracticeId);
+        $caseInfo = requireCaseAccess($caseId, $currentPracticeId);
+
+        // Archived cases are read-only history - comments cannot be added,
+        // edited, or removed until the case is restored. The 'archived' flag
+        // lets the client switch its composer to read-only and keep any
+        // unsaved draft text visible for copying.
+        if ((int)($caseInfo['archived'] ?? 0) === 1) {
+            http_response_code(400);
+            echo json_encode([
+                'success' => false,
+                'archived' => true,
+                'message' => t('api.comments.case_archived')
+            ]);
+            exit;
+        }
 
         // Resolve submitted mentions against active, case-authorized users.
         $submittedMentions = $input['mentions'] ?? [];
@@ -596,7 +610,19 @@ if ($method === 'GET') {
 
             // SECURITY: Verify the requesting user can access the comment's case
             // in addition to the admin role requirement.
-            requireCaseAccess($comment['case_id'], $currentPracticeId);
+            $commentCase = requireCaseAccess($comment['case_id'], $currentPracticeId);
+
+            // Archived cases are read-only history - deleting their comments
+            // is blocked regardless of role (restore first).
+            if ((int)($commentCase['archived'] ?? 0) === 1) {
+                http_response_code(400);
+                echo json_encode([
+                    'success' => false,
+                    'archived' => true,
+                    'message' => t('api.comments.case_archived')
+                ]);
+                exit;
+            }
 
             // Check if user is admin
             $stmt = $pdo->prepare("

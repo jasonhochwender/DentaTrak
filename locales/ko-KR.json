@@ -226,6 +226,7 @@
         "comments": {
             "title": "댓글",
             "empty": "아직 댓글이 없습니다",
+            "archived_readonly": "보관된 케이스의 댓글은 읽기 전용입니다.",
             "mentions_hint": "@멘션으로 팀원에게 알림을 보낼 수 있습니다",
             "hint": "Enter로 추가, Shift+Enter로 줄 바꿈",
             "add_comment": "댓글 추가",
@@ -2950,6 +2951,7 @@
             "image_too_large": "{name}: .{ext} 파일의 {limit}MB 제한 초과",
             "images_invalid": "하나 이상의 이미지를 첨부할 수 없습니다: {details}",
             "only_images_allowed": "댓글에는 이미지 파일만 첨부할 수 있습니다.",
+            "case_archived": "이 케이스는 보관되어 댓글이 읽기 전용입니다. 댓글을 추가하거나 변경하려면 케이스를 복원하세요.",
             "existing_case_required": "댓글 이미지에는 기존 케이스 ID가 필요합니다."
         },
         "auth": {

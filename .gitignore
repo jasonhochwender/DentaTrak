@@ -216,3 +216,5 @@ NUL
 !/tests/ask-dentatrak-metrics-e2e-test.js
 !/tests/ask-dentatrak-custom-terminal-e2e-test.js
 !/tests/download-all-state-e2e-test.js
+!/tests/archived-case-comments-test.php
+!/tests/archived-case-comments-e2e-test.js

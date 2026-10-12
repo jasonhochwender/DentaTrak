@@ -226,6 +226,7 @@
         "comments": {
             "title": "Comments",
             "empty": "No comments yet",
+            "archived_readonly": "Comments are read-only for archived cases.",
             "mentions_hint": "Use @mentions to notify team members",
             "hint": "Press Enter to add, Shift+Enter for new line",
             "add_comment": "Add Comment",
@@ -2950,6 +2951,7 @@
             "image_too_large": "{name}: exceeds {limit} MB limit for .{ext} files",
             "images_invalid": "One or more images could not be attached: {details}",
             "only_images_allowed": "Only image files can be attached to comments.",
+            "case_archived": "This case is archived, so comments are read-only. Restore the case to add or change comments.",
             "existing_case_required": "Comment images require an existing case ID."
         },
         "auth": {

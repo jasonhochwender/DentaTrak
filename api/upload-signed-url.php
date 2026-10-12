@@ -145,7 +145,19 @@ try {
     // existing cases before issuing an upload URL. requireCaseAccess()
     // exits with a JSON error itself on failure.
     if ($caseId && $caseId !== 'new') {
-        requireCaseAccess($caseId, $currentPracticeId);
+        $caseInfo = requireCaseAccess($caseId, $currentPracticeId);
+
+        // Comment images feed the comment composer only; archived cases are
+        // read-only, so staging comment attachments is rejected here too.
+        if ($uploadType === 'comments' && (int)($caseInfo['archived'] ?? 0) === 1) {
+            http_response_code(400);
+            echo json_encode([
+                'success' => false,
+                'archived' => true,
+                'error' => t('api.comments.case_archived')
+            ]);
+            exit;
+        }
     }
 
     // --- Generate signed URL ---

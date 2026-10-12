@@ -983,6 +983,7 @@
         "comments": {
             "title": "Kommentare",
             "empty": "Noch keine Kommentare",
+            "archived_readonly": "Kommentare sind für archivierte Fälle schreibgeschützt.",
             "mentions_hint": "Verwenden Sie @Erwähnungen, um Teammitglieder zu benachrichtigen",
             "hint": "Eingabetaste zum Hinzufügen, Umschalt+Eingabe für neue Zeile",
             "add_comment": "Kommentar hinzufügen",
@@ -1294,6 +1295,7 @@
             "image_too_large": "{name}: überschreitet das Limit von {limit} MB für .{ext}-Dateien",
             "images_invalid": "Ein oder mehrere Bilder konnten nicht angehängt werden: {details}",
             "only_images_allowed": "Nur Bilddateien können an Kommentare angehängt werden.",
+            "case_archived": "Dieser Fall wurde archiviert, daher sind Kommentare schreibgeschützt. Stellen Sie den Fall wieder her, um Kommentare hinzuzufügen oder zu ändern.",
             "existing_case_required": "Kommentarbilder erfordern eine bestehende Fall-ID."
         },
         "auth": {

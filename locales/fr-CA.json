@@ -226,6 +226,7 @@
         "comments": {
             "title": "Commentaires",
             "empty": "Aucun commentaire pour le moment",
+            "archived_readonly": "Les commentaires sont en lecture seule pour les cas archivés.",
             "mentions_hint": "Utilisez les @mentions pour notifier les membres de l'équipe",
             "hint": "Appuyez sur Entrée pour ajouter, Maj+Entrée pour une nouvelle ligne",
             "add_comment": "Ajouter un commentaire",
@@ -2950,6 +2951,7 @@
             "image_too_large": "{name} : dépasse la limite de {limit} Mo pour les fichiers .{ext}",
             "images_invalid": "Une ou plusieurs images n'ont pas pu être jointes : {details}",
             "only_images_allowed": "Seuls les fichiers image peuvent être joints aux commentaires.",
+            "case_archived": "Ce cas est archivé : les commentaires sont en lecture seule. Restaurez le cas pour ajouter ou modifier des commentaires.",
             "existing_case_required": "Les images de commentaire nécessitent un identifiant de cas existant."
         },
         "auth": {

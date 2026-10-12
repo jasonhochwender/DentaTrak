@@ -2899,6 +2899,7 @@
         "comments": {
             "title": "Comentários",
             "empty": "Ainda não há comentários",
+            "archived_readonly": "Os comentários são somente leitura para casos arquivados.",
             "mentions_hint": "Use @menções para notificar membros da equipe",
             "hint": "Pressione Enter para adicionar, Shift+Enter para nova linha",
             "add_comment": "Adicionar comentário",
@@ -3828,6 +3829,7 @@
             "image_too_large": "{name}: excede o limite de {limit} MB para arquivos .{ext}",
             "images_invalid": "Uma ou mais imagens não puderam ser anexadas: {details}",
             "only_images_allowed": "Apenas arquivos de imagem podem ser anexados a comentários.",
+            "case_archived": "Este caso está arquivado, portanto os comentários são somente leitura. Restaure o caso para adicionar ou alterar comentários.",
             "existing_case_required": "Imagens de comentários exigem um ID de caso existente."
         },
         "auth": {

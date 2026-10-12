@@ -17,6 +17,14 @@
   var selectedMentions = []; // { user_id, token, name }
   var commentSubmitting = false;
   var commentInFlightPromise = null;
+  // True while the open case is archived: the composer is read-only and the
+  // server rejects every comment mutation. Set at init from the case form's
+  // archived marker, or live when the server reports the case was archived
+  // under us.
+  var commentsArchived = false;
+  // Last postComment failure message - lets the shared save flow surface the
+  // real reason (e.g. "case was archived") instead of a generic failure.
+  var lastCommentError = null;
 
   // Draft images staged in the composer: { id, file, previewUrl }.
   // Files upload only when the comment is posted, so an abandoned draft can
@@ -34,6 +42,52 @@
   var COMMENT_IMAGE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'tiff', 'tif', 'bmp', 'svg'];
 
   /**
+   * True when the case currently open in the modal is archived. The form's
+   * dataset marker is set by populateCreateCaseForm()/viewArchivedCase()
+   * before comments initialize, so switching between active and archived
+   * cases always re-reads the right value.
+   */
+  function isOpenCaseArchived() {
+    var form = document.getElementById('createCaseForm');
+    return !!(form && form.dataset.caseArchived === '1');
+  }
+
+  /**
+   * Show or hide the comment mutation controls for the current archive state.
+   * Existing comments and their images stay visible either way.
+   * opts.keepDraftVisible: used when the case was archived mid-edit — the
+   * composer stays on screen in read-only mode so the unsaved text can be
+   * copied, instead of being hidden.
+   */
+  function applyArchivedCommentState(opts) {
+    var wrapper = document.querySelector('#caseCommentsPanel .case-comment-input-wrapper');
+    var notice = document.getElementById('caseCommentsArchivedNotice');
+    var input = document.getElementById('caseCommentInput');
+    var submitBtn = document.getElementById('caseCommentSubmit');
+    var attachBtn = document.getElementById('caseCommentAttachBtn');
+
+    if (notice) notice.hidden = !commentsArchived;
+    if (!wrapper) return;
+
+    if (!commentsArchived) {
+      wrapper.hidden = false;
+      if (input) input.readOnly = false;
+      if (attachBtn) attachBtn.disabled = false;
+      updateSubmitButton(input, submitBtn);
+      return;
+    }
+
+    if (opts && opts.keepDraftVisible && window.caseCommentHasDraft()) {
+      wrapper.hidden = false;
+      if (input) input.readOnly = true;
+      if (attachBtn) attachBtn.disabled = true;
+      if (submitBtn) submitBtn.disabled = true;
+    } else {
+      wrapper.hidden = true;
+    }
+  }
+
+  /**
    * Initialize comments for a case
    */
   window.initCaseComments = function(caseId) {
@@ -42,6 +96,8 @@
     resetPendingImages();
     revokeCommentImageUrlCache();
     closeMentionAutocomplete();
+    commentsArchived = isOpenCaseArchived();
+    lastCommentError = null;
     // Drop the previous case's list and count before this case's data arrives.
     var list = document.getElementById('caseCommentsList');
     if (list) list.innerHTML = '';
@@ -50,6 +106,7 @@
     loadPracticeUsers();
     setupCommentInput();
     commentSubmitting = false;
+    applyArchivedCommentState();
     updateSubmitButton(
       document.getElementById('caseCommentInput'),
       document.getElementById('caseCommentSubmit')
@@ -684,7 +741,7 @@
   function updateSubmitButton(input, submitBtn) {
     if (!submitBtn) return;
     var hasDraft = (input && input.value.trim()) || pendingCommentImages.length > 0;
-    submitBtn.disabled = commentSubmitting || !hasDraft;
+    submitBtn.disabled = commentSubmitting || commentsArchived || !hasDraft;
     // When case-detail edits are pending, this button saves those too - say so.
     var caseDirty = typeof window.caseFormHasUnsavedChanges === 'function' &&
       window.caseFormHasUnsavedChanges();
@@ -743,6 +800,16 @@
     if (!text && pendingCommentImages.length === 0) return Promise.resolve(true);
     if (commentSubmitting) return commentInFlightPromise || Promise.resolve(false);
 
+    // Client-known archived case: skip the request entirely and explain. The
+    // server enforces the same rule regardless.
+    if (commentsArchived) {
+      lastCommentError = t('cases.comments.archived_readonly');
+      if (typeof showToast === 'function') {
+        showToast(lastCommentError, 'error');
+      }
+      return Promise.resolve(false);
+    }
+
     // Disable while submitting
     commentSubmitting = true;
     if (submitBtn) submitBtn.disabled = true;
@@ -781,6 +848,7 @@
         selectedMentions = [];
         resetPendingImages();
         loadComments(currentCaseId);
+        lastCommentError = null;
 
         // Show success feedback
         if (typeof showToast === 'function') {
@@ -788,8 +856,15 @@
         }
         return true;
       }
+      lastCommentError = data.message || t('comments.toast_add_error');
+      // The case was archived while the draft was open: flip the composer to
+      // read-only but keep the draft text on screen so it can be copied.
+      if (data && data.archived === true) {
+        commentsArchived = true;
+        applyArchivedCommentState({ keepDraftVisible: true });
+      }
       if (typeof showToast === 'function') {
-        showToast(data.message || t('comments.toast_add_error'), 'error');
+        showToast(lastCommentError, 'error');
       }
       return false;
     })
@@ -799,12 +874,15 @@
         // Upload-level failure already carries a localized, file-specific
         // message; the draft stays intact so the user can retry or remove
         // the failing image.
+        lastCommentError = error.message;
         if (typeof showToast === 'function') {
           showToast(error.message, 'error');
         }
       } else if (typeof NetworkErrorHandler !== 'undefined') {
+        lastCommentError = t('comments.toast_add_error_retry');
         NetworkErrorHandler.handle(error, 'adding comment');
       } else if (typeof showToast === 'function') {
+        lastCommentError = t('comments.toast_add_error_retry');
         showToast(t('comments.toast_add_error_retry'), 'error');
       }
       return false;
@@ -812,10 +890,14 @@
     .finally(function() {
       commentSubmitting = false;
       commentInFlightPromise = null;
-      input.disabled = false;
-      if (attachBtn) attachBtn.disabled = false;
-      updateSubmitButton(input, submitBtn);
-      input.focus();
+      // Respect an archived flip that arrived with this response: controls
+      // stay disabled (or hidden) instead of being re-enabled.
+      if (!commentsArchived) {
+        input.disabled = false;
+        if (attachBtn) attachBtn.disabled = false;
+        updateSubmitButton(input, submitBtn);
+        input.focus();
+      }
     });
 
     return commentInFlightPromise;
@@ -823,6 +905,14 @@
 
   // Public poster used by the shared "Save All Changes" flow.
   window.postCaseComment = postComment;
+
+  /**
+   * The last comment-post failure message, or null - lets the shared save
+   * flow surface the real reason instead of a generic failure toast.
+   */
+  window.caseCommentLastError = function() {
+    return lastCommentError;
+  };
 
   /**
    * Comment submit entry point (button click / Enter). Routes through the
@@ -1028,6 +1118,11 @@
     resetPendingImages();
     revokeCommentImageUrlCache();
     closeMentionAutocomplete();
+    // Reset archive state so a previously archived case's read-only mode
+    // never leaks into the next case that opens.
+    commentsArchived = false;
+    lastCommentError = null;
+    applyArchivedCommentState();
   };
 
 })();

@@ -2417,6 +2417,7 @@ endif;
                     </div>
                   </div>
                 </div>
+                <div id="caseCommentsArchivedNotice" class="case-comments-archived-notice" hidden><?php echo t('cases.comments.archived_readonly'); ?></div>
               </div>
             </div>
 <?php endif; ?>

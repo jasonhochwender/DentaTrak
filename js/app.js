@@ -8187,11 +8187,15 @@ document.addEventListener('DOMContentLoaded', function () {
         } else {
           // Case saved; the comment is the only thing left. Re-baseline the
           // form so the just-saved values are not treated as unsaved edits,
-          // and keep the draft in place for retry.
+          // and keep the draft in place for retry. Prefer the comment
+          // module's recorded reason (e.g. "case was archived") over the
+          // generic failure message.
           originalFormData = new FormData(form);
           hasUnsavedChanges = false;
           if (typeof showToast === 'function') {
-            showToast(t('cases.toast.case_saved_comment_failed'), 'error');
+            var commentError = typeof window.caseCommentLastError === 'function'
+              ? window.caseCommentLastError() : null;
+            showToast(commentError || t('cases.toast.case_saved_comment_failed'), 'error');
           }
           if (typeof window.updateCaseCommentSubmitState === 'function') {
             window.updateCaseCommentSubmitState();
