@@ -2220,6 +2220,10 @@ document.addEventListener('DOMContentLoaded', function () {
     window.canEditCasesUsers = loadedCanEditCasesUsers || {};
     window.isLabUsers = loadedIsLabUsers || {};
 
+    // A fresh member list invalidates any staged removals (settings reload,
+    // "Close Without Saving", or a completed save all re-run this).
+    window.pendingRemovedUsers = {};
+
     // Add limited-visibility class to body if current user has limited visibility
     // This is used by real-time updates to know whether to show/hide cases based on assignment
     var currentEmail = currentUserEmail.toLowerCase();
@@ -3114,6 +3118,12 @@ document.addEventListener('DOMContentLoaded', function () {
     window.isPracticeAdmin = false;
   }
   window.practiceCreatorEmail = null; // Lowercased email of the practice creator
+  // Members whose removal is staged but not yet saved. Keyed by lowercased
+  // email -> { email, wasAdmin, lastLogin, limited, analytics, edit, isLab }.
+  // Only server-persisted members get an entry (unsaved adds are simply
+  // dropped); the pending rows render with Undo, and re-adding the same
+  // address cancels the removal instead of hitting "already a member".
+  window.pendingRemovedUsers = {};
   var addGmailUserBtn = document.getElementById('addGmailUser');
   var newGmailUserInput = document.getElementById('newGmailUser');
   var gmailErrorElement = document.getElementById('gmailError');
@@ -3238,9 +3248,25 @@ document.addEventListener('DOMContentLoaded', function () {
       return;
     }
 
-    // Check for duplicate
-    if (window.gmailUsers.includes(email)) {
-      gmailErrorElement.textContent = t('settings.users.practice_users.validation.duplicate');
+    // Check for duplicate in the CURRENT list, normalized the way the server
+    // and the rest of this module compare addresses (case-insensitive; the
+    // input was already trimmed). Both membership lists are checked.
+    var lowerEmail = email.toLowerCase();
+    if (listContainsEmail(window.gmailUsers, lowerEmail) ||
+        listContainsEmail(window.adminUsers, lowerEmail)) {
+      gmailErrorElement.textContent = t('settings.users.practice_users.validation.already_in_practice');
+      return;
+    }
+
+    // Re-adding a member whose removal is still pending (unsaved): cancel
+    // the removal and restore their existing entry - role and access flags
+    // included - instead of creating a duplicate or another invitation.
+    if (window.pendingRemovedUsers && window.pendingRemovedUsers[lowerEmail]) {
+      restorePendingRemovedUser(lowerEmail);
+      newGmailUserInput.value = '';
+      if (typeof showToast === 'function') {
+        showToast(t('settings.users.practice_users.restored'), 'success');
+      }
       return;
     }
 
@@ -3626,7 +3652,9 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     var keys = Object.keys(usersMap);
-    if (!keys.length) {
+    var pendingRemovals = window.pendingRemovedUsers || {};
+    var pendingKeys = Object.keys(pendingRemovals);
+    if (!keys.length && !pendingKeys.length) {
       return;
     }
 
@@ -3681,6 +3709,19 @@ document.addEventListener('DOMContentLoaded', function () {
     var normalizedCreator = (window.practiceCreatorEmail || '').toLowerCase();
     var normalizedCurrent = (currentUserEmail || '').toLowerCase();
 
+    // Per-cell label (translated) shown only in the stacked phone-card
+    // layout, where the shared header row is hidden. Carries its own
+    // info tooltip so help stays attached to the correct permission.
+    function cellLabel(labelKey, tooltipKey) {
+      var lbl = document.createElement('span');
+      lbl.className = 'practice-user-cell-label';
+      var txt = document.createElement('span');
+      txt.textContent = t(labelKey);
+      lbl.appendChild(txt);
+      if (tooltipKey) lbl.appendChild(createInfoTooltip(t(tooltipKey)));
+      return lbl;
+    }
+
     keys.forEach(function(key) {
       var user = usersMap[key];
       var email = user.email;
@@ -3726,19 +3767,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
       infoWrapper.appendChild(userEmail);
       row.appendChild(infoWrapper);
-
-      // Per-cell label (translated) shown only in the stacked phone-card
-      // layout, where the shared header row is hidden. Carries its own
-      // info tooltip so help stays attached to the correct permission.
-      function cellLabel(labelKey, tooltipKey) {
-        var lbl = document.createElement('span');
-        lbl.className = 'practice-user-cell-label';
-        var txt = document.createElement('span');
-        txt.textContent = t(labelKey);
-        lbl.appendChild(txt);
-        if (tooltipKey) lbl.appendChild(createInfoTooltip(t(tooltipKey)));
-        return lbl;
-      }
 
       // Admin checkbox cell
       var adminCell = document.createElement('div');
@@ -3864,6 +3892,83 @@ document.addEventListener('DOMContentLoaded', function () {
       row.appendChild(removeCell);
       usersList.appendChild(row);
     });
+
+    // Pending removals: persisted members whose removal is staged until Save
+    // Settings runs. The row stays visible - frozen to the state captured at
+    // removal - with a note that removal only takes effect on save and an
+    // Undo control. They are not in gmailUsers/adminUsers, so saving without
+    // undoing still drops them from the submitted lists entirely.
+    pendingKeys.sort();
+    pendingKeys.forEach(function(lower) {
+      var entry = pendingRemovals[lower];
+
+      var row = document.createElement('div');
+      row.className = 'gmail-user-item practice-user-row pending-removal' + (showLabInsights ? ' has-lab-column' : '');
+
+      var infoWrapper = document.createElement('div');
+      infoWrapper.className = 'gmail-user-info';
+
+      var userEmail = document.createElement('div');
+      userEmail.className = 'gmail-user-email';
+      var emailTextSpan = document.createElement('span');
+      emailTextSpan.className = 'user-email-text';
+      emailTextSpan.textContent = entry.email;
+      emailTextSpan.title = entry.email;
+      userEmail.appendChild(emailTextSpan);
+      var note = document.createElement('span');
+      note.className = 'pending-removal-note';
+      note.textContent = t('settings.users.practice_users.pending_removal');
+      userEmail.appendChild(note);
+      infoWrapper.appendChild(userEmail);
+      row.appendChild(infoWrapper);
+
+      // Each permission cell renders the flag as it stood at removal,
+      // disabled - the values Undo/re-add will restore.
+      function frozenCell(cellClass, labelKey, tooltipKey, checked) {
+        var cell = document.createElement('div');
+        cell.className = cellClass;
+        cell.appendChild(cellLabel(labelKey, tooltipKey));
+        var cb = document.createElement('input');
+        cb.type = 'checkbox';
+        cb.checked = !!checked;
+        cb.disabled = true;
+        cell.appendChild(cb);
+        return cell;
+      }
+
+      row.appendChild(frozenCell('practice-user-admin-cell',
+        'settings.users.practice_users.admin', 'settings.users.practice_users.admin_tooltip',
+        entry.wasAdmin));
+      row.appendChild(frozenCell('practice-user-analytics-cell',
+        'settings.users.practice_users.insights', 'settings.users.practice_users.insights_tooltip',
+        entry.analytics !== undefined ? entry.analytics : true));
+      row.appendChild(frozenCell('practice-user-limited-cell',
+        'settings.users.practice_users.assigned_only', 'settings.users.practice_users.assigned_only_tooltip',
+        entry.limited));
+      if (showLabInsights) {
+        row.appendChild(frozenCell('practice-user-lab-cell',
+          'settings.users.practice_users.lab', 'settings.users.practice_users.lab_tooltip',
+          entry.isLab));
+      }
+
+      var removeCell = document.createElement('div');
+      removeCell.className = 'practice-user-remove-cell';
+      if (window.isPracticeAdmin) {
+        removeCell.appendChild(cellLabel('settings.users.practice_users.remove', null));
+        var undoBtn = document.createElement('button');
+        undoBtn.type = 'button';
+        undoBtn.className = 'btn-outline practice-user-undo-btn';
+        undoBtn.textContent = t('settings.users.practice_users.undo');
+        undoBtn.setAttribute('aria-label', t('settings.users.practice_users.undo') + ' ' + entry.email);
+        undoBtn.setAttribute('data-email', entry.email);
+        undoBtn.addEventListener('click', function() {
+          restorePendingRemovedUser(this.getAttribute('data-email').toLowerCase());
+        });
+        removeCell.appendChild(undoBtn);
+      }
+      row.appendChild(removeCell);
+      usersList.appendChild(row);
+    });
   }
 
   function setAdminFlagForEmail(email, makeAdmin) {
@@ -3976,6 +4081,34 @@ document.addEventListener('DOMContentLoaded', function () {
     removePracticeUser(email);
   }
 
+  function listContainsEmail(list, lower) {
+    if (!Array.isArray(list)) return false;
+    return list.some(function(e) {
+      return typeof e === 'string' && e.toLowerCase() === lower;
+    });
+  }
+
+  function findStoredUserEmail(lower) {
+    var lists = [window.gmailUsers || [], window.adminUsers || []];
+    for (var i = 0; i < lists.length; i++) {
+      for (var j = 0; j < lists[i].length; j++) {
+        if (typeof lists[i][j] === 'string' && lists[i][j].toLowerCase() === lower) {
+          return lists[i][j];
+        }
+      }
+    }
+    return null;
+  }
+
+  // True when the email belongs to a member the server already knows about
+  // (present in the last loaded/saved baseline). Only those removals are
+  // staged as "pending" - unsaved additions have nothing to undo.
+  function isPersistedPracticeUser(lower) {
+    var orig = window.originalSettingsValues || {};
+    return listContainsEmail(orig.gmailUsers, lower) ||
+      listContainsEmail(orig.adminUsers, lower);
+  }
+
   function removePracticeUser(email) {
     if (!window.isPracticeAdmin || !email) {
       return;
@@ -3987,6 +4120,24 @@ document.addEventListener('DOMContentLoaded', function () {
 
     if (lower === normalizedCreator || lower === normalizedCurrent) {
       return;
+    }
+
+    // Stage persisted members as pending removals, snapshotting the role and
+    // access flags they have right now so an Undo (or re-adding the address)
+    // restores exactly the state from immediately before removal. The member
+    // stays out of gmailUsers/adminUsers, so a save that keeps the removal
+    // drops them from the submitted lists entirely.
+    if (isPersistedPracticeUser(lower)) {
+      var storedEmail = findStoredUserEmail(lower) || email;
+      window.pendingRemovedUsers[lower] = {
+        email: storedEmail,
+        wasAdmin: listContainsEmail(window.adminUsers, lower),
+        lastLogin: window.gmailUserLogins ? window.gmailUserLogins[storedEmail] : undefined,
+        limited: window.limitedVisibilityUsers ? window.limitedVisibilityUsers[storedEmail] : undefined,
+        analytics: window.canViewAnalyticsUsers ? window.canViewAnalyticsUsers[storedEmail] : undefined,
+        edit: window.canEditCasesUsers ? window.canEditCasesUsers[storedEmail] : undefined,
+        isLab: window.isLabUsers ? window.isLabUsers[storedEmail] : undefined
+      };
     }
 
     if (window.gmailUsers && window.gmailUsers.length) {
@@ -4006,6 +4157,51 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     displayPracticeUsers();
+  }
+
+  /**
+   * Cancel a pending removal and restore the member to the list with the
+   * role/access settings captured at removal time. Returns true when a
+   * pending entry existed and was restored.
+   */
+  function restorePendingRemovedUser(lower) {
+    if (!window.isPracticeAdmin || !window.pendingRemovedUsers) return false;
+    var entry = window.pendingRemovedUsers[lower];
+    if (!entry) return false;
+    delete window.pendingRemovedUsers[lower];
+
+    // Restore membership in exactly one list, preserving the pre-removal
+    // admin flag (the same invariant setAdminFlagForEmail maintains).
+    if (!listContainsEmail(window.gmailUsers, lower) && !listContainsEmail(window.adminUsers, lower)) {
+      if (entry.wasAdmin) {
+        (window.adminUsers = window.adminUsers || []).push(entry.email);
+      } else {
+        (window.gmailUsers = window.gmailUsers || []).push(entry.email);
+      }
+    }
+
+    if (window.gmailUserLogins && entry.lastLogin !== undefined) {
+      window.gmailUserLogins[entry.email] = entry.lastLogin;
+    }
+
+    // Write back each permission flag exactly as captured: defined values
+    // are re-applied, keys that were absent stay absent.
+    function restoreFlag(mapName, value) {
+      var map = window[mapName];
+      if (!map) return;
+      if (value === undefined) {
+        delete map[entry.email];
+      } else {
+        map[entry.email] = value;
+      }
+    }
+    restoreFlag('limitedVisibilityUsers', entry.limited);
+    restoreFlag('canViewAnalyticsUsers', entry.analytics);
+    restoreFlag('canEditCasesUsers', entry.edit);
+    restoreFlag('isLabUsers', entry.isLab);
+
+    displayPracticeUsers();
+    return true;
   }
 
   // Admin user management (kept for API compatibility; uses shared grid)
@@ -4036,10 +4232,20 @@ document.addEventListener('DOMContentLoaded', function () {
       if (pendingEmailInput && pendingEmailInput.value.trim()) {
         var pendingEmail = pendingEmailInput.value.trim();
         // Basic validation
-        if (pendingEmail.includes('@') && pendingEmail.includes('.') && !window.gmailUsers.includes(pendingEmail)) {
-          window.gmailUsers.push(pendingEmail);
-          pendingEmailInput.value = '';
-          displayGmailUsers();
+        if (pendingEmail.includes('@') && pendingEmail.includes('.')) {
+          var pendingLower = pendingEmail.toLowerCase();
+          // Same rules as addGmailUser: a staged removal is canceled (the
+          // member is restored), an existing member is skipped, otherwise
+          // the address is added as a new user.
+          if (window.pendingRemovedUsers && window.pendingRemovedUsers[pendingLower]) {
+            restorePendingRemovedUser(pendingLower);
+            pendingEmailInput.value = '';
+          } else if (!listContainsEmail(window.gmailUsers, pendingLower) &&
+                     !listContainsEmail(window.adminUsers, pendingLower)) {
+            window.gmailUsers.push(pendingEmail);
+            pendingEmailInput.value = '';
+            displayGmailUsers();
+          }
         }
       }
 

@@ -1009,11 +1009,15 @@
                 "badge_you": "You",
                 "badge_creator": "Creator",
                 "limit_warning": "This practice has {count} users, which exceeds the 5-user Operate limit. You can continue using DentaTrak with the current team, but you cannot add more users unless you upgrade to Control or reduce the team to 5 users. <a href=\"billing.php\" style=\"color: inherit; font-weight: 600;\">Upgrade to Control</a>",
+                "pending_removal": "Will be removed when you save",
+                "undo": "Undo",
+                "restored": "User restored. Pending removal canceled.",
                 "validation": {
                     "email_required": "Please enter an email address",
                     "email_invalid": "Please enter a valid email address",
                     "duplicate": "This email has already been added",
                     "already_member": "This user is already a member of this practice",
+                    "already_in_practice": "This user is already in your practice.",
                     "limit_reached": "User limit reached ({count} users). Upgrade to Control plan to add more users.",
                     "check_error": "Error checking user status: {message}"
                 }

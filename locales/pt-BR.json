@@ -4399,11 +4399,15 @@
                 "badge_you": "Você",
                 "badge_creator": "Criador",
                 "limit_warning": "Esta clínica tem {count} usuários, o que excede o limite de 5 usuários do plano Operate. Você pode continuar usando o DentaTrak com a equipe atual, mas não pode adicionar mais usuários a menos que faça upgrade para o Control ou reduza a equipe para 5 usuários. <a href=\"billing.php\" style=\"color: inherit; font-weight: 600;\">Fazer upgrade para o Control</a>",
+                "pending_removal": "Será removido ao salvar",
+                "undo": "Desfazer",
+                "restored": "Usuário restaurado. Remoção pendente cancelada.",
                 "validation": {
                     "email_required": "Informe um endereço de e-mail",
                     "email_invalid": "Informe um endereço de e-mail válido",
                     "duplicate": "Este e-mail já foi adicionado",
                     "already_member": "Este usuário já é membro desta clínica",
+                    "already_in_practice": "Este usuário já está na sua clínica.",
                     "limit_reached": "Limite de usuários atingido ({count} usuários). Faça upgrade para o plano Control para adicionar mais usuários.",
                     "check_error": "Erro ao verificar o status do usuário: {message}"
                 }

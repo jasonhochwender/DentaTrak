@@ -1175,6 +1175,34 @@ input#practiceName {
   flex-shrink: 0;
 }
 
+/* Pending removal: a persisted member whose removal is staged until Save
+   Settings runs. The row stays visible - dimmed with a struck address and a
+   note - so the pending state is obvious and reversible via Undo. */
+.practice-user-row.pending-removal {
+  opacity: 0.72;
+  background: var(--background-subtle);
+}
+
+.practice-user-row.pending-removal .user-email-text {
+  text-decoration: line-through;
+  color: var(--text-secondary);
+}
+
+.practice-user-row.pending-removal .pending-removal-note {
+  display: block;
+  margin-top: 3px;
+  font-size: 12px;
+  font-style: italic;
+  color: var(--text-secondary);
+}
+
+.practice-user-undo-btn {
+  font-size: 12px;
+  font-weight: 500;
+  padding: 4px 10px;
+  white-space: nowrap;
+}
+
 .practice-user-header {
   font-weight: 600;
   background: var(--background-subtle);

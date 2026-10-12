@@ -1009,11 +1009,15 @@
                 "badge_you": "Vous",
                 "badge_creator": "Créateur",
                 "limit_warning": "Cette clinique compte {count} utilisateurs, ce qui dépasse la limite de 5 utilisateurs du forfait Operate. Vous pouvez continuer à utiliser DentaTrak avec l'équipe actuelle, mais vous ne pouvez pas ajouter d'utilisateurs sans passer à Control ou réduire l'équipe à 5 utilisateurs. <a href=\"billing.php\" style=\"color: inherit; font-weight: 600;\">Passer à Control</a>",
+                "pending_removal": "Sera retiré lors de l\\u2019enregistrement",
+                "undo": "Annuler",
+                "restored": "Utilisateur restauré. Retrait en attente annulé.",
                 "validation": {
                     "email_required": "Veuillez saisir une adresse courriel",
                     "email_invalid": "Veuillez saisir une adresse courriel valide",
                     "duplicate": "Cette adresse courriel a déjà été ajoutée",
                     "already_member": "Cet utilisateur est déjà membre de cette clinique",
+                    "already_in_practice": "Cet utilisateur fait déjà partie de votre clinique.",
                     "limit_reached": "Limite d'utilisateurs atteinte ({count} utilisateurs). Passez au forfait Control pour ajouter plus d'utilisateurs.",
                     "check_error": "Erreur lors de la vérification du statut de l'utilisateur : {message}"
                 }

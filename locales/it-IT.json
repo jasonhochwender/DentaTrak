@@ -1009,11 +1009,15 @@
                 "badge_you": "Tu",
                 "badge_creator": "Creatore",
                 "limit_warning": "Questo studio ha {count} utenti, oltre il limite di 5 utenti di Operate. Puoi continuare a usare DentaTrak con il team attuale, ma non puoi aggiungere altri utenti a meno che tu non passi a Control o riduca il team a 5 utenti. <a href=\"billing.php\" style=\"color: inherit; font-weight: 600;\">Passa a Control</a>",
+                "pending_removal": "Verrà rimosso al salvataggio",
+                "undo": "Annulla",
+                "restored": "Utente ripristinato. Rimozione in sospeso annullata.",
                 "validation": {
                     "email_required": "Inserisci un indirizzo email",
                     "email_invalid": "Inserisci un indirizzo email valido",
                     "duplicate": "Questa email è già stata aggiunta",
                     "already_member": "Questo utente è già membro di questo studio",
+                    "already_in_practice": "Questo utente è già presente nel tuo studio.",
                     "limit_reached": "Limite di utenti raggiunto ({count} utenti). Passa al piano Control per aggiungere altri utenti.",
                     "check_error": "Errore durante la verifica dello stato dell'utente: {message}"
                 }

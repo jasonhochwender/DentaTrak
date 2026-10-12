@@ -1009,11 +1009,15 @@
                 "badge_you": "Usted",
                 "badge_creator": "Creador",
                 "limit_warning": "Este consultorio tiene {count} usuarios, lo que supera el límite de 5 usuarios del plan Operate. Puede seguir usando DentaTrak con el equipo actual, pero no puede agregar más usuarios a menos que actualice a Control o reduzca el equipo a 5 usuarios. <a href=\"billing.php\" style=\"color: inherit; font-weight: 600;\">Actualizar a Control</a>",
+                "pending_removal": "Se eliminará al guardar",
+                "undo": "Deshacer",
+                "restored": "Usuario restaurado. Eliminación pendiente cancelada.",
                 "validation": {
                     "email_required": "Ingrese una dirección de correo electrónico",
                     "email_invalid": "Ingrese una dirección de correo electrónico válida",
                     "duplicate": "Este correo electrónico ya ha sido agregado",
                     "already_member": "Este usuario ya es miembro de este consultorio",
+                    "already_in_practice": "Este usuario ya está en su consulta.",
                     "limit_reached": "Se alcanzó el límite de usuarios ({count} usuarios). Actualice al plan Control para agregar más usuarios.",
                     "check_error": "Error al verificar el estado del usuario: {message}"
                 }

@@ -2436,11 +2436,15 @@
                 "badge_you": "Sie",
                 "badge_creator": "Ersteller",
                 "limit_warning": "Diese Praxis hat {count} Benutzer, was das Operate-Limit von 5 Benutzern überschreitet. Sie können DentaTrak mit dem aktuellen Team weiter nutzen, aber Sie können keine weiteren Benutzer hinzufügen, es sei denn, Sie upgraden auf Control oder reduzieren das Team auf 5 Benutzer. <a href=\"billing.php\" style=\"color: inherit; font-weight: 600;\">Auf Control upgraden</a>",
+                "pending_removal": "Wird beim Speichern entfernt",
+                "undo": "Rückgängig",
+                "restored": "Benutzer wiederhergestellt. Ausstehende Entfernung abgebrochen.",
                 "validation": {
                     "email_required": "Bitte geben Sie eine E-Mail-Adresse ein",
                     "email_invalid": "Bitte geben Sie eine gültige E-Mail-Adresse ein",
                     "duplicate": "Diese E-Mail wurde bereits hinzugefügt",
                     "already_member": "Dieser Benutzer ist bereits Mitglied dieser Praxis",
+                    "already_in_practice": "Dieser Benutzer gehört bereits zu Ihrer Praxis.",
                     "limit_reached": "Benutzerlimit erreicht ({count} Benutzer). Upgraden Sie auf den Control-Tarif, um weitere Benutzer hinzuzufügen.",
                     "check_error": "Fehler beim Prüfen des Benutzerstatus: {message}"
                 }

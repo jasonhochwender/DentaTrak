@@ -1009,11 +1009,15 @@
                 "badge_you": "나",
                 "badge_creator": "생성자",
                 "limit_warning": "이 치과의 사용자가 {count}명으로 Operate의 5명 한도를 초과했습니다. 현재 팀으로 DentaTrak을 계속 사용할 수 있지만, Control로 업그레이드하거나 팀을 5명으로 줄이기 전에는 사용자를 추가할 수 없습니다. <a href=\"billing.php\" style=\"color: inherit; font-weight: 600;\">Control로 업그레이드</a>",
+                "pending_removal": "저장하면 제거됩니다",
+                "undo": "실행 취소",
+                "restored": "사용자가 복원되었습니다. 보류 중인 제거가 취소되었습니다.",
                 "validation": {
                     "email_required": "이메일 주소를 입력해 주세요",
                     "email_invalid": "올바른 이메일 주소를 입력해 주세요",
                     "duplicate": "이 이메일은 이미 추가되었습니다",
                     "already_member": "이 사용자는 이미 이 치과의 구성원입니다",
+                    "already_in_practice": "이 사용자는 이미 병원에 등록되어 있습니다.",
                     "limit_reached": "사용자 한도 도달({count}명). 사용자를 추가하려면 Control 요금제로 업그레이드하세요.",
                     "check_error": "사용자 상태 확인 중 오류: {message}"
                 }
