@@ -543,6 +543,14 @@
   border-color: var(--border-medium);
 }
 
+/* The global dark select rule positions its chevron at right 10px with 32px
+   padding; keep the theme dropdown on the same 14px offset used in light. */
+[data-theme="dark"] select.theme-dropdown:not([multiple]):not([size]) {
+  background-position: right 14px center;
+  background-size: 14px;
+  padding-right: 36px;
+}
+
 [data-theme="dark"] .field-error,
 [data-theme="dark"] .error-message {
   color: var(--error-color);
