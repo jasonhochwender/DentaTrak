@@ -65,6 +65,14 @@ check(preg_match('/AbortController\(\)[\s\S]{0,400}signed-url/', $gcsJs) === 1 |
     'signed-URL fetch has an abort/timeout controller');
 check(preg_match('/xhr\.status === 403 \|\| xhr\.status === 408 \|\| xhr\.status === 429 \|\| xhr\.status >= 500/', $gcsJs) === 1,
     'transient GCS PUT rejections (403/408/429/5xx) are retryable');
+check(strpos($gcsJs, 'normalizeContentType') !== false &&
+      strpos($gcsJs, 'text/plain') !== false,
+    'ASCII scan files misdetected as text/plain are normalized client-side');
+check(preg_match("/'stl', 'obj', 'ply'|'stl','obj','ply'|\"stl\"/", $gcsJs) === 1 &&
+      preg_match('/SCAN_TEXT_OK.*stl|stl.*SCAN_TEXT_OK/s', $gcsJs) === 1,
+    'client normalization is scoped to scan extensions (stl/obj/ply/dcm)');
+check(substr_count($gcsJs, 'normalizeContentType(') >= 3,
+    'normalization applied in batch collection AND uploadSingleFile');
 
 // ── js/app.js — classifier uses structured props ─────────────────────────
 check(strpos($appJs, "indexOf('Failed to upload')") === false,
@@ -98,6 +106,25 @@ check(strpos($signedUrl, "t('api.comments.case_archived')") !== false,
     'archived-case comment-image rejection preserved');
 check(strpos($signedUrl, 'requireCaseAccess') !== false,
     'existing-case access check preserved');
+check(strpos($signedUrl, "'text/plain'") !== false &&
+      strpos($signedUrl, 'application/octet-stream') !== false,
+    'server normalizes text/plain detection artifact for scan extensions');
+check(preg_match("/binaryScanExts\s*=\s*\[\s*'stl',\s*'obj',\s*'ply',\s*'dcm'\s*\]/", $signedUrl) === 1,
+    'server normalization scoped exactly to stl/obj/ply/dcm');
+check(strpos($signedUrl, "in_array(\$contentType, \$allowedMimeTypes)") !== false,
+    'authoritative MIME allowlist check still runs after normalization');
+// Extension validation must still run BEFORE the MIME check so the artifact
+// normalization sees the validated extension (order safety).
+check(strpos($signedUrl, 'in_array($ext, $allowedExtensions)') <
+      strpos($signedUrl, 'binaryScanExts') &&
+      strpos($signedUrl, 'binaryScanExts') <
+      strpos($signedUrl, 'in_array($contentType, $allowedMimeTypes)'),
+    'validation order: extension -> text/plain normalization -> MIME allowlist');
+// The global MIME allowlist must NOT gain text/plain (arbitrary text files
+// stay rejected by the extension gate; only scan exts get the artifact fix).
+$config = file_get_contents($root . '/api/appConfig.php');
+check(strpos($config, "'text/plain'") === false,
+    'appConfig allowlist does not broadly allow text/plain');
 
 // ── api/log-upload-error.php — sanitized beacon ─────────────────────────
 check(file_exists($root . '/api/log-upload-error.php'),

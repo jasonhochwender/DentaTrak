@@ -123,19 +123,32 @@ try {
         uploadReject(400, 'invalid_upload_type', 'Invalid upload_type', $logCtx);
     }
 
-    // Validate MIME type
-    $allowedMimeTypes = $appConfig['gcs']['allowed_mime_types'] ?? [];
-    if (!in_array($contentType, $allowedMimeTypes)) {
-        uploadReject(400, 'invalid_mime', 'File type not allowed', $logCtx);
-    }
-
-    // Validate file extension
+    // Validate file extension (checked before MIME because it also drives
+    // the detection-artifact normalization below)
     $allowedExtensions = $appConfig['gcs']['allowed_extensions'] ?? [];
     $ext = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
     if (!in_array($ext, $allowedExtensions)) {
         uploadReject(400, 'unsupported_type', 'File extension not allowed: .' . $ext, array_merge($logCtx, [
             'response_extra' => ['ext' => $ext],
         ]));
+    }
+
+    // 3D scan formats legitimately exist in ASCII (STL starts with "solid ",
+    // OBJ/PLY are text-capable), and browsers/OS MIME detection commonly
+    // reports them as text/plain. File bytes are never inspected here and the
+    // extension allowlist above is the real gate, so normalizing this
+    // detection artifact to generic binary widens nothing - it only stops
+    // rejecting valid scans. Arbitrary text still fails the extension check.
+    $binaryScanExts = ['stl', 'obj', 'ply', 'dcm'];
+    if (in_array($ext, $binaryScanExts) && $contentType === 'text/plain') {
+        $contentType = 'application/octet-stream';
+        $logCtx['content_type'] = 'text/plain->octet-stream';
+    }
+
+    // Validate MIME type
+    $allowedMimeTypes = $appConfig['gcs']['allowed_mime_types'] ?? [];
+    if (!in_array($contentType, $allowedMimeTypes)) {
+        uploadReject(400, 'invalid_mime', 'File type not allowed', $logCtx);
     }
 
     // Comment images are image-only and always belong to an existing case

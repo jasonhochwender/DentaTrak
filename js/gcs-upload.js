@@ -130,6 +130,25 @@
   }
 
   /**
+   * Normalize a browser-reported MIME type for upload. STL/OBJ/PLY files are
+   * legitimately ASCII text, and OS/browser detection commonly reports them
+   * as text/plain - which the server's MIME allowlist would reject as a
+   * bogus "file type not allowed". The extension allowlist (client + server)
+   * is the real type gate, so map the artifact to generic binary.
+   * @param {string} contentType - file.type (may be empty)
+   * @param {string} filename
+   * @returns {string}
+   */
+  function normalizeContentType(contentType, filename) {
+    var SCAN_TEXT_OK = ['stl', 'obj', 'ply', 'dcm'];
+    var ct = contentType || 'application/octet-stream';
+    if (ct === 'text/plain' && SCAN_TEXT_OK.indexOf(fileExt(filename)) !== -1) {
+      return 'application/octet-stream';
+    }
+    return ct;
+  }
+
+  /**
    * Fire-and-forget upload-failure report so production failures can be
    * correlated with server logs via request_id. Only sanitized enum/numeric
    * fields are sent - never filenames, file contents, or patient data.
@@ -228,7 +247,7 @@
             file: file,
             uploadType: uploadType,
             fileName: file.name,
-            contentType: file.type || 'application/octet-stream',
+            contentType: normalizeContentType(file.type, file.name),
             fileSize: file.size
           });
           totalSize += file.size;
@@ -476,6 +495,9 @@
 
   function uploadSingleFileAttempt(fileInfo, caseId, csrfToken) {
     var fileId = fileInfo.fileId || 'unknown';
+    // Defend direct callers (e.g. comment images) the same way - keep the
+    // signed-URL request, PUT header, and returned metadata consistent.
+    fileInfo.contentType = normalizeContentType(fileInfo.contentType, fileInfo.fileName);
     console.log('[GCS-Upload] [' + fileId + '] Requesting signed URL for:', fileInfo.fileName, '(' + fileInfo.fileSize + ' bytes)');
 
     function makeStageError(message, stage, status, errorClass, requestId) {

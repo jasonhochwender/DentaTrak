@@ -53,6 +53,18 @@ function makePng(w, h, rgb) {
 }
 const PNG_BYTES = makePng(64, 40, [30, 120, 60]);
 const STL_BYTES = Buffer.concat([Buffer.alloc(80), Buffer.alloc(4)]); // header + 0 triangles
+// Real ASCII STL - 7-bit text starting with "solid", which is why OS/browser
+// MIME detection reports it as text/plain.
+const ASCII_STL = Buffer.from(
+  'solid ascii_scan\n' +
+  '  facet normal 0 0 0\n' +
+  '    outer loop\n' +
+  '      vertex 0 0 0\n' +
+  '      vertex 1 0 0\n' +
+  '      vertex 0 1 0\n' +
+  '    endloop\n' +
+  '  endfacet\n' +
+  'endsolid ascii_scan\n', 'ascii');
 
 async function login(context) {
   const res = await context.request.post(`${BASE}/api/auth-email.php`, {
@@ -98,7 +110,7 @@ async function installRoutes(page, state) {
   await page.route('**/api/upload-signed-url.php', route => {
     let req = {};
     try { req = JSON.parse(route.request().postData() || '{}'); } catch (e) {}
-    state.signedUrlRequests.push({ filename: req.filename, mode: state.signedUrlMode });
+    state.signedUrlRequests.push({ filename: req.filename, mode: state.signedUrlMode, content_type: req.content_type });
     const rid = 'f' + (++state.reqCounter).toString(16).padStart(15, '0');
     const storagePath = `cases/1/${state.caseId || 'new'}/${req.upload_type || 'photos'}/abcd1234-${req.filename || 'file'}`;
     switch (state.signedUrlMode) {
@@ -359,6 +371,37 @@ async function waitSubmitSettled(page, timeoutMs) {
       state.putRequests);
     await page.waitForSelector('#createCaseModal', { state: 'hidden', timeout: 15000 }).catch(() => {});
     state.putMode = 'ok';
+
+    // ══ 7b. ASCII STL misdetected as text/plain -> normalized, uploads ══
+    state.signedUrlMode = 'ok';
+    const stlReqStart = state.signedUrlRequests.length;
+    await openCaseEdit(page, caseId);
+    await clearStagedFiles(page);
+    await page.setInputFiles('.attachment-input[data-type="intraoralScans"]', [
+      { name: 'ascii-scan.stl', mimeType: 'text/plain', buffer: ASCII_STL },
+      { name: 'binary-scan.stl', mimeType: 'application/octet-stream', buffer: STL_BYTES },
+    ]);
+    await clearToasts(page);
+    await page.click('#createCaseSubmit');
+    const stlUpdate = await page.waitForResponse(r => r.url().includes('update-case.php'), { timeout: 20000 })
+      .catch(() => null);
+    await page.waitForSelector('#createCaseModal', { state: 'hidden', timeout: 15000 }).catch(() => {});
+    check('stl: update-case submitted (both STLs uploaded)', !!stlUpdate, state.putRequests.slice(-4));
+    // Browser detection artifact must be normalized BEFORE the signed-URL
+    // request - the server never sees text/plain for an .stl from this client.
+    const stlReqs = state.signedUrlRequests.slice(stlReqStart);
+    check('stl: ascii-scan sent as octet-stream, not text/plain',
+      stlReqs.some(r => r.filename === 'ascii-scan.stl' && r.content_type === 'application/octet-stream'),
+      stlReqs);
+    check('stl: binary-scan unchanged (octet-stream)',
+      stlReqs.some(r => r.filename === 'binary-scan.stl' && r.content_type === 'application/octet-stream'),
+      stlReqs);
+    check('stl: both PUT to GCS',
+      state.putRequests.filter(p => /ascii-scan\.stl|binary-scan\.stl/.test(p)).length === 2,
+      state.putRequests.slice(-4));
+    const stlPost = state.updatePosts.find(p => /ascii-scan\.stl/.test(p)) || '';
+    check('stl: metadata carried both files', /ascii-scan\.stl/.test(stlPost) && /binary-scan\.stl/.test(stlPost),
+      stlPost.slice(0, 200));
 
     // ══ 8. Partial success -> retry skips already-uploaded file ══
     state.signedUrlRequests = []; state.putRequests = []; state.reports = [];
