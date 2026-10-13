@@ -170,6 +170,10 @@ switch ($action) {
         handleSetPracticeMemberPermissions($pdo, $input);
         break;
 
+    case 'set_fabg_pilot':
+        handleSetFabgPilot($pdo, $input);
+        break;
+
     case 'delete_test_users':
         handleDeleteTestUsers($pdo, $input);
         break;
@@ -2622,6 +2626,36 @@ function handleSetPracticeMemberPermissions($pdo, $input) {
         error_log('[test-helpers] set_practice_member_permissions error: ' . $e->getMessage());
         http_response_code(500);
         echo json_encode(['success' => false, 'message' => 'Permission update failed']);
+    }
+}
+
+/**
+ * Toggle the practices.fabg_pilot flag for the CURRENT session practice.
+ * Dev/test only — mirrors the admin settings card so e2e tests can exercise
+ * the FABG billing benefit without admin-UI plumbing.
+ */
+function handleSetFabgPilot($pdo, $input) {
+    $practiceId = requireValidPracticeContext();
+    if (isset($input['practice_id']) && (int)$input['practice_id'] !== (int)$practiceId) {
+        http_response_code(403);
+        echo json_encode(['success' => false, 'message' => 'Invalid practice context']);
+        return;
+    }
+
+    try {
+        $check = $pdo->query("SHOW COLUMNS FROM practices LIKE 'fabg_pilot'");
+        if (!$check || $check->rowCount() === 0) {
+            echo json_encode(['success' => false, 'message' => 'fabg_pilot column not present']);
+            return;
+        }
+        $value = !empty($input['fabg_pilot']) ? 1 : 0;
+        $stmt = $pdo->prepare("UPDATE practices SET fabg_pilot = ? WHERE id = ?");
+        $stmt->execute([$value, $practiceId]);
+        echo json_encode(['success' => true, 'fabg_pilot' => $value]);
+    } catch (PDOException $e) {
+        error_log('[test-helpers] set_fabg_pilot error: ' . $e->getMessage());
+        http_response_code(500);
+        echo json_encode(['success' => false, 'message' => 'FABG flag update failed']);
     }
 }
 

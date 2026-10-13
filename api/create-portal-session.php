@@ -27,6 +27,7 @@ require_once __DIR__ . '/practice-security.php';
 require_once __DIR__ . '/billing-bypass.php';
 require_once __DIR__ . '/csrf.php';
 require_once __DIR__ . '/subscription-owner.php';
+require_once __DIR__ . '/fabg-billing.php';
 
 // ── Auth ─────────────────────────────────────────────────────────────────────
 if (!isset($_SESSION['db_user_id'])) {
@@ -88,12 +89,14 @@ if (empty($secretKey)) {
 try {
     $ownerUserId = getSubscriptionOwnerUserId($pdo, $currentPracticeId);
     $stripeCustomerId = null;
+    $hasFabgDiscount  = false;
     if ($ownerUserId !== null) {
         $stmt = $pdo->prepare("
             SELECT stripe_customer_id FROM subscriptions WHERE owner_user_id = ? LIMIT 1
         ");
         $stmt->execute([$ownerUserId]);
         $stripeCustomerId = $stmt->fetchColumn();
+        $hasFabgDiscount  = subscriptionHasFabgDiscount($pdo, $ownerUserId);
     }
 } catch (PDOException $e) {
     error_log('create-portal-session: DB error: ' . $e->getMessage());
@@ -122,7 +125,14 @@ try {
         'customer'   => $stripeCustomerId,
         'return_url' => $baseUrl . '/main.php',
     ];
+    // FABG-discounted subscriptions use a dedicated portal configuration so
+    // plan changes can offer the FABG annual Prices without exposing those
+    // prices to non-FABG customers on the standard configuration. Falls
+    // back to the standard configuration when no FABG one is configured.
     $portalConfigId = $stripeConfig['portal_configuration_id'] ?? null;
+    if ($hasFabgDiscount) {
+        $portalConfigId = $stripeConfig['fabg']['portal_configuration_id'] ?? $portalConfigId;
+    }
     if (!empty($portalConfigId)) {
         $portalParams['configuration'] = $portalConfigId;
     }

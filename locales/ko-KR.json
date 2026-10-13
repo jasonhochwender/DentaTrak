@@ -1825,6 +1825,18 @@
         "remove_user": "사용자 삭제"
     },
     "billing": {
+        "fabg": {
+            "panel_title": "FABG 회원 혜택",
+            "panel_body": "FABG 회원 혜택: 90일 무료 체험 후 모든 유료 요금제에서 25% 할인. 구독이 활성 상태인 동안 할인이 계속 적용됩니다. 연간 결제 할인 또는 기타 할인과 중복 적용되지 않습니다.",
+            "code_label": "프로모션 코드",
+            "copy": "복사",
+            "copied": "복사됨",
+            "code_instructions": "회원 할인은 결제 시 자동으로 적용되므로 이 코드를 직접 입력할 필요가 없습니다.",
+            "pending": "25% 회원 할인을 설정하는 중입니다. 할인이 활성화될 때까지 FABG 파일럿 치과의 결제가 일시 중지되므로 정가가 청구되지 않습니다.",
+            "checkout_paused": "FABG 할인이 활성화될 때까지 결제가 일시 중지됩니다.",
+            "member_price": "FABG 회원가",
+            "badge": "FABG 혜택"
+        },
         "billing": "결제",
         "plan": "요금제",
         "subscription": {
@@ -1985,6 +1997,7 @@
             "error_unable_to_open": "결제 포털을 열 수 없습니다. 다시 시도해 주세요."
         },
         "errors": {
+            "fabg_offer_unavailable": "FABG 회원 할인이 아직 제공되지 않습니다. 정가가 청구되지 않도록 결제가 일시 중지되어 있습니다. 잠시 후 다시 시도해 주세요.",
             "internal": "내부 서버 오류",
             "unauthorized": "이 작업을 수행할 권한이 없습니다.",
             "authentication_required": "인증이 필요합니다",
@@ -2679,7 +2692,7 @@
         "email_trial_extended_team": "DentaTrak 팀",
         "fabg_badge": "FABG 파일럿",
         "fabg_card_title": "파일럿 프로그램",
-        "fabg_card_desc": "이 치과를 FABG 파일럿 참여 치과로 표시합니다. 이것은 출처 표시일 뿐이며 체험 기간, 결제 또는 접근 권한을 변경하지 않습니다."
+        "fabg_card_desc": "이 치과를 FABG 파일럿 참여 치과로 표시합니다. 파일럿 치과는 90일 무료 체험을 유지하며 혜택이 활성화되면 FABG 회원 할인(유료 요금제 25% 할인)을 받습니다. 접근 권한은 변경되지 않습니다."
     },
     "case_types": {
         "crown": "크라운",

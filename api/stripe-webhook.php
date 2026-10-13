@@ -45,6 +45,7 @@ require_once __DIR__ . '/appConfig.php';
 // single source of truth.
 require_once __DIR__ . '/stripe-price-map.php';
 require_once __DIR__ . '/stripe-webhook-guard.php';
+require_once __DIR__ . '/fabg-billing.php';
 
 header('Content-Type: application/json');
 ini_set('display_errors', '0');
@@ -418,10 +419,41 @@ function handleSubscriptionUpsert(
         $currentPeriodEnd = $sub->items->data[0]->current_period_end ?? null;
     }
 
+    // FABG recurring discount: set when the subscription's applied promotion
+    // code is the configured FABG25 code — or when its base Price is one of
+    // the dedicated FABG annual Prices, which only FABG checkout produces.
+    // Cleared automatically if the discount is removed and the Price is not
+    // FABG-specific. Handles both the legacy singular `discount` object and
+    // the newer `discounts` list.
+    $fabgDiscount = 0;
+    $configuredFabgPromo = $appConfig['stripe']['fabg']['promotion_code_id'] ?? null;
+    if (!empty($configuredFabgPromo)) {
+        $appliedPromoIds = [];
+        $legacyPromo = $sub->discount->promotion_code ?? null;
+        if (!empty($legacyPromo)) {
+            $appliedPromoIds[] = is_object($legacyPromo) ? ($legacyPromo->id ?? null) : $legacyPromo;
+        }
+        foreach ((array)($sub->discounts ?? []) as $discountEntry) {
+            $appliedPromoIds[] = is_object($discountEntry)
+                ? ($discountEntry->promotion_code->id ?? $discountEntry->promotion_code ?? null)
+                : $discountEntry;
+        }
+        if (in_array($configuredFabgPromo, array_filter($appliedPromoIds), true)) {
+            $fabgDiscount = 1;
+        }
+    }
+    if (!$fabgDiscount && isFabgPriceId($priceId, $appConfig)) {
+        $fabgDiscount = 1;
+    }
+
     // Format timestamps as UTC datetime strings for storage
     $currentPeriodEndDt = $currentPeriodEnd ? gmdate('Y-m-d H:i:s', $currentPeriodEnd) : null;
     $trialEndsDt        = $trialEnd         ? gmdate('Y-m-d H:i:s', $trialEnd)         : null;
     $eventCreatedDt     = gmdate('Y-m-d H:i:s', $eventCreatedAt);
+
+    // subscriptions.fabg_discount is migration-gated — omit the column write
+    // on a pre-migration schema rather than failing the event.
+    $fabgColumnSql = subscriptionsFabgColumnExists($pdo) ? ",\n            fabg_discount           = :fabg" : '';
 
     // Stale-event guard: apply if this event is newer than or same-timestamp as
     // the last accepted event, so a genuinely older event can't overwrite newer
@@ -430,25 +462,7 @@ function handleSubscriptionUpsert(
     // portal cancellation) are still allowed through. Uses stripe_event_created
     // (the Stripe event timestamp) — not subscription_updated_at (our DB write
     // time), which was the previous no-op bug.
-    $pdo->prepare("
-        UPDATE subscriptions SET
-            stripe_customer_id      = COALESCE(stripe_customer_id, :cid),
-            stripe_subscription_id  = :sub_id,
-            stripe_price_id         = :price_id,
-            plan                    = :plan,
-            billing_interval        = :interval,
-            status                  = :status,
-            trial_ends_at           = COALESCE(:trial_ends_at, trial_ends_at),
-            current_period_ends_at  = :period_end,
-            cancel_at_period_end    = :cancel,
-            subscription_updated_at = UTC_TIMESTAMP(),
-            stripe_event_created    = :event_created
-        WHERE owner_user_id = :owner_user_id
-          AND (
-              stripe_event_created IS NULL
-              OR stripe_event_created <= :event_created2
-          )
-    ")->execute([
+    $params = [
         'cid'            => $stripeCustomerId,
         'sub_id'         => $stripeSubscriptionId,
         'price_id'       => $priceId,
@@ -461,7 +475,30 @@ function handleSubscriptionUpsert(
         'event_created'  => $eventCreatedDt,
         'event_created2' => $eventCreatedDt,
         'owner_user_id'  => $ownerUserId,
-    ]);
+    ];
+    if ($fabgColumnSql !== '') {
+        $params['fabg'] = $fabgDiscount;
+    }
+    $updateStmt = $pdo->prepare("
+        UPDATE subscriptions SET
+            stripe_customer_id      = COALESCE(stripe_customer_id, :cid),
+            stripe_subscription_id  = :sub_id,
+            stripe_price_id         = :price_id,
+            plan                    = :plan,
+            billing_interval        = :interval,
+            status                  = :status,
+            trial_ends_at           = COALESCE(:trial_ends_at, trial_ends_at),
+            current_period_ends_at  = :period_end,
+            cancel_at_period_end    = :cancel,
+            subscription_updated_at = UTC_TIMESTAMP(),
+            stripe_event_created    = :event_created{$fabgColumnSql}
+        WHERE owner_user_id = :owner_user_id
+          AND (
+              stripe_event_created IS NULL
+              OR stripe_event_created <= :event_created2
+          )
+    ");
+    $updateStmt->execute($params);
 }
 
 /**

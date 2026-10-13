@@ -239,6 +239,45 @@ Here is the workflow data to analyze:
                 ],
             ],
 
+            // FABG pilot member benefit — 25% off every paid plan, indefinitely,
+            // while the subscription remains active. Activated only when the
+            // Stripe objects below exist in the CURRENT environment and the
+            // promotion code verifies (see api/fabg-billing.php).
+            //
+            // Monthly FABG checkout reuses the standard monthly Price and applies
+            // the FABG25 promotion code (a 25%-off-forever coupon), so it charges
+            // 75% of the standard monthly price.
+            //
+            // Annual FABG checkout must NOT reuse the standard annual Price —
+            // that Price already embeds "2 months free" (10x monthly), so the
+            // coupon would stack. Instead, dedicated FABG annual Prices are
+            // billed at the full 12x monthly rate; the same promotion code
+            // brings them to 75% of twelve monthly payments (9x monthly).
+            // Until all of these are configured AND verified, FABG checkout is
+            // blocked server-side — a pilot practice can never be charged an
+            // undiscounted price by accident.
+            'fabg' => [
+                // Stripe Promotion Code ID (promo_...) for the FABG25 code —
+                // attached to a 25%-off, duration=forever Coupon.
+                'promotion_code_id'      => getEnvVar('STRIPE_FABG_PROMOTION_CODE_ID') ?: null,
+                // The customer-facing code the promotion code must verify against.
+                'expected_code'          => getEnvVar('STRIPE_FABG_PROMOTION_CODE') ?: 'FABG25',
+                // Separate Billing Portal configuration for FABG-discounted
+                // subscriptions so plan changes can offer the FABG annual
+                // Prices without exposing them to non-FABG customers.
+                'portal_configuration_id' => getEnvVar('STRIPE_FABG_PORTAL_CONFIGURATION_ID') ?: null,
+                // Dedicated annual Prices billed at 12x monthly (undiscounted
+                // annual) — the FABG25 coupon yields 75% of 12 months.
+                'annual_prices' => [
+                    'operate' => getEnvVar('STRIPE_OPERATE_FABG_ANNUAL_PRICE_ID') ?: null,
+                    'control' => getEnvVar('STRIPE_CONTROL_FABG_ANNUAL_PRICE_ID') ?: null,
+                    'scale'   => getEnvVar('STRIPE_SCALE_FABG_ANNUAL_PRICE_ID')   ?: null,
+                ],
+                // FABG annual Price for the Scale additional-practice add-on
+                // (12x the $99/mo add-on).
+                'additional_annual_price' => getEnvVar('STRIPE_SCALE_FABG_ADDITIONAL_ANNUAL_PRICE_ID') ?: null,
+            ],
+
             // Display prices in cents — for UI only; authoritative amount is on the Stripe Price object.
             'display_prices' => [
                 'operate' => ['month' => 24900, 'year' => 249000],  // $249/mo, $2,490/yr

@@ -31,6 +31,8 @@
  *   interval : 'month' | 'year'      (stored in subscriptions.billing_interval)
  */
 
+require_once __DIR__ . '/fabg-billing.php';
+
 /**
  * Map a Stripe Price ID to [plan, interval] using the server-side config.
  *
@@ -61,10 +63,21 @@ function resolvePlanFromPriceId(?string $priceId, array $appConfig): array {
         }
     }
 
-    // If the Price ID is a known Scale add-on, treat it as explicitly
-    // unrecognized (an add-on is not a plan) and do not log an error.
+    // Dedicated FABG annual Prices (billed at 12x monthly so the FABG25
+    // coupon lands on 75% of twelve payments) still represent the same plan
+    // on the 'year' interval — they must reverse-map so the webhook records
+    // the correct plan/interval for a FABG subscription.
+    foreach (($appConfig['stripe']['fabg']['annual_prices'] ?? []) as $plan => $configuredId) {
+        if (!empty($configuredId) && $configuredId === $priceId) {
+            return [$plan, 'year'];
+        }
+    }
+
+    // If the Price ID is a known Scale add-on (standard or FABG), treat it
+    // as explicitly unrecognized (an add-on is not a plan) and do not log.
     if ($priceId === getScaleAdditionalPriceId('month', $appConfig) ||
-        $priceId === getScaleAdditionalPriceId('year', $appConfig)) {
+        $priceId === getScaleAdditionalPriceId('year', $appConfig) ||
+        $priceId === getFabgAdditionalAnnualPriceId($appConfig)) {
         return ['unknown', null];
     }
 

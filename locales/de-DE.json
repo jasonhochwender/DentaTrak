@@ -1720,6 +1720,18 @@
         }
     },
     "billing": {
+        "fabg": {
+            "panel_title": "Ihr FABG-Mitgliedervorteil",
+            "panel_body": "Ihr FABG-Mitgliedervorteil: Sparen Sie 25 % auf jeden kostenpflichtigen Tarif nach Ihrer kostenlosen 90-tägigen Testphase. Ihr Rabatt bleibt bestehen, solange Ihr Abonnement aktiv ist. Nicht kombinierbar mit dem Rabatt bei jährlicher Zahlung oder anderen Rabatten.",
+            "code_label": "Aktionscode",
+            "copy": "Kopieren",
+            "copied": "Kopiert",
+            "code_instructions": "Ihr Mitgliederrabatt wird beim Bezahlvorgang automatisch angewendet - Sie müssen diesen Code nicht selbst eingeben.",
+            "pending": "Ihr 25 %-Mitgliederrabatt wird eingerichtet. Der Bezahlvorgang ist für FABG-Pilotpraxen pausiert, bis der Rabatt aktiv ist - Ihnen wird niemals der volle Preis berechnet.",
+            "checkout_paused": "Der Bezahlvorgang ist pausiert, bis Ihr FABG-Rabatt aktiv ist.",
+            "member_price": "FABG-Mitgliederpreis",
+            "badge": "FABG-Vorteil"
+        },
         "billing": "Abrechnung",
         "plan": "Tarif",
         "subscription": {
@@ -1880,6 +1892,7 @@
             "error_unable_to_open": "Abrechnungsportal konnte nicht geöffnet werden. Bitte versuchen Sie es erneut."
         },
         "errors": {
+            "fabg_offer_unavailable": "Ihr FABG-Mitgliederrabatt ist noch nicht verfügbar. Der Bezahlvorgang ist pausiert, damit Ihnen nicht der volle Preis berechnet wird - bitte versuchen Sie es bald erneut.",
             "internal": "Interner Serverfehler",
             "unauthorized": "Sie sind nicht berechtigt, diese Aktion auszuführen.",
             "authentication_required": "Authentifizierung erforderlich",
@@ -3401,7 +3414,7 @@
         "email_trial_extended_team": "Ihr DentaTrak-Team",
         "fabg_badge": "FABG-Pilot",
         "fabg_card_title": "Pilotprogramm",
-        "fabg_card_desc": "Kennzeichnen Sie diese Praxis als Teilnehmer am FABG-Pilotprogramm. Dies dient nur der Zuordnung und ändert nichts an Testdauer, Abrechnung oder Zugriff."
+        "fabg_card_desc": "Markiert diese Praxis als Teilnehmerin des FABG-Pilotprogramms. Pilotpraxen behalten die kostenlose 90-tägige Testphase und erhalten den FABG-Mitgliederrabatt (25 % auf kostenpflichtige Tarife), sobald das Angebot aktiv ist. Der Zugriff bleibt unverändert."
     },
     "marketing": {
         "navigation": {

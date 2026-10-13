@@ -1825,6 +1825,18 @@
         "remove_user": "Rimuovi utente"
     },
     "billing": {
+        "fabg": {
+            "panel_title": "Il tuo vantaggio membro FABG",
+            "panel_body": "Il tuo vantaggio membro FABG: risparmia il 25% su qualsiasi piano a pagamento dopo la prova gratuita di 90 giorni. Lo sconto continua finché l'abbonamento resta attivo. Non cumulabile con il risparmio della fatturazione annuale né con altri sconti.",
+            "code_label": "Codice promozionale",
+            "copy": "Copia",
+            "copied": "Copiato",
+            "code_instructions": "Lo sconto membro viene applicato automaticamente al pagamento: non è necessario inserire questo codice.",
+            "pending": "Lo sconto membro del 25% è in fase di configurazione. Il pagamento è sospeso per gli studi pilota FABG finché lo sconto non è attivo, quindi non ti verrà mai addebitato il prezzo intero.",
+            "checkout_paused": "Il pagamento è sospeso finché lo sconto FABG non è attivo.",
+            "member_price": "Prezzo membro FABG",
+            "badge": "Vantaggio FABG"
+        },
         "billing": "Fatturazione",
         "plan": "Piano",
         "subscription": {
@@ -1985,6 +1997,7 @@
             "error_unable_to_open": "Impossibile aprire il portale di fatturazione. Riprova."
         },
         "errors": {
+            "fabg_offer_unavailable": "Lo sconto membro FABG non è ancora disponibile. Il pagamento è sospeso per non addebitarti il prezzo intero: riprova presto.",
             "internal": "Errore interno del server",
             "unauthorized": "Non sei autorizzato a eseguire questa azione.",
             "authentication_required": "Autenticazione richiesta",
@@ -2679,7 +2692,7 @@
         "email_trial_extended_team": "Il team di DentaTrak",
         "fabg_badge": "Pilota FABG",
         "fabg_card_title": "Programma pilota",
-        "fabg_card_desc": "Contrassegna questo studio come partecipante al pilota FABG. È solo un'attribuzione: non modifica durata della prova, fatturazione o accesso."
+        "fabg_card_desc": "Contrassegna questo studio come partecipante al programma pilota FABG. Gli studi pilota mantengono la prova gratuita di 90 giorni e ricevono lo sconto membro FABG (25% sui piani a pagamento) quando l'offerta è attiva. Non modifica l'accesso."
     },
     "case_types": {
         "crown": "Corona",

@@ -1825,6 +1825,18 @@
         "remove_user": "Quitar usuario"
     },
     "billing": {
+        "fabg": {
+            "panel_title": "Tu beneficio de miembro FABG",
+            "panel_body": "Tu beneficio de miembro FABG: ahorra un 25 % en cualquier plan de pago después de tu periodo de prueba gratuito de 90 días. Tu descuento continúa mientras tu suscripción permanezca activa. No se puede combinar con el ahorro de la facturación anual ni con otros descuentos.",
+            "code_label": "Código promocional",
+            "copy": "Copiar",
+            "copied": "Copiado",
+            "code_instructions": "Tu descuento de miembro se aplica automáticamente al finalizar la compra; no necesitas introducir este código.",
+            "pending": "Tu descuento de miembro del 25 % se está configurando. El pago está en pausa para las prácticas piloto de FABG hasta que el descuento esté activo, para que nunca se te cobre el precio completo.",
+            "checkout_paused": "El pago está en pausa hasta que tu descuento FABG esté activo.",
+            "member_price": "Precio de miembro FABG",
+            "badge": "Beneficio FABG"
+        },
         "billing": "Facturación",
         "plan": "Plan",
         "subscription": {
@@ -1985,6 +1997,7 @@
             "error_unable_to_open": "No se pudo abrir el portal de facturación. Inténtelo de nuevo."
         },
         "errors": {
+            "fabg_offer_unavailable": "Tu descuento de miembro FABG aún no está disponible. El pago está en pausa para que no se te cobre el precio completo; inténtalo de nuevo pronto.",
             "internal": "Error interno del servidor",
             "unauthorized": "No está autorizado para realizar esta acción.",
             "authentication_required": "Se requiere autenticación",
@@ -2679,7 +2692,7 @@
         "email_trial_extended_team": "El equipo de DentaTrak",
         "fabg_badge": "Piloto FABG",
         "fabg_card_title": "Programa piloto",
-        "fabg_card_desc": "Marque este consultorio como participante del piloto FABG. Esto es solo atribución: no cambia la duración de la prueba, la facturación ni el acceso."
+        "fabg_card_desc": "Marca esta práctica como participante del piloto FABG. Las prácticas piloto conservan la prueba gratuita de 90 días y reciben el descuento de miembro FABG (25 % en planes de pago) cuando la oferta esté activa. No cambia el acceso."
     },
     "case_types": {
         "crown": "Corona",

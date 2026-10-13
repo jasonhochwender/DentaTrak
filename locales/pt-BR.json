@@ -3796,7 +3796,7 @@
         "email_trial_extended_team": "Equipe DentaTrak",
         "fabg_badge": "Piloto FABG",
         "fabg_card_title": "Programa piloto",
-        "fabg_card_desc": "Marque esta clínica como participante do piloto FABG. Isso é apenas atribuição - não altera a duração da avaliação, a cobrança ou o acesso."
+        "fabg_card_desc": "Marca esta clínica como participante do piloto FABG. Clínicas piloto mantêm o teste gratuito de 90 dias e recebem o desconto de membro FABG (25% nos planos pagos) quando a oferta estiver ativa. Não altera o acesso."
     },
     "tour": {
         "welcome_title": "Bem-vindo ao {appName}",
@@ -5211,6 +5211,18 @@
         }
     },
     "billing": {
+        "fabg": {
+            "panel_title": "Seu benefício de membro FABG",
+            "panel_body": "Seu benefício de membro FABG: economize 25% em qualquer plano pago após o seu teste gratuito de 90 dias. Seu desconto continua enquanto a assinatura permanecer ativa. Não pode ser combinado com a economia da cobrança anual nem com outros descontos.",
+            "code_label": "Código promocional",
+            "copy": "Copiar",
+            "copied": "Copiado",
+            "code_instructions": "Seu desconto de membro é aplicado automaticamente na finalização da compra - você não precisa inserir este código.",
+            "pending": "Seu desconto de membro de 25% está sendo configurado. O pagamento está pausado para clínicas piloto FABG até que o desconto esteja ativo, para que você nunca pague o preço integral.",
+            "checkout_paused": "O pagamento está pausado até que seu desconto FABG esteja ativo.",
+            "member_price": "Preço de membro FABG",
+            "badge": "Benefício FABG"
+        },
         "billing": "Faturamento",
         "plan": "Plano",
         "subscription": {
@@ -5371,6 +5383,7 @@
             "error_unable_to_open": "Não foi possível abrir o portal de faturamento. Tente novamente."
         },
         "errors": {
+            "fabg_offer_unavailable": "Seu desconto de membro FABG ainda não está disponível. O pagamento está pausado para que o preço integral não seja cobrado - tente novamente em breve.",
             "internal": "Erro interno do servidor",
             "unauthorized": "Você não tem autorização para realizar esta ação.",
             "authentication_required": "Autenticação obrigatória",

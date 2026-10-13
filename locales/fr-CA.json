@@ -1825,6 +1825,18 @@
         "remove_user": "Retirer l'utilisateur"
     },
     "billing": {
+        "fabg": {
+            "panel_title": "Votre avantage de membre FABG",
+            "panel_body": "Votre avantage de membre FABG : économisez 25 % sur tout forfait payant après votre essai gratuit de 90 jours. Votre rabais continue tant que votre abonnement demeure actif. Non combinable avec les économies de la facturation annuelle ni avec d'autres rabais.",
+            "code_label": "Code promotionnel",
+            "copy": "Copier",
+            "copied": "Copié",
+            "code_instructions": "Votre rabais de membre est appliqué automatiquement au moment du paiement - vous n'avez pas à saisir ce code.",
+            "pending": "Votre rabais de membre de 25 % est en cours de configuration. Le paiement est suspendu pour les cabinets pilotes FABG jusqu'à ce que le rabais soit actif - vous ne paierez jamais le plein prix.",
+            "checkout_paused": "Le paiement est suspendu jusqu'à l'activation de votre rabais FABG.",
+            "member_price": "Prix de membre FABG",
+            "badge": "Avantage FABG"
+        },
         "billing": "Facturation",
         "plan": "Forfait",
         "subscription": {
@@ -1985,6 +1997,7 @@
             "error_unable_to_open": "Impossible d'ouvrir le portail de facturation. Veuillez réessayer."
         },
         "errors": {
+            "fabg_offer_unavailable": "Votre rabais de membre FABG n'est pas encore disponible. Le paiement est suspendu pour que le plein prix ne vous soit pas facturé - veuillez réessayer bientôt.",
             "internal": "Erreur interne du serveur",
             "unauthorized": "Vous n'êtes pas autorisé à effectuer cette action.",
             "authentication_required": "Authentification requise",
@@ -2679,7 +2692,7 @@
         "email_trial_extended_team": "L'équipe DentaTrak",
         "fabg_badge": "Pilote FABG",
         "fabg_card_title": "Programme pilote",
-        "fabg_card_desc": "Marquez cette clinique comme participante au pilote FABG. Il s'agit uniquement d'une attribution : la durée d'essai, la facturation et l'accès restent inchangés."
+        "fabg_card_desc": "Marque ce cabinet comme participant au pilote FABG. Les cabinets pilotes conservent l'essai gratuit de 90 jours et bénéficient du rabais de membre FABG (25 % sur les forfaits payants) une fois l'offre active. Ne modifie pas l'accès."
     },
     "case_types": {
         "crown": "Couronne",

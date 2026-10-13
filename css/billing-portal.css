@@ -583,6 +583,130 @@
 }
 
 
+/* ── FABG member benefit panel ──────────────────────────────────────────── */
+.bp-fabg-panel {
+  margin: 0 0 18px;
+  padding: 14px 16px;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 10px;
+}
+
+.bp-fabg-panel-title {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #1e40af;
+  margin-bottom: 6px;
+}
+
+.bp-fabg-panel-body {
+  margin: 0;
+  font-size: 0.84rem;
+  line-height: 1.5;
+  color: #1f2937;
+}
+
+.bp-fabg-panel-trial {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 8px 0 0;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #065f46;
+}
+
+.bp-fabg-code-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.bp-fabg-code-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #374151;
+}
+
+.bp-fabg-code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.9rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: #1e40af;
+  background: #fff;
+  border: 1px dashed #93c5fd;
+  border-radius: 6px;
+  padding: 4px 10px;
+}
+
+.bp-fabg-copy {
+  border: 1px solid #bfdbfe;
+  background: #fff;
+  color: #1d4ed8;
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 5px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.bp-fabg-copy:hover {
+  background: #dbeafe;
+}
+
+.bp-fabg-panel-note {
+  margin: 10px 0 0;
+  font-size: 0.78rem;
+  color: #6b7280;
+}
+
+.bp-fabg-pending {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  color: #92400e;
+}
+
+.bp-fabg-pending svg {
+  margin-top: 1px;
+}
+
+/* FABG badge on the active-subscription card */
+.bp-fabg-badge {
+  background: #d1fae5;
+  color: #065f46;
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 2px 10px;
+  border-radius: 999px;
+  white-space: nowrap;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  margin-left: 8px;
+}
+
+/* FABG member-price chip on plan cards (replaces "Save 2 months") */
+.bp-plan-savings--fabg {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+/* Struck-through standard price beside the FABG member price */
+.bp-plan-price-was {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: #9ca3af;
+  text-decoration: line-through;
+  margin-left: 8px;
+}
+
 /* Dark theme - remaining pale surfaces and badges */
 [data-theme="dark"] .bp-card-header {
   background: #16202f;
@@ -649,4 +773,64 @@
 [data-theme="dark"] .bp-plan-practices,
 [data-theme="dark"] .bp-plan-benefits li {
   color: var(--text-secondary);
+}
+
+/* Dark theme - FABG member benefit */
+[data-theme="dark"] .bp-fabg-panel {
+  background: rgba(59, 130, 246, 0.12);
+  border-color: rgba(96, 165, 250, 0.35);
+}
+
+[data-theme="dark"] .bp-fabg-panel-title {
+  color: var(--primary-light);
+}
+
+[data-theme="dark"] .bp-fabg-panel-body {
+  color: var(--text-secondary);
+}
+
+[data-theme="dark"] .bp-fabg-panel-trial {
+  color: #6ee7b7;
+}
+
+[data-theme="dark"] .bp-fabg-code-label {
+  color: var(--text-secondary);
+}
+
+[data-theme="dark"] .bp-fabg-code {
+  color: var(--primary-light);
+  background: #0f172a;
+  border-color: rgba(96, 165, 250, 0.5);
+}
+
+[data-theme="dark"] .bp-fabg-copy {
+  background: #1e293b;
+  border-color: rgba(96, 165, 250, 0.35);
+  color: var(--primary-light);
+}
+
+[data-theme="dark"] .bp-fabg-copy:hover {
+  background: #334155;
+}
+
+[data-theme="dark"] .bp-fabg-panel-note {
+  color: var(--text-secondary);
+}
+
+[data-theme="dark"] .bp-fabg-pending {
+  color: #fbbf24;
+}
+
+[data-theme="dark"] .bp-fabg-badge {
+  background: rgba(52, 211, 153, 0.15);
+  color: #6ee7b7;
+}
+
+[data-theme="dark"] .bp-plan-savings--fabg {
+  background: rgba(59, 130, 246, 0.18);
+  color: var(--primary-light);
+}
+
+[data-theme="dark"] .bp-plan-price-was {
+  color: #64748b;
 }

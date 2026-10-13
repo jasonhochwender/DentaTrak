@@ -90,6 +90,8 @@ if (tableExists($pdo, 'subscriptions')) {
                                          COMMENT 'UTC datetime the account-level DentaTrak trial ends. Set once, never reset - shared by every practice this owner creates.',
                 current_period_ends_at   DATETIME NULL DEFAULT NULL,
                 cancel_at_period_end     TINYINT(1) NOT NULL DEFAULT 0,
+                fabg_discount            TINYINT(1) NOT NULL DEFAULT 0
+                                         COMMENT '1 while the subscription carries the FABG pilot recurring discount (FABG25 promo or dedicated FABG annual Price). Maintained by stripe-webhook.php.',
                 subscription_updated_at  DATETIME NULL DEFAULT NULL,
                 stripe_event_created     DATETIME NULL DEFAULT NULL
                                          COMMENT 'Stripe event.created timestamp of the last applied webhook event; stale-event ordering guard',
@@ -214,6 +216,33 @@ foreach ($owners as $ownerUserId) {
     } catch (PDOException $e) {
         $errors[] = "  ERROR migrating owner_user_id={$ownerUserId}: " . $e->getMessage();
         echo "  ERROR migrating owner_user_id={$ownerUserId}: " . $e->getMessage() . "\n";
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 3. Column upgrades for pre-existing subscriptions tables
+// ---------------------------------------------------------------------------
+echo "\n=== subscriptions column upgrades ===\n\n";
+
+if (!tableExists($pdo, 'subscriptions')) {
+    echo "  SKIP  subscriptions.fabg_discount — subscriptions table does not exist\n";
+} else {
+    $fabgCol = $pdo->query("SHOW COLUMNS FROM subscriptions LIKE 'fabg_discount'");
+    if ($fabgCol && $fabgCol->rowCount() > 0) {
+        echo "  SKIP  subscriptions.fabg_discount — column already exists\n";
+    } else {
+        try {
+            $pdo->exec("
+                ALTER TABLE subscriptions
+                ADD COLUMN fabg_discount TINYINT(1) NOT NULL DEFAULT 0
+                COMMENT '1 while the subscription carries the FABG pilot recurring discount (FABG25 promo or dedicated FABG annual Price). Maintained by stripe-webhook.php.'
+                AFTER cancel_at_period_end
+            ");
+            echo "  ALTER subscriptions — added fabg_discount\n";
+        } catch (PDOException $e) {
+            $errors[] = "  ERROR adding subscriptions.fabg_discount: " . $e->getMessage();
+            echo "  ERROR adding subscriptions.fabg_discount: " . $e->getMessage() . "\n";
+        }
     }
 }
 

@@ -27,6 +27,7 @@ require_once __DIR__ . '/practice-security.php';
 require_once __DIR__ . '/billing-bypass.php';
 require_once __DIR__ . '/subscription-access.php';
 require_once __DIR__ . '/subscription-owner.php';
+require_once __DIR__ . '/fabg-billing.php';
 
 try {
     $currentPracticeId = requireValidPracticeContext();
@@ -110,6 +111,7 @@ try {
             'current_period_ends_at' => $mappedRow['current_period_ends_at'],
             'cancel_at_period_end'   => (bool)($mappedRow['cancel_at_period_end'] ?? false),
             'has_stripe_customer'    => !empty($mappedRow['stripe_customer_id']),
+            'fabg_discount'          => $ownerUserId !== null && subscriptionHasFabgDiscount($pdo, $ownerUserId),
         ];
         // Never expose stripe_customer_id or stripe_subscription_id to the browser
     }
@@ -119,6 +121,21 @@ try {
 
     // ── Display prices from config (cents) ───────────────────────────────────
     $displayPrices = $appConfig['stripe']['display_prices'] ?? [];
+
+    // ── FABG pilot benefit ───────────────────────────────────────────────────
+    // Eligibility is server-side only (the practice's fabg_pilot flag — the
+    // client can never claim it). The offer state reports whether the
+    // FABG25 promotion code is configured AND verified against Stripe; the
+    // customer-facing code is only exposed once verified so the UI can
+    // never imply the discount is redeemable before it actually is.
+    $fabg = null;
+    if (isFabgPilotPractice($pdo, $currentPracticeId)) {
+        $fabg          = getFabgOfferState($appConfig);
+        $fabg['pilot'] = true;
+        if (empty($fabg['verified'])) {
+            $fabg['code'] = null;
+        }
+    }
 
     // ── Build response ───────────────────────────────────────────────────────
     // Bypass users always get full access and no billing UI
@@ -143,6 +160,7 @@ try {
                 'access_message'       => '',
             ],
             'display_prices'       => [],
+            'fabg'                 => null,
         ]);
         exit;
     }
@@ -155,6 +173,7 @@ try {
         'subscription'         => $subscription,
         'access'               => $access,
         'display_prices'       => $displayPrices,
+        'fabg'                 => $fabg,
     ]);
 
 } catch (PDOException $e) {

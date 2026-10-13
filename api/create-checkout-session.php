@@ -40,6 +40,7 @@ require_once __DIR__ . '/csrf.php';
 require_once __DIR__ . '/subscription-owner.php';
 require_once __DIR__ . '/plan-entitlements.php';
 require_once __DIR__ . '/stripe-price-map.php';
+require_once __DIR__ . '/fabg-billing.php';
 
 // ── Auth ─────────────────────────────────────────────────────────────────────
 if (!isset($_SESSION['db_user_id'])) {
@@ -122,14 +123,54 @@ if (!empty($stripeConfig['config_error'])) {
     exit;
 }
 
+// ── FABG pilot benefit ─────────────────────────────────────────────────────
+// FABG eligibility is derived from the CURRENT practice's flag — never from
+// client input. While the FABG offer is unconfigured or fails verification,
+// pilot practices are blocked from checkout entirely so they can never be
+// charged an undiscounted price by accident.
+$isFabgPilot         = isFabgPilotPractice($pdo, $currentPracticeId);
+$fabgPromotionCodeId = null;
+if ($isFabgPilot) {
+    $fabgOffer = verifyFabgPromotionCode($stripeConfig);
+    if (empty($fabgOffer['verified'])) {
+        error_log('create-checkout-session: FABG checkout blocked — offer not ready (' .
+                  ($fabgOffer['reason'] ?? 'unverified') . ')');
+        http_response_code(503);
+        echo json_encode([
+            'error'      => t('billing.errors.fabg_offer_unavailable'),
+            'error_code' => 'fabg_offer_unavailable',
+        ]);
+        exit;
+    }
+    $fabgPromotionCodeId = $stripeConfig['fabg']['promotion_code_id'] ?? null;
+}
+
 // Resolve against the CURRENT environment's configured Price IDs only.
 // A known plan with no Price ID configured for this environment (e.g. Scale
 // in production before its live Price IDs are created) is a controlled,
 // expected outcome: fail closed with a clear message. Never substitute
 // another environment's or another plan's Price ID.
-$priceId = getStripePriceId($plan, $interval, $appConfig);
+//
+// Annual FABG checkout resolves to the dedicated FABG annual Price (billed
+// at 12x monthly) instead — the standard annual Price already embeds two
+// free months and must never combine with the FABG discount.
+if ($isFabgPilot && $interval === 'year') {
+    $priceId = getFabgAnnualPriceId($plan, $appConfig);
+} else {
+    $priceId = getStripePriceId($plan, $interval, $appConfig);
+}
 
 if ($priceId === null) {
+    if ($isFabgPilot && $interval === 'year') {
+        error_log("create-checkout-session: no FABG annual Price ID configured for {$plan} in Stripe environment '" .
+                  ($stripeConfig['environment'] ?? 'unknown') . "'");
+        http_response_code(503);
+        echo json_encode([
+            'error'      => t('billing.errors.fabg_offer_unavailable'),
+            'error_code' => 'fabg_offer_unavailable',
+        ]);
+        exit;
+    }
     error_log("create-checkout-session: no Price ID configured for {$plan}/{$interval} in Stripe environment '" .
               ($stripeConfig['environment'] ?? 'unknown') . "' - set STRIPE_" . strtoupper($plan) . '_' .
               ($interval === 'month' ? 'MONTHLY' : 'ANNUAL') . '_PRICE_ID for this environment');
@@ -247,9 +288,22 @@ try {
         $ownedPracticeCount = getOwnedPracticeCount($pdo, $ownerUserId);
         $additionalQuantity = max(0, $ownedPracticeCount - 5);
         if ($additionalQuantity > 0) {
-            $additionalPriceId = getScaleAdditionalPriceId($interval, $appConfig);
+            // FABG annual uses the dedicated 12x add-on Price — the standard
+            // annual add-on Price also embeds the two-months-free savings.
+            $additionalPriceId = ($isFabgPilot && $interval === 'year')
+                ? getFabgAdditionalAnnualPriceId($appConfig)
+                : getScaleAdditionalPriceId($interval, $appConfig);
             if ($additionalPriceId === null) {
-                error_log("create-checkout-session: no add-on Price ID configured for scale/{$interval} in this environment");
+                error_log("create-checkout-session: no add-on Price ID configured for scale/{$interval}" .
+                          ($isFabgPilot ? ' (FABG)' : '') . " in this environment");
+                if ($isFabgPilot && $interval === 'year') {
+                    http_response_code(503);
+                    echo json_encode([
+                        'error'      => t('billing.errors.fabg_offer_unavailable'),
+                        'error_code' => 'fabg_offer_unavailable',
+                    ]);
+                    exit;
+                }
                 http_response_code(503);
                 echo json_encode([
                     'error'      => t('billing.errors.plan_not_available_quantity'),
@@ -275,15 +329,26 @@ try {
             'dentatrak_owner_user_id' => (string)$ownerUserId,
             'plan'                    => $plan,
             'interval'                => $interval,
+            'fabg_pilot'              => $isFabgPilot ? '1' : '0',
         ],
         'subscription_data'     => [
             'metadata' => [
                 'dentatrak_owner_user_id' => (string)$ownerUserId,
                 'plan'                    => $plan,
                 'interval'                => $interval,
+                'fabg_pilot'              => $isFabgPilot ? '1' : '0',
             ],
         ],
     ];
+
+    // FABG: attach the verified FABG25 promotion code server-side so it is
+    // always applied for pilot practices and can never be omitted or
+    // combined — customer-facing code entry stays disabled, so nothing can
+    // stack on top. The forever-duration coupon follows the subscription
+    // through supported plan changes.
+    if ($fabgPromotionCodeId !== null) {
+        $sessionParams['discounts'] = [['promotion_code' => $fabgPromotionCodeId]];
+    }
 
     // Pass the resolved DentaTrak locale to Stripe Checkout when supported.
     $stripeLocale = function_exists('getStripeLocale') ? getStripeLocale(getResolvedLocale()) : null;
@@ -329,6 +394,9 @@ function createPortalSession(PDO $pdo, int $ownerUserId, array $appConfig): stri
         'return_url' => $baseUrl . '/main.php',
     ];
     $portalConfigId = $appConfig['stripe']['portal_configuration_id'] ?? null;
+    if (subscriptionHasFabgDiscount($pdo, $ownerUserId)) {
+        $portalConfigId = $appConfig['stripe']['fabg']['portal_configuration_id'] ?? $portalConfigId;
+    }
     if (!empty($portalConfigId)) {
         $params['configuration'] = $portalConfigId;
     }

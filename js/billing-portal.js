@@ -122,6 +122,7 @@
     var access    = data.access || {};
     var sub       = data.subscription || null;
     var prices    = data.display_prices || {};
+    var fabg      = (data.fabg && data.fabg.pilot) ? data.fabg : null;
 
     var html = '';
 
@@ -146,15 +147,15 @@
     var status = access.status || 'none';
 
     if (status === 'trialing' && !hasSub) {
-      html += renderTrialState(access, prices, canManage);
+      html += renderTrialState(access, prices, canManage, fabg);
     } else if (status === 'trial_expired' && !hasSub) {
-      html += renderExpiredState(access, prices, canManage);
+      html += renderExpiredState(access, prices, canManage, fabg);
     } else if (status === 'incomplete' || status === 'incomplete_expired') {
       html += renderIncompleteState(access, canManage);
     } else if (hasSub && sub) {
-      html += renderSubscriptionCard(sub, access, prices, canManage);
+      html += renderSubscriptionCard(sub, access, prices, canManage, fabg);
     } else {
-      html += renderTrialState(access, prices, canManage);
+      html += renderTrialState(access, prices, canManage, fabg);
     }
 
     html += '<div class="bp-actions"><button class="bp-close-btn" onclick="window.closeBillingPortal()">Close</button></div>';
@@ -187,19 +188,18 @@
     manageBtns.forEach(function (btn) {
       btn.addEventListener('click', function () { handleManageBilling(btn); });
     });
+
+    // Wire the FABG promotion-code copy button (rendered only once the
+    // offer is verified server-side).
+    var copyBtns = bodyEl.querySelectorAll('.bp-fabg-copy');
+    copyBtns.forEach(function (btn) {
+      btn.addEventListener('click', function () { copyFabgCode(btn); });
+    });
   }
 
   // ── Render: trialing (no paid subscription yet) ───────────────────────────────
-  function renderTrialState(access, prices, canManage) {
-    var daysLeft  = access.trial_days_remaining;
-    var daysLabel = '';
-    if (daysLeft === null) {
-      daysLabel = t('billing.trial.free_trial', { count: 90 });
-    } else if (daysLeft === 0) {
-      daysLabel = t('billing.trial.ends_today');
-    } else {
-      daysLabel = I18n.pluralize(daysLeft, 'billing.trial.days_remaining');
-    }
+  function renderTrialState(access, prices, canManage, fabg) {
+    var daysLabel = trialDaysLabel(access);
 
     var html =
       '<div class="bp-plan-header">' +
@@ -208,7 +208,7 @@
       '</div>';
 
     if (canManage) {
-      html += renderPlanGrid(prices, access.trial_ends_at);
+      html += renderPlanGrid(prices, access.trial_ends_at, fabg, access);
     } else {
       html +=
         '<p style="text-align:center;color:#6b7280;font-size:0.9rem;">' +
@@ -218,8 +218,20 @@
     return html;
   }
 
+  // Shared "N days left in your free trial" label — same wording as the
+  // plan header, reused by the FABG benefit panel.
+  function trialDaysLabel(access) {
+    var daysLeft = access.trial_days_remaining;
+    if (daysLeft === null) {
+      return t('billing.trial.free_trial', { count: 90 });
+    } else if (daysLeft === 0) {
+      return t('billing.trial.ends_today');
+    }
+    return I18n.pluralize(daysLeft, 'billing.trial.days_remaining');
+  }
+
   // ── Render: trial expired, no subscription ────────────────────────────────────
-  function renderExpiredState(access, prices, canManage) {
+  function renderExpiredState(access, prices, canManage, fabg) {
     var html =
       '<div class="bp-empty-state" style="padding-top:20px;">' +
         '<div class="bp-empty-icon" style="background:linear-gradient(135deg,#fee2e2,#fecaca);">' +
@@ -232,7 +244,7 @@
       '</div>';
 
     if (canManage) {
-      html += renderPlanGrid(prices, null);
+      html += renderPlanGrid(prices, null, fabg, access);
     } else {
       html +=
         '<p style="text-align:center;color:#6b7280;font-size:0.9rem;">' +
@@ -256,7 +268,7 @@
   }
 
   // ── Render: active/paid subscription card ─────────────────────────────────────
-  function renderSubscriptionCard(sub, access, prices, canManage) {
+  function renderSubscriptionCard(sub, access, prices, canManage, fabg) {
     var planSlug   = sub.plan          || 'unknown';
     var planLabel  = formatPlan(planSlug);
     var statusKey  = sub.status        || access.status || 'unknown';
@@ -269,12 +281,19 @@
     // customer will never be charged, so trial/first-charge messaging is
     // replaced with cancellation messaging sourced from the same trial_ends_at.
     var trialingCancel = statusKey === 'trialing' && cancelAtEnd;
+    var hasFabgDiscount = !!sub.fabg_discount;
 
-    // Display price from config
+    // Display price from config — a subscription carrying the FABG recurring
+    // discount shows the FABG amounts so the card agrees with what Stripe
+    // actually renews at (75% monthly, 75% of 12 monthly payments annually).
+    var priceSource = prices;
+    if (hasFabgDiscount && fabg && fabg.display_prices) {
+      priceSource = fabg.display_prices;
+    }
     var priceAmt = '\u2014';
-    if (prices[planSlug] && sub.billing_interval && prices[planSlug][sub.billing_interval]) {
+    if (priceSource[planSlug] && sub.billing_interval && priceSource[planSlug][sub.billing_interval]) {
       var priceKey = 'billing.price.per_' + sub.billing_interval;
-      priceAmt = t(priceKey, { amount: I18n.formatCurrency(prices[planSlug][sub.billing_interval] / 100, 'USD') });
+      priceAmt = t(priceKey, { amount: I18n.formatCurrency(priceSource[planSlug][sub.billing_interval] / 100, 'USD') });
     }
 
     var html =
@@ -282,6 +301,9 @@
         '<div class="bp-card-header">' +
           '<span class="bp-plan-name-group">' +
             '<span class="bp-plan-name">' + escHtml(planLabel) + '</span>' +
+            (hasFabgDiscount
+              ? '<span class="bp-fabg-badge">' + escHtml(t('billing.fabg.badge')) + '</span>'
+              : '') +
             (trialingCancel && trialEnd
               ? '<span class="bp-cancels-badge">' + escHtml(t('billing.messages.cancels_on', { date: formatShortDate(access.trial_ends_at) })) + '</span>'
               : '') +
@@ -387,13 +409,42 @@
   var PLAN_ORDER = ['operate', 'control', 'scale'];
 
   // ── Render: single plan card (Operate, Control, or Scale) ────────────────────
-  function renderPlanCard(planKey, prices, interval) {
+  function renderPlanCard(planKey, prices, interval, fabg) {
     var info      = PLAN_INFO[planKey];
     if (!info) return '';
     var isFeatured = planKey === 'control';
-    var cents     = (prices[planKey] && prices[planKey][interval]) ? prices[planKey][interval] : null;
-    var priceStr  = cents ? formatCents(cents) : '';
+
+    // FABG pilot: once the offer is verified, cards show the member price
+    // (75% monthly / 75% of 12 monthly payments annually) with the standard
+    // price struck through, and the "Save 2 months" promotion is replaced
+    // by the member-price chip. While the offer is not yet verified the
+    // cards show ordinary prices with checkout paused — the discount is
+    // never implied to be redeemable before it is.
+    var fabgReady  = !!(fabg && fabg.verified);
+    var stdCents   = (prices[planKey] && prices[planKey][interval]) ? prices[planKey][interval] : null;
+    var fabgCents  = (fabg && fabg.display_prices && fabg.display_prices[planKey])
+                     ? fabg.display_prices[planKey][interval] : null;
+    var cents      = (fabgReady && fabgCents) ? fabgCents : stdCents;
+    var priceStr   = cents ? formatCents(cents) : '';
     var priceDisplay = priceStr ? t('billing.price.per_' + interval, { amount: priceStr }) : '';
+    var wasDisplay   = (fabgReady && stdCents && fabgCents && fabgCents !== stdCents)
+                       ? t('billing.price.per_' + interval, { amount: formatCents(stdCents) }) : '';
+
+    var savingsHtml = '';
+    if (fabgReady && fabgCents) {
+      savingsHtml = '<div class="bp-plan-savings bp-plan-savings--fabg">' + escHtml(t('billing.fabg.member_price')) + '</div>';
+    } else if (interval === 'year' && !fabg) {
+      savingsHtml = '<div class="bp-plan-savings">' + escHtml(t('billing.interval.annual_savings')) + '</div>';
+    }
+
+    // Paused while the offer is unverified — and for an individual annual
+    // card whose dedicated FABG annual Price is not yet configured (that
+    // plan's discount is incomplete even when the code itself is active).
+    var checkoutPaused = !!(fabg && !fabg.verified);
+    if (fabg && fabg.verified && interval === 'year' &&
+        fabg.annual_prices && fabg.annual_prices[planKey] === false) {
+      checkoutPaused = true;
+    }
 
     var html = '<div class="bp-plan-card' + (isFeatured ? ' bp-plan-card--featured' : '') +
                '" data-plan-card="' + escHtml(planKey) + '">';
@@ -402,11 +453,17 @@
     }
     html +=
         '<div class="bp-plan-title">' + escHtml(info.label) + '</div>' +
-        '<div class="bp-plan-price">' + (priceDisplay ? escHtml(priceDisplay) : '') + '</div>' +
-        (interval === 'year' ? '<div class="bp-plan-savings">' + escHtml(t('billing.interval.annual_savings')) + '</div>' : '') +
+        '<div class="bp-plan-price">' + (priceDisplay ? escHtml(priceDisplay) : '') +
+          (wasDisplay ? '<span class="bp-plan-price-was">' + escHtml(wasDisplay) + '</span>' : '') +
+        '</div>' +
+        savingsHtml +
         '<div class="bp-plan-practices">' + escHtml(t(info.practices_key)) + '</div>' +
         (planKey === 'scale' && info.additional_price_keys && info.additional_price_keys[interval]
-          ? '<div class="bp-plan-additional">' + escHtml(t(info.additional_price_keys[interval], { amount: I18n.formatCurrency(interval === 'month' ? 99 : 990, 'USD') })) + '</div>'
+          ? '<div class="bp-plan-additional">' + escHtml(t(info.additional_price_keys[interval], {
+              // FABG member add-on: 75% of $99/mo; annual is 75% of 12
+              // monthly payments — never 75% of the two-months-free $990.
+              amount: I18n.formatCurrency(fabgReady ? (interval === 'month' ? 74.25 : 891) : (interval === 'month' ? 99 : 990), 'USD')
+            })) + '</div>'
           : '') +
         '<ul class="bp-plan-benefits">';
     info.benefit_keys.forEach(function (b) {
@@ -414,7 +471,11 @@
     });
     html +=
         '</ul>' +
-        '<button class="bp-plan-select-btn" data-plan="' + escHtml(planKey) + '">' +
+        '<button class="bp-plan-select-btn" data-plan="' + escHtml(planKey) + '"' +
+          (checkoutPaused
+            ? ' disabled aria-disabled="true" title="' + escHtml(t('billing.fabg.checkout_paused')) + '"'
+            : '') +
+        '>' +
           escHtml(t('billing.plans.choose', { plan: info.label })) +
         '</button>' +
       '</div>';
@@ -422,11 +483,72 @@
     return html;
   }
 
+  // ── Render: FABG member benefit panel (replaces the "2 months free" pitch) ──
+  // The customer-facing code and copy control appear only when the offer is
+  // configured AND verified server-side; until then the panel makes clear the
+  // discount is not yet redeemable and checkout stays paused.
+  function renderFabgPanel(fabg, access) {
+    var html =
+      '<div class="bp-fabg-panel">' +
+        '<div class="bp-fabg-panel-title">' + percentIcon() + escHtml(t('billing.fabg.panel_title')) + '</div>' +
+        '<p class="bp-fabg-panel-body">' + escHtml(t('billing.fabg.panel_body')) + '</p>';
+
+    // Actual remaining trial time, from the same access payload the plan
+    // header uses (subscriptions.trial_ends_at is authoritative).
+    if (access && access.status === 'trialing') {
+      html +=
+        '<p class="bp-fabg-panel-trial">' + infoIcon() + escHtml(trialDaysLabel(access)) + '</p>';
+    }
+
+    if (fabg.verified && fabg.code) {
+      html +=
+        '<div class="bp-fabg-code-row">' +
+          '<span class="bp-fabg-code-label">' + escHtml(t('billing.fabg.code_label')) + '</span>' +
+          '<code class="bp-fabg-code">' + escHtml(fabg.code) + '</code>' +
+          '<button type="button" class="bp-fabg-copy">' + escHtml(t('billing.fabg.copy')) + '</button>' +
+        '</div>' +
+        '<p class="bp-fabg-panel-note">' + escHtml(t('billing.fabg.code_instructions')) + '</p>';
+    } else {
+      html +=
+        '<p class="bp-fabg-panel-note bp-fabg-pending">' + warnIcon() + escHtml(t('billing.fabg.pending')) + '</p>';
+    }
+
+    html += '</div>';
+    return html;
+  }
+
+  // Copy the FABG promotion code to the clipboard (same pattern as the
+  // integrations setup key copy).
+  function copyFabgCode(btn) {
+    var codeEl = bodyEl.querySelector('.bp-fabg-code');
+    var text   = codeEl ? codeEl.textContent : '';
+    if (!text) return;
+    var done = function () {
+      btn.textContent = t('billing.fabg.copied');
+      setTimeout(function () { btn.textContent = t('billing.fabg.copy'); }, 2000);
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(done, done);
+    } else {
+      var ta = document.createElement('textarea');
+      ta.value = text;
+      document.body.appendChild(ta);
+      ta.select();
+      try { document.execCommand('copy'); } catch (e) {}
+      document.body.removeChild(ta);
+      done();
+    }
+  }
+
   // ── Render: plan selection grid (Annual/Monthly toggle + plan cards) ─────────
-  function renderPlanGrid(prices, trialEndsAt) {
+  function renderPlanGrid(prices, trialEndsAt, fabg, access) {
     var footerNote = trialEndsAt
       ? t('billing.trial.first_charge_note', { date: formatDate(trialEndsAt) })
       : t('billing.trial.charge_now');
+
+    // FABG pilot practices get the member benefit panel instead of the
+    // ordinary "Save 2 months" promotion.
+    var panelHtml = fabg ? renderFabgPanel(fabg, access) : '';
 
     var toggleHtml =
       '<div class="bp-interval-toggle" role="tablist">' +
@@ -436,7 +558,7 @@
 
     var cardsHtml = '<div class="bp-plan-grid">';
     PLAN_ORDER.forEach(function (planKey) {
-      cardsHtml += renderPlanCard(planKey, prices, selectedInterval);
+      cardsHtml += renderPlanCard(planKey, prices, selectedInterval, fabg);
     });
     cardsHtml += '</div>';
 
@@ -446,7 +568,7 @@
         escHtml(footerNote) +
       '</p>';
 
-    return toggleHtml + cardsHtml + footerHtml;
+    return panelHtml + toggleHtml + cardsHtml + footerHtml;
   }
 
   // ── Handle plan selection → Checkout ─────────────────────────────────────────
@@ -600,6 +722,11 @@
   function infoIcon() {
     return '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0">' +
       '<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>';
+  }
+
+  function percentIcon() {
+    return '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0">' +
+      '<line x1="19" y1="5" x2="5" y2="19"/><circle cx="6.5" cy="6.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/></svg>';
   }
 
   function checkIcon() {

@@ -139,6 +139,8 @@ node_modules/
 screenshots/
 !/tests/billing-header-visibility-test.php
 !/tests/billing-flash-render-test.php
+!/tests/fabg-billing-test.php
+!/tests/fabg-billing-e2e-test.js
 !/tests/analytics-api-test.php
 !/tests/admin-practices-auth-test.php
 !/tests/admin-practices-csrf-and-auth-test.php
