@@ -254,7 +254,8 @@
             "due_date_changed": "Изменился срок сдачи",
             "appointment_date_changed": "Изменилась дата приёма пациента",
             "case_details_changed": "Изменились другие данные случая",
-            "mention": "Меня упомянули через @ в комментарии"
+            "mention": "Меня упомянули через @ в комментарии",
+            "comment_added": "Кто-то комментирует случай, с которым я связан(а)"
         },
         "load_error": "Не удалось загрузить настройки уведомлений.",
         "save_error": "Не удалось сохранить настройки уведомлений.",
@@ -728,6 +729,7 @@
         "due_date_changed": "{from} обновил(а) срок сдачи назначенного случая.",
         "appointment_date_changed": "{from} обновил(а) дату приёма назначенного случая.",
         "case_details_changed": "{from} обновил(а) назначенный случай.",
+        "comment_added": "{from} оставил(а) комментарий к случаю, с которым вы связаны.",
         "email": {
             "subject": "Уведомление DentaTrak о случае",
             "body": "<p>Здравствуйте!</p><p>{eventDescription}</p><p><a href=\"{viewCaseUrl}\" style=\"padding:10px 16px;background:#2563eb;color:#fff;text-decoration:none;border-radius:5px;\">{viewCaseLabel}</a></p><p>{signInPrompt}</p><p style=\"font-size:small;color:#666;\">{preferenceExplanation} <a href=\"{preferencesUrl}\">{preferencesLabel}</a>. {footerSupport}</p>",
@@ -747,7 +749,8 @@
                 "due_date_changed": "Изменился срок сдачи назначенного случая.",
                 "appointment_date_changed": "Изменилась дата приёма назначенного случая.",
                 "case_details_changed": "Изменились данные назначенного случая.",
-                "mention": "Вас упомянули в комментарии к случаю."
+                "mention": "Вас упомянули в комментарии к случаю.",
+                "comment_added": "К случаю, с которым вы связаны, добавлен комментарий."
             }
         }
     },

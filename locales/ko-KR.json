@@ -2806,6 +2806,7 @@
         "due_date_changed": "{from}님이 배정된 케이스의 납기일을 변경했습니다.",
         "appointment_date_changed": "{from}님이 배정된 케이스의 예약일을 변경했습니다.",
         "case_details_changed": "{from}님이 배정된 케이스를 업데이트했습니다.",
+        "comment_added": "{from}님이 회원님이 관련된 케이스에 댓글을 달았습니다.",
         "email": {
             "subject": "DentaTrak 케이스 알림",
             "body": "<p>안녕하세요,</p><p>{eventDescription}</p><p><a href=\"{viewCaseUrl}\" style=\"padding:10px 16px;background:#2563eb;color:#fff;text-decoration:none;border-radius:5px;\">{viewCaseLabel}</a></p><p>{signInPrompt}</p><p style=\"font-size:small;color:#666;\">{preferenceExplanation} <a href=\"{preferencesUrl}\">{preferencesLabel}</a>. {footerSupport}</p>",
@@ -2825,7 +2826,8 @@
                 "due_date_changed": "배정된 케이스의 납기일이 변경되었습니다.",
                 "appointment_date_changed": "배정된 케이스의 예약일이 변경되었습니다.",
                 "case_details_changed": "배정된 케이스의 세부 정보가 변경되었습니다.",
-                "mention": "케이스 댓글에서 회원님이 멘션되었습니다."
+                "mention": "케이스 댓글에서 회원님이 멘션되었습니다.",
+                "comment_added": "회원님이 관련된 케이스에 댓글이 추가되었습니다."
             }
         }
     },
@@ -2848,7 +2850,8 @@
             "due_date_changed": "납기일 변경됨",
             "appointment_date_changed": "환자 예약일 변경됨",
             "case_details_changed": "기타 케이스 정보 변경됨",
-            "mention": "누군가 댓글에서 나를 @멘션함"
+            "mention": "누군가 댓글에서 나를 @멘션함",
+            "comment_added": "누군가 내가 관련된 케이스에 댓글을 달 때"
         },
         "load_error": "알림 설정을 불러올 수 없습니다.",
         "save_error": "알림 설정을 저장할 수 없습니다.",

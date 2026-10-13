@@ -296,10 +296,13 @@ try {
     }
 
     // Emit structured in-app notification for assignment change (Phase 2).
-    if ($assignedTo !== '' && $assignedTo !== $previousAssignee && $currentPracticeId) {
+    // Fires on unassignment too: assignee resolution yields nobody, but the
+    // case creator is still informed. A null/'' previous assignee normalizes
+    // to '' so a no-change '' -> null transition does not emit.
+    if ((string)$assignedTo !== (string)$previousAssignee && $currentPracticeId) {
         $categories = ['assignment_changed'];
         $metadata = [
-            'assignment_set' => true,
+            'assignment_set' => $assignedTo !== '',
             'from_previous' => $previousAssignee !== '' && $previousAssignee !== null,
         ];
         $eventType = getPrimaryNotificationType($categories);

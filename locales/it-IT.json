@@ -2806,6 +2806,7 @@
         "due_date_changed": "{from} ha aggiornato la data di consegna di un caso assegnato.",
         "appointment_date_changed": "{from} ha aggiornato la data dell'appuntamento di un caso assegnato.",
         "case_details_changed": "{from} ha aggiornato un caso assegnato.",
+        "comment_added": "{from} ha commentato un caso a cui partecipi.",
         "email": {
             "subject": "Notifica su un caso DentaTrak",
             "body": "<p>Gentile utente,</p><p>{eventDescription}</p><p><a href=\"{viewCaseUrl}\" style=\"padding:10px 16px;background:#2563eb;color:#fff;text-decoration:none;border-radius:5px;\">{viewCaseLabel}</a></p><p>{signInPrompt}</p><p style=\"font-size:small;color:#666;\">{preferenceExplanation} <a href=\"{preferencesUrl}\">{preferencesLabel}</a>. {footerSupport}</p>",
@@ -2825,7 +2826,8 @@
                 "due_date_changed": "La data di consegna di un caso assegnato è cambiata.",
                 "appointment_date_changed": "La data dell'appuntamento di un caso assegnato è cambiata.",
                 "case_details_changed": "I dettagli di un caso assegnato sono cambiati.",
-                "mention": "Sei stato menzionato in un commento a un caso."
+                "mention": "Sei stato menzionato in un commento a un caso.",
+                "comment_added": "È stato aggiunto un commento a un caso a cui partecipi."
             }
         }
     },
@@ -2848,7 +2850,8 @@
             "due_date_changed": "Cambia la data di consegna",
             "appointment_date_changed": "Cambia la data dell'appuntamento del paziente",
             "case_details_changed": "Cambiano altri dettagli del caso",
-            "mention": "Qualcuno mi menziona con @ in un commento"
+            "mention": "Qualcuno mi menziona con @ in un commento",
+            "comment_added": "Qualcuno commenta un caso a cui partecipo"
         },
         "load_error": "Impossibile caricare le preferenze di notifica.",
         "save_error": "Impossibile salvare le preferenze di notifica.",

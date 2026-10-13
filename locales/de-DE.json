@@ -179,7 +179,8 @@
             "due_date_changed": "Fälligkeitsdatum ändert sich",
             "appointment_date_changed": "Patiententermin ändert sich",
             "case_details_changed": "Andere Falldetails ändern sich",
-            "mention": "Jemand erwähnt mich in einem Kommentar mit @"
+            "mention": "Jemand erwähnt mich in einem Kommentar mit @",
+            "comment_added": "Jemand kommentiert einen Fall, an dem ich beteiligt bin"
         },
         "load_error": "Benachrichtigungseinstellungen konnten nicht geladen werden.",
         "save_error": "Benachrichtigungseinstellungen konnten nicht gespeichert werden.",
@@ -517,6 +518,7 @@
         "due_date_changed": "{from} hat das Fälligkeitsdatum eines zugewiesenen Falls aktualisiert.",
         "appointment_date_changed": "{from} hat den Termin eines zugewiesenen Falls aktualisiert.",
         "case_details_changed": "{from} hat einen zugewiesenen Fall aktualisiert.",
+        "comment_added": "{from} hat einen Fall kommentiert, an dem Sie beteiligt sind.",
         "email": {
             "subject": "DentaTrak-Fallbenachrichtigung",
             "body": "<p>Hallo,</p><p>{eventDescription}</p><p><a href=\"{viewCaseUrl}\" style=\"padding:10px 16px;background:#2563eb;color:#fff;text-decoration:none;border-radius:5px;\">{viewCaseLabel}</a></p><p>{signInPrompt}</p><p style=\"font-size:small;color:#666;\">{preferenceExplanation} <a href=\"{preferencesUrl}\">{preferencesLabel}</a>. {footerSupport}</p>",
@@ -536,7 +538,8 @@
                 "due_date_changed": "Das Fälligkeitsdatum eines zugewiesenen Falls hat sich geändert.",
                 "appointment_date_changed": "Der Termin eines zugewiesenen Falls hat sich geändert.",
                 "case_details_changed": "Details eines zugewiesenen Falls haben sich geändert.",
-                "mention": "Sie wurden in einem Fallkommentar erwähnt."
+                "mention": "Sie wurden in einem Fallkommentar erwähnt.",
+                "comment_added": "Ein Kommentar wurde zu einem Fall hinzugefügt, an dem Sie beteiligt sind."
             }
         }
     },

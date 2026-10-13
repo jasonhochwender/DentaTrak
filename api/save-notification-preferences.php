@@ -80,7 +80,7 @@ if (!validateCsrfToken($submittedToken)) {
 $supported = array_merge(['all'], getSupportedEmailEventTypes());
 $commentsEnabled = isFeatureEnabled('SHOW_COMMENTS');
 $visibleSupported = array_values(array_filter($supported, function ($type) use ($commentsEnabled) {
-    return $type !== 'mention' || $commentsEnabled;
+    return $commentsEnabled || !in_array($type, ['mention', 'comment_added'], true);
 }));
 
 $submitted = $input['preferences'] ?? null;

@@ -4177,6 +4177,15 @@ endif;
               </span>
             </label>
           </div>
+          <div class="notification-preference-item" data-event="comment_added">
+            <label for="pref_comment_added" class="notification-preference-label">
+              <span class="notification-preference-title"><?php echo t('preferences.events.comment_added'); ?></span>
+              <span class="switch">
+                <input type="checkbox" id="pref_comment_added" role="switch" class="event-preference" data-event="comment_added">
+                <span class="switch-slider" aria-hidden="true"></span>
+              </span>
+            </label>
+          </div>
           <?php endif; ?>
         </div>
       </div>

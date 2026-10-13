@@ -33,6 +33,7 @@ function getSupportedEmailEventTypes(): array {
         'appointment_date_changed',
         'case_details_changed',
         'mention',
+        'comment_added',
     ];
 }
 

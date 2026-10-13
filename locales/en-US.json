@@ -2806,6 +2806,7 @@
         "due_date_changed": "{from} updated the due date of an assigned case.",
         "appointment_date_changed": "{from} updated the appointment date of an assigned case.",
         "case_details_changed": "{from} updated an assigned case.",
+        "comment_added": "{from} commented on a case you're involved with.",
         "email": {
             "subject": "DentaTrak case notification",
             "body": "<p>Hello,</p><p>{eventDescription}</p><p><a href=\"{viewCaseUrl}\" style=\"padding:10px 16px;background:#2563eb;color:#fff;text-decoration:none;border-radius:5px;\">{viewCaseLabel}</a></p><p>{signInPrompt}</p><p style=\"font-size:small;color:#666;\">{preferenceExplanation} <a href=\"{preferencesUrl}\">{preferencesLabel}</a>. {footerSupport}</p>",
@@ -2825,7 +2826,8 @@
                 "due_date_changed": "The due date of an assigned case changed.",
                 "appointment_date_changed": "The appointment date of an assigned case changed.",
                 "case_details_changed": "Details of an assigned case changed.",
-                "mention": "You were mentioned in a case comment."
+                "mention": "You were mentioned in a case comment.",
+                "comment_added": "A comment was added to a case you're involved with."
             }
         }
     },
@@ -2848,7 +2850,8 @@
             "due_date_changed": "Due date changes",
             "appointment_date_changed": "Patient appointment date changes",
             "case_details_changed": "Other case details change",
-            "mention": "Someone @mentions me in a comment"
+            "mention": "Someone @mentions me in a comment",
+            "comment_added": "Someone comments on a case I'm involved with"
         },
         "load_error": "Could not load notification preferences.",
         "save_error": "Could not save notification preferences.",

@@ -501,6 +501,29 @@ if ($method === 'GET') {
                 );
             }
 
+            // Ordinary comments also notify the case creator and current
+            // assignee(s). Users explicitly mentioned already received the
+            // mention event above, so they are excluded here - one notification
+            // per channel, and the mention event/email preference wins.
+            $mentionedUserIds = [];
+            foreach ($resolvedMentions as $mention) {
+                $mentionedUserIds[] = (int)($mention['user_id'] ?? 0);
+            }
+            try {
+                emitCaseNotificationEvent(
+                    $currentPracticeId,
+                    $caseId,
+                    $userId,
+                    'comment_added',
+                    ['comment_added'],
+                    ['comment_id' => (int)$commentId],
+                    [],
+                    $mentionedUserIds
+                );
+            } catch (Throwable $e) {
+                error_log('[case-comments] comment notification emit error (non-fatal): ' . $e->getMessage());
+            }
+
             // Log to case activity
             ensureCaseActivityLogTable();
             logCaseActivity($caseId, 'comment_added', null, null, [

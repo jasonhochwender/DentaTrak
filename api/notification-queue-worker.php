@@ -174,8 +174,14 @@ try {
             $categories = json_decode($row['category_keys_json'] ?? '[]', true) ?: [];
             $isMention = in_array('mention', $categories, true);
 
+            // The case creator is notified independently of assignment - their
+            // link to the case is creation, not the current assigned_to value,
+            // so reassignment/unassignment must not cancel their pending emails.
+            $isCreator = !empty($case)
+                && (int)($case['created_by_user_id'] ?? 0) === (int)$row['user_id'];
+
             // Current direct assignment or Assignment Label mapping
-            if (!$cancelReason && !empty($case) && !$isMention) {
+            if (!$cancelReason && !empty($case) && !$isMention && !$isCreator) {
                 $assignedTo = strtolower(trim((string)($case['assigned_to'] ?? '')));
                 $userEmail = strtolower(trim((string)$row['email']));
 

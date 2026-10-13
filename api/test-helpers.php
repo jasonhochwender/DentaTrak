@@ -142,6 +142,22 @@ switch ($action) {
         handleGetPracticeUser($pdo, $input);
         break;
 
+    case 'get_user_notifications':
+        handleGetUserNotifications($pdo, $input);
+        break;
+
+    case 'ensure_assignment_label':
+        handleEnsureAssignmentLabel($pdo, $input);
+        break;
+
+    case 'remove_practice_member':
+        handleRemovePracticeMember($pdo, $input);
+        break;
+
+    case 'get_email_queue':
+        handleGetEmailQueue($pdo, $input);
+        break;
+
     case 'seed_lab_insights_data':
         handleSeedLabInsightsData($pdo, $input);
         break;
@@ -2313,6 +2329,155 @@ function handleGetPracticeUser(PDO $pdo, array $input) {
     }
 
     echo json_encode(['success' => true, 'practice_user' => $row]);
+}
+
+/**
+ * Read-only fixture: list a user's notification rows for assertion.
+ * Development/test only. Returns type/event/queue metadata - never previews.
+ *
+ * Input: { email: 'user@example.com' }
+ * Output: { success, notifications: [ {id, notification_type, event_id, case_id, from_user_id, created_at} ] }
+ */
+function handleGetUserNotifications($pdo, $input) {
+    $email = strtolower(trim($input['email'] ?? ''));
+
+    if (!$email) {
+        http_response_code(400);
+        echo json_encode(['success' => false, 'message' => 'email is required']);
+        return;
+    }
+
+    try {
+        $stmt = $pdo->prepare("SELECT id FROM users WHERE email = :email LIMIT 1");
+        $stmt->execute(['email' => $email]);
+        $userId = $stmt->fetchColumn();
+        if (!$userId) {
+            echo json_encode(['success' => true, 'notifications' => []]);
+            return;
+        }
+
+        $stmt = $pdo->prepare("
+            SELECT n.id, n.notification_type, n.event_id, n.case_id, n.from_user_id, n.created_at,
+                   e.event_type AS event_type
+            FROM user_notifications n
+            LEFT JOIN notification_events e ON e.id = n.event_id
+            WHERE n.user_id = :user_id
+            ORDER BY n.id ASC
+        ");
+        $stmt->execute(['user_id' => $userId]);
+        echo json_encode(['success' => true, 'notifications' => $stmt->fetchAll(PDO::FETCH_ASSOC)]);
+    } catch (PDOException $e) {
+        error_log('[test-helpers] get_user_notifications error: ' . $e->getMessage());
+        http_response_code(500);
+        echo json_encode(['success' => false, 'message' => 'Query failed']);
+    }
+}
+
+/**
+ * Fixture: remove a user's practice membership while keeping their users row,
+ * so tests can verify removed members stop receiving notifications while their
+ * existing notification rows remain inspectable.
+ *
+ * Input: { email: 'member@example.com' } (uses session practice)
+ * Output: { success, removed }
+ */
+function handleRemovePracticeMember($pdo, $input) {
+    $sessionPracticeId = requireValidPracticeContext();
+    $email = strtolower(trim($input['email'] ?? ''));
+
+    if (!$email) {
+        http_response_code(400);
+        echo json_encode(['success' => false, 'message' => 'email is required']);
+        return;
+    }
+
+    try {
+        $stmt = $pdo->prepare("
+            DELETE pu FROM practice_users pu
+            JOIN users u ON u.id = pu.user_id
+            WHERE pu.practice_id = :practice_id AND u.email = :email
+        ");
+        $stmt->execute(['practice_id' => $sessionPracticeId, 'email' => $email]);
+        echo json_encode(['success' => true, 'removed' => $stmt->rowCount() > 0]);
+    } catch (PDOException $e) {
+        error_log('[test-helpers] remove_practice_member error: ' . $e->getMessage());
+        http_response_code(500);
+        echo json_encode(['success' => false, 'message' => 'Removal failed']);
+    }
+}
+
+/**
+ * Read-only fixture: list notification_email_queue rows for a case, with
+ * recipient email, event type, status, and cancel reason. Development/test
+ * only - lets e2e tests assert send-time outcomes (sent/cancelled) without
+ * racing the email log.
+ *
+ * Input: { case_id: 'abc' }
+ * Output: { success, queue: [ {id, user_id, email, event_type, status, error_message} ] }
+ */
+function handleGetEmailQueue($pdo, $input) {
+    $caseId = trim((string)($input['case_id'] ?? ''));
+
+    if ($caseId === '') {
+        http_response_code(400);
+        echo json_encode(['success' => false, 'message' => 'case_id is required']);
+        return;
+    }
+
+    try {
+        $stmt = $pdo->prepare("
+            SELECT q.id, q.user_id, u.email, q.status, q.error_message,
+                   n.case_id, e.event_type
+            FROM notification_email_queue q
+            JOIN users u ON u.id = q.user_id
+            LEFT JOIN user_notifications n ON n.id = q.notification_id
+            LEFT JOIN notification_events e ON e.id = q.event_id
+            WHERE n.case_id = :case_id
+            ORDER BY q.id ASC
+        ");
+        $stmt->execute(['case_id' => $caseId]);
+        echo json_encode(['success' => true, 'queue' => $stmt->fetchAll(PDO::FETCH_ASSOC)]);
+    } catch (PDOException $e) {
+        error_log('[test-helpers] get_email_queue error: ' . $e->getMessage());
+        http_response_code(500);
+        echo json_encode(['success' => false, 'message' => 'Query failed']);
+    }
+}
+
+/**
+ * Read/write fixture: ensure a named assignment label exists for the current
+ * session practice and return its id. Development/test only - lets e2e tests
+ * map members via setup_practice_member's labelIds without driving the
+ * settings UI.
+ *
+ * Input: { label: 'Label Name' }
+ * Output: { success, label_id, practice_id }
+ */
+function handleEnsureAssignmentLabel($pdo, $input) {
+    $sessionPracticeId = requireValidPracticeContext();
+    $label = trim((string)($input['label'] ?? ''));
+
+    if ($label === '' || mb_strlen($label) > 120) {
+        http_response_code(400);
+        echo json_encode(['success' => false, 'message' => 'label is required (max 120 chars)']);
+        return;
+    }
+
+    try {
+        $stmt = $pdo->prepare("SELECT id FROM practice_assignment_labels WHERE practice_id = :p AND LOWER(label) = LOWER(:l) LIMIT 1");
+        $stmt->execute(['p' => $sessionPracticeId, 'l' => $label]);
+        $id = $stmt->fetchColumn();
+        if (!$id) {
+            $pdo->prepare("INSERT INTO practice_assignment_labels (practice_id, label, sort_order, is_lab) VALUES (:p, :l, 9999, 0)")
+                ->execute(['p' => $sessionPracticeId, 'l' => $label]);
+            $id = $pdo->lastInsertId();
+        }
+        echo json_encode(['success' => true, 'label_id' => (int)$id, 'practice_id' => (int)$sessionPracticeId]);
+    } catch (PDOException $e) {
+        error_log('[test-helpers] ensure_assignment_label error: ' . $e->getMessage());
+        http_response_code(500);
+        echo json_encode(['success' => false, 'message' => 'Label ensure failed']);
+    }
 }
 
 /**

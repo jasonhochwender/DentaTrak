@@ -3318,6 +3318,7 @@
         "due_date_changed": "{from} atualizou o prazo de entrega de um caso atribuído.",
         "appointment_date_changed": "{from} atualizou a data da consulta de um caso atribuído.",
         "case_details_changed": "{from} atualizou um caso atribuído.",
+        "comment_added": "{from} comentou um caso do qual você participa.",
         "email": {
             "subject": "Notificação de caso do DentaTrak",
             "body": "<p>Olá,</p><p>{eventDescription}</p><p><a href=\"{viewCaseUrl}\" style=\"padding:10px 16px;background:#2563eb;color:#fff;text-decoration:none;border-radius:5px;\">{viewCaseLabel}</a></p><p>{signInPrompt}</p><p style=\"font-size:small;color:#666;\">{preferenceExplanation} <a href=\"{preferencesUrl}\">{preferencesLabel}</a>. {footerSupport}</p>",
@@ -3337,7 +3338,8 @@
                 "due_date_changed": "O prazo de entrega de um caso atribuído mudou.",
                 "appointment_date_changed": "A data da consulta de um caso atribuído mudou.",
                 "case_details_changed": "Os detalhes de um caso atribuído mudaram.",
-                "mention": "Você foi mencionado em um comentário de caso."
+                "mention": "Você foi mencionado em um comentário de caso.",
+                "comment_added": "Um comentário foi adicionado a um caso do qual você participa."
             }
         }
     },
@@ -3477,7 +3479,8 @@
             "due_date_changed": "O prazo de entrega muda",
             "appointment_date_changed": "A data da consulta do paciente muda",
             "case_details_changed": "Outros detalhes do caso mudam",
-            "mention": "Alguém me @menciona em um comentário"
+            "mention": "Alguém me @menciona em um comentário",
+            "comment_added": "Alguém comenta um caso do qual eu participo"
         },
         "load_error": "Não foi possível carregar as preferências de notificação.",
         "save_error": "Não foi possível salvar as preferências de notificação.",

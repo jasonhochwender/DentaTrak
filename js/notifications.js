@@ -285,7 +285,7 @@
       return 'files';
     }
 
-    if (type === 'mention' || type === 'comment' || type === 'new_comment' || type === 'comment_reply') {
+    if (type === 'mention' || type === 'comment' || type === 'comment_added' || type === 'new_comment' || type === 'comment_reply') {
       return 'comments';
     }
     if (type === 'file_added' || type === 'file_deleted' || type === 'file_changed' || type === 'attachment_added') {

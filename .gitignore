@@ -222,3 +222,5 @@ NUL
 !/tests/practice-user-restore-e2e-test.js
 !/tests/upload-failure-handling-test.php
 !/tests/upload-failure-e2e-test.js
+!/tests/creator-notification-test.php
+!/tests/creator-notifications-e2e-test.js

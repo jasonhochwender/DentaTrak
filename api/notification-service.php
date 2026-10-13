@@ -3,7 +3,8 @@
  * Phase 2 Notification Service
  *
  * - Structured notification event generation
- * - Recipient resolution from the case's current assignment
+ * - Recipient resolution from the case creator plus the case's current
+ *   assignment (direct user or Assignment Label members)
  * - In-app user_notifications row creation
  *
  * This service is intentionally independent of email, SMS, push, and queues.
@@ -13,7 +14,7 @@
  *
  * Every successful call creates one notification_events parent row and one
  * user_notifications row per resolved recipient inside a single transaction.
- * If no valid recipient exists (unassigned, actor-only, invalid/inactive),
+ * If no valid recipient exists (actor-only, inactive, unauthorized, etc.),
  * no rows are created.
  */
 
@@ -40,6 +41,7 @@ $_NOTIFICATION_CATEGORY_PRIORITY = [
     'protected_details_changed' => 8,
     'case_details_changed' => 9,
     'case_created' => 10,
+    'comment_added' => 11,
 ];
 
 // Allowed field-category slugs for metadata.  No patient names, DOB, clinical
@@ -68,9 +70,12 @@ $_NOTIFICATION_FIELD_CATEGORIES = [
  * @param array  $categories  One or more event categories
  * @param array  $metadata    Sanitized, non-PHI metadata
  * @param array  $testOptions Optional test-only controls (never used in production paths)
+ * @param array  $excludeUserIds Optional additional user IDs to exclude from
+ *                             resolution (e.g. users who already received a
+ *                             mention event for the same comment)
  * @return array|null ['event_id' => int, 'recipient_count' => int] or null on failure/no-op
  */
-function emitCaseNotificationEvent($practiceId, $caseId, $actorUserId, $eventType, array $categories, array $metadata = [], array $testOptions = []) {
+function emitCaseNotificationEvent($practiceId, $caseId, $actorUserId, $eventType, array $categories, array $metadata = [], array $testOptions = [], array $excludeUserIds = []) {
     global $pdo;
 
     if (!isset($pdo) || !($pdo instanceof PDO)) {
@@ -91,15 +96,13 @@ function emitCaseNotificationEvent($practiceId, $caseId, $actorUserId, $eventTyp
             return null;
         }
 
-        // No unassigned case notifications.
+        // Resolution runs even when assigned_to is empty - the case creator
+        // remains a valid recipient for updates on unassigned cases.
         $assignedTo = _getCaseAssignedTo($caseId);
-        if (empty($assignedTo)) {
-            return null;
-        }
 
         // Resolve and validate recipients first.  No event is created if there
-        // is nobody to notify (actor-only, inactive, unmapped, etc.).
-        $recipientIds = _resolveCaseNotificationRecipients($practiceId, $caseId, $assignedTo, $actorUserId);
+        // is nobody to notify (actor-only, inactive, unauthorized, etc.).
+        $recipientIds = _resolveCaseNotificationRecipients($practiceId, $caseId, $assignedTo, $actorUserId, $excludeUserIds);
         if (empty($recipientIds)) {
             return null;
         }
@@ -535,80 +538,144 @@ function buildUpdateCaseNotificationCategories(array $before, array $after, $fil
 }
 
 /**
- * Resolve recipients from a case's current assigned_to value.
+ * Resolve recipients for a case event: the case creator plus everyone the
+ * case is currently assigned to (a direct user, or every active member mapped
+ * to the assigned Assignment Label). Candidates are then filtered to users
+ * who are active members of the case's practice AND currently authorized to
+ * access the case, and the actor plus any explicit exclusions are removed.
  *
- * @return array<int> Active user IDs to notify (actor already excluded)
+ * The creator is included even when the case is unassigned; for older cases
+ * with no recorded creator the assignee path alone applies.
+ *
+ * @return array<int> Authorized user IDs to notify (actor already excluded)
  */
-function _resolveCaseNotificationRecipients($practiceId, $caseId, $assignedTo, $actorUserId) {
+function _resolveCaseNotificationRecipients($practiceId, $caseId, $assignedTo, $actorUserId, array $excludeUserIds = []) {
     global $pdo;
 
-    if (empty($assignedTo) || !isset($pdo) || !($pdo instanceof PDO)) {
+    if (!isset($pdo) || !($pdo instanceof PDO)) {
         return [];
     }
 
+    $candidateIds = [];
     $assignedTo = trim((string)$assignedTo);
-    $recipients = [];
 
-    // 1. If assigned_to is a known assignment label, notify all active mapped users.
-    $labelStmt = $pdo->prepare("
-        SELECT pal.id
-        FROM practice_assignment_labels pal
-        WHERE pal.practice_id = :practice_id
-          AND LOWER(pal.label) = LOWER(:label)
-        LIMIT 1
-    ");
-    $labelStmt->execute([
-        'practice_id' => (int)$practiceId,
-        'label' => $assignedTo,
-    ]);
-    $labelId = $labelStmt->fetchColumn();
-
-    if ($labelId !== false) {
-        $mapStmt = $pdo->prepare("
-            SELECT DISTINCT palr.user_id
-            FROM practice_assignment_label_recipients palr
-            JOIN users u ON u.id = palr.user_id
-            JOIN practices p ON p.id = palr.practice_id
-            WHERE palr.label_id = :label_id
-              AND palr.practice_id = :practice_id
-              AND u.is_active = 1
-              AND (p.is_active = 1 OR p.is_active IS NULL)
-        ");
-        $mapStmt->execute([
-            'label_id' => (int)$labelId,
-            'practice_id' => (int)$practiceId,
-        ]);
-        while ($row = $mapStmt->fetch(PDO::FETCH_ASSOC)) {
-            $uid = (int)$row['user_id'];
-            if ($uid !== $actorUserId) {
-                $recipients[$uid] = true;
-            }
-        }
-    } else {
-        // 2. Otherwise, treat it as a direct email assignment if the user is an
-        //    active member of the current practice.
-        $userStmt = $pdo->prepare("
-            SELECT u.id
-            FROM users u
-            JOIN practice_users pu ON pu.user_id = u.id
-            JOIN practices p ON p.id = pu.practice_id
-            WHERE LOWER(u.email) = LOWER(:email)
-              AND pu.practice_id = :practice_id
-              AND u.is_active = 1
-              AND (p.is_active = 1 OR p.is_active IS NULL)
+    if ($assignedTo !== '') {
+        // 1. If assigned_to is a known assignment label, notify all active mapped users.
+        $labelStmt = $pdo->prepare("
+            SELECT pal.id
+            FROM practice_assignment_labels pal
+            WHERE pal.practice_id = :practice_id
+              AND LOWER(pal.label) = LOWER(:label)
             LIMIT 1
         ");
-        $userStmt->execute([
-            'email' => $assignedTo,
+        $labelStmt->execute([
             'practice_id' => (int)$practiceId,
+            'label' => $assignedTo,
         ]);
-        $uid = $userStmt->fetchColumn();
-        if ($uid !== false && (int)$uid !== $actorUserId) {
-            $recipients[(int)$uid] = true;
+        $labelId = $labelStmt->fetchColumn();
+
+        if ($labelId !== false) {
+            $mapStmt = $pdo->prepare("
+                SELECT DISTINCT palr.user_id
+                FROM practice_assignment_label_recipients palr
+                JOIN users u ON u.id = palr.user_id
+                JOIN practices p ON p.id = palr.practice_id
+                WHERE palr.label_id = :label_id
+                  AND palr.practice_id = :practice_id
+                  AND u.is_active = 1
+                  AND (p.is_active = 1 OR p.is_active IS NULL)
+            ");
+            $mapStmt->execute([
+                'label_id' => (int)$labelId,
+                'practice_id' => (int)$practiceId,
+            ]);
+            while ($row = $mapStmt->fetch(PDO::FETCH_ASSOC)) {
+                $candidateIds[(int)$row['user_id']] = true;
+            }
+        } else {
+            // 2. Otherwise, treat it as a direct email assignment if the user
+            //    is an active member of the current practice.
+            $userStmt = $pdo->prepare("
+                SELECT u.id
+                FROM users u
+                JOIN practice_users pu ON pu.user_id = u.id
+                JOIN practices p ON p.id = pu.practice_id
+                WHERE LOWER(u.email) = LOWER(:email)
+                  AND pu.practice_id = :practice_id
+                  AND u.is_active = 1
+                  AND (p.is_active = 1 OR p.is_active IS NULL)
+                LIMIT 1
+            ");
+            $userStmt->execute([
+                'email' => $assignedTo,
+                'practice_id' => (int)$practiceId,
+            ]);
+            $uid = $userStmt->fetchColumn();
+            if ($uid !== false) {
+                $candidateIds[(int)$uid] = true;
+            }
         }
     }
 
-    return array_keys($recipients);
+    // 3. The case creator stays informed after handing the case off. Older
+    //    cases can have a NULL/invalid creator - that simply adds no candidate
+    //    rather than guessing a substitute.
+    $creatorId = _getCaseCreatorUserId($caseId);
+    if ($creatorId > 0) {
+        $candidateIds[$creatorId] = true;
+    }
+
+    if (empty($candidateIds)) {
+        return [];
+    }
+
+    // Authorization gate: candidates must be active practice members who can
+    // currently access the case (honors Assigned Only / limited visibility).
+    // A creator removed from the practice, or a limited-visibility user who
+    // can no longer open the case, is skipped - creating a case must not
+    // grant permanent notification access.
+    $authorizedIds = [];
+    foreach (getCaseAuthorizedUsers($practiceId, $caseId) as $user) {
+        $authorizedIds[(int)$user['id']] = true;
+    }
+
+    $excludedIds = [(int)$actorUserId => true];
+    foreach ($excludeUserIds as $uid) {
+        $excludedIds[(int)$uid] = true;
+    }
+
+    $recipients = [];
+    foreach (array_keys($candidateIds) as $uid) {
+        $uid = (int)$uid;
+        if (isset($excludedIds[$uid]) || !isset($authorizedIds[$uid])) {
+            continue;
+        }
+        $recipients[] = $uid;
+    }
+
+    return $recipients;
+}
+
+/**
+ * Get the immutable creator user ID recorded for a case at creation time.
+ * Returns null for older cases with no recorded creator.
+ */
+function _getCaseCreatorUserId($caseId) {
+    global $pdo;
+
+    if (!isset($pdo) || !($pdo instanceof PDO)) {
+        return null;
+    }
+
+    try {
+        $stmt = $pdo->prepare("SELECT created_by_user_id FROM cases_cache WHERE case_id = :case_id LIMIT 1");
+        $stmt->execute(['case_id' => (string)$caseId]);
+        $value = $stmt->fetchColumn();
+        return ($value !== false && $value !== null) ? (int)$value : null;
+    } catch (Throwable $e) {
+        error_log('[notification-service] _getCaseCreatorUserId error: ' . $e->getMessage());
+        return null;
+    }
 }
 
 /**
@@ -699,6 +766,7 @@ function _sanitizeNotificationMetadata(array $metadata) {
         'file_added_count',
         'file_deleted_count',
         'changed_categories',
+        'comment_id',
     ];
 
     $out = [];
