@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/api/appConfig.php';
+require_once __DIR__ . '/api/asset-url.php';
 require_once __DIR__ . '/api/user-manager.php';
 require_once __DIR__ . '/api/security-headers.php';
 require_once __DIR__ . '/api/csrf.php';
@@ -137,8 +138,8 @@ $appName = $appConfig['appName'];
     <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png">
     <link rel="manifest" href="site.webmanifest">
 
-    <link rel="stylesheet" href="css/app.css">
-    <link rel="stylesheet" href="css/practice-setup.css?v=20260906a">
+    <link rel="stylesheet" href="<?= appAssetUrl('css/app.css') ?>">
+    <link rel="stylesheet" href="<?= appAssetUrl('css/practice-setup.css') ?>">
     <?php require_once __DIR__ . '/api/auth-timeout-script.php'; ?>
 </head>
 <body class="practice-setup-body <?php echo $envClass; ?>">

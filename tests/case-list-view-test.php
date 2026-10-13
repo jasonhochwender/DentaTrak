@@ -47,13 +47,13 @@ assertContains(
 );
 assertContains(
     $baseDir . '/main.php',
-    '/js\/case-list\.js\?v=/',
-    'main.php must load js/case-list.js'
+    '/appAssetUrl\(\s*[\'"]js\/case-list\.js[\'"]\s*\)/',
+    'main.php must load js/case-list.js via the versioned asset helper'
 );
 assertContains(
     $baseDir . '/main.php',
-    '/css\/case-list\.css\?v=/',
-    'main.php must load css/case-list.css'
+    '/appAssetUrl\(\s*[\'"]css\/case-list\.css[\'"]\s*\)/',
+    'main.php must load css/case-list.css via the versioned asset helper'
 );
 
 /* ---------- case-list.js module ---------- */

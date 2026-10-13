@@ -767,7 +767,9 @@
         "upload_http_failed": "La carga falló (estado HTTP {status}). Inténtelo de nuevo.",
         "upload_network_error": "Error de red durante la carga. Verifique su conexión e inténtelo de nuevo.",
         "upload_unsupported_type": "Tipo de archivo no compatible: {files}",
+        "upload_empty_file": "No se pudo leer {files}. Puede que el archivo esté vacío, se esté sincronizando desde el almacenamiento en la nube o no esté disponible; selecciónelo de nuevo e inténtelo otra vez.",
         "upload_errors": {
+            "empty_file": "El archivo parece estar vacío o no se pudo leer. Selecciónelo de nuevo e inténtelo otra vez.",
             "session_expired": "Su sesión ha expirado. Inicie sesión e inténtelo de nuevo.",
             "unauthenticated": "Su sesión ha expirado. Inicie sesión e inténtelo de nuevo.",
             "access_denied": "No tiene acceso para subir archivos a este caso.",

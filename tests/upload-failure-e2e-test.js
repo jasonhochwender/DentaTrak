@@ -132,6 +132,9 @@ async function installRoutes(page, state) {
             signed_url: `${BASE}/__fake-gcs-put?path=${encodeURIComponent(storagePath)}`,
             storage_path: storagePath,
             expires_at: new Date(Date.now() + 900000).toISOString(),
+            // Mirror the real endpoint: the response echoes the content type
+            // the URL was signed for, and the PUT must send that value.
+            content_type: req.content_type || 'application/octet-stream',
             request_id: rid,
           }),
         });
@@ -142,6 +145,7 @@ async function installRoutes(page, state) {
     const url = route.request().url();
     const path = decodeURIComponent((url.match(/path=([^&]*)/) || [])[1] || '');
     state.putRequests.push(path);
+    state.putHeaders.push({ path: path, contentType: route.request().headers()['content-type'] || '' });
     const file = (path.split('-').pop() || '');
     for (const key of Object.keys(state.putFailFiles || {})) {
       if (path.indexOf(key) !== -1) {
@@ -228,7 +232,7 @@ async function waitSubmitSettled(page, timeoutMs) {
     created.push(caseId);
 
     const state = {
-      signedUrlRequests: [], putRequests: [], reports: [], updatePosts: [],
+      signedUrlRequests: [], putRequests: [], putHeaders: [], reports: [], updatePosts: [],
       signedUrlMode: 'ok', putMode: 'ok', putFailFiles: {}, reqCounter: 0,
       caseId, caseData: null,
     };
@@ -380,13 +384,14 @@ async function waitSubmitSettled(page, timeoutMs) {
     await page.setInputFiles('.attachment-input[data-type="intraoralScans"]', [
       { name: 'ascii-scan.stl', mimeType: 'text/plain', buffer: ASCII_STL },
       { name: 'binary-scan.stl', mimeType: 'application/octet-stream', buffer: STL_BYTES },
+      { name: 'freedesktop-scan.stl', mimeType: 'model/x.stl-ascii', buffer: ASCII_STL },
     ]);
     await clearToasts(page);
     await page.click('#createCaseSubmit');
     const stlUpdate = await page.waitForResponse(r => r.url().includes('update-case.php'), { timeout: 20000 })
       .catch(() => null);
     await page.waitForSelector('#createCaseModal', { state: 'hidden', timeout: 15000 }).catch(() => {});
-    check('stl: update-case submitted (both STLs uploaded)', !!stlUpdate, state.putRequests.slice(-4));
+    check('stl: update-case submitted (all STLs uploaded)', !!stlUpdate, state.putRequests.slice(-6));
     // Browser detection artifact must be normalized BEFORE the signed-URL
     // request - the server never sees text/plain for an .stl from this client.
     const stlReqs = state.signedUrlRequests.slice(stlReqStart);
@@ -396,12 +401,45 @@ async function waitSubmitSettled(page, timeoutMs) {
     check('stl: binary-scan unchanged (octet-stream)',
       stlReqs.some(r => r.filename === 'binary-scan.stl' && r.content_type === 'application/octet-stream'),
       stlReqs);
-    check('stl: both PUT to GCS',
-      state.putRequests.filter(p => /ascii-scan\.stl|binary-scan\.stl/.test(p)).length === 2,
-      state.putRequests.slice(-4));
+    check('stl: freedesktop model/x.stl-ascii normalized to octet-stream',
+      stlReqs.some(r => r.filename === 'freedesktop-scan.stl' && r.content_type === 'application/octet-stream'),
+      stlReqs);
+    check('stl: all three PUT to GCS',
+      state.putRequests.filter(p => /ascii-scan\.stl|binary-scan\.stl|freedesktop-scan\.stl/.test(p)).length === 3,
+      state.putRequests.slice(-6));
+    // The PUT Content-Type must equal the value the URL was signed for
+    // (the echoed response field) or V4 rejects with SignatureDoesNotMatch.
+    const stlPuts = state.putHeaders.filter(h => /ascii-scan\.stl|binary-scan\.stl|freedesktop-scan\.stl/.test(h.path));
+    check('stl: PUT content-type matches the signed type for every scan',
+      stlPuts.length === 3 && stlPuts.every(h => h.contentType === 'application/octet-stream'),
+      stlPuts);
     const stlPost = state.updatePosts.find(p => /ascii-scan\.stl/.test(p)) || '';
     check('stl: metadata carried both files', /ascii-scan\.stl/.test(stlPost) && /binary-scan\.stl/.test(stlPost),
       stlPost.slice(0, 200));
+
+    // ══ 7c. Zero-byte file -> client-side empty_file, never hits server ══
+    const emptyReqBefore = state.signedUrlRequests.length;
+    await openCaseEdit(page, caseId);
+    await clearStagedFiles(page);
+    await page.setInputFiles('.attachment-input[data-type="intraoralScans"]',
+      { name: 'empty-scan.stl', mimeType: 'application/octet-stream', buffer: Buffer.alloc(0) });
+    await clearToasts(page);
+    await page.click('#createCaseSubmit');
+    await page.waitForFunction(() =>
+      Array.from(document.querySelectorAll('#toastContainer .toast')).length > 0,
+      null, { timeout: 15000 });
+    toast = await toastText(page);
+    check('empty: toast names the unreadable/empty file', /empty-scan\.stl/.test(toast) && /empty|read|re-select/i.test(toast), toast);
+    check('empty: toast does NOT blame internet connection', !/internet connection/i.test(toast), toast);
+    check('empty: no signed-URL request made', state.signedUrlRequests.length === emptyReqBefore,
+      state.signedUrlRequests.length);
+    check('empty: client-validation report posted with empty_file class',
+      state.reports.some(r => r.stage === 'client-validation' && r.error_class === 'empty_file' && r.ext === 'stl'),
+      state.reports.slice(-2));
+    await waitSubmitSettled(page);
+    // Rejected client-side but still staged - clear so later sections start clean.
+    await clearStagedFiles(page);
+    await clearToasts(page);
 
     // ══ 8. Partial success -> retry skips already-uploaded file ══
     state.signedUrlRequests = []; state.putRequests = []; state.reports = [];

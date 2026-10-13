@@ -767,7 +767,9 @@
         "upload_http_failed": "Caricamento non riuscito (stato HTTP {status}). Riprova.",
         "upload_network_error": "Errore di rete durante il caricamento. Controlla la connessione e riprova.",
         "upload_unsupported_type": "Tipo di file non supportato: {files}",
+        "upload_empty_file": "Impossibile leggere {files}. Il file potrebbe essere vuoto, ancora in sincronizzazione dal cloud o non disponibile - riselezionalo e riprova.",
         "upload_errors": {
+            "empty_file": "Il file sembra vuoto o non è stato possibile leggerlo. Riselezionalo e riprova.",
             "session_expired": "La sessione è scaduta. Accedi di nuovo e riprova.",
             "unauthenticated": "La sessione è scaduta. Accedi di nuovo e riprova.",
             "access_denied": "Non hai accesso per caricare file in questo caso.",

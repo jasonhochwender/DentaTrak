@@ -24,6 +24,8 @@ require_once __DIR__ . '/api/csrf.php';
 require_once __DIR__ . '/api/security-headers.php';
 require_once __DIR__ . '/api/practice-security.php';
 require_once __DIR__ . '/api/user-manager.php';
+require_once __DIR__ . '/api/asset-url.php';
+
 setSecurityHeaders();
 
 $csrfToken = generateCsrfToken();
@@ -153,7 +155,7 @@ $pageStrings = [
     <link rel="icon" type="image/x-icon" href="favicon.ico">
     <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
     <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
-    <link rel="stylesheet" href="css/app.css">
+    <link rel="stylesheet" href="<?= appAssetUrl('css/app.css') ?>">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {

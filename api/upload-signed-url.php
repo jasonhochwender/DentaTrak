@@ -113,8 +113,16 @@ try {
     // --- Validation ---
 
     // Required fields
-    if (empty($filename) || empty($contentType) || $fileSize <= 0) {
-        uploadReject(400, 'missing_fields', 'Missing required fields: filename, content_type, file_size', $logCtx);
+    if (!is_string($filename) || $filename === '' ||
+        !is_string($contentType) || $contentType === '') {
+        uploadReject(400, 'missing_fields', 'Missing required fields: filename, content_type', $logCtx);
+    }
+
+    // A zero-byte File reaches here when the browser can stat the name but
+    // not the content (empty export, cloud-storage placeholder, or a stale
+    // picker reference) — report it distinctly instead of as a protocol error.
+    if ($fileSize <= 0) {
+        uploadReject(400, 'empty_file', 'The file appears to be empty or could not be read. Re-select it and try again.', $logCtx);
     }
 
     // Validate upload type. 'comments' carries images attached to case comments.
@@ -133,20 +141,25 @@ try {
         ]));
     }
 
-    // 3D scan formats legitimately exist in ASCII (STL starts with "solid ",
-    // OBJ/PLY are text-capable), and browsers/OS MIME detection commonly
-    // reports them as text/plain. File bytes are never inspected here and the
-    // extension allowlist above is the real gate, so normalizing this
-    // detection artifact to generic binary widens nothing - it only stops
-    // rejecting valid scans. Arbitrary text still fails the extension check.
-    $binaryScanExts = ['stl', 'obj', 'ply', 'dcm'];
-    if (in_array($ext, $binaryScanExts) && $contentType === 'text/plain') {
-        $contentType = 'application/octet-stream';
-        $logCtx['content_type'] = 'text/plain->octet-stream';
-    }
-
-    // Validate MIME type
+    // Validate MIME type (loaded before normalization so the artifact check
+    // below can test membership)
     $allowedMimeTypes = $appConfig['gcs']['allowed_mime_types'] ?? [];
+
+    // 3D scan formats legitimately exist in ASCII (STL starts with "solid ",
+    // OBJ/PLY are text-capable), and browser/OS MIME detection reports them
+    // unpredictably: 'text/plain' (Windows/Chrome misdetection), the freedesktop
+    // variants 'model/x.stl-ascii' and 'model/x.stl-binary' (Linux), or nothing at
+    // all. File bytes are never inspected here and the extension allowlist
+    // above is the real gate, so normalizing any unlisted detection artifact
+    // to generic binary widens nothing - it only stops rejecting valid scans.
+    // Arbitrary text still fails the extension check.
+    $binaryScanExts = ['stl', 'obj', 'ply', 'dcm'];
+    $normalizedScanType = false;
+    if (in_array($ext, $binaryScanExts) && !in_array($contentType, $allowedMimeTypes)) {
+        $normalizedScanType = true;
+        $logCtx['content_type'] = substr((string)$contentType, 0, 60) . '->octet-stream';
+        $contentType = 'application/octet-stream';
+    }
     if (!in_array($contentType, $allowedMimeTypes)) {
         uploadReject(400, 'invalid_mime', 'File type not allowed', $logCtx);
     }
@@ -211,7 +224,15 @@ try {
     $casePath = ($caseId && $caseId !== 'new') ? $caseId : 'pending_' . $userId . '_' . date('Ymd_His');
     $objectPath = "cases/{$currentPracticeId}/{$casePath}/{$uploadType}/{$uuid}-{$sanitizedFilename}";
 
-    $result = generateSignedUploadUrl($objectPath, $contentType);
+    // Sign the Content-Type the client actually declared, not the normalized
+    // value used for validation. V4 signing binds content-type into
+    // X-Goog-SignedHeaders, so a client that PUTs its declared type (older
+    // cached gcs-upload.js does not normalize text/plain scan files) must get
+    // a URL signed for that same type or GCS rejects with SignatureDoesNotMatch.
+    // The client is required to PUT the returned content_type, which echoes
+    // the declared value.
+    $signedContentType = (string)$input['content_type'];
+    $result = generateSignedUploadUrl($objectPath, $signedContentType);
 
     // Mark an active upload so the ping.php keepalive can extend the session
     // only while a real upload is in progress.
@@ -237,6 +258,7 @@ try {
         'expires_at'    => $result['expires_at'],
         'expected_size' => $fileSize,
         'max_file_size' => $maxFileSize,
+        'content_type'  => $signedContentType,
         'request_id'    => $uploadRequestId,
     ]);
 

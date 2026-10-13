@@ -71,8 +71,17 @@ check(strpos($gcsJs, 'normalizeContentType') !== false &&
 check(preg_match("/'stl', 'obj', 'ply'|'stl','obj','ply'|\"stl\"/", $gcsJs) === 1 &&
       preg_match('/SCAN_TEXT_OK.*stl|stl.*SCAN_TEXT_OK/s', $gcsJs) === 1,
     'client normalization is scoped to scan extensions (stl/obj/ply/dcm)');
+check(strpos($gcsJs, 'SCAN_ACCEPTED_TYPES') !== false,
+    'client mirrors the server MIME allowlist for scan extensions');
+check(preg_match('/SCAN_ACCEPTED_TYPES\.indexOf\(ct\) === -1/', $gcsJs) === 1,
+    'any unlisted scan MIME (text/plain, model/x.stl-ascii, ...) normalizes to octet-stream');
 check(substr_count($gcsJs, 'normalizeContentType(') >= 3,
     'normalization applied in batch collection AND uploadSingleFile');
+check(strpos($gcsJs, 'empty_file') !== false &&
+      strpos($gcsJs, 'fileSize <= 0') !== false,
+    'zero-byte/unreadable files rejected client-side with a real message');
+check(strpos($gcsJs, 'data.content_type') !== false,
+    'PUT uses the content type the server actually signed');
 
 // ── js/app.js — classifier uses structured props ─────────────────────────
 check(strpos($appJs, "indexOf('Failed to upload')") === false,
@@ -111,6 +120,8 @@ check(strpos($signedUrl, "'text/plain'") !== false &&
     'server normalizes text/plain detection artifact for scan extensions');
 check(preg_match("/binaryScanExts\s*=\s*\[\s*'stl',\s*'obj',\s*'ply',\s*'dcm'\s*\]/", $signedUrl) === 1,
     'server normalization scoped exactly to stl/obj/ply/dcm');
+check(strpos($signedUrl, "!in_array(\$contentType, \$allowedMimeTypes)") !== false,
+    'any unlisted scan MIME normalizes to octet-stream (not only text/plain)');
 check(strpos($signedUrl, "in_array(\$contentType, \$allowedMimeTypes)") !== false,
     'authoritative MIME allowlist check still runs after normalization');
 // Extension validation must still run BEFORE the MIME check so the artifact
@@ -118,8 +129,18 @@ check(strpos($signedUrl, "in_array(\$contentType, \$allowedMimeTypes)") !== fals
 check(strpos($signedUrl, 'in_array($ext, $allowedExtensions)') <
       strpos($signedUrl, 'binaryScanExts') &&
       strpos($signedUrl, 'binaryScanExts') <
-      strpos($signedUrl, 'in_array($contentType, $allowedMimeTypes)'),
-    'validation order: extension -> text/plain normalization -> MIME allowlist');
+      strrpos($signedUrl, 'in_array($contentType, $allowedMimeTypes)'),
+    'validation order: extension -> normalization -> MIME allowlist');
+// The URL must be signed for the content type the client declared, not the
+// normalized value - V4 binds content-type into SignedHeaders, so an older
+// cached client PUTting its raw file.type would otherwise 403.
+check(strpos($signedUrl, "\$signedContentType") !== false &&
+      preg_match('/generateSignedUploadUrl\(\$objectPath,\s*\$signedContentType\)/', $signedUrl) === 1,
+    'signed URL binds the client-declared content type');
+check(strpos($signedUrl, "'content_type'  => \$signedContentType") !== false,
+    'response echoes the signed content type for the PUT header');
+check(strpos($signedUrl, "'empty_file'") !== false,
+    'zero-byte uploads rejected with a dedicated empty_file error code');
 // The global MIME allowlist must NOT gain text/plain (arbitrary text files
 // stay rejected by the extension gate; only scan exts get the artifact fix).
 $config = file_get_contents($root . '/api/appConfig.php');
@@ -135,6 +156,8 @@ check(strpos($logApi, 'requireCsrfToken') !== false,
     'report endpoint requires CSRF token');
 check(strpos($logApi, '$allowedClasses') !== false && strpos($logApi, '$allowedStages') !== false,
     'report endpoint allowlists stage and error_class enums');
+check(strpos($logApi, "'empty_file'") !== false,
+    'report endpoint accepts the empty_file error class');
 check(strpos($logApi, "'message'") === false || strpos($logApi, 'free-form') !== false,
     'report endpoint accepts no free-form message field');
 check(strpos($logApi, "'filename'") === false && strpos($logApi, 'file_name') === false,
@@ -149,6 +172,22 @@ check(substr_count($mainPhp, 'attachment-input') >= 5 &&
       substr_count($mainPhp, 'accept=') >= 5,
     'attachment inputs carry accept hints');
 
+// ── Asset cache-busting — immutable-cached JS must never go stale ────────
+// .htaccess serves css/js with max-age=1 year immutable; a hardcoded ?v=
+// tag that is not bumped on change leaves users on the old code forever.
+$assetHelper = file_exists($root . '/api/asset-url.php')
+    ? file_get_contents($root . '/api/asset-url.php') : '';
+check(strpos($assetHelper, 'appAssetUrl') !== false &&
+      strpos($assetHelper, 'md5_file') !== false,
+    'api/asset-url.php derives the asset version from file content');
+check(strpos($mainPhp, 'appAssetUrl') !== false,
+    'main.php uses content-derived asset URLs');
+check(preg_match('#(?:js|css)/[a-zA-Z0-9._-]+\?v=[0-9a-z]+#', $mainPhp) === 0,
+    'no hardcoded ?v= asset tags remain in main.php');
+$loginPhp = file_get_contents($root . '/login.php');
+check(strpos($loginPhp, 'appAssetUrl') !== false,
+    'login.php uses content-derived asset URLs');
+
 // ── Locales — new keys + neutral toast in every supported language ───────
 $locales = ['en-US','de-DE','es-ES','fr-CA','fr-FR','it-IT','ko-KR','pt-BR','ru-RU'];
 foreach ($locales as $loc) {
@@ -160,9 +199,12 @@ foreach ($locales as $loc) {
                $j['attachments']['upload_errors']['access_denied'],
                $j['attachments']['upload_errors']['unsupported_type'],
                $j['attachments']['upload_errors']['file_too_large'],
+               $j['attachments']['upload_errors']['empty_file'],
                $j['attachments']['upload_errors']['server_error'],
                $j['attachments']['upload_errors']['unknown']),
         "{$loc}: attachments.upload_errors.*");
+    check(isset($j['attachments']['upload_empty_file']),
+        "{$loc}: attachments.upload_empty_file");
     check(isset($j['comments']['images']['upload_failed_reason']),
         "{$loc}: comments.images.upload_failed_reason");
     $toast = $j['cases']['toast']['upload_failed'] ?? '';

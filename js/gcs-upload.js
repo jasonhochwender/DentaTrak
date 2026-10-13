@@ -129,12 +129,28 @@
     return parts.length > 1 ? (parts.pop() || '').toLowerCase() : '';
   }
 
+  // MIME types the server accepts for 3D-scan extensions (mirrors
+  // appConfig gcs.allowed_mime_types entries that can describe a scan).
+  var SCAN_ACCEPTED_TYPES = [
+    'model/stl',
+    'application/sla',
+    'application/vnd.ms-pki.stl',
+    'application/x-navistyle',
+    'model/obj',
+    'application/x-tgif',
+    'application/octet-stream'
+  ];
+
   /**
    * Normalize a browser-reported MIME type for upload. STL/OBJ/PLY files are
-   * legitimately ASCII text, and OS/browser detection commonly reports them
-   * as text/plain - which the server's MIME allowlist would reject as a
-   * bogus "file type not allowed". The extension allowlist (client + server)
-   * is the real type gate, so map the artifact to generic binary.
+   * legitimately ASCII text, and OS/browser detection reports them
+   * unpredictably - text/plain on Windows, model/x.stl-ascii /
+   * model/x.stl-binary on Linux, or nothing at all - none of which survive
+   * the server's MIME allowlist intact. The extension allowlist (client +
+   * server) is the real type gate, so map any unrecognized scan type to
+   * generic binary. This MUST mirror the server's normalization exactly:
+   * the signed URL binds the declared content type, so the PUT has to send
+   * the same value or GCS rejects it with a signature mismatch.
    * @param {string} contentType - file.type (may be empty)
    * @param {string} filename
    * @returns {string}
@@ -142,7 +158,8 @@
   function normalizeContentType(contentType, filename) {
     var SCAN_TEXT_OK = ['stl', 'obj', 'ply', 'dcm'];
     var ct = contentType || 'application/octet-stream';
-    if (ct === 'text/plain' && SCAN_TEXT_OK.indexOf(fileExt(filename)) !== -1) {
+    if (SCAN_TEXT_OK.indexOf(fileExt(filename)) !== -1 &&
+        SCAN_ACCEPTED_TYPES.indexOf(ct) === -1) {
       return 'application/octet-stream';
     }
     return ct;
@@ -283,6 +300,22 @@
         });
         var badNames = unsupported.map(function(f) { return f.fileName; }).join(', ');
         var vErr = new Error(t('attachments.upload_unsupported_type', { files: badNames }));
+        vErr.uploadStage = 'client-validation';
+        reject(vErr);
+        return;
+      }
+
+      // --- Reject empty/unreadable files before any upload begins ---
+      // A File can report size 0 when the browser has the name but not the
+      // content (empty export, cloud-synced placeholder, stale picker
+      // reference). Uploading one can only fail - tell the user to re-select.
+      var unreadable = allFiles.filter(function(f) { return !f.fileSize || f.fileSize <= 0; });
+      if (unreadable.length > 0) {
+        unreadable.forEach(function(f) {
+          reportUploadFailure({ stage: 'client-validation', error_class: 'empty_file', file_size: 0, ext: fileExt(f.fileName), upload_type: f.uploadType });
+        });
+        var emptyNames = unreadable.map(function(f) { return f.fileName; }).join(', ');
+        var vErr = new Error(t('attachments.upload_empty_file', { files: emptyNames }));
         vErr.uploadStage = 'client-validation';
         reject(vErr);
         return;
@@ -704,7 +737,9 @@
         });
         
         xhr.open('PUT', data.signed_url);
-        xhr.setRequestHeader('Content-Type', fileInfo.contentType);
+        // PUT the content type the URL was signed for (echoed back by the
+        // endpoint) - a mismatch fails the V4 signature check with a 403.
+        xhr.setRequestHeader('Content-Type', data.content_type || fileInfo.contentType);
         xhr.timeout = 0; // Disable built-in timeout - we use stall detection instead
         console.log('[GCS-Upload] [' + fileId + '] Starting XHR PUT (stall timeout: 90s, max: 45min)');
         xhr.send(fileInfo.file);

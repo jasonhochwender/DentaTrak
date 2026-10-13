@@ -7,6 +7,7 @@ error_reporting(E_ALL & ~E_DEPRECATED & ~E_USER_DEPRECATED);
 
 // Load appConfig FIRST to establish database connection
 require_once __DIR__ . '/api/appConfig.php';
+require_once __DIR__ . '/api/asset-url.php';
 // Then load session
 require_once __DIR__ . '/api/session.php';
 require_once __DIR__ . '/api/security-headers.php';
@@ -76,16 +77,16 @@ $sessionRevoked = isset($_GET['revoked']) && $_GET['revoked'] == '1';
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@400;500;600;700&family=Noto+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/app.css">
-  <link rel="stylesheet" href="css/login.css?v=20260831b">
+  <link rel="stylesheet" href="<?= appAssetUrl('css/app.css') ?>">
+  <link rel="stylesheet" href="<?= appAssetUrl('css/login.css') ?>">
   
   <!-- Internationalization bootstrap -->
   <script>
     window.__i18n = <?php echo getTranslationsJsonForJs(); ?>;
   </script>
-  <script src="js/i18n.js"></script>
+  <script src="<?= appAssetUrl('js/i18n.js') ?>"></script>
   <!-- No external Google libraries needed for server-side OAuth flow -->
-  <script src="js/app.js"></script>
+  <script src="<?= appAssetUrl('js/app.js') ?>"></script>
   <?php if (!empty($_GET['notification_id'])): ?>
   <script>
     (function() {
@@ -513,7 +514,7 @@ $sessionRevoked = isset($_GET['revoked']) && $_GET['revoked'] == '1';
   </div>
 </div>
 
-<script src="js/app.js"></script>
+<script src="<?= appAssetUrl('js/app.js') ?>"></script>
 <script>
 // Progressive Email Authentication JavaScript
 document.addEventListener('DOMContentLoaded', function() {

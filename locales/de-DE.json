@@ -808,7 +808,9 @@
         "upload_http_failed": "Upload fehlgeschlagen (HTTP-Status {status}). Bitte versuchen Sie es erneut.",
         "upload_network_error": "Netzwerkfehler während des Uploads. Prüfen Sie Ihre Verbindung und versuchen Sie es erneut.",
         "upload_unsupported_type": "Nicht unterstützter Dateityp: {files}",
+        "upload_empty_file": "{files} konnte nicht gelesen werden. Die Datei ist möglicherweise leer, wird noch aus dem Cloud-Speicher synchronisiert oder ist nicht verfügbar - wählen Sie sie erneut aus und versuchen Sie es erneut.",
         "upload_errors": {
+            "empty_file": "Die Datei scheint leer zu sein oder konnte nicht gelesen werden. Wählen Sie sie erneut aus und versuchen Sie es erneut.",
             "session_expired": "Ihre Sitzung ist abgelaufen. Bitte melden Sie sich erneut an und versuchen Sie es noch einmal.",
             "unauthenticated": "Ihre Sitzung ist abgelaufen. Bitte melden Sie sich erneut an und versuchen Sie es noch einmal.",
             "access_denied": "Sie haben keinen Zugriff, um Dateien zu diesem Fall hochzuladen.",

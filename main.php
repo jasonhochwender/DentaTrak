@@ -20,6 +20,7 @@ require_once __DIR__ . '/api/session.php';
 // Load configuration
 require_once __DIR__ . '/api/appConfig.php';
 require_once __DIR__ . '/api/case-zip-helpers.php';
+require_once __DIR__ . '/api/asset-url.php';
 
 // Load CSRF and security headers
 require_once __DIR__ . '/api/csrf.php';
@@ -603,7 +604,7 @@ if (isset($appConfig) && is_array($appConfig) && isset($appConfig['appName'])) {
   <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
   
   <!-- Preload critical resources -->
-  <link rel="preload" href="js/app.js?v=20260925a" as="script">
+  <link rel="preload" href="<?= appAssetUrl('js/app.js') ?>" as="script">
   <link rel="preload" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@400;500;600;700&family=Noto+Sans+KR:wght@400;500;600;700&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
   <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@400;500;600;700&family=Noto+Sans+KR:wght@400;500;600;700&display=swap"></noscript>
   
@@ -622,87 +623,87 @@ if (isset($appConfig) && is_array($appConfig) && isset($appConfig['appName'])) {
   </style>
   
   <!-- Load app.light.css directly (skip app.css @import chain) -->
-  <link rel="stylesheet" href="css/app.light.css?v=20260925a">
-  <link rel="stylesheet" href="css/app.css?v=20261001a">
-  <link rel="stylesheet" href="css/app.dark.css?v=20260930a">
+  <link rel="stylesheet" href="<?= appAssetUrl('css/app.light.css') ?>">
+  <link rel="stylesheet" href="<?= appAssetUrl('css/app.css') ?>">
+  <link rel="stylesheet" href="<?= appAssetUrl('css/app.dark.css') ?>">
 <?php if (isFeatureEnabled('SHOW_NOTIFICATIONS')): ?>
-  <link rel="stylesheet" href="css/notification-preferences.css?v=20250104">
+  <link rel="stylesheet" href="<?= appAssetUrl('css/notification-preferences.css') ?>">
 <?php endif; ?>
   
   <!-- Mobile responsiveness CSS -->
-  <link rel="stylesheet" href="css/mobile.css?v=20260925a">
+  <link rel="stylesheet" href="<?= appAssetUrl('css/mobile.css') ?>">
   
   <!-- Non-critical CSS - deferred loading -->
   <?php if (isFeatureEnabled('SHOW_TOUR')): ?>
   <link rel="preload" href="https://cdn.jsdelivr.net/npm/shepherd.js@11/dist/css/shepherd.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
-  <link rel="preload" href="css/tour.css?v=20241210" as="style" onload="this.onload=null;this.rel='stylesheet'">
+  <link rel="preload" href="<?= appAssetUrl('css/tour.css') ?>" as="style" onload="this.onload=null;this.rel='stylesheet'">
   <?php endif; ?>
-  <link rel="preload" href="css/toast.css?v=20241210" as="style" onload="this.onload=null;this.rel='stylesheet'">
-  <link rel="preload" href="css/loading.css?v=20241210" as="style" onload="this.onload=null;this.rel='stylesheet'">
+  <link rel="preload" href="<?= appAssetUrl('css/toast.css') ?>" as="style" onload="this.onload=null;this.rel='stylesheet'">
+  <link rel="preload" href="<?= appAssetUrl('css/loading.css') ?>" as="style" onload="this.onload=null;this.rel='stylesheet'">
   <noscript>
     <?php if (isFeatureEnabled('SHOW_TOUR')): ?>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/shepherd.js@11/dist/css/shepherd.css">
-    <link rel="stylesheet" href="css/tour.css?v=20241210">
+    <link rel="stylesheet" href="<?= appAssetUrl('css/tour.css') ?>">
     <?php endif; ?>
-    <link rel="stylesheet" href="css/toast.css?v=20241210">
-    <link rel="stylesheet" href="css/loading.css?v=20241210">
+    <link rel="stylesheet" href="<?= appAssetUrl('css/toast.css') ?>">
+    <link rel="stylesheet" href="<?= appAssetUrl('css/loading.css') ?>">
   </noscript>
   
   <!-- Feature-specific CSS - loaded on demand -->
-  <link rel="preload" href="css/revision-history.css?v=20241210" as="style" onload="this.onload=null;this.rel='stylesheet'">
-  <link rel="preload" href="css/delete-button.css?v=20241210" as="style" onload="this.onload=null;this.rel='stylesheet'">
-  <link rel="preload" href="css/settings-billing.css?v=20261002a" as="style" onload="this.onload=null;this.rel='stylesheet'">
-  <link rel="preload" href="css/feedback.css?v=20241210" as="style" onload="this.onload=null;this.rel='stylesheet'">
-  <link rel="preload" href="css/kanban-dragdrop.css?v=20241210" as="style" onload="this.onload=null;this.rel='stylesheet'">
-  <link rel="preload" href="css/case-list.css?v=20260925a" as="style" onload="this.onload=null;this.rel='stylesheet'">
-  <link rel="preload" href="css/case-creation.css?v=20241210" as="style" onload="this.onload=null;this.rel='stylesheet'">
-  <link rel="preload" href="css/case-comments.css?v=20260930a" as="style" onload="this.onload=null;this.rel='stylesheet'">
-  <link rel="preload" href="css/case-remakes.css?v=20260922a" as="style" onload="this.onload=null;this.rel='stylesheet'">
-  <link rel="preload" href="css/activity-timeline.css?v=20241230" as="style" onload="this.onload=null;this.rel='stylesheet'">
-  <link rel="preload" href="css/insights.css?v=20241230" as="style" onload="this.onload=null;this.rel='stylesheet'">
-  <link rel="preload" href="css/at-risk.css?v=20241231" as="style" onload="this.onload=null;this.rel='stylesheet'">
-  <link rel="preload" href="css/clinical-details.css?v=20241230" as="style" onload="this.onload=null;this.rel='stylesheet'">
-  <link rel="preload" href="css/ask-dentatrak.css?v=20241230" as="style" onload="this.onload=null;this.rel='stylesheet'">
-  <link rel="preload" href="css/patient-search.css?v=20241212" as="style" onload="this.onload=null;this.rel='stylesheet'">
-  <link rel="preload" href="css/assignments.css?v=20241210" as="style" onload="this.onload=null;this.rel='stylesheet'">
-  <link rel="preload" href="css/practice-name.css?v=20241210" as="style" onload="this.onload=null;this.rel='stylesheet'">
-  <link rel="preload" href="css/logo-upload.css?v=20260807a" as="style" onload="this.onload=null;this.rel='stylesheet'">
-  <link rel="preload" href="css/dev-tools.css?v=20241210" as="style" onload="this.onload=null;this.rel='stylesheet'">
-  <link rel="preload" href="css/analytics-pro.css?v=20260916a" as="style" onload="this.onload=null;this.rel='stylesheet'">
-  <link rel="preload" href="css/attachment-viewer.css?v=20260923a" as="style" onload="this.onload=null;this.rel='stylesheet'">
+  <link rel="preload" href="<?= appAssetUrl('css/revision-history.css') ?>" as="style" onload="this.onload=null;this.rel='stylesheet'">
+  <link rel="preload" href="<?= appAssetUrl('css/delete-button.css') ?>" as="style" onload="this.onload=null;this.rel='stylesheet'">
+  <link rel="preload" href="<?= appAssetUrl('css/settings-billing.css') ?>" as="style" onload="this.onload=null;this.rel='stylesheet'">
+  <link rel="preload" href="<?= appAssetUrl('css/feedback.css') ?>" as="style" onload="this.onload=null;this.rel='stylesheet'">
+  <link rel="preload" href="<?= appAssetUrl('css/kanban-dragdrop.css') ?>" as="style" onload="this.onload=null;this.rel='stylesheet'">
+  <link rel="preload" href="<?= appAssetUrl('css/case-list.css') ?>" as="style" onload="this.onload=null;this.rel='stylesheet'">
+  <link rel="preload" href="<?= appAssetUrl('css/case-creation.css') ?>" as="style" onload="this.onload=null;this.rel='stylesheet'">
+  <link rel="preload" href="<?= appAssetUrl('css/case-comments.css') ?>" as="style" onload="this.onload=null;this.rel='stylesheet'">
+  <link rel="preload" href="<?= appAssetUrl('css/case-remakes.css') ?>" as="style" onload="this.onload=null;this.rel='stylesheet'">
+  <link rel="preload" href="<?= appAssetUrl('css/activity-timeline.css') ?>" as="style" onload="this.onload=null;this.rel='stylesheet'">
+  <link rel="preload" href="<?= appAssetUrl('css/insights.css') ?>" as="style" onload="this.onload=null;this.rel='stylesheet'">
+  <link rel="preload" href="<?= appAssetUrl('css/at-risk.css') ?>" as="style" onload="this.onload=null;this.rel='stylesheet'">
+  <link rel="preload" href="<?= appAssetUrl('css/clinical-details.css') ?>" as="style" onload="this.onload=null;this.rel='stylesheet'">
+  <link rel="preload" href="<?= appAssetUrl('css/ask-dentatrak.css') ?>" as="style" onload="this.onload=null;this.rel='stylesheet'">
+  <link rel="preload" href="<?= appAssetUrl('css/patient-search.css') ?>" as="style" onload="this.onload=null;this.rel='stylesheet'">
+  <link rel="preload" href="<?= appAssetUrl('css/assignments.css') ?>" as="style" onload="this.onload=null;this.rel='stylesheet'">
+  <link rel="preload" href="<?= appAssetUrl('css/practice-name.css') ?>" as="style" onload="this.onload=null;this.rel='stylesheet'">
+  <link rel="preload" href="<?= appAssetUrl('css/logo-upload.css') ?>" as="style" onload="this.onload=null;this.rel='stylesheet'">
+  <link rel="preload" href="<?= appAssetUrl('css/dev-tools.css') ?>" as="style" onload="this.onload=null;this.rel='stylesheet'">
+  <link rel="preload" href="<?= appAssetUrl('css/analytics-pro.css') ?>" as="style" onload="this.onload=null;this.rel='stylesheet'">
+  <link rel="preload" href="<?= appAssetUrl('css/attachment-viewer.css') ?>" as="style" onload="this.onload=null;this.rel='stylesheet'">
 <?php if (isFeatureEnabled('SHOW_LAB_INSIGHTS')): ?>
-  <link rel="preload" href="css/lab-insights.css?v=20260905a" as="style" onload="this.onload=null;this.rel='stylesheet'">
+  <link rel="preload" href="<?= appAssetUrl('css/lab-insights.css') ?>" as="style" onload="this.onload=null;this.rel='stylesheet'">
 <?php endif; ?>
 <?php if (isFeatureEnabled('BILLING_ENABLED')): ?>
-  <link rel="preload" href="css/billing-portal.css?v=20260805" as="style" onload="this.onload=null;this.rel='stylesheet'">
+  <link rel="preload" href="<?= appAssetUrl('css/billing-portal.css') ?>" as="style" onload="this.onload=null;this.rel='stylesheet'">
 <?php endif; ?>
   <noscript>
-    <link rel="stylesheet" href="css/revision-history.css?v=20241210">
-    <link rel="stylesheet" href="css/delete-button.css?v=20241210">
-    <link rel="stylesheet" href="css/settings-billing.css?v=20261002a">
-    <link rel="stylesheet" href="css/feedback.css?v=20241210">
-    <link rel="stylesheet" href="css/kanban-dragdrop.css?v=20241210">
-    <link rel="stylesheet" href="css/case-list.css?v=20260925a">
-    <link rel="stylesheet" href="css/case-creation.css?v=20241210">
-    <link rel="stylesheet" href="css/case-comments.css?v=20260930a">
-    <link rel="stylesheet" href="css/case-remakes.css?v=20260922a">
-    <link rel="stylesheet" href="css/activity-timeline.css?v=20241230">
-    <link rel="stylesheet" href="css/insights.css?v=20241230">
-    <link rel="stylesheet" href="css/at-risk.css?v=20241231">
-    <link rel="stylesheet" href="css/clinical-details.css?v=20241230">
-    <link rel="stylesheet" href="css/ask-dentatrak.css?v=20241230">
-    <link rel="stylesheet" href="css/patient-search.css?v=20241212">
-    <link rel="stylesheet" href="css/assignments.css?v=20241210">
-    <link rel="stylesheet" href="css/practice-name.css?v=20241210">
-    <link rel="stylesheet" href="css/logo-upload.css?v=20260807a">
-    <link rel="stylesheet" href="css/dev-tools.css?v=20241210">
-    <link rel="stylesheet" href="css/analytics-pro.css?v=20260916a">
+    <link rel="stylesheet" href="<?= appAssetUrl('css/revision-history.css') ?>">
+    <link rel="stylesheet" href="<?= appAssetUrl('css/delete-button.css') ?>">
+    <link rel="stylesheet" href="<?= appAssetUrl('css/settings-billing.css') ?>">
+    <link rel="stylesheet" href="<?= appAssetUrl('css/feedback.css') ?>">
+    <link rel="stylesheet" href="<?= appAssetUrl('css/kanban-dragdrop.css') ?>">
+    <link rel="stylesheet" href="<?= appAssetUrl('css/case-list.css') ?>">
+    <link rel="stylesheet" href="<?= appAssetUrl('css/case-creation.css') ?>">
+    <link rel="stylesheet" href="<?= appAssetUrl('css/case-comments.css') ?>">
+    <link rel="stylesheet" href="<?= appAssetUrl('css/case-remakes.css') ?>">
+    <link rel="stylesheet" href="<?= appAssetUrl('css/activity-timeline.css') ?>">
+    <link rel="stylesheet" href="<?= appAssetUrl('css/insights.css') ?>">
+    <link rel="stylesheet" href="<?= appAssetUrl('css/at-risk.css') ?>">
+    <link rel="stylesheet" href="<?= appAssetUrl('css/clinical-details.css') ?>">
+    <link rel="stylesheet" href="<?= appAssetUrl('css/ask-dentatrak.css') ?>">
+    <link rel="stylesheet" href="<?= appAssetUrl('css/patient-search.css') ?>">
+    <link rel="stylesheet" href="<?= appAssetUrl('css/assignments.css') ?>">
+    <link rel="stylesheet" href="<?= appAssetUrl('css/practice-name.css') ?>">
+    <link rel="stylesheet" href="<?= appAssetUrl('css/logo-upload.css') ?>">
+    <link rel="stylesheet" href="<?= appAssetUrl('css/dev-tools.css') ?>">
+    <link rel="stylesheet" href="<?= appAssetUrl('css/analytics-pro.css') ?>">
 <?php if (isFeatureEnabled('SHOW_LAB_INSIGHTS')): ?>
-    <link rel="stylesheet" href="css/lab-insights.css?v=20260905a">
+    <link rel="stylesheet" href="<?= appAssetUrl('css/lab-insights.css') ?>">
 <?php endif; ?>
-    <link rel="stylesheet" href="css/attachment-viewer.css?v=20260923a">
+    <link rel="stylesheet" href="<?= appAssetUrl('css/attachment-viewer.css') ?>">
 <?php if (isFeatureEnabled('BILLING_ENABLED')): ?>
-    <link rel="stylesheet" href="css/billing-portal.css?v=20260805">
+    <link rel="stylesheet" href="<?= appAssetUrl('css/billing-portal.css') ?>">
 <?php endif; ?>
   </noscript>
   <!-- Shepherd.js Tour - CSS loaded via preload above -->
@@ -3803,9 +3804,9 @@ endif;
 <?php endif; ?>
 
   <!-- Load JavaScript last -->
-  <script src="js/toast.js?v=20250104" defer></script>
+  <script src="<?= appAssetUrl('js/toast.js') ?>" defer></script>
   <?php require_once __DIR__ . '/api/auth-timeout-script.php'; ?>
-  <script src="js/gcs-upload.js?v=20260930a" defer></script>
+  <script src="<?= appAssetUrl('js/gcs-upload.js') ?>" defer></script>
   <script type="importmap">
   {
     "imports": {
@@ -3814,21 +3815,21 @@ endif;
     }
   }
   </script>
-  <script src="js/workflow-draft.js?v=20260829f" defer></script>
-  <script src="js/workflow-draft-ui.js?v=20260829f" defer></script>
+  <script src="<?= appAssetUrl('js/workflow-draft.js') ?>" defer></script>
+  <script src="<?= appAssetUrl('js/workflow-draft-ui.js') ?>" defer></script>
   <script type="application/json" id="caseViewBootstrap"><?= json_encode($caseViewBootstrap, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?></script>
-  <script src="js/case-filter-sort.js?v=20260916f" defer></script>
-  <script src="js/app.js?v=20260925a" defer></script>
-  <script src="js/mobile-case-modal.js?v=20260830c" defer></script>
-  <script src="js/mobile-kanban.js?v=20260916b" defer></script>
+  <script src="<?= appAssetUrl('js/case-filter-sort.js') ?>" defer></script>
+  <script src="<?= appAssetUrl('js/app.js') ?>" defer></script>
+  <script src="<?= appAssetUrl('js/mobile-case-modal.js') ?>" defer></script>
+  <script src="<?= appAssetUrl('js/mobile-kanban.js') ?>" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js" defer></script>
-  <script type="module" src="js/attachment-viewer.js?v=20260930a" defer></script>
-  <script src="js/card-delete-fixed.js?v=20250104" defer></script>
-  <script src="js/assignments.js?v=20250104" defer></script>
-  <script src="js/case-comments.js?v=20260930a" defer></script>
-  <script src="js/notifications.js?v=20260915a" defer></script>
+  <script type="module" src="<?= appAssetUrl('js/attachment-viewer.js') ?>" defer></script>
+  <script src="<?= appAssetUrl('js/card-delete-fixed.js') ?>" defer></script>
+  <script src="<?= appAssetUrl('js/assignments.js') ?>" defer></script>
+  <script src="<?= appAssetUrl('js/case-comments.js') ?>" defer></script>
+  <script src="<?= appAssetUrl('js/notifications.js') ?>" defer></script>
 <?php if (isFeatureEnabled('SHOW_NOTIFICATIONS')): ?>
-  <script src="js/notification-preferences.js?v=20250104" defer></script>
+  <script src="<?= appAssetUrl('js/notification-preferences.js') ?>" defer></script>
 <?php endif; ?>
   <script defer>
     (function() {
@@ -3861,18 +3862,18 @@ endif;
       });
     })();
   </script>
-  <script src="js/activity-timeline.js?v=20250104" defer></script>
-  <script src="js/clinical-details.js?v=20250104" defer></script>
-  <script src="js/ask-dentatrak.js?v=20250104" defer></script>
-  <script src="js/insights.js?v=20250104" defer></script>
+  <script src="<?= appAssetUrl('js/activity-timeline.js') ?>" defer></script>
+  <script src="<?= appAssetUrl('js/clinical-details.js') ?>" defer></script>
+  <script src="<?= appAssetUrl('js/ask-dentatrak.js') ?>" defer></script>
+  <script src="<?= appAssetUrl('js/insights.js') ?>" defer></script>
 <?php if (isFeatureEnabled('BILLING_ENABLED')): ?>
-  <script src="js/billing-portal.js?v=20260916c" defer></script>
+  <script src="<?= appAssetUrl('js/billing-portal.js') ?>" defer></script>
 <?php endif; ?>
-  <script src="js/patient-search.js?v=20260916d" defer></script>
-  <script src="js/realtime-updates.js?v=20260916b" defer></script>
-  <script src="js/case-list.js?v=20260925a" defer></script>
-  <script src="js/case-actions-menu.js?v=20260916d" defer></script>
-  <script src="js/case-remakes.js?v=20260922a" defer></script>
+  <script src="<?= appAssetUrl('js/patient-search.js') ?>" defer></script>
+  <script src="<?= appAssetUrl('js/realtime-updates.js') ?>" defer></script>
+  <script src="<?= appAssetUrl('js/case-list.js') ?>" defer></script>
+  <script src="<?= appAssetUrl('js/case-actions-menu.js') ?>" defer></script>
+  <script src="<?= appAssetUrl('js/case-remakes.js') ?>" defer></script>
   
 <?php if ($showDevTools): ?>
 <!-- Dev Tools JavaScript -->
@@ -4007,7 +4008,7 @@ endif;
   <!-- Shepherd.js Tour - deferred since not needed immediately -->
   <?php if (isFeatureEnabled('SHOW_TOUR')): ?>
   <script src="https://cdn.jsdelivr.net/npm/shepherd.js@11/dist/js/shepherd.min.js" defer></script>
-  <script src="js/tour.js?v=20260818p" defer></script>
+  <script src="<?= appAssetUrl('js/tour.js') ?>" defer></script>
   <?php endif; ?>
 
   <!-- Attachment Viewer Modal -->

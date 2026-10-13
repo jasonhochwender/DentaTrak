@@ -767,7 +767,9 @@
         "upload_http_failed": "Échec du téléversement (statut HTTP {status}). Veuillez réessayer.",
         "upload_network_error": "Erreur réseau pendant le téléversement. Vérifiez votre connexion et réessayez.",
         "upload_unsupported_type": "Type de fichier non pris en charge : {files}",
+        "upload_empty_file": "Impossible de lire {files}. Le fichier est peut-être vide, en cours de synchronisation depuis le nuage ou indisponible - resélectionnez-le et réessayez.",
         "upload_errors": {
+            "empty_file": "Le fichier semble vide ou n'a pas pu être lu. Resélectionnez-le et réessayez.",
             "session_expired": "Votre session a expiré. Veuillez vous reconnecter et réessayer.",
             "unauthenticated": "Votre session a expiré. Veuillez vous reconnecter et réessayer.",
             "access_denied": "Vous n'avez pas accès pour téléverser des fichiers vers ce dossier.",

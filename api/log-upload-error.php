@@ -55,7 +55,7 @@ if (!is_array($input)) {
 
 $allowedStages = ['client-validation', 'signed-url', 'gcs-put', 'batch', 'unknown'];
 $allowedClasses = [
-    'unsupported_type', 'too_large', 'too_many', 'total_exceeded',
+    'unsupported_type', 'too_large', 'too_many', 'total_exceeded', 'empty_file',
     'session_expired', 'unauthenticated', 'access_denied', 'validation',
     'unsupported_type_server', 'invalid_mime', 'invalid_upload_type',
     'missing_fields', 'invalid_json', 'only_images', 'case_required',

@@ -5,6 +5,8 @@ require_once __DIR__ . '/api/appConfig.php';
 require_once __DIR__ . '/api/csrf.php';
 require_once __DIR__ . '/api/security-headers.php';
 require_once __DIR__ . '/api/2fa-recovery-helpers.php';
+require_once __DIR__ . '/api/asset-url.php';
+
 setSecurityHeaders();
 
 $appName = $appConfig['appName'];
@@ -82,10 +84,10 @@ $pageStrings = [
   <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
   <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png">
   <link rel="manifest" href="site.webmanifest">
-  <link rel="stylesheet" href="css/app.css">
-  <link rel="stylesheet" href="css/login.css">
+  <link rel="stylesheet" href="<?= appAssetUrl('css/app.css') ?>">
+  <link rel="stylesheet" href="<?= appAssetUrl('css/login.css') ?>">
   <script>window.__i18n = <?php echo getTranslationsJsonForJs(); ?>;</script>
-  <script src="js/i18n.js"></script>
+  <script src="<?= appAssetUrl('js/i18n.js') ?>"></script>
 </head>
 <body class="login-body <?php echo $envClass; ?>">
   <div class="login-bg-shapes">

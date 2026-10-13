@@ -1,6 +1,8 @@
 <?php
 require_once __DIR__ . '/api/appConfig.php';
 require_once __DIR__ . '/api/security-headers.php';
+require_once __DIR__ . '/api/asset-url.php';
+
 setSecurityHeaders();
 $appName = $appConfig['appName'] ?? 'DentaTrak';
 $loginUrl = rtrim($appConfig['baseUrl'] ?? '', '/') . '/login.php';
@@ -31,7 +33,7 @@ $loginUrl = rtrim($appConfig['baseUrl'] ?? '', '/') . '/login.php';
   <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png">
   <link rel="manifest" href="site.webmanifest">
 
-  <link rel="stylesheet" href="css/app.css">
+  <link rel="stylesheet" href="<?= appAssetUrl('css/app.css') ?>">
   <style>
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;

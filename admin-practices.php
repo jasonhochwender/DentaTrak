@@ -27,6 +27,7 @@ if (empty($_SESSION['db_user_id'])) {
 // Load dev tools access control
 require_once __DIR__ . '/api/dev-tools-access.php';
 require_once __DIR__ . '/api/feature-flags.php';
+require_once __DIR__ . '/api/asset-url.php';
 
 // Check if current user can access admin pages. In production/UAT/Cloud Run
 // only configured super users are allowed. The 'development' exception applies
@@ -63,7 +64,7 @@ $userEmail = $_SESSION['user_email'] ?? '';
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@400;500;600;700&family=Noto+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="css/app.css">
+    <link rel="stylesheet" href="<?= appAssetUrl('css/app.css') ?>">
     <style>
         body {
             font-family: 'Poppins', 'Inter', 'Noto Sans KR', sans-serif;

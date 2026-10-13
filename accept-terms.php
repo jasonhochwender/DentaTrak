@@ -14,6 +14,7 @@ require_once __DIR__ . '/api/appConfig.php';
 require_once __DIR__ . '/api/csrf.php';
 require_once __DIR__ . '/api/practice-security.php';
 require_once __DIR__ . '/api/security-headers.php';
+require_once __DIR__ . '/api/asset-url.php';
 
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
@@ -92,11 +93,11 @@ $appName = $appConfig['appName'] ?? 'DentaTrak';
     <meta name="terms-accept-api" content="<?php echo htmlspecialchars($acceptApiUrl); ?>">
     <meta name="terms-return-to" content="<?php echo htmlspecialchars($returnTo); ?>">
     <title><?php echo htmlspecialchars(t('terms.page_title')) . ' - ' . htmlspecialchars($appName); ?></title>
-    <link rel="stylesheet" href="css/app.css">
+    <link rel="stylesheet" href="<?= appAssetUrl('css/app.css') ?>">
     <script>
         window.__i18n = <?php echo getTranslationsJsonForJs(); ?>;
     </script>
-    <script src="js/i18n.js"></script>
+    <script src="<?= appAssetUrl('js/i18n.js') ?>"></script>
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;

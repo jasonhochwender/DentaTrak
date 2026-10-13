@@ -24,6 +24,7 @@ if (empty($_SESSION['db_user_id'])) {
 require_once __DIR__ . '/api/dev-tools-access.php';
 require_once __DIR__ . '/api/feature-flags.php';
 require_once __DIR__ . '/api/ask-dentatrak-telemetry.php';
+require_once __DIR__ . '/api/asset-url.php';
 
 $userEmail = $_SESSION['user_email'] ?? '';
 $isDev = ($appConfig['current_environment'] ?? '') === 'development';
@@ -145,7 +146,7 @@ $successRate = $summary['total'] > 0 ? round(100 * $summary['answered'] / $summa
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="robots" content="noindex, nofollow">
     <title><?php echo h(u('title', 'Ask DentaTrak Usage')); ?> - <?php echo h($appConfig['appName']); ?></title>
-    <link rel="stylesheet" href="css/app.css">
+    <link rel="stylesheet" href="<?= appAssetUrl('css/app.css') ?>">
     <style>
         body { font-family: 'Poppins','Inter',sans-serif; background: #f3f4f6; margin: 0; padding: 20px; }
         .admin-container { max-width: 1400px; margin: 0 auto; }

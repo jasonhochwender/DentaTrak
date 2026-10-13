@@ -767,7 +767,9 @@
         "upload_http_failed": "Upload failed (HTTP status {status}). Please retry.",
         "upload_network_error": "Network error during upload. Check your connection and retry.",
         "upload_unsupported_type": "Unsupported file type: {files}",
+        "upload_empty_file": "Couldn't read {files}. The file may be empty, still syncing from cloud storage, or unavailable - re-select it and try again.",
         "upload_errors": {
+            "empty_file": "The file appears to be empty or couldn't be read. Re-select it and try again.",
             "session_expired": "Your session expired. Please log in and try again.",
             "unauthenticated": "Your session expired. Please log in and try again.",
             "access_denied": "You don't have access to upload files to this case.",

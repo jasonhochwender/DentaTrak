@@ -13,6 +13,8 @@ require_once __DIR__ . '/api/csrf.php';
 require_once __DIR__ . '/api/security-headers.php';
 require_once __DIR__ . '/api/plan-entitlements.php';
 require_once __DIR__ . '/api/billing-bypass.php';
+require_once __DIR__ . '/api/asset-url.php';
+
 setSecurityHeaders();
 
 // Generate CSRF token
@@ -172,8 +174,8 @@ $baaVersion = 'v1.0-2026-08-07';
     <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
     <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png">
     <link rel="manifest" href="site.webmanifest">
-    <link rel="stylesheet" href="css/app.css">
-    <link rel="stylesheet" href="css/toast.css">
+    <link rel="stylesheet" href="<?= appAssetUrl('css/app.css') ?>">
+    <link rel="stylesheet" href="<?= appAssetUrl('css/toast.css') ?>">
     <style>
         * {
             margin: 0;
@@ -702,7 +704,7 @@ $baaVersion = 'v1.0-2026-08-07';
         </div>
     </div>
     
-    <script src="js/toast.js"></script>
+    <script src="<?= appAssetUrl('js/toast.js') ?>"></script>
     <?php require_once __DIR__ . '/api/auth-timeout-script.php'; ?>
     <script>
         var IS_CREATING_NEW_PRACTICE = <?php echo $isCreatingNewPractice ? 'true' : 'false'; ?>;

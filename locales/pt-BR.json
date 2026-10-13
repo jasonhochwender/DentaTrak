@@ -2720,7 +2720,9 @@
         "upload_http_failed": "Falha no envio (status HTTP {status}). Tente novamente.",
         "upload_network_error": "Erro de rede durante o envio. Verifique sua conexão e tente novamente.",
         "upload_unsupported_type": "Tipo de arquivo não suportado: {files}",
+        "upload_empty_file": "Não foi possível ler {files}. O arquivo pode estar vazio, ainda sincronizando do armazenamento em nuvem ou indisponível - selecione-o novamente e tente de novo.",
         "upload_errors": {
+            "empty_file": "O arquivo parece vazio ou não pôde ser lido. Selecione-o novamente e tente de novo.",
             "session_expired": "Sua sessão expirou. Entre novamente e tente de novo.",
             "unauthenticated": "Sua sessão expirou. Entre novamente e tente de novo.",
             "access_denied": "Você não tem acesso para enviar arquivos para este caso.",
