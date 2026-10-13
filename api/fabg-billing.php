@@ -194,8 +194,22 @@ function verifyFabgPromotionCode(array $stripeConfig): array {
     $result = ['configured' => true, 'verified' => false, 'code' => null, 'reason' => 'unverified'];
     try {
         \Stripe\Stripe::setApiKey($stripeConfig['secret_key']);
-        $promo  = \Stripe\PromotionCode::retrieve($promoId, ['expand' => ['coupon']]);
-        $coupon = $promo->coupon ?? null;
+        $promo  = \Stripe\PromotionCode::retrieve($promoId, ['expand' => ['promotion.coupon', 'coupon']]);
+        // The coupon reference moved in newer Stripe API versions: legacy
+        // `coupon` (expandable object) vs. current `promotion.coupon` (an ID
+        // string that does not expand in-place → retrieve it separately).
+        $couponRef = $promo->coupon ?? ($promo->promotion->coupon ?? null);
+        if (is_object($couponRef)) {
+            $coupon = $couponRef;
+        } elseif (is_string($couponRef) && $couponRef !== '') {
+            $coupon = \Stripe\Coupon::retrieve($couponRef);
+        } else {
+            $coupon = null;
+        }
+        if ($coupon === null && !empty($promo->promotion->type) && $promo->promotion->type !== 'coupon') {
+            // Non-coupon promotions can never satisfy this offer.
+            $coupon = null;
+        }
         // The offer must redeem indefinitely, so the code itself cannot carry
         // an expiry, a redemption cap, or a minimum-amount restriction, and
         // the coupon must still be valid (not redeemed-out or expired).

@@ -266,6 +266,11 @@ Here is the workflow data to analyze:
                 // subscriptions so plan changes can offer the FABG annual
                 // Prices without exposing them to non-FABG customers.
                 'portal_configuration_id' => getEnvVar('STRIPE_FABG_PORTAL_CONFIGURATION_ID') ?: null,
+                // Essentials-only fallback portal configuration (payment
+                // method updates, invoices, cancellation — NO plan switching,
+                // so nothing can stack). Used when the full FABG portal
+                // configuration above is not set.
+                'portal_fallback_configuration_id' => getEnvVar('STRIPE_FABG_PORTAL_FALLBACK_CONFIGURATION_ID') ?: null,
                 // Dedicated annual Prices billed at 12x monthly (undiscounted
                 // annual) — the FABG25 coupon yields 75% of 12 months.
                 'annual_prices' => [

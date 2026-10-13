@@ -149,11 +149,14 @@ check(strpos($checkout, '$isFabgPilot') < strpos($checkout, "getStripePriceId(\$
 
 // ── Customer portal: FABG configuration for discounted subscriptions ────────
 check(strpos($portal, 'subscriptionHasFabgDiscount') !== false, 'portal session checks fabg_discount');
-check(strpos($portal, "fabg']['portal_configuration_id']") !== false, 'portal uses STRIPE_FABG_PORTAL_CONFIGURATION_ID for FABG subs');
+check(strpos($portal, "fabg']['portal_configuration_id']") !== false, 'portal prefers STRIPE_FABG_PORTAL_CONFIGURATION_ID for FABG subs');
+check(strpos($portal, 'portal_fallback_configuration_id') !== false, 'portal falls back to essentials-only config (no plan switching)');
 check(strpos($portal, '?? $portalConfigId') === false, 'portal must NOT fall back to standard config for FABG subs (would stack coupon on 10x annual)');
-check(strpos($portal, 'fabg_portal_unavailable') !== false, 'portal blocks FABG subs when dedicated config is absent');
+check(strpos($portal, 'fabg_portal_unavailable') !== false, 'portal blocks FABG subs only when neither config exists');
 check(strpos($checkout, 'fabg_portal_not_configured') !== false, 'checkout portal redirect enforces FABG config too');
+check(strpos($checkout, 'portal_fallback_configuration_id') !== false, 'checkout portal redirect honors essentials fallback');
 check(strpos($checkout, 'fabg_portal_unavailable') !== false, 'checkout portal redirect returns the localized FABG error');
+check(strpos($appConfigSrc, 'STRIPE_FABG_PORTAL_FALLBACK_CONFIGURATION_ID') !== false, 'fallback portal config env var wired');
 
 // ── Webhook: fabg_discount persistence ──────────────────────────────────────
 check(strpos($webhook, '$fabgDiscount') !== false, 'webhook computes FABG discount state');
@@ -162,6 +165,15 @@ check(strpos($webhook, 'isFabgPriceId') !== false, 'webhook detects dedicated FA
 check(strpos($webhook, 'fabg_discount           = :fabg') !== false || strpos($webhook, 'fabg_discount') !== false,
     'webhook writes fabg_discount');
 check(strpos($webhook, 'subscriptionsFabgColumnExists') !== false, 'webhook guards pre-migration schema');
+// Clover API shape: subscription.discounts in event payloads are thin di_
+// IDs with no promotion_code — the webhook must expand them server-side and
+// leave the column untouched when expansion fails (fail-safe, not fail-open).
+check(strpos($webhook, "'expand' => ['discounts']") !== false,
+    'webhook expands thin di_ discount IDs to resolve promotion codes');
+check(strpos($webhook, '$fabgDiscount = null') !== false && strpos($webhook, '$fabgDiscount !== null') !== false,
+    'webhook preserves persisted fabg_discount when determination is indeterminate');
+check(preg_match('/catch.*discount expansion failed|error_log.*expansion failed/s', $webhook) === 1,
+    'webhook logs and swallows discount-expansion failures');
 
 // ── Migration ───────────────────────────────────────────────────────────────
 check(strpos($migrate, 'fabg_discount') !== false, 'migrate script adds fabg_discount');

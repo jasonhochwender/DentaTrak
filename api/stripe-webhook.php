@@ -423,27 +423,53 @@ function handleSubscriptionUpsert(
     // code is the configured FABG25 code — or when its base Price is one of
     // the dedicated FABG annual Prices, which only FABG checkout produces.
     // Cleared automatically if the discount is removed and the Price is not
-    // FABG-specific. Handles both the legacy singular `discount` object and
-    // the newer `discounts` list.
-    $fabgDiscount = 0;
+    // FABG-specific. Under the clover API, event payloads carry only thin
+    // `di_` discount IDs with no promotion_code — those are resolved via an
+    // expanded retrieve. $fabgDiscount stays null when indeterminate (API
+    // failure) so the persisted column is left untouched rather than
+    // wrongly cleared or set.
+    $fabgDiscount = null;
     $configuredFabgPromo = $appConfig['stripe']['fabg']['promotion_code_id'] ?? null;
-    if (!empty($configuredFabgPromo)) {
+    if (isFabgPriceId($priceId, $appConfig)) {
+        $fabgDiscount = 1;
+    } elseif (!empty($configuredFabgPromo)) {
+        $discountEntries = (array)($sub->discounts ?? []);
         $appliedPromoIds = [];
         $legacyPromo = $sub->discount->promotion_code ?? null;
         if (!empty($legacyPromo)) {
             $appliedPromoIds[] = is_object($legacyPromo) ? ($legacyPromo->id ?? null) : $legacyPromo;
         }
-        foreach ((array)($sub->discounts ?? []) as $discountEntry) {
-            $appliedPromoIds[] = is_object($discountEntry)
-                ? ($discountEntry->promotion_code->id ?? $discountEntry->promotion_code ?? null)
-                : $discountEntry;
+        $hasUnresolvedDiscountIds = false;
+        foreach ($discountEntries as $discountEntry) {
+            if (is_object($discountEntry)) {
+                $appliedPromoIds[] = $discountEntry->promotion_code->id
+                    ?? $discountEntry->promotion_code ?? null;
+            } else {
+                $hasUnresolvedDiscountIds = true;
+            }
         }
         if (in_array($configuredFabgPromo, array_filter($appliedPromoIds), true)) {
             $fabgDiscount = 1;
+        } elseif (!$hasUnresolvedDiscountIds) {
+            // Empty discount list (or only resolvable object entries with no
+            // match) — determination is reliable without an API call.
+            $fabgDiscount = 0;
+        } else {
+            try {
+                $expandedSub = (new \Stripe\StripeClient($appConfig['stripe']['secret_key'] ?? ''))
+                    ->subscriptions->retrieve($stripeSubscriptionId, ['expand' => ['discounts']]);
+                foreach ((array)($expandedSub->discounts ?? []) as $expandedDiscount) {
+                    $appliedPromoIds[] = is_object($expandedDiscount)
+                        ? ($expandedDiscount->promotion_code->id ?? $expandedDiscount->promotion_code ?? null)
+                        : $expandedDiscount;
+                }
+                $fabgDiscount = in_array($configuredFabgPromo, array_filter($appliedPromoIds), true) ? 1 : 0;
+            } catch (\Throwable $e) {
+                error_log('[stripe-webhook] FABG discount expansion failed for ' . $stripeSubscriptionId . ': ' . $e->getMessage());
+            }
         }
-    }
-    if (!$fabgDiscount && isFabgPriceId($priceId, $appConfig)) {
-        $fabgDiscount = 1;
+    } else {
+        $fabgDiscount = 0;
     }
 
     // Format timestamps as UTC datetime strings for storage
@@ -452,8 +478,11 @@ function handleSubscriptionUpsert(
     $eventCreatedDt     = gmdate('Y-m-d H:i:s', $eventCreatedAt);
 
     // subscriptions.fabg_discount is migration-gated — omit the column write
-    // on a pre-migration schema rather than failing the event.
-    $fabgColumnSql = subscriptionsFabgColumnExists($pdo) ? ",\n            fabg_discount           = :fabg" : '';
+    // on a pre-migration schema, and omit it when the FABG determination was
+    // indeterminate (discount expansion failed) so a transient Stripe API
+    // error can't clear or set the persisted flag incorrectly.
+    $fabgColumnSql = (subscriptionsFabgColumnExists($pdo) && $fabgDiscount !== null)
+        ? ",\n            fabg_discount           = :fabg" : '';
 
     // Stale-event guard: apply if this event is newer than or same-timestamp as
     // the last accepted event, so a genuinely older event can't overwrite newer

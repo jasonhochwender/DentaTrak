@@ -402,8 +402,11 @@ function createPortalSession(PDO $pdo, int $ownerUserId, array $appConfig): stri
     if (subscriptionHasFabgDiscount($pdo, $ownerUserId)) {
         // Same non-stacking enforcement as create-portal-session.php: the
         // standard portal could stack the forever coupon onto a 10x annual
-        // Price, so FABG subscriptions require the dedicated configuration.
-        $portalConfigId = $appConfig['stripe']['fabg']['portal_configuration_id'] ?? null;
+        // Price. Full FABG config first, essentials-only fallback second,
+        // hard block only when neither is configured.
+        $portalConfigId = $appConfig['stripe']['fabg']['portal_configuration_id']
+            ?? $appConfig['stripe']['fabg']['portal_fallback_configuration_id']
+            ?? null;
         if (empty($portalConfigId)) {
             throw new RuntimeException('fabg_portal_not_configured');
         }

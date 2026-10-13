@@ -174,6 +174,10 @@ switch ($action) {
         handleSetFabgPilot($pdo, $input);
         break;
 
+    case 'get_checkout_session':
+        handleGetCheckoutSession($pdo, $input);
+        break;
+
     case 'delete_test_users':
         handleDeleteTestUsers($pdo, $input);
         break;
@@ -759,6 +763,15 @@ function handleSetStripeSubscriptionId($pdo, $input) {
             $fields[] = 'billing_interval = :billing_interval';
             $params['billing_interval'] = $billingInterval;
         }
+        $stripeCustomerId = trim($input['stripe_customer_id'] ?? '');
+        if ($stripeCustomerId !== '') {
+            $fields[] = 'stripe_customer_id = :stripe_customer_id';
+            $params['stripe_customer_id'] = $stripeCustomerId;
+        }
+        if (isset($input['fabg_discount'])) {
+            $fields[] = 'fabg_discount = :fabg_discount';
+            $params['fabg_discount'] = !empty($input['fabg_discount']) ? 1 : 0;
+        }
 
         $sql = "UPDATE subscriptions SET " . implode(', ', $fields) . ", subscription_updated_at = UTC_TIMESTAMP() WHERE owner_user_id = :owner_user_id";
         $pdo->prepare($sql)->execute($params);
@@ -977,7 +990,7 @@ function handleGetSubscriptionState($pdo, $input) {
         $stmt = $pdo->prepare("
             SELECT owner_user_id, stripe_customer_id, stripe_subscription_id, stripe_price_id,
                    plan, billing_interval, status, trial_ends_at, current_period_ends_at,
-                   cancel_at_period_end, subscription_updated_at, stripe_event_created
+                   cancel_at_period_end, fabg_discount, subscription_updated_at, stripe_event_created
             FROM subscriptions
             WHERE owner_user_id = :user_id
             LIMIT 1
@@ -2656,6 +2669,69 @@ function handleSetFabgPilot($pdo, $input) {
         error_log('[test-helpers] set_fabg_pilot error: ' . $e->getMessage());
         http_response_code(500);
         echo json_encode(['success' => false, 'message' => 'FABG flag update failed']);
+    }
+}
+
+/**
+ * Retrieve a Stripe Checkout Session by ID and return only the fields a test
+ * needs to verify (discounts, line-item Price IDs, trial_end, amount) — never
+ * the raw object and never secrets. Dev/test only; read-only.
+ */
+function handleGetCheckoutSession($pdo, $input) {
+    requireValidPracticeContext();
+    $sessionId = trim((string)($input['session_id'] ?? ''));
+    if (!preg_match('/^cs_(test|live)_[A-Za-z0-9]+$/', $sessionId)) {
+        http_response_code(400);
+        echo json_encode(['success' => false, 'message' => 'Invalid session id']);
+        return;
+    }
+
+    try {
+        global $appConfig;
+        $secretKey = $appConfig['stripe']['secret_key'] ?? null;
+        if (empty($secretKey)) {
+            echo json_encode(['success' => false, 'message' => 'Stripe not configured']);
+            return;
+        }
+        \Stripe\Stripe::setApiKey($secretKey);
+        $session = \Stripe\Checkout\Session::retrieve($sessionId);
+        // Line items are a dedicated sub-resource (no in-place expand on
+        // current API versions); fetch them separately.
+        $lineItemList = \Stripe\Checkout\Session::allLineItems($sessionId, ['limit' => 20]);
+
+        $promotionCodes = [];
+        foreach ((array)($session->discounts ?? []) as $d) {
+            $promotionCodes[] = is_object($d) ? ($d->promotion_code->id ?? $d->promotion_code ?? null) : $d;
+        }
+        $priceIds  = [];
+        $lineItems = [];
+        foreach ((array)$lineItemList->data as $item) {
+            $price      = $item->price ?? null;
+            $priceIds[] = is_object($price) ? ($price->id ?? null) : $price;
+            $lineItems[] = [
+                'price_id'    => is_object($price) ? ($price->id ?? null) : $price,
+                'unit_amount' => is_object($price) ? ($price->unit_amount ?? null) : null,
+                'interval'    => is_object($price) ? ($price->recurring->interval ?? null) : null,
+                'quantity'    => $item->quantity ?? null,
+            ];
+        }
+
+        echo json_encode([
+            'success'         => true,
+            'status'          => $session->status ?? null,
+            'mode'            => $session->mode ?? null,
+            'promotion_codes' => array_values(array_filter($promotionCodes)),
+            'price_ids'       => array_values(array_filter($priceIds)),
+            'line_items'      => $lineItems,
+            'amount_total'    => $session->amount_total ?? null,
+            'trial_end'       => $session->subscription_data->trial_end ?? null,
+            'currency'        => $session->currency ?? null,
+            'metadata'        => $session->metadata ? $session->metadata->toArray() : [],
+        ]);
+    } catch (Throwable $e) {
+        error_log('[test-helpers] get_checkout_session error: ' . $e->getMessage());
+        http_response_code(500);
+        echo json_encode(['success' => false, 'message' => 'Session lookup failed']);
     }
 }
 
