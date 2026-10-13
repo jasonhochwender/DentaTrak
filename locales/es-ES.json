@@ -1998,6 +1998,7 @@
         },
         "errors": {
             "fabg_offer_unavailable": "Tu descuento de miembro FABG aún no está disponible. El pago está en pausa para que no se te cobre el precio completo; inténtalo de nuevo pronto.",
+            "fabg_portal_unavailable": "Tu portal de facturación de miembro FABG no está disponible temporalmente mientras se configuran los cambios de plan con descuento. Contacta con soporte.",
             "internal": "Error interno del servidor",
             "unauthorized": "No está autorizado para realizar esta acción.",
             "authentication_required": "Se requiere autenticación",

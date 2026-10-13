@@ -1998,6 +1998,7 @@
         },
         "errors": {
             "fabg_offer_unavailable": "Your FABG member discount is not yet available. Checkout is paused so you are not charged the full price - please try again soon.",
+            "fabg_portal_unavailable": "Your FABG member billing portal is temporarily unavailable while discounted plan changes are being set up. Please contact support.",
             "internal": "Internal server error",
             "unauthorized": "You are not authorized to perform this action.",
             "authentication_required": "Authentication required",

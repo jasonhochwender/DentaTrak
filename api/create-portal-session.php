@@ -125,13 +125,20 @@ try {
         'customer'   => $stripeCustomerId,
         'return_url' => $baseUrl . '/main.php',
     ];
-    // FABG-discounted subscriptions use a dedicated portal configuration so
-    // plan changes can offer the FABG annual Prices without exposing those
-    // prices to non-FABG customers on the standard configuration. Falls
-    // back to the standard configuration when no FABG one is configured.
+    // FABG-discounted subscriptions REQUIRE a dedicated portal configuration.
+    // The standard configuration offers the 10x annual Prices — a plan change
+    // there would apply the subscription's forever coupon to a price that
+    // already embeds "2 months free" (a stack the FABG offer forbids), so we
+    // block rather than fall back until the FABG configuration exists.
     $portalConfigId = $stripeConfig['portal_configuration_id'] ?? null;
     if ($hasFabgDiscount) {
-        $portalConfigId = $stripeConfig['fabg']['portal_configuration_id'] ?? $portalConfigId;
+        $portalConfigId = $stripeConfig['fabg']['portal_configuration_id'] ?? null;
+        if (empty($portalConfigId)) {
+            error_log('create-portal-session: FABG-discounted subscription blocked — STRIPE_FABG_PORTAL_CONFIGURATION_ID not configured');
+            http_response_code(503);
+            echo json_encode(['error' => t('billing.errors.fabg_portal_unavailable')]);
+            exit;
+        }
     }
     if (!empty($portalConfigId)) {
         $portalParams['configuration'] = $portalConfigId;

@@ -122,10 +122,40 @@ function getFabgDisplayPrices(array $appConfig): array {
 }
 
 /**
+ * Every configured Stripe Price ID the FABG coupon could be applied to —
+ * all standard plan Prices plus the dedicated FABG annual Prices — used to
+ * verify a product-restricted coupon still covers every paid plan.
+ *
+ * @return string[]
+ */
+function fabgConfiguredPriceIds(array $stripeConfig): array {
+    $ids = [];
+    foreach (($stripeConfig['prices'] ?? []) as $planPrices) {
+        foreach ((array)$planPrices as $priceId) {
+            if (!empty($priceId)) {
+                $ids[$priceId] = true;
+            }
+        }
+    }
+    foreach (($stripeConfig['fabg']['annual_prices'] ?? []) as $priceId) {
+        if (!empty($priceId)) {
+            $ids[$priceId] = true;
+        }
+    }
+    $additional = $stripeConfig['fabg']['additional_annual_price'] ?? null;
+    if (!empty($additional)) {
+        $ids[$additional] = true;
+    }
+    return array_keys($ids);
+}
+
+/**
  * Verify the configured FABG promotion code against Stripe:
  *   - it exists and is active
  *   - its code matches the configured expected code (FABG25)
  *   - its coupon is percent_off=25 with duration=forever
+ *   - if the coupon is product-restricted, every configured plan product
+ *     is included (otherwise some plans would fail at redemption)
  *
  * Returns:
  *   configured → a promotion code ID is set for this environment
@@ -166,21 +196,57 @@ function verifyFabgPromotionCode(array $stripeConfig): array {
         \Stripe\Stripe::setApiKey($stripeConfig['secret_key']);
         $promo  = \Stripe\PromotionCode::retrieve($promoId, ['expand' => ['coupon']]);
         $coupon = $promo->coupon ?? null;
+        // The offer must redeem indefinitely, so the code itself cannot carry
+        // an expiry, a redemption cap, or a minimum-amount restriction, and
+        // the coupon must still be valid (not redeemed-out or expired).
         $ok = !empty($promo->active)
             && $coupon !== null
+            && ($coupon->valid ?? false) === true
             && (float)($coupon->percent_off ?? 0) === 25.0
             && ($coupon->duration ?? '') === 'forever'
+            && empty($promo->expires_at)
+            && empty($promo->max_redemptions)
+            && empty($promo->restrictions->minimum_amount)
             && strcasecmp((string)($promo->code ?? ''), $expected) === 0;
+
+        // Eligibility: when the coupon is restricted to specific products
+        // (applies_to.products), every product behind our configured plan
+        // Prices must be covered or some plans would fail at redemption.
+        // An unset/empty applies_to means "all products" — no check needed.
+        $restrictedTo = [];
+        if ($coupon !== null && !empty($coupon->applies_to->products)) {
+            $restrictedTo = array_map('strval', (array)$coupon->applies_to->products);
+        }
+        $missingProducts = [];
+        if ($ok && !empty($restrictedTo)) {
+            foreach (fabgConfiguredPriceIds($stripeConfig) as $priceId) {
+                $price      = \Stripe\Price::retrieve($priceId);
+                $productId  = is_string($price->product) ? $price->product : ($price->product->id ?? null);
+                if ($productId !== null && !in_array($productId, $restrictedTo, true)) {
+                    $missingProducts[$productId] = true;
+                }
+            }
+            if (!empty($missingProducts)) {
+                $ok = false;
+            }
+        }
+
         if ($ok) {
             $result = ['configured' => true, 'verified' => true, 'code' => $promo->code, 'reason' => null];
         } else {
-            $result['reason'] = 'invalid_attributes';
+            $result['reason'] = !empty($missingProducts) ? 'restricted_products' : 'invalid_attributes';
             error_log('[fabg] promotion code verification rejected attributes: ' . json_encode([
                 'promotion_code_id' => $promoId,
                 'active'            => $promo->active ?? null,
                 'code'              => $promo->code ?? null,
                 'percent_off'       => $coupon->percent_off ?? null,
                 'duration'          => $coupon->duration ?? null,
+                'valid'             => $coupon->valid ?? null,
+                'expires_at'        => $promo->expires_at ?? null,
+                'max_redemptions'   => $promo->max_redemptions ?? null,
+                'min_amount'        => $promo->restrictions->minimum_amount ?? null,
+                'applies_to'        => $restrictedTo ?: null,
+                'missing_products'  => array_keys($missingProducts) ?: null,
             ]));
         }
     } catch (Throwable $e) {

@@ -1998,6 +1998,7 @@
         },
         "errors": {
             "fabg_offer_unavailable": "Votre remise membre FABG n'est pas encore disponible. Le paiement est suspendu afin que vous ne soyez pas facturé au plein tarif - veuillez réessayer bientôt.",
+            "fabg_portal_unavailable": "Votre portail de facturation membre FABG est temporairement indisponible pendant la configuration des changements d’offre remisés. Veuillez contacter le support.",
             "internal": "Erreur interne du serveur",
             "unauthorized": "Vous n'êtes pas autorisé à effectuer cette action.",
             "authentication_required": "Authentification requise",

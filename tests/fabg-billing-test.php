@@ -88,6 +88,26 @@ check(isFabgPriceId(null, $mockConfig) === false, 'isFabgPriceId rejects null');
 $notConfigured = verifyFabgPromotionCode(['fabg' => ['promotion_code_id' => null], 'secret_key' => 'sk_test_x']);
 check($notConfigured['configured'] === false && $notConfigured['verified'] === false, 'unconfigured offer reports configured=false, verified=false');
 
+// Product coverage: every configured price id is collected for the
+// applies_to check so a product-restricted coupon cannot silently exclude
+// a paid plan.
+$allIds = fabgConfiguredPriceIds([
+    'prices' => [
+        'operate' => ['month' => 'price_op_m', 'year' => 'price_op_y'],
+        'scale'   => ['month' => 'price_sc_m', 'additional_month' => 'price_add_m', 'additional_year' => 'price_add_y'],
+    ],
+    'fabg' => [
+        'annual_prices'           => ['operate' => 'price_fabg_op_yr'],
+        'additional_annual_price' => 'price_fabg_addon_yr',
+    ],
+]);
+sort($allIds);
+check($allIds === ['price_add_m', 'price_add_y', 'price_fabg_addon_yr', 'price_fabg_op_yr', 'price_op_m', 'price_op_y', 'price_sc_m'],
+    'fabgConfiguredPriceIds collects standard + add-on + FABG prices');
+$helperSrc = file_get_contents($root . '/api/fabg-billing.php');
+check(strpos($helperSrc, 'applies_to') !== false && strpos($helperSrc, 'restricted_products') !== false,
+    'verification checks coupon applies_to product coverage');
+
 check(isFabgOfferReadyFor(['verified' => false], 'operate', 'month') === false, 'offer not ready when promo unverified');
 check(isFabgOfferReadyFor(['verified' => true, 'annual_prices' => ['operate' => true]], 'operate', 'year') === true, 'annual ready only with FABG annual price');
 check(isFabgOfferReadyFor(['verified' => true, 'annual_prices' => ['operate' => false]], 'operate', 'year') === false, 'annual not ready without FABG annual price');
@@ -130,7 +150,10 @@ check(strpos($checkout, '$isFabgPilot') < strpos($checkout, "getStripePriceId(\$
 // ── Customer portal: FABG configuration for discounted subscriptions ────────
 check(strpos($portal, 'subscriptionHasFabgDiscount') !== false, 'portal session checks fabg_discount');
 check(strpos($portal, "fabg']['portal_configuration_id']") !== false, 'portal uses STRIPE_FABG_PORTAL_CONFIGURATION_ID for FABG subs');
-check(strpos($portal, '?? $portalConfigId') !== false, 'portal falls back to standard config when FABG config absent');
+check(strpos($portal, '?? $portalConfigId') === false, 'portal must NOT fall back to standard config for FABG subs (would stack coupon on 10x annual)');
+check(strpos($portal, 'fabg_portal_unavailable') !== false, 'portal blocks FABG subs when dedicated config is absent');
+check(strpos($checkout, 'fabg_portal_not_configured') !== false, 'checkout portal redirect enforces FABG config too');
+check(strpos($checkout, 'fabg_portal_unavailable') !== false, 'checkout portal redirect returns the localized FABG error');
 
 // ── Webhook: fabg_discount persistence ──────────────────────────────────────
 check(strpos($webhook, '$fabgDiscount') !== false, 'webhook computes FABG discount state');
@@ -189,6 +212,7 @@ foreach ($localeFiles as $locale) {
         if (empty($json['billing']['fabg'][$k])) { $missing[] = "billing.fabg.{$k}"; }
     }
     if (empty($json['billing']['errors']['fabg_offer_unavailable'])) { $missing[] = 'billing.errors.fabg_offer_unavailable'; }
+    if (empty($json['billing']['errors']['fabg_portal_unavailable'])) { $missing[] = 'billing.errors.fabg_portal_unavailable'; }
     check($missing === [], "{$locale} has all FABG billing keys" . ($missing ? ' (missing: ' . implode(', ', $missing) . ')' : ''));
 
     $desc = $json['admin_practices']['fabg_card_desc'] ?? '';

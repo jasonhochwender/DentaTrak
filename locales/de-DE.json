@@ -1893,6 +1893,7 @@
         },
         "errors": {
             "fabg_offer_unavailable": "Ihr FABG-Mitgliederrabatt ist noch nicht verfügbar. Der Bezahlvorgang ist pausiert, damit Ihnen nicht der volle Preis berechnet wird - bitte versuchen Sie es bald erneut.",
+            "fabg_portal_unavailable": "Ihr FABG-Mitglieder-Abrechnungsportal ist vorübergehend nicht verfügbar, während rabattierte Planänderungen eingerichtet werden. Bitte kontaktieren Sie den Support.",
             "internal": "Interner Serverfehler",
             "unauthorized": "Sie sind nicht berechtigt, diese Aktion auszuführen.",
             "authentication_required": "Authentifizierung erforderlich",

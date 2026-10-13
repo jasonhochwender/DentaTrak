@@ -227,8 +227,13 @@ if (
         echo json_encode(['portal_url' => $portalUrl]);
     } catch (Exception $e) {
         error_log('create-checkout-session: portal redirect failed: ' . $e->getMessage());
-        http_response_code(502);
-        echo json_encode(['error' => t('billing.errors.payment_system_error')]);
+        if ($e->getMessage() === 'fabg_portal_not_configured') {
+            http_response_code(503);
+            echo json_encode(['error' => t('billing.errors.fabg_portal_unavailable')]);
+        } else {
+            http_response_code(502);
+            echo json_encode(['error' => t('billing.errors.payment_system_error')]);
+        }
     }
     exit;
 }
@@ -395,7 +400,13 @@ function createPortalSession(PDO $pdo, int $ownerUserId, array $appConfig): stri
     ];
     $portalConfigId = $appConfig['stripe']['portal_configuration_id'] ?? null;
     if (subscriptionHasFabgDiscount($pdo, $ownerUserId)) {
-        $portalConfigId = $appConfig['stripe']['fabg']['portal_configuration_id'] ?? $portalConfigId;
+        // Same non-stacking enforcement as create-portal-session.php: the
+        // standard portal could stack the forever coupon onto a 10x annual
+        // Price, so FABG subscriptions require the dedicated configuration.
+        $portalConfigId = $appConfig['stripe']['fabg']['portal_configuration_id'] ?? null;
+        if (empty($portalConfigId)) {
+            throw new RuntimeException('fabg_portal_not_configured');
+        }
     }
     if (!empty($portalConfigId)) {
         $params['configuration'] = $portalConfigId;

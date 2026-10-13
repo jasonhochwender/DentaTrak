@@ -1998,6 +1998,7 @@
         },
         "errors": {
             "fabg_offer_unavailable": "Votre rabais de membre FABG n'est pas encore disponible. Le paiement est suspendu pour que le plein prix ne vous soit pas facturé - veuillez réessayer bientôt.",
+            "fabg_portal_unavailable": "Votre portail de facturation de membre FABG est temporairement indisponible pendant la configuration des changements de forfait à rabais. Veuillez contacter le soutien.",
             "internal": "Erreur interne du serveur",
             "unauthorized": "Vous n'êtes pas autorisé à effectuer cette action.",
             "authentication_required": "Authentification requise",
