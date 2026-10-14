@@ -15,6 +15,7 @@ This document is the approval gate for those settings.
 | Worker | `IntegrationOutbound::processDue()` | drained by the **same** Cloud Scheduler endpoint (`api/integration-event-worker.php`) and CLI (`process-events.php`) as inbound — no new infra |
 | Adapter writes | `OpenDentalAdapter::updateLabCase()` / `createLabCase()` | `PUT /labcases/{num}` / `POST /labcases`; both refuse (`writes_disabled`) unless the adapter was built with `writesEnabled` from `config_json.outbound.enabled` |
 | Capability probe | `check_outbound_capability` action → `GET /securityperms` | read-only; reports whether the office key has `ApiAllOthers` |
+| Config action | `update_outbound_config` action | admin-only; sets `enabled` / `create_enabled` / `timezone` / `field_map` on `config_json.outbound`, validates IANA timezone + lifecycle-field whitelist, audit-logged |
 
 ### Dedup / coalescing
 - `dedup_key = sha256(operation | external_id | canonical payload)` with `UNIQUE(connection_id, dedup_key)` — re-enqueueing the identical change is a no-op; an identical re-assertion against a terminal row resurrects it as `queued`.
@@ -24,56 +25,69 @@ This document is the approval gate for those settings.
 - Inbound events only ever write Open Dental–owned fields (due date, appointment, instructions, provider) — outbound never writes those, so an echo physically cannot produce a local diff.
 - After each delivered write, the case mapping's `metadata_json.outbound_sync` records `{fields, delivered_at, last_tstamp}`; when an inbound event's `DateTStamp` matches `last_tstamp` it is finalized as `Echo of DentaTrak-originated write; suppressed.` The normal field diff still runs first, so a real remote change riding the same delivery is never dropped.
 
-### Conflict policy (all-or-nothing per event)
-Before writing, the worker GETs the remote LabCase and compares each payload field against the `expected_remote` snapshot captured at enqueue (mapping provenance):
+### Conflict policy (all-or-nothing per event) — APPROVED
+Lifecycle dates are **write-once**. Before writing, the worker GETs the
+remote LabCase and compares each payload field:
 
 | Remote now | Result |
 |---|---|
-| == desired | field already in target state — skipped |
-| == expected prior | unchanged since last sync — written |
-| expected unknown + remote empty | first-write rule — written |
-| expected unknown + remote set | **conflict** (never overwrite unobserved data) |
-| remote ≠ expected prior | **conflict** — human reconciles |
+| == desired | already in target state — skipped (no PUT) |
+| populated, ≠ desired | **conflict** — remote preserved, human reconciles |
+| empty (sentinel `0001-01-01`/`2000-01-01`, `T` or space separator, or null) | written |
 
-`conflict` is terminal: no partial write, no retry, surfaced via the
-connection's `outbound.conflicts` count.
+A nonempty remote lifecycle date is NEVER overwritten, whatever provenance
+said — so backward moves and stage re-entries are safe by construction:
+re-entering a mapped stage finds its earlier timestamp still populated and
+parks as `conflict` instead of rewriting history. `expected_remote_json`
+is retained on the event for human inspection only; it no longer drives
+the decision. `conflict` is terminal: no partial write, no retry.
 
-## Proposed lifecycle mapping (REQUIRES APPROVAL — not enabled)
+Enqueue-side short-circuits (no queue row at all): provenance equal to the
+desired value → `already_synced`; transition unchanged → `no_change`;
+status unmapped → `status_unmapped`; office timezone unconfigured →
+`timezone_unconfigured`.
+
+## Approved lifecycle mapping
 
 DentaTrak has **six fixed internal statuses** (`getWorkflowStageDefinitions()`),
-with `cases_cache.status_changed_at` stamped on every transition:
+with `cases_cache.status_changed_at` stamped (UTC) on every transition.
+`field_map` keys are these **stable internal status identifiers** — the
+literal `cases_cache.status` values — never display labels (a practice may
+rename labels freely) and never localized text. Practice-specific custom
+columns get stable `Custom-*` ids which may also be mapped deliberately.
 
-| DentaTrak transition INTO | Open Dental field | Proposed? |
+| DentaTrak transition INTO | Open Dental field | Status |
 |---|---|---|
-| `Sent To External Lab` | `DateTimeSent` = status_changed_at | ✅ proposed |
-| `Received From External Lab` | `DateTimeRecd` = status_changed_at | ✅ proposed |
-| `Delivered` | `DateTimeChecked` = status_changed_at | ⚠️ proposed — see open question 1 |
-| `Originated`, `Designed`, `Manufactured`, custom columns | — none | not mappable |
+| `Sent To External Lab` | `DateTimeSent` = status_changed_at (office-local) | ✅ APPROVED — means "prepared and sent / out for pickup" |
+| `Received From External Lab` | `DateTimeRecd` = status_changed_at (office-local) | ✅ APPROVED — means "practice received the case" |
+| `Delivered` | — NOT mapped | ❌ `DateTimeChecked` is OD's post-return quality check, not patient delivery |
+| `Originated`, `Designed`, `Manufactured` | — none | not mappable |
+| Custom (`Custom-*`) columns | configurable, opt-in only | unmapped by default |
 
 Never written outbound (Open Dental–authoritative): PatNum, ProvNum,
 LaboratoryNum, AptNum/PlannedAptNum, DateTimeDue, Instructions.
 Never written (DentaTrak-only): comments, attachments, tooth shade,
-material, carrier/tracking, assignee, custom workflow columns.
+material, carrier/tracking, assignee, custom workflow data.
+
+**Timestamps:** `cases_cache.status_changed_at` is UTC (server default).
+Open Dental interprets LabCase datetimes as office-local wall time, so
+every outbound timestamp is converted using `config_json.outbound.timezone`
+(IANA name). A connection **cannot enqueue writes until a timezone is
+configured** — writing a UTC instant as office-local would silently shift
+every lifecycle date by the office's UTC offset. The payload records the
+transition instant, never worker processing time.
 
 ## Open questions needing a decision
 
-1. **`Delivered` → `DateTimeChecked`**: OD's `DateTimeChecked` is "date/time
-   that quality was checked" — arguably "case verified after return," which
-   may precede delivery-to-patient. Alternatives: leave unmapped, or map
-   `Received From External Lab` → `DateTimeChecked` instead of `DateTimeRecd`.
-2. **Backward moves (regressions)**: a case returning to an earlier stage
-   re-stamps the mapped OD date on re-entry. Clearing dates remotely (sentinel
-   `0001-01-01`) is *not* implemented — OD's semantics for clearing via PUT
-   are unverified. Proposed: never auto-clear; regression re-entry overwrites
-   forward timestamps only.
-3. **Timestamp semantics**: `status_changed_at` is server-local time; OD
-   interprets dates in the office's timezone. Offsets are likely small but
-   not guaranteed. Option: store/send UTC and document, or add a per-office
-   TZ offset later.
-4. **Instructions on create**: the queue's PHI contract currently rejects
+1. ~~`Delivered` → `DateTimeChecked`~~ — RESOLVED: not mapped (user decision).
+   `DateTimeChecked` stays unmapped until a fitting DentaTrak event exists.
+2. **Clearing remote dates**: deliberately unsupported — OD sentinel-clear
+   semantics via PUT are unverified, and regressions preserve history rather
+   than rewriting it (conflict path above).
+3. **Instructions on create**: the queue's PHI contract currently rejects
    instruction text in outbound payloads (key screening). Enabling notes on
    created OD cases needs an explicit contract amendment.
-5. **Create enablement UI/scope**: `enqueueCaseCreate` + worker
+4. **Create enablement UI/scope**: `enqueueCaseCreate` + worker
    `create_labcase` are implemented and tested but nothing calls the enqueue
    path yet — creating an OD LabCase needs a patient/lab/provider mapping
    story (PatNum source: patient mapping exists; LaboratoryNum/ProvNum

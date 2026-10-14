@@ -3978,7 +3978,9 @@
             "import_invalid_range": "Escolha um intervalo de importação válido.",
             "import_in_progress": "Uma importação já está em andamento para esta integração.",
             "import_failed": "Não foi possível iniciar a importação. Tente novamente.",
-            "import_started": "Importação iniciada. Os casos de laboratório existentes serão adicionados em segundo plano."
+            "import_started": "Importação iniciada. Os casos de laboratório existentes serão adicionados em segundo plano.",
+            "invalid_timezone": "Informe um identificador de fuso horário válido (por exemplo, America/New_York).",
+            "invalid_field_map": "O mapa de campos deve associar identificadores de status do fluxo de trabalho a campos de ciclo de vida compatíveis do Open Dental."
         }
     },
     "auth": {

@@ -1444,7 +1444,9 @@
             "import_invalid_range": "Wählen Sie einen gültigen Importzeitraum.",
             "import_in_progress": "Für diese Integration läuft bereits ein Import.",
             "import_failed": "Der Import konnte nicht gestartet werden. Bitte versuchen Sie es erneut.",
-            "import_started": "Import gestartet. Bestehende Laborfälle werden im Hintergrund hinzugefügt."
+            "import_started": "Import gestartet. Bestehende Laborfälle werden im Hintergrund hinzugefügt.",
+            "invalid_timezone": "Geben Sie eine gültige Zeitzonen-Kennung ein (z. B. America/New_York).",
+            "invalid_field_map": "Die Feldzuordnung muss Workflow-Status-IDs auf unterstützte Open-Dental-Lebenszyklusfelder abbilden."
         }
     },
     "auth": {

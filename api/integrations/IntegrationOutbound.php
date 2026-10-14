@@ -39,18 +39,19 @@
  *  practice opts in and approves a mapping, no transition enqueues any
  *  write. See docs/open-dental-outbound-sync.md.
  *
- * CONFLICT POLICY:
- *  Each event snapshots expected_remote_json (the remote field values our
- *  last inbound sync observed). At write time the worker GETs the remote
- *  record and compares PER FIELD:
+ * CONFLICT POLICY (approved rules):
+ *  Lifecycle dates are write-once. At write time the worker GETs the
+ *  remote record and compares PER FIELD:
  *    remote == desired            -> field already in target state; skip
- *    remote == expected_prior     -> unchanged since last sync; safe write
- *    expected_prior unknown AND   -> conservative first-write rule: only
- *      remote empty or == desired      empty remote fields may be written
- *    otherwise                    -> the event goes to 'conflict' (terminal,
- *                                     no partial write, human reconciles)
+ *    remote populated (!= desired)-> 'conflict' (terminal, human reconciles;
+ *                                     a nonempty lifecycle date is NEVER
+ *                                     overwritten - history is preserved)
+ *    remote empty (sentinel/null) -> write
  *  An event never performs a partial write: one conflicting field fails
- *  the whole event atomically.
+ *  the whole event atomically. expected_remote_json is retained on the
+ *  event purely for human inspection of what we believed remote state was.
+ *  Consequence: a backward move (or stage re-entry) that would rewrite an
+ *  already-stamped lifecycle date always surfaces as a conflict instead.
  *
  * CREATE IDEMPOTENCY:
  *  Open Dental POST /labcases has no idempotency key. Outbound create
@@ -86,6 +87,15 @@ class IntegrationOutbound {
 
     const ORIGIN_DENTATRAK = 'dentatrak';
 
+    /**
+     * Policy-level whitelist of remote fields a field_map may target -
+     * Open Dental lifecycle timestamps only. The adapter enforces its own
+     * narrower whitelist again at write time (defense in depth): a
+     * misconfigured field_map can never aim a write at an OD-owned field
+     * like Instructions or DateTimeDue.
+     */
+    const ALLOWED_REMOTE_FIELDS = ['DateTimeSent', 'DateTimeRecd', 'DateTimeChecked'];
+
     /** Retry tuning mirrors the inbound queue (IntegrationEvents). */
     const DEFAULT_RETRY_SECONDS   = 60;
     const MAX_RETRY_SECONDS       = 300;
@@ -108,6 +118,41 @@ class IntegrationOutbound {
         $config = json_decode((string)($connection['config_json'] ?? ''), true);
         $out = is_array($config) ? ($config['outbound'] ?? null) : null;
         return is_array($out) ? $out : [];
+    }
+
+    /**
+     * The office's IANA timezone from config_json.outbound.timezone
+     * (e.g. 'America/New_York'). Open Dental interprets LabCase datetimes
+     * as office-local wall time; DentaTrak stamps status_changed_at in UTC
+     * (server default). Until an office timezone is configured the enqueue
+     * paths refuse to queue - writing a UTC instant as office-local would
+     * silently shift every lifecycle timestamp by the office's UTC offset.
+     */
+    public static function officeTimezone(array $connection): ?DateTimeZone {
+        $cfg = self::outboundConfig($connection);
+        $tz = $cfg['timezone'] ?? null;
+        if (!is_string($tz) || $tz === '') {
+            return null;
+        }
+        try {
+            return new DateTimeZone($tz);
+        } catch (Throwable $e) {
+            return null;
+        }
+    }
+
+    /** Convert a UTC datetime string to office-local "yyyy-MM-dd HH:mm:ss". */
+    private static function toOfficeLocal($utcTs, DateTimeZone $tz): ?string {
+        if (!is_string($utcTs) || trim($utcTs) === '') {
+            return null;
+        }
+        try {
+            $dt = new DateTime(trim($utcTs), new DateTimeZone('UTC'));
+            $dt->setTimezone($tz);
+            return $dt->format('Y-m-d H:i:s');
+        } catch (Throwable $e) {
+            return null;
+        }
     }
 
     /** True only when every gate allows writes for this connection row. */
@@ -214,22 +259,43 @@ class IntegrationOutbound {
 
         $cfg = self::outboundConfig($connection);
         $fieldMap = isset($cfg['field_map']) && is_array($cfg['field_map']) ? $cfg['field_map'] : [];
+        // field_map keys are the STABLE internal status identifiers stored
+        // in cases_cache.status (the six fixed stage ids, or 'Custom-*' ids
+        // for practice-specific columns) - never display labels, which a
+        // practice may rename at any time. Values must be whitelisted OD
+        // lifecycle fields.
         $odField = $fieldMap[$newStatus] ?? null;
-        if (!is_string($odField) || $odField === '') {
+        if (!is_string($odField) || $odField === ''
+            || !in_array($odField, self::ALLOWED_REMOTE_FIELDS, true)) {
             return ['enqueued' => false, 'reason' => 'status_unmapped'];
         }
 
-        // The lifecycle timestamp is the server-stamped transition time -
-        // the same value the local write already committed.
+        // Office timezone is mandatory: OD reads these as office-local.
+        $tz = self::officeTimezone($connection);
+        if ($tz === null) {
+            return ['enqueued' => false, 'reason' => 'timezone_unconfigured'];
+        }
+
+        // The lifecycle timestamp is the transition time the local write
+        // already committed (cases_cache.status_changed_at, UTC) converted
+        // to office-local - NEVER the worker's later processing time.
         $tsStmt = $pdo->prepare("SELECT status_changed_at FROM cases_cache WHERE case_id = :id AND practice_id = :pid LIMIT 1");
         $tsStmt->execute([':id' => $caseId, ':pid' => $practiceId]);
         $changedAt = $tsStmt->fetchColumn();
-        $when = is_string($changedAt) && $changedAt !== ''
-            ? date('Y-m-d H:i:s', strtotime($changedAt))
-            : gmdate('Y-m-d H:i:s');
+        $when = self::toOfficeLocal($changedAt, $tz);
+        if ($when === null) {
+            return ['enqueued' => false, 'reason' => 'bad_timestamp'];
+        }
 
         $payload = [$odField => $when];
         $expected = self::expectedRemoteSnapshot($link['metadata_json'] ?? null, array_keys($payload));
+
+        // Provenance short-circuit: our last observation already equals the
+        // desired value - the write has already landed; don't queue noise.
+        $prior = $expected[$odField] ?? 'unknown';
+        if ($prior !== 'unknown' && self::odDateOrNull($prior) === $when) {
+            return ['enqueued' => false, 'reason' => 'already_synced'];
+        }
 
         return self::enqueue(
             $pdo, (int)$connection['id'], $practiceId, self::OP_UPDATE_LABCASE,
@@ -273,11 +339,24 @@ class IntegrationOutbound {
             if ($existing) {
                 return ['enqueued' => false, 'reason' => 'already_mapped'];
             }
-            // Create fingerprint: the enqueue timestamp rides along as
-            // DateTimeCreated so a timed-out POST can be recovered instead
-            // of duplicated (see class docblock).
+            // Same office-timezone requirement as lifecycle writes: every
+            // datetime field in a create payload is interpreted by Open
+            // Dental as office-local wall time, so a UTC instant must be
+            // converted (or rejected) here - never at write time.
+            $tz = self::officeTimezone($conn);
+            if ($tz === null) {
+                return ['enqueued' => false, 'reason' => 'timezone_unconfigured'];
+            }
+            // Create fingerprint: the enqueue instant rides along as
+            // DateTimeCreated (converted to office-local) so a timed-out
+            // POST can be recovered instead of duplicated.
             if (empty($payload['DateTimeCreated'])) {
                 $payload['DateTimeCreated'] = gmdate('Y-m-d H:i:s');
+            }
+            foreach ($payload as $k => $v) {
+                if (strncmp($k, 'DateTime', 8) === 0) {
+                    $payload[$k] = self::toOfficeLocal($v, $tz) ?? $v;
+                }
             }
             return self::enqueue(
                 $pdo, (int)$conn['id'], $practiceId, self::OP_CREATE_LABCASE,
@@ -702,7 +781,19 @@ class IntegrationOutbound {
 
     /**
      * Conflict-aware write plan. Returns [fieldsToWrite, ?conflictingField].
-     * See the class docblock for the per-field decision rules.
+     *
+     * Lifecycle history is write-once: a remote lifecycle date that is
+     * already populated is NEVER overwritten by sync, whatever provenance
+     * says. Per field:
+     *   remote == desired            -> already in target state; skip
+     *   remote populated (!= desired)-> conflict: preserve it, surface it
+     *   remote empty (sentinel/null) -> write
+     * One conflicting field fails the whole event - never a partial write.
+     * This also makes backward moves and stage re-entries safe by
+     * construction: re-entering a mapped stage after a regression finds the
+     * earlier timestamp still populated and parks as conflict instead of
+     * rewriting lifecycle history.
+     * ($expected is kept in the event row for human diagnostics only.)
      */
     private static function planWrite(array $payload, array $expected, array $remote): array {
         $toWrite = [];
@@ -713,18 +804,8 @@ class IntegrationOutbound {
             if ($remoteNow === $desiredVal) {
                 continue; // already in target state - no write needed
             }
-            $expectedPrior = array_key_exists($field, $expected) ? $expected[$field] : 'unknown';
-            if ($expectedPrior !== 'unknown') {
-                $prior = self::odDateOrNull($expectedPrior);
-                if ($remoteNow !== $prior) {
-                    return [$toWrite, $field]; // remote drifted - conflict
-                }
-            } else {
-                // No provenance: conservative first-write - only an EMPTY
-                // remote field may be populated.
-                if ($remoteNow !== null) {
-                    return [$toWrite, $field];
-                }
+            if ($remoteNow !== null) {
+                return [$toWrite, $field]; // populated remote wins - never overwritten
             }
             $toWrite[$field] = $desiredVal;
         }

@@ -226,3 +226,5 @@ NUL
 !/tests/upload-failure-e2e-test.js
 !/tests/creator-notification-test.php
 !/tests/creator-notifications-e2e-test.js
+
+!/tests/pms-outbound-sync-test.php

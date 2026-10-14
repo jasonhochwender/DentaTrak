@@ -907,4 +907,75 @@ if ($action === 'check_outbound_capability') {
     exit;
 }
 
+// -------------------------------------------------------------------------
+// POST update_outbound_config (Phase 2): set the per-connection outbound
+// opt-in block (enabled / create_enabled / timezone / field_map). Every
+// write is still impossible while PMS_OUTBOUND_SYNC is off globally; this
+// action only records the office's intent and validates inputs.
+//   - enabled:        bool (master per-connection write opt-in)
+//   - create_enabled: bool (LabCase POST opt-in; meaningless while disabled)
+//   - timezone:       IANA name like 'America/New_York' - REQUIRED before
+//                     any lifecycle write can queue (OD reads wall time)
+//   - field_map:      { "<internal status id>": "<OD lifecycle field>" };
+//                     keys are stable status identifiers (the six fixed
+//                     stages or 'Custom-*' ids - never display labels);
+//                     values must be DateTimeSent/Recd/Checked
+// -------------------------------------------------------------------------
+if ($action === 'update_outbound_config') {
+    $connectionId = (int)($body['connection_id'] ?? 0);
+    $connection = IntegrationManager::getConnectionForPractice($pdo, $currentPracticeId, $connectionId);
+    if (!$connection) {
+        integrationsFail(404, t('api.integrations.not_found'));
+    }
+    if ($connection['status'] !== 'active') {
+        integrationsFail(409, t('api.integrations.subscription_needs_active'));
+    }
+
+    $update = [];
+    if (array_key_exists('enabled', $body)) {
+        $update['enabled'] = filter_var($body['enabled'], FILTER_VALIDATE_BOOLEAN);
+    }
+    if (array_key_exists('create_enabled', $body)) {
+        $update['create_enabled'] = filter_var($body['create_enabled'], FILTER_VALIDATE_BOOLEAN);
+    }
+    if (array_key_exists('timezone', $body)) {
+        $tz = trim((string)$body['timezone']);
+        if ($tz === '') {
+            $update['timezone'] = null;
+        } elseif (!in_array($tz, timezone_identifiers_list(), true)) {
+            integrationsFail(400, t('api.integrations.invalid_timezone'));
+        } else {
+            $update['timezone'] = $tz;
+        }
+    }
+    if (array_key_exists('field_map', $body)) {
+        $map = [];
+        $rawMap = $body['field_map'];
+        if (!is_array($rawMap)) {
+            integrationsFail(400, t('api.integrations.invalid_field_map'));
+        }
+        foreach ($rawMap as $statusId => $odField) {
+            $statusId = trim((string)$statusId);
+            $odField  = trim((string)$odField);
+            if ($statusId === '' || !in_array($odField, IntegrationOutbound::ALLOWED_REMOTE_FIELDS, true)) {
+                integrationsFail(400, t('api.integrations.invalid_field_map'));
+            }
+            $map[$statusId] = $odField;
+        }
+        $update['field_map'] = $map;
+    }
+    if (empty($update)) {
+        integrationsFail(400, t('api.integrations.unknown_action'));
+    }
+
+    IntegrationOutbound::updateOutboundConfig($pdo, $connectionId, $update);
+    logIntegrationAdminAction($userId, 'integration_outbound_config_updated', $currentPracticeId, $connection['provider'], $connectionId);
+
+    echo json_encode([
+        'success'    => true,
+        'connection' => IntegrationManager::toPublicConnection($pdo, IntegrationManager::findConnection($pdo, $connectionId)),
+    ]);
+    exit;
+}
+
 integrationsFail(400, t('api.integrations.unknown_action'));

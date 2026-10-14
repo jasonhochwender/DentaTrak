@@ -3147,7 +3147,9 @@
             "import_invalid_range": "Choisissez une plage d'importation valide.",
             "import_in_progress": "Une importation est déjà en cours pour cette intégration.",
             "import_failed": "Impossible de lancer l'importation. Veuillez réessayer.",
-            "import_started": "Importation lancée. Les cas de laboratoire existants seront ajoutés en arrière-plan."
+            "import_started": "Importation lancée. Les cas de laboratoire existants seront ajoutés en arrière-plan.",
+            "invalid_timezone": "Saisissez un identifiant de fuseau horaire valide (par exemple America/New_York).",
+            "invalid_field_map": "La table de correspondance doit associer les identifiants de statut du workflow aux champs de cycle de vie Open Dental pris en charge."
         }
     },
     "email": {

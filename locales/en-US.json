@@ -3132,6 +3132,8 @@
             "test_succeeded": "Connection verified. Open Dental responded successfully.",
             "test_failed": "Connection test failed. Check the error shown on the integration card.",
             "subscription_needs_active": "Verify the connection before enabling automatic updates.",
+            "invalid_timezone": "Enter a valid timezone identifier (for example, America/New_York).",
+            "invalid_field_map": "The field map must map workflow status identifiers to supported Open Dental lifecycle fields.",
             "subscription_exists": "Automatic lab case updates are already enabled.",
             "provider_no_events": "This integration does not support automatic updates.",
             "subscription_failed": "Open Dental could not enable automatic lab case updates.",
