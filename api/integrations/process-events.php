@@ -27,6 +27,7 @@ require_once __DIR__ . '/../appConfig.php';
 require_once __DIR__ . '/../feature-flags.php';
 require_once __DIR__ . '/IntegrationManager.php';
 require_once __DIR__ . '/IntegrationEvents.php';
+require_once __DIR__ . '/IntegrationOutbound.php';
 require_once __DIR__ . '/register-adapters.php';
 
 global $pdo;
@@ -53,6 +54,12 @@ $drain = function () use ($pdo, $limit) {
     echo date('H:i:s') . " drained: claimed={$summary['claimed']} processed={$summary['processed']}"
         . " entity_gone={$summary['entity_gone']} retry={$summary['retry']}"
         . " failed={$summary['failed']} duplicate={$summary['duplicate']}\n";
+    // Phase 2: outbound queue drains through the same invocation; inert
+    // until PMS_OUTBOUND_SYNC + per-connection opt-in are both enabled.
+    $out = IntegrationOutbound::processDue($pdo, $limit);
+    echo date('H:i:s') . " outbound: claimed={$out['claimed']} delivered={$out['delivered']}"
+        . " conflict={$out['conflict']} skipped={$out['skipped']}"
+        . " retry={$out['retry']} failed={$out['failed']}\n";
 };
 
 $drain();

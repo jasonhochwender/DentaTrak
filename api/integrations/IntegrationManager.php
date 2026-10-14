@@ -29,6 +29,7 @@ require_once __DIR__ . '/PmsAdapterInterface.php';
 require_once __DIR__ . '/CanonicalCase.php';
 require_once __DIR__ . '/IntegrationCredentials.php';
 require_once __DIR__ . '/IntegrationEvents.php';
+require_once __DIR__ . '/IntegrationOutbound.php';
 
 class IntegrationManager {
 
@@ -239,6 +240,9 @@ class IntegrationManager {
             // a launch arrived, not that the bridge was installed (the URL
             // parameter can be supplied by hand).
             'toolbar_first_launch_at' => self::toolbarFirstLaunchAt($connection),
+            // Outbound (Phase 2 two-way sync) queue state: opt-in flags and
+            // counts only - never payload content or PHI.
+            'outbound'                => IntegrationOutbound::outboundProjection($pdo, $connection),
             'created_at'              => $connection['created_at'],
             'updated_at'              => $connection['updated_at'],
         ];

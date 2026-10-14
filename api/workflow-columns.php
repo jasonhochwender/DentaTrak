@@ -14,6 +14,7 @@ require_once __DIR__ . '/user-manager.php';
 require_once __DIR__ . '/workflow-stages.php';
 require_once __DIR__ . '/csrf.php';
 require_once __DIR__ . '/case-activity-log.php';
+require_once __DIR__ . '/integrations/IntegrationOutbound.php';
 
 // Start session if not already started
 if (session_status() === PHP_SESSION_NONE) {
@@ -570,6 +571,18 @@ function handleArchiveColumn(array $columns, $practiceId, array $data) {
                     'reason' => 'column_archived',
                     'user_id' => $_SESSION['db_user_id'] ?? null,
                 ], null, true);
+                // Phase 2 outbound sync: a bulk column-archive move may land
+                // a mapped case on a lifecycle stage. Guarded inside
+                // enqueueStatusTransition - no-op unless the connection
+                // opted in and the destination status is field-mapped.
+                try {
+                    IntegrationOutbound::enqueueStatusTransition(
+                        $pdo, $practiceId, $caseId, $id, $destinationId,
+                        $_SESSION['db_user_id'] ?? null
+                    );
+                } catch (Throwable $e) {
+                    error_log('[workflow-columns] outbound enqueue failed (non-fatal): ' . $e->getMessage());
+                }
             }
         } catch (PDOException $e) {
             error_log('[workflow-columns] Error moving cases for archive: ' . $e->getMessage());

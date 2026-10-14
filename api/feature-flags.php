@@ -32,6 +32,13 @@ $FEATURE_DEFAULTS = [
                                        // events, guided Open Dental onboarding).
                                        // Must remain OFF until the first
                                        // integration is end-to-end approved.
+    'PMS_OUTBOUND_SYNC' => false,     // Two-way PMS sync (Phase 2): DentaTrak-
+                                       // originated changes pushed to the PMS
+                                       // via integration_outbound_events.
+                                       // Requires per-connection opt-in
+                                       // (config_json.outbound.enabled) too -
+                                       // writes stay impossible until BOTH
+                                       // are on and a field map is approved.
 ];
 
 /**

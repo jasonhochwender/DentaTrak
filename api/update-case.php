@@ -14,6 +14,7 @@ require_once __DIR__ . '/security-headers.php';
 require_once __DIR__ . '/tooth-number-parser.php';
 require_once __DIR__ . '/gcs-attachments.php';
 require_once __DIR__ . '/notification-service.php';
+require_once __DIR__ . '/integrations/IntegrationOutbound.php';
 
 // Set security headers
 setApiSecurityHeaders();
@@ -1229,6 +1230,21 @@ try {
             // Record update for real-time notifications to other users
             if ($updatedCaseId && function_exists('recordCaseUpdate')) {
                 recordCaseUpdate($updatedCaseId, 'update');
+            }
+
+            // Phase 2 outbound sync: a status transition on a PMS-mapped
+            // case may be a configured lifecycle event. Flag + per-connection
+            // opt-in gated - no-op until both are on and a field map exists.
+            if ($updatedCaseId && in_array('status', $changedFields ?? [], true)) {
+                try {
+                    IntegrationOutbound::enqueueStatusTransition(
+                        $pdo, $currentPracticeId, $updatedCaseId,
+                        $beforeCase['status'] ?? null, (string)$updatedStatus,
+                        $_SESSION['db_user_id'] ?? null
+                    );
+                } catch (Throwable $e) {
+                    error_log('[update-case] outbound enqueue failed (non-fatal): ' . $e->getMessage());
+                }
             }
 
             // Emit structured in-app notification for the update (Phase 2).

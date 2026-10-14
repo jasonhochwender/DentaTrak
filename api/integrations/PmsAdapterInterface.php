@@ -9,8 +9,12 @@
  * into the rest of the application.
  *
  * Phase 1 scope is read-only PMS -> DentaTrak synchronization of lab cases.
- * This interface is intentionally small; do not add write-back, scheduling,
- * or admin methods here until a real integration needs them.
+ * Phase 2 adds DentaTrak -> PMS writes (LabCase create/update), but those
+ * deliberately live on the CONCRETE adapter (OpenDentalAdapter), not this
+ * interface: outbound writers probe support via method_exists() so a
+ * read-only adapter simply reports "does not support writes" instead of
+ * being forced to stub them. Keep this interface to methods every adapter
+ * must implement.
  */
 
 interface PmsAdapterInterface {

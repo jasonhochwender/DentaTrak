@@ -487,8 +487,23 @@ class IntegrationEvents {
         SyncEngine::touchMapping($pdo, (int)$mapping['id']);
 
         if (empty($changes)) {
+            // Loop suppression: when this event's watermark is the
+            // DateTStamp our own outbound write produced (recorded by
+            // IntegrationOutbound::stampOutboundProvenance), the event is
+            // the echo of a DentaTrak-originated change - already applied
+            // remotely, so nothing local can change. The field diff above
+            // still ran first, so a genuinely new remote change riding the
+            // same delivery is never suppressed.
+            $echo = false;
+            $meta = json_decode((string)($mapping['metadata_json'] ?? ''), true);
+            $outSync = is_array($meta) ? ($meta['outbound_sync'] ?? null) : null;
+            if (is_array($outSync) && !empty($outSync['last_tstamp'])) {
+                $echo = ($canonical->metadata['date_tstamp'] ?? null) === $outSync['last_tstamp'];
+            }
             return self::finalize($pdo, $eventId, self::STATUS_PROCESSED,
-                'No changes; case already in sync.');
+                $echo
+                    ? 'Echo of DentaTrak-originated write; suppressed.'
+                    : 'No changes; case already in sync.');
         }
 
         $wasReviewed = !empty($row['reviewed_at']);

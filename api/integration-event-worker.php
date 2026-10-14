@@ -17,6 +17,7 @@ require_once __DIR__ . '/feature-flags.php';
 require_once __DIR__ . '/session.php';
 require_once __DIR__ . '/queue-worker-auth.php';
 require_once __DIR__ . '/integrations/IntegrationEvents.php';
+require_once __DIR__ . '/integrations/IntegrationOutbound.php';
 require_once __DIR__ . '/integrations/register-adapters.php';
 
 header('Content-Type: application/json');
@@ -46,7 +47,11 @@ $BATCH_SIZE = max(1, min(200, $BATCH_SIZE));
 
 try {
     $summary = IntegrationEvents::processDue($pdo, $BATCH_SIZE);
-    echo json_encode(['success' => true, 'totals' => $summary]);
+    // Phase 2: the same invocation drains the outbound queue (writes stay
+    // impossible until PMS_OUTBOUND_SYNC + per-connection opt-in are both
+    // on, so this is inert until explicitly enabled).
+    $outbound = IntegrationOutbound::processDue($pdo, $BATCH_SIZE);
+    echo json_encode(['success' => true, 'totals' => $summary, 'outbound' => $outbound]);
 } catch (Throwable $e) {
     error_log('[integration-event-worker] Batch error: ' . $e->getMessage());
     http_response_code(500);

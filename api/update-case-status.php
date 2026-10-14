@@ -9,6 +9,7 @@ require_once __DIR__ . '/case-activity-log.php';
 require_once __DIR__ . '/lab-assignment-history.php';
 require_once __DIR__ . '/csrf.php';
 require_once __DIR__ . '/notification-service.php';
+require_once __DIR__ . '/integrations/IntegrationOutbound.php';
 
 // Disable PHP error display for API - return only JSON
 ini_set('display_errors', '0');
@@ -235,6 +236,14 @@ if ($driveFolderId === '') {
         recordCaseUpdate($caseId, 'status', $oldStatus, null);
     }
 
+    // Phase 2: enqueue the transition for outbound PMS sync. No-op unless
+    // the connection opted in AND the status has an approved field mapping.
+    try {
+        IntegrationOutbound::enqueueStatusTransition($pdo, $currentPracticeId, $caseId, $oldStatus, $status, $_SESSION['db_user_id'] ?? null);
+    } catch (Throwable $e) {
+        error_log('[update-case-status] outbound enqueue failed (non-fatal): ' . $e->getMessage());
+    }
+
     echo json_encode([
         'success' => true,
         'message' => $isRegression 
@@ -308,6 +317,13 @@ try {
             closeOpenLabPeriodForDeliveredCase($caseId, $currentPracticeId);
         } else {
             reopenLabPeriodOnDeliveredRegression($caseId, $currentPracticeId, $oldStatus, $status);
+        }
+
+        // Phase 2 outbound sync enqueue (flag + opt-in gated; no-op by default)
+        try {
+            IntegrationOutbound::enqueueStatusTransition($pdo, $currentPracticeId, $caseId, $oldStatus, $status, $_SESSION['db_user_id'] ?? null);
+        } catch (Throwable $e) {
+            error_log('[update-case-status] outbound enqueue failed (non-fatal): ' . $e->getMessage());
         }
 
         // Return success with warning
@@ -467,6 +483,13 @@ try {
     // Record status change for real-time notifications to other users
     if (function_exists('recordCaseUpdate')) {
         recordCaseUpdate($caseId, 'status', $oldStatus, null);
+    }
+
+    // Phase 2 outbound sync enqueue (flag + opt-in gated; no-op by default)
+    try {
+        IntegrationOutbound::enqueueStatusTransition($pdo, $currentPracticeId, $caseId, $oldStatus, $status, $_SESSION['db_user_id'] ?? null);
+    } catch (Throwable $e) {
+        error_log('[update-case-status] outbound enqueue failed (non-fatal): ' . $e->getMessage());
     }
 
     // Return success with the updated case data

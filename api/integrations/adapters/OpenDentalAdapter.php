@@ -32,8 +32,12 @@
  *     balances, insurance, phones, and email are discarded in memory.
  *
  * PHASE C/D SCOPE: reads plus subscription lifecycle only. POST/PUT exist
- * exclusively for /subscriptions (Events POC); NO LabCase or other record
- * writes are implemented.
+ * for /subscriptions (Events POC) and, behind an explicit per-connection
+ * opt-in (writesEnabled constructor flag, sourced from
+ * config_json.outbound.enabled), LabCase create/update used by the Phase 2
+ * outbound queue. When writesEnabled is false the write methods throw
+ * writes_disabled before any network call - a disabled connection can never
+ * produce a remote write.
  */
 
 require_once __DIR__ . '/../PmsAdapterInterface.php';
@@ -82,8 +86,18 @@ class OpenDentalAdapter implements PmsAdapterInterface {
      */
     private $transport;
 
-    public function __construct(?callable $transport = null) {
+    /**
+     * @var bool Per-connection write opt-in (config_json.outbound.enabled).
+     * Default false - adapters constructed without an explicit opt-in can
+     * only read. Checked inside every write method BEFORE any network call,
+     * so a factory misconfiguration or a future caller bug cannot produce a
+     * remote write on a read-only connection.
+     */
+    private $writesEnabled;
+
+    public function __construct(?callable $transport = null, bool $writesEnabled = false) {
         $this->transport = $transport;
+        $this->writesEnabled = $writesEnabled;
     }
 
     public function getProvider(): string {
@@ -197,6 +211,13 @@ class OpenDentalAdapter implements PmsAdapterInterface {
                 if (stripos($odMessage, 'not been assigned') !== false) {
                     throw new OpenDentalApiException('credentials_missing', 400, $path,
                         'Open Dental reports the customer key is not assigned in the office.');
+                }
+                if (stripos($odMessage, 'version') !== false) {
+                    // "the version of the dental office is not high enough"
+                    // is a documented 400 variant - distinct category so the
+                    // worker can fail permanently instead of retrying.
+                    throw new OpenDentalApiException('unsupported_version', 400, $path,
+                        'The office Open Dental version does not support this API method.');
                 }
             }
             throw new OpenDentalApiException('bad_request', 400, $path);
@@ -516,6 +537,193 @@ class OpenDentalAdapter implements PmsAdapterInterface {
     public function getClinics(array $credentials): array {
         $r = $this->get('/clinics', $credentials);
         return is_array($r) ? $r : [];
+    }
+
+    // ----------------------------------------------------------------------
+    // LabCase writes (Phase 2 outbound sync - per-connection opt-in only)
+    //
+    // Verified against the current official docs (apilabcases.html,
+    // apipermissions.html, apiimplementation.html):
+    //   - POST /labcases and PUT /labcases/{LabCaseNum} were added in OD
+    //     v24.4.19. Offices running older builds get a documented 400
+    //     ("version ... not high enough") -> 'unsupported_version'.
+    //   - Both methods require the ApiAllOthers permission group (a paid
+    //     tier beyond the free ApiReadAll). Missing permission returns 401
+    //     -> 'auth' with our standard credentials/permission message.
+    //   - PUT is a partial update: omitted fields keep their remote values.
+    //   - "Not set" datetimes are written as the 0001-01-01 sentinel; Phase 2
+    //     only ever SETS values - clearing is deliberately unsupported until
+    //     its real-world semantics are verified against a test office.
+    //   - POST is not idempotent server-side; callers must fingerprint via
+    //     DateTimeCreated to detect a create that timed out but committed
+    //     (see IntegrationOutbound).
+    //   - Capability check: GET /securityperms returns the office's granted
+    //     ApiPermissions - a read call (ApiReadAll tier) that never mutates
+    //     remote state.
+    // ----------------------------------------------------------------------
+
+    /** Minimum Open Dental version exposing LabCases POST/PUT. */
+    const LABCASE_WRITE_MIN_VERSION = '24.4.19';
+    /** API permission group required for LabCase POST/PUT (paid tier). */
+    const LABCASE_WRITE_PERMISSION  = 'ApiAllOthers';
+
+    /**
+     * Fields DentaTrak is permitted to write on an existing LabCase.
+     * Phase 2 scope is lifecycle timestamps ONLY: Open Dental stays
+     * authoritative for patient identity, provider, appointments, due
+     * dates, and instructions - those fields are never whitelisted here.
+     */
+    const LABCASE_UPDATABLE_FIELDS = [
+        'DateTimeSent',
+        'DateTimeRecd',
+        'DateTimeChecked',
+    ];
+
+    /**
+     * Fields accepted by createLabCase(). Mirrors the documented POST
+     * contract; PatNum/LaboratoryNum/ProvNum are required by the API.
+     * Instructions is listed (the API accepts it) but the outbound queue's
+     * PHI contract may still reject it - the adapter whitelist is the outer
+     * bound, not the sync policy.
+     */
+    const LABCASE_CREATABLE_FIELDS = [
+        'PatNum', 'LaboratoryNum', 'ProvNum',           // required
+        'AptNum', 'PlannedAptNum', 'DateTimeDue', 'DateTimeCreated',
+        'DateTimeSent', 'DateTimeRecd', 'DateTimeChecked',
+        'Instructions', 'LabFee', 'InvoiceNum',
+    ];
+    const LABCASE_CREATE_REQUIRED = ['PatNum', 'LaboratoryNum', 'ProvNum'];
+
+    /**
+     * Fail closed when this adapter instance was not built for a
+     * write-enabled connection.
+     * @throws OpenDentalApiException category=writes_disabled
+     */
+    private function assertWritesEnabled(string $path): void {
+        if (!$this->writesEnabled) {
+            throw new OpenDentalApiException('writes_disabled', 0, $path,
+                'Outbound synchronization is not enabled for this connection.');
+        }
+    }
+
+    /** Open Dental API datetime: "yyyy-MM-dd HH:mm:ss". */
+    private static function isOdDateTime($value): bool {
+        return is_string($value)
+            && preg_match('/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/', $value) === 1;
+    }
+
+    /**
+     * PUT /labcases/{LabCaseNum} - partial update, whitelisted lifecycle
+     * fields only. Returns the decoded labcase row (including its new
+     * DateTStamp, which the caller stores as the loop-suppression marker).
+     *
+     * @throws OpenDentalApiException writes_disabled | bad_request (empty
+     *         whitelist intersection, non-datetime value) | transport errors
+     */
+    public function updateLabCase(array $credentials, int $labCaseNum, array $fields): array {
+        $this->assertWritesEnabled('/labcases');
+        if ($labCaseNum <= 0) {
+            throw new OpenDentalApiException('bad_request', 0, '/labcases',
+                'A valid external record identifier is required.');
+        }
+        $body = array_intersect_key($fields, array_flip(self::LABCASE_UPDATABLE_FIELDS));
+        if (empty($body)) {
+            throw new OpenDentalApiException('bad_request', 0, "/labcases/{$labCaseNum}",
+                'No whitelisted fields supplied for update.');
+        }
+        foreach ($body as $f => $v) {
+            if (!self::isOdDateTime($v)) {
+                throw new OpenDentalApiException('bad_request', 0, "/labcases/{$labCaseNum}",
+                    'Lifecycle fields must be "yyyy-MM-dd HH:mm:ss" strings.');
+            }
+        }
+        $r = $this->request('PUT', "/labcases/{$labCaseNum}", $credentials, [], $body);
+        return is_array($r) ? $r : [];
+    }
+
+    /**
+     * POST /labcases - create a new LabCase. Validates the documented
+     * required FKs before any network call. Returns the decoded created row.
+     *
+     * Callers SHOULD supply DateTimeCreated (yyyy-MM-dd HH:mm:ss) so the
+     * outbound worker can fingerprint-recover a timed-out create; the worker
+     * enforces that rule for its own payloads.
+     *
+     * @throws OpenDentalApiException writes_disabled | bad_request | ...
+     */
+    public function createLabCase(array $credentials, array $fields): array {
+        $this->assertWritesEnabled('/labcases');
+        $body = array_intersect_key($fields, array_flip(self::LABCASE_CREATABLE_FIELDS));
+        foreach (self::LABCASE_CREATE_REQUIRED as $required) {
+            if ((int)($body[$required] ?? 0) <= 0) {
+                throw new OpenDentalApiException('bad_request', 0, '/labcases',
+                    'LabCase create is missing a required identifier field.');
+            }
+        }
+        foreach (['AptNum', 'PlannedAptNum'] as $fk) {
+            if (isset($body[$fk])) {
+                $body[$fk] = (int)$body[$fk];
+            }
+        }
+        foreach (['DateTimeDue', 'DateTimeCreated', 'DateTimeSent', 'DateTimeRecd', 'DateTimeChecked'] as $dt) {
+            if (isset($body[$dt]) && !self::isOdDateTime($body[$dt])) {
+                throw new OpenDentalApiException('bad_request', 0, '/labcases',
+                    'Datetime fields must be "yyyy-MM-dd HH:mm:ss" strings.');
+            }
+        }
+        if (isset($body['LabFee'])) {
+            $body['LabFee'] = (float)$body['LabFee'];
+        }
+        $r = $this->request('POST', '/labcases', $credentials, [], $body);
+        if (!is_array($r) || empty($r['LabCaseNum'])) {
+            throw new OpenDentalApiException('unexpected_response', 201, '/labcases',
+                'Open Dental returned a malformed create response.');
+        }
+        return $r;
+    }
+
+    /**
+     * GET /securityperms -> map of permission name => bool.
+     * Read-only call (ApiReadAll tier) - safe to run during capability
+     * checks. Malformed rows are ignored.
+     */
+    public function getApiPermissions(array $credentials): array {
+        $r = $this->get('/securityperms', $credentials);
+        $perms = [];
+        if (is_array($r)) {
+            foreach ($r as $row) {
+                if (!is_array($row) || !isset($row['Permission'])) {
+                    continue;
+                }
+                $perms[(string)$row['Permission']] =
+                    filter_var($row['HasPermission'] ?? false, FILTER_VALIDATE_BOOLEAN);
+            }
+        }
+        return $perms;
+    }
+
+    /**
+     * Capability probe for LabCase writes: whether the office's customer key
+     * carries the permission group that owns LabCases POST/PUT, plus the
+     * minimum OD version the API documents. Version cannot be read remotely
+     * here - a version-incompatible office is detected at write time via
+     * the 'unsupported_version' category instead.
+     *
+     * @return array {supported:bool, permission:string, has_permission:bool,
+     *                min_od_version:string}
+     * @throws OpenDentalApiException on transport/auth failure (the caller
+     *         decides retry vs. fail; a reachable API that simply lacks the
+     *         permission returns supported=false, never throws)
+     */
+    public function checkLabCaseWriteCapability(array $credentials): array {
+        $perms = $this->getApiPermissions($credentials);
+        $has = $perms[self::LABCASE_WRITE_PERMISSION] ?? false;
+        return [
+            'supported'       => (bool)$has,
+            'permission'      => self::LABCASE_WRITE_PERMISSION,
+            'has_permission'  => (bool)$has,
+            'min_od_version'  => self::LABCASE_WRITE_MIN_VERSION,
+        ];
     }
 
     // ----------------------------------------------------------------------

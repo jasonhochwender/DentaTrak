@@ -38,6 +38,7 @@ require_once __DIR__ . '/csrf.php';
 require_once __DIR__ . '/integrations/IntegrationManager.php';
 require_once __DIR__ . '/integrations/IntegrationCredentials.php';
 require_once __DIR__ . '/integrations/IntegrationEvents.php';
+require_once __DIR__ . '/integrations/IntegrationOutbound.php';
 require_once __DIR__ . '/integrations/OpenDentalPortalClient.php';
 require_once __DIR__ . '/integrations/register-adapters.php';
 
@@ -845,6 +846,62 @@ if ($action === 'import_existing') {
     echo json_encode([
         'success'    => true,
         'message'    => t('api.integrations.import_started'),
+        'connection' => IntegrationManager::toPublicConnection($pdo, IntegrationManager::findConnection($pdo, $connectionId)),
+    ]);
+    exit;
+}
+
+// -------------------------------------------------------------------------
+// POST check_outbound_capability (Phase 2): probe whether the office's
+// customer key carries the ApiAllOthers permission required for LabCase
+// POST/PUT (and record the minimum OD version the API documents). This is
+// a READ-ONLY GET /securityperms call - it never writes to Open Dental and
+// does not enable outbound sync. The result is stored in
+// config_json.outbound.capability so the settings UI can show readiness.
+// -------------------------------------------------------------------------
+if ($action === 'check_outbound_capability') {
+    $connectionId = (int)($body['connection_id'] ?? 0);
+    $connection = IntegrationManager::getConnectionForPractice($pdo, $currentPracticeId, $connectionId);
+    if (!$connection) {
+        integrationsFail(404, t('api.integrations.not_found'));
+    }
+    if ($connection['status'] !== 'active') {
+        integrationsFail(409, t('api.integrations.subscription_needs_active'));
+    }
+
+    $adapter = IntegrationManager::getAdapter($connection);
+    if (!method_exists($adapter, 'checkLabCaseWriteCapability')) {
+        integrationsFail(400, t('api.integrations.provider_no_events'));
+    }
+
+    $credentials = IntegrationManager::getConnectionCredentials($pdo, $connectionId);
+    try {
+        $capability = $adapter->checkLabCaseWriteCapability($credentials);
+    } catch (Throwable $e) {
+        IntegrationOutbound::updateOutboundConfig($pdo, $connectionId, [
+            'capability' => [
+                'checked_at' => gmdate('Y-m-d H:i:s'),
+                'error'      => $e instanceof OpenDentalApiException ? $e->category : 'unexpected',
+            ],
+        ]);
+        integrationsFail(502, t('api.integrations.test_failed'),
+            $e instanceof OpenDentalApiException ? $e->category : 'unexpected');
+    }
+
+    IntegrationOutbound::updateOutboundConfig($pdo, $connectionId, [
+        'capability' => [
+            'checked_at'      => gmdate('Y-m-d H:i:s'),
+            'has_permission'  => !empty($capability['has_permission']),
+            'permission'      => $capability['permission'] ?? null,
+            'min_od_version'  => $capability['min_od_version'] ?? null,
+        ],
+    ]);
+
+    logIntegrationAdminAction($userId, 'integration_outbound_capability_checked', $currentPracticeId, $connection['provider'], $connectionId);
+
+    echo json_encode([
+        'success'    => true,
+        'capability' => $capability,
         'connection' => IntegrationManager::toPublicConnection($pdo, IntegrationManager::findConnection($pdo, $connectionId)),
     ]);
     exit;
