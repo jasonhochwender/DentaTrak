@@ -1,0 +1,102 @@
+# Adding the DentaTrak Button in Open Dental
+
+DentaTrak connects to Open Dental as a **Custom Bridge** (Program Link). Once
+configured, a **DentaTrak** button appears on the Open Dental toolbars you
+choose. Selecting a patient and clicking the button opens DentaTrak in your
+default browser, already filtered to that patient's lab cases.
+
+No changes to Open Dental itself are required - this uses Open Dental's
+built-in Program Links feature.
+
+## What you need
+
+- The **Open Dental integration must already be connected** for your practice
+  in DentaTrak (Settings → Integrations → Open Dental). The button opens
+  patient lab cases that have been synced from Open Dental; it does not
+  create the connection.
+- A DentaTrak user account with access to the practice. Staff sign in with
+  their normal DentaTrak login (including 2FA, if enabled) the first time
+  they click the button in a browser session.
+- Open Dental version **22.1 or newer** recommended. The button and the
+  `[PatNum]` patient substitution work on all versions that support
+  Program Links; the lab-case sync itself requires a version recent enough
+  for the connected integration (API events).
+
+## Setup (one time per office)
+
+The Program Link is stored in the shared Open Dental database, so you only
+need to do this once - every workstation gets the button.
+
+1. In Open Dental, go to **Main Menu → Setup → Program Links**.
+2. Click **Add** to create a custom bridge.
+3. Fill in the fields exactly as follows:
+
+   | Field | Value |
+   |---|---|
+   | **Description** | `DentaTrak` |
+   | **Enabled** | checked |
+   | **Path of file to open** | `https://YOUR-DENTATRAK-HOST/od-launch.php` |
+   | **Optional command line arguments** | `?pat=[PatNum]` |
+   | **Text on button** | `DentaTrak` |
+
+   Replace `YOUR-DENTATRAK-HOST` with your DentaTrak address, for example
+   `app.dentatrak.com` or your clinic's custom domain. Do not add a trailing
+   slash.
+
+4. (Optional) Set the button icon: click **Import** under *Button Image* and
+   select `images/dentatrak-od-bridge-22.png` from the DentaTrak install
+   folder (a 22×22 icon is required format).
+5. Under **Add a button to these toolbars**, select where the button should
+   appear. Recommended: **Main Toolbar** (available from every module) or
+   **ChartModule**/**FamilyModule** (where staff already work with the
+   selected patient).
+6. Click **OK** / **Save**.
+
+## Using it
+
+1. Select a patient in Open Dental.
+2. Click the **DentaTrak** toolbar button.
+3. Your default browser opens:
+   - If you're signed in to DentaTrak, you go straight to the case list
+     filtered to that patient's synced lab cases.
+   - If not, you sign in (and complete 2FA / practice selection if needed),
+     then land on the same filtered view automatically.
+4. A banner at the top of the case list shows whose cases you're viewing.
+   Click **Show all cases** to return to the full list.
+
+If the patient has no synced lab cases yet, the list shows all cases and a
+notice explains that nothing was found for the patient - cases appear after
+the next sync/import.
+
+## Notes and limitations
+
+- **Always select a patient first.** If no patient is selected, Open Dental
+  substitutes an empty `[PatNum]` and DentaTrak opens its normal case list.
+- The button opens whichever patient is selected in Open Dental; it resolves
+  through the practice's existing integration mappings. Patients who have no
+  imported lab cases will not have a filtered view yet.
+- The patient number in the launch URL is only a hint - it grants no access.
+  DentaTrak still requires sign-in and resolves patients only inside the
+  signed-in user's own practice. Staff from a different practice (or a
+  practice with no Open Dental connection) never see another office's data.
+- Users who belong to multiple DentaTrak practices resolve the patient in
+  whichever practice they are currently working in.
+- This bridge does not require any additional Open Dental API permissions or
+  fees beyond the existing integration.
+- Terminal Server / Remote Desktop environments: the button opens the
+  default browser *on the machine Open Dental is running on*. If staff run
+  Open Dental in a remote session but want a local browser, a tool such as
+  Remote Executer (documented in Open Dental's Program Links page) can
+  redirect the launch to the local machine.
+
+## Troubleshooting
+
+- **Button does nothing / file not found**: verify the *Path of file to open*
+  is the full `https://.../od-launch.php` URL (not a file path), with no
+  trailing characters.
+- **Opens DentaTrak but not filtered to a patient**: confirm *Optional
+  command line arguments* contains exactly `?pat=[PatNum]` (brackets
+  included), and that a patient was selected before clicking.
+- **"No synced lab cases" for a patient you expected**: the case may not have
+  been imported yet. Imported cases appear as soon as the integration syncs
+  them (real-time updates or *Import existing* from Settings → Integrations).

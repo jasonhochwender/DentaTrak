@@ -259,8 +259,14 @@ class IntegrationEvents {
         $externalCaseId = (string)$canonical->externalCaseId;
         $provider = $connection['provider'] ?? 'unknown';
 
+        // external_parent_id records the case's owning patient (PatNum) so
+        // patient-scoped launch resolution can enumerate all of a synced
+        // patient's cases without touching PHI or the PMS API.
         $reservation = SyncEngine::reserveMapping(
-            $pdo, $connectionId, SyncEngine::ENTITY_CASE, $externalCaseId
+            $pdo, $connectionId, SyncEngine::ENTITY_CASE, $externalCaseId,
+            null, null,
+            $canonical->externalPatientId !== null && $canonical->externalPatientId !== ''
+                ? (string)$canonical->externalPatientId : null
         );
         $mapping = $reservation['mapping'];
         $ownsReservation = $reservation['created'];
@@ -286,7 +292,10 @@ class IntegrationEvents {
             // Orphaned reservation from a crashed worker - reclaim it.
             SyncEngine::releaseMapping($pdo, (int)$mapping['id']);
             $reservation = SyncEngine::reserveMapping(
-                $pdo, $connectionId, SyncEngine::ENTITY_CASE, $externalCaseId
+                $pdo, $connectionId, SyncEngine::ENTITY_CASE, $externalCaseId,
+                null, null,
+                $canonical->externalPatientId !== null && $canonical->externalPatientId !== ''
+                    ? (string)$canonical->externalPatientId : null
             );
             $mapping = $reservation['mapping'];
             $ownsReservation = $reservation['created'];
@@ -412,6 +421,26 @@ class IntegrationEvents {
             ")->execute([':id' => (int)$mapping['id']]);
         } catch (Throwable $e) {
             // Pre-migration schema (column absent) - marker unsupported.
+        }
+
+        // Self-heal the patient back-link on legacy mappings: cases imported
+        // before external_parent_id was stamped pick it up on their next
+        // inbound event, never overwriting an existing link.
+        if (empty($mapping['external_parent_id'])
+            && $canonical->externalPatientId !== null
+            && $canonical->externalPatientId !== '') {
+            try {
+                $pdo->prepare("
+                    UPDATE integration_entity_mappings
+                    SET external_parent_id = :pat
+                    WHERE id = :id AND external_parent_id IS NULL
+                ")->execute([
+                    ':pat' => (string)$canonical->externalPatientId,
+                    ':id'  => (int)$mapping['id'],
+                ]);
+            } catch (Throwable $e) {
+                // Non-critical - launch resolution still has the fallback path.
+            }
         }
 
         // column => [canonical value, is-encrypted, null-means-keep]

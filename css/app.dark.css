@@ -305,6 +305,12 @@
   border-color: var(--border-light);
 }
 
+[data-theme="dark"] .od-patient-banner {
+  background-color: #16233d;
+  border-color: rgba(96, 165, 250, 0.4);
+  color: #bfdbfe;
+}
+
 [data-theme="dark"] .kanban-filter-labels,
 [data-theme="dark"] .kanban-filter-field label,
 [data-theme="dark"] .filter-checkbox-label,

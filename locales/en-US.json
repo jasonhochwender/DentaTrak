@@ -5741,5 +5741,15 @@
         "page_of": "Page",
         "prev": "Previous",
         "next": "Next"
+    },
+    "od_launch": {
+        "viewing_patient": "Showing lab cases for {name}",
+        "viewing_patient_generic": "Showing lab cases for this patient",
+        "not_found": "No synced lab cases were found for this patient in Open Dental.",
+        "no_cases": "This patient has no lab cases in DentaTrak yet.",
+        "not_connected": "Open Dental is not connected for this practice.",
+        "unavailable": "Could not load the patient view. Showing all cases.",
+        "show_all_cases": "Show all cases",
+        "dismiss": "Dismiss"
     }
 }

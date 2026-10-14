@@ -224,6 +224,28 @@ try {
         $cases = PIIEncryption::filterCasesBySearch($cases, $searchTerm);
     }
 
+    // Restrict to an explicit set of case ids when provided (used by the
+    // Open Dental patient launch, which resolves a synced patient's cases
+    // server-side and then reuses this endpoint to render them). The set is
+    // intersected with the practice-scoped, visibility-filtered list above,
+    // so it can only ever narrow what the caller is already allowed to see.
+    $caseIdsParam = $_GET['case_ids'] ?? '';
+    if ($caseIdsParam !== '') {
+        $allowedCaseIds = [];
+        foreach (explode(',', (string)$caseIdsParam) as $token) {
+            $token = trim($token);
+            if ($token !== '' && preg_match('/^[A-Za-z0-9_\-]{1,64}$/', $token)) {
+                $allowedCaseIds[$token] = true;
+            }
+            if (count($allowedCaseIds) >= 500) {
+                break;
+            }
+        }
+        $cases = array_values(array_filter($cases, function($case) use ($allowedCaseIds) {
+            return isset($allowedCaseIds[(string)($case['id'] ?? '')]);
+        }));
+    }
+
     // Apply dropdown filters using raw stored values (display values are not compared).
     $filterCarrier = $_GET['carrier'] ?? '';
     if ($filterCarrier !== '') {

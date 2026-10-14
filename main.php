@@ -57,6 +57,12 @@ if (empty($_SESSION['db_user_id'])) {
     if (!empty($_GET['notification_id'])) {
         $loginUrl .= '?notification_id=' . urlencode($_GET['notification_id']);
     }
+    // Open Dental bridge launches land here with a patient hint; carry it
+    // through the sign-in flow the same way notification deep links are.
+    if (!empty($_GET['od_pat']) && preg_match('/^\d{1,20}$/', (string)$_GET['od_pat'])) {
+        $loginUrl .= (strpos($loginUrl, '?') === false ? '?' : '&')
+            . 'od_pat=' . urlencode((string)$_GET['od_pat']);
+    }
     header('Location: ' . $loginUrl);
     exit;
 }
@@ -979,6 +985,11 @@ endif;
                 <?php echo t('archive.view_archived_button'); ?> <span id="archivedCasesBadge" class="archived-count-badge" style="display: none;"></span>
               </button>
             </div>
+          </div>
+
+          <div id="odPatientBanner" class="od-patient-banner" hidden>
+            <span id="odPatientBannerText" class="od-patient-banner-text"></span>
+            <button type="button" id="odPatientClear" class="filter-clear-btn"><?php echo t('od_launch.show_all_cases'); ?></button>
           </div>
 
           <div id="kanbanFiltersBar" class="kanban-filters-bar">
@@ -3828,6 +3839,7 @@ endif;
   <script src="<?= appAssetUrl('js/assignments.js') ?>" defer></script>
   <script src="<?= appAssetUrl('js/case-comments.js') ?>" defer></script>
   <script src="<?= appAssetUrl('js/notifications.js') ?>" defer></script>
+  <script src="<?= appAssetUrl('js/od-launch.js') ?>" defer></script>
 <?php if (isFeatureEnabled('SHOW_NOTIFICATIONS')): ?>
   <script src="<?= appAssetUrl('js/notification-preferences.js') ?>" defer></script>
 <?php endif; ?>
@@ -3837,6 +3849,13 @@ endif;
       try {
         sessionStorage.setItem('pendingNotification', JSON.stringify({
           notification_id: <?php echo (int)$_GET['notification_id']; ?>
+        }));
+      } catch (e) {}
+      <?php endif; ?>
+      <?php if (!empty($_GET['od_pat']) && preg_match('/^\d{1,20}$/', (string)$_GET['od_pat'])): ?>
+      try {
+        sessionStorage.setItem('pendingOdPatient', JSON.stringify({
+          pat: <?php echo json_encode((string)$_GET['od_pat']); ?>
         }));
       } catch (e) {}
       <?php endif; ?>
@@ -3858,6 +3877,9 @@ endif;
         <?php endif; ?>
         if (typeof window.processPendingNotification === 'function') {
           window.processPendingNotification();
+        }
+        if (typeof window.processPendingOdPatient === 'function') {
+          window.processPendingOdPatient();
         }
       });
     })();

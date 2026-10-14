@@ -5741,5 +5741,15 @@
         "page_of": "페이지",
         "prev": "이전",
         "next": "다음"
+    },
+    "od_launch": {
+        "viewing_patient": "{name}의 기공 사례 표시 중",
+        "viewing_patient_generic": "이 환자의 기공 사례 표시 중",
+        "not_found": "Open Dental에서 이 환자의 동기화된 기공 사례를 찾을 수 없습니다.",
+        "no_cases": "이 환자는 아직 DentaTrak에 기공 사례가 없습니다.",
+        "not_connected": "이 진료소에는 Open Dental이 연결되어 있지 않습니다.",
+        "unavailable": "환자 보기를 불러올 수 없습니다. 모든 사례를 표시합니다.",
+        "show_all_cases": "모든 사례 보기",
+        "dismiss": "닫기"
     }
 }

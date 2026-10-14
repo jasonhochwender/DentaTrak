@@ -13667,6 +13667,10 @@ document.addEventListener('DOMContentLoaded', function () {
         if (dueSoon) params.append('due_soon', 'true');
         if (apptRiskOnly) params.append('appt_risk_only', 'true');
         if (atRiskOnly) params.append('at_risk_only', 'true');
+        // Open Dental patient scope (od-launch.js): constrain the board to
+        // the synced patient's cases while the launch banner is active.
+        const odIds = window.odPatientScope ? window.odPatientScope.caseIds() : null;
+        if (odIds) params.append('case_ids', odIds.join(','));
 
         // Show loading state
         const kanbanBoard = document.querySelector('.kanban-board');

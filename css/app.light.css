@@ -1762,6 +1762,23 @@ body {
   display: inline-block;
 }
 
+.od-patient-banner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background-color: #eff6ff;
+  border: 1px solid rgba(59, 130, 246, 0.35);
+  color: #1e3a8a;
+  font-size: 0.9rem;
+}
+.od-patient-banner[hidden] { display: none; }
+.od-patient-banner-text { flex: 1 1 auto; }
+.od-patient-banner .filter-clear-btn { flex: 0 0 auto; }
+
 .kanban-filters-bar {
   display: none;
 }

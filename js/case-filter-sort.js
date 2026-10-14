@@ -121,6 +121,10 @@
   function query() {
     var current = readFilters(), search = new URLSearchParams();
     filterKeys.forEach(function (key, i) { if (current[key]) search.set(params[i], current[key] === true ? 'true' : current[key]); });
+    // Open Dental patient scope (od-launch.js) constrains the board to the
+    // synced patient's cases while active.
+    var odIds = window.odPatientScope ? window.odPatientScope.caseIds() : null;
+    if (odIds) search.set('case_ids', odIds.join(','));
     return search.toString();
   }
   function showError(key) {

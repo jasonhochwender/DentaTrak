@@ -20,10 +20,14 @@ function loadEnv($envFile) {
                 $value = substr($value, 1, -1);
             }
             
-            // Set in both $_ENV and putenv() for compatibility
-            $_ENV[$key] = $value;
-            $_SERVER[$key] = $value;
-            putenv("$key=$value");
+            // Set in both $_ENV and putenv() for compatibility, but never
+            // override a value already present in the real environment -
+            // a configured env var must beat the local .env file.
+            if (getenv($key) === false) {
+                $_ENV[$key] = $value;
+                $_SERVER[$key] = $value;
+                putenv("$key=$value");
+            }
         }
     }
 }

@@ -98,6 +98,17 @@ $sessionRevoked = isset($_GET['revoked']) && $_GET['revoked'] == '1';
     })();
   </script>
   <?php endif; ?>
+  <?php if (!empty($_GET['od_pat']) && preg_match('/^\d{1,20}$/', (string)$_GET['od_pat'])): ?>
+  <script>
+    (function() {
+      try {
+        sessionStorage.setItem('pendingOdPatient', JSON.stringify({
+          pat: <?php echo json_encode((string)$_GET['od_pat']); ?>
+        }));
+      } catch (e) {}
+    })();
+  </script>
+  <?php endif; ?>
 </head>
 <?php 
   // Determine environment for visual cues

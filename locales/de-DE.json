@@ -5741,5 +5741,15 @@
         "page_of": "Seite",
         "prev": "Zurück",
         "next": "Weiter"
+    },
+    "od_launch": {
+        "viewing_patient": "Laborfälle für {name} werden angezeigt",
+        "viewing_patient_generic": "Laborfälle für diesen Patienten werden angezeigt",
+        "not_found": "Für diesen Patienten wurden in Open Dental keine synchronisierten Laborfälle gefunden.",
+        "no_cases": "Für diesen Patienten liegen noch keine Laborfälle in DentaTrak vor.",
+        "not_connected": "Open Dental ist für diese Praxis nicht verbunden.",
+        "unavailable": "Die Patientenansicht konnte nicht geladen werden. Alle Fälle werden angezeigt.",
+        "show_all_cases": "Alle Fälle anzeigen",
+        "dismiss": "Schließen"
     }
 }

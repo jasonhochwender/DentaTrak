@@ -5741,5 +5741,15 @@
         "page_of": "Página",
         "prev": "Anterior",
         "next": "Siguiente"
+    },
+    "od_launch": {
+        "viewing_patient": "Mostrando los casos de laboratorio de {name}",
+        "viewing_patient_generic": "Mostrando los casos de laboratorio de este paciente",
+        "not_found": "No se encontraron casos de laboratorio sincronizados para este paciente en Open Dental.",
+        "no_cases": "Este paciente aún no tiene casos de laboratorio en DentaTrak.",
+        "not_connected": "Open Dental no está conectado para esta práctica.",
+        "unavailable": "No se pudo cargar la vista del paciente. Se muestran todos los casos.",
+        "show_all_cases": "Mostrar todos los casos",
+        "dismiss": "Descartar"
     }
 }
