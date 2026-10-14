@@ -69,6 +69,14 @@ final class OdPatientLaunch {
         }
         $connectionId = (int)$connectionId;
 
+        // A resolver call only happens through the od-launch.php patient
+        // launch flow, so reaching this point with a real connection means
+        // a toolbar-style launch arrived. Stamp the first one; subsequent
+        // launches keep the original timestamp. Non-authoritative - a URL
+        // parameter can be supplied manually - so the UI must present this
+        // as "first launch detected", never "installation verified".
+        self::recordToolbarLaunch($pdo, $connectionId);
+
         // The 'patient' support mapping is reserved at import time for every
         // imported case, so its absence means this PatNum was never synced.
         $patientMapping = SyncEngine::findMapping(
@@ -152,6 +160,37 @@ final class OdPatientLaunch {
             'patient_name' => $patientName,
             'case_count'   => count($liveIds),
         ];
+    }
+
+    /**
+     * Stamp toolbar_first_launch_at on the connection's config_json the
+     * first time a patient launch is observed. Idempotent - only writes
+     * when the key is absent. Failure is non-fatal to resolution.
+     */
+    public static function recordToolbarLaunch(PDO $pdo, int $connectionId): void {
+        try {
+            $stmt = $pdo->prepare(
+                "SELECT config_json FROM integration_connections WHERE id = :id"
+            );
+            $stmt->execute([':id' => $connectionId]);
+            $raw = $stmt->fetchColumn();
+            if ($raw === false) {
+                return;
+            }
+            $config = is_string($raw) && $raw !== '' ? json_decode($raw, true) : [];
+            if (!is_array($config)) {
+                $config = [];
+            }
+            if (!empty($config['toolbar_first_launch_at'])) {
+                return;
+            }
+            $config['toolbar_first_launch_at'] = gmdate('Y-m-d H:i:s');
+            $pdo->prepare(
+                "UPDATE integration_connections SET config_json = :cfg WHERE id = :id"
+            )->execute([':cfg' => json_encode($config), ':id' => $connectionId]);
+        } catch (Throwable $e) {
+            // Non-critical - detection must never break the launch itself.
+        }
     }
 
     /**

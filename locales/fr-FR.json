@@ -1404,6 +1404,32 @@
                 "unexpected": "Open Dental a renvoyé une réponse inattendue. Veuillez réessayer, ou contactez l'assistance si le problème persiste.",
                 "subscribe_version": "Les mises à jour automatiques des cas de laboratoire nécessitent Open Dental version 25.4.14 ou ultérieure. Mettez à jour Open Dental, puis réessayez.",
                 "no_key": "Générez votre clé de connexion à l'étape 1 avant de tester."
+            },
+            "toolbar": {
+                "title": "Bouton DentaTrak dans Open Dental",
+                "intro": "Ajoutez un bouton DentaTrak à la barre d'outils d'Open Dental. Configuration unique par cabinet, effectuée sur un seul ordinateur : elle s'applique automatiquement à tous les postes.",
+                "step1": "Dans Open Dental, ouvrez Menu principal → Setup → Program Links et cliquez sur Add.",
+                "step2_intro": "Remplissez les champs exactement comme indiqué (utilisez Copier pour chacun) :",
+                "step3": "Définissez éventuellement l'icône du bouton (22×22) :",
+                "step4": "Sous « Add a button to these toolbars », sélectionnez Main Toolbar (recommandé) ainsi que ChartModule ou FamilyModule.",
+                "step5": "Cliquez sur OK pour enregistrer. Le bouton DentaTrak apparaît sur les barres choisies pour tout le cabinet.",
+                "field_description": "Description",
+                "field_path": "Path of file to open",
+                "field_args": "Optional command line arguments",
+                "field_button": "Text on button",
+                "copy": "Copier",
+                "copied": "Copié",
+                "icon_download": "Télécharger l'icône",
+                "how_it_works": "Pour l'utiliser, sélectionnez un patient dans Open Dental et cliquez sur DentaTrak : le navigateur ouvre directement les cas de laboratoire de ce patient (une connexion normale peut être requise).",
+                "test_title": "Essayez :",
+                "test_body": " Sélectionnez un patient ayant des cas de laboratoire dans Open Dental et cliquez sur le bouton DentaTrak : DentaTrak devrait s'ouvrir filtré sur les cas de ce patient. Essayez aussi un patient sans cas : un avis convivial s'affiche plutôt qu'une erreur.",
+                "troubleshooting_title": "Dépannage",
+                "trouble_1": "Rien ne se passe au clic : vérifiez que le chemin est l'adresse https:// complète se terminant par /od-launch.php, sans caractères en trop.",
+                "trouble_2": "S'ouvre sans filtrer le patient : les arguments doivent être exactement ?pat=[PatNum] (crochets inclus) et un patient doit être sélectionné au préalable.",
+                "trouble_3": "« Aucun cas synchronisé » pour un patient attendu : ses cas ne sont peut-être pas encore importés - lancez Import existing ou attendez la prochaine synchronisation.",
+                "trouble_4": "Environnements Bureau à distance : le bouton ouvre le navigateur sur la machine exécutant Open Dental - consultez le guide pour les options de session distante.",
+                "launch_pending": "Aucun lancement détecté",
+                "launch_detected": "Premier lancement détecté · {date}"
             }
         }
     },

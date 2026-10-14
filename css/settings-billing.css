@@ -3596,6 +3596,137 @@ input#practiceName {
   line-height: 1.45;
 }
 
+/* Guided Open Dental toolbar (Custom Bridge) setup, inside the
+   open_dental integration card once a connection exists. */
+.integration-toolbar-setup {
+  margin-top: 14px;
+  padding: 12px 14px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #f9fafb;
+  font-size: 13px;
+  color: #374151;
+  line-height: 1.5;
+}
+
+.integration-toolbar-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.integration-toolbar-title {
+  font-weight: 600;
+  font-size: 14px;
+  color: #111827;
+}
+
+.integration-toolbar-badge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  background: #f3f4f6;
+  color: #4b5563;
+  white-space: nowrap;
+}
+
+.integration-toolbar-badge.integration-toolbar-badge-ok {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.integration-toolbar-intro {
+  margin: 8px 0 0;
+}
+
+.integration-toolbar-steps {
+  margin: 10px 0 0;
+  padding-left: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.integration-toolbar-fields {
+  margin-top: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.integration-toolbar-field {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.integration-toolbar-field-label {
+  flex: 0 0 220px;
+  font-weight: 600;
+  color: #374151;
+}
+
+.integration-toolbar-field-value {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 4px 8px;
+  background: #f3f4f6;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-family: monospace;
+  font-size: 12.5px;
+  color: #111827;
+  word-break: break-all;
+  user-select: all;
+}
+
+.integration-toolbar-field .od-toolbar-copy {
+  flex: 0 0 auto;
+  padding: 3px 10px;
+  font-size: 12px;
+}
+
+.integration-toolbar-how {
+  margin: 12px 0 0;
+  font-style: italic;
+}
+
+.integration-toolbar-test {
+  margin-top: 10px;
+  padding: 10px 12px;
+  border-radius: 6px;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  color: #1e40af;
+}
+
+.integration-toolbar-test-title {
+  font-weight: 600;
+}
+
+.integration-toolbar-troubleshooting {
+  margin-top: 10px;
+}
+
+.integration-toolbar-troubleshooting summary {
+  cursor: pointer;
+  font-weight: 600;
+  color: #374151;
+}
+
+.integration-toolbar-troubleshooting ul {
+  margin: 8px 0 0;
+  padding-left: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
 /* ------------------------------------------------------------------
    Integration configuration modal layout (child of Settings).
 

@@ -234,9 +234,30 @@ class IntegrationManager {
             // realtime case_updates feed, so no-op events, test-connection
             // calls and subscription setup never inflate it.
             'last_case_write_at'      => self::lastCaseWriteAt($pdo, (int)$connection['id']),
+            // First observed toolbar-style patient launch for this
+            // connection (od-launch.php flow). A timestamp only - it proves
+            // a launch arrived, not that the bridge was installed (the URL
+            // parameter can be supplied by hand).
+            'toolbar_first_launch_at' => self::toolbarFirstLaunchAt($connection),
             'created_at'              => $connection['created_at'],
             'updated_at'              => $connection['updated_at'],
         ];
+    }
+
+    /**
+     * First toolbar-launch timestamp recorded in config_json, or null.
+     */
+    private static function toolbarFirstLaunchAt(array $connection): ?string {
+        $raw = $connection['config_json'] ?? null;
+        if (!is_string($raw) || $raw === '') {
+            return null;
+        }
+        $config = json_decode($raw, true);
+        if (!is_array($config)) {
+            return null;
+        }
+        $v = $config['toolbar_first_launch_at'] ?? null;
+        return (is_string($v) && $v !== '') ? $v : null;
     }
 
     /**

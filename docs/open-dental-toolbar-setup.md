@@ -27,6 +27,11 @@ built-in Program Links feature.
 The Program Link is stored in the shared Open Dental database, so you only
 need to do this once - every workstation gets the button.
 
+> **Tip:** the same step-by-step instructions, with each field value ready
+> to copy and the icon ready to download, appear directly in DentaTrak under
+> **Settings → Integrations → Open Dental** once your practice is connected.
+> This document is the printable/reference version.
+
 1. In Open Dental, go to **Main Menu → Setup → Program Links**.
 2. Click **Add** to create a custom bridge.
 3. Fill in the fields exactly as follows:

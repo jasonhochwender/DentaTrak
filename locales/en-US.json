@@ -1404,6 +1404,32 @@
                 "unexpected": "Open Dental returned an unexpected response. Please try again, or contact support if it persists.",
                 "subscribe_version": "Automatic lab case updates require Open Dental version 25.4.14 or later. Update Open Dental, then try again.",
                 "no_key": "Generate your connection key in Step 1 before testing."
+            },
+            "toolbar": {
+                "title": "DentaTrak button in Open Dental",
+                "intro": "Add a DentaTrak button to the Open Dental toolbar. This is a one-time setup done once per office on any single computer - it applies to every workstation automatically.",
+                "step1": "In Open Dental, open Main Menu → Setup → Program Links and click Add.",
+                "step2_intro": "Fill in the fields exactly as shown (use Copy for each):",
+                "step3": "Optionally set the button icon (22×22):",
+                "step4": "Under \"Add a button to these toolbars\", select Main Toolbar (recommended) plus ChartModule or FamilyModule.",
+                "step5": "Click OK to save. The DentaTrak button appears on the chosen toolbars for the whole office.",
+                "field_description": "Description",
+                "field_path": "Path of file to open",
+                "field_args": "Optional command line arguments",
+                "field_button": "Text on button",
+                "copy": "Copy",
+                "copied": "Copied",
+                "icon_download": "Download icon",
+                "how_it_works": "To use it, select a patient in Open Dental and click DentaTrak - the browser opens directly to that patient's lab cases (a normal sign-in may be required first).",
+                "test_title": "Test it:",
+                "test_body": " Select a patient with lab cases in Open Dental and click the DentaTrak button - DentaTrak should open filtered to that patient's cases. Also try a patient with no cases; a friendly notice appears instead of an error.",
+                "troubleshooting_title": "Troubleshooting",
+                "trouble_1": "Nothing happens when clicked: confirm the path is the full https:// address ending in /od-launch.php, with no extra characters.",
+                "trouble_2": "Opens but not filtered to a patient: the arguments must be exactly ?pat=[PatNum] (brackets included), and a patient must be selected before clicking.",
+                "trouble_3": "\"No synced cases\" for a patient you expected: their cases may not be imported yet - run Import existing or wait for the next sync.",
+                "trouble_4": "Remote Desktop setups: the button opens the browser on the machine running Open Dental - see the setup guide for remote-session options.",
+                "launch_pending": "No launch detected yet",
+                "launch_detected": "First launch detected · {date}"
             }
         }
     },

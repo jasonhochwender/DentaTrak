@@ -2849,6 +2849,32 @@
                 "unexpected": "Open Dental hat eine unerwartete Antwort zurückgegeben. Bitte versuchen Sie es erneut oder wenden Sie sich an den Support, falls das Problem weiterhin besteht.",
                 "subscribe_version": "Automatische Laborfall-Aktualisierungen erfordern Open Dental Version 25.4.14 oder höher. Aktualisieren Sie Open Dental und versuchen Sie es erneut.",
                 "no_key": "Generieren Sie Ihren Verbindungsschlüssel in Schritt 1, bevor Sie testen."
+            },
+            "toolbar": {
+                "title": "DentaTrak-Schaltfläche in Open Dental",
+                "intro": "Fügen Sie der Open-Dental-Symbolleiste eine DentaTrak-Schaltfläche hinzu. Diese einmalige Einrichtung erfolgt pro Praxis auf einem einzigen Computer und gilt automatisch für alle Arbeitsplätze.",
+                "step1": "Öffnen Sie in Open Dental Hauptmenü → Setup → Program Links und klicken Sie auf Add.",
+                "step2_intro": "Füllen Sie die Felder exakt wie gezeigt aus (jeweils Kopieren verwenden):",
+                "step3": "Optional das Schaltflächen-Symbol setzen (22×22):",
+                "step4": "Wählen Sie unter \"Add a button to these toolbars\" Main Toolbar (empfohlen) sowie ChartModule oder FamilyModule.",
+                "step5": "Klicken Sie auf OK zum Speichern. Die DentaTrak-Schaltfläche erscheint auf den gewählten Symbolleisten der gesamten Praxis.",
+                "field_description": "Description",
+                "field_path": "Path of file to open",
+                "field_args": "Optional command line arguments",
+                "field_button": "Text on button",
+                "copy": "Kopieren",
+                "copied": "Kopiert",
+                "icon_download": "Symbol herunterladen",
+                "how_it_works": "Wählen Sie zur Nutzung einen Patienten in Open Dental und klicken Sie auf DentaTrak - der Browser öffnet direkt die Laborfälle dieses Patienten (ggf. nach normaler Anmeldung).",
+                "test_title": "Testen:",
+                "test_body": " Wählen Sie einen Patienten mit Laborfällen in Open Dental und klicken Sie auf die DentaTrak-Schaltfläche - DentaTrak sollte gefiltert auf die Fälle dieses Patienten öffnen. Testen Sie auch einen Patienten ohne Fälle; ein freundlicher Hinweis erscheint statt eines Fehlers.",
+                "troubleshooting_title": "Fehlerbehebung",
+                "trouble_1": "Beim Klicken passiert nichts: Prüfen Sie, dass der Pfad die vollständige https://-Adresse ist und auf /od-launch.php endet, ohne weitere Zeichen.",
+                "trouble_2": "Öffnet, aber nicht auf einen Patienten gefiltert: Die Argumente müssen exakt ?pat=[PatNum] lauten (inkl. Klammern), und ein Patient muss vorher ausgewählt sein.",
+                "trouble_3": "„Keine synchronisierten Fälle\" bei einem erwarteten Patienten: Die Fälle wurden ggf. noch nicht importiert - führen Sie „Import existing\" aus oder warten Sie auf die nächste Synchronisation.",
+                "trouble_4": "Remote-Desktop-Umgebungen: Die Schaltfläche öffnet den Browser auf dem Rechner, auf dem Open Dental läuft - siehe Einrichtungsanleitung für Remote-Optionen.",
+                "launch_pending": "Noch kein Start erkannt",
+                "launch_detected": "Erster Start erkannt · {date}"
             }
         }
     },

@@ -14828,11 +14828,33 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
+    function renderToolbarSetup(provider, conn) {
+        var setup = document.getElementById('integrationToolbarSetup-' + provider);
+        if (!setup) return;
+        // The guided toolbar steps matter once a connection exists -
+        // before that the admin is still on the credentials step.
+        setup.style.display = conn ? '' : 'none';
+        var badge = document.getElementById('integrationToolbarBadge-' + provider);
+        if (!badge) return;
+        if (conn && conn.toolbar_first_launch_at) {
+            // Stored as UTC 'Y-m-d H:i:s'; format for the user's locale.
+            var ts = new Date(String(conn.toolbar_first_launch_at).replace(' ', 'T') + 'Z');
+            var when = isNaN(ts) ? String(conn.toolbar_first_launch_at)
+                                 : (window.I18n ? I18n.formatDate(ts, { style: 'medium', timeStyle: 'short' }) : String(ts));
+            badge.textContent = t('settings.integrations.toolbar.launch_detected', { date: when });
+            badge.className = 'integration-toolbar-badge integration-toolbar-badge-ok';
+        } else {
+            badge.textContent = t('settings.integrations.toolbar.launch_pending');
+            badge.className = 'integration-toolbar-badge';
+        }
+    }
+
     function renderProvider(provider) {
         var conn = integrationsState.connectionsByProvider[provider] || null;
         setBadge(provider, conn ? conn.status : 'none');
         renderMeta(provider, conn);
         renderActions(provider, conn);
+        renderToolbarSetup(provider, conn);
     }
 
     // Plan lock: render the locked card state without calling the API (the
@@ -15091,14 +15113,18 @@ document.addEventListener('DOMContentLoaded', function () {
         var copyBtn = document.getElementById('integrationKeyCopy');
         var text = keyValue ? keyValue.textContent : '';
         if (!text) return;
-        var done = function () {
+        copyTextToClipboard(text, function () {
             if (copyBtn) {
                 copyBtn.textContent = t('settings.integrations.setup.copied');
                 setTimeout(function () {
                     copyBtn.textContent = t('settings.integrations.setup.copy_key');
                 }, 2000);
             }
-        };
+        });
+    }
+
+    function copyTextToClipboard(text, done) {
+        done = done || function () {};
         if (navigator.clipboard && navigator.clipboard.writeText) {
             navigator.clipboard.writeText(text).then(done, done);
         } else {
@@ -15453,6 +15479,19 @@ document.addEventListener('DOMContentLoaded', function () {
             btn.dataset.integrationInit = '1';
             btn.addEventListener('click', function () {
                 importExistingLabCases(btn.getAttribute('data-provider'));
+            });
+        });
+        // Guided toolbar setup: each Custom Bridge field value copies with
+        // one click so the admin can paste straight into Open Dental.
+        document.querySelectorAll('.od-toolbar-copy').forEach(function (btn) {
+            if (btn.dataset.integrationInit) return;
+            btn.dataset.integrationInit = '1';
+            btn.addEventListener('click', function () {
+                var label = t('settings.integrations.toolbar.copy');
+                copyTextToClipboard(btn.getAttribute('data-copy') || '', function () {
+                    btn.textContent = t('settings.integrations.toolbar.copied');
+                    setTimeout(function () { btn.textContent = label; }, 2000);
+                });
             });
         });
 

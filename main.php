@@ -3529,6 +3529,60 @@ endif;
                               <button type="button" class="btn-secondary integration-action-reenable" data-provider="<?php echo htmlspecialchars($providerKey); ?>" style="display:none;"><?php echo t('settings.integrations.reenable'); ?></button>
                               <button type="button" class="btn-delete-confirm integration-action-disconnect" data-provider="<?php echo htmlspecialchars($providerKey); ?>" style="display:none;"><?php echo t('settings.integrations.disconnect'); ?></button>
                             </div>
+                            <?php if ($providerKey === 'open_dental'): ?>
+                            <?php
+                            // Guided toolbar setup: a one-time Custom Bridge in
+                            // Open Dental adds a DentaTrak button that opens the
+                            // selected patient's lab cases. Shown once a
+                            // connection exists; never while the card is locked.
+                            $odToolbarLaunchUrl = rtrim($appConfig['baseUrl'] ?? '', '/') . '/od-launch.php';
+                            $odToolbarFields = [
+                                ['label_key' => 'settings.integrations.toolbar.field_description', 'value' => 'DentaTrak'],
+                                ['label_key' => 'settings.integrations.toolbar.field_path',        'value' => $odToolbarLaunchUrl],
+                                ['label_key' => 'settings.integrations.toolbar.field_args',        'value' => '?pat=[PatNum]'],
+                                ['label_key' => 'settings.integrations.toolbar.field_button',      'value' => 'DentaTrak'],
+                            ];
+                            ?>
+                            <div class="integration-toolbar-setup" id="integrationToolbarSetup-<?php echo htmlspecialchars($providerKey); ?>" style="display:none;">
+                              <div class="integration-toolbar-heading">
+                                <span class="integration-toolbar-title"><?php echo t('settings.integrations.toolbar.title'); ?></span>
+                                <span class="integration-toolbar-badge" id="integrationToolbarBadge-<?php echo htmlspecialchars($providerKey); ?>"><?php echo t('settings.integrations.toolbar.launch_pending'); ?></span>
+                              </div>
+                              <p class="integration-toolbar-intro"><?php echo t('settings.integrations.toolbar.intro'); ?></p>
+                              <ol class="integration-toolbar-steps">
+                                <li><?php echo t('settings.integrations.toolbar.step1'); ?></li>
+                                <li>
+                                  <?php echo t('settings.integrations.toolbar.step2_intro'); ?>
+                                  <div class="integration-toolbar-fields">
+                                    <?php foreach ($odToolbarFields as $field): ?>
+                                    <div class="integration-toolbar-field">
+                                      <span class="integration-toolbar-field-label"><?php echo t($field['label_key']); ?></span>
+                                      <code class="integration-toolbar-field-value"><?php echo htmlspecialchars($field['value']); ?></code>
+                                      <button type="button" class="btn-secondary od-toolbar-copy" data-copy="<?php echo htmlspecialchars($field['value']); ?>"><?php echo t('settings.integrations.toolbar.copy'); ?></button>
+                                    </div>
+                                    <?php endforeach; ?>
+                                  </div>
+                                </li>
+                                <li><?php echo t('settings.integrations.toolbar.step3'); ?> <a href="images/dentatrak-od-bridge-22.png" download="dentatrak-od-bridge-22.png"><?php echo t('settings.integrations.toolbar.icon_download'); ?></a></li>
+                                <li><?php echo t('settings.integrations.toolbar.step4'); ?></li>
+                                <li><?php echo t('settings.integrations.toolbar.step5'); ?></li>
+                              </ol>
+                              <p class="integration-toolbar-how"><?php echo t('settings.integrations.toolbar.how_it_works'); ?></p>
+                              <div class="integration-toolbar-test">
+                                <span class="integration-toolbar-test-title"><?php echo t('settings.integrations.toolbar.test_title'); ?></span>
+                                <?php echo t('settings.integrations.toolbar.test_body'); ?>
+                              </div>
+                              <details class="integration-toolbar-troubleshooting">
+                                <summary><?php echo t('settings.integrations.toolbar.troubleshooting_title'); ?></summary>
+                                <ul>
+                                  <li><?php echo t('settings.integrations.toolbar.trouble_1'); ?></li>
+                                  <li><?php echo t('settings.integrations.toolbar.trouble_2'); ?></li>
+                                  <li><?php echo t('settings.integrations.toolbar.trouble_3'); ?></li>
+                                  <li><?php echo t('settings.integrations.toolbar.trouble_4'); ?></li>
+                                </ul>
+                              </details>
+                            </div>
+                            <?php endif; ?>
                             <?php endif; ?>
                           </div>
                           <?php endforeach; ?>

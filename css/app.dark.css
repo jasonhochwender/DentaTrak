@@ -1805,3 +1805,29 @@
 [data-theme="dark"] .integration-status-badge.integration-status-error { background: #7f1d1d; color: #fecaca; }
 [data-theme="dark"] .integration-status-badge.integration-status-disabled { background: #334155; color: #cbd5e1; }
 [data-theme="dark"] .integration-status-badge.integration-status-locked { background: #312e81; color: #c7d2fe; }
+
+/* Guided Open Dental toolbar setup block inside the integration card. */
+[data-theme="dark"] .integration-toolbar-setup {
+  background-color: #16202f;
+  border-color: var(--border-light);
+  color: var(--text-primary);
+}
+[data-theme="dark"] .integration-toolbar-title { color: var(--text-primary); }
+[data-theme="dark"] .integration-toolbar-badge { background: #334155; color: #cbd5e1; }
+[data-theme="dark"] .integration-toolbar-badge.integration-toolbar-badge-ok { background: #064e3b; color: #a7f3d0; }
+[data-theme="dark"] .integration-toolbar-intro,
+[data-theme="dark"] .integration-toolbar-steps,
+[data-theme="dark"] .integration-toolbar-how,
+[data-theme="dark"] .integration-toolbar-field-label,
+[data-theme="dark"] .integration-toolbar-troubleshooting summary,
+[data-theme="dark"] .integration-toolbar-troubleshooting li { color: var(--text-light); }
+[data-theme="dark"] .integration-toolbar-field-value {
+  background-color: #0f172a;
+  border-color: var(--border-medium);
+  color: var(--text-primary);
+}
+[data-theme="dark"] .integration-toolbar-test {
+  background: rgba(96, 165, 250, 0.12);
+  border-color: var(--border-medium);
+  color: #bfdbfe;
+}

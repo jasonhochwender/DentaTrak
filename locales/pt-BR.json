@@ -4798,6 +4798,32 @@
                 "unexpected": "O Open Dental retornou uma resposta inesperada. Tente novamente ou contate o suporte se o problema persistir.",
                 "subscribe_version": "As atualizações automáticas de casos de laboratório exigem o Open Dental versão 25.4.14 ou superior. Atualize o Open Dental e tente novamente.",
                 "no_key": "Gere sua chave de conexão na Etapa 1 antes de testar."
+            },
+            "toolbar": {
+                "title": "Botão DentaTrak no Open Dental",
+                "intro": "Adicione um botão DentaTrak à barra de ferramentas do Open Dental. É uma configuração única por consultório, feita em um único computador: aplica-se automaticamente a todas as estações.",
+                "step1": "No Open Dental, abra Menu principal → Setup → Program Links e clique em Add.",
+                "step2_intro": "Preencha os campos exatamente como mostrado (use Copiar em cada um):",
+                "step3": "Opcionalmente, defina o ícone do botão (22×22):",
+                "step4": "Em \"Add a button to these toolbars\", selecione Main Toolbar (recomendado) além de ChartModule ou FamilyModule.",
+                "step5": "Clique em OK para salvar. O botão DentaTrak aparece nas barras escolhidas para todo o consultório.",
+                "field_description": "Description",
+                "field_path": "Path of file to open",
+                "field_args": "Optional command line arguments",
+                "field_button": "Text on button",
+                "copy": "Copiar",
+                "copied": "Copiado",
+                "icon_download": "Baixar ícone",
+                "how_it_works": "Para usar, selecione um paciente no Open Dental e clique em DentaTrak: o navegador abre diretamente os casos de laboratório daquele paciente (pode ser necessário login normal).",
+                "test_title": "Teste:",
+                "test_body": " Selecione um paciente com casos de laboratório no Open Dental e clique no botão DentaTrak: o DentaTrak deve abrir filtrado nos casos daquele paciente. Teste também um paciente sem casos; um aviso amigável aparece em vez de erro.",
+                "troubleshooting_title": "Solução de problemas",
+                "trouble_1": "Nada acontece ao clicar: confirme que o caminho é o endereço https:// completo terminando em /od-launch.php, sem caracteres extras.",
+                "trouble_2": "Abre mas não filtra o paciente: os argumentos devem ser exatamente ?pat=[PatNum] (colchetes incluídos) e um paciente deve estar selecionado.",
+                "trouble_3": "\"Nenhum caso sincronizado\" para um paciente esperado: os casos podem ainda não ter sido importados - execute Import existing ou aguarde a próxima sincronização.",
+                "trouble_4": "Ambientes de Área de Trabalho Remota: o botão abre o navegador na máquina que executa o Open Dental - veja o guia para opções de sessão remota.",
+                "launch_pending": "Nenhum lançamento detectado",
+                "launch_detected": "Primeiro lançamento detectado · {date}"
             }
         }
     },
