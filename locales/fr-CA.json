@@ -1409,6 +1409,7 @@
                 "title": "Bouton DentaTrak dans Open Dental",
                 "intro": "Ajoutez un bouton DentaTrak à la barre d'outils d'Open Dental. Configuration unique par cabinet, effectuée sur un seul ordinateur : elle s'applique automatiquement à tous les postes.",
                 "step1": "Dans Open Dental, ouvrez Menu principal → Setup → Program Links et cliquez sur Add.",
+                "step_enabled": "Cochez la case Enabled : le bouton n'apparaît que si le pont est activé.",
                 "step2_intro": "Remplissez les champs exactement comme indiqué (utilisez Copier pour chacun) :",
                 "step3": "Définissez éventuellement l'icône du bouton (22×22) :",
                 "step4": "Sous « Add a button to these toolbars », sélectionnez Main Toolbar (recommandé) ainsi que ChartModule ou FamilyModule.",
@@ -1424,12 +1425,14 @@
                 "test_title": "Essayez :",
                 "test_body": " Sélectionnez un patient ayant des cas de laboratoire dans Open Dental et cliquez sur le bouton DentaTrak : DentaTrak devrait s'ouvrir filtré sur les cas de ce patient. Essayez aussi un patient sans cas : un avis convivial s'affiche plutôt qu'une erreur.",
                 "troubleshooting_title": "Dépannage",
-                "trouble_1": "Rien ne se passe au clic : vérifiez que le chemin est l'adresse https:// complète se terminant par /od-launch.php, sans caractères en trop.",
-                "trouble_2": "S'ouvre sans filtrer le patient : les arguments doivent être exactement ?pat=[PatNum] (crochets inclus) et un patient doit être sélectionné au préalable.",
+                "trouble_1": "Rien ne se passe au clic : vérifiez que le chemin commence par https:// et pointe vers od-launch.php, et que la case Enabled est cochée.",
+                "trouble_2": "S'ouvre sans filtrer le patient : le chemin doit se terminer par ?pat=[PatNum] (crochets inclus) et « Optional command line arguments » doit rester vide. Un patient doit être sélectionné au préalable.",
                 "trouble_3": "« Aucun cas synchronisé » pour un patient attendu : ses cas ne sont peut-être pas encore importés - lancez Import existing ou attendez la prochaine synchronisation.",
                 "trouble_4": "Environnements Bureau à distance : le bouton ouvre le navigateur sur la machine exécutant Open Dental - consultez le guide pour les options de session distante.",
                 "launch_pending": "Aucun lancement détecté",
-                "launch_detected": "Premier lancement détecté · {date}"
+                "launch_detected": "Premier lancement détecté · {date}",
+                "field_args_blank": "(laisser vide)",
+                "trouble_5": "Le bouton n'apparaît pas dans la barre d'outils : vérifiez que Enabled est coché et qu'au moins une barre est sélectionnée sous « Add a button to these toolbars »."
             }
         }
     },

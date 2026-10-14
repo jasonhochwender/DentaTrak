@@ -2854,6 +2854,7 @@
                 "title": "DentaTrak-Schaltfläche in Open Dental",
                 "intro": "Fügen Sie der Open-Dental-Symbolleiste eine DentaTrak-Schaltfläche hinzu. Diese einmalige Einrichtung erfolgt pro Praxis auf einem einzigen Computer und gilt automatisch für alle Arbeitsplätze.",
                 "step1": "Öffnen Sie in Open Dental Hauptmenü → Setup → Program Links und klicken Sie auf Add.",
+                "step_enabled": "Aktivieren Sie das Kontrollkästchen Enabled - die Schaltfläche erscheint nur bei aktivierter Bridge.",
                 "step2_intro": "Füllen Sie die Felder exakt wie gezeigt aus (jeweils Kopieren verwenden):",
                 "step3": "Optional das Schaltflächen-Symbol setzen (22×22):",
                 "step4": "Wählen Sie unter \"Add a button to these toolbars\" Main Toolbar (empfohlen) sowie ChartModule oder FamilyModule.",
@@ -2869,12 +2870,14 @@
                 "test_title": "Testen:",
                 "test_body": " Wählen Sie einen Patienten mit Laborfällen in Open Dental und klicken Sie auf die DentaTrak-Schaltfläche - DentaTrak sollte gefiltert auf die Fälle dieses Patienten öffnen. Testen Sie auch einen Patienten ohne Fälle; ein freundlicher Hinweis erscheint statt eines Fehlers.",
                 "troubleshooting_title": "Fehlerbehebung",
-                "trouble_1": "Beim Klicken passiert nichts: Prüfen Sie, dass der Pfad die vollständige https://-Adresse ist und auf /od-launch.php endet, ohne weitere Zeichen.",
-                "trouble_2": "Öffnet, aber nicht auf einen Patienten gefiltert: Die Argumente müssen exakt ?pat=[PatNum] lauten (inkl. Klammern), und ein Patient muss vorher ausgewählt sein.",
+                "trouble_1": "Beim Klicken passiert nichts: Prüfen Sie, dass der Pfad mit https:// beginnt und auf od-launch.php verweist, und dass Enabled aktiviert ist.",
+                "trouble_2": "Öffnet, aber nicht auf einen Patienten gefiltert: Der Pfad muss mit ?pat=[PatNum] enden (inkl. Klammern) und „Optional command line arguments\" muss leer bleiben. Ein Patient muss vorher ausgewählt sein.",
                 "trouble_3": "„Keine synchronisierten Fälle\" bei einem erwarteten Patienten: Die Fälle wurden ggf. noch nicht importiert - führen Sie „Import existing\" aus oder warten Sie auf die nächste Synchronisation.",
                 "trouble_4": "Remote-Desktop-Umgebungen: Die Schaltfläche öffnet den Browser auf dem Rechner, auf dem Open Dental läuft - siehe Einrichtungsanleitung für Remote-Optionen.",
                 "launch_pending": "Noch kein Start erkannt",
-                "launch_detected": "Erster Start erkannt · {date}"
+                "launch_detected": "Erster Start erkannt · {date}",
+                "field_args_blank": "(leer lassen)",
+                "trouble_5": "Die Schaltfläche erscheint nicht in der Symbolleiste: Prüfen Sie, dass Enabled aktiviert ist und mindestens eine Symbolleiste unter „Add a button to these toolbars\" ausgewählt ist."
             }
         }
     },

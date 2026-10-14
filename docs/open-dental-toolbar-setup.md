@@ -34,28 +34,36 @@ need to do this once - every workstation gets the button.
 
 1. In Open Dental, go to **Main Menu → Setup → Program Links**.
 2. Click **Add** to create a custom bridge.
-3. Fill in the fields exactly as follows:
+3. Check the **Enabled** box - the button only appears while the bridge is
+   enabled.
+4. Fill in the fields exactly as follows:
 
    | Field | Value |
    |---|---|
    | **Description** | `DentaTrak` |
    | **Enabled** | checked |
-   | **Path of file to open** | `https://YOUR-DENTATRAK-HOST/od-launch.php` |
-   | **Optional command line arguments** | `?pat=[PatNum]` |
+   | **Path of file to open** | `https://YOUR-DENTATRAK-HOST/od-launch.php?pat=[PatNum]` |
+   | **Local Path Override** | *(leave blank)* |
+   | **Optional command line arguments** | *(leave blank)* |
    | **Text on button** | `DentaTrak` |
 
    Replace `YOUR-DENTATRAK-HOST` with your DentaTrak address, for example
-   `app.dentatrak.com` or your clinic's custom domain. Do not add a trailing
-   slash.
+   `app.dentatrak.com` or your clinic's custom domain.
 
-4. (Optional) Set the button icon: click **Import** under *Button Image* and
+   > **Important:** the `?pat=[PatNum]` part must be at the end of the *Path
+   > of file to open* value - not in *Optional command line arguments*. Open
+   > Dental substitutes `[PatNum]` inside the Path field, but values in the
+   > arguments field are handed to the browser as separate process arguments
+   > and never reach the URL.
+
+5. (Optional) Set the button icon: click **Import** under *Button Image* and
    select `images/dentatrak-od-bridge-22.png` from the DentaTrak install
    folder (a 22×22 icon is required format).
-5. Under **Add a button to these toolbars**, select where the button should
+6. Under **Add a button to these toolbars**, select where the button should
    appear. Recommended: **Main Toolbar** (available from every module) or
    **ChartModule**/**FamilyModule** (where staff already work with the
    selected patient).
-6. Click **OK** / **Save**.
+7. Click **OK** / **Save**.
 
 ## Using it
 
@@ -97,11 +105,14 @@ the next sync/import.
 ## Troubleshooting
 
 - **Button does nothing / file not found**: verify the *Path of file to open*
-  is the full `https://.../od-launch.php` URL (not a file path), with no
-  trailing characters.
-- **Opens DentaTrak but not filtered to a patient**: confirm *Optional
-  command line arguments* contains exactly `?pat=[PatNum]` (brackets
-  included), and that a patient was selected before clicking.
+  begins with `https://` and points to `od-launch.php` (not a file path).
+- **Button missing from the toolbar**: confirm **Enabled** is checked and at
+  least one toolbar is selected under *Add a button to these toolbars*.
+- **Opens DentaTrak but not filtered to a patient**: confirm the *Path of
+  file to open* ends with `?pat=[PatNum]` (brackets included) and that
+  *Optional command line arguments* is **blank** - arguments placed there
+  are passed to the browser as separate process arguments and never reach
+  the URL. Also make sure a patient was selected before clicking.
 - **"No synced lab cases" for a patient you expected**: the case may not have
   been imported yet. Imported cases appear as soon as the integration syncs
   them (real-time updates or *Import existing* from Settings → Integrations).

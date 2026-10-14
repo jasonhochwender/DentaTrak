@@ -3535,12 +3535,17 @@ endif;
                             // Open Dental adds a DentaTrak button that opens the
                             // selected patient's lab cases. Shown once a
                             // connection exists; never while the card is locked.
-                            $odToolbarLaunchUrl = rtrim($appConfig['baseUrl'] ?? '', '/') . '/od-launch.php';
+                            // Open Dental substitutes [PatNum] in the Path
+                            // field itself, but command-line arguments are
+                            // passed to the browser as process args (not
+                            // appended to the URL) - so the parameter must be
+                            // embedded in the URL and args left blank.
+                            $odToolbarLaunchUrl = rtrim($appConfig['baseUrl'] ?? '', '/') . '/od-launch.php?pat=[PatNum]';
                             $odToolbarFields = [
-                                ['label_key' => 'settings.integrations.toolbar.field_description', 'value' => 'DentaTrak'],
-                                ['label_key' => 'settings.integrations.toolbar.field_path',        'value' => $odToolbarLaunchUrl],
-                                ['label_key' => 'settings.integrations.toolbar.field_args',        'value' => '?pat=[PatNum]'],
-                                ['label_key' => 'settings.integrations.toolbar.field_button',      'value' => 'DentaTrak'],
+                                ['label_key' => 'settings.integrations.toolbar.field_description', 'value' => 'DentaTrak', 'copyable' => true],
+                                ['label_key' => 'settings.integrations.toolbar.field_path',        'value' => $odToolbarLaunchUrl, 'copyable' => true],
+                                ['label_key' => 'settings.integrations.toolbar.field_args',        'value' => t('settings.integrations.toolbar.field_args_blank'), 'copyable' => false],
+                                ['label_key' => 'settings.integrations.toolbar.field_button',      'value' => 'DentaTrak', 'copyable' => true],
                             ];
                             ?>
                             <div class="integration-toolbar-setup" id="integrationToolbarSetup-<?php echo htmlspecialchars($providerKey); ?>" style="display:none;">
@@ -3551,6 +3556,7 @@ endif;
                               <p class="integration-toolbar-intro"><?php echo t('settings.integrations.toolbar.intro'); ?></p>
                               <ol class="integration-toolbar-steps">
                                 <li><?php echo t('settings.integrations.toolbar.step1'); ?></li>
+                                <li><?php echo t('settings.integrations.toolbar.step_enabled'); ?></li>
                                 <li>
                                   <?php echo t('settings.integrations.toolbar.step2_intro'); ?>
                                   <div class="integration-toolbar-fields">
@@ -3558,7 +3564,9 @@ endif;
                                     <div class="integration-toolbar-field">
                                       <span class="integration-toolbar-field-label"><?php echo t($field['label_key']); ?></span>
                                       <code class="integration-toolbar-field-value"><?php echo htmlspecialchars($field['value']); ?></code>
+                                      <?php if (!empty($field['copyable'])): ?>
                                       <button type="button" class="btn-secondary od-toolbar-copy" data-copy="<?php echo htmlspecialchars($field['value']); ?>"><?php echo t('settings.integrations.toolbar.copy'); ?></button>
+                                      <?php endif; ?>
                                     </div>
                                     <?php endforeach; ?>
                                   </div>
@@ -3579,6 +3587,7 @@ endif;
                                   <li><?php echo t('settings.integrations.toolbar.trouble_2'); ?></li>
                                   <li><?php echo t('settings.integrations.toolbar.trouble_3'); ?></li>
                                   <li><?php echo t('settings.integrations.toolbar.trouble_4'); ?></li>
+                                  <li><?php echo t('settings.integrations.toolbar.trouble_5'); ?></li>
                                 </ul>
                               </details>
                             </div>

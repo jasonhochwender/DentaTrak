@@ -1409,6 +1409,7 @@
                 "title": "DentaTrak button in Open Dental",
                 "intro": "Add a DentaTrak button to the Open Dental toolbar. This is a one-time setup done once per office on any single computer - it applies to every workstation automatically.",
                 "step1": "In Open Dental, open Main Menu → Setup → Program Links and click Add.",
+                "step_enabled": "Check the Enabled box - the button only appears when the bridge is enabled.",
                 "step2_intro": "Fill in the fields exactly as shown (use Copy for each):",
                 "step3": "Optionally set the button icon (22×22):",
                 "step4": "Under \"Add a button to these toolbars\", select Main Toolbar (recommended) plus ChartModule or FamilyModule.",
@@ -1424,12 +1425,14 @@
                 "test_title": "Test it:",
                 "test_body": " Select a patient with lab cases in Open Dental and click the DentaTrak button - DentaTrak should open filtered to that patient's cases. Also try a patient with no cases; a friendly notice appears instead of an error.",
                 "troubleshooting_title": "Troubleshooting",
-                "trouble_1": "Nothing happens when clicked: confirm the path is the full https:// address ending in /od-launch.php, with no extra characters.",
-                "trouble_2": "Opens but not filtered to a patient: the arguments must be exactly ?pat=[PatNum] (brackets included), and a patient must be selected before clicking.",
+                "trouble_1": "Nothing happens when clicked: confirm the path begins with https:// and points to od-launch.php, and that Enabled is checked.",
+                "trouble_2": "Opens but not filtered to a patient: the path must end with ?pat=[PatNum] (brackets included) and Optional command line arguments must be left blank. A patient must be selected before clicking.",
                 "trouble_3": "\"No synced cases\" for a patient you expected: their cases may not be imported yet - run Import existing or wait for the next sync.",
                 "trouble_4": "Remote Desktop setups: the button opens the browser on the machine running Open Dental - see the setup guide for remote-session options.",
                 "launch_pending": "No launch detected yet",
-                "launch_detected": "First launch detected · {date}"
+                "launch_detected": "First launch detected · {date}",
+                "field_args_blank": "(leave blank)",
+                "trouble_5": "The button does not appear on the toolbar: confirm Enabled is checked and at least one toolbar is selected under \"Add a button to these toolbars\"."
             }
         }
     },
