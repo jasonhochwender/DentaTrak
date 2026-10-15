@@ -471,6 +471,20 @@ try {
     error_log('[insights] Unable to evaluate Control plan entitlement');
 }
 
+// Integrations entitlement (GA): open to every subscription plan - any
+// practice with full app access may connect and manage PMS integrations.
+// Kept separate from $userHasControlAccess (which still gates Control-tier
+// surfaces like Lab Insights). null = check could not be evaluated; the UI
+// then renders the normal card and the API enforces the gate independently.
+$userHasIntegrationAccess = null;
+try {
+    $userHasIntegrationAccess = $currentPracticeId
+        ? hasIntegrationAccess($pdo, (int)$currentPracticeId, (string)($user['email'] ?? ''))
+        : false;
+} catch (Throwable $e) {
+    error_log('[integrations] Unable to evaluate integration plan entitlement');
+}
+
 // Get practice name and logo
 $practiceName = 'My Practice'; // Default
 $practiceLogoPath = ''; // Default
@@ -3510,13 +3524,14 @@ endif;
                         <div class="integrations-list">
                           <?php foreach ($integrationProviders as $providerKey => $providerDef): ?>
                           <?php
-                          // Plan lock: Operate (and any non-Control-tier plan)
-                          // sees a descriptive locked card instead of action
-                          // buttons. $userHasControlAccess is the same
-                          // entitlement Lab Insights uses; null means the check
-                          // could not run, so the normal card renders and the
-                          // API still enforces the restriction.
-                          $providerLocked = ($userHasControlAccess === false);
+                          // Plan lock (GA): integrations are open to every
+                          // subscription plan - a card is locked only when the
+                          // practice has no full app access at all (lapsed or
+                          // missing subscription). $userHasIntegrationAccess
+                          // is the same gate api/integrations.php enforces;
+                          // null means the check could not run, so the normal
+                          // card renders and the API still enforces it.
+                          $providerLocked = ($userHasIntegrationAccess === false);
                           ?>
                           <div class="integration-card<?php echo $providerLocked ? ' integration-card-locked' : ''; ?>" data-provider="<?php echo htmlspecialchars($providerKey); ?>"<?php echo $providerLocked ? ' data-locked="true"' : ''; ?> id="integrationCard-<?php echo htmlspecialchars($providerKey); ?>">
                             <div class="integration-card-top">
@@ -3568,6 +3583,38 @@ endif;
                                 ['label_key' => 'settings.integrations.toolbar.field_button',      'value' => 'DentaTrak', 'copyable' => true],
                             ];
                             ?>
+                            <div class="integration-outbound" id="integrationOutbound-<?php echo htmlspecialchars($providerKey); ?>" style="display:none;">
+                              <div class="integration-toolbar-heading">
+                                <span class="integration-toolbar-title"><?php echo t('settings.integrations.outbound.title'); ?></span>
+                                <span class="integration-toolbar-badge" id="integrationOutboundState-<?php echo htmlspecialchars($providerKey); ?>"><?php echo t('settings.integrations.outbound.state_off'); ?></span>
+                              </div>
+                              <p class="integration-outbound-desc"><?php echo t('settings.integrations.outbound.description'); ?></p>
+                              <ul class="integration-outbound-fields">
+                                <li><?php echo t('settings.integrations.outbound.map_sent'); ?></li>
+                                <li><?php echo t('settings.integrations.outbound.map_received'); ?></li>
+                                <li><?php echo t('settings.integrations.outbound.map_note'); ?></li>
+                                <li><?php echo t('settings.integrations.outbound.create_note'); ?></li>
+                              </ul>
+                              <?php if ($isCurrentUserPracticeAdmin): ?>
+                              <div class="integration-outbound-controls">
+                                <div class="integration-outbound-field">
+                                  <label for="integrationOutboundTz-<?php echo htmlspecialchars($providerKey); ?>"><?php echo t('settings.integrations.outbound.timezone_label'); ?></label>
+                                  <select id="integrationOutboundTz-<?php echo htmlspecialchars($providerKey); ?>" class="integration-outbound-tz"></select>
+                                </div>
+                                <div class="integration-outbound-field">
+                                  <label for="integrationOutboundLab-<?php echo htmlspecialchars($providerKey); ?>"><?php echo t('settings.integrations.outbound.lab_label'); ?></label>
+                                  <select id="integrationOutboundLab-<?php echo htmlspecialchars($providerKey); ?>" class="integration-outbound-lab"></select>
+                                  <button type="button" class="btn-secondary" id="integrationOutboundLabSave-<?php echo htmlspecialchars($providerKey); ?>"><?php echo t('common.save'); ?></button>
+                                </div>
+                                <div class="integration-outbound-buttons">
+                                  <button type="button" class="btn-secondary" id="integrationOutboundToggle-<?php echo htmlspecialchars($providerKey); ?>"><?php echo t('settings.integrations.outbound.enable'); ?></button>
+                                  <button type="button" class="btn-secondary" id="integrationOutboundRetry-<?php echo htmlspecialchars($providerKey); ?>" style="display:none;"><?php echo t('settings.integrations.outbound.retry_failed'); ?></button>
+                                </div>
+                              </div>
+                              <?php endif; ?>
+                              <div class="integration-outbound-health" id="integrationOutboundHealth-<?php echo htmlspecialchars($providerKey); ?>"></div>
+                              <p class="integration-outbound-msg" id="integrationOutboundMsg-<?php echo htmlspecialchars($providerKey); ?>" style="display:none;" role="status"></p>
+                            </div>
                             <div class="integration-toolbar-setup" id="integrationToolbarSetup-<?php echo htmlspecialchars($providerKey); ?>" style="display:none;">
                               <div class="integration-toolbar-heading">
                                 <span class="integration-toolbar-title"><?php echo t('settings.integrations.toolbar.title'); ?></span>

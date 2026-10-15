@@ -207,11 +207,30 @@ assertTrue('persist: provider keyed by local_key',
     isset($provMap['internal_id']) && strpos((string)$provMap['internal_id'], 'prov_') === 0);
 $cfg = json_decode(
     $pdo->query("SELECT config_json FROM integration_connections WHERE id={$connId}")->fetchColumn(), true);
-assertEquals('persist: laboratory_num in config', 3, $cfg['outbound']['laboratory_num'] ?? null);
+// GA: a per-case lab pick must NOT mutate the practice-wide default -
+// only update_outbound_config (admin) writes outbound.laboratory_num.
+assertTrue('persist: lab pick does NOT touch connection default',
+    !isset($cfg['outbound']['laboratory_num']));
 
-// re-resolve: everything resolved, payload complete
+// re-resolve: patient+provider resolve through the persisted mappings; the
+// lab ALWAYS needs a visible confirmation - with no admin default there is
+// no suggestion, and with one it only surfaces as a suggestion.
 $r = IntegrationOutbound::resolveCaseCreate($pdo, $practiceId, 'CR-CASE-1');
-assertTrue('resolve: ok after persist', $r['ok'] === true);
+assertEquals('resolve: lab always needs confirmation', 'needs_mapping', $r['reason']);
+assertEquals('resolve: only lab outstanding', ['laboratory'], $r['needs']);
+assertTrue('resolve: no suggestion without admin default',
+    !isset($r['resolved']['laboratory_num']));
+
+// admin sets the practice default -> it becomes a SUGGESTION, still not
+// an auto-resolve
+IntegrationOutbound::updateOutboundConfig($pdo, $connId, ['laboratory_num' => 3]);
+$r = IntegrationOutbound::resolveCaseCreate($pdo, $practiceId, 'CR-CASE-1');
+assertEquals('resolve: admin default still needs confirmation', 'needs_mapping', $r['reason']);
+assertEquals('resolve: admin default suggested', 3, $r['resolved']['laboratory_num'] ?? null);
+
+// the confirmed lab id drives the complete payload
+$r = IntegrationOutbound::resolveCaseCreate($pdo, $practiceId, 'CR-CASE-1', 3);
+assertTrue('resolve: ok after lab confirm', $r['ok'] === true);
 assertEquals('resolve: PatNum', 42, $r['payload']['PatNum'] ?? null);
 assertEquals('resolve: ProvNum', 7, $r['payload']['ProvNum'] ?? null);
 assertEquals('resolve: LaboratoryNum', 3, $r['payload']['LaboratoryNum'] ?? null);
@@ -221,17 +240,20 @@ assertEquals('resolve: DateTimeDue wall-clock', '2026-10-21 00:00:00', $r['paylo
 assertEquals('resolve: lifecycle field office-local', '2026-10-14 18:30:00', $r['payload']['DateTimeSent'] ?? null);
 
 // a second case with the SAME patient/provider identity auto-resolves
-// through the shared local_key mappings - lab comes from the connection
+// through the shared local_key mappings; the lab is confirmed per case
 $mkCase('CR-CASE-2', $practiceId, ['status' => 'Originated']);
 $r = IntegrationOutbound::resolveCaseCreate($pdo, $practiceId, 'CR-CASE-2');
-assertTrue('resolve: sibling case auto-resolves', $r['ok'] === true);
+assertEquals('resolve: sibling needs only lab confirm', ['laboratory'], $r['needs']);
+$r = IntegrationOutbound::resolveCaseCreate($pdo, $practiceId, 'CR-CASE-2', 5);
+assertTrue('resolve: sibling case resolves with confirmed lab', $r['ok'] === true);
 assertEquals('resolve: sibling PatNum', 42, $r['payload']['PatNum'] ?? null);
+assertEquals('resolve: sibling uses confirmed lab not default', 5, $r['payload']['LaboratoryNum'] ?? null);
 // unmapped status -> no lifecycle field stamped
 assertTrue('resolve: unmapped status -> no lifecycle field', !isset($r['payload']['DateTimeRecd']));
 
 // timezone gate still applies to an otherwise-complete resolution
 $pdo->exec("UPDATE integration_connections SET config_json = '{\"outbound\":{\"enabled\":true,\"create_enabled\":true,\"laboratory_num\":3}}' WHERE id={$connId}");
-$r = IntegrationOutbound::resolveCaseCreate($pdo, $practiceId, 'CR-CASE-1');
+$r = IntegrationOutbound::resolveCaseCreate($pdo, $practiceId, 'CR-CASE-1', 3);
 assertEquals('resolve: timezone required', 'timezone_unconfigured', $r['reason']);
 $pdo->exec("UPDATE integration_connections SET config_json = " . $pdo->quote($outboundConfig) . " WHERE id={$connId}");
 
@@ -385,6 +407,61 @@ assertEquals('state: untracked case -> null', null, $st);
 // practice isolation: a case from practice2 queried under practice1
 $st = IntegrationOutbound::caseOutboundState($pdo, $practiceId, 'CR-CASE-OTHER');
 assertEquals('state: cross-practice -> null', null, $st);
+
+// =====================================================================
+// H. GA: plan gate, projection fields, approved default field map
+// =====================================================================
+echo "--- GA: plan gate + projection + default map ---\n";
+
+// The approved GA map: Sent->DateTimeSent, Received->DateTimeRecd, and
+// Delivered deliberately absent (never writes DateTimeChecked).
+assertEquals('ga: default map = approved lifecycle fields',
+    ['Sent To External Lab' => 'DateTimeSent', 'Received From External Lab' => 'DateTimeRecd'],
+    IntegrationOutbound::DEFAULT_FIELD_MAP);
+assertTrue('ga: default map never targets Checked',
+    !in_array('DateTimeChecked', IntegrationOutbound::DEFAULT_FIELD_MAP, true));
+
+// hasIntegrationAccess (GA): any practice with full app access - NOT the
+// Control tier. Billing off means everyone; billing on needs a working
+// subscription row on the owner.
+putenv('BILLING_ENABLED=false');
+assertTrue('ga: billing off -> access for all', hasIntegrationAccess($pdo, $practiceId));
+putenv('BILLING_ENABLED=true');
+assertTrue('ga: active/trial subscription -> access', hasIntegrationAccess($pdo, $practiceId));
+// an Operate-tier plan is included (GA removed the Control gate) - the
+// check only looks at full_access, not the plan name, so simulate by
+// marking the subscription operate + active.
+// an Operate-tier plan is included (GA removed the Control gate). Simulate
+// by giving the owner a live Stripe 'operate' subscription row.
+$pdo->exec("UPDATE subscriptions SET plan='operate', status='active', stripe_subscription_id='sub_cr_test' WHERE owner_user_id={$ownerId}");
+assertTrue('ga: operate plan included', hasIntegrationAccess($pdo, $practiceId));
+// expired trial / lapsed subscription -> no access: UI + enqueue close
+$pdo->exec("UPDATE subscriptions SET status='canceled', trial_ends_at='2020-01-01 00:00:00', stripe_subscription_id=NULL WHERE owner_user_id={$ownerId}");
+assertTrue('ga: canceled subscription -> no access', !hasIntegrationAccess($pdo, $practiceId));
+$r = IntegrationOutbound::resolveCaseCreate($pdo, $practiceId, 'CR-CASE-6');
+assertEquals('ga: lapsed plan -> creates_disabled', 'creates_disabled', $r['reason']);
+$enqP = IntegrationOutbound::enqueueStatusTransition(
+    $pdo, $practiceId, 'CR-CASE-1', 'Originated', 'Sent To External Lab', $ownerId);
+assertEquals('ga: status enqueue refused on lapsed plan', 'plan_required', $enqP['reason'] ?? null);
+$enqP = IntegrationOutbound::enqueueCaseCreate($pdo, $practiceId, 'CR-CASE-6', [
+    'PatNum' => 42, 'LaboratoryNum' => 3, 'ProvNum' => 7], $ownerId);
+assertEquals('ga: create enqueue refused on lapsed plan', 'plan_required', $enqP['reason'] ?? null);
+$pdo->exec("UPDATE subscriptions SET status='trialing', plan=NULL, trial_ends_at='2030-01-01 00:00:00' WHERE owner_user_id={$ownerId}");
+putenv('BILLING_ENABLED=false');
+
+// outboundProjection: the GA settings surface - timezone, lab default,
+// delivered/pending/conflict/failed counts, last-delivered timestamp.
+$conn = IntegrationManager::findConnection($pdo, $connId);
+$proj = IntegrationOutbound::outboundProjection($pdo, $conn);
+assertTrue('proj: enabled reflected', $proj['enabled'] === true);
+assertEquals('proj: timezone surfaced', 'America/New_York', $proj['timezone']);
+assertEquals('proj: laboratory default surfaced', 3, $proj['laboratory_num']);
+assertEquals('proj: delivered count', 1, $proj['delivered']);
+assertEquals('proj: conflict count', 1, $proj['conflicts']);
+assertEquals('proj: failed count', 1, $proj['failed']);
+assertTrue('proj: last_delivered_at present', !empty($proj['last_delivered_at']));
+assertTrue('proj: field_map keys surfaced',
+    in_array('Sent To External Lab', $proj['field_map'], true));
 
 // =====================================================================
 // Cleanup

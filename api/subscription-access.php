@@ -257,6 +257,42 @@ function hasControlAccess(PDO $pdo, int $practiceId, string $userEmail = ''): bo
 }
 
 /**
+ * PMS integration access gate (general availability): every practice with a
+ * working subscription may connect and manage an integration - Operate,
+ * Control, and Scale all qualify. Unlike hasControlAccess() this does NOT
+ * require the Control tier; it only requires the subscription to grant
+ * full app access (active, trialing, or billing-bypassed owner). The same
+ * master switches apply: billing disabled means everyone passes, and a
+ * billing-bypassed owner passes for the whole practice.
+ *
+ * Write-back still requires an authorized admin's explicit per-connection
+ * opt-in inside Settings > Integrations - this helper only answers "may
+ * this practice use the integration at all".
+ *
+ * @param PDO $pdo
+ * @param int $practiceId
+ * @param string $userEmail  acting user's email (billing bypass shortcut);
+ *                           pass '' for worker/system contexts - the owner
+ *                           bypass is still honored via the access row.
+ */
+function hasIntegrationAccess(PDO $pdo, int $practiceId, string $userEmail = ''): bool {
+    $billingEnabledRaw = getenv('BILLING_ENABLED');
+    if ($billingEnabledRaw === false) {
+        $billingEnabledRaw = $_ENV['BILLING_ENABLED'] ?? '';
+    }
+    if (!filter_var($billingEnabledRaw, FILTER_VALIDATE_BOOLEAN)) {
+        return true;
+    }
+
+    if ($userEmail !== '' && function_exists('isBillingBypassEmail') && isBillingBypassEmail($userEmail)) {
+        return true;
+    }
+
+    $access = getPracticeSubscriptionAccess($pdo, $practiceId);
+    return $access !== null && !empty($access['full_access']);
+}
+
+/**
  * Resolve a practice's subscription access via its OWNER's subscription
  * row. A subscription belongs to the subscription owner (the user with
  * practice_users.is_owner = 1 for this practice — see

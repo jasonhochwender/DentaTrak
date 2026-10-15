@@ -1405,6 +1405,41 @@
                 "subscribe_version": "Gli aggiornamenti automatici dei casi del laboratorio richiedono Open Dental versione 25.4.14 o successiva. Aggiorna Open Dental, poi riprova.",
                 "no_key": "Genera la tua chiave di connessione al Passaggio 1 prima di testare."
             },
+            "outbound": {
+                "title": "Sincronizzazione bidirezionale con Open Dental",
+                "description": "Invia gli aggiornamenti di stato da DentaTrak a Open Dental. Open Dental resta la fonte ufficiale per pazienti, provider, appuntamenti, date di scadenza e istruzioni: viene scritto solo l'avanzamento dei casi di laboratorio.",
+                "map_sent": "\"Inviato al laboratorio\" scrive la data di invio in Open Dental.",
+                "map_received": "\"Ricevuto dal laboratorio\" scrive la data di ricezione in Open Dental.",
+                "map_note": "Le date esistenti in Open Dental non vengono mai sovrascritte e \"Consegnato\" non viene scritto.",
+                "create_note": "I nuovi casi vengono creati in Open Dental solo quando scegli Invia a Open Dental su un caso.",
+                "state_on": "Attiva",
+                "state_off": "Disattivata",
+                "timezone_label": "Fuso orario dello studio",
+                "lab_label": "Laboratorio predefinito",
+                "lab_none": "Nessun predefinito - scegli per caso",
+                "enable": "Attiva sincronizzazione bidirezionale",
+                "disable": "Disattiva scrittura",
+                "retry_failed": "Riprova aggiornamenti non riusciti",
+                "verifying": "Verifica della connessione e delle autorizzazioni…",
+                "enabled_toast": "Sincronizzazione bidirezionale attiva. I cambiamenti di stato ora si sincronizzano con Open Dental.",
+                "disabled_toast": "Scrittura disattivata. DentaTrak continua a ricevere aggiornamenti da Open Dental.",
+                "save_failed": "Impossibile salvare le impostazioni di sincronizzazione.",
+                "lab_saved": "Laboratorio predefinito salvato.",
+                "tz_saved": "Fuso orario dello studio salvato.",
+                "retry_toast": "{count} aggiornamento/i in coda per un nuovo tentativo.",
+                "disable_confirm_title": "Disattivare la scrittura?",
+                "disable_confirm_message": "DentaTrak non invierà più aggiornamenti di stato a Open Dental. La ricezione degli aggiornamenti da Open Dental continua invariata. Puoi riattivarla in qualsiasi momento.",
+                "missing_permission_help": "In Open Dental, abilita l'autorizzazione API \"All Others\" per questa chiave cliente (Setup > Advanced Setup > API), quindi riprova.",
+                "health_capability": "Accesso in scrittura all'API",
+                "capability_ok": "Verificato (richiede Open Dental {version} o successivo)",
+                "capability_missing": "Non concesso per questa chiave",
+                "capability_unchecked": "Non ancora verificato",
+                "health_synced": "Aggiornamenti sincronizzati",
+                "health_pending": "Aggiornamenti in attesa",
+                "health_failed": "Aggiornamenti non riusciti",
+                "health_conflicts": "Conflitti da esaminare",
+                "health_last_sync": "Ultima sincronizzazione con Open Dental"
+            },
             "toolbar": {
                 "title": "Pulsante DentaTrak in Open Dental",
                 "intro": "Aggiungi un pulsante DentaTrak alla barra degli strumenti di Open Dental. È una configurazione una tantum per studio, eseguita su un solo computer: si applica automaticamente a tutte le postazioni.",
@@ -3161,7 +3196,7 @@
         "integrations": {
             "error_generic": "Si è verificato un errore imprevisto. Riprova.",
             "disabled": "Le integrazioni non sono disponibili.",
-            "plan_required": "L'integrazione con Open Dental è disponibile sui piani Control e Scale.",
+            "plan_required": "L'integrazione con Open Dental richiede un abbonamento attivo.",
             "unknown_action": "Azione di integrazione sconosciuta.",
             "method_not_allowed": "Metodo non consentito",
             "invalid_provider": "Provider di integrazione non supportato.",
@@ -3193,6 +3228,11 @@
             "import_in_progress": "Un'importazione è già in corso per questa integrazione.",
             "import_failed": "Impossibile avviare l'importazione. Riprova.",
             "import_started": "Importazione avviata. I casi del laboratorio esistenti verranno aggiunti in background.",
+            "outbound": {
+                "timezone_required": "Scegli il fuso orario dello studio prima di attivare la sincronizzazione bidirezionale.",
+                "enable_unhealthy": "Impossibile verificare la connessione a Open Dental. Prova la connessione e riprova.",
+                "missing_write_permission": "Questa chiave cliente Open Dental non dispone dell'autorizzazione di scrittura. In Open Dental, abilita l'autorizzazione API \"All Others\" per questa chiave (Setup > Advanced Setup > API), quindi riprova."
+            },
             "invalid_timezone": "Inserisci un identificatore di fuso orario valido (ad esempio America/New_York).",
             "invalid_field_map": "La mappa dei campi deve associare gli identificatori di stato del flusso di lavoro ai campi del ciclo di vita Open Dental supportati."
         }

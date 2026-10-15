@@ -87,16 +87,17 @@ if (!isFeatureEnabled('SHOW_PMS_INTEGRATIONS')) {
     integrationsFail(403, t('api.integrations.disabled'));
 }
 
-// Plan entitlement: PMS integration management is a Control-tier-and-above
-// capability. hasControlAccess() is the same authoritative check Lab
-// Insights/Smart Recommendations use - it encodes BILLING_ENABLED, billing
-// bypass accounts, active trials, and cumulative tiers. Every action below
-// (list, configure, generate_key, test_connection, subscribe, unsubscribe,
-// import_existing, disconnect, reenable, update_settings) is gated here, so
-// an Operate practice cannot bypass the restriction by calling endpoints
+// Plan entitlement (general availability): PMS integration management is
+// open to every subscription plan - Operate, Control, and Scale.
+// hasIntegrationAccess() only requires the practice's subscription to grant
+// full app access; it encodes BILLING_ENABLED, billing bypass accounts, and
+// active trials. Every action below (list, configure, generate_key,
+// test_connection, subscribe, unsubscribe, import_existing, disconnect,
+// reenable, update_settings, outbound config) is gated here, so an
+// unsubscribed practice cannot bypass the restriction by calling endpoints
 // directly. The practice owner may still view status via the public page -
 // nothing secret is returned either way.
-if (!hasControlAccess($pdo, $currentPracticeId, (string)($_SESSION['user_email'] ?? ''))) {
+if (!hasIntegrationAccess($pdo, $currentPracticeId, (string)($_SESSION['user_email'] ?? ''))) {
     integrationsFail(403, t('api.integrations.plan_required'), 'plan_required');
 }
 
@@ -965,13 +966,97 @@ if ($action === 'update_outbound_config') {
         $update['field_map'] = $map;
     }
     if (array_key_exists('laboratory_num', $body)) {
-        // Default Open Dental laboratory for outbound LabCase creates;
-        // null/0 clears it (the send dialog will then require a pick).
+        // Admin-managed default Open Dental laboratory for outbound
+        // LabCase creates; null/0 clears it (the send dialog will then
+        // require an explicit pick). A per-case lab selection NEVER lands
+        // here - only this admin action can set the practice default.
         $labNum = (int)$body['laboratory_num'];
         $update['laboratory_num'] = $labNum > 0 ? $labNum : null;
     }
     if (empty($update)) {
         integrationsFail(400, t('api.integrations.unknown_action'));
+    }
+
+    // Verify-on-enable: turning write-back ON is the moment of risk, so it
+    // is the moment to verify. Before honoring enabled=true we require:
+    //   1. office timezone present (this update or already configured) -
+    //      lifecycle timestamps convert UTC -> office-local; without it a
+    //      write would silently shift every timestamp by the UTC offset.
+    //   2. a healthy live connection (credentials decrypt + API reachable).
+    //   3. the ApiAllOthers write permission on THIS customer key - GA
+    //      means never assuming a key has writes just because another
+    //      key does.
+    // Open Dental version compatibility cannot be probed read-only - an
+    // unsupported office surfaces via the 'unsupported_version' category
+    // at write time, where it is reported instead of enabled blindly.
+    // Disabling (enabled=false) performs no probes - it is always allowed.
+    $enabling = ($update['enabled'] ?? null) === true;
+    if ($enabling) {
+        $existingCfg = IntegrationOutbound::outboundConfig($connection);
+        $tz = $update['timezone'] ?? ($existingCfg['timezone'] ?? null);
+        if (!is_string($tz) || $tz === '') {
+            integrationsFail(400, t('api.integrations.outbound.timezone_required'), 'timezone_required');
+        }
+
+        try {
+            $adapter = IntegrationManager::getAdapter($connection);
+        } catch (Throwable $e) {
+            integrationsFail(400, t('api.integrations.provider_no_events'));
+        }
+        try {
+            $credentials = IntegrationManager::getConnectionCredentials($pdo, $connectionId);
+        } catch (Throwable $e) {
+            $credentials = [];
+        }
+        $config = json_decode((string)($connection['config_json'] ?? ''), true);
+        if (!is_array($config)) {
+            $config = [];
+        }
+
+        try {
+            $health = method_exists($adapter, 'testConnection')
+                ? $adapter->testConnection($credentials, $config)
+                : ['success' => false, 'error_code' => 'unexpected'];
+        } catch (Throwable $e) {
+            $health = ['success' => false, 'error_code' => 'unexpected'];
+        }
+        if (empty($health['success'])) {
+            integrationsFail(502, t('api.integrations.outbound.enable_unhealthy'),
+                is_string($health['error_code'] ?? null) ? $health['error_code'] : 'unexpected');
+        }
+
+        if (!method_exists($adapter, 'checkLabCaseWriteCapability')) {
+            integrationsFail(400, t('api.integrations.provider_no_events'));
+        }
+        try {
+            $capability = $adapter->checkLabCaseWriteCapability($credentials);
+        } catch (Throwable $e) {
+            integrationsFail(502, t('api.integrations.outbound.enable_unhealthy'),
+                $e instanceof OpenDentalApiException ? $e->category : 'unexpected');
+        }
+        // Record the probe either way so the settings UI can display the
+        // capability state without re-calling the office.
+        $update['capability'] = [
+            'checked_at'      => gmdate('Y-m-d H:i:s'),
+            'has_permission'  => !empty($capability['has_permission']),
+            'permission'      => $capability['permission'] ?? null,
+            'min_od_version'  => $capability['min_od_version'] ?? null,
+        ];
+        if (empty($capability['has_permission'])) {
+            IntegrationOutbound::updateOutboundConfig($pdo, $connectionId, [
+                'capability' => $update['capability'],
+            ]);
+            integrationsFail(403, t('api.integrations.outbound.missing_write_permission'),
+                'missing_write_permission');
+        }
+
+        // Apply the approved default lifecycle map when the connection has
+        // none and none was supplied - GA self-service must not require
+        // hand-editing JSON.
+        $map = $update['field_map'] ?? ($existingCfg['field_map'] ?? null);
+        if (!is_array($map) || $map === []) {
+            $update['field_map'] = IntegrationOutbound::DEFAULT_FIELD_MAP;
+        }
     }
 
     IntegrationOutbound::updateOutboundConfig($pdo, $connectionId, $update);
@@ -980,6 +1065,88 @@ if ($action === 'update_outbound_config') {
     echo json_encode([
         'success'    => true,
         'connection' => IntegrationManager::toPublicConnection($pdo, IntegrationManager::findConnection($pdo, $connectionId)),
+    ]);
+    exit;
+}
+
+// -------------------------------------------------------------------------
+// POST retry_outbound_failed: requeue this connection's FAILED outbound
+// events so the worker re-evaluates them. Safe by construction: the queue
+// dedup/coalesce machinery treats a resurrected row like a fresh change,
+// permanent failures simply fail again (bounded attempts), and conflicts
+// are intentionally NOT retried - they need human reconciliation in the
+// PMS first. Events for other connections can never be touched because the
+// connection is resolved through requireValidPracticeContext above.
+// -------------------------------------------------------------------------
+if ($action === 'retry_outbound_failed') {
+    $connectionId = (int)($body['connection_id'] ?? 0);
+    $connection = IntegrationManager::getConnectionForPractice($pdo, $currentPracticeId, $connectionId);
+    if (!$connection) {
+        integrationsFail(404, t('api.integrations.not_found'));
+    }
+    try {
+        $stmt = $pdo->prepare("
+            UPDATE integration_outbound_events
+            SET status = 'queued', attempts = 0, claimed_at = NULL,
+                next_retry_at = NULL, processed_at = NULL
+            WHERE connection_id = :id AND status = 'failed'
+        ");
+        $stmt->execute([':id' => $connectionId]);
+        $requeued = $stmt->rowCount();
+    } catch (Throwable $e) {
+        integrationsFail(500, t('api.integrations.test_failed'), 'unexpected');
+    }
+
+    logIntegrationAdminAction($userId, 'integration_outbound_failed_retried', $currentPracticeId, $connection['provider'], $connectionId);
+
+    echo json_encode([
+        'success'    => true,
+        'requeued'   => (int)$requeued,
+        'connection' => IntegrationManager::toPublicConnection($pdo, IntegrationManager::findConnection($pdo, $connectionId)),
+    ]);
+    exit;
+}
+
+// -------------------------------------------------------------------------
+// POST list_od_lookups: read-only Open Dental reference lists for the
+// admin lab-default picker and mapping guidance. Returns the remote
+// provider/laboratory directories (hidden rows filtered out) - the same
+// adapter methods the send dialog uses. A remote failure returns 502 with
+// a category so the UI can show "Open Dental could not be reached".
+// -------------------------------------------------------------------------
+if ($action === 'list_od_lookups') {
+    $connectionId = (int)($body['connection_id'] ?? 0);
+    $connection = IntegrationManager::getConnectionForPractice($pdo, $currentPracticeId, $connectionId);
+    if (!$connection) {
+        integrationsFail(404, t('api.integrations.not_found'));
+    }
+    if ($connection['status'] !== 'active') {
+        integrationsFail(409, t('api.integrations.subscription_needs_active'));
+    }
+    if (($connection['provider'] ?? '') !== 'open_dental') {
+        integrationsFail(400, t('api.integrations.provider_no_events'));
+    }
+
+    $adapter = IntegrationManager::getAdapter($connection);
+    $credentials = IntegrationManager::getConnectionCredentials($pdo, $connectionId);
+    try {
+        $providers = method_exists($adapter, 'listProviders')
+            ? array_values(array_filter($adapter->listProviders($credentials),
+                function ($p) { return ($p['IsHidden'] ?? 'false') !== 'true'; }))
+            : [];
+        $laboratories = method_exists($adapter, 'listLaboratories')
+            ? array_values(array_filter($adapter->listLaboratories($credentials),
+                function ($l) { return ($l['IsHidden'] ?? 'false') !== 'true'; }))
+            : [];
+    } catch (Throwable $e) {
+        integrationsFail(502, t('api.integrations.test_failed'),
+            $e instanceof OpenDentalApiException ? $e->category : 'unexpected');
+    }
+
+    echo json_encode([
+        'success'      => true,
+        'providers'    => $providers,
+        'laboratories' => $laboratories,
     ]);
     exit;
 }

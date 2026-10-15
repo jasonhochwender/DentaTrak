@@ -14872,11 +14872,281 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
+    // ------------------------- Two-way sync (GA) -------------------------
+
+    var OB_TZ_ZONES = null;
+    function outboundTimezones() {
+        if (OB_TZ_ZONES) return OB_TZ_ZONES;
+        var zones = null;
+        try { zones = Intl.supportedValuesOf('timeZone'); } catch (e) { zones = null; }
+        if (!zones || !zones.length) {
+            zones = ['UTC', 'America/New_York', 'America/Chicago', 'America/Denver',
+                'America/Los_Angeles', 'America/Phoenix', 'America/Anchorage',
+                'Pacific/Honolulu', 'America/Toronto', 'America/Vancouver',
+                'America/Winnipeg', 'America/Halifax', 'Europe/London',
+                'Europe/Paris', 'Europe/Berlin', 'Australia/Sydney',
+                'Pacific/Auckland'];
+        }
+        var detected = null;
+        try { detected = Intl.DateTimeFormat().resolvedOptions().timeZone; } catch (e) {}
+        if (detected && zones.indexOf(detected) === -1) zones = [detected].concat(zones);
+        OB_TZ_ZONES = zones;
+        return zones;
+    }
+
+    function detectedTimezone() {
+        try { return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'; }
+        catch (e) { return 'UTC'; }
+    }
+
+    function outboundMsg(provider, message, isError) {
+        var el = document.getElementById('integrationOutboundMsg-' + provider);
+        if (!el) return;
+        el.textContent = message || '';
+        el.style.display = message ? '' : 'none';
+        el.className = 'integration-outbound-msg' + (isError ? ' integration-outbound-msg-error' : '');
+    }
+
+    function populateOutboundLabs(provider, conn) {
+        var sel = document.getElementById('integrationOutboundLab-' + provider);
+        if (!sel || sel.dataset.loading === '1') return;
+        sel.dataset.loading = '1';
+        sel.innerHTML = '<option value="">' + esc(t('settings.integrations.outbound.lab_none')) + '</option>';
+        integrationsPost({ action: 'list_od_lookups', connection_id: conn.id })
+            .then(function (data) {
+                sel.dataset.loading = '';
+                if (!data.success) return;
+                sel.dataset.loaded = '1';
+                var current = String((conn.outbound && conn.outbound.laboratory_num) || '');
+                (data.laboratories || []).forEach(function (lab) {
+                    var opt = document.createElement('option');
+                    opt.value = String(lab.LaboratoryNum);
+                    opt.textContent = lab.Description || ('#' + lab.LaboratoryNum);
+                    if (opt.value === current) opt.selected = true;
+                    sel.appendChild(opt);
+                });
+            })
+            .catch(function () { sel.dataset.loading = ''; });
+    }
+
+    function fmtWhen(isoish) {
+        if (!isoish) return t('settings.integrations.meta.never');
+        var ts = new Date(String(isoish).replace(' ', 'T') + 'Z');
+        if (isNaN(ts)) return String(isoish);
+        return window.I18n ? I18n.formatDate(ts, { style: 'medium', timeStyle: 'short' }) : String(ts);
+    }
+
+    function renderOutbound(provider, conn) {
+        var block = document.getElementById('integrationOutbound-' + provider);
+        if (!block) return;
+        var show = !!(conn && conn.status === 'active');
+        block.style.display = show ? '' : 'none';
+        if (!show) return;
+
+        var ob = conn.outbound || {};
+        var enabled = !!ob.enabled;
+
+        var stateEl = document.getElementById('integrationOutboundState-' + provider);
+        if (stateEl) {
+            stateEl.textContent = t(enabled
+                ? 'settings.integrations.outbound.state_on'
+                : 'settings.integrations.outbound.state_off');
+            stateEl.className = 'integration-toolbar-badge' +
+                (enabled ? ' integration-toolbar-badge-ok' : '');
+        }
+
+        var tzSel = document.getElementById('integrationOutboundTz-' + provider);
+        if (tzSel) {
+            if (!tzSel.dataset.populated) {
+                tzSel.dataset.populated = '1';
+                outboundTimezones().forEach(function (zone) {
+                    var opt = document.createElement('option');
+                    opt.value = zone;
+                    opt.textContent = zone.replace(/_/g, ' ');
+                    tzSel.appendChild(opt);
+                });
+            }
+            tzSel.value = ob.timezone || detectedTimezone();
+        }
+
+        var labSel = document.getElementById('integrationOutboundLab-' + provider);
+        if (labSel) {
+            if (!labSel.dataset.loaded) {
+                populateOutboundLabs(provider, conn);
+            } else if (ob.laboratory_num) {
+                labSel.value = String(ob.laboratory_num);
+            }
+        }
+
+        var toggle = document.getElementById('integrationOutboundToggle-' + provider);
+        if (toggle) {
+            toggle.textContent = t(enabled
+                ? 'settings.integrations.outbound.disable'
+                : 'settings.integrations.outbound.enable');
+        }
+
+        var retry = document.getElementById('integrationOutboundRetry-' + provider);
+        if (retry) {
+            retry.style.display = (ob.failed > 0) ? '' : 'none';
+        }
+
+        var health = document.getElementById('integrationOutboundHealth-' + provider);
+        if (health) {
+            var row = function (labelKey, valueText, isWarn) {
+                return '<div class="integration-meta-row"><span class="integration-meta-label">'
+                    + esc(t(labelKey)) + '</span><span class="' + (isWarn ? 'integration-meta-error' : '') + '">'
+                    + esc(String(valueText)) + '</span></div>';
+            };
+            var cap = ob.capability || null;
+            var capText;
+            var capWarn = false;
+            if (cap && cap.has_permission) {
+                capText = t('settings.integrations.outbound.capability_ok', { version: cap.min_od_version || '' });
+            } else if (cap && cap.checked_at && !cap.has_permission) {
+                capText = t('settings.integrations.outbound.capability_missing');
+                capWarn = true;
+            } else {
+                capText = t('settings.integrations.outbound.capability_unchecked');
+            }
+            var html = row('settings.integrations.outbound.health_capability', capText, capWarn);
+            html += row('settings.integrations.outbound.health_synced', ob.delivered || 0);
+            html += row('settings.integrations.outbound.health_pending', ob.pending || 0);
+            if (ob.failed > 0) {
+                html += row('settings.integrations.outbound.health_failed', ob.failed, true);
+            }
+            if (ob.conflicts > 0) {
+                html += row('settings.integrations.outbound.health_conflicts', ob.conflicts, true);
+            }
+            html += row('settings.integrations.outbound.health_last_sync', fmtWhen(ob.last_delivered_at));
+            health.innerHTML = html;
+        }
+    }
+
+    function updateOutboundConfig(provider, payload, onDone) {
+        var conn = integrationsState.connectionsByProvider[provider];
+        if (!conn) return;
+        var body = { action: 'update_outbound_config', connection_id: conn.id };
+        Object.keys(payload).forEach(function (k) { body[k] = payload[k]; });
+        integrationsPost(body)
+            .then(function (data) {
+                if (data.success) {
+                    if (data.connection) {
+                        integrationsState.connectionsByProvider[provider] = data.connection;
+                    }
+                    renderProvider(provider);
+                }
+                if (onDone) onDone(data);
+            })
+            .catch(function () {
+                if (onDone) onDone({ success: false });
+            });
+    }
+
+    function toggleOutbound(provider) {
+        var conn = integrationsState.connectionsByProvider[provider];
+        if (!conn) return;
+        var ob = conn.outbound || {};
+        if (ob.enabled) {
+            showConfirmModal(
+                t('settings.integrations.outbound.disable_confirm_title'),
+                t('settings.integrations.outbound.disable_confirm_message'),
+                function () {
+                    updateOutboundConfig(provider, { enabled: false }, function (data) {
+                        if (data.success) {
+                            showToast(t('settings.integrations.outbound.disabled_toast'), 'success');
+                        } else {
+                            showToast(data.message || t('settings.integrations.outbound.save_failed'), 'error');
+                        }
+                    });
+                }
+            );
+            return;
+        }
+        var tzSel = document.getElementById('integrationOutboundTz-' + provider);
+        var labSel = document.getElementById('integrationOutboundLab-' + provider);
+        var payload = {
+            enabled: true,
+            create_enabled: true,
+            timezone: tzSel ? tzSel.value : detectedTimezone()
+        };
+        if (labSel && labSel.value) {
+            payload.laboratory_num = parseInt(labSel.value, 10);
+        }
+        var btn = document.getElementById('integrationOutboundToggle-' + provider);
+        if (btn) btn.disabled = true;
+        outboundMsg(provider, t('settings.integrations.outbound.verifying'), false);
+        updateOutboundConfig(provider, payload, function (data) {
+            if (btn) btn.disabled = false;
+            if (data.success) {
+                outboundMsg(provider, '', false);
+                showToast(t('settings.integrations.outbound.enabled_toast'), 'success');
+                return;
+            }
+            var msg = data.message || t('settings.integrations.outbound.save_failed');
+            if (data.error_code === 'missing_write_permission') {
+                msg += ' ' + t('settings.integrations.outbound.missing_permission_help');
+            }
+            outboundMsg(provider, msg, true);
+            renderProvider(provider);
+        });
+    }
+
+    function saveOutboundLab(provider) {
+        var labSel = document.getElementById('integrationOutboundLab-' + provider);
+        if (!labSel) return;
+        updateOutboundConfig(provider, {
+            laboratory_num: labSel.value ? parseInt(labSel.value, 10) : 0
+        }, function (data) {
+            if (data.success) {
+                outboundMsg(provider, t('settings.integrations.outbound.lab_saved'), false);
+            } else {
+                outboundMsg(provider, data.message || t('settings.integrations.outbound.save_failed'), true);
+            }
+        });
+    }
+
+    function saveOutboundTimezone(provider) {
+        var tzSel = document.getElementById('integrationOutboundTz-' + provider);
+        if (!tzSel || !tzSel.value) return;
+        updateOutboundConfig(provider, { timezone: tzSel.value }, function (data) {
+            if (data.success) {
+                outboundMsg(provider, t('settings.integrations.outbound.tz_saved'), false);
+            } else {
+                outboundMsg(provider, data.message || t('settings.integrations.outbound.save_failed'), true);
+            }
+        });
+    }
+
+    function retryOutboundFailed(provider) {
+        var conn = integrationsState.connectionsByProvider[provider];
+        if (!conn) return;
+        var btn = document.getElementById('integrationOutboundRetry-' + provider);
+        if (btn) btn.disabled = true;
+        integrationsPost({ action: 'retry_outbound_failed', connection_id: conn.id })
+            .then(function (data) {
+                if (btn) btn.disabled = false;
+                if (data.success) {
+                    if (data.connection) {
+                        integrationsState.connectionsByProvider[provider] = data.connection;
+                    }
+                    renderProvider(provider);
+                    showToast(t('settings.integrations.outbound.retry_toast', { count: data.requeued || 0 }), 'success');
+                } else {
+                    showToast(data.message || t('settings.integrations.outbound.save_failed'), 'error');
+                }
+            })
+            .catch(function () {
+                if (btn) btn.disabled = false;
+                showToast(t('settings.integrations.outbound.save_failed'), 'error');
+            });
+    }
+
     function renderProvider(provider) {
         var conn = integrationsState.connectionsByProvider[provider] || null;
         setBadge(provider, conn ? conn.status : 'none');
         renderMeta(provider, conn);
         renderActions(provider, conn);
+        renderOutbound(provider, conn);
         renderToolbarSetup(provider, conn);
     }
 
@@ -15503,6 +15773,30 @@ document.addEventListener('DOMContentLoaded', function () {
             btn.addEventListener('click', function () {
                 importExistingLabCases(btn.getAttribute('data-provider'));
             });
+        });
+        // Two-way sync controls (present only on the Open Dental card, and
+        // only for practice admins).
+        ['open_dental'].forEach(function (provider) {
+            var toggle = document.getElementById('integrationOutboundToggle-' + provider);
+            if (toggle && !toggle.dataset.integrationInit) {
+                toggle.dataset.integrationInit = '1';
+                toggle.addEventListener('click', function () { toggleOutbound(provider); });
+            }
+            var labSave = document.getElementById('integrationOutboundLabSave-' + provider);
+            if (labSave && !labSave.dataset.integrationInit) {
+                labSave.dataset.integrationInit = '1';
+                labSave.addEventListener('click', function () { saveOutboundLab(provider); });
+            }
+            var tzSel = document.getElementById('integrationOutboundTz-' + provider);
+            if (tzSel && !tzSel.dataset.integrationInit) {
+                tzSel.dataset.integrationInit = '1';
+                tzSel.addEventListener('change', function () { saveOutboundTimezone(provider); });
+            }
+            var retry = document.getElementById('integrationOutboundRetry-' + provider);
+            if (retry && !retry.dataset.integrationInit) {
+                retry.dataset.integrationInit = '1';
+                retry.addEventListener('click', function () { retryOutboundFailed(provider); });
+            }
         });
         // Guided toolbar setup: each Custom Bridge field value copies with
         // one click so the admin can paste straight into Open Dental.

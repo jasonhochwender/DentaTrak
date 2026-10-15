@@ -213,11 +213,15 @@ try {
             }
         }
 
-        // Persist the picks as reusable mappings first, then re-resolve so
-        // the payload comes from one code path (due date + lifecycle stamp
-        // included) and the mapping rows provably drove it.
+        // Persist patient/provider picks as reusable identity mappings (the
+        // lab pick is deliberately NOT persisted - it applies to this case
+        // only), then re-resolve so the payload comes from one code path
+        // (due date + lifecycle stamp included) and the mapping rows
+        // provably drove it. The confirmed lab id is passed through: a
+        // lab is never silently taken from the connection default.
         IntegrationOutbound::persistCreateSelections($pdo, (int)$connection['id'], $caseId, (int)$currentPracticeId, $resolved);
-        $res2 = IntegrationOutbound::resolveCaseCreate($pdo, (int)$currentPracticeId, $caseId);
+        $res2 = IntegrationOutbound::resolveCaseCreate($pdo, (int)$currentPracticeId, $caseId,
+            $sel['laboratory_num'] > 0 ? $sel['laboratory_num'] : null);
         if (empty($res2['ok']) || empty($res2['payload'])) {
             echo json_encode(['success' => true, 'queued' => false,
                 'reason' => $res2['reason'] ?? 'needs_mapping',

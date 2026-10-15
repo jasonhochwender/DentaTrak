@@ -131,6 +131,18 @@
       renderSelect('odSendLabSelect', (pk.laboratories || []).map(function (l) {
         return { value: l.LaboratoryNum, label: l.Description || ('#' + l.LaboratoryNum) };
       }), t('od_send.select_laboratory'));
+      // Suggestion order: the admin-configured practice default first, then
+      // this browser's last-used lab. A suggestion only PRE-SELECTS the
+      // dropdown - the user still sees and confirms the choice (the lab is
+      // always in `needs`, so Confirm stays gated on a non-empty value).
+      var lv = document.getElementById('odSendLabSelect');
+      if (lv) {
+        var suggested = (res.resolved && res.resolved.laboratory_num) || null;
+        if (!suggested) {
+          try { suggested = localStorage.getItem('dtOdLastLab'); } catch (e) { suggested = null; }
+        }
+        if (suggested) lv.value = String(suggested);
+      }
     }
 
     if (pk.remote_error) {
@@ -211,6 +223,11 @@
         return;
       }
       if (res.queued) {
+        // Convenience memory only: the pick is never persisted server-side
+        // and never overwrites the practice default laboratory.
+        if (payload.laboratory_num) {
+          try { localStorage.setItem('dtOdLastLab', String(payload.laboratory_num)); } catch (e) {}
+        }
         summaryEl.textContent = t('od_send.queued');
         setStatus(t('od_send.state_pending'), 'pending');
         show(document.getElementById('odSendPickers'), false);
@@ -255,6 +272,12 @@
   function initDom() {
     modal = document.getElementById('odSendCaseModal');
     if (!modal) return;
+    // The markup lives inside #settingsBillingModal for template grouping;
+    // the dialog must open from the case board while Settings is closed,
+    // so reparent it to <body> on first use (fixed-position modal anyway).
+    if (modal.parentElement && modal.parentElement !== document.body) {
+      document.body.appendChild(modal);
+    }
     confirmBtn = document.getElementById('odSendCaseConfirm');
     statusEl = document.getElementById('odSendCaseStatus');
     errorEl = document.getElementById('odSendCaseError');

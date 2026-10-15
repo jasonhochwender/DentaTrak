@@ -1405,6 +1405,41 @@
                 "subscribe_version": "기공소 케이스 자동 업데이트에는 Open Dental 버전 25.4.14 이상이 필요합니다. Open Dental을 업데이트한 후 다시 시도해 주세요.",
                 "no_key": "테스트하기 전에 1단계에서 연결 키를 생성하세요."
             },
+            "outbound": {
+                "title": "Open Dental 양방향 동기화",
+                "description": "DentaTrak의 상태 업데이트를 Open Dental로 다시 보냅니다. Open Dental은 환자, 제공자, 예약, 마감일 및 지시 사항의 기준 데이터이며, 여기서는 기공소 케이스 진행 상태만 기록됩니다.",
+                "map_sent": "\"기공소로 발송\"은 Open Dental에 발송 날짜를 기록합니다.",
+                "map_received": "\"기공소에서 수신\"은 Open Dental에 수신 날짜를 기록합니다.",
+                "map_note": "기존 Open Dental 날짜는 절대 덮어쓰지 않으며 \"전달됨\"은 기록되지 않습니다.",
+                "create_note": "새 케이스는 케이스에서 \"Open Dental로 보내기\"를 선택할 때만 Open Dental에 생성됩니다.",
+                "state_on": "켜짐",
+                "state_off": "꺼짐",
+                "timezone_label": "치과 시간대",
+                "lab_label": "기본 기공소",
+                "lab_none": "기본값 없음 - 케이스별 선택",
+                "enable": "양방향 동기화 활성화",
+                "disable": "쓰기 비활성화",
+                "retry_failed": "실패한 업데이트 다시 시도",
+                "verifying": "연결 및 권한을 확인하는 중…",
+                "enabled_toast": "양방향 동기화가 켜졌습니다. 상태 변경이 이제 Open Dental과 동기화됩니다.",
+                "disabled_toast": "쓰기가 꺼졌습니다. DentaTrak은 계속 Open Dental에서 업데이트를 받습니다.",
+                "save_failed": "동기화 설정을 저장할 수 없습니다.",
+                "lab_saved": "기본 기공소가 저장되었습니다.",
+                "tz_saved": "치과 시간대가 저장되었습니다.",
+                "retry_toast": "{count}개의 업데이트가 재시도 대기열에 추가되었습니다.",
+                "disable_confirm_title": "쓰기를 비활성화할까요?",
+                "disable_confirm_message": "DentaTrak이 Open Dental로 상태 업데이트 전송을 중지합니다. Open Dental에서 업데이트를 받는 기능은 그대로 유지됩니다. 언제든지 다시 활성화할 수 있습니다.",
+                "missing_permission_help": "Open Dental에서 이 고객 키에 대해 \"All Others\" API 권한을 활성화한 후(Setup > Advanced Setup > API) 다시 시도하세요.",
+                "health_capability": "API 쓰기 액세스",
+                "capability_ok": "확인됨(Open Dental {version} 이상 필요)",
+                "capability_missing": "이 키에 부여되지 않음",
+                "capability_unchecked": "아직 확인되지 않음",
+                "health_synced": "동기화된 업데이트",
+                "health_pending": "대기 중인 업데이트",
+                "health_failed": "실패한 업데이트",
+                "health_conflicts": "검토할 충돌",
+                "health_last_sync": "Open Dental과 마지막 동기화"
+            },
             "toolbar": {
                 "title": "Open Dental의 DentaTrak 버튼",
                 "intro": "Open Dental 도구 모음에 DentaTrak 버튼을 추가합니다. 한 컴퓨터에서 병원당 한 번만 설정하면 모든 워크스테이션에 자동으로 적용됩니다.",
@@ -3161,7 +3196,7 @@
         "integrations": {
             "error_generic": "예상치 못한 오류가 발생했습니다. 다시 시도해 주세요.",
             "disabled": "연동을 사용할 수 없습니다.",
-            "plan_required": "Open Dental 연동은 Control 및 Scale 요금제에서 제공됩니다.",
+            "plan_required": "Open Dental 연동에는 활성 구독이 필요합니다.",
             "unknown_action": "알 수 없는 연동 작업입니다.",
             "method_not_allowed": "허용되지 않은 메서드입니다",
             "invalid_provider": "지원되지 않는 연동 제공업체입니다.",
@@ -3193,6 +3228,11 @@
             "import_in_progress": "이 연동에 대한 가져오기가 이미 진행 중입니다.",
             "import_failed": "가져오기를 시작할 수 없습니다. 다시 시도해 주세요.",
             "import_started": "가져오기가 시작되었습니다. 기존 기공소 케이스가 백그라운드에서 추가됩니다.",
+            "outbound": {
+                "timezone_required": "양방향 동기화를 활성화하기 전에 치과 시간대를 선택하세요.",
+                "enable_unhealthy": "Open Dental 연결을 확인할 수 없습니다. 연결을 테스트한 후 다시 시도하세요.",
+                "missing_write_permission": "이 Open Dental 고객 키에는 쓰기 권한이 없습니다. Open Dental에서 이 키에 대해 \"All Others\" API 권한을 활성화한 후(Setup > Advanced Setup > API) 다시 시도하세요."
+            },
             "invalid_timezone": "유효한 시간대 식별자를 입력하세요(예: America/New_York).",
             "invalid_field_map": "필드 맵은 워크플로 상태 식별자를 지원되는 Open Dental 수명 주기 필드에 매핑해야 합니다."
         }

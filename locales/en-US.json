@@ -1405,6 +1405,41 @@
                 "subscribe_version": "Automatic lab case updates require Open Dental version 25.4.14 or later. Update Open Dental, then try again.",
                 "no_key": "Generate your connection key in Step 1 before testing."
             },
+            "outbound": {
+                "title": "Two-way sync with Open Dental",
+                "description": "Send status updates from DentaTrak back to Open Dental. Open Dental stays the source of truth for patients, providers, appointments, due dates, and instructions - this only writes lab case progress.",
+                "map_sent": "\"Sent to Lab\" writes the lab's sent date in Open Dental.",
+                "map_received": "\"Received from Lab\" writes the received date in Open Dental.",
+                "map_note": "Existing Open Dental dates are never overwritten, and \"Delivered\" is not written back.",
+                "create_note": "New cases are only created in Open Dental when you choose Send to Open Dental on a case.",
+                "state_on": "On",
+                "state_off": "Off",
+                "timezone_label": "Office timezone",
+                "lab_label": "Default laboratory",
+                "lab_none": "No default - choose per case",
+                "enable": "Enable two-way sync",
+                "disable": "Disable write-back",
+                "retry_failed": "Retry failed updates",
+                "verifying": "Verifying connection and permissions…",
+                "enabled_toast": "Two-way sync is on. Status changes now sync to Open Dental.",
+                "disabled_toast": "Write-back is off. DentaTrak still receives updates from Open Dental.",
+                "save_failed": "Could not save the synchronization settings.",
+                "lab_saved": "Default laboratory saved.",
+                "tz_saved": "Office timezone saved.",
+                "retry_toast": "{count} update(s) queued for retry.",
+                "disable_confirm_title": "Disable write-back?",
+                "disable_confirm_message": "DentaTrak will stop sending status updates to Open Dental. Receiving updates from Open Dental continues unchanged. You can re-enable this at any time.",
+                "missing_permission_help": "In Open Dental, enable the \"All Others\" API permission for this customer key (Setup > Advanced Setup > API), then try again.",
+                "health_capability": "API write access",
+                "capability_ok": "Verified (requires Open Dental {version} or later)",
+                "capability_missing": "Not granted for this key",
+                "capability_unchecked": "Not checked yet",
+                "health_synced": "Updates synced",
+                "health_pending": "Updates pending",
+                "health_failed": "Failed updates",
+                "health_conflicts": "Conflicts to review",
+                "health_last_sync": "Last synced to Open Dental"
+            },
             "toolbar": {
                 "title": "DentaTrak button in Open Dental",
                 "intro": "Add a DentaTrak button to the Open Dental toolbar. This is a one-time setup done once per office on any single computer - it applies to every workstation automatically.",
@@ -3161,7 +3196,7 @@
         "integrations": {
             "error_generic": "An unexpected error occurred. Please try again.",
             "disabled": "Integrations are not available.",
-            "plan_required": "Open Dental integration is available on Control and Scale plans.",
+            "plan_required": "The Open Dental integration requires an active subscription.",
             "unknown_action": "Unknown integration action.",
             "method_not_allowed": "Method not allowed",
             "invalid_provider": "Unsupported integration provider.",
@@ -3194,7 +3229,12 @@
             "import_invalid_range": "Choose a valid import range.",
             "import_in_progress": "An import is already in progress for this integration.",
             "import_failed": "Unable to start the import. Please try again.",
-            "import_started": "Import started. Existing lab cases will be added in the background."
+            "import_started": "Import started. Existing lab cases will be added in the background.",
+            "outbound": {
+                "timezone_required": "Choose the office timezone before enabling two-way sync.",
+                "enable_unhealthy": "The Open Dental connection could not be verified. Test the connection and try again.",
+                "missing_write_permission": "This Open Dental customer key does not have write permission. In Open Dental, enable the \"All Others\" API permission for this key (Setup > Advanced Setup > API), then try again."
+            }
         }
     },
     "email": {

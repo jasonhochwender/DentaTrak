@@ -96,6 +96,17 @@ class IntegrationOutbound {
      */
     const ALLOWED_REMOTE_FIELDS = ['DateTimeSent', 'DateTimeRecd', 'DateTimeChecked'];
 
+    /**
+     * The approved GA lifecycle map applied when an administrator enables
+     * two-way sync without supplying a field_map. Keys are the STABLE
+     * internal status identifiers stored in cases_cache.status. Delivered
+     * is deliberately unmapped - it never writes DateTimeChecked.
+     */
+    const DEFAULT_FIELD_MAP = [
+        'Sent To External Lab'      => 'DateTimeSent',
+        'Received From External Lab' => 'DateTimeRecd',
+    ];
+
     /** Retry tuning mirrors the inbound queue (IntegrationEvents). */
     const DEFAULT_RETRY_SECONDS   = 60;
     const MAX_RETRY_SECONDS       = 300;
@@ -169,6 +180,22 @@ class IntegrationOutbound {
     }
 
     /**
+     * Practice-level integration entitlement for enqueue paths. Any active
+     * plan qualifies (GA) - this is hasIntegrationAccess, not the
+     * Control-tier hasControlAccess gate Lab Insights uses. A transient
+     * evaluation failure returns true: the worker re-checks authoritatively
+     * at write time, so a dropped subscription lookup can never silently
+     * enable writes and a queue row can be re-evaluated rather than lost.
+     */
+    private static function practiceMayUseIntegration(PDO $pdo, int $practiceId): bool {
+        try {
+            return hasIntegrationAccess($pdo, $practiceId);
+        } catch (Throwable $e) {
+            return true;
+        }
+    }
+
+    /**
      * Merge fields into config_json.outbound, preserving unrelated config
      * keys. Non-secret bookkeeping only - never credentials or payloads.
      */
@@ -224,6 +251,9 @@ class IntegrationOutbound {
         }
         if (!self::featureEnabled()) {
             return ['enqueued' => false, 'reason' => 'flag_off'];
+        }
+        if (!self::practiceMayUseIntegration($pdo, $practiceId)) {
+            return ['enqueued' => false, 'reason' => 'plan_required'];
         }
 
         // Resolve the mapped connection THROUGH the practice boundary: the
@@ -319,6 +349,9 @@ class IntegrationOutbound {
     ): array {
         if (!self::featureEnabled()) {
             return ['enqueued' => false, 'reason' => 'flag_off'];
+        }
+        if (!self::practiceMayUseIntegration($pdo, $practiceId)) {
+            return ['enqueued' => false, 'reason' => 'plan_required'];
         }
 
         // A case is only a create candidate when it is NOT already mapped to
@@ -454,6 +487,9 @@ class IntegrationOutbound {
      * scoping: active + sync_enabled + outbound.enabled + create_enabled.
      */
     public static function createCapableConnection(PDO $pdo, int $practiceId): ?array {
+        if (!self::practiceMayUseIntegration($pdo, $practiceId)) {
+            return null;
+        }
         $stmt = $pdo->prepare("
             SELECT id, practice_id, provider, status, sync_enabled, config_json
             FROM integration_connections
@@ -514,12 +550,20 @@ class IntegrationOutbound {
      *               case_missing, timezone_unconfigured, needs_mapping)
      *   state     - UI state hint: unlinked|linked|pending|attention
      *   needs     - list of unresolved entity kinds: patient|provider|laboratory
-     *   resolved  - {pat_num, prov_num, laboratory_num} ids found so far
+     *   resolved  - {pat_num, prov_num, laboratory_num} ids found so far; the
+     *               laboratory entry is a SUGGESTION (admin default or prior
+     *               selection) - it never satisfies the requirement by itself
      *   payload   - the create payload when ready (PatNum/LaboratoryNum/
      *               ProvNum/DateTimeDue/current-stage lifecycle field)
      *   connection- the create-capable connection row (when one exists)
+     *
+     * @param ?int $confirmedLabNum  a laboratory the caller has already
+     *        presented to and confirmed with the user (and verified against
+     *        the remote). The lab is the one entity kind that ALWAYS needs a
+     *        visible, confirmable choice: a configured default is only a
+     *        suggestion and never silently satisfies the requirement.
      */
-    public static function resolveCaseCreate(PDO $pdo, int $practiceId, string $caseId): array {
+    public static function resolveCaseCreate(PDO $pdo, int $practiceId, string $caseId, ?int $confirmedLabNum = null): array {
         if (!self::featureEnabled()) {
             return ['ok' => false, 'reason' => 'flag_off', 'state' => 'unavailable', 'needs' => []];
         }
@@ -600,11 +644,19 @@ class IntegrationOutbound {
             $out['provider_name'] = $dentist; // display context for the picker
         }
 
-        $labNum = (int)($cfg['laboratory_num'] ?? 0);
-        if ($labNum > 0) {
-            $resolved['laboratory_num'] = $labNum;
+        // Laboratory: the only entity kind that never resolves silently. A
+        // caller-confirmed id (already verified against the remote) is used
+        // directly; otherwise 'laboratory' stays in needs and the admin-
+        // configured default is surfaced as a SUGGESTION the dialog
+        // pre-selects but the user still confirms.
+        if ($confirmedLabNum !== null && $confirmedLabNum > 0) {
+            $resolved['laboratory_num'] = $confirmedLabNum;
         } else {
             $out['needs'][] = 'laboratory';
+            $labDefault = (int)($cfg['laboratory_num'] ?? 0);
+            if ($labDefault > 0) {
+                $resolved['laboratory_num'] = $labDefault;
+            }
         }
 
         if (!empty($out['needs'])) {
@@ -658,7 +710,10 @@ class IntegrationOutbound {
      * Persist the user's create-time selections as reusable mappings:
      *   PatNum        -> patient entity mapping keyed by localPatientKey
      *   ProvNum       -> provider entity mapping keyed by localProviderKey
-     *   LaboratoryNum -> connection default outbound.laboratory_num
+     *   LaboratoryNum -> NOT persisted here. A per-case lab choice never
+     *                    mutates the connection default; the admin-managed
+     *                    default lives in outbound.laboratory_num and the
+     *                    per-user last-used convenience lives client-side.
      * Each is only written when the case produced a derivable local key;
      * callers have already verified the remote ids exist via the adapter.
      */
@@ -710,10 +765,8 @@ class IntegrationOutbound {
                 } catch (Throwable $e) { /* best-effort */ }
             }
         }
-        if (!empty($sel['laboratory_num'])) {
-            self::updateOutboundConfig($pdo, $connectionId,
-                ['laboratory_num' => (int)$sel['laboratory_num']]);
-        }
+        // laboratory_num is intentionally ignored: a case-specific pick must
+        // never overwrite the practice-wide default (update_outbound_config).
     }
 
     /**
@@ -1022,7 +1075,7 @@ class IntegrationOutbound {
             $emailStmt->execute([':id' => $ownerUserId]);
             $ownerEmail = (string)($emailStmt->fetchColumn() ?: '');
         }
-        if (!hasControlAccess($pdo, (int)$connection['practice_id'], $ownerEmail)) {
+        if (!hasIntegrationAccess($pdo, (int)$connection['practice_id'], $ownerEmail)) {
             IntegrationEvents::suspendForPlanEntitlement($pdo, $connection);
             return self::finalize($pdo, $eventId, self::STATUS_SKIPPED,
                 'Plan entitlement required for integration.');
@@ -1486,15 +1539,18 @@ class IntegrationOutbound {
      */
     public static function outboundProjection(PDO $pdo, array $connection): array {
         $cfg = self::outboundConfig($connection);
-        $counts = ['pending' => 0, 'conflicts' => 0, 'failed' => 0];
+        $counts = ['pending' => 0, 'conflicts' => 0, 'failed' => 0, 'delivered' => 0];
         $lastDelivered = null;
+        $lastFailed = null;
         try {
             $stmt = $pdo->prepare("
                 SELECT
                     SUM(CASE WHEN status IN ('queued','processing') THEN 1 ELSE 0 END) AS pending,
                     SUM(CASE WHEN status = 'conflict' THEN 1 ELSE 0 END) AS conflicts,
                     SUM(CASE WHEN status = 'failed' THEN 1 ELSE 0 END) AS failed,
-                    MAX(CASE WHEN status = 'delivered' THEN processed_at END) AS last_delivered
+                    SUM(CASE WHEN status = 'delivered' THEN 1 ELSE 0 END) AS delivered,
+                    MAX(CASE WHEN status = 'delivered' THEN processed_at END) AS last_delivered,
+                    MAX(CASE WHEN status IN ('failed','conflict') THEN processed_at END) AS last_failed
                 FROM integration_outbound_events
                 WHERE connection_id = :id
             ");
@@ -1503,7 +1559,9 @@ class IntegrationOutbound {
             $counts['pending']   = (int)($row['pending'] ?? 0);
             $counts['conflicts'] = (int)($row['conflicts'] ?? 0);
             $counts['failed']    = (int)($row['failed'] ?? 0);
+            $counts['delivered'] = (int)($row['delivered'] ?? 0);
             $lastDelivered       = $row['last_delivered'] ?? null;
+            $lastFailed          = $row['last_failed'] ?? null;
         } catch (Throwable $e) {
             // Pre-migration schema - report zeros rather than breaking the
             // whole connection projection.
@@ -1514,12 +1572,18 @@ class IntegrationOutbound {
             'create_enabled'     => !empty($cfg['create_enabled']),
             'field_map'          => isset($cfg['field_map']) && is_array($cfg['field_map'])
                 ? array_keys($cfg['field_map']) : [],
+            'timezone'           => isset($cfg['timezone']) && is_string($cfg['timezone'])
+                ? $cfg['timezone'] : null,
+            'laboratory_num'     => isset($cfg['laboratory_num']) && (int)$cfg['laboratory_num'] > 0
+                ? (int)$cfg['laboratory_num'] : null,
             'capability'         => isset($cfg['capability']) && is_array($cfg['capability'])
                 ? $cfg['capability'] : null,
             'pending'            => $counts['pending'],
             'conflicts'          => $counts['conflicts'],
             'failed'             => $counts['failed'],
+            'delivered'          => $counts['delivered'],
             'last_delivered_at'  => $lastDelivered,
+            'last_failed_at'     => $lastFailed,
         ];
     }
 }

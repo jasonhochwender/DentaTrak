@@ -3727,6 +3727,86 @@ input#practiceName {
   gap: 6px;
 }
 
+/* Two-way sync (write-back) block inside the open_dental integration
+   card - same panel language as the toolbar setup above it. */
+.integration-outbound {
+  margin-top: 14px;
+  padding: 12px 14px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #f9fafb;
+  font-size: 13px;
+  color: #374151;
+  line-height: 1.5;
+}
+
+.integration-outbound-desc {
+  margin: 8px 0 0;
+}
+
+.integration-outbound-fields {
+  margin: 8px 0 0;
+  padding-left: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.integration-outbound-controls {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.integration-outbound-field {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.integration-outbound-field label {
+  flex: 0 0 200px;
+  font-weight: 600;
+  color: #374151;
+}
+
+.integration-outbound-field select {
+  flex: 1 1 auto;
+  min-width: 0;
+  max-width: 100%;
+  font-size: 13px;
+  padding: 6px 8px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  color: #374151;
+  background: #fff;
+}
+
+.integration-outbound-buttons {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.integration-outbound-health {
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.integration-outbound-msg {
+  margin: 8px 0 0;
+  font-size: 12.5px;
+  color: #166534;
+}
+
+.integration-outbound-msg.integration-outbound-msg-error {
+  color: #991b1b;
+}
+
 /* ------------------------------------------------------------------
    Integration configuration modal layout (child of Settings).
 

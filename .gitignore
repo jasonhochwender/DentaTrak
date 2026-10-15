@@ -229,3 +229,13 @@ NUL
 
 !/tests/pms-outbound-sync-test.php
 !/tests/pms-outbound-create-test.php
+!/tests/pms-outbound-enable-test.php
+!/tests/pms-integrations-api-test.php
+!/tests/pms-events-poc-test.php
+!/tests/pms-integration-foundation-test.php
+!/tests/pms-open-dental-adapter-test.php
+!/tests/pms-onboarding-credentials-test.php
+!/tests/pms-case-import-test.php
+!/tests/od-patient-launch-test.php
+!/tests/mock-open-dental.php
+!/tests/pms-ga-panel-e2e-test.js

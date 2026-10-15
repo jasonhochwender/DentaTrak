@@ -1806,6 +1806,23 @@
 [data-theme="dark"] .integration-status-badge.integration-status-disabled { background: #334155; color: #cbd5e1; }
 [data-theme="dark"] .integration-status-badge.integration-status-locked { background: #312e81; color: #c7d2fe; }
 
+/* Two-way sync block inside the integration card. */
+[data-theme="dark"] .integration-outbound {
+  background-color: #16202f;
+  border-color: var(--border-light);
+  color: var(--text-primary);
+}
+[data-theme="dark"] .integration-outbound-desc,
+[data-theme="dark"] .integration-outbound-fields,
+[data-theme="dark"] .integration-outbound-field label { color: var(--text-light); }
+[data-theme="dark"] .integration-outbound-field select {
+  background-color: #0f172a;
+  border-color: var(--border-medium);
+  color: var(--text-primary);
+}
+[data-theme="dark"] .integration-outbound-msg { color: #a7f3d0; }
+[data-theme="dark"] .integration-outbound-msg.integration-outbound-msg-error { color: var(--error-color); }
+
 /* Guided Open Dental toolbar setup block inside the integration card. */
 [data-theme="dark"] .integration-toolbar-setup {
   background-color: #16202f;

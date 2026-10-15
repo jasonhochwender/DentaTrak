@@ -167,7 +167,7 @@ class IntegrationEvents {
             $emailStmt->execute([':id' => $ownerUserId]);
             $ownerEmail = (string)($emailStmt->fetchColumn() ?: '');
         }
-        if (!hasControlAccess($pdo, (int)$connection['practice_id'], $ownerEmail)) {
+        if (!hasIntegrationAccess($pdo, (int)$connection['practice_id'], $ownerEmail)) {
             self::suspendForPlanEntitlement($pdo, $connection);
             return self::finalize($pdo, $eventId, self::STATUS_FAILED,
                 'Plan entitlement required for integration.');
