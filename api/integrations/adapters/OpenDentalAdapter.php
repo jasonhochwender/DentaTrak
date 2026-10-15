@@ -539,6 +539,88 @@ class OpenDentalAdapter implements PmsAdapterInterface {
         return is_array($r) ? $r : [];
     }
 
+    /**
+     * GET /patients/Simple - name/DOB search for outbound-create patient
+     * resolution. DATA-MINIMIZED projection: only the identity fields a
+     * picker needs are returned; the rest of the patient record is
+     * discarded in memory and never stored or logged.
+     *
+     * Supported filters (all optional, per API docs): LName, FName
+     * (partial, case-insensitive), Birthdate (yyyy-MM-dd), PatStatus,
+     * Gender. Offset pages results.
+     */
+    public function searchPatients(array $credentials, array $filters = [], int $offset = 0): array {
+        $allowed = ['LName', 'FName', 'Birthdate', 'PatStatus', 'Gender'];
+        $params = array_intersect_key($filters, array_flip($allowed));
+        if ($offset > 0) {
+            $params['Offset'] = $offset;
+        }
+        $rows = $this->get('/patients/Simple', $credentials, $params);
+        $out = [];
+        if (is_array($rows)) {
+            foreach ($rows as $row) {
+                if (!is_array($row)) {
+                    continue;
+                }
+                $out[] = [
+                    'PatNum'    => $row['PatNum'] ?? null,
+                    'FName'     => $row['FName'] ?? null,
+                    'LName'     => $row['LName'] ?? null,
+                    'Birthdate' => $row['Birthdate'] ?? null,
+                    'PatStatus' => $row['PatStatus'] ?? null,
+                    'Gender'    => $row['Gender'] ?? null,
+                ];
+            }
+        }
+        return $out;
+    }
+
+    /**
+     * GET /providers - data-minimized list for the outbound-create provider
+     * picker: ProvNum, display name, abbreviation, hidden flag.
+     */
+    public function listProviders(array $credentials): array {
+        $rows = $this->get('/providers', $credentials);
+        $out = [];
+        if (is_array($rows)) {
+            foreach ($rows as $row) {
+                if (!is_array($row)) {
+                    continue;
+                }
+                $out[] = [
+                    'ProvNum'  => $row['ProvNum'] ?? null,
+                    'Abbr'     => $row['Abbr'] ?? null,
+                    'FName'    => $row['FName'] ?? null,
+                    'LName'    => $row['LName'] ?? null,
+                    'IsHidden' => $row['IsHidden'] ?? null,
+                ];
+            }
+        }
+        return $out;
+    }
+
+    /**
+     * GET /laboratories - data-minimized list for the outbound-create
+     * laboratory picker: LaboratoryNum, Description, hidden flag.
+     */
+    public function listLaboratories(array $credentials): array {
+        $rows = $this->get('/laboratories', $credentials);
+        $out = [];
+        if (is_array($rows)) {
+            foreach ($rows as $row) {
+                if (!is_array($row)) {
+                    continue;
+                }
+                $out[] = [
+                    'LaboratoryNum' => $row['LaboratoryNum'] ?? null,
+                    'Description'   => $row['Description'] ?? null,
+                    'IsHidden'      => $row['IsHidden'] ?? null,
+                ];
+            }
+        }
+        return $out;
+    }
+
     // ----------------------------------------------------------------------
     // LabCase writes (Phase 2 outbound sync - per-connection opt-in only)
     //

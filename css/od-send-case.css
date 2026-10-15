@@ -1,0 +1,117 @@
+/* Send to Open Dental dialog + case-card sync chip (Phase 3). */
+
+.od-send-body .od-send-summary {
+  margin: 0 0 10px;
+  font-size: 13px;
+  color: #475569;
+}
+
+.od-send-status {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 9999px;
+  font-size: 12px;
+  font-weight: 600;
+  background: #f1f5f9;
+  color: #475569;
+  margin-bottom: 10px;
+}
+.od-send-status.ok { background: #dcfce7; color: #166534; }
+.od-send-status.pending { background: #fef9c3; color: #854d0e; }
+.od-send-status.attention { background: #fee2e2; color: #991b1b; }
+
+.od-send-error {
+  font-size: 13px;
+  color: #991b1b;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  padding: 8px 10px;
+  margin-bottom: 10px;
+  white-space: pre-wrap;
+}
+
+.od-send-picker { margin-bottom: 12px; }
+.od-send-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: #334155;
+  margin-bottom: 5px;
+}
+.od-send-field-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.od-send-body input[type="text"],
+.od-send-body input[type="date"],
+.od-send-body select {
+  flex: 1;
+  min-width: 120px;
+  padding: 8px 10px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  font-size: 13px;
+  background: #fff;
+  color: #0f172a;
+}
+.od-send-body select:disabled { opacity: .6; }
+
+.od-send-btn-secondary {
+  padding: 8px 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #fff;
+  color: #334155;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.od-send-btn-secondary:hover { background: #f8fafc; }
+
+.od-send-candidates {
+  margin-top: 8px;
+  max-height: 170px;
+  overflow-y: auto;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+}
+.od-send-candidate {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 8px 10px;
+  border: 0;
+  border-bottom: 1px solid #f1f5f9;
+  background: #fff;
+  font-size: 13px;
+  color: #0f172a;
+  cursor: pointer;
+}
+.od-send-candidate:last-child { border-bottom: 0; }
+.od-send-candidate:hover { background: #f8fafc; }
+.od-send-candidate.selected { background: #eff6ff; outline: 2px solid #3b82f6; outline-offset: -2px; }
+.od-send-empty { padding: 10px; font-size: 12px; color: #64748b; }
+
+.od-send-provider-hint {
+  display: block;
+  font-size: 12px;
+  color: #64748b;
+  margin-bottom: 4px;
+}
+
+/* Card chip */
+.pms-sync-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 7px;
+  border-radius: 9999px;
+  font-size: 10.5px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.pms-sync-linked { background: #dcfce7; color: #166534; }
+.pms-sync-pending { background: #fef9c3; color: #854d0e; }
+.pms-sync-attention { background: #fee2e2; color: #991b1b; }
+
+@media (max-width: 560px) {
+  .od-send-field-row { flex-direction: column; align-items: stretch; }
+  .od-send-btn-secondary { width: 100%; }
+}

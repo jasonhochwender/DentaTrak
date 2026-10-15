@@ -9448,6 +9448,28 @@ document.addEventListener('DOMContentLoaded', function () {
       var reviewTitleAttr = ' title="' + escapeHtml(reviewTooltip).replace(/"/g, '&quot;') + '"';
       var reviewBadgeHtml = '<button type="button" class="kanban-card-review ' + reviewClass + '" data-case-id="' + escapeHtml(displayData.id) + '" aria-label="' + escapeHtml(reviewAriaLabel) + '"' + reviewTitleAttr + '>' + reviewText + '</button>';
 
+      // PMS sync chip (Phase 3): shown when list-cases reports an
+      // Open Dental link or a queued/failed outbound event for the case.
+      var pmsSyncHtml = '';
+      var pmsSync = displayData.pmsSync || null;
+      if (pmsSync) {
+        var pmsClass = null;
+        var pmsText = null;
+        if (pmsSync.state === 'queued' || pmsSync.state === 'processing') {
+          pmsClass = 'pending';
+          pmsText = t('od_send.badge_pending');
+        } else if (pmsSync.state === 'conflict' || pmsSync.state === 'failed') {
+          pmsClass = 'attention';
+          pmsText = t('od_send.badge_attention');
+        } else if (pmsSync.linked === true) {
+          pmsClass = 'linked';
+          pmsText = t('od_send.badge_linked');
+        }
+        if (pmsClass !== null) {
+          pmsSyncHtml = '<span class="pms-sync-badge pms-sync-' + pmsClass + '" role="status">' + escapeHtml(pmsText) + '</span>';
+        }
+      }
+
       caseCard.innerHTML =
         '<div class="kanban-card-header">' +
         '  <div>' +
@@ -9455,6 +9477,7 @@ document.addEventListener('DOMContentLoaded', function () {
         revisionCountLine +
         '  </div>' +
         reviewBadgeHtml +
+        pmsSyncHtml +
         '  <button type="button" class="case-actions-toggle" data-case-id="' + displayData.id + '" title="' + t('cases.actions_menu') + '" aria-label="' + t('cases.actions_menu') + '" aria-haspopup="menu" aria-expanded="false">⋮</button>' +
         '</div>' +
         '<div class="kanban-card-content">' +

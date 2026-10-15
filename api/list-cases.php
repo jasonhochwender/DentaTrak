@@ -419,6 +419,65 @@ try {
         $decryptedCases = array_values($decryptedCases);
     }
 
+    // PMS outbound state per case (Phase 3): external link + latest
+    // outbound event status in two batched queries, only when the feature
+    // flags and a writable connection make it reachable. Never adds fields
+    // when the integration surface is off.
+    try {
+        if (function_exists('isFeatureEnabled')
+            && isFeatureEnabled('SHOW_PMS_INTEGRATIONS')
+            && !empty($decryptedCases)) {
+            require_once __DIR__ . '/integrations/IntegrationOutbound.php';
+            $caseIds = array_values(array_filter(array_map(function ($c) {
+                return $c['id'] ?? null;
+            }, $decryptedCases)));
+            if ($caseIds) {
+                $in = implode(',', array_fill(0, count($caseIds), '?'));
+                $linkStmt = $pdo->prepare("
+                    SELECT m.internal_id, m.external_id
+                    FROM integration_entity_mappings m
+                    JOIN integration_connections c ON c.id = m.connection_id
+                    WHERE m.entity_type = 'case' AND c.practice_id = ?
+                      AND m.internal_id IN ({$in})
+                ");
+                $linkStmt->execute(array_merge([(int)$currentPracticeId], $caseIds));
+                $links = [];
+                foreach ($linkStmt->fetchAll(PDO::FETCH_ASSOC) as $r) {
+                    $links[$r['internal_id']] = $r['external_id'];
+                }
+                $evStmt = $pdo->prepare("
+                    SELECT internal_entity_id, status
+                    FROM integration_outbound_events
+                    WHERE practice_id = ? AND entity_type = 'case'
+                      AND internal_entity_id IN ({$in})
+                    ORDER BY id ASC
+                ");
+                $evStmt->execute(array_merge([(int)$currentPracticeId], $caseIds));
+                $latest = [];
+                foreach ($evStmt->fetchAll(PDO::FETCH_ASSOC) as $r) {
+                    $latest[$r['internal_entity_id']] = $r['status']; // last wins
+                }
+                foreach ($decryptedCases as &$case) {
+                    $cid = $case['id'] ?? null;
+                    if (!$cid) continue;
+                    $linked = isset($links[$cid]);
+                    $st = $latest[$cid] ?? null;
+                    if ($linked || $st) {
+                        $case['pmsSync'] = [
+                            'linked'      => $linked,
+                            'external_id' => $links[$cid] ?? null,
+                            'state'       => $st,
+                        ];
+                    }
+                }
+                unset($case);
+            }
+        }
+    } catch (Throwable $e) {
+        // Sync badges are advisory - never break the case list.
+        error_log('list-cases pmsSync enrichment skipped: ' . $e->getMessage());
+    }
+
     echo json_encode([
         'success' => true,
         'cases'   => $decryptedCases

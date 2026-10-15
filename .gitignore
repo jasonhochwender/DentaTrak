@@ -228,3 +228,4 @@ NUL
 !/tests/creator-notifications-e2e-test.js
 
 !/tests/pms-outbound-sync-test.php
+!/tests/pms-outbound-create-test.php

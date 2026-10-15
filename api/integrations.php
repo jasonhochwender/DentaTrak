@@ -964,6 +964,12 @@ if ($action === 'update_outbound_config') {
         }
         $update['field_map'] = $map;
     }
+    if (array_key_exists('laboratory_num', $body)) {
+        // Default Open Dental laboratory for outbound LabCase creates;
+        // null/0 clears it (the send dialog will then require a pick).
+        $labNum = (int)$body['laboratory_num'];
+        $update['laboratory_num'] = $labNum > 0 ? $labNum : null;
+    }
     if (empty($update)) {
         integrationsFail(400, t('api.integrations.unknown_action'));
     }

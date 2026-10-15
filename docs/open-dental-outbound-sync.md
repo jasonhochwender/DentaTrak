@@ -87,11 +87,18 @@ transition instant, never worker processing time.
 3. **Instructions on create**: the queue's PHI contract currently rejects
    instruction text in outbound payloads (key screening). Enabling notes on
    created OD cases needs an explicit contract amendment.
-4. **Create enablement UI/scope**: `enqueueCaseCreate` + worker
-   `create_labcase` are implemented and tested but nothing calls the enqueue
-   path yet — creating an OD LabCase needs a patient/lab/provider mapping
-   story (PatNum source: patient mapping exists; LaboratoryNum/ProvNum
-   selection is undecided) before wiring into `create-case.php`.
+4. ~~**Create enablement UI/scope**~~ — RESOLVED (Phase 3): the case
+   actions menu exposes "Send to Open Dental" (`od_send.menu_item`) for
+   eligible cases when `window.pmsSync.odCreateEnabled` (both global flags
+   + a create-enabled connection on the practice). `api/od-send-case.php`
+   (`check` / `search_patients` / `send`) resolves PatNum/ProvNum/
+   LaboratoryNum — via local-key identity mappings learned from inbound
+   sync (`recordIdentityMappings`) or the dialog's pickers — persists picks
+   through `persistCreateSelections`, verifies every remote id against the
+   office's own API, then enqueues `create_labcase`. The worker POSTs,
+   attaches the LabCaseNum mapping, and fingerprint-recovers timed-out
+   POSTs; remote-id collisions park as `conflict`. Never auto-creates
+   remote patients/providers/labs.
 
 ## Permissions / version requirements
 

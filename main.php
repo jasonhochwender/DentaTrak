@@ -204,6 +204,19 @@ $userCanViewAnalytics = canViewAnalytics($currentPracticeId);
 // re-checks the flag server-side; this only controls UI visibility.
 $showAskDentatrak = isFeatureEnabled('SHOW_AI_CHAT');
 
+// "Send to Open Dental" case action availability: global flags plus a
+// create-enabled connection in this practice. Cheap single query; any
+// failure means the action is simply hidden.
+$dtOdSendAvailable = false;
+try {
+    if (isFeatureEnabled('SHOW_PMS_INTEGRATIONS') && isFeatureEnabled('PMS_OUTBOUND_SYNC') && $currentPracticeId) {
+        require_once __DIR__ . '/api/integrations/IntegrationOutbound.php';
+        $dtOdSendAvailable = IntegrationOutbound::createCapableConnection($pdo, (int)$currentPracticeId) !== null;
+    }
+} catch (Throwable $e) {
+    $dtOdSendAvailable = false;
+}
+
 require_once __DIR__ . '/api/case-view-preferences-store.php';
 require_once __DIR__ . '/api/keyboard-shortcuts.php';
 $caseViewBootstrap = ['userId' => (int)$userId, 'practiceId' => (int)$currentPracticeId, 'preferences' => normalizeCaseViewPreferences([]), 'available' => true];
@@ -677,6 +690,7 @@ if (isset($appConfig) && is_array($appConfig) && isset($appConfig['appName'])) {
   <link rel="preload" href="<?= appAssetUrl('css/dev-tools.css') ?>" as="style" onload="this.onload=null;this.rel='stylesheet'">
   <link rel="preload" href="<?= appAssetUrl('css/analytics-pro.css') ?>" as="style" onload="this.onload=null;this.rel='stylesheet'">
   <link rel="preload" href="<?= appAssetUrl('css/attachment-viewer.css') ?>" as="style" onload="this.onload=null;this.rel='stylesheet'">
+  <link rel="preload" href="<?= appAssetUrl('css/od-send-case.css') ?>" as="style" onload="this.onload=null;this.rel='stylesheet'">
 <?php if (isFeatureEnabled('SHOW_LAB_INSIGHTS')): ?>
   <link rel="preload" href="<?= appAssetUrl('css/lab-insights.css') ?>" as="style" onload="this.onload=null;this.rel='stylesheet'">
 <?php endif; ?>
@@ -708,6 +722,7 @@ if (isset($appConfig) && is_array($appConfig) && isset($appConfig['appName'])) {
     <link rel="stylesheet" href="<?= appAssetUrl('css/lab-insights.css') ?>">
 <?php endif; ?>
     <link rel="stylesheet" href="<?= appAssetUrl('css/attachment-viewer.css') ?>">
+    <link rel="stylesheet" href="<?= appAssetUrl('css/od-send-case.css') ?>">
 <?php if (isFeatureEnabled('BILLING_ENABLED')): ?>
     <link rel="stylesheet" href="<?= appAssetUrl('css/billing-portal.css') ?>">
 <?php endif; ?>
@@ -727,6 +742,7 @@ if (isset($appConfig) && is_array($appConfig) && isset($appConfig['appName'])) {
     window.userHasControlAccess = <?php echo $userHasControlAccess === true ? 'true' : ($userHasControlAccess === false ? 'false' : 'null'); ?>;
     window.isPracticeAdmin = <?php echo $isCurrentUserPracticeAdmin ? 'true' : 'false'; ?>;
     window.workflowColumnsEndpoint = <?php echo json_encode('api/workflow-columns.php', JSON_UNESCAPED_UNICODE); ?>;
+    window.pmsSync = <?php echo json_encode(['odCreateEnabled' => $dtOdSendAvailable === true]); ?>;
   </script>
 </head>
 <?php 
@@ -796,6 +812,10 @@ if (isset($appConfig) && is_array($appConfig) && isset($appConfig['appName'])) {
 window.featureFlags = <?php echo getFeatureFlagsJson(); ?>;
 window.bulkZipMaxBytes = <?php echo (int)getBulkZipMaxSize(); ?>;
 window.dtKeyboardShortcuts = <?php echo json_encode(getLocalizedKeyboardShortcuts(), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
+// "Send to Open Dental" visibility: every gate must hold - the two global
+// flags plus a per-connection create opt-in. The server still enforces
+// the same checks; this only controls whether the menu item renders.
+window.dtOdSendEnabled = <?php echo $dtOdSendAvailable ? 'true' : 'false'; ?>;
 </script>
 
 <div class="main-container">
@@ -3684,6 +3704,51 @@ endif;
       </div>
       <?php endif; ?>
 
+      <!-- Send to Open Dental dialog (Phase 3) -->
+      <div id="odSendCaseModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="odSendCaseTitle">
+        <div class="modal-content od-send-modal">
+          <div class="modal-header">
+            <h2 class="modal-title" id="odSendCaseTitle"><?php echo t('od_send.dialog_title'); ?></h2>
+            <button type="button" class="btn-close" id="odSendCaseClose"><span>&times;</span></button>
+          </div>
+          <div class="modal-body od-send-body">
+            <p id="odSendCaseSummary" class="section-description"></p>
+            <div id="odSendCaseStatus" class="od-send-status" style="display:none;"></div>
+            <div id="odSendCaseError" class="error-message" style="display:none;"></div>
+
+            <div id="odSendPickers">
+              <div class="od-send-picker" id="odSendPatientPicker" style="display:none;">
+                <div class="od-send-picker-title"><?php echo t('od_send.patient_picker_label'); ?></div>
+                <p class="field-note"><?php echo t('od_send.patient_hint'); ?></p>
+                <div class="od-send-search-row od-send-field-row">
+                  <input type="text" id="odSendPatLName" class="od-send-input" placeholder="<?php echo htmlspecialchars(t('od_send.patient_lname')); ?>" aria-label="<?php echo htmlspecialchars(t('od_send.patient_lname')); ?>">
+                  <input type="text" id="odSendPatFName" class="od-send-input" placeholder="<?php echo htmlspecialchars(t('od_send.patient_fname')); ?>" aria-label="<?php echo htmlspecialchars(t('od_send.patient_fname')); ?>">
+                  <input type="date" id="odSendPatDob" class="od-send-input" aria-label="<?php echo htmlspecialchars(t('od_send.patient_dob')); ?>">
+                  <button type="button" class="btn-secondary" id="odSendPatSearch"><?php echo t('od_send.search'); ?></button>
+                </div>
+                <div id="odSendPatCandidates" class="od-send-candidates" role="listbox" aria-label="<?php echo htmlspecialchars(t('od_send.patient_picker_label')); ?>"></div>
+              </div>
+
+              <div class="od-send-picker" id="odSendProviderPicker" style="display:none;">
+                <label class="od-send-picker-title" for="odSendProviderSelect"><?php echo t('od_send.provider_label'); ?></label>
+                <p class="field-note" id="odSendProviderHint"></p>
+                <select id="odSendProviderSelect" class="od-send-select"></select>
+              </div>
+
+              <div class="od-send-picker" id="odSendLabPicker" style="display:none;">
+                <label class="od-send-picker-title" for="odSendLabSelect"><?php echo t('od_send.laboratory_label'); ?></label>
+                <p class="field-note"><?php echo t('od_send.laboratory_hint'); ?></p>
+                <select id="odSendLabSelect" class="od-send-select"></select>
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn-primary" id="odSendCaseConfirm"><?php echo t('od_send.send_now'); ?></button>
+            <button type="button" class="btn-cancel" id="odSendCaseCancel"><?php echo t('common.cancel'); ?></button>
+          </div>
+        </div>
+      </div>
+
       <div class="main-copyright">&copy; <?php echo date('Y'); ?> <?php echo htmlspecialchars($appConfig['appName']); ?>. All rights reserved.</div>
     </main>
   </div>
@@ -3958,6 +4023,7 @@ endif;
   <script src="<?= appAssetUrl('js/realtime-updates.js') ?>" defer></script>
   <script src="<?= appAssetUrl('js/case-list.js') ?>" defer></script>
   <script src="<?= appAssetUrl('js/case-actions-menu.js') ?>" defer></script>
+  <script src="<?= appAssetUrl('js/od-send-case.js') ?>" defer></script>
   <script src="<?= appAssetUrl('js/case-remakes.js') ?>" defer></script>
   
 <?php if ($showDevTools): ?>

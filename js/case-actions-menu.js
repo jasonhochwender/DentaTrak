@@ -142,6 +142,12 @@
     if (!cardData.archived) {
       parts.push('<button type="button" class="case-actions-menu-item" data-action="remake" role="menuitem">' + esc(t('remakes.record_remake')) + '</button>');
     }
+    // Phase 3: "Send to Open Dental" renders only when the page flag says
+    // a create-enabled connection exists for this practice; the endpoint
+    // re-enforces every gate server-side, so this is purely visibility.
+    if (window.pmsSync && window.pmsSync.odCreateEnabled === true && !cardData.archived) {
+      parts.push('<button type="button" class="case-actions-menu-item" data-action="send_to_od" role="menuitem">' + esc(t('od_send.menu_item')) + '</button>');
+    }
 
     var showArchive = isArchiveAllowed() && !cardData.archived;
     if (showArchive) {
@@ -273,6 +279,11 @@
       if (cardData && cardData.archived) return;
       if (typeof window.openCaseRemakesModal === 'function') {
         window.openCaseRemakesModal(ctx.caseId);
+      }
+    } else if (action === 'send_to_od') {
+      close(false);
+      if (window.odSendCase && typeof window.odSendCase.open === 'function') {
+        window.odSendCase.open(ctx.caseId);
       }
     } else if (action === 'archive') {
       close(false);

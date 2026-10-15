@@ -339,24 +339,21 @@ class IntegrationOutbound {
             if ($existing) {
                 return ['enqueued' => false, 'reason' => 'already_mapped'];
             }
-            // Same office-timezone requirement as lifecycle writes: every
-            // datetime field in a create payload is interpreted by Open
-            // Dental as office-local wall time, so a UTC instant must be
-            // converted (or rejected) here - never at write time.
+            // Office timezone is mandatory: Open Dental reads LabCase
+            // datetimes as office-local wall time.
             $tz = self::officeTimezone($conn);
             if ($tz === null) {
                 return ['enqueued' => false, 'reason' => 'timezone_unconfigured'];
             }
-            // Create fingerprint: the enqueue instant rides along as
-            // DateTimeCreated (converted to office-local) so a timed-out
-            // POST can be recovered instead of duplicated.
+            // PAYLOAD CONTRACT: every DateTime* field the caller supplies is
+            // already office-local "yyyy-MM-dd HH:mm:ss" (resolveCaseCreate
+            // converts status_changed_at - a UTC instant - at build time and
+            // passes due_date wall-clock through untouched). The only value
+            // generated here is the DateTimeCreated fingerprint: the enqueue
+            // instant (UTC) converted to office-local so a timed-out POST
+            // can be recovered instead of duplicated.
             if (empty($payload['DateTimeCreated'])) {
-                $payload['DateTimeCreated'] = gmdate('Y-m-d H:i:s');
-            }
-            foreach ($payload as $k => $v) {
-                if (strncmp($k, 'DateTime', 8) === 0) {
-                    $payload[$k] = self::toOfficeLocal($v, $tz) ?? $v;
-                }
+                $payload['DateTimeCreated'] = self::toOfficeLocal(gmdate('Y-m-d H:i:s'), $tz);
             }
             return self::enqueue(
                 $pdo, (int)$conn['id'], $practiceId, self::OP_CREATE_LABCASE,
@@ -365,6 +362,358 @@ class IntegrationOutbound {
         }
 
         return ['enqueued' => false, 'reason' => 'creates_disabled'];
+    }
+
+    /**
+     * Stable local patient key derived from the case's decrypted patient
+     * identity fields. The same key is attached to the patient support
+     * mapping during inbound import/update, so a later DentaTrak-native
+     * case for the same patient resolves PatNum without a picker. The key
+     * is a keyed hash of normalized (lowercased, whitespace-collapsed)
+     * name + DOB - never the raw values - so the mappings table stays
+     * PHI-free. Returns null when identity fields are unusable.
+     */
+    public static function localPatientKey(?string $first, ?string $last, ?string $dob): ?string {
+        $f = self::normPersonPart($first);
+        $l = self::normPersonPart($last);
+        if ($f === '' && $l === '') {
+            return null;
+        }
+        $d = '';
+        if (is_string($dob) && trim($dob) !== '') {
+            $ts = strtotime(trim($dob));
+            if ($ts !== false) {
+                $d = gmdate('Y-m-d', $ts);
+            } else {
+                // Unparseable DOB still contributes entropy so two patients
+                // sharing a name but differing DOB text do not collide.
+                $d = self::normPersonPart($dob);
+            }
+        }
+        // internal_id is varchar(64): 'pat_' + 60 hex chars fits exactly.
+        return 'pat_' . substr(hash('sha256', $f . '|' . $l . '|' . $d), 0, 60);
+    }
+
+    /**
+     * Stable local provider key from the case's dentist/provider name.
+     * Same rationale as localPatientKey: inbound import attaches it to the
+     * provider support mapping so outbound create can resolve ProvNum.
+     */
+    public static function localProviderKey(?string $providerName): ?string {
+        $n = self::normPersonPart($providerName);
+        return $n === '' ? null : 'prov_' . substr(hash('sha256', $n), 0, 59);
+    }
+
+    private static function normPersonPart(?string $v): string {
+        if (!is_string($v)) {
+            return '';
+        }
+        $v = mb_strtolower(trim($v));
+        return (string)preg_replace('/\s+/u', ' ', $v);
+    }
+
+    /**
+     * Attach local identity keys to the patient/provider support mappings
+     * an inbound event touches. attachInternalId refuses to overwrite a
+     * populated internal_id, so an existing link can never be silently
+     * re-pointed; a changed patient name simply yields a different key and
+     * misses, which is the desired conservative behavior. Identity values
+     * (names/DOB) never reach the mappings table - only their hashes do.
+     */
+    public static function recordIdentityMappings(PDO $pdo, int $connectionId, CanonicalCase $canonical): void {
+        $pairs = [
+            [SyncEngine::ENTITY_PATIENT,  $canonical->externalPatientId,
+                self::localPatientKey($canonical->patientFirstName, $canonical->patientLastName, $canonical->patientDob)],
+            [SyncEngine::ENTITY_PROVIDER, $canonical->externalProviderId,
+                self::localProviderKey($canonical->providerName)],
+        ];
+        foreach ($pairs as [$entityType, $externalId, $localKey]) {
+            if ($externalId === null || $externalId === '' || $localKey === null) {
+                continue;
+            }
+            try {
+                // reserveMapping is idempotent: an existing row is returned
+                // untouched; only a NULL internal_id gets attached below.
+                $res = SyncEngine::reserveMapping(
+                    $pdo, $connectionId, $entityType, (string)$externalId,
+                    null, null, $canonical->externalCaseId
+                );
+                $map = $res['mapping'];
+                if (empty($map['internal_id'])) {
+                    SyncEngine::attachInternalId($pdo, (int)$map['id'], 'local_key', $localKey);
+                }
+            } catch (Throwable $e) {
+                // Identity bookkeeping must never break sync.
+            }
+        }
+    }
+
+    /**
+     * The connection through which a case in this practice may be created
+     * remotely, or null. Mirrors the enqueueStatusTransition practice
+     * scoping: active + sync_enabled + outbound.enabled + create_enabled.
+     */
+    public static function createCapableConnection(PDO $pdo, int $practiceId): ?array {
+        $stmt = $pdo->prepare("
+            SELECT id, practice_id, provider, status, sync_enabled, config_json
+            FROM integration_connections
+            WHERE practice_id = :practice AND status = 'active' AND sync_enabled = 1
+            ORDER BY id ASC
+        ");
+        $stmt->execute([':practice' => $practiceId]);
+        foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) ?: [] as $conn) {
+            if (self::createsAllowed($conn)) {
+                return $conn;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Per-case outbound sync state for UI: the linked external record id
+     * and the newest outbound event status, or null when nothing exists.
+     */
+    public static function caseOutboundState(PDO $pdo, int $practiceId, string $caseId): ?array {
+        $map = $pdo->prepare("
+            SELECT m.external_id, m.connection_id
+            FROM integration_entity_mappings m
+            JOIN integration_connections c ON c.id = m.connection_id
+            WHERE m.entity_type = :etype AND m.internal_id = :id AND c.practice_id = :p
+            LIMIT 1
+        ");
+        $map->execute([':etype' => self::ENTITY_CASE, ':id' => $caseId, ':p' => $practiceId]);
+        $linked = $map->fetch(PDO::FETCH_ASSOC) ?: null;
+
+        $ev = $pdo->prepare("
+            SELECT id, operation, status, last_error, processed_at, external_entity_id
+            FROM integration_outbound_events
+            WHERE practice_id = :p AND entity_type = :etype AND internal_entity_id = :id
+            ORDER BY id DESC LIMIT 1
+        ");
+        $ev->execute([':p' => $practiceId, ':etype' => self::ENTITY_CASE, ':id' => $caseId]);
+        $latest = $ev->fetch(PDO::FETCH_ASSOC) ?: null;
+
+        if (!$linked && !$latest) {
+            return null;
+        }
+        return [
+            'linked'      => $linked !== null,
+            'external_id' => $linked ? (string)$linked['external_id']
+                                     : ($latest['external_entity_id'] ?? null),
+            'event_id'    => $latest ? (int)$latest['id'] : null,
+            'event_status'=> $latest ? (string)$latest['status'] : null,
+            'last_error'  => $latest ? ($latest['last_error'] ?? null) : null,
+        ];
+    }
+
+    /**
+     * Resolve everything a remote create for this case needs. Pure read +
+     * classification - enqueues nothing. Returns:
+     *   ok        - payload complete; enqueueCaseCreate can be called
+     *   reason    - machine key when !ok (already_linked, creates_disabled,
+     *               case_missing, timezone_unconfigured, needs_mapping)
+     *   state     - UI state hint: unlinked|linked|pending|attention
+     *   needs     - list of unresolved entity kinds: patient|provider|laboratory
+     *   resolved  - {pat_num, prov_num, laboratory_num} ids found so far
+     *   payload   - the create payload when ready (PatNum/LaboratoryNum/
+     *               ProvNum/DateTimeDue/current-stage lifecycle field)
+     *   connection- the create-capable connection row (when one exists)
+     */
+    public static function resolveCaseCreate(PDO $pdo, int $practiceId, string $caseId): array {
+        if (!self::featureEnabled()) {
+            return ['ok' => false, 'reason' => 'flag_off', 'state' => 'unavailable', 'needs' => []];
+        }
+        $connection = self::createCapableConnection($pdo, $practiceId);
+        if (!$connection) {
+            return ['ok' => false, 'reason' => 'creates_disabled', 'state' => 'unavailable', 'needs' => []];
+        }
+        $out = ['ok' => false, 'connection' => $connection, 'needs' => []];
+
+        $row = $pdo->prepare("SELECT status, status_changed_at, due_date,
+                                     patient_first_name, patient_last_name, patient_dob, dentist_name
+                              FROM cases_cache WHERE case_id = :id AND practice_id = :p LIMIT 1");
+        $row->execute([':id' => $caseId, ':p' => $practiceId]);
+        $case = $row->fetch(PDO::FETCH_ASSOC);
+        if (!$case) {
+            return $out + ['reason' => 'case_missing', 'state' => 'unavailable'];
+        }
+
+        $existing = SyncEngine::findMappingByInternalId($pdo, (int)$connection['id'], self::ENTITY_CASE, $caseId);
+        if ($existing && !empty($existing['external_id'])) {
+            return $out + ['reason' => 'already_linked', 'state' => 'linked',
+                           'external_id' => (string)$existing['external_id']];
+        }
+
+        $state = self::caseOutboundState($pdo, $practiceId, $caseId);
+        if ($state && in_array($state['event_status'], [self::STATUS_QUEUED, self::STATUS_PROCESSING], true)) {
+            return $out + ['reason' => 'pending', 'state' => 'pending', 'event_id' => $state['event_id']];
+        }
+        if ($state && in_array($state['event_status'], [self::STATUS_CONFLICT, self::STATUS_FAILED], true)) {
+            // Still resolvable - a retry may be enqueued - but report the
+            // attention state so the UI can explain the prior outcome.
+            $out['prior_state'] = $state['event_status'];
+            $out['prior_error'] = $state['last_error'];
+        }
+
+        // Decrypt identity fields the same way the inbound path compares
+        // them; undecryptable values behave as absent (fall to pickers).
+        $dec = function ($v) {
+            if (!is_string($v) || $v === '') {
+                return null;
+            }
+            try {
+                return PIIEncryption::decrypt($v);
+            } catch (Throwable $e) {
+                return $v; // stored plaintext (legacy row)
+            }
+        };
+        $first = $dec($case['patient_first_name'] ?? null);
+        $last  = $dec($case['patient_last_name'] ?? null);
+        $dob   = $dec($case['patient_dob'] ?? null);
+        $dentist = $dec($case['dentist_name'] ?? null);
+
+        $cfg = self::outboundConfig($connection);
+        $connId = (int)$connection['id'];
+        $resolved = [];
+
+        $patKey = self::localPatientKey($first, $last, $dob);
+        if ($patKey !== null) {
+            $pm = SyncEngine::findMappingByInternalId($pdo, $connId, SyncEngine::ENTITY_PATIENT, $patKey);
+            if ($pm && !empty($pm['external_id'])) {
+                $resolved['pat_num'] = (int)$pm['external_id'];
+            }
+        }
+        if (empty($resolved['pat_num'])) {
+            $out['needs'][] = 'patient';
+            $out['patient_search'] = ['lname' => $last, 'fname' => $first, 'birthdate' => $dob];
+        }
+
+        $provKey = self::localProviderKey($dentist);
+        if ($provKey !== null) {
+            $vm = SyncEngine::findMappingByInternalId($pdo, $connId, SyncEngine::ENTITY_PROVIDER, $provKey);
+            if ($vm && !empty($vm['external_id'])) {
+                $resolved['prov_num'] = (int)$vm['external_id'];
+            }
+        }
+        if (empty($resolved['prov_num'])) {
+            $out['needs'][] = 'provider';
+            $out['provider_name'] = $dentist; // display context for the picker
+        }
+
+        $labNum = (int)($cfg['laboratory_num'] ?? 0);
+        if ($labNum > 0) {
+            $resolved['laboratory_num'] = $labNum;
+        } else {
+            $out['needs'][] = 'laboratory';
+        }
+
+        if (!empty($out['needs'])) {
+            return $out + ['reason' => 'needs_mapping', 'state' => 'unlinked', 'resolved' => $resolved];
+        }
+
+        $payload = [
+            'PatNum'        => $resolved['pat_num'],
+            'LaboratoryNum' => $resolved['laboratory_num'],
+            'ProvNum'       => $resolved['prov_num'],
+        ];
+
+        $tz = self::officeTimezone($connection);
+        if ($tz === null) {
+            return $out + ['reason' => 'timezone_unconfigured', 'state' => 'unlinked', 'resolved' => $resolved];
+        }
+
+        // Due date rides along when the case has one - a create cannot
+        // overwrite remote authority because the record does not exist
+        // yet. cases_cache.due_date is already wall-clock (user-entered
+        // office-local), so it passes through unconverted.
+        $due = trim((string)($case['due_date'] ?? ''));
+        if ($due !== '' && preg_match('/^\d{4}-\d{2}-\d{2}/', $due) === 1) {
+            if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $due) === 1) {
+                $due .= ' 00:00:00';
+            }
+            if (preg_match('/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/', $due) === 1) {
+                $payload['DateTimeDue'] = $due;
+            }
+        }
+
+        // When the case already sits in a lifecycle-mapped stage, stamp
+        // that transition's original timestamp on the new remote record.
+        $fieldMap = isset($cfg['field_map']) && is_array($cfg['field_map']) ? $cfg['field_map'] : [];
+        $odField = $fieldMap[$case['status'] ?? ''] ?? null;
+        if (is_string($odField) && in_array($odField, self::ALLOWED_REMOTE_FIELDS, true)) {
+            $when = self::toOfficeLocal($case['status_changed_at'] ?? null, $tz);
+            if ($when !== null) {
+                $payload[$odField] = $when;
+            }
+        }
+
+        // $out already carries ok=false - union would keep it, so assign
+        // explicitly rather than relying on the + operator.
+        $out['ok'] = true;
+        return $out + ['reason' => null, 'state' => 'unlinked',
+                       'resolved' => $resolved, 'payload' => $payload];
+    }
+
+    /**
+     * Persist the user's create-time selections as reusable mappings:
+     *   PatNum        -> patient entity mapping keyed by localPatientKey
+     *   ProvNum       -> provider entity mapping keyed by localProviderKey
+     *   LaboratoryNum -> connection default outbound.laboratory_num
+     * Each is only written when the case produced a derivable local key;
+     * callers have already verified the remote ids exist via the adapter.
+     */
+    public static function persistCreateSelections(PDO $pdo, int $connectionId, string $caseId, int $practiceId, array $sel): void {
+        $row = $pdo->prepare("SELECT patient_first_name, patient_last_name, patient_dob, dentist_name
+                              FROM cases_cache WHERE case_id = :id AND practice_id = :p LIMIT 1");
+        $row->execute([':id' => $caseId, ':p' => $practiceId]);
+        $case = $row->fetch(PDO::FETCH_ASSOC);
+        if (!$case) {
+            return;
+        }
+        $dec = function ($v) {
+            if (!is_string($v) || $v === '') {
+                return null;
+            }
+            try {
+                return PIIEncryption::decrypt($v);
+            } catch (Throwable $e) {
+                return $v;
+            }
+        };
+
+        if (!empty($sel['pat_num'])) {
+            $key = self::localPatientKey(
+                $dec($case['patient_first_name'] ?? null),
+                $dec($case['patient_last_name'] ?? null),
+                $dec($case['patient_dob'] ?? null));
+            if ($key !== null) {
+                try {
+                    $res = SyncEngine::reserveMapping(
+                        $pdo, $connectionId, SyncEngine::ENTITY_PATIENT, (string)$sel['pat_num'],
+                        null, null, null);
+                    if (empty($res['mapping']['internal_id'])) {
+                        SyncEngine::attachInternalId($pdo, (int)$res['mapping']['id'], 'local_key', $key);
+                    }
+                } catch (Throwable $e) { /* best-effort */ }
+            }
+        }
+        if (!empty($sel['prov_num'])) {
+            $key = self::localProviderKey($dec($case['dentist_name'] ?? null));
+            if ($key !== null) {
+                try {
+                    $res = SyncEngine::reserveMapping(
+                        $pdo, $connectionId, SyncEngine::ENTITY_PROVIDER, (string)$sel['prov_num'],
+                        null, null, null);
+                    if (empty($res['mapping']['internal_id'])) {
+                        SyncEngine::attachInternalId($pdo, (int)$res['mapping']['id'], 'local_key', $key);
+                    }
+                } catch (Throwable $e) { /* best-effort */ }
+            }
+        }
+        if (!empty($sel['laboratory_num'])) {
+            self::updateOutboundConfig($pdo, $connectionId,
+                ['laboratory_num' => (int)$sel['laboratory_num']]);
+        }
     }
 
     /**
@@ -404,7 +753,11 @@ class IntegrationOutbound {
             SyncEngine::assertDetailSafe($expectedRemote);
         }
 
-        $dedupKey = hash('sha256', $operation . '|' . ($externalId ?? '') . '|' . self::canonicalJson($payload));
+        // internal_entity_id is part of the key so two DIFFERENT cases
+        // resolving to identical create payloads (same patient/provider/
+        // lab, same-second fingerprint) can never collapse into one event
+        // - that would silently skip the second case's remote record.
+        $dedupKey = hash('sha256', $operation . '|' . $internalId . '|' . ($externalId ?? '') . '|' . self::canonicalJson($payload));
         $ownTransaction = !$pdo->inTransaction();
         if ($ownTransaction) {
             $pdo->beginTransaction();
@@ -446,7 +799,7 @@ class IntegrationOutbound {
 
             if ($siblings) {
                 // Recompute dedup against the merged payload.
-                $dedupKey = hash('sha256', $operation . '|' . ($externalId ?? '') . '|' . self::canonicalJson($payload));
+                $dedupKey = hash('sha256', $operation . '|' . $internalId . '|' . ($externalId ?? '') . '|' . self::canonicalJson($payload));
                 $ids = implode(',', array_map('intval', array_column($siblings, 'id')));
                 $pdo->exec("UPDATE integration_outbound_events
                             SET status = '" . self::STATUS_SUPERSEDED . "',
@@ -878,7 +1231,11 @@ class IntegrationOutbound {
                 $created = self::odDateOrNull($row['DateTimeCreated'] ?? null);
                 $num = (int)($row['LabCaseNum'] ?? 0);
                 if ($created === $fingerprint && $num > 0) {
-                    self::attachCreatedMapping($pdo, $connectionId, $connection, $caseId, $num, $patNum, $row, $eventId);
+                    $attach = self::attachCreatedMapping($pdo, $connectionId, $connection, $caseId, $num, $patNum, $row, $eventId);
+                    if ($attach === false) {
+                        return self::finalize($pdo, $eventId, self::STATUS_CONFLICT,
+                            'Recovered external record is already linked to a different case.');
+                    }
                     return self::finalize($pdo, $eventId, self::STATUS_DELIVERED,
                         'Recovered previously created external record.');
                 }
@@ -896,7 +1253,11 @@ class IntegrationOutbound {
             return self::scheduleRetry($pdo, $eventId, $event,
                 'Create response did not include an external identifier.');
         }
-        self::attachCreatedMapping($pdo, $connectionId, $connection, $caseId, $newNum, $patNum > 0 ? $patNum : null, $created, $eventId);
+        $attach = self::attachCreatedMapping($pdo, $connectionId, $connection, $caseId, $newNum, $patNum > 0 ? $patNum : null, $created, $eventId);
+        if ($attach === false) {
+            return self::finalize($pdo, $eventId, self::STATUS_CONFLICT,
+                'Created external record is already linked to a different case.');
+        }
         self::logCaseSyncActivity($caseId, 'integration_outbound_created', $connection['provider'] ?? 'unknown', $eventId, []);
 
         return self::finalize($pdo, $eventId, self::STATUS_DELIVERED,
@@ -908,19 +1269,26 @@ class IntegrationOutbound {
      * fingerprint-recovered) external record, then stamp provenance.
      * Reuses SyncEngine's claim-before-attach primitives so a concurrent
      * inbound event for the same LabCaseNum converges on one mapping.
+     * Returns false when the external id is already mapped to a DIFFERENT
+     * internal case - the caller surfaces that as a conflict rather than
+     * stealing or duplicating the linkage.
      */
-    private static function attachCreatedMapping(PDO $pdo, int $connectionId, array $connection, string $caseId, int $externalNum, ?int $patNum, array $remoteRow, int $eventId): void {
+    private static function attachCreatedMapping(PDO $pdo, int $connectionId, array $connection, string $caseId, int $externalNum, ?int $patNum, array $remoteRow, int $eventId): bool {
         $reservation = SyncEngine::reserveMapping(
             $pdo, $connectionId, SyncEngine::ENTITY_CASE, (string)$externalNum,
             'case', $caseId,
             $patNum !== null ? (string)$patNum : null
         );
         $mapping = $reservation['mapping'];
+        if (!empty($mapping['internal_id']) && (string)$mapping['internal_id'] !== $caseId) {
+            return false; // claimed by another case - do not re-point
+        }
         if (empty($mapping['internal_id'])) {
             SyncEngine::attachInternalId($pdo, (int)$mapping['id'], 'case', $caseId);
             $mapping = SyncEngine::findMapping($pdo, $connectionId, SyncEngine::ENTITY_CASE, (string)$externalNum) ?: $mapping;
         }
         self::stampOutboundProvenance($pdo, (int)$mapping['id'], $remoteRow, $eventId, []);
+        return true;
     }
 
     // ----------------------------------------------------------------------

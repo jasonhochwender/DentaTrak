@@ -359,6 +359,12 @@ class IntegrationEvents {
         // Supporting entity mappings as external metadata (no first-class
         // DentaTrak counterpart exists yet - internal_id stays NULL).
         self::reserveSupportMappings($pdo, $connectionId, $canonical, $externalCaseId);
+        // Attach local identity keys (hashed, never raw PHI) so outbound
+        // create can resolve PatNum/ProvNum for DentaTrak-native cases of
+        // the same patient/provider without a manual picker.
+        if (class_exists('IntegrationOutbound')) {
+            IntegrationOutbound::recordIdentityMappings($pdo, $connectionId, $canonical);
+        }
 
         return self::finalize($pdo, $eventId, self::STATUS_PROCESSED, null);
     }
@@ -485,6 +491,12 @@ class IntegrationEvents {
         // it is integration bookkeeping, not a case write.
         self::updateMappingProvenance($pdo, (int)$mapping['id'], $canonical, $eventId);
         SyncEngine::touchMapping($pdo, (int)$mapping['id']);
+        // Same opportunistic identity-key attachment as the import path:
+        // updates keep patient/provider local-key mappings populated as
+        // new external entities appear on this connection.
+        if (class_exists('IntegrationOutbound')) {
+            IntegrationOutbound::recordIdentityMappings($pdo, (int)$connection['id'], $canonical);
+        }
 
         if (empty($changes)) {
             // Loop suppression: when this event's watermark is the
