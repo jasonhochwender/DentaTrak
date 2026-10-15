@@ -1,10 +1,12 @@
-# Open Dental Two-Way Sync — Phase 2 Design + Field Mapping Proposal
+# Open Dental Two-Way Sync — Design + Field Mapping (GA)
 
-Status: **infrastructure implemented, writes disabled everywhere.** Nothing
-here pushes data to Open Dental until (a) the `PMS_OUTBOUND_SYNC` feature
-flag is enabled server-side, (b) the connection's
-`config_json.outbound.enabled` is set, and (c) a `field_map` is configured.
-This document is the approval gate for those settings.
+Status: **generally available.** `PMS_OUTBOUND_SYNC` defaults on (env remains
+the global kill switch) and every subscription plan may use the integration.
+A connection still pushes nothing until an administrator explicitly enables
+two-way sync in Settings → Integrations → Open Dental — which verifies office
+health, this customer key's `ApiAllOthers` permission, and a configured IANA
+timezone, then applies the approved field map automatically. Write access is
+never assumed across keys or practices.
 
 ## Architecture
 
@@ -14,8 +16,10 @@ This document is the approval gate for those settings.
 | Enqueue | `IntegrationOutbound::enqueueStatusTransition()` | called after successful status writes in `update-case-status.php`, `update-case.php`, and the column-archive bulk move in `workflow-columns.php` |
 | Worker | `IntegrationOutbound::processDue()` | drained by the **same** Cloud Scheduler endpoint (`api/integration-event-worker.php`) and CLI (`process-events.php`) as inbound — no new infra |
 | Adapter writes | `OpenDentalAdapter::updateLabCase()` / `createLabCase()` | `PUT /labcases/{num}` / `POST /labcases`; both refuse (`writes_disabled`) unless the adapter was built with `writesEnabled` from `config_json.outbound.enabled` |
-| Capability probe | `check_outbound_capability` action → `GET /securityperms` | read-only; reports whether the office key has `ApiAllOthers` |
-| Config action | `update_outbound_config` action | admin-only; sets `enabled` / `create_enabled` / `timezone` / `field_map` on `config_json.outbound`, validates IANA timezone + lifecycle-field whitelist, audit-logged |
+| Capability probe | `GET /securityperms` inside verify-on-enable | records `capability` (checked_at, has_permission, permission, min_od_version) for the settings UI; `ApiAllOthers` required before `enabled` honors |
+| Config action | `update_outbound_config` action | admin-only; sets `enabled` / `create_enabled` / `timezone` / `laboratory_num` / `field_map` on `config_json.outbound`; enable runs health + permission probes and seeds the default map; disable needs no probes and never touches inbound |
+| Retry action | `retry_outbound_failed` action | admin-only; requeues `failed` rows only — `conflict` rows stay parked for human reconciliation |
+| Lookup action | `list_od_lookups` action | admin-only read of the office's provider/laboratory directories for the default-lab picker |
 
 ### Dedup / coalescing
 - `dedup_key = sha256(operation | external_id | canonical payload)` with `UNIQUE(connection_id, dedup_key)` — re-enqueueing the identical change is a no-op; an identical re-assertion against a terminal row resurrects it as `queued`.
