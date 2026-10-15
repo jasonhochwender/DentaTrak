@@ -358,7 +358,15 @@
    */
   function sanitizeHtml(html) {
     if (!html) return '';
-    var allowed = { P: 1, STRONG: 1, EM: 1, UL: 1, OL: 1, LI: 1, BR: 1, CODE: 1 };
+    var allowed = { P: 1, STRONG: 1, EM: 1, UL: 1, OL: 1, LI: 1, BR: 1, CODE: 1, A: 1 };
+    // Mirror of the server-side href whitelist in sanitizeAskHtml(): only
+    // in-app case links, Insights anchors and the billing deep link keep a
+    // working href; any other anchor is unwrapped to plain text.
+    var allowedHref = function (href) {
+      return /^main\.php\?case=[A-Za-z0-9_-]{1,64}$/.test(href)
+        || /^#insights(?:\/[a-z]+)?$/.test(href)
+        || href === '?billing=1';
+    };
     var template = document.createElement('template');
     template.innerHTML = html;
     var walker = document.createTreeWalker(template.content, NodeFilter.SHOW_ELEMENT);
@@ -367,6 +375,16 @@
       var el = walker.currentNode;
       if (!allowed[el.tagName]) {
         toStrip.push(el);
+      } else if (el.tagName === 'A') {
+        var href = el.getAttribute('href') || '';
+        if (allowedHref(href)) {
+          while (el.attributes.length) {
+            el.removeAttribute(el.attributes[0].name);
+          }
+          el.setAttribute('href', href);
+        } else {
+          toStrip.push(el); // unsafe href: keep the text, drop the link
+        }
       } else {
         while (el.attributes.length) {
           el.removeAttribute(el.attributes[0].name);

@@ -287,7 +287,7 @@ function askToolAppliedFilters(array $params): array {
         'status', 'case_type', 'overdue', 'open_only', 'missing_due_date',
         'due_on', 'due_within_days', 'due_from', 'due_to',
         'created_within_days', 'created_from', 'created_to',
-        'updated_within_days', 'not_updated_within_days',
+        'updated_within_days', 'not_updated_within_days', 'status_unchanged_for_days',
         'completed_within_days', 'completed_from', 'completed_to',
         'assigned_to_me', 'assignee', 'creator', 'unassigned', 'lab',
         'patient_name', 'include_archived',
@@ -447,6 +447,23 @@ function askToolCaseFilters(int $practiceId, array $params): array {
     if (($days = askToolInt($params['not_updated_within_days'] ?? null, 1, 3660)) !== null) {
         $where[] = "STR_TO_DATE(LEFT(COALESCE(c.last_update_date, '1970-01-01'), 10), '%Y-%m-%d') <= :stale_before";
         $bind[':stale_before'] = askToolDayShift('-' . $days . ' days');
+    }
+
+    // "Sitting in the same status" / stagnant cases: the status itself has
+    // not changed for at least N days (status_changed_at stamp; cases with
+    // no stamp fall back to creation so never-moved cases still qualify).
+    // Workload-shaped like missing_due_date/unassigned: defaults to OPEN
+    // cases unless an explicit status/completion filter overrides.
+    if (($days = askToolInt($params['status_unchanged_for_days'] ?? null, 1, 3660)) !== null) {
+        $where[] = "COALESCE(c.status_changed_at, STR_TO_DATE(LEFT(c.creation_date,10),'%Y-%m-%d')) <= :unchanged_before";
+        $bind[':unchanged_before'] = askToolDayShift('-' . $days . ' days') . ' 00:00:00';
+        if (empty($params['status']) && empty($params['completed_within_days'])
+            && askToolDate($params['completed_from'] ?? null) === null
+            && askToolDate($params['completed_to'] ?? null) === null) {
+            $in = [];
+            foreach ($doneStatuses as $i => $s) { $in[] = ':sud_done' . $i; $bind[':sud_done' . $i] = $s; }
+            $where[] = 'c.status NOT IN (' . implode(',', $in) . ')';
+        }
     }
 
     if (($days = askToolInt($params['completed_within_days'] ?? null, 0, 366)) !== null) {
@@ -659,6 +676,12 @@ function askToolListCases(PDO $pdo, int $practiceId, array $params): array {
         case 'created':
             $orderBy = "STR_TO_DATE(LEFT(COALESCE(c.creation_date, '1970-01-01'), 10), '%Y-%m-%d') $sortOrder, c.case_id ASC";
             break;
+        case 'status_age':
+            // Longest time in the CURRENT status first: oldest
+            // status_changed_at wins; cases never moved rank by creation
+            // date so "untouched since intake" still surfaces.
+            $orderBy = "COALESCE(c.status_changed_at, STR_TO_DATE(LEFT(COALESCE(c.creation_date,'1970-01-01'),10),'%Y-%m-%d')) ASC, c.case_id ASC";
+            break;
         default:
             // Due-date order is the default: soonest first, no-due-date last.
             $sort = 'due';
@@ -669,7 +692,8 @@ function askToolListCases(PDO $pdo, int $practiceId, array $params): array {
         "SELECT c.case_id,
                 c.patient_first_name, c.patient_last_name,
                 c.dentist_name, c.case_type, c.status, c.due_date,
-                c.assigned_to, c.patient_appointment_date, c.last_update_date
+                c.assigned_to, c.patient_appointment_date, c.last_update_date,
+                COALESCE(c.status_changed_at, STR_TO_DATE(LEFT(COALESCE(c.creation_date,'1970-01-01'),10),'%Y-%m-%d')) AS status_since
          FROM cases_cache c
          INNER JOIN authorized_case_ids a ON a.case_id = c.case_id COLLATE utf8mb4_unicode_ci
          WHERE $where
@@ -680,6 +704,13 @@ function askToolListCases(PDO $pdo, int $practiceId, array $params): array {
     $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
     foreach ($rows as &$row) {
         askToolNameFields($row);
+        // Whole days the case has been in its current status - lets the
+        // composer answer "sitting the longest" concretely.
+        $since = $row['status_since'] ?? null;
+        $row['days_in_status'] = ($since && preg_match('/^\d{4}-\d{2}-\d{2}/', (string)$since))
+            ? askToolDayDiff(substr((string)$since, 0, 10), askToolToday())
+            : null;
+        unset($row['status_since']);
     }
     unset($row);
 

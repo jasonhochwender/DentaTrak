@@ -243,6 +243,87 @@ check('no practice-level enablement remnants anywhere',
     && strpos(file_get_contents(__DIR__ . '/../api/get-settings.php'), 'ask_dentatrak_enabled') === false
     && strpos(file_get_contents(__DIR__ . '/../api/save-settings.php'), 'askDentatrakEnabled') === false);
 
+/* ── 5b. Product-knowledge corpus (flag-aware, t()-sourced) ───────────── */
+
+require_once __DIR__ . '/../api/ask-dentatrak-help.php';
+require_once __DIR__ . '/../api/ask-dentatrak-telemetry.php';
+require_once __DIR__ . '/../api/i18n.php';
+
+$corpus = buildAskDentatrakHelpText(1);
+
+check('corpus explains the verified add-user flow (email -> Add User -> roles -> Save)',
+    strpos($corpus, 'Add User') !== false
+    && stripos($corpus, 'email') !== false
+    && stripos($corpus, 'invitation') !== false);
+
+check('corpus lists supported attachment types from the upload allowlist',
+    strpos($corpus, 'stl') !== false
+    && stripos($corpus, '3D') !== false
+    && strpos($corpus, 'pdf') !== false);
+
+check('corpus links only supported in-app destinations',
+    strpos($corpus, 'main.php?case=') !== false
+    && strpos($corpus, '#insights') !== false
+    && strpos($corpus, '?billing=1') !== false);
+
+// Revision history is behind SHOW_REVISION_HISTORY (off in this dev env):
+// the corpus must not describe a tab the user cannot see.
+check('corpus gates revision-history help on SHOW_REVISION_HISTORY',
+    isFeatureEnabled('SHOW_REVISION_HISTORY')
+        === (strpos($corpus, 'revision history') !== false),
+    'flag=' . var_export(isFeatureEnabled('SHOW_REVISION_HISTORY'), true));
+
+check('corpus gates comments help on SHOW_COMMENTS',
+    isFeatureEnabled('SHOW_COMMENTS')
+        === (strpos($corpus, '@mentions') !== false));
+
+// Open Dental knowledge (flag on in this dev env): full GA surface.
+if (isFeatureEnabled('SHOW_PMS_INTEGRATIONS')) {
+    check('corpus documents the OD toolbar button with exact launch URL',
+        strpos($corpus, '/od-launch.php?pat=[PatNum]') !== false
+        && stripos($corpus, 'Program Links') !== false
+        && stripos($corpus, 'leave blank') !== false);
+
+    check('corpus documents two-way sync opt-in, permission and version floor',
+        strpos($corpus, 'All Others') !== false
+        && strpos($corpus, '24.4.19') !== false
+        && stripos($corpus, 'opt-in') !== false);
+
+    check('corpus states the no-overwrite + no-auto-create safeguards',
+        stripos($corpus, 'never overwritten') !== false
+        && stripos($corpus, 'Send to Open Dental') !== false
+        && stripos($corpus, 'never auto-creates') !== false);
+
+    check('corpus scopes what outbound writes do NOT include',
+        stripos($corpus, 'comments, attachments') !== false
+        && stripos($corpus, 'never sent') !== false);
+} else {
+    check('corpus omits Open Dental guidance when PMS integrations flag is off',
+        strpos($corpus, 'od-launch.php') === false
+        && strpos($corpus, 'Open Dental') === false);
+}
+
+// New telemetry topics registered for OD/lab/theme coverage.
+check('telemetry topics include Open Dental and stale-status topics',
+    in_array('open_dental', askTelemetryTopics(), true)
+    && in_array('od_two_way_sync', askTelemetryTopics(), true)
+    && in_array('case_stale_status', askTelemetryTopics(), true)
+    && in_array('waiting_on_lab', askTelemetryTopics(), true));
+
+// Panel sanitizer must keep the server's whitelisted links clickable.
+$js = file_get_contents(__DIR__ . '/../js/ask-dentatrak.js');
+check('client sanitizer allows whitelisted A tags (case/insights/billing links)',
+    strpos($js, 'A: 1') !== false
+    && strpos($js, 'main\\.php\\?case=') !== false
+    && strpos($js, '#insights') !== false
+    && strpos($js, '?billing=1') !== false);
+
+// The stale-status tool contract exists (filter + sort + row field).
+check('status_unchanged_for_days filter and status_age sort are wired',
+    strpos($src, 'status_unchanged_for_days') !== false
+    && strpos($src, 'status_age') !== false
+    && strpos($src, 'days_in_status') !== false);
+
 /* ── 6. Live authorization checks (dev DB) ────────────────────────────── */
 
 $dbOk = false;
@@ -289,7 +370,7 @@ if (!$dbOk) {
             $r['ok'] && $r['data']['total_matching'] === $allCount);
         check('admin list rows carry only bounded display fields',
             $r['ok'] && empty(array_diff(array_keys($r['data']['cases'][0] ?? []),
-                ['case_id','patient_name','dentist_name','case_type','status','due_date','assigned_to','patient_appointment_date','last_update_date'])));
+                ['case_id','patient_name','dentist_name','case_type','status','due_date','assigned_to','patient_appointment_date','last_update_date','days_in_status'])));
 
         // -- Cross-practice denial ----------------------------------------
         $otherCase = $pdo->query(

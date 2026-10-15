@@ -326,6 +326,7 @@ function buildAskPlannerPrompt(int $practiceId): string {
         'created_from' => 'YYYY-MM-DD', 'created_to' => 'YYYY-MM-DD',
         'updated_within_days' => '0-3660',
         'not_updated_within_days' => '1-3660, cases with no update for at least N days',
+        'status_unchanged_for_days' => '1-3660, cases stuck in the SAME status for at least N days (open-only by default; pass status to override) - "sitting/stuck/stagnant in a status" questions',
         'completed_within_days' => '0-366',
         'completed_from' => 'YYYY-MM-DD', 'completed_to' => 'YYYY-MM-DD (date the case reached the final workflow stage)',
         'assigned_to_me' => 'true ONLY for explicit self-assignment wording ("assigned to me", "my workload", "my assigned cases") - bare "my cases"/"my open cases" means the whole authorized scope and the server strips unjustified self-scope',
@@ -352,7 +353,7 @@ function buildAskPlannerPrompt(int $practiceId): string {
 
     $toolSpec = json_encode([
         ['name' => 'count_cases', 'description' => 'Count authorized cases matching filters', 'params' => $caseFilters],
-        ['name' => 'list_cases', 'description' => 'List authorized cases (bounded fields) matching filters; each row has case_id, patient_name, dentist_name, case_type, status, due_date, assigned_to, patient_appointment_date, last_update_date', 'params' => array_merge($caseFilters, ['limit' => 'optional, max ' . ASK_TOOL_LIST_LIMIT, 'sort' => 'due (default) | updated | created', 'sort_order' => 'asc | desc (default desc for updated/created)'])],
+        ['name' => 'list_cases', 'description' => 'List authorized cases (bounded fields) matching filters; each row has case_id, patient_name, dentist_name, case_type, status, due_date, assigned_to, patient_appointment_date, last_update_date, days_in_status', 'params' => array_merge($caseFilters, ['limit' => 'optional, max ' . ASK_TOOL_LIST_LIMIT, 'sort' => 'due (default) | updated | created | status_age (longest in current status first)', 'sort_order' => 'asc | desc (default desc for updated/created)'])],
         ['name' => 'aggregate_cases_by_status', 'description' => 'Counts of authorized active cases grouped by workflow status', 'params' => 'none'],
         ['name' => 'aggregate_cases', 'description' => 'Counts grouped by one dimension, over filtered cases. assigned_to/lab groupings default to OPEN cases only (current workload) unless a status/open/completion filter is passed.', 'params' => array_merge($caseFilters, ['group_by' => 'REQUIRED: assigned_to | created_by | lab | case_type | status', 'limit' => 'optional, max 50'])],
         ['name' => 'case_metrics', 'description' => 'Computed metrics with explicit definitions, over authorized cases', 'params' => $metricSpec],
@@ -394,6 +395,8 @@ RULES - READ CAREFULLY:
     "who has" / "assigned to" / "workload" -> assignee / aggregate_cases group_by=assigned_to.
     "turnaround" / "cycle time" / "how long cases take" -> case_metrics turnaround.
     "remake rate" -> case_metrics remake_rate; plain "how many remakes" can use count_remakes.
+    "sitting in the same status" / "stuck" / "hasn't moved" / "stagnant" -> list_cases sort=status_age (each row's days_in_status shows how long), or status_unchanged_for_days=N for a threshold.
+    "waiting on a/the lab" / "with the lab" / "at the lab" -> list_cases or count_cases with open_only plus lab:<name> (or a Sent-to-Lab-style status filter); "what's taking so long" -> sort=status_age on open cases, then name the cases.
     "volume" / "how has volume changed" / "how many cases in <period> compared with the previous period" -> case_metrics volume with from/to for the CURRENT period; the tool computes the prior equal-length window itself.
     "open cases" / "active cases" / "currently assigned" -> open_only or the open-scoped defaults; NEVER pass status:"Open" or invent a status value.
     "my open cases" / "our cases" / "my practice's cases" -> the practice-wide scope; only add assigned_to_me when the question is about the user's own assignments ("assigned to me", "my workload"). EXAMPLE: "What percentage of my open cases are overdue?" -> case_metrics {metric:"open_overdue_share"} with NO other params. In general, never add scope filters the user did not ask for (assignee, creator, patient, case_type) - a percentage or count question means the whole authorized population unless a subgroup is named.
