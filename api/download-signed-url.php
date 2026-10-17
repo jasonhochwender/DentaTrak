@@ -122,10 +122,32 @@ try {
         $downloadFilename .= '.' . $objectExt;
     }
 
-    // Generate short-lived signed download URL configured so GCS serves the
-    // object with Content-Disposition: attachment - browser-viewable types
-    // (JPG/PNG/PDF) then download instead of rendering inline.
-    $signedUrl = generateSignedDownloadUrl($storagePath, null, $downloadFilename);
+    // Dev/test fallback: scanner-imported files may live in the local object
+    // mirror when no GCS bucket is configured. Authorization above already
+    // scoped the path to this practice and, for case-owned keys, verified
+    // per-case access - scan-file.php re-runs its own session + case ACL
+    // check on every request, so handing back its URL is safe.
+    $signedUrl = null;
+    global $appConfig;
+    if (empty($appConfig['gcs']['bucket_name'])) {
+        $stmt = $pdo->prepare("
+            SELECT f.id FROM scanner_scan_files f
+            JOIN scanner_incoming_scans s ON s.id = f.scan_id
+            WHERE f.storage_path = :p AND s.practice_id = :pid AND f.status = 'ready'
+            LIMIT 1
+        ");
+        $stmt->execute([':p' => $storagePath, ':pid' => $currentPracticeId]);
+        $scanFileId = (int)$stmt->fetchColumn();
+        if ($scanFileId > 0) {
+            $signedUrl = 'api/scan-file.php?file_id=' . $scanFileId . '&download=1';
+        }
+    }
+    if ($signedUrl === null) {
+        // Generate short-lived signed download URL configured so GCS serves
+        // the object with Content-Disposition: attachment - browser-viewable
+        // types (JPG/PNG/PDF) then download instead of rendering inline.
+        $signedUrl = generateSignedDownloadUrl($storagePath, null, $downloadFilename);
+    }
 
     // Audit the authorized download grant. The signed URL is the disclosure
     // event - GCS serves the bytes afterward without another app request, so

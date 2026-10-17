@@ -5945,6 +5945,15 @@
         "error_download_empty": "Leerer Download",
         "error_incomplete_download": "Unvollständiger Download",
         "error_file_too_large": "Datei zu groß",
-        "error_source_unavailable": "Die Quellverbindung ist nicht verfügbar."
+        "error_source_unavailable": "Die Quellverbindung ist nicht verfügbar.",
+        "attach_updated_files": "Aktualisierte Dateien anhängen",
+        "provenance_imported": "Aus {vendor} importiert am {date}",
+        "provenance_scanned": "Gescannt am {date}",
+        "provenance_unknown_vendor": "Scanner",
+        "role": {
+            "upper": "Oberkiefer",
+            "lower": "Unterkiefer",
+            "bite": "Biss"
+        }
     }
 }

@@ -6656,8 +6656,13 @@ document.addEventListener('DOMContentLoaded', function () {
           fileElement.dataset.fileId = fileId;
           fileElement.dataset.attachmentId = fileId;
 
-          // Determine if this is a GCS-stored file or a legacy local/Drive file
-          var isGcsFile = (file.storageType === 'gcs' && file.storagePath);
+          // Determine if this is a stored object (GCS bucket or the dev
+          // local scan-object mirror) or a legacy local/Drive file.
+          // storageType 'local' is only produced for scanner imports in
+          // bucket-less dev environments; attachment-content.php and
+          // download-signed-url.php serve it through the same post-auth
+          // local-mirror fallback.
+          var isGcsFile = (file.storageType === 'gcs' || file.storageType === 'local') && file.storagePath;
 
           // Safe user-facing name: original filename from metadata, never a
           // raw or flattened storage path (resolveAttachmentDisplayName
@@ -6834,6 +6839,37 @@ document.addEventListener('DOMContentLoaded', function () {
             metaEl.className = 'file-meta';
             metaEl.textContent = metaText;
             fileInfo.appendChild(metaEl);
+          }
+
+          // Scanner-imported attachments show provenance: the vendor source
+          // and import date, plus the vendor's scan date when it was
+          // provided (explicitly labeled so the two dates stay distinct).
+          // Manual uploads never carry `source === 'scanner'` so nothing
+          // implies they came through an automated connection.
+          if (file.source === 'scanner') {
+            var provParts = [];
+            var importDate = file.importedAt || file.uploadedAt;
+            if (importDate) {
+              var parsedImport = new Date(importDate);
+              if (!isNaN(parsedImport.getTime())) {
+                provParts.push(t('scanner.provenance_imported', {
+                  vendor: file.vendorLabel || file.vendor || t('scanner.provenance_unknown_vendor'),
+                  date: formatDate(importDate, false)
+                }));
+              }
+            }
+            if (file.scanAt) {
+              var parsedScan = new Date(file.scanAt);
+              if (!isNaN(parsedScan.getTime())) {
+                provParts.push(t('scanner.provenance_scanned', { date: formatDate(file.scanAt, false) }));
+              }
+            }
+            if (provParts.length > 0) {
+              var provEl = document.createElement('div');
+              provEl.className = 'file-meta file-provenance';
+              provEl.textContent = provParts.join(' \u00B7 ');
+              fileInfo.appendChild(provEl);
+            }
           }
 
           // Category reassignment: metadata-only change applied on save by

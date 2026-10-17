@@ -41,6 +41,12 @@
  *   revised          Same external_scan_id as 'success' but the STL file
  *                    carries revision 'rev2' and different bytes - must
  *                    produce a NEW file row, never overwrite the attached one.
+ *   multi_arch       One scan with four files exercising explicit vendor
+ *                    roles and the supported formats: upper arch (ASCII
+ *                    STL, role 'upper'), lower arch (binary STL, role
+ *                    'lower'), bite (ascii PLY, role 'bite'), and a role-less
+ *                    PDF note. Proves roles are displayed verbatim and a
+ *                    missing role stays neutral.
  *   empty            No scans (source has nothing to deliver).
  */
 
@@ -54,7 +60,7 @@ class SimulatedScannerConnector implements ScannerConnectorInterface {
     public const VENDOR = 'simulated';
 
     public const SCENARIOS = [
-        'success', 'repeat', 'missing_patient', 'partial', 'retryable', 'revised', 'empty',
+        'success', 'repeat', 'missing_patient', 'partial', 'retryable', 'revised', 'multi_arch', 'empty',
     ];
 
     private const SCAN_KEY_BASE = 'sim-scan-1001';
@@ -113,6 +119,8 @@ class SimulatedScannerConnector implements ScannerConnectorInterface {
                 // Same external_scan_id as 'success' -> same scan row; the
                 // file carries revision rev2 -> a new, separate file row.
                 return [$this->scanPayload(self::SCAN_KEY_BASE, 'revised', 'sim-pat-42', 'Simulation', 'PatientOne', '1990-03-12', 'rev2')];
+            case 'multi_arch':
+                return [$this->multiArchPayload()];
             case 'success':
             case 'repeat':
             default:
@@ -154,6 +162,65 @@ class SimulatedScannerConnector implements ScannerConnectorInterface {
         ];
     }
 
+    /**
+     * multi_arch scan payload: one scan, four files covering declared roles
+     * (upper/lower/bite) plus a role-less document, and the supported
+     * formats (ASCII STL, binary STL, ASCII PLY, PDF).
+     */
+    private function multiArchPayload(): array {
+        $scanKey = 'sim-scan-5005';
+        $files = [
+            [
+                'external_file_id' => $scanKey . '-upper.stl',
+                'remote_ref'       => 'sim://multi_arch/' . $scanKey . '/upper.stl',
+                'file_name'        => 'SYNTHETIC-' . $scanKey . '-upper.stl',
+                'content_type'     => 'model/stl',
+                'file_role'        => 'upper',
+                'revision'         => 'rev1',
+                'declared_size'    => strlen(self::stlBody($scanKey, 'rev1')),
+            ],
+            [
+                'external_file_id' => $scanKey . '-lower.stl',
+                'remote_ref'       => 'sim://multi_arch/' . $scanKey . '/lower.stl',
+                'file_name'        => 'SYNTHETIC-' . $scanKey . '-lower.stl',
+                'content_type'     => 'model/stl',
+                'file_role'        => 'lower',
+                'revision'         => 'rev1',
+                'declared_size'    => strlen(self::binaryStlBody($scanKey)),
+            ],
+            [
+                'external_file_id' => $scanKey . '-bite.ply',
+                'remote_ref'       => 'sim://multi_arch/' . $scanKey . '/bite.ply',
+                'file_name'        => 'SYNTHETIC-' . $scanKey . '-bite.ply',
+                'content_type'     => 'application/octet-stream',
+                'file_role'        => 'bite',
+                'revision'         => 'rev1',
+                'declared_size'    => strlen(self::plyBody($scanKey)),
+            ],
+            [
+                'external_file_id' => $scanKey . '-notes.pdf',
+                'remote_ref'       => 'sim://multi_arch/' . $scanKey . '/notes.pdf',
+                'file_name'        => 'SYNTHETIC-' . $scanKey . '-notes.pdf',
+                'content_type'     => 'application/pdf',
+                'file_role'        => null, // no declared role - stays neutral
+                'revision'         => 'rev1',
+                'declared_size'    => strlen(self::pdfBody($scanKey)),
+            ],
+        ];
+
+        return [
+            'remote_ref'           => 'sim://multi_arch/' . $scanKey,
+            'external_scan_id'     => $scanKey,
+            'external_patient_ref' => 'sim-pat-99',
+            'patient_first_name'   => 'Simulation',
+            'patient_last_name'    => 'PatientFive',
+            'patient_dob'          => '1982-11-02',
+            'scan_at'              => gmdate('Y-m-d H:i:s', strtotime('-1 day')),
+            'instructions'         => 'SYNTHETIC multi-file scan - upper/lower/bite fixture set for development/testing only.',
+            'files'                => $files,
+        ];
+    }
+
     // ----------------------------------------------------------------------
     // downloadFile
     // ----------------------------------------------------------------------
@@ -169,8 +236,25 @@ class SimulatedScannerConnector implements ScannerConnectorInterface {
         [, $scenario, $scanKey, $fileName] = $m;
 
         $isStl = substr($fileName, -4) === '.stl';
+        $isPly = substr($fileName, -4) === '.ply';
+        // Binary vs ASCII STL is encoded in the fixture filename
+        // ('lower.stl' is the binary variant in multi_arch).
+        $isBinaryStl = $isStl && strpos($fileName, 'lower') !== false;
         $revision = $isStl ? ($scenario === 'revised' ? 'rev2' : 'rev1') : 'rev1';
-        $body = $isStl ? self::stlBody($scanKey, $revision) : self::pdfBody($scanKey);
+
+        if ($isBinaryStl) {
+            $body = self::binaryStlBody($scanKey);
+            $contentType = 'model/stl';
+        } elseif ($isStl) {
+            $body = self::stlBody($scanKey, $revision);
+            $contentType = 'model/stl';
+        } elseif ($isPly) {
+            $body = self::plyBody($scanKey);
+            $contentType = 'application/octet-stream';
+        } else {
+            $body = self::pdfBody($scanKey);
+            $contentType = 'application/pdf';
+        }
 
         switch ($scenario) {
             case 'partial':
@@ -191,7 +275,7 @@ class SimulatedScannerConnector implements ScannerConnectorInterface {
 
         return [
             'content'      => $body,
-            'content_type' => $isStl ? 'model/stl' : 'application/pdf',
+            'content_type' => $contentType,
         ];
     }
 
@@ -210,6 +294,29 @@ class SimulatedScannerConnector implements ScannerConnectorInterface {
             . "    endloop\n  endfacet\n"
             . "endsolid {$label}\n";
         return str_pad($stl, 4096, '# synthetic padding - not clinical data ');
+    }
+
+    /** Minimal valid binary STL: 80-byte header + uint32 count + one
+        50-byte triangle record. Clearly labeled synthetic in the header. */
+    private static function binaryStlBody(string $scanKey): string {
+        $header = str_pad('SYNTHETIC BINARY STL ' . $scanKey . ' - fixture only', 80, ' ');
+        // normal(0,0,1) v1(0,0,0) v2(10,0,0) v3(0,10,0) + attribute byte count
+        $tri = pack('f12', 0, 0, 1, 0, 0, 0, 10, 0, 0, 0, 10, 0) . pack('v', 0);
+        return $header . pack('V', 1) . $tri;
+    }
+
+    /** Minimal valid ASCII PLY: 3 vertices + 1 face. Synthetic fixture. */
+    private static function plyBody(string $scanKey): string {
+        return "ply\n"
+            . "format ascii 1.0\n"
+            . "comment SYNTHETIC {$scanKey} - fixture only, not clinical data\n"
+            . "element vertex 3\n"
+            . "property float x\nproperty float y\nproperty float z\n"
+            . "element face 1\n"
+            . "property list uchar int vertex_indices\n"
+            . "end_header\n"
+            . "0 0 0\n10 0 0\n0 10 0\n"
+            . "3 0 1 2\n";
     }
 
     /** Small synthetic PDF body. */

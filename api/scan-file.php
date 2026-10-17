@@ -40,12 +40,6 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'GET') {
     scanFileFail(405);
 }
 
-// Feature flag enforced server-side; pending inbox files only exist when
-// the workflow is enabled anyway, but the endpoint refuses regardless.
-if (!isFeatureEnabled('SCANNER_INBOX')) {
-    scanFileFail(404);
-}
-
 if (!isset($_SESSION['db_user_id'])) {
     scanFileFail(401);
 }
@@ -77,12 +71,18 @@ if (!$file || (int)$file['scan_practice_id'] !== (int)$currentPracticeId) {
     scanFileFail(404);
 }
 
-// Attached file -> per-case ACL, same as attachment-content.php.
+// Attached file -> per-case ACL, same as attachment-content.php. Attached
+// files are ordinary case attachments: they stay downloadable even if the
+// experimental inbox flag is later turned off, because the case ACL (not
+// the inbox workflow) governs them.
 if (!empty($file['attached_case_id'])) {
     requireCaseAccess($file['attached_case_id'], $currentPracticeId);
 } else {
-    // Unattached inbox files: requires the case-edit permission that the
-    // inbox itself requires.
+    // Unattached inbox files only exist inside the experimental workflow:
+    // require the flag AND the case-edit permission the inbox itself uses.
+    if (!isFeatureEnabled('SCANNER_INBOX')) {
+        scanFileFail(404);
+    }
     if (!canEditCases($currentPracticeId)) {
         logSecurityEvent('scan_file_denied', ['reason' => 'cannot_edit_cases']);
         scanFileFail(403);

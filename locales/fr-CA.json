@@ -5945,6 +5945,15 @@
         "error_download_empty": "Téléchargement vide",
         "error_incomplete_download": "Téléchargement incomplet",
         "error_file_too_large": "Fichier trop volumineux",
-        "error_source_unavailable": "La connexion source n’est pas disponible."
+        "error_source_unavailable": "La connexion source n’est pas disponible.",
+        "attach_updated_files": "Joindre les fichiers mis à jour",
+        "provenance_imported": "Importé depuis {vendor} le {date}",
+        "provenance_scanned": "Numérisé le {date}",
+        "provenance_unknown_vendor": "scanner",
+        "role": {
+            "upper": "Arcade supérieure",
+            "lower": "Arcade inférieure",
+            "bite": "Occlusion"
+        }
     }
 }

@@ -5945,6 +5945,15 @@
         "error_download_empty": "Empty download",
         "error_incomplete_download": "Incomplete download",
         "error_file_too_large": "File too large",
-        "error_source_unavailable": "The source connection is not available."
+        "error_source_unavailable": "The source connection is not available.",
+        "attach_updated_files": "Attach updated files",
+        "provenance_imported": "Imported from {vendor} on {date}",
+        "provenance_scanned": "Scanned {date}",
+        "provenance_unknown_vendor": "scanner",
+        "role": {
+            "upper": "Upper arch",
+            "lower": "Lower arch",
+            "bite": "Bite"
+        }
     }
 }

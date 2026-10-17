@@ -123,6 +123,7 @@ class ScanInbox {
             'revision'       => $row['revision'],
             'fileName'       => $row['file_name'],
             'contentType'    => $row['content_type'],
+            'fileRole'       => $row['file_role'] ?? null,
             'declaredSize'   => $row['declared_size'] !== null ? (int)$row['declared_size'] : null,
             'status'         => $row['status'],
             'errorCode'      => $row['error_code'],
@@ -276,13 +277,16 @@ class ScanInbox {
                 $pdo->rollBack();
                 return ['success' => false, 'error' => 'not_found'];
             }
+            $alreadyLinkedHere = false;
             if ($scan['status'] === ScanIngestion::SCAN_LINKED) {
                 $linkedCase = (string)$scan['case_id'];
-                $pdo->commit();
-                if ($linkedCase === $caseId) {
-                    return ['success' => true, 'caseId' => $caseId, 'alreadyLinked' => true];
+                if ($linkedCase !== $caseId) {
+                    $pdo->commit();
+                    return ['success' => false, 'conflict' => true, 'error' => 'already_linked', 'caseId' => $linkedCase];
                 }
-                return ['success' => false, 'conflict' => true, 'error' => 'already_linked', 'caseId' => $linkedCase];
+                // Linked to THIS case: keep going - a revised/rescan file
+                // may have arrived after linking and still needs delivery.
+                $alreadyLinkedHere = true;
             }
             if ($scan['status'] === ScanIngestion::SCAN_DISMISSED) {
                 $pdo->rollBack();
@@ -303,14 +307,19 @@ class ScanInbox {
                 return ['success' => false, 'error' => 'case_access_denied'];
             }
 
-            // --- Select attachable files: ready, not superseded, not yet
-            //     attached; latest revision per external_file_id.
+            // --- Select attachable files: ready, not superseded, and either
+            //     unattached or already claimed by THIS case (a previous
+            //     attach that failed mid-merge left bytes at the case path
+            //     but no metadata row - including it again lets the retry
+            //     converge instead of deadlocking on no_ready_files).
+            //     Latest revision per external_file_id wins.
             $fileStmt = $pdo->prepare("
                 SELECT * FROM scanner_scan_files
-                WHERE scan_id = :sid AND status = :ready AND attached_case_id IS NULL
+                WHERE scan_id = :sid AND status = :ready
+                  AND (attached_case_id IS NULL OR attached_case_id = :cid)
                 ORDER BY id DESC
             ");
-            $fileStmt->execute([':sid' => $scanId, ':ready' => ScanIngestion::FILE_READY]);
+            $fileStmt->execute([':sid' => $scanId, ':ready' => ScanIngestion::FILE_READY, ':cid' => $caseId]);
             $candidates = [];
             foreach ($fileStmt->fetchAll(PDO::FETCH_ASSOC) as $file) {
                 $key = (string)$file['external_file_id'];
@@ -320,7 +329,10 @@ class ScanInbox {
             }
 
             if (!$candidates) {
-                $pdo->rollBack();
+                $pdo->commit();
+                if ($alreadyLinkedHere) {
+                    return ['success' => true, 'caseId' => $caseId, 'alreadyLinked' => true];
+                }
                 return ['success' => false, 'error' => 'no_ready_files'];
             }
 
@@ -339,37 +351,46 @@ class ScanInbox {
         $attachments = [];
         foreach ($candidates as $file) {
             $fileId = (int)$file['id'];
-            $claimed = $pdo->prepare("
-                UPDATE scanner_scan_files
-                SET attached_case_id = :case_id, attached_at = NOW()
-                WHERE id = :id AND attached_case_id IS NULL AND status = :ready
-            ");
-            $claimed->execute([':case_id' => $caseId, ':id' => $fileId, ':ready' => ScanIngestion::FILE_READY]);
-            if ($claimed->rowCount() === 0) {
-                continue; // another attach took it, or it was superseded
+            if ($file['attached_case_id'] === $caseId) {
+                // Claimed by an earlier attach attempt to this same case but
+                // the metadata merge never completed - bytes already sit at
+                // the case-owned key, so only rebuild the attachment record.
+                $newPath = (string)$file['storage_path'];
+            } else {
+                $claimed = $pdo->prepare("
+                    UPDATE scanner_scan_files
+                    SET attached_case_id = :case_id, attached_at = NOW()
+                    WHERE id = :id AND attached_case_id IS NULL AND status = :ready
+                ");
+                $claimed->execute([':case_id' => $caseId, ':id' => $fileId, ':ready' => ScanIngestion::FILE_READY]);
+                if ($claimed->rowCount() === 0) {
+                    continue; // another attach took it, or it was superseded
+                }
+                try {
+                    $newPath = ScanFileStore::moveToCase(
+                        (string)$file['storage_path'],
+                        (string)$file['storage_driver'],
+                        $practiceId,
+                        $caseId
+                    );
+                } catch (Throwable $e) {
+                    // Roll the claim back so the file stays attachable on retry.
+                    $pdo->prepare("UPDATE scanner_scan_files SET attached_case_id = NULL, attached_at = NULL WHERE id = :id AND attached_case_id = :cid")
+                        ->execute([':id' => $fileId, ':cid' => $caseId]);
+                    error_log('[ScanInbox] file move failed for file ' . $fileId . ': ' . $e->getMessage());
+                    return ['success' => false, 'error' => 'storage_error'];
+                }
+                $pdo->prepare("UPDATE scanner_scan_files SET storage_path = :p WHERE id = :id")
+                    ->execute([':p' => $newPath, ':id' => $fileId]);
             }
-            try {
-                $newPath = ScanFileStore::moveToCase(
-                    (string)$file['storage_path'],
-                    (string)$file['storage_driver'],
-                    $practiceId,
-                    $caseId
-                );
-            } catch (Throwable $e) {
-                // Roll the claim back so the file stays attachable on retry.
-                $pdo->prepare("UPDATE scanner_scan_files SET attached_case_id = NULL, attached_at = NULL WHERE id = :id AND attached_case_id = :cid")
-                    ->execute([':id' => $fileId, ':cid' => $caseId]);
-                error_log('[ScanInbox] file move failed for file ' . $fileId . ': ' . $e->getMessage());
-                return ['success' => false, 'error' => 'storage_error'];
-            }
-            $pdo->prepare("UPDATE scanner_scan_files SET storage_path = :p WHERE id = :id")
-                ->execute([':p' => $newPath, ':id' => $fileId]);
 
             $attachments[] = [
                 'id'            => 'scanfile_' . $fileId,
                 'scanFileId'    => $fileId,
                 'source'        => 'scanner',
-                'type'          => 'intraoralScans',
+                // Attachment records store the ucfirst'ed category form the
+                // case modal's typeMapping expects ('photos' -> 'Photos').
+                'type'          => 'IntraoralScans',
                 'fileName'      => (string)$file['file_name'],
                 'name'          => (string)$file['file_name'],
                 'mimeType'      => $file['content_type'] ?: 'application/octet-stream',
@@ -379,6 +400,17 @@ class ScanInbox {
                 'storageType'   => (string)$file['storage_driver'],
                 'path'          => $newPath,
                 'uploadedAt'    => gmdate('c'),
+                // Provenance (all optional, all already known-safe values):
+                // vendor + external ids let the case view say where the
+                // file came from; scan_at is the vendor's scan timestamp,
+                // importedAt is when it arrived in the inbox - distinct.
+                'vendor'         => (string)$scan['vendor'],
+                'vendorLabel'    => ScanIngestion::VENDORS[strtolower((string)$scan['vendor'])] ?? (string)$scan['vendor'],
+                'externalScanId' => $scan['external_scan_id'],
+                'scanAt'         => $scan['scan_at'],
+                'importedAt'     => $scan['created_at'],
+                'fileRole'       => $file['file_role'] ?? null,
+                'revision'       => $file['revision'],
             ];
         }
 

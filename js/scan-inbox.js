@@ -195,6 +195,15 @@
 
     if (scan.isLinked) {
       actions.appendChild(el('span', 'scan-linked-note', tt('scanner.linked_to', { case: scan.caseId })));
+      // A revised/rescan file can arrive after linking: when the scan has
+      // new attachable files, offer attach again - the dialog is locked to
+      // the already-linked case (the server rejects any other target).
+      if (scan.attachableFiles > 0) {
+        var attachUpdatedBtn = el('button', 'btn-secondary scan-action-attach', tt('scanner.attach_updated_files'));
+        attachUpdatedBtn.type = 'button';
+        attachUpdatedBtn.addEventListener('click', function () { openAttachModal(scan, scan.caseId, true); });
+        actions.appendChild(attachUpdatedBtn);
+      }
     } else if (!scan.isDismissed) {
       var attachable = scan.attachableFiles > 0;
       var noInFlight = !(scan.status === 'processing' || scan.status === 'received');
@@ -259,10 +268,31 @@
     dl.appendChild(el('dd', '', value));
   }
 
+  // Vendor-declared file role -> display label. Known roles get translated
+  // labels; anything else the vendor sent is shown verbatim (plain text,
+  // already charset-stripped at ingest). No role -> nothing is guessed.
+  function fileRoleLabel(role) {
+    if (!role) return '';
+    var normalized = String(role).toLowerCase();
+    var key = 'scanner.role.' + normalized;
+    var translated = tt(key);
+    return translated === key ? String(role) : translated;
+  }
+
   function renderFileRow(file, scan) {
     var li = el('li', 'scan-file');
-    var nameSpan = el('span', 'scan-file-name', file.fileName + (file.revision ? ' (' + tt('scanner.revision') + ' ' + file.revision + ')' : ''));
+    // Revision is the vendor's opaque token ('rev1', 'v2', a digest, ...) -
+    // show it verbatim with the localized label as a tooltip so 'rev1' does
+    // not render as 'rev rev1'.
+    var nameSpan = el('span', 'scan-file-name', file.fileName + (file.revision ? ' (' + file.revision + ')' : ''));
+    if (file.revision) {
+      nameSpan.title = tt('scanner.revision') + ': ' + file.revision;
+    }
     li.appendChild(nameSpan);
+    var roleText = fileRoleLabel(file.fileRole);
+    if (roleText) {
+      li.appendChild(el('span', 'scan-file-role', roleText));
+    }
     li.appendChild(el('span', 'scan-chip ' + statusClass(file.status === 'ready' && file.attachedCaseId ? 'linked' : file.status), tt(statusKey(file.attachedCaseId ? 'linked' : file.status))));
 
     if (file.status === 'ready') {
@@ -290,7 +320,7 @@
   // Attach modal
   // -------------------------------------------------------------------
 
-  function openAttachModal(scan, preselectCaseId) {
+  function openAttachModal(scan, preselectCaseId, lockToCase) {
     var modal = document.getElementById('scanAttachModal');
     var select = document.getElementById('scanAttachCaseSelect');
     var intro = document.getElementById('scanAttachIntro');
@@ -311,9 +341,10 @@
       patient: patientName || tt('scanner.not_provided'),
     });
 
-    // Suggestions (identifier-derived only)
+    // Suggestions (identifier-derived only) - hidden when the attach
+    // target is already fixed to the linked case.
     suggList.textContent = '';
-    if (scan.suggestedCases && scan.suggestedCases.length) {
+    if (!lockToCase && scan.suggestedCases && scan.suggestedCases.length) {
       scan.suggestedCases.forEach(function (c) {
         var btn = el('button', 'scan-suggestion-btn', c.patientName ? (c.patientName + ' (' + c.caseId + ')') : c.caseId);
         btn.type = 'button';
@@ -353,6 +384,7 @@
         if (preselectCaseId) {
           select.value = preselectCaseId;
         }
+        select.disabled = !!lockToCase;
       })
       .catch(function () {
         // Picker failed; leave placeholder only - user can still retry.
@@ -364,6 +396,8 @@
   function closeAttachModal() {
     var modal = document.getElementById('scanAttachModal');
     if (modal) modal.style.display = 'none';
+    var select = document.getElementById('scanAttachCaseSelect');
+    if (select) select.disabled = false;
     attachScanId = null;
   }
 

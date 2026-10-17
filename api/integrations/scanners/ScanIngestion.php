@@ -196,13 +196,21 @@ class ScanIngestion {
             $revision = substr((string)($file['revision'] ?? ''), 0, 64);
             $declaredSize = isset($file['declared_size']) ? max(0, (int)$file['declared_size']) : null;
 
+            // Vendor-declared file role ('upper', 'lower', 'bite', ...) is
+            // stored verbatim (bounded, plain text). When absent it stays
+            // NULL - nothing infers clinical meaning from filenames.
+            $fileRole = self::boundedStr(
+                isset($file['file_role']) ? preg_replace('/[^A-Za-z0-9_\- ]/', '', (string)$file['file_role']) : null,
+                64
+            );
+
             $ins = $pdo->prepare("
                 INSERT IGNORE INTO scanner_scan_files
                     (scan_id, external_file_id, revision, remote_ref, file_name,
-                     content_type, declared_size, status)
+                     content_type, file_role, declared_size, status)
                 VALUES
                     (:scan_id, :external_file_id, :revision, :remote_ref, :file_name,
-                     :content_type, :declared_size, :status)
+                     :content_type, :file_role, :declared_size, :status)
             ");
             $ins->execute([
                 ':scan_id'          => $scanId,
@@ -211,6 +219,7 @@ class ScanIngestion {
                 ':remote_ref'       => $remoteRef,
                 ':file_name'        => substr($fileName, 0, 255),
                 ':content_type'     => self::boundedStr($file['content_type'] ?? null, 128),
+                ':file_role'        => $fileRole,
                 ':declared_size'    => $declaredSize,
                 ':status'           => self::FILE_PENDING,
             ]);

@@ -5945,6 +5945,15 @@
         "error_download_empty": "빈 다운로드",
         "error_incomplete_download": "불완전한 다운로드",
         "error_file_too_large": "파일이 너무 큼",
-        "error_source_unavailable": "원본 연결을 사용할 수 없습니다."
+        "error_source_unavailable": "원본 연결을 사용할 수 없습니다.",
+        "attach_updated_files": "업데이트된 파일 첨부",
+        "provenance_imported": "{vendor}에서 가져옴 ({date})",
+        "provenance_scanned": "스캔 날짜 {date}",
+        "provenance_unknown_vendor": "스캐너",
+        "role": {
+            "upper": "상악",
+            "lower": "하악",
+            "bite": "교합"
+        }
     }
 }

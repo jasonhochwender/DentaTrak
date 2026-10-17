@@ -5945,6 +5945,15 @@
         "error_download_empty": "Пустая загрузка",
         "error_incomplete_download": "Неполная загрузка",
         "error_file_too_large": "Файл слишком большой",
-        "error_source_unavailable": "Исходное подключение недоступно."
+        "error_source_unavailable": "Исходное подключение недоступно.",
+        "attach_updated_files": "Прикрепить обновлённые файлы",
+        "provenance_imported": "Импортировано из {vendor} {date}",
+        "provenance_scanned": "Отсканировано {date}",
+        "provenance_unknown_vendor": "сканер",
+        "role": {
+            "upper": "Верхняя челюсть",
+            "lower": "Нижняя челюсть",
+            "bite": "Прикус"
+        }
     }
 }

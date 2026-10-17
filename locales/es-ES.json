@@ -5945,6 +5945,15 @@
         "error_download_empty": "Descarga vacía",
         "error_incomplete_download": "Descarga incompleta",
         "error_file_too_large": "Archivo demasiado grande",
-        "error_source_unavailable": "La conexión de origen no está disponible."
+        "error_source_unavailable": "La conexión de origen no está disponible.",
+        "attach_updated_files": "Adjuntar archivos actualizados",
+        "provenance_imported": "Importado de {vendor} el {date}",
+        "provenance_scanned": "Escaneado el {date}",
+        "provenance_unknown_vendor": "escáner",
+        "role": {
+            "upper": "Arcada superior",
+            "lower": "Arcada inferior",
+            "bite": "Mordida"
+        }
     }
 }

@@ -123,6 +123,7 @@ function runScannerIntegrationFoundationMigration(PDO $pdo): array
         remote_ref VARCHAR(255) DEFAULT NULL,
         file_name VARCHAR(255) NOT NULL,
         content_type VARCHAR(128) DEFAULT NULL,
+        file_role VARCHAR(64) DEFAULT NULL,
         declared_size BIGINT UNSIGNED DEFAULT NULL,
         checksum_sha256 CHAR(64) DEFAULT NULL,
         storage_driver VARCHAR(16) DEFAULT NULL,

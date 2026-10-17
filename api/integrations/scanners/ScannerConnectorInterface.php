@@ -36,6 +36,10 @@
  *     revision             ?string Vendor revision tag; a changed revision
  *                                  produces a NEW file row so previously
  *                                  attached bytes are never overwritten.
+ *     file_role            ?string Vendor-declared role of the file within
+ *                                  the scan ('upper', 'lower', 'bite', ...).
+ *                                  Stored verbatim only when explicitly
+ *                                  provided; nothing infers it from names.
  *
  * All fields except external_scan_id and files[].external_file_id /
  * remote_ref / file_name may be absent - vendors do not supply uniform data.

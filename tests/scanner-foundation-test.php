@@ -266,6 +266,32 @@ try {
     assertEquals(2, count($atts3), 'revised file did not modify the linked case (no silent overwrite)');
 
     // ------------------------------------------------------------------
+    // 5b. Rescan delivery: a new revision can still be attached to the
+    //     already-linked case (it must not strand as forever-unattached).
+    // ------------------------------------------------------------------
+    $rev2FileId = (int)($stlRevisions['rev2']['id'] ?? 0);
+    assertTrue($rev2FileId > 0, 'rev2 file row id captured');
+    $attachRev = ScanInbox::attachToCase($pdo, $testPracticeId, $testUserId, $scanId, $caseId, false);
+    assertTrue(!empty($attachRev['success']), 'revised file attaches to the already-linked case');
+    $attsRev = json_decode(caseRow($pdo, $caseId)['attachments_json'], true);
+    assertEquals(3, count($attsRev), 'case now carries rev1 + rev2 + pdf attachments');
+    $rev2Att = null;
+    foreach ($attsRev as $a) {
+        if (($a['scanFileId'] ?? null) === $rev2FileId) { $rev2Att = $a; }
+    }
+    assertTrue($rev2Att !== null, 'rev2 attachment recorded');
+    assertEquals('rev2', $rev2Att['revision'] ?? null, 'rev2 attachment keeps its revision marker');
+    assertEquals('scanner', $rev2Att['source'] ?? null, 'attachment provenance: source=scanner');
+    assertEquals('simulated', $rev2Att['vendor'] ?? null, 'attachment provenance: vendor recorded');
+    assertEquals('sim-scan-1001', $rev2Att['externalScanId'] ?? null, 'attachment provenance: external scan id recorded');
+    assertTrue(!empty($rev2Att['scanAt']) && !empty($rev2Att['importedAt']), 'scan date and import date stored separately');
+
+    // Re-attach with nothing new -> idempotent success, no growth.
+    $attachAgain = ScanInbox::attachToCase($pdo, $testPracticeId, $testUserId, $scanId, $caseId, false);
+    assertTrue(!empty($attachAgain['success']) && !empty($attachAgain['alreadyLinked']), 're-attach after revision still idempotent');
+    assertEquals(3, count(json_decode(caseRow($pdo, $caseId)['attachments_json'], true)), 'no duplicate attachments on re-attach');
+
+    // ------------------------------------------------------------------
     // 6. Partial download is never ready; retry recovers without dupes
     // ------------------------------------------------------------------
     $ctx['scenario'] = 'partial';
@@ -427,7 +453,188 @@ try {
     }
 
     // ------------------------------------------------------------------
-    // 15. create-case integration defaults (CaseService contract)
+    // 15. multi_arch: roles, ASCII + binary STL, PLY, role-less document
+    // ------------------------------------------------------------------
+    $ctx['scenario'] = 'multi_arch';
+    $maPayloads = $connector->fetchScans($ctx);
+    assertEquals(1, count($maPayloads), 'multi_arch returns one scan');
+    $maResult = ScanIngestion::ingestScan($pdo, $ctx, $connector, $maPayloads[0]);
+    $maScanId = $maResult['scan_id'];
+    $createdScanIds[] = $maScanId;
+    assertEquals('ready', $maResult['status'], 'multi_arch scan fully ready');
+    $maFiles = ScanIngestion::listFiles($pdo, $maScanId);
+    assertEquals(4, count($maFiles), 'multi_arch created four file rows');
+    $roleByFile = [];
+    foreach ($maFiles as $f) {
+        assertEquals('ready', $f['status'], 'multi_arch file ready: ' . $f['file_name']);
+        $roleByFile[$f['external_file_id']] = $f['file_role'] ?? null;
+    }
+    assertEquals('upper', $roleByFile['sim-scan-5005-upper.stl'] ?? null, 'declared role stored: upper');
+    assertEquals('lower', $roleByFile['sim-scan-5005-lower.stl'] ?? null, 'declared role stored: lower');
+    assertEquals('bite',  $roleByFile['sim-scan-5005-bite.ply'] ?? null, 'declared role stored: bite');
+    assertTrue(array_key_exists('sim-scan-5005-notes.pdf', $roleByFile) && $roleByFile['sim-scan-5005-notes.pdf'] === null, 'role-less file stays neutral');
+
+    // Binary STL round-trip: stored bytes keep the 80-byte header + count +
+    // record layout, and the download path returns them intact.
+    $lowerRow = null;
+    foreach ($maFiles as $f) { if (substr($f['file_name'], -9) === 'lower.stl') { $lowerRow = $f; } }
+    assertTrue($lowerRow !== null, 'binary STL row found');
+    $opened = ScanFileStore::openStream($lowerRow['storage_driver'], $lowerRow['storage_path']);
+    assertTrue($opened !== null, 'binary STL opens for streaming');
+    if ($opened) {
+        $stream = $opened[0];
+        $bytes = is_resource($stream) ? stream_get_contents($stream) : (string)$stream;
+        if (is_resource($stream)) { fclose($stream); } else { $stream->close(); }
+        assertTrue(strpos($bytes, 'SYNTHETIC BINARY STL') === 0, 'binary STL header preserved');
+        assertEquals(134, strlen($bytes), 'binary STL is 80+4+50 bytes');
+    }
+    $plyRow = null;
+    foreach ($maFiles as $f) { if (substr($f['file_name'], -4) === '.ply') { $plyRow = $f; } }
+    $openedPly = ScanFileStore::openStream($plyRow['storage_driver'], $plyRow['storage_path']);
+    assertTrue($openedPly !== null, 'PLY opens for streaming');
+    if ($openedPly) {
+        $stream = $openedPly[0];
+        $head = is_resource($stream) ? fread($stream, 4) : $stream->read(4);
+        if (is_resource($stream)) { fclose($stream); } else { $stream->close(); }
+        assertEquals("ply\n", $head, 'PLY magic header preserved');
+    }
+
+    // Attach multi_arch -> case: roles + provenance ride into attachment
+    // metadata; one case holds multiple scan files.
+    $maCaseId = insertFixtureCase($pdo, $testPracticeId, '');
+    $createdCaseIds[] = $maCaseId;
+    $maAttach = ScanInbox::attachToCase($pdo, $testPracticeId, $testUserId, $maScanId, $maCaseId, false);
+    assertTrue(!empty($maAttach['success']), 'multi_arch scan attaches');
+    $maAtts = json_decode(caseRow($pdo, $maCaseId)['attachments_json'], true);
+    assertEquals(4, count($maAtts), 'one case holds all four scan files');
+    $attRoles = [];
+    foreach ($maAtts as $a) {
+        $attRoles[$a['fileName']] = $a['fileRole'] ?? null;
+        assertEquals('scanner', $a['source'] ?? null, 'every attachment flagged scanner-sourced');
+        assertTrue(!empty($a['vendorLabel']) && !empty($a['importedAt']), 'vendor label + import date on attachment');
+    }
+    assertEquals('upper', $attRoles['SYNTHETIC-sim-scan-5005-upper.stl'] ?? null, 'attachment keeps upper role');
+    assertEquals('bite',  $attRoles['SYNTHETIC-sim-scan-5005-bite.ply'] ?? null, 'attachment keeps bite role');
+    assertTrue(array_key_exists('SYNTHETIC-sim-scan-5005-notes.pdf', $attRoles) && $attRoles['SYNTHETIC-sim-scan-5005-notes.pdf'] === null, 'role-less attachment stays null');
+
+    // Re-delivering the identical payload must not create new attachments.
+    $maRe = ScanIngestion::ingestScan($pdo, $ctx, $connector, $maPayloads[0]);
+    assertTrue($maRe['inserted'] === false, 'identical re-delivery deduped');
+    assertEquals(4, count(json_decode(caseRow($pdo, $maCaseId)['attachments_json'], true)), 'identical re-delivery adds no attachments');
+
+    // ------------------------------------------------------------------
+    // 16. Claimed-but-unmerged recovery: if a previous attach claimed the
+    //     file row and moved the bytes but the case metadata write never
+    //     landed, a retry must converge instead of deadlocking.
+    // ------------------------------------------------------------------
+    $maFilesNow = ScanIngestion::listFiles($pdo, $maScanId); // all attached
+    // Craft the orphan state on a fresh file row belonging to the linked
+    // scan: ready, claimed to the case, bytes at the case path, but absent
+    // from attachments_json.
+    $orphanFileId = 0;
+    {
+        $pdo->prepare("
+            INSERT INTO scanner_scan_files
+                (scan_id, external_file_id, revision, remote_ref, file_name, content_type, file_role, declared_size, status)
+            VALUES (:sid, 'sim-scan-5005-late.stl', 'rev1', :ref, 'SYNTHETIC-sim-scan-5005-late.stl', 'model/stl', 'upper', :sz, 'ready')
+        ")->execute([
+            ':sid' => $maScanId,
+            ':ref' => 'sim://multi_arch/sim-scan-5005/late.stl',
+            ':sz'  => 4096,
+        ]);
+        $orphanFileId = (int)$pdo->lastInsertId();
+        $stored = ScanFileStore::store($testPracticeId, $orphanFileId, 'SYNTHETIC-sim-scan-5005-late.stl', str_repeat('s', 4096), 'model/stl');
+        $newPath = ScanFileStore::moveToCase($stored['storage_path'], $stored['storage_driver'], $testPracticeId, $maCaseId);
+        $pdo->prepare("UPDATE scanner_scan_files SET attached_case_id = :cid, attached_at = NOW(), storage_driver = :d, storage_path = :p WHERE id = :id")
+            ->execute([':cid' => $maCaseId, ':d' => $stored['storage_driver'], ':p' => $newPath, ':id' => $orphanFileId]);
+        $createdFilePaths[] = [$stored['storage_driver'], $newPath];
+    }
+    $attBefore = count(json_decode(caseRow($pdo, $maCaseId)['attachments_json'], true));
+    $recoverAttach = ScanInbox::attachToCase($pdo, $testPracticeId, $testUserId, $maScanId, $maCaseId, false);
+    assertTrue(!empty($recoverAttach['success']), 'attach converges on claimed-but-unmerged file');
+    $attsAfterRecovery = json_decode(caseRow($pdo, $maCaseId)['attachments_json'], true);
+    assertEquals($attBefore + 1, count($attsAfterRecovery), 'orphaned file gains its attachment metadata');
+    $foundOrphan = false;
+    foreach ($attsAfterRecovery as $a) {
+        if (($a['scanFileId'] ?? null) === $orphanFileId) { $foundOrphan = true; }
+    }
+    assertTrue($foundOrphan, 'recovered attachment recorded with scanFileId');
+
+    // ------------------------------------------------------------------
+    // 17. Malformed / oversize downloads fail safely (stub connector)
+    // ------------------------------------------------------------------
+    $stubOversize = new class implements ScannerConnectorInterface {
+        public function getVendor(): string { return 'simulated'; }
+        public function fetchScans(array $context): array { return []; }
+        public function downloadFile(array $context, string $externalFileId): array {
+            return ['content' => str_repeat('x', 2048), 'content_type' => 'model/stl'];
+        }
+    };
+    $stubGone = new class implements ScannerConnectorInterface {
+        public function getVendor(): string { return 'simulated'; }
+        public function fetchScans(array $context): array { return []; }
+        public function downloadFile(array $context, string $externalFileId): array {
+            throw new ScannerDownloadException('gone', false, 'not_found');
+        }
+    };
+
+    // Temporarily shrink the size ceiling so the oversize path is cheap.
+    $savedMax = $appConfig['gcs']['max_file_size'] ?? null;
+    $appConfig['gcs']['max_file_size'] = 1024;
+    $badPayload = [
+        'external_scan_id' => 'test-bad-oversize',
+        'files' => [[
+            'external_file_id' => 'test-bad-oversize-f1',
+            'remote_ref'       => 'stub://oversize/f1',
+            'file_name'        => 'too-big.stl',
+            'content_type'     => 'model/stl',
+        ]],
+    ];
+    $badResult = ScanIngestion::ingestScan($pdo, $ctx, $stubOversize, $badPayload);
+    $badScanId = $badResult['scan_id'];
+    $createdScanIds[] = $badScanId;
+    assertEquals('failed', $badResult['status'], 'oversize file fails the scan');
+    $badFile = ScanIngestion::listFiles($pdo, $badScanId)[0];
+    assertEquals('file_too_large', $badFile['error_code'], 'oversize maps to file_too_large');
+    assertEquals('failed', $badFile['status'], 'oversize is non-retryable and parks failed');
+    assertEquals(1, (int)$badFile['download_attempts'], 'non-retryable failure does not burn attempts');
+    $appConfig['gcs']['max_file_size'] = $savedMax;
+
+    // Permanent vendor failure parks immediately as well.
+    $gonePayload = [
+        'external_scan_id' => 'test-bad-gone',
+        'files' => [[
+            'external_file_id' => 'test-bad-gone-f1',
+            'remote_ref'       => 'stub://gone/f1',
+            'file_name'        => 'gone.stl',
+        ]],
+    ];
+    $goneResult = ScanIngestion::ingestScan($pdo, $ctx, $stubGone, $gonePayload);
+    $goneScanId = $goneResult['scan_id'];
+    $createdScanIds[] = $goneScanId;
+    assertEquals('failed', $goneResult['status'], 'permanent vendor failure fails the scan');
+    assertEquals('not_found', ScanIngestion::listFiles($pdo, $goneScanId)[0]['error_code'], 'permanent failure code recorded');
+
+    // Filename sanitization: a disallowed extension is neutralized to .bin,
+    // an allowed archive stays opaque (stored, never extracted).
+    $sanitized = ScanFileStore::store($testPracticeId, 999999001, 'evil<script>.exe', 'MZ', 'application/octet-stream');
+    assertTrue(substr($sanitized['storage_path'], -4) === '.bin', 'disallowed extension neutralized to .bin');
+    assertTrue(strpos($sanitized['storage_path'], '<') === false && strpos($sanitized['storage_path'], '>') === false, 'markup stripped from stored name');
+    $createdFilePaths[] = [$sanitized['storage_driver'], $sanitized['storage_path']];
+    $zip = ScanFileStore::store($testPracticeId, 999999002, 'scan-export.zip', "PK\x03\x04" . str_repeat("\x00", 32), 'application/zip');
+    assertTrue(substr($zip['storage_path'], -4) === '.zip', 'archive stored opaque under its own name');
+    $createdFilePaths[] = [$zip['storage_driver'], $zip['storage_path']];
+    $openedZip = ScanFileStore::openStream($zip['storage_driver'], $zip['storage_path']);
+    assertTrue($openedZip !== null, 'archive downloads back untouched');
+    if ($openedZip) {
+        $stream = $openedZip[0];
+        $magic = is_resource($stream) ? fread($stream, 4) : $stream->read(4);
+        if (is_resource($stream)) { fclose($stream); } else { $stream->close(); }
+        assertEquals("PK\x03\x04", $magic, 'archive bytes served verbatim (never extracted)');
+    }
+
+    // ------------------------------------------------------------------
+    // 18. create-case integration defaults (CaseService contract)
     // ------------------------------------------------------------------
     // A scan payload maps cleanly onto CaseService::integrationRequiredFields
     // - name/type/status are the only mandatory fields.
