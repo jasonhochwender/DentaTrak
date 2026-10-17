@@ -1470,6 +1470,9 @@
                 "field_args_blank": "(leave blank)",
                 "trouble_5": "The button does not appear on the toolbar: confirm Enabled is checked and at least one toolbar is selected under \"Add a button to these toolbars\"."
             },
+            "sections": {
+                "pms": "PMS integrations"
+            },
             "scanners": {
                 "section_title": "Scanner integrations",
                 "itero": "iTero",

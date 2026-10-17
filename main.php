@@ -3626,6 +3626,8 @@ endif;
                       <div class="settings-group">
                         <p class="section-description"><?php echo t('settings.integrations.description'); ?></p>
                         <div id="integrationsPanelError" class="error-message" style="display:none;"></div>
+                        <?php if (!empty($integrationProviders)): ?>
+                        <h3 class="integration-section-heading"><?php echo t('settings.integrations.sections.pms'); ?></h3>
                         <div class="integrations-list">
                           <?php foreach ($integrationProviders as $providerKey => $providerDef): ?>
                           <?php
@@ -3637,12 +3639,19 @@ endif;
                           // null means the check could not run, so the normal
                           // card renders and the API still enforces it.
                           $providerLocked = ($userHasIntegrationAccess === false);
+                          $subsectionId = 'integrationSubsectionBody-' . $providerKey;
                           ?>
-                          <div class="integration-card<?php echo $providerLocked ? ' integration-card-locked' : ''; ?>" data-provider="<?php echo htmlspecialchars($providerKey); ?>"<?php echo $providerLocked ? ' data-locked="true"' : ''; ?> id="integrationCard-<?php echo htmlspecialchars($providerKey); ?>">
-                            <div class="integration-card-top">
+                          <div class="integration-subsection" data-subsection="<?php echo htmlspecialchars($providerKey); ?>">
+                            <button type="button" class="integration-subsection-header"
+                                    id="integrationSubsectionHeader-<?php echo htmlspecialchars($providerKey); ?>"
+                                    aria-expanded="false"
+                                    aria-controls="<?php echo htmlspecialchars($subsectionId); ?>">
+                              <span class="integration-subsection-arrow" aria-hidden="true"></span>
                               <span class="integration-provider-name"><?php echo t($providerDef['name_key']); ?></span>
                               <span class="integration-status-badge<?php echo $providerLocked ? ' integration-status-locked' : ''; ?>" id="integrationStatusBadge-<?php echo htmlspecialchars($providerKey); ?>"><?php echo t($providerLocked ? 'settings.integrations.status.not_on_plan' : 'settings.integrations.status.not_connected'); ?></span>
-                            </div>
+                            </button>
+                            <div class="integration-subsection-body" id="<?php echo htmlspecialchars($subsectionId); ?>" role="region" aria-labelledby="integrationSubsectionHeader-<?php echo htmlspecialchars($providerKey); ?>" hidden>
+                          <div class="integration-card<?php echo $providerLocked ? ' integration-card-locked' : ''; ?>" data-provider="<?php echo htmlspecialchars($providerKey); ?>"<?php echo $providerLocked ? ' data-locked="true"' : ''; ?> id="integrationCard-<?php echo htmlspecialchars($providerKey); ?>">
                             <p class="integration-card-description"><?php echo t($providerDef['desc_key']); ?></p>
                             <?php if ($providerLocked): ?>
                             <p class="integration-locked-note"><?php echo t('settings.integrations.locked_note'); ?></p>
@@ -3766,22 +3775,34 @@ endif;
                             <?php endif; ?>
                             <?php endif; ?>
                           </div>
+                            </div>
+                          </div>
                           <?php endforeach; ?>
                         </div>
+                        <?php endif; ?>
 
                         <?php if ($isCurrentUserPracticeAdmin): ?>
                         <!-- Scanner integrations: informational only. No
                              vendor connection is approved or live; these
-                             cards intentionally render no actions. -->
+                             subsections intentionally render no actions. -->
                         <h3 class="integration-section-heading"><?php echo t('settings.integrations.scanners.section_title'); ?></h3>
                         <div class="integrations-list scanner-integrations-list">
                           <?php foreach ($scannerProviders as $scannerKey => $scannerNameKey): ?>
-                          <div class="integration-card integration-card-scanner" data-scanner="<?php echo htmlspecialchars($scannerKey); ?>">
-                            <div class="integration-card-top">
+                          <?php $scannerBodyId = 'integrationSubsectionBody-scanner-' . $scannerKey; ?>
+                          <div class="integration-subsection" data-subsection="scanner-<?php echo htmlspecialchars($scannerKey); ?>">
+                            <button type="button" class="integration-subsection-header"
+                                    id="integrationSubsectionHeader-scanner-<?php echo htmlspecialchars($scannerKey); ?>"
+                                    aria-expanded="false"
+                                    aria-controls="<?php echo htmlspecialchars($scannerBodyId); ?>">
+                              <span class="integration-subsection-arrow" aria-hidden="true"></span>
                               <span class="integration-provider-name"><?php echo t($scannerNameKey); ?></span>
                               <span class="integration-status-badge integration-status-coming-soon"><?php echo t('settings.integrations.status.coming_soon'); ?></span>
+                            </button>
+                            <div class="integration-subsection-body" id="<?php echo htmlspecialchars($scannerBodyId); ?>" role="region" aria-labelledby="integrationSubsectionHeader-scanner-<?php echo htmlspecialchars($scannerKey); ?>" hidden>
+                              <div class="integration-card integration-card-scanner" data-scanner="<?php echo htmlspecialchars($scannerKey); ?>">
+                                <p class="integration-card-description"><?php echo t('settings.integrations.scanners.card_description'); ?></p>
+                              </div>
                             </div>
-                            <p class="integration-card-description"><?php echo t('settings.integrations.scanners.card_description'); ?></p>
                           </div>
                           <?php endforeach; ?>
                         </div>

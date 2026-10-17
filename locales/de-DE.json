@@ -2967,6 +2967,9 @@
                 "field_args_blank": "(leer lassen)",
                 "trouble_5": "Die Schaltfläche erscheint nicht in der Symbolleiste: Prüfen Sie, dass Enabled aktiviert ist und mindestens eine Symbolleiste unter „Add a button to these toolbars\" ausgewählt ist."
             },
+            "sections": {
+                "pms": "PMS-Integrationen"
+            },
             "scanners": {
                 "section_title": "Scanner-Integrationen",
                 "itero": "iTero",

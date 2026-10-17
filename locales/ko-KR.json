@@ -1470,6 +1470,9 @@
                 "field_args_blank": "(비워 두기)",
                 "trouble_5": "도구 모음에 버튼이 표시되지 않음: Enabled가 선택되어 있고 \"Add a button to these toolbars\"에서 하나 이상의 도구 모음이 선택되어 있는지 확인하세요."
             },
+            "sections": {
+                "pms": "PMS 연동"
+            },
             "scanners": {
                 "section_title": "스캐너 연동",
                 "itero": "iTero",

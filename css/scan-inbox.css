@@ -299,31 +299,6 @@ body.dark-mode .scan-chip-received  { background: rgba(245,158,11,0.2); color: #
   color: var(--text-primary, #1e293b);
 }
 
-/* Settings > Integrations - scanner informational cards */
-.integration-section-heading {
-  margin: 20px 0 4px;
-  font-size: 13px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: var(--text-secondary, #475569);
-}
-
-.integration-status-badge.integration-status-coming-soon {
-  background: #e0e7ff;
-  color: #3730a3;
-}
-
-[data-theme="dark"] .integration-status-badge.integration-status-coming-soon,
-body.dark-mode .integration-status-badge.integration-status-coming-soon {
-  background: rgba(99,102,241,0.25);
-  color: #c7d2fe;
-}
-
-.integration-card-scanner {
-  border-style: dashed;
-}
-
 /* Mobile */
 @media (max-width: 640px) {
   .scan-meta {

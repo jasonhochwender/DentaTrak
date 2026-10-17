@@ -1470,6 +1470,9 @@
                 "field_args_blank": "(laisser vide)",
                 "trouble_5": "Le bouton n'apparaît pas dans la barre d'outils : vérifiez que Enabled est coché et qu'au moins une barre est sélectionnée sous « Add a button to these toolbars »."
             },
+            "sections": {
+                "pms": "Intégrations PMS"
+            },
             "scanners": {
                 "section_title": "Intégrations de scanners",
                 "itero": "iTero",

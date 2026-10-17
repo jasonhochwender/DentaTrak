@@ -2878,6 +2878,9 @@
                 "field_args_blank": "(оставить пустым)",
                 "trouble_5": "Кнопка не отображается на панели инструментов: убедитесь, что флажок Enabled установлен и хотя бы одна панель выбрана в «Add a button to these toolbars»."
             },
+            "sections": {
+                "pms": "Интеграции с PMS"
+            },
             "scanners": {
                 "section_title": "Интеграции сканеров",
                 "itero": "iTero",

@@ -1470,6 +1470,9 @@
                 "field_args_blank": "(dejar en blanco)",
                 "trouble_5": "El botón no aparece en la barra: compruebe que Enabled está marcado y que al menos una barra está seleccionada en «Add a button to these toolbars»."
             },
+            "sections": {
+                "pms": "Integraciones de PMS"
+            },
             "scanners": {
                 "section_title": "Integraciones de escáneres",
                 "itero": "iTero",

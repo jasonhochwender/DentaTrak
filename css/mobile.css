@@ -1950,6 +1950,14 @@
     padding: 12px;
   }
 
+  .integration-subsection-header {
+    padding: 12px;
+  }
+
+  .integration-subsection-body {
+    padding: 12px;
+  }
+
   .settings-group {
     gap: 12px;
   }

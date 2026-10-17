@@ -637,6 +637,23 @@
   color: var(--text-light);
 }
 
+[data-theme="dark"] .integration-subsection {
+  background-color: #16202f;
+  border-color: var(--border-light);
+}
+
+[data-theme="dark"] .integration-subsection.open .integration-subsection-header {
+  border-bottom-color: var(--border-light);
+}
+
+[data-theme="dark"] .integration-subsection-header:hover {
+  background-color: #243349;
+}
+
+[data-theme="dark"] .integration-subsection-arrow {
+  border-color: var(--text-light);
+}
+
 [data-theme="dark"] .option-text,
 [data-theme="dark"] .option-description,
 [data-theme="dark"] .settings-help-text {

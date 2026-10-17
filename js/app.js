@@ -4371,6 +4371,13 @@ document.addEventListener('DOMContentLoaded', function () {
   if (settingsForm) {
     settingsForm.addEventListener('keydown', function(e) {
       if (e.key === 'Enter' && !e.shiftKey) {
+        // Buttons handle Enter natively (their click action - e.g. the
+        // collapsible integration subsection toggles). Swallowing it here
+        // would both suppress the button and wrongly trigger a save.
+        var tag = e.target && e.target.tagName ? e.target.tagName.toLowerCase() : '';
+        if (tag === 'button') {
+          return;
+        }
         e.preventDefault();
         saveSettings();
       }
@@ -14741,6 +14748,63 @@ document.addEventListener('DOMContentLoaded', function () {
         return d.innerHTML;
     }
 
+    // --------------------- Collapsible integration subsections ---------
+    // Each integration (PMS provider or informational scanner card) is its
+    // own accordion: a <button> header carrying the name + status badge,
+    // and a body region that is hidden until expanded. Subsections are
+    // independent - several may be open at once. State persists per user
+    // in localStorage, like the top-level settings twisties. Default:
+    // collapsed. A validation/sync error rendered inside a subsection
+    // auto-expands it so the message is never hidden in a closed region.
+
+    function setIntegrationSubsectionOpen(sub, open, persist) {
+        var header = sub.querySelector('.integration-subsection-header');
+        var body = sub.querySelector('.integration-subsection-body');
+        if (!header || !body) return;
+        sub.classList.toggle('open', open);
+        header.setAttribute('aria-expanded', open ? 'true' : 'false');
+        body.hidden = !open;
+        if (!persist) return;
+        var userKeyPart = (typeof currentUserEmail === 'string' && currentUserEmail) ? currentUserEmail.toLowerCase() : 'anonymous';
+        try {
+            if (window.localStorage) {
+                localStorage.setItem('integrationSubsection_' + userKeyPart + '_' + sub.getAttribute('data-subsection'), open ? 'open' : 'closed');
+            }
+        } catch (e) { /* storage unavailable - collapse state is session-only */ }
+    }
+
+    // Error paths call this so a failure inside a collapsed subsection is
+    // surfaced immediately rather than hidden.
+    function expandIntegrationSubsection(id) {
+        var sub = document.querySelector('.integration-subsection[data-subsection="' + id + '"]');
+        if (sub) setIntegrationSubsectionOpen(sub, true, true);
+    }
+
+    function initIntegrationSubsections() {
+        document.querySelectorAll('.integration-subsection').forEach(function (sub) {
+            if (sub.dataset.subsectionInitialized === '1') return;
+            var header = sub.querySelector('.integration-subsection-header');
+            var body = sub.querySelector('.integration-subsection-body');
+            if (!header || !body) return;
+
+            var id = sub.getAttribute('data-subsection') || '';
+            var userKeyPart = (typeof currentUserEmail === 'string' && currentUserEmail) ? currentUserEmail.toLowerCase() : 'anonymous';
+            var saved = null;
+            try {
+                if (window.localStorage) {
+                    saved = localStorage.getItem('integrationSubsection_' + userKeyPart + '_' + id);
+                }
+            } catch (e) { saved = null; }
+            setIntegrationSubsectionOpen(sub, saved === 'open', false);
+
+            // <button> gives Enter/Space for free; click covers pointer.
+            header.addEventListener('click', function () {
+                setIntegrationSubsectionOpen(sub, !sub.classList.contains('open'), true);
+            });
+            sub.dataset.subsectionInitialized = '1';
+        });
+    }
+
     function setBadge(provider, status) {
         var badge = document.getElementById('integrationStatusBadge-' + provider);
         if (!badge) return;
@@ -14814,13 +14878,20 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         }
 
+        var metaHasError = false;
         if (conn.status === 'error' && conn.last_error) {
+            metaHasError = true;
             html += '<div class="integration-meta-row"><span class="integration-meta-label">'
                 + esc(t('settings.integrations.meta.connection_issue')) + '</span><span class="integration-meta-error">'
                 + esc(conn.last_error) + '</span></div>';
         }
 
         meta.innerHTML = html;
+        // A sync/delivery error rendered inside the subsection must not stay
+        // hidden behind a collapsed header.
+        if (metaHasError || (conn.subscription && conn.subscription.last_failure_reason)) {
+            expandIntegrationSubsection(provider);
+        }
     }
 
     function renderActions(provider, conn) {
@@ -14912,6 +14983,9 @@ document.addEventListener('DOMContentLoaded', function () {
         el.textContent = message || '';
         el.style.display = message ? '' : 'none';
         el.className = 'integration-outbound-msg' + (isError ? ' integration-outbound-msg-error' : '');
+        if (isError && message) {
+            expandIntegrationSubsection(provider);
+        }
     }
 
     function populateOutboundLabs(provider, conn) {
@@ -15731,6 +15805,18 @@ document.addEventListener('DOMContentLoaded', function () {
     function initIntegrationsPanel() {
         var list = document.querySelector('.integrations-list');
         if (!list) return; // flag off -> nothing rendered
+
+        // Collapsible subsections exist for scanner disclosure cards even
+        // when SHOW_PMS_INTEGRATIONS is off, so wire them before any
+        // provider-dependent logic.
+        initIntegrationSubsections();
+
+        // With SHOW_PMS_INTEGRATIONS off the section can render solely for
+        // the scanner disclosure - there is no provider card to bind or
+        // fetch for, and api/integrations.php would reject the list call.
+        if (!document.querySelector('.integration-card[data-provider]')) {
+            return;
+        }
 
         document.querySelectorAll('.integration-action-connect, .integration-action-configure').forEach(function (btn) {
             if (btn.dataset.integrationInit) return;

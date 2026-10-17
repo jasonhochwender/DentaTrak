@@ -3518,6 +3518,112 @@ input#practiceName {
   margin-top: 2px;
 }
 
+/* Collapsible per-integration subsections inside Settings > Integrations.
+   The header button carries the provider name + status badge and stays
+   visible while collapsed; the body region hides until expanded. */
+.integration-subsection {
+  margin-bottom: 10px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #fff;
+  overflow: hidden;
+}
+
+.integration-subsection-header {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  transition: background-color 0.15s ease;
+}
+
+.integration-subsection-header:hover {
+  background-color: var(--background-subtle, #f8fafc);
+}
+
+.integration-subsection-header:focus {
+  outline: 2px solid #3b82f6;
+  outline-offset: 1px;
+}
+
+.integration-subsection-header:focus:not(:focus-visible) {
+  outline: none;
+}
+
+.integration-subsection-header .integration-provider-name {
+  flex: 1;
+  min-width: 0;
+}
+
+.integration-subsection.open .integration-subsection-header {
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.integration-subsection-arrow {
+  width: 8px;
+  height: 8px;
+  border-right: 2px solid var(--text-light, #9ca3af);
+  border-bottom: 2px solid var(--text-light, #9ca3af);
+  transform: rotate(-45deg);
+  transition: transform 0.15s ease, border-color 0.15s ease;
+  flex: none;
+}
+
+.integration-subsection.open .integration-subsection-arrow {
+  transform: rotate(45deg);
+  border-color: var(--text-secondary, #4b5563);
+}
+
+.integration-subsection-body {
+  padding: 14px 16px 16px;
+}
+
+.integration-subsection-body[hidden] {
+  display: none;
+}
+
+/* The provider card loses its own frame inside a subsection - the
+   subsection provides the border. */
+.integration-subsection-body .integration-card {
+  border: none;
+  padding: 0;
+  background: transparent;
+}
+
+/* Settings > Integrations - section headings + scanner disclosure. Loaded
+   here (not scan-inbox.css) so the cards are styled even when the
+   experimental SCANNER_INBOX flag is off. */
+.integration-section-heading {
+  margin: 20px 0 4px;
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-secondary, #475569);
+}
+
+.integration-status-badge.integration-status-coming-soon {
+  background: #e0e7ff;
+  color: #3730a3;
+}
+
+[data-theme="dark"] .integration-status-badge.integration-status-coming-soon,
+body.dark-mode .integration-status-badge.integration-status-coming-soon {
+  background: rgba(99,102,241,0.25);
+  color: #c7d2fe;
+}
+
+/* Scanner subsections keep the dashed "not yet real" cue at the
+   subsection frame level. */
+.scanner-integrations-list .integration-subsection {
+  border-style: dashed;
+}
+
 /* Guided Open Dental onboarding (key generation + install steps) */
 .integration-setup-steps {
   margin: 0;
