@@ -8,6 +8,11 @@ default browser, already filtered to that patient's lab cases.
 No changes to Open Dental itself are required - this uses Open Dental's
 built-in Program Links feature.
 
+> **This shortcut is separate from synchronization.** The toolbar button is
+> an optional convenience layered on top of the API connection. Case import,
+> automatic updates, and write-back all work without it - the button simply
+> gives staff a one-click jump from a selected patient into DentaTrak.
+
 ## What you need
 
 - The **Open Dental integration must already be connected** for your practice
@@ -101,6 +106,15 @@ the next sync/import.
   Open Dental in a remote session but want a local browser, a tool such as
   Remote Executer (documented in Open Dental's Program Links page) can
   redirect the launch to the local machine.
+- **Open Dental Cloud (unverified):** Open Dental Cloud runs the
+  OpenDental.exe desktop inside Open Dental's hosted virtual machine, so
+  the button is expected to open a browser *inside that hosted session*
+  rather than the staff member's own browser. DentaTrak sign-in would then
+  need to happen in that session's browser, and it does not share the
+  user's local browser session or cookies. This behavior has **not been
+  verified against a real Open Dental Cloud environment** - treat it as
+  expected-but-unconfirmed, and validate with a pilot Cloud practice
+  before promoting the shortcut to Cloud customers.
 
 ## Troubleshooting
 

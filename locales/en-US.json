@@ -1374,7 +1374,7 @@
             },
             "setup": {
                 "title": "Set up {provider}",
-                "description": "Follow these steps to connect DentaTrak to your Open Dental system.",
+                "description": "DentaTrak connects through the official Open Dental Remote API, which works with locally installed Open Dental and Open Dental Cloud when the required API permissions and a supported Open Dental version are in place. Follow these steps to connect.",
                 "step1_title": "Step 1: Generate your connection key",
                 "step1_desc": "DentaTrak creates a unique Open Dental connection key for your practice. You only need to do this once.",
                 "generate_key": "Generate Open Dental Connection Key",
@@ -1390,9 +1390,11 @@
                 "step2_a": "Go to Setup > Advanced Setup > API.",
                 "step2_b": "Make sure API access is enabled, then click Add Key in the lower left.",
                 "step2_c": "Paste the connection key from Step 1 and make sure it is Enabled.",
-                "step3_title": "Step 3: Confirm the eConnector is running",
-                "step3_desc": "The Open Dental API requires the eConnector service. It is usually already running if your practice uses Open Dental eServices. If it is not running or cannot be installed, contact your IT administrator or Open Dental support.",
-                "econnector_link": "Open Dental eConnector documentation",
+                "step3_title": "Step 3: Confirm Open Dental connectivity",
+                "step3_desc": "How to confirm this depends on how your practice runs Open Dental:",
+                "step3_local": "Locally installed Open Dental: the eConnector service must be running on your practice's server. It is usually already running if your practice uses Open Dental eServices. If it is not running or cannot be installed, contact your IT administrator or Open Dental support.",
+                "step3_cloud": "Open Dental Cloud: the connection service runs in Open Dental's hosted environment, so there is nothing to check on your own computers. If the connection test cannot reach it, contact Open Dental support.",
+                "econnector_link": "Open Dental eConnector documentation (local installations)",
                 "step4_title": "Step 4: Test the connection",
                 "step4_desc": "Once the key is added in Open Dental, verify that everything is working."
             },
@@ -1400,8 +1402,8 @@
                 "key_not_installed": "No connection key is configured yet. Generate a key in Step 1, add it in Open Dental, then test again.",
                 "credentials_rejected": "Open Dental rejected the connection key. Confirm the key was pasted correctly in Setup > Advanced Setup > API and that it is Enabled.",
                 "server_config": "The Open Dental integration is not fully configured on the DentaTrak server. Please contact DentaTrak support.",
-                "unreachable": "DentaTrak could not reach your Open Dental system. Check that the eConnector is running, then try again.",
-                "econnector_offline": "Open Dental reports your office's eConnector is not running. On your Open Dental server, confirm the eConnector service is started and the computer is online, then test again.",
+                "unreachable": "DentaTrak could not reach your Open Dental system. For a locally installed system, check that the eConnector is running on your practice's server. For Open Dental Cloud, contact Open Dental support. Then try again.",
+                "econnector_offline": "Open Dental reports the connection service for your office is not running. For a locally installed system, confirm the eConnector service is started on your practice's server and that the computer is online. For Open Dental Cloud, contact Open Dental support - the service runs in their hosted environment. Then test again.",
                 "unexpected": "Open Dental returned an unexpected response. Please try again, or contact support if it persists.",
                 "subscribe_version": "Automatic lab case updates require Open Dental version 25.4.14 or later. Update Open Dental, then try again.",
                 "no_key": "Generate your connection key in Step 1 before testing."
@@ -1443,7 +1445,7 @@
             },
             "toolbar": {
                 "title": "DentaTrak button in Open Dental",
-                "intro": "Add a DentaTrak button to the Open Dental toolbar. This is a one-time setup done once per office on any single computer - it applies to every workstation automatically.",
+                "intro": "Optionally add a DentaTrak button to the Open Dental toolbar for one-click access to a patient's synced cases. This is separate from synchronization - the integration works without it. It is a one-time setup done once per office on any single computer - it applies to every workstation automatically.",
                 "step1": "In Open Dental, open Main Menu → Setup → Program Links and click Add.",
                 "step_enabled": "Check the Enabled box - the button only appears when the bridge is enabled.",
                 "step2_intro": "Fill in the fields exactly as shown (use Copy for each):",
@@ -1468,7 +1470,8 @@
                 "launch_pending": "No launch detected yet",
                 "launch_detected": "First launch detected · {date}",
                 "field_args_blank": "(leave blank)",
-                "trouble_5": "The button does not appear on the toolbar: confirm Enabled is checked and at least one toolbar is selected under \"Add a button to these toolbars\"."
+                "trouble_5": "The button does not appear on the toolbar: confirm Enabled is checked and at least one toolbar is selected under \"Add a button to these toolbars\".",
+                "trouble_6": "Open Dental Cloud: the button opens a web browser inside the hosted Open Dental session rather than your usual desktop browser. This behavior has not been fully verified in Cloud sessions - if it does not open as expected, open DentaTrak in your own browser instead and let us know."
             },
             "sections": {
                 "pms": "PMS integrations"

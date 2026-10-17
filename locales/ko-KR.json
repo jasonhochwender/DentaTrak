@@ -1374,7 +1374,7 @@
             },
             "setup": {
                 "title": "{provider} 설정",
-                "description": "다음 단계에 따라 DentaTrak을 Open Dental 시스템에 연결하세요.",
+                "description": "DentaTrak은 공식 Open Dental 원격 API를 통해 연결되며, 필요한 API 권한과 지원되는 Open Dental 버전이 갖춰진 경우 로컬 설치형 Open Dental과 Open Dental Cloud 모두에서 작동합니다. 다음 단계에 따라 연결하세요.",
                 "step1_title": "1단계: 연결 키 생성",
                 "step1_desc": "DentaTrak이 치과 전용의 고유한 Open Dental 연결 키를 만듭니다. 한 번만 하면 됩니다.",
                 "generate_key": "Open Dental 연결 키 생성",
@@ -1390,9 +1390,11 @@
                 "step2_a": "Setup > Advanced Setup > API로 이동합니다.",
                 "step2_b": "API 접근이 활성화되어 있는지 확인한 후 왼쪽 아래의 Add Key를 클릭합니다.",
                 "step2_c": "1단계의 연결 키를 붙여 넣고 Enabled 상태인지 확인합니다.",
-                "step3_title": "3단계: eConnector 실행 확인",
-                "step3_desc": "Open Dental API에는 eConnector 서비스가 필요합니다. 치과에서 Open Dental eServices를 사용 중이라면 보통 이미 실행 중입니다. 실행 중이 아니거나 설치할 수 없다면 IT 관리자 또는 Open Dental 지원팀에 문의하세요.",
-                "econnector_link": "Open Dental eConnector 문서",
+                "step3_title": "3단계: Open Dental 연결 상태 확인",
+                "step3_desc": "확인 방법은 치과에서 Open Dental을 실행하는 방식에 따라 다릅니다:",
+                "step3_local": "로컬 설치형 Open Dental: eConnector 서비스가 치과 서버에서 실행 중이어야 합니다. eServices를 사용하는 경우 일반적으로 이미 실행 중입니다. 실행 중이 아니거나 설치할 수 없는 경우 IT 관리자 또는 Open Dental 지원팀에 문의하세요.",
+                "step3_cloud": "Open Dental Cloud: 연결 서비스는 Open Dental의 호스팅 환경에서 실행되므로 사용자 컴퓨터에서 확인할 항목이 없습니다. 연결 테스트가 해당 서비스에 도달할 수 없으면 Open Dental 지원팀에 문의하세요.",
+                "econnector_link": "Open Dental eConnector 문서(로컬 설치)",
                 "step4_title": "4단계: 연결 테스트",
                 "step4_desc": "Open Dental에 키가 추가되면 모든 것이 작동하는지 확인합니다."
             },
@@ -1400,8 +1402,8 @@
                 "key_not_installed": "아직 연결 키가 구성되지 않았습니다. 1단계에서 키를 생성하고 Open Dental에 추가한 후 다시 테스트하세요.",
                 "credentials_rejected": "Open Dental이 연결 키를 거부했습니다. Setup > Advanced Setup > API에 키가 올바르게 붙여 넣어졌고 Enabled 상태인지 확인하세요.",
                 "server_config": "DentaTrak 서버에 Open Dental 연동이 완전히 구성되지 않았습니다. DentaTrak 지원팀에 문의해 주세요.",
-                "unreachable": "DentaTrak이 Open Dental 시스템에 연결할 수 없습니다. eConnector가 실행 중인지 확인한 후 다시 시도해 주세요.",
-                "econnector_offline": "Open Dental이 사무실의 eConnector가 실행 중이 아니라고 보고합니다. Open Dental 서버에서 eConnector 서비스가 시작되었고 컴퓨터가 온라인인지 확인한 후 다시 테스트하세요.",
+                "unreachable": "DentaTrak이 Open Dental 시스템에 연결할 수 없습니다. 로컬 설치의 경우 치과 서버에서 eConnector가 실행 중인지 확인하세요. Open Dental Cloud의 경우 Open Dental 지원팀에 문의하세요. 그런 다음 다시 시도하세요.",
+                "econnector_offline": "Open Dental에서 치과의 연결 서비스가 실행되고 있지 않다고 보고합니다. 로컬 설치 시스템의 경우 치과 서버에서 eConnector 서비스가 시작되어 있고 컴퓨터가 온라인인지 확인하세요. Open Dental Cloud의 경우 Open Dental 지원팀에 문의하세요. 서비스는 호스팅 환경에서 실행됩니다. 그런 다음 다시 테스트하세요.",
                 "unexpected": "Open Dental이 예상치 못한 응답을 반환했습니다. 다시 시도하거나 문제가 계속되면 지원팀에 문의해 주세요.",
                 "subscribe_version": "기공소 케이스 자동 업데이트에는 Open Dental 버전 25.4.14 이상이 필요합니다. Open Dental을 업데이트한 후 다시 시도해 주세요.",
                 "no_key": "테스트하기 전에 1단계에서 연결 키를 생성하세요."
@@ -1443,7 +1445,7 @@
             },
             "toolbar": {
                 "title": "Open Dental의 DentaTrak 버튼",
-                "intro": "Open Dental 도구 모음에 DentaTrak 버튼을 추가합니다. 한 컴퓨터에서 병원당 한 번만 설정하면 모든 워크스테이션에 자동으로 적용됩니다.",
+                "intro": "선택적으로 Open Dental 도구 모음에 DentaTrak 버튼을 추가하여 환자의 동기화된 케이스를 한 번의 클릭으로 열 수 있습니다. 이는 동기화와 별개이며 이 버튼 없이도 통합은 작동합니다. 치과당 한 번, 임의의 컴퓨터에서 한 번만 설정하면 모든 워크스테이션에 자동으로 적용됩니다.",
                 "step1": "Open Dental에서 Main Menu → Setup → Program Links를 열고 Add를 클릭합니다.",
                 "step_enabled": "Enabled 상자를 선택합니다. 브리지가 활성화되어야 버튼이 표시됩니다.",
                 "step2_intro": "아래와 정확히 동일하게 필드를 입력합니다(각 항목에서 복사 사용):",
@@ -1468,7 +1470,8 @@
                 "launch_pending": "아직 감지된 실행 없음",
                 "launch_detected": "첫 실행 감지됨 · {date}",
                 "field_args_blank": "(비워 두기)",
-                "trouble_5": "도구 모음에 버튼이 표시되지 않음: Enabled가 선택되어 있고 \"Add a button to these toolbars\"에서 하나 이상의 도구 모음이 선택되어 있는지 확인하세요."
+                "trouble_5": "도구 모음에 버튼이 표시되지 않음: Enabled가 선택되어 있고 \"Add a button to these toolbars\"에서 하나 이상의 도구 모음이 선택되어 있는지 확인하세요.",
+                "trouble_6": "Open Dental Cloud: 이 버튼은 일반 데스크톱 브라우저가 아닌 호스팅된 Open Dental 세션 내에서 웹 브라우저를 엽니다. Cloud 세션에서 이 동작은 아직 완전히 검증되지 않았습니다. 예상대로 열리지 않으면 자체 브라우저에서 DentaTrak을 직접 열고 알려 주세요."
             },
             "sections": {
                 "pms": "PMS 연동"

@@ -2871,7 +2871,7 @@
             },
             "setup": {
                 "title": "{provider} einrichten",
-                "description": "Folgen Sie diesen Schritten, um DentaTrak mit Ihrem Open-Dental-System zu verbinden.",
+                "description": "DentaTrak verbindet sich über die offizielle Open-Dental-Remote-API, die mit lokal installiertem Open Dental und mit Open Dental Cloud funktioniert, sofern die erforderlichen API-Berechtigungen und eine unterstützte Open-Dental-Version vorliegen. Folgen Sie diesen Schritten, um die Verbindung herzustellen.",
                 "step1_title": "Schritt 1: Verbindungsschlüssel generieren",
                 "step1_desc": "DentaTrak erstellt einen eindeutigen Open-Dental-Verbindungsschlüssel für Ihre Praxis. Dies müssen Sie nur einmal tun.",
                 "generate_key": "Open-Dental-Verbindungsschlüssel generieren",
@@ -2887,9 +2887,11 @@
                 "step2_a": "Gehen Sie zu Setup > Advanced Setup > API.",
                 "step2_b": "Stellen Sie sicher, dass der API-Zugriff aktiviert ist, und klicken Sie dann unten links auf Add Key.",
                 "step2_c": "Fügen Sie den Verbindungsschlüssel aus Schritt 1 ein und stellen Sie sicher, dass er aktiviert ist.",
-                "step3_title": "Schritt 3: Bestätigen, dass der eConnector läuft",
-                "step3_desc": "Die Open-Dental-API erfordert den eConnector-Dienst. Er läuft normalerweise bereits, wenn Ihre Praxis Open-Dental-eServices nutzt. Falls er nicht läuft oder nicht installiert werden kann, wenden Sie sich an Ihren IT-Administrator oder den Open-Dental-Support.",
-                "econnector_link": "Open-Dental-eConnector-Dokumentation",
+                "step3_title": "Schritt 3: Open-Dental-Konnektivität bestätigen",
+                "step3_desc": "Die Art der Prüfung hängt davon ab, wie Ihre Praxis Open Dental nutzt:",
+                "step3_local": "Lokal installiertes Open Dental: Der eConnector-Dienst muss auf dem Server Ihrer Praxis laufen. Er läuft in der Regel bereits, wenn Ihre Praxis Open Dental eServices nutzt. Falls er nicht läuft oder nicht installiert werden kann, wenden Sie sich an Ihren IT-Administrator oder den Open-Dental-Support.",
+                "step3_cloud": "Open Dental Cloud: Der Verbindungsdienst läuft in der gehosteten Umgebung von Open Dental; es gibt also nichts auf Ihren eigenen Computern zu prüfen. Wenn der Verbindungstest ihn nicht erreichen kann, wenden Sie sich an den Open-Dental-Support.",
+                "econnector_link": "Open-Dental-eConnector-Dokumentation (lokale Installationen)",
                 "step4_title": "Schritt 4: Verbindung testen",
                 "step4_desc": "Sobald der Schlüssel in Open Dental hinzugefügt ist, überprüfen Sie, ob alles funktioniert."
             },
@@ -2897,8 +2899,8 @@
                 "key_not_installed": "Noch kein Verbindungsschlüssel konfiguriert. Generieren Sie einen Schlüssel in Schritt 1, fügen Sie ihn in Open Dental hinzu und testen Sie erneut.",
                 "credentials_rejected": "Open Dental hat den Verbindungsschlüssel abgelehnt. Bestätigen Sie, dass der Schlüssel korrekt unter Setup > Advanced Setup > API eingefügt und aktiviert wurde.",
                 "server_config": "Die Open-Dental-Integration ist auf dem DentaTrak-Server nicht vollständig konfiguriert. Bitte wenden Sie sich an den DentaTrak-Support.",
-                "unreachable": "DentaTrak konnte Ihr Open-Dental-System nicht erreichen. Prüfen Sie, ob der eConnector läuft, und versuchen Sie es erneut.",
-                "econnector_offline": "Open Dental meldet, dass der eConnector Ihrer Praxis nicht läuft. Bestätigen Sie auf Ihrem Open-Dental-Server, dass der eConnector-Dienst gestartet ist und der Computer online ist, und testen Sie erneut.",
+                "unreachable": "DentaTrak konnte Ihr Open-Dental-System nicht erreichen. Prüfen Sie bei einer lokalen Installation, ob der eConnector auf dem Server Ihrer Praxis läuft. Wenden Sie sich bei Open Dental Cloud an den Open-Dental-Support. Versuchen Sie es dann erneut.",
+                "econnector_offline": "Open Dental meldet, dass der Verbindungsdienst Ihrer Praxis nicht läuft. Bestätigen Sie bei einem lokal installierten System, dass der eConnector-Dienst auf dem Server Ihrer Praxis gestartet ist und der Computer online ist. Wenden Sie sich bei Open Dental Cloud an den Open-Dental-Support – der Dienst läuft in deren gehosteter Umgebung. Testen Sie dann erneut.",
                 "unexpected": "Open Dental hat eine unerwartete Antwort zurückgegeben. Bitte versuchen Sie es erneut oder wenden Sie sich an den Support, falls das Problem weiterhin besteht.",
                 "subscribe_version": "Automatische Laborfall-Aktualisierungen erfordern Open Dental Version 25.4.14 oder höher. Aktualisieren Sie Open Dental und versuchen Sie es erneut.",
                 "no_key": "Generieren Sie Ihren Verbindungsschlüssel in Schritt 1, bevor Sie testen."
@@ -2940,7 +2942,7 @@
             },
             "toolbar": {
                 "title": "DentaTrak-Schaltfläche in Open Dental",
-                "intro": "Fügen Sie der Open-Dental-Symbolleiste eine DentaTrak-Schaltfläche hinzu. Diese einmalige Einrichtung erfolgt pro Praxis auf einem einzigen Computer und gilt automatisch für alle Arbeitsplätze.",
+                "intro": "Fügen Sie optional eine DentaTrak-Schaltfläche zur Open-Dental-Symbolleiste hinzu, um mit einem Klick auf die synchronisierten Fälle eines Patienten zuzugreifen. Dies ist unabhängig von der Synchronisierung – die Integration funktioniert auch ohne sie. Die einmalige Einrichtung erfolgt einmal pro Praxis auf einem beliebigen Computer und gilt automatisch für alle Arbeitsstationen.",
                 "step1": "Öffnen Sie in Open Dental Hauptmenü → Setup → Program Links und klicken Sie auf Add.",
                 "step_enabled": "Aktivieren Sie das Kontrollkästchen Enabled - die Schaltfläche erscheint nur bei aktivierter Bridge.",
                 "step2_intro": "Füllen Sie die Felder exakt wie gezeigt aus (jeweils Kopieren verwenden):",
@@ -2965,7 +2967,8 @@
                 "launch_pending": "Noch kein Start erkannt",
                 "launch_detected": "Erster Start erkannt · {date}",
                 "field_args_blank": "(leer lassen)",
-                "trouble_5": "Die Schaltfläche erscheint nicht in der Symbolleiste: Prüfen Sie, dass Enabled aktiviert ist und mindestens eine Symbolleiste unter „Add a button to these toolbars\" ausgewählt ist."
+                "trouble_5": "Die Schaltfläche erscheint nicht in der Symbolleiste: Prüfen Sie, dass Enabled aktiviert ist und mindestens eine Symbolleiste unter „Add a button to these toolbars\" ausgewählt ist.",
+                "trouble_6": "Open Dental Cloud: Die Schaltfläche öffnet einen Webbrowser innerhalb der gehosteten Open-Dental-Sitzung statt Ihres üblichen Desktop-Browsers. Dieses Verhalten wurde in Cloud-Sitzungen noch nicht vollständig überprüft – falls es nicht wie erwartet funktioniert, öffnen Sie DentaTrak in Ihrem eigenen Browser und teilen Sie es uns mit."
             },
             "sections": {
                 "pms": "PMS-Integrationen"

@@ -17,6 +17,12 @@
  *   - Sentinels:  "0001-01-01 ..." and "2000-01-01 ..." mean "not set";
  *                 0 means "no FK" on ID columns (AptNum, PlannedAptNum, ...)
  *
+ * DEPLOYMENT: this is Remote-API mode only (no Local/Service mode). Per
+ * Open Dental's API Modes doc the same endpoint serves both locally
+ * installed Open Dental and Open Dental Cloud. Verified so far ONLY
+ * against OD's hosted demo + local stubs - see
+ * docs/open-dental-environment-verification.md for the verification matrix.
+ *
  * SECURITY:
  *   - Credentials arrive already-decrypted and are used ONLY to build the
  *     Authorization header in memory. They are never logged, never placed

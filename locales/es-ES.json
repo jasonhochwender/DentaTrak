@@ -1374,7 +1374,7 @@
             },
             "setup": {
                 "title": "Configurar {provider}",
-                "description": "Siga estos pasos para conectar DentaTrak a su sistema Open Dental.",
+                "description": "DentaTrak se conecta a través de la API remota oficial de Open Dental, que funciona con Open Dental instalado localmente y con Open Dental Cloud cuando se cumplen los permisos de API requeridos y una versión de Open Dental compatible. Siga estos pasos para conectar.",
                 "step1_title": "Paso 1: Genere su clave de conexión",
                 "step1_desc": "DentaTrak crea una clave de conexión de Open Dental única para su consultorio. Solo necesita hacerlo una vez.",
                 "generate_key": "Generar clave de conexión de Open Dental",
@@ -1390,9 +1390,11 @@
                 "step2_a": "Vaya a Setup > Advanced Setup > API.",
                 "step2_b": "Asegúrese de que el acceso a la API esté habilitado y luego haga clic en Add Key en la parte inferior izquierda.",
                 "step2_c": "Pegue la clave de conexión del paso 1 y asegúrese de que esté Enabled.",
-                "step3_title": "Paso 3: Confirme que eConnector esté en ejecución",
-                "step3_desc": "La API de Open Dental requiere el servicio eConnector. Normalmente ya está en ejecución si su consultorio usa eServices de Open Dental. Si no está en ejecución o no se puede instalar, contacte a su administrador de TI o al soporte de Open Dental.",
-                "econnector_link": "Documentación de Open Dental eConnector",
+                "step3_title": "Paso 3: Confirme la conectividad de Open Dental",
+                "step3_desc": "La forma de confirmarlo depende de cómo su consulta ejecuta Open Dental:",
+                "step3_local": "Open Dental instalado localmente: el servicio eConnector debe estar en ejecución en el servidor de su consulta. Normalmente ya está en ejecución si su consulta usa los eServices de Open Dental. Si no está en ejecución o no se puede instalar, contacte a su administrador de TI o al soporte de Open Dental.",
+                "step3_cloud": "Open Dental Cloud: el servicio de conexión se ejecuta en el entorno alojado de Open Dental, por lo que no hay nada que comprobar en sus propios equipos. Si la prueba de conexión no puede alcanzarlo, contacte al soporte de Open Dental.",
+                "econnector_link": "Documentación de eConnector de Open Dental (instalaciones locales)",
                 "step4_title": "Paso 4: Pruebe la conexión",
                 "step4_desc": "Una vez agregada la clave en Open Dental, verifique que todo funcione."
             },
@@ -1400,8 +1402,8 @@
                 "key_not_installed": "Aún no hay ninguna clave de conexión configurada. Genere una clave en el paso 1, agréguela en Open Dental y luego pruebe de nuevo.",
                 "credentials_rejected": "Open Dental rechazó la clave de conexión. Confirme que la clave se pegó correctamente en Setup > Advanced Setup > API y que está Enabled.",
                 "server_config": "La integración con Open Dental no está completamente configurada en el servidor de DentaTrak. Contacte al soporte de DentaTrak.",
-                "unreachable": "DentaTrak no pudo comunicarse con su sistema Open Dental. Verifique que eConnector esté en ejecución e inténtelo de nuevo.",
-                "econnector_offline": "Open Dental informa que el eConnector de su oficina no está en ejecución. En su servidor de Open Dental, confirme que el servicio eConnector esté iniciado y que el equipo esté en línea, luego pruebe de nuevo.",
+                "unreachable": "DentaTrak no pudo alcanzar su sistema Open Dental. Para una instalación local, compruebe que eConnector está en ejecución en el servidor de su consulta. Para Open Dental Cloud, contacte al soporte de Open Dental. Luego inténtelo de nuevo.",
+                "econnector_offline": "Open Dental informa que el servicio de conexión de su consulta no está en ejecución. Para un sistema instalado localmente, confirme que el servicio eConnector está iniciado en el servidor de su consulta y que el equipo está en línea. Para Open Dental Cloud, contacte al soporte de Open Dental: el servicio se ejecuta en su entorno alojado. Luego pruebe de nuevo.",
                 "unexpected": "Open Dental devolvió una respuesta inesperada. Inténtelo de nuevo o contacte a soporte si el problema persiste.",
                 "subscribe_version": "Las actualizaciones automáticas de casos de laboratorio requieren Open Dental versión 25.4.14 o posterior. Actualice Open Dental e inténtelo de nuevo.",
                 "no_key": "Genere su clave de conexión en el paso 1 antes de probar."
@@ -1443,7 +1445,7 @@
             },
             "toolbar": {
                 "title": "Botón de DentaTrak en Open Dental",
-                "intro": "Añada un botón de DentaTrak a la barra de herramientas de Open Dental. Es una configuración única por consultorio en un solo equipo: se aplica automáticamente a todas las estaciones de trabajo.",
+                "intro": "Opcionalmente, agregue un botón de DentaTrak a la barra de herramientas de Open Dental para acceder con un clic a los casos sincronizados de un paciente. Esto es independiente de la sincronización: la integración funciona sin él. Es una configuración única que se realiza una vez por consulta en cualquier equipo y se aplica a todas las estaciones de trabajo automáticamente.",
                 "step1": "En Open Dental, abra Menú principal → Setup → Program Links y pulse Add.",
                 "step_enabled": "Marque la casilla Enabled: el botón solo aparece si el bridge está habilitado.",
                 "step2_intro": "Rellene los campos exactamente como se muestra (use Copiar en cada uno):",
@@ -1468,7 +1470,8 @@
                 "launch_pending": "Aún no se detecta ningún inicio",
                 "launch_detected": "Primer inicio detectado · {date}",
                 "field_args_blank": "(dejar en blanco)",
-                "trouble_5": "El botón no aparece en la barra: compruebe que Enabled está marcado y que al menos una barra está seleccionada en «Add a button to these toolbars»."
+                "trouble_5": "El botón no aparece en la barra: compruebe que Enabled está marcado y que al menos una barra está seleccionada en «Add a button to these toolbars».",
+                "trouble_6": "Open Dental Cloud: el botón abre un navegador web dentro de la sesión alojada de Open Dental, en lugar de su navegador habitual. Este comportamiento no se ha verificado por completo en sesiones de Cloud; si no se abre como se espera, abra DentaTrak en su propio navegador y avísenos."
             },
             "sections": {
                 "pms": "Integraciones de PMS"

@@ -3769,6 +3769,7 @@ endif;
                                   <li><?php echo t('settings.integrations.toolbar.trouble_3'); ?></li>
                                   <li><?php echo t('settings.integrations.toolbar.trouble_4'); ?></li>
                                   <li><?php echo t('settings.integrations.toolbar.trouble_5'); ?></li>
+                                  <li><?php echo t('settings.integrations.toolbar.trouble_6'); ?></li>
                                 </ul>
                               </details>
                             </div>
@@ -3871,9 +3872,12 @@ endif;
                 <li class="integration-setup-step">
                   <div class="integration-step-title"><?php echo t('settings.integrations.setup.step3_title'); ?></div>
                   <p class="integration-step-desc"><?php echo t('settings.integrations.setup.step3_desc'); ?></p>
-                  <p class="integration-step-desc">
-                    <a href="https://www.opendental.com/manual/econnector.html" target="_blank" rel="noopener noreferrer"><?php echo t('settings.integrations.setup.econnector_link'); ?></a>
-                  </p>
+                  <ul class="integration-substeps">
+                    <li><?php echo t('settings.integrations.setup.step3_local'); ?>
+                      <a href="https://www.opendental.com/manual/econnector.html" target="_blank" rel="noopener noreferrer"><?php echo t('settings.integrations.setup.econnector_link'); ?></a>
+                    </li>
+                    <li><?php echo t('settings.integrations.setup.step3_cloud'); ?></li>
+                  </ul>
                 </li>
                 <li class="integration-setup-step">
                   <div class="integration-step-title"><?php echo t('settings.integrations.setup.step4_title'); ?></div>

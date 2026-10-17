@@ -1,5 +1,12 @@
 # Open Dental Two-Way Sync — Design + Field Mapping (GA)
 
+> **Environment scope:** the Remote-API paths described here were verified
+> against Open Dental's hosted demo and local stubs only. Writeback has
+> **not** been verified against a real on-premises practice or an official
+> Open Dental Cloud account — see
+> `docs/open-dental-environment-verification.md` before claiming
+> customer-environment support.
+
 Status: **generally available.** `PMS_OUTBOUND_SYNC` defaults on (env remains
 the global kill switch) and every subscription plan may use the integration.
 A connection still pushes nothing until an administrator explicitly enables
