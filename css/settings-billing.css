@@ -3399,9 +3399,11 @@ input#practiceName {
   gap: 10px;
 }
 
+/* Individual integration names stay one step under the category headings:
+   slightly smaller, medium weight. */
 .integration-provider-name {
-  font-weight: 600;
-  font-size: 15px;
+  font-weight: 500;
+  font-size: 14px;
   color: #111827;
 }
 
@@ -3598,13 +3600,19 @@ input#practiceName {
 /* Settings > Integrations - section headings + scanner disclosure. Loaded
    here (not scan-inbox.css) so the cards are styled even when the
    experimental SCANNER_INBOX flag is off. */
-.integration-section-heading {
-  margin: 20px 0 4px;
-  font-size: 13px;
+/* Category headings ("PMS integrations", "Scanner integrations") sit
+   clearly above the collapsible per-integration headers: same casing and
+   weight family as .subsection-title (the other in-panel major sections),
+   one step larger and heavier. Scoped to .settings-billing-modal because
+   app.light.css's generic `.modal-body h4` rule (orange, em margins)
+   outranks the bare class - same pattern used for .subsection-title. */
+.settings-billing-modal .integration-section-heading {
+  margin: 26px 0 8px;
+  font-size: 16px;
   font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: var(--text-secondary, #475569);
+  text-transform: none;
+  letter-spacing: normal;
+  color: var(--text-primary);
 }
 
 .integration-status-badge.integration-status-coming-soon {

@@ -3627,7 +3627,7 @@ endif;
                         <p class="section-description"><?php echo t('settings.integrations.description'); ?></p>
                         <div id="integrationsPanelError" class="error-message" style="display:none;"></div>
                         <?php if (!empty($integrationProviders)): ?>
-                        <h3 class="integration-section-heading"><?php echo t('settings.integrations.sections.pms'); ?></h3>
+                        <h4 class="integration-section-heading"><?php echo t('settings.integrations.sections.pms'); ?></h4>
                         <div class="integrations-list">
                           <?php foreach ($integrationProviders as $providerKey => $providerDef): ?>
                           <?php
@@ -3786,7 +3786,7 @@ endif;
                         <!-- Scanner integrations: informational only. No
                              vendor connection is approved or live; these
                              subsections intentionally render no actions. -->
-                        <h3 class="integration-section-heading"><?php echo t('settings.integrations.scanners.section_title'); ?></h3>
+                        <h4 class="integration-section-heading"><?php echo t('settings.integrations.scanners.section_title'); ?></h4>
                         <div class="integrations-list scanner-integrations-list">
                           <?php foreach ($scannerProviders as $scannerKey => $scannerNameKey): ?>
                           <?php $scannerBodyId = 'integrationSubsectionBody-scanner-' . $scannerKey; ?>
