@@ -176,6 +176,23 @@ class ScanFileStore {
     }
 
     /**
+     * Whether the stored object exists. Used by the attach flow to verify a
+     * claimed-but-unmerged file's bytes are really at the recorded key
+     * before its attachment metadata is rebuilt.
+     */
+    public static function exists(string $driver, string $storagePath): bool {
+        try {
+            if ($driver === self::DRIVER_GCS) {
+                return getGcsBucket()->object($storagePath)->exists();
+            }
+            return is_file(self::localPath($storagePath));
+        } catch (Throwable $e) {
+            error_log('[ScanFileStore] exists check failed: ' . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
      * Open a read stream for a stored object.
      * @return array{0: resource, 1: int, 2: string}|null [stream, size, content_type]
      */

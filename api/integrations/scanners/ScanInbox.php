@@ -349,13 +349,71 @@ class ScanInbox {
         //     Claim is conditional so a concurrent attach converges instead
         //     of double-appending metadata.
         $attachments = [];
+        $missingBytes = 0;
         foreach ($candidates as $file) {
             $fileId = (int)$file['id'];
             if ($file['attached_case_id'] === $caseId) {
                 // Claimed by an earlier attach attempt to this same case but
-                // the metadata merge never completed - bytes already sit at
-                // the case-owned key, so only rebuild the attachment record.
-                $newPath = (string)$file['storage_path'];
+                // the metadata merge never completed. Verify what actually
+                // happened to the bytes before rebuilding the record:
+                //  - still on the pending key  -> the move never ran;
+                //    complete it now (moveToCase is idempotent).
+                //  - on the case key and the object exists -> merge was the
+                //    only missed step; rebuild the attachment record.
+                //  - object missing -> do NOT record a phantom attachment:
+                //    release the claim and reset the row to pending so the
+                //    Retry action can re-download it from the connector.
+                $storedPath = (string)$file['storage_path'];
+                $segments = explode('/', $storedPath);
+                $stillPending = count($segments) === 5
+                    && isset($segments[2])
+                    && strpos($segments[2], 'pending_scan_') === 0;
+                if ($stillPending) {
+                    try {
+                        $newPath = ScanFileStore::moveToCase(
+                            $storedPath,
+                            (string)$file['storage_driver'],
+                            $practiceId,
+                            $caseId
+                        );
+                    } catch (Throwable $e) {
+                        $pdo->prepare("UPDATE scanner_scan_files SET attached_case_id = NULL, attached_at = NULL WHERE id = :id AND attached_case_id = :cid")
+                            ->execute([':id' => $fileId, ':cid' => $caseId]);
+                        error_log('[ScanInbox] finishing interrupted move failed for file ' . $fileId . ': ' . $e->getMessage());
+                        return ['success' => false, 'error' => 'storage_error'];
+                    }
+                    $pdo->prepare("UPDATE scanner_scan_files SET storage_path = :p WHERE id = :id")
+                        ->execute([':p' => $newPath, ':id' => $fileId]);
+                } else {
+                    // Trust the stored path only when it both belongs to this
+                    // case's key space and the object actually exists. A path
+                    // that points at another case, or at nothing, is treated
+                    // as lost bytes rather than recorded as an attachment.
+                    $destOk = count($segments) === 5
+                        && $segments[0] === 'cases'
+                        && $segments[1] === (string)$practiceId
+                        && $segments[2] === (string)$caseId
+                        && ScanFileStore::exists((string)$file['storage_driver'], $storedPath);
+                    if ($destOk) {
+                        $newPath = $storedPath;
+                    } else {
+                        // Destination bytes are gone or the pointer is
+                        // untrustworthy. Reset to pending + unclaimed so Retry
+                        // re-downloads the file; the attach reports failure
+                        // instead of recording an attachment that points at
+                        // nothing.
+                        $pdo->prepare("
+                            UPDATE scanner_scan_files
+                            SET attached_case_id = NULL, attached_at = NULL,
+                                status = :pending, storage_driver = NULL,
+                                storage_path = NULL, checksum_sha256 = NULL
+                            WHERE id = :id AND attached_case_id = :cid
+                        ")->execute([':id' => $fileId, ':cid' => $caseId, ':pending' => ScanIngestion::FILE_PENDING]);
+                        $missingBytes++;
+                        error_log('[ScanInbox] claimed file ' . $fileId . ' has no stored object at the case key; reset to pending for re-download');
+                        continue;
+                    }
+                }
             } else {
                 $claimed = $pdo->prepare("
                     UPDATE scanner_scan_files
@@ -415,6 +473,12 @@ class ScanInbox {
         }
 
         if (!$attachments) {
+            if ($missingBytes > 0) {
+                // Every candidate lost its stored object and was reset to
+                // pending - report a recoverable failure, not a link that
+                // delivered zero files.
+                return ['success' => false, 'error' => 'storage_error'];
+            }
             // Everything was claimed by a concurrent attach - converge: mark
             // the scan linked to whichever case now owns the files.
             return self::finalizeAttach($pdo, $practiceId, $userId, $scanId, $caseId, false);

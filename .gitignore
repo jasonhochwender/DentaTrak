@@ -242,4 +242,6 @@ NUL
 !/tests/pms-ga-panel-e2e-test.js
 !/tests/scanner-foundation-test.php
 !/tests/scanner-ui-screenshot-test.js
+!/tests/scanner-e2e-http-test.js
+!/tests/scanner-create-case-ui-e2e-test.js
 !/tests/settings-integrations-subsections-test.js

@@ -561,6 +561,100 @@ try {
     assertTrue($foundOrphan, 'recovered attachment recorded with scanFileId');
 
     // ------------------------------------------------------------------
+    // 16b. Claimed file whose bytes are MISSING at the destination must
+    //      not produce a phantom attachment: the attach reports a
+    //      recoverable failure and the file row resets to pending so the
+    //      Retry action can re-download it.
+    // ------------------------------------------------------------------
+    $lostFileId = 0;
+    {
+        $pdo->prepare("
+            INSERT INTO scanner_scan_files
+                (scan_id, external_file_id, revision, remote_ref, file_name, content_type, file_role, declared_size, status)
+            VALUES (:sid, 'sim-scan-5005-lost.stl', 'rev1', :ref, 'SYNTHETIC-sim-scan-5005-lost.stl', 'model/stl', 'lower', :sz, 'ready')
+        ")->execute([
+            ':sid' => $maScanId,
+            ':ref' => 'sim://multi_arch/sim-scan-5005/lost.stl',
+            ':sz'  => 4096,
+        ]);
+        $lostFileId = (int)$pdo->lastInsertId();
+        $stored = ScanFileStore::store($testPracticeId, $lostFileId, 'SYNTHETIC-sim-scan-5005-lost.stl', str_repeat('l', 4096), 'model/stl');
+        $newPath = ScanFileStore::moveToCase($stored['storage_path'], $stored['storage_driver'], $testPracticeId, $maCaseId);
+        $pdo->prepare("UPDATE scanner_scan_files SET attached_case_id = :cid, attached_at = NOW(), storage_driver = :d, storage_path = :p WHERE id = :id")
+            ->execute([':cid' => $maCaseId, ':d' => $stored['storage_driver'], ':p' => $newPath, ':id' => $lostFileId]);
+        // Simulate the object disappearing after the move (external delete).
+        ScanFileStore::delete($stored['storage_driver'], $newPath);
+    }
+    $lostAttach = ScanInbox::attachToCase($pdo, $testPracticeId, $testUserId, $maScanId, $maCaseId, false);
+    assertTrue(!empty($lostAttach['success']), 'attach still converges while the lost file resets');
+    $lostRow = $pdo->query("SELECT status, attached_case_id, storage_path FROM scanner_scan_files WHERE id = {$lostFileId}")->fetch(PDO::FETCH_ASSOC);
+    assertEquals(ScanIngestion::FILE_PENDING, $lostRow['status'], 'missing-bytes file reset to pending for re-download');
+    assertTrue($lostRow['attached_case_id'] === null, 'missing-bytes file claim released');
+    assertTrue($lostRow['storage_path'] === null, 'missing-bytes file storage path cleared');
+    $attsNoPhantom = json_decode(caseRow($pdo, $maCaseId)['attachments_json'], true);
+    $phantom = false;
+    foreach ($attsNoPhantom as $a) {
+        if (($a['scanFileId'] ?? null) === $lostFileId) { $phantom = true; }
+    }
+    assertTrue(!$phantom, 'no attachment metadata recorded for missing bytes');
+
+    // If ALL candidate files are missing bytes the attach must report a
+    // recoverable failure rather than a zero-file link.
+    {
+        $attsSolo = count(json_decode(caseRow($pdo, $maCaseId)['attachments_json'], true));
+        foreach (json_decode(caseRow($pdo, $maCaseId)['attachments_json'], true) as $a) {
+            if (!empty($a['scanFileId'])) {
+                $fid = (int)$a['scanFileId'];
+                $r = $pdo->query("SELECT storage_driver, storage_path FROM scanner_scan_files WHERE id = {$fid}")->fetch(PDO::FETCH_ASSOC);
+                if ($r && $r['storage_path']) { ScanFileStore::delete($r['storage_driver'], $r['storage_path']); }
+            }
+        }
+        $allLost = ScanInbox::attachToCase($pdo, $testPracticeId, $testUserId, $maScanId, $maCaseId, false);
+        assertTrue(empty($allLost['success']) && ($allLost['error'] ?? '') === 'storage_error', 'all-bytes-missing attach fails recoverably');
+        // Metadata on the case is untouched - no silent removal either.
+        assertEquals($attsSolo, count(json_decode(caseRow($pdo, $maCaseId)['attachments_json'], true)), 'existing attachments untouched by failed re-attach');
+        // Restore: re-run processing so the pending rows download again and
+        // the scan can finish its workflow for later sections.
+        ScanIngestion::processPendingFiles($pdo, ScanIngestion::findScanForPractice($pdo, $testPracticeId, $maScanId), $connector, $ctx);
+        $reAttach = ScanInbox::attachToCase($pdo, $testPracticeId, $testUserId, $maScanId, $maCaseId, false);
+        assertTrue(!empty($reAttach['success']), 're-downloaded files attach after recovery');
+        $restored = $pdo->query("SELECT storage_driver, storage_path FROM scanner_scan_files WHERE id = {$lostFileId}")->fetch(PDO::FETCH_ASSOC);
+        assertTrue(!empty($restored['storage_path']) && ScanFileStore::exists($restored['storage_driver'], $restored['storage_path']), 're-downloaded bytes exist at case key');
+        // Keep the downloaded objects for cleanup tracking.
+        foreach ($pdo->query("SELECT storage_driver, storage_path FROM scanner_scan_files WHERE scan_id = {$maScanId} AND storage_path IS NOT NULL")->fetchAll(PDO::FETCH_ASSOC) as $r) {
+            $createdFilePaths[] = [$r['storage_driver'], $r['storage_path']];
+        }
+    }
+
+    // ------------------------------------------------------------------
+    // 16c. Claimed file still on the PENDING key (crash between the claim
+    //      and the move): attach completes the move instead of recording
+    //      the pending path as the attachment location.
+    // ------------------------------------------------------------------
+    {
+        $pdo->prepare("
+            INSERT INTO scanner_scan_files
+                (scan_id, external_file_id, revision, remote_ref, file_name, content_type, declared_size, status)
+            VALUES (:sid, 'sim-scan-5005-stuck.stl', 'rev1', :ref, 'SYNTHETIC-sim-scan-5005-stuck.stl', 'model/stl', :sz, 'ready')
+        ")->execute([
+            ':sid' => $maScanId,
+            ':ref' => 'sim://multi_arch/sim-scan-5005/stuck.stl',
+            ':sz'  => 4096,
+        ]);
+        $stuckFileId = (int)$pdo->lastInsertId();
+        $stored = ScanFileStore::store($testPracticeId, $stuckFileId, 'SYNTHETIC-sim-scan-5005-stuck.stl', str_repeat('k', 4096), 'model/stl');
+        $pdo->prepare("UPDATE scanner_scan_files SET attached_case_id = :cid, attached_at = NOW(), storage_driver = :d, storage_path = :p WHERE id = :id")
+            ->execute([':cid' => $maCaseId, ':d' => $stored['storage_driver'], ':p' => $stored['storage_path'], ':id' => $stuckFileId]);
+        $stuckAttach = ScanInbox::attachToCase($pdo, $testPracticeId, $testUserId, $maScanId, $maCaseId, false);
+        assertTrue(!empty($stuckAttach['success']), 'attach completes an unfinished move');
+        $stuckRow = $pdo->query("SELECT storage_path FROM scanner_scan_files WHERE id = {$stuckFileId}")->fetch(PDO::FETCH_ASSOC);
+        assertTrue(strpos($stuckRow['storage_path'], "/{$maCaseId}/") !== false, 'storage path rewritten to the case key');
+        assertTrue(strpos($stuckRow['storage_path'], 'pending_scan_') === false, 'attachment no longer points at pending key');
+        assertTrue(ScanFileStore::exists($stored['storage_driver'], $stuckRow['storage_path']), 'bytes moved to the case key');
+        $createdFilePaths[] = [$stored['storage_driver'], $stuckRow['storage_path']];
+    }
+
+    // ------------------------------------------------------------------
     // 17. Malformed / oversize downloads fail safely (stub connector)
     // ------------------------------------------------------------------
     $stubOversize = new class implements ScannerConnectorInterface {
