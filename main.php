@@ -235,6 +235,23 @@ try {
 // visibility; every underlying API independently enforces this server-side.
 $isCurrentUserPracticeAdmin = isPracticeAdmin($currentPracticeId);
 
+// Incoming-scans inbox: experimental feature flag AND the existing
+// can_edit_cases practice permission. UI visibility only - api/scan-inbox.php
+// enforces both server-side on every action.
+$userCanEditCases = false;
+try {
+    $userCanEditCases = canEditCases($currentPracticeId);
+} catch (Throwable $e) {
+    $userCanEditCases = false;
+}
+$showScannerInbox = isFeatureEnabled('SCANNER_INBOX') && $userCanEditCases;
+
+// Settings > Integrations visibility: the PMS provider cards stay behind
+// SHOW_PMS_INTEGRATIONS, but the informational "Scanner integrations"
+// (Coming soon) entries must be visible to anyone who can manage practice
+// integrations - independent of the experimental import workflow.
+$showIntegrationsSection = isFeatureEnabled('SHOW_PMS_INTEGRATIONS') || $isCurrentUserPracticeAdmin;
+
 
 
 // Practice-specific workflow-stage display labels, resolved once here so
@@ -705,6 +722,9 @@ if (isset($appConfig) && is_array($appConfig) && isset($appConfig['appName'])) {
   <link rel="preload" href="<?= appAssetUrl('css/analytics-pro.css') ?>" as="style" onload="this.onload=null;this.rel='stylesheet'">
   <link rel="preload" href="<?= appAssetUrl('css/attachment-viewer.css') ?>" as="style" onload="this.onload=null;this.rel='stylesheet'">
   <link rel="preload" href="<?= appAssetUrl('css/od-send-case.css') ?>" as="style" onload="this.onload=null;this.rel='stylesheet'">
+<?php if ($showScannerInbox): ?>
+  <link rel="preload" href="<?= appAssetUrl('css/scan-inbox.css') ?>" as="style" onload="this.onload=null;this.rel='stylesheet'">
+<?php endif; ?>
 <?php if (isFeatureEnabled('SHOW_LAB_INSIGHTS')): ?>
   <link rel="preload" href="<?= appAssetUrl('css/lab-insights.css') ?>" as="style" onload="this.onload=null;this.rel='stylesheet'">
 <?php endif; ?>
@@ -737,6 +757,9 @@ if (isset($appConfig) && is_array($appConfig) && isset($appConfig['appName'])) {
 <?php endif; ?>
     <link rel="stylesheet" href="<?= appAssetUrl('css/attachment-viewer.css') ?>">
     <link rel="stylesheet" href="<?= appAssetUrl('css/od-send-case.css') ?>">
+<?php if ($showScannerInbox): ?>
+    <link rel="stylesheet" href="<?= appAssetUrl('css/scan-inbox.css') ?>">
+<?php endif; ?>
 <?php if (isFeatureEnabled('BILLING_ENABLED')): ?>
     <link rel="stylesheet" href="<?= appAssetUrl('css/billing-portal.css') ?>">
 <?php endif; ?>
@@ -757,6 +780,7 @@ if (isset($appConfig) && is_array($appConfig) && isset($appConfig['appName'])) {
     window.isPracticeAdmin = <?php echo $isCurrentUserPracticeAdmin ? 'true' : 'false'; ?>;
     window.workflowColumnsEndpoint = <?php echo json_encode('api/workflow-columns.php', JSON_UNESCAPED_UNICODE); ?>;
     window.pmsSync = <?php echo json_encode(['odCreateEnabled' => $dtOdSendAvailable === true]); ?>;
+    window.scannerInbox = <?php echo json_encode(['enabled' => $showScannerInbox === true]); ?>;
   </script>
 </head>
 <?php 
@@ -988,6 +1012,9 @@ endif;
       <!-- Main Tabs -->
       <div class="main-tabs">
         <button type="button" class="main-tab active" data-tab="cases"><?php echo t('navigation.cases'); ?></button>
+        <?php if ($showScannerInbox): ?>
+        <button type="button" class="main-tab" data-tab="incoming-scans"><?php echo t('scanner.tab_title'); ?></button>
+        <?php endif; ?>
         <?php if ($userCanViewAnalytics): ?>
         <button type="button" class="main-tab" data-tab="insights"><?= t('navigation.insights') ?></button>
         <?php endif; ?>
@@ -1970,6 +1997,72 @@ endif;
         </div>
         <!-- End Lab Insights Tab -->
         <?php endif; ?>
+
+        <?php if ($showScannerInbox): ?>
+        <!-- Incoming Scans Tab (experimental - SCANNER_INBOX flag) -->
+        <div class="main-tab-pane" id="incoming-scans-tab">
+          <div class="scan-inbox">
+            <div class="ap-header">
+              <div class="ap-header-content">
+                <div>
+                  <h1 class="ap-title"><?php echo t('scanner.inbox_title'); ?></h1>
+                  <p class="ap-subtitle"><?php echo t('scanner.inbox_subtitle'); ?></p>
+                </div>
+                <div class="ap-header-actions">
+                  <label class="scan-inbox-dismissed-toggle">
+                    <input type="checkbox" id="scanInboxShowDismissed">
+                    <span><?php echo t('scanner.show_dismissed'); ?></span>
+                  </label>
+                  <button type="button" class="ap-btn ap-btn-secondary" id="scanInboxRefresh">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <path d="M23 4v6h-6M1 20v-6h6M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/>
+                    </svg>
+                    <?php echo t('scanner.refresh'); ?>
+                  </button>
+                </div>
+              </div>
+            </div>
+            <div id="scanInboxList" class="scan-inbox-list" aria-live="polite">
+              <div class="scan-inbox-empty"><?php echo t('scanner.loading'); ?></div>
+            </div>
+          </div>
+        </div>
+        <!-- End Incoming Scans Tab -->
+
+        <!-- Attach-scan dialog -->
+        <div id="scanAttachModal" class="modal">
+          <div class="modal-content scan-attach-modal">
+            <div class="modal-header">
+              <h2 class="modal-title"><?php echo t('scanner.attach_title'); ?></h2>
+              <button type="button" class="btn-close" id="scanAttachClose"><span>&times;</span></button>
+            </div>
+            <div class="modal-body">
+              <p class="section-description" id="scanAttachIntro"></p>
+              <div id="scanAttachSuggestions" class="scan-attach-suggestions" style="display:none;">
+                <div class="scan-attach-suggestions-title"><?php echo t('scanner.suggested_matches'); ?></div>
+                <div id="scanAttachSuggestionsList"></div>
+              </div>
+              <div class="form-field">
+                <label for="scanAttachCaseSelect"><?php echo t('scanner.select_case'); ?></label>
+                <select id="scanAttachCaseSelect"></select>
+              </div>
+              <div class="form-field scan-attach-instructions" id="scanAttachInstructionsWrap" style="display:none;">
+                <label class="scan-attach-instructions-label" for="scanAttachAppendInstructions">
+                  <input type="checkbox" id="scanAttachAppendInstructions">
+                  <span><?php echo t('scanner.append_instructions'); ?></span>
+                </label>
+                <p class="field-note"><?php echo t('scanner.append_instructions_note'); ?></p>
+                <pre class="scan-instructions-preview" id="scanAttachInstructionsPreview"></pre>
+              </div>
+              <div class="error-message" id="scanAttachError" style="display:none;"></div>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn-primary" id="scanAttachConfirm"><?php echo t('scanner.attach_confirm'); ?></button>
+              <button type="button" class="btn-cancel" id="scanAttachCancel"><?php echo t('common.cancel'); ?></button>
+            </div>
+          </div>
+        </div>
+        <?php endif; ?>
       </div>
       <!-- End Tab Content -->
     </main>
@@ -2945,7 +3038,7 @@ endif;
                       <button type="button" class="settings-nav-item" data-nav-target="authorized"><?php echo t('settings.navigation.users'); ?></button>
                       <button type="button" class="settings-nav-item" data-nav-target="security"><?php echo t('settings.navigation.security'); ?></button>
                       <button type="button" class="settings-nav-item" data-nav-target="data-privacy"><?php echo t('settings.navigation.data_privacy'); ?></button>
-                      <?php if (isFeatureEnabled('SHOW_PMS_INTEGRATIONS')): ?>
+                      <?php if ($showIntegrationsSection): ?>
                       <button type="button" class="settings-nav-item" data-nav-target="integrations"><?php echo t('settings.navigation.integrations'); ?></button>
                       <?php endif; ?>
                     </nav>
@@ -3499,17 +3592,29 @@ endif;
                     </div>
                   </div>
 
-                  <?php if (isFeatureEnabled('SHOW_PMS_INTEGRATIONS')): ?>
+                  <?php if ($showIntegrationsSection): ?>
                   <?php
                   // Provider cards render from this registry so additional PMS
                   // providers slot in without restructuring the panel. The JS
                   // in app.js keys off data-provider and fills connection
-                  // state from api/integrations.php.
-                  $integrationProviders = [
+                  // state from api/integrations.php. PMS provider cards stay
+                  // behind SHOW_PMS_INTEGRATIONS; the informational scanner
+                  // section below is admin-visible independently.
+                  $integrationProviders = isFeatureEnabled('SHOW_PMS_INTEGRATIONS') ? [
                       'open_dental' => [
                           'name_key' => 'settings.integrations.providers.open_dental.name',
                           'desc_key' => 'settings.integrations.providers.open_dental.description',
                       ],
+                  ] : [];
+
+                  // Scanner integrations are informational only - no vendor is
+                  // approved or connected yet, so no Connect actions,
+                  // credential fields, dates, or pricing may ever render here.
+                  $scannerProviders = [
+                      'itero'     => 'settings.integrations.scanners.itero',
+                      'trios'     => 'settings.integrations.scanners.trios',
+                      'primescan' => 'settings.integrations.scanners.primescan',
+                      'medit'     => 'settings.integrations.scanners.medit',
                   ];
                   ?>
                   <div class="settings-twisty" data-twisty-id="integrations">
@@ -3663,6 +3768,24 @@ endif;
                           </div>
                           <?php endforeach; ?>
                         </div>
+
+                        <?php if ($isCurrentUserPracticeAdmin): ?>
+                        <!-- Scanner integrations: informational only. No
+                             vendor connection is approved or live; these
+                             cards intentionally render no actions. -->
+                        <h3 class="integration-section-heading"><?php echo t('settings.integrations.scanners.section_title'); ?></h3>
+                        <div class="integrations-list scanner-integrations-list">
+                          <?php foreach ($scannerProviders as $scannerKey => $scannerNameKey): ?>
+                          <div class="integration-card integration-card-scanner" data-scanner="<?php echo htmlspecialchars($scannerKey); ?>">
+                            <div class="integration-card-top">
+                              <span class="integration-provider-name"><?php echo t($scannerNameKey); ?></span>
+                              <span class="integration-status-badge integration-status-coming-soon"><?php echo t('settings.integrations.status.coming_soon'); ?></span>
+                            </div>
+                            <p class="integration-card-description"><?php echo t('settings.integrations.scanners.card_description'); ?></p>
+                          </div>
+                          <?php endforeach; ?>
+                        </div>
+                        <?php endif; ?>
                       </div>
                     </div>
                   </div>
@@ -4072,6 +4195,9 @@ endif;
   <script src="<?= appAssetUrl('js/case-actions-menu.js') ?>" defer></script>
   <script src="<?= appAssetUrl('js/od-send-case.js') ?>" defer></script>
   <script src="<?= appAssetUrl('js/case-remakes.js') ?>" defer></script>
+<?php if ($showScannerInbox): ?>
+  <script src="<?= appAssetUrl('js/scan-inbox.js') ?>" defer></script>
+<?php endif; ?>
   
 <?php if ($showDevTools): ?>
 <!-- Dev Tools JavaScript -->

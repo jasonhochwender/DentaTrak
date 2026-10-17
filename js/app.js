@@ -8088,6 +8088,13 @@ document.addEventListener('DOMContentLoaded', function () {
       // Add new card with animation
       addCaseToKanbanWithAnimation(data.caseData);
 
+      // Scanner inbox: when a case is created from the Incoming Scans tab,
+      // the pending scan is linked to the new case after the normal create
+      // flow succeeds (see js/scan-inbox.js).
+      if (!isUpdate && data.caseData && data.caseData.id && window.ScanInbox && typeof window.ScanInbox.linkCreatedCase === 'function') {
+        window.ScanInbox.linkCreatedCase(data.caseData.id);
+      }
+
       // Update counts
       updateColumnCounts();
 

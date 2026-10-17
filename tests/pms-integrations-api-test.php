@@ -582,9 +582,16 @@ $baseUrl2 = "http://127.0.0.1:{$port2}";
 
 // Session cookie is shared (file sessions, same cookie scope).
 $off = getCsrf($baseUrl2, $cookieA);
-assertTrue('flag off: no integrations nav item', strpos($off['html'], 'data-nav-target="integrations"') === false);
-assertTrue('flag off: no integrations panel', strpos($off['html'], 'data-twisty-id="integrations"') === false);
+// With SHOW_PMS_INTEGRATIONS off, an admin still sees the informational
+// scanner section (permission-gated disclosure), but no PMS provider card,
+// action buttons, or credential modal may render.
+assertTrue('flag off: no PMS provider card for admin', strpos($off['html'], 'data-provider=') === false);
+assertTrue('flag off: scanner disclosure visible to admin', strpos($off['html'], 'data-scanner=') !== false);
 assertTrue('flag off: no config modal', strpos($off['html'], 'id="integrationConfigModal"') === false);
+// A non-admin member still gets no integrations UI at all.
+$offMember = getCsrf($baseUrl2, $cookieM);
+assertTrue('flag off: no integrations nav item for member', strpos($offMember['html'], 'data-nav-target="integrations"') === false);
+assertTrue('flag off: no integrations panel for member', strpos($offMember['html'], 'data-twisty-id="integrations"') === false);
 
 $r = httpGet("{$baseUrl2}/api/integrations.php?action=list", $cookieA);
 assertEquals('flag off: GET list rejected', 403, $r['code'], $r['body']);

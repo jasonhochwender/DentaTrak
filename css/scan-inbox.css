@@ -1,0 +1,340 @@
+/* ------------------------------------------------------------------
+   Incoming Scans inbox (SCANNER_INBOX experimental flag)
+   Uses the shared theme variables so light/dark mode switch
+   automatically with the rest of the app.
+   ------------------------------------------------------------------ */
+
+.scan-inbox {
+  padding: 16px 0;
+  color: var(--text-primary, #1e293b);
+}
+
+.scan-inbox .ap-header {
+  margin-bottom: 12px;
+}
+
+.scan-inbox-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.scan-inbox-empty {
+  padding: 32px 16px;
+  text-align: center;
+  color: var(--text-secondary, #475569);
+  font-size: 14px;
+  border: 1px dashed var(--border-light, #e2e8f0);
+  border-radius: var(--radius-md, 8px);
+}
+
+.scan-inbox-dismissed-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--text-secondary, #475569);
+  cursor: pointer;
+}
+
+.scan-card {
+  border: 1px solid var(--border-light, #e2e8f0);
+  border-radius: var(--radius-md, 8px);
+  padding: 14px 16px;
+  background: var(--background-white, #fff);
+  box-shadow: var(--shadow-xs, 0 1px 2px rgba(0,0,0,0.04));
+}
+
+.scan-card-dismissed {
+  opacity: 0.65;
+}
+
+.scan-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.scan-card-vendor-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.scan-vendor {
+  font-weight: 600;
+  font-size: 15px;
+}
+
+.scan-synthetic-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: var(--radius-full, 9999px);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  background: var(--dev-bg-light, #fef3c7);
+  color: var(--dev-text-primary, #78350f);
+}
+
+.scan-chip {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: var(--radius-full, 9999px);
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  background: var(--background-muted, #f1f5f9);
+  color: var(--text-secondary, #475569);
+}
+
+.scan-chip-ready     { background: #dcfce7; color: #166534; }
+.scan-chip-linked    { background: #dbeafe; color: #1d4ed8; }
+.scan-chip-failed    { background: #fee2e2; color: #991b1b; }
+.scan-chip-processing,
+.scan-chip-received  { background: #fef3c7; color: #92400e; }
+.scan-chip-dismissed,
+.scan-chip-superseded { background: var(--background-muted, #f1f5f9); color: var(--text-light, #94a3b8); }
+
+[data-theme="dark"] .scan-chip-ready,
+body.dark-mode .scan-chip-ready     { background: rgba(16,185,129,0.2); color: #6ee7b7; }
+[data-theme="dark"] .scan-chip-linked,
+body.dark-mode .scan-chip-linked    { background: rgba(59,130,246,0.2); color: #93c5fd; }
+[data-theme="dark"] .scan-chip-failed,
+body.dark-mode .scan-chip-failed    { background: rgba(239,68,68,0.2); color: #fca5a5; }
+[data-theme="dark"] .scan-chip-processing,
+[data-theme="dark"] .scan-chip-received,
+body.dark-mode .scan-chip-processing,
+body.dark-mode .scan-chip-received  { background: rgba(245,158,11,0.2); color: #fcd34d; }
+
+.scan-meta {
+  display: grid;
+  grid-template-columns: minmax(110px, max-content) 1fr;
+  gap: 4px 14px;
+  margin: 0 0 10px;
+  font-size: 13px;
+}
+
+.scan-meta dt {
+  color: var(--text-secondary, #475569);
+  font-weight: 600;
+}
+
+.scan-meta dd {
+  margin: 0;
+  color: var(--text-primary, #1e293b);
+  word-break: break-word;
+}
+
+.scan-instructions {
+  margin: 8px 0;
+}
+
+.scan-instructions-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary, #475569);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  margin-bottom: 4px;
+}
+
+.scan-instructions-text,
+.scan-instructions-preview {
+  margin: 0;
+  padding: 10px 12px;
+  background: var(--background-subtle, #f8fafc);
+  border: 1px solid var(--border-light, #e2e8f0);
+  border-radius: var(--radius-sm, 6px);
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--text-primary, #1e293b);
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 160px;
+  overflow: auto;
+}
+
+.scan-files {
+  list-style: none;
+  margin: 10px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.scan-file {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 8px 10px;
+  border: 1px solid var(--border-light, #e2e8f0);
+  border-radius: var(--radius-sm, 6px);
+  font-size: 13px;
+  background: var(--background-subtle, #f8fafc);
+}
+
+.scan-file-name {
+  font-weight: 500;
+  word-break: break-all;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.scan-file-download {
+  font-size: 12px;
+  color: var(--primary-light, #2563eb);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.scan-file-download:hover {
+  text-decoration: underline;
+}
+
+.scan-file-error {
+  font-size: 12px;
+  color: var(--error-color, #ef4444);
+}
+
+.scan-suggestions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: 10px 0 0;
+  font-size: 13px;
+}
+
+.scan-suggestions-label {
+  color: var(--text-secondary, #475569);
+  font-weight: 600;
+}
+
+.scan-suggestion-btn {
+  padding: 4px 10px;
+  border: 1px solid var(--primary-light, #2563eb);
+  border-radius: var(--radius-full, 9999px);
+  background: transparent;
+  color: var(--primary-light, #2563eb);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.scan-suggestion-btn:hover {
+  background: var(--primary-light, #2563eb);
+  color: #fff;
+}
+
+.scan-card-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+  align-items: center;
+}
+
+.scan-linked-note {
+  font-size: 13px;
+  color: var(--text-secondary, #475569);
+}
+
+/* Attach modal */
+.scan-attach-modal {
+  max-width: 560px;
+}
+
+.scan-attach-suggestions {
+  margin-bottom: 12px;
+}
+
+.scan-attach-suggestions-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary, #475569);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  margin-bottom: 6px;
+}
+
+#scanAttachSuggestionsList {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.scan-attach-instructions {
+  margin-top: 10px;
+}
+
+.scan-attach-instructions-label {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.scan-attach-instructions .field-note {
+  margin: 6px 0 8px;
+  font-size: 12px;
+  color: var(--text-secondary, #475569);
+}
+
+#scanAttachCaseSelect {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--border-medium, #cbd5e1);
+  border-radius: var(--radius-sm, 6px);
+  font-size: 14px;
+  background: var(--background-white, #fff);
+  color: var(--text-primary, #1e293b);
+}
+
+/* Settings > Integrations - scanner informational cards */
+.integration-section-heading {
+  margin: 20px 0 4px;
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-secondary, #475569);
+}
+
+.integration-status-badge.integration-status-coming-soon {
+  background: #e0e7ff;
+  color: #3730a3;
+}
+
+[data-theme="dark"] .integration-status-badge.integration-status-coming-soon,
+body.dark-mode .integration-status-badge.integration-status-coming-soon {
+  background: rgba(99,102,241,0.25);
+  color: #c7d2fe;
+}
+
+.integration-card-scanner {
+  border-style: dashed;
+}
+
+/* Mobile */
+@media (max-width: 640px) {
+  .scan-meta {
+    grid-template-columns: 1fr;
+    gap: 2px;
+  }
+  .scan-meta dt {
+    margin-top: 6px;
+  }
+  .scan-file {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}

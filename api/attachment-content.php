@@ -107,15 +107,67 @@ if ($pathCaseId !== '' && strpos($pathCaseId, 'pending_') !== 0) {
 // must not extend the inactivity timeout.
 session_write_close();
 
-try {
-    $bucket = getGcsBucket();
-    $object = $bucket->object($storagePath);
-
-    if (!$object->exists()) {
+/**
+ * Dev/test fallback: scanner-imported files may live in the local object
+ * mirror when no GCS bucket is configured. Runs only AFTER all
+ * authorization checks above; ScanFileStore::openStream() returns null in
+ * production or when the mirror holds no such object, so the response
+ * degrades to the same 404 as before.
+ */
+function attachmentContentLocalFallback($storagePath) {
+    require_once __DIR__ . '/integrations/scanners/ScanFileStore.php';
+    $local = null;
+    try {
+        $local = ScanFileStore::openStream(ScanFileStore::DRIVER_LOCAL, $storagePath);
+    } catch (Throwable $ignored) {
+        $local = null;
+    }
+    if ($local === null) {
         http_response_code(404);
         header('Content-Type: application/json');
         echo json_encode(['success' => false, 'error' => t('api.attachment_content.file_not_found')]);
         exit;
+    }
+    [$localStream, $localSize, $localType] = $local;
+    auditAttachmentAccess(PHI_ACTION_ATTACHMENT_VIEW, $storagePath);
+    header('Content-Type: ' . $localType);
+    if ($localSize > 0) {
+        header('Content-Length: ' . $localSize);
+    }
+    header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+    header('Pragma: no-cache');
+    header('X-Content-Type-Options: nosniff');
+    http_response_code(200);
+    // The local driver yields a plain PHP stream resource; the GCS driver
+    // yields a PSR stream object.
+    $isResource = is_resource($localStream);
+    while ($isResource ? !feof($localStream) : !$localStream->eof()) {
+        echo $isResource ? fread($localStream, 8192) : $localStream->read(8192);
+        if (ob_get_level() > 0) {
+            ob_flush();
+        }
+        flush();
+    }
+    if ($isResource) {
+        fclose($localStream);
+    } else {
+        $localStream->close();
+    }
+    exit;
+}
+
+try {
+    $object = null;
+    try {
+        $object = getGcsBucket()->object($storagePath);
+    } catch (Throwable $bucketError) {
+        // Bucket unavailable/misconfigured - the local-mirror fallback
+        // below decides whether anything can still be served.
+        $object = null;
+    }
+
+    if ($object === null || !$object->exists()) {
+        attachmentContentLocalFallback($storagePath); // streams or exits 404
     }
 
     $info = $object->info();

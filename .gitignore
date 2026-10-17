@@ -240,3 +240,5 @@ NUL
 !/tests/od-patient-launch-test.php
 !/tests/mock-open-dental.php
 !/tests/pms-ga-panel-e2e-test.js
+!/tests/scanner-foundation-test.php
+!/tests/scanner-ui-screenshot-test.js

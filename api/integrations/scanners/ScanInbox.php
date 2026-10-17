@@ -1,0 +1,511 @@
+<?php
+/**
+ * ScanInbox
+ *
+ * Practice-scoped read/author side of the incoming-scans pipeline:
+ * listing, detail, dismiss/restore, and the atomic attach-to-case action.
+ *
+ * Every method takes the server-derived $practiceId (from
+ * requireValidPracticeContext()) and scopes every query by it - a scan id
+ * from another practice is indistinguishable from a missing row.
+ *
+ * MATCHING POLICY: suggestedCases() only surfaces DentaTrak cases whose
+ * PMS entity mapping carries the SAME external patient reference the
+ * scanner source supplied (reliable cross-system identity). Patient names
+ * are NEVER used for matching or suggestions.
+ *
+ * ATTACH SEMANTICS:
+ *  - Only file rows that are 'ready', not superseded, and not already
+ *    attached are moved. Latest revision per external_file_id wins.
+ *  - Bytes move to the case-owned object key via ScanFileStore::moveToCase
+ *    BEFORE the case row is updated; the attachment metadata is then
+ *    appended under the case's optimistic version lock. A retry re-reads
+ *    state, skips files already marked attached, and produces identical
+ *    attachment entries - repeated clicks/concurrent submits converge.
+ *  - Case fields are never clobbered: only attachments_json grows, and
+ *    notes is appended to ONLY when the caller passed the explicit
+ *    append_instructions confirmation. Everything else is preserved.
+ */
+
+require_once __DIR__ . '/ScanIngestion.php';
+require_once __DIR__ . '/ScanFileStore.php';
+require_once __DIR__ . '/ScannerConnectorInterface.php';
+require_once __DIR__ . '/../../cases-cache.php';
+require_once __DIR__ . '/../../practice-security.php';
+
+class ScanInbox {
+
+    // ----------------------------------------------------------------------
+    // Read side
+    // ----------------------------------------------------------------------
+
+    /**
+     * List inbox scans for a practice, newest first.
+     * @return array serialized scan rows
+     */
+    public static function listForPractice(PDO $pdo, int $practiceId, ?int $userId = null, bool $includeDismissed = false): array {
+        $sql = "SELECT * FROM scanner_incoming_scans WHERE practice_id = :pid";
+        $params = [':pid' => $practiceId];
+        if (!$includeDismissed) {
+            $sql .= " AND status <> :dismissed";
+            $params[':dismissed'] = ScanIngestion::SCAN_DISMISSED;
+        }
+        $sql .= " ORDER BY created_at DESC LIMIT 200";
+
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute($params);
+
+        $out = [];
+        foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+            $out[] = self::serializeScan($pdo, $row, $userId, true);
+        }
+        return $out;
+    }
+
+    /**
+     * Full detail for one scan owned by the practice (null when absent).
+     */
+    public static function getDetail(PDO $pdo, int $practiceId, int $scanId, ?int $userId = null): ?array {
+        $row = ScanIngestion::findScanForPractice($pdo, $practiceId, $scanId);
+        return $row ? self::serializeScan($pdo, $row, $userId, true) : null;
+    }
+
+    /**
+     * Serialize a scan row for API output. Patient fields are decrypted here
+     * (authorized practice scope); nothing PHI reaches events/logs.
+     */
+    private static function serializeScan(PDO $pdo, array $row, ?int $userId, bool $withFiles): array {
+        $scanId = (int)$row['id'];
+        $files = [];
+        $attachableCount = 0;
+        if ($withFiles) {
+            foreach (ScanIngestion::listFiles($pdo, $scanId) as $file) {
+                $files[] = self::serializeFile($file);
+                if ($file['status'] === ScanIngestion::FILE_READY && $file['attached_case_id'] === null) {
+                    $attachableCount++;
+                }
+            }
+        }
+
+        $dismissed = $row['status'] === ScanIngestion::SCAN_DISMISSED;
+        $vendor = strtolower((string)$row['vendor']);
+
+        return [
+            'id'                 => $scanId,
+            'vendor'             => $vendor,
+            'vendorLabel'        => ScanIngestion::VENDORS[$vendor] ?? $vendor,
+            'externalScanId'     => $row['external_scan_id'],
+            'externalPatientRef' => $row['external_patient_ref'],
+            'patientFirstName'   => ScanIngestion::decryptField($row['patient_first_name']),
+            'patientLastName'    => ScanIngestion::decryptField($row['patient_last_name']),
+            'patientDob'         => ScanIngestion::decryptField($row['patient_dob']),
+            'scanAt'             => $row['scan_at'],
+            'instructions'       => ScanIngestion::decryptField($row['instructions']),
+            'status'             => $row['status'],
+            'errorCode'          => $row['error_code'],
+            'caseId'             => $row['case_id'],
+            'isSynthetic'        => !empty($row['is_synthetic']),
+            'isDismissed'        => $dismissed,
+            'isLinked'           => $row['status'] === ScanIngestion::SCAN_LINKED,
+            'attachableFiles'    => $attachableCount,
+            'createdAt'          => $row['created_at'],
+            'linkedAt'           => $row['linked_at'],
+            'dismissedAt'        => $row['dismissed_at'],
+            'files'              => $files,
+            'suggestedCases'     => self::suggestCases($pdo, (int)$row['practice_id'], $row),
+        ];
+    }
+
+    private static function serializeFile(array $row): array {
+        return [
+            'id'             => (int)$row['id'],
+            'externalFileId' => $row['external_file_id'],
+            'revision'       => $row['revision'],
+            'fileName'       => $row['file_name'],
+            'contentType'    => $row['content_type'],
+            'declaredSize'   => $row['declared_size'] !== null ? (int)$row['declared_size'] : null,
+            'status'         => $row['status'],
+            'errorCode'      => $row['error_code'],
+            'downloadAttempts' => (int)$row['download_attempts'],
+            'attachedCaseId' => $row['attached_case_id'],
+            'attachedAt'     => $row['attached_at'],
+        ];
+    }
+
+    /**
+     * Reliable-match suggestions: cases imported from a PMS connection of
+     * THIS practice whose mapping external_parent_id equals the scan's
+     * external patient reference. Never name-based.
+     *
+     * @return array [['caseId'=>..., 'patientName'=>...], ...]
+     */
+    private static function suggestCases(PDO $pdo, int $practiceId, array $scan): array {
+        $patientRef = trim((string)($scan['external_patient_ref'] ?? ''));
+        if ($patientRef === '') {
+            return [];
+        }
+        try {
+            $stmt = $pdo->prepare("
+                SELECT m.internal_id AS case_id
+                FROM integration_entity_mappings m
+                JOIN integration_connections c ON c.id = m.connection_id
+                WHERE c.practice_id = :practice_id
+                  AND m.entity_type = 'case'
+                  AND m.external_parent_id = :patient_ref
+                LIMIT 10
+            ");
+            $stmt->execute([
+                ':practice_id' => $practiceId,
+                ':patient_ref' => $patientRef,
+            ]);
+            $caseIds = array_map('strval', array_column($stmt->fetchAll(PDO::FETCH_ASSOC), 'case_id'));
+            if (!$caseIds) {
+                return [];
+            }
+            // Confirm the mapped cases still exist in this practice and the
+            // caller could see them; decrypt names for display.
+            $suggestions = [];
+            foreach ($caseIds as $caseId) {
+                $stmt = $pdo->prepare("SELECT case_id, patient_first_name, patient_last_name FROM cases_cache WHERE case_id = :id AND practice_id = :pid LIMIT 1");
+                $stmt->execute([':id' => $caseId, ':pid' => $practiceId]);
+                $case = $stmt->fetch(PDO::FETCH_ASSOC);
+                if (!$case) {
+                    continue;
+                }
+                $first = ScanIngestion::decryptField($case['patient_first_name']);
+                $last  = ScanIngestion::decryptField($case['patient_last_name']);
+                $suggestions[] = [
+                    'caseId'      => $case['case_id'],
+                    'patientName' => trim(($first ?? '') . ' ' . ($last ?? '')),
+                ];
+            }
+            return $suggestions;
+        } catch (Throwable $e) {
+            error_log('[ScanInbox] suggestion lookup failed: ' . $e->getMessage());
+            return [];
+        }
+    }
+
+    // ----------------------------------------------------------------------
+    // Dismiss / restore
+    // ----------------------------------------------------------------------
+
+    /**
+     * Park a scan out of the inbox. Nothing is deleted or sent anywhere.
+     * Idempotent: dismissing an already-dismissed scan is a success no-op.
+     */
+    public static function dismiss(PDO $pdo, int $practiceId, int $userId, int $scanId): array {
+        $scan = ScanIngestion::findScanForPractice($pdo, $practiceId, $scanId);
+        if (!$scan) {
+            return ['success' => false, 'error' => 'not_found'];
+        }
+        if ($scan['status'] === ScanIngestion::SCAN_LINKED) {
+            return ['success' => false, 'error' => 'already_linked'];
+        }
+        if ($scan['status'] === ScanIngestion::SCAN_DISMISSED) {
+            return ['success' => true, 'status' => ScanIngestion::SCAN_DISMISSED];
+        }
+        $stmt = $pdo->prepare("
+            UPDATE scanner_incoming_scans
+            SET status = :dismissed, dismissed_by_user_id = :uid, dismissed_at = NOW()
+            WHERE id = :id AND practice_id = :pid AND status <> :linked
+        ");
+        $stmt->execute([
+            ':dismissed' => ScanIngestion::SCAN_DISMISSED,
+            ':uid'       => $userId,
+            ':id'        => $scanId,
+            ':pid'       => $practiceId,
+            ':linked'    => ScanIngestion::SCAN_LINKED,
+        ]);
+        ScanIngestion::recordEvent($pdo, $scanId, $practiceId, $userId, 'dismissed');
+        return ['success' => true, 'status' => ScanIngestion::SCAN_DISMISSED];
+    }
+
+    /**
+     * Return a dismissed scan to the workflow (status recomputed from files).
+     */
+    public static function restore(PDO $pdo, int $practiceId, int $userId, int $scanId): array {
+        $scan = ScanIngestion::findScanForPractice($pdo, $practiceId, $scanId);
+        if (!$scan) {
+            return ['success' => false, 'error' => 'not_found'];
+        }
+        if ($scan['status'] !== ScanIngestion::SCAN_DISMISSED) {
+            return ['success' => true, 'status' => $scan['status']];
+        }
+        $pdo->prepare("
+            UPDATE scanner_incoming_scans
+            SET status = :received, dismissed_by_user_id = NULL, dismissed_at = NULL
+            WHERE id = :id AND practice_id = :pid AND status = :dismissed
+        ")->execute([
+            ':received'  => ScanIngestion::SCAN_RECEIVED,
+            ':id'        => $scanId,
+            ':pid'       => $practiceId,
+            ':dismissed' => ScanIngestion::SCAN_DISMISSED,
+        ]);
+        ScanIngestion::refreshScanStatus($pdo, $scanId);
+        ScanIngestion::recordEvent($pdo, $scanId, $practiceId, $userId, 'restored');
+        $fresh = ScanIngestion::findScanForPractice($pdo, $practiceId, $scanId);
+        return ['success' => true, 'status' => $fresh['status'] ?? ScanIngestion::SCAN_RECEIVED];
+    }
+
+    // ----------------------------------------------------------------------
+    // Attach to case
+    // ----------------------------------------------------------------------
+
+    /**
+     * Attach a scan's ready files to an existing case in the same practice.
+     *
+     * Idempotent contract:
+     *  - scan already linked to $caseId            -> success (no dup work)
+     *  - scan linked to a different case           -> 409 conflict
+     *  - per-file conditional claim + attachment metadata dedupe by
+     *    scanFileId make concurrent submits converge to one outcome
+     *
+     * @return array success | {success:false, error:code} | {success:false,
+     *               conflict:true}  (caller maps codes to HTTP status)
+     */
+    public static function attachToCase(PDO $pdo, int $practiceId, int $userId, int $scanId, string $caseId, bool $appendInstructions = false): array {
+        // --- Validate scan ownership/state under a row lock.
+        $pdo->beginTransaction();
+        try {
+            $scanStmt = $pdo->prepare("SELECT * FROM scanner_incoming_scans WHERE id = :id AND practice_id = :pid FOR UPDATE");
+            $scanStmt->execute([':id' => $scanId, ':pid' => $practiceId]);
+            $scan = $scanStmt->fetch(PDO::FETCH_ASSOC);
+
+            if (!$scan) {
+                $pdo->rollBack();
+                return ['success' => false, 'error' => 'not_found'];
+            }
+            if ($scan['status'] === ScanIngestion::SCAN_LINKED) {
+                $linkedCase = (string)$scan['case_id'];
+                $pdo->commit();
+                if ($linkedCase === $caseId) {
+                    return ['success' => true, 'caseId' => $caseId, 'alreadyLinked' => true];
+                }
+                return ['success' => false, 'conflict' => true, 'error' => 'already_linked', 'caseId' => $linkedCase];
+            }
+            if ($scan['status'] === ScanIngestion::SCAN_DISMISSED) {
+                $pdo->rollBack();
+                return ['success' => false, 'error' => 'dismissed'];
+            }
+
+            // --- Validate the target case inside the same practice.
+            $caseStmt = $pdo->prepare("SELECT * FROM cases_cache WHERE case_id = :cid AND practice_id = :pid LIMIT 1");
+            $caseStmt->execute([':cid' => $caseId, ':pid' => $practiceId]);
+            $caseRow = $caseStmt->fetch(PDO::FETCH_ASSOC);
+            if (!$caseRow) {
+                $pdo->rollBack();
+                return ['success' => false, 'error' => 'case_not_found'];
+            }
+            // Per-case access (assigned-only users may only touch assigned cases).
+            if (!canUserAccessCase($caseRow, $practiceId, $userId)) {
+                $pdo->rollBack();
+                return ['success' => false, 'error' => 'case_access_denied'];
+            }
+
+            // --- Select attachable files: ready, not superseded, not yet
+            //     attached; latest revision per external_file_id.
+            $fileStmt = $pdo->prepare("
+                SELECT * FROM scanner_scan_files
+                WHERE scan_id = :sid AND status = :ready AND attached_case_id IS NULL
+                ORDER BY id DESC
+            ");
+            $fileStmt->execute([':sid' => $scanId, ':ready' => ScanIngestion::FILE_READY]);
+            $candidates = [];
+            foreach ($fileStmt->fetchAll(PDO::FETCH_ASSOC) as $file) {
+                $key = (string)$file['external_file_id'];
+                if (!isset($candidates[$key])) { // first row per file = newest revision
+                    $candidates[$key] = $file;
+                }
+            }
+
+            if (!$candidates) {
+                $pdo->rollBack();
+                return ['success' => false, 'error' => 'no_ready_files'];
+            }
+
+            $pdo->commit(); // state validated; file moves happen next
+        } catch (Throwable $e) {
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+            error_log('[ScanInbox] attach validation failed: ' . $e->getMessage());
+            return ['success' => false, 'error' => 'internal'];
+        }
+
+        // --- Move bytes into the case-owned key and claim each file row.
+        //     Claim is conditional so a concurrent attach converges instead
+        //     of double-appending metadata.
+        $attachments = [];
+        foreach ($candidates as $file) {
+            $fileId = (int)$file['id'];
+            $claimed = $pdo->prepare("
+                UPDATE scanner_scan_files
+                SET attached_case_id = :case_id, attached_at = NOW()
+                WHERE id = :id AND attached_case_id IS NULL AND status = :ready
+            ");
+            $claimed->execute([':case_id' => $caseId, ':id' => $fileId, ':ready' => ScanIngestion::FILE_READY]);
+            if ($claimed->rowCount() === 0) {
+                continue; // another attach took it, or it was superseded
+            }
+            try {
+                $newPath = ScanFileStore::moveToCase(
+                    (string)$file['storage_path'],
+                    (string)$file['storage_driver'],
+                    $practiceId,
+                    $caseId
+                );
+            } catch (Throwable $e) {
+                // Roll the claim back so the file stays attachable on retry.
+                $pdo->prepare("UPDATE scanner_scan_files SET attached_case_id = NULL, attached_at = NULL WHERE id = :id AND attached_case_id = :cid")
+                    ->execute([':id' => $fileId, ':cid' => $caseId]);
+                error_log('[ScanInbox] file move failed for file ' . $fileId . ': ' . $e->getMessage());
+                return ['success' => false, 'error' => 'storage_error'];
+            }
+            $pdo->prepare("UPDATE scanner_scan_files SET storage_path = :p WHERE id = :id")
+                ->execute([':p' => $newPath, ':id' => $fileId]);
+
+            $attachments[] = [
+                'id'            => 'scanfile_' . $fileId,
+                'scanFileId'    => $fileId,
+                'source'        => 'scanner',
+                'type'          => 'intraoralScans',
+                'fileName'      => (string)$file['file_name'],
+                'name'          => (string)$file['file_name'],
+                'mimeType'      => $file['content_type'] ?: 'application/octet-stream',
+                'fileType'      => $file['content_type'] ?: 'application/octet-stream',
+                'size'          => $file['declared_size'] !== null ? (int)$file['declared_size'] : null,
+                'storagePath'   => $newPath,
+                'storageType'   => (string)$file['storage_driver'],
+                'path'          => $newPath,
+                'uploadedAt'    => gmdate('c'),
+            ];
+        }
+
+        if (!$attachments) {
+            // Everything was claimed by a concurrent attach - converge: mark
+            // the scan linked to whichever case now owns the files.
+            return self::finalizeAttach($pdo, $practiceId, $userId, $scanId, $caseId, false);
+        }
+
+        // --- Append attachment metadata under the case's optimistic lock.
+        $merged = self::mergeAttachmentsIntoCase($pdo, $practiceId, $caseId, $attachments, $appendInstructions ? $scan['instructions'] ?? null : null);
+        if (!$merged['success']) {
+            return $merged;
+        }
+
+        return self::finalizeAttach($pdo, $practiceId, $userId, $scanId, $caseId, $appendInstructions);
+    }
+
+    /**
+     * Merge scan attachment metadata into cases_cache.attachments_json with
+     * optimistic concurrency (retries a bounded number of times on version
+     * conflict, re-reading and re-merging so attachments from concurrent
+     * attaches are preserved rather than lost).
+     */
+    private static function mergeAttachmentsIntoCase(PDO $pdo, int $practiceId, string $caseId, array $newAttachments, $encryptedInstructions): array {
+        for ($attempt = 0; $attempt < 3; $attempt++) {
+            $stmt = $pdo->prepare("SELECT attachments_json, notes, version FROM cases_cache WHERE case_id = :cid AND practice_id = :pid LIMIT 1");
+            $stmt->execute([':cid' => $caseId, ':pid' => $practiceId]);
+            $row = $stmt->fetch(PDO::FETCH_ASSOC);
+            if (!$row) {
+                return ['success' => false, 'error' => 'case_not_found'];
+            }
+            $existing = json_decode($row['attachments_json'] ?? '[]', true);
+            if (!is_array($existing)) {
+                $existing = [];
+            }
+
+            // Dedupe by scanFileId - a retried attach adds nothing new.
+            $present = [];
+            foreach ($existing as $att) {
+                if (isset($att['scanFileId'])) {
+                    $present[(int)$att['scanFileId']] = true;
+                }
+            }
+            $toAdd = [];
+            foreach ($newAttachments as $att) {
+                if (!isset($present[(int)$att['scanFileId']])) {
+                    $toAdd[] = $att;
+                }
+            }
+            if (!$toAdd && !$encryptedInstructions) {
+                return ['success' => true, 'alreadyPresent' => true];
+            }
+
+            $mergedAttachments = array_merge($existing, $toAdd);
+
+            // Notes: only ever APPEND imported instructions on explicit opt-in,
+            // after decrypting the stored field. Existing text is preserved.
+            $notes = $row['notes'];
+            if ($encryptedInstructions) {
+                $imported = ScanIngestion::decryptField($encryptedInstructions);
+                if ($imported !== null && $imported !== '') {
+                    $currentNotes = ScanIngestion::decryptField($notes) ?? '';
+                    $marker = function_exists('t')
+                        ? t('scanner.instructions_imported_header')
+                        : 'Imported scanner instructions:';
+                    if (strpos($currentNotes, $imported) === false) {
+                        $combined = trim($currentNotes . "\n\n" . $marker . " " . $imported);
+                        $notes = PIIEncryption::encrypt($combined);
+                    }
+                }
+            }
+
+            $upd = $pdo->prepare("
+                UPDATE cases_cache
+                SET attachments_json = :attachments, notes = :notes,
+                    last_update_date = :updated, version = version + 1
+                WHERE case_id = :cid AND practice_id = :pid AND version = :expected
+            ");
+            $upd->execute([
+                ':attachments' => json_encode(array_values($mergedAttachments)),
+                ':notes'       => $notes,
+                ':updated'     => gmdate('Y-m-d H:i:s'),
+                ':cid'         => $caseId,
+                ':pid'         => $practiceId,
+                ':expected'    => (int)$row['version'],
+            ]);
+            if ($upd->rowCount() > 0) {
+                return ['success' => true, 'attachmentsAdded' => count($toAdd)];
+            }
+            // Version conflict: loop re-reads and re-merges.
+        }
+        return ['success' => false, 'error' => 'case_conflict'];
+    }
+
+    /**
+     * Mark the scan linked (conditional: only if not already linked by a
+     * concurrent request). If a concurrent attach linked it to a different
+     * case, report the conflict.
+     */
+    private static function finalizeAttach(PDO $pdo, int $practiceId, int $userId, int $scanId, string $caseId, bool $appendedInstructions): array {
+        $upd = $pdo->prepare("
+            UPDATE scanner_incoming_scans
+            SET status = :linked, case_id = :case_id, linked_by_user_id = :uid, linked_at = NOW()
+            WHERE id = :id AND practice_id = :pid AND status <> :linked_state
+        ");
+        $upd->execute([
+            ':linked'       => ScanIngestion::SCAN_LINKED,
+            ':case_id'      => $caseId,
+            ':uid'          => $userId,
+            ':id'           => $scanId,
+            ':pid'          => $practiceId,
+            ':linked_state' => ScanIngestion::SCAN_LINKED,
+        ]);
+
+        $fresh = ScanIngestion::findScanForPractice($pdo, $practiceId, $scanId);
+        if ($upd->rowCount() === 0) {
+            // Already linked - converge or report conflict.
+            if ($fresh && (string)$fresh['case_id'] === $caseId) {
+                return ['success' => true, 'caseId' => $caseId, 'alreadyLinked' => true];
+            }
+            return ['success' => false, 'conflict' => true, 'error' => 'already_linked',
+                    'caseId' => $fresh['case_id'] ?? null];
+        }
+
+        ScanIngestion::recordEvent($pdo, $scanId, $practiceId, $userId, 'linked',
+            'case=' . $caseId . ($appendedInstructions ? ' instructions_appended=1' : ''));
+        return ['success' => true, 'caseId' => $caseId];
+    }
+}

@@ -43,6 +43,19 @@ $FEATURE_DEFAULTS = [
                                        // two-way sync in Settings. Env
                                        // override remains the global kill
                                        // switch (PMS_OUTBOUND_SYNC=false).
+    'SCANNER_INBOX' => false,         // Incoming-scans inbox + link/create/
+                                       // dismiss/retry API and UI. OFF by
+                                       // default: enforced server-side on
+                                       // every endpoint, not just by hiding
+                                       // navigation. Independent of the
+                                       // informational Settings > Integrations
+                                       // "Coming soon" scanner cards (those
+                                       // follow SHOW_PMS_INTEGRATIONS).
+    'SCANNER_SIMULATOR' => false,     // Dev/test-only simulated scanner
+                                       // connector. Requires BOTH this flag
+                                       // AND a non-production environment -
+                                       // SimulatedScannerConnector refuses to
+                                       // run in production regardless.
 ];
 
 /**
