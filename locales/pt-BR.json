@@ -1787,7 +1787,7 @@
         "attention": {
             "eyebrow": "Visão do produto",
             "title": "Vai ficar pronto para a consulta?",
-            "lead": "O DentaTrak conecta a data de entrega de cada caso à data da consulta do paciente e ao estágio do fluxo em que ele está. Casos que se aproximam de uma consulta sem estarem prontos mostram Risco de consulta; os que passam do seu limite mostram Atrasado; prazos próximos mostram Vencendo em breve. Sua equipe vê o que precisa de atenção sem conferir cada cartão.",
+            "lead": "O DentaTrak conecta a data de entrega de cada caso à data da consulta do paciente e ao estágio do fluxo em que ele está. Casos que se aproximam de uma consulta sem estarem prontos mostram Risco de consulta; os que passam do seu limite mostram Atrasado; prazos próximos mostram Vencendo em breve. Sua equipe vê o que precisa de atenção sem conferir cada cartão. Se a data de devolução prometida pelo laboratório cair depois da consulta, também conta como Risco para a consulta.",
             "late": "Atrasado",
             "due_soon": "Prazo próximo",
             "appointment_risk": "Risco para a consulta",
@@ -1893,7 +1893,7 @@
         "mock": {
             "phones_aria": "Prévia do produto no navegador móvel",
             "kanban_aria": "Quadro Kanban móvel mostrando a coluna de fluxo de trabalho Originado com vários cartões de casos, indicadores de status e a próxima coluna aparecendo à direita.",
-            "modal_aria": "Modal móvel Editar caso com detalhes do paciente, status, atribuição, envio e anexos.",
+            "modal_aria": "Modal móvel Editar caso com detalhes do paciente, status, confirmação do laboratório, devolução prometida, envio e anexos.",
             "demo_practice": "Clínica de demonstração",
             "search_cases": "Pesquisar casos",
             "prev_column": "Coluna anterior do fluxo de trabalho",
@@ -1922,7 +1922,10 @@
             "front_desk": "Recepção",
             "back_office": "Administrativo",
             "design_team": "Equipe de design",
-            "notes_body": "A consulta do paciente é dia 14 de março. Confirme se o laboratório consegue entregar a faceta até 12 de março para evitar atraso no atendimento."
+            "notes_body": "A consulta do paciente é dia 14 de março. Confirme se o laboratório consegue entregar a faceta até 12 de março para evitar atraso no atendimento.",
+            "lab_ack": "Confirmação do laboratório",
+            "lab_ack_value": "Confirmado pelo laboratório",
+            "promised": "Devolução prometida"
         },
         "navigation": {
             "problem": "O problema",
@@ -2005,7 +2008,7 @@
             "step2_title": "Crie e acompanhe o caso",
             "step2_body": "Crie um único registro para o caso com o paciente, o tipo de caso, o laboratório, os detalhes da consulta, arquivos, atribuições e outras informações de que sua equipe precise. Tudo permanece conectado ao caso conforme ele avança no fluxo de trabalho.",
             "step3_title": "Etapa 3: Confirme a conectividade do Open Dental",
-            "step3_body": "Mantenha a comunicação conectada ao caso em vez de espalhada entre e-mails, mensagens e bilhetes. Compartilhe atualizações e arquivos, adicione comentários, mencione membros da equipe e mantenha todos trabalhando com as mesmas informações.",
+            "step3_body": "Mantenha a comunicação conectada ao caso em vez de espalhada entre e-mails, mensagens e bilhetes. Compartilhe atualizações e arquivos, adicione comentários, mencione membros da equipe e mantenha todos trabalhando com as mesmas informações. Consultórios que quiserem uma entrega explícita também podem pedir ao laboratório que confirme o recebimento e informe uma data de devolução prevista.",
             "step4_title": "Veja o que precisa de atenção",
             "step4_body": "Use a visualização em quadro, compacta ou lista para trabalhar do seu jeito. Filtre, ordene, atribua, revise e encontre rapidamente os casos que vencem em breve, estão atrasados ou precisam de atenção."
         },
@@ -2115,8 +2118,8 @@
                 "2_body": "A verificação opcional por aplicativo autenticador adiciona uma segunda camada de proteção além da senha. Sessões inativas expiram automaticamente com um aviso antes do logout.",
                 "3_title": "Acesso privado a anexos",
                 "3_body": "Fotos de cor, escaneamentos e documentos ficam em armazenamento em nuvem privado e só abrem por links autorizados de curta duração.",
-                "4_title": "O acesso aos casos é registrado",
-                "4_body": "O acesso aos registros protegidos dos casos e a atividade do caso — mudanças de status, atribuições, comentários, downloads — são registrados com usuário e horário.",
+                "4_title": "O acesso a PHI é auditado",
+                "4_body": "Abrir um caso, imprimi-lo e baixar ou exportar arquivos relacionados ao paciente são registrados com usuário e horário. Proprietários e administradores do consultório revisam esse relatório em Configurações > Dados e privacidade e podem exportá-lo em CSV — um registro separado do histórico de edição comum do caso.",
                 "5_title": "Dados do paciente ficam fora das notificações",
                 "5_body": "Os e-mails de notificação evitam dados do paciente e do caso. Os membros da equipe fazem login para ver as informações protegidas e colaborar com comentários e @menções."
             },
@@ -2226,7 +2229,9 @@
                 "2_title": "Fotos de cor e arquivos em contexto",
                 "2_body": "Fotos de cor, escaneamentos e documentos ficam associados à restauração a que pertencem. Anexos ilimitados por caso, sem cota total de armazenamento — aplicam-se limites por arquivo (até 250 MB para escaneamentos STL, OBJ e PLY, que abrem direto no caso).",
                 "3_title": "Notificações e histórico",
-                "3_body": "Receba notificações quando algo muda e revise todo o histórico — mudanças de status, atribuições e comentários — antes de cobrar."
+                "3_body": "Receba notificações quando algo muda e revise todo o histórico — mudanças de status, atribuições e comentários — antes de cobrar.",
+                "4_title": "Confirmação opcional do laboratório",
+                "4_body": "Com a confirmação do laboratório ativada, enviar um caso ao laboratório pede que ele confirme o recebimento — com ou sem data de devolução prometida — ou solicite informações faltantes. A equipe também pode registrar uma confirmação recebida por telefone ou e-mail, sempre identificada como registrada pela equipe, e não como resposta do laboratório."
             },
             "mock_aria": "Exemplo de sequência de comentários de um caso com comentários, uma menção, uma imagem anexada e atualizações de atividade.",
             "mock_case": "Sofia Patel · Faceta",
@@ -2235,7 +2240,8 @@
             "mock_c2": "Confirmado para 14 de março às 14h.",
             "mock_activity": "Status alterado para Enviado ao laboratório externo · 7 de março",
             "mock_composer": "Adicionar um comentário… Use @ para mencionar um colega",
-            "lab_note": "Usuários de laboratório autorizados veem apenas os casos que sua função permite."
+            "lab_note": "Usuários de laboratório autorizados veem apenas os casos que sua função permite.",
+            "ack_note": "A data de devolução prometida é a expectativa do laboratório, não uma garantia — e permanece separada da data solicitada e da consulta do paciente."
         },
         "ask": {
             "name": "Ask DentaTrak",

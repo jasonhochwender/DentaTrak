@@ -3824,7 +3824,7 @@
         "attention": {
             "eyebrow": "Produktansicht",
             "title": "Ist der Fall zum Termin fertig?",
-            "lead": "DentaTrak verknüpft Fälligkeitsdatum und Patiententermin mit dem aktuellen Workflow-Schritt. Fälle, die sich einem Termin nähern, bevor sie fertig sind, zeigen ein Terminrisiko; Fälle über Ihrer Schwelle zeigen Verspätet; anstehende Fristen zeigen Bald fällig. Ihr Team sieht, was Aufmerksamkeit braucht, ohne jede Karte zu prüfen.",
+            "lead": "DentaTrak verknüpft Fälligkeitsdatum und Patiententermin mit dem aktuellen Workflow-Schritt. Fälle, die sich einem Termin nähern, bevor sie fertig sind, zeigen ein Terminrisiko; Fälle über Ihrer Schwelle zeigen Verspätet; anstehende Fristen zeigen Bald fällig. Ihr Team sieht, was Aufmerksamkeit braucht, ohne jede Karte zu prüfen. Liegt der vom Labor zugesagte Rückgabetermin nach dem Termin, zählt das ebenfalls als Terminrisiko.",
             "late": "Verspätet",
             "due_soon": "Bald fällig",
             "appointment_risk": "Terminrisiko",
@@ -3855,7 +3855,7 @@
             "step2_title": "Fall anlegen und verfolgen",
             "step2_body": "Erstellen Sie einen Datensatz für den Fall mit Patient, Falltyp, Labor, Termindetails, Dateien, Zuweisungen und weiteren Informationen, die Ihr Team benötigt. Alles bleibt mit dem Fall verbunden, während er durch den Workflow läuft.",
             "step3_title": "Team und Labor auf demselben Stand",
-            "step3_body": "Halten Sie die Kommunikation am Fall, statt sie über E-Mails, SMS und Notizzettel zu verstreuen. Teilen Sie Updates und Dateien, fügen Sie Kommentare hinzu, erwähnen Sie Teammitglieder — alle arbeiten mit denselben Informationen.",
+            "step3_body": "Halten Sie die Kommunikation am Fall, statt sie über E-Mails, SMS und Notizzettel zu verstreuen. Teilen Sie Updates und Dateien, fügen Sie Kommentare hinzu, erwähnen Sie Teammitglieder — alle arbeiten mit denselben Informationen. Praxen, die eine explizite Übergabe wünschen, können das Labor zusätzlich bitten, den Empfang zu bestätigen und einen voraussichtlichen Rückgabetermin zu nennen.",
             "step4_title": "Sehen Sie, was Aufmerksamkeit braucht",
             "step4_body": "Nutzen Sie Board-, Kompakt- oder Listenansicht — so wie Sie bevorzugt arbeiten. Filtern, sortieren, zuweisen, prüfen und schnell Fälle finden, die bald fällig sind, überfällig laufen oder Aufmerksamkeit brauchen."
         },
@@ -3978,7 +3978,7 @@
         "mock": {
             "phones_aria": "Produktvorschau im mobilen Browser",
             "kanban_aria": "Mobiles Kanban-Board mit der Workflow-Spalte „Angelegt“, mehreren Fallkarten, Statusanzeigen und der nächsten Spalte, die rechts hervorschaut.",
-            "modal_aria": "Mobiles Fenster „Fall bearbeiten“ mit Patientendetails, Status, Zuweisung, Versand und Anhängen.",
+            "modal_aria": "Mobiles Fenster „Fall bearbeiten“ mit Patientendetails, Status, Laborbestätigung, zugesagtem Rückgabetermin, Versand und Anhängen.",
             "demo_practice": "Demopraxis",
             "search_cases": "Fälle suchen",
             "prev_column": "Vorherige Workflow-Spalte",
@@ -4007,7 +4007,10 @@
             "front_desk": "Empfang",
             "back_office": "Hinterzimmer",
             "design_team": "Design-Team",
-            "notes_body": "Patiententermin ist am 14. März. Bestätigen Sie, dass das Labor die Veneers bis zum 12. März liefern kann, um Verzögerungen am Stuhl zu vermeiden."
+            "notes_body": "Patiententermin ist am 14. März. Bestätigen Sie, dass das Labor die Veneers bis zum 12. März liefern kann, um Verzögerungen am Stuhl zu vermeiden.",
+            "lab_ack": "Laborbestätigung",
+            "lab_ack_value": "Vom Labor bestätigt",
+            "promised": "Zugesagter Rückgabetermin"
         },
         "pricing": {
             "eyebrow": "Preise",
@@ -4077,8 +4080,8 @@
                 "2_body": "Optionale Authenticator-App-Verifizierung ergänzt das Passwort um eine zweite Schutzschicht. Inaktive Sitzungen laufen automatisch ab — mit Vorwarnung.",
                 "3_title": "Privater Zugriff auf Anhänge",
                 "3_body": "Farbfotos, Scans und Dokumente bleiben in privatem Cloud-Speicher und öffnen nur über kurzlebige, autorisierte Links.",
-                "4_title": "Fallzugriffe werden protokolliert",
-                "4_body": "Zugriffe auf geschützte Fallakten und Fallaktivitäten — Statusänderungen, Zuweisungen, Kommentare, Downloads — werden mit Nutzer und Zeitstempel aufgezeichnet.",
+                "4_title": "PHI-Zugriffe werden protokolliert",
+                "4_body": "Das Öffnen eines Falls, das Drucken sowie das Herunterladen oder Exportieren patientenbezogener Dateien werden jeweils mit Benutzer und Zeitstempel protokolliert. Inhaber und Administratoren der Praxis prüfen diesen Bericht unter Einstellungen > Daten & Datenschutz und können ihn als CSV exportieren — ein separates Protokoll, unabhängig vom normalen Bearbeitungsverlauf eines Falls.",
                 "5_title": "Patientendaten bleiben aus Benachrichtigungen",
                 "5_body": "Benachrichtigungs-E-Mails vermeiden Patienten- und Falldetails. Teammitglieder melden sich an, um geschützte Informationen zu sehen und über Kommentare und @Erwähnungen zusammenzuarbeiten."
             },
@@ -6010,7 +6013,9 @@
                 "2_title": "Farbfotos und Dateien im Kontext",
                 "2_body": "Farbfotos, Scans und Dokumente bleiben bei der zugehörigen Restauration. Unbegrenzte Fallanhänge ohne Gesamtspeicher-Quota — es gelten Limits pro Datei (bis 250 MB für STL-, OBJ- und PLY-Scans, die direkt im Fall geöffnet werden).",
                 "3_title": "Benachrichtigungen und Verlauf",
-                "3_body": "Lassen Sie sich bei Änderungen benachrichtigen und prüfen Sie vor der Nachfrage den vollständigen Verlauf — Statusänderungen, Zuweisungen und Kommentare."
+                "3_body": "Lassen Sie sich bei Änderungen benachrichtigen und prüfen Sie vor der Nachfrage den vollständigen Verlauf — Statusänderungen, Zuweisungen und Kommentare.",
+                "4_title": "Optionale Laborbestätigung",
+                "4_body": "Ist die Laborbestätigung aktiviert, wird das Labor beim Senden eines Falls gebeten, den Empfang zu bestätigen — mit oder ohne zugesagten Rückgabetermin — oder fehlende Angaben anzufordern. Mitarbeiter können auch eine telefonisch oder per E-Mail erhaltene Bestätigung erfassen, die immer als vom Team erfasst gekennzeichnet ist — nicht als Antwort des Labors."
             },
             "mock_aria": "Beispiel eines Fall-Kommentarverlaufs mit Kommentaren, einer Erwähnung, einem Bildanhang und Aktivitätsmeldungen.",
             "mock_case": "Sofia Patel · Veneer",
@@ -6019,7 +6024,8 @@
             "mock_c2": "Bestätigt für den 14. März um 14:00 Uhr.",
             "mock_activity": "Status geändert zu An externes Labor gesendet · 7. März",
             "mock_composer": "Kommentar hinzufügen… Mit @ ein Teammitglied erwähnen",
-            "lab_note": "Autorisierte Labornutzer sehen nur die Fälle, die ihre Rolle erlaubt."
+            "lab_note": "Autorisierte Labornutzer sehen nur die Fälle, die ihre Rolle erlaubt.",
+            "ack_note": "Ein zugesagter Rückgabetermin ist die Erwartung des Labors, keine Garantie — und bleibt getrennt von Ihrem gewünschten Fälligkeitsdatum und dem Patiententermin."
         },
         "ask": {
             "name": "Ask DentaTrak",

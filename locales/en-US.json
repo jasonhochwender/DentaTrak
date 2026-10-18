@@ -5578,14 +5578,14 @@
             "step2_title": "Create and track the case",
             "step2_body": "Create one record for the case with the patient, case type, lab, appointment details, files, assignments, and other information your team needs. Everything stays connected to the case as it moves through the workflow.",
             "step3_title": "Keep your team and lab aligned",
-            "step3_body": "Keep communication connected to the case instead of scattered across email, texts, and sticky notes. Share updates and files, add comments, mention team members, and keep everyone working from the same information.",
+            "step3_body": "Keep communication connected to the case instead of scattered across email, texts, and sticky notes. Share updates and files, add comments, mention team members, and keep everyone working from the same information. Practices that want an explicit handoff can also ask the lab to confirm receipt and share an expected return date.",
             "step4_title": "See what needs attention",
             "step4_body": "Use the board, compact, or list view to work the way you prefer. Filter, sort, assign, review, and quickly find cases that are due soon, running late, or need attention."
         },
         "attention": {
             "eyebrow": "Product View",
             "title": "Will it be ready for the appointment?",
-            "lead": "DentaTrak connects each case's due date to the patient appointment date and the workflow stage it is in. Cases approaching an appointment before they are ready show Appointment Risk; cases past your threshold show Late; upcoming deadlines show Due Soon. Your team sees what needs attention without checking every card.",
+            "lead": "DentaTrak connects each case's due date to the patient appointment date and the workflow stage it is in. Cases approaching an appointment before they are ready show Appointment Risk; cases past your threshold show Late; upcoming deadlines show Due Soon. Your team sees what needs attention without checking every card. When a lab's promised return date lands after the appointment, that counts as Appointment Risk as well.",
             "late": "Late",
             "due_soon": "Due Soon",
             "appointment_risk": "Appointment Risk",
@@ -5695,8 +5695,8 @@
                 "2_body": "Optional authenticator-app verification adds a second layer of protection beyond a password. Inactive sessions expire automatically with a warning before sign-out.",
                 "3_title": "Private attachment access",
                 "3_body": "Shade photos, scans, and documents stay in private cloud storage and open only through short-lived, authorized links.",
-                "4_title": "Case access is logged",
-                "4_body": "Protected case record access and case activity — status changes, assignments, comments, downloads — are recorded with the user and timestamp.",
+                "4_title": "PHI access is audited",
+                "4_body": "Opening a case, printing it, and downloading or exporting patient-related files are each logged with the user and timestamp. Practice owners and admins review that audit report under Settings > Data & Privacy and can export it to CSV — a separate record from a case's ordinary edit history.",
                 "5_title": "Patient details stay out of notifications",
                 "5_body": "Notification emails avoid patient and case details. Team members sign in to view protected information and collaborate through comments and @mentions."
             },
@@ -5748,7 +5748,7 @@
         "mock": {
             "phones_aria": "Mobile browser product preview",
             "kanban_aria": "Mobile Kanban board showing the Originated workflow column with multiple case cards, status indicators, and the next column peeking at the right.",
-            "modal_aria": "Mobile Edit Case modal with patient details, status, assignment, shipment, and attachments.",
+            "modal_aria": "Mobile Edit Case modal with patient details, status, lab acknowledgment, promised return, shipment, and attachments.",
             "demo_practice": "Demo Practice",
             "search_cases": "Search cases",
             "prev_column": "Previous workflow column",
@@ -5777,7 +5777,10 @@
             "front_desk": "Front Desk",
             "back_office": "Back Office",
             "design_team": "Design Team",
-            "notes_body": "Patient appointment is Mar 14. Confirm lab can deliver the veneer by Mar 12 to avoid chair-side delay."
+            "notes_body": "Patient appointment is Mar 14. Confirm lab can deliver the veneer by Mar 12 to avoid chair-side delay.",
+            "lab_ack": "Lab acknowledgment",
+            "lab_ack_value": "Confirmed by lab",
+            "promised": "Lab-promised return"
         },
         "about": {
             "title": "About DentaTrak",
@@ -5968,7 +5971,9 @@
                 "2_title": "Shade photos and files in context",
                 "2_body": "Shade photos, scans, and documents stay attached to the restoration they belong to. Unlimited case attachments, with no total storage quota — per-file limits apply (up to 250 MB for STL, OBJ, and PLY scans, which open right in the case).",
                 "3_title": "Notifications and history",
-                "3_body": "Get notified when something changes and review the full history — status changes, assignments, and comments — before you follow up."
+                "3_body": "Get notified when something changes and review the full history — status changes, assignments, and comments — before you follow up.",
+                "4_title": "Optional lab acknowledgment",
+                "4_body": "With Lab acknowledgment turned on, sending a case to a lab asks it to confirm receipt — with or without a promised return date — or request missing information. Staff can also record a confirmation received by phone or email, always labeled as staff-recorded rather than the lab's own answer."
             },
             "mock_aria": "Case comment thread example showing comments, a mention, an image attachment, and activity updates.",
             "mock_case": "Sofia Patel · Veneer",
@@ -5977,7 +5982,8 @@
             "mock_c2": "Confirmed for Mar 14 at 2:00 PM.",
             "mock_activity": "Status changed to Sent To External Lab · Mar 7",
             "mock_composer": "Add a comment… Use @ to mention a teammate",
-            "lab_note": "Authorized lab users see only the cases their role permits."
+            "lab_note": "Authorized lab users see only the cases their role permits.",
+            "ack_note": "A promised return date is the lab's expectation, not a guarantee — and it stays separate from your requested due date and the patient's appointment."
         },
         "ask": {
             "name": "Ask DentaTrak",

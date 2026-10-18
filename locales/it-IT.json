@@ -5578,14 +5578,14 @@
             "step2_title": "Crea e segui il caso",
             "step2_body": "Crea un’unica scheda per il caso con paziente, tipo di caso, laboratorio, dettagli dell’appuntamento, file, assegnazioni e altre informazioni necessarie al team. Tutto resta collegato al caso mentre avanza nel flusso di lavoro.",
             "step3_title": "Mantieni allineati team e laboratorio",
-            "step3_body": "Mantieni la comunicazione collegata al caso invece che dispersa tra email, messaggi e foglietti. Condividi aggiornamenti e file, aggiungi commenti, menziona i membri del team e fai lavorare tutti con le stesse informazioni.",
+            "step3_body": "Mantieni la comunicazione collegata al caso invece che dispersa tra email, messaggi e foglietti. Condividi aggiornamenti e file, aggiungi commenti, menziona i membri del team e fai lavorare tutti con le stesse informazioni. Gli studi che desiderano una consegna esplicita possono anche chiedere al laboratorio di confermare la ricezione e indicare una data di rientro prevista.",
             "step4_title": "Vedi cosa richiede attenzione",
             "step4_body": "Usa la vista bacheca, compatta o elenco per lavorare come preferisci. Filtra, ordina, assegna, rivedi e trova rapidamente i casi in scadenza, in ritardo o che richiedono attenzione."
         },
         "attention": {
             "eyebrow": "Vista del prodotto",
             "title": "Sarà pronto per l’appuntamento?",
-            "lead": "DentaTrak collega la data di scadenza di ogni caso alla data dell’appuntamento del paziente e alla fase di workflow in cui si trova. I casi che si avvicinano a un appuntamento senza essere pronti mostrano Rischio appuntamento; quelli oltre la tua soglia mostrano In ritardo; le scadenze vicine mostrano In scadenza. Il team vede cosa richiede attenzione senza controllare ogni scheda.",
+            "lead": "DentaTrak collega la data di scadenza di ogni caso alla data dell’appuntamento del paziente e alla fase di workflow in cui si trova. I casi che si avvicinano a un appuntamento senza essere pronti mostrano Rischio appuntamento; quelli oltre la tua soglia mostrano In ritardo; le scadenze vicine mostrano In scadenza. Il team vede cosa richiede attenzione senza controllare ogni scheda. Se la data di rientro promessa dal laboratorio cade dopo l'appuntamento, conta anch'essa come Rischio appuntamento.",
             "late": "In ritardo",
             "due_soon": "In scadenza",
             "appointment_risk": "Rischio appuntamento",
@@ -5695,8 +5695,8 @@
                 "2_body": "La verifica opzionale con app di autenticazione aggiunge un secondo livello di protezione oltre alla password. Le sessioni inattive scadono automaticamente con un avviso preventivo.",
                 "3_title": "Accesso privato agli allegati",
                 "3_body": "Foto colore, scansioni e documenti restano in un archivio cloud privato e si aprono solo tramite link autorizzati a breve durata.",
-                "4_title": "L’accesso ai casi è registrato",
-                "4_body": "L’accesso alle schede protette dei casi e l’attività dei casi — cambi di stato, assegnazioni, commenti, download — sono registrati con utente e orario.",
+                "4_title": "Gli accessi alle PHI sono registrati",
+                "4_body": "L’apertura di un caso, la stampa e il download o l’esportazione di file relativi al paziente vengono registrati con utente e timestamp. Proprietari e amministratori dello studio consultano il rapporto in Impostazioni > Dati e privacy e possono esportarlo in CSV — un registro distinto dalla normale cronologia di modifica del caso.",
                 "5_title": "I dettagli dei pazienti restano fuori dalle notifiche",
                 "5_body": "Le email di notifica evitano i dettagli del paziente e del caso. I membri del team accedono per vedere le informazioni protette e collaborare con commenti e @menzioni."
             },
@@ -5748,7 +5748,7 @@
         "mock": {
             "phones_aria": "Anteprima del prodotto nel browser mobile",
             "kanban_aria": "Bacheca Kanban mobile che mostra la colonna del flusso di lavoro Creato con più schede dei casi, indicatori di stato e l'anteprima della colonna successiva a destra.",
-            "modal_aria": "Finestra mobile Modifica caso con dettagli del paziente, stato, assegnazione, spedizione e allegati.",
+            "modal_aria": "Finestra mobile Modifica caso con dettagli del paziente, stato, conferma del laboratorio, rientro promesso, spedizione e allegati.",
             "demo_practice": "Studio demo",
             "search_cases": "Cerca casi",
             "prev_column": "Colonna precedente del flusso di lavoro",
@@ -5777,7 +5777,10 @@
             "front_desk": "Reception",
             "back_office": "Back office",
             "design_team": "Team di progettazione",
-            "notes_body": "L'appuntamento del paziente è il 14 marzo. Confermare che il laboratorio possa consegnare la faccetta entro il 12 marzo per evitare ritardi alla poltrona."
+            "notes_body": "L'appuntamento del paziente è il 14 marzo. Confermare che il laboratorio possa consegnare la faccetta entro il 12 marzo per evitare ritardi alla poltrona.",
+            "lab_ack": "Conferma del laboratorio",
+            "lab_ack_value": "Confermato dal laboratorio",
+            "promised": "Rientro promesso"
         },
         "about": {
             "title": "Chi siamo | DentaTrak",
@@ -5968,7 +5971,9 @@
                 "2_title": "Foto colore e file nel contesto",
                 "2_body": "Foto colore, scansioni e documenti restano associati al restauro a cui appartengono. Allegati illimitati per caso, senza quota di archiviazione totale — si applicano limiti per file (fino a 250 MB per scansioni STL, OBJ e PLY, che si aprono direttamente nel caso).",
                 "3_title": "Notifiche e cronologia",
-                "3_body": "Ricevi una notifica quando qualcosa cambia e rileggi tutta la cronologia — cambi di stato, assegnazioni e commenti — prima di sollecitare."
+                "3_body": "Ricevi una notifica quando qualcosa cambia e rileggi tutta la cronologia — cambi di stato, assegnazioni e commenti — prima di sollecitare.",
+                "4_title": "Conferma del laboratorio facoltativa",
+                "4_body": "Con la conferma del laboratorio attiva, l’invio di un caso chiede al laboratorio di confermare la ricezione — con o senza data di rientro promessa — oppure di richiedere informazioni mancanti. Il personale può anche registrare una conferma ricevuta per telefono o e-mail, sempre contrassegnata come registrata dallo staff e non come risposta del laboratorio."
             },
             "mock_aria": "Esempio di thread di commenti di un caso con commenti, una menzione, un\\u2019immagine allegata e aggiornamenti di attività.",
             "mock_case": "Sofia Patel · Faccetta",
@@ -5977,7 +5982,8 @@
             "mock_c2": "Confermato per il 14 marzo alle 14:00.",
             "mock_activity": "Stato cambiato in Inviato al laboratorio esterno · 7 marzo",
             "mock_composer": "Aggiungi un commento… Usa @ per menzionare un collega",
-            "lab_note": "Gli utenti di laboratorio autorizzati vedono solo i casi consentiti dal loro ruolo."
+            "lab_note": "Gli utenti di laboratorio autorizzati vedono solo i casi consentiti dal loro ruolo.",
+            "ack_note": "La data di rientro promessa è l’aspettativa del laboratorio, non una garanzia — e resta distinta dalla data richiesta e dall’appuntamento del paziente."
         },
         "ask": {
             "name": "Ask DentaTrak",

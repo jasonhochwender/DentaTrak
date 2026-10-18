@@ -5578,14 +5578,14 @@
             "step2_title": "Cree y siga el caso",
             "step2_body": "Cree un único registro para el caso con el paciente, el tipo de caso, el laboratorio, los detalles de la cita, archivos, asignaciones y demás información que su equipo necesite. Todo permanece conectado al caso a medida que avanza por el flujo.",
             "step3_title": "Mantenga alineados a su equipo y laboratorio",
-            "step3_body": "Mantenga la comunicación conectada al caso en lugar de dispersa entre correos, mensajes y notas adhesivas. Comparta actualizaciones y archivos, añada comentarios, mencione a miembros del equipo y mantenga a todos trabajando con la misma información.",
+            "step3_body": "Mantenga la comunicación conectada al caso en lugar de dispersa entre correos, mensajes y notas adhesivas. Comparta actualizaciones y archivos, añada comentarios, mencione a miembros del equipo y mantenga a todos trabajando con la misma información. Las prácticas que quieran una entrega explícita también pueden pedir al laboratorio que confirme la recepción y comparta una fecha de devolución prevista.",
             "step4_title": "Vea lo que necesita atención",
             "step4_body": "Use la vista de tablero, compacta o de lista para trabajar como prefiera. Filtre, ordene, asigne, revise y encuentre rápidamente los casos que vencen pronto, van con retraso o necesitan atención."
         },
         "attention": {
             "eyebrow": "Vista del producto",
             "title": "¿Estará listo para la cita?",
-            "lead": "DentaTrak conecta la fecha de entrega de cada caso con la fecha de la cita del paciente y la etapa del flujo en la que se encuentra. Los casos que se acercan a una cita sin estar listos muestran Riesgo de cita; los que superan su umbral muestran Atrasado; los plazos próximos muestran Próximo a vencer. Su equipo ve qué necesita atención sin revisar cada tarjeta.",
+            "lead": "DentaTrak conecta la fecha de entrega de cada caso con la fecha de la cita del paciente y la etapa del flujo en la que se encuentra. Los casos que se acercan a una cita sin estar listos muestran Riesgo de cita; los que superan su umbral muestran Atrasado; los plazos próximos muestran Próximo a vencer. Su equipo ve qué necesita atención sin revisar cada tarjeta. Si la fecha de devolución prometida por el laboratorio cae después de la cita, también cuenta como Riesgo de cita.",
             "late": "Atrasado",
             "due_soon": "Próximo a vencer",
             "appointment_risk": "Riesgo de cita",
@@ -5695,8 +5695,8 @@
                 "2_body": "La verificación opcional con aplicación de autenticación añade una segunda capa de protección además de la contraseña. Las sesiones inactivas expiran automáticamente con un aviso previo.",
                 "3_title": "Acceso privado a archivos",
                 "3_body": "Las fotos de color, los escaneos y los documentos permanecen en almacenamiento privado en la nube y solo se abren mediante enlaces autorizados de corta duración.",
-                "4_title": "El acceso a los casos queda registrado",
-                "4_body": "El acceso a los registros protegidos de los casos y la actividad del caso — cambios de estado, asignaciones, comentarios, descargas — se registra con el usuario y la hora.",
+                "4_title": "El acceso a PHI queda auditado",
+                "4_body": "Abrir un caso, imprimirlo y descargar o exportar archivos relacionados con el paciente se registran con el usuario y la fecha. Los propietarios y administradores del consultorio revisan ese informe en Configuración > Datos y privacidad y pueden exportarlo a CSV: un registro separado del historial de edición habitual del caso.",
                 "5_title": "Los datos del paciente no van en las notificaciones",
                 "5_body": "Los correos de notificación evitan datos del paciente y del caso. Los miembros del equipo inician sesión para ver la información protegida y colaborar con comentarios y @menciones."
             },
@@ -5748,7 +5748,7 @@
         "mock": {
             "phones_aria": "Vista previa del producto en navegador móvil",
             "kanban_aria": "Tablero Kanban móvil que muestra la columna de flujo Originado con varias tarjetas de casos, indicadores de estado y la siguiente columna asomando a la derecha.",
-            "modal_aria": "Modal móvil Editar caso con datos del paciente, estado, asignación, envío y adjuntos.",
+            "modal_aria": "Modal móvil Editar caso con datos del paciente, estado, confirmación del laboratorio, devolución prometida, envío y adjuntos.",
             "demo_practice": "Consulta de demostración",
             "search_cases": "Buscar casos",
             "prev_column": "Columna de flujo anterior",
@@ -5777,7 +5777,10 @@
             "front_desk": "Recepción",
             "back_office": "Administración",
             "design_team": "Equipo de diseño",
-            "notes_body": "La cita del paciente es el 14 de marzo. Confirme que el laboratorio pueda entregar la carilla antes del 12 de marzo para evitar demoras junto al sillón."
+            "notes_body": "La cita del paciente es el 14 de marzo. Confirme que el laboratorio pueda entregar la carilla antes del 12 de marzo para evitar demoras junto al sillón.",
+            "lab_ack": "Confirmación del laboratorio",
+            "lab_ack_value": "Confirmado por el laboratorio",
+            "promised": "Devolución prometida"
         },
         "about": {
             "title": "Acerca de DentaTrak",
@@ -5968,7 +5971,9 @@
                 "2_title": "Fotos de color y archivos en contexto",
                 "2_body": "Las fotos de color, los escaneos y los documentos permanecen con la restauración a la que pertenecen. Archivos adjuntos ilimitados por caso, sin cuota total de almacenamiento — se aplican límites por archivo (hasta 250 MB para escaneos STL, OBJ y PLY, que se abren directamente en el caso).",
                 "3_title": "Notificaciones e historial",
-                "3_body": "Reciba notificaciones cuando algo cambie y revise el historial completo — cambios de estado, asignaciones y comentarios — antes de dar seguimiento."
+                "3_body": "Reciba notificaciones cuando algo cambie y revise el historial completo — cambios de estado, asignaciones y comentarios — antes de dar seguimiento.",
+                "4_title": "Confirmación opcional del laboratorio",
+                "4_body": "Con la confirmación de laboratorio activada, al enviar un caso se pide al laboratorio que confirme la recepción — con o sin fecha de devolución prometida — o que solicite información faltante. El personal también puede registrar una confirmación recibida por teléfono o correo electrónico, siempre marcada como registrada por el personal y no como respuesta del laboratorio."
             },
             "mock_aria": "Ejemplo de hilo de comentarios de un caso con comentarios, una mención, una imagen adjunta y actualizaciones de actividad.",
             "mock_case": "Sofia Patel · Carilla",
@@ -5977,7 +5982,8 @@
             "mock_c2": "Confirmada para el 14 de marzo a las 14:00.",
             "mock_activity": "Estado cambiado a Enviado a laboratorio externo · 7 de marzo",
             "mock_composer": "Añadir un comentario… Use @ para mencionar a un compañero",
-            "lab_note": "Los usuarios de laboratorio autorizados solo ven los casos que su rol permite."
+            "lab_note": "Los usuarios de laboratorio autorizados solo ven los casos que su rol permite.",
+            "ack_note": "La fecha de devolución prometida es la previsión del laboratorio, no una garantía — y se mantiene separada de la fecha solicitada y de la cita del paciente."
         },
         "ask": {
             "name": "Ask DentaTrak",

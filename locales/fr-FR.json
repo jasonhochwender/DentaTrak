@@ -5578,14 +5578,14 @@
             "step2_title": "Créez et suivez le cas",
             "step2_body": "Créez un seul dossier pour le cas avec le patient, le type de cas, le laboratoire, les détails du rendez-vous, les fichiers, les attributions et les autres informations dont votre équipe a besoin. Tout reste relié au cas au fil du flux de travail.",
             "step3_title": "Gardez votre équipe et votre laboratoire alignés",
-            "step3_body": "Gardez la communication reliée au cas plutôt qu’éparpillée entre e-mails, SMS et notes autocollantes. Partagez mises à jour et fichiers, ajoutez des commentaires, mentionnez des membres de l’équipe et gardez tout le monde sur la même information.",
+            "step3_body": "Gardez la communication reliée au cas plutôt qu’éparpillée entre e-mails, SMS et notes autocollantes. Partagez mises à jour et fichiers, ajoutez des commentaires, mentionnez des membres de l’équipe et gardez tout le monde sur la même information. Les cabinets qui souhaitent une passation explicite peuvent aussi demander au laboratoire de confirmer la réception et d’indiquer une date de retour prévue.",
             "step4_title": "Voyez ce qui demande attention",
             "step4_body": "Utilisez la vue tableau, compacte ou liste pour travailler à votre façon. Filtrez, triez, attribuez, révisez et trouvez rapidement les cas qui arrivent bientôt à échéance, sont en retard ou demandent attention."
         },
         "attention": {
             "eyebrow": "Aperçu du produit",
             "title": "Sera-t-il prêt pour le rendez-vous ?",
-            "lead": "DentaTrak relie la date d’échéance de chaque cas à la date du rendez-vous du patient et à son étape de workflow. Les cas qui approchent d’un rendez-vous sans être prêts affichent Risque de rendez-vous ; ceux qui dépassent votre seuil affichent En retard ; les échéances proches affichent Bientôt dû. Votre équipe voit ce qui demande attention sans vérifier chaque carte.",
+            "lead": "DentaTrak relie la date d’échéance de chaque cas à la date du rendez-vous du patient et à son étape de workflow. Les cas qui approchent d’un rendez-vous sans être prêts affichent Risque de rendez-vous ; ceux qui dépassent votre seuil affichent En retard ; les échéances proches affichent Bientôt dû. Votre équipe voit ce qui demande attention sans vérifier chaque carte. Si la date de retour promise par le laboratoire tombe après le rendez-vous, cela compte aussi comme Risque de rendez-vous.",
             "late": "En retard",
             "due_soon": "Bientôt dû",
             "appointment_risk": "Risque de rendez-vous",
@@ -5695,8 +5695,8 @@
                 "2_body": "La vérification optionnelle par application d’authentification ajoute une deuxième couche de protection au mot de passe. Les sessions inactives expirent automatiquement avec un avertissement préalable.",
                 "3_title": "Accès privé aux pièces jointes",
                 "3_body": "Les photos de teinte, les scans et les documents restent dans un stockage cloud privé et ne s’ouvrent que par des liens autorisés de courte durée.",
-                "4_title": "L’accès aux cas est consigné",
-                "4_body": "L’accès aux dossiers de cas protégés et l’activité des cas — changements d’étape, assignations, commentaires, téléchargements — sont enregistrés avec l’utilisateur et l’horodatage.",
+                "4_title": "Les accès aux PHI sont journalisés",
+                "4_body": "L’ouverture d’un cas, son impression et le téléchargement ou l’export de fichiers liés au patient sont journalisés avec l’utilisateur et l’horodatage. Les propriétaires et administrateurs du cabinet consultent ce rapport dans Paramètres > Données et confidentialité et peuvent l’exporter en CSV — un registre distinct de l’historique d’édition habituel du cas.",
                 "5_title": "Les détails des patients restent hors des notifications",
                 "5_body": "Les e-mails de notification évitent les détails du patient et du cas. Les membres de l’équipe se connectent pour voir les informations protégées et collaborer par commentaires et @mentions."
             },
@@ -5748,7 +5748,7 @@
         "mock": {
             "phones_aria": "Aperçu du produit dans un navigateur mobile",
             "kanban_aria": "Tableau Kanban mobile affichant la colonne de flux Originated avec plusieurs cartes de cas, des indicateurs de statut et la colonne suivante visible à droite.",
-            "modal_aria": "Fenêtre mobile de modification de cas avec les détails du patient, le statut, l'attribution, l'expédition et les pièces jointes.",
+            "modal_aria": "Fenêtre mobile de modification de cas avec les détails du patient, le statut, la confirmation du laboratoire, le retour promis, l’expédition et les pièces jointes.",
             "demo_practice": "Cabinet de démonstration",
             "search_cases": "Rechercher des cas",
             "prev_column": "Colonne de flux précédente",
@@ -5777,7 +5777,10 @@
             "front_desk": "Accueil",
             "back_office": "Arrière-boutique",
             "design_team": "Équipe conception",
-            "notes_body": "Le rendez-vous du patient est le 14 mars. Confirmez que le laboratoire peut livrer la facette avant le 12 mars pour éviter un retard fauteuil."
+            "notes_body": "Le rendez-vous du patient est le 14 mars. Confirmez que le laboratoire peut livrer la facette avant le 12 mars pour éviter un retard fauteuil.",
+            "lab_ack": "Confirmation du laboratoire",
+            "lab_ack_value": "Confirmé par le laboratoire",
+            "promised": "Retour promis"
         },
         "about": {
             "title": "À propos de DentaTrak",
@@ -5968,7 +5971,9 @@
                 "2_title": "Photos de teinte et fichiers en contexte",
                 "2_body": "Les photos de teinte, les scans et les documents restent attachés à la restauration à laquelle ils appartiennent. Pièces jointes illimitées par cas, sans quota de stockage total — des limites par fichier s’appliquent (jusqu’à 250 Mo pour les scans STL, OBJ et PLY, qui s’ouvrent directement dans le cas).",
                 "3_title": "Notifications et historique",
-                "3_body": "Recevez une notification quand quelque chose change et relisez tout l’historique — changements d’étape, assignations et commentaires — avant de relancer."
+                "3_body": "Recevez une notification quand quelque chose change et relisez tout l’historique — changements d’étape, assignations et commentaires — avant de relancer.",
+                "4_title": "Confirmation facultative du laboratoire",
+                "4_body": "Lorsque la confirmation de laboratoire est activée, l’envoi d’un cas demande au laboratoire de confirmer la réception — avec ou sans date de retour promise — ou de demander des informations manquantes. L’équipe peut aussi enregistrer une confirmation reçue par téléphone ou e-mail, toujours indiquée comme saisie par le personnel et non comme réponse du laboratoire."
             },
             "mock_aria": "Exemple de fil de commentaires d\\u2019un cas avec commentaires, une mention, une image jointe et des mises à jour d\\u2019activité.",
             "mock_case": "Sofia Patel · Facette",
@@ -5977,7 +5982,8 @@
             "mock_c2": "Confirmé pour le 14 mars à 14 h 00.",
             "mock_activity": "Statut changé en Envoyé au laboratoire externe · 7 mars",
             "mock_composer": "Ajouter un commentaire… Utilisez @ pour mentionner un collègue",
-            "lab_note": "Les utilisateurs de laboratoire autorisés ne voient que les cas que leur rôle permet."
+            "lab_note": "Les utilisateurs de laboratoire autorisés ne voient que les cas que leur rôle permet.",
+            "ack_note": "La date de retour promise est l’estimation du laboratoire, pas une garantie — et elle reste distincte de la date demandée et du rendez-vous du patient."
         },
         "ask": {
             "name": "Ask DentaTrak",

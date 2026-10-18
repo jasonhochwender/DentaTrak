@@ -766,6 +766,7 @@ foreach (['operate', 'control', 'scale'] as $plan) {
     .insights-callouts li strong { display: block; color: var(--dt-ink); font-weight: 600; margin-bottom: 4px; }
     .insights-callouts li::before { content: ""; position: absolute; left: 0; top: 6px; width: 10px; height: 10px; border-radius: 50%; background: var(--dt-blue); }
     .insights-copy .section-note { text-align: left; margin: 22px 0 0 0; max-width: 460px; }
+    .insights-copy .section-note + .section-note { margin-top: 10px; }
 
     .insights-snapshot { background: #fff; border: 1px solid var(--dt-border); border-radius: 16px; padding: 22px; box-shadow: 0 8px 24px -12px rgba(0,0,0,0.08); overflow: hidden; }
     .is-header { margin-bottom: 14px; }
@@ -1405,7 +1406,7 @@ foreach (['operate', 'control', 'scale'] as $plan) {
                 </div>
                 <div>
                   <h4>Recommendation</h4>
-                  <p>Hannah Lindqvist's crown is flagged Appointment Risk: her patient appointment is Mar 10 but the case is due Mar 12. Confirm Precision Dental Lab will deliver by Mar 9 to avoid a chair-side delay.</p>
+                  <p>Hannah Lindqvist's crown is flagged Appointment Risk: her patient appointment is Mar 10 but the case is due Mar 12. Check whether Precision Dental Lab has confirmed receipt and what return date it has promised.</p>
                 </div>
               </div>
             </div>
@@ -1561,13 +1562,14 @@ foreach (['operate', 'control', 'scale'] as $plan) {
           <h2><?php echo t('marketing.collaboration.title'); ?></h2>
           <p class="lead"><?php echo t('marketing.collaboration.lead'); ?></p>
           <ul class="insights-callouts">
-            <?php for ($i = 1; $i <= 3; $i++) : ?>
+            <?php for ($i = 1; $i <= 4; $i++) : ?>
             <li>
               <strong><?php echo t('marketing.collaboration.features.' . $i . '_title'); ?></strong>
               <?php echo t('marketing.collaboration.features.' . $i . '_body'); ?>
             </li>
             <?php endfor; ?>
           </ul>
+          <p class="section-note"><?php echo t('marketing.collaboration.ack_note'); ?></p>
           <p class="section-note"><?php echo t('marketing.collaboration.lab_note'); ?></p>
         </div>
         <div class="ct-panel" role="img" aria-label="<?php echo htmlspecialchars(t('marketing.collaboration.mock_aria')); ?>">
@@ -1698,7 +1700,7 @@ foreach (['operate', 'control', 'scale'] as $plan) {
             </div>
             <div>
               <h4>Recommendation</h4>
-              <p>Hannah Lindqvist's crown is flagged Appointment Risk: her patient appointment is Mar 10 but the case is due Mar 12. Confirm Precision Dental Lab will deliver by Mar 9 to avoid a chair-side delay.</p>
+              <p>Hannah Lindqvist's crown is flagged Appointment Risk: her patient appointment is Mar 10 but the case is due Mar 12. Check whether Precision Dental Lab has confirmed receipt and what return date it has promised.</p>
             </div>
           </div>
         </div>
@@ -2039,6 +2041,14 @@ foreach (['operate', 'control', 'scale'] as $plan) {
                 <div class="m-field-row">
                   <span class="m-field-label"><?php echo t('marketing.mock.appt'); ?></span>
                   <span class="m-field-value">Mar 14, 2:00 PM</span>
+                </div>
+                <div class="m-field-row">
+                  <span class="m-field-label"><?php echo t('marketing.mock.lab_ack'); ?></span>
+                  <span class="m-field-value"><?php echo t('marketing.mock.lab_ack_value'); ?></span>
+                </div>
+                <div class="m-field-row">
+                  <span class="m-field-label"><?php echo t('marketing.mock.promised'); ?></span>
+                  <span class="m-field-value">Mar 15</span>
                 </div>
                 <div class="m-field-row">
                   <span class="m-field-label"><?php echo t('marketing.mock.shipment'); ?></span>
