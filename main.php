@@ -235,6 +235,83 @@ try {
 // visibility; every underlying API independently enforces this server-side.
 $isCurrentUserPracticeAdmin = isPracticeAdmin($currentPracticeId);
 
+// Consolidated "All practices" case view (Scale organizations).
+//
+// Eligibility: the organization anchored by the session practice holds the
+// Scale entitlement AND the user is authorized for more than one practice
+// in it (getAuthorizedOrganizationPractices: org authority -> all org
+// practices; everyone else -> explicit memberships only). The scope is a
+// session flag, never a synthetic practice id. If the flag is set but the
+// user no longer qualifies (revoked access, lost entitlement), it is
+// cleared here so the single-practice experience simply resumes.
+require_once __DIR__ . '/api/organization-access.php';
+require_once __DIR__ . '/api/subscription-access.php';
+$orgCaseViewEligible = false;
+$orgCaseViewPractices = [];
+$orgCaseViewActive = false;
+$orgScaleEntitled = false;
+try {
+    if ($currentPracticeId && $userId && isset($pdo) && $pdo instanceof PDO) {
+        $orgScaleEntitled = hasScaleAccess($pdo, (int)$currentPracticeId, (string)(getCurrentUserEmail() ?? ''));
+        $orgCaseViewPractices = getAuthorizedOrganizationPractices($pdo, (int)$userId, (int)$currentPracticeId);
+        $orgCaseViewEligible = $orgScaleEntitled && count($orgCaseViewPractices) >= 2;
+    }
+} catch (Throwable $e) {
+    $orgScaleEntitled = false;
+    $orgCaseViewEligible = false;
+    $orgCaseViewPractices = [];
+}
+
+// Concise upgrade entry: a user who could consolidate (2+ authorized
+// practices) but whose organization lacks the Scale entitlement sees a
+// locked "All practices" switcher item that leads to billing. Shown only
+// to people who can act on it - billing management is admin/owner-only,
+// matching api/billing-portal.php.
+$orgViewUpgradePrompt = !$orgCaseViewEligible
+    && !$orgScaleEntitled
+    && count($orgCaseViewPractices) >= 2
+    && ($isCurrentUserPracticeAdmin || isPracticeOwner($currentPracticeId));
+$orgCaseViewActive = $orgCaseViewEligible && isOrgCaseViewRequested();
+if (isOrgCaseViewRequested() && !$orgCaseViewActive) {
+    // Scope collapsed (revoked practice access / lost entitlement / fewer
+    // than two authorized practices): fall back to single-practice mode
+    // instead of rendering a degraded view.
+    unset($_SESSION['org_case_view']);
+}
+$orgEditablePractices = array_values(array_filter($orgCaseViewPractices, function ($p) {
+    return !empty($p['can_edit_cases']) && !empty($p['is_member']);
+}));
+
+// Organization Insights (consolidated scope): usable when the org view is
+// active and the user holds the can_view_analytics permission in at least
+// one authorized practice. api/get-org-insights.php re-derives this
+// per-practice permission set server-side on every request.
+$orgInsightsPractices = array_values(array_filter($orgCaseViewPractices, function ($p) {
+    return !empty($p['can_view_analytics']);
+}));
+$orgInsightsEligible = $orgCaseViewActive && count($orgInsightsPractices) >= 1;
+
+// Expose the org-view state to the client bootstrap: scope flag plus the
+// authorized practice list (names + per-practice permission flags) so the
+// consolidated view can render filters and the create chooser without a
+// second round-trip. js/org-case-view.js never treats this as authority -
+// list-org-cases.php revalidates the scope on every request.
+$caseViewBootstrap['orgCaseView'] = [
+    'active'    => $orgCaseViewActive,
+    'eligible'  => $orgCaseViewEligible,
+    'anchorId'  => (int)$currentPracticeId,
+    'practices' => array_map(function ($p) {
+        return [
+            'id'               => (int)$p['id'],
+            'name'             => (string)($p['practice_name'] ?? ''),
+            'isMember'         => !empty($p['is_member']),
+            'canEditCases'     => !empty($p['can_edit_cases']),
+            'limitedVisibility'=> !empty($p['limited_visibility']),
+        ];
+    }, $orgCaseViewPractices),
+];
+$caseViewBootstrap['orgInsights'] = ['eligible' => $orgInsightsEligible];
+
 // Incoming-scans inbox: experimental feature flag AND the existing
 // can_edit_cases practice permission. UI visibility only - api/scan-inbox.php
 // enforces both server-side on every action.
@@ -725,6 +802,10 @@ if (isset($appConfig) && is_array($appConfig) && isset($appConfig['appName'])) {
 <?php if ($showScannerInbox): ?>
   <link rel="preload" href="<?= appAssetUrl('css/scan-inbox.css') ?>" as="style" onload="this.onload=null;this.rel='stylesheet'">
 <?php endif; ?>
+<?php if ($orgCaseViewActive): ?>
+  <link rel="preload" href="<?= appAssetUrl('css/org-case-view.css') ?>" as="style" onload="this.onload=null;this.rel='stylesheet'">
+  <link rel="preload" href="<?= appAssetUrl('css/org-insights.css') ?>" as="style" onload="this.onload=null;this.rel='stylesheet'">
+<?php endif; ?>
 <?php if (isFeatureEnabled('SHOW_LAB_INSIGHTS')): ?>
   <link rel="preload" href="<?= appAssetUrl('css/lab-insights.css') ?>" as="style" onload="this.onload=null;this.rel='stylesheet'">
 <?php endif; ?>
@@ -759,6 +840,10 @@ if (isset($appConfig) && is_array($appConfig) && isset($appConfig['appName'])) {
     <link rel="stylesheet" href="<?= appAssetUrl('css/od-send-case.css') ?>">
 <?php if ($showScannerInbox): ?>
     <link rel="stylesheet" href="<?= appAssetUrl('css/scan-inbox.css') ?>">
+<?php endif; ?>
+<?php if ($orgCaseViewActive): ?>
+    <link rel="stylesheet" href="<?= appAssetUrl('css/org-case-view.css') ?>">
+    <link rel="stylesheet" href="<?= appAssetUrl('css/org-insights.css') ?>">
 <?php endif; ?>
 <?php if (isFeatureEnabled('BILLING_ENABLED')): ?>
     <link rel="stylesheet" href="<?= appAssetUrl('css/billing-portal.css') ?>">
@@ -878,19 +963,19 @@ window.dtOdSendEnabled = <?php echo $dtOdSendAvailable ? 'true' : 'false'; ?>;
           <?php if (!empty($practiceName)): ?>
           <div class="practice-switcher" id="practiceSwitcher">
             <button type="button" class="practice-switcher-btn" id="practiceSwitcherBtn" aria-haspopup="true" aria-expanded="false">
-              <span class="practice-switcher-name"><?php echo htmlspecialchars($practiceName); ?></span>
+              <span class="practice-switcher-name"><?php echo $orgCaseViewActive ? htmlspecialchars(t('org_view.all_practices')) : htmlspecialchars($practiceName); ?></span>
               <svg class="practice-switcher-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <polyline points="6 9 12 15 18 9"></polyline>
               </svg>
             </button>
             <div class="practice-switcher-dropdown" id="practiceSwitcherDropdown">
               <?php foreach ($userPractices as $practice): ?>
-              <button type="button" 
-                      class="practice-switcher-item<?php echo ((int)$practice['id'] === (int)$currentPracticeId) ? ' active' : ''; ?>"
+              <button type="button"
+                      class="practice-switcher-item<?php echo ((int)$practice['id'] === (int)$currentPracticeId && !$orgCaseViewActive) ? ' active' : ''; ?>"
                       data-practice-id="<?php echo (int)$practice['id']; ?>"
-                      <?php echo ((int)$practice['id'] === (int)$currentPracticeId) ? 'aria-current="true"' : ''; ?>>
+                      <?php echo ((int)$practice['id'] === (int)$currentPracticeId && !$orgCaseViewActive) ? 'aria-current="true"' : ''; ?>>
                 <span class="practice-item-name"><?php echo htmlspecialchars($practice['practice_name']); ?></span>
-                <?php if ((int)$practice['id'] === (int)$currentPracticeId): ?>
+                <?php if ((int)$practice['id'] === (int)$currentPracticeId && !$orgCaseViewActive): ?>
                 <svg class="practice-item-check" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <polyline points="20 6 9 17 4 12"></polyline>
                 </svg>
@@ -898,6 +983,40 @@ window.dtOdSendEnabled = <?php echo $dtOdSendAvailable ? 'true' : 'false'; ?>;
                 <span class="practice-item-role"><?php echo htmlspecialchars(ucfirst($practice['role'])); ?></span>
               </button>
               <?php endforeach; ?>
+              <?php if ($orgCaseViewEligible): ?>
+              <div class="practice-switcher-divider"></div>
+              <!-- Consolidated organization view (Scale). data-org-scope
+                   deliberately carries NO practice id - it is not a practice,
+                   it switches the case view to the authorized organization
+                   scope via api/set-case-view-scope.php. -->
+              <button type="button"
+                      class="practice-switcher-item practice-switcher-org<?php echo $orgCaseViewActive ? ' active' : ''; ?>"
+                      data-org-scope="1"
+                      <?php echo $orgCaseViewActive ? 'aria-current="true"' : ''; ?>>
+                <span class="practice-item-name"><?php echo htmlspecialchars(t('org_view.all_practices')); ?></span>
+                <?php if ($orgCaseViewActive): ?>
+                <svg class="practice-item-check" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+                <?php endif; ?>
+                <span class="practice-item-role"><?php echo htmlspecialchars(t('org_view.scope_badge', ['count' => count($orgCaseViewPractices)])); ?></span>
+              </button>
+              <?php elseif ($orgViewUpgradePrompt): ?>
+              <div class="practice-switcher-divider"></div>
+              <!-- Locked upgrade entry: the user is authorized for multiple
+                   practices but the organization is not on Scale. Links to
+                   billing; carries no scope and grants no access. -->
+              <a href="billing.php"
+                 class="practice-switcher-item practice-switcher-item--locked"
+                 title="<?php echo htmlspecialchars(t('org_view.upgrade_hint')); ?>">
+                <span class="practice-item-name"><?php echo htmlspecialchars(t('org_view.all_practices')); ?></span>
+                <svg class="practice-item-lock" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                  <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                </svg>
+                <span class="practice-item-role"><?php echo htmlspecialchars(t('org_view.upgrade_badge')); ?></span>
+              </a>
+              <?php endif; ?>
               <div class="practice-switcher-divider"></div>
               <!-- Creating a practice always goes through the BAA flow (baa-acceptance.php
                    collects the practice's legal name and creates it atomically with BAA
@@ -1015,7 +1134,7 @@ endif;
         <?php if ($showScannerInbox): ?>
         <button type="button" class="main-tab" data-tab="incoming-scans"><?php echo t('scanner.tab_title'); ?></button>
         <?php endif; ?>
-        <?php if ($userCanViewAnalytics): ?>
+        <?php if ($userCanViewAnalytics || $orgInsightsEligible): ?>
         <button type="button" class="main-tab" data-tab="insights"><?= t('navigation.insights') ?></button>
         <?php endif; ?>
       </div>
@@ -1073,6 +1192,18 @@ endif;
               <?php echo renderCaseTypeOptions(getFilterableCaseTypes()); ?>
             </select>
           </div>
+
+          <?php if ($orgCaseViewActive): ?>
+          <div class="kanban-filter-field">
+            <label for="filterOrgPractice"><?php echo t('org_view.practice_filter'); ?></label>
+            <select id="filterOrgPractice">
+              <option value=""><?php echo t('org_view.all_authorized'); ?></option>
+              <!-- Options populated by js/org-case-view.js from the
+                   authorized organization scope returned by
+                   api/list-org-cases.php -->
+            </select>
+          </div>
+          <?php endif; ?>
 
           <div class="kanban-filter-field">
             <label for="filterAssignedTo"><?php echo t('cases.assigned_to'); ?></label>
@@ -1147,7 +1278,7 @@ endif;
         </div>
       </div>
 
-      <nav class="mobile-kanban-nav" id="mobileKanbanNav" aria-label="<?= htmlspecialchars(t('cases.mobile_nav.columns')) ?>">
+      <nav class="mobile-kanban-nav" id="mobileKanbanNav"<?php echo $orgCaseViewActive ? ' hidden' : ''; ?> aria-label="<?= htmlspecialchars(t('cases.mobile_nav.columns')) ?>">
         <button type="button" id="mobileKanbanPrev" class="mobile-kanban-prev" aria-label="<?= htmlspecialchars(t('cases.mobile_nav.prev')) ?>" disabled>&lsaquo;</button>
         <select class="mobile-kanban-select" id="mobileKanbanSelect" aria-label="<?= htmlspecialchars(t('cases.mobile_nav.select')) ?>">
           <?php foreach ($resolvedWorkflowStageLabels as $status => $label): ?>
@@ -1158,7 +1289,7 @@ endif;
         <span class="sr-only" id="kanbanNavAnnouncer" aria-live="polite" aria-atomic="true"></span>
       </nav>
 
-      <section class="kanban-board" id="kanbanBoard">
+      <section class="kanban-board" id="kanbanBoard"<?php echo $orgCaseViewActive ? ' hidden' : ''; ?>>
         <?php foreach ($resolvedWorkflowStageLabels as $status => $label):
           $isCustomColumn = (strpos($status, 'Custom-') === 0);
           $colorKey = (int)($workflowColumnColorKeys[$status] ?? 0);
@@ -1173,6 +1304,59 @@ endif;
           </div>
         </div>
         <?php endforeach; ?>
+      </section>
+
+      <!-- Consolidated "All practices" case view (Scale organizations).
+           Populated by js/org-case-view.js from api/list-org-cases.php;
+           every query is scoped server-side to the live authorized
+           organization practice set. Only rendered in org scope. -->
+      <section class="org-case-view" id="orgCaseView" aria-label="<?php echo t('org_view.all_practices'); ?>"<?php echo $orgCaseViewActive ? '' : ' hidden'; ?>>
+        <div class="org-summary" id="orgSummary">
+          <div class="org-stat org-stat-overdue" data-stat="overdue" role="status">
+            <span class="org-stat-value" id="orgStatOverdue">0</span>
+            <span class="org-stat-label"><?php echo t('org_view.overdue'); ?></span>
+          </div>
+          <div class="org-stat org-stat-due-soon" data-stat="dueSoon" role="status">
+            <span class="org-stat-value" id="orgStatDueSoon">0</span>
+            <span class="org-stat-label"><?php echo t('org_view.due_soon_7d'); ?></span>
+          </div>
+          <div class="org-stat org-stat-needs-review" data-stat="needsReview" role="status">
+            <span class="org-stat-value" id="orgStatNeedsReview">0</span>
+            <span class="org-stat-label"><?php echo t('org_view.needs_review'); ?></span>
+          </div>
+          <div class="org-stat org-stat-total" data-stat="total" role="status">
+            <span class="org-stat-value" id="orgStatTotal">0</span>
+            <span class="org-stat-label"><?php echo t('org_view.total_cases'); ?></span>
+          </div>
+        </div>
+        <div class="org-board-wrap" id="orgBoardWrap">
+          <table class="org-cases-table" id="orgCasesTable">
+            <thead>
+              <tr>
+                <th><button type="button" class="org-sort" data-sort="patient"><?php echo t('archive.fields.patient_name'); ?></button></th>
+                <th><button type="button" class="org-sort" data-sort="practice"><?php echo t('org_view.practice'); ?></button></th>
+                <th><button type="button" class="org-sort" data-sort="type"><?php echo t('archive.fields.case_type'); ?></button></th>
+                <th><button type="button" class="org-sort" data-sort="status"><?php echo t('archive.fields.status'); ?></button></th>
+                <th><button type="button" class="org-sort" data-sort="dentist"><?php echo t('archive.fields.dentist'); ?></button></th>
+                <th><button type="button" class="org-sort" data-sort="due"><?php echo t('cases.due_date'); ?></button></th>
+                <th><button type="button" class="org-sort" data-sort="assigned"><?php echo t('cases.assigned_to'); ?></button></th>
+              </tr>
+            </thead>
+            <tbody id="orgCasesTableBody">
+              <tr><td colspan="7" class="loading-row"><?php echo t('common.loading'); ?></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="org-pagination" id="orgPagination" hidden>
+          <button type="button" id="orgPrevPage" class="filter-clear-btn">&larr; <?php echo t('archive.pagination.previous'); ?></button>
+          <span id="orgPageInfo" role="status"></span>
+          <button type="button" id="orgNextPage" class="filter-clear-btn"><?php echo t('archive.pagination.next'); ?> &rarr;</button>
+          <select id="orgPageSize" class="org-page-size" aria-label="<?php echo t('archive.pagination.per_page', ['count' => '']); ?>">
+            <option value="25">25</option>
+            <option value="50" selected>50</option>
+            <option value="100">100</option>
+          </select>
+        </div>
       </section>
 
       <!-- Compact List View: populated by js/case-list.js as a projection
@@ -1223,6 +1407,184 @@ endif;
 
         <!-- Insights Tab (consolidated analytics + AI) -->
         <div class="main-tab-pane" id="insights-tab">
+<?php if ($orgCaseViewActive): ?>
+          <!-- Organization Insights: consolidated "All practices" scope for
+               Scale organizations. Server-side access is enforced by
+               api/get-org-insights.php on every request. -->
+          <div class="analytics-pro org-insights-root" id="orgInsightsRoot">
+            <div class="ap-header">
+              <div class="ap-header-content">
+                <div>
+                  <h1 class="ap-title"><?= t('org_insights.title') ?></h1>
+                  <p class="ap-subtitle"><?= t('org_insights.subtitle') ?></p>
+                </div>
+                <div class="ap-header-actions">
+                  <button type="button" class="ap-btn ap-btn-secondary" id="orgInsightsRefresh">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M23 4v6h-6M1 20v-6h6M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/>
+                    </svg>
+                    <?= t('insights.navigation.refresh') ?>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Reporting period (historical sections only) -->
+            <div class="oi-range-bar">
+              <span class="oi-range-label"><?= t('org_insights.range.label') ?></span>
+              <div class="oi-presets" role="group" aria-label="<?= htmlspecialchars(t('org_insights.range.presets')) ?>">
+                <button type="button" class="oi-preset" data-preset="30d"><?= t('org_insights.range.30d') ?></button>
+                <button type="button" class="oi-preset active" data-preset="90d"><?= t('org_insights.range.90d') ?></button>
+                <button type="button" class="oi-preset" data-preset="12m"><?= t('org_insights.range.12m') ?></button>
+                <button type="button" class="oi-preset" data-preset="all"><?= t('org_insights.range.all') ?></button>
+              </div>
+              <div class="oi-custom">
+                <label class="sr-only" for="oiRangeStart"><?= t('org_insights.range.start') ?></label>
+                <input type="date" id="oiRangeStart">
+                <span class="oi-range-sep"><?= t('org_insights.range.to') ?></span>
+                <label class="sr-only" for="oiRangeEnd"><?= t('org_insights.range.end') ?></label>
+                <input type="date" id="oiRangeEnd">
+                <button type="button" class="ap-btn ap-btn-secondary oi-apply" id="oiRangeApply"><?= t('org_insights.range.apply') ?></button>
+              </div>
+            </div>
+            <p class="oi-range-note" id="oiRangeNote"></p>
+            <p class="oi-excluded-note" id="oiExcludedNote" hidden></p>
+
+            <!-- Summary cards -->
+            <div class="ap-metrics-grid ap-metrics-grid--compact">
+              <div class="ap-metric-card accent-blue">
+                <div class="ap-metric-value" id="oiCardActive">-</div>
+                <div class="ap-metric-label"><?= t('org_insights.cards.active') ?></div>
+                <div class="oi-metric-sub"><?= t('org_insights.as_of_now') ?></div>
+              </div>
+              <div class="ap-metric-card accent-orange">
+                <div class="ap-metric-value" id="oiCardOverdue">-</div>
+                <div class="ap-metric-label" id="oiCardOverdueLabel"><?= t('org_insights.cards.overdue') ?></div>
+                <div class="oi-metric-sub" id="oiCardOverdueSub"></div>
+              </div>
+              <div class="ap-metric-card accent-blue">
+                <div class="ap-metric-value" id="oiCardCreated">-</div>
+                <div class="ap-metric-label"><?= t('org_insights.cards.created') ?></div>
+                <div class="oi-metric-sub" id="oiCardCreatedSub"></div>
+              </div>
+              <div class="ap-metric-card accent-green">
+                <div class="ap-metric-value" id="oiCardCompleted">-</div>
+                <div class="ap-metric-label"><?= t('org_insights.cards.completed') ?></div>
+                <div class="oi-metric-sub" id="oiCardCompletedSub"></div>
+              </div>
+              <div class="ap-metric-card accent-green">
+                <div class="ap-metric-value" id="oiCardOnTime">-</div>
+                <div class="ap-metric-label"><?= t('org_insights.cards.on_time') ?></div>
+                <div class="oi-metric-sub" id="oiCardOnTimeSub"></div>
+              </div>
+              <div class="ap-metric-card accent-purple">
+                <div class="ap-metric-value" id="oiCardTurnaround">-</div>
+                <div class="ap-metric-label"><?= t('org_insights.cards.lab_turnaround') ?></div>
+                <div class="oi-metric-sub" id="oiCardTurnaroundSub"></div>
+              </div>
+            </div>
+
+            <!-- Practice comparison -->
+            <div class="ap-section">
+              <div class="ap-section-header">
+                <div class="ap-section-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M3 3v18h18"/><rect x="7" y="12" width="3" height="6"/><rect x="12" y="8" width="3" height="10"/><rect x="17" y="4" width="3" height="14"/>
+                  </svg>
+                </div>
+                <div>
+                  <h2 class="ap-section-title"><?= t('org_insights.sections.practices') ?></h2>
+                  <p class="ap-section-subtitle" id="oiPracticeSubtitle"></p>
+                </div>
+              </div>
+              <div class="oi-table-wrap">
+                <table class="oi-table" id="oiPracticeTable">
+                  <thead>
+                    <tr>
+                      <th rowspan="2"><?= t('org_insights.table.practice') ?></th>
+                      <th colspan="4" class="oi-colgroup"><?= t('org_insights.table.now_group') ?></th>
+                      <th colspan="3" class="oi-colgroup" id="oiHistoryColGroup"></th>
+                    </tr>
+                    <tr>
+                      <th><?= t('org_insights.table.active') ?></th>
+                      <th><?= t('org_insights.table.overdue') ?></th>
+                      <th><?= t('org_insights.table.overdue_rate') ?></th>
+                      <th><?= t('org_insights.table.no_due_date') ?></th>
+                      <th><?= t('org_insights.table.created') ?></th>
+                      <th><?= t('org_insights.table.completed') ?></th>
+                      <th><?= t('org_insights.table.on_time') ?></th>
+                    </tr>
+                  </thead>
+                  <tbody id="oiPracticeBody"></tbody>
+                  <tfoot id="oiPracticeFoot"></tfoot>
+                </table>
+              </div>
+              <p class="oi-table-note"><?= t('org_insights.table.drilldown_note') ?></p>
+            </div>
+
+            <!-- Lab comparison -->
+            <div class="ap-section" id="oiLabSection" hidden>
+              <div class="ap-section-header">
+                <div class="ap-section-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M9 3h6v4l4 11a2 2 0 01-2 3H7a2 2 0 01-2-3L9 7V3z"/>
+                  </svg>
+                </div>
+                <div>
+                  <h2 class="ap-section-title"><?= t('org_insights.sections.labs') ?></h2>
+                  <p class="ap-section-subtitle" id="oiLabSubtitle"></p>
+                </div>
+              </div>
+              <div class="oi-table-wrap">
+                <table class="oi-table" id="oiLabTable">
+                  <thead>
+                    <tr>
+                      <th><?= t('org_insights.table.lab') ?></th>
+                      <th><?= t('org_insights.table.practices') ?></th>
+                      <th><?= t('org_insights.table.lab_cases') ?></th>
+                      <th><?= t('org_insights.table.lab_completed') ?></th>
+                      <th><?= t('org_insights.table.lab_turnaround') ?></th>
+                      <th><?= t('org_insights.table.lab_on_time') ?></th>
+                    </tr>
+                  </thead>
+                  <tbody id="oiLabBody"></tbody>
+                </table>
+              </div>
+              <p class="oi-table-note" id="oiLabNote"></p>
+            </div>
+
+            <!-- Trend -->
+            <div class="ap-section">
+              <div class="ap-section-header">
+                <div class="ap-section-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/>
+                  </svg>
+                </div>
+                <div>
+                  <h2 class="ap-section-title"><?= t('org_insights.sections.trend') ?></h2>
+                  <p class="ap-section-subtitle" id="oiTrendSubtitle"></p>
+                </div>
+              </div>
+              <div class="ap-chart-card full-width">
+                <div class="ap-chart-container oi-trend-container">
+                  <canvas id="oiTrendChart" role="img" aria-label="<?= htmlspecialchars(t('org_insights.trend.aria')) ?>"></canvas>
+                </div>
+                <p class="oi-table-note" id="oiTrendEmpty" hidden><?= t('org_insights.not_enough_data') ?></p>
+              </div>
+            </div>
+
+            <div class="oi-footnotes" id="oiFootnotes"></div>
+
+            <div class="ap-loading" id="oiLoading" style="display:none;">
+              <div class="ap-loading-spinner"></div>
+              <p class="ap-loading-text"><?= t('insights.loading.analytics') ?></p>
+            </div>
+            <div class="ap-error" id="oiError" style="display:none;">
+              <p id="oiErrorText"></p>
+            </div>
+          </div>
+<?php else: ?>
           <div class="analytics-pro">
 <?php if ($userHasControlAccess === true): ?>
             <div class="insights-subtabs" id="insightsSubtabs" role="tablist">
@@ -1716,6 +2078,7 @@ endif;
 <?php echo $insightsGateScreen; ?>
 <?php endif; ?>
           </div>
+<?php endif; ?>
         </div>
         <!-- End Insights Tab -->
 
@@ -2125,6 +2488,17 @@ endif;
                 </div>
               </div>
 <?php endif; ?>
+
+              <!-- Target-practice selector for the consolidated "All
+                   practices" create flow. Only shown by js/org-case-view.js
+                   when creating from org scope; the submitted practice_id
+                   is revalidated server-side by create-case.php through
+                   resolveOrgAuthorizedPracticeParam() and canEditCases(). -->
+              <div id="orgCreatePracticeWrap" class="form-field org-create-practice-field" hidden>
+                <label for="orgCreatePractice"><?php echo t('org_view.create_in_practice'); ?> <span class="required">*</span></label>
+                <select id="orgCreatePractice" name="practice_id"></select>
+                <p class="field-hint"><?php echo t('org_view.create_hint'); ?></p>
+              </div>
 
               <!-- Workflow: operational state of the case, first section
                    under the metadata for both Create and Edit. Status is
@@ -2835,6 +3209,7 @@ endif;
                 <thead>
                   <tr>
                     <th><button type="button" class="archived-sort" data-sort="patient"><?php echo t('archive.fields.patient_name'); ?></button></th>
+                    <?php if ($orgCaseViewActive): ?><th><?php echo t('org_view.practice'); ?></th><?php endif; ?>
                     <th><button type="button" class="archived-sort" data-sort="dentist"><?php echo t('archive.fields.dentist'); ?></button></th>
                     <th><button type="button" class="archived-sort" data-sort="case_type"><?php echo t('archive.fields.case_type'); ?></button></th>
                     <th><button type="button" class="archived-sort" data-sort="status"><?php echo t('archive.fields.status'); ?></button></th>
@@ -4153,6 +4528,8 @@ endif;
   <script src="<?= appAssetUrl('js/workflow-draft-ui.js') ?>" defer></script>
   <script type="application/json" id="caseViewBootstrap"><?= json_encode($caseViewBootstrap, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?></script>
   <script src="<?= appAssetUrl('js/case-filter-sort.js') ?>" defer></script>
+  <script src="<?= appAssetUrl('js/org-case-view.js') ?>" defer></script>
+  <script src="<?= appAssetUrl('js/org-insights.js') ?>" defer></script>
   <script src="<?= appAssetUrl('js/app.js') ?>" defer></script>
   <script src="<?= appAssetUrl('js/mobile-case-modal.js') ?>" defer></script>
   <script src="<?= appAssetUrl('js/mobile-kanban.js') ?>" defer></script>

@@ -3,6 +3,7 @@
 
 require_once __DIR__ . '/session.php';
 require_once __DIR__ . '/practice-security.php';
+require_once __DIR__ . '/organization-access.php';
 require_once __DIR__ . '/case-activity-log.php';
 require_once __DIR__ . '/user-display.php';
 
@@ -32,6 +33,11 @@ if (!$pdo) {
     ]);
     exit;
 }
+
+// SECURITY: Under the consolidated "All practices" view the case's own
+// practice is resolved server-side so activity access applies to the
+// case's actual practice.
+$currentPracticeId = resolveCaseScopePracticeId($caseId);
 
 // SECURITY: Verify the case belongs to the current practice and, for
 // limited-visibility users, is assigned to them.

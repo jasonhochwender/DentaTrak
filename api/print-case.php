@@ -3,6 +3,7 @@
 require_once __DIR__ . '/session.php';
 // Practice/case authorization (also pulls in appConfig.php for $pdo)
 require_once __DIR__ . '/practice-security.php';
+require_once __DIR__ . '/organization-access.php';
 require_once __DIR__ . '/workflow-stages.php';
 
 // Load PDF generation library
@@ -71,6 +72,12 @@ try {
         echo json_encode(['success' => false, 'message' => t('print.case_id_required')]);
         exit;
     }
+
+    // SECURITY: Under the consolidated "All practices" view the case's own
+    // practice is resolved server-side so the workflow label lookup below
+    // renders the case's actual practice's stages.
+    $currentPracticeId = resolveCaseScopePracticeId($caseId);
+
     requireCaseAccess($caseId, $currentPracticeId);
 
     // Log the print activity while the session is still open; it uses the
@@ -88,8 +95,9 @@ try {
             ]
         );
         
-        // Log PHI access for HIPAA compliance (printing = exporting PHI)
-        logPHIAccess(PHI_ACTION_CASE_PRINT, $caseId);
+        // Log PHI access for HIPAA compliance (printing = exporting PHI),
+        // attributed to the case's actual practice.
+        logPHIAccess(PHI_ACTION_CASE_PRINT, $caseId, [], null, null, $currentPracticeId);
     }
 
     // Release the per-session advisory lock before the potentially long PDF

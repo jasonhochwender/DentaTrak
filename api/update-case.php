@@ -3,6 +3,7 @@
 require_once __DIR__ . '/session.php'; // centralized session handling
 header('Content-Type: application/json');
 require_once __DIR__ . '/practice-security.php';
+require_once __DIR__ . '/organization-access.php';
 require_once __DIR__ . '/workflow-stages.php';
 require_once __DIR__ . '/cases-cache.php';
 require_once __DIR__ . '/case-activity-log.php';
@@ -646,6 +647,14 @@ try {
             ]);
             exit;
         }
+
+        // SECURITY: Under the consolidated "All practices" view the case's
+        // own practice is resolved server-side (validated against the
+        // authorized organization scope); every workflow check, lab-period
+        // transition and notification below then applies to the case's
+        // actual practice. In single-practice mode this is a no-op.
+        $currentPracticeId = resolveCaseScopePracticeId($_POST['caseId']);
+        $terminalStatus = getLastActiveWorkflowColumnId($currentPracticeId);
 
         // SECURITY: Verify this case belongs to the current practice and,
         // for Assigned Only users, is assigned to them, before any edits

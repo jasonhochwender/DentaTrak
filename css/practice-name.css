@@ -173,6 +173,25 @@
   color: #1d4ed8;
 }
 
+/* Locked "All practices" upgrade entry (non-Scale multi-practice orgs) */
+.practice-switcher-item--locked {
+  text-decoration: none;
+}
+.practice-switcher-item--locked .practice-item-name {
+  color: #64748b;
+}
+.practice-switcher-item--locked .practice-item-lock {
+  color: #94a3b8;
+  flex-shrink: 0;
+}
+.practice-switcher-item--locked .practice-item-role {
+  background: #eef2ff;
+  color: #4f46e5;
+}
+.practice-switcher-item--locked:hover .practice-item-name {
+  color: #334155;
+}
+
 /* Dark theme support for switcher */
 [data-theme="dark"] .practice-switcher-btn:hover {
   background: rgba(255, 255, 255, 0.1);

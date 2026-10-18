@@ -99,6 +99,12 @@ if (!$result['success']) {
 
 $practice = $result['practice'];
 
+// Switching to a specific practice always exits the consolidated
+// "All practices" case scope - the view scope is anchored to whichever
+// practice is active, and the user re-enters it explicitly via the
+// switcher (or set-case-view-scope.php).
+unset($_SESSION['org_case_view']);
+
 // NOTE: This switch is intentionally session-only and does NOT update
 // user_preferences.preferred_practice_id. The stored default login practice
 // should only change via an explicit, opt-in action in the practice chooser.

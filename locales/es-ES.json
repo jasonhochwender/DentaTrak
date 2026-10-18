@@ -1230,6 +1230,14 @@
             "cannot_archive_protected": "La primera y la última columna no se pueden archivar.",
             "cannot_move_protected": "La primera y la última columna no se pueden mover.",
             "min_active_required": "Se requieren al menos {min} columnas activas.",
+            "scale_used_one": "{used} de {included} consultorio incluido en uso",
+            "scale_used_other": "{used} de {included} consultorios incluidos en uso",
+            "scale_used_few": "{used} de {included} consultorios incluidos en uso",
+            "scale_used_many": "{used} de {included} consultorios incluidos en uso",
+            "additional_one": "{count} consultorio adicional facturado por separado",
+            "additional_other": "{count} consultorios adicionales facturados por separado",
+            "additional_few": "{count} consultorios adicionales facturados por separado",
+            "additional_many": "{count} consultorios adicionales facturados por separado",
             "max_reached": "Un flujo de trabajo puede tener como máximo {max} columnas.",
             "placeholder": "Nombre de la nueva columna",
             "name_required": "El nombre de la columna es obligatorio.",
@@ -1482,7 +1490,7 @@
                 "trios": "3Shape TRIOS",
                 "primescan": "Primescan / DS Core",
                 "medit": "Medit Link",
-                "card_description": "Las conexiones de escáneres están en desarrollo. Cuando estén disponibles, las conexiones compatibles le permitirán incorporar archivos de escaneo y los detalles de caso disponibles a DentaTrak sin exportarlos ni cargarlos manualmente."
+                "card_description": "Las conexiones de escáneres están en desarrollo. Cuando estén disponibles, las conexiones compatibles le permitirán incorporar archivos de escaneo y los detalles de caso disponibles a DentaTrak sin exportarlos ni cargarlos manualmente. Las integraciones con escáneres están previstas para los planes Control y Scale."
             }
         }
     },
@@ -1976,13 +1984,15 @@
                 "benefit_6": "Integración con Open Dental"
             },
             "scale": {
-                "practices": "5 consultorios incluidos",
+                "practices": "Incluye hasta 5 consultorios",
                 "benefit_1": "Todo lo de Control",
                 "benefit_2": "Usuarios ilimitados",
-                "benefit_3": "Soporte para organizaciones con varios consultorios",
+                "benefit_3": "Vea los casos de todos sus consultorios en un solo lugar",
+                "benefit_4": "Compare el rendimiento de los consultorios con Insights",
                 "additional_practices_month": "Consultorios adicionales: {amount}/mes cada uno",
                 "additional_practices_year": "Consultorios adicionales: {amount}/año cada uno"
-            }
+            },
+            "scanner_coming_soon": "Integraciones con escáneres (próximamente)"
         },
         "interval": {
             "month": "mes",
@@ -2045,6 +2055,7 @@
             "per_year": "{amount}/año"
         },
         "practice_limits": {
+            "label": "Consultorios",
             "included_one": "{count} consultorio incluido",
             "included_other": "{count} consultorios incluidos",
             "included_few": "{count} consultorios incluidos",
@@ -2619,6 +2630,117 @@
         "no_practices": "No hay consultorios disponibles",
         "default_badge": "Predeterminado",
         "switch_failed": "No se pudo cambiar de consultorio. Inténtelo de nuevo."
+    },
+    "org_view": {
+        "all_practices": "Todos los consultorios",
+        "scope_badge": "{count} consultorios",
+        "practice": "Consultorio",
+        "practice_filter": "Consultorio",
+        "all_authorized": "Todos los consultorios autorizados",
+        "overdue": "Vencidos",
+        "due_soon_7d": "Próximos a vencer (7 días)",
+        "due_soon_nd": "Vencen en {count} días",
+        "needs_review": "Requiere revisión",
+        "total_cases": "casos",
+        "empty": "Ningún caso coincide con los filtros actuales.",
+        "view_modes_note": "Las vistas de tablero y compacta son por consultorio. La vista consolidada se muestra como lista.",
+        "create_in_practice": "Crear caso en consultorio",
+        "create_hint": "El caso se crea en el consultorio seleccionado con sus propios estados, usuarios y ajustes.",
+        "select_practice": "Seleccione un consultorio…",
+        "no_editable_practice": "No tiene permiso para crear casos en ninguno de estos consultorios.",
+        "col_patient": "Paciente",
+        "col_due": "Fecha de vencimiento",
+        "upgrade_badge": "Scale",
+        "upgrade_hint": "Vea los casos de todos sus consultorios en un solo lugar — incluido con Scale."
+    },
+    "org_insights": {
+        "title": "Análisis de la organización",
+        "subtitle": "Carga de casos y rendimiento en sus prácticas autorizadas",
+        "as_of_now": "A día de hoy",
+        "cards": {
+            "active": "Casos activos",
+            "overdue": "Casos vencidos",
+            "overdue_sub": "{rate}% de {active} activos",
+            "created": "Casos creados",
+            "completed": "Casos completados",
+            "on_time": "Finalización a tiempo",
+            "lab_turnaround": "Plazo medio del laboratorio",
+            "period_sub": "{range}",
+            "on_time_sub": "{n} de {d} finalizaciones con fecha de entrega fiable",
+            "turnaround_sub": "{n} trabajos de laboratorio completados"
+        },
+        "range": {
+            "label": "Periodo del informe",
+            "presets": "Periodos predefinidos",
+            "30d": "30 días",
+            "90d": "90 días",
+            "12m": "12 meses",
+            "all": "Todo",
+            "all_time": "Todo el historial",
+            "start": "Fecha de inicio",
+            "end": "Fecha de fin",
+            "to": "a",
+            "apply": "Aplicar",
+            "note": "Las métricas históricas abarcan {range}. Las fechas usan la zona horaria de informes {tz}.",
+            "invalid": "Elija una fecha de inicio y de fin válidas."
+        },
+        "sections": {
+            "practices": "Prácticas",
+            "labs": "Laboratorios",
+            "trend": "Tendencia"
+        },
+        "table": {
+            "practice": "Práctica",
+            "now_group": "Carga actual (a día de hoy)",
+            "period_group": "Completados en el periodo ({range})",
+            "active": "Activos",
+            "overdue": "Vencidos",
+            "overdue_rate": "% vencidos",
+            "no_due_date": "Sin fecha de entrega",
+            "created": "Creados",
+            "completed": "Completados",
+            "on_time": "% a tiempo",
+            "total": "Todas las prácticas",
+            "drilldown_note": "Seleccione un recuento de activos o vencidos para abrir la lista de casos correspondiente. Las cifras históricas no son enlaces: una lista actual no puede reproducir un periodo pasado.",
+            "practices_sub": "Casos activos y vencidos a día de hoy; finalizaciones de {range} (por fecha de finalización)",
+            "lab": "Laboratorio",
+            "practices": "Prácticas",
+            "lab_cases": "Casos del periodo",
+            "lab_completed": "Completados",
+            "lab_turnaround": "Plazo medio",
+            "lab_on_time": "% a tiempo",
+            "labs_sub": "Trabajos de laboratorio observados para {range}; el plazo es el tiempo en el laboratorio, no la antigüedad del caso"
+        },
+        "trend": {
+            "aria": "Casos mensuales creados, completados y tasa a tiempo",
+            "subtitle": "Volumen mensual y finalización a tiempo para {range}",
+            "subtitle_empty": "Volumen mensual y finalización a tiempo",
+            "created": "Creados",
+            "completed": "Completados",
+            "on_time": "% a tiempo"
+        },
+        "labs_empty": "Sin trabajos de laboratorio en este periodo.",
+        "labs_note": "Las tasas muestran el tamaño de la muestra (n) para no sobreinterpretar muestras pequeñas. Una cuenta de laboratorio compartida se cuenta una vez entre prácticas; las etiquetas propias de cada práctica permanecen separadas.",
+        "unnamed_lab": "Laboratorio sin nombre",
+        "label_lab": "etiqueta",
+        "not_enough_data": "Datos insuficientes",
+        "cases_unit": "casos",
+        "days_unit": "días",
+        "excluded_note": "{count} práctica(s) excluida(s) (sin permiso de análisis): {names}",
+        "definitions_title": "Definiciones de métricas",
+        "def": {
+            "active": "Activos",
+            "overdue": "Vencidos",
+            "created": "Creados",
+            "completed": "Completados",
+            "onTime": "% a tiempo",
+            "labTurnaround": "Plazo del laboratorio",
+            "labOnTime": "% a tiempo del laboratorio",
+            "timezone": "Zona horaria",
+            "exclusions": "Exclusiones de la tasa a tiempo"
+        },
+        "tz_note": "Todas las fechas usan {tz}, la misma zona horaria de informes que el resto de DentaTrak.",
+        "exclusions_note": "{nodue} finalización(es) excluida(s) (sin fecha de entrega), {edited} excluida(s) (fecha de entrega modificada tras la finalización)."
     },
     "admin_practices": {
         "title": "Administración de consultorios",
@@ -5321,11 +5443,13 @@
             }
         },
         "hero": {
-            "title": "Sepa en qué punto está cada caso dental.",
-            "lead": "DentaTrak es software visual de seguimiento de casos dentales para clínicas dentales. Un solo lugar compartido donde su equipo sigue casos, plazos, asignaciones, actividad de laboratorio, archivos y conversaciones — con información integrada sobre dónde se está frenando el trabajo.",
+            "title": "Sepa qué casos necesitan atención antes de que llegue el paciente.",
+            "lead": "Siga cada caso del consultorio al laboratorio y de regreso. Vea riesgos de cita, entregas pendientes y retrasos del laboratorio, con datos del paciente, archivos y conversaciones conectados al caso.",
             "start_free": "Pruebe DentaTrak gratis",
             "see_how": "Vea cómo funciona",
-            "trial_note": "Pruebe DentaTrak gratis. No se requiere tarjeta de crédito."
+            "trial_note": "Pruebe DentaTrak gratis. No se requiere tarjeta de crédito.",
+            "trust_line": "BAA disponible durante el alta • Acceso a casos por rol • Integración con Open Dental",
+            "trust_plan_note": "La integración con Open Dental está incluida en los planes Control y Scale."
         },
         "problem": {
             "eyebrow": "El problema",
@@ -5349,8 +5473,8 @@
         },
         "attention": {
             "eyebrow": "Vista del producto",
-            "title": "Vea lo que necesita atención sin revisar cada caso.",
-            "lead": "DentaTrak vigila el tablero para que su equipo no tenga que hacerlo. Próximo a vencer, Atrasado, Riesgo de cita y Requiere revisión muestran plazos cercanos, conflictos de citas y casos modificados por un compañero que aún necesitan revisión.",
+            "title": "¿Estará listo para la cita?",
+            "lead": "DentaTrak conecta la fecha de entrega de cada caso con la fecha de la cita del paciente y la etapa del flujo en la que se encuentra. Los casos que se acercan a una cita sin estar listos muestran Riesgo de cita; los que superan su umbral muestran Atrasado; los plazos próximos muestran Próximo a vencer. Su equipo ve qué necesita atención sin revisar cada tarjeta.",
             "late": "Atrasado",
             "due_soon": "Próximo a vencer",
             "appointment_risk": "Riesgo de cita",
@@ -5391,13 +5515,16 @@
             "control_features_4": "Insights del consultorio y del laboratorio",
             "control_features_5": "Recomendaciones",
             "control_features_6": "Integración con Open Dental",
-            "scale_description": "Para organizaciones que gestionan varios consultorios y equipos más grandes.",
+            "scale_description": "Para organizaciones que gestionan varios consultorios: una sola suscripción cubre toda la organización.",
             "scale_features_1": "Todo lo de Control",
-            "scale_features_2": "Hasta 5 consultorios incluidos",
+            "scale_features_2": "Incluye hasta 5 consultorios",
+            "scale_features_4": "Vea los casos de todos sus consultorios en un solo lugar",
+            "scale_features_5": "Compare el rendimiento de los consultorios con Insights",
             "scale_features_3": "Consultorios adicionales disponibles",
             "scale_addon_title": "Agregue más consultorios",
             "scale_addon_month": "+$99/mes por consultorio adicional",
             "scale_addon_year": "+$990/año por consultorio adicional",
+            "scanner_coming_soon": "Integraciones con escáneres (próximamente)",
             "operate_features_4": "Etapas de flujo flexibles y vistas de tablero/lista",
             "operate_features_5": "Comentarios, @menciones y notificaciones",
             "operate_features_6": "Ayuda de Ask DentaTrak en el producto"
@@ -5420,22 +5547,23 @@
         },
         "insights_section": {
             "eyebrow": "Insights del consultorio y del laboratorio",
-            "title": "Vea dónde avanzan los casos y dónde se están desacelerando.",
-            "lead": "Practice y Lab Insights convierten la actividad diaria en una visión clara de volumen de casos, carga de trabajo, plazos de laboratorio y repeticiones — para detectar dónde se frenan los casos antes de que los retrasos lleguen al paciente.",
+            "title": "¿Dónde se están retrasando los casos?",
+            "lead": "Practice y Lab Insights convierten la actividad diaria en una vista clara del volumen de casos, la carga actual, el tiempo de entrega del laboratorio, la puntualidad y las repeticiones — para detectar dónde se ralentizan los casos antes de que el retraso llegue al paciente.",
             "included": "Los Insights del consultorio, los Insights del laboratorio y las Recomendaciones están incluidos en los planes Control y Scale.",
             "features": {
                 "1_title": "Volumen y estado de casos",
                 "1_body": "Supervise los casos activos, próximos a vencer, atrasados y entregados de un vistazo.",
                 "2_title": "Plazo de entrega y riesgo de cita",
                 "2_body": "Compare los plazos de los laboratorios y detecte casos en los que la cita del paciente podría llegar antes de que el trabajo esté listo.",
-                "3_title": "Comparación de laboratorios, repeticiones y Recomendaciones",
-                "3_body": "Compare carga de trabajo, tasas de retraso, repeticiones y revisiones por laboratorio — y reciba sugerencias prácticas basadas en datos."
-            }
+                "3_title": "Comparación de laboratorios y repeticiones",
+                "3_body": "Compare la carga de trabajo, las tasas de atraso y las repeticiones atribuidas a cada laboratorio — las revisiones se cuentan por separado, así que los ajustes rutinarios no se confunden con errores. Las recomendaciones sugieren pasos prácticos."
+            },
+            "org_note": "En el plan Scale, los usuarios autorizados pueden ver los casos de todas sus clínicas en un solo lugar y comparar la carga de trabajo y el rendimiento de laboratorio entre clínicas con Insights a nivel de organización."
         },
         "security_section": {
             "eyebrow": "Seguridad",
-            "title": "Sus casos permanecen privados. Su equipo mantiene el control.",
-            "lead": "DentaTrak cifra los datos sensibles de los pacientes, verifica la membresía del consultorio y la autorización de casos en el servidor, y mantiene los archivos adjuntos detrás de acceso privado y de corta duración, para que la información de los casos permanezca limitada a las personas responsables del trabajo.",
+            "title": "La información del paciente pertenece al flujo del caso.",
+            "lead": "Los casos dentales conectan datos del paciente, instrucciones de tratamiento, fotos y comunicación con el laboratorio. DentaTrak reúne esa información con acceso controlado y un Acuerdo de Socio Comercial.",
             "link": "Vea cómo DentaTrak protege sus datos",
             "panel_title": "La información de los casos se muestra solo a usuarios autorizados.",
             "stages": {
@@ -5450,19 +5578,19 @@
                 "3": "BAA para consultorios y alojamiento en la nube"
             },
             "cards": {
-                "1_title": "Los datos del consultorio permanecen aislados",
-                "1_body": "La autorización del lado del servidor verifica la membresía del consultorio y el acceso a los casos antes de devolver información protegida.",
-                "2_title": "Controle quién puede acceder a sus datos",
-                "2_body": "Los permisos basados en roles, el acceso Solo asignados, la autenticación de dos factores y la revocación inmediata del acceso mantienen la información de los casos limitada a las personas adecuadas.",
-                "3_title": "Los archivos privados permanecen privados",
-                "3_body": "Los archivos adjuntos se almacenan en almacenamiento privado en la nube y se accede a ellos mediante URL firmadas de corta duración después de las verificaciones de autorización.",
-                "4_title": "La actividad de seguridad se registra",
-                "4_body": "DentaTrak registra el acceso a casos protegidos, los cambios de flujo de trabajo, las asignaciones, los comentarios, las descargas y los eventos de seguridad.",
-                "5_title": "Notificaciones privadas",
-                "5_body": "DentaTrak mantiene los detalles de pacientes y casos fuera de los correos de notificación. Los miembros del equipo inician sesión de forma segura para ver la información protegida y colaborar mediante comentarios y @menciones."
+                "1_title": "Acceso por rol y por caso",
+                "1_body": "Verificaciones del lado del servidor comprueban la membresía del consultorio y los permisos del caso antes de devolver información protegida. Los roles de propietario, administrador y usuario, el acceso opcional Solo asignados y la revocación inmediata deciden quién puede abrir un caso — para el equipo y los usuarios de laboratorio invitados por igual.",
+                "2_title": "Autenticación de dos factores",
+                "2_body": "La verificación opcional con aplicación de autenticación añade una segunda capa de protección además de la contraseña. Las sesiones inactivas expiran automáticamente con un aviso previo.",
+                "3_title": "Acceso privado a archivos",
+                "3_body": "Las fotos de color, los escaneos y los documentos permanecen en almacenamiento privado en la nube y solo se abren mediante enlaces autorizados de corta duración.",
+                "4_title": "El acceso a los casos queda registrado",
+                "4_body": "El acceso a los registros protegidos de los casos y la actividad del caso — cambios de estado, asignaciones, comentarios, descargas — se registra con el usuario y la hora.",
+                "5_title": "Los datos del paciente no van en las notificaciones",
+                "5_body": "Los correos de notificación evitan datos del paciente y del caso. Los miembros del equipo inician sesión para ver la información protegida y colaborar con comentarios y @menciones."
             },
-            "baa_title": "Con respaldo de BAA del consultorio a la nube.",
-            "baa_body": "DentaTrak requiere un Acuerdo de Asociado Comercial para los consultorios que usan la plataforma con información de salud protegida, y mantiene un BAA con su proveedor de alojamiento en la nube."
+            "baa_title": "Un Acuerdo de Socio Comercial forma parte del alta.",
+            "baa_body": "Los consultorios que usan DentaTrak con información de salud protegida aceptan una BAA al configurar su consultorio, y DentaTrak mantiene una BAA con su proveedor de alojamiento en la nube. Una BAA y las salvaguardas técnicas apoyan las obligaciones de un consultorio — no sustituyen sus propias políticas ni el uso adecuado."
         },
         "mobile_section": {
             "eyebrow": "Navegador móvil",
@@ -5503,7 +5631,8 @@
             "field_email_required": "El correo electrónico del trabajo es obligatorio.",
             "field_practice_invalid": "El nombre de la consulta es obligatorio y debe tener 120 caracteres o menos.",
             "field_phone_too_long": "El número de teléfono es demasiado largo.",
-            "field_preferred_too_long": "El día u horario preferido es demasiado largo."
+            "field_preferred_too_long": "El día u horario preferido es demasiado largo.",
+            "fictional_badge": "Datos de demostración ficticios"
         },
         "mock": {
             "phones_aria": "Vista previa del producto en navegador móvil",
@@ -5720,15 +5849,15 @@
         },
         "collaboration": {
             "eyebrow": "Colaboración",
-            "title": "Mantenga la conversación junto al caso.",
-            "lead": "Comentarios, menciones, imágenes y notificaciones viven en el registro del caso — para que decisiones y contexto dejen de dispersarse entre mensajes, correos y memoria.",
+            "title": "¿Quién debe actuar ahora?",
+            "lead": "Cada caso muestra su etapa, laboratorio y responsable. Comentarios, @menciones, fotos y archivos permanecen con el caso — la siguiente entrega queda por escrito, no en la memoria.",
             "features": {
                 "1_title": "Comentarios y @menciones",
                 "1_body": "Comente un caso justo donde ocurre el trabajo. Mencione a un compañero para involucrarlo — recibirá una notificación en lugar de un mensaje perdido.",
-                "2_title": "Fotos y archivos en contexto",
-                "2_body": "Adjunte imágenes y archivos a la conversación para que fotos de color, escaneos y notas permanezcan conectados al caso al que pertenecen.",
+                "2_title": "Fotos de color y archivos en contexto",
+                "2_body": "Las fotos de color, los escaneos y los documentos permanecen con la restauración a la que pertenecen. Archivos adjuntos ilimitados por caso, sin cuota total de almacenamiento — se aplican límites por archivo (hasta 250 MB para escaneos STL, OBJ y PLY, que se abren directamente en el caso).",
                 "3_title": "Notificaciones e historial",
-                "3_body": "Reciba avisos cuando algo cambie y consulte el historial de actividad completo — quién hizo qué y cuándo."
+                "3_body": "Reciba notificaciones cuando algo cambie y revise el historial completo — cambios de estado, asignaciones y comentarios — antes de dar seguimiento."
             },
             "mock_aria": "Ejemplo de hilo de comentarios de un caso con comentarios, una mención, una imagen adjunta y actualizaciones de actividad.",
             "mock_case": "Sofia Patel · Carilla",
@@ -5736,7 +5865,8 @@
             "mock_c1": "Ya está la foto de color actualizada. {mention} — por favor confirme la hora de la cita con la paciente.",
             "mock_c2": "Confirmada para el 14 de marzo a las 14:00.",
             "mock_activity": "Estado cambiado a Enviado a laboratorio externo · 7 de marzo",
-            "mock_composer": "Añadir un comentario… Use @ para mencionar a un compañero"
+            "mock_composer": "Añadir un comentario… Use @ para mencionar a un compañero",
+            "lab_note": "Los usuarios de laboratorio autorizados solo ven los casos que su rol permite."
         },
         "ask": {
             "name": "Ask DentaTrak",
@@ -5762,19 +5892,33 @@
         "pms": {
             "eyebrow": "Integración",
             "title": "Conecte Open Dental.",
-            "lead": "Vincule su clínica de Open Dental para que los casos de laboratorio compatibles aparezcan en DentaTrak automáticamente — creados una vez y con los campos que Open Dental controla siempre sincronizados.",
+            "lead": "Vincule su consultorio de Open Dental para que los casos de laboratorio admitidos aparezcan en DentaTrak automáticamente — paciente, fecha de entrega, fecha de cita, laboratorio e instrucciones se importan una vez, y los campos que pertenecen a Open Dental se mantienen sincronizados. La sincronización bidireccional opcional escribe los hitos de estado de vuelta en el caso de laboratorio de Open Dental.",
             "note": "Disponible en los planes Control y Scale.",
             "flow_aria": "Un caso de laboratorio de Open Dental convertido automáticamente en un caso de DentaTrak.",
             "mock_source": "Nuevo caso de laboratorio recibido",
             "mock_source_detail": "Corona · Cita del paciente 19 de marzo",
             "mock_target": "Caso creado en DentaTrak",
-            "mock_target_detail": "Sincronizado automáticamente — sin doble registro."
+            "mock_target_detail": "Sincronizado automáticamente — sin doble registro.",
+            "scanner_note": "Las integraciones con escáneres llegarán pronto y conectarán plataformas de escáner directamente — algo distinto a adjuntar un archivo de escaneo a un caso, que ya funciona hoy."
         },
         "languages": {
             "eyebrow": "Idiomas",
             "title": "DentaTrak habla el idioma de su equipo.",
             "lead": "El producto está localizado por completo — flujos de trabajo, notificaciones, Insights y Ask DentaTrak — para que cada miembro del equipo trabaje en el idioma en que piensa.",
             "note": "Inglés, alemán, español, francés, francés canadiense, italiano, portugués brasileño, ruso y coreano."
+        },
+        "compare": {
+            "eyebrow": "Una pregunta justa",
+            "title": "¿Ya sigue los casos en otra herramienta?",
+            "lead": "Quizá ya tenga asignaciones, archivos adjuntos y un lugar para conversar. Cuando ese trabajo implica casos dentales, vale la pena hacerse algunas preguntas más.",
+            "q1": "¿Puede ver qué casos ponen en riesgo una cita?",
+            "a1": "DentaTrak conecta la fecha de entrega del caso con la fecha de la cita del paciente. Cuando una cita cae dentro de su ventana de aviso (3 días por defecto) y el caso aún no se entrega, se marca como Riesgo de cita en el tablero y en Insights. Atrasado, Próximo a vencer y Requiere revisión funcionan igual — cada marca depende de fechas reales y del estado del flujo de trabajo del caso.",
+            "q2": "¿Puede saber dónde ocurrió el retraso?",
+            "a2": "Cada cambio de estado, asignación y entrega al laboratorio queda registrado en el historial del caso, para que su equipo lo revise antes de dar seguimiento. Insights muestra cuánto tiempo pasó cada caso con cada laboratorio y cuáles se atrasaron — muestra dónde se fue el tiempo sin asignar culpas.",
+            "q3": "¿Puede comparar laboratorios sin crear otra hoja de cálculo?",
+            "a3": "Lab Insights informa el tiempo de entrega, la puntualidad, la carga de trabajo y las repeticiones atribuidas al laboratorio por laboratorio. Las revisiones se cuentan aparte de las repeticiones, así que un ajuste rutinario no se trata como un error.",
+            "q4": "¿Su sistema está pensado para información de pacientes?",
+            "a4": "DentaTrak está diseñado para ello. Los consultorios aceptan un Acuerdo de Socio Comercial durante el alta, el acceso a los casos sigue el rol y los permisos de cada usuario, los archivos permanecen en almacenamiento privado y se abren mediante enlaces de corta duración, y el acceso a los casos queda registrado. Compruebe si su proveedor admite el uso previsto de información de pacientes y firmará un Acuerdo de Socio Comercial cuando sea necesario."
         }
     },
     "legal": {

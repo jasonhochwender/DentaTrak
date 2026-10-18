@@ -143,8 +143,11 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
 
-  // Populate Assigned To filter options from available users/labels
-  if (filterAssignedTo && typeof loadAvailableUsers === 'function') {
+  // Populate Assigned To filter options from available users/labels.
+  // Under the consolidated "All practices" view, js/org-case-view.js owns
+  // this dropdown (per-practice composite options) - skip the
+  // single-practice population so anchor-practice values never mix in.
+  if (filterAssignedTo && typeof loadAvailableUsers === 'function' && !window.__orgCaseViewActive) {
     loadAvailableUsers()
       .then(function(users) {
         if (!Array.isArray(users)) return;

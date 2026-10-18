@@ -15,6 +15,7 @@ error_reporting(E_ALL & ~E_DEPRECATED & ~E_USER_DEPRECATED);
 
 require_once __DIR__ . '/appConfig.php';
 require_once __DIR__ . '/practice-security.php';
+require_once __DIR__ . '/organization-access.php';
 require_once __DIR__ . '/cases-cache.php';
 require_once __DIR__ . '/case-activity-log.php';
 require_once __DIR__ . '/csrf.php';
@@ -50,6 +51,11 @@ if ($caseId === '' || $reviewed === null) {
     echo json_encode(['success' => false, 'message' => 'Missing required fields: caseId and reviewed are required']);
     exit;
 }
+
+// SECURITY: Under the consolidated "All practices" view the case's own
+// practice is resolved server-side so the review-tracking feature check
+// and mutation below apply to the case's actual practice.
+$currentPracticeId = resolveCaseScopePracticeId($caseId);
 
 // SECURITY: Verify the case belongs to this practice and the user can access it.
 requireCaseAccess($caseId, $currentPracticeId);

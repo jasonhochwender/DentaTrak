@@ -288,6 +288,8 @@ Here is the workflow data to analyze:
                 'operate' => ['month' => 24900, 'year' => 249000],  // $249/mo, $2,490/yr
                 'control' => ['month' => 49900, 'year' => 499000],  // $499/mo, $4,990/yr
                 'scale'   => ['month' => 99900, 'year' => 999000],  // $999/mo, $9,990/yr
+                // Scale per-practice add-on beyond the included 5: $99/mo, $990/yr.
+                'scale_additional' => ['month' => 9900, 'year' => 99000],
             ],
 
             // Set when environment or key prefix validation fails — checked by endpoints.

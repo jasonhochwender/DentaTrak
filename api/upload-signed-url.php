@@ -27,6 +27,7 @@
 require_once __DIR__ . '/session.php';
 header('Content-Type: application/json');
 require_once __DIR__ . '/practice-security.php';
+require_once __DIR__ . '/organization-access.php';
 require_once __DIR__ . '/gcs-storage.php';
 require_once __DIR__ . '/csrf.php';
 require_once __DIR__ . '/security-headers.php';
@@ -188,6 +189,21 @@ try {
                 'response_extra' => ['limit' => $limitMb, 'ext' => $ext],
             ])
         );
+    }
+
+    // SECURITY: Under the consolidated "All practices" view the case's own
+    // practice is resolved server-side so the upload lands under
+    // cases/{casePracticeId}/... - never the session's anchor practice.
+    // In single-practice mode this is a no-op.
+    if ($caseId && $caseId !== 'new') {
+        $currentPracticeId = resolveCaseScopePracticeId($caseId);
+    } elseif ($caseId === 'new' && !empty($input['practice_id'])) {
+        // New-case upload under the consolidated create flow: the client
+        // declares which authorized practice the case will be created in.
+        // Validation (org scope + Scale entitlement + membership) happens
+        // inside resolveOrgAuthorizedPracticeParam, which rejects
+        // unauthorized ids with a JSON error and exit.
+        $currentPracticeId = resolveOrgAuthorizedPracticeParam($input['practice_id']);
     }
 
     // SECURITY: Validate case ownership AND Assigned Only visibility for

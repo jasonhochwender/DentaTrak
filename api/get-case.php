@@ -12,6 +12,7 @@ error_reporting(E_ALL & ~E_DEPRECATED & ~E_USER_DEPRECATED);
 
 require_once __DIR__ . '/appConfig.php';
 require_once __DIR__ . '/practice-security.php';
+require_once __DIR__ . '/organization-access.php';
 require_once __DIR__ . '/cases-cache.php';
 require_once __DIR__ . '/google-drive.php';
 require_once __DIR__ . '/case-activity-log.php';
@@ -33,11 +34,16 @@ try {
         exit;
     }
 
+    // SECURITY: Under the consolidated "All practices" view the case's own
+    // practice is resolved server-side (validated against the authorized
+    // organization scope). In single-practice mode this is a no-op.
+    $currentPracticeId = resolveCaseScopePracticeId($caseId);
+
     // SECURITY: Verify this case belongs to the current practice and, for
     // limited-visibility users, is assigned to them. Must happen BEFORE any
     // case data is loaded/returned below.
     $authStart = microtime(true);
-    requireCaseAccess($caseId, $currentPracticeId);
+    $caseRow = requireCaseAccess($caseId, $currentPracticeId);
     $authMs = round((microtime(true) - $authStart) * 1000, 2);
 
     $view = isset($_GET['view']) ? trim($_GET['view']) : 'full';
@@ -71,14 +77,28 @@ try {
     $files = $decryptedCase['attachments'] ?? [];
     $activity = [];
 
+    // Consolidated-view context: the case's actual practice. In
+    // single-practice mode this equals the session practice; the client
+    // uses it to load the correct practice-scoped form options.
+    $decryptedCase['practiceId'] = (int)$currentPracticeId;
+    if (isOrgCaseViewRequested() && $currentPracticeId !== (int)($_SESSION['current_practice_id'] ?? 0)) {
+        try {
+            $nameStmt = $pdo->prepare("SELECT practice_name FROM practices WHERE id = :id LIMIT 1");
+            $nameStmt->execute(['id' => $currentPracticeId]);
+            $decryptedCase['practiceName'] = (string)($nameStmt->fetchColumn() ?: '');
+        } catch (PDOException $e) {
+            $decryptedCase['practiceName'] = '';
+        }
+    }
+
     // Log PHI access for HIPAA compliance. The initial core/fetch is the
     // logical "view case" event; the heavy follow-up for attachments is
     // audited separately so one user action does not create two view_case rows.
     $logStart = microtime(true);
     if ($view === 'heavy') {
-        logPHIAccess(PHI_ACTION_CASE_ATTACHMENTS_VIEW, $caseId);
+        logPHIAccess(PHI_ACTION_CASE_ATTACHMENTS_VIEW, $caseId, [], null, null, $currentPracticeId);
     } else {
-        logPHIAccess(PHI_ACTION_CASE_VIEW, $caseId);
+        logPHIAccess(PHI_ACTION_CASE_VIEW, $caseId, [], null, null, $currentPracticeId);
     }
     $logMs = round((microtime(true) - $logStart) * 1000, 2);
 

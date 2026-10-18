@@ -23,6 +23,7 @@ require_once __DIR__ . '/appConfig.php';
 require_once __DIR__ . '/../vendor/autoload.php';
 require_once __DIR__ . '/feature-flags.php';
 require_once __DIR__ . '/practice-security.php';
+require_once __DIR__ . '/organization-access.php';
 require_once __DIR__ . '/hipaa-compliance.php';
 require_once __DIR__ . '/gcs-storage.php';
 require_once __DIR__ . '/case-zip-helpers.php';
@@ -98,6 +99,11 @@ if (empty($caseId)) {
     exit;
 }
 
+// SECURITY: Under the consolidated "All practices" view the case's own
+// practice is resolved server-side so ZIP eligibility and storage paths
+// apply to the case's actual practice.
+$currentPracticeId = resolveCaseScopePracticeId($caseId);
+
 // Authoritative case access (includes Assigned Only and cross-practice checks).
 $case = requireCaseAccess($caseId, $currentPracticeId);
 
@@ -145,7 +151,7 @@ if ($totalActualSize > $MAX_IMMEDIATE_SIZE) {
 logPHIAccess(PHI_ACTION_ATTACHMENTS_ZIP, $caseId, [
     'file_count' => count($eligible),
     'total_size' => $totalActualSize,
-]);
+], null, null, $currentPracticeId);
 
 // Once we start the ZIP, headers are committed; JSON errors are no longer possible.
 while (ob_get_level() > 0) {

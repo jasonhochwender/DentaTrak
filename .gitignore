@@ -245,3 +245,6 @@ NUL
 !/tests/scanner-e2e-http-test.js
 !/tests/scanner-create-case-ui-e2e-test.js
 !/tests/settings-integrations-subsections-test.js
+!/tests/organization-access-test.php
+!/tests/org-case-view-test.php
+!/tests/org-insights-test.php

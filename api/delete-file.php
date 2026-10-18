@@ -16,6 +16,7 @@ echo json_encode([
 exit;
 
 require_once __DIR__ . '/practice-security.php';
+require_once __DIR__ . '/organization-access.php';
 require_once __DIR__ . '/case-activity-log.php';
 require_once __DIR__ . '/csrf.php';
 
@@ -88,6 +89,10 @@ try {
             ]);
             exit;
         }
+
+        // SECURITY: Under the consolidated "All practices" view the case's
+        // own practice is resolved server-side before the access check.
+        $currentPracticeId = resolveCaseScopePracticeId($data['caseId']);
 
         // SECURITY: Verify the case belongs to the current practice and,
         // for Assigned Only users, is assigned to them, before deleting

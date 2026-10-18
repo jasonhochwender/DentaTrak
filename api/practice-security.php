@@ -1450,6 +1450,11 @@ function activatePracticeSession($practiceId) {
         $_SESSION['practice_setup_visits'] = 0;
         $_SESSION['from_practice_setup'] = false;
 
+        // Activating a specific practice always exits the consolidated
+        // "All practices" case scope (covers the login chooser and every
+        // switching path through this single boundary).
+        unset($_SESSION['org_case_view']);
+
         // Successful activation resolves any held 2FA-pending target.
         unset($_SESSION['pending_2fa_practice_id']);
 

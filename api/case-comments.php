@@ -9,6 +9,7 @@ require_once __DIR__ . '/session.php';
 require_once __DIR__ . '/appConfig.php';
 require_once __DIR__ . '/feature-flags.php';
 require_once __DIR__ . '/practice-security.php';
+require_once __DIR__ . '/organization-access.php';
 require_once __DIR__ . '/case-activity-log.php';
 require_once __DIR__ . '/notification-service.php';
 require_once __DIR__ . '/cases-cache.php';
@@ -364,6 +365,11 @@ if ($method === 'GET') {
         exit;
     }
 
+    // SECURITY: Under the consolidated "All practices" view the case's own
+    // practice is resolved server-side so the comment query, mention
+    // resolution and image storage below all apply to that practice.
+    $currentPracticeId = resolveCaseScopePracticeId($caseId);
+
     // SECURITY: Assigned Only users may only view comments on cases assigned to them.
     requireCaseAccess($caseId, $currentPracticeId);
 
@@ -434,6 +440,10 @@ if ($method === 'GET') {
             echo json_encode(['success' => false, 'message' => t('api.comments.text_or_images_required')]);
             exit;
         }
+
+        // SECURITY: Under the consolidated "All practices" view the case's
+        // own practice is resolved server-side before the access check.
+        $currentPracticeId = resolveCaseScopePracticeId($caseId);
 
         // SECURITY: Assigned Only users may only comment on cases assigned to them.
         $caseInfo = requireCaseAccess($caseId, $currentPracticeId);
@@ -614,16 +624,36 @@ if ($method === 'GET') {
         }
 
         try {
-            // Get comment info for audit and access verification
-            $stmt = $pdo->prepare("
-                SELECT case_id, user_name FROM case_comments 
-                WHERE id = :id AND practice_id = :practice_id
-            ");
-            $stmt->execute([
-                'id' => $commentId,
-                'practice_id' => $currentPracticeId
-            ]);
-            $comment = $stmt->fetch(PDO::FETCH_ASSOC);
+            // Get comment info for audit and access verification. Under the
+            // consolidated "All practices" view the comment's case may live
+            // in another authorized practice - resolve that practice from
+            // the comment's case server-side first.
+            if (isOrgCaseViewRequested()) {
+                $stmt = $pdo->prepare("SELECT case_id, user_name, practice_id FROM case_comments WHERE id = :id");
+                $stmt->execute(['id' => $commentId]);
+                $comment = $stmt->fetch(PDO::FETCH_ASSOC);
+                if ($comment) {
+                    $resolvedPracticeId = resolveCaseScopePracticeId($comment['case_id']);
+                    if ((int)$comment['practice_id'] === (int)$resolvedPracticeId) {
+                        $currentPracticeId = $resolvedPracticeId;
+                    } else {
+                        // The comment's stored practice does not resolve to
+                        // an authorized practice for this session - hide it
+                        // with the same indistinguishable 404.
+                        $comment = false;
+                    }
+                }
+            } else {
+                $stmt = $pdo->prepare("
+                    SELECT case_id, user_name FROM case_comments
+                    WHERE id = :id AND practice_id = :practice_id
+                ");
+                $stmt->execute([
+                    'id' => $commentId,
+                    'practice_id' => $currentPracticeId
+                ]);
+                $comment = $stmt->fetch(PDO::FETCH_ASSOC);
+            }
 
             if (!$comment) {
                 http_response_code(404);

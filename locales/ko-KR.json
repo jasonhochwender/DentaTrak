@@ -1230,6 +1230,14 @@
             "cannot_archive_protected": "첫 번째와 마지막 열은 보관할 수 없습니다.",
             "cannot_move_protected": "첫 번째와 마지막 열은 이동할 수 없습니다.",
             "min_active_required": "활성 열이 최소 {min}개 필요합니다.",
+            "scale_used_one": "포함된 치과 {included}곳 중 {used}곳 사용 중",
+            "scale_used_other": "포함된 치과 {included}곳 중 {used}곳 사용 중",
+            "scale_used_few": "포함된 치과 {included}곳 중 {used}곳 사용 중",
+            "scale_used_many": "포함된 치과 {included}곳 중 {used}곳 사용 중",
+            "additional_one": "추가 치과 {count}곳 별도 청구",
+            "additional_other": "추가 치과 {count}곳 별도 청구",
+            "additional_few": "추가 치과 {count}곳 별도 청구",
+            "additional_many": "추가 치과 {count}곳 별도 청구",
             "max_reached": "작업 흐름은 최대 {max}개 열까지 가능합니다.",
             "placeholder": "새 열 이름",
             "name_required": "열 이름이 필요합니다.",
@@ -1482,7 +1490,7 @@
                 "trios": "3Shape TRIOS",
                 "primescan": "Primescan / DS Core",
                 "medit": "Medit Link",
-                "card_description": "스캐너 연결은 개발 중입니다. 지원되는 연결이 제공되면 수동으로보내고 업로드하지 않고도 스캔 파일과 사용 가능한 케이스 정보를 DentaTrak으로 가져올 수 있습니다."
+                "card_description": "스캐너 연결은 개발 중입니다. 지원되는 연결이 제공되면 수동으로보내고 업로드하지 않고도 스캔 파일과 사용 가능한 케이스 정보를 DentaTrak으로 가져올 수 있습니다. 스캐너 연동은 Control 및 Scale 플랜에 도입될 예정입니다."
             }
         }
     },
@@ -1976,13 +1984,15 @@
                 "benefit_6": "Open Dental 연동"
             },
             "scale": {
-                "practices": "치과 5곳 포함",
+                "practices": "최대 치과 5곳 포함",
                 "benefit_1": "Control의 모든 기능",
                 "benefit_2": "사용자 무제한",
-                "benefit_3": "대규모 다지점 조직 지원",
+                "benefit_3": "모든 치과의 케이스를 한곳에서 확인",
+                "benefit_4": "Insights로 치과별 성과 비교",
                 "additional_practices_month": "추가 치과: 월 {amount}/곳",
                 "additional_practices_year": "추가 치과: 연 {amount}/곳"
-            }
+            },
+            "scanner_coming_soon": "스캐너 연동 (출시 예정)"
         },
         "interval": {
             "month": "월",
@@ -2045,6 +2055,7 @@
             "per_year": "연 {amount}"
         },
         "practice_limits": {
+            "label": "치과",
             "included_one": "치과 {count}곳 포함",
             "included_few": "치과 {count}곳 포함",
             "included_many": "치과 {count}곳 포함",
@@ -2619,6 +2630,117 @@
         "no_practices": "이용 가능한 치과가 없습니다",
         "default_badge": "기본",
         "switch_failed": "치과 전환에 실패했습니다. 다시 시도해 주세요."
+    },
+    "org_view": {
+        "all_practices": "모든 치과",
+        "scope_badge": "치과 {count}곳",
+        "practice": "치과",
+        "practice_filter": "치과",
+        "all_authorized": "권한 있는 모든 치과",
+        "overdue": "기한 경과",
+        "due_soon_7d": "마감 임박(7일)",
+        "due_soon_nd": "{count}일 이내 마감",
+        "needs_review": "검토 필요",
+        "total_cases": "케이스",
+        "empty": "현재 필터와 일치하는 케이스가 없습니다.",
+        "view_modes_note": "보드 및 간소 보기는 치과별로 제공됩니다. 통합 보기는 목록으로 표시됩니다.",
+        "create_in_practice": "케이스를 생성할 치과",
+        "create_hint": "케이스는 선택한 치과의 상태, 사용자 및 설정을 사용하여 해당 치과에 생성됩니다.",
+        "select_practice": "치과 선택…",
+        "no_editable_practice": "이 치과들에서 케이스를 생성할 권한이 없습니다.",
+        "col_patient": "환자",
+        "col_due": "마감일",
+        "upgrade_badge": "Scale",
+        "upgrade_hint": "모든 치과의 케이스를 한곳에서 확인 — Scale에 포함됩니다."
+    },
+    "org_insights": {
+        "title": "조직 인사이트",
+        "subtitle": "권한이 있는 병원들의 케이스 처리량과 성과",
+        "as_of_now": "현재 기준",
+        "cards": {
+            "active": "진행 중 케이스",
+            "overdue": "기한 초과 케이스",
+            "overdue_sub": "진행 중 {active}건 중 {rate}%",
+            "created": "생성된 케이스",
+            "completed": "완료된 케이스",
+            "on_time": "기한 내 완료율",
+            "lab_turnaround": "평균 랩 소요 기간",
+            "period_sub": "{range}",
+            "on_time_sub": "신뢰할 수 있는 마감일이 있는 완료 {d}건 중 {n}건",
+            "turnaround_sub": "완료된 랩 작업 {n}건"
+        },
+        "range": {
+            "label": "보고 기간",
+            "presets": "기간 프리셋",
+            "30d": "30일",
+            "90d": "90일",
+            "12m": "12개월",
+            "all": "전체",
+            "all_time": "전체 기간",
+            "start": "시작일",
+            "end": "종료일",
+            "to": "~",
+            "apply": "적용",
+            "note": "이력 지표는 {range}를 포함합니다. 날짜는 보고 시간대 {tz}를 사용합니다.",
+            "invalid": "올바른 시작일과 종료일을 선택하세요."
+        },
+        "sections": {
+            "practices": "병원",
+            "labs": "랩",
+            "trend": "추이"
+        },
+        "table": {
+            "practice": "병원",
+            "now_group": "현재 처리량 (현재 기준)",
+            "period_group": "기간 내 완료 ({range})",
+            "active": "진행 중",
+            "overdue": "기한 초과",
+            "overdue_rate": "기한 초과 %",
+            "no_due_date": "마감일 없음",
+            "created": "생성",
+            "completed": "완료",
+            "on_time": "기한 내 %",
+            "total": "전체 병원",
+            "drilldown_note": "진행 중 또는 기한 초과 수를 선택하면 해당 케이스 목록이 열립니다. 이력 수치는 링크되지 않습니다. 현재 목록으로는 과거 기간을 재현할 수 없습니다.",
+            "practices_sub": "현재 기준 진행 중 및 기한 초과 케이스; {range}의 완료(완료일 기준)",
+            "lab": "랩",
+            "practices": "병원",
+            "lab_cases": "기간 내 케이스",
+            "lab_completed": "완료",
+            "lab_turnaround": "평균 소요 기간",
+            "lab_on_time": "기한 내 %",
+            "labs_sub": "{range} 동안 관찰된 랩 작업; 소요 기간은 랩에서의 시간이며 케이스 전체 기간이 아닙니다"
+        },
+        "trend": {
+            "aria": "월별 생성, 완료 케이스 및 기한 내 완료율",
+            "subtitle": "{range} 동안의 월별 처리량 및 기한 내 완료",
+            "subtitle_empty": "월별 처리량 및 기한 내 완료",
+            "created": "생성",
+            "completed": "완료",
+            "on_time": "기한 내 %"
+        },
+        "labs_empty": "이 기간에 랩 작업이 없습니다.",
+        "labs_note": "비율에 표본 크기(n)가 표시되어 작은 표본을 과대 해석하지 않습니다. 공유 랩 계정은 병원 전체에서 한 번만 집계되고, 병원별 라벨은 병원별로 유지됩니다.",
+        "unnamed_lab": "이름 없는 랩",
+        "label_lab": "라벨",
+        "not_enough_data": "데이터 부족",
+        "cases_unit": "건",
+        "days_unit": "일",
+        "excluded_note": "{count}개 병원 제외됨(분석 권한 없음): {names}",
+        "definitions_title": "지표 정의",
+        "def": {
+            "active": "진행 중",
+            "overdue": "기한 초과",
+            "created": "생성",
+            "completed": "완료",
+            "onTime": "기한 내 %",
+            "labTurnaround": "랩 소요 기간",
+            "labOnTime": "랩 기한 내 %",
+            "timezone": "시간대",
+            "exclusions": "기한 내 비율 제외 항목"
+        },
+        "tz_note": "모든 날짜는 DentaTrak 전체와 동일한 보고 시간대 {tz}를 사용합니다.",
+        "exclusions_note": "완료 {nodue}건 제외(마감일 없음), {edited}건 제외(완료 후 마감일 변경)."
     },
     "admin_practices": {
         "title": "치과 관리",
@@ -5321,11 +5443,13 @@
             }
         },
         "hero": {
-            "title": "모든 치과 케이스의 현재 상태를 파악하세요.",
-            "lead": "DentaTrak은 치과 병·의원을 위한 시각적 치과 케이스 추적 소프트웨어입니다. 팀이 케이스, 기한, 배정, 기공소 활동, 파일, 대화를 함께 추적하는 하나의 공간 — 작업이 어디서 지연되는지 보여주는 인사이트가 내장되어 있습니다.",
+            "title": "환자가 오기 전에 어떤 케이스에 주의가 필요한지 확인하세요.",
+            "lead": "각 케이스를 치과에서 기공소까지, 그리고 다시 돌아오는 과정을 추적하세요. 예약 위험, 미완료 인계, 기공소 지연을 환자 정보, 파일, 대화와 함께 케이스에 연결해 확인할 수 있습니다.",
             "start_free": "DentaTrak 무료 체험",
             "see_how": "작동 방식 보기",
-            "trial_note": "DentaTrak 무료 체험. 신용카드 불필요."
+            "trial_note": "DentaTrak 무료 체험. 신용카드 불필요.",
+            "trust_line": "온보딩 시 BAA 제공 • 역할 기반 케이스 접근 • Open Dental 연동",
+            "trust_plan_note": "Open Dental 연동은 Control 및 Scale 플랜에 포함됩니다."
         },
         "problem": {
             "eyebrow": "문제",
@@ -5349,8 +5473,8 @@
         },
         "attention": {
             "eyebrow": "제품 보기",
-            "title": "모든 케이스를 확인하지 않고도 주의가 필요한 것을 파악하세요.",
-            "lead": "DentaTrak이 보드를 지켜보므로 팀이 그럴 필요가 없습니다. 납기 임박, 지연, 예약 위험, 검토 필요가 다가오는 기한, 환자 예약 충돌, 동료가 변경해 아직 확인이 필요한 케이스를 보여줍니다.",
+            "title": "예약까지 준비될까요?",
+            "lead": "DentaTrak은 각 케이스의 마감일을 환자 예약일과 현재 워크플로 단계에 연결합니다. 준비되기 전에 예약이 가까워진 케이스는 예약 위험으로, 기준을 넘은 케이스는 지연으로, 다가오는 마감은 마감 임박으로 표시됩니다. 팀은 모든 카드를 확인하지 않고도 주의가 필요한 항목을 볼 수 있습니다.",
             "late": "지연",
             "due_soon": "납기 임박",
             "appointment_risk": "예약 위험",
@@ -5391,13 +5515,16 @@
             "control_features_4": "Practice 및 Lab Insights",
             "control_features_5": "추천",
             "control_features_6": "Open Dental 연동",
-            "scale_description": "여러 치과와 더 큰 팀을 관리하는 조직용.",
+            "scale_description": "여러 치과를 관리하는 조직을 위한 플랜 — 하나의 구독으로 조직 전체를 커버합니다.",
             "scale_features_1": "Control의 모든 기능",
             "scale_features_2": "최대 치과 5곳 포함",
+            "scale_features_4": "모든 치과의 케이스를 한곳에서 확인",
+            "scale_features_5": "Insights로 치과별 성과 비교",
             "scale_features_3": "추가 치과 가능",
             "scale_addon_title": "치과 추가",
             "scale_addon_month": "추가 치과당 +$99/월",
             "scale_addon_year": "추가 치과당 +$990/년",
+            "scanner_coming_soon": "스캐너 연동 (출시 예정)",
             "operate_features_4": "유연한 워크플로 단계와 보드/목록 보기",
             "operate_features_5": "댓글, @멘션, 알림",
             "operate_features_6": "제품 내 Ask DentaTrak 도움말"
@@ -5420,22 +5547,23 @@
         },
         "insights_section": {
             "eyebrow": "Practice 및 Lab Insights",
-            "title": "케이스가 어디서 움직이고 어디서 느려지는지 확인하세요.",
-            "lead": "Practice 및 Lab Insights는 일상적인 활동을 케이스 볼륨, 작업량, 기공소 처리 시간, 재제작에 대한 명확한 그림으로 바꿔 줍니다 — 케이스가 어디서 지연되는지 파악하고 지연이 환자에게 닿기 전에 조치하세요.",
+            "title": "케이스가 어디서 지연되고 있나요?",
+            "lead": "Practice 및 Lab Insights는 일상 활동을 케이스 수량, 현재 작업량, 기공소 처리 시간, 정시율, 재제작에 대한 명확한 보기로 바꿔 줍니다. 케이스가 어디서 느려지는지 지연이 환자에게 닿기 전에 발견하세요.",
             "included": "Practice Insights, Lab Insights, 추천은 Control 및 Scale 요금제에 포함됩니다.",
             "features": {
                 "1_title": "케이스 건수 및 상태",
                 "1_body": "활성, 납기 임박, 지연, 전달된 케이스를 한눈에 추적합니다.",
                 "2_title": "처리 시간과 예약 위험",
                 "2_body": "기공소 처리 시간을 비교하고 환자 예약이 작업 준비보다 먼저 올 수 있는 케이스를 찾으세요.",
-                "3_title": "기공소 비교, 재제작, 추천",
-                "3_body": "기공소별 작업량, 지연율, 재제작, 수정 횟수를 비교하고 실용적인 데이터 기반 제안을 받으세요."
-            }
+                "3_title": "기공소 비교와 재제작",
+                "3_body": "기공소별 작업량, 지연율, 기공소 귀책 재제작을 비교하세요. 수정은 별도로 집계되므로 일상적인 조정이 오류로 오인되지 않습니다. 추천은 실용적인 다음 단계를 제시합니다."
+            },
+            "org_note": "Scale 플랜에서 승인된 사용자는 여러 치과의 케이스를 한 곳에서 보고 조직 수준 Insights로 치과별 작업량과 기공소 성과를 비교할 수 있습니다."
         },
         "security_section": {
             "eyebrow": "보안",
-            "title": "케이스는 비공개로, 팀은 통제권을 유지합니다.",
-            "lead": "DentaTrak은 민감한 환자 데이터를 암호화하고, 서버에서 치과 구성원 자격과 케이스 권한을 확인하며, 첨부 파일을 비공개 단기 접근 뒤에 두어 케이스 정보가 작업을 담당하는 사람에게만 제한되도록 합니다.",
+            "title": "환자 정보는 케이스 워크플로에 있어야 합니다.",
+            "lead": "치과 케이스는 환자 정보, 치료 지시, 사진, 기공소 커뮤니케이션을 연결합니다. DentaTrak은 이 정보를 통제된 접근과 Business Associate Agreement와 함께 모아줍니다.",
             "link": "DentaTrak이 데이터를 보호하는 방법 보기",
             "panel_title": "케이스 정보는 권한 있는 사용자에게만 표시됩니다.",
             "stages": {
@@ -5450,19 +5578,19 @@
                 "3": "치과 및 클라우드 호스팅 BAA"
             },
             "cards": {
-                "1_title": "치과 데이터는 격리됩니다",
-                "1_body": "서버 측 권한 부여가 보호된 정보를 반환하기 전에 치과 구성원 자격과 케이스 접근을 확인합니다.",
-                "2_title": "데이터 접근 권한 제어",
-                "2_body": "역할 기반 권한, 배정 전용 접근, 2단계 인증, 즉각적인 접근 취소로 케이스 정보를 적절한 사람에게만 제한합니다.",
-                "3_title": "비공개 파일은 비공개로 유지",
-                "3_body": "첨부 파일은 비공개 클라우드 스토리지에 저장되며 권한 확인 후 단기 서명 URL을 통해 접근됩니다.",
-                "4_title": "보안 활동 기록",
-                "4_body": "DentaTrak은 보호된 케이스 접근, 작업 흐름 변경, 배정, 댓글, 다운로드, 보안 이벤트를 기록합니다.",
-                "5_title": "비공개 알림",
-                "5_body": "DentaTrak은 알림 이메일에서 환자 및 케이스 상세 정보를 제외합니다. 팀원은 안전하게 로그인하여 보호된 정보를 보고 댓글과 @멘션으로 협업합니다."
+                "1_title": "역할 및 케이스 수준 접근",
+                "1_body": "서버 측 검증이 보호된 정보를 반환하기 전에 치과 소속과 케이스 권한을 확인합니다. 소유자, 관리자, 사용자 역할, 선택적 배정된 케이스만 접근, 즉시 접근 해지가 팀원과 초대된 기공소 사용자 모두에게 누가 케이스를 열 수 있는지 결정합니다.",
+                "2_title": "2단계 인증",
+                "2_body": "선택적 인증 앱 확인은 비밀번호 외에 두 번째 보호 계층을 추가합니다. 비활성 세션은 로그아웃 경고 후 자동으로 만료됩니다.",
+                "3_title": "비공개 첨부 파일 접근",
+                "3_body": "쉐이드 사진, 스캔, 문서는 비공개 클라우드 저장소에 보관되며 승인된 단기 링크를 통해서만 열립니다.",
+                "4_title": "케이스 접근 기록",
+                "4_body": "보호된 케이스 기록 접근과 케이스 활동(상태 변경, 배정, 댓글, 다운로드)은 사용자와 시간과 함께 기록됩니다.",
+                "5_title": "알림에 환자 정보가 남지 않습니다",
+                "5_body": "알림 이메일은 환자 및 케이스 세부 정보를 포함하지 않습니다. 팀원은 로그인하여 보호된 정보를 보고 댓글과 @멘션으로 협업합니다."
             },
-            "baa_title": "치과부터 클라우드까지 BAA 기반.",
-            "baa_body": "DentaTrak은 보호 대상 건강 정보로 플랫폼을 사용하는 치과에 Business Associate Agreement를 요구하고, 클라우드 호스팅 제공업체와 BAA를 유지합니다."
+            "baa_title": "Business Associate Agreement는 온보딩의 일부입니다.",
+            "baa_body": "보호된 건강 정보로 DentaTrak을 사용하는 치과는 치과 설정 시 BAA에 동의하며, DentaTrak은 클라우드 호스팅 제공업체와도 BAA를 유지합니다. BAA와 기술적 보호 조치는 치과의 의무를 지원하지만 치과 자체의 정책과 적절한 사용을 대체하지 않습니다."
         },
         "mobile_section": {
             "eyebrow": "모바일 브라우저",
@@ -5503,7 +5631,8 @@
             "field_email_required": "직장 이메일이 필요합니다.",
             "field_practice_invalid": "치과 이름이 필요하며 120자 이하여야 합니다.",
             "field_phone_too_long": "전화번호가 너무 깁니다.",
-            "field_preferred_too_long": "선호하는 요일 또는 시간이 너무 깁니다."
+            "field_preferred_too_long": "선호하는 요일 또는 시간이 너무 깁니다.",
+            "fictional_badge": "가상 데모 데이터"
         },
         "mock": {
             "phones_aria": "모바일 브라우저 제품 미리보기",
@@ -5720,15 +5849,15 @@
         },
         "collaboration": {
             "eyebrow": "협업",
-            "title": "대화를 케이스와 함께 유지하세요.",
-            "lead": "댓글, 멘션, 이미지, 알림이 케이스 기록에 함께 저장됩니다 — 결정과 맥락이 문자, 이메일, 기억에 흩어지지 않도록.",
+            "title": "다음으로 누가 행동해야 하나요?",
+            "lead": "모든 케이스는 워크플로 단계, 기공소, 담당자를 보여줍니다. 댓글, @멘션, 사진, 파일은 케이스에 남습니다. 다음 인계는 기억이 아니라 기록에 있습니다.",
             "features": {
                 "1_title": "댓글과 @멘션",
                 "1_body": "작업이 일어나는 바로 그곳에서 케이스를 논의하세요. 동료를 멘션하면 잃어버린 문자 대신 알림을 받게 됩니다.",
-                "2_title": "맥락 속 사진과 파일",
-                "2_body": "대화에 이미지와 파일을 첨부해 셰이드 사진, 스캔, 메모가 해당 케이스와 연결되게 유지하세요.",
+                "2_title": "쉐이드 사진과 파일을 맥락 속에",
+                "2_body": "쉐이드 사진, 스캔, 문서는 해당 보철물과 함께 남습니다. 케이스 첨부는 무제한이며 전체 저장 용량 제한이 없습니다. 파일당 제한이 적용됩니다(STL, OBJ, PLY 스캔은 최대 250MB이며 케이스에서 바로 열 수 있습니다).",
                 "3_title": "알림과 기록",
-                "3_body": "변경 사항이 생기면 알림을 받고 전체 활동 기록(누가 무엇을 언제 했는지)을 확인하세요."
+                "3_body": "변경이 있을 때 알림을 받고 후속 조치 전에 상태 변경, 배정, 댓글 등 전체 이력을 확인하세요."
             },
             "mock_aria": "댓글, 멘션, 이미지 첨부, 활동 업데이트가 있는 케이스 댓글 스레드 예시입니다.",
             "mock_case": "Sofia Patel · 베니어",
@@ -5736,7 +5865,8 @@
             "mock_c1": "업데이트된 셰이드 사진이 도착했습니다. {mention} — 환자와 예약 시간을 확인해 주세요.",
             "mock_c2": "3월 14일 오후 2시로 확정했습니다.",
             "mock_activity": "상태가 외부 기공소로 발송(으)로 변경됨 · 3월 7일",
-            "mock_composer": "댓글 추가… @로 동료를 멘션하세요"
+            "mock_composer": "댓글 추가… @로 동료를 멘션하세요",
+            "lab_note": "승인된 기공소 사용자는 자신의 역할이 허용하는 케이스만 볼 수 있습니다."
         },
         "ask": {
             "name": "Ask DentaTrak",
@@ -5762,19 +5892,33 @@
         "pms": {
             "eyebrow": "연동",
             "title": "Open Dental을 연결하세요.",
-            "lead": "Open Dental 병원을 연결하면 지원되는 기공 케이스가 DentaTrak에 자동으로 나타납니다 — 한 번 생성되고, Open Dental이 소유한 필드는 동기화 상태를 유지합니다.",
+            "lead": "Open Dental 치과를 연결하면 지원되는 기공 케이스가 DentaTrak에 자동으로 나타납니다. 환자, 마감일, 예약일, 기공소, 지시 사항이 한 번 가져와지고 Open Dental 소유 필드는 동기화 상태로 유지됩니다. 선택적 양방향 동기화는 상태 이정표를 Open Dental 기공 케이스에 다시 기록합니다.",
             "note": "Control 및 Scale 플랜에서 사용할 수 있습니다.",
             "flow_aria": "Open Dental 기공 케이스가 자동으로 DentaTrak 케이스가 되는 모습.",
             "mock_source": "새 기공 케이스 접수",
             "mock_source_detail": "크라운 · 환자 예약 3월 19일",
             "mock_target": "DentaTrak에 케이스 생성됨",
-            "mock_target_detail": "자동으로 동기화 — 이중 입력 없음."
+            "mock_target_detail": "자동으로 동기화 — 이중 입력 없음.",
+            "scanner_note": "스캐너 연동은 곧 제공되며 스캐너 플랫폼에 직접 연결됩니다. 오늘 이미 가능한 케이스에 스캔 파일 첨부와는 별개입니다."
         },
         "languages": {
             "eyebrow": "언어",
             "title": "DentaTrak은 팀의 언어를 구사합니다.",
             "lead": "워크플로, 알림, Insights, Ask DentaTrak까지 제품 전체가 현지화되어 있습니다 — 모든 팀원이 자신이 생각하는 언어로 일할 수 있도록.",
             "note": "영어, 독일어, 스페인어, 프랑스어, 캐나다 프랑스어, 이탈리아어, 브라질 포르투갈어, 러시아어, 한국어."
+        },
+        "compare": {
+            "eyebrow": "합리적인 질문",
+            "title": "이미 다른 곳에서 케이스를 관리하고 계신가요?",
+            "lead": "이미 업무 배정, 첨부 파일, 대화할 공간이 있을 수 있습니다. 그 작업이 치과 케이스와 관련된다면 몇 가지 더 물어볼 만한 질문이 있습니다.",
+            "q1": "어떤 케이스가 예약을 위험에 빠뜨리는지 볼 수 있나요?",
+            "a1": "DentaTrak은 케이스 마감일을 환자 예약일과 연결합니다. 예약이 설정한 경고 기간(기본 3일) 안에 들어오고 케이스가 아직 완료되지 않으면 보드와 Insights에서 예약 위험으로 표시됩니다. 지연, 마감 임박, 검토 필요도 마찬가지로 케이스의 실제 날짜와 워크플로 상태에 따라 표시됩니다.",
+            "q2": "지연이 어디서 발생했는지 알 수 있나요?",
+            "a2": "모든 상태 변경, 배정, 기공소 인계가 케이스 타임라인에 기록되어 팀이 후속 조치 전에 이력을 확인할 수 있습니다. Insights는 각 기공소에서 케이스가 얼마나 머물렀고 어떤 것이 지연되었는지 보여줍니다. 시간이 어디서 소요되었는지는 보여주지만 잘못을 따지지는 않습니다.",
+            "q3": "새 스프레드시트 없이 기공소 성과를 비교할 수 있나요?",
+            "a3": "Lab Insights는 기공소별 처리 시간, 정시율, 작업량, 기공소 귀책 재제작을 보고합니다. 수정은 재제작과 별도로 집계되어 일상적인 조정이 오류로 취급되지 않습니다.",
+            "q4": "사용 중인 시스템이 환자 정보를 다루도록 설계되었나요?",
+            "a4": "DentaTrak은 그렇게 설계되었습니다. 치과는 온보딩 시 Business Associate Agreement에 동의하고, 케이스 접근은 각 사용자의 역할과 권한을 따르며, 첨부 파일은 비공개 저장소에 보관되어 단기 링크로만 열리고, 케이스 접근은 기록됩니다. 사용 중인 제공업체가 환자 정보의 의도된 사용을 지원하고 필요 시 Business Associate Agreement를 체결하는지 확인해 보세요."
         }
     },
     "legal": {

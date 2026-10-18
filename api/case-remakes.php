@@ -13,6 +13,7 @@
 require_once __DIR__ . '/session.php';
 require_once __DIR__ . '/appConfig.php';
 require_once __DIR__ . '/practice-security.php';
+require_once __DIR__ . '/organization-access.php';
 require_once __DIR__ . '/case-activity-log.php';
 require_once __DIR__ . '/remakes.php';
 require_once __DIR__ . '/csrf.php';
@@ -39,6 +40,9 @@ if ($method === 'GET') {
     }
 
     // SECURITY: same case-level access rule as every other case endpoint.
+    // Under the consolidated view the case's own practice is resolved
+    // server-side so remake records stay scoped to it.
+    $currentPracticeId = resolveCaseScopePracticeId($caseId);
     requireCaseAccess($caseId, $currentPracticeId);
 
     echo json_encode([
@@ -65,7 +69,9 @@ if (empty($caseId)) {
 }
 
 // SECURITY: Verify this case belongs to the current practice and, for
-// Assigned Only users, is assigned to them.
+// Assigned Only users, is assigned to them. Under the consolidated view
+// the case's own practice is resolved server-side first.
+$currentPracticeId = resolveCaseScopePracticeId($caseId);
 $caseInfo = requireCaseAccess($caseId, $currentPracticeId);
 
 // Remakes are recorded against live cases only - archived cases are

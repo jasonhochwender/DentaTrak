@@ -843,7 +843,7 @@ function archiveCaseInCache($caseId) {
     }
 }
 
-function getAllCasesFromCache() {
+function getAllCasesFromCache($practiceIds = null) {
     global $pdo;
     if (!$pdo) {
         return [];
@@ -856,19 +856,29 @@ function getAllCasesFromCache() {
 
     ensureCasesCacheTable();
 
-    // SECURITY: Get current practice ID from session - REQUIRED
-    $currentPracticeId = $_SESSION['current_practice_id'] ?? null;
-    
-    // SECURITY: If no practice ID, return empty array - DO NOT return all cases
-    if (!$currentPracticeId) {
-        error_log('[SECURITY] getAllCasesFromCache called without current_practice_id in session');
+    // SECURITY: Get current practice ID from session - REQUIRED.
+    // Callers may instead pass an explicit, already-authorized practice-id
+    // set (the consolidated "All practices" view passes the live
+    // organization-access.php scope). An explicit empty array means
+    // "no authorized practices" and returns nothing - never unscoped.
+    if ($practiceIds === null) {
+        $currentPracticeId = $_SESSION['current_practice_id'] ?? null;
+        $practiceIds = $currentPracticeId ? [(int)$currentPracticeId] : [];
+    }
+
+    $practiceIds = array_values(array_unique(array_map('intval', $practiceIds)));
+
+    // SECURITY: If no practice scope, return empty array - DO NOT return all cases
+    if (empty($practiceIds)) {
+        error_log('[SECURITY] getAllCasesFromCache called without a practice scope');
         return [];
     }
 
     try {
         // SECURITY: Always filter by practice_id
-        $stmt = $pdo->prepare("SELECT * FROM cases_cache WHERE practice_id = :practice_id ORDER BY last_update_date DESC");
-        $stmt->execute(['practice_id' => $currentPracticeId]);
+        $placeholders = implode(',', array_fill(0, count($practiceIds), '?'));
+        $stmt = $pdo->prepare("SELECT * FROM cases_cache WHERE practice_id IN ({$placeholders}) ORDER BY last_update_date DESC");
+        $stmt->execute($practiceIds);
         $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
     } catch (PDOException $e) {
         error_log('[cases_cache] Error loading cases: ' . $e->getMessage());
@@ -936,6 +946,7 @@ function getAllCasesFromCache() {
             // distinguishable from "field not returned" everywhere a case
             // is fetched, not just on single-case reload.
             'assignedTo' => $row['assigned_to'] ?? null,
+            'practiceId' => isset($row['practice_id']) ? (int)$row['practice_id'] : null,
             'createdByUserId' => isset($row['created_by_user_id']) ? (int)$row['created_by_user_id'] : null,
             'createdByName' => 'Unknown',
             'reviewedAt' => !empty($row['reviewed_at']) ? date('c', strtotime($row['reviewed_at'])) : null,
@@ -1122,6 +1133,7 @@ function getSingleCaseFromCache($caseId, $practiceId, $mode = 'full') {
             'revisionCount' => isset($row['revision_count']) ? (int)$row['revision_count'] : 0,
             'version' => (int)($row['version'] ?? 1),
             'assignedTo' => $row['assigned_to'] ?? null,
+            'practiceId' => isset($row['practice_id']) ? (int)$row['practice_id'] : null,
             'createdByUserId' => isset($row['created_by_user_id']) ? (int)$row['created_by_user_id'] : null,
             'createdByName' => 'Unknown',
             'reviewedAt' => !empty($row['reviewed_at']) ? date('c', strtotime($row['reviewed_at'])) : null,

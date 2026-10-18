@@ -17,6 +17,7 @@
 
 require_once __DIR__ . '/appConfig.php';
 require_once __DIR__ . '/practice-security.php';
+require_once __DIR__ . '/organization-access.php';
 require_once __DIR__ . '/encryption.php';
 require_once __DIR__ . '/case-types.php';
 require_once __DIR__ . '/workflow-stages.php';
@@ -35,6 +36,36 @@ header('Content-Type: application/json');
 // SECURITY: Require valid practice context before accessing any data
 $currentPracticeId = requireValidPracticeContext();
 $userId = $_SESSION['db_user_id'];
+
+// Consolidated "All practices" view: the archive scope becomes exactly the
+// authorized organization practices (resolved live - revoked access or a
+// lost Scale entitlement narrows/denies it). Single-practice behavior is
+// unchanged. The session's real practice remains the anchor.
+$orgViewActive = orgCaseViewEntitled($pdo);
+$scopePracticeIds = [$currentPracticeId];
+$limitedScopePractices = [];
+$practiceNames = [];
+if ($orgViewActive) {
+    $scopePracticeIds = getOrgCaseViewPracticeIds($pdo);
+    foreach (getOrgCaseViewPractices($pdo) as $ap) {
+        $apId = (int)$ap['id'];
+        $practiceNames[$apId] = (string)($ap['practice_name'] ?? '');
+        if (!empty($ap['limited_visibility'])) {
+            $limitedScopePractices[$apId] = true;
+        }
+    }
+} else {
+    try {
+        $nameStmt = $pdo->prepare("SELECT practice_name FROM practices WHERE id = :id LIMIT 1");
+        $nameStmt->execute(['id' => $currentPracticeId]);
+        $practiceNames[(int)$currentPracticeId] = (string)($nameStmt->fetchColumn() ?: '');
+    } catch (PDOException $e) {
+        // practice name optional
+    }
+    if (hasLimitedVisibility($currentPracticeId)) {
+        $limitedScopePractices[(int)$currentPracticeId] = true;
+    }
+}
 
 // Sortable columns -> internal key. Only whitelisted values may reach
 // query construction; anything else falls back to the default sort.
@@ -89,20 +120,71 @@ try {
     $dir = (isset($_GET['dir']) && strtolower($_GET['dir']) === 'asc') ? 'ASC' : 'DESC';
 
     // Shared WHERE: practice isolation + limited-visibility scoping + the
-    // filters that are safe on non-PII columns.
+    // filters that are safe on non-PII columns. Under the consolidated view
+    // the scope is the authorized organization set; an empty set renders
+    // `1 = 0` (never unrestricted).
     $whereConditions = ['cc.archived = 1'];
     $params = [];
 
-    if ($currentPracticeId) {
-        $whereConditions[] = 'cc.practice_id = :practice_id';
-        $params['practice_id'] = $currentPracticeId;
+    $whereConditions[] = buildAuthorizedPracticeScopeSql($scopePracticeIds, 'cc.practice_id');
+
+    // Optional practice filter restricted to the authorized scope.
+    $filterPractice = isset($_GET['practice']) ? trim((string)$_GET['practice']) : '';
+    if ($filterPractice !== '') {
+        $filterPracticeId = filter_var($filterPractice, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+        if ($filterPracticeId === false || !in_array((int)$filterPracticeId, $scopePracticeIds, true)) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'message' => 'Invalid practice filter']);
+            exit;
+        }
+        $whereConditions[] = 'cc.practice_id = :filter_practice_id';
+        $params['filter_practice_id'] = (int)$filterPracticeId;
     }
 
     // SECURITY: Assigned Only (limited_visibility) users may only see
-    // archived cases assigned to them (same rule as active cases).
-    if (hasLimitedVisibility($currentPracticeId)) {
-        $whereConditions[] = 'LOWER(cc.assigned_to) = :assigned_email';
-        $params['assigned_email'] = getCurrentUserEmail() ?? '';
+    // archived cases assigned to them (same rule as active cases). Under
+    // the consolidated view this applies per-practice - limited in one
+    // practice does not restrict other authorized practices - and includes
+    // assignment-label access identical to canUserAccessCase().
+    if (!empty($limitedScopePractices)) {
+        $userEmail = getCurrentUserEmail() ?? '';
+        $unrestrictedIds = array_diff($scopePracticeIds, array_keys($limitedScopePractices));
+        $visibilityClauses = [];
+        if (!empty($unrestrictedIds)) {
+            $visibilityClauses[] = buildAuthorizedPracticeScopeSql($unrestrictedIds, 'cc.practice_id');
+        }
+        foreach (array_keys($limitedScopePractices) as $limitedPid) {
+            $allowedAssignees = [strtolower($userEmail)];
+            try {
+                $labelStmt = $pdo->prepare("
+                    SELECT LOWER(TRIM(l.label)) AS label
+                    FROM practice_assignment_labels l
+                    JOIN practice_assignment_label_recipients r ON r.label_id = l.id
+                    WHERE r.user_id = :user_id AND l.practice_id = :practice_id
+                ");
+                $labelStmt->execute(['user_id' => $userId, 'practice_id' => $limitedPid]);
+                foreach ($labelStmt->fetchAll(PDO::FETCH_COLUMN) as $label) {
+                    $allowedAssignees[] = (string)$label;
+                }
+            } catch (PDOException $e) {
+                // Table may not exist - direct email match only
+            }
+            $allowedAssignees = array_values(array_unique(array_filter($allowedAssignees, 'strlen')));
+            if (empty($allowedAssignees)) {
+                // No resolvable assignee values: the limited practice shows nothing.
+                $visibilityClauses[] = '1 = 0';
+                continue;
+            }
+            $placeholders = [];
+            foreach ($allowedAssignees as $i => $value) {
+                $key = 'assigned_' . $limitedPid . '_' . $i;
+                $placeholders[] = ':' . $key;
+                $params[$key] = $value;
+            }
+            $visibilityClauses[] = '(cc.practice_id = ' . (int)$limitedPid
+                . ' AND LOWER(cc.assigned_to) IN (' . implode(',', $placeholders) . '))';
+        }
+        $whereConditions[] = '(' . implode(' OR ', $visibilityClauses) . ')';
     }
 
     // Dentist list for the filter dropdown (distinct decrypted names among
@@ -189,6 +271,8 @@ try {
     $whereClause = 'WHERE ' . implode(' AND ', $whereConditions);
     $selectCols = "
         cc.case_id as id,
+        cc.practice_id,
+        p.practice_name,
         cc.patient_first_name,
         cc.patient_last_name,
         cc.dentist_name,
@@ -199,6 +283,7 @@ try {
         cc.tracking_number,
         cc.drive_folder_id as driveFolderId
     ";
+    $fromClause = "FROM cases_cache cc JOIN practices p ON p.id = cc.practice_id";
 
     // The default view (no search, no dentist filter, archived-date sort)
     // never touches PII columns for matching, so it stays fully in SQL and
@@ -206,11 +291,11 @@ try {
     $useSqlPath = ($search === '' && $dentist === '' && $sort === 'archived');
 
     if ($useSqlPath) {
-        $countStmt = $pdo->prepare("SELECT COUNT(*) FROM cases_cache cc $whereClause");
+        $countStmt = $pdo->prepare("SELECT COUNT(*) $fromClause $whereClause");
         $countStmt->execute($params);
         $totalCount = (int)$countStmt->fetchColumn();
 
-        $sql = "SELECT $selectCols FROM cases_cache cc $whereClause
+        $sql = "SELECT $selectCols $fromClause $whereClause
                 ORDER BY (cc.archived_date IS NULL OR cc.archived_date = '') ASC,
                          cc.archived_date $dir, cc.case_id ASC
                 LIMIT :limit OFFSET :offset";
@@ -221,7 +306,7 @@ try {
         // PHP path: pre-filter in SQL, decrypt, finish search/dentist/sort
         // and count in PHP. Ordered fetch keeps output deterministic before
         // the PHP sort runs.
-        $stmt = $pdo->prepare("SELECT $selectCols FROM cases_cache cc $whereClause ORDER BY cc.archived_date DESC, cc.case_id ASC");
+        $stmt = $pdo->prepare("SELECT $selectCols $fromClause $whereClause ORDER BY cc.archived_date DESC, cc.case_id ASC");
         $stmt->execute($params);
         $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
         $totalCount = null; // computed after PHP filtering
@@ -238,9 +323,11 @@ try {
         }
     };
 
-    $cases = array_map(function ($row) use ($decryptField) {
+    $cases = array_map(function ($row) use ($decryptField, $practiceNames) {
         return [
             'id' => $row['id'],
+            'practiceId' => (int)$row['practice_id'],
+            'practiceName' => $practiceNames[(int)$row['practice_id']] ?? (string)($row['practice_name'] ?? ''),
             'patient_first_name' => $decryptField($row['patient_first_name']),
             'patient_last_name' => $decryptField($row['patient_last_name']),
             'dentist_name' => $decryptField($row['dentist_name']),
@@ -284,14 +371,19 @@ try {
         $totalCount = count($cases);
 
         // Sort the full matching set before pagination. Empty values always
-        // sort last regardless of direction.
-        $stageLabels = getResolvedWorkflowStageLabelsForPractice($currentPracticeId);
-        foreach (getWorkflowColumnsForPractice($currentPracticeId) as $column) {
-            if (!empty($column['archived']) && !isset($stageLabels[$column['id']])) {
-                $stageLabels[$column['id']] = $column['label'];
+        // sort last regardless of direction. Under the consolidated view
+        // each case's status label resolves against its OWN practice.
+        $stageLabelsByPractice = [];
+        foreach ($scopePracticeIds as $scopePid) {
+            $labels = getResolvedWorkflowStageLabelsForPractice($scopePid);
+            foreach (getWorkflowColumnsForPractice($scopePid) as $column) {
+                if (!empty($column['archived']) && !isset($labels[$column['id']])) {
+                    $labels[$column['id']] = $column['label'];
+                }
             }
+            $stageLabelsByPractice[(int)$scopePid] = $labels;
         }
-        $sortKey = function ($case) use ($sort, $stageLabels) {
+        $sortKey = function ($case) use ($sort, $stageLabelsByPractice) {
             switch ($sort) {
                 case 'patient':
                     return ['s', mb_strtolower(trim($case['patient_first_name'] . ' ' . $case['patient_last_name']))];
@@ -301,7 +393,8 @@ try {
                     return ['s', mb_strtolower(getCaseTypeDisplayLabel((string)$case['case_type']))];
                 case 'status':
                     $status = (string)$case['status'];
-                    return ['s', mb_strtolower($stageLabels[$status] ?? $status)];
+                    $labels = $stageLabelsByPractice[(int)($case['practiceId'] ?? 0)] ?? [];
+                    return ['s', mb_strtolower($labels[$status] ?? $status)];
                 case 'created':
                     return ['d', strtotime((string)$case['creation_date']) ?: null];
                 default:
@@ -324,14 +417,18 @@ try {
         $cases = array_slice($cases, ($page - 1) * $pageSize, $pageSize);
     }
 
-    // Unfiltered practice archive total for the badge/count context.
-    $totalStmt = $pdo->prepare("SELECT COUNT(*) FROM cases_cache cc WHERE cc.archived = 1 AND cc.practice_id = :practice_id");
-    $totalStmt->execute(['practice_id' => $currentPracticeId]);
+    // Unfiltered archive total (for the badge/count context), scoped the
+    // same way as the listing - under the consolidated view this is the
+    // authorized-organization archive total.
+    $totalStmt = $pdo->prepare("SELECT COUNT(*) FROM cases_cache cc WHERE cc.archived = 1 AND "
+        . buildAuthorizedPracticeScopeSql($scopePracticeIds, 'cc.practice_id'));
+    $totalStmt->execute();
     $totalArchived = (int)$totalStmt->fetchColumn();
 
     echo json_encode([
         'success' => true,
         'cases' => $cases,
+        'scope' => $orgViewActive ? 'organization' : 'practice',
         'totalCount' => $totalCount,
         'totalArchived' => $totalArchived,
         'page' => $page,

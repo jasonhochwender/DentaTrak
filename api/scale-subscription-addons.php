@@ -12,6 +12,7 @@
  */
 
 require_once __DIR__ . '/stripe-price-map.php';
+require_once __DIR__ . '/plan-entitlements.php';
 
 /**
  * Resolve the active Stripe subscription for an owner. Returns null if
@@ -68,7 +69,7 @@ function syncScaleAddOnQuantity(
     }
     \Stripe\Stripe::setApiKey($secretKey);
 
-    $requiredQty = max(0, $ownedPracticeCount - 5);
+    $requiredQty = max(0, $ownedPracticeCount - getIncludedPracticeCount('scale'));
     $subId = $sub['stripe_subscription_id'];
     $interval = $sub['billing_interval'] ?? 'month';
     $addOnPriceId = getScaleAdditionalPriceId($interval, $appConfig);

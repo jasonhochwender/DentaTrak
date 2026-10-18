@@ -236,7 +236,7 @@ function ensureHIPAASchema() {
  * @param string|null $resourceType Defaults from the action when omitted
  * @param string|null $resourceId Internal identifier (object path, export ID)
  */
-function logPHIAccess($accessType, $caseId = null, $meta = [], $resourceType = null, $resourceId = null) {
+function logPHIAccess($accessType, $caseId = null, $meta = [], $resourceType = null, $resourceId = null, $practiceIdOverride = null) {
     global $pdo;
 
     if (!$pdo) return;
@@ -246,6 +246,16 @@ function logPHIAccess($accessType, $caseId = null, $meta = [], $resourceType = n
     $userId = $_SESSION['db_user_id'] ?? null;
     $userEmail = $_SESSION['user_email'] ?? null;
     $practiceId = $_SESSION['current_practice_id'] ?? null;
+
+    // Consolidated "All practices" view: disclosures must be attributed to
+    // the case's/attachment's ACTUAL practice, not the session anchor.
+    // Callers pass the already-authorized practice resolved by
+    // resolveCaseScopePracticeId() (or the practice embedded in an
+    // authorized storage path); the value is never raw client input.
+    $overrideId = filter_var($practiceIdOverride, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+    if ($overrideId !== false) {
+        $practiceId = (int)$overrideId;
+    }
 
     if (!$userId || !$practiceId) return;
 
@@ -350,6 +360,11 @@ function logPHIAccess($accessType, $caseId = null, $meta = [], $resourceType = n
 function auditAttachmentAccess($accessType, $storagePath, $meta = []) {
     $pathParts = explode('/', $storagePath);
     $pathCaseId = $pathParts[2] ?? '';
+    // cases/{practiceId}/{caseId}/... - the path's own practice segment is
+    // authoritative for audit attribution under the consolidated view
+    // (endpoints only reach here after validating it against the
+    // authorized organization scope).
+    $pathPracticeId = filter_var($pathParts[1] ?? null, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
     $resourceType = (strpos($storagePath, '/comments/') !== false) ? 'comment_image' : 'attachment';
     $auditCaseId = ($pathCaseId !== '' && strpos($pathCaseId, 'pending_') !== 0) ? $pathCaseId : null;
 
@@ -362,7 +377,7 @@ function auditAttachmentAccess($accessType, $storagePath, $meta = []) {
     $dirPath = implode('/', array_slice($pathParts, 0, -1));
     $resourceId = ($dashPos !== false) ? ($dirPath . '/' . substr($objectName, 0, $dashPos)) : $dirPath;
 
-    logPHIAccess($accessType, $auditCaseId, $meta, $resourceType, $resourceId);
+    logPHIAccess($accessType, $auditCaseId, $meta, $resourceType, $resourceId, $pathPracticeId === false ? null : $pathPracticeId);
 }
 
 /**

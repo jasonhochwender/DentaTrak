@@ -270,7 +270,7 @@ try {
             // to restore the previous add-on quantity on Stripe.
             $previousAddOnQty = null;
             $newOwnedCount = $entitlement['current_count'] + 1;
-            if ($entitlement['plan'] === 'scale' && $newOwnedCount > 5) {
+            if ($entitlement['plan'] === 'scale' && $newOwnedCount > getIncludedPracticeCount('scale')) {
                 try {
                     $previousAddOnQty = syncScaleAddOnQuantity($pdo, $userId, $newOwnedCount, $appConfig);
                 } catch (Exception $stripeEx) {

@@ -19,6 +19,7 @@ require_once __DIR__ . '/appConfig.php';
 require_once __DIR__ . '/../vendor/autoload.php';
 require_once __DIR__ . '/feature-flags.php';
 require_once __DIR__ . '/practice-security.php';
+require_once __DIR__ . '/organization-access.php';
 require_once __DIR__ . '/gcs-storage.php';
 require_once __DIR__ . '/case-zip-helpers.php';
 require_once __DIR__ . '/csrf.php';
@@ -78,6 +79,11 @@ if (empty($caseId)) {
     echo json_encode(['success' => false, 'error' => t('api.download.missing_case_id')]);
     exit;
 }
+
+// SECURITY: Under the consolidated "All practices" view the case's own
+// practice is resolved server-side so attachment eligibility applies to
+// the case's actual practice.
+$currentPracticeId = resolveCaseScopePracticeId($caseId);
 
 // Authoritative case access (includes Assigned Only and cross-practice checks).
 $case = requireCaseAccess($caseId, $currentPracticeId);

@@ -10,6 +10,7 @@
 
 require_once __DIR__ . '/session.php';
 require_once __DIR__ . '/practice-security.php';
+require_once __DIR__ . '/organization-access.php';
 require_once __DIR__ . '/appConfig.php';
 require_once __DIR__ . '/security-headers.php';
 require_once __DIR__ . '/encryption.php';
@@ -19,6 +20,11 @@ setApiSecurityHeaders();
 
 // SECURITY: Require valid practice context
 $currentPracticeId = requireValidPracticeContext();
+
+// Consolidated "All practices" view: while editing a case from another
+// authorized practice the client passes practice_id explicitly. It must
+// resolve to the authorized organization set - anything else is denied.
+$currentPracticeId = resolveOrgAuthorizedPracticeParam($_GET['practice_id'] ?? null);
 
 // Get search query parameter
 $query = isset($_GET['q']) ? trim($_GET['q']) : '';

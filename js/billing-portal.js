@@ -153,7 +153,7 @@
     } else if (status === 'incomplete' || status === 'incomplete_expired') {
       html += renderIncompleteState(access, canManage);
     } else if (hasSub && sub) {
-      html += renderSubscriptionCard(sub, access, prices, canManage, fabg);
+      html += renderSubscriptionCard(sub, access, prices, canManage, fabg, data.practice_usage);
     } else {
       html += renderTrialState(access, prices, canManage, fabg);
     }
@@ -268,7 +268,7 @@
   }
 
   // ── Render: active/paid subscription card ─────────────────────────────────────
-  function renderSubscriptionCard(sub, access, prices, canManage, fabg) {
+  function renderSubscriptionCard(sub, access, prices, canManage, fabg, practiceUsage) {
     var planSlug   = sub.plan          || 'unknown';
     var planLabel  = formatPlan(planSlug);
     var statusKey  = sub.status        || access.status || 'unknown';
@@ -294,6 +294,25 @@
     if (priceSource[planSlug] && sub.billing_interval && priceSource[planSlug][sub.billing_interval]) {
       var priceKey = 'billing.price.per_' + sub.billing_interval;
       priceAmt = t(priceKey, { amount: I18n.formatCurrency(priceSource[planSlug][sub.billing_interval] / 100, 'USD') });
+    }
+
+    // Organization practice usage: the subscription belongs to the owner's
+    // account, so the count covers every owned practice. Uncapped plans
+    // (Scale, max === null) show the included allowance plus any additional
+    // billed separately — five is never presented as a hard limit.
+    var usageText = '';
+    if (practiceUsage && typeof practiceUsage.owned === 'number' && practiceUsage.included) {
+      var extra = practiceUsage.additional || 0;
+      if (practiceUsage.max === null || practiceUsage.max === undefined) {
+        usageText = I18n.pluralize(practiceUsage.owned, 'billing.practice_limits.scale_used',
+          { used: practiceUsage.owned, included: practiceUsage.included });
+        if (extra > 0) {
+          usageText += ' \u00b7 ' + I18n.pluralize(extra, 'billing.practice_limits.additional', { count: extra });
+        }
+      } else {
+        usageText = I18n.pluralize(practiceUsage.owned, 'billing.practice_limits.used',
+          { used: practiceUsage.owned, max: practiceUsage.max });
+      }
     }
 
     var html =
@@ -339,6 +358,7 @@
     html +=
         '<div class="bp-card-body">' +
           field(t('billing.messages.plan'),        planLabel) +
+          (usageText ? field(t('billing.practice_limits.label'), usageText) : '') +
           field(t('billing.messages.status'),      statusLabel) +
           field(t('billing.messages.billing_interval'),     interval) +
           field(t('billing.messages.amount'),      priceAmt,  priceAmt === '\u2014') +
@@ -388,6 +408,11 @@
         'billing.plans.control.benefit_5',
         'billing.plans.control.benefit_6',
       ],
+      // Planned features render muted without a checkmark - never imply
+      // availability. Scanner integrations are planned at Control tier
+      // (inherited by Scale); entitlement enforcement ships with the
+      // integration itself, so this is presentation only.
+      soon_benefit_keys: ['billing.plans.scanner_coming_soon'],
     },
     scale: {
       label: 'Scale',
@@ -396,7 +421,9 @@
         'billing.plans.scale.benefit_1',
         'billing.plans.scale.benefit_2',
         'billing.plans.scale.benefit_3',
+        'billing.plans.scale.benefit_4',
       ],
+      soon_benefit_keys: ['billing.plans.scanner_coming_soon'],
       additional_price_keys: {
         month: 'billing.plans.scale.additional_practices_month',
         year: 'billing.plans.scale.additional_practices_year',
@@ -460,14 +487,29 @@
         '<div class="bp-plan-practices">' + escHtml(t(info.practices_key)) + '</div>' +
         (planKey === 'scale' && info.additional_price_keys && info.additional_price_keys[interval]
           ? '<div class="bp-plan-additional">' + escHtml(t(info.additional_price_keys[interval], {
-              // FABG member add-on: 75% of $99/mo; annual is 75% of 12
-              // monthly payments — never 75% of the two-months-free $990.
-              amount: I18n.formatCurrency(fabgReady ? (interval === 'month' ? 74.25 : 891) : (interval === 'month' ? 99 : 990), 'USD')
+              // Amount comes from display_prices.scale_additional (cents) —
+              // the same config the checkout math uses. FABG member add-on:
+              // 75% of the monthly rate; annual is 75% of 12 monthly
+              // payments — never 75% of the two-months-free annual price.
+              amount: (function () {
+                var addCents = (prices.scale_additional && prices.scale_additional[interval])
+                  ? prices.scale_additional[interval]
+                  : (interval === 'month' ? 9900 : 99000);
+                var monthly = (prices.scale_additional && prices.scale_additional.month)
+                  ? prices.scale_additional.month : 9900;
+                var cents = fabgReady
+                  ? (interval === 'month' ? Math.round(monthly * 0.75) : Math.round(monthly * 12 * 0.75))
+                  : addCents;
+                return I18n.formatCurrency(cents / 100, 'USD');
+              })()
             })) + '</div>'
           : '') +
         '<ul class="bp-plan-benefits">';
     info.benefit_keys.forEach(function (b) {
       html += '<li>' + checkIcon() + '<span>' + escHtml(t(b)) + '</span></li>';
+    });
+    (info.soon_benefit_keys || []).forEach(function (b) {
+      html += '<li class="bp-benefit-soon">' + soonIcon() + '<span>' + escHtml(t(b)) + '</span></li>';
     });
     html +=
         '</ul>' +
@@ -732,6 +774,13 @@
   function checkIcon() {
     return '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="flex-shrink:0">' +
       '<polyline points="20 6 9 17 4 12"/></svg>';
+  }
+
+  // Clock glyph for "coming soon" benefit rows - deliberately not the
+  // checkmark so a planned feature can't be mistaken for an included one.
+  function soonIcon() {
+    return '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0" aria-hidden="true">' +
+      '<circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14"/></svg>';
   }
 
   function cardIcon() {

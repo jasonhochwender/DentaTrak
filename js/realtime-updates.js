@@ -158,6 +158,12 @@
    * Process updates received from the server
    */
   function processUpdates(updates) {
+    // Under the consolidated "All practices" view there is no kanban DOM to
+    // patch - delegate to the org view's refresh handler instead.
+    if (window.__orgCaseViewActive && typeof window.orgCaseViewRefresh === 'function') {
+      window.orgCaseViewRefresh();
+      return;
+    }
     updates.forEach(function(update) {
       // Skip updates made by the current user
       if (update.updatedBy === currentUserEmail) {

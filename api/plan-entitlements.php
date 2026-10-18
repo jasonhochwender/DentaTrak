@@ -32,6 +32,20 @@ const PLAN_MAX_PRACTICES = [
 ];
 
 /**
+ * Owned practices included in each plan's base price. For capped plans
+ * (Operate, Control) this equals the PLAN_MAX_PRACTICES limit; for uncapped
+ * Scale it is the quantity covered by the base Price before the
+ * per-practice add-on is billed (api/scale-subscription-addons.php,
+ * api/create-checkout-session.php). Single source of truth for the "5
+ * included practices" rule - never hardcode it at call sites.
+ */
+const PLAN_INCLUDED_PRACTICES = [
+    'operate' => 1,
+    'control' => 2,
+    'scale'   => 5,
+];
+
+/**
  * Plan ordering, lowest to highest. Used by planMeetsTier() so capability
  * checks can ask "is this plan at least Control?" instead of enumerating
  * plans (`$plan === 'control' || $plan === 'scale'`) at each call site -
@@ -65,6 +79,14 @@ function getMaxOwnedPractices(string $plan): ?int {
         return PLAN_MAX_PRACTICES[$plan];
     }
     return PLAN_MAX_PRACTICES['operate'];
+}
+
+/**
+ * Owned practices included in a plan's base price before any per-practice
+ * add-on billing applies (see PLAN_INCLUDED_PRACTICES).
+ */
+function getIncludedPracticeCount(string $plan): int {
+    return PLAN_INCLUDED_PRACTICES[$plan] ?? PLAN_INCLUDED_PRACTICES['operate'];
 }
 
 /**

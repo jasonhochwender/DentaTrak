@@ -8,6 +8,7 @@ require_once __DIR__ . '/session.php';
 require_once __DIR__ . '/appConfig.php';
 require_once __DIR__ . '/feature-flags.php';
 require_once __DIR__ . '/practice-security.php';
+require_once __DIR__ . '/organization-access.php';
 
 header('Content-Type: application/json');
 
@@ -15,6 +16,12 @@ header('Content-Type: application/json');
 $currentPracticeId = requireValidPracticeContext();
 
 $caseId = $_GET['case_id'] ?? null;
+
+// Consolidated "All practices" view: a mention list scoped to a case must
+// come from the case's OWN practice, resolved server-side.
+if ($caseId !== null) {
+    $currentPracticeId = resolveCaseScopePracticeId($caseId);
+}
 
 // When a specific case is supplied, this request is part of the Comments
 // mention flow. Scope it to the Comments feature and to users who can

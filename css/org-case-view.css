@@ -1,0 +1,221 @@
+/* Consolidated "All practices" case view (Scale organizations)
+   Reuses the existing dashboard visual language; only rendered while the
+   organization scope is active. */
+
+/* The kanban board's `display: grid` would otherwise override the `hidden`
+   attribute and keep occupying layout height above this section. */
+.kanban-board[hidden],
+.case-list-view[hidden],
+.compact-case-view[hidden],
+.mobile-kanban-nav[hidden] {
+  display: none !important;
+}
+
+.org-case-view {
+  display: block;
+  width: 100%;
+  padding: 0 0 16px;
+}
+
+/* Summary counts */
+.org-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 0 0 16px;
+}
+
+.org-stat {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  background: var(--card-bg, #fff);
+  border: 1px solid var(--border-color, #e2e8f0);
+  min-width: 120px;
+}
+
+.org-stat-value {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text-primary, #0f172a);
+}
+
+.org-stat-label {
+  font-size: 12px;
+  color: var(--text-secondary, #64748b);
+}
+
+.org-stat-overdue .org-stat-value { color: var(--danger-color, #dc2626); }
+.org-stat-due-soon .org-stat-value { color: var(--warning-color, #d97706); }
+.org-stat-needs-review .org-stat-value { color: var(--info-color, #2563eb); }
+
+/* Table */
+.org-board-wrap {
+  overflow-x: auto;
+  background: var(--card-bg, #fff);
+  border: 1px solid var(--border-color, #e2e8f0);
+  border-radius: 8px;
+}
+
+.org-cases-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.org-cases-table thead th {
+  text-align: left;
+  padding: 10px 12px;
+  border-bottom: 2px solid var(--border-color, #e2e8f0);
+  white-space: nowrap;
+  background: var(--table-header-bg, #f8fafc);
+}
+
+.org-sort {
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  font-weight: 600;
+  color: var(--text-secondary, #475569);
+  cursor: pointer;
+}
+
+.org-sort:hover { color: var(--text-primary, #0f172a); }
+.org-sort:focus-visible {
+  outline: 2px solid var(--focus-color, #2563eb);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+.org-cases-table tbody td {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border-color, #e2e8f0);
+  vertical-align: middle;
+}
+
+.org-case-row { cursor: pointer; }
+.org-case-row:hover { background: var(--hover-bg, #f1f5f9); }
+.org-case-row:focus-visible {
+  outline: 2px solid var(--focus-color, #2563eb);
+  outline-offset: -2px;
+}
+.org-case-at-risk { background: var(--at-risk-bg, #fef2f2); }
+.org-case-at-risk:hover { background: var(--at-risk-hover-bg, #fee2e2); }
+
+.org-practice-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 600;
+  background: var(--badge-bg, #e0e7ff);
+  color: var(--badge-color, #3730a3);
+  white-space: nowrap;
+}
+
+/* Pagination */
+.org-pagination {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 12px;
+  flex-wrap: wrap;
+}
+
+.org-pagination button[disabled] { opacity: 0.5; cursor: not-allowed; }
+
+.org-page-size {
+  margin-left: auto;
+  padding: 4px 8px;
+  border: 1px solid var(--border-color, #cbd5e1);
+  border-radius: 6px;
+  background: var(--input-bg, #fff);
+  color: var(--text-primary, #0f172a);
+}
+
+/* Create-practice field inside the case modal */
+.org-create-practice-field {
+  margin-bottom: 16px;
+}
+
+.org-create-practice-field .field-hint {
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: var(--text-secondary, #64748b);
+}
+
+/* Create chooser dropdown */
+.org-create-chooser {
+  position: absolute;
+  z-index: 1000;
+  min-width: 220px;
+  background: var(--card-bg, #fff);
+  border: 1px solid var(--border-color, #e2e8f0);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  padding: 8px;
+  margin-top: 4px;
+}
+
+.org-create-chooser-title {
+  padding: 6px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-secondary, #64748b);
+}
+
+.org-create-chooser .practice-switcher-item {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Disabled view-mode toggle in org scope */
+.case-view-toggle-disabled .case-view-btn {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Responsive: collapse the table into stacked rows on small screens */
+@media (max-width: 768px) {
+  .org-cases-table thead { display: none; }
+
+  .org-cases-table,
+  .org-cases-table tbody,
+  .org-cases-table tr,
+  .org-cases-table td {
+    display: block;
+    width: 100%;
+  }
+
+  .org-case-row {
+    border-bottom: 2px solid var(--border-color, #e2e8f0);
+    padding: 8px 0;
+  }
+
+  .org-cases-table tbody td {
+    border-bottom: none;
+    padding: 4px 12px;
+  }
+
+  .org-cases-table tbody td::before {
+    content: attr(data-label);
+    display: inline-block;
+    min-width: 90px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: var(--text-secondary, #64748b);
+    margin-right: 8px;
+  }
+
+  .org-summary { gap: 8px; }
+  .org-stat { min-width: 0; flex: 1 1 40%; }
+}

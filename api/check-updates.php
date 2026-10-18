@@ -17,6 +17,7 @@ header('Content-Type: application/json');
 try {
     require_once __DIR__ . '/session.php';
     require_once __DIR__ . '/practice-security.php';
+    require_once __DIR__ . '/organization-access.php';
     require_once __DIR__ . '/cases-cache.php';
     require_once __DIR__ . '/user-display.php';
     require_once __DIR__ . '/encryption.php';
@@ -43,17 +44,57 @@ $since = isset($_GET['since']) ? (int)$_GET['since'] : 0;
 // helpers (never trust $_SESSION['user_email'] alone), and normalize
 // case for the assignment comparison below.
 $currentUserEmail = getCurrentUserEmail() ?? '';
-$hasLimitedVisibility = $currentPracticeId ? hasLimitedVisibility($currentPracticeId) : false;
+
+// Consolidated "All practices" view: poll updates across the authorized
+// organization scope; limited visibility is evaluated per practice.
+$scopePracticeIds = [(int)$currentPracticeId];
+$limitedScopePractices = [];
+if (orgCaseViewEntitled($pdo)) {
+    $scopePracticeIds = getOrgCaseViewPracticeIds($pdo);
+    foreach (getOrgCaseViewPractices($pdo) as $ap) {
+        if (!empty($ap['limited_visibility'])) {
+            $limitedScopePractices[(int)$ap['id']] = true;
+        }
+    }
+} else {
+    if ($currentPracticeId && hasLimitedVisibility($currentPracticeId)) {
+        $limitedScopePractices[(int)$currentPracticeId] = true;
+    }
+}
+
+// Assignment labels the user is a recipient of inside limited practices,
+// so label-assigned case updates are not hidden from them.
+$userLabelsByPractice = [];
+if (!empty($limitedScopePractices) && !empty($_SESSION['db_user_id'])) {
+    try {
+        $limitedIds = array_keys($limitedScopePractices);
+        $labelStmt = $pdo->prepare("
+            SELECT l.practice_id, LOWER(TRIM(l.label)) AS label
+            FROM practice_assignment_labels l
+            JOIN practice_assignment_label_recipients r ON r.label_id = l.id
+            WHERE r.user_id = ?
+              AND l.practice_id IN (" . implode(',', array_fill(0, count($limitedIds), '?')) . ")
+        ");
+        $labelStmt->execute(array_merge([(int)$_SESSION['db_user_id']], $limitedIds));
+        foreach ($labelStmt->fetchAll(PDO::FETCH_ASSOC) as $labelRow) {
+            $userLabelsByPractice[(int)$labelRow['practice_id']][(string)$labelRow['label']] = true;
+        }
+    } catch (PDOException $e) {
+        // Table may not exist - direct email matching only
+    }
+}
 
 try {
     // Ensure the case_updates table exists
     ensureCaseUpdatesTable();
-    
+
     global $pdo;
-    
-    // Get updates since the given timestamp for this practice
+
+    // Get updates since the given timestamp for the authorized scope.
+    // buildAuthorizedPracticeScopeSql never emits an unrestricted clause.
+    $scopeSql = buildAuthorizedPracticeScopeSql($scopePracticeIds, 'cu.practice_id');
     $stmt = $pdo->prepare("
-        SELECT cu.*, cc.case_id, cc.patient_first_name, cc.patient_last_name, 
+        SELECT cu.*, cc.case_id, cc.practice_id AS case_practice_id, cc.patient_first_name, cc.patient_last_name,
                cc.status, cc.assigned_to, cc.due_date, cc.case_type, cc.dentist_name,
                cc.tooth_shade, cc.material, cc.notes, cc.version,
                cc.patient_dob, cc.patient_gender, cc.drive_folder_id,
@@ -65,23 +106,29 @@ try {
         FROM case_updates cu
         JOIN cases_cache cc ON cu.case_id = cc.case_id
         LEFT JOIN users reviewer ON cc.reviewed_by_user_id = reviewer.id
-        WHERE cu.practice_id = :practice_id 
+        WHERE {$scopeSql}
           AND cu.updated_at > FROM_UNIXTIME(:since)
         ORDER BY cu.updated_at DESC
         LIMIT 50
     ");
     $stmt->execute([
-        'practice_id' => $currentPracticeId,
         'since' => $since
     ]);
-    
+
     $updates = [];
     while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
         // For limited visibility users, only include cases assigned to them
-        // (email comparison is case-insensitive, matching list-cases.php)
+        // (email comparison is case-insensitive, matching list-cases.php).
+        // Under the consolidated view this is evaluated against the case's
+        // OWN practice - limited in one practice does not hide updates
+        // from other authorized practices.
+        $rowPracticeId = (int)($row['case_practice_id'] ?? $row['practice_id'] ?? 0);
+        $rowLimited = isset($limitedScopePractices[$rowPracticeId]);
         $rowAssignedTo = strtolower(trim((string)($row['assigned_to'] ?? '')));
         $rowPreviousAssignedTo = strtolower(trim((string)($row['previous_assigned_to'] ?? '')));
-        if ($hasLimitedVisibility && $rowAssignedTo !== $currentUserEmail) {
+        $rowAssignedToUser = $rowAssignedTo === $currentUserEmail
+            || isset($userLabelsByPractice[$rowPracticeId][$rowAssignedTo]);
+        if ($rowLimited && !$rowAssignedToUser) {
             // Check if this was previously assigned to them (they need to know it was removed)
             if ($row['update_type'] === 'assignment' && $rowPreviousAssignedTo === $currentUserEmail) {
                 // Include this update so they know the case was unassigned from them
@@ -115,6 +162,7 @@ try {
             'reviewedByUserId' => isset($row['reviewed_by_user_id']) ? (int)$row['reviewed_by_user_id'] : null,
             'reviewedByName' => formatUserDisplayName($row['reviewer_first_name'] ?? '', $row['reviewer_last_name'] ?? '', $row['reviewer_email'] ?? ''),
             'reviewStatus' => !empty($row['reviewed_at']) ? 'reviewed' : 'needs_review',
+            'practiceId' => $rowPracticeId,
         ];
         
         // Parse JSON fields

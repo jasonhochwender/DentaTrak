@@ -6,6 +6,7 @@
 
 require_once __DIR__ . '/appConfig.php';
 require_once __DIR__ . '/practice-security.php';
+require_once __DIR__ . '/organization-access.php';
 require_once __DIR__ . '/case-activity-log.php';
 require_once __DIR__ . '/csrf.php';
 
@@ -36,6 +37,11 @@ if (empty($caseId)) {
 }
 
 try {
+    // SECURITY: Under the consolidated "All practices" view the case's own
+    // practice is resolved server-side so restore applies to the case's
+    // actual practice.
+    $currentPracticeId = resolveCaseScopePracticeId($caseId);
+
     // SECURITY: Verify this case belongs to the current practice and, for
     // Assigned Only users, is assigned to them.
     $caseInfo = requireCaseAccess($caseId, $currentPracticeId);

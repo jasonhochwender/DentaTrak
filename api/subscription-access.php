@@ -223,14 +223,59 @@ function getSubscriptionAccess(array $practice): array {
  * @return bool
  */
 function hasControlAccess(PDO $pdo, int $practiceId, string $userEmail = ''): bool {
+    return hasPlanTierAccess($pdo, $practiceId, $userEmail, 'control');
+}
+
+/**
+ * Single authoritative answer to "does this active practice currently have
+ * Scale-plan access?" - the shared entitlement gate for the upcoming Scale
+ * consolidated multi-practice view and organization-level Insights
+ * features.
+ *
+ * Identical contract to hasControlAccess(), only with a higher minimum
+ * tier: billing disabled passes everyone, a billing-bypassed owner passes
+ * the whole practice, an active trial (Stripe-trialing or DentaTrak's own)
+ * grants the entitlement, and past_due retains full access during the
+ * grace period - all inherited unchanged from the existing
+ * subscription/trial evaluation. Outside of a trial the practice's real
+ * subscription_plan must be at least Scale (planMeetsTier()).
+ *
+ * This is a permission-agnostic entitlement check: a Scale subscription
+ * enables the feature for the organization but grants no user-level
+ * permissions. Callers must separately enforce the user's authorized
+ * practice scope (api/organization-access.php) and any per-practice
+ * permission such as can_view_analytics.
+ *
+ * @param PDO    $pdo
+ * @param int    $practiceId
+ * @param string $userEmail  Optional billing-bypass shortcut; see
+ *                           hasControlAccess().
+ * @return bool
+ */
+function hasScaleAccess(PDO $pdo, int $practiceId, string $userEmail = ''): bool {
+    return hasPlanTierAccess($pdo, $practiceId, $userEmail, 'scale');
+}
+
+/**
+ * Shared implementation of the "does this practice's subscription currently
+ * meet tier X" gate used by hasControlAccess()/hasScaleAccess().
+ *
+ * @param PDO    $pdo
+ * @param int    $practiceId
+ * @param string $userEmail
+ * @param string $minimumTier 'operate'|'control'|'scale' (see
+ *                            plan-entitlements.php PLAN_TIER_RANK)
+ * @return bool
+ */
+function hasPlanTierAccess(PDO $pdo, int $practiceId, string $userEmail, string $minimumTier): bool {
     $billingEnabledRaw = getenv('BILLING_ENABLED');
     if ($billingEnabledRaw === false) {
         $billingEnabledRaw = $_ENV['BILLING_ENABLED'] ?? '';
     }
     $billingEnabled = filter_var($billingEnabledRaw, FILTER_VALIDATE_BOOLEAN);
 
-    // Master billing gate: matches every other Control check in the app —
-    // when billing isn't enabled, everyone is treated as Control.
+    // Master billing gate: matches every other plan-tier check in the app —
+    // when billing isn't enabled, everyone is treated as entitled.
     if (!$billingEnabled) {
         return true;
     }
@@ -245,15 +290,16 @@ function hasControlAccess(PDO $pdo, int $practiceId, string $userEmail = ''): bo
     }
 
     // Active practice trial (Stripe-trialing or DentaTrak's own trial)
-    // always grants Control-level access — preserves existing trial
+    // always grants top-tier access — preserves existing trial
     // behavior; do not require a specific subscription_plan here.
     if ($access['status'] === 'trialing') {
         return true;
     }
 
-    // Control or higher (Scale includes everything in Control).
+    // Tier check (plans are cumulative: Scale includes everything in
+    // Control, which includes everything in Operate).
     require_once __DIR__ . '/plan-entitlements.php';
-    return planMeetsTier($access['subscription_plan'] ?? null, 'control');
+    return planMeetsTier($access['subscription_plan'] ?? null, $minimumTier);
 }
 
 /**

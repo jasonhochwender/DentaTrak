@@ -1065,6 +1065,7 @@ function handleDescribePlanConfig(array $appConfig, array $input) {
         }
         $plans[$plan] = [
             'max_practices'   => getMaxOwnedPractices($plan),
+            'included_practices' => getIncludedPracticeCount($plan),
             'display_name'    => getPlanDisplayName($plan),
             'upgrade_target'  => PLAN_UPGRADE_TARGET[$plan] ?? null,
             'meets_control'   => planMeetsTier($plan, 'control'),
@@ -1121,7 +1122,7 @@ function handlePreviewScaleCheckout(PDO $pdo, array $appConfig, array $input) {
         $ownedCount = getOwnedPracticeCount($pdo, (int)$userId);
         $basePriceId = getStripePriceId('scale', $interval, $appConfig);
         $addOnPriceId = getScaleAdditionalPriceId($interval, $appConfig);
-        $addOnQty = max(0, $ownedCount - 5);
+        $addOnQty = max(0, $ownedCount - getIncludedPracticeCount('scale'));
 
         $lineItems = [[
             'price'    => $basePriceId,

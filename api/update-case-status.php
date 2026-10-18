@@ -3,6 +3,7 @@
 require_once __DIR__ . '/session.php'; // centralized session handling
 header('Content-Type: application/json');
 require_once __DIR__ . '/practice-security.php';
+require_once __DIR__ . '/organization-access.php';
 require_once __DIR__ . '/workflow-stages.php';
 require_once __DIR__ . '/cases-cache.php';
 require_once __DIR__ . '/case-activity-log.php';
@@ -50,6 +51,13 @@ if ($caseId === '' || $status === '') {
     ]);
     exit;
 }
+
+// SECURITY: Under the consolidated "All practices" view the case's own
+// practice is resolved server-side before status validation, so the
+// workflow-stage whitelist applies to the case's actual practice.
+// In single-practice mode this is a no-op.
+$currentPracticeId = resolveCaseScopePracticeId($caseId);
+$terminalStatus = getLastActiveWorkflowColumnId($currentPracticeId);
 
 // Authoritative status validation: status must be one of the six internal
 // workflow values defined by getWorkflowStageOrder() (cases-cache.php).

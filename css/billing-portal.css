@@ -527,6 +527,16 @@
   margin-top: 2px;
 }
 
+/* Planned ("coming soon") benefits: muted text and a clock glyph instead
+   of the checkmark so they can't be read as included features. */
+.bp-plan-benefits li.bp-benefit-soon {
+  color: #6b7280;
+}
+
+.bp-plan-benefits li.bp-benefit-soon svg {
+  color: #9ca3af;
+}
+
 .bp-plan-price {
   font-size: clamp(1.1rem, 2.2vw, 1.5rem);
   font-weight: 800;
@@ -773,6 +783,14 @@
 [data-theme="dark"] .bp-plan-practices,
 [data-theme="dark"] .bp-plan-benefits li {
   color: var(--text-secondary);
+}
+
+[data-theme="dark"] .bp-plan-benefits li.bp-benefit-soon {
+  color: var(--text-tertiary, #94a3b8);
+}
+
+[data-theme="dark"] .bp-plan-benefits li.bp-benefit-soon svg {
+  color: var(--text-tertiary, #94a3b8);
 }
 
 /* Dark theme - FABG member benefit */

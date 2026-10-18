@@ -6,6 +6,7 @@
 
 require_once __DIR__ . '/appConfig.php';
 require_once __DIR__ . '/practice-security.php';
+require_once __DIR__ . '/organization-access.php';
 require_once __DIR__ . '/user-manager.php';
 require_once __DIR__ . '/cases-cache.php';
 require_once __DIR__ . '/case-activity-log.php';
@@ -45,6 +46,11 @@ if (!isset($data['caseId']) || empty($data['caseId'])) {
 
 $caseId = $data['caseId'];
 $assignedTo = isset($data['assignedTo']) ? $data['assignedTo'] : '';
+
+// SECURITY: Under the consolidated "All practices" view the case's own
+// practice is resolved server-side; assignment targets, lab history and
+// notifications below apply to the case's actual practice.
+$currentPracticeId = resolveCaseScopePracticeId($caseId);
 
 // SECURITY: Verify this case belongs to the current practice and, for
 // Assigned Only users, is currently assigned to them, before allowing the

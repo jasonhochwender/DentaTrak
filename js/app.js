@@ -5226,7 +5226,14 @@ document.addEventListener('DOMContentLoaded', function () {
         return;
       }
 
-      fetch('api/get-dentist-suggestions.php?q=' + encodeURIComponent(query), {
+      // Under the consolidated "All practices" view, suggestions are
+      // scoped to the practice of the case currently open in the modal
+      // (validated server-side against the authorized org scope).
+      var suggestionsUrl = 'api/get-dentist-suggestions.php?q=' + encodeURIComponent(query);
+      if (window.__orgCaseModalPracticeId) {
+        suggestionsUrl += '&practice_id=' + encodeURIComponent(window.__orgCaseModalPracticeId);
+      }
+      fetch(suggestionsUrl, {
         credentials: 'same-origin'
       })
       .then(function(response) { return response.json(); })
@@ -10165,6 +10172,21 @@ document.addEventListener('DOMContentLoaded', function () {
 
   // Load existing cases from Google Drive when the page loads
   function loadExistingCases() {
+    // Consolidated "All practices" scope: the org-case-view module owns data
+    // loading and renders its own loading state, so skip the single-practice
+    // list-cases fetch and release the page overlay.
+    if (window.__orgCaseViewActive) {
+      setTimeout(function() {
+        appInitialized = true;
+        window.dispatchEvent(new CustomEvent('cardsLoaded'));
+        if (pageLoadingOverlay) {
+          pageLoadingOverlay.style.opacity = '0';
+          setTimeout(function() { pageLoadingOverlay.style.display = 'none'; }, 500);
+        }
+      }, 300);
+      return;
+    }
+
     // Get reference to kanban board
     var kanbanBoard = document.querySelector('.kanban-board');
 
@@ -11770,6 +11792,10 @@ document.addEventListener('DOMContentLoaded', function () {
 
   function activateInsightsSubview(view, updateHash) {
     updateHash = updateHash !== false;
+    // Organization scope renders a single consolidated Insights pane inside
+    // #insights-tab - the practice/labs subview distinction does not apply.
+    var orgMode = !!window.__orgCaseViewActive;
+    if (orgMode) { view = 'practice'; }
     mainTabPanes.forEach(p => p.classList.remove('active'));
     const targetPane = document.getElementById(view === 'labs' ? 'lab-insights-tab' : 'insights-tab');
     if (targetPane) { targetPane.classList.add('active'); }
@@ -11788,7 +11814,7 @@ document.addEventListener('DOMContentLoaded', function () {
     // (true / false / null = evaluation failed) and renders the upgrade or
     // error state whenever it is not true, so protected data must never be
     // fetched unless it is exactly true.
-    var hasInsightsAccess = window.userHasControlAccess === true;
+    var hasInsightsAccess = orgMode ? !!window.__orgInsightsEligible : (window.userHasControlAccess === true);
 
     // Mark a pending Insights visit: the next data load for this view carries
     // the X-Insights-Visit header so the server records a last-viewed
@@ -11801,7 +11827,11 @@ document.addEventListener('DOMContentLoaded', function () {
     saveInsightsSubview(view);
 
     if (hasInsightsAccess) {
-      if (view === 'practice') {
+      if (orgMode) {
+        if (typeof window.loadOrgInsights === 'function') {
+          window.loadOrgInsights();
+        }
+      } else if (view === 'practice') {
         loadAnalyticsScripts();
       } else if (view === 'labs') {
         loadLabInsightsScripts();
@@ -11831,7 +11861,7 @@ document.addEventListener('DOMContentLoaded', function () {
       }
 
       // Block Insights tab when the user lacks analytics permission or the trial is expired
-      if (targetTab === 'insights' && !window.userCanViewAnalytics) {
+      if (targetTab === 'insights' && !window.userCanViewAnalytics && !window.__orgInsightsEligible) {
         showToast(t('insights.no_permission'), 'warning');
         return;
       }
@@ -11961,6 +11991,7 @@ document.addEventListener('DOMContentLoaded', function () {
     };
     document.body.appendChild(chartScript);
   }
+  window.ensureChartJsLoaded = ensureChartJsLoaded;
 
   // Lazy load Chart.js and analytics-pro.js
   // Helpers for visible loading and failure states inside Insights tabs.
@@ -12646,7 +12677,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     // Show loading state
-    tbody.innerHTML = '<tr><td colspan="7" class="loading-row">' + t('archive.loading') + '</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="' + (window.__orgCaseViewActive ? 8 : 7) + '" class="loading-row">' + t('archive.loading') + '</td></tr>';
     countSpan.textContent = t('common.loading');
 
     fetch(`api/get-archived-cases.php?${archivedQueryParams()}`, {
@@ -12677,12 +12708,12 @@ document.addEventListener('DOMContentLoaded', function () {
         const end = Math.min(archivedCurrentPage * archivedPageSize, data.totalCount);
         countSpan.textContent = t('archive.pagination.results_range', {start: start, end: end, total: data.totalCount});
       } else {
-        tbody.innerHTML = '<tr><td colspan="7" class="loading-row">' + t('archive.error.loading') + '</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="' + (window.__orgCaseViewActive ? 8 : 7) + '" class="loading-row">' + t('archive.error.loading') + '</td></tr>';
         countSpan.textContent = t('archive.error.loading_count');
       }
     })
     .catch(error => {
-      tbody.innerHTML = '<tr><td colspan="7" class="loading-row">' + t('archive.error.loading') + '</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="' + (window.__orgCaseViewActive ? 8 : 7) + '" class="loading-row">' + t('archive.error.loading') + '</td></tr>';
       countSpan.textContent = t('archive.error.loading_count');
     });
   }
@@ -12721,10 +12752,15 @@ document.addEventListener('DOMContentLoaded', function () {
 
   function displayArchivedCases(cases) {
     const tbody = document.getElementById('archivedCasesTableBody');
+    // The archived table gains a Practice column under the consolidated
+    // "All practices" scope (org-aware get-archived-cases.php returns
+    // practice_name on every row).
+    const orgScope = !!window.__orgCaseViewActive;
+    const colspan = orgScope ? 8 : 7;
 
     if (cases.length === 0) {
       if (archivedFiltersAreActive()) {
-        tbody.innerHTML = '<tr><td colspan="7" class="loading-row archived-empty-filtered">' +
+        tbody.innerHTML = '<tr><td colspan="' + colspan + '" class="loading-row archived-empty-filtered">' +
           escapeHtml(t('archive.empty.no_matches')) + ' ' +
           '<button type="button" class="btn-clear-filters archived-empty-clear" id="archivedEmptyClear">' +
           escapeHtml(t('archive.filters.clear_filters')) + '</button></td></tr>';
@@ -12733,7 +12769,7 @@ document.addEventListener('DOMContentLoaded', function () {
           emptyClear.addEventListener('click', clearArchivedFilters);
         }
       } else {
-        tbody.innerHTML = '<tr><td colspan="7" class="loading-row">' + escapeHtml(t('archive.empty.no_cases')) + '</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="' + colspan + '" class="loading-row">' + escapeHtml(t('archive.empty.no_cases')) + '</td></tr>';
       }
       return;
     }
@@ -12741,6 +12777,7 @@ document.addEventListener('DOMContentLoaded', function () {
     tbody.innerHTML = cases.map(case_ => `
       <tr>
         <td>${escapeHtml((case_.patientFirstName || case_.patient_first_name || '') + ' ' + (case_.patientLastName || case_.patient_last_name || '')).trim()}</td>
+        ${orgScope ? '<td class="archived-practice-cell">' + escapeHtml(case_.practice_name || case_.practiceName || '') + '</td>' : ''}
         <td>${escapeHtml(case_.dentistName || case_.dentist_name || '')}</td>
         <td>${getCaseTypeDisplayLabel(case_.caseType || case_.case_type) || ''}</td>
         <td>${case_.status ? escapeHtml(getStageLabel(case_.status)) : ''}</td>

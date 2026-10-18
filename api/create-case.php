@@ -25,6 +25,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     requireCsrfToken();
 }
 
+// Consolidated "All practices" create flow: the client declares the
+// target practice explicitly. Validation (organization scope + live Scale
+// entitlement + authorized practice set) happens inside
+// resolveOrgAuthorizedPracticeParam(), which exits 403 on any id outside
+// the authorized set - a missing/empty param falls back to the session
+// practice unchanged.
+require_once __DIR__ . '/organization-access.php';
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && empty($_POST['caseId'])) {
+    if (isset($_POST['practice_id']) && $_POST['practice_id'] !== '') {
+        $currentPracticeId = resolveOrgAuthorizedPracticeParam($_POST['practice_id']);
+        // Create permission is per-practice; org visibility alone never
+        // grants it.
+        if (!canEditCases($currentPracticeId)) {
+            http_response_code(403);
+            echo json_encode([
+                'success' => false,
+                'message' => t('api.cases.access_denied')
+            ]);
+            exit;
+        }
+    }
+}
+
 // Disable PHP error display for API - return only JSON
 ini_set('display_errors', '0');
 // Suppress deprecation notices
@@ -51,7 +74,9 @@ try {
     require_once __DIR__ . '/google-drive.php';
 
 // Check if backup is enabled and the practice has a Drive folder configured
-if (isGoogleDriveBackupEnabled() && !isPracticeCreatorDriveConnected()) {
+// (pass the resolved target practice - under the consolidated create flow
+// it may differ from the session anchor practice).
+if (isGoogleDriveBackupEnabled($currentPracticeId) && !isPracticeCreatorDriveConnected($currentPracticeId)) {
     http_response_code(401);
     echo json_encode([
         'success' => false,

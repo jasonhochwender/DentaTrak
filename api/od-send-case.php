@@ -21,6 +21,7 @@
 require_once __DIR__ . '/session.php'; // centralized session handling
 header('Content-Type: application/json');
 require_once __DIR__ . '/practice-security.php';
+require_once __DIR__ . '/organization-access.php';
 require_once __DIR__ . '/case-activity-log.php';
 require_once __DIR__ . '/csrf.php';
 require_once __DIR__ . '/security-headers.php';
@@ -52,6 +53,11 @@ if ($caseId === '') {
     echo json_encode(['success' => false, 'message' => t('od_send.case_required')]);
     exit;
 }
+
+// SECURITY: Under the consolidated "All practices" view the case's own
+// practice is resolved server-side so the integration connection and
+// payload resolution below apply to the case's actual practice.
+$currentPracticeId = resolveCaseScopePracticeId($caseId);
 
 // The case must exist inside the verified practice - case ids are
 // unguessable but the boundary is always enforced explicitly.

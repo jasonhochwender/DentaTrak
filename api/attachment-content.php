@@ -18,6 +18,7 @@
 require_once __DIR__ . '/session.php';
 require_once __DIR__ . '/appConfig.php';
 require_once __DIR__ . '/practice-security.php';
+require_once __DIR__ . '/organization-access.php';
 require_once __DIR__ . '/hipaa-compliance.php';
 require_once __DIR__ . '/gcs-storage.php';
 require_once __DIR__ . '/csrf.php';
@@ -67,6 +68,26 @@ if (empty($storagePath)) {
     exit;
 }
 
+// SECURITY: Under the consolidated "All practices" view an attachment path
+// may legitimately belong to another authorized practice in the current
+// organization - the path embeds the practice id itself
+// (cases/{practiceId}/{caseId}/...). When it differs from the session
+// practice it must resolve to an authorized practice; pending uploads are
+// still restricted to the session practice (creation happens in
+// single-practice mode only). The prefix check below is unchanged.
+$storagePathParts = explode('/', $storagePath);
+$pathPracticeId = (int)($storagePathParts[1] ?? 0);
+$pathCaseId = $storagePathParts[2] ?? '';
+if ($pathPracticeId !== (int)$currentPracticeId) {
+    $orgAllowsPath = $pathPracticeId > 0
+        && $pathCaseId !== '' && strpos($pathCaseId, 'pending_') !== 0
+        && orgCaseViewEntitled($pdo)
+        && in_array($pathPracticeId, getOrgCaseViewPracticeIds($pdo), true);
+    if ($orgAllowsPath) {
+        $currentPracticeId = $pathPracticeId;
+    }
+}
+
 // SECURITY: Validate storage path belongs to this practice
 $expectedPrefix = "cases/{$currentPracticeId}/";
 if (strpos($storagePath, $expectedPrefix) !== 0) {
@@ -95,8 +116,6 @@ if (strpos($storagePath, '..') !== false) {
 
 // SECURITY: For assigned-only users, also verify the specific case.
 // Pending uploads (cases/{practiceId}/pending_.../...) precede case creation.
-$storagePathParts = explode('/', $storagePath);
-$pathCaseId = $storagePathParts[2] ?? '';
 if ($pathCaseId !== '' && strpos($pathCaseId, 'pending_') !== 0) {
     requireCaseAccess($pathCaseId, $currentPracticeId);
 }

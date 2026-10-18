@@ -291,7 +291,7 @@ try {
     // practices are billed per unit as an add-on line item.
     if ($plan === 'scale') {
         $ownedPracticeCount = getOwnedPracticeCount($pdo, $ownerUserId);
-        $additionalQuantity = max(0, $ownedPracticeCount - 5);
+        $additionalQuantity = max(0, $ownedPracticeCount - getIncludedPracticeCount('scale'));
         if ($additionalQuantity > 0) {
             // FABG annual uses the dedicated 12x add-on Price — the standard
             // annual add-on Price also embeds the two-months-free savings.

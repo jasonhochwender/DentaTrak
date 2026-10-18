@@ -27,6 +27,7 @@ require_once __DIR__ . '/practice-security.php';
 require_once __DIR__ . '/billing-bypass.php';
 require_once __DIR__ . '/subscription-access.php';
 require_once __DIR__ . '/subscription-owner.php';
+require_once __DIR__ . '/plan-entitlements.php';
 require_once __DIR__ . '/fabg-billing.php';
 
 try {
@@ -119,6 +120,27 @@ try {
     // ── Evaluate access state ────────────────────────────────────────────────
     $access = getSubscriptionAccess($mappedRow);
 
+    // ── Organization practice usage ──────────────────────────────────────────
+    // The subscription is purchased by the organization (the owner's account),
+    // so usage counts every practice the owner owns — not just the session
+    // practice. `included` is the base-price allowance (Scale: 5) and
+    // `additional` is the count billed as per-practice add-ons; `max` is null
+    // for uncapped plans so the UI never implies five is a hard limit.
+    $practiceUsage = null;
+    if ($hasSubscription && $ownerUserId !== null) {
+        $planSlug = (string)($subscription['plan'] ?? '');
+        if (isKnownPlan($planSlug)) {
+            $owned = getOwnedPracticeCount($pdo, $ownerUserId);
+            $practiceUsage = [
+                'plan'       => $planSlug,
+                'owned'      => $owned,
+                'included'   => getIncludedPracticeCount($planSlug),
+                'additional' => max(0, $owned - getIncludedPracticeCount($planSlug)),
+                'max'        => getMaxOwnedPractices($planSlug),
+            ];
+        }
+    }
+
     // ── Display prices from config (cents) ───────────────────────────────────
     $displayPrices = $appConfig['stripe']['display_prices'] ?? [];
 
@@ -161,6 +183,7 @@ try {
             ],
             'display_prices'       => [],
             'fabg'                 => null,
+            'practice_usage'       => null,
         ]);
         exit;
     }
@@ -174,6 +197,7 @@ try {
         'access'               => $access,
         'display_prices'       => $displayPrices,
         'fabg'                 => $fabg,
+        'practice_usage'       => $practiceUsage,
     ]);
 
 } catch (PDOException $e) {

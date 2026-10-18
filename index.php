@@ -177,7 +177,9 @@ foreach (['operate', 'control', 'scale'] as $plan) {
     .hero h1 { font-size: clamp(2.6rem, 6vw, 4.6rem); font-weight: 700; line-height: 1.08; letter-spacing: -0.03em; max-width: 900px; margin: 0 auto 24px; }
     .hero .lead { margin: 0 auto 34px; }
     .hero-actions { display: flex; justify-content: center; gap: 16px; flex-wrap: wrap; margin-bottom: 14px; }
-    .hero-trial { font-size: 0.9rem; color: var(--dt-ink-muted); margin-bottom: 56px; }
+    .hero-trial { font-size: 0.9rem; color: var(--dt-ink-muted); margin-bottom: 18px; }
+    .hero-trust { font-size: 0.88rem; font-weight: 600; color: var(--dt-ink-secondary); margin-bottom: 6px; }
+    .hero-trust-note { font-size: 0.78rem; color: var(--dt-ink-muted); margin-bottom: 56px; }
 
     /* Product board */
     .product-preview { background: #fff; border: 1px solid var(--dt-border); border-radius: 24px; box-shadow: var(--dt-shadow); overflow: hidden; text-align: left; }
@@ -185,6 +187,8 @@ foreach (['operate', 'control', 'scale'] as $plan) {
     .app-brand { display: flex; align-items: center; gap: 10px; font-size: 1rem; font-weight: 700; }
     .app-brand img { height: auto; width: auto; max-width: 105px; object-fit: contain; display: block; }
     .app-practice { font-size: 0.78rem; color: var(--dt-ink-muted); padding: 4px 10px; background: #fff; border: 1px solid var(--dt-border); border-radius: 100px; }
+    .app-header-right { display: flex; align-items: center; gap: 8px; }
+    .app-fictional { font-size: 0.68rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: #92400e; padding: 3px 8px; background: #fef3c7; border: 1px solid #fde68a; border-radius: 100px; white-space: nowrap; }
     .app-tabs { display: flex; align-items: center; gap: 8px; padding: 10px 20px; background: #fafafa; border-bottom: 1px solid var(--dt-border); font-size: 0.85rem; font-weight: 600; }
     .app-tab { padding: 6px 12px; border-radius: 8px; color: var(--dt-ink-muted); background: transparent; border: 1px solid transparent; font: inherit; font-size: 0.85rem; font-weight: 600; cursor: pointer; transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease; }
     .app-tab:hover { color: var(--dt-ink); }
@@ -400,6 +404,8 @@ foreach (['operate', 'control', 'scale'] as $plan) {
     .plan ul { list-style: none; flex: 1; }
     .plan li { font-size: 0.9rem; padding: 6px 0; padding-left: 20px; position: relative; }
     .plan li::before { content: '✓'; position: absolute; left: 0; color: var(--dt-blue); font-weight: 700; }
+    .plan li.plan-soon { color: var(--dt-ink-muted); }
+    .plan li.plan-soon::before { content: ''; }
     .plan-extra { margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--dt-border); font-size: 0.85rem; color: var(--dt-ink-secondary); }
 
     /* Final CTA */
@@ -645,6 +651,14 @@ foreach (['operate', 'control', 'scale'] as $plan) {
     .insights .feature-card:nth-child(3) { border-top: 3px solid #f59e0b; }
     .insights .feature-card:nth-child(4) { border-top: 3px solid #22c55e; }
 
+    /* Already-tracking comparison: four question cards */
+    .compare-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-top: 48px; }
+    .compare-card { background: #fff; border: 1px solid var(--dt-border); border-radius: 14px; padding: 28px 26px; box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04); }
+    .compare-card h3 { font-size: 1.05rem; font-weight: 700; margin: 0 0 10px; color: var(--dt-ink); line-height: 1.35; }
+    .compare-card p { font-size: 0.92rem; color: var(--dt-ink-secondary); line-height: 1.6; margin: 0; }
+    @media (max-width: 720px) {
+      .compare-grid { grid-template-columns: 1fr; }
+    }
     .section-note { font-size: 0.95rem; color: var(--dt-ink-muted); margin-top: 28px; }
     .section-cta { margin-top: 28px; }
 
@@ -1045,16 +1059,21 @@ foreach (['operate', 'control', 'scale'] as $plan) {
       <p class="lead"><?php echo t('marketing.hero.lead'); ?></p>
       <div class="hero-actions">
         <a href="<?= $baseUrl ?>login.php" class="btn btn-primary"><?php echo t('marketing.hero.start_free'); ?></a>
-        <a href="#demo-modal" class="btn btn-secondary" data-open-demo-modal id="open-demo-hero"><?php echo t('marketing.demo.request_demo'); ?></a>
+        <a href="#how-it-works" class="btn btn-secondary"><?php echo t('marketing.hero.see_how'); ?></a>
       </div>
-      <p class="hero-trial"><a href="#how-it-works" class="hero-link"><?php echo t('marketing.demo.hero_link'); ?></a> <span class="trial-sep">&bull;</span> <?php echo t('marketing.hero.trial_note'); ?></p>
+      <p class="hero-trial"><?php echo t('marketing.hero.trial_note'); ?></p>
+      <p class="hero-trust"><?php echo t('marketing.hero.trust_line'); ?></p>
+      <p class="hero-trust-note"><?php echo t('marketing.hero.trust_plan_note'); ?></p>
 
       <div class="product-preview">
         <div class="app-header">
           <div class="app-brand">
             <img src="images/main.png" alt="" aria-hidden="true">
           </div>
-          <span class="app-practice">Demo Dental Practice</span>
+          <span class="app-header-right">
+            <span class="app-fictional"><?php echo t('marketing.demo.fictional_badge'); ?></span>
+            <span class="app-practice">Demo Dental Practice</span>
+          </span>
         </div>
         <div class="app-tabs" role="tablist" aria-label="Product preview">
           <button class="app-tab active" id="demo-tab-cases" role="tab" aria-selected="true" aria-controls="demo-cases">Cases</button>
@@ -1074,13 +1093,13 @@ foreach (['operate', 'control', 'scale'] as $plan) {
               <div class="board">
                 <div class="board-col">
                   <div class="board-stage stage-originated"><span>Originated</span><span class="stage-count">2</span></div>
-                  <div class="case-card due">
+                  <div class="case-card appt">
                     <h4>Hannah Lindqvist</h4>
                     <div class="case-type">Crown</div>
                     <div class="case-meta">Due: Mar 12</div>
                     <div class="case-meta">Patient Appt: Mar 10</div>
-                    <div class="case-meta">Dr. Rivera</div>
-                    <span class="case-flag flag-due">Due Soon</span>
+                    <div class="case-meta">Precision Dental Lab &middot; Dr. Rivera</div>
+                    <span class="case-flag flag-appt">Appt Risk</span>
                   </div>
                   <div class="case-card">
                     <h4>Michael Torres</h4>
@@ -1202,7 +1221,9 @@ foreach (['operate', 'control', 'scale'] as $plan) {
                     <span><strong>Created</strong> Mar 2 &middot; Dr. Rivera</span>
                     <span><strong>Status Changed</strong> Mar 6</span>
                     <span><strong>Lab</strong> Precision Dental Lab</span>
+                    <span><strong>Files</strong> shade_photo.jpg &middot; rx_form.pdf</span>
                     <span><strong>Notes</strong> Shade mismatch &mdash; verify photos before remake.</span>
+                    <span><strong>Latest comment</strong> Front Desk: &ldquo;Lab confirmed the revision ships Mar 12.&rdquo;</span>
                   </div>
                   <div class="demo-list-row" role="row">
                     <span class="demo-caret" aria-hidden="true">&#9656;</span>
@@ -1253,8 +1274,8 @@ foreach (['operate', 'control', 'scale'] as $plan) {
                   <div class="di-metric-value" data-value="11">0</div>
                   <div class="di-metric-label">Active Cases</div>
                 </div>
-                <div class="di-metric due" data-target="2" data-prefix="">
-                  <div class="di-metric-value" data-value="2">0</div>
+                <div class="di-metric due" data-target="1" data-prefix="">
+                  <div class="di-metric-value" data-value="1">0</div>
                   <div class="di-metric-label">Due Soon</div>
                 </div>
                 <div class="di-metric late" data-target="1" data-prefix="">
@@ -1274,16 +1295,16 @@ foreach (['operate', 'control', 'scale'] as $plan) {
                     <svg viewBox="0 0 100 100" aria-label="Case flow status donut chart">
                       <circle class="di-donut-track" cx="50" cy="50" r="40"></circle>
                       <circle class="di-donut-seg" cx="50" cy="50" r="40" stroke="#22c55e" stroke-dasharray="0 251.2" data-pct="59" transform="rotate(-90 50 50)"></circle>
-                      <circle class="di-donut-seg" cx="50" cy="50" r="40" stroke="#3b82f6" stroke-dasharray="0 251.2" data-pct="17" transform="rotate(-90 50 50)"></circle>
-                      <circle class="di-donut-seg" cx="50" cy="50" r="40" stroke="#8b5cf6" stroke-dasharray="0 251.2" data-pct="8" transform="rotate(-90 50 50)"></circle>
+                      <circle class="di-donut-seg" cx="50" cy="50" r="40" stroke="#3b82f6" stroke-dasharray="0 251.2" data-pct="8" transform="rotate(-90 50 50)"></circle>
+                      <circle class="di-donut-seg" cx="50" cy="50" r="40" stroke="#8b5cf6" stroke-dasharray="0 251.2" data-pct="17" transform="rotate(-90 50 50)"></circle>
                       <circle class="di-donut-seg" cx="50" cy="50" r="40" stroke="#dc2626" stroke-dasharray="0 251.2" data-pct="8" transform="rotate(-90 50 50)"></circle>
                       <circle class="di-donut-seg" cx="50" cy="50" r="40" stroke="#14b8a6" stroke-dasharray="0 251.2" data-pct="8" transform="rotate(-90 50 50)"></circle>
                     </svg>
                   </div>
                   <div class="di-legend" aria-hidden="true">
                     <span><span class="di-legend-dot" style="background:#22c55e"></span>On Track (7)</span>
-                    <span><span class="di-legend-dot" style="background:#3b82f6"></span>Due Soon (2)</span>
-                    <span><span class="di-legend-dot" style="background:#8b5cf6"></span>Appt Risk (1)</span>
+                    <span><span class="di-legend-dot" style="background:#3b82f6"></span>Due Soon (1)</span>
+                    <span><span class="di-legend-dot" style="background:#8b5cf6"></span>Appt Risk (2)</span>
                     <span><span class="di-legend-dot" style="background:#dc2626"></span>Late (1)</span>
                     <span><span class="di-legend-dot" style="background:#14b8a6"></span>Delivered (1)</span>
                   </div>
@@ -1320,7 +1341,7 @@ foreach (['operate', 'control', 'scale'] as $plan) {
                   <h4>Practice &amp; Lab Performance</h4>
                   <div class="di-kpis">
                     <div class="di-kpi">
-                      <div class="di-kpi-value">1</div>
+                      <div class="di-kpi-value">2</div>
                       <div class="di-kpi-label">Appointment Risk</div>
                     </div>
                     <div class="di-kpi">
@@ -1384,7 +1405,7 @@ foreach (['operate', 'control', 'scale'] as $plan) {
                 </div>
                 <div>
                   <h4>Recommendation</h4>
-                  <p>Hannah Lindqvist's crown is due soon and her patient appointment is Mar 10. Confirm Precision Dental Lab will deliver by Mar 9 to avoid a chair-side delay.</p>
+                  <p>Hannah Lindqvist's crown is flagged Appointment Risk: her patient appointment is Mar 10 but the case is due Mar 12. Confirm Precision Dental Lab will deliver by Mar 9 to avoid a chair-side delay.</p>
                 </div>
               </div>
             </div>
@@ -1417,6 +1438,22 @@ foreach (['operate', 'control', 'scale'] as $plan) {
             <p>Crown #14 &middot; Due Mar 18<br>Dr. Rivera &middot; Precision Dental Lab<br>Patient appt Mar 19 &middot; Revision 2</p>
           </div>
         </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="already-tracking" class="section compare">
+    <div class="container">
+      <span class="eyebrow" data-reveal><?php echo t('marketing.compare.eyebrow'); ?></span>
+      <h2 data-reveal><?php echo t('marketing.compare.title'); ?></h2>
+      <p class="lead" data-reveal><?php echo t('marketing.compare.lead'); ?></p>
+      <div class="compare-grid">
+        <?php for ($i = 1; $i <= 4; $i++) : ?>
+        <div class="compare-card" data-reveal data-reveal-stagger="<?php echo $i; ?>" data-reveal-delay="150">
+          <h3><?php echo t('marketing.compare.q' . $i); ?></h3>
+          <p><?php echo t('marketing.compare.a' . $i); ?></p>
+        </div>
+        <?php endfor; ?>
       </div>
     </div>
   </section>
@@ -1482,22 +1519,22 @@ foreach (['operate', 'control', 'scale'] as $plan) {
         <div class="attention-col" data-reveal data-reveal-stagger="2" data-reveal-delay="150">
           <div class="attention-title due"><?php echo t('marketing.attention.due_soon'); ?></div>
           <div class="case-card due" data-reveal data-reveal-stagger="2" data-reveal-delay="250">
-            <h4>Hannah Lindqvist</h4>
-            <div class="case-type">Crown</div>
-            <div class="case-meta">Due: Mar 12</div>
-            <div class="case-meta">Assigned: Dr. Rivera</div>
-            <div class="case-meta">Patient Appt: Mar 10</div>
+            <h4>Noah Kim</h4>
+            <div class="case-type">Inlay</div>
+            <div class="case-meta">Due: Mar 26</div>
+            <div class="case-meta">Assigned: Dr. Ortiz</div>
+            <div class="case-meta">SmileCraft Lab</div>
             <span class="case-flag flag-due">Due Soon</span>
           </div>
         </div>
         <div class="attention-col" data-reveal data-reveal-stagger="3" data-reveal-delay="150">
           <div class="attention-title appt"><?php echo t('marketing.attention.appointment_risk'); ?></div>
           <div class="case-card appt" data-reveal data-reveal-stagger="3" data-reveal-delay="250">
-            <h4>Sofia Patel</h4>
-            <div class="case-type">Veneer</div>
-            <div class="case-meta">Due: Mar 22</div>
-            <div class="case-meta">Assigned: Design Team</div>
-            <div class="case-meta">Patient Appt: Mar 14</div>
+            <h4>Hannah Lindqvist</h4>
+            <div class="case-type">Crown</div>
+            <div class="case-meta">Due: Mar 12</div>
+            <div class="case-meta">Assigned: Dr. Rivera</div>
+            <div class="case-meta">Patient Appt: Mar 10</div>
             <span class="case-flag flag-appt">Appt Risk</span>
           </div>
         </div>
@@ -1531,6 +1568,7 @@ foreach (['operate', 'control', 'scale'] as $plan) {
             </li>
             <?php endfor; ?>
           </ul>
+          <p class="section-note"><?php echo t('marketing.collaboration.lab_note'); ?></p>
         </div>
         <div class="ct-panel" role="img" aria-label="<?php echo htmlspecialchars(t('marketing.collaboration.mock_aria')); ?>">
           <div class="ct-head">
@@ -1579,6 +1617,7 @@ foreach (['operate', 'control', 'scale'] as $plan) {
             <?php endfor; ?>
           </ul>
           <p class="section-note"><?php echo t('marketing.insights_section.included'); ?></p>
+          <p class="section-note"><?php echo t('marketing.insights_section.org_note'); ?></p>
         </div>
         <div class="insights-snapshot" role="img" aria-label="Practice and Lab Insights snapshot showing active cases, case flow status, monthly case volume, average lab turnaround, and a Recommendation.">
           <div class="is-header">
@@ -1591,7 +1630,7 @@ foreach (['operate', 'control', 'scale'] as $plan) {
               <div class="di-metric-label">Active Cases</div>
             </div>
             <div class="di-metric due">
-              <div class="di-metric-value" data-value="2">2</div>
+              <div class="di-metric-value" data-value="1">1</div>
               <div class="di-metric-label">Due Soon</div>
             </div>
             <div class="di-metric late">
@@ -1607,19 +1646,19 @@ foreach (['operate', 'control', 'scale'] as $plan) {
             <div class="di-chart">
               <div class="di-chart-title">Case Flow Status</div>
               <div class="di-donut">
-                <svg viewBox="0 0 100 100" role="img" aria-label="Case flow status: 7 On Track, 2 Due Soon, 1 Appointment Risk, 1 Late, 1 Delivered.">
+                <svg viewBox="0 0 100 100" role="img" aria-label="Case flow status: 7 On Track, 1 Due Soon, 2 Appointment Risk, 1 Late, 1 Delivered.">
                   <circle class="di-donut-track" cx="50" cy="50" r="40"></circle>
                   <circle class="di-donut-seg" cx="50" cy="50" r="40" stroke="#22c55e" data-pct="58.3" stroke-dasharray="148 251.2" transform="rotate(-90 50 50)"></circle>
-                  <circle class="di-donut-seg" cx="50" cy="50" r="40" stroke="#3b82f6" data-pct="16.7" stroke-dasharray="43 251.2" stroke-dashoffset="-148" transform="rotate(-90 50 50)"></circle>
-                  <circle class="di-donut-seg" cx="50" cy="50" r="40" stroke="#8b5cf6" data-pct="8.3" stroke-dasharray="20 251.2" stroke-dashoffset="-191" transform="rotate(-90 50 50)"></circle>
+                  <circle class="di-donut-seg" cx="50" cy="50" r="40" stroke="#3b82f6" data-pct="8.3" stroke-dasharray="21 251.2" stroke-dashoffset="-148" transform="rotate(-90 50 50)"></circle>
+                  <circle class="di-donut-seg" cx="50" cy="50" r="40" stroke="#8b5cf6" data-pct="16.7" stroke-dasharray="42 251.2" stroke-dashoffset="-169" transform="rotate(-90 50 50)"></circle>
                   <circle class="di-donut-seg" cx="50" cy="50" r="40" stroke="#dc2626" data-pct="8.3" stroke-dasharray="20 251.2" stroke-dashoffset="-211" transform="rotate(-90 50 50)"></circle>
                   <circle class="di-donut-seg" cx="50" cy="50" r="40" stroke="#14b8a6" data-pct="8.3" stroke-dasharray="20 251.2" stroke-dashoffset="-231" transform="rotate(-90 50 50)"></circle>
                 </svg>
               </div>
               <div class="di-legend" aria-hidden="true">
                 <span><span class="di-legend-dot" style="background:#22c55e"></span>On Track (7)</span>
-                <span><span class="di-legend-dot" style="background:#3b82f6"></span>Due Soon (2)</span>
-                <span><span class="di-legend-dot" style="background:#8b5cf6"></span>Appt Risk (1)</span>
+                <span><span class="di-legend-dot" style="background:#3b82f6"></span>Due Soon (1)</span>
+                <span><span class="di-legend-dot" style="background:#8b5cf6"></span>Appt Risk (2)</span>
                 <span><span class="di-legend-dot" style="background:#dc2626"></span>Late (1)</span>
                 <span><span class="di-legend-dot" style="background:#14b8a6"></span>Delivered (1)</span>
               </div>
@@ -1659,7 +1698,7 @@ foreach (['operate', 'control', 'scale'] as $plan) {
             </div>
             <div>
               <h4>Recommendation</h4>
-              <p>Hannah Lindqvist's crown is due soon and her patient appointment is Mar 10. Confirm Precision Dental Lab will deliver by Mar 9 to avoid a chair-side delay.</p>
+              <p>Hannah Lindqvist's crown is flagged Appointment Risk: her patient appointment is Mar 10 but the case is due Mar 12. Confirm Precision Dental Lab will deliver by Mar 9 to avoid a chair-side delay.</p>
             </div>
           </div>
         </div>
@@ -1723,6 +1762,7 @@ foreach (['operate', 'control', 'scale'] as $plan) {
           </div>
         </div>
         <p class="pms-note"><?php echo t('marketing.pms.note'); ?></p>
+        <p class="pms-note"><?php echo t('marketing.pms.scanner_note'); ?></p>
       </div>
     </div>
   </section>
@@ -2065,6 +2105,7 @@ foreach (['operate', 'control', 'scale'] as $plan) {
             <li><?php echo t('marketing.pricing.control_features_4'); ?></li>
             <li><?php echo t('marketing.pricing.control_features_5'); ?></li>
             <li><?php echo t('marketing.pricing.control_features_6'); ?></li>
+            <li class="plan-soon"><?php echo t('marketing.pricing.scanner_coming_soon'); ?></li>
           </ul>
         </div>
         <div class="plan" data-reveal data-reveal-stagger="3" data-reveal-delay="150">
@@ -2076,6 +2117,9 @@ foreach (['operate', 'control', 'scale'] as $plan) {
           <ul>
             <li><?php echo t('marketing.pricing.scale_features_1'); ?></li>
             <li><?php echo t('marketing.pricing.scale_features_2'); ?></li>
+            <li><?php echo t('marketing.pricing.scale_features_4'); ?></li>
+            <li><?php echo t('marketing.pricing.scale_features_5'); ?></li>
+            <li class="plan-soon"><?php echo t('marketing.pricing.scanner_coming_soon'); ?></li>
             <li><?php echo t('marketing.pricing.scale_features_3'); ?></li>
           </ul>
           <div class="plan-extra"><strong><?php echo t('marketing.pricing.scale_addon_title'); ?></strong><br><?php echo t('marketing.pricing.scale_addon_month'); ?><br><?php echo t('marketing.pricing.scale_addon_year'); ?></div>

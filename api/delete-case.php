@@ -6,6 +6,7 @@
 
 require_once __DIR__ . '/appConfig.php';
 require_once __DIR__ . '/practice-security.php';
+require_once __DIR__ . '/organization-access.php';
 require_once __DIR__ . '/user-manager.php';
 require_once __DIR__ . '/google-drive.php';
 require_once __DIR__ . '/cases-cache.php';
@@ -100,6 +101,11 @@ if (!isset($data['caseId']) || empty($data['caseId'])) {
 
 $caseId = $data['caseId'];
 $driveFolderId = $data['driveFolderId'] ?? '';
+
+// SECURITY: Under the consolidated "All practices" view the case's own
+// practice is resolved server-side so archiving applies to the case's
+// actual practice.
+$currentPracticeId = resolveCaseScopePracticeId($caseId);
 
 // SECURITY: Verify this case belongs to the current practice and, for
 // Assigned Only users, is assigned to them, before archiving it.

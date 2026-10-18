@@ -1,0 +1,278 @@
+/* Organization Insights - consolidated "All practices" reporting.
+   Loaded only while the organization scope is active; reuses the
+   analytics-pro (ap-*) visual language. */
+
+/* ── Reporting period bar ─────────────────────────────────────────── */
+.oi-range-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 16px;
+  margin-bottom: 6px;
+}
+
+.oi-range-label {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-secondary, #64748b);
+}
+
+.oi-presets {
+  display: inline-flex;
+  border: 1px solid var(--border-color, #e2e8f0);
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--card-bg, #fff);
+}
+
+.oi-preset {
+  border: 0;
+  background: transparent;
+  padding: 6px 12px;
+  font-size: 0.82rem;
+  color: var(--text-secondary, #64748b);
+  cursor: pointer;
+}
+
+.oi-preset + .oi-preset {
+  border-left: 1px solid var(--border-color, #e2e8f0);
+}
+
+.oi-preset.active {
+  background: var(--accent-color, #1e3a8a);
+  color: #fff;
+}
+
+.oi-preset:focus-visible {
+  outline: 2px solid var(--accent-color, #1e3a8a);
+  outline-offset: -2px;
+}
+
+.oi-custom {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.oi-custom input[type="date"] {
+  border: 1px solid var(--border-color, #e2e8f0);
+  border-radius: 6px;
+  padding: 5px 8px;
+  font-size: 0.82rem;
+  color: var(--text-primary, #1e293b);
+  background: var(--card-bg, #fff);
+}
+
+.oi-range-sep {
+  font-size: 0.8rem;
+  color: var(--text-secondary, #64748b);
+}
+
+.oi-apply {
+  padding: 5px 12px;
+  font-size: 0.82rem;
+}
+
+.oi-range-note,
+.oi-excluded-note {
+  font-size: 0.8rem;
+  color: var(--text-secondary, #64748b);
+  margin: 4px 0 14px;
+}
+
+.oi-excluded-note {
+  color: var(--warning-text, #92400e);
+}
+
+/* ── Metric sub-labels inside ap-metric-card ─────────────────────── */
+.oi-metric-sub {
+  font-size: 0.72rem;
+  color: var(--text-secondary, #64748b);
+  margin-top: 4px;
+}
+
+/* ── Comparison tables ───────────────────────────────────────────── */
+.oi-table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--border-color, #e2e8f0);
+  border-radius: 10px;
+  background: var(--card-bg, #fff);
+}
+
+.oi-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+  min-width: 640px;
+}
+
+.oi-table th,
+.oi-table td {
+  padding: 9px 12px;
+  text-align: left;
+  border-bottom: 1px solid var(--border-color, #eef2f7);
+  white-space: nowrap;
+}
+
+.oi-table thead th {
+  background: var(--table-header-bg, #f8fafc);
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-secondary, #64748b);
+}
+
+.oi-table thead .oi-colgroup {
+  text-align: center;
+  border-bottom: 2px solid var(--border-color, #e2e8f0);
+}
+
+.oi-table tbody tr:last-child td,
+.oi-table tbody tr:last-child th {
+  border-bottom: 0;
+}
+
+.oi-table tbody tr:hover {
+  background: var(--row-hover-bg, #f8fafc);
+}
+
+.oi-table .oi-name {
+  font-weight: 600;
+  color: var(--text-primary, #1e293b);
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.oi-table .oi-practices {
+  color: var(--text-secondary, #64748b);
+  font-size: 0.78rem;
+  white-space: normal;
+  min-width: 140px;
+}
+
+.oi-total-row th,
+.oi-total-row td {
+  font-weight: 700;
+  background: var(--table-header-bg, #f8fafc);
+  border-top: 2px solid var(--border-color, #e2e8f0);
+}
+
+.oi-tag {
+  font-size: 0.68rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--text-secondary, #64748b);
+  border: 1px solid var(--border-color, #e2e8f0);
+  border-radius: 4px;
+  padding: 1px 4px;
+  margin-left: 4px;
+  vertical-align: middle;
+}
+
+.oi-denom {
+  font-size: 0.75rem;
+  color: var(--text-secondary, #64748b);
+}
+
+.oi-insufficient {
+  font-size: 0.75rem;
+  color: var(--text-secondary, #94a3b8);
+  font-style: italic;
+}
+
+.oi-empty {
+  text-align: center;
+  color: var(--text-secondary, #64748b);
+  padding: 24px 12px !important;
+}
+
+.oi-drill {
+  border: 0;
+  background: transparent;
+  padding: 0;
+  font: inherit;
+  font-weight: 700;
+  color: var(--accent-color, #1e3a8a);
+  cursor: pointer;
+  text-decoration: underline;
+  text-decoration-style: dotted;
+  text-underline-offset: 3px;
+}
+
+.oi-drill:hover,
+.oi-drill:focus-visible {
+  text-decoration-style: solid;
+}
+
+.oi-table-note {
+  font-size: 0.78rem;
+  color: var(--text-secondary, #64748b);
+  margin: 10px 2px 0;
+}
+
+/* ── Trend chart ─────────────────────────────────────────────────── */
+.oi-trend-container {
+  position: relative;
+  height: 320px;
+}
+
+/* ── Footnotes ───────────────────────────────────────────────────── */
+.oi-footnotes {
+  margin: 20px 0 8px;
+  padding: 14px 16px;
+  border: 1px solid var(--border-color, #e2e8f0);
+  border-radius: 10px;
+  background: var(--card-bg, #fff);
+  font-size: 0.78rem;
+  color: var(--text-secondary, #64748b);
+}
+
+.oi-footnotes-title {
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin: 0 0 8px;
+  color: var(--text-secondary, #64748b);
+}
+
+.oi-footnotes ul {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.oi-footnotes li {
+  margin-bottom: 6px;
+  line-height: 1.45;
+}
+
+/* ── Responsive ──────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .oi-range-bar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .oi-presets {
+    align-self: flex-start;
+  }
+
+  .oi-custom {
+    flex-wrap: wrap;
+  }
+
+  .oi-trend-container {
+    height: 240px;
+  }
+
+  .oi-table {
+    font-size: 0.8rem;
+  }
+
+  .oi-table th,
+  .oi-table td {
+    padding: 7px 9px;
+  }
+}
