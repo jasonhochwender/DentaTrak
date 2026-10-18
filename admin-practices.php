@@ -27,7 +27,8 @@ if (empty($_SESSION['db_user_id'])) {
 // Load dev tools access control
 require_once __DIR__ . '/api/dev-tools-access.php';
 require_once __DIR__ . '/api/feature-flags.php';
-require_once __DIR__ . '/api/asset-url.php';
+
+require_once __DIR__ . '/api/asset-url.php';
 
 // Check if current user can access admin pages. In production/UAT/Cloud Run
 // only configured super users are allowed. The 'development' exception applies
@@ -1518,7 +1519,13 @@ $userEmail = $_SESSION['user_email'] ?? '';
                     '</div>';
             };
 
-            html += row('Plan', subscription.plan_display);
+            html += row(t('admin_practices.plan_override_purchased_label'), subscription.plan_display);
+            let effectivePlanDisplay = subscription.effective_plan_display || subscription.plan_display;
+            if (subscription.plan_override_display && effectivePlanDisplay && effectivePlanDisplay !== '—') {
+                effectivePlanDisplay += ' (' + t('admin_practices.plan_override_active_suffix') + ')';
+            }
+            html += row(t('admin_practices.plan_override_effective_label'), effectivePlanDisplay);
+            html += row(t('admin_practices.plan_override_status_label'), subscription.plan_override_display || t('admin_practices.plan_override_none'));
             html += row('Subscription Status', subscription.status_display);
             html += row('Trial Status', subscription.trial_status || (subscription.has_subscription ? 'Not on Trial' : '—'));
             html += row('Trial End Date', subscription.trial_ends_at ? formatDate(subscription.trial_ends_at) : '—');
@@ -1570,6 +1577,15 @@ $userEmail = $_SESSION['user_email'] ?? '';
             if (subscription.is_trialing) {
                 html += '<div style="margin-top: 16px;">' +
                     '<button class="action-btn primary" id="extendTrialBtn" onclick="openExtendTrialModal()">' + t('admin_practices.extend_trial_button') + '</button>' +
+                    '</div>';
+            }
+
+            // Administrative effective-plan override. Entitlement only -
+            // never a Stripe change; the button opens a modal that states
+            // this before saving.
+            if (subscription.owner_user_id) {
+                html += '<div style="margin-top: 16px;">' +
+                    '<button class="action-btn" id="planOverrideBtn" onclick="openPlanOverrideModal()">' + t('admin_practices.plan_override_button') + '</button>' +
                     '</div>';
             }
 
@@ -1736,6 +1752,156 @@ $userEmail = $_SESSION['user_email'] ?? '';
                 currentExtendTrialState.sending = false;
                 if (btn) btn.textContent = t('admin_practices.extend_trial_button');
                 alert(t('admin_practices.extend_trial_failed') + ': ' + error.message);
+            });
+        }
+
+        // ── Administrative plan override ─────────────────────────────────────
+        // Entitlement-only control: the modal states this is never a Stripe
+        // subscription, invoice, or charge change. Overrides apply to the
+        // billing owner and therefore every practice that owner owns.
+        let currentPlanOverrideState = { practiceId: null, context: null, sending: false };
+
+        function openPlanOverrideModal() {
+            const practice = practices.find(p => p.id === selectedPracticeId);
+            const subscription = practice ? (practice.subscription || {}) : {};
+            if (!subscription.owner_user_id) {
+                alert(t('admin_practices.plan_override_no_owner'));
+                return;
+            }
+
+            currentPlanOverrideState = { practiceId: selectedPracticeId, context: null, sending: false };
+            document.getElementById('planOverrideContent').innerHTML = '<div class="loading">' + escapeHtml(t('common.loading')) + '</div>';
+            document.getElementById('planOverrideModal').classList.add('active');
+
+            fetch('api/admin-practices.php?action=plan_override&practice_id=' + selectedPracticeId, { credentials: 'same-origin' })
+                .then(response => response.json().then(data => ({ response, data })))
+                .then(({ response, data }) => {
+                    if (!response.ok || !data.success) {
+                        document.getElementById('planOverrideContent').innerHTML =
+                            '<div class="empty-state">' + escapeHtml(data.message || t('admin_practices.plan_override_load_failed')) + '</div>';
+                        return;
+                    }
+                    currentPlanOverrideState.context = data;
+                    renderPlanOverrideForm(data);
+                })
+                .catch(() => {
+                    document.getElementById('planOverrideContent').innerHTML =
+                        '<div class="empty-state">' + escapeHtml(t('admin_practices.plan_override_load_failed')) + '</div>';
+                });
+        }
+
+        function renderPlanOverrideForm(ctx) {
+            const plans = ['', 'operate', 'control', 'scale'];
+            const planLabels = {
+                '': t('admin_practices.plan_override_use_purchased'),
+                'operate': 'Operate',
+                'control': 'Control',
+                'scale': 'Scale',
+            };
+
+            const ownerLabel = ctx.owner_name && ctx.owner_email
+                ? ctx.owner_name + ' (' + ctx.owner_email + ')'
+                : (ctx.owner_email || '—');
+
+            let html = '<div class="form-group">' +
+                '<label>' + escapeHtml(t('admin_practices.plan_override_billing_owner')) + '</label>' +
+                '<p style="margin: 0; color: #1f2937;">' + escapeHtml(ownerLabel) + '</p>' +
+                '</div>';
+
+            html += '<div class="form-group" style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">' +
+                '<div><label>' + escapeHtml(t('admin_practices.plan_override_purchased_label')) + '</label>' +
+                '<p style="margin: 0;">' + escapeHtml(ctx.purchased_plan_display || '—') + '</p></div>' +
+                '<div><label>' + escapeHtml(t('admin_practices.plan_override_effective_label')) + '</label>' +
+                '<p style="margin: 0;">' + escapeHtml(ctx.effective_plan_display || '—') +
+                (ctx.plan_override_display ? ' <span style="color:#92400e;">(' + escapeHtml(t('admin_practices.plan_override_active_suffix')) + ')</span>' : '') +
+                '</p></div>' +
+                '</div>';
+
+            if (ctx.is_shared_organization && ctx.affected_practices && ctx.affected_practices.length) {
+                html += '<div class="form-group">' +
+                    '<label>' + escapeHtml(t('admin_practices.plan_override_affected_label')) + '</label>' +
+                    '<p style="margin: 0 0 4px; color: #1f2937;">' + escapeHtml(t('admin_practices.plan_override_affected_intro')) + '</p>' +
+                    '<ul style="margin: 4px 0 0; padding-left: 20px; color: #6b7280; font-size: 0.85rem;">' +
+                    ctx.affected_practices.map(ap => '<li>' + escapeHtml(ap.name) + '</li>').join('') +
+                    '</ul></div>';
+            }
+
+            html += '<div class="form-group">' +
+                '<label for="planOverridePlan">' + escapeHtml(t('admin_practices.plan_override_select_label')) + '</label>' +
+                '<select id="planOverridePlan" class="form-control" style="width: 100%; padding: 8px; border: 1px solid #d1d5db; border-radius: 6px;">' +
+                plans.map(p =>
+                    '<option value="' + p + '"' + ((ctx.plan_override || '') === p ? ' selected' : '') + '>' +
+                    escapeHtml(planLabels[p]) + (p === '' ? ' (' + escapeHtml(ctx.purchased_plan_display || '—') + ')' : '') +
+                    '</option>'
+                ).join('') +
+                '</select></div>';
+
+            html += '<div class="form-group">' +
+                '<label for="planOverrideReason">' + escapeHtml(t('admin_practices.plan_override_reason_label')) + '</label>' +
+                '<textarea id="planOverrideReason" class="form-control" rows="2" maxlength="1000" style="width: 100%; padding: 8px; border: 1px solid #d1d5db; border-radius: 6px;" placeholder="' + escapeHtml(t('admin_practices.plan_override_reason_placeholder')) + '">' + escapeHtml(ctx.plan_override_reason || '') + '</textarea>' +
+                '</div>';
+
+            html += '<div class="retention-warning" style="margin-top: 4px;">' +
+                '<h4>' + escapeHtml(t('admin_practices.plan_override_note_title')) + '</h4>' +
+                '<p>' + escapeHtml(t('admin_practices.plan_override_note_entitlement')) + '</p>' +
+                '<p>' + escapeHtml(t('admin_practices.plan_override_note_downgrade')) + '</p>' +
+                '</div>';
+
+            html += '<div class="modal-actions" style="margin-top: 20px;">' +
+                '<button class="action-btn" onclick="closeModal(\'planOverrideModal\')">' + escapeHtml(t('common.cancel')) + '</button>' +
+                '<button class="action-btn primary" id="confirmPlanOverrideBtn" onclick="confirmPlanOverride()">' + escapeHtml(t('admin_practices.plan_override_save')) + '</button>' +
+                '</div>';
+
+            document.getElementById('planOverrideContent').innerHTML = html;
+        }
+
+        function confirmPlanOverride() {
+            if (currentPlanOverrideState.sending) return;
+
+            const plan = document.getElementById('planOverridePlan').value;
+            const reason = document.getElementById('planOverrideReason').value || '';
+
+            currentPlanOverrideState.sending = true;
+            const btn = document.getElementById('confirmPlanOverrideBtn');
+            if (btn) btn.textContent = t('admin_practices.plan_override_saving');
+
+            postJson('api/admin-practices.php?action=set_plan_override', {
+                practice_id: currentPlanOverrideState.practiceId,
+                plan: plan,
+                reason: reason
+            })
+            .then(response => response.json().then(data => ({ response, data })))
+            .then(({ response, data }) => {
+                currentPlanOverrideState.sending = false;
+                if (btn) btn.textContent = t('admin_practices.plan_override_save');
+
+                if (response.ok && data.success) {
+                    closeModal('planOverrideModal');
+
+                    // Update the cached subscription for every affected practice
+                    // - an owner-level override governs all of them.
+                    const affectedIds = (data.affected_practices || []).map(ap => ap.id);
+                    if (data.subscription && affectedIds.length) {
+                        practices.forEach(function(p) {
+                            if (affectedIds.indexOf(p.id) !== -1) {
+                                p.subscription = data.subscription;
+                            }
+                        });
+                    }
+
+                    renderPractices();
+                    loadSubscriptionTab(currentPlanOverrideState.practiceId);
+                    if (typeof showAdminToast === 'function') {
+                        showAdminToast(data.message);
+                    }
+                } else {
+                    alert(data.message || t('admin_practices.plan_override_failed'));
+                }
+            })
+            .catch(error => {
+                currentPlanOverrideState.sending = false;
+                if (btn) btn.textContent = t('admin_practices.plan_override_save');
+                alert(t('admin_practices.plan_override_failed') + ': ' + error.message);
             });
         }
 
@@ -2867,6 +3033,19 @@ $userEmail = $_SESSION['user_email'] ?? '';
                     <button class="action-btn" onclick="closeModal('extendTrialModal')"><?php echo t('common.cancel'); ?></button>
                     <button class="action-btn primary" id="confirmExtendTrialBtn" onclick="confirmExtendTrial()"><?php echo t('admin_practices.extend_trial_button'); ?></button>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Plan Override Modal -->
+    <div class="modal" id="planOverrideModal">
+        <div class="modal-content" style="max-width: 560px;">
+            <div class="modal-header">
+                <h3><?php echo t('admin_practices.plan_override_title'); ?></h3>
+                <button class="modal-close" onclick="closeModal('planOverrideModal')">&times;</button>
+            </div>
+            <div id="planOverrideContent">
+                <div class="loading"><?php echo t('common.loading'); ?></div>
             </div>
         </div>
     </div>

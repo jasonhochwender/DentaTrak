@@ -21,6 +21,7 @@ require_once __DIR__ . '/workflow-stages.php';
 require_once __DIR__ . '/lab-assignment-history.php';
 require_once __DIR__ . '/subscription-owner.php';
 require_once __DIR__ . '/plan-entitlements.php';
+require_once __DIR__ . '/plan-overrides.php';
 require_once __DIR__ . '/feature-flags.php';
 require_once __DIR__ . '/billing-bypass.php';
 require_once __DIR__ . '/subscription-access.php';
@@ -812,6 +813,31 @@ function handleGetRequest($action) {
                 }
                 $ownerUserIds = array_unique($ownerUserIds);
 
+                // Batch-load administrative plan overrides for all owners in
+                // one query. Overrides (admin_plan_overrides) change the
+                // EFFECTIVE plan the organization is entitled to; they never
+                // touch subscriptions/Stripe - see api/plan-overrides.php.
+                $planOverrideMap = [];
+                if (!empty($ownerUserIds)) {
+                    ensurePlanOverridesSchema($pdo);
+                    try {
+                        $poPlaceholders = implode(',', array_fill(0, count($ownerUserIds), '?'));
+                        $poStmt = $pdo->prepare("
+                            SELECT owner_user_id, plan
+                            FROM admin_plan_overrides
+                            WHERE owner_user_id IN ($poPlaceholders)
+                        ");
+                        $poStmt->execute(array_values($ownerUserIds));
+                        foreach ($poStmt->fetchAll(PDO::FETCH_ASSOC) as $poRow) {
+                            $plan = (string)$poRow['plan'];
+                            $planOverrideMap[(int)$poRow['owner_user_id']] = isKnownPlan($plan) ? $plan : null;
+                        }
+                    } catch (PDOException $e) {
+                        error_log('[admin-practices] Error loading plan overrides: ' . $e->getMessage());
+                        $planOverrideMap = [];
+                    }
+                }
+
                 // Batch-load owned-practice counts for all owners in one query
                 $ownedCounts = [];
                 if (!empty($ownerUserIds)) {
@@ -878,7 +904,7 @@ function handleGetRequest($action) {
                 $owner = $ownerMap[(int)$practice['id']] ?? null;
                 $ownerId = $owner ? (int)$owner['owner_user_id'] : null;
                 $ownedCount = $ownerId ? (int)($ownedCounts[$ownerId] ?? 1) : 0;
-                $practice['subscription'] = buildSubscriptionInfo($owner, $owner, $ownedCount);
+                $practice['subscription'] = buildSubscriptionInfo($owner, $owner, $ownedCount, $ownerId ? ($planOverrideMap[$ownerId] ?? null) : null);
                 $practice['adoption'] = $adoptionMetrics[(int)$practice['id']] ?? [
                     'total_cases' => 0,
                     'last_activity' => null,
@@ -1027,6 +1053,58 @@ function handleGetRequest($action) {
             unset($ap);
 
             echo json_encode(['success' => true, 'affected_practices' => $affected]);
+            break;
+
+        case 'plan_override':
+            // Plan-override context for a selected practice: resolves the
+            // subscription owner (the billing entity for organizations - one
+            // Scale subscription covers all practices the owner owns), the
+            // purchased vs effective plan, the active override record, and
+            // every practice the override would govern.
+            $practiceId = $_GET['practice_id'] ?? null;
+            if (!$practiceId || !is_numeric($practiceId)) {
+                http_response_code(400);
+                echo json_encode(['success' => false, 'message' => 'Valid practice ID required']);
+                return;
+            }
+
+            $ownerUserId = getSubscriptionOwnerUserId($pdo, (int)$practiceId);
+            if (!$ownerUserId) {
+                http_response_code(400);
+                echo json_encode(['success' => false, 'message' => 'Could not resolve subscription owner for this practice']);
+                return;
+            }
+
+            $ownerStmt = $pdo->prepare("SELECT id, email, first_name, last_name FROM users WHERE id = ? LIMIT 1");
+            $ownerStmt->execute([$ownerUserId]);
+            $ownerUser = $ownerStmt->fetch(PDO::FETCH_ASSOC) ?: null;
+
+            $subscription = getSubscriptionForOwner($pdo, $ownerUserId);
+            $purchasedPlan = ($subscription && !empty($subscription['plan']) && isKnownPlan((string)$subscription['plan']))
+                ? (string)$subscription['plan'] : null;
+            $override = getPlanOverrideInfoForOwner($pdo, $ownerUserId);
+            $affected = loadAffectedPracticesForOwner($pdo, $ownerUserId);
+            // Same resolver every entitlement gate uses - override when set,
+            // otherwise purchased/bypass/trial-default resolution.
+            $effectivePlan = getEffectivePlanForOwner($pdo, $ownerUserId, $purchasedPlan);
+
+            echo json_encode([
+                'success' => true,
+                'owner_user_id' => $ownerUserId,
+                'owner_email' => $ownerUser['email'] ?? null,
+                'owner_name' => $ownerUser ? trim(($ownerUser['first_name'] ?? '') . ' ' . ($ownerUser['last_name'] ?? '')) : null,
+                'purchased_plan' => $purchasedPlan,
+                'purchased_plan_display' => $purchasedPlan ? getPlanDisplayName($purchasedPlan) : '—',
+                'effective_plan' => $effectivePlan,
+                'effective_plan_display' => getPlanDisplayName($effectivePlan),
+                'plan_override' => $override ? $override['plan'] : null,
+                'plan_override_display' => $override ? getPlanDisplayName((string)$override['plan']) : null,
+                'plan_override_reason' => $override['reason'] ?? null,
+                'plan_override_set_by' => $override['set_by_email'] ?? null,
+                'plan_override_updated_at' => $override['updated_at'] ?? null,
+                'affected_practices' => $affected,
+                'is_shared_organization' => count($affected) > 1,
+            ]);
             break;
 
         default:
@@ -1251,6 +1329,10 @@ function handlePostRequest($action) {
             handleSavePracticeSettings($input);
             break;
 
+        case 'set_plan_override':
+            handleSetPlanOverride($input);
+            break;
+
         default:
             http_response_code(400);
             echo json_encode(['success' => false, 'message' => 'Invalid action']);
@@ -1312,6 +1394,146 @@ function handleSetUserClassification(array $input): void {
         http_response_code(500);
         echo json_encode(['success' => false, 'message' => 'Unable to update user classification']);
     }
+}
+
+/**
+ * Set or clear an administrative plan override for a practice's subscription
+ * owner (see api/plan-overrides.php).
+ *
+ * An override changes the organization's EFFECTIVE plan for entitlement
+ * purposes only. It is not a Stripe operation: it never creates charges,
+ * changes invoices, modifies the subscriptions row, or alters the billing
+ * cycle. plan='' removes the override and returns the organization to its
+ * purchased plan.
+ *
+ * Downgrade safety: an override never deletes data. Lowering the effective
+ * plan only narrows feature entitlement; existing practices, users, cases,
+ * and files are preserved, and the existing over-limit rule already blocks
+ * creating additional owned practices beyond the new plan's allowance.
+ *
+ * CSRF and super-user authorization are enforced by handlePostRequest before
+ * this runs; every change is written to admin_audit_log with the acting
+ * admin, the billing owner, the previous and new override, the reason, and
+ * the affected practices.
+ */
+function handleSetPlanOverride(array $input): void {
+    global $pdo;
+
+    $practiceId = $input['practice_id'] ?? null;
+    $plan = $input['plan'] ?? null; // ''|null clears the override
+    $reason = trim((string)($input['reason'] ?? ''));
+
+    if (!$practiceId || !is_numeric($practiceId)) {
+        http_response_code(400);
+        echo json_encode(['success' => false, 'message' => 'Practice ID is required']);
+        return;
+    }
+
+    $clearing = ($plan === null || $plan === '');
+    if (!$clearing && (!is_string($plan) || !isKnownPlan($plan))) {
+        http_response_code(400);
+        echo json_encode(['success' => false, 'message' => 'Plan must be operate, control, or scale']);
+        return;
+    }
+
+    if (mb_strlen($reason) > 1000) {
+        http_response_code(400);
+        echo json_encode(['success' => false, 'message' => 'Reason is too long (1000 characters max)']);
+        return;
+    }
+
+    if (!$pdo) {
+        http_response_code(500);
+        echo json_encode(['success' => false, 'message' => 'Database connection unavailable']);
+        return;
+    }
+
+    $ownerUserId = getSubscriptionOwnerUserId($pdo, (int)$practiceId);
+    if (!$ownerUserId) {
+        http_response_code(400);
+        echo json_encode(['success' => false, 'message' => 'Could not resolve a valid subscription owner for this practice']);
+        return;
+    }
+
+    $ownerStmt = $pdo->prepare("SELECT id, email, first_name, last_name FROM users WHERE id = ? LIMIT 1");
+    $ownerStmt->execute([$ownerUserId]);
+    $ownerUser = $ownerStmt->fetch(PDO::FETCH_ASSOC);
+    if (!$ownerUser) {
+        http_response_code(400);
+        echo json_encode(['success' => false, 'message' => 'Could not resolve a valid subscription owner for this practice']);
+        return;
+    }
+
+    $previousOverride = getPlanOverrideForOwner($pdo, $ownerUserId);
+
+    // No-op guard: clearing when nothing is set, or setting the value already
+    // in effect. Still succeeds (idempotent) but reports no change.
+    if ((!$clearing && $previousOverride === $plan) || ($clearing && $previousOverride === null)) {
+        $subscription = getSubscriptionForOwner($pdo, $ownerUserId);
+        $purchasedPlan = ($subscription && !empty($subscription['plan']) && isKnownPlan((string)$subscription['plan']))
+            ? (string)$subscription['plan'] : null;
+        echo json_encode([
+            'success' => true,
+            'changed' => false,
+            'message' => $clearing ? 'No plan override is active for this organization' : 'The override already matches this plan',
+            'purchased_plan' => $purchasedPlan,
+            'plan_override' => $previousOverride,
+            'effective_plan' => getEffectivePlanForOwner($pdo, $ownerUserId, $purchasedPlan),
+        ]);
+        return;
+    }
+
+    try {
+        setPlanOverrideForOwner(
+            $pdo,
+            $ownerUserId,
+            $clearing ? null : $plan,
+            (int)($_SESSION['db_user_id'] ?? 0),
+            $_SESSION['user_email'] ?? '',
+            $reason
+        );
+    } catch (Throwable $e) {
+        error_log('[admin-practices] Error setting plan override: ' . $e->getMessage());
+        http_response_code(500);
+        echo json_encode(['success' => false, 'message' => 'Failed to save the plan override']);
+        return;
+    }
+
+    $affectedPractices = loadAffectedPracticesForOwner($pdo, $ownerUserId);
+    $subscription = getSubscriptionForOwner($pdo, $ownerUserId);
+    $purchasedPlan = ($subscription && !empty($subscription['plan']) && isKnownPlan((string)$subscription['plan']))
+        ? (string)$subscription['plan'] : null;
+    $effectivePlan = getEffectivePlanForOwner($pdo, $ownerUserId, $purchasedPlan);
+    $displaySub = buildSubscriptionInfo($subscription ?: [], $ownerUser, count($affectedPractices), $clearing ? null : $plan);
+
+    logAdminAction($clearing ? 'plan_override_removed' : 'plan_override_changed', [
+        'practice_id' => (int)$practiceId,
+        'billing_owner_user_id' => $ownerUserId,
+        'billing_owner_email' => $ownerUser['email'] ?? null,
+        'previous_override' => $previousOverride,
+        'new_override' => $clearing ? null : $plan,
+        'purchased_plan' => $purchasedPlan,
+        'effective_plan' => $effectivePlan,
+        'reason' => $reason !== '' ? $reason : null,
+        'affected_practices' => $affectedPractices,
+        'affected_practice_ids' => array_column($affectedPractices, 'id'),
+        'note' => 'Administrative entitlement override only - no Stripe subscription, invoice, or charge was created or modified.',
+    ]);
+
+    echo json_encode([
+        'success' => true,
+        'changed' => true,
+        'message' => $clearing
+            ? 'Plan override removed - the organization now uses its purchased plan'
+            : 'Effective plan set to ' . getPlanDisplayName($plan) . ' for ' . count($affectedPractices) . ' practice(s). No billing change was made.',
+        'purchased_plan' => $purchasedPlan,
+        'purchased_plan_display' => $purchasedPlan ? getPlanDisplayName($purchasedPlan) : '—',
+        'plan_override' => $clearing ? null : $plan,
+        'effective_plan' => $effectivePlan,
+        'effective_plan_display' => getPlanDisplayName($effectivePlan),
+        'subscription' => $displaySub,
+        'affected_practices' => $affectedPractices,
+    ]);
 }
 
 /**

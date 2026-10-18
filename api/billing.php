@@ -41,8 +41,14 @@ try {
     // Check if user has billing bypass (partner practices, internal users, etc.)
     $isBypassUser = isBillingBypassEmail($user['email']);
 
-    // If billing is disabled OR user has bypass, treat as Control plan
-    $effectiveTier = (!$billingEnabled || $isBypassUser) ? 'control' : $user['billing_tier'];
+    // Platform administrators (internal staff) are unmetered - same
+    // Control-tier treatment as billing bypass.
+    require_once __DIR__ . '/dev-tools-access.php';
+    $isPlatformAdmin = function_exists('isSuperUser') && isSuperUser($appConfig, $user['email']);
+
+    // If billing is disabled OR user has bypass or is a platform
+    // administrator, treat as Control plan
+    $effectiveTier = (!$billingEnabled || $isBypassUser || $isPlatformAdmin) ? 'control' : $user['billing_tier'];
 
     // Get current case count (real-time calculation)
     $currentCaseCount = 0;

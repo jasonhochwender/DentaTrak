@@ -2119,7 +2119,6 @@ foreach (['operate', 'control', 'scale'] as $plan) {
             <li><?php echo t('marketing.pricing.scale_features_2'); ?></li>
             <li><?php echo t('marketing.pricing.scale_features_4'); ?></li>
             <li><?php echo t('marketing.pricing.scale_features_5'); ?></li>
-            <li class="plan-soon"><?php echo t('marketing.pricing.scanner_coming_soon'); ?></li>
             <li><?php echo t('marketing.pricing.scale_features_3'); ?></li>
           </ul>
           <div class="plan-extra"><strong><?php echo t('marketing.pricing.scale_addon_title'); ?></strong><br><?php echo t('marketing.pricing.scale_addon_month'); ?><br><?php echo t('marketing.pricing.scale_addon_year'); ?></div>

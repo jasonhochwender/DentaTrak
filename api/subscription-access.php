@@ -280,6 +280,16 @@ function hasPlanTierAccess(PDO $pdo, int $practiceId, string $userEmail, string 
         return true;
     }
 
+    // Platform administrators (super users configured in SUPER_USERS - see
+    // api/dev-tools-access.php) are internal DentaTrak staff and are never
+    // plan-gated. This only removes subscription-tier gating - membership
+    // checks elsewhere still decide which practices and cases they can open.
+    global $appConfig;
+    require_once __DIR__ . '/dev-tools-access.php';
+    if ($userEmail !== '' && function_exists('isSuperUser') && isSuperUser($appConfig ?? [], $userEmail)) {
+        return true;
+    }
+
     if ($userEmail !== '' && function_exists('isBillingBypassEmail') && isBillingBypassEmail($userEmail)) {
         return true;
     }
@@ -291,15 +301,18 @@ function hasPlanTierAccess(PDO $pdo, int $practiceId, string $userEmail, string 
 
     // Active practice trial (Stripe-trialing or DentaTrak's own trial)
     // always grants top-tier access — preserves existing trial
-    // behavior; do not require a specific subscription_plan here.
-    if ($access['status'] === 'trialing') {
+    // behavior — unless an admin pinned an explicit effective plan for
+    // this owner (plan_override); then the override governs even during
+    // trial so administrators can verify each tier's real behavior.
+    if ($access['status'] === 'trialing' && empty($access['plan_override'])) {
         return true;
     }
 
     // Tier check (plans are cumulative: Scale includes everything in
-    // Control, which includes everything in Operate).
+    // Control, which includes everything in Operate). effective_plan
+    // carries any admin override; subscription_plan stays the purchased plan.
     require_once __DIR__ . '/plan-entitlements.php';
-    return planMeetsTier($access['subscription_plan'] ?? null, $minimumTier);
+    return planMeetsTier($access['effective_plan'] ?? $access['subscription_plan'] ?? null, $minimumTier);
 }
 
 /**
@@ -327,6 +340,14 @@ function hasIntegrationAccess(PDO $pdo, int $practiceId, string $userEmail = '')
         $billingEnabledRaw = $_ENV['BILLING_ENABLED'] ?? '';
     }
     if (!filter_var($billingEnabledRaw, FILTER_VALIDATE_BOOLEAN)) {
+        return true;
+    }
+
+    // Platform administrators pass every integration entitlement; the
+    // integration's own development/availability controls still apply.
+    global $appConfig;
+    require_once __DIR__ . '/dev-tools-access.php';
+    if ($userEmail !== '' && function_exists('isSuperUser') && isSuperUser($appConfig ?? [], $userEmail)) {
         return true;
     }
 
@@ -382,7 +403,7 @@ function getPracticeSubscriptionAccess(PDO $pdo, int $practiceId): ?array {
         } catch (PDOException $e) {
             $subscription = null;
         }
-        return [
+        $result = [
             'status'                  => 'active',
             'full_access'             => true,
             'read_only'               => false,
@@ -399,6 +420,7 @@ function getPracticeSubscriptionAccess(PDO $pdo, int $practiceId): ?array {
             // hasControlAccess() still passes for the whole practice.
             'subscription_plan'       => $subscription['plan'] ?? 'control',
         ];
+        return attachPlanOverrideFields($pdo, $ownerUserId, $result, true);
     }
 
     try {
@@ -414,7 +436,7 @@ function getPracticeSubscriptionAccess(PDO $pdo, int $practiceId): ?array {
         // Map subscriptions table columns onto the field names
         // getSubscriptionAccess() expects (historically named after the
         // deprecated per-practice columns on `practices`).
-        return getSubscriptionAccess([
+        $result = getSubscriptionAccess([
             'subscription_status'    => $subscription['status'],
             'trial_ends_at'          => $subscription['trial_ends_at'],
             'current_period_ends_at' => $subscription['current_period_ends_at'],
@@ -424,6 +446,7 @@ function getPracticeSubscriptionAccess(PDO $pdo, int $practiceId): ?array {
             'subscription_plan'      => $subscription['plan'],
             'billing_interval'       => $subscription['billing_interval'],
         ]);
+        return attachPlanOverrideFields($pdo, $ownerUserId, $result, false);
     } catch (PDOException $e) {
         // subscriptions table may not exist yet — evaluate an empty row,
         // which yields full access when billing is disabled and canonical
@@ -434,4 +457,25 @@ function getPracticeSubscriptionAccess(PDO $pdo, int $practiceId): ?array {
         }
         throw $e;
     }
+}
+
+/**
+ * Attach administrative plan-override fields to an owner-level subscription
+ * access result. `subscription_plan` always remains the PURCHASED plan (also
+ * exposed as `purchased_plan`); `effective_plan` is what feature gates use.
+ * Platform-admin overrides never alter the stored subscription row, Stripe
+ * objects, or invoices - they change feature entitlement only.
+ *
+ * @param PDO   $pdo
+ * @param int   $ownerUserId   Subscription owner (organization boundary)
+ * @param array $access        Result from getSubscriptionAccess()
+ * @param bool  $isBypass      Whether the owner is a billing-bypass account
+ */
+function attachPlanOverrideFields(PDO $pdo, int $ownerUserId, array $access, bool $isBypass): array {
+    require_once __DIR__ . '/plan-overrides.php';
+    $access['purchased_plan'] = $access['subscription_plan'] ?? null;
+    $access['plan_override']  = getPlanOverrideForOwner($pdo, $ownerUserId);
+    $access['effective_plan'] = $access['plan_override']
+        ?? resolveEffectivePlan($access['subscription_plan'] ?? null, $isBypass);
+    return $access;
 }

@@ -198,9 +198,30 @@ function evaluatePracticeCreationEntitlement(PDO $pdo, int $ownerUserId, string 
     }
 
     $isBypass = ($ownerEmail !== '' && function_exists('isBillingBypassEmail') && isBillingBypassEmail($ownerEmail));
+
+    // Platform administrators are internal staff - never constrained by the
+    // customer plan's owned-practice quota (same convention as the tier
+    // gates in subscription-access.php).
+    global $appConfig;
+    require_once __DIR__ . '/dev-tools-access.php';
+    $isSuper = ($ownerEmail !== '' && function_exists('isSuperUser') && isSuperUser($appConfig ?? [], $ownerEmail));
+
     $subscription = getSubscriptionForOwner($pdo, $ownerUserId);
-    $plan         = resolveEffectivePlan($subscription['plan'] ?? null, $isBypass);
-    $maxPractices = getMaxOwnedPractices($plan);
+    // getEffectivePlanForOwner() applies any admin plan override on top of
+    // the purchased-plan/bypass resolution - the single authority for the
+    // organization's effective plan (api/plan-overrides.php).
+    require_once __DIR__ . '/plan-overrides.php';
+    $plan = getEffectivePlanForOwner($pdo, $ownerUserId, $subscription['plan'] ?? null, $isBypass);
+    $maxPractices = $isSuper ? null : getMaxOwnedPractices($plan);
+
+    return [
+        'allowed'        => $maxPractices === null || $currentCount < $maxPractices,
+        'plan'           => $plan,
+        'plan_name'      => getPlanDisplayName($plan),
+        'max_practices'  => $maxPractices,
+        'current_count'  => $currentCount,
+        'upgrade_target' => PLAN_UPGRADE_TARGET[$plan] ?? null,
+    ];
 
     return [
         'allowed'        => $maxPractices === null || $currentCount < $maxPractices,

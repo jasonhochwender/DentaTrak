@@ -248,3 +248,4 @@ NUL
 !/tests/organization-access-test.php
 !/tests/org-case-view-test.php
 !/tests/org-insights-test.php
+!/tests/plan-override-test.php

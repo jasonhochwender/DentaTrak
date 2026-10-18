@@ -423,7 +423,8 @@
         'billing.plans.scale.benefit_3',
         'billing.plans.scale.benefit_4',
       ],
-      soon_benefit_keys: ['billing.plans.scanner_coming_soon'],
+      // No separate scanner row: "Everything in Control" already covers the
+      // Control-card coming-soon entry - repeating it would be a duplicate.
       additional_price_keys: {
         month: 'billing.plans.scale.additional_practices_month',
         year: 'billing.plans.scale.additional_practices_year',

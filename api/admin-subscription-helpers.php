@@ -65,9 +65,13 @@ function addCalendarMonths(DateTimeImmutable $date, int $months): DateTimeImmuta
  * @param array|null $sub      subscriptions row (or null)
  * @param array|null $owner    owner user row (or null)
  * @param int        $ownedCount number of practices this owner has
+ * @param string|null $planOverride active admin override plan (see
+ *                       api/plan-overrides.php), or null. When set, the
+ *                       returned `effective_plan` differs from the purchased
+ *                       `plan` so the admin UI can show both.
  * @return array
  */
-function buildSubscriptionInfo(?array $sub, ?array $owner, int $ownedCount): array {
+function buildSubscriptionInfo(?array $sub, ?array $owner, int $ownedCount, ?string $planOverride = null): array {
     $ownerId = $owner ? (int)($owner['owner_user_id'] ?? $owner['id'] ?? null) : null;
     $ownerEmail = $owner ? ($owner['owner_email'] ?? $owner['email'] ?? null) : null;
     $ownerName = $owner ? trim(($owner['owner_first_name'] ?? $owner['first_name'] ?? '') . ' ' . ($owner['owner_last_name'] ?? $owner['last_name'] ?? '')) : null;
@@ -96,6 +100,10 @@ function buildSubscriptionInfo(?array $sub, ?array $owner, int $ownedCount): arr
             'has_subscription' => false,
             'plan' => null,
             'plan_display' => '—',
+            'plan_override' => $planOverride,
+            'plan_override_display' => $planOverride ? getPlanDisplayName($planOverride) : null,
+            'effective_plan' => $planOverride,
+            'effective_plan_display' => $planOverride ? getPlanDisplayName($planOverride) : '—',
             'status' => 'no_subscription',
             'status_display' => 'No Subscription',
             'is_trialing' => false,
@@ -217,10 +225,16 @@ function buildSubscriptionInfo(?array $sub, ?array $owner, int $ownedCount): arr
         $trialClass = 'trial-expired';
     }
 
+    $effectivePlan = $planOverride ?? $plan;
+
     return [
         'has_subscription' => true,
         'plan' => $plan,
         'plan_display' => $planDisplay,
+        'plan_override' => $planOverride,
+        'plan_override_display' => $planOverride ? getPlanDisplayName($planOverride) : null,
+        'effective_plan' => $effectivePlan,
+        'effective_plan_display' => !empty($effectivePlan) ? getPlanDisplayName($effectivePlan) : '—',
         'status' => $effectiveStatus,
         'status_display' => $statusDisplay,
         'is_trialing' => $isTrialing,
