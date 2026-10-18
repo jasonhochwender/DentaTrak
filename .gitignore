@@ -160,6 +160,7 @@ screenshots/
 !/tests/select-practice-defensive-test.php
 !/tests/review-status-test.php
 !/tests/case-review-tracking-test.php
+!/tests/lab-acknowledgment-test.php
 !/tests/case-list-view-test.php
 !/tests/case-list-view-e2e-test.js
 !/tests/case-save-all-e2e-test.js

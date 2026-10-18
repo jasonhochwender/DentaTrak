@@ -34,6 +34,10 @@ function getSupportedEmailEventTypes(): array {
         'case_details_changed',
         'mention',
         'comment_added',
+        'lab_ack_requested',
+        'lab_ack_confirmed',
+        'lab_info_requested',
+        'lab_promised_date_changed',
     ];
 }
 

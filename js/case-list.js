@@ -351,7 +351,14 @@
       return flags;
     }
 
-    if (highlightApptRisk && apptDiff !== null && apptDiff <= parseInt(localStorage.getItem('appointment_risk_days') || '3', 10)) {
+    var apptRiskHit = highlightApptRisk && apptDiff !== null && apptDiff <= parseInt(localStorage.getItem('appointment_risk_days') || '3', 10);
+    // Lab acknowledgment: a lab-promised return date after the patient
+    // appointment is an additional appointment-risk signal.
+    if (!apptRiskHit && highlightApptRisk && apptDiff !== null && caseData.labPromisedDate
+        && typeof window.labPromisedDateIsAfter === 'function') {
+      apptRiskHit = window.labPromisedDateIsAfter(caseData.labPromisedDate, caseData.patientAppointmentDate);
+    }
+    if (apptRiskHit) {
       flags.apptRisk = true;
       flags.apptText = tr('cases.risk.appointment_abbreviation');
       return flags;

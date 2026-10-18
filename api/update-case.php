@@ -15,6 +15,7 @@ require_once __DIR__ . '/security-headers.php';
 require_once __DIR__ . '/tooth-number-parser.php';
 require_once __DIR__ . '/gcs-attachments.php';
 require_once __DIR__ . '/notification-service.php';
+require_once __DIR__ . '/lab-acknowledgment.php';
 require_once __DIR__ . '/integrations/IntegrationOutbound.php';
 
 // Set security headers
@@ -995,6 +996,7 @@ try {
         // update-case-assignment.php already does.
         if ($result['success'] && isset($caseData['assignedTo'])) {
             recordLabAssignmentChange($_POST['caseId'], $currentPracticeId, $previousAssignedToForLabHistory, $caseData['assignedTo']);
+            recordLabAckAssignmentTransition($_POST['caseId'], $currentPracticeId, $previousAssignedToForLabHistory, $caseData['assignedTo'], $_SESSION['db_user_id'] ?? null);
         }
 
         // Lab Insights: a case reaching Delivered through Edit Case closes
@@ -1010,6 +1012,7 @@ try {
             $newStatusForLabPeriod = $result['caseData']['status'];
             if ($newStatusForLabPeriod === $terminalStatus) {
                 closeOpenLabPeriodForDeliveredCase($_POST['caseId'], $currentPracticeId);
+                supersedeOpenLabAcknowledgment($_POST['caseId'], $currentPracticeId, 'case_delivered', $_SESSION['db_user_id'] ?? null);
             } else {
                 reopenLabPeriodOnDeliveredRegression($_POST['caseId'], $currentPracticeId, $previousStatusForRevision, $newStatusForLabPeriod);
             }

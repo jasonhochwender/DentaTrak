@@ -2447,6 +2447,20 @@ function getPracticeSettings($practiceId) {
         error_log('[admin-practices] Error reading case review tracking: ' . $e->getMessage());
     }
 
+    // Practice-level Lab acknowledgment flag (practices table) - same
+    // source the main Settings UI reads.
+    $labAcknowledgmentEnabled = false;
+    try {
+        $laCheck = $pdo->query("SHOW COLUMNS FROM practices LIKE 'lab_acknowledgment_enabled'");
+        if ($laCheck && $laCheck->rowCount() > 0) {
+            $laStmt = $pdo->prepare("SELECT lab_acknowledgment_enabled FROM practices WHERE id = ?");
+            $laStmt->execute([$practiceId]);
+            $labAcknowledgmentEnabled = (bool)$laStmt->fetchColumn();
+        }
+    } catch (PDOException $e) {
+        error_log('[admin-practices] Error reading lab acknowledgment flag: ' . $e->getMessage());
+    }
+
     // Practice-level FABG pilot flag (practices table, guarded for
     // pre-migration schemas).
     $fabgPilot = false;
@@ -2502,6 +2516,7 @@ function getPracticeSettings($practiceId) {
             'appointment_risk_days' => isset($preferences['appointment_risk_days']) ? (int)$preferences['appointment_risk_days'] : 3
         ],
         'case_review_tracking_enabled' => $caseReviewTrackingEnabled,
+        'lab_acknowledgment_enabled' => $labAcknowledgmentEnabled,
         'fabg_pilot' => $fabgPilot,
         'google_drive_backup' => isset($preferences['google_drive_backup']) ? (bool)$preferences['google_drive_backup'] : false,
         'workflow_stages' => $workflowLabels,
@@ -2651,6 +2666,15 @@ function handleSavePracticeSettings(array $input): void {
             }
         }
 
+        // Practice-level Lab acknowledgment flag (practices table).
+        if (array_key_exists('lab_acknowledgment_enabled', $settings)) {
+            $laCheck = $pdo->query("SHOW COLUMNS FROM practices LIKE 'lab_acknowledgment_enabled'");
+            if ($laCheck && $laCheck->rowCount() > 0) {
+                $stmt = $pdo->prepare("UPDATE practices SET lab_acknowledgment_enabled = ? WHERE id = ?");
+                $stmt->execute([!empty($settings['lab_acknowledgment_enabled']) ? 1 : 0, $practiceId]);
+            }
+        }
+
         // Practice-level FABG pilot flag. Enabling also resets the one-time
         // welcome flag so a manually enrolled practice still sees the pilot
         // welcome message once on next entry.
@@ -2673,6 +2697,7 @@ function handleSavePracticeSettings(array $input): void {
             'keys' => array_merge(
                 array_keys($toWrite),
                 array_key_exists('case_review_tracking_enabled', $settings) ? ['case_review_tracking_enabled'] : [],
+                array_key_exists('lab_acknowledgment_enabled', $settings) ? ['lab_acknowledgment_enabled'] : [],
                 array_key_exists('fabg_pilot', $settings) ? ['fabg_pilot'] : []
             )
         ]);

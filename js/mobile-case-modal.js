@@ -90,7 +90,12 @@
       var appointmentRiskDays = parseInt(localStorage.getItem('appointment_risk_days') || '3', 10);
       if (typeof window.getCalendarDayDiff === 'function') {
         var apptDayDiff = window.getCalendarDayDiff(caseData.patientAppointmentDate);
-        if (apptDayDiff !== null && apptDayDiff <= appointmentRiskDays) {
+        var apptRiskHit = apptDayDiff !== null && apptDayDiff <= appointmentRiskDays;
+        // Lab acknowledgment: promised return date after the appointment = risk.
+        if (!apptRiskHit && caseData.labPromisedDate && typeof window.labPromisedDateIsAfter === 'function') {
+          apptRiskHit = window.labPromisedDateIsAfter(caseData.labPromisedDate, caseData.patientAppointmentDate);
+        }
+        if (apptRiskHit) {
           isAppointmentRisk = true;
           badges.push({
             className: 'mobile-case-badge mobile-case-badge-appointment-risk',

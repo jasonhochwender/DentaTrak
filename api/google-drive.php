@@ -840,6 +840,8 @@ function createCacheOnlyCase($caseData, $files, $originalCaseData = null, $gcsAt
         // case is assigned to a lab-designated user/label.
         if ($practiceId) {
             recordLabAssignmentChange($caseId, $practiceId, '', $completeCase['assignedTo'] ?? '');
+            require_once __DIR__ . '/lab-acknowledgment.php';
+            recordLabAckAssignmentTransition($caseId, $practiceId, '', $completeCase['assignedTo'] ?? '', $_SESSION['db_user_id'] ?? null);
         }
 
         // Return the original case data for frontend display (already unencrypted)

@@ -1972,6 +1972,50 @@ document.addEventListener('DOMContentLoaded', function () {
   }
   window.applyCaseReviewTrackingEnabled = applyCaseReviewTrackingEnabled;
 
+  // Apply the practice-level Lab acknowledgment flag to the UI. When OFF the
+  // acknowledgment filters disappear and any active ack filter is cleared so
+  // cases are not left invisibly filtered. Recorded acknowledgments and
+  // promised dates are preserved server-side regardless of the toggle.
+  function applyLabAcknowledgmentEnabled(enabled) {
+    window.labAcknowledgmentEnabled = !!enabled;
+    var off = !window.labAcknowledgmentEnabled;
+
+    // Re-apply the sidebar user chip so lab/practice context stays in sync.
+    var awaitingFilter = document.getElementById('filterAwaitingAck');
+    var needsInfoFilter = document.getElementById('filterNeedsInfo');
+    var cleared = false;
+    if (off) {
+      if (awaitingFilter && awaitingFilter.checked) { awaitingFilter.checked = false; cleared = true; }
+      if (needsInfoFilter && needsInfoFilter.checked) { needsInfoFilter.checked = false; cleared = true; }
+      if (cleared && typeof window.applyFilters === 'function') {
+        window.applyFilters();
+      }
+    }
+
+    // Show/hide the optional filter checkboxes without a page reload.
+    ['filterAwaitingAck', 'filterNeedsInfo'].forEach(function(id) {
+      var cb = document.getElementById(id);
+      var label = cb && cb.closest('label');
+      if (label) label.style.display = off ? 'none' : '';
+    });
+
+    // Same for the acknowledgment notification-preference items.
+    document.querySelectorAll('.notification-preference-item.lab-ack-pref').forEach(function(item) {
+      item.style.display = off ? 'none' : '';
+    });
+
+    // Re-evaluate the modal acknowledgment panel if a case is loaded.
+    var ackContainer = document.getElementById('labAckContainer');
+    if (ackContainer) {
+      if (off) {
+        ackContainer.style.display = 'none';
+      } else if (typeof currentEditCaseData !== 'undefined' && currentEditCaseData && currentEditCaseData.id) {
+        renderLabAcknowledgment(currentEditCaseData);
+      }
+    }
+  }
+  window.applyLabAcknowledgmentEnabled = applyLabAcknowledgmentEnabled;
+
   // Apply loaded settings to form fields
   function applyUserSettings(preferences, loadedGmailUsers, loadedGmailLogins, loadedAdminUsers, practiceName, logoPath, loadedAssignmentLabels, isPracticeAdmin, practiceCreatorEmail, displayName, legalName, loadedLimitedVisibilityUsers, loadedCanViewAnalyticsUsers, loadedCanEditCasesUsers, practiceCreatorHasGoogleAccount, isGoogleDriveConnected, loadedAssignmentLabelsDetailed, loadedPracticeUsers, loadedIsLabUsers, showLabInsights, loadedWorkflowStageLabels, loadedWorkflowColumns, serverCurrentPracticeId) {
     window.isPracticeAdmin = !!isPracticeAdmin;
@@ -1981,9 +2025,13 @@ document.addEventListener('DOMContentLoaded', function () {
     window.showLabInsights = showLabInsights === true;
     window.practiceUsers = loadedPracticeUsers || [];
     window.caseReviewTrackingEnabled = toBoolean(preferences.case_review_tracking_enabled, false);
+    window.labAcknowledgmentEnabled = toBoolean(preferences.lab_acknowledgment_enabled, false);
 
     if (typeof applyCaseReviewTrackingEnabled === 'function') {
       applyCaseReviewTrackingEnabled(window.caseReviewTrackingEnabled);
+    }
+    if (typeof applyLabAcknowledgmentEnabled === 'function') {
+      applyLabAcknowledgmentEnabled(window.labAcknowledgmentEnabled);
     }
 
     // Fully-resolved workflow-stage display labels for the current
@@ -2122,6 +2170,12 @@ document.addEventListener('DOMContentLoaded', function () {
     const caseReviewTrackingEnabledCheckbox = document.getElementById('caseReviewTrackingEnabled');
     if (caseReviewTrackingEnabledCheckbox) {
       caseReviewTrackingEnabledCheckbox.checked = window.caseReviewTrackingEnabled;
+    }
+
+    // Apply Lab acknowledgment checkbox (practice-level)
+    const labAcknowledgmentEnabledCheckbox = document.getElementById('labAcknowledgmentEnabled');
+    if (labAcknowledgmentEnabledCheckbox) {
+      labAcknowledgmentEnabledCheckbox.checked = window.labAcknowledgmentEnabled;
     }
 
     // Apply coming due values
@@ -2321,6 +2375,7 @@ document.addEventListener('DOMContentLoaded', function () {
       appointmentRiskDays: document.getElementById('appointmentRiskDays')?.value || '3',
       deliveredHideDays: document.getElementById('deliveredHideDays')?.value || '0',
       caseReviewTrackingEnabled: document.getElementById('caseReviewTrackingEnabled')?.checked || false,
+      labAcknowledgmentEnabled: document.getElementById('labAcknowledgmentEnabled')?.checked || false,
       googleDriveBackup: document.getElementById('googleDriveBackup')?.checked || false,
       gmailUsers: window.gmailUsers ? window.gmailUsers.slice() : [],
       adminUsers: window.adminUsers ? window.adminUsers.slice() : [],
@@ -2353,6 +2408,7 @@ document.addEventListener('DOMContentLoaded', function () {
     if ((document.getElementById('appointmentRiskDays')?.value || '3') !== orig.appointmentRiskDays) return true;
     if ((document.getElementById('deliveredHideDays')?.value || '0') !== orig.deliveredHideDays) return true;
     if ((document.getElementById('caseReviewTrackingEnabled')?.checked || false) !== orig.caseReviewTrackingEnabled) return true;
+    if ((document.getElementById('labAcknowledgmentEnabled')?.checked || false) !== orig.labAcknowledgmentEnabled) return true;
     if ((document.getElementById('googleDriveBackup')?.checked || false) !== orig.googleDriveBackup) return true;
 
     // Check logo changes
@@ -3415,6 +3471,7 @@ document.addEventListener('DOMContentLoaded', function () {
   // handling (hover, focus, click, Escape) applies unchanged.
   [
     ['caseReviewTrackingEnabled', 'settings.display.case_review.tooltip'],
+    ['labAcknowledgmentEnabled', 'settings.display.lab_ack.tooltip'],
     ['highlightPastDue', 'settings.display.past_due.tooltip'],
     ['highlightComingDue', 'settings.display.coming_due.tooltip'],
     ['highlightAppointmentRisk', 'settings.display.appointment_risk.tooltip']
@@ -4278,6 +4335,10 @@ document.addEventListener('DOMContentLoaded', function () {
       var caseReviewTrackingEnabledInput = document.getElementById('caseReviewTrackingEnabled');
       var caseReviewTrackingEnabled = caseReviewTrackingEnabledInput ? caseReviewTrackingEnabledInput.checked : false;
 
+      // Lab acknowledgment (practice-level, admin-only)
+      var labAcknowledgmentEnabledInput = document.getElementById('labAcknowledgmentEnabled');
+      var labAcknowledgmentEnabled = labAcknowledgmentEnabledInput ? labAcknowledgmentEnabledInput.checked : false;
+
       // Practice settings - use displayName (editable) instead of practiceName
       var displayNameInput = document.getElementById('displayName');
       var displayName = displayNameInput ? displayNameInput.value.trim() : '';
@@ -4313,6 +4374,7 @@ document.addEventListener('DOMContentLoaded', function () {
         appointmentRiskDays: appointmentRiskDays,
         deliveredHideDays: deliveredHideDays,
         caseReviewTrackingEnabled: caseReviewTrackingEnabled,
+        labAcknowledgmentEnabled: labAcknowledgmentEnabled,
         googleDriveBackup: googleDriveBackup,
         displayName: displayName, // New: editable display name
         practiceName: practiceName, // Legacy: kept for backwards compatibility
@@ -4463,6 +4525,11 @@ document.addEventListener('DOMContentLoaded', function () {
     // Apply Case Review Tracking immediately
     if (typeof formData.caseReviewTrackingEnabled !== 'undefined') {
       applyCaseReviewTrackingEnabled(formData.caseReviewTrackingEnabled);
+    }
+
+    // Apply Lab acknowledgment immediately (clears its filters when disabled)
+    if (typeof formData.labAcknowledgmentEnabled !== 'undefined') {
+      applyLabAcknowledgmentEnabled(formData.labAcknowledgmentEnabled);
     }
 
     // Apply logo changes immediately based on committed values
@@ -5118,6 +5185,37 @@ document.addEventListener('DOMContentLoaded', function () {
           } else {
             description = t(evKey + 'source_deleted');
           }
+          break;
+        case 'lab_ack_requested':
+          description = t(evKey + 'lab_ack_requested', { lab: (evt.meta && evt.meta.lab_display_name) || t('cases.lab_ack.the_lab') });
+          break;
+        case 'lab_ack_confirmed':
+          if (evt.meta && evt.meta.promised_return_date) {
+            description = t(evKey + 'lab_ack_confirmed_with_date', { lab: (evt.meta && evt.meta.lab_display_name) || t('cases.lab_ack.the_lab'), date: evt.meta.promised_return_date, user: userName });
+          } else {
+            description = t(evKey + 'lab_ack_confirmed', { lab: (evt.meta && evt.meta.lab_display_name) || t('cases.lab_ack.the_lab'), user: userName });
+          }
+          break;
+        case 'lab_ack_confirmed_by_staff':
+          var staffMethodKey = (evt.meta && evt.meta.method) ? 'cases.lab_ack.method.' + evt.meta.method : '';
+          var staffMethodLabel = staffMethodKey ? t(staffMethodKey) : '';
+          description = staffMethodLabel && staffMethodLabel.indexOf('cases.lab_ack.method.') !== 0
+            ? t(evKey + 'lab_ack_confirmed_by_staff_method', { user: userName, method: staffMethodLabel, date: (evt.meta && evt.meta.promised_return_date) || t('cases.lab_ack.date_not_confirmed') })
+            : t(evKey + 'lab_ack_confirmed_by_staff', { user: userName });
+          break;
+        case 'lab_info_requested':
+          description = t(evKey + 'lab_info_requested', { lab: (evt.meta && evt.meta.lab_display_name) || t('cases.lab_ack.the_lab'), user: userName });
+          break;
+        case 'lab_promised_date_changed':
+          description = t(evKey + 'lab_ack_promised_date_changed', {
+            old: (evt.meta && evt.meta.old_date) || '—',
+            new: (evt.meta && evt.meta.new_date) || '—',
+            reason: (evt.meta && evt.meta.reason) || '',
+            user: userName
+          });
+          break;
+        case 'lab_ack_superseded':
+          description = t(evKey + 'lab_ack_cleared', { lab: (evt.meta && evt.meta.lab_display_name) || t('cases.lab_ack.the_lab'), user: userName });
           break;
         default:
           description = t(evKey + 'generic', {
@@ -6056,6 +6154,10 @@ document.addEventListener('DOMContentLoaded', function () {
     // Render review status controls (hidden for new/unsaved cases)
     renderReviewStatus(caseData);
 
+    // Optional lab acknowledgment panel (server-computed caseData.labAck;
+    // promised dates stay visible for staff even when the setting is off).
+    renderLabAcknowledgment(caseData);
+
     // Meta row (Created By / review / Record Remake) and the collapsible
     // shipping section track the loaded case's state.
     updateCaseModalMeta();
@@ -6116,6 +6218,327 @@ document.addEventListener('DOMContentLoaded', function () {
 
     container.style.display = '';
   }
+
+  /**
+   * Render the optional lab acknowledgment panel in the case modal.
+   * Driven entirely by the server-computed caseData.labAck view model plus
+   * caseData.labPromisedDate (which stays visible to staff even when the
+   * practice setting is off or no acknowledgment is pending).
+   */
+  function renderLabAcknowledgment(caseData) {
+    var container = document.getElementById('labAckContainer');
+    var statusEl = document.getElementById('labAckStatusValue');
+    var detailEl = document.getElementById('labAckDetail');
+    var actionsEl = document.getElementById('labAckActions');
+    if (!container || !statusEl || !detailEl || !actionsEl) return;
+
+    container.classList.remove('lab-ack-awaiting', 'lab-ack-needs-info', 'lab-ack-confirmed');
+    actionsEl.innerHTML = '';
+    detailEl.textContent = '';
+
+    var labAck = (caseData && caseData.labAck) ? caseData.labAck : null;
+    var labAckPerms = (caseData && caseData.labAckPerms) ? caseData.labAckPerms : null;
+    var promisedDate = (caseData && caseData.labPromisedDate) ? caseData.labPromisedDate : null;
+    var staffUser = !!(labAckPerms && labAckPerms.staffUser) || !!(labAck && labAck.staffUser);
+
+    // Nothing to show: no pending/recorded acknowledgment, no promised date,
+    // and no staff capability to set one.
+    var hasOpenRow = !!(labAck && labAck.status);
+    if (!hasOpenRow && !promisedDate && !staffUser) {
+      container.style.display = 'none';
+      return;
+    }
+
+    // Status line ------------------------------------------------------------
+    if (hasOpenRow) {
+      if (labAck.status === 'awaiting') {
+        container.classList.add('lab-ack-awaiting');
+        statusEl.textContent = t('cases.lab_ack.awaiting');
+      } else if (labAck.status === 'needs_info') {
+        container.classList.add('lab-ack-needs-info');
+        statusEl.textContent = t('cases.lab_ack.needs_info');
+      } else if (labAck.status === 'confirmed') {
+        container.classList.add('lab-ack-confirmed');
+        var confirmedLabel = labAck.recordedByStaff
+          ? t('cases.lab_ack.confirmed_staff')
+          : t('cases.lab_ack.confirmed_lab');
+        var confirmedBits = [confirmedLabel];
+        if (labAck.actorName) confirmedBits.push(labAck.actorName);
+        if (labAck.confirmedAt) confirmedBits.push(formatDate(labAck.confirmedAt, true));
+        if (labAck.staffMethod) confirmedBits.push(t('cases.lab_ack.method.' + labAck.staffMethod) || labAck.staffMethod);
+        statusEl.textContent = confirmedBits.join(' · ');
+      }
+      if (labAck.infoRequestText && labAck.status === 'needs_info') {
+        detailEl.textContent = labAck.infoRequestText;
+      }
+    } else {
+      // No open acknowledgment - just the promised date display.
+      statusEl.textContent = t('cases.lab_ack.promised_label');
+    }
+
+    // Promised return date line (visible while it exists, setting on or off)
+    var effectivePromised = promisedDate || (hasOpenRow ? labAck.promisedDate : null);
+    if (effectivePromised) {
+      var promisedText = t('cases.lab_ack.promised_label') + ': ' + formatDate(effectivePromised);
+      detailEl.textContent = detailEl.textContent
+        ? detailEl.textContent + ' — ' + promisedText
+        : promisedText;
+    } else if (hasOpenRow && labAck.dateNotConfirmed && labAck.status === 'confirmed') {
+      detailEl.textContent = detailEl.textContent
+        ? detailEl.textContent + ' — ' + t('cases.lab_ack.date_not_confirmed')
+        : t('cases.lab_ack.date_not_confirmed');
+    }
+
+    if (caseData && caseData.archived) {
+      actionsEl.innerHTML = '';
+      container.style.display = '';
+      return;
+    }
+
+    // Lab actions ------------------------------------------------------------
+    if (hasOpenRow && labAck.labUser && (labAck.status === 'awaiting' || labAck.status === 'needs_info')) {
+      _labAckAddAction(actionsEl, t('cases.lab_ack.confirm_receipt'), function() {
+        _labAckShowConfirmForm(actionsEl, caseData, false);
+      });
+      if (labAck.status === 'awaiting') {
+        _labAckAddAction(actionsEl, t('cases.lab_ack.request_info'), function() {
+          _labAckShowInfoForm(actionsEl, caseData);
+        });
+      }
+    }
+
+    // Practice-staff actions ---------------------------------------------------
+    if (hasOpenRow && staffUser && (labAck.status === 'awaiting' || labAck.status === 'needs_info')) {
+      _labAckAddAction(actionsEl, t('cases.lab_ack.record_confirmation'), function() {
+        _labAckShowConfirmForm(actionsEl, caseData, true);
+      });
+    }
+
+    // Promised-date maintenance is allowed for staff even with the setting
+    // OFF (no open row required in that case).
+    if (staffUser) {
+      _labAckAddAction(actionsEl, effectivePromised ? t('cases.lab_ack.change_promised_date') : t('cases.lab_ack.set_promised_date'), function() {
+        _labAckShowPromisedForm(actionsEl, caseData, !!effectivePromised);
+      });
+    }
+
+    container.style.display = '';
+  }
+
+  function _labAckAddAction(actionsEl, label, handler) {
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'lab-ack-action-btn';
+    btn.textContent = label;
+    btn.addEventListener('click', handler);
+    actionsEl.appendChild(btn);
+    return btn;
+  }
+
+  function _labAckBuildForm(actionsEl, fields, submitLabel, onSubmit) {
+    var form = document.createElement('div');
+    form.className = 'lab-ack-form';
+
+    fields.forEach(function(f) {
+      var wrap = document.createElement('div');
+      wrap.className = 'lab-ack-form-field';
+      var lbl = document.createElement('label');
+      lbl.className = 'lab-ack-form-label';
+      lbl.setAttribute('for', f.id);
+      lbl.textContent = f.label;
+      var input = document.createElement(f.tag || 'input');
+      input.id = f.id;
+      if (input.tagName === 'INPUT') input.type = f.type || 'text';
+      if (f.value) input.value = f.value;
+      if (f.placeholder) input.placeholder = f.placeholder;
+      if (f.tag === 'select' && Array.isArray(f.options)) {
+        f.options.forEach(function(opt) {
+          var o = document.createElement('option');
+          o.value = opt.value;
+          o.textContent = opt.label;
+          input.appendChild(o);
+        });
+      }
+      if (f.tag === 'textarea') input.rows = 3;
+      wrap.appendChild(lbl);
+      wrap.appendChild(input);
+      form.appendChild(wrap);
+    });
+
+    var submitBtn = document.createElement('button');
+    submitBtn.type = 'button';
+    submitBtn.className = 'lab-ack-action-btn lab-ack-submit';
+    submitBtn.textContent = submitLabel;
+    submitBtn.addEventListener('click', function() { onSubmit(form); });
+    form.appendChild(submitBtn);
+    actionsEl.appendChild(form);
+    return form;
+  }
+
+  function _labAckShowConfirmForm(actionsEl, caseData, isStaff) {
+    actionsEl.querySelectorAll('.lab-ack-form').forEach(function(f) { f.remove(); });
+    var fields = [
+      { id: 'labAckPromisedInput', label: t('cases.lab_ack.promised_date_label'), type: 'date' }
+    ];
+    if (isStaff) {
+      fields.push({
+        id: 'labAckMethodInput', label: t('cases.lab_ack.method_label'), tag: 'select',
+        options: [
+          { value: 'phone', label: t('cases.lab_ack.method.phone') },
+          { value: 'email', label: t('cases.lab_ack.method.email') }
+        ]
+      });
+    }
+    _labAckBuildForm(actionsEl, fields, isStaff ? t('cases.lab_ack.record_confirmation') : t('cases.lab_ack.confirm_receipt'), function(form) {
+      var promised = form.querySelector('#labAckPromisedInput').value || null;
+      var payload = { promisedDate: promised };
+      if (isStaff) {
+        payload.method = form.querySelector('#labAckMethodInput').value;
+      }
+      window.updateLabAcknowledgment(caseData.id, isStaff ? 'staff_confirm' : 'confirm', payload);
+    });
+    // Optional "date not yet confirmed" affordance: submit with empty date.
+    var skipBtn = document.createElement('button');
+    skipBtn.type = 'button';
+    skipBtn.className = 'lab-ack-action-btn lab-ack-skip-date';
+    skipBtn.textContent = t('cases.lab_ack.date_not_confirmed');
+    skipBtn.addEventListener('click', function() {
+      var payload = { promisedDate: null };
+      if (isStaff) {
+        var methodEl = actionsEl.querySelector('#labAckMethodInput');
+        payload.method = methodEl ? methodEl.value : 'phone';
+      }
+      window.updateLabAcknowledgment(caseData.id, isStaff ? 'staff_confirm' : 'confirm', payload);
+    });
+    actionsEl.appendChild(skipBtn);
+  }
+
+  function _labAckShowInfoForm(actionsEl, caseData) {
+    actionsEl.querySelectorAll('.lab-ack-form').forEach(function(f) { f.remove(); });
+    _labAckBuildForm(actionsEl, [
+      { id: 'labAckInfoInput', label: t('cases.lab_ack.info_request_label'), tag: 'textarea', placeholder: t('cases.lab_ack.info_request_placeholder') }
+    ], t('cases.lab_ack.request_info'), function(form) {
+      var text = form.querySelector('#labAckInfoInput').value.trim();
+      if (!text) {
+        showToast(t('cases.lab_ack.info_required'), 'error');
+        return;
+      }
+      window.updateLabAcknowledgment(caseData.id, 'request_info', { description: text });
+    });
+  }
+
+  function _labAckShowPromisedForm(actionsEl, caseData, isChange) {
+    actionsEl.querySelectorAll('.lab-ack-form').forEach(function(f) { f.remove(); });
+    var fields = [
+      { id: 'labAckPromisedOnlyInput', label: t('cases.lab_ack.promised_date_label'), type: 'date', value: (caseData && caseData.labPromisedDate) || '' }
+    ];
+    if (isChange) {
+      fields.push({ id: 'labAckReasonInput', label: t('cases.lab_ack.change_reason_label'), placeholder: t('cases.lab_ack.change_reason_placeholder') });
+    }
+    _labAckBuildForm(actionsEl, fields, t('cases.lab_ack.save'), function(form) {
+      var promised = form.querySelector('#labAckPromisedOnlyInput').value;
+      if (!promised) {
+        showToast(t('cases.lab_ack.promised_required'), 'error');
+        return;
+      }
+      var payload = { promisedDate: promised };
+      if (isChange) {
+        var reason = form.querySelector('#labAckReasonInput').value.trim();
+        if (!reason) {
+          showToast(t('cases.lab_ack.change_reason_required'), 'error');
+          return;
+        }
+        payload.reason = reason;
+      }
+      window.updateLabAcknowledgment(caseData.id, 'set_promised_date', payload);
+    });
+  }
+
+  /**
+   * Call the server to record a lab acknowledgment action. Reuses the same
+   * CSRF/session conventions as update-case-review.php.
+   */
+  window.updateLabAcknowledgment = function(caseId, action, payload) {
+    var actionsEl = document.getElementById('labAckActions');
+    if (actionsEl) {
+      actionsEl.querySelectorAll('button').forEach(function(b) { b.disabled = true; });
+    }
+
+    var body = { caseId: caseId, action: action };
+    if (payload) {
+      Object.keys(payload).forEach(function(k) { body[k] = payload[k]; });
+    }
+
+    fetch('api/lab-acknowledgment-action.php', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRF-Token': csrfToken
+      },
+      body: JSON.stringify(body)
+    })
+    .then(function(response) { return response.json(); })
+    .then(function(data) {
+      if (data && data.success) {
+        // Merge the server-returned view model into the loaded case.
+        if (currentEditCaseData && (currentEditCaseData.id === caseId || currentEditCaseData.case_id === caseId)) {
+          currentEditCaseData.labAck = data.labAck || null;
+          if (typeof data.labPromisedDate !== 'undefined') {
+            currentEditCaseData.labPromisedDate = data.labPromisedDate;
+          }
+          if (typeof data.labAckStatus !== 'undefined') {
+            currentEditCaseData.labAckStatus = data.labAckStatus;
+          }
+        }
+        if (currentEditCaseData) {
+          renderLabAcknowledgment(currentEditCaseData);
+        }
+
+        // Keep the kanban card's cached case data in sync so list filters
+        // and risk badges stay accurate.
+        var card = (typeof window.findCardByCaseId === 'function') ? window.findCardByCaseId(caseId) : null;
+        if (card && card.dataset && card.dataset.caseJson) {
+          try {
+            var cardData = JSON.parse(card.dataset.caseJson);
+            cardData.labAckStatus = typeof data.labAckStatus !== 'undefined' ? data.labAckStatus : (data.labAck ? data.labAck.status : null);
+            if (typeof data.labPromisedDate !== 'undefined') cardData.labPromisedDate = data.labPromisedDate;
+            card.dataset.caseJson = JSON.stringify(cardData);
+          } catch (e) {}
+        }
+
+        // Re-run an active ack filter so stale cards leave the view.
+        var awaitingFilter = document.getElementById('filterAwaitingAck');
+        var needsInfoFilter = document.getElementById('filterNeedsInfo');
+        if (((awaitingFilter && awaitingFilter.checked) || (needsInfoFilter && needsInfoFilter.checked))
+            && typeof window.applyFilters === 'function') {
+          window.applyFilters();
+        }
+
+        // Promised dates feed appointment-risk; re-evaluate highlighting.
+        if (typeof updatePastDueHighlighting === 'function') {
+          updatePastDueHighlighting();
+        }
+
+        if (typeof window.triggerCardsUpdated === 'function') {
+          window.triggerCardsUpdated();
+        }
+
+        if (data.changed !== false && data.message) {
+          showToast(data.message, 'success');
+        }
+      } else {
+        showToast((data && data.message) || t('common.error'), 'error');
+        if (currentEditCaseData) renderLabAcknowledgment(currentEditCaseData);
+      }
+    })
+    .catch(function(err) {
+      if (typeof console !== 'undefined' && console.error) {
+        console.error('Lab acknowledgment update failed: ' + err.message);
+      }
+      showToast(t('common.error'), 'error');
+      if (currentEditCaseData) renderLabAcknowledgment(currentEditCaseData);
+    });
+  };
 
   /**
    * Apply review-state changes to an existing Kanban card without rebuilding it.
@@ -8848,6 +9271,24 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   /**
+   * Lab acknowledgment: is the lab-promised return date strictly AFTER the
+   * patient appointment date? Both are calendar-date strings; a missing or
+   * unparseable value returns false so absent acknowledgment data never
+   * implies safety.
+   */
+  function labPromisedDateIsAfter(promisedDateString, appointmentDateString) {
+    if (!promisedDateString || !appointmentDateString) return false;
+    try {
+      var promised = new Date(String(promisedDateString).substring(0, 10) + 'T00:00:00');
+      var appt = new Date(String(appointmentDateString).substring(0, 10) + 'T00:00:00');
+      if (isNaN(promised.getTime()) || isNaN(appt.getTime())) return false;
+      return promised.getTime() > appt.getTime();
+    } catch (e) {
+      return false;
+    }
+  }
+
+  /**
    * Build the human-readable due warning badge text for the Kanban card.
    * Returns '' when the case should display its normal due date with no badge.
    * Only applies to future/today dates; past-due cases are handled separately.
@@ -9322,7 +9763,14 @@ document.addEventListener('DOMContentLoaded', function () {
       if (!isPastDue && !isFinalWorkflowColumn(status) && caseData.patientAppointmentDate && highlightAppointmentRisk) {
         var appointmentRiskDays = parseInt(localStorage.getItem('appointment_risk_days') || '3', 10);
         apptDayDiff = getCalendarDayDiff(caseData.patientAppointmentDate);
-        if (apptDayDiff !== null && apptDayDiff <= appointmentRiskDays) {
+        var apptRiskHit = apptDayDiff !== null && apptDayDiff <= appointmentRiskDays;
+        // Lab acknowledgment: a lab-promised return date later than the
+        // patient appointment is an additional risk signal, independent of
+        // the configured window. Missing promised dates change nothing.
+        if (!apptRiskHit && caseData.labPromisedDate) {
+          apptRiskHit = labPromisedDateIsAfter(caseData.labPromisedDate, caseData.patientAppointmentDate);
+        }
+        if (apptRiskHit) {
           caseCard.classList.add('kanban-card-appointment-risk');
           isAppointmentRisk = true;
           apptRiskText = t('cases.risk.appointment_abbreviation');
@@ -10394,7 +10842,12 @@ document.addEventListener('DOMContentLoaded', function () {
     // Purple appointment risk takes precedence over Coming Due
     if (highlightAppointmentRisk && caseData.patientAppointmentDate) {
       var daysUntilAppt = getCalendarDayDiff(caseData.patientAppointmentDate);
-      if (daysUntilAppt !== null && daysUntilAppt <= appointmentRiskDays) {
+      var apptRiskHit = daysUntilAppt !== null && daysUntilAppt <= appointmentRiskDays;
+      // Lab acknowledgment: promised return date after the appointment = risk.
+      if (!apptRiskHit && caseData.labPromisedDate) {
+        apptRiskHit = labPromisedDateIsAfter(caseData.labPromisedDate, caseData.patientAppointmentDate);
+      }
+      if (apptRiskHit) {
         card.classList.add('kanban-card-appointment-risk');
         addAppointmentRiskBadge(card);
         return;
@@ -13747,6 +14200,8 @@ document.addEventListener('DOMContentLoaded', function () {
     const filterDueSoon = document.getElementById('filterDueSoon');
     const filterApptRisk = document.getElementById('filterApptRisk');
     const filterAtRisk = document.getElementById('filterAtRisk');
+    const filterAwaitingAck = document.getElementById('filterAwaitingAck');
+    const filterNeedsInfo = document.getElementById('filterNeedsInfo');
     const clearFiltersBtn = document.getElementById('clearFiltersBtn');
     const kanbanFilterActiveDot = document.getElementById('kanbanFilterActiveDot');
 
@@ -13765,6 +14220,8 @@ document.addEventListener('DOMContentLoaded', function () {
         const dueSoon = filterDueSoon ? filterDueSoon.checked : false;
         const apptRiskOnly = filterApptRisk ? filterApptRisk.checked : false;
         const atRiskOnly = filterAtRisk ? filterAtRisk.checked : false;
+        const awaitingAckOnly = filterAwaitingAck ? filterAwaitingAck.checked : false;
+        const needsInfoOnly = filterNeedsInfo ? filterNeedsInfo.checked : false;
 
         // Build query parameters
         const params = new URLSearchParams();
@@ -13777,6 +14234,8 @@ document.addEventListener('DOMContentLoaded', function () {
         if (dueSoon) params.append('due_soon', 'true');
         if (apptRiskOnly) params.append('appt_risk_only', 'true');
         if (atRiskOnly) params.append('at_risk_only', 'true');
+        if (awaitingAckOnly) params.append('ack_awaiting_only', 'true');
+        if (needsInfoOnly) params.append('ack_needs_info_only', 'true');
         // Open Dental patient scope (od-launch.js): constrain the board to
         // the synced patient's cases while the launch banner is active.
         const odIds = window.odPatientScope ? window.odPatientScope.caseIds() : null;
@@ -13839,7 +14298,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
           // Update filter active indicator
           if (kanbanFilterActiveDot) {
-            const hasActiveFilters = !!(searchTerm || caseType || assignedTo || reviewStatus || carrier || lateOnly || dueSoon || atRiskOnly);
+            const hasActiveFilters = !!(searchTerm || caseType || assignedTo || reviewStatus || carrier || lateOnly || dueSoon || atRiskOnly || awaitingAckOnly || needsInfoOnly);
             kanbanFilterActiveDot.style.display = hasActiveFilters ? 'block' : 'none';
             if (window.caseFilterSort) window.caseFilterSort.indicator();
           }
@@ -13905,6 +14364,14 @@ document.addEventListener('DOMContentLoaded', function () {
       filterAtRisk.addEventListener('change', applyFilters);
     }
 
+    if (filterAwaitingAck) {
+      filterAwaitingAck.addEventListener('change', applyFilters);
+    }
+
+    if (filterNeedsInfo) {
+      filterNeedsInfo.addEventListener('change', applyFilters);
+    }
+
     if (clearFiltersBtn) {
       clearFiltersBtn.addEventListener('click', function() {
         // Clear all filters
@@ -13917,6 +14384,8 @@ document.addEventListener('DOMContentLoaded', function () {
         if (filterDueSoon) filterDueSoon.checked = false;
         if (filterApptRisk) filterApptRisk.checked = false;
         if (filterAtRisk) filterAtRisk.checked = false;
+        if (filterAwaitingAck) filterAwaitingAck.checked = false;
+        if (filterNeedsInfo) filterNeedsInfo.checked = false;
 
         // Apply cleared filters
         applyFilters();
@@ -14747,6 +15216,7 @@ document.addEventListener('DOMContentLoaded', function () {
     // past-due / coming-due / appointment-risk calculations as the board.
     window.getCalendarDayDiff = getCalendarDayDiff;
     window.getDueWarningText = getDueWarningText;
+    window.labPromisedDateIsAfter = labPromisedDateIsAfter;
 
     // Expose the Settings modal open/close functions for tests, keyboard
     // shortcuts, and programmatic callers. openSettingsBillingModal enforces

@@ -18,6 +18,7 @@ require_once __DIR__ . '/google-drive.php';
 require_once __DIR__ . '/case-activity-log.php';
 require_once __DIR__ . '/encryption.php';
 require_once __DIR__ . '/hipaa-compliance.php';
+require_once __DIR__ . '/lab-acknowledgment.php';
 
 // SECURITY: Require valid practice context before accessing any data
 $currentPracticeId = requireValidPracticeContext();
@@ -81,6 +82,44 @@ try {
     // single-practice mode this equals the session practice; the client
     // uses it to load the correct practice-scoped form options.
     $decryptedCase['practiceId'] = (int)$currentPracticeId;
+
+    // Optional lab acknowledgment workflow. Everything the modal needs is
+    // resolved server-side: the open acknowledgment row (null when the
+    // practice setting is off or no lab handoff is pending) plus whether
+    // THIS user may act as the lab or as practice staff. Promised return
+    // dates stay visible via case.labPromisedDate even when disabled.
+    $decryptedCase['labAck'] = null;
+    $decryptedCase['labAckPerms'] = ['staffUser' => false, 'isLab' => false];
+    try {
+        ensureLabAcknowledgmentSchema();
+        $ackPerms = getUserPracticePermissions($currentPracticeId);
+        $ackIsLab = $ackPerms && !empty($ackPerms['is_lab']);
+        $ackCanEdit = $ackPerms && !empty($ackPerms['can_edit_cases']);
+        // staffUser = authorized to record promised dates / staff confirmations.
+        // This stays true when the acknowledgment setting is OFF so staff can
+        // still maintain promised return dates (server enforces the same).
+        $decryptedCase['labAckPerms'] = [
+            'staffUser' => (bool)$ackCanEdit,
+            'isLab' => (bool)$ackIsLab,
+        ];
+        $labAckEnabled = isLabAcknowledgmentEnabled($currentPracticeId);
+        if ($labAckEnabled) {
+            $openAck = getOpenLabAcknowledgment($caseId, $currentPracticeId);
+            if ($openAck) {
+                $decryptedCase['labAck'] = buildLabAckViewModel(
+                    $openAck,
+                    $labAckEnabled,
+                    (int)($_SESSION['db_user_id'] ?? 0),
+                    $ackCanEdit,
+                    $ackIsLab,
+                    !empty($targetCase['archived'])
+                );
+            }
+        }
+    } catch (Throwable $e) {
+        error_log('[get-case] labAck decoration error: ' . $e->getMessage());
+    }
+
     if (isOrgCaseViewRequested() && $currentPracticeId !== (int)($_SESSION['current_practice_id'] ?? 0)) {
         try {
             $nameStmt = $pdo->prepare("SELECT practice_name FROM practices WHERE id = :id LIMIT 1");

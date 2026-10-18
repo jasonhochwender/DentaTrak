@@ -291,7 +291,11 @@
             "appointment_date_changed": "Patiententermin ändert sich",
             "case_details_changed": "Andere Falldetails ändern sich",
             "mention": "Jemand erwähnt mich in einem Kommentar mit @",
-            "comment_added": "Jemand kommentiert einen Fall, an dem ich beteiligt bin"
+            "comment_added": "Jemand kommentiert einen Fall, an dem ich beteiligt bin",
+            "lab_ack_requested": "Laborbestätigung angefordert",
+            "lab_ack_confirmed": "Labor bestätigte Erhalt",
+            "lab_info_requested": "Labor forderte Informationen an",
+            "lab_promised_date_changed": "Zugesagtes Rückgabedatum geändert"
         },
         "load_error": "Benachrichtigungseinstellungen konnten nicht geladen werden.",
         "save_error": "Benachrichtigungseinstellungen konnten nicht gespeichert werden.",
@@ -548,7 +552,9 @@
         "all_review_status": "Alle",
         "needs_review": "Prüfung nötig",
         "reviewed": "Geprüft",
-        "search_placeholder": "Patient, Zahnarzt oder Fallnummer suchen"
+        "search_placeholder": "Patient, Zahnarzt oder Fallnummer suchen",
+        "awaiting_ack": "Wartet auf Bestätigung",
+        "needs_info": "Informationen benötigt"
     },
     "fabg": {
         "welcome": {
@@ -650,9 +656,17 @@
                 "appointment_date_changed": "Der Termin eines zugewiesenen Falls hat sich geändert.",
                 "case_details_changed": "Details eines zugewiesenen Falls haben sich geändert.",
                 "mention": "Sie wurden in einem Fallkommentar erwähnt.",
-                "comment_added": "Ein Kommentar wurde zu einem Fall hinzugefügt, an dem Sie beteiligt sind."
+                "comment_added": "Ein Kommentar wurde zu einem Fall hinzugefügt, an dem Sie beteiligt sind.",
+                "lab_ack_requested": "Ein Fall wurde Ihrem Labor zugewiesen und wartet auf eine Empfangsbestätigung.",
+                "lab_ack_confirmed": "Der Erhalt eines zugewiesenen Falls wurde bestätigt.",
+                "lab_info_requested": "Zu einem zugewiesenen Fall wurden weitere Informationen angefordert.",
+                "lab_promised_date_changed": "Das zugesagte Rückgabedatum eines zugewiesenen Falls wurde geändert."
             }
-        }
+        },
+        "lab_ack_requested": "{from} hat einen Fall an Ihr Labor gesendet - bitte bestätigen Sie den Erhalt.",
+        "lab_ack_confirmed": "{from} hat den Erhalt eines Falls bestätigt.",
+        "lab_info_requested": "{from} hat weitere Informationen zu einem Fall angefordert.",
+        "lab_promised_date_changed": "{from} hat das zugesagte Rückgabedatum eines Falls aktualisiert."
     },
     "phiAudit": {
         "title": "PHI-Zugriffsprotokoll",
@@ -1197,7 +1211,15 @@
                 "remake_completed": "Neuanfertigung Nr. {number} als abgeschlossen markiert von {user}",
                 "source_deleted_integration": "Quell-Laborfall wurde in Open Dental gelöscht",
                 "source_deleted": "Quelldatensatz wurde im verbundenen System gelöscht",
-                "generic": "{event} von {user}"
+                "generic": "{event} von {user}",
+                "lab_ack_requested": "Laborbestätigung angefordert ({lab})",
+                "lab_ack_confirmed": "{lab} hat den Erhalt bestätigt ({user})",
+                "lab_ack_confirmed_with_date": "{lab} hat den Erhalt bestätigt, zugesagt {date} ({user})",
+                "lab_ack_confirmed_by_staff": "{user} hat eine Laborbestätigung erfasst (von Mitarbeitern)",
+                "lab_ack_confirmed_by_staff_method": "{user} hat eine Laborbestätigung per {method} erfasst; zugesagt {date}",
+                "lab_info_requested": "{lab} hat weitere Informationen angefordert ({user})",
+                "lab_ack_promised_date_changed": "{user} hat das zugesagte Rückgabedatum geändert: {old} → {new} ({reason})",
+                "lab_ack_cleared": "Laborbestätigung für {lab} geschlossen (neu zugewiesen)"
             },
             "timeline": {
                 "created": "Erstellt",
@@ -1262,7 +1284,20 @@
                     "status": "Status",
                     "assignedTo": "Zugewiesen",
                     "notes": "Notizen"
-                }
+                },
+                "lab_ack_requested": "Laborbestätigung angefordert",
+                "lab_ack_confirmed": "Labor bestätigt",
+                "lab_ack_confirmed_by_staff": "Von Mitarbeitern erfasst",
+                "lab_info_requested": "Informationen angefordert",
+                "lab_ack_promised_changed": "Zugesagtes Datum geändert",
+                "lab_ack_cleared": "Bestätigung geschlossen (neu zugewiesen)",
+                "full_lab_ack_requested": "Laborbestätigung angefordert ({lab})",
+                "full_lab_ack_confirmed": "Labor hat den Erhalt bestätigt",
+                "full_lab_ack_confirmed_date": "Labor hat den Erhalt bestätigt; zugesagt {date}",
+                "full_lab_ack_confirmed_staff": "Bestätigung von Mitarbeitern per {method} erfasst",
+                "full_lab_info_requested": "Labor hat weitere Informationen angefordert",
+                "full_lab_ack_promised_changed": "Zugesagtes Rückgabedatum geändert {old} → {new}. Grund: {reason}",
+                "full_lab_ack_cleared": "Bestätigung für {lab} bei Neuzuweisung geschlossen"
             }
         },
         "risk": {
@@ -1409,6 +1444,35 @@
             "prev": "Vorherige Workflow-Spalte",
             "select": "Workflow-Spalte auswählen",
             "next": "Nächste Workflow-Spalte"
+        },
+        "lab_ack": {
+            "label": "Laborbestätigung",
+            "awaiting": "Wartet auf Bestätigung",
+            "needs_info": "Informationen benötigt",
+            "confirmed_lab": "Vom Labor bestätigt",
+            "confirmed_staff": "Von Praxismitarbeiter erfasst",
+            "promised_label": "Vom Labor zugesagtes Rückgabedatum",
+            "promised_date_label": "Zugesagtes Rückgabedatum",
+            "date_not_confirmed": "Datum noch nicht bestätigt",
+            "confirm_receipt": "Erhalt bestätigen",
+            "request_info": "Informationen anfordern",
+            "record_confirmation": "Bestätigung erfassen (Telefon/E-Mail)",
+            "set_promised_date": "Zugesagtes Rückgabedatum setzen",
+            "change_promised_date": "Zugesagtes Rückgabedatum ändern",
+            "save": "Speichern",
+            "method_label": "Wie wurde bestätigt?",
+            "method": {
+                "phone": "Telefon",
+                "email": "E-Mail"
+            },
+            "info_request_label": "Welche Informationen fehlen?",
+            "info_request_placeholder": "Beschreiben Sie, was das Labor zum Fortfahren benötigt",
+            "info_required": "Bitte beschreiben Sie die fehlenden Informationen.",
+            "promised_required": "Bitte wählen Sie ein zugesagtes Rückgabedatum.",
+            "change_reason_label": "Grund für die Änderung",
+            "change_reason_placeholder": "Kurzer Grund, wird im Fallverlauf gespeichert",
+            "change_reason_required": "Zum Ändern des zugesagten Datums ist eine kurze Begründung erforderlich.",
+            "the_lab": "das Labor"
         }
     },
     "od_send": {
@@ -1608,6 +1672,21 @@
             },
             "invalid_timezone": "Geben Sie eine gültige Zeitzonen-Kennung ein (z. B. America/New_York).",
             "invalid_field_map": "Die Feldzuordnung muss Workflow-Status-IDs auf unterstützte Open-Dental-Lebenszyklusfelder abbilden."
+        },
+        "lab_ack": {
+            "invalid_request": "Ungültige Anfrage.",
+            "case_archived": "Archivierte Fälle sind schreibgeschützt.",
+            "staff_only": "Nur autorisierte Praxismitarbeiter können diese Aktion ausführen.",
+            "invalid_date": "Bitte geben Sie ein gültiges Datum ein.",
+            "reason_required": "Zum Ändern des zugesagten Rückgabedatums ist eine kurze Begründung erforderlich.",
+            "save_failed": "Speichern fehlgeschlagen. Bitte erneut versuchen.",
+            "disabled": "Die Laborbestätigung ist für diese Praxis nicht aktiviert.",
+            "no_pending": "Für diesen Fall liegt keine ausstehende Bestätigung vor.",
+            "lab_only": "Nur das zugewiesene Labor kann auf diese Bestätigung antworten.",
+            "description_required": "Bitte beschreiben Sie die fehlenden Informationen.",
+            "method_required": "Bitte wählen Sie, wie die Bestätigung eingegangen ist.",
+            "info_request_prefix": "[Labor benötigt Informationen]",
+            "promised_saved": "Zugesagtes Rückgabedatum gespeichert."
         }
     },
     "auth": {
@@ -2630,6 +2709,11 @@
                 "stage": "Workflow-Phase",
                 "display_name": "Anzeigename",
                 "restore_defaults": "Standardwerte wiederherstellen"
+            },
+            "lab_ack": {
+                "label": "Laborbestätigung",
+                "description": "Bitten Sie Ihre Labore, den Erhalt zu bestätigen und ein voraussichtliches Rückgabedatum anzugeben.",
+                "tooltip": "Wenn aktiviert, zeigen an ein Labor übergebene Fälle eine Bestätigungsanfrage. Das Labor kann den Erhalt mit optionalem Rückgabedatum bestätigen oder Informationen anfordern. Mitarbeiter können auch eine telefonische oder E-Mail-Bestätigung erfassen."
             }
         },
         "users": {

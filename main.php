@@ -897,6 +897,17 @@ if (isset($appConfig) && is_array($appConfig) && isset($appConfig['appName'])) {
       $caseReviewTrackingClass = 'case-review-tracking-off';
   }
 
+  // Practice-level Lab acknowledgment flag. Defaults to OFF so existing
+  // practices never show acknowledgment UI before enabling it in Settings.
+  $labAcknowledgmentEnabled = false;
+  try {
+      $labAckStmt = $pdo->prepare("SELECT lab_acknowledgment_enabled FROM practices WHERE id = :practice_id");
+      $labAckStmt->execute(['practice_id' => $currentPracticeId]);
+      $labAcknowledgmentEnabled = (bool)$labAckStmt->fetchColumn();
+  } catch (Throwable $e) {
+      $labAcknowledgmentEnabled = false;
+  }
+
   // FABG pilot welcome: shown once per practice until dismissed. Guarded so a
   // missing practices.fabg_pilot column (pre-migration schema) never breaks
   // the main view.
@@ -1246,6 +1257,14 @@ endif;
             <label for="filterApptRisk" class="filter-checkbox-label">
               <input type="checkbox" id="filterApptRisk">
               <?php echo t('filters.appt_risk'); ?>
+            </label>
+            <label for="filterAwaitingAck" class="filter-checkbox-label"<?php echo $labAcknowledgmentEnabled ? '' : ' style="display:none;"'; ?>>
+              <input type="checkbox" id="filterAwaitingAck">
+              <?php echo t('filters.awaiting_ack'); ?>
+            </label>
+            <label for="filterNeedsInfo" class="filter-checkbox-label"<?php echo $labAcknowledgmentEnabled ? '' : ' style="display:none;"'; ?>>
+              <input type="checkbox" id="filterNeedsInfo">
+              <?php echo t('filters.needs_info'); ?>
             </label>
           </div>
 
@@ -2538,6 +2557,19 @@ endif;
                     </button>
                   </div>
                 </div>
+
+                <!-- Optional lab acknowledgment workflow. Rendered by
+                     renderLabAcknowledgment() from the server-computed
+                     case.labAck view model; hidden for new cases, archived
+                     cases, and practices where the setting is off. -->
+                <div id="labAckContainer" class="lab-ack-field" style="display: none;">
+                  <div class="lab-ack-row">
+                    <span class="case-meta-label"><?php echo t('cases.lab_ack.label'); ?></span>
+                    <span id="labAckStatusValue" class="lab-ack-status-value"></span>
+                    <span id="labAckDetail" class="lab-ack-detail"></span>
+                  </div>
+                  <div id="labAckActions" class="lab-ack-actions"></div>
+                </div>
               </div>
 
               <div class="modal-form-grid">
@@ -3595,6 +3627,12 @@ endif;
                           <label for="caseReviewTrackingEnabled"><?php echo t('settings.display.case_review.label'); ?></label>
                           <input type="checkbox" id="caseReviewTrackingEnabled" name="caseReviewTrackingEnabled" <?= $isAdmin ? '' : 'disabled' ?>>
                           <span class="option-text"><?php echo t('settings.display.case_review.enable'); ?></span>
+                        </div>
+
+                        <div class="option-row option-row-lab-ack">
+                          <label for="labAcknowledgmentEnabled"><?php echo t('settings.display.lab_ack.label'); ?></label>
+                          <input type="checkbox" id="labAcknowledgmentEnabled" name="labAcknowledgmentEnabled" <?= $isAdmin ? '' : 'disabled' ?>>
+                          <span class="option-text"><?php echo t('settings.display.lab_ack.description'); ?></span>
                         </div>
                       </div>
 
@@ -4914,6 +4952,42 @@ endif;
             </label>
           </div>
           <?php endif; ?>
+          <div class="notification-preference-item lab-ack-pref" data-event="lab_ack_requested"<?php echo $labAcknowledgmentEnabled ? '' : ' style="display:none;"'; ?>>
+            <label for="pref_lab_ack_requested" class="notification-preference-label">
+              <span class="notification-preference-title"><?php echo t('preferences.events.lab_ack_requested'); ?></span>
+              <span class="switch">
+                <input type="checkbox" id="pref_lab_ack_requested" role="switch" class="event-preference" data-event="lab_ack_requested">
+                <span class="switch-slider" aria-hidden="true"></span>
+              </span>
+            </label>
+          </div>
+          <div class="notification-preference-item lab-ack-pref" data-event="lab_ack_confirmed"<?php echo $labAcknowledgmentEnabled ? '' : ' style="display:none;"'; ?>>
+            <label for="pref_lab_ack_confirmed" class="notification-preference-label">
+              <span class="notification-preference-title"><?php echo t('preferences.events.lab_ack_confirmed'); ?></span>
+              <span class="switch">
+                <input type="checkbox" id="pref_lab_ack_confirmed" role="switch" class="event-preference" data-event="lab_ack_confirmed">
+                <span class="switch-slider" aria-hidden="true"></span>
+              </span>
+            </label>
+          </div>
+          <div class="notification-preference-item lab-ack-pref" data-event="lab_info_requested"<?php echo $labAcknowledgmentEnabled ? '' : ' style="display:none;"'; ?>>
+            <label for="pref_lab_info_requested" class="notification-preference-label">
+              <span class="notification-preference-title"><?php echo t('preferences.events.lab_info_requested'); ?></span>
+              <span class="switch">
+                <input type="checkbox" id="pref_lab_info_requested" role="switch" class="event-preference" data-event="lab_info_requested">
+                <span class="switch-slider" aria-hidden="true"></span>
+              </span>
+            </label>
+          </div>
+          <div class="notification-preference-item lab-ack-pref" data-event="lab_promised_date_changed"<?php echo $labAcknowledgmentEnabled ? '' : ' style="display:none;"'; ?>>
+            <label for="pref_lab_promised_date_changed" class="notification-preference-label">
+              <span class="notification-preference-title"><?php echo t('preferences.events.lab_promised_date_changed'); ?></span>
+              <span class="switch">
+                <input type="checkbox" id="pref_lab_promised_date_changed" role="switch" class="event-preference" data-event="lab_promised_date_changed">
+                <span class="switch-slider" aria-hidden="true"></span>
+              </span>
+            </label>
+          </div>
         </div>
       </div>
       </div>

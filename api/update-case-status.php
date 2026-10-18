@@ -8,6 +8,7 @@ require_once __DIR__ . '/workflow-stages.php';
 require_once __DIR__ . '/cases-cache.php';
 require_once __DIR__ . '/case-activity-log.php';
 require_once __DIR__ . '/lab-assignment-history.php';
+require_once __DIR__ . '/lab-acknowledgment.php';
 require_once __DIR__ . '/csrf.php';
 require_once __DIR__ . '/notification-service.php';
 require_once __DIR__ . '/integrations/IntegrationOutbound.php';
@@ -222,6 +223,8 @@ if ($driveFolderId === '') {
     // Safe/idempotent no-ops otherwise.
     if ($status === $terminalStatus) {
         closeOpenLabPeriodForDeliveredCase($caseId, $currentPracticeId);
+        // Delivered closes any still-open lab acknowledgment (history kept).
+        supersedeOpenLabAcknowledgment($caseId, $currentPracticeId, 'case_delivered', $_SESSION['db_user_id'] ?? null);
     } else {
         reopenLabPeriodOnDeliveredRegression($caseId, $currentPracticeId, $oldStatus, $status);
     }
@@ -323,6 +326,7 @@ try {
         // (see lab-assignment-history.php docblocks).
         if ($status === $terminalStatus) {
             closeOpenLabPeriodForDeliveredCase($caseId, $currentPracticeId);
+            supersedeOpenLabAcknowledgment($caseId, $currentPracticeId, 'case_delivered', $_SESSION['db_user_id'] ?? null);
         } else {
             reopenLabPeriodOnDeliveredRegression($caseId, $currentPracticeId, $oldStatus, $status);
         }
@@ -484,6 +488,7 @@ try {
     // lab-assignment-history.php docblocks).
     if ($status === $terminalStatus) {
         closeOpenLabPeriodForDeliveredCase($caseId, $currentPracticeId);
+        supersedeOpenLabAcknowledgment($caseId, $currentPracticeId, 'case_delivered', $_SESSION['db_user_id'] ?? null);
     } else {
         reopenLabPeriodOnDeliveredRegression($caseId, $currentPracticeId, $oldStatus, $status);
     }

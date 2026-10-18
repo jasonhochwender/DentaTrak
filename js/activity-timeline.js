@@ -122,6 +122,19 @@
         }
         return t(tlKey + 'review_marked', { status: t('cases.needs_review').toLowerCase() });
 
+      case 'lab_ack_requested':
+        return t(tlKey + 'lab_ack_requested');
+      case 'lab_ack_confirmed':
+        return t(tlKey + 'lab_ack_confirmed');
+      case 'lab_ack_confirmed_by_staff':
+        return t(tlKey + 'lab_ack_confirmed_by_staff');
+      case 'lab_info_requested':
+        return t(tlKey + 'lab_info_requested');
+      case 'lab_promised_date_changed':
+        return t(tlKey + 'lab_ack_promised_changed');
+      case 'lab_ack_superseded':
+        return t(tlKey + 'lab_ack_cleared');
+
       default:
         return eventType.replace(/_/g, ' ').replace(/\b\w/g, function(l) {
           return l.toUpperCase();
@@ -243,6 +256,30 @@
         } else {
           desc = t(tlKey + 'full_review_changed');
         }
+        break;
+      case 'lab_ack_requested':
+        desc = t(tlKey + 'full_lab_ack_requested', { lab: meta.lab_display_name || '' });
+        break;
+      case 'lab_ack_confirmed':
+        desc = meta.promised_return_date
+          ? t(tlKey + 'full_lab_ack_confirmed_date', { date: meta.promised_return_date })
+          : t(tlKey + 'full_lab_ack_confirmed');
+        break;
+      case 'lab_ack_confirmed_by_staff':
+        desc = t(tlKey + 'full_lab_ack_confirmed_staff', { method: meta.method || '' });
+        break;
+      case 'lab_info_requested':
+        desc = t(tlKey + 'full_lab_info_requested');
+        break;
+      case 'lab_promised_date_changed':
+        desc = t(tlKey + 'full_lab_ack_promised_changed', {
+          old: meta.old_date || '',
+          new: meta.new_date || '',
+          reason: meta.reason || ''
+        });
+        break;
+      case 'lab_ack_superseded':
+        desc = t(tlKey + 'full_lab_ack_cleared', { lab: meta.lab_display_name || '' });
         break;
       default:
         desc = eventType.replace(/_/g, ' ');

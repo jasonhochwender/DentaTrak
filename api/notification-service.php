@@ -42,6 +42,10 @@ $_NOTIFICATION_CATEGORY_PRIORITY = [
     'case_details_changed' => 9,
     'case_created' => 10,
     'comment_added' => 11,
+    'lab_ack_requested' => 12,
+    'lab_ack_confirmed' => 13,
+    'lab_info_requested' => 14,
+    'lab_promised_date_changed' => 15,
 ];
 
 // Allowed field-category slugs for metadata.  No patient names, DOB, clinical
@@ -767,6 +771,7 @@ function _sanitizeNotificationMetadata(array $metadata) {
         'file_deleted_count',
         'changed_categories',
         'comment_id',
+        'lab_ack_method',
     ];
 
     $out = [];

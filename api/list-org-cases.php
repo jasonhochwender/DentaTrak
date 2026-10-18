@@ -324,7 +324,25 @@ try {
             $apptDate = $case['patientAppointmentDate'] ?? '';
             if (empty($apptDate)) return false;
             $d = getCalendarDayDiffOrg($apptDate);
-            return $d !== null && $d <= $appointmentRiskDays;
+            if ($d !== null && $d <= $appointmentRiskDays) return true;
+            // Lab acknowledgment: lab-promised return date after the patient
+            // appointment is an additional risk signal; a missing promised
+            // date never implies safety.
+            $promised = $case['labPromisedDate'] ?? '';
+            return !empty($promised) && strtotime($promised) > strtotime($apptDate);
+        }));
+    }
+
+    // Lab acknowledgment quick-filters (per-practice setting; rows only
+    // carry a status where the feature is enabled).
+    if (($_GET['ack_awaiting_only'] ?? '') === 'true') {
+        $cases = array_values(array_filter($cases, function ($case) {
+            return ($case['labAckStatus'] ?? null) === 'awaiting';
+        }));
+    }
+    if (($_GET['ack_needs_info_only'] ?? '') === 'true') {
+        $cases = array_values(array_filter($cases, function ($case) {
+            return ($case['labAckStatus'] ?? null) === 'needs_info';
         }));
     }
 

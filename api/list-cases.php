@@ -387,9 +387,39 @@ try {
             }
 
             $daysUntilAppt = getCalendarDayDiff($apptDate);
-            return $daysUntilAppt !== null && $daysUntilAppt <= $appointmentRiskDays;
+            if ($daysUntilAppt !== null && $daysUntilAppt <= $appointmentRiskDays) {
+                return true;
+            }
+
+            // Lab acknowledgment: a lab-promised return date AFTER the patient
+            // appointment is an additional risk signal. A missing promised date
+            // or missing acknowledgment never contributes either way - the
+            // existing window check above is authoritative for that.
+            $promised = $case['labPromisedDate'] ?? '';
+            if (!empty($promised)) {
+                return strtotime($promised) > strtotime($apptDate);
+            }
+
+            return false;
         });
         $cases = array_values($cases);
+    }
+
+    // Optional lab acknowledgment workflow filters. These read the denormalized
+    // open-acknowledgment status on cases_cache; when the practice setting is
+    // off (or the schema predates the feature) the column is simply NULL for
+    // every case, which naturally matches nothing.
+    $ackAwaitingOnly = $_GET['ack_awaiting_only'] ?? '';
+    if ($ackAwaitingOnly === 'true') {
+        $cases = array_values(array_filter($cases, function($case) {
+            return ($case['labAckStatus'] ?? null) === 'awaiting';
+        }));
+    }
+    $ackNeedsInfoOnly = $_GET['ack_needs_info_only'] ?? '';
+    if ($ackNeedsInfoOnly === 'true') {
+        $cases = array_values(array_filter($cases, function($case) {
+            return ($case['labAckStatus'] ?? null) === 'needs_info';
+        }));
     }
 
     // Cases are already decrypted by getAllCasesFromCache()

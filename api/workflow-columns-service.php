@@ -14,6 +14,7 @@ require_once __DIR__ . '/workflow-stages.php';
 require_once __DIR__ . '/csrf.php';
 require_once __DIR__ . '/case-activity-log.php';
 require_once __DIR__ . '/lab-assignment-history.php';
+require_once __DIR__ . '/lab-acknowledgment.php';
 
 /**
  * Save a complete workflow columns draft.
@@ -197,6 +198,7 @@ function saveWorkflowColumnsDraft($practiceId, $userId, array $draft) {
                 logCaseActivity($caseId, 'status_changed', $sourceId, $destId, ['reason' => 'column_archived'], null, true);
                 if ($destId === $terminalId) {
                     closeOpenLabPeriodForDeliveredCase($caseId, $practiceId);
+                    supersedeOpenLabAcknowledgment($caseId, $practiceId, 'case_delivered');
                 } elseif ($sourceId === $terminalId && $destId !== $terminalId) {
                     reopenLabPeriodOnDeliveredRegression($caseId, $practiceId, $sourceId, $destId);
                 }
@@ -232,6 +234,7 @@ function saveWorkflowColumnsDraft($practiceId, $userId, array $draft) {
                     logCaseActivity($caseId, 'status_changed', $sourceId, $resetDestination, ['reason' => 'workflow_reset'], null, true);
                     if ($resetDestination === $terminalId) {
                         closeOpenLabPeriodForDeliveredCase($caseId, $practiceId);
+                        supersedeOpenLabAcknowledgment($caseId, $practiceId, 'case_delivered');
                     } elseif ($sourceId === $terminalId && $resetDestination !== $terminalId) {
                         reopenLabPeriodOnDeliveredRegression($caseId, $practiceId, $sourceId, $resetDestination);
                     }

@@ -2360,6 +2360,7 @@ $userEmail = $_SESSION['user_email'] ?? '';
                 allow_card_delete: document.getElementById('psAllowCardDelete').checked,
                 delivered_hide_days: document.getElementById('psDeliveredHideDays').value,
                 case_review_tracking_enabled: document.getElementById('psCaseReviewTracking').checked,
+                lab_acknowledgment_enabled: document.getElementById('psLabAcknowledgment').checked,
                 fabg_pilot: document.getElementById('psFabgPilot').checked,
                 highlight_past_due: document.getElementById('psHighlightPastDue').checked,
                 past_due_days: document.getElementById('psPastDueDays').value,
@@ -2409,6 +2410,8 @@ $userEmail = $_SESSION['user_email'] ?? '';
                     '<input type="number" id="psDeliveredHideDays" min="0" max="365" class="settings-number-input" value="' + (cm.delivered_hide_days != null ? cm.delivered_hide_days : 120) + '"></span></div>' +
                 '<div class="settings-row"><span class="settings-label">Case Review Tracking</span><span class="settings-value">' +
                     '<input type="checkbox" id="psCaseReviewTracking" ' + (settings.case_review_tracking_enabled ? 'checked' : '') + '></span></div>' +
+                '<div class="settings-row"><span class="settings-label">Lab Acknowledgment</span><span class="settings-value">' +
+                    '<input type="checkbox" id="psLabAcknowledgment" ' + (settings.lab_acknowledgment_enabled ? 'checked' : '') + '></span></div>' +
                 '</div>';
 
             html += '<div class="settings-card">' +

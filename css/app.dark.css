@@ -540,6 +540,9 @@
 [data-theme="dark"] .form-field select,
 [data-theme="dark"] .shipping-fields input,
 [data-theme="dark"] .review-status-field,
+[data-theme="dark"] .lab-ack-form input,
+[data-theme="dark"] .lab-ack-form select,
+[data-theme="dark"] .lab-ack-form textarea,
 [data-theme="dark"] .custom-carrier-field,
 [data-theme="dark"] .case-actions-move-select,
 [data-theme="dark"] .number-input,
@@ -555,6 +558,23 @@
   background-position: right 14px center;
   background-size: 14px;
   padding-right: 36px;
+}
+
+[data-theme="dark"] .lab-ack-field .lab-ack-form {
+  background: #1a2433;
+  border-color: var(--border-medium);
+}
+
+[data-theme="dark"] .lab-ack-field .lab-ack-detail {
+  color: var(--text-light);
+}
+
+[data-theme="dark"] .lab-ack-field .lab-ack-action-btn {
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .lab-ack-field .lab-ack-action-btn:hover {
+  background: rgba(255, 255, 255, 0.06);
 }
 
 [data-theme="dark"] .field-error,

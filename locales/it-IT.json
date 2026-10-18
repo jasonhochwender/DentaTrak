@@ -302,7 +302,15 @@
                 "remake_completed": "Rifacimento n. {number} segnato come completato da {user}",
                 "source_deleted_integration": "Il caso del laboratorio di origine è stato eliminato in Open Dental",
                 "source_deleted": "Il record di origine è stato eliminato nel sistema connesso",
-                "generic": "{event} da {user}"
+                "generic": "{event} da {user}",
+                "lab_ack_requested": "Conferma del laboratorio richiesta ({lab})",
+                "lab_ack_confirmed": "{lab} ha confermato la ricezione ({user})",
+                "lab_ack_confirmed_with_date": "{lab} ha confermato la ricezione, riconsegna promessa il {date} ({user})",
+                "lab_ack_confirmed_by_staff": "{user} ha registrato una conferma del laboratorio (dallo staff)",
+                "lab_ack_confirmed_by_staff_method": "{user} ha registrato una conferma del laboratorio via {method}; promesso il {date}",
+                "lab_info_requested": "{lab} ha richiesto maggiori informazioni ({user})",
+                "lab_ack_promised_date_changed": "{user} ha modificato la data promessa: {old} → {new} ({reason})",
+                "lab_ack_cleared": "Conferma per {lab} chiusa (riassegnato)"
             },
             "timeline": {
                 "created": "Creato",
@@ -367,7 +375,20 @@
                     "status": "Stato",
                     "assignedTo": "Assegnato",
                     "notes": "Note"
-                }
+                },
+                "lab_ack_requested": "Conferma richiesta",
+                "lab_ack_confirmed": "Laboratorio confermato",
+                "lab_ack_confirmed_by_staff": "Conferma dallo staff",
+                "lab_info_requested": "Info richieste",
+                "lab_ack_promised_changed": "Data promessa modificata",
+                "lab_ack_cleared": "Conferma chiusa (riassegnato)",
+                "full_lab_ack_requested": "Conferma del laboratorio richiesta ({lab})",
+                "full_lab_ack_confirmed": "Il laboratorio ha confermato la ricezione",
+                "full_lab_ack_confirmed_date": "Il laboratorio ha confermato la ricezione; riconsegna promessa il {date}",
+                "full_lab_ack_confirmed_staff": "Conferma registrata dallo staff via {method}",
+                "full_lab_info_requested": "Il laboratorio ha richiesto maggiori informazioni",
+                "full_lab_ack_promised_changed": "Data di riconsegna promessa modificata {old} → {new}. Motivo: {reason}",
+                "full_lab_ack_cleared": "La conferma di {lab} è stata chiusa alla riassegnazione del caso"
             }
         },
         "risk": {
@@ -514,6 +535,35 @@
             "prev": "Colonna precedente del flusso di lavoro",
             "select": "Seleziona colonna del flusso di lavoro",
             "next": "Colonna successiva del flusso di lavoro"
+        },
+        "lab_ack": {
+            "label": "Conferma del laboratorio",
+            "awaiting": "In attesa di conferma",
+            "needs_info": "Richiede informazioni",
+            "confirmed_lab": "Confermato dal laboratorio",
+            "confirmed_staff": "Registrato dallo staff dello studio",
+            "promised_label": "Data di riconsegna promessa dal laboratorio",
+            "promised_date_label": "Data di riconsegna promessa",
+            "date_not_confirmed": "Data non ancora confermata",
+            "confirm_receipt": "Conferma ricezione",
+            "request_info": "Richiedi informazioni",
+            "record_confirmation": "Registra conferma (telefono/e-mail)",
+            "set_promised_date": "Imposta data promessa",
+            "change_promised_date": "Modifica data promessa",
+            "save": "Salva",
+            "method_label": "Come è stata confermata?",
+            "method": {
+                "phone": "Telefono",
+                "email": "E-mail"
+            },
+            "info_request_label": "Quali informazioni mancano?",
+            "info_request_placeholder": "Descrivi cosa serve al laboratorio per procedere",
+            "info_required": "Descrivi le informazioni mancanti.",
+            "promised_required": "Scegli una data di riconsegna promessa.",
+            "change_reason_label": "Motivo della modifica",
+            "change_reason_placeholder": "Breve motivo, registrato nella cronologia del caso",
+            "change_reason_required": "È richiesto un breve motivo per modificare la data promessa.",
+            "the_lab": "il laboratorio"
         }
     },
     "filters": {
@@ -553,7 +603,9 @@
         "all_review_status": "Tutti",
         "needs_review": "Da revisionare",
         "reviewed": "Revisionato",
-        "search_placeholder": "Cerca paziente, dentista o numero di tracciamento"
+        "search_placeholder": "Cerca paziente, dentista o numero di tracciamento",
+        "awaiting_ack": "In attesa di conferma",
+        "needs_info": "Richiede informazioni"
     },
     "fabg": {
         "welcome": {
@@ -1011,6 +1063,11 @@
                 "stage": "Fase del flusso di lavoro",
                 "display_name": "Nome visualizzato",
                 "restore_defaults": "Ripristina predefiniti"
+            },
+            "lab_ack": {
+                "label": "Conferma del laboratorio",
+                "description": "Chiedi ai tuoi laboratori di confermare la ricezione e indicare una data di riconsegna prevista.",
+                "tooltip": "Se attiva, i casi assegnati a un laboratorio mostrano una richiesta di conferma. Il laboratorio può confermare la ricezione con una data di riconsegna facoltativa o richiedere informazioni. Lo staff può anche registrare una conferma ricevuta per telefono o e-mail."
             }
         },
         "users": {
@@ -3066,9 +3123,17 @@
                 "appointment_date_changed": "La data dell'appuntamento di un caso assegnato è cambiata.",
                 "case_details_changed": "I dettagli di un caso assegnato sono cambiati.",
                 "mention": "Sei stato menzionato in un commento a un caso.",
-                "comment_added": "È stato aggiunto un commento a un caso a cui partecipi."
+                "comment_added": "È stato aggiunto un commento a un caso a cui partecipi.",
+                "lab_ack_requested": "Un caso è stato assegnato al tuo laboratorio e attende la conferma di ricezione.",
+                "lab_ack_confirmed": "È stata confermata la ricezione di un caso assegnato.",
+                "lab_info_requested": "Sono state richieste maggiori informazioni su un caso assegnato.",
+                "lab_promised_date_changed": "È cambiata la data di riconsegna promessa di un caso assegnato."
             }
-        }
+        },
+        "lab_ack_requested": "{from} ha inviato un caso al tuo laboratorio: conferma la ricezione.",
+        "lab_ack_confirmed": "{from} ha confermato la ricezione di un caso.",
+        "lab_info_requested": "{from} ha richiesto maggiori informazioni su un caso.",
+        "lab_promised_date_changed": "{from} ha aggiornato la data di riconsegna promessa di un caso."
     },
     "app": {
         "name": "DentaTrak"
@@ -3090,7 +3155,11 @@
             "appointment_date_changed": "Cambia la data dell'appuntamento del paziente",
             "case_details_changed": "Cambiano altri dettagli del caso",
             "mention": "Qualcuno mi menziona con @ in un commento",
-            "comment_added": "Qualcuno commenta un caso a cui partecipo"
+            "comment_added": "Qualcuno commenta un caso a cui partecipo",
+            "lab_ack_requested": "Conferma del laboratorio richiesta",
+            "lab_ack_confirmed": "Laboratorio ha confermato la ricezione",
+            "lab_info_requested": "Laboratorio ha richiesto informazioni",
+            "lab_promised_date_changed": "Data promessa modificata"
         },
         "load_error": "Impossibile caricare le preferenze di notifica.",
         "save_error": "Impossibile salvare le preferenze di notifica.",
@@ -3394,6 +3463,21 @@
             },
             "invalid_timezone": "Inserisci un identificatore di fuso orario valido (ad esempio America/New_York).",
             "invalid_field_map": "La mappa dei campi deve associare gli identificatori di stato del flusso di lavoro ai campi del ciclo di vita Open Dental supportati."
+        },
+        "lab_ack": {
+            "invalid_request": "Richiesta non valida.",
+            "case_archived": "I casi archiviati sono di sola lettura.",
+            "staff_only": "Solo lo staff autorizzato dello studio può eseguire questa azione.",
+            "invalid_date": "Inserisci una data valida.",
+            "reason_required": "È richiesto un breve motivo per modificare la data di riconsegna promessa.",
+            "save_failed": "Impossibile salvare. Riprova.",
+            "disabled": "La conferma del laboratorio non è attiva per questo studio.",
+            "no_pending": "Nessuna conferma in sospeso per questo caso.",
+            "lab_only": "Solo il laboratorio assegnato può rispondere a questa conferma.",
+            "description_required": "Descrivi le informazioni mancanti.",
+            "method_required": "Scegli come è stata ricevuta la conferma.",
+            "info_request_prefix": "[Il laboratorio richiede informazioni]",
+            "promised_saved": "Data di riconsegna promessa salvata."
         }
     },
     "email": {

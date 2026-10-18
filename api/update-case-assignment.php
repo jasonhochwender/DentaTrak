@@ -13,6 +13,7 @@ require_once __DIR__ . '/case-activity-log.php';
 require_once __DIR__ . '/lab-assignment-history.php';
 require_once __DIR__ . '/csrf.php';
 require_once __DIR__ . '/notification-service.php';
+require_once __DIR__ . '/lab-acknowledgment.php';
 
 // Set header to JSON
 header('Content-Type: application/json');
@@ -295,6 +296,11 @@ try {
     // Lab Insights foundation: record any lab-assignment-period transition.
     // No-op for practices/entities with no Lab-designated user or label.
     recordLabAssignmentChange($caseId, $currentPracticeId, $previousAssignee, $assignedTo);
+
+    // Lab acknowledgment (optional practice setting): a new lab handoff
+    // opens an 'awaiting' acknowledgment; reassignment supersedes the prior
+    // lab's record. No-op when the setting is off.
+    $ackTransition = recordLabAckAssignmentTransition($caseId, $currentPracticeId, $previousAssignee, $assignedTo, $currentUserId);
 
     // Record assignment change for real-time notifications to other users
     if (function_exists('recordCaseUpdate')) {

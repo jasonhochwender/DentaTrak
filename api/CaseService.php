@@ -45,6 +45,7 @@
 require_once __DIR__ . '/cases-cache.php';
 require_once __DIR__ . '/case-activity-log.php';
 require_once __DIR__ . '/lab-assignment-history.php';
+require_once __DIR__ . '/lab-acknowledgment.php';
 require_once __DIR__ . '/at-risk-calculator.php';
 require_once __DIR__ . '/encryption.php';
 require_once __DIR__ . '/case-types.php';
@@ -184,6 +185,11 @@ class CaseService {
         // Lab Insights foundation: record the initial assignment transition.
         // No-op when the initial assignee is not a lab-designated user/label.
         recordLabAssignmentChange($createdCaseId, $practiceId, '', $result['caseData']['assignedTo'] ?? '');
+
+        // Lab acknowledgment (optional practice setting): a case created
+        // already assigned to a lab enters 'awaiting' only through this
+        // real handoff - drafts and unassigned saves never trigger it.
+        recordLabAckAssignmentTransition($createdCaseId, $practiceId, '', $result['caseData']['assignedTo'] ?? '', $actorUserId);
 
         // Update the creating user's case count (manual path only - a
         // system-created case has no user whose count should move).

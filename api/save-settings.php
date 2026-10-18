@@ -14,6 +14,7 @@ require_once __DIR__ . '/workflow-stages.php';
 require_once __DIR__ . '/csrf.php';
 require_once __DIR__ . '/practice-invite-email.php';
 require_once __DIR__ . '/workflow-columns-service.php';
+require_once __DIR__ . '/lab-acknowledgment.php';
 
 // Start session if not already started
 if (session_status() === PHP_SESSION_NONE) {
@@ -506,6 +507,7 @@ try {
     // Safe to run unconditionally; has no visible effect while
     // SHOW_LAB_INSIGHTS is off.
     ensureLabDesignationColumns();
+    ensureLabAcknowledgmentSchema();
 
     // CRITICAL: must run here, before any beginTransaction() below. This
     // is a CREATE TABLE (DDL), and DDL causes an implicit commit in
@@ -735,6 +737,31 @@ try {
                         'practice_id' => $currentPracticeId
                     ]);
                     userLog("Updated case review tracking for practice {$currentPracticeId} to " . ($caseReviewTrackingEnabled ? 'enabled' : 'disabled'), false);
+                }
+            }
+
+            // Lab acknowledgment (admin-only, practice-level). Optional and
+            // OFF by default. Turning it OFF preserves recorded acknowledgments
+            // and history but cancels still-pending ack notification emails;
+            // turning it ON never backfills existing cases or resends old ones.
+            if (isset($data['labAcknowledgmentEnabled'])) {
+                $labAckEnabled = (bool)$data['labAcknowledgmentEnabled'];
+                $checkStmt = $pdo->query("SHOW COLUMNS FROM practices LIKE 'lab_acknowledgment_enabled'");
+                if ($checkStmt && $checkStmt->rowCount() > 0) {
+                    $wasEnabled = false;
+                    $prevStmt = $pdo->prepare("SELECT lab_acknowledgment_enabled FROM practices WHERE id = :practice_id");
+                    $prevStmt->execute(['practice_id' => $currentPracticeId]);
+                    $wasEnabled = (bool)$prevStmt->fetchColumn();
+
+                    $stmt = $pdo->prepare("UPDATE practices SET lab_acknowledgment_enabled = :enabled WHERE id = :practice_id");
+                    $stmt->execute([
+                        'enabled' => $labAckEnabled ? 1 : 0,
+                        'practice_id' => $currentPracticeId
+                    ]);
+                    if ($wasEnabled && !$labAckEnabled) {
+                        cancelPendingLabAckNotifications($currentPracticeId);
+                    }
+                    userLog("Updated lab acknowledgment for practice {$currentPracticeId} to " . ($labAckEnabled ? 'enabled' : 'disabled'), false);
                 }
             }
 

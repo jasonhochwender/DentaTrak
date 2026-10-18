@@ -124,6 +124,7 @@ try {
     $logoPath = '';
     $isPracticeAdmin = false;
     $caseReviewTrackingEnabled = false;
+    $labAcknowledgmentEnabled = false;
     
     // BAA-related fields
     $legalName = '';
@@ -155,6 +156,15 @@ try {
             $hasCaseReviewTrackingColumn = false;
         }
 
+        // Same for the lab acknowledgment practice setting.
+        $hasLabAckColumn = false;
+        try {
+            $checkStmt = $pdo->query("SHOW COLUMNS FROM practices LIKE 'lab_acknowledgment_enabled'");
+            $hasLabAckColumn = $checkStmt->rowCount() > 0;
+        } catch (Exception $e) {
+            $hasLabAckColumn = false;
+        }
+
         $practiceSelectCols = 'created_by, practice_name, logo_path';
         if ($hasBaaColumns) {
             $practiceSelectCols .= ',
@@ -164,6 +174,9 @@ try {
         }
         if ($hasCaseReviewTrackingColumn) {
             $practiceSelectCols .= ', case_review_tracking_enabled';
+        }
+        if ($hasLabAckColumn) {
+            $practiceSelectCols .= ', lab_acknowledgment_enabled';
         }
 
         $stmt = $pdo->prepare("
@@ -177,6 +190,7 @@ try {
             $practiceName = $practiceInfo['practice_name'] ?? '';
             $logoPath = $practiceInfo['logo_path'] ?? '';
             $caseReviewTrackingEnabled = (bool)($practiceInfo['case_review_tracking_enabled'] ?? false);
+            $labAcknowledgmentEnabled = (bool)($practiceInfo['lab_acknowledgment_enabled'] ?? false);
             
             // BAA fields (only if columns exist)
             if ($hasBaaColumns) {
@@ -454,6 +468,8 @@ try {
     // Practice-level Case Review Tracking flag. Defaults to OFF when the
     // column is absent so existing practices are not opted in unexpectedly.
     $preferences['case_review_tracking_enabled'] = $caseReviewTrackingEnabled;
+    // Same for the optional Lab acknowledgment workflow.
+    $preferences['lab_acknowledgment_enabled'] = $labAcknowledgmentEnabled;
 
     // Check if Google Drive is available for this practice
     // Drive is available if: current user has a Drive token OR the practice creator signed up with Google
@@ -544,6 +560,7 @@ try {
         'showLabInsights' => isFeatureEnabled('SHOW_LAB_INSIGHTS'),
         'isPracticeAdmin' => $isPracticeAdmin,
         'caseReviewTrackingEnabled' => $caseReviewTrackingEnabled,
+        'labAcknowledgmentEnabled' => $labAcknowledgmentEnabled,
         'practiceCreatorEmail' => $responsePracticeCreatorEmail,
         'practiceCreatorHasGoogleAccount' => ($practiceCreatorAuthMethod === 'google' || $practiceCreatorAuthMethod === 'both'),
         'isGoogleDriveConnected' => $isGoogleDriveConnected,

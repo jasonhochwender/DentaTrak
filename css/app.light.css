@@ -2775,6 +2775,116 @@ body {
   color: #166534;
 }
 
+/* Optional lab acknowledgment panel in the case modal Workflow section */
+.lab-ack-field {
+  margin-top: 10px;
+  margin-bottom: 0;
+}
+
+.lab-ack-field .lab-ack-row {
+  display: flex;
+  align-items: center;
+  gap: 8px 12px;
+  flex-wrap: wrap;
+  min-height: 30px;
+}
+
+.lab-ack-field .lab-ack-status-value {
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.lab-ack-field.lab-ack-awaiting .lab-ack-status-value {
+  color: #b45309;
+}
+
+.lab-ack-field.lab-ack-needs-info .lab-ack-status-value {
+  color: #b91c1c;
+}
+
+.lab-ack-field.lab-ack-confirmed .lab-ack-status-value {
+  color: #15803d;
+}
+
+.lab-ack-field .lab-ack-detail {
+  display: block;
+  width: 100%;
+  font-size: 0.8rem;
+  color: #64748b;
+  margin-top: 2px;
+}
+
+.lab-ack-field .lab-ack-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.lab-ack-field .lab-ack-action-btn {
+  padding: 5px 10px;
+  border-radius: 6px;
+  border: 1px solid currentColor;
+  background: transparent;
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  color: #475569;
+}
+
+.lab-ack-field .lab-ack-action-btn:hover {
+  background: #f1f5f9;
+}
+
+.lab-ack-field .lab-ack-action-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.lab-ack-field .lab-ack-form {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 6px;
+  padding: 10px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #f8fafc;
+}
+
+.lab-ack-field .lab-ack-form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.lab-ack-field .lab-ack-form-label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #475569;
+}
+
+.lab-ack-field .lab-ack-form input,
+.lab-ack-field .lab-ack-form select,
+.lab-ack-field .lab-ack-form textarea {
+  padding: 6px 8px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-family: inherit;
+  background: #fff;
+  color: inherit;
+}
+
+.lab-ack-field .lab-ack-form .lab-ack-submit {
+  align-self: flex-start;
+}
+
+.lab-ack-field .lab-ack-skip-date {
+  border-style: dashed;
+}
+
 .attachments-title {
   margin-top: 24px;
   margin-bottom: 10px;

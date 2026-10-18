@@ -302,7 +302,15 @@
                 "remake_completed": "Remake #{number} marked complete by {user}",
                 "source_deleted_integration": "Source lab case was deleted in Open Dental",
                 "source_deleted": "Source record was deleted in the connected system",
-                "generic": "{event} by {user}"
+                "generic": "{event} by {user}",
+                "lab_ack_requested": "Lab acknowledgment requested ({lab})",
+                "lab_ack_confirmed": "{lab} confirmed receipt ({user})",
+                "lab_ack_confirmed_with_date": "{lab} confirmed receipt, promised {date} ({user})",
+                "lab_ack_confirmed_by_staff": "{user} recorded lab confirmation (staff-recorded)",
+                "lab_ack_confirmed_by_staff_method": "{user} recorded lab confirmation via {method}; promised {date}",
+                "lab_info_requested": "{lab} requested more information ({user})",
+                "lab_ack_promised_date_changed": "{user} changed lab-promised return date: {old} → {new} ({reason})",
+                "lab_ack_cleared": "Lab acknowledgment for {lab} closed (reassigned)"
             },
             "timeline": {
                 "created": "Created",
@@ -367,7 +375,20 @@
                     "status": "Status",
                     "assignedTo": "Assigned",
                     "notes": "Notes"
-                }
+                },
+                "lab_ack_requested": "Lab ack requested",
+                "lab_ack_confirmed": "Lab confirmed",
+                "lab_ack_confirmed_by_staff": "Staff-recorded confirm",
+                "lab_info_requested": "Info requested",
+                "lab_ack_promised_changed": "Promised date changed",
+                "lab_ack_cleared": "Ack closed (reassigned)",
+                "full_lab_ack_requested": "Lab acknowledgment requested ({lab})",
+                "full_lab_ack_confirmed": "Lab confirmed receipt",
+                "full_lab_ack_confirmed_date": "Lab confirmed receipt; promised {date}",
+                "full_lab_ack_confirmed_staff": "Confirmation recorded by staff via {method}",
+                "full_lab_info_requested": "Lab requested more information",
+                "full_lab_ack_promised_changed": "Promised return date changed {old} → {new}. Reason: {reason}",
+                "full_lab_ack_cleared": "Acknowledgment for {lab} closed when the case was reassigned"
             }
         },
         "risk": {
@@ -514,6 +535,35 @@
             "prev": "Previous workflow column",
             "select": "Select workflow column",
             "next": "Next workflow column"
+        },
+        "lab_ack": {
+            "label": "Lab acknowledgment",
+            "awaiting": "Awaiting acknowledgment",
+            "needs_info": "Needs information",
+            "confirmed_lab": "Confirmed by lab",
+            "confirmed_staff": "Recorded by practice staff",
+            "promised_label": "Lab-promised return date",
+            "promised_date_label": "Promised return date",
+            "date_not_confirmed": "Date not yet confirmed",
+            "confirm_receipt": "Confirm receipt",
+            "request_info": "Request information",
+            "record_confirmation": "Record confirmation (phone/email)",
+            "set_promised_date": "Set promised return date",
+            "change_promised_date": "Change promised return date",
+            "save": "Save",
+            "method_label": "How was it confirmed?",
+            "method": {
+                "phone": "Phone",
+                "email": "Email"
+            },
+            "info_request_label": "What information is missing?",
+            "info_request_placeholder": "Describe what the lab needs to proceed",
+            "info_required": "Please describe the missing information.",
+            "promised_required": "Please choose a promised return date.",
+            "change_reason_label": "Reason for the change",
+            "change_reason_placeholder": "Short reason, recorded in case history",
+            "change_reason_required": "A short reason is required to change the promised date.",
+            "the_lab": "the lab"
         }
     },
     "filters": {
@@ -553,7 +603,9 @@
         "all_review_status": "All",
         "needs_review": "Needs Review",
         "reviewed": "Reviewed",
-        "search_placeholder": "Search patient, dentist, or tracking number"
+        "search_placeholder": "Search patient, dentist, or tracking number",
+        "awaiting_ack": "Awaiting acknowledgment",
+        "needs_info": "Needs information"
     },
     "fabg": {
         "welcome": {
@@ -1011,6 +1063,11 @@
                 "stage": "Workflow Stage",
                 "display_name": "Display Name",
                 "restore_defaults": "Restore Defaults"
+            },
+            "lab_ack": {
+                "label": "Lab acknowledgment",
+                "description": "Ask your labs to confirm receipt and provide an expected return date.",
+                "tooltip": "When enabled, cases assigned to a lab show an acknowledgment request. The lab can confirm receipt with an optional promised return date or ask for more information. Staff can also record a phone or email confirmation."
             }
         },
         "users": {
@@ -3066,9 +3123,17 @@
                 "appointment_date_changed": "The appointment date of an assigned case changed.",
                 "case_details_changed": "Details of an assigned case changed.",
                 "mention": "You were mentioned in a case comment.",
-                "comment_added": "A comment was added to a case you're involved with."
+                "comment_added": "A comment was added to a case you're involved with.",
+                "lab_ack_requested": "A case was assigned to your lab and is waiting for receipt confirmation.",
+                "lab_ack_confirmed": "Receipt was confirmed for an assigned case.",
+                "lab_info_requested": "More information was requested on an assigned case.",
+                "lab_promised_date_changed": "The lab-promised return date on an assigned case changed."
             }
-        }
+        },
+        "lab_ack_requested": "{from} sent a case to your lab - please confirm receipt.",
+        "lab_ack_confirmed": "{from} confirmed receipt of a case.",
+        "lab_info_requested": "{from} requested more information on a case.",
+        "lab_promised_date_changed": "{from} updated the promised return date on a case."
     },
     "app": {
         "name": "DentaTrak"
@@ -3090,7 +3155,11 @@
             "appointment_date_changed": "Patient appointment date changes",
             "case_details_changed": "Other case details change",
             "mention": "Someone @mentions me in a comment",
-            "comment_added": "Someone comments on a case I'm involved with"
+            "comment_added": "Someone comments on a case I'm involved with",
+            "lab_ack_requested": "Lab acknowledgment requested",
+            "lab_ack_confirmed": "Lab confirmed receipt",
+            "lab_info_requested": "Lab requested information",
+            "lab_promised_date_changed": "Promised return date changed"
         },
         "load_error": "Could not load notification preferences.",
         "save_error": "Could not save notification preferences.",
@@ -3394,6 +3463,21 @@
                 "enable_unhealthy": "The Open Dental connection could not be verified. Test the connection and try again.",
                 "missing_write_permission": "This Open Dental customer key does not have write permission. In Open Dental, enable the \"All Others\" API permission for this key (Setup > Advanced Setup > API), then try again."
             }
+        },
+        "lab_ack": {
+            "invalid_request": "Invalid request.",
+            "case_archived": "Archived cases are read-only.",
+            "staff_only": "Only authorized practice staff can perform this action.",
+            "invalid_date": "Please enter a valid date.",
+            "reason_required": "A short reason is required to change the promised return date.",
+            "save_failed": "Could not save. Please try again.",
+            "disabled": "Lab acknowledgment is not enabled for this practice.",
+            "no_pending": "There is no pending acknowledgment for this case.",
+            "lab_only": "Only the assigned lab can respond to this acknowledgment.",
+            "description_required": "Please describe the missing information.",
+            "method_required": "Please choose how the confirmation was received.",
+            "info_request_prefix": "[Lab needs information]",
+            "promised_saved": "Promised return date saved."
         }
     },
     "email": {
