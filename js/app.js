@@ -2016,6 +2016,30 @@ document.addEventListener('DOMContentLoaded', function () {
   }
   window.applyLabAcknowledgmentEnabled = applyLabAcknowledgmentEnabled;
 
+  // Personal display preference (per-user account): show/hide the case
+  // History tab. Missing preference behaves as ON. Presentation only -
+  // history keeps recording and permissions are unaffected.
+  function applyShowCaseHistoryTab(show) {
+    window.showCaseHistoryTab = show !== false;
+
+    var historyTab = document.querySelector('.case-tab[data-tab="history"]');
+    var historyPanel = document.getElementById('caseRevisionHistoryPanel');
+    if (historyTab) historyTab.style.display = window.showCaseHistoryTab ? '' : 'none';
+    if (historyPanel && !window.showCaseHistoryTab) {
+      historyPanel.classList.remove('case-tab-panel-active');
+      historyPanel.style.display = 'none';
+    }
+
+    // If History is the active tab when it gets hidden, fall back to the
+    // default Details tab - never leave an empty panel or dead tab.
+    if (!window.showCaseHistoryTab && historyTab && historyTab.classList.contains('case-tab-active')) {
+      if (typeof setCaseModalActiveTab === 'function') {
+        setCaseModalActiveTab('details');
+      }
+    }
+  }
+  window.applyShowCaseHistoryTab = applyShowCaseHistoryTab;
+
   // Apply loaded settings to form fields
   function applyUserSettings(preferences, loadedGmailUsers, loadedGmailLogins, loadedAdminUsers, practiceName, logoPath, loadedAssignmentLabels, isPracticeAdmin, practiceCreatorEmail, displayName, legalName, loadedLimitedVisibilityUsers, loadedCanViewAnalyticsUsers, loadedCanEditCasesUsers, practiceCreatorHasGoogleAccount, isGoogleDriveConnected, loadedAssignmentLabelsDetailed, loadedPracticeUsers, loadedIsLabUsers, showLabInsights, loadedWorkflowStageLabels, loadedWorkflowColumns, serverCurrentPracticeId) {
     window.isPracticeAdmin = !!isPracticeAdmin;
@@ -2026,12 +2050,21 @@ document.addEventListener('DOMContentLoaded', function () {
     window.practiceUsers = loadedPracticeUsers || [];
     window.caseReviewTrackingEnabled = toBoolean(preferences.case_review_tracking_enabled, false);
     window.labAcknowledgmentEnabled = toBoolean(preferences.lab_acknowledgment_enabled, false);
+    // Personal preference - missing value behaves as ON.
+    window.showCaseHistoryTab = toBoolean(preferences.show_case_history_tab, true);
 
     if (typeof applyCaseReviewTrackingEnabled === 'function') {
       applyCaseReviewTrackingEnabled(window.caseReviewTrackingEnabled);
     }
     if (typeof applyLabAcknowledgmentEnabled === 'function') {
       applyLabAcknowledgmentEnabled(window.labAcknowledgmentEnabled);
+    }
+    if (typeof applyShowCaseHistoryTab === 'function') {
+      applyShowCaseHistoryTab(window.showCaseHistoryTab);
+    }
+    var showCaseHistoryTabCheckbox = document.getElementById('showCaseHistoryTab');
+    if (showCaseHistoryTabCheckbox) {
+      showCaseHistoryTabCheckbox.checked = window.showCaseHistoryTab;
     }
 
     // Fully-resolved workflow-stage display labels for the current
@@ -2376,6 +2409,7 @@ document.addEventListener('DOMContentLoaded', function () {
       deliveredHideDays: document.getElementById('deliveredHideDays')?.value || '0',
       caseReviewTrackingEnabled: document.getElementById('caseReviewTrackingEnabled')?.checked || false,
       labAcknowledgmentEnabled: document.getElementById('labAcknowledgmentEnabled')?.checked || false,
+      showCaseHistoryTab: document.getElementById('showCaseHistoryTab')?.checked !== false,
       googleDriveBackup: document.getElementById('googleDriveBackup')?.checked || false,
       gmailUsers: window.gmailUsers ? window.gmailUsers.slice() : [],
       adminUsers: window.adminUsers ? window.adminUsers.slice() : [],
@@ -2409,6 +2443,7 @@ document.addEventListener('DOMContentLoaded', function () {
     if ((document.getElementById('deliveredHideDays')?.value || '0') !== orig.deliveredHideDays) return true;
     if ((document.getElementById('caseReviewTrackingEnabled')?.checked || false) !== orig.caseReviewTrackingEnabled) return true;
     if ((document.getElementById('labAcknowledgmentEnabled')?.checked || false) !== orig.labAcknowledgmentEnabled) return true;
+    if ((document.getElementById('showCaseHistoryTab')?.checked !== false) !== orig.showCaseHistoryTab) return true;
     if ((document.getElementById('googleDriveBackup')?.checked || false) !== orig.googleDriveBackup) return true;
 
     // Check logo changes
@@ -3472,6 +3507,7 @@ document.addEventListener('DOMContentLoaded', function () {
   [
     ['caseReviewTrackingEnabled', 'settings.display.case_review.tooltip'],
     ['labAcknowledgmentEnabled', 'settings.display.lab_ack.tooltip'],
+    ['showCaseHistoryTab', 'settings.display.show_history_tab.tooltip'],
     ['highlightPastDue', 'settings.display.past_due.tooltip'],
     ['highlightComingDue', 'settings.display.coming_due.tooltip'],
     ['highlightAppointmentRisk', 'settings.display.appointment_risk.tooltip']
@@ -4339,6 +4375,10 @@ document.addEventListener('DOMContentLoaded', function () {
       var labAcknowledgmentEnabledInput = document.getElementById('labAcknowledgmentEnabled');
       var labAcknowledgmentEnabled = labAcknowledgmentEnabledInput ? labAcknowledgmentEnabledInput.checked : false;
 
+      // Personal display preference (per-user). Missing element -> ON.
+      var showCaseHistoryTabInput = document.getElementById('showCaseHistoryTab');
+      var showCaseHistoryTab = showCaseHistoryTabInput ? showCaseHistoryTabInput.checked : true;
+
       // Practice settings - use displayName (editable) instead of practiceName
       var displayNameInput = document.getElementById('displayName');
       var displayName = displayNameInput ? displayNameInput.value.trim() : '';
@@ -4375,6 +4415,7 @@ document.addEventListener('DOMContentLoaded', function () {
         deliveredHideDays: deliveredHideDays,
         caseReviewTrackingEnabled: caseReviewTrackingEnabled,
         labAcknowledgmentEnabled: labAcknowledgmentEnabled,
+        showCaseHistoryTab: showCaseHistoryTab,
         googleDriveBackup: googleDriveBackup,
         displayName: displayName, // New: editable display name
         practiceName: practiceName, // Legacy: kept for backwards compatibility
@@ -4530,6 +4571,12 @@ document.addEventListener('DOMContentLoaded', function () {
     // Apply Lab acknowledgment immediately (clears its filters when disabled)
     if (typeof formData.labAcknowledgmentEnabled !== 'undefined') {
       applyLabAcknowledgmentEnabled(formData.labAcknowledgmentEnabled);
+    }
+
+    // Apply the personal History-tab preference immediately - no reload or
+    // re-login needed.
+    if (typeof formData.showCaseHistoryTab !== 'undefined' && typeof applyShowCaseHistoryTab === 'function') {
+      applyShowCaseHistoryTab(formData.showCaseHistoryTab);
     }
 
     // Apply logo changes immediately based on committed values
@@ -4877,6 +4924,11 @@ document.addEventListener('DOMContentLoaded', function () {
   window.viewCaseTimings = viewCaseTimings;
 
   function setCaseModalActiveTab(tabName) {
+    // Personal preference: when the History tab is hidden, any direct link
+    // or stale selection to it falls back to the default Details tab.
+    if (tabName === 'history' && window.showCaseHistoryTab === false) {
+      tabName = 'details';
+    }
     if (tabName !== 'history' && tabName !== 'comments') {
       tabName = 'details';
     }
@@ -4934,7 +4986,11 @@ document.addEventListener('DOMContentLoaded', function () {
     }
     if (caseHistoryTab) {
       caseHistoryTab.addEventListener('click', function() {
-        // Only allow switching to history when we have a real case selected
+        // Hidden by personal preference -> inert; and only allow switching
+        // to history when we have a real case selected.
+        if (window.showCaseHistoryTab === false) {
+          return;
+        }
         if (caseHistoryTab.classList.contains('case-tab-disabled') || !currentEditCaseId) {
           return;
         }

@@ -64,6 +64,14 @@ try {
         $pdo->exec("ALTER TABLE user_preferences ADD COLUMN appointment_risk_days INT(11) DEFAULT 3");
     }
 
+    // Personal display preference: show/hide the case History tab.
+    // DEFAULT 1 so existing and new users keep the tab; a missing
+    // preference must behave as ON.
+    $stmt = $pdo->query("SHOW COLUMNS FROM user_preferences LIKE 'show_case_history_tab'");
+    if ($stmt->rowCount() === 0) {
+        $pdo->exec("ALTER TABLE user_preferences ADD COLUMN show_case_history_tab TINYINT(1) DEFAULT 1");
+    }
+
     // Ensure locale columns exist
     ensureLocaleColumns();
 

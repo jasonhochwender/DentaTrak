@@ -1068,6 +1068,11 @@
                 "label": "Accusé de réception du laboratoire",
                 "description": "Demandez à vos laboratoires de confirmer la réception et d’indiquer une date de retour prévue.",
                 "tooltip": "Lorsque cette option est activée, les cas assignés à un laboratoire affichent une demande d’accusé de réception. Le laboratoire peut confirmer la réception avec une date de retour facultative ou demander des informations. Le personnel peut aussi consigner une confirmation par téléphone ou e-mail."
+            },
+            "show_history_tab": {
+                "label": "Afficher l’onglet Historique du cas",
+                "description": "Afficher l’onglet Historique lors de la consultation d’un cas.",
+                "tooltip": "Préférence personnelle de votre compte. Lorsqu’elle est désactivée, l’onglet Historique est masqué dans la vue du cas; l’historique continue d’être enregistré et rien n’est supprimé."
             }
         },
         "users": {

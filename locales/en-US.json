@@ -1068,6 +1068,11 @@
                 "label": "Lab acknowledgment",
                 "description": "Ask your labs to confirm receipt and provide an expected return date.",
                 "tooltip": "When enabled, cases assigned to a lab show an acknowledgment request. The lab can confirm receipt with an optional promised return date or ask for more information. Staff can also record a phone or email confirmation."
+            },
+            "show_history_tab": {
+                "label": "Show case history tab",
+                "description": "Display the History tab when viewing a case.",
+                "tooltip": "Personal preference for your account. When turned off, the History tab is hidden in the case view; case history keeps recording and nothing is deleted."
             }
         },
         "users": {

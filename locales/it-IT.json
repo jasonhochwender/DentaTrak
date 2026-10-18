@@ -1068,6 +1068,11 @@
                 "label": "Conferma del laboratorio",
                 "description": "Chiedi ai tuoi laboratori di confermare la ricezione e indicare una data di riconsegna prevista.",
                 "tooltip": "Se attiva, i casi assegnati a un laboratorio mostrano una richiesta di conferma. Il laboratorio può confermare la ricezione con una data di riconsegna facoltativa o richiedere informazioni. Lo staff può anche registrare una conferma ricevuta per telefono o e-mail."
+            },
+            "show_history_tab": {
+                "label": "Mostra scheda Cronologia del caso",
+                "description": "Mostra la scheda Cronologia durante la visualizzazione di un caso.",
+                "tooltip": "Preferenza personale del tuo account. Se disattivata, la scheda Cronologia viene nascosta nella vista del caso; la cronologia continua a essere registrata e nulla viene eliminato."
             }
         },
         "users": {

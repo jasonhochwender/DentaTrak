@@ -3606,6 +3606,15 @@ endif;
                           </select>
                         </div>
 
+                        <!-- Personal display preference (per-user account,
+                             not practice-wide and not admin-gated): every
+                             user chooses whether the case History tab shows. -->
+                        <div class="option-row">
+                          <label for="showCaseHistoryTab"><?php echo t('settings.display.show_history_tab.label'); ?></label>
+                          <input type="checkbox" id="showCaseHistoryTab" name="showCaseHistoryTab" checked>
+                          <span class="option-text"><?php echo t('settings.display.show_history_tab.description'); ?></span>
+                        </div>
+
                         <div class="settings-divider"></div>
 
                         <div class="option-row">

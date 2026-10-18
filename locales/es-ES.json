@@ -1068,6 +1068,11 @@
                 "label": "Confirmación del laboratorio",
                 "description": "Pida a sus laboratorios que confirmen la recepción y proporcionen una fecha de devolución prevista.",
                 "tooltip": "Cuando está activado, los casos asignados a un laboratorio muestran una solicitud de confirmación. El laboratorio puede confirmar la recepción con una fecha de devolución opcional o pedir más información. El personal también puede registrar una confirmación por teléfono o correo electrónico."
+            },
+            "show_history_tab": {
+                "label": "Mostrar pestaña de historial del caso",
+                "description": "Mostrar la pestaña Historial al ver un caso.",
+                "tooltip": "Preferencia personal de tu cuenta. Al desactivarla, la pestaña Historial se oculta en la vista del caso; el historial sigue registrándose y no se elimina nada."
             }
         },
         "users": {

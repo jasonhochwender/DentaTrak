@@ -4696,6 +4696,11 @@
                 "label": "Confirmação do laboratório",
                 "description": "Peça aos seus laboratórios que confirmem o recebimento e informem uma data de devolução prevista.",
                 "tooltip": "Quando ativado, casos atribuídos a um laboratório exibem uma solicitação de confirmação. O laboratório pode confirmar o recebimento com uma data de devolução opcional ou pedir mais informações. A equipe também pode registrar uma confirmação recebida por telefone ou e-mail."
+            },
+            "show_history_tab": {
+                "label": "Mostrar aba Histórico do caso",
+                "description": "Exibir a aba Histórico ao visualizar um caso.",
+                "tooltip": "Preferência pessoal da sua conta. Quando desativada, a aba Histórico fica oculta na visualização do caso; o histórico continua sendo registrado e nada é excluído."
             }
         },
         "users": {

@@ -2714,6 +2714,11 @@
                 "label": "Laborbestätigung",
                 "description": "Bitten Sie Ihre Labore, den Erhalt zu bestätigen und ein voraussichtliches Rückgabedatum anzugeben.",
                 "tooltip": "Wenn aktiviert, zeigen an ein Labor übergebene Fälle eine Bestätigungsanfrage. Das Labor kann den Erhalt mit optionalem Rückgabedatum bestätigen oder Informationen anfordern. Mitarbeiter können auch eine telefonische oder E-Mail-Bestätigung erfassen."
+            },
+            "show_history_tab": {
+                "label": "Fallverlauf-Tab anzeigen",
+                "description": "Den Tab „Verlauf\" in der Fallansicht anzeigen.",
+                "tooltip": "Persönliche Einstellung für Ihr Konto. Wenn deaktiviert, wird der Verlauf-Tab in der Fallansicht ausgeblendet; der Verlauf wird weiterhin aufgezeichnet und nichts wird gelöscht."
             }
         },
         "users": {
