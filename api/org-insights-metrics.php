@@ -114,7 +114,12 @@ function orgInsightsInRange(?DateTimeImmutable $day, ?DateTimeImmutable $start, 
  *   'rangeStart'  => ?DateTimeImmutable  null = unbounded below
  *   'rangeEnd'    => DateTimeImmutable   inclusive end day (tz-aware)
  *   'now'         => DateTimeImmutable   defaults to 'now' in ORG_INSIGHTS_TZ
- *   'pastDueDays' => int                 viewer's past-due threshold (default 1)
+ *   'pastDueDays' => int                 fallback past-due threshold (default 1)
+ *   'pastDueDaysByPractice' => [pid=>int] per-practice past-due thresholds
+ *                                        (practices.past_due_days); each
+ *                                        practice's own setting drives its
+ *                                        overdue metric, falling back to
+ *                                        'pastDueDays' when absent.
  *   'includeLabs' => bool                run the lab-performance aggregation
  * ]
  */
@@ -125,6 +130,8 @@ function computeOrgInsights(PDO $pdo, array $practices, array $opts) {
     $rangeStart = $opts['rangeStart'] ?? null;
     $rangeEnd = ($opts['rangeEnd'] ?? $now)->setTime(0, 0, 0);
     $pastDueDays = max(0, (int)($opts['pastDueDays'] ?? 1));
+    $pastDueDaysByPractice = is_array($opts['pastDueDaysByPractice'] ?? null)
+        ? $opts['pastDueDaysByPractice'] : [];
     $includeLabs = !empty($opts['includeLabs']);
 
     $byPractice = [];
@@ -143,6 +150,7 @@ function computeOrgInsights(PDO $pdo, array $practices, array $opts) {
 
     foreach ($practices as $p) {
         $pid = (int)$p['id'];
+        $practicePastDueDays = max(0, (int)($pastDueDaysByPractice[$pid] ?? $pastDueDays));
         $terminal = getLastActiveWorkflowColumnId($pid);
 
         // Rebuild the per-request authorized-case set for THIS practice so a
@@ -163,7 +171,7 @@ function computeOrgInsights(PDO $pdo, array $practices, array $opts) {
             $diff = orgInsightsDayDiff($row['due_date'], $today);
             if ($diff === null) {
                 $noDue++;
-            } elseif ($diff <= -$pastDueDays) {
+            } elseif ($diff <= -$practicePastDueDays) {
                 $overdue++;
             }
         }

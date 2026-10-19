@@ -465,6 +465,7 @@ function handleSetupPracticeMember($pdo, $input) {
     $limitedVisibility = !empty($input['limitedVisibility']) ? 1 : 0;
     $canViewAnalytics = !empty($input['canViewAnalytics']) ? 1 : 0;
     $canEditCases = !empty($input['canEditCases']) ? 1 : 0;
+    $isLab = !empty($input['isLab']) ? 1 : 0;
 
     if (empty($email) || empty($password) || (empty($adminEmail) && !$explicitPracticeId)) {
         http_response_code(400);
@@ -560,35 +561,52 @@ function handleSetupPracticeMember($pdo, $input) {
         ");
         $stmt->execute(['practice_id' => $practiceId, 'user_id' => $userId]);
 
+        // practice_users.is_lab is optional on older schemas - only write it
+        // when the column exists.
+        $hasIsLabCol = false;
+        try {
+            $colCheck = $pdo->query("SHOW COLUMNS FROM practice_users LIKE 'is_lab'");
+            $hasIsLabCol = $colCheck && $colCheck->rowCount() > 0;
+        } catch (PDOException $e) {
+            $hasIsLabCol = false;
+        }
+
         if ($stmt->fetchColumn()) {
-            $stmt = $pdo->prepare("
+            $sql = "
                 UPDATE practice_users
                 SET role = :role, limited_visibility = :limited_visibility,
                     can_view_analytics = :can_view_analytics,
-                    can_edit_cases = :can_edit_cases
+                    can_edit_cases = :can_edit_cases"
+                . ($hasIsLabCol ? ", is_lab = :is_lab" : "") . "
                 WHERE practice_id = :practice_id AND user_id = :user_id
-            ");
-            $stmt->execute([
+            ";
+            $params = [
                 'role' => $role,
                 'limited_visibility' => $limitedVisibility,
                 'can_view_analytics' => $canViewAnalytics,
                 'can_edit_cases' => $canEditCases,
                 'practice_id' => $practiceId,
                 'user_id' => $userId
-            ]);
+            ];
+            if ($hasIsLabCol) { $params['is_lab'] = $isLab; }
+            $pdo->prepare($sql)->execute($params);
         } else {
-            $stmt = $pdo->prepare("
-                INSERT INTO practice_users (practice_id, user_id, role, is_owner, limited_visibility, can_view_analytics, can_edit_cases)
-                VALUES (:practice_id, :user_id, :role, FALSE, :limited_visibility, :can_view_analytics, :can_edit_cases)
-            ");
-            $stmt->execute([
+            $sql = "
+                INSERT INTO practice_users (practice_id, user_id, role, is_owner, limited_visibility, can_view_analytics, can_edit_cases"
+                . ($hasIsLabCol ? ", is_lab" : "") . ")
+                VALUES (:practice_id, :user_id, :role, FALSE, :limited_visibility, :can_view_analytics, :can_edit_cases"
+                . ($hasIsLabCol ? ", :is_lab" : "") . ")
+            ";
+            $params = [
                 'practice_id' => $practiceId,
                 'user_id' => $userId,
                 'role' => $role,
                 'limited_visibility' => $limitedVisibility,
                 'can_view_analytics' => $canViewAnalytics,
                 'can_edit_cases' => $canEditCases
-            ]);
+            ];
+            if ($hasIsLabCol) { $params['is_lab'] = $isLab; }
+            $pdo->prepare($sql)->execute($params);
         }
 
         // Optional: grant this user access to specific assignment labels (used
@@ -626,7 +644,8 @@ function handleSetupPracticeMember($pdo, $input) {
             'practice_id' => $practiceId,
             'email' => $email,
             'role' => $role,
-            'limited_visibility' => (bool)$limitedVisibility
+            'limited_visibility' => (bool)$limitedVisibility,
+            'is_lab' => (bool)$isLab
         ]);
 
     } catch (PDOException $e) {

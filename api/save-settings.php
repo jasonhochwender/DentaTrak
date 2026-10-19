@@ -6,6 +6,7 @@
 
 require_once __DIR__ . '/appConfig.php';
 require_once __DIR__ . '/practice-security.php';
+require_once __DIR__ . '/practice-display-settings.php';
 require_once __DIR__ . '/user-manager.php';
 require_once __DIR__ . '/google-drive.php';
 require_once __DIR__ . '/feature-flags.php';
@@ -34,19 +35,10 @@ set_exception_handler(function (Throwable $e) {
 $currentPracticeId = requireValidPracticeContext();
 $userId = $_SESSION['db_user_id'];
 
-// SECURITY: Settings is an admin-only surface (practice configuration, users
-// & roles, security, data & privacy, assignment-label management, and
-// personal preferences are all edited through this one endpoint). Reject
-// the entire request up front for non-admins rather than relying solely on
-// the per-section role checks further below.
-requirePracticeAdmin($currentPracticeId);
-
-// External collaborators may not administer Practice settings or invite users.
-requireNotLabCollaborator($currentPracticeId, t('settings.external_collaborator_denied'));
-
-// Owners and administrators must accept the current Terms before changing
-// Practice settings.
-requireCurrentTermsAcceptedForApi((int)$userId);
+// Practice-wide settings (everything except Appearance/theme and personal
+// security) require practice-admin role. Non-admins may still save their
+// own personal settings (see the personal-only path below).
+$isPracticeAdminUser = isPracticeAdmin($currentPracticeId);
 
 // Validate CSRF token for POST requests
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -62,6 +54,89 @@ if (!$data) {
     echo json_encode(['success' => false, 'message' => t('api.settings.invalid_data')]);
     exit;
 }
+
+// PERSONAL-ONLY PATH: non-admins (regular users, lab collaborators, and any
+// other non-admin practice member) may update only their own personal
+// settings - currently just Appearance (theme), which lives in
+// user_preferences. All other keys are practice-scoped or admin-scoped and
+// are REJECTED atomically: if a request contains anything beyond the
+// personal whitelist, the ENTIRE request fails and nothing is written, so
+// a forged payload can never piggyback practice changes onto a personal
+// save.
+if (!$isPracticeAdminUser) {
+    $personalAllowedKeys = ['theme', 'expectedPracticeId'];
+    $extraKeys = array_values(array_diff(array_keys($data), $personalAllowedKeys));
+    if (!empty($extraKeys)) {
+        userLog("User {$userId} attempted to save non-personal settings keys (" . implode(',', $extraKeys) . ") without practice-admin rights in practice {$currentPracticeId}", true);
+        http_response_code(403);
+        echo json_encode(['success' => false, 'message' => t('api.settings.admin_required')]);
+        exit;
+    }
+
+    // Practice-context assertion: a save issued against a stale practice
+    // context is refused rather than applied to the wrong practice.
+    if (isset($data['expectedPracticeId']) && (int)$data['expectedPracticeId'] !== (int)$currentPracticeId) {
+        http_response_code(409);
+        echo json_encode([
+            'success' => false,
+            'message' => 'The active practice changed. Refresh DentaTrak and try again.',
+            'diagnosticCode' => 'PRACTICE_CONTEXT_CHANGED'
+        ]);
+        exit;
+    }
+
+    // Personal theme. Only accepted values are written; missing theme keeps
+    // the stored value.
+    $personalTheme = null;
+    if (isset($data['theme'])) {
+        $personalTheme = in_array($data['theme'], ['light', 'dark', 'system'], true) ? $data['theme'] : 'system';
+    }
+
+    try {
+        ensureUserPreferencesSchema();
+        // Ensure the theme enum accepts 'system' (older schemas may only
+        // allow 'light'/'dark').
+        $themeColStmt = $pdo->query("SHOW COLUMNS FROM user_preferences LIKE 'theme'");
+        $themeCol = $themeColStmt ? $themeColStmt->fetch(PDO::FETCH_ASSOC) : false;
+        if (!$themeCol) {
+            $pdo->exec("ALTER TABLE user_preferences ADD COLUMN theme ENUM('light','dark','system') DEFAULT 'system'");
+        } elseif (stripos($themeCol['Type'], "'system'") === false) {
+            $pdo->exec("ALTER TABLE user_preferences MODIFY theme ENUM('light','dark','system') DEFAULT 'system'");
+        }
+
+        if ($personalTheme !== null) {
+            $stmt = $pdo->prepare("
+                INSERT INTO user_preferences (user_id, theme) VALUES (:user_id, :theme)
+                ON DUPLICATE KEY UPDATE theme = VALUES(theme)
+            ");
+            $stmt->execute(['user_id' => $userId, 'theme' => $personalTheme]);
+            $_SESSION['user_preferences']['theme'] = $personalTheme;
+        }
+
+        echo json_encode([
+            'success' => true,
+            'personalOnly' => true,
+            'message' => t('api.settings.saved_success')
+        ]);
+    } catch (Throwable $e) {
+        http_response_code(500);
+        echo json_encode(['success' => false, 'message' => t('settings.messages.save_error')]);
+        userLog("Error saving personal settings for user {$userId}: " . $e->getMessage(), true);
+    }
+    exit;
+}
+
+// --- Everything below this point is the PRACTICE-ADMIN path -------------
+
+// External collaborators may not administer Practice settings or invite users.
+// (Lab collaborators never reach here - isPracticeAdmin() is false for them -
+// but keep the explicit denial as defense-in-depth for the admin path.)
+requireNotLabCollaborator($currentPracticeId, t('settings.external_collaborator_denied'));
+
+// Owners and administrators must accept the current Terms before changing
+// Practice settings. (Not applied to the personal-only path above - a
+// member's own theme is not practice configuration.)
+requireCurrentTermsAcceptedForApi((int)$userId);
 
 // Workflow Stage Names (Settings > Display & Behavior). Validated FIRST,
 // before any field in this request is persisted, using the single
@@ -141,56 +216,13 @@ if ($theme === null) {
     }
 }
 
-$allowCardDelete = isset($data['allowCardDelete']) ? (bool)$data['allowCardDelete'] : false;
-$highlightPastDue = isset($data['highlightPastDue']) ? (bool)$data['highlightPastDue'] : true;
-$pastDueDays = isset($data['pastDueDays']) ? (int)$data['pastDueDays'] : 1;
-
-// Coming-due highlighting settings (default OFF to avoid surprising existing practices)
-$highlightComingDue = isset($data['highlightComingDue']) ? (bool)$data['highlightComingDue'] : false;
-$comingDueDays = isset($data['comingDueDays']) ? (int)$data['comingDueDays'] : 5;
-
-// Appointment-risk highlighting settings (default ON, threshold 3 days)
-$highlightAppointmentRisk = isset($data['highlightAppointmentRisk']) ? (bool)$data['highlightAppointmentRisk'] : true;
-$appointmentRiskDays = isset($data['appointmentRiskDays']) ? (int)$data['appointmentRiskDays'] : 3;
-
-// New: hide Delivered cases older than N days (0 = show all). Default is 120 days.
-$deliveredHideDays = isset($data['deliveredHideDays']) ? (int)$data['deliveredHideDays'] : 120;
-
-// Google Drive backup setting
+// Practice-wide Display & Behavior values (archiving, auto-hide, highlight
+// toggles and thresholds, Revision History tab) are validated, clamped and
+// persisted on the `practices` row by updatePracticeDisplaySettings() below.
+// Google Drive backup: legacy per-user passthrough (the authoritative
+// practice toggle is practices.google_drive_backup_enabled, set by the
+// Drive connect/disconnect endpoints).
 $googleDriveBackup = isset($data['googleDriveBackup']) ? (bool)$data['googleDriveBackup'] : false;
-
-// Personal display preference (default OFF). An absent key means the
-// caller did not submit a choice - NULL preserves any stored value via
-// COALESCE below and stores NULL for brand-new rows.
-$showCaseHistoryTab = isset($data['showCaseHistoryTab']) ? (bool)$data['showCaseHistoryTab'] : null;
-
-// Ensure pastDueDays is within valid range
-if ($pastDueDays < 1) {
-    $pastDueDays = 1;
-} elseif ($pastDueDays > 99) {
-    $pastDueDays = 99;
-}
-
-// Ensure comingDueDays is within valid range
-if ($comingDueDays < 1) {
-    $comingDueDays = 1;
-} elseif ($comingDueDays > 99) {
-    $comingDueDays = 99;
-}
-
-// Ensure appointmentRiskDays is within valid range
-if ($appointmentRiskDays < 0) {
-    $appointmentRiskDays = 0;
-} elseif ($appointmentRiskDays > 99) {
-    $appointmentRiskDays = 99;
-}
-
-// Ensure deliveredHideDays is within a sane range (0 = off)
-if ($deliveredHideDays < 0) {
-    $deliveredHideDays = 0;
-} elseif ($deliveredHideDays > 365) {
-    $deliveredHideDays = 365;
-}
 
 // Practice name handling
 $practiceName = isset($data['practiceName']) ? trim($data['practiceName']) : '';
@@ -525,52 +557,15 @@ try {
     // makes every later call a no-op (guarded by its own static flag).
     ensureLabAssignmentHistoryTable();
 
-    // Ensure google_drive_backup column exists
+    // Ensure google_drive_backup column exists (legacy per-user flag - the
+    // authoritative backup toggle lives on practices.google_drive_backup_enabled
+    // and is driven by the Google Drive connect/disconnect endpoints, but the
+    // Settings form still round-trips this preference for compat).
     $stmt = $pdo->query("SHOW COLUMNS FROM user_preferences LIKE 'google_drive_backup'");
     if ($stmt->rowCount() === 0) {
         $pdo->exec("ALTER TABLE user_preferences ADD COLUMN google_drive_backup TINYINT(1) DEFAULT 0");
     }
 
-    // Ensure coming-due settings columns exist
-    $stmt = $pdo->query("SHOW COLUMNS FROM user_preferences LIKE 'highlight_coming_due'");
-    if ($stmt->rowCount() === 0) {
-        $pdo->exec("ALTER TABLE user_preferences ADD COLUMN highlight_coming_due TINYINT(1) DEFAULT 0");
-    }
-    $stmt = $pdo->query("SHOW COLUMNS FROM user_preferences LIKE 'coming_due_days'");
-    if ($stmt->rowCount() === 0) {
-        $pdo->exec("ALTER TABLE user_preferences ADD COLUMN coming_due_days INT(11) DEFAULT 5");
-    }
-
-    // Ensure appointment-risk settings columns exist
-    $stmt = $pdo->query("SHOW COLUMNS FROM user_preferences LIKE 'highlight_appointment_risk'");
-    if ($stmt->rowCount() === 0) {
-        $pdo->exec("ALTER TABLE user_preferences ADD COLUMN highlight_appointment_risk TINYINT(1) DEFAULT 1");
-    }
-    $stmt = $pdo->query("SHOW COLUMNS FROM user_preferences LIKE 'appointment_risk_days'");
-    if ($stmt->rowCount() === 0) {
-        $pdo->exec("ALTER TABLE user_preferences ADD COLUMN appointment_risk_days INT(11) DEFAULT 3");
-    }
-
-    // Personal display preference (per-user, not practice-level). NULL
-    // means no explicit choice -> the tab defaults OFF; stored 0/1 are
-    // deliberate choices.
-    $stmt = $pdo->query("SHOW COLUMNS FROM user_preferences LIKE 'show_case_history_tab'");
-    $histCol = $stmt ? $stmt->fetch(PDO::FETCH_ASSOC) : false;
-    if ($histCol === false) {
-        $pdo->exec("ALTER TABLE user_preferences ADD COLUMN show_case_history_tab TINYINT(1) NULL DEFAULT NULL");
-    } elseif ($histCol['Null'] !== 'YES' || $histCol['Default'] !== null) {
-        $pdo->exec("ALTER TABLE user_preferences MODIFY show_case_history_tab TINYINT(1) NULL DEFAULT NULL");
-        // Same one-time backfill fix as get-settings.php: rows untouched
-        // since before the preference shipped only carry the column
-        // default - restore NULL so they follow OFF.
-        try {
-            $pdo->exec("UPDATE user_preferences SET show_case_history_tab = NULL
-                        WHERE show_case_history_tab = 1
-                          AND updated_at < '2026-10-18 12:00:00'");
-        } catch (PDOException $e) {
-            error_log('[save-settings] history-tab default migration failed: ' . $e->getMessage());
-        }
-    }
     // Ensure the theme enum accepts 'system' (added for the System/Light/Dark
     // preference; older schemas may only allow 'light'/'dark').
     $stmt = $pdo->query("SHOW COLUMNS FROM user_preferences LIKE 'theme'");
@@ -581,45 +576,34 @@ try {
         $pdo->exec("ALTER TABLE user_preferences MODIFY theme ENUM('light','dark','system') DEFAULT 'system'");
     }
 
-    // First, update user preferences
+    // First, update the PERSONAL preferences (theme, plus the legacy
+    // google_drive_backup passthrough). All other Display & Behavior keys
+    // are practice-wide - they are written to `practices` below via
+    // updatePracticeDisplaySettings(), NOT to this user's row.
     $stmt = $pdo->prepare("
         INSERT INTO user_preferences (
-            user_id, theme, allow_card_delete, highlight_past_due, past_due_days,
-            highlight_coming_due, coming_due_days, highlight_appointment_risk, appointment_risk_days,
-            delivered_hide_days, google_drive_backup, show_case_history_tab
+            user_id, theme, google_drive_backup
         ) VALUES (
-            :user_id, :theme, :allow_card_delete, :highlight_past_due, :past_due_days,
-            :highlight_coming_due, :coming_due_days, :highlight_appointment_risk, :appointment_risk_days,
-            :delivered_hide_days, :google_drive_backup, :show_case_history_tab
+            :user_id, :theme, :google_drive_backup
         ) ON DUPLICATE KEY UPDATE
             theme = VALUES(theme),
-            allow_card_delete = VALUES(allow_card_delete),
-            highlight_past_due = VALUES(highlight_past_due),
-            past_due_days = VALUES(past_due_days),
-            highlight_coming_due = VALUES(highlight_coming_due),
-            coming_due_days = VALUES(coming_due_days),
-            highlight_appointment_risk = VALUES(highlight_appointment_risk),
-            appointment_risk_days = VALUES(appointment_risk_days),
-            delivered_hide_days = VALUES(delivered_hide_days),
-            google_drive_backup = VALUES(google_drive_backup),
-            show_case_history_tab = COALESCE(VALUES(show_case_history_tab), show_case_history_tab)
+            google_drive_backup = VALUES(google_drive_backup)
     ");
 
     $result = $stmt->execute([
         'user_id' => $userId,
         'theme' => $theme,
-        'allow_card_delete' => $allowCardDelete ? 1 : 0,
-        'highlight_past_due' => $highlightPastDue ? 1 : 0,
-        'past_due_days' => $pastDueDays,
-        'highlight_coming_due' => $highlightComingDue ? 1 : 0,
-        'coming_due_days' => $comingDueDays,
-        'highlight_appointment_risk' => $highlightAppointmentRisk ? 1 : 0,
-        'appointment_risk_days' => $appointmentRiskDays,
-        'delivered_hide_days' => $deliveredHideDays,
-        'google_drive_backup' => $googleDriveBackup ? 1 : 0,
-        'show_case_history_tab' => $showCaseHistoryTab === null ? null : ($showCaseHistoryTab ? 1 : 0)
+        'google_drive_backup' => $googleDriveBackup ? 1 : 0
     ]);
-    
+
+    // Practice-wide Display & Behavior settings (Revision History tab,
+    // archiving, auto-hide, highlighting + thresholds). Only keys present in
+    // the payload are written, so saving a section can never reset hidden
+    // settings. Admin-only: this whole endpoint is admin-gated past the
+    // personal-only path above.
+    updatePracticeDisplaySettings($pdo, (int)$currentPracticeId, $data);
+
+
     // Update practice settings (name and logo) if user is an admin of the practice
     // and allow any user who belongs to the practice to update assignment labels
     if (isset($_SESSION['current_practice_id'])) {
@@ -1139,8 +1123,15 @@ try {
     if (!$currentPracticeId) {
         throw new Exception('No practice selected');
     }
-    
-    if ($userRole === 'admin') {
+
+    // Roster sync is destructive (non-creator rows are deleted then rebuilt
+    // from the submitted lists), so it must run ONLY when the payload
+    // actually carries the user lists. A partial save that omits
+    // adminUsers/gmailUsers - e.g. a display-settings-only save - must not
+    // wipe the practice roster.
+    $rosterSubmitted = array_key_exists('adminUsers', $data) || array_key_exists('gmailUsers', $data);
+
+    if ($userRole === 'admin' && $rosterSubmitted) {
         // Get practice creator ID
         $stmt = $pdo->prepare("SELECT created_by FROM practices WHERE id = :practice_id");
         $stmt->execute(['practice_id' => $currentPracticeId]);
@@ -1420,19 +1411,13 @@ try {
         }
     }
     
-    // Update session data
+    // Update session data. Only genuinely per-user preferences are cached
+    // here - practice-wide display settings are read from `practices` at
+    // each consumer (never session-cached) so they cannot leak or go stale
+    // across a practice switch.
     $_SESSION['user_preferences'] = [
         'theme' => $theme,
-        'allow_card_delete' => $allowCardDelete,
-        'highlight_past_due' => $highlightPastDue,
-        'past_due_days' => $pastDueDays,
-        'highlight_coming_due' => $highlightComingDue,
-        'coming_due_days' => $comingDueDays,
-        'highlight_appointment_risk' => $highlightAppointmentRisk,
-        'appointment_risk_days' => $appointmentRiskDays,
-        'delivered_hide_days' => $deliveredHideDays,
-        'google_drive_backup' => $googleDriveBackup,
-        'show_case_history_tab' => $showCaseHistoryTab
+        'google_drive_backup' => $googleDriveBackup
     ];
     
     // Log the activity

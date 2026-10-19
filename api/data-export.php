@@ -353,11 +353,13 @@ function processExport(int $exportId, int $userId, int $practiceId, string $user
             error_log('[data-export] Activity log query failed: ' . $e->getMessage());
         }
         
-        // Get user settings
+        // Get user settings. Only PERSONAL per-user keys are exported -
+        // display/archiving/highlighting values are practice-wide (stored on
+        // the practices row), so the legacy per-user copies are no longer
+        // meaningful personal data.
         try {
             $stmt = $pdo->prepare("
-                SELECT theme, allow_card_delete, highlight_past_due, past_due_days, 
-                       delivered_hide_days, google_drive_backup
+                SELECT theme, google_drive_backup
                 FROM user_preferences
                 WHERE user_id = :user_id
             ");

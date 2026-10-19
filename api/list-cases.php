@@ -12,6 +12,7 @@ error_reporting(E_ALL & ~E_DEPRECATED & ~E_USER_DEPRECATED);
 
 require_once __DIR__ . '/appConfig.php';
 require_once __DIR__ . '/practice-security.php';
+require_once __DIR__ . '/practice-display-settings.php';
 require_once __DIR__ . '/cases-cache.php';
 require_once __DIR__ . '/workflow-stages.php';
 require_once __DIR__ . '/google-drive.php';
@@ -20,22 +21,6 @@ require_once __DIR__ . '/lab-assignment-history.php';
 require_once __DIR__ . '/encryption.php';
 require_once __DIR__ . '/at-risk-calculator.php';
 require_once __DIR__ . '/case-types.php';
-
-// Ensure appointment-risk preference columns exist before querying user_preferences
-if (isset($pdo)) {
-    try {
-        $stmt = $pdo->query("SHOW COLUMNS FROM user_preferences LIKE 'highlight_appointment_risk'");
-        if ($stmt->rowCount() === 0) {
-            $pdo->exec("ALTER TABLE user_preferences ADD COLUMN highlight_appointment_risk TINYINT(1) DEFAULT 1");
-        }
-        $stmt = $pdo->query("SHOW COLUMNS FROM user_preferences LIKE 'appointment_risk_days'");
-        if ($stmt->rowCount() === 0) {
-            $pdo->exec("ALTER TABLE user_preferences ADD COLUMN appointment_risk_days INT(11) DEFAULT 3");
-        }
-    } catch (Throwable $e) {
-        // Continue with defaults if columns cannot be added
-    }
-}
 
 // Match the local calendar-day semantics used by the Kanban card state
 // (see js/app.js getCalendarDayDiff() and the print-case.php time fix).
@@ -115,30 +100,12 @@ try {
         $cases = array_values($cases);
     }
 
-    // Apply Delivered case hiding based on user preference
-    $deliveredHideDays = 0;
-    if (isset($_SESSION['user_preferences']['delivered_hide_days'])) {
-        $deliveredHideDays = (int)$_SESSION['user_preferences']['delivered_hide_days'];
-    } else {
-        // Fallback: load from user_preferences table if available
-        if (isset($_SESSION['db_user_id'])) {
-            try {
-                $stmt = $pdo->prepare("SELECT delivered_hide_days FROM user_preferences WHERE user_id = :user_id");
-                $stmt->execute(['user_id' => $_SESSION['db_user_id']]);
-                $value = $stmt->fetchColumn();
-                if ($value !== false && $value !== null) {
-                    $deliveredHideDays = (int)$value;
-                    // Cache in session for next call
-                    if (!isset($_SESSION['user_preferences'])) {
-                        $_SESSION['user_preferences'] = [];
-                    }
-                    $_SESSION['user_preferences']['delivered_hide_days'] = $deliveredHideDays;
-                }
-            } catch (Throwable $e) {
-                // On error, just default to 0 (show all)
-            }
-        }
-    }
+    // Apply Delivered case hiding based on the PRACTICE-wide setting.
+    // Resolved once per request from the practices row - never cached per
+    // user/session, so a practice switch cannot leak the previous
+    // practice's value.
+    $practiceDisplay = getPracticeDisplaySettings($pdo, (int)$currentPracticeId);
+    $deliveredHideDays = (int)$practiceDisplay['delivered_hide_days'];
 
     $lastStageId = $currentPracticeId ? getLastActiveWorkflowColumnId($currentPracticeId) : 'Delivered';
 
@@ -293,30 +260,14 @@ try {
     // Load current user urgency settings from the database each request.
     // Do not rely on stale session preferences; the Kanban uses locally
     // stored (localStorage) values that can get out of sync with $_SESSION.
-    $pastDueDays = 1;
-    $comingDueDays = 5;
-    $appointmentRiskDays = 3;
-    $highlightPastDue = false;
-    $highlightComingDue = false;
-    $highlightAppointmentRisk = false;
-
-    if (isset($_SESSION['db_user_id'])) {
-        try {
-            $stmt = $pdo->prepare("SELECT highlight_past_due, past_due_days, highlight_coming_due, coming_due_days, highlight_appointment_risk, appointment_risk_days FROM user_preferences WHERE user_id = :user_id");
-            $stmt->execute(['user_id' => $_SESSION['db_user_id']]);
-            $duePrefs = $stmt->fetch(PDO::FETCH_ASSOC);
-            if ($duePrefs) {
-                $highlightPastDue = (bool)(int)($duePrefs['highlight_past_due'] ?? 0);
-                $pastDueDays = (int)($duePrefs['past_due_days'] ?? 1);
-                $highlightComingDue = (bool)(int)($duePrefs['highlight_coming_due'] ?? 0);
-                $comingDueDays = (int)($duePrefs['coming_due_days'] ?? 5);
-                $highlightAppointmentRisk = (bool)(int)($duePrefs['highlight_appointment_risk'] ?? 1);
-                $appointmentRiskDays = (int)($duePrefs['appointment_risk_days'] ?? 3);
-            }
-        } catch (Throwable $e) {
-            // On error, use defaults
-        }
-    }
+    // Practice-wide highlighting settings (resolved above from the
+    // practices row - identical for every member of this practice).
+    $pastDueDays = (int)$practiceDisplay['past_due_days'];
+    $comingDueDays = (int)$practiceDisplay['coming_due_days'];
+    $appointmentRiskDays = (int)$practiceDisplay['appointment_risk_days'];
+    $highlightPastDue = (bool)$practiceDisplay['highlight_past_due'];
+    $highlightComingDue = (bool)$practiceDisplay['highlight_coming_due'];
+    $highlightAppointmentRisk = (bool)$practiceDisplay['highlight_appointment_risk'];
 
     // Apply late cases filter if requested
     $lateOnly = $_GET['late_only'] ?? '';

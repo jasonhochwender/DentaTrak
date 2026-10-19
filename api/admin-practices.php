@@ -16,6 +16,7 @@ require_once __DIR__ . '/appConfig.php';
 require_once __DIR__ . '/csrf.php';
 require_once __DIR__ . '/hipaa-compliance.php';
 require_once __DIR__ . '/practice-security.php';
+require_once __DIR__ . '/practice-display-settings.php';
 require_once __DIR__ . '/schema-helpers.php';
 require_once __DIR__ . '/workflow-stages.php';
 require_once __DIR__ . '/lab-assignment-history.php';
@@ -2259,111 +2260,6 @@ function unhidePracticeForAdmin($practiceId, $adminUserId) {
 }
 
 /**
- * Get a representative user ID for a practice (owner/creator preferred, then first admin).
- */
-function getRepresentativeUserId($practiceId) {
-    global $pdo;
-    
-    if (!$pdo || !$practiceId) {
-        return null;
-    }
-    
-    try {
-        $stmt = $pdo->prepare("SELECT created_by FROM practices WHERE id = ?");
-        $stmt->execute([$practiceId]);
-        $createdBy = $stmt->fetchColumn();
-        
-        if ($createdBy) {
-            $stmt = $pdo->prepare("SELECT 1 FROM user_preferences WHERE user_id = ?");
-            $stmt->execute([$createdBy]);
-            if ($stmt->fetchColumn()) {
-                return (int)$createdBy;
-            }
-        }
-        
-        $puColumns = $pdo->query("SHOW COLUMNS FROM practice_users")->fetchAll(PDO::FETCH_COLUMN);
-        $hasIsOwner = in_array('is_owner', $puColumns);
-        
-        $ownerClause = $hasIsOwner ? "OR pu.is_owner = 1" : "";
-        $stmt = $pdo->prepare("SELECT u.id 
-            FROM users u
-            JOIN practice_users pu ON u.id = pu.user_id
-            WHERE pu.practice_id = ? AND (pu.role = 'admin' {$ownerClause})
-            ORDER BY pu.created_at ASC, u.id ASC
-            LIMIT 1");
-        $stmt->execute([$practiceId]);
-        $adminId = $stmt->fetchColumn();
-        
-        if ($adminId) {
-            return (int)$adminId;
-        }
-        
-        $stmt = $pdo->prepare("SELECT u.id 
-            FROM users u
-            JOIN practice_users pu ON u.id = pu.user_id
-            WHERE pu.practice_id = ?
-            ORDER BY pu.created_at ASC
-            LIMIT 1");
-        $stmt->execute([$practiceId]);
-        $firstUserId = $stmt->fetchColumn();
-        return $firstUserId ? (int)$firstUserId : null;
-    } catch (PDOException $e) {
-        error_log('[admin-practices] Error getting representative user: ' . $e->getMessage());
-        return null;
-    }
-}
-
-/**
- * Get user preference values for a representative user.
- */
-function getRepresentativeUserPreferences($practiceId) {
-    global $pdo;
-    
-    if (!$pdo || !$practiceId) {
-        return [];
-    }
-    
-    $userId = getRepresentativeUserId($practiceId);
-    if (!$userId) {
-        return [];
-    }
-    
-    try {
-        $columns = $pdo->query("SHOW COLUMNS FROM user_preferences")->fetchAll(PDO::FETCH_COLUMN);
-    } catch (PDOException $e) {
-        error_log('[admin-practices] Error reading user_preferences columns: ' . $e->getMessage());
-        return [];
-    }
-    
-    $desired = [
-        'allow_card_delete',
-        'delivered_hide_days',
-        'highlight_past_due',
-        'past_due_days',
-        'highlight_coming_due',
-        'coming_due_days',
-        'highlight_appointment_risk',
-        'appointment_risk_days',
-        'google_drive_backup'
-    ];
-    $available = array_intersect($desired, $columns);
-    
-    if (empty($available)) {
-        return [];
-    }
-    
-    try {
-        $sql = "SELECT " . implode(', ', $available) . " FROM user_preferences WHERE user_id = ?";
-        $stmt = $pdo->prepare($sql);
-        $stmt->execute([$userId]);
-        return $stmt->fetch(PDO::FETCH_ASSOC) ?: [];
-    } catch (PDOException $e) {
-        error_log('[admin-practices] Error getting user preferences: ' . $e->getMessage());
-        return [];
-    }
-}
-
-/**
  * Get assignment labels for the Settings tab.
  */
 function getPracticeAssignmentLabelsForSettings($practiceId) {
@@ -2416,21 +2312,21 @@ function getTwoFactorEnabledForPractice($practiceId) {
 function getPracticeSettings($practiceId) {
     global $pdo;
     
-    $preferences = getRepresentativeUserPreferences($practiceId);
+    // Display & Behavior settings are practice-wide (practices row). The
+    // same helper feeds the in-app Settings UI and all consumers, so
+    // DevTools shows exactly what members experience.
+    $preferences = getPracticeDisplaySettings($pdo, (int)$practiceId);
     // Use the practice's saved workflow-column configuration so custom and
     // renamed columns are included, in the configured board order.
     $workflowLabels = getResolvedWorkflowStageLabelsForPractice($practiceId);
     $users = getPracticeUsers($practiceId);
     $labels = getPracticeAssignmentLabelsForSettings($practiceId);
     $twoFactorEnabled = getTwoFactorEnabledForPractice($practiceId);
-    
-    // Defaults mirror get-settings.php so a practice whose representative user
-    // has no preferences row yet renders the same values the main Settings UI
-    // would show.
-    $deliveredHideDays = isset($preferences['delivered_hide_days']) ? (int)$preferences['delivered_hide_days'] : 120;
+
+    $deliveredHideDays = (int)$preferences['delivered_hide_days'];
     $autoArchive = $deliveredHideDays > 0;
 
-    $allowArchiving = isset($preferences['allow_card_delete']) ? (bool)$preferences['allow_card_delete'] : true;
+    $allowArchiving = (bool)$preferences['allow_card_delete'];
     $archiveAfterDays = $autoArchive ? $deliveredHideDays : 0;
 
     // Practice-level Case Review Tracking flag (practices table, not
@@ -2459,6 +2355,21 @@ function getPracticeSettings($practiceId) {
         }
     } catch (PDOException $e) {
         error_log('[admin-practices] Error reading lab acknowledgment flag: ' . $e->getMessage());
+    }
+
+    // Practice-level Google Drive backup flag (practices.google_drive_backup_enabled
+    // is the authoritative column - the legacy per-user google_drive_backup
+    // preference is no longer read).
+    $googleDriveBackupEnabled = false;
+    try {
+        $gdCheck = $pdo->query("SHOW COLUMNS FROM practices LIKE 'google_drive_backup_enabled'");
+        if ($gdCheck && $gdCheck->rowCount() > 0) {
+            $gdStmt = $pdo->prepare("SELECT google_drive_backup_enabled FROM practices WHERE id = ?");
+            $gdStmt->execute([$practiceId]);
+            $googleDriveBackupEnabled = (bool)$gdStmt->fetchColumn();
+        }
+    } catch (PDOException $e) {
+        error_log('[admin-practices] Error reading google_drive_backup_enabled: ' . $e->getMessage());
     }
 
     // Practice-level FABG pilot flag (practices table, guarded for
@@ -2508,17 +2419,18 @@ function getPracticeSettings($practiceId) {
             'delivered_hide_days' => $deliveredHideDays
         ],
         'due_date_highlighting' => [
-            'highlight_past_due' => isset($preferences['highlight_past_due']) ? (bool)$preferences['highlight_past_due'] : true,
-            'past_due_days' => isset($preferences['past_due_days']) ? (int)$preferences['past_due_days'] : 1,
-            'highlight_coming_due' => isset($preferences['highlight_coming_due']) ? (bool)$preferences['highlight_coming_due'] : false,
-            'coming_due_days' => isset($preferences['coming_due_days']) ? (int)$preferences['coming_due_days'] : 5,
-            'highlight_appointment_risk' => isset($preferences['highlight_appointment_risk']) ? (bool)$preferences['highlight_appointment_risk'] : true,
-            'appointment_risk_days' => isset($preferences['appointment_risk_days']) ? (int)$preferences['appointment_risk_days'] : 3
+            'highlight_past_due' => (bool)$preferences['highlight_past_due'],
+            'past_due_days' => (int)$preferences['past_due_days'],
+            'highlight_coming_due' => (bool)$preferences['highlight_coming_due'],
+            'coming_due_days' => (int)$preferences['coming_due_days'],
+            'highlight_appointment_risk' => (bool)$preferences['highlight_appointment_risk'],
+            'appointment_risk_days' => (int)$preferences['appointment_risk_days']
         ],
+        'show_case_history_tab' => (bool)$preferences['show_case_history_tab'],
         'case_review_tracking_enabled' => $caseReviewTrackingEnabled,
         'lab_acknowledgment_enabled' => $labAcknowledgmentEnabled,
         'fabg_pilot' => $fabgPilot,
-        'google_drive_backup' => isset($preferences['google_drive_backup']) ? (bool)$preferences['google_drive_backup'] : false,
+        'google_drive_backup' => $googleDriveBackupEnabled,
         'workflow_stages' => $workflowLabels,
         'users' => $userList,
         'assignment_labels' => $labelList,
@@ -2531,11 +2443,11 @@ function getPracticeSettings($practiceId) {
 /**
  * Save Display & Behavior settings for a practice via DevTools.
  *
- * The main Settings UI persists these to the practice representative user's
- * user_preferences row (same keys getPracticeSettings() reads), except
- * case_review_tracking_enabled which lives on the practices table. Only keys
- * present in the payload are written - omitted settings keep their current
- * values so partial saves never reset hidden or unrelated options.
+ * These settings are practice-wide and live on the `practices` row - the
+ * same store api/save-settings.php writes and getPracticeSettings() reads.
+ * Only keys present in the payload are written - omitted settings keep
+ * their current values so partial saves never reset hidden or unrelated
+ * options.
  */
 function handleSavePracticeSettings(array $input): void {
     global $pdo;
@@ -2570,90 +2482,38 @@ function handleSavePracticeSettings(array $input): void {
         return;
     }
 
-    // Same persisted keys, defaults, and ranges as api/save-settings.php.
-    $prefDefaults = [
-        'allow_card_delete' => 1,
-        'highlight_past_due' => 1,
-        'past_due_days' => 1,
-        'highlight_coming_due' => 0,
-        'coming_due_days' => 5,
-        'highlight_appointment_risk' => 1,
-        'appointment_risk_days' => 3,
-        'delivered_hide_days' => 120,
-        'google_drive_backup' => 0
+    // Translate DevTools snake_case keys into the camelCase keys
+    // updatePracticeDisplaySettings() expects (same validation/clamps as
+    // api/save-settings.php). Only submitted keys are written.
+    $snakeToCamel = [
+        'show_case_history_tab' => 'showCaseHistoryTab',
+        'allow_card_delete' => 'allowCardDelete',
+        'delivered_hide_days' => 'deliveredHideDays',
+        'highlight_past_due' => 'highlightPastDue',
+        'past_due_days' => 'pastDueDays',
+        'highlight_coming_due' => 'highlightComingDue',
+        'coming_due_days' => 'comingDueDays',
+        'highlight_appointment_risk' => 'highlightAppointmentRisk',
+        'appointment_risk_days' => 'appointmentRiskDays',
     ];
-    $boolKeys = ['allow_card_delete', 'highlight_past_due', 'highlight_coming_due', 'highlight_appointment_risk', 'google_drive_backup'];
-    $intKeys = ['past_due_days', 'coming_due_days', 'appointment_risk_days', 'delivered_hide_days'];
-
-    $toWrite = [];
-    foreach ($boolKeys as $key) {
-        if (array_key_exists($key, $settings)) {
-            $toWrite[$key] = !empty($settings[$key]) ? 1 : 0;
-        }
-    }
-    foreach ($intKeys as $key) {
-        if (array_key_exists($key, $settings)) {
-            $value = (int)$settings[$key];
-            if ($key === 'delivered_hide_days') {
-                $value = max(0, min(365, $value));          // 0 = off
-            } elseif ($key === 'appointment_risk_days') {
-                $value = max(0, min(99, $value));
-            } else {
-                $value = max(1, min(99, $value));           // past/coming due windows
-            }
-            $toWrite[$key] = $value;
+    $displayWrite = [];
+    foreach ($snakeToCamel as $snake => $camel) {
+        if (array_key_exists($snake, $settings)) {
+            $displayWrite[$camel] = $settings[$snake];
         }
     }
 
     try {
-        if ($toWrite) {
-            // Ensure every column being written exists (self-healing, same as
-            // save-settings.php) before composing the statement. When no
-            // preferences row exists yet, the INSERT seeds every known
-            // Display & Behavior column, so all of them must be present.
-            $existing = $pdo->query("SHOW COLUMNS FROM user_preferences")->fetchAll(PDO::FETCH_COLUMN);
-            $colsToEnsure = array_keys(array_merge($prefDefaults, $toWrite));
-            foreach ($colsToEnsure as $col) {
-                if (in_array($col, $existing)) {
-                    continue;
-                }
-                $default = $prefDefaults[$col];
-                $type = in_array($col, $boolKeys, true) ? 'TINYINT(1)' : 'INT(11)';
-                $pdo->exec("ALTER TABLE user_preferences ADD COLUMN `{$col}` {$type} DEFAULT {$default}");
-                $existing[] = $col;
-            }
+        if ($displayWrite) {
+            updatePracticeDisplaySettings($pdo, $practiceId, $displayWrite);
+        }
 
-            $repUserId = getRepresentativeUserId($practiceId);
-            if (!$repUserId) {
-                http_response_code(400);
-                echo json_encode(['success' => false, 'message' => 'No user found for this practice']);
-                return;
-            }
-
-            $rowCheck = $pdo->prepare("SELECT 1 FROM user_preferences WHERE user_id = ?");
-            $rowCheck->execute([$repUserId]);
-
-            if ($rowCheck->fetchColumn()) {
-                $assignments = [];
-                $params = [':user_id' => $repUserId];
-                foreach ($toWrite as $col => $val) {
-                    $assignments[] = "`{$col}` = :{$col}";
-                    $params[":{$col}"] = $val;
-                }
-                $stmt = $pdo->prepare("UPDATE user_preferences SET " . implode(', ', $assignments) . " WHERE user_id = :user_id");
-                $stmt->execute($params);
-            } else {
-                // No preferences row yet - create one with the main-settings
-                // defaults (including theme), overlaid with submitted values.
-                $row = array_merge(['theme' => 'light'], $prefDefaults, $toWrite);
-                $cols = 'user_id, ' . implode(', ', array_map(function($c) { return "`{$c}`"; }, array_keys($row)));
-                $marks = ':user_id, :' . implode(', :', array_keys($row));
-                $params = [':user_id' => $repUserId];
-                foreach ($row as $col => $val) {
-                    $params[":{$col}"] = $val;
-                }
-                $stmt = $pdo->prepare("INSERT INTO user_preferences ({$cols}) VALUES ({$marks})");
-                $stmt->execute($params);
+        // Google Drive backup: write the authoritative practices column.
+        if (array_key_exists('google_drive_backup', $settings)) {
+            $gdCheck = $pdo->query("SHOW COLUMNS FROM practices LIKE 'google_drive_backup_enabled'");
+            if ($gdCheck && $gdCheck->rowCount() > 0) {
+                $stmt = $pdo->prepare("UPDATE practices SET google_drive_backup_enabled = ? WHERE id = ?");
+                $stmt->execute([!empty($settings['google_drive_backup']) ? 1 : 0, $practiceId]);
             }
         }
 
@@ -2695,7 +2555,8 @@ function handleSavePracticeSettings(array $input): void {
         logAdminAction('practice_settings_updated', [
             'practice_id' => $practiceId,
             'keys' => array_merge(
-                array_keys($toWrite),
+                array_keys($displayWrite),
+                array_key_exists('google_drive_backup', $settings) ? ['google_drive_backup'] : [],
                 array_key_exists('case_review_tracking_enabled', $settings) ? ['case_review_tracking_enabled'] : [],
                 array_key_exists('lab_acknowledgment_enabled', $settings) ? ['lab_acknowledgment_enabled'] : [],
                 array_key_exists('fabg_pilot', $settings) ? ['fabg_pilot'] : []

@@ -6,6 +6,7 @@
 
 require_once __DIR__ . '/session.php';
 require_once __DIR__ . '/practice-security.php';
+require_once __DIR__ . '/practice-display-settings.php';
 require_once __DIR__ . '/workflow-stages.php';
 
 // Start session if not already started
@@ -120,22 +121,17 @@ try {
     // Core Metrics
     $metrics = [];
     
-    // Load the user's highlighting thresholds. The Kanban obtains these from the
-    // same user_preferences store (cached in session / localStorage), so we use
-    // the session cache first and fall back to the database.
-    $preferences = $_SESSION['user_preferences'] ?? [];
-    if (empty($preferences)) {
-        $prefStmt = $pdo->prepare("SELECT highlight_past_due, past_due_days, highlight_coming_due, coming_due_days, highlight_appointment_risk, appointment_risk_days FROM user_preferences WHERE user_id = :user_id LIMIT 1");
-        $prefStmt->execute(['user_id' => $userId]);
-        $preferences = $prefStmt->fetch(PDO::FETCH_ASSOC) ?: [];
-    }
-    // Defaults mirror get-settings.php so Insights and the Kanban resolve the same effective values.
-    $highlightPastDue = (bool)($preferences['highlight_past_due'] ?? true);
-    $pastDueDays = (int)($preferences['past_due_days'] ?? 1);
-    $highlightComingDue = (bool)($preferences['highlight_coming_due'] ?? false);
-    $comingDueDays = (int)($preferences['coming_due_days'] ?? 5);
-    $highlightAppointmentRisk = (bool)($preferences['highlight_appointment_risk'] ?? true);
-    $appointmentRiskDays = (int)($preferences['appointment_risk_days'] ?? 3);
+    // Load the PRACTICE-wide highlighting thresholds (practices row). The
+    // Kanban resolves the same values via getPracticeDisplaySettings() in
+    // list-cases.php, so Insights and the board always agree for every
+    // member of the practice.
+    $preferences = getPracticeDisplaySettings($pdo, (int)$practiceId);
+    $highlightPastDue = (bool)$preferences['highlight_past_due'];
+    $pastDueDays = (int)$preferences['past_due_days'];
+    $highlightComingDue = (bool)$preferences['highlight_coming_due'];
+    $comingDueDays = (int)$preferences['coming_due_days'];
+    $highlightAppointmentRisk = (bool)$preferences['highlight_appointment_risk'];
+    $appointmentRiskDays = (int)$preferences['appointment_risk_days'];
 
     // Total Active Cases - active, non-archived, non-delivered workflow cases
     $stmt = $pdo->prepare("

@@ -338,20 +338,20 @@
     var dayDiff = (typeof window.getCalendarDayDiff === 'function') ? window.getCalendarDayDiff : null;
     if (!dayDiff) return flags;
 
-    var highlightPastDue = localStorage.getItem('highlight_past_due') === 'true';
-    var highlightComingDue = localStorage.getItem('highlight_coming_due') === 'true';
-    var highlightApptRisk = localStorage.getItem('highlight_appointment_risk') === 'true';
+    var highlightPastDue = dtPracticeStorageGet('highlight_past_due') === 'true';
+    var highlightComingDue = dtPracticeStorageGet('highlight_coming_due') === 'true';
+    var highlightApptRisk = dtPracticeStorageGet('highlight_appointment_risk') === 'true';
 
     var dueDiff = caseData.dueDate ? dayDiff(caseData.dueDate) : null;
     var apptDiff = caseData.patientAppointmentDate ? dayDiff(caseData.patientAppointmentDate) : null;
 
-    if (highlightPastDue && dueDiff !== null && dueDiff <= -parseInt(localStorage.getItem('past_due_days') || '1', 10)) {
+    if (highlightPastDue && dueDiff !== null && dueDiff <= -parseInt(dtPracticeStorageGet('past_due_days') || '1', 10)) {
       flags.late = true;
       flags.dueText = tr('cases.due.late');
       return flags;
     }
 
-    var apptRiskHit = highlightApptRisk && apptDiff !== null && apptDiff <= parseInt(localStorage.getItem('appointment_risk_days') || '3', 10);
+    var apptRiskHit = highlightApptRisk && apptDiff !== null && apptDiff <= parseInt(dtPracticeStorageGet('appointment_risk_days') || '3', 10);
     // Lab acknowledgment: a lab-promised return date after the patient
     // appointment is an additional appointment-risk signal.
     if (!apptRiskHit && highlightApptRisk && apptDiff !== null && caseData.labPromisedDate
@@ -365,7 +365,7 @@
     }
 
     if (highlightComingDue && dueDiff !== null) {
-      var comingDueDays = parseInt(localStorage.getItem('coming_due_days') || '5', 10);
+      var comingDueDays = parseInt(dtPracticeStorageGet('coming_due_days') || '5', 10);
       if (dueDiff >= 0 && dueDiff <= comingDueDays) {
         flags.dueSoon = true;
         flags.dueText = (typeof window.getDueWarningText === 'function') ? window.getDueWarningText(dueDiff) : '';

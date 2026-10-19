@@ -327,7 +327,9 @@ $showScannerInbox = isFeatureEnabled('SCANNER_INBOX') && $userCanEditCases;
 // SHOW_PMS_INTEGRATIONS, but the informational "Scanner integrations"
 // (Coming soon) entries must be visible to anyone who can manage practice
 // integrations - independent of the experimental import workflow.
-$showIntegrationsSection = isFeatureEnabled('SHOW_PMS_INTEGRATIONS') || $isCurrentUserPracticeAdmin;
+// Integrations is an admin-only Settings section (PMS provider cards,
+// outbound routing, scanner info) - hidden entirely for non-admins.
+$showIntegrationsSection = $isCurrentUserPracticeAdmin;
 
 
 
@@ -1110,9 +1112,7 @@ endif;
           <?php endif; ?>
         </button>
         <div class="user-menu" id="userMenu">
-<?php if ($isCurrentUserPracticeAdmin): ?>
           <a href="#" class="user-menu-item" id="settingsMenuItem"><?php echo t('settings.settings'); ?><kbd class="user-menu-kbd" data-shortcut="open_settings" aria-hidden="true"></kbd></a>
-<?php endif; ?>
 <?php if (isFeatureEnabled('SHOW_NOTIFICATIONS')): ?>
           <a href="#" class="user-menu-item" id="notificationPreferencesMenuItem"><?php echo t('preferences.title'); ?></a>
 <?php endif; ?>
@@ -3440,17 +3440,34 @@ endif;
 
                   <div class="settings-layout">
                     <nav class="settings-nav">
-                      <button type="button" class="settings-nav-item active" data-nav-target="practice"><?php echo t('settings.navigation.practice'); ?></button>
-                      <button type="button" class="settings-nav-item" data-nav-target="display"><?php echo t('settings.navigation.display'); ?></button>
-                      <button type="button" class="settings-nav-item" data-nav-target="authorized"><?php echo t('settings.navigation.users'); ?></button>
-                      <button type="button" class="settings-nav-item" data-nav-target="security"><?php echo t('settings.navigation.security'); ?></button>
-                      <button type="button" class="settings-nav-item" data-nav-target="data-privacy"><?php echo t('settings.navigation.data_privacy'); ?></button>
+                      <?php
+                      // Non-admins see only the personal sections: Display &
+                      // Behavior (Appearance only - practice-wide settings are
+                      // admin-managed and hidden below) and Security
+                      // (personal password/2FA/sessions). Practice config,
+                      // Users & Roles, Data & Privacy admin, and
+                      // Integrations never render for non-admins.
+                      $settingsNavItems = $isCurrentUserPracticeAdmin
+                          ? ['practice', 'display', 'authorized', 'security', 'data-privacy']
+                          : ['display', 'security'];
+                      foreach ($settingsNavItems as $navIndex => $navTarget):
+                          $navLabelKey = [
+                              'practice' => 'settings.navigation.practice',
+                              'display' => 'settings.navigation.display',
+                              'authorized' => 'settings.navigation.users',
+                              'security' => 'settings.navigation.security',
+                              'data-privacy' => 'settings.navigation.data_privacy',
+                          ][$navTarget];
+                      ?>
+                      <button type="button" class="settings-nav-item<?= $navIndex === 0 ? ' active' : '' ?>" data-nav-target="<?= $navTarget ?>"><?php echo t($navLabelKey); ?></button>
+                      <?php endforeach; ?>
                       <?php if ($showIntegrationsSection): ?>
                       <button type="button" class="settings-nav-item" data-nav-target="integrations"><?php echo t('settings.navigation.integrations'); ?></button>
                       <?php endif; ?>
                     </nav>
                     <div class="settings-panels">
 
+                  <?php if ($isCurrentUserPracticeAdmin): ?>
                   <div class="settings-twisty settings-panel-active" data-twisty-id="practice">
                     <button type="button" class="settings-twisty-header">
                       <span class="settings-twisty-arrow"></span>
@@ -3589,8 +3606,9 @@ endif;
                       </div>
                     </div>
                   </div>
-                  
-                  <div class="settings-twisty" data-twisty-id="display">
+                  <?php endif; ?>
+
+                  <div class="settings-twisty<?= $isCurrentUserPracticeAdmin ? '' : ' settings-panel-active' ?>" data-twisty-id="display">
                     <button type="button" class="settings-twisty-header">
                       <span class="settings-twisty-arrow"></span>
                       <span class="settings-twisty-title"><?php echo t('settings.display.title'); ?></span>
@@ -3608,13 +3626,15 @@ endif;
                         </div>
                       </div>
 
+                      <?php if ($isCurrentUserPracticeAdmin): ?>
                       <div class="settings-divider"></div>
 
                       <div class="settings-group">
-                        <!-- Personal display preference (per-user account,
-                             not practice-wide and not admin-gated): every
-                             user chooses whether the case History tab shows. -->
-                        <h4 class="subsection-title"><?php echo t('settings.display.sections.case_details'); ?><span class="settings-scope"><?php echo t('settings.display.scope.account'); ?></span></h4>
+                        <!-- Practice-wide display setting (practices row):
+                             the practice controls whether the case Revision
+                             History tab shows; history keeps recording
+                             regardless of visibility. -->
+                        <h4 class="subsection-title"><?php echo t('settings.display.sections.case_details'); ?><span class="settings-scope"><?php echo t('settings.display.scope.practice'); ?></span></h4>
                         <div class="option-row option-row-history-tab">
                           <label for="showCaseHistoryTab"><?php echo t('settings.display.show_history_tab.label'); ?></label>
                           <input type="checkbox" id="showCaseHistoryTab" name="showCaseHistoryTab">
@@ -3639,7 +3659,7 @@ endif;
                       <div class="settings-divider"></div>
 
                       <div class="settings-group">
-                        <h4 class="subsection-title"><?php echo t('settings.display.sections.case_archiving'); ?><span class="settings-scope"><?php echo t('settings.display.scope.account'); ?></span></h4>
+                        <h4 class="subsection-title"><?php echo t('settings.display.sections.case_archiving'); ?><span class="settings-scope"><?php echo t('settings.display.scope.practice'); ?></span></h4>
                         <div class="option-row">
                           <label for="allowCardDelete"><?php echo t('settings.display.allow_card_delete'); ?></label>
                           <input type="checkbox" id="allowCardDelete" name="allowCardDelete" <?= $isAdmin ? '' : 'disabled' ?>>
@@ -3655,7 +3675,7 @@ endif;
                       <div class="settings-divider"></div>
 
                       <div class="settings-group">
-                        <h4 class="subsection-title"><?php echo t('settings.display.sections.case_highlighting'); ?><span class="settings-scope"><?php echo t('settings.display.scope.account'); ?></span></h4>
+                        <h4 class="subsection-title"><?php echo t('settings.display.sections.case_highlighting'); ?><span class="settings-scope"><?php echo t('settings.display.scope.practice'); ?></span></h4>
                         <div class="option-row highlight-past-due-row">
                           <label for="highlightPastDue"><?php echo t('settings.display.past_due.label'); ?></label>
                           <input type="checkbox" id="highlightPastDue" name="highlightPastDue" <?= $isAdmin ? '' : 'disabled' ?>>
@@ -3780,13 +3800,11 @@ endif;
                         <div class="error-message" id="workflowColumnsError"></div>
                         <div class="success-message" id="workflowColumnsSuccess" style="display:none;"></div>
                       </div>
-                      
-                      <?php if (!$isAdmin): ?>
-                      <p class="admin-only-note" style="font-size:0.8rem;color:#6b7280;margin-top:8px;font-style:italic;"><?php echo t('settings.messages.admin_only_note'); ?></p>
                       <?php endif; ?>
                     </div>
                   </div>
-                  
+
+                  <?php if ($isCurrentUserPracticeAdmin): ?>
                   <div class="settings-divider"></div>
 
                   <div class="settings-twisty" data-twisty-id="authorized">
@@ -3845,10 +3863,13 @@ endif;
                       </div>
                     </div>
                   </div>
-                  
+                  <?php endif; ?>
+
                   <div class="settings-divider"></div>
-                  
-                  <!-- Security Section -->
+
+                  <!-- Security Section: personal controls (password, own 2FA,
+                       own sessions) are visible to every member; the
+                       practice-wide 2FA policy block stays admin-only. -->
                   <div class="settings-twisty" data-twisty-id="security">
                     <button type="button" class="settings-twisty-header">
                       <span class="settings-twisty-arrow"></span>
@@ -3860,7 +3881,7 @@ endif;
                         <!-- Change Password Section - Only shown for users with password-based login -->
                         <?php if ($userHasPassword): ?>
                         <div class="security-section">
-                          <h4 class="subsection-title"><?php echo t('settings.security.change_password.title'); ?></h4>
+                          <h4 class="subsection-title"><?php echo t('settings.security.change_password.title'); ?><span class="settings-scope"><?php echo t('settings.display.scope.account'); ?></span></h4>
                           <div id="changePasswordForm" class="security-form">
                             <div class="form-field">
                               <label for="currentPassword"><?php echo t('settings.security.change_password.current_password'); ?> <span class="required"><?php echo t('settings.security.change_password.required'); ?></span></label>
@@ -3908,7 +3929,7 @@ endif;
                         
                         <!-- Two-Factor Authentication Section -->
                         <div class="security-section">
-                          <h4 class="subsection-title"><?php echo t('settings.security.two_factor.title'); ?></h4>
+                          <h4 class="subsection-title"><?php echo t('settings.security.two_factor.title'); ?><span class="settings-scope"><?php echo t('settings.display.scope.account'); ?></span></h4>
                           <div id="twoFactorSection">
                             <div id="twoFactorStatus" class="two-factor-status">
                               <span class="status-badge status-disabled"><?php echo t('settings.security.two_factor.status_disabled'); ?></span>
@@ -3953,7 +3974,7 @@ endif;
 
                         <!-- Account Sessions Section -->
                         <div class="security-section">
-                          <h4 class="subsection-title"><?php echo t('settings.security.sessions.title'); ?></h4>
+                          <h4 class="subsection-title"><?php echo t('settings.security.sessions.title'); ?><span class="settings-scope"><?php echo t('settings.display.scope.account'); ?></span></h4>
                           <p class="section-description"><?php echo t('settings.security.sessions.description'); ?></p>
                           <button type="button" id="signOutOtherSessionsBtn" class="btn-secondary">
                             <?php echo t('settings.security.sessions.button'); ?>
@@ -3963,7 +3984,7 @@ endif;
                         <?php if ($isCurrentUserPracticeAdmin): ?>
                         <!-- Practice-Wide 2FA Enforcement (owner/admin only) -->
                         <div class="security-section practice-2fa-section">
-                          <h4 class="subsection-title"><?php echo t('settings.security.practice_2fa.title'); ?></h4>
+                          <h4 class="subsection-title"><?php echo t('settings.security.practice_2fa.title'); ?><span class="settings-scope"><?php echo t('settings.display.scope.practice'); ?></span></h4>
                           <p class="section-description"><?php echo t('settings.security.practice_2fa.description'); ?></p>
                           <div class="option-row">
                             <label for="practiceRequire2fa"><?php echo t('settings.security.practice_2fa.toggle_label'); ?></label>
@@ -3994,9 +4015,11 @@ endif;
                     </div>
                   </div>
                   
+                  <?php if ($isCurrentUserPracticeAdmin): ?>
                   <div class="settings-divider"></div>
-                  
-                  <!-- Data & Privacy Section -->
+
+                  <!-- Data & Privacy Section (admin-only: practice export +
+                       PHI audit are admin surfaces server-side too) -->
                   <div class="settings-twisty" data-twisty-id="data-privacy">
                     <button type="button" class="settings-twisty-header">
                       <span class="settings-twisty-arrow"></span>
@@ -4025,6 +4048,7 @@ endif;
                       </div>
                     </div>
                   </div>
+                  <?php endif; ?>
 
                   <?php if ($showIntegrationsSection): ?>
                   <?php

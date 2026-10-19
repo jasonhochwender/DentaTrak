@@ -22,6 +22,7 @@
  */
 
 require_once __DIR__ . '/practice-security.php';
+require_once __DIR__ . '/practice-display-settings.php';
 require_once __DIR__ . '/organization-access.php';
 require_once __DIR__ . '/feature-flags.php';
 require_once __DIR__ . '/org-insights-metrics.php';
@@ -116,27 +117,27 @@ if ($customStart !== '' || $customEnd !== '') {
     } // 'all' => null = unbounded below
 }
 
-// Viewer's past-due threshold (same source as the consolidated case list).
-$pastDueDays = 1;
-$userId = $_SESSION['db_user_id'] ?? null;
-if ($userId) {
+// Past-due thresholds are PRACTICE-wide: each included practice's own
+// practices.past_due_days drives its overdue metric (same source the
+// consolidated case list and the per-practice board use).
+$pastDueDaysByPractice = [];
+foreach ($included as $inc) {
+    $ipid = (int)$inc['id'];
     try {
-        $stmt = $pdo->prepare("SELECT past_due_days FROM user_preferences WHERE user_id = :uid");
-        $stmt->execute(['uid' => $userId]);
-        $v = $stmt->fetchColumn();
-        if ($v !== false) {
-            $pastDueDays = max(0, (int)$v);
-        }
+        $pastDueDaysByPractice[$ipid] = (int)getPracticeDisplaySettings($pdo, $ipid)['past_due_days'];
     } catch (Throwable $e) {
-        // default above
+        $pastDueDaysByPractice[$ipid] = 1;
     }
 }
+// Response label uses the anchor practice's threshold.
+$pastDueDays = $pastDueDaysByPractice[(int)$anchorPracticeId] ?? 1;
 
 $result = computeOrgInsights($pdo, $included, [
     'rangeStart'  => $rangeStart,
     'rangeEnd'    => $rangeEnd,
     'now'         => $now,
     'pastDueDays' => $pastDueDays,
+    'pastDueDaysByPractice' => $pastDueDaysByPractice,
     'includeLabs' => isFeatureEnabled('SHOW_LAB_INSIGHTS'),
 ]);
 

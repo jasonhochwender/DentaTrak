@@ -27,6 +27,7 @@ error_reporting(E_ALL & ~E_DEPRECATED & ~E_USER_DEPRECATED);
 
 require_once __DIR__ . '/appConfig.php';
 require_once __DIR__ . '/practice-security.php';
+require_once __DIR__ . '/practice-display-settings.php';
 require_once __DIR__ . '/organization-access.php';
 require_once __DIR__ . '/cases-cache.php';
 require_once __DIR__ . '/workflow-stages.php';
@@ -253,43 +254,44 @@ try {
         }));
     }
 
-    // User due-date preferences (same source as list-cases.php).
-    $pastDueDays = 1;
-    $comingDueDays = 5;
-    $appointmentRiskDays = 3;
-    $highlightPastDue = false;
-    $highlightComingDue = false;
-    $highlightAppointmentRisk = false;
-    try {
-        $stmt = $pdo->prepare("SELECT highlight_past_due, past_due_days, highlight_coming_due, coming_due_days, highlight_appointment_risk, appointment_risk_days FROM user_preferences WHERE user_id = :user_id");
-        $stmt->execute(['user_id' => $currentUserId]);
-        $duePrefs = $stmt->fetch(PDO::FETCH_ASSOC);
-        if ($duePrefs) {
-            $highlightPastDue = (bool)(int)($duePrefs['highlight_past_due'] ?? 0);
-            $pastDueDays = (int)($duePrefs['past_due_days'] ?? 1);
-            $highlightComingDue = (bool)(int)($duePrefs['highlight_coming_due'] ?? 0);
-            $comingDueDays = (int)($duePrefs['coming_due_days'] ?? 5);
-            $highlightAppointmentRisk = (bool)(int)($duePrefs['highlight_appointment_risk'] ?? 1);
-            $appointmentRiskDays = (int)($duePrefs['appointment_risk_days'] ?? 3);
+    // Per-practice display settings (practices row - identical for every
+    // member). Each case resolves its urgency/highlighting rules against
+    // its OWN practice's settings, mirroring list-cases.php per practice.
+    $displaySettingsByPractice = [];
+    foreach ($practiceIds as $pid) {
+        try {
+            $displaySettingsByPractice[$pid] = getPracticeDisplaySettings($pdo, $pid);
+        } catch (Throwable $e) {
+            $displaySettingsByPractice[$pid] = [];
         }
-    } catch (Throwable $e) {
-        // defaults above
     }
+    $caseDisplay = function ($case) use ($displaySettingsByPractice) {
+        $pid = (int)($case['practiceId'] ?? 0);
+        $s = $displaySettingsByPractice[$pid] ?? [];
+        return [
+            'past_due_days' => (int)($s['past_due_days'] ?? 1),
+            'coming_due_days' => (int)($s['coming_due_days'] ?? 5),
+            'appointment_risk_days' => (int)($s['appointment_risk_days'] ?? 3),
+            'highlight_past_due' => !empty($s['highlight_past_due']),
+            'highlight_coming_due' => !empty($s['highlight_coming_due']),
+            'highlight_appointment_risk' => array_key_exists('highlight_appointment_risk', $s) ? !empty($s['highlight_appointment_risk']) : true,
+        ];
+    };
 
     $isTerminal = function ($case) use ($terminalStageByPractice) {
         $pid = (int)($case['practiceId'] ?? 0);
         $terminal = $terminalStageByPractice[$pid] ?? 'Delivered';
         return isset($case['status']) && $case['status'] === $terminal;
     };
-    $isOverdue = function ($case) use ($pastDueDays, $isTerminal) {
+    $isOverdue = function ($case) use ($caseDisplay, $isTerminal) {
         if ($isTerminal($case)) return false;
         $d = getCalendarDayDiffOrg($case['dueDate'] ?? '');
-        return $d !== null && $d <= -$pastDueDays;
+        return $d !== null && $d <= -$caseDisplay($case)['past_due_days'];
     };
-    $isDueSoon = function ($case) use ($comingDueDays, $isTerminal) {
+    $isDueSoon = function ($case) use ($caseDisplay, $isTerminal) {
         if ($isTerminal($case)) return false;
         $d = getCalendarDayDiffOrg($case['dueDate'] ?? '');
-        return $d !== null && $d >= 0 && $d <= $comingDueDays;
+        return $d !== null && $d >= 0 && $d <= $caseDisplay($case)['coming_due_days'];
     };
 
     // Summary counts respect the authorized scope AND the currently
@@ -314,17 +316,18 @@ try {
         $cases = array_values(array_filter($cases, $isDueSoon));
     }
     if (($_GET['appt_risk_only'] ?? '') === 'true') {
-        $cases = array_values(array_filter($cases, function ($case) use ($highlightPastDue, $pastDueDays, $highlightAppointmentRisk, $appointmentRiskDays, $isTerminal) {
+        $cases = array_values(array_filter($cases, function ($case) use ($caseDisplay, $isTerminal) {
             if ($isTerminal($case)) return false;
-            if ($highlightPastDue) {
+            $d = $caseDisplay($case);
+            if ($d['highlight_past_due']) {
                 $dd = getCalendarDayDiffOrg($case['dueDate'] ?? '');
-                if ($dd !== null && $dd <= -$pastDueDays) return false;
+                if ($dd !== null && $dd <= -$d['past_due_days']) return false;
             }
-            if (!$highlightAppointmentRisk) return false;
+            if (!$d['highlight_appointment_risk']) return false;
             $apptDate = $case['patientAppointmentDate'] ?? '';
             if (empty($apptDate)) return false;
-            $d = getCalendarDayDiffOrg($apptDate);
-            if ($d !== null && $d <= $appointmentRiskDays) return true;
+            $dd2 = getCalendarDayDiffOrg($apptDate);
+            if ($dd2 !== null && $dd2 <= $d['appointment_risk_days']) return true;
             // Lab acknowledgment: lab-promised return date after the patient
             // appointment is an additional risk signal; a missing promised
             // date never implies safety.
@@ -531,8 +534,10 @@ try {
         'counts' => [
             'overdue' => $overdueCount,
             'dueSoon' => $dueSoonCount,
-            'dueSoonDays' => $comingDueDays,
-            'overdueDays' => $pastDueDays
+            // Threshold labels describe the anchor (current) practice's
+            // settings; each case's own practice thresholds drive the counts.
+            'dueSoonDays' => (int)($displaySettingsByPractice[(int)$anchorPracticeId]['coming_due_days'] ?? 5),
+            'overdueDays' => (int)($displaySettingsByPractice[(int)$anchorPracticeId]['past_due_days'] ?? 1)
         ]
     ]);
 } catch (Throwable $e) {

@@ -6,6 +6,7 @@
 
 require_once __DIR__ . '/appConfig.php';
 require_once __DIR__ . '/practice-security.php';
+require_once __DIR__ . '/practice-display-settings.php';
 require_once __DIR__ . '/organization-access.php';
 require_once __DIR__ . '/user-manager.php';
 require_once __DIR__ . '/google-drive.php';
@@ -55,31 +56,21 @@ if ($currentPracticeId) {
     }
 }
 
-// Check user preferences to see if individual card archiving is allowed.
-// A genuinely missing setting (no preferences row / NULL column) falls back to
-// the application default of TRUE, matching get-settings.php and the UI default.
-// A database/query failure is NOT treated as "allowed": we cannot verify the
-// setting, so fail closed with a server error and leave the case unchanged.
+// Check the PRACTICE-wide setting for whether individual card archiving is
+// allowed (practices.allow_card_delete - same for every member). A missing
+// setting falls back to the documented default TRUE via
+// getPracticeDisplaySettings(). A database/query failure is NOT treated as
+// "allowed": we cannot verify the setting, so fail closed with a server
+// error and leave the case unchanged.
 try {
-    $stmt = $pdo->prepare("
-        SELECT allow_card_delete
-        FROM user_preferences
-        WHERE user_id = :user_id
-    ");
-    $stmt->execute(['user_id' => $userId]);
-    $preferenceValue = $stmt->fetchColumn();
+    $practiceDisplay = getPracticeDisplaySettings($pdo, (int)$currentPracticeId);
+    $allowCardDelete = (bool)$practiceDisplay['allow_card_delete'];
 } catch (PDOException $e) {
-    error_log("Error checking user preferences: " . $e->getMessage());
+    error_log("Error checking practice display settings: " . $e->getMessage());
     http_response_code(500);
     echo json_encode(['success' => false, 'message' => t('api.archive.archive_error', ['message' => 'unable to verify archive permission'])]);
     exit;
 }
-// fetchColumn() returns false when there is no row; a NULL column is also "unset".
-// Otherwise PDO may return the TINYINT as a string or int; cast for an
-// authoritative true/false. A stored 0 disables individual archiving.
-$allowCardDelete = ($preferenceValue === false || $preferenceValue === null)
-    ? true
-    : (bool)((int)$preferenceValue);
 
 // Only allow individual archiving if the practice setting explicitly allows it.
 if (!$allowCardDelete) {

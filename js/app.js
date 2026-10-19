@@ -11,6 +11,21 @@ var currentUserEmail = document.getElementById('userEmailData') ? document.getEl
 // CSRF Token for secure API requests
 var csrfToken = document.querySelector('meta[name="csrf-token"]') ? document.querySelector('meta[name="csrf-token"]').getAttribute('content') : '';
 
+// Practice-scoped settings cache keys. Display & Behavior settings (except
+// Appearance) are practice-wide; caching them under a practice-suffixed key
+// guarantees a user who switches practices can never see the previous
+// practice's values before the fresh get-settings response applies them.
+function dtPracticeStorageKey(key) {
+  var pid = (typeof window.currentPracticeId !== 'undefined' && window.currentPracticeId) ? window.currentPracticeId : '0';
+  return key + '_p' + pid;
+}
+function dtPracticeStorageGet(key) {
+  try { return localStorage.getItem(dtPracticeStorageKey(key)); } catch (e) { return null; }
+}
+function dtPracticeStorageSet(key, value) {
+  try { localStorage.setItem(dtPracticeStorageKey(key), value); } catch (e) { /* storage full/denied */ }
+}
+
 // Theme preference: 'system' | 'light' | 'dark'. 'system' resolves via the
 // OS/browser prefers-color-scheme media query; the resolved value is applied
 // to <html data-theme> which css/app.dark.css keys off.
@@ -1665,16 +1680,11 @@ document.addEventListener('DOMContentLoaded', function () {
       return;
     }
 
-    // SECURITY: Settings is an admin-only surface. This guard covers every
-    // call site (menu click, Ctrl+ shortcut, or any future direct call) so
-    // non-admins can never open it client-side. window.isPracticeAdmin is
-    // set from the server's isPracticeAdmin() check (api/get-settings.php) -
-    // every underlying settings API independently re-verifies this too.
-    if (!window.isPracticeAdmin) {
-      showToast(t('settings.messages.admin_only'), 'error');
-      return;
-    }
-
+    // Settings is open to every signed-in user: non-admins get a simplified
+    // surface with only Appearance and personal Security. The markup for
+    // admin-only sections is not rendered server-side for them, and every
+    // underlying settings API independently enforces practice-admin rights
+    // for practice-wide fields.
     // Do not open modal while the page is loading
     if (pageLoadingOverlay && pageLoadingOverlay.style.display !== 'none' && pageLoadingOverlay.style.opacity !== '0') {
       return;
@@ -2190,8 +2200,8 @@ document.addEventListener('DOMContentLoaded', function () {
       dashboard.classList.toggle('allow-card-delete', allowCardDelete);
     }
 
-    // Save allow card delete preference in localStorage
-    localStorage.setItem('allow_card_delete', allowCardDelete ? 'true' : 'false');
+    // Save allow card delete preference (practice-scoped cache key)
+    dtPracticeStorageSet('allow_card_delete', allowCardDelete ? 'true' : 'false');
 
     // Apply past due days value
     const pastDueDaysInput = document.getElementById('pastDueDays');
@@ -2223,9 +2233,9 @@ document.addEventListener('DOMContentLoaded', function () {
       comingDueDaysInput.value = preferences.coming_due_days || 5;
     }
 
-    // Save coming due preferences in localStorage
-    localStorage.setItem('highlight_coming_due', highlightComingDue ? 'true' : 'false');
-    localStorage.setItem('coming_due_days', (preferences.coming_due_days || 5).toString());
+    // Save coming due preferences (practice-scoped cache keys)
+    dtPracticeStorageSet('highlight_coming_due', highlightComingDue ? 'true' : 'false');
+    dtPracticeStorageSet('coming_due_days', (preferences.coming_due_days || 5).toString());
 
     // Apply appointment risk values
     const appointmentRiskDaysInput = document.getElementById('appointmentRiskDays');
@@ -2233,9 +2243,9 @@ document.addEventListener('DOMContentLoaded', function () {
       appointmentRiskDaysInput.value = preferences.appointment_risk_days || 3;
     }
 
-    // Save appointment risk preferences in localStorage
-    localStorage.setItem('highlight_appointment_risk', highlightAppointmentRisk ? 'true' : 'false');
-    localStorage.setItem('appointment_risk_days', (preferences.appointment_risk_days || 3).toString());
+    // Save appointment risk preferences (practice-scoped cache keys)
+    dtPracticeStorageSet('highlight_appointment_risk', highlightAppointmentRisk ? 'true' : 'false');
+    dtPracticeStorageSet('appointment_risk_days', (preferences.appointment_risk_days || 3).toString());
 
     // Sync checkboxes for coming due and appointment risk
     const highlightComingDueCheckbox = document.getElementById('highlightComingDue');
@@ -4352,18 +4362,25 @@ document.addEventListener('DOMContentLoaded', function () {
       var themeDropdown = document.getElementById('theme');
       var theme = themeDropdown ? themeDropdown.value : 'system';
 
-      // Get checkbox values
-      var allowCardDelete = document.getElementById('allowCardDelete').checked;
-      var highlightPastDue = document.getElementById('highlightPastDue').checked;
-      var pastDueDays = document.getElementById('pastDueDays').value;
-      var highlightComingDue = document.getElementById('highlightComingDue').checked;
+      // Get checkbox values. These controls are admin-only and absent from
+      // the DOM for non-admins - missing elements map to undefined so the
+      // field is omitted from the JSON payload instead of saving a default.
+      var allowCardDeleteInput = document.getElementById('allowCardDelete');
+      var allowCardDelete = allowCardDeleteInput ? allowCardDeleteInput.checked : undefined;
+      var highlightPastDueInput = document.getElementById('highlightPastDue');
+      var highlightPastDue = highlightPastDueInput ? highlightPastDueInput.checked : undefined;
+      var pastDueDaysInput = document.getElementById('pastDueDays');
+      var pastDueDays = pastDueDaysInput ? pastDueDaysInput.value : undefined;
+      var highlightComingDueInput = document.getElementById('highlightComingDue');
+      var highlightComingDue = highlightComingDueInput ? highlightComingDueInput.checked : undefined;
       var comingDueDaysInput = document.getElementById('comingDueDays');
-      var comingDueDays = comingDueDaysInput ? parseInt(comingDueDaysInput.value || '5', 10) : 5;
-      var highlightAppointmentRisk = document.getElementById('highlightAppointmentRisk').checked;
+      var comingDueDays = comingDueDaysInput ? parseInt(comingDueDaysInput.value || '5', 10) : undefined;
+      var highlightAppointmentRiskInput = document.getElementById('highlightAppointmentRisk');
+      var highlightAppointmentRisk = highlightAppointmentRiskInput ? highlightAppointmentRiskInput.checked : undefined;
       var appointmentRiskDaysInput = document.getElementById('appointmentRiskDays');
-      var appointmentRiskDays = appointmentRiskDaysInput ? parseInt(appointmentRiskDaysInput.value || '3', 10) : 3;
+      var appointmentRiskDays = appointmentRiskDaysInput ? parseInt(appointmentRiskDaysInput.value || '3', 10) : undefined;
       var googleDriveBackupCheckbox = document.getElementById('googleDriveBackup');
-      var googleDriveBackup = googleDriveBackupCheckbox ? googleDriveBackupCheckbox.checked : false;
+      var googleDriveBackup = googleDriveBackupCheckbox ? googleDriveBackupCheckbox.checked : undefined;
 
       // Practice default language (only when the language controls are visible)
       var practiceDefaultLanguageSelect = document.getElementById('practiceDefaultLanguage');
@@ -4371,19 +4388,19 @@ document.addEventListener('DOMContentLoaded', function () {
 
       // Delivered hide days (0 = show all)
       var deliveredHideDaysInput = document.getElementById('deliveredHideDays');
-      var deliveredHideDays = deliveredHideDaysInput ? parseInt(deliveredHideDaysInput.value || '0', 10) : 0;
+      var deliveredHideDays = deliveredHideDaysInput ? parseInt(deliveredHideDaysInput.value || '0', 10) : undefined;
 
       // Case Review Tracking (practice-level, admin-only)
       var caseReviewTrackingEnabledInput = document.getElementById('caseReviewTrackingEnabled');
-      var caseReviewTrackingEnabled = caseReviewTrackingEnabledInput ? caseReviewTrackingEnabledInput.checked : false;
+      var caseReviewTrackingEnabled = caseReviewTrackingEnabledInput ? caseReviewTrackingEnabledInput.checked : undefined;
 
       // Lab acknowledgment (practice-level, admin-only)
       var labAcknowledgmentEnabledInput = document.getElementById('labAcknowledgmentEnabled');
-      var labAcknowledgmentEnabled = labAcknowledgmentEnabledInput ? labAcknowledgmentEnabledInput.checked : false;
+      var labAcknowledgmentEnabled = labAcknowledgmentEnabledInput ? labAcknowledgmentEnabledInput.checked : undefined;
 
-      // Personal display preference (per-user). Missing element -> ON.
+      // Revision History tab visibility (practice-wide, admin-only)
       var showCaseHistoryTabInput = document.getElementById('showCaseHistoryTab');
-      var showCaseHistoryTab = showCaseHistoryTabInput ? showCaseHistoryTabInput.checked : false;
+      var showCaseHistoryTab = showCaseHistoryTabInput ? showCaseHistoryTabInput.checked : undefined;
 
       // Practice settings - use displayName (editable) instead of practiceName
       var displayNameInput = document.getElementById('displayName');
@@ -4446,17 +4463,32 @@ document.addEventListener('DOMContentLoaded', function () {
         expectedPracticeId: window.currentPracticeId
       };
 
+      // Non-admins only ever control their own Appearance (theme) and
+      // personal Security from this form. Send ONLY the personal whitelist
+      // - save-settings.php atomically rejects any request containing
+      // practice-scoped keys from a non-admin, so including the (stale)
+      // admin-shaped fields would fail an otherwise valid personal save.
+      if (!window.isPracticeAdmin) {
+        formData = {
+          theme: theme,
+          expectedPracticeId: window.currentPracticeId
+        };
+      }
+
       if (practiceDefaultLanguage) {
         formData.practiceDefaultLanguage = practiceDefaultLanguage;
       }
 
       // Include logo action so the server can handle removals/updates
-      if (window.logoMarkedForRemoval) {
-        formData.logoAction = 'remove';
-      } else if (window.pendingLogoPath && window.pendingLogoPath !== window.currentLogoPath) {
-        formData.logoAction = 'update';
-      } else {
-        formData.logoAction = 'none';
+      // (admin-only path - non-admins sent the minimal payload above).
+      if (window.isPracticeAdmin) {
+        if (window.logoMarkedForRemoval) {
+          formData.logoAction = 'remove';
+        } else if (window.pendingLogoPath && window.pendingLogoPath !== window.currentLogoPath) {
+          formData.logoAction = 'update';
+        } else {
+          formData.logoAction = 'none';
+        }
       }
 
       // Prepare to save settings
@@ -4495,35 +4527,30 @@ document.addEventListener('DOMContentLoaded', function () {
 
   // Function to apply settings immediately without page refresh
   function applySettingsImmediately(formData) {
-    // Apply card delete visibility
+    // Apply card delete visibility (practice-wide setting; only present when
+    // the caller is an admin who actually submitted it).
     var allowCardDelete = formData.allowCardDelete;
-    localStorage.setItem('allow_card_delete', allowCardDelete ? 'true' : 'false');
-
-    // Update delete button visibility on all cards
-    var mainContainer = document.querySelector('.main-container');
-    if (mainContainer) {
-      if (allowCardDelete) {
-        mainContainer.classList.add('allow-card-delete');
-      } else {
-        mainContainer.classList.remove('allow-card-delete');
-      }
+    if (typeof allowCardDelete !== 'undefined') {
+      dtPracticeStorageSet('allow_card_delete', allowCardDelete ? 'true' : 'false');
     }
 
-    var cardContainer = document.querySelector('.kanban-board');
-    if (cardContainer) {
-      if (allowCardDelete) {
-        cardContainer.classList.add('allow-card-delete');
-      } else {
-        cardContainer.classList.remove('allow-card-delete');
+    // Update delete button visibility on all cards. Skipped entirely when the
+    // save did not carry a card-delete value (e.g. a personal theme-only
+    // save) so it can never flip the practice setting off visually.
+    if (typeof allowCardDelete !== 'undefined') {
+      var mainContainer = document.querySelector('.main-container');
+      if (mainContainer) {
+        mainContainer.classList.toggle('allow-card-delete', !!allowCardDelete);
       }
-    }
 
-    var dashboard = document.querySelector('.dashboard');
-    if (dashboard) {
-      if (allowCardDelete) {
-        dashboard.classList.add('allow-card-delete');
-      } else {
-        dashboard.classList.remove('allow-card-delete');
+      var cardContainer = document.querySelector('.kanban-board');
+      if (cardContainer) {
+        cardContainer.classList.toggle('allow-card-delete', !!allowCardDelete);
+      }
+
+      var dashboard = document.querySelector('.dashboard');
+      if (dashboard) {
+        dashboard.classList.toggle('allow-card-delete', !!allowCardDelete);
       }
     }
 
@@ -4543,20 +4570,20 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Apply past due highlighting
     if (formData.highlightPastDue !== undefined) {
-      localStorage.setItem('highlight_past_due', formData.highlightPastDue ? 'true' : 'false');
-      localStorage.setItem('past_due_days', formData.pastDueDays.toString());
+      dtPracticeStorageSet('highlight_past_due', formData.highlightPastDue ? 'true' : 'false');
+      dtPracticeStorageSet('past_due_days', formData.pastDueDays.toString());
     }
 
     // Apply coming-due highlighting
     if (formData.highlightComingDue !== undefined) {
-      localStorage.setItem('highlight_coming_due', formData.highlightComingDue ? 'true' : 'false');
-      localStorage.setItem('coming_due_days', formData.comingDueDays.toString());
+      dtPracticeStorageSet('highlight_coming_due', formData.highlightComingDue ? 'true' : 'false');
+      dtPracticeStorageSet('coming_due_days', formData.comingDueDays.toString());
     }
 
     // Apply appointment-risk highlighting
     if (formData.highlightAppointmentRisk !== undefined) {
-      localStorage.setItem('highlight_appointment_risk', formData.highlightAppointmentRisk ? 'true' : 'false');
-      localStorage.setItem('appointment_risk_days', formData.appointmentRiskDays.toString());
+      dtPracticeStorageSet('highlight_appointment_risk', formData.highlightAppointmentRisk ? 'true' : 'false');
+      dtPracticeStorageSet('appointment_risk_days', formData.appointmentRiskDays.toString());
     }
 
     // Trigger card highlighting update if the function exists (handles both past-due and coming-due)
@@ -4566,7 +4593,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Store delivered hide days in localStorage for client awareness (even though filtering is server-side)
     if (typeof formData.deliveredHideDays !== 'undefined') {
-      localStorage.setItem('delivered_hide_days', String(formData.deliveredHideDays));
+      dtPracticeStorageSet('delivered_hide_days', String(formData.deliveredHideDays));
     }
 
     // Apply Case Review Tracking immediately
@@ -10088,9 +10115,9 @@ document.addEventListener('DOMContentLoaded', function () {
       caseCard.classList.add(statusClass);
 
       // Check if past due and add class immediately to prevent CLS
-      var highlightPastDue = localStorage.getItem('highlight_past_due') === 'true';
-      var highlightComingDue = localStorage.getItem('highlight_coming_due') === 'true';
-      var highlightAppointmentRisk = localStorage.getItem('highlight_appointment_risk') === 'true';
+      var highlightPastDue = dtPracticeStorageGet('highlight_past_due') === 'true';
+      var highlightComingDue = dtPracticeStorageGet('highlight_coming_due') === 'true';
+      var highlightAppointmentRisk = dtPracticeStorageGet('highlight_appointment_risk') === 'true';
       var isPastDue = false;
       var isComingDue = false;
       var isAppointmentRisk = false;
@@ -10101,7 +10128,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
       // Past Due (red) takes top precedence
       if (!isFinalWorkflowColumn(status) && caseData.dueDate) {
-        var pastDueDays = parseInt(localStorage.getItem('past_due_days') || '1', 10);
+        var pastDueDays = parseInt(dtPracticeStorageGet('past_due_days') || '1', 10);
         dueDayDiff = getCalendarDayDiff(caseData.dueDate);
 
         if (dueDayDiff !== null) {
@@ -10117,7 +10144,7 @@ document.addEventListener('DOMContentLoaded', function () {
       // Outranks Coming Due so an appointment-within-threshold case is purple
       // even when it is also within the coming-due window.
       if (!isPastDue && !isFinalWorkflowColumn(status) && caseData.patientAppointmentDate && highlightAppointmentRisk) {
-        var appointmentRiskDays = parseInt(localStorage.getItem('appointment_risk_days') || '3', 10);
+        var appointmentRiskDays = parseInt(dtPracticeStorageGet('appointment_risk_days') || '3', 10);
         apptDayDiff = getCalendarDayDiff(caseData.patientAppointmentDate);
         var apptRiskHit = apptDayDiff !== null && apptDayDiff <= appointmentRiskDays;
         // Lab acknowledgment: a lab-promised return date later than the
@@ -10135,7 +10162,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
       // Coming Due (blue) if not already Late or Appointment Risk
       if (!isPastDue && !isAppointmentRisk && !isFinalWorkflowColumn(status) && caseData.dueDate) {
-        var comingDueDays = parseInt(localStorage.getItem('coming_due_days') || '5', 10);
+        var comingDueDays = parseInt(dtPracticeStorageGet('coming_due_days') || '5', 10);
         dueDayDiff = dueDayDiff !== null ? dueDayDiff : getCalendarDayDiff(caseData.dueDate);
         if (dueDayDiff !== null && dueDayDiff >= 0 && dueDayDiff <= comingDueDays) {
           caseCard.classList.add('kanban-card-coming-due');
@@ -10972,22 +10999,22 @@ document.addEventListener('DOMContentLoaded', function () {
           // Set localStorage values for past due and coming due highlighting.
           // toBoolean guards against numeric/boolean values being sent as strings.
           if (data.preferences.highlight_past_due !== undefined) {
-            localStorage.setItem('highlight_past_due', toBoolean(data.preferences.highlight_past_due, true) ? 'true' : 'false');
+            dtPracticeStorageSet('highlight_past_due', toBoolean(data.preferences.highlight_past_due, true) ? 'true' : 'false');
           }
           if (data.preferences.past_due_days !== undefined) {
-            localStorage.setItem('past_due_days', data.preferences.past_due_days.toString());
+            dtPracticeStorageSet('past_due_days', data.preferences.past_due_days.toString());
           }
           if (data.preferences.highlight_coming_due !== undefined) {
-            localStorage.setItem('highlight_coming_due', toBoolean(data.preferences.highlight_coming_due, false) ? 'true' : 'false');
+            dtPracticeStorageSet('highlight_coming_due', toBoolean(data.preferences.highlight_coming_due, false) ? 'true' : 'false');
           }
           if (data.preferences.coming_due_days !== undefined) {
-            localStorage.setItem('coming_due_days', data.preferences.coming_due_days.toString());
+            dtPracticeStorageSet('coming_due_days', data.preferences.coming_due_days.toString());
           }
           if (data.preferences.highlight_appointment_risk !== undefined) {
-            localStorage.setItem('highlight_appointment_risk', toBoolean(data.preferences.highlight_appointment_risk, true) ? 'true' : 'false');
+            dtPracticeStorageSet('highlight_appointment_risk', toBoolean(data.preferences.highlight_appointment_risk, true) ? 'true' : 'false');
           }
           if (data.preferences.appointment_risk_days !== undefined) {
-            localStorage.setItem('appointment_risk_days', data.preferences.appointment_risk_days.toString());
+            dtPracticeStorageSet('appointment_risk_days', data.preferences.appointment_risk_days.toString());
           }
         }
       })
@@ -11200,13 +11227,13 @@ document.addEventListener('DOMContentLoaded', function () {
     // The final column is the last active workflow column for this practice.
     if (isFinalWorkflowColumn(caseData.status)) return;
 
-    var highlightPastDue = localStorage.getItem('highlight_past_due') === 'true';
-    var highlightComingDue = localStorage.getItem('highlight_coming_due') === 'true';
-    var highlightAppointmentRisk = localStorage.getItem('highlight_appointment_risk') === 'true';
+    var highlightPastDue = dtPracticeStorageGet('highlight_past_due') === 'true';
+    var highlightComingDue = dtPracticeStorageGet('highlight_coming_due') === 'true';
+    var highlightAppointmentRisk = dtPracticeStorageGet('highlight_appointment_risk') === 'true';
 
-    var pastDueDays = parseInt(localStorage.getItem('past_due_days') || '1', 10);
-    var comingDueDays = parseInt(localStorage.getItem('coming_due_days') || '5', 10);
-    var appointmentRiskDays = parseInt(localStorage.getItem('appointment_risk_days') || '3', 10);
+    var pastDueDays = parseInt(dtPracticeStorageGet('past_due_days') || '1', 10);
+    var comingDueDays = parseInt(dtPracticeStorageGet('coming_due_days') || '5', 10);
+    var appointmentRiskDays = parseInt(dtPracticeStorageGet('appointment_risk_days') || '3', 10);
 
     // Red late treatment takes top precedence
     var daysUntil = null;

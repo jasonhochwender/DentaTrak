@@ -64,15 +64,15 @@
     if (!caseData) return badges;
 
     var status = caseData.status || '';
-    var highlightPastDue = localStorage.getItem('highlight_past_due') === 'true';
-    var highlightComingDue = localStorage.getItem('highlight_coming_due') === 'true';
-    var highlightAppointmentRisk = localStorage.getItem('highlight_appointment_risk') === 'true';
+    var highlightPastDue = dtPracticeStorageGet('highlight_past_due') === 'true';
+    var highlightComingDue = dtPracticeStorageGet('highlight_coming_due') === 'true';
+    var highlightAppointmentRisk = dtPracticeStorageGet('highlight_appointment_risk') === 'true';
     var isPastDue = false;
     var isAppointmentRisk = false;
     var dueDayDiff = null;
 
     if (status !== 'Delivered' && caseData.dueDate) {
-      var pastDueDays = parseInt(localStorage.getItem('past_due_days') || '1', 10);
+      var pastDueDays = parseInt(dtPracticeStorageGet('past_due_days') || '1', 10);
       if (typeof window.getCalendarDayDiff === 'function') {
         dueDayDiff = window.getCalendarDayDiff(caseData.dueDate);
         if (dueDayDiff !== null && highlightPastDue && dueDayDiff <= -pastDueDays) {
@@ -87,7 +87,7 @@
     }
 
     if (!isPastDue && status !== 'Delivered' && caseData.patientAppointmentDate && highlightAppointmentRisk) {
-      var appointmentRiskDays = parseInt(localStorage.getItem('appointment_risk_days') || '3', 10);
+      var appointmentRiskDays = parseInt(dtPracticeStorageGet('appointment_risk_days') || '3', 10);
       if (typeof window.getCalendarDayDiff === 'function') {
         var apptDayDiff = window.getCalendarDayDiff(caseData.patientAppointmentDate);
         var apptRiskHit = apptDayDiff !== null && apptDayDiff <= appointmentRiskDays;
@@ -107,7 +107,7 @@
     }
 
     if (!isPastDue && !isAppointmentRisk && status !== 'Delivered' && caseData.dueDate) {
-      var comingDueDays = parseInt(localStorage.getItem('coming_due_days') || '5', 10);
+      var comingDueDays = parseInt(dtPracticeStorageGet('coming_due_days') || '5', 10);
       if (typeof window.getCalendarDayDiff === 'function') {
         dueDayDiff = dueDayDiff !== null ? dueDayDiff : window.getCalendarDayDiff(caseData.dueDate);
         if (dueDayDiff !== null && dueDayDiff >= 0 && dueDayDiff <= comingDueDays) {

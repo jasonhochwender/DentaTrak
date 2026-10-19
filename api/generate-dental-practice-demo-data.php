@@ -37,6 +37,7 @@
 require_once __DIR__ . '/session.php';
 header('Content-Type: application/json');
 require_once __DIR__ . '/practice-security.php';
+require_once __DIR__ . '/practice-display-settings.php';
 require_once __DIR__ . '/cases-cache.php';
 require_once __DIR__ . '/case-activity-log.php';
 require_once __DIR__ . '/lab-assignment-history.php';
@@ -160,16 +161,14 @@ try {
     $showcaseTarget = $datasetConfig[$dataset]['showcaseCount'];
 
     // ------------------------------------------------------------------
-    // Load the practice's current highlighting thresholds so boundary
-    // cases match the user's actual settings.
+    // Load the practice's current highlighting thresholds (practice-wide
+    // settings on the practices row) so boundary cases match the practice's
+    // actual settings.
     // ------------------------------------------------------------------
-    $currentUserId = $_SESSION['db_user_id'] ?? 0;
-    $prefStmt = $pdo->prepare("SELECT past_due_days, coming_due_days, appointment_risk_days FROM user_preferences WHERE user_id = :uid LIMIT 1");
-    $prefStmt->execute(['uid' => $currentUserId]);
-    $preferences = $prefStmt->fetch(PDO::FETCH_ASSOC) ?: [];
-    $pastDueDays = (int)($preferences['past_due_days'] ?? 1);
-    $comingDueDays = (int)($preferences['coming_due_days'] ?? 5);
-    $appointmentRiskDays = (int)($preferences['appointment_risk_days'] ?? 3);
+    $preferences = getPracticeDisplaySettings($pdo, (int)$currentPracticeId);
+    $pastDueDays = (int)$preferences['past_due_days'];
+    $comingDueDays = (int)$preferences['coming_due_days'];
+    $appointmentRiskDays = (int)$preferences['appointment_risk_days'];
 
     // Warn if the current practice already has a meaningful amount of case
     // data, so demo records aren't silently dumped into an actively used

@@ -18,7 +18,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const mainContainer = document.querySelector('.main-container');
     if (!mainContainer) return;
     
-    const allowCardDelete = localStorage.getItem('allow_card_delete') === 'true';
+    const allowCardDelete = dtPracticeStorageGet('allow_card_delete') === 'true';
     
     if (allowCardDelete) {
       mainContainer.classList.add('allow-card-delete');
