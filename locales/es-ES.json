@@ -1029,7 +1029,10 @@
                 "light": "Claro",
                 "dark": "Oscuro"
             },
-            "allow_card_delete": "Permitir archivar casos individuales",
+            "allow_card_delete": {
+                "label": "Permitir el archivado manual de casos individuales",
+                "tooltip": "Cuando está activada, la opción Archivar aparece en cada caso para los usuarios con permiso para archivar casos."
+            },
             "auto_archive": {
                 "label": "Archivar automáticamente los casos entregados después de",
                 "unit": "días (0 = nunca)"

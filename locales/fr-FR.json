@@ -1029,7 +1029,10 @@
                 "light": "Clair",
                 "dark": "Sombre"
             },
-            "allow_card_delete": "Autoriser l'archivage de cas individuels",
+            "allow_card_delete": {
+                "label": "Autoriser l’archivage manuel de cas individuels",
+                "tooltip": "Lorsque cette option est activée, l’option Archiver apparaît sur chaque cas pour les utilisateurs autorisés à archiver des cas."
+            },
             "auto_archive": {
                 "label": "Archiver automatiquement les cas livrés après",
                 "unit": "jours (0 = jamais)"

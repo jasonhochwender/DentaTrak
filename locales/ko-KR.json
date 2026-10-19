@@ -1029,7 +1029,10 @@
                 "light": "라이트",
                 "dark": "다크"
             },
-            "allow_card_delete": "개별 케이스 보관 허용",
+            "allow_card_delete": {
+                "label": "개별 케이스 수동 보관 허용",
+                "tooltip": "활성화하면 케이스 보관 권한이 있는 사용자의 각 케이스에 보관 옵션이 표시됩니다."
+            },
             "auto_archive": {
                 "label": "전달 완료 케이스를 자동 보관:",
                 "unit": "일 후(0 = 안 함)"

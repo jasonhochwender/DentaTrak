@@ -3661,7 +3661,7 @@ endif;
                       <div class="settings-group">
                         <h4 class="subsection-title"><?php echo t('settings.display.sections.case_archiving'); ?><span class="settings-scope"><?php echo t('settings.display.scope.practice'); ?></span></h4>
                         <div class="option-row">
-                          <label for="allowCardDelete"><?php echo t('settings.display.allow_card_delete'); ?></label>
+                          <label for="allowCardDelete"><?php echo t('settings.display.allow_card_delete.label'); ?></label>
                           <input type="checkbox" id="allowCardDelete" name="allowCardDelete" <?= $isAdmin ? '' : 'disabled' ?>>
                         </div>
 

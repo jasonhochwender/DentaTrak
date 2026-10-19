@@ -1029,7 +1029,10 @@
                 "light": "Chiaro",
                 "dark": "Scuro"
             },
-            "allow_card_delete": "Consenti l'archiviazione di singoli casi",
+            "allow_card_delete": {
+                "label": "Consenti l’archiviazione manuale dei singoli casi",
+                "tooltip": "Quando è abilitata, l’opzione Archivia viene mostrata su ogni caso per gli utenti autorizzati ad archiviare casi."
+            },
             "auto_archive": {
                 "label": "Archivia automaticamente i casi consegnati dopo",
                 "unit": "giorni (0 = mai)"

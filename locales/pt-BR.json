@@ -4691,7 +4691,10 @@
                 "light": "Claro",
                 "dark": "Escuro"
             },
-            "allow_card_delete": "Permitir arquivamento de casos individuais",
+            "allow_card_delete": {
+                "label": "Permitir o arquivamento manual de casos individuais",
+                "tooltip": "Quando ativada, a opção Arquivar aparece em cada caso para usuários com permissão para arquivar casos."
+            },
             "auto_archive": {
                 "label": "Arquivar automaticamente casos entregues após",
                 "unit": "dias (0 = nunca)"

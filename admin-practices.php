@@ -2576,7 +2576,7 @@ $userEmail = $_SESSION['user_email'] ?? '';
                 '<h4>Display &amp; Behavior</h4>' +
                 '<div class="settings-row"><span class="settings-label">' + escapeHtml(t('settings.display.show_history_tab.label')) + '</span><span class="settings-value">' +
                     '<input type="checkbox" id="psShowCaseHistoryTab" ' + (settings.show_case_history_tab ? 'checked' : '') + '></span></div>' +
-                '<div class="settings-row"><span class="settings-label">Allow Archiving Individual Cases</span><span class="settings-value">' +
+                '<div class="settings-row"><span class="settings-label" style="cursor: help;" title="' + escapeHtml(t('settings.display.allow_card_delete.tooltip')) + '">' + escapeHtml(t('settings.display.allow_card_delete.label')) + '</span><span class="settings-value">' +
                     '<input type="checkbox" id="psAllowCardDelete" ' + (cm.allow_archiving_individual_cases ? 'checked' : '') + '></span></div>' +
                 '<div class="settings-row"><span class="settings-label">Auto-Archive Delivered Cases After (days, 0 = off)</span><span class="settings-value">' +
                     '<input type="number" id="psDeliveredHideDays" min="0" max="365" class="settings-number-input" value="' + (cm.delivered_hide_days != null ? cm.delivered_hide_days : 0) + '"></span></div>' +

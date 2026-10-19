@@ -3524,6 +3524,7 @@ document.addEventListener('DOMContentLoaded', function () {
     ['caseReviewTrackingEnabled', 'settings.display.case_review.tooltip'],
     ['labAcknowledgmentEnabled', 'settings.display.lab_ack.tooltip'],
     ['showCaseHistoryTab', 'settings.display.show_history_tab.tooltip'],
+    ['allowCardDelete', 'settings.display.allow_card_delete.tooltip'],
     ['highlightPastDue', 'settings.display.past_due.tooltip'],
     ['highlightComingDue', 'settings.display.coming_due.tooltip'],
     ['highlightAppointmentRisk', 'settings.display.appointment_risk.tooltip']

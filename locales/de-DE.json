@@ -2681,7 +2681,10 @@
                 "light": "Hell",
                 "dark": "Dunkel"
             },
-            "allow_card_delete": "Archivieren einzelner Fälle erlauben",
+            "allow_card_delete": {
+                "label": "Manuelles Archivieren einzelner Fälle erlauben",
+                "tooltip": "Wenn aktiviert, wird die Option „Archivieren“ bei jedem Fall für Benutzer angezeigt, die Fälle archivieren dürfen."
+            },
             "auto_archive": {
                 "label": "Gelieferte Fälle automatisch archivieren nach",
                 "unit": "Tagen (0 = nie)"

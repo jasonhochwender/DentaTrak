@@ -1029,7 +1029,10 @@
                 "light": "Light",
                 "dark": "Dark"
             },
-            "allow_card_delete": "Allow archiving of individual cases",
+            "allow_card_delete": {
+                "label": "Allow manual archiving of individual cases",
+                "tooltip": "When enabled, the Archive option appears on each case for users with permission to archive cases."
+            },
             "auto_archive": {
                 "label": "Automatically archive delivered cases after",
                 "unit": "days (0 = never)"
