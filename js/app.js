@@ -3691,6 +3691,60 @@ document.addEventListener('DOMContentLoaded', function () {
   })();
   window.dtTooltipLayer = dtTooltipLayer;
 
+  // Full-density card titles truncate with an ellipsis (see
+  // .kanban-card-title rules in css/app.light.css). When the patient name
+  // is clipped, the h3 becomes a .dt-tooltip-text trigger so hover and
+  // keyboard focus reveal the full name through the shared body-level
+  // layer; the inline .dt-tooltip-bubble stays in the DOM as the
+  // aria-describedby text source. Compact density keeps its existing
+  // single-line ellipsis without a tooltip, and on touch the full name
+  // remains available through the case details view.
+  function updateCardTitleTooltip(card) {
+    var h3 = card && card.querySelector ? card.querySelector('.kanban-card-title') : null;
+    if (!h3) return;
+    var board = card.closest('.kanban-board');
+    var isCompact = board && board.classList.contains('kanban-board-compact');
+    var textNode = Array.prototype.find.call(h3.childNodes, function(n) { return n.nodeType === Node.TEXT_NODE; });
+    var fullName = textNode ? textNode.textContent.trim() : '';
+    var truncated = !isCompact && !!fullName && h3.scrollWidth - h3.clientWidth > 1;
+    var bubble = h3.querySelector(':scope > .dt-tooltip-bubble');
+    if (truncated && window.createInfoTooltip) {
+      if (!bubble) {
+        bubble = window.createInfoTooltip(fullName).querySelector('.dt-tooltip-bubble');
+        h3.appendChild(bubble);
+      }
+      bubble.textContent = fullName;
+      h3.classList.add('dt-tooltip-trigger', 'dt-tooltip-text');
+      h3.setAttribute('tabindex', '0');
+      h3.setAttribute('aria-describedby', bubble.id);
+    } else {
+      if (bubble) bubble.remove();
+      h3.classList.remove('dt-tooltip-trigger', 'dt-tooltip-text');
+      h3.removeAttribute('tabindex');
+      h3.removeAttribute('aria-describedby');
+    }
+  }
+  window.updateCardTitleTooltip = updateCardTitleTooltip;
+
+  // Re-measure every rendered card title: after the initial board load (the
+  // board is display-hidden while loading, so per-card measurement during
+  // the render loop reads zero widths), on viewport resize, and when the
+  // Board/Compact density toggle flips kanban-board-compact.
+  var cardTitleTooltipResizeTimer = null;
+  function refreshAllCardTitleTooltips() {
+    document.querySelectorAll('.kanban-card').forEach(updateCardTitleTooltip);
+  }
+  window.addEventListener('cardsLoaded', refreshAllCardTitleTooltips);
+  window.addEventListener('resize', function() {
+    if (cardTitleTooltipResizeTimer) clearTimeout(cardTitleTooltipResizeTimer);
+    cardTitleTooltipResizeTimer = setTimeout(refreshAllCardTitleTooltips, 150);
+  });
+  var tooltipBoard = document.getElementById('kanbanBoard');
+  if (tooltipBoard) {
+    new MutationObserver(refreshAllCardTitleTooltips)
+      .observe(tooltipBoard, { attributes: true, attributeFilter: ['class'] });
+  }
+
   // Combined practice users grid (admins + authorized users)
   function displayPracticeUsers() {
     // Always get fresh reference to the element
@@ -10425,6 +10479,7 @@ document.addEventListener('DOMContentLoaded', function () {
       } else if (columnBody) {
         columnBody.appendChild(caseCard);
       }
+      if (window.updateCardTitleTooltip) window.updateCardTitleTooltip(caseCard);
       if (window.caseFilterSort) window.caseFilterSort.rememberCard(caseCard);
 
       // Add click event for the review status badge

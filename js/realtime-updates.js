@@ -358,6 +358,7 @@
     var nameEl = card.querySelector('.kanban-card-title');
     if (nameEl) {
       nameEl.textContent = getPatientName(caseData);
+      if (window.updateCardTitleTooltip) window.updateCardTitleTooltip(card);
     }
     
     // Update case type

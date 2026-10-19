@@ -2171,14 +2171,47 @@ body {
 /* Full-density header follows the same space discipline as the Compact
    density card: the review badge never shrinks (Compact uses flex-shrink:0
    plus a nowrap label), the actions toggle keeps a WCAG-minimum 24px
-   target, and the header may wrap so a genuinely long name or narrow
-   column moves the badge to its own row instead of clipping it or
-   overlapping the menu control. The patient name keeps the remaining
-   width and wraps internally when needed. */
+   target, and the header stays on a single row. The patient name keeps the
+   remaining width and truncates with an ellipsis when it cannot fit; the
+   full name is then available through the shared accessible tooltip. */
 .kanban-board:not(.kanban-board-compact) .kanban-card-header {
   align-items: center;
-  flex-wrap: wrap;
-  gap: 4px 8px;
+  flex-wrap: nowrap;
+  gap: 8px;
+}
+
+.kanban-board:not(.kanban-board-compact) .kanban-card-title {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* A truncated title doubles as the shared .dt-tooltip trigger: override the
+   icon-button chrome so the heading keeps its own typography while hover,
+   keyboard focus, and tap still reveal the full name. */
+.kanban-board:not(.kanban-board-compact) .kanban-card-title.dt-tooltip-trigger {
+  display: block;
+  width: auto;
+  height: auto;
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  background: none;
+  background-color: transparent;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  text-align: left;
+  cursor: default;
+}
+
+.kanban-board:not(.kanban-board-compact) .kanban-card-title.dt-tooltip-trigger:hover {
+  background-color: transparent;
+}
+
+.kanban-board:not(.kanban-board-compact) .kanban-card-title.dt-tooltip-trigger:focus-visible {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 1px;
 }
 
 .kanban-board:not(.kanban-board-compact) .kanban-card-header .kanban-card-review {
