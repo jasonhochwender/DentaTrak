@@ -2150,7 +2150,7 @@ body {
 .kanban-card-delivered { border-left-color: var(--status-delivered); }
 
 .kanban-card-header {
-  margin-bottom: 10px;
+  margin-bottom: 8px;
   display: flex;
   align-items: flex-start;
   gap: 8px;
@@ -2202,12 +2202,12 @@ body {
 
 .kanban-card-title {
   font-weight: 600;
-  font-size: 0.9rem;
+  font-size: 0.95rem;
   margin: 0 0 2px 0;
   color: var(--text-primary);
-  text-overflow: ellipsis;
-  overflow: hidden;
-  white-space: nowrap;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  hyphens: auto;
   max-width: 100%;
   letter-spacing: -0.01em;
 }
@@ -2222,21 +2222,49 @@ body {
 .kanban-card-content {
   font-size: 0.8rem;
   color: var(--text-secondary);
-  line-height: 1.5;
+  line-height: 1.45;
 }
 
 .kanban-card-content p {
-  margin: 3px 0;
+  margin: 2px 0;
+}
+
+/* Label/value rows (Full view only): the label hugs its value and the
+   value column wraps on its own line on narrow columns instead of
+   splitting mid-field. Scoped to non-compact boards so compact keeps its
+   block-level ellipsis and its deliberate row hiding. */
+.kanban-board:not(.kanban-board-compact) .kanban-card-content p.kv-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 1px 6px;
+}
+
+.kanban-board:not(.kanban-board-compact) .kanban-card-content p.kv-row > strong {
+  flex: 0 0 auto;
+}
+
+.kanban-board:not(.kanban-board-compact) .kanban-card-content .kv-value {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 /* Card dates section */
 .kanban-card-dates {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 14px;
   font-size: 0.7rem;
   color: var(--text-light);
-  margin-top: 12px;
+  margin-top: 8px;
   border-top: 1px solid var(--border-light);
-  padding-top: 10px;
-  line-height: 1.5;
+  padding-top: 7px;
+  line-height: 1.4;
+}
+
+.kanban-card-dates > div {
+  white-space: nowrap;
 }
 
 .date-label {
@@ -2376,6 +2404,10 @@ body {
 .kanban-board-compact .kanban-card-title {
   font-size: 0.8rem;
   margin: 0;
+  /* Full view wraps long names; compact keeps its single-line ellipsis. */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .kanban-board-compact .kanban-card-header .kanban-card-review,

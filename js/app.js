@@ -10034,7 +10034,7 @@ document.addEventListener('DOMContentLoaded', function () {
       caseCard.innerHTML =
         '<div class="kanban-card-header">' +
         '  <div>' +
-        '    <h3 class="kanban-card-title">' + (displayData.patientFirstName || '') + ' ' + (displayData.patientLastName || '') + '</h3>' +
+        '    <h3 class="kanban-card-title">' + escapeHtml(((displayData.patientFirstName || '') + ' ' + (displayData.patientLastName || '')).trim()) + '</h3>' +
         revisionCountLine +
         '  </div>' +
         reviewBadgeHtml +
@@ -10042,12 +10042,12 @@ document.addEventListener('DOMContentLoaded', function () {
         '  <button type="button" class="case-actions-toggle" data-case-id="' + displayData.id + '" title="' + t('cases.actions_menu') + '" aria-label="' + t('cases.actions_menu') + '" aria-haspopup="menu" aria-expanded="false">⋮</button>' +
         '</div>' +
         '<div class="kanban-card-content">' +
-        '  <p><strong>' + t('cases.type') + ':</strong> ' + (getCaseTypeDisplayLabel(displayData.caseType) || '') + '</p>' +
-        '  <p><strong>' + t('cases.due_label') + ':</strong> ' + (displayData.dueDate ? formatDate(displayData.dueDate) : '\u2014') + '<span class="late-indicator">' + (dueIndicatorText || '') + '</span></p>' +
-        (displayData.patientAppointmentDate ? '  <p class="kanban-card-appointment-row"><strong>' + t('cases.patient_appointment_short') + ':</strong> ' + formatDate(displayData.patientAppointmentDate) + (apptRiskText ? '<span class="appointment-risk-indicator">' + apptRiskText + '</span>' : '') + '</p>' : '') +
-        '  <p class="dentist-row"><strong>' + t('cases.dentist') + ':</strong> ' + (displayData.dentistName || '') + attachmentIndicatorHtml + '</p>' +
+        '  <p class="kv-row"><strong>' + t('cases.type') + ':</strong> <span class="kv-value">' + escapeHtml(getCaseTypeDisplayLabel(displayData.caseType) || '') + '</span></p>' +
+        '  <p class="kv-row"><strong>' + t('cases.due_label') + ':</strong> <span class="kv-value">' + (displayData.dueDate ? formatDate(displayData.dueDate) : '\u2014') + '<span class="late-indicator">' + (dueIndicatorText || '') + '</span></span></p>' +
+        (displayData.patientAppointmentDate ? '  <p class="kv-row kanban-card-appointment-row"><strong>' + t('cases.patient_appointment_short') + ':</strong> <span class="kv-value">' + formatDate(displayData.patientAppointmentDate) + (apptRiskText ? '<span class="appointment-risk-indicator">' + apptRiskText + '</span>' : '') + '</span></p>' : '') +
+        '  <p class="kv-row dentist-row"><strong>' + t('cases.dentist') + ':</strong> <span class="kv-value">' + escapeHtml(displayData.dentistName || '') + '</span>' + attachmentIndicatorHtml + '</p>' +
         '  <div class="kanban-card-assignment">' +
-        '    <div class="assignment-label"><strong>' + t('cases.assigned_to') + '</strong></div>' +
+        '    <div class="assignment-label"><strong>' + t('cases.assigned_to') + ':</strong></div>' +
         '    <div class="assignment-value" data-case-id="' + displayData.id + '">' +
         '      <select class="assignment-select" data-case-id="' + displayData.id + '" name="assignmentSelect" aria-label="' + t('cases.assign_to') + '">' +
         '        <option value="loading">' + t('common.loading') + '</option>' +
@@ -10832,7 +10832,7 @@ document.addEventListener('DOMContentLoaded', function () {
     if (!apptIndicator) {
       apptIndicator = document.createElement('span');
       apptIndicator.className = 'appointment-risk-indicator';
-      row.appendChild(apptIndicator);
+      (row.querySelector('.kv-value') || row).appendChild(apptIndicator);
     }
     apptIndicator.textContent = t('cases.risk.appointment_abbreviation');
   }
