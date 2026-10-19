@@ -2605,10 +2605,10 @@
 
   .kanban-card-assignment {
     display: flex;
-    align-items: center;
-    gap: 6px;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 2px;
     margin-top: 6px;
-    flex-wrap: wrap;
   }
 
   .kanban-card-assignment .assignment-label {
@@ -2618,7 +2618,7 @@
   }
 
   .kanban-card-assignment .assignment-select {
-    flex: 1;
+    width: 100%;
     min-width: 0;
     font-size: 0.8rem;
     padding: 3px 6px;
