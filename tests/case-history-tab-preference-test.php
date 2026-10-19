@@ -131,7 +131,7 @@ try {
     // Personal preference: the control must NOT carry the admin-only
     // disabled attribute used by the surrounding practice settings.
     $rowHtml = '';
-    if (preg_match('/<div class="option-row">\s*<label for="showCaseHistoryTab">.*?<\/div>/s', $main, $m)) {
+    if (preg_match('/<div class="option-row[^"]*">\s*<label for="showCaseHistoryTab">.*?<\/div>/s', $main, $m)) {
         $rowHtml = $m[0];
     }
     assertTrue($rowHtml !== '' && strpos($rowHtml, 'isAdmin') === false && strpos($rowHtml, 'disabled') === false,

@@ -564,7 +564,10 @@
             "change_reason_label": "Reason for the change",
             "change_reason_placeholder": "Short reason, recorded in case history",
             "change_reason_required": "A short reason is required to change the promised date.",
-            "the_lab": "the lab"
+            "the_lab": "the lab",
+            "no_lab": "No lab assigned — a request is created when this case is assigned to a lab.",
+            "no_request": "No acknowledgment request was recorded for the current lab assignment.",
+            "no_request_named": "No acknowledgment request was recorded for {lab}."
         }
     },
     "filters": {

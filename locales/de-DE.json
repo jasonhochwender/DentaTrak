@@ -1473,7 +1473,10 @@
             "change_reason_label": "Grund für die Änderung",
             "change_reason_placeholder": "Kurzer Grund, wird im Fallverlauf gespeichert",
             "change_reason_required": "Zum Ändern des zugesagten Datums ist eine kurze Begründung erforderlich.",
-            "the_lab": "das Labor"
+            "the_lab": "das Labor",
+            "no_lab": "Kein Labor zugewiesen — eine Anfrage wird erstellt, sobald der Fall einem Labor zugewiesen wird.",
+            "no_request": "Für die aktuelle Laborzuweisung wurde keine Bestätigungsanfrage erfasst.",
+            "no_request_named": "Für {lab} wurde keine Bestätigungsanfrage erfasst."
         }
     },
     "od_send": {

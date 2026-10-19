@@ -564,7 +564,10 @@
             "change_reason_label": "Motif du changement",
             "change_reason_placeholder": "Motif court, consigné dans l’historique du cas",
             "change_reason_required": "Un motif court est requis pour modifier la date promise.",
-            "the_lab": "le laboratoire"
+            "the_lab": "le laboratoire",
+            "no_lab": "Aucun laboratoire assigné — une demande est créée lorsque le cas est assigné à un laboratoire.",
+            "no_request": "Aucune demande d’accusé de réception n’a été enregistrée pour l’assignation de laboratoire actuelle.",
+            "no_request_named": "Aucune demande d’accusé de réception n’a été enregistrée pour {lab}."
         }
     },
     "filters": {

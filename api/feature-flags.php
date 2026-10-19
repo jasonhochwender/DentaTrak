@@ -13,7 +13,9 @@ $FEATURE_DEFAULTS = [
     'SHOW_NOTIFICATIONS' => true,  // Off globally until Phase 3 rollout approval
     'SHOW_AT_RISK' => false,
     'SHOW_COMMENTS' => true,
-    'SHOW_REVISION_HISTORY' => false,
+    'SHOW_REVISION_HISTORY' => true,   // Per-user "Show case history tab"
+                                       // preference still controls visibility;
+                                       // env var remains the global kill switch.
     'SHOW_ACTIVITY_TIMELINE' => false,
     'SHOW_AI_CHAT' => false,
     'SHOW_IN_STATUS' => false,

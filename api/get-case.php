@@ -103,6 +103,7 @@ try {
             'isLab' => (bool)$ackIsLab,
         ];
         $labAckEnabled = isLabAcknowledgmentEnabled($currentPracticeId);
+        $decryptedCase['labAckPerms']['enabled'] = $labAckEnabled;
         if ($labAckEnabled) {
             $openAck = getOpenLabAcknowledgment($caseId, $currentPracticeId);
             if ($openAck) {
@@ -114,6 +115,18 @@ try {
                     $ackIsLab,
                     !empty($targetCase['archived'])
                 );
+            } else {
+                // No open request - the UI still needs to explain the state
+                // (older assignment predating the workflow, or no lab yet)
+                // rather than render an unlabeled empty area.
+                $assignedText = $decryptedCase['assignedTo'] ?? $decryptedCase['assigned_to'] ?? '';
+                $resolvedAssignee = is_string($assignedText) && trim($assignedText) !== ''
+                    ? resolveAssignee($currentPracticeId, $assignedText)
+                    : null;
+                $decryptedCase['labAckPerms']['labAssigned'] = (bool)($resolvedAssignee && $resolvedAssignee['is_lab']);
+                $decryptedCase['labAckPerms']['labAssignedName'] = ($resolvedAssignee && $resolvedAssignee['is_lab'])
+                    ? $resolvedAssignee['display_name']
+                    : null;
             }
         }
     } catch (Throwable $e) {

@@ -2004,13 +2004,19 @@ document.addEventListener('DOMContentLoaded', function () {
       item.style.display = off ? 'none' : '';
     });
 
-    // Re-evaluate the modal acknowledgment panel if a case is loaded.
+    // Re-evaluate the modal acknowledgment panel if a case is loaded. When
+    // the practice flag differs from what the loaded payload reported, the
+    // renderer's window-flag fallback applies the new value; staff keep
+    // promised-date maintenance while disabled (same rule the server uses).
     var ackContainer = document.getElementById('labAckContainer');
     if (ackContainer) {
-      if (off) {
-        ackContainer.style.display = 'none';
-      } else if (typeof currentEditCaseData !== 'undefined' && currentEditCaseData && currentEditCaseData.id) {
+      if (typeof currentEditCaseData !== 'undefined' && currentEditCaseData && currentEditCaseData.id) {
+        if (currentEditCaseData.labAckPerms) {
+          currentEditCaseData.labAckPerms.enabled = window.labAcknowledgmentEnabled;
+        }
         renderLabAcknowledgment(currentEditCaseData);
+      } else {
+        ackContainer.style.display = 'none';
       }
     }
   }
@@ -5835,6 +5841,13 @@ document.addEventListener('DOMContentLoaded', function () {
       renderReviewStatus(null);
     }
 
+    // Hide the lab acknowledgment panel for new case - no case record, no
+    // assignment, and no acknowledgment can exist for an unsaved form.
+    var newCaseAckContainer = document.getElementById('labAckContainer');
+    if (newCaseAckContainer) {
+      newCaseAckContainer.style.display = 'none';
+    }
+
     // Clear clinical details fields for new case
     if (typeof clearClinicalDetailsFields === 'function') {
       clearClinicalDetailsFields();
@@ -6300,11 +6313,18 @@ document.addEventListener('DOMContentLoaded', function () {
     var labAckPerms = (caseData && caseData.labAckPerms) ? caseData.labAckPerms : null;
     var promisedDate = (caseData && caseData.labPromisedDate) ? caseData.labPromisedDate : null;
     var staffUser = !!(labAckPerms && labAckPerms.staffUser) || !!(labAck && labAck.staffUser);
+    // Server reports the practice setting per-response (labAckPerms.enabled);
+    // fall back to the last-loaded settings value for stale payloads.
+    var ackEnabled = (labAckPerms && typeof labAckPerms.enabled !== 'undefined')
+      ? !!labAckPerms.enabled
+      : !!window.labAcknowledgmentEnabled;
 
     // Nothing to show: no pending/recorded acknowledgment, no promised date,
-    // and no staff capability to set one.
+    // no staff capability to set one, and the workflow is off (off = hide;
+    // on = still explain the empty state so the labeled section is never
+    // silently blank).
     var hasOpenRow = !!(labAck && labAck.status);
-    if (!hasOpenRow && !promisedDate && !staffUser) {
+    if (!hasOpenRow && !promisedDate && !staffUser && !ackEnabled) {
       container.style.display = 'none';
       return;
     }
@@ -6331,8 +6351,17 @@ document.addEventListener('DOMContentLoaded', function () {
       if (labAck.infoRequestText && labAck.status === 'needs_info') {
         detailEl.textContent = labAck.infoRequestText;
       }
+    } else if (ackEnabled && labAckPerms && labAckPerms.labAssigned === true) {
+      // Enabled but no open request: explain why instead of leaving the
+      // labeled section blank - this assignment predates the workflow.
+      statusEl.textContent = labAckPerms.labAssignedName
+        ? t('cases.lab_ack.no_request_named', { lab: labAckPerms.labAssignedName })
+        : t('cases.lab_ack.no_request');
+    } else if (ackEnabled && labAckPerms && labAckPerms.labAssigned === false) {
+      // Enabled but no lab on the case at all.
+      statusEl.textContent = t('cases.lab_ack.no_lab');
     } else {
-      // No open acknowledgment - just the promised date display.
+      // Setting off - only the promised date display/entry remains.
       statusEl.textContent = t('cases.lab_ack.promised_label');
     }
 
@@ -10488,6 +10517,11 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Render review status panel
     renderReviewStatus(caseData);
+
+    // Optional lab acknowledgment panel (same server-computed view model the
+    // read-only view path uses; without this the edit path kept the previous
+    // case's acknowledgment state or showed nothing at all).
+    renderLabAcknowledgment(caseData);
 
     // Clear file selections
     clearFileSelections();

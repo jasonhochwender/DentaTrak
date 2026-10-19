@@ -564,7 +564,10 @@
             "change_reason_label": "Motivo della modifica",
             "change_reason_placeholder": "Breve motivo, registrato nella cronologia del caso",
             "change_reason_required": "È richiesto un breve motivo per modificare la data promessa.",
-            "the_lab": "il laboratorio"
+            "the_lab": "il laboratorio",
+            "no_lab": "Nessun laboratorio assegnato — la richiesta viene creata quando il caso viene assegnato a un laboratorio.",
+            "no_request": "Nessuna richiesta di conferma registrata per l’assegnazione di laboratorio corrente.",
+            "no_request_named": "Nessuna richiesta di conferma registrata per {lab}."
         }
     },
     "filters": {

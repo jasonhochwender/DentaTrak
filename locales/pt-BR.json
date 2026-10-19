@@ -3401,7 +3401,10 @@
             "change_reason_label": "Motivo da alteração",
             "change_reason_placeholder": "Motivo breve, registrado no histórico do caso",
             "change_reason_required": "É necessário um motivo breve para alterar a data prometida.",
-            "the_lab": "o laboratório"
+            "the_lab": "o laboratório",
+            "no_lab": "Nenhum laboratório atribuído — a solicitação é criada quando o caso é atribuído a um laboratório.",
+            "no_request": "Nenhuma solicitação de confirmação foi registrada para a atribuição de laboratório atual.",
+            "no_request_named": "Nenhuma solicitação de confirmação foi registrada para {lab}."
         }
     },
     "feedback": {
