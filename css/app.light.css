@@ -2119,7 +2119,7 @@ body {
   background-color: var(--background-white);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-small);
-  padding: 14px 16px;
+  padding: 12px;
   margin-bottom: 12px;
   border: 1px solid var(--border-light);
   border-left: 4px solid #64748b;
@@ -2166,6 +2166,39 @@ body {
   flex: 0 1 auto;
   min-width: 0;
   margin-top: 2px;
+}
+
+/* Full-density header follows the same space discipline as the Compact
+   density card: the review badge never shrinks (Compact uses flex-shrink:0
+   plus a nowrap label), the actions toggle keeps a WCAG-minimum 24px
+   target, and the header may wrap so a genuinely long name or narrow
+   column moves the badge to its own row instead of clipping it or
+   overlapping the menu control. The patient name keeps the remaining
+   width and wraps internally when needed. */
+.kanban-board:not(.kanban-board-compact) .kanban-card-header {
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+}
+
+.kanban-board:not(.kanban-board-compact) .kanban-card-header .kanban-card-review {
+  flex: 0 0 auto;
+  min-width: auto;
+  max-width: 100%;
+  margin-top: 0;
+}
+
+/* The PMS sync chip (when present) is also a header flex item - keep it
+   from being squeezed so short labels stay readable. */
+.kanban-board:not(.kanban-board-compact) .kanban-card-header .pms-sync-badge {
+  flex: 0 0 auto;
+}
+
+.kanban-board:not(.kanban-board-compact) .kanban-card-header .case-actions-toggle {
+  margin-top: 0;
+  width: 24px;
+  height: 24px;
+  font-size: 0.8rem;
 }
 
 /* Dentist row with attachment indicator */
@@ -2229,15 +2262,20 @@ body {
   margin: 2px 0;
 }
 
-/* Label/value rows (Full view only): the label hugs its value and the
-   value column wraps on its own line on narrow columns instead of
-   splitting mid-field. Scoped to non-compact boards so compact keeps its
-   block-level ellipsis and its deliberate row hiding. */
+/* Label/value rows (Full view only): plain inline flow keeps each label
+   glued to the start of its value, so wrapping breaks mid-value instead
+   of orphaning a label (e.g. "Due:") on its own line. Status indicators
+   inside the value wrap as inline-block units. Scoped to non-compact
+   boards so compact keeps its deliberate single-line ellipsis rows. */
 .kanban-board:not(.kanban-board-compact) .kanban-card-content p.kv-row {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: 1px 6px;
+  display: block;
+}
+
+/* The attachment chip keeps its right-edge anchor in the inline dentist
+   row (margin-left:auto is a no-op outside flex). */
+.kanban-board:not(.kanban-board-compact) .kanban-card-content .attachment-indicator {
+  float: right;
+  margin-left: 6px;
 }
 
 .kanban-board:not(.kanban-board-compact) .kanban-card-content p.kv-row > strong {
@@ -2254,7 +2292,7 @@ body {
 .kanban-card-dates {
   display: flex;
   flex-wrap: wrap;
-  gap: 2px 14px;
+  gap: 2px 10px;
   font-size: 0.65rem;
   color: var(--text-light);
   margin-top: 8px;
