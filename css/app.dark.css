@@ -364,9 +364,12 @@
 }
 
 [data-theme="dark"] .kanban-card-header,
-[data-theme="dark"] .case-meta-label,
-[data-theme="dark"] .date-label {
+[data-theme="dark"] .case-meta-label {
   color: var(--text-light);
+}
+
+[data-theme="dark"] .date-label {
+  color: var(--text-secondary);
 }
 
 [data-theme="dark"] .kanban-empty,
