@@ -3822,7 +3822,7 @@
         "seo": {
             "index": {
                 "title": "DentaTrak - Software visuale di tracciamento dei casi dentali per studi",
-                "description": "DentaTrak è il software visuale di tracciamento dei casi dentali per gli studi dentistici. Vedi l'intero flusso di lavoro dei casi a colpo d'occhio e segui ogni corona, impianto e caso del laboratorio dalla preparazione alla consegna. Prova DentaTrak gratis. Nessuna carta di credito richiesta."
+                "description": "DentaTrak è il software visuale di tracciamento dei casi dentali per gli studi dentistici. Vedi l'intero flusso di lavoro dei casi a colpo d'occhio e segui ogni corona, impianto e caso del laboratorio dalla preparazione alla consegna."
             },
             "about": {
                 "title": "Chi siamo | Software di tracciamento dei casi dentali DentaTrak",
@@ -5596,13 +5596,10 @@
             }
         },
         "hero": {
-            "title": "Scopri quali casi richiedono attenzione prima che arrivi il paziente.",
+            "title": "Casi di laboratorio odontotecnico, organizzati.",
             "lead": "Segui ogni caso dallo studio al laboratorio e ritorno. Vedi i rischi per gli appuntamenti, i passaggi di consegne in sospeso e i ritardi del laboratorio, con dettagli del paziente, file e conversazioni collegati al caso.",
             "start_free": "Prova DentaTrak gratis",
-            "see_how": "Scopri come funziona",
-            "trial_note": "Prova DentaTrak gratis. Nessuna carta di credito richiesta.",
-            "trust_line": "BAA disponibile in onboarding • Accesso ai casi per ruolo • Integrazione Open Dental",
-            "trust_plan_note": "L’integrazione con Open Dental è inclusa nei piani Control e Scale."
+            "see_how": "Scopri come funziona"
         },
         "problem": {
             "eyebrow": "Il problema",
@@ -5641,7 +5638,7 @@
         "pricing": {
             "eyebrow": "Prezzi",
             "title": "Piani semplici per studi di dimensioni diverse.",
-            "lead": "Ogni piano include il flusso di lavoro dei casi principale di DentaTrak. Prova DentaTrak gratis. Nessuna carta di credito richiesta.",
+            "lead": "Ogni piano include il flusso di lavoro dei casi principale di DentaTrak.",
             "transparency_title": "Prezzi trasparenti. Nessuna chiamata commerciale richiesta.",
             "transparency_body": "Non dovresti dover fissare un incontro solo per sapere quanto costa un software. DentaTrak pubblica i propri prezzi in modo chiaro, così puoi decidere se fa per il tuo studio.",
             "operate": "Operate",
@@ -5668,11 +5665,11 @@
             "control_features_4": "Practice Insights e Lab Insights",
             "control_features_5": "Raccomandazioni",
             "control_features_6": "Integrazione con Open Dental",
-            "scale_description": "Per le organizzazioni che gestiscono più studi — un unico abbonamento copre l'intera organizzazione.",
+            "scale_description": "Per le organizzazioni che gestiscono più studi. Un unico abbonamento copre l'intera organizzazione.",
             "scale_features_1": "Tutto ciò che include Control",
             "scale_features_2": "Include fino a 5 studi",
-            "scale_features_4": "All practices — una vista dei casi consolidata",
-            "scale_features_5": "Organization Insights — confronta le prestazioni degli studi",
+            "scale_features_4": "Tutti gli studi in una vista dei casi consolidata",
+            "scale_features_5": "Organization Insights per confrontare le prestazioni degli studi",
             "scale_features_3": "Studi aggiuntivi disponibili",
             "scale_addon_title": "Aggiungi altri studi",
             "scale_addon_month": "+99 $/mese per studio aggiuntivo",
@@ -5701,7 +5698,7 @@
         "insights_section": {
             "eyebrow": "Practice Insights e Lab Insights",
             "title": "Dove i casi stanno accumulando ritardo?",
-            "lead": "Practice e Lab Insights trasformano l’attività quotidiana in una visione chiara di volume dei casi, carico attuale, tempi di consegna dei laboratori, puntualità e rifacimenti — per individuare dove i casi rallentano prima che il ritardo raggiunga il paziente.",
+            "lead": "Practice e Lab Insights trasformano l’attività quotidiana in una visione chiara di volume dei casi, carico attuale, tempi di consegna dei laboratori, puntualità e rifacimenti, per individuare dove i casi rallentano prima che il ritardo raggiunga il paziente.",
             "included": "Practice Insights, Lab Insights e le raccomandazioni sono inclusi nei piani Control e Scale.",
             "features": {
                 "1_title": "Volume e stato dei casi",
@@ -5709,7 +5706,7 @@
                 "2_title": "Tempi di consegna e rischio appuntamento",
                 "2_body": "Confronta i tempi dei laboratori e individua i casi in cui l\\u2019appuntamento del paziente potrebbe arrivare prima che il lavoro sia pronto.",
                 "3_title": "Confronto tra laboratori e rifacimenti",
-                "3_body": "Confronta carico di lavoro, tassi di ritardo e rifacimenti attribuiti per laboratorio — le revisioni sono contate separatamente, quindi gli aggiustamenti di routine non sono scambiati per errori. I consigli suggeriscono passi pratici."
+                "3_body": "Confronta carico di lavoro, tassi di ritardo e rifacimenti attribuiti per laboratorio. Le revisioni sono contate separatamente, quindi gli aggiustamenti di routine non sono scambiati per errori. I consigli suggeriscono passi pratici."
             },
             "org_note": "Con il piano Scale, gli utenti autorizzati possono vedere i casi di tutti i loro studi in un unico posto e confrontare il carico di lavoro e le prestazioni dei laboratori tra gli studi con Insights a livello di organizzazione."
         },
@@ -5732,18 +5729,16 @@
             },
             "cards": {
                 "1_title": "Accesso per ruolo e per caso",
-                "1_body": "Controlli lato server verificano l’appartenenza allo studio e i permessi del caso prima di restituire informazioni protette. I ruoli proprietario, amministratore e utente, l’accesso opzionale Solo assegnati e la revoca immediata decidono chi può aprire un caso — per i membri del team e per gli utenti di laboratorio invitati.",
+                "1_body": "Controlli lato server verificano l’appartenenza allo studio e i permessi del caso prima di restituire informazioni protette. I ruoli proprietario, amministratore e utente, l’accesso opzionale Solo assegnati e la revoca immediata decidono chi può aprire un caso, per i membri del team e per gli utenti di laboratorio invitati.",
                 "2_title": "Autenticazione a due fattori",
                 "2_body": "La verifica opzionale con app di autenticazione aggiunge un secondo livello di protezione oltre alla password. Le sessioni inattive scadono automaticamente con un avviso preventivo.",
                 "3_title": "Accesso privato agli allegati",
                 "3_body": "Foto colore, scansioni e documenti restano in un archivio cloud privato e si aprono solo tramite link autorizzati a breve durata.",
                 "4_title": "Gli accessi alle PHI sono registrati",
-                "4_body": "L’apertura di un caso, la stampa e il download o l’esportazione di file relativi al paziente vengono registrati con utente e timestamp. Proprietari e amministratori dello studio consultano il rapporto in Impostazioni > Dati e privacy e possono esportarlo in CSV — un registro distinto dalla normale cronologia di modifica del caso.",
+                "4_body": "L’apertura di un caso, la stampa e il download o l’esportazione di file relativi al paziente vengono registrati con utente e timestamp. Proprietari e amministratori dello studio consultano il rapporto in Impostazioni > Dati e privacy e possono esportarlo in CSV, un registro distinto dalla normale cronologia di modifica del caso.",
                 "5_title": "I dettagli dei pazienti restano fuori dalle notifiche",
                 "5_body": "Le email di notifica evitano i dettagli del paziente e del caso. I membri del team accedono per vedere le informazioni protette e collaborare con commenti e @menzioni."
-            },
-            "baa_title": "Un Business Associate Agreement fa parte dell’onboarding.",
-            "baa_body": "Gli studi che usano DentaTrak con informazioni sanitarie protette accettano una BAA durante la configurazione dello studio, e DentaTrak mantiene una BAA con il suo provider di hosting cloud. Una BAA e le misure di sicurezza tecniche supportano gli obblighi di uno studio — non sostituiscono le sue politiche né un uso corretto."
+            }
         },
         "mobile_section": {
             "eyebrow": "Browser mobile",
@@ -5784,8 +5779,7 @@
             "field_email_required": "L'email di lavoro è obbligatoria.",
             "field_practice_invalid": "Il nome dello studio è obbligatorio e deve contenere al massimo 120 caratteri.",
             "field_phone_too_long": "Il numero di telefono è troppo lungo.",
-            "field_preferred_too_long": "Il giorno o l'orario preferito è troppo lungo.",
-            "fictional_badge": "Dati demo fittizi"
+            "field_preferred_too_long": "Il giorno o l'orario preferito è troppo lungo."
         },
         "mock": {
             "phones_aria": "Anteprima del prodotto nel browser mobile",
@@ -6006,32 +6000,32 @@
         "collaboration": {
             "eyebrow": "Collaborazione",
             "title": "Chi deve agire adesso?",
-            "lead": "Ogni caso mostra la sua fase di workflow, il laboratorio e il responsabile. Commenti, @menzioni, foto e file restano con il caso — il prossimo passaggio è scritto, non affidato alla memoria.",
+            "lead": "Ogni caso mostra la sua fase di workflow, il laboratorio e il responsabile. Commenti, @menzioni, foto e file restano con il caso. Il prossimo passaggio è scritto, non affidato alla memoria.",
             "features": {
                 "1_title": "Commenti e @menzioni",
-                "1_body": "Discuti un caso proprio dove avviene il lavoro. Menziona un collega per coinvolgerlo — riceverà una notifica invece di un messaggio perso.",
+                "1_body": "Discuti un caso proprio dove avviene il lavoro. Menziona un collega per coinvolgerlo. Riceverà una notifica invece di un messaggio perso.",
                 "2_title": "Foto colore e file nel contesto",
-                "2_body": "Foto colore, scansioni e documenti restano associati al restauro a cui appartengono. Allegati illimitati per caso, senza quota di archiviazione totale — si applicano limiti per file (fino a 250 MB per scansioni STL, OBJ e PLY, che si aprono direttamente nel caso).",
+                "2_body": "Foto colore, scansioni e documenti restano associati al restauro a cui appartengono. Allegati illimitati per caso, senza quota di archiviazione totale. Si applicano limiti per file (fino a 250 MB per scansioni STL, OBJ e PLY, che si aprono direttamente nel caso).",
                 "3_title": "Notifiche e cronologia",
-                "3_body": "Ricevi una notifica quando qualcosa cambia e rileggi tutta la cronologia — cambi di stato, assegnazioni e commenti — prima di sollecitare.",
+                "3_body": "Ricevi una notifica quando qualcosa cambia e rileggi tutta la cronologia dei cambi di stato, delle assegnazioni e dei commenti prima di sollecitare.",
                 "4_title": "Conferma del laboratorio facoltativa",
-                "4_body": "Con la conferma del laboratorio attiva, l’invio di un caso chiede al laboratorio di confermare la ricezione — con o senza data di rientro promessa — oppure di richiedere informazioni mancanti. Il personale può anche registrare una conferma ricevuta per telefono o e-mail, sempre contrassegnata come registrata dallo staff e non come risposta del laboratorio."
+                "4_body": "Con la conferma del laboratorio attiva, l’invio di un caso chiede al laboratorio di confermare la ricezione, con o senza data di rientro promessa, oppure di richiedere informazioni mancanti. Il personale può anche registrare una conferma ricevuta per telefono o e-mail, sempre contrassegnata come registrata dallo staff e non come risposta del laboratorio."
             },
             "mock_aria": "Esempio di thread di commenti di un caso con commenti, una menzione, un\\u2019immagine allegata e aggiornamenti di attività.",
             "mock_case": "Sofia Patel · Faccetta",
             "mock_tab": "Commenti",
-            "mock_c1": "La foto del colore aggiornata è arrivata. {mention} — conferma l\\u2019orario dell\\u2019appuntamento con la paziente.",
+            "mock_c1": "La foto del colore aggiornata è arrivata. {mention}, conferma l’orario dell’appuntamento con la paziente.",
             "mock_c2": "Confermato per il 14 marzo alle 14:00.",
             "mock_activity": "Stato cambiato in Inviato al laboratorio esterno · 7 marzo",
             "mock_composer": "Aggiungi un commento… Usa @ per menzionare un collega",
             "lab_note": "Gli utenti di laboratorio autorizzati vedono solo i casi consentiti dal loro ruolo.",
-            "ack_note": "La data di rientro promessa è l’aspettativa del laboratorio, non una garanzia — e resta distinta dalla data richiesta e dall’appuntamento del paziente."
+            "ack_note": "La data di rientro promessa è l’aspettativa del laboratorio, non una garanzia, e resta distinta dalla data richiesta e dall’appuntamento del paziente."
         },
         "ask": {
             "name": "Ask DentaTrak",
             "eyebrow": "Assistente nel prodotto",
             "title": "Chiedi a DentaTrak. Ottieni risposte pratiche.",
-            "lead": "Un assistente integrato in DentaTrak che risponde a domande d\\u2019uso e a semplici domande sui casi — usando solo le informazioni che ogni utente è già autorizzato a vedere.",
+            "lead": "Un assistente integrato in DentaTrak che risponde a domande d’uso e a semplici domande sui casi usando solo le informazioni che ogni utente è già autorizzato a vedere.",
             "features": {
                 "1_title": "Guida d\\u2019uso, sul posto",
                 "1_body": "Chiedi ad esempio «Come aggiungo un utente di laboratorio?» e ottieni una risposta tratta dal prodotto stesso, nella tua lingua.",
@@ -6051,33 +6045,30 @@
         "pms": {
             "eyebrow": "Integrazione",
             "title": "Connetti Open Dental.",
-            "lead": "Collega il tuo studio Open Dental così i casi di laboratorio supportati appaiono automaticamente in DentaTrak — paziente, data di scadenza, data dell’appuntamento, laboratorio e istruzioni sono importati una volta, e i campi di proprietà di Open Dental restano sincronizzati. La sincronizzazione bidirezionale opzionale riscrive i traguardi di stato nel caso di laboratorio Open Dental.",
-            "note": "Disponibile nei piani Control e Scale.",
+            "lead": "Collega il tuo studio Open Dental così i casi di laboratorio supportati appaiono automaticamente in DentaTrak. Paziente, data di scadenza, data dell’appuntamento, laboratorio e istruzioni sono importati una volta, e i campi di proprietà di Open Dental restano sincronizzati. La sincronizzazione bidirezionale opzionale riscrive i traguardi di stato nel caso di laboratorio Open Dental.",
             "flow_aria": "Un caso di laboratorio Open Dental che diventa automaticamente un caso DentaTrak.",
             "mock_source": "Nuovo caso di laboratorio ricevuto",
             "mock_source_detail": "Corona · Appuntamento paziente 19 marzo",
             "mock_target": "Caso creato in DentaTrak",
-            "mock_target_detail": "Sincronizzato automaticamente — nessuna doppia registrazione.",
-            "scanner_note": "Le integrazioni con gli scanner arriveranno presto e collegheranno le piattaforme degli scanner direttamente — cosa diversa dall’allegare un file di scansione a un caso, che funziona già oggi."
+            "mock_target_detail": "Sincronizzato automaticamente. Nessuna doppia registrazione."
         },
         "languages": {
             "eyebrow": "Lingue",
             "title": "DentaTrak parla la lingua del tuo team.",
-            "lead": "Il prodotto è localizzato in tutto — flussi di lavoro, notifiche, Insights e Ask DentaTrak — affinché ogni membro del team lavori nella lingua in cui pensa.",
+            "lead": "Il prodotto è localizzato in tutto, compresi flussi di lavoro, notifiche, Insights e Ask DentaTrak, affinché ogni membro del team lavori nella lingua in cui pensa.",
             "note": "Inglese, tedesco, spagnolo, francese, francese canadese, italiano, portoghese brasiliano, russo e coreano."
         },
         "compare": {
-            "eyebrow": "Una domanda legittima",
             "title": "Stai già seguendo i casi altrove?",
             "lead": "Forse hai già assegnazioni, allegati e un posto dove parlare. Quando quel lavoro riguarda casi dentali, vale la pena porsi qualche domanda in più.",
             "q1": "Riesci a vedere quali casi mettono a rischio un appuntamento?",
-            "a1": "DentaTrak collega la data di scadenza del caso alla data dell’appuntamento del paziente. Quando un appuntamento cade nella finestra di avviso che hai scelto (3 giorni per impostazione predefinita) e il caso non è ancora consegnato, viene segnalato come Rischio appuntamento sulla bacheca e in Insights. In ritardo, In scadenza e Da rivedere funzionano allo stesso modo — ogni indicatore dipende da date reali e dallo stato del workflow del caso.",
+            "a1": "DentaTrak collega la data di scadenza del caso alla data dell’appuntamento del paziente. Quando un appuntamento cade nella finestra di avviso che hai scelto e il caso non è ancora consegnato, viene segnalato come Rischio appuntamento sulla bacheca e in Insights. Puoi anche seguire separatamente i casi In ritardo, In scadenza e Da rivedere.",
             "q2": "Riesci a capire dove è avvenuto il ritardo?",
-            "a2": "Ogni cambio di stato, assegnazione e consegna al laboratorio è registrato nella cronologia del caso, così il team può rileggerla prima di sollecitare. Insights mostra quanto tempo i casi hanno trascorso in ogni laboratorio e quali erano in ritardo — mostra dove è andato il tempo senza attribuire colpe.",
+            "a2": "Ogni cambio di stato, assegnazione e consegna al laboratorio è registrato nella cronologia del caso, così il team può rileggerla prima di sollecitare. Insights mostra quanto tempo i casi hanno trascorso in ogni laboratorio e quali erano in ritardo. Mostra dove è andato il tempo senza attribuire colpe.",
             "q3": "Riesci a confrontare i laboratori senza un altro foglio di calcolo?",
-            "a3": "Lab Insights riporta tempi di consegna, puntualità, carico di lavoro e rifacimenti attribuiti al laboratorio per ogni laboratorio. Le revisioni sono contate separatamente dai rifacimenti — un aggiustamento di routine non è trattato come un errore.",
+            "a3": "Lab Insights riporta tempi di consegna, puntualità, carico di lavoro e rifacimenti attribuiti al laboratorio per ogni laboratorio. Le revisioni sono contate separatamente dai rifacimenti. Un aggiustamento di routine non è trattato come un errore.",
             "q4": "Il tuo sistema è pensato per le informazioni dei pazienti?",
-            "a4": "DentaTrak è progettato per questo. Gli studi accettano un Business Associate Agreement durante l’onboarding, l’accesso ai casi segue il ruolo e i permessi di ogni utente, gli allegati restano in uno spazio privato e si aprono tramite link a breve durata, e l’accesso ai casi è registrato. Verifica se il tuo fornitore supporta l’uso previsto delle informazioni dei pazienti e firmerà un Business Associate Agreement quando necessario."
+            "a4": "DentaTrak è progettato per questo. L’accesso ai casi segue il ruolo e i permessi di ogni utente, gli allegati restano in uno spazio privato e si aprono tramite link a breve durata, e l’accesso ai casi è registrato. Verifica se il tuo fornitore supporta l’uso previsto delle informazioni dei pazienti e firmerà un Business Associate Agreement quando necessario."
         }
     },
     "legal": {

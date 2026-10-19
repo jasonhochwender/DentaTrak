@@ -3822,7 +3822,7 @@
         "seo": {
             "index": {
                 "title": "DentaTrak - Visual Dental Case Tracking Software for Practices",
-                "description": "DentaTrak is visual dental case tracking software for dental practices. See your entire case workflow at a glance and follow every crown, implant, and lab case from prep to delivery. Try DentaTrak free. No credit card required."
+                "description": "DentaTrak is visual dental case tracking software for dental practices. See your entire case workflow at a glance and follow every crown, implant, and lab case from prep to delivery."
             },
             "about": {
                 "title": "About DentaTrak | Dental Case Tracking Software",
@@ -5596,13 +5596,10 @@
             }
         },
         "hero": {
-            "title": "Know which cases need attention before the patient arrives.",
+            "title": "Dental lab cases, organized.",
             "lead": "Track each case from the practice to the lab and back. See appointment risks, outstanding handoffs, and lab delays, with patient details, files, and conversations connected to the case.",
             "start_free": "Try DentaTrak Free",
-            "see_how": "See How It Works",
-            "trial_note": "Try DentaTrak free. No credit card required.",
-            "trust_line": "BAA available during onboarding • Role-based case access • Open Dental integration",
-            "trust_plan_note": "Open Dental integration is included with the Control and Scale plans."
+            "see_how": "See How It Works"
         },
         "problem": {
             "eyebrow": "The Problem",
@@ -5636,12 +5633,12 @@
         "founder": {
             "eyebrow": "Built from Real Experience",
             "title": "Built by a dentist who wanted a better way to manage cases.",
-            "lead": "Dr. William Verrillo, a practicing dentist, developed DentaTrak to give dental teams one current picture of every case—from the practice to the lab and back to the patient."
+            "lead": "Dr. William Verrillo, a practicing dentist, developed DentaTrak to give dental teams one current picture of every case, from the practice to the lab and back to the patient."
         },
         "pricing": {
             "eyebrow": "Pricing",
             "title": "Simple plans for practices of different sizes.",
-            "lead": "Every plan includes the core DentaTrak case workflow. Start with a Try DentaTrak free. No credit card required.",
+            "lead": "Every plan includes the core DentaTrak case workflow.",
             "transparency_title": "Straightforward pricing. No sales call required.",
             "transparency_body": "You shouldn’t have to schedule a meeting just to find out what software costs. DentaTrak publishes its pricing clearly so you can decide whether it fits your practice.",
             "operate": "Operate",
@@ -5668,11 +5665,11 @@
             "control_features_4": "Practice and Lab Insights",
             "control_features_5": "Recommendations",
             "control_features_6": "Open Dental integration",
-            "scale_description": "For organizations managing multiple practices — one subscription covers the organization.",
+            "scale_description": "For organizations managing multiple practices. One subscription covers the organization.",
             "scale_features_1": "Everything in Control",
             "scale_features_2": "Includes up to 5 practices",
-            "scale_features_4": "All practices — one consolidated case view",
-            "scale_features_5": "Organization Insights — compare practice performance",
+            "scale_features_4": "All practices in one consolidated case view",
+            "scale_features_5": "Organization Insights to compare practice performance",
             "scale_features_3": "Additional practices available",
             "scale_addon_title": "Add more practices",
             "scale_addon_month": "+$99/month per additional practice",
@@ -5701,7 +5698,7 @@
         "insights_section": {
             "eyebrow": "Practice & Lab Insights",
             "title": "Where are cases getting delayed?",
-            "lead": "Practice and Lab Insights turn everyday activity into a clear view of case volume, current workload, lab turnaround, on-time rates, and remakes — so you can spot where cases slow down and act before delays reach the patient.",
+            "lead": "Practice and Lab Insights turn everyday activity into a clear view of case volume, current workload, lab turnaround, on-time rates, and remakes, so you can spot where cases slow down and act before delays reach the patient.",
             "included": "Practice Insights, Lab Insights, and Recommendations are included in the Control and Scale plans.",
             "features": {
                 "1_title": "Case volume and status",
@@ -5709,7 +5706,7 @@
                 "2_title": "Turnaround and appointment risk",
                 "2_body": "Compare lab turnaround times and spot cases where the patient appointment may arrive before the case is ready.",
                 "3_title": "Lab comparison and remakes",
-                "3_body": "Compare workload, late rates, and lab-attributed remakes by lab — revisions are counted separately, so routine adjustments are not mistaken for errors. Recommendations surface practical next steps."
+                "3_body": "Compare workload, late rates, and lab-attributed remakes by lab. Revisions are counted separately, so routine adjustments are not mistaken for errors. Recommendations surface practical next steps."
             },
             "org_note": "On the Scale plan, authorized users can view cases across their practices in one place and compare practice workload and lab performance with organization-level Insights."
         },
@@ -5732,18 +5729,16 @@
             },
             "cards": {
                 "1_title": "Role-based and case-level access",
-                "1_body": "Server-side checks verify practice membership and case permissions before protected information is returned. Owner, admin, and user roles, optional Assigned Only access, and immediate revocation decide who can open a case — for team members and invited lab users alike.",
+                "1_body": "Server-side checks verify practice membership and case permissions before protected information is returned. Owner, admin, and user roles, optional Assigned Only access, and immediate revocation decide who can open a case, for team members and invited lab users alike.",
                 "2_title": "Two-factor authentication",
                 "2_body": "Optional authenticator-app verification adds a second layer of protection beyond a password. Inactive sessions expire automatically with a warning before sign-out.",
                 "3_title": "Private attachment access",
                 "3_body": "Shade photos, scans, and documents stay in private cloud storage and open only through short-lived, authorized links.",
                 "4_title": "PHI access is audited",
-                "4_body": "Opening a case, printing it, and downloading or exporting patient-related files are each logged with the user and timestamp. Practice owners and admins review that audit report under Settings > Data & Privacy and can export it to CSV — a separate record from a case's ordinary edit history.",
+                "4_body": "Opening a case, printing it, and downloading or exporting patient-related files are each logged with the user and timestamp. Practice owners and admins review that audit report under Settings > Data & Privacy and can export it to CSV, a separate record from a case's ordinary edit history.",
                 "5_title": "Patient details stay out of notifications",
                 "5_body": "Notification emails avoid patient and case details. Team members sign in to view protected information and collaborate through comments and @mentions."
-            },
-            "baa_title": "A Business Associate Agreement is part of onboarding.",
-            "baa_body": "Practices using DentaTrak with protected health information accept a BAA when their practice is set up, and DentaTrak maintains a BAA with its cloud hosting provider. A BAA and technical safeguards support a practice's obligations — they do not replace its own policies and proper use."
+            }
         },
         "mobile_section": {
             "eyebrow": "Mobile Browser",
@@ -5784,8 +5779,7 @@
             "field_email_required": "Work email is required.",
             "field_practice_invalid": "Practice name is required and must be 120 characters or less.",
             "field_phone_too_long": "Phone number is too long.",
-            "field_preferred_too_long": "Preferred day or time is too long.",
-            "fictional_badge": "Fictional demo data"
+            "field_preferred_too_long": "Preferred day or time is too long."
         },
         "mock": {
             "phones_aria": "Mobile browser product preview",
@@ -6006,32 +6000,32 @@
         "collaboration": {
             "eyebrow": "Collaboration",
             "title": "Who needs to act next?",
-            "lead": "Every case shows its workflow stage, lab, and assignee. Comments, @mentions, photos, and files stay with the case — so the next handoff is written down, not remembered.",
+            "lead": "Every case shows its workflow stage, lab, and assignee. Comments, @mentions, photos, and files stay with the case, so the next handoff is written down, not remembered.",
             "features": {
                 "1_title": "Comments and @mentions",
-                "1_body": "Discuss a case right where the work happens. Mention a teammate to pull them in — they get a notification instead of a lost text.",
+                "1_body": "Discuss a case right where the work happens. Mention a teammate to pull them in. They get a notification instead of a lost text.",
                 "2_title": "Shade photos and files in context",
-                "2_body": "Shade photos, scans, and documents stay attached to the restoration they belong to. Unlimited case attachments, with no total storage quota — per-file limits apply (up to 250 MB for STL, OBJ, and PLY scans, which open right in the case).",
+                "2_body": "Shade photos, scans, and documents stay attached to the restoration they belong to. Unlimited case attachments, with no total storage quota. Per-file limits apply (up to 250 MB for STL, OBJ, and PLY scans, which open right in the case).",
                 "3_title": "Notifications and history",
-                "3_body": "Get notified when something changes and review the full history — status changes, assignments, and comments — before you follow up.",
+                "3_body": "Get notified when something changes and review the full history of status changes, assignments, and comments before you follow up.",
                 "4_title": "Optional lab acknowledgment",
-                "4_body": "With Lab acknowledgment turned on, sending a case to a lab asks it to confirm receipt — with or without a promised return date — or request missing information. Staff can also record a confirmation received by phone or email, always labeled as staff-recorded rather than the lab's own answer."
+                "4_body": "With Lab acknowledgment turned on, sending a case to a lab asks it to confirm receipt, with or without a promised return date, or request missing information. Staff can also record a confirmation received by phone or email, always labeled as staff-recorded rather than the lab's own answer."
             },
             "mock_aria": "Case comment thread example showing comments, a mention, an image attachment, and activity updates.",
             "mock_case": "Sofia Patel · Veneer",
             "mock_tab": "Comments",
-            "mock_c1": "The updated shade photo is in. {mention} — please confirm the appointment time with the patient.",
+            "mock_c1": "The updated shade photo is in. {mention}, please confirm the appointment time with the patient.",
             "mock_c2": "Confirmed for Mar 14 at 2:00 PM.",
             "mock_activity": "Status changed to Sent To External Lab · Mar 7",
             "mock_composer": "Add a comment… Use @ to mention a teammate",
             "lab_note": "Authorized lab users see only the cases their role permits.",
-            "ack_note": "A promised return date is the lab's expectation, not a guarantee — and it stays separate from your requested due date and the patient's appointment."
+            "ack_note": "A promised return date is the lab's expectation, not a guarantee, and it stays separate from your requested due date and the patient's appointment."
         },
         "ask": {
             "name": "Ask DentaTrak",
             "eyebrow": "In-Product Assistant",
             "title": "Ask DentaTrak. Get practical answers.",
-            "lead": "An assistant built into DentaTrak that answers how-to questions and simple case questions — using only the information each user is already allowed to see.",
+            "lead": "An assistant built into DentaTrak that answers how-to questions and simple case questions using only the information each user is already allowed to see.",
             "features": {
                 "1_title": "How-to help, in place",
                 "1_body": "Ask things like “How do I add a lab user?” and get an answer drawn from the product itself, in your language.",
@@ -6051,33 +6045,30 @@
         "pms": {
             "eyebrow": "Integration",
             "title": "Connect Open Dental.",
-            "lead": "Link your Open Dental practice so supported lab cases appear in DentaTrak automatically — patient, due date, appointment date, lab, and instructions imported once, with the fields Open Dental owns kept in sync. Optional two-way sync writes status milestones back to the Open Dental lab case.",
-            "note": "Available on Control and Scale plans.",
+            "lead": "Link your Open Dental practice so supported lab cases appear in DentaTrak automatically. Patient, due date, appointment date, lab, and instructions are imported once, with the fields Open Dental owns kept in sync. Optional two-way sync writes status milestones back to the Open Dental lab case.",
             "flow_aria": "An Open Dental lab case becoming a DentaTrak case automatically.",
             "mock_source": "New lab case received",
             "mock_source_detail": "Crown · Patient appointment Mar 19",
             "mock_target": "Case created in DentaTrak",
-            "mock_target_detail": "Synced automatically — no double entry.",
-            "scanner_note": "Scanner integrations are coming soon and will connect scanner platforms directly — separate from attaching a scan file to a case, which works today."
+            "mock_target_detail": "Synced automatically. No double entry."
         },
         "languages": {
             "eyebrow": "Languages",
             "title": "DentaTrak speaks your team’s language.",
-            "lead": "The product is localized throughout — workflows, notifications, Insights, and Ask DentaTrak — so every team member can work in the language they think in.",
+            "lead": "The product is localized throughout, including workflows, notifications, Insights, and Ask DentaTrak, so every team member can work in the language they think in.",
             "note": "English, German, Spanish, French, Canadian French, Italian, Brazilian Portuguese, Russian, and Korean."
         },
         "compare": {
-            "eyebrow": "A fair question",
             "title": "Already tracking cases somewhere else?",
             "lead": "You may already have assignments, attachments, and a place to talk. When that work involves dental cases, there are a few more questions worth asking.",
             "q1": "Can you see which cases put an appointment at risk?",
-            "a1": "DentaTrak connects the case due date to the patient appointment date. When an appointment falls inside your chosen warning window (3 days by default) and the case is not yet delivered, the case is flagged Appointment Risk on the board and in Insights. Late, Due Soon, and Needs Review work the same way — each flag is driven by real dates and workflow status on the case.",
+            "a1": "DentaTrak connects the case due date to the patient appointment date. When an appointment falls inside your chosen warning window and the case is not yet delivered, the case is flagged Appointment Risk on the board and in Insights. You can also track Late, Due Soon, and Needs Review cases independently.",
             "q2": "Can you tell where the delay happened?",
-            "a2": "Every status change, assignment, and lab handoff is recorded on the case timeline, so your team can review the history before following up. Insights shows how long cases spent with each lab and which ones ran late — it shows where the time went without assigning fault.",
+            "a2": "Every status change, assignment, and lab handoff is recorded on the case timeline, so your team can review the history before following up. Insights shows how long cases spent with each lab and which ones ran late. It shows where the time went without assigning fault.",
             "q3": "Can you compare lab performance without building another spreadsheet?",
             "a3": "Lab Insights reports turnaround time, on-time rates, workload, and lab-attributed remakes for each lab. Revisions are counted separately from remakes, so a routine adjustment is not treated as an error.",
             "q4": "Is your system intended to handle patient information?",
-            "a4": "DentaTrak is designed for it. Practices accept a Business Associate Agreement during onboarding, case access follows each user's role and permissions, attachments stay in private storage and open through short-lived links, and case access is logged. Check whether your provider supports your intended use of patient information and will enter into a Business Associate Agreement when required."
+            "a4": "DentaTrak is designed for it. Case access follows each user's role and permissions, attachments stay in private storage and open through short-lived links, and case access is logged. Check whether your provider supports your intended use of patient information and will enter into a Business Associate Agreement when required."
         }
     },
     "legal": {

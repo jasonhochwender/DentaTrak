@@ -1828,8 +1828,7 @@
             "field_email_required": "O e-mail profissional é obrigatório.",
             "field_practice_invalid": "O nome da clínica é obrigatório e deve ter 120 caracteres ou menos.",
             "field_phone_too_long": "O número de telefone é longo demais.",
-            "field_preferred_too_long": "O dia ou horário preferido é longo demais.",
-            "fictional_badge": "Dados de demonstração fictícios"
+            "field_preferred_too_long": "O dia ou horário preferido é longo demais."
         },
         "footer": {
             "product": "Produto",
@@ -1850,21 +1849,18 @@
         "founder": {
             "eyebrow": "Criado a partir de experiência real",
             "title": "Criado por um dentista que queria uma forma melhor de gerenciar casos.",
-            "lead": "O Dr. William Verrillo, dentista em atividade, desenvolveu o DentaTrak para dar às equipes odontológicas uma visão única e atual de cada caso — da clínica ao laboratório e de volta ao paciente."
+            "lead": "O Dr. William Verrillo, dentista em atividade, desenvolveu o DentaTrak para dar às equipes odontológicas uma visão única e atual de cada caso, da clínica ao laboratório e de volta ao paciente."
         },
         "hero": {
-            "title": "Saiba quais casos precisam de atenção antes de o paciente chegar.",
+            "title": "Casos de laboratório dentário, organizados.",
             "lead": "Acompanhe cada caso do consultório ao laboratório e de volta. Veja riscos de consulta, repasses pendentes e atrasos do laboratório, com dados do paciente, arquivos e conversas conectados ao caso.",
             "start_free": "Experimente o DentaTrak grátis",
-            "see_how": "Veja como funciona",
-            "trial_note": "Experimente o DentaTrak grátis. Não é necessário cartão de crédito.",
-            "trust_line": "BAA disponível no onboarding • Acesso a casos por função • Integração com Open Dental",
-            "trust_plan_note": "A integração com Open Dental está incluída nos planos Control e Scale."
+            "see_how": "Veja como funciona"
         },
         "insights_section": {
             "eyebrow": "Practice e Lab Insights",
             "title": "Onde os casos estão atrasando?",
-            "lead": "Practice e Lab Insights transformam a atividade diária em uma visão clara do volume de casos, da carga atual, dos prazos de laboratório, da pontualidade e das refações — para você identificar onde os casos desaceleram antes de o atraso chegar ao paciente.",
+            "lead": "Practice e Lab Insights transformam a atividade diária em uma visão clara do volume de casos, da carga atual, dos prazos de laboratório, da pontualidade e das refações, para você identificar onde os casos desaceleram antes de o atraso chegar ao paciente.",
             "included": "Practice Insights, Lab Insights e recomendações estão incluídos nos planos Control e Scale.",
             "features": {
                 "1_title": "Volume e status de casos",
@@ -1872,7 +1868,7 @@
                 "2_title": "Prazo de entrega e risco para a consulta",
                 "2_body": "Compare os prazos dos laboratórios e identifique casos em que a consulta do paciente pode chegar antes do trabalho ficar pronto.",
                 "3_title": "Comparação de laboratórios e refações",
-                "3_body": "Compare carga de trabalho, taxas de atraso e refações atribuídas por laboratório — as revisões são contadas separadamente, então ajustes de rotina não são confundidos com erros. As recomendações sugerem próximos passos práticos."
+                "3_body": "Compare carga de trabalho, taxas de atraso e refações atribuídas por laboratório. As revisões são contadas separadamente, então ajustes de rotina não são confundidos com erros. As recomendações sugerem próximos passos práticos."
             },
             "org_note": "No plano Scale, usuários autorizados podem ver os casos de todos os seus consultórios em um só lugar e comparar a carga de trabalho e o desempenho dos laboratórios entre os consultórios com Insights em nível de organização."
         },
@@ -1945,7 +1941,7 @@
         "pricing": {
             "eyebrow": "Preços",
             "title": "Planos simples para clínicas de diferentes tamanhos.",
-            "lead": "Todos os planos incluem o fluxo de trabalho de casos principal do DentaTrak. Experimente o DentaTrak grátis. Não é necessário cartão de crédito.",
+            "lead": "Todos os planos incluem o fluxo de trabalho de casos principal do DentaTrak.",
             "transparency_title": "Preços transparentes. Sem necessidade de ligar para vendas.",
             "transparency_body": "Você não deveria precisar agendar uma reunião só para descobrir quanto um software custa. O DentaTrak publica seus preços com clareza para que você decida se ele se encaixa na sua clínica.",
             "operate": "Operate",
@@ -1972,11 +1968,11 @@
             "control_features_4": "Practice e Lab Insights",
             "control_features_5": "Recomendações",
             "control_features_6": "Integração com Open Dental",
-            "scale_description": "Para organizações que gerenciam várias clínicas — uma única assinatura cobre toda a organização.",
+            "scale_description": "Para organizações que gerenciam várias clínicas. Uma única assinatura cobre toda a organização.",
             "scale_features_1": "Tudo do Control",
             "scale_features_2": "Inclui até 5 clínicas",
-            "scale_features_4": "All practices — uma visão de casos consolidada",
-            "scale_features_5": "Organization Insights — compare o desempenho dos consultórios",
+            "scale_features_4": "Todas as clínicas em uma visão de casos consolidada",
+            "scale_features_5": "Organization Insights para comparar o desempenho dos consultórios",
             "scale_features_3": "Clínicas adicionais disponíveis",
             "scale_addon_title": "Adicione mais clínicas",
             "scale_addon_month": "+$99/mês por clínica adicional",
@@ -2015,7 +2011,7 @@
         "seo": {
             "index": {
                 "title": "DentaTrak - Software visual de rastreamento de casos odontológicos para clínicas",
-                "description": "O DentaTrak é um software visual de rastreamento de casos odontológicos para clínicas. Veja todo o seu fluxo de trabalho de casos rapidamente e acompanhe cada coroa, implante e caso de laboratório do preparo à entrega. Experimente o DentaTrak grátis. Não é necessário cartão de crédito."
+                "description": "O DentaTrak é um software visual de rastreamento de casos odontológicos para clínicas. Veja todo o seu fluxo de trabalho de casos rapidamente e acompanhe cada coroa, implante e caso de laboratório do preparo à entrega."
             },
             "about": {
                 "title": "Sobre o DentaTrak | Software de rastreamento de casos odontológicos",
@@ -2113,18 +2109,16 @@
             },
             "cards": {
                 "1_title": "Acesso por função e por caso",
-                "1_body": "Verificações no servidor confirmam a participação no consultório e as permissões do caso antes de devolver informações protegidas. As funções de proprietário, administrador e usuário, o acesso opcional Somente atribuídos e a revogação imediata definem quem pode abrir um caso — para a equipe e para usuários de laboratório convidados.",
+                "1_body": "Verificações no servidor confirmam a participação no consultório e as permissões do caso antes de devolver informações protegidas. As funções de proprietário, administrador e usuário, o acesso opcional Somente atribuídos e a revogação imediata definem quem pode abrir um caso, para a equipe e para usuários de laboratório convidados.",
                 "2_title": "Autenticação de dois fatores",
                 "2_body": "A verificação opcional por aplicativo autenticador adiciona uma segunda camada de proteção além da senha. Sessões inativas expiram automaticamente com um aviso antes do logout.",
                 "3_title": "Acesso privado a anexos",
                 "3_body": "Fotos de cor, escaneamentos e documentos ficam em armazenamento em nuvem privado e só abrem por links autorizados de curta duração.",
                 "4_title": "O acesso a PHI é auditado",
-                "4_body": "Abrir um caso, imprimi-lo e baixar ou exportar arquivos relacionados ao paciente são registrados com usuário e horário. Proprietários e administradores do consultório revisam esse relatório em Configurações > Dados e privacidade e podem exportá-lo em CSV — um registro separado do histórico de edição comum do caso.",
+                "4_body": "Abrir um caso, imprimi-lo e baixar ou exportar arquivos relacionados ao paciente são registrados com usuário e horário. Proprietários e administradores do consultório revisam esse relatório em Configurações > Dados e privacidade e podem exportá-lo em CSV, um registro separado do histórico de edição comum do caso.",
                 "5_title": "Dados do paciente ficam fora das notificações",
                 "5_body": "Os e-mails de notificação evitam dados do paciente e do caso. Os membros da equipe fazem login para ver as informações protegidas e colaborar com comentários e @menções."
-            },
-            "baa_title": "Um Acordo de Associado Comercial faz parte do onboarding.",
-            "baa_body": "Consultórios que usam o DentaTrak com informações de saúde protegidas aceitam uma BAA ao configurar o consultório, e o DentaTrak mantém uma BAA com seu provedor de hospedagem em nuvem. Uma BAA e salvaguardas técnicas apoiam as obrigações do consultório — não substituem suas próprias políticas nem o uso adequado."
+            }
         },
         "hipaa": {
             "title": "HIPAA e segurança | DentaTrak",
@@ -2222,32 +2216,32 @@
         "collaboration": {
             "eyebrow": "Colaboração",
             "title": "Quem precisa agir agora?",
-            "lead": "Cada caso mostra seu estágio, laboratório e responsável. Comentários, @menções, fotos e arquivos ficam com o caso — o próximo repasse fica registrado, não na memória.",
+            "lead": "Cada caso mostra seu estágio, laboratório e responsável. Comentários, @menções, fotos e arquivos ficam com o caso. O próximo repasse fica registrado, não na memória.",
             "features": {
                 "1_title": "Comentários e @menções",
-                "1_body": "Converse sobre um caso onde o trabalho acontece. Mencione um colega para envolvê-lo — ele recebe uma notificação em vez de um texto perdido.",
+                "1_body": "Converse sobre um caso onde o trabalho acontece. Mencione um colega para envolvê-lo. Ele recebe uma notificação em vez de um texto perdido.",
                 "2_title": "Fotos de cor e arquivos em contexto",
-                "2_body": "Fotos de cor, escaneamentos e documentos ficam associados à restauração a que pertencem. Anexos ilimitados por caso, sem cota total de armazenamento — aplicam-se limites por arquivo (até 250 MB para escaneamentos STL, OBJ e PLY, que abrem direto no caso).",
+                "2_body": "Fotos de cor, escaneamentos e documentos ficam associados à restauração a que pertencem. Anexos ilimitados por caso, sem cota total de armazenamento. Aplicam-se limites por arquivo (até 250 MB para escaneamentos STL, OBJ e PLY, que abrem direto no caso).",
                 "3_title": "Notificações e histórico",
-                "3_body": "Receba notificações quando algo muda e revise todo o histórico — mudanças de status, atribuições e comentários — antes de cobrar.",
+                "3_body": "Receba notificações quando algo muda e revise todo o histórico de mudanças de status, atribuições e comentários antes de cobrar.",
                 "4_title": "Confirmação opcional do laboratório",
-                "4_body": "Com a confirmação do laboratório ativada, enviar um caso ao laboratório pede que ele confirme o recebimento — com ou sem data de devolução prometida — ou solicite informações faltantes. A equipe também pode registrar uma confirmação recebida por telefone ou e-mail, sempre identificada como registrada pela equipe, e não como resposta do laboratório."
+                "4_body": "Com a confirmação do laboratório ativada, enviar um caso ao laboratório pede que ele confirme o recebimento, com ou sem data de devolução prometida, ou solicite informações faltantes. A equipe também pode registrar uma confirmação recebida por telefone ou e-mail, sempre identificada como registrada pela equipe, e não como resposta do laboratório."
             },
             "mock_aria": "Exemplo de sequência de comentários de um caso com comentários, uma menção, uma imagem anexada e atualizações de atividade.",
             "mock_case": "Sofia Patel · Faceta",
             "mock_tab": "Comentários",
-            "mock_c1": "A foto de cor atualizada chegou. {mention} — por favor confirme o horário da consulta com a paciente.",
+            "mock_c1": "A foto de cor atualizada chegou. {mention}, por favor confirme o horário da consulta com a paciente.",
             "mock_c2": "Confirmado para 14 de março às 14h.",
             "mock_activity": "Status alterado para Enviado ao laboratório externo · 7 de março",
             "mock_composer": "Adicionar um comentário… Use @ para mencionar um colega",
             "lab_note": "Usuários de laboratório autorizados veem apenas os casos que sua função permite.",
-            "ack_note": "A data de devolução prometida é a expectativa do laboratório, não uma garantia — e permanece separada da data solicitada e da consulta do paciente."
+            "ack_note": "A data de devolução prometida é a expectativa do laboratório, não uma garantia, e permanece separada da data solicitada e da consulta do paciente."
         },
         "ask": {
             "name": "Ask DentaTrak",
             "eyebrow": "Assistente no produto",
             "title": "Pergunte ao DentaTrak. Receba respostas práticas.",
-            "lead": "Um assistente integrado ao DentaTrak que responde a perguntas de uso e perguntas simples sobre casos — usando apenas as informações que cada usuário já pode ver.",
+            "lead": "Um assistente integrado ao DentaTrak que responde a perguntas de uso e perguntas simples sobre casos usando apenas as informações que cada usuário já pode ver.",
             "features": {
                 "1_title": "Ajuda de uso, no lugar",
                 "1_body": "Pergunte coisas como «Como adiciono um usuário de laboratório?» e receba uma resposta tirada do próprio produto, no seu idioma.",
@@ -2267,33 +2261,30 @@
         "pms": {
             "eyebrow": "Integração",
             "title": "Conecte o Open Dental.",
-            "lead": "Vincule seu consultório Open Dental para que os casos de laboratório suportados apareçam no DentaTrak automaticamente — paciente, data de entrega, data da consulta, laboratório e instruções são importados uma vez, e os campos que pertencem ao Open Dental ficam sincronizados. A sincronização bidirecional opcional grava os marcos de status de volta no caso de laboratório do Open Dental.",
-            "note": "Disponível nos planos Control e Scale.",
+            "lead": "Vincule seu consultório Open Dental para que os casos de laboratório suportados apareçam no DentaTrak automaticamente. Paciente, data de entrega, data da consulta, laboratório e instruções são importados uma vez, e os campos que pertencem ao Open Dental ficam sincronizados. A sincronização bidirecional opcional grava os marcos de status de volta no caso de laboratório do Open Dental.",
             "flow_aria": "Um caso de laboratório do Open Dental virando automaticamente um caso no DentaTrak.",
             "mock_source": "Novo caso de laboratório recebido",
             "mock_source_detail": "Coroa · Consulta do paciente 19 de março",
             "mock_target": "Caso criado no DentaTrak",
-            "mock_target_detail": "Sincronizado automaticamente — sem digitação dupla.",
-            "scanner_note": "As integrações com scanners chegarão em breve e conectarão plataformas de scanner diretamente — diferente de anexar um arquivo de escaneamento a um caso, que já funciona hoje."
+            "mock_target_detail": "Sincronizado automaticamente. Sem digitação dupla."
         },
         "languages": {
             "eyebrow": "Idiomas",
             "title": "O DentaTrak fala a língua da sua equipe.",
-            "lead": "O produto é localizado por inteiro — fluxos de trabalho, notificações, Insights e Ask DentaTrak — para que cada membro da equipe trabalhe no idioma em que pensa.",
+            "lead": "O produto é localizado por inteiro, incluindo fluxos de trabalho, notificações, Insights e Ask DentaTrak, para que cada membro da equipe trabalhe no idioma em que pensa.",
             "note": "Inglês, alemão, espanhol, francês, francês canadense, italiano, português brasileiro, russo e coreano."
         },
         "compare": {
-            "eyebrow": "Uma pergunta justa",
             "title": "Já acompanha seus casos em outra ferramenta?",
             "lead": "Talvez você já tenha atribuições, anexos e um lugar para conversar. Quando esse trabalho envolve casos dentários, vale a pena fazer mais algumas perguntas.",
             "q1": "Você consegue ver quais casos colocam uma consulta em risco?",
-            "a1": "O DentaTrak conecta a data de entrega do caso à data da consulta do paciente. Quando uma consulta cai dentro da janela de aviso que você escolheu (3 dias por padrão) e o caso ainda não foi entregue, ele é marcado como Risco de consulta no quadro e no Insights. Atrasado, Vencendo em breve e Precisa de revisão funcionam do mesmo jeito — cada marca depende de datas reais e do estágio do fluxo de trabalho do caso.",
+            "a1": "O DentaTrak conecta a data de entrega do caso à data da consulta do paciente. Quando uma consulta cai dentro da janela de aviso que você escolheu e o caso ainda não foi entregue, ele é marcado como Risco de consulta no quadro e no Insights. Você também pode acompanhar separadamente os casos Atrasado, Vencendo em breve e Precisa de revisão.",
             "q2": "Você consegue dizer onde o atraso aconteceu?",
-            "a2": "Cada mudança de status, atribuição e repasse ao laboratório fica registrada na linha do tempo do caso, para que a equipe revise o histórico antes de cobrar. O Insights mostra quanto tempo os casos ficaram em cada laboratório e quais atrasaram — mostra onde o tempo foi perdido sem apontar culpados.",
+            "a2": "Cada mudança de status, atribuição e repasse ao laboratório fica registrada na linha do tempo do caso, para que a equipe revise o histórico antes de cobrar. O Insights mostra quanto tempo os casos ficaram em cada laboratório e quais atrasaram. Mostra onde o tempo foi perdido sem apontar culpados.",
             "q3": "Você consegue comparar laboratórios sem montar outra planilha?",
-            "a3": "O Lab Insights informa prazo de entrega, pontualidade, carga de trabalho e refações atribuídas ao laboratório por laboratório. As revisões são contadas separadamente das refações — um ajuste de rotina não é tratado como erro.",
+            "a3": "O Lab Insights informa prazo de entrega, pontualidade, carga de trabalho e refações atribuídas ao laboratório por laboratório. As revisões são contadas separadamente das refações. Um ajuste de rotina não é tratado como erro.",
             "q4": "Seu sistema foi feito para lidar com informações de pacientes?",
-            "a4": "O DentaTrak foi projetado para isso. Os consultórios aceitam um Acordo de Associado Comercial durante o onboarding, o acesso aos casos segue a função e as permissões de cada usuário, os anexos ficam em armazenamento privado e abrem por links de curta duração, e o acesso aos casos é registrado. Verifique se o seu provedor oferece suporte ao uso pretendido das informações de pacientes e assinará um Acordo de Associado Comercial quando necessário."
+            "a4": "O DentaTrak foi projetado para isso. O acesso aos casos segue a função e as permissões de cada usuário, os anexos ficam em armazenamento privado e abrem por links de curta duração, e o acesso aos casos é registrado. Verifique se o seu provedor oferece suporte ao uso pretendido das informações de pacientes e assinará um Acordo de Associado Comercial quando necessário."
         }
     },
     "navigation": {

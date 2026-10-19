@@ -19,11 +19,11 @@ foreach (['operate', 'control', 'scale'] as $plan) {
         $price = $appConfig['stripe']['display_prices'][$plan][$interval] / 100;
         $softwareOffers[] = [
             '@type' => 'Offer',
-            'name' => t('marketing.pricing.' . $plan) . ($interval === 'month' ? ' — monthly billing' : ' — annual billing'),
+            'name' => t('marketing.pricing.' . $plan) . ($interval === 'month' ? ' (monthly billing)' : ' (annual billing)'),
             'url' => 'https://dentatrak.com/#pricing',
             'price' => $price,
             'priceCurrency' => 'USD',
-            'description' => t('marketing.hero.trial_note'),
+            'description' => t('marketing.pricing.' . $plan . '_description'),
             'seller' => ['@id' => 'https://dentatrak.com/#organization'],
             'priceSpecification' => [
                 '@type' => 'UnitPriceSpecification',
@@ -176,10 +176,7 @@ foreach (['operate', 'control', 'scale'] as $plan) {
     .hero { padding: 150px 0 80px; text-align: center; }
     .hero h1 { font-size: clamp(2.6rem, 6vw, 4.6rem); font-weight: 700; line-height: 1.08; letter-spacing: -0.03em; max-width: 900px; margin: 0 auto 24px; }
     .hero .lead { margin: 0 auto 34px; }
-    .hero-actions { display: flex; justify-content: center; gap: 16px; flex-wrap: wrap; margin-bottom: 14px; }
-    .hero-trial { font-size: 0.9rem; color: var(--dt-ink-muted); margin-bottom: 18px; }
-    .hero-trust { font-size: 0.88rem; font-weight: 600; color: var(--dt-ink-secondary); margin-bottom: 6px; }
-    .hero-trust-note { font-size: 0.78rem; color: var(--dt-ink-muted); margin-bottom: 56px; }
+    .hero-actions { display: flex; justify-content: center; gap: 16px; flex-wrap: wrap; margin-bottom: 44px; }
 
     /* Product board */
     .product-preview { background: #fff; border: 1px solid var(--dt-border); border-radius: 24px; box-shadow: var(--dt-shadow); overflow: hidden; text-align: left; }
@@ -188,7 +185,6 @@ foreach (['operate', 'control', 'scale'] as $plan) {
     .app-brand img { height: auto; width: auto; max-width: 105px; object-fit: contain; display: block; }
     .app-practice { font-size: 0.78rem; color: var(--dt-ink-muted); padding: 4px 10px; background: #fff; border: 1px solid var(--dt-border); border-radius: 100px; }
     .app-header-right { display: flex; align-items: center; gap: 8px; }
-    .app-fictional { font-size: 0.68rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: #92400e; padding: 3px 8px; background: #fef3c7; border: 1px solid #fde68a; border-radius: 100px; white-space: nowrap; }
     .app-tabs { display: flex; align-items: center; gap: 8px; padding: 10px 20px; background: #fafafa; border-bottom: 1px solid var(--dt-border); font-size: 0.85rem; font-weight: 600; }
     .app-tab { padding: 6px 12px; border-radius: 8px; color: var(--dt-ink-muted); background: transparent; border: 1px solid transparent; font: inherit; font-size: 0.85rem; font-weight: 600; cursor: pointer; transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease; }
     .app-tab:hover { color: var(--dt-ink); }
@@ -690,9 +686,6 @@ foreach (['operate', 'control', 'scale'] as $plan) {
     .security-card:nth-child(4) .security-card-icon { background: #faf5ff; color: #7c3aed; }
     .security-card:nth-child(5) .security-card-icon { background: #fff1f2; color: #be123c; }
     .security-card:nth-child(3) .security-card-icon svg { color: #ea580c; }
-    .security-baa { text-align: center; margin-top: 36px; }
-    .security-baa-title { font-size: 1.05rem; font-weight: 700; color: var(--dt-ink); margin-bottom: 6px; }
-    .security-baa p { font-size: 0.92rem; color: var(--dt-ink-secondary); line-height: 1.6; max-width: 640px; margin: 0 auto; }
     @media (max-width: 900px) {
       .security-panel { padding: 28px 20px; }
       .security-flow { flex-direction: column; }
@@ -846,7 +839,6 @@ foreach (['operate', 'control', 'scale'] as $plan) {
     .pms-card p { font-size: 0.74rem; color: var(--dt-ink-secondary); margin: 0; line-height: 1.5; }
     .pms-arrow { color: var(--dt-blue); flex-shrink: 0; }
     .pms-arrow svg { width: 30px; height: 30px; }
-    .pms-note { margin-top: 32px; font-size: 0.86rem; color: var(--dt-ink-muted); }
 
     /* Languages */
     .langs { background: var(--dt-cream); text-align: center; }
@@ -1062,9 +1054,6 @@ foreach (['operate', 'control', 'scale'] as $plan) {
         <a href="<?= $baseUrl ?>login.php" class="btn btn-primary"><?php echo t('marketing.hero.start_free'); ?></a>
         <a href="#how-it-works" class="btn btn-secondary"><?php echo t('marketing.hero.see_how'); ?></a>
       </div>
-      <p class="hero-trial"><?php echo t('marketing.hero.trial_note'); ?></p>
-      <p class="hero-trust"><?php echo t('marketing.hero.trust_line'); ?></p>
-      <p class="hero-trust-note"><?php echo t('marketing.hero.trust_plan_note'); ?></p>
 
       <div class="product-preview">
         <div class="app-header">
@@ -1072,7 +1061,6 @@ foreach (['operate', 'control', 'scale'] as $plan) {
             <img src="images/main.png" alt="" aria-hidden="true">
           </div>
           <span class="app-header-right">
-            <span class="app-fictional"><?php echo t('marketing.demo.fictional_badge'); ?></span>
             <span class="app-practice">Demo Dental Practice</span>
           </span>
         </div>
@@ -1445,7 +1433,6 @@ foreach (['operate', 'control', 'scale'] as $plan) {
 
   <section id="already-tracking" class="section compare">
     <div class="container">
-      <span class="eyebrow" data-reveal><?php echo t('marketing.compare.eyebrow'); ?></span>
       <h2 data-reveal><?php echo t('marketing.compare.title'); ?></h2>
       <p class="lead" data-reveal><?php echo t('marketing.compare.lead'); ?></p>
       <div class="compare-grid">
@@ -1763,8 +1750,6 @@ foreach (['operate', 'control', 'scale'] as $plan) {
             <p><?php echo t('marketing.pms.mock_target_detail'); ?></p>
           </div>
         </div>
-        <p class="pms-note"><?php echo t('marketing.pms.note'); ?></p>
-        <p class="pms-note"><?php echo t('marketing.pms.scanner_note'); ?></p>
       </div>
     </div>
   </section>
@@ -1876,10 +1861,6 @@ foreach (['operate', 'control', 'scale'] as $plan) {
         <?php endfor; ?>
       </div>
 
-      <div class="security-baa" data-reveal>
-        <div class="security-baa-title"><?php echo t('marketing.security_section.baa_title'); ?></div>
-        <p><?php echo t('marketing.security_section.baa_body'); ?></p>
-      </div>
     </div>
   </section>
 
