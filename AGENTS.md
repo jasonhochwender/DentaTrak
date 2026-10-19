@@ -13,6 +13,7 @@
 - Filter/sort unit checks: `node tests/case-filter-sort-test.js` and `php tests/case-view-preferences-test.php` (no database).
 - Local browser/API checks: `node tests/case-filter-sort-e2e-test.js` (`DT_BROWSER=chromium|firefox|webkit`, local test credentials via `DENTATRAK_TEST_EMAIL`/`DENTATRAK_TEST_PASSWORD`) and `node tests/case-filter-sort-isolation-e2e-test.js` (creates and cleans its own local user/practice fixtures). Run suites sharing the same account sequentially.
 - Related regressions: `php tests/case-list-view-test.php`, `php tests/practice-security-authorization-test.php`, `php tests/responsive-css-audit-test.php`, and `node tests/case-actions-menu-e2e-test.js`.
+- Production deploy verification: `/js/*.js` and other static assets are served `cache-control: immutable` — direct-path fetches can return a stale edge-cached copy. Append any query string (e.g. `?v=check1`) to bypass the cache when confirming a deploy; the app itself always requests `appAssetUrl()` versioned URLs.
 
 # PMS integration event worker
 
