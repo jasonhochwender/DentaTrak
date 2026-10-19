@@ -2611,11 +2611,6 @@ $userEmail = $_SESSION['user_email'] ?? '';
             }
 
             html += '<div class="settings-card">' +
-                '<button type="button" class="action-btn" id="psSaveSettingsBtn" onclick="savePracticeSettings(' + currentSettingsPracticeId + ')">Save Settings</button>' +
-                ' <span id="psSaveStatus" style="font-size: 0.85rem; margin-left: 8px;"></span>' +
-                '</div>';
-            
-            html += '<div class="settings-card">' +
                 '<h4>Workflow Stages</h4>' +
                 '<ol class="settings-list">' +
                 Object.values(settings.workflow_stages || {}).map(label => '<li>' + escapeHtml(label) + '</li>').join('') +
@@ -2686,6 +2681,11 @@ $userEmail = $_SESSION['user_email'] ?? '';
                     '<input type="checkbox" id="psRequire2fa" ' + (sec.require_2fa ? 'checked' : '') + '></span></div>' +
                 '<div class="settings-row"><span class="settings-label">' + escapeHtml(t('admin_practices.settings_members_2fa')) + '</span><span class="settings-value">' +
                     (sec.members_with_2fa || 0) + ' / ' + memberTotal + '</span></div>' +
+                '</div>';
+
+            html += '<div class="settings-card">' +
+                '<button type="button" class="action-btn" id="psSaveSettingsBtn" onclick="savePracticeSettings(' + currentSettingsPracticeId + ')">Save Settings</button>' +
+                ' <span id="psSaveStatus" style="font-size: 0.85rem; margin-left: 8px;"></span>' +
                 '</div>';
 
             const selected = practices.find(p => p.id === selectedPracticeId);
