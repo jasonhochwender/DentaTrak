@@ -127,6 +127,12 @@ assertTrue('has highlight_appointment_risk', array_key_exists('highlight_appoint
 assertTrue('has appointment_risk_days', array_key_exists('appointment_risk_days', $s['due_date_highlighting'] ?? []));
 assertTrue('has case_review_tracking_enabled', array_key_exists('case_review_tracking_enabled', $s));
 assertTrue('has google_drive_backup', array_key_exists('google_drive_backup', $s));
+assertTrue('has show_case_history_tab', array_key_exists('show_case_history_tab', $s));
+assertTrue('has security.require_2fa', array_key_exists('require_2fa', $s['security'] ?? []));
+assertTrue('has security.members_with_2fa', array_key_exists('members_with_2fa', $s['security'] ?? []));
+assertTrue('has practice.display_name', array_key_exists('display_name', $s['practice'] ?? []));
+assertTrue('has practice.default_locale', array_key_exists('default_locale', $s['practice'] ?? []));
+assertTrue('has practice.supported_locales', !empty($s['practice']['supported_locales']));
 
 // ---------------------------------------------------------------------------
 // CSRF required for save
@@ -150,7 +156,10 @@ $payload = [
     'highlight_appointment_risk' => false,
     'appointment_risk_days' => 0,            // 0 is a valid risk threshold
     'case_review_tracking_enabled' => true,
-    'google_drive_backup' => true
+    'google_drive_backup' => true,
+    'show_case_history_tab' => true,
+    'display_name' => 'Parity A Display',
+    'default_locale' => 'es-ES'
 ];
 $save = json_decode(req('POST', "{$baseUrl}/api/admin-practices.php?action=save_settings", [
     'practice_id' => $practiceA,
@@ -173,6 +182,9 @@ assertTrue('highlight_appointment_risk persisted false', ($hl['highlight_appoint
 assertTrue('appointment_risk_days persisted 0', ($hl['appointment_risk_days'] ?? null) === 0);
 assertTrue('case_review_tracking persisted true', ($getA2['case_review_tracking_enabled'] ?? null) === true);
 assertTrue('google_drive_backup persisted true', ($getA2['google_drive_backup'] ?? null) === true);
+assertTrue('show_case_history_tab persisted true', ($getA2['show_case_history_tab'] ?? null) === true);
+assertTrue('display_name persisted', ($getA2['practice']['display_name'] ?? null) === 'Parity A Display');
+assertTrue('default_locale persisted es-ES', ($getA2['practice']['default_locale'] ?? null) === 'es-ES');
 
 // Same values must be visible to the main Settings UI (same user_preferences row).
 $mainSettings = json_decode(req('GET', "{$baseUrl}/api/get-settings.php", [], $cookieA)['body'], true);
@@ -182,6 +194,9 @@ assertTrue('main settings sees delivered_hide_days=0', (int)($prefs['delivered_h
 assertTrue('main settings sees coming_due_days=14', (int)($prefs['coming_due_days'] ?? -1) === 14);
 assertTrue('main settings sees highlight_appointment_risk=false', ($prefs['highlight_appointment_risk'] ?? null) === false);
 assertTrue('main settings sees case_review_tracking_enabled=true', ($prefs['case_review_tracking_enabled'] ?? null) === true);
+assertTrue('main settings sees show_case_history_tab=true', ($prefs['show_case_history_tab'] ?? null) === true);
+assertTrue('main settings sees practiceDefaultLanguage=es-ES', ($mainSettings['practiceDefaultLanguage'] ?? null) === 'es-ES');
+assertTrue('main settings sees displayName', ($mainSettings['displayName'] ?? null) === 'Parity A Display');
 
 // ---------------------------------------------------------------------------
 // Partial save preserves untouched keys
@@ -199,6 +214,8 @@ assertTrue('partial save kept highlight_past_due=false', ($hlP['highlight_past_d
 assertTrue('partial save kept coming_due_days=14', ($hlP['coming_due_days'] ?? null) === 14);
 assertTrue('partial save kept allow_card_delete=false', ($cmP['allow_archiving_individual_cases'] ?? null) === false);
 assertTrue('partial save kept case_review_tracking=true', ($partial['settings']['case_review_tracking_enabled'] ?? null) === true);
+assertTrue('partial save kept show_case_history_tab=true', ($partial['settings']['show_case_history_tab'] ?? null) === true);
+assertTrue('partial save kept default_locale', ($partial['settings']['practice']['default_locale'] ?? null) === 'es-ES');
 
 // ---------------------------------------------------------------------------
 // Cross-practice isolation: edit B, confirm A unchanged
@@ -250,6 +267,32 @@ $clamp = json_decode(req('POST', "{$baseUrl}/api/admin-practices.php?action=save
 assertTrue('past_due_days clamped to 99', ($clamp['due_date_highlighting']['past_due_days'] ?? null) === 99);
 assertTrue('delivered_hide_days clamped to 365', ($clamp['case_management']['delivered_hide_days'] ?? null) === 365);
 assertTrue('appointment_risk_days clamped to 0', ($clamp['due_date_highlighting']['appointment_risk_days'] ?? null) === 0);
+
+// ---------------------------------------------------------------------------
+// Practice-wide 2FA policy (practices.require_2fa) via DevTools
+// ---------------------------------------------------------------------------
+$r2 = json_decode(req('POST', "{$baseUrl}/api/admin-practices.php?action=save_settings", [
+    'practice_id' => $practiceA,
+    'settings' => ['require_2fa' => true],
+    'csrf_token' => $csrfA
+], $cookieA)['body'], true);
+assertTrue('require_2fa save succeeds', $r2['success'] ?? false, json_encode($r2));
+assertTrue('require_2fa persisted true', ($r2['settings']['security']['require_2fa'] ?? null) === true);
+
+// End-to-end enforcement: the owner's normal API calls now bounce to 2FA
+// enrollment because the actor has no 2FA configured.
+$gated = req('GET', "{$baseUrl}/api/get-settings.php", [], $cookieA);
+assertTrue('policy enforced on normal endpoints', $gated['code'] !== 200, "code={$gated['code']} body=" . substr($gated['body'], 0, 120));
+
+// DevTools remains usable (break-glass): disable restores access.
+$off = json_decode(req('POST', "{$baseUrl}/api/admin-practices.php?action=save_settings", [
+    'practice_id' => $practiceA,
+    'settings' => ['require_2fa' => false],
+    'csrf_token' => $csrfA
+], $cookieA)['body'], true);
+assertTrue('require_2fa disable succeeds', $off['success'] ?? false, json_encode($off));
+$restored = req('GET', "{$baseUrl}/api/get-settings.php", [], $cookieA);
+assertTrue('access restored after disable', $restored['code'] === 200, "code={$restored['code']}");
 
 echo "\n{$passed} passed, {$failed} failed\n";
 exit($failed ? 1 : 0);

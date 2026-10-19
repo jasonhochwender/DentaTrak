@@ -1100,7 +1100,7 @@
             "show_history_tab": {
                 "label": "Afficher l’onglet Historique des révisions",
                 "description": "Afficher l’onglet Historique lors de la consultation d’un cas.",
-                "tooltip": "Préférence personnelle de votre compte. Lorsqu’elle est désactivée, l’onglet Historique est masqué dans la vue du cas; l’historique continue d’être enregistré et rien n’est supprimé."
+                "tooltip": "Réglage pour tout le cabinet. Lorsqu’elle est désactivée, l’onglet Historique est masqué dans la vue du cas pour tous les membres de ce cabinet; l’historique continue d’être enregistré et rien n’est supprimé."
             },
             "sections": {
                 "appearance": "Apparence",
@@ -3020,7 +3020,29 @@
         "plan_override_saving": "Enregistrement...",
         "plan_override_failed": "Échec de l’enregistrement de la dérogation.",
         "plan_override_load_failed": "Impossible de charger les détails de la dérogation.",
-        "plan_override_no_owner": "Aucun titulaire de facturation ne peut être résolu pour ce cabinet."
+        "plan_override_no_owner": "Aucun titulaire de facturation ne peut être résolu pour ce cabinet.",
+        "settings_practice_card": "Cabinet",
+        "settings_members_2fa": "Membres avec la 2FA activée",
+        "storage_title": "Utilisation du stockage",
+        "storage_total": "Stockage total",
+        "storage_images": "Images",
+        "storage_scans": "Numérisations et fichiers 3D",
+        "storage_other": "Autres pièces jointes",
+        "storage_branding": "Image de marque",
+        "storage_calculated_at": "Dernier calcul :",
+        "storage_refresh": "Actualiser",
+        "storage_refreshing": "Actualisation…",
+        "storage_refresh_running": "Une actualisation est déjà en cours.",
+        "storage_refresh_failed": "Échec de l’actualisation",
+        "storage_retry": "Réessayer",
+        "storage_load_failed": "Impossible de charger l’utilisation du stockage.",
+        "storage_never_calculated": "L’utilisation du stockage n’a pas encore été calculée. Lancez une actualisation pour mesurer les fichiers stockés.",
+        "storage_file_singular": "fichier",
+        "storage_file_plural": "fichiers",
+        "storage_partial_note": "Résultat partiel : certains fichiers n’ont pas pu être mesurés.",
+        "storage_unmeasured": "{count} fichier(s) n’ont pas pu être mesurés et sont exclus des totaux.",
+        "storage_last_error": "La dernière actualisation a échoué ; le résultat précédent est affiché.",
+        "storage_scope_note": "Comprend les pièces jointes des cas, les images de commentaires, les fichiers de la boîte de réception du scanner, les révisions de numérisation conservées et le logo du cabinet. Les cas archivés sont comptés tant que leurs fichiers restent stockés. Les téléversements temporaires non liés sont exclus."
     },
     "case_types": {
         "crown": "Couronne",

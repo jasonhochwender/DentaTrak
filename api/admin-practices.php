@@ -27,6 +27,7 @@ require_once __DIR__ . '/feature-flags.php';
 require_once __DIR__ . '/billing-bypass.php';
 require_once __DIR__ . '/subscription-access.php';
 require_once __DIR__ . '/admin-subscription-helpers.php';
+require_once __DIR__ . '/practice-storage-usage.php';
 require_once __DIR__ . '/integrations/IntegrationManager.php';
 require_once __DIR__ . '/integrations/IntegrationEvents.php';
 require_once __DIR__ . '/email-sender.php';
@@ -1007,6 +1008,22 @@ function handleGetRequest($action) {
             ]);
             break;
 
+        case 'storage':
+            $practiceId = $_GET['practice_id'] ?? null;
+            if (!$practiceId || !is_numeric($practiceId)) {
+                http_response_code(400);
+                echo json_encode(['success' => false, 'message' => 'Valid practice ID required']);
+                return;
+            }
+
+            // Read-only: returns the last successful cached calculation.
+            // Aggregate bytes/counts only - no file names, paths, or URLs.
+            echo json_encode([
+                'success' => true,
+                'storage' => practiceStorageUsagePayload(getPracticeStorageUsage($pdo, (int)$practiceId))
+            ]);
+            break;
+
         case 'adoption':
             $practiceId = $_GET['practice_id'] ?? null;
             if (!$practiceId || !is_numeric($practiceId)) {
@@ -1328,6 +1345,33 @@ function handlePostRequest($action) {
 
         case 'save_settings':
             handleSavePracticeSettings($input);
+            break;
+
+        case 'refresh_storage':
+            $practiceId = $input['practice_id'] ?? null;
+            if (!$practiceId || !is_numeric($practiceId)) {
+                http_response_code(400);
+                echo json_encode(['success' => false, 'message' => 'Valid practice ID required']);
+                return;
+            }
+
+            try {
+                $practiceExists = $pdo->prepare("SELECT 1 FROM practices WHERE id = ?");
+                $practiceExists->execute([(int)$practiceId]);
+                if (!$practiceExists->fetchColumn()) {
+                    http_response_code(404);
+                    echo json_encode(['success' => false, 'message' => 'Practice not found']);
+                    return;
+                }
+            } catch (PDOException $e) {
+                error_log('[admin-practices] Error checking practice: ' . $e->getMessage());
+                http_response_code(500);
+                echo json_encode(['success' => false, 'message' => 'Database error']);
+                return;
+            }
+
+            $result = refreshPracticeStorageUsage($pdo, (int)$practiceId);
+            echo json_encode(array_merge(['success' => true], $result));
             break;
 
         case 'set_plan_override':
@@ -2282,28 +2326,55 @@ function getPracticeAssignmentLabelsForSettings($practiceId) {
 }
 
 /**
- * Check if any practice user has two-factor authentication enabled.
+ * Count practice members with two-factor authentication enabled.
  */
-function getTwoFactorEnabledForPractice($practiceId) {
+function getTwoFactorCountForPractice($practiceId) {
     global $pdo;
-    
+
     if (!$pdo || !$practiceId) {
-        return false;
+        return 0;
     }
-    
+
     try {
         $columns = $pdo->query("SHOW COLUMNS FROM users LIKE 'totp_enabled'")->fetchAll(PDO::FETCH_COLUMN);
         if (!in_array('totp_enabled', $columns)) {
-            return false;
+            return 0;
         }
-        
-        $stmt = $pdo->prepare("SELECT COUNT(*) FROM users u JOIN practice_users pu ON u.id = pu.user_id WHERE pu.practice_id = ? AND u.totp_enabled = 1");
+
+        $stmt = $pdo->prepare("SELECT COUNT(*) FROM users u JOIN practice_users pu ON u.id = pu.user_id WHERE pu.practice_id = ? AND pu.is_active = 1 AND u.totp_enabled = 1");
         $stmt->execute([$practiceId]);
-        return (int)$stmt->fetchColumn() > 0;
+        return (int)$stmt->fetchColumn();
     } catch (PDOException $e) {
         error_log('[admin-practices] Error checking 2FA status: ' . $e->getMessage());
+        return 0;
+    }
+}
+
+/**
+ * Read the practice-wide 2FA requirement (practices.require_2fa). Mirrors
+ * practiceRequires2FA() but stays defensive on pre-migration schemas.
+ */
+function getTwoFactorRequiredForPractice($practiceId) {
+    global $pdo;
+
+    if (!$pdo || !$practiceId) {
         return false;
     }
+
+    try {
+        if (function_exists('practiceRequires2FA')) {
+            return (bool)practiceRequires2FA((int)$practiceId);
+        }
+        $check = $pdo->query("SHOW COLUMNS FROM practices LIKE 'require_2fa'");
+        if ($check && $check->rowCount() > 0) {
+            $stmt = $pdo->prepare("SELECT require_2fa FROM practices WHERE id = ?");
+            $stmt->execute([$practiceId]);
+            return (bool)$stmt->fetchColumn();
+        }
+    } catch (PDOException $e) {
+        error_log('[admin-practices] Error reading 2FA policy: ' . $e->getMessage());
+    }
+    return false;
 }
 
 /**
@@ -2321,7 +2392,38 @@ function getPracticeSettings($practiceId) {
     $workflowLabels = getResolvedWorkflowStageLabelsForPractice($practiceId);
     $users = getPracticeUsers($practiceId);
     $labels = getPracticeAssignmentLabelsForSettings($practiceId);
-    $twoFactorEnabled = getTwoFactorEnabledForPractice($practiceId);
+    $twoFactorCount = getTwoFactorCountForPractice($practiceId);
+    $twoFactorRequired = getTwoFactorRequiredForPractice($practiceId);
+
+    // Practice identity fields (same columns the customer-facing Practice
+    // section edits: display_name and default_locale).
+    $displayName = '';
+    $defaultLocale = 'en-US';
+    try {
+        $identityStmt = $pdo->prepare("SELECT display_name, default_locale FROM practices WHERE id = ?");
+        $identityStmt->execute([$practiceId]);
+        $identity = $identityStmt->fetch(PDO::FETCH_ASSOC);
+        if ($identity) {
+            $displayName = (string)($identity['display_name'] ?? '');
+            if (!empty($identity['default_locale'])) {
+                $defaultLocale = $identity['default_locale'];
+            }
+        }
+    } catch (PDOException $e) {
+        error_log('[admin-practices] Error reading practice identity: ' . $e->getMessage());
+    }
+
+    // Enabled locales for the Default Language select - same source and
+    // ordering as the customer Settings dropdown.
+    $supportedLocales = [];
+    foreach (getSupportedLocales() as $code => $meta) {
+        if (!empty($meta['enabled'])) {
+            $supportedLocales[] = [
+                'value' => $code,
+                'nativeName' => $meta['nativeName'] ?? $meta['name'] ?? $code,
+            ];
+        }
+    }
 
     $deliveredHideDays = (int)$preferences['delivered_hide_days'];
     $autoArchive = $deliveredHideDays > 0;
@@ -2434,8 +2536,15 @@ function getPracticeSettings($practiceId) {
         'workflow_stages' => $workflowLabels,
         'users' => $userList,
         'assignment_labels' => $labelList,
+        'practice' => [
+            'display_name' => $displayName,
+            'default_locale' => $defaultLocale,
+            'supported_locales' => $supportedLocales
+        ],
         'security' => [
-            'two_factor_authentication_enabled' => $twoFactorEnabled
+            'two_factor_authentication_enabled' => $twoFactorCount > 0,
+            'members_with_2fa' => $twoFactorCount,
+            'require_2fa' => $twoFactorRequired
         ]
     ];
 }
@@ -2508,6 +2617,37 @@ function handleSavePracticeSettings(array $input): void {
             updatePracticeDisplaySettings($pdo, $practiceId, $displayWrite);
         }
 
+        // Practice Display Name - same practices.display_name column the
+        // customer-facing Practice section edits.
+        if (array_key_exists('display_name', $settings)) {
+            $displayName = trim((string)$settings['display_name']);
+            if (mb_strlen($displayName) > 255) {
+                $displayName = mb_substr($displayName, 0, 255);
+            }
+            $stmt = $pdo->prepare("UPDATE practices SET display_name = ? WHERE id = ?");
+            $stmt->execute([$displayName === '' ? null : $displayName, $practiceId]);
+        }
+
+        // Practice Default Language - same validation helper
+        // (validateLocale) and column as api/save-settings.php.
+        if (array_key_exists('default_locale', $settings)) {
+            $defaultLocale = validateLocale($settings['default_locale'], 'en-US');
+            $stmt = $pdo->prepare("UPDATE practices SET default_locale = ? WHERE id = ?");
+            $stmt->execute([$defaultLocale, $practiceId]);
+        }
+
+        // Practice-wide 2FA requirement (practices.require_2fa) - the same
+        // column api/practice-2fa-policy.php writes. DevTools super users
+        // are not practice members, so the actor-has-2FA lockout check does
+        // not apply; the member 2FA count is surfaced in the UI for context.
+        if (array_key_exists('require_2fa', $settings)) {
+            $r2Check = $pdo->query("SHOW COLUMNS FROM practices LIKE 'require_2fa'");
+            if ($r2Check && $r2Check->rowCount() > 0) {
+                $stmt = $pdo->prepare("UPDATE practices SET require_2fa = ? WHERE id = ?");
+                $stmt->execute([!empty($settings['require_2fa']) ? 1 : 0, $practiceId]);
+            }
+        }
+
         // Google Drive backup: write the authoritative practices column.
         if (array_key_exists('google_drive_backup', $settings)) {
             $gdCheck = $pdo->query("SHOW COLUMNS FROM practices LIKE 'google_drive_backup_enabled'");
@@ -2556,6 +2696,9 @@ function handleSavePracticeSettings(array $input): void {
             'practice_id' => $practiceId,
             'keys' => array_merge(
                 array_keys($displayWrite),
+                array_key_exists('display_name', $settings) ? ['display_name'] : [],
+                array_key_exists('default_locale', $settings) ? ['default_locale'] : [],
+                array_key_exists('require_2fa', $settings) ? ['require_2fa'] : [],
                 array_key_exists('google_drive_backup', $settings) ? ['google_drive_backup'] : [],
                 array_key_exists('case_review_tracking_enabled', $settings) ? ['case_review_tracking_enabled'] : [],
                 array_key_exists('lab_acknowledgment_enabled', $settings) ? ['lab_acknowledgment_enabled'] : [],

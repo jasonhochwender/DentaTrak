@@ -1100,7 +1100,7 @@
             "show_history_tab": {
                 "label": "Mostra scheda Cronologia delle revisioni",
                 "description": "Mostra la scheda Cronologia durante la visualizzazione di un caso.",
-                "tooltip": "Preferenza personale del tuo account. Se disattivata, la scheda Cronologia viene nascosta nella vista del caso; la cronologia continua a essere registrata e nulla viene eliminato."
+                "tooltip": "Impostazione a livello di studio. Se disattivata, la scheda Cronologia viene nascosta nella vista del caso per tutti i membri di questo studio; la cronologia continua a essere registrata e nulla viene eliminato."
             },
             "sections": {
                 "appearance": "Aspetto",
@@ -3020,7 +3020,29 @@
         "plan_override_saving": "Salvataggio...",
         "plan_override_failed": "Impossibile salvare l’override del piano.",
         "plan_override_load_failed": "Impossibile caricare i dettagli dell’override.",
-        "plan_override_no_owner": "Nessun titolare di fatturazione risolvibile per questo studio."
+        "plan_override_no_owner": "Nessun titolare di fatturazione risolvibile per questo studio.",
+        "settings_practice_card": "Studio",
+        "settings_members_2fa": "Membri con 2FA attiva",
+        "storage_title": "Utilizzo dello spazio di archiviazione",
+        "storage_total": "Spazio totale",
+        "storage_images": "Immagini",
+        "storage_scans": "Scansioni e file 3D",
+        "storage_other": "Altri allegati",
+        "storage_branding": "Marchio",
+        "storage_calculated_at": "Ultimo calcolo:",
+        "storage_refresh": "Aggiorna",
+        "storage_refreshing": "Aggiornamento…",
+        "storage_refresh_running": "Un aggiornamento è già in corso.",
+        "storage_refresh_failed": "Aggiornamento non riuscito",
+        "storage_retry": "Riprova",
+        "storage_load_failed": "Impossibile caricare l’utilizzo dello spazio di archiviazione.",
+        "storage_never_calculated": "L’utilizzo dello spazio di archiviazione non è ancora stato calcolato. Esegui un aggiornamento per misurare i file archiviati.",
+        "storage_file_singular": "file",
+        "storage_file_plural": "file",
+        "storage_partial_note": "Risultato parziale: alcuni file non sono stati misurabili.",
+        "storage_unmeasured": "{count} file non sono stati misurabili e sono esclusi dai totali.",
+        "storage_last_error": "L’ultimo aggiornamento non è riuscito; viene mostrato il risultato precedente.",
+        "storage_scope_note": "Include allegati dei casi, immagini dei commenti, file della posta in arrivo dello scanner, revisioni di scansione conservate e il logo dello studio. I casi archiviati sono conteggiati finché i loro file restano archiviati. I caricamenti temporanei non collegati sono esclusi."
     },
     "case_types": {
         "crown": "Corona",

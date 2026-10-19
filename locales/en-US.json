@@ -1100,7 +1100,7 @@
             "show_history_tab": {
                 "label": "Show Revision History tab",
                 "description": "Display the History tab when viewing a case.",
-                "tooltip": "Personal preference for your account. When turned off, the History tab is hidden in the case view; case history keeps recording and nothing is deleted."
+                "tooltip": "Practice-wide setting. When turned off, the History tab is hidden in the case view for everyone in this practice; case history keeps recording and nothing is deleted."
             },
             "sections": {
                 "appearance": "Appearance",
@@ -3020,7 +3020,29 @@
         "plan_override_saving": "Saving...",
         "plan_override_failed": "Failed to save the plan override.",
         "plan_override_load_failed": "Could not load plan override details.",
-        "plan_override_no_owner": "This practice has no resolvable subscription owner."
+        "plan_override_no_owner": "This practice has no resolvable subscription owner.",
+        "settings_practice_card": "Practice",
+        "settings_members_2fa": "Members with 2FA enabled",
+        "storage_title": "Storage usage",
+        "storage_total": "Total storage",
+        "storage_images": "Images",
+        "storage_scans": "Scans & 3D files",
+        "storage_other": "Other attachments",
+        "storage_branding": "Branding",
+        "storage_calculated_at": "Last calculated:",
+        "storage_refresh": "Refresh",
+        "storage_refreshing": "Refreshing…",
+        "storage_refresh_running": "A refresh is already running.",
+        "storage_refresh_failed": "Refresh failed",
+        "storage_retry": "Retry",
+        "storage_load_failed": "Could not load storage usage.",
+        "storage_never_calculated": "Storage usage has not been calculated yet. Run a refresh to measure stored files.",
+        "storage_file_singular": "file",
+        "storage_file_plural": "files",
+        "storage_partial_note": "Partial result: some files could not be measured.",
+        "storage_unmeasured": "{count} file(s) could not be measured and are excluded from the totals.",
+        "storage_last_error": "The last refresh failed; showing the previous successful result.",
+        "storage_scope_note": "Includes case attachments, comment images, scanner inbox files, retained scan revisions, and the practice logo. Archived cases are counted while their files remain stored. Temporary unlinked uploads are excluded."
     },
     "case_types": {
         "crown": "Crown",

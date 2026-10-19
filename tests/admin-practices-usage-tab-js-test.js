@@ -116,6 +116,9 @@ function createSandbox() {
     const detailContent = makeElement('div');
     detailContent.id = 'detailContent';
     elements['detailContent'] = detailContent;
+    const storageSection = makeElement('div');
+    storageSection.id = 'storageUsageSection';
+    elements['storageUsageSection'] = storageSection;
 
     const document = {
         getElementById(id) { return elements[id] || null; },
@@ -162,6 +165,36 @@ vm.runInContext(mainScript, sandbox);
 vm.runInContext("selectedPracticeId = 100; practices = [{ id: 100, practice_name: 'First', subscription: { plan_display: 'Evaluate', status_display: 'Active Trial', is_trialing: true, trial_display: '14 days remaining' } }, { id: 200, practice_name: 'Second', subscription: { plan_display: 'Control', status_display: 'Active', is_trialing: false } }];", sandbox);
 
 const detailHtml = () => sandbox._elements['detailContent'].innerHTML;
+const storageHtml = () => sandbox._elements['storageUsageSection'].innerHTML;
+
+// The Usage tab appends a Storage usage card fetched via action=storage.
+// After each successful adoption render, drain that follow-up fetch so the
+// section resolves instead of showing its placeholder.
+const storageOk = {
+    success: true,
+    storage: {
+        calculated: true,
+        calculated_at: '2026-10-19 10:00:00',
+        total_bytes: 0,
+        categories: {
+            image: { bytes: 0, files: 0 },
+            scan: { bytes: 0, files: 0 },
+            other: { bytes: 0, files: 0 },
+            branding: { bytes: 0, files: 0 }
+        },
+        unmeasured_files: 0,
+        partial: false,
+        notes: [],
+        refresh_in_progress: false,
+        last_error: null
+    }
+};
+function drainStorageFetch() {
+    const f = sandbox._getLastFetch();
+    if (f) {
+        f.resolve({ ok: true, json: () => storageOk });
+    }
+}
 
 // ---------------------------------------------------------------------------
 // 1. Successful load and rendering
@@ -187,6 +220,7 @@ const successData = {
     }
 };
 fetch1.resolve({ ok: true, json: () => successData });
+drainStorageFetch();
 pass('successful adoption load runs to completion');
 if (!detailHtml().includes('Recent case activity')) {
     fail('render includes summary', detailHtml());
@@ -197,6 +231,16 @@ if (!detailHtml().includes('Total Users')) {
     fail('render includes Total Users metric', detailHtml());
 } else {
     pass('rendered Total Users metric is present');
+}
+if (!detailHtml().includes('storageUsageSection')) {
+    fail('render includes storage usage section', detailHtml());
+} else {
+    pass('rendered storage usage section is present');
+}
+if (!storageHtml().includes('0 B')) {
+    fail('storage card shows formatted totals', storageHtml());
+} else {
+    pass('storage card shows formatted totals');
 }
 
 // ---------------------------------------------------------------------------
@@ -223,6 +267,7 @@ const emptyData = {
     }
 };
 fetch2.resolve({ ok: true, json: () => emptyData });
+drainStorageFetch();
 if (!detailHtml().includes('No usage or adoption data has been recorded')) {
     fail('empty state banner is shown', detailHtml());
 } else {
@@ -281,6 +326,7 @@ vm.runInContext("selectedPracticeId = 200;", sandbox);
 sandbox.loadAdoptionTab(200);
 const newFetch = sandbox._getLastFetch();
 newFetch.resolve({ ok: true, json: () => ({ success: true, adoption: emptyData.adoption }) });
+drainStorageFetch();
 // Now the old slow response arrives.
 slowFetch.resolve({ ok: true, json: () => ({ success: true, adoption: successData.adoption }) });
 // The detailContent should NOT contain the old successData metrics.
@@ -301,6 +347,7 @@ failFetch.resolve({ ok: true, json: () => ({ success: false, message: 'Try again
 sandbox.loadAdoptionTab(100);
 const retryFetch = sandbox._getLastFetch();
 retryFetch.resolve({ ok: true, json: () => successData });
+drainStorageFetch();
 if (!detailHtml().includes('Recent case activity')) {
     fail('retry after failure re-renders successfully', detailHtml());
 } else {

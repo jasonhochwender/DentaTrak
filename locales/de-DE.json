@@ -2752,7 +2752,7 @@
             "show_history_tab": {
                 "label": "Änderungsverlauf-Tab anzeigen",
                 "description": "Den Tab „Verlauf\" in der Fallansicht anzeigen.",
-                "tooltip": "Persönliche Einstellung für Ihr Konto. Wenn deaktiviert, wird der Verlauf-Tab in der Fallansicht ausgeblendet; der Verlauf wird weiterhin aufgezeichnet und nichts wird gelöscht."
+                "tooltip": "Praxisweite Einstellung. Wenn deaktiviert, wird der Verlauf-Tab in der Fallansicht für alle Mitglieder dieser Praxis ausgeblendet; der Verlauf wird weiterhin aufgezeichnet und nichts wird gelöscht."
             },
             "sections": {
                 "appearance": "Erscheinungsbild",
@@ -3827,7 +3827,29 @@
         "plan_override_saving": "Wird gespeichert...",
         "plan_override_failed": "Die Plan-Übersteuerung konnte nicht gespeichert werden.",
         "plan_override_load_failed": "Plan-Übersteuerungsdetails konnten nicht geladen werden.",
-        "plan_override_no_owner": "Für diese Praxis kann kein Rechnungsinhaber aufgelöst werden."
+        "plan_override_no_owner": "Für diese Praxis kann kein Rechnungsinhaber aufgelöst werden.",
+        "settings_practice_card": "Praxis",
+        "settings_members_2fa": "Mitglieder mit aktivierter 2FA",
+        "storage_title": "Speichernutzung",
+        "storage_total": "Gesamtspeicher",
+        "storage_images": "Bilder",
+        "storage_scans": "Scans & 3D-Dateien",
+        "storage_other": "Sonstige Anhänge",
+        "storage_branding": "Branding",
+        "storage_calculated_at": "Zuletzt berechnet:",
+        "storage_refresh": "Aktualisieren",
+        "storage_refreshing": "Wird aktualisiert…",
+        "storage_refresh_running": "Eine Aktualisierung läuft bereits.",
+        "storage_refresh_failed": "Aktualisierung fehlgeschlagen",
+        "storage_retry": "Erneut versuchen",
+        "storage_load_failed": "Speichernutzung konnte nicht geladen werden.",
+        "storage_never_calculated": "Die Speichernutzung wurde noch nicht berechnet. Führen Sie eine Aktualisierung aus, um gespeicherte Dateien zu messen.",
+        "storage_file_singular": "Datei",
+        "storage_file_plural": "Dateien",
+        "storage_partial_note": "Teilergebnis: Einige Dateien konnten nicht gemessen werden.",
+        "storage_unmeasured": "{count} Datei(en) konnten nicht gemessen werden und sind aus den Summen ausgeschlossen.",
+        "storage_last_error": "Die letzte Aktualisierung ist fehlgeschlagen; das vorherige Ergebnis wird angezeigt.",
+        "storage_scope_note": "Enthält Fallanhänge, Kommentarbilder, Scanner-Inbox-Dateien, aufbewahrte Scan-Revisionen und das Praxislogo. Archivierte Fälle werden gezählt, solange ihre Dateien gespeichert bleiben. Temporäre, nicht verknüpfte Uploads sind ausgeschlossen."
     },
     "marketing": {
         "navigation": {

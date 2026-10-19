@@ -4053,7 +4053,29 @@
         "plan_override_saving": "Salvando...",
         "plan_override_failed": "Falha ao salvar a substituição de plano.",
         "plan_override_load_failed": "Não foi possível carregar os detalhes da substituição.",
-        "plan_override_no_owner": "Nenhum titular de cobrança pode ser resolvido para este consultório."
+        "plan_override_no_owner": "Nenhum titular de cobrança pode ser resolvido para este consultório.",
+        "settings_practice_card": "Clínica",
+        "settings_members_2fa": "Membros com 2FA ativada",
+        "storage_title": "Uso de armazenamento",
+        "storage_total": "Armazenamento total",
+        "storage_images": "Imagens",
+        "storage_scans": "Digitalizações e arquivos 3D",
+        "storage_other": "Outros anexos",
+        "storage_branding": "Identidade visual",
+        "storage_calculated_at": "Último cálculo:",
+        "storage_refresh": "Atualizar",
+        "storage_refreshing": "Atualizando…",
+        "storage_refresh_running": "Uma atualização já está em andamento.",
+        "storage_refresh_failed": "Falha ao atualizar",
+        "storage_retry": "Tentar novamente",
+        "storage_load_failed": "Não foi possível carregar o uso de armazenamento.",
+        "storage_never_calculated": "O uso de armazenamento ainda não foi calculado. Execute uma atualização para medir os arquivos armazenados.",
+        "storage_file_singular": "arquivo",
+        "storage_file_plural": "arquivos",
+        "storage_partial_note": "Resultado parcial: alguns arquivos não puderam ser medidos.",
+        "storage_unmeasured": "{count} arquivo(s) não puderam ser medidos e foram excluídos dos totais.",
+        "storage_last_error": "A última atualização falhou; o resultado anterior é exibido.",
+        "storage_scope_note": "Inclui anexos de casos, imagens de comentários, arquivos da caixa de entrada do scanner, revisões de digitalização retidas e o logotipo da clínica. Casos arquivados são contados enquanto seus arquivos permanecerem armazenados. Uploads temporários não vinculados são excluídos."
     },
     "tour": {
         "welcome_title": "Bem-vindo ao {appName}",
@@ -4740,7 +4762,7 @@
             "show_history_tab": {
                 "label": "Mostrar aba Histórico de revisões",
                 "description": "Exibir a aba Histórico ao visualizar um caso.",
-                "tooltip": "Preferência pessoal da sua conta. Quando desativada, a aba Histórico fica oculta na visualização do caso; o histórico continua sendo registrado e nada é excluído."
+                "tooltip": "Configuração de toda a clínica. Quando desativada, a aba Histórico fica oculta na visualização do caso para todos os membros desta clínica; o histórico continua sendo registrado e nada é excluído."
             },
             "sections": {
                 "appearance": "Aparência",

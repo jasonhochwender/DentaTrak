@@ -1100,7 +1100,7 @@
             "show_history_tab": {
                 "label": "Mostrar pestaña Historial de revisiones",
                 "description": "Mostrar la pestaña Historial al ver un caso.",
-                "tooltip": "Preferencia personal de tu cuenta. Al desactivarla, la pestaña Historial se oculta en la vista del caso; el historial sigue registrándose y no se elimina nada."
+                "tooltip": "Ajuste de toda la consulta. Al desactivarla, la pestaña Historial se oculta en la vista del caso para todos los miembros de esta consulta; el historial sigue registrándose y no se elimina nada."
             },
             "sections": {
                 "appearance": "Apariencia",
@@ -3020,7 +3020,29 @@
         "plan_override_saving": "Guardando...",
         "plan_override_failed": "No se pudo guardar la anulación de plan.",
         "plan_override_load_failed": "No se pudieron cargar los detalles de la anulación.",
-        "plan_override_no_owner": "No se puede resolver un titular de facturación para esta clínica."
+        "plan_override_no_owner": "No se puede resolver un titular de facturación para esta clínica.",
+        "settings_practice_card": "Consulta",
+        "settings_members_2fa": "Miembros con 2FA activada",
+        "storage_title": "Uso de almacenamiento",
+        "storage_total": "Almacenamiento total",
+        "storage_images": "Imágenes",
+        "storage_scans": "Escaneos y archivos 3D",
+        "storage_other": "Otros adjuntos",
+        "storage_branding": "Marca",
+        "storage_calculated_at": "Último cálculo:",
+        "storage_refresh": "Actualizar",
+        "storage_refreshing": "Actualizando…",
+        "storage_refresh_running": "Ya hay una actualización en curso.",
+        "storage_refresh_failed": "Error al actualizar",
+        "storage_retry": "Reintentar",
+        "storage_load_failed": "No se pudo cargar el uso de almacenamiento.",
+        "storage_never_calculated": "El uso de almacenamiento aún no se ha calculado. Ejecute una actualización para medir los archivos almacenados.",
+        "storage_file_singular": "archivo",
+        "storage_file_plural": "archivos",
+        "storage_partial_note": "Resultado parcial: algunos archivos no pudieron medirse.",
+        "storage_unmeasured": "{count} archivo(s) no pudieron medirse y se excluyen de los totales.",
+        "storage_last_error": "La última actualización falló; se muestra el resultado anterior.",
+        "storage_scope_note": "Incluye adjuntos de casos, imágenes de comentarios, archivos de la bandeja del escáner, revisiones de escaneo retenidas y el logotipo de la consulta. Los casos archivados se cuentan mientras sus archivos sigan almacenados. Se excluyen las subidas temporales no vinculadas."
     },
     "case_types": {
         "crown": "Corona",

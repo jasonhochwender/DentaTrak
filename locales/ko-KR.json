@@ -1100,7 +1100,7 @@
             "show_history_tab": {
                 "label": "수정 이력 탭 표시",
                 "description": "케이스를 볼 때 기록 탭을 표시합니다.",
-                "tooltip": "내 계정의 개인 설정입니다. 끄면 케이스 보기에서 기록 탭이 숨겨지며, 기록은 계속 저장되고 아무것도 삭제되지 않습니다."
+                "tooltip": "치과 전체 설정입니다. 끄면 이 치과의 모든 멤버에게 케이스 보기에서 기록 탭이 숨겨지며, 기록은 계속 저장되고 아무것도 삭제되지 않습니다."
             },
             "sections": {
                 "appearance": "모양",
@@ -3020,7 +3020,29 @@
         "plan_override_saving": "저장 중...",
         "plan_override_failed": "플랜 재정의를 저장하지 못했습니다.",
         "plan_override_load_failed": "플랜 재정의 정보를 불러오지 못했습니다.",
-        "plan_override_no_owner": "이 진료실에 대해 결제 소유자를 확인할 수 없습니다."
+        "plan_override_no_owner": "이 진료실에 대해 결제 소유자를 확인할 수 없습니다.",
+        "settings_practice_card": "치과",
+        "settings_members_2fa": "2FA 사용 멤버",
+        "storage_title": "스토리지 사용량",
+        "storage_total": "총 스토리지",
+        "storage_images": "이미지",
+        "storage_scans": "스캔 및 3D 파일",
+        "storage_other": "기타 첨부 파일",
+        "storage_branding": "브랜딩",
+        "storage_calculated_at": "마지막 계산:",
+        "storage_refresh": "새로 고침",
+        "storage_refreshing": "새로 고치는 중…",
+        "storage_refresh_running": "새로 고침이 이미 진행 중입니다.",
+        "storage_refresh_failed": "새로 고침 실패",
+        "storage_retry": "다시 시도",
+        "storage_load_failed": "스토리지 사용량을 불러오지 못했습니다.",
+        "storage_never_calculated": "스토리지 사용량이 아직 계산되지 않았습니다. 새로 고침을 실행해 저장된 파일을 측정하세요.",
+        "storage_file_singular": "파일",
+        "storage_file_plural": "파일",
+        "storage_partial_note": "부분 결과: 일부 파일을 측정할 수 없었습니다.",
+        "storage_unmeasured": "{count}개 파일을 측정할 수 없어 합계에서 제외되었습니다.",
+        "storage_last_error": "마지막 새로 고침에 실패했습니다. 이전 성공 결과를 표시합니다.",
+        "storage_scope_note": "케이스 첨부 파일, 댓글 이미지, 스캐너 수신함 파일, 보관된 스캔 리비전, 치과 로고가 포함됩니다. 보관된 케이스는 파일이 저장되어 있는 동안 계산됩니다. 임시 미연결 업로드는 제외됩니다."
     },
     "case_types": {
         "crown": "크라운",

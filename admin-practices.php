@@ -1964,7 +1964,154 @@ $userEmail = $_SESSION['user_email'] ?? '';
 
             html += '</div>';
 
+            // Storage usage is loaded separately: the API returns the last
+            // cached calculation instantly while Refresh recomputes on demand.
+            html += '<div id="storageUsageSection" style="margin-top: 16px;"><div class="settings-card"><h4>' + escapeHtml(t('admin_practices.storage_title')) + '</h4><div class="value" style="color:#9ca3af;">—</div></div></div>';
+
             document.getElementById('detailContent').innerHTML = html;
+            loadStorageUsage(selectedPracticeId);
+        }
+
+        function formatStorageBytes(bytes) {
+            if (bytes === null || bytes === undefined) return '—';
+            const n = Number(bytes);
+            if (!isFinite(n) || n < 0) return '—';
+            if (n === 0) return '0 B';
+            const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+            let i = Math.min(units.length - 1, Math.floor(Math.log(n) / Math.log(1024)));
+            const v = n / Math.pow(1024, i);
+            return (v >= 100 ? Math.round(v) : (v >= 10 ? v.toFixed(1) : v.toFixed(2))).toString().replace(/\.?0+$/, '') + ' ' + units[i];
+        }
+
+        function storageCountLabel(files) {
+            if (files === null || files === undefined) return '—';
+            return files + ' ' + (files === 1 ? t('admin_practices.storage_file_singular') : t('admin_practices.storage_file_plural'));
+        }
+
+        function loadStorageUsage(practiceId) {
+            // Guard against practice/tab switches while the read is in flight.
+            const requestId = ++lastTabRequestId;
+            const isCurrent = () => requestId === lastTabRequestId && practiceId === selectedPracticeId;
+            fetch('api/admin-practices.php?action=storage&practice_id=' + practiceId, { credentials: 'same-origin' })
+                .then(r => r.json())
+                .then(data => {
+                    if (!isCurrent()) return;
+                    if (data && data.success) {
+                        renderStorageUsage(data.storage, practiceId);
+                    } else {
+                        renderStorageError((data && data.message) || t('admin_practices.storage_load_failed'), practiceId);
+                    }
+                })
+                .catch(() => { if (isCurrent()) renderStorageError(t('admin_practices.storage_load_failed'), practiceId); });
+        }
+
+        function renderStorageError(message, practiceId) {
+            const el = document.getElementById('storageUsageSection');
+            if (!el) return;
+            el.innerHTML = '<div class="settings-card">' +
+                '<h4>' + escapeHtml(t('admin_practices.storage_title')) + '</h4>' +
+                '<p style="font-size: 0.85rem; color: #dc2626;">' + escapeHtml(message) + '</p>' +
+                '<button type="button" class="action-btn" onclick="loadStorageUsage(' + practiceId + ')">' + escapeHtml(t('admin_practices.storage_retry')) + '</button>' +
+                '</div>';
+        }
+
+        function renderStorageUsage(storage, practiceId) {
+            const el = document.getElementById('storageUsageSection');
+            if (!el) return;
+
+            if (!storage || !storage.calculated) {
+                el.innerHTML = '<div class="settings-card">' +
+                    '<h4>' + escapeHtml(t('admin_practices.storage_title')) + '</h4>' +
+                    '<p style="font-size: 0.85rem; color: #6b7280; margin: 0 0 12px;">' + escapeHtml(t('admin_practices.storage_never_calculated')) + '</p>' +
+                    '<button type="button" class="action-btn primary" id="storageRefreshBtn" onclick="refreshStorageUsage(' + practiceId + ')">' + escapeHtml(t('admin_practices.storage_refresh')) + '</button>' +
+                    ' <span id="storageStatus" style="font-size: 0.85rem; margin-left: 8px;"></span>' +
+                    '</div>';
+                return;
+            }
+
+            const cat = storage.categories || {};
+            const metric = (label, catKey) => {
+                const c = cat[catKey] || {};
+                return '<div class="compliance-detail">' +
+                    '<div class="label">' + escapeHtml(label) + '</div>' +
+                    '<div class="value" style="font-size: 1.2rem;">' + formatStorageBytes(c.bytes) + '</div>' +
+                    '<div style="font-size: 0.8rem; color: #6b7280;">' + storageCountLabel(c.files) + '</div>' +
+                    '</div>';
+            };
+
+            let html = '<div class="settings-card">' +
+                '<h4>' + escapeHtml(t('admin_practices.storage_title')) + '</h4>' +
+                '<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">' +
+                '<div class="compliance-detail" style="grid-column: 1 / -1;">' +
+                    '<div class="label">' + escapeHtml(t('admin_practices.storage_total')) + '</div>' +
+                    '<div class="value" style="font-size: 1.4rem; font-weight: 700;">' + formatStorageBytes(storage.total_bytes) + '</div>' +
+                '</div>' +
+                metric(t('admin_practices.storage_images'), 'image') +
+                metric(t('admin_practices.storage_scans'), 'scan') +
+                metric(t('admin_practices.storage_other'), 'other') +
+                metric(t('admin_practices.storage_branding'), 'branding') +
+                '</div>';
+
+            const notes = [];
+            if (storage.partial) {
+                notes.push(t('admin_practices.storage_partial_note'));
+            }
+            if ((storage.unmeasured_files || 0) > 0) {
+                notes.push(t('admin_practices.storage_unmeasured', { count: storage.unmeasured_files }));
+            }
+            if (storage.refresh_in_progress) {
+                notes.push(t('admin_practices.storage_refresh_running'));
+            }
+            html += '<div style="margin-top: 12px; font-size: 0.85rem; color: #6b7280;">' +
+                escapeHtml(t('admin_practices.storage_calculated_at')) + ' ' + escapeHtml(formatDateTime(storage.calculated_at)) +
+                (notes.length ? '<br>' + notes.map(n => escapeHtml(n)).join('<br>') : '') +
+                (storage.last_error ? '<br><span style="color:#dc2626;">' + escapeHtml(t('admin_practices.storage_last_error')) + '</span>' : '') +
+                '</div>' +
+                '<div style="margin-top: 12px;">' +
+                '<button type="button" class="action-btn" id="storageRefreshBtn" onclick="refreshStorageUsage(' + practiceId + ')">' + escapeHtml(t('admin_practices.storage_refresh')) + '</button>' +
+                ' <span id="storageStatus" style="font-size: 0.85rem; margin-left: 8px;"></span>' +
+                '</div>' +
+                '<p style="font-size: 0.78rem; color: #9ca3af; margin: 10px 0 0;">' + escapeHtml(t('admin_practices.storage_scope_note')) + '</p>' +
+                '</div>';
+
+            el.innerHTML = html;
+        }
+
+        function refreshStorageUsage(practiceId) {
+            const btn = document.getElementById('storageRefreshBtn');
+            const status = document.getElementById('storageStatus');
+            if (btn) btn.disabled = true;
+            if (status) { status.textContent = t('admin_practices.storage_refreshing'); status.style.color = '#6b7280'; }
+
+            const requestId = ++lastTabRequestId;
+            const isCurrent = () => requestId === lastTabRequestId && practiceId === selectedPracticeId;
+            postJson('api/admin-practices.php?action=refresh_storage', { practice_id: practiceId })
+                .then(r => r.json())
+                .then(data => {
+                    if (!isCurrent()) return;
+                    if (data && data.success) {
+                        if (data.in_progress) {
+                            // Another admin already triggered a refresh: keep
+                            // showing the last successful result and note it.
+                            renderStorageUsage(data.usage, practiceId);
+                            const s = document.getElementById('storageStatus');
+                            if (s) { s.textContent = t('admin_practices.storage_refresh_running'); s.style.color = '#6b7280'; }
+                        } else if (data.refreshed) {
+                            renderStorageUsage(data.usage, practiceId);
+                        } else {
+                            // Failure: renderStorageUsage re-shows the last
+                            // successful totals plus the error note.
+                            renderStorageUsage(data.usage, practiceId);
+                        }
+                    } else {
+                        if (status) { status.textContent = (data && data.message) || t('admin_practices.storage_refresh_failed'); status.style.color = '#dc2626'; }
+                    }
+                    if (btn) btn.disabled = false;
+                })
+                .catch(() => {
+                    if (status) { status.textContent = t('admin_practices.storage_refresh_failed'); status.style.color = '#dc2626'; }
+                    if (btn) btn.disabled = false;
+                });
         }
 
         function loadPHITab(practiceId) {
@@ -2359,6 +2506,7 @@ $userEmail = $_SESSION['user_email'] ?? '';
             const settings = {
                 allow_card_delete: document.getElementById('psAllowCardDelete').checked,
                 delivered_hide_days: document.getElementById('psDeliveredHideDays').value,
+                show_case_history_tab: document.getElementById('psShowCaseHistoryTab').checked,
                 case_review_tracking_enabled: document.getElementById('psCaseReviewTracking').checked,
                 lab_acknowledgment_enabled: document.getElementById('psLabAcknowledgment').checked,
                 fabg_pilot: document.getElementById('psFabgPilot').checked,
@@ -2369,6 +2517,12 @@ $userEmail = $_SESSION['user_email'] ?? '';
                 highlight_appointment_risk: document.getElementById('psHighlightAppointmentRisk').checked,
                 appointment_risk_days: document.getElementById('psAppointmentRiskDays').value
             };
+            const dn = document.getElementById('psDisplayName');
+            if (dn) settings.display_name = dn.value;
+            const dl = document.getElementById('psDefaultLanguage');
+            if (dl) settings.default_locale = dl.value;
+            const r2 = document.getElementById('psRequire2fa');
+            if (r2) settings.require_2fa = r2.checked;
             const gd = document.getElementById('psGoogleDriveBackup');
             if (gd) settings.google_drive_backup = gd.checked;
 
@@ -2402,12 +2556,30 @@ $userEmail = $_SESSION['user_email'] ?? '';
 
             // Editable Display & Behavior settings - same controls, ranges,
             // and conditional visibility as Settings > Display & Behavior.
-            let html = '<div class="settings-card">' +
+            let html = '';
+
+            const practiceIdentity = settings.practice || {};
+            const localeOptions = (practiceIdentity.supported_locales || []).map(loc =>
+                '<option value="' + escapeHtml(loc.value) + '"' + (practiceIdentity.default_locale === loc.value ? ' selected' : '') + '>' + escapeHtml(loc.nativeName || loc.value) + '</option>'
+            ).join('');
+            html += '<div class="settings-card">' +
+                '<h4>' + escapeHtml(t('admin_practices.settings_practice_card')) + '</h4>' +
+                '<div class="settings-row"><span class="settings-label">' + escapeHtml(t('settings.practice.display_name')) + '</span><span class="settings-value">' +
+                    '<input type="text" id="psDisplayName" class="settings-number-input" style="width: 220px;" maxlength="255" value="' + escapeHtml(practiceIdentity.display_name || '') + '"></span></div>' +
+                (localeOptions
+                    ? '<div class="settings-row"><span class="settings-label">' + escapeHtml(t('settings.practice.language.label')) + '</span><span class="settings-value">' +
+                        '<select id="psDefaultLanguage" class="settings-number-input" style="width: 220px;">' + localeOptions + '</select></span></div>'
+                    : '') +
+                '</div>';
+
+            html += '<div class="settings-card">' +
                 '<h4>Display &amp; Behavior</h4>' +
+                '<div class="settings-row"><span class="settings-label">' + escapeHtml(t('settings.display.show_history_tab.label')) + '</span><span class="settings-value">' +
+                    '<input type="checkbox" id="psShowCaseHistoryTab" ' + (settings.show_case_history_tab ? 'checked' : '') + '></span></div>' +
                 '<div class="settings-row"><span class="settings-label">Allow Archiving Individual Cases</span><span class="settings-value">' +
                     '<input type="checkbox" id="psAllowCardDelete" ' + (cm.allow_archiving_individual_cases ? 'checked' : '') + '></span></div>' +
                 '<div class="settings-row"><span class="settings-label">Auto-Archive Delivered Cases After (days, 0 = off)</span><span class="settings-value">' +
-                    '<input type="number" id="psDeliveredHideDays" min="0" max="365" class="settings-number-input" value="' + (cm.delivered_hide_days != null ? cm.delivered_hide_days : 120) + '"></span></div>' +
+                    '<input type="number" id="psDeliveredHideDays" min="0" max="365" class="settings-number-input" value="' + (cm.delivered_hide_days != null ? cm.delivered_hide_days : 0) + '"></span></div>' +
                 '<div class="settings-row"><span class="settings-label">Case Review Tracking</span><span class="settings-value">' +
                     '<input type="checkbox" id="psCaseReviewTracking" ' + (settings.case_review_tracking_enabled ? 'checked' : '') + '></span></div>' +
                 '<div class="settings-row"><span class="settings-label">Lab Acknowledgment</span><span class="settings-value">' +
@@ -2439,7 +2611,7 @@ $userEmail = $_SESSION['user_email'] ?? '';
             }
 
             html += '<div class="settings-card">' +
-                '<button type="button" class="action-btn" id="psSaveSettingsBtn" onclick="savePracticeSettings(' + currentSettingsPracticeId + ')">Save Display &amp; Behavior Settings</button>' +
+                '<button type="button" class="action-btn" id="psSaveSettingsBtn" onclick="savePracticeSettings(' + currentSettingsPracticeId + ')">Save Settings</button>' +
                 ' <span id="psSaveStatus" style="font-size: 0.85rem; margin-left: 8px;"></span>' +
                 '</div>';
             
@@ -2506,9 +2678,14 @@ $userEmail = $_SESSION['user_email'] ?? '';
                     '<input type="checkbox" id="psFabgPilot" ' + (settings.fabg_pilot ? 'checked' : '') + '></span></div>' +
                 '</div>';
 
+            const sec = settings.security || {};
+            const memberTotal = (settings.users || []).filter(u => u.active !== false).length;
             html += '<div class="settings-card">' +
                 '<h4>Security</h4>' +
-                '<div class="settings-row"><span class="settings-label">Two-Factor Authentication Enabled</span><span class="settings-value">' + yesNo(settings.security.two_factor_authentication_enabled) + '</span></div>' +
+                '<div class="settings-row"><span class="settings-label">' + escapeHtml(t('settings.security.practice_2fa.toggle_label')) + '</span><span class="settings-value">' +
+                    '<input type="checkbox" id="psRequire2fa" ' + (sec.require_2fa ? 'checked' : '') + '></span></div>' +
+                '<div class="settings-row"><span class="settings-label">' + escapeHtml(t('admin_practices.settings_members_2fa')) + '</span><span class="settings-value">' +
+                    (sec.members_with_2fa || 0) + ' / ' + memberTotal + '</span></div>' +
                 '</div>';
 
             const selected = practices.find(p => p.id === selectedPracticeId);
