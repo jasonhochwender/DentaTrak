@@ -2023,7 +2023,7 @@ document.addEventListener('DOMContentLoaded', function () {
   window.applyLabAcknowledgmentEnabled = applyLabAcknowledgmentEnabled;
 
   // Personal display preference (per-user account): show/hide the case
-  // History tab. Missing preference behaves as ON. Presentation only -
+  // History tab. Missing preference behaves as OFF. Presentation only -
   // history keeps recording and permissions are unaffected.
   function applyShowCaseHistoryTab(show) {
     window.showCaseHistoryTab = show !== false;
@@ -2056,8 +2056,8 @@ document.addEventListener('DOMContentLoaded', function () {
     window.practiceUsers = loadedPracticeUsers || [];
     window.caseReviewTrackingEnabled = toBoolean(preferences.case_review_tracking_enabled, false);
     window.labAcknowledgmentEnabled = toBoolean(preferences.lab_acknowledgment_enabled, false);
-    // Personal preference - missing value behaves as ON.
-    window.showCaseHistoryTab = toBoolean(preferences.show_case_history_tab, true);
+    // Personal preference - missing value behaves as OFF.
+    window.showCaseHistoryTab = toBoolean(preferences.show_case_history_tab, false);
 
     if (typeof applyCaseReviewTrackingEnabled === 'function') {
       applyCaseReviewTrackingEnabled(window.caseReviewTrackingEnabled);
@@ -2415,7 +2415,7 @@ document.addEventListener('DOMContentLoaded', function () {
       deliveredHideDays: document.getElementById('deliveredHideDays')?.value || '0',
       caseReviewTrackingEnabled: document.getElementById('caseReviewTrackingEnabled')?.checked || false,
       labAcknowledgmentEnabled: document.getElementById('labAcknowledgmentEnabled')?.checked || false,
-      showCaseHistoryTab: document.getElementById('showCaseHistoryTab')?.checked !== false,
+      showCaseHistoryTab: document.getElementById('showCaseHistoryTab')?.checked === true,
       googleDriveBackup: document.getElementById('googleDriveBackup')?.checked || false,
       gmailUsers: window.gmailUsers ? window.gmailUsers.slice() : [],
       adminUsers: window.adminUsers ? window.adminUsers.slice() : [],
@@ -2449,7 +2449,7 @@ document.addEventListener('DOMContentLoaded', function () {
     if ((document.getElementById('deliveredHideDays')?.value || '0') !== orig.deliveredHideDays) return true;
     if ((document.getElementById('caseReviewTrackingEnabled')?.checked || false) !== orig.caseReviewTrackingEnabled) return true;
     if ((document.getElementById('labAcknowledgmentEnabled')?.checked || false) !== orig.labAcknowledgmentEnabled) return true;
-    if ((document.getElementById('showCaseHistoryTab')?.checked !== false) !== orig.showCaseHistoryTab) return true;
+    if ((document.getElementById('showCaseHistoryTab')?.checked === true) !== orig.showCaseHistoryTab) return true;
     if ((document.getElementById('googleDriveBackup')?.checked || false) !== orig.googleDriveBackup) return true;
 
     // Check logo changes
@@ -4383,7 +4383,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
       // Personal display preference (per-user). Missing element -> ON.
       var showCaseHistoryTabInput = document.getElementById('showCaseHistoryTab');
-      var showCaseHistoryTab = showCaseHistoryTabInput ? showCaseHistoryTabInput.checked : true;
+      var showCaseHistoryTab = showCaseHistoryTabInput ? showCaseHistoryTabInput.checked : false;
 
       // Practice settings - use displayName (editable) instead of practiceName
       var displayNameInput = document.getElementById('displayName');

@@ -65,11 +65,28 @@ try {
     }
 
     // Personal display preference: show/hide the case History tab.
-    // DEFAULT 1 so existing and new users keep the tab; a missing
-    // preference must behave as ON.
+    // NULL means no explicit choice -> the tab defaults OFF. Stored 0/1
+    // values are deliberate choices and are preserved.
     $stmt = $pdo->query("SHOW COLUMNS FROM user_preferences LIKE 'show_case_history_tab'");
-    if ($stmt->rowCount() === 0) {
-        $pdo->exec("ALTER TABLE user_preferences ADD COLUMN show_case_history_tab TINYINT(1) DEFAULT 1");
+    $histCol = $stmt ? $stmt->fetch(PDO::FETCH_ASSOC) : false;
+    if ($histCol === false) {
+        $pdo->exec("ALTER TABLE user_preferences ADD COLUMN show_case_history_tab TINYINT(1) NULL DEFAULT NULL");
+    } elseif ($histCol['Null'] !== 'YES' || $histCol['Default'] !== null) {
+        $pdo->exec("ALTER TABLE user_preferences MODIFY show_case_history_tab TINYINT(1) NULL DEFAULT NULL");
+        // The column originally shipped with DEFAULT 1, which backfilled
+        // every pre-existing row to 1. Rows last saved before the
+        // preference shipped (Oct 18 2026 deploy, ~19:50 -0400) could
+        // never have chosen it - restore them to NULL so they follow the
+        // OFF default. Rows saved after the feature deployed keep the
+        // value their settings form submitted. The 12:00 cutoff precedes
+        // the deploy in both UTC and local-time interpretations.
+        try {
+            $pdo->exec("UPDATE user_preferences SET show_case_history_tab = NULL
+                        WHERE show_case_history_tab = 1
+                          AND updated_at < '2026-10-18 12:00:00'");
+        } catch (PDOException $e) {
+            error_log('[get-settings] history-tab default migration failed: ' . $e->getMessage());
+        }
     }
 
     // Ensure locale columns exist
@@ -448,7 +465,8 @@ try {
             'appointment_risk_days' => 3,
             'delivered_hide_days' => 120,
             'tour_completed' => false,
-            'google_drive_backup' => false
+            'google_drive_backup' => false,
+            'show_case_history_tab' => false
         ];
     } else {
         if (!isset($preferences['theme'])) $preferences['theme'] = 'system';
@@ -471,6 +489,8 @@ try {
         $preferences['highlight_appointment_risk'] = (bool)$preferences['highlight_appointment_risk'];
         $preferences['tour_completed'] = (bool)$preferences['tour_completed'];
         $preferences['google_drive_backup'] = (bool)$preferences['google_drive_backup'];
+        // NULL/absent means no explicit choice -> OFF.
+        $preferences['show_case_history_tab'] = !empty($preferences['show_case_history_tab']);
     }
 
     // Practice-level Case Review Tracking flag. Defaults to OFF when the

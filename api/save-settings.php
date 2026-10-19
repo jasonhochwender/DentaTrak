@@ -159,9 +159,10 @@ $deliveredHideDays = isset($data['deliveredHideDays']) ? (int)$data['deliveredHi
 // Google Drive backup setting
 $googleDriveBackup = isset($data['googleDriveBackup']) ? (bool)$data['googleDriveBackup'] : false;
 
-// Personal display preference (default ON - a missing value must behave
-// as ON so an absent key never hides the History tab).
-$showCaseHistoryTab = isset($data['showCaseHistoryTab']) ? (bool)$data['showCaseHistoryTab'] : true;
+// Personal display preference (default OFF). An absent key means the
+// caller did not submit a choice - NULL preserves any stored value via
+// COALESCE below and stores NULL for brand-new rows.
+$showCaseHistoryTab = isset($data['showCaseHistoryTab']) ? (bool)$data['showCaseHistoryTab'] : null;
 
 // Ensure pastDueDays is within valid range
 if ($pastDueDays < 1) {
@@ -550,11 +551,25 @@ try {
         $pdo->exec("ALTER TABLE user_preferences ADD COLUMN appointment_risk_days INT(11) DEFAULT 3");
     }
 
-    // Personal display preference (per-user, not practice-level). DEFAULT 1:
-    // missing preference behaves as ON.
+    // Personal display preference (per-user, not practice-level). NULL
+    // means no explicit choice -> the tab defaults OFF; stored 0/1 are
+    // deliberate choices.
     $stmt = $pdo->query("SHOW COLUMNS FROM user_preferences LIKE 'show_case_history_tab'");
-    if ($stmt->rowCount() === 0) {
-        $pdo->exec("ALTER TABLE user_preferences ADD COLUMN show_case_history_tab TINYINT(1) DEFAULT 1");
+    $histCol = $stmt ? $stmt->fetch(PDO::FETCH_ASSOC) : false;
+    if ($histCol === false) {
+        $pdo->exec("ALTER TABLE user_preferences ADD COLUMN show_case_history_tab TINYINT(1) NULL DEFAULT NULL");
+    } elseif ($histCol['Null'] !== 'YES' || $histCol['Default'] !== null) {
+        $pdo->exec("ALTER TABLE user_preferences MODIFY show_case_history_tab TINYINT(1) NULL DEFAULT NULL");
+        // Same one-time backfill fix as get-settings.php: rows untouched
+        // since before the preference shipped only carry the column
+        // default - restore NULL so they follow OFF.
+        try {
+            $pdo->exec("UPDATE user_preferences SET show_case_history_tab = NULL
+                        WHERE show_case_history_tab = 1
+                          AND updated_at < '2026-10-18 12:00:00'");
+        } catch (PDOException $e) {
+            error_log('[save-settings] history-tab default migration failed: ' . $e->getMessage());
+        }
     }
     // Ensure the theme enum accepts 'system' (added for the System/Light/Dark
     // preference; older schemas may only allow 'light'/'dark').
@@ -587,7 +602,7 @@ try {
             appointment_risk_days = VALUES(appointment_risk_days),
             delivered_hide_days = VALUES(delivered_hide_days),
             google_drive_backup = VALUES(google_drive_backup),
-            show_case_history_tab = VALUES(show_case_history_tab)
+            show_case_history_tab = COALESCE(VALUES(show_case_history_tab), show_case_history_tab)
     ");
 
     $result = $stmt->execute([
@@ -602,7 +617,7 @@ try {
         'appointment_risk_days' => $appointmentRiskDays,
         'delivered_hide_days' => $deliveredHideDays,
         'google_drive_backup' => $googleDriveBackup ? 1 : 0,
-        'show_case_history_tab' => $showCaseHistoryTab ? 1 : 0
+        'show_case_history_tab' => $showCaseHistoryTab === null ? null : ($showCaseHistoryTab ? 1 : 0)
     ]);
     
     // Update practice settings (name and logo) if user is an admin of the practice
