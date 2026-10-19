@@ -2214,7 +2214,7 @@
   }
 
   .kanban-card-title {
-    font-size: 0.85rem;
+    font-size: 0.8rem;
   }
 
   .kanban-card-meta {
@@ -2585,14 +2585,14 @@
   }
 
   .kanban-card-title {
-    font-size: 0.95rem;
+    font-size: 0.8rem;
     max-width: 100%;
     white-space: normal;
   }
 
   .kanban-card-content {
-    font-size: 0.8rem;
-    line-height: 1.4;
+    font-size: 0.72rem;
+    line-height: 1.35;
   }
 
   .kanban-card-content p {
@@ -2612,7 +2612,7 @@
   }
 
   .kanban-card-assignment .assignment-label {
-    font-size: 0.75rem;
+    font-size: 0.72rem;
     color: var(--text-secondary);
     flex-shrink: 0;
   }
@@ -2620,7 +2620,7 @@
   .kanban-card-assignment .assignment-select {
     width: 100%;
     min-width: 0;
-    font-size: 0.8rem;
+    font-size: 0.72rem;
     padding: 3px 6px;
     border-radius: var(--radius-sm);
     border: 1px solid var(--border-light);
@@ -2628,11 +2628,17 @@
     color: var(--text-primary);
   }
 
-  .revision-count-line,
-  .at-risk-indicator,
+  .revision-count-line {
+    font-size: 0.72rem;
+  }
+
+  .at-risk-indicator {
+    font-size: 0.65rem;
+  }
+
   .late-indicator,
   .appointment-risk-indicator {
-    font-size: 0.7rem;
+    font-size: 0.58rem;
   }
 
   /* Touch-size the shared Case actions toggle on phones */

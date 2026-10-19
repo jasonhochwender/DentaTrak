@@ -11,7 +11,7 @@
 }
 
 .assignment-label {
-  font-size: 0.75rem;
+  font-size: 0.72rem;
   color: #64748b;
   font-weight: 500;
   flex-shrink: 0;
@@ -27,7 +27,7 @@
 .assignment-select {
   width: 100%;
   padding: 4px 8px;
-  font-size: 0.8rem;
+  font-size: 0.72rem;
   border: 1px solid #94a3b8; /* Darker border for better contrast */
   border-radius: 4px;
   background-color: white;
@@ -48,7 +48,7 @@
 
 .assignment-select option {
   padding: 4px 8px;
-  font-size: 0.8rem;
+  font-size: 0.72rem;
 }
 
 /* Loading state */
