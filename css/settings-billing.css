@@ -319,6 +319,21 @@ input[type="checkbox"], input[type="radio"] {
   margin: 0 0 12px 0;
 }
 
+/* Scope tag on section headings (Display & Behavior): marks whether the
+   settings below apply to the signed-in account or the whole practice. */
+.settings-scope {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 1px 8px;
+  border: 1px solid var(--border-light);
+  border-radius: 9999px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-light);
+  vertical-align: 1px;
+  white-space: nowrap;
+}
+
 /* Same app.light.css `.modal-body strong` rule also colors the "Step 1:" /
    "Step 2:" labels in the 2FA setup orange. Scoped override, higher
    specificity than the shared rule -- does not touch app.light.css. */

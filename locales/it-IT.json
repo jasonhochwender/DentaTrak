@@ -1098,9 +1098,21 @@
                 "tooltip": "Se attiva, i casi assegnati a un laboratorio mostrano una richiesta di conferma. Il laboratorio può confermare la ricezione con una data di riconsegna facoltativa o richiedere informazioni. Lo staff può anche registrare una conferma ricevuta per telefono o e-mail."
             },
             "show_history_tab": {
-                "label": "Mostra scheda Cronologia del caso",
+                "label": "Mostra scheda Cronologia delle revisioni",
                 "description": "Mostra la scheda Cronologia durante la visualizzazione di un caso.",
                 "tooltip": "Preferenza personale del tuo account. Se disattivata, la scheda Cronologia viene nascosta nella vista del caso; la cronologia continua a essere registrata e nulla viene eliminato."
+            },
+            "sections": {
+                "appearance": "Aspetto",
+                "case_details": "Dettagli del caso",
+                "case_workflow": "Flusso di lavoro dei casi",
+                "case_archiving": "Archiviazione dei casi",
+                "case_highlighting": "Evidenziazione dei casi",
+                "case_backup": "Backup dei dati dei casi"
+            },
+            "scope": {
+                "account": "Il tuo account",
+                "practice": "Tutto lo studio"
             }
         },
         "users": {

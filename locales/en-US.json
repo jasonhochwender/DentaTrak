@@ -1050,7 +1050,7 @@
                 "tooltip": "Highlights cases when the patient appointment is approaching within the configured number of days."
             },
             "case_review": {
-                "label": "Case Review Tracking",
+                "label": "Case review tracking",
                 "enable": "Enable case review tracking",
                 "tooltip": "Marks cases for review when another user makes changes, helping ensure updates are acknowledged."
             },
@@ -1098,9 +1098,21 @@
                 "tooltip": "When enabled, cases assigned to a lab show an acknowledgment request. The lab can confirm receipt with an optional promised return date or ask for more information. Staff can also record a phone or email confirmation."
             },
             "show_history_tab": {
-                "label": "Show case history tab",
+                "label": "Show Revision History tab",
                 "description": "Display the History tab when viewing a case.",
                 "tooltip": "Personal preference for your account. When turned off, the History tab is hidden in the case view; case history keeps recording and nothing is deleted."
+            },
+            "sections": {
+                "appearance": "Appearance",
+                "case_details": "Case details",
+                "case_workflow": "Case workflow",
+                "case_archiving": "Case archiving",
+                "case_highlighting": "Case highlighting",
+                "case_backup": "Case data backup"
+            },
+            "scope": {
+                "account": "Your account",
+                "practice": "Practice-wide"
             }
         },
         "users": {

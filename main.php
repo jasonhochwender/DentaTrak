@@ -3597,6 +3597,7 @@ endif;
                     </button>
                     <div class="settings-twisty-content">
                       <div class="settings-group">
+                        <h4 class="subsection-title"><?php echo t('settings.display.sections.appearance'); ?><span class="settings-scope"><?php echo t('settings.display.scope.account'); ?></span></h4>
                         <div class="option-row">
                           <label for="theme"><?php echo t('settings.display.theme.label'); ?></label>
                           <select id="theme" name="theme" class="theme-dropdown">
@@ -3605,18 +3606,40 @@ endif;
                             <option value="dark"><?php echo t('settings.display.theme.dark'); ?></option>
                           </select>
                         </div>
+                      </div>
 
+                      <div class="settings-divider"></div>
+
+                      <div class="settings-group">
                         <!-- Personal display preference (per-user account,
                              not practice-wide and not admin-gated): every
                              user chooses whether the case History tab shows. -->
+                        <h4 class="subsection-title"><?php echo t('settings.display.sections.case_details'); ?><span class="settings-scope"><?php echo t('settings.display.scope.account'); ?></span></h4>
                         <div class="option-row option-row-history-tab">
                           <label for="showCaseHistoryTab"><?php echo t('settings.display.show_history_tab.label'); ?></label>
                           <input type="checkbox" id="showCaseHistoryTab" name="showCaseHistoryTab">
-                          <span class="option-text"><?php echo t('settings.display.show_history_tab.description'); ?></span>
+                        </div>
+                      </div>
+
+                      <div class="settings-divider"></div>
+
+                      <div class="settings-group">
+                        <h4 class="subsection-title"><?php echo t('settings.display.sections.case_workflow'); ?><span class="settings-scope"><?php echo t('settings.display.scope.practice'); ?></span></h4>
+                        <div class="option-row option-row-case-review">
+                          <label for="caseReviewTrackingEnabled"><?php echo t('settings.display.case_review.label'); ?></label>
+                          <input type="checkbox" id="caseReviewTrackingEnabled" name="caseReviewTrackingEnabled" <?= $isAdmin ? '' : 'disabled' ?>>
                         </div>
 
-                        <div class="settings-divider"></div>
+                        <div class="option-row option-row-lab-ack">
+                          <label for="labAcknowledgmentEnabled"><?php echo t('settings.display.lab_ack.label'); ?></label>
+                          <input type="checkbox" id="labAcknowledgmentEnabled" name="labAcknowledgmentEnabled" <?= $isAdmin ? '' : 'disabled' ?>>
+                        </div>
+                      </div>
 
+                      <div class="settings-divider"></div>
+
+                      <div class="settings-group">
+                        <h4 class="subsection-title"><?php echo t('settings.display.sections.case_archiving'); ?><span class="settings-scope"><?php echo t('settings.display.scope.account'); ?></span></h4>
                         <div class="option-row">
                           <label for="allowCardDelete"><?php echo t('settings.display.allow_card_delete'); ?></label>
                           <input type="checkbox" id="allowCardDelete" name="allowCardDelete" <?= $isAdmin ? '' : 'disabled' ?>>
@@ -3632,22 +3655,7 @@ endif;
                       <div class="settings-divider"></div>
 
                       <div class="settings-group">
-                        <div class="option-row option-row-case-review">
-                          <label for="caseReviewTrackingEnabled"><?php echo t('settings.display.case_review.label'); ?></label>
-                          <input type="checkbox" id="caseReviewTrackingEnabled" name="caseReviewTrackingEnabled" <?= $isAdmin ? '' : 'disabled' ?>>
-                          <span class="option-text"><?php echo t('settings.display.case_review.enable'); ?></span>
-                        </div>
-
-                        <div class="option-row option-row-lab-ack">
-                          <label for="labAcknowledgmentEnabled"><?php echo t('settings.display.lab_ack.label'); ?></label>
-                          <input type="checkbox" id="labAcknowledgmentEnabled" name="labAcknowledgmentEnabled" <?= $isAdmin ? '' : 'disabled' ?>>
-                          <span class="option-text"><?php echo t('settings.display.lab_ack.description'); ?></span>
-                        </div>
-                      </div>
-
-                      <div class="settings-divider"></div>
-                      
-                      <div class="settings-group">
+                        <h4 class="subsection-title"><?php echo t('settings.display.sections.case_highlighting'); ?><span class="settings-scope"><?php echo t('settings.display.scope.account'); ?></span></h4>
                         <div class="option-row highlight-past-due-row">
                           <label for="highlightPastDue"><?php echo t('settings.display.past_due.label'); ?></label>
                           <input type="checkbox" id="highlightPastDue" name="highlightPastDue" <?= $isAdmin ? '' : 'disabled' ?>>
@@ -3674,16 +3682,20 @@ endif;
                             <input type="number" id="appointmentRiskDays" name="appointmentRiskDays" min="0" max="99" value="3" class="number-input" <?= $isAdmin ? '' : 'disabled' ?>>
                           </span>
                         </div>
-                        
-                        <?php if (isFeatureEnabled('SHOW_GOOGLE_DRIVE_BACKUP')): ?>
+                      </div>
+
+                      <?php if (isFeatureEnabled('SHOW_GOOGLE_DRIVE_BACKUP')): ?>
+                      <div class="settings-divider"></div>
+                      <div class="settings-group">
+                        <h4 class="subsection-title"><?php echo t('settings.display.sections.case_backup'); ?><span class="settings-scope"><?php echo t('settings.display.scope.practice'); ?></span></h4>
                         <div class="option-row" id="googleDriveBackupRow">
                           <label for="googleDriveBackup"><?php echo t('settings.display.google_drive.label'); ?></label>
                           <input type="checkbox" id="googleDriveBackup" name="googleDriveBackup" <?= $isAdmin ? '' : 'disabled' ?>>
                           <span id="googleDriveBackupNote" class="field-note" style="display: block; margin-top: 4px; margin-left: 8px; font-size: 12px; color: #666;"><?php echo t('settings.display.google_drive.note'); ?></span>
                           <span id="googleDriveWorkspaceWarning" class="field-note" style="display: none; margin-top: 4px; margin-left: 8px; font-size: 12px; color: #d97706;">⚠️ <?php echo t('settings.display.google_drive.warning'); ?></span>
                         </div>
-                        <?php endif; ?>
                       </div>
+                      <?php endif; ?>
 
                       <div class="settings-divider"></div>
 
@@ -3697,7 +3709,7 @@ endif;
                       <?php endif; ?>
                       <div class="settings-group workflow-columns-group" id="workflowColumnsManager">
                         <div class="workflow-columns-header">
-                          <h4 class="subsection-title"><?php echo t('settings.workflow_columns.title'); ?></h4>
+                          <h4 class="subsection-title"><?php echo t('settings.workflow_columns.title'); ?><span class="settings-scope"><?php echo t('settings.display.scope.practice'); ?></span></h4>
                           <p class="field-note-inline" id="workflowColumnsCount" data-count="<?= (int)$workflowColumnCount ?>" data-max="<?= (int)$workflowMaxColumns ?>"><?php echo t('settings.workflow_columns.count', ['count' => $workflowColumnCount, 'max' => $workflowMaxColumns]); ?></p>
                         </div>
                         <p class="field-note-inline workflow-columns-description"><?php echo t('settings.workflow_columns.description'); ?></p>

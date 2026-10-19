@@ -2750,9 +2750,21 @@
                 "tooltip": "Wenn aktiviert, zeigen an ein Labor übergebene Fälle eine Bestätigungsanfrage. Das Labor kann den Erhalt mit optionalem Rückgabedatum bestätigen oder Informationen anfordern. Mitarbeiter können auch eine telefonische oder E-Mail-Bestätigung erfassen."
             },
             "show_history_tab": {
-                "label": "Fallverlauf-Tab anzeigen",
+                "label": "Änderungsverlauf-Tab anzeigen",
                 "description": "Den Tab „Verlauf\" in der Fallansicht anzeigen.",
                 "tooltip": "Persönliche Einstellung für Ihr Konto. Wenn deaktiviert, wird der Verlauf-Tab in der Fallansicht ausgeblendet; der Verlauf wird weiterhin aufgezeichnet und nichts wird gelöscht."
+            },
+            "sections": {
+                "appearance": "Erscheinungsbild",
+                "case_details": "Falldetails",
+                "case_workflow": "Fall-Workflow",
+                "case_archiving": "Fallarchivierung",
+                "case_highlighting": "Fallhervorhebung",
+                "case_backup": "Falldaten-Sicherung"
+            },
+            "scope": {
+                "account": "Ihr Konto",
+                "practice": "Praxisweit"
             }
         },
         "users": {

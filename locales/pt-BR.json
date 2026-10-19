@@ -4738,9 +4738,21 @@
                 "tooltip": "Quando ativado, casos atribuídos a um laboratório exibem uma solicitação de confirmação. O laboratório pode confirmar o recebimento com uma data de devolução opcional ou pedir mais informações. A equipe também pode registrar uma confirmação recebida por telefone ou e-mail."
             },
             "show_history_tab": {
-                "label": "Mostrar aba Histórico do caso",
+                "label": "Mostrar aba Histórico de revisões",
                 "description": "Exibir a aba Histórico ao visualizar um caso.",
                 "tooltip": "Preferência pessoal da sua conta. Quando desativada, a aba Histórico fica oculta na visualização do caso; o histórico continua sendo registrado e nada é excluído."
+            },
+            "sections": {
+                "appearance": "Aparência",
+                "case_details": "Detalhes do caso",
+                "case_workflow": "Fluxo de trabalho de casos",
+                "case_archiving": "Arquivamento de casos",
+                "case_highlighting": "Destaque de casos",
+                "case_backup": "Backup de dados de casos"
+            },
+            "scope": {
+                "account": "Sua conta",
+                "practice": "Toda a clínica"
             }
         },
         "users": {

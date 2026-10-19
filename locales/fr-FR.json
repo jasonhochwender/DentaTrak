@@ -1098,9 +1098,21 @@
                 "tooltip": "Lorsque cette option est activée, les cas assignés à un laboratoire affichent une demande d’accusé de réception. Le laboratoire peut confirmer la réception avec une date de retour facultative ou demander des informations. Le personnel peut aussi consigner une confirmation par téléphone ou e-mail."
             },
             "show_history_tab": {
-                "label": "Afficher l’onglet Historique du cas",
+                "label": "Afficher l’onglet Historique des révisions",
                 "description": "Afficher l’onglet Historique lors de la consultation d’un cas.",
                 "tooltip": "Préférence personnelle de votre compte. Lorsqu’elle est désactivée, l’onglet Historique est masqué dans la vue du cas; l’historique continue d’être enregistré et rien n’est supprimé."
+            },
+            "sections": {
+                "appearance": "Apparence",
+                "case_details": "Détails du cas",
+                "case_workflow": "Flux de travail des cas",
+                "case_archiving": "Archivage des cas",
+                "case_highlighting": "Mise en évidence des cas",
+                "case_backup": "Sauvegarde des données de cas"
+            },
+            "scope": {
+                "account": "Votre compte",
+                "practice": "Toute la clinique"
             }
         },
         "users": {
