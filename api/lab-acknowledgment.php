@@ -32,7 +32,9 @@ require_once __DIR__ . '/case-activity-log.php';
 
 // Valid statuses for the denormalized mirror on cases_cache.lab_ack_status
 // and case_lab_acknowledgments.status. 'superseded' is terminal history.
-define('LAB_ACK_STATUSES', ['awaiting', 'needs_info', 'confirmed', 'superseded']);
+// 'awaiting_lab_review' = the practice answered a needs_info request and the
+// ball is back with the lab; it is still an open acknowledgment.
+define('LAB_ACK_STATUSES', ['awaiting', 'needs_info', 'awaiting_lab_review', 'confirmed', 'superseded']);
 
 /**
  * Self-healing schema: case_lab_acknowledgments table +
@@ -57,13 +59,16 @@ function ensureLabAcknowledgmentSchema() {
         lab_user_id BIGINT UNSIGNED DEFAULT NULL,
         lab_label_id BIGINT UNSIGNED DEFAULT NULL,
         lab_display_name VARCHAR(255) NOT NULL,
-        status ENUM('awaiting','needs_info','confirmed','superseded') NOT NULL DEFAULT 'awaiting',
+        status ENUM('awaiting','needs_info','awaiting_lab_review','confirmed','superseded') NOT NULL DEFAULT 'awaiting',
         promised_return_date VARCHAR(50) DEFAULT NULL,
         promised_by_user_id BIGINT UNSIGNED DEFAULT NULL,
         promised_at DATETIME DEFAULT NULL,
         info_requested_by BIGINT UNSIGNED DEFAULT NULL,
         info_requested_at DATETIME DEFAULT NULL,
         info_request_comment_id BIGINT UNSIGNED DEFAULT NULL,
+        response_comment_id BIGINT UNSIGNED DEFAULT NULL,
+        responded_by BIGINT UNSIGNED DEFAULT NULL,
+        responded_at DATETIME DEFAULT NULL,
         confirmed_by_user_id BIGINT UNSIGNED DEFAULT NULL,
         confirmed_by_name VARCHAR(255) DEFAULT NULL,
         confirmed_at DATETIME DEFAULT NULL,
@@ -113,6 +118,36 @@ function ensureLabAcknowledgmentSchema() {
             }
         } catch (PDOException $e) {
             error_log('[lab-ack] Error adding cases_cache.' . $col . ': ' . $e->getMessage());
+        }
+    }
+
+    // 'awaiting_lab_review' was added after the table shipped - widen the
+    // status enum on installs created before it existed.
+    try {
+        $stmt = $pdo->query("SHOW COLUMNS FROM case_lab_acknowledgments LIKE 'status'");
+        $statusCol = $stmt ? $stmt->fetch(PDO::FETCH_ASSOC) : false;
+        if ($statusCol && stripos((string)$statusCol['Type'], 'awaiting_lab_review') === false) {
+            $pdo->exec("ALTER TABLE case_lab_acknowledgments
+                MODIFY status ENUM('awaiting','needs_info','awaiting_lab_review','confirmed','superseded') NOT NULL DEFAULT 'awaiting'");
+        }
+    } catch (PDOException $e) {
+        error_log('[lab-ack] Error widening status enum: ' . $e->getMessage());
+    }
+
+    // Practice-response linkage columns (added with awaiting_lab_review).
+    $ackCols = [
+        'response_comment_id' => "ALTER TABLE case_lab_acknowledgments ADD COLUMN response_comment_id BIGINT UNSIGNED DEFAULT NULL",
+        'responded_by'        => "ALTER TABLE case_lab_acknowledgments ADD COLUMN responded_by BIGINT UNSIGNED DEFAULT NULL",
+        'responded_at'        => "ALTER TABLE case_lab_acknowledgments ADD COLUMN responded_at DATETIME DEFAULT NULL",
+    ];
+    foreach ($ackCols as $col => $alterSql) {
+        try {
+            $stmt = $pdo->query("SHOW COLUMNS FROM case_lab_acknowledgments LIKE " . $pdo->quote($col));
+            if ($stmt->rowCount() === 0) {
+                $pdo->exec($alterSql);
+            }
+        } catch (PDOException $e) {
+            error_log('[lab-ack] Error adding case_lab_acknowledgments.' . $col . ': ' . $e->getMessage());
         }
     }
 
@@ -489,7 +524,7 @@ function cancelPendingLabAckNotifications($practiceId) {
             SET q.status = 'cancelled'
             WHERE q.practice_id = :practice_id
               AND q.status = 'pending'
-              AND e.event_type IN ('lab_ack_requested','lab_ack_confirmed','lab_info_requested','lab_promised_date_changed')
+              AND e.event_type IN ('lab_ack_requested','lab_ack_confirmed','lab_info_requested','lab_promised_date_changed','lab_response_sent')
         ");
         $stmt->execute(['practice_id' => (int)$practiceId]);
     } catch (PDOException $e) {
@@ -533,7 +568,21 @@ function buildLabAckViewModel($ackRow, $enabled, $userId, $canEdit, $isLab, $cas
         }
     }
 
+    // The practice's response comment (linked to the lab's request) so the
+    // lab sees request and response together while reviewing.
+    $responseText = null;
+    if (!empty($ackRow['response_comment_id']) && $pdo) {
+        try {
+            $stmt = $pdo->prepare("SELECT comment_text FROM case_comments WHERE id = :id AND case_id = :case_id LIMIT 1");
+            $stmt->execute(['id' => (int)$ackRow['response_comment_id'], 'case_id' => (string)$ackRow['case_id']]);
+            $responseText = $stmt->fetchColumn() ?: null;
+        } catch (PDOException $e) {
+            $responseText = null;
+        }
+    }
+
     $isStaffConfirmation = ($ackRow['confirmation_source'] === 'staff');
+    $matchesLab = $isLab && userMatchesLabAckIdentity($userId, $ackRow);
 
     return [
         'enabled'         => true,
@@ -549,12 +598,17 @@ function buildLabAckViewModel($ackRow, $enabled, $userId, $canEdit, $isLab, $cas
         'promisedDate'    => $ackRow['promised_return_date'],
         'dateNotConfirmed' => $ackRow['status'] === 'confirmed' && empty($ackRow['promised_return_date']),
         'infoRequestText' => $infoRequestText,
-        'labUser'         => $isLab && userMatchesLabAckIdentity($userId, $ackRow)
-                             && in_array($ackRow['status'], ['awaiting', 'needs_info'], true),
+        'infoRequestCommentId' => $ackRow['info_request_comment_id'] ?? null,
+        'responseCommentId'    => $ackRow['response_comment_id'] ?? null,
+        'responseText'         => $responseText,
+        'respondedAt'          => $ackRow['responded_at'] ?? null,
+        'labUser'         => $matchesLab && $ackRow['status'] !== 'superseded',
         // The assigned lab may revise its own promised return date once it
         // has confirmed receipt (server enforces the same rule).
-        'labCanPromised'  => $isLab && userMatchesLabAckIdentity($userId, $ackRow)
-                             && $ackRow['status'] === 'confirmed',
+        'labCanPromised'  => $matchesLab && $ackRow['status'] === 'confirmed',
         'staffUser'       => $canEdit && !$isLab,
+        // Practice staff answer a needs_info request with the dedicated
+        // "Respond to lab" flow (comment + optional attachments).
+        'staffCanRespond' => $canEdit && !$isLab && $ackRow['status'] === 'needs_info',
     ];
 }

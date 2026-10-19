@@ -130,6 +130,8 @@
         return t(tlKey + 'lab_ack_confirmed_by_staff');
       case 'lab_info_requested':
         return t(tlKey + 'lab_info_requested');
+      case 'lab_response_sent':
+        return t(tlKey + 'lab_response_sent');
       case 'lab_promised_date_changed':
         return t(tlKey + 'lab_ack_promised_changed');
       case 'lab_ack_superseded':
@@ -270,6 +272,9 @@
         break;
       case 'lab_info_requested':
         desc = t(tlKey + 'full_lab_info_requested');
+        break;
+      case 'lab_response_sent':
+        desc = t(tlKey + 'full_lab_response_sent', { lab: meta.lab_display_name || '' });
         break;
       case 'lab_promised_date_changed':
         desc = t(tlKey + 'full_lab_ack_promised_changed', {

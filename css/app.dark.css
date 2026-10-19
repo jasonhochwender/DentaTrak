@@ -577,6 +577,39 @@
   background: rgba(255, 255, 255, 0.06);
 }
 
+[data-theme="dark"] .lab-ack-field .lab-ack-action-btn.lab-ack-action-primary {
+  background: #2563eb;
+  border-color: #2563eb;
+  color: #fff;
+}
+
+[data-theme="dark"] .lab-ack-field .lab-ack-action-btn.lab-ack-action-primary:hover {
+  background: #1d4ed8;
+}
+
+[data-theme="dark"] .lab-ack-field .lab-ack-form-buttons .lab-ack-submit {
+  background: #2563eb;
+  border-color: #2563eb;
+  color: #fff;
+}
+
+[data-theme="dark"] .lab-ack-field .lab-ack-cancel {
+  border-color: var(--border-medium);
+}
+
+[data-theme="dark"] .lab-ack-field .lab-ack-form-help,
+[data-theme="dark"] .lab-ack-field .lab-ack-form-hint {
+  color: var(--text-light);
+}
+
+[data-theme="dark"] .lab-ack-field .lab-ack-file-chip {
+  background: #243349;
+}
+
+[data-theme="dark"] .lab-ack-field .lab-ack-file-remove {
+  color: var(--text-light);
+}
+
 [data-theme="dark"] .field-error,
 [data-theme="dark"] .error-message {
   color: var(--error-color);

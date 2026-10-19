@@ -311,7 +311,8 @@
                 "lab_info_requested": "{lab} requested more information ({user})",
                 "lab_ack_promised_date_changed": "{user} changed lab-promised return date: {old} → {new} ({reason})",
                 "lab_ack_cleared": "Lab acknowledgment for {lab} closed (reassigned)",
-                "lab_ack_promised_date_changed_lab": "The lab ({user}) changed the promised return date: {old} → {new} ({reason})"
+                "lab_ack_promised_date_changed_lab": "The lab ({user}) changed the promised return date: {old} → {new} ({reason})",
+                "lab_response_sent": "{user} sent a response to {lab}"
             },
             "timeline": {
                 "created": "Created",
@@ -389,7 +390,9 @@
                 "full_lab_ack_confirmed_staff": "Confirmation recorded by staff via {method}",
                 "full_lab_info_requested": "Lab requested more information",
                 "full_lab_ack_promised_changed": "Promised return date changed {old} → {new}. Reason: {reason}",
-                "full_lab_ack_cleared": "Acknowledgment for {lab} closed when the case was reassigned"
+                "full_lab_ack_cleared": "Acknowledgment for {lab} closed when the case was reassigned",
+                "lab_response_sent": "Response sent to lab",
+                "full_lab_response_sent": "Response sent to {lab}"
             }
         },
         "risk": {
@@ -567,7 +570,28 @@
             "the_lab": "the lab",
             "no_lab": "No lab assigned — a request is created when this case is assigned to a lab.",
             "no_request": "No acknowledgment request was recorded for the current lab assignment.",
-            "no_request_named": "No acknowledgment request was recorded for {lab}."
+            "no_request_named": "No acknowledgment request was recorded for {lab}.",
+            "status": {
+                "no_lab": "No lab assigned",
+                "not_requested": "Lab acknowledgment not requested",
+                "awaiting": "Waiting for lab response",
+                "needs_info": "Lab needs information",
+                "awaiting_review": "Waiting for lab to review your response",
+                "confirmed_lab": "Lab confirmed receipt",
+                "confirmed_staff": "Lab confirmation recorded by practice"
+            },
+            "expected_back": "Expected back at practice: {date}",
+            "no_return_date": "Return date not yet provided.",
+            "respond_to_lab": "Respond to lab",
+            "response_label": "Your response",
+            "response_placeholder": "Message to the lab — you can reference case details or attachments already on file",
+            "response_required": "Please enter a response message.",
+            "send_for_review": "Send for lab review",
+            "attach_images": "Attach images",
+            "saves_immediately": "Saves immediately — not part of “Save All Changes”.",
+            "return_date_optional": "Expected return date (optional)",
+            "return_date_help": "Expected back at the practice. You can confirm receipt without a date.",
+            "add_return_date": "Add return date"
         }
     },
     "filters": {
@@ -3142,7 +3166,8 @@
         "lab_ack_requested": "{from} sent a case to your lab - please confirm receipt.",
         "lab_ack_confirmed": "{from} confirmed receipt of a case.",
         "lab_info_requested": "{from} requested more information on a case.",
-        "lab_promised_date_changed": "{from} updated the promised return date on a case."
+        "lab_promised_date_changed": "{from} updated the promised return date on a case.",
+        "lab_response_sent": "{from} responded to your lab’s information request."
     },
     "app": {
         "name": "DentaTrak"
@@ -3168,7 +3193,8 @@
             "lab_ack_requested": "Lab acknowledgment requested",
             "lab_ack_confirmed": "Lab confirmed receipt",
             "lab_info_requested": "Lab requested information",
-            "lab_promised_date_changed": "Promised return date changed"
+            "lab_promised_date_changed": "Promised return date changed",
+            "lab_response_sent": "Response sent to lab"
         },
         "load_error": "Could not load notification preferences.",
         "save_error": "Could not save notification preferences.",
@@ -3486,7 +3512,11 @@
             "description_required": "Please describe the missing information.",
             "method_required": "Please choose how the confirmation was received.",
             "info_request_prefix": "[Lab needs information]",
-            "promised_saved": "Promised return date saved."
+            "promised_saved": "Promised return date saved.",
+            "response_prefix": "Response to lab:",
+            "response_sent": "Response sent for lab review.",
+            "message_required": "Please enter a response message.",
+            "no_info_request": "There is no open information request to respond to."
         }
     },
     "email": {

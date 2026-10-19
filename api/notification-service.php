@@ -46,6 +46,7 @@ $_NOTIFICATION_CATEGORY_PRIORITY = [
     'lab_ack_confirmed' => 13,
     'lab_info_requested' => 14,
     'lab_promised_date_changed' => 15,
+    'lab_response_sent' => 16,
 ];
 
 // Allowed field-category slugs for metadata.  No patient names, DOB, clinical

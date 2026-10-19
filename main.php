@@ -4997,6 +4997,15 @@ endif;
               </span>
             </label>
           </div>
+          <div class="notification-preference-item lab-ack-pref" data-event="lab_response_sent"<?php echo $labAcknowledgmentEnabled ? '' : ' style="display:none;"'; ?>>
+            <label for="pref_lab_response_sent" class="notification-preference-label">
+              <span class="notification-preference-title"><?php echo t('preferences.events.lab_response_sent'); ?></span>
+              <span class="switch">
+                <input type="checkbox" id="pref_lab_response_sent" role="switch" class="event-preference" data-event="lab_response_sent">
+                <span class="switch-slider" aria-hidden="true"></span>
+              </span>
+            </label>
+          </div>
         </div>
       </div>
       </div>

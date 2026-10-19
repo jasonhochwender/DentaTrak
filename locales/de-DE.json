@@ -295,7 +295,8 @@
             "lab_ack_requested": "Laborbestätigung angefordert",
             "lab_ack_confirmed": "Labor bestätigte Erhalt",
             "lab_info_requested": "Labor forderte Informationen an",
-            "lab_promised_date_changed": "Zugesagtes Rückgabedatum geändert"
+            "lab_promised_date_changed": "Zugesagtes Rückgabedatum geändert",
+            "lab_response_sent": "Antwort an Labor gesendet"
         },
         "load_error": "Benachrichtigungseinstellungen konnten nicht geladen werden.",
         "save_error": "Benachrichtigungseinstellungen konnten nicht gespeichert werden.",
@@ -666,7 +667,8 @@
         "lab_ack_requested": "{from} hat einen Fall an Ihr Labor gesendet - bitte bestätigen Sie den Erhalt.",
         "lab_ack_confirmed": "{from} hat den Erhalt eines Falls bestätigt.",
         "lab_info_requested": "{from} hat weitere Informationen zu einem Fall angefordert.",
-        "lab_promised_date_changed": "{from} hat das zugesagte Rückgabedatum eines Falls aktualisiert."
+        "lab_promised_date_changed": "{from} hat das zugesagte Rückgabedatum eines Falls aktualisiert.",
+        "lab_response_sent": "{from} hat auf die Informationsanfrage Ihres Labors geantwortet."
     },
     "phiAudit": {
         "title": "PHI-Zugriffsprotokoll",
@@ -1220,7 +1222,8 @@
                 "lab_info_requested": "{lab} hat weitere Informationen angefordert ({user})",
                 "lab_ack_promised_date_changed": "{user} hat das zugesagte Rückgabedatum geändert: {old} → {new} ({reason})",
                 "lab_ack_cleared": "Laborbestätigung für {lab} geschlossen (neu zugewiesen)",
-                "lab_ack_promised_date_changed_lab": "Das Labor ({user}) hat das zugesagte Rückgabedatum geändert: {old} → {new} ({reason})"
+                "lab_ack_promised_date_changed_lab": "Das Labor ({user}) hat das zugesagte Rückgabedatum geändert: {old} → {new} ({reason})",
+                "lab_response_sent": "{user} hat eine Antwort an {lab} gesendet"
             },
             "timeline": {
                 "created": "Erstellt",
@@ -1298,7 +1301,9 @@
                 "full_lab_ack_confirmed_staff": "Bestätigung von Mitarbeitern per {method} erfasst",
                 "full_lab_info_requested": "Labor hat weitere Informationen angefordert",
                 "full_lab_ack_promised_changed": "Zugesagtes Rückgabedatum geändert {old} → {new}. Grund: {reason}",
-                "full_lab_ack_cleared": "Bestätigung für {lab} bei Neuzuweisung geschlossen"
+                "full_lab_ack_cleared": "Bestätigung für {lab} bei Neuzuweisung geschlossen",
+                "lab_response_sent": "Antwort an Labor",
+                "full_lab_response_sent": "Antwort an {lab} gesendet"
             }
         },
         "risk": {
@@ -1476,7 +1481,28 @@
             "the_lab": "das Labor",
             "no_lab": "Kein Labor zugewiesen — eine Anfrage wird erstellt, sobald der Fall einem Labor zugewiesen wird.",
             "no_request": "Für die aktuelle Laborzuweisung wurde keine Bestätigungsanfrage erfasst.",
-            "no_request_named": "Für {lab} wurde keine Bestätigungsanfrage erfasst."
+            "no_request_named": "Für {lab} wurde keine Bestätigungsanfrage erfasst.",
+            "status": {
+                "no_lab": "Kein Labor zugewiesen",
+                "not_requested": "Laborbestätigung nicht angefordert",
+                "awaiting": "Warten auf Antwort des Labors",
+                "needs_info": "Labor benötigt Informationen",
+                "awaiting_review": "Warten darauf, dass das Labor Ihre Antwort prüft",
+                "confirmed_lab": "Labor hat Empfang bestätigt",
+                "confirmed_staff": "Laborbestätigung von der Praxis erfasst"
+            },
+            "expected_back": "Voraussichtlich zurück in der Praxis: {date}",
+            "no_return_date": "Rückgabedatum noch nicht angegeben.",
+            "respond_to_lab": "Dem Labor antworten",
+            "response_label": "Ihre Antwort",
+            "response_placeholder": "Nachricht an das Labor – Sie können auf Falldetails oder bereits vorhandene Anhänge verweisen",
+            "response_required": "Bitte geben Sie eine Antwortnachricht ein.",
+            "send_for_review": "Zur Laborprüfung senden",
+            "attach_images": "Bilder anhängen",
+            "saves_immediately": "Wird sofort gespeichert – nicht Teil von „Alle Änderungen speichern“.",
+            "return_date_optional": "Erwartetes Rückgabedatum (optional)",
+            "return_date_help": "Erwartete Rückkehr in die Praxis. Sie können den Empfang auch ohne Datum bestätigen.",
+            "add_return_date": "Rückgabedatum hinzufügen"
         }
     },
     "od_send": {
@@ -1690,7 +1716,11 @@
             "description_required": "Bitte beschreiben Sie die fehlenden Informationen.",
             "method_required": "Bitte wählen Sie, wie die Bestätigung eingegangen ist.",
             "info_request_prefix": "[Labor benötigt Informationen]",
-            "promised_saved": "Zugesagtes Rückgabedatum gespeichert."
+            "promised_saved": "Zugesagtes Rückgabedatum gespeichert.",
+            "response_prefix": "Antwort an das Labor:",
+            "response_sent": "Antwort zur Laborprüfung gesendet.",
+            "message_required": "Bitte geben Sie eine Antwortnachricht ein.",
+            "no_info_request": "Es gibt keine offene Informationsanfrage zum Beantworten."
         }
     },
     "auth": {

@@ -2834,6 +2834,10 @@ body {
   color: #b91c1c;
 }
 
+.lab-ack-field.lab-ack-awaiting-review .lab-ack-status-value {
+  color: #1d4ed8;
+}
+
 .lab-ack-field.lab-ack-confirmed .lab-ack-status-value {
   color: #15803d;
 }
@@ -2871,6 +2875,85 @@ body {
 .lab-ack-field .lab-ack-action-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+.lab-ack-field .lab-ack-action-btn.lab-ack-action-primary {
+  background: #2563eb;
+  border-color: #2563eb;
+  color: #fff;
+}
+
+.lab-ack-field .lab-ack-action-btn.lab-ack-action-primary:hover {
+  background: #1d4ed8;
+}
+
+.lab-ack-field .lab-ack-action-btn.lab-ack-action-secondary {
+  border-style: dashed;
+}
+
+.lab-ack-field .lab-ack-form-buttons {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.lab-ack-field .lab-ack-form-buttons .lab-ack-submit {
+  background: #2563eb;
+  border-color: #2563eb;
+  color: #fff;
+}
+
+.lab-ack-field .lab-ack-form-buttons .lab-ack-submit:hover {
+  background: #1d4ed8;
+}
+
+.lab-ack-field .lab-ack-cancel {
+  border-color: #cbd5e1;
+}
+
+.lab-ack-field .lab-ack-form-help,
+.lab-ack-field .lab-ack-form-hint {
+  font-size: 0.75rem;
+  color: #64748b;
+}
+
+.lab-ack-field .lab-ack-form-hint {
+  margin-top: -2px;
+  font-style: italic;
+}
+
+.lab-ack-field .lab-ack-file-input {
+  font-size: 0.8rem;
+}
+
+.lab-ack-field .lab-ack-file-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.lab-ack-field .lab-ack-file-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #e2e8f0;
+  font-size: 0.75rem;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.lab-ack-field .lab-ack-file-remove {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: 0.9rem;
+  line-height: 1;
+  padding: 0 0 0 2px;
+  color: #64748b;
 }
 
 .lab-ack-field .lab-ack-form {
@@ -2911,10 +2994,6 @@ body {
 
 .lab-ack-field .lab-ack-form .lab-ack-submit {
   align-self: flex-start;
-}
-
-.lab-ack-field .lab-ack-skip-date {
-  border-style: dashed;
 }
 
 .attachments-title {

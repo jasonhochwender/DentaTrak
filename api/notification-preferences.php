@@ -38,6 +38,7 @@ function getSupportedEmailEventTypes(): array {
         'lab_ack_confirmed',
         'lab_info_requested',
         'lab_promised_date_changed',
+        'lab_response_sent',
     ];
 }
 

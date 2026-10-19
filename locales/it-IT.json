@@ -311,7 +311,8 @@
                 "lab_info_requested": "{lab} ha richiesto maggiori informazioni ({user})",
                 "lab_ack_promised_date_changed": "{user} ha modificato la data promessa: {old} → {new} ({reason})",
                 "lab_ack_cleared": "Conferma per {lab} chiusa (riassegnato)",
-                "lab_ack_promised_date_changed_lab": "Il laboratorio ({user}) ha modificato la data promessa: {old} → {new} ({reason})"
+                "lab_ack_promised_date_changed_lab": "Il laboratorio ({user}) ha modificato la data promessa: {old} → {new} ({reason})",
+                "lab_response_sent": "{user} ha inviato una risposta a {lab}"
             },
             "timeline": {
                 "created": "Creato",
@@ -389,7 +390,9 @@
                 "full_lab_ack_confirmed_staff": "Conferma registrata dallo staff via {method}",
                 "full_lab_info_requested": "Il laboratorio ha richiesto maggiori informazioni",
                 "full_lab_ack_promised_changed": "Data di riconsegna promessa modificata {old} → {new}. Motivo: {reason}",
-                "full_lab_ack_cleared": "La conferma di {lab} è stata chiusa alla riassegnazione del caso"
+                "full_lab_ack_cleared": "La conferma di {lab} è stata chiusa alla riassegnazione del caso",
+                "lab_response_sent": "Risposta al laboratorio",
+                "full_lab_response_sent": "Risposta inviata a {lab}"
             }
         },
         "risk": {
@@ -567,7 +570,28 @@
             "the_lab": "il laboratorio",
             "no_lab": "Nessun laboratorio assegnato — la richiesta viene creata quando il caso viene assegnato a un laboratorio.",
             "no_request": "Nessuna richiesta di conferma registrata per l’assegnazione di laboratorio corrente.",
-            "no_request_named": "Nessuna richiesta di conferma registrata per {lab}."
+            "no_request_named": "Nessuna richiesta di conferma registrata per {lab}.",
+            "status": {
+                "no_lab": "Nessun laboratorio assegnato",
+                "not_requested": "Conferma del laboratorio non richiesta",
+                "awaiting": "In attesa di risposta dal laboratorio",
+                "needs_info": "Il laboratorio richiede informazioni",
+                "awaiting_review": "In attesa che il laboratorio esamini la tua risposta",
+                "confirmed_lab": "Il laboratorio ha confermato la ricezione",
+                "confirmed_staff": "Conferma del laboratorio registrata dalla clinica"
+            },
+            "expected_back": "Rientro previsto in clinica: {date}",
+            "no_return_date": "Data di rientro non ancora indicata.",
+            "respond_to_lab": "Rispondi al laboratorio",
+            "response_label": "La tua risposta",
+            "response_placeholder": "Messaggio per il laboratorio — puoi fare riferimento ai dettagli del caso o agli allegati già presenti",
+            "response_required": "Inserisci un messaggio di risposta.",
+            "send_for_review": "Invia per la revisione del laboratorio",
+            "attach_images": "Allega immagini",
+            "saves_immediately": "Viene salvato immediatamente — non fa parte di «Salva tutte le modifiche».",
+            "return_date_optional": "Data di rientro prevista (facoltativa)",
+            "return_date_help": "Rientro previsto in clinica. Puoi confermare la ricezione senza indicare una data.",
+            "add_return_date": "Aggiungi data di rientro"
         }
     },
     "filters": {
@@ -3142,7 +3166,8 @@
         "lab_ack_requested": "{from} ha inviato un caso al tuo laboratorio: conferma la ricezione.",
         "lab_ack_confirmed": "{from} ha confermato la ricezione di un caso.",
         "lab_info_requested": "{from} ha richiesto maggiori informazioni su un caso.",
-        "lab_promised_date_changed": "{from} ha aggiornato la data di riconsegna promessa di un caso."
+        "lab_promised_date_changed": "{from} ha aggiornato la data di riconsegna promessa di un caso.",
+        "lab_response_sent": "{from} ha risposto alla richiesta di informazioni del tuo laboratorio."
     },
     "app": {
         "name": "DentaTrak"
@@ -3168,7 +3193,8 @@
             "lab_ack_requested": "Conferma del laboratorio richiesta",
             "lab_ack_confirmed": "Laboratorio ha confermato la ricezione",
             "lab_info_requested": "Laboratorio ha richiesto informazioni",
-            "lab_promised_date_changed": "Data promessa modificata"
+            "lab_promised_date_changed": "Data promessa modificata",
+            "lab_response_sent": "Risposta inviata al laboratorio"
         },
         "load_error": "Impossibile caricare le preferenze di notifica.",
         "save_error": "Impossibile salvare le preferenze di notifica.",
@@ -3486,7 +3512,11 @@
             "description_required": "Descrivi le informazioni mancanti.",
             "method_required": "Scegli come è stata ricevuta la conferma.",
             "info_request_prefix": "[Il laboratorio richiede informazioni]",
-            "promised_saved": "Data di riconsegna promessa salvata."
+            "promised_saved": "Data di riconsegna promessa salvata.",
+            "response_prefix": "Risposta al laboratorio:",
+            "response_sent": "Risposta inviata per la revisione del laboratorio.",
+            "message_required": "Inserisci un messaggio di risposta.",
+            "no_info_request": "Non ci sono richieste di informazioni aperte a cui rispondere."
         }
     },
     "email": {

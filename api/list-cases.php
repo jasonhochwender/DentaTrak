@@ -411,8 +411,11 @@ try {
     // every case, which naturally matches nothing.
     $ackAwaitingOnly = $_GET['ack_awaiting_only'] ?? '';
     if ($ackAwaitingOnly === 'true') {
+        // Both "awaiting" (no response yet) and "awaiting_lab_review"
+        // (practice answered a needs_info request) mean the ball is with
+        // the lab - they share the Awaiting acknowledgment filter.
         $cases = array_values(array_filter($cases, function($case) {
-            return ($case['labAckStatus'] ?? null) === 'awaiting';
+            return in_array(($case['labAckStatus'] ?? null), ['awaiting', 'awaiting_lab_review'], true);
         }));
     }
     $ackNeedsInfoOnly = $_GET['ack_needs_info_only'] ?? '';

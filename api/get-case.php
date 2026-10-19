@@ -98,8 +98,11 @@ try {
         // staffUser = authorized to record promised dates / staff confirmations.
         // This stays true when the acknowledgment setting is OFF so staff can
         // still maintain promised return dates (server enforces the same).
+        // staffUser excludes lab collaborators so a lab account with
+        // case-edit rights is never offered practice-staff actions on its
+        // own lab's acknowledgment (matches buildLabAckViewModel).
         $decryptedCase['labAckPerms'] = [
-            'staffUser' => (bool)$ackCanEdit,
+            'staffUser' => (bool)($ackCanEdit && !$ackIsLab),
             'isLab' => (bool)$ackIsLab,
         ];
         $labAckEnabled = isLabAcknowledgmentEnabled($currentPracticeId);

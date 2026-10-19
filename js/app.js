@@ -5268,6 +5268,9 @@ document.addEventListener('DOMContentLoaded', function () {
         case 'lab_info_requested':
           description = t(evKey + 'lab_info_requested', { lab: (evt.meta && evt.meta.lab_display_name) || t('cases.lab_ack.the_lab'), user: userName });
           break;
+        case 'lab_response_sent':
+          description = t(evKey + 'lab_response_sent', { lab: (evt.meta && evt.meta.lab_display_name) || t('cases.lab_ack.the_lab'), user: userName });
+          break;
         case 'lab_promised_date_changed':
           // A lab revising its own promise reads differently from a
           // staff-recorded change.
@@ -6305,7 +6308,7 @@ document.addEventListener('DOMContentLoaded', function () {
     var actionsEl = document.getElementById('labAckActions');
     if (!container || !statusEl || !detailEl || !actionsEl) return;
 
-    container.classList.remove('lab-ack-awaiting', 'lab-ack-needs-info', 'lab-ack-confirmed');
+    container.classList.remove('lab-ack-awaiting', 'lab-ack-needs-info', 'lab-ack-confirmed', 'lab-ack-awaiting-review');
     actionsEl.innerHTML = '';
     detailEl.textContent = '';
 
@@ -6329,54 +6332,58 @@ document.addEventListener('DOMContentLoaded', function () {
       return;
     }
 
-    // Status line ------------------------------------------------------------
+    // Status line - plain language, one state at a time ----------------------
     if (hasOpenRow) {
       if (labAck.status === 'awaiting') {
         container.classList.add('lab-ack-awaiting');
-        statusEl.textContent = t('cases.lab_ack.awaiting');
+        statusEl.textContent = t('cases.lab_ack.status.awaiting');
       } else if (labAck.status === 'needs_info') {
         container.classList.add('lab-ack-needs-info');
-        statusEl.textContent = t('cases.lab_ack.needs_info');
+        statusEl.textContent = t('cases.lab_ack.status.needs_info');
+      } else if (labAck.status === 'awaiting_lab_review') {
+        container.classList.add('lab-ack-awaiting-review');
+        statusEl.textContent = t('cases.lab_ack.status.awaiting_review');
       } else if (labAck.status === 'confirmed') {
         container.classList.add('lab-ack-confirmed');
-        var confirmedLabel = labAck.recordedByStaff
-          ? t('cases.lab_ack.confirmed_staff')
-          : t('cases.lab_ack.confirmed_lab');
-        var confirmedBits = [confirmedLabel];
-        if (labAck.actorName) confirmedBits.push(labAck.actorName);
-        if (labAck.confirmedAt) confirmedBits.push(formatDate(labAck.confirmedAt, true));
-        if (labAck.staffMethod) confirmedBits.push(t('cases.lab_ack.method.' + labAck.staffMethod) || labAck.staffMethod);
-        statusEl.textContent = confirmedBits.join(' · ');
-      }
-      if (labAck.infoRequestText && labAck.status === 'needs_info') {
-        detailEl.textContent = labAck.infoRequestText;
+        statusEl.textContent = labAck.recordedByStaff
+          ? t('cases.lab_ack.status.confirmed_staff')
+          : t('cases.lab_ack.status.confirmed_lab');
       }
     } else if (ackEnabled && labAckPerms && labAckPerms.labAssigned === true) {
-      // Enabled but no open request: explain why instead of leaving the
-      // labeled section blank - this assignment predates the workflow.
-      statusEl.textContent = labAckPerms.labAssignedName
-        ? t('cases.lab_ack.no_request_named', { lab: labAckPerms.labAssignedName })
-        : t('cases.lab_ack.no_request');
+      // Enabled but no open request: this assignment predates the workflow.
+      statusEl.textContent = t('cases.lab_ack.status.not_requested');
     } else if (ackEnabled && labAckPerms && labAckPerms.labAssigned === false) {
-      // Enabled but no lab on the case at all.
-      statusEl.textContent = t('cases.lab_ack.no_lab');
+      statusEl.textContent = t('cases.lab_ack.status.no_lab');
     } else {
       // Setting off - only the promised date display/entry remains.
       statusEl.textContent = t('cases.lab_ack.promised_label');
     }
 
-    // Promised return date line (visible while it exists, setting on or off)
+    // Detail line: request context, then the promised return date ------------
+    var detailParts = [];
+    if (hasOpenRow && labAck.infoRequestText
+        && (labAck.status === 'needs_info' || labAck.status === 'awaiting_lab_review')) {
+      detailParts.push(labAck.infoRequestText);
+    }
+    if (hasOpenRow && labAck.status === 'awaiting_lab_review' && labAck.responseText) {
+      detailParts.push(labAck.responseText);
+    }
+    if (hasOpenRow && labAck.status === 'confirmed') {
+      var confBits = [];
+      if (labAck.actorName) confBits.push(labAck.actorName);
+      if (labAck.confirmedAt) confBits.push(formatDate(labAck.confirmedAt, true));
+      if (labAck.staffMethod) confBits.push(t('cases.lab_ack.method.' + labAck.staffMethod) || labAck.staffMethod);
+      if (confBits.length) detailParts.push(confBits.join(' · '));
+    }
+
+    // Promised return date is its own statement, distinct from the status.
     var effectivePromised = promisedDate || (hasOpenRow ? labAck.promisedDate : null);
     if (effectivePromised) {
-      var promisedText = t('cases.lab_ack.promised_label') + ': ' + formatDate(effectivePromised);
-      detailEl.textContent = detailEl.textContent
-        ? detailEl.textContent + ' — ' + promisedText
-        : promisedText;
-    } else if (hasOpenRow && labAck.dateNotConfirmed && labAck.status === 'confirmed') {
-      detailEl.textContent = detailEl.textContent
-        ? detailEl.textContent + ' — ' + t('cases.lab_ack.date_not_confirmed')
-        : t('cases.lab_ack.date_not_confirmed');
+      detailParts.push(t('cases.lab_ack.expected_back', { date: formatDate(effectivePromised) }));
+    } else if (hasOpenRow && labAck.status === 'confirmed' && labAck.dateNotConfirmed) {
+      detailParts.push(t('cases.lab_ack.no_return_date'));
     }
+    detailEl.textContent = detailParts.join(' — ');
 
     if (caseData && caseData.archived) {
       actionsEl.innerHTML = '';
@@ -6385,30 +6392,42 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     // Lab actions ------------------------------------------------------------
-    if (hasOpenRow && labAck.labUser && (labAck.status === 'awaiting' || labAck.status === 'needs_info')) {
-      _labAckAddAction(actionsEl, t('cases.lab_ack.confirm_receipt'), function() {
-        _labAckShowConfirmForm(actionsEl, caseData, false);
-      });
-      if (labAck.status === 'awaiting') {
-        _labAckAddAction(actionsEl, t('cases.lab_ack.request_info'), function() {
-          _labAckShowInfoForm(actionsEl, caseData);
+    // Awaiting / needs_info / awaiting_lab_review: confirm receipt (primary),
+    // request information (secondary). Confirmed: return-date maintenance +
+    // a follow-up information request stays available.
+    if (hasOpenRow && labAck.labUser) {
+      if (labAck.status !== 'confirmed') {
+        _labAckAddAction(actionsEl, t('cases.lab_ack.confirm_receipt'), function() {
+          _labAckShowConfirmForm(actionsEl, caseData, false);
+        }, 'primary');
+      } else if (labAck.labCanPromised) {
+        // Confirmed: the lab may revise its own promised return date.
+        _labAckAddAction(actionsEl, effectivePromised ? t('cases.lab_ack.change_promised_date') : t('cases.lab_ack.add_return_date'), function() {
+          _labAckShowPromisedForm(actionsEl, caseData, !!effectivePromised);
         });
       }
+      // A follow-up information request stays available as a secondary
+      // action in every open state, including after confirmation.
+      _labAckAddAction(actionsEl, t('cases.lab_ack.request_info'), function() {
+        _labAckShowInfoForm(actionsEl, caseData);
+      }, 'secondary');
     }
 
     // Practice-staff actions ---------------------------------------------------
-    if (hasOpenRow && staffUser && (labAck.status === 'awaiting' || labAck.status === 'needs_info')) {
-      _labAckAddAction(actionsEl, t('cases.lab_ack.record_confirmation'), function() {
-        _labAckShowConfirmForm(actionsEl, caseData, true);
-      });
-    }
-
-    // The assigned lab may revise its own promised return date once it has
-    // confirmed receipt (the view model limits this to a confirmed open ack).
-    if (hasOpenRow && labAck.labCanPromised) {
-      _labAckAddAction(actionsEl, effectivePromised ? t('cases.lab_ack.change_promised_date') : t('cases.lab_ack.set_promised_date'), function() {
-        _labAckShowPromisedForm(actionsEl, caseData, !!effectivePromised);
-      });
+    if (hasOpenRow && staffUser) {
+      // Primary: respond to the lab's information request directly on the
+      // case (comment + optional attachments), moving to awaiting_lab_review.
+      if (labAck.staffCanRespond) {
+        _labAckAddAction(actionsEl, t('cases.lab_ack.respond_to_lab'), function() {
+          _labAckShowRespondForm(actionsEl, caseData);
+        }, 'primary');
+      }
+      // Secondary: confirmation received outside the app (phone/email).
+      if (labAck.status === 'awaiting' || labAck.status === 'needs_info' || labAck.status === 'awaiting_lab_review') {
+        _labAckAddAction(actionsEl, t('cases.lab_ack.record_confirmation'), function() {
+          _labAckShowConfirmForm(actionsEl, caseData, true);
+        }, 'secondary');
+      }
     }
 
     // Promised-date maintenance is allowed for staff even with the setting
@@ -6422,17 +6441,33 @@ document.addEventListener('DOMContentLoaded', function () {
     container.style.display = '';
   }
 
-  function _labAckAddAction(actionsEl, label, handler) {
+  function _labAckAddAction(actionsEl, label, handler, variant) {
     var btn = document.createElement('button');
     btn.type = 'button';
-    btn.className = 'lab-ack-action-btn';
+    btn.className = 'lab-ack-action-btn' + (variant === 'primary' ? ' lab-ack-action-primary' : (variant === 'secondary' ? ' lab-ack-action-secondary' : ''));
     btn.textContent = label;
     btn.addEventListener('click', handler);
     actionsEl.appendChild(btn);
     return btn;
   }
 
-  function _labAckBuildForm(actionsEl, fields, submitLabel, onSubmit) {
+  /**
+   * Hide the action buttons while a form is open so only one path is active;
+   * Cancel re-renders the panel (and restores the buttons) via the caller.
+   */
+  function _labAckEnterFormMode(actionsEl, caseData) {
+    actionsEl.querySelectorAll('.lab-ack-form').forEach(function(f) { f.remove(); });
+    actionsEl.querySelectorAll(':scope > button').forEach(function(b) { b.style.display = 'none'; });
+  }
+
+  function _labAckExitForm(actionsEl) {
+    // Re-render restores action buttons and clears any open form.
+    if (typeof currentEditCaseData !== 'undefined' && currentEditCaseData) {
+      renderLabAcknowledgment(currentEditCaseData);
+    }
+  }
+
+  function _labAckBuildForm(actionsEl, fields, submitLabel, onSubmit, caseData) {
     var form = document.createElement('div');
     form.className = 'lab-ack-form';
 
@@ -6460,23 +6495,53 @@ document.addEventListener('DOMContentLoaded', function () {
       wrap.appendChild(lbl);
       wrap.appendChild(input);
       form.appendChild(wrap);
+      if (f.help) {
+        var help = document.createElement('div');
+        help.className = 'lab-ack-form-help';
+        help.textContent = f.help;
+        wrap.appendChild(help);
+      }
     });
 
+    var btnRow = document.createElement('div');
+    btnRow.className = 'lab-ack-form-buttons';
     var submitBtn = document.createElement('button');
     submitBtn.type = 'button';
     submitBtn.className = 'lab-ack-action-btn lab-ack-submit';
     submitBtn.textContent = submitLabel;
     submitBtn.addEventListener('click', function() { onSubmit(form); });
-    form.appendChild(submitBtn);
+    var cancelBtn = document.createElement('button');
+    cancelBtn.type = 'button';
+    cancelBtn.className = 'lab-ack-action-btn lab-ack-cancel';
+    cancelBtn.textContent = t('common.cancel');
+    cancelBtn.addEventListener('click', function() { _labAckExitForm(actionsEl); });
+    btnRow.appendChild(submitBtn);
+    btnRow.appendChild(cancelBtn);
+    form.appendChild(btnRow);
+
+    // Acknowledgment actions save themselves - the case form's "Save All
+    // Changes" is unrelated and unsaved case fields are never touched.
+    var hint = document.createElement('div');
+    hint.className = 'lab-ack-form-hint';
+    hint.textContent = t('cases.lab_ack.saves_immediately');
+    form.appendChild(hint);
+
     actionsEl.appendChild(form);
     return form;
   }
 
   function _labAckShowConfirmForm(actionsEl, caseData, isStaff) {
-    actionsEl.querySelectorAll('.lab-ack-form').forEach(function(f) { f.remove(); });
+    _labAckEnterFormMode(actionsEl, caseData);
     var fields = [
-      { id: 'labAckPromisedInput', label: t('cases.lab_ack.promised_date_label'), type: 'date' }
+      {
+        id: 'labAckPromisedInput',
+        label: isStaff ? t('cases.lab_ack.promised_date_label') : t('cases.lab_ack.return_date_optional'),
+        type: 'date'
+      }
     ];
+    if (!isStaff) {
+      fields[0].help = t('cases.lab_ack.return_date_help');
+    }
     if (isStaff) {
       fields.push({
         id: 'labAckMethodInput', label: t('cases.lab_ack.method_label'), tag: 'select',
@@ -6494,24 +6559,10 @@ document.addEventListener('DOMContentLoaded', function () {
       }
       window.updateLabAcknowledgment(caseData.id, isStaff ? 'staff_confirm' : 'confirm', payload);
     });
-    // Optional "date not yet confirmed" affordance: submit with empty date.
-    var skipBtn = document.createElement('button');
-    skipBtn.type = 'button';
-    skipBtn.className = 'lab-ack-action-btn lab-ack-skip-date';
-    skipBtn.textContent = t('cases.lab_ack.date_not_confirmed');
-    skipBtn.addEventListener('click', function() {
-      var payload = { promisedDate: null };
-      if (isStaff) {
-        var methodEl = actionsEl.querySelector('#labAckMethodInput');
-        payload.method = methodEl ? methodEl.value : 'phone';
-      }
-      window.updateLabAcknowledgment(caseData.id, isStaff ? 'staff_confirm' : 'confirm', payload);
-    });
-    actionsEl.appendChild(skipBtn);
   }
 
   function _labAckShowInfoForm(actionsEl, caseData) {
-    actionsEl.querySelectorAll('.lab-ack-form').forEach(function(f) { f.remove(); });
+    _labAckEnterFormMode(actionsEl, caseData);
     _labAckBuildForm(actionsEl, [
       { id: 'labAckInfoInput', label: t('cases.lab_ack.info_request_label'), tag: 'textarea', placeholder: t('cases.lab_ack.info_request_placeholder') }
     ], t('cases.lab_ack.request_info'), function(form) {
@@ -6524,8 +6575,164 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   }
 
+  /**
+   * "Respond to lab" composer: required message + optional image attachments
+   * staged locally, uploaded through the existing comments pipeline on
+   * submit, then saved as a normal case comment linked to the request.
+   * Already-uploaded files keep their result so a retry never re-uploads.
+   */
+  function _labAckShowRespondForm(actionsEl, caseData) {
+    _labAckEnterFormMode(actionsEl, caseData);
+
+    var form = document.createElement('div');
+    form.className = 'lab-ack-form lab-ack-respond-form';
+
+    var wrap = document.createElement('div');
+    wrap.className = 'lab-ack-form-field';
+    var lbl = document.createElement('label');
+    lbl.className = 'lab-ack-form-label';
+    lbl.setAttribute('for', 'labAckResponseInput');
+    lbl.textContent = t('cases.lab_ack.response_label');
+    var ta = document.createElement('textarea');
+    ta.id = 'labAckResponseInput';
+    ta.rows = 3;
+    ta.placeholder = t('cases.lab_ack.response_placeholder');
+    wrap.appendChild(lbl);
+    wrap.appendChild(ta);
+    form.appendChild(wrap);
+
+    // Attachment staging (same image rules as the comments composer).
+    var staged = [];
+    var stageSeq = 0;
+    var fileWrap = document.createElement('div');
+    fileWrap.className = 'lab-ack-form-field';
+    var fileInput = document.createElement('input');
+    fileInput.type = 'file';
+    fileInput.id = 'labAckResponseFiles';
+    fileInput.multiple = true;
+    fileInput.accept = 'image/*';
+    fileInput.className = 'lab-ack-file-input';
+    var fileLbl = document.createElement('label');
+    fileLbl.className = 'lab-ack-form-label';
+    fileLbl.setAttribute('for', 'labAckResponseFiles');
+    fileLbl.textContent = t('cases.lab_ack.attach_images');
+    var fileList = document.createElement('div');
+    fileList.className = 'lab-ack-file-list';
+    fileWrap.appendChild(fileLbl);
+    fileWrap.appendChild(fileInput);
+    fileWrap.appendChild(fileList);
+    form.appendChild(fileWrap);
+
+    function renderStaged() {
+      fileList.innerHTML = '';
+      staged.forEach(function(item) {
+        var chip = document.createElement('span');
+        chip.className = 'lab-ack-file-chip';
+        chip.textContent = item.file.name;
+        var rm = document.createElement('button');
+        rm.type = 'button';
+        rm.className = 'lab-ack-file-remove';
+        rm.textContent = '×';
+        rm.setAttribute('aria-label', t('comments.images.remove_image') + ': ' + item.file.name);
+        rm.addEventListener('click', function() {
+          staged = staged.filter(function(x) { return x.id !== item.id; });
+          renderStaged();
+        });
+        chip.appendChild(rm);
+        fileList.appendChild(chip);
+      });
+    }
+
+    var maxCount = (typeof window.commentImageMaxCount === 'number' && window.commentImageMaxCount > 0)
+      ? window.commentImageMaxCount : 6;
+    var imageExts = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'tiff', 'tif', 'bmp', 'svg'];
+    fileInput.addEventListener('change', function() {
+      Array.prototype.forEach.call(fileInput.files || [], function(file) {
+        var ext = (file.name.split('.').pop() || '').toLowerCase();
+        if (staged.length >= maxCount) {
+          showToast(t('comments.images.too_many', { max: maxCount }), 'error');
+          return;
+        }
+        if (imageExts.indexOf(ext) === -1 || (file.type || '').indexOf('image/') !== 0) {
+          showToast(t('comments.images.unsupported_type', { name: file.name }), 'error');
+          return;
+        }
+        var maxSize = window.GCSUpload && window.GCSUpload.getMaxSizeForFile
+          ? window.GCSUpload.getMaxSizeForFile(file.name) : 25 * 1024 * 1024;
+        if (file.size > maxSize) {
+          showToast(t('comments.images.too_large', { name: file.name, limit: Math.round(maxSize / 1024 / 1024) }), 'error');
+          return;
+        }
+        staged.push({ id: 'rack_' + (++stageSeq), file: file });
+      });
+      fileInput.value = '';
+      renderStaged();
+    });
+
+    var btnRow = document.createElement('div');
+    btnRow.className = 'lab-ack-form-buttons';
+    var submitBtn = document.createElement('button');
+    submitBtn.type = 'button';
+    submitBtn.className = 'lab-ack-action-btn lab-ack-submit';
+    submitBtn.textContent = t('cases.lab_ack.send_for_review');
+    var cancelBtn = document.createElement('button');
+    cancelBtn.type = 'button';
+    cancelBtn.className = 'lab-ack-action-btn lab-ack-cancel';
+    cancelBtn.textContent = t('common.cancel');
+    cancelBtn.addEventListener('click', function() { _labAckExitForm(actionsEl); });
+    btnRow.appendChild(submitBtn);
+    btnRow.appendChild(cancelBtn);
+    form.appendChild(btnRow);
+
+    var hint = document.createElement('div');
+    hint.className = 'lab-ack-form-hint';
+    hint.textContent = t('cases.lab_ack.saves_immediately');
+    form.appendChild(hint);
+
+    actionsEl.appendChild(form);
+
+    submitBtn.addEventListener('click', function() {
+      var message = ta.value.trim();
+      if (!message) {
+        showToast(t('cases.lab_ack.response_required'), 'error');
+        ta.focus();
+        return;
+      }
+      submitBtn.disabled = true;
+      cancelBtn.disabled = true;
+
+      // Upload staged images through the existing signed-URL comments
+      // pipeline; files already uploaded by a prior attempt are reused.
+      var uploads = staged.map(function(item) {
+        if (item.file.__gcsUploadedResult) {
+          return Promise.resolve(item.file.__gcsUploadedResult);
+        }
+        return window.GCSUpload.uploadSingleFile({
+          file: item.file,
+          fileId: item.id,
+          fileName: item.file.name,
+          contentType: item.file.type || 'image/jpeg',
+          fileSize: item.file.size,
+          uploadType: 'comments'
+        }, caseData.id, csrfToken).then(function(result) {
+          item.file.__gcsUploadedResult = result;
+          return result;
+        });
+      });
+
+      Promise.all(uploads).then(function(results) {
+        window.updateLabAcknowledgment(caseData.id, 'respond', { message: message, images: results });
+      }).catch(function(err) {
+        var reason = err && err.message ? err.message : '';
+        showToast(reason || t('comments.images.upload_failed', { name: '' }), 'error');
+        submitBtn.disabled = false;
+        cancelBtn.disabled = false;
+      });
+    });
+  }
+
   function _labAckShowPromisedForm(actionsEl, caseData, isChange) {
-    actionsEl.querySelectorAll('.lab-ack-form').forEach(function(f) { f.remove(); });
+    _labAckEnterFormMode(actionsEl, caseData);
     var fields = [
       { id: 'labAckPromisedOnlyInput', label: t('cases.lab_ack.promised_date_label'), type: 'date', value: (caseData && caseData.labPromisedDate) || '' }
     ];
@@ -6620,12 +6827,26 @@ document.addEventListener('DOMContentLoaded', function () {
           window.triggerCardsUpdated();
         }
 
+        // A "respond" action inserts a normal case comment - refresh the
+        // comments list so the response shows without reopening the case.
+        if (action === 'respond' && typeof window.initCaseComments === 'function') {
+          window.initCaseComments(caseId);
+        }
+
         if (data.changed !== false && data.message) {
           showToast(data.message, 'success');
         }
       } else {
         showToast((data && data.message) || t('common.error'), 'error');
-        if (currentEditCaseData) renderLabAcknowledgment(currentEditCaseData);
+        if (data && data.stale && currentEditCaseData) {
+          // The underlying acknowledgment changed (e.g. reassignment) -
+          // rebuild from server state so the open form is not misleading.
+          renderLabAcknowledgment(currentEditCaseData);
+        } else if (actionsEl) {
+          // Plain failure: keep the open form (typed text, staged files)
+          // and just re-enable its buttons so the user can retry.
+          actionsEl.querySelectorAll('button').forEach(function(b) { b.disabled = false; });
+        }
       }
     })
     .catch(function(err) {
@@ -6633,7 +6854,9 @@ document.addEventListener('DOMContentLoaded', function () {
         console.error('Lab acknowledgment update failed: ' + err.message);
       }
       showToast(t('common.error'), 'error');
-      if (currentEditCaseData) renderLabAcknowledgment(currentEditCaseData);
+      if (actionsEl) {
+        actionsEl.querySelectorAll('button').forEach(function(b) { b.disabled = false; });
+      }
     });
   };
 

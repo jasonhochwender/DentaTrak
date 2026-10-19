@@ -292,6 +292,120 @@ try {
         );
     }
 
+    // ---- awaiting_lab_review: lab request -> staff response -> review ----
+    assertTrue(in_array('awaiting_lab_review', LAB_ACK_STATUSES, true),
+        'awaiting_lab_review is a defined open status');
+
+    // Fresh handoff opens a new awaiting ack (live state: none open).
+    recordLabAckAssignmentTransition($caseId, $practiceId, $staffEmail, $labEmailA, $staffId);
+    $open = getOpenLabAcknowledgment($caseId, $practiceId);
+    assertTrue($open && $open['status'] === 'awaiting', 'Respond flow: new handoff opens awaiting ack');
+
+    // Lab requests information -> needs_info; view model exposes the
+    // staff-only respond capability.
+    $pdo->prepare("UPDATE case_lab_acknowledgments SET status='needs_info' WHERE id=?")
+        ->execute([(int)$open['id']]);
+    $vm = buildLabAckViewModel(getOpenLabAcknowledgment($caseId, $practiceId), true, $staffId, true, false, false);
+    assertTrue($vm['staffCanRespond'] === true, 'needs_info: staff can respond to lab');
+    $vm = buildLabAckViewModel(getOpenLabAcknowledgment($caseId, $practiceId), true, $labAId, true, true, false);
+    assertTrue($vm['staffCanRespond'] === false, 'needs_info: a lab account with edit rights is never offered staff actions');
+    $vm = buildLabAckViewModel(getOpenLabAcknowledgment($caseId, $practiceId), true, $labAId, false, true, false);
+    assertTrue($vm['labUser'] === true, 'needs_info: assigned lab keeps its own actions');
+
+    // Staff response: normal comment + linked awaiting_lab_review state.
+    $pdo->prepare("INSERT INTO case_comments (case_id, practice_id, user_id, user_name, user_email, comment_text)
+        VALUES (:c, :p, :u, 'Staff User', 'staff@test', 'Response to lab: see attached photos')")
+        ->execute(['c' => $caseId, 'p' => $practiceId, 'u' => $staffId]);
+    $commentId = (int)$pdo->lastInsertId();
+    $pdo->prepare("UPDATE case_lab_acknowledgments SET status='awaiting_lab_review', response_comment_id=:c, responded_by=:u, responded_at=NOW() WHERE id=:id AND status='needs_info'")
+        ->execute(['c' => $commentId, 'u' => $staffId, 'id' => (int)$open['id']]);
+    _syncCaseAckStatusMirror($caseId, $practiceId, 'awaiting_lab_review');
+    $mirror->execute([$caseId]);
+    assertTrue($mirror->fetchColumn() === 'awaiting_lab_review', 'cases_cache mirrors awaiting_lab_review');
+    assertTrue(getOpenLabAcknowledgment($caseId, $practiceId) !== null,
+        'awaiting_lab_review remains an open acknowledgment');
+
+    $vm = buildLabAckViewModel(getOpenLabAcknowledgment($caseId, $practiceId), true, $staffId, true, false, false);
+    assertTrue($vm['staffCanRespond'] === false, 'awaiting_lab_review: response already sent, no second respond');
+    assertTrue($vm['responseText'] === 'Response to lab: see attached photos',
+        'awaiting_lab_review: practice response text is returned for review context');
+    assertTrue($vm['responseCommentId'] == $commentId, 'awaiting_lab_review: response linked to its comment');
+
+    // Endpoint source checks: respond gating, idempotency, and linkage.
+    $respondPos = strpos($src, "\$action === 'respond'");
+    assertTrue($respondPos !== false, 'respond action exists in endpoint');
+    assertTrue(strpos($src, "'respond'") !== false
+        && strpos(substr($src, 0, $respondPos), "['confirm', 'request_info', 'staff_confirm', 'set_promised_date', 'respond']") !== false,
+        'respond is an accepted action value');
+    assertTrue(strpos(substr($src, $respondPos), "!== 'needs_info'") !== false,
+        'respond only transitions from needs_info');
+    assertTrue(strpos(substr($src, $respondPos), "=== 'awaiting_lab_review'") !== false,
+        'respond retries are idempotent once transitioned');
+    assertTrue(strpos(substr($src, $respondPos), 'attachments_json') !== false
+        && strpos(substr($src, $respondPos), 'response_comment_id') !== false,
+        'respond stores a linked comment with attachments');
+    assertTrue(strpos(substr($src, $respondPos), 'is_deleted = 1') !== false,
+        'a racing duplicate response comment is soft-deleted');
+    assertTrue(strpos(substr($src, $respondPos), "'lab_response_sent'") !== false,
+        'respond emits the lab_response_sent notification event');
+    assertTrue(strpos($src, "'awaiting','needs_info','awaiting_lab_review'") !== false,
+        'lab confirm and staff confirm both accept awaiting_lab_review');
+
+    // list-cases: the "Awaiting acknowledgment" filter covers both states.
+    $lc = file_get_contents(__DIR__ . '/../api/list-cases.php');
+    assertTrue(strpos($lc, "['awaiting', 'awaiting_lab_review']") !== false,
+        'Awaiting-ack filter includes awaiting_lab_review');
+
+    // get-case: staffUser must exclude lab accounts (overlapping roles).
+    $gc = file_get_contents(__DIR__ . '/../api/get-case.php');
+    assertTrue(strpos($gc, '$ackCanEdit && !$ackIsLab') !== false,
+        'get-case staffUser excludes lab collaborators');
+
+    // Notification plumbing registered end-to-end.
+    $np = file_get_contents(__DIR__ . '/../api/notification-preferences.php');
+    assertTrue(strpos($np, "'lab_response_sent'") !== false, 'lab_response_sent is a preference category');
+    $main = file_get_contents(__DIR__ . '/../main.php');
+    assertTrue(strpos($main, 'pref_lab_response_sent') !== false, 'Notification prefs expose lab_response_sent toggle');
+
+    // Locale parity for every new surface key.
+    $required = [
+        ['cases', 'lab_ack', 'status'],
+        ['cases', 'lab_ack', 'respond_to_lab'],
+        ['cases', 'lab_ack', 'send_for_review'],
+        ['cases', 'lab_ack', 'response_label'],
+        ['cases', 'lab_ack', 'response_required'],
+        ['cases', 'lab_ack', 'response_placeholder'],
+        ['cases', 'lab_ack', 'attach_images'],
+        ['cases', 'lab_ack', 'saves_immediately'],
+        ['cases', 'lab_ack', 'expected_back'],
+        ['cases', 'lab_ack', 'no_return_date'],
+        ['cases', 'lab_ack', 'return_date_optional'],
+        ['cases', 'lab_ack', 'return_date_help'],
+        ['cases', 'lab_ack', 'add_return_date'],
+        ['api', 'lab_ack', 'response_prefix'],
+        ['api', 'lab_ack', 'response_sent'],
+        ['api', 'lab_ack', 'message_required'],
+        ['api', 'lab_ack', 'no_info_request'],
+        ['notifications', 'lab_response_sent'],
+        ['preferences', 'events', 'lab_response_sent'],
+        ['cases', 'activity', 'events', 'lab_response_sent'],
+        ['cases', 'activity', 'timeline', 'lab_response_sent'],
+        ['cases', 'activity', 'timeline', 'full_lab_response_sent'],
+    ];
+    $statusKeys = ['no_lab', 'not_requested', 'awaiting', 'needs_info', 'awaiting_review', 'confirmed_lab', 'confirmed_staff'];
+    foreach (glob(__DIR__ . '/../locales/*.json') as $lf) {
+        $ld = json_decode(file_get_contents($lf), true);
+        foreach ($required as $path) {
+            $node = $ld;
+            foreach ($path as $p) { $node = $node[$p] ?? null; }
+            assertTrue($node !== null, basename($lf) . ' has ' . implode('.', $path));
+        }
+        foreach ($statusKeys as $sk) {
+            assertTrue(isset($ld['cases']['lab_ack']['status'][$sk]),
+                basename($lf) . ' has cases.lab_ack.status.' . $sk);
+        }
+    }
+
     // ---- activity log entries written ----
     $logCount = $pdo->prepare("SELECT COUNT(*) FROM case_activity_log WHERE case_id = ? AND event_type LIKE 'lab_%'");
     $logCount->execute([$caseId]);

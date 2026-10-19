@@ -10,6 +10,10 @@
  *   staff_confirm     - practice staff record a phone/email confirmation
  *                       received outside the app (labeled "Recorded by
  *                       practice staff", never presented as a lab action)
+ *   respond           - practice staff answer a needs_info request: a normal
+ *                       case comment (with optional image attachments
+ *                       uploaded via the comments pipeline) is created and
+ *                       the acknowledgment moves to awaiting_lab_review
  *   set_promised_date - two authorized writers for the lab-promised
  *                       return date:
  *                       - practice staff (can_edit_cases, not a lab
@@ -66,7 +70,7 @@ if (!is_array($input)) {
 $action = (string)($input['action'] ?? '');
 $caseId = trim((string)($input['caseId'] ?? ''));
 
-if ($caseId === '' || !in_array($action, ['confirm', 'request_info', 'staff_confirm', 'set_promised_date'], true)) {
+if ($caseId === '' || !in_array($action, ['confirm', 'request_info', 'staff_confirm', 'set_promised_date', 'respond'], true)) {
     http_response_code(400);
     echo json_encode(['success' => false, 'message' => t('api.lab_ack.invalid_request')]);
     exit;
@@ -135,6 +139,92 @@ function labAckViewPayload($caseId, $practiceId, $enabled, $userId, $canEdit, $i
         'labAckStatus' => $row ? $row['status'] : null,
         'labPromisedDate' => $promised,
     ];
+}
+
+/**
+ * Verify client-submitted response image metadata against GCS. Mirrors
+ * processCommentImages() in case-comments.php: same comments/ path prefix
+ * (so attachment-content.php case-access covers the files), image
+ * extensions only, configured caps, and object verification.
+ *
+ * @return array ['success' => bool, 'attachments' => array, 'errors' => array]
+ */
+function _labAckProcessResponseImages($images, $practiceId, $caseId) {
+    global $appConfig;
+
+    $result = ['success' => true, 'attachments' => [], 'errors' => []];
+    if (!is_array($images) || empty($images)) {
+        return $result;
+    }
+
+    $maxCount = (int)($appConfig['comments']['max_images'] ?? 6);
+    if (count($images) > $maxCount) {
+        $result['success'] = false;
+        $result['errors'][] = t('api.comments.too_many_images', [
+            'max' => $maxCount,
+            'count' => count($images),
+        ]);
+        return $result;
+    }
+
+    $imageExts = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'tiff', 'tif', 'bmp', 'svg'];
+    $sizeByType = $appConfig['gcs']['max_file_size_by_type'] ?? [];
+    $expectedPrefix = "cases/{$practiceId}/{$caseId}/comments/";
+
+    foreach ($images as $index => $imageInfo) {
+        $storagePath  = is_array($imageInfo) ? ($imageInfo['storage_path'] ?? '') : '';
+        $originalName = is_array($imageInfo) ? basename((string)($imageInfo['original_filename'] ?? '')) : '';
+        $contentType  = is_array($imageInfo) ? ($imageInfo['content_type'] ?? '') : '';
+        $fileSize     = is_array($imageInfo) ? (int)($imageInfo['file_size'] ?? 0) : 0;
+
+        if ($storagePath === '' || $originalName === '') {
+            $result['errors'][] = t('api.comments.image_missing_fields', ['index' => $index]);
+            $result['success'] = false;
+            continue;
+        }
+        if (strpos($storagePath, $expectedPrefix) !== 0 || strpos($storagePath, '..') !== false) {
+            $result['errors'][] = t('api.comments.image_invalid_path', ['name' => $originalName]);
+            $result['success'] = false;
+            continue;
+        }
+        $ext = strtolower(pathinfo($originalName, PATHINFO_EXTENSION));
+        if (!in_array($ext, $imageExts)) {
+            $result['errors'][] = t('api.comments.image_not_image', ['name' => $originalName]);
+            $result['success'] = false;
+            continue;
+        }
+        require_once __DIR__ . '/gcs-storage.php';
+        $verification = verifyGcsUpload($storagePath, $fileSize, $contentType);
+        if (!$verification['valid']) {
+            $result['errors'][] = t('api.comments.image_verify_failed', [
+                'name' => $originalName,
+                'detail' => $verification['error'],
+            ]);
+            $result['success'] = false;
+            continue;
+        }
+        $actualSize = $verification['size'];
+        $maxForType = $sizeByType[$ext] ?? ($sizeByType['default'] ?? (100 * 1024 * 1024));
+        if ($actualSize > $maxForType) {
+            $result['errors'][] = t('api.comments.image_too_large', [
+                'name' => $originalName,
+                'limit' => round($maxForType / 1024 / 1024),
+                'ext' => $ext,
+            ]);
+            $result['success'] = false;
+            continue;
+        }
+
+        $result['attachments'][] = [
+            'fileName'    => $originalName,
+            'fileType'    => $contentType,
+            'size'        => $actualSize,
+            'storagePath' => $storagePath,
+            'storageType' => 'gcs',
+        ];
+    }
+
+    return $result;
 }
 
 $now = date('Y-m-d H:i:s');
@@ -282,7 +372,7 @@ if ($action === 'confirm') {
             confirmed_at = :cat,
             confirmation_source = 'lab',
             confirmation_method = 'portal'
-        WHERE id = :id AND status IN ('awaiting','needs_info')
+        WHERE id = :id AND status IN ('awaiting','needs_info','awaiting_lab_review')
     ");
     $stmt->execute([
         'd' => $promisedDate,
@@ -368,24 +458,24 @@ if ($action === 'request_info') {
     ]);
     $commentId = (int)$pdo->lastInsertId();
 
-    // needs_info is not a regression from confirmed - a confirmed case
-    // cannot move back (lab would need to request again via comments).
-    if ($openAck['status'] !== 'confirmed') {
-        $stmt = $pdo->prepare("
-            UPDATE case_lab_acknowledgments
-            SET status = 'needs_info', info_requested_by = :uid,
-                info_requested_at = :now, info_request_comment_id = :cid
-            WHERE id = :id AND status <> 'superseded'
-        ");
-        $stmt->execute(['uid' => (int)$currentUserId, 'now' => $now, 'cid' => $commentId, 'id' => (int)$openAck['id']]);
-        _syncCaseAckStatusMirror($caseId, $currentPracticeId, 'needs_info');
-    }
+    // Further information requests are allowed from any open state -
+    // including confirmed (a confirmed lab can still flag missing info) and
+    // awaiting_lab_review (the lab reviewed the response and needs more).
+    // Confirmation fields stay on the row so history keeps the confirm.
+    $stmt = $pdo->prepare("
+        UPDATE case_lab_acknowledgments
+        SET status = 'needs_info', info_requested_by = :uid,
+            info_requested_at = :now, info_request_comment_id = :cid
+        WHERE id = :id AND status <> 'superseded'
+    ");
+    $stmt->execute(['uid' => (int)$currentUserId, 'now' => $now, 'cid' => $commentId, 'id' => (int)$openAck['id']]);
+    _syncCaseAckStatusMirror($caseId, $currentPracticeId, 'needs_info');
 
     logCaseActivity(
         $caseId,
         'lab_info_requested',
         $openAck['status'],
-        $openAck['status'] !== 'confirmed' ? 'needs_info' : $openAck['status'],
+        'needs_info',
         [
             'lab_display_name' => $openAck['lab_display_name'],
             'comment_id' => $commentId,
@@ -405,6 +495,117 @@ if ($action === 'request_info') {
 
     labAckRespond(true, array_merge(['changed' => true, 'commentId' => $commentId],
         labAckViewPayload($caseId, $currentPracticeId, $enabled, $currentUserId, $canEdit, $isLab)));
+}
+
+if ($action === 'respond') {
+    // Practice staff answer the lab's needs_info request. The response is a
+    // normal case comment (author = the staff member) linked to the open
+    // acknowledgment, then the state moves to awaiting_lab_review.
+    if ($isLab || !$canEdit) {
+        labAckRespond(false, ['message' => t('api.lab_ack.staff_only')], 403);
+    }
+
+    // Idempotent retry/double-submit: the transition already happened -
+    // do not create a second comment, transition, or notification.
+    if ($openAck['status'] === 'awaiting_lab_review') {
+        labAckRespond(true, array_merge(['changed' => false],
+            labAckViewPayload($caseId, $currentPracticeId, $enabled, $currentUserId, $canEdit, $isLab)));
+    }
+    if ($openAck['status'] !== 'needs_info') {
+        labAckRespond(false, ['message' => t('api.lab_ack.no_info_request')], 409);
+    }
+
+    $message = trim((string)($input['message'] ?? ''));
+    if ($message === '') {
+        labAckRespond(false, ['message' => t('api.lab_ack.message_required')], 400);
+    }
+    if (mb_strlen($message) > 2000) {
+        $message = mb_substr($message, 0, 2000);
+    }
+
+    // Attachments arrive as already-uploaded GCS metadata (the client uses
+    // the comments upload pipeline); verify every object before storing.
+    $processedImages = _labAckProcessResponseImages($input['images'] ?? [], $currentPracticeId, $caseId);
+    if (!$processedImages['success']) {
+        labAckRespond(false, [
+            'message' => !empty($processedImages['errors']) ? $processedImages['errors'][0] : t('api.lab_ack.save_failed'),
+            'errors'  => $processedImages['errors'],
+        ], 400);
+    }
+
+    $userEmail = $_SESSION['user_email'] ?? '';
+    $userName = formatUserDisplayName($_SESSION['first_name'] ?? '', $_SESSION['last_name'] ?? '', $userEmail, '');
+    $commentText = t('api.lab_ack.response_prefix') . ' ' . $message;
+
+    $stmt = $pdo->prepare("
+        INSERT INTO case_comments
+        (case_id, practice_id, user_id, user_name, user_email, comment_text, attachments_json)
+        VALUES (:case_id, :practice_id, :user_id, :user_name, :user_email, :comment_text, :attachments_json)
+    ");
+    $stmt->execute([
+        'case_id' => $caseId,
+        'practice_id' => $currentPracticeId,
+        'user_id' => (int)$currentUserId,
+        'user_name' => $userName,
+        'user_email' => $userEmail,
+        'comment_text' => $commentText,
+        'attachments_json' => !empty($processedImages['attachments']) ? json_encode($processedImages['attachments']) : null,
+    ]);
+    $commentId = (int)$pdo->lastInsertId();
+
+    // Guarded transition: a parallel/duplicated submission loses the race
+    // and its just-inserted comment is soft-deleted so no duplicate stays.
+    $stmt = $pdo->prepare("
+        UPDATE case_lab_acknowledgments
+        SET status = 'awaiting_lab_review',
+            response_comment_id = :cid,
+            responded_by = :uid,
+            responded_at = :now
+        WHERE id = :id AND status = 'needs_info'
+    ");
+    $stmt->execute([
+        'cid' => $commentId,
+        'uid' => (int)$currentUserId,
+        'now' => $now,
+        'id'  => (int)$openAck['id'],
+    ]);
+
+    if ($stmt->rowCount() === 0) {
+        $pdo->prepare("UPDATE case_comments SET is_deleted = 1, deleted_at = NOW(), deleted_by = :uid WHERE id = :id")
+            ->execute(['uid' => (int)$currentUserId, 'id' => $commentId]);
+        labAckRespond(true, array_merge(['changed' => false],
+            labAckViewPayload($caseId, $currentPracticeId, $enabled, $currentUserId, $canEdit, $isLab)));
+    }
+
+    _syncCaseAckStatusMirror($caseId, $currentPracticeId, 'awaiting_lab_review');
+
+    logCaseActivity(
+        $caseId,
+        'lab_response_sent',
+        $openAck['status'],
+        'awaiting_lab_review',
+        [
+            'lab_display_name' => $openAck['lab_display_name'],
+            'comment_id' => $commentId,
+            'source' => 'lab-acknowledgment-action.php',
+        ],
+        null,
+        false,
+        $currentUserId
+    );
+
+    if (function_exists('recordCaseUpdate')) {
+        recordCaseUpdate($caseId, 'update');
+    }
+    emitCaseNotificationEvent($currentPracticeId, $caseId, $currentUserId, 'lab_response_sent', ['lab_response_sent'], [
+        'comment_id' => $commentId,
+    ]);
+
+    labAckRespond(true, array_merge([
+        'changed' => true,
+        'commentId' => $commentId,
+        'message' => t('api.lab_ack.response_sent'),
+    ], labAckViewPayload($caseId, $currentPracticeId, $enabled, $currentUserId, $canEdit, $isLab)));
 }
 
 if ($action === 'staff_confirm') {
@@ -443,7 +644,7 @@ if ($action === 'staff_confirm') {
             confirmed_at = :cat,
             confirmation_source = 'staff',
             confirmation_method = :method
-        WHERE id = :id AND status IN ('awaiting','needs_info')
+        WHERE id = :id AND status IN ('awaiting','needs_info','awaiting_lab_review')
     ");
     $stmt->execute([
         'd' => $promisedDate,

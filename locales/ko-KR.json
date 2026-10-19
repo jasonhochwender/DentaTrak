@@ -311,7 +311,8 @@
                 "lab_info_requested": "{lab}이(가) 추가 정보를 요청함 ({user})",
                 "lab_ack_promised_date_changed": "{user}이(가) 약속 반환 날짜 변경: {old} → {new} ({reason})",
                 "lab_ack_cleared": "{lab}에 대한 확인 종료(재배정)",
-                "lab_ack_promised_date_changed_lab": "랩({user})이(가) 약속 반환 날짜 변경: {old} → {new} ({reason})"
+                "lab_ack_promised_date_changed_lab": "랩({user})이(가) 약속 반환 날짜 변경: {old} → {new} ({reason})",
+                "lab_response_sent": "{user}님이 {lab}에 답변을 보냈습니다"
             },
             "timeline": {
                 "created": "생성됨",
@@ -389,7 +390,9 @@
                 "full_lab_ack_confirmed_staff": "직원이 {method}(으)로 확인을 기록함",
                 "full_lab_info_requested": "랩이 추가 정보를 요청함",
                 "full_lab_ack_promised_changed": "약속 반환 날짜 변경 {old} → {new}. 사유: {reason}",
-                "full_lab_ack_cleared": "케이스 재배정으로 {lab}에 대한 확인 종료"
+                "full_lab_ack_cleared": "케이스 재배정으로 {lab}에 대한 확인 종료",
+                "lab_response_sent": "랩에 답변함",
+                "full_lab_response_sent": "{lab}에 답변 전송됨"
             }
         },
         "risk": {
@@ -567,7 +570,28 @@
             "the_lab": "랩",
             "no_lab": "지정된 랩이 없습니다 — 케이스를 랩에 배정하면 요청이 생성됩니다.",
             "no_request": "현재 랩 배정에 대한 확인 요청이 기록되지 않았습니다.",
-            "no_request_named": "{lab}에 대한 확인 요청이 기록되지 않았습니다."
+            "no_request_named": "{lab}에 대한 확인 요청이 기록되지 않았습니다.",
+            "status": {
+                "no_lab": "지정된 랩 없음",
+                "not_requested": "랩 수령 확인이 요청되지 않음",
+                "awaiting": "랩 응답 대기 중",
+                "needs_info": "랩에서 정보가 필요함",
+                "awaiting_review": "랩이 귀하의 답변을 검토하기를 기다리는 중",
+                "confirmed_lab": "랩이 수령을 확인함",
+                "confirmed_staff": "직원이 랩 확인을 기록함"
+            },
+            "expected_back": "진료실 반납 예정일: {date}",
+            "no_return_date": "반납 예정일이 아직 제공되지 않았습니다.",
+            "respond_to_lab": "랩에 답변",
+            "response_label": "답변 내용",
+            "response_placeholder": "랩에 보낼 메시지 — 케이스 세부 정보나 기존 첨부 파일을 참조할 수 있습니다",
+            "response_required": "답변 메시지를 입력하세요.",
+            "send_for_review": "랩 검토용으로 보내기",
+            "attach_images": "이미지 첨부",
+            "saves_immediately": "즉시 저장됩니다 — \"모든 변경 사항 저장\"과는 별개입니다.",
+            "return_date_optional": "반납 예정일(선택 사항)",
+            "return_date_help": "진료실로의 반납 예정일입니다. 날짜 없이 수령을 확인할 수 있습니다.",
+            "add_return_date": "반납일 추가"
         }
     },
     "filters": {
@@ -3142,7 +3166,8 @@
         "lab_ack_requested": "{from}님이 귀하의 랩에 케이스를 보냈습니다. 수신을 확인해 주세요.",
         "lab_ack_confirmed": "{from}님이 케이스 수신을 확인했습니다.",
         "lab_info_requested": "{from}님이 케이스에 대한 추가 정보를 요청했습니다.",
-        "lab_promised_date_changed": "{from}님이 케이스의 약속 반환 날짜를 업데이트했습니다."
+        "lab_promised_date_changed": "{from}님이 케이스의 약속 반환 날짜를 업데이트했습니다.",
+        "lab_response_sent": "{from}님이 귀하의 랩 정보 요청에 답변했습니다."
     },
     "app": {
         "name": "DentaTrak"
@@ -3168,7 +3193,8 @@
             "lab_ack_requested": "랩 수신 확인 요청",
             "lab_ack_confirmed": "랩 수신 확인됨",
             "lab_info_requested": "랩 정보 요청",
-            "lab_promised_date_changed": "약속 반환 날짜 변경됨"
+            "lab_promised_date_changed": "약속 반환 날짜 변경됨",
+            "lab_response_sent": "랩에 답변 전송됨"
         },
         "load_error": "알림 설정을 불러올 수 없습니다.",
         "save_error": "알림 설정을 저장할 수 없습니다.",
@@ -3486,7 +3512,11 @@
             "description_required": "부족한 정보를 설명해 주세요.",
             "method_required": "확인을 받은 방법을 선택하세요.",
             "info_request_prefix": "[랩 정보 요청]",
-            "promised_saved": "약속 반환 날짜가 저장되었습니다."
+            "promised_saved": "약속 반환 날짜가 저장되었습니다.",
+            "response_prefix": "랩에 대한 답변:",
+            "response_sent": "답변이 랩 검토용으로 전송되었습니다.",
+            "message_required": "답변 메시지를 입력하세요.",
+            "no_info_request": "응답할 수 있는 열린 정보 요청이 없습니다."
         }
     },
     "email": {
