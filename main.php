@@ -4500,26 +4500,6 @@ endif;
         </div>
       </div>
       
-      <!-- Dental Practice Demo Data -->
-      <div class="dev-tools-section">
-        <h4>🏥 <?php echo t('dev_tools.demo_data'); ?></h4>
-        <div id="devDemoDataSummary" class="dev-demo-summary">
-          <?php echo t('dev_tools.demo_loading_summary'); ?>
-        </div>
-        <div class="test-case-controls demo-data-controls">
-          <label for="devDemoDataSize" class="sr-only"><?php echo t('dev_tools.test_case_count'); ?></label>
-          <select id="devDemoDataSize" class="dev-select">
-            <option value="small"><?php echo t('dev_tools.small'); ?></option>
-            <option value="standard" selected><?php echo t('dev_tools.standard'); ?></option>
-            <option value="large"><?php echo t('dev_tools.large'); ?></option>
-          </select>
-          <button id="devGenerateDemoDataBtn" class="dev-btn dev-btn-primary"><?php echo t('dev_tools.generate_demo_data'); ?></button>
-          <button id="devResetDemoDataBtn" class="dev-btn dev-btn-warning"><?php echo t('dev_tools.reset_demo_data'); ?></button>
-          <button id="devDeleteDemoDataBtn" class="dev-btn dev-btn-danger"><?php echo t('dev_tools.delete_demo_data'); ?></button>
-        </div>
-      </div>
-
-
       <!-- Data Management -->
       <div class="dev-tools-section">
         <h4>🗂️ <?php echo t('dev_tools.data_management'); ?></h4>
@@ -4533,6 +4513,7 @@ endif;
         <h4>👑 <?php echo t('dev_tools.admin_tools'); ?></h4>
         <div class="admin-links" style="display: flex; flex-direction: column; gap: 8px;">
           <a href="admin-practices.php" class="dev-btn" style="text-align: center; text-decoration: none;"><?php echo t('dev_tools.practice_administration'); ?></a>
+          <a href="practice-usage-report.php" class="dev-btn" style="text-align: center; text-decoration: none;"><?php echo t('dev_tools.practice_usage_report'); ?></a>
           <a href="dev-ask-usage.php" class="dev-btn" style="text-align: center; text-decoration: none;"><?php echo t('dev_tools.ask_usage'); ?></a>
         </div>
       </div>

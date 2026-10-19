@@ -276,14 +276,6 @@
   line-height: 1.4;
 }
 
-/* Demo data summary line */
-.dev-demo-summary {
-  margin-bottom: 8px;
-  font-size: 0.85rem;
-  color: #6b7280;
-  min-height: 1.2em;
-}
-
 /* Responsive */
 @media (max-width: 768px) {
   .dev-tools-panel {
@@ -412,7 +404,4 @@
   color: #fbbf24;
 }
 
-[data-theme="dark"] .dev-demo-summary {
-  color: var(--text-light);
-}
 

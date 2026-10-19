@@ -1024,6 +1024,115 @@ function handleGetRequest($action) {
             ]);
             break;
 
+        case 'usage_report':
+            // Practice Usage Report: per-practice case + cached storage totals.
+            //
+            // Definitions:
+            // - Canonical case record = one row in cases_cache (deduplicated
+            //   by case_id so integration/cache duplicates cannot double-
+            //   count). Deleted cases are physically absent from cases_cache,
+            //   so "total" is inherently active + archived.
+            // - active   = archived = 0
+            // - archived = archived = 1
+            // - total    = active + archived (all current cases_cache rows)
+            // - Storage totals come ONLY from the cached
+            //   practice_storage_usage rows written by the shared
+            //   practice-storage-usage.php calculation - never computed here
+            //   (no bucket scans on page load). Unmeasured practices are
+            //   reported as 'uncalculated', never as zero.
+            // - Demo/test flag = metadata only: the practice has a non-deleted
+            //   demo_generation_runs row, OR every stored case carries the
+            //   demo marker (demo_generation_run_id / 'demo_' case_id
+            //   prefix - the same predicates manage-demo-data.php uses).
+            //   Practice names are never inspected.
+            ensurePracticeStorageUsageTable($pdo);
+            $demoRunsTable = false;
+            try {
+                $tblStmt = $pdo->query("SHOW TABLES LIKE 'demo_generation_runs'");
+                $demoRunsTable = $tblStmt && $tblStmt->fetchColumn() !== false;
+            } catch (Throwable $e) {
+                $demoRunsTable = false;
+            }
+
+            $sql = "
+                SELECT
+                    p.id,
+                    p.practice_name,
+                    p.legal_name,
+                    p.display_name,
+                    p.is_active,
+                    COUNT(DISTINCT c.case_id) AS total_cases,
+                    COUNT(DISTINCT CASE WHEN c.archived = 0 THEN c.case_id END) AS active_cases,
+                    COUNT(DISTINCT CASE WHEN c.archived = 1 THEN c.case_id END) AS archived_cases,
+                    COUNT(DISTINCT CASE WHEN (c.demo_generation_run_id IS NOT NULL OR LEFT(c.case_id, 5) = 'demo_') THEN c.case_id END) AS demo_cases,
+                    " . ($demoRunsTable ? "COALESCE(dr.has_demo_runs, 0)" : "0") . " AS has_demo_runs,
+                    su.status AS storage_status,
+                    su.calculated_at AS storage_calculated_at,
+                    su.total_bytes AS storage_total_bytes,
+                    su.unmeasured_files AS storage_unmeasured_files,
+                    su.measurement_notes AS storage_measurement_notes,
+                    su.last_error AS storage_last_error
+                FROM practices p
+                LEFT JOIN cases_cache c ON c.practice_id = p.id
+                " . ($demoRunsTable ? "LEFT JOIN (
+                    SELECT practice_id, 1 AS has_demo_runs
+                    FROM demo_generation_runs
+                    WHERE status <> 'deleted'
+                    GROUP BY practice_id
+                ) dr ON dr.practice_id = p.id" : "") . "
+                LEFT JOIN practice_storage_usage su ON su.practice_id = p.id
+                GROUP BY p.id, p.practice_name, p.legal_name, p.display_name, p.is_active,
+                         " . ($demoRunsTable ? "dr.has_demo_runs, " : "") . "su.status, su.calculated_at,
+                         su.total_bytes, su.unmeasured_files, su.measurement_notes, su.last_error
+                ORDER BY p.practice_name, p.id
+            ";
+            $usageRows = $pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC);
+
+            $usagePractices = [];
+            foreach ($usageRows as $row) {
+                $totalCases = (int)$row['total_cases'];
+                $demoCases = (int)$row['demo_cases'];
+                $hasDemoRuns = ((int)$row['has_demo_runs']) === 1;
+
+                $storageStatus = 'uncalculated';
+                if ($row['storage_status'] === 'running') {
+                    $storageStatus = 'refreshing';
+                } elseif (!empty($row['storage_last_error'])) {
+                    $storageStatus = 'error';
+                } elseif ($row['storage_calculated_at'] !== null) {
+                    $storageNotes = json_decode($row['storage_measurement_notes'] ?? '', true);
+                    $storageStatus = ((int)($row['storage_unmeasured_files'] ?? 0) > 0 || !empty($storageNotes))
+                        ? 'partial' : 'measured';
+                }
+
+                $unmeasured = (int)($row['storage_unmeasured_files'] ?? 0);
+                $usagePractices[] = [
+                    'id' => (int)$row['id'],
+                    'name' => $row['display_name'] ?: ($row['practice_name'] ?: ($row['legal_name'] ?: 'Unnamed')),
+                    'is_active' => (bool)$row['is_active'],
+                    'active_cases' => (int)$row['active_cases'],
+                    'archived_cases' => (int)$row['archived_cases'],
+                    'total_cases' => $totalCases,
+                    'demo_cases' => $demoCases,
+                    'is_demo' => $hasDemoRuns || ($totalCases > 0 && $demoCases === $totalCases),
+                    'storage' => [
+                        'status' => $storageStatus,
+                        'total_bytes' => $row['storage_total_bytes'] !== null ? (int)$row['storage_total_bytes'] : null,
+                        'calculated_at' => $row['storage_calculated_at'],
+                        'unmeasured_files' => $unmeasured,
+                        'complete' => in_array($storageStatus, ['measured'], true),
+                        'last_error' => $row['storage_last_error'] ? (string)$row['storage_last_error'] : null,
+                    ],
+                ];
+            }
+
+            echo json_encode([
+                'success' => true,
+                'generated_at' => gmdate('Y-m-d\TH:i:s\Z'),
+                'practices' => $usagePractices,
+            ]);
+            break;
+
         case 'adoption':
             $practiceId = $_GET['practice_id'] ?? null;
             if (!$practiceId || !is_numeric($practiceId)) {

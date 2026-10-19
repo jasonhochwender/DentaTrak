@@ -1223,6 +1223,22 @@ $userEmail = $_SESSION['user_email'] ?? '';
                         practices = data.practices;
                         renderPractices();
                         updateStats();
+                        // Deep link: admin-practices.php?practice_id=N[&tab=usage]
+                        // opens that practice's detail panel directly (used by
+                        // the Practice Usage Report table).
+                        const deepLinkParams = new URLSearchParams(window.location.search);
+                        const deepLink = parseInt(deepLinkParams.get('practice_id'), 10);
+                        const deepTab = deepLinkParams.get('tab');
+                        if (deepLink && practices.some(p => p.id === deepLink)) {
+                            selectPractice(deepLink);
+                            if (deepTab && DETAIL_TABS.includes(deepTab)) {
+                                const tabBtns = document.querySelectorAll('.detail-tab');
+                                tabBtns.forEach(b => b.classList.remove('active'));
+                                const idx = DETAIL_TABS.indexOf(deepTab);
+                                if (tabBtns[idx]) tabBtns[idx].classList.add('active');
+                                loadTabByName(deepTab, deepLink);
+                            }
+                        }
                     } else {
                         document.getElementById('practicesTableBody').innerHTML = 
                             '<div class="empty-state">Error loading practices: ' + (data.message || 'Unknown error') + '</div>';
@@ -1432,9 +1448,14 @@ $userEmail = $_SESSION['user_email'] ?? '';
             // Update tab buttons
             document.querySelectorAll('.detail-tab').forEach(btn => btn.classList.remove('active'));
             event.target.classList.add('active');
-            
+            loadTabByName(tab, practiceId);
+        }
+
+        const DETAIL_TABS = ['compliance', 'usage', 'subscription', 'phi', 'users', 'settings'];
+
+        function loadTabByName(tab, practiceId) {
             document.getElementById('detailContent').innerHTML = '<div class="loading">' + t('common.loading') + '</div>';
-            
+
             if (tab === 'compliance') {
                 loadComplianceTab(practiceId);
             } else if (tab === 'usage') {
