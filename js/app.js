@@ -9998,7 +9998,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     const newRevisionLine = document.createElement('div');
                     newRevisionLine.className = 'revision-count-line';
                     newRevisionLine.textContent = t('cases.revisions_count', {count: revisionCount});
-                    cardHeader.appendChild(newRevisionLine);
+                    cardHeader.insertAdjacentElement('afterend', newRevisionLine);
                   }
                 }
               }
@@ -10415,14 +10415,12 @@ document.addEventListener('DOMContentLoaded', function () {
 
       caseCard.innerHTML =
         '<div class="kanban-card-header">' +
-        '  <div>' +
         '    <h3 class="kanban-card-title">' + escapeHtml(((displayData.patientFirstName || '') + ' ' + (displayData.patientLastName || '')).trim()) + '</h3>' +
-        revisionCountLine +
-        '  </div>' +
         reviewBadgeHtml +
         pmsSyncHtml +
         '  <button type="button" class="case-actions-toggle" data-case-id="' + displayData.id + '" title="' + t('cases.actions_menu') + '" aria-label="' + t('cases.actions_menu') + '" aria-haspopup="menu" aria-expanded="false">⋮</button>' +
         '</div>' +
+        revisionCountLine +
         '<div class="kanban-card-content">' +
         '  <p class="kv-row"><strong>' + t('cases.type') + ':</strong> <span class="kv-value">' + escapeHtml(getCaseTypeDisplayLabel(displayData.caseType) || '') + '</span></p>' +
         '  <p class="kv-row"><strong>' + t('cases.due_label') + ':</strong> <span class="kv-value">' + (displayData.dueDate ? formatDate(displayData.dueDate) : '\u2014') + '<span class="late-indicator">' + (dueIndicatorText || '') + '</span></span></p>' +

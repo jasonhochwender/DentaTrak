@@ -2157,7 +2157,12 @@ body {
   min-width: 0;
 }
 
-.kanban-card-header > div:first-child {
+/* The patient name is the flexible header item: it takes the remaining
+   width and truncates, while the review badge, PMS chip, and actions
+   toggle keep their natural size on the same row. The optional
+   .revision-count-line renders as a sibling row below the header so it
+   never affects this row's vertical alignment. */
+.kanban-card-header .kanban-card-title {
   min-width: 0;
   flex: 1 1 auto;
 }
@@ -2184,11 +2189,15 @@ body {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  margin: 0;
 }
 
-/* A truncated title doubles as the shared .dt-tooltip trigger: override the
-   icon-button chrome so the heading keeps its own typography while hover,
-   keyboard focus, and tap still reveal the full name. */
+/* A truncated title doubles as the shared .dt-tooltip trigger: neutralize
+   the icon-button chrome and re-assert the .kanban-card-title typography
+   so truncated and untruncated names render identically. The shared
+   .dt-tooltip-trigger font rules live in settings-billing.css, which loads
+   after this file, so inherit alone would pick up the card's body font
+   instead of the title's. */
 .kanban-board:not(.kanban-board-compact) .kanban-card-title.dt-tooltip-trigger {
   display: block;
   width: auto;
@@ -2198,9 +2207,13 @@ body {
   border-radius: 0;
   background: none;
   background-color: transparent;
-  color: inherit;
-  font: inherit;
-  letter-spacing: inherit;
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: 0.8rem;
+  font-style: normal;
+  font-weight: 600;
+  line-height: inherit;
+  letter-spacing: -0.01em;
   text-align: left;
   cursor: default;
 }
@@ -2282,7 +2295,9 @@ body {
   font-weight: 500;
   font-size: 0.72rem;
   color: #dc3545;
-  margin-top: 2px;
+  /* Own row between the card header (8px bottom margin) and the details;
+     the negative top margin keeps it visually attached to the name. */
+  margin: -4px 0 6px;
 }
 
 .kanban-card-content {
