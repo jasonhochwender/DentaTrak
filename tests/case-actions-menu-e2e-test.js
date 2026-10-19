@@ -257,11 +257,14 @@ async function closeCaseModal(page) {
     }, caseA);
     check('dragstart on toggle does not reach the card', !dragCheck.dragOnCard, JSON.stringify(dragCheck));
 
-    /* ---------- 7. Edit (board) routes to editCaseHandler ---------- */
+    /* ---------- 7. Edit (board) routes through openCaseById ---------- */
+    // All entry points share the authoritative get-case loader now; Edit no
+    // longer hands the cached card payload to editCaseHandler directly.
     await page.evaluate(() => {
       window.__editedWith = null;
-      const orig = window.editCaseHandler;
-      window.editCaseHandler = function (d) { window.__editedWith = d && d.id; return orig.apply(this, arguments); };
+      window.__openedWith = null;
+      const orig = window.openCaseById;
+      window.openCaseById = function (id, o) { window.__openedWith = id; return orig.apply(this, arguments); };
     });
     await openCardMenu(page, caseA);
     await page.click('#caseActionsMenu [data-action="edit"]');
@@ -269,8 +272,8 @@ async function closeCaseModal(page) {
       const f = document.getElementById('patientFirstName');
       return f && f.value.length > 0;
     }, undefined, { timeout: 15000 });
-    const edited = await page.evaluate(() => window.__editedWith);
-    check('board Edit opened the case via editCaseHandler', String(edited) === String(caseA), String(edited));
+    const edited = await page.evaluate(() => window.__openedWith);
+    check('board Edit opened the case via openCaseById', String(edited) === String(caseA), String(edited));
     check('menu closed after Edit selection', !(await page.evaluate(() => window.caseActionsMenu.isOpen())));
     await closeCaseModal(page);
 
@@ -586,13 +589,14 @@ async function closeCaseModal(page) {
     const rowSnap = await menuSnapshot(page);
     check('list menu order Edit/Print/Remake/divider/Archive', rowSnap.items.join(',') === 'edit,print,remake,|,archive', rowSnap.items.join(','));
 
+    await page.evaluate(() => { window.__openedWith = null; });
     await page.click('#caseActionsMenu [data-action="edit"]');
     await page.waitForFunction(() => {
       const f = document.getElementById('patientFirstName');
       return f && f.value.length > 0;
     }, undefined, { timeout: 15000 });
-    const editedFromList = await page.evaluate(() => window.__editedWith);
-    check('list Edit opened the case via editCaseHandler', String(editedFromList) === String(caseA), String(editedFromList));
+    const editedFromList = await page.evaluate(() => window.__openedWith);
+    check('list Edit opened the case via openCaseById', String(editedFromList) === String(caseA), String(editedFromList));
     await closeCaseModal(page);
 
     /* ---------- 14. Menu click on row does not trigger row-open ---------- */

@@ -886,30 +886,15 @@
   }
 
   /**
-   * Open a case exactly as a Kanban card interaction does: hand the card's
-   * own normalized case object to editCaseHandler() - no extra get-case.php
-   * round trip. The card payload is already practice-authorized (the same
-   * data the card's edit button and double-click use), and server-side
-   * mutation endpoints still enforce requireCaseAccess on save. Falls back
-   * to openCaseById only when the card payload is missing or marks the case
-   * archived (its read-only/archived routing is needed there).
+   * Open a case through the shared authoritative loader (openCaseById ->
+   * get-case.php core view). The card's cached caseJson is a board summary
+   * and does not carry the server-computed detail view model (lab
+   * acknowledgment data and action capabilities), so it must not be treated
+   * as a complete case object - that is what made list-opened cases show a
+   * different acknowledgment panel than the same case opened elsewhere.
    */
   function openRowCase(caseId) {
     if (!caseId) return;
-
-    var card = document.querySelector('.kanban-card[data-case-id="' + caseId + '"]');
-    var cardData = null;
-    try {
-      cardData = card ? JSON.parse(card.dataset.caseJson || 'null') : null;
-    } catch (e) {
-      cardData = null;
-    }
-
-    if (cardData && cardData.id && !cardData.archived &&
-        typeof window.editCaseHandler === 'function') {
-      window.editCaseHandler(cardData);
-      return;
-    }
 
     if (typeof window.openCaseById === 'function') {
       window.openCaseById(caseId, { tab: 'details' });

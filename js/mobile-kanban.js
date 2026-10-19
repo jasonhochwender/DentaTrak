@@ -174,8 +174,11 @@
     var cardData = getCardData(card);
     var column = card ? card.closest('.kanban-column') : null;
     saveActiveColumn(column ? column.dataset.status : null);
-    if (window.editCaseHandler) {
-      window.editCaseHandler(cardData);
+    // Route through the shared authoritative loader - the card payload is a
+    // summary without the server-computed detail fields (labAck/labAckPerms).
+    var caseId = (cardData && (cardData.id || cardData.case_id)) || card.dataset.caseId;
+    if (caseId && typeof window.openCaseById === 'function') {
+      window.openCaseById(caseId, { tab: 'details' });
     }
   }
 

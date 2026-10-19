@@ -75,13 +75,8 @@ assertContains(
 );
 assertContains(
     $baseDir . '/js/case-list.js',
-    '/editCaseHandler/',
-    'case-list.js must open cases via the shared editCaseHandler card path'
-);
-assertContains(
-    $baseDir . '/js/case-list.js',
     '/openCaseById/',
-    'case-list.js must keep openCaseById as the archived/missing-card fallback'
+    'case-list.js must open cases via the shared authoritative openCaseById loader'
 );
 assertContains(
     $baseDir . '/js/case-list.js',

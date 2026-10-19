@@ -5773,7 +5773,7 @@ document.addEventListener('DOMContentLoaded', function () {
   // Helper to reset the Create/Edit Case form back to "new case" state
   function resetCreateCaseFormToNew() {
     var form = document.getElementById('createCaseForm');
-    var modalTitle = document.querySelector('.modal-title');
+    var modalTitle = createCaseModal ? createCaseModal.querySelector('.modal-title') : null;
     var submitBtn = document.getElementById('createCaseSubmit');
 
     if (form) {
@@ -5843,6 +5843,15 @@ document.addEventListener('DOMContentLoaded', function () {
     if (typeof renderReviewStatus === 'function') {
       renderReviewStatus(null);
     }
+
+    // Release the previously open case's identity. Without this, a late
+    // response for the last case (e.g. the heavy-data follow-up) could still
+    // match currentEditCaseId and merge into a form that now belongs to a
+    // different or brand-new case. In-flight requests are already discarded
+    // by closeCreateCase()'s caseOpenRequestId bump; this covers the modal
+    // state itself.
+    currentEditCaseId = null;
+    currentEditCaseData = null;
 
     // Hide the lab acknowledgment panel for new case - no case record, no
     // assignment, and no acknowledgment can exist for an unsaved form.
@@ -6312,6 +6321,24 @@ document.addEventListener('DOMContentLoaded', function () {
     actionsEl.innerHTML = '';
     detailEl.textContent = '';
 
+    // A payload without labAckPerms is a summary/incomplete object (e.g. a
+    // save response re-rendered through populateCreateCaseForm). Reuse the
+    // authoritative fields already loaded for this case so a refresh can
+    // never blank stored acknowledgment data or drop the permitted actions.
+    var caseIdForAck = caseData && (caseData.id || caseData.case_id);
+    if (caseIdForAck && typeof caseData.labAckPerms === 'undefined'
+        && currentEditCaseData
+        && String(currentEditCaseData.id || currentEditCaseData.case_id) === String(caseIdForAck)) {
+      caseData.labAck = currentEditCaseData.labAck || null;
+      caseData.labAckPerms = currentEditCaseData.labAckPerms || null;
+      if (typeof caseData.labPromisedDate === 'undefined') {
+        caseData.labPromisedDate = currentEditCaseData.labPromisedDate || null;
+      }
+      if (typeof caseData.labAckStatus === 'undefined') {
+        caseData.labAckStatus = currentEditCaseData.labAckStatus || null;
+      }
+    }
+
     var labAck = (caseData && caseData.labAck) ? caseData.labAck : null;
     var labAckPerms = (caseData && caseData.labAckPerms) ? caseData.labAckPerms : null;
     var promisedDate = (caseData && caseData.labPromisedDate) ? caseData.labPromisedDate : null;
@@ -6321,6 +6348,15 @@ document.addEventListener('DOMContentLoaded', function () {
     var ackEnabled = (labAckPerms && typeof labAckPerms.enabled !== 'undefined')
       ? !!labAckPerms.enabled
       : !!window.labAcknowledgmentEnabled;
+
+    // The server-computed detail for this case was never loaded and there is
+    // no authoritative fallback - show an explicit loading line rather than
+    // bare labels that would read as "no data".
+    if (caseIdForAck && !labAckPerms) {
+      container.style.display = '';
+      statusEl.textContent = t('common.loading');
+      return;
+    }
 
     // Nothing to show: no pending/recorded acknowledgment, no promised date,
     // no staff capability to set one, and the workflow is off (off = hide;
@@ -7782,7 +7818,7 @@ document.addEventListener('DOMContentLoaded', function () {
           closeCreateCase();
           return false;
         }
-        editCaseHandler(data.case);
+        editCaseHandler(data.case, true);
       } else {
         openCaseModalForView(data.case, fetchStart);
       }
@@ -10423,7 +10459,14 @@ document.addEventListener('DOMContentLoaded', function () {
           cardData = {};
         }
 
-        editCaseHandler(cardData);
+        // The card payload is a board summary, not a complete case - open
+        // through the shared authoritative loader so detail data and the
+        // available actions (e.g. lab acknowledgment) are identical no
+        // matter which entry point opened the case.
+        var dblCaseId = cardData.id || cardData.case_id || caseCard.dataset.caseId;
+        if (dblCaseId && typeof window.openCaseById === 'function') {
+          window.openCaseById(dblCaseId, { tab: 'details' });
+        }
       });
 
       // Make the card draggable only on desktop; phones use the action menu
@@ -10514,7 +10557,19 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   // Function to handle case editing
-  function editCaseHandler(caseData) {
+  function editCaseHandler(caseData, authoritativeDetail) {
+    // Authoritative case detail (get-case.php, any view) always carries the
+    // server-computed labAckPerms block. A payload without it is a board or
+    // list summary - route it through the shared loader instead of rendering
+    // an incomplete case. authoritativeDetail is set by openCaseById for the
+    // fetched response so this can never recurse.
+    if (!authoritativeDetail && caseData && (caseData.id || caseData.case_id)
+        && typeof caseData.labAckPerms === 'undefined'
+        && typeof window.openCaseById === 'function') {
+      window.openCaseById(caseData.id || caseData.case_id, { tab: 'details' });
+      return;
+    }
+
     if (!window.viewCaseTimings) {
       window.viewCaseTimings = {
         source: 'kanban',
@@ -10552,9 +10607,11 @@ document.addEventListener('DOMContentLoaded', function () {
       caseModalOpener = document.activeElement;
     }
 
-    // Get form and modal elements
+    // Get form and modal elements - scoped to the case modal so the title
+    // update can never land on another modal that happens to precede it in
+    // the DOM (previously left a stuck "Loading case..." heading).
     var form = document.getElementById('createCaseForm');
-    var modalTitle = document.querySelector('.modal-title');
+    var modalTitle = createCaseModal ? createCaseModal.querySelector('.modal-title') : document.querySelector('#createCaseModal .modal-title');
     var submitBtn = document.getElementById('createCaseSubmit');
 
     // Clear any previous validation errors when starting to edit a case

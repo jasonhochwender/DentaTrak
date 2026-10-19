@@ -262,12 +262,11 @@
     if (action === 'edit') {
       close(false);
       if (window.isPrintingCase) return;
-      // Same routing as case-list openRowCase(): the card payload goes
-      // straight to editCaseHandler; archived cases need openCaseById's
-      // read-only/archived handling.
-      if (cardData && cardData.id && !cardData.archived && typeof window.editCaseHandler === 'function') {
-        window.editCaseHandler(cardData);
-      } else if (typeof window.openCaseById === 'function') {
+      // Same routing as board double-click / list openRowCase(): always go
+      // through the shared authoritative loader so the cached card payload
+      // (a summary without labAck/labAckPerms) is never rendered as a
+      // complete case.
+      if (typeof window.openCaseById === 'function') {
         window.openCaseById(ctx.caseId, { tab: 'details' });
       }
     } else if (action === 'print') {
