@@ -2726,7 +2726,7 @@
             "show_history_tab": {
                 "label": "Änderungsverlauf-Tab anzeigen",
                 "description": "Den Tab „Verlauf\" in der Fallansicht anzeigen.",
-                "tooltip": "Praxisweite Einstellung. Wenn deaktiviert, wird der Verlauf-Tab in der Fallansicht für alle Mitglieder dieser Praxis ausgeblendet; der Verlauf wird weiterhin aufgezeichnet und nichts wird gelöscht."
+                "tooltip": "Wenn aktiviert, enthält jeder Fall eine Registerkarte „Änderungsverlauf“ mit einem Protokoll der an diesem Fall vorgenommenen Änderungen."
             },
             "sections": {
                 "appearance": "Erscheinungsbild",

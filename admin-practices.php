@@ -2595,7 +2595,7 @@ $userEmail = $_SESSION['user_email'] ?? '';
 
             html += '<div class="settings-card">' +
                 '<h4>Display &amp; Behavior</h4>' +
-                '<div class="settings-row"><span class="settings-label">' + escapeHtml(t('settings.display.show_history_tab.label')) + '</span><span class="settings-value">' +
+                '<div class="settings-row"><span class="settings-label" style="cursor: help;" title="' + escapeHtml(t('settings.display.show_history_tab.tooltip')) + '">' + escapeHtml(t('settings.display.show_history_tab.label')) + '</span><span class="settings-value">' +
                     '<input type="checkbox" id="psShowCaseHistoryTab" ' + (settings.show_case_history_tab ? 'checked' : '') + '></span></div>' +
                 '<div class="settings-row"><span class="settings-label" style="cursor: help;" title="' + escapeHtml(t('settings.display.allow_card_delete.tooltip')) + '">' + escapeHtml(t('settings.display.allow_card_delete.label')) + '</span><span class="settings-value">' +
                     '<input type="checkbox" id="psAllowCardDelete" ' + (cm.allow_archiving_individual_cases ? 'checked' : '') + '></span></div>' +

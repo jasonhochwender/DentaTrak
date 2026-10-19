@@ -4727,7 +4727,7 @@
             "show_history_tab": {
                 "label": "Mostrar aba Histórico de revisões",
                 "description": "Exibir a aba Histórico ao visualizar um caso.",
-                "tooltip": "Configuração de toda a clínica. Quando desativada, a aba Histórico fica oculta na visualização do caso para todos os membros desta clínica; o histórico continua sendo registrado e nada é excluído."
+                "tooltip": "Quando marcada, cada caso inclui uma aba Histórico de revisões que mostra um registro das alterações feitas nesse caso."
             },
             "sections": {
                 "appearance": "Aparência",

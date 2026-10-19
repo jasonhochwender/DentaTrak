@@ -1103,7 +1103,7 @@
             "show_history_tab": {
                 "label": "Mostrar pestaña Historial de revisiones",
                 "description": "Mostrar la pestaña Historial al ver un caso.",
-                "tooltip": "Ajuste de toda la consulta. Al desactivarla, la pestaña Historial se oculta en la vista del caso para todos los miembros de esta consulta; el historial sigue registrándose y no se elimina nada."
+                "tooltip": "Cuando está activada, cada caso incluye una pestaña Historial de revisiones que muestra un registro de los cambios realizados en ese caso."
             },
             "sections": {
                 "appearance": "Apariencia",

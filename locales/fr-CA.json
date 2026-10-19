@@ -1103,7 +1103,7 @@
             "show_history_tab": {
                 "label": "Afficher l’onglet Historique des révisions",
                 "description": "Afficher l’onglet Historique lors de la consultation d’un cas.",
-                "tooltip": "Réglage pour tout le cabinet. Lorsqu’elle est désactivée, l’onglet Historique est masqué dans la vue du cas pour tous les membres de ce cabinet; l’historique continue d’être enregistré et rien n’est supprimé."
+                "tooltip": "Lorsqu’elle est cochée, chaque cas comprend un onglet Historique des révisions présentant un relevé des modifications apportées à ce cas."
             },
             "sections": {
                 "appearance": "Apparence",

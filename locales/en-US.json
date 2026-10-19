@@ -1103,7 +1103,7 @@
             "show_history_tab": {
                 "label": "Show Revision History tab",
                 "description": "Display the History tab when viewing a case.",
-                "tooltip": "Practice-wide setting. When turned off, the History tab is hidden in the case view for everyone in this practice; case history keeps recording and nothing is deleted."
+                "tooltip": "When checked, each case includes a Revision History tab showing a record of changes made to that case."
             },
             "sections": {
                 "appearance": "Appearance",

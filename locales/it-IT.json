@@ -1103,7 +1103,7 @@
             "show_history_tab": {
                 "label": "Mostra scheda Cronologia delle revisioni",
                 "description": "Mostra la scheda Cronologia durante la visualizzazione di un caso.",
-                "tooltip": "Impostazione a livello di studio. Se disattivata, la scheda Cronologia viene nascosta nella vista del caso per tutti i membri di questo studio; la cronologia continua a essere registrata e nulla viene eliminato."
+                "tooltip": "Se selezionata, ogni caso include una scheda Cronologia delle revisioni che mostra un registro delle modifiche apportate a quel caso."
             },
             "sections": {
                 "appearance": "Aspetto",
