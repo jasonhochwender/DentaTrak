@@ -1081,7 +1081,8 @@
                 "lab_ack_confirmed_by_staff_method": "{user} зафиксировал(а) подтверждение лаборатории по {method}; обещано {date}",
                 "lab_info_requested": "{lab} запросила дополнительную информацию ({user})",
                 "lab_ack_promised_date_changed": "{user} изменил(а) обещанную дату возврата: {old} → {new} ({reason})",
-                "lab_ack_cleared": "Подтверждение для {lab} закрыто (переназначено)"
+                "lab_ack_cleared": "Подтверждение для {lab} закрыто (переназначено)",
+                "lab_ack_promised_date_changed_lab": "Лаборатория ({user}) изменила обещанную дату возврата: {old} → {new} ({reason})"
             },
             "timeline": {
                 "created": "Создан",

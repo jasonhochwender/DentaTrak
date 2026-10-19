@@ -10,10 +10,13 @@
  *   staff_confirm     - practice staff record a phone/email confirmation
  *                       received outside the app (labeled "Recorded by
  *                       practice staff", never presented as a lab action)
- *   set_promised_date - practice staff record/change the lab-promised
- *                       return date; changing an existing date requires a
- *                       short reason. Available even when the practice
- *                       setting is OFF.
+ *   set_promised_date - two authorized writers for the lab-promised
+ *                       return date:
+ *                       - practice staff (can_edit_cases, not a lab
+ *                         collaborator) - also while the setting is OFF;
+ *                       - the currently assigned lab revising its own
+ *                         promised date after confirming (setting ON).
+ *                       Changing an existing date requires a short reason.
  *
  * SECURITY: server-side checks only - valid practice context, CSRF, the
  * case resolved to its own practice (consolidated view safe), case access,
@@ -140,8 +143,23 @@ $now = date('Y-m-d H:i:s');
 // Staff actions: record promised return date (setting-independent)
 // ---------------------------------------------------------------------
 if ($action === 'set_promised_date') {
+    // Staff path stays available with the setting OFF; the lab path is an
+    // acknowledgment action and therefore requires the setting ON plus a
+    // current open acknowledgment the lab identity actually owns. A lab
+    // can only revise its own promised date after confirming receipt, and
+    // a previous lab is rejected after reassignment.
+    $actorIsLab = false;
     if ($isLab || !$canEdit) {
-        labAckRespond(false, ['message' => t('api.lab_ack.staff_only')], 403);
+        if (!$enabled) {
+            labAckRespond(false, ['message' => t('api.lab_ack.disabled')], 403);
+        }
+        if (!$openAck
+            || !labAckRowIsCurrent($openAck, $case, $currentPracticeId)
+            || !userMatchesLabAckIdentity($currentUserId, $openAck)
+            || $openAck['status'] !== 'confirmed') {
+            labAckRespond(false, ['message' => t('api.lab_ack.lab_only')], 403);
+        }
+        $actorIsLab = true;
     }
 
     $newDate = normalizeLabAckDate($input['promisedDate'] ?? '');
@@ -189,6 +207,9 @@ if ($action === 'set_promised_date') {
             'old_date' => $normalizedOld,
             'new_date' => $newDate,
             'reason' => $reason !== '' ? $reason : null,
+            // Lets case history tell the lab's own revision apart from a
+            // staff-recorded change.
+            'actor_role' => $actorIsLab ? 'lab' : 'staff',
             'source' => 'lab-acknowledgment-action.php',
         ],
         null,
@@ -199,7 +220,12 @@ if ($action === 'set_promised_date') {
     if (function_exists('recordCaseUpdate')) {
         recordCaseUpdate($caseId, 'update');
     }
-    emitCaseNotificationEvent($currentPracticeId, $caseId, $currentUserId, 'lab_promised_date_changed', ['lab_promised_date_changed'], []);
+    // Promised-date notifications belong to the acknowledgment notification
+    // family: suppressed while the setting is OFF (the staff-only date entry
+    // stays available, just silent).
+    if ($enabled) {
+        emitCaseNotificationEvent($currentPracticeId, $caseId, $currentUserId, 'lab_promised_date_changed', ['lab_promised_date_changed'], []);
+    }
 
     labAckRespond(true, array_merge([
         'changed' => true,

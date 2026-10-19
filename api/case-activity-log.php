@@ -50,6 +50,22 @@ function sanitizeCaseActivityMeta(array $meta) {
         'remake_reason',
         'remake_attribution',
         'lab_period_id',
+        // Lab acknowledgment workflow fields. Lab display names are shown
+        // throughout the UI already; statuses, dates, confirmation
+        // source/method and actor role are enum-like operational values;
+        // ids reference internal rows. None of these are patient PII/PHI.
+        'lab_display_name',
+        'previous_status',
+        'cleared_promised_date',
+        'promised_return_date',
+        'old_date',
+        'new_date',
+        'actor_role',
+        'confirmed_by_name',
+        'confirmation_source',
+        'confirmation_method',
+        'comment_id',
+        'info_requested_by',
     ];
 
     $clean = [];
@@ -67,7 +83,7 @@ function sanitizeCaseActivityMeta(array $meta) {
     }
 
     // Ensure numeric fields are numeric
-    foreach (['delivered_hide_days', 'count', 'files_deleted', 'fields_count', 'attachment_count', 'reviewed_by_user_id', 'review_status_changed_by_user_id', 'remake_id', 'remake_number', 'lab_period_id'] as $numKey) {
+    foreach (['delivered_hide_days', 'count', 'files_deleted', 'fields_count', 'attachment_count', 'reviewed_by_user_id', 'review_status_changed_by_user_id', 'remake_id', 'remake_number', 'lab_period_id', 'comment_id', 'info_requested_by'] as $numKey) {
         if (isset($clean[$numKey]) && is_numeric($clean[$numKey])) {
             $clean[$numKey] = (int)$clean[$numKey];
         }

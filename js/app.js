@@ -5263,7 +5263,11 @@ document.addEventListener('DOMContentLoaded', function () {
           description = t(evKey + 'lab_info_requested', { lab: (evt.meta && evt.meta.lab_display_name) || t('cases.lab_ack.the_lab'), user: userName });
           break;
         case 'lab_promised_date_changed':
-          description = t(evKey + 'lab_ack_promised_date_changed', {
+          // A lab revising its own promise reads differently from a
+          // staff-recorded change.
+          var promisedActorKey = (evt.meta && evt.meta.actor_role === 'lab')
+            ? 'lab_ack_promised_date_changed_lab' : 'lab_ack_promised_date_changed';
+          description = t(evKey + promisedActorKey, {
             old: (evt.meta && evt.meta.old_date) || '—',
             new: (evt.meta && evt.meta.new_date) || '—',
             reason: (evt.meta && evt.meta.reason) || '',
@@ -6367,6 +6371,14 @@ document.addEventListener('DOMContentLoaded', function () {
     if (hasOpenRow && staffUser && (labAck.status === 'awaiting' || labAck.status === 'needs_info')) {
       _labAckAddAction(actionsEl, t('cases.lab_ack.record_confirmation'), function() {
         _labAckShowConfirmForm(actionsEl, caseData, true);
+      });
+    }
+
+    // The assigned lab may revise its own promised return date once it has
+    // confirmed receipt (the view model limits this to a confirmed open ack).
+    if (hasOpenRow && labAck.labCanPromised) {
+      _labAckAddAction(actionsEl, effectivePromised ? t('cases.lab_ack.change_promised_date') : t('cases.lab_ack.set_promised_date'), function() {
+        _labAckShowPromisedForm(actionsEl, caseData, !!effectivePromised);
       });
     }
 

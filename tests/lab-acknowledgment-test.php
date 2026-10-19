@@ -207,6 +207,91 @@ try {
     assertTrue(normalizeLabAckDate('not-a-date') === null, 'Date normalize rejects garbage');
     assertTrue(normalizeLabAckDate('') === null, 'Date normalize accepts empty as null');
 
+    // ---- reassignment clears the previous lab's promised date ----
+    // Live state: setting ON, open 'awaiting' ack for lab A.
+    updateCaseLabPromisedDate($caseId, $practiceId, '2026-04-01', $staffId);
+    $pd->execute([$caseId]);
+    assertTrue($pd->fetchColumn() === '2026-04-01', 'Promised date set before reassignment');
+    // Mirror onto the ack row like the action endpoint does, and mark the
+    // row confirmed so lab-identity revision checks run on a real state.
+    $openNow = getOpenLabAcknowledgment($caseId, $practiceId);
+    $pdo->prepare("UPDATE case_lab_acknowledgments SET status='confirmed', promised_return_date='2026-04-01' WHERE id=?")
+        ->execute([(int)$openNow['id']]);
+
+    // View model: only the confirmed, currently-assigned lab may revise.
+    $vm = buildLabAckViewModel(getOpenLabAcknowledgment($caseId, $practiceId), true, $labAId, false, true, false);
+    assertTrue($vm['labCanPromised'] === true, 'Confirmed lab can revise its own promised date');
+    $vm = buildLabAckViewModel(getOpenLabAcknowledgment($caseId, $practiceId), true, $labBId, false, true, false);
+    assertTrue($vm['labCanPromised'] === false, 'A different lab cannot revise lab A\'s promise');
+    $vm = buildLabAckViewModel(getOpenLabAcknowledgment($caseId, $practiceId), true, $staffId, true, false, false);
+    assertTrue(($vm['labCanPromised'] ?? false) === false, 'Staff flag stays separate from lab capability');
+
+    // lab A -> lab B: the previous commitment leaves the live cache.
+    recordLabAckAssignmentTransition($caseId, $practiceId, $labEmailA, $labEmailB, $staffId);
+    $pd->execute([$caseId]);
+    assertTrue($pd->fetchColumn() === null, 'Reassignment clears previous lab promised date from cache');
+    $open = getOpenLabAcknowledgment($caseId, $practiceId);
+    assertTrue($open && $open['lab_key'] === "user:{$labBId}" && $open['promised_return_date'] === null,
+        'New lab ack opens fresh: no inherited promised date');
+    $supRow = $pdo->prepare("SELECT promised_return_date FROM case_lab_acknowledgments WHERE case_id = ? AND lab_key = ? AND status='superseded' ORDER BY id DESC LIMIT 1");
+    $supRow->execute([$caseId, "user:{$labAId}"]);
+    assertTrue($supRow->fetchColumn() === '2026-04-01', 'Superseded row preserves lab A promised date as history');
+    $metaRow = $pdo->prepare("SELECT meta_json FROM case_activity_log WHERE case_id = ? AND event_type='lab_ack_superseded' ORDER BY id DESC LIMIT 1");
+    $metaRow->execute([$caseId]);
+    $meta = json_decode((string)$metaRow->fetchColumn(), true);
+    assertTrue(($meta['cleared_promised_date'] ?? null) === '2026-04-01', 'Supersede history records the cleared promised date');
+
+    // lab B -> internal: the promise clears too.
+    updateCaseLabPromisedDate($caseId, $practiceId, '2026-04-05', $labBId);
+    recordLabAckAssignmentTransition($caseId, $practiceId, $labEmailB, $staffEmail, $staffId);
+    $pd->execute([$caseId]);
+    assertTrue($pd->fetchColumn() === null, 'Lab->internal reassignment clears promised date');
+    assertTrue(getOpenLabAcknowledgment($caseId, $practiceId) === null, 'No open ack after internal reassignment');
+
+    // internal -> lab (first lab context): a staff-recorded date survives
+    // the first handoff; a same-lab save never clears it either.
+    updateCaseLabPromisedDate($caseId, $practiceId, '2026-04-07', $staffId);
+    recordLabAckAssignmentTransition($caseId, $practiceId, $staffEmail, $labEmailA, $staffId);
+    $pd->execute([$caseId]);
+    assertTrue($pd->fetchColumn() === '2026-04-07', 'First lab handoff keeps staff-recorded date');
+    recordLabAckAssignmentTransition($caseId, $practiceId, $labEmailA, $labEmailA, $staffId);
+    $pd->execute([$caseId]);
+    assertTrue($pd->fetchColumn() === '2026-04-07', 'Same-lab save keeps the promised date');
+
+    // Delivered-path supersede clears the live date as well.
+    supersedeOpenLabAcknowledgment($caseId, $practiceId, 'case_delivered', $staffId);
+    $pd->execute([$caseId]);
+    assertTrue($pd->fetchColumn() === null, 'Delivered supersede clears promised date');
+
+    // ---- endpoint static checks: disable gate + lab revision path ----
+    $src = file_get_contents(__DIR__ . '/../api/lab-acknowledgment-action.php');
+    $spdPos  = strpos($src, "\$action === 'set_promised_date'");
+    $labGate = strpos($src, "if (!\$enabled)", $spdPos);
+    $mainGate = strrpos($src, "if (!\$enabled)");
+    assertTrue($labGate !== false && $labGate < $mainGate,
+        'Lab promised-date path requires the setting ON');
+    assertTrue($spdPos < $mainGate
+        && $mainGate < strpos($src, "\$action === 'confirm'")
+        && $mainGate < strpos($src, "\$action === 'request_info'")
+        && $mainGate < strpos($src, "\$action === 'staff_confirm'"),
+        'Disabled setting blocks confirm/request_info/staff_confirm while staff date entry stays open');
+    assertTrue(strpos($src, "\$openAck['status'] !== 'confirmed'") !== false
+        && strpos($src, 'labAckRowIsCurrent($openAck') !== false
+        && strpos($src, 'userMatchesLabAckIdentity($currentUserId, $openAck)') !== false,
+        'Lab revision requires a current confirmed acknowledgment it owns');
+    assertTrue(strpos($src, "'actor_role'") !== false, 'History distinguishes lab vs staff date changes');
+
+    $js = file_get_contents(__DIR__ . '/../js/app.js');
+    assertTrue(strpos($js, 'labCanPromised') !== false, 'UI exposes the lab promised-date revision action');
+    assertTrue(strpos($js, 'lab_ack_promised_date_changed_lab') !== false, 'Timeline distinguishes lab-recorded changes');
+    foreach (glob(__DIR__ . '/../locales/*.json') as $lf) {
+        $ld = json_decode(file_get_contents($lf), true);
+        assertTrue(
+            isset($ld['cases']['activity']['events']['lab_ack_promised_date_changed_lab']),
+            basename($lf) . ' has lab_ack_promised_date_changed_lab'
+        );
+    }
+
     // ---- activity log entries written ----
     $logCount = $pdo->prepare("SELECT COUNT(*) FROM case_activity_log WHERE case_id = ? AND event_type LIKE 'lab_%'");
     $logCount->execute([$caseId]);

@@ -266,6 +266,7 @@ function recordLabAckAssignmentTransition($caseId, $practiceId, $oldAssignedToTe
     // moved to a different identity (including internal/unassigned). The
     // prior confirmation/promise stays on the superseded row as history.
     $open = getOpenLabAcknowledgment($caseId, $practiceId);
+    $ackSuperseded = false;
     if ($open && $open['lab_key'] !== $newKey) {
         $stmt = $pdo->prepare("
             UPDATE case_lab_acknowledgments
@@ -274,6 +275,7 @@ function recordLabAckAssignmentTransition($caseId, $practiceId, $oldAssignedToTe
         ");
         $stmt->execute(['now' => $now, 'id' => (int)$open['id']]);
         _syncCaseAckStatusMirror($caseId, $practiceId, null);
+        $ackSuperseded = true;
 
         logCaseActivity(
             $caseId,
@@ -283,6 +285,7 @@ function recordLabAckAssignmentTransition($caseId, $practiceId, $oldAssignedToTe
             [
                 'lab_display_name' => $open['lab_display_name'],
                 'previous_status' => $open['status'],
+                'cleared_promised_date' => $open['promised_return_date'] ?? null,
                 'source' => 'lab-acknowledgment.php',
             ],
             null,
@@ -290,6 +293,16 @@ function recordLabAckAssignmentTransition($caseId, $practiceId, $oldAssignedToTe
             $actorUserId
         );
         $open = null;
+    }
+
+    // A lab-promised return date belongs to the lab that made it. When the
+    // case leaves a lab's commitment context - an open acknowledgment was
+    // superseded above, or the assignment moved from one lab identity to a
+    // different one (including a non-lab) - the live mirror on cases_cache
+    // must clear so the previous lab's promise cannot drive the new
+    // assignee's appointment-risk calculation. History rows keep the date.
+    if ($ackSuperseded || ($oldKey !== null && $oldKey !== $newKey)) {
+        updateCaseLabPromisedDate($caseId, $practiceId, null, $actorUserId);
     }
 
     // Open a new 'awaiting' acknowledgment when the new assignee is a lab
@@ -396,6 +409,7 @@ function supersedeOpenLabAcknowledgment($caseId, $practiceId, $reason = 'case_de
         ");
         $stmt->execute(['now' => date('Y-m-d H:i:s'), 'id' => (int)$open['id']]);
         _syncCaseAckStatusMirror($caseId, $practiceId, null);
+        updateCaseLabPromisedDate($caseId, $practiceId, null, $actorUserId);
 
         logCaseActivity(
             $caseId,
@@ -406,6 +420,7 @@ function supersedeOpenLabAcknowledgment($caseId, $practiceId, $reason = 'case_de
                 'lab_display_name' => $open['lab_display_name'],
                 'previous_status' => $open['status'],
                 'reason' => $reason,
+                'cleared_promised_date' => $open['promised_return_date'] ?? null,
                 'source' => 'lab-acknowledgment.php',
             ],
             null,
@@ -536,6 +551,10 @@ function buildLabAckViewModel($ackRow, $enabled, $userId, $canEdit, $isLab, $cas
         'infoRequestText' => $infoRequestText,
         'labUser'         => $isLab && userMatchesLabAckIdentity($userId, $ackRow)
                              && in_array($ackRow['status'], ['awaiting', 'needs_info'], true),
+        // The assigned lab may revise its own promised return date once it
+        // has confirmed receipt (server enforces the same rule).
+        'labCanPromised'  => $isLab && userMatchesLabAckIdentity($userId, $ackRow)
+                             && $ackRow['status'] === 'confirmed',
         'staffUser'       => $canEdit && !$isLab,
     ];
 }

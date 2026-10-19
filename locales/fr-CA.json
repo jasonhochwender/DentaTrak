@@ -310,7 +310,8 @@
                 "lab_ack_confirmed_by_staff_method": "{user} a consigné une confirmation du laboratoire par {method} ; retour promis le {date}",
                 "lab_info_requested": "{lab} a demandé plus d’informations ({user})",
                 "lab_ack_promised_date_changed": "{user} a modifié la date de retour promise : {old} → {new} ({reason})",
-                "lab_ack_cleared": "Accusé pour {lab} clos (réassigné)"
+                "lab_ack_cleared": "Accusé pour {lab} clos (réassigné)",
+                "lab_ack_promised_date_changed_lab": "Le laboratoire ({user}) a modifié la date de retour promise : {old} → {new} ({reason})"
             },
             "timeline": {
                 "created": "Créé",

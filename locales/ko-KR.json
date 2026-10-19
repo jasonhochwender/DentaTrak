@@ -310,7 +310,8 @@
                 "lab_ack_confirmed_by_staff_method": "{user}이(가) {method}(으)로 랩 확인을 기록함; 약속 {date}",
                 "lab_info_requested": "{lab}이(가) 추가 정보를 요청함 ({user})",
                 "lab_ack_promised_date_changed": "{user}이(가) 약속 반환 날짜 변경: {old} → {new} ({reason})",
-                "lab_ack_cleared": "{lab}에 대한 확인 종료(재배정)"
+                "lab_ack_cleared": "{lab}에 대한 확인 종료(재배정)",
+                "lab_ack_promised_date_changed_lab": "랩({user})이(가) 약속 반환 날짜 변경: {old} → {new} ({reason})"
             },
             "timeline": {
                 "created": "생성됨",

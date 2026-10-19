@@ -3147,7 +3147,8 @@
                 "lab_ack_confirmed_by_staff_method": "{user} registrou uma confirmação do laboratório por {method}; prometido {date}",
                 "lab_info_requested": "{lab} solicitou mais informações ({user})",
                 "lab_ack_promised_date_changed": "{user} alterou a data prometida: {old} → {new} ({reason})",
-                "lab_ack_cleared": "Confirmação para {lab} encerrada (reatribuído)"
+                "lab_ack_cleared": "Confirmação para {lab} encerrada (reatribuído)",
+                "lab_ack_promised_date_changed_lab": "O laboratório ({user}) alterou a data prometida: {old} → {new} ({reason})"
             },
             "timeline": {
                 "created": "Criado",

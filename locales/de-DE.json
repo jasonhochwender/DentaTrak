@@ -1219,7 +1219,8 @@
                 "lab_ack_confirmed_by_staff_method": "{user} hat eine Laborbestätigung per {method} erfasst; zugesagt {date}",
                 "lab_info_requested": "{lab} hat weitere Informationen angefordert ({user})",
                 "lab_ack_promised_date_changed": "{user} hat das zugesagte Rückgabedatum geändert: {old} → {new} ({reason})",
-                "lab_ack_cleared": "Laborbestätigung für {lab} geschlossen (neu zugewiesen)"
+                "lab_ack_cleared": "Laborbestätigung für {lab} geschlossen (neu zugewiesen)",
+                "lab_ack_promised_date_changed_lab": "Das Labor ({user}) hat das zugesagte Rückgabedatum geändert: {old} → {new} ({reason})"
             },
             "timeline": {
                 "created": "Erstellt",

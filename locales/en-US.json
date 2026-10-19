@@ -310,7 +310,8 @@
                 "lab_ack_confirmed_by_staff_method": "{user} recorded lab confirmation via {method}; promised {date}",
                 "lab_info_requested": "{lab} requested more information ({user})",
                 "lab_ack_promised_date_changed": "{user} changed lab-promised return date: {old} → {new} ({reason})",
-                "lab_ack_cleared": "Lab acknowledgment for {lab} closed (reassigned)"
+                "lab_ack_cleared": "Lab acknowledgment for {lab} closed (reassigned)",
+                "lab_ack_promised_date_changed_lab": "The lab ({user}) changed the promised return date: {old} → {new} ({reason})"
             },
             "timeline": {
                 "created": "Created",
