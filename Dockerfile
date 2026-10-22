@@ -1,5 +1,7 @@
 # ---------- Base image ----------
-FROM php:8.2-apache
+# Pinned patch release: 8.2.35 fixes CVE-2026-109618 and CVE-2026-109619
+# (critical unauthenticated RCE; mod_php is the highest-risk SAPI).
+FROM php:8.2.35-apache
 
 # ---------- Enable needed PHP extensions ----------
 RUN apt-get update && apt-get install -y \

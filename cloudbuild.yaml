@@ -3,10 +3,13 @@ options:
 
 steps:
   # ---------- Build container ----------
+  # --pull guarantees a fresh base image: the runtime patch level must not
+  # depend on cached layers from earlier builds.
   - name: 'gcr.io/cloud-builders/docker'
     args:
       [
         'build',
+        '--pull',
         '-t',
         'us-east1-docker.pkg.dev/dtk-prod-core/app-repo/dtk-app-prod:$COMMIT_SHA',
         '.'
@@ -20,7 +23,7 @@ steps:
         'us-east1-docker.pkg.dev/dtk-prod-core/app-repo/dtk-app-prod:$COMMIT_SHA'
       ]
 
-  # ---------- Deploy to Cloud Run ----------
+  # ---------- Deploy to Cloud Run (staged, no traffic) ----------
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     entrypoint: gcloud
     args:
@@ -40,6 +43,33 @@ steps:
         'dtk-vpc-prod',
         '--add-cloudsql-instances',
         'dtk-prod-core:us-east1:dtk-sql-prod',
+        '--no-traffic',
+        '--tag',
+        'staged',
+        '--quiet'
+      ]
+
+  # ---------- Verify staged revision before any production traffic ----------
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: bash
+    args:
+      [
+        'scripts/verify-staged.sh',
+        'https://staged---dtk-app-prod-1029275239454.us-east1.run.app'
+      ]
+
+  # ---------- Promote: route 100% traffic to the verified revision ----------
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: gcloud
+    args:
+      [
+        'run',
+        'services',
+        'update-traffic',
+        'dtk-app-prod',
+        '--region',
+        'us-east1',
+        '--to-latest',
         '--quiet'
       ]
 
