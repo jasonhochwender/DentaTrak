@@ -58,6 +58,14 @@ $FEATURE_DEFAULTS = [
                                        // AND a non-production environment -
                                        // SimulatedScannerConnector refuses to
                                        // run in production regardless.
+    'DS_CORE_CONNECT' => false,        // DS Core (Primescan) OAuth connection
+                                       // flow: api/dscore-auth.php + token
+                                       // refresh in the queue worker. OFF by
+                                       // default - the DS Core developer
+                                       // portal registration and sandbox
+                                       // Client ID are still pending
+                                       // approval, so the flow cannot be
+                                       // completed yet anyway.
 ];
 
 /**

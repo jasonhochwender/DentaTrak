@@ -19,6 +19,7 @@ require_once __DIR__ . '/queue-worker-auth.php';
 require_once __DIR__ . '/integrations/IntegrationEvents.php';
 require_once __DIR__ . '/integrations/IntegrationOutbound.php';
 require_once __DIR__ . '/integrations/register-adapters.php';
+require_once __DIR__ . '/integrations/dscore/DsCoreAuthService.php';
 
 header('Content-Type: application/json');
 
@@ -51,7 +52,26 @@ try {
     // impossible until PMS_OUTBOUND_SYNC + per-connection opt-in are both
     // on, so this is inert until explicitly enabled).
     $outbound = IntegrationOutbound::processDue($pdo, $BATCH_SIZE);
-    echo json_encode(['success' => true, 'totals' => $summary, 'outbound' => $outbound]);
+
+    // DS Core token maintenance: refresh access tokens entering the safety
+    // margin even when no scan activity is happening. Behind the same
+    // per-minute schedule; gated by DS_CORE_CONNECT so it is inert until
+    // the feature ships. Failures here never break the event batch.
+    $dscore = null;
+    if (isFeatureEnabled('DS_CORE_CONNECT')) {
+        try {
+            $dscore = (new DsCoreAuthService())->refreshDueConnections($pdo);
+        } catch (Throwable $e) {
+            error_log('[integration-event-worker] DS Core refresh pass failed: ' . $e->getMessage());
+            $dscore = ['error' => true];
+        }
+    }
+
+    $out = ['success' => true, 'totals' => $summary, 'outbound' => $outbound];
+    if ($dscore !== null) {
+        $out['dscore'] = $dscore;
+    }
+    echo json_encode($out);
 } catch (Throwable $e) {
     error_log('[integration-event-worker] Batch error: ' . $e->getMessage());
     http_response_code(500);
