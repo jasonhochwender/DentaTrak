@@ -10,8 +10,8 @@
  *     state), 15-minute expiry
  *   - callback: success connects + stores encrypted tokens; cancelled,
  *     invalid, expired, replayed, and cross-practice/user callbacks rejected
- *   - refresh: documented token:refresh body (mixed-case clientId/
- *     refreshToken/client_secret), rotates + persists replacement tokens,
+ *   - refresh: documented token:refresh body (snake_case refresh_token/
+ *     client_id/client_secret), rotates + persists replacement tokens,
  *     serialized via MySQL GET_LOCK, bounded retries on transient errors,
  *     invalid refresh credentials -> reconnect_required
  *   - business-call helper: one 401 -> one refresh + one retry, never a loop
@@ -106,13 +106,16 @@ $transport = function ($method, $url, $headers, $body) use (&$calls, &$queue) {
     }
     return $next;
 };
-function pushTokenResponse(&$queue, string $suffix = 'a'): void {
+function pushTokenResponse(&$queue, string $suffix = 'a', bool $stringExpiresIn = false): void {
     $queue[] = ['status' => 200, 'headers' => [], 'body' => json_encode([
         'accessToken'  => 'synthetic-access-' . $suffix,
         'refreshToken' => 'synthetic-refresh-' . $suffix,
         'scope'        => 'p-eu-west4-dscore external_api r2-dscore',
         'tokenType'    => 'Bearer',
-        'expiresIn'    => '3599', // documented as STRING
+        // expiresIn is documented as an INTEGER (§4.1/§4.2). The
+        // $stringExpiresIn variant exercises the parser's defensive
+        // numeric-string tolerance only.
+        'expiresIn'    => $stringExpiresIn ? '3599' : 3599,
     ])];
 }
 
@@ -151,8 +154,8 @@ try {
     // ------------------------------------------------------------------
     assertTrue(isFeatureEnabled('DS_CORE_CONNECT'), 'DS_CORE_CONNECT enabled via env in test');
     assertEquals('sandbox', DsCoreConfig::environment(), 'defaults to sandbox environment');
-    assertEquals('https://api.r2.dscore.com', DsCoreConfig::authBaseUrl(), 'sandbox auth host is api.r2.dscore.com');
-    assertEquals('https://api.r2.dscore.com', DsCoreConfig::apiBaseUrl(), 'sandbox API base is api.r2.dscore.com');
+    assertEquals('https://api.r2.dscore.com', DsCoreConfig::authBaseUrl(), 'sandbox login host is REGIONAL api.r2.dscore.com');
+    assertEquals('https://api.dscore.com', DsCoreConfig::apiBaseUrl(), 'token endpoints use GLOBAL api.dscore.com even in sandbox');
     assertTrue(DsCoreConfig::isConfigured(), 'client credentials detected from env');
 
     $base = rtrim((string)$appConfig['app_base_url'], '/');
@@ -220,7 +223,7 @@ try {
     // grant_type) to /v1beta/auth/token on the API base.
     assertEquals(1, count($calls), 'one token exchange call');
     $call = $calls[0];
-    assertEquals('https://api.r2.dscore.com/v1beta/auth/token', $call['url'], 'token endpoint URL');
+    assertEquals('https://api.dscore.com/v1beta/auth/token', $call['url'], 'token exchange hits GLOBAL api.dscore.com');
     assertTrue(in_array('Content-Type: application/json', $call['headers'], true), 'JSON content type');
     $payload = json_decode($call['body'], true);
     assertEquals('authorization_code', $payload['grant_type'], 'documented grant_type');
@@ -330,11 +333,13 @@ try {
 
     assertEquals(1, count($calls), 'one refresh call');
     $rc = $calls[0];
-    assertEquals('https://api.r2.dscore.com/v1beta/auth/token:refresh', $rc['url'], 'documented token:refresh endpoint');
+    assertEquals('https://api.dscore.com/v1beta/auth/token:refresh', $rc['url'], 'token:refresh hits GLOBAL api.dscore.com');
+    assertTrue(in_array('Content-Type: application/json', $rc['headers'], true), 'refresh is JSON');
     $rbody = json_decode($rc['body'], true);
-    assertEquals('test-client-id-0000', $rbody['clientId'], 'refresh body uses camelCase clientId (documented)');
-    assertEquals('synthetic-refresh-one', $rbody['refreshToken'], 'refresh body uses camelCase refreshToken');
-    assertEquals('test-client-secret-0000', $rbody['client_secret'], 'refresh body uses snake_case client_secret (documented)');
+    assertEquals('synthetic-refresh-one', $rbody['refresh_token'], 'refresh body uses snake_case refresh_token (documented)');
+    assertEquals('test-client-id-0000', $rbody['client_id'], 'refresh body uses snake_case client_id (documented)');
+    assertEquals('test-client-secret-0000', $rbody['client_secret'], 'refresh body carries client_secret');
+    assertTrue(!isset($rbody['clientId']) && !isset($rbody['refreshToken']), 'no camelCase keys in refresh body');
     assertTrue(!isset($rbody['grant_type']), 'refresh sends no grant_type (documented)');
     $calls = [];
 
@@ -469,9 +474,26 @@ try {
     $calls = [];
 
     // ------------------------------------------------------------------
-    // 9. Disconnect: tokens deleted, connection disabled (local revoke only)
+    // 9. Disconnect (§4.3): remote revocation attempted + honestly
+    //    reported; local wipe is authoritative either way.
     // ------------------------------------------------------------------
-    $service->disconnect($pdo, $connectionId);
+    // (a) Revocation failure: local disconnect still succeeds and reports
+    //     remote_revoked=false - never a false success.
+    $queue[] = ['status' => 500, 'headers' => [], 'body' => '{"error":"upstream"}'];
+    $res = $service->disconnect($pdo, $connectionId);
+    assertEquals(false, $res['remote_revoked'], 'failed remote revoke reported honestly');
+    assertEquals(1, count($calls), 'one revoke attempt made');
+    $rc = $calls[0];
+    assertEquals('https://api.dscore.com/v1beta/auth/token:revoke', $rc['url'], 'token:revoke hits GLOBAL api.dscore.com');
+    assertTrue(in_array('Content-Type: application/x-www-form-urlencoded', $rc['headers'], true), 'revoke is form-urlencoded, NOT JSON');
+    parse_str($rc['body'], $vbody);
+    assertEquals('test-client-id-0000', $vbody['client_id'] ?? null, 'revoke body carries client_id');
+    assertEquals('test-client-secret-0000', $vbody['client_secret'] ?? null, 'revoke body carries client_secret');
+    assertEquals('synthetic-refresh-five', $vbody['token'] ?? null, 'revoke sends the stored refresh token');
+    assertEquals('refresh_token', $vbody['token_type_hint'] ?? null, 'revoke token_type_hint=refresh_token');
+    assertTrue(strpos($rc['body'], '{') !== 0, 'revoke body is not JSON');
+    $calls = [];
+
     assertTrue(IntegrationCredentials::get($pdo, $connectionId, 'access_token') === null, 'access token deleted on disconnect');
     assertTrue(IntegrationCredentials::get($pdo, $connectionId, 'refresh_token') === null, 'refresh token deleted on disconnect');
     $conn = IntegrationManager::findConnection($pdo, $connectionId);
@@ -479,6 +501,62 @@ try {
     assertEquals(0, (int)$conn['sync_enabled'], 'sync disabled');
     assertEquals('disconnected', DsCoreAuthService::connectionState($conn), 'state projection: disconnected');
     assertEquals('unconfigured', DsCoreAuthService::connectionState(null), 'state projection: unconfigured');
+
+    // (b) Reconnect, then disconnect with a successful remote revocation.
+    $a4 = $service->beginAttempt($pdo, $practiceId, $userId);
+    $attemptIds[] = $a4['attempt_id'];
+    pushTokenResponse($queue, 'six');
+    $res = $service->handleCallback($pdo, [
+        'code' => 'synthetic-code-6', 'state' => $a4['attempt_id'], 'client_id' => 'test-client-id-0000',
+    ], $userId, $practiceId);
+    assertEquals('connected', $res['result'], 'reconnect after disconnect succeeds');
+    $calls = [];
+
+    $queue[] = ['status' => 200, 'headers' => [], 'body' => ''];
+    $res = $service->disconnect($pdo, $connectionId);
+    assertEquals(true, $res['remote_revoked'], '2xx revoke reported as remotely revoked');
+    parse_str($calls[0]['body'], $vb2);
+    assertEquals('synthetic-refresh-six', $vb2['token'] ?? null, 'successful revoke sent the new refresh token');
+    $calls = [];
+
+    // (c) Idempotent: already-disabled -> no revoke call, remote_revoked=false.
+    $res = $service->disconnect($pdo, $connectionId);
+    assertEquals(false, $res['remote_revoked'], 'repeat disconnect does not fabricate revocation');
+    assertEquals(0, count($calls), 'repeat disconnect makes no network calls');
+    $conn = IntegrationManager::findConnection($pdo, $connectionId);
+    assertEquals('disabled', $conn['status'], 'still disabled after repeat disconnect');
+
+    // (d) Disconnect contends on the same refresh lock: while a second
+    //     connection holds it, disconnect fails with lock_timeout rather
+    //     than racing an in-flight rotation.
+    $pdo->prepare("UPDATE integration_connections SET status='active', sync_enabled=1 WHERE id=:id")->execute([':id' => $connectionId]);
+    IntegrationCredentials::store($pdo, $connectionId, 'refresh_token', 'synthetic-refresh-seven');
+    $lockRes = $pdo2->query("SELECT GET_LOCK('dscore_refresh_{$connectionId}', 5)")->fetchColumn();
+    assertEquals(1, (int)$lockRes, 'second connection holds the lock for disconnect test');
+    try {
+        $service->disconnect($pdo, $connectionId);
+        assertTrue(false, 'locked disconnect throws');
+    } catch (DsCoreAuthException $e) {
+        assertEquals('lock_timeout', $e->category, 'disconnect contends on the shared refresh lock');
+    }
+    $pdo2->query("SELECT RELEASE_LOCK('dscore_refresh_{$connectionId}')");
+    // Credentials survived the blocked disconnect - nothing was half-wiped.
+    assertEquals('synthetic-refresh-seven', IntegrationCredentials::get($pdo, $connectionId, 'refresh_token'), 'blocked disconnect wiped nothing');
+    $pdo->prepare("UPDATE integration_connections SET status='disabled', sync_enabled=0 WHERE id=:id")->execute([':id' => $connectionId]);
+    IntegrationCredentials::delete($pdo, $connectionId, 'refresh_token');
+
+    // Defensive expiresIn tolerance (numeric string is NOT the documented
+    // contract - verify the parser tolerates it without depending on it).
+    $a5 = $service->beginAttempt($pdo, $practiceId, $userId);
+    $attemptIds[] = $a5['attempt_id'];
+    pushTokenResponse($queue, 'str', true);
+    $res = $service->handleCallback($pdo, [
+        'code' => 'synthetic-code-str', 'state' => $a5['attempt_id'], 'client_id' => 'test-client-id-0000',
+    ], $userId, $practiceId);
+    assertEquals('connected', $res['result'], 'numeric-string expiresIn tolerated (defensive, not contract)');
+    $cfg6 = json_decode((string)IntegrationManager::findConnection($pdo, $connectionId)['config_json'], true);
+    assertTrue(strtotime($cfg6['token_expires_at']) > time() + 3000, 'string expiresIn parsed to the same expiry');
+    $calls = [];
 
     // ------------------------------------------------------------------
     // 10. Cross-practice isolation of the connection row

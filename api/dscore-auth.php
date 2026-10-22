@@ -8,7 +8,7 @@
  *
  *   GET  ?action=status                    -> {state, connected, environment}
  *   POST {action:'begin'}                  -> {authorize_url, attempt_id}
- *   POST {action:'disconnect'}             -> local token revoke + disable
+ *   POST {action:'disconnect'}             -> local wipe + remote revoke
  *
  * SECURITY MODEL (every action):
  *   authenticated session -> valid practice context -> practice admin ->
@@ -147,9 +147,10 @@ if ($action === 'begin') {
 }
 
 // -------------------------------------------------------------------------
-// POST disconnect: local revoke (no documented remote revocation endpoint).
-// Tokens are deleted; the connection row is preserved (audit trail) and
-// marked disabled. Independent of the user's own DentaTrak session.
+// POST disconnect: local token wipe + disable, then a best-effort remote
+// revocation (documented token:revoke, form-urlencoded). remote_revoked is
+// reported honestly - false when revocation was not confirmed upstream.
+// Independent of the user's own DentaTrak session.
 // -------------------------------------------------------------------------
 if ($action === 'disconnect') {
     $stmt = $pdo->prepare("
@@ -163,18 +164,21 @@ if ($action === 'disconnect') {
     }
 
     try {
-        $service->disconnect($pdo, (int)$connection['id']);
+        $result = $service->disconnect($pdo, (int)$connection['id']);
     } catch (DsCoreAuthException $e) {
         dsCoreAuthFail(500, 'The DS Core connection could not be disconnected.', $e->category);
     }
 
     if (function_exists('logUserActivity')) {
-        logUserActivity($userId, 'dscore_disconnected', "practice_id={$currentPracticeId} connection_id=" . (int)$connection['id']);
+        logUserActivity($userId, 'dscore_disconnected',
+            "practice_id={$currentPracticeId} connection_id=" . (int)$connection['id']
+            . " remote_revoked=" . (($result['remote_revoked'] ?? false) ? '1' : '0'));
     }
 
     echo json_encode([
-        'success' => true,
-        'state'   => 'disconnected',
+        'success'        => true,
+        'state'          => 'disconnected',
+        'remote_revoked' => (bool)($result['remote_revoked'] ?? false),
     ]);
     exit;
 }

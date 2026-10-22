@@ -6,36 +6,46 @@
  * Implements ONLY the contract documented in the DS Core Developer Portal
  * guide + authentication section:
  *
- *   Authorize (browser redirect, ONE-TIME per connection):
+ *   Authorize (browser redirect, ONE-TIME per connection) - REGIONAL host:
  *     GET {authBase}/secureLogin?client_id={id}
  *         &code_challenge={base64url(sha256(verifier))}&redirect_uri={uri}
  *         &state={attemptId}
- *     (`state` is not in the documented authorize example, but the
- *      documented callback URL template echoes `state=` back - ForgeRock
- *      AM round-trips it. Verified in sandbox once credentials exist.)
+ *     STATE CORRELATION - UNVERIFIED: `state` does not appear in the
+ *     manual's authorize-request example; the callback template in the
+ *     portal guide echoes `&state=` back, which is the basis for sending
+ *     it. If DS Core does not round-trip state, callbacks fail closed as
+ *     'invalid' (no connection, no tokens) - safe, but the flow cannot
+ *     complete until live sandbox testing or vendor confirmation proves
+ *     the correlation mechanism. Do NOT weaken session/practice/expiry/
+ *     single-use checks to work around it.
  *
  *   Callback (browser GET to redirect_uri):
  *     {redirect_uri}?code={code}&iss={issuer}&state={state}&client_id={id}
  *     or ?error=... on decline.
  *
- *   Token exchange:
+ *   Token exchange (GLOBAL host api.dscore.com, §4.1):
  *     POST {apiBase}/v1beta/auth/token           Content-Type: application/json
- *     {"code","client_id","redirect_uri","code_verifier","client_secret",
- *      "grant_type":"authorization_code"}
+ *     {"code","client_id","client_secret","redirect_uri","code_verifier",
+ *      "grant_type":"authorization_code"}   (grant_type optional per manual)
  *
- *   Refresh:
+ *   Refresh (GLOBAL host, §4.2):
  *     POST {apiBase}/v1beta/auth/token:refresh   Content-Type: application/json
- *     {"clientId","refreshToken","client_secret"}   <- documented MIXED
- *     casing: clientId/refreshToken camelCase, client_secret snake_case.
+ *     {"refresh_token","client_id","client_secret"}   <- snake_case per
+ *     manual; no grant_type.
  *
- *   Token response (camelCase, expiresIn as STRING):
+ *   Revocation (GLOBAL host, §4.3):
+ *     POST {apiBase}/v1beta/auth/token:revoke
+ *     Content-Type: application/x-www-form-urlencoded
+ *     client_id={id}&client_secret={s}&token={refresh}
+ *     &token_type_hint=refresh_token
+ *
+ *   Token response (camelCase fields; expiresIn documented as INTEGER):
  *     {"accessToken","refreshToken","scope","tokenType":"Bearer",
- *      "expiresIn":"3599"}
+ *      "expiresIn":3599}
+ *     (The parser also tolerates a numeric-string expiresIn - defensive
+ *     tolerance, not part of the documented contract.)
  *
- * NOT documented by the guide (explicitly not implemented):
- *   - revocation endpoint (disconnect is local-only: tokens deleted,
- *     connection marked disabled; the abandoned refresh token simply
- *     expires at DS Core)
+ * NOT documented by the manual (explicitly not implemented):
  *   - scope selection, response_type overrides, webhook endpoints,
  *     and the PMS business API (orders/scans/patients) - pending the PMS
  *     API documentation.
@@ -273,16 +283,33 @@ class DsCoreAuthService {
     }
 
     /**
-     * POST {apiBase}/v1beta/auth/token:refresh with the documented mixed-
-     * case body: clientId + refreshToken + client_secret (no grant_type).
+     * POST {apiBase}/v1beta/auth/token:refresh with the documented
+     * snake_case body (§4.2): refresh_token + client_id + client_secret.
+     * No grant_type is sent - the manual does not include it here.
      */
     private function refreshTokens(string $refreshToken): array {
         $response = $this->postJson('/v1beta/auth/token:refresh', [
-            'clientId'      => DsCoreConfig::clientId(),
-            'refreshToken'  => $refreshToken,
+            'refresh_token' => $refreshToken,
+            'client_id'     => DsCoreConfig::clientId(),
             'client_secret' => DsCoreConfig::clientSecret(),
         ]);
         return $this->parseTokenResponse($response);
+    }
+
+    /**
+     * POST {apiBase}/v1beta/auth/token:revoke (§4.3) - form-urlencoded,
+     * NOT JSON: client_id, client_secret, token, token_type_hint.
+     * Returns true on a 2xx (token revoked / already invalid upstream).
+     */
+    private function revokeToken(string $refreshToken): bool {
+        $body = http_build_query([
+            'client_id'        => DsCoreConfig::clientId(),
+            'client_secret'    => DsCoreConfig::clientSecret(),
+            'token'            => $refreshToken,
+            'token_type_hint'  => 'refresh_token',
+        ], '', '&');
+        $response = $this->postForm('/v1beta/auth/token:revoke', $body);
+        return $this->is2xx($response);
     }
 
     /**
@@ -311,7 +338,9 @@ class DsCoreAuthService {
 
         $accessToken  = $body['accessToken']  ?? null;
         $refreshToken = $body['refreshToken'] ?? null;
-        $expiresIn    = (int)($body['expiresIn'] ?? 0); // documented as string
+        // expiresIn is documented as an INTEGER; the cast additionally
+        // tolerates a numeric string as defensive parsing only.
+        $expiresIn    = (int)($body['expiresIn'] ?? 0);
         if (!is_string($accessToken) || $accessToken === ''
             || !is_string($refreshToken) || $refreshToken === '' || $expiresIn <= 0) {
             throw new DsCoreAuthException('unexpected_response', 'DS Core token response was missing required fields.', true);
@@ -554,30 +583,70 @@ class DsCoreAuthService {
     }
 
     /**
-     * Explicit disconnect: delete stored tokens and disable the connection.
-     * The portal guide documents NO revocation endpoint, so remote
-     * revocation is deliberately not attempted; the abandoned refresh
-     * token simply ages out at DS Core. Local state is the authoritative
-     * disconnect: nothing can issue calls for the practice afterwards.
+     * Explicit disconnect (§4.3 revocation supported):
+     *   1. Acquire the SAME cross-instance refresh lock so an in-flight
+     *      rotation cannot persist replacement credentials after we wipe
+     *      them - and we cannot wipe credentials a rotation is mid-write
+     *      on. Lock contention fails with 'lock_timeout' rather than
+     *      racing.
+     *   2. Capture the refresh token, then locally delete both tokens and
+     *      disable the connection INSIDE the lock. Local state is
+     *      authoritative: no further refresh or business call can run.
+     *   3. After the lock releases, attempt remote revocation of the
+     *      captured refresh token via token:revoke. A failed revocation
+     *      does NOT un-disconnect the practice and is reported honestly
+     *      as remote_revoked=false (the abandoned token ages out at
+     *      DS Core).
+     *
      * Runs server-side only - independent of any user's DentaTrak logout.
+     *
+     * @return array{remote_revoked:bool}
      */
-    public function disconnect(PDO $pdo, int $connectionId): void {
-        $connection = IntegrationManager::findConnection($pdo, $connectionId);
-        if (!$connection || ($connection['provider'] ?? '') !== self::PROVIDER) {
-            throw new DsCoreAuthException('not_found', 'DS Core connection not found.');
+    public function disconnect(PDO $pdo, int $connectionId): array {
+        $lockName = 'dscore_refresh_' . $connectionId;
+        $lockStmt = $pdo->prepare("SELECT GET_LOCK(:name, :timeout)");
+        $lockStmt->execute([':name' => $lockName, ':timeout' => self::REFRESH_LOCK_TIMEOUT]);
+        if ((int)$lockStmt->fetchColumn() !== 1) {
+            throw new DsCoreAuthException('lock_timeout', 'Could not acquire the refresh lock.', true);
         }
-        IntegrationCredentials::delete($pdo, $connectionId, 'access_token');
-        IntegrationCredentials::delete($pdo, $connectionId, 'refresh_token');
-        $this->updateConfigJson($pdo, $connectionId, [
-            'token_expires_at' => null,
-            'token_scope'      => null,
-            'disconnected_at'  => gmdate('Y-m-d H:i:s'),
-        ]);
-        $pdo->prepare("
-            UPDATE integration_connections
-            SET status = 'disabled', sync_enabled = 0
-            WHERE id = :id
-        ")->execute([':id' => $connectionId]);
+
+        $refreshToken = null;
+        try {
+            $connection = IntegrationManager::findConnection($pdo, $connectionId);
+            if (!$connection || ($connection['provider'] ?? '') !== self::PROVIDER) {
+                throw new DsCoreAuthException('not_found', 'DS Core connection not found.');
+            }
+            if (($connection['status'] ?? '') !== 'disabled') {
+                $refreshToken = IntegrationCredentials::get($pdo, $connectionId, 'refresh_token');
+                IntegrationCredentials::delete($pdo, $connectionId, 'access_token');
+                IntegrationCredentials::delete($pdo, $connectionId, 'refresh_token');
+                $this->updateConfigJson($pdo, $connectionId, [
+                    'token_expires_at' => null,
+                    'token_scope'      => null,
+                    'disconnected_at'  => gmdate('Y-m-d H:i:s'),
+                ]);
+                $pdo->prepare("
+                    UPDATE integration_connections
+                    SET status = 'disabled', sync_enabled = 0
+                    WHERE id = :id
+                ")->execute([':id' => $connectionId]);
+            }
+        } finally {
+            $release = $pdo->prepare("SELECT RELEASE_LOCK(:name)");
+            $release->execute([':name' => $lockName]);
+        }
+
+        // Remote revocation is best-effort AFTER local state is dead. A
+        // disabled connection can never refresh, so nothing here can race.
+        $remoteRevoked = false;
+        if (is_string($refreshToken) && $refreshToken !== '') {
+            try {
+                $remoteRevoked = $this->revokeToken($refreshToken);
+            } catch (DsCoreAuthException $e) {
+                error_log('[dscore] remote revocation failed for connection ' . $connectionId . ': ' . $e->category);
+            }
+        }
+        return ['remote_revoked' => $remoteRevoked];
     }
 
     // ------------------------------------------------------------------
@@ -660,6 +729,22 @@ class DsCoreAuthService {
             return call_user_func($this->transport, 'POST', $url, $headers, $body);
         }
         return self::curlRequest('POST', $url, $headers, $body);
+    }
+
+    /** Form-encoded POST (used by the documented revocation endpoint). */
+    private function postForm(string $path, string $encodedBody): array {
+        $url = DsCoreConfig::apiBaseUrl() . $path;
+        $headers = ['Content-Type: application/x-www-form-urlencoded'];
+
+        if ($this->transport !== null) {
+            return call_user_func($this->transport, 'POST', $url, $headers, $encodedBody);
+        }
+        return self::curlRequest('POST', $url, $headers, $encodedBody);
+    }
+
+    private function is2xx(array $response): bool {
+        $status = (int)($response['status'] ?? 0);
+        return $status >= 200 && $status < 300;
     }
 
     private static function curlRequest(string $method, string $url, array $headers, ?string $body = null): array {

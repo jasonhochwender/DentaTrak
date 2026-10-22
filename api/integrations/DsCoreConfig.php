@@ -8,10 +8,13 @@
  *
  *   DS_CORE_ENVIRONMENT          - 'sandbox' (default) or 'production'.
  *                                  Selects the credential pair and the
- *                                  endpoint set. Sandbox auth/API host is
- *                                  api.r2.dscore.com; production is
- *                                  api.dscore.com (per the DS Core
- *                                  developer portal guide).
+ *                                  endpoint set. Per the DS Core API
+ *                                  Authentication Manual: the interactive
+ *                                  login endpoint is REGIONAL (sandbox EU:
+ *                                  api.r2.dscore.com) while the token
+ *                                  endpoints (token, token:refresh,
+ *                                  token:revoke) are GLOBAL
+ *                                  (api.dscore.com) in every environment.
  *   DS_CORE_SANDBOX_CLIENT_ID    - sandbox Client ID (Tyk portal, PMS app)
  *   DS_CORE_SANDBOX_CLIENT_SECRET- sandbox Client Secret
  *   DS_CORE_PROD_CLIENT_ID       - production Client ID
@@ -33,14 +36,20 @@
 
 class DsCoreConfig {
 
-    /** Environment label -> DS Core host for this deployment profile. */
+    /**
+     * Environment label -> endpoint bases for this deployment profile.
+     * 'auth_base' is the regional interactive-login host (secureLogin).
+     * 'api_base' is the global authentication gateway used for token
+     * exchange, refresh, and revocation - per the Authentication Manual
+     * it is api.dscore.com in every environment; it must NOT default to
+     * the regional business host.
+     */
     private const ENDPOINTS = [
-        // Sandbox: auth + API gateway on the r2 host (eu-west4 backed).
+        // Sandbox EU: login on the regional r2 host, token ops global.
         'sandbox' => [
             'auth_base' => 'https://api.r2.dscore.com',
-            'api_base'  => 'https://api.r2.dscore.com',
+            'api_base'  => 'https://api.dscore.com',
         ],
-        // Production endpoints per the portal guide (api.dscore.com).
         'production' => [
             'auth_base' => 'https://api.dscore.com',
             'api_base'  => 'https://api.dscore.com',
@@ -87,9 +96,9 @@ class DsCoreConfig {
     }
 
     /**
-     * Base URL for the authorization (secureLogin) endpoint.
-     * DS Core documents api.r2.dscore.com for sandbox; the override exists
-     * for region pinning if DS Core ever issues a region-specific host.
+     * Base URL for the interactive authorization (secureLogin) endpoint.
+     * REGIONAL: sandbox EU is api.r2.dscore.com. The override exists for
+     * region pinning (e.g. a production region-specific login host).
      */
     public static function authBaseUrl(): string {
         $override = self::envValue('DS_CORE_AUTH_BASE_URL');
@@ -99,7 +108,11 @@ class DsCoreConfig {
         return self::ENDPOINTS[self::environment()]['auth_base'];
     }
 
-    /** Base URL for token/refresh calls (JSON APIs under /v1beta/auth/*). */
+    /**
+     * Base URL for token exchange/refresh/revocation calls
+     * (/v1beta/auth/token*). GLOBAL: api.dscore.com per the Authentication
+     * Manual - intentionally distinct from the regional login host.
+     */
     public static function apiBaseUrl(): string {
         $override = self::envValue('DS_CORE_API_BASE_URL');
         if ($override !== null) {
