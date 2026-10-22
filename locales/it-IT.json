@@ -1405,7 +1405,8 @@
                 "error": "Errore",
                 "disabled": "Disabilitato",
                 "not_on_plan": "Non incluso nel piano",
-                "coming_soon": "In arrivo"
+                "coming_soon": "In arrivo",
+                "under_evaluation": "In valutazione"
             },
             "locked_note": "L'integrazione con Open Dental è disponibile sui piani Control e Scale.",
             "meta": {
@@ -1587,7 +1588,9 @@
                 "trios": "3Shape TRIOS",
                 "primescan": "Primescan / DS Core",
                 "medit": "Medit Link",
-                "card_description": "Le connessioni agli scanner sono in fase di sviluppo. Quando saranno disponibili, le connessioni supportate ti permetteranno di importare in DentaTrak i file di scansione e i dettagli dei casi disponibili senza esportarli e caricarli manualmente. Le integrazioni scanner sono previste per i piani Control e Scale."
+                "shining3d": "SHINING 3D (Aoralscan)",
+                "card_description": "Le connessioni agli scanner sono in fase di sviluppo. Quando saranno disponibili, le connessioni supportate ti permetteranno di importare in DentaTrak i file di scansione e i dettagli dei casi disponibili senza esportarli e caricarli manualmente. Le integrazioni scanner sono previste per i piani Control e Scale.",
+                "card_description_shining3d": "Collega le scansioni a casi DentaTrak nuovi o esistenti."
             }
         }
     },

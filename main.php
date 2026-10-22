@@ -4066,13 +4066,22 @@ endif;
                   ] : [];
 
                   // Scanner integrations are informational only - no vendor is
-                  // approved or connected yet, so no Connect actions,
-                  // credential fields, dates, or pricing may ever render here.
+                  // connected yet, so no Connect actions, credential fields,
+                  // dates, or pricing may ever render here.
+                  // Status meanings:
+                  //   coming_soon      - feasibility confirmed, implementation
+                  //                      underway (Primescan/DS Core: vendor
+                  //                      confirmed workflow support + auth work
+                  //                      in progress, sandbox approval pending)
+                  //   under_evaluation - vendor access, pricing, or workflow
+                  //                      support not yet confirmed
                   $scannerProviders = [
-                      'itero'     => 'settings.integrations.scanners.itero',
-                      'trios'     => 'settings.integrations.scanners.trios',
-                      'primescan' => 'settings.integrations.scanners.primescan',
-                      'medit'     => 'settings.integrations.scanners.medit',
+                      'itero'     => ['name_key' => 'settings.integrations.scanners.itero',     'status' => 'under_evaluation'],
+                      'trios'     => ['name_key' => 'settings.integrations.scanners.trios',     'status' => 'under_evaluation'],
+                      'primescan' => ['name_key' => 'settings.integrations.scanners.primescan', 'status' => 'coming_soon'],
+                      'medit'     => ['name_key' => 'settings.integrations.scanners.medit',     'status' => 'under_evaluation'],
+                      'shining3d' => ['name_key' => 'settings.integrations.scanners.shining3d', 'status' => 'under_evaluation',
+                                      'desc_key' => 'settings.integrations.scanners.card_description_shining3d'],
                   ];
                   ?>
                   <div class="settings-twisty" data-twisty-id="integrations">
@@ -4246,20 +4255,24 @@ endif;
                              subsections intentionally render no actions. -->
                         <h4 class="integration-section-heading"><?php echo t('settings.integrations.scanners.section_title'); ?></h4>
                         <div class="integrations-list scanner-integrations-list">
-                          <?php foreach ($scannerProviders as $scannerKey => $scannerNameKey): ?>
-                          <?php $scannerBodyId = 'integrationSubsectionBody-scanner-' . $scannerKey; ?>
+                          <?php foreach ($scannerProviders as $scannerKey => $scannerDef): ?>
+                          <?php
+                          $scannerBodyId = 'integrationSubsectionBody-scanner-' . $scannerKey;
+                          $scannerStatusClass = $scannerDef['status'] === 'coming_soon' ? 'coming-soon' : 'under-evaluation';
+                          $scannerDescKey = $scannerDef['desc_key'] ?? 'settings.integrations.scanners.card_description';
+                          ?>
                           <div class="integration-subsection" data-subsection="scanner-<?php echo htmlspecialchars($scannerKey); ?>">
                             <button type="button" class="integration-subsection-header"
                                     id="integrationSubsectionHeader-scanner-<?php echo htmlspecialchars($scannerKey); ?>"
                                     aria-expanded="false"
                                     aria-controls="<?php echo htmlspecialchars($scannerBodyId); ?>">
                               <span class="integration-subsection-arrow" aria-hidden="true"></span>
-                              <span class="integration-provider-name"><?php echo t($scannerNameKey); ?></span>
-                              <span class="integration-status-badge integration-status-coming-soon"><?php echo t('settings.integrations.status.coming_soon'); ?></span>
+                              <span class="integration-provider-name"><?php echo t($scannerDef['name_key']); ?></span>
+                              <span class="integration-status-badge integration-status-<?php echo $scannerStatusClass; ?>"><?php echo t('settings.integrations.status.' . $scannerDef['status']); ?></span>
                             </button>
                             <div class="integration-subsection-body" id="<?php echo htmlspecialchars($scannerBodyId); ?>" role="region" aria-labelledby="integrationSubsectionHeader-scanner-<?php echo htmlspecialchars($scannerKey); ?>" hidden>
                               <div class="integration-card integration-card-scanner" data-scanner="<?php echo htmlspecialchars($scannerKey); ?>">
-                                <p class="integration-card-description"><?php echo t('settings.integrations.scanners.card_description'); ?></p>
+                                <p class="integration-card-description"><?php echo t($scannerDescKey); ?></p>
                               </div>
                             </div>
                           </div>

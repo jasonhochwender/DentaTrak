@@ -3661,6 +3661,19 @@ body.dark-mode .integration-status-badge.integration-status-coming-soon {
   color: #c7d2fe;
 }
 
+/* Under evaluation: neutral slate - earlier stage than the indigo
+   "coming soon" badge; vendor access/pricing not yet confirmed. */
+.integration-status-badge.integration-status-under-evaluation {
+  background: #f1f5f9;
+  color: #475569;
+}
+
+[data-theme="dark"] .integration-status-badge.integration-status-under-evaluation,
+body.dark-mode .integration-status-badge.integration-status-under-evaluation {
+  background: rgba(148,163,184,0.22);
+  color: #cbd5e1;
+}
+
 /* Scanner subsections keep the dashed "not yet real" cue at the
    subsection frame level. */
 .scanner-integrations-list .integration-subsection {

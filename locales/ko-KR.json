@@ -1413,7 +1413,8 @@
                 "error": "오류",
                 "disabled": "비활성",
                 "not_on_plan": "요금제 미포함",
-                "coming_soon": "출시 예정"
+                "coming_soon": "출시 예정",
+                "under_evaluation": "평가 중"
             },
             "locked_note": "Open Dental 연동은 Control 및 Scale 요금제에서 제공됩니다.",
             "meta": {
@@ -1595,7 +1596,9 @@
                 "trios": "3Shape TRIOS",
                 "primescan": "Primescan / DS Core",
                 "medit": "Medit Link",
-                "card_description": "스캐너 연결은 개발 중입니다. 지원되는 연결이 제공되면 수동으로보내고 업로드하지 않고도 스캔 파일과 사용 가능한 케이스 정보를 DentaTrak으로 가져올 수 있습니다. 스캐너 연동은 Control 및 Scale 플랜에 도입될 예정입니다."
+                "shining3d": "SHINING 3D (Aoralscan)",
+                "card_description": "스캐너 연결은 개발 중입니다. 지원되는 연결이 제공되면 수동으로보내고 업로드하지 않고도 스캔 파일과 사용 가능한 케이스 정보를 DentaTrak으로 가져올 수 있습니다. 스캐너 연동은 Control 및 Scale 플랜에 도입될 예정입니다.",
+                "card_description_shining3d": "스캔을 새 또는 기존 DentaTrak 케이스에 연결합니다."
             }
         }
     },

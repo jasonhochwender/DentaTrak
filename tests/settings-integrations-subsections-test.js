@@ -59,9 +59,9 @@ async function theme(page, t) {
     const sections = await page.locator('.integration-section-heading').allTextContents();
     check('two parent section headings', sections.length === 2);
     const subs = page.locator('.integration-subsection');
-    check('5 subsections rendered (1 PMS + 4 scanner)', await subs.count() === 5);
+    check('6 subsections rendered (1 PMS + 5 scanner)', await subs.count() === 6);
     check('od subsection exists', await page.locator('[data-subsection="open_dental"]').count() === 1);
-    for (const s of ['scanner-itero', 'scanner-trios', 'scanner-primescan', 'scanner-medit']) {
+    for (const s of ['scanner-itero', 'scanner-trios', 'scanner-primescan', 'scanner-medit', 'scanner-shining3d']) {
       check(`scanner subsection ${s}`, await page.locator(`[data-subsection="${s}"]`).count() === 1);
     }
 
@@ -82,7 +82,13 @@ async function theme(page, t) {
       const metaErr = await page.locator('#integrationMeta-open_dental .integration-meta-error').count();
       check('od auto-expanded only because an error is rendered', metaErr > 0);
     }
-    check('scanner badges say Coming soon while collapsed', states.slice(1).every(s => /coming soon/i.test(s.badge)));
+    // Per-vendor status: primescan/DS Core is Coming soon (implementation
+    // underway); every other scanner vendor is Under evaluation.
+    const badgeFor = id => (states.find(s => s.id === id) || {}).badge || '';
+    check('primescan badge says Coming soon', /coming soon/i.test(badgeFor('scanner-primescan')));
+    check('other scanner badges say Under evaluation',
+      ['scanner-itero', 'scanner-trios', 'scanner-medit', 'scanner-shining3d']
+        .every(id => /under evaluation/i.test(badgeFor(id))));
 
     await page.screenshot({ path: OUT + '/collapsed-desktop-light.png' });
 
