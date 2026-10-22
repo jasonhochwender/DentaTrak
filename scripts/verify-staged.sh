@@ -45,7 +45,9 @@ echo "PHP $PHPV patched OK"
 
 # 2) Homepage renders (mod_php processing, not an error page).
 HOME_BODY="$(retry_curl -sS "$BASE/")" || fail "homepage request failed"
-printf '%s' "$HOME_BODY" | grep -q 'DentaTrak' || fail "homepage did not render expected markup"
+# [[ substring match avoids SIGPIPE under `set -o pipefail` (grep -q exits
+# early on large bodies and makes the pipeline fail).
+[[ "$HOME_BODY" == *DentaTrak* ]] || fail "homepage did not render expected markup"
 echo "homepage OK"
 
 # 3) Login page renders.
@@ -56,7 +58,7 @@ echo "login.php OK ($CODE)"
 # 4) API endpoint executes PHP and returns JSON (login endpoint, no creds).
 API_BODY="$(retry_curl -sS -X POST "$BASE/api/auth-email.php" -H 'Content-Type: application/json' -d '{}')" \
   || fail "auth API request failed"
-printf '%s' "$API_BODY" | grep -q '"success"' || fail "auth-email.php did not return JSON: ${API_BODY:0:120}"
+[[ "$API_BODY" == *'"success"'* ]] || fail "auth-email.php did not return JSON: ${API_BODY:0:120}"
 echo "auth API OK"
 
 # 5) Static + localized assets served.
