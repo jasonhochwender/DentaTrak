@@ -24,8 +24,10 @@ steps:
       ]
 
   # ---------- Deploy to Cloud Run (staged, no traffic) ----------
-  # The traffic tag is unique per build so concurrent builds cannot verify
-  # one revision and promote another through a shared tag.
+  # The traffic tag is unique per commit so concurrent builds of different
+  # commits cannot verify one revision and promote another through a shared
+  # tag. (Tag+service name must stay <= 46 chars, so SHORT_SHA, not BUILD_ID.
+  # Same-commit reruns share the tag, which is safe: identical image.)
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     entrypoint: gcloud
     args:
@@ -47,7 +49,7 @@ steps:
         'dtk-prod-core:us-east1:dtk-sql-prod',
         '--no-traffic',
         '--tag',
-        'staged-${BUILD_ID}',
+        'staged-${SHORT_SHA}',
         '--quiet'
       ]
 
@@ -57,7 +59,7 @@ steps:
     args:
       [
         'scripts/verify-staged.sh',
-        'https://staged-${BUILD_ID}---dtk-app-prod-6y7s3km7ra-ue.a.run.app'
+        'https://staged-${SHORT_SHA}---dtk-app-prod-6y7s3km7ra-ue.a.run.app'
       ]
 
   # ---------- Promote: route 100% traffic to the verified revision ----------
@@ -68,7 +70,7 @@ steps:
         'scripts/promote-staged.sh',
         'dtk-app-prod',
         'us-east1',
-        'staged-${BUILD_ID}'
+        'staged-${SHORT_SHA}'
       ]
 
   # ---------- Ensure integration event worker schedule (idempotent) ----------
