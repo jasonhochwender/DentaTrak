@@ -138,6 +138,13 @@ class DsCoreAuthService {
      *         ID is configured for the active environment.
      */
     public function beginAttempt(PDO $pdo, int $practiceId, int $userId, ?int $connectionId = null): array {
+        // Practice allowlist (DS_CORE_ALLOWED_PRACTICES) is the rollout
+        // gate - an empty list permits no practice and no role or plan
+        // override can bypass it. Checked before configuration so an
+        // unallowlisted practice can never mint an attempt.
+        if (!DsCoreConfig::isPracticeAllowed($practiceId)) {
+            throw new DsCoreAuthException('practice_not_allowed', 'DS Core access is not enabled for this practice.');
+        }
         if (!DsCoreConfig::isConfigured()) {
             throw new DsCoreAuthException('server_config_missing', 'DS Core integration is not configured on this server.');
         }
@@ -213,6 +220,13 @@ class DsCoreAuthService {
         $attempt = $stmt->fetch(PDO::FETCH_ASSOC);
         if (!$attempt) {
             return ['result' => 'invalid', 'connection_id' => null];
+        }
+
+        // The practice must still be allowlisted at completion time - a
+        // practice removed from DS_CORE_ALLOWED_PRACTICES mid-flow cannot
+        // finish connecting.
+        if (!DsCoreConfig::isPracticeAllowed((int)$attempt['practice_id'])) {
+            return ['result' => 'forbidden', 'connection_id' => null];
         }
 
         // The live session must still belong to the initiating admin in the
@@ -431,7 +445,7 @@ class DsCoreAuthService {
      */
     public function refreshDueConnections(PDO $pdo): array {
         $stmt = $pdo->prepare("
-            SELECT id, config_json, status FROM integration_connections
+            SELECT id, practice_id, config_json, status FROM integration_connections
             WHERE provider = :p AND status IN ('active', 'error')
         ");
         $stmt->execute([':p' => self::PROVIDER]);
@@ -442,6 +456,12 @@ class DsCoreAuthService {
         $cutoff = time() + self::REFRESH_MARGIN_SECONDS;
 
         foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+            // A practice removed from the allowlist stops receiving token
+            // maintenance too - no DS Core calls on its behalf at all.
+            if (!DsCoreConfig::isPracticeAllowed((int)$row['practice_id'])) {
+                $skipped++;
+                continue;
+            }
             $expiresAt = $this->tokenExpiresAt($row);
             if ($expiresAt === null || $expiresAt > $cutoff) {
                 $skipped++;

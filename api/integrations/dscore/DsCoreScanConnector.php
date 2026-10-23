@@ -29,10 +29,16 @@
  *                           a single descriptor when models[] is empty.
  *   revision             <- signature over models + estimated sizes +
  *                           supported file types. The API exposes no
- *                           updateTime/etag, so a changed signature is the
- *                           only supported revision signal - documented
- *                           limitation: an identical-byte re-export is
- *                           indistinguishable from a no-op.
+ *                           updateTime/etag, so this is NOT complete
+ *                           revision synchronization: it is new-scan
+ *                           import with LIMITED revision detection. A
+ *                           signature change creates new file rows, but
+ *                           changed content can retain identical model
+ *                           metadata and file size - a same-metadata,
+ *                           same-size revision is undetectable and will
+ *                           NOT produce new rows. Re-export detection is
+ *                           a documented gap until the API exposes a
+ *                           revision signal.
  *
  * CONTENT PACKAGING - PENDING SANDBOX VERIFICATION:
  *   The spec documents the PLY path as a zip archive but is ambiguous for
@@ -49,9 +55,11 @@
  *   is never marked complete on corrupt bytes.
  */
 
+require_once __DIR__ . '/../../feature-flags.php';
 require_once __DIR__ . '/../scanners/ScannerConnectorInterface.php';
 require_once __DIR__ . '/../scanners/ScannerDownloadException.php';
 require_once __DIR__ . '/../scanners/ScanFileStore.php';
+require_once __DIR__ . '/../DsCoreConfig.php';
 require_once __DIR__ . '/DsCoreClient.php';
 require_once __DIR__ . '/DsCoreAuthService.php';
 
@@ -523,6 +531,12 @@ class DsCoreScanConnector implements ScannerConnectorInterface {
     // ----------------------------------------------------------------------
 
     private function clientForContext(array $context): ?DsCoreClient {
+        // Deepest gate in the download path: no DS Core request can be
+        // made while the feature flag is off, regardless of which entry
+        // point (poll worker, retry CLI, inbox retry) reached here.
+        if (!isFeatureEnabled('DS_CORE_CONNECT')) {
+            throw new ScannerDownloadException('source disabled', false, 'source_unavailable');
+        }
         $connectionId = (int)($context['connection_id'] ?? 0);
         $practiceId = (int)($context['practice_id'] ?? 0);
         if ($connectionId <= 0) {
@@ -544,6 +558,12 @@ class DsCoreScanConnector implements ScannerConnectorInterface {
         }
         if (($connection['status'] ?? '') !== 'active') {
             throw new ScannerDownloadException('source connection is not active', false, 'source_unavailable');
+        }
+        // Practice allowlist (DS_CORE_ALLOWED_PRACTICES): a connection
+        // whose practice falls off the list stops all DS Core traffic -
+        // polling, queued file processing, and retries alike.
+        if (!DsCoreConfig::isPracticeAllowed((int)$connection['practice_id'])) {
+            throw new ScannerDownloadException('source practice not allowed', false, 'source_unavailable');
         }
 
         if (is_callable($this->clientFactory)) {

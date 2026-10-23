@@ -51,6 +51,7 @@
 require_once __DIR__ . '/../../appConfig.php';
 require_once __DIR__ . '/../../feature-flags.php';
 require_once __DIR__ . '/../scanners/ScanIngestion.php';
+require_once __DIR__ . '/../DsCoreConfig.php';
 require_once __DIR__ . '/DsCoreScanConnector.php';
 require_once __DIR__ . '/DsCoreClient.php';
 require_once __DIR__ . '/DsCoreAuthService.php';
@@ -93,10 +94,18 @@ class DsCoreScanSync {
         $stmt->execute([':p' => DsCoreAuthService::PROVIDER]);
 
         $totals = ['connections' => 0, 'polled' => 0, 'scans' => 0, 'pages' => 0,
-                   'skipped' => 0, 'locked' => 0, 'errors' => 0, 'rate_limited' => 0];
+                   'skipped' => 0, 'restricted' => 0, 'locked' => 0, 'errors' => 0,
+                   'rate_limited' => 0];
 
         foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $connection) {
             $totals['connections']++;
+            // Practice allowlist (DS_CORE_ALLOWED_PRACTICES): only
+            // explicitly designated practices may ever poll DS Core.
+            // An empty list means zero connections qualify.
+            if (!DsCoreConfig::isPracticeAllowed((int)$connection['practice_id'])) {
+                $totals['restricted']++;
+                continue;
+            }
             $state = self::pollState($connection);
 
             // Respect the rate-limit hint across runs.

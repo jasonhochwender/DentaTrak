@@ -247,6 +247,19 @@ function forcePollReady(PDO $pdo, int $connectionId): void {
         ->execute([':id' => $connectionId]);
 }
 
+// Practice allowlist (DS_CORE_ALLOWED_PRACTICES) - the rollout gate.
+// Tests opt each fixture practice in explicitly, mirroring the operator
+// workflow; an empty list permits no practice at all.
+$allowedPractices = [];
+function dsAllow(int $pid): void {
+    global $allowedPractices;
+    $allowedPractices[] = $pid;
+    $val = implode(',', array_unique($allowedPractices));
+    putenv("DS_CORE_ALLOWED_PRACTICES={$val}");
+    $_ENV['DS_CORE_ALLOWED_PRACTICES'] = $val;
+    $_SERVER['DS_CORE_ALLOWED_PRACTICES'] = $val;
+}
+
 function insertFixtureCase(PDO $pdo, int $practiceId): string {
     $caseId = 'test_dsc_case_' . bin2hex(random_bytes(6));
     $stmt = $pdo->prepare("
@@ -264,6 +277,8 @@ $practiceId = (int)$pdo->query("SELECT id FROM practices ORDER BY id LIMIT 1")->
 $otherPracticeId = (int)$pdo->query("SELECT id FROM practices WHERE id <> {$practiceId} ORDER BY id LIMIT 1")->fetchColumn();
 $userId = (int)$pdo->query("SELECT user_id FROM practice_users WHERE practice_id = {$practiceId} ORDER BY user_id LIMIT 1")->fetchColumn();
 assertTrue($practiceId > 0 && $userId > 0 && $otherPracticeId > 0, 'fixture practices + user exist');
+dsAllow($practiceId);
+dsAllow($otherPracticeId);
 
 // Prior-run leftovers (connections cascade to credentials/scans manually).
 $pdo->exec("DELETE f FROM scanner_scan_files f JOIN scanner_incoming_scans s ON s.id = f.scan_id WHERE s.external_scan_id LIKE 'dsc-%'");
@@ -272,6 +287,8 @@ $pdo->exec("DELETE FROM scanner_incoming_scans WHERE external_scan_id LIKE 'dsc-
 // Dev DB is fixture-only for ds_core (same convention as dscore-auth-test).
 $pdo->exec("DELETE c, r FROM integration_connections c LEFT JOIN integration_credentials r ON r.connection_id = c.id WHERE c.provider = 'ds_core'");
 $pdo->exec("DELETE FROM integration_connections WHERE provider = 'ds_core'");
+// Attempt table needed for the allowlist callback test (idempotent).
+shell_exec('php "' . __DIR__ . '/../migrations/2026_10_22_dscore_oauth.php" 2>&1');
 
 try {
     $sync = new DsCoreScanSync($transport);
@@ -410,8 +427,11 @@ try {
     assertEquals(4, count($filesA1b), 'changed signature produced new revision rows');
     $revisions = array_unique(array_column($filesA1b, 'revision'));
     assertEquals(2, count($revisions), 'two distinct revisions recorded');
-    // LIMITATION (documented): an identical-metadata re-export is
-    // indistinguishable - no updateTime/etag exists in the spec.
+    // LIMITATION (documented): this is new-scan import with LIMITED
+    // revision detection - changed content that keeps the same model
+    // metadata and file size produces an identical signature and is
+    // undetectable. No updateTime/etag exists in the spec, so complete
+    // revision synchronization cannot be claimed.
 
     // ==================================================================
     // D. Empty results
@@ -430,6 +450,7 @@ try {
     // E. Interrupted polling -> resume via stored page token
     // ==================================================================
     $practiceE = mkFixturePractice($pdo, $userId);
+    dsAllow($practiceE);
     $createdPracticeIds[] = $practiceE;
     $connE = seedConnection($pdo, $practiceE);
     $createdConnectionIds[] = $connE;
@@ -474,6 +495,7 @@ try {
     // F. Disconnect during sync
     // ==================================================================
     $practiceF = mkFixturePractice($pdo, $userId);
+    dsAllow($practiceF);
     $createdPracticeIds[] = $practiceF;
     $connF = seedConnection($pdo, $practiceF);
     $createdConnectionIds[] = $connF;
@@ -510,6 +532,7 @@ try {
     // G. Reactive 401 -> serialized refresh -> retry; 403; 429; 5xx
     // ==================================================================
     $practiceG = mkFixturePractice($pdo, $userId);
+    dsAllow($practiceG);
     $createdPracticeIds[] = $practiceG;
     $connG = seedConnection($pdo, $practiceG);
     $createdConnectionIds[] = $connG;
@@ -563,6 +586,7 @@ try {
     // H. Concurrent worker attempt (GET_LOCK contention)
     // ==================================================================
     $practiceH = mkFixturePractice($pdo, $userId);
+    dsAllow($practiceH);
     $createdPracticeIds[] = $practiceH;
     $connH = seedConnection($pdo, $practiceH);
     $createdConnectionIds[] = $connH;
@@ -586,6 +610,7 @@ try {
     // I. Download integrity failures
     // ==================================================================
     $practiceI = mkFixturePractice($pdo, $userId);
+    dsAllow($practiceI);
     $createdPracticeIds[] = $practiceI;
     $connI = seedConnection($pdo, $practiceI);
     $createdConnectionIds[] = $connI;
@@ -706,6 +731,7 @@ try {
     $pdo->prepare("UPDATE integration_connections SET sync_enabled = 0 WHERE id = :id")->execute([':id' => $connB]);
 
     $practiceK = mkFixturePractice($pdo, $userId);
+    dsAllow($practiceK);
     $createdPracticeIds[] = $practiceK;
     $connK = seedConnection($pdo, $practiceK);
     $createdConnectionIds[] = $connK;
@@ -740,17 +766,142 @@ try {
         'instructions stay null - the API supplies none');
 
     // ==================================================================
-    // M. Feature gates
+    // M. Feature gates - every DS Core path refuses while the flag is off
     // ==================================================================
-    // With DS_CORE_CONNECT off the sync is inert (flag off -> skip).
     putenv('DS_CORE_CONNECT=false');
     $_ENV['DS_CORE_CONNECT'] = 'false';
     $_SERVER['DS_CORE_CONNECT'] = 'false';
     $out = $sync->processDue($pdo);
     assertTrue(!empty($out['skipped']), 'DS_CORE_CONNECT=false makes sync inert');
+
+    // Deepest enforcement: the connector itself refuses every DS Core
+    // call while the flag is off - whichever entry point reaches it
+    // (poll worker, process-scans CLI, or the inbox retry action).
+    $connectorM = new DsCoreScanConnector($pdo, null, $transport);
+    $callsBeforeFlagOff = count($calls);
+    try {
+        $connectorM->fetchScans(['practice_id' => $practiceK, 'connection_id' => $connK]);
+        assertTrue(false, 'flag-off fetchScans refused');
+    } catch (ScannerDownloadException $e) {
+        assertEquals('source_unavailable', $e->getErrorCode(), 'flag-off fetchScans refused');
+    }
+    try {
+        $connectorM->downloadFile([
+            'practice_id'    => $practiceK,
+            'connection_id'  => $connK,
+            'remote_ref'     => 'dscore://di/' . rawurlencode('digitalImpressions/dsc-x') . '/stl',
+        ], 'x');
+        assertTrue(false, 'flag-off downloadFile refused');
+    } catch (ScannerDownloadException $e) {
+        assertEquals('source_unavailable', $e->getErrorCode(), 'flag-off downloadFile refused');
+    }
+    assertEquals($callsBeforeFlagOff, count($calls), 'flag-off paths made zero DS Core requests');
     putenv('DS_CORE_CONNECT=true');
     $_ENV['DS_CORE_CONNECT'] = 'true';
     $_SERVER['DS_CORE_CONNECT'] = 'true';
+
+    // ==================================================================
+    // O. Practice allowlist (DS_CORE_ALLOWED_PRACTICES) - rollout gate
+    // ==================================================================
+    // An unlisted fixture practice is denied on every path; the empty
+    // list permits nothing; only listing it re-enables the flow. No role
+    // or plan argument exists in isPracticeAllowed(), so administrator
+    // overrides cannot bypass it by construction.
+    $pdo->prepare("UPDATE integration_connections SET sync_enabled = 0 WHERE id = :id")->execute([':id' => $connK]);
+    $practiceO = mkFixturePractice($pdo, $userId);   // deliberately NOT allowlisted
+    $createdPracticeIds[] = $practiceO;
+    $connO = seedConnection($pdo, $practiceO);
+    $createdConnectionIds[] = $connO;
+
+    assertTrue(!DsCoreConfig::isPracticeAllowed($practiceO), 'non-allowlisted practice denied');
+
+    // Poll worker: the restricted connection is skipped without HTTP.
+    $callsBeforeO = count($calls);
+    $out = $sync->processDue($pdo);
+    assertTrue(($out['restricted'] ?? 0) >= 1, 'restricted connection skipped by poll worker');
+    assertEquals(0, count(callsTo(array_slice($calls, $callsBeforeO), 'digitalImpressions')),
+        'restricted practice made zero list calls');
+
+    // Downloads/retries: process-scans and inbox retry both reach the
+    // connector - it refuses before any HTTP.
+    $connectorO = new DsCoreScanConnector($pdo, null, $transport);
+    try {
+        $connectorO->downloadFile([
+            'practice_id'    => $practiceO,
+            'connection_id'  => $connO,
+            'remote_ref'     => 'dscore://di/' . rawurlencode('digitalImpressions/dsc-o1') . '/stl',
+        ], 'x');
+        assertTrue(false, 'restricted download refused');
+    } catch (ScannerDownloadException $e) {
+        assertEquals('source_unavailable', $e->getErrorCode(), 'restricted download refused');
+    }
+    try {
+        $connectorO->fetchScans(['practice_id' => $practiceO, 'connection_id' => $connO]);
+        assertTrue(false, 'restricted fetchScans refused');
+    } catch (ScannerDownloadException $e) {
+        assertEquals('source_unavailable', $e->getErrorCode(), 'restricted fetchScans refused');
+    }
+
+    // Connection initiation refuses before minting an attempt.
+    $authO = new DsCoreAuthService($transport);
+    try {
+        $authO->beginAttempt($pdo, $practiceO, $userId);
+        assertTrue(false, 'restricted beginAttempt refused');
+    } catch (DsCoreAuthException $e) {
+        assertEquals('practice_not_allowed', $e->category, 'restricted beginAttempt refused');
+    }
+
+    // Callback completion: an attempt whose practice fell off the
+    // allowlist cannot finish connecting.
+    $attemptO = 'testatt' . substr(bin2hex(random_bytes(8)), 0, 20);
+    $pdo->prepare("
+        INSERT INTO dscore_oauth_attempts (id, practice_id, user_id, code_verifier_encrypted, expires_at)
+        VALUES (:id, :p, :u, :v, :e)
+    ")->execute([
+        ':id' => $attemptO, ':p' => $practiceO, ':u' => $userId,
+        ':v'  => PIIEncryption::encrypt('verifier'),
+        ':e'  => gmdate('Y-m-d H:i:s', time() + 900),
+    ]);
+    $cb = $authO->handleCallback($pdo, ['code' => 'code-1', 'state' => $attemptO], $userId, $practiceO);
+    assertEquals('forbidden', $cb['result'], 'callback refused for non-allowlisted practice');
+    $pdo->prepare("DELETE FROM dscore_oauth_attempts WHERE id = :id")->execute([':id' => $attemptO]);
+
+    // Token maintenance: an expired-looking token still gets no refresh
+    // call while the practice is unlisted.
+    $pdo->prepare("UPDATE integration_connections SET config_json = JSON_SET(config_json, '$.token_expires_at', :e) WHERE id = :id")
+        ->execute([':e' => gmdate('Y-m-d H:i:s', time() - 60), ':id' => $connO]);
+    $callsBeforeR = count($calls);
+    $authO->refreshDueConnections($pdo);
+    assertEquals(0, count(callsTo(array_slice($calls, $callsBeforeR), 'token:refresh')),
+        'no refresh call for a non-allowlisted practice');
+    // Restore a fresh-looking token so the allowlisted poll below does
+    // not burn a refresh on the staged expiry.
+    $pdo->prepare("UPDATE integration_connections SET config_json = JSON_SET(config_json, '$.token_expires_at', :e) WHERE id = :id")
+        ->execute([':e' => gmdate('Y-m-d H:i:s', time() + 3600), ':id' => $connO]);
+
+    // Empty allowlist: permits nothing at all (fail closed).
+    $savedAllowlist = implode(',', $allowedPractices);
+    putenv('DS_CORE_ALLOWED_PRACTICES=');
+    $_ENV['DS_CORE_ALLOWED_PRACTICES'] = '';
+    $_SERVER['DS_CORE_ALLOWED_PRACTICES'] = '';
+    assertEquals([], DsCoreConfig::allowedPracticeIds(), 'empty allowlist resolves to no practices');
+    assertTrue(!DsCoreConfig::isPracticeAllowed($practiceId) && !DsCoreConfig::isPracticeAllowed($practiceO),
+        'empty allowlist permits no practice');
+    putenv("DS_CORE_ALLOWED_PRACTICES={$savedAllowlist}");
+    $_ENV['DS_CORE_ALLOWED_PRACTICES'] = $savedAllowlist;
+    $_SERVER['DS_CORE_ALLOWED_PRACTICES'] = $savedAllowlist;
+
+    // Listing the practice restores the full path end to end.
+    dsAllow($practiceO);
+    assertTrue(DsCoreConfig::isPracticeAllowed($practiceO), 'allowlisted practice permitted');
+    pushList($queue, [mkDi('dsc-o1', ['models' => []])]);
+    $stlO1 = asciiStl('O1');
+    pushContent($queue, $stlO1, 'cid-o1');
+    pushChecksum($queue, $stlO1);
+    $out = $sync->processDue($pdo);
+    assertTrue(scanRow($pdo, $practiceO, $connO, 'dsc-o1') !== null,
+        'allowlisted practice polls and ingests');
+    $pdo->prepare("UPDATE integration_connections SET sync_enabled = 0 WHERE id = :id")->execute([':id' => $connO]);
 
     // ==================================================================
     // N. PHI hygiene: tokens/PHI never reach scan events

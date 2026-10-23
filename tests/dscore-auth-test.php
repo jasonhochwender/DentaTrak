@@ -144,6 +144,21 @@ try {
     }
     assertTrue($practiceId > 0 && $userId > 0, 'fixture practice + user exist');
 
+    // Practice allowlist (DS_CORE_ALLOWED_PRACTICES): opt the two fixture
+    // practices in. Everything else is denied - including initiation.
+    putenv("DS_CORE_ALLOWED_PRACTICES={$practiceId},{$otherPracticeId}");
+    $_ENV['DS_CORE_ALLOWED_PRACTICES'] = "{$practiceId},{$otherPracticeId}";
+    $_SERVER['DS_CORE_ALLOWED_PRACTICES'] = "{$practiceId},{$otherPracticeId}";
+    assertTrue(DsCoreConfig::isPracticeAllowed($practiceId), 'fixture practice allowlisted');
+    assertTrue(DsCoreConfig::isPracticeAllowed($otherPracticeId), 'second fixture practice allowlisted');
+    assertTrue(!DsCoreConfig::isPracticeAllowed($otherPracticeId + 999999), 'unlisted practice id denied');
+    try {
+        $service->beginAttempt($pdo, $otherPracticeId + 999999, $userId);
+        assertTrue(false, 'beginAttempt refused for unlisted practice');
+    } catch (DsCoreAuthException $e) {
+        assertEquals('practice_not_allowed', $e->category, 'beginAttempt refused for unlisted practice');
+    }
+
     // Prior-run leftovers
     $pdo->exec("DELETE FROM dscore_oauth_attempts WHERE 1=1");
     $pdo->exec("DELETE c, r FROM integration_connections c LEFT JOIN integration_credentials r ON r.connection_id = c.id WHERE c.provider = 'ds_core'");

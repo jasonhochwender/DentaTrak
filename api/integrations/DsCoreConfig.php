@@ -23,6 +23,16 @@
  *                                  (region pinning; default per environment)
  *   DS_CORE_API_BASE_URL         - optional override for the token/refresh
  *                                  base URL (default per environment)
+ *   DS_CORE_ALLOWED_PRACTICES    - comma-separated practice ids permitted
+ *                                  to use DS Core at all. EMPTY or UNSET
+ *                                  permits NO practice: this is the
+ *                                  sandbox/rollout gate enforced on
+ *                                  connection initiation, callback
+ *                                  completion, token refresh, scan
+ *                                  polling, and downloads. Server-side
+ *                                  only - administrator overrides, plan
+ *                                  entitlements, and request parameters
+ *                                  can never widen it.
  *
  * SECURITY CONTRACT (same as OpenDentalConfig):
  *  - Secrets loaded exclusively from the server environment
@@ -147,5 +157,36 @@ class DsCoreConfig {
      */
     public static function isConfigured(): bool {
         return self::clientId() !== null && self::clientSecret() !== null;
+    }
+
+    /**
+     * Practice ids permitted to use DS Core, from
+     * DS_CORE_ALLOWED_PRACTICES (comma-separated). UNSET or EMPTY returns
+     * [] - which permits NO practice. This is the controlled-rollout
+     * gate: until an operator deliberately lists sandbox test practices,
+     * DS_CORE_CONNECT alone can never reach a real practice.
+     *
+     * Deliberately consulted NOWHERE but server-side enforcement points:
+     * no role, plan, or override argument exists, so super-user/admin
+     * status cannot bypass it.
+     */
+    public static function allowedPracticeIds(): array {
+        $raw = self::envValue('DS_CORE_ALLOWED_PRACTICES');
+        if ($raw === null) {
+            return [];
+        }
+        $ids = [];
+        foreach (explode(',', $raw) as $piece) {
+            $piece = trim($piece);
+            if ($piece !== '' && ctype_digit($piece)) {
+                $ids[] = (int)$piece;
+            }
+        }
+        return array_values(array_unique($ids));
+    }
+
+    /** True only when the practice is explicitly allowlisted. */
+    public static function isPracticeAllowed(int $practiceId): bool {
+        return $practiceId > 0 && in_array($practiceId, self::allowedPracticeIds(), true);
     }
 }

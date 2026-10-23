@@ -103,6 +103,7 @@ if ($method === 'GET') {
         'environment' => DsCoreConfig::environment(),
         'redirect_uri' => DsCoreAuthService::redirectUri(),
         'server_configured' => DsCoreConfig::isConfigured(),
+        'practice_allowed'  => DsCoreConfig::isPracticeAllowed((int)$currentPracticeId),
         'connection'  => $connection ? IntegrationManager::toPublicConnection($pdo, $connection) : null,
     ]);
     exit;
@@ -129,8 +130,9 @@ if ($action === 'begin') {
     try {
         $attempt = $service->beginAttempt($pdo, (int)$currentPracticeId, $userId);
     } catch (DsCoreAuthException $e) {
-        dsCoreAuthFail($e->category === 'server_config_missing' ? 503 : 500,
-            'The DS Core connection could not be started.', $e->category);
+        $status = $e->category === 'server_config_missing' ? 503
+            : ($e->category === 'practice_not_allowed' ? 403 : 500);
+        dsCoreAuthFail($status, 'The DS Core connection could not be started.', $e->category);
     }
 
     if (function_exists('logUserActivity')) {

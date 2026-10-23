@@ -15,6 +15,10 @@
  *
  * Connector resolution per vendor:
  *   'simulated' -> SimulatedScannerConnector (only when isAvailable()).
+ *   'primescan' -> DsCoreScanConnector, only when DS_CORE_CONNECT is on;
+ *                  the connector additionally requires an active ds_core
+ *                  connection AND an allowlisted practice
+ *                  (DS_CORE_ALLOWED_PRACTICES) before any HTTP call.
  *   others      -> no adapter yet; scans are skipped with a logged note.
  */
 
