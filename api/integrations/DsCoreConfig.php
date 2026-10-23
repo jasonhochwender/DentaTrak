@@ -45,14 +45,20 @@ class DsCoreConfig {
      * the regional business host.
      */
     private const ENDPOINTS = [
-        // Sandbox EU: login on the regional r2 host, token ops global.
+        // Sandbox EU: login + business APIs on the regional r2 host,
+        // token ops global.
         'sandbox' => [
-            'auth_base' => 'https://api.r2.dscore.com',
-            'api_base'  => 'https://api.dscore.com',
+            'auth_base'     => 'https://api.r2.dscore.com',
+            'api_base'      => 'https://api.dscore.com',
+            'business_base' => 'https://api.r2.dscore.com',
         ],
         'production' => [
-            'auth_base' => 'https://api.dscore.com',
-            'api_base'  => 'https://api.dscore.com',
+            'auth_base'     => 'https://api.dscore.com',
+            'api_base'      => 'https://api.dscore.com',
+            // Regional business host is pinned per deployment via
+            // DS_CORE_BUSINESS_BASE_URL once the production region is
+            // confirmed with the vendor; falls back to the global host.
+            'business_base' => 'https://api.dscore.com',
         ],
     ];
 
@@ -119,6 +125,20 @@ class DsCoreConfig {
             return rtrim($override, '/');
         }
         return self::ENDPOINTS[self::environment()]['api_base'];
+    }
+
+    /**
+     * Base URL for the business APIs (digital impressions, FHIR patient
+     * reads). REGIONAL per the PMS OpenAPI spec ({dscore-base-host}) -
+     * intentionally distinct from apiBaseUrl() which serves only the
+     * auth endpoints on the global host.
+     */
+    public static function businessBaseUrl(): string {
+        $override = self::envValue('DS_CORE_BUSINESS_BASE_URL');
+        if ($override !== null) {
+            return rtrim($override, '/');
+        }
+        return self::ENDPOINTS[self::environment()]['business_base'];
     }
 
     /**

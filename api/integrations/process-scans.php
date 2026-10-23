@@ -22,6 +22,7 @@ require_once __DIR__ . '/../appConfig.php';
 require_once __DIR__ . '/../feature-flags.php';
 require_once __DIR__ . '/scanners/ScanIngestion.php';
 require_once __DIR__ . '/scanners/SimulatedScannerConnector.php';
+require_once __DIR__ . '/dscore/DsCoreScanConnector.php';
 
 if (PHP_SAPI !== 'cli') {
     http_response_code(403);
@@ -76,6 +77,11 @@ foreach ($scans as $scan) {
             } catch (Throwable $e) {
                 $connectors[$vendor] = null;
             }
+        } elseif ($vendor === DsCoreScanConnector::VENDOR
+            && isFeatureEnabled('DS_CORE_CONNECT') && $pdo) {
+            // The connector resolves + verifies the scan's ds_core
+            // connection per download (disconnect-safe).
+            $connectors[$vendor] = new DsCoreScanConnector($pdo);
         }
     }
     $connector = $connectors[$vendor];

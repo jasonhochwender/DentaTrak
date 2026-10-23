@@ -30,6 +30,7 @@ require_once __DIR__ . '/security-headers.php';
 require_once __DIR__ . '/integrations/scanners/ScanIngestion.php';
 require_once __DIR__ . '/integrations/scanners/ScanInbox.php';
 require_once __DIR__ . '/integrations/scanners/SimulatedScannerConnector.php';
+require_once __DIR__ . '/integrations/dscore/DsCoreScanConnector.php';
 
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
@@ -172,9 +173,10 @@ switch ($action) {
         if (in_array($scan['status'], [ScanIngestion::SCAN_LINKED, ScanIngestion::SCAN_DISMISSED], true)) {
             scanInboxFail(409, 'This scan can no longer be retried.', 'not_retryable');
         }
-        // Resolve a connector for the scan's vendor. Real vendor adapters
-        // do not exist yet; the simulated connector resolves only where it
-        // is allowed (dev/test + SCANNER_SIMULATOR).
+        // Resolve a connector for the scan's vendor. DS Core resolves when
+        // the feature is on (the connector re-verifies the connection is
+        // still active per download); the simulated connector resolves
+        // only where it is allowed (dev/test + SCANNER_SIMULATOR).
         $connector = null;
         if (strtolower((string)$scan['vendor']) === SimulatedScannerConnector::VENDOR
             && SimulatedScannerConnector::isAvailable()) {
@@ -183,6 +185,9 @@ switch ($action) {
             } catch (Throwable $e) {
                 $connector = null;
             }
+        } elseif (strtolower((string)$scan['vendor']) === DsCoreScanConnector::VENDOR
+            && isFeatureEnabled('DS_CORE_CONNECT')) {
+            $connector = new DsCoreScanConnector($pdo);
         }
         if (!$connector) {
             scanInboxFail(409, 'The source connection for this scan is not available.', 'source_unavailable');

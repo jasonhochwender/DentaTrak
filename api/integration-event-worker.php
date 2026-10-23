@@ -20,6 +20,7 @@ require_once __DIR__ . '/integrations/IntegrationEvents.php';
 require_once __DIR__ . '/integrations/IntegrationOutbound.php';
 require_once __DIR__ . '/integrations/register-adapters.php';
 require_once __DIR__ . '/integrations/dscore/DsCoreAuthService.php';
+require_once __DIR__ . '/integrations/dscore/DsCoreScanSync.php';
 
 header('Content-Type: application/json');
 
@@ -67,9 +68,26 @@ try {
         }
     }
 
+    // DS Core scan polling: discovers digital impressions through the
+    // read-only connector. Same per-minute schedule; additionally gated
+    // by SCANNER_INBOX so the inbox pipeline is only fed when it is on.
+    // Locked per connection, so overlapping invocations converge.
+    $dscoreScans = null;
+    if (isFeatureEnabled('DS_CORE_CONNECT')) {
+        try {
+            $dscoreScans = (new DsCoreScanSync())->processDue($pdo);
+        } catch (Throwable $e) {
+            error_log('[integration-event-worker] DS Core scan sync failed: ' . $e->getMessage());
+            $dscoreScans = ['error' => true];
+        }
+    }
+
     $out = ['success' => true, 'totals' => $summary, 'outbound' => $outbound];
     if ($dscore !== null) {
         $out['dscore'] = $dscore;
+    }
+    if ($dscoreScans !== null) {
+        $out['dscore_scans'] = $dscoreScans;
     }
     echo json_encode($out);
 } catch (Throwable $e) {

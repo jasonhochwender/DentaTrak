@@ -22,6 +22,13 @@
 - **Local development**: `php api/integrations/process-events.php [--limit=25] [--watch[=seconds]]` (CLI), or POST the endpoint with the dev `QUEUE_WORKER_TOKEN` header. Windows Task Scheduler alternative: run `php.exe C:\MAMP\htdocs\DentaTrak\api\integrations\process-events.php` every minute.
 - Events are claimed atomically (conditional UPDATE with `claimed_at`), transient failures (network/timeout/5xx/429/eConnector offline) retry with bounded linear backoff (max 10 attempts, cap 300s, honors Retry-After), permanent failures park as `failed`, and stale `processing` rows are reclaimed 10 minutes after their last claim.
 
+# DS Core scan retrieval (Primescan)
+
+- `api/integrations/dscore/DsCoreScanSync.php` polls `GET /v1beta/digitalImpressions` for every active `ds_core` connection inside the per-minute `integration-event-worker.php` pass, gated on both `DS_CORE_CONNECT` and `SCANNER_INBOX`. `DsCoreScanConnector` (vendor `primescan`) normalizes impressions; `DsCoreClient` wraps the read-only business calls in `withAutoRefresh`.
+- Polling cursor lives in `integration_connections.config_json.scan_poll` (no migration). Windows overlap (`DS_CORE_SCAN_OVERLAP_SEC`, default 300); per-page progress commits so interrupts resume via `page_token`. Env knobs: `DS_CORE_SCAN_INTERVAL_SEC` (300), `DS_CORE_SCAN_LOOKBACK_SEC` (86400), `DS_CORE_SCAN_MAX_PAGES` (10), `DS_CORE_SCAN_MAX_SCANS` (500). Cross-instance overlap prevented by `GET_LOCK('dscore_scan_sync_{id}', 0)`.
+- Auth/business host separation: token endpoints on `DsCoreConfig::apiBaseUrl()` (global `api.dscore.com`), business APIs on `businessBaseUrl()` (regional, `api.r2.dscore.com` sandbox; override `DS_CORE_BUSINESS_BASE_URL`). Content downloads always send `fileType=STL`, verify `md5Checksum` from `.../content/{X-Content-Id}/checksum`, and handle plain-STL vs zip packaging (packaging is pending sandbox verification).
+- Mocked regression: `php tests/dscore-scan-connector-test.php` (requires local dev DB on 3308, self-cleaning fixtures, no live calls).
+
 # Organization access scope (Scale foundation)
 
 - There is no `organizations` table: the organization is the subscription owner's account. Every practice with `practice_users.is_owner = 1` for the same user shares that user's single `subscriptions` row (`api/subscription-owner.php`). There is no organization-administrator role; `practice_users.role='admin'` is practice-scoped only and `users.role='admin'` is platform-level.
