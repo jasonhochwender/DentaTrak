@@ -113,7 +113,6 @@ function httpPost(string $url, array $body, string $cookieJar = '', ?string $csr
     $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
     $headerSize = curl_getinfo($ch, CURLINFO_HEADER_SIZE);
     $bodyStr = substr($response, $headerSize);
-    curl_close($ch);
     return ['code' => $code, 'body' => $bodyStr];
 }
 
@@ -129,7 +128,6 @@ function httpGet(string $url, string $cookieJar = ''): array {
     $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
     $headerSize = curl_getinfo($ch, CURLINFO_HEADER_SIZE);
     $bodyStr = substr($response, $headerSize);
-    curl_close($ch);
     return ['code' => $code, 'body' => $bodyStr];
 }
 

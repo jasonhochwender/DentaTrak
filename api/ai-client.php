@@ -40,7 +40,6 @@ function callOpenAIAPI($aiConfig, $systemPrompt, $userPrompt) {
     $response = curl_exec($ch);
     $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
     $curlError = curl_error($ch);
-    curl_close($ch);
 
     if ($curlError) {
         throw new Exception('API connection error: ' . $curlError);
@@ -93,7 +92,6 @@ function callGeminiAPI($aiConfig, $systemPrompt, $userPrompt) {
     $response = curl_exec($ch);
     $httpCode  = curl_getinfo($ch, CURLINFO_HTTP_CODE);
     $curlError = curl_error($ch);
-    curl_close($ch);
 
     if ($curlError) {
         throw new Exception('API connection error: ' . $curlError);

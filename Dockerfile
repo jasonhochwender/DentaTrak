@@ -1,9 +1,12 @@
 # ---------- Base image ----------
-# Pinned patch release: 8.2.35 fixes CVE-2026-109618 and CVE-2026-109619
-# (critical unauthenticated RCE; mod_php is the highest-risk SAPI).
-FROM php:8.2.35-apache
+# Pinned patch release: 8.5.12 is the first 8.5 patch release carrying the
+# CVE-2026-109618 / CVE-2026-109619 fix (critical unauthenticated RCE;
+# mod_php is the highest-risk SAPI).
+FROM php:8.5.12-apache
 
 # ---------- Enable needed PHP extensions ----------
+# PHP 8.5 note: Zend OPcache is compiled into the core binary and always
+# enabled; it is no longer a separately installable extension.
 RUN apt-get update && apt-get install -y \
     libpng-dev \
     libjpeg-dev \
@@ -14,7 +17,7 @@ RUN apt-get update && apt-get install -y \
     unzip \
     curl \
  && docker-php-ext-configure gd --with-freetype --with-jpeg \
- && docker-php-ext-install gd mysqli pdo pdo_mysql zip opcache \
+ && docker-php-ext-install gd mysqli pdo pdo_mysql zip \
  && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # ---------- Install Composer ----------

@@ -60,7 +60,6 @@ function req(string $method, string $url, array $body = [], string $cookieJar = 
     $r = curl_exec($ch);
     $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
     $headerSize = curl_getinfo($ch, CURLINFO_HEADER_SIZE);
-    curl_close($ch);
     $responseBody = substr($r, $headerSize);
     $json = json_decode($responseBody, true);
     return ['code' => $code, 'json' => $json, 'raw' => $responseBody];

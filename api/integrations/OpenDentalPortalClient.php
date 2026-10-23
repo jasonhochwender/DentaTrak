@@ -201,7 +201,6 @@ class OpenDentalPortalClient {
         $raw = curl_exec($ch);
         $code = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
         $errNo = curl_errno($ch);
-        curl_close($ch);
 
         if ($raw === false || $errNo !== 0) {
             // Deliberately no curl_error() text - uniform generic failure.

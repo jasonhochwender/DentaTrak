@@ -71,7 +71,6 @@ function startServer($baseDir, $port) {
             curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 1);
             curl_exec($ch);
             $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-            curl_close($ch);
             if ($code !== 0) {
                 return $proc;
             }
@@ -111,7 +110,6 @@ function httpRequest($url, $method = 'GET', $data = null, $cookieFile = null) {
     $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
     $headerSize = curl_getinfo($ch, CURLINFO_HEADER_SIZE);
     $loc = curl_getinfo($ch, CURLINFO_REDIRECT_URL);
-    curl_close($ch);
     $headers = substr($r, 0, $headerSize);
     $body = substr($r, $headerSize);
     return ['code' => $code, 'loc' => $loc, 'headers' => $headers, 'body' => $body];

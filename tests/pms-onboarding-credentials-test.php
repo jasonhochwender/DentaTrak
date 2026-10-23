@@ -204,7 +204,6 @@ function httpJson(string $method, string $url, ?string $jsonBody, array $headers
     }
     $r = curl_exec($ch);
     $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    curl_close($ch);
     return ['code' => $code, 'body' => (string)$r];
 }
 

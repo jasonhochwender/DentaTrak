@@ -130,7 +130,7 @@ try {
         $out = fopen('php://output', 'w');
         // Excel/Latin-1 friendliness is not needed here; UTF-8 + standard
         // escaping is sufficient and avoids a BOM altering the first header.
-        fputcsv($out, ['accessed_at', 'user', 'email', 'action', 'resource_type', 'resource_id', 'tracking_number', 'metadata', 'ip_address']);
+        fputcsv($out, ['accessed_at', 'user', 'email', 'action', 'resource_type', 'resource_id', 'tracking_number', 'metadata', 'ip_address'], escape: '');
         foreach ($rows as $row) {
             // The user-facing case reference is the tracking number. The raw
             // internal case_id is never exported; an unresolvable linked case
@@ -154,7 +154,7 @@ try {
                 $caseRef,
                 $row['meta_json'],
                 $row['ip_address'],
-            ]);
+            ], escape: '');
         }
         fclose($out);
         exit;

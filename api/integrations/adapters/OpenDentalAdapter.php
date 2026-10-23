@@ -279,7 +279,6 @@ class OpenDentalAdapter implements PmsAdapterInterface {
         $code = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
         $errNo = curl_errno($ch);
         $headerSize = (int)curl_getinfo($ch, CURLINFO_HEADER_SIZE);
-        curl_close($ch);
 
         if ($raw === false || $errNo !== 0) {
             // Deliberately no curl_error() text - it can embed the request

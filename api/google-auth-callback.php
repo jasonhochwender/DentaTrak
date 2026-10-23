@@ -63,7 +63,6 @@ curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);
 $response = curl_exec($ch);
 $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
 $curlError = curl_error($ch);
-curl_close($ch);
 
 // Log HTTP code and raw response for debugging (only on error to keep logs clean)
 if ($curlError || $httpCode < 200 || $httpCode >= 300) {
@@ -112,7 +111,6 @@ curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
 curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);
 
 $userInfoResponse = curl_exec($ch);
-curl_close($ch);
 
 // Parse user info
 $userInfo = json_decode($userInfoResponse, true);

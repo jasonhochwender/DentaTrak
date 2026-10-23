@@ -33,10 +33,10 @@ class ForcedErrorPDO extends PDO {
     public function __construct() {
         parent::__construct('sqlite::memory:');
     }
-    public function prepare($query, $options = []) {
+    public function prepare($query, $options = []): PDOStatement|false {
         throw new RuntimeException('Forced unexpected database error for testing');
     }
-    public function exec($statement) {
+    public function exec($statement): int|false {
         return 0;
     }
 }

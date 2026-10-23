@@ -87,7 +87,6 @@ function httpJson(string $method, string $url, ?string $rawBody = null, array $h
     $resp = curl_exec($ch);
     $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
     $hs = curl_getinfo($ch, CURLINFO_HEADER_SIZE);
-    curl_close($ch);
     return ['code' => $code, 'body' => substr((string)$resp, $hs)];
 }
 

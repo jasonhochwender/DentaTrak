@@ -116,7 +116,6 @@ function submitIndexNowUrls(array $urls): array {
     $responseBody = curl_exec($ch);
     $httpCode = curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
     $error = curl_error($ch);
-    curl_close($ch);
 
     if ($responseBody === false) {
         throw new RuntimeException('IndexNow request failed: ' . $error);

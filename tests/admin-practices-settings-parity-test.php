@@ -13,13 +13,20 @@ $port = 18301;
 $docRoot = realpath($base);
 
 $serverCmd = "php -S 127.0.0.1:{$port} -t \"{$docRoot}\"";
-$descriptors = [0 => ['pipe', 'r'], 1 => ['pipe', 'w'], 2 => ['pipe', 'w']];
+// File descriptors (not pipes) for server stdio: php -S logs every request
+// and a full OS pipe buffer deadlocks the server mid-response when the
+// parent never drains it. Mirrors pms-integrations-api-test.php.
+$stderrPath = sys_get_temp_dir() . '/dentatrak-parity-' . $port . '.log';
+@file_put_contents(sys_get_temp_dir() . '/dt-null-in.txt', '');
+$descriptors = [
+    0 => ['file', sys_get_temp_dir() . '/dt-null-in.txt', 'r'],
+    1 => ['file', sys_get_temp_dir() . '/dt-null-out.txt', 'w'],
+    2 => ['file', $stderrPath, 'w'],
+];
 $process = proc_open($serverCmd, $descriptors, $pipes);
 if (!$process) {
     die("FAIL: Could not start dev server\n");
 }
-stream_set_blocking($pipes[1], false);
-stream_set_blocking($pipes[2], false);
 register_shutdown_function(function () use ($process, $pipes) {
     foreach ($pipes as $p) { if (is_resource($p)) fclose($p); }
     proc_terminate($process);
@@ -60,7 +67,6 @@ function req(string $method, string $url, array $body = [], string $cookieJar = 
     $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
     $headerSize = curl_getinfo($ch, CURLINFO_HEADER_SIZE);
     $body = $r === false ? '' : substr($r, $headerSize);
-    curl_close($ch);
     return ['code' => $code, 'body' => $body];
 }
 

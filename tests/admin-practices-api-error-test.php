@@ -77,7 +77,6 @@ function req(string $method, string $url, array $body = [], string $cookieJar = 
     $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
     $headerSize = curl_getinfo($ch, CURLINFO_HEADER_SIZE);
     $body = $r === false ? '' : substr($r, $headerSize);
-    curl_close($ch);
     return ['code' => $code, 'body' => $body];
 }
 

@@ -763,7 +763,6 @@ class DsCoreAuthService {
         $raw = curl_exec($ch);
         $code = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
         $errno = curl_errno($ch);
-        curl_close($ch);
 
         if ($errno !== 0 || $raw === false) {
             throw new DsCoreAuthException('network', 'DS Core request failed to complete.', true);
