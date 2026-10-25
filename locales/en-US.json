@@ -5606,7 +5606,7 @@
         },
         "problem": {
             "eyebrow": "The Problem",
-            "title": "Dental cases don't stay in one system.",
+            "title": "Your case information gets scattered.",
             "lead": "Appointments, lab updates, files, shipping, and team knowledge each live separately. When the case story is split across texts, emails, spreadsheets, and memory, no one sees the full picture."
         },
         "workflow": {
@@ -5626,7 +5626,7 @@
         },
         "attention": {
             "eyebrow": "Product View",
-            "title": "Will it be ready for the appointment?",
+            "title": "Ready for that appointment?",
             "lead": "DentaTrak connects each case's due date to the patient appointment date and the workflow stage it is in. Cases approaching an appointment before they are ready show Appointment Risk; cases past your threshold show Late; upcoming deadlines show Due Soon. Your team sees what needs attention without checking every card. When a lab's promised return date lands after the appointment, that counts as Appointment Risk as well.",
             "late": "Late",
             "due_soon": "Due Soon",
@@ -5700,8 +5700,8 @@
         },
         "insights_section": {
             "eyebrow": "Practice & Lab Insights",
-            "title": "Where are cases getting delayed?",
-            "lead": "Practice and Lab Insights turn everyday activity into a clear view of case volume, current workload, lab turnaround, on-time rates, and remakes, so you can spot where cases slow down and act before delays reach the patient.",
+            "title": "Practice and lab insights",
+            "lead": "Turn everyday activity into a clearer picture of how your practice and labs are doing. See turnaround times, spot delays, and track remakes.",
             "included": "Practice Insights, Lab Insights, and Recommendations are included in the Control and Scale plans.",
             "features": {
                 "1_title": "Case volume and status",
@@ -6062,7 +6062,7 @@
             "note": "English, German, Spanish, French, Canadian French, Italian, Brazilian Portuguese, Russian, and Korean."
         },
         "compare": {
-            "title": "Already tracking cases somewhere else?",
+            "title": "Tracking cases somewhere else?",
             "lead": "You may already have assignments, attachments, and a place to talk. When that work involves dental cases, there are a few more questions worth asking.",
             "q1": "Can you see which cases put an appointment at risk?",
             "a1": "DentaTrak connects the case due date to the patient appointment date. When an appointment falls inside your chosen warning window and the case is not yet delivered, the case is flagged Appointment Risk on the board and in Insights. You can also track Late, Due Soon, and Needs Review cases independently.",
