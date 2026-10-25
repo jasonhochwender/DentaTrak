@@ -2177,7 +2177,10 @@ foreach (['operate', 'control', 'scale'] as $plan) {
       //   practices/users PLAN_INCLUDED_PRACTICES + tier max_users
       //   Control+        hasControlAccess() (Insights, Recommendations)
       //   Scale           hasScaleAccess() (consolidated view, org Insights)
-      //   all plans       hasIntegrationAccess() (Open Dental)
+      //   Control+        Open Dental (per pricing cards and in-app
+      //                   locked_note; NOTE: hasIntegrationAccess() currently
+      //                   also permits Operate at runtime - marketing shows
+      //                   the intended placement)
       // Scanner integrations stay "Coming soon" and keep the Control-card
       // placement (Scale inherits Control), matching the pricing cards.
       $planFeatureGroups = [
@@ -2201,7 +2204,7 @@ foreach (['operate', 'control', 'scale'] as $plan) {
               ['label' => t('marketing.plan_features.org_insights'), 'info' => t('marketing.plan_features.org_insights_info'), 'cells' => ['dash', 'dash', 'check']],
           ]],
           ['label' => t('marketing.plan_features.cat_integrations'), 'rows' => [
-              ['label' => t('marketing.plan_features.open_dental'), 'info' => t('marketing.plan_features.open_dental_info'), 'cells' => ['check', 'check', 'check']],
+              ['label' => t('marketing.plan_features.open_dental'), 'info' => t('marketing.plan_features.open_dental_info'), 'cells' => ['dash', 'check', 'check']],
               ['label' => t('marketing.plan_features.scanners'), 'cells' => ['dash', 'soon', 'soon']],
           ]],
       ];
