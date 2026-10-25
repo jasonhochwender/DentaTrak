@@ -3842,7 +3842,11 @@
             "about": "Über uns",
             "support": "Support",
             "privacy": "Datenschutz",
-            "terms": "AGB"
+            "terms": "AGB",
+            "menu": "Menü",
+            "menu_open": "Menü öffnen",
+            "menu_close": "Menü schließen",
+            "primary_nav": "Hauptnavigation"
         },
         "accessibility": {
             "home_aria": "DentaTrak-Startseite",
@@ -3868,7 +3872,7 @@
         },
         "attention": {
             "eyebrow": "Produktansicht",
-            "title": "Ist der Fall zum Termin fertig?",
+            "title": "Rechtzeitig zum Termin fertig?",
             "lead": "DentaTrak verknüpft Fälligkeitsdatum und Patiententermin mit dem aktuellen Workflow-Schritt. Fälle, die sich einem Termin nähern, bevor sie fertig sind, zeigen ein Terminrisiko; Fälle über Ihrer Schwelle zeigen Verspätet; anstehende Fristen zeigen Bald fällig. Ihr Team sieht, was Aufmerksamkeit braucht, ohne jede Karte zu prüfen. Liegt der vom Labor zugesagte Rückgabetermin nach dem Termin, zählt das ebenfalls als Terminrisiko.",
             "late": "Verspätet",
             "due_soon": "Bald fällig",
@@ -3876,14 +3880,14 @@
             "needs_review": "Prüfung nötig"
         },
         "hero": {
-            "title": "Dentallaborfälle, organisiert.",
+            "title": "Halten Sie Ihre Laborfälle in Bewegung – ohne Nachfassen.",
             "lead": "Verfolgen Sie jeden Fall von der Praxis zum Labor und zurück. Sehen Sie Terminrisiken, offene Übergaben und Laborverzögerungen, mit Patientendaten, Dateien und Gesprächen direkt am Fall.",
             "start_free": "Testen Sie DentaTrak kostenlos",
             "see_how": "So funktioniert's"
         },
         "problem": {
             "eyebrow": "Das Problem",
-            "title": "Dentale Fälle bleiben nicht in einem System.",
+            "title": "Ihre Fallinformationen geraten durcheinander.",
             "lead": "Termine, Laboraktualisierungen, Dateien, Versand und Teamwissen existieren jeweils getrennt. Wenn die Fallgeschichte auf Textnachrichten, E-Mails, Tabellen und Erinnerungen verteilt ist, sieht niemand das ganze Bild."
         },
         "workflow": {
@@ -3962,8 +3966,8 @@
         },
         "insights_section": {
             "eyebrow": "Practice & Lab Insights",
-            "title": "Wo bleiben Fälle hängen?",
-            "lead": "Practice und Lab Insights verwandeln die tägliche Arbeit in einen klaren Blick auf Fallvolumen, aktuelle Arbeitslast, Labordurchlaufzeit, Termintreue und Neuanfertigungen, damit Sie erkennen, wo Fälle langsamer werden, bevor die Verzögerung den Patienten erreicht.",
+            "title": "Praxis- und Labor-Einblicke",
+            "lead": "Machen Sie aus dem Alltag ein klareres Bild davon, wie es Ihrer Praxis und Ihren Laboren geht. Sehen Sie Durchlaufzeiten, erkennen Sie Verzögerungen und verfolgen Sie Nacharbeiten.",
             "included": "Practice Insights, Lab Insights und Empfehlungen sind in den Tarifen Control und Scale enthalten.",
             "features": {
                 "1_title": "Fallvolumen und Status",
@@ -6044,7 +6048,7 @@
         },
         "collaboration": {
             "eyebrow": "Zusammenarbeit",
-            "title": "Wer muss als Nächstes handeln?",
+            "title": "Wer macht was?",
             "lead": "Jeder Fall zeigt Workflow-Schritt, Labor und Zuständigen. Kommentare, @Erwähnungen, Fotos und Dateien bleiben am Fall, sodass die nächste Übergabe schriftlich da steht, statt im Gedächtnis.",
             "features": {
                 "1_title": "Kommentare und @Erwähnungen",
@@ -6104,7 +6108,7 @@
             "note": "Englisch, Deutsch, Spanisch, Französisch, Kanadisches Französisch, Italienisch, Brasilianisches Portugiesisch, Russisch und Koreanisch."
         },
         "compare": {
-            "title": "Verfolgen Sie Fälle bereits woanders?",
+            "title": "Verfolgen Sie Fälle schon anderswo?",
             "lead": "Vielleicht haben Sie bereits Zuweisungen, Anhänge und einen Ort zum Austausch. Wenn es um dentale Fälle geht, lohnt es sich, ein paar weitere Fragen zu stellen.",
             "q1": "Sehen Sie, welche Fälle einen Termin gefährden?",
             "a1": "DentaTrak verknüpft das Fälligkeitsdatum des Falls mit dem Patiententermin. Liegt ein Termin innerhalb Ihres gewählten Warnfensters und der Fall ist noch nicht geliefert, wird er auf dem Board und in Insights als Terminrisiko markiert. Sie können Verspätet, Bald fällig und Prüfung erforderlich auch unabhängig voneinander verfolgen.",
@@ -6114,6 +6118,44 @@
             "a3": "Lab Insights liefert Durchlaufzeit, Termintreue, Arbeitslast und laborzugeordnete Neuanfertigungen je Labor. Revisionen werden getrennt von Neuanfertigungen gezählt. Eine routinemäßige Anpassung gilt nicht als Fehler.",
             "q4": "Ist Ihr System für Patienteninformationen gedacht?",
             "a4": "DentaTrak ist dafür ausgelegt. Der Fallzugriff folgt Rolle und Berechtigungen jedes Nutzers, Anhänge bleiben in privatem Speicher und öffnen über kurzlebige Links, und Fallzugriffe werden protokolliert. Prüfen Sie, ob Ihr Anbieter die vorgesehene Verwendung von Patienteninformationen unterstützt und erforderlichenfalls eine Business-Associate-Vereinbarung abschließt."
+        },
+        "plan_features": {
+            "title": "Funktionsumfang",
+            "lead": "Vergleichen Sie, was in jedem Tarif enthalten ist.",
+            "feature_col": "Funktion",
+            "included": "Enthalten",
+            "not_included": "Nicht enthalten",
+            "coming_soon": "Demnächst verfügbar",
+            "more_info": "Mehr zu {feature}",
+            "cat_cases": "Fälle und Teamarbeit",
+            "cat_practices": "Praxen und Nutzer",
+            "cat_insights": "Einblicke und Berichte",
+            "cat_integrations": "Integrationen",
+            "unlimited_cases": "Unbegrenzte Fälle",
+            "unlimited_attachments": "Unbegrenzte Fallanhänge",
+            "workflow_stages": "Anpassbare Workflow-Stufen",
+            "views": "Board-, Kompakt- und Listenansicht",
+            "comments": "Kommentare, @Erwähnungen und Benachrichtigungen",
+            "ask_dt": "Ask DentaTrak – Hilfe im Produkt",
+            "ask_dt_info": "Beantwortet Produkt- und Anwendungsfragen direkt in der App. Getrennt von den Insights-Berichten und Analysen weiter unten.",
+            "practices_included": "Enthaltene Praxen",
+            "practices_included_info": "Scale ist für Organisationen gedacht: 5 Praxen sind im Basistarif enthalten, jede weitere kostet +$99/Monat oder +$990/Jahr.",
+            "operate_practices": "1 Praxis",
+            "control_practices": "Bis zu 2 Praxen",
+            "scale_practices": "5 Praxen enthalten",
+            "team_members": "Teammitglieder",
+            "operate_users": "Bis zu 5 Nutzer",
+            "unlimited": "Unbegrenzt",
+            "consolidated_view": "Konsolidierte Fallansicht über Praxen hinweg",
+            "consolidated_view_info": "Sehen Sie Fälle aus allen Praxen Ihrer Organisation an einem Ort. Der Zugriff pro Praxis bleibt unverändert – Mitglieder sehen nur die Praxen, denen sie angehören.",
+            "practice_insights": "Practice Insights",
+            "lab_insights": "Lab Insights",
+            "recommendations": "Empfehlungen",
+            "org_insights": "Einblicke auf Organisationsebene",
+            "org_insights_info": "Vergleicht Arbeitsaufkommen, Durchlaufzeiten, Termintreue und Nacharbeiten über alle Praxen Ihrer Organisation hinweg – getrennt von den Einblicken pro Praxis.",
+            "open_dental": "Open Dental-Integration",
+            "open_dental_info": "Verbinden Sie Open Dental, damit unterstützte Laborfälle automatisch in DentaTrak erscheinen – mit optionaler Status-Synchronisierung in beide Richtungen.",
+            "scanners": "Scanner-Integrationen"
         }
     },
     "shortcuts": {

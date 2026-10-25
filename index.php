@@ -161,20 +161,36 @@ foreach (['operate', 'control', 'scale'] as $plan) {
     .site-header { position: fixed; top: 0; left: 0; right: 0; z-index: 100; background: rgba(253,251,247,0.95); border-bottom: 1px solid var(--dt-border); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); }
     .site-header .container { height: 72px; display: flex; align-items: center; justify-content: space-between; }
     .site-logo img { height: auto; width: auto; max-width: 140px; object-fit: contain; display: block; }
-    .site-nav { display: flex; align-items: center; gap: 28px; }
+    .site-nav { display: flex; align-items: center; gap: 20px; }
     .site-nav .nav-divider { height: 20px; border-inline-start: 1px solid var(--dt-border); flex-shrink: 0; }
-    .site-nav a { font-size: 0.9rem; font-weight: 500; color: var(--dt-ink-secondary); }
+    .site-nav a { font-size: 0.9rem; font-weight: 500; color: var(--dt-ink-secondary); white-space: nowrap; }
     .site-nav a:hover { color: var(--dt-blue); }
     .site-nav a.nav-cta,
-    .site-nav a.nav-cta:visited,
-    .site-nav a.nav-cta:hover,
-    .site-nav a.nav-cta:focus,
-    .site-nav a.nav-cta:active { background: var(--dt-blue); color: #fff; padding: 9px 20px; border-radius: 100px; font-weight: 600; }
-    .site-nav a.nav-cta:hover { background: var(--dt-blue-light); }
+    .nav-cta, .nav-cta:visited { background: var(--dt-blue); color: #fff; padding: 9px 20px; border-radius: 100px; font-weight: 600; }
+    .site-nav a.nav-cta:hover, .nav-cta:hover { background: var(--dt-blue-light); color: #fff; }
+    .nav-cta { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; white-space: nowrap; flex-shrink: 0; text-decoration: none; }
+
+    /* Collapsed header: hamburger toggle + dropdown panel */
+    .nav-collapsed { display: none; align-items: center; gap: 12px; }
+    .nav-toggle { display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; padding: 0; background: #fff; border: 1px solid var(--dt-border); border-radius: 10px; color: var(--dt-ink); cursor: pointer; }
+    .nav-toggle:hover { border-color: var(--dt-blue); color: var(--dt-blue); }
+    .nav-toggle:focus-visible { outline: 2px solid var(--dt-blue-light); outline-offset: 2px; }
+    .nav-menu { position: absolute; top: 100%; left: 0; right: 0; background: #fff; border-bottom: 1px solid var(--dt-border); box-shadow: 0 18px 40px -18px rgba(0,0,0,0.18); padding: 10px 0 18px; }
+    .nav-menu[hidden] { display: none; }
+    .nav-menu a.nav-link { display: block; padding: 12px 28px; font-size: 1rem; font-weight: 500; color: var(--dt-ink-secondary); text-decoration: none; }
+    .nav-menu a.nav-link:hover, .nav-menu a.nav-link:focus-visible { color: var(--dt-blue); background: var(--dt-pale); outline: none; }
+    .nav-menu .nav-menu-lang { padding: 10px 28px 4px; border-top: 1px solid var(--dt-border); margin-top: 6px; }
+
+    /* Below this width the full nav (links + Sign In + Start Free +
+       language selector) no longer fits on one line - collapse it. */
+    @media (max-width: 1220px) {
+      .site-nav { display: none; }
+      .nav-collapsed { display: flex; }
+    }
 
     /* Hero */
     .hero { padding: 150px 0 80px; text-align: center; }
-    .hero h1 { font-size: clamp(2.6rem, 6vw, 4.6rem); font-weight: 700; line-height: 1.08; letter-spacing: -0.03em; max-width: 900px; margin: 0 auto 24px; }
+    .hero h1 { font-size: clamp(2rem, 4.6vw, 3.6rem); font-weight: 700; line-height: 1.12; letter-spacing: -0.03em; max-width: 880px; margin: 0 auto 24px; }
     .hero .lead { margin: 0 auto 34px; }
     .hero-actions { display: flex; justify-content: center; gap: 16px; flex-wrap: wrap; margin-bottom: 44px; }
 
@@ -471,9 +487,7 @@ foreach (['operate', 'control', 'scale'] as $plan) {
     }
 
     @media (max-width: 480px) {
-      .site-nav { gap: 10px; }
-      .site-nav a.nav-cta { padding: 8px 12px; font-size: 0.85rem; }
-      .site-nav .language-selector-toggle { padding: 5px 8px; gap: 4px; font-size: 0.72rem; }
+      .nav-collapsed { gap: 10px; }
     }
 
     /* Phone layout for the problem section: text first, then a compact
@@ -526,7 +540,7 @@ foreach (['operate', 'control', 'scale'] as $plan) {
     @media (max-width: 720px) {
       .section { padding: 72px 0; }
       .hero { padding: 120px 0 60px; }
-      .hero h1 { font-size: 2.2rem; }
+      .hero h1 { font-size: clamp(1.85rem, 6.4vw, 2.2rem); }
       .hero .lead { font-size: 1rem; }
       .footer-nav { flex-direction: column; gap: 32px; }
       .board { grid-template-columns: repeat(3, 1fr); }
@@ -966,7 +980,7 @@ foreach (['operate', 'control', 'scale'] as $plan) {
     .m-modal-footer { padding-top: 10px; border-top: 1px solid var(--dt-border); margin-top: auto; }
     .m-save-btn { width: 100%; background: var(--dt-blue); color: #fff; border: none; border-radius: 10px; padding: 10px; font-size: 0.75rem; font-weight: 600; cursor: pointer; }
 
-    @media (max-width: 1100px) {
+    @media (max-width: 1220px) {
       .m-device-secondary { right: 10px; }
     }
     @media (max-width: 900px) {
@@ -1058,7 +1072,7 @@ foreach (['operate', 'control', 'scale'] as $plan) {
       <a href="<?= $baseUrl ?>" class="site-logo" aria-label="<?php echo htmlspecialchars(t('marketing.accessibility.home_aria')); ?>">
         <img src="<?= $baseUrl ?>images/main.png" alt="<?php echo htmlspecialchars(t('marketing.accessibility.logo_alt')); ?>">
       </a>
-      <nav class="site-nav" aria-label="Primary">
+      <nav class="site-nav" aria-label="<?php echo htmlspecialchars(t('marketing.navigation.primary_nav')); ?>">
         <a href="#problem"><?php echo t('marketing.navigation.problem'); ?></a>
         <a href="#how-it-works"><?php echo t('marketing.navigation.how_it_works'); ?></a>
         <a href="#pricing"><?php echo t('marketing.navigation.pricing'); ?></a>
@@ -1068,6 +1082,22 @@ foreach (['operate', 'control', 'scale'] as $plan) {
         <a href="<?= $baseUrl ?>login.php" class="nav-cta"><?php echo t('marketing.navigation.start_free'); ?></a>
         <?php echo renderLanguageSelector('api/set-session-locale.php', getResolvedLocale(), false); ?>
       </nav>
+      <div class="nav-collapsed">
+        <a href="<?= $baseUrl ?>login.php" class="nav-cta"><?php echo t('marketing.navigation.start_free'); ?></a>
+        <button type="button" class="nav-toggle" id="nav-menu-toggle" aria-expanded="false" aria-controls="nav-menu" aria-label="<?php echo htmlspecialchars(t('marketing.navigation.menu_open')); ?>">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><line x1="2.5" y1="5" x2="17.5" y2="5"/><line x1="2.5" y1="10" x2="17.5" y2="10"/><line x1="2.5" y1="15" x2="17.5" y2="15"/></svg>
+        </button>
+      </div>
+    </div>
+    <div class="nav-menu" id="nav-menu" hidden>
+      <nav aria-label="<?php echo htmlspecialchars(t('marketing.navigation.primary_nav')); ?>">
+        <a class="nav-link" href="#problem"><?php echo t('marketing.navigation.problem'); ?></a>
+        <a class="nav-link" href="#how-it-works"><?php echo t('marketing.navigation.how_it_works'); ?></a>
+        <a class="nav-link" href="#pricing"><?php echo t('marketing.navigation.pricing'); ?></a>
+        <a class="nav-link" href="<?= $baseUrl . ($articleUrls['page_resources'] ?? 'resources') ?>"><?php echo t('marketing.navigation.resources'); ?></a>
+        <a class="nav-link" href="<?= $baseUrl ?>login.php"><?php echo t('marketing.navigation.sign_in'); ?></a>
+      </nav>
+      <div class="nav-menu-lang"><?php echo renderLanguageSelector('api/set-session-locale.php?nav=mobile', getResolvedLocale(), false); ?></div>
     </div>
   </header>
 
@@ -3120,6 +3150,44 @@ foreach (['operate', 'control', 'scale'] as $plan) {
       document.addEventListener('click', function () { closeAll(null); });
       document.addEventListener('keydown', function (e) {
         if (e.key === 'Escape') { closeAll(null); }
+      });
+    })();
+  </script>
+
+  <script>
+    // Collapsed navigation: hamburger toggle, Escape closes and returns
+    // focus, link selection closes, and resizing back to desktop clears
+    // any open-menu state. Closed menu is `hidden`, so its items are
+    // never keyboard-focusable.
+    (function () {
+      var toggle = document.getElementById('nav-menu-toggle');
+      var menu = document.getElementById('nav-menu');
+      if (!toggle || !menu) return;
+      var labelOpen = <?php echo json_encode(t('marketing.navigation.menu_open')); ?>;
+      var labelClose = <?php echo json_encode(t('marketing.navigation.menu_close')); ?>;
+      var mq = window.matchMedia('(max-width: 1220px)');
+      function closeMenu() {
+        menu.hidden = true;
+        toggle.setAttribute('aria-expanded', 'false');
+        toggle.setAttribute('aria-label', labelOpen);
+      }
+      toggle.addEventListener('click', function () {
+        var open = menu.hidden;
+        menu.hidden = !open;
+        toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+        toggle.setAttribute('aria-label', open ? labelClose : labelOpen);
+      });
+      menu.addEventListener('click', function (e) {
+        if (e.target.closest('a')) closeMenu();
+      });
+      document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' && !menu.hidden) { closeMenu(); toggle.focus(); }
+      });
+      document.addEventListener('click', function (e) {
+        if (!menu.hidden && !menu.contains(e.target) && !toggle.contains(e.target)) closeMenu();
+      });
+      (mq.addEventListener ? mq.addEventListener.bind(mq, 'change') : mq.addListener.bind(mq))(function (e) {
+        if (!e.matches) closeMenu();
       });
     })();
   </script>

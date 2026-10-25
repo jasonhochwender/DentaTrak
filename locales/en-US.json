@@ -3800,7 +3800,11 @@
             "about": "About",
             "support": "Support",
             "privacy": "Privacy",
-            "terms": "Terms"
+            "terms": "Terms",
+            "menu": "Menu",
+            "menu_open": "Open menu",
+            "menu_close": "Close menu",
+            "primary_nav": "Primary"
         },
         "footer": {
             "product": "Product",
@@ -5599,7 +5603,7 @@
             }
         },
         "hero": {
-            "title": "Dental lab cases, organized.",
+            "title": "Keep your lab cases moving without chasing updates.",
             "lead": "Track each case from the practice to the lab and back. See appointment risks, outstanding handoffs, and lab delays, with patient details, files, and conversations connected to the case.",
             "start_free": "Try DentaTrak Free",
             "see_how": "See How It Works"
@@ -6040,7 +6044,7 @@
         },
         "collaboration": {
             "eyebrow": "Collaboration",
-            "title": "Who needs to act next?",
+            "title": "Who’s doing what?",
             "lead": "Every case shows its workflow stage, lab, and assignee. Comments, @mentions, photos, and files stay with the case, so the next handoff is written down, not remembered.",
             "features": {
                 "1_title": "Comments and @mentions",

@@ -1786,7 +1786,7 @@
         },
         "attention": {
             "eyebrow": "Visão do produto",
-            "title": "Vai ficar pronto para a consulta?",
+            "title": "Pronto para aquela consulta?",
             "lead": "O DentaTrak conecta a data de entrega de cada caso à data da consulta do paciente e ao estágio do fluxo em que ele está. Casos que se aproximam de uma consulta sem estarem prontos mostram Risco de consulta; os que passam do seu limite mostram Atrasado; prazos próximos mostram Vencendo em breve. Sua equipe vê o que precisa de atenção sem conferir cada cartão. Se a data de devolução prometida pelo laboratório cair depois da consulta, também conta como Risco para a consulta.",
             "late": "Atrasado",
             "due_soon": "Prazo próximo",
@@ -1852,15 +1852,15 @@
             "lead": "O Dr. William Verrillo, dentista em atividade, desenvolveu o DentaTrak para dar às equipes odontológicas uma visão única e atual de cada caso, da clínica ao laboratório e de volta ao paciente."
         },
         "hero": {
-            "title": "Casos de laboratório dentário, organizados.",
+            "title": "Mantenha seus casos de laboratório em andamento sem correr atrás de atualizações.",
             "lead": "Acompanhe cada caso do consultório ao laboratório e de volta. Veja riscos de consulta, repasses pendentes e atrasos do laboratório, com dados do paciente, arquivos e conversas conectados ao caso.",
             "start_free": "Experimente o DentaTrak grátis",
             "see_how": "Veja como funciona"
         },
         "insights_section": {
             "eyebrow": "Practice e Lab Insights",
-            "title": "Onde os casos estão atrasando?",
-            "lead": "Practice e Lab Insights transformam a atividade diária em uma visão clara do volume de casos, da carga atual, dos prazos de laboratório, da pontualidade e das refações, para você identificar onde os casos desaceleram antes de o atraso chegar ao paciente.",
+            "title": "Visão da clínica e dos laboratórios",
+            "lead": "Transforme a rotina em uma visão mais clara de como sua clínica e seus laboratórios estão indo. Veja prazos de entrega, identifique atrasos e acompanhe retrabalhos.",
             "included": "Practice Insights, Lab Insights e recomendações estão incluídos nos planos Control e Scale.",
             "features": {
                 "1_title": "Volume e status de casos",
@@ -1936,7 +1936,11 @@
             "about": "Sobre",
             "support": "Suporte",
             "privacy": "Privacidade",
-            "terms": "Termos"
+            "terms": "Termos",
+            "menu": "Menu",
+            "menu_open": "Abrir menu",
+            "menu_close": "Fechar menu",
+            "primary_nav": "Principal"
         },
         "pricing": {
             "eyebrow": "Preços",
@@ -1984,7 +1988,7 @@
         },
         "problem": {
             "eyebrow": "O problema",
-            "title": "Casos odontológicos não ficam em um único sistema.",
+            "title": "As informações dos seus casos se dispersam.",
             "lead": "Consultas, atualizações de laboratório, arquivos, envios e o conhecimento da equipe vivem separados. Quando a história do caso está dividida entre mensagens, e-mails, planilhas e memória, ninguém vê o quadro completo."
         },
         "security": {
@@ -2215,7 +2219,7 @@
         },
         "collaboration": {
             "eyebrow": "Colaboração",
-            "title": "Quem precisa agir agora?",
+            "title": "Quem faz o quê?",
             "lead": "Cada caso mostra seu estágio, laboratório e responsável. Comentários, @menções, fotos e arquivos ficam com o caso. O próximo repasse fica registrado, não na memória.",
             "features": {
                 "1_title": "Comentários e @menções",
@@ -2275,7 +2279,7 @@
             "note": "Inglês, alemão, espanhol, francês, francês canadense, italiano, português brasileiro, russo e coreano."
         },
         "compare": {
-            "title": "Já acompanha seus casos em outra ferramenta?",
+            "title": "Já acompanha casos em outro lugar?",
             "lead": "Talvez você já tenha atribuições, anexos e um lugar para conversar. Quando esse trabalho envolve casos dentários, vale a pena fazer mais algumas perguntas.",
             "q1": "Você consegue ver quais casos colocam uma consulta em risco?",
             "a1": "O DentaTrak conecta a data de entrega do caso à data da consulta do paciente. Quando uma consulta cai dentro da janela de aviso que você escolheu e o caso ainda não foi entregue, ele é marcado como Risco de consulta no quadro e no Insights. Você também pode acompanhar separadamente os casos Atrasado, Vencendo em breve e Precisa de revisão.",
@@ -2285,6 +2289,44 @@
             "a3": "O Lab Insights informa prazo de entrega, pontualidade, carga de trabalho e refações atribuídas ao laboratório por laboratório. As revisões são contadas separadamente das refações. Um ajuste de rotina não é tratado como erro.",
             "q4": "Seu sistema foi feito para lidar com informações de pacientes?",
             "a4": "O DentaTrak foi projetado para isso. O acesso aos casos segue a função e as permissões de cada usuário, os anexos ficam em armazenamento privado e abrem por links de curta duração, e o acesso aos casos é registrado. Verifique se o seu provedor oferece suporte ao uso pretendido das informações de pacientes e assinará um Acordo de Associado Comercial quando necessário."
+        },
+        "plan_features": {
+            "title": "Recursos dos planos",
+            "lead": "Compare o que está incluído em cada plano.",
+            "feature_col": "Recurso",
+            "included": "Incluído",
+            "not_included": "Não incluído",
+            "coming_soon": "Em breve",
+            "more_info": "Mais sobre {feature}",
+            "cat_cases": "Casos e trabalho em equipe",
+            "cat_practices": "Clínicas e usuários",
+            "cat_insights": "Análises e relatórios",
+            "cat_integrations": "Integrações",
+            "unlimited_cases": "Casos ilimitados",
+            "unlimited_attachments": "Anexos de casos ilimitados",
+            "workflow_stages": "Etapas de fluxo personalizáveis",
+            "views": "Visualizações em quadro, compacta e lista",
+            "comments": "Comentários, @menções e notificações",
+            "ask_dt": "Ajuda integrada Ask DentaTrak",
+            "ask_dt_info": "Responde a perguntas sobre o produto e seu uso dentro do app. É separada dos relatórios Insights e das análises abaixo.",
+            "practices_included": "Clínicas incluídas",
+            "practices_included_info": "O Scale é feito para organizações: o plano base inclui 5 clínicas e cada clínica adicional custa +US$ 99/mês ou +US$ 990/ano.",
+            "operate_practices": "1 clínica",
+            "control_practices": "Até 2 clínicas",
+            "scale_practices": "5 clínicas incluídas",
+            "team_members": "Membros da equipe",
+            "operate_users": "Até 5 usuários",
+            "unlimited": "Ilimitado",
+            "consolidated_view": "Visão consolidada de casos entre clínicas",
+            "consolidated_view_info": "Veja os casos de todas as clínicas da sua organização em um só lugar. O acesso por clínica não muda: os membros continuam vendo apenas as clínicas às quais pertencem.",
+            "practice_insights": "Practice Insights",
+            "lab_insights": "Lab Insights",
+            "recommendations": "Recomendações",
+            "org_insights": "Análises no nível da organização",
+            "org_insights_info": "Compara carga de trabalho, prazos de entrega, pontualidade e retrabalhos em todas as clínicas da sua organização – separado dos Insights por clínica.",
+            "open_dental": "Integração com Open Dental",
+            "open_dental_info": "Conecte o Open Dental para que os casos de laboratório compatíveis apareçam automaticamente no DentaTrak, com sincronização bidirecional de status opcional.",
+            "scanners": "Integrações de scanners"
         }
     },
     "navigation": {

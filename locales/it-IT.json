@@ -3800,7 +3800,11 @@
             "about": "Chi siamo",
             "support": "Assistenza",
             "privacy": "Privacy",
-            "terms": "Termini"
+            "terms": "Termini",
+            "menu": "Menu",
+            "menu_open": "Apri menu",
+            "menu_close": "Chiudi menu",
+            "primary_nav": "Principale"
         },
         "footer": {
             "product": "Prodotto",
@@ -5599,14 +5603,14 @@
             }
         },
         "hero": {
-            "title": "Casi di laboratorio odontotecnico, organizzati.",
+            "title": "Fai progredire i tuoi casi di laboratorio senza rincorrere aggiornamenti.",
             "lead": "Segui ogni caso dallo studio al laboratorio e ritorno. Vedi i rischi per gli appuntamenti, i passaggi di consegne in sospeso e i ritardi del laboratorio, con dettagli del paziente, file e conversazioni collegati al caso.",
             "start_free": "Prova DentaTrak gratis",
             "see_how": "Scopri come funziona"
         },
         "problem": {
             "eyebrow": "Il problema",
-            "title": "I casi dentali non restano in un unico sistema.",
+            "title": "Le informazioni dei tuoi casi si disperdono.",
             "lead": "Appuntamenti, aggiornamenti del laboratorio, file, spedizioni e conoscenza del team vivono ognuno per conto proprio. Quando la storia del caso è divisa tra messaggi, email, fogli di calcolo e memoria, nessuno vede il quadro completo."
         },
         "workflow": {
@@ -5626,7 +5630,7 @@
         },
         "attention": {
             "eyebrow": "Vista del prodotto",
-            "title": "Sarà pronto per l’appuntamento?",
+            "title": "Pronto per quell'appuntamento?",
             "lead": "DentaTrak collega la data di scadenza di ogni caso alla data dell’appuntamento del paziente e alla fase di workflow in cui si trova. I casi che si avvicinano a un appuntamento senza essere pronti mostrano Rischio appuntamento; quelli oltre la tua soglia mostrano In ritardo; le scadenze vicine mostrano In scadenza. Il team vede cosa richiede attenzione senza controllare ogni scheda. Se la data di rientro promessa dal laboratorio cade dopo l'appuntamento, conta anch'essa come Rischio appuntamento.",
             "late": "In ritardo",
             "due_soon": "In scadenza",
@@ -5700,8 +5704,8 @@
         },
         "insights_section": {
             "eyebrow": "Practice Insights e Lab Insights",
-            "title": "Dove i casi stanno accumulando ritardo?",
-            "lead": "Practice e Lab Insights trasformano l’attività quotidiana in una visione chiara di volume dei casi, carico attuale, tempi di consegna dei laboratori, puntualità e rifacimenti, per individuare dove i casi rallentano prima che il ritardo raggiunga il paziente.",
+            "title": "Approfondimenti su studio e laboratori",
+            "lead": "Trasforma l'attività quotidiana in un quadro più chiaro di come vanno il tuo studio e i tuoi laboratori. Guarda i tempi di consegna, individua i ritardi e tieni traccia dei rifacimenti.",
             "included": "Practice Insights, Lab Insights e le raccomandazioni sono inclusi nei piani Control e Scale.",
             "features": {
                 "1_title": "Volume e stato dei casi",
@@ -6002,7 +6006,7 @@
         },
         "collaboration": {
             "eyebrow": "Collaborazione",
-            "title": "Chi deve agire adesso?",
+            "title": "Chi fa cosa?",
             "lead": "Ogni caso mostra la sua fase di workflow, il laboratorio e il responsabile. Commenti, @menzioni, foto e file restano con il caso. Il prossimo passaggio è scritto, non affidato alla memoria.",
             "features": {
                 "1_title": "Commenti e @menzioni",
@@ -6062,7 +6066,7 @@
             "note": "Inglese, tedesco, spagnolo, francese, francese canadese, italiano, portoghese brasiliano, russo e coreano."
         },
         "compare": {
-            "title": "Stai già seguendo i casi altrove?",
+            "title": "Tracci già i casi altrove?",
             "lead": "Forse hai già assegnazioni, allegati e un posto dove parlare. Quando quel lavoro riguarda casi dentali, vale la pena porsi qualche domanda in più.",
             "q1": "Riesci a vedere quali casi mettono a rischio un appuntamento?",
             "a1": "DentaTrak collega la data di scadenza del caso alla data dell’appuntamento del paziente. Quando un appuntamento cade nella finestra di avviso che hai scelto e il caso non è ancora consegnato, viene segnalato come Rischio appuntamento sulla bacheca e in Insights. Puoi anche seguire separatamente i casi In ritardo, In scadenza e Da rivedere.",
@@ -6072,6 +6076,44 @@
             "a3": "Lab Insights riporta tempi di consegna, puntualità, carico di lavoro e rifacimenti attribuiti al laboratorio per ogni laboratorio. Le revisioni sono contate separatamente dai rifacimenti. Un aggiustamento di routine non è trattato come un errore.",
             "q4": "Il tuo sistema è pensato per le informazioni dei pazienti?",
             "a4": "DentaTrak è progettato per questo. L’accesso ai casi segue il ruolo e i permessi di ogni utente, gli allegati restano in uno spazio privato e si aprono tramite link a breve durata, e l’accesso ai casi è registrato. Verifica se il tuo fornitore supporta l’uso previsto delle informazioni dei pazienti e firmerà un Business Associate Agreement quando necessario."
+        },
+        "plan_features": {
+            "title": "Funzionalità dei piani",
+            "lead": "Confronta cosa include ogni piano.",
+            "feature_col": "Funzionalità",
+            "included": "Incluso",
+            "not_included": "Non incluso",
+            "coming_soon": "Prossimamente",
+            "more_info": "Maggiori informazioni su {feature}",
+            "cat_cases": "Casi e lavoro di squadra",
+            "cat_practices": "Studi e utenti",
+            "cat_insights": "Analisi e report",
+            "cat_integrations": "Integrazioni",
+            "unlimited_cases": "Casi illimitati",
+            "unlimited_attachments": "Allegati dei casi illimitati",
+            "workflow_stages": "Fasi del flusso di lavoro personalizzabili",
+            "views": "Viste bacheca, compatta e elenco",
+            "comments": "Commenti, @menzioni e notifiche",
+            "ask_dt": "Assistenza integrata Ask DentaTrak",
+            "ask_dt_info": "Risponde a domande sul prodotto e sull'uso direttamente nell'app. È separata dai report Insights e dalle analisi qui sotto.",
+            "practices_included": "Studi inclusi",
+            "practices_included_info": "Scale è pensato per le organizzazioni: il piano base include 5 studi, ogni studio aggiuntivo costa +99 $/mese o +990 $/anno.",
+            "operate_practices": "1 studio",
+            "control_practices": "Fino a 2 studi",
+            "scale_practices": "5 studi inclusi",
+            "team_members": "Membri del team",
+            "operate_users": "Fino a 5 utenti",
+            "unlimited": "Illimitato",
+            "consolidated_view": "Vista consolidata dei casi di tutti gli studi",
+            "consolidated_view_info": "Vedi i casi di tutti gli studi della tua organizzazione in un unico posto. L'accesso per studio resta invariato: i membri vedono solo gli studi a cui appartengono.",
+            "practice_insights": "Practice Insights",
+            "lab_insights": "Lab Insights",
+            "recommendations": "Raccomandazioni",
+            "org_insights": "Analisi a livello di organizzazione",
+            "org_insights_info": "Confronta carico di lavoro, tempi di consegna, puntualità e rifacimenti in tutti gli studi della tua organizzazione – separato dagli Insights per studio.",
+            "open_dental": "Integrazione Open Dental",
+            "open_dental_info": "Collega Open Dental per far apparire automaticamente in DentaTrak i casi di laboratorio supportati, con sincronizzazione bidirezionale dello stato opzionale.",
+            "scanners": "Integrazioni scanner"
         }
     },
     "legal": {

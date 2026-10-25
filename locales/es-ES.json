@@ -3800,7 +3800,11 @@
             "about": "Acerca de",
             "support": "Soporte",
             "privacy": "Privacidad",
-            "terms": "Términos"
+            "terms": "Términos",
+            "menu": "Menú",
+            "menu_open": "Abrir menú",
+            "menu_close": "Cerrar menú",
+            "primary_nav": "Principal"
         },
         "footer": {
             "product": "Producto",
@@ -5599,14 +5603,14 @@
             }
         },
         "hero": {
-            "title": "Casos de laboratorio dental, organizados.",
+            "title": "Mantenga sus casos de laboratorio en movimiento sin perseguir actualizaciones.",
             "lead": "Siga cada caso del consultorio al laboratorio y de regreso. Vea riesgos de cita, entregas pendientes y retrasos del laboratorio, con datos del paciente, archivos y conversaciones conectados al caso.",
             "start_free": "Pruebe DentaTrak gratis",
             "see_how": "Vea cómo funciona"
         },
         "problem": {
             "eyebrow": "El problema",
-            "title": "Los casos dentales no permanecen en un solo sistema.",
+            "title": "La información de sus casos se dispersa.",
             "lead": "Las citas, las actualizaciones del laboratorio, los archivos, los envíos y el conocimiento del equipo viven cada uno por separado. Cuando la historia del caso está repartida entre mensajes de texto, correos electrónicos, hojas de cálculo y la memoria, nadie ve el panorama completo."
         },
         "workflow": {
@@ -5626,7 +5630,7 @@
         },
         "attention": {
             "eyebrow": "Vista del producto",
-            "title": "¿Estará listo para la cita?",
+            "title": "¿Listo para esa cita?",
             "lead": "DentaTrak conecta la fecha de entrega de cada caso con la fecha de la cita del paciente y la etapa del flujo en la que se encuentra. Los casos que se acercan a una cita sin estar listos muestran Riesgo de cita; los que superan su umbral muestran Atrasado; los plazos próximos muestran Próximo a vencer. Su equipo ve qué necesita atención sin revisar cada tarjeta. Si la fecha de devolución prometida por el laboratorio cae después de la cita, también cuenta como Riesgo de cita.",
             "late": "Atrasado",
             "due_soon": "Próximo a vencer",
@@ -5700,8 +5704,8 @@
         },
         "insights_section": {
             "eyebrow": "Insights del consultorio y del laboratorio",
-            "title": "¿Dónde se están retrasando los casos?",
-            "lead": "Practice y Lab Insights convierten la actividad diaria en una vista clara del volumen de casos, la carga actual, el tiempo de entrega del laboratorio, la puntualidad y las repeticiones, para detectar dónde se ralentizan los casos antes de que el retraso llegue al paciente.",
+            "title": "Información de la consulta y los laboratorios",
+            "lead": "Convierta la actividad diaria en una imagen más clara del rendimiento de su consulta y sus laboratorios. Vea plazos de entrega, detecte demoras y siga las repeticiones.",
             "included": "Los Insights del consultorio, los Insights del laboratorio y las Recomendaciones están incluidos en los planes Control y Scale.",
             "features": {
                 "1_title": "Volumen y estado de casos",
@@ -6002,7 +6006,7 @@
         },
         "collaboration": {
             "eyebrow": "Colaboración",
-            "title": "¿Quién debe actuar ahora?",
+            "title": "¿Quién hace qué?",
             "lead": "Cada caso muestra su etapa, laboratorio y responsable. Comentarios, @menciones, fotos y archivos permanecen con el caso, así que la siguiente entrega queda por escrito, no en la memoria.",
             "features": {
                 "1_title": "Comentarios y @menciones",
@@ -6062,7 +6066,7 @@
             "note": "Inglés, alemán, español, francés, francés canadiense, italiano, portugués brasileño, ruso y coreano."
         },
         "compare": {
-            "title": "¿Ya sigue los casos en otra herramienta?",
+            "title": "¿Ya hace seguimiento de casos en otro lugar?",
             "lead": "Quizá ya tenga asignaciones, archivos adjuntos y un lugar para conversar. Cuando ese trabajo implica casos dentales, vale la pena hacerse algunas preguntas más.",
             "q1": "¿Puede ver qué casos ponen en riesgo una cita?",
             "a1": "DentaTrak conecta la fecha de entrega del caso con la fecha de la cita del paciente. Cuando una cita cae dentro de su ventana de aviso y el caso aún no se entrega, se marca como Riesgo de cita en el tablero y en Insights. También puede seguir por separado los casos Atrasado, Próximo a vencer y Requiere revisión.",
@@ -6072,6 +6076,44 @@
             "a3": "Lab Insights informa el tiempo de entrega, la puntualidad, la carga de trabajo y las repeticiones atribuidas al laboratorio por laboratorio. Las revisiones se cuentan aparte de las repeticiones, así que un ajuste rutinario no se trata como un error.",
             "q4": "¿Su sistema está pensado para información de pacientes?",
             "a4": "DentaTrak está diseñado para ello. El acceso a los casos sigue el rol y los permisos de cada usuario, los archivos permanecen en almacenamiento privado y se abren mediante enlaces de corta duración, y el acceso a los casos queda registrado. Compruebe si su proveedor admite el uso previsto de información de pacientes y firmará un Acuerdo de Socio Comercial cuando sea necesario."
+        },
+        "plan_features": {
+            "title": "Funciones de los planes",
+            "lead": "Compare lo que incluye cada plan.",
+            "feature_col": "Función",
+            "included": "Incluido",
+            "not_included": "No incluido",
+            "coming_soon": "Próximamente",
+            "more_info": "Más sobre {feature}",
+            "cat_cases": "Casos y trabajo en equipo",
+            "cat_practices": "Consultas y usuarios",
+            "cat_insights": "Informes y análisis",
+            "cat_integrations": "Integraciones",
+            "unlimited_cases": "Casos ilimitados",
+            "unlimited_attachments": "Archivos adjuntos de casos ilimitados",
+            "workflow_stages": "Etapas de flujo de trabajo personalizables",
+            "views": "Vistas de tablero, compacta y de lista",
+            "comments": "Comentarios, @menciones y notificaciones",
+            "ask_dt": "Ayuda integrada Ask DentaTrak",
+            "ask_dt_info": "Responde preguntas sobre el producto y su uso dentro de la aplicación. Es independiente de los informes Insights y de los análisis que aparecen abajo.",
+            "practices_included": "Consultas incluidas",
+            "practices_included_info": "Scale está pensado para organizaciones: el plan base incluye 5 consultas y cada consulta adicional cuesta +$99/mes o +$990/año.",
+            "operate_practices": "1 consulta",
+            "control_practices": "Hasta 2 consultas",
+            "scale_practices": "5 consultas incluidas",
+            "team_members": "Miembros del equipo",
+            "operate_users": "Hasta 5 usuarios",
+            "unlimited": "Ilimitado",
+            "consolidated_view": "Vista consolidada de casos en todas las consultas",
+            "consolidated_view_info": "Vea los casos de todas las consultas de su organización en un solo lugar. El acceso por consulta no cambia: los miembros solo ven las consultas a las que pertenecen.",
+            "practice_insights": "Practice Insights",
+            "lab_insights": "Lab Insights",
+            "recommendations": "Recomendaciones",
+            "org_insights": "Información a nivel de organización",
+            "org_insights_info": "Compara la carga de trabajo, los plazos de entrega, la puntualidad y las repeticiones en todas las consultas de su organización, de forma separada a los Insights de cada consulta.",
+            "open_dental": "Integración con Open Dental",
+            "open_dental_info": "Conecte Open Dental para que los casos de laboratorio compatibles aparezcan automáticamente en DentaTrak, con sincronización bidireccional de estados opcional.",
+            "scanners": "Integraciones de escáneres"
         }
     },
     "legal": {

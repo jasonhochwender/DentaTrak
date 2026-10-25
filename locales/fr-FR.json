@@ -3800,7 +3800,11 @@
             "about": "À propos",
             "support": "Assistance",
             "privacy": "Confidentialité",
-            "terms": "Conditions"
+            "terms": "Conditions",
+            "menu": "Menu",
+            "menu_open": "Ouvrir le menu",
+            "menu_close": "Fermer le menu",
+            "primary_nav": "Principal"
         },
         "footer": {
             "product": "Produit",
@@ -5599,14 +5603,14 @@
             }
         },
         "hero": {
-            "title": "Cas de laboratoire dentaire, organisés.",
+            "title": "Faites avancer vos cas de laboratoire sans courir après les nouvelles.",
             "lead": "Suivez chaque cas du cabinet au laboratoire et retour. Voyez les risques de rendez-vous, les transferts en attente et les retards de laboratoire, avec les détails du patient, les fichiers et les conversations liés au cas.",
             "start_free": "Essayez DentaTrak gratuitement",
             "see_how": "Voir le fonctionnement"
         },
         "problem": {
             "eyebrow": "Le problème",
-            "title": "Les cas dentaires ne restent pas dans un seul système.",
+            "title": "Les informations de vos cas se dispersent.",
             "lead": "Les rendez-vous, les mises à jour du laboratoire, les fichiers, les expéditions et les connaissances de l'équipe sont chacun stockés séparément. Lorsque l'historique d'un cas est réparti entre SMS, e-mails, tableurs et mémoire, personne ne voit l'ensemble du tableau."
         },
         "workflow": {
@@ -5626,7 +5630,7 @@
         },
         "attention": {
             "eyebrow": "Aperçu du produit",
-            "title": "Sera-t-il prêt pour le rendez-vous ?",
+            "title": "Prêt pour ce rendez-vous ?",
             "lead": "DentaTrak relie la date d’échéance de chaque cas à la date du rendez-vous du patient et à son étape de workflow. Les cas qui approchent d’un rendez-vous sans être prêts affichent Risque de rendez-vous ; ceux qui dépassent votre seuil affichent En retard ; les échéances proches affichent Bientôt dû. Votre équipe voit ce qui demande attention sans vérifier chaque carte. Si la date de retour promise par le laboratoire tombe après le rendez-vous, cela compte aussi comme Risque de rendez-vous.",
             "late": "En retard",
             "due_soon": "Bientôt dû",
@@ -5700,8 +5704,8 @@
         },
         "insights_section": {
             "eyebrow": "Practice et Lab Insights",
-            "title": "Où les cas prennent-ils du retard ?",
-            "lead": "Practice et Lab Insights transforment l’activité quotidienne en une vue claire du volume de cas, de la charge actuelle, des délais de laboratoire, de la ponctualité et des refontes, pour repérer où les cas ralentissent avant que le retard n’atteigne le patient.",
+            "title": "Aperçu du cabinet et des laboratoires",
+            "lead": "Transformez l'activité quotidienne en une vision plus claire de la performance de votre cabinet et de vos laboratoires. Suivez les délais, repérez les retards et suivez les reprises.",
             "included": "Practice Insights, Lab Insights et les recommandations sont inclus dans les formules Control et Scale.",
             "features": {
                 "1_title": "Volume et statut des cas",
@@ -6002,7 +6006,7 @@
         },
         "collaboration": {
             "eyebrow": "Collaboration",
-            "title": "Qui doit agir ensuite ?",
+            "title": "Qui fait quoi ?",
             "lead": "Chaque cas affiche son étape de workflow, son laboratoire et son responsable. Commentaires, @mentions, photos et fichiers restent avec le cas. Le prochain transfert est écrit, pas mémorisé.",
             "features": {
                 "1_title": "Commentaires et @mentions",
@@ -6072,6 +6076,44 @@
             "a3": "Lab Insights rapporte le délai de traitement, la ponctualité, la charge de travail et les refontes attribuées au laboratoire par laboratoire. Les révisions sont comptées séparément des refontes. Un ajustement de routine n’est pas traité comme une erreur.",
             "q4": "Votre système est-il prévu pour les informations patients ?",
             "a4": "DentaTrak est conçu pour cela. L’accès aux cas suit le rôle et les permissions de chaque utilisateur, les pièces jointes restent dans un stockage privé et s’ouvrent par des liens de courte durée, et l’accès aux cas est consigné. Vérifiez si votre fournisseur prend en charge l’usage prévu des informations patients et signera un accord de partenaire commercial si nécessaire."
+        },
+        "plan_features": {
+            "title": "Fonctionnalités des offres",
+            "lead": "Comparez ce que comprend chaque offre.",
+            "feature_col": "Fonctionnalité",
+            "included": "Inclus",
+            "not_included": "Non inclus",
+            "coming_soon": "Bientôt disponible",
+            "more_info": "En savoir plus sur {feature}",
+            "cat_cases": "Cas et travail d'équipe",
+            "cat_practices": "Cabinets et utilisateurs",
+            "cat_insights": "Analyses et rapports",
+            "cat_integrations": "Intégrations",
+            "unlimited_cases": "Cas illimités",
+            "unlimited_attachments": "Pièces jointes de cas illimitées",
+            "workflow_stages": "Étapes de flux de travail personnalisables",
+            "views": "Vues tableau, compacte et liste",
+            "comments": "Commentaires, @mentions et notifications",
+            "ask_dt": "Aide intégrée Ask DentaTrak",
+            "ask_dt_info": "Répond aux questions sur le produit et son utilisation dans l'application. Cette fonction est distincte des rapports Insights et des analyses ci-dessous.",
+            "practices_included": "Cabinets inclus",
+            "practices_included_info": "Scale est conçu pour les organisations : l'offre de base comprend 5 cabinets, chaque cabinet supplémentaire coûte +99 $/mois ou +990 $/an.",
+            "operate_practices": "1 cabinet",
+            "control_practices": "Jusqu'à 2 cabinets",
+            "scale_practices": "5 cabinets inclus",
+            "team_members": "Membres de l'équipe",
+            "operate_users": "Jusqu'à 5 utilisateurs",
+            "unlimited": "Illimité",
+            "consolidated_view": "Vue consolidée des cas de tous les cabinets",
+            "consolidated_view_info": "Consultez les cas de tous les cabinets de votre organisation au même endroit. L'accès par cabinet reste inchangé : les membres ne voient que les cabinets dont ils font partie.",
+            "practice_insights": "Practice Insights",
+            "lab_insights": "Lab Insights",
+            "recommendations": "Recommandations",
+            "org_insights": "Analyses au niveau de l'organisation",
+            "org_insights_info": "Compare la charge de travail, les délais, la ponctualité et les reprises dans tous les cabinets de votre organisation – indépendamment des Insights par cabinet.",
+            "open_dental": "Intégration Open Dental",
+            "open_dental_info": "Connectez Open Dental pour que les cas de laboratoire pris en charge apparaissent automatiquement dans DentaTrak, avec synchronisation bidirectionnelle des statuts en option.",
+            "scanners": "Intégrations de scanners"
         }
     },
     "legal": {
