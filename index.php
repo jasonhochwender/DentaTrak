@@ -404,6 +404,31 @@ foreach (['operate', 'control', 'scale'] as $plan) {
     .plan li.plan-soon::before { content: ''; }
     .plan-extra { margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--dt-border); font-size: 0.85rem; color: var(--dt-ink-secondary); }
 
+    /* Plan feature comparison */
+    .plan-compare { margin-top: 56px; background: #fff; border: 1px solid var(--dt-border); border-radius: var(--dt-radius); box-shadow: var(--dt-shadow); padding: 32px 36px 24px; overflow-x: clip; }
+    @supports not (overflow-x: clip) { .plan-compare { overflow-x: hidden; } }
+    .plan-compare h3 { font-size: 1.4rem; font-weight: 700; margin: 0 0 6px; }
+    .plan-compare-lead { font-size: 0.98rem; color: var(--dt-ink-secondary); margin: 0 0 22px; }
+    .plan-compare-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; margin: 0 -36px; padding: 0 36px; }
+    .plan-table { width: 100%; min-width: 620px; border-collapse: collapse; font-size: 0.92rem; }
+    .plan-table th, .plan-table td { padding: 11px 14px; text-align: center; vertical-align: middle; }
+    .plan-table thead th { font-size: 0.78rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: var(--dt-ink-secondary); border-bottom: 2px solid var(--dt-border); }
+    .plan-table thead th.pf-first, .plan-table tbody th[scope="row"] { text-align: left; font-weight: 500; color: var(--dt-ink); }
+    .plan-table thead th.pf-first { background: #fff; position: sticky; left: 0; z-index: 3; }
+    .plan-table tbody th[scope="row"] { background: #fff; position: sticky; left: 0; z-index: 2; min-width: 200px; font-weight: 500; box-shadow: inset -1px 0 0 var(--dt-border); }
+    .plan-table tbody td { border-bottom: 1px solid var(--dt-border); }
+    .plan-table tbody tr:last-child th, .plan-table tbody tr:last-child td { border-bottom: none; }
+    .plan-table tr.pf-cat th { text-align: left; background: var(--dt-pale); color: var(--dt-blue-dark); font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.09em; padding: 9px 14px; border-bottom: 1px solid var(--dt-border); }
+    .pf-check { color: var(--dt-blue); font-weight: 700; font-size: 1rem; }
+    .pf-dash { color: var(--dt-ink-muted); }
+    .pf-text { font-size: 0.86rem; color: var(--dt-ink-secondary); }
+    .pf-soon { font-size: 0.8rem; color: var(--dt-ink-muted); font-style: italic; }
+    .pf-info { position: relative; display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 18px; margin-left: 6px; border: 1px solid var(--dt-border); border-radius: 50%; background: #fff; color: var(--dt-ink-muted); font-size: 0.68rem; font-weight: 700; font-style: italic; cursor: help; padding: 0; vertical-align: 2px; }
+    .pf-info:hover, .pf-info:focus-visible { border-color: var(--dt-blue); color: var(--dt-blue); outline: none; }
+    .pf-tip { position: absolute; left: 0; bottom: calc(100% + 8px); width: 240px; padding: 10px 12px; background: var(--dt-ink); color: #fff; border-radius: var(--dt-radius-sm); font-size: 0.78rem; font-weight: 400; font-style: normal; line-height: 1.5; text-align: left; box-shadow: var(--dt-shadow); opacity: 0; visibility: hidden; transition: opacity 0.15s ease; z-index: 20; pointer-events: none; }
+    .pf-info:hover .pf-tip, .pf-info:focus-within .pf-tip, .pf-info[aria-expanded="true"] .pf-tip { opacity: 1; visibility: visible; }
+    .visually-hidden { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+
     /* Final CTA */
     .final-cta { text-align: center; background: var(--dt-warm); }
     .final-cta h2 { margin-bottom: 16px; }
@@ -2115,6 +2140,83 @@ foreach (['operate', 'control', 'scale'] as $plan) {
           <div class="plan-extra"><strong><?php echo t('marketing.pricing.scale_addon_title'); ?></strong><br><?php echo t('marketing.pricing.scale_addon_month'); ?><br><?php echo t('marketing.pricing.scale_addon_year'); ?></div>
         </div>
       </div>
+      <?php
+      // Plan feature comparison - every row reflects an enforced gate:
+      //   all plans       max_cases=0 / no tier check (cases, attachments,
+      //                   workflow stages, views, comments, Ask DentaTrak)
+      //   practices/users PLAN_INCLUDED_PRACTICES + tier max_users
+      //   Control+        hasControlAccess() (Insights, Recommendations)
+      //   Scale           hasScaleAccess() (consolidated view, org Insights)
+      //   all plans       hasIntegrationAccess() (Open Dental)
+      // Scanner integrations stay "Coming soon" and keep the Control-card
+      // placement (Scale inherits Control), matching the pricing cards.
+      $planFeatureGroups = [
+          ['label' => t('marketing.plan_features.cat_cases'), 'rows' => [
+              ['label' => t('marketing.plan_features.unlimited_cases'), 'cells' => ['check', 'check', 'check']],
+              ['label' => t('marketing.plan_features.unlimited_attachments'), 'cells' => ['check', 'check', 'check']],
+              ['label' => t('marketing.plan_features.workflow_stages'), 'cells' => ['check', 'check', 'check']],
+              ['label' => t('marketing.plan_features.views'), 'cells' => ['check', 'check', 'check']],
+              ['label' => t('marketing.plan_features.comments'), 'cells' => ['check', 'check', 'check']],
+              ['label' => t('marketing.plan_features.ask_dt'), 'info' => t('marketing.plan_features.ask_dt_info'), 'cells' => ['check', 'check', 'check']],
+          ]],
+          ['label' => t('marketing.plan_features.cat_practices'), 'rows' => [
+              ['label' => t('marketing.plan_features.practices_included'), 'info' => t('marketing.plan_features.practices_included_info'), 'cells' => [t('marketing.plan_features.operate_practices'), t('marketing.plan_features.control_practices'), t('marketing.plan_features.scale_practices')]],
+              ['label' => t('marketing.plan_features.team_members'), 'cells' => [t('marketing.plan_features.operate_users'), t('marketing.plan_features.unlimited'), t('marketing.plan_features.unlimited')]],
+              ['label' => t('marketing.plan_features.consolidated_view'), 'info' => t('marketing.plan_features.consolidated_view_info'), 'cells' => ['dash', 'dash', 'check']],
+          ]],
+          ['label' => t('marketing.plan_features.cat_insights'), 'rows' => [
+              ['label' => t('marketing.plan_features.practice_insights'), 'cells' => ['dash', 'check', 'check']],
+              ['label' => t('marketing.plan_features.lab_insights'), 'cells' => ['dash', 'check', 'check']],
+              ['label' => t('marketing.plan_features.recommendations'), 'cells' => ['dash', 'check', 'check']],
+              ['label' => t('marketing.plan_features.org_insights'), 'info' => t('marketing.plan_features.org_insights_info'), 'cells' => ['dash', 'dash', 'check']],
+          ]],
+          ['label' => t('marketing.plan_features.cat_integrations'), 'rows' => [
+              ['label' => t('marketing.plan_features.open_dental'), 'info' => t('marketing.plan_features.open_dental_info'), 'cells' => ['check', 'check', 'check']],
+              ['label' => t('marketing.plan_features.scanners'), 'cells' => ['dash', 'soon', 'soon']],
+          ]],
+      ];
+      ?>
+      <div class="plan-compare" data-reveal>
+        <h3><?php echo t('marketing.plan_features.title'); ?></h3>
+        <p class="plan-compare-lead"><?php echo t('marketing.plan_features.lead'); ?></p>
+        <div class="plan-compare-scroll">
+          <table class="plan-table">
+            <thead>
+              <tr>
+                <th scope="col" class="pf-first"><?php echo t('marketing.plan_features.feature_col'); ?></th>
+                <th scope="col"><?php echo t('marketing.pricing.operate'); ?></th>
+                <th scope="col"><?php echo t('marketing.pricing.control'); ?></th>
+                <th scope="col"><?php echo t('marketing.pricing.scale'); ?></th>
+              </tr>
+            </thead>
+            <tbody>
+              <?php foreach ($planFeatureGroups as $group): ?>
+              <tr class="pf-cat"><th scope="rowgroup" colspan="4"><?php echo $group['label']; ?></th></tr>
+              <?php foreach ($group['rows'] as $row): ?>
+              <tr>
+                <th scope="row">
+                  <?php echo $row['label']; ?><?php if (!empty($row['info'])): ?><button type="button" class="pf-info" aria-expanded="false" aria-label="<?php echo htmlspecialchars(t('marketing.plan_features.more_info', ['feature' => $row['label']])); ?>"><span aria-hidden="true">i</span><span class="pf-tip" role="tooltip"><?php echo $row['info']; ?></span></button><?php endif; ?>
+                </th>
+                <?php foreach ($row['cells'] as $cell): ?>
+                <td><?php
+                  if ($cell === 'check') {
+                      echo '<span class="pf-check" aria-hidden="true">&#10003;</span><span class="visually-hidden">' . t('marketing.plan_features.included') . '</span>';
+                  } elseif ($cell === 'dash') {
+                      echo '<span class="pf-dash" aria-hidden="true">&mdash;</span><span class="visually-hidden">' . t('marketing.plan_features.not_included') . '</span>';
+                  } elseif ($cell === 'soon') {
+                      echo '<span class="pf-soon">' . t('marketing.plan_features.coming_soon') . '</span>';
+                  } else {
+                      echo '<span class="pf-text">' . $cell . '</span>';
+                  }
+                ?></td>
+                <?php endforeach; ?>
+              </tr>
+              <?php endforeach; ?>
+              <?php endforeach; ?>
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
   </section>
 
@@ -2998,6 +3100,29 @@ foreach (['operate', 'control', 'scale'] as $plan) {
       </form>
     </div>
   </div>
+
+  <script>
+    // Plan-feature info tooltips: click toggles for touch; focus/hover are
+    // handled in CSS; Escape or an outside tap dismisses.
+    (function () {
+      var tips = document.querySelectorAll('.pf-info');
+      function closeAll(except) {
+        tips.forEach(function (b) { if (b !== except) b.setAttribute('aria-expanded', 'false'); });
+      }
+      tips.forEach(function (btn) {
+        btn.addEventListener('click', function (e) {
+          e.stopPropagation();
+          var open = btn.getAttribute('aria-expanded') === 'true';
+          closeAll(btn);
+          btn.setAttribute('aria-expanded', open ? 'false' : 'true');
+        });
+      });
+      document.addEventListener('click', function () { closeAll(null); });
+      document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') { closeAll(null); }
+      });
+    })();
+  </script>
 
 </body>
 </html>
