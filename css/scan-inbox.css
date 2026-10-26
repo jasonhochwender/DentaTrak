@@ -446,11 +446,12 @@ body.dark-mode .scan-file-role {
   border-left: 5px solid transparent;
   border-right: 5px solid transparent;
   border-top: 6px solid currentColor;
+  transform: rotate(-90deg);
   transition: transform 0.15s ease;
 }
 
 .scan-row-open .scan-row-arrow {
-  transform: rotate(180deg);
+  transform: rotate(0deg);
 }
 
 .scan-row-patient {
@@ -544,6 +545,28 @@ body.dark-mode .scan-file-role {
   color: var(--text-secondary, #475569);
 }
 
+.scan-file-view {
+  appearance: none;
+  border: none;
+  background: none;
+  padding: 4px 0;
+  font-size: 12px;
+  color: var(--primary-light, #2563eb);
+  font-weight: 600;
+  cursor: pointer;
+  min-height: 28px;
+}
+
+.scan-file-view:hover {
+  text-decoration: underline;
+}
+
+.scan-file-view:focus-visible {
+  outline: 2px solid var(--primary-light, #2563eb);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm, 4px);
+}
+
 .scan-file-view,
 .scan-file-download {
   margin-left: auto;
@@ -551,7 +574,7 @@ body.dark-mode .scan-file-role {
 
 .scan-file .scan-file-view + .scan-file-download,
 .scan-file .scan-file-view ~ .scan-file-download {
-  margin-left: 0;
+  margin-left: 12px;
 }
 
 @media (max-width: 640px) {

@@ -560,13 +560,26 @@
         && window.isAttachmentViewable(file.fileName)
         && typeof window.openAttachmentViewer === 'function';
       if (viewable) {
-        var viewBtn = el('button', 'btn-secondary scan-file-view', tt('scanner.view_file'));
+        var viewBtn = el('button', 'scan-file-view', tt('scanner.view_file'));
         viewBtn.type = 'button';
         viewBtn.addEventListener('click', function () {
-          var contentUrl = 'api/scan-file.php?file_id=' + encodeURIComponent(file.id);
-          window.openAttachmentViewer(null, file.fileName, file.contentType || 'model/stl', null, {
-            contentUrl: contentUrl,
-            downloadUrl: contentUrl + '&download=1',
+          // Every previewable ready file in THIS scan becomes a viewer
+          // entry so Prev/Next stays inside the scan (never across scans).
+          var list = scan.files.filter(function (f) {
+            return f.status === 'ready' && window.isAttachmentViewable(f.fileName);
+          }).map(function (f) {
+            var url = 'api/scan-file.php?file_id=' + encodeURIComponent(f.id);
+            return {
+              fileName: f.fileName,
+              fileType: f.contentType || 'model/stl',
+              contentUrl: url,
+              downloadUrl: url + '&download=1',
+            };
+          });
+          var clicked = 'api/scan-file.php?file_id=' + encodeURIComponent(file.id);
+          window.openAttachmentViewer(null, file.fileName, file.contentType || 'model/stl', list, {
+            contentUrl: clicked,
+            downloadUrl: clicked + '&download=1',
           });
         });
         li.appendChild(viewBtn);
