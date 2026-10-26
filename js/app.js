@@ -3878,9 +3878,19 @@ document.addEventListener('DOMContentLoaded', function () {
     removeHeader.className = 'practice-user-remove-header';
     removeHeader.textContent = t('settings.users.practice_users.remove');
 
+    if (window.scannerInboxEligible) {
+      var scansHeader = document.createElement('div');
+      scansHeader.className = 'practice-user-scans-header';
+      scansHeader.appendChild(document.createTextNode(t('settings.users.practice_users.incoming_scans')));
+      scansHeader.appendChild(createInfoTooltip(t('settings.users.practice_users.incoming_scans_tooltip'), true));
+    }
+
     headerRow.appendChild(emailHeader);
     headerRow.appendChild(adminHeader);
     headerRow.appendChild(analyticsHeader);
+    if (window.scannerInboxEligible && scansHeader) {
+      headerRow.appendChild(scansHeader);
+    }
     headerRow.appendChild(limitedHeader);
     if (labHeader) {
       headerRow.appendChild(labHeader);
