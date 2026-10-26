@@ -1179,6 +1179,21 @@ input#practiceName {
   grid-template-columns: minmax(0, 1fr) 62px 74px 96px 112px 58px 66px;
 }
 
+/* Incoming Scans column: checkbox centered in its track (header and body
+   share the same 96px column, so identical centering applies to both). */
+.practice-user-scans-cell {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+.practice-user-scans-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
 /* Per-cell labels exist for the stacked phone-card layout only. */
 .practice-user-cell-label {
   display: none;
