@@ -32,6 +32,7 @@
   var pagerEl = null;
   var pendingScanId = null;
   var pendingScanDefaults = null;
+  var pendingScanFiles = [];
   var attachScanId = null;
   var attachCases = [];
   var loaded = false;
@@ -726,6 +727,9 @@
       tt('scanner.create_confirm', { id: scan.externalScanId }),
       function () {
         pendingScanId = scan.id;
+        pendingScanFiles = (scan.files || []).filter(function (f) {
+          return f && f.status === 'ready' && f.contentUrl;
+        });
         pendingScanDefaults = {
           first: scan.patientFirstName || '',
           last: scan.patientLastName || '',
@@ -736,6 +740,7 @@
         var createBtn = document.querySelector('.create-case-button');
         if (!createBtn) {
           pendingScanId = null;
+          pendingScanFiles = [];
           showToastSafe(tt('scanner.error_load'), 'error');
           return;
         }
@@ -754,9 +759,92 @@
               notes.value = pendingScanDefaults.instructions;
             }
           }
+
+          // Show the scan's files in the same attachments area manual
+          // uploads use - same .selected-file markup so appearance, counts,
+          // and preview controls match files added by hand.
+          renderPendingScanFiles();
+          watchCaseModalClose();
         }, 250);
       }
     );
+  }
+
+  /**
+   * Render the pending scan's ready files into the intraoralScans group of
+   * the create-case modal. Marked data-scan-pending so cancel cleanup can
+   * remove exactly these entries without touching manual selections.
+   */
+  function renderPendingScanFiles() {
+    var container = document.getElementById('intraoralScans-files');
+    if (!container || !pendingScanFiles || !pendingScanFiles.length) return;
+    removePendingScanFileEls();
+    pendingScanFiles.forEach(function (f) {
+      var div = document.createElement('div');
+      div.className = 'selected-file';
+      div.setAttribute('data-scan-pending', '1');
+      div.setAttribute('data-file-name', f.fileName || '');
+
+      var fileInfo = document.createElement('div');
+      fileInfo.className = 'file-info';
+
+      var fileName = document.createElement('span');
+      fileName.className = 'file-name';
+      fileName.textContent = f.fileName || '';
+
+      var viewLink = document.createElement('a');
+      viewLink.href = f.contentUrl;
+      viewLink.target = '_blank';
+      viewLink.className = 'file-view-link';
+      viewLink.textContent = tt('scanner.action_view') || 'View';
+
+      var dlLink = document.createElement('a');
+      dlLink.href = f.downloadUrl || f.contentUrl;
+      dlLink.className = 'file-view-link';
+      dlLink.textContent = tt('scanner.action_download') || 'Download';
+
+      fileInfo.appendChild(fileName);
+      fileInfo.appendChild(viewLink);
+      fileInfo.appendChild(dlLink);
+      div.appendChild(fileInfo);
+      container.appendChild(div);
+    });
+  }
+
+  function removePendingScanFileEls() {
+    document.querySelectorAll('.selected-file[data-scan-pending]').forEach(function (el) {
+      el.remove();
+    });
+  }
+
+  function clearPendingScan() {
+    pendingScanId = null;
+    pendingScanDefaults = null;
+    pendingScanFiles = [];
+    removePendingScanFileEls();
+  }
+
+  var caseModalObserver = null;
+
+  /**
+   * If the create-case modal is dismissed while a scan is pending (cancel,
+   * close, backdrop), drop the pending link state and remove the injected
+   * file entries so the scan stays available and nothing carries into the
+   * next case form.
+   */
+  function watchCaseModalClose() {
+    var modal = document.getElementById('createCaseModal');
+    if (!modal) return;
+    if (caseModalObserver) caseModalObserver.disconnect();
+    caseModalObserver = new MutationObserver(function () {
+      var hidden = modal.style.display === 'none' || !modal.classList.contains('show') && getComputedStyle(modal).display === 'none';
+      if (hidden && pendingScanId) {
+        clearPendingScan();
+        caseModalObserver.disconnect();
+        caseModalObserver = null;
+      }
+    });
+    caseModalObserver.observe(modal, { attributes: true, attributeFilter: ['style', 'class'] });
   }
 
   function setFieldValue(id, value) {
@@ -778,9 +866,15 @@
     var scanId = pendingScanId;
     pendingScanId = null;
     pendingScanDefaults = null;
+    removePendingScanFileEls();
     api('link', { scan_id: scanId, case_id: caseId, append_instructions: false })
       .then(function () {
         showToastSafe(tt('scanner.attach_success'), 'success');
+        // Re-open the freshly created case so its attachments render with
+        // the just-linked scan files - no manual close/reopen needed.
+        if (typeof window.openCaseById === 'function') {
+          window.openCaseById(caseId);
+        }
         loadScans();
       })
       .catch(function (err) {
