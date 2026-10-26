@@ -25,7 +25,18 @@ fi
 BASE_HOST="$(printf '%s' "$BASE" | sed -E 's#^https?://([^/]+).*#\1#')"
 
 JAR="$(mktemp)" && HDRS="$(mktemp)"
-trap 'rm -f "$JAR" "$HDRS"' EXIT
+
+# Removing the cookie jar only discards the client-side session id; the
+# server-side session would remain open until expiry. On ANY exit -
+# success or failure - attempt a normal logout first so the synthetic
+# account is not left with dangling sessions.
+cleanup() {
+  if [ -s "$JAR" ]; then
+    curl -sS --max-time 15 -b "$JAR" -o /dev/null "$BASE/api/logout.php" >/dev/null 2>&1 || true
+  fi
+  rm -f "$JAR" "$HDRS"
+}
+trap cleanup EXIT
 
 retry_curl() {
   local args=("$@") out="" i
@@ -68,6 +79,11 @@ echo "main.php OK (200, authenticated content)"
 
 # 3) Shared permission check path: the synthetic account is the allowlisted
 # practice's admin, so the inbox check must succeed (not 403/500).
+# EXPECTATION IS DELIBERATE: this assumes the test practice keeps scanner
+# access (SCANNER_INBOX flag + allowlist + plan + admin role). If scanner
+# access is ever intentionally disabled for it, update this step's expected
+# result in the same change - do NOT silently weaken or skip the
+# authenticated main.php validation above, which is flag-independent.
 CODE="$(retry_curl -b "$JAR" -o "$HDRS" -w '%{http_code}' "$BASE/api/scan-inbox.php?action=list&view=attention")" \
   || fail "scan-inbox request failed"
 [ "$CODE" = "200" ] || fail "scan-inbox list returned HTTP $CODE (expected 200 for allowed practice admin)"
