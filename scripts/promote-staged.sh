@@ -23,7 +23,28 @@ for entry in json.load(sys.stdin).get("status", {}).get("traffic", []):
 ' "$TAG")" || { echo "PROMOTE FAIL: describe failed for tag '$TAG'"; exit 1; }
 [ -n "$REV" ] || { echo "PROMOTE FAIL: no revision found for tag '$TAG'"; exit 1; }
 
-echo "Resolved tag '$TAG' -> revision '$REV'; routing 100% traffic"
+echo "Resolved tag '$TAG' -> revision '$REV'"
+
+# Promotion race safety: concurrent builds each verify and promote their
+# own tagged revision. Unique tags stop the wrong REVISION from being
+# promoted, but they don't stop an older build finishing last and
+# replacing a newer release. Compare creation timestamps - if the
+# currently serving revision is newer than the one this build verified,
+# refuse to regress (the newer build's own verification already ran).
+CUR="$(gcloud run services describe "$SERVICE" --region "$REGION" \
+      --format='value(status.latestReadyRevisionName)' 2>/dev/null || echo '')"
+if [ -n "$CUR" ] && [ "$CUR" != "$REV" ]; then
+  CUR_TS="$(gcloud run revisions describe "$CUR" --region "$REGION" \
+            --format='value(metadata.creationTimestamp)' 2>/dev/null || echo '')"
+  NEW_TS="$(gcloud run revisions describe "$REV" --region "$REGION" \
+            --format='value(metadata.creationTimestamp)' 2>/dev/null || echo '')"
+  if [ -n "$CUR_TS" ] && [ -n "$NEW_TS" ] && [[ "$CUR_TS" > "$NEW_TS" ]]; then
+    echo "PROMOTE SKIP: serving revision $CUR ($CUR_TS) is newer than $REV ($NEW_TS); not regressing"
+    exit 0
+  fi
+fi
+
+echo "Routing 100% traffic to $REV"
 gcloud run services update-traffic "$SERVICE" \
   --region "$REGION" \
   --to-revisions "$REV=100" \

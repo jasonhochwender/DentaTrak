@@ -98,10 +98,16 @@ $psLabel = null;
 foreach ($r['vendors'] as $v) { if ($v['key'] === 'primescan') $psLabel = $v['label']; }
 check($psLabel === 'Primescan / DS Core', 'vendor label readable');
 
-// partial-link flag
-$r = L($pdo, $practiceId, $userId, ['view' => 'attention', 'per_page' => 500, 'q' => 'Patient']);
-$pl = array_filter($r['scans'], fn($s) => $s['isPartiallyLinked']);
-check(count($pl) === 30, 'partially-linked scans flagged (got ' . count($pl) . ')');
+// partial-link flag across ALL pages: per_page is server-capped at 100,
+// so a single page never sees all 30 partials - paginate and sum.
+$plTotal = 0;
+for ($pg = 1; $pg <= 3; $pg++) {
+    $r = L($pdo, $practiceId, $userId, ['view' => 'attention', 'per_page' => 100, 'page' => $pg]);
+    $plTotal += count(array_filter($r['scans'], fn($s) => $s['isPartiallyLinked']));
+}
+check($plTotal === 30, "partially-linked scans flagged across pages (got $plTotal)");
+$r = L($pdo, $practiceId, $userId, ['view' => 'attention', 'per_page' => 500]);
+check(count($r['scans']) === 100 && (int)$r['per_page'] === 100, 'per_page capped at 100 server-side');
 
 // --- truncation cap (5000): seed 5101 thin rows into a second practice ---
 $pdo->exec("INSERT INTO practices (practice_id, practice_name, created_by, is_active, created_at) VALUES ('$ext-2','Bulk Cap Test',$userId,1,NOW())");
