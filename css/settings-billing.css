@@ -1,6 +1,6 @@
 /* Settings and Billing Modal Styles */
 .settings-billing-modal {
-  max-width: 960px;
+  max-width: 1200px;
   padding-bottom: 0;
   max-height: calc(80vh + 40px);
   display: flex;
@@ -1166,6 +1166,17 @@ input#practiceName {
 .practice-user-header.has-lab-column,
 .practice-user-row.has-lab-column {
   grid-template-columns: minmax(0, 1fr) 62px 74px 112px 58px 66px;
+}
+
+/* Extra "Incoming Scans" column between Insights and Assigned Only -
+   only added while window.scannerInboxEligible is on. */
+.practice-user-header.has-scans-column:not(.has-lab-column),
+.practice-user-row.has-scans-column:not(.has-lab-column) {
+  grid-template-columns: minmax(0, 1fr) 62px 74px 96px 112px 66px;
+}
+.practice-user-header.has-scans-column.has-lab-column,
+.practice-user-row.has-scans-column.has-lab-column {
+  grid-template-columns: minmax(0, 1fr) 62px 74px 96px 112px 58px 66px;
 }
 
 /* Per-cell labels exist for the stacked phone-card layout only. */

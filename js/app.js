@@ -3844,7 +3844,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Header row
     var headerRow = document.createElement('div');
-    headerRow.className = 'gmail-user-item practice-user-header' + (window.showLabInsights ? ' has-lab-column' : '');
+    headerRow.className = 'gmail-user-item practice-user-header' + (window.showLabInsights ? ' has-lab-column' : '') + (window.scannerInboxEligible ? ' has-scans-column' : '');
 
     var emailHeader = document.createElement('div');
     emailHeader.className = 'gmail-user-email';
@@ -3923,7 +3923,7 @@ document.addEventListener('DOMContentLoaded', function () {
       var isCurrent = (lower === normalizedCurrent);
 
       var row = document.createElement('div');
-      row.className = 'gmail-user-item practice-user-row' + (showLabInsights ? ' has-lab-column' : '');
+      row.className = 'gmail-user-item practice-user-row' + (showLabInsights ? ' has-lab-column' : '') + (window.scannerInboxEligible ? ' has-scans-column' : '');
 
       var infoWrapper = document.createElement('div');
       infoWrapper.className = 'gmail-user-info';
@@ -4127,7 +4127,7 @@ document.addEventListener('DOMContentLoaded', function () {
       var entry = pendingRemovals[lower];
 
       var row = document.createElement('div');
-      row.className = 'gmail-user-item practice-user-row pending-removal' + (showLabInsights ? ' has-lab-column' : '');
+      row.className = 'gmail-user-item practice-user-row pending-removal' + (showLabInsights ? ' has-lab-column' : '') + (window.scannerInboxEligible ? ' has-scans-column' : '');
 
       var infoWrapper = document.createElement('div');
       infoWrapper.className = 'gmail-user-info';
