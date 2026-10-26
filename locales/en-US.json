@@ -6317,7 +6317,8 @@
         "partial_linked": "Partially linked",
         "files_count": "{count} files",
         "details": "Details",
-        "field_patient_ref": "Patient reference"
+        "field_patient_ref": "Patient reference",
+        "linked_case_generic": "a case"
     },
     "usage_report": {
         "back": "Back to Dashboard",

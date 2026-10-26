@@ -410,22 +410,21 @@
 
     if (scan.isLinked) {
       if (scan.linkedCase && scan.linkedCase.exists) {
-        var caseLabel = scan.linkedCase.patientName
-          ? scan.linkedCase.patientName + ' (' + scan.linkedCase.id + ')'
-          : scan.linkedCase.id;
-        actions.appendChild(el('span', 'scan-linked-label', tt('scanner.linked_to', { case: caseLabel })));
-        var openBtn = btn('btn-secondary scan-action-open', tt('scanner.open_case'), function () {
+        // The readable case reference is itself the link (no separate
+        // Open button, no raw internal id in the label).
+        var caseLabel = scan.linkedCase.patientName || tt('scanner.linked_case_generic');
+        var caseLink = btn('scan-linked-label scan-case-link', tt('scanner.linked_to', { case: caseLabel }), function () {
           if (typeof window.openCaseById === 'function') {
             window.openCaseById(scan.linkedCase.id, {});
           }
         });
-        actions.appendChild(openBtn);
+        actions.appendChild(caseLink);
       } else {
         actions.appendChild(el('span', 'scan-linked-label', tt('scanner.case_unavailable')));
       }
       // Linked scans with unlinked ready files stay actionable (revisions).
       if (scan.isPartiallyLinked) {
-        actions.appendChild(btn('btn-secondary scan-action-attach', tt('scanner.attach_updated_files'), function () {
+        actions.appendChild(btn('btn-secondary scan-btn-sm scan-action-attach', tt('scanner.attach_updated_files'), function () {
           openAttachModal(scan, scan.caseId, true);
         }));
       }
@@ -434,16 +433,16 @@
       var noInFlight = !(scan.status === 'processing' || scan.status === 'received');
 
       if (attachable && noInFlight) {
-        actions.appendChild(btn('btn-secondary scan-action-attach', tt('scanner.attach_to_case'), function () {
+        actions.appendChild(btn('btn-secondary scan-btn-sm scan-action-attach', tt('scanner.attach_to_case'), function () {
           openAttachModal(scan, null);
         }));
-        actions.appendChild(btn('btn-secondary scan-action-create', tt('scanner.create_case'), function () {
+        actions.appendChild(btn('btn-secondary scan-btn-sm scan-action-create', tt('scanner.create_case'), function () {
           startCaseFromScan(scan);
         }));
       }
 
       if (scan.status === 'failed' || (scan.files || []).some(function (f) { return f.status === 'failed'; })) {
-        var retryBtn = btn('btn-secondary scan-action-retry', tt('scanner.retry'), null);
+        var retryBtn = btn('btn-secondary scan-btn-sm scan-action-retry', tt('scanner.retry'), null);
         retryBtn.addEventListener('click', function () {
           retryBtn.disabled = true;
           api('retry', { scan_id: scan.id })
@@ -459,7 +458,7 @@
         actions.appendChild(retryBtn);
       }
 
-      actions.appendChild(btn('btn-secondary scan-action-dismiss', tt('scanner.dismiss'), function () {
+      actions.appendChild(btn('scan-btn-text scan-action-dismiss', tt('scanner.dismiss'), function () {
         confirmAction(tt('scanner.dismiss_title'), tt('scanner.dismiss_confirm'), function () {
           api('dismiss', { scan_id: scan.id })
             .then(function () { showToastSafe(tt('scanner.dismissed_toast'), 'success'); loadScans(); })
@@ -467,7 +466,7 @@
         });
       }));
     } else {
-      actions.appendChild(btn('btn-secondary scan-action-restore', tt('scanner.restore'), function () {
+      actions.appendChild(btn('btn-secondary scan-btn-sm scan-action-restore', tt('scanner.restore'), function () {
         api('restore', { scan_id: scan.id })
           .then(function () { showToastSafe(tt('scanner.restored_toast'), 'success'); loadScans(); })
           .catch(function (err) { showToastSafe(err.message, 'error'); });
