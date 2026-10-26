@@ -1756,7 +1756,8 @@ document.addEventListener('DOMContentLoaded', function () {
             data.showLabInsights === true,
             data.workflowStageLabels || {},
             data.workflowColumns || null,
-            data.currentPracticeId
+            data.currentPracticeId,
+            data.canViewIncomingScansUsers || {}
           );
 
           // Apply locale selections to the settings form
@@ -2057,7 +2058,7 @@ document.addEventListener('DOMContentLoaded', function () {
   window.applyShowCaseHistoryTab = applyShowCaseHistoryTab;
 
   // Apply loaded settings to form fields
-  function applyUserSettings(preferences, loadedGmailUsers, loadedGmailLogins, loadedAdminUsers, practiceName, logoPath, loadedAssignmentLabels, isPracticeAdmin, practiceCreatorEmail, displayName, legalName, loadedLimitedVisibilityUsers, loadedCanViewAnalyticsUsers, loadedCanEditCasesUsers, practiceCreatorHasGoogleAccount, isGoogleDriveConnected, loadedAssignmentLabelsDetailed, loadedPracticeUsers, loadedIsLabUsers, showLabInsights, loadedWorkflowStageLabels, loadedWorkflowColumns, serverCurrentPracticeId) {
+  function applyUserSettings(preferences, loadedGmailUsers, loadedGmailLogins, loadedAdminUsers, practiceName, logoPath, loadedAssignmentLabels, isPracticeAdmin, practiceCreatorEmail, displayName, legalName, loadedLimitedVisibilityUsers, loadedCanViewAnalyticsUsers, loadedCanEditCasesUsers, practiceCreatorHasGoogleAccount, isGoogleDriveConnected, loadedAssignmentLabelsDetailed, loadedPracticeUsers, loadedIsLabUsers, showLabInsights, loadedWorkflowStageLabels, loadedWorkflowColumns, serverCurrentPracticeId, loadedCanViewIncomingScansUsers) {
     window.isPracticeAdmin = !!isPracticeAdmin;
     window.practiceCreatorEmail = (practiceCreatorEmail || '').toLowerCase() || null;
     window.practiceCreatorHasGoogleAccount = practiceCreatorHasGoogleAccount !== false;
@@ -2320,7 +2321,8 @@ document.addEventListener('DOMContentLoaded', function () {
     // Load permission maps
     window.limitedVisibilityUsers = loadedLimitedVisibilityUsers || {};
     window.canViewAnalyticsUsers = loadedCanViewAnalyticsUsers || {};
-    window.canViewIncomingScansUsers = data.canViewIncomingScansUsers || {};
+    window.canViewIncomingScansUsers = loadedCanViewIncomingScansUsers || {};
+    window.usersListLoaded = true;
     window.canEditCasesUsers = loadedCanEditCasesUsers || {};
     window.isLabUsers = loadedIsLabUsers || {};
 
@@ -2383,6 +2385,11 @@ document.addEventListener('DOMContentLoaded', function () {
       Object.keys(window.limitedVisibilityUsers).forEach(function(key) {
         limitedCopy[key] = window.limitedVisibilityUsers[key];
       });
+    }
+    if (window.usersListLoaded !== true) {
+      // The users list never loaded (or errored): an empty map would be
+      // misread as an intentionally empty membership and wipe the practice
+      // on save. Block member changes until the list loads.
     }
     if (window.canViewAnalyticsUsers) {
       Object.keys(window.canViewAnalyticsUsers).forEach(function(key) {
@@ -4439,6 +4446,14 @@ document.addEventListener('DOMContentLoaded', function () {
   var settingsForm = document.getElementById('settingsForm');
 
   function saveSettings() {
+      // Block saves while the users list hasn't successfully loaded - the
+      // membership sync is destructive (empty arrays would wipe practice
+      // members). Setting any non-users field is still safe, but the same
+      // request carries the member arrays, so the whole save must wait.
+      if (window.usersListLoaded !== true) {
+        showToast(t('settings.users.list_load_failed') || 'Users failed to load - reload Settings before saving.', 'error');
+        return;
+      }
       // Auto-add any pending email in the user input field before saving
       var pendingEmailInput = document.getElementById('newGmailUser');
       if (pendingEmailInput && pendingEmailInput.value.trim()) {
@@ -11095,7 +11110,8 @@ document.addEventListener('DOMContentLoaded', function () {
             data.showLabInsights === true,
             data.workflowStageLabels || {},
             data.workflowColumns || null,
-            data.currentPracticeId
+            data.currentPracticeId,
+            data.canViewIncomingScansUsers || {}
           );
 
           // Set localStorage values for past due and coming due highlighting.

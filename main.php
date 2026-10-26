@@ -874,8 +874,10 @@ if (isset($appConfig) && is_array($appConfig) && isset($appConfig['appName'])) {
     window.workflowColumnsEndpoint = <?php echo json_encode('api/workflow-columns.php', JSON_UNESCAPED_UNICODE); ?>;
     window.pmsSync = <?php echo json_encode(['odCreateEnabled' => $dtOdSendAvailable === true]); ?>;
     window.scannerInbox = <?php echo json_encode(['enabled' => $showScannerInbox === true]); ?>;
+    // SCANNER_INBOX_PERMISSION_UI: server flag, default OFF - the users
+    // table renders without the new column until explicitly enabled.
     window.scannerInboxEligible = <?php echo json_encode(
-        isFeatureEnabled('SCANNER_INBOX')
+        isFeatureEnabled('SCANNER_INBOX_PERMISSION_UI')
         && (DsCoreConfig::isPracticeAllowed((int)$currentPracticeId) || SimulatedScannerConnector::isAvailable())
         && function_exists('hasControlAccess')
         && hasControlAccess($pdo, (int)$currentPracticeId, (string)($user['email'] ?? ''))
