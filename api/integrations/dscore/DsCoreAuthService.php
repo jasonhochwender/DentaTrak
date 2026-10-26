@@ -65,6 +65,7 @@
  */
 
 require_once __DIR__ . '/../../encryption.php';
+require_once __DIR__ . '/../../feature-flags.php';
 require_once __DIR__ . '/../DsCoreConfig.php';
 require_once __DIR__ . '/../IntegrationCredentials.php';
 require_once __DIR__ . '/../IntegrationManager.php';
@@ -197,7 +198,7 @@ class DsCoreAuthService {
      *
      * @return array{result:string, connection_id:?int}
      *   result: 'connected' | 'cancelled' | 'invalid' | 'expired' |
-     *           'replay' | 'forbidden' | 'exchange_failed'
+     *           'replay' | 'forbidden' | 'disabled' | 'exchange_failed'
      */
     public function handleCallback(PDO $pdo, array $params, int $sessionUserId, int $sessionPracticeId): array {
         // User hit "Decline" on the DS Core consent screen (or an upstream
@@ -220,6 +221,14 @@ class DsCoreAuthService {
         $attempt = $stmt->fetch(PDO::FETCH_ASSOC);
         if (!$attempt) {
             return ['result' => 'invalid', 'connection_id' => null];
+        }
+
+        // The feature must still be enabled at completion time - a callback
+        // arriving after DS_CORE_CONNECT was switched off mid-flow is
+        // rejected without consuming the attempt, exchanging the code, or
+        // touching the connection.
+        if (!isFeatureEnabled('DS_CORE_CONNECT')) {
+            return ['result' => 'disabled', 'connection_id' => null];
         }
 
         // The practice must still be allowlisted at completion time - a

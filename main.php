@@ -321,7 +321,14 @@ try {
 } catch (Throwable $e) {
     $userCanEditCases = false;
 }
-$showScannerInbox = isFeatureEnabled('SCANNER_INBOX') && $userCanEditCases;
+// SCANNER_INBOX is rollout-restricted: the experimental tab only renders
+// for practices permitted to use scanner integrations. Production permits
+// only DS-Core-allowlisted practices (DS_CORE_ALLOWED_PRACTICES); the
+// dev-only simulated connector keeps the inbox reachable locally.
+require_once __DIR__ . '/api/integrations/DsCoreConfig.php';
+require_once __DIR__ . '/api/integrations/scanners/SimulatedScannerConnector.php';
+$showScannerInbox = isFeatureEnabled('SCANNER_INBOX') && $userCanEditCases
+    && (DsCoreConfig::isPracticeAllowed((int)$currentPracticeId) || SimulatedScannerConnector::isAvailable());
 
 // Settings > Integrations visibility: the PMS provider cards stay behind
 // SHOW_PMS_INTEGRATIONS, but the informational "Scanner integrations"

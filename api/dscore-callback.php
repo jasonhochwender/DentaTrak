@@ -18,9 +18,10 @@
  * to the same user in the same practice - otherwise the callback cannot
  * complete. The `code` and `state` values are never logged.
  *
- * This endpoint intentionally does NOT check the DS_CORE_CONNECT flag:
- * an attempt that was legitimately started should complete (or fail)
- * through this route even if the flag is toggled mid-flow.
+ * Flag enforcement: if DS_CORE_CONNECT is switched off while an
+ * authorization is in flight, completion is rejected ('disabled') before
+ * the code is exchanged or any connection is activated. The attempt
+ * itself is left unconsumed so it simply expires.
  */
 
 require_once __DIR__ . '/session.php';
@@ -81,6 +82,8 @@ switch ($result['result']) {
         dsCoreRedirect('error', 'replayed');
     case 'forbidden':
         dsCoreRedirect('error', 'forbidden');
+    case 'disabled':
+        dsCoreRedirect('error', 'disabled');
     case 'exchange_failed':
         dsCoreRedirect('error', 'exchange');
     default:

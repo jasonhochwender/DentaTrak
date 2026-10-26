@@ -31,6 +31,7 @@ require_once __DIR__ . '/integrations/scanners/ScanIngestion.php';
 require_once __DIR__ . '/integrations/scanners/ScanInbox.php';
 require_once __DIR__ . '/integrations/scanners/SimulatedScannerConnector.php';
 require_once __DIR__ . '/integrations/dscore/DsCoreScanConnector.php';
+require_once __DIR__ . '/integrations/DsCoreConfig.php';
 
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
@@ -76,6 +77,14 @@ requireCurrentTermsAcceptedForApi($userId);
 if (!canEditCases($currentPracticeId)) {
     logSecurityEvent('scan_inbox_denied', ['reason' => 'cannot_edit_cases']);
     scanInboxFail(403, 'You do not have permission to manage incoming scans.', 'forbidden');
+}
+
+// Rollout restriction: while the inbox is behind SCANNER_INBOX it is only
+// reachable by practices permitted to use scanner integrations - the
+// DS-Core allowlist in production, or the dev-only simulated connector.
+// An empty allowlist permits nobody and no role/admin can widen it.
+if (!DsCoreConfig::isPracticeAllowed((int)$currentPracticeId) && !SimulatedScannerConnector::isAvailable()) {
+    scanInboxFail(404, 'Not found', 'feature_disabled');
 }
 
 global $pdo;

@@ -325,6 +325,22 @@ try {
     $res = $service->handleCallback($pdo, ['code' => 'c', 'state' => $expiredId], $userId, $practiceId);
     assertEquals('expired', $res['result'], 'expired attempt rejected');
 
+    // Flag switched off mid-flow: callback is rejected as 'disabled'
+    // WITHOUT consuming the attempt or attempting a token exchange.
+    $a4 = $service->beginAttempt($pdo, $practiceId, $userId);
+    $attemptIds[] = $a4['attempt_id'];
+    putenv('DS_CORE_CONNECT=false');
+    $_ENV['DS_CORE_CONNECT'] = 'false';
+    $_SERVER['DS_CORE_CONNECT'] = 'false';
+    $res = $service->handleCallback($pdo, ['code' => 'c', 'state' => $a4['attempt_id'], 'client_id' => 'test-client-id-0000'], $userId, $practiceId);
+    assertEquals('disabled', $res['result'], 'flag switched off mid-flow -> disabled');
+    assertEquals(0, count($calls), 'no token exchange when flag is off');
+    $row->execute([':id' => $a4['attempt_id']]);
+    assertTrue($row->fetch(PDO::FETCH_ASSOC)['consumed_at'] === null, 'disabled callback does not consume the attempt');
+    putenv('DS_CORE_CONNECT=true');
+    $_ENV['DS_CORE_CONNECT'] = 'true';
+    $_SERVER['DS_CORE_CONNECT'] = 'true';
+
     // Exchange failure: code rejected upstream -> attempt consumed, no
     // connection created, existing connection (if any) marked error.
     $a3 = $service->beginAttempt($pdo, $practiceId, $userId);
