@@ -4285,6 +4285,83 @@ endif;
                           </div>
                           <?php endforeach; ?>
                         </div>
+
+                        <?php
+                        // Restricted DS Core (Primescan) connection panel:
+                        // rendered ONLY for admins of practices on the
+                        // DS_CORE_ALLOWED_PRACTICES server allowlist while
+                        // the feature flag is on. Customers never see it -
+                        // the informational card above stays the public state.
+                        $dsCoreTestPanel = isFeatureEnabled('DS_CORE_CONNECT')
+                            && DsCoreConfig::isPracticeAllowed((int)$currentPracticeId);
+                        ?>
+                        <?php if ($dsCoreTestPanel): ?>
+                        <div class="integrations-list" id="dsCorePanel" style="margin-top:8px;">
+                          <div class="integration-subsection">
+                            <button type="button" class="integration-subsection-header"
+                                    aria-expanded="false" aria-controls="dsCorePanelBody">
+                              <span class="integration-subsection-arrow" aria-hidden="true"></span>
+                              <span class="integration-provider-name">Dentsply Sirona DS Core</span>
+                              <span class="integration-status-badge" id="dsCoreStatusBadge">…</span>
+                            </button>
+                            <div class="integration-subsection-body" id="dsCorePanelBody" role="region" hidden>
+                              <div class="integration-card">
+                                <p class="integration-card-description">DS Core (sandbox) scan import for this allowlisted practice.</p>
+                                <p id="dsCorePanelMsg" class="section-description" role="status"></p>
+                                <div class="integration-card-actions">
+                                  <button type="button" class="btn-secondary" id="dsCoreConnectBtn"><?php echo t('settings.integrations.connect'); ?></button>
+                                  <button type="button" class="btn-delete-confirm" id="dsCoreDisconnectBtn" style="display:none;"><?php echo t('settings.integrations.disconnect'); ?></button>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                        <script>
+                        (function () {
+                          var badge = document.getElementById('dsCoreStatusBadge');
+                          var msg = document.getElementById('dsCorePanelMsg');
+                          var connectBtn = document.getElementById('dsCoreConnectBtn');
+                          var disconnectBtn = document.getElementById('dsCoreDisconnectBtn');
+                          var csrf = document.querySelector('meta[name="csrf-token"]');
+                          function headers() {
+                            return { 'Content-Type': 'application/json', 'X-CSRF-Token': csrf ? csrf.content : '' };
+                          }
+                          function paint(state, serverConfigured) {
+                            badge.textContent = state;
+                            var connected = state === 'connected';
+                            connectBtn.style.display = connected ? 'none' : '';
+                            disconnectBtn.style.display = connected ? '' : 'none';
+                            if (!serverConfigured) msg.textContent = 'Server not configured for DS Core.';
+                          }
+                          fetch('api/dscore-auth.php?action=status', { credentials: 'same-origin' })
+                            .then(function (r) { return r.json(); })
+                            .then(function (d) { if (d && d.success) paint(d.state, d.server_configured); })
+                            .catch(function () { badge.textContent = 'unavailable'; });
+                          connectBtn.addEventListener('click', function () {
+                            connectBtn.disabled = true;
+                            fetch('api/dscore-auth.php', { method: 'POST', credentials: 'same-origin', headers: headers(), body: JSON.stringify({ action: 'begin' }) })
+                              .then(function (r) { return r.json(); })
+                              .then(function (d) {
+                                if (d && d.success && d.authorize_url) { window.location.assign(d.authorize_url); return; }
+                                msg.textContent = (d && d.message) ? d.message : 'Unable to start DS Core connection.';
+                                connectBtn.disabled = false;
+                              })
+                              .catch(function () { msg.textContent = 'Unable to start DS Core connection.'; connectBtn.disabled = false; });
+                          });
+                          disconnectBtn.addEventListener('click', function () {
+                            disconnectBtn.disabled = true;
+                            fetch('api/dscore-auth.php', { method: 'POST', credentials: 'same-origin', headers: headers(), body: JSON.stringify({ action: 'disconnect' }) })
+                              .then(function (r) { return r.json(); })
+                              .then(function (d) {
+                                if (d && d.success) { paint('disconnected', true); msg.textContent = 'Disconnected' + (d.remote_revoked ? ' (revoked upstream).' : ' (remote revocation unconfirmed).'); }
+                                else msg.textContent = (d && d.message) ? d.message : 'Disconnect failed.';
+                                disconnectBtn.disabled = false;
+                              })
+                              .catch(function () { msg.textContent = 'Disconnect failed.'; disconnectBtn.disabled = false; });
+                          });
+                        })();
+                        </script>
+                        <?php endif; ?>
                         <?php endif; ?>
                       </div>
                     </div>
