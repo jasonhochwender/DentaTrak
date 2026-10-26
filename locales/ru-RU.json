@@ -6317,7 +6317,8 @@
         "partial_linked": "Частично связан",
         "files_count": "Файлов: {count}",
         "details": "Подробности",
-        "field_patient_ref": "Ссылка на пациента"
+        "field_patient_ref": "Ссылка на пациента",
+        "linked_case_generic": "кейс"
     },
     "usage_report": {
         "back": "Назад к панели",

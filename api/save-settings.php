@@ -288,6 +288,9 @@ $canViewAnalyticsUsers = isset($data['canViewAnalyticsUsers']) && is_array($data
     : [];
 
 // Handle can edit cases users (map of email => boolean, default true)
+$canViewIncomingScansUsers = isset($data['canViewIncomingScansUsers']) && is_array($data['canViewIncomingScansUsers'])
+    ? $data['canViewIncomingScansUsers']
+    : [];
 $canEditCasesUsers = isset($data['canEditCasesUsers']) && is_array($data['canEditCasesUsers']) 
     ? $data['canEditCasesUsers'] 
     : [];
@@ -1308,11 +1311,16 @@ try {
                 $canViewAnalytics = isset($canViewAnalyticsUsers[$email]) ? ($canViewAnalyticsUsers[$email] ? 1 : 0) : 1;
                 $canEditCases = isset($canEditCasesUsers[$email]) ? ($canEditCasesUsers[$email] ? 1 : 0) : 1;
                 $newIsLab = isset($isLabUsers[$email]) && $isLabUsers[$email] ? 1 : 0;
-                
+                // Incoming Scans grant: server clamps it to 0 for lab and
+                // assigned-only members even if a conflicting combination
+                // is submitted - they can never hold inbox access.
+                $canViewIncomingScans = (!$newIsLab && !$hasLimitedVisibility
+                    && isset($canViewIncomingScansUsers[$email]) && $canViewIncomingScansUsers[$email]) ? 1 : 0;
+
                 // Add user to practice as regular user
                 $stmt = $pdo->prepare("
-                    INSERT INTO practice_users (practice_id, user_id, role, is_owner, limited_visibility, can_view_analytics, can_edit_cases, is_lab, created_at)
-                    VALUES (:practice_id, :user_id, 'user', 0, :limited_visibility, :can_view_analytics, :can_edit_cases, :is_lab, NOW())
+                    INSERT INTO practice_users (practice_id, user_id, role, is_owner, limited_visibility, can_view_analytics, can_edit_cases, is_lab, can_view_incoming_scans, created_at)
+                    VALUES (:practice_id, :user_id, 'user', 0, :limited_visibility, :can_view_analytics, :can_edit_cases, :is_lab, :can_view_incoming_scans, NOW())
                 ");
                 $stmt->execute([
                     'practice_id' => $currentPracticeId,
@@ -1320,7 +1328,8 @@ try {
                     'limited_visibility' => $hasLimitedVisibility,
                     'can_view_analytics' => $canViewAnalytics,
                     'can_edit_cases' => $canEditCases,
-                    'is_lab' => $newIsLab
+                    'is_lab' => $newIsLab,
+                    'can_view_incoming_scans' => $canViewIncomingScans
                 ]);
 
                 $keptUserIds[(int)$userId] = true;

@@ -6317,7 +6317,8 @@
         "partial_linked": "일부만 연결됨",
         "files_count": "파일 {count}개",
         "details": "세부 정보",
-        "field_patient_ref": "환자 참조"
+        "field_patient_ref": "환자 참조",
+        "linked_case_generic": "케이스"
     },
     "usage_report": {
         "back": "대시보드로 돌아가기",
