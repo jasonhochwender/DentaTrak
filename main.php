@@ -4264,63 +4264,53 @@ endif;
                         <?php if ($isCurrentUserPracticeAdmin): ?>
                         <!-- Scanner integrations: informational only. No
                              vendor connection is approved or live; these
-                             subsections intentionally render no actions. -->
+                             subsections intentionally render no actions.
+                             Exception: allowlisted practices get the real
+                             DS Core (Primescan) connection inside the
+                             primescan card - single consolidated entry. -->
                         <h4 class="integration-section-heading"><?php echo t('settings.integrations.scanners.section_title'); ?></h4>
                         <div class="integrations-list scanner-integrations-list">
-                          <?php foreach ($scannerProviders as $scannerKey => $scannerDef): ?>
                           <?php
+                          // DS Core connection panel eligibility: allowlisted
+                          // practices only while DS_CORE_CONNECT is on.
+                          $dsCoreTestPanel = isFeatureEnabled('DS_CORE_CONNECT')
+                              && DsCoreConfig::isPracticeAllowed((int)$currentPracticeId);
+                          foreach ($scannerProviders as $scannerKey => $scannerDef):
                           $scannerBodyId = 'integrationSubsectionBody-scanner-' . $scannerKey;
-                          $scannerStatusClass = $scannerDef['status'] === 'coming_soon' ? 'coming-soon' : 'under-evaluation';
+                          $dsCoreLive = ($scannerKey === 'primescan' && $dsCoreTestPanel);
+                          $scannerStatusClass = $dsCoreLive ? '' : ($scannerDef['status'] === 'coming_soon' ? 'coming-soon' : 'under-evaluation');
                           $scannerDescKey = $scannerDef['desc_key'] ?? 'settings.integrations.scanners.card_description';
                           ?>
                           <div class="integration-subsection" data-subsection="scanner-<?php echo htmlspecialchars($scannerKey); ?>">
                             <button type="button" class="integration-subsection-header"
                                     id="integrationSubsectionHeader-scanner-<?php echo htmlspecialchars($scannerKey); ?>"
-                                    aria-expanded="false"
-                                    aria-controls="<?php echo htmlspecialchars($scannerBodyId); ?>">
+                                    aria-expanded="false" aria-controls="<?php echo htmlspecialchars($scannerBodyId); ?>">
                               <span class="integration-subsection-arrow" aria-hidden="true"></span>
                               <span class="integration-provider-name"><?php echo t($scannerDef['name_key']); ?></span>
+                              <?php if ($dsCoreLive): ?>
+                              <span class="integration-status-badge" id="dsCoreStatusBadge">…</span>
+                              <span class="integration-status-badge integration-status-coming-soon"><?php echo t('settings.integrations.status.sandbox'); ?></span>
+                              <?php else: ?>
                               <span class="integration-status-badge integration-status-<?php echo $scannerStatusClass; ?>"><?php echo t('settings.integrations.status.' . $scannerDef['status']); ?></span>
+                              <?php endif; ?>
                             </button>
                             <div class="integration-subsection-body" id="<?php echo htmlspecialchars($scannerBodyId); ?>" role="region" aria-labelledby="integrationSubsectionHeader-scanner-<?php echo htmlspecialchars($scannerKey); ?>" hidden>
                               <div class="integration-card integration-card-scanner" data-scanner="<?php echo htmlspecialchars($scannerKey); ?>">
                                 <p class="integration-card-description"><?php echo t($scannerDescKey); ?></p>
+                                <?php if ($dsCoreLive): ?>
+                                <p id="dsCorePanelMsg" class="section-description" role="status"></p>
+                                <div class="integration-card-actions">
+                                  <button type="button" class="btn-secondary" id="dsCoreConnectBtn"><?php echo t('settings.integrations.connect'); ?></button>
+                                  <button type="button" class="btn-delete-confirm" id="dsCoreDisconnectBtn" style="display:none;"><?php echo t('settings.integrations.disconnect'); ?></button>
+                                </div>
+                                <?php endif; ?>
                               </div>
                             </div>
                           </div>
                           <?php endforeach; ?>
                         </div>
 
-                        <?php
-                        // Restricted DS Core (Primescan) connection panel:
-                        // rendered ONLY for admins of practices on the
-                        // DS_CORE_ALLOWED_PRACTICES server allowlist while
-                        // the feature flag is on. Customers never see it -
-                        // the informational card above stays the public state.
-                        $dsCoreTestPanel = isFeatureEnabled('DS_CORE_CONNECT')
-                            && DsCoreConfig::isPracticeAllowed((int)$currentPracticeId);
-                        ?>
                         <?php if ($dsCoreTestPanel): ?>
-                        <div class="integrations-list" id="dsCorePanel" style="margin-top:8px;">
-                          <div class="integration-subsection">
-                            <button type="button" class="integration-subsection-header"
-                                    aria-expanded="false" aria-controls="dsCorePanelBody">
-                              <span class="integration-subsection-arrow" aria-hidden="true"></span>
-                              <span class="integration-provider-name">Dentsply Sirona DS Core</span>
-                              <span class="integration-status-badge" id="dsCoreStatusBadge">…</span>
-                            </button>
-                            <div class="integration-subsection-body" id="dsCorePanelBody" role="region" hidden>
-                              <div class="integration-card">
-                                <p class="integration-card-description">DS Core (sandbox) scan import for this allowlisted practice.</p>
-                                <p id="dsCorePanelMsg" class="section-description" role="status"></p>
-                                <div class="integration-card-actions">
-                                  <button type="button" class="btn-secondary" id="dsCoreConnectBtn"><?php echo t('settings.integrations.connect'); ?></button>
-                                  <button type="button" class="btn-delete-confirm" id="dsCoreDisconnectBtn" style="display:none;"><?php echo t('settings.integrations.disconnect'); ?></button>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
                         <script>
                         (function () {
                           var badge = document.getElementById('dsCoreStatusBadge');
@@ -4331,8 +4321,13 @@ endif;
                           function headers() {
                             return { 'Content-Type': 'application/json', 'X-CSRF-Token': csrf ? csrf.content : '' };
                           }
+                          var statusLabels = {
+                            connected: <?php echo json_encode(t('settings.integrations.status.connected')); ?>,
+                            disconnected: <?php echo json_encode(t('settings.integrations.status.not_connected')); ?>,
+                            unavailable: <?php echo json_encode(t('settings.integrations.status.not_connected')); ?>
+                          };
                           function paint(state, serverConfigured) {
-                            badge.textContent = state;
+                            badge.textContent = statusLabels[state] || state;
                             var connected = state === 'connected';
                             connectBtn.style.display = connected ? 'none' : '';
                             disconnectBtn.style.display = connected ? '' : 'none';
@@ -4358,7 +4353,7 @@ endif;
                             fetch('api/dscore-auth.php', { method: 'POST', credentials: 'same-origin', headers: headers(), body: JSON.stringify({ action: 'disconnect' }) })
                               .then(function (r) { return r.json(); })
                               .then(function (d) {
-                                if (d && d.success) { paint('disconnected', true); msg.textContent = 'Disconnected' + (d.remote_revoked ? ' (revoked upstream).' : ' (remote revocation unconfirmed).'); }
+                                if (d && d.success) { paint('disconnected', true); msg.textContent = <?php echo json_encode(t('settings.integrations.disconnect')); ?> + (d.remote_revoked ? ' (revoked upstream).' : ' (remote revocation unconfirmed).'); }
                                 else msg.textContent = (d && d.message) ? d.message : 'Disconnect failed.';
                                 disconnectBtn.disabled = false;
                               })

@@ -3032,7 +3032,8 @@
                 "disabled": "Deaktiviert",
                 "not_on_plan": "Nicht im Tarif",
                 "coming_soon": "Demnächst verfügbar",
-                "under_evaluation": "In Prüfung"
+                "under_evaluation": "In Prüfung",
+                "sandbox": "Sandbox"
             },
             "locked_note": "Die Open-Dental-Integration ist in den Tarifen Control und Scale verfügbar.",
             "meta": {

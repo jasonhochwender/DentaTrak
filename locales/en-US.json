@@ -1409,7 +1409,8 @@
                 "disabled": "Disabled",
                 "not_on_plan": "Not on plan",
                 "coming_soon": "Coming soon",
-                "under_evaluation": "Under evaluation"
+                "under_evaluation": "Under evaluation",
+                "sandbox": "Sandbox"
             },
             "locked_note": "Open Dental integration is available on Control and Scale plans.",
             "meta": {

@@ -1409,7 +1409,8 @@
                 "disabled": "Disabilitato",
                 "not_on_plan": "Non incluso nel piano",
                 "coming_soon": "In arrivo",
-                "under_evaluation": "In valutazione"
+                "under_evaluation": "In valutazione",
+                "sandbox": "Sandbox"
             },
             "locked_note": "L'integrazione con Open Dental è disponibile sui piani Control e Scale.",
             "meta": {

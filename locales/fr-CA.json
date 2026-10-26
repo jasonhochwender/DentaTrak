@@ -1409,7 +1409,8 @@
                 "disabled": "Désactivé",
                 "not_on_plan": "Non inclus dans le forfait",
                 "coming_soon": "Bientôt disponible",
-                "under_evaluation": "En évaluation"
+                "under_evaluation": "En évaluation",
+                "sandbox": "Environnement de test"
             },
             "locked_note": "L'intégration Open Dental est disponible sur les forfaits Control et Scale.",
             "meta": {

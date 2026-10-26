@@ -1417,7 +1417,8 @@
                 "disabled": "비활성",
                 "not_on_plan": "요금제 미포함",
                 "coming_soon": "출시 예정",
-                "under_evaluation": "평가 중"
+                "under_evaluation": "평가 중",
+                "sandbox": "샌드박스"
             },
             "locked_note": "Open Dental 연동은 Control 및 Scale 요금제에서 제공됩니다.",
             "meta": {

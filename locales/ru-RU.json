@@ -2985,7 +2985,8 @@
                 "disabled": "Отключено",
                 "not_on_plan": "Не входит в тариф",
                 "coming_soon": "Скоро",
-                "under_evaluation": "На рассмотрении"
+                "under_evaluation": "На рассмотрении",
+                "sandbox": "Песочница"
             },
             "locked_note": "Интеграция с Open Dental доступна на тарифах Control и Scale.",
             "meta": {

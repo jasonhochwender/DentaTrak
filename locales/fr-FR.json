@@ -1409,7 +1409,8 @@
                 "disabled": "Désactivé",
                 "not_on_plan": "Non inclus dans la formule",
                 "coming_soon": "Bientôt disponible",
-                "under_evaluation": "En évaluation"
+                "under_evaluation": "En évaluation",
+                "sandbox": "Bac à sable"
             },
             "locked_note": "L'intégration Open Dental est disponible sur les formules Control et Scale.",
             "meta": {
