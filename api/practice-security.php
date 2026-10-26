@@ -429,7 +429,7 @@ function userCanAccessScanInbox($practiceId = null) {
     if ($perms['is_lab'] || $perms['limited_visibility']) {
         return false;
     }
-    if (!hasControlAccess($pdo, (int)$practiceId, $_SESSION['email'] ?? null)) {
+    if (!hasControlAccess($pdo, (int)$practiceId, (string)($_SESSION['user_email'] ?? ''))) {
         return false;
     }
     return $perms['is_admin'] || $perms['can_view_incoming_scans'];
