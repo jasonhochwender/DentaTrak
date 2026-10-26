@@ -495,5 +495,16 @@ Two-way sync (DentaTrak -> {$provider}; practice administrator opt-in):
 - Outbound writes are lifecycle progress only: comments, attachments, tooth shade, material, carrier/tracking, assignee and custom workflow internals are never sent to Open Dental.
 TXT;
 
+    /* --- Incoming Scans inbox (experimental; allowlisted practices only) --- */
+    $out[] = <<<TXT
+Incoming Scans inbox (scanner integrations):
+- Availability: scanner integrations are behind a rollout gate - a feature flag, a per-practice allowlist, an effective Control-or-higher plan, and a per-member "Incoming Scans" permission. Customer practices currently see scanner cards as "Coming soon"; no customer data or account is reachable.
+- DS Core (Primescan) is restricted SANDBOX testing only - an explicitly allowlisted internal test practice. It is not generally available; never describe it as available to customers. Connecting and disconnecting scanner accounts is a practice-admin action (Settings > Integrations); the OAuth flow is admin-only.
+- The inbox has four views: "Needs attention" (unlinked scans awaiting action, processing, failed imports, plus partially-linked scans that still have unlinked files), "Linked", "Dismissed", and "All". Search covers patient name and scan ID across the whole filtered set (not just the visible page); filters combine view + provider + scan-date range; results paginate 25/page with a match count; an empty filtered result is distinguished from an empty inbox.
+- Per scan: compact row expands for technical scan ID, patient reference, instructions, and the file list. Ready STL/OBJ/PLY files have "View" (in-app 3D preview with rotate/zoom/reset; nothing is sent to an external viewer) and "Download"; preview works before any case exists and respects the same practice + membership access checks.
+- Workflows: "Attach to case" or "Create case" from a scan (fields prefilled but editable, no auto-matching), "Dismiss"/"Restore", and "Retry" for failed imports. Linked scans show a readable case reference that opens the case through the normal permissions path; a deleted/inaccessible case degrades to "unavailable" without exposing details. Partially linked scans (linked but with new/unlinked files) stay in Needs attention.
+- User access control: practice admins always have access. Other members need the "Incoming Scans" grant in Settings > Users & Roles; Lab and "Assigned Only" members can never hold it. Revoking takes effect on the next request - no logout needed. Files already attached to an authorized case remain reachable through normal case access.
+TXT;
+
     return implode("\n\n", $out);
 }

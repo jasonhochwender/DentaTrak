@@ -187,6 +187,7 @@ function getAskDentatrakToolNames(): array {
         'count_remakes',
         'get_case_summary',
         'get_reference_values',
+        'scan_inbox_status',
     ];
 }
 
@@ -226,6 +227,8 @@ function runAskDentatrakTool(string $tool, array $params, int $practiceId): arra
                 return ['ok' => true, 'data' => askToolGetCaseSummary($pdo, $practiceId, $params)];
             case 'get_reference_values':
                 return ['ok' => true, 'data' => askToolGetReferenceValues($pdo, $practiceId)];
+            case 'scan_inbox_status':
+                return askToolScanInboxStatus($pdo, $practiceId, $params);
         }
     } catch (Throwable $e) {
         error_log('[ask-dentatrak] tool ' . $tool . ' failed: ' . $e->getMessage());
@@ -1405,4 +1408,61 @@ function askToolCaseMetrics(PDO $pdo, int $practiceId, array $params): array {
     }
 
     return ['error' => 'invalid_metric', 'allowed' => $allowed];
+}
+
+/**
+ * Read-only Incoming Scans status for the current practice. Covers the
+ * authorized scan questions (counts by view, failed imports, unlinked
+ * scans by vendor, linked-case references, last sync). Restricted to
+ * users with effective inbox access - lab/assigned-only and ungranted
+ * members get an honest denial, never scan data. No PHI beyond the
+ * fields the inbox API itself already exposes to that user; nothing is
+ * mutated.
+ */
+function askToolScanInboxStatus(PDO $pdo, int $practiceId, array $params): array {
+    if (!function_exists('userCanAccessScanInbox')) {
+        require_once __DIR__ . '/practice-security.php';
+    }
+    if (!userCanAccessScanInbox($practiceId)) {
+        return ['ok' => false, 'error' => 'scan_inbox_denied'];
+    }
+    require_once __DIR__ . '/integrations/scanners/ScanInbox.php';
+    require_once __DIR__ . '/integrations/scanners/ScanIngestion.php';
+
+    $userId = (int)($_SESSION['db_user_id'] ?? 0) ?: null;
+    $result = ScanInbox::listFiltered($pdo, $practiceId, $userId, ['view' => 'all', 'per_page' => 100]);
+    $failed = ScanInbox::listFiltered($pdo, $practiceId, $userId, ['view' => 'attention', 'per_page' => 100, 'q' => '']);
+
+    $scans = $result['scans'] ?? [];
+    $failedScans = array_values(array_filter($scans, fn($s) => ($s['status'] ?? '') === 'failed'));
+    $unlinkedPrimescan = array_values(array_filter($scans, fn($s) => ($s['vendor'] ?? '') === 'primescan' && empty($s['isLinked']) && empty($s['isDismissed'])));
+    $linked = array_values(array_filter($scans, fn($s) => !empty($s['isLinked'])));
+
+    // Last successful sync: the poll cursor's last_success_at on the
+    // practice's ds_core connection. Reported as-is so "never synced"
+    // is honest rather than guessed.
+    $lastSync = null;
+    try {
+        $cStmt = $pdo->prepare("SELECT config_json FROM integration_connections WHERE practice_id = :pid AND provider = 'ds_core' AND status = 'active' LIMIT 1");
+        $cStmt->execute(['pid' => $practiceId]);
+        $cfg = json_decode((string)($cStmt->fetchColumn() ?: ''), true);
+        $lastSync = $cfg['scan_poll']['last_success_at'] ?? null;
+    } catch (Throwable $e) {}
+
+    return ['ok' => true, 'data' => [
+        'attention_count'  => (int)($result['counts']['attention'] ?? 0),
+        'linked_count'     => (int)($result['counts']['linked'] ?? 0),
+        'dismissed_count'  => (int)($result['counts']['dismissed'] ?? 0),
+        'total_count'      => (int)($result['counts']['all'] ?? 0),
+        'failed_count'     => count($failedScans),
+        'failed_scan_ids'  => array_slice(array_map(fn($s) => $s['externalScanId'], $failedScans), 0, 25),
+        'unlinked_primescan_count' => count($unlinkedPrimescan),
+        'unlinked_primescan_ids'   => array_slice(array_map(fn($s) => $s['externalScanId'], $unlinkedPrimescan), 0, 25),
+        'linked_scans'     => array_slice(array_map(fn($s) => [
+            'scan_id' => $s['externalScanId'],
+            'case' => ($s['linkedCase']['exists'] ?? false) ? ($s['linkedCase']['patientName'] ?? 'case') : 'unavailable',
+        ], $linked), 0, 25),
+        'last_scanner_sync' => $lastSync,
+        'note' => 'scan/import dates come from the vendor (scan_at); last_scanner_sync is the latest completed poll.',
+    ]];
 }
