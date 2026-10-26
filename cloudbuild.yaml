@@ -62,6 +62,19 @@ steps:
         'https://staged-${SHORT_SHA}---dtk-app-prod-6y7s3km7ra-ue.a.run.app'
       ]
 
+  # ---------- Authenticated smoke: login -> main.php -> permissions -> logout ----------
+  # A 500 on the post-login page once shipped because the static checks
+  # above only covered unauthenticated requests. This exercises the real
+  # session + shared permission checks on the exact candidate revision.
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: bash
+    args:
+      [
+        'scripts/staged-auth-smoke.sh',
+        'https://staged-${SHORT_SHA}---dtk-app-prod-6y7s3km7ra-ue.a.run.app'
+      ]
+    secretEnv: ['SMOKE_TEST_EMAIL', 'SMOKE_TEST_PASSWORD']
+
   # ---------- Promote: route 100% traffic to the verified revision ----------
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     entrypoint: bash
@@ -88,6 +101,15 @@ steps:
       [
         'scripts/provision-ask-usage-worker.sh'
       ]
+
+# Authenticated smoke-test credentials for the synthetic test-practice
+# account (injected as env vars into the staged-auth-smoke step only).
+availableSecrets:
+  secretManager:
+    - versionName: projects/dtk-prod-core/secrets/SMOKE_TEST_EMAIL/versions/latest
+      env: SMOKE_TEST_EMAIL
+    - versionName: projects/dtk-prod-core/secrets/SMOKE_TEST_PASSWORD/versions/latest
+      env: SMOKE_TEST_PASSWORD
 
 images:
   - us-east1-docker.pkg.dev/dtk-prod-core/app-repo/dtk-app-prod:$COMMIT_SHA
