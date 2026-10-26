@@ -348,7 +348,8 @@ function getUserPracticePermissions($practiceId = null) {
         $stmt = $pdo->prepare("
             SELECT pu.role, pu.is_owner, pu.limited_visibility, pu.is_lab,
                    IFNULL(pu.can_view_analytics, 1) AS can_view_analytics,
-                   IFNULL(pu.can_edit_cases, 1) AS can_edit_cases
+                   IFNULL(pu.can_edit_cases, 1) AS can_edit_cases,
+                   IFNULL(pu.can_view_incoming_scans, 0) AS can_view_incoming_scans
             FROM practice_users pu
             JOIN practices p ON p.id = pu.practice_id
             JOIN users u ON u.id = pu.user_id
@@ -375,11 +376,63 @@ function getUserPracticePermissions($practiceId = null) {
             'is_lab' => (bool)$row['is_lab'],
             'limited_visibility' => (bool)$row['limited_visibility'],
             'can_view_analytics' => (bool)$row['can_view_analytics'],
-            'can_edit_cases' => (bool)$row['can_edit_cases']
+            'can_edit_cases' => (bool)$row['can_edit_cases'],
+            'can_view_incoming_scans' => (bool)$row['can_view_incoming_scans']
         ];
     } catch (PDOException $e) {
         return null;
     }
+}
+
+/**
+ * Shared Incoming Scans authorization check.
+ *
+ * Effective access requires ALL of:
+ *   - active membership in this practice (lab collaborators and
+ *     assigned-only/limited-visibility users are always denied)
+ *   - effective scanner-eligible plan (Control+ effective plan, honoring
+ *     admin plan overrides and organization subscriptions)
+ *   - the SCANNER_INBOX rollout gate: feature flag plus the practice
+ *     allowlist (DS-Core allowlist or the dev-only simulator) - the same
+ *     gate scan-inbox.php applies, so an empty allowlist denies everyone
+ *   - the user permission: practice admins are implied; everyone else
+ *     needs an explicit can_view_incoming_scans grant
+ *
+ * Read live from the membership row each call, so grant/revoke takes
+ * effect on the next request inside an existing session.
+ */
+function userCanAccessScanInbox($practiceId = null) {
+    global $pdo;
+    if (!$pdo || !isset($_SESSION['db_user_id'])) {
+        return false;
+    }
+    if ($practiceId === null) {
+        $practiceId = $_SESSION['current_practice_id'] ?? null;
+    }
+    if (!$practiceId) {
+        return false;
+    }
+    require_once __DIR__ . '/feature-flags.php';
+    if (!isFeatureEnabled('SCANNER_INBOX')) {
+        return false;
+    }
+    require_once __DIR__ . '/integrations/DsCoreConfig.php';
+    require_once __DIR__ . '/integrations/scanners/SimulatedScannerConnector.php';
+    if (!DsCoreConfig::isPracticeAllowed((int)$practiceId) && !SimulatedScannerConnector::isAvailable()) {
+        return false;
+    }
+    require_once __DIR__ . '/subscription-access.php';
+    $perms = getUserPracticePermissions($practiceId);
+    if (!$perms) {
+        return false;
+    }
+    if ($perms['is_lab'] || $perms['limited_visibility']) {
+        return false;
+    }
+    if (!hasControlAccess($pdo, (int)$practiceId, $_SESSION['email'] ?? null)) {
+        return false;
+    }
+    return $perms['is_admin'] || $perms['can_view_incoming_scans'];
 }
 
 /**

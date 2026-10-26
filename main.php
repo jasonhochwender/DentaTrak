@@ -327,8 +327,7 @@ try {
 // dev-only simulated connector keeps the inbox reachable locally.
 require_once __DIR__ . '/api/integrations/DsCoreConfig.php';
 require_once __DIR__ . '/api/integrations/scanners/SimulatedScannerConnector.php';
-$showScannerInbox = isFeatureEnabled('SCANNER_INBOX') && $userCanEditCases
-    && (DsCoreConfig::isPracticeAllowed((int)$currentPracticeId) || SimulatedScannerConnector::isAvailable());
+$showScannerInbox = userCanAccessScanInbox((int)$currentPracticeId);
 
 // Settings > Integrations visibility: the PMS provider cards stay behind
 // SHOW_PMS_INTEGRATIONS, but the informational "Scanner integrations"

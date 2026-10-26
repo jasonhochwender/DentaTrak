@@ -74,17 +74,13 @@ $userId = (int)$_SESSION['db_user_id'];
 $currentPracticeId = requireValidPracticeContext();
 requireNotLabCollaborator($currentPracticeId, 'Access denied.');
 requireCurrentTermsAcceptedForApi($userId);
-if (!canEditCases($currentPracticeId)) {
-    logSecurityEvent('scan_inbox_denied', ['reason' => 'cannot_edit_cases']);
+// Shared inbox authorization: membership + role rules + allowlist +
+// feature flag + effective scanner plan (admin implied, members need
+// the can_view_incoming_scans grant). Live-checked per request so a
+// revoke applies to the very next call in an active session.
+if (!userCanAccessScanInbox((int)$currentPracticeId)) {
+    logSecurityEvent('scan_inbox_denied', ['reason' => 'inbox_permission']);
     scanInboxFail(403, 'You do not have permission to manage incoming scans.', 'forbidden');
-}
-
-// Rollout restriction: while the inbox is behind SCANNER_INBOX it is only
-// reachable by practices permitted to use scanner integrations - the
-// DS-Core allowlist in production, or the dev-only simulated connector.
-// An empty allowlist permits nobody and no role/admin can widen it.
-if (!DsCoreConfig::isPracticeAllowed((int)$currentPracticeId) && !SimulatedScannerConnector::isAvailable()) {
-    scanInboxFail(404, 'Not found', 'feature_disabled');
 }
 
 global $pdo;
@@ -93,6 +89,13 @@ if (!$pdo) {
 }
 
 $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
+
+// Mutations additionally require the existing case-edit permission:
+// dismissing, restoring, retrying, and linking all change state.
+if ($method === 'POST' && !canEditCases($currentPracticeId)) {
+    logSecurityEvent('scan_inbox_denied', ['reason' => 'cannot_edit_cases']);
+    scanInboxFail(403, 'You do not have permission to manage incoming scans.', 'forbidden');
+}
 
 // -------------------------------------------------------------------------
 // GET: list inbox scans for the active practice

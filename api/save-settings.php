@@ -1204,7 +1204,10 @@ try {
                 $creatorNewIsLab = isset($isLabUsers[$creatorEmail]) && $isLabUsers[$creatorEmail] ? 1 : 0;
                 $creatorOldIsLab = $oldIsLabByUserId[(int)$practiceCreatorId] ?? 0;
                 if ($creatorOldIsLab !== $creatorNewIsLab) {
-                    $stmt = $pdo->prepare("UPDATE practice_users SET is_lab = :is_lab WHERE practice_id = :practice_id AND user_id = :user_id");
+                    // Lab transition clears any Incoming Scans grant: lab
+                    // users can never hold it, and switching back must not
+                    // silently restore it (left-to-right SET evaluation).
+                    $stmt = $pdo->prepare("UPDATE practice_users SET is_lab = :is_lab, can_view_incoming_scans = IF(is_lab = 1 OR limited_visibility = 1, 0, can_view_incoming_scans) WHERE practice_id = :practice_id AND user_id = :user_id");
                     $stmt->execute([
                         'is_lab' => $creatorNewIsLab,
                         'practice_id' => $currentPracticeId,

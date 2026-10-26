@@ -79,12 +79,10 @@ if (!empty($file['attached_case_id'])) {
     requireCaseAccess($file['attached_case_id'], $currentPracticeId);
 } else {
     // Unattached inbox files only exist inside the experimental workflow:
-    // require the flag AND the case-edit permission the inbox itself uses.
-    if (!isFeatureEnabled('SCANNER_INBOX')) {
-        scanFileFail(404);
-    }
-    if (!canEditCases($currentPracticeId)) {
-        logSecurityEvent('scan_file_denied', ['reason' => 'cannot_edit_cases']);
+    // the shared inbox check covers flag, allowlist, plan, and the
+    // user-level permission. Attached files above keep normal case access.
+    if (!userCanAccessScanInbox((int)$currentPracticeId)) {
+        logSecurityEvent('scan_file_denied', ['reason' => 'inbox_permission']);
         scanFileFail(403);
     }
 }
