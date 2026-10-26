@@ -1728,6 +1728,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
   // Function to load user settings from the server
   function loadSettings() {
+    // Reset every load: a failed or partial fetch must leave the users
+    // section "not loaded" so saveSettings() can't persist an empty list.
+    window.usersListLoaded = false;
     fetch('api/get-settings.php')
       .then(response => response.json())
       .then(data => {
@@ -11082,6 +11085,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
   // Load user settings first, then load existing cases
   function loadUserSettingsBeforeCases() {
+    window.usersListLoaded = false;
     fetch('api/get-settings.php')
       .then(response => response.json())
       .then(data => {
