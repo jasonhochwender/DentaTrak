@@ -6293,7 +6293,31 @@
             "upper": "Oberkiefer",
             "lower": "Unterkiefer",
             "bite": "Biss"
-        }
+        },
+        "view": {
+            "attention": "Aktion erforderlich",
+            "linked": "Verknüpft",
+            "dismissed": "Ausgeblendet",
+            "all": "Alle"
+        },
+        "search_placeholder": "Patient oder Scan-ID suchen",
+        "filter_vendor": "Scanner",
+        "filter_vendor_all": "Alle Scanner",
+        "filter_date_from": "Scans ab",
+        "filter_date_to": "Scans bis",
+        "reset_filters": "Filter zurücksetzen",
+        "no_matches": "Keine Scans entsprechen Ihren Filtern.",
+        "showing": "{from}–{to} von {total} angezeigt",
+        "page_prev": "Zurück",
+        "page_next": "Weiter",
+        "page_of": "Seite {page} von {pages}",
+        "view_file": "Ansehen",
+        "open_case": "Fall öffnen",
+        "case_unavailable": "Verknüpfter Fall nicht mehr verfügbar",
+        "partial_linked": "Teilweise verknüpft",
+        "files_count": "{count} Dateien",
+        "details": "Details",
+        "field_patient_ref": "Patientenreferenz"
     },
     "usage_report": {
         "back": "Zurück zum Dashboard",

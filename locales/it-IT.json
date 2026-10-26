@@ -6293,7 +6293,31 @@
             "upper": "Arcata superiore",
             "lower": "Arcata inferiore",
             "bite": "Morso"
-        }
+        },
+        "view": {
+            "attention": "Richiede attenzione",
+            "linked": "Collegati",
+            "dismissed": "Ignorati",
+            "all": "Tutti"
+        },
+        "search_placeholder": "Cerca paziente o ID scansione",
+        "filter_vendor": "Scanner",
+        "filter_vendor_all": "Tutti gli scanner",
+        "filter_date_from": "Scansioni dal",
+        "filter_date_to": "Scansioni al",
+        "reset_filters": "Reimposta filtri",
+        "no_matches": "Nessuna scansione corrisponde ai filtri.",
+        "showing": "Visualizzate {from}–{to} di {total}",
+        "page_prev": "Precedente",
+        "page_next": "Successivo",
+        "page_of": "Pagina {page} di {pages}",
+        "view_file": "Visualizza",
+        "open_case": "Apri caso",
+        "case_unavailable": "Il caso collegato non è più disponibile",
+        "partial_linked": "Parzialmente collegato",
+        "files_count": "{count} file",
+        "details": "Dettagli",
+        "field_patient_ref": "Riferimento paziente"
     },
     "usage_report": {
         "back": "Torna alla dashboard",

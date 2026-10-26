@@ -2398,10 +2398,6 @@ endif;
                   <p class="ap-subtitle"><?php echo t('scanner.inbox_subtitle'); ?></p>
                 </div>
                 <div class="ap-header-actions">
-                  <label class="scan-inbox-dismissed-toggle">
-                    <input type="checkbox" id="scanInboxShowDismissed">
-                    <span><?php echo t('scanner.show_dismissed'); ?></span>
-                  </label>
                   <button type="button" class="ap-btn ap-btn-secondary" id="scanInboxRefresh">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                       <path d="M23 4v6h-6M1 20v-6h6M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/>
@@ -2411,9 +2407,11 @@ endif;
                 </div>
               </div>
             </div>
+            <div id="scanInboxToolbar" class="scan-inbox-toolbar"></div>
             <div id="scanInboxList" class="scan-inbox-list" aria-live="polite">
               <div class="scan-inbox-empty"><?php echo t('scanner.loading'); ?></div>
             </div>
+            <div id="scanInboxPager" class="scan-inbox-pager"></div>
           </div>
         </div>
         <!-- End Incoming Scans Tab -->

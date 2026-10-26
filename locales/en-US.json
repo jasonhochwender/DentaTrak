@@ -6293,7 +6293,31 @@
             "upper": "Upper arch",
             "lower": "Lower arch",
             "bite": "Bite"
-        }
+        },
+        "view": {
+            "attention": "Needs attention",
+            "linked": "Linked",
+            "dismissed": "Dismissed",
+            "all": "All"
+        },
+        "search_placeholder": "Search patient or scan ID",
+        "filter_vendor": "Scanner",
+        "filter_vendor_all": "All scanners",
+        "filter_date_from": "Scans from",
+        "filter_date_to": "Scans to",
+        "reset_filters": "Reset filters",
+        "no_matches": "No scans match your filters.",
+        "showing": "Showing {from}–{to} of {total}",
+        "page_prev": "Previous",
+        "page_next": "Next",
+        "page_of": "Page {page} of {pages}",
+        "view_file": "View",
+        "open_case": "Open case",
+        "case_unavailable": "Linked case no longer available",
+        "partial_linked": "Partially linked",
+        "files_count": "{count} files",
+        "details": "Details",
+        "field_patient_ref": "Patient reference"
     },
     "usage_report": {
         "back": "Back to Dashboard",

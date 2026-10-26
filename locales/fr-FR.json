@@ -6293,7 +6293,31 @@
             "upper": "Arcade supérieure",
             "lower": "Arcade inférieure",
             "bite": "Occlusion"
-        }
+        },
+        "view": {
+            "attention": "Action requise",
+            "linked": "Liés",
+            "dismissed": "Ignorés",
+            "all": "Tous"
+        },
+        "search_placeholder": "Rechercher un patient ou un ID de scan",
+        "filter_vendor": "Scanner",
+        "filter_vendor_all": "Tous les scanners",
+        "filter_date_from": "Scans du",
+        "filter_date_to": "Scans au",
+        "reset_filters": "Réinitialiser les filtres",
+        "no_matches": "Aucun scan ne correspond à vos filtres.",
+        "showing": "{from}–{to} sur {total} affichés",
+        "page_prev": "Précédent",
+        "page_next": "Suivant",
+        "page_of": "Page {page} sur {pages}",
+        "view_file": "Voir",
+        "open_case": "Ouvrir le cas",
+        "case_unavailable": "Le cas lié n'est plus disponible",
+        "partial_linked": "Partiellement lié",
+        "files_count": "{count} fichiers",
+        "details": "Détails",
+        "field_patient_ref": "Référence patient"
     },
     "usage_report": {
         "back": "Retour au tableau de bord",

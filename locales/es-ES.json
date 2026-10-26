@@ -6293,7 +6293,31 @@
             "upper": "Arcada superior",
             "lower": "Arcada inferior",
             "bite": "Mordida"
-        }
+        },
+        "view": {
+            "attention": "Requiere atención",
+            "linked": "Vinculados",
+            "dismissed": "Descartados",
+            "all": "Todos"
+        },
+        "search_placeholder": "Buscar paciente o ID de escaneo",
+        "filter_vendor": "Escáner",
+        "filter_vendor_all": "Todos los escáneres",
+        "filter_date_from": "Escaneos desde",
+        "filter_date_to": "Escaneos hasta",
+        "reset_filters": "Restablecer filtros",
+        "no_matches": "Ningún escaneo coincide con los filtros.",
+        "showing": "Mostrando {from}–{to} de {total}",
+        "page_prev": "Anterior",
+        "page_next": "Siguiente",
+        "page_of": "Página {page} de {pages}",
+        "view_file": "Ver",
+        "open_case": "Abrir caso",
+        "case_unavailable": "El caso vinculado ya no está disponible",
+        "partial_linked": "Parcialmente vinculado",
+        "files_count": "{count} archivos",
+        "details": "Detalles",
+        "field_patient_ref": "Referencia del paciente"
     },
     "usage_report": {
         "back": "Volver al panel",

@@ -63,6 +63,160 @@ class ScanInbox {
     }
 
     /**
+     * Filtered, paginated inbox listing.
+     *
+     * Status views:
+     *   attention - unlinked work (received/processing/ready/failed) plus
+     *               linked scans that still carry unlinked ready files
+     *               (partially linked revisions awaiting attach)
+     *   linked / dismissed / all - literal status views
+     *
+     * Search: patient names live encrypted, so SQL cannot match them.
+     * SQL narrows by status/vendor/date (indexed, cheap); names are
+     * decrypted server-side and substring-matched in PHP, then the page
+     * is sliced - search covers every matching record, not just the page.
+     * Scan IDs are plaintext and searchable. Search terms are never
+     * logged and no plaintext is persisted.
+     *
+     * @param array $opts view|q|vendor|date_from|date_to|page|per_page
+     * @return array {scans,total,page,per_page,counts,vendors,truncated}
+     */
+    public static function listFiltered(PDO $pdo, int $practiceId, ?int $userId, array $opts): array {
+        $view    = (string)($opts['view'] ?? 'attention');
+        if (!in_array($view, ['attention', 'linked', 'dismissed', 'all'], true)) {
+            $view = 'attention';
+        }
+        $q        = mb_strtolower(trim((string)($opts['q'] ?? '')));
+        $vendor   = strtolower(trim((string)($opts['vendor'] ?? '')));
+        $dateFrom = self::boundDate($opts['date_from'] ?? null, false);
+        $dateTo   = self::boundDate($opts['date_to'] ?? null, true);
+        $page     = max(1, (int)($opts['page'] ?? 1));
+        $perPage  = max(1, min(100, (int)($opts['per_page'] ?? 25)));
+
+        // Unlinked-ready files flag: a linked scan with files still waiting
+        // is partially linked and stays visible under Needs attention.
+        $unlinkedReady = "EXISTS(SELECT 1 FROM scanner_scan_files f WHERE f.scan_id = s.id AND f.status = 'ready' AND f.attached_case_id IS NULL)";
+
+        $where = "s.practice_id = :pid";
+        $params = [':pid' => $practiceId];
+        if ($view === 'attention') {
+            $where .= " AND (s.status IN ('received','processing','ready','failed') OR (s.status = 'linked' AND $unlinkedReady))";
+        } elseif ($view === 'linked') {
+            $where .= " AND s.status = 'linked'";
+        } elseif ($view === 'dismissed') {
+            $where .= " AND s.status = 'dismissed'";
+        }
+        if ($vendor !== '') {
+            $where .= " AND s.vendor = :vendor";
+            $params[':vendor'] = $vendor;
+        }
+        if ($dateFrom !== null) {
+            $where .= " AND COALESCE(s.scan_at, s.created_at) >= :date_from";
+            $params[':date_from'] = $dateFrom;
+        }
+        if ($dateTo !== null) {
+            $where .= " AND COALESCE(s.scan_at, s.created_at) <= :date_to";
+            $params[':date_to'] = $dateTo;
+        }
+
+        // Bounded pre-search set; names need decryption before matching so
+        // pagination happens after the full filtered set is known.
+        $cap = 5000;
+        $stmt = $pdo->prepare("
+            SELECT s.*, $unlinkedReady AS unlinked_ready
+            FROM scanner_incoming_scans s
+            WHERE $where
+            ORDER BY COALESCE(s.scan_at, s.created_at) DESC, s.id DESC
+            LIMIT $cap
+        ");
+        $stmt->execute($params);
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $truncated = count($rows) >= $cap;
+
+        if ($q !== '') {
+            $rows = array_values(array_filter($rows, function (array $row) use ($q) {
+                $haystacks = [
+                    (string)($row['external_scan_id'] ?? ''),
+                    (string)$row['id'],
+                    (string)(ScanIngestion::decryptField($row['patient_first_name']) ?? ''),
+                    (string)(ScanIngestion::decryptField($row['patient_last_name']) ?? ''),
+                ];
+                foreach ($haystacks as $h) {
+                    if ($h !== '' && mb_stripos($h, $q) !== false) {
+                        return true;
+                    }
+                }
+                return false;
+            }));
+        }
+
+        $total = count($rows);
+        $pageRows = array_slice($rows, ($page - 1) * $perPage, $perPage);
+
+        $scans = [];
+        foreach ($pageRows as $row) {
+            $scans[] = self::serializeScan($pdo, $row, $userId, true);
+        }
+
+        return [
+            'scans'     => $scans,
+            'total'     => $total,
+            'page'      => $page,
+            'per_page'  => $perPage,
+            'counts'    => self::viewCounts($pdo, $practiceId),
+            'vendors'   => self::practiceVendors($pdo, $practiceId),
+            'truncated' => $truncated,
+        ];
+    }
+
+    private static function boundDate($raw, bool $endOfDay): ?string {
+        $raw = trim((string)$raw);
+        if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $raw)) {
+            return null;
+        }
+        return $raw . ($endOfDay ? ' 23:59:59' : ' 00:00:00');
+    }
+
+    /** Per-view totals for tab badges. */
+    private static function viewCounts(PDO $pdo, int $practiceId): array {
+        $unlinkedReady = "EXISTS(SELECT 1 FROM scanner_scan_files f WHERE f.scan_id = s.id AND f.status = 'ready' AND f.attached_case_id IS NULL)";
+        $stmt = $pdo->prepare("
+            SELECT s.status, COUNT(*) AS n, SUM($unlinkedReady) AS partial
+            FROM scanner_incoming_scans s
+            WHERE s.practice_id = :pid
+            GROUP BY s.status
+        ");
+        $stmt->execute([':pid' => $practiceId]);
+        $counts = ['attention' => 0, 'linked' => 0, 'dismissed' => 0, 'all' => 0];
+        foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+            $n = (int)$row['n'];
+            $status = (string)$row['status'];
+            $counts['all'] += $n;
+            if ($status === 'linked') {
+                $counts['linked'] += $n;
+                $counts['attention'] += (int)$row['partial'];
+            } elseif ($status === 'dismissed') {
+                $counts['dismissed'] += $n;
+            } else {
+                $counts['attention'] += $n;
+            }
+        }
+        return $counts;
+    }
+
+    /** Vendor keys actually present for this practice, with display labels. */
+    private static function practiceVendors(PDO $pdo, int $practiceId): array {
+        $stmt = $pdo->prepare("SELECT DISTINCT vendor FROM scanner_incoming_scans WHERE practice_id = :pid ORDER BY vendor");
+        $stmt->execute([':pid' => $practiceId]);
+        $out = [];
+        foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+            $key = strtolower((string)$row['vendor']);
+            $out[] = ['key' => $key, 'label' => ScanIngestion::VENDORS[$key] ?? $key];
+        }
+        return $out;
+    }
+
+    /**
      * Full detail for one scan owned by the practice (null when absent).
      */
     public static function getDetail(PDO $pdo, int $practiceId, int $scanId, ?int $userId = null): ?array {
@@ -90,6 +244,29 @@ class ScanInbox {
         $dismissed = $row['status'] === ScanIngestion::SCAN_DISMISSED;
         $vendor = strtolower((string)$row['vendor']);
 
+        // Linked-case display: resolve a readable reference (patient name +
+        // case id). A deleted/inaccessible case reports a missing flag so
+        // the UI can degrade without exposing anything.
+        $linkedCase = null;
+        $isLinked = $row['status'] === ScanIngestion::SCAN_LINKED;
+        if ($isLinked && !empty($row['case_id'])) {
+            $stmt = $pdo->prepare("SELECT case_id, patient_first_name, patient_last_name FROM cases_cache WHERE case_id = :cid AND practice_id = :pid LIMIT 1");
+            $stmt->execute([':cid' => (string)$row['case_id'], ':pid' => (int)$row['practice_id']]);
+            $case = $stmt->fetch(PDO::FETCH_ASSOC);
+            if ($case) {
+                $cFirst = ScanIngestion::decryptField($case['patient_first_name']);
+                $cLast = ScanIngestion::decryptField($case['patient_last_name']);
+                $patientLabel = trim(($cFirst ?? '') . ' ' . ($cLast ?? ''));
+                $linkedCase = [
+                    'id'           => $case['case_id'],
+                    'patientName'  => $patientLabel !== '' ? $patientLabel : null,
+                    'exists'       => true,
+                ];
+            } else {
+                $linkedCase = ['id' => null, 'patientName' => null, 'exists' => false];
+            }
+        }
+
         return [
             'id'                 => $scanId,
             'vendor'             => $vendor,
@@ -106,7 +283,9 @@ class ScanInbox {
             'caseId'             => $row['case_id'],
             'isSynthetic'        => !empty($row['is_synthetic']),
             'isDismissed'        => $dismissed,
-            'isLinked'           => $row['status'] === ScanIngestion::SCAN_LINKED,
+            'isLinked'           => $isLinked,
+            'isPartiallyLinked'  => $isLinked && $attachableCount > 0,
+            'linkedCase'         => $linkedCase,
             'attachableFiles'    => $attachableCount,
             'createdAt'          => $row['created_at'],
             'linkedAt'           => $row['linked_at'],

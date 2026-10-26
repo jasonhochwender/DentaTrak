@@ -6293,7 +6293,31 @@
             "upper": "Arco superior",
             "lower": "Arco inferior",
             "bite": "Mordida"
-        }
+        },
+        "view": {
+            "attention": "Precisa de atenção",
+            "linked": "Vinculados",
+            "dismissed": "Dispensados",
+            "all": "Todos"
+        },
+        "search_placeholder": "Buscar paciente ou ID de escaneio",
+        "filter_vendor": "Scanner",
+        "filter_vendor_all": "Todos os scanners",
+        "filter_date_from": "Escaneios de",
+        "filter_date_to": "Escaneios até",
+        "reset_filters": "Redefinir filtros",
+        "no_matches": "Nenhum escaneio corresponde aos filtros.",
+        "showing": "Mostrando {from}–{to} de {total}",
+        "page_prev": "Anterior",
+        "page_next": "Próxima",
+        "page_of": "Página {page} de {pages}",
+        "view_file": "Visualizar",
+        "open_case": "Abrir caso",
+        "case_unavailable": "O caso vinculado não está mais disponível",
+        "partial_linked": "Parcialmente vinculado",
+        "files_count": "{count} arquivos",
+        "details": "Detalhes",
+        "field_patient_ref": "Referência do paciente"
     },
     "usage_report": {
         "back": "Voltar ao painel",

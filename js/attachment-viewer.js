@@ -263,8 +263,34 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
       });
   }
 
+  /**
+   * Direct GET for sources that authorize via the session rather than a
+   * signed-URL round trip (scan-inbox files stream from scan-file.php).
+   */
+  function fetchDirectContent(url) {
+    return fetch(url, { credentials: 'same-origin' })
+      .then(function(response) {
+        if (!response.ok) {
+          throw new Error(t('attachments.viewer.unable_to_load'));
+        }
+        return response.arrayBuffer();
+      });
+  }
+
   function downloadCurrent() {
     if (!currentData) return;
+    if (currentData.downloadUrl) {
+      // Direct-URL sources (e.g. scan-inbox files) already stream with
+      // their own authorization + Content-Disposition headers.
+      var a = document.createElement('a');
+      a.href = currentData.downloadUrl;
+      a.download = currentData.fileName || '';
+      a.rel = 'noopener';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      return;
+    }
     downloadAttachment(currentData.storagePath, currentData.fileName);
   }
 
@@ -279,7 +305,7 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
       // The header Download button is always present; mirror it inside the
       // error state so a failed preview still offers a clear way out.
       if (errorDownloadBtn) {
-        errorDownloadBtn.style.display = currentData && currentData.storagePath ? 'inline-flex' : 'none';
+        errorDownloadBtn.style.display = currentData && (currentData.storagePath || currentData.downloadUrl) ? 'inline-flex' : 'none';
       }
       errorEl.style.display = 'flex';
     }
@@ -1064,7 +1090,9 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
       storagePath: item.storagePath,
       fileName: item.fileName,
       fileType: item.fileType,
-      ext: ext
+      ext: ext,
+      contentUrl: item.contentUrl || null,
+      downloadUrl: item.downloadUrl || null
     };
 
     titleEl.textContent = item.fileName || t('attachments.viewer.attachment');
@@ -1085,7 +1113,7 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
     loadingEl.style.display = 'flex';
     const seq = ++attachmentLoadSeq;
 
-    fetchAttachmentContent(item.storagePath)
+    (item.contentUrl ? fetchDirectContent(item.contentUrl) : fetchAttachmentContent(item.storagePath))
       .then(function(buffer) {
         if (seq !== attachmentLoadSeq) return; // user already moved on
         if (SUPPORTED_IMAGE[ext]) {
@@ -1122,7 +1150,7 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
    * (falling back to fileName) becomes the initial position. When omitted,
    * the viewer represents just the one file and navigation is hidden.
    */
-  window.openAttachmentViewer = function(storagePath, fileName, fileType, attachments) {
+  window.openAttachmentViewer = function(storagePath, fileName, fileType, attachments, source) {
     if (!modal || !titleEl || !typeEl || !canvasContainer || !loadingEl) {
       if (typeof window.showToast === 'function') {
         window.showToast(t('attachments.viewer.not_ready'), 'error');
@@ -1131,13 +1159,20 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
     }
 
     if (Array.isArray(attachments) && attachments.length > 0) {
-      attachmentList = attachments.filter(function(a) { return a && a.storagePath; });
+      attachmentList = attachments.filter(function(a) { return a && (a.storagePath || a.contentUrl); });
     } else {
-      attachmentList = [{ storagePath: storagePath, fileName: fileName, fileType: fileType }];
+      attachmentList = [{
+        storagePath: storagePath,
+        fileName: fileName,
+        fileType: fileType,
+        contentUrl: source && source.contentUrl || null,
+        downloadUrl: source && source.downloadUrl || null
+      }];
     }
 
     attachmentIndex = attachmentList.findIndex(function(a) {
-      return a.storagePath === storagePath;
+      return a.storagePath === storagePath
+        || (source && source.contentUrl && a.contentUrl === source.contentUrl);
     });
     if (attachmentIndex < 0 && fileName) {
       attachmentIndex = attachmentList.findIndex(function(a) { return a.fileName === fileName; });

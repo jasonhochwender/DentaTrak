@@ -6293,7 +6293,31 @@
             "upper": "상악",
             "lower": "하악",
             "bite": "교합"
-        }
+        },
+        "view": {
+            "attention": "조치 필요",
+            "linked": "연결됨",
+            "dismissed": "숨김",
+            "all": "전체"
+        },
+        "search_placeholder": "환자 또는 스캔 ID 검색",
+        "filter_vendor": "스캐너",
+        "filter_vendor_all": "모든 스캐너",
+        "filter_date_from": "스캔 시작일",
+        "filter_date_to": "스캔 종료일",
+        "reset_filters": "필터 초기화",
+        "no_matches": "필터와 일치하는 스캔이 없습니다.",
+        "showing": "{total}개 중 {from}–{to} 표시",
+        "page_prev": "이전",
+        "page_next": "다음",
+        "page_of": "{pages}페이지 중 {page}페이지",
+        "view_file": "보기",
+        "open_case": "케이스 열기",
+        "case_unavailable": "연결된 케이스를 더 이상 사용할 수 없습니다",
+        "partial_linked": "일부만 연결됨",
+        "files_count": "파일 {count}개",
+        "details": "세부 정보",
+        "field_patient_ref": "환자 참조"
     },
     "usage_report": {
         "back": "대시보드로 돌아가기",

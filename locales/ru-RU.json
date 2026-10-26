@@ -6293,7 +6293,31 @@
             "upper": "Верхняя челюсть",
             "lower": "Нижняя челюсть",
             "bite": "Прикус"
-        }
+        },
+        "view": {
+            "attention": "Требует внимания",
+            "linked": "Связанные",
+            "dismissed": "Отклонённые",
+            "all": "Все"
+        },
+        "search_placeholder": "Поиск по пациенту или ID скана",
+        "filter_vendor": "Сканер",
+        "filter_vendor_all": "Все сканеры",
+        "filter_date_from": "Сканы с",
+        "filter_date_to": "Сканы по",
+        "reset_filters": "Сбросить фильтры",
+        "no_matches": "Ни один скан не соответствует фильтрам.",
+        "showing": "Показано {from}–{to} из {total}",
+        "page_prev": "Назад",
+        "page_next": "Вперёд",
+        "page_of": "Страница {page} из {pages}",
+        "view_file": "Просмотр",
+        "open_case": "Открыть кейс",
+        "case_unavailable": "Связанный кейс больше недоступен",
+        "partial_linked": "Частично связан",
+        "files_count": "Файлов: {count}",
+        "details": "Подробности",
+        "field_patient_ref": "Ссылка на пациента"
     },
     "usage_report": {
         "back": "Назад к панели",

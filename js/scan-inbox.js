@@ -1,14 +1,17 @@
 /**
  * ScanInbox - Incoming Scans tab
  *
- * Client for api/scan-inbox.php. Renders the practice's incoming scans and
- * wires the workflow actions: attach to existing case, create a new case
- * (through the normal Create Case modal, prefilled from scan details),
- * dismiss/restore, and retry.
+ * Client for api/scan-inbox.php. Renders the practice's incoming scans with
+ * status views (Needs attention / Linked / Dismissed / All), patient + scan
+ * id search, vendor and scan-date filters, and server-side pagination.
+ * Workflow actions: preview, download, attach to existing case, create a
+ * case (normal Create Case modal prefilled), dismiss/restore, retry, and
+ * open the linked case.
  *
  * SAFETY: every vendor-supplied string is rendered with textContent only.
  * Instructions are plain text (the server strips markup at ingest); they
- * are never assigned through innerHTML.
+ * are never assigned through innerHTML. Search terms are sent to the
+ * server and never logged or persisted anywhere patient data would leak.
  *
  * Loaded only when SCANNER_INBOX is enabled for this user (main.php gates
  * the script tag; the API enforces the flag independently).
@@ -20,14 +23,36 @@
     return;
   }
 
+  var VIEWS = ['attention', 'linked', 'dismissed', 'all'];
+  var PAGE_SIZE = 25;
+  var STATE_KEY = 'scanInboxState';
+
   var listEl = null;
-  var includeDismissed = false;
-  var pendingScanId = null;      // scan awaiting the case created in the modal
+  var toolbarEl = null;
+  var pagerEl = null;
+  var pendingScanId = null;
   var pendingScanDefaults = null;
   var attachScanId = null;
   var attachCases = [];
   var loaded = false;
   var loading = false;
+  var searchTimer = null;
+  var lastData = null;
+
+  var state = { view: 'attention', q: '', vendor: '', dateFrom: '', dateTo: '', page: 1 };
+  try {
+    var saved = sessionStorage.getItem(STATE_KEY);
+    if (saved) {
+      var parsed = JSON.parse(saved);
+      if (parsed && typeof parsed === 'object') {
+        state = Object.assign(state, parsed);
+      }
+    }
+  } catch (e) { /* storage unavailable - defaults apply */ }
+
+  function saveState() {
+    try { sessionStorage.setItem(STATE_KEY, JSON.stringify(state)); } catch (e) {}
+  }
 
   function tt(key, params) {
     if (typeof t === 'function') {
@@ -43,12 +68,24 @@
     return node;
   }
 
+  function btn(className, label, onClick) {
+    var b = el('button', className, label);
+    b.type = 'button';
+    if (onClick) b.addEventListener('click', onClick);
+    return b;
+  }
+
   function api(action, body, method) {
     var opts = { credentials: 'same-origin', headers: {} };
     var url = 'api/scan-inbox.php';
     if (method === 'GET') {
-      url += '?action=' + encodeURIComponent(action);
-      if (body && body.include_dismissed) url += '&include_dismissed=1';
+      var params = { action: action };
+      if (body) {
+        Object.keys(body).forEach(function (k) {
+          if (body[k] !== '' && body[k] !== null && body[k] !== undefined) params[k] = body[k];
+        });
+      }
+      url += '?' + new URLSearchParams(params).toString();
     } else {
       opts.method = 'POST';
       opts.headers['Content-Type'] = 'application/json';
@@ -83,16 +120,147 @@
   }
 
   // -------------------------------------------------------------------
-  // List loading + rendering
+  // Toolbar (views, search, vendor, dates, reset)
+  // -------------------------------------------------------------------
+
+  function filtersActive() {
+    return state.q !== '' || state.vendor !== '' || state.dateFrom !== '' || state.dateTo !== '';
+  }
+
+  function renderToolbar() {
+    if (!toolbarEl) return;
+    toolbarEl.textContent = '';
+
+    var counts = (lastData && lastData.counts) || { attention: 0, linked: 0, dismissed: 0, all: 0 };
+    var tabs = el('div', 'scan-inbox-tabs');
+    tabs.setAttribute('role', 'tablist');
+    VIEWS.forEach(function (view) {
+      var count = counts[view] !== undefined ? counts[view] : 0;
+      var tab = el('button', 'scan-inbox-tab' + (state.view === view ? ' scan-inbox-tab-active' : ''), tt('scanner.view.' + view) + ' (' + count + ')');
+      tab.type = 'button';
+      tab.setAttribute('role', 'tab');
+      tab.setAttribute('aria-selected', state.view === view ? 'true' : 'false');
+      tab.addEventListener('click', function () {
+        if (state.view !== view) {
+          state.view = view;
+          state.page = 1;
+          saveState();
+          loadScans();
+        }
+      });
+      tabs.appendChild(tab);
+    });
+    toolbarEl.appendChild(tabs);
+
+    var filters = el('div', 'scan-inbox-filters');
+
+    var search = el('input', 'scan-inbox-search');
+    search.type = 'search';
+    search.id = 'scanInboxSearch';
+    search.placeholder = tt('scanner.search_placeholder');
+    search.setAttribute('aria-label', tt('scanner.search_placeholder'));
+    search.value = state.q;
+    search.addEventListener('input', function () {
+      clearTimeout(searchTimer);
+      searchTimer = setTimeout(function () {
+        state.q = search.value.trim();
+        state.page = 1;
+        saveState();
+        loadScans();
+      }, 300);
+    });
+    filters.appendChild(search);
+
+    var vendorSel = el('select', 'scan-inbox-vendor');
+    vendorSel.id = 'scanInboxVendor';
+    vendorSel.setAttribute('aria-label', tt('scanner.filter_vendor'));
+    var allOpt = el('option', '', tt('scanner.filter_vendor_all'));
+    allOpt.value = '';
+    vendorSel.appendChild(allOpt);
+    ((lastData && lastData.vendors) || []).forEach(function (v) {
+      var opt = el('option', '', v.label);
+      opt.value = v.key;
+      vendorSel.appendChild(opt);
+    });
+    vendorSel.value = state.vendor;
+    vendorSel.addEventListener('change', function () {
+      state.vendor = vendorSel.value;
+      state.page = 1;
+      saveState();
+      loadScans();
+    });
+    filters.appendChild(vendorSel);
+
+    var fromInput = el('input', 'scan-inbox-date');
+    fromInput.type = 'date';
+    fromInput.id = 'scanInboxDateFrom';
+    fromInput.setAttribute('aria-label', tt('scanner.filter_date_from'));
+    fromInput.value = state.dateFrom;
+    fromInput.addEventListener('change', function () {
+      state.dateFrom = fromInput.value;
+      state.page = 1;
+      saveState();
+      loadScans();
+    });
+    filters.appendChild(fromInput);
+
+    var toInput = el('input', 'scan-inbox-date');
+    toInput.type = 'date';
+    toInput.id = 'scanInboxDateTo';
+    toInput.setAttribute('aria-label', tt('scanner.filter_date_to'));
+    toInput.value = state.dateTo;
+    toInput.addEventListener('change', function () {
+      state.dateTo = toInput.value;
+      state.page = 1;
+      saveState();
+      loadScans();
+    });
+    filters.appendChild(toInput);
+
+    if (filtersActive()) {
+      var reset = btn('btn-secondary scan-inbox-reset', tt('scanner.reset_filters'), function () {
+        state.q = '';
+        state.vendor = '';
+        state.dateFrom = '';
+        state.dateTo = '';
+        state.page = 1;
+        saveState();
+        loadScans();
+      });
+      filters.appendChild(reset);
+    }
+
+    toolbarEl.appendChild(filters);
+  }
+
+  // -------------------------------------------------------------------
+  // List loading + pagination
   // -------------------------------------------------------------------
 
   function loadScans() {
     if (!listEl || loading) return;
     loading = true;
-    api('list', { include_dismissed: includeDismissed }, 'GET')
+    api('list', {
+      view: state.view,
+      q: state.q,
+      vendor: state.vendor,
+      date_from: state.dateFrom,
+      date_to: state.dateTo,
+      page: state.page,
+      per_page: PAGE_SIZE,
+    }, 'GET')
       .then(function (data) {
         loaded = true;
+        lastData = data;
+        if (data.total > 0 && state.page > Math.ceil(data.total / PAGE_SIZE)) {
+          state.page = Math.ceil(data.total / PAGE_SIZE);
+          loading = false;
+          loadScans();
+          return;
+        }
+        renderToolbar();
         renderList(data.scans || []);
+        renderPager(data);
       })
       .catch(function (err) {
         listEl.textContent = '';
@@ -102,6 +270,47 @@
         loading = false;
       });
   }
+
+  function renderPager(data) {
+    if (!pagerEl) return;
+    pagerEl.textContent = '';
+    var total = data.total || 0;
+    if (total === 0) return;
+    var pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+    var from = (state.page - 1) * PAGE_SIZE + 1;
+    var to = Math.min(total, state.page * PAGE_SIZE);
+
+    var info = el('span', 'scan-inbox-page-info', tt('scanner.showing', { from: from, to: to, total: total }));
+    pagerEl.appendChild(info);
+
+    var controls = el('div', 'scan-inbox-page-controls');
+    var prev = btn('btn-secondary scan-inbox-page-btn', tt('scanner.page_prev'), function () {
+      state.page = Math.max(1, state.page - 1);
+      saveState();
+      loadScans();
+    });
+    prev.disabled = state.page <= 1;
+    prev.setAttribute('aria-label', tt('scanner.page_prev'));
+    controls.appendChild(prev);
+
+    var num = el('span', 'scan-inbox-page-num', tt('scanner.page_of', { page: state.page, pages: pages }));
+    controls.appendChild(num);
+
+    var next = btn('btn-secondary scan-inbox-page-btn', tt('scanner.page_next'), function () {
+      state.page = Math.min(pages, state.page + 1);
+      saveState();
+      loadScans();
+    });
+    next.disabled = state.page >= pages;
+    next.setAttribute('aria-label', tt('scanner.page_next'));
+    controls.appendChild(next);
+
+    pagerEl.appendChild(controls);
+  }
+
+  // -------------------------------------------------------------------
+  // Rendering
+  // -------------------------------------------------------------------
 
   function statusKey(status) {
     switch (status) {
@@ -127,102 +336,114 @@
 
   function renderList(scans) {
     listEl.textContent = '';
+    var totalAll = lastData && lastData.counts ? lastData.counts.all : 0;
     if (!scans.length) {
-      listEl.appendChild(el('div', 'scan-inbox-empty', tt('scanner.empty')));
+      if (totalAll === 0) {
+        listEl.appendChild(el('div', 'scan-inbox-empty', tt('scanner.empty')));
+      } else {
+        var wrap = el('div', 'scan-inbox-empty');
+        wrap.appendChild(el('p', '', tt('scanner.no_matches')));
+        wrap.appendChild(btn('btn-secondary', tt('scanner.reset_filters'), function () {
+          state.q = '';
+          state.vendor = '';
+          state.dateFrom = '';
+          state.dateTo = '';
+          state.page = 1;
+          saveState();
+          loadScans();
+        }));
+        listEl.appendChild(wrap);
+      }
       return;
     }
     scans.forEach(function (scan) {
-      listEl.appendChild(renderScanCard(scan));
+      listEl.appendChild(renderScanRow(scan));
     });
   }
 
-  function renderScanCard(scan) {
-    var card = el('div', 'scan-card');
-    if (scan.isDismissed) card.classList.add('scan-card-dismissed');
+  function patientLabel(scan) {
+    return [scan.patientFirstName, scan.patientLastName].filter(Boolean).join(' ');
+  }
 
-    // Header: vendor + status
-    var top = el('div', 'scan-card-top');
-    var vendorWrap = el('div', 'scan-card-vendor-wrap');
-    vendorWrap.appendChild(el('span', 'scan-vendor', scan.vendorLabel || scan.vendor));
+  function renderScanRow(scan) {
+    var row = el('div', 'scan-row' + (scan.isDismissed ? ' scan-row-dismissed' : ''));
+    var bodyId = 'scan-detail-' + scan.id;
+
+    // -- Compact summary line
+    var summary = el('div', 'scan-row-summary');
+    var main = el('div', 'scan-row-main');
+
+    var expand = btn('scan-row-expand', '', null);
+    expand.setAttribute('aria-expanded', 'false');
+    expand.setAttribute('aria-controls', bodyId);
+    expand.setAttribute('aria-label', tt('scanner.details'));
+    var arrow = el('span', 'scan-row-arrow');
+    arrow.setAttribute('aria-hidden', 'true');
+    expand.appendChild(arrow);
+    main.appendChild(expand);
+
+    var nameWrap = el('div', 'scan-row-patient');
+    nameWrap.appendChild(el('span', 'scan-row-name', patientLabel(scan) || tt('scanner.not_provided')));
     if (scan.isSynthetic) {
-      vendorWrap.appendChild(el('span', 'scan-synthetic-badge', tt('scanner.synthetic_badge')));
+      nameWrap.appendChild(el('span', 'scan-synthetic-badge', tt('scanner.synthetic_badge')));
     }
-    top.appendChild(vendorWrap);
-    top.appendChild(el('span', 'scan-chip ' + statusClass(scan.status), tt(statusKey(scan.status))));
-    card.appendChild(top);
+    main.appendChild(nameWrap);
 
-    // Patient + metadata grid
-    var meta = el('dl', 'scan-meta');
-    var patientName = [scan.patientFirstName, scan.patientLastName].filter(Boolean).join(' ');
-    addMeta(meta, 'scanner.field_patient', patientName || tt('scanner.not_provided'));
-    addMeta(meta, 'scanner.field_scan_id', scan.externalScanId);
-    if (scan.scanAt) addMeta(meta, 'scanner.field_scanned', formatDateTime(scan.scanAt));
-    if (scan.errorCode) addMeta(meta, 'scanner.field_error', tt('scanner.error_' + scan.errorCode) === 'scanner.error_' + scan.errorCode ? scan.errorCode : tt('scanner.error_' + scan.errorCode));
-    card.appendChild(meta);
-
-    // Instructions: plain text in <pre>, never HTML.
-    if (scan.instructions) {
-      var instrWrap = el('div', 'scan-instructions');
-      instrWrap.appendChild(el('div', 'scan-instructions-label', tt('scanner.instructions')));
-      instrWrap.appendChild(el('pre', 'scan-instructions-text', scan.instructions));
-      card.appendChild(instrWrap);
+    main.appendChild(el('span', 'scan-row-vendor', scan.vendorLabel || scan.vendor));
+    if (scan.scanAt) {
+      main.appendChild(el('span', 'scan-row-date', formatDateTime(scan.scanAt)));
     }
 
-    // Files
-    if (scan.files && scan.files.length) {
-      var filesEl = el('ul', 'scan-files');
-      scan.files.forEach(function (f) {
-        filesEl.appendChild(renderFileRow(f, scan));
-      });
-      card.appendChild(filesEl);
+    var chips = el('div', 'scan-row-chips');
+    chips.appendChild(el('span', 'scan-chip ' + statusClass(scan.status), tt(statusKey(scan.status))));
+    if (scan.isPartiallyLinked) {
+      chips.appendChild(el('span', 'scan-chip scan-chip-partial', tt('scanner.partial_linked')));
     }
+    var fileCount = (scan.files || []).length;
+    chips.appendChild(el('span', 'scan-row-files', tt('scanner.files_count', { count: fileCount })));
+    summary.appendChild(main);
+    summary.appendChild(chips);
+    row.appendChild(summary);
 
-    // Suggested matches (identifier-based only - never name matching)
-    if (!scan.isLinked && !scan.isDismissed && scan.suggestedCases && scan.suggestedCases.length) {
-      var sugg = el('div', 'scan-suggestions');
-      sugg.appendChild(el('span', 'scan-suggestions-label', tt('scanner.suggested_matches') + ':'));
-      scan.suggestedCases.forEach(function (c) {
-        var btn = el('button', 'scan-suggestion-btn', c.patientName ? (c.patientName + ' (' + c.caseId + ')') : c.caseId);
-        btn.type = 'button';
-        btn.addEventListener('click', function () { openAttachModal(scan, c.caseId); });
-        sugg.appendChild(btn);
-      });
-      card.appendChild(sugg);
-    }
-
-    // Actions
-    var actions = el('div', 'scan-card-actions');
+    // -- Action bar (context-specific)
+    var actions = el('div', 'scan-row-actions');
 
     if (scan.isLinked) {
-      actions.appendChild(el('span', 'scan-linked-note', tt('scanner.linked_to', { case: scan.caseId })));
-      // A revised/rescan file can arrive after linking: when the scan has
-      // new attachable files, offer attach again - the dialog is locked to
-      // the already-linked case (the server rejects any other target).
-      if (scan.attachableFiles > 0) {
-        var attachUpdatedBtn = el('button', 'btn-secondary scan-action-attach', tt('scanner.attach_updated_files'));
-        attachUpdatedBtn.type = 'button';
-        attachUpdatedBtn.addEventListener('click', function () { openAttachModal(scan, scan.caseId, true); });
-        actions.appendChild(attachUpdatedBtn);
+      if (scan.linkedCase && scan.linkedCase.exists) {
+        var caseLabel = scan.linkedCase.patientName
+          ? scan.linkedCase.patientName + ' (' + scan.linkedCase.id + ')'
+          : scan.linkedCase.id;
+        actions.appendChild(el('span', 'scan-linked-label', tt('scanner.linked_to', { case: caseLabel })));
+        var openBtn = btn('btn-secondary scan-action-open', tt('scanner.open_case'), function () {
+          if (typeof window.openCaseById === 'function') {
+            window.openCaseById(scan.linkedCase.id, {});
+          }
+        });
+        actions.appendChild(openBtn);
+      } else {
+        actions.appendChild(el('span', 'scan-linked-label', tt('scanner.case_unavailable')));
+      }
+      // Linked scans with unlinked ready files stay actionable (revisions).
+      if (scan.isPartiallyLinked) {
+        actions.appendChild(btn('btn-secondary scan-action-attach', tt('scanner.attach_updated_files'), function () {
+          openAttachModal(scan, scan.caseId, true);
+        }));
       }
     } else if (!scan.isDismissed) {
       var attachable = scan.attachableFiles > 0;
       var noInFlight = !(scan.status === 'processing' || scan.status === 'received');
 
       if (attachable && noInFlight) {
-        var attachBtn = el('button', 'btn-secondary scan-action-attach', tt('scanner.attach_to_case'));
-        attachBtn.type = 'button';
-        attachBtn.addEventListener('click', function () { openAttachModal(scan, null); });
-        actions.appendChild(attachBtn);
-
-        var createBtn = el('button', 'btn-secondary scan-action-create', tt('scanner.create_case'));
-        createBtn.type = 'button';
-        createBtn.addEventListener('click', function () { startCaseFromScan(scan); });
-        actions.appendChild(createBtn);
+        actions.appendChild(btn('btn-secondary scan-action-attach', tt('scanner.attach_to_case'), function () {
+          openAttachModal(scan, null);
+        }));
+        actions.appendChild(btn('btn-secondary scan-action-create', tt('scanner.create_case'), function () {
+          startCaseFromScan(scan);
+        }));
       }
 
-      if (scan.status === 'failed' || scan.files.some(function (f) { return f.status === 'failed'; })) {
-        var retryBtn = el('button', 'btn-secondary scan-action-retry', tt('scanner.retry'));
-        retryBtn.type = 'button';
+      if (scan.status === 'failed' || (scan.files || []).some(function (f) { return f.status === 'failed'; })) {
+        var retryBtn = btn('btn-secondary scan-action-retry', tt('scanner.retry'), null);
         retryBtn.addEventListener('click', function () {
           retryBtn.disabled = true;
           api('retry', { scan_id: scan.id })
@@ -238,29 +459,70 @@
         actions.appendChild(retryBtn);
       }
 
-      var dismissBtn = el('button', 'btn-secondary scan-action-dismiss', tt('scanner.dismiss'));
-      dismissBtn.type = 'button';
-      dismissBtn.addEventListener('click', function () {
+      actions.appendChild(btn('btn-secondary scan-action-dismiss', tt('scanner.dismiss'), function () {
         confirmAction(tt('scanner.dismiss_title'), tt('scanner.dismiss_confirm'), function () {
           api('dismiss', { scan_id: scan.id })
             .then(function () { showToastSafe(tt('scanner.dismissed_toast'), 'success'); loadScans(); })
             .catch(function (err) { showToastSafe(err.message, 'error'); });
         });
-      });
-      actions.appendChild(dismissBtn);
+      }));
     } else {
-      var restoreBtn = el('button', 'btn-secondary scan-action-restore', tt('scanner.restore'));
-      restoreBtn.type = 'button';
-      restoreBtn.addEventListener('click', function () {
+      actions.appendChild(btn('btn-secondary scan-action-restore', tt('scanner.restore'), function () {
         api('restore', { scan_id: scan.id })
           .then(function () { showToastSafe(tt('scanner.restored_toast'), 'success'); loadScans(); })
           .catch(function (err) { showToastSafe(err.message, 'error'); });
-      });
-      actions.appendChild(restoreBtn);
+      }));
+    }
+    row.appendChild(actions);
+
+    // -- Expandable details
+    var body = el('div', 'scan-row-detail');
+    body.id = bodyId;
+    body.hidden = true;
+    expand.addEventListener('click', function () {
+      var open = body.hidden;
+      body.hidden = !open;
+      expand.setAttribute('aria-expanded', open ? 'true' : 'false');
+      row.classList.toggle('scan-row-open', open);
+    });
+
+    var meta = el('dl', 'scan-meta');
+    addMeta(meta, 'scanner.field_scan_id', scan.externalScanId);
+    if (scan.externalPatientRef) addMeta(meta, 'scanner.field_patient_ref', scan.externalPatientRef);
+    if (scan.scanAt) addMeta(meta, 'scanner.field_scanned', formatDateTime(scan.scanAt));
+    if (scan.errorCode) addMeta(meta, 'scanner.field_error', tt('scanner.error_' + scan.errorCode) === 'scanner.error_' + scan.errorCode ? scan.errorCode : tt('scanner.error_' + scan.errorCode));
+    body.appendChild(meta);
+
+    if (scan.instructions) {
+      var instrWrap = el('div', 'scan-instructions');
+      instrWrap.appendChild(el('div', 'scan-instructions-label', tt('scanner.instructions')));
+      instrWrap.appendChild(el('pre', 'scan-instructions-text', scan.instructions));
+      body.appendChild(instrWrap);
     }
 
-    card.appendChild(actions);
-    return card;
+    if (scan.files && scan.files.length) {
+      var filesEl = el('ul', 'scan-files');
+      scan.files.forEach(function (f) {
+        filesEl.appendChild(renderFileRow(f, scan));
+      });
+      body.appendChild(filesEl);
+    }
+
+    // Suggested matches (identifier-based only - never name matching)
+    if (!scan.isLinked && !scan.isDismissed && scan.suggestedCases && scan.suggestedCases.length) {
+      var sugg = el('div', 'scan-suggestions');
+      sugg.appendChild(el('span', 'scan-suggestions-label', tt('scanner.suggested_matches') + ':'));
+      scan.suggestedCases.forEach(function (c) {
+        var sBtn = el('button', 'scan-suggestion-btn', c.patientName ? (c.patientName + ' (' + c.caseId + ')') : c.caseId);
+        sBtn.type = 'button';
+        sBtn.addEventListener('click', function () { openAttachModal(scan, c.caseId); });
+        sugg.appendChild(sBtn);
+      });
+      body.appendChild(sugg);
+    }
+
+    row.appendChild(body);
+    return row;
   }
 
   function addMeta(dl, labelKey, value) {
@@ -268,9 +530,8 @@
     dl.appendChild(el('dd', '', value));
   }
 
-  // Vendor-declared file role -> display label. Known roles get translated
-  // labels; anything else the vendor sent is shown verbatim (plain text,
-  // already charset-stripped at ingest). No role -> nothing is guessed.
+  // Vendor-declared file role -> display label. Unknown values render
+  // verbatim (charset-stripped at ingest); no role -> nothing guessed.
   function fileRoleLabel(role) {
     if (!role) return '';
     var normalized = String(role).toLowerCase();
@@ -281,10 +542,9 @@
 
   function renderFileRow(file, scan) {
     var li = el('li', 'scan-file');
-    // Revision is the vendor's opaque token ('rev1', 'v2', a digest, ...) -
-    // show it verbatim with the localized label as a tooltip so 'rev1' does
-    // not render as 'rev rev1'.
-    var nameSpan = el('span', 'scan-file-name', file.fileName + (file.revision ? ' (' + file.revision + ')' : ''));
+    // File names render clean - internal revision tokens stay available in
+    // the tooltip rather than appended to the name.
+    var nameSpan = el('span', 'scan-file-name', file.fileName);
     if (file.revision) {
       nameSpan.title = tt('scanner.revision') + ': ' + file.revision;
     }
@@ -296,6 +556,21 @@
     li.appendChild(el('span', 'scan-chip ' + statusClass(file.status === 'ready' && file.attachedCaseId ? 'linked' : file.status), tt(statusKey(file.attachedCaseId ? 'linked' : file.status))));
 
     if (file.status === 'ready') {
+      var viewable = typeof window.isAttachmentViewable === 'function'
+        && window.isAttachmentViewable(file.fileName)
+        && typeof window.openAttachmentViewer === 'function';
+      if (viewable) {
+        var viewBtn = el('button', 'btn-secondary scan-file-view', tt('scanner.view_file'));
+        viewBtn.type = 'button';
+        viewBtn.addEventListener('click', function () {
+          var contentUrl = 'api/scan-file.php?file_id=' + encodeURIComponent(file.id);
+          window.openAttachmentViewer(null, file.fileName, file.contentType || 'model/stl', null, {
+            contentUrl: contentUrl,
+            downloadUrl: contentUrl + '&download=1',
+          });
+        });
+        li.appendChild(viewBtn);
+      }
       var link = el('a', 'scan-file-download', tt('scanner.download'));
       link.href = 'api/scan-file.php?file_id=' + encodeURIComponent(file.id) + '&download=1';
       link.rel = 'noopener';
@@ -335,30 +610,26 @@
     attachScanId = scan.id;
     error.style.display = 'none';
     error.textContent = '';
-    var patientName = [scan.patientFirstName, scan.patientLastName].filter(Boolean).join(' ');
     intro.textContent = tt('scanner.attach_intro', {
       id: scan.externalScanId,
-      patient: patientName || tt('scanner.not_provided'),
+      patient: patientLabel(scan) || tt('scanner.not_provided'),
     });
 
-    // Suggestions (identifier-derived only) - hidden when the attach
-    // target is already fixed to the linked case.
     suggList.textContent = '';
     if (!lockToCase && scan.suggestedCases && scan.suggestedCases.length) {
       scan.suggestedCases.forEach(function (c) {
-        var btn = el('button', 'scan-suggestion-btn', c.patientName ? (c.patientName + ' (' + c.caseId + ')') : c.caseId);
-        btn.type = 'button';
-        btn.addEventListener('click', function () {
+        var sBtn = el('button', 'scan-suggestion-btn', c.patientName ? (c.patientName + ' (' + c.caseId + ')') : c.caseId);
+        sBtn.type = 'button';
+        sBtn.addEventListener('click', function () {
           select.value = c.caseId;
         });
-        suggList.appendChild(btn);
+        suggList.appendChild(sBtn);
       });
       suggWrap.style.display = '';
     } else {
       suggWrap.style.display = 'none';
     }
 
-    // Imported instructions preview + explicit opt-in merge
     if (scan.instructions) {
       instrPreview.textContent = scan.instructions;
       instrWrap.style.display = '';
@@ -368,7 +639,6 @@
       instrCheckbox.checked = false;
     }
 
-    // Populate case picker
     select.innerHTML = '';
     select.appendChild(el('option', '', tt('scanner.select_case_placeholder'))).value = '';
     api('cases', null, 'GET')
@@ -514,6 +784,8 @@
   function init() {
     listEl = document.getElementById('scanInboxList');
     if (!listEl) return;
+    toolbarEl = document.getElementById('scanInboxToolbar');
+    pagerEl = document.getElementById('scanInboxPager');
 
     var tab = document.querySelector('.main-tab[data-tab="incoming-scans"]');
     if (tab) {
@@ -527,13 +799,7 @@
       refresh.addEventListener('click', loadScans);
     }
 
-    var dismissedToggle = document.getElementById('scanInboxShowDismissed');
-    if (dismissedToggle) {
-      dismissedToggle.addEventListener('change', function () {
-        includeDismissed = !!dismissedToggle.checked;
-        loadScans();
-      });
-    }
+    renderToolbar();
 
     var attachConfirm = document.getElementById('scanAttachConfirm');
     var attachCancel = document.getElementById('scanAttachCancel');

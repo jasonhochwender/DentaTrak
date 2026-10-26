@@ -100,9 +100,23 @@ $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
 if ($method === 'GET') {
     $action = $_GET['action'] ?? 'list';
     if ($action === 'list') {
-        $includeDismissed = !empty($_GET['include_dismissed']);
-        $scans = ScanInbox::listForPractice($pdo, (int)$currentPracticeId, $userId, $includeDismissed);
-        echo json_encode(['success' => true, 'scans' => $scans]);
+        // Legacy toggle still maps onto the view model; the filtered UI
+        // sends explicit view/filter params. q/vendor/date params narrow
+        // server-side; patient-name matching happens post-decrypt.
+        $view = trim((string)($_GET['view'] ?? ''));
+        if ($view === '' && !empty($_GET['include_dismissed'])) {
+            $view = 'all';
+        }
+        $result = ScanInbox::listFiltered($pdo, (int)$currentPracticeId, $userId, [
+            'view'      => $view !== '' ? $view : 'attention',
+            'q'         => (string)($_GET['q'] ?? ''),
+            'vendor'    => (string)($_GET['vendor'] ?? ''),
+            'date_from' => (string)($_GET['date_from'] ?? ''),
+            'date_to'   => (string)($_GET['date_to'] ?? ''),
+            'page'      => (int)($_GET['page'] ?? 1),
+            'per_page'  => (int)($_GET['per_page'] ?? 25),
+        ]);
+        echo json_encode(['success' => true] + $result);
         exit;
     }
     if ($action === 'cases') {
