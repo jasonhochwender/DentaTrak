@@ -1148,7 +1148,10 @@
                     "already_in_practice": "Questo utente è già presente nel tuo studio.",
                     "limit_reached": "Limite di utenti raggiunto ({count} utenti). Passa al piano Control per aggiungere altri utenti.",
                     "check_error": "Errore durante la verifica dello stato dell'utente: {message}"
-                }
+                },
+                "incoming_scans": "Scansioni in arrivo",
+                "incoming_scans_tooltip": "Consenti a questo membro di vedere la casella delle scansioni in arrivo dello studio. Gli admin hanno sempre accesso; i membri laboratorio e solo-assegnati non possono ottenerlo.",
+                "incoming_scans_denied": "Non disponibile per admin (sempre attivo), collaboratori lab o utenti solo-assegnati"
             },
             "shared_assignment_labels": {
                 "title": "Etichette di assegnazione condivise",

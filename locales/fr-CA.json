@@ -1148,7 +1148,10 @@
                     "already_in_practice": "Cet utilisateur fait déjà partie de votre clinique.",
                     "limit_reached": "Limite d'utilisateurs atteinte ({count} utilisateurs). Passez au forfait Control pour ajouter plus d'utilisateurs.",
                     "check_error": "Erreur lors de la vérification du statut de l'utilisateur : {message}"
-                }
+                },
+                "incoming_scans": "Scans entrants",
+                "incoming_scans_tooltip": "Autoriser ce membre à voir la boîte des scans entrants du cabinet. Les admins y ont toujours accès ; les membres labo et « assignés seulement » ne peuvent pas y avoir accès.",
+                "incoming_scans_denied": "Non disponible pour les admins (toujours actif), les collaborateurs labo ou les utilisateurs « assignés seulement »"
             },
             "shared_assignment_labels": {
                 "title": "Étiquettes d'attribution partagées",

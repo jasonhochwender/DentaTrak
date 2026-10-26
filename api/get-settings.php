@@ -215,6 +215,7 @@ try {
     $adminUsers = [];
     $limitedVisibilityUsers = []; // Track which users have limited visibility
     $canViewAnalyticsUsers = []; // Track which users can view analytics
+    $canViewIncomingScansUsers = []; // Incoming Scans inbox grants (default OFF)
     $canEditCasesUsers = []; // Track which users can create/edit cases
     $isLabUsers = []; // Track which users are designated as a Lab (Lab Insights foundation)
     
@@ -231,6 +232,10 @@ try {
         $stmt = $pdo->query("SHOW COLUMNS FROM practice_users LIKE 'can_edit_cases'");
         if ($stmt->rowCount() === 0) {
             $pdo->exec("ALTER TABLE practice_users ADD COLUMN can_edit_cases BOOLEAN NOT NULL DEFAULT TRUE COMMENT 'If true, user can create and edit cases'");
+        }
+        $stmt = $pdo->query("SHOW COLUMNS FROM practice_users LIKE 'can_view_incoming_scans'");
+        if ($stmt->rowCount() === 0) {
+            $pdo->exec("ALTER TABLE practice_users ADD COLUMN can_view_incoming_scans BOOLEAN NOT NULL DEFAULT FALSE COMMENT 'Incoming Scans inbox permission (admins implied; lab/assigned-only cannot hold)'");
         }
     } catch (PDOException $e) {
         // Column might already exist or table doesn't exist yet
@@ -498,6 +503,18 @@ try {
     // receive admin-only data: other users' permission flags, login
     // timestamps, label IDs/lab designation, or BAA/legal practice info.
     //
+    // Incoming Scans grants: one member-wide read so admins see the
+    // current state of every membership row.
+    try {
+        $scStmt = $pdo->prepare("SELECT u.email, IFNULL(pu.can_view_incoming_scans, 0) AS g
+            FROM practice_users pu JOIN users u ON u.id = pu.user_id AND u.is_active = 1
+            WHERE pu.practice_id = :practice_id");
+        $scStmt->execute(['practice_id' => $currentPracticeId]);
+        foreach ($scStmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+            $canViewIncomingScansUsers[$row['email']] = (bool)$row['g'];
+        }
+    } catch (PDOException $e) {}
+
     // limitedVisibilityUsers is the one exception that is trimmed rather
     // than withheld entirely: the client uses it to flag the CURRENT user's
     // own limited-visibility status (adds a `limited-visibility` class to
@@ -508,6 +525,7 @@ try {
         $responseLimitedVisibilityUsers = $limitedVisibilityUsers;
         $responseCanViewAnalyticsUsers = $canViewAnalyticsUsers;
         $responseCanEditCasesUsers = $canEditCasesUsers;
+        $responseCanViewIncomingScansUsers = $canViewIncomingScansUsers;
         $responseIsLabUsers = $isLabUsers;
         $responseAssignmentLabelsDetailed = $assignmentLabelsDetailed;
         $responsePracticeUsers = $practiceUsers;
@@ -534,6 +552,7 @@ try {
         }
         $responseCanViewAnalyticsUsers = [];
         $responseCanEditCasesUsers = [];
+        $responseCanViewIncomingScansUsers = [];
         $responseIsLabUsers = [];
         $responseAssignmentLabelsDetailed = [];
         $responsePracticeUsers = [];
@@ -556,6 +575,7 @@ try {
         'gmailUserLogins' => $responseGmailUserLogins,
         'limitedVisibilityUsers' => $responseLimitedVisibilityUsers,
         'canViewAnalyticsUsers' => $responseCanViewAnalyticsUsers,
+        'canViewIncomingScansUsers' => $responseCanViewIncomingScansUsers,
         'canEditCasesUsers' => $responseCanEditCasesUsers,
         'practiceName' => $practiceName,
         'logoPath' => $logoPath,

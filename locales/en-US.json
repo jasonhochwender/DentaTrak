@@ -1148,7 +1148,10 @@
                     "already_in_practice": "This user is already in your practice.",
                     "limit_reached": "User limit reached ({count} users). Upgrade to Control plan to add more users.",
                     "check_error": "Error checking user status: {message}"
-                }
+                },
+                "incoming_scans": "Incoming Scans",
+                "incoming_scans_tooltip": "Allow this member to view the practice Incoming Scans inbox. Admins always have access; Lab and Assigned Only members cannot be granted access.",
+                "incoming_scans_denied": "Not available for admins (always on), Lab collaborators, or Assigned Only users"
             },
             "shared_assignment_labels": {
                 "title": "Shared Assignment Labels",

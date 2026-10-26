@@ -1148,7 +1148,10 @@
                     "already_in_practice": "Este usuario ya está en su consulta.",
                     "limit_reached": "Se alcanzó el límite de usuarios ({count} usuarios). Actualice al plan Control para agregar más usuarios.",
                     "check_error": "Error al verificar el estado del usuario: {message}"
-                }
+                },
+                "incoming_scans": "Escaneos entrantes",
+                "incoming_scans_tooltip": "Permitir que este miembro vea la bandeja de escaneos entrantes de la práctica. Los administradores siempre tienen acceso; los miembros de laboratorio y de solo asignado no pueden recibir acceso.",
+                "incoming_scans_denied": "No disponible para administradores (siempre activo), colaboradores de laboratorio o usuarios de solo asignado"
             },
             "shared_assignment_labels": {
                 "title": "Etiquetas de asignación compartidas",

@@ -1,6 +1,6 @@
 /* Settings and Billing Modal Styles */
 .settings-billing-modal {
-  max-width: 740px;
+  max-width: 960px;
   padding-bottom: 0;
   max-height: calc(80vh + 40px);
   display: flex;

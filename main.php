@@ -874,6 +874,12 @@ if (isset($appConfig) && is_array($appConfig) && isset($appConfig['appName'])) {
     window.workflowColumnsEndpoint = <?php echo json_encode('api/workflow-columns.php', JSON_UNESCAPED_UNICODE); ?>;
     window.pmsSync = <?php echo json_encode(['odCreateEnabled' => $dtOdSendAvailable === true]); ?>;
     window.scannerInbox = <?php echo json_encode(['enabled' => $showScannerInbox === true]); ?>;
+    window.scannerInboxEligible = <?php echo json_encode(
+        isFeatureEnabled('SCANNER_INBOX')
+        && (DsCoreConfig::isPracticeAllowed((int)$currentPracticeId) || SimulatedScannerConnector::isAvailable())
+        && function_exists('hasControlAccess')
+        && hasControlAccess($pdo, (int)$currentPracticeId, (string)($user['email'] ?? ''))
+    ); ?>;
   </script>
 </head>
 <?php 

@@ -2320,6 +2320,7 @@ document.addEventListener('DOMContentLoaded', function () {
     // Load permission maps
     window.limitedVisibilityUsers = loadedLimitedVisibilityUsers || {};
     window.canViewAnalyticsUsers = loadedCanViewAnalyticsUsers || {};
+    window.canViewIncomingScansUsers = data.canViewIncomingScansUsers || {};
     window.canEditCasesUsers = loadedCanEditCasesUsers || {};
     window.isLabUsers = loadedIsLabUsers || {};
 
@@ -2388,6 +2389,12 @@ document.addEventListener('DOMContentLoaded', function () {
         analyticsCopy[key] = window.canViewAnalyticsUsers[key];
       });
     }
+    var scansCopy = {};
+    if (window.canViewIncomingScansUsers) {
+      Object.keys(window.canViewIncomingScansUsers).forEach(function(key) {
+        scansCopy[key] = window.canViewIncomingScansUsers[key];
+      });
+    }
     if (window.canEditCasesUsers) {
       Object.keys(window.canEditCasesUsers).forEach(function(key) {
         editCopy[key] = window.canEditCasesUsers[key];
@@ -2432,6 +2439,7 @@ document.addEventListener('DOMContentLoaded', function () {
       assignmentLabels: window.assignmentLabels ? window.assignmentLabels.slice() : [],
       limitedVisibilityUsers: limitedCopy,
       canViewAnalyticsUsers: analyticsCopy,
+      canViewIncomingScansUsers: scansCopy,
       canEditCasesUsers: editCopy,
       isLabUsers: labUsersCopy,
       assignmentLabelsMeta: labelsMetaCopy,
@@ -3987,6 +3995,38 @@ document.addEventListener('DOMContentLoaded', function () {
       analyticsCell.appendChild(analyticsCheckbox);
       row.appendChild(analyticsCell);
 
+      // Incoming Scans checkbox cell - only rendered while the practice is
+      // scanner-eligible (flag + allowlist + effective plan).
+      if (window.scannerInboxEligible) {
+        var scansCell = document.createElement('div');
+        scansCell.className = 'practice-user-scans-cell';
+        scansCell.appendChild(cellLabel('settings.users.practice_users.incoming_scans', 'settings.users.practice_users.incoming_scans_tooltip'));
+        var scansCheckbox = document.createElement('input');
+        scansCheckbox.type = 'checkbox';
+        var canViewScans = !!(window.canViewIncomingScansUsers && window.canViewIncomingScansUsers[email]);
+        scansCheckbox.checked = isAdmin || canViewScans;
+        scansCheckbox.setAttribute('data-email', email);
+
+        var isLabUser = !!(window.isLabUsers && window.isLabUsers[email]);
+        var isLimitedUser = !!(window.limitedVisibilityUsers && window.limitedVisibilityUsers[email]);
+        if (!window.isPracticeAdmin || isCreator) {
+          scansCheckbox.disabled = true;
+        } else if (isAdmin || isLabUser || isLimitedUser) {
+          // Admins always have effective access (implied); lab/assigned-only
+          // members can never hold the grant - disable either way, with the
+          // tooltip carrying the explanation.
+          scansCheckbox.disabled = true;
+          scansCell.title = t('settings.users.practice_users.incoming_scans_denied');
+        } else {
+          scansCheckbox.addEventListener('change', function() {
+            var targetEmail = this.getAttribute('data-email');
+            setCanViewIncomingScansForEmail(targetEmail, !!this.checked);
+          });
+        }
+        scansCell.appendChild(scansCheckbox);
+        row.appendChild(scansCell);
+      }
+
       // Limited Visibility checkbox cell
       var limitedCell = document.createElement('div');
       limitedCell.className = 'practice-user-limited-cell';
@@ -4222,6 +4262,14 @@ document.addEventListener('DOMContentLoaded', function () {
     if (!window.canViewAnalyticsUsers) window.canViewAnalyticsUsers = {};
 
     window.canViewAnalyticsUsers[email] = canView;
+  }
+
+  // Function to set Incoming Scans inbox access flag for a user
+  function setCanViewIncomingScansForEmail(email, canView) {
+    if (!email) return;
+    if (!window.canViewIncomingScansUsers) window.canViewIncomingScansUsers = {};
+
+    window.canViewIncomingScansUsers[email] = canView;
   }
 
   // Function to set can edit cases flag for a user

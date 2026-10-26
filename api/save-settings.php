@@ -288,9 +288,8 @@ $canViewAnalyticsUsers = isset($data['canViewAnalyticsUsers']) && is_array($data
     : [];
 
 // Handle can edit cases users (map of email => boolean, default true)
-$canViewIncomingScansUsers = isset($data['canViewIncomingScansUsers']) && is_array($data['canViewIncomingScansUsers'])
-    ? $data['canViewIncomingScansUsers']
-    : [];
+$hasIncomingScansPayload = isset($data['canViewIncomingScansUsers']) && is_array($data['canViewIncomingScansUsers']);
+$canViewIncomingScansUsers = $hasIncomingScansPayload ? $data['canViewIncomingScansUsers'] : [];
 $canEditCasesUsers = isset($data['canEditCasesUsers']) && is_array($data['canEditCasesUsers']) 
     ? $data['canEditCasesUsers'] 
     : [];
@@ -1180,6 +1179,18 @@ try {
             foreach ($oldIsLabStmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
                 $oldIsLabByUserId[(int)$row['user_id']] = (int)$row['is_lab'];
             }
+            // Existing Incoming Scans grants by user_id: when the client
+            // omits canViewIncomingScansUsers (older payload or a settings
+            // save that doesn't include the column), the stored grant is
+            // preserved rather than silently cleared on the reinsert.
+            $oldScanGrantByUserId = [];
+            try {
+                $oldScanStmt = $pdo->prepare("SELECT user_id, can_view_incoming_scans FROM practice_users WHERE practice_id = :practice_id");
+                $oldScanStmt->execute(['practice_id' => $currentPracticeId]);
+                foreach ($oldScanStmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+                    $oldScanGrantByUserId[(int)$row['user_id']] = (int)$row['can_view_incoming_scans'];
+                }
+            } catch (PDOException $e) {}
 
             $oldUserIds = array_keys($oldIsLabByUserId);
             $newlyAddedUserIds = [];
@@ -1313,9 +1324,12 @@ try {
                 $newIsLab = isset($isLabUsers[$email]) && $isLabUsers[$email] ? 1 : 0;
                 // Incoming Scans grant: server clamps it to 0 for lab and
                 // assigned-only members even if a conflicting combination
-                // is submitted - they can never hold inbox access.
+                // is submitted - they can never hold inbox access. When the
+                // client omits the key entirely, the stored grant is kept.
                 $canViewIncomingScans = (!$newIsLab && !$hasLimitedVisibility
-                    && isset($canViewIncomingScansUsers[$email]) && $canViewIncomingScansUsers[$email]) ? 1 : 0;
+                    && ($hasIncomingScansPayload
+                        ? (isset($canViewIncomingScansUsers[$email]) && $canViewIncomingScansUsers[$email])
+                        : !empty($oldScanGrantByUserId[(int)$userId]))) ? 1 : 0;
 
                 // Add user to practice as regular user
                 $stmt = $pdo->prepare("

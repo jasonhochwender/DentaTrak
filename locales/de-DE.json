@@ -2771,7 +2771,10 @@
                     "already_in_practice": "Dieser Benutzer gehört bereits zu Ihrer Praxis.",
                     "limit_reached": "Benutzerlimit erreicht ({count} Benutzer). Upgraden Sie auf den Control-Tarif, um weitere Benutzer hinzuzufügen.",
                     "check_error": "Fehler beim Prüfen des Benutzerstatus: {message}"
-                }
+                },
+                "incoming_scans": "Eingehende Scans",
+                "incoming_scans_tooltip": "Diesem Mitglied Zugriff auf den Eingehende-Scans-Eingang der Praxis geben. Admins haben immer Zugriff; Labor- und Nur-Zugewiesen-Mitglieder können keinen Zugriff erhalten.",
+                "incoming_scans_denied": "Nicht verfügbar für Admins (immer aktiv), Laborkollegen oder Nur-Zugewiesen-Benutzer"
             },
             "shared_assignment_labels": {
                 "title": "Gemeinsame Zuweisungslabels",

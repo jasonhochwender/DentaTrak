@@ -4814,7 +4814,10 @@
                     "already_in_practice": "Este usuário já está na sua clínica.",
                     "limit_reached": "Limite de usuários atingido ({count} usuários). Faça upgrade para o plano Control para adicionar mais usuários.",
                     "check_error": "Erro ao verificar o status do usuário: {message}"
-                }
+                },
+                "incoming_scans": "Escaneios recebidos",
+                "incoming_scans_tooltip": "Permitir que este membro veja a caixa de escaneios recebidos da clínica. Admins sempre têm acesso; membros de laboratório e somente-atribuídos não podem receber acesso.",
+                "incoming_scans_denied": "Não disponível para admins (sempre ativo), colaboradores de laboratório ou usuários somente-atribuídos"
             },
             "shared_assignment_labels": {
                 "title": "Etiquetas de atribuição compartilhadas",

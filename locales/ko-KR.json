@@ -1148,7 +1148,10 @@
                     "already_in_practice": "이 사용자는 이미 병원에 등록되어 있습니다.",
                     "limit_reached": "사용자 한도 도달({count}명). 사용자를 추가하려면 Control 요금제로 업그레이드하세요.",
                     "check_error": "사용자 상태 확인 중 오류: {message}"
-                }
+                },
+                "incoming_scans": "수신 스캔",
+                "incoming_scans_tooltip": "이 구성원이 진료소 수신 스캔 받은함을 볼 수 있도록 허용합니다. 관리자는 항상 접근 가능하며, 랩 및 배정 전용 구성원은 권한을 부여받을 수 없습니다.",
+                "incoming_scans_denied": "관리자(항상 사용), 랩 협업자 또는 배정 전용 사용자는 사용할 수 없습니다"
             },
             "shared_assignment_labels": {
                 "title": "공유 배정 라벨",
