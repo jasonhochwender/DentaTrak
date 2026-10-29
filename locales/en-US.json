@@ -5616,7 +5616,9 @@
         "problem": {
             "eyebrow": "The Problem",
             "title": "Your case information gets scattered.",
-            "lead": "Appointments, lab updates, files, shipping, and team knowledge each live separately. When the case story is split across texts, emails, spreadsheets, and memory, no one sees the full picture."
+            "lead": "Appointments, lab updates, files, shipping, and team knowledge each live separately. When the case story is split across texts, emails, spreadsheets, and memory, no one sees the full picture.",
+            "anim_pause": "Pause motion",
+            "anim_resume": "Resume motion"
         },
         "workflow": {
             "eyebrow": "Flexible Workflow",

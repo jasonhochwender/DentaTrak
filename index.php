@@ -358,6 +358,55 @@ foreach (['operate', 'control', 'scale'] as $plan) {
     .f-5 { bottom: 14%; left: 0; }
     .f-6 { bottom: 8%; right: 0; border-left: 3px solid #64748b; }
 
+    /* Scattered-information animated illustration */
+    .pv-stage { position: relative; width: 100%; max-width: 480px; height: 380px; overflow: hidden; margin: 0 auto; }
+    .pv-trails { position: absolute; inset: 0; width: 100%; height: 100%; }
+    .pv-trail { fill: none; stroke: #c7d3e6; stroke-width: 1.6; stroke-dasharray: 6 8; opacity: 0.7; }
+    .pv-obj { position: absolute; will-change: transform; filter: drop-shadow(0 10px 14px rgba(30,58,95,0.16)); }
+    .pv-obj svg { display: block; }
+    .pv-wob { transform-origin: 50% 50%; }
+    .pv-o1 { top: 2%; left: 6%; width: 60px; animation: pv-a1 5.4s ease-in-out infinite alternate; }
+    .pv-o2 { top: 8%; right: 10%; width: 78px; animation: pv-a2 6.6s ease-in-out infinite alternate; }
+    .pv-o3 { top: 30%; left: 2%; width: 82px; animation: pv-a3 4.6s ease-in-out infinite alternate; }
+    .pv-o4 { top: 34%; right: 4%; width: 94px; animation: pv-a4 5.9s ease-in-out infinite alternate; }
+    .pv-o5 { top: 56%; left: 10%; width: 80px; animation: pv-a5 4.2s ease-in-out infinite alternate; }
+    .pv-o6 { top: 58%; right: 16%; width: 58px; animation: pv-a6 6.9s ease-in-out infinite alternate; }
+    .pv-o7 { bottom: 4%; left: 30%; width: 70px; animation: pv-a7 5.1s ease-in-out infinite alternate; }
+    .pv-o8 { bottom: 14%; right: 4%; width: 62px; animation: pv-a8 4.8s ease-in-out infinite alternate; }
+    .pv-o9 { top: 6%; left: 40%; width: 74px; animation: pv-a9 6.3s ease-in-out infinite alternate; }
+    .pv-o1 .pv-wob, .pv-o5 .pv-wob, .pv-o9 .pv-wob { animation: pv-wob 1.9s ease-in-out infinite; }
+    .pv-o2 .pv-wob, .pv-o6 .pv-wob { animation: pv-wob 2.6s ease-in-out -0.7s infinite; }
+    .pv-o3 .pv-wob, .pv-o7 .pv-wob { animation: pv-wob 1.6s ease-in-out -0.4s infinite; }
+    .pv-o4 .pv-wob, .pv-o8 .pv-wob { animation: pv-wob 2.9s ease-in-out -1.1s infinite; }
+    @keyframes pv-wob {
+      0%,100% { transform: rotate(0deg); }
+      30% { transform: rotate(4.5deg) translateY(-3px); }
+      65% { transform: rotate(-4deg) translateY(2px); }
+    }
+    @keyframes pv-a1 { 0% { transform: translate(0,0) rotate(-7deg); } 50% { transform: translate(46px,26px) rotate(-2deg); } 100% { transform: translate(-14px,44px) rotate(-10deg); } }
+    @keyframes pv-a2 { 0% { transform: translate(0,0) rotate(10deg); } 50% { transform: translate(-52px,20px) rotate(4deg); } 100% { transform: translate(-24px,-30px) rotate(13deg); } }
+    @keyframes pv-a3 { 0% { transform: translate(0,0) rotate(-4deg); } 50% { transform: translate(60px,-24px) rotate(3deg); } 100% { transform: translate(30px,36px) rotate(-8deg); } }
+    @keyframes pv-a4 { 0% { transform: translate(0,0) rotate(5deg); } 50% { transform: translate(-46px,30px) rotate(-3deg); } 100% { transform: translate(-70px,-16px) rotate(8deg); } }
+    @keyframes pv-a5 { 0% { transform: translate(0,0) rotate(-9deg); } 50% { transform: translate(52px,-34px) rotate(2deg); } 100% { transform: translate(18px,28px) rotate(-5deg); } }
+    @keyframes pv-a6 { 0% { transform: translate(0,0) rotate(8deg); } 50% { transform: translate(-38px,-44px) rotate(-2deg); } 100% { transform: translate(-58px,14px) rotate(11deg); } }
+    @keyframes pv-a7 { 0% { transform: translate(0,0) rotate(-3deg); } 50% { transform: translate(48px,-26px) rotate(5deg); } 100% { transform: translate(-30px,-38px) rotate(-7deg); } }
+    @keyframes pv-a8 { 0% { transform: translate(0,0) rotate(12deg); } 50% { transform: translate(-44px,26px) rotate(5deg); } 100% { transform: translate(-20px,-22px) rotate(15deg); } }
+    @keyframes pv-a9 { 0% { transform: translate(0,0) rotate(-6deg); } 50% { transform: translate(38px,36px) rotate(4deg); } 100% { transform: translate(-44px,12px) rotate(-9deg); } }
+    .pv-toggle { position: absolute; bottom: 6px; right: 6px; z-index: 3; background: rgba(255,255,255,0.9); border: 1px solid var(--dt-border); border-radius: 999px; padding: 4px 12px; font-size: 0.68rem; color: var(--dt-ink-muted); cursor: pointer; }
+    .pv-toggle:hover, .pv-toggle:focus-visible { color: var(--dt-ink); border-color: var(--dt-blue); }
+    .problem-visual.pv-paused .pv-obj,
+    .problem-visual.pv-paused .pv-wob { animation-play-state: paused; }
+    @media (prefers-reduced-motion: reduce) {
+      .pv-obj, .pv-wob { animation: none !important; }
+      .pv-toggle { display: none; }
+    }
+    @media (max-width: 720px) {
+      .pv-stage { max-width: 340px; height: 300px; }
+      .pv-obj { transform-origin: 50% 50%; }
+      .pv-o4 { width: 76px; } .pv-o3 { width: 66px; } .pv-o5 { width: 64px; }
+      .pv-o2 { width: 62px; } .pv-o9 { width: 58px; } .pv-o7 { width: 56px; }
+    }
+
     /* How it works */
     .steps-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 24px; margin-top: 48px; }
     .step { background: #fff; border: 1px solid var(--dt-border); border-radius: var(--dt-radius); padding: 32px; position: relative; border-bottom: 3px solid var(--dt-border); }
@@ -1472,20 +1521,51 @@ foreach (['operate', 'control', 'scale'] as $plan) {
           <h2><?php echo t('marketing.problem.title'); ?></h2>
           <p class="lead"><?php echo t('marketing.problem.lead'); ?></p>
         </div>
-        <div class="problem-visual" id="problem-visual" tabindex="0" aria-label="Illustration: scattered case information becomes one coordinated case record. Tap to replay.">
-          <svg class="problem-connections" aria-hidden="true" preserveAspectRatio="none" id="problem-connections">
-            <g id="problem-connections-group"></g>
-          </svg>
-          <div class="fragment f-1" data-color="#8b5cf6"><strong>Patient Appointment</strong><small>Mar 19 &middot; 10:30 AM &middot; Hannah L.</small></div>
-          <div class="fragment f-2" data-color="#3b82f6"><strong>Lab Update</strong><small>Precision Dental Lab &middot; Revision 2</small></div>
-          <div class="fragment f-3" data-color="#f59e0b"><strong>Shipping</strong><small>Tracking 1Z84&hellip; &middot; Arrives Thu</small></div>
-          <div class="fragment f-4" data-color="#22c55e"><strong>Case File</strong><small>Crown #14 &middot; Due Mar 18</small></div>
-          <div class="fragment f-5" data-color="#64748b"><strong>Team Message</strong><small>"Did the lab send this back yet?"</small></div>
-          <div class="fragment f-6" data-color="#06b6d4"><strong>Assigned To</strong><small>Front Desk</small></div>
-          <div class="problem-case">
-            <h3>Hannah Lindqvist</h3>
-            <p>Crown #14 &middot; Due Mar 18<br>Dr. Rivera &middot; Precision Dental Lab<br>Patient appt Mar 19 &middot; Revision 2</p>
+        <div class="problem-visual" id="problem-visual">
+          <div class="pv-stage" aria-hidden="true">
+            <svg class="pv-trails" viewBox="0 0 480 380" preserveAspectRatio="none" aria-hidden="true">
+              <path class="pv-trail" d="M40,300 C120,180 260,340 430,120" />
+              <path class="pv-trail" d="M30,90 C160,30 300,210 450,270" />
+              <path class="pv-trail" d="M60,200 C180,140 240,300 400,190" />
+            </svg>
+
+            <div class="pv-obj pv-o1"><div class="pv-wob">
+              <svg viewBox="0 0 64 110"><rect x="6" y="4" width="52" height="102" rx="10" fill="#fff" stroke="#1e3a5f" stroke-width="2.5"/><rect x="10" y="14" width="44" height="80" rx="4" fill="#eef4fb"/><circle cx="32" cy="100" r="3.5" fill="#1e3a5f"/><rect x="16" y="24" width="26" height="12" rx="6" fill="#2563eb"/><rect x="22" y="44" width="26" height="12" rx="6" fill="#dbe7f6" stroke="#1e3a5f" stroke-width="1.6"/><rect x="16" y="64" width="30" height="12" rx="6" fill="#2563eb"/></svg>
+            </div></div>
+
+            <div class="pv-obj pv-o2"><div class="pv-wob">
+              <svg viewBox="0 0 80 60"><g transform="rotate(-18 40 30)"><path d="M18 44 L18 30 Q18 12 40 12 Q62 12 62 30 L62 44" fill="none" stroke="#1e3a5f" stroke-width="3"/><rect x="10" y="38" width="18" height="14" rx="7" fill="#8b5cf6" stroke="#1e3a5f" stroke-width="2"/><rect x="52" y="38" width="18" height="14" rx="7" fill="#8b5cf6" stroke="#1e3a5f" stroke-width="2"/><path d="M64 8 q6 -6 12 -2 M68 14 q8 -8 16 -4" stroke="#f59e0b" stroke-width="2.4" fill="none" stroke-linecap="round"/></g></svg>
+            </div></div>
+
+            <div class="pv-obj pv-o3"><div class="pv-wob">
+              <svg viewBox="0 0 84 60"><rect x="4" y="8" width="76" height="46" rx="6" fill="#fff" stroke="#1e3a5f" stroke-width="2.5"/><path d="M8 12 L42 38 L76 12" fill="none" stroke="#2563eb" stroke-width="2.5" stroke-linecap="round"/><rect x="4" y="8" width="76" height="46" rx="6" fill="none" stroke="#1e3a5f" stroke-width="2.5"/></svg>
+            </div></div>
+
+            <div class="pv-obj pv-o4"><div class="pv-wob">
+              <svg viewBox="0 0 96 62"><ellipse cx="48" cy="50" rx="44" ry="10" fill="#dbe7f6" stroke="#1e3a5f" stroke-width="2"/><rect x="30" y="16" width="36" height="30" rx="5" fill="#fef3e2" stroke="#1e3a5f" stroke-width="2.2"/><path d="M34 30 q6 -8 12 0 M50 30 q6 -8 12 0" fill="none" stroke="#f59e0b" stroke-width="2.2"/><path d="M36 40 q4 -4 8 0 M52 40 q4 -4 8 0" fill="none" stroke="#f59e0b" stroke-width="2"/></svg>
+            </div></div>
+
+            <div class="pv-obj pv-o5"><div class="pv-wob">
+              <svg viewBox="0 0 84 64"><rect x="18" y="10" width="44" height="38" rx="4" fill="#eef4fb" stroke="#1e3a5f" stroke-width="2.2" transform="rotate(-8 40 29)"/><rect x="26" y="16" width="44" height="38" rx="4" fill="#fff" stroke="#1e3a5f" stroke-width="2.2" transform="rotate(4 48 35)"/><ellipse cx="48" cy="34" rx="9" ry="12" fill="#0ea5a8" transform="rotate(4 48 35)"/></svg>
+            </div></div>
+
+            <div class="pv-obj pv-o6"><div class="pv-wob">
+              <svg viewBox="0 0 62 78"><path d="M8 4 h46 v70 l-8 -6 -8 6 -8 -6 -8 6 -8 -6 -6 4 z" fill="#fff" stroke="#1e3a5f" stroke-width="2.2"/><rect x="15" y="14" width="32" height="4" rx="2" fill="#1e3a5f"/><rect x="15" y="26" width="24" height="3" rx="1.5" fill="#8b9bb4"/><rect x="15" y="34" width="28" height="3" rx="1.5" fill="#8b9bb4"/><rect x="15" y="42" width="20" height="3" rx="1.5" fill="#8b9bb4"/><rect x="15" y="54" width="18" height="10" rx="2" fill="none" stroke="#0ea5a8" stroke-width="1.6"/></svg>
+            </div></div>
+
+            <div class="pv-obj pv-o7"><div class="pv-wob">
+              <svg viewBox="0 0 72 68"><rect x="4" y="12" width="64" height="52" rx="7" fill="#fff" stroke="#1e3a5f" stroke-width="2.5"/><rect x="4" y="12" width="64" height="14" rx="7" fill="#2563eb"/><rect x="14" y="6" width="5" height="12" rx="2.5" fill="#1e3a5f"/><rect x="53" y="6" width="5" height="12" rx="2.5" fill="#1e3a5f"/><circle cx="36" cy="46" r="9" fill="#eef4fb" stroke="#0ea5a8" stroke-width="2"/></svg>
+            </div></div>
+
+            <div class="pv-obj pv-o8"><div class="pv-wob">
+              <svg viewBox="0 0 66 62"><rect x="8" y="6" width="50" height="50" rx="5" fill="#fde68a" stroke="#1e3a5f" stroke-width="2.2" transform="rotate(6 33 31)"/><rect x="18" y="18" width="30" height="4" rx="2" fill="#b45309" transform="rotate(6 33 31)"/><rect x="18" y="28" width="24" height="4" rx="2" fill="#b45309" transform="rotate(6 33 31)"/><rect x="18" y="38" width="27" height="4" rx="2" fill="#b45309" transform="rotate(6 33 31)"/></svg>
+            </div></div>
+
+            <div class="pv-obj pv-o9"><div class="pv-wob">
+              <svg viewBox="0 0 76 56"><rect x="4" y="6" width="68" height="44" rx="5" fill="#fff" stroke="#1e3a5f" stroke-width="2.2"/><path d="M27 6 v44 M50 6 v44 M4 20 h68 M4 35 h68" stroke="#c7d3e6" stroke-width="1.6"/><rect x="31" y="23" width="16" height="9" fill="#8b5cf6" opacity="0.55"/><rect x="7" y="38" width="16" height="9" fill="#2563eb" opacity="0.45"/></svg>
+            </div></div>
           </div>
+          <button type="button" class="pv-toggle" id="pvToggle" aria-pressed="false"><?php echo t('marketing.problem.anim_pause'); ?></button>
         </div>
       </div>
     </div>
@@ -3198,6 +3278,33 @@ foreach (['operate', 'control', 'scale'] as $plan) {
         if (!e.matches) closeMenu();
       });
     })();
+  </script>
+
+  <script>
+  // Scattered-info illustration: pause offscreen + manual pause/resume.
+  (function () {
+    var stage = document.getElementById('problem-visual');
+    var btn = document.getElementById('pvToggle');
+    if (!stage || !btn) return;
+    var userPaused = false;
+    var labels = {
+      pause: <?php echo json_encode(t('marketing.problem.anim_pause')); ?>,
+      resume: <?php echo json_encode(t('marketing.problem.anim_resume')); ?>
+    };
+    function apply() {
+      stage.classList.toggle('pv-paused', userPaused || stage.classList.contains('pv-offscreen'));
+      btn.textContent = userPaused ? labels.resume : labels.pause;
+      btn.setAttribute('aria-pressed', userPaused ? 'true' : 'false');
+    }
+    btn.addEventListener('click', function () { userPaused = !userPaused; apply(); });
+    if ('IntersectionObserver' in window) {
+      new IntersectionObserver(function (entries) {
+        stage.classList.toggle('pv-offscreen', !entries[0].isIntersecting);
+        apply();
+      }, { threshold: 0.05 }).observe(stage);
+    }
+    apply();
+  })();
   </script>
 
 </body>

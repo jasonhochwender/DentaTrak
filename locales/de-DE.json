@@ -3893,7 +3893,9 @@
         "problem": {
             "eyebrow": "Das Problem",
             "title": "Ihre Fallinformationen geraten durcheinander.",
-            "lead": "Termine, Laboraktualisierungen, Dateien, Versand und Teamwissen existieren jeweils getrennt. Wenn die Fallgeschichte auf Textnachrichten, E-Mails, Tabellen und Erinnerungen verteilt ist, sieht niemand das ganze Bild."
+            "lead": "Termine, Laboraktualisierungen, Dateien, Versand und Teamwissen existieren jeweils getrennt. Wenn die Fallgeschichte auf Textnachrichten, E-Mails, Tabellen und Erinnerungen verteilt ist, sieht niemand das ganze Bild.",
+            "anim_pause": "Bewegung pausieren",
+            "anim_resume": "Bewegung fortsetzen"
         },
         "workflow": {
             "eyebrow": "Flexibler Workflow",

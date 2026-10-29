@@ -1989,7 +1989,9 @@
         "problem": {
             "eyebrow": "O problema",
             "title": "As informações dos seus casos se dispersam.",
-            "lead": "Consultas, atualizações de laboratório, arquivos, envios e o conhecimento da equipe vivem separados. Quando a história do caso está dividida entre mensagens, e-mails, planilhas e memória, ninguém vê o quadro completo."
+            "lead": "Consultas, atualizações de laboratório, arquivos, envios e o conhecimento da equipe vivem separados. Quando a história do caso está dividida entre mensagens, e-mails, planilhas e memória, ninguém vê o quadro completo.",
+            "anim_pause": "Pausar movimento",
+            "anim_resume": "Retomar movimento"
         },
         "security": {
             "practice_based_access": "Acesso baseado na clínica",

@@ -5616,7 +5616,9 @@
         "problem": {
             "eyebrow": "El problema",
             "title": "La información de sus casos se dispersa.",
-            "lead": "Las citas, las actualizaciones del laboratorio, los archivos, los envíos y el conocimiento del equipo viven cada uno por separado. Cuando la historia del caso está repartida entre mensajes de texto, correos electrónicos, hojas de cálculo y la memoria, nadie ve el panorama completo."
+            "lead": "Las citas, las actualizaciones del laboratorio, los archivos, los envíos y el conocimiento del equipo viven cada uno por separado. Cuando la historia del caso está repartida entre mensajes de texto, correos electrónicos, hojas de cálculo y la memoria, nadie ve el panorama completo.",
+            "anim_pause": "Pausar movimiento",
+            "anim_resume": "Reanudar movimiento"
         },
         "workflow": {
             "eyebrow": "Flujo de trabajo flexible",

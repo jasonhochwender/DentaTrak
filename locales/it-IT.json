@@ -5616,7 +5616,9 @@
         "problem": {
             "eyebrow": "Il problema",
             "title": "Le informazioni dei tuoi casi si disperdono.",
-            "lead": "Appuntamenti, aggiornamenti del laboratorio, file, spedizioni e conoscenza del team vivono ognuno per conto proprio. Quando la storia del caso è divisa tra messaggi, email, fogli di calcolo e memoria, nessuno vede il quadro completo."
+            "lead": "Appuntamenti, aggiornamenti del laboratorio, file, spedizioni e conoscenza del team vivono ognuno per conto proprio. Quando la storia del caso è divisa tra messaggi, email, fogli di calcolo e memoria, nessuno vede il quadro completo.",
+            "anim_pause": "Metti in pausa il movimento",
+            "anim_resume": "Riprendi il movimento"
         },
         "workflow": {
             "eyebrow": "Flusso di lavoro flessibile",

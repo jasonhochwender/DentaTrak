@@ -5616,7 +5616,9 @@
         "problem": {
             "eyebrow": "Le problème",
             "title": "Les informations de vos cas se dispersent.",
-            "lead": "Les rendez-vous, les mises à jour du laboratoire, les fichiers, les expéditions et les connaissances de l'équipe sont chacun stockés séparément. Lorsque l'historique d'un cas est réparti entre SMS, courriels, tableurs et mémoire, personne ne voit l'ensemble du tableau."
+            "lead": "Les rendez-vous, les mises à jour du laboratoire, les fichiers, les expéditions et les connaissances de l'équipe sont chacun stockés séparément. Lorsque l'historique d'un cas est réparti entre SMS, courriels, tableurs et mémoire, personne ne voit l'ensemble du tableau.",
+            "anim_pause": "Suspendre le mouvement",
+            "anim_resume": "Reprendre le mouvement"
         },
         "workflow": {
             "eyebrow": "Flux de travail flexible",
