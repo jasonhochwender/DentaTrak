@@ -1138,13 +1138,14 @@ foreach (['operate', 'control', 'scale'] as $plan) {
     .hw1-board { display: flex; gap: 12px; height: 78%; }
     .hw1-col { flex: 1; min-width: 0; background: var(--dt-warm); border: 1.5px solid var(--dt-border); border-radius: 12px; padding: 10px; overflow: hidden; }
     .hw1-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 9px; }
-    .hw1-name { font-size: 0.78rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; color: var(--dt-ink-secondary); white-space: nowrap; overflow: hidden; position: relative; min-width: 60px; }
+    .hw1-name { font-size: 0.78rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; color: var(--dt-ink-secondary); position: relative; }
     .hw1-name-new i { font-style: normal; display: block; }
-    .hw1-name-new .hw1-n1 { position: absolute; left: 0; top: 0; color: var(--dt-ink); background: #fef3c7; border-radius: 4px; padding: 0 4px; opacity: 0; }
+    .hw1-name-new .hw1-n0 { position: absolute; left: 0; top: 0; }
+    .hw1-name-new .hw1-n1 { color: var(--dt-ink); background: #fef3c7; border-radius: 4px; padding: 0 4px; opacity: 0; }
     .hw1-edit { font-size: 0.75rem; color: var(--dt-ink-muted); }
     .hw1-card { background: #fff; border: 1.5px solid var(--dt-border); border-left: 4px solid var(--dt-blue); border-radius: 9px; padding: 9px 11px; font-size: 0.85rem; font-weight: 700; color: var(--dt-ink); margin-bottom: 8px; box-shadow: 0 3px 8px -3px rgba(30,58,95,0.15); }
     .hw1-card-ghost { border-left-color: var(--dt-border); color: var(--dt-ink-muted); font-weight: 400; }
-    .hw1-qc { flex: 0.001 1 0 !important; opacity: 0; padding: 0; border-width: 0; }
+    .hw1-qc { flex: 0.001 1 0; opacity: 0; padding: 0; border-width: 0; min-width: 0; }
     .hw1-qcname { color: #0ea5a8; opacity: 0; }
     .hw1-addbtn { position: absolute; right: 24px; bottom: 16px; background: var(--dt-blue); color: #fff; border-radius: 10px; padding: 10px 18px; font-size: 0.85rem; font-weight: 700; box-shadow: 0 6px 16px -6px rgba(37,99,235,0.5); }
     .hw1-cap { position: absolute; left: 24px; bottom: 18px; font-size: 0.95rem; font-weight: 600; color: var(--dt-ink); opacity: 0; }
@@ -1378,7 +1379,8 @@ foreach (['operate', 'control', 'scale'] as $plan) {
       .hw-scene { inset: 14px; }
       .hw-team, .hw-dp-cols, .hw5-grid { grid-template-columns: 1fr; gap: 8px; }
       .hw-roster { border-left: none; padding-left: 0; }
-      .hw1-board { gap: 6px; } .hw1-col, .hw6-col { padding: 6px; }
+      .hw1-board { gap: 6px; flex-wrap: wrap; } .hw1-col { flex: 1 1 44%; }
+      .hw1-col, .hw6-col { padding: 6px; }
       .hw1-card, .hw6-card { font-size: 0.62rem; padding: 5px 6px; }
       .hw3-art { max-width: 86px; } .hw3-label { font-size: 0.78rem; }
       .hw4-case { min-width: 0; width: 100%; }
