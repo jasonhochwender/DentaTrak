@@ -1285,23 +1285,22 @@ foreach (['operate', 'control', 'scale'] as $plan) {
     .hw5-record { background: #fff; border: 1.5px solid var(--dt-border); border-radius: 14px; height: 100%; display: flex; flex-direction: column; overflow: hidden; }
     .hw5-head { background: var(--dt-warm); border-bottom: 1.5px solid var(--dt-border); padding: 10px 18px; display: flex; align-items: baseline; gap: 10px; }
     .hw5-head b { font-size: 0.95rem; color: var(--dt-ink); } .hw5-head span { font-size: 0.7rem; color: var(--dt-ink-muted); }
-    .hw5-grid { display: grid; grid-template-columns: 1fr 1.2fr; gap: 12px; padding: 12px 16px; flex: 1; }
+    .hw5-cols { display: grid; grid-template-columns: 1fr 1.3fr; gap: 12px; padding: 12px 16px 8px; }
     .hw5-area { background: var(--dt-warm); border: 1px dashed var(--dt-border); border-radius: 10px; padding: 8px 10px; }
     .hw5-ah { font-size: 0.6rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--dt-ink-muted); margin-bottom: 6px; }
-    .hw5-imgs { grid-column: 1 / -1; }
-    .hw5-note { background: #fef9e7; border-left: 3px solid #f59e0b; border-radius: 7px; padding: 8px 10px; font-size: 0.78rem; color: var(--dt-ink); opacity: 0; }
-    .hw5-cmt { background: #fff; border: 1px solid var(--dt-border); border-radius: 8px; padding: 7px 10px; font-size: 0.72rem; color: var(--dt-ink-secondary); margin-bottom: 6px; opacity: 0; }
+    .hw5-note { background: #fef9e7; border-left: 3px solid #f59e0b; border-radius: 7px; padding: 9px 11px; font-size: 0.82rem; color: var(--dt-ink); opacity: 0; }
+    .hw5-cmt { background: #fff; border: 1px solid var(--dt-border); border-radius: 8px; padding: 8px 10px; font-size: 0.76rem; color: var(--dt-ink-secondary); margin-bottom: 6px; opacity: 0; }
     .hw5-cmt b { display: block; font-size: 0.66rem; color: var(--dt-ink); margin-bottom: 2px; }
+    .hw5-strip { padding: 0 16px 12px; }
     .hw5-trow { display: flex; gap: 10px; }
-    .hw5-thumb { width: 70px; height: 50px; border-radius: 8px; overflow: hidden; border: 1px solid var(--dt-border); background: #fff; opacity: 0; }
-    .hw5-zoom { position: absolute; inset: 14% 22%; background: #fff; border: 1.5px solid var(--dt-border); border-radius: 14px; display: grid; place-items: center; box-shadow: 0 20px 50px -14px rgba(0,0,0,0.35); opacity: 0; pointer-events: none; }
-    .hw-anim .hw5-note { animation: hw-slideup 0.5s ease 1.6s forwards; }
-    .hw-anim #hw5C1 { animation: hw-slideup 0.5s ease 3s forwards; }
-    .hw-anim #hw5C2 { animation: hw-slideup 0.5s ease 4.4s forwards; }
-    .hw-anim #hw5T1 { animation: hw-slideup 0.5s ease 5.6s forwards; }
-    .hw-anim #hw5T2 { animation: hw-slideup 0.5s ease 6.3s forwards; }
-    .hw-anim .hw5-zoom { animation: hw5-zoomlife 2.6s ease 7s both; }
-    @keyframes hw5-zoomlife { 0% { opacity: 0; transform: scale(0.7); } 15%,80% { opacity: 1; transform: scale(1); } 100% { opacity: 0; transform: scale(0.85); } }
+    .hw5-thumb { width: 70px; height: 52px; border-radius: 8px; overflow: hidden; border: 1px solid var(--dt-border); background: #fff; opacity: 0; flex-shrink: 0; }
+    .hw5-thumb svg { width: 100%; height: 100%; display: block; }
+    .hw-anim .hw5-note { animation: hw5-in 0.5s ease 1.4s forwards; }
+    .hw-anim #hw5C1 { animation: hw5-in 0.5s ease 3s forwards; }
+    .hw-anim #hw5C2 { animation: hw5-in 0.5s ease 4.8s forwards; }
+    .hw-anim #hw5T1 { animation: hw5-in 0.5s ease 6.6s forwards; }
+    .hw-anim #hw5T2 { animation: hw5-in 0.5s ease 7.6s forwards; }
+    @keyframes hw5-in { from { opacity: 0; transform: translateY(12px); box-shadow: 0 0 0 3px rgba(37,99,235,0.3); } 60% { box-shadow: 0 0 0 3px rgba(37,99,235,0.3); } to { opacity: 1; transform: none; box-shadow: none; } }
     /* SCENE 6 */
     .hw6-board { display: flex; gap: 10px; height: 100%; }
     .hw6-col { flex: 1; min-width: 0; background: var(--dt-warm); border: 1.5px solid var(--dt-border); border-radius: 12px; padding: 9px; overflow: hidden; }
@@ -2138,24 +2137,25 @@ foreach (['operate', 'control', 'scale'] as $plan) {
             </div>
 
             <!-- SCENE 5: case detail accumulation -->
+                        <!-- SCENE 5: case detail accumulation -->
             <div class="hw-scene" data-scene="5" hidden>
               <div class="hw5-record">
-                <div class="hw5-head"><b>Crown #14</b><span id="hw5Det">Hannah Lindqvist</span></div>
-                <div class="hw5-grid">
+                <div class="hw5-head"><b>Crown #14</b><span>Hannah Lindqvist</span></div>
+                <div class="hw5-cols">
                   <div class="hw5-area"><div class="hw5-ah"><?php echo t('marketing.walkthrough.sec_notes'); ?></div>
                     <div class="hw5-note" id="hw5Note"><?php echo t('marketing.walkthrough.note_txt'); ?></div></div>
                   <div class="hw5-area"><div class="hw5-ah"><?php echo t('marketing.walkthrough.sec_comments'); ?></div>
                     <div class="hw5-cmt" id="hw5C1"><b>Maya Chen</b><?php echo t('marketing.walkthrough.comment_txt'); ?></div>
                     <div class="hw5-cmt" id="hw5C2"><b>Jordan Lee</b><?php echo t('marketing.walkthrough.comment_reply'); ?></div></div>
-                  <div class="hw5-area hw5-imgs"><div class="hw5-ah"><?php echo t('marketing.walkthrough.sec_images'); ?></div>
-                    <div class="hw5-trow"><div class="hw5-thumb" id="hw5T1"><svg viewBox="0 0 60 44"><ellipse cx="30" cy="22" rx="20" ry="14" fill="#0ea5a8" opacity="0.85"/><ellipse cx="24" cy="19" rx="5" ry="8" fill="#fff" opacity="0.9"/><ellipse cx="37" cy="21" rx="5" ry="8" fill="#fff" opacity="0.9"/></svg></div>
-                    <div class="hw5-thumb" id="hw5T2"><svg viewBox="0 0 60 44"><rect x="6" y="4" width="48" height="36" rx="5" fill="#1e3a5f"/><path d="M14 34 q16 -22 32 0" stroke="#dbe7f6" stroke-width="3" fill="none"/></svg></div></div></div>
                 </div>
-                <div class="hw5-zoom" id="hw5Zoom"><svg viewBox="0 0 120 88"><ellipse cx="60" cy="44" rx="40" ry="28" fill="#0ea5a8" opacity="0.85"/><ellipse cx="48" cy="38" rx="10" ry="16" fill="#fff" opacity="0.9"/><ellipse cx="74" cy="42" rx="10" ry="16" fill="#fff" opacity="0.9"/></svg></div>
+                <div class="hw5-strip"><div class="hw5-ah"><?php echo t('marketing.walkthrough.sec_images'); ?></div>
+                  <div class="hw5-trow">
+                    <div class="hw5-thumb" id="hw5T1"><svg viewBox="0 0 70 52"><rect x="4" y="6" width="62" height="40" rx="6" fill="#e8eef7"/><path d="M30 12 C24 12 21 17 22 22 C23 27 24 33 26 33 C28 33 28.5 27 30 27 C31.5 27 32 33 34 33 C36 33 37 27 38 22 C39 17 36 12 30 12 Z" fill="#fdfaf2" stroke="#b89b5e" stroke-width="1.8"/><rect x="46" y="14" width="14" height="5" rx="2.5" fill="#f3e9d0" stroke="#b89b5e" stroke-width="1"/><rect x="46" y="23" width="14" height="5" rx="2.5" fill="#e6d3a8" stroke="#b89b5e" stroke-width="1"/><rect x="46" y="32" width="14" height="5" rx="2.5" fill="#d4bb82" stroke="#b89b5e" stroke-width="1"/></svg></div>
+                    <div class="hw5-thumb" id="hw5T2"><svg viewBox="0 0 70 52"><rect x="4" y="6" width="62" height="40" rx="6" fill="#12263f"/><path d="M14 38 C14 22 24 14 35 14 C46 14 56 22 56 38" fill="none" stroke="#5fd4cf" stroke-width="2.4"/><g fill="#dbe7f6"><rect x="15" y="30" width="7" height="9" rx="2.5"/><rect x="23" y="22" width="7" height="9" rx="2.5"/><rect x="31" y="18" width="7" height="9" rx="2.5"/><rect x="39" y="20" width="7" height="9" rx="2.5"/><rect x="47" y="27" width="7" height="9" rx="2.5"/></g></svg></div>
+                  </div></div>
               </div>
             </div>
-
-            <!-- SCENE 6: board + two big alerts -->
+<!-- SCENE 6: board + two big alerts -->
             <div class="hw-scene" data-scene="6" hidden>
               <div class="hw6-board">
                 <div class="hw6-col"><div class="hw6-ch"><?php echo t('marketing.walkthrough.stage_ready'); ?></div>
