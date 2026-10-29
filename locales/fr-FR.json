@@ -6229,7 +6229,11 @@
             "reassigned": "Réassigné",
             "sec_images": "Images",
             "due_sub": "Dû demain.",
-            "late_sub": "2 jours de retard."
+            "late_sub": "2 jours de retard.",
+            "email_to": "À :",
+            "accepted": "Acceptée",
+            "cap_connected": "Votre équipe et votre labo, connectés.",
+            "rm_invited": "Maya Chen et Jordan Lee ont rejoint par invitation e-mail."
         },
         "askdemo": {
             "example_label": "Conversation d’exemple",

@@ -1172,21 +1172,47 @@ foreach (['operate', 'control', 'scale'] as $plan) {
       62%,88% { opacity: 1; right: 84%; top: 24px; }
       100% { opacity: 0; right: 84%; top: 24px; }
     }
-    /* SCENE 2 (unchanged visuals) */
+    /* SCENE 2: two invite cycles */
     .hw-team { display: grid; grid-template-columns: 1.1fr 1fr; gap: 16px; height: 100%; }
     .hw-panel-head { font-size: 0.64rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--dt-ink-muted); margin-bottom: 10px; }
     .hw-field { display: flex; align-items: center; gap: 8px; background: var(--dt-warm); border: 1px solid var(--dt-border); border-radius: 10px; padding: 9px 11px; font-size: 0.76rem; margin-bottom: 12px; }
-    .hw-field-text { flex: 1; color: var(--dt-ink-secondary); white-space: nowrap; overflow: hidden; }
-    .hw-anim .hw-field-text::after { content: 'maya.chen@example.com'; display: block; overflow: hidden; white-space: nowrap; animation: hw-typeline 1.6s steps(22) 0.8s both; }
+    .hw-field-text { flex: 1; color: var(--dt-ink-secondary); white-space: nowrap; overflow: hidden; position: relative; min-height: 1.2em; }
+    .hw-field-text i { font-style: normal; position: absolute; left: 0; top: 0; }
+    .hw-anim .hw-e1::after { content: 'maya.chen@example.com'; display: block; overflow: hidden; white-space: nowrap; animation: hw-typeline 1.4s steps(21) 0.6s both; }
+    .hw-anim .hw-e1 { animation: hw-e1v 13s steps(1) forwards; }
+    @keyframes hw-e1v { 0%,44% { opacity: 1; } 45%,100% { opacity: 0; } }
+    .hw-anim .hw-e2 { animation: hw-e2v 13s steps(1) forwards; }
+    .hw-anim .hw-e2::after { content: 'jordan.lee@example.com'; display: block; overflow: hidden; white-space: nowrap; animation: hw-typeline 1.4s steps(22) 5.9s both; }
+    @keyframes hw-e2v { 0%,44% { opacity: 0; } 45%,100% { opacity: 1; } }
     @keyframes hw-typeline { from { max-width: 0; } to { max-width: 100%; } }
     .hw-btn-mini { background: var(--dt-blue); color: #fff; border-radius: 7px; padding: 5px 12px; font-size: 0.7rem; font-weight: 600; white-space: nowrap; }
+    .hw-anim .hw-invbtn { animation: hw-inv 13s linear forwards; }
+    @keyframes hw-inv { 0%,15% { box-shadow: none; } 17%,21% { box-shadow: 0 0 0 5px rgba(37,99,235,0.35); } 23%,55% { box-shadow: none; } 57%,61% { box-shadow: 0 0 0 5px rgba(37,99,235,0.35); } 63%,100% { box-shadow: none; } }
     .hw-emailcard { display: flex; align-items: center; gap: 10px; background: #fff; border: 1px solid var(--dt-border); border-left: 3px solid var(--dt-blue); border-radius: 10px; padding: 10px 12px; font-size: 0.7rem; opacity: 0; }
     .hw-email-ic { font-size: 1.1rem; }
-    .hw-emailcard b { display: block; font-size: 0.72rem; } .hw-email-sub { font-size: 0.6rem; color: var(--dt-ink-muted); }
-    .hw-accept { margin-left: auto; }
-    .hw-anim .hw-emailcard { animation: hw-slideup 0.5s ease 3.4s forwards; }
-    .hw-anim .hw-accept { animation: hw1-btnpulse 0.8s ease 4.6s 2; }
-    .hw-freenote { font-size: 0.62rem; color: var(--dt-ink-muted); margin-top: 12px; }
+    .hw-emailcard b { display: block; font-size: 0.72rem; }
+    .hw-email-sub { font-size: 0.6rem; color: var(--dt-ink-muted); position: relative; display: inline-block; min-width: 160px; min-height: 1.1em; }
+    .hw-email-sub i { font-style: normal; position: absolute; left: 0; top: 0; white-space: nowrap; }
+    .hw-to2 { opacity: 0; }
+    .hw-anim .hw-emailcard { animation: hw-email 13s linear forwards; }
+    @keyframes hw-email { 0%,18% { opacity: 0; transform: translateY(10px); } 20%,88% { opacity: 1; transform: none; } 92%,100% { opacity: 0; } }
+    .hw-anim .hw-to1 { animation: hw-to1v 13s steps(1) forwards; }
+    .hw-anim .hw-to2 { animation: hw-to2v 13s steps(1) forwards; }
+    @keyframes hw-to1v { 0%,62% { opacity: 1; } 63%,100% { opacity: 0; } }
+    @keyframes hw-to2v { 0%,62% { opacity: 0; } 63%,100% { opacity: 1; } }
+    .hw-accept { margin-left: auto; position: relative; min-width: 64px; min-height: 1.4em; }
+    .hw-accept i { font-style: normal; position: absolute; left: 0; top: 0; white-space: nowrap; padding: 0 2px; }
+    .hw-accept .hw-ac1 { opacity: 0; color: #fff; }
+    .hw-anim .hw-accept { animation: hw-acc 13s linear forwards; }
+    @keyframes hw-acc { 0%,27% { background: var(--dt-blue); } 30%,62% { background: #0ea5a8; } 63%,75% { background: var(--dt-blue); } 78%,100% { background: #0ea5a8; } }
+    .hw-anim .hw-ac0 { animation: hw-ac0v 13s steps(1) forwards; }
+    .hw-anim .hw-ac1 { animation: hw-ac1v 13s steps(1) forwards; }
+    @keyframes hw-ac0v { 0%,29% { opacity: 1; } 30%,62% { opacity: 0; } 63%,77% { opacity: 1; } 78%,100% { opacity: 0; } }
+    @keyframes hw-ac1v { 0%,29% { opacity: 0; } 30%,62% { opacity: 1; } 63%,77% { opacity: 0; } 78%,100% { opacity: 1; } }
+    .hw-rm { display: none; font-size: 0.68rem; color: var(--dt-ink-muted); margin-top: 10px; }
+    .hw-cap2 { font-size: 0.85rem; font-weight: 700; color: var(--dt-ink); margin-top: 12px; opacity: 0; }
+    .hw-anim .hw-cap2 { animation: hw-fade 0.5s ease 11.8s forwards; }
+    .hw-freenote { font-size: 0.62rem; color: var(--dt-ink-muted); margin-top: 8px; }
     .hw-roster { border-left: 1px solid var(--dt-border); padding-left: 16px; }
     .hw-person { display: flex; align-items: center; gap: 9px; background: #fff; border: 1px solid var(--dt-border); border-radius: 9px; padding: 8px 10px; margin-bottom: 7px; }
     .hw-av { width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; font-size: 0.58rem; font-weight: 700; color: #fff; flex-shrink: 0; }
@@ -1194,10 +1220,15 @@ foreach (['operate', 'control', 'scale'] as $plan) {
     .hw-p-info b { display: block; font-size: 0.72rem; color: var(--dt-ink); }
     .hw-p-info i { font-style: normal; font-size: 0.58rem; color: var(--dt-ink-muted); }
     .hw-join1, .hw-join2 { opacity: 0; }
-    .hw-anim .hw-join1 { animation: hw-slideup 0.5s ease 5.6s forwards; }
-    .hw-anim .hw-join2 { animation: hw-slideup 0.5s ease 7.4s forwards; }
+    .hw-anim .hw-join1 { animation: hw-join 0.7s ease 4.2s forwards; }
+    .hw-anim .hw-join2 { animation: hw-join 0.7s ease 10.4s forwards; }
+    @keyframes hw-join { from { opacity: 0; transform: translateY(12px); box-shadow: 0 0 0 4px rgba(14,165,168,0.3); } 60% { box-shadow: 0 0 0 4px rgba(14,165,168,0.3); } to { opacity: 1; transform: none; box-shadow: none; } }
     .hw-joined { margin-left: auto; font-size: 0.56rem; font-weight: 700; color: #0ea5a8; background: #e0f7f5; border-radius: 999px; padding: 2px 8px; }
-    @keyframes hw-slideup { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
+    @media (prefers-reduced-motion: reduce) {
+      .hw-emailcard { display: none; }
+      .hw-rm { display: block; }
+      .hw-cap2 { opacity: 1; }
+    }
     /* SCENE 3 */
     .hw3-lanes { display: flex; gap: 14px; height: 100%; }
     .hw3-lane { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; }
@@ -2044,12 +2075,15 @@ foreach (['operate', 'control', 'scale'] as $plan) {
             </div>
 
             <!-- SCENE 2: invite + roster (unchanged) -->
+                        <!-- SCENE 2: invite + roster -->
             <div class="hw-scene" data-scene="2" hidden>
               <div class="hw-team">
                 <div class="hw-inviteX">
                   <div class="hw-panel-head"><?php echo t('marketing.walkthrough.invite_head'); ?></div>
-                  <div class="hw-field"><span class="hw-field-text"></span><span class="hw-btn-mini"><?php echo t('marketing.walkthrough.invite_btn'); ?></span></div>
-                  <div class="hw-emailcard"><div class="hw-email-ic">✉</div><div><b><?php echo t('marketing.walkthrough.email_subj'); ?></b><span class="hw-email-sub">team@dentatrak.com</span></div><span class="hw-btn-mini hw-accept"><?php echo t('marketing.walkthrough.accept_btn'); ?></span></div>
+                  <div class="hw-field"><span class="hw-field-text"><i class="hw-e1"></i><i class="hw-e2"></i></span><span class="hw-btn-mini hw-invbtn"><?php echo t('marketing.walkthrough.invite_btn'); ?></span></div>
+                  <div class="hw-emailcard"><div class="hw-email-ic">✉</div><div><b><?php echo t('marketing.walkthrough.email_subj'); ?></b><span class="hw-email-sub"><i class="hw-to1"><?php echo t('marketing.walkthrough.email_to'); ?> maya.chen@example.com</i><i class="hw-to2"><?php echo t('marketing.walkthrough.email_to'); ?> jordan.lee@example.com</i></span></div><span class="hw-btn-mini hw-accept"><i class="hw-ac0"><?php echo t('marketing.walkthrough.accept_btn'); ?></i><i class="hw-ac1"><?php echo t('marketing.walkthrough.accepted'); ?></i></span></div>
+                  <div class="hw-rm"><?php echo t('marketing.walkthrough.rm_invited'); ?></div>
+                  <div class="hw-cap2"><?php echo t('marketing.walkthrough.cap_connected'); ?></div>
                   <div class="hw-freenote"><?php echo t('marketing.walkthrough.no_charge'); ?></div>
                 </div>
                 <div class="hw-roster">
@@ -2060,8 +2094,7 @@ foreach (['operate', 'control', 'scale'] as $plan) {
                 </div>
               </div>
             </div>
-
-            <!-- SCENE 3: three creation paths -->
+<!-- SCENE 3: three creation paths -->
                         <!-- SCENE 3: three creation paths -->
             <div class="hw-scene" data-scene="3" hidden>
               <div class="hw3-lanes">
@@ -3905,7 +3938,7 @@ foreach (['operate', 'control', 'scale'] as $plan) {
       play: <?php echo json_encode(t('marketing.walkthrough.play')); ?>
     };
     var meta = <?php $o=[];$c=[];for($i=1;$i<=7;$i++){$o[$i]=t('marketing.walkthrough.step'.$i.'_title');$c[$i]=t('marketing.walkthrough.step'.$i.'_copy');}echo json_encode(['t'=>$o,'c'=>$c],JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE); ?>;
-    var DUR = {1:9500, 2:9800, 3:11200, 4:10800, 5:9800, 6:10400, 7:12200};
+    var DUR = {1:9500, 2:13000, 3:11200, 4:10800, 5:9800, 6:10400, 7:12200};
     var current = 1, playing = false, cssFrozen = false, timer = null, visible = false;
     for (var i = 1; i <= 7; i++) { var d = document.createElement('span'); d.className = 'hw-dot'; dots.appendChild(d); }
     var dotEls = dots.querySelectorAll('.hw-dot');

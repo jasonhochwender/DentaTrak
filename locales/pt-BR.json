@@ -2437,7 +2437,11 @@
             "reassigned": "Reatribuído",
             "sec_images": "Imagens",
             "due_sub": "Vence amanhã.",
-            "late_sub": "2 dias de atraso."
+            "late_sub": "2 dias de atraso.",
+            "email_to": "Para:",
+            "accepted": "Aceito",
+            "cap_connected": "Sua equipe e laboratório, conectados.",
+            "rm_invited": "Maya Chen e Jordan Lee entraram por convite por e-mail."
         },
         "askdemo": {
             "example_label": "Conversa de exemplo",

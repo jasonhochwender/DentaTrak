@@ -6271,7 +6271,11 @@
             "reassigned": "Neu zugewiesen",
             "sec_images": "Bilder",
             "due_sub": "Morgen fällig.",
-            "late_sub": "2 Tage überfällig."
+            "late_sub": "2 Tage überfällig.",
+            "email_to": "An:",
+            "accepted": "Angenommen",
+            "cap_connected": "Ihr Team und Labor, verbunden.",
+            "rm_invited": "Maya Chen und Jordan Lee sind per E-Mail-Einladung beigetreten."
         },
         "askdemo": {
             "example_label": "Beispielgespräch",

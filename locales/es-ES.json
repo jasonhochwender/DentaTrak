@@ -6229,7 +6229,11 @@
             "reassigned": "Reasignado",
             "sec_images": "Imágenes",
             "due_sub": "Vence mañana.",
-            "late_sub": "2 días de retraso."
+            "late_sub": "2 días de retraso.",
+            "email_to": "Para:",
+            "accepted": "Aceptada",
+            "cap_connected": "Tu equipo y laboratorio, conectados.",
+            "rm_invited": "Maya Chen y Jordan Lee se unieron por invitación por correo."
         },
         "askdemo": {
             "example_label": "Conversación de ejemplo",
