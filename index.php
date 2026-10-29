@@ -1352,6 +1352,31 @@ foreach (['operate', 'control', 'scale'] as $plan) {
       .hw-typebox, .hw-picker, .hw-emailcard, .hw-imgview, .hw-inboxbar, .hw-born, .hw-cmt, .hw-cmtbox, .hw-noteX, .hw-thumb, .hw-kpi { opacity: 1 !important; }
       .hw-colx-new { flex: 1 1 0; opacity: 1; padding: 8px; border-width: 1px; }
     }
+    /* Compare checklist panel */
+    .cmp-panel { max-width: 760px; margin: 40px auto 0; background: #fff; border: 1px solid var(--dt-border); border-radius: 18px; overflow: hidden; box-shadow: var(--dt-shadow); }
+    .cmp-head { display: grid; grid-template-columns: 1fr 170px; }
+    .cmp-h-q { padding: 14px 22px; font-size: 0.78rem; font-weight: 700; color: var(--dt-ink-secondary); }
+    .cmp-h-a { padding: 14px 18px; font-size: 0.82rem; font-weight: 800; color: var(--dt-blue); background: #eef4fb; border-left: 1px solid var(--dt-border); text-align: center; }
+    .cmp-row { display: grid; grid-template-columns: 1fr 170px; border-top: 1px solid var(--dt-border); }
+    .cmp-row:nth-child(even) { background: #fafcfe; }
+    .cmp-q { padding: 16px 22px; }
+    .cmp-q-text { display: block; font-size: 0.88rem; font-weight: 600; color: var(--dt-ink); line-height: 1.4; }
+    .cmp-q-sub { display: block; font-size: 0.74rem; color: var(--dt-ink-muted); margin-top: 3px; }
+    .cmp-a { display: grid; place-items: center; background: #f4f9fe; border-left: 1px solid var(--dt-border); padding: 14px 10px; }
+    .cmp-check svg { width: 30px; height: 30px; }
+    .cmp-ck-circle { fill: #e0f7f5; stroke: #0ea5a8; stroke-width: 1.4; }
+    .cmp-ck-path { stroke: #0ea5a8; stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 16; stroke-dashoffset: 16; }
+    .is-revealed .cmp-ck-path { animation: cmp-draw 0.45s ease 0.15s forwards; }
+    @keyframes cmp-draw { to { stroke-dashoffset: 0; } }
+    .cmp-note { padding: 10px 22px; font-size: 0.68rem; color: var(--dt-ink-muted); border-top: 1px solid var(--dt-border); }
+    .cmp-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; }
+    @media (max-width: 620px) {
+      .cmp-head, .cmp-row { grid-template-columns: 1fr 76px; }
+      .cmp-h-a { font-size: 0.7rem; padding: 12px 8px; }
+      .cmp-q { padding: 13px 16px; }
+      .cmp-check svg { width: 26px; height: 26px; }
+    }
+    @media (prefers-reduced-motion: reduce) { .cmp-ck-path { stroke-dashoffset: 0 !important; animation: none !important; } }
   </style>
 </head>
 <body>
@@ -1810,13 +1835,26 @@ foreach (['operate', 'control', 'scale'] as $plan) {
     <div class="container">
       <h2 data-reveal><?php echo t('marketing.compare.title'); ?></h2>
       <p class="lead" data-reveal><?php echo t('marketing.compare.lead'); ?></p>
-      <div class="compare-grid">
+      <div class="cmp-panel" role="table" aria-label="<?php echo htmlspecialchars(t('marketing.compare.panel_aria')); ?>">
+        <div class="cmp-head" role="row">
+          <div class="cmp-h-q" role="columnheader"><?php echo t('marketing.compare.col_q'); ?></div>
+          <div class="cmp-h-a" role="columnheader"><?php echo t('marketing.compare.col_a'); ?></div>
+        </div>
         <?php for ($i = 1; $i <= 4; $i++) : ?>
-        <div class="compare-card" data-reveal data-reveal-stagger="<?php echo $i; ?>" data-reveal-delay="150">
-          <h3><?php echo t('marketing.compare.q' . $i); ?></h3>
-          <p><?php echo t('marketing.compare.a' . $i); ?></p>
+        <div class="cmp-row" role="row" data-reveal data-reveal-stagger="<?php echo $i; ?>" data-reveal-delay="140">
+          <div class="cmp-q" role="cell">
+            <span class="cmp-q-text"><?php echo t('marketing.compare.r' . $i . 'q'); ?></span>
+            <span class="cmp-q-sub"><?php echo t('marketing.compare.r' . $i . 's'); ?></span>
+          </div>
+          <div class="cmp-a" role="cell">
+            <span class="cmp-check" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none"><circle class="cmp-ck-circle" cx="12" cy="12" r="11"/><path class="cmp-ck-path" d="M7 12.5l3.2 3.2L17 8.5"/></svg>
+            </span>
+            <span class="cmp-sr"><?php echo t('marketing.compare.sr_yes'); ?></span>
+          </div>
         </div>
         <?php endfor; ?>
+        <div class="cmp-note"><?php echo t('marketing.compare.note'); ?></div>
       </div>
     </div>
   </section>
