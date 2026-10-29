@@ -1353,25 +1353,25 @@ foreach (['operate', 'control', 'scale'] as $plan) {
       .hw-colx-new { flex: 1 1 0; opacity: 1; padding: 8px; border-width: 1px; }
     }
     /* Compare checklist panel */
-    .cmp-panel { max-width: 760px; margin: 40px auto 0; background: #fff; border: 1px solid var(--dt-border); border-radius: 18px; overflow: hidden; box-shadow: var(--dt-shadow); }
-    .cmp-head { display: grid; grid-template-columns: 1fr 170px; }
-    .cmp-h-q { padding: 14px 22px; font-size: 0.78rem; font-weight: 700; color: var(--dt-ink-secondary); }
-    .cmp-h-a { padding: 14px 18px; font-size: 0.82rem; font-weight: 800; color: var(--dt-blue); background: #eef4fb; border-left: 1px solid var(--dt-border); text-align: center; }
-    .cmp-row { display: grid; grid-template-columns: 1fr 170px; border-top: 1px solid var(--dt-border); }
+    .cmp-panel { margin: 40px 0 0; background: #fff; border: 1px solid var(--dt-border); border-radius: 18px; overflow: hidden; box-shadow: var(--dt-shadow); }
+    .cmp-head { display: grid; grid-template-columns: 1fr 165px; }
+    .cmp-h-q { padding: 16px 26px; font-size: 0.82rem; font-weight: 700; color: var(--dt-ink-secondary); }
+    .cmp-h-a { padding: 16px 18px; font-size: 0.86rem; font-weight: 800; color: var(--dt-blue); background: #eef4fb; border-left: 1px solid var(--dt-border); text-align: center; }
+    .cmp-row { display: grid; grid-template-columns: 1fr 165px; border-top: 1px solid var(--dt-border); }
     .cmp-row:nth-child(even) { background: #fafcfe; }
-    .cmp-q { padding: 16px 22px; }
-    .cmp-q-text { display: block; font-size: 0.88rem; font-weight: 600; color: var(--dt-ink); line-height: 1.4; }
-    .cmp-q-sub { display: block; font-size: 0.74rem; color: var(--dt-ink-muted); margin-top: 3px; }
+    .cmp-q { padding: 20px 26px; }
+    .cmp-q-text { display: block; font-size: 1.06rem; font-weight: 600; color: var(--dt-ink); line-height: 1.45; }
+    .cmp-q-sub { display: block; font-size: 0.94rem; color: var(--dt-ink-muted); margin-top: 6px; line-height: 1.5; max-width: 640px; }
     .cmp-a { display: grid; place-items: center; background: #f4f9fe; border-left: 1px solid var(--dt-border); padding: 14px 10px; }
     .cmp-check svg { width: 30px; height: 30px; }
     .cmp-ck-circle { fill: #e0f7f5; stroke: #0ea5a8; stroke-width: 1.4; }
     .cmp-ck-path { stroke: #0ea5a8; stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 16; stroke-dashoffset: 16; }
     .is-revealed .cmp-ck-path { animation: cmp-draw 0.45s ease 0.15s forwards; }
     @keyframes cmp-draw { to { stroke-dashoffset: 0; } }
-    .cmp-note { padding: 10px 22px; font-size: 0.68rem; color: var(--dt-ink-muted); border-top: 1px solid var(--dt-border); }
+    .cmp-note { padding: 12px 26px; font-size: 0.72rem; color: var(--dt-ink-muted); border-top: 1px solid var(--dt-border); }
     .cmp-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; }
     @media (max-width: 620px) {
-      .cmp-head, .cmp-row { grid-template-columns: 1fr 76px; }
+      .cmp-head, .cmp-row { grid-template-columns: 1fr 84px; }
       .cmp-h-a { font-size: 0.7rem; padding: 12px 8px; }
       .cmp-q { padding: 13px 16px; }
       .cmp-check svg { width: 26px; height: 26px; }
@@ -1944,7 +1944,7 @@ foreach (['operate', 'control', 'scale'] as $plan) {
           <div class="cmp-h-q" role="columnheader"><?php echo t('marketing.compare.col_q'); ?></div>
           <div class="cmp-h-a" role="columnheader"><?php echo t('marketing.compare.col_a'); ?></div>
         </div>
-        <?php for ($i = 1; $i <= 4; $i++) : ?>
+        <?php for ($i = 1; $i <= 6; $i++) : ?>
         <div class="cmp-row" role="row" data-reveal data-reveal-stagger="<?php echo $i; ?>" data-reveal-delay="140">
           <div class="cmp-q" role="cell">
             <span class="cmp-q-text"><?php echo t('marketing.compare.r' . $i . 'q'); ?></span>
