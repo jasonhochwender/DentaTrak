@@ -471,6 +471,13 @@ class DsCoreAuthService {
                 $skipped++;
                 continue;
             }
+            // Never refresh tokens authorized under a different
+            // environment - sandbox credentials must never reach the
+            // production token endpoint (and vice versa).
+            if (!DsCoreConfig::connectionMatchesEnvironment($row)) {
+                $skipped++;
+                continue;
+            }
             $expiresAt = $this->tokenExpiresAt($row);
             if ($expiresAt === null || $expiresAt > $cutoff) {
                 $skipped++;
@@ -514,6 +521,9 @@ class DsCoreAuthService {
             $connection = IntegrationManager::findConnection($pdo, $connectionId);
             if (!$connection || ($connection['provider'] ?? '') !== self::PROVIDER) {
                 throw new DsCoreAuthException('not_found', 'DS Core connection not found.');
+            }
+            if (!DsCoreConfig::connectionMatchesEnvironment($connection)) {
+                throw new DsCoreAuthException('environment_mismatch', 'Connection belongs to a different DS Core environment.', false);
             }
             if (in_array($connection['status'], ['disabled', 'reconnect_required'], true)) {
                 return; // intentionally terminal states - nothing to refresh
@@ -578,6 +588,9 @@ class DsCoreAuthService {
         $connection = IntegrationManager::findConnection($pdo, $connectionId);
         if (!$connection || ($connection['provider'] ?? '') !== self::PROVIDER) {
             throw new DsCoreAuthException('not_found', 'DS Core connection not found.');
+        }
+        if (!DsCoreConfig::connectionMatchesEnvironment($connection)) {
+            throw new DsCoreAuthException('environment_mismatch', 'Connection belongs to a different DS Core environment.', false);
         }
 
         $token = IntegrationCredentials::get($pdo, $connectionId, 'access_token');

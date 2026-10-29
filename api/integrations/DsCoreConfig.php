@@ -185,8 +185,37 @@ class DsCoreConfig {
         return array_values(array_unique($ids));
     }
 
-    /** True only when the practice is explicitly allowlisted. */
+    /**
+     * True only when the allowlist is the explicit wildcard '*' - general
+     * availability for every eligible practice. Still requires the value
+     * to be deliberately set: UNSET or EMPTY permits NO practice, and no
+     * other token ('all', 'true', whitespace variants) counts.
+     */
+    public static function allowAllPractices(): bool {
+        $raw = self::envValue('DS_CORE_ALLOWED_PRACTICES');
+        return $raw !== null && trim($raw) === '*';
+    }
+
+    /** True only when the practice is explicitly allowlisted (or '*'). */
     public static function isPracticeAllowed(int $practiceId): bool {
-        return $practiceId > 0 && in_array($practiceId, self::allowedPracticeIds(), true);
+        return $practiceId > 0
+            && (self::allowAllPractices() || in_array($practiceId, self::allowedPracticeIds(), true));
+    }
+
+    /**
+     * True only when a stored connection was authorized against the
+     * ACTIVE environment. config_json.environment is written at connect
+     * time; a missing value predates the field and counts as 'sandbox'.
+     * Enforced on status, polling, refresh, and business calls so a
+     * sandbox connection can never be polled, refreshed, or presented as
+     * connected under production configuration.
+     */
+    public static function connectionMatchesEnvironment(?array $connection): bool {
+        if (!$connection) {
+            return false;
+        }
+        $config = json_decode((string)($connection['config_json'] ?? ''), true);
+        $connEnv = strtolower((string)($config['environment'] ?? 'sandbox'));
+        return $connEnv === self::environment();
     }
 }

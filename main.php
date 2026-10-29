@@ -4289,7 +4289,9 @@ endif;
                               <span class="integration-provider-name"><?php echo t($scannerDef['name_key']); ?></span>
                               <?php if ($dsCoreLive): ?>
                               <span class="integration-status-badge" id="dsCoreStatusBadge">…</span>
+                              <?php if (DsCoreConfig::environment() === 'sandbox'): ?>
                               <span class="integration-status-badge integration-status-coming-soon"><?php echo t('settings.integrations.status.sandbox'); ?></span>
+                              <?php endif; ?>
                               <?php else: ?>
                               <span class="integration-status-badge integration-status-<?php echo $scannerStatusClass; ?>"><?php echo t('settings.integrations.status.' . $scannerDef['status']); ?></span>
                               <?php endif; ?>

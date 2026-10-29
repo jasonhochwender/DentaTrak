@@ -97,9 +97,16 @@ if ($method === 'GET') {
     $stmt->execute([':pid' => (int)$currentPracticeId, ':p' => DsCoreAuthService::PROVIDER]);
     $connection = $stmt->fetch(PDO::FETCH_ASSOC) ?: null;
 
+    // A connection authorized under a different environment (e.g. a
+    // sandbox link after the production switch) must not present as
+    // connected - it can only be repaired by a fresh OAuth round-trip.
+    $envMatch = DsCoreConfig::connectionMatchesEnvironment($connection);
+    $displayConnection = $envMatch ? $connection : null;
+
     echo json_encode([
         'success'     => true,
-        'state'       => DsCoreAuthService::connectionState($connection),
+        'state'       => DsCoreAuthService::connectionState($displayConnection),
+        'environment_mismatch' => ($connection !== null && !$envMatch),
         'environment' => DsCoreConfig::environment(),
         'redirect_uri' => DsCoreAuthService::redirectUri(),
         'server_configured' => DsCoreConfig::isConfigured(),

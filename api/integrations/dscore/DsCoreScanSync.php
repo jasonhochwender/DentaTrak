@@ -106,6 +106,14 @@ class DsCoreScanSync {
                 $totals['restricted']++;
                 continue;
             }
+            // Environment separation: a connection authorized under a
+            // different environment (e.g. sandbox tokens after the
+            // production switch) is never polled - its tokens and cursor
+            // belong to the other endpoint set entirely.
+            if (!DsCoreConfig::connectionMatchesEnvironment($connection)) {
+                $totals['restricted']++;
+                continue;
+            }
             $state = self::pollState($connection);
 
             // Respect the rate-limit hint across runs.
