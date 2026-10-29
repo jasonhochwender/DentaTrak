@@ -5627,7 +5627,7 @@
             "step1_title": "Shape the workflow",
             "step1_body": "Set up DentaTrak to match the way your practice already works. Add, rename, reorder, archive, and restore workflow stages so your board reflects your real case process instead of forcing your team into a predefined pipeline.",
             "step2_title": "Create and track the case",
-            "step2_body": "Create one record for the case with the patient, case type, lab, appointment details, files, assignments, and other information your team needs. Everything stays connected to the case as it moves through the workflow.",
+            "step2_body": "Create one record for the case with the patient, case type, lab, appointment details, files, assignments, and other information your team needs. Start manually or bring in information through supported practice software and scanner integrations. Everything stays connected to the case as it moves through the workflow.",
             "step3_title": "Keep your team and lab aligned",
             "step3_body": "Keep communication connected to the case instead of scattered across email, texts, and sticky notes. Share updates and files, add comments, mention team members, and keep everyone working from the same information. Practices that want an explicit handoff can also ask the lab to confirm receipt and share an expected return date.",
             "step4_title": "See what needs attention",
@@ -6094,14 +6094,17 @@
             "mock_input": "Ask about DentaTrak or your cases…"
         },
         "pms": {
-            "eyebrow": "Integration",
-            "title": "Connect Open Dental.",
-            "lead": "Link your Open Dental practice so supported lab cases appear in DentaTrak automatically. Patient, due date, appointment date, lab, and instructions are imported once, with the fields Open Dental owns kept in sync. Optional two-way sync writes status milestones back to the Open Dental lab case.",
-            "flow_aria": "An Open Dental lab case becoming a DentaTrak case automatically.",
-            "mock_source": "New lab case received",
-            "mock_source_detail": "Crown · Patient appointment Mar 19",
-            "mock_target": "Case created in DentaTrak",
-            "mock_target_detail": "Synced automatically. No double entry."
+            "eyebrow": "INTEGRATIONS",
+            "title": "Connect your practice software and scans.",
+            "lead": "Bring case information and scan files into DentaTrak with less manual entry. Connect Open Dental for supported lab case integration, or import Primescan scans through DS Core while continuing to work with your existing laboratories.",
+            "card_od_cat": "Practice management software",
+            "card_od_title": "Open Dental",
+            "card_od_body": "Import supported lab cases and keep connected information in sync. Optional two-way sync sends status milestones back to the Open Dental lab case.",
+            "card_scan_cat": "Intraoral scans",
+            "card_scan_title": "Primescan / DS Core",
+            "card_scan_body": "Bring scans into your Incoming Scans inbox, preview the files, and create a case or attach them to an existing one.",
+            "more": "We’re working on additional integrations.",
+            "plan_note": "Open Dental and Primescan / DS Core are included on Control and Scale plans."
         },
         "languages": {
             "eyebrow": "Languages",

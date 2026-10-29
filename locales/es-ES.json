@@ -5627,7 +5627,7 @@
             "step1_title": "Modele el flujo de trabajo",
             "step1_body": "Configure DentaTrak para que coincida con la forma en que su clínica ya trabaja. Añada, renombre, reordene, archive y restaure etapas del flujo para que su tablero refleje su proceso real de casos, en lugar de obligar a su equipo a seguir un flujo predefinido.",
             "step2_title": "Cree y siga el caso",
-            "step2_body": "Cree un único registro para el caso con el paciente, el tipo de caso, el laboratorio, los detalles de la cita, archivos, asignaciones y demás información que su equipo necesite. Todo permanece conectado al caso a medida que avanza por el flujo.",
+            "step2_body": "Crea un registro para el caso con el paciente, tipo de caso, laboratorio, detalles de la cita, archivos, asignaciones y demás información que tu equipo necesita. Empieza manualmente o trae la información a través de las integraciones compatibles de software de práctica y escáneres. Todo permanece conectado al caso mientras avanza por el flujo de trabajo.",
             "step3_title": "Mantenga alineados a su equipo y laboratorio",
             "step3_body": "Mantenga la comunicación conectada al caso en lugar de dispersa entre correos, mensajes y notas adhesivas. Comparta actualizaciones y archivos, añada comentarios, mencione a miembros del equipo y mantenga a todos trabajando con la misma información. Las prácticas que quieran una entrega explícita también pueden pedir al laboratorio que confirme la recepción y comparta una fecha de devolución prevista.",
             "step4_title": "Vea lo que necesita atención",
@@ -6055,14 +6055,17 @@
             "mock_input": "Pregunte sobre DentaTrak o sus casos…"
         },
         "pms": {
-            "eyebrow": "Integración",
-            "title": "Conecte Open Dental.",
-            "lead": "Vincule su consultorio de Open Dental para que los casos de laboratorio admitidos aparezcan en DentaTrak automáticamente. Paciente, fecha de entrega, fecha de cita, laboratorio e instrucciones se importan una vez, y los campos que pertenecen a Open Dental se mantienen sincronizados. La sincronización bidireccional opcional escribe los hitos de estado de vuelta en el caso de laboratorio de Open Dental.",
-            "flow_aria": "Un caso de laboratorio de Open Dental convertido automáticamente en un caso de DentaTrak.",
-            "mock_source": "Nuevo caso de laboratorio recibido",
-            "mock_source_detail": "Corona · Cita del paciente 19 de marzo",
-            "mock_target": "Caso creado en DentaTrak",
-            "mock_target_detail": "Sincronizado automáticamente. Sin doble registro."
+            "eyebrow": "INTEGRACIONES",
+            "title": "Conecta tu software de práctica y tus escaneos.",
+            "lead": "Lleva la información de casos y los archivos de escaneos a DentaTrak con menos entrada manual. Conecta Open Dental para la integración de casos de laboratorio compatibles, o importa escaneos Primescan a través de DS Core mientras sigues trabajando con tus laboratorios habituales.",
+            "card_od_cat": "Software de gestión de práctica",
+            "card_od_title": "Open Dental",
+            "card_od_body": "Importa casos de laboratorio compatibles y mantén la información conectada sincronizada. La sincronización bidireccional opcional devuelve hitos de estado al caso de laboratorio de Open Dental.",
+            "card_scan_cat": "Escaneos intraorales",
+            "card_scan_title": "Primescan / DS Core",
+            "card_scan_body": "Lleva escaneos a tu bandeja de Escaneos entrantes, previsualiza los archivos y crea un caso o adjúntalos a uno existente.",
+            "more": "Estamos trabajando en más integraciones.",
+            "plan_note": "Open Dental y Primescan / DS Core están incluidos en los planes Control y Scale."
         },
         "languages": {
             "eyebrow": "Idiomas",

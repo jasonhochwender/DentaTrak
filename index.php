@@ -878,6 +878,10 @@ foreach (['operate', 'control', 'scale'] as $plan) {
     .pms-card p { font-size: 0.74rem; color: var(--dt-ink-secondary); margin: 0; line-height: 1.5; }
     .pms-arrow { color: var(--dt-blue); flex-shrink: 0; }
     .pms-arrow svg { width: 30px; height: 30px; }
+    .pms-cards { display: flex; gap: 20px; justify-content: center; align-items: stretch; text-align: left; }
+    .pms-cards .pms-card { flex: 1 1 0; max-width: 340px; }
+    .pms-note { font-size: 0.78rem; color: var(--dt-ink-muted); margin: 22px 0 0; }
+    .pms-plan-note { font-size: 0.72rem; color: var(--dt-ink-secondary); margin: 6px 0 0; }
 
     /* Languages */
     .langs { background: var(--dt-cream); text-align: center; }
@@ -888,7 +892,8 @@ foreach (['operate', 'control', 'scale'] as $plan) {
 
     @media (max-width: 900px) {
       .collab-grid, .ask-grid { grid-template-columns: 1fr; }
-      .pms-flow { flex-direction: column; }
+      .pms-flow, .pms-cards { flex-direction: column; }
+      .pms-cards .pms-card { max-width: 340px; margin: 0 auto; width: 100%; }
       .pms-arrow { transform: rotate(90deg); }
     }
     @media (max-width: 720px) {
@@ -1790,21 +1795,20 @@ foreach (['operate', 'control', 'scale'] as $plan) {
         <span class="eyebrow"><?php echo t('marketing.pms.eyebrow'); ?></span>
         <h2><?php echo t('marketing.pms.title'); ?></h2>
         <p class="lead"><?php echo t('marketing.pms.lead'); ?></p>
-        <div class="pms-flow" role="img" aria-label="<?php echo htmlspecialchars(t('marketing.pms.flow_aria')); ?>">
+        <div class="pms-cards">
           <div class="pms-card">
-            <div class="pms-card-label">Open Dental</div>
-            <h4><?php echo t('marketing.pms.mock_source'); ?></h4>
-            <p><?php echo t('marketing.pms.mock_source_detail'); ?></p>
-          </div>
-          <div class="pms-arrow" aria-hidden="true">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+            <div class="pms-card-label"><?php echo t('marketing.pms.card_od_cat'); ?></div>
+            <h4><?php echo t('marketing.pms.card_od_title'); ?></h4>
+            <p><?php echo t('marketing.pms.card_od_body'); ?></p>
           </div>
           <div class="pms-card">
-            <div class="pms-card-label">DentaTrak</div>
-            <h4><?php echo t('marketing.pms.mock_target'); ?></h4>
-            <p><?php echo t('marketing.pms.mock_target_detail'); ?></p>
+            <div class="pms-card-label"><?php echo t('marketing.pms.card_scan_cat'); ?></div>
+            <h4><?php echo t('marketing.pms.card_scan_title'); ?></h4>
+            <p><?php echo t('marketing.pms.card_scan_body'); ?></p>
           </div>
         </div>
+        <p class="pms-note"><?php echo t('marketing.pms.more'); ?></p>
+        <p class="pms-plan-note"><?php echo t('marketing.pms.plan_note'); ?></p>
       </div>
     </div>
   </section>

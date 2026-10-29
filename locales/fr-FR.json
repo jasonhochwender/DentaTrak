@@ -5627,7 +5627,7 @@
             "step1_title": "Façonnez le flux de travail",
             "step1_body": "Configurez DentaTrak pour correspondre à la façon dont votre cabinet travaille déjà. Ajoutez, renommez, réordonnez, archivez et restaurez des étapes de flux pour que votre tableau reflète votre processus réel de cas, au lieu d’imposer à votre équipe un flux prédéfini.",
             "step2_title": "Créez et suivez le cas",
-            "step2_body": "Créez un seul dossier pour le cas avec le patient, le type de cas, le laboratoire, les détails du rendez-vous, les fichiers, les attributions et les autres informations dont votre équipe a besoin. Tout reste relié au cas au fil du flux de travail.",
+            "step2_body": "Créez un dossier pour le cas avec le patient, le type de cas, le laboratoire, les détails du rendez-vous, les fichiers, les affectations et toutes les informations dont votre équipe a besoin. Commencez manuellement ou importez les informations via les intégrations de logiciels de cabinet et de scanners pris en charge. Tout reste lié au cas tout au long du workflow.",
             "step3_title": "Gardez votre équipe et votre laboratoire alignés",
             "step3_body": "Gardez la communication reliée au cas plutôt qu’éparpillée entre e-mails, SMS et notes autocollantes. Partagez mises à jour et fichiers, ajoutez des commentaires, mentionnez des membres de l’équipe et gardez tout le monde sur la même information. Les cabinets qui souhaitent une passation explicite peuvent aussi demander au laboratoire de confirmer la réception et d’indiquer une date de retour prévue.",
             "step4_title": "Voyez ce qui demande attention",
@@ -6055,14 +6055,17 @@
             "mock_input": "Posez une question sur DentaTrak ou vos cas…"
         },
         "pms": {
-            "eyebrow": "Intégration",
-            "title": "Connectez Open Dental.",
-            "lead": "Reliez votre cabinet Open Dental pour que les cas de laboratoire pris en charge apparaissent automatiquement dans DentaTrak. Patient, date d’échéance, date de rendez-vous, laboratoire et instructions sont importés une fois, et les champs que possède Open Dental restent synchronisés. La synchronisation bidirectionnelle optionnelle réécrit les jalons d’étape dans le cas de laboratoire Open Dental.",
-            "flow_aria": "Un cas de laboratoire Open Dental devenant automatiquement un cas DentaTrak.",
-            "mock_source": "Nouveau cas de laboratoire reçu",
-            "mock_source_detail": "Couronne · Rendez-vous patient le 19 mars",
-            "mock_target": "Cas créé dans DentaTrak",
-            "mock_target_detail": "Synchronisé automatiquement. Sans double saisie."
+            "eyebrow": "INTÉGRATIONS",
+            "title": "Connectez votre logiciel de cabinet et vos scans.",
+            "lead": "Importez les informations de cas et les fichiers de scans dans DentaTrak avec moins de saisie manuelle. Connectez Open Dental pour l’intégration des cas de laboratoire pris en charge, ou importez des scans Primescan via DS Core tout en continuant à travailler avec vos laboratoires habituels.",
+            "card_od_cat": "Logiciel de gestion de cabinet",
+            "card_od_title": "Open Dental",
+            "card_od_body": "Importez les cas de laboratoire pris en charge et gardez les informations connectées synchronisées. La synchronisation bidirectionnelle optionnelle renvoie les jalons de statut au cas de laboratoire Open Dental.",
+            "card_scan_cat": "Scans intra-oraux",
+            "card_scan_title": "Primescan / DS Core",
+            "card_scan_body": "Amenez les scans dans votre boîte Scans entrants, prévisualisez les fichiers et créez un cas ou attachez-les à un cas existant.",
+            "more": "Nous travaillons sur d’autres intégrations.",
+            "plan_note": "Open Dental et Primescan / DS Core sont inclus dans les forfaits Control et Scale."
         },
         "languages": {
             "eyebrow": "Langues",

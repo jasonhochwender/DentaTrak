@@ -3904,7 +3904,7 @@
             "step1_title": "Gestalten Sie den Workflow",
             "step1_body": "Richten Sie DentaTrak so ein, wie Ihre Praxis bereits arbeitet. Fügen Sie Workflow-Phasen hinzu, benennen Sie sie um, ordnen Sie sie neu, archivieren und stellen Sie sie wieder her, damit Ihr Board Ihren echten Fallprozess abbildet, statt Ihr Team in eine vordefinierte Pipeline zu zwingen.",
             "step2_title": "Fall anlegen und verfolgen",
-            "step2_body": "Erstellen Sie einen Datensatz für den Fall mit Patient, Falltyp, Labor, Termindetails, Dateien, Zuweisungen und weiteren Informationen, die Ihr Team benötigt. Alles bleibt mit dem Fall verbunden, während er durch den Workflow läuft.",
+            "step2_body": "Erstellen Sie einen Datensatz für den Fall mit Patient, Falltyp, Labor, Termindetails, Dateien, Zuweisungen und allen weiteren Informationen, die Ihr Team braucht. Beginnen Sie manuell oder übernehmen Sie Informationen über unterstützte Praxissoftware- und Scanner-Integrationen. Alles bleibt mit dem Fall verbunden, während er den Workflow durchläuft.",
             "step3_title": "Team und Labor auf demselben Stand",
             "step3_body": "Halten Sie die Kommunikation am Fall, statt sie über E-Mails, SMS und Notizzettel zu verstreuen. Teilen Sie Updates und Dateien, fügen Sie Kommentare hinzu, erwähnen Sie Teammitglieder. Alle arbeiten mit denselben Informationen. Praxen, die eine explizite Übergabe wünschen, können das Labor zusätzlich bitten, den Empfang zu bestätigen und einen voraussichtlichen Rückgabetermin zu nennen.",
             "step4_title": "Sehen Sie, was Aufmerksamkeit braucht",
@@ -6097,14 +6097,17 @@
             "mock_input": "Fragen Sie zu DentaTrak oder Ihren Fällen…"
         },
         "pms": {
-            "eyebrow": "Integration",
-            "title": "Verbinden Sie Open Dental.",
-            "lead": "Verbinden Sie Ihre Open-Dental-Praxis, damit unterstützte Laborfälle automatisch in DentaTrak erscheinen. Patient, Fälligkeitsdatum, Termindatum, Labor und Anweisungen werden einmal importiert, und die Felder, die Open Dental besitzt, bleiben synchron. Optional schreibt eine Zwei-Wege-Synchronisation Statusmeilensteine zurück in den Open-Dental-Laborfall.",
-            "flow_aria": "Ein Open-Dental-Laborfall wird automatisch zu einem DentaTrak-Fall.",
-            "mock_source": "Neuer Laborfall eingegangen",
-            "mock_source_detail": "Krone · Patiententermin 19. März",
-            "mock_target": "Fall in DentaTrak angelegt",
-            "mock_target_detail": "Automatisch synchronisiert. Keine doppelte Erfassung."
+            "eyebrow": "INTEGRATIONEN",
+            "title": "Verbinden Sie Ihre Praxissoftware und Scans.",
+            "lead": "Fallinformationen und Scandateien mit weniger manueller Eingabe in DentaTrak übernehmen. Verbinden Sie Open Dental für die unterstützte Laborfall-Integration oder importieren Sie Primescan-Scans über DS Core – und arbeiten Sie weiterhin mit Ihren bestehenden Laboren.",
+            "card_od_cat": "Praxisverwaltungssoftware",
+            "card_od_title": "Open Dental",
+            "card_od_body": "Unterstützte Laborfälle importieren und verknüpfte Informationen synchron halten. Die optionale Zwei-Wege-Synchronisation sendet Statusmeilensteine an den Open-Dental-Laborfall zurück.",
+            "card_scan_cat": "Intraoralscans",
+            "card_scan_title": "Primescan / DS Core",
+            "card_scan_body": "Scans in Ihren Eingehende-Scans-Eingang bringen, Dateien ansehen und einen Fall erstellen oder an einen bestehenden anhängen.",
+            "more": "Wir arbeiten an weiteren Integrationen.",
+            "plan_note": "Open Dental und Primescan / DS Core sind in den Control- und Scale-Tarifen enthalten."
         },
         "languages": {
             "eyebrow": "Sprachen",
