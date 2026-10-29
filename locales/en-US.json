@@ -6223,7 +6223,9 @@
             "inbox_lbl": "Scanner inbox",
             "act_import": "Import",
             "reassigned": "Reassigned",
-            "sec_images": "Images"
+            "sec_images": "Images",
+            "due_sub": "Due tomorrow.",
+            "late_sub": "2 days overdue."
         },
         "askdemo": {
             "example_label": "Example conversation",

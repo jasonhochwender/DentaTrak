@@ -6265,7 +6265,9 @@
             "inbox_lbl": "Scanner-Eingang",
             "act_import": "Importieren",
             "reassigned": "Neu zugewiesen",
-            "sec_images": "Bilder"
+            "sec_images": "Bilder",
+            "due_sub": "Morgen fällig.",
+            "late_sub": "2 Tage überfällig."
         },
         "askdemo": {
             "example_label": "Beispielgespräch",

@@ -6223,7 +6223,9 @@
             "inbox_lbl": "Bandeja de escaneos",
             "act_import": "Importar",
             "reassigned": "Reasignado",
-            "sec_images": "Imágenes"
+            "sec_images": "Imágenes",
+            "due_sub": "Vence mañana.",
+            "late_sub": "2 días de retraso."
         },
         "askdemo": {
             "example_label": "Conversación de ejemplo",

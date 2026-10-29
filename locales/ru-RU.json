@@ -6265,7 +6265,9 @@
             "inbox_lbl": "Входящие сканы",
             "act_import": "Импорт",
             "reassigned": "Переназначено",
-            "sec_images": "Изображения"
+            "sec_images": "Изображения",
+            "due_sub": "Срок завтра.",
+            "late_sub": "Просрочено на 2 дня."
         },
         "askdemo": {
             "example_label": "Пример диалога",

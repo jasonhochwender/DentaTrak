@@ -6223,7 +6223,9 @@
             "inbox_lbl": "스캔 받은함",
             "act_import": "가져오기",
             "reassigned": "재배정됨",
-            "sec_images": "이미지"
+            "sec_images": "이미지",
+            "due_sub": "내일 마감.",
+            "late_sub": "2일 지연."
         },
         "askdemo": {
             "example_label": "예시 대화",

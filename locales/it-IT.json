@@ -6223,7 +6223,9 @@
             "inbox_lbl": "Casella scansioni",
             "act_import": "Importa",
             "reassigned": "Riassegnato",
-            "sec_images": "Immagini"
+            "sec_images": "Immagini",
+            "due_sub": "Scade domani.",
+            "late_sub": "2 giorni di ritardo."
         },
         "askdemo": {
             "example_label": "Conversazione di esempio",

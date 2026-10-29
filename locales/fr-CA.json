@@ -6223,7 +6223,9 @@
             "inbox_lbl": "Boîte de scans",
             "act_import": "Importer",
             "reassigned": "Réassigné",
-            "sec_images": "Images"
+            "sec_images": "Images",
+            "due_sub": "Dû demain.",
+            "late_sub": "2 jours de retard."
         },
         "askdemo": {
             "example_label": "Conversation d’exemple",

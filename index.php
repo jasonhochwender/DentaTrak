@@ -1302,32 +1302,36 @@ foreach (['operate', 'control', 'scale'] as $plan) {
     .hw-anim #hw5T2 { animation: hw5-in 0.5s ease 7.6s forwards; }
     @keyframes hw5-in { from { opacity: 0; transform: translateY(12px); box-shadow: 0 0 0 3px rgba(37,99,235,0.3); } 60% { box-shadow: 0 0 0 3px rgba(37,99,235,0.3); } to { opacity: 1; transform: none; box-shadow: none; } }
     /* SCENE 6 */
+    .hw6-sample { position: absolute; right: 6px; top: -4px; font-size: 0.6rem; color: var(--dt-ink-muted); }
     .hw6-board { display: flex; gap: 10px; height: 100%; }
-    .hw6-col { flex: 1; min-width: 0; background: var(--dt-warm); border: 1.5px solid var(--dt-border); border-radius: 12px; padding: 9px; overflow: hidden; }
+    .hw6-col { flex: 1; min-width: 0; background: var(--dt-warm); border: 1.5px solid var(--dt-border); border-radius: 12px; padding: 9px; }
     .hw6-ch { font-size: 0.68rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; color: var(--dt-ink-secondary); margin-bottom: 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .hw6-card { position: relative; background: #fff; border: 1.5px solid var(--dt-border); border-radius: 9px; padding: 8px 10px; font-size: 0.78rem; font-weight: 700; color: var(--dt-ink); margin-bottom: 7px; box-shadow: 0 2px 7px -3px rgba(30,58,95,0.14); }
+    .hw6-sub { display: none; font-style: normal; font-size: 0.62rem; font-weight: 700; margin-top: 3px; }
     .hw6-card i { display: block; font-style: normal; font-size: 0.58rem; font-weight: 400; color: var(--dt-ink-muted); margin-top: 2px; }
-    .hw6-flag { display: inline-block; font-size: 0.58rem; font-weight: 800; letter-spacing: 0.04em; border-radius: 999px; padding: 2px 9px; margin-top: 5px; opacity: 0; }
-    .hw6-fa { background: #b45309; color: #fff; } .hw6-fr { background: #7f1d1d; color: #fff; }
+    .hw6-flag { display: inline-block; font-size: 0.64rem; font-weight: 800; letter-spacing: 0.05em; text-transform: uppercase; border-radius: 999px; padding: 3px 10px; margin-top: 5px; opacity: 0; box-shadow: 0 2px 6px -2px rgba(0,0,0,0.25); }
+    .hw6-fa { background: #fff; color: #92400e; } .hw6-fr { background: #fff; color: #b91c1c; }
     .hw-anim .hw6-card:not(.hw6-due):not(.hw6-late) { animation: hw6-dim 10s ease forwards; }
-    @keyframes hw6-dim { 0%,16% { opacity: 1; } 20%,42% { opacity: 0.45; } 46%,58% { opacity: 1; } 62%,82% { opacity: 0.45; } 88%,100% { opacity: 1; } }
+    @keyframes hw6-dim { 0%,16% { opacity: 1; } 20%,42% { opacity: 0.72; } 46%,58% { opacity: 1; } 62%,82% { opacity: 0.72; } 88%,100% { opacity: 1; } }
     .hw-anim .hw6-due { animation: hw6-duelift 10s ease forwards; }
     @keyframes hw6-duelift {
       0%,15% { transform: none; background: #fff; }
-      20%,38% { transform: translateY(-10px) scale(1.16); background: #fef3c7; border-color: #f59e0b; box-shadow: 0 16px 30px -10px rgba(180,83,9,0.5); }
-      42%,100% { transform: none; background: #fef3c7; border-color: #f59e0b; }
+      20%,38% { transform: translateY(-4px) scale(1.07); background: #fcd34d; border-color: #b45309; box-shadow: 0 14px 26px -10px rgba(180,83,9,0.5); z-index: 5; }
+      42%,100% { transform: none; background: #fcd34d; border-color: #b45309; }
     }
-    .hw-anim .hw6-due .hw6-flag { animation: hw-fade 0.4s ease 1.9s forwards; }
+    .hw-anim .hw6-due .hw6-flag, .hw-anim .hw6-due .hw6-sub { animation: hw-fade 0.4s ease 1.9s forwards; display: inline-block; }
     .hw-anim .hw6-late { animation: hw6-latelift 10s ease forwards; }
     @keyframes hw6-latelift {
       0%,54% { transform: none; background: #fff; }
-      58% { transform: translateY(-12px) scale(1.22); background: #b91c1c; border-color: #7f1d1d; box-shadow: 0 18px 34px -10px rgba(185,28,28,0.55); color: #fff; }
-      64%,78% { transform: translateY(-10px) scale(1.16); background: #b91c1c; border-color: #7f1d1d; box-shadow: 0 16px 30px -10px rgba(185,28,28,0.55); color: #fff; }
+      58% { transform: translateY(-6px) scale(1.11); background: #b91c1c; border-color: #7f1d1d; box-shadow: 0 16px 30px -10px rgba(185,28,28,0.55); color: #fff; z-index: 5; }
+      64%,78% { transform: translateY(-4px) scale(1.07); background: #b91c1c; border-color: #7f1d1d; box-shadow: 0 14px 26px -10px rgba(185,28,28,0.55); color: #fff; z-index: 5; }
       84%,100% { transform: none; background: #b91c1c; border-color: #7f1d1d; color: #fff; }
     }
     .hw-anim .hw6-late i { animation: hw6-latemeta 10s steps(1) forwards; }
+    .hw-anim .hw6-due i { animation: hw6-duemeta 10s steps(1) forwards; }
+    @keyframes hw6-duemeta { 0%,19% { color: var(--dt-ink-muted); } 20%,100% { color: #78350f; } }
     @keyframes hw6-latemeta { 0%,57% { color: var(--dt-ink-muted); } 58%,100% { color: rgba(255,255,255,0.85); } }
-    .hw-anim .hw6-late .hw6-flag { animation: hw-fade 0.4s ease 6.2s forwards; }
+    .hw-anim .hw6-late .hw6-flag, .hw-anim .hw6-late .hw6-sub { animation: hw-fade 0.4s ease 6.2s forwards; display: inline-block; color: #fff; }
     /* SCENE 7 */
     .hw7 { height: 100%; display: flex; flex-direction: column; }
     .hw7-head { display: flex; align-items: baseline; justify-content: space-between; font-size: 0.9rem; font-weight: 800; color: var(--dt-ink); padding-bottom: 8px; border-bottom: 1.5px solid var(--dt-border); }
@@ -1385,6 +1389,7 @@ foreach (['operate', 'control', 'scale'] as $plan) {
       .hw1-board { gap: 6px; flex-wrap: wrap; } .hw1-col { flex: 1 1 44%; }
       .hw1-col, .hw6-col { padding: 6px; }
       .hw1-card, .hw6-card { font-size: 0.62rem; padding: 5px 6px; }
+      .hw6-board { flex-wrap: wrap; gap: 6px; } .hw6-col { flex: 1 1 44%; min-height: 0; }
       .hw3-lanes { flex-direction: column; gap: 6px; }
       .hw3-lane { flex-direction: row; align-items: center; gap: 8px; }
       .hw3-src { width: 62px; flex-shrink: 0; }
@@ -1405,8 +1410,8 @@ foreach (['operate', 'control', 'scale'] as $plan) {
       .hw-emailcard, .hw-join1, .hw-join2, .hw3-case, .hw3-act, .hw5-note, .hw5-cmt, .hw5-thumb { opacity: 1 !important; transform: none; }
       .hw3-ln, .hw3-ah { opacity: 0.45 !important; }
       .hw4-aval .hw4-a3 { opacity: 1 !important; } .hw4-aval .hw4-a0, .hw4-aval .hw4-a1, .hw4-aval .hw4-a2 { opacity: 0 !important; }
-      .hw6-flag { opacity: 1 !important; }
-      .hw6-due { background: #fef3c7; border-color: #f59e0b; }
+      .hw6-flag { opacity: 1 !important; } .hw6-due .hw6-sub { display: inline-block !important; color: #78350f; } .hw6-late .hw6-sub { display: inline-block !important; color: #fff; }
+      .hw6-due { background: #fcd34d; border-color: #b45309; }
       .hw6-late { background: #b91c1c; border-color: #7f1d1d; color: #fff; }
       .hw6-late i { color: rgba(255,255,255,0.85); }
       .hw7-fill { transform: scaleX(1); opacity: 0.85; }
@@ -2157,14 +2162,15 @@ foreach (['operate', 'control', 'scale'] as $plan) {
             </div>
 <!-- SCENE 6: board + two big alerts -->
             <div class="hw-scene" data-scene="6" hidden>
+              <div class="hw6-sample"><?php echo t('marketing.walkthrough.sample_data'); ?></div>
               <div class="hw6-board">
                 <div class="hw6-col"><div class="hw6-ch"><?php echo t('marketing.walkthrough.stage_ready'); ?></div>
                   <div class="hw6-card">Bridge #7<i>M. Chen · Apr 12</i></div>
                   <div class="hw6-card">Inlay #5<i>A. Rivera · Apr 14</i></div>
                   <div class="hw6-card">Onlay #1<i>M. Chen · Apr 15</i></div></div>
                 <div class="hw6-col"><div class="hw6-ch"><?php echo t('marketing.walkthrough.stage_lab'); ?></div>
-                  <div class="hw6-card hw6-due" id="hw6Due">Crown #14<i>M. Chen · Apr 10</i><b class="hw6-flag hw6-fa"><?php echo t('marketing.walkthrough.due_soon'); ?></b></div>
-                  <div class="hw6-card hw6-late" id="hw6Late">Denture #3<i>Lab · Apr 6</i><b class="hw6-flag hw6-fr"><?php echo t('marketing.walkthrough.late_lbl'); ?></b></div>
+                  <div class="hw6-card hw6-due" id="hw6Due">Crown #14<i>M. Chen · Apr 10</i><em class="hw6-sub"><?php echo t('marketing.walkthrough.due_sub'); ?></em><b class="hw6-flag hw6-fa"><?php echo t('marketing.walkthrough.due_soon'); ?></b></div>
+                  <div class="hw6-card hw6-late" id="hw6Late">Denture #3<i>Lab · Apr 6</i><em class="hw6-sub"><?php echo t('marketing.walkthrough.late_sub'); ?></em><b class="hw6-flag hw6-fr"><?php echo t('marketing.walkthrough.late_lbl'); ?></b></div>
                   <div class="hw6-card">Crown #11<i>A. Rivera · Apr 16</i></div></div>
                 <div class="hw6-col"><div class="hw6-ch"><?php echo t('marketing.walkthrough.qc_stage'); ?></div>
                   <div class="hw6-card">Veneer #3<i>M. Chen · Apr 11</i></div>

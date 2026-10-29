@@ -2431,7 +2431,9 @@
             "inbox_lbl": "Caixa de escaneios",
             "act_import": "Importar",
             "reassigned": "Reatribuído",
-            "sec_images": "Imagens"
+            "sec_images": "Imagens",
+            "due_sub": "Vence amanhã.",
+            "late_sub": "2 dias de atraso."
         },
         "askdemo": {
             "example_label": "Conversa de exemplo",
