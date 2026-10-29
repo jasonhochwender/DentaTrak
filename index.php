@@ -1132,8 +1132,8 @@ foreach (['operate', 'control', 'scale'] as $plan) {
     .hw-scene { position: absolute; inset: 20px; opacity: 0; transition: opacity 0.45s ease; pointer-events: none; overflow: hidden; }
     .hw-scene.hw-active { opacity: 1; pointer-events: auto; }
     .hw-paused .hw-scene *, .hw-paused .hw-cursor { animation-play-state: paused !important; }
-    .hw-cursor { position: absolute; width: 18px; height: 18px; z-index: 6; pointer-events: none; opacity: 0;
-      background: #1e3a5f; border-radius: 50% 50% 50% 2px; box-shadow: 0 2px 6px rgba(0,0,0,0.35); }
+    .hw-cursor { position: absolute; left: 0; top: 0; width: 18px; height: 18px; z-index: 6; pointer-events: none; opacity: 0;
+      transform: translate(-2px, -2px); filter: drop-shadow(0 2px 3px rgba(0,0,0,0.35)); }
     /* SCENE 1 */
     .hw1-board { display: flex; gap: 12px; height: 78%; }
     .hw1-col { flex: 1; min-width: 0; background: var(--dt-warm); border: 1.5px solid var(--dt-border); border-radius: 12px; padding: 10px; overflow: hidden; }
@@ -1155,7 +1155,7 @@ foreach (['operate', 'control', 'scale'] as $plan) {
     .hw-anim .hw1-qcname { animation: hw-fade 0.5s ease 3.6s forwards; }
     @keyframes hw1-expand { to { flex: 1 1 0; opacity: 1; padding: 10px; border-width: 1.5px; } }
     .hw-anim .hw1-qc { animation-name: hw1-expand, hw1-glow; animation-duration: 1.1s, 1.2s; animation-delay: 2.8s, 3.9s; animation-fill-mode: forwards, both; }
-    @keyframes hw1-glow { 0%,100% { box-shadow: none; } 50% { box-shadow: 0 0 0 4px rgba(14,165,168,0.3); } }
+    @keyframes hw1-glow { 0%,100% { box-shadow: none; } 50% { box-shadow: inset 0 0 0 4px rgba(14,165,168,0.45); } }
     .hw-anim .hw1-cap1 { animation: hw1-caplife 2.6s ease 4.4s forwards; }
     .hw-anim .hw1-cap2 { animation: hw1-caplife 2.6s ease 7.4s forwards; }
     @keyframes hw1-caplife { 0% { opacity: 0; transform: translateY(6px); } 15%,80% { opacity: 1; transform: none; } 100% { opacity: 0; } }
@@ -1166,11 +1166,18 @@ foreach (['operate', 'control', 'scale'] as $plan) {
     @keyframes hw-out { to { opacity: 0; } }
     .hw-anim .hw-cursor { animation: hw1-cursor 8.8s ease forwards; }
     @keyframes hw1-cursor {
-      0% { opacity: 0; right: 40px; bottom: 20px; } 8% { opacity: 1; right: 44px; bottom: 24px; }
-      16%,30% { right: 44px; bottom: 24px; opacity: 1; }
-      40% { opacity: 0; } 55% { opacity: 0; right: 84%; top: 24px; bottom: auto; }
-      62%,88% { opacity: 1; right: 84%; top: 24px; }
-      100% { opacity: 0; right: 84%; top: 24px; }
+      0% { opacity: 0; left: var(--cx1, 80%); top: var(--cy1, 80%); }
+      6% { opacity: 1; left: var(--cx1, 80%); top: var(--cy1, 80%); }
+      12% { transform: translate(-2px,-2px) scale(0.8); }
+      15% { transform: translate(-2px,-2px) scale(1); }
+      30% { opacity: 1; left: var(--cx1, 80%); top: var(--cy1, 80%); }
+      40% { opacity: 0; }
+      50% { left: var(--cx2, 30%); top: var(--cy2, 20%); opacity: 0; }
+      57% { opacity: 1; left: var(--cx2, 30%); top: var(--cy2, 20%); }
+      62% { transform: translate(-2px,-2px) scale(0.8); }
+      65% { transform: translate(-2px,-2px) scale(1); }
+      80% { opacity: 1; left: var(--cx2, 30%); top: var(--cy2, 20%); }
+      100% { opacity: 0; left: var(--cx2, 30%); top: var(--cy2, 20%); }
     }
     /* SCENE 2: two invite cycles */
     .hw-team { display: grid; grid-template-columns: 1.1fr 1fr; gap: 16px; height: 100%; }
@@ -2074,7 +2081,7 @@ foreach (['operate', 'control', 'scale'] as $plan) {
               <div class="hw1-addbtn">+ <?php echo t('marketing.walkthrough.add_stage'); ?></div>
               <div class="hw1-cap hw1-cap1"><?php echo t('marketing.walkthrough.cap_addstage'); ?></div>
               <div class="hw1-cap hw1-cap2"><?php echo t('marketing.walkthrough.cap_rename'); ?></div>
-              <div class="hw-cursor"></div>
+              <div class="hw-cursor"><svg viewBox="0 0 18 18" width="18" height="18"><path d="M2 1.5 L2 14.5 L5.2 11.6 L7.6 16.4 L10.2 15 L7.7 10 L12.6 10 Z" fill="#1e3a5f" stroke="#fff" stroke-width="1.3" stroke-linejoin="round"/></svg></div>
             </div>
 
             <!-- SCENE 2: invite + roster (unchanged) -->
@@ -3958,6 +3965,7 @@ foreach (['operate', 'control', 'scale'] as $plan) {
       dotEls.forEach(function (d, i) { d.classList.toggle('on', i === n - 1); });
       title.textContent = meta.t[n]; copy.textContent = meta.c[n];
       if (n === 7 && !reduced) runKpis();
+      if (n === 1) positionHw1Cursor();
       wrap.classList.remove('hw-anim'); void wrap.offsetWidth;
       if (!reduced) wrap.classList.add('hw-anim');
       if (userInitiated) { playing = false; syncPause(); }
@@ -4010,6 +4018,18 @@ foreach (['operate', 'control', 'scale'] as $plan) {
         requestAnimationFrame(tick);
       });
     }
+    var hw1Scene = wrap.querySelector('.hw-scene[data-scene="1"]');
+    function positionHw1Cursor() {
+      if (!hw1Scene) return;
+      var s = hw1Scene.getBoundingClientRect();
+      function cx(el) { var r = el.getBoundingClientRect(); return (r.left + r.width / 2 - s.left) + 'px'; }
+      function cy(el) { var r = el.getBoundingClientRect(); return (r.top + r.height / 2 - s.top) + 'px'; }
+      var add = hw1Scene.querySelector('.hw1-addbtn'), ed = hw1Scene.querySelector('.hw1-edit');
+      if (add) { hw1Scene.style.setProperty('--cx1', cx(add)); hw1Scene.style.setProperty('--cy1', cy(add)); }
+      if (ed) { hw1Scene.style.setProperty('--cx2', cx(ed)); hw1Scene.style.setProperty('--cy2', cy(ed)); }
+    }
+    window.addEventListener('resize', function () { if (cur === 1) positionHw1Cursor(); });
+    if (document.fonts && document.fonts.ready) { document.fonts.ready.then(function () { if (cur === 1) positionHw1Cursor(); }); }
     show(1, false);
     if (reduced) { btnPause.hidden = true; }
   })();
