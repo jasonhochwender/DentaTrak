@@ -6217,7 +6217,13 @@
             "next_aria": "Escena siguiente",
             "pause": "Pausar",
             "play": "Reproducir",
-            "replay": "Repetir"
+            "replay": "Repetir",
+            "cap_addstage": "Añade tus propias etapas.",
+            "cap_rename": "Ponles el nombre que quieras.",
+            "inbox_lbl": "Bandeja de escaneos",
+            "act_import": "Importar",
+            "reassigned": "Reasignado",
+            "sec_images": "Imágenes"
         },
         "askdemo": {
             "example_label": "Conversación de ejemplo",

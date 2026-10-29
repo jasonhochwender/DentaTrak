@@ -6217,7 +6217,13 @@
             "next_aria": "다음 장면",
             "pause": "일시 중지",
             "play": "재생",
-            "replay": "다시 보기"
+            "replay": "다시 보기",
+            "cap_addstage": "나만의 단계를 추가하세요.",
+            "cap_rename": "원하는 이름으로 지으세요.",
+            "inbox_lbl": "스캔 받은함",
+            "act_import": "가져오기",
+            "reassigned": "재배정됨",
+            "sec_images": "이미지"
         },
         "askdemo": {
             "example_label": "예시 대화",

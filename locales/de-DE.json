@@ -6259,7 +6259,13 @@
             "next_aria": "Nächste Szene",
             "pause": "Pause",
             "play": "Play",
-            "replay": "Wiederholen"
+            "replay": "Wiederholen",
+            "cap_addstage": "Fügen Sie eigene Stages hinzu.",
+            "cap_rename": "Benennen Sie sie nach Ihren Wünschen.",
+            "inbox_lbl": "Scanner-Eingang",
+            "act_import": "Importieren",
+            "reassigned": "Neu zugewiesen",
+            "sec_images": "Bilder"
         },
         "askdemo": {
             "example_label": "Beispielgespräch",

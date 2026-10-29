@@ -6217,7 +6217,13 @@
             "next_aria": "Next scene",
             "pause": "Pause",
             "play": "Play",
-            "replay": "Replay"
+            "replay": "Replay",
+            "cap_addstage": "Add your own stages.",
+            "cap_rename": "Name them your way.",
+            "inbox_lbl": "Scanner inbox",
+            "act_import": "Import",
+            "reassigned": "Reassigned",
+            "sec_images": "Images"
         },
         "askdemo": {
             "example_label": "Example conversation",

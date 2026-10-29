@@ -6217,7 +6217,13 @@
             "next_aria": "Scena successiva",
             "pause": "Pausa",
             "play": "Avvia",
-            "replay": "Rivedi"
+            "replay": "Rivedi",
+            "cap_addstage": "Aggiungi le tue fasi.",
+            "cap_rename": "Chiamale come vuoi.",
+            "inbox_lbl": "Casella scansioni",
+            "act_import": "Importa",
+            "reassigned": "Riassegnato",
+            "sec_images": "Immagini"
         },
         "askdemo": {
             "example_label": "Conversazione di esempio",
