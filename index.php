@@ -1339,10 +1339,10 @@ foreach (['operate', 'control', 'scale'] as $plan) {
     .hw6-col { flex: 1; min-width: 0; background: var(--dt-warm); border: 1.5px solid var(--dt-border); border-radius: 12px; padding: 9px; }
     .hw6-ch { font-size: 0.68rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; color: var(--dt-ink-secondary); margin-bottom: 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .hw6-card { position: relative; background: #fff; border: 1.5px solid var(--dt-border); border-radius: 9px; padding: 8px 10px; font-size: 0.78rem; font-weight: 700; color: var(--dt-ink); margin-bottom: 7px; box-shadow: 0 2px 7px -3px rgba(30,58,95,0.14); }
-    .hw6-sub { display: none; font-style: normal; font-size: 0.62rem; font-weight: 700; margin-top: 3px; }
+    .hw6-sub { display: none; font-style: normal; font-size: 0.62rem; font-weight: 700; margin-top: 3px; margin-right: 8px; }
     .hw6-card i { display: block; font-style: normal; font-size: 0.58rem; font-weight: 400; color: var(--dt-ink-muted); margin-top: 2px; }
     .hw6-flag { display: inline-block; font-size: 0.64rem; font-weight: 800; letter-spacing: 0.05em; text-transform: uppercase; border-radius: 999px; padding: 3px 10px; margin-top: 5px; opacity: 0; box-shadow: 0 2px 6px -2px rgba(0,0,0,0.25); }
-    .hw6-fa { background: #fff; color: #92400e; } .hw6-fr { background: #fff; color: #b91c1c; }
+    .hw6-fa { background: #fff; color: #92400e !important; } .hw6-fr { background: #fff; color: #b91c1c !important; }
     .hw-anim .hw6-card:not(.hw6-due):not(.hw6-late) { animation: hw6-dim 10s ease forwards; }
     @keyframes hw6-dim { 0%,16% { opacity: 1; } 20%,42% { opacity: 0.72; } 46%,58% { opacity: 1; } 62%,82% { opacity: 0.72; } 88%,100% { opacity: 1; } }
     .hw-anim .hw6-due { animation: hw6-duelift 10s ease forwards; }
@@ -1352,18 +1352,20 @@ foreach (['operate', 'control', 'scale'] as $plan) {
       42%,100% { transform: none; background: #fcd34d; border-color: #b45309; }
     }
     .hw-anim .hw6-due .hw6-flag, .hw-anim .hw6-due .hw6-sub { animation: hw-fade 0.4s ease 1.9s forwards; display: inline-block; }
-    .hw-anim .hw6-late { animation: hw6-latelift 10s ease forwards; }
+    .hw-anim .hw6-late { animation: hw6-latelift 10s ease forwards, hw6-latestate 10s steps(1) forwards; }
     @keyframes hw6-latelift {
-      0%,54% { transform: none; background: #fff; }
-      58% { transform: translateY(-6px) scale(1.11); background: #b91c1c; border-color: #7f1d1d; box-shadow: 0 16px 30px -10px rgba(185,28,28,0.55); color: #fff; z-index: 5; }
-      64%,78% { transform: translateY(-4px) scale(1.07); background: #b91c1c; border-color: #7f1d1d; box-shadow: 0 14px 26px -10px rgba(185,28,28,0.55); color: #fff; z-index: 5; }
-      84%,100% { transform: none; background: #b91c1c; border-color: #7f1d1d; color: #fff; }
+      0%,54% { transform: none; box-shadow: 0 2px 7px -3px rgba(30,58,95,0.14); }
+      58% { transform: translateY(-6px) scale(1.11); box-shadow: 0 16px 30px -10px rgba(185,28,28,0.55); z-index: 5; }
+      64%,78% { transform: translateY(-4px) scale(1.07); box-shadow: 0 14px 26px -10px rgba(185,28,28,0.55); z-index: 5; }
+      84%,100% { transform: none; box-shadow: 0 2px 7px -3px rgba(30,58,95,0.14); }
     }
+    @keyframes hw6-latestate { 0%,57% { background: #fff; border-color: var(--dt-border); color: var(--dt-ink); } 58%,100% { background: #b91c1c; border-color: #7f1d1d; color: #fff; } }
     .hw-anim .hw6-late i { animation: hw6-latemeta 10s steps(1) forwards; }
     .hw-anim .hw6-due i { animation: hw6-duemeta 10s steps(1) forwards; }
     @keyframes hw6-duemeta { 0%,19% { color: var(--dt-ink-muted); } 20%,100% { color: #78350f; } }
     @keyframes hw6-latemeta { 0%,57% { color: var(--dt-ink-muted); } 58%,100% { color: rgba(255,255,255,0.85); } }
-    .hw-anim .hw6-late .hw6-flag, .hw-anim .hw6-late .hw6-sub { animation: hw-fade 0.4s ease 6.2s forwards; display: inline-block; color: #fff; }
+    .hw-anim .hw6-late .hw6-flag { animation: hw-fade 0.4s ease 6.2s forwards; display: inline-block; }
+    .hw-anim .hw6-late .hw6-sub { animation: hw-fade 0.4s ease 6.2s forwards; display: inline-block; color: #fff; }
     /* SCENE 7 */
     .hw7 { height: 100%; display: flex; flex-direction: column; }
     .hw7-head { display: flex; align-items: baseline; justify-content: space-between; font-size: 0.9rem; font-weight: 800; color: var(--dt-ink); padding-bottom: 8px; border-bottom: 1.5px solid var(--dt-border); }
