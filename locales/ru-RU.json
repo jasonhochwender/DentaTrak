@@ -1680,7 +1680,8 @@
                 "benefit_2": "Безлимитные пользователи",
                 "benefit_4": "Practice и Lab Insights",
                 "benefit_5": "Рекомендации",
-                "benefit_6": "Интеграция с Open Dental"
+                "benefit_6": "Интеграция с Open Dental",
+                "benefit_scanner": "Импорт сканов Primescan / DS Core"
             },
             "scale": {
                 "practices": "Включает до 5 клиник",
@@ -1690,8 +1691,7 @@
                 "benefit_4": "Organization Insights — сравнение клиник",
                 "additional_practices_month": "Дополнительные клиники: {amount}/мес. каждая",
                 "additional_practices_year": "Дополнительные клиники: {amount}/год каждая"
-            },
-            "scanner_coming_soon": "Интеграции со сканерами (скоро)"
+            }
         },
         "interval": {
             "month": "месяц",
@@ -3170,7 +3170,8 @@
                 "medit": "Medit Link",
                 "shining3d": "SHINING 3D (Aoralscan)",
                 "card_description": "Подключения сканеров находятся в разработке. Когда они станут доступны, поддерживаемые подключения позволят переносить файлы сканов и доступные данные случаев в DentaTrak без ручного экспорта и загрузки. Интеграции со сканерами планируются для тарифов Control и Scale.",
-                "card_description_shining3d": "Подключайте сканы к новым или существующим случаям DentaTrak."
+                "card_description_shining3d": "Подключайте сканы к новым или существующим случаям DentaTrak.",
+                "card_description_primescan": "Импортируйте сканы Primescan через DS Core. Просматривайте импортированные сканы и создавайте или обновляйте кейсы с их файлами. Администратор практики подключает аккаунт DS Core практики; сканы импортируются в фоне."
             }
         }
     },
@@ -4130,10 +4131,10 @@
             "scale_addon_title": "Добавьте ещё клиники",
             "scale_addon_month": "+$99/месяц за каждую дополнительную клинику",
             "scale_addon_year": "+$990/год за каждую дополнительную клинику",
-            "scanner_coming_soon": "Интеграции со сканерами (скоро)",
             "operate_features_4": "Гибкие этапы процесса и виды «доска/список»",
             "operate_features_5": "Комментарии, @упоминания и уведомления",
-            "operate_features_6": "Помощь Ask DentaTrak внутри продукта"
+            "operate_features_6": "Помощь Ask DentaTrak внутри продукта",
+            "scanner_available": "Импорт сканов Primescan / DS Core"
         },
         "resources": {
             "title": "Материалы по отслеживанию стоматологических случаев | DentaTrak",
@@ -6159,7 +6160,8 @@
             "org_insights_info": "Сравнивает загрузку, сроки выполнения, своевременность и переделки по всем клиникам организации — отдельно от аналитики каждой клиники.",
             "open_dental": "Интеграция с Open Dental",
             "open_dental_info": "Подключите Open Dental, чтобы поддерживаемые лабораторные работы автоматически появлялись в DentaTrak, с опциональной двусторонней синхронизацией статусов.",
-            "scanners": "Интеграции со сканерами"
+            "scanners": "Интеграции со сканерами",
+            "scanners_info": "Primescan / DS Core доступен для импорта сканов. Другие сканеры появятся позже."
         }
     },
     "shortcuts": {

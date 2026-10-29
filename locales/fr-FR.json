@@ -1594,7 +1594,8 @@
                 "medit": "Medit Link",
                 "shining3d": "SHINING 3D (Aoralscan)",
                 "card_description": "Les connexions aux scanners sont en cours de développement. Une fois disponibles, les connexions prises en charge vous permettront d’importer les fichiers de numérisation et les détails de cas disponibles dans DentaTrak sans exportation ni téléversement manuels. Les intégrations de scanners sont prévues pour les formules Control et Scale.",
-                "card_description_shining3d": "Connectez des numérisations à des cas DentaTrak nouveaux ou existants."
+                "card_description_shining3d": "Connectez des numérisations à des cas DentaTrak nouveaux ou existants.",
+                "card_description_primescan": "Importez des scans Primescan via DS Core. Prévisualisez les scans importés et créez ou mettez à jour des cas avec leurs fichiers. Un administrateur du cabinet connecte le compte DS Core du cabinet ; les scans sont ensuite importés en arrière-plan."
             }
         }
     },
@@ -2085,7 +2086,8 @@
                 "benefit_2": "Utilisateurs illimités",
                 "benefit_4": "Statistiques du cabinet et du laboratoire",
                 "benefit_5": "Recommandations",
-                "benefit_6": "Intégration Open Dental"
+                "benefit_6": "Intégration Open Dental",
+                "benefit_scanner": "Import de scans Primescan / DS Core"
             },
             "scale": {
                 "practices": "Inclut jusqu'à 5 cabinets",
@@ -2095,8 +2097,7 @@
                 "benefit_4": "Organization Insights — comparaison des cabinets",
                 "additional_practices_month": "Cabinets supplémentaires : {amount}/mois chacun",
                 "additional_practices_year": "Cabinets supplémentaires : {amount}/an chacun"
-            },
-            "scanner_coming_soon": "Intégrations de scanners (bientôt disponible)"
+            }
         },
         "interval": {
             "month": "mois",
@@ -5685,10 +5686,10 @@
             "scale_addon_title": "Ajouter plus de cabinets",
             "scale_addon_month": "+99 $/mois par cabinet supplémentaire",
             "scale_addon_year": "+990 $/an par cabinet supplémentaire",
-            "scanner_coming_soon": "Intégrations de scanners (bientôt disponible)",
             "operate_features_4": "Étapes de flux flexibles et vues tableau/liste",
             "operate_features_5": "Commentaires, @mentions et notifications",
-            "operate_features_6": "Aide Ask DentaTrak dans le produit"
+            "operate_features_6": "Aide Ask DentaTrak dans le produit",
+            "scanner_available": "Import de scans Primescan / DS Core"
         },
         "security": {
             "practice_based_access": "Accès basé sur le cabinet",
@@ -6117,7 +6118,8 @@
             "org_insights_info": "Compare la charge de travail, les délais, la ponctualité et les reprises dans tous les cabinets de votre organisation – indépendamment des Insights par cabinet.",
             "open_dental": "Intégration Open Dental",
             "open_dental_info": "Connectez Open Dental pour que les cas de laboratoire pris en charge apparaissent automatiquement dans DentaTrak, avec synchronisation bidirectionnelle des statuts en option.",
-            "scanners": "Intégrations de scanners"
+            "scanners": "Intégrations de scanners",
+            "scanners_info": "Primescan / DS Core est disponible pour l’import de scans. D’autres scanners arrivent bientôt."
         }
     },
     "legal": {

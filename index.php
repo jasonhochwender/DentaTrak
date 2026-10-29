@@ -2151,7 +2151,7 @@ foreach (['operate', 'control', 'scale'] as $plan) {
             <li><?php echo t('marketing.pricing.control_features_4'); ?></li>
             <li><?php echo t('marketing.pricing.control_features_5'); ?></li>
             <li><?php echo t('marketing.pricing.control_features_6'); ?></li>
-            <li class="plan-soon"><?php echo t('marketing.pricing.scanner_coming_soon'); ?></li>
+            <li><?php echo t('marketing.pricing.scanner_available'); ?></li>
           </ul>
         </div>
         <div class="plan" data-reveal data-reveal-stagger="3" data-reveal-delay="150">
@@ -2181,8 +2181,9 @@ foreach (['operate', 'control', 'scale'] as $plan) {
       //                   locked_note; NOTE: hasIntegrationAccess() currently
       //                   also permits Operate at runtime - marketing shows
       //                   the intended placement)
-      // Scanner integrations stay "Coming soon" and keep the Control-card
-      // placement (Scale inherits Control), matching the pricing cards.
+      //   Control+        Primescan / DS Core (hasControlAccess() via the
+      //                   Incoming Scans permission); other scanner vendors
+      //                   remain coming soon.
       $planFeatureGroups = [
           ['label' => t('marketing.plan_features.cat_cases'), 'rows' => [
               ['label' => t('marketing.plan_features.unlimited_cases'), 'cells' => ['check', 'check', 'check']],
@@ -2205,7 +2206,7 @@ foreach (['operate', 'control', 'scale'] as $plan) {
           ]],
           ['label' => t('marketing.plan_features.cat_integrations'), 'rows' => [
               ['label' => t('marketing.plan_features.open_dental'), 'info' => t('marketing.plan_features.open_dental_info'), 'cells' => ['dash', 'check', 'check']],
-              ['label' => t('marketing.plan_features.scanners'), 'cells' => ['dash', 'soon', 'soon']],
+              ['label' => t('marketing.plan_features.scanners'), 'info' => t('marketing.plan_features.scanners_info'), 'cells' => ['dash', 'check', 'check']],
           ]],
       ];
       ?>

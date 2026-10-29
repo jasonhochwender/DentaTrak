@@ -407,12 +407,8 @@
         'billing.plans.control.benefit_4',
         'billing.plans.control.benefit_5',
         'billing.plans.control.benefit_6',
+        'billing.plans.control.benefit_scanner',
       ],
-      // Planned features render muted without a checkmark - never imply
-      // availability. Scanner integrations are planned at Control tier
-      // (inherited by Scale); entitlement enforcement ships with the
-      // integration itself, so this is presentation only.
-      soon_benefit_keys: ['billing.plans.scanner_coming_soon'],
     },
     scale: {
       label: 'Scale',

@@ -4090,7 +4090,8 @@ endif;
                   $scannerProviders = [
                       'itero'     => ['name_key' => 'settings.integrations.scanners.itero',     'status' => 'under_evaluation'],
                       'trios'     => ['name_key' => 'settings.integrations.scanners.trios',     'status' => 'under_evaluation'],
-                      'primescan' => ['name_key' => 'settings.integrations.scanners.primescan', 'status' => 'coming_soon'],
+                      'primescan' => ['name_key' => 'settings.integrations.scanners.primescan', 'status' => 'coming_soon',
+                                      'desc_key' => 'settings.integrations.scanners.card_description_primescan'],
                       'medit'     => ['name_key' => 'settings.integrations.scanners.medit',     'status' => 'under_evaluation'],
                       'shining3d' => ['name_key' => 'settings.integrations.scanners.shining3d', 'status' => 'under_evaluation',
                                       'desc_key' => 'settings.integrations.scanners.card_description_shining3d'],

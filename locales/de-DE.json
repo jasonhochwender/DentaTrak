@@ -2036,7 +2036,8 @@
                 "benefit_2": "Unbegrenzte Benutzer",
                 "benefit_4": "Practice und Lab Insights",
                 "benefit_5": "Empfehlungen",
-                "benefit_6": "Open-Dental-Integration"
+                "benefit_6": "Open-Dental-Integration",
+                "benefit_scanner": "Primescan- / DS-Core-Scanimport"
             },
             "scale": {
                 "practices": "Bis zu 5 Praxen inklusive",
@@ -2046,8 +2047,7 @@
                 "benefit_4": "Organization Insights — Praxisvergleich",
                 "additional_practices_month": "Zusätzliche Praxen: je {amount}/Monat",
                 "additional_practices_year": "Zusätzliche Praxen: je {amount}/Jahr"
-            },
-            "scanner_coming_soon": "Scanner-Integrationen (demnächst)"
+            }
         },
         "interval": {
             "month": "Monat",
@@ -3217,7 +3217,8 @@
                 "medit": "Medit Link",
                 "shining3d": "SHINING 3D (Aoralscan)",
                 "card_description": "Scanner-Verbindungen befinden sich in der Entwicklung. Sobald sie verfügbar sind, können Sie mit unterstützten Verbindungen Scandateien und verfügbare Falldetails in DentaTrak übernehmen, ohne sie manuell zu exportieren und hochzuladen. Scanner-Integrationen sind für die Pläne Control und Scale geplant.",
-                "card_description_shining3d": "Verknüpfen Sie Scans mit neuen oder vorhandenen DentaTrak-Fällen."
+                "card_description_shining3d": "Verknüpfen Sie Scans mit neuen oder vorhandenen DentaTrak-Fällen.",
+                "card_description_primescan": "Primescan-Scans über DS Core importieren. Importierte Scans ansehen und Fälle mit ihren Dateien erstellen oder aktualisieren. Ein Praxisadministrator verbindet das DS-Core-Konto der Praxis; Scans werden dann im Hintergrund importiert."
             }
         }
     },
@@ -4100,10 +4101,10 @@
             "scale_addon_title": "Weitere Praxen hinzufügen",
             "scale_addon_month": "+99 $/Monat pro zusätzlicher Praxis",
             "scale_addon_year": "+990 $/Jahr pro zusätzlicher Praxis",
-            "scanner_coming_soon": "Scanner-Integrationen (demnächst)",
             "operate_features_4": "Flexible Workflow-Phasen und Board-/Listenansicht",
             "operate_features_5": "Kommentare, @Erwähnungen und Benachrichtigungen",
-            "operate_features_6": "Ask DentaTrak: Hilfe im Produkt"
+            "operate_features_6": "Ask DentaTrak: Hilfe im Produkt",
+            "scanner_available": "Primescan- / DS-Core-Scanimport"
         },
         "security_section": {
             "eyebrow": "Sicherheit",
@@ -6159,7 +6160,8 @@
             "org_insights_info": "Vergleicht Arbeitsaufkommen, Durchlaufzeiten, Termintreue und Nacharbeiten über alle Praxen Ihrer Organisation hinweg – getrennt von den Einblicken pro Praxis.",
             "open_dental": "Open Dental-Integration",
             "open_dental_info": "Verbinden Sie Open Dental, damit unterstützte Laborfälle automatisch in DentaTrak erscheinen – mit optionaler Status-Synchronisierung in beide Richtungen.",
-            "scanners": "Scanner-Integrationen"
+            "scanners": "Scanner-Integrationen",
+            "scanners_info": "Primescan / DS Core ist für den Scanimport verfügbar. Weitere Scanner folgen bald."
         }
     },
     "shortcuts": {

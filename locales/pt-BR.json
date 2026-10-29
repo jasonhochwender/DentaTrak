@@ -1981,10 +1981,10 @@
             "scale_addon_title": "Adicione mais clínicas",
             "scale_addon_month": "+$99/mês por clínica adicional",
             "scale_addon_year": "+$990/ano por clínica adicional",
-            "scanner_coming_soon": "Integrações com scanners (em breve)",
             "operate_features_4": "Etapas de fluxo flexíveis e visualizações de quadro/lista",
             "operate_features_5": "Comentários, @menções e notificações",
-            "operate_features_6": "Ajuda do Ask DentaTrak no produto"
+            "operate_features_6": "Ajuda do Ask DentaTrak no produto",
+            "scanner_available": "Importação de escaneios Primescan / DS Core"
         },
         "problem": {
             "eyebrow": "O problema",
@@ -2326,7 +2326,8 @@
             "org_insights_info": "Compara carga de trabalho, prazos de entrega, pontualidade e retrabalhos em todas as clínicas da sua organização – separado dos Insights por clínica.",
             "open_dental": "Integração com Open Dental",
             "open_dental_info": "Conecte o Open Dental para que os casos de laboratório compatíveis apareçam automaticamente no DentaTrak, com sincronização bidirecional de status opcional.",
-            "scanners": "Integrações de scanners"
+            "scanners": "Integrações de scanners",
+            "scanners_info": "Primescan / DS Core está disponível para importação de escaneios. Outros scanners chegarão em breve."
         }
     },
     "navigation": {
@@ -5268,7 +5269,8 @@
                 "medit": "Medit Link",
                 "shining3d": "SHINING 3D (Aoralscan)",
                 "card_description": "As conexões com scanners estão em desenvolvimento. Quando disponíveis, as conexões compatíveis permitirão trazer arquivos de digitalização e os detalhes de caso disponíveis para o DentaTrak sem exportação e envio manuais. As integrações com scanners estão previstas para os planos Control e Scale.",
-                "card_description_shining3d": "Conecte digitalizações a casos novos ou existentes do DentaTrak."
+                "card_description_shining3d": "Conecte digitalizações a casos novos ou existentes do DentaTrak.",
+                "card_description_primescan": "Importe escaneios Primescan pelo DS Core. Visualize os escaneios importados e crie ou atualize casos com seus arquivos. Um administrador da clínica conecta a conta DS Core da clínica; os escaneios são então importados em segundo plano."
             }
         }
     },
@@ -5751,7 +5753,8 @@
                 "benefit_2": "Usuários ilimitados",
                 "benefit_4": "Practice Insights e Lab Insights",
                 "benefit_5": "Recomendações",
-                "benefit_6": "Integração com Open Dental"
+                "benefit_6": "Integração com Open Dental",
+                "benefit_scanner": "Importação de escaneios Primescan / DS Core"
             },
             "scale": {
                 "practices": "Inclui até 5 clínicas",
@@ -5761,8 +5764,7 @@
                 "benefit_4": "Organization Insights — comparação de consultórios",
                 "additional_practices_month": "Clínicas adicionais: {amount}/mês cada",
                 "additional_practices_year": "Clínicas adicionais: {amount}/ano cada"
-            },
-            "scanner_coming_soon": "Integrações com scanners (em breve)"
+            }
         },
         "interval": {
             "month": "mês",

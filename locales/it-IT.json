@@ -1594,7 +1594,8 @@
                 "medit": "Medit Link",
                 "shining3d": "SHINING 3D (Aoralscan)",
                 "card_description": "Le connessioni agli scanner sono in fase di sviluppo. Quando saranno disponibili, le connessioni supportate ti permetteranno di importare in DentaTrak i file di scansione e i dettagli dei casi disponibili senza esportarli e caricarli manualmente. Le integrazioni scanner sono previste per i piani Control e Scale.",
-                "card_description_shining3d": "Collega le scansioni a casi DentaTrak nuovi o esistenti."
+                "card_description_shining3d": "Collega le scansioni a casi DentaTrak nuovi o esistenti.",
+                "card_description_primescan": "Importa le scansioni Primescan tramite DS Core. Visualizza le scansioni importate e crea o aggiorna casi con i loro file. Un amministratore dello studio collega l’account DS Core dello studio; le scansioni vengono poi importate in background."
             }
         }
     },
@@ -2085,7 +2086,8 @@
                 "benefit_2": "Utenti illimitati",
                 "benefit_4": "Practice Insights e Lab Insights",
                 "benefit_5": "Raccomandazioni",
-                "benefit_6": "Integrazione con Open Dental"
+                "benefit_6": "Integrazione con Open Dental",
+                "benefit_scanner": "Importazione scansioni Primescan / DS Core"
             },
             "scale": {
                 "practices": "Include fino a 5 studi",
@@ -2095,8 +2097,7 @@
                 "benefit_4": "Organization Insights — confronto tra studi",
                 "additional_practices_month": "Studi aggiuntivi: {amount}/mese ciascuno",
                 "additional_practices_year": "Studi aggiuntivi: {amount}/anno ciascuno"
-            },
-            "scanner_coming_soon": "Integrazioni scanner (in arrivo)"
+            }
         },
         "interval": {
             "month": "mese",
@@ -5685,10 +5686,10 @@
             "scale_addon_title": "Aggiungi altri studi",
             "scale_addon_month": "+99 $/mese per studio aggiuntivo",
             "scale_addon_year": "+990 $/anno per studio aggiuntivo",
-            "scanner_coming_soon": "Integrazioni scanner (in arrivo)",
             "operate_features_4": "Fasi di flusso flessibili e viste bacheca/elenco",
             "operate_features_5": "Commenti, @menzioni e notifiche",
-            "operate_features_6": "Aiuto Ask DentaTrak nel prodotto"
+            "operate_features_6": "Aiuto Ask DentaTrak nel prodotto",
+            "scanner_available": "Importazione scansioni Primescan / DS Core"
         },
         "security": {
             "practice_based_access": "Accesso basato sullo studio",
@@ -6117,7 +6118,8 @@
             "org_insights_info": "Confronta carico di lavoro, tempi di consegna, puntualità e rifacimenti in tutti gli studi della tua organizzazione – separato dagli Insights per studio.",
             "open_dental": "Integrazione Open Dental",
             "open_dental_info": "Collega Open Dental per far apparire automaticamente in DentaTrak i casi di laboratorio supportati, con sincronizzazione bidirezionale dello stato opzionale.",
-            "scanners": "Integrazioni scanner"
+            "scanners": "Integrazioni scanner",
+            "scanners_info": "Primescan / DS Core è disponibile per l’importazione delle scansioni. Altri scanner arriveranno presto."
         }
     },
     "legal": {

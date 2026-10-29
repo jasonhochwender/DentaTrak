@@ -1594,7 +1594,8 @@
                 "medit": "Medit Link",
                 "shining3d": "SHINING 3D (Aoralscan)",
                 "card_description": "Scanner connections are under development. Once available, supported connections will let you bring scan files and available case details into DentaTrak without manually exporting and uploading them. Scanner integrations are planned for the Control and Scale plans.",
-                "card_description_shining3d": "Connect scans to new or existing DentaTrak cases."
+                "card_description_shining3d": "Connect scans to new or existing DentaTrak cases.",
+                "card_description_primescan": "Import Primescan scans through DS Core. Preview imported scans and create or update cases with their files. A practice administrator connects the practice’s DS Core account; scans then import in the background."
             }
         }
     },
@@ -2085,7 +2086,8 @@
                 "benefit_2": "Unlimited users",
                 "benefit_4": "Practice and Lab Insights",
                 "benefit_5": "Recommendations",
-                "benefit_6": "Open Dental integration"
+                "benefit_6": "Open Dental integration",
+                "benefit_scanner": "Primescan / DS Core scan import"
             },
             "scale": {
                 "practices": "Includes up to 5 practices",
@@ -2095,8 +2097,7 @@
                 "benefit_4": "Organization Insights — practice comparison",
                 "additional_practices_month": "Additional practices: {amount}/month each",
                 "additional_practices_year": "Additional practices: {amount}/year each"
-            },
-            "scanner_coming_soon": "Scanner integrations (coming soon)"
+            }
         },
         "interval": {
             "month": "month",
@@ -5685,10 +5686,10 @@
             "scale_addon_title": "Add more practices",
             "scale_addon_month": "+$99/month per additional practice",
             "scale_addon_year": "+$990/year per additional practice",
-            "scanner_coming_soon": "Scanner integrations (coming soon)",
             "operate_features_4": "Flexible workflow stages and Board/List views",
             "operate_features_5": "Comments, @mentions, and notifications",
-            "operate_features_6": "Ask DentaTrak in-product help"
+            "operate_features_6": "Ask DentaTrak in-product help",
+            "scanner_available": "Primescan / DS Core scan import"
         },
         "plan_features": {
             "title": "Plan features",
@@ -5726,7 +5727,8 @@
             "org_insights_info": "Compares workload, turnaround, on-time rates, and remakes across every practice in your organization - separate from per-practice Insights.",
             "open_dental": "Open Dental integration",
             "open_dental_info": "Connect Open Dental so supported lab cases appear in DentaTrak automatically, with optional two-way status sync.",
-            "scanners": "Scanner integrations"
+            "scanners": "Scanner integrations",
+            "scanners_info": "Primescan / DS Core is available for scan import. Additional scanners are coming soon."
         },
         "security": {
             "practice_based_access": "Practice-based access",

@@ -1602,7 +1602,8 @@
                 "medit": "Medit Link",
                 "shining3d": "SHINING 3D (Aoralscan)",
                 "card_description": "스캐너 연결은 개발 중입니다. 지원되는 연결이 제공되면 수동으로보내고 업로드하지 않고도 스캔 파일과 사용 가능한 케이스 정보를 DentaTrak으로 가져올 수 있습니다. 스캐너 연동은 Control 및 Scale 플랜에 도입될 예정입니다.",
-                "card_description_shining3d": "스캔을 새 또는 기존 DentaTrak 케이스에 연결합니다."
+                "card_description_shining3d": "스캔을 새 또는 기존 DentaTrak 케이스에 연결합니다.",
+                "card_description_primescan": "DS Core를 통해 Primescan 스캔을 가져옵니다. 가져온 스캔을 미리 보고 해당 파일로 케이스를 생성하거나 업데이트합니다. 진료소 관리자가 진료소의 DS Core 계정을 연결하면 스캔이 백그라운드에서 가져와집니다."
             }
         }
     },
@@ -2093,7 +2094,8 @@
                 "benefit_2": "사용자 무제한",
                 "benefit_4": "Practice 및 Lab Insights",
                 "benefit_5": "추천",
-                "benefit_6": "Open Dental 연동"
+                "benefit_6": "Open Dental 연동",
+                "benefit_scanner": "Primescan / DS Core 스캔 가져오기"
             },
             "scale": {
                 "practices": "최대 치과 5곳 포함",
@@ -2103,8 +2105,7 @@
                 "benefit_4": "Organization Insights — 치과 비교",
                 "additional_practices_month": "추가 치과: 월 {amount}/곳",
                 "additional_practices_year": "추가 치과: 연 {amount}/곳"
-            },
-            "scanner_coming_soon": "스캐너 연동 (출시 예정)"
+            }
         },
         "interval": {
             "month": "월",
@@ -5685,10 +5686,10 @@
             "scale_addon_title": "치과 추가",
             "scale_addon_month": "추가 치과당 +$99/월",
             "scale_addon_year": "추가 치과당 +$990/년",
-            "scanner_coming_soon": "스캐너 연동 (출시 예정)",
             "operate_features_4": "유연한 워크플로 단계와 보드/목록 보기",
             "operate_features_5": "댓글, @멘션, 알림",
-            "operate_features_6": "제품 내 Ask DentaTrak 도움말"
+            "operate_features_6": "제품 내 Ask DentaTrak 도움말",
+            "scanner_available": "Primescan / DS Core 스캔 가져오기"
         },
         "security": {
             "practice_based_access": "치과 기반 접근",
@@ -6117,7 +6118,8 @@
             "org_insights_info": "조직 내 모든 치과의 업무량, 소요 시간, 정시 완료율, 재제작을 비교합니다. 치과별 인사이트와는 별개입니다.",
             "open_dental": "Open Dental 연동",
             "open_dental_info": "Open Dental을 연동하면 지원되는 기공 케이스가 DentaTrak에 자동으로 표시되며, 양방향 상태 동기화도 선택할 수 있습니다.",
-            "scanners": "스캐너 연동"
+            "scanners": "스캐너 연동",
+            "scanners_info": "Primescan / DS Core로 스캔을 가져올 수 있습니다. 추가 스캐너는 곧 제공될 예정입니다."
         }
     },
     "legal": {
