@@ -1199,45 +1199,49 @@ foreach (['operate', 'control', 'scale'] as $plan) {
     .hw-joined { margin-left: auto; font-size: 0.56rem; font-weight: 700; color: #0ea5a8; background: #e0f7f5; border-radius: 999px; padding: 2px 8px; }
     @keyframes hw-slideup { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
     /* SCENE 3 */
-    .hw3-srcs { display: flex; gap: 14px; justify-content: space-between; }
-    .hw3-src { flex: 1; text-align: center; padding: 8px 4px 2px; border-radius: 12px; }
-    .hw3-art { width: 100%; max-width: 130px; height: auto; }
-    .hw3-label { display: block; font-size: 1rem; font-weight: 700; color: var(--dt-ink); margin-top: 4px; }
-    .hw3-sub { display: block; font-size: 0.7rem; color: var(--dt-ink-muted); }
-    .hw3-paths { display: block; width: 100%; height: 34px; }
-    .hw3-path { stroke: var(--dt-blue); stroke-width: 2.5; stroke-dasharray: 6 6; opacity: 0.35; }
-    .hw3-mid { position: relative; height: 46px; }
-    .hw3-inbox { position: absolute; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 10px; background: var(--dt-warm); border: 1.5px solid var(--dt-blue); border-radius: 10px; padding: 8px 14px; font-size: 0.8rem; opacity: 0; }
-    .hw3-inbox span { color: var(--dt-ink-muted); font-size: 0.7rem; font-weight: 700; text-transform: uppercase; }
-    .hw3-inbox b { color: var(--dt-ink); font-size: 0.8rem; }
-    .hw3-ok { background: var(--dt-blue); color: #fff; border-radius: 7px; padding: 4px 12px; font-size: 0.72rem; font-weight: 700; }
-    .hw3-confirm { position: absolute; left: 50%; transform: translateX(-50%); background: var(--dt-blue); color: #fff; border-radius: 9px; padding: 7px 18px; font-size: 0.78rem; font-weight: 700; opacity: 0; }
-    .hw3-board { display: flex; align-items: center; gap: 10px; margin-top: 8px; flex-wrap: wrap; }
-    .hw3-board-head { width: 100%; font-size: 0.62rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--dt-ink-muted); }
-    .hw3-case { background: #fff; border: 1.5px solid var(--dt-border); border-left: 4px solid var(--dt-blue); border-radius: 10px; padding: 9px 13px; font-size: 0.85rem; font-weight: 700; color: var(--dt-ink); box-shadow: 0 4px 10px -4px rgba(30,58,95,0.18); opacity: 0; transform: translateY(14px) scale(0.9); }
+    .hw3-lanes { display: flex; gap: 14px; height: 100%; }
+    .hw3-lane { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; }
+    .hw3-src { text-align: center; }
+    .hw3-art { width: 100%; max-width: 118px; height: auto; }
+    .hw3-label { display: block; font-size: 0.98rem; font-weight: 700; color: var(--dt-ink); margin-top: 2px; }
+    .hw3-sub { display: block; font-size: 0.66rem; color: var(--dt-ink-muted); }
+    .hw3-act { min-height: 40px; display: flex; align-items: center; justify-content: center; gap: 8px; flex-wrap: wrap; opacity: 0; }
+    .hw3-btn { background: var(--dt-blue); color: #fff; border-radius: 8px; padding: 7px 16px; font-size: 0.78rem; font-weight: 700; }
+    .hw3-inbx { display: flex; flex-direction: column; background: var(--dt-warm); border: 1.5px solid var(--dt-blue); border-radius: 8px; padding: 4px 10px; text-align: left; }
+    .hw3-inbx i { font-style: normal; font-size: 0.56rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--dt-ink-muted); }
+    .hw3-inbx b { font-size: 0.68rem; color: var(--dt-ink); }
+    .hw3-act-inbox { flex-direction: column; gap: 6px; }
+    .hw3-link { position: relative; height: 44px; width: 20px; }
+    .hw3-link svg { display: block; width: 20px; height: 44px; overflow: visible; }
+    .hw3-ln { stroke: var(--dt-blue); stroke-width: 2.5; opacity: 0.35; }
+    .hw3-ah { fill: none; stroke: var(--dt-blue); stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; opacity: 0.35; }
+    .hw3-pkg { position: absolute; left: 50%; top: 0; width: 12px; height: 14px; margin-left: -6px; background: #fff; border: 2px solid var(--dt-blue); border-radius: 3px; opacity: 0; }
+    .hw3-case { background: #fff; border: 1.5px solid var(--dt-border); border-left: 4px solid var(--dt-blue); border-radius: 10px; padding: 9px 13px; font-size: 0.85rem; font-weight: 700; color: var(--dt-ink); box-shadow: 0 4px 10px -4px rgba(30,58,95,0.18); opacity: 0; transform: translateY(14px) scale(0.9); margin-top: auto; white-space: nowrap; }
     .hw3-badge { float: right; margin-left: 10px; font-size: 0.56rem; font-weight: 700; padding: 2px 7px; border-radius: 999px; }
     .hw3-bg-pms { background: #eef4fb; color: #2563eb; } .hw3-bg-scan { background: #e0f7f5; color: #0ea5a8; } .hw3-bg-man { background: #f3eafb; color: #8b5cf6; }
-    .hw-anim .hw3-s1 { animation: hw3-glow 11s linear forwards; }
-    .hw-anim .hw3-s2 { animation: hw3-glow2 11s linear forwards; }
-    .hw-anim .hw3-s3 { animation: hw3-glow3 11s linear forwards; }
-    @keyframes hw3-glow { 0%,4% { box-shadow: none; } 8%,26% { box-shadow: 0 0 0 4px rgba(37,99,235,0.25); } 30%,100% { box-shadow: none; } }
-    @keyframes hw3-glow2 { 0%,36% { box-shadow: none; } 40%,58% { box-shadow: 0 0 0 4px rgba(14,165,168,0.25); } 62%,100% { box-shadow: none; } }
-    @keyframes hw3-glow3 { 0%,68% { box-shadow: none; } 72%,90% { box-shadow: 0 0 0 4px rgba(139,92,246,0.25); } 94%,100% { box-shadow: none; } }
-    .hw-anim .hw3-p1 { animation: hw3-pathlife 11s linear forwards; }
-    .hw-anim .hw3-p2 { animation: hw3-pathlife2 11s linear forwards; }
-    .hw-anim .hw3-p3 { animation: hw3-pathlife3 11s linear forwards; }
-    @keyframes hw3-pathlife { 0%,8% { opacity: 0.35; } 12%,26% { opacity: 1; stroke-dashoffset: 12; animation-timing-function: linear; } 30%,100% { opacity: 0.35; } }
-    @keyframes hw3-pathlife2 { 0%,40% { opacity: 0.35; } 44%,58% { opacity: 1; } 62%,100% { opacity: 0.35; } }
-    @keyframes hw3-pathlife3 { 0%,72% { opacity: 0.35; } 76%,90% { opacity: 1; } 94%,100% { opacity: 0.35; } }
-    .hw-anim .hw3-c1 { animation: hw3-conflife 11s linear forwards; }
-    .hw-anim .hw3-inbox { animation: hw3-inboxlife 11s linear forwards; }
-    .hw-anim .hw3-c3 { animation: hw3-conflife3 11s linear forwards; }
-    @keyframes hw3-conflife { 0%,12% { opacity: 0; transform: translateX(-50%) translateY(6px); } 16%,28% { opacity: 1; transform: translateX(-50%); } 32%,100% { opacity: 0; } }
-    @keyframes hw3-inboxlife { 0%,40% { opacity: 0; transform: translateX(-50%) translateY(6px); } 44%,60% { opacity: 1; transform: translateX(-50%); } 64%,100% { opacity: 0; } }
-    @keyframes hw3-conflife3 { 0%,74% { opacity: 0; transform: translateX(-50%) translateY(6px); } 78%,90% { opacity: 1; transform: translateX(-50%); } 94%,100% { opacity: 0; } }
-    .hw-anim .hw3-b1 { animation: hw3-born 0.6s ease 2.9s forwards; }
-    .hw-anim .hw3-b2 { animation: hw3-born 0.6s ease 6.6s forwards; }
-    .hw-anim .hw3-b3 { animation: hw3-born 0.6s ease 10.1s forwards; }
+    /* lane-phased animation on an 11.2s scene */
+    .hw-anim .hw3-l1 .hw3-src { animation: hw3-g 11.2s linear forwards; }
+    .hw-anim .hw3-l2 .hw3-src { animation: hw3-g2 11.2s linear forwards; }
+    .hw-anim .hw3-l3 .hw3-src { animation: hw3-g3 11.2s linear forwards; }
+    @keyframes hw3-g { 0%,5% { box-shadow: none; } 9%,30% { box-shadow: 0 0 0 4px rgba(37,99,235,0.25); border-radius: 12px; } 34%,100% { box-shadow: none; } }
+    @keyframes hw3-g2 { 0%,37% { box-shadow: none; } 41%,62% { box-shadow: 0 0 0 4px rgba(14,165,168,0.25); border-radius: 12px; } 66%,100% { box-shadow: none; } }
+    @keyframes hw3-g3 { 0%,69% { box-shadow: none; } 73%,94% { box-shadow: 0 0 0 4px rgba(139,92,246,0.25); border-radius: 12px; } 98%,100% { box-shadow: none; } }
+    .hw-anim .hw3-l1 .hw3-act { animation: hw-fade 0.5s ease 1s forwards; }
+    .hw-anim .hw3-l2 .hw3-act { animation: hw-fade 0.5s ease 4.6s forwards; }
+    .hw-anim .hw3-l3 .hw3-act { animation: hw-fade 0.5s ease 8.2s forwards; }
+    .hw-anim .hw3-l1 .hw3-ln, .hw-anim .hw3-l1 .hw3-ah { animation: hw3-lnl 11.2s linear forwards; }
+    .hw-anim .hw3-l2 .hw3-ln, .hw-anim .hw3-l2 .hw3-ah { animation: hw3-lnl2 11.2s linear forwards; }
+    .hw-anim .hw3-l3 .hw3-ln, .hw-anim .hw3-l3 .hw3-ah { animation: hw3-lnl3 11.2s linear forwards; }
+    @keyframes hw3-lnl { 0%,9% { opacity: 0.35; } 13%,30% { opacity: 1; } 34%,100% { opacity: 0.45; } }
+    @keyframes hw3-lnl2 { 0%,41% { opacity: 0.35; } 45%,62% { opacity: 1; } 66%,100% { opacity: 0.45; } }
+    @keyframes hw3-lnl3 { 0%,73% { opacity: 0.35; } 77%,94% { opacity: 1; } 98%,100% { opacity: 0.45; } }
+    .hw-anim .hw3-l1 .hw3-pkg { animation: hw3-move 0.9s ease 1.8s both; }
+    .hw-anim .hw3-l2 .hw3-pkg { animation: hw3-move 0.9s ease 5.7s both; }
+    .hw-anim .hw3-l3 .hw3-pkg { animation: hw3-move 0.9s ease 9.1s both; }
+    @keyframes hw3-move { 0% { opacity: 1; top: 0; } 90% { opacity: 1; top: 30px; } 100% { opacity: 0; top: 34px; } }
+    .hw-anim .hw3-l1 .hw3-case { animation: hw3-born 0.6s ease 2.9s forwards; }
+    .hw-anim .hw3-l2 .hw3-case { animation: hw3-born 0.6s ease 6.8s forwards; }
+    .hw-anim .hw3-l3 .hw3-case { animation: hw3-born 0.6s ease 10.2s forwards; }
     @keyframes hw3-born { to { opacity: 1; transform: none; } }
     /* SCENE 4 */
     .hw4-wrap { position: relative; height: 100%; display: flex; flex-direction: column; }
@@ -1382,7 +1386,13 @@ foreach (['operate', 'control', 'scale'] as $plan) {
       .hw1-board { gap: 6px; flex-wrap: wrap; } .hw1-col { flex: 1 1 44%; }
       .hw1-col, .hw6-col { padding: 6px; }
       .hw1-card, .hw6-card { font-size: 0.62rem; padding: 5px 6px; }
-      .hw3-art { max-width: 86px; } .hw3-label { font-size: 0.78rem; }
+      .hw3-lanes { flex-direction: column; gap: 6px; }
+      .hw3-lane { flex-direction: row; align-items: center; gap: 8px; }
+      .hw3-src { width: 62px; flex-shrink: 0; }
+      .hw3-art { max-width: 56px; } .hw3-label { font-size: 0.68rem; } .hw3-sub { font-size: 0.52rem; }
+      .hw3-act { min-height: 0; opacity: 1; }
+      .hw3-link { width: 30px; height: 14px; flex-shrink: 0; } .hw3-link svg { width: 30px; height: 14px; transform: rotate(-90deg); transform-origin: 10px 10px; }
+      .hw3-case { margin-top: 0; font-size: 0.7rem; padding: 6px 9px; }
       .hw4-case { min-width: 0; width: 100%; }
       .hw7-charts { grid-template-columns: 1fr; }
       .hw-controls { justify-content: center; }
@@ -1393,7 +1403,8 @@ foreach (['operate', 'control', 'scale'] as $plan) {
       .hw-pause { display: none; }
       .hw1-qc { flex: 1 1 0; opacity: 1; padding: 10px; border-width: 1.5px; }
       .hw1-qcname, .hw1-n1 { opacity: 1 !important; } .hw1-n0 { opacity: 0 !important; }
-      .hw-emailcard, .hw-join1, .hw-join2, .hw3-case, .hw5-note, .hw5-cmt, .hw5-thumb { opacity: 1 !important; transform: none; }
+      .hw-emailcard, .hw-join1, .hw-join2, .hw3-case, .hw3-act, .hw5-note, .hw5-cmt, .hw5-thumb { opacity: 1 !important; transform: none; }
+      .hw3-ln, .hw3-ah { opacity: 0.45 !important; }
       .hw4-aval .hw4-a3 { opacity: 1 !important; } .hw4-aval .hw4-a0, .hw4-aval .hw4-a1, .hw4-aval .hw4-a2 { opacity: 0 !important; }
       .hw6-flag { opacity: 1 !important; }
       .hw6-due { background: #fef3c7; border-color: #f59e0b; }
@@ -2070,43 +2081,42 @@ foreach (['operate', 'control', 'scale'] as $plan) {
             </div>
 
             <!-- SCENE 3: three creation paths -->
+                        <!-- SCENE 3: three creation paths -->
             <div class="hw-scene" data-scene="3" hidden>
-              <div class="hw3-srcs">
-                <div class="hw3-src hw3-s1">
-                  <svg viewBox="0 0 120 76" class="hw3-art"><rect x="14" y="6" width="92" height="56" rx="6" fill="#fff" stroke="#1e3a5f" stroke-width="3"/><rect x="14" y="6" width="92" height="56" rx="6" fill="#eef4fb"/><rect x="22" y="14" width="40" height="34" rx="4" fill="#fff" stroke="#2563eb" stroke-width="2"/><circle cx="34" cy="24" r="5" fill="#2563eb"/><rect x="24" y="33" width="20" height="3" rx="1.5" fill="#2563eb"/><rect x="24" y="40" width="16" height="3" rx="1.5" fill="#8b9bb4"/><rect x="68" y="18" width="30" height="4" rx="2" fill="#8b9bb4"/><rect x="68" y="26" width="30" height="4" rx="2" fill="#c7d3e6"/><rect x="68" y="34" width="22" height="4" rx="2" fill="#c7d3e6"/><rect x="48" y="62" width="24" height="5" fill="#1e3a5f"/><rect x="38" y="67" width="44" height="4" rx="2" fill="#1e3a5f"/></svg>
-                  <span class="hw3-label"><?php echo t('marketing.walkthrough.src_pms'); ?></span>
-                  <span class="hw3-sub">Open Dental</span>
+              <div class="hw3-lanes">
+                <div class="hw3-lane hw3-l1">
+                  <div class="hw3-src">
+                    <svg viewBox="0 0 120 76" class="hw3-art"><rect x="14" y="6" width="92" height="56" rx="6" fill="#eef4fb" stroke="#1e3a5f" stroke-width="3"/><rect x="22" y="14" width="40" height="34" rx="4" fill="#fff" stroke="#2563eb" stroke-width="2"/><circle cx="34" cy="24" r="5" fill="#2563eb"/><rect x="24" y="33" width="20" height="3" rx="1.5" fill="#2563eb"/><rect x="24" y="40" width="16" height="3" rx="1.5" fill="#8b9bb4"/><rect x="68" y="18" width="30" height="4" rx="2" fill="#8b9bb4"/><rect x="68" y="26" width="30" height="4" rx="2" fill="#c7d3e6"/><rect x="68" y="34" width="22" height="4" rx="2" fill="#c7d3e6"/><rect x="48" y="62" width="24" height="5" fill="#1e3a5f"/><rect x="38" y="67" width="44" height="4" rx="2" fill="#1e3a5f"/></svg>
+                    <span class="hw3-label"><?php echo t('marketing.walkthrough.src_pms'); ?></span>
+                    <span class="hw3-sub">Open Dental</span>
+                  </div>
+                  <div class="hw3-act"><span class="hw3-btn"><?php echo t('marketing.walkthrough.act_import'); ?></span></div>
+                  <div class="hw3-link"><svg viewBox="0 0 20 60"><line class="hw3-ln" x1="10" y1="2" x2="10" y2="46"/><path class="hw3-ah" d="M4 44 L10 54 L16 44"/></svg><i class="hw3-pkg"></i></div>
+                  <div class="hw3-case"><b>Crown #14</b><span class="hw3-badge hw3-bg-pms">PMS</span></div>
                 </div>
-                <div class="hw3-src hw3-s2">
-                  <svg viewBox="0 0 120 76" class="hw3-art"><path d="M78 12 q18 4 14 20 q-3 12 -12 14 l-6 -12 z" fill="#dbe7f6" stroke="#1e3a5f" stroke-width="2.4"/><rect x="18" y="26" width="52" height="20" rx="10" fill="#2563eb" stroke="#1e3a5f" stroke-width="2.6"/><rect x="64" y="31" width="14" height="10" rx="4" fill="#1e3a5f"/><circle cx="86" cy="58" r="9" fill="#fff" stroke="#0ea5a8" stroke-width="2.6"/><path d="M82 58 q4 -5 8 0" stroke="#0ea5a8" stroke-width="2" fill="none"/><path d="M30 36 h26" stroke="#fff" stroke-width="3" stroke-linecap="round" opacity="0.7"/></svg>
-                  <span class="hw3-label"><?php echo t('marketing.walkthrough.src_scanner'); ?></span>
-                  <span class="hw3-sub">Primescan / DS Core</span>
+                <div class="hw3-lane hw3-l2">
+                  <div class="hw3-src">
+                    <svg viewBox="0 0 120 76" class="hw3-art"><g transform="rotate(-24 60 38)"><rect x="30" y="28" width="58" height="20" rx="10" fill="#2563eb" stroke="#1e3a5f" stroke-width="2.6"/><path d="M84 30 L100 36 L100 42 L84 46 Z" fill="#1e3a5f"/><rect x="90" y="35" width="7" height="6" rx="1.5" fill="#0ea5a8"/><rect x="40" y="33" width="18" height="4" rx="2" fill="#fff" opacity="0.55"/></g><g transform="translate(78,50)"><path d="M8 4 C4 4 2 8 3 12 C4 16 5 20 6 20 C7 20 7.5 16 9 16 C10.5 16 11 20 12 20 C13 20 14 16 15 12 C16 8 14 4 10 4 Z" fill="#fff" stroke="#0ea5a8" stroke-width="2.2"/><rect x="0" y="22" width="24" height="4" rx="2" fill="#c7d3e6"/></g></svg>
+                    <span class="hw3-label"><?php echo t('marketing.walkthrough.src_scanner'); ?></span>
+                    <span class="hw3-sub">Primescan / DS Core</span>
+                  </div>
+                  <div class="hw3-act hw3-act-inbox"><span class="hw3-inbx"><i><?php echo t('marketing.walkthrough.inbox_lbl'); ?></i><b>impression-0142.stl</b></span><span class="hw3-btn"><?php echo t('marketing.walkthrough.act_create'); ?></span></div>
+                  <div class="hw3-link"><svg viewBox="0 0 20 60"><line class="hw3-ln" x1="10" y1="2" x2="10" y2="46"/><path class="hw3-ah" d="M4 44 L10 54 L16 44"/></svg><i class="hw3-pkg"></i></div>
+                  <div class="hw3-case"><b>Crown #15</b><span class="hw3-badge hw3-bg-scan"><?php echo t('marketing.walkthrough.badge_scan'); ?></span></div>
                 </div>
-                <div class="hw3-src hw3-s3">
-                  <svg viewBox="0 0 120 76" class="hw3-art"><rect x="30" y="8" width="54" height="62" rx="6" fill="#fff" stroke="#1e3a5f" stroke-width="2.6"/><rect x="40" y="20" width="34" height="5" rx="2.5" fill="#dbe7f6"/><rect x="40" y="32" width="34" height="5" rx="2.5" fill="#dbe7f6"/><rect x="40" y="44" width="24" height="5" rx="2.5" fill="#dbe7f6"/><rect x="40" y="14" width="20" height="4" rx="2" fill="#2563eb"/><path d="M88 50 L104 34 l7 7 -16 16 -9 2 z" fill="#f59e0b" stroke="#1e3a5f" stroke-width="2" stroke-linejoin="round"/></svg>
-                  <span class="hw3-label"><?php echo t('marketing.walkthrough.src_manual'); ?></span>
-                  <span class="hw3-sub"><?php echo t('marketing.walkthrough.manual_sub'); ?></span>
+                <div class="hw3-lane hw3-l3">
+                  <div class="hw3-src">
+                    <svg viewBox="0 0 120 76" class="hw3-art"><rect x="30" y="8" width="54" height="62" rx="6" fill="#fff" stroke="#1e3a5f" stroke-width="2.6"/><rect x="40" y="14" width="20" height="4" rx="2" fill="#2563eb"/><rect x="40" y="24" width="34" height="5" rx="2.5" fill="#dbe7f6"/><rect x="40" y="36" width="34" height="5" rx="2.5" fill="#dbe7f6"/><rect x="40" y="48" width="24" height="5" rx="2.5" fill="#dbe7f6"/><path d="M88 50 L104 34 l7 7 -16 16 -9 2 z" fill="#f59e0b" stroke="#1e3a5f" stroke-width="2" stroke-linejoin="round"/></svg>
+                    <span class="hw3-label"><?php echo t('marketing.walkthrough.src_manual'); ?></span>
+                    <span class="hw3-sub"><?php echo t('marketing.walkthrough.manual_sub'); ?></span>
+                  </div>
+                  <div class="hw3-act"><span class="hw3-btn"><?php echo t('marketing.walkthrough.act_create'); ?></span></div>
+                  <div class="hw3-link"><svg viewBox="0 0 20 60"><line class="hw3-ln" x1="10" y1="2" x2="10" y2="46"/><path class="hw3-ah" d="M4 44 L10 54 L16 44"/></svg><i class="hw3-pkg"></i></div>
+                  <div class="hw3-case"><b>Veneer #3</b><span class="hw3-badge hw3-bg-man"><?php echo t('marketing.walkthrough.badge_manual'); ?></span></div>
                 </div>
-              </div>
-              <svg class="hw3-paths" viewBox="0 0 700 60" preserveAspectRatio="none">
-                <path class="hw3-path hw3-p1" d="M117 0 V60" fill="none"/>
-                <path class="hw3-path hw3-p2" d="M350 0 V60" fill="none"/>
-                <path class="hw3-path hw3-p3" d="M583 0 V60" fill="none"/>
-              </svg>
-              <div class="hw3-mid">
-                <div class="hw3-inbox"><span><?php echo t('marketing.walkthrough.inbox_lbl'); ?></span><b>impression-0142.stl</b><span class="hw3-ok"><?php echo t('marketing.walkthrough.act_create'); ?></span></div>
-                <div class="hw3-confirm hw3-c1"><?php echo t('marketing.walkthrough.act_import'); ?></div>
-                <div class="hw3-confirm hw3-c3"><?php echo t('marketing.walkthrough.act_create'); ?></div>
-              </div>
-              <div class="hw3-board">
-                <span class="hw3-board-head"><?php echo t('marketing.walkthrough.new_cases'); ?></span>
-                <div class="hw3-case hw3-b1"><b>Crown #14</b><span class="hw3-badge hw3-bg-pms">PMS</span></div>
-                <div class="hw3-case hw3-b2"><b>Crown #15</b><span class="hw3-badge hw3-bg-scan"><?php echo t('marketing.walkthrough.badge_scan'); ?></span></div>
-                <div class="hw3-case hw3-b3"><b>Veneer #3</b><span class="hw3-badge hw3-bg-man"><?php echo t('marketing.walkthrough.badge_manual'); ?></span></div>
               </div>
             </div>
-
-            <!-- SCENE 4: assignment handoff -->
+<!-- SCENE 4: assignment handoff -->
             <div class="hw-scene" data-scene="4" hidden>
               <div class="hw4-wrap">
                 <svg class="hw4-links" viewBox="0 0 700 120" preserveAspectRatio="none">
