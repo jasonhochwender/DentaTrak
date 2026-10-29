@@ -5726,21 +5726,9 @@
         },
         "security_section": {
             "eyebrow": "Sicurezza",
-            "title": "Le informazioni dei pazienti appartengono al flusso di lavoro del caso.",
-            "lead": "I casi dentali collegano dettagli del paziente, istruzioni di trattamento, foto e comunicazione con il laboratorio. DentaTrak riunisce queste informazioni con accesso controllato e un Business Associate Agreement.",
+            "title": "I tuoi dati dei casi. Insieme e protetti.",
+            "lead": "Mantieni dettagli del paziente, istruzioni di trattamento, immagini e conversazioni con il laboratorio collegati al caso, con accesso controllato da ruoli e permessi.",
             "link": "Scopri come DentaTrak protegge i tuoi dati",
-            "panel_title": "Le informazioni sui casi vengono mostrate solo agli utenti autorizzati.",
-            "stages": {
-                "1": "Accesso sicuro",
-                "2": "Studio confermato",
-                "3": "Permessi applicati",
-                "4": "Accesso autorizzato al caso"
-            },
-            "trust": {
-                "1": "Crittografia AES-256 per i dati dei pazienti",
-                "2": "2FA e accesso basato sui ruoli",
-                "3": "BAA per studi e hosting cloud"
-            },
             "cards": {
                 "1_title": "Accesso per ruolo e per caso",
                 "1_body": "Controlli lato server verificano l’appartenenza allo studio e i permessi del caso prima di restituire informazioni protette. I ruoli proprietario, amministratore e utente, l’accesso opzionale Solo assegnati e la revoca immediata decidono chi può aprire un caso, per i membri del team e per gli utenti di laboratorio invitati.",
@@ -5752,7 +5740,21 @@
                 "4_body": "L’apertura di un caso, la stampa e il download o l’esportazione di file relativi al paziente vengono registrati con utente e timestamp. Proprietari e amministratori dello studio consultano il rapporto in Impostazioni > Dati e privacy e possono esportarlo in CSV, un registro distinto dalla normale cronologia di modifica del caso.",
                 "5_title": "I dettagli dei pazienti restano fuori dalle notifiche",
                 "5_body": "Le email di notifica evitano i dettagli del paziente e del caso. I membri del team accedono per vedere le informazioni protette e collaborare con commenti e @menzioni."
-            }
+            },
+            "fld_patient": "Dettagli paziente",
+            "fld_rx": "Scheda laboratorio",
+            "member_role": "Coordinatrice trattamenti",
+            "member_ok": "Accesso verificato",
+            "proof1": "Crittografia",
+            "proof1_sub": "AES-256, in transito e a riposo",
+            "proof2": "Autenticazione a due fattori",
+            "proof2_sub": "per gli account utente",
+            "proof3": "Accesso basato sui ruoli",
+            "proof3_sub": "per studio e caso",
+            "proof4": "Registro accessi ai casi",
+            "proof4_sub": "attività tracciata",
+            "proof5": "Business Associate Agreement",
+            "proof5_sub": "per studi e hosting"
         },
         "mobile_section": {
             "eyebrow": "Browser mobile",

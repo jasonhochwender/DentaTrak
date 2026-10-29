@@ -5726,21 +5726,9 @@
         },
         "security_section": {
             "eyebrow": "Sécurité",
-            "title": "Les informations patients ont leur place dans le flux de travail.",
-            "lead": "Les cas dentaires relient les détails du patient, les instructions de traitement, les photos et la communication avec le laboratoire. DentaTrak réunit ces informations avec un accès contrôlé et un accord de partenaire commercial.",
+            "title": "Vos données de cas. Réunies et protégées.",
+            "lead": "Gardez les détails du patient, les instructions de traitement, les images et les conversations du laboratoire liés au cas, avec un accès contrôlé par rôles et permissions.",
             "link": "Découvrez comment DentaTrak protège vos données",
-            "panel_title": "Les informations des cas ne sont affichées qu'aux utilisateurs autorisés.",
-            "stages": {
-                "1": "Connexion sécurisée",
-                "2": "Cabinet confirmé",
-                "3": "Permissions appliquées",
-                "4": "Accès autorisé aux cas"
-            },
-            "trust": {
-                "1": "Chiffrement AES-256 des données des patients",
-                "2": "2FA et accès basé sur les rôles",
-                "3": "BAA pour les cabinets et l'hébergement cloud"
-            },
             "cards": {
                 "1_title": "Accès par rôle et par cas",
                 "1_body": "Des vérifications côté serveur confirment l’appartenance au cabinet et les permissions du cas avant de renvoyer des informations protégées. Les rôles propriétaire, administrateur et utilisateur, l’accès optionnel Assignés seulement et la révocation immédiate décident qui peut ouvrir un cas, pour les membres de l’équipe comme pour les utilisateurs de laboratoire invités.",
@@ -5752,7 +5740,21 @@
                 "4_body": "L’ouverture d’un cas, son impression et le téléchargement ou l’export de fichiers liés au patient sont journalisés avec l’utilisateur et l’horodatage. Les propriétaires et administrateurs du cabinet consultent ce rapport dans Paramètres > Données et confidentialité et peuvent l’exporter en CSV, un registre distinct de l’historique d’édition habituel du cas.",
                 "5_title": "Les détails des patients restent hors des notifications",
                 "5_body": "Les e-mails de notification évitent les détails du patient et du cas. Les membres de l’équipe se connectent pour voir les informations protégées et collaborer par commentaires et @mentions."
-            }
+            },
+            "fld_patient": "Détails du patient",
+            "fld_rx": "Bon de laboratoire",
+            "member_role": "Coordinatrice de traitement",
+            "member_ok": "Accès vérifié",
+            "proof1": "Chiffrement",
+            "proof1_sub": "AES-256, en transit et au repos",
+            "proof2": "Authentification à deux facteurs",
+            "proof2_sub": "pour les comptes utilisateurs",
+            "proof3": "Accès par rôles",
+            "proof3_sub": "par cabinet et par cas",
+            "proof4": "Journal d’accès aux cas",
+            "proof4_sub": "activité auditée",
+            "proof5": "Business Associate Agreement",
+            "proof5_sub": "pour les cabinets et l’hébergement"
         },
         "mobile_section": {
             "eyebrow": "Navigateur mobile",

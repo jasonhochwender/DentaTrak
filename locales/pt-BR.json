@@ -2098,21 +2098,9 @@
         },
         "security_section": {
             "eyebrow": "Segurança",
-            "title": "Informações de pacientes pertencem ao fluxo de trabalho do caso.",
-            "lead": "Casos dentários conectam dados do paciente, instruções de tratamento, fotos e comunicação com o laboratório. O DentaTrak reúne essas informações com acesso controlado e um Acordo de Associado Comercial.",
+            "title": "Seus dados de casos. Juntos e protegidos.",
+            "lead": "Mantenha detalhes do paciente, instruções de tratamento, imagens e conversas do laboratório conectados ao caso, com acesso controlado por funções e permissões.",
             "link": "Veja como o DentaTrak protege seus dados",
-            "panel_title": "As informações dos casos são exibidas apenas para usuários autorizados.",
-            "stages": {
-                "1": "Login seguro",
-                "2": "Clínica confirmada",
-                "3": "Permissões aplicadas",
-                "4": "Acesso autorizado ao caso"
-            },
-            "trust": {
-                "1": "Criptografia AES-256 para dados de pacientes",
-                "2": "2FA e acesso baseado em funções",
-                "3": "BAAs para clínicas e hospedagem em nuvem"
-            },
             "cards": {
                 "1_title": "Acesso por função e por caso",
                 "1_body": "Verificações no servidor confirmam a participação no consultório e as permissões do caso antes de devolver informações protegidas. As funções de proprietário, administrador e usuário, o acesso opcional Somente atribuídos e a revogação imediata definem quem pode abrir um caso, para a equipe e para usuários de laboratório convidados.",
@@ -2124,7 +2112,21 @@
                 "4_body": "Abrir um caso, imprimi-lo e baixar ou exportar arquivos relacionados ao paciente são registrados com usuário e horário. Proprietários e administradores do consultório revisam esse relatório em Configurações > Dados e privacidade e podem exportá-lo em CSV, um registro separado do histórico de edição comum do caso.",
                 "5_title": "Dados do paciente ficam fora das notificações",
                 "5_body": "Os e-mails de notificação evitam dados do paciente e do caso. Os membros da equipe fazem login para ver as informações protegidas e colaborar com comentários e @menções."
-            }
+            },
+            "fld_patient": "Dados do paciente",
+            "fld_rx": "Ordem de laboratório",
+            "member_role": "Coordenadora de tratamento",
+            "member_ok": "Acesso verificado",
+            "proof1": "Criptografia",
+            "proof1_sub": "AES-256, em trânsito e em repouso",
+            "proof2": "Autenticação de dois fatores",
+            "proof2_sub": "para contas de usuário",
+            "proof3": "Acesso por função",
+            "proof3_sub": "por clínica e caso",
+            "proof4": "Registro de acesso a casos",
+            "proof4_sub": "atividade auditada",
+            "proof5": "Business Associate Agreement",
+            "proof5_sub": "para clínicas e hospedagem"
         },
         "hipaa": {
             "title": "HIPAA e segurança | DentaTrak",

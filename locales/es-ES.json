@@ -5726,21 +5726,9 @@
         },
         "security_section": {
             "eyebrow": "Seguridad",
-            "title": "La información del paciente pertenece al flujo del caso.",
-            "lead": "Los casos dentales conectan datos del paciente, instrucciones de tratamiento, fotos y comunicación con el laboratorio. DentaTrak reúne esa información con acceso controlado y un Acuerdo de Socio Comercial.",
+            "title": "Tus datos de casos. Juntos y protegidos.",
+            "lead": "Mantén los datos del paciente, las instrucciones de tratamiento, las imágenes y las conversaciones del laboratorio conectadas al caso, con acceso controlado por roles y permisos.",
             "link": "Vea cómo DentaTrak protege sus datos",
-            "panel_title": "La información de los casos se muestra solo a usuarios autorizados.",
-            "stages": {
-                "1": "Inicio de sesión seguro",
-                "2": "Consultorio confirmado",
-                "3": "Permisos aplicados",
-                "4": "Acceso autorizado a casos"
-            },
-            "trust": {
-                "1": "Cifrado AES-256 para los datos de pacientes",
-                "2": "2FA y acceso basado en roles",
-                "3": "BAA para consultorios y alojamiento en la nube"
-            },
             "cards": {
                 "1_title": "Acceso por rol y por caso",
                 "1_body": "Verificaciones del lado del servidor comprueban la membresía del consultorio y los permisos del caso antes de devolver información protegida. Los roles de propietario, administrador y usuario, el acceso opcional Solo asignados y la revocación inmediata deciden quién puede abrir un caso, para el equipo y los usuarios de laboratorio invitados por igual.",
@@ -5752,7 +5740,21 @@
                 "4_body": "Abrir un caso, imprimirlo y descargar o exportar archivos relacionados con el paciente se registran con el usuario y la fecha. Los propietarios y administradores del consultorio revisan ese informe en Configuración > Datos y privacidad y pueden exportarlo a CSV: un registro separado del historial de edición habitual del caso.",
                 "5_title": "Los datos del paciente no van en las notificaciones",
                 "5_body": "Los correos de notificación evitan datos del paciente y del caso. Los miembros del equipo inician sesión para ver la información protegida y colaborar con comentarios y @menciones."
-            }
+            },
+            "fld_patient": "Datos del paciente",
+            "fld_rx": "Orden de laboratorio",
+            "member_role": "Coordinadora de tratamiento",
+            "member_ok": "Acceso verificado",
+            "proof1": "Cifrado",
+            "proof1_sub": "AES-256, en tránsito y en reposo",
+            "proof2": "Autenticación de dos factores",
+            "proof2_sub": "para cuentas de usuario",
+            "proof3": "Acceso por roles",
+            "proof3_sub": "por práctica y caso",
+            "proof4": "Registro de acceso a casos",
+            "proof4_sub": "actividad auditada",
+            "proof5": "Business Associate Agreement",
+            "proof5_sub": "para prácticas y alojamiento"
         },
         "mobile_section": {
             "eyebrow": "Navegador móvil",

@@ -4110,21 +4110,9 @@
         },
         "security_section": {
             "eyebrow": "Sicherheit",
-            "title": "Patienteninformationen gehören in den Fall-Workflow.",
-            "lead": "Dentale Fälle verbinden Patientendaten, Behandlungsanweisungen, Fotos und Laborkommunikation. DentaTrak bringt diese Informationen mit kontrolliertem Zugriff und einer Business-Associate-Vereinbarung zusammen.",
+            "title": "Ihre Falldaten. Zusammen und geschützt.",
+            "lead": "Halten Sie Patientendetails, Behandlungsanweisungen, Bilder und Laborgespräche mit dem Fall verbunden – mit Zugriff über Rollen und Berechtigungen.",
             "link": "Sehen Sie, wie DentaTrak Ihre Daten schützt",
-            "panel_title": "Fallinformationen werden nur autorisierten Benutzern angezeigt.",
-            "stages": {
-                "1": "Sichere Anmeldung",
-                "2": "Praxis bestätigt",
-                "3": "Berechtigungen angewendet",
-                "4": "Autorisierter Fallzugriff"
-            },
-            "trust": {
-                "1": "AES-256-Verschlüsselung für Patientendaten",
-                "2": "2FA und rollenbasierte Zugriffskontrolle",
-                "3": "BAAs für Praxen und Cloud-Hosting"
-            },
             "cards": {
                 "1_title": "Rollenbasierter Zugriff auf Falldaten",
                 "1_body": "Serverseitige Prüfungen verifizieren Praxiszugehörigkeit und Fallberechtigungen, bevor geschützte Informationen ausgegeben werden. Eigentümer-, Admin- und Nutzerrollen, optionaler Nur-zugewiesen-Zugriff und sofortiger Entzug bestimmen, wer einen Fall öffnet, für Teammitglieder und eingeladene Labornutzer gleichermaßen.",
@@ -4136,7 +4124,21 @@
                 "4_body": "Das Öffnen eines Falls, das Drucken sowie das Herunterladen oder Exportieren patientenbezogener Dateien werden jeweils mit Benutzer und Zeitstempel protokolliert. Inhaber und Administratoren der Praxis prüfen diesen Bericht unter Einstellungen > Daten & Datenschutz und können ihn als CSV exportieren, ein separates Protokoll, unabhängig vom normalen Bearbeitungsverlauf eines Falls.",
                 "5_title": "Patientendaten bleiben aus Benachrichtigungen",
                 "5_body": "Benachrichtigungs-E-Mails vermeiden Patienten- und Falldetails. Teammitglieder melden sich an, um geschützte Informationen zu sehen und über Kommentare und @Erwähnungen zusammenzuarbeiten."
-            }
+            },
+            "fld_patient": "Patientendetails",
+            "fld_rx": "Laborzettel",
+            "member_role": "Behandlungskoordinatorin",
+            "member_ok": "Zugriff bestätigt",
+            "proof1": "Verschlüsselung",
+            "proof1_sub": "AES-256, bei Übertragung und Speicherung",
+            "proof2": "Zwei-Faktor-Authentifizierung",
+            "proof2_sub": "für Benutzerkonten",
+            "proof3": "Rollenbasierter Zugriff",
+            "proof3_sub": "nach Praxis und Fall",
+            "proof4": "Fallzugriffsprotokoll",
+            "proof4_sub": "protokollierte Aktivität",
+            "proof5": "Business Associate Agreement",
+            "proof5_sub": "für Praxen und Hosting"
         },
         "resources": {
             "title": "Ressourcen zur Fallverfolgung in der Zahnmedizin | DentaTrak",

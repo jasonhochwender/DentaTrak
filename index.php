@@ -1402,6 +1402,85 @@ foreach (['operate', 'control', 'scale'] as $plan) {
       .ask-caret { display: none; }
       #askPause { display: none; }
     }
+    /* Security illustration */
+    .sec-illus { position: relative; max-width: 640px; margin: 0 auto 30px; height: 300px; }
+    .sec-piece { position: absolute; background: rgba(255,255,255,0.96); border-radius: 10px; padding: 9px 12px; font-size: 0.62rem; color: #1e3a5f; box-shadow: 0 8px 20px -8px rgba(0,0,0,0.35); z-index: 3; }
+    .sec-piece-head { font-size: 0.56rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #5c6b80; margin-bottom: 5px; }
+    .sec-piece-line { height: 5px; border-radius: 3px; background: #dbe7f6; width: 90px; margin-bottom: 4px; }
+    .sec-piece-line.sec-w60 { width: 56px; } .sec-piece-line.sec-w80 { width: 72px; }
+    .sec-p-fields { left: 0; top: 12%; }
+    .sec-p-imgs { right: 0; top: 8%; display: flex; gap: 6px; }
+    .sec-thumb { width: 36px; height: 28px; border-radius: 5px; background: linear-gradient(135deg,#dbe7f6,#0ea5a8); border: 1px solid #c7d3e6; }
+    .sec-p-doc { left: 0; bottom: 22%; display: flex; align-items: center; gap: 8px; }
+    .sec-doc-svg { width: 22px; height: 28px; }
+    .sec-p-chat { right: 0; bottom: 26%; display: flex; flex-direction: column; gap: 5px; align-items: flex-end; }
+    .sec-bubble { width: 64px; height: 12px; border-radius: 8px; background: #dbe7f6; }
+    .sec-bubble.sec-b2 { width: 46px; background: #bcd3ef; }
+    .sec-case { position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%); width: 300px; background: rgba(255,255,255,0.97); border-radius: 14px; overflow: visible; z-index: 2; box-shadow: 0 16px 38px -12px rgba(0,0,0,0.4); }
+    .sec-case-head { background: #eef4fb; border-radius: 14px 14px 0 0; padding: 10px 16px; border-bottom: 1px solid #c7d3e6; }
+    .sec-case-head b { font-size: 0.8rem; color: #1e3a5f; } .sec-case-head span { font-size: 0.62rem; color: #5c6b80; margin-left: 8px; }
+    .sec-case-body { padding: 12px 16px 14px; display: grid; grid-template-columns: 1fr auto; gap: 10px 12px; align-items: start; }
+    .sec-s-fields .sec-piece-line { width: 120px; }
+    .sec-s-imgs { display: flex; gap: 6px; }
+    .sec-s-chat { display: flex; flex-direction: column; gap: 5px; grid-column: 1 / -1; }
+    .sec-shield { position: absolute; top: -16px; right: -14px; width: 46px; filter: drop-shadow(0 4px 8px rgba(0,0,0,0.25)); }
+    .sec-lockshackle { transform-origin: 22px 19px; }
+    .sec-boundary { position: absolute; inset: -14px; width: calc(100% + 28px); height: calc(100% + 28px); pointer-events: none; }
+    .sec-bpath { fill: none; stroke: #0ea5a8; stroke-width: 2; stroke-dasharray: 8 7; }
+    .sec-member { position: absolute; left: 50%; bottom: -8px; transform: translateX(-50%); display: flex; align-items: center; gap: 8px; background: rgba(255,255,255,0.97); border-radius: 10px; padding: 8px 14px; z-index: 4; box-shadow: 0 8px 20px -8px rgba(0,0,0,0.35); }
+    .sec-member-av { width: 26px; height: 26px; border-radius: 50%; background: #8b5cf6; color: #fff; font-size: 0.52rem; font-weight: 700; display: grid; place-items: center; }
+    .sec-member-info b { display: block; font-size: 0.66rem; color: #1e3a5f; } .sec-member-info i { font-style: normal; font-size: 0.54rem; color: #5c6b80; }
+    .sec-member-check { font-size: 0.56rem; font-weight: 700; color: #0ea5a8; background: #e0f7f5; border-radius: 999px; padding: 2px 8px; }
+    .sec-link { position: absolute; left: 50%; bottom: 42px; width: 20px; height: 60px; transform: translateX(-50%); }
+    .sec-linkpath { stroke: #0ea5a8; stroke-width: 2; stroke-dasharray: 5 5; }
+    .sec-proofs { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px 22px; }
+    .sec-proof { display: flex; align-items: center; gap: 8px; font-size: 0.72rem; }
+    .sec-proof svg { width: 18px; height: 18px; color: #93c5fd; flex-shrink: 0; }
+    .sec-proof b { font-weight: 600; color: #fff; white-space: nowrap; }
+    .sec-proof i { font-style: normal; color: rgba(255,255,255,0.55); font-size: 0.62rem; }
+    /* animation (plays once when the panel reveals) */
+    .is-revealed .sec-p-fields, .is-revealed .sec-p-imgs, .is-revealed .sec-p-doc, .is-revealed .sec-p-chat { animation: sec-fadein 0.5s ease both; }
+    .is-revealed .sec-p-fields { animation-name: sec-to-fields; animation-duration: 1.8s; }
+    .is-revealed .sec-p-imgs { animation-name: sec-to-imgs; animation-duration: 1.8s; animation-delay: 0.25s; }
+    .is-revealed .sec-p-doc { animation-name: sec-to-doc; animation-duration: 1.8s; animation-delay: 0.5s; }
+    .is-revealed .sec-p-chat { animation-name: sec-to-chat; animation-duration: 1.8s; animation-delay: 0.75s; }
+    @keyframes sec-fadein { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes sec-to-fields { 0% { opacity: 0; transform: translate(0,0); } 25% { opacity: 1; } 70%,100% { opacity: 0; transform: translate(160px,46px) scale(0.7); } }
+    @keyframes sec-to-imgs { 0% { opacity: 0; transform: translate(0,0); } 25% { opacity: 1; } 70%,100% { opacity: 0; transform: translate(-170px,50px) scale(0.7); } }
+    @keyframes sec-to-doc { 0% { opacity: 0; transform: translate(0,0); } 25% { opacity: 1; } 70%,100% { opacity: 0; transform: translate(170px,-32px) scale(0.7); } }
+    @keyframes sec-to-chat { 0% { opacity: 0; transform: translate(0,0); } 25% { opacity: 1; } 70%,100% { opacity: 0; transform: translate(-160px,-30px) scale(0.7); } }
+    .sec-case-body .sec-slot { opacity: 0; }
+    .is-revealed .sec-s-fields { animation: sec-fadein 0.4s ease 1.5s forwards; }
+    .is-revealed .sec-s-imgs { animation: sec-fadein 0.4s ease 1.7s forwards; }
+    .is-revealed .sec-s-doc { animation: sec-fadein 0.4s ease 1.9s forwards; }
+    .is-revealed .sec-s-chat { animation: sec-fadein 0.4s ease 2.1s forwards; }
+    .sec-bpath { stroke-dashoffset: 1300; stroke-dasharray: 1300; }
+    .is-revealed .sec-bpath { animation: sec-draw 1.3s ease 2.4s forwards; }
+    @keyframes sec-draw { to { stroke-dashoffset: 0; } }
+    .sec-shield { opacity: 0; transform: scale(0.5); }
+    .is-revealed .sec-shield { animation: sec-lock 0.6s cubic-bezier(0.34,1.56,0.64,1) 3.6s forwards; }
+    @keyframes sec-lock { from { opacity: 0; transform: scale(0.5); } to { opacity: 1; transform: scale(1); } }
+    .sec-lockshackle { stroke-dasharray: 40; stroke-dashoffset: 40; }
+    .is-revealed .sec-lockshackle { animation: sec-shackle 0.5s ease 4s forwards; }
+    @keyframes sec-shackle { to { stroke-dashoffset: 0; } }
+    .sec-member, .sec-link { opacity: 0; }
+    .is-revealed .sec-link { animation: sec-fadein 0.4s ease 4.5s forwards; }
+    .is-revealed .sec-member { animation: sec-memberin 0.6s ease 4.7s forwards; }
+    @keyframes sec-memberin { from { opacity: 0; transform: translate(-50%,10px); } to { opacity: 1; transform: translate(-50%,0); } }
+    @media (max-width: 720px) {
+      .sec-illus { height: 250px; }
+      .sec-case { width: 240px; }
+      .sec-p-imgs, .sec-p-chat { display: none; }
+      .sec-s-fields .sec-piece-line { width: 80px; }
+      .sec-proofs { gap: 8px 14px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .sec-piece { display: none; }
+      .sec-case-body .sec-slot, .sec-shield, .sec-member, .sec-link { opacity: 1 !important; animation: none !important; transform: none; }
+      .sec-bpath { stroke-dashoffset: 0 !important; stroke-dasharray: 8 7 !important; }
+      .sec-lockshackle { stroke-dashoffset: 0 !important; }
+      .sec-member { transform: translateX(-50%); }
+    }
   </style>
 </head>
 <body>
@@ -2394,46 +2473,38 @@ foreach (['operate', 'control', 'scale'] as $plan) {
         <a href="<?= $hipaaUrl ?>" class="btn btn-secondary security-link"><?php echo t('marketing.security_section.link'); ?> &rarr;</a>
       </div>
 
-      <div class="security-panel" role="img" aria-label="DentaTrak access control sequence" data-reveal>
-        <div class="security-panel-title"><?php echo t('marketing.security_section.panel_title'); ?></div>
-        <div class="security-flow">
-          <div class="security-stage">
-            <div class="security-stage-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      <div class="security-panel" data-reveal>
+        <div class="sec-illus" id="secIllus" aria-hidden="true">
+          <div class="sec-piece sec-p-fields"><div class="sec-piece-head"><?php echo t('marketing.security_section.fld_patient'); ?></div><div class="sec-piece-line"></div><div class="sec-piece-line sec-w60"></div><div class="sec-piece-line sec-w80"></div></div>
+          <div class="sec-piece sec-p-imgs"><div class="sec-thumb"></div><div class="sec-thumb"></div></div>
+          <div class="sec-piece sec-p-doc"><svg viewBox="0 0 24 30" class="sec-doc-svg"><rect x="1" y="1" width="22" height="28" rx="3" fill="#fff" stroke="#1e3a5f" stroke-width="1.6"/><line x1="6" y1="8" x2="18" y2="8" stroke="#2563eb" stroke-width="1.8"/><line x1="6" y1="13" x2="18" y2="13" stroke="#8b9bb4" stroke-width="1.4"/><line x1="6" y1="18" x2="15" y2="18" stroke="#8b9bb4" stroke-width="1.4"/><line x1="6" y1="23" x2="17" y2="23" stroke="#0ea5a8" stroke-width="1.4"/></svg><span><?php echo t('marketing.security_section.fld_rx'); ?></span></div>
+          <div class="sec-piece sec-p-chat"><div class="sec-bubble"></div><div class="sec-bubble sec-b2"></div></div>
+
+          <div class="sec-case">
+            <div class="sec-case-head"><b>Crown #14</b><span>Hannah Lindqvist</span></div>
+            <div class="sec-case-body">
+              <div class="sec-slot sec-s-fields"><div class="sec-piece-head"><?php echo t('marketing.security_section.fld_patient'); ?></div><div class="sec-piece-line"></div><div class="sec-piece-line sec-w60"></div></div>
+              <div class="sec-slot sec-s-imgs"><div class="sec-thumb"></div><div class="sec-thumb"></div></div>
+              <div class="sec-slot sec-s-doc"><svg viewBox="0 0 24 30" class="sec-doc-svg"><rect x="1" y="1" width="22" height="28" rx="3" fill="#fff" stroke="#1e3a5f" stroke-width="1.6"/><line x1="6" y1="8" x2="18" y2="8" stroke="#2563eb" stroke-width="1.8"/><line x1="6" y1="13" x2="18" y2="13" stroke="#8b9bb4" stroke-width="1.4"/></svg></div>
+              <div class="sec-slot sec-s-chat"><div class="sec-bubble"></div><div class="sec-bubble sec-b2"></div></div>
             </div>
-            <div class="security-stage-text"><?php echo t('marketing.security_section.stages.1'); ?></div>
-            <div class="security-stage-check" aria-hidden="true">&check;</div>
-          </div>
-          <div class="security-connector" aria-hidden="true"></div>
-          <div class="security-stage">
-            <div class="security-stage-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M5 21V7l7-4 7 4v14"/><path d="M8 11h8"/><path d="M8 15h8"/></svg>
+            <div class="sec-shield">
+              <svg viewBox="0 0 44 52"><path d="M22 3 L40 11 V26 C40 38 32 46 22 50 C12 46 4 38 4 26 V11 Z" fill="#eef4fb" stroke="#1e3a8a" stroke-width="2.4"/><rect class="sec-lockbody" x="13" y="24" width="18" height="14" rx="3" fill="#2563eb"/><path class="sec-lockshackle" d="M16 24 V19 a6 6 0 0 1 12 0 v5" fill="none" stroke="#1e3a8a" stroke-width="2.6" stroke-linecap="round"/><circle cx="22" cy="31" r="2.4" fill="#fff"/></svg>
             </div>
-            <div class="security-stage-text"><?php echo t('marketing.security_section.stages.2'); ?></div>
-            <div class="security-stage-check" aria-hidden="true">&check;</div>
+            <svg class="sec-boundary" viewBox="0 0 400 240" preserveAspectRatio="none"><rect class="sec-bpath" x="4" y="4" width="392" height="232" rx="16"/></svg>
           </div>
-          <div class="security-connector" aria-hidden="true"></div>
-          <div class="security-stage">
-            <div class="security-stage-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg>
-            </div>
-            <div class="security-stage-text"><?php echo t('marketing.security_section.stages.3'); ?></div>
-            <div class="security-stage-check" aria-hidden="true">&check;</div>
-          </div>
-          <div class="security-connector" aria-hidden="true"></div>
-          <div class="security-stage">
-            <div class="security-stage-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
-            </div>
-            <div class="security-stage-text"><?php echo t('marketing.security_section.stages.4'); ?></div>
-            <div class="security-stage-check" aria-hidden="true">&check;</div>
-          </div>
+
+          <div class="sec-member"><span class="sec-member-av">MC</span><span class="sec-member-info"><b>Maya Chen</b><i><?php echo t('marketing.security_section.member_role'); ?></i></span><span class="sec-member-check"><?php echo t('marketing.security_section.member_ok'); ?></span></div>
+          <svg class="sec-link" viewBox="0 0 200 60" preserveAspectRatio="none"><path class="sec-linkpath" d="M100 58 C100 40 100 22 100 4" fill="none"/></svg>
         </div>
-        <div class="security-trust" aria-label="Additional safeguards">
-          <span><?php echo t('marketing.security_section.trust.1'); ?></span>
-          <span><?php echo t('marketing.security_section.trust.2'); ?></span>
-          <span><?php echo t('marketing.security_section.trust.3'); ?></span>
+        <div class="sec-proofs">
+          <span class="sec-proof"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg><b><?php echo t('marketing.security_section.proof1'); ?></b><i><?php echo t('marketing.security_section.proof1_sub'); ?></i></span>
+          <span class="sec-proof"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="2" width="10" height="20" rx="2"/><line x1="11" y1="18" x2="13" y2="18"/></svg><b><?php echo t('marketing.security_section.proof2'); ?></b><i><?php echo t('marketing.security_section.proof2_sub'); ?></i></span>
+          <span class="sec-proof"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/></svg><b><?php echo t('marketing.security_section.proof3'); ?></b><i><?php echo t('marketing.security_section.proof3_sub'); ?></i></span>
+          <span class="sec-proof"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg><b><?php echo t('marketing.security_section.proof4'); ?></b><i><?php echo t('marketing.security_section.proof4_sub'); ?></i></span>
+          <span class="sec-proof"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg><b><?php echo t('marketing.security_section.proof5'); ?></b><i><?php echo t('marketing.security_section.proof5_sub'); ?></i></span>
         </div>
+      </div>
       </div>
 
       <?php

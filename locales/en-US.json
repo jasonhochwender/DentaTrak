@@ -5765,21 +5765,9 @@
         },
         "security_section": {
             "eyebrow": "Security",
-            "title": "Patient information belongs in the case workflow.",
-            "lead": "Dental cases connect patient details, treatment instructions, photos, and lab communication. DentaTrak brings that information together with controlled access and a Business Associate Agreement.",
+            "title": "Your case data. Together and protected.",
+            "lead": "Keep patient details, treatment instructions, images, and lab conversations connected to the case, with access controlled by roles and permissions.",
             "link": "See how DentaTrak protects your data",
-            "panel_title": "Case information is shown only to authorized users.",
-            "stages": {
-                "1": "Secure sign-in",
-                "2": "Practice confirmed",
-                "3": "Permissions applied",
-                "4": "Authorized case access"
-            },
-            "trust": {
-                "1": "AES-256 encryption for patient data",
-                "2": "2FA and role-based access",
-                "3": "BAAs for practices and cloud hosting"
-            },
             "cards": {
                 "1_title": "Role-based and case-level access",
                 "1_body": "Server-side checks verify practice membership and case permissions before protected information is returned. Owner, admin, and user roles, optional Assigned Only access, and immediate revocation decide who can open a case, for team members and invited lab users alike.",
@@ -5791,7 +5779,21 @@
                 "4_body": "Opening a case, printing it, and downloading or exporting patient-related files are each logged with the user and timestamp. Practice owners and admins review that audit report under Settings > Data & Privacy and can export it to CSV, a separate record from a case's ordinary edit history.",
                 "5_title": "Patient details stay out of notifications",
                 "5_body": "Notification emails avoid patient and case details. Team members sign in to view protected information and collaborate through comments and @mentions."
-            }
+            },
+            "fld_patient": "Patient details",
+            "fld_rx": "Lab slip",
+            "member_role": "Treatment Coordinator",
+            "member_ok": "Access verified",
+            "proof1": "Encryption",
+            "proof1_sub": "AES-256, in transit and at rest",
+            "proof2": "Two-factor authentication",
+            "proof2_sub": "for user accounts",
+            "proof3": "Role-based access",
+            "proof3_sub": "by practice and case",
+            "proof4": "Case access logging",
+            "proof4_sub": "audited activity",
+            "proof5": "Business Associate Agreement",
+            "proof5_sub": "for practices and hosting"
         },
         "mobile_section": {
             "eyebrow": "Mobile Browser",
