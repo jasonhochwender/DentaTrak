@@ -6254,6 +6254,25 @@
             "pause": "Pause",
             "play": "Play",
             "replay": "Wiederholen"
+        },
+        "askdemo": {
+            "example_label": "Beispielgespräch",
+            "prev_aria": "Vorheriges Beispiel",
+            "next_aria": "Nächstes Beispiel",
+            "pause": "Pause",
+            "play": "Play",
+            "q1": "Welche meiner Fälle sind überfällig?",
+            "a1": "Zwei Fälle sind überfällig: Prothese #3 und Krone #11. Beide warten auf das Labor.",
+            "q2": "Wie füge ich einen Labornutzer hinzu?",
+            "a2": "Öffnen Sie Einstellungen, gehen Sie zu Benutzer und Rollen, wählen Sie Benutzer hinzufügen, geben Sie die E-Mail ein und setzen Sie die Rolle auf Labor.",
+            "q3": "Wie viele Fälle habe ich in den letzten 90 Tagen erstellt?",
+            "a3": "Sie haben in den letzten 90 Tagen 34 Fälle erstellt.",
+            "q4": "Welche Fälle wurden seit sieben Tagen nicht aktualisiert?",
+            "a4": "Drei Fälle hatten seit sieben Tagen keine Aktivität: Brücke #7, Krone #11 und Inlay #1.",
+            "q5": "Wie ändere ich meine Workflow-Stages?",
+            "a5": "Öffnen Sie Einstellungen und bearbeiten Sie die Workflow-Stages. Dort können Sie Stages umbenennen, neu anordnen, archivieren oder wiederherstellen.",
+            "q6": "Welches Labor hat die schnellste Durchlaufzeit?",
+            "a6": "Das finden Sie in Practice Insights. Öffnen Sie Insights und vergleichen Sie dort die Durchlaufzeiten pro Labor."
         }
     },
     "shortcuts": {

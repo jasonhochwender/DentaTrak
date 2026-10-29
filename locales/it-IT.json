@@ -6212,6 +6212,25 @@
             "pause": "Pausa",
             "play": "Avvia",
             "replay": "Rivedi"
+        },
+        "askdemo": {
+            "example_label": "Conversazione di esempio",
+            "prev_aria": "Esempio precedente",
+            "next_aria": "Esempio successivo",
+            "pause": "Pausa",
+            "play": "Avvia",
+            "q1": "Quali dei miei casi sono in ritardo?",
+            "a1": "Due casi sono in ritardo: Protesi #3 e Corona #11. Entrambi attendono il laboratorio.",
+            "q2": "Come aggiungo un utente del laboratorio?",
+            "a2": "Apri Impostazioni, vai su Utenti e ruoli, scegli Aggiungi utente, inserisci l’email e imposta il ruolo Laboratorio.",
+            "q3": "Quanti casi ho creato negli ultimi 90 giorni?",
+            "a3": "Hai creato 34 casi negli ultimi 90 giorni.",
+            "q4": "Quali casi non sono stati aggiornati da sette giorni?",
+            "a4": "Tre casi non hanno attività da sette giorni: Ponte #7, Corona #11 e Onlay #1.",
+            "q5": "Come modifico le fasi del workflow?",
+            "a5": "Apri Impostazioni e modifica le fasi del workflow. Lì puoi rinominarle, riordinarle, archiviarle o ripristinarle.",
+            "q6": "Quale laboratorio ha la consegna più rapida?",
+            "a6": "Si trova in Practice Insights. Apri Insights e confronta i tempi per laboratorio."
         }
     },
     "legal": {

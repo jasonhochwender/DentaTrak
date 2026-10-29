@@ -2420,6 +2420,25 @@
             "pause": "Pausar",
             "play": "Reproduzir",
             "replay": "Rever"
+        },
+        "askdemo": {
+            "example_label": "Conversa de exemplo",
+            "prev_aria": "Exemplo anterior",
+            "next_aria": "Próximo exemplo",
+            "pause": "Pausar",
+            "play": "Reproduzir",
+            "q1": "Quais dos meus casos estão atrasados?",
+            "a1": "Dois casos estão atrasados: Prótese #3 e Coroa #11. Ambos aguardam o laboratório.",
+            "q2": "Como adiciono um usuário de laboratório?",
+            "a2": "Abra Configurações, vá em Usuários e funções, escolha Adicionar usuário, digite o e-mail e defina a função Laboratório.",
+            "q3": "Quantos casos criei nos últimos 90 dias?",
+            "a3": "Você criou 34 casos nos últimos 90 dias.",
+            "q4": "Quais casos não foram atualizados em sete dias?",
+            "a4": "Três casos estão sem atividade há sete dias: Ponte #7, Coroa #11 e Onlay #1.",
+            "q5": "Como altero minhas etapas de workflow?",
+            "a5": "Abra Configurações e edite as etapas do workflow. Lá você pode renomear, reordenar, arquivar ou restaurar etapas.",
+            "q6": "Qual laboratório tem a entrega mais rápida?",
+            "a6": "Isso fica em Practice Insights. Abra Insights e compare os prazos por laboratório."
         }
     },
     "navigation": {

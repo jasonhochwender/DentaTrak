@@ -6212,6 +6212,25 @@
             "pause": "Pausar",
             "play": "Reproducir",
             "replay": "Repetir"
+        },
+        "askdemo": {
+            "example_label": "Conversación de ejemplo",
+            "prev_aria": "Ejemplo anterior",
+            "next_aria": "Ejemplo siguiente",
+            "pause": "Pausar",
+            "play": "Reproducir",
+            "q1": "¿Cuáles de mis casos están atrasados?",
+            "a1": "Dos casos están atrasados: Dentadura #3 y Corona #11. Ambos esperan al laboratorio.",
+            "q2": "¿Cómo añado un usuario de laboratorio?",
+            "a2": "Abre Configuración, ve a Usuarios y roles, elige Añadir usuario, introduce su correo y asigna el rol Laboratorio.",
+            "q3": "¿Cuántos casos creé en los últimos 90 días?",
+            "a3": "Creaste 34 casos en los últimos 90 días.",
+            "q4": "¿Qué casos no se han actualizado en siete días?",
+            "a4": "Tres casos llevan siete días sin actividad: Puente #7, Corona #11 y Onlay #1.",
+            "q5": "¿Cómo cambio mis etapas de flujo de trabajo?",
+            "a5": "Abre Configuración y edita las etapas del flujo. Allí puedes renombrar, reordenar, archivar o restaurar etapas.",
+            "q6": "¿Qué laboratorio tiene la entrega más rápida?",
+            "a6": "Eso está en Practice Insights. Abre Insights y compara la entrega por laboratorio."
         }
     },
     "legal": {

@@ -6212,6 +6212,25 @@
             "pause": "Pause",
             "play": "Lecture",
             "replay": "Revoir"
+        },
+        "askdemo": {
+            "example_label": "Conversation d’exemple",
+            "prev_aria": "Exemple précédent",
+            "next_aria": "Exemple suivant",
+            "pause": "Pause",
+            "play": "Lecture",
+            "q1": "Quels cas sont en retard ?",
+            "a1": "Deux cas sont en retard : Prothèse #3 et Couronne #11. Les deux attendent le laboratoire.",
+            "q2": "Comment ajouter un utilisateur de laboratoire ?",
+            "a2": "Ouvrez Paramètres, allez dans Utilisateurs et rôles, choisissez Ajouter un utilisateur, saisissez son e-mail et définissez le rôle Laboratoire.",
+            "q3": "Combien de cas ai-je créés dans les 90 derniers jours ?",
+            "a3": "Vous avez créé 34 cas dans les 90 derniers jours.",
+            "q4": "Quels cas n’ont pas été mis à jour depuis sept jours ?",
+            "a4": "Trois cas n’ont eu aucune activité depuis sept jours : Bridge #7, Couronne #11 et Onlay #1.",
+            "q5": "Comment modifier mes étapes de workflow ?",
+            "a5": "Ouvrez Paramètres et modifiez les étapes du workflow. Vous pouvez les renommer, réordonner, archiver ou restaurer.",
+            "q6": "Quel laboratoire a le délai le plus rapide ?",
+            "a6": "C’est dans Practice Insights. Ouvrez Insights et comparez les délais par laboratoire."
         }
     },
     "legal": {

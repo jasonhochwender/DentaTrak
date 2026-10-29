@@ -6212,6 +6212,25 @@
             "pause": "Pause",
             "play": "Play",
             "replay": "Replay"
+        },
+        "askdemo": {
+            "example_label": "Example conversation",
+            "prev_aria": "Previous example",
+            "next_aria": "Next example",
+            "pause": "Pause",
+            "play": "Play",
+            "q1": "Which of my cases are overdue?",
+            "a1": "Two cases are overdue: Denture #3 and Crown #11. Both are waiting on the lab.",
+            "q2": "How do I add a lab user?",
+            "a2": "Open Settings, go to Users & Roles, choose Add user, enter their email, and set the role to Lab.",
+            "q3": "How many cases did I create in the last 90 days?",
+            "a3": "You created 34 cases in the last 90 days.",
+            "q4": "Which cases haven't been updated in seven days?",
+            "a4": "Three cases have had no activity in seven days: Bridge #7, Crown #11, and Onlay #1.",
+            "q5": "How do I change my workflow stages?",
+            "a5": "Open Settings and edit Workflow stages. You can rename, reorder, archive, or restore stages there.",
+            "q6": "Which lab has the fastest turnaround?",
+            "a6": "That lives in Practice Insights. Open Insights and compare turnaround by lab there."
         }
     },
     "legal": {

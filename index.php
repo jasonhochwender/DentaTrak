@@ -1377,6 +1377,31 @@ foreach (['operate', 'control', 'scale'] as $plan) {
       .cmp-check svg { width: 26px; height: 26px; }
     }
     @media (prefers-reduced-motion: reduce) { .cmp-ck-path { stroke-dashoffset: 0 !important; animation: none !important; } }
+    /* Ask DentaTrak animated demo */
+    .ask-demo { display: flex; flex-direction: column; height: 100%; }
+    .ask-body { display: flex; flex-direction: column; gap: 10px; padding: 16px 18px; min-height: 150px; }
+    .ask-msg { max-width: 88%; padding: 11px 15px; font-size: 1rem; line-height: 1.55; }
+    .ask-msg.user, .ask-msg.ai { animation: ask-in 0.35s ease both; }
+    @keyframes ask-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+    .ask-dots { display: inline-flex; gap: 4px; align-self: flex-start; background: var(--dt-warm); border: 1px solid var(--dt-border); border-radius: 14px; padding: 11px 14px; }
+    .ask-dots span { width: 6px; height: 6px; border-radius: 50%; background: var(--dt-ink-muted); animation: ask-dot 1s ease-in-out infinite; }
+    .ask-dots span:nth-child(2) { animation-delay: 0.15s; } .ask-dots span:nth-child(3) { animation-delay: 0.3s; }
+    @keyframes ask-dot { 0%,60%,100% { transform: none; opacity: 0.5; } 30% { transform: translateY(-3px); opacity: 1; } }
+    .ask-typed { color: var(--dt-ink-secondary); }
+    .ask-caret { display: inline-block; width: 2px; height: 1em; background: var(--dt-blue); vertical-align: text-bottom; animation: ask-blink 0.9s steps(1) infinite; }
+    @keyframes ask-blink { 50% { opacity: 0; } }
+    .ask-demo-foot { display: flex; align-items: center; justify-content: space-between; padding: 0 18px 14px; }
+    .ask-example { font-size: 0.62rem; color: var(--dt-ink-muted); }
+    .ask-demo-ctl { display: flex; gap: 6px; }
+    .ask-ctl { background: #fff; border: 1px solid var(--dt-border); border-radius: 7px; min-width: 26px; height: 26px; padding: 0 9px; display: grid; place-items: center; cursor: pointer; font-size: 0.72rem; color: var(--dt-ink-secondary); }
+    .ask-ctl:hover, .ask-ctl:focus-visible { border-color: var(--dt-blue); color: var(--dt-ink); outline: none; }
+    .ask-paused .ask-caret, .ask-paused .ask-dots span, .ask-paused .ask-msg { animation-play-state: paused !important; }
+    @media (max-width: 720px) { .ask-msg { font-size: 0.94rem; } .ask-body { min-height: 130px; } }
+    @media (prefers-reduced-motion: reduce) {
+      .ask-msg, .ask-dots span, .ask-caret { animation: none !important; }
+      .ask-caret { display: none; }
+      #askPause { display: none; }
+    }
   </style>
 </head>
 <body>
@@ -2264,13 +2289,22 @@ foreach (['operate', 'control', 'scale'] as $plan) {
             <strong><?php echo t('marketing.ask.name'); ?></strong>
             <kbd>Ctrl + /</kbd>
           </div>
-          <div class="ask-body">
-            <div class="ask-msg user"><?php echo t('marketing.ask.mock_q1'); ?></div>
-            <div class="ask-msg ai"><?php echo t('marketing.ask.mock_a1'); ?></div>
-            <div class="ask-msg user"><?php echo t('marketing.ask.mock_q2'); ?></div>
-            <div class="ask-msg ai"><?php echo t('marketing.ask.mock_a2'); ?></div>
+          <div class="ask-demo" id="askDemo">
+            <div class="ask-body" id="askBody" aria-live="off">
+              <div class="ask-msg user" id="askUserMsg"></div>
+              <div class="ask-dots" id="askDots" hidden><span></span><span></span><span></span></div>
+              <div class="ask-msg ai" id="askAiMsg" hidden></div>
+            </div>
+            <div class="ask-input"><span id="askTyped" class="ask-typed"></span><span class="ask-caret" id="askCaret"></span></div>
+            <div class="ask-demo-foot">
+              <span class="ask-example"><?php echo t('marketing.askdemo.example_label'); ?></span>
+              <span class="ask-demo-ctl">
+                <button type="button" class="ask-ctl" id="askPrev" aria-label="<?php echo htmlspecialchars(t('marketing.askdemo.prev_aria')); ?>">‹</button>
+                <button type="button" class="ask-ctl" id="askPause" aria-pressed="false"><?php echo t('marketing.askdemo.pause'); ?></button>
+                <button type="button" class="ask-ctl" id="askNext" aria-label="<?php echo htmlspecialchars(t('marketing.askdemo.next_aria')); ?>">›</button>
+              </span>
+            </div>
           </div>
-          <div class="ask-input"><?php echo t('marketing.ask.mock_input'); ?></div>
         </div>
         <div class="insights-copy">
           <span class="eyebrow"><?php echo t('marketing.ask.eyebrow'); ?></span>
@@ -3809,6 +3843,85 @@ foreach (['operate', 'control', 'scale'] as $plan) {
     });
     show(1, false);
     if (reduced) { btnPause.hidden = true; }
+  })();
+  </script>
+  <script>
+  // Ask DentaTrak demo: typed question -> bubble -> dots -> answer -> hold -> next.
+  (function () {
+    var root = document.getElementById('askDemo');
+    if (!root) return;
+    var userMsg = document.getElementById('askUserMsg');
+    var aiMsg = document.getElementById('askAiMsg');
+    var dots = document.getElementById('askDots');
+    var typed = document.getElementById('askTyped');
+    var caret = document.getElementById('askCaret');
+    var btnPause = document.getElementById('askPause');
+    var btnPrev = document.getElementById('askPrev');
+    var btnNext = document.getElementById('askNext');
+    var reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    var EX = <?php $a=[];for($i=1;$i<=6;$i++){$a[]=['q'=>t('marketing.askdemo.q'.$i),'a'=>t('marketing.askdemo.a'.$i)];}echo json_encode($a,JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE); ?>;
+    var labels = { pause: <?php echo json_encode(t('marketing.askdemo.pause')); ?>, play: <?php echo json_encode(t('marketing.askdemo.play')); ?> };
+    var N = EX.length, cur = 0, timer = null, paused = false, visible = false, started = false;
+
+    function setT(id, fn, ms) { timer = setTimeout(fn, ms); }
+    function clearT() { clearTimeout(timer); timer = null; }
+    function renderStatic(i) {
+      clearT();
+      userMsg.hidden = false; userMsg.textContent = EX[i].q;
+      dots.hidden = true;
+      aiMsg.hidden = false; aiMsg.textContent = EX[i].a;
+      typed.textContent = '';
+    }
+    function play(i) {
+      clearT();
+      if (reduced) { renderStatic(i); return; }
+      var q = EX[i].q, a = EX[i].a;
+      userMsg.hidden = true; aiMsg.hidden = true; dots.hidden = true;
+      userMsg.textContent = ''; aiMsg.textContent = '';
+      typed.textContent = ''; caret.style.display = '';
+      var p = 0;
+      (function type() {
+        if (p <= q.length) { typed.textContent = q.slice(0, p++); timer = setTimeout(type, 34); }
+        else setT('t1', function () {
+          userMsg.hidden = false; userMsg.textContent = q; typed.textContent = '';
+          dots.hidden = false;
+          setT('t2', function () {
+            dots.hidden = true; aiMsg.hidden = false; aiMsg.textContent = a;
+            setT('hold', function () { if (!paused && visible) next(); }, 5000 + Math.min(a.length * 28, 3000));
+          }, 1000);
+        }, 350);
+      })();
+    }
+    function go(i) { cur = ((i % N) + N) % N; play(cur); }
+    function next() { go(cur + 1); }
+    function sync() {
+      btnPause.textContent = paused ? labels.play : labels.pause;
+      btnPause.setAttribute('aria-pressed', paused ? 'true' : 'false');
+      root.classList.toggle('ask-paused', paused || !visible || document.hidden);
+    }
+    btnPause.addEventListener('click', function () {
+      paused = !paused;
+      if (paused) clearT(); else play(cur);
+      sync();
+    });
+    btnPrev.addEventListener('click', function () { paused = true; sync(); go(cur - 1); });
+    btnNext.addEventListener('click', function () { paused = true; sync(); next(); });
+    if ('IntersectionObserver' in window) {
+      new IntersectionObserver(function (e) {
+        visible = e[0].isIntersecting;
+        if (visible && !started) { started = true; play(cur); }
+        else if (visible && !paused && !timer) { play(cur); }
+        else if (!visible) clearT();
+        sync();
+      }, { threshold: 0.3 }).observe(root);
+    } else { visible = true; started = true; play(cur); }
+    document.addEventListener('visibilitychange', function () {
+      if (document.hidden) clearT();
+      else if (visible && !paused && started) play(cur);
+      sync();
+    });
+    if (reduced) { renderStatic(0); }
+    sync();
   })();
   </script>
 </body>
