@@ -1118,7 +1118,7 @@ foreach (['operate', 'control', 'scale'] as $plan) {
       html { scroll-behavior: auto; }
     }
     /* How-it-works walkthrough */
-    .hw-walk { display: grid; grid-template-columns: 220px 1fr; gap: 36px; margin-top: 40px; text-align: left; }
+    .hw-walk { display: grid; grid-template-columns: 230px 1fr; gap: 36px; margin-top: 40px; text-align: left; }
     .hw-steps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
     .hw-step { display: flex; align-items: center; gap: 10px; width: 100%; padding: 9px 12px; border: 1px solid transparent; border-radius: 10px; background: none; cursor: pointer; font-size: 0.82rem; color: var(--dt-ink-secondary); text-align: left; }
     .hw-step:hover { background: var(--dt-warm); }
@@ -1127,69 +1127,206 @@ foreach (['operate', 'control', 'scale'] as $plan) {
     .hw-step-num { width: 22px; height: 22px; border-radius: 50%; background: var(--dt-blue); color: #fff; font-size: 0.68rem; font-weight: 700; display: grid; place-items: center; flex-shrink: 0; }
     .hw-main { min-width: 0; }
     .hw-scene-title { font-size: 1.15rem; color: var(--dt-ink); margin: 0 0 4px; }
-    .hw-scene-copy { font-size: 0.85rem; color: var(--dt-ink-secondary); margin: 0 0 18px; }
-    .hw-stage { position: relative; background: #fff; border: 1px solid var(--dt-border); border-radius: 18px; padding: 22px; min-height: 300px; box-shadow: var(--dt-shadow); }
-    .hw-scene { position: absolute; inset: 22px; opacity: 0; transition: opacity 0.45s ease; pointer-events: none; }
-    .hw-scene.hw-active { opacity: 1; pointer-events: auto; position: relative; inset: auto; }
-    .hw-board { display: flex; gap: 10px; }
-    .hw-col { flex: 1; min-width: 0; background: var(--dt-warm); border-radius: 10px; padding: 8px; }
-    .hw-col-head { font-size: 0.62rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--dt-ink-muted); display: block; margin-bottom: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .hw-card-mini { background: #fff; border: 1px solid var(--dt-border); border-left: 3px solid var(--dt-blue); border-radius: 8px; padding: 7px 9px; font-size: 0.72rem; font-weight: 600; color: var(--dt-ink); margin-bottom: 6px; }
-    .hw-card-risk { border-left-color: #f59e0b; }
-    .hw-anim .hw-col-move { animation: hw-colslide 1.6s ease-in-out 0.4s 2 alternate; }
-    @keyframes hw-colslide { 0%,100% { transform: translateX(0); } 50% { transform: translateX(8px); } }
-    .hw-invite { max-width: 320px; margin: 0 auto; }
-    .hw-field { display: flex; align-items: center; gap: 8px; background: var(--dt-warm); border: 1px solid var(--dt-border); border-radius: 10px; padding: 10px 12px; font-size: 0.78rem; }
-    .hw-field-text { flex: 1; color: var(--dt-ink-secondary); overflow: hidden; text-overflow: ellipsis; }
+    .hw-scene-copy { font-size: 0.85rem; color: var(--dt-ink-secondary); margin: 0 0 14px; }
+    .hw-stage { position: relative; background: #fff; border: 1px solid var(--dt-border); border-radius: 18px; padding: 20px; height: 340px; overflow: hidden; box-shadow: var(--dt-shadow); }
+    .hw-scene { position: absolute; inset: 20px; opacity: 0; transition: opacity 0.45s ease; pointer-events: none; overflow: hidden; }
+    .hw-scene.hw-active { opacity: 1; pointer-events: auto; }
+    .hw-paused .hw-scene *, .hw-paused .hw-cursor { animation-play-state: paused !important; }
+    .hw-cursor { position: absolute; width: 16px; height: 16px; z-index: 5; pointer-events: none; opacity: 0;
+      background: #1e3a5f; border-radius: 50% 50% 50% 2px; box-shadow: 0 1px 4px rgba(0,0,0,0.3); }
+    .hw-anim .hw-cursor { animation: hw-cursormove 9.5s ease forwards; }
+    @keyframes hw-cursormove {
+      0% { opacity: 0; right: 20px; top: 40%; }
+      6% { opacity: 1; right: 20px; top: 40%; }
+      14%,26% { opacity: 1; right: 24px; top: 46%; }
+      34% { opacity: 1; right: 46%; top: 50%; }
+      44%,60% { opacity: 1; right: 46%; top: 50%; }
+      70% { opacity: 1; right: 88%; top: 6%; }
+      78%,92% { opacity: 1; right: 88%; top: 6%; }
+      100% { opacity: 0; right: 88%; top: 6%; }
+    }
+    /* board (scenes 1+6 shared) */
+    .hw-boardX { display: flex; gap: 8px; height: 100%; }
+    .hw-colx { flex: 1; min-width: 0; background: var(--dt-warm); border: 1px solid var(--dt-border); border-radius: 10px; padding: 8px; overflow: hidden; }
+    .hw-colx-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 7px; }
+    .hw-colx-name { font-size: 0.62rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--dt-ink-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .hw-colx-edit { font-size: 0.6rem; color: var(--dt-ink-muted); }
+    .hw-casecard { background: #fff; border: 1px solid var(--dt-border); border-left: 3px solid var(--dt-blue); border-radius: 7px; padding: 6px 8px; font-size: 0.68rem; font-weight: 600; color: var(--dt-ink); margin-bottom: 6px; box-shadow: 0 2px 6px -2px rgba(30,58,95,0.12); }
+    .hw-cc-meta { display: block; font-size: 0.56rem; font-weight: 400; color: var(--dt-ink-muted); margin-top: 2px; }
+    .hw-casecard-dim { opacity: 0.4; border-left-color: var(--dt-border); }
+    .hw-badge { float: right; font-size: 0.52rem; font-weight: 700; padding: 1px 6px; border-radius: 999px; }
+    .hw-b-pms { background: #eef4fb; color: #2563eb; } .hw-b-scan { background: #e0f7f5; color: #0ea5a8; } .hw-b-man { background: #f3eafb; color: #8b5cf6; }
+    /* scene 1 choreography */
+    .hw-addstage { flex: 0 0 34px; background: var(--dt-warm); border: 1.5px dashed var(--dt-border); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 0.6rem; color: var(--dt-ink-muted); writing-mode: vertical-rl; }
+    .hw-plus { font-size: 0.85rem; font-weight: 700; }
+    .hw-anim .hw-addstage { animation: hw-btnpulse 0.9s ease 1.2s 2; }
+    @keyframes hw-btnpulse { 0%,100% { box-shadow: 0 0 0 0 rgba(37,99,235,0); } 50% { box-shadow: 0 0 0 4px rgba(37,99,235,0.35); border-color: var(--dt-blue); } }
+    .hw-typebox { position: absolute; left: 50%; top: 42%; transform: translate(-50%,-50%); display: flex; gap: 6px; background: #fff; border: 1.5px solid var(--dt-blue); border-radius: 8px; padding: 6px; box-shadow: 0 8px 22px -8px rgba(0,0,0,0.25); opacity: 0; z-index: 4; }
+    .hw-typeinput { border: none; font-size: 0.78rem; width: 110px; color: var(--dt-ink); outline: none; }
+    .hw-okbtn { background: var(--dt-blue); color: #fff; border-radius: 6px; padding: 2px 8px; font-size: 0.75rem; }
+    .hw-anim .hw-typebox { animation: hw-fadein 0.4s ease 2.6s forwards; }
+    .hw-anim .hw-typeinput { animation: hw-type 1.4s steps(13) 3s both; }
+    @keyframes hw-type { from { width: 0; } to { width: 110px; } }
+    .hw-anim .hw-typebox { animation: hw-typeboxlife 2.6s ease 2.6s both; }
+    @keyframes hw-typeboxlife { 0% { opacity: 0; transform: translate(-50%,-50%) scale(0.9); } 12%,82% { opacity: 1; transform: translate(-50%,-50%) scale(1); } 100% { opacity: 0; } }
+    .hw-colx-new { flex: 0 0 0 !important; opacity: 0; overflow: hidden; padding: 0; border-width: 0; }
+    .hw-anim .hw-colx-new { animation: hw-colexpand 1.1s ease 5.4s forwards; }
+    @keyframes hw-colexpand { from { flex: 0 0 0; opacity: 0; } to { flex: 1 1 0; opacity: 1; padding: 8px; border-width: 1px; } }
+    .hw-anim .hw-colx-edit { animation: hw-btnpulse 0.9s ease 6.8s 2; }
+    .hw-colx-name { position: relative; }
+    .hw-anim #hwRenameTarget::after { content: '<?php echo t("marketing.walkthrough.stage_ready"); ?>'; position: absolute; left: 0; top: 0; background: #fef9e7; color: var(--dt-ink); opacity: 0; animation: hw-swap 2.6s ease 8s forwards; }
+    @keyframes hw-swap { 0% { opacity: 0; } 15%,85% { opacity: 1; } 100% { opacity: 1; } }
+    /* scene 2 */
+    .hw-team { display: grid; grid-template-columns: 1.1fr 1fr; gap: 16px; height: 100%; }
+    .hw-panel-head { font-size: 0.64rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--dt-ink-muted); margin-bottom: 10px; }
+    .hw-field { display: flex; align-items: center; gap: 8px; background: var(--dt-warm); border: 1px solid var(--dt-border); border-radius: 10px; padding: 9px 11px; font-size: 0.76rem; margin-bottom: 12px; }
+    .hw-field-text { flex: 1; color: var(--dt-ink-secondary); white-space: nowrap; overflow: hidden; }
+    .hw-anim .hw-field-text::after { content: 'maya.chen@example.com'; display: block; overflow: hidden; white-space: nowrap; animation: hw-typeline 1.6s steps(22) 0.8s both; }
+    @keyframes hw-typeline { from { max-width: 0; } to { max-width: 100%; } }
     .hw-btn-mini { background: var(--dt-blue); color: #fff; border-radius: 7px; padding: 5px 12px; font-size: 0.7rem; font-weight: 600; white-space: nowrap; }
+    .hw-anim #hwInviteBtn { animation: hw-btnpulse 0.8s ease 2.6s 2; }
+    .hw-emailcard { display: flex; align-items: center; gap: 10px; background: #fff; border: 1px solid var(--dt-border); border-left: 3px solid var(--dt-blue); border-radius: 10px; padding: 10px 12px; font-size: 0.7rem; opacity: 0; }
+    .hw-email-ic { font-size: 1.1rem; }
+    .hw-emailcard b { display: block; font-size: 0.72rem; } .hw-email-sub { font-size: 0.6rem; color: var(--dt-ink-muted); }
+    .hw-accept { margin-left: auto; }
+    .hw-anim .hw-emailcard { animation: hw-slideup 0.5s ease 3.4s forwards; }
+    @keyframes hw-slideup { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
+    .hw-anim .hw-accept { animation: hw-btnpulse 0.8s ease 4.6s 2; }
+    .hw-freenote { font-size: 0.62rem; color: var(--dt-ink-muted); margin-top: 12px; }
+    .hw-roster { border-left: 1px solid var(--dt-border); padding-left: 16px; }
+    .hw-person { display: flex; align-items: center; gap: 9px; background: #fff; border: 1px solid var(--dt-border); border-radius: 9px; padding: 8px 10px; margin-bottom: 7px; }
+    .hw-av { width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; font-size: 0.58rem; font-weight: 700; color: #fff; flex-shrink: 0; }
+    .hw-av-b { background: var(--dt-blue); } .hw-av-p { background: #8b5cf6; } .hw-av-t { background: #0ea5a8; }
+    .hw-p-info b { display: block; font-size: 0.72rem; color: var(--dt-ink); }
+    .hw-p-info i { font-style: normal; font-size: 0.58rem; color: var(--dt-ink-muted); }
+    .hw-join1, .hw-join2 { opacity: 0; }
+    .hw-anim .hw-join1 { animation: hw-slideup 0.5s ease 5.6s forwards; }
+    .hw-anim .hw-join2 { animation: hw-slideup 0.5s ease 7.4s forwards; }
+    .hw-joined { margin-left: auto; font-size: 0.56rem; font-weight: 700; color: #0ea5a8; background: #e0f7f5; border-radius: 999px; padding: 2px 8px; }
+    /* scene 3 */
+    .hw-cases { height: 100%; display: flex; flex-direction: column; }
+    .hw-srcrow { display: flex; gap: 10px; justify-content: space-between; margin-bottom: 10px; }
+    .hw-srcbox { flex: 1; text-align: center; }
+    .hw-srcwin { background: #fff; border: 1px solid var(--dt-border); border-radius: 8px; padding: 8px; min-height: 74px; box-shadow: 0 3px 8px -4px rgba(0,0,0,0.1); }
+    .hw-srcwin-bar { height: 6px; border-radius: 3px; background: var(--dt-warm); margin-bottom: 6px; }
+    .hw-srcwin-line { height: 5px; border-radius: 3px; background: #dbe7f6; margin-bottom: 5px; }
+    .hw-srcwin-line.hw-w60 { width: 60%; } .hw-srcwin-line.hw-w80 { width: 80%; } .hw-srcwin-line.hw-w40 { width: 40%; }
+    .hw-srcwin-hl { font-size: 0.56rem; text-align: left; background: #eef4fb; border-radius: 4px; padding: 3px 6px; margin-bottom: 5px; color: var(--dt-ink); }
+    .hw-scanart { width: 100%; max-width: 80px; }
+    .hw-src-label { display: block; font-size: 0.66rem; font-weight: 700; color: var(--dt-ink); margin-top: 5px; }
+    .hw-src-vendor { font-size: 0.56rem; color: var(--dt-ink-muted); }
+    .hw-anim .hw-srcbox { animation: hw-srcglow 1.1s ease both; }
+    .hw-anim #hwSrcPms { animation-delay: 0.6s; } .hw-anim #hwSrcScan { animation-delay: 3.2s; } .hw-anim #hwSrcManual { animation-delay: 6s; }
+    @keyframes hw-srcglow { 0%,100% { transform: none; } 30%,70% { transform: scale(1.05); box-shadow: 0 0 0 3px rgba(37,99,235,0.2); } }
+    .hw-inboxbar { display: flex; align-items: center; gap: 8px; background: var(--dt-warm); border: 1px solid var(--dt-border); border-radius: 9px; padding: 7px 10px; font-size: 0.68rem; opacity: 0; justify-content: center; }
+    .hw-inbox-tag { color: var(--dt-ink-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .hw-anim .hw-inboxbar { animation: hw-slideup 0.5s ease 4.2s forwards; }
+    .hw-anim #hwInboxSel { animation: hw-btnpulse 0.7s ease 4.8s 1; }
+    .hw-anim #hwInboxCreate { animation: hw-btnpulse 0.7s ease 5.3s 1; }
     .hw-btn-ghost { background: #fff; color: var(--dt-blue); border: 1px solid var(--dt-blue); }
-    .hw-notif { margin: 14px 0; background: #eef4fb; border-left: 3px solid var(--dt-blue); border-radius: 8px; padding: 9px 12px; font-size: 0.74rem; color: var(--dt-ink-secondary); }
-    .hw-anim .hw-notif { animation: hw-pop 0.6s ease 1.2s both; }
-    .hw-avatars { display: flex; gap: 8px; justify-content: center; margin-top: 10px; }
-    .hw-avatar { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; font-size: 0.64rem; font-weight: 700; color: #fff; background: var(--dt-blue); }
-    .hw-a2 { background: #8b5cf6; } .hw-lab { background: #0ea5a8; }
-    .hw-anim .hw-join { animation: hw-pop 0.5s ease 1.8s both; }
-    .hw-anim .hw-join2 { animation: hw-pop 0.5s ease 2.4s both; }
-    .hw-anim .hw-pop { animation: hw-pop 0.5s ease 0.6s both; }
-    @keyframes hw-pop { from { transform: scale(0.5); opacity: 0; } to { transform: scale(1); opacity: 1; } }
-    .hw-sources { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; margin-bottom: 14px; }
-    .hw-src { background: var(--dt-warm); border: 1px solid var(--dt-border); border-radius: 999px; padding: 6px 12px; font-size: 0.7rem; color: var(--dt-ink-secondary); }
-    .hw-inbox-row { background: #fff; border: 1px solid var(--dt-border); border-radius: 8px; padding: 8px 12px; font-size: 0.74rem; color: var(--dt-ink-secondary); margin-bottom: 10px; max-width: 300px; margin-left: auto; margin-right: auto; }
-    .hw-anim .hw-inbox-row { animation: hw-pop 0.5s ease 0.8s both; }
-    .hw-acts { display: flex; gap: 8px; justify-content: center; margin-bottom: 12px; }
-    .hw-anim .hw-acts { animation: hw-pop 0.5s ease 1.4s both; }
-    .hw-anim .hw-caseborn { animation: hw-pop 0.6s ease 2.1s both; max-width: 180px; margin: 0 auto; }
-    .hw-card-case { max-width: 220px; margin: 40px auto; background: #fff; border: 1px solid var(--dt-border); border-left: 3px solid var(--dt-blue); border-radius: 10px; padding: 12px 14px; }
-    .hw-card-title { display: block; font-size: 0.8rem; font-weight: 700; color: var(--dt-ink); margin-bottom: 8px; }
-    .hw-assign-tag { display: inline-block; background: #eef4fb; border-radius: 6px; padding: 3px 9px; font-size: 0.66rem; color: var(--dt-ink-secondary); margin-left: 8px; vertical-align: middle; }
-    .hw-detail { max-width: 320px; margin: 0 auto; background: #fff; border: 1px solid var(--dt-border); border-radius: 12px; overflow: hidden; }
-    .hw-detail-head { background: var(--dt-warm); padding: 10px 14px; font-size: 0.78rem; font-weight: 700; color: var(--dt-ink); border-bottom: 1px solid var(--dt-border); }
-    .hw-note { margin: 12px 14px; background: #fef9e7; border-radius: 8px; padding: 8px 10px; font-size: 0.72rem; color: var(--dt-ink-secondary); }
-    .hw-comment { display: flex; align-items: center; gap: 8px; margin: 0 14px 12px; background: #eef4fb; border-radius: 8px; padding: 8px 10px; font-size: 0.72rem; color: var(--dt-ink-secondary); }
-    .hw-comment .hw-avatar { width: 24px; height: 24px; font-size: 0.56rem; }
-    .hw-imgchip { margin: 0 14px 14px; width: 52px; height: 40px; border-radius: 6px; background: linear-gradient(135deg,#dbe7f6,#0ea5a8); border: 1px solid var(--dt-border); }
-    .hw-anim .hw-note { animation: hw-pop 0.5s ease 0.7s both; }
-    .hw-anim .hw-comment { animation: hw-pop 0.5s ease 1.4s both; }
-    .hw-anim .hw-imgchip { animation: hw-pop 0.5s ease 2s both; }
-    .hw-anim #hwHero { animation: hw-heromove 2.2s ease 0.5s both; }
-    @keyframes hw-heromove { 0% { transform: translateX(0); } 100% { transform: translateX(calc(100% + 10px)); } }
-    .hw-anim .hw-card-risk { animation: hw-pulse 1.4s ease 0.8s 2; }
-    @keyframes hw-pulse { 0%,100% { box-shadow: 0 0 0 0 rgba(245,158,11,0); } 50% { box-shadow: 0 0 0 3px rgba(245,158,11,0.35); } }
-    .hw-riskline { text-align: center; font-size: 0.72rem; color: var(--dt-ink-muted); margin-top: 12px; }
-    .hw-kpis { display: flex; gap: 14px; justify-content: center; margin-bottom: 16px; }
-    .hw-kpi { text-align: center; }
-    .hw-kpi-v { display: block; font-size: 1.3rem; font-weight: 800; color: var(--dt-ink); }
-    .hw-kpi-l { font-size: 0.62rem; color: var(--dt-ink-muted); }
-    .hw-anim .hw-kpi { animation: hw-pop 0.5s ease both; }
-    .hw-anim .hw-kpi:nth-child(2) { animation-delay: 0.3s; }
-    .hw-anim .hw-kpi:nth-child(3) { animation-delay: 0.6s; }
-    .hw-chart { display: block; margin: 0 auto; width: 220px; }
-    .hw-bar { fill: var(--dt-blue); opacity: 0.85; }
-    .hw-anim .hw-bar { animation: hw-barup 0.6s ease both; transform-origin: bottom; }
-    .hw-anim .hw-bar:nth-child(2) { animation-delay: 0.2s; } .hw-anim .hw-bar:nth-child(3) { animation-delay: 0.4s; } .hw-anim .hw-bar:nth-child(4) { animation-delay: 0.6s; } .hw-anim .hw-bar:nth-child(5) { animation-delay: 0.8s; }
-    @keyframes hw-barup { from { transform: scaleY(0); } to { transform: scaleY(1); } }
-    .hw-sample { text-align: center; font-size: 0.64rem; color: var(--dt-ink-muted); margin: 8px 0 0; }
-    .hw-controls { display: flex; align-items: center; gap: 10px; margin-top: 16px; flex-wrap: wrap; }
+    .hw-newcases { display: flex; align-items: center; gap: 8px; margin-top: auto; flex-wrap: wrap; }
+    .hw-nc-head { font-size: 0.6rem; font-weight: 700; text-transform: uppercase; color: var(--dt-ink-muted); width: 100%; margin-bottom: 2px; }
+    .hw-born { opacity: 0; transform: translateY(12px) scale(0.92); }
+    .hw-anim .hw-born1 { animation: hw-born 0.55s ease 2.4s forwards; }
+    .hw-anim .hw-born2 { animation: hw-born 0.55s ease 5.6s forwards; }
+    .hw-anim .hw-born3 { animation: hw-born 0.55s ease 8.2s forwards; }
+    @keyframes hw-born { to { opacity: 1; transform: none; } }
+    .hw-planline { font-size: 0.6rem; color: var(--dt-ink-muted); margin-top: 8px; }
+    /* scene 4 */
+    .hw-assignp { display: grid; grid-template-columns: 1fr 1.15fr; gap: 14px; height: 100%; }
+    .hw-caseX { background: var(--dt-warm); border: 1px solid var(--dt-border); border-radius: 12px; padding: 14px; height: fit-content; }
+    .hw-caseX-head { font-size: 0.8rem; font-weight: 700; color: var(--dt-ink); margin-bottom: 12px; }
+    .hw-assignedto { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .hw-at-label { font-size: 0.62rem; text-transform: uppercase; color: var(--dt-ink-muted); font-weight: 700; }
+    .hw-at-val { font-size: 0.74rem; font-weight: 600; color: var(--dt-ink); background: #fff; border: 1px solid var(--dt-border); border-radius: 7px; padding: 4px 10px; transition: background 0.3s; }
+    .hw-picker { background: #fff; border: 1px solid var(--dt-border); border-radius: 12px; padding: 10px; box-shadow: 0 10px 26px -12px rgba(0,0,0,0.2); opacity: 0; transform: translateY(8px); }
+    .hw-anim .hw-picker { animation: hw-picklife 10.5s linear forwards; }
+    @keyframes hw-picklife { 0%,7% { opacity: 0; transform: translateY(8px); } 12%,92% { opacity: 1; transform: none; } 100% { opacity: 0; } }
+    .hw-pick-group { font-size: 0.56rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--dt-ink-muted); margin: 6px 0 4px; }
+    .hw-pick { display: flex; align-items: center; gap: 8px; border: 1px solid var(--dt-border); border-radius: 8px; padding: 6px 9px; margin-bottom: 5px; }
+    .hw-anim .hw-pick[data-who="Maya Chen"] { animation: hw-picksel 10.5s linear forwards; }
+    .hw-anim .hw-pick[data-who="Dr. Alex Rivera"] { animation: hw-picksel2 10.5s linear forwards; }
+    .hw-anim .hw-pick-lab { animation: hw-picksel3 10.5s linear forwards; }
+    @keyframes hw-picksel { 0%,15% { box-shadow: none; border-color: var(--dt-border); } 20%,32% { border-color: var(--dt-blue); box-shadow: 0 0 0 3px rgba(37,99,235,0.2); } 36%,100% { box-shadow: none; border-color: var(--dt-border); } }
+    @keyframes hw-picksel2 { 0%,48% { box-shadow: none; border-color: var(--dt-border); } 53%,64% { border-color: var(--dt-blue); box-shadow: 0 0 0 3px rgba(37,99,235,0.2); } 68%,100% { box-shadow: none; border-color: var(--dt-border); } }
+    @keyframes hw-picksel3 { 0%,78% { box-shadow: none; border-color: var(--dt-border); } 83%,96% { border-color: var(--dt-blue); box-shadow: 0 0 0 3px rgba(37,99,235,0.2); } 100% { border-color: var(--dt-blue); box-shadow: 0 0 0 3px rgba(14,165,168,0.25); } }
+    .hw-at-val { position: relative; min-width: 96px; min-height: 1.1em; }
+    .hw-at-n { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); white-space: nowrap; opacity: 0; }
+    .hw-anim .hw-n0 { animation: hw-n0 10.5s linear forwards; }
+    .hw-anim .hw-n1 { animation: hw-n1 10.5s linear forwards; }
+    .hw-anim .hw-n2 { animation: hw-n2 10.5s linear forwards; }
+    .hw-anim .hw-n3 { animation: hw-n3 10.5s linear forwards; }
+    @keyframes hw-n0 { 0%,24% { opacity: 1; color: var(--dt-ink-muted); } 25%,100% { opacity: 0; } }
+    @keyframes hw-n1 { 0%,24% { opacity: 0; } 25%,57% { opacity: 1; } 58%,100% { opacity: 0; } }
+    @keyframes hw-n2 { 0%,57% { opacity: 0; } 58%,85% { opacity: 1; } 86%,100% { opacity: 0; } }
+    @keyframes hw-n3 { 0%,85% { opacity: 0; } 86%,100% { opacity: 1; } }
+    .hw-anim #hwPickBtn { animation: hw-pickbtnpulse 10.5s linear forwards; }
+    @keyframes hw-pickbtnpulse { 0%,4%,20%,36%,52%,68%,84% { box-shadow: none; } 8%,14%,40%,46%,72%,78% { box-shadow: 0 0 0 3px rgba(37,99,235,0.35); } 100% { box-shadow: none; } }
+    /* scene 5 */
+    .hw-detailp { height: 100%; position: relative; }
+    .hw-dp-head { background: var(--dt-warm); border: 1px solid var(--dt-border); border-radius: 10px; padding: 9px 14px; margin-bottom: 10px; }
+    .hw-dp-head b { font-size: 0.8rem; color: var(--dt-ink); } .hw-dp-head span { font-size: 0.62rem; color: var(--dt-ink-muted); margin-left: 8px; }
+    .hw-dp-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .hw-dp-sec { font-size: 0.58rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--dt-ink-muted); margin: 8px 0 5px; }
+    .hw-noteX { background: #fef9e7; border-left: 3px solid #f59e0b; border-radius: 7px; padding: 7px 9px; font-size: 0.66rem; color: var(--dt-ink-secondary); opacity: 0; }
+    .hw-anim .hw-noteX { animation: hw-slideup 0.5s ease 1.6s forwards; }
+    .hw-thumbs { display: flex; gap: 8px; }
+    .hw-thumb { width: 44px; height: 33px; border-radius: 6px; border: 1px solid var(--dt-border); overflow: hidden; background: #fff; opacity: 0; }
+    .hw-anim #hwThumb1 { animation: hw-slideup 0.5s ease 5.6s forwards; }
+    .hw-anim #hwThumb2 { animation: hw-slideup 0.5s ease 6.2s forwards; }
+    .hw-upbar { font-size: 0.58rem; color: var(--dt-ink-muted); border: 1px dashed var(--dt-border); border-radius: 7px; padding: 5px 8px; margin-top: 8px; text-align: center; }
+    .hw-anim .hw-upbar { animation: hw-btnpulse 0.8s ease 5s 1; }
+    .hw-cmt { display: flex; gap: 8px; background: #eef4fb; border-radius: 8px; padding: 7px 9px; margin-bottom: 6px; opacity: 0; }
+    .hw-cmt .hw-av { width: 22px; height: 22px; font-size: 0.5rem; }
+    .hw-anim #hwCmt1 { animation: hw-slideup 0.5s ease 2.8s forwards; }
+    .hw-anim #hwCmt2 { animation: hw-slideup 0.5s ease 4.4s forwards; }
+    .hw-cmtbox { display: flex; align-items: center; gap: 6px; border: 1px solid var(--dt-border); border-radius: 8px; padding: 6px 9px; font-size: 0.64rem; color: var(--dt-ink-muted); opacity: 0; }
+    .hw-anim .hw-cmtbox { animation: hw-fadein 0.4s ease 2.2s forwards; }
+    .hw-sendbtn { margin-left: auto; color: var(--dt-blue); font-weight: 700; }
+    .hw-imgview { position: absolute; inset: 20% 15%; background: #fff; border: 1px solid var(--dt-border); border-radius: 12px; display: grid; place-items: center; box-shadow: 0 16px 40px -12px rgba(0,0,0,0.3); opacity: 0; pointer-events: none; }
+    .hw-anim .hw-imgview { animation: hw-imgpop 2.8s ease 7s both; }
+    @keyframes hw-imgpop { 0% { opacity: 0; transform: scale(0.7); } 15%,80% { opacity: 1; transform: scale(1); } 100% { opacity: 0; transform: scale(0.8); } }
+    /* scene 6 */
+    .hw-board6 .hw-casecard { font-size: 0.6rem; padding: 5px 7px; }
+    .hw-flag { display: inline-block; font-size: 0.5rem; font-weight: 700; border-radius: 999px; padding: 1px 7px; margin-top: 3px; }
+    .hw-flag-amber { background: #fef3e2; color: #b45309; }
+    .hw-flag-red { background: #fee2e2; color: #b91c1c; }
+    .hw-anim #hwDueSoon { animation: hw-duecard 9.5s ease forwards; }
+    @keyframes hw-duecard { 0%,18% { transform: none; box-shadow: 0 2px 6px -2px rgba(30,58,95,0.12); } 24%,42% { transform: translateY(-7px) scale(1.05); box-shadow: 0 12px 22px -8px rgba(180,83,9,0.4); border-left-color: #f59e0b; } 48%,100% { transform: none; border-left-color: #f59e0b; } }
+    .hw-anim #hwDueSoon .hw-flag-amber { animation: hw-fadein 0.5s ease 2s both; }
+    .hw-anim #hwLate { animation: hw-latecard 9.5s ease forwards; }
+    @keyframes hw-latecard { 0%,52% { transform: none; } 58%,74% { transform: translateY(-7px) scale(1.05); box-shadow: 0 12px 22px -8px rgba(185,28,28,0.4); border-left-color: #b91c1c; } 80%,100% { transform: none; border-left-color: #b91c1c; } }
+    .hw-anim #hwLate .hw-flag-red { animation: hw-fadein 0.5s ease 5.6s both; }
+    @keyframes hw-fadein { from { opacity: 0; } to { opacity: 1; } }
+    .hw-riskline { text-align: center; font-size: 0.66rem; color: var(--dt-ink-muted); position: absolute; bottom: 4px; left: 0; right: 0; }
+    /* scene 7 */
+    .hw-dashp { height: 100%; display: flex; flex-direction: column; }
+    .hw-dash-head { display: flex; align-items: baseline; justify-content: space-between; font-size: 0.8rem; font-weight: 700; color: var(--dt-ink); padding-bottom: 8px; border-bottom: 1px solid var(--dt-border); }
+    .hw-sample { font-size: 0.58rem; font-weight: 400; color: var(--dt-ink-muted); }
+    .hw-dash-scroll { flex: 1; overflow: hidden; position: relative; }
+    .hw-anim .hw-dash-scroll-inner { animation: hw-scrollup 6s ease-in-out 4.5s forwards; }
+    .hw-chartbox { background: var(--dt-warm); border: 1px solid var(--dt-border); border-radius: 10px; padding: 9px 12px; margin-top: 9px; }
+    .hw-cb-title { font-size: 0.62rem; font-weight: 700; color: var(--dt-ink); margin-bottom: 5px; }
+    .hw-kpis { display: flex; gap: 12px; justify-content: space-around; margin-top: 10px; }
+    .hw-kpi { text-align: center; background: #fff; border: 1px solid var(--dt-border); border-radius: 10px; padding: 8px 16px; opacity: 0; }
+    .hw-kpi-v { display: block; font-size: 1.2rem; font-weight: 800; color: var(--dt-blue); }
+    .hw-kpi-l { font-size: 0.58rem; color: var(--dt-ink-muted); }
+    .hw-anim .hw-kpi { animation: hw-slideup 0.5s ease both; }
+    .hw-anim .hw-kpi:nth-child(2) { animation-delay: 0.3s; } .hw-anim .hw-kpi:nth-child(3) { animation-delay: 0.6s; }
+    .hw-linechart { width: 100%; height: 60px; }
+    .hw-anim .hw-linechart polyline { stroke-dasharray: 340; stroke-dashoffset: 340; animation: hw-draw 1.6s ease 1s forwards; }
+    .hw-anim .hw-linechart circle { opacity: 0; animation: hw-fadein 0.4s ease 2.4s forwards; }
+    @keyframes hw-draw { to { stroke-dashoffset: 0; } }
+    .hw-hbars { display: flex; flex-direction: column; gap: 5px; }
+    .hw-hbar { display: flex; align-items: center; gap: 8px; font-size: 0.6rem; }
+    .hw-hbar i { font-style: normal; width: 70px; color: var(--dt-ink-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .hw-hbar b { font-size: 0.6rem; color: var(--dt-ink); }
+    .hw-hbar-fill { height: 9px; border-radius: 5px; background: var(--dt-blue); opacity: 0.8; }
+    .hw-anim .hw-hbar-fill { transform-origin: left; animation: hw-barin 0.9s ease both; }
+    .hw-anim .hw-hbar:nth-child(1) .hw-hbar-fill { animation-delay: 5.4s; } .hw-anim .hw-hbar:nth-child(2) .hw-hbar-fill { animation-delay: 5.7s; } .hw-anim .hw-hbar:nth-child(3) .hw-hbar-fill { animation-delay: 6s; } .hw-anim .hw-hbar:nth-child(4) .hw-hbar-fill { animation-delay: 6.3s; }
+    @keyframes hw-barin { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+    @keyframes hw-scrollup { 0% { transform: translateY(0); } 100% { transform: translateY(-46%); } }
+    .hw-controls { display: flex; align-items: center; gap: 10px; margin-top: 14px; flex-wrap: wrap; }
     .hw-ctl { background: #fff; border: 1px solid var(--dt-border); border-radius: 8px; width: 30px; height: 30px; display: grid; place-items: center; cursor: pointer; font-size: 0.9rem; color: var(--dt-ink-secondary); }
     .hw-ctl:hover, .hw-ctl:focus-visible { border-color: var(--dt-blue); color: var(--dt-ink); outline: none; }
     .hw-pause, .hw-replay { width: auto; padding: 0 14px; font-size: 0.7rem; }
@@ -1200,17 +1337,20 @@ foreach (['operate', 'control', 'scale'] as $plan) {
     @media (max-width: 900px) {
       .hw-walk { grid-template-columns: 1fr; }
       .hw-steps { display: none; }
-      .hw-stage { min-height: 260px; padding: 16px; }
-      .hw-scene { inset: 16px; }
-      .hw-board { gap: 6px; }
-      .hw-col-head { font-size: 0.55rem; }
-      .hw-card-mini { font-size: 0.66rem; padding: 5px 7px; }
+      .hw-stage { height: 300px; padding: 12px; }
+      .hw-scene { inset: 12px; }
+      .hw-team, .hw-assignp, .hw-dp-cols { grid-template-columns: 1fr; gap: 8px; }
+      .hw-roster { border-left: none; padding-left: 0; }
+      .hw-boardX { gap: 5px; } .hw-colx { padding: 5px; } .hw-casecard { font-size: 0.54rem; padding: 4px 5px; }
+      .hw-addstage { display: none; }
       .hw-controls { justify-content: center; }
     }
     @media (prefers-reduced-motion: reduce) {
-      .hw-anim .hw-col-move, .hw-anim .hw-notif, .hw-anim .hw-join, .hw-anim .hw-join2, .hw-anim .hw-pop, .hw-anim .hw-inbox-row, .hw-anim .hw-acts, .hw-anim .hw-caseborn, .hw-anim .hw-note, .hw-anim .hw-comment, .hw-anim .hw-imgchip, .hw-anim #hwHero, .hw-anim .hw-card-risk, .hw-anim .hw-kpi, .hw-anim .hw-bar { animation: none !important; }
+      .hw-scene * { animation: none !important; opacity: 1 !important; transform: none !important; }
       .hw-scene { transition: none; }
       .hw-pause { display: none; }
+      .hw-typebox, .hw-picker, .hw-emailcard, .hw-imgview, .hw-inboxbar, .hw-born, .hw-cmt, .hw-cmtbox, .hw-noteX, .hw-thumb, .hw-kpi { opacity: 1 !important; }
+      .hw-colx-new { flex: 1 1 0; opacity: 1; padding: 8px; border-width: 1px; }
     }
   </style>
 </head>
@@ -1698,52 +1838,157 @@ foreach (['operate', 'control', 'scale'] as $plan) {
         <div class="hw-main">
           <h3 class="hw-scene-title" id="hwSceneTitle"><?php echo t('marketing.walkthrough.step1_title'); ?></h3>
           <p class="hw-scene-copy" id="hwSceneCopy"><?php echo t('marketing.walkthrough.step1_copy'); ?></p>
-          <div class="hw-stage" id="hwStage" aria-hidden="true">
+                    <div class="hw-stage" id="hwStage" aria-hidden="true">
+
+            <!-- SCENE 1: workflow board, add stage + rename -->
             <div class="hw-scene hw-active" data-scene="1">
-              <div class="hw-board">
-                <div class="hw-col"><span class="hw-col-head"><?php echo t('marketing.walkthrough.stage_new'); ?></span><div class="hw-card-mini">Crown #14</div></div>
-                <div class="hw-col hw-col-move" id="hwColMove"><span class="hw-col-head"><?php echo t('marketing.walkthrough.stage_lab'); ?></span></div>
-                <div class="hw-col"><span class="hw-col-head"><?php echo t('marketing.walkthrough.stage_out'); ?></span></div>
-                <div class="hw-col"><span class="hw-col-head"><?php echo t('marketing.walkthrough.stage_done'); ?></span></div>
+              <div class="hw-boardX">
+                <div class="hw-colx"><div class="hw-colx-head"><span class="hw-colx-name" id="hwRenameTarget"><?php echo t('marketing.walkthrough.stage_new'); ?></span><span class="hw-colx-edit" id="hwEditBtn">✎</span></div>
+                  <div class="hw-casecard">Crown #14<span class="hw-cc-meta">M. Chen · Apr 10</span></div>
+                  <div class="hw-casecard">Bridge #7<span class="hw-cc-meta">A. Rivera · Apr 12</span></div>
+                </div>
+                <div class="hw-colx"><div class="hw-colx-head"><span class="hw-colx-name"><?php echo t('marketing.walkthrough.stage_lab'); ?></span></div>
+                  <div class="hw-casecard">Inlay #2<span class="hw-cc-meta">M. Chen · Apr 9</span></div>
+                </div>
+                <div class="hw-colx"><div class="hw-colx-head"><span class="hw-colx-name"><?php echo t('marketing.walkthrough.stage_done'); ?></span></div>
+                  <div class="hw-casecard">Crown #9<span class="hw-cc-meta">J. Lee · Apr 4</span></div>
+                </div>
+                <div class="hw-colx hw-colx-new" id="hwNewCol"><div class="hw-colx-head"><span class="hw-colx-name"><?php echo t('marketing.walkthrough.qc_stage'); ?></span></div>
+                  <div class="hw-casecard hw-casecard-dim">—</div>
+                </div>
+                <div class="hw-addstage" id="hwAddStage"><span class="hw-plus">+</span> <?php echo t('marketing.walkthrough.add_stage'); ?></div>
+                <div class="hw-typebox" id="hwTypeBox"><input class="hw-typeinput" id="hwTypeInput" readonly value=""><span class="hw-okbtn">✓</span></div>
               </div>
+              <div class="hw-cursor" id="hwCursor"></div>
             </div>
+
+            <!-- SCENE 2: invite + roster -->
             <div class="hw-scene" data-scene="2" hidden>
-              <div class="hw-invite"><div class="hw-field"><span class="hw-field-text">maya.frontdesk@example.com</span><span class="hw-btn-mini"><?php echo t('marketing.walkthrough.invite_btn'); ?></span></div>
-              <div class="hw-notif"><?php echo t('marketing.walkthrough.invite_notif'); ?></div>
-              <div class="hw-avatars"><span class="hw-avatar hw-a1">HL</span><span class="hw-avatar hw-a2 hw-join">MF</span><span class="hw-avatar hw-lab hw-join2">PDL</span></div></div>
-            </div>
-            <div class="hw-scene" data-scene="3" hidden>
-              <div class="hw-sources"><span class="hw-src"><?php echo t('marketing.walkthrough.src_manual'); ?></span><span class="hw-src"><?php echo t('marketing.walkthrough.src_pms'); ?></span><span class="hw-src"><?php echo t('marketing.walkthrough.src_scanner'); ?></span></div>
-              <div class="hw-inbox-row"><?php echo t('marketing.walkthrough.scan_inbox_row'); ?></div>
-              <div class="hw-acts"><span class="hw-btn-mini"><?php echo t('marketing.walkthrough.act_create'); ?></span><span class="hw-btn-mini hw-btn-ghost"><?php echo t('marketing.walkthrough.act_attach'); ?></span></div>
-              <div class="hw-card-mini hw-caseborn">Crown #14</div>
-            </div>
-            <div class="hw-scene" data-scene="4" hidden>
-              <div class="hw-card-case"><span class="hw-card-title">Crown #14</span><span class="hw-avatar hw-a2 hw-pop">MF</span><span class="hw-assign-tag"><?php echo t('marketing.walkthrough.assign_tag'); ?></span></div>
-            </div>
-            <div class="hw-scene" data-scene="5" hidden>
-              <div class="hw-detail"><div class="hw-detail-head">Crown #14</div>
-                <div class="hw-note"><?php echo t('marketing.walkthrough.note_txt'); ?></div>
-                <div class="hw-comment"><span class="hw-avatar hw-a1">HL</span><span><?php echo t('marketing.walkthrough.comment_txt'); ?></span></div>
-                <div class="hw-imgchip"></div>
+              <div class="hw-team">
+                <div class="hw-inviteX">
+                  <div class="hw-panel-head"><?php echo t('marketing.walkthrough.invite_head'); ?></div>
+                  <div class="hw-field"><span class="hw-field-text" id="hwInviteEmail"></span><span class="hw-btn-mini" id="hwInviteBtn"><?php echo t('marketing.walkthrough.invite_btn'); ?></span></div>
+                  <div class="hw-emailcard" id="hwEmailCard"><div class="hw-email-ic">✉</div><div><b><?php echo t('marketing.walkthrough.email_subj'); ?></b><span class="hw-email-sub">team@dentatrak.com</span></div><span class="hw-btn-mini hw-accept"><?php echo t('marketing.walkthrough.accept_btn'); ?></span></div>
+                  <div class="hw-freenote"><?php echo t('marketing.walkthrough.no_charge'); ?></div>
+                </div>
+                <div class="hw-roster">
+                  <div class="hw-panel-head"><?php echo t('marketing.walkthrough.roster_head'); ?></div>
+                  <div class="hw-person"><span class="hw-av hw-av-b">AR</span><span class="hw-p-info"><b>Dr. Alex Rivera</b><i><?php echo t('marketing.walkthrough.role_dentist'); ?> · <?php echo t('marketing.walkthrough.org_yours'); ?></i></span></div>
+                  <div class="hw-person hw-join1"><span class="hw-av hw-av-p">MC</span><span class="hw-p-info"><b>Maya Chen</b><i><?php echo t('marketing.walkthrough.role_coord'); ?> · <?php echo t('marketing.walkthrough.org_yours'); ?></i></span><span class="hw-joined"><?php echo t('marketing.walkthrough.joined'); ?></span></div>
+                  <div class="hw-person hw-join2"><span class="hw-av hw-av-t">JL</span><span class="hw-p-info"><b>Jordan Lee</b><i><?php echo t('marketing.walkthrough.role_labtech'); ?> · <?php echo t('marketing.walkthrough.org_lab'); ?></i></span><span class="hw-joined"><?php echo t('marketing.walkthrough.joined'); ?></span></div>
+                </div>
               </div>
             </div>
+
+            <!-- SCENE 3: three case-creation paths -->
+            <div class="hw-scene" data-scene="3" hidden>
+              <div class="hw-cases">
+                <div class="hw-srcrow">
+                  <div class="hw-srcbox" id="hwSrcPms"><div class="hw-srcwin"><div class="hw-srcwin-bar"></div><div class="hw-srcwin-line"></div><div class="hw-srcwin-line hw-w60"></div><div class="hw-srcwin-hl" id="hwPmsRow">Hannah Lindqvist · Crown</div><div class="hw-srcwin-line hw-w40"></div></div><span class="hw-src-label"><?php echo t('marketing.walkthrough.src_pms'); ?></span><span class="hw-src-vendor">Open Dental</span></div>
+                  <div class="hw-srcbox" id="hwSrcScan"><div class="hw-srcwin"><svg class="hw-scanart" viewBox="0 0 60 40"><rect x="6" y="14" width="34" height="12" rx="6" fill="#2563eb" opacity="0.9"/><rect x="38" y="17" width="16" height="6" rx="3" fill="#1e3a5f"/><path d="M20 8 q10 -6 20 0" stroke="#0ea5a8" stroke-width="2" fill="none" opacity="0.7"/><path d="M22 32 q8 5 16 0" stroke="#0ea5a8" stroke-width="2" fill="none" opacity="0.7"/></svg><div class="hw-srcwin-line hw-w60"></div></div><span class="hw-src-label"><?php echo t('marketing.walkthrough.src_scanner'); ?></span><span class="hw-src-vendor">Primescan / DS Core</span></div>
+                  <div class="hw-srcbox" id="hwSrcManual"><div class="hw-srcwin"><div class="hw-srcwin-line" id="hwManF1"></div><div class="hw-srcwin-line hw-w80" id="hwManF2"></div><div class="hw-srcwin-line hw-w60" id="hwManF3"></div></div><span class="hw-src-label"><?php echo t('marketing.walkthrough.src_manual'); ?></span><span class="hw-src-vendor"><?php echo t('marketing.walkthrough.manual_sub'); ?></span></div>
+                </div>
+                <div class="hw-inboxbar" id="hwInboxBar"><span class="hw-inbox-tag"><?php echo t('marketing.walkthrough.scan_inbox_row'); ?></span><span class="hw-btn-mini hw-btn-ghost" id="hwInboxSel"><?php echo t('marketing.walkthrough.act_select'); ?></span><span class="hw-btn-mini" id="hwInboxCreate"><?php echo t('marketing.walkthrough.act_create'); ?></span></div>
+                <div class="hw-newcases"><span class="hw-nc-head"><?php echo t('marketing.walkthrough.new_cases'); ?></span>
+                  <div class="hw-casecard hw-born hw-born1">Crown #14<span class="hw-badge hw-b-pms">PMS</span></div>
+                  <div class="hw-casecard hw-born hw-born2">Crown #15<span class="hw-badge hw-b-scan"><?php echo t('marketing.walkthrough.badge_scan'); ?></span></div>
+                  <div class="hw-casecard hw-born hw-born3">Veneer #3<span class="hw-badge hw-b-man"><?php echo t('marketing.walkthrough.badge_manual'); ?></span></div>
+                </div>
+                <div class="hw-planline"><?php echo t('marketing.walkthrough.plan_note_int'); ?></div>
+              </div>
+            </div>
+
+            <!-- SCENE 4: assignment -->
+            <div class="hw-scene" data-scene="4" hidden>
+              <div class="hw-assignp">
+                <div class="hw-caseX"><div class="hw-caseX-head">Crown #14 · Hannah Lindqvist</div>
+                  <div class="hw-assignedto"><span class="hw-at-label"><?php echo t('marketing.walkthrough.assigned_to'); ?></span><span class="hw-at-val" id="hwAssignee"><span class="hw-at-n hw-n0"><?php echo t('marketing.walkthrough.unassigned'); ?></span><span class="hw-at-n hw-n1">Maya Chen</span><span class="hw-at-n hw-n2">Dr. Alex Rivera</span><span class="hw-at-n hw-n3"><?php echo t('marketing.walkthrough.lab_label'); ?></span></span><span class="hw-btn-mini" id="hwPickBtn"><?php echo t('marketing.walkthrough.change_btn'); ?></span></div>
+                </div>
+                <div class="hw-picker" id="hwPicker">
+                  <div class="hw-pick-group"><?php echo t('marketing.walkthrough.grp_people'); ?></div>
+                  <div class="hw-pick" data-who="Maya Chen"><span class="hw-av hw-av-p">MC</span><span class="hw-p-info"><b>Maya Chen</b><i><?php echo t('marketing.walkthrough.role_coord'); ?></i></span></div>
+                  <div class="hw-pick" data-who="Dr. Alex Rivera"><span class="hw-av hw-av-b">AR</span><span class="hw-p-info"><b>Dr. Alex Rivera</b><i><?php echo t('marketing.walkthrough.role_dentist'); ?></i></span></div>
+                  <div class="hw-pick-group"><?php echo t('marketing.walkthrough.grp_labels'); ?></div>
+                  <div class="hw-pick hw-pick-lab" data-who="Lab"><span class="hw-av hw-av-t">LB</span><span class="hw-p-info"><b><?php echo t('marketing.walkthrough.lab_label'); ?></b><i><?php echo t('marketing.walkthrough.lab_label_sub'); ?></i></span></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- SCENE 5: case detail -->
+            <div class="hw-scene" data-scene="5" hidden>
+              <div class="hw-detailp">
+                <div class="hw-dp-head"><b>Crown #14</b><span>Hannah Lindqvist · <?php echo t('marketing.walkthrough.due_lbl'); ?> Apr 19 · <?php echo t('marketing.walkthrough.shade_lbl'); ?> A2</span></div>
+                <div class="hw-dp-cols">
+                  <div class="hw-dp-col">
+                    <div class="hw-dp-sec"><?php echo t('marketing.walkthrough.sec_notes'); ?></div>
+                    <div class="hw-noteX" id="hwNote1"><?php echo t('marketing.walkthrough.note_txt'); ?></div>
+                    <div class="hw-dp-sec"><?php echo t('marketing.walkthrough.sec_attach'); ?></div>
+                    <div class="hw-thumbs"><span class="hw-thumb" id="hwThumb1"><svg viewBox="0 0 40 30"><ellipse cx="20" cy="15" rx="14" ry="10" fill="#0ea5a8" opacity="0.8"/><ellipse cx="16" cy="13" rx="3" ry="5" fill="#fff" opacity="0.85"/><ellipse cx="25" cy="14" rx="3" ry="5" fill="#fff" opacity="0.85"/></svg></span><span class="hw-thumb" id="hwThumb2"><svg viewBox="0 0 40 30"><rect x="4" y="4" width="32" height="22" rx="3" fill="#1e3a5f"/><path d="M10 22 q10 -14 20 0" stroke="#dbe7f6" stroke-width="2" fill="none"/></svg></span></div>
+                    <div class="hw-upbar" id="hwUpBar"><?php echo t('marketing.walkthrough.upload_bar'); ?></div>
+                  </div>
+                  <div class="hw-dp-col">
+                    <div class="hw-dp-sec"><?php echo t('marketing.walkthrough.sec_comments'); ?></div>
+                    <div class="hw-cmt" id="hwCmt1"><span class="hw-av hw-av-p">MC</span><span class="hw-p-info"><b>Maya Chen · 10:24</b><i><?php echo t('marketing.walkthrough.comment_txt'); ?></i></span></div>
+                    <div class="hw-cmt" id="hwCmt2"><span class="hw-av hw-av-t">JL</span><span class="hw-p-info"><b>Jordan Lee · 10:41</b><i><?php echo t('marketing.walkthrough.comment_reply'); ?></i></span></div>
+                    <div class="hw-cmtbox" id="hwCmtBox"><span class="hw-cmt-type" id="hwCmtType"></span><span class="hw-sendbtn">→</span></div>
+                  </div>
+                </div>
+                <div class="hw-imgview" id="hwImgView"><svg viewBox="0 0 120 80"><ellipse cx="60" cy="40" rx="40" ry="27" fill="#0ea5a8" opacity="0.85"/><ellipse cx="48" cy="34" rx="8" ry="13" fill="#fff" opacity="0.85"/><ellipse cx="72" cy="36" rx="8" ry="13" fill="#fff" opacity="0.85"/></svg></div>
+              </div>
+            </div>
+
+            <!-- SCENE 6: populated board + attention -->
             <div class="hw-scene" data-scene="6" hidden>
-              <div class="hw-board">
-                <div class="hw-col"><span class="hw-col-head"><?php echo t('marketing.walkthrough.stage_new'); ?></span><div class="hw-card-mini">Bridge #7</div></div>
-                <div class="hw-col" id="hwColMid"><span class="hw-col-head"><?php echo t('marketing.walkthrough.stage_lab'); ?></span><div class="hw-card-mini hw-card-hero" id="hwHero">Crown #14</div><div class="hw-card-mini hw-card-risk"><?php echo t('marketing.walkthrough.risk_card'); ?></div></div>
-                <div class="hw-col" id="hwColNext"><span class="hw-col-head"><?php echo t('marketing.walkthrough.stage_out'); ?></span></div>
-                <div class="hw-col"><span class="hw-col-head"><?php echo t('marketing.walkthrough.stage_done'); ?></span></div>
+              <div class="hw-boardX hw-board6">
+                <div class="hw-colx"><div class="hw-colx-head"><span class="hw-colx-name"><?php echo t('marketing.walkthrough.stage_ready'); ?></span></div>
+                  <div class="hw-casecard">Bridge #7<span class="hw-cc-meta">M. Chen · Apr 12</span></div>
+                  <div class="hw-casecard">Inlay #5<span class="hw-cc-meta">A. Rivera · Apr 14</span></div>
+                  <div class="hw-casecard">Onlay #1<span class="hw-cc-meta">M. Chen · Apr 15</span></div>
+                </div>
+                <div class="hw-colx"><div class="hw-colx-head"><span class="hw-colx-name"><?php echo t('marketing.walkthrough.stage_lab'); ?></span></div>
+                  <div class="hw-casecard" id="hwDueSoon">Crown #14<span class="hw-cc-meta">M. Chen · <b class="hw-dd">Apr 10</b></span><span class="hw-flag hw-flag-amber"><?php echo t('marketing.walkthrough.due_soon'); ?></span></div>
+                  <div class="hw-casecard" id="hwLate">Denture #3<span class="hw-cc-meta">Lab · <b class="hw-dd">Apr 6</b></span><span class="hw-flag hw-flag-red"><?php echo t('marketing.walkthrough.late_lbl'); ?></span></div>
+                  <div class="hw-casecard">Crown #11<span class="hw-cc-meta">A. Rivera · Apr 16</span></div>
+                </div>
+                <div class="hw-colx"><div class="hw-colx-head"><span class="hw-colx-name"><?php echo t('marketing.walkthrough.qc_stage'); ?></span></div>
+                  <div class="hw-casecard">Veneer #3<span class="hw-cc-meta">M. Chen · Apr 11</span></div>
+                  <div class="hw-casecard">Crown #16<span class="hw-cc-meta">Lab · Apr 13</span></div>
+                </div>
+                <div class="hw-colx"><div class="hw-colx-head"><span class="hw-colx-name"><?php echo t('marketing.walkthrough.stage_done'); ?></span></div>
+                  <div class="hw-casecard">Crown #9<span class="hw-cc-meta">J. Lee · Apr 4</span></div>
+                  <div class="hw-casecard">Inlay #2<span class="hw-cc-meta">M. Chen · Apr 5</span></div>
+                  <div class="hw-casecard">Bridge #4<span class="hw-cc-meta">A. Rivera · Apr 7</span></div>
+                </div>
               </div>
               <div class="hw-riskline"><?php echo t('marketing.walkthrough.risk_line'); ?></div>
             </div>
+
+            <!-- SCENE 7: insights dashboard, internal scroll -->
             <div class="hw-scene" data-scene="7" hidden>
-              <div class="hw-kpis"><div class="hw-kpi"><span class="hw-kpi-v">12</span><span class="hw-kpi-l"><?php echo t('marketing.walkthrough.kpi_active'); ?></span></div>
-              <div class="hw-kpi"><span class="hw-kpi-v">4.2d</span><span class="hw-kpi-l"><?php echo t('marketing.walkthrough.kpi_turn'); ?></span></div>
-              <div class="hw-kpi"><span class="hw-kpi-v">93%</span><span class="hw-kpi-l"><?php echo t('marketing.walkthrough.kpi_ontime'); ?></span></div></div>
-              <svg class="hw-chart" viewBox="0 0 220 90"><rect x="14" y="44" width="24" height="40" rx="3" class="hw-bar"/><rect x="52" y="30" width="24" height="54" rx="3" class="hw-bar"/><rect x="90" y="52" width="24" height="32" rx="3" class="hw-bar"/><rect x="128" y="20" width="24" height="64" rx="3" class="hw-bar"/><rect x="166" y="38" width="24" height="46" rx="3" class="hw-bar"/></svg>
-              <p class="hw-sample"><?php echo t('marketing.walkthrough.sample_data'); ?></p>
+              <div class="hw-dashp">
+                <div class="hw-dash-head"><?php echo t('marketing.walkthrough.dash_head'); ?><span class="hw-sample"><?php echo t('marketing.walkthrough.sample_data'); ?></span></div>
+                <div class="hw-dash-scroll" id="hwDashScroll"><div class="hw-dash-scroll-inner">
+                  <div class="hw-kpis">
+                    <div class="hw-kpi"><span class="hw-kpi-v">12</span><span class="hw-kpi-l"><?php echo t('marketing.walkthrough.kpi_active'); ?></span></div>
+                    <div class="hw-kpi"><span class="hw-kpi-v">4.2d</span><span class="hw-kpi-l"><?php echo t('marketing.walkthrough.kpi_turn'); ?></span></div>
+                    <div class="hw-kpi"><span class="hw-kpi-v">93%</span><span class="hw-kpi-l"><?php echo t('marketing.walkthrough.kpi_ontime'); ?></span></div>
+                  </div>
+                  <div class="hw-chartbox"><div class="hw-cb-title"><?php echo t('marketing.walkthrough.chart_volume'); ?></div>
+                    <svg viewBox="0 0 240 70" class="hw-linechart"><polyline points="0,50 40,42 80,46 120,30 160,34 200,18 240,22" fill="none" stroke="#2563eb" stroke-width="2.5"/><circle cx="200" cy="18" r="3.5" fill="#2563eb"/></svg>
+                  </div>
+                  <div class="hw-chartbox"><div class="hw-cb-title"><?php echo t('marketing.walkthrough.chart_stages'); ?></div>
+                    <div class="hw-hbars"><div class="hw-hbar"><i><?php echo t('marketing.walkthrough.stage_ready'); ?></i><div class="hw-hbar-fill" style="width:55%"></div><b>5</b></div>
+                    <div class="hw-hbar"><i><?php echo t('marketing.walkthrough.stage_lab'); ?></i><div class="hw-hbar-fill" style="width:40%"></div><b>4</b></div>
+                    <div class="hw-hbar"><i><?php echo t('marketing.walkthrough.qc_stage'); ?></i><div class="hw-hbar-fill" style="width:20%"></div><b>2</b></div>
+                    <div class="hw-hbar"><i><?php echo t('marketing.walkthrough.stage_done'); ?></i><div class="hw-hbar-fill" style="width:10%"></div><b>1</b></div></div>
+                  </div>
+                  <div class="hw-chartbox"><div class="hw-cb-title"><?php echo t('marketing.walkthrough.chart_labs'); ?></div>
+                    <svg viewBox="0 0 240 70"><rect x="30" y="30" width="30" height="34" rx="3" fill="#2563eb"/><rect x="105" y="18" width="30" height="46" rx="3" fill="#0ea5a8"/><rect x="180" y="40" width="30" height="24" rx="3" fill="#8b5cf6"/><text x="45" y="70" font-size="8" text-anchor="middle" fill="#5c6b80">PDL</text><text x="120" y="70" font-size="8" text-anchor="middle" fill="#5c6b80">Lab B</text><text x="195" y="70" font-size="8" text-anchor="middle" fill="#5c6b80">Lab C</text></svg>
+                  </div>
+                </div></div>
+              </div>
             </div>
+
           </div>
           <div class="hw-controls">
             <button type="button" class="hw-ctl" id="hwPrev" aria-label="<?php echo htmlspecialchars(t('marketing.walkthrough.prev_aria')); ?>">‹</button>
@@ -3445,7 +3690,7 @@ foreach (['operate', 'control', 'scale'] as $plan) {
   })();
   </script>
 
-  <script>
+    <script>
   // How-it-works walkthrough: 7 scenes, autoplay once then hold, full controls.
   (function () {
     var wrap = document.getElementById('hwWalk');
@@ -3464,10 +3709,14 @@ foreach (['operate', 'control', 'scale'] as $plan) {
       pause: <?php echo json_encode(t('marketing.walkthrough.pause')); ?>,
       play: <?php echo json_encode(t('marketing.walkthrough.play')); ?>
     };
-    var titles = <?php $o=[];$c=[];for($i=1;$i<=7;$i++){$o[$i]=t('marketing.walkthrough.step'.$i.'_title');$c[$i]=t('marketing.walkthrough.step'.$i.'_copy');}echo json_encode(['t'=>$o,'c'=>$c],JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE); ?>;
-    var current = 1, playing = false, timer = null, visible = false;
+    var meta = <?php $o=[];$c=[];for($i=1;$i<=7;$i++){$o[$i]=t('marketing.walkthrough.step'.$i.'_title');$c[$i]=t('marketing.walkthrough.step'.$i.'_copy');}echo json_encode(['t'=>$o,'c'=>$c],JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE); ?>;
+    var DUR = {1:9500, 2:9800, 3:10600, 4:11000, 5:9800, 6:10000, 7:12000};
+    var current = 1, playing = false, cssFrozen = false, timer = null, visible = false;
     for (var i = 1; i <= 7; i++) { var d = document.createElement('span'); d.className = 'hw-dot'; dots.appendChild(d); }
     var dotEls = dots.querySelectorAll('.hw-dot');
+    function applyFreeze() {
+      wrap.classList.toggle('hw-paused', cssFrozen || !visible || document.hidden);
+    }
     function show(n, userInitiated) {
       current = n;
       scenes.forEach(function (s) {
@@ -3477,12 +3726,11 @@ foreach (['operate', 'control', 'scale'] as $plan) {
       });
       steps.forEach(function (s) { s.setAttribute('aria-selected', +s.dataset.step === n ? 'true' : 'false'); });
       dotEls.forEach(function (d, i) { d.classList.toggle('on', i === n - 1); });
-      title.textContent = titles.t[n]; copy.textContent = titles.c[n];
+      title.textContent = meta.t[n]; copy.textContent = meta.c[n];
       wrap.classList.remove('hw-anim'); void wrap.offsetWidth;
       if (!reduced) wrap.classList.add('hw-anim');
       if (userInitiated) { playing = false; syncPause(); }
-      if (n === 7 && !userInitiated) { finish(); }
-      if (userInitiated) queue();
+      queue();
     }
     function queue() {
       clearTimeout(timer);
@@ -3490,7 +3738,7 @@ foreach (['operate', 'control', 'scale'] as $plan) {
       timer = setTimeout(function () {
         if (current >= 7) { finish(); return; }
         show(current + 1, false);
-      }, current === 1 ? 5600 : 6200);
+      }, DUR[current] || 9000);
     }
     function finish() { playing = false; clearTimeout(timer); btnReplay.hidden = false; btnPause.hidden = true; }
     function syncPause() {
@@ -3499,17 +3747,26 @@ foreach (['operate', 'control', 'scale'] as $plan) {
     }
     btnPrev.addEventListener('click', function () { show(current === 1 ? 7 : current - 1, true); });
     btnNext.addEventListener('click', function () { show(current === 7 ? 1 : current + 1, true); });
-    btnPause.addEventListener('click', function () { playing = !playing; syncPause(); queue(); });
-    btnReplay.addEventListener('click', function () { btnReplay.hidden = true; btnPause.hidden = false; playing = visible; syncPause(); show(1, false); queue(); });
+    btnPause.addEventListener('click', function () {
+      cssFrozen = !cssFrozen; playing = !cssFrozen; syncPause(); applyFreeze();
+      if (playing) queue(); else clearTimeout(timer);
+    });
+    btnReplay.addEventListener('click', function () {
+      btnReplay.hidden = true; btnPause.hidden = false;
+      cssFrozen = false; playing = visible && !reduced; syncPause(); applyFreeze();
+      show(1, false);
+    });
     steps.forEach(function (s) { s.addEventListener('click', function () { show(+s.dataset.step, true); }); });
     if ('IntersectionObserver' in window) {
       new IntersectionObserver(function (e) {
         visible = e[0].isIntersecting;
-        if (visible && !playing && !reduced) { playing = true; syncPause(); queue(); }
+        applyFreeze();
+        if (visible && !playing && !reduced && !cssFrozen) { playing = true; syncPause(); queue(); }
         if (!visible) { playing = false; clearTimeout(timer); syncPause(); }
       }, { threshold: 0.35 }).observe(wrap);
     } else { visible = true; playing = !reduced; syncPause(); queue(); }
     document.addEventListener('visibilitychange', function () {
+      applyFreeze();
       if (document.hidden) { clearTimeout(timer); } else if (playing && visible) { queue(); }
     });
     show(1, false);
