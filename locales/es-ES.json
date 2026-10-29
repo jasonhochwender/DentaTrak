@@ -5637,7 +5637,7 @@
         },
         "attention": {
             "eyebrow": "Vista del producto",
-            "title": "¿Listo para esa cita?",
+            "title": "Mantén cada caso en el buen camino.",
             "lead": "DentaTrak conecta la fecha de entrega de cada caso con la fecha de la cita del paciente y la etapa del flujo en la que se encuentra. Los casos que se acercan a una cita sin estar listos muestran Riesgo de cita; los que superan su umbral muestran Atrasado; los plazos próximos muestran Próximo a vencer. Su equipo ve qué necesita atención sin revisar cada tarjeta. Si la fecha de devolución prometida por el laboratorio cae después de la cita, también cuenta como Riesgo de cita.",
             "late": "Atrasado",
             "due_soon": "Próximo a vencer",

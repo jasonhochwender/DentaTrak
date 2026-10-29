@@ -5637,7 +5637,7 @@
         },
         "attention": {
             "eyebrow": "Product View",
-            "title": "Ready for that appointment?",
+            "title": "Keep every case on track.",
             "lead": "DentaTrak connects each case's due date to the patient appointment date and the workflow stage it is in. Cases approaching an appointment before they are ready show Appointment Risk; cases past your threshold show Late; upcoming deadlines show Due Soon. Your team sees what needs attention without checking every card. When a lab's promised return date lands after the appointment, that counts as Appointment Risk as well.",
             "late": "Late",
             "due_soon": "Due Soon",

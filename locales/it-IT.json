@@ -5637,7 +5637,7 @@
         },
         "attention": {
             "eyebrow": "Vista del prodotto",
-            "title": "Pronto per quell'appuntamento?",
+            "title": "Mantieni ogni caso sulla buona strada.",
             "lead": "DentaTrak collega la data di scadenza di ogni caso alla data dell’appuntamento del paziente e alla fase di workflow in cui si trova. I casi che si avvicinano a un appuntamento senza essere pronti mostrano Rischio appuntamento; quelli oltre la tua soglia mostrano In ritardo; le scadenze vicine mostrano In scadenza. Il team vede cosa richiede attenzione senza controllare ogni scheda. Se la data di rientro promessa dal laboratorio cade dopo l'appuntamento, conta anch'essa come Rischio appuntamento.",
             "late": "In ritardo",
             "due_soon": "In scadenza",

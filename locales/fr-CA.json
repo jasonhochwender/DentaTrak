@@ -5637,7 +5637,7 @@
         },
         "attention": {
             "eyebrow": "Aperçu du produit",
-            "title": "Prêt pour ce rendez-vous?",
+            "title": "Gardez chaque cas sur la bonne voie.",
             "lead": "DentaTrak relie la date d’échéance de chaque cas à la date du rendez-vous du patient et à son étape de workflow. Les cas qui approchent d’un rendez-vous sans être prêts affichent Risque de rendez-vous; ceux qui dépassent votre seuil affichent En retard; les échéances proches affichent Bientôt dû. Votre équipe voit ce qui demande attention sans vérifier chaque carte. Si la date de retour promise par le laboratoire tombe après le rendez-vous, cela compte aussi comme Risque de rendez-vous.",
             "late": "En retard",
             "due_soon": "Bientôt dû",

@@ -1786,7 +1786,7 @@
         },
         "attention": {
             "eyebrow": "Visão do produto",
-            "title": "Pronto para aquela consulta?",
+            "title": "Mantenha cada caso no rumo certo.",
             "lead": "O DentaTrak conecta a data de entrega de cada caso à data da consulta do paciente e ao estágio do fluxo em que ele está. Casos que se aproximam de uma consulta sem estarem prontos mostram Risco de consulta; os que passam do seu limite mostram Atrasado; prazos próximos mostram Vencendo em breve. Sua equipe vê o que precisa de atenção sem conferir cada cartão. Se a data de devolução prometida pelo laboratório cair depois da consulta, também conta como Risco para a consulta.",
             "late": "Atrasado",
             "due_soon": "Prazo próximo",

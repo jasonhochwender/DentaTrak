@@ -3877,7 +3877,7 @@
         },
         "attention": {
             "eyebrow": "Produktansicht",
-            "title": "Rechtzeitig zum Termin fertig?",
+            "title": "Halten Sie jeden Fall auf Kurs.",
             "lead": "DentaTrak verknüpft Fälligkeitsdatum und Patiententermin mit dem aktuellen Workflow-Schritt. Fälle, die sich einem Termin nähern, bevor sie fertig sind, zeigen ein Terminrisiko; Fälle über Ihrer Schwelle zeigen Verspätet; anstehende Fristen zeigen Bald fällig. Ihr Team sieht, was Aufmerksamkeit braucht, ohne jede Karte zu prüfen. Liegt der vom Labor zugesagte Rückgabetermin nach dem Termin, zählt das ebenfalls als Terminrisiko.",
             "late": "Verspätet",
             "due_soon": "Bald fällig",
