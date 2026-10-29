@@ -5754,7 +5754,11 @@
             "proof4": "Registro accessi ai casi",
             "proof4_sub": "attività tracciata",
             "proof5": "Business Associate Agreement",
-            "proof5_sub": "per studi e hosting"
+            "proof5_sub": "per studi e hosting",
+            "it_patient": "Dettagli paziente",
+            "it_rx": "Istruzioni di trattamento",
+            "it_images": "Immagini",
+            "it_chat": "Conversazioni laboratorio"
         },
         "mobile_section": {
             "eyebrow": "Browser mobile",

@@ -5793,7 +5793,11 @@
             "proof4": "Case access logging",
             "proof4_sub": "audited activity",
             "proof5": "Business Associate Agreement",
-            "proof5_sub": "for practices and hosting"
+            "proof5_sub": "for practices and hosting",
+            "it_patient": "Patient details",
+            "it_rx": "Treatment instructions",
+            "it_images": "Images",
+            "it_chat": "Lab conversations"
         },
         "mobile_section": {
             "eyebrow": "Mobile Browser",

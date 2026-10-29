@@ -5754,7 +5754,11 @@
             "proof4": "케이스 접근 로그",
             "proof4_sub": "감사된 활동",
             "proof5": "Business Associate Agreement",
-            "proof5_sub": "진료소 및 호스팅용"
+            "proof5_sub": "진료소 및 호스팅용",
+            "it_patient": "환자 정보",
+            "it_rx": "치료 지시",
+            "it_images": "이미지",
+            "it_chat": "랩 대화"
         },
         "mobile_section": {
             "eyebrow": "모바일 브라우저",

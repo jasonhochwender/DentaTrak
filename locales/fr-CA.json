@@ -5754,7 +5754,11 @@
             "proof4": "Journal d’accès aux cas",
             "proof4_sub": "activité auditée",
             "proof5": "Business Associate Agreement",
-            "proof5_sub": "pour les cabinets et l’hébergement"
+            "proof5_sub": "pour les cabinets et l’hébergement",
+            "it_patient": "Détails du patient",
+            "it_rx": "Instructions de traitement",
+            "it_images": "Images",
+            "it_chat": "Conversations du labo"
         },
         "mobile_section": {
             "eyebrow": "Navigateur mobile",

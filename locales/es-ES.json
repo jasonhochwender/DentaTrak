@@ -5754,7 +5754,11 @@
             "proof4": "Registro de acceso a casos",
             "proof4_sub": "actividad auditada",
             "proof5": "Business Associate Agreement",
-            "proof5_sub": "para prácticas y alojamiento"
+            "proof5_sub": "para prácticas y alojamiento",
+            "it_patient": "Datos del paciente",
+            "it_rx": "Instrucciones de tratamiento",
+            "it_images": "Imágenes",
+            "it_chat": "Conversaciones del laboratorio"
         },
         "mobile_section": {
             "eyebrow": "Navegador móvil",

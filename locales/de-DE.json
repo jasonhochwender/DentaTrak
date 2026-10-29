@@ -4138,7 +4138,11 @@
             "proof4": "Fallzugriffsprotokoll",
             "proof4_sub": "protokollierte Aktivität",
             "proof5": "Business Associate Agreement",
-            "proof5_sub": "für Praxen und Hosting"
+            "proof5_sub": "für Praxen und Hosting",
+            "it_patient": "Patientendetails",
+            "it_rx": "Behandlungsanweisungen",
+            "it_images": "Bilder",
+            "it_chat": "Laborgespräche"
         },
         "resources": {
             "title": "Ressourcen zur Fallverfolgung in der Zahnmedizin | DentaTrak",

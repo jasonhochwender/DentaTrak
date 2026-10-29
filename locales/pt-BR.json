@@ -2126,7 +2126,11 @@
             "proof4": "Registro de acesso a casos",
             "proof4_sub": "atividade auditada",
             "proof5": "Business Associate Agreement",
-            "proof5_sub": "para clínicas e hospedagem"
+            "proof5_sub": "para clínicas e hospedagem",
+            "it_patient": "Dados do paciente",
+            "it_rx": "Instruções de tratamento",
+            "it_images": "Imagens",
+            "it_chat": "Conversas do laboratório"
         },
         "hipaa": {
             "title": "HIPAA e segurança | DentaTrak",
