@@ -2440,7 +2440,6 @@ foreach (['operate', 'control', 'scale'] as $plan) {
           <span class="sec-proof"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg><b><?php echo t('marketing.security_section.proof5'); ?></b><i><?php echo t('marketing.security_section.proof5_sub'); ?></i></span>
         </div>
       </div>
-      </div>
 
       <?php
       $securityIcons = [
