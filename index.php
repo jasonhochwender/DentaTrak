@@ -1282,7 +1282,8 @@ foreach (['operate', 'control', 'scale'] as $plan) {
     .hw4-aval { position: relative; display: inline-block; min-width: 120px; min-height: 1.2em; font-size: 0.9rem; color: var(--dt-ink); }
     .hw4-aval i { font-style: normal; position: absolute; left: 0; top: 0; white-space: nowrap; opacity: 0; }
     .hw4-aval .hw4-a0 { position: static; opacity: 1; color: var(--dt-ink-muted); font-weight: 400; }
-    .hw4-reb { position: absolute; right: 14px; top: -12px; background: #e0f7f5; color: #0ea5a8; font-size: 0.62rem; font-weight: 700; border-radius: 999px; padding: 3px 10px; opacity: 0; }
+    .hw4-reb { float: right; margin: -2px 0 6px 10px; background: #e0f7f5; color: #0ea5a8; font-size: 0.62rem; font-weight: 700; border-radius: 999px; padding: 3px 10px; opacity: 0; }
+    .hw4-case-h { clear: both; }
     .hw4-links { position: absolute; left: 0; right: 0; top: 66px; width: 100%; height: 110px; z-index: 1; }
     .hw4-link { stroke: var(--dt-blue); stroke-width: 2.5; fill: none; stroke-dasharray: 300; stroke-dashoffset: 300; }
     .hw4-people { margin-top: auto; display: flex; gap: 12px; justify-content: space-between; z-index: 2; }
@@ -2138,10 +2139,9 @@ foreach (['operate', 'control', 'scale'] as $plan) {
                   <path class="hw4-link hw4-l2" d="M350 118 C350 60 350 40 350 12" fill="none"/>
                   <path class="hw4-link hw4-l3" d="M583 118 C583 60 380 40 350 12" fill="none"/>
                 </svg>
-                <div class="hw4-case"><div class="hw4-case-h">Crown #14 · Hannah Lindqvist</div>
+                <div class="hw4-case"><div class="hw4-reb"><?php echo t('marketing.walkthrough.reassigned'); ?></div><div class="hw4-case-h">Crown #14 · Hannah Lindqvist</div>
                   <div class="hw4-at"><span><?php echo t('marketing.walkthrough.assigned_to'); ?></span>
                     <b class="hw4-aval"><i class="hw4-a0"><?php echo t('marketing.walkthrough.unassigned'); ?></i><i class="hw4-a1">Maya Chen</i><i class="hw4-a2">Dr. Alex Rivera</i><i class="hw4-a3">Jordan Lee</i></b></div>
-                  <div class="hw4-reb"><?php echo t('marketing.walkthrough.reassigned'); ?></div>
                 </div>
                 <div class="hw4-people">
                   <div class="hw4-person hw4-p1"><span class="hw-av hw-av-p">MC</span><b>Maya Chen</b><i><?php echo t('marketing.walkthrough.org_yours'); ?></i></div>
