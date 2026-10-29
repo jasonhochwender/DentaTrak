@@ -1117,6 +1117,101 @@ foreach (['operate', 'control', 'scale'] as $plan) {
       }
       html { scroll-behavior: auto; }
     }
+    /* How-it-works walkthrough */
+    .hw-walk { display: grid; grid-template-columns: 220px 1fr; gap: 36px; margin-top: 40px; text-align: left; }
+    .hw-steps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+    .hw-step { display: flex; align-items: center; gap: 10px; width: 100%; padding: 9px 12px; border: 1px solid transparent; border-radius: 10px; background: none; cursor: pointer; font-size: 0.82rem; color: var(--dt-ink-secondary); text-align: left; }
+    .hw-step:hover { background: var(--dt-warm); }
+    .hw-step[aria-selected="true"] { background: #eef4fb; border-color: var(--dt-border); color: var(--dt-ink); font-weight: 600; }
+    .hw-step:focus-visible { outline: 2px solid var(--dt-blue); outline-offset: 2px; }
+    .hw-step-num { width: 22px; height: 22px; border-radius: 50%; background: var(--dt-blue); color: #fff; font-size: 0.68rem; font-weight: 700; display: grid; place-items: center; flex-shrink: 0; }
+    .hw-main { min-width: 0; }
+    .hw-scene-title { font-size: 1.15rem; color: var(--dt-ink); margin: 0 0 4px; }
+    .hw-scene-copy { font-size: 0.85rem; color: var(--dt-ink-secondary); margin: 0 0 18px; }
+    .hw-stage { position: relative; background: #fff; border: 1px solid var(--dt-border); border-radius: 18px; padding: 22px; min-height: 300px; box-shadow: var(--dt-shadow); }
+    .hw-scene { position: absolute; inset: 22px; opacity: 0; transition: opacity 0.45s ease; pointer-events: none; }
+    .hw-scene.hw-active { opacity: 1; pointer-events: auto; position: relative; inset: auto; }
+    .hw-board { display: flex; gap: 10px; }
+    .hw-col { flex: 1; min-width: 0; background: var(--dt-warm); border-radius: 10px; padding: 8px; }
+    .hw-col-head { font-size: 0.62rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--dt-ink-muted); display: block; margin-bottom: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .hw-card-mini { background: #fff; border: 1px solid var(--dt-border); border-left: 3px solid var(--dt-blue); border-radius: 8px; padding: 7px 9px; font-size: 0.72rem; font-weight: 600; color: var(--dt-ink); margin-bottom: 6px; }
+    .hw-card-risk { border-left-color: #f59e0b; }
+    .hw-anim .hw-col-move { animation: hw-colslide 1.6s ease-in-out 0.4s 2 alternate; }
+    @keyframes hw-colslide { 0%,100% { transform: translateX(0); } 50% { transform: translateX(8px); } }
+    .hw-invite { max-width: 320px; margin: 0 auto; }
+    .hw-field { display: flex; align-items: center; gap: 8px; background: var(--dt-warm); border: 1px solid var(--dt-border); border-radius: 10px; padding: 10px 12px; font-size: 0.78rem; }
+    .hw-field-text { flex: 1; color: var(--dt-ink-secondary); overflow: hidden; text-overflow: ellipsis; }
+    .hw-btn-mini { background: var(--dt-blue); color: #fff; border-radius: 7px; padding: 5px 12px; font-size: 0.7rem; font-weight: 600; white-space: nowrap; }
+    .hw-btn-ghost { background: #fff; color: var(--dt-blue); border: 1px solid var(--dt-blue); }
+    .hw-notif { margin: 14px 0; background: #eef4fb; border-left: 3px solid var(--dt-blue); border-radius: 8px; padding: 9px 12px; font-size: 0.74rem; color: var(--dt-ink-secondary); }
+    .hw-anim .hw-notif { animation: hw-pop 0.6s ease 1.2s both; }
+    .hw-avatars { display: flex; gap: 8px; justify-content: center; margin-top: 10px; }
+    .hw-avatar { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; font-size: 0.64rem; font-weight: 700; color: #fff; background: var(--dt-blue); }
+    .hw-a2 { background: #8b5cf6; } .hw-lab { background: #0ea5a8; }
+    .hw-anim .hw-join { animation: hw-pop 0.5s ease 1.8s both; }
+    .hw-anim .hw-join2 { animation: hw-pop 0.5s ease 2.4s both; }
+    .hw-anim .hw-pop { animation: hw-pop 0.5s ease 0.6s both; }
+    @keyframes hw-pop { from { transform: scale(0.5); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+    .hw-sources { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; margin-bottom: 14px; }
+    .hw-src { background: var(--dt-warm); border: 1px solid var(--dt-border); border-radius: 999px; padding: 6px 12px; font-size: 0.7rem; color: var(--dt-ink-secondary); }
+    .hw-inbox-row { background: #fff; border: 1px solid var(--dt-border); border-radius: 8px; padding: 8px 12px; font-size: 0.74rem; color: var(--dt-ink-secondary); margin-bottom: 10px; max-width: 300px; margin-left: auto; margin-right: auto; }
+    .hw-anim .hw-inbox-row { animation: hw-pop 0.5s ease 0.8s both; }
+    .hw-acts { display: flex; gap: 8px; justify-content: center; margin-bottom: 12px; }
+    .hw-anim .hw-acts { animation: hw-pop 0.5s ease 1.4s both; }
+    .hw-anim .hw-caseborn { animation: hw-pop 0.6s ease 2.1s both; max-width: 180px; margin: 0 auto; }
+    .hw-card-case { max-width: 220px; margin: 40px auto; background: #fff; border: 1px solid var(--dt-border); border-left: 3px solid var(--dt-blue); border-radius: 10px; padding: 12px 14px; }
+    .hw-card-title { display: block; font-size: 0.8rem; font-weight: 700; color: var(--dt-ink); margin-bottom: 8px; }
+    .hw-assign-tag { display: inline-block; background: #eef4fb; border-radius: 6px; padding: 3px 9px; font-size: 0.66rem; color: var(--dt-ink-secondary); margin-left: 8px; vertical-align: middle; }
+    .hw-detail { max-width: 320px; margin: 0 auto; background: #fff; border: 1px solid var(--dt-border); border-radius: 12px; overflow: hidden; }
+    .hw-detail-head { background: var(--dt-warm); padding: 10px 14px; font-size: 0.78rem; font-weight: 700; color: var(--dt-ink); border-bottom: 1px solid var(--dt-border); }
+    .hw-note { margin: 12px 14px; background: #fef9e7; border-radius: 8px; padding: 8px 10px; font-size: 0.72rem; color: var(--dt-ink-secondary); }
+    .hw-comment { display: flex; align-items: center; gap: 8px; margin: 0 14px 12px; background: #eef4fb; border-radius: 8px; padding: 8px 10px; font-size: 0.72rem; color: var(--dt-ink-secondary); }
+    .hw-comment .hw-avatar { width: 24px; height: 24px; font-size: 0.56rem; }
+    .hw-imgchip { margin: 0 14px 14px; width: 52px; height: 40px; border-radius: 6px; background: linear-gradient(135deg,#dbe7f6,#0ea5a8); border: 1px solid var(--dt-border); }
+    .hw-anim .hw-note { animation: hw-pop 0.5s ease 0.7s both; }
+    .hw-anim .hw-comment { animation: hw-pop 0.5s ease 1.4s both; }
+    .hw-anim .hw-imgchip { animation: hw-pop 0.5s ease 2s both; }
+    .hw-anim #hwHero { animation: hw-heromove 2.2s ease 0.5s both; }
+    @keyframes hw-heromove { 0% { transform: translateX(0); } 100% { transform: translateX(calc(100% + 10px)); } }
+    .hw-anim .hw-card-risk { animation: hw-pulse 1.4s ease 0.8s 2; }
+    @keyframes hw-pulse { 0%,100% { box-shadow: 0 0 0 0 rgba(245,158,11,0); } 50% { box-shadow: 0 0 0 3px rgba(245,158,11,0.35); } }
+    .hw-riskline { text-align: center; font-size: 0.72rem; color: var(--dt-ink-muted); margin-top: 12px; }
+    .hw-kpis { display: flex; gap: 14px; justify-content: center; margin-bottom: 16px; }
+    .hw-kpi { text-align: center; }
+    .hw-kpi-v { display: block; font-size: 1.3rem; font-weight: 800; color: var(--dt-ink); }
+    .hw-kpi-l { font-size: 0.62rem; color: var(--dt-ink-muted); }
+    .hw-anim .hw-kpi { animation: hw-pop 0.5s ease both; }
+    .hw-anim .hw-kpi:nth-child(2) { animation-delay: 0.3s; }
+    .hw-anim .hw-kpi:nth-child(3) { animation-delay: 0.6s; }
+    .hw-chart { display: block; margin: 0 auto; width: 220px; }
+    .hw-bar { fill: var(--dt-blue); opacity: 0.85; }
+    .hw-anim .hw-bar { animation: hw-barup 0.6s ease both; transform-origin: bottom; }
+    .hw-anim .hw-bar:nth-child(2) { animation-delay: 0.2s; } .hw-anim .hw-bar:nth-child(3) { animation-delay: 0.4s; } .hw-anim .hw-bar:nth-child(4) { animation-delay: 0.6s; } .hw-anim .hw-bar:nth-child(5) { animation-delay: 0.8s; }
+    @keyframes hw-barup { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+    .hw-sample { text-align: center; font-size: 0.64rem; color: var(--dt-ink-muted); margin: 8px 0 0; }
+    .hw-controls { display: flex; align-items: center; gap: 10px; margin-top: 16px; flex-wrap: wrap; }
+    .hw-ctl { background: #fff; border: 1px solid var(--dt-border); border-radius: 8px; width: 30px; height: 30px; display: grid; place-items: center; cursor: pointer; font-size: 0.9rem; color: var(--dt-ink-secondary); }
+    .hw-ctl:hover, .hw-ctl:focus-visible { border-color: var(--dt-blue); color: var(--dt-ink); outline: none; }
+    .hw-pause, .hw-replay { width: auto; padding: 0 14px; font-size: 0.7rem; }
+    .hw-dots { display: flex; gap: 5px; align-items: center; }
+    .hw-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--dt-border); }
+    .hw-dot.on { background: var(--dt-blue); }
+    .hw-cta { display: inline-block; margin-top: 16px; }
+    @media (max-width: 900px) {
+      .hw-walk { grid-template-columns: 1fr; }
+      .hw-steps { display: none; }
+      .hw-stage { min-height: 260px; padding: 16px; }
+      .hw-scene { inset: 16px; }
+      .hw-board { gap: 6px; }
+      .hw-col-head { font-size: 0.55rem; }
+      .hw-card-mini { font-size: 0.66rem; padding: 5px 7px; }
+      .hw-controls { justify-content: center; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .hw-anim .hw-col-move, .hw-anim .hw-notif, .hw-anim .hw-join, .hw-anim .hw-join2, .hw-anim .hw-pop, .hw-anim .hw-inbox-row, .hw-anim .hw-acts, .hw-anim .hw-caseborn, .hw-anim .hw-note, .hw-anim .hw-comment, .hw-anim .hw-imgchip, .hw-anim #hwHero, .hw-anim .hw-card-risk, .hw-anim .hw-kpi, .hw-anim .hw-bar { animation: none !important; }
+      .hw-scene { transition: none; }
+      .hw-pause { display: none; }
+    }
   </style>
 </head>
 <body>
@@ -1588,33 +1683,76 @@ foreach (['operate', 'control', 'scale'] as $plan) {
 
   <section id="how-it-works" class="section">
     <div class="container">
-      <span class="eyebrow" data-reveal><?php echo t('marketing.workflow.eyebrow'); ?></span>
-      <h2 data-reveal><?php echo t('marketing.workflow.title'); ?></h2>
-      <p class="lead" data-reveal><?php echo t('marketing.workflow.lead'); ?></p>
-      <div class="steps-grid">
-        <div class="step step-1" data-reveal data-reveal-stagger="1" data-reveal-delay="150">
-          <div class="step-num">01</div>
-          <svg class="step-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"></path><path d="M16 16h5v5"></path></svg>
-          <h3><?php echo t('marketing.workflow.step1_title'); ?></h3>
-          <p><?php echo t('marketing.workflow.step1_body'); ?></p>
-        </div>
-        <div class="step step-2" data-reveal data-reveal-stagger="2" data-reveal-delay="150">
-          <div class="step-num">02</div>
-          <svg class="step-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>
-          <h3><?php echo t('marketing.workflow.step2_title'); ?></h3>
-          <p><?php echo t('marketing.workflow.step2_body'); ?></p>
-        </div>
-        <div class="step step-3" data-reveal data-reveal-stagger="3" data-reveal-delay="150">
-          <div class="step-num">03</div>
-          <svg class="step-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
-          <h3><?php echo t('marketing.workflow.step3_title'); ?></h3>
-          <p><?php echo t('marketing.workflow.step3_body'); ?></p>
-        </div>
-        <div class="step step-4" data-reveal data-reveal-stagger="4" data-reveal-delay="150">
-          <div class="step-num">04</div>
-          <svg class="step-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
-          <h3><?php echo t('marketing.workflow.step4_title'); ?></h3>
-          <p><?php echo t('marketing.workflow.step4_body'); ?></p>
+      <span class="eyebrow" data-reveal><?php echo t('marketing.walkthrough.eyebrow'); ?></span>
+      <h2 data-reveal><?php echo t('marketing.walkthrough.title'); ?></h2>
+      <p class="lead" data-reveal><?php echo t('marketing.walkthrough.lead'); ?></p>
+      <div class="hw-walk" id="hwWalk">
+        <ol class="hw-steps" role="tablist" aria-label="<?php echo htmlspecialchars(t('marketing.walkthrough.steps_aria')); ?>">
+          <?php for ($i = 1; $i <= 7; $i++): ?>
+          <li><button type="button" role="tab" class="hw-step" data-step="<?php echo $i; ?>" aria-selected="<?php echo $i === 1 ? 'true' : 'false'; ?>">
+            <span class="hw-step-num"><?php echo $i; ?></span>
+            <span class="hw-step-label"><?php echo t('marketing.walkthrough.step' . $i . '_title'); ?></span>
+          </button></li>
+          <?php endfor; ?>
+        </ol>
+        <div class="hw-main">
+          <h3 class="hw-scene-title" id="hwSceneTitle"><?php echo t('marketing.walkthrough.step1_title'); ?></h3>
+          <p class="hw-scene-copy" id="hwSceneCopy"><?php echo t('marketing.walkthrough.step1_copy'); ?></p>
+          <div class="hw-stage" id="hwStage" aria-hidden="true">
+            <div class="hw-scene hw-active" data-scene="1">
+              <div class="hw-board">
+                <div class="hw-col"><span class="hw-col-head"><?php echo t('marketing.walkthrough.stage_new'); ?></span><div class="hw-card-mini">Crown #14</div></div>
+                <div class="hw-col hw-col-move" id="hwColMove"><span class="hw-col-head"><?php echo t('marketing.walkthrough.stage_lab'); ?></span></div>
+                <div class="hw-col"><span class="hw-col-head"><?php echo t('marketing.walkthrough.stage_out'); ?></span></div>
+                <div class="hw-col"><span class="hw-col-head"><?php echo t('marketing.walkthrough.stage_done'); ?></span></div>
+              </div>
+            </div>
+            <div class="hw-scene" data-scene="2" hidden>
+              <div class="hw-invite"><div class="hw-field"><span class="hw-field-text">maya.frontdesk@example.com</span><span class="hw-btn-mini"><?php echo t('marketing.walkthrough.invite_btn'); ?></span></div>
+              <div class="hw-notif"><?php echo t('marketing.walkthrough.invite_notif'); ?></div>
+              <div class="hw-avatars"><span class="hw-avatar hw-a1">HL</span><span class="hw-avatar hw-a2 hw-join">MF</span><span class="hw-avatar hw-lab hw-join2">PDL</span></div></div>
+            </div>
+            <div class="hw-scene" data-scene="3" hidden>
+              <div class="hw-sources"><span class="hw-src"><?php echo t('marketing.walkthrough.src_manual'); ?></span><span class="hw-src"><?php echo t('marketing.walkthrough.src_pms'); ?></span><span class="hw-src"><?php echo t('marketing.walkthrough.src_scanner'); ?></span></div>
+              <div class="hw-inbox-row"><?php echo t('marketing.walkthrough.scan_inbox_row'); ?></div>
+              <div class="hw-acts"><span class="hw-btn-mini"><?php echo t('marketing.walkthrough.act_create'); ?></span><span class="hw-btn-mini hw-btn-ghost"><?php echo t('marketing.walkthrough.act_attach'); ?></span></div>
+              <div class="hw-card-mini hw-caseborn">Crown #14</div>
+            </div>
+            <div class="hw-scene" data-scene="4" hidden>
+              <div class="hw-card-case"><span class="hw-card-title">Crown #14</span><span class="hw-avatar hw-a2 hw-pop">MF</span><span class="hw-assign-tag"><?php echo t('marketing.walkthrough.assign_tag'); ?></span></div>
+            </div>
+            <div class="hw-scene" data-scene="5" hidden>
+              <div class="hw-detail"><div class="hw-detail-head">Crown #14</div>
+                <div class="hw-note"><?php echo t('marketing.walkthrough.note_txt'); ?></div>
+                <div class="hw-comment"><span class="hw-avatar hw-a1">HL</span><span><?php echo t('marketing.walkthrough.comment_txt'); ?></span></div>
+                <div class="hw-imgchip"></div>
+              </div>
+            </div>
+            <div class="hw-scene" data-scene="6" hidden>
+              <div class="hw-board">
+                <div class="hw-col"><span class="hw-col-head"><?php echo t('marketing.walkthrough.stage_new'); ?></span><div class="hw-card-mini">Bridge #7</div></div>
+                <div class="hw-col" id="hwColMid"><span class="hw-col-head"><?php echo t('marketing.walkthrough.stage_lab'); ?></span><div class="hw-card-mini hw-card-hero" id="hwHero">Crown #14</div><div class="hw-card-mini hw-card-risk"><?php echo t('marketing.walkthrough.risk_card'); ?></div></div>
+                <div class="hw-col" id="hwColNext"><span class="hw-col-head"><?php echo t('marketing.walkthrough.stage_out'); ?></span></div>
+                <div class="hw-col"><span class="hw-col-head"><?php echo t('marketing.walkthrough.stage_done'); ?></span></div>
+              </div>
+              <div class="hw-riskline"><?php echo t('marketing.walkthrough.risk_line'); ?></div>
+            </div>
+            <div class="hw-scene" data-scene="7" hidden>
+              <div class="hw-kpis"><div class="hw-kpi"><span class="hw-kpi-v">12</span><span class="hw-kpi-l"><?php echo t('marketing.walkthrough.kpi_active'); ?></span></div>
+              <div class="hw-kpi"><span class="hw-kpi-v">4.2d</span><span class="hw-kpi-l"><?php echo t('marketing.walkthrough.kpi_turn'); ?></span></div>
+              <div class="hw-kpi"><span class="hw-kpi-v">93%</span><span class="hw-kpi-l"><?php echo t('marketing.walkthrough.kpi_ontime'); ?></span></div></div>
+              <svg class="hw-chart" viewBox="0 0 220 90"><rect x="14" y="44" width="24" height="40" rx="3" class="hw-bar"/><rect x="52" y="30" width="24" height="54" rx="3" class="hw-bar"/><rect x="90" y="52" width="24" height="32" rx="3" class="hw-bar"/><rect x="128" y="20" width="24" height="64" rx="3" class="hw-bar"/><rect x="166" y="38" width="24" height="46" rx="3" class="hw-bar"/></svg>
+              <p class="hw-sample"><?php echo t('marketing.walkthrough.sample_data'); ?></p>
+            </div>
+          </div>
+          <div class="hw-controls">
+            <button type="button" class="hw-ctl" id="hwPrev" aria-label="<?php echo htmlspecialchars(t('marketing.walkthrough.prev_aria')); ?>">‹</button>
+            <span class="hw-dots" id="hwDots"></span>
+            <button type="button" class="hw-ctl" id="hwNext" aria-label="<?php echo htmlspecialchars(t('marketing.walkthrough.next_aria')); ?>">›</button>
+            <button type="button" class="hw-ctl hw-pause" id="hwPause" aria-pressed="false"><?php echo t('marketing.walkthrough.pause'); ?></button>
+            <button type="button" class="hw-ctl hw-replay" id="hwReplay" hidden><?php echo t('marketing.walkthrough.replay'); ?></button>
+          </div>
+          <a href="<?= $baseUrl ?>login.php" class="btn btn-primary hw-cta"><?php echo t('marketing.pricing.start_free'); ?></a>
         </div>
       </div>
       <p class="section-body" data-reveal>
@@ -3307,5 +3445,76 @@ foreach (['operate', 'control', 'scale'] as $plan) {
   })();
   </script>
 
+  <script>
+  // How-it-works walkthrough: 7 scenes, autoplay once then hold, full controls.
+  (function () {
+    var wrap = document.getElementById('hwWalk');
+    if (!wrap) return;
+    var scenes = wrap.querySelectorAll('.hw-scene');
+    var steps = wrap.querySelectorAll('.hw-step');
+    var title = document.getElementById('hwSceneTitle');
+    var copy = document.getElementById('hwSceneCopy');
+    var dots = document.getElementById('hwDots');
+    var btnPrev = document.getElementById('hwPrev');
+    var btnNext = document.getElementById('hwNext');
+    var btnPause = document.getElementById('hwPause');
+    var btnReplay = document.getElementById('hwReplay');
+    var reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    var labels = {
+      pause: <?php echo json_encode(t('marketing.walkthrough.pause')); ?>,
+      play: <?php echo json_encode(t('marketing.walkthrough.play')); ?>
+    };
+    var titles = <?php $o=[];$c=[];for($i=1;$i<=7;$i++){$o[$i]=t('marketing.walkthrough.step'.$i.'_title');$c[$i]=t('marketing.walkthrough.step'.$i.'_copy');}echo json_encode(['t'=>$o,'c'=>$c],JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE); ?>;
+    var current = 1, playing = false, timer = null, visible = false;
+    for (var i = 1; i <= 7; i++) { var d = document.createElement('span'); d.className = 'hw-dot'; dots.appendChild(d); }
+    var dotEls = dots.querySelectorAll('.hw-dot');
+    function show(n, userInitiated) {
+      current = n;
+      scenes.forEach(function (s) {
+        var on = +s.dataset.scene === n;
+        s.classList.toggle('hw-active', on);
+        if (on) s.removeAttribute('hidden'); else s.setAttribute('hidden', '');
+      });
+      steps.forEach(function (s) { s.setAttribute('aria-selected', +s.dataset.step === n ? 'true' : 'false'); });
+      dotEls.forEach(function (d, i) { d.classList.toggle('on', i === n - 1); });
+      title.textContent = titles.t[n]; copy.textContent = titles.c[n];
+      wrap.classList.remove('hw-anim'); void wrap.offsetWidth;
+      if (!reduced) wrap.classList.add('hw-anim');
+      if (userInitiated) { playing = false; syncPause(); }
+      if (n === 7 && !userInitiated) { finish(); }
+      if (userInitiated) queue();
+    }
+    function queue() {
+      clearTimeout(timer);
+      if (!playing || !visible) return;
+      timer = setTimeout(function () {
+        if (current >= 7) { finish(); return; }
+        show(current + 1, false);
+      }, current === 1 ? 5600 : 6200);
+    }
+    function finish() { playing = false; clearTimeout(timer); btnReplay.hidden = false; btnPause.hidden = true; }
+    function syncPause() {
+      btnPause.textContent = playing ? labels.pause : labels.play;
+      btnPause.setAttribute('aria-pressed', playing ? 'false' : 'true');
+    }
+    btnPrev.addEventListener('click', function () { show(current === 1 ? 7 : current - 1, true); });
+    btnNext.addEventListener('click', function () { show(current === 7 ? 1 : current + 1, true); });
+    btnPause.addEventListener('click', function () { playing = !playing; syncPause(); queue(); });
+    btnReplay.addEventListener('click', function () { btnReplay.hidden = true; btnPause.hidden = false; playing = visible; syncPause(); show(1, false); queue(); });
+    steps.forEach(function (s) { s.addEventListener('click', function () { show(+s.dataset.step, true); }); });
+    if ('IntersectionObserver' in window) {
+      new IntersectionObserver(function (e) {
+        visible = e[0].isIntersecting;
+        if (visible && !playing && !reduced) { playing = true; syncPause(); queue(); }
+        if (!visible) { playing = false; clearTimeout(timer); syncPause(); }
+      }, { threshold: 0.35 }).observe(wrap);
+    } else { visible = true; playing = !reduced; syncPause(); queue(); }
+    document.addEventListener('visibilitychange', function () {
+      if (document.hidden) { clearTimeout(timer); } else if (playing && visible) { queue(); }
+    });
+    show(1, false);
+    if (reduced) { btnPause.hidden = true; }
+  })();
+  </script>
 </body>
 </html>
