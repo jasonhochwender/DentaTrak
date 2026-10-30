@@ -1248,7 +1248,7 @@ foreach (['operate', 'control', 'scale'] as $plan) {
     .hw3-inbx { display: flex; flex-direction: column; background: var(--dt-warm); border: 1.5px solid var(--dt-blue); border-radius: 8px; padding: 4px 10px; text-align: left; }
     .hw3-inbx i { font-style: normal; font-size: 0.56rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--dt-ink-muted); }
     .hw3-inbx b { font-size: 0.68rem; color: var(--dt-ink); }
-    .hw3-act-inbox { flex-direction: column; gap: 10px; }
+    .hw3-act-inbox { flex-direction: column; flex-wrap: nowrap; gap: 13px; min-height: 66px; justify-content: flex-start; }
     .hw3-link { position: relative; height: 44px; width: 20px; }
     .hw3-link svg { display: block; width: 20px; height: 44px; overflow: visible; }
     .hw3-ln { stroke: var(--dt-blue); stroke-width: 2.5; opacity: 0.35; }
