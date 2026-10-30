@@ -1393,7 +1393,10 @@ foreach (['operate', 'control', 'scale'] as $plan) {
     .hw-anim .hw7-pt { animation: hw-fade 0.4s ease 1.5s forwards; }
     .hw-anim .hw7-call, .hw-anim .hw7-callt { animation: hw-fade 0.4s ease 1.6s forwards; }
     .hw7-hb, .hw7-lab { display: flex; align-items: center; gap: 8px; font-size: 0.68rem; margin-bottom: 6px; }
-    .hw7-hb i, .hw7-lab i { font-style: normal; width: 92px; color: var(--dt-ink-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .hw7-lab { display: grid; grid-template-columns: 96px 1fr 34px; gap: 8px; align-items: center; }
+    .hw7-lab b { text-align: right; }
+    .hw7-hb i, .hw7-lab i { font-style: normal; color: var(--dt-ink-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .hw7-hb i { width: 92px; }
     .hw7-hb b, .hw7-lab b { font-size: 0.66rem; color: var(--dt-ink); }
     .hw7-fill { height: 10px; border-radius: 5px; background: var(--dt-blue); opacity: 0.85; transform: scaleX(0); transform-origin: left; }
     .hw7-fill-t { background: #0ea5a8; } .hw7-fill-b { background: #2563eb; } .hw7-fill-p { background: #8b5cf6; }
@@ -1401,7 +1404,7 @@ foreach (['operate', 'control', 'scale'] as $plan) {
     .hw-anim .hw7-hb:nth-child(2) .hw7-fill { animation-delay: 0.6s; } .hw-anim .hw7-hb:nth-child(3) .hw7-fill { animation-delay: 0.75s; } .hw-anim .hw7-hb:nth-child(4) .hw7-fill { animation-delay: 0.9s; } .hw-anim .hw7-hb:nth-child(5) .hw7-fill { animation-delay: 1.05s; }
     @keyframes hw7-bar { to { transform: scaleX(1); } }
     .hw7-labs { margin-top: 12px; } .hw7-ontime { margin-top: 12px; opacity: 0; }
-    .hw-anim .hw7-ontime { animation: hw-fade 0.5s ease 5.9s forwards; }
+    .hw-anim .hw7-ontime { animation: hw-fade 0.5s ease 6.4s forwards; }
     .hw7-note { font-style: normal; font-size: 0.58rem; color: var(--dt-ink-muted); margin-left: 8px; }
     .hw7-rings { display: flex; justify-content: space-around; gap: 10px; padding: 4px 0 2px; }
     .hw7-ring { text-align: center; }
@@ -1410,12 +1413,14 @@ foreach (['operate', 'control', 'scale'] as $plan) {
     .hw7-rf { fill: none; stroke: var(--rc, #2563eb); stroke-width: 6; stroke-linecap: round; stroke-dasharray: 163.4; stroke-dashoffset: 163.4; }
     .hw7-rv { fill: var(--dt-ink); font-size: 14px; font-weight: 800; text-anchor: middle; transform: rotate(90deg); transform-origin: 32px 32px; }
     .hw7-ring i { display: block; font-style: normal; font-size: 0.6rem; color: var(--dt-ink-muted); margin-top: 4px; }
-    .hw-anim .hw7-ring:nth-child(1) .hw7-rf { animation: hw7-ring 0.7s ease 6.2s forwards; }
-    .hw-anim .hw7-ring:nth-child(2) .hw7-rf { animation: hw7-ring 0.7s ease 6.45s forwards; }
-    .hw-anim .hw7-ring:nth-child(3) .hw7-rf { animation: hw7-ring 0.7s ease 6.7s forwards; }
+    .hw-anim .hw7-ring:nth-child(1) .hw7-rf { animation: hw7-ring 0.9s ease 6.6s forwards; }
+    .hw-anim .hw7-ring:nth-child(2) .hw7-rf { animation: hw7-ring 0.9s ease 6.75s forwards; }
+    .hw-anim .hw7-ring:nth-child(3) .hw7-rf { animation: hw7-ring 0.9s ease 6.9s forwards; }
     @keyframes hw7-ring { to { stroke-dashoffset: calc(163.4 * (1 - var(--pc) / 100)); } }
     .hw7-lab .hw7-fill { transform: none; opacity: 0; }
-    .hw-anim .hw7-lab .hw7-fill { animation-name: hw-fade, hw7-bar; animation-duration: 0.4s, 0.7s; animation-delay: 4.6s, 4.6s; animation-fill-mode: forwards, both; }
+    .hw-anim .hw7-labs .hw7-lab:nth-child(2) .hw7-fill { animation: hw7-bar 0.8s ease 4.6s both; }
+    .hw-anim .hw7-labs .hw7-lab:nth-child(3) .hw7-fill { animation: hw7-bar 0.8s ease 4.75s both; }
+    .hw-anim .hw7-labs .hw7-lab:nth-child(4) .hw7-fill { animation: hw7-bar 0.8s ease 4.9s both; }
     .hw-controls { display: flex; align-items: center; gap: 10px; margin-top: 14px; flex-wrap: wrap; }
     .hw-ctl { background: #fff; border: 1px solid var(--dt-border); border-radius: 8px; width: 30px; height: 30px; display: grid; place-items: center; cursor: pointer; font-size: 0.9rem; color: var(--dt-ink-secondary); }
     .hw-ctl:hover, .hw-ctl:focus-visible { border-color: var(--dt-blue); color: var(--dt-ink); outline: none; }
@@ -3976,7 +3981,7 @@ foreach (['operate', 'control', 'scale'] as $plan) {
       steps.forEach(function (s) { s.setAttribute('aria-selected', +s.dataset.step === n ? 'true' : 'false'); });
       dotEls.forEach(function (d, i) { d.classList.toggle('on', i === n - 1); });
       title.textContent = meta.t[n]; copy.textContent = meta.c[n];
-      if (n === 7 && !reduced) { runKpis(); planDashScroll(); } else if (n === 7) { var v = wrap.querySelector('.hw7-view'); if (v) v.scrollTop = 0; }
+      if (n === 7 && !reduced) { runKpis(); planDashScroll(); runRingCounts(); } else if (n === 7) { var v = wrap.querySelector('.hw7-view'); if (v) v.scrollTop = 0; resetRingText(); }
       if (n === 1) positionHw1Cursor();
       if (n === 4) positionHw4Arrows();
       wrap.classList.remove('hw-anim'); void wrap.offsetWidth;
@@ -4021,7 +4026,21 @@ foreach (['operate', 'control', 'scale'] as $plan) {
       applyFreeze();
       if (document.hidden) { clearTimeout(timer); } else if (playing && visible) { queue(); }
     });
-    var dashRaf = null, dashTimer = null, cur2Timer = null;
+    var dashRaf = null, dashTimer = null, cur2Timer = null, ringTimers = [];
+    function resetRingText() { wrap.querySelectorAll('.hw7-rv').forEach(function (t, i) { t.textContent = [95,88,91][i] + '%'; }); }
+    function runRingCounts() {
+      var vals = [95, 88, 91], delays = [6600, 6750, 6900];
+      wrap.querySelectorAll('.hw7-rv').forEach(function (t, i) {
+        t.textContent = '0%';
+        ringTimers.push(setTimeout(function () {
+          var t0 = null;
+          function step(ts) { if (!t0) t0 = ts; var p = Math.min((ts - t0) / 900, 1);
+            t.textContent = Math.round(vals[i] * p) + '%';
+            if (p < 1) ringTimers.push(requestAnimationFrame(step)); }
+          ringTimers.push(requestAnimationFrame(step));
+        }, delays[i]));
+      });
+    }
     function planDashScroll() {
       var view = wrap.querySelector('.hw7-view'), target = wrap.querySelector('.hw7-labs');
       if (!view || !target) return;
@@ -4106,7 +4125,7 @@ foreach (['operate', 'control', 'scale'] as $plan) {
     var N = EX.length, cur = 0, timer = null, paused = false, visible = false, started = false;
 
     function setT(id, fn, ms) { timer = setTimeout(fn, ms); }
-    function clearT() { clearTimeout(timer); timer = null; clearTimeout(dashTimer); dashTimer = null; clearTimeout(cur2Timer); cur2Timer = null; if (dashRaf) cancelAnimationFrame(dashRaf); dashRaf = null; }
+    function clearT() { clearTimeout(timer); timer = null; clearTimeout(dashTimer); dashTimer = null; clearTimeout(cur2Timer); cur2Timer = null; if (dashRaf) cancelAnimationFrame(dashRaf); dashRaf = null; ringTimers.forEach(function (h) { clearTimeout(h); cancelAnimationFrame(h); }); ringTimers = []; }
     function renderStatic(i) {
       clearT();
       userMsg.hidden = false; userMsg.textContent = EX[i].q;
