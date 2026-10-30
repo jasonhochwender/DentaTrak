@@ -175,6 +175,13 @@ $practiceId = (int)$connection['practice_id'];
 $dedupKey = hash('sha256',
     $connectionId . '|' . $eventCode . '|' . ($caseUuid ?? '') . '|' . hash('sha256', $rawBody));
 
+// Payload may carry PHI (patient/case data) - it is persisted ENCRYPTED
+// with the established application encryption, bounded to 4KB, and only
+// retained so the worker can re-derive fields the extractor missed.
+// Nothing from the payload ever reaches logs.
+require_once __DIR__ . '/encryption.php';
+$storedPayload = PIIEncryption::encrypt(substr($rawBody, 0, 4096));
+
 $ins = $pdo->prepare("
     INSERT IGNORE INTO medit_webhook_events
         (connection_id, practice_id, event_code, case_uuid, payload_json, dedup_key)
@@ -185,7 +192,7 @@ $ins->execute([
     ':pid'     => $practiceId,
     ':code'    => substr($eventCode, 0, 64),
     ':case'    => $caseUuid !== null && $caseUuid !== '' ? substr($caseUuid, 0, 64) : null,
-    ':payload' => substr($rawBody, 0, 4096),
+    ':payload' => is_string($storedPayload) ? $storedPayload : null,
     ':dedup'   => $dedupKey,
 ]);
 

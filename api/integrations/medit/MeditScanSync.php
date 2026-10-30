@@ -175,10 +175,22 @@ class MeditScanSync {
             $maxScans = self::cfg('MEDIT_SCAN_MAX_SCANS', 500, 1, 10000);
             $eventBatch = self::cfg('MEDIT_WEBHOOK_BATCH', 25, 1, 100);
 
+            // Bounded reconciliation: cases/search can only filter on
+            // dateCreated, so updates to older cases are invisible to
+            // incremental polling. Once per resweep interval the window
+            // is widened to the full lookback depth - every case created
+            // within it is re-listed and re-ingested (dedup + revision
+            // signatures make this cheap and correct), catching missed
+            // webhooks AND updates. Cases older than the lookback depth
+            // remain webhook-only - a documented limitation.
+            $resweepSec = self::cfg('MEDIT_SCAN_RESWEEP_SEC', 86400, 3600, 7 * 86400);
+            $lastResweep = isset($state['last_resweep_at']) ? strtotime($state['last_resweep_at']) : 0;
+            $doResweep = ($lastResweep === false || (time() - $lastResweep) >= $resweepSec);
+
             $cursor = isset($state['cursor']) && $state['cursor'] !== '' ? strtotime($state['cursor']) : null;
-            $windowStart = $cursor !== null
-                ? gmdate('Y-m-d\TH:i:s\Z', $cursor - $overlap)
-                : gmdate('Y-m-d\TH:i:s\Z', time() - $lookback);
+            $windowStart = ($doResweep || $cursor === null)
+                ? gmdate('Y-m-d\TH:i:s\Z', time() - $lookback)
+                : gmdate('Y-m-d\TH:i:s\Z', $cursor - $overlap);
             // When resuming a stored page position, the stored window
             // bounds are reused verbatim so the page index stays valid.
             $pageToken = isset($state['page_token']) && $state['page_token'] !== '' ? (string)$state['page_token'] : null;
@@ -288,6 +300,7 @@ class MeditScanSync {
                 'window_end'      => null,
                 'last_run_at'     => gmdate('Y-m-d H:i:s'),
                 'last_success_at' => gmdate('Y-m-d H:i:s'),
+                'last_resweep_at' => $doResweep ? gmdate('Y-m-d H:i:s') : ($state['last_resweep_at'] ?? gmdate('Y-m-d H:i:s')),
                 'last_error'      => null,
                 'rate_limited_until' => null,
             ]);
