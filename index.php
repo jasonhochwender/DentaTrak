@@ -1129,7 +1129,7 @@ foreach (['operate', 'control', 'scale'] as $plan) {
     .hw-scene-title { font-size: 1.15rem; color: var(--dt-ink); margin: 0 0 4px; }
     .hw-scene-copy { font-size: 0.85rem; color: var(--dt-ink-secondary); margin: 0 0 14px; }
     .hw-stage { position: relative; background: #fff; border: 1px solid var(--dt-border); border-radius: 18px; padding: 20px; height: 360px; overflow: hidden; box-shadow: var(--dt-shadow); }
-    .hw-scene { --hwk: 0.85; position: absolute; inset: 20px; opacity: 0; transition: opacity calc(0.45s * var(--hwk)) ease; pointer-events: none; overflow: hidden; }
+    .hw-scene { --hwk: 0.7225; position: absolute; inset: 20px; opacity: 0; transition: opacity calc(0.45s * var(--hwk)) ease; pointer-events: none; overflow: hidden; }
     .hw-scene.hw-active { opacity: 1; pointer-events: auto; }
     .hw-paused .hw-scene *, .hw-paused .hw-cursor { animation-play-state: paused !important; }
     .hw-cursor { position: absolute; left: 0; top: 0; width: 18px; height: 18px; z-index: 6; pointer-events: none; opacity: 0;
@@ -3954,7 +3954,7 @@ foreach (['operate', 'control', 'scale'] as $plan) {
       play: <?php echo json_encode(t('marketing.walkthrough.play')); ?>
     };
     var meta = <?php $o=[];$c=[];for($i=1;$i<=7;$i++){$o[$i]=t('marketing.walkthrough.step'.$i.'_title');$c[$i]=t('marketing.walkthrough.step'.$i.'_copy');}echo json_encode(['t'=>$o,'c'=>$c],JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE); ?>;
-    var HW_K = 0.85;
+    var HW_K = 0.7225;
     var DUR = {1:Math.round(9500*HW_K), 2:Math.round(13000*HW_K), 3:Math.round(11200*HW_K), 4:Math.round(10800*HW_K), 5:Math.round(9800*HW_K), 6:Math.round(10400*HW_K), 7:Math.round(12200*HW_K)};
     var current = 1, playing = false, cssFrozen = false, timer = null, visible = false;
     for (var i = 1; i <= 7; i++) { var d = document.createElement('span'); d.className = 'hw-dot'; dots.appendChild(d); }
