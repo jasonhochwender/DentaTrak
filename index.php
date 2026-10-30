@@ -1129,7 +1129,7 @@ foreach (['operate', 'control', 'scale'] as $plan) {
     .hw-scene-title { font-size: 1.15rem; color: var(--dt-ink); margin: 0 0 4px; }
     .hw-scene-copy { font-size: 0.85rem; color: var(--dt-ink-secondary); margin: 0 0 14px; }
     .hw-stage { position: relative; background: #fff; border: 1px solid var(--dt-border); border-radius: 18px; padding: 20px; height: 360px; overflow: hidden; box-shadow: var(--dt-shadow); }
-    .hw-scene { position: absolute; inset: 20px; opacity: 0; transition: opacity 0.45s ease; pointer-events: none; overflow: hidden; }
+    .hw-scene { --hwk: 0.85; position: absolute; inset: 20px; opacity: 0; transition: opacity calc(0.45s * var(--hwk)) ease; pointer-events: none; overflow: hidden; }
     .hw-scene.hw-active { opacity: 1; pointer-events: auto; }
     .hw-paused .hw-scene *, .hw-paused .hw-cursor { animation-play-state: paused !important; }
     .hw-cursor { position: absolute; left: 0; top: 0; width: 18px; height: 18px; z-index: 6; pointer-events: none; opacity: 0;
@@ -1149,22 +1149,22 @@ foreach (['operate', 'control', 'scale'] as $plan) {
     .hw1-qcname { color: #0ea5a8; opacity: 0; }
     .hw1-addbtn { position: absolute; right: 24px; bottom: 16px; background: var(--dt-blue); color: #fff; border-radius: 10px; padding: 10px 18px; font-size: 0.85rem; font-weight: 700; box-shadow: 0 6px 16px -6px rgba(37,99,235,0.5); }
     .hw1-cap { position: absolute; left: 24px; bottom: 18px; font-size: 0.95rem; font-weight: 600; color: var(--dt-ink); opacity: 0; }
-    .hw-anim .hw1-addbtn { animation: hw1-btnpulse 0.8s ease 1.2s 2; }
+    .hw-anim .hw1-addbtn { animation: hw1-btnpulse calc(0.8s * var(--hwk)) ease calc(1.2s * var(--hwk)) 2; }
     @keyframes hw1-btnpulse { 50% { box-shadow: 0 0 0 6px rgba(37,99,235,0.35); } }
-    .hw-anim .hw1-qc { animation: hw1-expand 1.1s ease 2.8s forwards; }
-    .hw-anim .hw1-qcname { animation: hw-fade 0.5s ease 3.6s forwards; }
+    .hw-anim .hw1-qc { animation: hw1-expand calc(1.1s * var(--hwk)) ease calc(2.8s * var(--hwk)) forwards; }
+    .hw-anim .hw1-qcname { animation: hw-fade calc(0.5s * var(--hwk)) ease calc(3.6s * var(--hwk)) forwards; }
     @keyframes hw1-expand { to { flex: 1 1 0; opacity: 1; padding: 10px; border-width: 1.5px; } }
-    .hw-anim .hw1-qc { animation-name: hw1-expand, hw1-glow; animation-duration: 1.1s, 1.2s; animation-delay: 2.8s, 3.9s; animation-fill-mode: forwards, both; }
+    .hw-anim .hw1-qc { animation-name: hw1-expand, hw1-glow; animation-duration: calc(1.1s * var(--hwk)), calc(1.2s * var(--hwk)); animation-delay: calc(2.8s * var(--hwk)), calc(3.9s * var(--hwk)); animation-fill-mode: forwards, both; }
     @keyframes hw1-glow { 0%,100% { box-shadow: none; } 50% { box-shadow: inset 0 0 0 4px rgba(14,165,168,0.45); } }
-    .hw-anim .hw1-cap1 { animation: hw1-caplife 2.6s ease 4.4s forwards; }
-    .hw-anim .hw1-cap2 { animation: hw1-caplife 2.6s ease 7.4s forwards; }
+    .hw-anim .hw1-cap1 { animation: hw1-caplife calc(2.6s * var(--hwk)) ease calc(4.4s * var(--hwk)) forwards; }
+    .hw-anim .hw1-cap2 { animation: hw1-caplife calc(2.6s * var(--hwk)) ease calc(7.4s * var(--hwk)) forwards; }
     @keyframes hw1-caplife { 0% { opacity: 0; transform: translateY(6px); } 15%,80% { opacity: 1; transform: none; } 100% { opacity: 0; } }
-    .hw-anim .hw1-edit { animation: hw1-btnpulse 0.8s ease 6.6s 1; }
-    .hw-anim .hw1-n1 { animation: hw-fade 0.5s ease 7.2s forwards; }
-    .hw-anim .hw1-n0 { animation: hw-out 0.4s ease 7.2s forwards; }
+    .hw-anim .hw1-edit { animation: hw1-btnpulse calc(0.8s * var(--hwk)) ease calc(6.6s * var(--hwk)) 1; }
+    .hw-anim .hw1-n1 { animation: hw-fade calc(0.5s * var(--hwk)) ease calc(7.2s * var(--hwk)) forwards; }
+    .hw-anim .hw1-n0 { animation: hw-out calc(0.4s * var(--hwk)) ease calc(7.2s * var(--hwk)) forwards; }
     @keyframes hw-fade { to { opacity: 1; } }
     @keyframes hw-out { to { opacity: 0; } }
-    .hw-anim .hw-cursor { animation: hw1-cursor 8.8s ease forwards; }
+    .hw-anim .hw-cursor { animation: hw1-cursor calc(8.8s * var(--hwk)) ease forwards; }
     @keyframes hw1-cursor {
       0% { opacity: 0; left: var(--cx1, 80%); top: var(--cy1, 80%); }
       6% { opacity: 1; left: var(--cx1, 80%); top: var(--cy1, 80%); }
@@ -1185,15 +1185,15 @@ foreach (['operate', 'control', 'scale'] as $plan) {
     .hw-field { display: flex; align-items: center; gap: 8px; background: var(--dt-warm); border: 1px solid var(--dt-border); border-radius: 10px; padding: 9px 11px; font-size: 0.76rem; margin-bottom: 12px; }
     .hw-field-text { flex: 1; color: var(--dt-ink-secondary); white-space: nowrap; overflow: hidden; position: relative; min-height: 1.2em; }
     .hw-field-text i { font-style: normal; position: absolute; left: 0; top: 0; }
-    .hw-anim .hw-e1::after { content: 'maya.chen@example.com'; display: block; overflow: hidden; white-space: nowrap; animation: hw-typeline 1.4s steps(21) 0.6s both; }
-    .hw-anim .hw-e1 { animation: hw-e1v 13s steps(1) forwards; }
+    .hw-anim .hw-e1::after { content: 'maya.chen@example.com'; display: block; overflow: hidden; white-space: nowrap; animation: hw-typeline calc(1.4s * var(--hwk)) steps(21) calc(0.6s * var(--hwk)) both; }
+    .hw-anim .hw-e1 { animation: hw-e1v calc(13s * var(--hwk)) steps(1) forwards; }
     @keyframes hw-e1v { 0%,44% { opacity: 1; } 45%,100% { opacity: 0; } }
-    .hw-anim .hw-e2 { animation: hw-e2v 13s steps(1) forwards; }
-    .hw-anim .hw-e2::after { content: 'jordan.lee@example.com'; display: block; overflow: hidden; white-space: nowrap; animation: hw-typeline 1.4s steps(22) 5.9s both; }
+    .hw-anim .hw-e2 { animation: hw-e2v calc(13s * var(--hwk)) steps(1) forwards; }
+    .hw-anim .hw-e2::after { content: 'jordan.lee@example.com'; display: block; overflow: hidden; white-space: nowrap; animation: hw-typeline calc(1.4s * var(--hwk)) steps(22) calc(5.9s * var(--hwk)) both; }
     @keyframes hw-e2v { 0%,44% { opacity: 0; } 45%,100% { opacity: 1; } }
     @keyframes hw-typeline { from { max-width: 0; } to { max-width: 100%; } }
     .hw-btn-mini { background: var(--dt-blue); color: #fff; border-radius: 7px; padding: 5px 12px; font-size: 0.7rem; font-weight: 600; white-space: nowrap; }
-    .hw-anim .hw-invbtn { animation: hw-inv 13s linear forwards; }
+    .hw-anim .hw-invbtn { animation: hw-inv calc(13s * var(--hwk)) linear forwards; }
     @keyframes hw-inv { 0%,15% { box-shadow: none; } 17%,21% { box-shadow: 0 0 0 5px rgba(37,99,235,0.35); } 23%,55% { box-shadow: none; } 57%,61% { box-shadow: 0 0 0 5px rgba(37,99,235,0.35); } 63%,100% { box-shadow: none; } }
     .hw-emailcard { display: flex; align-items: center; gap: 10px; background: #fff; border: 1px solid var(--dt-border); border-left: 3px solid var(--dt-blue); border-radius: 10px; padding: 10px 12px; font-size: 0.7rem; opacity: 0; }
     .hw-email-ic { font-size: 1.1rem; }
@@ -1201,24 +1201,24 @@ foreach (['operate', 'control', 'scale'] as $plan) {
     .hw-email-sub { font-size: 0.6rem; color: var(--dt-ink-muted); position: relative; display: inline-block; min-width: 160px; min-height: 1.1em; }
     .hw-email-sub i { font-style: normal; position: absolute; left: 0; top: 0; white-space: nowrap; }
     .hw-to2 { opacity: 0; }
-    .hw-anim .hw-emailcard { animation: hw-email 13s linear forwards; }
+    .hw-anim .hw-emailcard { animation: hw-email calc(13s * var(--hwk)) linear forwards; }
     @keyframes hw-email { 0%,18% { opacity: 0; transform: translateY(10px); } 20%,88% { opacity: 1; transform: none; } 92%,100% { opacity: 0; } }
-    .hw-anim .hw-to1 { animation: hw-to1v 13s steps(1) forwards; }
-    .hw-anim .hw-to2 { animation: hw-to2v 13s steps(1) forwards; }
+    .hw-anim .hw-to1 { animation: hw-to1v calc(13s * var(--hwk)) steps(1) forwards; }
+    .hw-anim .hw-to2 { animation: hw-to2v calc(13s * var(--hwk)) steps(1) forwards; }
     @keyframes hw-to1v { 0%,62% { opacity: 1; } 63%,100% { opacity: 0; } }
     @keyframes hw-to2v { 0%,62% { opacity: 0; } 63%,100% { opacity: 1; } }
     .hw-accept { margin-left: auto; position: relative; min-width: 64px; min-height: 1.4em; }
     .hw-accept i { font-style: normal; position: absolute; left: 0; top: 0; white-space: nowrap; padding: 0 2px; }
     .hw-accept .hw-ac1 { opacity: 0; color: #fff; }
-    .hw-anim .hw-accept { animation: hw-acc 13s linear forwards; }
+    .hw-anim .hw-accept { animation: hw-acc calc(13s * var(--hwk)) linear forwards; }
     @keyframes hw-acc { 0%,27% { background: var(--dt-blue); } 30%,62% { background: #0ea5a8; } 63%,75% { background: var(--dt-blue); } 78%,100% { background: #0ea5a8; } }
-    .hw-anim .hw-ac0 { animation: hw-ac0v 13s steps(1) forwards; }
-    .hw-anim .hw-ac1 { animation: hw-ac1v 13s steps(1) forwards; }
+    .hw-anim .hw-ac0 { animation: hw-ac0v calc(13s * var(--hwk)) steps(1) forwards; }
+    .hw-anim .hw-ac1 { animation: hw-ac1v calc(13s * var(--hwk)) steps(1) forwards; }
     @keyframes hw-ac0v { 0%,29% { opacity: 1; } 30%,62% { opacity: 0; } 63%,77% { opacity: 1; } 78%,100% { opacity: 0; } }
     @keyframes hw-ac1v { 0%,29% { opacity: 0; } 30%,62% { opacity: 1; } 63%,77% { opacity: 0; } 78%,100% { opacity: 1; } }
     .hw-rm { display: none; font-size: 0.68rem; color: var(--dt-ink-muted); margin-top: 10px; }
     .hw-cap2 { font-size: 0.85rem; font-weight: 700; color: var(--dt-ink); margin-top: 12px; opacity: 0; }
-    .hw-anim .hw-cap2 { animation: hw-fade 0.5s ease 11.8s forwards; }
+    .hw-anim .hw-cap2 { animation: hw-fade calc(0.5s * var(--hwk)) ease calc(11.8s * var(--hwk)) forwards; }
     .hw-freenote { font-size: 0.62rem; color: var(--dt-ink-muted); margin-top: 8px; }
     .hw-roster { border-left: 1px solid var(--dt-border); padding-left: 16px; }
     .hw-person { display: flex; align-items: center; gap: 9px; background: #fff; border: 1px solid var(--dt-border); border-radius: 9px; padding: 8px 10px; margin-bottom: 7px; }
@@ -1227,8 +1227,8 @@ foreach (['operate', 'control', 'scale'] as $plan) {
     .hw-p-info b { display: block; font-size: 0.72rem; color: var(--dt-ink); }
     .hw-p-info i { font-style: normal; font-size: 0.58rem; color: var(--dt-ink-muted); }
     .hw-join1, .hw-join2 { opacity: 0; }
-    .hw-anim .hw-join1 { animation: hw-join 0.7s ease 4.2s forwards; }
-    .hw-anim .hw-join2 { animation: hw-join 0.7s ease 10.4s forwards; }
+    .hw-anim .hw-join1 { animation: hw-join calc(0.7s * var(--hwk)) ease calc(4.2s * var(--hwk)) forwards; }
+    .hw-anim .hw-join2 { animation: hw-join calc(0.7s * var(--hwk)) ease calc(10.4s * var(--hwk)) forwards; }
     @keyframes hw-join { from { opacity: 0; transform: translateY(12px); box-shadow: 0 0 0 4px rgba(14,165,168,0.3); } 60% { box-shadow: 0 0 0 4px rgba(14,165,168,0.3); } to { opacity: 1; transform: none; box-shadow: none; } }
     .hw-joined { margin-left: auto; font-size: 0.56rem; font-weight: 700; color: #0ea5a8; background: #e0f7f5; border-radius: 999px; padding: 2px 8px; }
     @media (prefers-reduced-motion: reduce) {
@@ -1258,29 +1258,29 @@ foreach (['operate', 'control', 'scale'] as $plan) {
     .hw3-badge { float: right; margin-left: 10px; font-size: 0.56rem; font-weight: 700; padding: 2px 7px; border-radius: 999px; }
     .hw3-bg-pms { background: #eef4fb; color: #2563eb; } .hw3-bg-scan { background: #e0f7f5; color: #0ea5a8; } .hw3-bg-man { background: #f3eafb; color: #8b5cf6; }
     /* lane-phased animation on an 11.2s scene */
-    .hw-anim .hw3-l1 .hw3-src { animation: hw3-g 11.2s linear forwards; }
-    .hw-anim .hw3-l2 .hw3-src { animation: hw3-g2 11.2s linear forwards; }
-    .hw-anim .hw3-l3 .hw3-src { animation: hw3-g3 11.2s linear forwards; }
+    .hw-anim .hw3-l1 .hw3-src { animation: hw3-g calc(11.2s * var(--hwk)) linear forwards; }
+    .hw-anim .hw3-l2 .hw3-src { animation: hw3-g2 calc(11.2s * var(--hwk)) linear forwards; }
+    .hw-anim .hw3-l3 .hw3-src { animation: hw3-g3 calc(11.2s * var(--hwk)) linear forwards; }
     @keyframes hw3-g { 0%,5% { box-shadow: none; } 9%,30% { box-shadow: inset 0 0 0 4px rgba(37,99,235,0.3); } 34%,100% { box-shadow: none; } }
     @keyframes hw3-g2 { 0%,37% { box-shadow: none; } 41%,62% { box-shadow: inset 0 0 0 4px rgba(14,165,168,0.3); } 66%,100% { box-shadow: none; } }
     @keyframes hw3-g3 { 0%,69% { box-shadow: none; } 73%,94% { box-shadow: inset 0 0 0 4px rgba(139,92,246,0.3); } 98%,100% { box-shadow: none; } }
-    .hw-anim .hw3-l1 .hw3-act { animation: hw-fade 0.5s ease 1s forwards; }
-    .hw-anim .hw3-l2 .hw3-act { animation: hw-fade 0.5s ease 4.6s forwards; }
-    .hw-anim .hw3-l3 .hw3-act { animation: hw-fade 0.5s ease 8.2s forwards; }
-    .hw-anim .hw3-l1 .hw3-ln, .hw-anim .hw3-l1 .hw3-ah { animation: hw3-lnl 11.2s linear forwards; }
-    .hw-anim .hw3-l2 .hw3-ln, .hw-anim .hw3-l2 .hw3-ah { animation: hw3-lnl2 11.2s linear forwards; }
-    .hw-anim .hw3-l3 .hw3-ln, .hw-anim .hw3-l3 .hw3-ah { animation: hw3-lnl3 11.2s linear forwards; }
+    .hw-anim .hw3-l1 .hw3-act { animation: hw-fade calc(0.5s * var(--hwk)) ease calc(1s * var(--hwk)) forwards; }
+    .hw-anim .hw3-l2 .hw3-act { animation: hw-fade calc(0.5s * var(--hwk)) ease calc(4.6s * var(--hwk)) forwards; }
+    .hw-anim .hw3-l3 .hw3-act { animation: hw-fade calc(0.5s * var(--hwk)) ease calc(8.2s * var(--hwk)) forwards; }
+    .hw-anim .hw3-l1 .hw3-ln, .hw-anim .hw3-l1 .hw3-ah { animation: hw3-lnl calc(11.2s * var(--hwk)) linear forwards; }
+    .hw-anim .hw3-l2 .hw3-ln, .hw-anim .hw3-l2 .hw3-ah { animation: hw3-lnl2 calc(11.2s * var(--hwk)) linear forwards; }
+    .hw-anim .hw3-l3 .hw3-ln, .hw-anim .hw3-l3 .hw3-ah { animation: hw3-lnl3 calc(11.2s * var(--hwk)) linear forwards; }
     @keyframes hw3-lnl { 0%,9% { opacity: 0; } 13%,30% { opacity: 1; } 34%,100% { opacity: 0.45; } }
     @keyframes hw3-lnl2 { 0%,41% { opacity: 0; } 45%,62% { opacity: 1; } 66%,100% { opacity: 0.45; } }
     @keyframes hw3-lnl3 { 0%,73% { opacity: 0; } 77%,94% { opacity: 1; } 98%,100% { opacity: 0.45; } }
-    .hw-anim .hw3-l1 .hw3-pkg { animation: hw3-move 0.9s ease 1.8s both; }
-    .hw-anim .hw3-l2 .hw3-pkg { animation: hw3-move 0.9s ease 5.7s both; }
-    .hw-anim .hw3-l3 .hw3-pkg { animation: hw3-move 0.9s ease 9.1s both; }
+    .hw-anim .hw3-l1 .hw3-pkg { animation: hw3-move calc(0.9s * var(--hwk)) ease calc(1.8s * var(--hwk)) both; }
+    .hw-anim .hw3-l2 .hw3-pkg { animation: hw3-move calc(0.9s * var(--hwk)) ease calc(5.7s * var(--hwk)) both; }
+    .hw-anim .hw3-l3 .hw3-pkg { animation: hw3-move calc(0.9s * var(--hwk)) ease calc(9.1s * var(--hwk)) both; }
     @keyframes hw3-move { 0% { opacity: 1; top: 2px; } 90% { opacity: 1; top: calc(100% - 16px); } 100% { opacity: 0; top: calc(100% - 12px); } }
     @keyframes hw3-move-m { 0% { opacity: 1; left: 1px; } 90% { opacity: 1; left: calc(100% - 13px); } 100% { opacity: 0; left: calc(100% - 9px); } }
-    .hw-anim .hw3-l1 .hw3-case { animation: hw3-born 0.6s ease 2.9s forwards; }
-    .hw-anim .hw3-l2 .hw3-case { animation: hw3-born 0.6s ease 6.8s forwards; }
-    .hw-anim .hw3-l3 .hw3-case { animation: hw3-born 0.6s ease 10.2s forwards; }
+    .hw-anim .hw3-l1 .hw3-case { animation: hw3-born calc(0.6s * var(--hwk)) ease calc(2.9s * var(--hwk)) forwards; }
+    .hw-anim .hw3-l2 .hw3-case { animation: hw3-born calc(0.6s * var(--hwk)) ease calc(6.8s * var(--hwk)) forwards; }
+    .hw-anim .hw3-l3 .hw3-case { animation: hw3-born calc(0.6s * var(--hwk)) ease calc(10.2s * var(--hwk)) forwards; }
     @keyframes hw3-born { to { opacity: 1; transform: none; } }
     /* SCENE 4: two people, one reassignment */
     .hw4-wrap { position: relative; height: 100%; display: flex; flex-direction: column; justify-content: center; }
@@ -1300,17 +1300,17 @@ foreach (['operate', 'control', 'scale'] as $plan) {
     .hw4-person .hw-av { width: 40px; height: 40px; font-size: 0.72rem; }
     .hw4-person b { font-size: 0.82rem; color: var(--dt-ink); }
     .hw4-person i { font-style: normal; font-size: 0.62rem; color: var(--dt-ink-muted); }
-    .hw-anim .hw4-p1 { animation: hw4-p1 10.5s linear forwards; }
-    .hw-anim .hw4-p3 { animation: hw4-p3 10.5s linear forwards; }
+    .hw-anim .hw4-p1 { animation: hw4-p1 calc(10.5s * var(--hwk)) linear forwards; }
+    .hw-anim .hw4-p3 { animation: hw4-p3 calc(10.5s * var(--hwk)) linear forwards; }
     @keyframes hw4-p1 { 0%,12% { border-color: var(--dt-border); box-shadow: none; } 16%,52% { border-color: var(--dt-blue); box-shadow: 0 0 0 4px rgba(37,99,235,0.2); } 58%,100% { border-color: var(--dt-border); box-shadow: none; } }
     @keyframes hw4-p3 { 0%,54% { border-color: var(--dt-border); box-shadow: none; } 58%,100% { border-color: #0ea5a8; box-shadow: 0 0 0 4px rgba(14,165,168,0.2); } }
-    .hw-anim .hw4-aval { animation: hw4-at2 10.5s linear forwards; }
+    .hw-anim .hw4-aval { animation: hw4-at2 calc(10.5s * var(--hwk)) linear forwards; }
     @keyframes hw4-at2 { 0%,57% { color: var(--dt-ink); } 58%,72% { color: #0ea5a8; } 82%,100% { color: var(--dt-ink); } }
-    .hw-anim .hw4-a1 { animation: hw4-a1v 10.5s steps(1) forwards; }
-    .hw-anim .hw4-a2 { animation: hw4-a2v 10.5s steps(1) forwards; }
+    .hw-anim .hw4-a1 { animation: hw4-a1v calc(10.5s * var(--hwk)) steps(1) forwards; }
+    .hw-anim .hw4-a2 { animation: hw4-a2v calc(10.5s * var(--hwk)) steps(1) forwards; }
     @keyframes hw4-a1v { 0%,57% { opacity: 1; } 58%,100% { opacity: 0; } }
     @keyframes hw4-a2v { 0%,57% { opacity: 0; } 58%,100% { opacity: 1; } }
-    .hw-anim .hw4-reb { animation: hw4-reb 10.5s linear forwards; }
+    .hw-anim .hw4-reb { animation: hw4-reb calc(10.5s * var(--hwk)) linear forwards; }
     @keyframes hw4-reb { 0%,59% { opacity: 0; transform: scale(0.8); } 63%,100% { opacity: 1; transform: scale(1); } }
     /* SCENE 5 */
     .hw5-record { background: #fff; border: 1.5px solid var(--dt-border); border-radius: 14px; height: 100%; display: flex; flex-direction: column; overflow: hidden; }
@@ -1326,11 +1326,11 @@ foreach (['operate', 'control', 'scale'] as $plan) {
     .hw5-trow { display: flex; gap: 10px; }
     .hw5-thumb { width: 70px; height: 52px; border-radius: 8px; overflow: hidden; border: 1px solid var(--dt-border); background: #fff; opacity: 0; flex-shrink: 0; }
     .hw5-thumb svg { width: 100%; height: 100%; display: block; }
-    .hw-anim .hw5-note { animation: hw5-in 0.5s ease 1.4s forwards; }
-    .hw-anim #hw5C1 { animation: hw5-in 0.5s ease 3s forwards; }
-    .hw-anim #hw5C2 { animation: hw5-in 0.5s ease 4.8s forwards; }
-    .hw-anim #hw5T1 { animation: hw5-in 0.5s ease 6.6s forwards; }
-    .hw-anim #hw5T2 { animation: hw5-in 0.5s ease 7.6s forwards; }
+    .hw-anim .hw5-note { animation: hw5-in calc(0.5s * var(--hwk)) ease calc(1.4s * var(--hwk)) forwards; }
+    .hw-anim #hw5C1 { animation: hw5-in calc(0.5s * var(--hwk)) ease calc(3s * var(--hwk)) forwards; }
+    .hw-anim #hw5C2 { animation: hw5-in calc(0.5s * var(--hwk)) ease calc(4.8s * var(--hwk)) forwards; }
+    .hw-anim #hw5T1 { animation: hw5-in calc(0.5s * var(--hwk)) ease calc(6.6s * var(--hwk)) forwards; }
+    .hw-anim #hw5T2 { animation: hw5-in calc(0.5s * var(--hwk)) ease calc(7.6s * var(--hwk)) forwards; }
     @keyframes hw5-in { from { opacity: 0; transform: translateY(12px); box-shadow: 0 0 0 3px rgba(37,99,235,0.3); } 60% { box-shadow: 0 0 0 3px rgba(37,99,235,0.3); } to { opacity: 1; transform: none; box-shadow: none; } }
     /* SCENE 6 */
     .hw6-sample { position: absolute; right: 6px; top: -4px; font-size: 0.6rem; color: var(--dt-ink-muted); }
@@ -1342,16 +1342,16 @@ foreach (['operate', 'control', 'scale'] as $plan) {
     .hw6-card i { display: block; font-style: normal; font-size: 0.58rem; font-weight: 400; color: var(--dt-ink-muted); margin-top: 2px; }
     .hw6-flag { display: inline-block; font-size: 0.64rem; font-weight: 800; letter-spacing: 0.05em; text-transform: uppercase; border-radius: 999px; padding: 3px 10px; margin-top: 5px; opacity: 0; box-shadow: 0 2px 6px -2px rgba(0,0,0,0.25); }
     .hw6-fa { background: #fff; color: #1d4ed8 !important; } .hw6-fr { background: #fff; color: #b91c1c !important; }
-    .hw-anim .hw6-card:not(.hw6-due):not(.hw6-late) { animation: hw6-dim 10s ease forwards; }
+    .hw-anim .hw6-card:not(.hw6-due):not(.hw6-late) { animation: hw6-dim calc(10s * var(--hwk)) ease forwards; }
     @keyframes hw6-dim { 0%,16% { opacity: 1; } 20%,42% { opacity: 0.72; } 46%,58% { opacity: 1; } 62%,82% { opacity: 0.72; } 88%,100% { opacity: 1; } }
-    .hw-anim .hw6-due { animation: hw6-duelift 10s ease forwards; }
+    .hw-anim .hw6-due { animation: hw6-duelift calc(10s * var(--hwk)) ease forwards; }
     @keyframes hw6-duelift {
       0%,15% { transform: none; background: #fff; }
       20%,38% { transform: translateY(-4px) scale(1.07); background: #dbeafe; border-color: #3b82f6; box-shadow: 0 14px 26px -10px rgba(59,130,246,0.45); z-index: 5; }
       42%,100% { transform: none; background: #dbeafe; border-color: #3b82f6; }
     }
-    .hw-anim .hw6-due .hw6-flag, .hw-anim .hw6-due .hw6-sub { animation: hw-fade 0.4s ease 1.9s forwards; display: inline-block; }
-    .hw-anim .hw6-late { animation: hw6-latelift 10s ease forwards, hw6-latestate 10s steps(1) forwards; }
+    .hw-anim .hw6-due .hw6-flag, .hw-anim .hw6-due .hw6-sub { animation: hw-fade calc(0.4s * var(--hwk)) ease calc(1.9s * var(--hwk)) forwards; display: inline-block; }
+    .hw-anim .hw6-late { animation: hw6-latelift calc(10s * var(--hwk)) ease forwards, hw6-latestate calc(10s * var(--hwk)) steps(1) forwards; }
     @keyframes hw6-latelift {
       0%,54% { transform: none; box-shadow: 0 2px 7px -3px rgba(30,58,95,0.14); }
       58% { transform: translateY(-6px) scale(1.11); box-shadow: 0 16px 30px -10px rgba(185,28,28,0.55); z-index: 5; }
@@ -1359,12 +1359,12 @@ foreach (['operate', 'control', 'scale'] as $plan) {
       84%,100% { transform: none; box-shadow: 0 2px 7px -3px rgba(30,58,95,0.14); }
     }
     @keyframes hw6-latestate { 0%,57% { background: #fff; border-color: var(--dt-border); color: var(--dt-ink); } 58%,100% { background: #b91c1c; border-color: #7f1d1d; color: #fff; } }
-    .hw-anim .hw6-late i { animation: hw6-latemeta 10s steps(1) forwards; }
-    .hw-anim .hw6-due i { animation: hw6-duemeta 10s steps(1) forwards; }
+    .hw-anim .hw6-late i { animation: hw6-latemeta calc(10s * var(--hwk)) steps(1) forwards; }
+    .hw-anim .hw6-due i { animation: hw6-duemeta calc(10s * var(--hwk)) steps(1) forwards; }
     @keyframes hw6-duemeta { 0%,19% { color: var(--dt-ink-muted); } 20%,100% { color: #1e3a8a; } }
     @keyframes hw6-latemeta { 0%,57% { color: var(--dt-ink-muted); } 58%,100% { color: rgba(255,255,255,0.85); } }
-    .hw-anim .hw6-late .hw6-flag { animation: hw-fade 0.4s ease 6.2s forwards; display: inline-block; }
-    .hw-anim .hw6-late .hw6-sub { animation: hw-fade 0.4s ease 6.2s forwards; display: inline-block; color: #fff; }
+    .hw-anim .hw6-late .hw6-flag { animation: hw-fade calc(0.4s * var(--hwk)) ease calc(6.2s * var(--hwk)) forwards; display: inline-block; }
+    .hw-anim .hw6-late .hw6-sub { animation: hw-fade calc(0.4s * var(--hwk)) ease calc(6.2s * var(--hwk)) forwards; display: inline-block; color: #fff; }
     /* SCENE 7 */
     .hw7 { height: 100%; display: flex; flex-direction: column; }
     .hw7-head { display: flex; align-items: baseline; justify-content: space-between; font-size: 0.9rem; font-weight: 800; color: var(--dt-ink); padding-bottom: 8px; border-bottom: 1.5px solid var(--dt-border); background: #fff; position: relative; z-index: 2; }
@@ -1381,13 +1381,13 @@ foreach (['operate', 'control', 'scale'] as $plan) {
     .hw7-ct { font-size: 0.72rem; font-weight: 700; color: var(--dt-ink); margin-bottom: 6px; }
     .hw7-line { width: 100%; height: 74px; }
     .hw7-line polyline { stroke: #2563eb; stroke-width: 3; stroke-dasharray: 420; stroke-dashoffset: 420; }
-    .hw-anim .hw7-line polyline { animation: hw7-draw 1.1s ease 0.4s forwards; }
+    .hw-anim .hw7-line polyline { animation: hw7-draw calc(1.1s * var(--hwk)) ease calc(0.4s * var(--hwk)) forwards; }
     @keyframes hw7-draw { to { stroke-dashoffset: 0; } }
     .hw7-pt { fill: #0ea5a8; opacity: 0; }
     .hw7-call { fill: #1e3a5f; opacity: 0; }
     .hw7-callt { fill: #fff; font-size: 11px; font-weight: 700; opacity: 0; }
-    .hw-anim .hw7-pt { animation: hw-fade 0.4s ease 1.5s forwards; }
-    .hw-anim .hw7-call, .hw-anim .hw7-callt { animation: hw-fade 0.4s ease 1.6s forwards; }
+    .hw-anim .hw7-pt { animation: hw-fade calc(0.4s * var(--hwk)) ease calc(1.5s * var(--hwk)) forwards; }
+    .hw-anim .hw7-call, .hw-anim .hw7-callt { animation: hw-fade calc(0.4s * var(--hwk)) ease calc(1.6s * var(--hwk)) forwards; }
     .hw7-hb, .hw7-lab { display: flex; align-items: center; gap: 8px; font-size: 0.68rem; margin-bottom: 6px; }
     .hw7-lab { display: grid; grid-template-columns: 96px 1fr 34px; gap: 8px; align-items: center; }
     .hw7-lab b { text-align: right; }
@@ -1396,11 +1396,11 @@ foreach (['operate', 'control', 'scale'] as $plan) {
     .hw7-hb b, .hw7-lab b { font-size: 0.66rem; color: var(--dt-ink); }
     .hw7-fill { height: 10px; border-radius: 5px; background: var(--dt-blue); opacity: 0.85; transform: scaleX(0); transform-origin: left; }
     .hw7-fill-t { background: #0ea5a8; } .hw7-fill-b { background: #2563eb; } .hw7-fill-p { background: #8b5cf6; }
-    .hw-anim .hw7-fill { animation: hw7-bar 0.8s ease both; }
-    .hw-anim .hw7-hb:nth-child(2) .hw7-fill { animation-delay: 0.6s; } .hw-anim .hw7-hb:nth-child(3) .hw7-fill { animation-delay: 0.75s; } .hw-anim .hw7-hb:nth-child(4) .hw7-fill { animation-delay: 0.9s; } .hw-anim .hw7-hb:nth-child(5) .hw7-fill { animation-delay: 1.05s; }
+    .hw-anim .hw7-fill { animation: hw7-bar calc(0.8s * var(--hwk)) ease both; }
+    .hw-anim .hw7-hb:nth-child(2) .hw7-fill { animation-delay: calc(0.6s * var(--hwk)); } .hw-anim .hw7-hb:nth-child(3) .hw7-fill { animation-delay: calc(0.75s * var(--hwk)); } .hw-anim .hw7-hb:nth-child(4) .hw7-fill { animation-delay: calc(0.9s * var(--hwk)); } .hw-anim .hw7-hb:nth-child(5) .hw7-fill { animation-delay: calc(1.05s * var(--hwk)); }
     @keyframes hw7-bar { to { transform: scaleX(1); } }
     .hw7-labs { margin-top: 12px; } .hw7-ontime { margin-top: 12px; opacity: 0; }
-    .hw-anim .hw7-ontime { animation: hw-fade 0.5s ease 6.4s forwards; }
+    .hw-anim .hw7-ontime { animation: hw-fade calc(0.5s * var(--hwk)) ease calc(6.4s * var(--hwk)) forwards; }
     .hw7-note { font-style: normal; font-size: 0.58rem; color: var(--dt-ink-muted); margin-left: 8px; }
     .hw7-rings { display: flex; justify-content: space-around; gap: 10px; padding: 4px 0 2px; }
     .hw7-ring { text-align: center; }
@@ -1412,9 +1412,9 @@ foreach (['operate', 'control', 'scale'] as $plan) {
     /* ring arcs are drawn by runRingCounts() via rAF so arc and counter
        stay synchronized regardless of keyframe var() support */
     .hw7-lab .hw7-fill { transform: scaleX(0); transform-origin: left; opacity: 0.85; }
-    .hw-anim .hw7-labs .hw7-lab:nth-child(2) .hw7-fill { animation: hw7-bar 0.8s ease 4.6s both; }
-    .hw-anim .hw7-labs .hw7-lab:nth-child(3) .hw7-fill { animation: hw7-bar 0.8s ease 4.75s both; }
-    .hw-anim .hw7-labs .hw7-lab:nth-child(4) .hw7-fill { animation: hw7-bar 0.8s ease 4.9s both; }
+    .hw-anim .hw7-labs .hw7-lab:nth-child(2) .hw7-fill { animation: hw7-bar calc(0.8s * var(--hwk)) ease calc(4.6s * var(--hwk)) both; }
+    .hw-anim .hw7-labs .hw7-lab:nth-child(3) .hw7-fill { animation: hw7-bar calc(0.8s * var(--hwk)) ease calc(4.75s * var(--hwk)) both; }
+    .hw-anim .hw7-labs .hw7-lab:nth-child(4) .hw7-fill { animation: hw7-bar calc(0.8s * var(--hwk)) ease calc(4.9s * var(--hwk)) both; }
     .hw-controls { display: flex; align-items: center; gap: 10px; margin-top: 14px; flex-wrap: wrap; }
     .hw-ctl { background: #fff; border: 1px solid var(--dt-border); border-radius: 8px; width: 30px; height: 30px; display: grid; place-items: center; cursor: pointer; font-size: 0.9rem; color: var(--dt-ink-secondary); }
     .hw-ctl:hover, .hw-ctl:focus-visible { border-color: var(--dt-blue); color: var(--dt-ink); outline: none; }
@@ -3954,7 +3954,8 @@ foreach (['operate', 'control', 'scale'] as $plan) {
       play: <?php echo json_encode(t('marketing.walkthrough.play')); ?>
     };
     var meta = <?php $o=[];$c=[];for($i=1;$i<=7;$i++){$o[$i]=t('marketing.walkthrough.step'.$i.'_title');$c[$i]=t('marketing.walkthrough.step'.$i.'_copy');}echo json_encode(['t'=>$o,'c'=>$c],JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE); ?>;
-    var DUR = {1:9500, 2:13000, 3:11200, 4:10800, 5:9800, 6:10400, 7:12200};
+    var HW_K = 0.85;
+    var DUR = {1:Math.round(9500*HW_K), 2:Math.round(13000*HW_K), 3:Math.round(11200*HW_K), 4:Math.round(10800*HW_K), 5:Math.round(9800*HW_K), 6:Math.round(10400*HW_K), 7:Math.round(12200*HW_K)};
     var current = 1, playing = false, cssFrozen = false, timer = null, visible = false;
     for (var i = 1; i <= 7; i++) { var d = document.createElement('span'); d.className = 'hw-dot'; dots.appendChild(d); }
     var dotEls = dots.querySelectorAll('.hw-dot');
@@ -4019,14 +4020,14 @@ foreach (['operate', 'control', 'scale'] as $plan) {
     var dashRaf = null, dashTimer = null, cur2Timer = null, ringTimers = [];
     function resetRingText() { wrap.querySelectorAll('.hw7-rv').forEach(function (t, i) { t.textContent = [95,88,91][i] + '%'; var ring = t.closest('.hw7-ring'), arc = ring ? ring.querySelector('.hw7-rf') : null; if (arc) arc.style.strokeDashoffset = ''; }); }
     function runRingCounts() {
-      var vals = [95, 88, 91], delays = [6600, 6750, 6900];
+      var vals = [95, 88, 91], delays = [6600*HW_K, 6750*HW_K, 6900*HW_K];
       wrap.querySelectorAll('.hw7-rv').forEach(function (t, i) {
         var ring = t.closest('.hw7-ring'), arc = ring ? ring.querySelector('.hw7-rf') : null;
         t.textContent = '0%';
         if (arc) arc.style.strokeDashoffset = '163.4';
         ringTimers.push(setTimeout(function () {
           var t0 = null;
-          function step(ts) { if (!t0) t0 = ts; var p = Math.min((ts - t0) / 1000, 1);
+          function step(ts) { if (!t0) t0 = ts; var p = Math.min((ts - t0) / (1000*HW_K), 1);
             t.textContent = Math.round(vals[i] * p) + '%';
             if (arc) arc.style.strokeDashoffset = (163.4 * (1 - vals[i] * p / 100)).toFixed(1);
             if (p < 1) ringTimers.push(requestAnimationFrame(step)); }
@@ -4042,7 +4043,7 @@ foreach (['operate', 'control', 'scale'] as $plan) {
       var dest = Math.max(0, tr.top - vr.top - 6);
       if (dest < 4) return;
       dashTimer = setTimeout(function () {
-        var from = view.scrollTop, t0 = null, dur = 800;
+        var from = view.scrollTop, t0 = null, dur = 800*HW_K;
         function step(ts) {
           if (!t0) t0 = ts;
           var p = Math.min((ts - t0) / dur, 1);
@@ -4051,13 +4052,13 @@ foreach (['operate', 'control', 'scale'] as $plan) {
           if (p < 1) dashRaf = requestAnimationFrame(step);
         }
         dashRaf = requestAnimationFrame(step);
-      }, 3600);
+      }, 3600*HW_K);
     }
     function runKpis() {
       wrap.querySelectorAll('.hw7-kv').forEach(function (el) {
         var target = parseFloat(el.dataset.v), dec = el.dataset.v.indexOf('.') > -1 ? 1 : 0;
         var t0 = null;
-        function tick(ts) { if (!t0) t0 = ts; var p = Math.min((ts - t0) / 1100, 1);
+        function tick(ts) { if (!t0) t0 = ts; var p = Math.min((ts - t0) / (1100*HW_K), 1);
           el.textContent = (target * p).toFixed(dec) + (dec ? 'd' : target === 93 ? '%' : '');
           if (p < 1 && playing !== null) requestAnimationFrame(tick); }
         requestAnimationFrame(tick);
@@ -4072,7 +4073,7 @@ foreach (['operate', 'control', 'scale'] as $plan) {
       var add = hw1Scene.querySelector('.hw1-addbtn'), ed = hw1Scene.querySelector('.hw1-edit');
       if (add) { hw1Scene.style.setProperty('--cx1', cx(add)); hw1Scene.style.setProperty('--cy1', cy(add)); }
       if (ed) { hw1Scene.style.setProperty('--cx2', cx(ed)); hw1Scene.style.setProperty('--cy2', cy(ed)); }
-      if (again !== false) { clearTimeout(cur2Timer); cur2Timer = setTimeout(function () { positionHw1Cursor(false); }, 4200); }
+      if (again !== false) { clearTimeout(cur2Timer); cur2Timer = setTimeout(function () { positionHw1Cursor(false); }, 4200*HW_K); }
     }
     window.addEventListener('resize', function () { if (cur === 1) positionHw1Cursor(); });
     if (document.fonts && document.fonts.ready) { document.fonts.ready.then(function () { if (cur === 1) positionHw1Cursor(); }); }
