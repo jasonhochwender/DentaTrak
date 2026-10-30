@@ -16,6 +16,7 @@
 if (PHP_SAPI !== 'cli') { exit(1); }
 error_reporting(E_ALL);
 ob_start(); // buffer so appConfig's header/session bootstrap can't hit "headers already sent"
+register_shutdown_function(function () { $c = ob_get_clean(); if (is_string($c) && $c !== '') { fwrite(STDOUT, $c); } });
 echo "step=boot\n";
 
 $root = __DIR__;
@@ -75,7 +76,10 @@ if ($bin !== '') {
     exec(escapeshellarg($bin) . ' a -y ' . escapeshellarg("$dir/p.7z") . ' ' . escapeshellarg("$dir/payload.stl") . ' 2>&1', $o, $rc);
     ok($rc === 0 && file_exists("$dir/p.7z"), '7z fixture created');
 
-    $conn = new MeditScanConnector(null, null, function () { return ['status'=>500,'headers'=>[],'body'=>'{}']; });
+    $transport = function () { return ['status'=>500,'headers'=>[],'body'=>'{}']; };
+    global $pdo;
+    $service = new MeditAuthService($transport);
+    $conn = new MeditScanConnector($pdo ?? null, $service, $transport, function () { return null; });
     $ep = (new ReflectionClass($conn))->getMethod('extractPayload');
     $ep->setAccessible(true);
     $run = function ($bytes, array $items = [], $expected = 'payload.stl') use ($ep, $conn) {
