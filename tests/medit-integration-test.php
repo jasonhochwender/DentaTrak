@@ -216,9 +216,9 @@ try {
     assertEquals('active', $conn['status'], 'connection active');
     assertTrue(IntegrationCredentials::get($pdo, (int)$r['connection_id'], 'access_token') === 'syn-access-a', 'access token persisted encrypted');
 
-    // Replay: same callback can never complete twice.
-    pushToken($queue, 'replay');
-    pushMe($queue);
+    // Replay: same callback can never complete twice. The attempt is
+    // already consumed, so the callback exits BEFORE any exchange -
+    // no responses are queued for it.
     $r2 = $service->handleCallback($pdo, ['code' => 'authcode-1', 'state' => $ok['attempt_id']], $userId, $practiceId);
     assertEquals('replay', $r2['result'], 'second callback for the same attempt is a replay');
 
