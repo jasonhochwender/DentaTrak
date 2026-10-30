@@ -276,17 +276,23 @@ class MeditScanConnector implements ScannerConnectorInterface {
             return ['content' => $bytes, 'content_type' => 'application/x-7z-compressed'];
         }
 
-        $entries = $this->extract7z($bytes, $binary);
-        $match = $this->matchEntry($entries, $items, $expectedName);
-        if ($match === null) {
-            throw new ScannerDownloadException('archive entry could not be matched to its descriptor', true, 'packaging_ambiguous');
-        }
-        if ($match['size'] > ScanFileStore::maxFileBytes()) {
-            throw new ScannerDownloadException('file too large', false, 'file_too_large');
-        }
-        $content = file_get_contents($match['path']);
-        if ($content === false || $content === '') {
-            throw new ScannerDownloadException('archive read failed', true, 'download_failed');
+        $result = $this->extract7z($bytes, $binary);
+        try {
+            $match = $this->matchEntry($result['entries'], $items, $expectedName);
+            if ($match === null) {
+                throw new ScannerDownloadException('archive entry could not be matched to its descriptor', true, 'packaging_ambiguous');
+            }
+            if ($match['size'] > ScanFileStore::maxFileBytes()) {
+                throw new ScannerDownloadException('file too large', false, 'file_too_large');
+            }
+            $content = file_get_contents($match['path']);
+            if ($content === false || $content === '') {
+                throw new ScannerDownloadException('archive read failed', true, 'download_failed');
+            }
+        } finally {
+            // The workspace must outlive extraction - the caller reads
+            // the matched entry BEFORE the temp tree is removed.
+            self::removeTree($result['workspace']);
         }
 
         // Integrity: the documented items[] carries a base64-encoded MD5
@@ -416,9 +422,12 @@ class MeditScanConnector implements ScannerConnectorInterface {
                     'size' => $size,
                 ];
             }
-            return $entries;
-        } finally {
+            // Success: the caller owns cleanup of $base (it still needs
+            // the extracted files); failures clean up here.
+            return ['entries' => $entries, 'workspace' => $base];
+        } catch (Throwable $e) {
             self::removeTree($base);
+            throw $e;
         }
     }
 

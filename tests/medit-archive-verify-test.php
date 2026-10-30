@@ -104,7 +104,7 @@ if ($bin !== '') {
     // multi-entry, no descriptor -> ambiguous, never guesses
     file_put_contents("$dir/other.stl", 'x');
     exec(escapeshellarg($bin) . ' a -y ' . escapeshellarg("$dir/m.7z") . ' ' . escapeshellarg("$dir/payload.stl") . ' ' . escapeshellarg("$dir/other.stl") . ' 2>&1', $o2, $rc2);
-    try { $run(file_get_contents("$dir/m.7z"), []); ok(false, 'ambiguous archive guessed'); }
+    try { $run(file_get_contents("$dir/m.7z"), [], 'nomatch.stl'); ok(false, 'ambiguous archive guessed'); }
     catch (ScannerDownloadException $e) { ok($e->getErrorCode() === 'packaging_ambiguous', 'multi-entry ambiguity fails closed'); }
     catch (Throwable $e) { ok(false, 'ambiguity wrong error: ' . get_class($e)); }
 
