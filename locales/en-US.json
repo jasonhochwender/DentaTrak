@@ -6233,7 +6233,8 @@
             "email_to": "To:",
             "accepted": "Accepted",
             "cap_connected": "Your team and lab, connected.",
-            "rm_invited": "Maya Chen and Jordan Lee joined by email invitation."
+            "rm_invited": "Maya Chen and Jordan Lee joined by email invitation.",
+            "created_by": "Created by:"
         },
         "askdemo": {
             "example_label": "Example conversation",

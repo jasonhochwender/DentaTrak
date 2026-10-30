@@ -6233,7 +6233,8 @@
             "email_to": "받는 사람:",
             "accepted": "수락됨",
             "cap_connected": "팀과 랩이 연결되었습니다.",
-            "rm_invited": "Maya Chen과 Jordan Lee가 이메일 초대로 합류했습니다."
+            "rm_invited": "Maya Chen과 Jordan Lee가 이메일 초대로 합류했습니다.",
+            "created_by": "작성자:"
         },
         "askdemo": {
             "example_label": "예시 대화",

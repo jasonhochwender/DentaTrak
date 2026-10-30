@@ -6275,7 +6275,8 @@
             "email_to": "An:",
             "accepted": "Angenommen",
             "cap_connected": "Ihr Team und Labor, verbunden.",
-            "rm_invited": "Maya Chen und Jordan Lee sind per E-Mail-Einladung beigetreten."
+            "rm_invited": "Maya Chen und Jordan Lee sind per E-Mail-Einladung beigetreten.",
+            "created_by": "Erstellt von:"
         },
         "askdemo": {
             "example_label": "Beispielgespräch",
