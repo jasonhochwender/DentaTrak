@@ -1295,7 +1295,7 @@ foreach (['operate', 'control', 'scale'] as $plan) {
     .hw4-aval small { display: block; font-size: 0.6rem; font-weight: 400; color: var(--dt-ink-muted); }
     .hw4-aval .hw4-a1 { opacity: 1; }
     .hw4-links { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 1; overflow: visible; }
-    .hw4-link { stroke-width: 2.5; fill: none; stroke-dasharray: var(--len, 300); stroke-dashoffset: var(--len, 300); }
+    .hw4-link { stroke-width: 2; fill: none; stroke-dasharray: var(--len, 300); stroke-dashoffset: var(--len, 300); }
     .hw4-l1 { stroke: #2563eb; } .hw4-l2 { stroke: #0ea5a8; }
     .hw4-people { margin-top: auto; display: flex; gap: 14px; justify-content: center; z-index: 2; }
     .hw4-person { width: 190px; display: flex; flex-direction: column; align-items: center; gap: 4px; background: #fff; border: 1.5px solid var(--dt-border); border-radius: 12px; padding: 12px 8px; text-align: center; }
@@ -2150,8 +2150,8 @@ foreach (['operate', 'control', 'scale'] as $plan) {
               <div class="hw4-wrap">
                 <svg class="hw4-links" preserveAspectRatio="none" aria-hidden="true">
                   <defs>
-                    <marker id="hw4-arr-b" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto"><path d="M0 0 L8 4 L0 8 Z" fill="#2563eb"/></marker>
-                    <marker id="hw4-arr-t" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto"><path d="M0 0 L8 4 L0 8 Z" fill="#0ea5a8"/></marker>
+                    <marker id="hw4-arr-b" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0.5 0.5 L7 4 L0.5 7.5" fill="none" stroke="#2563eb" stroke-width="2" stroke-linecap="round"/></marker>
+                    <marker id="hw4-arr-t" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0.5 0.5 L7 4 L0.5 7.5" fill="none" stroke="#0ea5a8" stroke-width="2" stroke-linecap="round"/></marker>
                   </defs>
                   <path class="hw4-link hw4-l1" marker-end="url(#hw4-arr-b)" fill="none"/>
                   <path class="hw4-link hw4-l2" marker-end="url(#hw4-arr-t)" fill="none"/>
@@ -4073,9 +4073,8 @@ foreach (['operate', 'control', 'scale'] as $plan) {
         var el = hw4Wrap.querySelector(sel); if (!el || !path) return;
         var p = el.getBoundingClientRect();
         var x1 = cs.left + cs.width / 2 - w.left, y1 = cs.bottom - w.top;
-        var x2 = p.left + p.width / 2 - w.left, y2 = p.top - w.top - 5;
-        var my = y1 + (y2 - y1) * 0.55;
-        path.setAttribute('d', 'M' + x1.toFixed(1) + ' ' + y1.toFixed(1) + ' C' + x1.toFixed(1) + ' ' + my.toFixed(1) + ', ' + x2.toFixed(1) + ' ' + (y2 - (y2 - y1) * 0.55).toFixed(1) + ', ' + x2.toFixed(1) + ' ' + y2.toFixed(1));
+        var x2 = p.left + p.width / 2 - w.left, y2 = p.top - w.top - 7;
+        path.setAttribute('d', 'M' + x1.toFixed(1) + ' ' + y1.toFixed(1) + ' L' + x2.toFixed(1) + ' ' + y2.toFixed(1));
         var len = Math.ceil(path.getTotalLength());
         path.style.setProperty('--len', len);
       }
