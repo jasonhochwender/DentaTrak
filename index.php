@@ -1129,7 +1129,7 @@ foreach (['operate', 'control', 'scale'] as $plan) {
     .hw-scene-title { font-size: 1.15rem; color: var(--dt-ink); margin: 0 0 4px; }
     .hw-scene-copy { font-size: 0.85rem; color: var(--dt-ink-secondary); margin: 0 0 14px; }
     .hw-stage { position: relative; background: #fff; border: 1px solid var(--dt-border); border-radius: 18px; padding: 20px; height: 360px; overflow: hidden; box-shadow: var(--dt-shadow); }
-    .hw-scene { --hwk: 0.7225; position: absolute; inset: 20px; opacity: 0; transition: opacity calc(0.45s * var(--hwk)) ease; pointer-events: none; overflow: hidden; }
+    .hw-scene { --hwk: 0.65025; position: absolute; inset: 20px; opacity: 0; transition: opacity calc(0.45s * var(--hwk)) ease; pointer-events: none; overflow: hidden; }
     .hw-scene.hw-active { opacity: 1; pointer-events: auto; }
     .hw-paused .hw-scene *, .hw-paused .hw-cursor { animation-play-state: paused !important; }
     .hw-cursor { position: absolute; left: 0; top: 0; width: 18px; height: 18px; z-index: 6; pointer-events: none; opacity: 0;
@@ -1295,6 +1295,13 @@ foreach (['operate', 'control', 'scale'] as $plan) {
     .hw4-aval i { font-style: normal; position: absolute; left: 0; top: 0; white-space: nowrap; opacity: 0; }
     .hw4-aval small { display: block; font-size: 0.6rem; font-weight: 400; color: var(--dt-ink-muted); }
     .hw4-aval .hw4-a1 { opacity: 1; }
+    .hw4-links { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 1; overflow: visible; }
+    .hw4-link { stroke-width: 2; fill: none; opacity: 0; }
+    .hw4-l1 { stroke: #2563eb; } .hw4-l2 { stroke: #0ea5a8; }
+    .hw-anim .hw4-l1 { animation: hw4-l1 calc(10.5s * var(--hwk)) linear forwards; }
+    .hw-anim .hw4-l2 { animation: hw4-l2 calc(10.5s * var(--hwk)) linear forwards; }
+    @keyframes hw4-l1 { 0%,58% { opacity: 1; } 62%,100% { opacity: 0; } }
+    @keyframes hw4-l2 { 0%,58% { opacity: 0; } 62%,100% { opacity: 1; } }
     .hw4-people { margin-top: 44px; display: flex; gap: 14px; justify-content: center; z-index: 2; }
     .hw4-person { width: 190px; display: flex; flex-direction: column; align-items: center; gap: 4px; background: #fff; border: 1.5px solid var(--dt-border); border-radius: 12px; padding: 12px 8px; text-align: center; }
     .hw4-person .hw-av { width: 40px; height: 40px; font-size: 0.72rem; }
@@ -1455,7 +1462,7 @@ foreach (['operate', 'control', 'scale'] as $plan) {
       .hw1-qcname, .hw1-n1 { opacity: 1 !important; } .hw1-n0 { opacity: 0 !important; }
       .hw-emailcard, .hw-join1, .hw-join2, .hw3-case, .hw3-act, .hw5-note, .hw5-cmt, .hw5-thumb { opacity: 1 !important; transform: none; }
       .hw3-ln, .hw3-ah { opacity: 0.45 !important; }
-      .hw4-aval .hw4-a2 { opacity: 1 !important; } .hw4-aval .hw4-a1 { opacity: 0 !important; } .hw4-reb { opacity: 1 !important; } .hw4-p3 { border-color: #0ea5a8; }
+      .hw4-aval .hw4-a2 { opacity: 1 !important; } .hw4-aval .hw4-a1 { opacity: 0 !important; } .hw4-reb { opacity: 1 !important; } .hw4-p3 { border-color: #0ea5a8; } .hw4-l2 { opacity: 1 !important; } .hw4-l1 { opacity: 0 !important; }
       .hw6-flag { opacity: 1 !important; } .hw6-due .hw6-sub { display: inline-block !important; color: #1e3a8a; } .hw6-late .hw6-sub { display: inline-block !important; color: #fff; }
       .hw6-due { background: #dbeafe; border-color: #3b82f6; }
       .hw6-late { background: #b91c1c; border-color: #7f1d1d; color: #fff; }
@@ -2150,6 +2157,10 @@ foreach (['operate', 'control', 'scale'] as $plan) {
 <!-- SCENE 4: assignment handoff -->
             <div class="hw-scene" data-scene="4" hidden>
               <div class="hw4-wrap">
+                <svg class="hw4-links" preserveAspectRatio="none" aria-hidden="true">
+                  <path class="hw4-link hw4-l1" fill="none"/>
+                  <path class="hw4-link hw4-l2" fill="none"/>
+                </svg>
                 <div class="hw4-case"><div class="hw4-reb"><?php echo t('marketing.walkthrough.reassigned'); ?></div><div class="hw4-case-h">Crown #14 · Hannah Lindqvist</div>
                   <div class="hw4-meta"><span><?php echo t('marketing.walkthrough.created_by'); ?></span> Dr. Alex Rivera</div>
                   <div class="hw4-at"><span><?php echo t('marketing.walkthrough.assigned_to'); ?></span>
@@ -3954,7 +3965,7 @@ foreach (['operate', 'control', 'scale'] as $plan) {
       play: <?php echo json_encode(t('marketing.walkthrough.play')); ?>
     };
     var meta = <?php $o=[];$c=[];for($i=1;$i<=7;$i++){$o[$i]=t('marketing.walkthrough.step'.$i.'_title');$c[$i]=t('marketing.walkthrough.step'.$i.'_copy');}echo json_encode(['t'=>$o,'c'=>$c],JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE); ?>;
-    var HW_K = 0.7225;
+    var HW_K = 0.65025;
     var DUR = {1:Math.round(9500*HW_K), 2:Math.round(13000*HW_K), 3:Math.round(11200*HW_K), 4:Math.round(10800*HW_K), 5:Math.round(9800*HW_K), 6:Math.round(10400*HW_K), 7:Math.round(12200*HW_K)};
     var current = 1, playing = false, cssFrozen = false, timer = null, visible = false;
     for (var i = 1; i <= 7; i++) { var d = document.createElement('span'); d.className = 'hw-dot'; dots.appendChild(d); }
@@ -3974,7 +3985,7 @@ foreach (['operate', 'control', 'scale'] as $plan) {
       title.textContent = meta.t[n]; copy.textContent = meta.c[n];
       if (n === 7 && !reduced) { runKpis(); planDashScroll(); runRingCounts(); } else if (n === 7) { var v = wrap.querySelector('.hw7-view'); if (v) v.scrollTop = 0; resetRingText(); }
       if (n === 1) positionHw1Cursor();
-      /* scene 4 is fully CSS-driven - no JS positioning needed */
+      if (n === 4) positionHw4Lines();
       wrap.classList.remove('hw-anim'); void wrap.offsetWidth;
       if (!reduced) wrap.classList.add('hw-anim');
       if (userInitiated) { playing = false; syncPause(); }
@@ -4075,8 +4086,25 @@ foreach (['operate', 'control', 'scale'] as $plan) {
       if (ed) { hw1Scene.style.setProperty('--cx2', cx(ed)); hw1Scene.style.setProperty('--cy2', cy(ed)); }
       if (again !== false) { clearTimeout(cur2Timer); cur2Timer = setTimeout(function () { positionHw1Cursor(false); }, 4200*HW_K); }
     }
-    window.addEventListener('resize', function () { if (cur === 1) positionHw1Cursor(); });
-    if (document.fonts && document.fonts.ready) { document.fonts.ready.then(function () { if (cur === 1) positionHw1Cursor(); }); }
+    var hw4Wrap = wrap.querySelector('.hw-scene[data-scene="4"] .hw4-wrap');
+    function positionHw4Lines() {
+      if (!hw4Wrap) return;
+      var w = hw4Wrap.getBoundingClientRect(), svg = hw4Wrap.querySelector('.hw4-links');
+      if (!svg || w.width < 2) return;
+      svg.setAttribute('viewBox', '0 0 ' + Math.round(w.width) + ' ' + Math.round(w.height));
+      var cs = hw4Wrap.querySelector('.hw4-case').getBoundingClientRect();
+      function aim(sel, path) {
+        var el = hw4Wrap.querySelector(sel); if (!el || !path) return;
+        var p = el.getBoundingClientRect();
+        var x1 = cs.left + cs.width / 2 - w.left, y1 = cs.bottom - w.top;
+        var x2 = p.left + p.width / 2 - w.left, y2 = p.top - w.top - 6;
+        path.setAttribute('d', 'M' + x1.toFixed(1) + ' ' + y1.toFixed(1) + ' L' + x2.toFixed(1) + ' ' + y2.toFixed(1));
+      }
+      aim('.hw4-p1', hw4Wrap.querySelector('.hw4-l1'));
+      aim('.hw4-p3', hw4Wrap.querySelector('.hw4-l2'));
+    }
+    window.addEventListener('resize', function () { if (cur === 1) positionHw1Cursor(); if (cur === 4) positionHw4Lines(); });
+    if (document.fonts && document.fonts.ready) { document.fonts.ready.then(function () { if (cur === 1) positionHw1Cursor(); if (cur === 4) positionHw4Lines(); }); }
     show(1, false);
     if (reduced) { btnPause.hidden = true; }
   })();
@@ -4100,7 +4128,7 @@ foreach (['operate', 'control', 'scale'] as $plan) {
     var N = EX.length, cur = 0, timer = null, paused = false, visible = false, started = false;
 
     function setT(id, fn, ms) { timer = setTimeout(fn, ms); }
-    function clearT() { clearTimeout(timer); timer = null; clearTimeout(dashTimer); dashTimer = null; clearTimeout(cur2Timer); cur2Timer = null; if (dashRaf) cancelAnimationFrame(dashRaf); dashRaf = null; ringTimers.forEach(function (h) { clearTimeout(h); cancelAnimationFrame(h); }); ringTimers = []; }
+    function clearT() { clearTimeout(timer); timer = null; }
     function renderStatic(i) {
       clearT();
       userMsg.hidden = false; userMsg.textContent = EX[i].q;
