@@ -6232,7 +6232,7 @@
             "cap_addstage": "Añade tus propias etapas.",
             "cap_rename": "Ponles el nombre que quieras.",
             "inbox_lbl": "Bandeja de escaneos",
-            "act_import": "Importar",
+            "act_import": "Importar casos de laboratorio",
             "reassigned": "Reasignado",
             "sec_images": "Imágenes",
             "due_sub": "Vence mañana.",
@@ -6243,7 +6243,8 @@
             "rm_invited": "Maya Chen y Jordan Lee se unieron por invitación por correo.",
             "created_by": "Creado por:",
             "chart_ontime": "Puntualidad por laboratorio",
-            "lower_better": "Menor es mejor"
+            "lower_better": "Menor es mejor",
+            "act_import_scans": "Importar escaneos"
         },
         "askdemo": {
             "example_label": "Conversación de ejemplo",

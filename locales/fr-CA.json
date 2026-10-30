@@ -6232,7 +6232,7 @@
             "cap_addstage": "Ajoutez vos propres étapes.",
             "cap_rename": "Nommez-les à votre façon.",
             "inbox_lbl": "Boîte de scans",
-            "act_import": "Importer",
+            "act_import": "Importer les cas de labo",
             "reassigned": "Réassigné",
             "sec_images": "Images",
             "due_sub": "Dû demain.",
@@ -6243,7 +6243,8 @@
             "rm_invited": "Maya Chen et Jordan Lee ont rejoint par invitation courriel.",
             "created_by": "Créé par :",
             "chart_ontime": "Ponctualité par laboratoire",
-            "lower_better": "Plus bas, c’est mieux"
+            "lower_better": "Plus bas, c’est mieux",
+            "act_import_scans": "Importer les scans"
         },
         "askdemo": {
             "example_label": "Conversation d’exemple",

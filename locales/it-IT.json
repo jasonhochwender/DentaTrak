@@ -6232,7 +6232,7 @@
             "cap_addstage": "Aggiungi le tue fasi.",
             "cap_rename": "Chiamale come vuoi.",
             "inbox_lbl": "Casella scansioni",
-            "act_import": "Importa",
+            "act_import": "Importa casi del laboratorio",
             "reassigned": "Riassegnato",
             "sec_images": "Immagini",
             "due_sub": "Scade domani.",
@@ -6243,7 +6243,8 @@
             "rm_invited": "Maya Chen e Jordan Lee si sono uniti tramite invito email.",
             "created_by": "Creato da:",
             "chart_ontime": "Puntualità per laboratorio",
-            "lower_better": "Più basso è meglio"
+            "lower_better": "Più basso è meglio",
+            "act_import_scans": "Importa scansioni"
         },
         "askdemo": {
             "example_label": "Conversazione di esempio",

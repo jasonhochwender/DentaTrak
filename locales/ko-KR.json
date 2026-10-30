@@ -6232,7 +6232,7 @@
             "cap_addstage": "나만의 단계를 추가하세요.",
             "cap_rename": "원하는 이름으로 지으세요.",
             "inbox_lbl": "스캔 받은함",
-            "act_import": "가져오기",
+            "act_import": "랩 케이스 가져오기",
             "reassigned": "재배정됨",
             "sec_images": "이미지",
             "due_sub": "내일 마감.",
@@ -6243,7 +6243,8 @@
             "rm_invited": "Maya Chen과 Jordan Lee가 이메일 초대로 합류했습니다.",
             "created_by": "작성자:",
             "chart_ontime": "랩별 정시율",
-            "lower_better": "낮을수록 좋습니다"
+            "lower_better": "낮을수록 좋습니다",
+            "act_import_scans": "스캔 가져오기"
         },
         "askdemo": {
             "example_label": "예시 대화",

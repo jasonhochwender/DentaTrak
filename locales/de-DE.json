@@ -6274,7 +6274,7 @@
             "cap_addstage": "Fügen Sie eigene Stages hinzu.",
             "cap_rename": "Benennen Sie sie nach Ihren Wünschen.",
             "inbox_lbl": "Scanner-Eingang",
-            "act_import": "Importieren",
+            "act_import": "Laborfälle importieren",
             "reassigned": "Neu zugewiesen",
             "sec_images": "Bilder",
             "due_sub": "Morgen fällig.",
@@ -6285,7 +6285,8 @@
             "rm_invited": "Maya Chen und Jordan Lee sind per E-Mail-Einladung beigetreten.",
             "created_by": "Erstellt von:",
             "chart_ontime": "Pünktlichkeit nach Labor",
-            "lower_better": "Niedriger ist besser"
+            "lower_better": "Niedriger ist besser",
+            "act_import_scans": "Scans importieren"
         },
         "askdemo": {
             "example_label": "Beispielgespräch",

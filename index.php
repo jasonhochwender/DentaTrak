@@ -1129,7 +1129,7 @@ foreach (['operate', 'control', 'scale'] as $plan) {
     .hw-scene-title { font-size: 1.15rem; color: var(--dt-ink); margin: 0 0 4px; }
     .hw-scene-copy { font-size: 0.85rem; color: var(--dt-ink-secondary); margin: 0 0 14px; }
     .hw-stage { position: relative; background: #fff; border: 1px solid var(--dt-border); border-radius: 18px; padding: 20px; height: 360px; overflow: hidden; box-shadow: var(--dt-shadow); }
-    .hw-scene { --hwk: 0.65025; position: absolute; inset: 20px; opacity: 0; transition: opacity calc(0.45s * var(--hwk)) ease; pointer-events: none; overflow: hidden; }
+    .hw-scene { --hwk: 0.6177375; position: absolute; inset: 20px; opacity: 0; transition: opacity calc(0.45s * var(--hwk)) ease; pointer-events: none; overflow: hidden; }
     .hw-scene.hw-active { opacity: 1; pointer-events: auto; }
     .hw-paused .hw-scene *, .hw-paused .hw-cursor { animation-play-state: paused !important; }
     .hw-cursor { position: absolute; left: 0; top: 0; width: 18px; height: 18px; z-index: 6; pointer-events: none; opacity: 0;
@@ -1248,7 +1248,12 @@ foreach (['operate', 'control', 'scale'] as $plan) {
     .hw3-inbx { display: flex; flex-direction: column; background: var(--dt-warm); border: 1.5px solid var(--dt-blue); border-radius: 8px; padding: 4px 10px; text-align: left; }
     .hw3-inbx i { font-style: normal; font-size: 0.56rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--dt-ink-muted); }
     .hw3-inbx b { font-size: 0.68rem; color: var(--dt-ink); }
-    .hw3-act-inbox { flex-direction: column; flex-wrap: nowrap; gap: 13px; min-height: 66px; justify-content: flex-start; }
+    .hw3-act-inbox { flex-direction: column; flex-wrap: nowrap; gap: 10px; min-height: 0; justify-content: flex-start; }
+    .hw3-l2 .hw3-art { max-width: 100px; }
+    .hw3-l2 .hw3-link { min-height: 26px; margin-top: 10px; }
+    .hw3-l2 .hw3-act .hw3-btn { opacity: 0; }
+    .hw-anim .hw3-l2 .hw3-act .hw3-btn { animation: hw-fade calc(0.5s * var(--hwk)) ease calc(4.6s * var(--hwk)) forwards; }
+    .hw-anim .hw3-l2 .hw3-act .hw3-btn2 { animation-delay: calc(5.1s * var(--hwk)); }
     .hw3-link { position: relative; flex: 1; min-height: 44px; width: 20px; margin-top: 14px; margin-bottom: 6px; }
     .hw3-link svg { display: block; width: 20px; height: 100%; overflow: visible; }
     .hw3-ln { stroke: var(--dt-blue); stroke-width: 2.5; opacity: 0; }
@@ -1296,12 +1301,12 @@ foreach (['operate', 'control', 'scale'] as $plan) {
     .hw4-aval small { display: block; font-size: 0.6rem; font-weight: 400; color: var(--dt-ink-muted); }
     .hw4-aval .hw4-a1 { opacity: 1; }
     .hw4-links { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 1; overflow: visible; }
-    .hw4-link { stroke-width: 2; fill: none; opacity: 0; }
+    .hw4-link { stroke-width: 2; fill: none; opacity: 0; stroke-dasharray: var(--len, 300); stroke-dashoffset: var(--len, 300); }
     .hw4-l1 { stroke: #2563eb; } .hw4-l2 { stroke: #0ea5a8; }
     .hw-anim .hw4-l1 { animation: hw4-l1 calc(10.5s * var(--hwk)) linear forwards; }
     .hw-anim .hw4-l2 { animation: hw4-l2 calc(10.5s * var(--hwk)) linear forwards; }
-    @keyframes hw4-l1 { 0%,58% { opacity: 1; } 62%,100% { opacity: 0; } }
-    @keyframes hw4-l2 { 0%,58% { opacity: 0; } 62%,100% { opacity: 1; } }
+    @keyframes hw4-l1 { 0%,10% { stroke-dashoffset: var(--len, 300); opacity: 1; } 22%,56% { stroke-dashoffset: 0; opacity: 1; } 62%,100% { stroke-dashoffset: 0; opacity: 0; } }
+    @keyframes hw4-l2 { 0%,58% { stroke-dashoffset: var(--len, 300); opacity: 0; } 60% { opacity: 1; } 72%,100% { stroke-dashoffset: 0; opacity: 1; } }
     .hw4-people { margin-top: 44px; display: flex; gap: 14px; justify-content: center; z-index: 2; }
     .hw4-person { width: 190px; display: flex; flex-direction: column; align-items: center; gap: 4px; background: #fff; border: 1.5px solid var(--dt-border); border-radius: 12px; padding: 12px 8px; text-align: center; }
     .hw4-person .hw-av { width: 40px; height: 40px; font-size: 0.72rem; }
@@ -1309,16 +1314,16 @@ foreach (['operate', 'control', 'scale'] as $plan) {
     .hw4-person i { font-style: normal; font-size: 0.62rem; color: var(--dt-ink-muted); }
     .hw-anim .hw4-p1 { animation: hw4-p1 calc(10.5s * var(--hwk)) linear forwards; }
     .hw-anim .hw4-p3 { animation: hw4-p3 calc(10.5s * var(--hwk)) linear forwards; }
-    @keyframes hw4-p1 { 0%,12% { border-color: var(--dt-border); box-shadow: none; } 16%,52% { border-color: var(--dt-blue); box-shadow: 0 0 0 4px rgba(37,99,235,0.2); } 58%,100% { border-color: var(--dt-border); box-shadow: none; } }
-    @keyframes hw4-p3 { 0%,54% { border-color: var(--dt-border); box-shadow: none; } 58%,100% { border-color: #0ea5a8; box-shadow: 0 0 0 4px rgba(14,165,168,0.2); } }
+    @keyframes hw4-p1 { 0%,20% { border-color: var(--dt-border); box-shadow: none; } 24%,56% { border-color: var(--dt-blue); box-shadow: 0 0 0 4px rgba(37,99,235,0.2); } 62%,100% { border-color: var(--dt-border); box-shadow: none; } }
+    @keyframes hw4-p3 { 0%,70% { border-color: var(--dt-border); box-shadow: none; } 72%,100% { border-color: #0ea5a8; box-shadow: 0 0 0 4px rgba(14,165,168,0.2); } }
     .hw-anim .hw4-aval { animation: hw4-at2 calc(10.5s * var(--hwk)) linear forwards; }
-    @keyframes hw4-at2 { 0%,57% { color: var(--dt-ink); } 58%,72% { color: #0ea5a8; } 82%,100% { color: var(--dt-ink); } }
+    @keyframes hw4-at2 { 0%,71% { color: var(--dt-ink); } 72%,80% { color: #0ea5a8; } 88%,100% { color: var(--dt-ink); } }
     .hw-anim .hw4-a1 { animation: hw4-a1v calc(10.5s * var(--hwk)) steps(1) forwards; }
     .hw-anim .hw4-a2 { animation: hw4-a2v calc(10.5s * var(--hwk)) steps(1) forwards; }
-    @keyframes hw4-a1v { 0%,57% { opacity: 1; } 58%,100% { opacity: 0; } }
-    @keyframes hw4-a2v { 0%,57% { opacity: 0; } 58%,100% { opacity: 1; } }
+    @keyframes hw4-a1v { 0%,69% { opacity: 1; } 70%,100% { opacity: 0; } }
+    @keyframes hw4-a2v { 0%,69% { opacity: 0; } 70%,100% { opacity: 1; } }
     .hw-anim .hw4-reb { animation: hw4-reb calc(10.5s * var(--hwk)) linear forwards; }
-    @keyframes hw4-reb { 0%,59% { opacity: 0; transform: scale(0.8); } 63%,100% { opacity: 1; transform: scale(1); } }
+    @keyframes hw4-reb { 0%,73% { opacity: 0; transform: scale(0.8); } 77%,100% { opacity: 1; transform: scale(1); } }
     /* SCENE 5 */
     .hw5-record { background: #fff; border: 1.5px solid var(--dt-border); border-radius: 14px; height: 100%; display: flex; flex-direction: column; overflow: hidden; }
     .hw5-head { background: var(--dt-warm); border-bottom: 1.5px solid var(--dt-border); padding: 10px 18px; display: flex; align-items: baseline; gap: 10px; }
@@ -1462,7 +1467,7 @@ foreach (['operate', 'control', 'scale'] as $plan) {
       .hw1-qcname, .hw1-n1 { opacity: 1 !important; } .hw1-n0 { opacity: 0 !important; }
       .hw-emailcard, .hw-join1, .hw-join2, .hw3-case, .hw3-act, .hw5-note, .hw5-cmt, .hw5-thumb { opacity: 1 !important; transform: none; }
       .hw3-ln, .hw3-ah { opacity: 0.45 !important; }
-      .hw4-aval .hw4-a2 { opacity: 1 !important; } .hw4-aval .hw4-a1 { opacity: 0 !important; } .hw4-reb { opacity: 1 !important; } .hw4-p3 { border-color: #0ea5a8; } .hw4-l2 { opacity: 1 !important; } .hw4-l1 { opacity: 0 !important; }
+      .hw4-aval .hw4-a2 { opacity: 1 !important; } .hw4-aval .hw4-a1 { opacity: 0 !important; } .hw4-reb { opacity: 1 !important; } .hw4-p3 { border-color: #0ea5a8; } .hw4-l2 { opacity: 1 !important; stroke-dashoffset: 0 !important; } .hw4-l1 { opacity: 0 !important; }
       .hw6-flag { opacity: 1 !important; } .hw6-due .hw6-sub { display: inline-block !important; color: #1e3a8a; } .hw6-late .hw6-sub { display: inline-block !important; color: #fff; }
       .hw6-due { background: #dbeafe; border-color: #3b82f6; }
       .hw6-late { background: #b91c1c; border-color: #7f1d1d; color: #fff; }
@@ -2138,7 +2143,7 @@ foreach (['operate', 'control', 'scale'] as $plan) {
                     <span class="hw3-label"><?php echo t('marketing.walkthrough.src_scanner'); ?></span>
                     <span class="hw3-sub">Primescan / DS Core</span>
                   </div>
-                  <div class="hw3-act hw3-act-inbox"><span class="hw3-inbx"><i><?php echo t('marketing.walkthrough.inbox_lbl'); ?></i><b>impression-0142.stl</b></span><span class="hw3-btn"><?php echo t('marketing.walkthrough.act_create'); ?></span></div>
+                  <div class="hw3-act hw3-act-inbox"><span class="hw3-btn"><?php echo t('marketing.walkthrough.act_import_scans'); ?></span><span class="hw3-btn hw3-btn2"><?php echo t('marketing.walkthrough.act_create'); ?></span></div>
                   <div class="hw3-link"><svg viewBox="0 0 20 60" preserveAspectRatio="none"><line class="hw3-ln" x1="10" y1="2" x2="10" y2="46"/><path class="hw3-ah" d="M4 44 L10 54 L16 44"/></svg><i class="hw3-pkg"></i></div>
                   <div class="hw3-case"><b>Crown #15</b><span class="hw3-badge hw3-bg-scan"><?php echo t('marketing.walkthrough.badge_scan'); ?></span></div>
                 </div>
@@ -3965,7 +3970,7 @@ foreach (['operate', 'control', 'scale'] as $plan) {
       play: <?php echo json_encode(t('marketing.walkthrough.play')); ?>
     };
     var meta = <?php $o=[];$c=[];for($i=1;$i<=7;$i++){$o[$i]=t('marketing.walkthrough.step'.$i.'_title');$c[$i]=t('marketing.walkthrough.step'.$i.'_copy');}echo json_encode(['t'=>$o,'c'=>$c],JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE); ?>;
-    var HW_K = 0.65025;
+    var HW_K = 0.6177375;
     var DUR = {1:Math.round(9500*HW_K), 2:Math.round(13000*HW_K), 3:Math.round(11200*HW_K), 4:Math.round(10800*HW_K), 5:Math.round(9800*HW_K), 6:Math.round(10400*HW_K), 7:Math.round(12200*HW_K)};
     var current = 1, playing = false, cssFrozen = false, timer = null, visible = false;
     for (var i = 1; i <= 7; i++) { var d = document.createElement('span'); d.className = 'hw-dot'; dots.appendChild(d); }
@@ -4078,13 +4083,22 @@ foreach (['operate', 'control', 'scale'] as $plan) {
     var hw1Scene = wrap.querySelector('.hw-scene[data-scene="1"]');
     function positionHw1Cursor(again) {
       if (!hw1Scene) return;
-      var s = hw1Scene.getBoundingClientRect();
-      function cx(el) { var r = el.getBoundingClientRect(); return (r.left + r.width / 2 - s.left) + 'px'; }
-      function cy(el) { var r = el.getBoundingClientRect(); return (r.top + r.height / 2 - s.top) + 'px'; }
-      var add = hw1Scene.querySelector('.hw1-addbtn'), ed = hw1Scene.querySelector('.hw1-edit');
-      if (add) { hw1Scene.style.setProperty('--cx1', cx(add)); hw1Scene.style.setProperty('--cy1', cy(add)); }
-      if (ed) { hw1Scene.style.setProperty('--cx2', cx(ed)); hw1Scene.style.setProperty('--cy2', cy(ed)); }
-      if (again !== false) { clearTimeout(cur2Timer); cur2Timer = setTimeout(function () { positionHw1Cursor(false); }, 4200*HW_K); }
+      // Never measure while the scene is hidden or before layout lands:
+      // measure on the next painted frame instead.
+      if (hw1Scene.getBoundingClientRect().width < 2) return;
+      requestAnimationFrame(function () {
+        var s = hw1Scene.getBoundingClientRect();
+        if (s.width < 2) return;
+        function cx(el) { var r = el.getBoundingClientRect(); return (r.left + r.width / 2 - s.left) + 'px'; }
+        function cy(el) { var r = el.getBoundingClientRect(); return (r.top + r.height / 2 - s.top) + 'px'; }
+        var add = hw1Scene.querySelector('.hw1-addbtn'), ed = hw1Scene.querySelector('.hw1-edit');
+        if (add) { hw1Scene.style.setProperty('--cx1', cx(add)); hw1Scene.style.setProperty('--cy1', cy(add)); }
+        if (ed) { hw1Scene.style.setProperty('--cx2', cx(ed)); hw1Scene.style.setProperty('--cy2', cy(ed)); }
+      });
+      // Re-measure at ~2420ms: the four-column expansion ends ~2409ms and
+      // the cursor's move keyframe lands ~2450ms, so this reads the
+      // settled pencil position immediately before the move.
+      if (again !== false) { clearTimeout(cur2Timer); cur2Timer = setTimeout(function () { positionHw1Cursor(false); }, 3920*HW_K); }
     }
     var hw4Wrap = wrap.querySelector('.hw-scene[data-scene="4"] .hw4-wrap');
     function positionHw4Lines() {
@@ -4099,6 +4113,7 @@ foreach (['operate', 'control', 'scale'] as $plan) {
         var x1 = cs.left + cs.width / 2 - w.left, y1 = cs.bottom - w.top;
         var x2 = p.left + p.width / 2 - w.left, y2 = p.top - w.top - 6;
         path.setAttribute('d', 'M' + x1.toFixed(1) + ' ' + y1.toFixed(1) + ' L' + x2.toFixed(1) + ' ' + y2.toFixed(1));
+        path.style.setProperty('--len', Math.ceil(path.getTotalLength()));
       }
       aim('.hw4-p1', hw4Wrap.querySelector('.hw4-l1'));
       aim('.hw4-p3', hw4Wrap.querySelector('.hw4-l2'));

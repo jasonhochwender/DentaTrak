@@ -6232,7 +6232,7 @@
             "cap_addstage": "Add your own stages.",
             "cap_rename": "Name them your way.",
             "inbox_lbl": "Scanner inbox",
-            "act_import": "Import",
+            "act_import": "Import Lab Cases",
             "reassigned": "Reassigned",
             "sec_images": "Images",
             "due_sub": "Due tomorrow.",
@@ -6243,7 +6243,8 @@
             "rm_invited": "Maya Chen and Jordan Lee joined by email invitation.",
             "created_by": "Created by:",
             "chart_ontime": "On-time performance by lab",
-            "lower_better": "Lower is better"
+            "lower_better": "Lower is better",
+            "act_import_scans": "Import Scans"
         },
         "askdemo": {
             "example_label": "Example conversation",
