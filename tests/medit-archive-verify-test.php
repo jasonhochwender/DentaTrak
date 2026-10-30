@@ -15,9 +15,15 @@
 
 if (PHP_SAPI !== 'cli') { exit(1); }
 error_reporting(E_ALL);
+ob_start(); // buffer so appConfig's header/session bootstrap can't hit "headers already sent"
 echo "step=boot\n";
 
-$root = dirname(__DIR__);
+$root = __DIR__;
+// Under `php -r eval()` or a copied-to-elsewhere invocation __DIR__ is
+// the CWD; fall back to CWD/app root detection.
+if (!is_file("$root/api/appConfig.php")) { $root = dirname($root); }
+if (!is_file("$root/api/appConfig.php")) { $root = getcwd(); }
+if (!is_file("$root/api/appConfig.php")) { echo "FAIL: app root not found (dir=$root cwd=" . getcwd() . ")\n"; exit(1); }
 require_once $root . '/api/appConfig.php';
 require_once $root . '/api/feature-flags.php';
 require_once $root . '/api/encryption.php';
@@ -38,7 +44,7 @@ echo "diag.shell_exec=" . (function_exists('shell_exec') ? 'yes' : 'no') . " exe
 echo "diag.tmp=" . sys_get_temp_dir() . " writable=" . (is_writable(sys_get_temp_dir()) ? 'yes' : 'no') . "\n";
 
 // ---- Optional: production schema inspection (read-only) ----
-if (in_array('--schema', $argv ?? [], true)) {
+if (in_array('--schema', $argv ?? [], true) || getenv('AV_SCHEMA') === '1') {
     echo "step=schema\n";
     global $pdo;
     if (!$pdo) { echo "FAIL: no PDO\n"; } else {
