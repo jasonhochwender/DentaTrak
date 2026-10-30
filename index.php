@@ -3998,7 +3998,7 @@ ulation -->
       applyFreeze();
       if (document.hidden) { clearTimeout(timer); } else if (playing && visible) { queue(); }
     });
-    var dashRaf = null, dashTimer = null;
+    var dashRaf = null, dashTimer = null, cur2Timer = null;
     function planDashScroll() {
       var view = wrap.querySelector('.hw7-view'), target = wrap.querySelector('.hw7-labs');
       if (!view || !target) return;
@@ -4029,7 +4029,7 @@ ulation -->
       });
     }
     var hw1Scene = wrap.querySelector('.hw-scene[data-scene="1"]');
-    function positionHw1Cursor() {
+    function positionHw1Cursor(again) {
       if (!hw1Scene) return;
       var s = hw1Scene.getBoundingClientRect();
       function cx(el) { var r = el.getBoundingClientRect(); return (r.left + r.width / 2 - s.left) + 'px'; }
@@ -4037,6 +4037,7 @@ ulation -->
       var add = hw1Scene.querySelector('.hw1-addbtn'), ed = hw1Scene.querySelector('.hw1-edit');
       if (add) { hw1Scene.style.setProperty('--cx1', cx(add)); hw1Scene.style.setProperty('--cy1', cy(add)); }
       if (ed) { hw1Scene.style.setProperty('--cx2', cx(ed)); hw1Scene.style.setProperty('--cy2', cy(ed)); }
+      if (again !== false) { clearTimeout(cur2Timer); cur2Timer = setTimeout(function () { positionHw1Cursor(false); }, 4200); }
     }
     window.addEventListener('resize', function () { if (cur === 1) positionHw1Cursor(); });
     if (document.fonts && document.fonts.ready) { document.fonts.ready.then(function () { if (cur === 1) positionHw1Cursor(); }); }
@@ -4063,7 +4064,7 @@ ulation -->
     var N = EX.length, cur = 0, timer = null, paused = false, visible = false, started = false;
 
     function setT(id, fn, ms) { timer = setTimeout(fn, ms); }
-    function clearT() { clearTimeout(timer); timer = null; clearTimeout(dashTimer); dashTimer = null; if (dashRaf) cancelAnimationFrame(dashRaf); dashRaf = null; }
+    function clearT() { clearTimeout(timer); timer = null; clearTimeout(dashTimer); dashTimer = null; clearTimeout(cur2Timer); cur2Timer = null; if (dashRaf) cancelAnimationFrame(dashRaf); dashRaf = null; }
     function renderStatic(i) {
       clearT();
       userMsg.hidden = false; userMsg.textContent = EX[i].q;
