@@ -1249,10 +1249,10 @@ foreach (['operate', 'control', 'scale'] as $plan) {
     .hw3-inbx i { font-style: normal; font-size: 0.56rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--dt-ink-muted); }
     .hw3-inbx b { font-size: 0.68rem; color: var(--dt-ink); }
     .hw3-act-inbox { flex-direction: column; flex-wrap: nowrap; gap: 13px; min-height: 66px; justify-content: flex-start; }
-    .hw3-link { position: relative; height: 44px; width: 20px; }
-    .hw3-link svg { display: block; width: 20px; height: 44px; overflow: visible; }
-    .hw3-ln { stroke: var(--dt-blue); stroke-width: 2.5; opacity: 0.35; }
-    .hw3-ah { fill: none; stroke: var(--dt-blue); stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; opacity: 0.35; }
+    .hw3-link { position: relative; flex: 1; min-height: 44px; width: 20px; margin-top: 14px; margin-bottom: 6px; }
+    .hw3-link svg { display: block; width: 20px; height: 100%; overflow: visible; }
+    .hw3-ln { stroke: var(--dt-blue); stroke-width: 2.5; opacity: 0; }
+    .hw3-ah { fill: none; stroke: var(--dt-blue); stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; opacity: 0; }
     .hw3-pkg { position: absolute; left: 50%; top: 0; width: 12px; height: 14px; margin-left: -6px; background: #fff; border: 2px solid var(--dt-blue); border-radius: 3px; opacity: 0; }
     .hw3-case { background: #fff; border: 1.5px solid var(--dt-border); border-left: 4px solid var(--dt-blue); border-radius: 10px; padding: 9px 13px; font-size: 0.85rem; font-weight: 700; color: var(--dt-ink); box-shadow: 0 4px 10px -4px rgba(30,58,95,0.18); opacity: 0; transform: translateY(14px) scale(0.9); margin-top: auto; white-space: nowrap; }
     .hw3-badge { float: right; margin-left: 10px; font-size: 0.56rem; font-weight: 700; padding: 2px 7px; border-radius: 999px; }
@@ -1270,13 +1270,14 @@ foreach (['operate', 'control', 'scale'] as $plan) {
     .hw-anim .hw3-l1 .hw3-ln, .hw-anim .hw3-l1 .hw3-ah { animation: hw3-lnl 11.2s linear forwards; }
     .hw-anim .hw3-l2 .hw3-ln, .hw-anim .hw3-l2 .hw3-ah { animation: hw3-lnl2 11.2s linear forwards; }
     .hw-anim .hw3-l3 .hw3-ln, .hw-anim .hw3-l3 .hw3-ah { animation: hw3-lnl3 11.2s linear forwards; }
-    @keyframes hw3-lnl { 0%,9% { opacity: 0.35; } 13%,30% { opacity: 1; } 34%,100% { opacity: 0.45; } }
-    @keyframes hw3-lnl2 { 0%,41% { opacity: 0.35; } 45%,62% { opacity: 1; } 66%,100% { opacity: 0.45; } }
-    @keyframes hw3-lnl3 { 0%,73% { opacity: 0.35; } 77%,94% { opacity: 1; } 98%,100% { opacity: 0.45; } }
+    @keyframes hw3-lnl { 0%,9% { opacity: 0; } 13%,30% { opacity: 1; } 34%,100% { opacity: 0.45; } }
+    @keyframes hw3-lnl2 { 0%,41% { opacity: 0; } 45%,62% { opacity: 1; } 66%,100% { opacity: 0.45; } }
+    @keyframes hw3-lnl3 { 0%,73% { opacity: 0; } 77%,94% { opacity: 1; } 98%,100% { opacity: 0.45; } }
     .hw-anim .hw3-l1 .hw3-pkg { animation: hw3-move 0.9s ease 1.8s both; }
     .hw-anim .hw3-l2 .hw3-pkg { animation: hw3-move 0.9s ease 5.7s both; }
     .hw-anim .hw3-l3 .hw3-pkg { animation: hw3-move 0.9s ease 9.1s both; }
-    @keyframes hw3-move { 0% { opacity: 1; top: 0; } 90% { opacity: 1; top: 30px; } 100% { opacity: 0; top: 34px; } }
+    @keyframes hw3-move { 0% { opacity: 1; top: 2px; } 90% { opacity: 1; top: calc(100% - 16px); } 100% { opacity: 0; top: calc(100% - 12px); } }
+    @keyframes hw3-move-m { 0% { opacity: 1; left: 1px; } 90% { opacity: 1; left: calc(100% - 13px); } 100% { opacity: 0; left: calc(100% - 9px); } }
     .hw-anim .hw3-l1 .hw3-case { animation: hw3-born 0.6s ease 2.9s forwards; }
     .hw-anim .hw3-l2 .hw3-case { animation: hw3-born 0.6s ease 6.8s forwards; }
     .hw-anim .hw3-l3 .hw3-case { animation: hw3-born 0.6s ease 10.2s forwards; }
@@ -1445,7 +1446,9 @@ foreach (['operate', 'control', 'scale'] as $plan) {
       .hw3-src { width: 62px; flex-shrink: 0; }
       .hw3-art { max-width: 56px; } .hw3-label { font-size: 0.68rem; } .hw3-sub { font-size: 0.52rem; }
       .hw3-act { min-height: 0; opacity: 1; }
-      .hw3-link { width: 30px; height: 14px; flex-shrink: 0; } .hw3-link svg { width: 30px; height: 14px; transform: rotate(-90deg); transform-origin: 10px 10px; }
+      .hw3-link { width: 30px; height: 14px; flex: 0 0 30px; min-height: 0; margin-top: 0; margin-bottom: 0; } .hw3-link svg { width: 30px; height: 14px; transform: rotate(-90deg); transform-origin: 10px 10px; }
+      .hw3-lane .hw3-pkg { left: 1px; top: 1px; margin-left: 0; }
+      .hw-anim .hw3-l1 .hw3-pkg, .hw-anim .hw3-l2 .hw3-pkg, .hw-anim .hw3-l3 .hw3-pkg { animation-name: hw3-move-m; }
       .hw3-case { margin-top: 0; font-size: 0.7rem; padding: 6px 9px; }
       .hw4-case { min-width: 0; width: 100%; }
       .hw7-charts { grid-template-columns: 1fr; }
@@ -2125,7 +2128,7 @@ foreach (['operate', 'control', 'scale'] as $plan) {
                     <span class="hw3-sub">Open Dental</span>
                   </div>
                   <div class="hw3-act"><span class="hw3-btn"><?php echo t('marketing.walkthrough.act_import'); ?></span></div>
-                  <div class="hw3-link"><svg viewBox="0 0 20 60"><line class="hw3-ln" x1="10" y1="2" x2="10" y2="46"/><path class="hw3-ah" d="M4 44 L10 54 L16 44"/></svg><i class="hw3-pkg"></i></div>
+                  <div class="hw3-link"><svg viewBox="0 0 20 60" preserveAspectRatio="none"><line class="hw3-ln" x1="10" y1="2" x2="10" y2="46"/><path class="hw3-ah" d="M4 44 L10 54 L16 44"/></svg><i class="hw3-pkg"></i></div>
                   <div class="hw3-case"><b>Crown #14</b><span class="hw3-badge hw3-bg-pms">PMS</span></div>
                 </div>
                 <div class="hw3-lane hw3-l2">
@@ -2135,7 +2138,7 @@ foreach (['operate', 'control', 'scale'] as $plan) {
                     <span class="hw3-sub">Primescan / DS Core</span>
                   </div>
                   <div class="hw3-act hw3-act-inbox"><span class="hw3-inbx"><i><?php echo t('marketing.walkthrough.inbox_lbl'); ?></i><b>impression-0142.stl</b></span><span class="hw3-btn"><?php echo t('marketing.walkthrough.act_create'); ?></span></div>
-                  <div class="hw3-link"><svg viewBox="0 0 20 60"><line class="hw3-ln" x1="10" y1="2" x2="10" y2="46"/><path class="hw3-ah" d="M4 44 L10 54 L16 44"/></svg><i class="hw3-pkg"></i></div>
+                  <div class="hw3-link"><svg viewBox="0 0 20 60" preserveAspectRatio="none"><line class="hw3-ln" x1="10" y1="2" x2="10" y2="46"/><path class="hw3-ah" d="M4 44 L10 54 L16 44"/></svg><i class="hw3-pkg"></i></div>
                   <div class="hw3-case"><b>Crown #15</b><span class="hw3-badge hw3-bg-scan"><?php echo t('marketing.walkthrough.badge_scan'); ?></span></div>
                 </div>
                 <div class="hw3-lane hw3-l3">
@@ -2145,7 +2148,7 @@ foreach (['operate', 'control', 'scale'] as $plan) {
                     <span class="hw3-sub"><?php echo t('marketing.walkthrough.manual_sub'); ?></span>
                   </div>
                   <div class="hw3-act"><span class="hw3-btn"><?php echo t('marketing.walkthrough.act_create'); ?></span></div>
-                  <div class="hw3-link"><svg viewBox="0 0 20 60"><line class="hw3-ln" x1="10" y1="2" x2="10" y2="46"/><path class="hw3-ah" d="M4 44 L10 54 L16 44"/></svg><i class="hw3-pkg"></i></div>
+                  <div class="hw3-link"><svg viewBox="0 0 20 60" preserveAspectRatio="none"><line class="hw3-ln" x1="10" y1="2" x2="10" y2="46"/><path class="hw3-ah" d="M4 44 L10 54 L16 44"/></svg><i class="hw3-pkg"></i></div>
                   <div class="hw3-case"><b>Veneer #3</b><span class="hw3-badge hw3-bg-man"><?php echo t('marketing.walkthrough.badge_manual'); ?></span></div>
                 </div>
               </div>
