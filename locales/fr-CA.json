@@ -6235,7 +6235,8 @@
             "cap_connected": "Votre équipe et votre labo, connectés.",
             "rm_invited": "Maya Chen et Jordan Lee ont rejoint par invitation courriel.",
             "created_by": "Créé par :",
-            "chart_ontime": "Ponctualité par laboratoire"
+            "chart_ontime": "Ponctualité par laboratoire",
+            "lower_better": "Plus bas, c’est mieux"
         },
         "askdemo": {
             "example_label": "Conversation d’exemple",

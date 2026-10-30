@@ -6277,7 +6277,8 @@
             "cap_connected": "Ihr Team und Labor, verbunden.",
             "rm_invited": "Maya Chen und Jordan Lee sind per E-Mail-Einladung beigetreten.",
             "created_by": "Erstellt von:",
-            "chart_ontime": "Pünktlichkeit nach Labor"
+            "chart_ontime": "Pünktlichkeit nach Labor",
+            "lower_better": "Niedriger ist besser"
         },
         "askdemo": {
             "example_label": "Beispielgespräch",

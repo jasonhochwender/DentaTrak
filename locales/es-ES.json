@@ -6235,7 +6235,8 @@
             "cap_connected": "Tu equipo y laboratorio, conectados.",
             "rm_invited": "Maya Chen y Jordan Lee se unieron por invitación por correo.",
             "created_by": "Creado por:",
-            "chart_ontime": "Puntualidad por laboratorio"
+            "chart_ontime": "Puntualidad por laboratorio",
+            "lower_better": "Menor es mejor"
         },
         "askdemo": {
             "example_label": "Conversación de ejemplo",

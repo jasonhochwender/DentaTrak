@@ -1371,7 +1371,7 @@ foreach (['operate', 'control', 'scale'] as $plan) {
     .hw-anim .hw6-late .hw6-sub { animation: hw-fade 0.4s ease 6.2s forwards; display: inline-block; color: #fff; }
     /* SCENE 7 */
     .hw7 { height: 100%; display: flex; flex-direction: column; }
-    .hw7-head { display: flex; align-items: baseline; justify-content: space-between; font-size: 0.9rem; font-weight: 800; color: var(--dt-ink); padding-bottom: 8px; border-bottom: 1.5px solid var(--dt-border); }
+    .hw7-head { display: flex; align-items: baseline; justify-content: space-between; font-size: 0.9rem; font-weight: 800; color: var(--dt-ink); padding-bottom: 8px; border-bottom: 1.5px solid var(--dt-border); background: #fff; position: relative; z-index: 2; }
     .hw7-sample { font-size: 0.62rem; font-weight: 400; color: var(--dt-ink-muted); }
     .hw7-view { flex: 1; overflow-y: auto; overflow-x: hidden; position: relative; scrollbar-width: thin; }
     .hw7-inner { padding: 10px 2px 14px; }
@@ -1400,7 +1400,20 @@ foreach (['operate', 'control', 'scale'] as $plan) {
     .hw-anim .hw7-fill { animation: hw7-bar 0.8s ease both; }
     .hw-anim .hw7-hb:nth-child(2) .hw7-fill { animation-delay: 0.6s; } .hw-anim .hw7-hb:nth-child(3) .hw7-fill { animation-delay: 0.75s; } .hw-anim .hw7-hb:nth-child(4) .hw7-fill { animation-delay: 0.9s; } .hw-anim .hw7-hb:nth-child(5) .hw7-fill { animation-delay: 1.05s; }
     @keyframes hw7-bar { to { transform: scaleX(1); } }
-    .hw7-labs { margin-top: 12px; } .hw7-ontime { margin-top: 12px; }
+    .hw7-labs { margin-top: 12px; } .hw7-ontime { margin-top: 12px; opacity: 0; }
+    .hw-anim .hw7-ontime { animation: hw-fade 0.5s ease 5.9s forwards; }
+    .hw7-note { font-style: normal; font-size: 0.58rem; color: var(--dt-ink-muted); margin-left: 8px; }
+    .hw7-rings { display: flex; justify-content: space-around; gap: 10px; padding: 4px 0 2px; }
+    .hw7-ring { text-align: center; }
+    .hw7-ring-svg { width: 64px; height: 64px; transform: rotate(-90deg); }
+    .hw7-rbg { fill: none; stroke: var(--dt-border); stroke-width: 6; }
+    .hw7-rf { fill: none; stroke: var(--rc, #2563eb); stroke-width: 6; stroke-linecap: round; stroke-dasharray: 163.4; stroke-dashoffset: 163.4; }
+    .hw7-rv { fill: var(--dt-ink); font-size: 14px; font-weight: 800; text-anchor: middle; transform: rotate(90deg); transform-origin: 32px 32px; }
+    .hw7-ring i { display: block; font-style: normal; font-size: 0.6rem; color: var(--dt-ink-muted); margin-top: 4px; }
+    .hw-anim .hw7-ring:nth-child(1) .hw7-rf { animation: hw7-ring 0.7s ease 6.2s forwards; }
+    .hw-anim .hw7-ring:nth-child(2) .hw7-rf { animation: hw7-ring 0.7s ease 6.45s forwards; }
+    .hw-anim .hw7-ring:nth-child(3) .hw7-rf { animation: hw7-ring 0.7s ease 6.7s forwards; }
+    @keyframes hw7-ring { to { stroke-dashoffset: calc(163.4 * (1 - var(--pc) / 100)); } }
     .hw7-lab .hw7-fill { transform: none; opacity: 0; }
     .hw-anim .hw7-lab .hw7-fill { animation-name: hw-fade, hw7-bar; animation-duration: 0.4s, 0.7s; animation-delay: 4.6s, 4.6s; animation-fill-mode: forwards, both; }
     .hw-controls { display: flex; align-items: center; gap: 10px; margin-top: 14px; flex-wrap: wrap; }
@@ -1447,6 +1460,8 @@ foreach (['operate', 'control', 'scale'] as $plan) {
       .hw6-late { background: #b91c1c; border-color: #7f1d1d; color: #fff; }
       .hw6-late i { color: rgba(255,255,255,0.85); }
       .hw7-fill { transform: scaleX(1); opacity: 0.85; }
+      .hw7-ontime { opacity: 1; }
+      .hw7-rf { stroke-dashoffset: calc(163.4 * (1 - var(--pc) / 100)); }
       .hw7-line polyline { stroke-dashoffset: 0; }
       .hw7-pt, .hw7-call, .hw7-callt { opacity: 1; }
     }
@@ -2212,15 +2227,17 @@ foreach (['operate', 'control', 'scale'] as $plan) {
                       <div class="hw7-hb"><i><?php echo t('marketing.walkthrough.stage_done'); ?></i><div class="hw7-fill" style="width:10%"></div><b>1</b></div>
                     </div>
                   </div>
-                  <div class="hw7-cbox hw7-labs"><div class="hw7-ct"><?php echo t('marketing.walkthrough.chart_labs'); ?></div>
-                    <div class="hw7-lab"><i>Precision Dental Lab</i><div class="hw7-fill hw7-fill-t" style="width:82%"></div><b>4.1d</b></div>
-                    <div class="hw7-lab"><i>Lab B</i><div class="hw7-fill hw7-fill-b" style="width:58%"></div><b>5.8d</b></div>
-                    <div class="hw7-lab"><i>Lab C</i><div class="hw7-fill hw7-fill-p" style="width:70%"></div><b>4.9d</b></div>
+                  <div class="hw7-cbox hw7-labs"><div class="hw7-ct"><?php echo t('marketing.walkthrough.chart_labs'); ?><em class="hw7-note"><?php echo t('marketing.walkthrough.lower_better'); ?></em></div>
+                    <div class="hw7-lab"><i>Precision Dental Lab</i><div class="hw7-fill hw7-fill-t" style="width:71%"></div><b>4.1d</b></div>
+                    <div class="hw7-lab"><i>Lab B</i><div class="hw7-fill hw7-fill-b" style="width:100%"></div><b>5.8d</b></div>
+                    <div class="hw7-lab"><i>Lab C</i><div class="hw7-fill hw7-fill-p" style="width:84%"></div><b>4.9d</b></div>
                   </div>
                   <div class="hw7-cbox hw7-ontime"><div class="hw7-ct"><?php echo t('marketing.walkthrough.chart_ontime'); ?></div>
-                    <div class="hw7-lab"><i>Precision Dental Lab</i><div class="hw7-fill hw7-fill-t" style="width:95%"></div><b>95%</b></div>
-                    <div class="hw7-lab"><i>Lab B</i><div class="hw7-fill hw7-fill-b" style="width:88%"></div><b>88%</b></div>
-                    <div class="hw7-lab"><i>Lab C</i><div class="hw7-fill hw7-fill-p" style="width:91%"></div><b>91%</b></div>
+                    <div class="hw7-rings">
+                      <div class="hw7-ring"><svg viewBox="0 0 64 64" class="hw7-ring-svg"><circle cx="32" cy="32" r="26" class="hw7-rbg"/><circle cx="32" cy="32" r="26" class="hw7-rf" style="--pc:95; --rc:#0ea5a8;"/><text x="32" y="37" class="hw7-rv">95%</text></svg><i>Precision Dental Lab</i></div>
+                      <div class="hw7-ring"><svg viewBox="0 0 64 64" class="hw7-ring-svg"><circle cx="32" cy="32" r="26" class="hw7-rbg"/><circle cx="32" cy="32" r="26" class="hw7-rf" style="--pc:88; --rc:#2563eb;"/><text x="32" y="37" class="hw7-rv">88%</text></svg><i>Lab B</i></div>
+                      <div class="hw7-ring"><svg viewBox="0 0 64 64" class="hw7-ring-svg"><circle cx="32" cy="32" r="26" class="hw7-rbg"/><circle cx="32" cy="32" r="26" class="hw7-rf" style="--pc:91; --rc:#8b5cf6;"/><text x="32" y="37" class="hw7-rv">91%</text></svg><i>Lab C</i></div>
+                    </div>
                   </div>
                 </div></div>
               </div>
