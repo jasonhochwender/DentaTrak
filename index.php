@@ -1409,11 +1409,9 @@ foreach (['operate', 'control', 'scale'] as $plan) {
     .hw7-rf { fill: none; stroke: var(--rc, #2563eb); stroke-width: 6; stroke-linecap: round; stroke-dasharray: 163.4; stroke-dashoffset: 163.4; }
     .hw7-rv { fill: var(--dt-ink); font-size: 14px; font-weight: 800; text-anchor: middle; transform: rotate(90deg); transform-origin: 32px 32px; }
     .hw7-ring i { display: block; font-style: normal; font-size: 0.6rem; color: var(--dt-ink-muted); margin-top: 4px; }
-    .hw-anim .hw7-ring:nth-child(1) .hw7-rf { animation: hw7-ring 0.9s ease 6.6s forwards; }
-    .hw-anim .hw7-ring:nth-child(2) .hw7-rf { animation: hw7-ring 0.9s ease 6.75s forwards; }
-    .hw-anim .hw7-ring:nth-child(3) .hw7-rf { animation: hw7-ring 0.9s ease 6.9s forwards; }
-    @keyframes hw7-ring { to { stroke-dashoffset: calc(163.4 * (1 - var(--pc) / 100)); } }
-    .hw7-lab .hw7-fill { transform: none; opacity: 0; }
+    /* ring arcs are drawn by runRingCounts() via rAF so arc and counter
+       stay synchronized regardless of keyframe var() support */
+    .hw7-lab .hw7-fill { transform: scaleX(0); transform-origin: left; opacity: 0.85; }
     .hw-anim .hw7-labs .hw7-lab:nth-child(2) .hw7-fill { animation: hw7-bar 0.8s ease 4.6s both; }
     .hw-anim .hw7-labs .hw7-lab:nth-child(3) .hw7-fill { animation: hw7-bar 0.8s ease 4.75s both; }
     .hw-anim .hw7-labs .hw7-lab:nth-child(4) .hw7-fill { animation: hw7-bar 0.8s ease 4.9s both; }
@@ -1464,6 +1462,7 @@ foreach (['operate', 'control', 'scale'] as $plan) {
       .hw6-late i { color: rgba(255,255,255,0.85); }
       .hw7-fill { transform: scaleX(1); opacity: 0.85; }
       .hw7-ontime { opacity: 1; }
+      .hw7-lab .hw7-fill { transform: none; opacity: 0.85; }
       .hw7-rf { stroke-dashoffset: calc(163.4 * (1 - var(--pc) / 100)); }
       .hw7-line polyline { stroke-dashoffset: 0; }
       .hw7-pt, .hw7-call, .hw7-callt { opacity: 1; }
@@ -4018,15 +4017,18 @@ foreach (['operate', 'control', 'scale'] as $plan) {
       if (document.hidden) { clearTimeout(timer); } else if (playing && visible) { queue(); }
     });
     var dashRaf = null, dashTimer = null, cur2Timer = null, ringTimers = [];
-    function resetRingText() { wrap.querySelectorAll('.hw7-rv').forEach(function (t, i) { t.textContent = [95,88,91][i] + '%'; }); }
+    function resetRingText() { wrap.querySelectorAll('.hw7-rv').forEach(function (t, i) { t.textContent = [95,88,91][i] + '%'; var ring = t.closest('.hw7-ring'), arc = ring ? ring.querySelector('.hw7-rf') : null; if (arc) arc.style.strokeDashoffset = ''; }); }
     function runRingCounts() {
       var vals = [95, 88, 91], delays = [6600, 6750, 6900];
       wrap.querySelectorAll('.hw7-rv').forEach(function (t, i) {
+        var ring = t.closest('.hw7-ring'), arc = ring ? ring.querySelector('.hw7-rf') : null;
         t.textContent = '0%';
+        if (arc) arc.style.strokeDashoffset = '163.4';
         ringTimers.push(setTimeout(function () {
           var t0 = null;
-          function step(ts) { if (!t0) t0 = ts; var p = Math.min((ts - t0) / 900, 1);
+          function step(ts) { if (!t0) t0 = ts; var p = Math.min((ts - t0) / 1000, 1);
             t.textContent = Math.round(vals[i] * p) + '%';
+            if (arc) arc.style.strokeDashoffset = (163.4 * (1 - vals[i] * p / 100)).toFixed(1);
             if (p < 1) ringTimers.push(requestAnimationFrame(step)); }
           ringTimers.push(requestAnimationFrame(step));
         }, delays[i]));
