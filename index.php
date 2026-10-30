@@ -1294,8 +1294,9 @@ foreach (['operate', 'control', 'scale'] as $plan) {
     .hw4-aval i { font-style: normal; position: absolute; left: 0; top: 0; white-space: nowrap; opacity: 0; }
     .hw4-aval small { display: block; font-size: 0.6rem; font-weight: 400; color: var(--dt-ink-muted); }
     .hw4-aval .hw4-a1 { opacity: 1; }
-    .hw4-links { position: absolute; left: 0; right: 0; top: 66px; width: 100%; height: 110px; z-index: 1; }
-    .hw4-link { stroke: var(--dt-blue); stroke-width: 2.5; fill: none; stroke-dasharray: 300; stroke-dashoffset: 300; }
+    .hw4-links { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 1; overflow: visible; }
+    .hw4-link { stroke-width: 2.5; fill: none; stroke-dasharray: var(--len, 300); stroke-dashoffset: var(--len, 300); }
+    .hw4-l1 { stroke: #2563eb; } .hw4-l2 { stroke: #0ea5a8; }
     .hw4-people { margin-top: auto; display: flex; gap: 14px; justify-content: center; z-index: 2; }
     .hw4-person { width: 190px; display: flex; flex-direction: column; align-items: center; gap: 4px; background: #fff; border: 1.5px solid var(--dt-border); border-radius: 12px; padding: 12px 8px; text-align: center; }
     .hw4-person .hw-av { width: 40px; height: 40px; font-size: 0.72rem; }
@@ -1307,8 +1308,8 @@ foreach (['operate', 'control', 'scale'] as $plan) {
     @keyframes hw4-p3 { 0%,54% { border-color: var(--dt-border); box-shadow: none; } 58%,100% { border-color: #0ea5a8; box-shadow: 0 0 0 4px rgba(14,165,168,0.2); } }
     .hw-anim .hw4-l1 { animation: hw4-l1 10.5s linear forwards; }
     .hw-anim .hw4-l2 { animation: hw4-l2 10.5s linear forwards; }
-    @keyframes hw4-l1 { 0%,14% { stroke-dashoffset: 300; opacity: 0; } 16% { opacity: 1; } 24%,52% { stroke-dashoffset: 0; opacity: 1; } 58%,100% { stroke-dashoffset: 300; opacity: 0; } }
-    @keyframes hw4-l2 { 0%,56% { stroke-dashoffset: 300; opacity: 0; } 58% { opacity: 1; } 66%,100% { stroke-dashoffset: 0; opacity: 1; } }
+    @keyframes hw4-l1 { 0%,14% { stroke-dashoffset: var(--len, 300); opacity: 0; } 16% { opacity: 1; } 24%,52% { stroke-dashoffset: 0; opacity: 1; } 58%,100% { stroke-dashoffset: var(--len, 300); opacity: 0; } }
+    @keyframes hw4-l2 { 0%,56% { stroke-dashoffset: var(--len, 300); opacity: 0; } 58% { opacity: 1; } 66%,100% { stroke-dashoffset: 0; opacity: 1; } }
     .hw-anim .hw4-a1 { animation: hw4-a1v 10.5s steps(1) forwards; }
     .hw-anim .hw4-a2 { animation: hw4-a2v 10.5s steps(1) forwards; }
     @keyframes hw4-a1v { 0%,57% { opacity: 1; } 58%,100% { opacity: 0; } }
@@ -2132,10 +2133,14 @@ foreach (['operate', 'control', 'scale'] as $plan) {
 <!-- SCENE 4: assignment handoff -->
             <div class="hw-scene" data-scene="4" hidden>
               <div class="hw4-wrap">
-                <svg class="hw4-links" viewBox="0 0 700 120" preserveAspectRatio="none">
-                  <path class="hw4-link hw4-l1" d="M175 118 C175 62 300 44 350 14" fill="none"/>
-                  <path class="hw4-link hw4-l2" d="M525 118 C525 62 400 44 350 14" fill="none"/>
-                </svg>                <div class="hw4-case"><div class="hw4-reb"><?php echo t('marketing.walkthrough.reassigned'); ?></div><div class="hw4-case-h">Crown #14 · Hannah Lindqvist</div>
+                <svg class="hw4-links" preserveAspectRatio="none" aria-hidden="true">
+                  <defs>
+                    <marker id="hw4-arr-b" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto"><path d="M0 0 L8 4 L0 8 Z" fill="#2563eb"/></marker>
+                    <marker id="hw4-arr-t" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto"><path d="M0 0 L8 4 L0 8 Z" fill="#0ea5a8"/></marker>
+                  </defs>
+                  <path class="hw4-link hw4-l1" marker-end="url(#hw4-arr-b)" fill="none"/>
+                  <path class="hw4-link hw4-l2" marker-end="url(#hw4-arr-t)" fill="none"/>
+                </svg>               <div class="hw4-case"><div class="hw4-reb"><?php echo t('marketing.walkthrough.reassigned'); ?></div><div class="hw4-case-h">Crown #14 · Hannah Lindqvist</div>
                   <div class="hw4-meta"><span><?php echo t('marketing.walkthrough.created_by'); ?></span> Dr. Alex Rivera</div>
                   <div class="hw4-at"><span><?php echo t('marketing.walkthrough.assigned_to'); ?></span>
                     <b class="hw4-aval"><i class="hw4-a1">Dr. Alex Rivera<small><?php echo t('marketing.walkthrough.org_yours'); ?></small></i><i class="hw4-a2">Jordan Lee<small><?php echo t('marketing.walkthrough.org_lab'); ?></small></i></b></div>
@@ -3956,6 +3961,7 @@ foreach (['operate', 'control', 'scale'] as $plan) {
       title.textContent = meta.t[n]; copy.textContent = meta.c[n];
       if (n === 7 && !reduced) { runKpis(); planDashScroll(); } else if (n === 7) { var v = wrap.querySelector('.hw7-view'); if (v) v.scrollTop = 0; }
       if (n === 1) positionHw1Cursor();
+      if (n === 4) positionHw4Arrows();
       wrap.classList.remove('hw-anim'); void wrap.offsetWidth;
       if (!reduced) wrap.classList.add('hw-anim');
       if (userInitiated) { playing = false; syncPause(); }
@@ -4039,8 +4045,28 @@ foreach (['operate', 'control', 'scale'] as $plan) {
       if (ed) { hw1Scene.style.setProperty('--cx2', cx(ed)); hw1Scene.style.setProperty('--cy2', cy(ed)); }
       if (again !== false) { clearTimeout(cur2Timer); cur2Timer = setTimeout(function () { positionHw1Cursor(false); }, 4200); }
     }
-    window.addEventListener('resize', function () { if (cur === 1) positionHw1Cursor(); });
-    if (document.fonts && document.fonts.ready) { document.fonts.ready.then(function () { if (cur === 1) positionHw1Cursor(); }); }
+    var hw4Wrap = wrap.querySelector('.hw-scene[data-scene="4"] .hw4-wrap');
+    function positionHw4Arrows() {
+      if (!hw4Wrap) return;
+      var w = hw4Wrap.getBoundingClientRect(), svg = hw4Wrap.querySelector('.hw4-links');
+      if (!svg || w.width < 2) return;
+      svg.setAttribute('viewBox', '0 0 ' + Math.round(w.width) + ' ' + Math.round(w.height));
+      var cs = hw4Wrap.querySelector('.hw4-case').getBoundingClientRect();
+      function aim(sel, path) {
+        var el = hw4Wrap.querySelector(sel); if (!el || !path) return;
+        var p = el.getBoundingClientRect();
+        var x1 = cs.left + cs.width / 2 - w.left, y1 = cs.bottom - w.top;
+        var x2 = p.left + p.width / 2 - w.left, y2 = p.top - w.top - 5;
+        var my = y1 + (y2 - y1) * 0.55;
+        path.setAttribute('d', 'M' + x1.toFixed(1) + ' ' + y1.toFixed(1) + ' C' + x1.toFixed(1) + ' ' + my.toFixed(1) + ', ' + x2.toFixed(1) + ' ' + (y2 - (y2 - y1) * 0.55).toFixed(1) + ', ' + x2.toFixed(1) + ' ' + y2.toFixed(1));
+        var len = Math.ceil(path.getTotalLength());
+        path.style.setProperty('--len', len);
+      }
+      aim('.hw4-p1', hw4Wrap.querySelector('.hw4-l1'));
+      aim('.hw4-p3', hw4Wrap.querySelector('.hw4-l2'));
+    }
+    window.addEventListener('resize', function () { if (cur === 1) positionHw1Cursor(); if (cur === 4) positionHw4Arrows(); });
+    if (document.fonts && document.fonts.ready) { document.fonts.ready.then(function () { if (cur === 1) positionHw1Cursor(); if (cur === 4) positionHw4Arrows(); }); }
     show(1, false);
     if (reduced) { btnPause.hidden = true; }
   })();
