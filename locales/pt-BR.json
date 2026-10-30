@@ -5221,7 +5221,9 @@
                 "not_on_plan": "Não incluída no plano",
                 "coming_soon": "Em breve",
                 "under_evaluation": "Em avaliação",
-                "sandbox": "Sandbox"
+                "sandbox": "Sandbox",
+                "staging": "Ambiente de teste",
+                "reconnect_required": "Reconexão necessária"
             },
             "locked_note": "A integração com o Open Dental está disponível nos planos Control e Scale.",
             "meta": {
@@ -5406,7 +5408,12 @@
                 "shining3d": "SHINING 3D (Aoralscan)",
                 "card_description": "As conexões com scanners estão em desenvolvimento. Quando disponíveis, as conexões compatíveis permitirão trazer arquivos de digitalização e os detalhes de caso disponíveis para o DentaTrak sem exportação e envio manuais. As integrações com scanners estão previstas para os planos Control e Scale.",
                 "card_description_shining3d": "Conecte digitalizações a casos novos ou existentes do DentaTrak.",
-                "card_description_primescan": "Importe escaneios Primescan pelo DS Core. Visualize os escaneios importados e crie ou atualize casos com seus arquivos. Um administrador da clínica conecta a conta DS Core da clínica; os escaneios são então importados em segundo plano."
+                "card_description_primescan": "Importe escaneios Primescan pelo DS Core. Visualize os escaneios importados e crie ou atualize casos com seus arquivos. Um administrador da clínica conecta a conta DS Core da clínica; os escaneios são então importados em segundo plano.",
+                "card_description_medit": "Importe digitalizações do Medit Link. Visualize as digitalizações importadas e crie ou atualize casos com seus arquivos. Um administrador da clínica conecta a conta Medit Link da clínica; as digitalizações são importadas em segundo plano."
+            },
+            "medit": {
+                "reconnect_hint": "A conexão com o Medit Link expirou; reconecte-a para retomar a importação de digitalizações.",
+                "not_configured": "O servidor não está configurado para o Medit Link."
             }
         }
     },

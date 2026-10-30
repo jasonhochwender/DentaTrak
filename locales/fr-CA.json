@@ -1410,7 +1410,9 @@
                 "not_on_plan": "Non inclus dans le forfait",
                 "coming_soon": "Bientôt disponible",
                 "under_evaluation": "En évaluation",
-                "sandbox": "Environnement de test"
+                "sandbox": "Environnement de test",
+                "staging": "Environnement de test",
+                "reconnect_required": "Reconnexion requise"
             },
             "locked_note": "L'intégration Open Dental est disponible sur les forfaits Control et Scale.",
             "meta": {
@@ -1595,7 +1597,12 @@
                 "shining3d": "SHINING 3D (Aoralscan)",
                 "card_description": "Les connexions aux scanners sont en cours de développement. Une fois disponibles, les connexions prises en charge vous permettront d’importer les fichiers de numérisation et les détails de cas disponibles dans DentaTrak sans exportation ni téléversement manuels. Les intégrations de scanners sont prévues pour les forfaits Control et Scale.",
                 "card_description_shining3d": "Connectez des numérisations à des cas DentaTrak nouveaux ou existants.",
-                "card_description_primescan": "Importez des scans Primescan via DS Core. Prévisualisez les scans importés et créez ou mettez à jour des cas avec leurs fichiers. Un administrateur du cabinet connecte le compte DS Core du cabinet ; les scans sont ensuite importés en arrière-plan."
+                "card_description_primescan": "Importez des scans Primescan via DS Core. Prévisualisez les scans importés et créez ou mettez à jour des cas avec leurs fichiers. Un administrateur du cabinet connecte le compte DS Core du cabinet ; les scans sont ensuite importés en arrière-plan.",
+                "card_description_medit": "Importez des scans Medit Link. Prévisualisez les scans importés et créez ou mettez à jour des cas avec leurs fichiers. Un administrateur du cabinet connecte le compte Medit Link du cabinet ; les scans sont ensuite importés en arrière-plan."
+            },
+            "medit": {
+                "reconnect_hint": "La connexion Medit Link a expiré ; reconnectez-la pour reprendre l’importation des scans.",
+                "not_configured": "Le serveur n’est pas configuré pour Medit Link."
             }
         }
     },

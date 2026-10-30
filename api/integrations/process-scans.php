@@ -27,6 +27,7 @@ require_once __DIR__ . '/../feature-flags.php';
 require_once __DIR__ . '/scanners/ScanIngestion.php';
 require_once __DIR__ . '/scanners/SimulatedScannerConnector.php';
 require_once __DIR__ . '/dscore/DsCoreScanConnector.php';
+require_once __DIR__ . '/medit/MeditScanConnector.php';
 
 if (PHP_SAPI !== 'cli') {
     http_response_code(403);
@@ -86,6 +87,11 @@ foreach ($scans as $scan) {
             // The connector resolves + verifies the scan's ds_core
             // connection per download (disconnect-safe).
             $connectors[$vendor] = new DsCoreScanConnector($pdo);
+        } elseif ($vendor === MeditScanConnector::VENDOR
+            && isFeatureEnabled('MEDIT_CONNECT') && $pdo) {
+            // Same contract: the connector verifies the scan's medit
+            // connection per download.
+            $connectors[$vendor] = new MeditScanConnector($pdo);
         }
     }
     $connector = $connectors[$vendor];

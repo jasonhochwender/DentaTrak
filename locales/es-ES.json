@@ -1418,7 +1418,9 @@
                 "not_on_plan": "No incluido en el plan",
                 "coming_soon": "Próximamente",
                 "under_evaluation": "En evaluación",
-                "sandbox": "Sandbox"
+                "sandbox": "Sandbox",
+                "staging": "Entorno de prueba",
+                "reconnect_required": "Se requiere volver a conectar"
             },
             "locked_note": "La integración con Open Dental está disponible en los planes Control y Scale.",
             "meta": {
@@ -1603,7 +1605,12 @@
                 "shining3d": "SHINING 3D (Aoralscan)",
                 "card_description": "Las conexiones de escáneres están en desarrollo. Cuando estén disponibles, las conexiones compatibles le permitirán incorporar archivos de escaneo y los detalles de caso disponibles a DentaTrak sin exportarlos ni cargarlos manualmente. Las integraciones con escáneres están previstas para los planes Control y Scale.",
                 "card_description_shining3d": "Conecte escaneos con casos nuevos o existentes de DentaTrak.",
-                "card_description_primescan": "Importa escaneos Primescan a través de DS Core. Previsualiza los escaneos importados y crea o actualiza casos con sus archivos. Un administrador de la práctica conecta la cuenta DS Core de la práctica; los escaneos se importan en segundo plano."
+                "card_description_primescan": "Importa escaneos Primescan a través de DS Core. Previsualiza los escaneos importados y crea o actualiza casos con sus archivos. Un administrador de la práctica conecta la cuenta DS Core de la práctica; los escaneos se importan en segundo plano.",
+                "card_description_medit": "Importe escaneos de Medit Link. Obtenga una vista previa de los escaneos importados y cree o actualice casos con sus archivos. Un administrador de la práctica conecta la cuenta de Medit Link de la práctica; los escaneos se importan en segundo plano."
+            },
+            "medit": {
+                "reconnect_hint": "La conexión de Medit Link ha caducado; vuelva a conectarla para reanudar la importación de escaneos.",
+                "not_configured": "El servidor no está configurado para Medit Link."
             }
         }
     },

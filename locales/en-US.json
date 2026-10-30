@@ -1410,7 +1410,9 @@
                 "not_on_plan": "Not on plan",
                 "coming_soon": "Coming soon",
                 "under_evaluation": "Under evaluation",
-                "sandbox": "Sandbox"
+                "sandbox": "Sandbox",
+                "staging": "Staging",
+                "reconnect_required": "Reconnect required"
             },
             "locked_note": "Open Dental integration is available on Control and Scale plans.",
             "meta": {
@@ -1595,7 +1597,12 @@
                 "shining3d": "SHINING 3D (Aoralscan)",
                 "card_description": "Scanner connections are under development. Once available, supported connections will let you bring scan files and available case details into DentaTrak without manually exporting and uploading them. Scanner integrations are planned for the Control and Scale plans.",
                 "card_description_shining3d": "Connect scans to new or existing DentaTrak cases.",
-                "card_description_primescan": "Import Primescan scans through DS Core. Preview imported scans and create or update cases with their files. A practice administrator connects the practice’s DS Core account; scans then import in the background."
+                "card_description_primescan": "Import Primescan scans through DS Core. Preview imported scans and create or update cases with their files. A practice administrator connects the practice’s DS Core account; scans then import in the background.",
+                "card_description_medit": "Import Medit Link scans. Preview imported scans and create or update cases with their files. A practice administrator connects the practice’s Medit Link account; scans then import in the background."
+            },
+            "medit": {
+                "reconnect_hint": "The Medit Link connection expired - reconnect it to resume importing scans.",
+                "not_configured": "Server is not configured for Medit Link."
             }
         }
     },

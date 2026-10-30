@@ -32,6 +32,8 @@ require_once __DIR__ . '/integrations/scanners/ScanInbox.php';
 require_once __DIR__ . '/integrations/scanners/SimulatedScannerConnector.php';
 require_once __DIR__ . '/integrations/dscore/DsCoreScanConnector.php';
 require_once __DIR__ . '/integrations/DsCoreConfig.php';
+require_once __DIR__ . '/integrations/medit/MeditScanConnector.php';
+require_once __DIR__ . '/integrations/MeditConfig.php';
 
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
@@ -214,6 +216,10 @@ switch ($action) {
         } elseif (strtolower((string)$scan['vendor']) === DsCoreScanConnector::VENDOR
             && isFeatureEnabled('DS_CORE_CONNECT')) {
             $connector = new DsCoreScanConnector($pdo);
+        } elseif (strtolower((string)$scan['vendor']) === MeditScanConnector::VENDOR
+            && isFeatureEnabled('MEDIT_CONNECT')
+            && MeditConfig::isPracticeAllowed((int)$currentPracticeId)) {
+            $connector = new MeditScanConnector($pdo);
         }
         if (!$connector) {
             scanInboxFail(409, 'The source connection for this scan is not available.', 'source_unavailable');

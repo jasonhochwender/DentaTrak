@@ -417,8 +417,11 @@ function userCanAccessScanInbox($practiceId = null) {
         return false;
     }
     require_once __DIR__ . '/integrations/DsCoreConfig.php';
+    require_once __DIR__ . '/integrations/MeditConfig.php';
     require_once __DIR__ . '/integrations/scanners/SimulatedScannerConnector.php';
-    if (!DsCoreConfig::isPracticeAllowed((int)$practiceId) && !SimulatedScannerConnector::isAvailable()) {
+    if (!DsCoreConfig::isPracticeAllowed((int)$practiceId)
+        && !MeditConfig::isPracticeAllowed((int)$practiceId)
+        && !SimulatedScannerConnector::isAvailable()) {
         return false;
     }
     require_once __DIR__ . '/subscription-access.php';

@@ -326,6 +326,7 @@ try {
 // only DS-Core-allowlisted practices (DS_CORE_ALLOWED_PRACTICES); the
 // dev-only simulated connector keeps the inbox reachable locally.
 require_once __DIR__ . '/api/integrations/DsCoreConfig.php';
+require_once __DIR__ . '/api/integrations/MeditConfig.php';
 require_once __DIR__ . '/api/integrations/scanners/SimulatedScannerConnector.php';
 $showScannerInbox = userCanAccessScanInbox((int)$currentPracticeId);
 
@@ -4092,7 +4093,8 @@ endif;
                       'trios'     => ['name_key' => 'settings.integrations.scanners.trios',     'status' => 'under_evaluation'],
                       'primescan' => ['name_key' => 'settings.integrations.scanners.primescan', 'status' => 'coming_soon',
                                       'desc_key' => 'settings.integrations.scanners.card_description_primescan'],
-                      'medit'     => ['name_key' => 'settings.integrations.scanners.medit',     'status' => 'under_evaluation'],
+                      'medit'     => ['name_key' => 'settings.integrations.scanners.medit',     'status' => 'under_evaluation',
+                                      'desc_key' => 'settings.integrations.scanners.card_description_medit'],
                       'shining3d' => ['name_key' => 'settings.integrations.scanners.shining3d', 'status' => 'under_evaluation',
                                       'desc_key' => 'settings.integrations.scanners.card_description_shining3d'],
                   ];
@@ -4276,10 +4278,17 @@ endif;
                           // practices only while DS_CORE_CONNECT is on.
                           $dsCoreTestPanel = isFeatureEnabled('DS_CORE_CONNECT')
                               && DsCoreConfig::isPracticeAllowed((int)$currentPracticeId);
+                          // Medit Link panel eligibility: allowlisted
+                          // practices only while MEDIT_CONNECT is on
+                          // (staging testing - MEDIT_ALLOWED_PRACTICES).
+                          $meditTestPanel = isFeatureEnabled('MEDIT_CONNECT')
+                              && MeditConfig::isPracticeAllowed((int)$currentPracticeId);
                           foreach ($scannerProviders as $scannerKey => $scannerDef):
                           $scannerBodyId = 'integrationSubsectionBody-scanner-' . $scannerKey;
                           $dsCoreLive = ($scannerKey === 'primescan' && $dsCoreTestPanel);
-                          $scannerStatusClass = $dsCoreLive ? '' : ($scannerDef['status'] === 'coming_soon' ? 'coming-soon' : 'under-evaluation');
+                          $meditLive = ($scannerKey === 'medit' && $meditTestPanel);
+                          $scannerLive = $dsCoreLive || $meditLive;
+                          $scannerStatusClass = $scannerLive ? '' : ($scannerDef['status'] === 'coming_soon' ? 'coming-soon' : 'under-evaluation');
                           $scannerDescKey = $scannerDef['desc_key'] ?? 'settings.integrations.scanners.card_description';
                           ?>
                           <div class="integration-subsection" data-subsection="scanner-<?php echo htmlspecialchars($scannerKey); ?>">
@@ -4293,6 +4302,11 @@ endif;
                               <?php if (DsCoreConfig::environment() === 'sandbox'): ?>
                               <span class="integration-status-badge integration-status-coming-soon"><?php echo t('settings.integrations.status.sandbox'); ?></span>
                               <?php endif; ?>
+                              <?php elseif ($meditLive): ?>
+                              <span class="integration-status-badge" id="meditStatusBadge">…</span>
+                              <?php if (MeditConfig::environment() === 'stage'): ?>
+                              <span class="integration-status-badge integration-status-coming-soon"><?php echo t('settings.integrations.status.staging'); ?></span>
+                              <?php endif; ?>
                               <?php else: ?>
                               <span class="integration-status-badge integration-status-<?php echo $scannerStatusClass; ?>"><?php echo t('settings.integrations.status.' . $scannerDef['status']); ?></span>
                               <?php endif; ?>
@@ -4305,6 +4319,13 @@ endif;
                                 <div class="integration-card-actions">
                                   <button type="button" class="btn-secondary" id="dsCoreConnectBtn"><?php echo t('settings.integrations.connect'); ?></button>
                                   <button type="button" class="btn-delete-confirm" id="dsCoreDisconnectBtn" style="display:none;"><?php echo t('settings.integrations.disconnect'); ?></button>
+                                </div>
+                                <?php endif; ?>
+                                <?php if ($meditLive): ?>
+                                <p id="meditPanelMsg" class="section-description" role="status"></p>
+                                <div class="integration-card-actions">
+                                  <button type="button" class="btn-secondary" id="meditConnectBtn"><?php echo t('settings.integrations.connect'); ?></button>
+                                  <button type="button" class="btn-delete-confirm" id="meditDisconnectBtn" style="display:none;"><?php echo t('settings.integrations.disconnect'); ?></button>
                                 </div>
                                 <?php endif; ?>
                               </div>
@@ -4357,6 +4378,60 @@ endif;
                               .then(function (r) { return r.json(); })
                               .then(function (d) {
                                 if (d && d.success) { paint('disconnected', true); msg.textContent = <?php echo json_encode(t('settings.integrations.disconnect')); ?> + (d.remote_revoked ? ' (revoked upstream).' : ' (remote revocation unconfirmed).'); }
+                                else msg.textContent = (d && d.message) ? d.message : 'Disconnect failed.';
+                                disconnectBtn.disabled = false;
+                              })
+                              .catch(function () { msg.textContent = 'Disconnect failed.'; disconnectBtn.disabled = false; });
+                          });
+                        })();
+                        </script>
+                        <?php endif; ?>
+                        <?php if ($meditTestPanel): ?>
+                        <script>
+                        (function () {
+                          var badge = document.getElementById('meditStatusBadge');
+                          var msg = document.getElementById('meditPanelMsg');
+                          var connectBtn = document.getElementById('meditConnectBtn');
+                          var disconnectBtn = document.getElementById('meditDisconnectBtn');
+                          var csrf = document.querySelector('meta[name="csrf-token"]');
+                          function headers() {
+                            return { 'Content-Type': 'application/json', 'X-CSRF-Token': csrf ? csrf.content : '' };
+                          }
+                          var statusLabels = {
+                            connected: <?php echo json_encode(t('settings.integrations.status.connected')); ?>,
+                            disconnected: <?php echo json_encode(t('settings.integrations.status.not_connected')); ?>,
+                            reconnect_required: <?php echo json_encode(t('settings.integrations.status.reconnect_required')); ?>,
+                            unavailable: <?php echo json_encode(t('settings.integrations.status.not_connected')); ?>
+                          };
+                          function paint(state, serverConfigured) {
+                            badge.textContent = statusLabels[state] || state;
+                            var connected = state === 'connected';
+                            connectBtn.style.display = connected ? 'none' : '';
+                            disconnectBtn.style.display = connected ? '' : 'none';
+                            if (state === 'reconnect_required') msg.textContent = <?php echo json_encode(t('settings.integrations.medit.reconnect_hint')); ?>;
+                            else if (!serverConfigured) msg.textContent = <?php echo json_encode(t('settings.integrations.medit.not_configured')); ?>;
+                          }
+                          fetch('api/medit-auth.php?action=status', { credentials: 'same-origin' })
+                            .then(function (r) { return r.json(); })
+                            .then(function (d) { if (d && d.success) paint(d.state, d.server_configured); })
+                            .catch(function () { badge.textContent = 'unavailable'; });
+                          connectBtn.addEventListener('click', function () {
+                            connectBtn.disabled = true;
+                            fetch('api/medit-auth.php', { method: 'POST', credentials: 'same-origin', headers: headers(), body: JSON.stringify({ action: 'begin' }) })
+                              .then(function (r) { return r.json(); })
+                              .then(function (d) {
+                                if (d && d.success && d.authorize_url) { window.location.assign(d.authorize_url); return; }
+                                msg.textContent = (d && d.message) ? d.message : 'Unable to start the Medit Link connection.';
+                                connectBtn.disabled = false;
+                              })
+                              .catch(function () { msg.textContent = 'Unable to start the Medit Link connection.'; connectBtn.disabled = false; });
+                          });
+                          disconnectBtn.addEventListener('click', function () {
+                            disconnectBtn.disabled = true;
+                            fetch('api/medit-auth.php', { method: 'POST', credentials: 'same-origin', headers: headers(), body: JSON.stringify({ action: 'disconnect' }) })
+                              .then(function (r) { return r.json(); })
+                              .then(function (d) {
+                                if (d && d.success) { paint('disconnected', true); msg.textContent = <?php echo json_encode(t('settings.integrations.disconnect')); ?> + '.'; }
                                 else msg.textContent = (d && d.message) ? d.message : 'Disconnect failed.';
                                 disconnectBtn.disabled = false;
                               })

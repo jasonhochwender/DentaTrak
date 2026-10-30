@@ -21,6 +21,8 @@ require_once __DIR__ . '/integrations/IntegrationOutbound.php';
 require_once __DIR__ . '/integrations/register-adapters.php';
 require_once __DIR__ . '/integrations/dscore/DsCoreAuthService.php';
 require_once __DIR__ . '/integrations/dscore/DsCoreScanSync.php';
+require_once __DIR__ . '/integrations/medit/MeditAuthService.php';
+require_once __DIR__ . '/integrations/medit/MeditScanSync.php';
 
 header('Content-Type: application/json');
 
@@ -82,12 +84,39 @@ try {
         }
     }
 
+    // Medit Link token maintenance + scan polling + webhook drain: the
+    // same per-minute schedule, gated by MEDIT_CONNECT so it is inert
+    // until the staging feature is explicitly enabled. Per-connection
+    // allowlist + environment checks live inside the services.
+    $medit = null;
+    $meditScans = null;
+    if (isFeatureEnabled('MEDIT_CONNECT')) {
+        try {
+            $medit = (new MeditAuthService())->refreshDueConnections($pdo);
+        } catch (Throwable $e) {
+            error_log('[integration-event-worker] Medit refresh pass failed: ' . $e->getMessage());
+            $medit = ['error' => true];
+        }
+        try {
+            $meditScans = (new MeditScanSync())->processDue($pdo);
+        } catch (Throwable $e) {
+            error_log('[integration-event-worker] Medit scan sync failed: ' . $e->getMessage());
+            $meditScans = ['error' => true];
+        }
+    }
+
     $out = ['success' => true, 'totals' => $summary, 'outbound' => $outbound];
     if ($dscore !== null) {
         $out['dscore'] = $dscore;
     }
     if ($dscoreScans !== null) {
         $out['dscore_scans'] = $dscoreScans;
+    }
+    if ($medit !== null) {
+        $out['medit'] = $medit;
+    }
+    if ($meditScans !== null) {
+        $out['medit_scans'] = $meditScans;
     }
     echo json_encode($out);
 } catch (Throwable $e) {

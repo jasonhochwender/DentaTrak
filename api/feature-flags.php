@@ -66,6 +66,15 @@ $FEATURE_DEFAULTS = [
                                        // Client ID are still pending
                                        // approval, so the flow cannot be
                                        // completed yet anyway.
+    'MEDIT_CONNECT' => false,          // Medit Link OAuth connection flow
+                                       // (api/medit-auth.php + callback +
+                                       // scan sync + webhook receiver in
+                                       // the queue worker). OFF by default;
+                                       // additionally gated by
+                                       // MEDIT_ALLOWED_PRACTICES so only
+                                       // designated staging test practices
+                                       // can ever connect. Staging-only
+                                       // until live OAuth is verified.
 ];
 
 /**
