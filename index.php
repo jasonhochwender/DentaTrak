@@ -1372,10 +1372,8 @@ foreach (['operate', 'control', 'scale'] as $plan) {
     .hw7 { height: 100%; display: flex; flex-direction: column; }
     .hw7-head { display: flex; align-items: baseline; justify-content: space-between; font-size: 0.9rem; font-weight: 800; color: var(--dt-ink); padding-bottom: 8px; border-bottom: 1.5px solid var(--dt-border); }
     .hw7-sample { font-size: 0.62rem; font-weight: 400; color: var(--dt-ink-muted); }
-    .hw7-view { flex: 1; overflow: hidden; position: relative; }
-    .hw7-inner { padding-top: 10px; }
-    .hw-anim .hw7-inner { animation: hw7-scroll 7s ease-in-out 5s forwards; }
-    @keyframes hw7-scroll { 0%,35% { transform: translateY(0); } 55%,100% { transform: translateY(-52%); } }
+    .hw7-view { flex: 1; overflow-y: auto; overflow-x: hidden; position: relative; scrollbar-width: thin; }
+    .hw7-inner { padding: 10px 2px 14px; }
     .hw7-kpis { display: flex; gap: 14px; }
     .hw7-kpi { flex: 1; border-radius: 12px; padding: 12px 14px; color: #fff; }
     .hw7-k1 { background: linear-gradient(135deg,#2563eb,#1e40af); } .hw7-k2 { background: linear-gradient(135deg,#0ea5a8,#0f766e); } .hw7-k3 { background: linear-gradient(135deg,#8b5cf6,#6d28d9); }
@@ -1386,27 +1384,24 @@ foreach (['operate', 'control', 'scale'] as $plan) {
     .hw7-ct { font-size: 0.72rem; font-weight: 700; color: var(--dt-ink); margin-bottom: 6px; }
     .hw7-line { width: 100%; height: 74px; }
     .hw7-line polyline { stroke: #2563eb; stroke-width: 3; stroke-dasharray: 420; stroke-dashoffset: 420; }
-    .hw-anim .hw7-line polyline { animation: hw7-draw 1.8s ease 1.2s forwards; }
+    .hw-anim .hw7-line polyline { animation: hw7-draw 1.1s ease 0.4s forwards; }
     @keyframes hw7-draw { to { stroke-dashoffset: 0; } }
     .hw7-pt { fill: #0ea5a8; opacity: 0; }
     .hw7-call { fill: #1e3a5f; opacity: 0; }
     .hw7-callt { fill: #fff; font-size: 11px; font-weight: 700; opacity: 0; }
-    .hw-anim .hw7-pt { animation: hw-fade 0.4s ease 2.8s forwards; }
-    .hw-anim .hw7-call, .hw-anim .hw7-callt { animation: hw-fade 0.4s ease 3s forwards; }
+    .hw-anim .hw7-pt { animation: hw-fade 0.4s ease 1.5s forwards; }
+    .hw-anim .hw7-call, .hw-anim .hw7-callt { animation: hw-fade 0.4s ease 1.6s forwards; }
     .hw7-hb, .hw7-lab { display: flex; align-items: center; gap: 8px; font-size: 0.68rem; margin-bottom: 6px; }
     .hw7-hb i, .hw7-lab i { font-style: normal; width: 92px; color: var(--dt-ink-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .hw7-hb b, .hw7-lab b { font-size: 0.66rem; color: var(--dt-ink); }
     .hw7-fill { height: 10px; border-radius: 5px; background: var(--dt-blue); opacity: 0.85; transform: scaleX(0); transform-origin: left; }
-    .hw7-fill-t { background: #0ea5a8; }
+    .hw7-fill-t { background: #0ea5a8; } .hw7-fill-b { background: #2563eb; } .hw7-fill-p { background: #8b5cf6; }
     .hw-anim .hw7-fill { animation: hw7-bar 0.8s ease both; }
-    .hw-anim .hw7-hb:nth-child(2) .hw7-fill { animation-delay: 1.6s; } .hw-anim .hw7-hb:nth-child(3) .hw7-fill { animation-delay: 1.9s; } .hw-anim .hw7-hb:nth-child(4) .hw7-fill { animation-delay: 2.2s; } .hw-anim .hw7-hb:nth-child(5) .hw7-fill { animation-delay: 2.5s; }
+    .hw-anim .hw7-hb:nth-child(2) .hw7-fill { animation-delay: 0.6s; } .hw-anim .hw7-hb:nth-child(3) .hw7-fill { animation-delay: 0.75s; } .hw-anim .hw7-hb:nth-child(4) .hw7-fill { animation-delay: 0.9s; } .hw-anim .hw7-hb:nth-child(5) .hw7-fill { animation-delay: 1.05s; }
     @keyframes hw7-bar { to { transform: scaleX(1); } }
-    .hw7-labs { margin-top: 12px; }
+    .hw7-labs { margin-top: 12px; } .hw7-ontime { margin-top: 12px; }
     .hw7-lab .hw7-fill { transform: none; opacity: 0; }
-    .hw-anim .hw7-lab .hw7-fill { animation-name: hw-fade, hw7-bar; animation-duration: 0.4s, 0.8s; animation-delay: 9.4s, 9.4s; animation-fill-mode: forwards, both; }
-    .hw-anim .hw7-lab:nth-child(3) .hw7-fill { animation-delay: 9.7s, 9.7s; } .hw-anim .hw7-lab:nth-child(4) .hw7-fill { animation-delay: 10s, 10s; }
-    .hw-anim .hw7-labhi { animation: hw7-hi 10s ease 10.4s both; }
-    @keyframes hw7-hi { 0%,100% { background: transparent; } 50% { background: rgba(14,165,168,0.12); border-radius: 8px; } }
+    .hw-anim .hw7-lab .hw7-fill { animation-name: hw-fade, hw7-bar; animation-duration: 0.4s, 0.7s; animation-delay: 4.6s, 4.6s; animation-fill-mode: forwards, both; }
     .hw-controls { display: flex; align-items: center; gap: 10px; margin-top: 14px; flex-wrap: wrap; }
     .hw-ctl { background: #fff; border: 1px solid var(--dt-border); border-radius: 8px; width: 30px; height: 30px; display: grid; place-items: center; cursor: pointer; font-size: 0.9rem; color: var(--dt-ink-secondary); }
     .hw-ctl:hover, .hw-ctl:focus-visible { border-color: var(--dt-blue); color: var(--dt-ink); outline: none; }
@@ -1453,7 +1448,6 @@ foreach (['operate', 'control', 'scale'] as $plan) {
       .hw7-fill { transform: scaleX(1); opacity: 0.85; }
       .hw7-line polyline { stroke-dashoffset: 0; }
       .hw7-pt, .hw7-call, .hw7-callt { opacity: 1; }
-      .hw7-inner { transform: none; }
     }
     /* Ask DentaTrak animated demo */
     .ask-demo { display: flex; flex-direction: column; height: 100%; }
@@ -2215,8 +2209,13 @@ ulation -->
                   </div>
                   <div class="hw7-cbox hw7-labs"><div class="hw7-ct"><?php echo t('marketing.walkthrough.chart_labs'); ?></div>
                     <div class="hw7-lab"><i>Precision Dental Lab</i><div class="hw7-fill hw7-fill-t" style="width:82%"></div><b>4.1d</b></div>
-                    <div class="hw7-lab"><i>Lab B</i><div class="hw7-fill" style="width:58%"></div><b>5.8d</b></div>
-                    <div class="hw7-lab hw7-labhi"><i>Lab C</i><div class="hw7-fill" style="width:70%"></div><b>4.9d</b></div>
+                    <div class="hw7-lab"><i>Lab B</i><div class="hw7-fill hw7-fill-b" style="width:58%"></div><b>5.8d</b></div>
+                    <div class="hw7-lab"><i>Lab C</i><div class="hw7-fill hw7-fill-p" style="width:70%"></div><b>4.9d</b></div>
+                  </div>
+                  <div class="hw7-cbox hw7-ontime"><div class="hw7-ct"><?php echo t('marketing.walkthrough.chart_ontime'); ?></div>
+                    <div class="hw7-lab"><i>Precision Dental Lab</i><div class="hw7-fill hw7-fill-t" style="width:95%"></div><b>95%</b></div>
+                    <div class="hw7-lab"><i>Lab B</i><div class="hw7-fill hw7-fill-b" style="width:88%"></div><b>88%</b></div>
+                    <div class="hw7-lab"><i>Lab C</i><div class="hw7-fill hw7-fill-p" style="width:91%"></div><b>91%</b></div>
                   </div>
                 </div></div>
               </div>
@@ -3955,7 +3954,7 @@ ulation -->
       steps.forEach(function (s) { s.setAttribute('aria-selected', +s.dataset.step === n ? 'true' : 'false'); });
       dotEls.forEach(function (d, i) { d.classList.toggle('on', i === n - 1); });
       title.textContent = meta.t[n]; copy.textContent = meta.c[n];
-      if (n === 7 && !reduced) runKpis();
+      if (n === 7 && !reduced) { runKpis(); planDashScroll(); } else if (n === 7) { var v = wrap.querySelector('.hw7-view'); if (v) v.scrollTop = 0; }
       if (n === 1) positionHw1Cursor();
       wrap.classList.remove('hw-anim'); void wrap.offsetWidth;
       if (!reduced) wrap.classList.add('hw-anim');
@@ -3999,6 +3998,26 @@ ulation -->
       applyFreeze();
       if (document.hidden) { clearTimeout(timer); } else if (playing && visible) { queue(); }
     });
+    var dashRaf = null, dashTimer = null;
+    function planDashScroll() {
+      var view = wrap.querySelector('.hw7-view'), target = wrap.querySelector('.hw7-labs');
+      if (!view || !target) return;
+      view.scrollTop = 0;
+      var vr = view.getBoundingClientRect(), tr = target.getBoundingClientRect();
+      var dest = Math.max(0, tr.top - vr.top - 6);
+      if (dest < 4) return;
+      dashTimer = setTimeout(function () {
+        var from = view.scrollTop, t0 = null, dur = 800;
+        function step(ts) {
+          if (!t0) t0 = ts;
+          var p = Math.min((ts - t0) / dur, 1);
+          var e = p < 0.5 ? 2 * p * p : 1 - Math.pow(-2 * p + 2, 2) / 2;
+          view.scrollTop = from + (dest - from) * e;
+          if (p < 1) dashRaf = requestAnimationFrame(step);
+        }
+        dashRaf = requestAnimationFrame(step);
+      }, 3600);
+    }
     function runKpis() {
       wrap.querySelectorAll('.hw7-kv').forEach(function (el) {
         var target = parseFloat(el.dataset.v), dec = el.dataset.v.indexOf('.') > -1 ? 1 : 0;
@@ -4044,7 +4063,7 @@ ulation -->
     var N = EX.length, cur = 0, timer = null, paused = false, visible = false, started = false;
 
     function setT(id, fn, ms) { timer = setTimeout(fn, ms); }
-    function clearT() { clearTimeout(timer); timer = null; }
+    function clearT() { clearTimeout(timer); timer = null; clearTimeout(dashTimer); dashTimer = null; if (dashRaf) cancelAnimationFrame(dashRaf); dashRaf = null; }
     function renderStatic(i) {
       clearT();
       userMsg.hidden = false; userMsg.textContent = EX[i].q;

@@ -6234,7 +6234,8 @@
             "accepted": "Accepted",
             "cap_connected": "Your team and lab, connected.",
             "rm_invited": "Maya Chen and Jordan Lee joined by email invitation.",
-            "created_by": "Created by:"
+            "created_by": "Created by:",
+            "chart_ontime": "On-time performance by lab"
         },
         "askdemo": {
             "example_label": "Example conversation",

@@ -6234,7 +6234,8 @@
             "accepted": "Accettato",
             "cap_connected": "Il tuo team e laboratorio, connessi.",
             "rm_invited": "Maya Chen e Jordan Lee si sono uniti tramite invito email.",
-            "created_by": "Creato da:"
+            "created_by": "Creato da:",
+            "chart_ontime": "Puntualità per laboratorio"
         },
         "askdemo": {
             "example_label": "Conversazione di esempio",
