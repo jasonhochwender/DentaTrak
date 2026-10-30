@@ -250,6 +250,7 @@ NUL
 !/tests/dscore-auth-test.php
 !/tests/dscore-scan-connector-test.php
 !/tests/medit-integration-test.php
+!/tests/medit-archive-verify-test.php
 !/tests/settings-integrations-subsections-test.js
 !/tests/organization-access-test.php
 !/tests/org-case-view-test.php
