@@ -1239,7 +1239,7 @@ foreach (['operate', 'control', 'scale'] as $plan) {
     /* SCENE 3 */
     .hw3-lanes { display: flex; gap: 14px; height: 100%; }
     .hw3-lane { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; }
-    .hw3-src { text-align: center; }
+    .hw3-src { text-align: center; padding: 10px; margin-bottom: 14px; border-radius: 12px; }
     .hw3-art { width: 100%; max-width: 118px; height: auto; }
     .hw3-label { display: block; font-size: 0.98rem; font-weight: 700; color: var(--dt-ink); margin-top: 2px; }
     .hw3-sub { display: block; font-size: 0.66rem; color: var(--dt-ink-muted); }
@@ -1261,9 +1261,9 @@ foreach (['operate', 'control', 'scale'] as $plan) {
     .hw-anim .hw3-l1 .hw3-src { animation: hw3-g 11.2s linear forwards; }
     .hw-anim .hw3-l2 .hw3-src { animation: hw3-g2 11.2s linear forwards; }
     .hw-anim .hw3-l3 .hw3-src { animation: hw3-g3 11.2s linear forwards; }
-    @keyframes hw3-g { 0%,5% { box-shadow: none; } 9%,30% { box-shadow: 0 0 0 4px rgba(37,99,235,0.25); border-radius: 12px; } 34%,100% { box-shadow: none; } }
-    @keyframes hw3-g2 { 0%,37% { box-shadow: none; } 41%,62% { box-shadow: 0 0 0 4px rgba(14,165,168,0.25); border-radius: 12px; } 66%,100% { box-shadow: none; } }
-    @keyframes hw3-g3 { 0%,69% { box-shadow: none; } 73%,94% { box-shadow: 0 0 0 4px rgba(139,92,246,0.25); border-radius: 12px; } 98%,100% { box-shadow: none; } }
+    @keyframes hw3-g { 0%,5% { box-shadow: none; } 9%,30% { box-shadow: inset 0 0 0 4px rgba(37,99,235,0.3); } 34%,100% { box-shadow: none; } }
+    @keyframes hw3-g2 { 0%,37% { box-shadow: none; } 41%,62% { box-shadow: inset 0 0 0 4px rgba(14,165,168,0.3); } 66%,100% { box-shadow: none; } }
+    @keyframes hw3-g3 { 0%,69% { box-shadow: none; } 73%,94% { box-shadow: inset 0 0 0 4px rgba(139,92,246,0.3); } 98%,100% { box-shadow: none; } }
     .hw-anim .hw3-l1 .hw3-act { animation: hw-fade 0.5s ease 1s forwards; }
     .hw-anim .hw3-l2 .hw3-act { animation: hw-fade 0.5s ease 4.6s forwards; }
     .hw-anim .hw3-l3 .hw3-act { animation: hw-fade 0.5s ease 8.2s forwards; }
@@ -2146,7 +2146,7 @@ foreach (['operate', 'control', 'scale'] as $plan) {
                 </div>
               </div>
             </div>
-ulation -->
+            <!-- SCENE 5: case detail accumulation -->
             <div class="hw-scene" data-scene="5" hidden>
               <div class="hw5-record">
                 <div class="hw5-head"><b>Crown #14</b><span>Hannah Lindqvist</span></div>
