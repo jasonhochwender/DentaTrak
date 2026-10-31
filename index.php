@@ -1229,6 +1229,63 @@ foreach (['operate', 'control', 'scale'] as $plan) {
     .hw-join1, .hw-join2 { opacity: 0; }
     .hw-anim .hw-join1 { animation: hw-join calc(0.7s * var(--hwk)) ease calc(4.2s * var(--hwk)) forwards; }
     .hw-anim .hw-join2 { animation: hw-join calc(0.7s * var(--hwk)) ease calc(10.4s * var(--hwk)) forwards; }
+    /* SCENE 2 rebuild: invite team then lab partner */
+    .hw2-headwrap { position: relative; min-height: 1.6em; margin-bottom: 14px; }
+    .hw2-head { font-size: 1.3rem; font-weight: 800; color: var(--dt-ink); }
+    .hw2-h2 { position: absolute; left: 0; top: 0; opacity: 0; }
+    .hw-anim .hw2-h1 { animation: hw2-h1v calc(13s * var(--hwk)) steps(1) forwards; }
+    .hw-anim .hw2-h2 { animation: hw2-h2v calc(13s * var(--hwk)) steps(1) forwards; }
+    @keyframes hw2-h1v { 0%,55% { opacity: 1; } 56%,100% { opacity: 0; } }
+    @keyframes hw2-h2v { 0%,55% { opacity: 0; } 56%,100% { opacity: 1; } }
+    .hw-field { font-size: 0.95rem; padding: 12px 14px; }
+    .hw-anim .hw-e1::after { content: 'maya.chen@dentalpractice.com' !important; }
+    .hw-anim .hw-e2::after { content: 'jordan.lee@dentalpractice.com' !important; }
+    .hw-anim .hw-e1 { animation: hw2e1v calc(13s * var(--hwk)) steps(1) forwards; }
+    .hw-anim .hw-e2 { animation: hw2e2v calc(13s * var(--hwk)) steps(1) forwards; }
+    .hw-anim .hw-e3 { animation: hw2e3v calc(13s * var(--hwk)) steps(1) forwards; }
+    .hw-anim .hw-e3::after { content: 'alex@lab.com'; display: block; overflow: hidden; white-space: nowrap; animation: hw-typeline calc(1.2s * var(--hwk)) steps(11) calc(7.9s * var(--hwk)) both; }
+    @keyframes hw2e1v { 0%,30% { opacity: 1; } 31%,100% { opacity: 0; } }
+    @keyframes hw2e2v { 0%,30% { opacity: 0; } 31%,58% { opacity: 1; } 59%,100% { opacity: 0; } }
+    @keyframes hw2e3v { 0%,58% { opacity: 0; } 59%,100% { opacity: 1; } }
+    .hw-j1, .hw-j2, .hw-j3 { opacity: 0; }
+    .hw-anim .hw-j1 { animation: hw-j1v calc(13s * var(--hwk)) ease forwards; }
+    .hw-anim .hw-j2 { animation: hw-j2v calc(13s * var(--hwk)) ease forwards; }
+    .hw-anim .hw-j3 { animation: hw-j3v calc(13s * var(--hwk)) ease forwards; }
+    @keyframes hw-j1v { 0%,24% { opacity: 0; transform: translateY(10px); } 27%,100% { opacity: 1; transform: none; } }
+    @keyframes hw-j2v { 0%,50% { opacity: 0; transform: translateY(10px); } 53%,100% { opacity: 1; transform: none; } }
+    @keyframes hw-j3v { 0%,76% { opacity: 0; transform: translateY(10px); } 79%,100% { opacity: 1; transform: none; } }
+    .hw-person-lab { border-left: 3px solid #0ea5a8; background: #f4fbfa; }
+    .hw-status { margin-left: auto; position: relative; min-width: 60px; min-height: 1.3em; }
+    .hw-status i { font-style: normal; position: absolute; right: 0; top: 0; white-space: nowrap; font-size: 0.58rem; font-weight: 700; border-radius: 999px; padding: 2px 9px; opacity: 0; }
+    .hw-st-inv { color: #b45309; background: #fef3c7; }
+    .hw-st-join { color: #0ea5a8; background: #e0f7f5; }
+    .hw-anim .hw-j1 .hw-st-inv { animation: hw-sv1 calc(13s * var(--hwk)) steps(1) forwards; }
+    .hw-anim .hw-j1 .hw-st-join { animation: hw-sj1 calc(13s * var(--hwk)) steps(1) forwards; }
+    .hw-anim .hw-j2 .hw-st-inv { animation: hw-sv2 calc(13s * var(--hwk)) steps(1) forwards; }
+    .hw-anim .hw-j2 .hw-st-join { animation: hw-sj2 calc(13s * var(--hwk)) steps(1) forwards; }
+    .hw-anim .hw-j3 .hw-st-inv { animation: hw-sv3 calc(13s * var(--hwk)) steps(1) forwards; }
+    .hw-anim .hw-j3 .hw-st-join { animation: hw-sj3 calc(13s * var(--hwk)) steps(1) forwards; }
+    @keyframes hw-sv1 { 0%,24% { opacity: 0; } 25%,36% { opacity: 1; } 37%,100% { opacity: 0; } }
+    @keyframes hw-sj1 { 0%,36% { opacity: 0; } 37%,100% { opacity: 1; } }
+    @keyframes hw-sv2 { 0%,50% { opacity: 0; } 51%,62% { opacity: 1; } 63%,100% { opacity: 0; } }
+    @keyframes hw-sj2 { 0%,62% { opacity: 0; } 63%,100% { opacity: 1; } }
+    @keyframes hw-sv3 { 0%,76% { opacity: 0; } 77%,88% { opacity: 1; } 89%,100% { opacity: 0; } }
+    @keyframes hw-sj3 { 0%,88% { opacity: 0; } 89%,100% { opacity: 1; } }
+    .hw-anim .hw-invbtn { animation: hw-inv calc(13s * var(--hwk)) linear forwards; }
+    @keyframes hw-inv { 0%,16% { box-shadow: none; } 18%,22% { box-shadow: 0 0 0 5px rgba(37,99,235,0.35); } 24%,43% { box-shadow: none; } 45%,49% { box-shadow: 0 0 0 5px rgba(37,99,235,0.35); } 51%,70% { box-shadow: none; } 72%,76% { box-shadow: 0 0 0 5px rgba(37,99,235,0.35); } 78%,100% { box-shadow: none; } }
+    .hw-anim .hw-scene[data-scene="2"] .hw-cursor { animation: hw2-cursor calc(13s * var(--hwk)) ease forwards; }
+    @keyframes hw2-cursor {
+      0% { opacity: 0; left: var(--f2x, 30%); top: var(--f2y, 30%); }
+      4% { opacity: 1; } 15% { left: var(--f2x, 30%); top: var(--f2y, 30%); }
+      19% { left: var(--b2x, 55%); top: var(--b2y, 30%); } 20.5% { transform: translate(-2px,-2px) scale(0.8); } 22% { transform: translate(-2px,-2px) scale(1); }
+      27% { left: var(--b2x, 55%); top: var(--b2y, 30%); } 31% { left: var(--f2x, 30%); top: var(--f2y, 30%); }
+      45% { left: var(--f2x, 30%); top: var(--f2y, 30%); } 49% { left: var(--b2x, 55%); top: var(--b2y, 30%); }
+      50.5% { transform: translate(-2px,-2px) scale(0.8); } 52% { transform: translate(-2px,-2px) scale(1); }
+      57% { left: var(--b2x, 55%); top: var(--b2y, 30%); } 61% { left: var(--f2x, 30%); top: var(--f2y, 30%); }
+      71% { left: var(--f2x, 30%); top: var(--f2y, 30%); } 75% { left: var(--b2x, 55%); top: var(--b2y, 30%); }
+      76.5% { transform: translate(-2px,-2px) scale(0.8); } 78% { transform: translate(-2px,-2px) scale(1); }
+      92% { opacity: 1; left: var(--b2x, 55%); top: var(--b2y, 30%); } 100% { opacity: 0; left: var(--b2x, 55%); top: var(--b2y, 30%); }
+    }
     @keyframes hw-join { from { opacity: 0; transform: translateY(12px); box-shadow: 0 0 0 4px rgba(14,165,168,0.3); } 60% { box-shadow: 0 0 0 4px rgba(14,165,168,0.3); } to { opacity: 1; transform: none; box-shadow: none; } }
     .hw-joined { margin-left: auto; font-size: 0.56rem; font-weight: 700; color: #0ea5a8; background: #e0f7f5; border-radius: 999px; padding: 2px 8px; }
     @media (prefers-reduced-motion: reduce) {
@@ -1467,6 +1524,7 @@ foreach (['operate', 'control', 'scale'] as $plan) {
       .hw1-qcname, .hw1-n1 { opacity: 1 !important; } .hw1-n0 { opacity: 0 !important; }
       .hw-emailcard, .hw-join1, .hw-join2, .hw3-case, .hw3-act, .hw5-note, .hw5-cmt, .hw5-thumb { opacity: 1 !important; transform: none; }
       .hw3-ln, .hw3-ah { opacity: 0.45 !important; }
+      .hw-j1, .hw-j2, .hw-j3 { opacity: 1 !important; transform: none; } .hw-st-join { opacity: 1 !important; } .hw2-h2 { opacity: 1 !important; } .hw2-h1 { opacity: 0 !important; } .hw-e3::after { content: 'alex@lab.com' !important; } .hw-e1::after, .hw-e2::after { content: '' !important; }
       .hw4-aval .hw4-a2 { opacity: 1 !important; } .hw4-aval .hw4-a1 { opacity: 0 !important; } .hw4-reb { opacity: 1 !important; } .hw4-p3 { border-color: #0ea5a8; } .hw4-l2 { opacity: 1 !important; stroke-dashoffset: 0 !important; } .hw4-l1 { opacity: 0 !important; }
       .hw6-flag { opacity: 1 !important; } .hw6-due .hw6-sub { display: inline-block !important; color: #1e3a8a; } .hw6-late .hw6-sub { display: inline-block !important; color: #fff; }
       .hw6-due { background: #dbeafe; border-color: #3b82f6; }
@@ -2106,20 +2164,19 @@ foreach (['operate', 'control', 'scale'] as $plan) {
             <!-- SCENE 2: invite + roster (unchanged) -->
                         <!-- SCENE 2: invite + roster -->
             <div class="hw-scene" data-scene="2" hidden>
+              <div class="hw-cursor"><svg viewBox="0 0 18 18" width="18" height="18"><path d="M2 1.5 L2 14.5 L5.2 11.6 L7.6 16.4 L10.2 15 L7.7 10 L12.6 10 Z" fill="#1e3a5f" stroke="#fff" stroke-width="1.3" stroke-linejoin="round"/></svg></div>
               <div class="hw-team">
                 <div class="hw-inviteX">
-                  <div class="hw-panel-head"><?php echo t('marketing.walkthrough.invite_head'); ?></div>
-                  <div class="hw-field"><span class="hw-field-text"><i class="hw-e1"></i><i class="hw-e2"></i></span><span class="hw-btn-mini hw-invbtn"><?php echo t('marketing.walkthrough.invite_btn'); ?></span></div>
-                  <div class="hw-emailcard"><div class="hw-email-ic">✉</div><div><b><?php echo t('marketing.walkthrough.email_subj'); ?></b><span class="hw-email-sub"><i class="hw-to1"><?php echo t('marketing.walkthrough.email_to'); ?> maya.chen@example.com</i><i class="hw-to2"><?php echo t('marketing.walkthrough.email_to'); ?> jordan.lee@example.com</i></span></div><span class="hw-btn-mini hw-accept"><i class="hw-ac0"><?php echo t('marketing.walkthrough.accept_btn'); ?></i><i class="hw-ac1"><?php echo t('marketing.walkthrough.accepted'); ?></i></span></div>
-                  <div class="hw-rm"><?php echo t('marketing.walkthrough.rm_invited'); ?></div>
+                  <div class="hw2-headwrap"><span class="hw2-head hw2-h1"><?php echo t('marketing.walkthrough.invite_head'); ?></span><span class="hw2-head hw2-h2"><?php echo t('marketing.walkthrough.invite_head_lab'); ?></span></div>
+                  <div class="hw-field"><span class="hw-field-text"><i class="hw-e1"></i><i class="hw-e2"></i><i class="hw-e3"></i></span><span class="hw-btn-mini hw-invbtn"><?php echo t('marketing.walkthrough.invite_btn'); ?></span></div>
                   <div class="hw-cap2"><?php echo t('marketing.walkthrough.cap_connected'); ?></div>
-                  <div class="hw-freenote"><?php echo t('marketing.walkthrough.no_charge'); ?></div>
                 </div>
                 <div class="hw-roster">
                   <div class="hw-panel-head"><?php echo t('marketing.walkthrough.roster_head'); ?></div>
                   <div class="hw-person"><span class="hw-av hw-av-b">AR</span><span class="hw-p-info"><b>Dr. Alex Rivera</b><i><?php echo t('marketing.walkthrough.role_dentist'); ?> · <?php echo t('marketing.walkthrough.org_yours'); ?></i></span></div>
-                  <div class="hw-person hw-join1"><span class="hw-av hw-av-p">MC</span><span class="hw-p-info"><b>Maya Chen</b><i><?php echo t('marketing.walkthrough.role_coord'); ?> · <?php echo t('marketing.walkthrough.org_yours'); ?></i></span><span class="hw-joined"><?php echo t('marketing.walkthrough.joined'); ?></span></div>
-                  <div class="hw-person hw-join2"><span class="hw-av hw-av-t">JL</span><span class="hw-p-info"><b>Jordan Lee</b><i><?php echo t('marketing.walkthrough.role_labtech'); ?> · <?php echo t('marketing.walkthrough.org_lab'); ?></i></span><span class="hw-joined"><?php echo t('marketing.walkthrough.joined'); ?></span></div>
+                  <div class="hw-person hw-j1"><span class="hw-av hw-av-p">MC</span><span class="hw-p-info"><b>Maya Chen</b><i><?php echo t('marketing.walkthrough.role_coord'); ?> · <?php echo t('marketing.walkthrough.org_yours'); ?></i></span><span class="hw-status"><i class="hw-st-inv"><?php echo t('marketing.walkthrough.invited'); ?></i><i class="hw-st-join"><?php echo t('marketing.walkthrough.joined'); ?></i></span></div>
+                  <div class="hw-person hw-j2"><span class="hw-av hw-av-b">JL</span><span class="hw-p-info"><b>Jordan Lee</b><i><?php echo t('marketing.walkthrough.role_member'); ?> · <?php echo t('marketing.walkthrough.org_yours'); ?></i></span><span class="hw-status"><i class="hw-st-inv"><?php echo t('marketing.walkthrough.invited'); ?></i><i class="hw-st-join"><?php echo t('marketing.walkthrough.joined'); ?></i></span></div>
+                  <div class="hw-person hw-j3 hw-person-lab"><span class="hw-av hw-av-t">AM</span><span class="hw-p-info"><b>Alex Morgan</b><i><?php echo t('marketing.walkthrough.role_labpartner'); ?> · <?php echo t('marketing.walkthrough.org_lab'); ?></i></span><span class="hw-status"><i class="hw-st-inv"><?php echo t('marketing.walkthrough.invited'); ?></i><i class="hw-st-join"><?php echo t('marketing.walkthrough.joined'); ?></i></span></div>
                 </div>
               </div>
             </div>
@@ -3991,6 +4048,7 @@ foreach (['operate', 'control', 'scale'] as $plan) {
       if (n === 7 && !reduced) { runKpis(); planDashScroll(); runRingCounts(); } else if (n === 7) { var v = wrap.querySelector('.hw7-view'); if (v) v.scrollTop = 0; resetRingText(); }
       if (n === 1) positionHw1Cursor();
       if (n === 4) positionHw4Lines();
+      if (n === 2) positionHw2Cursor();
       wrap.classList.remove('hw-anim'); void wrap.offsetWidth;
       if (!reduced) wrap.classList.add('hw-anim');
       if (userInitiated) { playing = false; syncPause(); }
@@ -4118,8 +4176,20 @@ foreach (['operate', 'control', 'scale'] as $plan) {
       aim('.hw4-p1', hw4Wrap.querySelector('.hw4-l1'));
       aim('.hw4-p3', hw4Wrap.querySelector('.hw4-l2'));
     }
-    window.addEventListener('resize', function () { if (cur === 1) positionHw1Cursor(); if (cur === 4) positionHw4Lines(); });
-    if (document.fonts && document.fonts.ready) { document.fonts.ready.then(function () { if (cur === 1) positionHw1Cursor(); if (cur === 4) positionHw4Lines(); }); }
+    var hw2Scene = wrap.querySelector('.hw-scene[data-scene="2"]');
+    function positionHw2Cursor() {
+      if (!hw2Scene || hw2Scene.getBoundingClientRect().width < 2) return;
+      requestAnimationFrame(function () {
+        var s = hw2Scene.getBoundingClientRect(); if (s.width < 2) return;
+        function mx(el) { var r = el.getBoundingClientRect(); return ((r.left + r.width / 2 - s.left) / s.width * 100) + '%'; }
+        function my(el) { var r = el.getBoundingClientRect(); return ((r.top + r.height / 2 - s.top) / s.height * 100) + '%'; }
+        var f = hw2Scene.querySelector('.hw-field'), b = hw2Scene.querySelector('.hw-invbtn');
+        if (f) { hw2Scene.style.setProperty('--f2x', mx(f)); hw2Scene.style.setProperty('--f2y', my(f)); }
+        if (b) { hw2Scene.style.setProperty('--b2x', mx(b)); hw2Scene.style.setProperty('--b2y', my(b)); }
+      });
+    }
+    window.addEventListener('resize', function () { if (cur === 1) positionHw1Cursor(); if (cur === 4) positionHw4Lines(); if (cur === 2) positionHw2Cursor(); });
+    if (document.fonts && document.fonts.ready) { document.fonts.ready.then(function () { if (cur === 1) positionHw1Cursor(); if (cur === 4) positionHw4Lines(); if (cur === 2) positionHw2Cursor(); }); }
     show(1, false);
     if (reduced) { btnPause.hidden = true; }
   })();

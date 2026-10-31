@@ -6173,7 +6173,7 @@
             "stage_done": "Listo",
             "qc_stage": "Control de calidad",
             "add_stage": "Añadir etapa",
-            "invite_head": "Invita a tu equipo",
+            "invite_head": "Invite a su equipo",
             "invite_btn": "Invitar",
             "email_subj": "Te invitaron a DentaTrak",
             "accept_btn": "Aceptar",
@@ -6244,7 +6244,11 @@
             "created_by": "Creado por:",
             "chart_ontime": "Puntualidad por laboratorio",
             "lower_better": "Menor es mejor",
-            "act_import_scans": "Importar escaneos"
+            "act_import_scans": "Importar escaneos",
+            "invite_head_lab": "Invite a sus socios de laboratorio",
+            "invited": "Invitado",
+            "role_member": "Miembro del equipo",
+            "role_labpartner": "Socio de laboratorio"
         },
         "askdemo": {
             "example_label": "Conversación de ejemplo",

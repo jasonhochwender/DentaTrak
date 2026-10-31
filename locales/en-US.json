@@ -6244,7 +6244,11 @@
             "created_by": "Created by:",
             "chart_ontime": "On-time performance by lab",
             "lower_better": "Lower is better",
-            "act_import_scans": "Import Scans"
+            "act_import_scans": "Import Scans",
+            "invite_head_lab": "Invite your lab partners",
+            "invited": "Invited",
+            "role_member": "Practice Team Member",
+            "role_labpartner": "Lab Partner"
         },
         "askdemo": {
             "example_label": "Example conversation",

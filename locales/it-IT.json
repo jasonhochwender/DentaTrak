@@ -6244,7 +6244,11 @@
             "created_by": "Creato da:",
             "chart_ontime": "Puntualità per laboratorio",
             "lower_better": "Più basso è meglio",
-            "act_import_scans": "Importa scansioni"
+            "act_import_scans": "Importa scansioni",
+            "invite_head_lab": "Invita i tuoi partner di laboratorio",
+            "invited": "Invitato",
+            "role_member": "Membro del team",
+            "role_labpartner": "Partner di laboratorio"
         },
         "askdemo": {
             "example_label": "Conversazione di esempio",

@@ -6244,7 +6244,11 @@
             "created_by": "Créé par :",
             "chart_ontime": "Ponctualité par laboratoire",
             "lower_better": "Plus bas, c’est mieux",
-            "act_import_scans": "Importer les scans"
+            "act_import_scans": "Importer les scans",
+            "invite_head_lab": "Invitez vos partenaires de labo",
+            "invited": "Invité",
+            "role_member": "Membre de l’équipe",
+            "role_labpartner": "Partenaire de labo"
         },
         "askdemo": {
             "example_label": "Conversation d’exemple",

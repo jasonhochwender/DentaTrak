@@ -6244,7 +6244,11 @@
             "created_by": "작성자:",
             "chart_ontime": "랩별 정시율",
             "lower_better": "낮을수록 좋습니다",
-            "act_import_scans": "스캔 가져오기"
+            "act_import_scans": "스캔 가져오기",
+            "invite_head_lab": "랩 파트너 초대",
+            "invited": "초대됨",
+            "role_member": "실무팀 구성원",
+            "role_labpartner": "랩 파트너"
         },
         "askdemo": {
             "example_label": "예시 대화",

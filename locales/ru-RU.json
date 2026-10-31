@@ -6215,7 +6215,7 @@
             "stage_done": "Готово",
             "qc_stage": "Контроль качества",
             "add_stage": "Добавить этап",
-            "invite_head": "Пригласите команду",
+            "invite_head": "Пригласите свою команду",
             "invite_btn": "Пригласить",
             "email_subj": "Вас пригласили в DentaTrak",
             "accept_btn": "Принять",
@@ -6286,7 +6286,11 @@
             "created_by": "Создал:",
             "chart_ontime": "Своевременность по лабораториям",
             "lower_better": "Меньше - лучше",
-            "act_import_scans": "Импорт сканов"
+            "act_import_scans": "Импорт сканов",
+            "invite_head_lab": "Пригласите лабораторных партнёров",
+            "invited": "Приглашён",
+            "role_member": "Член команды практики",
+            "role_labpartner": "Лабораторный партнёр"
         },
         "askdemo": {
             "example_label": "Пример диалога",

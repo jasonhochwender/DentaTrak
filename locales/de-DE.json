@@ -6215,7 +6215,7 @@
             "stage_done": "Fertig",
             "qc_stage": "Qualitätsprüfung",
             "add_stage": "Stage hinzufügen",
-            "invite_head": "Team einladen",
+            "invite_head": "Laden Sie Ihr Team ein",
             "invite_btn": "Einladen",
             "email_subj": "Sie wurden zu DentaTrak eingeladen",
             "accept_btn": "Annehmen",
@@ -6286,7 +6286,11 @@
             "created_by": "Erstellt von:",
             "chart_ontime": "Pünktlichkeit nach Labor",
             "lower_better": "Niedriger ist besser",
-            "act_import_scans": "Scans importieren"
+            "act_import_scans": "Scans importieren",
+            "invite_head_lab": "Ihre Laborpartner einladen",
+            "invited": "Eingeladen",
+            "role_member": "Praxisteam-Mitglied",
+            "role_labpartner": "Laborpartner"
         },
         "askdemo": {
             "example_label": "Beispielgespräch",
