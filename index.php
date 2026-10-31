@@ -1355,10 +1355,10 @@ foreach (['operate', 'control', 'scale'] as $plan) {
     .hw4-case-h { clear: both; font-size: 0.92rem; font-weight: 800; color: var(--dt-ink); margin-bottom: 8px; }
     .hw4-meta { font-size: 0.72rem; color: var(--dt-ink-muted); margin-bottom: 6px; }
     .hw4-meta span { font-weight: 700; color: var(--dt-ink-secondary); }
-    .hw4-at { display: flex; align-items: baseline; gap: 8px; font-size: 0.72rem; color: var(--dt-ink-muted); }
+    .hw4-at { display: flex; align-items: center; gap: 8px; font-size: 0.72rem; color: var(--dt-ink-muted); }
     .hw4-at > span { font-weight: 700; color: var(--dt-ink-secondary); white-space: nowrap; }
-    .hw4-aval { position: relative; display: inline-block; min-width: 120px; min-height: 2.1em; font-size: 0.9rem; color: var(--dt-ink); }
-    .hw4-aval i { font-style: normal; position: absolute; left: 0; top: 0; white-space: nowrap; opacity: 0; }
+    .hw4-aval { position: relative; display: inline-flex; align-items: center; min-width: 120px; min-height: 1.35em; font-size: 0.9rem; color: var(--dt-ink); }
+    .hw4-aval i { font-style: normal; position: absolute; left: 0; top: 50%; transform: translateY(-50%); white-space: nowrap; opacity: 0; }
     .hw4-aval small { display: block; font-size: 0.6rem; font-weight: 400; color: var(--dt-ink-muted); }
     .hw4-aval .hw4-a0 { opacity: 1; color: var(--dt-ink-muted); }
     .hw4-people { margin-top: auto; display: flex; gap: 14px; justify-content: center; z-index: 2; }
