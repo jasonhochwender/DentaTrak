@@ -1382,13 +1382,13 @@ foreach (['operate', 'control', 'scale'] as $plan) {
     .hw5-record { background: #fff; border: 1.5px solid var(--dt-border); border-radius: 14px; height: 100%; display: flex; flex-direction: column; overflow: hidden; }
     .hw5-head { background: var(--dt-warm); border-bottom: 1.5px solid var(--dt-border); padding: 10px 18px; display: flex; align-items: baseline; gap: 10px; }
     .hw5-head b { font-size: 0.95rem; color: var(--dt-ink); } .hw5-head span { font-size: 0.7rem; color: var(--dt-ink-muted); }
-    .hw5-cols { display: grid; grid-template-columns: 1fr 1.3fr; gap: 12px; padding: 12px 16px 8px; }
+    .hw5-cols { display: grid; grid-template-columns: 1fr 1.3fr; gap: 12px; padding: 12px 16px 8px; flex: 1 1 0; min-height: 0; overflow: hidden; }
     .hw5-area { background: var(--dt-warm); border: 1px dashed var(--dt-border); border-radius: 10px; padding: 8px 10px; }
     .hw5-ah { font-size: 0.6rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--dt-ink-muted); margin-bottom: 6px; }
     .hw5-note { background: #fef9e7; border-left: 3px solid #f59e0b; border-radius: 7px; padding: 9px 11px; font-size: 0.82rem; color: var(--dt-ink); opacity: 0; }
     .hw5-cmt { background: #fff; border: 1px solid var(--dt-border); border-radius: 8px; padding: 8px 10px; font-size: 0.76rem; color: var(--dt-ink-secondary); margin-bottom: 6px; opacity: 0; }
     .hw5-cmt b { display: block; font-size: 0.66rem; color: var(--dt-ink); margin-bottom: 2px; }
-    .hw5-strip { padding: 0 16px 12px; }
+    .hw5-strip { padding: 0 16px 12px; flex-shrink: 0; }
     .hw5-trow { display: flex; gap: 10px; }
     .hw5-thumb { width: 70px; height: 52px; border-radius: 8px; overflow: hidden; border: 1px solid var(--dt-border); background: #fff; opacity: 0; flex-shrink: 0; }
     .hw5-thumb svg { width: 100%; height: 100%; display: block; }
@@ -4205,7 +4205,10 @@ foreach (['operate', 'control', 'scale'] as $plan) {
     var hw5Iv = null;
     function startHw5Scroll() {
       if (!hw5Area || hw5Iv) return;
-      hw5Iv = setInterval(function () { if (cur === 5) { hw5Area.scrollTop = hw5Area.scrollHeight; } else { clearInterval(hw5Iv); hw5Iv = null; } }, 300);
+      hw5Iv = setInterval(function () {
+        if (cur !== 5) { clearInterval(hw5Iv); hw5Iv = null; return; }
+        if (hw5Area.scrollHeight - hw5Area.scrollTop - hw5Area.clientHeight < 60) hw5Area.scrollTop = hw5Area.scrollHeight;
+      }, 300);
     }
     var hw2Scene = wrap.querySelector('.hw-scene[data-scene="2"]');
     function positionHw2Cursor() {
