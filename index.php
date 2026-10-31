@@ -1291,7 +1291,6 @@ foreach (['operate', 'control', 'scale'] as $plan) {
     @media (prefers-reduced-motion: reduce) {
       .hw-emailcard { display: none; }
       .hw-rm { display: block; }
-      .hw-cap2 { opacity: 1; }
     }
     /* SCENE 3 */
     .hw3-lanes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; height: 100%; }
