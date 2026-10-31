@@ -1230,7 +1230,7 @@ foreach (['operate', 'control', 'scale'] as $plan) {
     .hw-anim .hw-join1 { animation: hw-join calc(0.7s * var(--hwk)) ease calc(4.2s * var(--hwk)) forwards; }
     .hw-anim .hw-join2 { animation: hw-join calc(0.7s * var(--hwk)) ease calc(10.4s * var(--hwk)) forwards; }
     /* SCENE 2 rebuild: invite team then lab partner */
-    .hw2-headwrap { position: relative; min-height: 1.6em; margin-bottom: 14px; }
+    .hw2-headwrap { position: relative; min-height: 1.6em; margin-top: 16px; }
     .hw2-head { font-size: 1.3rem; font-weight: 800; color: var(--dt-ink); }
     .hw2-h2 { position: absolute; left: 0; top: 0; opacity: 0; }
     .hw-anim .hw2-h1 { animation: hw2-h1v calc(13s * var(--hwk)) steps(1) forwards; }
@@ -2186,8 +2186,8 @@ foreach (['operate', 'control', 'scale'] as $plan) {
               <div class="hw-cursor"><svg viewBox="0 0 18 18" width="18" height="18"><path d="M2 1.5 L2 14.5 L5.2 11.6 L7.6 16.4 L10.2 15 L7.7 10 L12.6 10 Z" fill="#1e3a5f" stroke="#fff" stroke-width="1.3" stroke-linejoin="round"/></svg></div>
               <div class="hw-team">
                 <div class="hw-inviteX">
-                  <div class="hw2-headwrap"><span class="hw2-head hw2-h1"><?php echo t('marketing.walkthrough.invite_head'); ?></span><span class="hw2-head hw2-h2"><?php echo t('marketing.walkthrough.invite_head_lab'); ?></span></div>
                   <div class="hw-field"><span class="hw-field-text"><i class="hw-e1"></i><i class="hw-e2"></i><i class="hw-e3"></i></span><span class="hw-btn-mini hw-invbtn"><?php echo t('marketing.walkthrough.invite_btn'); ?></span></div>
+                  <div class="hw2-headwrap"><span class="hw2-head hw2-h1"><?php echo t('marketing.walkthrough.invite_head'); ?></span><span class="hw2-head hw2-h2"><?php echo t('marketing.walkthrough.invite_head_lab'); ?></span></div>
                   <div class="hw-cap2"><?php echo t('marketing.walkthrough.cap_connected'); ?></div>
                 </div>
                 <div class="hw-roster">
