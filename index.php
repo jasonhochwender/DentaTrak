@@ -1219,7 +1219,7 @@ foreach (['operate', 'control', 'scale'] as $plan) {
     @keyframes hw-ac0v { 0%,29% { opacity: 1; } 30%,62% { opacity: 0; } 63%,77% { opacity: 1; } 78%,100% { opacity: 0; } }
     @keyframes hw-ac1v { 0%,29% { opacity: 0; } 30%,62% { opacity: 1; } 63%,77% { opacity: 0; } 78%,100% { opacity: 1; } }
     .hw-rm { display: none; font-size: 0.68rem; color: var(--dt-ink-muted); margin-top: 10px; }
-    .hw-cap2 { font-size: 1.15rem; font-weight: 800; color: var(--dt-ink); margin-bottom: 14px; }
+    .hw-cap2 { font-size: 0.94rem; font-weight: 700; color: var(--dt-ink); margin-bottom: 14px; }
     .hw-freenote { font-size: 0.62rem; color: var(--dt-ink-muted); margin-top: 8px; }
     .hw-roster { border-left: 1px solid var(--dt-border); padding-left: 16px; }
     .hw-person { display: flex; align-items: center; gap: 9px; background: #fff; border: 1px solid var(--dt-border); border-radius: 9px; padding: 8px 10px; margin-bottom: 7px; }
