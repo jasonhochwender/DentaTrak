@@ -1295,10 +1295,10 @@ foreach (['operate', 'control', 'scale'] as $plan) {
     }
     /* SCENE 3 */
     .hw3-lanes { display: flex; gap: 14px; height: 100%; }
-    .hw3-lane { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; }
-    .hw3-src { text-align: center; padding: 10px; margin-bottom: 14px; border-radius: 12px; }
+    .hw3-lane { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; } .hw3-l1 { flex: 1.7; }
+    .hw3-src { text-align: center; padding: 10px 8px; margin-bottom: 14px; border-radius: 12px; width: 100%; min-height: 112px; display: flex; flex-direction: column; align-items: center; }
     .hw3-art { width: 100%; max-width: 118px; height: auto; }
-    .hw3-label { display: block; font-size: 0.98rem; font-weight: 700; color: var(--dt-ink); margin-top: 2px; }
+    .hw3-label { display: block; font-size: 0.74rem; font-weight: 700; color: var(--dt-ink); margin-top: 2px; white-space: nowrap; }
     .hw3-sub { display: block; font-size: 0.66rem; color: var(--dt-ink-muted); }
     .hw3-act { min-height: 40px; display: flex; align-items: center; justify-content: center; gap: 8px; flex-wrap: wrap; opacity: 0; }
     .hw3-btn { background: var(--dt-blue); color: #fff; border-radius: 8px; padding: 7px 16px; font-size: 0.78rem; font-weight: 700; }
@@ -1524,7 +1524,7 @@ foreach (['operate', 'control', 'scale'] as $plan) {
       .hw3-lanes { flex-direction: column; gap: 6px; }
       .hw3-lane { flex-direction: row; align-items: center; gap: 8px; }
       .hw3-src { width: 62px; flex-shrink: 0; }
-      .hw3-art { max-width: 56px; } .hw3-label { font-size: 0.68rem; } .hw3-sub { font-size: 0.52rem; }
+      .hw3-art { max-width: 56px; } .hw3-label { font-size: 0.68rem; white-space: normal; } .hw3-sub { font-size: 0.52rem; } .hw3-src { min-height: 0; }
       .hw3-act { min-height: 0; opacity: 1; }
       .hw3-link { width: 30px; height: 14px; flex: 0 0 30px; min-height: 0; margin-top: 0; margin-bottom: 0; } .hw3-link svg { width: 30px; height: 14px; transform: rotate(-90deg); transform-origin: 10px 10px; }
       .hw3-lane .hw3-pkg { left: 1px; top: 1px; margin-left: 0; }
