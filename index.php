@@ -2188,31 +2188,28 @@ foreach (['operate', 'control', 'scale'] as $plan) {
                   <div class="hw3-src">
                     <svg viewBox="0 0 120 76" class="hw3-art"><rect x="14" y="6" width="92" height="56" rx="6" fill="#eef4fb" stroke="#1e3a5f" stroke-width="3"/><rect x="22" y="14" width="40" height="34" rx="4" fill="#fff" stroke="#2563eb" stroke-width="2"/><circle cx="34" cy="24" r="5" fill="#2563eb"/><rect x="24" y="33" width="20" height="3" rx="1.5" fill="#2563eb"/><rect x="24" y="40" width="16" height="3" rx="1.5" fill="#8b9bb4"/><rect x="68" y="18" width="30" height="4" rx="2" fill="#8b9bb4"/><rect x="68" y="26" width="30" height="4" rx="2" fill="#c7d3e6"/><rect x="68" y="34" width="22" height="4" rx="2" fill="#c7d3e6"/><rect x="48" y="62" width="24" height="5" fill="#1e3a5f"/><rect x="38" y="67" width="44" height="4" rx="2" fill="#1e3a5f"/></svg>
                     <span class="hw3-label"><?php echo t('marketing.walkthrough.src_pms'); ?></span>
-                    <span class="hw3-sub">Open Dental</span>
-                  </div>
+                                      </div>
                   <div class="hw3-act"><span class="hw3-btn"><?php echo t('marketing.walkthrough.act_import'); ?></span></div>
                   <div class="hw3-link"><svg viewBox="0 0 20 60" preserveAspectRatio="none"><line class="hw3-ln" x1="10" y1="2" x2="10" y2="46"/><path class="hw3-ah" d="M4 44 L10 54 L16 44"/></svg><i class="hw3-pkg"></i></div>
-                  <div class="hw3-case"><b>Crown #14</b><span class="hw3-badge hw3-bg-pms">PMS</span></div>
+                  <div class="hw3-case"><b>DentaTrak Case</b><span class="hw3-badge hw3-bg-pms">PMS</span></div>
                 </div>
                 <div class="hw3-lane hw3-l2">
                   <div class="hw3-src">
                     <svg viewBox="0 0 120 76" class="hw3-art"><g transform="rotate(-24 60 38)"><rect x="30" y="28" width="58" height="20" rx="10" fill="#2563eb" stroke="#1e3a5f" stroke-width="2.6"/><path d="M84 30 L100 36 L100 42 L84 46 Z" fill="#1e3a5f"/><rect x="90" y="35" width="7" height="6" rx="1.5" fill="#0ea5a8"/><rect x="40" y="33" width="18" height="4" rx="2" fill="#fff" opacity="0.55"/></g><g transform="translate(78,50)"><path d="M8 4 C4 4 2 8 3 12 C4 16 5 20 6 20 C7 20 7.5 16 9 16 C10.5 16 11 20 12 20 C13 20 14 16 15 12 C16 8 14 4 10 4 Z" fill="#fff" stroke="#0ea5a8" stroke-width="2.2"/><rect x="0" y="22" width="24" height="4" rx="2" fill="#c7d3e6"/></g></svg>
                     <span class="hw3-label"><?php echo t('marketing.walkthrough.src_scanner'); ?></span>
-                    <span class="hw3-sub">Primescan / DS Core</span>
-                  </div>
-                  <div class="hw3-act hw3-act-inbox"><span class="hw3-btn"><?php echo t('marketing.walkthrough.act_import_scans'); ?></span><span class="hw3-btn hw3-btn2"><?php echo t('marketing.walkthrough.act_create'); ?></span></div>
+                                      </div>
+                  <div class="hw3-act hw3-act-inbox"><span class="hw3-btn"><?php echo t('marketing.walkthrough.act_import_scans'); ?></span></div>
                   <div class="hw3-link"><svg viewBox="0 0 20 60" preserveAspectRatio="none"><line class="hw3-ln" x1="10" y1="2" x2="10" y2="46"/><path class="hw3-ah" d="M4 44 L10 54 L16 44"/></svg><i class="hw3-pkg"></i></div>
-                  <div class="hw3-case"><b>Crown #15</b><span class="hw3-badge hw3-bg-scan"><?php echo t('marketing.walkthrough.badge_scan'); ?></span></div>
+                  <div class="hw3-case"><b>DentaTrak Case</b><span class="hw3-badge hw3-bg-scan"><?php echo t('marketing.walkthrough.badge_scan'); ?></span></div>
                 </div>
                 <div class="hw3-lane hw3-l3">
                   <div class="hw3-src">
                     <svg viewBox="0 0 120 76" class="hw3-art"><rect x="30" y="8" width="54" height="62" rx="6" fill="#fff" stroke="#1e3a5f" stroke-width="2.6"/><rect x="40" y="14" width="20" height="4" rx="2" fill="#2563eb"/><rect x="40" y="24" width="34" height="5" rx="2.5" fill="#dbe7f6"/><rect x="40" y="36" width="34" height="5" rx="2.5" fill="#dbe7f6"/><rect x="40" y="48" width="24" height="5" rx="2.5" fill="#dbe7f6"/><path d="M88 50 L104 34 l7 7 -16 16 -9 2 z" fill="#f59e0b" stroke="#1e3a5f" stroke-width="2" stroke-linejoin="round"/></svg>
                     <span class="hw3-label"><?php echo t('marketing.walkthrough.src_manual'); ?></span>
-                    <span class="hw3-sub"><?php echo t('marketing.walkthrough.manual_sub'); ?></span>
-                  </div>
-                  <div class="hw3-act"><span class="hw3-btn"><?php echo t('marketing.walkthrough.act_create'); ?></span></div>
+                                      </div>
+                  <div class="hw3-act"><span class="hw3-btn"><?php echo t('marketing.walkthrough.manual_sub'); ?></span></div>
                   <div class="hw3-link"><svg viewBox="0 0 20 60" preserveAspectRatio="none"><line class="hw3-ln" x1="10" y1="2" x2="10" y2="46"/><path class="hw3-ah" d="M4 44 L10 54 L16 44"/></svg><i class="hw3-pkg"></i></div>
-                  <div class="hw3-case"><b>Veneer #3</b><span class="hw3-badge hw3-bg-man"><?php echo t('marketing.walkthrough.badge_manual'); ?></span></div>
+                  <div class="hw3-case"><b>DentaTrak Case</b><span class="hw3-badge hw3-bg-man"><?php echo t('marketing.walkthrough.badge_manual'); ?></span></div>
                 </div>
               </div>
             </div>
@@ -2237,7 +2234,7 @@ foreach (['operate', 'control', 'scale'] as $plan) {
             <!-- SCENE 5: case detail accumulation -->
             <div class="hw-scene" data-scene="5" hidden>
               <div class="hw5-record">
-                <div class="hw5-head"><b>Crown #14</b><span>Hannah Lindqvist</span></div>
+                <div class="hw5-head"><b>DentaTrak Case</b><span>Hannah Lindqvist</span></div>
                 <div class="hw5-cols">
                   <div class="hw5-area"><div class="hw5-ah"><?php echo t('marketing.walkthrough.sec_notes'); ?></div>
                     <div class="hw5-note" id="hw5Note"><?php echo t('marketing.walkthrough.note_txt'); ?></div></div>
@@ -2657,7 +2654,7 @@ foreach (['operate', 'control', 'scale'] as $plan) {
         <div class="sec-illus" id="secIllus" aria-hidden="true">
           <div class="sec-frame">
             <div class="sec-case2">
-              <div class="sec-case-head"><b>Crown #14</b><span>Hannah Lindqvist</span></div>
+              <div class="sec-case-head"><b>DentaTrak Case</b><span>Hannah Lindqvist</span></div>
               <div class="sec-items">
                 <div class="sec-item sec-i1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M5 21c0-4 3-6 7-6s7 2 7 6"/></svg><span><?php echo t('marketing.security_section.it_patient'); ?></span></div>
                 <div class="sec-item sec-i2"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg><span><?php echo t('marketing.security_section.it_rx'); ?></span></div>
