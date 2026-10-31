@@ -1346,7 +1346,9 @@ foreach (['operate', 'control', 'scale'] as $plan) {
     @keyframes hw3-born { to { opacity: 1; transform: none; } }
     /* SCENE 4: two people, one reassignment */
     .hw4-wrap { position: relative; height: 100%; display: flex; flex-direction: column; justify-content: center; }
-    .hw4-case { align-self: center; background: var(--dt-warm); border: 1.5px solid var(--dt-border); border-left: 4px solid var(--dt-blue); border-radius: 14px; padding: 14px 20px; min-width: 260px; position: relative; z-index: 3; }
+    .hw4-case { position: absolute; left: var(--c0x, 60px); top: var(--c0y, 8px); z-index: 3; background: var(--dt-warm); border: 1.5px solid var(--dt-border); border-left: 4px solid var(--dt-blue); border-radius: 14px; padding: 14px 20px; min-width: 270px; box-shadow: 0 8px 20px -10px rgba(30,58,95,0.3); }
+    .hw-anim .hw4-case { animation: hw4-travel calc(10.5s * var(--hwk)) ease forwards; }
+    @keyframes hw4-travel { 0%,26% { left: var(--c0x, 60px); top: var(--c0y, 8px); } 42%,56% { left: var(--c1x, 20px); top: var(--c1y, 8px); } 74%,100% { left: var(--c2x, 60%); top: var(--c2y, 8px); } }
     .hw4-reb { float: right; margin: -2px 0 6px 10px; background: #e0f7f5; color: #0ea5a8; font-size: 0.62rem; font-weight: 700; border-radius: 999px; padding: 3px 10px; opacity: 0; }
     .hw4-case-h { clear: both; font-size: 0.92rem; font-weight: 800; color: var(--dt-ink); margin-bottom: 8px; }
     .hw4-meta { font-size: 0.72rem; color: var(--dt-ink-muted); margin-bottom: 6px; }
@@ -1356,31 +1358,26 @@ foreach (['operate', 'control', 'scale'] as $plan) {
     .hw4-aval { position: relative; display: inline-block; min-width: 120px; min-height: 2.1em; font-size: 0.9rem; color: var(--dt-ink); }
     .hw4-aval i { font-style: normal; position: absolute; left: 0; top: 0; white-space: nowrap; opacity: 0; }
     .hw4-aval small { display: block; font-size: 0.6rem; font-weight: 400; color: var(--dt-ink-muted); }
-    .hw4-aval .hw4-a1 { opacity: 1; }
-    .hw4-links { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 1; overflow: visible; }
-    .hw4-link { stroke-width: 2; fill: none; opacity: 0; stroke-dasharray: var(--len, 300); stroke-dashoffset: var(--len, 300); }
-    .hw4-l1 { stroke: #2563eb; } .hw4-l2 { stroke: #0ea5a8; }
-    .hw-anim .hw4-l1 { animation: hw4-l1 calc(10.5s * var(--hwk)) linear forwards; }
-    .hw-anim .hw4-l2 { animation: hw4-l2 calc(10.5s * var(--hwk)) linear forwards; }
-    @keyframes hw4-l1 { 0%,10% { stroke-dashoffset: var(--len, 300); opacity: 1; } 22%,56% { stroke-dashoffset: 0; opacity: 1; } 62%,100% { stroke-dashoffset: 0; opacity: 0; } }
-    @keyframes hw4-l2 { 0%,58% { stroke-dashoffset: var(--len, 300); opacity: 0; } 60% { opacity: 1; } 72%,100% { stroke-dashoffset: 0; opacity: 1; } }
-    .hw4-people { margin-top: 44px; display: flex; gap: 14px; justify-content: center; z-index: 2; }
-    .hw4-person { width: 190px; display: flex; flex-direction: column; align-items: center; gap: 4px; background: #fff; border: 1.5px solid var(--dt-border); border-radius: 12px; padding: 12px 8px; text-align: center; }
+    .hw4-aval .hw4-a0 { opacity: 1; color: var(--dt-ink-muted); }
+    .hw4-people { margin-top: auto; display: flex; gap: 14px; justify-content: center; z-index: 2; }
+    .hw4-person { flex: 1; max-width: 200px; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 4px; background: #fff; border: 1.5px solid var(--dt-border); border-radius: 12px; padding: 12px 8px; text-align: center; }
     .hw4-person .hw-av { width: 40px; height: 40px; font-size: 0.72rem; }
     .hw4-person b { font-size: 0.82rem; color: var(--dt-ink); }
     .hw4-person i { font-style: normal; font-size: 0.62rem; color: var(--dt-ink-muted); }
     .hw-anim .hw4-p1 { animation: hw4-p1 calc(10.5s * var(--hwk)) linear forwards; }
     .hw-anim .hw4-p3 { animation: hw4-p3 calc(10.5s * var(--hwk)) linear forwards; }
-    @keyframes hw4-p1 { 0%,20% { border-color: var(--dt-border); box-shadow: none; } 24%,56% { border-color: var(--dt-blue); box-shadow: 0 0 0 4px rgba(37,99,235,0.2); } 62%,100% { border-color: var(--dt-border); box-shadow: none; } }
-    @keyframes hw4-p3 { 0%,70% { border-color: var(--dt-border); box-shadow: none; } 72%,100% { border-color: #0ea5a8; box-shadow: 0 0 0 4px rgba(14,165,168,0.2); } }
+    @keyframes hw4-p1 { 0%,44% { border-color: var(--dt-border); box-shadow: none; } 46%,72% { border-color: var(--dt-blue); box-shadow: 0 0 0 4px rgba(37,99,235,0.2); } 78%,100% { border-color: var(--dt-border); box-shadow: none; } }
+    @keyframes hw4-p3 { 0%,76% { border-color: var(--dt-border); box-shadow: none; } 78%,100% { border-color: #0ea5a8; box-shadow: 0 0 0 4px rgba(14,165,168,0.2); } }
     .hw-anim .hw4-aval { animation: hw4-at2 calc(10.5s * var(--hwk)) linear forwards; }
-    @keyframes hw4-at2 { 0%,71% { color: var(--dt-ink); } 72%,80% { color: #0ea5a8; } 88%,100% { color: var(--dt-ink); } }
+    @keyframes hw4-at2 { 0%,41% { color: var(--dt-ink); } 42%,50% { color: var(--dt-blue); } 51%,75% { color: var(--dt-ink); } 76%,84% { color: #0ea5a8; } 92%,100% { color: var(--dt-ink); } }
+    .hw-anim .hw4-a0 { animation: hw4-a0v calc(10.5s * var(--hwk)) steps(1) forwards; }
     .hw-anim .hw4-a1 { animation: hw4-a1v calc(10.5s * var(--hwk)) steps(1) forwards; }
     .hw-anim .hw4-a2 { animation: hw4-a2v calc(10.5s * var(--hwk)) steps(1) forwards; }
-    @keyframes hw4-a1v { 0%,69% { opacity: 1; } 70%,100% { opacity: 0; } }
-    @keyframes hw4-a2v { 0%,69% { opacity: 0; } 70%,100% { opacity: 1; } }
+    @keyframes hw4-a0v { 0%,41% { opacity: 1; } 42%,100% { opacity: 0; } }
+    @keyframes hw4-a1v { 0%,41% { opacity: 0; } 42%,75% { opacity: 1; } 76%,100% { opacity: 0; } }
+    @keyframes hw4-a2v { 0%,75% { opacity: 0; } 76%,100% { opacity: 1; } }
     .hw-anim .hw4-reb { animation: hw4-reb calc(10.5s * var(--hwk)) linear forwards; }
-    @keyframes hw4-reb { 0%,73% { opacity: 0; transform: scale(0.8); } 77%,100% { opacity: 1; transform: scale(1); } }
+    @keyframes hw4-reb { 0%,79% { opacity: 0; transform: scale(0.8); } 83%,100% { opacity: 1; transform: scale(1); } }
     /* SCENE 5 */
     .hw5-record { background: #fff; border: 1.5px solid var(--dt-border); border-radius: 14px; height: 100%; display: flex; flex-direction: column; overflow: hidden; }
     .hw5-head { background: var(--dt-warm); border-bottom: 1.5px solid var(--dt-border); padding: 10px 18px; display: flex; align-items: baseline; gap: 10px; }
@@ -1524,7 +1521,8 @@ foreach (['operate', 'control', 'scale'] as $plan) {
       .hw1-qcname, .hw1-n1 { opacity: 1 !important; } .hw1-n0 { opacity: 0 !important; }
       .hw-emailcard, .hw-join1, .hw-join2, .hw3-case, .hw3-act, .hw5-note, .hw5-cmt, .hw5-thumb { opacity: 1 !important; transform: none; }
       .hw3-ln, .hw3-ah { opacity: 0.45 !important; }
-      .hw-j1, .hw-j2, .hw-j3 { opacity: 1 !important; transform: none; } .hw-st-join { opacity: 1 !important; } .hw2-h2 { opacity: 1 !important; } .hw2-h1 { opacity: 0 !important; } .hw-e3::after { content: 'alex@lab.com' !important; } .hw-e1::after, .hw-e2::after { content: '' !important; }
+      .hw-j1, .hw-j2, .hw-j3 { opacity: 1 !important; transform: none; }
+      .hw4-case { left: var(--c2x, 60%) !important; top: var(--c2y, 8px) !important; } .hw4-a2 { opacity: 1 !important; } .hw4-a0, .hw4-a1 { opacity: 0 !important; } .hw4-reb { opacity: 1 !important; transform: none !important; } .hw4-p3 { border-color: #0ea5a8 !important; box-shadow: 0 0 0 4px rgba(14,165,168,0.2) !important; } .hw-st-join { opacity: 1 !important; } .hw2-h2 { opacity: 1 !important; } .hw2-h1 { opacity: 0 !important; } .hw-e3::after { content: 'alex@lab.com' !important; } .hw-e1::after, .hw-e2::after { content: '' !important; }
       .hw4-aval .hw4-a2 { opacity: 1 !important; } .hw4-aval .hw4-a1 { opacity: 0 !important; } .hw4-reb { opacity: 1 !important; } .hw4-p3 { border-color: #0ea5a8; } .hw4-l2 { opacity: 1 !important; stroke-dashoffset: 0 !important; } .hw4-l1 { opacity: 0 !important; }
       .hw6-flag { opacity: 1 !important; } .hw6-due .hw6-sub { display: inline-block !important; color: #1e3a8a; } .hw6-late .hw6-sub { display: inline-block !important; color: #fff; }
       .hw6-due { background: #dbeafe; border-color: #3b82f6; }
@@ -2216,18 +2214,15 @@ foreach (['operate', 'control', 'scale'] as $plan) {
 <!-- SCENE 4: assignment handoff -->
             <div class="hw-scene" data-scene="4" hidden>
               <div class="hw4-wrap">
-                <svg class="hw4-links" preserveAspectRatio="none" aria-hidden="true">
-                  <path class="hw4-link hw4-l1" fill="none"/>
-                  <path class="hw4-link hw4-l2" fill="none"/>
-                </svg>
-                <div class="hw4-case"><div class="hw4-reb"><?php echo t('marketing.walkthrough.reassigned'); ?></div><div class="hw4-case-h">Crown #14 · Hannah Lindqvist</div>
+                <div class="hw4-case"><div class="hw4-reb"><?php echo t('marketing.walkthrough.reassigned'); ?></div><div class="hw4-case-h">DentaTrak Case</div>
+                  <div class="hw4-meta">Crown #14 · Hannah Lindqvist</div>
                   <div class="hw4-meta"><span><?php echo t('marketing.walkthrough.created_by'); ?></span> Dr. Alex Rivera</div>
                   <div class="hw4-at"><span><?php echo t('marketing.walkthrough.assigned_to'); ?></span>
-                    <b class="hw4-aval"><i class="hw4-a1">Dr. Alex Rivera<small><?php echo t('marketing.walkthrough.org_yours'); ?></small></i><i class="hw4-a2">Jordan Lee<small><?php echo t('marketing.walkthrough.org_lab'); ?></small></i></b></div>
+                    <b class="hw4-aval"><i class="hw4-a0">—</i><i class="hw4-a1">Dr. Alex Rivera</i><i class="hw4-a2">Jordan Lee</i></b></div>
                 </div>
                 <div class="hw4-people">
-                  <div class="hw4-person hw4-p1"><span class="hw-av hw-av-b">AR</span><b>Dr. Alex Rivera</b><i><?php echo t('marketing.walkthrough.role_dentist'); ?> · <?php echo t('marketing.walkthrough.org_yours'); ?></i></div>
-                  <div class="hw4-person hw4-p3"><span class="hw-av hw-av-t">JL</span><b>Jordan Lee</b><i><?php echo t('marketing.walkthrough.role_labtech'); ?> · <?php echo t('marketing.walkthrough.org_lab'); ?></i></div>
+                  <div class="hw4-person hw4-p1"><span class="hw-av hw-av-b">AR</span><b>Dr. Alex Rivera</b><i><?php echo t('marketing.walkthrough.role_dentist'); ?></i></div>
+                  <div class="hw4-person hw4-p3"><span class="hw-av hw-av-t">JL</span><b>Jordan Lee</b><i><?php echo t('marketing.walkthrough.role_labtech'); ?></i></div>
                 </div>
               </div>
             </div>
@@ -4157,21 +4152,24 @@ foreach (['operate', 'control', 'scale'] as $plan) {
     }
     var hw4Wrap = wrap.querySelector('.hw-scene[data-scene="4"] .hw4-wrap');
     function positionHw4Lines() {
-      if (!hw4Wrap) return;
-      var w = hw4Wrap.getBoundingClientRect(), svg = hw4Wrap.querySelector('.hw4-links');
-      if (!svg || w.width < 2) return;
-      svg.setAttribute('viewBox', '0 0 ' + Math.round(w.width) + ' ' + Math.round(w.height));
-      var cs = hw4Wrap.querySelector('.hw4-case').getBoundingClientRect();
-      function aim(sel, path) {
-        var el = hw4Wrap.querySelector(sel); if (!el || !path) return;
-        var p = el.getBoundingClientRect();
-        var x1 = cs.left + cs.width / 2 - w.left, y1 = cs.bottom - w.top;
-        var x2 = p.left + p.width / 2 - w.left, y2 = p.top - w.top - 6;
-        path.setAttribute('d', 'M' + x1.toFixed(1) + ' ' + y1.toFixed(1) + ' L' + x2.toFixed(1) + ' ' + y2.toFixed(1));
-        path.style.setProperty('--len', Math.ceil(path.getTotalLength()));
-      }
-      aim('.hw4-p1', hw4Wrap.querySelector('.hw4-l1'));
-      aim('.hw4-p3', hw4Wrap.querySelector('.hw4-l2'));
+      if (!hw4Wrap || hw4Wrap.getBoundingClientRect().width < 2) return;
+      requestAnimationFrame(function () {
+        var w = hw4Wrap.getBoundingClientRect(); if (w.width < 2) return;
+        var card = hw4Wrap.querySelector('.hw4-case'); if (!card) return;
+        var cw = card.offsetWidth, ch = card.offsetHeight;
+        function tx(el) {
+          var p = el.getBoundingClientRect();
+          var cx = Math.min(Math.max(p.left + p.width / 2 - w.left - cw / 2, 4), w.width - cw - 4);
+          var cy = Math.max(p.top - w.top - ch - 10, 4);
+          return [cx + 'px', cy + 'px'];
+        }
+        var p1 = hw4Wrap.querySelector('.hw4-p1'), p3 = hw4Wrap.querySelector('.hw4-p3');
+        var c0x = Math.min(Math.max(w.width / 2 - cw / 2, 4), w.width - cw - 4) + 'px';
+        var c0y = '8px';
+        if (p1) { var t1 = tx(p1); c0y = t1[1]; hw4Wrap.style.setProperty('--c1x', t1[0]); hw4Wrap.style.setProperty('--c1y', t1[1]); }
+        if (p3) { var t3 = tx(p3); hw4Wrap.style.setProperty('--c2x', t3[0]); hw4Wrap.style.setProperty('--c2y', t3[1]); }
+        hw4Wrap.style.setProperty('--c0x', c0x); hw4Wrap.style.setProperty('--c0y', c0y);
+      });
     }
     var hw2Scene = wrap.querySelector('.hw-scene[data-scene="2"]');
     function positionHw2Cursor() {
