@@ -6252,7 +6252,8 @@
             "note_txt2": "Verifica l’occlusione sulla scansione aggiornata.",
             "cmt_txt3": "Conferma il contatto occlusale, per favore.",
             "cmt_txt4": "Ho fatto la modifica. Carico il design aggiornato.",
-            "cmt_txt5": "Grazie, controlleremo tutto prima di giovedì."
+            "cmt_txt5": "Grazie, controlleremo tutto prima di giovedì.",
+            "due_sub2": "Scade tra 2 giorni"
         },
         "askdemo": {
             "example_label": "Conversazione di esempio",

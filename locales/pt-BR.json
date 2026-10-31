@@ -2453,7 +2453,8 @@
             "note_txt2": "Verifique a oclusão com o escaneamento atualizado.",
             "cmt_txt3": "Confirme o contato oclusal, por favor.",
             "cmt_txt4": "Fiz o ajuste. Vou enviar o design atualizado.",
-            "cmt_txt5": "Obrigado, revisaremos tudo antes de quinta."
+            "cmt_txt5": "Obrigado, revisaremos tudo antes de quinta.",
+            "due_sub2": "Vence em 2 dias"
         },
         "askdemo": {
             "example_label": "Conversa de exemplo",

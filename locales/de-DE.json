@@ -6294,7 +6294,8 @@
             "note_txt2": "Okklusion anhand des aktualisierten Scans prüfen.",
             "cmt_txt3": "Bitte bestätigen Sie den okklusalen Kontakt.",
             "cmt_txt4": "Ich habe die Anpassung vorgenommen. Ich lade das aktualisierte Design hoch.",
-            "cmt_txt5": "Danke, wir prüfen alles vor Donnerstag."
+            "cmt_txt5": "Danke, wir prüfen alles vor Donnerstag.",
+            "due_sub2": "Fällig in 2 Tagen"
         },
         "askdemo": {
             "example_label": "Beispielgespräch",
