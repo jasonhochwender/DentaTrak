@@ -1297,11 +1297,11 @@ foreach (['operate', 'control', 'scale'] as $plan) {
     /* SCENE 3 */
     .hw3-lanes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; height: 100%; }
     .hw3-lane { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; }
-    .hw3-src { text-align: center; padding: 10px 6px; margin-bottom: 14px; border-radius: 12px; width: 100%; min-height: 112px; display: flex; flex-direction: column; align-items: center; overflow: visible; }
-    .hw3-art { width: 100%; max-width: 118px; height: auto; }
+    .hw3-src { text-align: center; padding: 10px 6px; margin-bottom: 14px; border-radius: 12px; width: 100%; height: 118px; box-sizing: border-box; display: flex; flex-direction: column; align-items: center; overflow: visible; }
+    .hw3-art { width: auto; max-width: 110px; height: 68px; }
     .hw3-label { display: block; font-size: 0.74rem; font-weight: 700; color: var(--dt-ink); margin-top: 2px; white-space: nowrap; }
     .hw3-sub { display: block; font-size: 0.66rem; color: var(--dt-ink-muted); }
-    .hw3-act { min-height: 40px; display: flex; align-items: center; justify-content: center; gap: 8px; flex-wrap: wrap; opacity: 0; }
+    .hw3-act { height: 40px; display: flex; align-items: center; justify-content: center; gap: 8px; flex-wrap: wrap; opacity: 0; }
     .hw3-btn { background: var(--dt-blue); color: #fff; border-radius: 8px; padding: 7px 16px; font-size: 0.78rem; font-weight: 700; }
     .hw3-inbx { display: flex; flex-direction: column; background: var(--dt-warm); border: 1.5px solid var(--dt-blue); border-radius: 8px; padding: 4px 10px; text-align: left; }
     .hw3-inbx i { font-style: normal; font-size: 0.56rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--dt-ink-muted); }
