@@ -1346,9 +1346,10 @@ foreach (['operate', 'control', 'scale'] as $plan) {
     @keyframes hw3-born { to { opacity: 1; transform: none; } }
     /* SCENE 4: two people, one reassignment */
     .hw4-wrap { position: relative; height: 100%; display: flex; flex-direction: column; justify-content: center; }
-    .hw4-case { position: absolute; left: var(--c0x, 60px); top: var(--c0y, 8px); z-index: 3; background: var(--dt-warm); border: 1.5px solid var(--dt-border); border-left: 4px solid var(--dt-blue); border-radius: 14px; padding: 14px 20px; min-width: 270px; box-shadow: 0 8px 20px -10px rgba(30,58,95,0.3); }
+    .hw4-case { position: absolute; left: var(--c0x, 60px); top: var(--c0y, 8px); z-index: 3; background: var(--dt-warm); border: 1.5px solid var(--dt-border); border-left: 4px solid var(--dt-blue); border-radius: 12px; padding: 11px 16px; min-width: 232px; box-shadow: 0 8px 20px -10px rgba(30,58,95,0.3); }
     .hw-anim .hw4-case { animation: hw4-travel calc(10.5s * var(--hwk)) ease forwards; }
-    @keyframes hw4-travel { 0%,26% { left: var(--c0x, 60px); top: var(--c0y, 8px); } 42%,56% { left: var(--c1x, 20px); top: var(--c1y, 8px); } 74%,100% { left: var(--c2x, 60%); top: var(--c2y, 8px); } }
+    @keyframes hw4-travel { 0%,22% { left: var(--c0x, 60px); top: var(--c0y, 8px); } 34%,54% { left: var(--c1x, 20px); top: var(--c1y, 8px); } 66%,76% { left: var(--c2x, 40%); top: var(--c2y, 8px); } 88%,100% { left: var(--c3x, 60%); top: var(--c3y, 8px); } }
+    .hw4-fig { width: 46px; height: 46px; }
     .hw4-reb { float: right; margin: -2px 0 6px 10px; background: #e0f7f5; color: #0ea5a8; font-size: 0.62rem; font-weight: 700; border-radius: 999px; padding: 3px 10px; opacity: 0; }
     .hw4-case-h { clear: both; font-size: 0.92rem; font-weight: 800; color: var(--dt-ink); margin-bottom: 8px; }
     .hw4-meta { font-size: 0.72rem; color: var(--dt-ink-muted); margin-bottom: 6px; }
@@ -1365,19 +1366,23 @@ foreach (['operate', 'control', 'scale'] as $plan) {
     .hw4-person b { font-size: 0.82rem; color: var(--dt-ink); }
     .hw4-person i { font-style: normal; font-size: 0.62rem; color: var(--dt-ink-muted); }
     .hw-anim .hw4-p1 { animation: hw4-p1 calc(10.5s * var(--hwk)) linear forwards; }
+    .hw-anim .hw4-p2 { animation: hw4-p2 calc(10.5s * var(--hwk)) linear forwards; }
     .hw-anim .hw4-p3 { animation: hw4-p3 calc(10.5s * var(--hwk)) linear forwards; }
-    @keyframes hw4-p1 { 0%,44% { border-color: var(--dt-border); box-shadow: none; } 46%,72% { border-color: var(--dt-blue); box-shadow: 0 0 0 4px rgba(37,99,235,0.2); } 78%,100% { border-color: var(--dt-border); box-shadow: none; } }
-    @keyframes hw4-p3 { 0%,76% { border-color: var(--dt-border); box-shadow: none; } 78%,100% { border-color: #0ea5a8; box-shadow: 0 0 0 4px rgba(14,165,168,0.2); } }
+    @keyframes hw4-p1 { 0%,34% { border-color: var(--dt-border); box-shadow: none; } 36%,54% { border-color: var(--dt-blue); box-shadow: 0 0 0 4px rgba(37,99,235,0.2); } 60%,100% { border-color: var(--dt-border); box-shadow: none; } }
+    @keyframes hw4-p2 { 0%,64% { border-color: var(--dt-border); box-shadow: none; } 66%,76% { border-color: #8b5cf6; box-shadow: 0 0 0 4px rgba(139,92,246,0.2); } 82%,100% { border-color: var(--dt-border); box-shadow: none; } }
+    @keyframes hw4-p3 { 0%,86% { border-color: var(--dt-border); box-shadow: none; } 88%,100% { border-color: #0ea5a8; box-shadow: 0 0 0 4px rgba(14,165,168,0.2); } }
     .hw-anim .hw4-aval { animation: hw4-at2 calc(10.5s * var(--hwk)) linear forwards; }
-    @keyframes hw4-at2 { 0%,41% { color: var(--dt-ink); } 42%,50% { color: var(--dt-blue); } 51%,75% { color: var(--dt-ink); } 76%,84% { color: #0ea5a8; } 92%,100% { color: var(--dt-ink); } }
+    @keyframes hw4-at2 { 0%,35% { color: var(--dt-ink); } 36%,44% { color: var(--dt-blue); } 45%,65% { color: var(--dt-ink); } 66%,74% { color: #8b5cf6; } 75%,87% { color: var(--dt-ink); } 88%,96% { color: #0ea5a8; } 97%,100% { color: var(--dt-ink); } }
     .hw-anim .hw4-a0 { animation: hw4-a0v calc(10.5s * var(--hwk)) steps(1) forwards; }
     .hw-anim .hw4-a1 { animation: hw4-a1v calc(10.5s * var(--hwk)) steps(1) forwards; }
     .hw-anim .hw4-a2 { animation: hw4-a2v calc(10.5s * var(--hwk)) steps(1) forwards; }
-    @keyframes hw4-a0v { 0%,41% { opacity: 1; } 42%,100% { opacity: 0; } }
-    @keyframes hw4-a1v { 0%,41% { opacity: 0; } 42%,75% { opacity: 1; } 76%,100% { opacity: 0; } }
-    @keyframes hw4-a2v { 0%,75% { opacity: 0; } 76%,100% { opacity: 1; } }
+    .hw-anim .hw4-a3 { animation: hw4-a3v calc(10.5s * var(--hwk)) steps(1) forwards; }
+    @keyframes hw4-a0v { 0%,35% { opacity: 1; } 36%,100% { opacity: 0; } }
+    @keyframes hw4-a1v { 0%,35% { opacity: 0; } 36%,65% { opacity: 1; } 66%,100% { opacity: 0; } }
+    @keyframes hw4-a2v { 0%,65% { opacity: 0; } 66%,87% { opacity: 1; } 88%,100% { opacity: 0; } }
+    @keyframes hw4-a3v { 0%,87% { opacity: 0; } 88%,100% { opacity: 1; } }
     .hw-anim .hw4-reb { animation: hw4-reb calc(10.5s * var(--hwk)) linear forwards; }
-    @keyframes hw4-reb { 0%,79% { opacity: 0; transform: scale(0.8); } 83%,100% { opacity: 1; transform: scale(1); } }
+    @keyframes hw4-reb { 0%,69% { opacity: 0; transform: scale(0.8); } 73%,100% { opacity: 1; transform: scale(1); } }
     /* SCENE 5 */
     .hw5-record { background: #fff; border: 1.5px solid var(--dt-border); border-radius: 14px; height: 100%; display: flex; flex-direction: column; overflow: hidden; }
     .hw5-head { background: var(--dt-warm); border-bottom: 1.5px solid var(--dt-border); padding: 10px 18px; display: flex; align-items: baseline; gap: 10px; }
@@ -1543,7 +1548,7 @@ foreach (['operate', 'control', 'scale'] as $plan) {
       .hw-emailcard, .hw-join1, .hw-join2, .hw3-case, .hw3-act, .hw5-note, .hw5-cmt, .hw5-thumb { opacity: 1 !important; transform: none; }
       .hw3-ln, .hw3-ah { opacity: 0.45 !important; }
       .hw-j1, .hw-j2, .hw-j3 { opacity: 1 !important; transform: none; }
-      .hw4-case { left: var(--c2x, 60%) !important; top: var(--c2y, 8px) !important; } .hw4-a2 { opacity: 1 !important; } .hw4-a0, .hw4-a1 { opacity: 0 !important; } .hw4-reb { opacity: 1 !important; transform: none !important; } .hw4-p3 { border-color: #0ea5a8 !important; box-shadow: 0 0 0 4px rgba(14,165,168,0.2) !important; } .hw-st-join { opacity: 1 !important; } .hw2-h2 { opacity: 1 !important; } .hw2-h1 { opacity: 0 !important; } .hw-e3::after { content: 'alex@lab.com' !important; } .hw-e1::after, .hw-e2::after { content: '' !important; }
+      .hw4-case { left: var(--c3x, 60%) !important; top: var(--c3y, 8px) !important; } .hw4-a3 { opacity: 1 !important; } .hw4-a0, .hw4-a1, .hw4-a2 { opacity: 0 !important; } .hw4-reb { opacity: 1 !important; transform: none !important; } .hw4-p3 { border-color: #0ea5a8 !important; box-shadow: 0 0 0 4px rgba(14,165,168,0.2) !important; } .hw-st-join { opacity: 1 !important; } .hw2-h2 { opacity: 1 !important; } .hw2-h1 { opacity: 0 !important; } .hw-e3::after { content: 'alex@lab.com' !important; } .hw-e1::after, .hw-e2::after { content: '' !important; }
       .hw4-aval .hw4-a2 { opacity: 1 !important; } .hw4-aval .hw4-a1 { opacity: 0 !important; } .hw4-reb { opacity: 1 !important; } .hw4-p3 { border-color: #0ea5a8; } .hw4-l2 { opacity: 1 !important; stroke-dashoffset: 0 !important; } .hw4-l1 { opacity: 0 !important; }
       .hw6-flag { opacity: 1 !important; } .hw6-due .hw6-sub { display: inline-block !important; color: #1e3a8a; } .hw6-late .hw6-sub { display: inline-block !important; color: #fff; }
       .hw6-due { background: #dbeafe; border-color: #3b82f6; } .hw6-sub { display: inline-block !important; } .hw6-flag { opacity: 1 !important; }
@@ -2239,11 +2244,12 @@ foreach (['operate', 'control', 'scale'] as $plan) {
                   <div class="hw4-meta">Crown #14 · Hannah Lindqvist</div>
                   <div class="hw4-meta"><span><?php echo t('marketing.walkthrough.created_by'); ?></span> Dr. Alex Rivera</div>
                   <div class="hw4-at"><span><?php echo t('marketing.walkthrough.assigned_to'); ?></span>
-                    <b class="hw4-aval"><i class="hw4-a0">—</i><i class="hw4-a1">Dr. Alex Rivera</i><i class="hw4-a2">Jordan Lee</i></b></div>
+                    <b class="hw4-aval"><i class="hw4-a0">—</i><i class="hw4-a1">Dr. Alex Rivera</i><i class="hw4-a2">Maya Chen</i><i class="hw4-a3">Jordan Lee</i></b></div>
                 </div>
                 <div class="hw4-people">
-                  <div class="hw4-person hw4-p1"><span class="hw-av hw-av-b">AR</span><b>Dr. Alex Rivera</b><i><?php echo t('marketing.walkthrough.role_dentist'); ?></i></div>
-                  <div class="hw4-person hw4-p3"><span class="hw-av hw-av-t">JL</span><b>Jordan Lee</b><i><?php echo t('marketing.walkthrough.role_labtech'); ?></i></div>
+                  <div class="hw4-person hw4-p1"><svg class="hw4-fig" viewBox="0 0 48 48"><circle cx="24" cy="24" r="22" fill="#dbeafe"/><circle cx="24" cy="19" r="8" fill="#2563eb"/><path d="M9 42 C11 33 16 29 24 29 C32 29 37 33 39 42 Z" fill="#2563eb"/></svg><b>Dr. Alex Rivera</b><i><?php echo t('marketing.walkthrough.role_dentist'); ?></i></div>
+                  <div class="hw4-person hw4-p2"><svg class="hw4-fig" viewBox="0 0 48 48"><circle cx="24" cy="24" r="22" fill="#ede9fe"/><circle cx="24" cy="19" r="8" fill="#8b5cf6"/><path d="M9 42 C11 33 16 29 24 29 C32 29 37 33 39 42 Z" fill="#8b5cf6"/></svg><b>Maya Chen</b><i><?php echo t('marketing.walkthrough.role_coord'); ?></i></div>
+                  <div class="hw4-person hw4-p3"><svg class="hw4-fig" viewBox="0 0 48 48"><circle cx="24" cy="24" r="22" fill="#d1f5f2"/><circle cx="24" cy="19" r="8" fill="#0ea5a8"/><path d="M9 42 C11 33 16 29 24 29 C32 29 37 33 39 42 Z" fill="#0ea5a8"/></svg><b>Jordan Lee</b><i><?php echo t('marketing.walkthrough.role_labtech'); ?></i></div>
                 </div>
               </div>
             </div>
@@ -4193,11 +4199,12 @@ foreach (['operate', 'control', 'scale'] as $plan) {
           var cy = Math.max(p.top - w.top - ch - 10, 4);
           return [cx + 'px', cy + 'px'];
         }
-        var p1 = hw4Wrap.querySelector('.hw4-p1'), p3 = hw4Wrap.querySelector('.hw4-p3');
+        var p1 = hw4Wrap.querySelector('.hw4-p1'), p2 = hw4Wrap.querySelector('.hw4-p2'), p3 = hw4Wrap.querySelector('.hw4-p3');
         var c0x = Math.min(Math.max(w.width / 2 - cw / 2, 4), w.width - cw - 4) + 'px';
         var c0y = '8px';
         if (p1) { var t1 = tx(p1); c0y = t1[1]; hw4Wrap.style.setProperty('--c1x', t1[0]); hw4Wrap.style.setProperty('--c1y', t1[1]); }
-        if (p3) { var t3 = tx(p3); hw4Wrap.style.setProperty('--c2x', t3[0]); hw4Wrap.style.setProperty('--c2y', t3[1]); }
+        if (p2) { var t2 = tx(p2); hw4Wrap.style.setProperty('--c2x', t2[0]); hw4Wrap.style.setProperty('--c2y', t2[1]); }
+        if (p3) { var t3 = tx(p3); hw4Wrap.style.setProperty('--c3x', t3[0]); hw4Wrap.style.setProperty('--c3y', t3[1]); }
         hw4Wrap.style.setProperty('--c0x', c0x); hw4Wrap.style.setProperty('--c0y', c0y);
       });
     }
