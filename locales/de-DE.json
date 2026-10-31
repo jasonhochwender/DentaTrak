@@ -6290,7 +6290,11 @@
             "invite_head_lab": "Ihre Laborpartner einladen",
             "invited": "Eingeladen",
             "role_member": "Praxisteam-Mitglied",
-            "role_labpartner": "Laborpartner"
+            "role_labpartner": "Laborpartner",
+            "note_txt2": "Okklusion anhand des aktualisierten Scans prüfen.",
+            "cmt_txt3": "Bitte bestätigen Sie den okklusalen Kontakt.",
+            "cmt_txt4": "Ich habe die Anpassung vorgenommen. Ich lade das aktualisierte Design hoch.",
+            "cmt_txt5": "Danke, wir prüfen alles vor Donnerstag."
         },
         "askdemo": {
             "example_label": "Beispielgespräch",

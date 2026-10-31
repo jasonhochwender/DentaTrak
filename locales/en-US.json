@@ -6248,7 +6248,11 @@
             "invite_head_lab": "Invite your lab partners",
             "invited": "Invited",
             "role_member": "Practice Team Member",
-            "role_labpartner": "Lab Partner"
+            "role_labpartner": "Lab Partner",
+            "note_txt2": "Verify occlusion against updated scan.",
+            "cmt_txt3": "Please confirm the occlusal contact.",
+            "cmt_txt4": "I’ve made the adjustment. I’ll upload the updated design.",
+            "cmt_txt5": "Thanks, we’ll review everything before Thursday."
         },
         "askdemo": {
             "example_label": "Example conversation",

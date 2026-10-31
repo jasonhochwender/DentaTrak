@@ -1392,11 +1392,23 @@ foreach (['operate', 'control', 'scale'] as $plan) {
     .hw5-trow { display: flex; gap: 10px; }
     .hw5-thumb { width: 70px; height: 52px; border-radius: 8px; overflow: hidden; border: 1px solid var(--dt-border); background: #fff; opacity: 0; flex-shrink: 0; }
     .hw5-thumb svg { width: 100%; height: 100%; display: block; }
-    .hw-anim .hw5-note { animation: hw5-in calc(0.5s * var(--hwk)) ease calc(1.4s * var(--hwk)) forwards; }
-    .hw-anim #hw5C1 { animation: hw5-in calc(0.5s * var(--hwk)) ease calc(3s * var(--hwk)) forwards; }
-    .hw-anim #hw5C2 { animation: hw5-in calc(0.5s * var(--hwk)) ease calc(4.8s * var(--hwk)) forwards; }
-    .hw-anim #hw5T1 { animation: hw5-in calc(0.5s * var(--hwk)) ease calc(6.6s * var(--hwk)) forwards; }
-    .hw-anim #hw5T2 { animation: hw5-in calc(0.5s * var(--hwk)) ease calc(7.6s * var(--hwk)) forwards; }
+    .hw5-area:last-child { overflow-y: auto; scrollbar-width: thin; max-height: 100%; }
+    .hw5-trow { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; }
+    .hw5-thumb { width: auto; height: 48px; }
+    .hw5-thumb svg { height: 100%; }
+    .hw-anim .hw5-note { animation: hw5-in calc(0.5s * var(--hwk)) ease calc(1s * var(--hwk)) forwards; }
+    .hw-anim #hw5C1 { animation: hw5-in calc(0.5s * var(--hwk)) ease calc(1.8s * var(--hwk)) forwards; }
+    .hw-anim #hw5C2 { animation: hw5-in calc(0.5s * var(--hwk)) ease calc(2.6s * var(--hwk)) forwards; }
+    .hw-anim #hw5T1 { animation: hw5-in calc(0.5s * var(--hwk)) ease calc(3.3s * var(--hwk)) forwards; }
+    .hw-anim #hw5T2 { animation: hw5-in calc(0.5s * var(--hwk)) ease calc(3.7s * var(--hwk)) forwards; }
+    .hw-anim #hw5N2 { animation: hw5-in calc(0.5s * var(--hwk)) ease calc(4.2s * var(--hwk)) forwards; }
+    .hw-anim #hw5C3 { animation: hw5-in calc(0.5s * var(--hwk)) ease calc(4.8s * var(--hwk)) forwards; }
+    .hw-anim #hw5C4 { animation: hw5-in calc(0.5s * var(--hwk)) ease calc(5.4s * var(--hwk)) forwards; }
+    .hw-anim #hw5C5 { animation: hw5-in calc(0.5s * var(--hwk)) ease calc(6s * var(--hwk)) forwards; }
+    .hw-anim #hw5T3 { animation: hw5-in calc(0.5s * var(--hwk)) ease calc(6.6s * var(--hwk)) forwards; }
+    .hw-anim #hw5T4 { animation: hw5-in calc(0.5s * var(--hwk)) ease calc(7s * var(--hwk)) forwards; }
+    .hw-anim #hw5T5 { animation: hw5-in calc(0.5s * var(--hwk)) ease calc(7.4s * var(--hwk)) forwards; }
+    .hw-anim #hw5T6 { animation: hw5-in calc(0.5s * var(--hwk)) ease calc(7.8s * var(--hwk)) forwards; }
     @keyframes hw5-in { from { opacity: 0; transform: translateY(12px); box-shadow: 0 0 0 3px rgba(37,99,235,0.3); } 60% { box-shadow: 0 0 0 3px rgba(37,99,235,0.3); } to { opacity: 1; transform: none; box-shadow: none; } }
     /* SCENE 6 */
     .hw6-sample { position: absolute; right: 6px; top: -4px; font-size: 0.6rem; color: var(--dt-ink-muted); }
@@ -2232,15 +2244,23 @@ foreach (['operate', 'control', 'scale'] as $plan) {
                 <div class="hw5-head"><b>DentaTrak Case</b><span>Hannah Lindqvist</span></div>
                 <div class="hw5-cols">
                   <div class="hw5-area"><div class="hw5-ah"><?php echo t('marketing.walkthrough.sec_notes'); ?></div>
-                    <div class="hw5-note" id="hw5Note"><?php echo t('marketing.walkthrough.note_txt'); ?></div></div>
+                    <div class="hw5-note" id="hw5Note"><?php echo t('marketing.walkthrough.note_txt'); ?></div>
+                    <div class="hw5-note" id="hw5N2"><?php echo t('marketing.walkthrough.note_txt2'); ?></div></div>
                   <div class="hw5-area"><div class="hw5-ah"><?php echo t('marketing.walkthrough.sec_comments'); ?></div>
                     <div class="hw5-cmt" id="hw5C1"><b>Maya Chen</b><?php echo t('marketing.walkthrough.comment_txt'); ?></div>
-                    <div class="hw5-cmt" id="hw5C2"><b>Jordan Lee</b><?php echo t('marketing.walkthrough.comment_reply'); ?></div></div>
+                    <div class="hw5-cmt" id="hw5C2"><b>Jordan Lee</b><?php echo t('marketing.walkthrough.comment_reply'); ?></div>
+                    <div class="hw5-cmt" id="hw5C3"><b>Dr. Alex Rivera</b><?php echo t('marketing.walkthrough.cmt_txt3'); ?></div>
+                    <div class="hw5-cmt" id="hw5C4"><b>Jordan Lee</b><?php echo t('marketing.walkthrough.cmt_txt4'); ?></div>
+                    <div class="hw5-cmt" id="hw5C5"><b>Maya Chen</b><?php echo t('marketing.walkthrough.cmt_txt5'); ?></div></div>
                 </div>
                 <div class="hw5-strip"><div class="hw5-ah"><?php echo t('marketing.walkthrough.sec_images'); ?></div>
                   <div class="hw5-trow">
                     <div class="hw5-thumb" id="hw5T1"><svg viewBox="0 0 70 52"><rect x="4" y="6" width="62" height="40" rx="6" fill="#e8eef7"/><path d="M30 12 C24 12 21 17 22 22 C23 27 24 33 26 33 C28 33 28.5 27 30 27 C31.5 27 32 33 34 33 C36 33 37 27 38 22 C39 17 36 12 30 12 Z" fill="#fdfaf2" stroke="#b89b5e" stroke-width="1.8"/><rect x="46" y="14" width="14" height="5" rx="2.5" fill="#f3e9d0" stroke="#b89b5e" stroke-width="1"/><rect x="46" y="23" width="14" height="5" rx="2.5" fill="#e6d3a8" stroke="#b89b5e" stroke-width="1"/><rect x="46" y="32" width="14" height="5" rx="2.5" fill="#d4bb82" stroke="#b89b5e" stroke-width="1"/></svg></div>
                     <div class="hw5-thumb" id="hw5T2"><svg viewBox="0 0 70 52"><rect x="4" y="6" width="62" height="40" rx="6" fill="#12263f"/><path d="M14 38 C14 22 24 14 35 14 C46 14 56 22 56 38" fill="none" stroke="#5fd4cf" stroke-width="2.4"/><g fill="#dbe7f6"><rect x="15" y="30" width="7" height="9" rx="2.5"/><rect x="23" y="22" width="7" height="9" rx="2.5"/><rect x="31" y="18" width="7" height="9" rx="2.5"/><rect x="39" y="20" width="7" height="9" rx="2.5"/><rect x="47" y="27" width="7" height="9" rx="2.5"/></g></svg></div>
+                    <div class="hw5-thumb" id="hw5T3"><svg viewBox="0 0 70 52"><rect x="4" y="6" width="62" height="40" rx="6" fill="#0d1f33"/><g stroke="#3b82f6" stroke-width="1"><line x1="10" y1="14" x2="60" y2="14"/><line x1="10" y1="22" x2="60" y2="22"/><line x1="10" y1="30" x2="60" y2="30"/><line x1="10" y1="38" x2="60" y2="38"/><line x1="14" y1="10" x2="14" y2="42"/><line x1="28" y1="10" x2="28" y2="42"/><line x1="42" y1="10" x2="42" y2="42"/><line x1="56" y1="10" x2="56" y2="42"/></g><circle cx="35" cy="26" r="9" fill="none" stroke="#5fd4cf" stroke-width="2"/></svg></div>
+                    <div class="hw5-thumb" id="hw5T4"><svg viewBox="0 0 70 52"><rect x="4" y="6" width="62" height="40" rx="6" fill="#eef2fb"/><path d="M20 40 L26 16 L35 24 L44 16 L50 40 Z" fill="#dbe7f6" stroke="#2563eb" stroke-width="1.8" stroke-linejoin="round"/><line x1="20" y1="40" x2="50" y2="40" stroke="#2563eb" stroke-width="1.8"/></svg></div>
+                    <div class="hw5-thumb" id="hw5T5"><svg viewBox="0 0 70 52"><rect x="4" y="6" width="62" height="40" rx="6" fill="#f2fbf6"/><circle cx="35" cy="26" r="14" fill="#fff" stroke="#0ea5a8" stroke-width="1.8"/><circle cx="35" cy="26" r="6" fill="#e0f7f5" stroke="#0ea5a8" stroke-width="1.5"/><g stroke="#0ea5a8" stroke-width="1"><line x1="35" y1="12" x2="35" y2="18"/><line x1="35" y1="34" x2="35" y2="40"/><line x1="21" y1="26" x2="27" y2="26"/><line x1="43" y1="26" x2="49" y2="26"/></g></svg></div>
+                    <div class="hw5-thumb" id="hw5T6"><svg viewBox="0 0 70 52"><rect x="4" y="6" width="62" height="40" rx="6" fill="#fdf6e4"/><path d="M35 12 C29 12 26 17 27 22 C28 27 29 34 31 34 C33 34 33.5 27 35 27 C36.5 27 37 34 39 34 C41 34 42 27 43 22 C44 17 41 12 35 12 Z" fill="#f6e3ae" stroke="#c9a24b" stroke-width="2"/><circle cx="54" cy="16" r="4" fill="#f59e0b"/></svg></div>
                   </div></div>
               </div>
             </div>
@@ -4041,6 +4061,8 @@ foreach (['operate', 'control', 'scale'] as $plan) {
       if (n === 1) positionHw1Cursor();
       if (n === 4) positionHw4Lines();
       if (n === 2) positionHw2Cursor();
+      if (n === 5) startHw5Scroll();
+      if (cur === 5) {
       wrap.classList.remove('hw-anim'); void wrap.offsetWidth;
       if (!reduced) wrap.classList.add('hw-anim');
       if (userInitiated) { playing = false; syncPause(); }
@@ -4170,6 +4192,12 @@ foreach (['operate', 'control', 'scale'] as $plan) {
         if (p3) { var t3 = tx(p3); hw4Wrap.style.setProperty('--c2x', t3[0]); hw4Wrap.style.setProperty('--c2y', t3[1]); }
         hw4Wrap.style.setProperty('--c0x', c0x); hw4Wrap.style.setProperty('--c0y', c0y);
       });
+    }
+    var hw5Area = wrap.querySelector(".hw-scene[data-scene='" + String.fromCharCode(53) + "'] .hw5-area:last-child");
+    var hw5Iv = null;
+    function startHw5Scroll() {
+      if (!hw5Area || hw5Iv) return;
+      hw5Iv = setInterval(function () { if (cur === 5) { hw5Area.scrollTop = hw5Area.scrollHeight; } else { clearInterval(hw5Iv); hw5Iv = null; } }, 300);
     }
     var hw2Scene = wrap.querySelector('.hw-scene[data-scene="2"]');
     function positionHw2Cursor() {

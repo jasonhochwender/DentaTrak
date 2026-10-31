@@ -6248,7 +6248,11 @@
             "invite_head_lab": "Invite a sus socios de laboratorio",
             "invited": "Invitado",
             "role_member": "Miembro del equipo",
-            "role_labpartner": "Socio de laboratorio"
+            "role_labpartner": "Socio de laboratorio",
+            "note_txt2": "Verifique la oclusión con el escaneo actualizado.",
+            "cmt_txt3": "Confirme el contacto oclusal, por favor.",
+            "cmt_txt4": "Hice el ajuste. Subiré el diseño actualizado.",
+            "cmt_txt5": "Gracias, revisaremos todo antes del jueves."
         },
         "askdemo": {
             "example_label": "Conversación de ejemplo",
