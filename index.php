@@ -4062,7 +4062,6 @@ foreach (['operate', 'control', 'scale'] as $plan) {
       if (n === 4) positionHw4Lines();
       if (n === 2) positionHw2Cursor();
       if (n === 5) startHw5Scroll();
-      if (cur === 5) {
       wrap.classList.remove('hw-anim'); void wrap.offsetWidth;
       if (!reduced) wrap.classList.add('hw-anim');
       if (userInitiated) { playing = false; syncPause(); }
