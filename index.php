@@ -1392,13 +1392,13 @@ foreach (['operate', 'control', 'scale'] as $plan) {
     .hw5-area { background: var(--dt-warm); border: 1px dashed var(--dt-border); border-radius: 10px; padding: 8px 10px; }
     .hw5-ah { font-size: 0.6rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--dt-ink-muted); margin-bottom: 6px; }
     .hw5-note { background: #fef9e7; border-left: 3px solid #f59e0b; border-radius: 7px; padding: 9px 11px; font-size: 0.82rem; color: var(--dt-ink); opacity: 0; }
-    .hw5-cmt { background: #fff; border: 1px solid var(--dt-border); border-radius: 8px; padding: 8px 10px; font-size: 0.76rem; color: var(--dt-ink-secondary); margin-bottom: 6px; opacity: 0; }
-    .hw5-cmt b { display: block; font-size: 0.66rem; color: var(--dt-ink); margin-bottom: 2px; }
+    .hw5-cmt { border-left: 2px solid var(--dt-border); padding: 1px 0 1px 8px; font-size: 0.68rem; line-height: 1.35; color: var(--dt-ink-secondary); margin-bottom: 7px; opacity: 0; }
+    .hw5-cmt b { font-size: 0.68rem; color: var(--dt-ink); }
     .hw5-strip { padding: 0 16px 12px; flex-shrink: 0; }
     .hw5-trow { display: flex; gap: 10px; }
     .hw5-thumb { width: 70px; height: 52px; border-radius: 8px; overflow: hidden; border: 1px solid var(--dt-border); background: #fff; opacity: 0; flex-shrink: 0; }
     .hw5-thumb svg { width: 100%; height: 100%; display: block; }
-    .hw5-area:last-child { overflow-y: auto; scrollbar-width: thin; max-height: 100%; }
+    .hw5-area:last-child { overflow: hidden; }
     .hw5-trow { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; }
     .hw5-thumb { width: auto; height: 48px; }
     .hw5-thumb svg { height: 100%; }
@@ -2254,11 +2254,11 @@ foreach (['operate', 'control', 'scale'] as $plan) {
                     <div class="hw5-note" id="hw5Note"><?php echo t('marketing.walkthrough.note_txt'); ?></div>
                     <div class="hw5-note" id="hw5N2"><?php echo t('marketing.walkthrough.note_txt2'); ?></div></div>
                   <div class="hw5-area"><div class="hw5-ah"><?php echo t('marketing.walkthrough.sec_comments'); ?></div>
-                    <div class="hw5-cmt" id="hw5C1"><b>Maya Chen</b><?php echo t('marketing.walkthrough.comment_txt'); ?></div>
-                    <div class="hw5-cmt" id="hw5C2"><b>Jordan Lee</b><?php echo t('marketing.walkthrough.comment_reply'); ?></div>
-                    <div class="hw5-cmt" id="hw5C3"><b>Dr. Alex Rivera</b><?php echo t('marketing.walkthrough.cmt_txt3'); ?></div>
-                    <div class="hw5-cmt" id="hw5C4"><b>Jordan Lee</b><?php echo t('marketing.walkthrough.cmt_txt4'); ?></div>
-                    <div class="hw5-cmt" id="hw5C5"><b>Maya Chen</b><?php echo t('marketing.walkthrough.cmt_txt5'); ?></div></div>
+                    <div class="hw5-cmt" id="hw5C1"><b>Maya Chen:</b> <?php echo t('marketing.walkthrough.comment_txt'); ?></div>
+                    <div class="hw5-cmt" id="hw5C2"><b>Jordan Lee:</b> <?php echo t('marketing.walkthrough.comment_reply'); ?></div>
+                    <div class="hw5-cmt" id="hw5C3"><b>Dr. Alex Rivera:</b> <?php echo t('marketing.walkthrough.cmt_txt3'); ?></div>
+                    <div class="hw5-cmt" id="hw5C4"><b>Jordan Lee:</b> <?php echo t('marketing.walkthrough.cmt_txt4'); ?></div>
+                    <div class="hw5-cmt" id="hw5C5"><b>Maya Chen:</b> <?php echo t('marketing.walkthrough.cmt_txt5'); ?></div></div>
                 </div>
                 <div class="hw5-strip"><div class="hw5-ah"><?php echo t('marketing.walkthrough.sec_images'); ?></div>
                   <div class="hw5-trow">
@@ -4068,7 +4068,6 @@ foreach (['operate', 'control', 'scale'] as $plan) {
       if (n === 1) positionHw1Cursor();
       if (n === 4) positionHw4Lines();
       if (n === 2) positionHw2Cursor();
-      if (n === 5) startHw5Scroll();
       wrap.classList.remove('hw-anim'); void wrap.offsetWidth;
       if (!reduced) wrap.classList.add('hw-anim');
       if (userInitiated) { playing = false; syncPause(); }
@@ -4198,15 +4197,6 @@ foreach (['operate', 'control', 'scale'] as $plan) {
         if (p3) { var t3 = tx(p3); hw4Wrap.style.setProperty('--c3x', t3[0]); hw4Wrap.style.setProperty('--c3y', t3[1]); }
         hw4Wrap.style.setProperty('--c0x', c0x); hw4Wrap.style.setProperty('--c0y', c0y);
       });
-    }
-    var hw5Area = wrap.querySelector(".hw-scene[data-scene='" + String.fromCharCode(53) + "'] .hw5-area:last-child");
-    var hw5Iv = null;
-    function startHw5Scroll() {
-      if (!hw5Area || hw5Iv) return;
-      hw5Iv = setInterval(function () {
-        if (cur !== 5) { clearInterval(hw5Iv); hw5Iv = null; return; }
-        if (hw5Area.scrollHeight - hw5Area.scrollTop - hw5Area.clientHeight < 60) hw5Area.scrollTop = hw5Area.scrollHeight;
-      }, 300);
     }
     var hw2Scene = wrap.querySelector('.hw-scene[data-scene="2"]');
     function positionHw2Cursor() {
