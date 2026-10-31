@@ -1426,21 +1426,14 @@ foreach (['operate', 'control', 'scale'] as $plan) {
     .hw6-flag { display: inline-block; font-size: 0.64rem; font-weight: 800; letter-spacing: 0.05em; text-transform: uppercase; border-radius: 999px; padding: 3px 10px; margin-top: 5px; opacity: 0; box-shadow: 0 2px 6px -2px rgba(0,0,0,0.25); }
     .hw6-fa { background: #fff; color: #1d4ed8 !important; } .hw6-fr { background: #fff; color: #b91c1c !important; }
     .hw-anim .hw6-card:not(.hw6-due):not(.hw6-late) { animation: hw6-dim calc(10s * var(--hwk)) ease forwards; }
-    @keyframes hw6-dim { 0%,18% { opacity: 1; } 22%,36% { opacity: 0.72; } 40%,42% { opacity: 1; } 46%,56% { opacity: 0.72; } 60%,64% { opacity: 1; } 68%,82% { opacity: 0.72; } 88%,100% { opacity: 1; } }
+    @keyframes hw6-dim { 0%,18% { opacity: 1; } 22%,36% { opacity: 0.72; } 40%,60% { opacity: 1; } 64%,82% { opacity: 0.72; } 88%,100% { opacity: 1; } }
     .hw-anim .hw6-due { animation: hw6-duelift calc(10s * var(--hwk)) ease forwards; }
     @keyframes hw6-duelift {
       0%,15% { transform: none; background: #fff; }
-      20%,34% { transform: translateY(-4px) scale(1.07); background: #dbeafe; border-color: #3b82f6; box-shadow: 0 14px 26px -10px rgba(59,130,246,0.45); z-index: 5; }
-      38%,100% { transform: none; background: #dbeafe; border-color: #3b82f6; }
+      20%,38% { transform: translateY(-4px) scale(1.07); background: #dbeafe; border-color: #3b82f6; box-shadow: 0 14px 26px -10px rgba(59,130,246,0.45); z-index: 5; }
+      42%,100% { transform: none; background: #dbeafe; border-color: #3b82f6; }
     }
-    .hw-anim #hw6Due2 { animation-name: hw6-duelift2; }
-    @keyframes hw6-duelift2 {
-      0%,38% { transform: none; background: #fff; }
-      44%,54% { transform: translateY(-4px) scale(1.07); background: #dbeafe; border-color: #3b82f6; box-shadow: 0 14px 26px -10px rgba(59,130,246,0.45); z-index: 5; }
-      58%,100% { transform: none; background: #dbeafe; border-color: #3b82f6; }
-    }
-    .hw-anim #hw6Due .hw6-flag, .hw-anim #hw6Due .hw6-sub { animation: hw-fade calc(0.4s * var(--hwk)) ease calc(1.9s * var(--hwk)) forwards; display: inline-block; }
-    .hw-anim #hw6Due2 .hw6-flag, .hw-anim #hw6Due2 .hw6-sub { animation: hw-fade calc(0.4s * var(--hwk)) ease calc(4.4s * var(--hwk)) forwards; display: inline-block; }
+    .hw-anim .hw6-due .hw6-flag, .hw-anim .hw6-due .hw6-sub { animation: hw-fade calc(0.4s * var(--hwk)) ease calc(1.9s * var(--hwk)) forwards; display: inline-block; }
     .hw-anim .hw6-late { animation: hw6-latelift calc(10s * var(--hwk)) ease forwards, hw6-latestate calc(10s * var(--hwk)) steps(1) forwards; }
     @keyframes hw6-latelift {
       0%,58% { transform: none; box-shadow: 0 2px 7px -3px rgba(30,58,95,0.14); }
@@ -1450,10 +1443,8 @@ foreach (['operate', 'control', 'scale'] as $plan) {
     }
     @keyframes hw6-latestate { 0%,61% { background: #fff; border-color: var(--dt-border); color: var(--dt-ink); } 62%,100% { background: #b91c1c; border-color: #7f1d1d; color: #fff; } }
     .hw-anim .hw6-late i { animation: hw6-latemeta calc(10s * var(--hwk)) steps(1) forwards; }
-    .hw-anim #hw6Due i { animation: hw6-duemeta calc(10s * var(--hwk)) steps(1) forwards; }
-    .hw-anim #hw6Due2 i { animation: hw6-duemeta2 calc(10s * var(--hwk)) steps(1) forwards; }
+    .hw-anim .hw6-due i { animation: hw6-duemeta calc(10s * var(--hwk)) steps(1) forwards; }
     @keyframes hw6-duemeta { 0%,19% { color: var(--dt-ink-muted); } 20%,100% { color: #1e3a8a; } }
-    @keyframes hw6-duemeta2 { 0%,43% { color: var(--dt-ink-muted); } 44%,100% { color: #1e3a8a; } }
     @keyframes hw6-latemeta { 0%,61% { color: var(--dt-ink-muted); } 62%,100% { color: rgba(255,255,255,0.85); } }
     .hw-anim .hw6-late .hw6-flag { animation: hw-fade calc(0.4s * var(--hwk)) ease calc(6.6s * var(--hwk)) forwards; display: inline-block; }
     .hw-anim .hw6-late .hw6-sub { animation: hw-fade calc(0.4s * var(--hwk)) ease calc(6.6s * var(--hwk)) forwards; display: inline-block; color: #fff; }
