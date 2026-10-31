@@ -1164,18 +1164,20 @@ foreach (['operate', 'control', 'scale'] as $plan) {
     .hw-anim .hw1-n0 { animation: hw-out calc(0.4s * var(--hwk)) ease calc(7.2s * var(--hwk)) forwards; }
     @keyframes hw-fade { to { opacity: 1; } }
     @keyframes hw-out { to { opacity: 0; } }
+    .hw-scene[data-scene="1"] .hw-cursor { width: 34px; height: 34px; }
+    .hw-scene[data-scene="1"] .hw-cursor svg { filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5)); }
     .hw-anim .hw-cursor { animation: hw1-cursor calc(8.8s * var(--hwk)) ease forwards; }
     @keyframes hw1-cursor {
       0% { opacity: 0; left: var(--cx1, 80%); top: var(--cy1, 80%); }
       6% { opacity: 1; left: var(--cx1, 80%); top: var(--cy1, 80%); }
-      12% { transform: translate(-2px,-2px) scale(0.8); }
-      15% { transform: translate(-2px,-2px) scale(1); }
+      12% { transform: translate(-4px,-3px) scale(0.8); }
+      15% { transform: translate(-4px,-3px) scale(1); }
       30% { opacity: 1; left: var(--cx1, 80%); top: var(--cy1, 80%); }
       40% { opacity: 0; }
       50% { left: var(--cx2, 30%); top: var(--cy2, 20%); opacity: 0; }
       57% { opacity: 1; left: var(--cx2, 30%); top: var(--cy2, 20%); }
-      62% { transform: translate(-2px,-2px) scale(0.8); }
-      65% { transform: translate(-2px,-2px) scale(1); }
+      62% { transform: translate(-4px,-3px) scale(0.8); }
+      65% { transform: translate(-4px,-3px) scale(1); }
       80% { opacity: 1; left: var(--cx2, 30%); top: var(--cy2, 20%); }
       100% { opacity: 0; left: var(--cx2, 30%); top: var(--cy2, 20%); }
     }
@@ -2172,7 +2174,7 @@ foreach (['operate', 'control', 'scale'] as $plan) {
               <div class="hw1-addbtn">+ <?php echo t('marketing.walkthrough.add_stage'); ?></div>
               <div class="hw1-cap hw1-cap1"><?php echo t('marketing.walkthrough.cap_addstage'); ?></div>
               <div class="hw1-cap hw1-cap2"><?php echo t('marketing.walkthrough.cap_rename'); ?></div>
-              <div class="hw-cursor"><svg viewBox="0 0 18 18" width="18" height="18"><path d="M2 1.5 L2 14.5 L5.2 11.6 L7.6 16.4 L10.2 15 L7.7 10 L12.6 10 Z" fill="#1e3a5f" stroke="#fff" stroke-width="1.3" stroke-linejoin="round"/></svg></div>
+              <div class="hw-cursor"><svg viewBox="0 0 18 18" width="34" height="34"><path d="M2 1.5 L2 14.5 L5.2 11.6 L7.6 16.4 L10.2 15 L7.7 10 L12.6 10 Z" fill="#1e3a5f" stroke="#fff" stroke-width="1.3" stroke-linejoin="round"/></svg></div>
             </div>
 
             <!-- SCENE 2: invite + roster (unchanged) -->
@@ -4157,24 +4159,23 @@ foreach (['operate', 'control', 'scale'] as $plan) {
       });
     }
     var hw1Scene = wrap.querySelector('.hw-scene[data-scene="1"]');
-    function positionHw1Cursor(again) {
-      if (!hw1Scene) return;
-      // Never measure while the scene is hidden or before layout lands:
-      // measure on the next painted frame instead.
-      if (hw1Scene.getBoundingClientRect().width < 2) return;
+    function positionHw1Cursor() {
+      if (!hw1Scene || hw1Scene.getBoundingClientRect().width < 2) return;
       requestAnimationFrame(function () {
         var s = hw1Scene.getBoundingClientRect();
         if (s.width < 2) return;
         function cx(el) { var r = el.getBoundingClientRect(); return (r.left + r.width / 2 - s.left) + 'px'; }
         function cy(el) { var r = el.getBoundingClientRect(); return (r.top + r.height / 2 - s.top) + 'px'; }
-        var add = hw1Scene.querySelector('.hw1-addbtn'), ed = hw1Scene.querySelector('.hw1-edit');
+        var add = hw1Scene.querySelector('.hw1-addbtn'), ed = hw1Scene.querySelector('.hw1-edit'), qc = hw1Scene.querySelector('.hw1-qc');
         if (add) { hw1Scene.style.setProperty('--cx1', cx(add)); hw1Scene.style.setProperty('--cy1', cy(add)); }
-        if (ed) { hw1Scene.style.setProperty('--cx2', cx(ed)); hw1Scene.style.setProperty('--cy2', cy(ed)); }
+        // The pencil lives inside the collapsed Quality Check column until
+        // the four-column expansion runs; its pre-expansion rect sits on
+        // AT LAB. Only cache cx2 once the column has real width, and keep
+        // re-measuring until it does instead of trusting one fixed delay.
+        var expanded = qc && qc.getBoundingClientRect().width > 60;
+        if (ed && expanded) { hw1Scene.style.setProperty('--cx2', cx(ed)); hw1Scene.style.setProperty('--cy2', cy(ed)); }
+        if (!expanded && cur === 1) { clearTimeout(cur2Timer); cur2Timer = setTimeout(positionHw1Cursor, 200); }
       });
-      // Re-measure at ~2420ms: the four-column expansion ends ~2409ms and
-      // the cursor's move keyframe lands ~2450ms, so this reads the
-      // settled pencil position immediately before the move.
-      if (again !== false) { clearTimeout(cur2Timer); cur2Timer = setTimeout(function () { positionHw1Cursor(false); }, 3920*HW_K); }
     }
     var hw4Wrap = wrap.querySelector('.hw-scene[data-scene="4"] .hw4-wrap');
     function positionHw4Lines() {
