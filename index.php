@@ -1219,7 +1219,6 @@ foreach (['operate', 'control', 'scale'] as $plan) {
     @keyframes hw-ac0v { 0%,29% { opacity: 1; } 30%,62% { opacity: 0; } 63%,77% { opacity: 1; } 78%,100% { opacity: 0; } }
     @keyframes hw-ac1v { 0%,29% { opacity: 0; } 30%,62% { opacity: 1; } 63%,77% { opacity: 0; } 78%,100% { opacity: 1; } }
     .hw-rm { display: none; font-size: 0.68rem; color: var(--dt-ink-muted); margin-top: 10px; }
-    .hw-cap2 { font-size: 0.94rem; font-weight: 700; color: var(--dt-ink); margin-bottom: 14px; }
     .hw-freenote { font-size: 0.62rem; color: var(--dt-ink-muted); margin-top: 8px; }
     .hw-roster { border-left: 1px solid var(--dt-border); padding-left: 16px; }
     .hw-person { display: flex; align-items: center; gap: 9px; background: #fff; border: 1px solid var(--dt-border); border-radius: 9px; padding: 8px 10px; margin-bottom: 7px; }
@@ -2183,7 +2182,6 @@ foreach (['operate', 'control', 'scale'] as $plan) {
               <div class="hw-cursor"><svg viewBox="0 0 18 18" width="18" height="18"><path d="M2 1.5 L2 14.5 L5.2 11.6 L7.6 16.4 L10.2 15 L7.7 10 L12.6 10 Z" fill="#1e3a5f" stroke="#fff" stroke-width="1.3" stroke-linejoin="round"/></svg></div>
               <div class="hw-team">
                 <div class="hw-inviteX">
-                  <div class="hw-cap2"><?php echo t('marketing.walkthrough.cap_connected'); ?></div>
                   <div class="hw-field"><span class="hw-field-text"><i class="hw-e1"></i><i class="hw-e2"></i><i class="hw-e3"></i></span><span class="hw-btn-mini hw-invbtn"><?php echo t('marketing.walkthrough.invite_btn'); ?></span></div>
                   <div class="hw2-headwrap"><span class="hw2-head hw2-h1"><?php echo t('marketing.walkthrough.invite_head'); ?></span><span class="hw2-head hw2-h2"><?php echo t('marketing.walkthrough.invite_head_lab'); ?></span></div>
                 </div>
