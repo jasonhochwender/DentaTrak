@@ -4159,21 +4159,30 @@ foreach (['operate', 'control', 'scale'] as $plan) {
     }
     var hw1Scene = wrap.querySelector('.hw-scene[data-scene="1"]');
     function positionHw1Cursor() {
-      if (!hw1Scene || hw1Scene.getBoundingClientRect().width < 2) return;
+      if (!hw1Scene) return;
+      if (hw1Scene.getBoundingClientRect().width < 2) {
+        if (current === 1) { clearTimeout(cur2Timer); cur2Timer = setTimeout(positionHw1Cursor, 200); }
+        return;
+      }
       requestAnimationFrame(function () {
         var s = hw1Scene.getBoundingClientRect();
-        if (s.width < 2) return;
+        if (s.width < 2) { if (current === 1) { clearTimeout(cur2Timer); cur2Timer = setTimeout(positionHw1Cursor, 200); } return; }
         function cx(el) { var r = el.getBoundingClientRect(); return (r.left + r.width / 2 - s.left) + 'px'; }
         function cy(el) { var r = el.getBoundingClientRect(); return (r.top + r.height / 2 - s.top) + 'px'; }
         var add = hw1Scene.querySelector('.hw1-addbtn'), ed = hw1Scene.querySelector('.hw1-edit'), qc = hw1Scene.querySelector('.hw1-qc');
         if (add) { hw1Scene.style.setProperty('--cx1', cx(add)); hw1Scene.style.setProperty('--cy1', cy(add)); }
-        // The pencil lives inside the collapsed Quality Check column until
-        // the four-column expansion runs; its pre-expansion rect sits on
-        // AT LAB. Only cache cx2 once the column has real width, and keep
-        // re-measuring until it does instead of trusting one fixed delay.
-        var expanded = qc && qc.getBoundingClientRect().width > 60;
+        // The pencil sits in column 1's head; the Quality Check expansion
+        // squeezes column widths, so a pre-expansion cx2 lands right of the
+        // pencil on the AT LAB column (Inlay #2). Only cache it once the
+        // layout has actually expanded - retry every 200ms until it has.
+        var expanded = !qc || qc.getBoundingClientRect().width > 60;
         if (ed && expanded) { hw1Scene.style.setProperty('--cx2', cx(ed)); hw1Scene.style.setProperty('--cy2', cy(ed)); }
-        if (!expanded && cur === 1) { clearTimeout(cur2Timer); cur2Timer = setTimeout(positionHw1Cursor, 200); }
+        // Keep re-measuring for ~1s after the column starts expanding: the
+        // squeeze animates column widths, so the first expanded frame is
+        // still shifting - the last write lands on the settled pencil.
+        if (expanded && !hw1Scene._qcDoneAt) hw1Scene._qcDoneAt = Date.now();
+        var pending = !expanded || (Date.now() - hw1Scene._qcDoneAt < 1000);
+        if (pending && current === 1) { clearTimeout(cur2Timer); cur2Timer = setTimeout(positionHw1Cursor, 200); }
       });
     }
     var hw4Wrap = wrap.querySelector('.hw-scene[data-scene="4"] .hw4-wrap');
@@ -4210,8 +4219,8 @@ foreach (['operate', 'control', 'scale'] as $plan) {
         if (b) { hw2Scene.style.setProperty('--b2x', mx(b)); hw2Scene.style.setProperty('--b2y', my(b)); }
       });
     }
-    window.addEventListener('resize', function () { if (cur === 1) positionHw1Cursor(); if (cur === 4) positionHw4Lines(); if (cur === 2) positionHw2Cursor(); });
-    if (document.fonts && document.fonts.ready) { document.fonts.ready.then(function () { if (cur === 1) positionHw1Cursor(); if (cur === 4) positionHw4Lines(); if (cur === 2) positionHw2Cursor(); }); }
+    window.addEventListener('resize', function () { if (current === 1) positionHw1Cursor(); if (current === 4) positionHw4Lines(); if (current === 2) positionHw2Cursor(); });
+    if (document.fonts && document.fonts.ready) { document.fonts.ready.then(function () { if (current === 1) positionHw1Cursor(); if (current === 4) positionHw4Lines(); if (current === 2) positionHw2Cursor(); }); }
     show(1, false);
     if (reduced) { btnPause.hidden = true; }
   })();
