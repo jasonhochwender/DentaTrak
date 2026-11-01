@@ -87,13 +87,45 @@ final class SuppressionService
         return $this->row($email) !== null;
     }
 
+    /** Stable org id = normalized email domain (e.g. "sagedentalnj.com"). */
+    public static function orgRefForEmail(string $email): ?string
+    {
+        $e = self::normalizeEmail($email);
+        $d = strrpos($e, '@');
+        return $d === false ? null : substr($e, $d + 1);
+    }
+
+    /** Suppress an entire org by stable domain ref. Idempotent. */
+    public function suppressOrg(string $orgRef, string $source = 'email_unsubscribe', ?string $reason = null): array
+    {
+        $orgRef = strtolower(trim($orgRef));
+        if ($orgRef === '') throw new RuntimeException('org_ref required');
+        $s = $this->pdo->prepare('SELECT * FROM marketing_org_suppressions WHERE org_ref=?');
+        $s->execute([$orgRef]);
+        $existing = $s->fetch(PDO::FETCH_ASSOC);
+        if ($existing) return ['org_ref' => $orgRef, 'already_suppressed' => true, 'suppression' => $existing];
+        $this->pdo->prepare(
+            'INSERT INTO marketing_org_suppressions (org_ref,source,reason) VALUES (?,?,?)'
+        )->execute([$orgRef, substr($source, 0, 60), $reason !== null ? substr($reason, 0, 200) : null]);
+        $s->execute([$orgRef]);
+        return ['org_ref' => $orgRef, 'already_suppressed' => false, 'suppression' => $s->fetch(PDO::FETCH_ASSOC)];
+    }
+
+    public function isOrgSuppressed(string $orgRef): bool
+    {
+        $s = $this->pdo->prepare('SELECT 1 FROM marketing_org_suppressions WHERE org_ref=?');
+        $s->execute([strtolower(trim($orgRef))]);
+        return $s->fetchColumn() !== false;
+    }
     /** Bounded batch eligibility check — only eligible:true may send. */
     public function eligibility(array $emails): array
     {
         $out = [];
         foreach (array_slice($emails, 0, 200) as $e) {
             $n = self::normalizeEmail((string) $e);
-            $eligible = $n !== '' && filter_var($n, FILTER_VALIDATE_EMAIL) && !$this->isSuppressed($n);
+            $valid = $n !== '' && filter_var($n, FILTER_VALIDATE_EMAIL);
+            $orgRef = $valid ? self::orgRefForEmail($n) : null;
+            $eligible = $valid && !$this->isSuppressed($n) && !($orgRef !== null && $this->isOrgSuppressed($orgRef));
             $out[] = ['email' => $n, 'eligible' => $eligible, 'reason' => $eligible ? '' : 'suppressed_or_invalid'];
         }
         return $out;
