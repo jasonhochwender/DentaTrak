@@ -10,6 +10,41 @@
 require_once __DIR__ . '/session.php'; // use centralized session handling
 require_once __DIR__ . '/google-drive.php';
 
+// ---- one-time Gmail-send admin setup (state-gated; Drive flow untouched) ----
+if (isset($_GET['state']) && str_starts_with($_GET['state'], 'gmail_setup_')) {
+    $nonce = substr($_GET['state'], strlen('gmail_setup_'));
+    $nf = sys_get_temp_dir() . '/gmail_setup_nonce';
+    $expect = @file_get_contents($nf);
+    if (!$expect || !hash_equals(trim($expect), $nonce) || !isset($_GET['code'])) {
+        http_response_code(403); exit('invalid setup state');
+    }
+    @unlink($nf); // single-use
+    $tok = json_decode(file_get_contents('https://oauth2.googleapis.com/token', false,
+        stream_context_create(['http' => ['method' => 'POST', 'header' => 'Content-Type: application/x-www-form-urlencoded',
+        'content' => http_build_query([
+            'code' => $_GET['code'],
+            'client_id' => $appConfig['google_client_id'],
+            'client_secret' => $appConfig['google_client_secret'],
+            'redirect_uri' => rtrim($appConfig['baseUrl'], '/') . '/api/google-drive-callback.php',
+            'grant_type' => 'authorization_code'])]])) ?: '{}', true);
+    $rt = $tok['refresh_token'] ?? null;
+    if (!$rt) { http_response_code(502); exit('no refresh token - re-run the setup link'); }
+    $meta = json_decode(file_get_contents(
+        'http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/token',
+        false, stream_context_create(['http' => ['header' => 'Metadata-Flavor: Google']])), true);
+    $smUrl = 'https://secretmanager.googleapis.com/v1/projects/dtk-prod-core/secrets/dtk-prod-gmail-refresh-token:addVersion';
+    $r = file_get_contents($smUrl, false, stream_context_create(['http' => [
+        'method' => 'POST',
+        'header' => 'Authorization: Bearer ' . ($meta['access_token'] ?? '') . "\r\nContent-Type: application/json",
+        'content' => json_encode(['payload' => ['data' => base64_encode($rt)]]),
+        'ignore_errors' => true]]));
+    $ok = strpos((string)$r, '"name"') !== false;
+    echo $ok ? '<h1>Gmail send authorized</h1><p>Refresh token stored in Secret Manager. This tab can be closed.</p>'
+             : '<h1>Secret write failed</h1><p>' . htmlspecialchars(substr((string)$r, 0, 200)) . '</p>';
+    exit;
+}
+// ---- end gmail setup branch ----
+
 // Ensure user is logged in before allowing Drive connection
 if (!isset($_SESSION['db_user_id'])) {
     header('Location: ../login.php?error=not_logged_in');
