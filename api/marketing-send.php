@@ -24,6 +24,13 @@ $sub = (string)($in['subject'] ?? ''); $html = (string)($in['html'] ?? ''); $tex
 $svc = new SuppressionService($pdo);
 
 if ($cmp === '') { http_response_code(400); echo json_encode(['error'=>'campaign required']); exit; }
+
+// dry_run: eligibility plan only - no ledger write, no Gmail call
+if (!empty($in['dry_run'])) {
+    echo json_encode(['status' => 'dry_run', 'email' => $to, 'eligible' => $svc->eligibility([$to])[0]['eligible']]);
+    exit;
+}
+
 // idempotency: claim the slot first
 try {
     $pdo->prepare("INSERT INTO marketing_sends (campaign_ref,email_normalized,status) VALUES (?,?, 'running')")
@@ -36,8 +43,6 @@ try {
     // failed/skipped_suppressed are retryable: reclaim the row
     $pdo->prepare("UPDATE marketing_sends SET status='running', gmail_message_id=NULL WHERE campaign_ref=? AND email_normalized=?")->execute([$cmp, $to]);
 }
-$dry = !empty($in['dry_run']);
-if ($dry) { $pdo->prepare("UPDATE marketing_sends SET status='failed' WHERE campaign_ref=? AND email_normalized=?")->execute([$cmp,$to]); echo json_encode(['status'=>'dry_run','email'=>$to,'eligible'=>$svc->eligibility([$to])[0]['eligible']]); exit; }
 $elig = $svc->eligibility([$to])[0];
 if (!$elig['eligible']) {
     $pdo->prepare("UPDATE marketing_sends SET status='skipped_suppressed' WHERE campaign_ref=? AND email_normalized=?")->execute([$cmp,$to]);
