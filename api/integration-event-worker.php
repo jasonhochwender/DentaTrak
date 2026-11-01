@@ -51,6 +51,11 @@ $BATCH_SIZE = max(1, min(200, $BATCH_SIZE));
 
 try {
     $summary = IntegrationEvents::processDue($pdo, $BATCH_SIZE);
+
+    try {
+        $pdo->query('SELECT 1 FROM marketing_sync_queue LIMIT 1');
+        require __DIR__ . '/marketing/sync-worker.php';
+    } catch (Throwable $syncErr) { /* unmigrated or sync failure - jobs stay queued */ }
     // Phase 2: the same invocation drains the outbound queue (writes stay
     // impossible until PMS_OUTBOUND_SYNC + per-connection opt-in are both
     // on, so this is inert until explicitly enabled).
