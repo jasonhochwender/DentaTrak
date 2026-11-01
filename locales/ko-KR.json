@@ -5782,7 +5782,7 @@
             }
         },
         "demo": {
-            "request_demo": "개인 데모 요청",
+            "request_demo": "워크스루 예약",
             "subject": "DentaTrak 개인 데모 요청",
             "hero_link": "작동 방식 보기",
             "modal_desc": "아래 양식을 작성해 주시면 일정을 잡기 위해 연락드리겠습니다.",

@@ -5782,7 +5782,7 @@
             }
         },
         "demo": {
-            "request_demo": "Solicitar una demostración personal",
+            "request_demo": "Programe una demostración",
             "subject": "Solicitud de demostración personal de DentaTrak",
             "hero_link": "Vea cómo funciona",
             "modal_desc": "Complete el formulario y nos pondremos en contacto para programar una fecha.",

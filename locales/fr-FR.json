@@ -5782,7 +5782,7 @@
             }
         },
         "demo": {
-            "request_demo": "Demander une démonstration personnalisée",
+            "request_demo": "Planifier une démonstration",
             "subject": "Demande de démonstration personnalisée DentaTrak",
             "hero_link": "Voir le fonctionnement",
             "modal_desc": "Remplissez le formulaire ci-dessous et nous vous contacterons pour planifier un rendez-vous.",

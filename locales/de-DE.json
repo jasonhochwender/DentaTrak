@@ -4008,7 +4008,7 @@
             }
         },
         "demo": {
-            "request_demo": "Persönliche Demo anfordern",
+            "request_demo": "Walkthrough vereinbaren",
             "subject": "Anfrage für eine persönliche DentaTrak-Demo",
             "hero_link": "So funktioniert's",
             "modal_desc": "Füllen Sie das Formular unten aus und wir kontaktieren Sie, um einen Termin zu vereinbaren.",

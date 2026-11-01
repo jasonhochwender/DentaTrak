@@ -1064,17 +1064,6 @@ foreach (['operate', 'control', 'scale'] as $plan) {
     }
 
     /* Demo request modal */
-    .demo-modal-overlay { position: fixed; inset: 0; background: rgba(17,24,39,0.65); z-index: 1000; display: none; align-items: center; justify-content: center; padding: 16px; overflow-y: auto; }
-    .demo-modal-overlay.is-open { display: flex; }
-    .demo-modal { background: #fff; border-radius: 18px; width: 100%; max-width: 560px; max-height: calc(100vh - 32px); overflow-y: auto; box-shadow: 0 24px 60px -12px rgba(0,0,0,0.25); }
-    .demo-modal-header { display: flex; justify-content: space-between; align-items: center; padding: 20px 24px; border-bottom: 1px solid var(--dt-border); }
-    .demo-modal-header h3 { margin: 0; font-size: 1.15rem; color: var(--dt-ink); }
-    .demo-modal-close { background: none; border: none; font-size: 1.6rem; line-height: 1; color: var(--dt-ink-muted); cursor: pointer; padding: 4px 8px; border-radius: 6px; }
-    .demo-modal-close:hover { color: var(--dt-ink); }
-    .demo-modal-close:focus-visible { outline: 2px solid var(--dt-blue-light); outline-offset: 2px; }
-    .demo-form { padding: 24px; }
-    .demo-modal-desc { margin: 0 0 20px; color: var(--dt-ink-secondary); font-size: 0.95rem; }
-    .demo-form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
     .demo-field { display: flex; flex-direction: column; }
     .demo-field-wide { grid-column: 1 / -1; }
     .demo-field label { font-size: 0.8rem; font-weight: 600; margin-bottom: 5px; color: var(--dt-ink); }
@@ -1083,17 +1072,8 @@ foreach (['operate', 'control', 'scale'] as $plan) {
     .demo-field input:focus, .demo-field textarea:focus, .demo-field select:focus { outline: 2px solid var(--dt-blue-light); border-color: var(--dt-blue-light); }
     .demo-field.is-invalid input, .demo-field.is-invalid textarea, .demo-field.is-invalid select { border-color: #dc2626; }
     .demo-field.is-invalid label { color: #dc2626; }
-    .demo-form-actions { display: flex; gap: 12px; margin-top: 4px; }
-    .demo-form-status { font-size: 0.95rem; margin-top: 16px; }
-    .demo-form-status.success { color: #15803d; }
-    .demo-form-status.error { color: #dc2626; }
     .hp { display: none; }
     @media (max-width: 600px) {
-      .demo-form-grid { grid-template-columns: 1fr; }
-      .demo-form { padding: 20px; }
-      .demo-modal { max-height: calc(100vh - 24px); }
-      .demo-form-actions { flex-direction: column; }
-      .demo-form-actions .btn { width: 100%; justify-content: center; }
     }
 
     /* Reduced motion: show everything immediately, no movement/animation */
@@ -3060,7 +3040,7 @@ foreach (['operate', 'control', 'scale'] as $plan) {
       <p class="lead" data-reveal data-reveal-delay="75"><?php echo t('marketing.cta.final_lead'); ?></p>
       <div data-reveal data-reveal-delay="150">
         <a href="<?= $baseUrl ?>login.php" class="btn btn-primary"><?php echo t('marketing.cta.start_free'); ?></a>
-        <a href="#demo-modal" class="btn btn-secondary" data-open-demo-modal id="open-demo-final"><?php echo t('marketing.demo.request_demo'); ?></a>
+        <a href="<?php echo htmlspecialchars($appConfig['demo_schedule_url'] ?? 'https://calendar.app.google/yAqq1U1VtvcSavqo7'); ?>" class="btn btn-secondary" target="_blank" rel="noopener"><?php echo t('marketing.demo.request_demo'); ?></a>
       </div>
       <p class="cta-note" data-reveal data-reveal-delay="200"><?php echo t('marketing.cta.no_credit_card'); ?></p>
       <p class="cta-signin" data-reveal data-reveal-delay="225"><a href="<?= $baseUrl ?>login.php"><?php echo t('marketing.cta.sign_in'); ?></a></p>
@@ -3613,28 +3593,7 @@ foreach (['operate', 'control', 'scale'] as $plan) {
       function startDemoModal() {
         'use strict';
 
-        var openTriggers = document.querySelectorAll('[data-open-demo-modal]');
-        var overlay = document.getElementById('demo-modal-overlay');
-        var modal = document.getElementById('demo-modal');
-        var closeButtons = document.querySelectorAll('[data-close-demo-modal]');
-        var form = document.getElementById('demo-form');
-        var statusEl = document.getElementById('demo-form-status');
-        var submitBtn = document.getElementById('demo-submit');
-        var focusableSelector = 'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
-        var lastFocused = null;
-
-        function getFocusable() {
-          return Array.prototype.slice.call(modal.querySelectorAll(focusableSelector));
-        }
-
-        function openModal(e) {
-          if (e) e.preventDefault();
-          if (!overlay || !modal) return;
-          lastFocused = document.activeElement;
-          overlay.classList.add('is-open');
-          overlay.hidden = false;
-          document.body.style.overflow = 'hidden';
-          setTimeout(function() {
+        (function() {
             var focusable = getFocusable();
             var first = focusable[0];
             if (first) first.focus();
@@ -3887,53 +3846,7 @@ foreach (['operate', 'control', 'scale'] as $plan) {
     })();
   </script>
 
-  <div class="demo-modal-overlay" id="demo-modal-overlay">
-    <div class="demo-modal" id="demo-modal" role="dialog" aria-modal="true" aria-labelledby="demo-modal-title" aria-describedby="demo-modal-desc">
-      <div class="demo-modal-header">
-        <h3 id="demo-modal-title"><?php echo t('marketing.demo.request_demo'); ?></h3>
-        <button type="button" class="demo-modal-close" aria-label="<?php echo htmlspecialchars(t('marketing.demo.close_aria')); ?>" data-close-demo-modal>&times;</button>
-      </div>
-      <form class="demo-form" id="demo-form" action="<?= $baseUrl ?>api/demo-request.php" method="POST" novalidate>
-        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
-        <p id="demo-modal-desc" class="demo-modal-desc"><?php echo t('marketing.demo.modal_desc'); ?></p>
-        <div class="demo-form-grid">
-          <div class="demo-field">
-            <label for="demo-name"><?php echo t('marketing.demo.name'); ?> <span aria-label="<?php echo htmlspecialchars(t('marketing.demo.required_aria')); ?>">*</span></label>
-            <input type="text" id="demo-name" name="name" required maxlength="100" autocomplete="name">
-          </div>
-          <div class="demo-field">
-            <label for="demo-email"><?php echo t('marketing.demo.email'); ?> <span aria-label="<?php echo htmlspecialchars(t('marketing.demo.required_aria')); ?>">*</span></label>
-            <input type="email" id="demo-email" name="email" required maxlength="254" autocomplete="email">
-          </div>
-          <div class="demo-field">
-            <label for="demo-practice"><?php echo t('marketing.demo.practice'); ?> <span aria-label="<?php echo htmlspecialchars(t('marketing.demo.required_aria')); ?>">*</span></label>
-            <input type="text" id="demo-practice" name="practice" required maxlength="120" autocomplete="organization">
-          </div>
-          <div class="demo-field">
-            <label for="demo-phone"><?php echo t('marketing.demo.phone'); ?></label>
-            <input type="tel" id="demo-phone" name="phone" maxlength="30" autocomplete="tel">
-          </div>
-          <div class="demo-field demo-field-wide">
-            <label for="demo-preferred"><?php echo t('marketing.demo.preferred'); ?></label>
-            <input type="text" id="demo-preferred" name="preferred" maxlength="120" autocomplete="off">
-          </div>
-          <div class="demo-field demo-field-wide">
-            <label for="demo-message"><?php echo t('marketing.demo.message_label'); ?></label>
-            <textarea id="demo-message" name="message" rows="3" maxlength="1000" autocomplete="off"></textarea>
-          </div>
-        </div>
-        <div class="demo-form-actions">
-          <button type="submit" class="btn btn-primary" id="demo-submit"><?php echo t('marketing.demo.submit'); ?></button>
-          <button type="button" class="btn btn-secondary" data-close-demo-modal><?php echo t('marketing.demo.cancel'); ?></button>
-        </div>
-        <div class="demo-form-status" id="demo-form-status" role="status" aria-live="polite" hidden></div>
-        <div class="demo-field hp" aria-hidden="true">
-          <label for="demo-website"><?php echo t('marketing.demo.honeypot'); ?></label>
-          <input type="text" name="website" id="demo-website" tabindex="-1" autocomplete="off">
-        </div>
-      </form>
-    </div>
-  </div>
+  
 
   <script>
     // Plan-feature info tooltips: click toggles for touch; focus/hover are

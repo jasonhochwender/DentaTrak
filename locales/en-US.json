@@ -5821,7 +5821,7 @@
             }
         },
         "demo": {
-            "request_demo": "Request a Personal Demo",
+            "request_demo": "Schedule a Walkthrough",
             "subject": "DentaTrak Personal Demo Request",
             "hero_link": "See how it works",
             "modal_desc": "Fill out the form below and we'll contact you to schedule a time.",

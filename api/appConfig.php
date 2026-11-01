@@ -21,6 +21,7 @@ $commonConfig = [
     'disable_caching' => true,
     'feedback_email'    => 'feedback@dentatrak.com',
     'support_email'     => getEnvVar('SUPPORT_EMAIL', 'support@dentatrak.com'),
+    'demo_schedule_url' => 'https://calendar.app.google/yAqq1U1VtvcSavqo7',
     'test_record_emails' => filter_var(getEnvVar('DENTATRAK_TEST_RECORD_EMAILS', getEnvVar('DENTATRAK_TEST_MODE', 'false')), FILTER_VALIDATE_BOOLEAN) === true,
 
     // Resend email configuration

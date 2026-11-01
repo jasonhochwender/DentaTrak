@@ -5782,7 +5782,7 @@
             }
         },
         "demo": {
-            "request_demo": "Richiedi una demo personale",
+            "request_demo": "Prenota una demo guidata",
             "subject": "Richiesta di demo personale DentaTrak",
             "hero_link": "Scopri come funziona",
             "modal_desc": "Compila il modulo qui sotto e ti contatteremo per fissare un appuntamento.",

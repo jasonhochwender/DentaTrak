@@ -1804,7 +1804,7 @@
             "already_account": "Já tem uma conta? Faça login"
         },
         "demo": {
-            "request_demo": "Solicitar uma demonstração personalizada",
+            "request_demo": "Agende uma demonstração",
             "subject": "Solicitação de demonstração personalizada do DentaTrak",
             "hero_link": "Veja como funciona",
             "modal_desc": "Preencha o formulário abaixo e entraremos em contato para agendar um horário.",
