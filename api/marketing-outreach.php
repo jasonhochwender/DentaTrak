@@ -30,7 +30,7 @@ switch ($act) {
         echo json_encode([
             'email' => $e,
             'already_suppressed' => $supp,
-            'unsubscribe_url' => $tok ? $appConfig['baseUrl'] . 'unsubscribe.php?t=' . $tok : null,
+            'unsubscribe_url' => $tok ? rtrim($appConfig['baseUrl'], '/') . '/unsubscribe.php?t=' . $tok : null,
         ]); break;
     case 'import_dnc':
         $n = 0;
