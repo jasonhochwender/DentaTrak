@@ -15,7 +15,7 @@ global $pdo;
 $sync = new ProspectSheetSync();
 
 $due = $pdo->query(
-    "SELECT q.id, s.email_normalized FROM marketing_sync_queue q
+    "SELECT q.id, s.email_normalized, s.source FROM marketing_sync_queue q
      JOIN marketing_suppressions s ON s.id = q.suppression_id
      WHERE q.status='queued' AND q.next_attempt_at <= UTC_TIMESTAMP()
      ORDER BY q.id LIMIT " . (int) $limit
@@ -25,7 +25,7 @@ foreach ($due as $job) {
     $pdo->prepare("UPDATE marketing_sync_queue SET status='running', attempts=attempts+1, updated_at=UTC_TIMESTAMP() WHERE id=?")
         ->execute([$job['id']]);
     try {
-        $r = $sync->sync($job['email_normalized']);
+        $r = $sync->sync($job['email_normalized'], $job['source']);
         $pdo->prepare("UPDATE marketing_sync_queue SET status='done', updated_at=UTC_TIMESTAMP() WHERE id=?")->execute([$job['id']]);
         $pdo->prepare("UPDATE marketing_suppressions SET sync_status=?, synced_at=UTC_TIMESTAMP(), sync_attempts=sync_attempts+1 WHERE id=(SELECT suppression_id FROM marketing_sync_queue WHERE id=?)")
             ->execute([$r['matched_rows'] > 0 ? 'synced' : 'no_match', $job['id']]);

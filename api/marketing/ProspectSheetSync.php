@@ -56,7 +56,7 @@ final class ProspectSheetSync
     }
 
     /** Sync one suppressed email (+ same-practice rows) to the sheet. */
-    public function sync(string $email): array
+    public function sync(string $email, string $source = 'email_unsubscribe'): array
     {
         $tok = $this->accessToken();
         $base = 'https://sheets.googleapis.com/v4/spreadsheets/' . self::SHEET_ID;
@@ -103,7 +103,7 @@ final class ProspectSheetSync
             $u = $row;
             $u[$cStatus] = 'Do Not Contact';
             if ($cAt !== false) $u[$cAt] = $now;
-            if ($cSrc !== false) $u[$cSrc] = $isTarget ? 'Email Unsubscribe' : 'Organization Unsubscribe';
+            if ($cSrc !== false) $u[$cSrc] = $isTarget ? $source : $source.'_org';
             $updates[] = ['range' => self::TAB . "!$n:$n", 'majorDimension' => 'ROWS', 'values' => [$u]];
         }
         if ($updates) {
