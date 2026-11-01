@@ -8,7 +8,11 @@
 require_once __DIR__ . '/appConfig.php';
 require_once __DIR__ . '/session.php';
 require_once __DIR__ . '/dev-tools-access.php';
-if (empty($_SESSION['db_user_id']) || !isSuperUser()) { http_response_code(403); exit('forbidden'); }
+if (empty($_SESSION['db_user_id'])) { http_response_code(403); exit('forbidden'); }
+global $pdo;
+$u = $pdo->prepare('SELECT email FROM users WHERE id=?'); $u->execute([$_SESSION['db_user_id']]);
+$email = (string)$u->fetchColumn();
+if ($email === '' || !isSuperUser($appConfig, $email)) { http_response_code(403); exit('forbidden'); }
 $nonce = bin2hex(random_bytes(24));
 @file_put_contents(sys_get_temp_dir() . '/gmail_setup_nonce', $nonce, LOCK_EX);
 $params = [
