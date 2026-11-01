@@ -6,7 +6,7 @@
  */
 require_once __DIR__ . '/../api/appConfig.php';
 
-$pdo = $appConfig['db']();
+global $pdo;
 $sql = <<<SQL
 CREATE TABLE IF NOT EXISTS marketing_suppressions (
   id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,

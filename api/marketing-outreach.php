@@ -17,7 +17,7 @@ if (!$expected || !hash_equals($expected, (string) ($_SERVER['HTTP_X_OUTREACH_TO
 }
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') { http_response_code(405); exit; }
 $in  = json_decode(file_get_contents('php://input'), true) ?? [];
-$svc = new SuppressionService($appConfig['db']());
+$svc = new SuppressionService($pdo);
 $act = $_GET['action'] ?? '';
 
 switch ($act) {

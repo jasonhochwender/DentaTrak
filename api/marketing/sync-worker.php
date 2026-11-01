@@ -11,7 +11,7 @@ require_once __DIR__ . '/ProspectSheetSync.php';
 
 $limit = 10;
 foreach ($argv ?? [] as $a) if (preg_match('/--limit=(\d+)/', $a, $m)) $limit = (int) $m[1];
-$pdo = $appConfig['db']();
+global $pdo;
 $sync = new ProspectSheetSync();
 
 $due = $pdo->query(

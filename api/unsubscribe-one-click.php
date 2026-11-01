@@ -9,7 +9,7 @@ require_once __DIR__ . '/marketing/SuppressionService.php';
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') { http_response_code(405); exit('Method Not Allowed'); }
 if (($_POST['List-Unsubscribe'] ?? '') !== 'One-Click') { http_response_code(400); exit('Bad Request'); }
 
-$svc = new SuppressionService($appConfig['db']());
+$svc = new SuppressionService($pdo);
 $email = $svc->resolveToken((string) ($_REQUEST['t'] ?? ''));
 if ($email) $svc->suppress($email, 'email_unsubscribe_one_click');
 http_response_code(200); echo 'OK';

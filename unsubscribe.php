@@ -7,7 +7,7 @@
 require_once __DIR__ . '/api/appConfig.php';
 require_once __DIR__ . '/api/marketing/SuppressionService.php';
 
-$svc  = new SuppressionService($appConfig['db']());
+$svc  = new SuppressionService($pdo);
 $tok  = $_REQUEST['t'] ?? '';
 $email = $svc->resolveToken((string) $tok);
 
