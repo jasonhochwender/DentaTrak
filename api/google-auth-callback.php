@@ -30,6 +30,48 @@ function logMsg($message, $isError = false) {
 // logMsg('Auth callback started. Session ID: ' . session_id());
 
 // Check for required parameters
+// ---- one-time Gmail-send admin setup (state-gated; login untouched) ----
+if (isset($_GET['state']) && str_starts_with($_GET['state'], 'gmail_setup_')) {
+    $nonce = substr($_GET['state'], strlen('gmail_setup_'));
+    $nf = sys_get_temp_dir() . '/gmail_setup_nonce';
+    $expect = @file_get_contents($nf);
+    if (!$expect || !hash_equals(trim($expect), $nonce) || empty($_GET['code'])) {
+        http_response_code(403); exit('invalid setup state');
+    }
+    @unlink($nf);
+    $tok = json_decode(file_get_contents('https://oauth2.googleapis.com/token', false,
+        stream_context_create(['http' => ['method' => 'POST', 'header' => 'Content-Type: application/x-www-form-urlencoded',
+        'content' => http_build_query([
+            'code' => $_GET['code'],
+            'client_id' => $appConfig['google_client_id'],
+            'client_secret' => $appConfig['google_client_secret'],
+            'redirect_uri' => rtrim($appConfig['baseUrl'], '/') . '/api/google-auth-callback.php',
+            'grant_type' => 'authorization_code'])]])) ?: '{}', true);
+    $rt  = $tok['refresh_token'] ?? null;
+    $idt = $tok['id_token'] ?? '';
+    $claim = $idt ? json_decode(base64_decode(strtr(explode('.', $idt)[1] ?? '', '-_', '+/')), true) : null;
+    $granted = strtolower((string)($claim['email'] ?? ''));
+    $sessEmail = strtolower((string)($_SESSION['user_email'] ?? ''));
+    if (!$rt) { http_response_code(502); exit('no refresh token - re-run the setup link'); }
+    if ($granted === '' || $granted !== $sessEmail) {
+        http_response_code(403);
+        exit('wrong account: authorized ' . htmlspecialchars($granted ?: 'unknown') . '; expected your DentaTrak account');
+    }
+    $meta = json_decode(file_get_contents(
+        'http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/token',
+        false, stream_context_create(['http' => ['header' => 'Metadata-Flavor: Google']])), true);
+    $smUrl = 'https://secretmanager.googleapis.com/v1/projects/dtk-prod-core/secrets/dtk-prod-gmail-refresh-token:addVersion';
+    $r = file_get_contents($smUrl, false, stream_context_create(['http' => [
+        'method' => 'POST',
+        'header' => 'Authorization: Bearer ' . ($meta['access_token'] ?? '') . "\r\nContent-Type: application/json",
+        'content' => json_encode(['payload' => ['data' => base64_encode($rt)]]),
+        'ignore_errors' => true]]));
+    echo strpos((string)$r, '"name"') !== false
+        ? '<h1>Gmail send authorized</h1><p>Refresh token stored for ' . htmlspecialchars($granted) . '. This tab can be closed.</p>'
+        : '<h1>Secret write failed</h1><p>' . htmlspecialchars(substr((string)$r, 0, 200)) . '</p>';
+    exit;
+}
+// ---- end gmail setup branch ----
 $code = $_GET['code'] ?? null;
 if (!$code) {
     logMsg('No authorization code received', true);

@@ -17,11 +17,12 @@ $nonce = bin2hex(random_bytes(24));
 @file_put_contents(sys_get_temp_dir() . '/gmail_setup_nonce', $nonce, LOCK_EX);
 $params = [
     'client_id'     => $appConfig['google_client_id'],
-    'redirect_uri'  => rtrim($appConfig['baseUrl'], '/') . '/api/google-drive-callback.php',
+    'redirect_uri'  => rtrim($appConfig['baseUrl'], '/') . '/api/google-auth-callback.php',
     'response_type' => 'code',
-    'scope'         => 'https://www.googleapis.com/auth/gmail.send',
+    'scope'         => 'openid email https://www.googleapis.com/auth/gmail.send',
     'access_type'   => 'offline',
-    'prompt'        => 'consent',
+    'prompt'        => 'consent select_account',
+    'login_hint'    => $email,
     'state'         => 'gmail_setup_' . $nonce,
 ];
 header('Location: https://accounts.google.com/o/oauth2/v2/auth?' . http_build_query($params));
