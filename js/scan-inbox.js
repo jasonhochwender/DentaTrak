@@ -754,6 +754,7 @@
           first: scan.patientFirstName || '',
           last: scan.patientLastName || '',
           dob: scan.patientDob || '',
+          gender: scan.patientGender || '',
           instructions: scan.instructions || '',
           orderItems: scan.orderItems || [],
         };
@@ -774,6 +775,15 @@
           setFieldValue('patientFirstName', pendingScanDefaults.first);
           setFieldValue('patientLastName', pendingScanDefaults.last);
           setFieldValue('patientDOB', pendingScanDefaults.dob);
+          // Gender: only documented Male/Female values the form supports;
+          // anything else stays blank for the user to pick.
+          if (pendingScanDefaults.gender === 'Male' || pendingScanDefaults.gender === 'Female') {
+            var gs = document.getElementById('patientGender');
+            if (gs && !gs.value) {
+              gs.value = pendingScanDefaults.gender;
+              gs.dispatchEvent(new Event('change', { bubbles: true }));
+            }
+          }
           if (pendingScanDefaults.instructions) {
             var notes = document.getElementById('notes');
             if (notes && !notes.value) {

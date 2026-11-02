@@ -143,12 +143,12 @@ class ScanIngestion {
             INSERT IGNORE INTO scanner_incoming_scans
                 (practice_id, connection_id, vendor, source_account, remote_ref,
                  external_scan_id, external_patient_ref,
-                 patient_first_name, patient_last_name, patient_dob,
+                 patient_first_name, patient_last_name, patient_dob, patient_gender,
                  scan_at, instructions, order_items, status, is_synthetic, dedup_key)
             VALUES
                 (:practice_id, :connection_id, :vendor, :source_account, :remote_ref,
                  :external_scan_id, :external_patient_ref,
-                 :patient_first_name, :patient_last_name, :patient_dob,
+                 :patient_first_name, :patient_last_name, :patient_dob, :patient_gender,
                  :scan_at, :instructions, :order_items, :status, :is_synthetic, :dedup_key)
         ");
         $stmt->execute([
@@ -162,6 +162,7 @@ class ScanIngestion {
             ':patient_first_name'   => self::encryptField($payload['patient_first_name'] ?? null),
             ':patient_last_name'    => self::encryptField($payload['patient_last_name'] ?? null),
             ':patient_dob'          => self::encryptField(self::normalizeDate($payload['patient_dob'] ?? null)),
+            ':patient_gender'       => self::encryptField($payload['patient_gender'] ?? null),
             ':scan_at'              => self::normalizeDateTime($payload['scan_at'] ?? null),
             ':instructions'         => self::encryptField(self::sanitizeInstructions($payload['instructions'] ?? null)),
             ':order_items'          => self::encryptField(
@@ -195,6 +196,13 @@ class ScanIngestion {
             $setOrder = $orderItemsPresent
                 ? ",\n                    order_items  = :order_items,\n                    instructions = :instructions_set"
                 : '';
+            // patient_dob/patient_gender are authoritative only when the
+            // connector actually resolved the patient resource; a failed
+            // or ambiguous lookup preserves the stored values (COALESCE).
+            $patientResolved = !empty($payload['patient_resolved']);
+            if ($patientResolved) {
+                $setOrder .= ",\n                    patient_dob = :dob_set,\n                    patient_gender = :gender_set";
+            }
             $params = [
                 ':patient_ref'  => self::boundedStr($payload['external_patient_ref'] ?? null, 128),
                 ':first_name'   => self::encryptField($payload['patient_first_name'] ?? null),
@@ -209,6 +217,10 @@ class ScanIngestion {
                     is_array($payload['order_items']) && $payload['order_items'] !== []
                         ? json_encode($payload['order_items']) : null);
                 $params[':instructions_set'] = self::encryptField(self::sanitizeInstructions($payload['instructions'] ?? null));
+            }
+            if ($patientResolved) {
+                $params[':dob_set'] = self::encryptField(self::normalizeDate($payload['patient_dob'] ?? null));
+                $params[':gender_set'] = self::encryptField($payload['patient_gender'] ?? null);
             }
             $pdo->prepare("
                 UPDATE scanner_incoming_scans

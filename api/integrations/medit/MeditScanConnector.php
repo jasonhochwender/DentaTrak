@@ -137,7 +137,7 @@ class MeditScanConnector implements ScannerConnectorInterface {
                 if ($uuid === '' || strlen($uuid) > 64) {
                     continue;
                 }
-                $payloads[] = $this->normalizeCase($client->getCase($uuid));
+                $payloads[] = $this->normalizeCase($client->getCase($uuid), null, $client);
             }
             return $payloads;
         }
@@ -171,7 +171,7 @@ class MeditScanConnector implements ScannerConnectorInterface {
                 // files[] only exists on the detail response - one
                 // documented call per case inside the window.
                 $detail = $client->getCase($uuid);
-                $pagePayloads[] = $this->normalizeCase($detail, $caseSummary);
+                $pagePayloads[] = $this->normalizeCase($detail, $caseSummary, $client);
             }
 
             $nextToken = (!$result['last'] && count($result['content']) > 0)
@@ -486,7 +486,7 @@ class MeditScanConnector implements ScannerConnectorInterface {
      * optional fallback - the detail response normally carries the same
      * fields.
      */
-    private function normalizeCase(array $detail, ?array $summary = null): array {
+    private function normalizeCase(array $detail, ?array $summary = null, ?MeditClient $client = null): array {
         $uuid = trim((string)($detail['uuid'] ?? $summary['uuid'] ?? ''));
         $patient = isset($detail['patient']) && is_array($detail['patient'])
             ? $detail['patient']
@@ -570,19 +570,92 @@ class MeditScanConnector implements ScannerConnectorInterface {
         }
         $instructions = $instructionLines ? "Medit order details:\n" . implode("\n", $instructionLines) : null;
 
+        $patientExtra = $this->patientEnrich($client, $patientCode);
+
         return [
             'remote_ref'           => 'medit://case/' . rawurlencode($uuid),
             'external_scan_id'     => $uuid,
             'external_patient_ref' => $patientCode,
             'patient_first_name'   => $first,
             'patient_last_name'    => $last,
-            'patient_dob'          => null, // not supplied by Medit case detail
+            'patient_dob'          => $patientExtra['patient_dob'],
+            'patient_gender'       => $patientExtra['patient_gender'],
+            'patient_resolved'     => $patientExtra['patient_resolved'],
             'scan_at'              => $scanAt,
             'instructions'         => $instructions,
             'order_items'          => $orderItems,
             'reconcile_files'      => true, // detail response is the authoritative full file list
             'files'                => $files,
         ];
+    }
+
+    /**
+     * Resolve the case's patient.code to a patient resource via the
+     * documented /v1/patients/search (PATIENT scope, section 1.1.2).
+     * The search is partial-match: only an EXACT, UNAMBIGUOUS code match
+     * is used - zero or multiple matches leave fields blank. Any API
+     * failure (missing scope, endpoint denied) returns blanks and never
+     * fails the scan.
+     */
+    private function patientEnrich(?MeditClient $client, ?string $patientCode): array {
+        $out = ['patient_dob' => null, 'patient_gender' => null, 'patient_resolved' => false];
+        if ($client === null || $patientCode === null || $patientCode === '') {
+            return $out;
+        }
+        try {
+            $res = $client->searchPatients($patientCode);
+        } catch (Throwable $e) {
+            return $out;
+        }
+        // The list can arrive under any documented envelope; find the
+        // first array-of-objects field.
+        $candidates = [];
+        foreach (['content', 'items', 'patients', 'data', 'results'] as $k) {
+            if (isset($res[$k]) && is_array($res[$k])) { $candidates = $res[$k]; break; }
+        }
+        if (!$candidates && is_array($res) && array_keys($res) === range(0, count($res) - 1)) {
+            $candidates = $res;
+        }
+        $exact = [];
+        foreach ($candidates as $p) {
+            if (is_array($p) && (string)($p['code'] ?? '') === $patientCode) {
+                $exact[] = $p;
+            }
+        }
+        if (count($exact) !== 1) {
+            return $out; // ambiguous or absent - never guess
+        }
+        $p = $exact[0];
+        $out['patient_dob'] = self::parseBirthDay($p['birthDay'] ?? $p['birthday'] ?? $p['dateOfBirth'] ?? null);
+        $out['patient_gender'] = self::mapGender($p['gender'] ?? $p['sex'] ?? null);
+        $out['patient_resolved'] = true;
+        return $out;
+    }
+
+    /**
+     * birthDay per the guide: example shows YYYYMMDD, description says
+     * YYYY-MM-DD - accept both explicitly; anything else stays blank.
+     * Pure calendar-date handling, no timezone conversion.
+     */
+    private static function parseBirthDay($value): ?string {
+        $v = trim((string)($value ?? ''));
+        if (preg_match('/^(\d{4})-(\d{2})-(\d{2})$/', $v, $m)) {
+            $y = $m[1]; $mo = $m[2]; $d = $m[3];
+        } elseif (preg_match('/^(\d{4})(\d{2})(\d{2})$/', $v, $m)) {
+            $y = $m[1]; $mo = $m[2]; $d = $m[3];
+        } else {
+            return null;
+        }
+        return checkdate((int)$mo, (int)$d, (int)$y) ? "$y-$mo-$d" : null;
+    }
+
+    /** Documented gender values -> the form's Male/Female; unknown stays blank. */
+    private static function mapGender($value): ?string {
+        switch (strtoupper(trim((string)($value ?? '')))) {
+            case 'MALE': case 'M': return 'Male';
+            case 'FEMALE': case 'F': return 'Female';
+        }
+        return null;
     }
 
     /** FDI tooth number -> Universal (1-32); null when out of range. */

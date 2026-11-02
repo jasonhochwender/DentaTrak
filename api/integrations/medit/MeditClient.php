@@ -173,6 +173,15 @@ class MeditClient {
     }
 
     /**
+     * GET /v1/patients/search - documented patient search (PATIENT scope,
+     * section 1.1.2). Partial matching: callers must require an EXACT
+     * code match and never take the first result blindly.
+     */
+    public function searchPatients(string $code): array {
+        return $this->apiGetJson('/v1/patients/search', ['code' => $code], false);
+    }
+
+    /**
      * GET /v1/files/{fileUuid}?type={convert} - returns the documented
      * presigned-download descriptor: url, downloadFileName, items[]
      * (name/size/hashValue/hashAlgorithm), dateExpired. $type is one of

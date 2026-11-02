@@ -276,6 +276,7 @@ class ScanInbox {
             'patientFirstName'   => ScanIngestion::decryptField($row['patient_first_name']),
             'patientLastName'    => ScanIngestion::decryptField($row['patient_last_name']),
             'patientDob'         => ScanIngestion::decryptField($row['patient_dob']),
+            'patientGender'      => ScanIngestion::decryptField($row['patient_gender'] ?? null),
             'scanAt'             => $row['scan_at'],
             'instructions'       => ScanIngestion::decryptField($row['instructions']),
             'orderItems'         => (function () use ($row) {
