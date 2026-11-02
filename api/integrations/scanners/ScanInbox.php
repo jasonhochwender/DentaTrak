@@ -30,8 +30,11 @@
 require_once __DIR__ . '/ScanIngestion.php';
 require_once __DIR__ . '/ScanFileStore.php';
 require_once __DIR__ . '/ScannerConnectorInterface.php';
+require_once __DIR__ . '/SimulatedScannerConnector.php';
 require_once __DIR__ . '/../../cases-cache.php';
 require_once __DIR__ . '/../../practice-security.php';
+require_once __DIR__ . '/../DsCoreConfig.php';
+require_once __DIR__ . '/../MeditConfig.php';
 
 class ScanInbox {
 
@@ -175,6 +178,53 @@ class ScanInbox {
             return null;
         }
         return $raw . ($endOfDay ? ' 23:59:59' : ' 00:00:00');
+    }
+
+    /**
+     * Lightweight tab summary for the badge/visibility endpoint: total
+     * retained records, the practice-wide Needs-attention count (same
+     * definition as the inbox view), and whether any scanner connection
+     * is usable for this practice. Cheaper than a full list - no file
+     * decryption, no vendor calls.
+     */
+    public static function summaryForPractice(PDO $pdo, int $practiceId): array {
+        $counts = self::viewCounts($pdo, $practiceId);
+        return [
+            'records'   => $counts['all'],
+            'attention' => $counts['attention'],
+            'connected' => self::hasUsableConnection($pdo, $practiceId),
+        ];
+    }
+
+    /**
+     * True when at least one scanner connection is connected-enough to
+     * justify the tab for this practice. Provider-aware: the vendor must
+     * be enabled AND the practice allowed AND the connection status must
+     * not be an explicit disconnect. 'error'/'reconnect_required' still
+     * count - expired authorization must not hide existing work.
+     */
+    public static function hasUsableConnection(PDO $pdo, int $practiceId): bool {
+        $providers = [];
+        if (isFeatureEnabled('MEDIT_CONNECT') && MeditConfig::isPracticeAllowed($practiceId)) {
+            $providers[] = 'medit';
+        }
+        if (isFeatureEnabled('DS_CORE_CONNECT') && DsCoreConfig::isPracticeAllowed($practiceId)) {
+            $providers[] = 'ds_core';
+        }
+        if (SimulatedScannerConnector::isAvailable()) {
+            $providers[] = SimulatedScannerConnector::VENDOR;
+        }
+        if (!$providers) {
+            return false;
+        }
+        $in = implode(',', array_fill(0, count($providers), '?'));
+        $stmt = $pdo->prepare("
+            SELECT COUNT(*) FROM integration_connections
+            WHERE practice_id = ? AND provider IN ($in)
+              AND status IN ('active','error','reconnect_required')");
+        $params = array_merge([$practiceId], $providers);
+        $stmt->execute($params);
+        return (int)$stmt->fetchColumn() > 0;
     }
 
     /** Per-view totals for tab badges. */

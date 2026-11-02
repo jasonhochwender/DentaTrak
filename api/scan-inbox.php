@@ -104,6 +104,17 @@ if ($method === 'POST' && !canEditCases($currentPracticeId)) {
 // -------------------------------------------------------------------------
 if ($method === 'GET') {
     $action = $_GET['action'] ?? 'list';
+    if ($action === 'summary') {
+        // Lightweight tab-visibility/badge summary. Permission-checked
+        // above; returns nothing else - never leaks scan contents.
+        $sum = ScanInbox::summaryForPractice($pdo, (int)$currentPracticeId);
+        echo json_encode([
+            'success'   => true,
+            'visible'   => $sum['connected'] || $sum['records'] > 0,
+            'attention' => $sum['attention'],
+        ]);
+        exit;
+    }
     if ($action === 'list') {
         // Legacy toggle still maps onto the view model; the filtered UI
         // sends explicit view/filter params. q/vendor/date params narrow

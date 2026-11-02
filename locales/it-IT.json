@@ -6437,6 +6437,7 @@
         "dismissed_toast": "Scansione ignorata.",
             "resync": "Sincronizza da Medit",
             "resync_done": "Scansione aggiornata da Medit.",
+            "attention_badge_label": "{count} scansioni richiedono attenzione",
         "restored_toast": "Scansione ripristinata nella posta in arrivo.",
         "retry_started": "Nuovo tentativo avviato.",
         "error_not_found": "Scansione non trovata",

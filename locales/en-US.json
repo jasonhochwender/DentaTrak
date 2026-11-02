@@ -6437,6 +6437,7 @@
         "dismissed_toast": "Scan dismissed.",
             "resync": "Sync from Medit",
             "resync_done": "Scan refreshed from Medit.",
+            "attention_badge_label": "{count} scans need attention",
         "restored_toast": "Scan restored to the inbox.",
         "retry_started": "Retry started.",
         "error_not_found": "Scan not found",

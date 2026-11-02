@@ -630,3 +630,25 @@ body.dark-mode .scan-file-role {
 }
 .scan-case-link:hover { text-decoration: underline; }
 .scan-case-link:focus-visible { outline: 2px solid var(--primary-light, #2563eb); outline-offset: 2px; border-radius: 4px; }
+
+/* Needs-attention count badge on the main Incoming Scans tab. */
+.scan-attention-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  margin-left: 6px;
+  padding: 0 5px;
+  border-radius: 9px;
+  background: var(--color-error, #dc2626);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
+  vertical-align: middle;
+}
+.scan-attention-badge[hidden] { display: none; }
+@media (max-width: 640px) {
+  .scan-attention-badge { min-width: 16px; height: 16px; font-size: 10px; margin-left: 4px; padding: 0 4px; }
+}

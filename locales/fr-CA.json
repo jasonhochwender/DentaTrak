@@ -6437,6 +6437,7 @@
         "dismissed_toast": "Numérisation ignorée.",
             "resync": "Synchroniser depuis Medit",
             "resync_done": "Analyse actualisée depuis Medit.",
+            "attention_badge_label": "{count} analyses nécessitent attention",
         "restored_toast": "Numérisation restaurée dans la boîte de réception.",
         "retry_started": "Nouvelle tentative lancée.",
         "error_not_found": "Numérisation introuvable",

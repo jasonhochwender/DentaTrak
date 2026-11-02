@@ -6437,6 +6437,7 @@
         "dismissed_toast": "Скан отклонён.",
             "resync": "Синхронизировать из Medit",
             "resync_done": "Скан обновлён из Medit.",
+            "attention_badge_label": "Сканов требует внимания: {count}",
         "restored_toast": "Скан восстановлен во входящих.",
         "retry_started": "Повторная попытка начата.",
         "error_not_found": "Скан не найден",

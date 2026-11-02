@@ -6437,6 +6437,7 @@
         "dismissed_toast": "Digitalização descartada.",
             "resync": "Sincronizar do Medit",
             "resync_done": "Digitalização atualizada do Medit.",
+            "attention_badge_label": "{count} digitalizações precisam de atenção",
         "restored_toast": "Digitalização restaurada na caixa de entrada.",
         "retry_started": "Nova tentativa iniciada.",
         "error_not_found": "Digitalização não encontrada",

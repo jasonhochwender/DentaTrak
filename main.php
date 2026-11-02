@@ -329,6 +329,19 @@ require_once __DIR__ . '/api/integrations/DsCoreConfig.php';
 require_once __DIR__ . '/api/integrations/MeditConfig.php';
 require_once __DIR__ . '/api/integrations/scanners/SimulatedScannerConnector.php';
 $showScannerInbox = userCanAccessScanInbox((int)$currentPracticeId);
+// Tab visibility needs provider-aware connection state + retained record
+// presence (incl. linked/dismissed). The button renders hidden when the
+// inbox isn't applicable and the JS summary poller can reveal/hide it.
+$scannerInboxSummary = ['records' => 0, 'attention' => 0, 'connected' => false];
+if ($showScannerInbox) {
+    require_once __DIR__ . '/api/integrations/scanners/ScanInbox.php';
+    try {
+        $scannerInboxSummary = ScanInbox::summaryForPractice($pdo, (int)$currentPracticeId);
+    } catch (Throwable $e) {
+        $scannerInboxSummary = ['records' => 0, 'attention' => 0, 'connected' => false];
+    }
+}
+$scannerTabVisible = $showScannerInbox && ($scannerInboxSummary['connected'] || $scannerInboxSummary['records'] > 0);
 
 // Settings > Integrations visibility: the PMS provider cards stay behind
 // SHOW_PMS_INTEGRATIONS, but the informational "Scanner integrations"
@@ -1158,7 +1171,7 @@ endif;
       <div class="main-tabs">
         <button type="button" class="main-tab active" data-tab="cases"><?php echo t('navigation.cases'); ?></button>
         <?php if ($showScannerInbox): ?>
-        <button type="button" class="main-tab" data-tab="incoming-scans"><?php echo t('scanner.tab_title'); ?></button>
+        <button type="button" class="main-tab" id="incomingScansTab" data-tab="incoming-scans"<?= $scannerTabVisible ? '' : ' hidden' ?>><?php echo t('scanner.tab_title'); ?><span id="scanAttentionBadge" class="scan-attention-badge"<?= ($scannerTabVisible && $scannerInboxSummary['attention'] > 0) ? '' : ' hidden' ?> aria-label="<?= htmlspecialchars(str_replace('{count}', (string)$scannerInboxSummary['attention'], t('scanner.attention_badge_label'))) ?>"><?= (int)$scannerInboxSummary['attention'] ?></span></button>
         <?php endif; ?>
         <?php if ($userCanViewAnalytics || $orgInsightsEligible): ?>
         <button type="button" class="main-tab" data-tab="insights"><?= t('navigation.insights') ?></button>

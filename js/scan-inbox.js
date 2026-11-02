@@ -106,6 +106,62 @@
     });
   }
 
+  var scanTabPollTimer = null;
+  var scanTabBackoff = 1;
+
+  function updateScanBadge(attention) {
+    var badge = document.getElementById('scanAttentionBadge');
+    if (!badge) return;
+    var n = parseInt(attention, 10) || 0;
+    if (n > 0) {
+      badge.hidden = false;
+      badge.textContent = n;
+      badge.setAttribute('aria-label', tt('scanner.attention_badge_label', { count: n }));
+      badge.setAttribute('title', tt('scanner.attention_badge_label', { count: n }));
+    } else {
+      badge.hidden = true;
+    }
+  }
+
+  function applyScanTabVisibility(visible) {
+    var tab = document.getElementById('incomingScansTab');
+    if (!tab) return;
+    tab.hidden = !visible;
+    // The tab vanished while selected: return to Cases cleanly.
+    if (!visible && tab.classList.contains('active')) {
+      var casesTab = document.querySelector('.main-tab[data-tab="cases"]');
+      if (casesTab) casesTab.click();
+    }
+  }
+
+  function pollScanTabSummary() {
+    if (scanTabPollTimer) { clearTimeout(scanTabPollTimer); scanTabPollTimer = null; }
+    if (document.visibilityState !== 'visible') {
+      scanTabPollTimer = setTimeout(pollScanTabSummary, 60000);
+      return;
+    }
+    api('summary', null).then(function (data) {
+      scanTabBackoff = 1;
+      if (data && data.success) {
+        applyScanTabVisibility(!!data.visible);
+        if (data.visible) updateScanBadge(data.attention);
+      }
+    }).catch(function () {
+      // A failed summary is never "zero records" - just back off.
+      scanTabBackoff = Math.min(scanTabBackoff * 2, 8);
+    }).finally(function () {
+      scanTabPollTimer = setTimeout(pollScanTabSummary, 60000 * scanTabBackoff);
+    });
+  }
+
+  document.addEventListener('visibilitychange', function () {
+    if (document.visibilityState === 'visible') {
+      scanTabBackoff = 1;
+      pollScanTabSummary();
+    }
+  });
+  setTimeout(pollScanTabSummary, 4000);
+
   function showToastSafe(message, type) {
     if (typeof showToast === 'function') {
       showToast(message, type || 'info');
@@ -133,6 +189,7 @@
     toolbarEl.textContent = '';
 
     var counts = (lastData && lastData.counts) || { attention: 0, linked: 0, dismissed: 0, all: 0 };
+    updateScanBadge(counts.attention);
     var tabs = el('div', 'scan-inbox-tabs');
     tabs.setAttribute('role', 'tablist');
     VIEWS.forEach(function (view) {

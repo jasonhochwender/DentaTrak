@@ -6437,6 +6437,7 @@
         "dismissed_toast": "Escaneo descartado.",
             "resync": "Sincronizar desde Medit",
             "resync_done": "Escaneo actualizado desde Medit.",
+            "attention_badge_label": "{count} escaneos necesitan atención",
         "restored_toast": "Escaneo restaurado a la bandeja.",
         "retry_started": "Reintento iniciado.",
         "error_not_found": "Escaneo no encontrado",
