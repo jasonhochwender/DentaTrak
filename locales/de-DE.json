@@ -3225,7 +3225,8 @@
             },
             "medit": {
                 "reconnect_hint": "Die Medit-Link-Verbindung ist abgelaufen – verbinden Sie sie erneut, um den Scan-Import fortzusetzen.",
-                "not_configured": "Der Server ist nicht für Medit Link konfiguriert."
+                "not_configured": "Der Server ist nicht für Medit Link konfiguriert.",
+                "oauth_error": "Die Medit-Link-Verbindung konnte nicht hergestellt werden. Bitte versuchen Sie es erneut."
             }
         }
     },

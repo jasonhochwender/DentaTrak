@@ -1610,7 +1610,8 @@
             },
             "medit": {
                 "reconnect_hint": "La conexión de Medit Link ha caducado; vuelva a conectarla para reanudar la importación de escaneos.",
-                "not_configured": "El servidor no está configurado para Medit Link."
+                "not_configured": "El servidor no está configurado para Medit Link.",
+                "oauth_error": "No se pudo completar la conexión con Medit Link. Inténtelo de nuevo."
             }
         }
     },

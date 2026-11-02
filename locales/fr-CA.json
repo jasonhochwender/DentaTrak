@@ -1602,7 +1602,8 @@
             },
             "medit": {
                 "reconnect_hint": "La connexion Medit Link a expiré ; reconnectez-la pour reprendre l’importation des scans.",
-                "not_configured": "Le serveur n’est pas configuré pour Medit Link."
+                "not_configured": "Le serveur n’est pas configuré pour Medit Link.",
+                "oauth_error": "La connexion Medit Link n’a pas abouti. Veuillez réessayer."
             }
         }
     },

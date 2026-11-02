@@ -4348,6 +4348,7 @@ endif;
                           var statusLabels = {
                             connected: <?php echo json_encode(t('settings.integrations.status.connected')); ?>,
                             disconnected: <?php echo json_encode(t('settings.integrations.status.not_connected')); ?>,
+                            unconfigured: <?php echo json_encode(t('settings.integrations.status.not_connected')); ?>,
                             unavailable: <?php echo json_encode(t('settings.integrations.status.not_connected')); ?>
                           };
                           function paint(state, serverConfigured) {
@@ -4400,6 +4401,7 @@ endif;
                           var statusLabels = {
                             connected: <?php echo json_encode(t('settings.integrations.status.connected')); ?>,
                             disconnected: <?php echo json_encode(t('settings.integrations.status.not_connected')); ?>,
+                            unconfigured: <?php echo json_encode(t('settings.integrations.status.not_connected')); ?>,
                             reconnect_required: <?php echo json_encode(t('settings.integrations.status.reconnect_required')); ?>,
                             unavailable: <?php echo json_encode(t('settings.integrations.status.not_connected')); ?>
                           };
@@ -4411,6 +4413,8 @@ endif;
                             if (state === 'reconnect_required') msg.textContent = <?php echo json_encode(t('settings.integrations.medit.reconnect_hint')); ?>;
                             else if (!serverConfigured) msg.textContent = <?php echo json_encode(t('settings.integrations.medit.not_configured')); ?>;
                           }
+                          var qm = new URLSearchParams(window.location.search).get('medit');
+                          if (qm === 'error') { msg.textContent = <?php echo json_encode(t('settings.integrations.medit.oauth_error')); ?>; }
                           fetch('api/medit-auth.php?action=status', { credentials: 'same-origin' })
                             .then(function (r) { return r.json(); })
                             .then(function (d) { if (d && d.success) paint(d.state, d.server_configured); })

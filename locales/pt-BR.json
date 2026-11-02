@@ -5423,7 +5423,8 @@
             },
             "medit": {
                 "reconnect_hint": "A conexão com o Medit Link expirou; reconecte-a para retomar a importação de digitalizações.",
-                "not_configured": "O servidor não está configurado para o Medit Link."
+                "not_configured": "O servidor não está configurado para o Medit Link.",
+                "oauth_error": "Não foi possível concluir a conexão Medit Link. Tente novamente."
             }
         }
     },

@@ -1610,7 +1610,8 @@
             },
             "medit": {
                 "reconnect_hint": "Medit Link 연결이 만료되었습니다. 스캔 가져오기를 계속하려면 다시 연결하세요.",
-                "not_configured": "서버가 Medit Link용으로 구성되지 않았습니다."
+                "not_configured": "서버가 Medit Link용으로 구성되지 않았습니다.",
+                "oauth_error": "Medit Link 연결을 완료할 수 없습니다. 다시 시도해 주세요."
             }
         }
     },

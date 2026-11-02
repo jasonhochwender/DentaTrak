@@ -257,6 +257,7 @@ class MeditAuthService {
         } catch (MeditAuthException $e) {
             // Failed exchange: attempt is consumed either way - a code can
             // only be redeemed once upstream too, so retry must re-begin.
+            error_log('[medit-callback] exchange_failed: ' . $e->category . ' ' . $e->getMessage());
             $this->markExchangeFailed($pdo, (int)$attempt['practice_id']);
             return ['result' => 'exchange_failed', 'connection_id' => null];
         }
@@ -269,6 +270,7 @@ class MeditAuthService {
         try {
             $identity = $this->fetchIdentity($tokens['access_token']);
         } catch (MeditAuthException $e) {
+            error_log('[medit-callback] identity_failed: ' . $e->category . ' ' . $e->getMessage());
             $this->markExchangeFailed($pdo, (int)$attempt['practice_id']);
             return ['result' => 'exchange_failed', 'connection_id' => null];
         }
@@ -326,7 +328,7 @@ class MeditAuthService {
      */
     private function fetchIdentity(string $accessToken): array {
         $url = MeditConfig::resourceBaseUrl() . '/v1/me?schema=latest';
-        $headers = ['Content-Type: application/json', 'Authorization: Bearer ' . $accessToken];
+        $headers = ['Content-Type: application/json', 'Authorization: Bearer ' . $accessToken, 'x-meditlink-client-id: ' . MeditConfig::clientId()];
         $response = $this->transport !== null
             ? call_user_func($this->transport, 'GET', $url, $headers, null)
             : self::curlRequest('GET', $url, $headers, null);
