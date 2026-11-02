@@ -503,7 +503,13 @@ class MeditScanConnector implements ScannerConnectorInterface {
             }
             // Only scan geometry is ingestible - attached documents and
             // other file types stay out of the scan inbox by design.
-            if (strtoupper((string)($file['fileType'] ?? '')) !== 'SCAN_DATA') {
+            $fType = strtoupper((string)($file['fileType'] ?? ''));
+            $fName = (string)($file['name'] ?? '');
+            // SCAN_DATA is ingestible; a vendor-sourced .stl/.obj/.ply
+            // attachment (e.g. an imported STL dropped onto the case in
+            // the Medit desktop app) is accepted too. Any other file
+            // type or extension stays out by design.
+            if ($fType !== 'SCAN_DATA' && !preg_match('/\.(stl|obj|ply|meditMesh)$/i', $fName)) {
                 continue;
             }
             $fileUuid = trim((string)($file['uuid'] ?? ''));
