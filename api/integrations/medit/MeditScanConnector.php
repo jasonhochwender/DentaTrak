@@ -602,6 +602,11 @@ class MeditScanConnector implements ScannerConnectorInterface {
         if ($client === null || $patientCode === null || $patientCode === '') {
             return $out;
         }
+        // Skip the call entirely when the granted token lacks PATIENT -
+        // enrichment activates only after a reconnect that consented to it.
+        if (!$client->hasScope('PATIENT')) {
+            return $out;
+        }
         try {
             $res = $client->searchPatients($patientCode);
         } catch (Throwable $e) {

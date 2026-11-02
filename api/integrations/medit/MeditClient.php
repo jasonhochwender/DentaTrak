@@ -94,6 +94,8 @@ class MeditClient {
     private $transport;
     /** @var string|null group uuid bound at connect time */
     private $groupUuid;
+
+    private $grantedScope = null;
     /** @var int last resource-call microtime for throttle pacing */
     private $lastCallUs = 0;
 
@@ -170,6 +172,22 @@ class MeditClient {
             throw new MeditApiException('unexpected_response', 'Medit case files field was not an array.', true);
         }
         return $data;
+    }
+
+    /**
+     * True when the connection's granted token scope includes $scope.
+     * Reads the persisted token_scope once per client; the granted set
+     * is recorded at connect time, so PATIENT enrichment activates only
+     * after a reconnect that actually consented to it.
+     */
+    public function hasScope(string $scope): bool {
+        if ($this->grantedScope === null) {
+            $stmt = $this->pdo->prepare("SELECT JSON_UNQUOTE(JSON_EXTRACT(config_json, '$.token_scope')) FROM integration_connections WHERE id = :id");
+            $stmt->execute([':id' => $this->connectionId]);
+            $this->grantedScope = (string)($stmt->fetchColumn() ?: '');
+        }
+        return $this->grantedScope !== ''
+            && preg_match('/\b' . preg_quote(strtoupper($scope), '/') . '\b/i', $this->grantedScope) === 1;
     }
 
     /**
