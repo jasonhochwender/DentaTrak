@@ -743,7 +743,12 @@
       function () {
         pendingScanId = scan.id;
         pendingScanFiles = (scan.files || []).filter(function (f) {
-          return f && f.status === 'ready' && f.contentUrl;
+          return f && f.status === 'ready' && f.id;
+        }).map(function (f) {
+          var url = 'api/scan-file.php?file_id=' + encodeURIComponent(f.id);
+          f.contentUrl = f.contentUrl || url;
+          f.downloadUrl = f.downloadUrl || (url + '&download=1');
+          return f;
         });
         pendingScanDefaults = {
           first: scan.patientFirstName || '',
@@ -812,6 +817,19 @@
       viewLink.target = '_blank';
       viewLink.className = 'file-view-link';
       viewLink.textContent = tt('scanner.action_view') || 'View';
+      if (typeof window.isAttachmentViewable === 'function' && window.isAttachmentViewable(f.fileName)
+          && typeof window.openAttachmentViewer === 'function') {
+        viewLink.addEventListener('click', function (e) {
+          e.preventDefault();
+          var entry = {
+            fileName: f.fileName,
+            fileType: f.contentType || 'model/stl',
+            contentUrl: f.contentUrl,
+            downloadUrl: f.downloadUrl,
+          };
+          window.openAttachmentViewer(null, f.fileName, f.contentType || 'model/stl', [entry], entry);
+        });
+      }
 
       var dlLink = document.createElement('a');
       dlLink.href = f.downloadUrl || f.contentUrl;
