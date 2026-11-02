@@ -141,7 +141,7 @@
       scanTabPollTimer = setTimeout(pollScanTabSummary, 60000);
       return;
     }
-    api('summary', null).then(function (data) {
+    api('summary', null, 'GET').then(function (data) {
       scanTabBackoff = 1;
       if (data && data.success) {
         lastScanSummary = data;
