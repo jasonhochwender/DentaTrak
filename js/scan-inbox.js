@@ -108,6 +108,7 @@
 
   var scanTabPollTimer = null;
   var scanTabBackoff = 1;
+  var lastScanSummary = null;
 
   function updateScanBadge(attention) {
     var badge = document.getElementById('scanAttentionBadge');
@@ -143,6 +144,7 @@
     api('summary', null).then(function (data) {
       scanTabBackoff = 1;
       if (data && data.success) {
+        lastScanSummary = data;
         applyScanTabVisibility(!!data.visible);
         if (data.visible) updateScanBadge(data.attention);
       }
@@ -1039,6 +1041,13 @@
   // -------------------------------------------------------------------
 
   function init() {
+    // Badge bootstrap: apply a summary that landed before init ran,
+    // and start app-level polling here (timer-clear dedupes repeats).
+    if (lastScanSummary && lastScanSummary.success) {
+      applyScanTabVisibility(!!lastScanSummary.visible);
+      if (lastScanSummary.visible) updateScanBadge(lastScanSummary.attention);
+    }
+    pollScanTabSummary();
     listEl = document.getElementById('scanInboxList');
     if (!listEl) return;
     toolbarEl = document.getElementById('scanInboxToolbar');
