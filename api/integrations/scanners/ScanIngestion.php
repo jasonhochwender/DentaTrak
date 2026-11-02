@@ -144,12 +144,12 @@ class ScanIngestion {
                 (practice_id, connection_id, vendor, source_account, remote_ref,
                  external_scan_id, external_patient_ref,
                  patient_first_name, patient_last_name, patient_dob,
-                 scan_at, instructions, status, is_synthetic, dedup_key)
+                 scan_at, instructions, order_items, status, is_synthetic, dedup_key)
             VALUES
                 (:practice_id, :connection_id, :vendor, :source_account, :remote_ref,
                  :external_scan_id, :external_patient_ref,
                  :patient_first_name, :patient_last_name, :patient_dob,
-                 :scan_at, :instructions, :status, :is_synthetic, :dedup_key)
+                 :scan_at, :instructions, :order_items, :status, :is_synthetic, :dedup_key)
         ");
         $stmt->execute([
             ':practice_id'          => $practiceId,
@@ -164,6 +164,9 @@ class ScanIngestion {
             ':patient_dob'          => self::encryptField(self::normalizeDate($payload['patient_dob'] ?? null)),
             ':scan_at'              => self::normalizeDateTime($payload['scan_at'] ?? null),
             ':instructions'         => self::encryptField(self::sanitizeInstructions($payload['instructions'] ?? null)),
+            ':order_items'          => self::encryptField(
+                isset($payload['order_items']) && is_array($payload['order_items'])
+                    ? json_encode($payload['order_items']) : null),
             ':status'               => self::SCAN_RECEIVED,
             ':is_synthetic'         => !empty($context['is_synthetic']) ? 1 : 0,
             ':dedup_key'            => $dedupKey,
@@ -178,6 +181,33 @@ class ScanIngestion {
         if ($inserted) {
             self::recordEvent($pdo, $scanId, $practiceId, null, 'imported',
                 'vendor=' . $vendor . ' synthetic=' . (!empty($context['is_synthetic']) ? '1' : '0'));
+        } else {
+            // Dedup hit: refresh mutable descriptive fields the vendor may
+            // have populated since first ingest (order details, patient
+            // fields, instructions, scan time). Status, case linkage, and
+            // dismissal state are never touched by a re-ingest.
+            $pdo->prepare("
+                UPDATE scanner_incoming_scans
+                SET external_patient_ref = COALESCE(:patient_ref, external_patient_ref),
+                    patient_first_name   = COALESCE(:first_name, patient_first_name),
+                    patient_last_name    = COALESCE(:last_name, patient_last_name),
+                    patient_dob          = COALESCE(:dob, patient_dob),
+                    scan_at              = COALESCE(:scan_at, scan_at),
+                    instructions         = COALESCE(:instructions, instructions),
+                    order_items          = COALESCE(:order_items, order_items)
+                WHERE id = :id
+            ")->execute([
+                ':patient_ref'  => self::boundedStr($payload['external_patient_ref'] ?? null, 128),
+                ':first_name'   => self::encryptField($payload['patient_first_name'] ?? null),
+                ':last_name'    => self::encryptField($payload['patient_last_name'] ?? null),
+                ':dob'          => self::encryptField(self::normalizeDate($payload['patient_dob'] ?? null)),
+                ':scan_at'      => self::normalizeDateTime($payload['scan_at'] ?? null),
+                ':instructions' => self::encryptField(self::sanitizeInstructions($payload['instructions'] ?? null)),
+                ':order_items'  => self::encryptField(
+                    isset($payload['order_items']) && is_array($payload['order_items'])
+                        ? json_encode($payload['order_items']) : null),
+                ':id'           => $scanId,
+            ]);
         }
 
         // Upsert file rows. A new revision for a previously seen file is a

@@ -755,6 +755,7 @@
           last: scan.patientLastName || '',
           dob: scan.patientDob || '',
           instructions: scan.instructions || '',
+          orderItems: scan.orderItems || [],
         };
 
         var createBtn = document.querySelector('.create-case-button');
@@ -777,6 +778,36 @@
             var notes = document.getElementById('notes');
             if (notes && !notes.value) {
               notes.value = pendingScanDefaults.instructions;
+            }
+          }
+
+          // Treatment order prefill: only unambiguous, directly-mapped
+          // values are applied; per-tooth detail stays in instructions.
+          var items = pendingScanDefaults.orderItems || [];
+          if (items.length) {
+            var cats = items.map(function (i) { return (i.category || '').toLowerCase(); });
+            var allCrown = cats.length && cats.every(function (c) { return c === 'crown'; });
+            if (allCrown) {
+              var ct = document.getElementById('caseType');
+              if (ct && !ct.value) {
+                ct.value = 'Crown';
+                ct.dispatchEvent(new Event('change', { bubbles: true }));
+              }
+              var teeth = items.map(function (i) { return i.tooth_universal; }).filter(Boolean);
+              if (teeth.length) setFieldValue('clinicalToothNumber', teeth.join(', '));
+            }
+            var shades = items.map(function (i) { return i.shade || ''; });
+            if (shades.length && shades.every(function (s) { return s && s === shades[0]; })) {
+              setFieldValue('toothShade', shades[0]);
+            }
+            var mats = items.map(function (i) { return (i.material || '').toLowerCase(); });
+            var matMap = { zirconia: 'Zirconia', 'lithium disilicate': 'Lithium Disilicate', pfm: 'PFM', pfz: 'PFZ', '3d print': '3D Printed', '3d_print': '3D Printed' };
+            if (mats.length && mats.every(function (m) { return m === mats[0]; }) && matMap[mats[0]]) {
+              var sel = document.getElementById('material');
+              if (sel && !sel.value) {
+                sel.value = matMap[mats[0]];
+                sel.dispatchEvent(new Event('change', { bubbles: true }));
+              }
             }
           }
 

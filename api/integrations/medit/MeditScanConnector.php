@@ -536,17 +536,66 @@ class MeditScanConnector implements ScannerConnectorInterface {
             ];
         }
 
+        // Treatment order: formInformation.items[] carries per-tooth
+        // entries (category/method/material/shade, FDI toothNo). Preserved
+        // verbatim in order_items for structured prefill AND rendered into
+        // instructions as clearly labeled lines - FDI numbering kept with
+        // the Universal equivalent so nothing is silently converted.
+        $orderItems = [];
+        $formInfo = isset($detail['formInformation']) && is_array($detail['formInformation']) ? $detail['formInformation'] : [];
+        foreach (($formInfo['items'] ?? []) as $item) {
+            if (!is_array($item)) {
+                continue;
+            }
+            $tooth = isset($item['toothNo']) ? (int)$item['toothNo'] : null;
+            $orderItems[] = [
+                'tooth_fdi'       => $tooth,
+                'tooth_universal' => $tooth !== null ? self::fdiToUniversal($tooth) : null,
+                'category'        => self::bounded($item['categoryDisplayName'] ?? $item['category'] ?? null, 64),
+                'method'          => self::bounded($item['methodDisplayName'] ?? $item['method'] ?? null, 64),
+                'material'        => self::bounded($item['materialDisplayName'] ?? $item['material'] ?? null, 64),
+                'shade'           => self::bounded($item['shade'] ?? null, 32),
+            ];
+        }
+        $instructionLines = [];
+        foreach ($orderItems as $oi) {
+            $parts = array_filter([
+                $oi['category'], $oi['method'], $oi['material'],
+                $oi['shade'] !== null ? 'Shade ' . $oi['shade'] : null,
+            ]);
+            $label = $oi['tooth_fdi'] !== null
+                ? 'Tooth ' . $oi['tooth_fdi'] . ' (FDI' . ($oi['tooth_universal'] !== null ? ', #' . $oi['tooth_universal'] . ' US' : '') . ')'
+                : 'Item';
+            $instructionLines[] = $label . ': ' . implode(', ', $parts);
+        }
+        $instructions = $instructionLines ? "Medit order details:\n" . implode("\n", $instructionLines) : null;
+
         return [
             'remote_ref'           => 'medit://case/' . rawurlencode($uuid),
             'external_scan_id'     => $uuid,
             'external_patient_ref' => $patientCode,
             'patient_first_name'   => $first,
             'patient_last_name'    => $last,
-            'patient_dob'          => null,
+            'patient_dob'          => null, // not supplied by Medit case detail
             'scan_at'              => $scanAt,
-            'instructions'         => null,
+            'instructions'         => $instructions,
+            'order_items'          => $orderItems ?: null,
             'files'                => $files,
         ];
+    }
+
+    /** FDI tooth number -> Universal (1-32); null when out of range. */
+    private static function fdiToUniversal(int $fdi): ?int {
+        $q = intdiv($fdi, 10);
+        $t = $fdi % 10;
+        if ($t < 1 || $t > 8) return null;
+        switch ($q) {
+            case 1: return 9 - $t;   // 11-18 -> 8-1
+            case 2: return $t + 8;   // 21-28 -> 9-16
+            case 3: return 25 - $t;  // 31-38 -> 24-17
+            case 4: return $t + 24;  // 41-48 -> 25-32
+        }
+        return null;
     }
 
     /**

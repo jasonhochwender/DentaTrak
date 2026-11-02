@@ -278,6 +278,11 @@ class ScanInbox {
             'patientDob'         => ScanIngestion::decryptField($row['patient_dob']),
             'scanAt'             => $row['scan_at'],
             'instructions'       => ScanIngestion::decryptField($row['instructions']),
+            'orderItems'         => (function () use ($row) {
+                $raw = ScanIngestion::decryptField($row['order_items'] ?? null);
+                $decoded = $raw !== null ? json_decode($raw, true) : null;
+                return is_array($decoded) ? $decoded : [];
+            })(),
             'status'             => $row['status'],
             'errorCode'          => $row['error_code'],
             'caseId'             => $row['case_id'],
