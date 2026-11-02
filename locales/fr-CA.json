@@ -6435,6 +6435,8 @@
         "dismiss_title": "Ignorer la numérisation",
         "dismiss_confirm": "Masquer cette numérisation de la boîte de réception ? Rien n’est supprimé du système du scanner.",
         "dismissed_toast": "Numérisation ignorée.",
+            "resync": "Synchroniser depuis Medit",
+            "resync_done": "Analyse actualisée depuis Medit.",
         "restored_toast": "Numérisation restaurée dans la boîte de réception.",
         "retry_started": "Nouvelle tentative lancée.",
         "error_not_found": "Numérisation introuvable",

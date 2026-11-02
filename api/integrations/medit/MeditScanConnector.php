@@ -649,11 +649,16 @@ class MeditScanConnector implements ScannerConnectorInterface {
         return checkdate((int)$mo, (int)$d, (int)$y) ? "$y-$mo-$d" : null;
     }
 
-    /** Documented gender values -> the form's Male/Female; unknown stays blank. */
+    /**
+     * Documented gender values -> the form's Male/Female. The guide uses
+     * numerics (0 = unknown, 1 = male, 2 = female); text forms are
+     * accepted defensively. 0/anything unknown stays blank.
+     */
     private static function mapGender($value): ?string {
         switch (strtoupper(trim((string)($value ?? '')))) {
-            case 'MALE': case 'M': return 'Male';
-            case 'FEMALE': case 'F': return 'Female';
+            case '1': case 'MALE': case 'M': return 'Male';
+            case '2': case 'FEMALE': case 'F': return 'Female';
+            case '0': case 'UNKNOWN': return null;
         }
         return null;
     }

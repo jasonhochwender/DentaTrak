@@ -6435,6 +6435,8 @@
         "dismiss_title": "Dismiss scan",
         "dismiss_confirm": "Hide this scan from the inbox? Nothing is deleted from the scanner system.",
         "dismissed_toast": "Scan dismissed.",
+            "resync": "Sync from Medit",
+            "resync_done": "Scan refreshed from Medit.",
         "restored_toast": "Scan restored to the inbox.",
         "retry_started": "Retry started.",
         "error_not_found": "Scan not found",

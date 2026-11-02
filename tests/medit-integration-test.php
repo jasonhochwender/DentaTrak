@@ -423,3 +423,27 @@ try {
     echo "hash-parse regression error: " . $e->getMessage() . "\n";
     exit(1);
 }
+
+// Regression: documented numeric gender values + both birthDay formats.
+try {
+    $conn = new MeditScanConnector(null);
+    $mg = new ReflectionMethod($conn, 'mapGender');
+    $mg->setAccessible(true);
+    assertTrue($mg->invoke($conn, 1) === 'Male', 'gender 1 -> Male');
+    assertTrue($mg->invoke($conn, 2) === 'Female', 'gender 2 -> Female');
+    assertTrue($mg->invoke($conn, 0) === null, 'gender 0 -> blank (unknown)');
+    assertTrue($mg->invoke($conn, 'MALE') === 'Male', 'gender MALE -> Male');
+    assertTrue($mg->invoke($conn, 'FEMALE') === 'Female', 'gender FEMALE -> Female');
+    assertTrue($mg->invoke($conn, 'x') === null, 'unrecognized gender -> blank');
+    $pb = new ReflectionMethod($conn, 'parseBirthDay');
+    $pb->setAccessible(true);
+    assertTrue($pb->invoke($conn, '19900115') === '1990-01-15', 'birthDay YYYYMMDD -> Y-m-d');
+    assertTrue($pb->invoke($conn, '1990-01-15') === '1990-01-15', 'birthDay YYYY-MM-DD -> unchanged');
+    assertTrue($pb->invoke($conn, '19900230') === null, 'invalid calendar date -> null');
+    assertTrue($pb->invoke($conn, '15/01/1990') === null, 'non-documented format -> null');
+    echo "\n{$pass} passed, {$fail} failed\n";
+    exit($fail === 0 ? 0 : 1);
+} catch (Throwable $e) {
+    echo "gender/birthDay regression error: " . $e->getMessage() . "\n";
+    exit(1);
+}

@@ -6435,6 +6435,8 @@
         "dismiss_title": "Ignora scansione",
         "dismiss_confirm": "Nascondere questa scansione dalla posta in arrivo? Non viene eliminato nulla dal sistema dello scanner.",
         "dismissed_toast": "Scansione ignorata.",
+            "resync": "Sincronizza da Medit",
+            "resync_done": "Scansione aggiornata da Medit.",
         "restored_toast": "Scansione ripristinata nella posta in arrivo.",
         "retry_started": "Nuovo tentativo avviato.",
         "error_not_found": "Scansione non trovata",

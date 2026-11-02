@@ -6435,6 +6435,8 @@
         "dismiss_title": "Descartar digitalização",
         "dismiss_confirm": "Ocultar esta digitalização da caixa de entrada? Nada é excluído do sistema do scanner.",
         "dismissed_toast": "Digitalização descartada.",
+            "resync": "Sincronizar do Medit",
+            "resync_done": "Digitalização atualizada do Medit.",
         "restored_toast": "Digitalização restaurada na caixa de entrada.",
         "retry_started": "Nova tentativa iniciada.",
         "error_not_found": "Digitalização não encontrada",

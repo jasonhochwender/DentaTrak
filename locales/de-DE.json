@@ -6435,6 +6435,8 @@
         "dismiss_title": "Scan verwerfen",
         "dismiss_confirm": "Diesen Scan aus dem Posteingang ausblenden? Im Scannersystem wird nichts gelöscht.",
         "dismissed_toast": "Scan verworfen.",
+            "resync": "Aus Medit synchronisieren",
+            "resync_done": "Scan aus Medit aktualisiert.",
         "restored_toast": "Scan wurde im Posteingang wiederhergestellt.",
         "retry_started": "Wiederholung gestartet.",
         "error_not_found": "Scan nicht gefunden",

@@ -6435,6 +6435,8 @@
         "dismiss_title": "스캔 무시",
         "dismiss_confirm": "이 스캔을 받은 편지함에서 숨기시겠습니까? 스캐너 시스템에서는 아무것도 삭제되지 않습니다.",
         "dismissed_toast": "스캔을 무시했습니다.",
+            "resync": "Medit에서 동기화",
+            "resync_done": "Medit에서 스캔이 새로 고쳐졌습니다.",
         "restored_toast": "스캔이 받은 편지함에 복원되었습니다.",
         "retry_started": "다시 시도를 시작했습니다.",
         "error_not_found": "스캔을 찾을 수 없음",

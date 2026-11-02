@@ -237,6 +237,53 @@ switch ($action) {
         break;
     }
 
+    case 'resync': {
+        // User-requested vendor refresh for an UNLINKED scan. Re-fetches
+        // the live case detail through the practice's connection and
+        // re-ingests (dedup keeps the same row; the dedup-hit refresh
+        // reconciles descriptive fields + file availability). Works
+        // regardless of lookback age - this is the documented "bounded
+        // refresh" path after automatic reconciliation stops.
+        $scan = ScanIngestion::findScanForPractice($pdo, (int)$currentPracticeId, $scanId);
+        if (!$scan) {
+            scanInboxFail(404, 'Scan not found', 'not_found');
+        }
+        if ($scan['case_id'] || in_array($scan['status'], [ScanIngestion::SCAN_LINKED, ScanIngestion::SCAN_DISMISSED], true)) {
+            scanInboxFail(409, 'This scan can no longer be re-synced.', 'not_resyncable');
+        }
+        if (strtolower((string)$scan['vendor']) !== MeditScanConnector::VENDOR
+            || !isFeatureEnabled('MEDIT_CONNECT')
+            || !MeditConfig::isPracticeAllowed((int)$currentPracticeId)) {
+            scanInboxFail(409, 'Re-sync is not available for this scan source.', 'resync_unavailable');
+        }
+        // Rate limit: one vendor refresh per scan per minute. The
+        // automatic recheck stamp doubles as the rate-limit marker.
+        $lastCheck = isset($scan['file_recheck_at']) ? strtotime((string)$scan['file_recheck_at']) : 0;
+        if ($lastCheck !== false && (time() - $lastCheck) < 60) {
+            scanInboxFail(429, 'This scan was recently synced. Try again in a minute.', 'rate_limited');
+        }
+        $pdo->prepare("UPDATE scanner_incoming_scans SET file_recheck_at = NOW(), file_recheck_attempts = file_recheck_attempts + 1 WHERE id = :id")
+            ->execute([':id' => $scanId]);
+
+        $connector = new MeditScanConnector($pdo);
+        $payloads = $connector->fetchScans([
+            'practice_id'   => (int)$currentPracticeId,
+            'connection_id' => (int)$scan['connection_id'],
+            'case_uuids'    => [$scan['external_scan_id']],
+        ]);
+        foreach ($payloads as $payload) {
+            ScanIngestion::ingestScan($pdo, [
+                'practice_id'    => (int)$currentPracticeId,
+                'connection_id'  => (int)$scan['connection_id'],
+                'source_account' => $scan['source_account'],
+                'is_synthetic'   => !empty($scan['is_synthetic']),
+            ], $connector, $payload);
+        }
+        ScanIngestion::recordEvent($pdo, $scanId, (int)$currentPracticeId, $userId, 'resync');
+        $result = ['success' => true, 'refreshed' => count($payloads)];
+        break;
+    }
+
     default:
         scanInboxFail(400, 'Unknown action', 'unknown_action');
 }

@@ -457,6 +457,26 @@
         }));
       }
 
+      // User-requested vendor refresh: Medit only, unlinked scans. This
+      // re-fetches the live case server-side; distinct from list Refresh
+      // which only reloads local inbox data.
+      if (scan.vendor === 'medit') {
+        var resyncBtn = btn('btn-secondary scan-btn-sm scan-action-resync', tt('scanner.resync'), null);
+        resyncBtn.addEventListener('click', function () {
+          resyncBtn.disabled = true;
+          api('resync', { scan_id: scan.id })
+            .then(function () {
+              showToastSafe(tt('scanner.resync_done'), 'success');
+              loadScans();
+            })
+            .catch(function (err) {
+              showToastSafe(err.message, 'error');
+            })
+            .finally(function () { resyncBtn.disabled = false; });
+        });
+        actions.appendChild(resyncBtn);
+      }
+
       if (scan.status === 'failed' || (scan.files || []).some(function (f) { return f.status === 'failed'; })) {
         var retryBtn = btn('btn-secondary scan-btn-sm scan-action-retry', tt('scanner.retry'), null);
         retryBtn.addEventListener('click', function () {

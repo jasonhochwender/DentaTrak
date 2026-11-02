@@ -6435,6 +6435,8 @@
         "dismiss_title": "Descartar escaneo",
         "dismiss_confirm": "¿Ocultar este escaneo de la bandeja? No se elimina nada del sistema del escáner.",
         "dismissed_toast": "Escaneo descartado.",
+            "resync": "Sincronizar desde Medit",
+            "resync_done": "Escaneo actualizado desde Medit.",
         "restored_toast": "Escaneo restaurado a la bandeja.",
         "retry_started": "Reintento iniciado.",
         "error_not_found": "Escaneo no encontrado",
