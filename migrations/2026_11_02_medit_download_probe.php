@@ -27,14 +27,27 @@ foreach (['stl' => 'stl', 'orig' => null] as $label => $type) {
         foreach (($d['items'] ?? []) as $it) {
             $hv = (string) ($it['hashValue'] ?? '');
             $enc = preg_match('/^[0-9a-f]{32}$/i', $hv) ? 'hex' : (base64_decode($hv, true) !== false ? 'b64' : '?');
-            echo "  item: {$it['name']} size={$it['size']} alg=" . ($it['hashAlgorithm'] ?? '?') . " hash_enc=$enc\n";
+            echo "  item: {$it['name']} size={$it['size']} alg=" . ($it['hashAlgorithm'] ?? '?') . " hash_enc=$enc hash=$hv\n";
         }
         $url = $d['url'] ?? '';
         if ($url) {
             $body = @file_get_contents($url);
-            $magic = $body === false ? 'FETCH_FAIL' : bin2hex(substr($body, 0, 6));
             $is7z = substr($body, 0, 6) === hex2bin('377abcaf271c');
-            echo "  body: " . strlen($body) . "B magic=$magic" . ($is7z ? ' (7z)' : (substr($body,0,5)==='solid'||substr($body,0,80) && strpos(substr($body,0,80),'facet')!==false ? ' (stl)' : '')) . "\n";
+            echo "  body: " . strlen($body) . "B magic=" . bin2hex(substr($body, 0, 6)) . ($is7z ? ' (7z)' : '') . "\n";
+            if ($is7z) {
+                $tmp = tempnam(sys_get_temp_dir(), 'dz') . '.7z';
+                file_put_contents($tmp, $body);
+                $out = sys_get_temp_dir() . '/dzx_' . uniqid();
+                mkdir($out);
+                exec('7z x ' . escapeshellarg($tmp) . ' -o' . escapeshellarg($out) . ' -y 2>&1');
+                $it = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($out, FilesystemIterator::SKIP_DOTS));
+                foreach ($it as $e) {
+                    if ($e->isFile()) {
+                        $c = file_get_contents($e->getPathname());
+                        echo "  entry: {$e->getFilename()} size=" . strlen($c) . " md5=" . md5($c) . "\n";
+                    }
+                }
+            }
         }
     } catch (Throwable $e) {
         echo "[$label] ERR: " . get_class($e) . " " . $e->getMessage() . "\n";
