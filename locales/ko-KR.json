@@ -6399,7 +6399,10 @@
             "linked": "연결됨",
             "dismissed": "무시됨",
             "superseded": "대체됨"
-        },
+        ,
+            "no_files": "사용 가능한 파일 없음",
+            "files_pending": "파일 대기 중",
+            "files_failed": "파일 다운로드 실패"},
         "field_patient": "환자",
         "field_scan_id": "스캔 ID",
         "field_scanned": "스캔 일시",

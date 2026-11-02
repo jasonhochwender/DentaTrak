@@ -315,8 +315,11 @@ class MeditScanSync {
             $webhooksProcessed = $this->drainWebhookEvents(
                 $pdo, $connectionId, $practiceId, $connector, $ingestOne, $eventBatch);
 
+            $rechecked = $this->recheckAwaitingFiles(
+                $pdo, $connectionId, $practiceId, $connector, $ingestOne, $lookback);
+
             return ['polled' => true, 'scans' => $scansIngested, 'pages' => $pagesFetched,
-                    'webhooks' => $webhooksProcessed];
+                    'webhooks' => $webhooksProcessed, 'rechecked' => $rechecked];
         } finally {
             $release = $pdo->prepare("SELECT RELEASE_LOCK(:name)");
             $release->execute([':name' => $lockName]);
@@ -390,6 +393,74 @@ class MeditScanSync {
             }
         }
         return $processed;
+    }
+
+    /**
+     * Re-fetch case detail for scans that still have no usable file.
+     * cases/search filters on dateCreated only, so a file attached to a
+     * case after its first sync can never be re-discovered by polling
+     * and (without webhooks) would stay invisible forever. Each run
+     * claims a bounded batch with exponential backoff per scan; a scan
+     * leaves the set once any file row reaches 'ready' or it ages out
+     * of the lookback window. Dedup makes re-ingest idempotent.
+     */
+    private function recheckAwaitingFiles(PDO $pdo, int $connectionId, int $practiceId, MeditScanConnector $connector, callable $ingestOne, int $lookback): int {
+        $cap = self::cfg('MEDIT_SCAN_RECHECK_BATCH', 10, 1, 50);
+        $maxAttempts = self::cfg('MEDIT_SCAN_RECHECK_MAX', 48, 1, 500);
+        try {
+            $stmt = $pdo->prepare("
+                SELECT s.id, s.external_scan_id
+                FROM scanner_incoming_scans s
+                WHERE s.connection_id = :id
+                  AND s.status IN ('received','processing','ready')
+                  AND s.created_at >= (NOW() - INTERVAL " . (int)$lookback . " SECOND)
+                  AND s.file_recheck_attempts < :max_attempts
+                  AND (s.file_recheck_at IS NULL
+                       OR s.file_recheck_at <= (NOW() - INTERVAL CAST(LEAST(POW(2, s.file_recheck_attempts), 24) * 300 AS UNSIGNED) SECOND))
+                  AND NOT EXISTS (
+                      SELECT 1 FROM scanner_scan_files f
+                      WHERE f.scan_id = s.id AND f.status = 'ready')
+                ORDER BY s.file_recheck_at ASC, s.id ASC
+                LIMIT " . (int) $cap);
+            $stmt->execute([':id' => $connectionId, ':max_attempts' => $maxAttempts]);
+            $scans = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (Throwable $e) {
+            return 0; // file_recheck columns may not exist yet
+        }
+
+        $done = 0;
+        foreach ($scans as $scan) {
+            $claim = $pdo->prepare("
+                UPDATE scanner_incoming_scans
+                SET file_recheck_at = NOW(), file_recheck_attempts = file_recheck_attempts + 1
+                WHERE id = :id
+                  AND (file_recheck_at IS NULL
+                       OR file_recheck_at <= (NOW() - INTERVAL CAST(LEAST(POW(2, file_recheck_attempts), 24) * 300 AS UNSIGNED) SECOND))");
+            $claim->execute([':id' => (int)$scan['id']]);
+            if ($claim->rowCount() === 0) {
+                continue; // claimed by a racing instance or not yet due
+            }
+            $caseUuid = trim((string)$scan['external_scan_id']);
+            if ($caseUuid === '') {
+                continue;
+            }
+            try {
+                foreach ($connector->fetchScans([
+                    'practice_id'   => $practiceId,
+                    'connection_id' => $connectionId,
+                    'case_uuids'    => [$caseUuid],
+                ]) as $payload) {
+                    $ingestOne($payload);
+                }
+                $done++;
+            } catch (Throwable $e) {
+                // Backoff already consumed via the claim; the next due
+                // window retries. Not-found/forbidden cases simply keep
+                // expiring attempts until they age out of the lookback.
+                error_log('[medit-scan] recheck of case ' . substr($caseUuid, 0, 8) . '… failed: ' . $e->getMessage());
+            }
+        }
+        return $done;
     }
 
     /**

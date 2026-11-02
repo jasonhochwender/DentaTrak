@@ -324,11 +324,15 @@ class MeditScanConnector implements ScannerConnectorInterface {
             }
             $hash = null;
             if (isset($item['hashValue']) && strtoupper((string)($item['hashAlgorithm'] ?? '')) === 'MD5') {
-                $raw = base64_decode((string)$item['hashValue'], true);
-                if ($raw !== false) {
-                    $hash = bin2hex($raw);
-                } elseif (preg_match('/^[0-9a-f]{32}$/i', (string)$item['hashValue'])) {
-                    $hash = (string)$item['hashValue'];
+                $hv = (string) $item['hashValue'];
+                // Vendor sends hex-encoded MD5. Check hex BEFORE base64:
+                // hex strings are valid base64 characters and would
+                // silently decode to the wrong expected hash.
+                if (preg_match('/^[0-9a-f]{32}$/i', $hv)) {
+                    $hash = strtolower($hv);
+                } else {
+                    $raw = base64_decode($hv, true);
+                    $hash = ($raw !== false && strlen($raw) === 16) ? bin2hex($raw) : null;
                 }
             }
             $out[$item['name']] = [

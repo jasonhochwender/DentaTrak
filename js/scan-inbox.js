@@ -321,6 +321,9 @@
       case 'linked': return 'scanner.status.linked';
       case 'dismissed': return 'scanner.status.dismissed';
       case 'superseded': return 'scanner.status.superseded';
+      case 'no_files': return 'scanner.status.no_files';
+      case 'files_pending': return 'scanner.status.files_pending';
+      case 'files_failed': return 'scanner.status.files_failed';
       default: return 'scanner.status.received';
     }
   }
@@ -396,7 +399,19 @@
     }
 
     var chips = el('div', 'scan-row-chips');
-    chips.appendChild(el('span', 'scan-chip ' + statusClass(scan.status), tt(statusKey(scan.status))));
+    var displayStatus = scan.status;
+    if (displayStatus === 'ready') {
+      var _f = scan.files || [];
+      var _ready = _f.filter(function (f) { return f.status === 'ready'; }).length;
+      var _pending = _f.filter(function (f) { return f.status === 'pending' || f.status === 'downloading'; }).length;
+      var _failed = _f.filter(function (f) { return f.status === 'failed'; }).length;
+      if (_ready === 0) {
+        if (_f.length === 0) displayStatus = 'no_files';
+        else if (_pending > 0) displayStatus = 'files_pending';
+        else if (_failed > 0) displayStatus = 'files_failed';
+      }
+    }
+    chips.appendChild(el('span', 'scan-chip ' + statusClass(displayStatus), tt(statusKey(displayStatus))));
     if (scan.isPartiallyLinked) {
       chips.appendChild(el('span', 'scan-chip scan-chip-partial', tt('scanner.partial_linked')));
     }

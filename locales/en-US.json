@@ -6398,7 +6398,10 @@
             "failed": "Failed",
             "linked": "Linked",
             "dismissed": "Dismissed",
-            "superseded": "Superseded"
+            "superseded": "Superseded",
+            "no_files": "No usable files",
+            "files_pending": "Files pending",
+            "files_failed": "File download failed"
         },
         "field_patient": "Patient",
         "field_scan_id": "Scan ID",

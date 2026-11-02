@@ -405,3 +405,21 @@ try {
 
 echo "\n{$pass} passed, {$fail} failed\n";
 exit($fail === 0 ? 0 : 1);
+
+// (appended by regression: items[] hex-MD5 must be read as hex, not base64)
+try {
+    $conn = new MeditScanConnector(null);
+    $rm = new ReflectionMethod($conn, 'expectedItems');
+    $rm->setAccessible(true);
+    $hexMd5 = 'ca59c87d28fc59c83474d8d331d2ba54';
+    $items = $rm->invoke($conn, ['items' => [['name' => 'scan.stl', 'size' => 100, 'hashAlgorithm' => 'MD5', 'hashValue' => $hexMd5]]]);
+    assertTrue(($items['scan.stl']['hash'] ?? null) === $hexMd5, 'items[] hex-encoded MD5 is used verbatim (not base64-decoded)');
+    $b64Md5 = base64_encode(hex2bin($hexMd5));
+    $items = $rm->invoke($conn, ['items' => [['name' => 'scan.stl', 'size' => 100, 'hashAlgorithm' => 'MD5', 'hashValue' => $b64Md5]]]);
+    assertTrue(($items['scan.stl']['hash'] ?? null) === $hexMd5, 'items[] base64-encoded MD5 decodes to the same hex hash');
+    echo "\n{$pass} passed, {$fail} failed\n";
+    exit($fail === 0 ? 0 : 1);
+} catch (Throwable $e) {
+    echo "hash-parse regression error: " . $e->getMessage() . "\n";
+    exit(1);
+}

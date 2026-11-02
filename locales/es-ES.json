@@ -6399,7 +6399,10 @@
             "linked": "Vinculado",
             "dismissed": "Descartado",
             "superseded": "Reemplazado"
-        },
+        ,
+            "no_files": "Sin archivos utilizables",
+            "files_pending": "Archivos pendientes",
+            "files_failed": "Descarga de archivo fallida"},
         "field_patient": "Paciente",
         "field_scan_id": "ID de escaneo",
         "field_scanned": "Escaneado",

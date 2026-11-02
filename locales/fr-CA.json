@@ -6399,7 +6399,10 @@
             "linked": "Lié",
             "dismissed": "Ignoré",
             "superseded": "Remplacé"
-        },
+        ,
+            "no_files": "Aucun fichier utilisable",
+            "files_pending": "Fichiers en attente",
+            "files_failed": "Échec du téléchargement"},
         "field_patient": "Patient",
         "field_scan_id": "ID de numérisation",
         "field_scanned": "Numérisé",

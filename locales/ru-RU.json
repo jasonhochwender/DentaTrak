@@ -6399,7 +6399,10 @@
             "linked": "Связано",
             "dismissed": "Отклонено",
             "superseded": "Заменено"
-        },
+        ,
+            "no_files": "Нет пригодных файлов",
+            "files_pending": "Файлы в ожидании",
+            "files_failed": "Ошибка загрузки файла"},
         "field_patient": "Пациент",
         "field_scan_id": "ID скана",
         "field_scanned": "Отсканировано",
