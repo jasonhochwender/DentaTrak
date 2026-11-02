@@ -579,7 +579,8 @@ class MeditScanConnector implements ScannerConnectorInterface {
             'patient_dob'          => null, // not supplied by Medit case detail
             'scan_at'              => $scanAt,
             'instructions'         => $instructions,
-            'order_items'          => $orderItems ?: null,
+            'order_items'          => $orderItems,
+            'reconcile_files'      => true, // detail response is the authoritative full file list
             'files'                => $files,
         ];
     }

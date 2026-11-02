@@ -396,13 +396,15 @@ class MeditScanSync {
     }
 
     /**
-     * Re-fetch case detail for scans that still have no usable file.
-     * cases/search filters on dateCreated only, so a file attached to a
-     * case after its first sync can never be re-discovered by polling
-     * and (without webhooks) would stay invisible forever. Each run
-     * claims a bounded batch with exponential backoff per scan; a scan
-     * leaves the set once any file row reaches 'ready' or it ages out
-     * of the lookback window. Dedup makes re-ingest idempotent.
+     * Re-fetch case detail for UNLINKED scans still eligible for changes.
+     * cases/search filters on dateCreated only, so any change to an
+     * already-imported case - a file attached later, a removed tooth,
+     * edited order details - is invisible to polling and (without
+     * webhooks) would stay stale forever. Each run claims a bounded
+     * batch with exponential backoff per scan; a scan leaves the set
+     * once it is linked or dismissed, or ages out of the lookback.
+     * Dedup keeps the same inbox row; the dedup-hit refresh updates
+     * descriptive fields and file availability in place.
      */
     private function recheckAwaitingFiles(PDO $pdo, int $connectionId, int $practiceId, MeditScanConnector $connector, callable $ingestOne, int $lookback): int {
         $cap = self::cfg('MEDIT_SCAN_RECHECK_BATCH', 10, 1, 50);
@@ -413,13 +415,11 @@ class MeditScanSync {
                 FROM scanner_incoming_scans s
                 WHERE s.connection_id = :id
                   AND s.status IN ('received','processing','ready')
+                  AND s.case_id IS NULL
                   AND s.created_at >= (NOW() - INTERVAL " . (int)$lookback . " SECOND)
                   AND s.file_recheck_attempts < :max_attempts
                   AND (s.file_recheck_at IS NULL
                        OR s.file_recheck_at <= (NOW() - INTERVAL CAST(LEAST(POW(2, s.file_recheck_attempts), 24) * 300 AS UNSIGNED) SECOND))
-                  AND NOT EXISTS (
-                      SELECT 1 FROM scanner_scan_files f
-                      WHERE f.scan_id = s.id AND f.status = 'ready')
                 ORDER BY s.file_recheck_at ASC, s.id ASC
                 LIMIT " . (int) $cap);
             $stmt->execute([':id' => $connectionId, ':max_attempts' => $maxAttempts]);

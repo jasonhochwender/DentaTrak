@@ -186,6 +186,30 @@ class ScanIngestion {
             // have populated since first ingest (order details, patient
             // fields, instructions, scan time). Status, case linkage, and
             // dismissal state are never touched by a re-ingest.
+            // order_items/instructions use key-presence semantics: when the
+            // connector includes the key at all, its value is authoritative
+            // - an explicitly empty treatment list must CLEAR stale items,
+            // not keep them behind COALESCE. Connectors that never send the
+            // key (DS Core) leave the column untouched.
+            $orderItemsPresent = array_key_exists('order_items', $payload);
+            $setOrder = $orderItemsPresent
+                ? ",\n                    order_items  = :order_items,\n                    instructions = :instructions_set"
+                : '';
+            $params = [
+                ':patient_ref'  => self::boundedStr($payload['external_patient_ref'] ?? null, 128),
+                ':first_name'   => self::encryptField($payload['patient_first_name'] ?? null),
+                ':last_name'    => self::encryptField($payload['patient_last_name'] ?? null),
+                ':dob'          => self::encryptField(self::normalizeDate($payload['patient_dob'] ?? null)),
+                ':scan_at'      => self::normalizeDateTime($payload['scan_at'] ?? null),
+                ':instructions' => self::encryptField(self::sanitizeInstructions($payload['instructions'] ?? null)),
+                ':id'           => $scanId,
+            ];
+            if ($orderItemsPresent) {
+                $params[':order_items'] = self::encryptField(
+                    is_array($payload['order_items']) && $payload['order_items'] !== []
+                        ? json_encode($payload['order_items']) : null);
+                $params[':instructions_set'] = self::encryptField(self::sanitizeInstructions($payload['instructions'] ?? null));
+            }
             $pdo->prepare("
                 UPDATE scanner_incoming_scans
                 SET external_patient_ref = COALESCE(:patient_ref, external_patient_ref),
@@ -193,21 +217,10 @@ class ScanIngestion {
                     patient_last_name    = COALESCE(:last_name, patient_last_name),
                     patient_dob          = COALESCE(:dob, patient_dob),
                     scan_at              = COALESCE(:scan_at, scan_at),
-                    instructions         = COALESCE(:instructions, instructions),
-                    order_items          = COALESCE(:order_items, order_items)
+                    instructions         = COALESCE(:instructions, instructions)
+                    $setOrder
                 WHERE id = :id
-            ")->execute([
-                ':patient_ref'  => self::boundedStr($payload['external_patient_ref'] ?? null, 128),
-                ':first_name'   => self::encryptField($payload['patient_first_name'] ?? null),
-                ':last_name'    => self::encryptField($payload['patient_last_name'] ?? null),
-                ':dob'          => self::encryptField(self::normalizeDate($payload['patient_dob'] ?? null)),
-                ':scan_at'      => self::normalizeDateTime($payload['scan_at'] ?? null),
-                ':instructions' => self::encryptField(self::sanitizeInstructions($payload['instructions'] ?? null)),
-                ':order_items'  => self::encryptField(
-                    isset($payload['order_items']) && is_array($payload['order_items'])
-                        ? json_encode($payload['order_items']) : null),
-                ':id'           => $scanId,
-            ]);
+            ")->execute($params);
         }
 
         // Upsert file rows. A new revision for a previously seen file is a
@@ -277,6 +290,31 @@ class ScanIngestion {
                 ]);
                 self::recordEvent($pdo, $scanId, $practiceId, null, 'revision_received',
                     'file_id=' . $newFileId . ' ext=' . $externalFileId);
+            }
+        }
+
+        // Reconcile removed source files: when the connector marks its
+        // response as the authoritative full file list on a re-ingest,
+        // UNATTACHED file rows whose vendor file id is absent were
+        // removed/replaced upstream - supersede them (never delete).
+        // Files already attached to a case are never touched.
+        if (!$inserted && !empty($payload['reconcile_files'])) {
+            $presentIds = [];
+            foreach (($payload['files'] ?? []) as $f) {
+                $id = substr(trim((string)($f['external_file_id'] ?? '')), 0, 128);
+                if ($id !== '') $presentIds[$id] = true;
+            }
+            $orphans = $pdo->prepare("
+                SELECT id, external_file_id FROM scanner_scan_files
+                WHERE scan_id = :sid AND attached_case_id IS NULL
+                  AND status NOT IN ('superseded','dismissed')");
+            $orphans->execute([':sid' => $scanId]);
+            foreach ($orphans->fetchAll(PDO::FETCH_ASSOC) as $of) {
+                if (!isset($presentIds[(string)$of['external_file_id']])) {
+                    $pdo->prepare("UPDATE scanner_scan_files SET status = 'superseded', claimed_at = NULL WHERE id = :id AND attached_case_id IS NULL")
+                        ->execute([':id' => (int)$of['id']]);
+                    self::recordEvent($pdo, $scanId, $practiceId, null, 'file_removed_upstream', 'file_id=' . (int)$of['id']);
+                }
             }
         }
 
