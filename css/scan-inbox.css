@@ -636,19 +636,16 @@ body.dark-mode .scan-file-role {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 18px;
-  height: 18px;
-  margin-left: 6px;
-  padding: 0 5px;
-  border-radius: 9px;
+  min-width: 16px;
+  height: 16px;
+  margin-left: 5px;
+  padding: 0 3px;
+  border-radius: 8px;
   background: var(--color-error, #dc2626);
   color: #fff;
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 600;
   line-height: 1;
   vertical-align: middle;
 }
 .scan-attention-badge[hidden] { display: none; }
-@media (max-width: 640px) {
-  .scan-attention-badge { min-width: 16px; height: 16px; font-size: 10px; margin-left: 4px; padding: 0 4px; }
-}
