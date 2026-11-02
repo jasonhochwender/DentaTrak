@@ -346,8 +346,13 @@ class ScanIngestion {
                     throw new ScannerDownloadException('file too large', false, 'file_too_large');
                 }
                 // An incomplete download is never ready: the vendor-declared
-                // size is the contract. Mismatch = truncated read.
-                if ($file['declared_size'] !== null && (int)$file['declared_size'] !== $size) {
+                // size is the contract. Mismatch = truncated read. When the
+                // connector already verified the content against the vendor's
+                // per-download items[] (converted formats legitimately differ
+                // from the source attachment's declared size, e.g. a .meditMesh
+                // converting to a larger .stl), that verified size is the
+                // applicable contract.
+                if ($file['declared_size'] !== null && (int)$file['declared_size'] !== $size && empty($result['size_verified'])) {
                     throw new ScannerDownloadException('incomplete download', true, 'incomplete_download');
                 }
 

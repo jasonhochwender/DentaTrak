@@ -309,7 +309,8 @@ class MeditScanConnector implements ScannerConnectorInterface {
             }
         }
 
-        return ['content' => $content, 'content_type' => $contentType];
+        return ['content' => $content, 'content_type' => $contentType,
+                'size_verified' => isset($items[$match['name']]) && $items[$match['name']]['size'] !== null];
     }
 
     /**
