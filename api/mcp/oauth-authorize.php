@@ -13,9 +13,13 @@ global $pdo;
 
 function mcpAuthFail(int $c, string $m): void { http_response_code($c); header('Content-Type: application/json'); echo json_encode(['error'=>$m]); exit; }
 
-if (empty($_SESSION['db_user_id'])) { header('Location: /login.php'); exit; }
+if (empty($_SESSION['db_user_id'])) {
+    // Preserve the full authorize request so login can resume it.
+    $_SESSION['mcp_oauth_return'] = 'https://dentatrak.com/api/mcp/oauth-authorize.php?' . ($_SERVER['QUERY_STRING'] ?? '');
+    header('Location: /login.php'); exit;
+}
 $userId = (int)$_SESSION['db_user_id'];
-if (!isSuperUser((string)($_SESSION['user_email'] ?? ''))) mcpAuthFail(403, 'forbidden');
+if (!isSuperUser($appConfig, (string)($_SESSION['user_email'] ?? ''))) mcpAuthFail(403, 'forbidden');
 
 $clientId = (string)($_GET['client_id'] ?? '');
 $redirect = (string)($_GET['redirect_uri'] ?? '');

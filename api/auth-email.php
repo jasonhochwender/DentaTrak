@@ -279,9 +279,11 @@ function handleLogin($pdo, $input) {
         'samesite' => 'Lax'
     ]);
     
+    $oauthReturn = $_SESSION['mcp_oauth_return'] ?? null;
+    unset($_SESSION['mcp_oauth_return']);
     echo json_encode([
         'success' => true,
         'message' => t('auth.errors.login_success'),
-        'redirect' => $practiceSelection['redirect']
+        'redirect' => $oauthReturn ?: $practiceSelection['redirect']
     ]);
 }

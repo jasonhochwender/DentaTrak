@@ -8,7 +8,7 @@
 require_once __DIR__ . '/../appConfig.php';
 require_once __DIR__ . '/../dev-tools-access.php';
 require_once __DIR__ . '/../marketing/SuppressionService.php';
-global $pdo;
+global $pdo, $appConfig;
 header('Content-Type: application/json');
 
 $auth = $_SERVER['HTTP_AUTHORIZATION'] ?? '';
@@ -17,7 +17,7 @@ $tok = $pdo->prepare("SELECT t.*, u.email FROM mcp_access_tokens t JOIN users u 
     WHERE t.token_hash=:h AND t.revoked_at IS NULL AND t.expires_at>NOW() LIMIT 1");
 $tok->execute([':h'=>hash('sha256',$m[1])]);
 $tokenRow = $tok->fetch(PDO::FETCH_ASSOC);
-if (!$tokenRow || !isSuperUser((string)$tokenRow['email'])) { http_response_code(403); echo json_encode(['error'=>'forbidden']); exit; }
+if (!$tokenRow || !isSuperUser($appConfig, (string)$tokenRow['email'])) { http_response_code(403); echo json_encode(['error'=>'forbidden']); exit; }
 $userId = (int)$tokenRow['user_id'];
 
 $req = json_decode((string)file_get_contents('php://input'), true);
@@ -25,8 +25,9 @@ $rid = $req['id'] ?? null;
 $method = $req['method'] ?? '';
 $ok = function ($r) use ($rid) { echo json_encode(['jsonrpc'=>'2.0','id'=>$rid,'result'=>$r]); exit; };
 $fail = function (string $m) use ($rid) { echo json_encode(['jsonrpc'=>'2.0','id'=>$rid,'error'=>['code'=>-32000,'message'=>$m]]); exit; };
-if (strpos($method,'notifications/')===0 || $method==='ping') { http_response_code(202); exit; }
-if ($method==='initialize') $ok(['protocolVersion'=>'2025-06-18','capabilities'=>['tools'=>[]],'serverInfo'=>['name'=>'dentatrak-marketing','version'=>'1.0.0']]);
+if (strpos($method,'notifications/')===0) { http_response_code(202); exit; }
+if ($method==='ping') $ok(new stdClass());
+if ($method==='initialize') $ok(['protocolVersion'=>'2025-06-18','capabilities'=>['tools'=>new stdClass()],'serverInfo'=>['name'=>'dentatrak-marketing','version'=>'1.0.0']]);
 
 $TOOLS = [
   'check_eligibility' => ['description'=>'Check marketing eligibility incl. org suppression (no sends)',
