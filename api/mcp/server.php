@@ -74,7 +74,10 @@ if ($name==='check_eligibility') {
     require_once __DIR__ . '/../marketing/McpSheetSync.php';
     try { $sheet = new McpSheetSync(); } catch (Throwable $e) { $fail('sheet unreachable - fail closed'); }
     $sent=0;$skipped=0;$errors=[];
-    $claim = $pdo->prepare("UPDATE marketing_batch_recipients SET status='claiming' WHERE id=:id AND status IN ('pending','failed','uncertain') AND eligible=1");
+    $fail('send_batch is disabled pending noninteractive verification');
+    // Claims: 'uncertain' excluded - it must reconcile the send ledger
+    // (below) before another attempt is ever allowed.
+    $claim = $pdo->prepare("UPDATE marketing_batch_recipients SET status='claiming' WHERE id=:id AND status IN ('pending','failed') AND eligible=1");
     $rs = $pdo->query("SELECT * FROM marketing_batch_recipients WHERE batch_id='".$batch['id']."' ORDER BY id")->fetchAll(PDO::FETCH_ASSOC);
     foreach ($rs as $r) {
         if (!$r['eligible']) { $skipped++; continue; }

@@ -25,7 +25,9 @@ if ($grant === 'authorization_code') {
     $row = $pdo->prepare("SELECT * FROM mcp_auth_codes WHERE code_hash=:h AND consumed_at IS NULL AND expires_at>NOW() LIMIT 1");
     $row->execute([':h'=>hash('sha256',$code)]);
     $c = $row->fetch(PDO::FETCH_ASSOC);
-    if (!$c || hash('sha256',$verifier)!=='' && rtrim(strtr(base64_encode(hash('sha256',$verifier,true)),'+/','-_'),'=') !== $c['pkce_challenge']) tokErr('invalid_grant');
+    $verifierOk = $c && rtrim(strtr(base64_encode(hash('sha256',$verifier,true)),'+/','-_'),'=') === $c['pkce_challenge'];
+    $redirectOk = $c && ($c['redirect_uri'] === (string)($_POST['redirect_uri'] ?? $c['redirect_uri']));
+    if (!$verifierOk || !$redirectOk) tokErr('invalid_grant');
     $pdo->prepare("UPDATE mcp_auth_codes SET consumed_at=NOW() WHERE id=:id")->execute([':id'=>$c['id']]);
     $issue((int)$c['user_id'], (string)$c['client_id']);
 } elseif ($grant === 'refresh_token') {
