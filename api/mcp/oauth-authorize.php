@@ -22,8 +22,14 @@ $redirect = (string)($_GET['redirect_uri'] ?? '');
 $state = (string)($_GET['state'] ?? '');
 $challenge = (string)($_GET['code_challenge'] ?? '');
 if ($clientId === '' || $redirect === '' || $challenge === '') mcpAuthFail(400, 'invalid_request');
-// ChatGPT connector redirects only.
-if (!preg_match('#^https://(chatgpt\.com|chat\.openai\.com)/#', $redirect)) mcpAuthFail(400, 'redirect_uri not allowed');
+// Registered clients only (RFC 7591 DCR or manually provisioned), exact
+// redirect_uri match against the registered set.
+$cl = $pdo->prepare("SELECT redirect_uris FROM mcp_clients WHERE client_id=:c LIMIT 1");
+$cl->execute([':c'=>$clientId]);
+$row = $cl->fetch(PDO::FETCH_ASSOC);
+if (!$row || !in_array($redirect, json_decode($row['redirect_uris'], true) ?: [], true)) {
+    mcpAuthFail(400, 'unregistered client or redirect_uri');
+}
 
 $code = bin2hex(random_bytes(24));
 $id = sprintf('%04x%04x-%04x-%04x-%04x-%04x%04x%04x', mt_rand(0,0xffff),mt_rand(0,0xffff),mt_rand(0,0xffff),mt_rand(0,0x0fff)|0x4000,mt_rand(0,0x3fff)|0x8000,mt_rand(0,0xffff),mt_rand(0,0xffff),mt_rand(0,0xffff));

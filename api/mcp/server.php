@@ -12,7 +12,7 @@ global $pdo;
 header('Content-Type: application/json');
 
 $auth = $_SERVER['HTTP_AUTHORIZATION'] ?? '';
-if (!preg_match('/^Bearer\s+(.+)$/', $auth, $m)) { http_response_code(401); echo json_encode(['error'=>'unauthorized']); exit; }
+if (!preg_match('/^Bearer\s+(.+)$/', $auth, $m)) { http_response_code(401); header('WWW-Authenticate: Bearer resource_metadata="https://dentatrak.com/.well-known/oauth-protected-resource"'); echo json_encode(['error'=>'unauthorized']); exit; }
 $tok = $pdo->prepare("SELECT t.*, u.email FROM mcp_access_tokens t JOIN users u ON u.id=t.user_id
     WHERE t.token_hash=:h AND t.revoked_at IS NULL AND t.expires_at>NOW() LIMIT 1");
 $tok->execute([':h'=>hash('sha256',$m[1])]);

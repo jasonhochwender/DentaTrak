@@ -25,6 +25,13 @@ if ($grant === 'authorization_code') {
     $row = $pdo->prepare("SELECT * FROM mcp_auth_codes WHERE code_hash=:h AND consumed_at IS NULL AND expires_at>NOW() LIMIT 1");
     $row->execute([':h'=>hash('sha256',$code)]);
     $c = $row->fetch(PDO::FETCH_ASSOC);
+    if ($c) {
+        $postedClient = (string)($_POST['client_id'] ?? '');
+        if ($postedClient !== '' && $postedClient !== $c['client_id']) tokErr('invalid_grant');
+        $cl = $pdo->prepare("SELECT secret_hash FROM mcp_clients WHERE client_id=:c"); $cl->execute([':c'=>$c['client_id']]);
+        $sec = $cl->fetch(PDO::FETCH_ASSOC);
+        if ($sec && $sec['secret_hash'] && hash('sha256',(string)($_POST['client_secret'] ?? '')) !== $sec['secret_hash']) tokErr('invalid_client');
+    }
     $verifierOk = $c && rtrim(strtr(base64_encode(hash('sha256',$verifier,true)),'+/','-_'),'=') === $c['pkce_challenge'];
     $redirectOk = $c && ($c['redirect_uri'] === (string)($_POST['redirect_uri'] ?? $c['redirect_uri']));
     if (!$verifierOk || !$redirectOk) tokErr('invalid_grant');

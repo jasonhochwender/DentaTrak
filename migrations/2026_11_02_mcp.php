@@ -24,6 +24,10 @@ $ddl = [
      subject TEXT NOT NULL, html MEDIUMTEXT NOT NULL, content_hash CHAR(64) NOT NULL,
      status VARCHAR(20) NOT NULL DEFAULT 'preview',
      created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP)",
+  "CREATE TABLE IF NOT EXISTS mcp_clients (
+     client_id VARCHAR(64) PRIMARY KEY, secret_hash CHAR(64) NULL,
+     redirect_uris TEXT NOT NULL, created_by INT UNSIGNED NOT NULL,
+     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP)",
   "CREATE TABLE IF NOT EXISTS marketing_batch_recipients (
      id BIGINT AUTO_INCREMENT PRIMARY KEY, batch_id CHAR(36) NOT NULL,
      email VARCHAR(320) NOT NULL, eligible TINYINT NOT NULL, eligible_reason VARCHAR(80) NULL,
@@ -33,3 +37,8 @@ $ddl = [
 ];
 foreach ($ddl as $sql) { $pdo->exec($sql); }
 echo "mcp tables ready\n";
+// Resource parameter columns (RFC 8707 echo).
+foreach ([['mcp_auth_codes','resource'],['mcp_access_tokens','resource']] as [$t,$c]) {
+    try { $pdo->exec("ALTER TABLE $t ADD COLUMN $c VARCHAR(200) NULL"); } catch (Throwable $e) {}
+}
+echo "mcp resource columns ready\n";
