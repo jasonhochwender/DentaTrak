@@ -652,3 +652,37 @@ body.dark-mode .scan-file-role {
   line-height: 1;
 }
 .scan-attention-badge[hidden] { display: none; }
+
+/* Pending scan files injected into the Create Case attachment list:
+   filename truncates on the left; actions stay right-aligned. */
+.selected-file[data-scan-pending] .file-info {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.selected-file[data-scan-pending] .file-name {
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.selected-file[data-scan-pending] .attachment-actions {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: 12px;
+}
+.selected-file[data-scan-pending] .attachment-action-sep {
+  color: #cbd5e1;
+  user-select: none;
+}
+@media (max-width: 640px) {
+  .selected-file[data-scan-pending] {
+    flex-wrap: wrap;
+  }
+  .selected-file[data-scan-pending] .attachment-actions {
+    margin-left: 0;
+    flex-basis: 100%;
+    justify-content: flex-end;
+  }
+}

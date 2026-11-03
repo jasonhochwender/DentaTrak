@@ -953,13 +953,24 @@
 
       var dlLink = document.createElement('a');
       dlLink.href = f.downloadUrl || f.contentUrl;
-      dlLink.className = 'file-view-link';
+      dlLink.className = 'attachment-download-link';
       dlLink.textContent = tt('scanner.action_download') || 'Download';
 
+      // Same row layout as existing attachments: name block on the
+      // left, actions container pushed right by the row's space-between.
+      viewLink.className = 'attachment-view-link';
+      var actions = document.createElement('div');
+      actions.className = 'attachment-actions';
+      actions.appendChild(viewLink);
+      var sep = document.createElement('span');
+      sep.className = 'attachment-action-sep';
+      sep.textContent = '|';
+      actions.appendChild(sep);
+      actions.appendChild(dlLink);
+
       fileInfo.appendChild(fileName);
-      fileInfo.appendChild(viewLink);
-      fileInfo.appendChild(dlLink);
       div.appendChild(fileInfo);
+      div.appendChild(actions);
       container.appendChild(div);
     });
   }
