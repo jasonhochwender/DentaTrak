@@ -56,6 +56,11 @@ final class ProspectSheetSync
     }
 
     /** Sync one suppressed email (+ same-practice rows) to the sheet. */
+    /** Public wrappers for McpSheetSync - same auth/transport internals. */
+    public static function accessTokenPublic(): string { return (new self('',''))->accessToken(); }
+    public static function httpPublic(string $m, string $u, $b = null, bool $f = false, ?string $t = null): string {
+        return self::http($m, $u, $b, $f, $t);
+    }
     public function sync(string $email, string $source = 'email_unsubscribe'): array
     {
         $tok = $this->accessToken();

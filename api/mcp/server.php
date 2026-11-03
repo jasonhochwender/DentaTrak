@@ -64,19 +64,67 @@ if ($name==='check_eligibility') {
     $b = $pdo->prepare("SELECT * FROM marketing_batches WHERE id=:id AND user_id=:u"); $b->execute([':id'=>$a['batch_id'],':u'=>$userId]); $batch=$b->fetch(PDO::FETCH_ASSOC);
     if (!$batch) $fail('batch not found');
     if ($batch['status']==='sent') $fail('already sent');
-    $expected = hash('sha256', json_encode([array_map(function($r){return $r['email'];}, $pdo->query("SELECT email FROM marketing_batch_recipients WHERE batch_id='".$batch['id']."' ORDER BY email")->fetchAll(PDO::FETCH_COLUMN)),$batch['subject'],$batch['html'],$batch['campaign']]));
+    $expected = hash('sha256', json_encode([$pdo->query("SELECT email FROM marketing_batch_recipients WHERE batch_id='".$batch['id']."' ORDER BY email")->fetchAll(PDO::FETCH_COLUMN),$batch['subject'],$batch['html'],$batch['campaign']]));
+    if (!hash_equals($batch['content_hash'], $expected)) $fail('batch content changed since approval - prepare a new batch');
     $token = getEnvVar('OUTREACH_API_TOKEN');
+    if (!$token) $fail('outreach token unavailable - fail closed');
+    // Authoritative Prospects-sheet pre-checks. Fail closed when the
+    // sheet cannot be read - never send on an unchecked list.
+    require_once __DIR__ . '/../marketing/ProspectSheetSync.php';
+    require_once __DIR__ . '/../marketing/McpSheetSync.php';
+    try { $sheet = new McpSheetSync(); } catch (Throwable $e) { $fail('sheet unreachable - fail closed'); }
     $sent=0;$skipped=0;$errors=[];
-    foreach ($pdo->query("SELECT * FROM marketing_batch_recipients WHERE batch_id='".$batch['id']."' ORDER BY id")->fetchAll(PDO::FETCH_ASSOC) as $r) {
+    $claim = $pdo->prepare("UPDATE marketing_batch_recipients SET status='claiming' WHERE id=:id AND status IN ('pending','failed','uncertain') AND eligible=1");
+    $rs = $pdo->query("SELECT * FROM marketing_batch_recipients WHERE batch_id='".$batch['id']."' ORDER BY id")->fetchAll(PDO::FETCH_ASSOC);
+    foreach ($rs as $r) {
         if (!$r['eligible']) { $skipped++; continue; }
         if ($r['status']==='sent') { $skipped++; continue; }
+        $claim->execute([':id'=>$r['id']]);
+        if ($claim->rowCount() !== 1) { $skipped++; continue; } // claimed elsewhere
+        // Per-recipient suppression recheck immediately before send.
+        if ($svc->isSuppressed($r['email']) || ($o = SuppressionService::orgRefForEmail($r['email'])) && $svc->isOrgSuppressed($o)) {
+            $pdo->prepare("UPDATE marketing_batch_recipients SET status='skipped',error='suppressed_recheck' WHERE id=:id")->execute([':id'=>$r['id']]);
+            $skipped++; continue;
+        }
+        $pre = $sheet->preCheck($r['email']);
+        if (!$pre['ok']) {
+            $pdo->prepare("UPDATE marketing_batch_recipients SET status='skipped',error=:e WHERE id=:id")->execute([':e'=>implode(',',$pre['flags']),':id'=>$r['id']]);
+            $skipped++; continue;
+        }
         $res = @json_decode((string)@file_get_contents('https://dentatrak.com/api/marketing-send.php', false, stream_context_create(['http'=>['method'=>'POST','header'=>"Content-Type: application/json\r\nX-Outreach-Token: $token\r\n",'content'=>json_encode(['to'=>$r['email'],'subject'=>$batch['subject'],'html'=>$batch['html'],'campaign'=>$batch['campaign']]),'ignore_errors'=>true,'timeout'=>30]])), true);
-        $st = $res['status'] ?? 'failed';
-        $upd = $pdo->prepare("UPDATE marketing_batch_recipients SET status=:s, gmail_message_id=:m, error=:e WHERE id=:id");
-        $upd->execute([':s'=>$st==='sent'?'sent':($st==='skipped_suppressed'?'skipped':'failed'),':m'=>$res['gmail_message_id']??null,':e'=>$res['error']??null,':id'=>$r['id']]);
-        if ($st==='sent'||$st==='already_recorded') $sent++; elseif ($st==='skipped_suppressed') $skipped++; else $errors[]=$r['email'].':'.($res['error']??'send failed');
+        $st = $res['status'] ?? 'uncertain';
+        $msgId = $res['gmail_message_id'] ?? null;
+        // Reconcile 'already_recorded': only count Sent when the ledger
+        // establishes status=sent AND a Gmail message ID exists.
+        if ($st === 'already_recorded' || ($st === 'sent' && !$msgId)) {
+            $led = $pdo->prepare("SELECT status, gmail_message_id FROM marketing_sends WHERE campaign=:c AND email=:e LIMIT 1");
+            $led->execute([':c'=>$batch['campaign'],':e'=>$r['email']]);
+            $l = $led->fetch(PDO::FETCH_ASSOC);
+            if ($l && $l['status']==='sent' && !empty($l['gmail_message_id'])) { $st='sent'; $msgId=$l['gmail_message_id']; }
+            else $st='uncertain';
+        }
+        if ($st === 'sent') {
+            $sheetOk = false;
+            try { $sheetOk = $sheet->markSent($r['email'], $batch['campaign'], (string)$msgId); } catch (Throwable $e) {}
+            $pdo->prepare("UPDATE marketing_batch_recipients SET status='sent',gmail_message_id=:m,error=NULL,sheet_synced_at=:w WHERE id=:id")
+                ->execute([':m'=>$msgId,':w'=>$sheetOk?date('Y-m-d H:i:s'):null,':id'=>$r['id']]);
+            $sent++;
+        } elseif ($st === 'skipped_suppressed') {
+            $pdo->prepare("UPDATE marketing_batch_recipients SET status='skipped',error='suppressed' WHERE id=:id")->execute([':id'=>$r['id']]);
+            $skipped++;
+        } else {
+            // Uncertain/failed: never resend blindly; leave reconcilable.
+            $pdo->prepare("UPDATE marketing_batch_recipients SET status=:s,error=:e WHERE id=:id")
+                ->execute([':s'=>$st==='uncertain'?'uncertain':'failed',':e'=>substr((string)($res['error']??$st),0,160),':id'=>$r['id']]);
+            if ($st!=='uncertain') $errors[] = $r['email'].':'.($res['error']??'send failed');
+        }
     }
-    $pdo->prepare("UPDATE marketing_batches SET status='sent', updated_at=NOW() WHERE id=:id")->execute([':id'=>$batch['id']]);
+    // Durable sheet-write retries for confirmed sends never resend mail.
+    foreach ($pdo->query("SELECT * FROM marketing_batch_recipients WHERE batch_id='".$batch['id']."' AND status='sent' AND sheet_synced_at IS NULL")->fetchAll(PDO::FETCH_ASSOC) as $r) {
+        try { if ($sheet->markSent($r['email'], $batch['campaign'], (string)$r['gmail_message_id']))
+            $pdo->prepare("UPDATE marketing_batch_recipients SET sheet_synced_at=NOW() WHERE id=:id")->execute([':id'=>$r['id']]); } catch (Throwable $e) {}
+    }
+    $pdo->prepare("UPDATE marketing_batches SET status='sent',updated_at=NOW() WHERE id=:id")->execute([':id'=>$batch['id']]);
     $ok(['content'=>[['type'=>'text','text'=>json_encode(['sent'=>$sent,'skipped'=>$skipped,'errors'=>$errors])]]]);
 } elseif ($name==='get_batch') {
     $b = $pdo->prepare("SELECT id,campaign,subject,status,created_at FROM marketing_batches WHERE id=:id AND user_id=:u"); $b->execute([':id'=>$a['batch_id'],':u'=>$userId]); $batch=$b->fetch(PDO::FETCH_ASSOC);
