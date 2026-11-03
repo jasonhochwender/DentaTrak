@@ -93,7 +93,7 @@ class MeditAuthService {
     private const REFRESH_LOCK_TIMEOUT = 10;
 
     /** Read-only scope set requested at authorize time (documented codes). */
-    public const REQUESTED_SCOPES = 'USER GROUP CASE FILE';
+    public const REQUESTED_SCOPES = 'USER GROUP CASE FILE PATIENT';
 
     /** @var callable|null test seam: fn($method,$url,$headers,$body) => ['status'=>int,'headers'=>[],'body'=>string] */
     private $transport;
