@@ -54,6 +54,7 @@ if ($name==='check_eligibility') {
     $ok(['content'=>[['type'=>'text','text'=>json_encode($svc->eligibility(array_map('strval',$a['emails']??[])))]]]);
 } elseif ($name==='prepare_batch') {
     $emails = array_values(array_unique(array_map(function($e) use ($svc){return $svc->normalizeEmail((string)$e);},$a['emails']??[])));
+    sort($emails); // canonical order - send_batch recomputes with ORDER BY email
     if (!$emails) $fail('no recipients');
     $elig = $svc->eligibility($emails);
     $hash = hash('sha256', json_encode([$emails,$a['subject'],$a['html'],$a['campaign']]));
@@ -105,11 +106,11 @@ if ($name==='check_eligibility') {
         }
         $res = @json_decode((string)@file_get_contents('https://dentatrak.com/api/marketing-send.php', false, stream_context_create(['http'=>['method'=>'POST','header'=>"Content-Type: application/json\r\nX-Outreach-Token: $token\r\n",'content'=>json_encode(['to'=>$r['email'],'subject'=>$batch['subject'],'html'=>$batch['html'],'campaign'=>$batch['campaign']]),'ignore_errors'=>true,'timeout'=>30]])), true);
         $st = $res['status'] ?? 'uncertain';
-        $msgId = $res['gmail_message_id'] ?? null;
+        $msgId = $res['message_id'] ?? null;
         // Reconcile 'already_recorded': only count Sent when the ledger
         // establishes status=sent AND a Gmail message ID exists.
         if ($st === 'already_recorded' || ($st === 'sent' && !$msgId)) {
-            $led = $pdo->prepare("SELECT status, gmail_message_id FROM marketing_sends WHERE campaign=:c AND email=:e LIMIT 1");
+            $led = $pdo->prepare("SELECT status, gmail_message_id FROM marketing_sends WHERE campaign_ref=:c AND email_normalized=:e LIMIT 1");
             $led->execute([':c'=>$batch['campaign'],':e'=>$r['email']]);
             $l = $led->fetch(PDO::FETCH_ASSOC);
             if ($l && $l['status']==='sent' && !empty($l['gmail_message_id'])) { $st='sent'; $msgId=$l['gmail_message_id']; }
@@ -141,6 +142,15 @@ if ($name==='check_eligibility') {
 } elseif ($name==='get_batch') {
     $b = $pdo->prepare("SELECT id,campaign,subject,status,created_at FROM marketing_batches WHERE id=:id AND user_id=:u"); $b->execute([':id'=>$a['batch_id'],':u'=>$userId]); $batch=$b->fetch(PDO::FETCH_ASSOC);
     if (!$batch) $fail('batch not found');
-    $rs = $pdo->query("SELECT email,eligible,eligible_reason,status,gmail_message_id,error FROM marketing_batch_recipients WHERE batch_id='".$batch['id']."' ORDER BY id")->fetchAll(PDO::FETCH_ASSOC);
+    // Durable sheet retry on read too: confirmed sends lacking
+    // sheet_synced_at retry the sheet write (never resends email).
+    require_once __DIR__ . '/../marketing/ProspectSheetSync.php';
+    require_once __DIR__ . '/../marketing/McpSheetSync.php';
+    try { $sheet = new McpSheetSync();
+        foreach ($pdo->query("SELECT * FROM marketing_batch_recipients WHERE batch_id='".$batch['id']."' AND status='sent' AND sheet_synced_at IS NULL")->fetchAll(PDO::FETCH_ASSOC) as $r)
+            if ($sheet->markSent($r['email'], $batch['campaign'], (string)$r['gmail_message_id']))
+                $pdo->prepare("UPDATE marketing_batch_recipients SET sheet_synced_at=NOW() WHERE id=:id")->execute([':id'=>$r['id']]);
+    } catch (Throwable $e) {}
+    $rs = $pdo->query("SELECT email,eligible,eligible_reason,status,gmail_message_id,error,sheet_synced_at FROM marketing_batch_recipients WHERE batch_id='".$batch['id']."' ORDER BY id")->fetchAll(PDO::FETCH_ASSOC);
     $ok(['content'=>[['type'=>'text','text'=>json_encode(['batch'=>$batch,'recipients'=>$rs])]]]);
 } else $fail('unknown tool');
