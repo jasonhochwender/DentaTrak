@@ -53,9 +53,11 @@ if ($name==='check_eligibility') {
     $bid = sprintf('%04x%04x-%04x-%04x-%04x-%04x%04x%04x', mt_rand(0,0xffff),mt_rand(0,0xffff),mt_rand(0,0xffff),mt_rand(0,0x0fff)|0x4000,mt_rand(0,0x3fff)|0x8000,mt_rand(0,0xffff),mt_rand(0,0xffff),mt_rand(0,0xffff));
     $pdo->prepare("INSERT INTO marketing_batches (id,user_id,campaign,subject,html,content_hash) VALUES (:id,:u,:c,:s,:h,:k)")
         ->execute([':id'=>$bid,':u'=>$userId,':c'=>$a['campaign'],':s'=>$a['subject'],':h'=>$a['html'],':k'=>$hash]);
+    $byEmail = [];
+    foreach ((array)$elig as $info) { $byEmail[strtolower($info['email'] ?? '')] = $info; }
     $ins = $pdo->prepare("INSERT INTO marketing_batch_recipients (batch_id,email,eligible,eligible_reason) VALUES (:b,:e,:g,:r)");
     foreach ($emails as $e) {
-        $info = $elig[$e] ?? ['eligible'=>false];
+        $info = $byEmail[strtolower($e)] ?? ['eligible'=>false];
         $ins->execute([':b'=>$bid,':e'=>$e,':g'=>!empty($info['eligible'])?1:0,':r'=>!empty($info['eligible'])?null:($info['reason']??'suppressed')]);
     }
     $ok(['content'=>[['type'=>'text','text'=>json_encode(['batch_id'=>$bid,'emails'=>$emails,'eligibility'=>$elig,'sent'=>false])]]]);
