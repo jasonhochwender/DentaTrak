@@ -21,10 +21,14 @@ final class ProspectSheetSync
 
     private function accessToken(): string
     {
-        if (getenv('K_SERVICE')) {
-            $r = self::http('GET','http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/token?scopes=' . self::SCOPE, null, false, null, ['Metadata-Flavor: Google']);
-            return json_decode($r, true)['access_token'] ?? throw new RuntimeException('metadata token failed');
-        }
+        // Try the GCE metadata server first (Cloud Run service AND jobs);
+        // fall back to a service-account key for local runs.
+        try {
+            $r = self::http('GET','http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/token?scopes=' . self::SCOPE, null, false, null, ['Metadata-Flavor: Google'], 4);
+            $t = json_decode($r, true)['access_token'] ?? null;
+            if ($t) return $t;
+        } catch (Throwable $e) {}
+        if (getenv('K_SERVICE')) throw new RuntimeException('metadata token failed');
         $sa = getenv('GOOGLE_SHEETS_SA_JSON') ?: '';
         if ($sa === '') throw new RuntimeException('GOOGLE_SHEETS_SA_JSON unset');
         if ($sa[0] !== '{') $sa = file_get_contents($sa);
@@ -41,14 +45,14 @@ final class ProspectSheetSync
         return json_decode($r, true)['access_token'] ?? throw new RuntimeException('oauth failed');
     }
 
-    private static function http(string $m, string $u, $body = null, bool $form = false, ?string $tok = null, array $extraHdr = []): string
+    private static function http(string $m, string $u, $body = null, bool $form = false, ?string $tok = null, array $extraHdr = [], int $timeout = 30): string
     {
         $ch = curl_init($u);
         $h = ['Content-Type: ' . ($form ? 'application/x-www-form-urlencoded' : 'application/json')];
         if ($tok) $h[] = 'Authorization: Bearer ' . $tok;
         foreach ($extraHdr as $eh) $h[] = $eh;
         curl_setopt_array($ch, [CURLOPT_CUSTOMREQUEST => $m, CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_HTTPHEADER => $h, CURLOPT_TIMEOUT => 30]);
+            CURLOPT_HTTPHEADER => $h, CURLOPT_TIMEOUT => $timeout]);
         if ($body !== null) curl_setopt($ch, CURLOPT_POSTFIELDS, $form ? http_build_query($body) : json_encode($body));
         $r = curl_exec($ch); $code = curl_getinfo($ch, CURLINFO_RESPONSE_CODE); curl_close($ch);
         if ($code >= 400) throw new RuntimeException("HTTP $code: " . substr((string) $r, 0, 200));
