@@ -11,7 +11,13 @@ require_once __DIR__ . '/../marketing/SuppressionService.php';
 global $pdo, $appConfig;
 header('Content-Type: application/json');
 
-$auth = $_SERVER['HTTP_AUTHORIZATION'] ?? '';
+$auth = trim((string)($_SERVER['HTTP_AUTHORIZATION'] ?? ''));
+if ($auth === '') $auth = trim((string)($_SERVER['REDIRECT_HTTP_AUTHORIZATION'] ?? ''));
+if ($auth === '' && function_exists('getallheaders')) {
+    foreach ((array)getallheaders() as $hName => $hValue) {
+        if (strcasecmp($hName, 'authorization') === 0) { $auth = trim((string)$hValue); break; }
+    }
+}
 if (!preg_match('/^Bearer\s+(.+)$/', $auth, $m)) { http_response_code(401); header('WWW-Authenticate: Bearer resource_metadata="https://dentatrak.com/.well-known/oauth-protected-resource"'); echo json_encode(['error'=>'unauthorized']); exit; }
 $tok = $pdo->prepare("SELECT t.*, u.email FROM mcp_access_tokens t JOIN users u ON u.id=t.user_id
     WHERE t.token_hash=:h AND t.revoked_at IS NULL AND t.expires_at>NOW() LIMIT 1");

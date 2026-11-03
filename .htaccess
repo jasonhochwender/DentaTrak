@@ -28,6 +28,9 @@ ErrorDocument 404 /404.php
   # Keeps pilot links such as /signup?source=fabg working.
   RewriteRule ^signup$ login.php [L,QSA]
 
+  # Pass the Authorization header through to PHP for the MCP endpoint.
+  SetEnvIf Authorization "(.*)" HTTP_AUTHORIZATION=$1
+
   # OAuth discovery metadata for the MCP connector (RFC 9728 + RFC 8414).
   RewriteRule ^\.well-known/oauth-protected-resource$ api/mcp/oauth-metadata.php?doc=resource [L,QSA]
   RewriteRule ^\.well-known/oauth-authorization-server$ api/mcp/oauth-metadata.php?doc=as [L,QSA]
