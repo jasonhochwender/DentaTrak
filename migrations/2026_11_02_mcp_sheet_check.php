@@ -16,7 +16,7 @@ try {
     $row[0] = 'ZZ_MCP_TEST_DELETE';
     $row[15] = $email;
     ProspectSheetSync::httpPublic('POST', $base . '/values/' . rawurlencode('Prospects') . ':append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS',
-        ['values' => [$row]], true, $tok);
+        ['values' => [$row]], false, $tok);
     echo "appended test row for $email\n";
 
     $sync2 = new McpSheetSync(); // fresh instance re-reads sheet
@@ -35,6 +35,6 @@ try {
     echo 'post-write row snippet: ' . json_encode(array_slice($cells, 0, 22)) . "\n";
 } finally {
     // Clear the test row (values only; row itself remains as blank).
-    if (!empty($p['row'])) ProspectSheetSync::httpPublic('POST', $base . '/values/' . rawurlencode('Prospects!A' . $p['row'] . ':AZ' . $p['row']) . ':clear', new stdClass(), true, $tok);
+    if (!empty($p['row'])) ProspectSheetSync::httpPublic('POST', $base . '/values/' . rawurlencode('Prospects!A' . $p['row'] . ':AZ' . $p['row']) . ':clear', new stdClass(), false, $tok);
     echo "test row cleared\n";
 }

@@ -51,7 +51,7 @@ class McpSheetSync {
         $data=[]; foreach($vals as $h=>$v){$c=$this->col($h); if($c===null) continue;
             $col='';$n=$c+1;while($n>0){$col=chr(65+($n-1)%26).$col;$n=intdiv($n-1,26);}
             $data[]=['range'=>self::TAB."!{$col}{$p['row']}",'values'=>[[$v]]];}
-        ProspectSheetSync::httpPublic('POST','https://sheets.googleapis.com/v4/spreadsheets/'.self::SHEET_ID.'/values:batchUpdate',['valueInputOption'=>'USER_ENTERED','data'=>$data],true,$this->token);
+        ProspectSheetSync::httpPublic('POST','https://sheets.googleapis.com/v4/spreadsheets/'.self::SHEET_ID.'/values:batchUpdate',['valueInputOption'=>'USER_ENTERED','data'=>$data],false,$this->token);
         return true;
     }
 }
