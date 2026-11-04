@@ -77,6 +77,59 @@ class MeditClient {
     /** Hard byte ceiling for a single download (mirrors ScanFileStore). */
     private const MAX_DOWNLOAD_BYTES = 250 * 1024 * 1024;
 
+    /**
+     * Vendor compliance: search requests must be spaced >= 10s. Enforced
+     * GLOBAL per API client via medit_api_throttle (all workers and all
+     * practice connections share one limiter). 12s gives margin over the
+     * documented 10s floor for clock skew. Other endpoints get a modest
+     * 2s floor to prevent request bursts ("excessive traffic" guard).
+     * Max single date-range on any search call: 90 days (documented cap).
+     */
+    private const SEARCH_MIN_INTERVAL_SEC = 12;
+    private const OTHER_MIN_INTERVAL_SEC = 2;
+    private const SEARCH_MAX_RANGE_SEC = 90 * 86400;
+    private const THROTTLE_MAX_WAIT_SEC = 180;
+
+    private static int $throttleEpoch = 0;
+
+    /**
+     * Claim the next allowed request slot for this endpoint class.
+     * SELECT FOR UPDATE serializes every claimant across processes;
+     * the caller sleeps until ITS slot so concurrent workers cannot
+     * burst past the per-client rate floor.
+     */
+    private function throttle(string $scopeKey): void {
+        $gapSec = $scopeKey === 'search' ? self::SEARCH_MIN_INTERVAL_SEC : self::OTHER_MIN_INTERVAL_SEC;
+        $this->pdo->beginTransaction();
+        try {
+            $row = $this->pdo->prepare("SELECT next_at FROM medit_api_throttle WHERE scope_key = :k FOR UPDATE");
+            $row->execute([':k' => $scopeKey]);
+            $nextAt = $row->fetchColumn();
+            if ($nextAt === false) {
+                $this->pdo->prepare("INSERT INTO medit_api_throttle (scope_key, next_at) VALUES (:k, '2000-01-01')")->execute([':k' => $scopeKey]);
+                $nextAt = '2000-01-01';
+            }
+            $nowUs = (int)(microtime(true) * 1e6);
+            // Parse DATETIME(6) into microseconds: seconds + fractional part.
+            $frac = 0;
+            if (preg_match('/\.(\d+)$/', (string)$nextAt, $m)) $frac = (int)str_pad($m[1], 6, '0');
+            $nextUs = strtotime(preg_replace('/\.\d+$/', '', (string)$nextAt)) * 1000000 + $frac;
+            $mySlotUs = max($nextUs, $nowUs);
+            $newNextUs = $mySlotUs + $gapSec * 1000000;
+            $newNext = gmdate('Y-m-d H:i:s', intdiv($newNextUs, 1000000)) . '.' . str_pad((string)($newNextUs % 1000000), 6, '0', STR_PAD_LEFT);
+            $this->pdo->prepare("UPDATE medit_api_throttle SET next_at = :v WHERE scope_key = :k")->execute([':v' => $newNext, ':k' => $scopeKey]);
+            $this->pdo->commit();
+        } catch (Throwable $e) {
+            $this->pdo->rollBack();
+            throw $e;
+        }
+        $waitUs = $mySlotUs - (int)(microtime(true) * 1e6);
+        if ($waitUs > self::THROTTLE_MAX_WAIT_SEC * 1000000) {
+            throw new MeditApiException('rate_limited', 'Medit request slot is too far out - backing off.', true, self::THROTTLE_MAX_WAIT_SEC);
+        }
+        if ($waitUs > 0) usleep($waitUs);
+    }
+
     /** Minimum spacing between resource calls (well under 5 req/s). */
     private const MIN_CALL_SPACING_US = 250000;
 
@@ -135,9 +188,20 @@ class MeditClient {
      * ("list could not be found") maps to an empty first page - that is
      * a documented empty result, not silence-as-empty.
      */
+    /** Vendor cap: any search range > 90 days clamps the start forward
+     *  (never widens the end). Testable pure function. */
+    public static function clampSearchRange(int $startMs, int $endMs): array {
+        $maxRangeMs = self::SEARCH_MAX_RANGE_SEC * 1000;
+        if ($endMs - $startMs > $maxRangeMs) {
+            $startMs = $endMs - $maxRangeMs;
+        }
+        return [$startMs, $endMs];
+    }
+
     public function listCases(int $size, int $page, int $startMs, int $endMs): array {
         $size = max(1, min(self::MAX_PAGE_SIZE, $size));
         $page = max(0, min(1000, $page));
+        [$startMs, $endMs] = self::clampSearchRange($startMs, $endMs);
         $data = $this->apiGetJson('/v1/cases/search', [
             'schema' => 'latest',
             'size'   => $size,
@@ -338,6 +402,10 @@ class MeditClient {
         if (empty($baseParts['host']) || (($baseParts['scheme'] ?? '') !== 'https')) {
             throw new MeditApiException('server_config_missing', 'Medit resource host is not configured.', false);
         }
+        // Vendor rate floor: search endpoints >= 10s apart globally per
+        // client credential (12s margin); all other calls >= 2s apart.
+        // Enforced before any outbound request so no caller can bypass.
+        $this->throttle(preg_match('#/search($|\?)#', $path) || str_ends_with($path, '/search') ? 'search' : 'other');
 
         $this->pace();
         $url = $base . $path . '?' . http_build_query($query);
