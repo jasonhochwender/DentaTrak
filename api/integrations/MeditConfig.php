@@ -126,20 +126,12 @@ class MeditConfig {
      * True only when BOTH the Client ID and Secret are configured for the
      * active environment. The connect flow fails closed without them.
      *
-     * PRODUCTION FAILS CLOSED: the inferred production host names are not
-     * vendor-confirmed. A production environment is only "configured"
-     * when the operator has explicitly pinned BOTH endpoint overrides -
-     * staging works on the documented defaults alone.
+     * Production hosts are vendor-confirmed (openapi-auth /
+     * openapi-resources), so both environments only require their
+     * credentials; the URL overrides stay optional for future changes.
      */
     public static function isConfigured(): bool {
-        if (self::clientId() === null || self::clientSecret() === null) {
-            return false;
-        }
-        if (self::environment() === 'production') {
-            return self::envValue('MEDIT_AUTH_BASE_URL') !== null
-                && self::envValue('MEDIT_RESOURCE_BASE_URL') !== null;
-        }
-        return true;
+        return self::clientId() !== null && self::clientSecret() !== null;
     }
 
     /**

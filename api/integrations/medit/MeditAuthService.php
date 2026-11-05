@@ -92,8 +92,20 @@ class MeditAuthService {
     /** GET_LOCK timeout (seconds) for cross-instance refresh serialization. */
     private const REFRESH_LOCK_TIMEOUT = 10;
 
-    /** Read-only scope set requested at authorize time (documented codes). */
-    public const REQUESTED_SCOPES = 'USER GROUP CASE FILE PATIENT';
+    /**
+     * Read-only scope set requested at authorize time. PATIENT is opt-in:
+     * requested only when MEDIT_REQUEST_PATIENT_SCOPE=1 for the active
+     * environment - an unapproved client-level scope makes the vendor
+     * authorize page reject the whole request (observed on stage). Keep
+     * unset until Medit confirms PATIENT is enabled for that client.
+     * Enrichment remains live for tokens that actually carry the scope.
+     */
+    public static function requestedScopes(): string {
+        $base = 'USER GROUP CASE FILE';
+        $env = MeditConfig::environment();
+        $optIn = getenv('MEDIT_REQUEST_PATIENT_SCOPE') ?: ($_ENV['MEDIT_REQUEST_PATIENT_SCOPE'] ?? null);
+        return ($optIn === '1' || $optIn === 'true') ? $base . ' PATIENT' : $base;
+    }
 
     /** @var callable|null test seam: fn($method,$url,$headers,$body) => ['status'=>int,'headers'=>[],'body'=>string] */
     private $transport;
@@ -173,7 +185,7 @@ class MeditAuthService {
             . '?client_id='     . rawurlencode(MeditConfig::clientId())
             . '&response_type=code'
             . '&redirect_uri='  . rawurlencode(self::redirectUri())
-            . '&scope='         . rawurlencode(self::REQUESTED_SCOPES)
+            . '&scope='         . rawurlencode(self::requestedScopes())
             . '&state='         . rawurlencode($attemptId);
 
         return [
@@ -301,7 +313,7 @@ class MeditAuthService {
             'state'        => $state,
             'grant_type'   => 'authorization_code',
             'redirect_uri' => self::redirectUri(),
-            'scope'        => self::REQUESTED_SCOPES,
+            'scope'        => self::requestedScopes(),
         ], '', '&');
         $response = $this->postForm('/oauth/token', $body);
         return $this->parseTokenResponse($response);
