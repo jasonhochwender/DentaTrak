@@ -2095,7 +2095,7 @@
                 "benefit_4": "Statistiques du cabinet et du laboratoire",
                 "benefit_5": "Recommandations",
                 "benefit_6": "Intégration Open Dental",
-                "benefit_scanner": "Import de scans Primescan / DS Core"
+                "benefit_scanner": "Import de scans Primescan / DS Core et Medit Link"
             },
             "scale": {
                 "practices": "Inclut jusqu'à 5 cabinets",
@@ -5699,7 +5699,7 @@
             "operate_features_4": "Étapes de flux flexibles et vues tableau/liste",
             "operate_features_5": "Commentaires, @mentions et notifications",
             "operate_features_6": "Aide Ask DentaTrak dans le produit",
-            "scanner_available": "Import de scans Primescan / DS Core"
+            "scanner_available": "Import de scans Primescan / DS Core et Medit Link"
         },
         "security": {
             "practice_based_access": "Accès basé sur le cabinet",
@@ -6147,7 +6147,7 @@
             "open_dental": "Intégration Open Dental",
             "open_dental_info": "Connectez Open Dental pour que les cas de laboratoire pris en charge apparaissent automatiquement dans DentaTrak, avec synchronisation bidirectionnelle des statuts en option.",
             "scanners": "Intégrations de scanners",
-            "scanners_info": "Primescan / DS Core est disponible pour l’import de scans. D’autres scanners arrivent bientôt."
+            "scanners_info": "Primescan / DS Core et Medit Link sont disponibles pour l’import de scans. D’autres scanners arrivent bientôt."
         },
         "walkthrough": {
             "steps_aria": "Scènes de fonctionnement de DentaTrak",

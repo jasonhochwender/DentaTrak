@@ -1681,7 +1681,7 @@
                 "benefit_4": "Practice и Lab Insights",
                 "benefit_5": "Рекомендации",
                 "benefit_6": "Интеграция с Open Dental",
-                "benefit_scanner": "Импорт сканов Primescan / DS Core"
+                "benefit_scanner": "Импорт сканов Primescan / DS Core и Medit Link"
             },
             "scale": {
                 "practices": "Включает до 5 клиник",
@@ -4150,7 +4150,7 @@
             "operate_features_4": "Гибкие этапы процесса и виды «доска/список»",
             "operate_features_5": "Комментарии, @упоминания и уведомления",
             "operate_features_6": "Помощь Ask DentaTrak внутри продукта",
-            "scanner_available": "Импорт сканов Primescan / DS Core"
+            "scanner_available": "Импорт сканов Primescan / DS Core и Medit Link"
         },
         "resources": {
             "title": "Материалы по отслеживанию стоматологических случаев | DentaTrak",
@@ -6189,7 +6189,7 @@
             "open_dental": "Интеграция с Open Dental",
             "open_dental_info": "Подключите Open Dental, чтобы поддерживаемые лабораторные работы автоматически появлялись в DentaTrak, с опциональной двусторонней синхронизацией статусов.",
             "scanners": "Интеграции со сканерами",
-            "scanners_info": "Primescan / DS Core доступен для импорта сканов. Другие сканеры появятся позже."
+            "scanners_info": "Primescan / DS Core и Medit Link доступны для импорта сканов. Другие сканеры появятся позже."
         },
         "walkthrough": {
             "steps_aria": "Сцены работы DentaTrak",

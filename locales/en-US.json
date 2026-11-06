@@ -2095,7 +2095,7 @@
                 "benefit_4": "Practice and Lab Insights",
                 "benefit_5": "Recommendations",
                 "benefit_6": "Open Dental integration",
-                "benefit_scanner": "Primescan / DS Core scan import"
+                "benefit_scanner": "Primescan / DS Core and Medit Link scan import"
             },
             "scale": {
                 "practices": "Includes up to 5 practices",
@@ -5699,7 +5699,7 @@
             "operate_features_4": "Flexible workflow stages and Board/List views",
             "operate_features_5": "Comments, @mentions, and notifications",
             "operate_features_6": "Ask DentaTrak in-product help",
-            "scanner_available": "Primescan / DS Core scan import"
+            "scanner_available": "Primescan / DS Core and Medit Link scan import"
         },
         "plan_features": {
             "title": "Plan features",
@@ -5738,7 +5738,7 @@
             "open_dental": "Open Dental integration",
             "open_dental_info": "Connect Open Dental so supported lab cases appear in DentaTrak automatically, with optional two-way status sync.",
             "scanners": "Scanner integrations",
-            "scanners_info": "Primescan / DS Core is available for scan import. Additional scanners are coming soon."
+            "scanners_info": "Scan import via Primescan / DS Core and Medit Link is available. Additional scanners are coming soon."
         },
         "security": {
             "practice_based_access": "Practice-based access",

@@ -4293,7 +4293,7 @@ endif;
                               && DsCoreConfig::isPracticeAllowed((int)$currentPracticeId);
                           // Medit Link panel eligibility: allowlisted
                           // practices only while MEDIT_CONNECT is on
-                          // (staging testing - MEDIT_ALLOWED_PRACTICES).
+                          // (MEDIT_ALLOWED_PRACTICES rollout gate).
                           $meditTestPanel = isFeatureEnabled('MEDIT_CONNECT')
                               && MeditConfig::isPracticeAllowed((int)$currentPracticeId);
                           foreach ($scannerProviders as $scannerKey => $scannerDef):
