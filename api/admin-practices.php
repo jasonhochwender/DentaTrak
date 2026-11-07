@@ -2294,10 +2294,13 @@ function permanentlyDeletePractice($practiceId) {
 
 function logAdminAction($action, $details = []) {
     global $pdo;
+    static $schemaEnsured = false;
     
     try {
-        // Ensure admin_audit_log table exists
-        $pdo->exec("CREATE TABLE IF NOT EXISTS admin_audit_log (
+        // Ensure admin_audit_log table exists. Skip DDL inside an open
+        // transaction - CREATE TABLE would implicitly commit it in MySQL.
+        if (!$schemaEnsured && !$pdo->inTransaction()) {
+            $pdo->exec("CREATE TABLE IF NOT EXISTS admin_audit_log (
             id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
             admin_user_id BIGINT UNSIGNED NOT NULL,
             admin_email VARCHAR(255),
@@ -2309,6 +2312,8 @@ function logAdminAction($action, $details = []) {
             INDEX idx_action (action),
             INDEX idx_created_at (created_at)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+            $schemaEnsured = true;
+        }
         
         $stmt = $pdo->prepare("
             INSERT INTO admin_audit_log (admin_user_id, admin_email, action, details_json, ip_address)
@@ -2333,7 +2338,7 @@ function ensureAdminHiddenPracticesSchema() {
     global $pdo;
     static $initialized = false;
     
-    if ($initialized || !$pdo) {
+    if ($initialized || !$pdo || $pdo->inTransaction()) {
         return;
     }
     

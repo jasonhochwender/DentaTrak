@@ -23,7 +23,10 @@ function ensureAuthMethodsTable() {
     global $pdo;
     static $initialized = false;
     
-    if ($initialized || !$pdo) {
+    // DDL inside a transaction implicitly commits it in MySQL - skip schema
+    // creation when a caller invoked us mid-transaction. Callers that need
+    // the table must ensure it before beginTransaction().
+    if ($initialized || !$pdo || $pdo->inTransaction()) {
         return;
     }
     
@@ -429,7 +432,7 @@ function ensureLoginAttemptsTable() {
     global $pdo;
     static $initialized = false;
     
-    if ($initialized || !$pdo) {
+    if ($initialized || !$pdo || $pdo->inTransaction()) {
         return;
     }
     
@@ -1046,7 +1049,9 @@ function generatePasswordSetupToken($email) {
     }
     
     // Ensure password_setup_tokens table exists
-    try {
+    static $passwordSetupSchemaEnsured = false;
+    if (!$passwordSetupSchemaEnsured && !$pdo->inTransaction()) {
+        try {
         $pdo->exec("
             CREATE TABLE IF NOT EXISTS password_setup_tokens (
                 id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
@@ -1062,8 +1067,10 @@ function generatePasswordSetupToken($email) {
                 FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
         ");
-    } catch (PDOException $e) {
-        // Table might already exist
+        } catch (PDOException $e) {
+            // Table might already exist
+        }
+        $passwordSetupSchemaEnsured = true;
     }
     
     try {
@@ -1169,6 +1176,11 @@ function completePasswordSetup($token, $password) {
     }
     
     $userId = $validation['user_id'];
+    
+    // Warm lazy schemas before opening the transaction - addAuthMethod()
+    // calls ensureAuthMethodsTable() internally and DDL would implicitly
+    // commit the transaction.
+    ensureAuthMethodsTable();
     
     try {
         $pdo->beginTransaction();

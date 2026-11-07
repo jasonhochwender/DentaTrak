@@ -11,7 +11,7 @@ function ensureDemoGenerationRunsSchema() {
     global $pdo;
     static $initialized = false;
 
-    if ($initialized || !$pdo) {
+    if ($initialized || !$pdo || $pdo->inTransaction()) {
         return;
     }
 
@@ -41,10 +41,7 @@ function ensureDemoGenerationRunsSchema() {
 function ensureCasesCacheTable() {
     global $pdo;
     static $initialized = false;
-    if ($initialized) {
-        return;
-    }
-    if (!$pdo) {
+    if ($initialized || !$pdo || $pdo->inTransaction()) {
         return;
     }
 
@@ -1324,7 +1321,7 @@ function ensureCaseUpdatesTable() {
     global $pdo;
     static $initialized = false;
     
-    if ($initialized || !$pdo) {
+    if ($initialized || !$pdo || $pdo->inTransaction()) {
         return;
     }
     

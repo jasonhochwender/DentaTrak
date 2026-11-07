@@ -71,7 +71,7 @@ function ensureCaseRemakeEventsTable() {
     global $pdo;
     static $initialized = false;
 
-    if ($initialized || !$pdo) {
+    if ($initialized || !$pdo || $pdo->inTransaction()) {
         return;
     }
 
