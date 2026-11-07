@@ -3619,6 +3619,7 @@
             "ai_model_unavailable": "Empfehlungen sind vorübergehend nicht verfügbar, da der Empfehlungsdienst nicht erreicht werden konnte.",
             "ai_config": "Konfigurationsfehler des Empfehlungsdienstes. Bitte wenden Sie sich an den Support.",
             "ai_unavailable": "Der Empfehlungsdienst ist derzeit nicht verfügbar. Bitte versuchen Sie es später erneut.",
+            "ai_billing": "Der KI-Assistent von DentaTrak ist vorübergehend nicht verfügbar. Bitte versuchen Sie es später erneut; wenn das Problem weiterhin besteht, wenden Sie sich an den Support.",
             "unable_later": "Empfehlungen können derzeit nicht erstellt werden. Bitte versuchen Sie es später erneut."
         },
         "upgrade": {

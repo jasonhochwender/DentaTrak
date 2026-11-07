@@ -5817,6 +5817,7 @@
             "ai_model_unavailable": "As recomendações estão temporariamente indisponíveis porque o serviço de recomendações não pôde ser alcançado.",
             "ai_config": "Erro de configuração do serviço de recomendações. Contate o suporte.",
             "ai_unavailable": "O serviço de recomendações está indisponível no momento. Tente novamente mais tarde.",
+            "ai_billing": "O assistente de IA do DentaTrak está temporariamente indisponível. Tente novamente mais tarde; se o problema persistir, contate o suporte.",
             "unable_later": "Não foi possível gerar recomendações neste momento. Tente novamente mais tarde."
         },
         "upgrade": {

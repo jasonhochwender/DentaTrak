@@ -1996,6 +1996,7 @@
             "ai_model_unavailable": "Le raccomandazioni sono temporaneamente non disponibili perché il servizio di raccomandazioni non è raggiungibile.",
             "ai_config": "Errore di configurazione del servizio di raccomandazioni. Contatta l'assistenza.",
             "ai_unavailable": "Il servizio di raccomandazioni non è al momento disponibile. Riprova più tardi.",
+            "ai_billing": "L'assistente IA di DentaTrak non è temporaneamente disponibile. Riprova più tardi; se il problema persiste, contatta il supporto.",
             "unable_later": "Impossibile generare raccomandazioni al momento. Riprova più tardi."
         },
         "upgrade": {

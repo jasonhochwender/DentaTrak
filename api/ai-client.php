@@ -157,6 +157,11 @@ function handleAPIError($httpCode, $response, $provider) {
         throw new Exception('AI_MODEL_UNAVAILABLE');
     } elseif ($httpCode === 400) {
         throw new Exception('AI_INVALID_REQUEST');
+    } elseif ($httpCode === 402) {
+        // Payment required — prepaid credits/quota exhausted on the provider
+        // account. Retrying will not help until billing is restored, so this
+        // gets its own code instead of the generic unexpected-error path.
+        throw new Exception('AI_BILLING_ERROR');
     } elseif ($httpCode === 429) {
         throw new Exception('AI_QUOTA_EXCEEDED');
     } elseif ($httpCode === 401 || $httpCode === 403) {

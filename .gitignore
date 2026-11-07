@@ -257,3 +257,4 @@ NUL
 !/tests/org-insights-test.php
 !/tests/plan-override-test.php
 !/tests/plan-override-tx-safety-test.php
+!/tests/ai-client-error-test.php

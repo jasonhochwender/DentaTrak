@@ -1996,6 +1996,7 @@
             "ai_model_unavailable": "Les recommandations sont temporairement indisponibles car le service de recommandations n'a pas pu être joint.",
             "ai_config": "Erreur de configuration du service de recommandations. Veuillez contacter l'assistance.",
             "ai_unavailable": "Le service de recommandations est actuellement indisponible. Veuillez réessayer plus tard.",
+            "ai_billing": "L'assistant IA de DentaTrak est temporairement indisponible. Veuillez réessayer plus tard ; si le problème persiste, contactez le support.",
             "unable_later": "Impossible de générer les recommandations pour le moment. Veuillez réessayer plus tard."
         },
         "upgrade": {

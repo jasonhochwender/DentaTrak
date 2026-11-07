@@ -249,6 +249,7 @@ function runAskDentatrakTool(string $tool, array $params, int $practiceId): arra
 function askDentatrakErrorResponse(Throwable $e): array {
     $key = match ($e->getMessage()) {
         'AI_QUOTA_EXCEEDED'      => 'insights.errors.ai_quota',
+        'AI_BILLING_ERROR'       => 'insights.errors.ai_billing',
         'AI_MODEL_UNAVAILABLE'   => 'insights.errors.ai_model_unavailable',
         'AI_INVALID_REQUEST',
         'AI_AUTH_ERROR'          => 'insights.errors.ai_config',

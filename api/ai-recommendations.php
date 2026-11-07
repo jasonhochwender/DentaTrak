@@ -129,6 +129,7 @@ try {
     // config_error codes are permanent failures — the UI should not offer a retry
     $userMessage = match($errorMessage) {
         'AI_QUOTA_EXCEEDED'     => t('insights.errors.ai_quota'),
+        'AI_BILLING_ERROR'      => t('insights.errors.ai_billing'),
         'AI_MODEL_UNAVAILABLE'  => t('insights.errors.ai_model_unavailable'),
         'AI_INVALID_REQUEST'    => t('insights.errors.ai_config'),
         'AI_AUTH_ERROR'         => t('insights.errors.ai_config'),
@@ -138,6 +139,7 @@ try {
 
     $errorCode = match($errorMessage) {
         'AI_QUOTA_EXCEEDED'                      => 'quota',
+        'AI_BILLING_ERROR'                       => 'service_unavailable',
         'AI_MODEL_UNAVAILABLE', 'AI_AUTH_ERROR',
         'AI_INVALID_REQUEST'                     => 'config_error',
         default                                  => 'general',
