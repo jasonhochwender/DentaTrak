@@ -309,7 +309,7 @@ async function listCases(page) {
     }
     if (page.url().includes('practice-setup.php')) {
       // No practice is selected yet; choose the authorized Practice.
-      const selector = `button.select-btn[data-practice-id="${ownerInfo.practice_id}"]`;
+      const selector = `button.practice-row[name="practice_id"][value="${ownerInfo.practice_id}"]`;
       await page.locator(selector).first().click();
       await page.waitForURL(/main\.php/, { timeout: 10000 });
     }
