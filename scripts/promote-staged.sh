@@ -12,15 +12,24 @@ SERVICE="${1:?usage: promote-staged.sh <service> <region> <tag>}"
 REGION="${2:?usage: promote-staged.sh <service> <region> <tag>}"
 TAG="${3:?usage: promote-staged.sh <service> <region> <tag>}"
 
-REV="$(gcloud run services describe "$SERVICE" --region "$REGION" \
-        --format='json(status.traffic)' \
-      | python3 -c '
-import json, sys
-tag = sys.argv[1]
-for entry in json.load(sys.stdin).get("status", {}).get("traffic", []):
-    if entry.get("tag") == tag and entry.get("revisionName"):
-        print(entry["revisionName"]); break
-' "$TAG")" || { echo "PROMOTE FAIL: describe failed for tag '$TAG'"; exit 1; }
+# Resolve revisionName for the tag from the service's traffic config.
+# Uses yaml+awk (both guaranteed in the cloud-sdk build image) - the
+# previous python3 one-liner failed with "python3: command not found"
+# because the step image does not ship python3. Retries absorb traffic
+# propagation lag after `gcloud run deploy --tag`.
+REV=""
+for attempt in 1 2 3 4 5; do
+  REV="$(gcloud run services describe "$SERVICE" --region "$REGION" \
+          --format='yaml(status.traffic)' \
+        | awk -v tag="$TAG" '
+            /revisionName:/ { rev=$NF }
+            /^[[:space:]]*-?[[:space:]]*tag:/ && $NF == tag { found=rev }
+            END { if (found) print found }
+          ')" || REV=""
+  [ -n "$REV" ] && break
+  echo "Tag '$TAG' not yet visible in traffic config (attempt $attempt/5); retrying in 10s"
+  sleep 10
+done
 [ -n "$REV" ] || { echo "PROMOTE FAIL: no revision found for tag '$TAG'"; exit 1; }
 
 echo "Resolved tag '$TAG' -> revision '$REV'"
