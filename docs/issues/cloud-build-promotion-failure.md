@@ -29,36 +29,29 @@ pipeline exits non-zero — i.e. either `gcloud run services describe`
 itself failed, `python3` was unavailable/errored in the build step
 container, or the JSON parse found no match path that raised.
 
-## Likely root causes (ranked)
+## Root cause — CONFIRMED 2026-11-07
 
-1. **Propagation lag**: `gcloud run deploy --tag` returns before the tag
-   is visible in `services describe` traffic config. The promote step
-   runs immediately after with no retry, so a not-yet-propagated tag
-   yields an empty `REV` or a describe that races the traffic write.
-2. **Missing `python3` in the promote step's build image**: the script
-   depends on `python3` for JSON parsing; if the Cloud Build step image
-   lacks it, the pipeline fails deterministically — but failures are
-   intermittent, so this is less likely unless step images differ.
-3. **Transient `gcloud`/API errors**: no retry or backoff around the
-   describe call.
+Build log for `5dace5b` shows the exact failure:
 
-## Proposed permanent correction
+```
+Step #5: scripts/promote-staged.sh: line 23: python3: command not found
+Step #5: PROMOTE FAIL: describe failed for tag 'staged-5dace5b'
+```
 
-Make `promote-staged.sh` resilient rather than rewriting the pipeline:
+The promote step runs in `gcr.io/google.com/cloudsdktool/cloud-sdk`,
+which does **not** ship `python3`. The `gcloud | python3` pipeline
+exited non-zero on every build — deterministic, not intermittent.
+Earlier "glitches" were the same failure masked by manual promotion.
 
-1. **Retry the describe** — wrap the `gcloud run services describe |
-   python3` resolution in a bounded retry loop (e.g. 5 attempts, 10s
-   apart) to absorb propagation lag and transient API errors.
-2. **Replace `python3` dependency** — parse the traffic JSON with
-   `gcloud --format` value extraction or `jq` (verify availability in
-   the build image first), removing a fragile runtime dependency.
-3. **Fallback resolution** — if the tag is absent from traffic config,
-   fall back to `gcloud run revisions list --service=$SERVICE
-   --filter="metadata.labels.'run.googleapis.com/traffic-tag'=$TAG"`
-   (or the tag annotation) before failing.
-4. **Keep the existing safety properties**: build-unique tags,
-   verify-before-promote gates, and the newer-serving-revision
-   regression guard must remain unchanged.
+## Fix — implemented in `scripts/promote-staged.sh`
+
+- Tag→revision resolution now uses `gcloud --format='yaml(status.traffic)'`
+  parsed with `awk` (both guaranteed in the image); verified against the
+  live service traffic config.
+- Bounded retry (5 × 10s) absorbs traffic propagation lag after
+  `gcloud run deploy --tag`.
+- Unchanged safety properties: build-unique tags, verify-before-promote
+  gates, newer-serving-revision regression guard.
 
 ## Verification
 
