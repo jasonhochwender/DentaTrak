@@ -32,6 +32,15 @@ function ensurePlanOverridesSchema(PDO $pdo): void {
     if ($ensured) {
         return;
     }
+    // CREATE TABLE causes an implicit commit in MySQL. Running it while the
+    // caller holds an open transaction would silently commit that work and
+    // leave the caller's commit()/rollBack() failing with "no active
+    // transaction". Inside a transaction we skip the DDL: the override
+    // lookup then either reads the existing table or fails closed to the
+    // purchased plan (its SELECT error is caught by the caller).
+    if ($pdo->inTransaction()) {
+        return;
+    }
     try {
         $pdo->exec("CREATE TABLE IF NOT EXISTS admin_plan_overrides (
             owner_user_id BIGINT UNSIGNED PRIMARY KEY,

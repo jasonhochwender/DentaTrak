@@ -256,3 +256,4 @@ NUL
 !/tests/org-case-view-test.php
 !/tests/org-insights-test.php
 !/tests/plan-override-test.php
+!/tests/plan-override-tx-safety-test.php

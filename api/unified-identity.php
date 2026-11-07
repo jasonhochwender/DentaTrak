@@ -288,7 +288,9 @@ function authenticateWithGoogle($googleData) {
         ];
         
     } catch (PDOException $e) {
-        $pdo->rollBack();
+        if ($pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
         error_log('[unified-identity] Google auth error: ' . $e->getMessage());
         return ['success' => false, 'message' => t('auth.errors.auth_failed')];
     }
@@ -404,7 +406,9 @@ function registerWithEmail($email, $password, $firstName = '', $lastName = '') {
         ];
         
     } catch (PDOException $e) {
-        $pdo->rollBack();
+        if ($pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
         error_log('[unified-identity] Email registration error: ' . $e->getMessage());
         return ['success' => false, 'message' => t('auth.errors.registration_failed')];
     }
@@ -1199,7 +1203,9 @@ function completePasswordSetup($token, $password) {
         ];
         
     } catch (PDOException $e) {
-        $pdo->rollBack();
+        if ($pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
         error_log('[unified-identity] Error completing password setup: ' . $e->getMessage());
         return ['success' => false, 'message' => t('auth.errors.set_password_failed')];
     }

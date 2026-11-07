@@ -183,6 +183,12 @@ try {
         // rejection of users.role = 'admin' as DentaTrak written approval.
         requirePracticeCreationAllowed($pdo, $appConfig, (int)$userId, $organizationType);
 
+        // Warm lazy schemas BEFORE opening the transaction: their
+        // CREATE TABLE IF NOT EXISTS would implicitly commit an open
+        // transaction in MySQL (see ensurePlanOverridesSchema).
+        require_once __DIR__ . '/plan-overrides.php';
+        ensurePlanOverridesSchema($pdo);
+
         $pdo->beginTransaction();
 
         try {
