@@ -3497,6 +3497,16 @@
             "completed_cases_base_other": "Basierend auf {count} abgeschlossenen Fällen",
             "no_completed_cases": "Keine abgeschlossenen Fälle für diesen Zeitraum verfügbar."
         },
+        "labkpi": {
+            "active_cases": "Aktive Laborfälle",
+            "active_sub": "Aktuelle Laborarbeitslast.",
+            "overdue_cases": "Überfällige Laborfälle",
+            "require_attention": "Erfordert Aufmerksamkeit.",
+            "avg_turnaround": "Durchschnittliche Durchlaufzeit",
+            "on_time_rate": "Pünktliche Lieferung",
+            "case_health": "Labor-Fallstatus",
+            "selected_period": "Basierend auf dem ausgewählten Zeitraum."
+        },
         "kpi": {
             "active_cases": "Aktive Fälle",
             "current_workload": "Aktuelle Arbeitslast.",

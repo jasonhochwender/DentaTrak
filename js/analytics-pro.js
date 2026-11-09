@@ -932,7 +932,7 @@
     // Start from a clean risk-filter slate, then apply the requested one.
     ['filterLateCases', 'filterDueSoon', 'filterApptRisk', 'filterAtRisk',
      'filterAwaitingAck', 'filterNeedsInfo', 'filterDeliveredMonth',
-     'filterAttentionOnly'].forEach(function (id) {
+     'filterAttentionOnly', 'filterLabCases'].forEach(function (id) {
       setCheck(id, false);
     });
 

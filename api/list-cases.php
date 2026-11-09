@@ -263,6 +263,41 @@ try {
         $cases = array_values($cases);
     }
 
+    // Lab Insights KPI navigation: restrict the board to cases whose
+    // assignee is a currently-live lab identity. This mirrors the
+    // "active lab cases" rule in get-lab-insights.php exactly -
+    // practice_users.is_lab emails UNION practice_assignment_labels
+    // is_lab labels, matched case-insensitively on assigned_to.
+    $labOnly = ($_GET['lab_only'] ?? '') === 'true';
+    if ($labOnly) {
+        $labNameSet = [];
+        $labStmt = $pdo->prepare("
+            SELECT u.email AS nm
+            FROM practice_users pu
+            JOIN users u ON u.id = pu.user_id
+            WHERE pu.practice_id = :practice_id AND pu.is_lab = 1
+        ");
+        $labStmt->execute(['practice_id' => $currentPracticeId]);
+        foreach ($labStmt->fetchAll(PDO::FETCH_ASSOC) as $lr) {
+            $k = mb_strtolower(trim((string)$lr['nm']));
+            if ($k !== '') { $labNameSet[$k] = true; }
+        }
+        $labStmt = $pdo->prepare("
+            SELECT label AS nm
+            FROM practice_assignment_labels
+            WHERE practice_id = :practice_id AND is_lab = 1
+        ");
+        $labStmt->execute(['practice_id' => $currentPracticeId]);
+        foreach ($labStmt->fetchAll(PDO::FETCH_ASSOC) as $lr) {
+            $k = mb_strtolower(trim((string)$lr['nm']));
+            if ($k !== '') { $labNameSet[$k] = true; }
+        }
+        $cases = array_values(array_filter($cases, function($case) use ($labNameSet) {
+            $at = mb_strtolower(trim((string)($case['assignedTo'] ?? '')));
+            return $at !== '' && isset($labNameSet[$at]);
+        }));
+    }
+
     // Review Status filtering is only honored while the practice-level Case
     // Review Tracking feature is enabled. When disabled, a stale or manually
     // supplied review_status parameter must not hide cases.

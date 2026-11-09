@@ -1882,6 +1882,16 @@
             "completed_cases_base_other": "완료된 사례 {count}건 기준",
             "no_completed_cases": "이 기간에 완료된 사례가 없습니다."
         },
+        "labkpi": {
+            "active_cases": "진행 중 기공소 케이스",
+            "active_sub": "현재 기공소 작업량.",
+            "overdue_cases": "기공소 지연 케이스",
+            "require_attention": "주의가 필요합니다.",
+            "avg_turnaround": "평균 제작 기간",
+            "on_time_rate": "정시 납품",
+            "case_health": "기공소 케이스 상태",
+            "selected_period": "선택한 기간 기준."
+        },
         "kpi": {
             "active_cases": "진행 중인 케이스",
             "current_workload": "현재 작업량.",

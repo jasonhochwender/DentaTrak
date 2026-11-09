@@ -1874,6 +1874,16 @@
             "completed_cases_base_other": "Basé sur {count} cas terminés",
             "no_completed_cases": "Aucun cas terminé disponible pour cette période."
         },
+        "labkpi": {
+            "active_cases": "Cas de laboratoire actifs",
+            "active_sub": "Charge de travail actuelle du laboratoire.",
+            "overdue_cases": "Cas de laboratoire en retard",
+            "require_attention": "Nécessitent une attention.",
+            "avg_turnaround": "Délai moyen d'exécution",
+            "on_time_rate": "Livraison ponctuelle",
+            "case_health": "État des cas de laboratoire",
+            "selected_period": "Selon la période sélectionnée."
+        },
         "kpi": {
             "active_cases": "Cas actifs",
             "current_workload": "Charge de travail actuelle.",

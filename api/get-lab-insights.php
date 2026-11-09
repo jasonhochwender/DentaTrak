@@ -73,6 +73,8 @@ require_once __DIR__ . '/lab-performance-metrics.php';
 require_once __DIR__ . '/lab-recommendations.php';
 require_once __DIR__ . '/workflow-stages.php';
 require_once __DIR__ . '/encryption.php';
+require_once __DIR__ . '/practice-display-settings.php';
+require_once __DIR__ . '/case-attention.php';
 
 header('Content-Type: application/json');
 
@@ -151,6 +153,11 @@ try {
     // table so every lab metric, drill-down row, and trend is scoped by the
     // same rule canUserAccessCase() uses.
     ensureAuthorizedCaseIdsTempTable($practiceId);
+
+    // Practice-wide risk thresholds - the same values the Kanban board and
+    // Practice Insights Case Health use, so Lab Case Health classifies
+    // identically (getPracticeDisplaySettings reads the practices row).
+    $practiceDisplay = getPracticeDisplaySettings($pdo, $practiceId);
 
     // ── Lab identity universe: currently-designated labs UNION any identity
     // that appears in this practice's assignment history (so removed/renamed
@@ -235,6 +242,7 @@ try {
             'currentWorkload' => [],
             'trend' => null,
             'performance' => null,
+            'operational' => null,
         ]);
         exit;
     }
@@ -368,9 +376,11 @@ try {
     // consequence of Assigned Only, not a bug.
     $currentWorkloadCaseIds = [];   // labKey => [caseId => true]
     $currentWorkloadLateCount = []; // labKey => int
+    $activeLabCasesById = [];       // caseId => row (deduped across labs)
     $stmt = $pdo->prepare("
         SELECT cases_cache.case_id, status, due_date, archived, case_type, assigned_to,
-               patient_first_name, patient_last_name
+               patient_first_name, patient_last_name,
+               patient_appointment_date, lab_ack_status
         FROM cases_cache INNER JOIN authorized_case_ids a ON a.case_id = cases_cache.case_id COLLATE utf8mb4_unicode_ci
         WHERE practice_id = :practice_id AND archived = 0
     ");
@@ -393,10 +403,52 @@ try {
         }
         $currentWorkloadCaseIds[$labKey][$row['case_id']] = true;
         $casesById[$row['case_id']] = $row;
+        // A case assigned to multiple live labs counts ONCE in the
+        // practice-wide operational summary (per-lab rows may still
+        // legitimately show it under each lab).
+        if (!isset($activeLabCasesById[$row['case_id']])) {
+            $activeLabCasesById[$row['case_id']] = $row;
+        }
         if (labIsLate($row, $now, $TERMINAL_CASE_STATUSES)) {
             $currentWorkloadLateCount[$labKey] = ($currentWorkloadLateCount[$labKey] ?? 0) + 1;
         }
     }
+
+    // ── Operational summary + Lab Case Health ────────────────────────────
+    // Practice-wide, unique-case classification of the CURRENT workload.
+    // Reuses classifyCaseAttentionRisk() - the same rules and practice
+    // thresholds as the Kanban board and Practice Insights - with the
+    // established mutually-exclusive precedence (late > appointment risk >
+    // due soon > on track), so each active lab case lands in exactly one
+    // bucket and the counts reconcile with the Case Board risk filters.
+    $caseHealth = ['onTrack' => 0, 'dueSoon' => 0, 'appointmentRisk' => 0, 'overdue' => 0];
+    foreach ($activeLabCasesById as $caseId => $row) {
+        $cls = classifyCaseAttentionRisk([
+            'status' => $row['status'] ?? '',
+            'dueDate' => $row['due_date'] ?? null,
+            'patientAppointmentDate' => $row['patient_appointment_date'] ?? null,
+            'labAckStatus' => $row['lab_ack_status'] ?? null,
+        ], $practiceDisplay, $TERMINAL_CASE_STATUSES[0] ?? null);
+        if ($cls['late']) {
+            $caseHealth['overdue']++;
+        } elseif ($cls['apptRisk']) {
+            $caseHealth['appointmentRisk']++;
+        } elseif ($cls['dueSoon']) {
+            $caseHealth['dueSoon']++;
+        } else {
+            $caseHealth['onTrack']++;
+        }
+    }
+    $activeLabCaseCount = count($activeLabCasesById);
+    $overdueLabCaseCount = $caseHealth['overdue'];
+    $operational = [
+        'activeLabCases' => $activeLabCaseCount,
+        'overdueLabCases' => $overdueLabCaseCount,
+        'overduePct' => $activeLabCaseCount > 0
+            ? round(($overdueLabCaseCount / $activeLabCaseCount) * 1000) / 10
+            : null,
+        'caseHealth' => $caseHealth,
+    ];
 
     function periodOverlapsRange($period, ?DateTimeImmutable $rangeStart, DateTimeImmutable $now) {
         if ($rangeStart === null) { return true; }
@@ -729,6 +781,7 @@ try {
         'trend' => $trend,
         'performance' => $performance,
         'recommendations' => $recommendations,
+        'operational' => $operational,
     ]);
 
 } catch (Throwable $e) {

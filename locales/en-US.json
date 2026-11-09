@@ -1880,6 +1880,16 @@
             "completed_cases_base_many": "Based on {count} completed cases",
             "no_completed_cases": "No completed cases available for this period."
         },
+        "labkpi": {
+            "active_cases": "Active Lab Cases",
+            "active_sub": "Current lab workload.",
+            "overdue_cases": "Overdue Lab Cases",
+            "require_attention": "Require attention.",
+            "avg_turnaround": "Average Turnaround",
+            "on_time_rate": "On-Time Delivery",
+            "case_health": "Lab Case Health",
+            "selected_period": "Based on the selected period."
+        },
         "kpi": {
             "active_cases": "Active Cases",
             "current_workload": "Current workload.",

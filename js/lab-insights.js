@@ -120,6 +120,228 @@
   }
 
   // ======================================================================
+  // Operational KPI summary + Lab Case Health (current-state top section)
+  // ======================================================================
+
+  /**
+   * Navigate from a Lab Insights KPI card / Case Health segment to the
+   * Cases tab with the lab scope + matching risk filter applied. Mirrors
+   * analytics-pro.js navigateToFilteredCases but always sets the hidden
+   * filterLabCases scope so the destination is lab cases only.
+   * 'lab_cases' leaves every risk filter cleared.
+   */
+  function liNavigateToCases(target) {
+    var casesTab = document.querySelector('.main-tab[data-tab="cases"]');
+    if (casesTab) { casesTab.click(); }
+
+    var setCheck = function (id, checked) {
+      var el = document.getElementById(id);
+      if (el) { el.checked = checked; }
+      return el || null;
+    };
+    ['filterLateCases', 'filterDueSoon', 'filterApptRisk', 'filterAtRisk',
+     'filterAwaitingAck', 'filterNeedsInfo', 'filterDeliveredMonth',
+     'filterAttentionOnly'].forEach(function (id) {
+      setCheck(id, false);
+    });
+
+    var labEl = setCheck('filterLabCases', true);
+    var targetEl = null;
+    if (target === 'late') { targetEl = setCheck('filterLateCases', true); }
+    else if (target === 'due_soon') { targetEl = setCheck('filterDueSoon', true); }
+    else if (target === 'appt_risk') { targetEl = setCheck('filterApptRisk', true); }
+    // 'lab_cases' intentionally leaves every risk filter cleared.
+
+    var changeSource = targetEl || labEl || document.getElementById('filterLateCases');
+    if (changeSource) {
+      changeSource.dispatchEvent(new Event('change', { bubbles: true }));
+    } else if (typeof window.applyFilters === 'function') {
+      window.applyFilters();
+    }
+  }
+
+  /** Turnaround / On-Time KPI cards drill into the Lab Detail analysis. */
+  function liNavigateToPerfDetail() {
+    selectLab('practice');
+  }
+
+  function liSetText(id, text) {
+    var el = document.getElementById(id);
+    if (el) { el.textContent = text; }
+  }
+
+  function liSetHtml(id, html) {
+    var el = document.getElementById(id);
+    if (el) { el.innerHTML = html; }
+  }
+
+  /**
+   * Render the four operational KPI cards + Lab Case Health stacked bar.
+   * Returns true when the operational payload was rendered. Current-state
+   * metrics (active/overdue/health) come from data.operational and are
+   * never range-filtered; turnaround/on-time come from
+   * performance.practice (selected reporting period) with a legacy
+   * summary fallback.
+   */
+  function renderOperationalSummary(data) {
+    var ops = document.getElementById('liOps');
+    if (!ops) { return false; }
+    var o = data && data.operational;
+    if (!o) {
+      ops.style.display = 'none';
+      // Restore the perf-layout summary strip if a previous payload hid it.
+      var ps = document.getElementById('liPerfSummary');
+      var pn = document.getElementById('liPerfNow');
+      if (ps) { ps.style.display = ''; }
+      if (pn) { pn.style.display = ''; }
+      return false;
+    }
+    ops.style.display = 'block';
+
+    // The new KPI row + health bar replace the perf layout's five-card
+    // summary and the "right now" chip strip (open cases is now the Active
+    // Lab Cases KPI; open remakes remains in Lab Detail > Remakes).
+    var ps = document.getElementById('liPerfSummary');
+    var pn = document.getElementById('liPerfNow');
+    if (ps) { ps.style.display = 'none'; }
+    if (pn) { pn.style.display = 'none'; }
+
+    var health = o.caseHealth || {};
+    var active = o.activeLabCases || 0;
+    var overdue = o.overdueLabCases || 0;
+
+    // ── KPI cards ──
+    liSetText('liKpiActiveCasesValue', fmtCount(active));
+    liSetText('liKpiOverdueValue', fmtCount(overdue));
+
+    var overdueCard = document.getElementById('liKpiOverdue');
+    if (overdueCard) {
+      overdueCard.classList.toggle('ap-kpi-card--alert-active', overdue > 0);
+    }
+    liSetText('liKpiOverdueSub',
+      (o.overduePct === null || o.overduePct === undefined)
+        ? t('insights.labkpi.require_attention')
+        : t('insights.kpi.overdue_pct_of_active', { pct: String(o.overduePct) }));
+
+    var perfPractice = (data.performance && data.performance.practice) || null;
+    var ta = perfPractice ? (perfPractice.turnaround || {}) : null;
+    var ot = perfPractice ? (perfPractice.onTime || {}) : null;
+
+    if (ta) {
+      liSetHtml('liKpiTurnaroundValue',
+        (ta.avgDays === null || ta.avgDays === undefined)
+          ? '<span class="li-muted">—</span>'
+          : escapeHtml(fmtDays(ta.avgDays)));
+      liSetText('liKpiTurnaroundSub', I18n.pluralize(ta.n || 0, 'insights.perf.context.based_on_cases'));
+    } else {
+      // Legacy fallback: range-filtered global turnaround, no sample size.
+      var sd = data.summary || {};
+      liSetText('liKpiTurnaroundValue',
+        (sd.avgTurnaroundDays === null || sd.avgTurnaroundDays === undefined)
+          ? '—' : fmtDays(sd.avgTurnaroundDays));
+      liSetText('liKpiTurnaroundSub', t('insights.labkpi.selected_period'));
+    }
+
+    if (ot) {
+      liSetHtml('liKpiOnTimeValue',
+        (ot.pct === null || ot.pct === undefined)
+          ? '<span class="li-muted">—</span>'
+          : escapeHtml(fmtPercent(ot.pct)));
+      liSetText('liKpiOnTimeSub', I18n.pluralize(ot.n || 0, 'insights.perf.context.based_on_cases'));
+    } else {
+      liSetText('liKpiOnTimeValue', '—');
+      liSetText('liKpiOnTimeSub', t('insights.labkpi.selected_period'));
+    }
+
+    // ── Lab Case Health stacked bar (mutually-exclusive buckets; each
+    //    active lab case counted exactly once, server-side) ──
+    var onTrack = health.onTrack || 0;
+    var dueSoon = health.dueSoon || 0;
+    var apptRisk = health.appointmentRisk || 0;
+    var late = health.overdue || 0;
+    var flowTotal = onTrack + dueSoon + apptRisk + late;
+
+    var healthCard = document.getElementById('liHealthCard');
+    if (healthCard) {
+      healthCard.classList.toggle('ap-health-card--empty', flowTotal === 0);
+    }
+    var pct = function (n) { return flowTotal > 0 ? (n / flowTotal) * 100 : 0; };
+    var widths = {
+      liHealthOnTrack: pct(onTrack),
+      liHealthDueSoon: pct(dueSoon),
+      liHealthApptRisk: pct(apptRisk),
+      liHealthOverdue: pct(late)
+    };
+    Object.keys(widths).forEach(function (id) {
+      var el = document.getElementById(id);
+      if (el) { el.style.width = widths[id] + '%'; }
+    });
+    liSetText('liHealthOnTrackCount', fmtCount(onTrack));
+    liSetText('liHealthDueSoonCount', fmtCount(dueSoon));
+    liSetText('liHealthApptRiskCount', fmtCount(apptRisk));
+    liSetText('liHealthOverdueCount', fmtCount(late));
+
+    // Exact-value tooltips on the interactive segments + legend links.
+    var segLabels = {
+      liHealthApptRisk: t('insights.sections.appointment_risk'),
+      liHealthOverdue: t('insights.sections.late')
+    };
+    Object.keys(segLabels).forEach(function (id) {
+      var el = document.getElementById(id);
+      if (el) {
+        el.title = segLabels[id] + ': ' + fmtCount(
+          id === 'liHealthApptRisk' ? apptRisk : late) +
+          ' (' + Math.round(pct(id === 'liHealthApptRisk' ? apptRisk : late)) + '%)';
+        el.setAttribute('aria-label',
+          segLabels[id] + ': ' + fmtCount(id === 'liHealthApptRisk' ? apptRisk : late));
+      }
+    });
+
+    liSetText('liHealthOverduePct',
+      (o.overduePct === null || o.overduePct === undefined)
+        ? ''
+        : t('insights.kpi.overdue_pct_of_active', { pct: String(o.overduePct) }));
+
+    return true;
+  }
+
+  /** Bind KPI/health navigation once (elements are static markup). */
+  var liOpsNavBound = false;
+  function bindOpsNavigation() {
+    if (liOpsNavBound) { return; }
+    liOpsNavBound = true;
+    var kpiMap = {
+      liKpiActiveCases: 'lab_cases',
+      liKpiOverdue: 'late',
+      liKpiTurnaround: 'perf',
+      liKpiOnTime: 'perf'
+    };
+    Object.keys(kpiMap).forEach(function (id) {
+      var el = document.getElementById(id);
+      if (!el) { return; }
+      el.addEventListener('click', function () {
+        if (kpiMap[id] === 'perf') { liNavigateToPerfDetail(); }
+        else { liNavigateToCases(kpiMap[id]); }
+      });
+    });
+    var healthMap = {
+      liHealthApptRisk: 'appt_risk',
+      liHealthOverdue: 'late',
+      liHealthApptRiskLegend: 'appt_risk',
+      liHealthOverdueLegend: 'late'
+    };
+    Object.keys(healthMap).forEach(function (id) {
+      var el = document.getElementById(id);
+      if (!el) { return; }
+      var go = function () { liNavigateToCases(healthMap[id]); };
+      el.addEventListener('click', go);
+      el.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(); }
+      });
+    });
+  }
+
+  // ======================================================================
   // Performance layout (new)
   // ======================================================================
 
@@ -1090,6 +1312,8 @@
 
   function render(data) {
     showEmptyStates(data.hasLabs, data.hasHistory);
+    bindOpsNavigation();
+    renderOperationalSummary(data);
 
     liLabs = data.labs || [];
     liWorkloadByLab = {};
@@ -1099,6 +1323,8 @@
     });
 
     if (!data.hasLabs || !data.hasHistory) {
+      var opsWrap = document.getElementById('liOps');
+      if (opsWrap) { opsWrap.style.display = 'none'; }
       clearLabTable();
       if (liChart) {
         liChart.destroy();

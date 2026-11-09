@@ -14540,6 +14540,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const filterNeedsInfo = document.getElementById('filterNeedsInfo');
     const filterDeliveredMonth = document.getElementById('filterDeliveredMonth');
     const filterAttentionOnly = document.getElementById('filterAttentionOnly');
+    const filterLabCases = document.getElementById('filterLabCases');
     const clearFiltersBtn = document.getElementById('clearFiltersBtn');
     const kanbanFilterActiveDot = document.getElementById('kanbanFilterActiveDot');
 
@@ -14563,6 +14564,7 @@ document.addEventListener('DOMContentLoaded', function () {
         const needsInfoOnly = filterNeedsInfo ? filterNeedsInfo.checked : false;
         const deliveredMonthOnly = filterDeliveredMonth ? filterDeliveredMonth.checked : false;
         const attentionOnly = filterAttentionOnly ? filterAttentionOnly.checked : false;
+        const labCasesOnly = filterLabCases ? filterLabCases.checked : false;
 
         // Build query parameters
         const params = new URLSearchParams();
@@ -14580,6 +14582,7 @@ document.addEventListener('DOMContentLoaded', function () {
         if (needsInfoOnly) params.append('ack_needs_info_only', 'true');
         if (deliveredMonthOnly) params.append('delivered_this_month', 'true');
         if (attentionOnly) params.append('attention_only', 'true');
+        if (labCasesOnly) params.append('lab_only', 'true');
         // Open Dental patient scope (od-launch.js): constrain the board to
         // the synced patient's cases while the launch banner is active.
         const odIds = window.odPatientScope ? window.odPatientScope.caseIds() : null;
@@ -14720,6 +14723,13 @@ document.addEventListener('DOMContentLoaded', function () {
       filterNeedsInfo.addEventListener('change', applyFilters);
     }
 
+    // Hidden "Lab cases only" scope driven by the Lab Insights KPI cards.
+    // Unlike the risk filters it is additive (lab cases + late is exactly
+    // what the Overdue KPI needs), so it gets a plain change listener.
+    if (filterLabCases) {
+      filterLabCases.addEventListener('change', applyFilters);
+    }
+
     // Hidden "Delivered This Month" / "Attention Required" filters driven
     // by the Practice Insights KPI cards and View All action. Both are
     // mutually exclusive with the open-case quick filters and with each
@@ -14778,6 +14788,7 @@ document.addEventListener('DOMContentLoaded', function () {
         if (filterNeedsInfo) filterNeedsInfo.checked = false;
         if (filterDeliveredMonth) filterDeliveredMonth.checked = false;
         if (filterAttentionOnly) filterAttentionOnly.checked = false;
+        if (filterLabCases) filterLabCases.checked = false;
 
         // Apply cleared filters
         applyFilters();

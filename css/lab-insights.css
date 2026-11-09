@@ -13,6 +13,17 @@
   margin-top: 20px;
 }
 
+/* Operational KPI summary + Lab Case Health: reuses the shared
+   .ap-kpi-grid/.ap-kpi-card/.ap-health-card components from
+   analytics-pro.css; only the block spacing is lab-specific. */
+.li-ops {
+  margin-bottom: 20px;
+}
+
+.li-ops .ap-health-card {
+  margin-top: 16px;
+}
+
 .li-empty-state {
   background: var(--background-subtle);
   border: 1px solid var(--border-light);

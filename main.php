@@ -1310,6 +1310,11 @@ endif;
                  Required" View All action. Mirrors the attention_only board
                  filter; mutually exclusive with the quick risk filters. -->
             <input type="checkbox" id="filterAttentionOnly" hidden>
+            <!-- Hidden lab-scope filter driven by the Lab Insights KPI cards
+                 and Case Health segments. Additive with the risk filters
+                 (lab cases + late = overdue lab cases); persisted via
+                 case-filter-sort.js like the other board filters. -->
+            <input type="checkbox" id="filterLabCases" hidden>
           </div>
 
 <?php if (isFeatureEnabled('SHOW_AT_RISK')): ?>
@@ -2437,6 +2442,57 @@ endif;
 <?php if (isFeatureEnabled('BILLING_ENABLED') && $isCurrentUserPracticeAdmin): ?>
                 <a href="billing.php" class="ap-upgrade-btn"><?= t('insights.upgrade.button') ?></a>
 <?php endif; ?>
+              </div>
+
+              <!-- Operational KPI summary + Lab Case Health. Current-state
+                   metrics (active/overdue/health) sit beside selected-period
+                   metrics (turnaround/on-time) - see api/get-lab-insights.php
+                   'operational' payload and js/lab-insights.js
+                   renderOperationalSummary(). Reuses the Practice Insights
+                   .ap-kpi-card/.ap-health-card component language. -->
+              <div class="li-ops" id="liOps">
+                <div class="ap-kpi-grid" id="liKpiGrid">
+                  <button type="button" class="ap-kpi-card" id="liKpiActiveCases" data-li-kpi="lab_cases">
+                    <span class="ap-kpi-value" id="liKpiActiveCasesValue">-</span>
+                    <span class="ap-kpi-label"><?= t('insights.labkpi.active_cases') ?></span>
+                    <span class="ap-kpi-sub"><?= t('insights.labkpi.active_sub') ?></span>
+                  </button>
+                  <button type="button" class="ap-kpi-card ap-kpi-card--alert" id="liKpiOverdue" data-li-kpi="overdue">
+                    <span class="ap-kpi-value" id="liKpiOverdueValue">-</span>
+                    <span class="ap-kpi-label"><?= t('insights.labkpi.overdue_cases') ?></span>
+                    <span class="ap-kpi-sub" id="liKpiOverdueSub"><?= t('insights.labkpi.require_attention') ?></span>
+                  </button>
+                  <button type="button" class="ap-kpi-card" id="liKpiTurnaround" data-li-kpi="perf">
+                    <span class="ap-kpi-value" id="liKpiTurnaroundValue">-</span>
+                    <span class="ap-kpi-label"><?= t('insights.labkpi.avg_turnaround') ?></span>
+                    <span class="ap-kpi-sub" id="liKpiTurnaroundSub"></span>
+                  </button>
+                  <button type="button" class="ap-kpi-card" id="liKpiOnTime" data-li-kpi="perf">
+                    <span class="ap-kpi-value" id="liKpiOnTimeValue">-</span>
+                    <span class="ap-kpi-label"><?= t('insights.labkpi.on_time_rate') ?></span>
+                    <span class="ap-kpi-sub" id="liKpiOnTimeSub"></span>
+                  </button>
+                </div>
+
+                <div class="ap-health-card" id="liHealthCard">
+                  <div class="ap-health-header">
+                    <h2 class="ap-health-title"><?= t('insights.labkpi.case_health') ?></h2>
+                    <span class="ap-health-overdue" id="liHealthOverduePct"></span>
+                  </div>
+                  <p class="ap-health-empty"><?= t('insights.kpi.no_active_cases') ?></p>
+                  <div class="ap-health-bar" id="liHealthBar" role="group" aria-label="<?= htmlspecialchars(t('insights.labkpi.case_health')) ?>">
+                    <div class="ap-health-seg ap-health-on-track" id="liHealthOnTrack" style="width:0%"></div>
+                    <div class="ap-health-seg ap-health-due-soon" id="liHealthDueSoon" style="width:0%"></div>
+                    <button type="button" class="ap-health-seg ap-health-appt-risk" id="liHealthApptRisk" data-li-health="appt_risk" style="width:0%" aria-label="<?= htmlspecialchars(t('insights.sections.appointment_risk')) ?>"></button>
+                    <button type="button" class="ap-health-seg ap-health-late" id="liHealthOverdue" data-li-health="late" style="width:0%" aria-label="<?= htmlspecialchars(t('insights.sections.late')) ?>"></button>
+                  </div>
+                  <div class="ap-health-legend">
+                    <span class="ap-health-item"><i class="ap-health-dot ap-health-on-track"></i><?= t('insights.sections.on_track') ?> <b id="liHealthOnTrackCount">0</b></span>
+                    <span class="ap-health-item"><i class="ap-health-dot ap-health-due-soon"></i><?= t('insights.sections.due_soon') ?> <b id="liHealthDueSoonCount">0</b></span>
+                    <span class="ap-health-item ap-health-item--link" id="liHealthApptRiskLegend" data-li-health="appt_risk" role="button" tabindex="0"><i class="ap-health-dot ap-health-appt-risk"></i><?= t('insights.sections.appointment_risk') ?> <b id="liHealthApptRiskCount">0</b></span>
+                    <span class="ap-health-item ap-health-item--link" id="liHealthOverdueLegend" data-li-health="late" role="button" tabindex="0"><i class="ap-health-dot ap-health-late"></i><?= t('insights.sections.late') ?> <b id="liHealthOverdueCount">0</b></span>
+                  </div>
+                </div>
               </div>
 
               <!-- Legacy Lab Insights layout - rendered when the performance
