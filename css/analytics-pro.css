@@ -2334,3 +2334,132 @@ button.ap-health-seg:focus-visible {
 
 .ap-bottlenecks-list li { padding: 3px 0; }
 .ap-bottlenecks-list .ap-wl-link { font-weight: 600; }
+
+/* ========================================
+   Visual polish pass - consistency layer
+   Standardizes radii, padding, spacing, focus
+   states, and motion across all Insights views.
+   ======================================== */
+
+/* Remove the decorative gradient wash - plain neutral canvas */
+.analytics-pro::before {
+  display: none;
+}
+
+/* Consistent card geometry: 12px radius, 20px padding everywhere */
+.ap-chart-card {
+  border-radius: 12px;
+  padding: 20px;
+}
+
+.ap-chart-card:hover {
+  box-shadow: var(--ap-shadow-sm);
+}
+
+.ap-insight-card {
+  border-radius: 12px;
+}
+
+/* Tighter, uniform vertical rhythm between sections */
+.ap-section {
+  margin-bottom: 24px;
+}
+
+.ap-section-header {
+  margin-bottom: 16px;
+}
+
+.ap-health-card,
+.ap-attention {
+  margin-bottom: 24px;
+}
+
+.ap-chart-header {
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+}
+
+/* Chart containers: cap excessive empty height on small datasets */
+.ap-chart-container {
+  min-height: 240px;
+}
+
+@media (max-width: 720px) {
+  .ap-chart-container {
+    min-height: 200px;
+  }
+}
+
+/* Uniform focus treatment for all Insights controls */
+.ap-select:focus-visible,
+.ap-btn:focus-visible,
+.ap-view-tab:focus-visible,
+.ap-seg-btn:focus-visible,
+.ap-attention-chip:focus-visible,
+.ap-filter-chip:focus-visible,
+.ap-th-sort:focus-visible,
+.ap-wl-link:focus-visible {
+  outline: 2px solid var(--ap-accent-primary, #1e40af);
+  outline-offset: 2px;
+}
+
+.ap-select:focus {
+  box-shadow: none;
+}
+
+/* Minimum comfortable touch targets on coarse pointers */
+@media (pointer: coarse) {
+  .ap-view-tab { min-height: 40px; }
+  .ap-seg-btn { min-height: 32px; }
+  .ap-th-sort { padding: 6px 4px; }
+}
+
+/* KPI cards: identical metrics grid behavior + subtle press feedback */
+.ap-kpi-card {
+  min-height: 96px;
+}
+
+.ap-kpi-card:active {
+  border-color: var(--ap-border-accent);
+}
+
+/* Empty/error states: compact, left-aligned, no dead space */
+.ap-error,
+.ap-empty-state {
+  padding: 14px 16px;
+}
+
+/* Respect reduced-motion preferences across Insights */
+@media (prefers-reduced-motion: reduce) {
+  .analytics-pro *,
+  .analytics-pro *::before,
+  .analytics-pro *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Tablet: keep two-column charts until ~900px, then stack */
+@media (max-width: 900px) and (min-width: 721px) {
+  .ap-charts-grid {
+    gap: 16px;
+  }
+}
+
+/* Neutralize decorative gradients inside Insights components */
+.analytics-pro {
+  --ap-bg-accent: rgba(30, 64, 175, 0.05);
+  --ap-gradient-primary: #1e40af;
+  --ap-gradient-secondary: #f97316;
+  --ap-gradient-success: #059669;
+  --ap-gradient-warning: #d97706;
+  --ap-gradient-card: #ffffff;
+}
+
+/* Filter toolbar matches card geometry */
+.ap-filter-toolbar {
+  border-radius: 12px;
+  padding: 12px 16px;
+}
