@@ -543,10 +543,15 @@ try {
                     WHEN assigned_to IS NULL OR assigned_to = '' THEN 'Unassigned'
                     ELSE assigned_to 
                 END as assignee,
+                COALESCE(
+                    NULLIF(TRIM(CONCAT(COALESCE(u.first_name, ''), ' ', COALESCE(u.last_name, ''))), ''),
+                    assigned_to
+                ) as assignee_name,
                 COUNT(*) as cases_count,
                 SUM(CASE WHEN status = '{$GLOBALS['workflowTerminalStatus']}' THEN 1 ELSE 0 END) as completed_cases
-            FROM cases_cache INNER JOIN authorized_case_ids a ON a.case_id = cases_cache.case_id COLLATE utf8mb4_unicode_ci
-            WHERE practice_id = ?
+            FROM cases_cache c INNER JOIN authorized_case_ids a ON a.case_id = c.case_id COLLATE utf8mb4_unicode_ci
+            LEFT JOIN users u ON u.email = c.assigned_to
+            WHERE c.practice_id = ?
         ";
         
         // Add time period filter if not "all" (based on creation_date)
@@ -561,9 +566,9 @@ try {
         $teamSql .= $teamFilterCondition;
         
         $teamSql .= "
-            GROUP BY assigned_to
+            GROUP BY assignee, assignee_name
             ORDER BY cases_count DESC
-            LIMIT 10
+            LIMIT 25
         ";
         
         // Build parameters array

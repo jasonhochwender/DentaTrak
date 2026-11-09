@@ -1975,3 +1975,47 @@ button.ap-health-seg:focus-visible {
 [data-theme="dark"] .ap-rec-state.st-reviewed,
 [data-theme="dark"] .ap-rec-state.st-resolved { color: #6ee7b7; border-color: #134e4a; }
 [data-theme="dark"] .ap-recs-disclaimer.is-stale { color: #fbbf24; }
+
+/* ---- Chart readability / compactness ---- */
+
+/* Breakdown charts grow with their rows; no nested scroll region. */
+.ap-chart-scroll {
+  max-height: none;
+  overflow-y: visible;
+}
+
+.ap-chart-toggle {
+  display: inline-block;
+  margin-top: 8px;
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--primary-color);
+  cursor: pointer;
+}
+
+.ap-chart-toggle:hover {
+  text-decoration: underline;
+}
+
+.ap-chart-toggle:focus-visible {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+.ap-chart-note {
+  margin: 6px 0 0;
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+.ap-chart-empty-msg {
+  margin: 0;
+  padding: 24px 0;
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+}

@@ -718,10 +718,13 @@
     });
   }
 
-  // Status Distribution Chart (Doughnut)
+  // Status Distribution Chart (horizontal bars in workflow stage order).
+  // One bar per status, count at bar end, click navigates to the board
+  // filtered to that status via the hidden filterStatus select.
   function renderStatusChart(data) {
-    const ctx = document.getElementById('apStatusChart')?.getContext('2d');
-    if (!ctx) return;
+    const canvas = document.getElementById('apStatusChart');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
 
     const statusData = {};
     (data || []).forEach(item => {
@@ -729,44 +732,84 @@
       statusData[status] = (statusData[status] || 0) + Number(item.count || 0);
     });
 
-    const labels = Object.keys(statusData).map(function(status) {
-      return (typeof getStageLabel === 'function') ? getStageLabel(status) : status;
+    // Order by the practice's configured workflow sequence; unknown statuses
+    // (e.g. 'Unknown') sort last in their original order.
+    const stageOrder = Array.isArray(window.workflowStageOrder) ? window.workflowStageOrder : [];
+    const orderIndex = {};
+    stageOrder.forEach(function(s, i) { orderIndex[s] = i; });
+    const statuses = Object.keys(statusData).sort(function(a, b) {
+      const ia = orderIndex.hasOwnProperty(a) ? orderIndex[a] : 9999;
+      const ib = orderIndex.hasOwnProperty(b) ? orderIndex[b] : 9999;
+      return ia - ib;
     });
-    const values = Object.values(statusData);
 
-    if (labels.length === 0) { setChartAriaLabel(ctx.canvas, t('insights.charts.status_distribution'), [t('insights.charts.no_data')], [0]); return; }
+    const labels = statuses.map(function(status) {
+      return (typeof getStageLabel === 'function') ? (getStageLabel(status) || status) : status;
+    });
+    const values = statuses.map(function(s) { return statusData[s]; });
+
+    if (statuses.length === 0) {
+      showChartEmptyMessage(canvas, t('insights.charts.no_data'));
+      setChartAriaLabel(canvas, t('insights.charts.status_distribution'), [t('insights.charts.no_data')], [0]);
+      return;
+    }
+    hideChartEmptyMessage(canvas);
+    sizeHorizontalBarChart(canvas.closest('.ap-chart-container'), statuses.length);
 
     apCharts['apStatusChart'] = new Chart(ctx, {
-      type: 'doughnut',
+      type: 'bar',
       data: {
-        // statusData is keyed by the fixed internal status; only the
-        // chart's visible labels are resolved to the practice-specific
-        // display label, Object.values(statusData) stays aligned.
         labels: labels,
         datasets: [{
           data: values,
-          backgroundColor: colors.chartColors.slice(0, labels.length),
-          borderWidth: 0,
-          hoverOffset: 4
+          backgroundColor: colors.primary,
+          borderRadius: 6,
+          borderSkipped: false
         }]
       },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        cutout: '65%',
-        plugins: {
-          legend: getMobileLegendOptions()
+      options: Object.assign(horizontalBarOptions(), {
+        onClick: function(evt, elements) {
+          if (!elements || !elements.length) return;
+          const idx = elements[0].index;
+          if (statuses[idx]) navigateToFilteredStatus(statuses[idx]);
+        },
+        onHover: function(evt, elements) {
+          const target = evt.native && evt.native.target;
+          if (target) target.style.cursor = (elements && elements.length) ? 'pointer' : 'default';
         }
-      }
+      }),
+      plugins: [apBarEndValuePlugin]
     });
-    setChartAriaLabel(ctx.canvas, t('insights.charts.status_distribution'), labels, values, function(v) { return t('insights.charts.cases_count', { count: v }); });
+    setChartAriaLabel(canvas, t('insights.charts.status_distribution'), labels, values, function(v) { return t('insights.charts.cases_count', { count: v }); });
   }
 
-  // Case Type Chart (horizontal bar — every type labeled, count at bar end)
+  // Navigate to the Case Board filtered to a specific workflow status.
+  // Uses the hidden #filterStatus select (persisted like the other filters).
+  function navigateToFilteredStatus(status) {
+    var casesTab = document.querySelector('.main-tab[data-tab="cases"]');
+    if (casesTab) casesTab.click();
+    var sel = document.getElementById('filterStatus');
+    if (!sel) return;
+    var label = (typeof getStageLabel === 'function') ? (getStageLabel(status) || status) : status;
+    if (![].some.call(sel.options, function(o) { return o.value === status; })) {
+      var opt = document.createElement('option');
+      opt.value = status;
+      opt.textContent = label;
+      sel.appendChild(opt);
+    }
+    sel.value = status;
+    sel.dispatchEvent(new Event('change', { bubbles: true }));
+  }
+
+  // Case Type Chart (horizontal bar — top 7 + Other, expandable, click nav)
+  const AP_TYPE_PREVIEW = 7;
+  let apTypeChartExpanded = false;
+
   function renderTypeChart(data) {
     const canvas = document.getElementById('apTypeChart');
     if (!canvas) return;
     const container = canvas.closest('.ap-chart-container');
+    const scrollWrap = canvas.closest('.ap-chart-scroll');
     const emptyEl = document.getElementById('apTypeChartEmpty');
 
     const typeData = {};
@@ -776,17 +819,58 @@
     });
 
     const entries = sortBreakdownEntries(typeData);
-    const labels = entries.map(function(e) { return e[0]; });
-    const values = entries.map(function(e) { return e[1]; });
+    const totalTypes = entries.length;
+
+    // Collapsed view: top N types + an "Other" rollup. Expanded: every type.
+    let viewEntries = entries;
+    let hasOther = false;
+    if (!apTypeChartExpanded && totalTypes > AP_TYPE_PREVIEW) {
+      hasOther = true;
+      const top = entries.slice(0, AP_TYPE_PREVIEW);
+      const restCount = entries.slice(AP_TYPE_PREVIEW).reduce(function(s, e) { return s + e[1]; }, 0);
+      viewEntries = top.concat([[t('insights.charts.other_category'), restCount]]);
+    }
+
+    const labels = viewEntries.map(function(e) { return e[0]; });
+    const values = viewEntries.map(function(e) { return e[1]; });
+    // Navigation target per visible row: raw case_type value, 'Other' and
+    // 'Unspecified' map to the synthetic __unclassified board filter.
+    const navValues = viewEntries.map(function(e, i) {
+      if (hasOther && i === viewEntries.length - 1) return null;
+      return e[0] === 'Unspecified' ? '__unclassified' : e[0];
+    });
 
     if (labels.length === 0) {
       setChartEmpty(canvas, emptyEl, true);
       if (container) container.style.height = 'auto';
+      hideChartEmptyMessage(canvas);
+      var tgl0 = ensureChartToggle(canvas, 'type', '');
+      if (tgl0) tgl0.style.display = 'none';
       setChartAriaLabel(canvas, t('insights.charts.case_type_breakdown'), [t('insights.charts.no_data')], [0]);
       return;
     }
     setChartEmpty(canvas, emptyEl, false);
+    hideChartEmptyMessage(canvas);
+    if (scrollWrap) scrollWrap.style.maxHeight = 'none';
     sizeHorizontalBarChart(container, labels.length);
+
+    // Show-all / show-less control when there are more types than the preview.
+    var toggleBtn = ensureChartToggle(canvas, 'type', '');
+    if (toggleBtn) {
+      if (totalTypes > AP_TYPE_PREVIEW) {
+        toggleBtn.style.display = '';
+        toggleBtn.textContent = apTypeChartExpanded
+          ? t('insights.charts.show_less_types')
+          : I18n.pluralize(totalTypes, 'insights.charts.show_all_types');
+        toggleBtn.onclick = function() {
+          apTypeChartExpanded = !apTypeChartExpanded;
+          renderTypeChart(typeDataToArray(typeData));
+        };
+      } else {
+        toggleBtn.style.display = 'none';
+        toggleBtn.onclick = null;
+      }
+    }
 
     const ctx = canvas.getContext('2d');
     apCharts['apTypeChart'] = new Chart(ctx, {
@@ -795,15 +879,49 @@
         labels: labels,
         datasets: [{
           data: values,
-          backgroundColor: colors.secondary,
+          backgroundColor: colors.primary,
           borderRadius: 6,
           borderSkipped: false
         }]
       },
-      options: horizontalBarOptions(),
+      options: Object.assign(horizontalBarOptions(), apChartClickOptions(function(idx) {
+        const v = navValues[idx];
+        return v ? function() { navigateToFilteredCasesParam('case_type', v); } : null;
+      })),
       plugins: [apBarEndValuePlugin]
     });
     setChartAriaLabel(canvas, t('insights.charts.case_type_breakdown'), labels, values, function(v) { return I18n.pluralize(v, 'insights.creators.case'); });
+  }
+
+  function typeDataToArray(typeData) {
+    return Object.keys(typeData).map(function(k) { return { case_type: k, count: typeData[k] }; });
+  }
+
+  // Navigate to the Case Board with an arbitrary filter param value by
+  // driving the matching hidden/visible select or checkbox where one exists.
+  // Currently supports case_type (select#filterCaseType) and assigned_to.
+  function navigateToFilteredCasesParam(param, value) {
+    var casesTab = document.querySelector('.main-tab[data-tab="cases"]');
+    if (casesTab) casesTab.click();
+    var map = {
+      case_type: { id: 'filterCaseType' },
+      assigned_to: { id: 'filterAssignedTo' }
+    };
+    var cfg = map[param];
+    if (!cfg) return;
+    var sel = document.getElementById(cfg.id);
+    if (!sel) return;
+    var label = value;
+    if (value === '__unclassified') label = t('insights.recs.unclassified_option');
+    if (value === '__unassigned') label = t('insights.recs.unassigned_option');
+    if (![].some.call(sel.options, function(o) { return o.value === value; })) {
+      var opt = document.createElement('option');
+      opt.value = value;
+      opt.textContent = label;
+      sel.appendChild(opt);
+    }
+    sel.value = value;
+    sel.dispatchEvent(new Event('change', { bubbles: true }));
   }
 
   // Monthly Volume Chart (Line)
@@ -821,7 +939,36 @@
       delivered.push(Number(item.cases_delivered || 0));
     });
 
-    if (labels.length === 0) { setChartAriaLabel(ctx.canvas, t('insights.charts.monthly_case_volume'), [t('insights.charts.no_data')], [0]); return; }
+    if (labels.length === 0) {
+      showChartEmptyMessage(ctx.canvas, t('insights.charts.no_data'));
+      setChartAriaLabel(ctx.canvas, t('insights.charts.monthly_case_volume'), [t('insights.charts.no_data')], [0]);
+      return;
+    }
+    hideChartEmptyMessage(ctx.canvas);
+
+    // Subtle backlog context: net cases created minus delivered (terminal)
+    // across the visible period. Only shown when both series have activity
+    // so the note never implies a trend from missing data.
+    var netCreated = created.reduce(function(s, v) { return s + v; }, 0);
+    var netDelivered = delivered.reduce(function(s, v) { return s + v; }, 0);
+    var volumeNoteEl = document.getElementById('apVolumeNote');
+    if (!volumeNoteEl) {
+      volumeNoteEl = document.createElement('p');
+      volumeNoteEl.className = 'ap-chart-note';
+      volumeNoteEl.id = 'apVolumeNote';
+      ctx.canvas.parentElement.appendChild(volumeNoteEl);
+    }
+    if (netCreated > 0 && netDelivered > 0) {
+      var net = netCreated - netDelivered;
+      volumeNoteEl.textContent = net === 0
+        ? t('insights.charts.volume_net_balanced')
+        : (net > 0
+          ? I18n.pluralize(net, 'insights.charts.volume_net_growth')
+          : I18n.pluralize(Math.abs(net), 'insights.charts.volume_net_decline'));
+      volumeNoteEl.style.display = '';
+    } else {
+      volumeNoteEl.style.display = 'none';
+    }
 
     apCharts['apVolumeChart'] = new Chart(ctx, {
       type: 'line',
@@ -832,21 +979,23 @@
             label: t('insights.charts.dataset_created'),
             data: created,
             borderColor: colors.primary,
-            backgroundColor: 'rgba(30, 64, 175, 0.1)',
-            fill: true,
-            tension: 0.4,
-            pointRadius: 4,
-            pointHoverRadius: 6
+            backgroundColor: 'rgba(30, 64, 175, 0.08)',
+            fill: false,
+            tension: 0.3,
+            pointRadius: 3,
+            pointHoverRadius: 5,
+            borderWidth: 2
           },
           {
             label: t('insights.charts.dataset_delivered'),
             data: delivered,
             borderColor: colors.success,
-            backgroundColor: 'rgba(16, 185, 129, 0.1)',
-            fill: true,
-            tension: 0.4,
-            pointRadius: 4,
-            pointHoverRadius: 6
+            backgroundColor: 'rgba(16, 185, 129, 0.08)',
+            fill: false,
+            tension: 0.3,
+            pointRadius: 3,
+            pointHoverRadius: 5,
+            borderWidth: 2
           }
         ]
       },
@@ -874,54 +1023,110 @@
   }
 
   // Team Performance Chart (Horizontal Bar)
+  // Shows display names when the assignee resolves to a practice user
+  // (assignee_name from the API), falling back to the raw assigned_to value.
+  // Top 8 by workload with an expandable remainder; click navigates to the
+  // board filtered to that assignee.
+  const AP_TEAM_PREVIEW = 8;
+  let apTeamChartExpanded = false;
+
   function renderTeamChart(data) {
-    const ctx = document.getElementById('apTeamChart')?.getContext('2d');
-    if (!ctx) return;
+    const canvas = document.getElementById('apTeamChart');
+    if (!canvas) return;
+    const container = canvas.closest('.ap-chart-container');
 
     const teamData = {};
+    const teamNav = {};
     (data || []).forEach(item => {
       const assignee = item.assignee || 'Unassigned';
-      teamData[assignee] = Number(item.cases_count || 0);
+      const name = (item.assignee_name || '').trim() || assignee;
+      teamData[name] = (teamData[name] || 0) + Number(item.cases_count || 0);
+      // Prefer the email for filtering when the display name differs.
+      teamNav[name] = (name !== assignee && assignee !== 'Unassigned') ? assignee : (assignee === 'Unassigned' ? '__unassigned' : assignee);
     });
 
-    const labels = Object.keys(teamData);
-    const values = Object.values(teamData);
+    const entries = sortBreakdownEntries(teamData);
+    const totalMembers = entries.length;
+    const viewEntries = (!apTeamChartExpanded && totalMembers > AP_TEAM_PREVIEW)
+      ? entries.slice(0, AP_TEAM_PREVIEW)
+      : entries;
 
-    if (labels.length === 0) { setChartAriaLabel(ctx.canvas, t('insights.charts.team_workload'), [t('insights.charts.no_data')], [0]); return; }
+    const labels = viewEntries.map(function(e) { return e[0]; });
+    const values = viewEntries.map(function(e) { return e[1]; });
+    const navValues = viewEntries.map(function(e) { return teamNav[e[0]] || null; });
 
-    apCharts['apTeamChart'] = new Chart(ctx, {
+    if (labels.length === 0) {
+      showChartEmptyMessage(canvas, t('insights.charts.no_data'));
+      setChartAriaLabel(canvas, t('insights.charts.team_workload'), [t('insights.charts.no_data')], [0]);
+      return;
+    }
+    hideChartEmptyMessage(canvas);
+    sizeHorizontalBarChart(container, labels.length);
+
+    var toggleBtn = ensureChartToggle(canvas, 'team', '');
+    if (toggleBtn) {
+      if (totalMembers > AP_TEAM_PREVIEW) {
+        toggleBtn.style.display = '';
+        toggleBtn.textContent = apTeamChartExpanded
+          ? t('insights.charts.show_less_team')
+          : I18n.pluralize(totalMembers, 'insights.charts.show_all_team');
+        toggleBtn.onclick = function() {
+          apTeamChartExpanded = !apTeamChartExpanded;
+          renderTeamChart(data);
+        };
+      } else {
+        toggleBtn.style.display = 'none';
+        toggleBtn.onclick = null;
+      }
+    }
+
+    apCharts['apTeamChart'] = new Chart(canvas.getContext('2d'), {
       type: 'bar',
       data: {
         labels: labels,
         datasets: [{
           label: t('insights.charts.dataset_cases'),
           data: values,
-          backgroundColor: colors.primaryLight,
+          backgroundColor: colors.primary,
           borderRadius: 6,
           borderSkipped: false
         }]
       },
-      options: {
+      options: Object.assign({
         indexAxis: 'y',
         responsive: true,
         maintainAspectRatio: false,
+        layout: { padding: { right: 40 } },
         plugins: {
-          legend: getMobileLegendOptions()
+          legend: { display: false }
         },
         scales: {
           x: {
             beginAtZero: true,
             grid: { color: 'rgba(0,0,0,0.05)' },
-            ticks: { font: { size: (window.innerWidth < 480 ? 13 : 10), family: "'Poppins', sans-serif" }, autoSkip: true, maxRotation: (window.innerWidth < 480 ? 45 : 0), minRotation: 0 }
+            ticks: { precision: 0, font: { size: 11, family: "'Poppins', sans-serif" } }
           },
           y: {
             grid: { display: false },
-            ticks: { font: { size: (window.innerWidth < 480 ? 13 : 10), family: "'Poppins', sans-serif" }, autoSkip: true, maxRotation: (window.innerWidth < 480 ? 45 : 0), minRotation: 0 }
+            ticks: {
+              autoSkip: false,
+              font: { size: 11, family: "'Poppins', sans-serif" },
+              callback: function(value) {
+                const label = this.getLabelForValue(value);
+                const width = this.chart ? this.chart.width : window.innerWidth;
+                const max = width < 480 ? 16 : 30;
+                return label.length > max ? label.slice(0, max - 1) + '…' : label;
+              }
+            }
           }
         }
-      }
+      }, apChartClickOptions(function(idx) {
+        const v = navValues[idx];
+        return v ? function() { navigateToFilteredCasesParam('assigned_to', v); } : null;
+      })),
+      plugins: [apBarEndValuePlugin]
     });
-    setChartAriaLabel(ctx.canvas, t('insights.charts.team_workload'), labels, values, function(v) { return I18n.pluralize(v, 'insights.creators.case'); });
+    setChartAriaLabel(canvas, t('insights.charts.team_workload'), labels, values, function(v) { return I18n.pluralize(v, 'insights.creators.case'); });
   }
 
   // Year-over-Year Trends Chart
@@ -949,37 +1154,65 @@
       }
     });
 
-    if (labels.length === 0) { setChartAriaLabel(ctx.canvas, t('insights.charts.yoy_trends'), [t('insights.charts.no_data')], [0]); return; }
+    if (labels.length === 0) {
+      showChartEmptyMessage(ctx.canvas, t('insights.charts.no_data'));
+      setChartAriaLabel(ctx.canvas, t('insights.charts.yoy_trends'), [t('insights.charts.no_data')], [0]);
+      return;
+    }
+    hideChartEmptyMessage(ctx.canvas);
+
+    // Honest comparison handling: only draw the prior-year line when it has
+    // at least one nonzero month; otherwise show a single-year trend with an
+    // explanatory note instead of an empty comparison line.
+    var hasPriorData = lastYearData.some(function(v) { return Number(v) > 0; });
+    var hasCurrentData = currentYearData.some(function(v) { return Number(v) > 0; });
+    var noteEl = document.getElementById('apTrendsNote');
+    if (!noteEl) {
+      noteEl = document.createElement('p');
+      noteEl.className = 'ap-chart-note';
+      noteEl.id = 'apTrendsNote';
+      ctx.canvas.parentElement.appendChild(noteEl);
+    }
+    var datasets = [{
+      label: currentYear.toString(),
+      data: currentYearData,
+      borderColor: colors.primary,
+      backgroundColor: 'rgba(30, 64, 175, 0.06)',
+      fill: false,
+      tension: 0.3,
+      pointRadius: 3,
+      pointHoverRadius: 5,
+      borderWidth: 2
+    }];
+    if (hasPriorData) {
+      datasets.push({
+        label: lastYear.toString(),
+        data: lastYearData,
+        borderColor: colors.slate,
+        backgroundColor: 'rgba(100, 116, 139, 0.04)',
+        fill: false,
+        tension: 0.3,
+        pointRadius: 3,
+        pointHoverRadius: 5,
+        borderWidth: 2,
+        borderDash: [5, 5]
+      });
+      noteEl.style.display = 'none';
+    } else {
+      noteEl.textContent = hasCurrentData
+        ? t('insights.charts.yoy_insufficient', { year: lastYear })
+        : t('insights.charts.no_data');
+      noteEl.style.display = '';
+    }
+    // Compact height: the card no longer needs a tall canvas for 12 points.
+    var trendsContainer = ctx.canvas.closest('.ap-chart-container');
+    if (trendsContainer) trendsContainer.style.height = '190px';
 
     apCharts['apTrendsChart'] = new Chart(ctx, {
       type: 'line',
       data: {
         labels: labels,
-        datasets: [
-          {
-            label: currentYear.toString(),
-            data: currentYearData,
-            borderColor: colors.primary,
-            backgroundColor: 'rgba(30, 64, 175, 0.1)',
-            fill: true,
-            tension: 0.4,
-            pointRadius: 4,
-            pointHoverRadius: 6,
-            borderWidth: 2
-          },
-          {
-            label: lastYear.toString(),
-            data: lastYearData,
-            borderColor: colors.slate,
-            backgroundColor: 'rgba(100, 116, 139, 0.05)',
-            fill: true,
-            tension: 0.4,
-            pointRadius: 4,
-            pointHoverRadius: 6,
-            borderWidth: 2,
-            borderDash: [5, 5]
-          }
-        ]
+        datasets: datasets
       },
       options: {
         responsive: true,
@@ -1004,13 +1237,17 @@
     setChartAriaLabel(ctx.canvas, t('insights.charts.yoy_trends'), labels, currentYearData, function(v) { return t('insights.charts.this_year_count', { count: v }); });
   }
 
-  // Cases Created by User (horizontal bar — every creator labeled, count at
-  // bar end). Counts cases by their creator (created_by_user_id); creators
-  // whose accounts were removed fall back to "Unknown".
+  // Cases Created by User (horizontal bar — top 8 + expandable remainder,
+  // count at bar end). Counts cases by their creator (created_by_user_id);
+  // creators whose accounts were removed fall back to "Unknown".
+  const AP_CREATOR_PREVIEW = 8;
+  let apCreatorChartExpanded = false;
+
   function renderCreatorBreakdown(creatorBreakdown) {
     const canvas = document.getElementById('apCreatorChart');
     if (!canvas) return;
     const container = canvas.closest('.ap-chart-container');
+    const scrollWrap = canvas.closest('.ap-chart-scroll');
     const emptyEl = document.getElementById('apCreatorBreakdownEmpty');
 
     const counts = {};
@@ -1020,17 +1257,43 @@
     });
 
     const entries = sortBreakdownEntries(counts);
-    const labels = entries.map(function(e) { return e[0]; });
-    const values = entries.map(function(e) { return e[1]; });
+    const totalCreators = entries.length;
+    const viewEntries = (!apCreatorChartExpanded && totalCreators > AP_CREATOR_PREVIEW)
+      ? entries.slice(0, AP_CREATOR_PREVIEW)
+      : entries;
+    const labels = viewEntries.map(function(e) { return e[0]; });
+    const values = viewEntries.map(function(e) { return e[1]; });
 
     if (labels.length === 0) {
       setChartEmpty(canvas, emptyEl, true);
       if (container) container.style.height = 'auto';
+      hideChartEmptyMessage(canvas);
+      var cgl = ensureChartToggle(canvas, 'creator', '');
+      if (cgl) cgl.style.display = 'none';
       setChartAriaLabel(canvas, t('insights.charts.cases_by_creator'), [t('insights.creators.empty')], [0]);
       return;
     }
     setChartEmpty(canvas, emptyEl, false);
+    hideChartEmptyMessage(canvas);
+    if (scrollWrap) scrollWrap.style.maxHeight = 'none';
     sizeHorizontalBarChart(container, labels.length);
+
+    var cToggle = ensureChartToggle(canvas, 'creator', '');
+    if (cToggle) {
+      if (totalCreators > AP_CREATOR_PREVIEW) {
+        cToggle.style.display = '';
+        cToggle.textContent = apCreatorChartExpanded
+          ? t('insights.charts.show_less_creators')
+          : I18n.pluralize(totalCreators, 'insights.charts.show_all_creators');
+        cToggle.onclick = function() {
+          apCreatorChartExpanded = !apCreatorChartExpanded;
+          renderCreatorBreakdown(creatorBreakdown);
+        };
+      } else {
+        cToggle.style.display = 'none';
+        cToggle.onclick = null;
+      }
+    }
 
     const ctx = canvas.getContext('2d');
     apCharts['apCreatorChart'] = new Chart(ctx, {
@@ -1450,6 +1713,72 @@
     if (emptyEl) emptyEl.style.display = isEmpty ? '' : 'none';
   }
 
+  // Show a lightweight text empty state inside a chart container instead of
+  // rendering an empty axis area. Reuses a single sibling div per canvas.
+  function showChartEmptyMessage(canvas, message) {
+    if (!canvas || !canvas.parentElement) return;
+    var el = canvas.parentElement.querySelector('.ap-chart-empty-msg');
+    if (!el) {
+      el = document.createElement('p');
+      el.className = 'ap-chart-empty-msg insights-empty-state';
+      canvas.parentElement.appendChild(el);
+    }
+    el.textContent = message;
+    el.style.display = '';
+    canvas.style.display = 'none';
+    var container = canvas.closest('.ap-chart-container');
+    if (container) { container.style.minHeight = '0'; container.style.height = 'auto'; }
+  }
+
+  function hideChartEmptyMessage(canvas) {
+    if (!canvas || !canvas.parentElement) return;
+    var el = canvas.parentElement.querySelector('.ap-chart-empty-msg');
+    if (el) el.style.display = 'none';
+    canvas.style.display = '';
+    var container = canvas.closest('.ap-chart-container');
+    if (container && !container.dataset.apFixedHeight) {
+      container.style.minHeight = '';
+      container.style.height = '';
+    }
+  }
+
+  // Bind a Chart.js click handler that maps the clicked bar index to a
+  // callback. Used for board navigation from breakdown charts.
+  function apChartClickOptions(getIndex) {
+    return {
+      onClick: function(evt, elements) {
+        if (!elements || !elements.length) return;
+        var idx = elements[0].index;
+        var target = getIndex(idx);
+        if (target) target();
+      },
+      onHover: function(evt, elements) {
+        var target = evt.native && evt.native.target;
+        if (target) target.style.cursor = (elements && elements.length) ? 'pointer' : 'default';
+      }
+    };
+  }
+
+  // Render a "Show all / Show less" toggle button after a chart container
+  // and wire it to re-render via the provided callback.
+  function ensureChartToggle(anchorCanvas, storageKey, label) {
+    var container = anchorCanvas && anchorCanvas.closest('.ap-chart-card');
+    if (!container) return null;
+    var btn = container.querySelector('.ap-chart-toggle[data-toggle-for="' + anchorCanvas.id + '"]');
+    if (!btn) {
+      btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'ap-chart-toggle';
+      btn.dataset.toggleFor = anchorCanvas.id;
+      btn.dataset.expanded = '0';
+      var body = container.querySelector('.ap-chart-scroll, .ap-chart-container');
+      if (body && body.nextSibling) container.insertBefore(btn, body.nextSibling);
+      else container.appendChild(btn);
+    }
+    btn.textContent = label;
+    return btn;
+  }
+
   // Shared options for horizontal breakdown bar charts (type, creator).
   function horizontalBarOptions() {
     return {
@@ -1568,77 +1897,78 @@
   }
 
   // Status Duration Chart (Bar)
+  // Status Duration Analytics — one horizontal bar per workflow stage showing
+  // the AVERAGE days currently spent in that status (time-in-status, not
+  // completed intervals). Min/max/sample size live in the tooltip. Ordered by
+  // the practice's workflow sequence.
   function renderDurationChart(data) {
-    const ctx = document.getElementById('apDurationChart')?.getContext('2d');
-    if (!ctx) return;
+    const canvas = document.getElementById('apDurationChart');
+    if (!canvas) return;
+    const container = canvas.closest('.ap-chart-container');
 
-    const labels = [];
-    const avgDays = [];
-    const minDays = [];
-    const maxDays = [];
-
-    (data || []).forEach(item => {
+    const rows = (data || []).map(function(item) {
       var rawStatus = item.status || 'Unknown';
-      labels.push((typeof getStageLabel === 'function') ? getStageLabel(rawStatus) : rawStatus);
-      avgDays.push(Number(item.avg_days_in_status || 0));
-      minDays.push(Number(item.min_days_in_status || 0));
-      maxDays.push(Number(item.max_days_in_status || 0));
+      return {
+        status: rawStatus,
+        label: (typeof getStageLabel === 'function') ? (getStageLabel(rawStatus) || rawStatus) : rawStatus,
+        avg: Number(item.avg_days_in_status || 0),
+        min: Number(item.min_days_in_status || 0),
+        max: Number(item.max_days_in_status || 0),
+        count: Number(item.case_count || 0)
+      };
     });
 
-    if (labels.length === 0) { setChartAriaLabel(ctx.canvas, t('insights.charts.average_time_by_status'), [t('insights.charts.no_data')], [0]); return; }
+    const stageOrder = Array.isArray(window.workflowStageOrder) ? window.workflowStageOrder : [];
+    const orderIndex = {};
+    stageOrder.forEach(function(s, i) { orderIndex[s] = i; });
+    rows.sort(function(a, b) {
+      const ia = orderIndex.hasOwnProperty(a.status) ? orderIndex[a.status] : 9999;
+      const ib = orderIndex.hasOwnProperty(b.status) ? orderIndex[b.status] : 9999;
+      return ia - ib;
+    });
 
-    apCharts['apDurationChart'] = new Chart(ctx, {
+    if (rows.length === 0) {
+      showChartEmptyMessage(canvas, t('insights.charts.no_data'));
+      setChartAriaLabel(canvas, t('insights.charts.average_time_by_status'), [t('insights.charts.no_data')], [0]);
+      return;
+    }
+    hideChartEmptyMessage(canvas);
+    sizeHorizontalBarChart(container, rows.length);
+
+    apCharts['apDurationChart'] = new Chart(canvas.getContext('2d'), {
       type: 'bar',
       data: {
-        labels: labels,
-        datasets: [
-          {
-            label: t('insights.charts.dataset_average_days'),
-            data: avgDays,
-            backgroundColor: colors.primary,
-            borderRadius: 6,
-            maxBarThickness: (window.innerWidth < 480 ? 24 : 48),
-            borderSkipped: false
-          },
-          {
-            label: t('insights.charts.dataset_min_days'),
-            data: minDays,
-            backgroundColor: colors.success,
-            borderRadius: 6,
-            maxBarThickness: (window.innerWidth < 480 ? 24 : 48),
-            borderSkipped: false
-          },
-          {
-            label: t('insights.charts.dataset_max_days'),
-            data: maxDays,
-            backgroundColor: colors.danger,
-            borderRadius: 6,
-            maxBarThickness: (window.innerWidth < 480 ? 24 : 48),
-            borderSkipped: false
-          }
-        ]
+        labels: rows.map(function(r) { return r.label; }),
+        datasets: [{
+          data: rows.map(function(r) { return r.avg; }),
+          backgroundColor: colors.primary,
+          borderRadius: 6,
+          borderSkipped: false
+        }]
       },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        interaction: { intersect: false, mode: 'index' },
+      options: Object.assign(horizontalBarOptions(), {
         plugins: {
-          legend: getMobileLegendOptions()
-        },
-        scales: {
-          x: {
-            grid: { display: false },
-            ticks: { font: { size: (window.innerWidth < 480 ? 13 : 10), family: "'Poppins', sans-serif" }, autoSkip: true, maxRotation: (window.innerWidth < 480 ? 45 : 0), minRotation: 0 }
-          },
-          y: {
-            beginAtZero: true,
-            grid: { color: 'rgba(0,0,0,0.05)' },
-            ticks: { font: { size: (window.innerWidth < 480 ? 13 : 10), family: "'Poppins', sans-serif" }, autoSkip: true, maxRotation: (window.innerWidth < 480 ? 45 : 0), minRotation: 0 }
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label: function(context) {
+                var r = rows[context.dataIndex];
+                return [
+                  t('insights.charts.duration_avg_tooltip', { days: r.avg }),
+                  t('insights.charts.duration_range_tooltip', { min: r.min, max: r.max }),
+                  I18n.pluralize(r.count, 'insights.creators.case')
+                ];
+              }
+            }
           }
         }
-      }
+      }),
+      plugins: [apBarEndValuePlugin]
     });
-    setChartAriaLabel(ctx.canvas, t('insights.charts.average_time_by_status'), labels, avgDays, function(v) { return t('insights.charts.days_count', { count: v }); });
+    setChartAriaLabel(canvas, t('insights.charts.average_time_by_status'),
+      rows.map(function(r) { return r.label; }),
+      rows.map(function(r) { return r.avg; }),
+      function(v) { return t('insights.charts.days_count', { count: v }); });
   }
 
   // Lifecycle Distribution Chart (Bar)
@@ -1647,33 +1977,11 @@
     if (!ctx) return;
 
     if (!data || !data.avg_total_days) {
-      // Show empty state
-      apCharts['apLifecycleChart'] = new Chart(ctx, {
-        type: 'bar',
-        data: {
-          labels: [t('insights.charts.no_data')],
-          datasets: [{
-            label: t('insights.charts.dataset_days'),
-            data: [0],
-            backgroundColor: colors.slate,
-            borderRadius: 6,
-            maxBarThickness: (window.innerWidth < 480 ? 24 : 48)
-          }]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: {
-            legend: getMobileLegendOptions()
-          },
-          scales: {
-            y: { beginAtZero: true }
-          }
-        }
-      });
+      showChartEmptyMessage(ctx.canvas, t('insights.charts.no_data'));
       setChartAriaLabel(ctx.canvas, t('insights.charts.lifecycle_distribution'), [t('insights.charts.no_data')], [0]);
       return;
     }
+    hideChartEmptyMessage(ctx.canvas);
 
     const lifecycleLabels = [t('insights.charts.lifecycle_fastest'), t('insights.charts.lifecycle_average'), t('insights.charts.lifecycle_slowest')];
     const lifecycleValues = [

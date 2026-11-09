@@ -14528,6 +14528,7 @@ document.addEventListener('DOMContentLoaded', function () {
   function initKanbanFilters() {
     const patientSearch = document.getElementById('patientSearch');
     const filterCaseType = document.getElementById('filterCaseType');
+    const filterStatus = document.getElementById('filterStatus');
     const filterAssignedTo = document.getElementById('filterAssignedTo');
     const filterReviewStatus = document.getElementById('filterReviewStatus');
     const filterCarrier = document.getElementById('filterCarrier');
@@ -14550,6 +14551,7 @@ document.addEventListener('DOMContentLoaded', function () {
       filterTimeout = setTimeout(() => {
         const searchTerm = patientSearch ? patientSearch.value.trim() : '';
         const caseType = filterCaseType ? filterCaseType.value : '';
+        const statusFilter = filterStatus ? filterStatus.value : '';
         const assignedTo = filterAssignedTo ? filterAssignedTo.value : '';
         const reviewStatus = filterReviewStatus ? filterReviewStatus.value : '';
         const carrier = filterCarrier ? filterCarrier.value : '';
@@ -14566,6 +14568,7 @@ document.addEventListener('DOMContentLoaded', function () {
         const params = new URLSearchParams();
         if (searchTerm) params.append('search', searchTerm);
         if (caseType) params.append('case_type', caseType);
+        if (statusFilter) params.append('status', statusFilter);
         if (assignedTo) params.append('assigned_to', assignedTo);
         if (reviewStatus) params.append('review_status', reviewStatus);
         if (carrier) params.append('carrier', carrier);
@@ -14667,6 +14670,10 @@ document.addEventListener('DOMContentLoaded', function () {
       filterCaseType.addEventListener('change', applyFilters);
     }
 
+    if (filterStatus) {
+      filterStatus.addEventListener('change', applyFilters);
+    }
+
     if (filterAssignedTo) {
       filterAssignedTo.addEventListener('change', applyFilters);
     }
@@ -14759,6 +14766,7 @@ document.addEventListener('DOMContentLoaded', function () {
         // Clear all filters
         if (patientSearch) patientSearch.value = '';
         if (filterCaseType) filterCaseType.value = '';
+        if (filterStatus) filterStatus.value = '';
         if (filterAssignedTo) filterAssignedTo.value = '';
         if (filterReviewStatus) filterReviewStatus.value = '';
         if (filterCarrier) filterCarrier.value = '';

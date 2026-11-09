@@ -7,9 +7,9 @@
   var criteria = ((bootstrap.preferences || {}).sort || []).slice();
   var fields = ['type', 'assigned', 'due', 'appointment', 'dentist', 'updated', 'patient', 'status', 'review'];
   var labels = { type: 'type', assigned: 'assigned', due: 'due_date', appointment: 'appointment', dentist: 'dentist', updated: 'updated', patient: 'patient', status: 'status', review: 'review' };
-  var filterKeys = ['patientSearch', 'filterCaseType', 'filterAssignedTo', 'filterReviewStatus', 'filterCarrier', 'filterLateCases', 'filterDueSoon', 'filterApptRisk', 'filterAtRisk', 'filterDeliveredMonth', 'filterAttentionOnly'];
+  var filterKeys = ['patientSearch', 'filterCaseType', 'filterStatus', 'filterAssignedTo', 'filterReviewStatus', 'filterCarrier', 'filterLateCases', 'filterDueSoon', 'filterApptRisk', 'filterAtRisk', 'filterDeliveredMonth', 'filterAttentionOnly'];
   var checks = ['filterLateCases', 'filterDueSoon', 'filterApptRisk', 'filterAtRisk', 'filterDeliveredMonth', 'filterAttentionOnly'];
-  var params = ['search', 'case_type', 'assigned_to', 'review_status', 'carrier', 'late_only', 'due_soon', 'appt_risk_only', 'at_risk_only', 'delivered_this_month', 'attention_only'];
+  var params = ['search', 'case_type', 'status', 'assigned_to', 'review_status', 'carrier', 'late_only', 'due_soon', 'appt_risk_only', 'at_risk_only', 'delivered_this_month', 'attention_only'];
   var collator = new Intl.Collator(document.documentElement.lang || undefined, { sensitivity: 'base', numeric: true });
   var saveTimer, saving, pending, failed, orderTimer;
   var generation = 0;
@@ -216,6 +216,14 @@
         var saved = filters[key] || '';
         if (key === 'filterAssignedTo' && saved && !Array.from(el.options).some(function (o) { return o.value === saved; })) {
           var option = document.createElement('option'); option.value = saved; option.textContent = saved; option.title = tr('filters.saved_value'); el.appendChild(option);
+        }
+        // Hidden workflow-status filter (Insights status chart): recreate the
+        // option for a persisted internal status value.
+        if (key === 'filterStatus' && saved && !Array.from(el.options).some(function (o) { return o.value === saved; })) {
+          var statusOption = document.createElement('option');
+          statusOption.value = saved;
+          statusOption.textContent = (typeof getStageLabel === 'function' && getStageLabel(saved)) || saved;
+          el.appendChild(statusOption);
         }
         el.value = saved;
         // Case-type aliases saved before dedup (e.g. 'Mixed') no longer have

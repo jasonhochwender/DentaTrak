@@ -1232,6 +1232,14 @@ endif;
             </select>
           </div>
 
+          <!-- Hidden workflow-status filter: driven programmatically by the
+               Practice Insights status chart (api/list-cases.php?status=). -->
+          <div class="kanban-filter-field" style="display:none;">
+            <select id="filterStatus" aria-hidden="true" tabindex="-1">
+              <option value=""><?php echo t('filters.all_types'); ?></option>
+            </select>
+          </div>
+
           <?php if ($orgCaseViewActive): ?>
           <div class="kanban-filter-field">
             <label for="filterOrgPractice"><?php echo t('org_view.practice_filter'); ?></label>

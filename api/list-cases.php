@@ -240,6 +240,15 @@ try {
         $cases = array_values($cases);
     }
 
+    // Workflow-status filter (Practice Insights status chart navigation).
+    $filterStatus = $_GET['status'] ?? '';
+    if ($filterStatus !== '') {
+        $cases = array_values(array_filter($cases, function($case) use ($filterStatus) {
+            return ($case['status'] ?? '') === $filterStatus;
+        }));
+        $cases = array_values($cases);
+    }
+
     $filterAssignedTo = $_GET['assigned_to'] ?? '';
     if ($filterAssignedTo === '__unassigned') {
         // Practice Insights "unassigned cases" action target.
