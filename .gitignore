@@ -142,6 +142,7 @@ screenshots/
 !/tests/fabg-billing-test.php
 !/tests/fabg-billing-e2e-test.js
 !/tests/analytics-api-test.php
+!/tests/analytics-join-column-test.php
 !/tests/admin-practices-auth-test.php
 !/tests/admin-practices-csrf-and-auth-test.php
 !/tests/admin-practices-subscription-test.php

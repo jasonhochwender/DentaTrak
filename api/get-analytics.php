@@ -270,7 +270,7 @@ try {
     // the same definitions and precedence as the Kanban board.
     $caseFlow = ['onTrack' => 0, 'dueSoon' => 0, 'appointmentRisk' => 0, 'late' => 0];
     $stmt = $pdo->prepare("
-        SELECT case_id, due_date, patient_appointment_date, status,
+        SELECT cases_cache.case_id, due_date, patient_appointment_date, status,
                patient_first_name, patient_last_name, case_type,
                assigned_to, lab_ack_status, lab_promised_date,
                carrier, creation_date, status_changed_at, last_update_date,
