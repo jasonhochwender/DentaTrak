@@ -259,3 +259,4 @@ NUL
 !/tests/plan-override-tx-safety-test.php
 !/tests/ai-client-error-test.php
 !/tests/attention-classifier-test.php
+!/tests/ai-recommendation-store-test.php

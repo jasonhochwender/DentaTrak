@@ -11,6 +11,10 @@
   let apDataLoaded = false;
   let aiRecommendationsLoading = false; // Guard against duplicate AI recommendation loads
   let aiRecommendationsLoaded = false;  // Prevents automatic repeat calls after first success
+  // Last successful recommendations payload + UI filter state. Kept so
+  // lifecycle actions and filter chips can re-render without refetching.
+  let aiRecsData = null;
+  let aiRecsFilter = 'active';
 
   /**
    * Apply Control-entitlement-based visibility to Insights sections.
@@ -644,6 +648,19 @@
       setCheck(id, false);
     });
 
+    var setSelectFilter = function (id, value, optionLabel) {
+      var el = document.getElementById(id);
+      if (!el) return null;
+      if (![].some.call(el.options, function (o) { return o.value === value; })) {
+        var opt = document.createElement('option');
+        opt.value = value;
+        opt.textContent = optionLabel || value;
+        el.appendChild(opt);
+      }
+      el.value = value;
+      return el;
+    };
+
     var targetEl = null;
     if (target === 'late') targetEl = setCheck('filterLateCases', true);
     else if (target === 'appt_risk') targetEl = setCheck('filterApptRisk', true);
@@ -651,6 +668,13 @@
     else if (target === 'attention') targetEl = setCheck('filterAttentionOnly', true);
     else if (target === 'due_soon') targetEl = setCheck('filterDueSoon', true);
     else if (target === 'awaiting_ack') targetEl = setCheck('filterAwaitingAck', true);
+    else if (target === 'unassigned') {
+      // Select-based target: set the assignee filter to the synthetic
+      // __unassigned value (handled server-side in list-cases.php).
+      targetEl = setSelectFilter('filterAssignedTo', '__unassigned', t('insights.recs.unassigned_option'));
+    } else if (target === 'unclassified') {
+      targetEl = setSelectFilter('filterCaseType', '__unclassified', t('insights.recs.unclassified_option'));
+    }
     // 'cases' (Active Cases) intentionally leaves every filter cleared.
 
     // Dispatch change on the TARGET element only: its own listeners apply
@@ -1057,29 +1081,42 @@
     // #apRecommendations and would be wiped by innerHTML anyway.
     container.innerHTML = '<li class="ap-rec ap-rec-empty"><span class="ap-rec-text">' + escapeHtml(t('insights.ai.generating')) + '</span></li>';
 
-    fetch('api/ai-recommendations.php', { credentials: 'same-origin' })
+    // Manual Refresh forces a new generation (?refresh=1); the automatic
+    // load hits the server-side cache and only calls the AI when the
+    // underlying analytics signature changed or the generation is stale.
+    var url = 'api/ai-recommendations.php' + (isManual ? '?refresh=1' : '');
+    fetch(url, { credentials: 'same-origin' })
       .then(response => response.json())
       .then(data => {
         // Always clear the loading indicator before rendering any result
         clearAIRecommendationsLoadingState(container);
 
         if (data.error) {
-          // Failed — leave aiRecommendationsLoaded as-is so manual Refresh still works
-          showAIError(container, data.error);
+          // Failed — leave aiRecommendationsLoaded as-is so manual Refresh still works.
+          // If we already have a payload, keep showing it (possibly stale)
+          // instead of wiping working content for a transient failure.
+          if (aiRecsData) {
+            renderAIRecommendationsMeta(data.warning || data.error);
+          } else {
+            showAIError(container, data.error);
+          }
           return;
         }
 
-        if (data.success && data.recommendations && data.recommendations.length > 0) {
-          displayRecommendations(container, data.recommendations);
+        if (data.success) {
+          aiRecsData = data;
+          renderAIRecommendations();
           aiRecommendationsLoaded = true;
         } else {
           showAIError(container, t('insights.ai.none_available'));
         }
       })
       .catch(error => {
-        // Network/parse failure; UI toast handles display
-        clearAIRecommendationsLoadingState(container);
-        showAIError(container, t('insights.ai.load_error'));
+        // Network/parse failure; keep any existing payload visible
+        if (!aiRecsData) {
+          clearAIRecommendationsLoadingState(container);
+          showAIError(container, t('insights.ai.load_error'));
+        }
       })
       .finally(() => {
         aiRecommendationsLoading = false;
@@ -1087,30 +1124,139 @@
       });
   }
 
-  // Display AI Recommendations as shared compact recommendation rows —
-  // the same visual treatment as Lab Insights Smart Recommendations.
-  // API priority maps onto the shared severity scale.
+  // ---- Recommendation lifecycle -------------------------------------------------
+
+  function setRecommendationState(recKey, state, snapshot) {
+    var csrfMeta = document.querySelector('meta[name="csrf-token"]');
+    return fetch('api/ai-recommendations.php', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRF-Token': csrfMeta ? csrfMeta.getAttribute('content') : ''
+      },
+      body: JSON.stringify({ action: 'set_state', rec_key: recKey, state: state, snapshot: snapshot || null })
+    }).then(function (r) { return r.json(); });
+  }
+
+  // ---- Card rendering ------------------------------------------------------------
+
   const AP_RECS_PREVIEW = 3;
   const AP_PRIORITY_TO_SEVERITY = { high: 'attention', medium: 'watch', low: 'info' };
+  const AP_STATE_ORDER = { new: 0, reviewed: 1, dismissed: 2, resolved: 3 };
 
-  function displayRecommendations(container, recommendations) {
+  // Maps AI action_target values onto the shared board-navigation targets.
+  const AP_ACTION_NAV = {
+    overdue: 'late',
+    appt_risk: 'appt_risk',
+    due_soon: 'due_soon',
+    unassigned: 'unassigned',
+    unclassified: 'unclassified',
+    lab_ack: 'awaiting_ack',
+    attention: 'attention'
+  };
+
+  // Deterministic observed-fact renderers. fact_keys in a recommendation are
+  // validated server-side; unknown keys are ignored here as well.
+  const AP_FACT_DEFS = {
+    overdue_share: { label: 'insights.recs.fact_overdue_share' },
+    unassigned_cases: { label: 'insights.recs.fact_unassigned' },
+    unclassified_cases: { label: 'insights.recs.fact_unclassified' },
+    due_this_week: { label: 'insights.recs.fact_due_week' },
+    awaiting_ack: { label: 'insights.recs.fact_awaiting_ack' },
+    workload_imbalance: { label: 'insights.recs.fact_workload' },
+    throughput_30d: { label: 'insights.recs.fact_throughput' }
+  };
+
+  function formatObservedFact(key, facts) {
+    const def = AP_FACT_DEFS[key];
+    const f = facts && facts[key];
+    if (!def || !f) return '';
+    if (key === 'overdue_share') {
+      return t(def.label, { count: f.count, total: f.total });
+    }
+    if (key === 'workload_imbalance') {
+      return t(def.label, { avg: (Math.round((f.avg || 0) * 10) / 10), assignees: f.assignees });
+    }
+    if (key === 'throughput_30d') {
+      return t(def.label, { created: f.created, completed: f.completed });
+    }
+    return t(def.label, { count: f.count });
+  }
+
+  function recMatchesFilter(state) {
+    if (aiRecsFilter === 'all') return true;
+    if (aiRecsFilter === 'active') return state === 'new' || state === 'reviewed';
+    return state === aiRecsFilter;
+  }
+
+  function renderAIRecommendationsMeta(extraWarning) {
+    const meta = document.getElementById('apRecsMeta');
+    if (!meta || !aiRecsData) return;
+    const parts = [t('insights.recs.ai_generated_note')];
+    if (aiRecsData.generated_at) {
+      const d = new Date(String(aiRecsData.generated_at).replace(' ', 'T'));
+      if (!isNaN(d)) parts.push(t('insights.recs.last_updated', { time: d.toLocaleString() }));
+    }
+    if (aiRecsData.stale) parts.push(t('insights.recs.stale_note'));
+    if (extraWarning) parts.push(extraWarning);
+    else if (aiRecsData.warning) parts.push(aiRecsData.warning);
+    meta.textContent = parts.join(' · ');
+    meta.classList.toggle('is-stale', !!aiRecsData.stale);
+  }
+
+  function renderAIRecommendations() {
+    const container = document.getElementById('apRecommendations');
+    const summaryEl = document.getElementById('apRecsSummary');
+    const filtersEl = document.getElementById('apRecsFilters');
+    if (!container || !aiRecsData) return;
+
+    const recs = Array.isArray(aiRecsData.recommendations) ? aiRecsData.recommendations : [];
+    const facts = aiRecsData.facts || {};
+
+    // Summary counts across all lifecycle states.
+    const counts = { new: 0, reviewed: 0, dismissed: 0, resolved: 0 };
+    recs.forEach(function (r) {
+      const s = AP_STATE_ORDER.hasOwnProperty(r.state) ? r.state : 'new';
+      counts[s] = (counts[s] || 0) + 1;
+    });
+    const activeCount = counts.new + counts.reviewed;
+    if (summaryEl) {
+      summaryEl.textContent = I18n.pluralize(activeCount, 'insights.recs.summary_active');
+    }
+    if (filtersEl) {
+      filtersEl.querySelectorAll('.ap-recs-chip').forEach(function (chip) {
+        chip.classList.toggle('is-active', chip.dataset.recFilter === aiRecsFilter);
+      });
+    }
+    renderAIRecommendationsMeta();
+
+    const visible = recs
+      .filter(function (r) { return recMatchesFilter(r.state || 'new'); })
+      .sort(function (a, b) {
+        const pa = { high: 0, medium: 1, low: 2 }[a.priority] ?? 3;
+        const pb = { high: 0, medium: 1, low: 2 }[b.priority] ?? 3;
+        if (pa !== pb) return pa - pb;
+        return (AP_STATE_ORDER[a.state] ?? 0) - (AP_STATE_ORDER[b.state] ?? 0);
+      });
+
+    container.innerHTML = '';
     const moreBtn = document.getElementById('apRecsMore');
-    recommendations.forEach((rec, idx) => {
-      const severity = AP_PRIORITY_TO_SEVERITY[rec.priority] || 'info';
-      const item = document.createElement('li');
-      item.className = 'ap-rec ap-rec-' + severity + (idx >= AP_RECS_PREVIEW ? ' ap-rec-collapsed' : '');
 
-      item.innerHTML =
-        '<span class="ap-rec-severity">' + escapeHtml(t('insights.recs.severity.' + severity)) + '</span>' +
-        '<span class="ap-rec-text">' +
-        '<strong class="ap-rec-title">' + escapeHtml(rec.title) + '</strong> ' +
-        '<span class="ap-rec-msg">' + escapeHtml(rec.description) + '</span>' +
-        '</span>';
+    if (visible.length === 0) {
+      const empty = document.createElement('li');
+      empty.className = 'ap-rec ap-rec-empty';
+      empty.innerHTML = '<span class="ap-rec-text">' + escapeHtml(t('insights.recs.empty_filtered')) + '</span>';
+      container.appendChild(empty);
+      if (moreBtn) moreBtn.style.display = 'none';
+      return;
+    }
 
-      container.appendChild(item);
+    visible.forEach(function (rec, idx) {
+      container.appendChild(buildRecCard(rec, facts, idx));
     });
 
-    const extra = recommendations.length - AP_RECS_PREVIEW;
+    const extra = visible.length - AP_RECS_PREVIEW;
     if (moreBtn && extra > 0) {
       moreBtn.style.display = '';
       moreBtn.textContent = I18n.pluralize(extra, 'insights.recs.more');
@@ -1122,7 +1268,7 @@
             container.children[i].classList.add('ap-rec-collapsed');
           }
         } else {
-          collapsed.forEach(el => el.classList.remove('ap-rec-collapsed'));
+          collapsed.forEach(function (el) { el.classList.remove('ap-rec-collapsed'); });
         }
         moreBtn.textContent = showing
           ? I18n.pluralize(extra, 'insights.recs.more')
@@ -1132,6 +1278,97 @@
       moreBtn.style.display = 'none';
       moreBtn.onclick = null;
     }
+  }
+
+  function buildRecCard(rec, facts, idx) {
+    const severity = AP_PRIORITY_TO_SEVERITY[rec.priority] || 'info';
+    const state = AP_STATE_ORDER.hasOwnProperty(rec.state) ? rec.state : 'new';
+    const factKeys = Array.isArray(rec.fact_keys) ? rec.fact_keys : [];
+    const factLines = factKeys.map(function (k) { return formatObservedFact(k, facts); })
+      .filter(function (s) { return s !== ''; });
+    const navTarget = AP_ACTION_NAV[rec.action_target] || null;
+
+    const li = document.createElement('li');
+    li.className = 'ap-rec-card ap-sev-' + severity + ' ap-state-' + state +
+      (idx >= AP_RECS_PREVIEW ? ' ap-rec-collapsed' : '');
+    li.dataset.recKey = rec.rec_key || '';
+
+    var html = '<div class="ap-rec-card-head">' +
+      '<span class="ap-rec-severity ap-sev-' + severity + '">' + escapeHtml(t('insights.recs.severity.' + severity)) + '</span>' +
+      '<span class="ap-rec-state st-' + state + '">' + escapeHtml(t('insights.recs.state.' + state)) + '</span>' +
+      '</div>' +
+      '<div class="ap-rec-title">' + escapeHtml(rec.title) + '</div>' +
+      '<p class="ap-rec-desc">' + escapeHtml(rec.description) + '</p>';
+
+    if (factLines.length) {
+      html += '<div class="ap-rec-metric">' + escapeHtml(factLines.join(' · ')) + '</div>';
+    }
+
+    html += '<div class="ap-rec-card-actions">';
+    if (navTarget && navTarget !== 'none') {
+      html += '<button type="button" class="ap-rec-btn ap-rec-primary" data-rec-nav="' + escapeHtml(navTarget) + '">' +
+        escapeHtml(t('insights.recs.action.' + rec.action_target)) + '</button>';
+    }
+    html += '<details class="ap-rec-details"><summary>' + escapeHtml(t('insights.recs.view_details')) + '</summary>' +
+      '<div class="ap-rec-details-body">' +
+      '<p>' + escapeHtml(rec.description) + '</p>';
+    if (factLines.length) {
+      html += '<ul class="ap-rec-fact-list">' + factLines.map(function (s) {
+        return '<li>' + escapeHtml(s) + '</li>';
+      }).join('') + '</ul>';
+    }
+    if (aiRecsData && aiRecsData.generated_at) {
+      var d = new Date(String(aiRecsData.generated_at).replace(' ', 'T'));
+      if (!isNaN(d)) {
+        html += '<p class="ap-rec-generated">' + escapeHtml(t('insights.recs.generated_at', { time: d.toLocaleString() })) + '</p>';
+      }
+    }
+    html += '</div></details>';
+
+    // Lifecycle actions: resolved is terminal/automatic; dismissed can be restored.
+    if (state === 'new' || state === 'reviewed') {
+      html += '<button type="button" class="ap-rec-btn ap-rec-lifecycle" data-rec-state="reviewed">' +
+        escapeHtml(t('insights.recs.mark_reviewed')) + '</button>' +
+        '<button type="button" class="ap-rec-btn ap-rec-lifecycle" data-rec-state="dismissed">' +
+        escapeHtml(t('insights.recs.dismiss')) + '</button>';
+    } else if (state === 'dismissed') {
+      html += '<button type="button" class="ap-rec-btn ap-rec-lifecycle" data-rec-state="new">' +
+        escapeHtml(t('insights.recs.restore')) + '</button>';
+    }
+    html += '</div>';
+
+    li.innerHTML = html;
+
+    // Delegated-free per-card wiring (cards are rebuilt on each render anyway).
+    li.querySelectorAll('[data-rec-nav]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        navigateToFilteredCases(btn.dataset.recNav);
+      });
+    });
+    li.querySelectorAll('[data-rec-state]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var newState = btn.dataset.recState;
+        var key = li.dataset.recKey;
+        if (!key) return;
+        btn.disabled = true;
+        setRecommendationState(key, newState, {
+          rec_key: rec.rec_key, title: rec.title, description: rec.description,
+          priority: rec.priority, category: rec.category,
+          fact_keys: rec.fact_keys || [], action_target: rec.action_target || 'none'
+        }).then(function (res) {
+          if (res && res.success && aiRecsData) {
+            aiRecsData.recommendations.forEach(function (r) {
+              if (r.rec_key === key) r.state = newState;
+            });
+            renderAIRecommendations();
+          } else {
+            btn.disabled = false;
+          }
+        }).catch(function () { btn.disabled = false; });
+      });
+    });
+
+    return li;
   }
 
   // Show AI error
@@ -1291,6 +1528,19 @@
     if (aiRefreshBtn && !aiRefreshBtn.hasAttribute('data-ap-listener')) {
       aiRefreshBtn.addEventListener('click', function() { loadAIRecommendations(true); });
       aiRefreshBtn.setAttribute('data-ap-listener', 'true');
+    }
+
+    // Recommendation lifecycle filter chips — re-render from the cached
+    // payload; no additional server request.
+    const recsFilters = document.getElementById('apRecsFilters');
+    if (recsFilters && !recsFilters.hasAttribute('data-ap-listener')) {
+      recsFilters.addEventListener('click', function (e) {
+        const chip = e.target.closest('.ap-recs-chip');
+        if (!chip || !aiRecsData) return;
+        aiRecsFilter = chip.dataset.recFilter || 'active';
+        renderAIRecommendations();
+      });
+      recsFilters.setAttribute('data-ap-listener', 'true');
     }
 
     // Filter dropdowns - map element IDs to localStorage keys

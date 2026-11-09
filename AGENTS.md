@@ -68,3 +68,11 @@
 - Git hooks are not shared automatically. Activate once per clone:
   `git config core.hooksPath .githooks`
 - The hook is a POSIX shell script (works in Git Bash on Windows, macOS, Linux). Do not add attribution lines to commit messages manually; the hook will remove them.
+
+# AI Recommendations (Practice Insights)
+
+- `api/ai-recommendation-store.php` owns persistence: `ai_recommendation_generations` (payload + `data_signature` = md5(analytics+locale)) and `ai_recommendation_states` (per-practice `rec_key` lifecycle: new/reviewed/dismissed/resolved). Tables are lazy-ensured outside transactions.
+- `api/ai-recommendations.php`: POST `action=set_state` mutates lifecycle (CSRF + `can_view_analytics` + Control gate, same as generation). GET serves the latest generation when the signature matches or it is <10 min old; `?refresh=1` forces AI. AI failure falls back to the last generation marked `stale` with a warning code.
+- Merge rules: dismissed recs reopen as `new` when the data signature changes; recs absent from a new generation whose signature changed become `resolved` (snapshot retained); absent with unchanged signature are omitted, not resolved.
+- `rec_key` = category + normalized title slug; `fact_keys`/`action_target` are whitelisted server-side. Action targets map to board filters in `js/analytics-pro.js` (`AP_ACTION_NAV`); `assigned_to=__unassigned` / `case_type=__unclassified` are synthetic `list-cases.php` params.
+- Verification: `php tests/ai-recommendation-store-test.php` (pure helpers, no DB).

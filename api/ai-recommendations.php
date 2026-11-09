@@ -18,6 +18,7 @@ require_once __DIR__ . '/billing-bypass.php';
 require_once __DIR__ . '/subscription-access.php';
 require_once __DIR__ . '/workflow-stages.php';
 require_once __DIR__ . '/ai-client.php';
+require_once __DIR__ . '/ai-recommendation-store.php';
 
 header('Content-Type: application/json');
 
@@ -104,22 +105,119 @@ if (empty($aiConfig['api_key'])) {
     exit;
 }
 
+// Lifecycle state changes (reviewed / dismissed / restore) - practice-scoped,
+// same analytics permission as generation. Accepts JSON or form fields.
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $body = $_POST;
+    if (empty($body)) {
+        $raw = file_get_contents('php://input');
+        $decoded = json_decode($raw, true);
+        if (is_array($decoded)) $body = $decoded;
+    }
+    if (($body['action'] ?? '') === 'set_state') {
+        $recKey = substr((string)($body['rec_key'] ?? ''), 0, 160);
+        $newState = (string)($body['state'] ?? '');
+        // Snapshot for resolved/rotated-out recs: client may send the record.
+        $snapshot = isset($body['snapshot']) && is_array($body['snapshot']) ? $body['snapshot'] : null;
+        if ($recKey !== '' && in_array($newState, ['new', 'reviewed', 'dismissed'], true)) {
+            aiRecSetState($pdo, (int)$practiceId, $recKey, $newState, (int)$userId, $snapshot);
+            echo json_encode(['success' => true]);
+        } else {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'error' => 'invalid_state_request']);
+        }
+        exit;
+    }
+}
+
 try {
     // SECURITY: Scope analytics (and therefore any AI input) to the cases the
     // current user is authorized to view, using the same rule as Practice
     // Insights and Lab Insights. Non-limited users get every practice case.
     ensureAuthorizedCaseIdsTempTable($practiceId);
 
-    // Gather aggregated analytics data (NO PII)
+    // Gather aggregated analytics data (NO PII) - also feeds the deterministic
+    // observed_facts the UI renders as verified metrics.
     $analyticsData = gatherAnalyticsData($pdo, $practiceId);
 
-    // Generate recommendations using configured AI provider
-    $recommendations = getAIRecommendations($appConfig, $analyticsData, $aiProvider);
-    echo json_encode([
+    $locale = getActiveLocale();
+    $signature = aiRecSignature($analyticsData, $locale);
+    $validFactKeys = array_keys($analyticsData['observed_facts'] ?? []);
+    $observedFacts = $analyticsData['observed_facts'] ?? [];
+
+    // Cache policy: reuse the latest generation when the underlying data is
+    // unchanged (same signature) or it is very fresh (<10 min). A manual
+    // ?refresh=1 bypasses the throttle but still falls back to cache on
+    // AI failure. This prevents repeated dashboard opens from burning API
+    // quota while still re-evaluating when practice data materially changes.
+    $forceRefresh = (($_GET['refresh'] ?? '') === '1');
+    $latest = aiRecLatestGeneration($pdo, (int)$practiceId, $locale);
+    $latestAge = $latest ? (time() - strtotime($latest['generated_at'])) : PHP_INT_MAX;
+
+    $payload = null;
+    $source = 'ai';
+    $generatedAt = date('Y-m-d H:i:s');
+    $stale = false;
+    $servedError = null;
+
+    if (!$forceRefresh && $latest && ($latest['data_signature'] === $signature || $latestAge < 600)) {
+        $payload = $latest['payload'];
+        $source = 'cache';
+        $generatedAt = $latest['generated_at'];
+        $stale = $latest['data_signature'] !== $signature;
+    } else {
+        try {
+            $recommendations = getAIRecommendations($appConfig, $analyticsData, $aiProvider);
+            $payload = aiRecNormalize($recommendations, $validFactKeys);
+            aiRecSaveGeneration($pdo, (int)$practiceId, $locale, $aiProvider, $signature, $payload, 'ai', null);
+        } catch (Exception $aiEx) {
+            // AI unavailable (billing/quota/config/network): fall back to the
+            // most recent generation rather than showing nothing. The UI
+            // labels it stale and surfaces the real error category.
+            if ($latest) {
+                $payload = $latest['payload'];
+                $source = 'cache';
+                $generatedAt = $latest['generated_at'];
+                $stale = true;
+                $servedError = $aiEx->getMessage();
+                error_log('AI Recommendations fallback to cache: ' . $servedError);
+            } else {
+                throw $aiEx;
+            }
+        }
+    }
+
+    // Merge with lifecycle states (reviewed/dismissed/resolved).
+    $merged = aiRecMerge($pdo, (int)$practiceId, $signature, $payload);
+    $allRecs = array_merge($merged['active'], $merged['resolved']);
+
+    $response = [
         'success' => true,
-        'recommendations' => $recommendations,
-        'generated_at' => date('Y-m-d H:i:s')
-    ]);
+        'recommendations' => $allRecs,
+        'generated_at' => $generatedAt,
+        'source' => $source,
+        'stale' => $stale,
+        'facts' => $observedFacts,
+    ];
+    if ($servedError !== null) {
+        $errorMessage = $servedError;
+        $userMessage = match($errorMessage) {
+            'AI_QUOTA_EXCEEDED'     => t('insights.errors.ai_quota'),
+            'AI_BILLING_ERROR'      => t('insights.errors.ai_billing'),
+            'AI_MODEL_UNAVAILABLE'  => t('insights.errors.ai_model_unavailable'),
+            'AI_INVALID_REQUEST', 'AI_AUTH_ERROR' => t('insights.errors.ai_config'),
+            'AI_SERVICE_UNAVAILABLE' => t('insights.errors.ai_unavailable'),
+            default                 => t('insights.errors.unable_later')
+        };
+        $response['warning'] = $userMessage;
+        $response['warning_code'] = match($errorMessage) {
+            'AI_QUOTA_EXCEEDED' => 'quota',
+            'AI_BILLING_ERROR' => 'service_unavailable',
+            'AI_MODEL_UNAVAILABLE', 'AI_AUTH_ERROR', 'AI_INVALID_REQUEST' => 'config_error',
+            default => 'general',
+        };
+    }
+    echo json_encode($response);
 
 } catch (Exception $e) {
     $errorMessage = $e->getMessage();
@@ -304,6 +402,46 @@ function gatherAnalyticsData($pdo, $practiceId) {
         $data['team_size'] = 1;
     }
 
+    // ---- Deterministic observed facts (verified metrics for the UI) ----
+    // These are computed from the same authorized, practice-scoped rows and
+    // are rendered verbatim - the AI may reference them by key but can never
+    // invent or alter the numbers.
+    $terminalStatus = getLastActiveWorkflowColumnId($currentPracticeId);
+    $legacyDone = ['Completed', 'Shipped'];
+    $activeFilter = "practice_id = ? AND archived = 0 AND status NOT IN (?, ?, ?)";
+    $activeParams = [$practiceId, $terminalStatus, $legacyDone[0], $legacyDone[1]];
+
+    $unassigned = 0;
+    try {
+        $stmt = $pdo->prepare("SELECT COUNT(*) FROM cases_cache INNER JOIN authorized_case_ids a ON a.case_id = cases_cache.case_id COLLATE utf8mb4_unicode_ci WHERE $activeFilter AND (assigned_to IS NULL OR assigned_to = '')");
+        $stmt->execute($activeParams);
+        $unassigned = (int)$stmt->fetchColumn();
+    } catch (Exception $e) { $unassigned = 0; }
+
+    $unclassified = 0;
+    try {
+        $stmt = $pdo->prepare("SELECT COUNT(*) FROM cases_cache INNER JOIN authorized_case_ids a ON a.case_id = cases_cache.case_id COLLATE utf8mb4_unicode_ci WHERE $activeFilter AND (case_type IS NULL OR case_type = '' OR case_type = 'Needs Classification')");
+        $stmt->execute($activeParams);
+        $unclassified = (int)$stmt->fetchColumn();
+    } catch (Exception $e) { $unclassified = 0; }
+
+    $awaitingAck = 0;
+    try {
+        $stmt = $pdo->prepare("SELECT COUNT(*) FROM cases_cache INNER JOIN authorized_case_ids a ON a.case_id = cases_cache.case_id COLLATE utf8mb4_unicode_ci WHERE $activeFilter AND lab_ack_status IN ('awaiting','awaiting_lab_review')");
+        $stmt->execute($activeParams);
+        $awaitingAck = (int)$stmt->fetchColumn();
+    } catch (Exception $e) { $awaitingAck = 0; }
+
+    $data['observed_facts'] = [
+        'overdue_share' => ['count' => (int)($data['overdue_cases'] ?? 0), 'total' => (int)($data['total_active_cases'] ?? 0)],
+        'unassigned_cases' => ['count' => $unassigned],
+        'unclassified_cases' => ['count' => $unclassified],
+        'due_this_week' => ['count' => (int)($data['cases_due_this_week'] ?? 0)],
+        'awaiting_ack' => ['count' => $awaitingAck],
+        'workload_imbalance' => ['avg' => (float)($data['avg_cases_per_assignee'] ?? 0), 'assignees' => (int)($data['unique_assignees'] ?? 0)],
+        'throughput_30d' => ['created' => (int)($data['cases_created_last_30_days'] ?? 0), 'completed' => (int)($data['cases_completed_last_30_days'] ?? 0)],
+    ];
+
     return $data;
 }
 
@@ -363,11 +501,17 @@ function getAIRecommendations($appConfig, $analyticsData, $provider = 'gemini') 
         if (isset($rec['title']) && isset($rec['description'])) {
             // Don't use htmlspecialchars here - it causes double-encoding (&#039;)
             // Sanitization should happen at display time in the frontend
+            $factKeys = [];
+            foreach ((array)($rec['fact_keys'] ?? []) as $fk) {
+                if (is_string($fk)) $factKeys[] = $fk;
+            }
             $validRecommendations[] = [
                 'title' => strip_tags(trim($rec['title'])),
                 'description' => strip_tags(trim($rec['description'])),
                 'priority' => in_array($rec['priority'] ?? '', ['high', 'medium', 'low']) ? $rec['priority'] : 'medium',
-                'category' => in_array($rec['category'] ?? '', ['efficiency', 'quality', 'scheduling', 'workload', 'communication']) ? $rec['category'] : 'efficiency'
+                'category' => in_array($rec['category'] ?? '', ['efficiency', 'quality', 'scheduling', 'workload', 'communication']) ? $rec['category'] : 'efficiency',
+                'fact_keys' => array_slice($factKeys, 0, 4),
+                'action_target' => in_array($rec['action_target'] ?? '', ['overdue', 'appt_risk', 'due_soon', 'unassigned', 'unclassified', 'lab_ack', 'attention', 'none'], true) ? $rec['action_target'] : 'none'
             ];
         }
 

@@ -223,7 +223,13 @@ try {
     }
 
     $filterCaseType = $_GET['case_type'] ?? '';
-    if ($filterCaseType !== '') {
+    if ($filterCaseType === '__unclassified') {
+        // Practice Insights "unclassified cases" action target.
+        $cases = array_values(array_filter($cases, function($case) {
+            $ct = trim((string)($case['caseType'] ?? ''));
+            return $ct === '' || $ct === 'Needs Classification';
+        }));
+    } elseif ($filterCaseType !== '') {
         // Match on the normalized slug, not the raw string: legacy aliases
         // ('Mixed' vs 'Mixed Case Type') share a slug and must filter
         // through the single selectable option.
@@ -235,7 +241,13 @@ try {
     }
 
     $filterAssignedTo = $_GET['assigned_to'] ?? '';
-    if ($filterAssignedTo !== '') {
+    if ($filterAssignedTo === '__unassigned') {
+        // Practice Insights "unassigned cases" action target.
+        $cases = array_values(array_filter($cases, function($case) {
+            $at = $case['assignedTo'] ?? '';
+            return $at === null || trim((string)$at) === '';
+        }));
+    } elseif ($filterAssignedTo !== '') {
         $cases = array_filter($cases, function($case) use ($filterAssignedTo) {
             return ($case['assignedTo'] ?? '') === $filterAssignedTo;
         });

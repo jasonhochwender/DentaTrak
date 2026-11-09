@@ -51,10 +51,16 @@ $commonConfig = [
 
     'ai_prompt' => 'Analyze the following dental lab workflow data and provide exactly 3 actionable recommendations to improve efficiency, quality, or scheduling. Return ONLY a JSON array with this exact format (no markdown, no extra text):
 [
-  {"title": "Brief title", "description": "Detailed recommendation", "priority": "high|medium|low", "category": "efficiency|quality|scheduling|workload|communication"},
-  {"title": "Brief title", "description": "Detailed recommendation", "priority": "high|medium|low", "category": "efficiency|quality|scheduling|workload|communication"},
-  {"title": "Brief title", "description": "Detailed recommendation", "priority": "high|medium|low", "category": "efficiency|quality|scheduling|workload|communication"}
+  {"title": "Brief title", "description": "Detailed recommendation (2-4 sentences)", "priority": "high|medium|low", "category": "efficiency|quality|scheduling|workload|communication", "fact_keys": ["key1"], "action_target": "overdue|appt_risk|due_soon|unassigned|unclassified|lab_ack|attention|none"},
+  {"title": "Brief title", "description": "Detailed recommendation (2-4 sentences)", "priority": "high|medium|low", "category": "efficiency|quality|scheduling|workload|communication", "fact_keys": ["key1"], "action_target": "overdue|appt_risk|due_soon|unassigned|unclassified|lab_ack|attention|none"},
+  {"title": "Brief title", "description": "Detailed recommendation (2-4 sentences)", "priority": "high|medium|low", "category": "efficiency|quality|scheduling|workload|communication", "fact_keys": ["key1"], "action_target": "overdue|appt_risk|due_soon|unassigned|unclassified|lab_ack|attention|none"}
 ]
+
+Rules:
+- Base every recommendation ONLY on the provided data. Never invent metrics, counts, or causes.
+- fact_keys must reference keys from the observed_facts object in the data (e.g. overdue_share, unassigned_cases). Use [] if none apply.
+- action_target must be the single most relevant DentaTrak case-board destination for the issue, or "none".
+- Use measured, professional language. Do not claim bottlenecks or causes the data does not support.
 
 Here is the workflow data to analyze:
 ',

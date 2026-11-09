@@ -1805,6 +1805,17 @@ endif;
               </div>
 
               <div class="ap-section-content">
+                <div class="ap-recs-summary-bar">
+                  <span class="ap-recs-summary" id="apRecsSummary"></span>
+                  <div class="ap-recs-filters" id="apRecsFilters" role="group" aria-label="<?= htmlspecialchars(t('insights.recs.filter_label')) ?>">
+                    <button type="button" class="ap-recs-chip is-active" data-rec-filter="active"><?= t('insights.recs.filter_active') ?></button>
+                    <button type="button" class="ap-recs-chip" data-rec-filter="reviewed"><?= t('insights.recs.filter_reviewed') ?></button>
+                    <button type="button" class="ap-recs-chip" data-rec-filter="dismissed"><?= t('insights.recs.filter_dismissed') ?></button>
+                    <button type="button" class="ap-recs-chip" data-rec-filter="resolved"><?= t('insights.recs.filter_resolved') ?></button>
+                    <button type="button" class="ap-recs-chip" data-rec-filter="all"><?= t('insights.recs.filter_all') ?></button>
+                  </div>
+                </div>
+                <p class="ap-recs-disclaimer" id="apRecsMeta"></p>
                 <ul class="ap-rec-list" id="apRecommendations">
                   <!-- Loading State -->
                   <li class="ap-rec ap-rec-empty" id="apAILoading">
