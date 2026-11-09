@@ -5976,6 +5976,16 @@
             "contact_admin": "Contate o administrador da sua clínica para fazer upgrade do plano.",
             "unavailable_title": "Insights indisponível",
             "unavailable_description": "Não foi possível verificar seu plano. Tente novamente."
+        },
+        "views": {
+            "overview": "Visão geral",
+            "operations": "Operações",
+            "trends": "Tendências",
+            "tablist_label": "Visualizações dos Insights da prática",
+            "status_summary": "Resumo do status do fluxo",
+            "status_summary_sub": "Onde os casos ativos estão no fluxo de trabalho",
+            "lifecycle_perf": "Desempenho do ciclo de vida",
+            "lifecycle_perf_sub": "Quanto tempo os casos elegíveis levam da criação à conclusão"
         }
     },
     "billing": {

@@ -324,6 +324,81 @@
     });
   }
 
+  // ---- Practice Insights view tabs (Overview / Operations / Trends) ------
+  // Panels are pure show/hide over the single shared analytics payload; the
+  // selected view persists via ?ap_view= (shareable/back-forward) with a
+  // localStorage fallback. Charts in a newly revealed panel are resized
+  // explicitly because Chart.js cannot measure hidden containers.
+  const AP_VIEW_KEY = 'ap_active_view';
+  const AP_VIEWS = ['overview', 'operations', 'trends'];
+
+  function getApViewFromUrl() {
+    try {
+      const v = new URLSearchParams(window.location.search).get('ap_view');
+      if (AP_VIEWS.includes(v)) return v;
+    } catch (e) {}
+    return null;
+  }
+
+  function activateApView(view, pushHistory) {
+    if (!AP_VIEWS.includes(view)) view = 'overview';
+    document.querySelectorAll('#apViewTabs .ap-view-tab').forEach(function(tab) {
+      const on = tab.dataset.apView === view;
+      tab.classList.toggle('active', on);
+      tab.setAttribute('aria-selected', on ? 'true' : 'false');
+    });
+    AP_VIEWS.forEach(function(v) {
+      const panel = document.getElementById('apView' + v.charAt(0).toUpperCase() + v.slice(1));
+      if (panel) panel.hidden = v !== view;
+    });
+    try { localStorage.setItem(AP_VIEW_KEY, view); } catch (e) {}
+    if (pushHistory && window.history && window.history.pushState) {
+      try {
+        const url = new URL(window.location.href);
+        url.searchParams.set('ap_view', view);
+        window.history.pushState(null, '', url.toString());
+      } catch (e) {}
+    }
+    // Let the panel become visible, then re-measure charts inside it.
+    setTimeout(function() {
+      if (typeof resizeCharts === 'function') resizeCharts();
+      document.dispatchEvent(new CustomEvent('insightsVisible'));
+    }, 60);
+  }
+
+  function initApViewTabs() {
+    const tabs = document.querySelectorAll('#apViewTabs .ap-view-tab');
+    if (!tabs.length) return;
+    let initial = getApViewFromUrl();
+    if (!initial) {
+      try { initial = localStorage.getItem(AP_VIEW_KEY); } catch (e) {}
+    }
+    activateApView(AP_VIEWS.includes(initial) ? initial : 'overview', false);
+
+    tabs.forEach(function(tab, idx) {
+      tab.addEventListener('click', function() {
+        activateApView(tab.dataset.apView, true);
+      });
+      tab.addEventListener('keydown', function(e) {
+        let next = -1;
+        if (e.key === 'ArrowRight') next = (idx + 1) % tabs.length;
+        else if (e.key === 'ArrowLeft') next = (idx - 1 + tabs.length) % tabs.length;
+        else if (e.key === 'Home') next = 0;
+        else if (e.key === 'End') next = tabs.length - 1;
+        if (next >= 0) {
+          e.preventDefault();
+          tabs[next].focus();
+          activateApView(tabs[next].dataset.apView, true);
+        }
+      });
+    });
+
+    window.addEventListener('popstate', function() {
+      const v = getApViewFromUrl();
+      if (v) activateApView(v, false);
+    });
+  }
+
   function loadAnalyticsPro() {
     // Plan entitlement is emitted by main.php; anything other than a strict
     // true (including an evaluation failure) must not fetch protected data.
@@ -2263,6 +2338,7 @@
   function initOnLoad() {
     initializeEventListeners();
     initAfToolbar();
+    initApViewTabs();
 
     // Load billing tier and apply visibility restrictions
     loadBillingTierAndApplyVisibility();

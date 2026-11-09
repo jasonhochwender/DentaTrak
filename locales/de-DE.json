@@ -3778,6 +3778,16 @@
             "contact_admin": "Wenden Sie sich an Ihren Praxisadministrator, um Ihren Tarif zu upgraden.",
             "unavailable_title": "Insights nicht verfügbar",
             "unavailable_description": "Wir konnten Ihren Tarif nicht verifizieren. Bitte versuchen Sie es erneut."
+        },
+        "views": {
+            "overview": "Übersicht",
+            "operations": "Betrieb",
+            "trends": "Trends",
+            "tablist_label": "Praxis-Einblicke Ansichten",
+            "status_summary": "Workflow-Statusübersicht",
+            "status_summary_sub": "Wo sich aktive Fälle aktuell im Workflow befinden",
+            "lifecycle_perf": "Lebenszyklusleistung",
+            "lifecycle_perf_sub": "Wie lange qualifizierte Fälle von der Erstellung bis zum Abschluss brauchen"
         }
     },
     "admin_practices": {

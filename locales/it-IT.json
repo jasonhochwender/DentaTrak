@@ -2155,6 +2155,16 @@
             "contact_admin": "Contatta l'amministratore dello studio per eseguire l'upgrade del piano.",
             "unavailable_title": "Insights non disponibili",
             "unavailable_description": "Non è stato possibile verificare il tuo piano. Riprova."
+        },
+        "views": {
+            "overview": "Panoramica",
+            "operations": "Operazioni",
+            "trends": "Tendenze",
+            "tablist_label": "Viste delle analisi dello studio",
+            "status_summary": "Riepilogo degli stati del flusso",
+            "status_summary_sub": "Dove si trovano i casi attivi nel flusso di lavoro",
+            "lifecycle_perf": "Prestazioni del ciclo di vita",
+            "lifecycle_perf_sub": "Quanto durano i casi idonei dalla creazione al completamento"
         }
     },
     "users": {

@@ -2110,3 +2110,53 @@ button.ap-health-seg:focus-visible {
     min-width: 0;
   }
 }
+
+/* ---- Practice Insights view tabs (Overview / Operations / Trends) ---- */
+.ap-view-tabs {
+  display: flex;
+  gap: 4px;
+  border-bottom: 1px solid var(--ap-border, #e2e8f0);
+  margin-bottom: 20px;
+}
+
+.ap-view-tab {
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--ap-text-secondary, #475569);
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 500;
+  padding: 8px 16px;
+  margin-bottom: -1px;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+
+.ap-view-tab:hover {
+  color: var(--ap-text-primary, #1e293b);
+}
+
+.ap-view-tab:focus-visible {
+  outline: 2px solid var(--ap-accent-primary, #1e40af);
+  outline-offset: 2px;
+}
+
+.ap-view-tab.active {
+  color: var(--ap-accent-primary, #1e40af);
+  border-bottom-color: var(--ap-accent-primary, #1e40af);
+}
+
+.ap-view-panel[hidden] {
+  display: none;
+}
+
+@media (max-width: 600px) {
+  .ap-view-tabs {
+    overflow-x: auto;
+  }
+  .ap-view-tab {
+    flex: 0 0 auto;
+    padding: 10px 12px;
+    font-size: 0.85rem;
+  }
+}

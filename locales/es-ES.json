@@ -2163,6 +2163,16 @@
             "contact_admin": "Contacte al administrador de su consultorio para actualizar su plan.",
             "unavailable_title": "Insights no disponibles",
             "unavailable_description": "No pudimos verificar su plan. Inténtelo de nuevo."
+        },
+        "views": {
+            "overview": "Resumen",
+            "operations": "Operaciones",
+            "trends": "Tendencias",
+            "tablist_label": "Vistas de información de la práctica",
+            "status_summary": "Resumen del estado del flujo",
+            "status_summary_sub": "En qué etapa del flujo se encuentran los casos activos",
+            "lifecycle_perf": "Rendimiento del ciclo de vida",
+            "lifecycle_perf_sub": "Cuánto tardan los casos válidos desde la creación hasta la finalización"
         }
     },
     "users": {

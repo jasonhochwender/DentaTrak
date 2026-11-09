@@ -2155,6 +2155,16 @@
             "contact_admin": "Contactez l'administrateur de votre cabinet pour mettre à niveau votre formule.",
             "unavailable_title": "Statistiques indisponibles",
             "unavailable_description": "Impossible de vérifier votre formule. Veuillez réessayer."
+        },
+        "views": {
+            "overview": "Aperçu",
+            "operations": "Opérations",
+            "trends": "Tendances",
+            "tablist_label": "Vues des analyses du cabinet",
+            "status_summary": "Sommaire des statuts du flux",
+            "status_summary_sub": "Où se situent les cas actifs dans le flux de travail",
+            "lifecycle_perf": "Rendement du cycle de vie",
+            "lifecycle_perf_sub": "Durée des cas admissibles de la création à la fin"
         }
     },
     "users": {

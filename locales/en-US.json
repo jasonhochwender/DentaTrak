@@ -2165,6 +2165,16 @@
             "contact_admin": "Contact your practice administrator to upgrade your plan.",
             "unavailable_title": "Insights unavailable",
             "unavailable_description": "We couldn't verify your plan. Please try again."
+        },
+        "views": {
+            "overview": "Overview",
+            "operations": "Operations",
+            "trends": "Trends",
+            "tablist_label": "Practice Insights views",
+            "status_summary": "Workflow Status Summary",
+            "status_summary_sub": "Where active cases currently sit in your workflow",
+            "lifecycle_perf": "Lifecycle Performance",
+            "lifecycle_perf_sub": "How long qualifying cases take from creation to completion"
         }
     },
     "users": {

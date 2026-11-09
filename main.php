@@ -1729,7 +1729,14 @@ endif;
               <div class="ap-filter-chips" id="afFilterChips" hidden></div>
             </div>
 
-            <!-- Operational KPI Summary -->
+            <!-- Practice Insights view tabs -->
+            <div class="ap-view-tabs" id="apViewTabs" role="tablist" aria-label="<?= htmlspecialchars(t('insights.views.tablist_label')) ?>">
+              <button type="button" class="ap-view-tab active" data-ap-view="overview" role="tab" aria-selected="true" aria-controls="apViewOverview" id="apViewTabOverview"><?= t('insights.views.overview') ?></button>
+              <button type="button" class="ap-view-tab" data-ap-view="operations" role="tab" aria-selected="false" aria-controls="apViewOperations" id="apViewTabOperations"><?= t('insights.views.operations') ?></button>
+              <button type="button" class="ap-view-tab" data-ap-view="trends" role="tab" aria-selected="false" aria-controls="apViewTrends" id="apViewTabTrends"><?= t('insights.views.trends') ?></button>
+            </div>
+
+            <div class="ap-view-panel" id="apViewOverview" role="tabpanel" aria-labelledby="apViewTabOverview">
             <div class="ap-kpi-grid" id="apKpiGrid">
               <button type="button" class="ap-kpi-card" id="apKpiActive" data-kpi-target="cases">
                 <span class="ap-kpi-value" id="apKpiActiveValue">-</span>
@@ -1777,7 +1784,6 @@ endif;
               </div>
             </div>
 
-            <!-- Attention Required -->
             <div class="ap-attention" id="apAttentionSection">
               <div class="ap-attention-header">
                 <div class="ap-attention-heading">
@@ -1845,7 +1851,6 @@ endif;
               </div>
             </div>
 
-            <!-- Recommendations (Control tier - blur for Operate) -->
             <div class="ap-section ap-control-only" data-control-feature="smart-recommendations" id="aiRecommendationsSection">
               <div class="ap-section-header">
                 <div class="ap-section-icon">
@@ -1903,24 +1908,21 @@ endif;
               </div>
             </div>
 
-            <!-- Charts Section -->
             <div class="ap-section">
               <div class="ap-section-header">
                 <div class="ap-section-icon">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <line x1="18" y1="20" x2="18" y2="10"></line>
                     <line x1="12" y1="20" x2="12" y2="4"></line>
                     <line x1="6" y1="20" x2="6" y2="14"></line>
                   </svg>
                 </div>
                 <div>
-                  <h2 class="ap-section-title"><?= t('insights.sections.case_analysis') ?></h2>
-                  <p class="ap-section-subtitle"><?= t('insights.sections.case_analysis_subtitle') ?></p>
+                  <h2 class="ap-section-title"><?= t('insights.views.status_summary') ?></h2>
+                  <p class="ap-section-subtitle"><?= t('insights.views.status_summary_sub') ?></p>
                 </div>
               </div>
-
               <div class="ap-charts-grid">
-                <!-- Status Distribution Chart -->
                 <div class="ap-chart-card">
                   <div class="ap-chart-header">
                     <div>
@@ -1941,35 +1943,11 @@ endif;
                     <canvas id="apStatusChart" role="img" aria-label="Status distribution chart"></canvas>
                   </div>
                 </div>
-
-                <!-- Case Type Chart -->
-                <div class="ap-chart-card">
-                  <div class="ap-chart-header">
-                    <div>
-                      <h3 class="ap-chart-title"><?= t('insights.charts.case_type_breakdown') ?></h3>
-                      <p class="ap-chart-description"><?= t('insights.charts.case_type_breakdown_description') ?></p>
-                    </div>
-                    <div class="ap-chart-controls">
-                      <select class="ap-select" id="apTypePeriod">
-                        <option value="active" selected><?= t('insights.filters.active_cases') ?></option>
-                        <option value="all"><?= t('insights.filters.all_time') ?></option>
-                        <option value="3"><?= t('insights.filters.last_n_months', ['count' => 3]) ?></option>
-                        <option value="6"><?= t('insights.filters.last_n_months', ['count' => 6]) ?></option>
-                        <option value="12"><?= t('insights.filters.last_n_months', ['count' => 12]) ?></option>
-                      </select>
-                    </div>
-                  </div>
-                  <div class="ap-chart-scroll">
-                    <div class="ap-chart-container">
-                      <canvas id="apTypeChart" role="img" aria-label="Case type breakdown chart"></canvas>
-                      <p class="insights-empty-state" id="apTypeChartEmpty" style="display: none; width: 100%;"><?= t('insights.empty.no_data') ?></p>
-                    </div>
-                  </div>
-                </div>
               </div>
             </div>
+            </div>
 
-            <!-- Performance Section (Trends gated for Control) -->
+            <div class="ap-view-panel" id="apViewOperations" role="tabpanel" aria-labelledby="apViewTabOperations" hidden>
             <div class="ap-section ap-control-only" data-control-feature="throughput-trends" id="throughputSection">
               <div class="ap-section-header">
                 <div class="ap-section-icon">
@@ -2052,13 +2030,13 @@ endif;
               </div>
             </div>
 
-            <!-- Status Duration Section (Historical comparison gated for Control) -->
-            <div class="ap-section ap-control-only" data-control-feature="status-duration" id="statusDurationSection">
+            <div class="ap-section ap-control-only" data-control-feature="status-duration">
               <div class="ap-section-header">
                 <div class="ap-section-icon">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
-                    <circle cx="12" cy="12" r="10"></circle>
-                    <polyline points="12 6 12 12 16 14"></polyline>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="18" y1="20" x2="18" y2="10"></line>
+                    <line x1="12" y1="20" x2="12" y2="4"></line>
+                    <line x1="6" y1="20" x2="6" y2="14"></line>
                   </svg>
                 </div>
                 <div>
@@ -2066,24 +2044,7 @@ endif;
                   <p class="ap-section-subtitle"><?= t('insights.sections.status_duration_subtitle') ?></p>
                 </div>
               </div>
-
-              <div class="ap-insights-grid">
-                <div class="ap-insight-card">
-                  <div class="ap-insight-value" id="apAvgLifecycle">-</div>
-                  <div class="ap-insight-label"><?= t('insights.metrics.avg_case_lifecycle') ?></div>
-                </div>
-                <div class="ap-insight-card">
-                  <div class="ap-insight-value" id="apFastestCase">-</div>
-                  <div class="ap-insight-label"><?= t('insights.metrics.fastest_delivery') ?></div>
-                </div>
-                <div class="ap-insight-card">
-                  <div class="ap-insight-value" id="apSlowestCase">-</div>
-                  <div class="ap-insight-label"><?= t('insights.metrics.slowest_delivery') ?></div>
-                </div>
-              </div>
-
               <div class="ap-charts-grid">
-                <!-- Status Duration Chart -->
                 <div class="ap-chart-card">
                   <div class="ap-chart-header">
                     <div>
@@ -2104,21 +2065,8 @@ endif;
                     <canvas id="apDurationChart" role="img" aria-label="Status duration chart"></canvas>
                   </div>
                 </div>
-
-                <!-- Lifecycle Distribution Chart -->
-                <div class="ap-chart-card">
-                  <div class="ap-chart-header">
-                    <div>
-                      <h3 class="ap-chart-title"><?= t('insights.charts.lifecycle_distribution') ?></h3>
-                      <p class="ap-chart-description"><?= t('insights.charts.lifecycle_distribution_description') ?></p>
-                    </div>
-                  </div>
-                  <div class="ap-chart-container">
-                    <canvas id="apLifecycleChart" role="img" aria-label="Lifecycle distribution chart"></canvas>
-                  </div>
-                </div>
               </div>
-
+            </div>
               <!-- Upgrade overlay -->
               <div class="ap-upgrade-overlay">
                 <div class="ap-upgrade-overlay-icon">
@@ -2133,9 +2081,141 @@ endif;
                 <a href="billing.php" class="ap-upgrade-btn"><?= t('insights.upgrade.button') ?></a>
 <?php endif; ?>
               </div>
+
+            <div class="ap-section">
+              <div class="ap-section-header">
+                <div class="ap-section-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="18" y1="20" x2="18" y2="10"></line>
+                    <line x1="12" y1="20" x2="12" y2="4"></line>
+                    <line x1="6" y1="20" x2="6" y2="14"></line>
+                  </svg>
+                </div>
+                <div>
+                  <h2 class="ap-section-title"><?= t('insights.charts.case_type_breakdown') ?></h2>
+                  <p class="ap-section-subtitle"><?= t('insights.charts.case_type_breakdown_description') ?></p>
+                </div>
+              </div>
+              <div class="ap-charts-grid">
+                <div class="ap-chart-card">
+                  <div class="ap-chart-header">
+                    <div>
+                      <h3 class="ap-chart-title"><?= t('insights.charts.case_type_breakdown') ?></h3>
+                      <p class="ap-chart-description"><?= t('insights.charts.case_type_breakdown_description') ?></p>
+                    </div>
+                    <div class="ap-chart-controls">
+                      <select class="ap-select" id="apTypePeriod">
+                        <option value="active" selected><?= t('insights.filters.active_cases') ?></option>
+                        <option value="all"><?= t('insights.filters.all_time') ?></option>
+                        <option value="3"><?= t('insights.filters.last_n_months', ['count' => 3]) ?></option>
+                        <option value="6"><?= t('insights.filters.last_n_months', ['count' => 6]) ?></option>
+                        <option value="12"><?= t('insights.filters.last_n_months', ['count' => 12]) ?></option>
+                      </select>
+                    </div>
+                  </div>
+                  <div class="ap-chart-scroll">
+                    <div class="ap-chart-container">
+                      <canvas id="apTypeChart" role="img" aria-label="Case type breakdown chart"></canvas>
+                      <p class="insights-empty-state" id="apTypeChartEmpty" style="display: none; width: 100%;"><?= t('insights.empty.no_data') ?></p>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
 
-            <!-- Trends Section (Control tier - blur for Operate) -->
+            <div class="ap-section">
+              <div class="ap-section-header">
+                <div class="ap-section-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                    <circle cx="9" cy="7" r="4"></circle>
+                    <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                    <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                  </svg>
+                </div>
+                <div>
+                  <h2 class="ap-section-title"><?= t('insights.sections.cases_created_by_user') ?></h2>
+                  <p class="ap-section-subtitle"><?= t('insights.sections.cases_created_by_user_subtitle') ?></p>
+                </div>
+                <div class="ap-section-actions">
+                  <select class="ap-select" id="apCreatorPeriod">
+                    <option value="all" selected><?= t('insights.filters.all_time') ?></option>
+                    <option value="active"><?= t('insights.filters.active_cases') ?></option>
+                    <option value="3"><?= t('insights.filters.last_n_months', ['count' => 3]) ?></option>
+                    <option value="6"><?= t('insights.filters.last_n_months', ['count' => 6]) ?></option>
+                    <option value="12"><?= t('insights.filters.last_n_months', ['count' => 12]) ?></option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="ap-chart-scroll">
+                <div class="ap-chart-container" id="apCreatorBreakdown">
+                  <canvas id="apCreatorChart" role="img" aria-label="Cases created by user chart"></canvas>
+                  <p class="insights-empty-state" id="apCreatorBreakdownEmpty" style="display: none; width: 100%;"><?= t('insights.creators.empty') ?></p>
+                </div>
+              </div>
+            </div>
+            </div>
+
+            <div class="ap-view-panel" id="apViewTrends" role="tabpanel" aria-labelledby="apViewTabTrends" hidden>
+            <div class="ap-section ap-control-only" data-control-feature="status-duration">
+              <div class="ap-section-header">
+                <div class="ap-section-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="18" y1="20" x2="18" y2="10"></line>
+                    <line x1="12" y1="20" x2="12" y2="4"></line>
+                    <line x1="6" y1="20" x2="6" y2="14"></line>
+                  </svg>
+                </div>
+                <div>
+                  <h2 class="ap-section-title"><?= t('insights.views.lifecycle_perf') ?></h2>
+                  <p class="ap-section-subtitle"><?= t('insights.views.lifecycle_perf_sub') ?></p>
+                </div>
+              </div>
+              <div class="ap-insights-grid">
+                <div class="ap-insight-card">
+                  <div class="ap-insight-value" id="apAvgLifecycle">-</div>
+                  <div class="ap-insight-label"><?= t('insights.metrics.avg_case_lifecycle') ?></div>
+                </div>
+                <div class="ap-insight-card">
+                  <div class="ap-insight-value" id="apFastestCase">-</div>
+                  <div class="ap-insight-label"><?= t('insights.metrics.fastest_delivery') ?></div>
+                </div>
+                <div class="ap-insight-card">
+                  <div class="ap-insight-value" id="apSlowestCase">-</div>
+                  <div class="ap-insight-label"><?= t('insights.metrics.slowest_delivery') ?></div>
+                </div>
+              </div>
+              </div>
+              <div class="ap-charts-grid">
+                <div class="ap-chart-card">
+                  <div class="ap-chart-header">
+                    <div>
+                      <h3 class="ap-chart-title"><?= t('insights.charts.lifecycle_distribution') ?></h3>
+                      <p class="ap-chart-description"><?= t('insights.charts.lifecycle_distribution_description') ?></p>
+                    </div>
+                  </div>
+                  <div class="ap-chart-container">
+                    <canvas id="apLifecycleChart" role="img" aria-label="Lifecycle distribution chart"></canvas>
+                  </div>
+                </div>
+              </div>
+            </div>
+              <!-- Upgrade overlay -->
+              <div class="ap-upgrade-overlay">
+                <div class="ap-upgrade-overlay-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <polyline points="12 6 12 12 16 14"></polyline>
+                  </svg>
+                </div>
+                <h3><?= t('insights.upgrade.duration_title') ?></h3>
+                <p><?= t('insights.upgrade.duration_description') ?></p>
+<?php if (isFeatureEnabled('BILLING_ENABLED') && $isCurrentUserPracticeAdmin): ?>
+                <a href="billing.php" class="ap-upgrade-btn"><?= t('insights.upgrade.button') ?></a>
+<?php endif; ?>
+              </div>
+
             <div class="ap-section ap-control-only" data-control-feature="yoy-trends" id="yoyTrendsSection">
               <div class="ap-section-header">
                 <div class="ap-section-icon">
@@ -2192,39 +2272,6 @@ endif;
 <?php endif; ?>
               </div>
             </div>
-
-            <!-- Cases Created by User Section -->
-            <div class="ap-section">
-              <div class="ap-section-header">
-                <div class="ap-section-icon">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                    <circle cx="9" cy="7" r="4"></circle>
-                    <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
-                    <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-                  </svg>
-                </div>
-                <div>
-                  <h2 class="ap-section-title"><?= t('insights.sections.cases_created_by_user') ?></h2>
-                  <p class="ap-section-subtitle"><?= t('insights.sections.cases_created_by_user_subtitle') ?></p>
-                </div>
-                <div class="ap-section-actions">
-                  <select class="ap-select" id="apCreatorPeriod">
-                    <option value="all" selected><?= t('insights.filters.all_time') ?></option>
-                    <option value="active"><?= t('insights.filters.active_cases') ?></option>
-                    <option value="3"><?= t('insights.filters.last_n_months', ['count' => 3]) ?></option>
-                    <option value="6"><?= t('insights.filters.last_n_months', ['count' => 6]) ?></option>
-                    <option value="12"><?= t('insights.filters.last_n_months', ['count' => 12]) ?></option>
-                  </select>
-                </div>
-              </div>
-
-              <div class="ap-chart-scroll">
-                <div class="ap-chart-container" id="apCreatorBreakdown">
-                  <canvas id="apCreatorChart" role="img" aria-label="Cases created by user chart"></canvas>
-                  <p class="insights-empty-state" id="apCreatorBreakdownEmpty" style="display: none; width: 100%;"><?= t('insights.creators.empty') ?></p>
-                </div>
-              </div>
             </div>
 
             <!-- Loading Overlay -->
