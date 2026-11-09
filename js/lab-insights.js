@@ -150,6 +150,7 @@
     if (target === 'late') { targetEl = setCheck('filterLateCases', true); }
     else if (target === 'due_soon') { targetEl = setCheck('filterDueSoon', true); }
     else if (target === 'appt_risk') { targetEl = setCheck('filterApptRisk', true); }
+    else if (target === 'awaiting_ack') { targetEl = setCheck('filterAwaitingAck', true); }
     // 'lab_cases' intentionally leaves every risk filter cleared.
 
     var changeSource = targetEl || labEl || document.getElementById('filterLateCases');
@@ -339,6 +340,334 @@
         if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(); }
       });
     });
+  }
+
+  // ======================================================================
+  // Lab Cases Requiring Attention queue
+  // Items arrive pre-classified from api/get-lab-insights.php
+  // attentionQueue (same population + thresholds as Lab Case Health).
+  // `reasons` drives chip filtering; `tier` preserves server priority.
+  // ======================================================================
+  var liAttnState = { items: [], counts: {}, filter: 'all', sort: 'priority', lab: 'all' };
+  var liAttnBound = false;
+  var LI_ATTN_PREVIEW = 5;
+
+  function liAttnChipCountKey(filter) {
+    return { all: 'all', overdue: 'overdue', appt_risk: 'appt_risk', due_soon: 'due_soon', awaiting_ack: 'awaiting_ack' }[filter] || 'all';
+  }
+
+  function liAttnFilterMatch(item, filter) {
+    // Classifier reasons use 'late'; the chip id is 'overdue'.
+    var reasonCat = filter === 'overdue' ? 'late' : filter;
+    if (filter !== 'all' && (item.reasons || []).indexOf(reasonCat) === -1) { return false; }
+    if (liAttnState.lab !== 'all' && String(item.labKey) !== String(liAttnState.lab)) { return false; }
+    return true;
+  }
+
+  function liAttnStatusLabel(status) {
+    if (typeof window.getStageLabel === 'function') { return window.getStageLabel(status); }
+    return status || '';
+  }
+
+  function liAttnCaseTypeLabel(caseType) {
+    if (caseType && typeof window.getCaseTypeDisplayLabel === 'function') {
+      return window.getCaseTypeDisplayLabel(caseType);
+    }
+    return caseType || '';
+  }
+
+  /** Ordered reason entries: primary category first, secondaries after. */
+  function liAttnReasonEntries(item) {
+    var entries = [];
+    var has = function (cat) { return (item.reasons || []).indexOf(cat) !== -1; };
+    var daysUntilDue = item.daysUntilDue;
+    var daysUntilAppt = item.daysUntilAppt;
+
+    if (has('late') && daysUntilDue !== null && daysUntilDue !== undefined) {
+      var overdueDays = Math.max(0, -daysUntilDue);
+      entries.push({ cat: 'late', text: I18n.pluralize(overdueDays, 'insights.attention.reason_late') });
+    }
+    if (has('appt_risk') && daysUntilAppt !== null && daysUntilAppt !== undefined) {
+      var apptText;
+      if (daysUntilAppt < 0) {
+        apptText = I18n.pluralize(-daysUntilAppt, 'insights.attention.reason_appt_missed');
+      } else if (daysUntilAppt === 0) {
+        apptText = t('insights.attention.reason_appt_today');
+      } else {
+        apptText = I18n.pluralize(daysUntilAppt, 'insights.attention.reason_appt_in');
+      }
+      entries.push({ cat: 'appt_risk', text: apptText });
+    }
+    if (has('due_soon') && daysUntilDue !== null && daysUntilDue !== undefined) {
+      var dueText = daysUntilDue === 0
+        ? t('insights.attention.reason_due_today')
+        : I18n.pluralize(daysUntilDue, 'insights.attention.reason_due_in');
+      entries.push({ cat: 'due_soon', text: dueText });
+    }
+    if (has('awaiting_ack')) {
+      entries.push({ cat: 'awaiting_ack', text: t('insights.attention.reason_awaiting_ack') });
+    }
+
+    var primaryCat = {
+      late_appt: 'late', appt_risk: 'appt_risk', late: 'late',
+      due_soon: 'due_soon', awaiting_ack: 'awaiting_ack'
+    }[item.primaryReason];
+    if (primaryCat) {
+      entries.sort(function (a, b) {
+        if (a.cat === primaryCat) { return -1; }
+        if (b.cat === primaryCat) { return 1; }
+        return 0;
+      });
+    }
+    return entries;
+  }
+
+  function liAttnSortValue(item, sort) {
+    switch (sort) {
+      case 'due_date':
+        return item.daysUntilDue === null || item.daysUntilDue === undefined ? Infinity : item.daysUntilDue;
+      case 'appt_date':
+        return item.daysUntilAppt === null || item.daysUntilAppt === undefined ? Infinity : item.daysUntilAppt;
+      case 'days_overdue': {
+        var overdue = item.daysUntilDue === null || item.daysUntilDue === undefined ? -Infinity : Math.max(0, -item.daysUntilDue);
+        return -overdue;
+      }
+      case 'lab':
+        return String(item.lab || '').toLowerCase() || '￿';
+      default:
+        return item.tier || 99;
+    }
+  }
+
+  function liAttnSortedItems() {
+    var items = liAttnState.items.filter(function (item) {
+      return liAttnFilterMatch(item, liAttnState.filter);
+    });
+    if (liAttnState.sort === 'priority') { return items; } // server order
+    return items.slice().sort(function (a, b) {
+      var av = liAttnSortValue(a, liAttnState.sort);
+      var bv = liAttnSortValue(b, liAttnState.sort);
+      if (av === bv) { return (a.tier || 99) - (b.tier || 99); }
+      return av < bv ? -1 : 1;
+    });
+  }
+
+  function liAttnOpenCase(item) {
+    if (typeof window.openCaseById === 'function') {
+      window.openCaseById(item.id);
+    }
+  }
+
+  function liAttnSetEmpty(hasAny, hasFilterMatch) {
+    var empty = document.getElementById('liAttnEmpty');
+    if (!empty) { return; }
+    empty.hidden = false;
+    liSetText('liAttnEmptyTitle', t(hasAny && !hasFilterMatch
+      ? 'insights.labattn.empty_filter_title' : 'insights.labattn.empty_title'));
+    liSetText('liAttnEmptySub', t(hasAny && !hasFilterMatch
+      ? 'insights.labattn.empty_filter_subtitle' : 'insights.labattn.empty_subtitle'));
+    var clearBtn = document.getElementById('liAttnClearFilters');
+    if (clearBtn) { clearBtn.hidden = !(hasAny && !hasFilterMatch); }
+  }
+
+  function renderLiAttnRows() {
+    var body = document.getElementById('liAttnBody');
+    var wrap = document.getElementById('liAttnTableWrap');
+    var empty = document.getElementById('liAttnEmpty');
+    var footer = document.getElementById('liAttnFooter');
+    var showing = document.getElementById('liAttnShowing');
+    var viewAll = document.getElementById('liAttnViewAll');
+    if (!body) { return; }
+
+    var sorted = liAttnSortedItems();
+    var preview = sorted.slice(0, LI_ATTN_PREVIEW);
+    var totalForFilter = sorted.length;
+    var hasAny = (liAttnState.counts.all || liAttnState.items.length) > 0;
+
+    if (preview.length === 0) {
+      body.innerHTML = '';
+      if (wrap) { wrap.hidden = true; }
+      if (empty) { liAttnSetEmpty(hasAny, totalForFilter > 0); }
+      if (footer) { footer.hidden = true; }
+      return;
+    }
+
+    if (wrap) { wrap.hidden = false; }
+    if (empty) { empty.hidden = true; }
+
+    body.innerHTML = preview.map(function (item) {
+      var name = ((item.patientFirstName || '') + ' ' + (item.patientLastName || '')).trim();
+      var typeLabel = liAttnCaseTypeLabel(item.caseType);
+      var reasons = liAttnReasonEntries(item);
+      var primary = reasons[0];
+      var secondary = reasons.slice(1);
+      var caseLabel = item.trackingNumber
+        ? escapeHtml(item.trackingNumber)
+        : '#' + escapeHtml(String(item.id || '').slice(0, 8));
+      var dateLabelDue = t('insights.attention.date_due');
+      var dateLabelAppt = t('insights.attention.date_appt');
+
+      var reasonHtml = primary
+        ? '<span class="ap-attn-reason ap-attn-reason--' + escapeHtml(primary.cat) + '">' + escapeHtml(primary.text) + '</span>' +
+          secondary.map(function (r) {
+            return '<span class="ap-attn-reason-secondary">' + escapeHtml(r.text) + '</span>';
+          }).join('')
+        : '<span class="ap-attn-reason-secondary">' + escapeHtml(t('insights.attention.reason_generic')) + '</span>';
+
+      var dateHtml = '';
+      if (item.dueDate) {
+        dateHtml += '<span class="ap-attn-date-line"><span class="ap-attn-date-label">' + escapeHtml(dateLabelDue) + '</span> ' + escapeHtml(I18n.formatDate(item.dueDate)) + '</span>';
+      }
+      if (item.patientAppointmentDate) {
+        dateHtml += '<span class="ap-attn-date-line"><span class="ap-attn-date-label">' + escapeHtml(dateLabelAppt) + '</span> ' + escapeHtml(I18n.formatDate(item.patientAppointmentDate)) + '</span>';
+      }
+      if (!dateHtml) { dateHtml = '<span class="ap-attn-muted">—</span>'; }
+
+      return '<tr class="ap-attn-row" data-li-attn-case="' + escapeHtml(item.id) + '">' +
+        '<td class="ap-attn-cell-case" data-label="' + escapeHtml(t('insights.attention.col_case')) + '">' +
+          '<button type="button" class="ap-attn-case-link" data-li-attn-open="' + escapeHtml(item.id) + '" title="' + escapeHtml(String(item.id)) + '">' + caseLabel + '</button>' +
+        '</td>' +
+        '<td class="ap-attn-cell-patient" data-label="' + escapeHtml(t('insights.attention.col_patient')) + '">' +
+          '<span class="ap-attn-patient">' + escapeHtml(name || '—') + '</span>' +
+          (typeLabel ? '<span class="ap-attn-case-type">' + escapeHtml(typeLabel) + '</span>' : '') +
+        '</td>' +
+        '<td class="ap-attn-cell-assigned" data-label="' + escapeHtml(t('insights.labattn.col_lab')) + '">' +
+          '<span class="ap-attn-assigned">' + escapeHtml(item.lab || '—') + '</span>' +
+        '</td>' +
+        '<td class="ap-attn-cell-risk" data-label="' + escapeHtml(t('insights.attention.col_risk')) + '">' + reasonHtml + '</td>' +
+        '<td class="ap-attn-cell-status" data-label="' + escapeHtml(t('insights.attention.col_status')) + '">' + escapeHtml(liAttnStatusLabel(item.status)) + '</td>' +
+        '<td class="ap-attn-cell-date" data-label="' + escapeHtml(t('insights.attention.col_date')) + '">' + dateHtml + '</td>' +
+        '<td class="ap-attn-cell-action">' +
+          '<button type="button" class="ap-btn ap-btn-secondary ap-attn-view" data-li-attn-open="' + escapeHtml(item.id) + '">' + escapeHtml(t('insights.attention.view_case')) + '</button>' +
+        '</td>' +
+      '</tr>';
+    }).join('');
+
+    if (footer) {
+      footer.hidden = false;
+      if (showing) {
+        showing.textContent = t('insights.attention.showing', { shown: preview.length, total: totalForFilter });
+      }
+      if (viewAll) {
+        viewAll.hidden = !hasAny || totalForFilter <= LI_ATTN_PREVIEW;
+      }
+    }
+  }
+
+  /** Populate the laboratory filter from the practice's live labs. */
+  function liAttnPopulateLabFilter(labs) {
+    var sel = document.getElementById('liAttnLabFilter');
+    if (!sel) { return; }
+    var prev = liAttnState.lab;
+    sel.innerHTML = '<option value="all">' + escapeHtml(t('insights.labattn.lab_filter_all')) + '</option>';
+    (labs || []).forEach(function (lab) {
+      if (!lab || lab.isLive === false || !lab.labKey) { return; }
+      var opt = document.createElement('option');
+      opt.value = lab.labKey;
+      opt.textContent = lab.name || lab.labKey;
+      sel.appendChild(opt);
+    });
+    // Keep a previously-selected lab only if it still exists.
+    var stillThere = Array.prototype.some.call(sel.options, function (o) { return o.value === String(prev); });
+    liAttnState.lab = stillThere ? prev : 'all';
+    sel.value = liAttnState.lab;
+  }
+
+  function renderLiAttentionQueue(data) {
+    var section = document.getElementById('liAttentionSection');
+    var queue = data && data.attentionQueue;
+    if (!section) { return; }
+    if (!queue) {
+      section.style.display = 'none';
+      return;
+    }
+    section.style.display = '';
+
+    liAttnState.items = Array.isArray(queue.items) ? queue.items : [];
+    liAttnState.counts = queue.counts || {};
+    liAttnState.counts.all = queue.total !== undefined ? queue.total : liAttnState.items.length;
+
+    var map = { all: 'liAttnCountAll', overdue: 'liAttnCountOverdue', appt_risk: 'liAttnCountApptRisk', due_soon: 'liAttnCountDueSoon', awaiting_ack: 'liAttnCountAck' };
+    Object.keys(map).forEach(function (filter) {
+      var el = document.getElementById(map[filter]);
+      if (el) { el.textContent = liAttnState.counts[liAttnChipCountKey(filter)] || 0; }
+    });
+
+    renderLiAttnRows();
+    bindLiAttentionQueue();
+  }
+
+  function bindLiAttentionQueue() {
+    if (liAttnBound) { return; }
+    liAttnBound = true;
+
+    var filtersEl = document.getElementById('liAttnFilters');
+    if (filtersEl) {
+      filtersEl.addEventListener('click', function (e) {
+        var chip = e.target.closest('[data-li-attn-filter]');
+        if (!chip) { return; }
+        liAttnState.filter = chip.getAttribute('data-li-attn-filter') || 'all';
+        filtersEl.querySelectorAll('.ap-attention-chip').forEach(function (c) {
+          c.classList.toggle('is-active', c === chip);
+        });
+        renderLiAttnRows();
+      });
+    }
+
+    var labSel = document.getElementById('liAttnLabFilter');
+    if (labSel) {
+      labSel.addEventListener('change', function () {
+        liAttnState.lab = labSel.value || 'all';
+        renderLiAttnRows();
+      });
+    }
+
+    var sortEl = document.getElementById('liAttnSort');
+    if (sortEl) {
+      sortEl.addEventListener('change', function () {
+        liAttnState.sort = sortEl.value || 'priority';
+        renderLiAttnRows();
+      });
+    }
+
+    var clearBtn = document.getElementById('liAttnClearFilters');
+    if (clearBtn) {
+      clearBtn.addEventListener('click', function () {
+        liAttnState.filter = 'all';
+        liAttnState.lab = 'all';
+        if (labSel) { labSel.value = 'all'; }
+        if (filtersEl) {
+          filtersEl.querySelectorAll('.ap-attention-chip').forEach(function (c) {
+            c.classList.toggle('is-active', c.getAttribute('data-li-attn-filter') === 'all');
+          });
+        }
+        renderLiAttnRows();
+      });
+    }
+
+    var body = document.getElementById('liAttnBody');
+    if (body) {
+      body.addEventListener('click', function (e) {
+        var opener = e.target.closest('[data-li-attn-open]');
+        if (!opener) { return; }
+        var id = opener.getAttribute('data-li-attn-open');
+        var item = liAttnState.items.find(function (i) { return String(i.id) === String(id); });
+        if (item) { liAttnOpenCase(item); }
+      });
+    }
+
+    var viewAll = document.getElementById('liAttnViewAll');
+    if (viewAll) {
+      viewAll.addEventListener('click', function () {
+        // Map the active chip to the matching Case Board risk filter; the
+        // lab scope (filterLabCases) is always applied by liNavigateToCases.
+        var targetByFilter = {
+          all: 'lab_cases', overdue: 'late', appt_risk: 'appt_risk',
+          due_soon: 'due_soon', awaiting_ack: 'awaiting_ack'
+        };
+        liNavigateToCases(targetByFilter[liAttnState.filter] || 'lab_cases');
+      });
+    }
   }
 
   // ======================================================================
@@ -1316,6 +1645,8 @@
     renderOperationalSummary(data);
 
     liLabs = data.labs || [];
+    liAttnPopulateLabFilter(liLabs);
+    renderLiAttentionQueue(data);
     liWorkloadByLab = {};
     (data.currentWorkload || []).forEach(function (row) {
       if (!liWorkloadByLab[row.labKey]) { liWorkloadByLab[row.labKey] = []; }
@@ -1325,6 +1656,8 @@
     if (!data.hasLabs || !data.hasHistory) {
       var opsWrap = document.getElementById('liOps');
       if (opsWrap) { opsWrap.style.display = 'none'; }
+      var attnWrap = document.getElementById('liAttentionSection');
+      if (attnWrap) { attnWrap.style.display = 'none'; }
       clearLabTable();
       if (liChart) {
         liChart.destroy();

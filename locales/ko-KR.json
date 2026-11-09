@@ -2225,6 +2225,20 @@
             "bottleneck_age": "평균 단계 경과 {days}",
             "bottleneck_cases_one": "활성 사례 {count}건",
             "bottleneck_cases_other": "활성 사례 {count}건"
+        },
+        "labattn": {
+            "title": "주의가 필요한 기공소 사례",
+            "subtitle": "지금 조치가 필요한 기공소 관련 사례입니다.",
+            "col_lab": "기공소",
+            "lab_filter": "기공소",
+            "lab_filter_all": "모든 기공소",
+            "sort_appt_date": "예약 날짜",
+            "sort_lab": "기공소",
+            "clear_filters": "필터 지우기",
+            "empty_title": "현재 주의가 필요한 기공소 사례가 없습니다.",
+            "empty_subtitle": "구성된 위험 조건을 충족하는 사례가 없습니다.",
+            "empty_filter_title": "선택한 필터와 일치하는 사례가 없습니다.",
+            "empty_filter_subtitle": "다른 위험 카테고리나 기공소를 시도해 보세요."
         }
     },
     "users": {

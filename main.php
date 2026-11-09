@@ -2495,6 +2495,85 @@ endif;
                 </div>
               </div>
 
+              <!-- Lab Cases Requiring Attention: actionable queue of
+                   laboratory-associated cases needing intervention. Items
+                   arrive pre-classified from get-lab-insights.php
+                   attentionQueue (same classifier + thresholds as Lab Case
+                   Health); rendered by js/lab-insights.js. -->
+              <div class="ap-attention li-attention" id="liAttentionSection">
+                <div class="ap-attention-header">
+                  <div class="ap-attention-heading">
+                    <h2 class="ap-attention-title"><?= t('insights.labattn.title') ?></h2>
+                    <p class="ap-attention-subtitle"><?= t('insights.labattn.subtitle') ?></p>
+                  </div>
+                  <div class="ap-attention-controls">
+                    <div class="ap-attention-filters" id="liAttnFilters" role="group" aria-label="<?= htmlspecialchars(t('insights.attention.filter_label')) ?>">
+                      <button type="button" class="ap-attention-chip is-active" data-li-attn-filter="all">
+                        <?= t('insights.attention.filter_all') ?> <span class="ap-attention-chip-count" id="liAttnCountAll">0</span>
+                      </button>
+                      <button type="button" class="ap-attention-chip" data-li-attn-filter="overdue">
+                        <?= t('insights.attention.filter_overdue') ?> <span class="ap-attention-chip-count" id="liAttnCountOverdue">0</span>
+                      </button>
+                      <button type="button" class="ap-attention-chip" data-li-attn-filter="appt_risk">
+                        <?= t('insights.attention.filter_appt_risk') ?> <span class="ap-attention-chip-count" id="liAttnCountApptRisk">0</span>
+                      </button>
+                      <button type="button" class="ap-attention-chip" data-li-attn-filter="due_soon">
+                        <?= t('insights.attention.filter_due_soon') ?> <span class="ap-attention-chip-count" id="liAttnCountDueSoon">0</span>
+                      </button>
+                      <button type="button" class="ap-attention-chip" data-li-attn-filter="awaiting_ack">
+                        <?= t('insights.attention.filter_awaiting_ack') ?> <span class="ap-attention-chip-count" id="liAttnCountAck">0</span>
+                      </button>
+                    </div>
+                    <div class="li-attn-toolbar">
+                      <label class="ap-attention-sort-label" for="liAttnLabFilter">
+                        <span class="ap-attention-sort-text"><?= t('insights.labattn.lab_filter') ?></span>
+                        <select id="liAttnLabFilter" class="ap-attention-sort"></select>
+                      </label>
+                      <label class="ap-attention-sort-label" for="liAttnSort">
+                        <span class="ap-attention-sort-text"><?= t('insights.attention.sort_label') ?></span>
+                        <select id="liAttnSort" class="ap-attention-sort">
+                          <option value="priority"><?= t('insights.attention.sort_priority') ?></option>
+                          <option value="due_date"><?= t('insights.attention.sort_due_date') ?></option>
+                          <option value="appt_date"><?= t('insights.labattn.sort_appt_date') ?></option>
+                          <option value="days_overdue"><?= t('insights.attention.sort_days_overdue') ?></option>
+                          <option value="lab"><?= t('insights.labattn.sort_lab') ?></option>
+                        </select>
+                      </label>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="ap-attention-empty" id="liAttnEmpty" hidden>
+                  <p class="ap-attention-empty-title" id="liAttnEmptyTitle"></p>
+                  <p class="ap-attention-empty-sub" id="liAttnEmptySub"></p>
+                  <button type="button" class="ap-btn ap-btn-secondary" id="liAttnClearFilters" hidden><?= t('insights.labattn.clear_filters') ?></button>
+                </div>
+
+                <div class="ap-attention-table-wrap" id="liAttnTableWrap">
+                  <table class="ap-attention-table">
+                    <thead>
+                      <tr>
+                        <th scope="col"><?= t('insights.attention.col_case') ?></th>
+                        <th scope="col"><?= t('insights.attention.col_patient') ?></th>
+                        <th scope="col"><?= t('insights.labattn.col_lab') ?></th>
+                        <th scope="col"><?= t('insights.attention.col_risk') ?></th>
+                        <th scope="col"><?= t('insights.attention.col_status') ?></th>
+                        <th scope="col"><?= t('insights.attention.col_date') ?></th>
+                        <th scope="col"><span class="ap-sr-only"><?= t('insights.attention.col_action') ?></span></th>
+                      </tr>
+                    </thead>
+                    <tbody id="liAttnBody"></tbody>
+                  </table>
+                </div>
+
+                <div class="ap-attention-footer" id="liAttnFooter" hidden>
+                  <span class="ap-attention-showing" id="liAttnShowing"></span>
+                  <button type="button" class="ap-btn ap-btn-secondary ap-attention-viewall" id="liAttnViewAll">
+                    <?= t('insights.attention.view_all') ?>
+                  </button>
+                </div>
+              </div>
+
               <!-- Legacy Lab Insights layout - rendered when the performance
                    metrics layer is unavailable (performance: null) -->
               <div id="liLegacy">

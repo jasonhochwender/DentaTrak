@@ -2221,6 +2221,20 @@
             "bottleneck_age": "edad media en etapa {days}",
             "bottleneck_cases_one": "{count} caso activo",
             "bottleneck_cases_other": "{count} casos activos"
+        },
+        "labattn": {
+            "title": "Casos de laboratorio que requieren atención",
+            "subtitle": "Casos asociados a laboratorios que requieren acción ahora.",
+            "col_lab": "Laboratorio",
+            "lab_filter": "Laboratorio",
+            "lab_filter_all": "Todos los laboratorios",
+            "sort_appt_date": "Fecha de cita",
+            "sort_lab": "Laboratorio",
+            "clear_filters": "Borrar filtros",
+            "empty_title": "Actualmente ningún caso de laboratorio requiere atención.",
+            "empty_subtitle": "Ningún caso cumple las condiciones de riesgo configuradas.",
+            "empty_filter_title": "Ningún caso coincide con los filtros seleccionados.",
+            "empty_filter_subtitle": "Pruebe otra categoría de riesgo u otro laboratorio."
         }
     },
     "users": {

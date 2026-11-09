@@ -380,7 +380,8 @@ try {
     $stmt = $pdo->prepare("
         SELECT cases_cache.case_id, status, due_date, archived, case_type, assigned_to,
                patient_first_name, patient_last_name,
-               patient_appointment_date, lab_ack_status
+               patient_appointment_date, lab_ack_status,
+               lab_promised_date, tracking_number
         FROM cases_cache INNER JOIN authorized_case_ids a ON a.case_id = cases_cache.case_id COLLATE utf8mb4_unicode_ci
         WHERE practice_id = :practice_id AND archived = 0
     ");
@@ -408,6 +409,7 @@ try {
         // legitimately show it under each lab).
         if (!isset($activeLabCasesById[$row['case_id']])) {
             $activeLabCasesById[$row['case_id']] = $row;
+            $activeLabCasesById[$row['case_id']]['_labKey'] = $labKey;
         }
         if (labIsLate($row, $now, $TERMINAL_CASE_STATUSES)) {
             $currentWorkloadLateCount[$labKey] = ($currentWorkloadLateCount[$labKey] ?? 0) + 1;
@@ -422,6 +424,8 @@ try {
     // due soon > on track), so each active lab case lands in exactly one
     // bucket and the counts reconcile with the Case Board risk filters.
     $caseHealth = ['onTrack' => 0, 'dueSoon' => 0, 'appointmentRisk' => 0, 'overdue' => 0];
+    $attentionItems = [];
+    $attentionCounts = ['all' => 0, 'overdue' => 0, 'appt_risk' => 0, 'due_soon' => 0, 'awaiting_ack' => 0];
     foreach ($activeLabCasesById as $caseId => $row) {
         $cls = classifyCaseAttentionRisk([
             'status' => $row['status'] ?? '',
@@ -438,7 +442,73 @@ try {
         } else {
             $caseHealth['onTrack']++;
         }
+
+        // ── Lab Cases Requiring Attention queue ──────────────────────────
+        // Same population + same classifier as the Case Health buckets, but
+        // items may carry MULTIPLE reasons (health stays mutually exclusive).
+        // 'awaiting_ack' is a queue-only category: those cases still count
+        // as onTrack in the health bar because no due/appointment risk
+        // applies - the queue surfaces the coordination signal instead.
+        if (!$cls['attention']) {
+            continue;
+        }
+        $attentionCounts['all']++;
+        if ($cls['late']) $attentionCounts['overdue']++;
+        if ($cls['apptRisk']) $attentionCounts['appt_risk']++;
+        if ($cls['dueSoon']) $attentionCounts['due_soon']++;
+        if ($cls['awaitingAck']) $attentionCounts['awaiting_ack']++;
+
+        // Decrypt patient identifiers via the same PIIEncryption path every
+        // other authenticated case screen uses; a failure yields blanks
+        // (the row still shows its case id) rather than ciphertext.
+        $patientFirst = '';
+        $patientLast = '';
+        try {
+            $patientFirst = PIIEncryption::decrypt((string)($row['patient_first_name'] ?? ''));
+            $patientLast = PIIEncryption::decrypt((string)($row['patient_last_name'] ?? ''));
+        } catch (Throwable $e) {
+            $patientFirst = '';
+            $patientLast = '';
+        }
+
+        $labKey = $row['_labKey'] ?? null;
+        $attentionItems[] = [
+            'id' => $caseId,
+            'trackingNumber' => $row['tracking_number'] ?? null,
+            'patientFirstName' => $patientFirst,
+            'patientLastName' => $patientLast,
+            'caseType' => $row['case_type'] ?? '',
+            'status' => $row['status'] ?? '',
+            'lab' => $labKey !== null ? ($labs[$labKey]['currentName'] ?? '') : '',
+            'labKey' => $labKey,
+            'reasons' => $cls['reasons'],
+            'primaryReason' => $cls['primaryReason'],
+            'tier' => $cls['tier'],
+            'daysUntilDue' => $cls['daysUntilDue'],
+            'daysUntilAppt' => $cls['daysUntilAppt'],
+            'dueDate' => $row['due_date'] ?: null,
+            'patientAppointmentDate' => $row['patient_appointment_date'] ?: null,
+            'labPromisedDate' => $row['lab_promised_date'] ?: null,
+        ];
     }
+    // Server-side priority order (same contract as Practice Insights):
+    // tier asc, then most-imminent appointment, then most-overdue, then
+    // soonest due date. Cap payload so client filtering stays cheap.
+    usort($attentionItems, function ($a, $b) {
+        if ($a['tier'] !== $b['tier']) return $a['tier'] <=> $b['tier'];
+        $aAppt = $a['daysUntilAppt'] === null ? PHP_INT_MAX : $a['daysUntilAppt'];
+        $bAppt = $b['daysUntilAppt'] === null ? PHP_INT_MAX : $b['daysUntilAppt'];
+        if ($aAppt !== $bAppt) return $aAppt <=> $bAppt;
+        $aDue = $a['daysUntilDue'] === null ? PHP_INT_MAX : $a['daysUntilDue'];
+        $bDue = $b['daysUntilDue'] === null ? PHP_INT_MAX : $b['daysUntilDue'];
+        if ($aDue !== $bDue) return $aDue <=> $bDue;
+        return strcmp((string)$a['id'], (string)$b['id']);
+    });
+    $attentionQueue = [
+        'items' => array_slice($attentionItems, 0, 200),
+        'total' => $attentionCounts['all'],
+        'counts' => $attentionCounts,
+    ];
     $activeLabCaseCount = count($activeLabCasesById);
     $overdueLabCaseCount = $caseHealth['overdue'];
     $operational = [
@@ -782,6 +852,7 @@ try {
         'performance' => $performance,
         'recommendations' => $recommendations,
         'operational' => $operational,
+        'attentionQueue' => $attentionQueue,
     ]);
 
 } catch (Throwable $e) {

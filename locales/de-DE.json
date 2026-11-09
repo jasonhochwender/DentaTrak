@@ -3836,6 +3836,20 @@
             "bottleneck_age": "Ø Verweilzeit {days}",
             "bottleneck_cases_one": "{count} aktiver Fall",
             "bottleneck_cases_other": "{count} aktive Fälle"
+        },
+        "labattn": {
+            "title": "Laborfälle, die Aufmerksamkeit erfordern",
+            "subtitle": "Mit Laboren verbundene Fälle, die jetzt Handeln erfordern.",
+            "col_lab": "Labor",
+            "lab_filter": "Labor",
+            "lab_filter_all": "Alle Labore",
+            "sort_appt_date": "Termin Datum",
+            "sort_lab": "Labor",
+            "clear_filters": "Filter zurücksetzen",
+            "empty_title": "Derzeit erfordern keine Laborfälle Aufmerksamkeit.",
+            "empty_subtitle": "Keine Fälle erfüllen die konfigurierten Risikobedingungen.",
+            "empty_filter_title": "Keine Fälle entsprechen den ausgewählten Filtern.",
+            "empty_filter_subtitle": "Versuchen Sie eine andere Risikokategorie oder ein anderes Labor."
         }
     },
     "admin_practices": {

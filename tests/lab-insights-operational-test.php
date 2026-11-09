@@ -174,5 +174,80 @@ foreach ($locales as $loc) {
     }
 }
 
+// --- 8. Lab Cases Requiring Attention queue -----------------------------------
+check('api emits attentionQueue payload',
+    strpos($api, "'attentionQueue' => \$attentionQueue") !== false);
+check('queue reuses shared classifier',
+    (bool) preg_match('/classifyCaseAttentionRisk\(\[\s*\'status\' => \\$row\[\'status\'\]/', $api));
+check('queue dedupes multi-lab cases by case id',
+    strpos($api, 'activeLabCasesById') !== false
+    && (bool) preg_match('/!isset\(\\$activeLabCasesById\\[\\$row\[\'case_id\'\]\]\)/', $api));
+check('queue decrypts patient names via PIIEncryption',
+    strpos($api, 'PIIEncryption::decrypt') !== false);
+check('queue emits tracking number + lab identity',
+    strpos($api, "'trackingNumber'") !== false && strpos($api, "'labKey'") !== false);
+check('queue uses server-side priority sort',
+    (bool) preg_match('/usort\(\\$attentionItems/', $api));
+check('queue capped at 200 items',
+    strpos($api, 'array_slice($attentionItems, 0, 200)') !== false);
+check('markup places queue after ops before legacy',
+    (bool) preg_match('/id="liOps"[\s\S]*id="liAttentionSection"[\s\S]*id="liLegacy"/', $main));
+check('queue markup before Recommendations',
+    strpos($main, 'id="liAttentionSection"') < strpos($main, 'id="liRecs"'));
+check('queue has risk chips + counts',
+    substr_count($main, 'data-li-attn-filter=') === 5
+    && substr_count($main, 'liAttnCount') === 5);
+check('queue has lab filter + sort controls',
+    strpos($main, 'id="liAttnLabFilter"') !== false
+    && strpos($main, 'id="liAttnSort"') !== false);
+check('queue table uses semantic markup',
+    (bool) preg_match('/<table class="ap-attention-table">[\s\S]*<th scope="col">/', $main)
+    && strpos($main, '<tbody id="liAttnBody">') !== false);
+check('js renders queue from attentionQueue payload',
+    (bool) preg_match('/function renderLiAttentionQueue\(data\)[\s\S]{0,400}data\.attentionQueue/', $js));
+check('js preview limited to five cases',
+    strpos($js, 'LI_ATTN_PREVIEW = 5') !== false
+    && strpos($js, 'slice(0, LI_ATTN_PREVIEW)') !== false);
+check('js supports lab + risk filtering client-side',
+    strpos($js, 'liAttnState.lab') !== false
+    && strpos($js, 'liAttnFilterMatch') !== false);
+check('overdue chip maps to classifier late reason',
+    strpos($js, "filter === 'overdue' ? 'late' : filter") !== false);
+check('js supports priority/due/appt/days-overdue/lab sorts',
+    substr_count($js, "case '") >= 4
+    && strpos($js, "case 'appt_date'") !== false
+    && strpos($js, "case 'days_overdue'") !== false);
+check('js opens cases via openCaseById',
+    strpos($js, 'window.openCaseById') !== false);
+check('js View All maps chips to board filters incl awaiting_ack',
+    (bool) preg_match("/awaiting_ack: 'awaiting_ack'/", $js)
+    && (bool) preg_match("/all: 'lab_cases'/", $js));
+check('liNavigateToCases handles awaiting_ack filter',
+    strpos($js, "setCheck('filterAwaitingAck', true)") !== false);
+check('empty states distinguish no-items vs filtered-out',
+    strpos($js, 'empty_filter_title') !== false
+    && strpos($js, 'liAttnClearFilters') !== false);
+check('queue hidden when no labs/history',
+    (bool) preg_match("/liAttentionSection'\)\);\s*if \(attnWrap\) \{ attnWrap\.style\.display = 'none'/", $js)
+    || strpos($js, "getElementById('liAttentionSection')") !== false);
+check('lab filter populated from practice labs',
+    strpos($js, 'liAttnPopulateLabFilter') !== false);
+check('li-attn CSS additions present',
+    strpos($css, '.li-attn-toolbar') !== false);
+
+$attnKeys = ['title','subtitle','col_lab','lab_filter','lab_filter_all',
+             'sort_appt_date','sort_lab','clear_filters','empty_title',
+             'empty_subtitle','empty_filter_title','empty_filter_subtitle'];
+foreach ($locales as $loc) {
+    $file = __DIR__ . '/../locales/' . $loc . '.json';
+    $data = json_decode(file_get_contents($file), true);
+    $labattn = $data['insights']['labattn'] ?? null;
+    check("{$loc} has insights.labattn", is_array($labattn));
+    if (!is_array($labattn)) { continue; }
+    foreach ($attnKeys as $k) {
+        check("{$loc} labattn.{$k} present", isset($labattn[$k]) && $labattn[$k] !== '');
+    }
+}
+
 echo "\n{$passed} passed, {$failed} failed\n";
 exit($failed > 0 ? 1 : 0);

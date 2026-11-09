@@ -2223,6 +2223,20 @@
             "bottleneck_age": "avg stage age {days}",
             "bottleneck_cases_one": "{count} active case",
             "bottleneck_cases_other": "{count} active cases"
+        },
+        "labattn": {
+            "title": "Lab Cases Requiring Attention",
+            "subtitle": "Laboratory-associated cases that need action now.",
+            "col_lab": "Laboratory",
+            "lab_filter": "Laboratory",
+            "lab_filter_all": "All Laboratories",
+            "sort_appt_date": "Appointment date",
+            "sort_lab": "Laboratory",
+            "clear_filters": "Clear filters",
+            "empty_title": "No laboratory cases currently require attention.",
+            "empty_subtitle": "No cases meet the configured risk conditions.",
+            "empty_filter_title": "No cases match the selected filters.",
+            "empty_filter_subtitle": "Try a different risk category or laboratory."
         }
     },
     "users": {
