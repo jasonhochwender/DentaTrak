@@ -376,9 +376,18 @@
   box-shadow: var(--ap-shadow-glow);
 }
 
+/* Chart containers need a DEFINITE height: every Insights chart uses
+   Chart.js responsive + maintainAspectRatio:false, which sizes the canvas
+   to its container. With only min-height, the canvas grows the container,
+   which retriggers resize - an unbounded feedback loop (worst when a
+   hidden tab becomes visible). height:280px is the default; charts that
+   size themselves set an inline style.height which overrides this, the
+   min-height floor below preserves the previous effective minimum for
+   shorter inline heights, and .ap-chart-scroll children opt out via
+   height:auto since they size to their row count. */
 .ap-chart-container {
   position: relative;
-  min-height: 280px;
+  height: 280px;
 }
 
 /* Scroll wrapper for horizontal breakdown charts (case types, creators):
@@ -391,6 +400,7 @@
 
 .ap-chart-scroll .ap-chart-container {
   min-height: 0;
+  height: auto;
 }
 
 /* Right-aligned controls inside a section header (e.g. creator scope select) */
@@ -2405,13 +2415,15 @@ button.ap-health-seg:focus-visible {
   padding-bottom: 12px;
 }
 
-/* Chart containers: cap excessive empty height on small datasets */
+/* Chart containers: floor for charts with smaller inline heights; the
+   base rule above supplies the definite 280px default height. */
 .ap-chart-container {
   min-height: 240px;
 }
 
 @media (max-width: 720px) {
   .ap-chart-container {
+    height: 200px;
     min-height: 200px;
   }
 }

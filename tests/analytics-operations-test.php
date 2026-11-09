@@ -76,6 +76,13 @@ foreach ([
         strpos($body, 'apFixedHeight') !== false);
 }
 
+// --- 1b. Central contract: .ap-chart-container must declare a definite
+// height so responsive + maintainAspectRatio:false charts cannot grow it.
+check('analytics-pro.css gives .ap-chart-container a definite height',
+    (bool) preg_match('/\.ap-chart-container\s*\{[^}]*height\s*:\s*\d+px/s', $css));
+check('scroll-wrapped chart containers opt out via height:auto',
+    (bool) preg_match('/\.ap-chart-scroll\s+\.ap-chart-container\s*\{[^}]*height\s*:\s*auto/s', $css));
+
 // --- 2. Notes live in the card footer, not the chart container ------------
 foreach (['apVolumeNote', 'apLifecycleNote'] as $noteId) {
     $pos = strpos($js, "'" . $noteId . "'");
