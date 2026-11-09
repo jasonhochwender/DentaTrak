@@ -3399,6 +3399,17 @@
             "days_few": "{count} дня",
             "days_many": "{count} дней"
         },
+        "kpi": {
+            "active_cases": "Активные случаи",
+            "current_workload": "Текущая загрузка.",
+            "overdue_cases": "Просроченные случаи",
+            "overdue_subtitle": "Превышена настроенная дата выполнения",
+            "overdue_pct_of_active": "{pct}% активных случаев",
+            "needs_attention": "Требует внимания.",
+            "delivered_subtitle": "Завершённые поставки в этом месяце.",
+            "case_health": "Состояние случаев",
+            "no_active_cases": "Нет активных случаев"
+        },
         "sections": {
             "case_flow_status": "Статус движения случаев",
             "case_flow_status_subtitle": "Сроки и риски по активным случаям",

@@ -403,6 +403,25 @@ try {
         $decryptedCases = array_values($decryptedCases);
     }
 
+    // Delivered this month - terminal-status cases whose status changed
+    // during the current calendar month. Mirrors the Practice Insights
+    // "Delivered This Month" metric (status_changed_at primary source).
+    $deliveredThisMonth = $_GET['delivered_this_month'] ?? '';
+    if ($deliveredThisMonth === 'true') {
+        $currentMonth = date('Y-m');
+        $decryptedCases = array_values(array_filter($decryptedCases, function($case) use ($lastStageId, $currentMonth) {
+            if (($case['status'] ?? '') !== $lastStageId) {
+                return false;
+            }
+            $changedAt = $case['statusChangedAt'] ?? '';
+            if (empty($changedAt)) {
+                return false;
+            }
+            $ts = strtotime($changedAt);
+            return $ts !== false && date('Y-m', $ts) === $currentMonth;
+        }));
+    }
+
     // PMS outbound state per case (Phase 3): external link + latest
     // outbound event status in two batched queries, only when the feature
     // flags and a writable connection make it reachable. Never adds fields

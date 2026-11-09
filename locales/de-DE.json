@@ -3446,6 +3446,17 @@
             "days_few": "{count} Tage",
             "days_many": "{count} Tage"
         },
+        "kpi": {
+            "active_cases": "Aktive Fälle",
+            "current_workload": "Aktuelle Arbeitslast.",
+            "overdue_cases": "Überfällige Fälle",
+            "overdue_subtitle": "Nach konfiguriertem Fälligkeitsdatum",
+            "overdue_pct_of_active": "{pct} % der aktiven Fälle",
+            "needs_attention": "Erfordert Aufmerksamkeit.",
+            "delivered_subtitle": "Abgeschlossene Lieferungen in diesem Monat.",
+            "case_health": "Fallstatus",
+            "no_active_cases": "Keine aktiven Fälle"
+        },
         "sections": {
             "case_flow_status": "Status des Fallflusses",
             "case_flow_status_subtitle": "Zeitplanung und Risiko über aktive Fälle hinweg",

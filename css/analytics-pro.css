@@ -1213,3 +1213,199 @@
 [data-theme="dark"] .ap-rec-watch .ap-rec-severity { color: #93c5fd; background: rgba(96, 165, 250, 0.15); }
 [data-theme="dark"] .ap-rec-improvement .ap-rec-severity { color: #6ee7b7; background: rgba(52, 211, 153, 0.15); }
 [data-theme="dark"] .ap-rec-info .ap-rec-severity { color: #cbd5e1; background: #334155; }
+
+/* ========================================
+   Operational KPI Summary + Case Health
+   ======================================== */
+.ap-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+@media (max-width: 1100px) {
+  .ap-kpi-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 560px) {
+  .ap-kpi-grid { grid-template-columns: 1fr; }
+}
+
+.ap-kpi-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  text-align: left;
+  background: var(--ap-bg-card);
+  border: 1px solid var(--ap-border);
+  border-radius: 12px;
+  padding: 18px 20px;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.ap-kpi-card:hover,
+.ap-kpi-card:focus-visible {
+  border-color: var(--ap-border-accent);
+  box-shadow: var(--ap-shadow-sm);
+  outline: none;
+}
+
+.ap-kpi-card:focus-visible {
+  box-shadow: var(--ap-shadow-glow);
+}
+
+.ap-kpi-value {
+  font-size: 30px;
+  font-weight: 700;
+  line-height: 1.1;
+  color: var(--ap-text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.ap-kpi-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ap-text-secondary);
+}
+
+.ap-kpi-sub {
+  font-size: 12px;
+  color: var(--ap-text-muted);
+}
+
+/* Restrained red accent only while overdue cases exist */
+.ap-kpi-card--alert .ap-kpi-value { color: var(--ap-text-primary); }
+.ap-kpi-card--alert-active {
+  border-left: 3px solid var(--ap-danger);
+}
+.ap-kpi-card--alert-active .ap-kpi-value { color: var(--ap-danger); }
+
+.ap-kpi-card[data-kpi-target="appt_risk"] .ap-kpi-value { color: var(--ap-appointment-risk); }
+
+/* Case Health card */
+.ap-health-card {
+  background: var(--ap-bg-card);
+  border: 1px solid var(--ap-border);
+  border-radius: 12px;
+  padding: 18px 20px;
+  margin-bottom: 24px;
+}
+
+.ap-health-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.ap-health-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ap-text-primary);
+  margin: 0;
+}
+
+.ap-health-overdue {
+  font-size: 12px;
+  color: var(--ap-text-muted);
+  white-space: nowrap;
+}
+
+.ap-health-bar {
+  display: flex;
+  height: 10px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: var(--ap-bg-primary);
+  margin-bottom: 12px;
+}
+
+.ap-health-seg {
+  display: block;
+  height: 100%;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  cursor: default;
+}
+
+button.ap-health-seg {
+  cursor: pointer;
+}
+
+button.ap-health-seg:focus-visible {
+  outline: 2px solid var(--ap-accent-primary);
+  outline-offset: -2px;
+}
+
+.ap-health-on-track { background: #10b981; }
+.ap-health-due-soon { background: #2563eb; }
+.ap-health-appt-risk { background: #7e22ce; }
+.ap-health-late { background: #ef4444; }
+
+.ap-health-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 20px;
+  font-size: 12px;
+  color: var(--ap-text-secondary);
+}
+
+.ap-health-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ap-health-item b {
+  font-weight: 600;
+  color: var(--ap-text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.ap-health-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+  flex: none;
+}
+
+.ap-health-dot.ap-health-on-track { background: #10b981; }
+.ap-health-dot.ap-health-due-soon { background: #2563eb; }
+.ap-health-dot.ap-health-appt-risk { background: #7e22ce; }
+.ap-health-dot.ap-health-late { background: #ef4444; }
+
+.ap-health-item--link {
+  cursor: pointer;
+  border-radius: 4px;
+  padding: 2px 4px;
+  margin: -2px -4px;
+}
+
+.ap-health-item--link:hover {
+  background: var(--ap-bg-accent);
+}
+
+.ap-health-item--link:focus-visible {
+  outline: 2px solid var(--ap-accent-primary);
+  outline-offset: 1px;
+}
+
+.ap-health-empty {
+  display: none;
+  margin: 0;
+  font-size: 13px;
+  color: var(--ap-text-muted);
+}
+
+.ap-health-card--empty .ap-health-empty { display: block; }
+.ap-health-card--empty .ap-health-bar,
+.ap-health-card--empty .ap-health-legend,
+.ap-health-card--empty .ap-health-overdue { display: none; }

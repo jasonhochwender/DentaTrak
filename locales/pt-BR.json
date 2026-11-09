@@ -5644,6 +5644,17 @@
             "days_few": "{count} dias",
             "days_many": "{count} dias"
         },
+        "kpi": {
+            "active_cases": "Casos ativos",
+            "current_workload": "Carga de trabalho atual.",
+            "overdue_cases": "Casos vencidos",
+            "overdue_subtitle": "Data de vencimento configurada ultrapassada",
+            "overdue_pct_of_active": "{pct}% dos casos ativos",
+            "needs_attention": "Requer atenção.",
+            "delivered_subtitle": "Entregas concluídas este mês.",
+            "case_health": "Saúde dos casos",
+            "no_active_cases": "Nenhum caso ativo"
+        },
         "sections": {
             "case_flow_status": "Status do fluxo de casos",
             "case_flow_status_subtitle": "Prazos e riscos entre os casos ativos",

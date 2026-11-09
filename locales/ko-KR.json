@@ -1831,6 +1831,17 @@
             "days_few": "{count}일",
             "days_many": "{count}일"
         },
+        "kpi": {
+            "active_cases": "진행 중인 케이스",
+            "current_workload": "현재 작업량.",
+            "overdue_cases": "기한 초과 케이스",
+            "overdue_subtitle": "설정된 마감일 초과",
+            "overdue_pct_of_active": "활성 케이스의 {pct}%",
+            "needs_attention": "주의 필요.",
+            "delivered_subtitle": "이번 달 완료된 납품",
+            "case_health": "케이스 상태",
+            "no_active_cases": "진행 중인 케이스 없음"
+        },
         "sections": {
             "case_flow_status": "케이스 흐름 상태",
             "case_flow_status_subtitle": "활성 케이스의 일정 및 위험",

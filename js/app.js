@@ -14537,6 +14537,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const filterAtRisk = document.getElementById('filterAtRisk');
     const filterAwaitingAck = document.getElementById('filterAwaitingAck');
     const filterNeedsInfo = document.getElementById('filterNeedsInfo');
+    const filterDeliveredMonth = document.getElementById('filterDeliveredMonth');
     const clearFiltersBtn = document.getElementById('clearFiltersBtn');
     const kanbanFilterActiveDot = document.getElementById('kanbanFilterActiveDot');
 
@@ -14557,6 +14558,7 @@ document.addEventListener('DOMContentLoaded', function () {
         const atRiskOnly = filterAtRisk ? filterAtRisk.checked : false;
         const awaitingAckOnly = filterAwaitingAck ? filterAwaitingAck.checked : false;
         const needsInfoOnly = filterNeedsInfo ? filterNeedsInfo.checked : false;
+        const deliveredMonthOnly = filterDeliveredMonth ? filterDeliveredMonth.checked : false;
 
         // Build query parameters
         const params = new URLSearchParams();
@@ -14571,6 +14573,7 @@ document.addEventListener('DOMContentLoaded', function () {
         if (atRiskOnly) params.append('at_risk_only', 'true');
         if (awaitingAckOnly) params.append('ack_awaiting_only', 'true');
         if (needsInfoOnly) params.append('ack_needs_info_only', 'true');
+        if (deliveredMonthOnly) params.append('delivered_this_month', 'true');
         // Open Dental patient scope (od-launch.js): constrain the board to
         // the synced patient's cases while the launch banner is active.
         const odIds = window.odPatientScope ? window.odPatientScope.caseIds() : null;
@@ -14707,6 +14710,32 @@ document.addEventListener('DOMContentLoaded', function () {
       filterNeedsInfo.addEventListener('change', applyFilters);
     }
 
+    // Hidden "Delivered This Month" filter driven by the Practice Insights
+    // KPI card. Terminal-status cases can never match the open-case risk
+    // filters, so checking it clears them (and vice versa) to avoid an
+    // always-empty board.
+    function clearRiskFiltersForDeliveredMonth() {
+      [filterLateCases, filterDueSoon, filterApptRisk, filterAtRisk, filterAwaitingAck, filterNeedsInfo].forEach(function (el) {
+        if (el) el.checked = false;
+      });
+    }
+    function clearDeliveredMonthForRiskFilters() {
+      if (filterDeliveredMonth) filterDeliveredMonth.checked = false;
+    }
+    if (filterDeliveredMonth) {
+      filterDeliveredMonth.addEventListener('change', function() {
+        if (filterDeliveredMonth.checked) {
+          clearRiskFiltersForDeliveredMonth();
+        }
+        applyFilters();
+      });
+    }
+    [filterLateCases, filterDueSoon, filterApptRisk, filterAtRisk, filterAwaitingAck, filterNeedsInfo].forEach(function (el) {
+      if (el) {
+        el.addEventListener('change', clearDeliveredMonthForRiskFilters);
+      }
+    });
+
     if (clearFiltersBtn) {
       clearFiltersBtn.addEventListener('click', function() {
         // Clear all filters
@@ -14721,6 +14750,7 @@ document.addEventListener('DOMContentLoaded', function () {
         if (filterAtRisk) filterAtRisk.checked = false;
         if (filterAwaitingAck) filterAwaitingAck.checked = false;
         if (filterNeedsInfo) filterNeedsInfo.checked = false;
+        if (filterDeliveredMonth) filterDeliveredMonth.checked = false;
 
         // Apply cleared filters
         applyFilters();

@@ -7,9 +7,9 @@
   var criteria = ((bootstrap.preferences || {}).sort || []).slice();
   var fields = ['type', 'assigned', 'due', 'appointment', 'dentist', 'updated', 'patient', 'status', 'review'];
   var labels = { type: 'type', assigned: 'assigned', due: 'due_date', appointment: 'appointment', dentist: 'dentist', updated: 'updated', patient: 'patient', status: 'status', review: 'review' };
-  var filterKeys = ['patientSearch', 'filterCaseType', 'filterAssignedTo', 'filterReviewStatus', 'filterCarrier', 'filterLateCases', 'filterDueSoon', 'filterApptRisk', 'filterAtRisk'];
-  var checks = ['filterLateCases', 'filterDueSoon', 'filterApptRisk', 'filterAtRisk'];
-  var params = ['search', 'case_type', 'assigned_to', 'review_status', 'carrier', 'late_only', 'due_soon', 'appt_risk_only', 'at_risk_only'];
+  var filterKeys = ['patientSearch', 'filterCaseType', 'filterAssignedTo', 'filterReviewStatus', 'filterCarrier', 'filterLateCases', 'filterDueSoon', 'filterApptRisk', 'filterAtRisk', 'filterDeliveredMonth'];
+  var checks = ['filterLateCases', 'filterDueSoon', 'filterApptRisk', 'filterAtRisk', 'filterDeliveredMonth'];
+  var params = ['search', 'case_type', 'assigned_to', 'review_status', 'carrier', 'late_only', 'due_soon', 'appt_risk_only', 'at_risk_only', 'delivered_this_month'];
   var collator = new Intl.Collator(document.documentElement.lang || undefined, { sensitivity: 'base', numeric: true });
   var saveTimer, saving, pending, failed, orderTimer;
   var generation = 0;

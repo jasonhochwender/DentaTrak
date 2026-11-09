@@ -219,19 +219,10 @@
     const charts = data.charts || {};
     const insights = data.advancedInsights || {};
 
-    // Update metrics
-    updateElement('apCasesThisMonth', metrics.casesThisMonth || 0);
-    updateElement('apActiveCases', metrics.totalActiveCases || 0);
-    updateElement('apDelivered', metrics.deliveredThisMonth || 0);
-    updateElement('apPastDue', metrics.casesPastDue || 0);
-    updateElement('apArchived', metrics.totalArchivedCases || 0);
-
-    // Update Case Flow Status (On Track, Due Soon, Appointment Risk, Late)
-    const caseFlow = insights.caseFlow || {};
-    updateElement('apOnTrack', caseFlow.onTrack || 0);
-    updateElement('apDueSoon', caseFlow.dueSoon || 0);
-    updateElement('apAppointmentRisk', caseFlow.appointmentRisk || 0);
-    updateElement('apLate', caseFlow.late || 0);
+    // Operational KPI summary + Case Health (replaces the old metric cards
+    // and Case Flow Status grid - same underlying metrics).
+    renderKpiSummary(metrics, insights.caseFlow || {});
+    bindKpiNavigation();
 
     // Update trends insights
     const trends = insights.trends || {};
@@ -278,6 +269,140 @@
   function updateElement(id, value) {
     const el = document.getElementById(id);
     if (el) el.textContent = value;
+  }
+
+  /**
+   * Render the Operational KPI summary and Case Health stacked bar.
+   * All values come from the existing get-analytics payload - the same
+   * mutually-exclusive caseFlow classification the Kanban board uses.
+   */
+  function renderKpiSummary(metrics, caseFlow) {
+    var totalActive = metrics.totalActiveCases || 0;
+    var late = caseFlow.late || 0;
+    var apptRisk = caseFlow.appointmentRisk || 0;
+    var onTrack = caseFlow.onTrack || 0;
+    var dueSoon = caseFlow.dueSoon || 0;
+
+    updateElement('apKpiActiveValue', totalActive);
+    updateElement('apKpiOverdueValue', late);
+    updateElement('apKpiApptRiskValue', apptRisk);
+    updateElement('apKpiDeliveredValue', metrics.deliveredThisMonth || 0);
+
+    // Overdue share of active workload - never divide by zero; show an
+    // em dash when there is no active workload to contextualize.
+    var overduePct = totalActive > 0 ? Math.round((late / totalActive) * 1000) / 10 : null;
+    var overduePctText = overduePct === null ? '' : String(overduePct);
+    var overdueCard = document.getElementById('apKpiOverdue');
+    var overdueSub = document.getElementById('apKpiOverdueSub');
+    if (overdueCard) {
+      overdueCard.classList.toggle('ap-kpi-card--alert-active', late > 0);
+    }
+    if (overdueSub) {
+      overdueSub.textContent = overduePct === null
+        ? t('insights.kpi.overdue_subtitle')
+        : t('insights.kpi.overdue_pct_of_active', { pct: overduePctText });
+    }
+
+    // Case Health stacked bar - widths are percentages of ACTIVE cases.
+    var flowTotal = onTrack + dueSoon + apptRisk + late;
+    var healthCard = document.getElementById('apHealthCard');
+    if (healthCard) {
+      healthCard.classList.toggle('ap-health-card--empty', flowTotal === 0);
+    }
+    var pct = function (n) { return flowTotal > 0 ? (n / flowTotal) * 100 : 0; };
+    var segs = {
+      apHealthOnTrack: pct(onTrack),
+      apHealthDueSoon: pct(dueSoon),
+      apHealthApptRisk: pct(apptRisk),
+      apHealthLate: pct(late)
+    };
+    Object.keys(segs).forEach(function (id) {
+      var el = document.getElementById(id);
+      if (el) el.style.width = segs[id] + '%';
+    });
+    updateElement('apHealthOnTrackCount', onTrack);
+    updateElement('apHealthDueSoonCount', dueSoon);
+    updateElement('apHealthApptRiskCount', apptRisk);
+    updateElement('apHealthLateCount', late);
+
+    var healthPct = document.getElementById('apHealthOverduePct');
+    if (healthPct) {
+      healthPct.textContent = overduePct === null
+        ? ''
+        : t('insights.kpi.overdue_pct_of_active', { pct: overduePctText });
+    }
+  }
+
+  var kpiNavBound = false;
+
+  /**
+   * Navigate from a KPI card / Case Health segment to the Cases tab with
+   * the matching board filter applied. Reuses the existing checkbox
+   * filters (late_only / appt_risk_only / delivered_this_month) so the
+   * result is identical to using the filter bar manually.
+   */
+  function navigateToFilteredCases(target) {
+    var casesTab = document.querySelector('.main-tab[data-tab="cases"]');
+    if (casesTab) casesTab.click();
+
+    var setCheck = function (id, checked) {
+      var el = document.getElementById(id);
+      if (el) el.checked = checked;
+      return el || null;
+    };
+    // Start from a clean risk-filter slate, then apply the requested one.
+    ['filterLateCases', 'filterDueSoon', 'filterApptRisk', 'filterAtRisk',
+     'filterAwaitingAck', 'filterNeedsInfo', 'filterDeliveredMonth'].forEach(function (id) {
+      setCheck(id, false);
+    });
+
+    var targetEl = null;
+    if (target === 'late') targetEl = setCheck('filterLateCases', true);
+    else if (target === 'appt_risk') targetEl = setCheck('filterApptRisk', true);
+    else if (target === 'delivered_month') targetEl = setCheck('filterDeliveredMonth', true);
+    // 'cases' (Active Cases) and 'due_soon' intentionally leave every
+    // risk/delivered filter cleared - the board's default view is the
+    // active-case list.
+
+    // Dispatch change on the TARGET element only: its own listeners apply
+    // the filters, and case-filter-sort's delegated listener persists the
+    // full snapshot (including the cleared boxes). Dispatching on any
+    // other risk checkbox would fire clearDeliveredMonthForRiskFilters
+    // and undo a delivered_month selection. For 'cases'/'due_soon' any
+    // already-cleared risk checkbox is a safe change source.
+    var changeSource = targetEl || document.getElementById('filterLateCases');
+    if (changeSource) {
+      changeSource.dispatchEvent(new Event('change', { bubbles: true }));
+    } else if (typeof window.applyFilters === 'function') {
+      window.applyFilters();
+    }
+  }
+
+  function bindKpiNavigation() {
+    if (kpiNavBound) return;
+    kpiNavBound = true;
+
+    var targetFor = function (el) {
+      return el && el.dataset ? (el.dataset.kpiTarget || el.dataset.healthTarget || '') : '';
+    };
+    var activate = function (el) {
+      var target = targetFor(el);
+      if (target) navigateToFilteredCases(target);
+    };
+
+    document.querySelectorAll('#apKpiGrid [data-kpi-target]').forEach(function (el) {
+      el.addEventListener('click', function () { activate(el); });
+    });
+    document.querySelectorAll('#apHealthBar [data-health-target], .ap-health-item--link[data-health-target]').forEach(function (el) {
+      el.addEventListener('click', function () { activate(el); });
+      // Native <button> segments already activate on Enter/Space - only
+      // the span-based legend items need a manual key handler.
+      if (el.tagName !== 'BUTTON') {
+        el.addEventListener('keydown', function (e) {
+          if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); activate(el); }
+        });
+      }
+    });
   }
 
   // Status Distribution Chart (Doughnut)

@@ -1823,6 +1823,17 @@
             "days_few": "{count} days",
             "days_many": "{count} days"
         },
+        "kpi": {
+            "active_cases": "Active Cases",
+            "current_workload": "Current workload.",
+            "overdue_cases": "Overdue Cases",
+            "overdue_subtitle": "Past configured due date",
+            "overdue_pct_of_active": "{pct}% of active cases",
+            "needs_attention": "Needs attention.",
+            "delivered_subtitle": "Completed deliveries this month.",
+            "case_health": "Case Health",
+            "no_active_cases": "No active cases"
+        },
         "sections": {
             "case_flow_status": "Case Flow Status",
             "case_flow_status_subtitle": "Timing and risk across active cases",

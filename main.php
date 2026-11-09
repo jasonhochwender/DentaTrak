@@ -1294,6 +1294,10 @@ endif;
               <input type="checkbox" id="filterNeedsInfo">
               <?php echo t('filters.needs_info'); ?>
             </label>
+            <!-- Hidden filter driven by the Practice Insights "Delivered This
+                 Month" KPI card. Persisted like the other board filters via
+                 case-filter-sort.js; not shown in the filter bar. -->
+            <input type="checkbox" id="filterDeliveredMonth" hidden>
           </div>
 
 <?php if (isFeatureEnabled('SHOW_AT_RISK')): ?>
@@ -1658,80 +1662,51 @@ endif;
               </div>
             </div>
 
-            <!-- Metrics Grid -->
-            <div class="ap-metrics-grid ap-metrics-grid--compact">
-              <div class="ap-metric-card accent-blue">
-                <div class="ap-metric-value" id="apCasesThisMonth">-</div>
-                <div class="ap-metric-label"><?= t('insights.metrics.new_this_month') ?></div>
-              </div>
+            <!-- Operational KPI Summary -->
+            <div class="ap-kpi-grid" id="apKpiGrid">
+              <button type="button" class="ap-kpi-card" id="apKpiActive" data-kpi-target="cases">
+                <span class="ap-kpi-value" id="apKpiActiveValue">-</span>
+                <span class="ap-kpi-label"><?= t('insights.kpi.active_cases') ?></span>
+                <span class="ap-kpi-sub"><?= t('insights.kpi.current_workload') ?></span>
+              </button>
 
-              <div class="ap-metric-card accent-green">
-                <div class="ap-metric-value" id="apActiveCases">-</div>
-                <div class="ap-metric-label"><?= t('insights.metrics.active_cases') ?></div>
-              </div>
+              <button type="button" class="ap-kpi-card ap-kpi-card--alert" id="apKpiOverdue" data-kpi-target="late">
+                <span class="ap-kpi-value" id="apKpiOverdueValue">-</span>
+                <span class="ap-kpi-label"><?= t('insights.kpi.overdue_cases') ?></span>
+                <span class="ap-kpi-sub" id="apKpiOverdueSub"><?= t('insights.kpi.overdue_subtitle') ?></span>
+              </button>
 
-              <div class="ap-metric-card accent-green">
-                <div class="ap-metric-value" id="apDelivered">-</div>
-                <div class="ap-metric-label"><?= t('insights.metrics.delivered_this_month') ?></div>
-              </div>
+              <button type="button" class="ap-kpi-card" id="apKpiApptRisk" data-kpi-target="appt_risk">
+                <span class="ap-kpi-value" id="apKpiApptRiskValue">-</span>
+                <span class="ap-kpi-label"><?= t('insights.sections.appointment_risk') ?></span>
+                <span class="ap-kpi-sub"><?= t('insights.kpi.needs_attention') ?></span>
+              </button>
 
-              <div class="ap-metric-card accent-orange">
-                <div class="ap-metric-value" id="apArchived">-</div>
-                <div class="ap-metric-label"><?= t('insights.metrics.archived') ?></div>
-              </div>
+              <button type="button" class="ap-kpi-card" id="apKpiDelivered" data-kpi-target="delivered_month">
+                <span class="ap-kpi-value" id="apKpiDeliveredValue">-</span>
+                <span class="ap-kpi-label"><?= t('insights.metrics.delivered_this_month') ?></span>
+                <span class="ap-kpi-sub"><?= t('insights.kpi.delivered_subtitle') ?></span>
+              </button>
             </div>
 
-            <!-- Operational Overview Section -->
-            <div class="ap-section">
-              <div class="ap-section-header">
-                <div class="ap-section-icon">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M21.21 15.89A10 10 0 1 1 8 2.83"></path>
-                    <path d="M22 12A10 10 0 0 0 12 2v10z"></path>
-                  </svg>
-                </div>
-                <div>
-                  <h2 class="ap-section-title"><?= t('insights.sections.case_flow_status') ?></h2>
-                  <p class="ap-section-subtitle"><?= t('insights.sections.case_flow_status_subtitle') ?></p>
-                </div>
+            <!-- Case Health -->
+            <div class="ap-health-card" id="apHealthCard">
+              <div class="ap-health-header">
+                <h2 class="ap-health-title"><?= t('insights.kpi.case_health') ?></h2>
+                <span class="ap-health-overdue" id="apHealthOverduePct"></span>
               </div>
-
-              <div class="ap-status-grid four-col">
-                <div class="ap-status-card">
-                  <div class="ap-status-header">
-                    <div class="ap-status-indicator success"></div>
-                    <h3 class="ap-status-title"><?= t('insights.sections.on_track') ?></h3>
-                  </div>
-                  <div class="ap-status-value" id="apOnTrack">0</div>
-                  <div class="ap-status-label"><?= t('insights.sections.on_track_label') ?></div>
-                </div>
-
-                <div class="ap-status-card">
-                  <div class="ap-status-header">
-                    <div class="ap-status-indicator primary"></div>
-                    <h3 class="ap-status-title"><?= t('insights.sections.due_soon') ?></h3>
-                  </div>
-                  <div class="ap-status-value" id="apDueSoon">0</div>
-                  <div class="ap-status-label"><?= t('insights.sections.due_soon_label') ?></div>
-                </div>
-
-                <div class="ap-status-card">
-                  <div class="ap-status-header">
-                    <div class="ap-status-indicator appt-risk"></div>
-                    <h3 class="ap-status-title"><?= t('insights.sections.appointment_risk') ?></h3>
-                  </div>
-                  <div class="ap-status-value" id="apAppointmentRisk">0</div>
-                  <div class="ap-status-label"><?= t('insights.sections.appointment_risk_label') ?></div>
-                </div>
-
-                <div class="ap-status-card">
-                  <div class="ap-status-header">
-                    <div class="ap-status-indicator danger"></div>
-                    <h3 class="ap-status-title"><?= t('insights.sections.late') ?></h3>
-                  </div>
-                  <div class="ap-status-value" id="apLate">0</div>
-                  <div class="ap-status-label"><?= t('insights.sections.late_label') ?></div>
-                </div>
+              <p class="ap-health-empty"><?= t('insights.kpi.no_active_cases') ?></p>
+              <div class="ap-health-bar" id="apHealthBar" role="group" aria-label="<?= htmlspecialchars(t('insights.kpi.case_health')) ?>">
+                <div class="ap-health-seg ap-health-on-track" id="apHealthOnTrack" style="width:0%"></div>
+                <div class="ap-health-seg ap-health-due-soon" id="apHealthDueSoon" style="width:0%"></div>
+                <button type="button" class="ap-health-seg ap-health-appt-risk" id="apHealthApptRisk" data-health-target="appt_risk" style="width:0%" aria-label="<?= htmlspecialchars(t('insights.sections.appointment_risk')) ?>"></button>
+                <button type="button" class="ap-health-seg ap-health-late" id="apHealthLate" data-health-target="late" style="width:0%" aria-label="<?= htmlspecialchars(t('insights.sections.late')) ?>"></button>
+              </div>
+              <div class="ap-health-legend">
+                <span class="ap-health-item"><i class="ap-health-dot ap-health-on-track"></i><?= t('insights.sections.on_track') ?> <b id="apHealthOnTrackCount">0</b></span>
+                <span class="ap-health-item"><i class="ap-health-dot ap-health-due-soon"></i><?= t('insights.sections.due_soon') ?> <b id="apHealthDueSoonCount">0</b></span>
+                <span class="ap-health-item ap-health-item--link" id="apHealthApptRiskLegend" data-health-target="appt_risk" role="button" tabindex="0"><i class="ap-health-dot ap-health-appt-risk"></i><?= t('insights.sections.appointment_risk') ?> <b id="apHealthApptRiskCount">0</b></span>
+                <span class="ap-health-item ap-health-item--link" id="apHealthLateLegend" data-health-target="late" role="button" tabindex="0"><i class="ap-health-dot ap-health-late"></i><?= t('insights.sections.late') ?> <b id="apHealthLateCount">0</b></span>
               </div>
             </div>
 
