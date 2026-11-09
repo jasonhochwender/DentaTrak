@@ -1846,7 +1846,14 @@
                 "reviewed": "Revisada",
                 "dismissed": "Descartada",
                 "resolved": "Resuelta"
-            }
+            },
+            "hide_details": "Ocultar detalles",
+            "detail_facts": "Hechos observados",
+            "category_efficiency": "Eficiencia",
+            "category_quality": "Calidad",
+            "category_scheduling": "Programación",
+            "category_workload": "Carga de trabajo",
+            "category_communication": "Comunicación"
         },
         "metrics": {
             "new_this_month": "Nuevos este mes",
@@ -1862,7 +1869,7 @@
             "avg_case_lifecycle": "Ciclo de vida promedio del caso",
             "fastest_delivery": "Entrega más rápida",
             "slowest_delivery": "Entrega más lenta",
-            "peak_season": "Temporada alta",
+            "peak_season": "Mes de mayor volumen",
             "yoy_growth": "Crecimiento interanual",
             "next_peak": "Próximo pico",
             "days_one": "1 día",
@@ -1888,7 +1895,7 @@
         },
         "attention": {
             "title": "Requiere atención",
-            "subtitle": "Casos que necesitan acción ahora",
+            "subtitle": "Casos que necesitan acción ahora — un caso puede aparecer en más de una categoría.",
             "filter_label": "Filtrar casos de atención",
             "filter_all": "Todos",
             "filter_overdue": "Vencidos",
@@ -2012,7 +2019,8 @@
             "backlog_trend": "Tendencia de pendientes",
             "backlog_trend_description": "Casos activos estimados al final de cada período (reconstruido del historial)",
             "dataset_backlog": "Pendientes activos",
-            "backlog_count": "{count} casos activos"
+            "backlog_count": "{count} casos activos",
+            "case_volume_year": "Volumen de casos {year}"
         },
         "filters": {
             "active_cases": "Casos activos",

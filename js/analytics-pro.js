@@ -497,7 +497,7 @@
     updateElement('apGrowthRate', (trends.growthRate === null || trends.growthRate === undefined)
       ? t('common.not_applicable')
       : trends.growthRate + '%');
-    updateElement('apNextPeak', trends.nextPeak ? I18n.formatMonth(trends.nextPeak, 'long') : '-');
+    updateElement('apNextPeak', trends.nextPeak ? I18n.formatMonth(trends.nextPeak, 'long') : t('common.not_applicable'));
 
     // Update lifecycle metrics. Null averages mean no qualifying completed
     // cases - show N/A with an explanatory tooltip, not "0 days".
@@ -1668,12 +1668,26 @@
     // explanatory note instead of an empty comparison line.
     var hasPriorData = lastYearData.some(function(v) { return Number(v) > 0; });
     var hasCurrentData = currentYearData.some(function(v) { return Number(v) > 0; });
+    var chartCard = ctx.canvas.closest('.ap-chart-card');
     var noteEl = document.getElementById('apTrendsNote');
     if (!noteEl) {
       noteEl = document.createElement('p');
       noteEl.className = 'ap-chart-note';
       noteEl.id = 'apTrendsNote';
-      ctx.canvas.parentElement.appendChild(noteEl);
+    }
+    // The note belongs to the card footer, outside the fixed-height chart
+    // container, so it never sits against the container's bottom edge.
+    if (chartCard && noteEl.parentElement !== chartCard) {
+      chartCard.appendChild(noteEl);
+    }
+    // Single-year data is not a year-over-year comparison: retitle the card
+    // honestly and restore the comparison title when prior-year data exists.
+    var titleEl = chartCard ? chartCard.querySelector('.ap-chart-title') : null;
+    if (titleEl) {
+      if (!titleEl.dataset.defaultTitle) titleEl.dataset.defaultTitle = titleEl.textContent;
+      titleEl.textContent = (!hasPriorData && hasCurrentData)
+        ? t('insights.charts.case_volume_year', { year: currentYear })
+        : titleEl.dataset.defaultTitle;
     }
     var datasets = [{
       label: currentYear.toString(),
@@ -2078,22 +2092,35 @@
       '<div class="ap-rec-title">' + escapeHtml(rec.title) + '</div>' +
       '<p class="ap-rec-desc">' + escapeHtml(rec.description) + '</p>';
 
+    // Collapsed view carries a single supporting metric; the full observed
+    // fact set lives in the expanded details so the two states never repeat.
     if (factLines.length) {
-      html += '<div class="ap-rec-metric">' + escapeHtml(factLines.join(' · ')) + '</div>';
+      html += '<div class="ap-rec-metric">' + escapeHtml(factLines[0]) + '</div>';
     }
 
     html += '<div class="ap-rec-card-actions">';
     if (navTarget && navTarget !== 'none') {
-      html += '<button type="button" class="ap-rec-btn ap-rec-primary" data-rec-nav="' + escapeHtml(navTarget) + '">' +
-        escapeHtml(t('insights.recs.action.' + rec.action_target)) + '</button>';
+      var actionLabel = t('insights.recs.action_' + rec.action_target);
+      if (actionLabel) {
+        html += '<button type="button" class="ap-rec-btn ap-rec-primary" data-rec-nav="' + escapeHtml(navTarget) + '">' +
+          escapeHtml(actionLabel) + '</button>';
+      }
     }
-    html += '<details class="ap-rec-details"><summary>' + escapeHtml(t('insights.recs.view_details')) + '</summary>' +
+    // Expanded view shows only additional structured information (category,
+    // full observed-fact evidence, generation timestamp) - never the
+    // description again.
+    var detailBits = [];
+    var categoryLabel = t('insights.recs.category_' + (rec.category || 'efficiency'));
+    if (categoryLabel) detailBits.push(escapeHtml(categoryLabel));
+    html += '<details class="ap-rec-details"><summary>' +
+      '<span class="ap-rec-details-label">' + escapeHtml(t('insights.recs.view_details')) + '</span></summary>' +
       '<div class="ap-rec-details-body">' +
-      '<p>' + escapeHtml(rec.description) + '</p>';
+      (detailBits.length ? '<p class="ap-rec-detail-meta">' + detailBits.join('') + '</p>' : '');
     if (factLines.length) {
-      html += '<ul class="ap-rec-fact-list">' + factLines.map(function (s) {
-        return '<li>' + escapeHtml(s) + '</li>';
-      }).join('') + '</ul>';
+      html += '<p class="ap-rec-detail-heading">' + escapeHtml(t('insights.recs.detail_facts')) + '</p>' +
+        '<ul class="ap-rec-fact-list">' + factLines.map(function (s) {
+          return '<li>' + escapeHtml(s) + '</li>';
+        }).join('') + '</ul>';
     }
     if (aiRecsData && aiRecsData.generated_at) {
       var d = new Date(String(aiRecsData.generated_at).replace(' ', 'T'));
@@ -2116,6 +2143,17 @@
     html += '</div>';
 
     li.innerHTML = html;
+
+    // Details toggle: swap the summary label between View/Hide details.
+    var detailsEl = li.querySelector('.ap-rec-details');
+    if (detailsEl) {
+      detailsEl.addEventListener('toggle', function () {
+        var labelEl = detailsEl.querySelector('.ap-rec-details-label');
+        if (labelEl) {
+          labelEl.textContent = t(detailsEl.open ? 'insights.recs.hide_details' : 'insights.recs.view_details');
+        }
+      });
+    }
 
     // Delegated-free per-card wiring (cards are rebuilt on each render anyway).
     li.querySelectorAll('[data-rec-nav]').forEach(function (btn) {

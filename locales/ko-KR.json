@@ -1846,7 +1846,14 @@
                 "reviewed": "검토됨",
                 "dismissed": "무시됨",
                 "resolved": "해결됨"
-            }
+            },
+            "hide_details": "세부 정보 숨기기",
+            "detail_facts": "관찰된 사실",
+            "category_efficiency": "효율",
+            "category_quality": "품질",
+            "category_scheduling": "일정 관리",
+            "category_workload": "업무량",
+            "category_communication": "커뮤니케이션"
         },
         "metrics": {
             "new_this_month": "이번 달 신규",
@@ -1862,7 +1869,7 @@
             "avg_case_lifecycle": "평균 케이스 수명 주기",
             "fastest_delivery": "최단 전달",
             "slowest_delivery": "최장 전달",
-            "peak_season": "성수기",
+            "peak_season": "볼륨이 가장 높은 월",
             "yoy_growth": "전년 대비 성장",
             "next_peak": "다음 성수기",
             "days_one": "{count}일",
@@ -1888,7 +1895,7 @@
         },
         "attention": {
             "title": "주의 필요",
-            "subtitle": "지금 조치가 필요한 케이스",
+            "subtitle": "지금 조치가 필요한 케이스 — 하나의 케이스가 여러 카테고리에 표시될 수 있습니다.",
             "filter_label": "주의 케이스 필터링",
             "filter_all": "전체",
             "filter_overdue": "기한 초과",
@@ -2016,7 +2023,8 @@
             "backlog_trend": "백로그 추세",
             "backlog_trend_description": "각 기간 말의 예상 활성 사례 수(이력에서 재구성)",
             "dataset_backlog": "활성 백로그",
-            "backlog_count": "활성 사례 {count}건"
+            "backlog_count": "활성 사례 {count}건",
+            "case_volume_year": "{year}년 케이스 볼륨"
         },
         "filters": {
             "active_cases": "활성 케이스",

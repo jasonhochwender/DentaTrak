@@ -1840,7 +1840,14 @@
                 "reviewed": "Reviewed",
                 "dismissed": "Dismissed",
                 "resolved": "Resolved"
-            }
+            },
+            "hide_details": "Hide details",
+            "detail_facts": "Observed facts",
+            "category_efficiency": "Efficiency",
+            "category_quality": "Quality",
+            "category_scheduling": "Scheduling",
+            "category_workload": "Workload",
+            "category_communication": "Communication"
         },
         "metrics": {
             "new_this_month": "New This Month",
@@ -1856,7 +1863,7 @@
             "avg_case_lifecycle": "Avg Case Lifecycle",
             "fastest_delivery": "Fastest Delivery",
             "slowest_delivery": "Slowest Delivery",
-            "peak_season": "Peak Season",
+            "peak_season": "Highest Volume Month",
             "yoy_growth": "YoY Growth",
             "next_peak": "Next Peak",
             "days_one": "1 day",
@@ -1886,7 +1893,7 @@
         },
         "attention": {
             "title": "Attention Required",
-            "subtitle": "Cases that need action now",
+            "subtitle": "Cases that need action now — a case can appear in more than one category.",
             "filter_label": "Filter attention items",
             "filter_all": "All",
             "filter_overdue": "Overdue",
@@ -2014,7 +2021,8 @@
             "backlog_trend": "Backlog Trend",
             "backlog_trend_description": "Estimated active cases at each period end (reconstructed from case history)",
             "dataset_backlog": "Active backlog",
-            "backlog_count": "{count} active cases"
+            "backlog_count": "{count} active cases",
+            "case_volume_year": "{year} Case Volume"
         },
         "filters": {
             "active_cases": "Active Cases",

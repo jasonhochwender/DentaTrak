@@ -1838,7 +1838,14 @@
                 "reviewed": "Vue",
                 "dismissed": "Rejetée",
                 "resolved": "Résolue"
-            }
+            },
+            "hide_details": "Masquer les détails",
+            "detail_facts": "Faits observés",
+            "category_efficiency": "Efficacité",
+            "category_quality": "Qualité",
+            "category_scheduling": "Planification",
+            "category_workload": "Charge de travail",
+            "category_communication": "Communication"
         },
         "metrics": {
             "new_this_month": "Nouveaux ce mois",
@@ -1854,7 +1861,7 @@
             "avg_case_lifecycle": "Cycle de vie moyen des cas",
             "fastest_delivery": "Livraison la plus rapide",
             "slowest_delivery": "Livraison la plus lente",
-            "peak_season": "Haute saison",
+            "peak_season": "Mois au volume le plus élevé",
             "yoy_growth": "Croissance annuelle",
             "next_peak": "Prochain pic",
             "days_one": "1 jour",
@@ -1880,7 +1887,7 @@
         },
         "attention": {
             "title": "Nécessite une attention",
-            "subtitle": "Cas qui nécessitent une action maintenant",
+            "subtitle": "Cas qui nécessitent une action maintenant — un cas peut apparaître dans plus d’une catégorie.",
             "filter_label": "Filtrer les cas à traiter",
             "filter_all": "Tous",
             "filter_overdue": "En retard",
@@ -2004,7 +2011,8 @@
             "backlog_trend": "Tendance des dossiers en attente",
             "backlog_trend_description": "Cas actifs estimés à la fin de chaque période (reconstruit à partir de l'historique)",
             "dataset_backlog": "Dossiers en attente",
-            "backlog_count": "{count} cas actifs"
+            "backlog_count": "{count} cas actifs",
+            "case_volume_year": "Volume de cas {year}"
         },
         "filters": {
             "active_cases": "Cas actifs",

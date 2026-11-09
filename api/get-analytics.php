@@ -328,6 +328,7 @@ try {
     // reconciles with the Case Health categories above. Categories may
     // overlap per case; `tier`/`primaryReason` carry the most urgent one.
     require_once __DIR__ . '/case-attention.php';
+    require_once __DIR__ . '/encryption.php';
     $attentionItems = [];
     $attentionCounts = ['all' => 0, 'overdue' => 0, 'appt_risk' => 0, 'due_soon' => 0, 'awaiting_ack' => 0];
     foreach ($activeForFlow as $case) {
@@ -345,10 +346,23 @@ try {
         if ($cls['apptRisk']) $attentionCounts['appt_risk']++;
         if ($cls['dueSoon']) $attentionCounts['due_soon']++;
         if ($cls['awaitingAck']) $attentionCounts['awaiting_ack']++;
+        // cases_cache stores patient names encrypted at rest; decrypt before
+        // they reach the response so the queue shows readable identifiers.
+        // A decryption failure yields an empty string (the row still shows
+        // its case id) rather than leaking ciphertext to the client.
+        $patientFirst = '';
+        $patientLast = '';
+        try {
+            $patientFirst = PIIEncryption::decrypt((string)($case['patient_first_name'] ?? ''));
+            $patientLast = PIIEncryption::decrypt((string)($case['patient_last_name'] ?? ''));
+        } catch (Throwable $e) {
+            $patientFirst = '';
+            $patientLast = '';
+        }
         $attentionItems[] = [
             'id' => $case['case_id'],
-            'patientFirstName' => $case['patient_first_name'] ?? '',
-            'patientLastName' => $case['patient_last_name'] ?? '',
+            'patientFirstName' => $patientFirst,
+            'patientLastName' => $patientLast,
             'caseType' => $case['case_type'] ?? '',
             'status' => $case['status'] ?? '',
             'assignedTo' => $case['assigned_to'] ?? null,
@@ -1177,8 +1191,6 @@ try {
         $currentYearTotal = 0;
         $lastYearTotal = 0;
         $currentMonthNum = (int)date('n');
-        $maxCurrentMonthNum = null;
-        $maxCurrentCount = 0;
         
         // Process all months for comparison
         for ($month = 1; $month <= 12; $month++) {
@@ -1193,10 +1205,6 @@ try {
                 if ($row['month'] === $monthStr) {
                     $currentCount = (int)$row['count'];
                     if ($month <= $currentMonthNum) $currentYearTotal += $currentCount;
-                    if ($currentCount > $maxCurrentCount) {
-                        $maxCurrentCount = $currentCount;
-                        $maxCurrentMonthNum = $month;
-                    }
                     break;
                 }
             }
@@ -1219,6 +1227,23 @@ try {
             }
         }
         
+        // Highest-volume month across all available monthly data (both
+        // years combined where present). This is a descriptive "busiest
+        // month" fact, not a seasonal prediction - the UI labels it as the
+        // highest-volume month rather than an established peak season.
+        $maxCurrentMonthNum = null;
+        $maxCurrentCount = 0;
+        $combinedByMonth = [];
+        foreach ($monthlyData as $md) {
+            $combinedByMonth[(int)$md['month']] = (int)$md['currentYear'] + (int)$md['lastYear'];
+        }
+        foreach ($combinedByMonth as $m => $total) {
+            if ($total > $maxCurrentCount) {
+                $maxCurrentCount = $total;
+                $maxCurrentMonthNum = $m;
+            }
+        }
+        
         // Growth is only defined with a nonzero prior-year baseline. A zero
         // or absent baseline yields null (rendered N/A), never a misleading
         // 0% or an arbitrary large percentage.
@@ -1227,10 +1252,16 @@ try {
             $growthRate = round((($currentYearTotal - $lastYearTotal) / $lastYearTotal) * 100, 1);
         }
         
-        // Find next peak month (simplified - use current year pattern)
+        // "Next peak" is only meaningful as the next occurrence of the
+        // highest-volume month, and only when at least two years of
+        // comparable history exist to suggest recurrence. With a single
+        // year of data there is no defensible prediction - return null
+        // (rendered N/A) rather than next calendar month.
         $nextPeakNum = null;
-        if (!empty($currentYearData)) {
-            $nextPeakNum = (int)((date('n') + 1) % 12 + 1);
+        if ($maxCurrentMonthNum !== null && $lastYearTotal > 0) {
+            // Next occurrence of the highest-volume month (month number only;
+            // the coming occurrence is implied by the calendar).
+            $nextPeakNum = $maxCurrentMonthNum;
         }
 
         $advancedInsights['trends'] = [

@@ -1797,6 +1797,7 @@ button.ap-health-seg:focus-visible {
   padding: 10px 14px;
   font-size: 0.85rem;
   line-height: 1.45;
+  min-width: 0;
 }
 
 .ap-rec-card.ap-sev-attention { border-left-color: #d97706; }
@@ -1847,6 +1848,7 @@ button.ap-health-seg:focus-visible {
   font-weight: 600;
   color: var(--text-primary);
   margin-bottom: 2px;
+  overflow-wrap: anywhere;
 }
 
 .ap-rec-desc {
@@ -1857,6 +1859,7 @@ button.ap-health-seg:focus-visible {
   -webkit-box-orient: box;
   line-clamp: 3;
   overflow: hidden;
+  overflow-wrap: anywhere;
 }
 
 .ap-rec-metric {
@@ -1906,6 +1909,8 @@ button.ap-health-seg:focus-visible {
 
 .ap-rec-details {
   font-size: 0.76rem;
+  flex: 1 1 100%;
+  min-width: 0;
 }
 
 .ap-rec-details > summary {
@@ -1914,6 +1919,13 @@ button.ap-health-seg:focus-visible {
   color: var(--primary-color);
   list-style: none;
   user-select: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.ap-rec-details > summary::marker {
+  content: '';
 }
 
 .ap-rec-details > summary::-webkit-details-marker {
@@ -1921,11 +1933,12 @@ button.ap-health-seg:focus-visible {
 }
 
 .ap-rec-details > summary::before {
-  content: '▸ ';
+  content: '▸';
+  flex-shrink: 0;
 }
 
 .ap-rec-details[open] > summary::before {
-  content: '▾ ';
+  content: '▾';
 }
 
 .ap-rec-details > summary:focus-visible {
@@ -1936,13 +1949,25 @@ button.ap-health-seg:focus-visible {
 
 .ap-rec-details-body {
   margin-top: 6px;
-  padding-top: 6px;
+  padding: 8px 10px;
   border-top: 1px dashed var(--border-light);
   color: var(--text-secondary);
+  overflow-wrap: anywhere;
 }
 
 .ap-rec-details-body p {
   margin: 0 0 6px;
+}
+
+.ap-rec-detail-meta {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.ap-rec-detail-heading {
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 2px;
 }
 
 .ap-rec-fact-list {
@@ -2007,7 +2032,8 @@ button.ap-health-seg:focus-visible {
 }
 
 .ap-chart-note {
-  margin: 6px 0 0;
+  margin: 10px 0 0;
+  padding: 0 2px;
   font-size: 0.75rem;
   color: var(--text-secondary);
 }

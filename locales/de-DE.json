@@ -3461,7 +3461,14 @@
                 "reviewed": "Gesehen",
                 "dismissed": "Verworfen",
                 "resolved": "Erledigt"
-            }
+            },
+            "hide_details": "Details ausblenden",
+            "detail_facts": "Beobachtete Fakten",
+            "category_efficiency": "Effizienz",
+            "category_quality": "Qualität",
+            "category_scheduling": "Terminplanung",
+            "category_workload": "Arbeitsbelastung",
+            "category_communication": "Kommunikation"
         },
         "metrics": {
             "new_this_month": "Neu in diesem Monat",
@@ -3477,7 +3484,7 @@
             "avg_case_lifecycle": "Ø Falllebenszyklus",
             "fastest_delivery": "Schnellste Lieferung",
             "slowest_delivery": "Langsamste Lieferung",
-            "peak_season": "Hochsaison",
+            "peak_season": "Monat mit dem höchsten Volumen",
             "yoy_growth": "Wachstum gegenüber Vorjahr",
             "next_peak": "Nächster Höhepunkt",
             "days_one": "1 Tag",
@@ -3503,7 +3510,7 @@
         },
         "attention": {
             "title": "Handlungsbedarf",
-            "subtitle": "Fälle, die jetzt bearbeitet werden müssen",
+            "subtitle": "Fälle, die jetzt bearbeitet werden müssen — ein Fall kann in mehreren Kategorien erscheinen.",
             "filter_label": "Fälle filtern",
             "filter_all": "Alle",
             "filter_overdue": "Überfällig",
@@ -3627,7 +3634,8 @@
             "backlog_trend": "Backlog-Verlauf",
             "backlog_trend_description": "Geschätzte aktive Fälle zum jeweiligen Periodenende (aus Fallhistorie rekonstruiert)",
             "dataset_backlog": "Aktiver Backlog",
-            "backlog_count": "{count} aktive Fälle"
+            "backlog_count": "{count} aktive Fälle",
+            "case_volume_year": "Fallvolumen {year}"
         },
         "filters": {
             "active_cases": "Aktive Fälle",

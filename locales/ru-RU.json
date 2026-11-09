@@ -3416,7 +3416,14 @@
                 "reviewed": "Просмотрена",
                 "dismissed": "Отклонена",
                 "resolved": "Решена"
-            }
+            },
+            "hide_details": "Скрыть детали",
+            "detail_facts": "Наблюдаемые факты",
+            "category_efficiency": "Эффективность",
+            "category_quality": "Качество",
+            "category_scheduling": "Планирование",
+            "category_workload": "Рабочая нагрузка",
+            "category_communication": "Коммуникация"
         },
         "metrics": {
             "new_this_month": "Новых за месяц",
@@ -3432,7 +3439,7 @@
             "avg_case_lifecycle": "Средний жизненный цикл случая",
             "fastest_delivery": "Самая быстрая выдача",
             "slowest_delivery": "Самая медленная выдача",
-            "peak_season": "Пиковый сезон",
+            "peak_season": "Месяц с наибольшим объёмом",
             "yoy_growth": "Рост год к году",
             "next_peak": "Следующий пик",
             "days_one": "{count} день",
@@ -3462,7 +3469,7 @@
         },
         "attention": {
             "title": "Требует внимания",
-            "subtitle": "Случаи, требующие действий сейчас",
+            "subtitle": "Случаи, требующие действий сейчас — случай может отображаться в нескольких категориях.",
             "filter_label": "Фильтр случаев",
             "filter_all": "Все",
             "filter_overdue": "Просроченные",
@@ -3604,7 +3611,8 @@
             "backlog_trend": "Динамика незавершённых кейсов",
             "backlog_trend_description": "Оценка активных кейсов на конец каждого периода (восстановлено по истории)",
             "dataset_backlog": "Активный backlog",
-            "backlog_count": "{count} активных кейсов"
+            "backlog_count": "{count} активных кейсов",
+            "case_volume_year": "Объём случаев за {year} год"
         },
         "filters": {
             "active_cases": "Активные случаи",
