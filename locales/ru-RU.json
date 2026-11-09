@@ -3600,7 +3600,11 @@
             "duration_avg_tooltip": "Среднее: {days} дн.",
             "duration_range_tooltip": "Диапазон: {min}–{max} дн.",
             "yoy_insufficient": "Сравнение год к году появится, когда в {year} появится активность по кейсам.",
-            "lifecycle_empty": "Нет завершённых кейсов за этот период. Аналитика жизненного цикла появится после завершения подходящих кейсов."
+            "lifecycle_empty": "Нет завершённых кейсов за этот период. Аналитика жизненного цикла появится после завершения подходящих кейсов.",
+            "backlog_trend": "Динамика незавершённых кейсов",
+            "backlog_trend_description": "Оценка активных кейсов на конец каждого периода (восстановлено по истории)",
+            "dataset_backlog": "Активный backlog",
+            "backlog_count": "{count} активных кейсов"
         },
         "filters": {
             "active_cases": "Активные случаи",
@@ -3765,6 +3769,32 @@
             "status_summary_sub": "На каких этапах находятся активные кейсы",
             "lifecycle_perf": "Эффективность жизненного цикла",
             "lifecycle_perf_sub": "Сколько времени квалифицированные кейсы идут от создания до завершения"
+        },
+        "throughput": {
+            "created": "Созданные кейсы",
+            "delivered": "Завершённые кейсы",
+            "net_change": "Чистое изменение кейсов",
+            "avg_delivery": "Среднее время сдачи",
+            "workload_view_label": "Вид нагрузки команды",
+            "active_workload": "Активная нагрузка",
+            "creation_activity": "Активность создания",
+            "col_member": "Участник",
+            "col_active": "Активные",
+            "col_overdue": "Просроченные",
+            "col_appt_risk": "Риск записи",
+            "col_stage_age": "Средний возраст на этапе",
+            "col_share": "Доля",
+            "col_laboratory": "Лаборатория",
+            "no_assignments": "Нет назначенных активных кейсов для этого представления.",
+            "lab_workload": "Нагрузка лабораторий",
+            "lab_workload_sub": "Текущие активные кейсы по лабораториям",
+            "bottlenecks_title": "Концентрация процесса (текущее состояние)",
+            "bottleneck_in": "на этапе",
+            "bottleneck_age": "средний возраст на этапе {days}",
+            "bottleneck_cases_one": "{count} активный кейс",
+            "bottleneck_cases_few": "{count} активных кейса",
+            "bottleneck_cases_many": "{count} активных кейсов",
+            "bottleneck_cases_other": "{count} активных кейсов"
         }
     },
     "filters": {

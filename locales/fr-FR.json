@@ -2000,7 +2000,11 @@
             "duration_avg_tooltip": "Moyenne : {days} jours",
             "duration_range_tooltip": "Plage : {min}–{max} jours",
             "yoy_insufficient": "La comparaison d’une année à l’autre apparaîtra lorsque {year} aura de l’activité de cas.",
-            "lifecycle_empty": "Aucun cas terminé pour cette période. L’analyse du cycle de vie sera disponible une fois des cas admissibles terminés."
+            "lifecycle_empty": "Aucun cas terminé pour cette période. L’analyse du cycle de vie sera disponible une fois des cas admissibles terminés.",
+            "backlog_trend": "Tendance des dossiers en attente",
+            "backlog_trend_description": "Cas actifs estimés à la fin de chaque période (reconstruit à partir de l'historique)",
+            "dataset_backlog": "Dossiers en attente",
+            "backlog_count": "{count} cas actifs"
         },
         "filters": {
             "active_cases": "Cas actifs",
@@ -2165,6 +2169,30 @@
             "status_summary_sub": "Où se situent les cas actifs dans le flux de travail",
             "lifecycle_perf": "Rendement du cycle de vie",
             "lifecycle_perf_sub": "Durée des cas admissibles de la création à la fin"
+        },
+        "throughput": {
+            "created": "Cas créés",
+            "delivered": "Cas livrés",
+            "net_change": "Variation nette des cas",
+            "avg_delivery": "Délai moyen de livraison",
+            "workload_view_label": "Vue de la charge de l'équipe",
+            "active_workload": "Charge active",
+            "creation_activity": "Activité de création",
+            "col_member": "Membre de l'équipe",
+            "col_active": "Actifs",
+            "col_overdue": "En retard",
+            "col_appt_risk": "Risque de rendez-vous",
+            "col_stage_age": "Âge moyen en étape",
+            "col_share": "Part",
+            "col_laboratory": "Laboratoire",
+            "no_assignments": "Aucun cas actif assigné pour cette vue.",
+            "lab_workload": "Charge des laboratoires",
+            "lab_workload_sub": "Cas actifs actuels par laboratoire",
+            "bottlenecks_title": "Concentration du flux (état actuel)",
+            "bottleneck_in": "dans",
+            "bottleneck_age": "âge moyen en étape {days}",
+            "bottleneck_cases_one": "{count} cas actif",
+            "bottleneck_cases_other": "{count} cas actifs"
         }
     },
     "users": {

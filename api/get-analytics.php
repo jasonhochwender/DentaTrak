@@ -176,6 +176,27 @@ try {
         $afScopeParams['af_carrier'] = $afCarrier;
     }
 
+    // Dimension-only fragment (case type / assignee / carrier - no dates, no
+    // status) for current-workload and backlog calculations where the
+    // reporting period must not shrink the population.
+    $afDimSql = '';
+    if ($afCaseType !== '') {
+        $afDimSql .= " AND COALESCE(case_type, '') = :af_case_type";
+    }
+    if ($afAssignee === '__unassigned') {
+        $afDimSql .= " AND (assigned_to IS NULL OR assigned_to = '')";
+    } elseif ($afAssignee !== '') {
+        $afDimSql .= " AND assigned_to = :af_assignee";
+    }
+    if ($afCarrier !== '') {
+        $afDimSql .= " AND carrier = :af_carrier";
+    }
+    // Params matching $afDimSql exactly (subset of $afScopeParams).
+    $afDimParams = [];
+    foreach (['af_case_type', 'af_assignee', 'af_carrier'] as $k) {
+        if (isset($afScopeParams[$k])) $afDimParams[$k] = $afScopeParams[$k];
+    }
+
     // Distinct facet values for the toolbar dropdowns (practice-scoped,
     // authorized cases only). One cheap DISTINCT query per dimension.
     $afFacets = ['case_types' => [], 'assignees' => [], 'carriers' => []];
@@ -251,7 +272,9 @@ try {
     $stmt = $pdo->prepare("
         SELECT case_id, due_date, patient_appointment_date, status,
                patient_first_name, patient_last_name, case_type,
-               assigned_to, lab_ack_status, lab_promised_date
+               assigned_to, lab_ack_status, lab_promised_date,
+               carrier, creation_date, status_changed_at, last_update_date,
+               archived, archived_date
         FROM cases_cache INNER JOIN authorized_case_ids a ON a.case_id = cases_cache.case_id COLLATE utf8mb4_unicode_ci
         WHERE practice_id = :practice_id AND archived = 0 AND status != '{$GLOBALS['workflowTerminalStatus']}'
     ");
@@ -359,6 +382,276 @@ try {
         'total' => $attentionCounts['all'],
         'counts' => $attentionCounts,
     ];
+
+    // ---- Workload & Throughput (Operations tab) ----
+    // Per-assignee current workload, laboratory workload, stage bottlenecks,
+    // backlog trend, and period throughput totals. Built from the same
+    // $activeForFlow population as the operational KPIs so current-state
+    // metrics stay consistent. Dimension filters (case type / assignee /
+    // carrier) apply; the reporting period does NOT apply to current
+    // workload - these are "as of now" measures, not historical activity.
+    $afDimMatch = function ($case) use ($afCaseType, $afStatus, $afAssignee, $afCarrier) {
+        if ($afCaseType !== '' && (string)($case['case_type'] ?? '') !== $afCaseType) return false;
+        if ($afCarrier !== '' && (string)($case['carrier'] ?? '') !== $afCarrier) return false;
+        $who = trim((string)($case['assigned_to'] ?? ''));
+        if ($afAssignee === '__unassigned') {
+            if ($who !== '') return false;
+        } elseif ($afAssignee !== '' && $who !== $afAssignee) return false;
+        if ($afStatus !== '' && $afStatus !== 'active') {
+            // 'completed' can never match an active case; a specific stage
+            // must equal the case's current status.
+            if ($afStatus === 'completed') return false;
+            if ((string)($case['status'] ?? '') !== $afStatus) return false;
+        }
+        return true;
+    };
+
+    // Member display names for assignee emails (assigned_to stores the
+    // member's email; non-email values are assignment labels and are shown
+    // as-is).
+    $memberNames = [];
+    try {
+        $nmStmt = $pdo->prepare("
+            SELECT u.email, TRIM(CONCAT(COALESCE(u.first_name,''), ' ', COALESCE(u.last_name,''))) AS nm
+            FROM users u JOIN practice_users pu ON u.id = pu.user_id
+            WHERE pu.practice_id = :pid
+        ");
+        $nmStmt->execute(['pid' => $practiceId]);
+        foreach ($nmStmt->fetchAll(PDO::FETCH_ASSOC) as $r) {
+            if (trim((string)$r['nm']) !== '') $memberNames[$r['email']] = trim($r['nm']);
+        }
+    } catch (Exception $e) { /* names are best-effort */ }
+
+    $nowTs = time();
+    $currentStageAgeDays = function ($case) use ($nowTs) {
+        // Current-stage age = time since the case entered its present status.
+        // status_changed_at is a DATETIME set on each transition;
+        // last_update_date is the documented fallback.
+        $raw = trim((string)($case['status_changed_at'] ?? ''));
+        if ($raw === '') $raw = trim((string)($case['last_update_date'] ?? ''));
+        if ($raw === '') return null;
+        $ts = strtotime($raw);
+        if ($ts === false) return null;
+        $d = ($nowTs - $ts) / 86400;
+        return $d >= 0 ? $d : null;
+    };
+
+    $workloadMap = [];
+    $labMap = [];
+    $stageMap = [];
+    foreach ($activeForFlow as $case) {
+        if (!$afDimMatch($case)) continue;
+        $cls = classifyCaseAttentionRisk([
+            'dueDate' => $case['due_date'] ?? null,
+            'patientAppointmentDate' => $case['patient_appointment_date'] ?? null,
+            'labAckStatus' => $case['lab_ack_status'] ?? null,
+            'status' => $case['status'] ?? '',
+        ], $preferences, $GLOBALS['workflowTerminalStatus']);
+
+        $who = trim((string)($case['assigned_to'] ?? ''));
+        $key = $who === '' ? '__unassigned' : $who;
+        if (!isset($workloadMap[$key])) {
+            $workloadMap[$key] = ['key' => $key, 'active' => 0, 'overdue' => 0, 'apptRisk' => 0, 'ageSum' => 0.0, 'ageCount' => 0];
+        }
+        $w = &$workloadMap[$key];
+        $w['active']++;
+        if ($cls['late']) $w['overdue']++;
+        if ($cls['apptRisk']) $w['apptRisk']++;
+        $age = $currentStageAgeDays($case);
+        if ($age !== null) { $w['ageSum'] += $age; $w['ageCount']++; }
+        unset($w);
+
+        $carrier = trim((string)($case['carrier'] ?? ''));
+        if ($carrier !== '') {
+            if (!isset($labMap[$carrier])) $labMap[$carrier] = ['lab' => $carrier, 'active' => 0, 'overdue' => 0, 'apptRisk' => 0];
+            $labMap[$carrier]['active']++;
+            if ($cls['late']) $labMap[$carrier]['overdue']++;
+            if ($cls['apptRisk']) $labMap[$carrier]['apptRisk']++;
+        }
+
+        $st = (string)($case['status'] ?? '');
+        if ($st !== '') {
+            if (!isset($stageMap[$st])) $stageMap[$st] = ['status' => $st, 'active' => 0, 'ageSum' => 0.0, 'ageCount' => 0];
+            $stageMap[$st]['active']++;
+            if ($age !== null) { $stageMap[$st]['ageSum'] += $age; $stageMap[$st]['ageCount']++; }
+        }
+    }
+
+    // Resolve display names + shares, sort by active desc.
+    $totalAssignedActive = 0;
+    foreach ($workloadMap as $w) { if ($w['key'] !== '__unassigned') $totalAssignedActive += $w['active']; }
+    $workloadRows = [];
+    foreach ($workloadMap as $w) {
+        $who = $w['key'] === '__unassigned' ? '' : $w['key'];
+        $name = $who === '' ? null : ($memberNames[$who] ?? null);
+        $workloadRows[] = [
+            'assignee' => $who,
+            'name' => $name !== null && $name !== '' ? $name : ($who !== '' ? $who : null),
+            'unassigned' => $who === '',
+            'active' => $w['active'],
+            'overdue' => $w['overdue'],
+            'apptRisk' => $w['apptRisk'],
+            'avgStageAgeDays' => $w['ageCount'] > 0 ? round($w['ageSum'] / $w['ageCount'], 1) : null,
+            'share' => ($who !== '' && $totalAssignedActive > 0) ? round($w['active'] / $totalAssignedActive, 4) : null,
+        ];
+    }
+    usort($workloadRows, function ($a, $b) { return $b['active'] <=> $a['active']; });
+    $workloadRows = array_slice($workloadRows, 0, 50);
+
+    $labRows = array_values($labMap);
+    usort($labRows, function ($a, $b) { return $b['active'] <=> $a['active']; });
+    $labRows = array_slice($labRows, 0, 25);
+
+    // Bottlenecks: top stages by current active count, with average
+    // current-stage age - descriptive facts only, no efficiency claims.
+    $bottleneckRows = array_values($stageMap);
+    usort($bottleneckRows, function ($a, $b) { return $b['active'] <=> $a['active']; });
+    $bottleneckRows = array_map(function ($s) {
+        return [
+            'status' => $s['status'],
+            'active' => $s['active'],
+            'avgStageAgeDays' => $s['ageCount'] > 0 ? round($s['ageSum'] / $s['ageCount'], 1) : null,
+        ];
+    }, array_slice($bottleneckRows, 0, 5));
+
+    // Backlog trend: reconstruct approximate end-of-period active backlog.
+    // A case is "in backlog" at time T when it was created on/before T and
+    // had not yet reached a terminal status or been archived by T. Exit time
+    // uses status_changed_at for delivered cases, archived_date for archived
+    // cases; currently-active cases have no exit. Cases delivered and later
+    // reopened are approximated by their latest status_changed_at - this is
+    // an estimate, labeled as such in the UI.
+    $workloadBacklog = ['labels' => [], 'values' => [], 'interval' => 'month'];
+    try {
+        $bkStmt = $pdo->prepare("
+            SELECT creation_date, status, status_changed_at, last_update_date, archived, archived_date
+            FROM cases_cache INNER JOIN authorized_case_ids a ON a.case_id = cases_cache.case_id COLLATE utf8mb4_unicode_ci
+            WHERE practice_id = :practice_id $afDimSql
+        ");
+        $bkStmt->execute(array_merge(['practice_id' => $practiceId], $afDimParams));
+        $bkCases = [];
+        foreach ($bkStmt->fetchAll(PDO::FETCH_ASSOC) as $c) {
+            $created = strtotime((string)$c['creation_date']);
+            if ($created === false) continue;
+            $exit = null;
+            if (($c['status'] ?? '') === $GLOBALS['workflowTerminalStatus']) {
+                $exit = strtotime((string)($c['status_changed_at'] ?? '')) ?: (strtotime((string)($c['last_update_date'] ?? '')) ?: null);
+            } elseif (!empty($c['archived'])) {
+                $exit = strtotime((string)($c['archived_date'] ?? '')) ?: (strtotime((string)($c['last_update_date'] ?? '')) ?: null);
+            }
+            $bkCases[] = ['created' => $created, 'exit' => $exit];
+        }
+
+        // Bucket spec: weekly for 30d, monthly otherwise; 'all' capped at 24
+        // month-ends, custom capped at 36.
+        $bucketEnds = [];
+        $interval = 'month';
+        if ($afPeriod === '30d') {
+            $interval = 'week';
+            for ($i = 4; $i >= 0; $i--) { $bucketEnds[] = strtotime("-{$i} week", strtotime('monday this week')); }
+            $bucketEnds[] = $nowTs;
+        } else {
+            $months = 12;
+            if ($afPeriod === '90d') $months = 4;
+            elseif ($afPeriod === '12m' || $afPeriod === '') $months = 13;
+            elseif ($afPeriod === 'all') $months = 24;
+            elseif ($afPeriod === 'custom' && $d1c = DateTime::createFromFormat('Y-m-d', $afFrom)) {
+                $d2c = DateTime::createFromFormat('Y-m-d', $afTo) ?: new DateTime();
+                $months = max(2, min(36, (int)$d1c->diff($d2c)->m + (int)$d1c->diff($d2c)->y * 12 + 1));
+            }
+            for ($i = $months - 1; $i >= 1; $i--) {
+                // Strictly-past month-ends; the final bucket is "now" below.
+                $bucketEnds[] = strtotime(date('Y-m-t 23:59:59', strtotime("-{$i} months")));
+            }
+            $bucketEnds[] = $nowTs;
+        }
+        // De-dupe + sort bucket ends.
+        $bucketEnds = array_values(array_unique($bucketEnds));
+        sort($bucketEnds);
+
+        foreach ($bucketEnds as $be) {
+            $n = 0;
+            foreach ($bkCases as $bc) {
+                if ($bc['created'] <= $be && ($bc['exit'] === null || $bc['exit'] > $be)) $n++;
+            }
+            $workloadBacklog['labels'][] = date('M Y', $be);
+            $workloadBacklog['values'][] = $n;
+        }
+        $workloadBacklog['interval'] = $interval;
+    } catch (Exception $e) {
+        $workloadBacklog = ['labels' => [], 'values' => [], 'interval' => 'month'];
+    }
+
+    // Throughput summary for the reporting period: created (by creation
+    // date) vs delivered (by delivery timestamp) + average delivery time for
+    // cases completed inside the period. Dimension filters apply; status
+    // filter does not (it would misrepresent creation counts).
+    $workloadThroughput = ['created' => null, 'delivered' => null, 'net' => null, 'avgDeliveryDays' => null, 'deliveredSample' => 0];
+    try {
+        $tpStart = null; $tpEnd = null;
+        if ($afPeriod === '30d') { $tpStart = date('Y-m-d', strtotime('-30 days')); }
+        elseif ($afPeriod === '90d') { $tpStart = date('Y-m-d', strtotime('-90 days')); }
+        elseif ($afPeriod === '12m') { $tpStart = date('Y-m-d', strtotime('-12 months')); }
+        elseif ($afPeriod === 'custom' && DateTime::createFromFormat('Y-m-d', $afFrom) && DateTime::createFromFormat('Y-m-d', $afTo)) {
+            $tpStart = $afFrom; $tpEnd = $afTo;
+        }
+
+        $tpDimSql = '';
+        if ($afCaseType !== '') $tpDimSql .= " AND COALESCE(case_type, '') = :af_case_type";
+        if ($afAssignee === '__unassigned') $tpDimSql .= " AND (assigned_to IS NULL OR assigned_to = '')";
+        elseif ($afAssignee !== '') $tpDimSql .= " AND assigned_to = :af_assignee";
+        if ($afCarrier !== '') $tpDimSql .= " AND carrier = :af_carrier";
+
+        $createdClause = '';
+        if ($tpStart !== null) {
+            $createdClause = " AND STR_TO_DATE(LEFT(COALESCE(creation_date, CURRENT_DATE()), 10), '%Y-%m-%d') >= :tp_start";
+            if ($tpEnd !== null) $createdClause .= " AND STR_TO_DATE(LEFT(COALESCE(creation_date, CURRENT_DATE()), 10), '%Y-%m-%d') <= :tp_end";
+        }
+        $tpBaseParams = array_merge(['practice_id' => $practiceId], $afDimParams);
+        $stmt = $pdo->prepare("
+            SELECT COUNT(*) FROM cases_cache INNER JOIN authorized_case_ids a ON a.case_id = cases_cache.case_id COLLATE utf8mb4_unicode_ci
+            WHERE practice_id = :practice_id $createdClause $tpDimSql
+        ");
+        $tpParams = $tpBaseParams;
+        if ($tpStart !== null) { $tpParams['tp_start'] = $tpStart; if ($tpEnd !== null) $tpParams['tp_end'] = $tpEnd; }
+        $stmt->execute($tpParams);
+        $workloadThroughput['created'] = (int)$stmt->fetchColumn();
+
+        // Delivered inside the period by completion timestamp.
+        $delClause = '';
+        if ($tpStart !== null) {
+            $delClause = " AND DATE(COALESCE(NULLIF(status_changed_at, ''), NULLIF(last_update_date, ''), creation_date)) >= :tp_dstart";
+            if ($tpEnd !== null) $delClause .= " AND DATE(COALESCE(NULLIF(status_changed_at, ''), NULLIF(last_update_date, ''), creation_date)) <= :tp_dend";
+        }
+        $stmt = $pdo->prepare("
+            SELECT COUNT(*) FROM cases_cache INNER JOIN authorized_case_ids a ON a.case_id = cases_cache.case_id COLLATE utf8mb4_unicode_ci
+            WHERE practice_id = :practice_id AND status = '{$GLOBALS['workflowTerminalStatus']}' $delClause $tpDimSql
+        ");
+        $tpParams = $tpBaseParams;
+        if ($tpStart !== null) { $tpParams['tp_dstart'] = $tpStart; if ($tpEnd !== null) $tpParams['tp_dend'] = $tpEnd; }
+        $stmt->execute($tpParams);
+        $workloadThroughput['delivered'] = (int)$stmt->fetchColumn();
+        $workloadThroughput['net'] = $workloadThroughput['created'] - $workloadThroughput['delivered'];
+
+        // Average delivery time for cases completed inside the period
+        // (same completion definition as the lifecycle metrics).
+        $stmt = $pdo->prepare("
+            SELECT AVG(d) AS avg_d, COUNT(*) AS n FROM (
+                SELECT TIMESTAMPDIFF(SECOND,
+                    STR_TO_DATE(LEFT(COALESCE(creation_date, CURRENT_DATE()), 10), '%Y-%m-%d'),
+                    COALESCE(NULLIF(status_changed_at, ''), NULLIF(last_update_date, ''), STR_TO_DATE(LEFT(COALESCE(creation_date, CURRENT_DATE()), 10), '%Y-%m-%d'))
+                ) / 86400 AS d
+                FROM cases_cache INNER JOIN authorized_case_ids a ON a.case_id = cases_cache.case_id COLLATE utf8mb4_unicode_ci
+                WHERE practice_id = :practice_id AND status = '{$GLOBALS['workflowTerminalStatus']}' $delClause $tpDimSql
+            ) t WHERE d IS NOT NULL AND d >= 0
+        ");
+        $stmt->execute($tpParams);
+        $ar = $stmt->fetch(PDO::FETCH_ASSOC);
+        $workloadThroughput['deliveredSample'] = (int)($ar['n'] ?? 0);
+        $workloadThroughput['avgDeliveryDays'] = ($ar['avg_d'] !== null) ? round((float)$ar['avg_d'], 1) : null;
+    } catch (Exception $e) {
+        $workloadThroughput = ['created' => null, 'delivered' => null, 'net' => null, 'avgDeliveryDays' => null, 'deliveredSample' => 0];
+    }
 
     // Total Archived Cases - cases that are archived (archived = 1)
     $stmt = $pdo->prepare("
@@ -972,7 +1265,12 @@ try {
         'creatorBreakdown' => $creatorBreakdown,
         'statusDuration' => $statusDurationData,
         'lifecycle' => $lifecycleData,
-        'facets' => $afFacets
+        'facets' => $afFacets,
+        'workload' => $workloadRows,
+        'labWorkload' => $labRows,
+        'bottlenecks' => $bottleneckRows,
+        'backlog' => $workloadBacklog,
+        'throughput' => $workloadThroughput
     ];
     
     // Record a Practice Insights visit only when the client marked this as a

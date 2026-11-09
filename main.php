@@ -1961,6 +1961,14 @@ endif;
                 </div>
               </div>
 
+              <!-- Throughput summary for the selected reporting period -->
+              <div class="ap-throughput-summary" id="apThroughputSummary">
+                <div class="ap-ts-item"><span class="ap-ts-value" id="apTsCreated">-</span><span class="ap-ts-label"><?= t('insights.throughput.created') ?></span></div>
+                <div class="ap-ts-item"><span class="ap-ts-value" id="apTsDelivered">-</span><span class="ap-ts-label"><?= t('insights.throughput.delivered') ?></span></div>
+                <div class="ap-ts-item"><span class="ap-ts-value" id="apTsNet">-</span><span class="ap-ts-label"><?= t('insights.throughput.net_change') ?></span></div>
+                <div class="ap-ts-item"><span class="ap-ts-value" id="apTsAvgDelivery">-</span><span class="ap-ts-label"><?= t('insights.throughput.avg_delivery') ?></span></div>
+              </div>
+
               <div class="ap-charts-grid">
                 <!-- Monthly Volume Chart -->
                 <div class="ap-chart-card">
@@ -1986,7 +1994,8 @@ endif;
                   </div>
                 </div>
 
-                <!-- Team Performance Chart -->
+                <!-- Team Workload: active responsibility table (default) or
+                     creation-activity chart -->
                 <div class="ap-chart-card">
                   <div class="ap-chart-header">
                     <div>
@@ -1994,6 +2003,11 @@ endif;
                       <p class="ap-chart-description"><?= t('insights.charts.team_workload_description') ?></p>
                     </div>
                     <div class="ap-chart-controls">
+                      <div class="ap-seg" role="group" aria-label="<?= htmlspecialchars(t('insights.throughput.workload_view_label')) ?>">
+                        <button type="button" class="ap-seg-btn active" id="apTeamViewWorkload" aria-pressed="true"><?= t('insights.throughput.active_workload') ?></button>
+                        <button type="button" class="ap-seg-btn" id="apTeamViewActivity" aria-pressed="false"><?= t('insights.throughput.creation_activity') ?></button>
+                      </div>
+                      <span id="apTeamActivityControls">
                       <select class="ap-select" id="apTeamFilter">
                         <option value="both" selected><?= t('insights.filters.all_assignees') ?></option>
                         <option value="users"><?= t('insights.filters.practice_users_only') ?></option>
@@ -2007,10 +2021,40 @@ endif;
                         <option value="36"><?= t('insights.filters.last_n_months', ['count' => 36]) ?></option>
                         <option value="all"><?= t('insights.filters.all_time') ?></option>
                       </select>
+                      </span>
+                    </div>
+                  </div>
+                  <div class="ap-workload-table-wrap" id="apWorkloadTableWrap">
+                    <table class="ap-workload-table" id="apWorkloadTable">
+                      <thead>
+                        <tr>
+                          <th><button type="button" class="ap-th-sort" data-sort="name"><?= t('insights.throughput.col_member') ?></button></th>
+                          <th class="ap-num"><button type="button" class="ap-th-sort" data-sort="active"><?= t('insights.throughput.col_active') ?></button></th>
+                          <th class="ap-num"><button type="button" class="ap-th-sort" data-sort="overdue"><?= t('insights.throughput.col_overdue') ?></button></th>
+                          <th class="ap-num"><button type="button" class="ap-th-sort" data-sort="apptRisk"><?= t('insights.throughput.col_appt_risk') ?></button></th>
+                          <th class="ap-num"><button type="button" class="ap-th-sort" data-sort="avgStageAgeDays"><?= t('insights.throughput.col_stage_age') ?></button></th>
+                          <th class="ap-num"><?= t('insights.throughput.col_share') ?></th>
+                        </tr>
+                      </thead>
+                      <tbody id="apWorkloadBody"></tbody>
+                    </table>
+                    <p class="insights-empty-state" id="apWorkloadEmpty" hidden><?= t('insights.throughput.no_assignments') ?></p>
+                  </div>
+                  <div class="ap-chart-container" id="apTeamChartWrap" hidden>
+                    <canvas id="apTeamChart" role="img" aria-label="Team performance chart"></canvas>
+                  </div>
+                </div>
+
+                <!-- Backlog Trend Chart -->
+                <div class="ap-chart-card">
+                  <div class="ap-chart-header">
+                    <div>
+                      <h3 class="ap-chart-title"><?= t('insights.charts.backlog_trend') ?></h3>
+                      <p class="ap-chart-description"><?= t('insights.charts.backlog_trend_description') ?></p>
                     </div>
                   </div>
                   <div class="ap-chart-container">
-                    <canvas id="apTeamChart" role="img" aria-label="Team performance chart"></canvas>
+                    <canvas id="apBacklogChart" role="img" aria-label="Backlog trend chart"></canvas>
                   </div>
                 </div>
               </div>
@@ -2066,7 +2110,10 @@ endif;
                   </div>
                 </div>
               </div>
-            </div>
+
+              <!-- Workflow bottlenecks: descriptive current-state facts -->
+              <div class="ap-bottlenecks" id="apBottleneckList" hidden></div>
+
               <!-- Upgrade overlay -->
               <div class="ap-upgrade-overlay">
                 <div class="ap-upgrade-overlay-icon">
@@ -2081,6 +2128,7 @@ endif;
                 <a href="billing.php" class="ap-upgrade-btn"><?= t('insights.upgrade.button') ?></a>
 <?php endif; ?>
               </div>
+            </div>
 
             <div class="ap-section">
               <div class="ap-section-header">
@@ -2155,6 +2203,36 @@ endif;
                 </div>
               </div>
             </div>
+
+            <!-- Laboratory Workload (current active cases by carrier) -->
+            <div class="ap-section" id="labWorkloadSection" hidden>
+              <div class="ap-section-header">
+                <div class="ap-section-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M3 21h18"></path>
+                    <path d="M5 21V7l7-4 7 4v14"></path>
+                    <path d="M9 21v-6h6v6"></path>
+                  </svg>
+                </div>
+                <div>
+                  <h2 class="ap-section-title"><?= t('insights.throughput.lab_workload') ?></h2>
+                  <p class="ap-section-subtitle"><?= t('insights.throughput.lab_workload_sub') ?></p>
+                </div>
+              </div>
+              <div class="ap-workload-table-wrap">
+                <table class="ap-workload-table" id="apLabWorkloadTable">
+                  <thead>
+                    <tr>
+                      <th><?= t('insights.throughput.col_laboratory') ?></th>
+                      <th class="ap-num"><?= t('insights.throughput.col_active') ?></th>
+                      <th class="ap-num"><?= t('insights.throughput.col_overdue') ?></th>
+                      <th class="ap-num"><?= t('insights.throughput.col_appt_risk') ?></th>
+                    </tr>
+                  </thead>
+                  <tbody id="apLabWorkloadBody"></tbody>
+                </table>
+              </div>
+            </div>
             </div>
 
             <div class="ap-view-panel" id="apViewTrends" role="tabpanel" aria-labelledby="apViewTabTrends" hidden>
@@ -2200,7 +2278,6 @@ endif;
                   </div>
                 </div>
               </div>
-            </div>
               <!-- Upgrade overlay -->
               <div class="ap-upgrade-overlay">
                 <div class="ap-upgrade-overlay-icon">
@@ -2215,6 +2292,7 @@ endif;
                 <a href="billing.php" class="ap-upgrade-btn"><?= t('insights.upgrade.button') ?></a>
 <?php endif; ?>
               </div>
+            </div>
 
             <div class="ap-section ap-control-only" data-control-feature="yoy-trends" id="yoyTrendsSection">
               <div class="ap-section-header">

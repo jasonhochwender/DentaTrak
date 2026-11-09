@@ -2010,7 +2010,11 @@
             "duration_avg_tooltip": "Average: {days} days",
             "duration_range_tooltip": "Range: {min}–{max} days",
             "yoy_insufficient": "Year-over-year comparison will appear once {year} has case activity.",
-            "lifecycle_empty": "No completed cases in this period. Lifecycle analytics will become available once qualifying cases have been completed."
+            "lifecycle_empty": "No completed cases in this period. Lifecycle analytics will become available once qualifying cases have been completed.",
+            "backlog_trend": "Backlog Trend",
+            "backlog_trend_description": "Estimated active cases at each period end (reconstructed from case history)",
+            "dataset_backlog": "Active backlog",
+            "backlog_count": "{count} active cases"
         },
         "filters": {
             "active_cases": "Active Cases",
@@ -2175,6 +2179,30 @@
             "status_summary_sub": "Where active cases currently sit in your workflow",
             "lifecycle_perf": "Lifecycle Performance",
             "lifecycle_perf_sub": "How long qualifying cases take from creation to completion"
+        },
+        "throughput": {
+            "created": "Cases Created",
+            "delivered": "Cases Delivered",
+            "net_change": "Net Case Change",
+            "avg_delivery": "Avg. Delivery Time",
+            "workload_view_label": "Team workload view",
+            "active_workload": "Active Workload",
+            "creation_activity": "Creation Activity",
+            "col_member": "Team Member",
+            "col_active": "Active",
+            "col_overdue": "Overdue",
+            "col_appt_risk": "Appt. Risk",
+            "col_stage_age": "Avg. Stage Age",
+            "col_share": "Share",
+            "col_laboratory": "Laboratory",
+            "no_assignments": "No assigned active cases are available for this view.",
+            "lab_workload": "Laboratory Workload",
+            "lab_workload_sub": "Currently active cases by laboratory",
+            "bottlenecks_title": "Workflow concentration (current state)",
+            "bottleneck_in": "in",
+            "bottleneck_age": "avg stage age {days}",
+            "bottleneck_cases_one": "{count} active case",
+            "bottleneck_cases_other": "{count} active cases"
         }
     },
     "users": {

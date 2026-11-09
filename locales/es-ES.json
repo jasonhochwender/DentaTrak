@@ -2008,7 +2008,11 @@
             "duration_avg_tooltip": "Promedio: {days} días",
             "duration_range_tooltip": "Rango: {min}–{max} días",
             "yoy_insufficient": "La comparación interanual aparecerá cuando {year} tenga actividad de casos.",
-            "lifecycle_empty": "No hay casos completados en este período. El análisis del ciclo de vida estará disponible cuando se completen casos válidos."
+            "lifecycle_empty": "No hay casos completados en este período. El análisis del ciclo de vida estará disponible cuando se completen casos válidos.",
+            "backlog_trend": "Tendencia de pendientes",
+            "backlog_trend_description": "Casos activos estimados al final de cada período (reconstruido del historial)",
+            "dataset_backlog": "Pendientes activos",
+            "backlog_count": "{count} casos activos"
         },
         "filters": {
             "active_cases": "Casos activos",
@@ -2173,6 +2177,30 @@
             "status_summary_sub": "En qué etapa del flujo se encuentran los casos activos",
             "lifecycle_perf": "Rendimiento del ciclo de vida",
             "lifecycle_perf_sub": "Cuánto tardan los casos válidos desde la creación hasta la finalización"
+        },
+        "throughput": {
+            "created": "Casos creados",
+            "delivered": "Casos entregados",
+            "net_change": "Cambio neto de casos",
+            "avg_delivery": "Tiempo medio de entrega",
+            "workload_view_label": "Vista de carga del equipo",
+            "active_workload": "Carga activa",
+            "creation_activity": "Actividad de creación",
+            "col_member": "Miembro del equipo",
+            "col_active": "Activos",
+            "col_overdue": "Vencidos",
+            "col_appt_risk": "Riesgo de cita",
+            "col_stage_age": "Edad media en etapa",
+            "col_share": "Cuota",
+            "col_laboratory": "Laboratorio",
+            "no_assignments": "No hay casos activos asignados para esta vista.",
+            "lab_workload": "Carga de laboratorios",
+            "lab_workload_sub": "Casos activos actuales por laboratorio",
+            "bottlenecks_title": "Concentración del flujo (estado actual)",
+            "bottleneck_in": "en",
+            "bottleneck_age": "edad media en etapa {days}",
+            "bottleneck_cases_one": "{count} caso activo",
+            "bottleneck_cases_other": "{count} casos activos"
         }
     },
     "users": {

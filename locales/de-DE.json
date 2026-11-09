@@ -3623,7 +3623,11 @@
             "duration_avg_tooltip": "Durchschnitt: {days} Tage",
             "duration_range_tooltip": "Bereich: {min}–{max} Tage",
             "yoy_insufficient": "Der Jahresvergleich erscheint, sobald {year} Fallaktivität aufweist.",
-            "lifecycle_empty": "Keine abgeschlossenen Fälle in diesem Zeitraum. Die Lebenszyklus-Analyse wird verfügbar, sobald qualifizierte Fälle abgeschlossen wurden."
+            "lifecycle_empty": "Keine abgeschlossenen Fälle in diesem Zeitraum. Die Lebenszyklus-Analyse wird verfügbar, sobald qualifizierte Fälle abgeschlossen wurden.",
+            "backlog_trend": "Backlog-Verlauf",
+            "backlog_trend_description": "Geschätzte aktive Fälle zum jeweiligen Periodenende (aus Fallhistorie rekonstruiert)",
+            "dataset_backlog": "Aktiver Backlog",
+            "backlog_count": "{count} aktive Fälle"
         },
         "filters": {
             "active_cases": "Aktive Fälle",
@@ -3788,6 +3792,30 @@
             "status_summary_sub": "Wo sich aktive Fälle aktuell im Workflow befinden",
             "lifecycle_perf": "Lebenszyklusleistung",
             "lifecycle_perf_sub": "Wie lange qualifizierte Fälle von der Erstellung bis zum Abschluss brauchen"
+        },
+        "throughput": {
+            "created": "Erstellte Fälle",
+            "delivered": "Abgeschlossene Fälle",
+            "net_change": "Netto Falländerung",
+            "avg_delivery": "Ø Lieferzeit",
+            "workload_view_label": "Team-Auslastungsansicht",
+            "active_workload": "Aktive Auslastung",
+            "creation_activity": "Erstellungsaktivität",
+            "col_member": "Teammitglied",
+            "col_active": "Aktiv",
+            "col_overdue": "Überfällig",
+            "col_appt_risk": "Terminrisiko",
+            "col_stage_age": "Ø Verweilzeit",
+            "col_share": "Anteil",
+            "col_laboratory": "Labor",
+            "no_assignments": "Keine zugewiesenen aktiven Fälle für diese Ansicht verfügbar.",
+            "lab_workload": "Labor-Auslastung",
+            "lab_workload_sub": "Aktuelle aktive Fälle nach Labor",
+            "bottlenecks_title": "Workflow-Konzentration (aktueller Stand)",
+            "bottleneck_in": "in",
+            "bottleneck_age": "Ø Verweilzeit {days}",
+            "bottleneck_cases_one": "{count} aktiver Fall",
+            "bottleneck_cases_other": "{count} aktive Fälle"
         }
     },
     "admin_practices": {

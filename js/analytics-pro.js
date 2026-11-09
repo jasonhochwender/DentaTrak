@@ -525,7 +525,15 @@
     renderStatusChart(charts.statusDistribution || []);
     renderTypeChart(charts.caseTypeBreakdown || []);
     renderVolumeChart(charts.monthlyVolume || []);
-    renderTeamChart(charts.teamPerformance || []);
+    apLastTeamData = charts.teamPerformance || [];
+    if (apTeamView === 'activity') {
+      renderTeamChart(apLastTeamData);
+    }
+    renderWorkloadTable(charts.workload || []);
+    renderLabWorkload(charts.labWorkload || []);
+    renderBottlenecks(charts.bottlenecks || []);
+    renderBacklogChart(charts.backlog || {});
+    renderThroughputSummary(charts.throughput || {});
     renderDurationChart(charts.statusDuration || []);
     renderLifecycleChart(charts.lifecycle || {});
     renderTrendsChart(trends);
@@ -1182,7 +1190,8 @@
     if (casesTab) casesTab.click();
     var map = {
       case_type: { id: 'filterCaseType' },
-      assigned_to: { id: 'filterAssignedTo' }
+      assigned_to: { id: 'filterAssignedTo' },
+      carrier: { id: 'filterCarrier' }
     };
     var cfg = map[param];
     if (!cfg) return;
@@ -1404,6 +1413,222 @@
       plugins: [apBarEndValuePlugin]
     });
     setChartAriaLabel(canvas, t('insights.charts.team_workload'), labels, values, function(v) { return I18n.pluralize(v, 'insights.creators.case'); });
+  }
+
+  // ---- Workload & Throughput (Operations tab) ----
+  let apLastTeamData = [];
+  let apWorkloadRows = [];
+  let apWorkloadSort = { key: 'active', dir: -1 };
+  let apTeamView = 'workload'; // 'workload' table | 'activity' chart
+
+  function renderThroughputSummary(tp) {
+    tp = tp || {};
+    const set = function(id, val) {
+      const el = document.getElementById(id);
+      if (el) el.textContent = val;
+    };
+    const num = function(v) { return (v === null || v === undefined) ? t('common.not_applicable') : String(v); };
+    set('apTsCreated', num(tp.created));
+    set('apTsDelivered', num(tp.delivered));
+    if (tp.net === null || tp.net === undefined) {
+      set('apTsNet', t('common.not_applicable'));
+    } else {
+      set('apTsNet', (tp.net > 0 ? '+' : '') + tp.net);
+    }
+    set('apTsAvgDelivery', (tp.avgDeliveryDays === null || tp.avgDeliveryDays === undefined)
+      ? t('common.not_applicable')
+      : formatDurationDays(tp.avgDeliveryDays));
+    const wrap = document.getElementById('apThroughputSummary');
+    if (wrap) wrap.style.display = (tp.created === null && tp.delivered === null) ? 'none' : '';
+  }
+
+  function workloadMemberLabel(row) {
+    if (row.unassigned) return t('insights.recs.unassigned_option');
+    return row.name || row.assignee || t('insights.recs.unassigned_option');
+  }
+
+  function renderWorkloadTable(rows) {
+    apWorkloadRows = rows || [];
+    const tbody = document.getElementById('apWorkloadBody');
+    const empty = document.getElementById('apWorkloadEmpty');
+    const table = document.getElementById('apWorkloadTable');
+    if (!tbody) return;
+    if (apWorkloadRows.length === 0) {
+      tbody.innerHTML = '';
+      if (table) table.style.display = 'none';
+      if (empty) empty.hidden = false;
+      return;
+    }
+    if (table) table.style.display = '';
+    if (empty) empty.hidden = true;
+    drawWorkloadRows();
+  }
+
+  function drawWorkloadRows() {
+    const tbody = document.getElementById('apWorkloadBody');
+    if (!tbody) return;
+    const sorted = apWorkloadRows.slice().sort(function(a, b) {
+      const k = apWorkloadSort.key, d = apWorkloadSort.dir;
+      const av = a[k], bv = b[k];
+      if (av === null || av === undefined) return 1;
+      if (bv === null || bv === undefined) return -1;
+      if (typeof av === 'string') return d * av.localeCompare(bv);
+      return d * (av - bv);
+    });
+    tbody.innerHTML = sorted.map(function(r) {
+      const nav = r.unassigned ? '__unassigned' : r.assignee;
+      const name = escapeHtml(workloadMemberLabel(r));
+      const age = (r.avgStageAgeDays === null || r.avgStageAgeDays === undefined)
+        ? t('common.not_applicable') : formatDurationDays(r.avgStageAgeDays);
+      const sharePct = (r.share !== null && r.share !== undefined) ? Math.round(r.share * 100) : null;
+      return '<tr>' +
+        '<td><button type="button" class="ap-wl-link" data-nav="' + escapeHtml(nav || '') + '">' + name + '</button></td>' +
+        '<td class="ap-num">' + r.active + '</td>' +
+        '<td class="ap-num' + (r.overdue > 0 ? ' ap-wl-risk' : '') + '">' + r.overdue + '</td>' +
+        '<td class="ap-num' + (r.apptRisk > 0 ? ' ap-wl-warn' : '') + '">' + r.apptRisk + '</td>' +
+        '<td class="ap-num">' + escapeHtml(age) + '</td>' +
+        '<td class="ap-num">' + (sharePct === null ? '—' :
+          '<span class="ap-share"><i style="width:' + sharePct + '%"></i></span>' + sharePct + '%') + '</td>' +
+      '</tr>';
+    }).join('');
+    tbody.querySelectorAll('.ap-wl-link').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        if (btn.dataset.nav) navigateToFilteredCasesParam('assigned_to', btn.dataset.nav);
+      });
+    });
+    document.querySelectorAll('#apWorkloadTable .ap-th-sort').forEach(function(th) {
+      th.classList.toggle('sorted', th.dataset.sort === apWorkloadSort.key);
+      th.classList.toggle('sorted-desc', th.dataset.sort === apWorkloadSort.key && apWorkloadSort.dir === -1);
+    });
+  }
+
+  function renderLabWorkload(rows) {
+    const section = document.getElementById('labWorkloadSection');
+    const tbody = document.getElementById('apLabWorkloadBody');
+    if (!section || !tbody) return;
+    rows = rows || [];
+    if (rows.length === 0) { section.hidden = true; return; }
+    section.hidden = false;
+    tbody.innerHTML = rows.map(function(r) {
+      return '<tr>' +
+        '<td><button type="button" class="ap-wl-link" data-lab="' + escapeHtml(r.lab) + '">' + escapeHtml(r.lab) + '</button></td>' +
+        '<td class="ap-num">' + r.active + '</td>' +
+        '<td class="ap-num' + (r.overdue > 0 ? ' ap-wl-risk' : '') + '">' + r.overdue + '</td>' +
+        '<td class="ap-num' + (r.apptRisk > 0 ? ' ap-wl-warn' : '') + '">' + r.apptRisk + '</td>' +
+      '</tr>';
+    }).join('');
+    tbody.querySelectorAll('.ap-wl-link').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        if (btn.dataset.lab) navigateToFilteredCasesParam('carrier', btn.dataset.lab);
+      });
+    });
+  }
+
+  function renderBottlenecks(rows) {
+    const wrap = document.getElementById('apBottleneckList');
+    if (!wrap) return;
+    rows = rows || [];
+    if (rows.length === 0) { wrap.hidden = true; wrap.innerHTML = ''; return; }
+    wrap.hidden = false;
+    const label = function(st) { return (typeof getStageLabel === 'function' && getStageLabel(st)) || st; };
+    wrap.innerHTML = '<p class="ap-bottlenecks-title">' + escapeHtml(t('insights.throughput.bottlenecks_title')) + '</p>' +
+      '<ul class="ap-bottlenecks-list">' + rows.map(function(r) {
+        const age = (r.avgStageAgeDays === null || r.avgStageAgeDays === undefined)
+          ? '' : ' · ' + escapeHtml(t('insights.throughput.bottleneck_age', { days: formatDurationDays(r.avgStageAgeDays) }));
+        return '<li><button type="button" class="ap-wl-link" data-status="' + escapeHtml(r.status) + '">' +
+          escapeHtml(I18n.pluralize(r.active, 'insights.throughput.bottleneck_cases')) +
+          ' ' + escapeHtml(t('insights.throughput.bottleneck_in')) + ' ' + escapeHtml(label(r.status)) + '</button>' + age + '</li>';
+      }).join('') + '</ul>';
+    wrap.querySelectorAll('.ap-wl-link').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        if (btn.dataset.status) navigateToFilteredStatus(btn.dataset.status);
+      });
+    });
+  }
+
+  function renderBacklogChart(data) {
+    const canvas = document.getElementById('apBacklogChart');
+    if (!canvas) return;
+    const labels = (data && data.labels) || [];
+    const values = (data && data.values) || [];
+    if (labels.length === 0) {
+      showChartEmptyMessage(canvas, t('insights.charts.no_data'));
+      setChartAriaLabel(canvas, t('insights.charts.backlog_trend'), [t('insights.charts.no_data')], [0]);
+      return;
+    }
+    hideChartEmptyMessage(canvas);
+    const ctx = canvas.getContext('2d');
+    apCharts['apBacklogChart'] = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: labels,
+        datasets: [{
+          label: t('insights.charts.dataset_backlog'),
+          data: values,
+          borderColor: colors.primary,
+          backgroundColor: 'transparent',
+          borderWidth: 2,
+          pointRadius: 3,
+          pointBackgroundColor: colors.primary,
+          tension: 0.25,
+          fill: false
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label: function(c) { return t('insights.charts.backlog_count', { count: c.parsed.y }); }
+            }
+          }
+        },
+        scales: {
+          x: { grid: { display: false }, ticks: { font: { size: 11, family: "'Poppins', sans-serif" } } },
+          y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.05)' }, ticks: { precision: 0, font: { size: 11, family: "'Poppins', sans-serif" } } }
+        }
+      }
+    });
+    setChartAriaLabel(canvas, t('insights.charts.backlog_trend'), labels, values, function(v) { return t('insights.charts.backlog_count', { count: v }); });
+  }
+
+  function setTeamView(view) {
+    apTeamView = view === 'activity' ? 'activity' : 'workload';
+    const wlBtn = document.getElementById('apTeamViewWorkload');
+    const acBtn = document.getElementById('apTeamViewActivity');
+    const tableWrap = document.getElementById('apWorkloadTableWrap');
+    const chartWrap = document.getElementById('apTeamChartWrap');
+    const actControls = document.getElementById('apTeamActivityControls');
+    if (wlBtn) { wlBtn.classList.toggle('active', apTeamView === 'workload'); wlBtn.setAttribute('aria-pressed', apTeamView === 'workload' ? 'true' : 'false'); }
+    if (acBtn) { acBtn.classList.toggle('active', apTeamView === 'activity'); acBtn.setAttribute('aria-pressed', apTeamView === 'activity' ? 'true' : 'false'); }
+    if (tableWrap) tableWrap.hidden = apTeamView !== 'workload';
+    if (chartWrap) chartWrap.hidden = apTeamView !== 'activity';
+    if (actControls) actControls.style.display = apTeamView === 'activity' ? '' : 'none';
+    if (apTeamView === 'activity') {
+      // Lazily render the creation-activity chart the first time it is
+      // requested; it lives in a hidden container until then.
+      renderTeamChart(apLastTeamData);
+      setTimeout(function() { if (typeof resizeCharts === 'function') resizeCharts(); }, 60);
+    }
+  }
+
+  function initWorkloadUI() {
+    const wlBtn = document.getElementById('apTeamViewWorkload');
+    const acBtn = document.getElementById('apTeamViewActivity');
+    if (wlBtn) wlBtn.addEventListener('click', function() { setTeamView('workload'); });
+    if (acBtn) acBtn.addEventListener('click', function() { setTeamView('activity'); });
+    document.querySelectorAll('#apWorkloadTable .ap-th-sort').forEach(function(th) {
+      th.addEventListener('click', function() {
+        const k = th.dataset.sort;
+        if (!k) return;
+        if (apWorkloadSort.key === k) apWorkloadSort.dir *= -1;
+        else apWorkloadSort = { key: k, dir: k === 'name' ? 1 : -1 };
+        drawWorkloadRows();
+      });
+    });
+    setTeamView('workload');
   }
 
   // Year-over-Year Trends Chart
@@ -2339,6 +2564,7 @@
     initializeEventListeners();
     initAfToolbar();
     initApViewTabs();
+    initWorkloadUI();
 
     // Load billing tier and apply visibility restrictions
     loadBillingTierAndApplyVisibility();

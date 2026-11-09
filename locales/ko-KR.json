@@ -2012,7 +2012,11 @@
             "duration_avg_tooltip": "평균: {days}일",
             "duration_range_tooltip": "범위: {min}–{max}일",
             "yoy_insufficient": "{year}년에 사례 활동이 생기면 전년 대비 비교가 표시됩니다.",
-            "lifecycle_empty": "이 기간에 완료된 사례가 없습니다. 적격 사례가 완료되면 수명주기 분석을 사용할 수 있습니다."
+            "lifecycle_empty": "이 기간에 완료된 사례가 없습니다. 적격 사례가 완료되면 수명주기 분석을 사용할 수 있습니다.",
+            "backlog_trend": "백로그 추세",
+            "backlog_trend_description": "각 기간 말의 예상 활성 사례 수(이력에서 재구성)",
+            "dataset_backlog": "활성 백로그",
+            "backlog_count": "활성 사례 {count}건"
         },
         "filters": {
             "active_cases": "활성 케이스",
@@ -2177,6 +2181,30 @@
             "status_summary_sub": "활성 사례가 워크플로의 어느 단계에 있는지",
             "lifecycle_perf": "라이프사이클 성과",
             "lifecycle_perf_sub": "적격 사례가 생성부터 완료까지 걸리는 시간"
+        },
+        "throughput": {
+            "created": "생성된 사례",
+            "delivered": "완료된 사례",
+            "net_change": "순 사례 변동",
+            "avg_delivery": "평균 완료 시간",
+            "workload_view_label": "팀 업무량 보기",
+            "active_workload": "활성 업무량",
+            "creation_activity": "생성 활동",
+            "col_member": "팀원",
+            "col_active": "활성",
+            "col_overdue": "기한 초과",
+            "col_appt_risk": "예약 위험",
+            "col_stage_age": "평균 단계 경과",
+            "col_share": "비중",
+            "col_laboratory": "랩",
+            "no_assignments": "이 보기에 표시할 할당된 활성 사례가 없습니다.",
+            "lab_workload": "랩 업무량",
+            "lab_workload_sub": "랩별 현재 활성 사례",
+            "bottlenecks_title": "워크플로 집중도(현재 상태)",
+            "bottleneck_in": "단계",
+            "bottleneck_age": "평균 단계 경과 {days}",
+            "bottleneck_cases_one": "활성 사례 {count}건",
+            "bottleneck_cases_other": "활성 사례 {count}건"
         }
     },
     "users": {
