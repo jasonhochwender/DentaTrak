@@ -3483,7 +3483,12 @@
             "days_one": "1 Tag",
             "days_other": "{count} Tage",
             "days_few": "{count} Tage",
-            "days_many": "{count} Tage"
+            "days_many": "{count} Tage",
+            "hours_one": "{count} Stunde",
+            "hours_other": "{count} Stunden",
+            "completed_cases_base_one": "Basierend auf {count} abgeschlossenem Fall",
+            "completed_cases_base_other": "Basierend auf {count} abgeschlossenen Fällen",
+            "no_completed_cases": "Keine abgeschlossenen Fälle für diesen Zeitraum verfügbar."
         },
         "kpi": {
             "active_cases": "Aktive Fälle",
@@ -3617,7 +3622,8 @@
             "volume_net_balanced": "Erstellte und abgeschlossene Fälle sind in diesem Zeitraum ausgeglichen.",
             "duration_avg_tooltip": "Durchschnitt: {days} Tage",
             "duration_range_tooltip": "Bereich: {min}–{max} Tage",
-            "yoy_insufficient": "Der Jahresvergleich erscheint, sobald {year} Fallaktivität aufweist."
+            "yoy_insufficient": "Der Jahresvergleich erscheint, sobald {year} Fallaktivität aufweist.",
+            "lifecycle_empty": "Keine abgeschlossenen Fälle in diesem Zeitraum. Die Lebenszyklus-Analyse wird verfügbar, sobald qualifizierte Fälle abgeschlossen wurden."
         },
         "filters": {
             "active_cases": "Aktive Fälle",

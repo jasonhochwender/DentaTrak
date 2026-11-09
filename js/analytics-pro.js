@@ -229,17 +229,33 @@
     bindKpiNavigation();
     renderAttentionQueue(insights.attentionQueue || {});
 
-    // Update trends insights
+    // Update trends insights. growthRate is null when no prior-year
+    // baseline exists - render N/A, never a misleading 0%.
     const trends = insights.trends || {};
     updateElement('apPeakMonth', trends.peakMonth ? I18n.formatMonth(trends.peakMonth, 'long') : '-');
-    updateElement('apGrowthRate', (trends.growthRate || 0) + '%');
+    updateElement('apGrowthRate', (trends.growthRate === null || trends.growthRate === undefined)
+      ? t('common.not_applicable')
+      : trends.growthRate + '%');
     updateElement('apNextPeak', trends.nextPeak ? I18n.formatMonth(trends.nextPeak, 'long') : '-');
 
-    // Update lifecycle metrics
+    // Update lifecycle metrics. Null averages mean no qualifying completed
+    // cases - show N/A with an explanatory tooltip, not "0 days".
     const lifecycle = charts.lifecycle || {};
-    updateElement('apAvgLifecycle', I18n.pluralize(lifecycle.avg_total_days || 0, 'insights.metrics.days'));
-    updateElement('apFastestCase', I18n.pluralize(lifecycle.min_total_days || 0, 'insights.metrics.days'));
-    updateElement('apSlowestCase', I18n.pluralize(lifecycle.max_total_days || 0, 'insights.metrics.days'));
+    const lifecycleSample = lifecycle.delivered_cases || 0;
+    const hasLifecycle = lifecycleSample > 0 && lifecycle.avg_total_days !== null && lifecycle.avg_total_days !== undefined;
+    [['apAvgLifecycle', lifecycle.avg_total_days],
+     ['apFastestCase', lifecycle.min_total_days],
+     ['apSlowestCase', lifecycle.max_total_days]].forEach(function(pair) {
+      var el = document.getElementById(pair[0]);
+      if (!el) return;
+      if (hasLifecycle) {
+        el.textContent = formatDurationDays(pair[1]);
+        el.title = I18n.pluralize(lifecycleSample, 'insights.metrics.completed_cases_base');
+      } else {
+        el.textContent = t('common.not_applicable');
+        el.title = t('insights.metrics.no_completed_cases');
+      }
+    });
 
     // Destroy existing charts before creating new ones
     destroyAllCharts();
@@ -1387,6 +1403,19 @@
       });
   }
 
+  // Format a duration in days: sub-day values render as hours so a same-day
+  // completion never displays as a misleading "0 days"; longer values keep
+  // one decimal place.
+  function formatDurationDays(days) {
+    var d = Number(days);
+    if (!isFinite(d) || d < 0) return t('common.not_applicable');
+    if (d > 0 && d < 1) {
+      var hours = Math.max(1, Math.round(d * 24));
+      return I18n.pluralize(hours, 'insights.metrics.hours');
+    }
+    return I18n.pluralize(Math.round(d * 10) / 10, 'insights.metrics.days');
+  }
+
   // ---- Recommendation lifecycle -------------------------------------------------
 
   function setRecommendationState(recKey, state, snapshot) {
@@ -1976,12 +2005,24 @@
     const ctx = document.getElementById('apLifecycleChart')?.getContext('2d');
     if (!ctx) return;
 
-    if (!data || !data.avg_total_days) {
-      showChartEmptyMessage(ctx.canvas, t('insights.charts.no_data'));
-      setChartAriaLabel(ctx.canvas, t('insights.charts.lifecycle_distribution'), [t('insights.charts.no_data')], [0]);
+    if (!data || !data.delivered_cases) {
+      showChartEmptyMessage(ctx.canvas, t('insights.charts.lifecycle_empty'));
+      setChartAriaLabel(ctx.canvas, t('insights.charts.lifecycle_distribution'), [t('insights.charts.lifecycle_empty')], [0]);
       return;
     }
     hideChartEmptyMessage(ctx.canvas);
+
+    // Sample-size context: lifecycle stats only cover qualifying completed
+    // cases - surface the count so users can judge the dataset.
+    var lcNoteEl = document.getElementById('apLifecycleNote');
+    if (!lcNoteEl) {
+      lcNoteEl = document.createElement('p');
+      lcNoteEl.className = 'ap-chart-note';
+      lcNoteEl.id = 'apLifecycleNote';
+      ctx.canvas.parentElement.appendChild(lcNoteEl);
+    }
+    lcNoteEl.textContent = I18n.pluralize(data.delivered_cases, 'insights.metrics.completed_cases_base');
+    lcNoteEl.style.display = '';
 
     const lifecycleLabels = [t('insights.charts.lifecycle_fastest'), t('insights.charts.lifecycle_average'), t('insights.charts.lifecycle_slowest')];
     const lifecycleValues = [

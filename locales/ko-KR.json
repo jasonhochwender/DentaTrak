@@ -1868,7 +1868,12 @@
             "days_one": "{count}일",
             "days_other": "{count}일",
             "days_few": "{count}일",
-            "days_many": "{count}일"
+            "days_many": "{count}일",
+            "hours_one": "{count}시간",
+            "hours_other": "{count}시간",
+            "completed_cases_base_one": "완료된 사례 {count}건 기준",
+            "completed_cases_base_other": "완료된 사례 {count}건 기준",
+            "no_completed_cases": "이 기간에 완료된 사례가 없습니다."
         },
         "kpi": {
             "active_cases": "진행 중인 케이스",
@@ -2006,7 +2011,8 @@
             "volume_net_balanced": "이번 기간 생성 및 완료 건수가 균형을 이룹니다.",
             "duration_avg_tooltip": "평균: {days}일",
             "duration_range_tooltip": "범위: {min}–{max}일",
-            "yoy_insufficient": "{year}년에 사례 활동이 생기면 전년 대비 비교가 표시됩니다."
+            "yoy_insufficient": "{year}년에 사례 활동이 생기면 전년 대비 비교가 표시됩니다.",
+            "lifecycle_empty": "이 기간에 완료된 사례가 없습니다. 적격 사례가 완료되면 수명주기 분석을 사용할 수 있습니다."
         },
         "filters": {
             "active_cases": "활성 케이스",

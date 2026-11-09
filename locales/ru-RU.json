@@ -3438,7 +3438,16 @@
             "days_one": "{count} день",
             "days_other": "{count} дней",
             "days_few": "{count} дня",
-            "days_many": "{count} дней"
+            "days_many": "{count} дней",
+            "hours_one": "{count} час",
+            "hours_few": "{count} часа",
+            "hours_many": "{count} часов",
+            "hours_other": "{count} часа",
+            "completed_cases_base_one": "На основе {count} завершённого кейса",
+            "completed_cases_base_few": "На основе {count} завершённых кейсов",
+            "completed_cases_base_many": "На основе {count} завершённых кейсов",
+            "completed_cases_base_other": "На основе {count} завершённого кейса",
+            "no_completed_cases": "Нет завершённых кейсов за этот период."
         },
         "kpi": {
             "active_cases": "Активные случаи",
@@ -3590,7 +3599,8 @@
             "volume_net_balanced": "Созданные и завершённые кейсы сбалансированы за этот период.",
             "duration_avg_tooltip": "Среднее: {days} дн.",
             "duration_range_tooltip": "Диапазон: {min}–{max} дн.",
-            "yoy_insufficient": "Сравнение год к году появится, когда в {year} появится активность по кейсам."
+            "yoy_insufficient": "Сравнение год к году появится, когда в {year} появится активность по кейсам.",
+            "lifecycle_empty": "Нет завершённых кейсов за этот период. Аналитика жизненного цикла появится после завершения подходящих кейсов."
         },
         "filters": {
             "active_cases": "Активные случаи",

@@ -311,24 +311,40 @@ try {
         $metrics['casesThisMonth'] = (int)$stmt->fetchColumn();
     }
     
-    // Average Case Duration - use creation_date and archived_date when available
+    // Average Case Duration - lifecycle days for terminal cases using the
+    // same completion definition as the lifecycle metrics (status_changed_at,
+    // falling back to last_update_date). Null when no qualifying cases exist.
     try {
         $stmt = $pdo->prepare("
-            SELECT AVG(
-                DATEDIFF(
-                    STR_TO_DATE(LEFT(COALESCE(archived_date, creation_date, CURRENT_DATE()), 10), '%Y-%m-%d'),
-                    STR_TO_DATE(LEFT(COALESCE(creation_date, CURRENT_DATE()), 10), '%Y-%m-%d')
-                )
-            ) as avg_duration
-            FROM cases_cache INNER JOIN authorized_case_ids a ON a.case_id = cases_cache.case_id COLLATE utf8mb4_unicode_ci
-            WHERE practice_id = :practice_id
-            AND status = '{$GLOBALS['workflowTerminalStatus']}'
+            SELECT AVG(days) as avg_duration, COUNT(*) as n
+            FROM (
+                SELECT TIMESTAMPDIFF(SECOND, start_ts, end_ts) / 86400 AS days
+                FROM (
+                    SELECT
+                        COALESCE(
+                            STR_TO_DATE(LEFT(creation_date, 19), '%Y-%m-%d %H:%i:%s'),
+                            STR_TO_DATE(LEFT(creation_date, 10), '%Y-%m-%d')
+                        ) AS start_ts,
+                        COALESCE(
+                            status_changed_at,
+                            STR_TO_DATE(LEFT(last_update_date, 19), '%Y-%m-%d %H:%i:%s'),
+                            STR_TO_DATE(LEFT(last_update_date, 10), '%Y-%m-%d')
+                        ) AS end_ts
+                    FROM cases_cache INNER JOIN authorized_case_ids a ON a.case_id = cases_cache.case_id COLLATE utf8mb4_unicode_ci
+                    WHERE practice_id = :practice_id
+                    AND status = '{$GLOBALS['workflowTerminalStatus']}'
+                    AND creation_date IS NOT NULL
+                ) spans
+                WHERE start_ts IS NOT NULL AND end_ts IS NOT NULL
+            ) durations
+            WHERE days >= 0
         ");
         $stmt->execute(['practice_id' => $practiceId]);
-        $avgDuration = $stmt->fetchColumn();
-        $metrics['averageCaseDuration'] = $avgDuration ? round($avgDuration, 1) : 0;
+        $durRow = $stmt->fetch(PDO::FETCH_ASSOC);
+        $metrics['averageCaseDuration'] = ($durRow && (int)$durRow['n'] > 0)
+            ? round((float)$durRow['avg_duration'], 1) : null;
     } catch (Exception $e) {
-        $metrics['averageCaseDuration'] = 0;
+        $metrics['averageCaseDuration'] = null;
     }
     
     // Cases Past Due - based on due_date, excluding Delivered status and archived cases
@@ -666,46 +682,58 @@ try {
         $statusDurationData = [];
     }
     
-    // Case Lifecycle Analytics - NEW
-    $lifecycleData = [];
+    // Case Lifecycle Analytics - lifecycle = creation -> entry into the
+    // terminal workflow status. Completion timestamp prefers
+    // status_changed_at (datetime, set on the terminal transition) and falls
+    // back to last_update_date. Durations are computed in seconds so
+    // sub-day lifecycles stay precise; rows with missing/negative durations
+    // are excluded rather than coerced to zero.
+    $lifecycleData = [
+        'avg_total_days' => null,
+        'min_total_days' => null,
+        'max_total_days' => null,
+        'delivered_cases' => 0
+    ];
     try {
-        // Calculate total case lifecycle times (from creation to delivery)
         $stmt = $pdo->prepare("
-            SELECT 
-                AVG(DATEDIFF(
-                    STR_TO_DATE(LEFT(COALESCE(last_update_date, CURRENT_DATE()), 10), '%Y-%m-%d'),
-                    STR_TO_DATE(LEFT(creation_date, 10), '%Y-%m-%d')
-                )) as avg_total_days,
-                MIN(DATEDIFF(
-                    STR_TO_DATE(LEFT(COALESCE(last_update_date, CURRENT_DATE()), 10), '%Y-%m-%d'),
-                    STR_TO_DATE(LEFT(creation_date, 10), '%Y-%m-%d')
-                )) as min_total_days,
-                MAX(DATEDIFF(
-                    STR_TO_DATE(LEFT(COALESCE(last_update_date, CURRENT_DATE()), 10), '%Y-%m-%d'),
-                    STR_TO_DATE(LEFT(creation_date, 10), '%Y-%m-%d')
-                )) as max_total_days,
-                COUNT(*) as delivered_cases
-            FROM cases_cache INNER JOIN authorized_case_ids a ON a.case_id = cases_cache.case_id COLLATE utf8mb4_unicode_ci
-            WHERE practice_id = :practice_id
-            AND status = '{$GLOBALS['workflowTerminalStatus']}'
-            AND archived = 0
-            AND creation_date IS NOT NULL
+            SELECT
+                AVG(days) AS avg_total_days,
+                MIN(days) AS min_total_days,
+                MAX(days) AS max_total_days,
+                COUNT(*) AS delivered_cases
+            FROM (
+                SELECT TIMESTAMPDIFF(SECOND, start_ts, end_ts) / 86400 AS days
+                FROM (
+                    SELECT
+                        COALESCE(
+                            STR_TO_DATE(LEFT(c.creation_date, 19), '%Y-%m-%d %H:%i:%s'),
+                            STR_TO_DATE(LEFT(c.creation_date, 10), '%Y-%m-%d')
+                        ) AS start_ts,
+                        COALESCE(
+                            c.status_changed_at,
+                            STR_TO_DATE(LEFT(c.last_update_date, 19), '%Y-%m-%d %H:%i:%s'),
+                            STR_TO_DATE(LEFT(c.last_update_date, 10), '%Y-%m-%d')
+                        ) AS end_ts
+                    FROM cases_cache c INNER JOIN authorized_case_ids a ON a.case_id = c.case_id COLLATE utf8mb4_unicode_ci
+                    WHERE c.practice_id = :practice_id
+                    AND c.status = '{$GLOBALS['workflowTerminalStatus']}'
+                    AND c.creation_date IS NOT NULL
+                ) spans
+                WHERE start_ts IS NOT NULL AND end_ts IS NOT NULL
+            ) durations
+            WHERE days >= 0
         ");
         $stmt->execute(['practice_id' => $practiceId]);
-        $lifecycleData = $stmt->fetch(PDO::FETCH_ASSOC);
-        
-        if ($lifecycleData) {
-            $lifecycleData['avg_total_days'] = round($lifecycleData['avg_total_days'], 1);
-            $lifecycleData['min_total_days'] = (int)$lifecycleData['min_total_days'];
-            $lifecycleData['max_total_days'] = (int)$lifecycleData['max_total_days'];
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        if ($row && (int)$row['delivered_cases'] > 0) {
+            $lifecycleData['avg_total_days'] = round((float)$row['avg_total_days'], 2);
+            $lifecycleData['min_total_days'] = round((float)$row['min_total_days'], 2);
+            $lifecycleData['max_total_days'] = round((float)$row['max_total_days'], 2);
+            $lifecycleData['delivered_cases'] = (int)$row['delivered_cases'];
         }
     } catch (Exception $e) {
-        $lifecycleData = [
-            'avg_total_days' => 0,
-            'min_total_days' => 0,
-            'max_total_days' => 0,
-            'delivered_cases' => 0
-        ];
+        // Keep null/unavailable state - never report a failed calculation as 0.
+        error_log('Analytics lifecycle query failed: ' . $e->getMessage());
     }
     
     // Calculate actual advanced insights from case data
@@ -726,7 +754,7 @@ try {
         ],
         'trends' => [
             'monthlyData' => [],
-            'growthRate' => 0,
+            'growthRate' => null,
             'peakMonth' => null,
             'nextPeak' => null,
             'currentYear' => date('Y')
@@ -766,10 +794,13 @@ try {
         $stmt->execute(['practice_id' => $practiceId, 'lastYear' => $lastYear]);
         $lastYearData = $stmt->fetchAll(PDO::FETCH_ASSOC);
         
-        // Calculate monthly comparison data
+        // Calculate monthly comparison data. Totals are year-to-date (months
+        // up to the current month only) so an incomplete current year is not
+        // compared against a full prior year.
         $monthlyData = [];
         $currentYearTotal = 0;
         $lastYearTotal = 0;
+        $currentMonthNum = (int)date('n');
         $maxCurrentMonthNum = null;
         $maxCurrentCount = 0;
         
@@ -785,7 +816,7 @@ try {
             foreach ($currentYearData as $row) {
                 if ($row['month'] === $monthStr) {
                     $currentCount = (int)$row['count'];
-                    $currentYearTotal += $currentCount;
+                    if ($month <= $currentMonthNum) $currentYearTotal += $currentCount;
                     if ($currentCount > $maxCurrentCount) {
                         $maxCurrentCount = $currentCount;
                         $maxCurrentMonthNum = $month;
@@ -798,7 +829,7 @@ try {
             foreach ($lastYearData as $row) {
                 if ($row['month'] === $lastMonthStr) {
                     $lastCount = (int)$row['count'];
-                    $lastYearTotal += $lastCount;
+                    if ($month <= $currentMonthNum) $lastYearTotal += $lastCount;
                     break;
                 }
             }
@@ -812,8 +843,10 @@ try {
             }
         }
         
-        // Calculate growth rate
-        $growthRate = 0;
+        // Growth is only defined with a nonzero prior-year baseline. A zero
+        // or absent baseline yields null (rendered N/A), never a misleading
+        // 0% or an arbitrary large percentage.
+        $growthRate = null;
         if ($lastYearTotal > 0) {
             $growthRate = round((($currentYearTotal - $lastYearTotal) / $lastYearTotal) * 100, 1);
         }

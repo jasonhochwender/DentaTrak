@@ -1860,7 +1860,12 @@
             "days_one": "1 giorno",
             "days_other": "{count} giorni",
             "days_few": "{count} giorni",
-            "days_many": "{count} giorni"
+            "days_many": "{count} giorni",
+            "hours_one": "{count} ora",
+            "hours_other": "{count} ore",
+            "completed_cases_base_one": "Basato su {count} caso completato",
+            "completed_cases_base_other": "Basato su {count} casi completati",
+            "no_completed_cases": "Nessun caso completato disponibile per questo periodo."
         },
         "kpi": {
             "active_cases": "Casi attivi",
@@ -1994,7 +1999,8 @@
             "volume_net_balanced": "Casi creati e consegnati sono in equilibrio in questo periodo.",
             "duration_avg_tooltip": "Media: {days} giorni",
             "duration_range_tooltip": "Intervallo: {min}–{max} giorni",
-            "yoy_insufficient": "Il confronto anno su anno apparirà quando {year} avrà attività sui casi."
+            "yoy_insufficient": "Il confronto anno su anno apparirà quando {year} avrà attività sui casi.",
+            "lifecycle_empty": "Nessun caso completato in questo periodo. L’analisi del ciclo di vita sarà disponibile una volta completati casi idonei."
         },
         "filters": {
             "active_cases": "Casi attivi",

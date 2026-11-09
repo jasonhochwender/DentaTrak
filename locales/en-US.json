@@ -1862,7 +1862,16 @@
             "days_one": "1 day",
             "days_other": "{count} days",
             "days_few": "{count} days",
-            "days_many": "{count} days"
+            "days_many": "{count} days",
+            "hours_one": "{count} hour",
+            "hours_other": "{count} hours",
+            "hours_few": "{count} hours",
+            "hours_many": "{count} hours",
+            "completed_cases_base_one": "Based on {count} completed case",
+            "completed_cases_base_other": "Based on {count} completed cases",
+            "completed_cases_base_few": "Based on {count} completed cases",
+            "completed_cases_base_many": "Based on {count} completed cases",
+            "no_completed_cases": "No completed cases available for this period."
         },
         "kpi": {
             "active_cases": "Active Cases",
@@ -2000,7 +2009,8 @@
             "volume_net_balanced": "Cases created and delivered are balanced this period.",
             "duration_avg_tooltip": "Average: {days} days",
             "duration_range_tooltip": "Range: {min}–{max} days",
-            "yoy_insufficient": "Year-over-year comparison will appear once {year} has case activity."
+            "yoy_insufficient": "Year-over-year comparison will appear once {year} has case activity.",
+            "lifecycle_empty": "No completed cases in this period. Lifecycle analytics will become available once qualifying cases have been completed."
         },
         "filters": {
             "active_cases": "Active Cases",
