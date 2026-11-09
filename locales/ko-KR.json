@@ -1990,6 +1990,8 @@
             "lifecycle_average": "평균",
             "lifecycle_slowest": "최장",
             "no_data": "데이터 없음",
+            "no_cases_match": "선택한 필터와 일치하는 사례가 없습니다.",
+            "load_error": "차트 데이터를 불러올 수 없습니다.",
             "axis_cases": "케이스 수",
             "cases_by_creator": "사용자별 생성 케이스",
             "created_count": "{count}건 생성",

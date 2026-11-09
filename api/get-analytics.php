@@ -1023,6 +1023,50 @@ try {
         $creatorBreakdown = [];
     }
 
+    // Creation Activity (Team Workload "Creation Activity" view): cases
+    // created within the selected team_period grouped by the user who
+    // CREATED them (created_by_user_id) - deliberately independent of the
+    // current assignee, which is a different concept. Mirrors the
+    // creatorBreakdown query so values reconcile with "Cases Created by
+    // User" when the same period is selected.
+    $creationActivity = [];
+    try {
+        $activityClause = buildTimePeriodClause($teamPeriod);
+
+        $stmt = $pdo->prepare("
+            SELECT
+                c.created_by_user_id as user_id,
+                COALESCE(u.first_name, '') as first_name,
+                COALESCE(u.last_name, '') as last_name,
+                COALESCE(u.email, '') as email,
+                COUNT(*) as cases_count
+            FROM cases_cache c INNER JOIN authorized_case_ids a ON a.case_id = c.case_id COLLATE utf8mb4_unicode_ci
+            LEFT JOIN users u ON u.id = c.created_by_user_id
+            WHERE c.practice_id = :practice_id
+            AND c.archived = 0
+            $activityClause
+            $afScopeSql
+            GROUP BY c.created_by_user_id, u.first_name, u.last_name, u.email
+            ORDER BY cases_count DESC, first_name ASC, last_name ASC
+        ");
+        $stmt->execute(array_merge(['practice_id' => $practiceId], $afScopeParams));
+        $creationActivity = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        foreach ($creationActivity as &$row) {
+            $name = trim(($row['first_name'] ?? '') . ' ' . ($row['last_name'] ?? ''));
+            if ($name === '') {
+                // Deleted/unavailable user records: fall back to the account
+                // email, then a neutral label - never a blank bar.
+                $name = trim((string)($row['email'] ?? '')) !== '' ? trim((string)$row['email']) : 'Unknown user';
+            }
+            $row['creator'] = $name;
+            unset($row['first_name'], $row['last_name'], $row['email']);
+        }
+        unset($row);
+    } catch (Exception $e) {
+        $creationActivity = [];
+    }
+
     // Status Duration Analytics - NEW
     $statusDurationData = [];
     try {
@@ -1294,6 +1338,7 @@ try {
         'caseTypeBreakdown' => $caseTypeBreakdown,
         'teamPerformance' => $teamPerformance,
         'creatorBreakdown' => $creatorBreakdown,
+        'creationActivity' => $creationActivity,
         'statusDuration' => $statusDurationData,
         'lifecycle' => $lifecycleData,
         'facets' => $afFacets,

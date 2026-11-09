@@ -1982,6 +1982,8 @@
             "lifecycle_average": "Moyenne",
             "lifecycle_slowest": "Le plus lent",
             "no_data": "Aucune donnée",
+            "no_cases_match": "Aucun cas ne correspond aux filtres sélectionnés.",
+            "load_error": "Impossible de charger les données du graphique.",
             "axis_cases": "Nombre de cas",
             "cases_by_creator": "Cas créés par utilisateur",
             "created_count": "{count} créés",

@@ -3605,6 +3605,8 @@
             "lifecycle_average": "Durchschnitt",
             "lifecycle_slowest": "Langsamste",
             "no_data": "Keine Daten",
+            "no_cases_match": "Keine Fälle entsprechen den ausgewählten Filtern.",
+            "load_error": "Diagrammdaten konnten nicht geladen werden.",
             "axis_cases": "Anzahl der Fälle",
             "cases_by_creator": "Von Benutzern erstellte Fälle",
             "created_count": "{count} erstellt",

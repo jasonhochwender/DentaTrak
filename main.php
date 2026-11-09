@@ -2008,7 +2008,10 @@ endif;
                         <button type="button" class="ap-seg-btn" id="apTeamViewActivity" aria-pressed="false"><?= t('insights.throughput.creation_activity') ?></button>
                       </div>
                       <span id="apTeamActivityControls">
-                      <select class="ap-select" id="apTeamFilter">
+                      <!-- Assignee-type filter does not apply to Creation
+                           Activity (creator attribution); kept in the DOM for
+                           backward compatibility but hidden. -->
+                      <select class="ap-select" id="apTeamFilter" hidden>
                         <option value="both" selected><?= t('insights.filters.all_assignees') ?></option>
                         <option value="users"><?= t('insights.filters.practice_users_only') ?></option>
                       </select>

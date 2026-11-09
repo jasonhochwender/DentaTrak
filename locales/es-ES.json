@@ -1990,6 +1990,8 @@
             "lifecycle_average": "Promedio",
             "lifecycle_slowest": "Más lento",
             "no_data": "Sin datos",
+            "no_cases_match": "Ningún caso coincide con los filtros seleccionados.",
+            "load_error": "No se pudieron cargar los datos del gráfico.",
             "axis_cases": "Número de casos",
             "cases_by_creator": "Casos creados por usuario",
             "created_count": "{count} creados",

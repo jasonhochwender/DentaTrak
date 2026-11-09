@@ -1988,6 +1988,8 @@
             "lifecycle_average": "Average",
             "lifecycle_slowest": "Slowest",
             "no_data": "No Data",
+            "no_cases_match": "No cases match the selected filters.",
+            "load_error": "Unable to load chart data.",
             "axis_cases": "Number of Cases",
             "cases_by_creator": "Cases created by user",
             "created_count": "{count} created",

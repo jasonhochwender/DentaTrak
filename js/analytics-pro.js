@@ -525,9 +525,12 @@
     renderStatusChart(charts.statusDistribution || []);
     renderTypeChart(charts.caseTypeBreakdown || []);
     renderVolumeChart(charts.monthlyVolume || []);
-    apLastTeamData = charts.teamPerformance || [];
+    // Creation Activity uses creator-grouped data (created_by_user_id),
+    // NOT teamPerformance which groups by current assignee. Kept raw (no
+    // || []) so a missing field is distinguishable from a valid empty set.
+    apLastActivityData = charts.creationActivity;
     if (apTeamView === 'activity') {
-      renderTeamChart(apLastTeamData);
+      renderTeamChart(apLastActivityData);
     }
     renderWorkloadTable(charts.workload || []);
     renderLabWorkload(charts.labWorkload || []);
@@ -1232,17 +1235,32 @@
     }
     hideChartEmptyMessage(ctx.canvas);
 
+    // Chart.js responsive + maintainAspectRatio:false requires a definite
+    // container height; a min-height-only container lets the canvas grow the
+    // container, which retriggers resize - an unbounded feedback loop (most
+    // visible when a hidden tab becomes visible). Pin the height like the
+    // other fixed-height charts do.
+    var volumeContainer = ctx.canvas.closest('.ap-chart-container');
+    if (volumeContainer) {
+      volumeContainer.style.height = '280px';
+      volumeContainer.dataset.apFixedHeight = '1';
+    }
+
     // Subtle backlog context: net cases created minus delivered (terminal)
     // across the visible period. Only shown when both series have activity
-    // so the note never implies a trend from missing data.
+    // so the note never implies a trend from missing data. The note lives in
+    // the card footer, outside the fixed-height chart container.
     var netCreated = created.reduce(function(s, v) { return s + v; }, 0);
     var netDelivered = delivered.reduce(function(s, v) { return s + v; }, 0);
+    var volumeCard = ctx.canvas.closest('.ap-chart-card');
     var volumeNoteEl = document.getElementById('apVolumeNote');
     if (!volumeNoteEl) {
       volumeNoteEl = document.createElement('p');
       volumeNoteEl.className = 'ap-chart-note';
       volumeNoteEl.id = 'apVolumeNote';
-      ctx.canvas.parentElement.appendChild(volumeNoteEl);
+    }
+    if (volumeCard && volumeNoteEl.parentElement !== volumeCard) {
+      volumeCard.appendChild(volumeNoteEl);
     }
     if (netCreated > 0 && netDelivered > 0) {
       var net = netCreated - netDelivered;
@@ -1319,16 +1337,25 @@
   function renderTeamChart(data) {
     const canvas = document.getElementById('apTeamChart');
     if (!canvas) return;
+    // This chart is re-rendered on every mode switch without a full reload;
+    // destroy the previous instance or Chart.js throws "canvas already in use".
+    destroyChart('apTeamChart');
     const container = canvas.closest('.ap-chart-container');
 
+    // Distinguish a missing/invalid API field from a valid empty result:
+    // the former is a data contract failure, not "no activity".
+    if (!Array.isArray(data)) {
+      showChartEmptyMessage(canvas, t('insights.charts.load_error') || t('insights.error.analytics_data') || 'Unable to load chart data.');
+      setChartAriaLabel(canvas, t('insights.charts.team_workload'), [t('insights.charts.load_error') || 'error'], [0]);
+      return;
+    }
+
+    // Creation Activity groups by the user who CREATED each case
+    // (created_by_user_id → creator name/email), not the current assignee.
     const teamData = {};
-    const teamNav = {};
     (data || []).forEach(item => {
-      const assignee = item.assignee || 'Unassigned';
-      const name = (item.assignee_name || '').trim() || assignee;
+      const name = (item.creator || '').trim() || t('insights.creators.unknown');
       teamData[name] = (teamData[name] || 0) + Number(item.cases_count || 0);
-      // Prefer the email for filtering when the display name differs.
-      teamNav[name] = (name !== assignee && assignee !== 'Unassigned') ? assignee : (assignee === 'Unassigned' ? '__unassigned' : assignee);
     });
 
     const entries = sortBreakdownEntries(teamData);
@@ -1339,11 +1366,10 @@
 
     const labels = viewEntries.map(function(e) { return e[0]; });
     const values = viewEntries.map(function(e) { return e[1]; });
-    const navValues = viewEntries.map(function(e) { return teamNav[e[0]] || null; });
 
     if (labels.length === 0) {
-      showChartEmptyMessage(canvas, t('insights.charts.no_data'));
-      setChartAriaLabel(canvas, t('insights.charts.team_workload'), [t('insights.charts.no_data')], [0]);
+      showChartEmptyMessage(canvas, t('insights.charts.no_cases_match') || 'No cases match the selected filters.');
+      setChartAriaLabel(canvas, t('insights.charts.team_workload'), [t('insights.charts.no_cases_match') || 'empty'], [0]);
       return;
     }
     hideChartEmptyMessage(canvas);
@@ -1406,17 +1432,14 @@
             }
           }
         }
-      }, apChartClickOptions(function(idx) {
-        const v = navValues[idx];
-        return v ? function() { navigateToFilteredCasesParam('assigned_to', v); } : null;
-      })),
+      }, apChartClickOptions(function() { return null; })),
       plugins: [apBarEndValuePlugin]
     });
     setChartAriaLabel(canvas, t('insights.charts.team_workload'), labels, values, function(v) { return I18n.pluralize(v, 'insights.creators.case'); });
   }
 
   // ---- Workload & Throughput (Operations tab) ----
-  let apLastTeamData = [];
+  let apLastActivityData = null;
   let apWorkloadRows = [];
   let apWorkloadSort = { key: 'active', dir: -1 };
   let apTeamView = 'workload'; // 'workload' table | 'activity' chart
@@ -1557,6 +1580,13 @@
       return;
     }
     hideChartEmptyMessage(canvas);
+    // Fixed height: responsive + maintainAspectRatio:false needs a definite
+    // container height or the canvas/container resize loop grows unbounded.
+    var backlogContainer = canvas.closest('.ap-chart-container');
+    if (backlogContainer) {
+      backlogContainer.style.height = '240px';
+      backlogContainer.dataset.apFixedHeight = '1';
+    }
     const ctx = canvas.getContext('2d');
     apCharts['apBacklogChart'] = new Chart(ctx, {
       type: 'line',
@@ -1609,7 +1639,7 @@
     if (apTeamView === 'activity') {
       // Lazily render the creation-activity chart the first time it is
       // requested; it lives in a hidden container until then.
-      renderTeamChart(apLastTeamData);
+      renderTeamChart(apLastActivityData);
       setTimeout(function() { if (typeof resizeCharts === 'function') resizeCharts(); }, 60);
     }
   }
@@ -2536,14 +2566,26 @@
     }
     hideChartEmptyMessage(ctx.canvas);
 
+    // Fixed height: responsive + maintainAspectRatio:false needs a definite
+    // container height or the canvas/container resize loop grows unbounded.
+    var lcContainer = ctx.canvas.closest('.ap-chart-container');
+    if (lcContainer) {
+      lcContainer.style.height = '220px';
+      lcContainer.dataset.apFixedHeight = '1';
+    }
+
     // Sample-size context: lifecycle stats only cover qualifying completed
-    // cases - surface the count so users can judge the dataset.
+    // cases - surface the count so users can judge the dataset. The note
+    // lives in the card footer, outside the fixed-height chart container.
+    var lcCard = ctx.canvas.closest('.ap-chart-card');
     var lcNoteEl = document.getElementById('apLifecycleNote');
     if (!lcNoteEl) {
       lcNoteEl = document.createElement('p');
       lcNoteEl.className = 'ap-chart-note';
       lcNoteEl.id = 'apLifecycleNote';
-      ctx.canvas.parentElement.appendChild(lcNoteEl);
+    }
+    if (lcCard && lcNoteEl.parentElement !== lcCard) {
+      lcCard.appendChild(lcNoteEl);
     }
     lcNoteEl.textContent = I18n.pluralize(data.delivered_cases, 'insights.metrics.completed_cases_base');
     lcNoteEl.style.display = '';
