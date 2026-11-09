@@ -1298,6 +1298,10 @@ endif;
                  Month" KPI card. Persisted like the other board filters via
                  case-filter-sort.js; not shown in the filter bar. -->
             <input type="checkbox" id="filterDeliveredMonth" hidden>
+            <!-- Hidden filter driven by the Practice Insights "Attention
+                 Required" View All action. Mirrors the attention_only board
+                 filter; mutually exclusive with the quick risk filters. -->
+            <input type="checkbox" id="filterAttentionOnly" hidden>
           </div>
 
 <?php if (isFeatureEnabled('SHOW_AT_RISK')): ?>
@@ -1707,6 +1711,74 @@ endif;
                 <span class="ap-health-item"><i class="ap-health-dot ap-health-due-soon"></i><?= t('insights.sections.due_soon') ?> <b id="apHealthDueSoonCount">0</b></span>
                 <span class="ap-health-item ap-health-item--link" id="apHealthApptRiskLegend" data-health-target="appt_risk" role="button" tabindex="0"><i class="ap-health-dot ap-health-appt-risk"></i><?= t('insights.sections.appointment_risk') ?> <b id="apHealthApptRiskCount">0</b></span>
                 <span class="ap-health-item ap-health-item--link" id="apHealthLateLegend" data-health-target="late" role="button" tabindex="0"><i class="ap-health-dot ap-health-late"></i><?= t('insights.sections.late') ?> <b id="apHealthLateCount">0</b></span>
+              </div>
+            </div>
+
+            <!-- Attention Required -->
+            <div class="ap-attention" id="apAttentionSection">
+              <div class="ap-attention-header">
+                <div class="ap-attention-heading">
+                  <h2 class="ap-attention-title"><?= t('insights.attention.title') ?></h2>
+                  <p class="ap-attention-subtitle"><?= t('insights.attention.subtitle') ?></p>
+                </div>
+                <div class="ap-attention-controls">
+                  <div class="ap-attention-filters" id="apAttentionFilters" role="group" aria-label="<?= htmlspecialchars(t('insights.attention.filter_label')) ?>">
+                    <button type="button" class="ap-attention-chip is-active" data-attention-filter="all">
+                      <?= t('insights.attention.filter_all') ?> <span class="ap-attention-chip-count" id="apAttnCountAll">0</span>
+                    </button>
+                    <button type="button" class="ap-attention-chip" data-attention-filter="overdue">
+                      <?= t('insights.attention.filter_overdue') ?> <span class="ap-attention-chip-count" id="apAttnCountOverdue">0</span>
+                    </button>
+                    <button type="button" class="ap-attention-chip" data-attention-filter="appt_risk">
+                      <?= t('insights.attention.filter_appt_risk') ?> <span class="ap-attention-chip-count" id="apAttnCountApptRisk">0</span>
+                    </button>
+                    <button type="button" class="ap-attention-chip" data-attention-filter="due_soon">
+                      <?= t('insights.attention.filter_due_soon') ?> <span class="ap-attention-chip-count" id="apAttnCountDueSoon">0</span>
+                    </button>
+                    <button type="button" class="ap-attention-chip" data-attention-filter="awaiting_ack">
+                      <?= t('insights.attention.filter_awaiting_ack') ?> <span class="ap-attention-chip-count" id="apAttnCountAck">0</span>
+                    </button>
+                  </div>
+                  <label class="ap-attention-sort-label" for="apAttentionSort">
+                    <span class="ap-attention-sort-text"><?= t('insights.attention.sort_label') ?></span>
+                    <select id="apAttentionSort" class="ap-attention-sort">
+                      <option value="priority"><?= t('insights.attention.sort_priority') ?></option>
+                      <option value="due_date"><?= t('insights.attention.sort_due_date') ?></option>
+                      <option value="days_overdue"><?= t('insights.attention.sort_days_overdue') ?></option>
+                      <option value="status"><?= t('insights.attention.sort_status') ?></option>
+                      <option value="assigned"><?= t('insights.attention.sort_assigned') ?></option>
+                    </select>
+                  </label>
+                </div>
+              </div>
+
+              <div class="ap-attention-empty" id="apAttentionEmpty" hidden>
+                <p class="ap-attention-empty-title"><?= t('insights.attention.empty_title') ?></p>
+                <p class="ap-attention-empty-sub"><?= t('insights.attention.empty_subtitle') ?></p>
+              </div>
+
+              <div class="ap-attention-table-wrap" id="apAttentionTableWrap">
+                <table class="ap-attention-table">
+                  <thead>
+                    <tr>
+                      <th scope="col"><?= t('insights.attention.col_case') ?></th>
+                      <th scope="col"><?= t('insights.attention.col_patient') ?></th>
+                      <th scope="col"><?= t('insights.attention.col_risk') ?></th>
+                      <th scope="col"><?= t('insights.attention.col_status') ?></th>
+                      <th scope="col"><?= t('insights.attention.col_assigned') ?></th>
+                      <th scope="col"><?= t('insights.attention.col_date') ?></th>
+                      <th scope="col"><span class="ap-sr-only"><?= t('insights.attention.col_action') ?></span></th>
+                    </tr>
+                  </thead>
+                  <tbody id="apAttentionBody"></tbody>
+                </table>
+              </div>
+
+              <div class="ap-attention-footer" id="apAttentionFooter" hidden>
+                <span class="ap-attention-showing" id="apAttentionShowing"></span>
+                <button type="button" class="ap-btn ap-btn-secondary ap-attention-viewall" id="apAttentionViewAll">
+                  <?= t('insights.attention.view_all') ?>
+                </button>
               </div>
             </div>
 

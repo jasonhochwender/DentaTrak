@@ -1409,3 +1409,327 @@ button.ap-health-seg:focus-visible {
 .ap-health-card--empty .ap-health-bar,
 .ap-health-card--empty .ap-health-legend,
 .ap-health-card--empty .ap-health-overdue { display: none; }
+
+/* ========================================
+   Attention Required queue
+   ======================================== */
+.ap-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.ap-attention {
+  background: var(--ap-bg-card);
+  border: 1px solid var(--ap-border);
+  border-radius: 12px;
+  padding: 18px 20px;
+  margin-bottom: 24px;
+}
+
+.ap-attention-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+
+.ap-attention-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ap-text-primary);
+  margin: 0 0 2px;
+}
+
+.ap-attention-subtitle {
+  font-size: 12px;
+  color: var(--ap-text-muted);
+  margin: 0;
+}
+
+.ap-attention-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.ap-attention-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.ap-attention-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ap-text-secondary);
+  background: var(--ap-bg-primary);
+  border: 1px solid var(--ap-border);
+  border-radius: 999px;
+  cursor: pointer;
+  transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease;
+}
+
+.ap-attention-chip:hover {
+  border-color: var(--ap-border-accent);
+  color: var(--ap-text-primary);
+}
+
+.ap-attention-chip:focus-visible {
+  outline: 2px solid var(--ap-accent-primary);
+  outline-offset: 1px;
+}
+
+.ap-attention-chip.is-active {
+  background: var(--ap-bg-accent);
+  border-color: var(--ap-accent-primary);
+  color: var(--ap-text-primary);
+}
+
+.ap-attention-chip-count {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  color: var(--ap-text-muted);
+}
+
+.ap-attention-chip.is-active .ap-attention-chip-count {
+  color: var(--ap-text-primary);
+}
+
+.ap-attention-sort-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--ap-text-muted);
+}
+
+.ap-attention-sort {
+  font-size: 12px;
+  padding: 4px 8px;
+  border: 1px solid var(--ap-border);
+  border-radius: 8px;
+  background: var(--ap-bg-card);
+  color: var(--ap-text-primary);
+}
+
+.ap-attention-sort:focus-visible {
+  outline: 2px solid var(--ap-accent-primary);
+  outline-offset: 1px;
+}
+
+.ap-attention-empty {
+  padding: 18px 4px;
+  text-align: center;
+}
+
+.ap-attention-empty-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ap-text-primary);
+  margin: 0 0 4px;
+}
+
+.ap-attention-empty-sub {
+  font-size: 12px;
+  color: var(--ap-text-muted);
+  margin: 0;
+}
+
+.ap-attention-table-wrap {
+  overflow-x: auto;
+}
+
+.ap-attention-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.ap-attention-table thead th {
+  text-align: left;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ap-text-muted);
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--ap-border);
+  white-space: nowrap;
+}
+
+.ap-attention-table tbody td {
+  padding: 10px;
+  border-bottom: 1px solid var(--ap-border);
+  vertical-align: top;
+  color: var(--ap-text-secondary);
+}
+
+.ap-attention-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.ap-attn-row:hover td {
+  background: var(--ap-bg-primary);
+}
+
+.ap-attn-case-link {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ap-accent-primary);
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.ap-attn-case-link:hover {
+  text-decoration: underline;
+}
+
+.ap-attn-case-link:focus-visible {
+  outline: 2px solid var(--ap-accent-primary);
+  outline-offset: 2px;
+  border-radius: 3px;
+}
+
+.ap-attn-patient {
+  display: block;
+  font-weight: 600;
+  color: var(--ap-text-primary);
+}
+
+.ap-attn-case-type {
+  display: block;
+  font-size: 11px;
+  color: var(--ap-text-muted);
+  margin-top: 1px;
+}
+
+.ap-attn-reason {
+  display: inline-block;
+  font-weight: 600;
+  font-size: 12px;
+}
+
+.ap-attn-reason--late { color: #dc2626; }
+.ap-attn-reason--appt_risk { color: #7e22ce; }
+.ap-attn-reason--due_soon { color: #2563eb; }
+.ap-attn-reason--awaiting_ack { color: #b45309; }
+
+.ap-attn-reason-secondary {
+  display: block;
+  font-size: 11px;
+  color: var(--ap-text-muted);
+  margin-top: 2px;
+}
+
+.ap-attn-muted {
+  color: var(--ap-text-muted);
+}
+
+.ap-attn-date-line {
+  display: block;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.ap-attn-date-label {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ap-text-muted);
+}
+
+.ap-attn-view {
+  font-size: 12px;
+  padding: 4px 10px;
+  white-space: nowrap;
+}
+
+.ap-attention-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--ap-border);
+}
+
+.ap-attention-showing {
+  font-size: 12px;
+  color: var(--ap-text-muted);
+}
+
+/* Mobile: stacked presentation instead of a wide table */
+@media (max-width: 720px) {
+  .ap-attention-table thead {
+    display: none;
+  }
+
+  .ap-attention-table,
+  .ap-attention-table tbody,
+  .ap-attention-table tr,
+  .ap-attention-table td {
+    display: block;
+    width: 100%;
+  }
+
+  .ap-attention-table tbody tr {
+    border: 1px solid var(--ap-border);
+    border-radius: 10px;
+    padding: 10px 12px;
+    margin-bottom: 10px;
+  }
+
+  .ap-attention-table tbody tr:last-child {
+    margin-bottom: 0;
+  }
+
+  .ap-attention-table tbody td {
+    border-bottom: 0;
+    padding: 4px 0;
+  }
+
+  .ap-attention-table tbody td::before {
+    content: attr(data-label);
+    display: block;
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--ap-text-muted);
+    margin-bottom: 1px;
+  }
+
+  .ap-attn-cell-action {
+    padding-top: 8px;
+  }
+
+  .ap-attn-cell-action::before {
+    display: none;
+  }
+
+  .ap-attention-footer {
+    flex-direction: column;
+    align-items: stretch;
+    text-align: center;
+  }
+}

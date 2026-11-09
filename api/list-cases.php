@@ -422,6 +422,32 @@ try {
         }));
     }
 
+    // Attention Required queue - OR of the shared attention classifications
+    // (api/case-attention.php), the same rules Practice Insights uses for
+    // its Case Health categories and Attention Required list. Drives the
+    // Insights "View All" navigation.
+    $attentionOnly = $_GET['attention_only'] ?? '';
+    if ($attentionOnly === 'true') {
+        require_once __DIR__ . '/case-attention.php';
+        $attentionPrefs = [
+            'past_due_days' => $pastDueDays,
+            'coming_due_days' => $comingDueDays,
+            'appointment_risk_days' => $appointmentRiskDays,
+            'highlight_past_due' => $highlightPastDue,
+            'highlight_coming_due' => $highlightComingDue,
+            'highlight_appointment_risk' => $highlightAppointmentRisk,
+        ];
+        $decryptedCases = array_values(array_filter($decryptedCases, function($case) use ($attentionPrefs, $lastStageId) {
+            $cls = classifyCaseAttentionRisk([
+                'dueDate' => $case['dueDate'] ?? null,
+                'patientAppointmentDate' => $case['patientAppointmentDate'] ?? null,
+                'labAckStatus' => $case['labAckStatus'] ?? null,
+                'status' => $case['status'] ?? '',
+            ], $attentionPrefs, $lastStageId);
+            return $cls['attention'];
+        }));
+    }
+
     // PMS outbound state per case (Phase 3): external link + latest
     // outbound event status in two batched queries, only when the feature
     // flags and a writable connection make it reachable. Never adds fields

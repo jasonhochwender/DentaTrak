@@ -223,6 +223,7 @@
     // and Case Flow Status grid - same underlying metrics).
     renderKpiSummary(metrics, insights.caseFlow || {});
     bindKpiNavigation();
+    renderAttentionQueue(insights.attentionQueue || {});
 
     // Update trends insights
     const trends = insights.trends || {};
@@ -262,6 +263,292 @@
       }
     } else {
       if (aiSection) aiSection.style.display = 'none';
+    }
+  }
+
+  /* =========================================================
+     Attention Required queue
+     Items arrive pre-classified from api/get-analytics.php via the
+     shared api/case-attention.php rules (same thresholds and highlight
+     flags as the Case Health categories). Each item appears once;
+     `reasons` drives chip filtering, `tier` preserves server priority.
+     ========================================================= */
+  var attentionState = { items: [], counts: {}, filter: 'all', sort: 'priority' };
+  var attentionBound = false;
+  var ATTENTION_PREVIEW_COUNT = 5;
+
+  function attentionChipCountKey(filter) {
+    return { all: 'all', overdue: 'overdue', appt_risk: 'appt_risk', due_soon: 'due_soon', awaiting_ack: 'awaiting_ack' }[filter] || 'all';
+  }
+
+  function attentionFilterMatch(item, filter) {
+    if (filter === 'all') return true;
+    return (item.reasons || []).indexOf(filter) !== -1;
+  }
+
+  function attentionAssignedDisplay(value) {
+    if (typeof window.caseFilterSort !== 'undefined' && window.caseFilterSort && typeof window.caseFilterSort.assignedDisplay === 'function') {
+      return window.caseFilterSort.assignedDisplay(value);
+    }
+    return Array.isArray(value) ? value.join(', ') : String(value || '');
+  }
+
+  function attentionStatusLabel(status) {
+    if (typeof window.getStageLabel === 'function') return window.getStageLabel(status);
+    return status || '';
+  }
+
+  function attentionCaseTypeLabel(caseType) {
+    if (caseType && typeof window.getCaseTypeDisplayLabel === 'function') {
+      return window.getCaseTypeDisplayLabel(caseType);
+    }
+    return caseType || '';
+  }
+
+  /**
+   * Build ordered reason entries for an item. The primary reason's
+   * category is shown first; additional qualifying reasons follow as
+   * secondary context. Returns [{cat, text}].
+   */
+  function attentionReasonEntries(item) {
+    var entries = [];
+    var has = function (cat) { return (item.reasons || []).indexOf(cat) !== -1; };
+    var daysUntilDue = item.daysUntilDue;
+    var daysUntilAppt = item.daysUntilAppt;
+
+    if (has('late') && daysUntilDue !== null && daysUntilDue !== undefined) {
+      var overdueDays = Math.max(0, -daysUntilDue);
+      entries.push({ cat: 'late', text: I18n.pluralize(overdueDays, 'insights.attention.reason_late') });
+    }
+    if (has('appt_risk') && daysUntilAppt !== null && daysUntilAppt !== undefined) {
+      var apptText;
+      if (daysUntilAppt < 0) {
+        apptText = I18n.pluralize(-daysUntilAppt, 'insights.attention.reason_appt_missed');
+      } else if (daysUntilAppt === 0) {
+        apptText = t('insights.attention.reason_appt_today');
+      } else {
+        apptText = I18n.pluralize(daysUntilAppt, 'insights.attention.reason_appt_in');
+      }
+      entries.push({ cat: 'appt_risk', text: apptText });
+    }
+    if (has('due_soon') && daysUntilDue !== null && daysUntilDue !== undefined) {
+      var dueText = daysUntilDue === 0
+        ? t('insights.attention.reason_due_today')
+        : I18n.pluralize(daysUntilDue, 'insights.attention.reason_due_in');
+      entries.push({ cat: 'due_soon', text: dueText });
+    }
+    if (has('awaiting_ack')) {
+      entries.push({ cat: 'awaiting_ack', text: t('insights.attention.reason_awaiting_ack') });
+    }
+
+    // Primary reason first. 'late_appt' keeps late then appt order,
+    // which is already the push order above.
+    var primaryCat = {
+      late_appt: 'late', appt_risk: 'appt_risk', late: 'late',
+      due_soon: 'due_soon', awaiting_ack: 'awaiting_ack'
+    }[item.primaryReason];
+    if (primaryCat) {
+      entries.sort(function (a, b) {
+        if (a.cat === primaryCat) return -1;
+        if (b.cat === primaryCat) return 1;
+        return 0;
+      });
+    }
+    return entries;
+  }
+
+  function attentionSortValue(item, sort) {
+    switch (sort) {
+      case 'due_date':
+        return item.daysUntilDue === null || item.daysUntilDue === undefined ? Infinity : item.daysUntilDue;
+      case 'days_overdue': {
+        var overdue = item.daysUntilDue === null || item.daysUntilDue === undefined ? -Infinity : Math.max(0, -item.daysUntilDue);
+        return -overdue; // most overdue first
+      }
+      case 'status':
+        return attentionStatusLabel(item.status).toLowerCase();
+      case 'assigned': {
+        var who = attentionAssignedDisplay(item.assignedTo).toLowerCase();
+        return who || '\uffff'; // unassigned sorts last
+      }
+      default:
+        return item.tier || 99;
+    }
+  }
+
+  function attentionSortedItems() {
+    var items = attentionState.items.filter(function (item) {
+      return attentionFilterMatch(item, attentionState.filter);
+    });
+    if (attentionState.sort === 'priority') {
+      return items; // server order is already priority-sorted
+    }
+    return items.slice().sort(function (a, b) {
+      var av = attentionSortValue(a, attentionState.sort);
+      var bv = attentionSortValue(b, attentionState.sort);
+      if (av === bv) return (a.tier || 99) - (b.tier || 99);
+      return av < bv ? -1 : 1;
+    });
+  }
+
+  function attentionOpenCase(item) {
+    if (typeof window.openCaseById === 'function') {
+      window.openCaseById(item.id);
+    }
+  }
+
+  function renderAttentionRows() {
+    var body = document.getElementById('apAttentionBody');
+    var wrap = document.getElementById('apAttentionTableWrap');
+    var empty = document.getElementById('apAttentionEmpty');
+    var footer = document.getElementById('apAttentionFooter');
+    var showing = document.getElementById('apAttentionShowing');
+    var viewAll = document.getElementById('apAttentionViewAll');
+    if (!body) return;
+
+    var sorted = attentionSortedItems();
+    var preview = sorted.slice(0, ATTENTION_PREVIEW_COUNT);
+    var totalForFilter = attentionState.counts[attentionChipCountKey(attentionState.filter)] || 0;
+
+    if (preview.length === 0) {
+      body.innerHTML = '';
+      if (wrap) wrap.hidden = true;
+      if (empty) {
+        empty.hidden = false;
+        var emptyTitle = empty.querySelector('.ap-attention-empty-title');
+        var emptySub = empty.querySelector('.ap-attention-empty-sub');
+        var hasAny = (attentionState.counts.all || 0) > 0;
+        if (emptyTitle) emptyTitle.textContent = t(hasAny ? 'insights.attention.empty_filter_title' : 'insights.attention.empty_title');
+        if (emptySub) emptySub.textContent = t(hasAny ? 'insights.attention.empty_filter_subtitle' : 'insights.attention.empty_subtitle');
+      }
+      if (footer) footer.hidden = true;
+      return;
+    }
+
+    if (wrap) wrap.hidden = false;
+    if (empty) empty.hidden = true;
+
+    body.innerHTML = preview.map(function (item) {
+      var name = ((item.patientFirstName || '') + ' ' + (item.patientLastName || '')).trim();
+      var typeLabel = attentionCaseTypeLabel(item.caseType);
+      var assigned = attentionAssignedDisplay(item.assignedTo);
+      var reasons = attentionReasonEntries(item);
+      var primary = reasons[0];
+      var secondary = reasons.slice(1);
+      var shortId = String(item.id || '').slice(0, 8);
+      var dateLabelDue = t('insights.attention.date_due');
+      var dateLabelAppt = t('insights.attention.date_appt');
+
+      var reasonHtml = primary
+        ? '<span class="ap-attn-reason ap-attn-reason--' + escapeHtml(primary.cat) + '">' + escapeHtml(primary.text) + '</span>' +
+          secondary.map(function (r) {
+            return '<span class="ap-attn-reason-secondary">' + escapeHtml(r.text) + '</span>';
+          }).join('')
+        : '<span class="ap-attn-reason-secondary">' + escapeHtml(t('insights.attention.reason_generic')) + '</span>';
+
+      var dateHtml = '';
+      if (item.dueDate) {
+        dateHtml += '<span class="ap-attn-date-line"><span class="ap-attn-date-label">' + escapeHtml(dateLabelDue) + '</span> ' + escapeHtml(I18n.formatDate(item.dueDate)) + '</span>';
+      }
+      if (item.patientAppointmentDate) {
+        dateHtml += '<span class="ap-attn-date-line"><span class="ap-attn-date-label">' + escapeHtml(dateLabelAppt) + '</span> ' + escapeHtml(I18n.formatDate(item.patientAppointmentDate)) + '</span>';
+      }
+      if (!dateHtml) dateHtml = '<span class="ap-attn-muted">\u2014</span>';
+
+      return '<tr class="ap-attn-row" data-attn-case="' + escapeHtml(item.id) + '">' +
+        '<td class="ap-attn-cell-case" data-label="' + escapeHtml(t('insights.attention.col_case')) + '">' +
+          '<button type="button" class="ap-attn-case-link" data-attn-open="' + escapeHtml(item.id) + '" title="' + escapeHtml(String(item.id)) + '">#' + escapeHtml(shortId) + '</button>' +
+        '</td>' +
+        '<td class="ap-attn-cell-patient" data-label="' + escapeHtml(t('insights.attention.col_patient')) + '">' +
+          '<span class="ap-attn-patient">' + escapeHtml(name || '\u2014') + '</span>' +
+          (typeLabel ? '<span class="ap-attn-case-type">' + escapeHtml(typeLabel) + '</span>' : '') +
+        '</td>' +
+        '<td class="ap-attn-cell-risk" data-label="' + escapeHtml(t('insights.attention.col_risk')) + '">' + reasonHtml + '</td>' +
+        '<td class="ap-attn-cell-status" data-label="' + escapeHtml(t('insights.attention.col_status')) + '">' + escapeHtml(attentionStatusLabel(item.status)) + '</td>' +
+        '<td class="ap-attn-cell-assigned" data-label="' + escapeHtml(t('insights.attention.col_assigned')) + '">' +
+          '<span class="' + (assigned ? 'ap-attn-assigned' : 'ap-attn-muted') + '">' + escapeHtml(assigned || t('insights.attention.unassigned')) + '</span>' +
+        '</td>' +
+        '<td class="ap-attn-cell-date" data-label="' + escapeHtml(t('insights.attention.col_date')) + '">' + dateHtml + '</td>' +
+        '<td class="ap-attn-cell-action">' +
+          '<button type="button" class="ap-btn ap-btn-secondary ap-attn-view" data-attn-open="' + escapeHtml(item.id) + '">' + escapeHtml(t('insights.attention.view_case')) + '</button>' +
+        '</td>' +
+      '</tr>';
+    }).join('');
+
+    if (footer) {
+      footer.hidden = false;
+      if (showing) {
+        showing.textContent = t('insights.attention.showing', { shown: preview.length, total: totalForFilter });
+      }
+      if (viewAll) {
+        viewAll.hidden = !(attentionState.counts.all > ATTENTION_PREVIEW_COUNT);
+      }
+    }
+  }
+
+  function renderAttentionQueue(queue) {
+    attentionState.items = Array.isArray(queue.items) ? queue.items : [];
+    attentionState.counts = queue.counts || {};
+    attentionState.counts.all = queue.total !== undefined ? queue.total : attentionState.items.length;
+
+    // Chip counts reflect the full qualifying set from the server.
+    var map = { all: 'apAttnCountAll', overdue: 'apAttnCountOverdue', appt_risk: 'apAttnCountApptRisk', due_soon: 'apAttnCountDueSoon', awaiting_ack: 'apAttnCountAck' };
+    Object.keys(map).forEach(function (filter) {
+      var el = document.getElementById(map[filter]);
+      if (el) el.textContent = attentionState.counts[attentionChipCountKey(filter)] || 0;
+    });
+
+    renderAttentionRows();
+    bindAttentionQueue();
+  }
+
+  function bindAttentionQueue() {
+    if (attentionBound) return;
+    attentionBound = true;
+
+    var filtersEl = document.getElementById('apAttentionFilters');
+    if (filtersEl) {
+      filtersEl.addEventListener('click', function (e) {
+        var chip = e.target.closest('[data-attention-filter]');
+        if (!chip) return;
+        attentionState.filter = chip.getAttribute('data-attention-filter') || 'all';
+        filtersEl.querySelectorAll('.ap-attention-chip').forEach(function (c) {
+          c.classList.toggle('is-active', c === chip);
+        });
+        renderAttentionRows();
+      });
+    }
+
+    var sortEl = document.getElementById('apAttentionSort');
+    if (sortEl) {
+      sortEl.addEventListener('change', function () {
+        attentionState.sort = sortEl.value || 'priority';
+        renderAttentionRows();
+      });
+    }
+
+    var body = document.getElementById('apAttentionBody');
+    if (body) {
+      body.addEventListener('click', function (e) {
+        var opener = e.target.closest('[data-attn-open]');
+        if (!opener) return;
+        var id = opener.getAttribute('data-attn-open');
+        var item = attentionState.items.find(function (i) { return String(i.id) === String(id); });
+        if (item) attentionOpenCase(item);
+      });
+    }
+
+    var viewAll = document.getElementById('apAttentionViewAll');
+    if (viewAll) {
+      viewAll.addEventListener('click', function () {
+        // Navigate to the board filter matching the active chip so the
+        // "View All" destination reconciles with the filtered preview.
+        var targetByFilter = {
+          all: 'attention', overdue: 'late', appt_risk: 'appt_risk',
+          due_soon: 'due_soon', awaiting_ack: 'awaiting_ack'
+        };
+        navigateToFilteredCases(targetByFilter[attentionState.filter] || 'attention');
+      });
     }
   }
 
@@ -352,7 +639,8 @@
     };
     // Start from a clean risk-filter slate, then apply the requested one.
     ['filterLateCases', 'filterDueSoon', 'filterApptRisk', 'filterAtRisk',
-     'filterAwaitingAck', 'filterNeedsInfo', 'filterDeliveredMonth'].forEach(function (id) {
+     'filterAwaitingAck', 'filterNeedsInfo', 'filterDeliveredMonth',
+     'filterAttentionOnly'].forEach(function (id) {
       setCheck(id, false);
     });
 
@@ -360,16 +648,17 @@
     if (target === 'late') targetEl = setCheck('filterLateCases', true);
     else if (target === 'appt_risk') targetEl = setCheck('filterApptRisk', true);
     else if (target === 'delivered_month') targetEl = setCheck('filterDeliveredMonth', true);
-    // 'cases' (Active Cases) and 'due_soon' intentionally leave every
-    // risk/delivered filter cleared - the board's default view is the
-    // active-case list.
+    else if (target === 'attention') targetEl = setCheck('filterAttentionOnly', true);
+    else if (target === 'due_soon') targetEl = setCheck('filterDueSoon', true);
+    else if (target === 'awaiting_ack') targetEl = setCheck('filterAwaitingAck', true);
+    // 'cases' (Active Cases) intentionally leaves every filter cleared.
 
     // Dispatch change on the TARGET element only: its own listeners apply
     // the filters, and case-filter-sort's delegated listener persists the
     // full snapshot (including the cleared boxes). Dispatching on any
     // other risk checkbox would fire clearDeliveredMonthForRiskFilters
-    // and undo a delivered_month selection. For 'cases'/'due_soon' any
-    // already-cleared risk checkbox is a safe change source.
+    // and undo a delivered_month/attention_only selection. For 'cases'
+    // any already-cleared risk checkbox is a safe change source.
     var changeSource = targetEl || document.getElementById('filterLateCases');
     if (changeSource) {
       changeSource.dispatchEvent(new Event('change', { bubbles: true }));

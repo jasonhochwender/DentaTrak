@@ -175,7 +175,9 @@ try {
     // the same definitions and precedence as the Kanban board.
     $caseFlow = ['onTrack' => 0, 'dueSoon' => 0, 'appointmentRisk' => 0, 'late' => 0];
     $stmt = $pdo->prepare("
-        SELECT due_date, patient_appointment_date, status
+        SELECT case_id, due_date, patient_appointment_date, status,
+               patient_first_name, patient_last_name, case_type,
+               assigned_to, lab_ack_status, lab_promised_date
         FROM cases_cache INNER JOIN authorized_case_ids a ON a.case_id = cases_cache.case_id COLLATE utf8mb4_unicode_ci
         WHERE practice_id = :practice_id AND archived = 0 AND status != '{$GLOBALS['workflowTerminalStatus']}'
     ");
@@ -223,6 +225,66 @@ try {
     }
 
     $metrics['caseFlow'] = $caseFlow;
+
+    // Attention Required queue - individual cases needing intervention,
+    // classified by the shared api/case-attention.php rules so the queue
+    // reconciles with the Case Health categories above. Categories may
+    // overlap per case; `tier`/`primaryReason` carry the most urgent one.
+    require_once __DIR__ . '/case-attention.php';
+    $attentionItems = [];
+    $attentionCounts = ['all' => 0, 'overdue' => 0, 'appt_risk' => 0, 'due_soon' => 0, 'awaiting_ack' => 0];
+    foreach ($activeForFlow as $case) {
+        $cls = classifyCaseAttentionRisk([
+            'dueDate' => $case['due_date'] ?? null,
+            'patientAppointmentDate' => $case['patient_appointment_date'] ?? null,
+            'labAckStatus' => $case['lab_ack_status'] ?? null,
+            'status' => $case['status'] ?? '',
+        ], $preferences, $GLOBALS['workflowTerminalStatus']);
+        if (!$cls['attention']) {
+            continue;
+        }
+        $attentionCounts['all']++;
+        if ($cls['late']) $attentionCounts['overdue']++;
+        if ($cls['apptRisk']) $attentionCounts['appt_risk']++;
+        if ($cls['dueSoon']) $attentionCounts['due_soon']++;
+        if ($cls['awaitingAck']) $attentionCounts['awaiting_ack']++;
+        $attentionItems[] = [
+            'id' => $case['case_id'],
+            'patientFirstName' => $case['patient_first_name'] ?? '',
+            'patientLastName' => $case['patient_last_name'] ?? '',
+            'caseType' => $case['case_type'] ?? '',
+            'status' => $case['status'] ?? '',
+            'assignedTo' => $case['assigned_to'] ?? null,
+            'dueDate' => $case['due_date'] ?? null,
+            'patientAppointmentDate' => $case['patient_appointment_date'] ?? null,
+            'labPromisedDate' => $case['lab_promised_date'] ?? null,
+            'reasons' => $cls['reasons'],
+            'primaryReason' => $cls['primaryReason'],
+            'tier' => $cls['tier'],
+            'daysUntilDue' => $cls['daysUntilDue'],
+            'daysUntilAppt' => $cls['daysUntilAppt'],
+        ];
+    }
+    // Server-side priority order: tier asc, then most-imminent appointment,
+    // then most-overdue, then soonest due date. Cap payload at 200 items so
+    // client-side chip filters/sorts stay accurate for realistic practices;
+    // counts above always reflect the full qualifying set and "View All"
+    // covers anything beyond the cap via the board's attention_only filter.
+    usort($attentionItems, function ($a, $b) {
+        if ($a['tier'] !== $b['tier']) return $a['tier'] <=> $b['tier'];
+        $aAppt = $a['daysUntilAppt'] === null ? PHP_INT_MAX : $a['daysUntilAppt'];
+        $bAppt = $b['daysUntilAppt'] === null ? PHP_INT_MAX : $b['daysUntilAppt'];
+        if ($aAppt !== $bAppt) return $aAppt <=> $bAppt;
+        $aDue = $a['daysUntilDue'] === null ? PHP_INT_MAX : $a['daysUntilDue'];
+        $bDue = $b['daysUntilDue'] === null ? PHP_INT_MAX : $b['daysUntilDue'];
+        if ($aDue !== $bDue) return $aDue <=> $bDue;
+        return strcmp((string)$a['id'], (string)$b['id']);
+    });
+    $attentionQueue = [
+        'items' => array_slice($attentionItems, 0, 200),
+        'total' => $attentionCounts['all'],
+        'counts' => $attentionCounts,
+    ];
 
     // Total Archived Cases - cases that are archived (archived = 1)
     $stmt = $pdo->prepare("
@@ -644,6 +706,7 @@ try {
     // Calculate actual advanced insights from case data
     $advancedInsights = [
         'caseFlow' => $caseFlow,
+        'attentionQueue' => $attentionQueue,
         'completion' => [
             'avgDays' => $metrics['averageCaseDuration'] ?? 0,
             'onTrack' => $caseFlow['onTrack'],

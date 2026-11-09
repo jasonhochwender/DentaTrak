@@ -44,6 +44,12 @@
 - **Scope/limitation**: cases/search filters on dateCreated only - updates to older cases arrive via webhooks, not polling. File revision detection uses uuid+size+dateUpdated signatures; same-metadata/same-size re-scans are undetectable (documented gap).
 - Mocked regression: `php tests/medit-integration-test.php` (requires local dev DB on 3308, self-cleaning fixtures, no live calls).
 
+# Case attention classification
+
+- `api/case-attention.php` is the single source of truth for "which active cases need attention": `classifyCaseAttentionRisk()` returns per-category booleans (late / appointment risk / due soon / awaiting lab ack) using the same practice thresholds and `highlight_*` flags as the Practice Insights Case Health classification, plus a `tier`/`primaryReason` priority (1 overdue+appt, 2 appt, 3 overdue, 4 due soon, 5 awaiting ack). Categories may overlap; each case appears once.
+- Consumers: `api/get-analytics.php` emits `advancedInsights.attentionQueue` (items capped at 200, full-set counts) for the Insights "Attention Required" section; `api/list-cases.php?attention_only=true` applies the same OR-filter for the board "View All" navigation. Board quick filters are checkbox-driven - `filterAttentionOnly`/`filterDeliveredMonth` are hidden persisted checkboxes wired in `js/app.js` + `js/case-filter-sort.js`, mutually exclusive with the risk filters.
+- Verification: `php tests/attention-classifier-test.php` (no database).
+
 # Organization access scope (Scale foundation)
 
 - There is no `organizations` table: the organization is the subscription owner's account. Every practice with `practice_users.is_owner = 1` for the same user shares that user's single `subscriptions` row (`api/subscription-owner.php`). There is no organization-administrator role; `practice_users.role='admin'` is practice-scoped only and `users.role='admin'` is platform-level.

@@ -14538,6 +14538,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const filterAwaitingAck = document.getElementById('filterAwaitingAck');
     const filterNeedsInfo = document.getElementById('filterNeedsInfo');
     const filterDeliveredMonth = document.getElementById('filterDeliveredMonth');
+    const filterAttentionOnly = document.getElementById('filterAttentionOnly');
     const clearFiltersBtn = document.getElementById('clearFiltersBtn');
     const kanbanFilterActiveDot = document.getElementById('kanbanFilterActiveDot');
 
@@ -14559,6 +14560,7 @@ document.addEventListener('DOMContentLoaded', function () {
         const awaitingAckOnly = filterAwaitingAck ? filterAwaitingAck.checked : false;
         const needsInfoOnly = filterNeedsInfo ? filterNeedsInfo.checked : false;
         const deliveredMonthOnly = filterDeliveredMonth ? filterDeliveredMonth.checked : false;
+        const attentionOnly = filterAttentionOnly ? filterAttentionOnly.checked : false;
 
         // Build query parameters
         const params = new URLSearchParams();
@@ -14574,6 +14576,7 @@ document.addEventListener('DOMContentLoaded', function () {
         if (awaitingAckOnly) params.append('ack_awaiting_only', 'true');
         if (needsInfoOnly) params.append('ack_needs_info_only', 'true');
         if (deliveredMonthOnly) params.append('delivered_this_month', 'true');
+        if (attentionOnly) params.append('attention_only', 'true');
         // Open Dental patient scope (od-launch.js): constrain the board to
         // the synced patient's cases while the launch banner is active.
         const odIds = window.odPatientScope ? window.odPatientScope.caseIds() : null;
@@ -14710,17 +14713,23 @@ document.addEventListener('DOMContentLoaded', function () {
       filterNeedsInfo.addEventListener('change', applyFilters);
     }
 
-    // Hidden "Delivered This Month" filter driven by the Practice Insights
-    // KPI card. Terminal-status cases can never match the open-case risk
-    // filters, so checking it clears them (and vice versa) to avoid an
-    // always-empty board.
+    // Hidden "Delivered This Month" / "Attention Required" filters driven
+    // by the Practice Insights KPI cards and View All action. Both are
+    // mutually exclusive with the open-case quick filters and with each
+    // other: delivered cases are terminal (can never match risk/ack
+    // filters) and attention_only already unions the risk categories, so
+    // combining them would produce an empty or redundant board.
+    var quickRiskFilters = [filterLateCases, filterDueSoon, filterApptRisk, filterAtRisk, filterAwaitingAck, filterNeedsInfo];
+    var specialFilters = [filterDeliveredMonth, filterAttentionOnly];
+    function clearChecked(list) {
+      list.forEach(function (el) { if (el) el.checked = false; });
+    }
     function clearRiskFiltersForDeliveredMonth() {
-      [filterLateCases, filterDueSoon, filterApptRisk, filterAtRisk, filterAwaitingAck, filterNeedsInfo].forEach(function (el) {
-        if (el) el.checked = false;
-      });
+      clearChecked(quickRiskFilters);
+      if (filterAttentionOnly) filterAttentionOnly.checked = false;
     }
     function clearDeliveredMonthForRiskFilters() {
-      if (filterDeliveredMonth) filterDeliveredMonth.checked = false;
+      clearChecked(specialFilters);
     }
     if (filterDeliveredMonth) {
       filterDeliveredMonth.addEventListener('change', function() {
@@ -14730,7 +14739,16 @@ document.addEventListener('DOMContentLoaded', function () {
         applyFilters();
       });
     }
-    [filterLateCases, filterDueSoon, filterApptRisk, filterAtRisk, filterAwaitingAck, filterNeedsInfo].forEach(function (el) {
+    if (filterAttentionOnly) {
+      filterAttentionOnly.addEventListener('change', function() {
+        if (filterAttentionOnly.checked) {
+          clearChecked(quickRiskFilters);
+          if (filterDeliveredMonth) filterDeliveredMonth.checked = false;
+        }
+        applyFilters();
+      });
+    }
+    quickRiskFilters.forEach(function (el) {
       if (el) {
         el.addEventListener('change', clearDeliveredMonthForRiskFilters);
       }
@@ -14751,6 +14769,7 @@ document.addEventListener('DOMContentLoaded', function () {
         if (filterAwaitingAck) filterAwaitingAck.checked = false;
         if (filterNeedsInfo) filterNeedsInfo.checked = false;
         if (filterDeliveredMonth) filterDeliveredMonth.checked = false;
+        if (filterAttentionOnly) filterAttentionOnly.checked = false;
 
         // Apply cleared filters
         applyFilters();
