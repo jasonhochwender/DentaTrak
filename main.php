@@ -1674,6 +1674,61 @@ endif;
               </div>
             </div>
 
+            <!-- Global Insights filter toolbar -->
+            <div class="ap-filter-toolbar" id="apFilterToolbar">
+              <div class="ap-filter-toolbar-row">
+                <div class="ap-filter-field">
+                  <label for="afPeriod"><?= t('insights.filters.period') ?></label>
+                  <select id="afPeriod" class="ap-select">
+                    <option value="30d"><?= t('insights.filters.last_30_days') ?></option>
+                    <option value="90d" selected><?= t('insights.filters.last_90_days') ?></option>
+                    <option value="12m"><?= t('insights.filters.last_12_months') ?></option>
+                    <option value="all"><?= t('insights.filters.all_time') ?></option>
+                    <option value="custom"><?= t('insights.filters.custom_range') ?></option>
+                  </select>
+                </div>
+                <div class="ap-filter-field ap-filter-dates" id="afCustomDates" hidden>
+                  <input type="date" id="afFrom" class="ap-select" aria-label="<?= t('insights.filters.date_from') ?>">
+                  <span aria-hidden="true">–</span>
+                  <input type="date" id="afTo" class="ap-select" aria-label="<?= t('insights.filters.date_to') ?>">
+                </div>
+                <div class="ap-filter-field">
+                  <label for="afCaseType"><?= t('insights.filters.case_type') ?></label>
+                  <select id="afCaseType" class="ap-select">
+                    <option value=""><?= t('insights.filters.all_case_types') ?></option>
+                  </select>
+                </div>
+                <button type="button" class="ap-btn ap-btn-secondary ap-filter-toggle" id="afFiltersToggle" aria-expanded="false" aria-controls="afFiltersPanel">
+                  <?= t('insights.filters.filters_button') ?> <span class="ap-filter-badge" id="afFilterBadge" hidden></span>
+                </button>
+                <button type="button" class="ap-btn ap-btn-secondary" id="afResetFilters"><?= t('insights.filters.reset') ?></button>
+              </div>
+              <div class="ap-filter-panel" id="afFiltersPanel" hidden>
+                <div class="ap-filter-field">
+                  <label for="afStatus"><?= t('insights.filters.status') ?></label>
+                  <select id="afStatus" class="ap-select">
+                    <option value=""><?= t('insights.filters.all_statuses') ?></option>
+                    <option value="active"><?= t('insights.filters.active_cases_group') ?></option>
+                    <option value="completed"><?= t('insights.filters.completed_cases_group') ?></option>
+                  </select>
+                </div>
+                <div class="ap-filter-field">
+                  <label for="afAssignee"><?= t('insights.filters.team_member') ?></label>
+                  <select id="afAssignee" class="ap-select">
+                    <option value=""><?= t('insights.filters.all_team_members') ?></option>
+                    <option value="__unassigned"><?= t('insights.recs.unassigned_option') ?></option>
+                  </select>
+                </div>
+                <div class="ap-filter-field">
+                  <label for="afCarrier"><?= t('insights.filters.laboratory') ?></label>
+                  <select id="afCarrier" class="ap-select">
+                    <option value=""><?= t('insights.filters.all_laboratories') ?></option>
+                  </select>
+                </div>
+              </div>
+              <div class="ap-filter-chips" id="afFilterChips" hidden></div>
+            </div>
+
             <!-- Operational KPI Summary -->
             <div class="ap-kpi-grid" id="apKpiGrid">
               <button type="button" class="ap-kpi-card" id="apKpiActive" data-kpi-target="cases">

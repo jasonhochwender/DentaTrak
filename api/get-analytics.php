@@ -118,6 +118,80 @@ try {
     // recipients). For non-limited users the table contains every practice case.
     ensureAuthorizedCaseIdsTempTable($practiceId);
 
+    // ---- Global Insights filters (toolbar) ----
+    // af_period: 30d|90d|12m|all|custom (+af_from/af_to). Dimensions:
+    // af_case_type, af_status (active|completed|<internal status>),
+    // af_assignee ('__unassigned' supported), af_carrier.
+    // Applied ONLY to historical analytics queries below. Operational
+    // metrics (caseFlow, attentionQueue, KPI cards) intentionally keep
+    // their current-state definitions and are not period-filtered.
+    $afPeriod = $_GET['af_period'] ?? '';
+    $afFrom = $_GET['af_from'] ?? '';
+    $afTo = $_GET['af_to'] ?? '';
+    $afCaseType = trim((string)($_GET['af_case_type'] ?? ''));
+    $afStatus = trim((string)($_GET['af_status'] ?? ''));
+    $afAssignee = trim((string)($_GET['af_assignee'] ?? ''));
+    $afCarrier = trim((string)($_GET['af_carrier'] ?? ''));
+
+    $afScopeSql = '';
+    $afScopeParams = [];
+    $afDateCol = "STR_TO_DATE(LEFT(COALESCE(creation_date, CURRENT_DATE()), 10), '%Y-%m-%d')";
+    if ($afPeriod === '30d') {
+        $afScopeSql .= " AND $afDateCol >= DATE_SUB(CURRENT_DATE(), INTERVAL 30 DAY)";
+    } elseif ($afPeriod === '90d') {
+        $afScopeSql .= " AND $afDateCol >= DATE_SUB(CURRENT_DATE(), INTERVAL 90 DAY)";
+    } elseif ($afPeriod === '12m') {
+        $afScopeSql .= " AND $afDateCol >= DATE_SUB(CURRENT_DATE(), INTERVAL 12 MONTH)";
+    } elseif ($afPeriod === 'custom') {
+        $d1 = DateTime::createFromFormat('Y-m-d', $afFrom);
+        $d2 = DateTime::createFromFormat('Y-m-d', $afTo);
+        if ($d1 && $d2 && $d1 <= $d2) {
+            $afScopeSql .= " AND $afDateCol BETWEEN :af_from AND :af_to";
+            $afScopeParams['af_from'] = $afFrom;
+            $afScopeParams['af_to'] = $afTo;
+        }
+        // Invalid/reversed ranges fall back to no period restriction.
+    }
+    // 'all' or unknown => no date restriction.
+    if ($afCaseType !== '') {
+        $afScopeSql .= " AND COALESCE(case_type, '') = :af_case_type";
+        $afScopeParams['af_case_type'] = $afCaseType;
+    }
+    if ($afStatus === 'active') {
+        $afScopeSql .= " AND status != '{$GLOBALS['workflowTerminalStatus']}'";
+    } elseif ($afStatus === 'completed') {
+        $afScopeSql .= " AND status = '{$GLOBALS['workflowTerminalStatus']}'";
+    } elseif ($afStatus !== '') {
+        $afScopeSql .= " AND status = :af_status";
+        $afScopeParams['af_status'] = $afStatus;
+    }
+    if ($afAssignee === '__unassigned') {
+        $afScopeSql .= " AND (assigned_to IS NULL OR assigned_to = '')";
+    } elseif ($afAssignee !== '') {
+        $afScopeSql .= " AND assigned_to = :af_assignee";
+        $afScopeParams['af_assignee'] = $afAssignee;
+    }
+    if ($afCarrier !== '') {
+        $afScopeSql .= " AND carrier = :af_carrier";
+        $afScopeParams['af_carrier'] = $afCarrier;
+    }
+
+    // Distinct facet values for the toolbar dropdowns (practice-scoped,
+    // authorized cases only). One cheap DISTINCT query per dimension.
+    $afFacets = ['case_types' => [], 'assignees' => [], 'carriers' => []];
+    try {
+        $facetSql = "SELECT DISTINCT case_type FROM cases_cache INNER JOIN authorized_case_ids a ON a.case_id = cases_cache.case_id COLLATE utf8mb4_unicode_ci WHERE practice_id = :practice_id AND case_type IS NOT NULL AND case_type != '' ORDER BY case_type LIMIT 100";
+        $stmt = $pdo->prepare($facetSql);
+        $stmt->execute(['practice_id' => $practiceId]);
+        $afFacets['case_types'] = $stmt->fetchAll(PDO::FETCH_COLUMN);
+        $stmt = $pdo->prepare("SELECT DISTINCT assigned_to FROM cases_cache INNER JOIN authorized_case_ids a ON a.case_id = cases_cache.case_id COLLATE utf8mb4_unicode_ci WHERE practice_id = :practice_id AND assigned_to IS NOT NULL AND assigned_to != '' ORDER BY assigned_to LIMIT 100");
+        $stmt->execute(['practice_id' => $practiceId]);
+        $afFacets['assignees'] = $stmt->fetchAll(PDO::FETCH_COLUMN);
+        $stmt = $pdo->prepare("SELECT DISTINCT carrier FROM cases_cache INNER JOIN authorized_case_ids a ON a.case_id = cases_cache.case_id COLLATE utf8mb4_unicode_ci WHERE practice_id = :practice_id AND carrier IS NOT NULL AND carrier != '' ORDER BY carrier LIMIT 100");
+        $stmt->execute(['practice_id' => $practiceId]);
+        $afFacets['carriers'] = $stmt->fetchAll(PDO::FETCH_COLUMN);
+    } catch (Exception $e) { /* facets are best-effort */ }
+
     // Core Metrics
     $metrics = [];
     
@@ -334,12 +408,13 @@ try {
                     WHERE practice_id = :practice_id
                     AND status = '{$GLOBALS['workflowTerminalStatus']}'
                     AND creation_date IS NOT NULL
+                    $afScopeSql
                 ) spans
                 WHERE start_ts IS NOT NULL AND end_ts IS NOT NULL
             ) durations
             WHERE days >= 0
         ");
-        $stmt->execute(['practice_id' => $practiceId]);
+        $stmt->execute(array_merge(['practice_id' => $practiceId], $afScopeParams));
         $durRow = $stmt->fetch(PDO::FETCH_ASSOC);
         $metrics['averageCaseDuration'] = ($durRow && (int)$durRow['n'] > 0)
             ? round((float)$durRow['avg_duration'], 1) : null;
@@ -464,10 +539,11 @@ try {
             FROM cases_cache INNER JOIN authorized_case_ids a ON a.case_id = cases_cache.case_id COLLATE utf8mb4_unicode_ci
             WHERE practice_id = :practice_id
             $statusClause
+            $afScopeSql
             GROUP BY status
             ORDER BY " . getWorkflowStageOrderCaseSqlForPractice($practiceId) . "
         ");
-        $stmt->execute(['practice_id' => $practiceId]);
+        $stmt->execute(array_merge(['practice_id' => $practiceId], $afScopeParams));
         $statusDistribution = $stmt->fetchAll(PDO::FETCH_ASSOC);
     } catch (Exception $e) {
         $statusDistribution = [];
@@ -491,13 +567,14 @@ try {
             FROM cases_cache INNER JOIN authorized_case_ids a ON a.case_id = cases_cache.case_id COLLATE utf8mb4_unicode_ci
             WHERE practice_id = :practice_id
             AND STR_TO_DATE(LEFT(COALESCE(creation_date, CURRENT_DATE()), 10), '%Y-%m-%d') >= DATE_SUB(CURRENT_DATE(), INTERVAL $months MONTH)
+            $afScopeSql
             GROUP BY month
             ORDER BY month DESC
             LIMIT $months
         ";
 
         $stmt = $pdo->prepare($sql);
-        $stmt->execute(['practice_id' => $practiceId]);
+        $stmt->execute(array_merge(['practice_id' => $practiceId], $afScopeParams));
         $monthlyVolume = $stmt->fetchAll(PDO::FETCH_ASSOC);
     } catch (Exception $e) {
         $monthlyVolume = [];
@@ -518,10 +595,11 @@ try {
             FROM cases_cache INNER JOIN authorized_case_ids a ON a.case_id = cases_cache.case_id COLLATE utf8mb4_unicode_ci
             WHERE practice_id = :practice_id
             $typeClause
+            $afScopeSql
             GROUP BY case_type
             ORDER BY count DESC, case_type ASC
         ");
-        $stmt->execute(['practice_id' => $practiceId]);
+        $stmt->execute(array_merge(['practice_id' => $practiceId], $afScopeParams));
         $caseTypeBreakdown = $stmt->fetchAll(PDO::FETCH_ASSOC);
     } catch (Exception $e) {
         $caseTypeBreakdown = [];
@@ -619,10 +697,11 @@ try {
             WHERE c.practice_id = :practice_id
             AND c.archived = 0
             $creatorClause
+            $afScopeSql
             GROUP BY c.created_by_user_id, u.first_name, u.last_name
             ORDER BY cases_count DESC, first_name ASC, last_name ASC
         ");
-        $stmt->execute(['practice_id' => $practiceId]);
+        $stmt->execute(array_merge(['practice_id' => $practiceId], $afScopeParams));
         $creatorBreakdown = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         foreach ($creatorBreakdown as &$row) {
@@ -666,10 +745,11 @@ try {
             AND archived = 0
             AND status_changed_at IS NOT NULL
             $durationClause
+            $afScopeSql
             GROUP BY status
             ORDER BY " . getWorkflowStageOrderCaseSqlForPractice($practiceId) . "
         ");
-        $stmt->execute(['practice_id' => $practiceId]);
+        $stmt->execute(array_merge(['practice_id' => $practiceId], $afScopeParams));
         $statusDurationData = $stmt->fetchAll(PDO::FETCH_ASSOC);
         
         // Format the data for frontend
@@ -718,12 +798,13 @@ try {
                     WHERE c.practice_id = :practice_id
                     AND c.status = '{$GLOBALS['workflowTerminalStatus']}'
                     AND c.creation_date IS NOT NULL
+                    $afScopeSql
                 ) spans
                 WHERE start_ts IS NOT NULL AND end_ts IS NOT NULL
             ) durations
             WHERE days >= 0
         ");
-        $stmt->execute(['practice_id' => $practiceId]);
+        $stmt->execute(array_merge(['practice_id' => $practiceId], $afScopeParams));
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
         if ($row && (int)$row['delivered_cases'] > 0) {
             $lifecycleData['avg_total_days'] = round((float)$row['avg_total_days'], 2);
@@ -774,10 +855,11 @@ try {
             FROM cases_cache INNER JOIN authorized_case_ids a ON a.case_id = cases_cache.case_id COLLATE utf8mb4_unicode_ci
             WHERE practice_id = :practice_id
             AND YEAR(STR_TO_DATE(LEFT(creation_date, 10), '%Y-%m-%d')) = :currentYear
+            $afScopeSql
             GROUP BY month
             ORDER BY month
         ");
-        $stmt->execute(['practice_id' => $practiceId, 'currentYear' => $currentYear]);
+        $stmt->execute(array_merge(['practice_id' => $practiceId, 'currentYear' => $currentYear], $afScopeParams));
         $currentYearData = $stmt->fetchAll(PDO::FETCH_ASSOC);
         
         // Get last year data - strict practice filter
@@ -788,10 +870,11 @@ try {
             FROM cases_cache INNER JOIN authorized_case_ids a ON a.case_id = cases_cache.case_id COLLATE utf8mb4_unicode_ci
             WHERE practice_id = :practice_id
             AND YEAR(STR_TO_DATE(LEFT(creation_date, 10), '%Y-%m-%d')) = :lastYear
+            $afScopeSql
             GROUP BY month
             ORDER BY month
         ");
-        $stmt->execute(['practice_id' => $practiceId, 'lastYear' => $lastYear]);
+        $stmt->execute(array_merge(['practice_id' => $practiceId, 'lastYear' => $lastYear], $afScopeParams));
         $lastYearData = $stmt->fetchAll(PDO::FETCH_ASSOC);
         
         // Calculate monthly comparison data. Totals are year-to-date (months
@@ -888,7 +971,8 @@ try {
         'teamPerformance' => $teamPerformance,
         'creatorBreakdown' => $creatorBreakdown,
         'statusDuration' => $statusDurationData,
-        'lifecycle' => $lifecycleData
+        'lifecycle' => $lifecycleData,
+        'facets' => $afFacets
     ];
     
     // Record a Practice Insights visit only when the client marked this as a

@@ -143,6 +143,187 @@
     if (text && message) { text.textContent = message; }
   }
 
+  // ---- Global Insights filters (af_*) -------------------------------------
+  // Persisted in localStorage; applied server-side to the historical
+  // analytics queries in api/get-analytics.php. Operational metrics
+  // (caseFlow, attentionQueue, KPI cards) intentionally keep their
+  // current-state definitions and ignore the reporting period.
+  const AF_STORAGE_KEY = 'ap_global_filters';
+  const AF_DEFAULTS = { period: '90d', from: '', to: '', case_type: '', status: '', assignee: '', carrier: '' };
+  let afFilters = Object.assign({}, AF_DEFAULTS);
+  let afRequestSeq = 0;
+  let afFacetsLoaded = false;
+
+  function loadAfFilters() {
+    try {
+      const saved = JSON.parse(localStorage.getItem(AF_STORAGE_KEY) || '{}');
+      afFilters = Object.assign({}, AF_DEFAULTS, saved);
+    } catch (e) { afFilters = Object.assign({}, AF_DEFAULTS); }
+    // Sanitize period value.
+    if (!['30d', '90d', '12m', 'all', 'custom'].includes(afFilters.period)) {
+      afFilters.period = '90d';
+    }
+  }
+
+  function saveAfFilters() {
+    try { localStorage.setItem(AF_STORAGE_KEY, JSON.stringify(afFilters)); } catch (e) {}
+  }
+
+  function buildAfQuery() {
+    const p = new URLSearchParams();
+    if (afFilters.period) p.set('af_period', afFilters.period);
+    if (afFilters.period === 'custom') {
+      if (/^\d{4}-\d{2}-\d{2}$/.test(afFilters.from)) p.set('af_from', afFilters.from);
+      if (/^\d{4}-\d{2}-\d{2}$/.test(afFilters.to)) p.set('af_to', afFilters.to);
+    }
+    if (afFilters.case_type) p.set('af_case_type', afFilters.case_type);
+    if (afFilters.status) p.set('af_status', afFilters.status);
+    if (afFilters.assignee) p.set('af_assignee', afFilters.assignee);
+    if (afFilters.carrier) p.set('af_carrier', afFilters.carrier);
+    const s = p.toString();
+    return s ? '&' + s : '';
+  }
+
+  function afActiveCount() {
+    // Count non-default dimension filters (period is always "set" but is the
+    // baseline context, not counted as an extra filter).
+    return ['case_type', 'status', 'assignee', 'carrier'].filter(function(k) { return afFilters[k] !== ''; }).length;
+  }
+
+  function syncAfToolbar() {
+    const set = function(id, val) { const el = document.getElementById(id); if (el) el.value = val; };
+    set('afPeriod', afFilters.period);
+    set('afCaseType', afFilters.case_type);
+    set('afStatus', afFilters.status);
+    set('afAssignee', afFilters.assignee);
+    set('afCarrier', afFilters.carrier);
+    const from = document.getElementById('afFrom');
+    const to = document.getElementById('afTo');
+    if (from) from.value = afFilters.from;
+    if (to) to.value = afFilters.to;
+    const dates = document.getElementById('afCustomDates');
+    if (dates) dates.hidden = afFilters.period !== 'custom';
+    const badge = document.getElementById('afFilterBadge');
+    const n = afActiveCount();
+    if (badge) {
+      badge.hidden = n === 0;
+      badge.textContent = n > 0 ? '(' + n + ')' : '';
+    }
+    renderAfChips();
+  }
+
+  function renderAfChips() {
+    const wrap = document.getElementById('afFilterChips');
+    if (!wrap) return;
+    const defs = [
+      ['case_type', 'afCaseType', 'insights.filters.case_type'],
+      ['status', 'afStatus', 'insights.filters.status'],
+      ['assignee', 'afAssignee', 'insights.filters.team_member'],
+      ['carrier', 'afCarrier', 'insights.filters.laboratory']
+    ];
+    const chips = [];
+    defs.forEach(function(d) {
+      const key = d[0], selId = d[1], labelKey = d[2];
+      if (!afFilters[key]) return;
+      const sel = document.getElementById(selId);
+      const opt = sel ? sel.options[sel.selectedIndex] : null;
+      const label = opt ? opt.textContent : afFilters[key];
+      chips.push('<button type="button" class="ap-filter-chip" data-af-chip="' + key + '">' +
+        escapeHtml(t(labelKey)) + ': ' + escapeHtml(label) +
+        ' <span aria-hidden="true">×</span></button>');
+    });
+    // Custom range chip when period=custom.
+    if (afFilters.period === 'custom' && (afFilters.from || afFilters.to)) {
+      chips.push('<button type="button" class="ap-filter-chip" data-af-chip="__period">' +
+        escapeHtml(t('insights.filters.custom_range')) + ': ' + escapeHtml(afFilters.from || '…') + ' – ' + escapeHtml(afFilters.to || '…') +
+        ' <span aria-hidden="true">×</span></button>');
+    }
+    wrap.innerHTML = chips.join('');
+    wrap.hidden = chips.length === 0;
+    wrap.querySelectorAll('.ap-filter-chip').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        const key = btn.dataset.afChip;
+        if (key === '__period') { afFilters.period = '90d'; afFilters.from = ''; afFilters.to = ''; }
+        else { afFilters[key] = ''; }
+        saveAfFilters(); syncAfToolbar(); loadAnalyticsPro();
+      });
+    });
+  }
+
+  // Populate dimension dropdowns from facets returned by get-analytics.php.
+  function populateAfFacets(facets) {
+    if (!facets || afFacetsLoaded) return;
+    afFacetsLoaded = true;
+    const fill = function(id, values, keepValue) {
+      const sel = document.getElementById(id);
+      if (!sel) return;
+      const current = keepValue !== undefined ? keepValue : sel.value;
+      values.forEach(function(v) {
+        if (![].some.call(sel.options, function(o) { return o.value === v; })) {
+          const opt = document.createElement('option');
+          opt.value = v; opt.textContent = v;
+          sel.appendChild(opt);
+        }
+      });
+      sel.value = current;
+    };
+    fill('afCaseType', facets.case_types || [], afFilters.case_type);
+    fill('afAssignee', facets.assignees || [], afFilters.assignee);
+    fill('afCarrier', facets.carriers || [], afFilters.carrier);
+    // Workflow statuses: groups + each configured stage.
+    const statusSel = document.getElementById('afStatus');
+    if (statusSel && Array.isArray(window.workflowStageOrder)) {
+      window.workflowStageOrder.forEach(function(st) {
+        const label = (typeof getStageLabel === 'function' && getStageLabel(st)) || st;
+        if (![].some.call(statusSel.options, function(o) { return o.value === st; })) {
+          const opt = document.createElement('option');
+          opt.value = st; opt.textContent = label;
+          statusSel.appendChild(opt);
+        }
+      });
+      statusSel.value = afFilters.status;
+    }
+  }
+
+  function initAfToolbar() {
+    loadAfFilters();
+    syncAfToolbar();
+
+    const period = document.getElementById('afPeriod');
+    if (period) period.addEventListener('change', function() {
+      afFilters.period = period.value;
+      saveAfFilters(); syncAfToolbar(); loadAnalyticsPro();
+    });
+    ['afFrom', 'afTo'].forEach(function(id) {
+      const el = document.getElementById(id);
+      if (el) el.addEventListener('change', function() {
+        afFilters[id === 'afFrom' ? 'from' : 'to'] = el.value;
+        saveAfFilters(); renderAfChips(); loadAnalyticsPro();
+      });
+    });
+    [['afCaseType', 'case_type'], ['afStatus', 'status'], ['afAssignee', 'assignee'], ['afCarrier', 'carrier']].forEach(function(pair) {
+      const el = document.getElementById(pair[0]);
+      if (el) el.addEventListener('change', function() {
+        afFilters[pair[1]] = el.value;
+        saveAfFilters(); syncAfToolbar(); loadAnalyticsPro();
+      });
+    });
+    const toggle = document.getElementById('afFiltersToggle');
+    const panel = document.getElementById('afFiltersPanel');
+    if (toggle && panel) {
+      toggle.addEventListener('click', function() {
+        const open = panel.hidden;
+        panel.hidden = !open;
+        toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+      });
+    }
+    const reset = document.getElementById('afResetFilters');
+    if (reset) reset.addEventListener('click', function() {
+      afFilters = Object.assign({}, AF_DEFAULTS);
+      saveAfFilters(); syncAfToolbar(); loadAnalyticsPro();
+    });
+  }
+
   function loadAnalyticsPro() {
     // Plan entitlement is emitted by main.php; anything other than a strict
     // true (including an evaluation failure) must not fetch protected data.
@@ -162,7 +343,8 @@
     const durationPeriod = document.getElementById('apDurationPeriod')?.value || 'active';
     const creatorPeriod = document.getElementById('apCreatorPeriod')?.value || 'all';
 
-    const apiUrl = `api/get-analytics.php?team_period=${teamPeriod}&team_filter=${teamFilter}&volume_period=${volumePeriod}&status_period=${statusPeriod}&type_period=${typePeriod}&duration_period=${durationPeriod}&creator_period=${creatorPeriod}`;
+    const apiUrl = `api/get-analytics.php?team_period=${teamPeriod}&team_filter=${teamFilter}&volume_period=${volumePeriod}&status_period=${statusPeriod}&type_period=${typePeriod}&duration_period=${durationPeriod}&creator_period=${creatorPeriod}${buildAfQuery()}`;
+    const reqSeq = ++afRequestSeq;
 
     // A pending flag set by activateInsightsSubview() marks this request as a
     // screen visit; it is cleared only when the screen renders successfully.
@@ -187,12 +369,15 @@
         });
       })
       .then(data => {
+        // Drop stale responses: a newer filter selection superseded this one.
+        if (reqSeq !== afRequestSeq) return;
         setAnalyticsLoading(false);
         if (data && data.success) {
           if (window.__insightsVisitPending) {
             window.__insightsVisitPending.practice = false;
           }
           const payload = data.data || {};
+          populateAfFacets((payload.charts || {}).facets);
           renderAnalyticsPro(payload);
           apDataLoaded = true;
         } else {
@@ -204,6 +389,7 @@
         }
       })
       .catch(error => {
+        if (reqSeq !== afRequestSeq) return;
         setAnalyticsLoading(false);
         // A mid-session entitlement loss surfaces the server's message
         // (e.g. upgrade_required) rather than a generic failure.
@@ -2076,6 +2262,7 @@
   // Initialize immediately since this script is lazy-loaded after DOMContentLoaded
   function initOnLoad() {
     initializeEventListeners();
+    initAfToolbar();
 
     // Load billing tier and apply visibility restrictions
     loadBillingTierAndApplyVisibility();

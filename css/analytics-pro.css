@@ -2019,3 +2019,94 @@ button.ap-health-seg:focus-visible {
   color: var(--text-secondary);
   font-size: 0.85rem;
 }
+
+/* ---- Global Insights filter toolbar ---- */
+.ap-filter-toolbar {
+  margin-bottom: 16px;
+  padding: 10px 14px;
+  border: 1px solid var(--border-light);
+  border-radius: 10px;
+  background: var(--background-card, #fff);
+}
+
+.ap-filter-toolbar-row {
+  display: flex;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.ap-filter-field {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.ap-filter-field label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.ap-filter-field .ap-select {
+  min-width: 140px;
+}
+
+.ap-filter-dates {
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+}
+
+.ap-filter-panel {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px dashed var(--border-light);
+}
+
+.ap-filter-badge {
+  display: inline-block;
+  margin-left: 4px;
+  font-weight: 700;
+}
+
+.ap-filter-chip {
+  border: 1px solid var(--border-light);
+  background: var(--background-subtle);
+  color: var(--text-primary);
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.ap-filter-chip:hover {
+  border-color: var(--primary-color);
+  color: var(--primary-color);
+}
+
+.ap-filter-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+@media (max-width: 720px) {
+  .ap-filter-toolbar-row {
+    align-items: stretch;
+  }
+  .ap-filter-field .ap-select,
+  .ap-filter-field {
+    width: 100%;
+  }
+  .ap-filter-field .ap-select {
+    min-width: 0;
+  }
+}
