@@ -15,18 +15,25 @@ $recApi = file_get_contents("$root/api/ai-recommendations.php");
 $recStore = file_get_contents("$root/api/ai-recommendation-store.php");
 $appConfig = file_get_contents("$root/api/appConfig.php");
 
-// ── 1. Primary Practice/Labs segmented control ──────────────────────────
+// ── 1. Primary Practice/Labs nav (shared underline-tab chrome) ──────────
 ok(strpos($main, 'id="insightsSubtabs"') !== false && strpos($main, 'role="tablist"') !== false, 'subtabs tablist markup');
 ok(strpos($css, '.insights-subtabs') !== false, 'subtabs container styled');
-ok(strpos($css, 'border-radius: 8px') !== false && strpos($css, '.insights-subtab.active') !== false, 'segmented pill active state');
-ok(strpos($css, 'min-height: 36px') !== false, 'subtab click target >= 36px');
+ok(strpos($css, '.insights-subtab.active') !== false
+    && strpos($css, 'border-bottom: 2px solid transparent') !== false
+    && strpos($css, 'border-bottom-color: var(--ap-accent-primary') !== false,
+    'subtabs use shared underline active state');
+ok((bool) preg_match('/\.insights-subtab \{[^}]*\}/', $css, $m)
+    && strpos($m[0], 'border-radius') === false
+    && strpos($m[0], 'box-shadow') === false,
+    'subtab has no pill/segmented treatment');
+ok(strpos($css, 'min-height: 40px') !== false, 'subtab click target >= 40px');
 ok(strpos($css, ':focus-visible') !== false, 'subtab focus-visible style');
 ok(strpos($mobileCss, '.insights-subtabs') !== false, 'mobile subtab override present');
 
 // ── 2. Secondary Overview/Operations/Trends tab bar ─────────────────────
 ok(strpos($main, 'id="apViewTabs"') !== false && strpos($main, 'data-ap-view="overview"') !== false, 'view tabs markup');
 ok(strpos($js, 'data-ap-view') !== false || strpos($js, 'apViewTabs') !== false, 'view tabs wired in JS');
-ok(strpos($css, '.ap-view-tab') !== false && strpos($css, 'border-bottom: 3px solid transparent') !== false, 'stronger view-tab underline');
+ok(strpos($css, '.ap-view-tab') !== false && strpos($css, 'border-bottom: 2px solid transparent') !== false, 'view-tab underline matches shared chrome');
 ok(strpos($css, 'min-height: 40px') !== false, 'view-tab click target');
 
 // ── 3. Attention Required identification ────────────────────────────────

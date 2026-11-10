@@ -910,33 +910,35 @@
 /* ========================================
    Insights Sub-Navigation (Practice | Labs)
    ======================================== */
+/* Practice / Labs - primary navigation within Insights. Shares the
+   underline-tab chrome used by .main-tab and .ap-view-tab; hierarchy is
+   expressed through size and position, not a different control style. */
 .insights-subtabs {
-  display: inline-flex;
+  display: flex;
   align-items: center;
-  gap: 4px;
-  margin: -32px -32px 24px -32px;
-  padding: 10px 32px;
-  background: var(--ap-bg-secondary, #f1f5f9);
+  gap: 8px;
+  margin: 0 0 24px;
+  padding: 0;
   border-bottom: 1px solid var(--ap-border, #e2e8f0);
 }
 
 .insights-subtab {
-  background: transparent;
-  border: 1px solid transparent;
-  border-radius: 8px;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
   color: var(--ap-text-secondary, #475569);
   cursor: pointer;
-  font-size: 0.9rem;
+  font-size: 0.95rem;
   font-weight: 600;
   letter-spacing: 0.01em;
-  padding: 8px 18px;
-  min-height: 36px;
-  transition: color 0.15s ease, background-color 0.15s ease, border-color 0.15s ease;
+  padding: 10px 18px;
+  margin-bottom: -1px;
+  min-height: 40px;
+  transition: color 0.15s ease, border-color 0.15s ease;
 }
 
 .insights-subtab:hover {
   color: var(--ap-text-primary, #1e293b);
-  background: rgba(255, 255, 255, 0.6);
 }
 
 .insights-subtab:focus-visible {
@@ -945,10 +947,8 @@
 }
 
 .insights-subtab.active {
-  color: var(--ap-text-primary, #0f172a);
-  background: var(--ap-bg-primary, #ffffff);
-  border-color: var(--ap-border, #e2e8f0);
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
+  color: var(--ap-accent-primary, #1e40af);
+  border-bottom-color: var(--ap-accent-primary, #1e40af);
 }
 
 .insights-subpane {
@@ -961,13 +961,12 @@
 
 @media (max-width: 600px) {
   .insights-subtabs {
-    margin: -20px -16px 16px -16px;
-    padding: 12px 16px 0 16px;
+    margin-bottom: 16px;
   }
   .insights-subtab {
     flex: 1;
     padding: 10px 8px;
-    font-size: 0.85rem;
+    font-size: 0.9rem;
     text-align: center;
   }
 }
@@ -1202,10 +1201,6 @@
 }
 
 /* Hardcoded leftovers that bypass the --ap-* tokens */
-
-[data-theme="dark"] .insights-subtab:hover {
-  background: rgba(255, 255, 255, 0.05);
-}
 
 [data-theme="dark"] .ap-metric-trend.up {
   color: #34d399;
@@ -2160,16 +2155,19 @@ button.ap-health-seg:focus-visible {
   padding-bottom: 0;
 }
 
+/* Section tabs (Overview / Operations / Trends) - same underline chrome
+   as .insights-subtab and .main-tab, slightly smaller to sit below them
+   in the hierarchy. */
 .ap-view-tab {
   background: transparent;
   border: none;
-  border-bottom: 3px solid transparent;
+  border-bottom: 2px solid transparent;
   color: var(--ap-text-secondary, #475569);
   cursor: pointer;
-  font-size: 0.95rem;
+  font-size: 0.875rem;
   font-weight: 600;
   letter-spacing: 0.01em;
-  padding: 10px 18px;
+  padding: 8px 14px;
   margin-bottom: -1px;
   min-height: 40px;
   transition: color 0.15s ease, border-color 0.15s ease;
@@ -2550,14 +2548,12 @@ button.ap-health-seg:focus-visible {
 
 @media (max-width: 720px) {
   .insights-subtabs {
-    margin: -20px -16px 16px -16px;
-    padding: 10px 16px;
-    width: calc(100% + 32px);
+    margin-bottom: 16px;
   }
   .insights-subtab {
     flex: 1;
     padding: 8px 10px;
-    font-size: 0.85rem;
+    font-size: 0.9rem;
     text-align: center;
   }
 }
