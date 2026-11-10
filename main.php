@@ -2497,7 +2497,6 @@ endif;
                   <table class="ap-attention-table">
                     <thead>
                       <tr>
-                        <th scope="col"><?= t('insights.attention.col_case') ?></th>
                         <th scope="col"><?= t('insights.attention.col_patient') ?></th>
                         <th scope="col"><?= t('insights.labattn.col_lab') ?></th>
                         <th scope="col"><?= t('insights.attention.col_risk') ?></th>

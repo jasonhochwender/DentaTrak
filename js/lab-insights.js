@@ -513,9 +513,6 @@
       var reasons = liAttnReasonEntries(item);
       var primary = reasons[0];
       var secondary = reasons.slice(1);
-      var caseLabel = item.trackingNumber
-        ? escapeHtml(item.trackingNumber)
-        : '#' + escapeHtml(String(item.id || '').slice(0, 8));
       var dateLabelDue = t('insights.attention.date_due');
       var dateLabelAppt = t('insights.attention.date_appt');
 
@@ -536,12 +533,11 @@
       if (!dateHtml) { dateHtml = '<span class="ap-attn-muted">—</span>'; }
 
       return '<tr class="ap-attn-row" data-li-attn-case="' + escapeHtml(item.id) + '">' +
-        '<td class="ap-attn-cell-case" data-label="' + escapeHtml(t('insights.attention.col_case')) + '">' +
-          '<button type="button" class="ap-attn-case-link" data-li-attn-open="' + escapeHtml(item.id) + '" title="' + escapeHtml(String(item.id)) + '">' + caseLabel + '</button>' +
-        '</td>' +
         '<td class="ap-attn-cell-patient" data-label="' + escapeHtml(t('insights.attention.col_patient')) + '">' +
-          '<span class="ap-attn-patient">' + escapeHtml(name || '—') + '</span>' +
-          (typeLabel ? '<span class="ap-attn-case-type">' + escapeHtml(typeLabel) + '</span>' : '') +
+          '<button type="button" class="ap-attn-patient-link" data-li-attn-open="' + escapeHtml(item.id) + '">' +
+            '<span class="ap-attn-patient">' + escapeHtml(name || '—') + '</span>' +
+            (typeLabel ? '<span class="ap-attn-case-type">' + escapeHtml(typeLabel) + '</span>' : '') +
+          '</button>' +
         '</td>' +
         '<td class="ap-attn-cell-assigned" data-label="' + escapeHtml(t('insights.labattn.col_lab')) + '">' +
           '<span class="ap-attn-assigned">' + escapeHtml(item.lab || '—') + '</span>' +

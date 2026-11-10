@@ -203,6 +203,15 @@ check('queue has lab filter + sort controls',
 check('queue table uses semantic markup',
     (bool) preg_match('/<table class="ap-attention-table">[\s\S]*<th scope="col">/', $main)
     && strpos($main, '<tbody id="liAttnBody">') !== false);
+check('queue table drops redundant case column',
+    (bool) preg_match('/id="liAttentionSection"[\s\S]*?<tbody id="liAttnBody">/', $main, $m)
+    && strpos($m[0], 'col_case') === false
+    && strpos($m[0], 'col_patient') !== false);
+check('queue leads with clickable patient/case cell',
+    strpos($js, 'ap-attn-patient-link') !== false
+    && strpos($js, 'ap-attn-cell-case') === false
+    && strpos($js, 'ap-attn-case-link') === false
+    && (bool) preg_match("/'<td class=\"ap-attn-cell-patient\"[\s\S]{0,400}data-li-attn-open/", $js));
 check('js renders queue from attentionQueue payload',
     (bool) preg_match('/function renderLiAttentionQueue\(data\)[\s\S]{0,400}data\.attentionQueue/', $js));
 check('js preview limited to five cases',
