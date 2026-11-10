@@ -359,6 +359,7 @@
   // `reasons` drives chip filtering; `tier` preserves server priority.
   // ======================================================================
   var liAttnState = { items: [], counts: {}, filter: 'all', sort: 'priority', lab: 'all' };
+  var liAttnCountsByLab = {};   // labKey => {all,overdue,appt_risk,due_soon,awaiting_ack}
   var liAttnBound = false;
   var LI_ATTN_PREVIEW = 5;
 
@@ -596,6 +597,7 @@
     liAttnState.items = Array.isArray(queue.items) ? queue.items : [];
     liAttnState.counts = queue.counts || {};
     liAttnState.counts.all = queue.total !== undefined ? queue.total : liAttnState.items.length;
+    liAttnCountsByLab = queue.countsByLab || {};
 
     var map = { all: 'liAttnCountAll', overdue: 'liAttnCountOverdue', appt_risk: 'liAttnCountApptRisk', due_soon: 'liAttnCountDueSoon', awaiting_ack: 'liAttnCountAck' };
     Object.keys(map).forEach(function (filter) {
@@ -1378,10 +1380,40 @@
     return liPerf.practice;
   }
 
-  function detailStatCard(label, valueHtml) {
+  function detailStatCard(label, valueHtml, tipKey) {
+    var tip = tipKey ? ' title="' + escapeHtml(t(tipKey)) + '"' : '';
     return '<div class="li-stat">' +
       '<div class="li-stat-value">' + valueHtml + '</div>' +
-      '<div class="li-stat-label">' + escapeHtml(label) + '</div></div>';
+      '<div class="li-stat-label"' + tip + '>' + escapeHtml(label) + '</div></div>';
+  }
+
+  /** Scorecard stat with an optional Case Board drill-down link. */
+  function scorecardStat(label, valueHtml, opts) {
+    opts = opts || {};
+    var inner = valueHtml;
+    if (opts.navTarget) {
+      inner = '<button type="button" class="li-cell-link' + (opts.alert ? ' li-cell-link-late' : '') +
+        '" data-li-nav="' + escapeHtml(opts.navTarget) + '" data-li-lab="' +
+        escapeHtml(opts.labKey || '') + '">' + valueHtml + '</button>';
+    }
+    return detailStatCard(label, inner, opts.tipKey);
+  }
+
+  /** Per-lab attention counts for the Current Workload group. */
+  function labAttentionCounts(labKey, isPractice) {
+    if (isPractice) {
+      var c = liAttnState.counts || {};
+      return { overdue: c.overdue || 0, appt_risk: c.appt_risk || 0, awaiting_ack: c.awaiting_ack || 0 };
+    }
+    var c = liAttnCountsByLab[labKey] || {};
+    return { overdue: c.overdue || 0, appt_risk: c.appt_risk || 0, awaiting_ack: c.awaiting_ack || 0 };
+  }
+
+  // Overdue uses the same workload.late definition as the comparison table
+  // so scorecard values reconcile row-for-row; appt-risk/ack come from the
+  // shared attention classification.
+  function scorecardOverdue(wl, attn) {
+    return (wl && wl.late !== undefined) ? (wl.late || 0) : attn.overdue;
   }
 
   function renderPerfDetail() {
@@ -1396,9 +1428,13 @@
     section.style.display = 'block';
 
     var isPractice = (liSelectedLab === 'practice' || !liSelectedLab);
-    // Static section title; the lab selector already names the scope, so
-    // repeating it here just duplicates text.
-    title.textContent = t('insights.perf.detail.title');
+    // The lab name is the primary heading inside Lab Detail; the selector
+    // beside it identifies the scope. Practice scope keeps its label.
+    if (isPractice) {
+      title.textContent = t('insights.perf.detail.practice_option');
+    } else {
+      title.textContent = d.name || t('insights.perf.detail.title');
+    }
 
     var t8n = d.turnaround || {};
     var ot = d.onTime || {};
@@ -1422,31 +1458,68 @@
     var prev = bench.previousPeriod || null;
     var vs = bench.vsPractice || {};
 
-    subtitle.textContent = isPractice
-      ? t('insights.perf.detail.practice_option')
-      : (d.isLive ? '' : t('insights.perf.table.removed_suffix'));
+    // Reporting context: historical metrics follow the range selector;
+    // workload metrics are explicitly "as of now".
+    var rangeSel = document.getElementById('liRangeSelect');
+    var rangeText = rangeSel && rangeSel.selectedIndex >= 0
+      ? rangeSel.options[rangeSel.selectedIndex].text : '';
+    var wlSummary = escapeHtml(I18n.pluralize(wl.openCases || 0, 'insights.perf.context.cases_count'));
+    if ((wl.late || 0) > 0) {
+      wlSummary += ' &middot; ' + escapeHtml(I18n.pluralize(wl.late, 'insights.perf.context.late_count'));
+    }
+    subtitle.textContent = [
+      wlSummary,
+      rangeText ? t('insights.perf.detail.based_on_range', { range: rangeText }) : '',
+      isPractice ? '' : (d.isLive ? '' : t('insights.perf.table.removed_suffix'))
+    ].filter(Boolean).join('  ·  ');
 
-    var html = '<div class="li-detail-stats">';
+    var navLab = isPractice ? '' : liSelectedLab;
+    var attn = labAttentionCounts(liSelectedLab, isPractice);
 
-    // Cases + completed
+    // Revision (workflow-regression) counts live on the legacy labs
+    // payload; resolve them for the selected lab or aggregate for practice.
+    var revCount = 0, revRate = null, revDenom = 0;
+    if (isPractice) {
+      liLabs.forEach(function (l) {
+        revCount += l.revisionCount || 0;
+        revDenom += l.casesAssigned || 0;
+      });
+      revRate = revDenom > 0 ? Math.round((revCount / revDenom) * 1000) / 10 : null;
+    } else {
+      var revLab = liLabs.find(function (l) { return l.labKey === liSelectedLab; });
+      if (revLab) {
+        revCount = revLab.revisionCount || 0;
+        revRate = revLab.revisionRate;
+        revDenom = revLab.casesAssigned || 0;
+      }
+    }
+
+    var html = '<div class="li-scorecard">';
+
+    // ── Group 1: Delivery Performance (selected reporting period) ──
+    html += '<div class="li-scorecard-group">' +
+      '<h3 class="li-scorecard-group-title">' + escapeHtml(t('insights.perf.detail.group_delivery')) + '</h3>' +
+      '<div class="li-scorecard-grid">';
+
     var casesHtml = escapeHtml(fmtCount(vol.uniqueCases));
     if (vol.engagements && vol.engagements !== vol.uniqueCases) {
       casesHtml += '<div class="li-metric-note">' + escapeHtml(
         I18n.pluralize(vol.engagements, 'insights.perf.context.engagements')) + '</div>';
     }
-    html += detailStatCard(t('insights.perf.summary.lab_cases'), casesHtml);
-    html += detailStatCard(t('insights.perf.detail.completed_cases'), escapeHtml(fmtCount(comp.uniqueCases)));
+    html += detailStatCard(t('insights.perf.detail.completed_cases'), casesHtml,
+      'insights.perf.detail.tip_completed');
 
-    // Turnaround w/ vsPractice + prev period
     var turnHtml = metricValueHtml(t8n.avgDays, t8n.n, t8n.sufficient, fmtDays);
     var vb = vsPracticeText(vs.avgTurnaroundDays, 'days');
     if (vb) { turnHtml += '<div class="li-metric-note">' + escapeHtml(vb) + '</div>'; }
     var pb = prevPeriodText(prev && prev.avgTurnaroundDays, fmtDays);
     if (pb) { turnHtml += '<div class="li-metric-note">' + escapeHtml(pb) + '</div>'; }
-    html += detailStatCard(t('insights.perf.summary.avg_turnaround'), turnHtml);
+    html += detailStatCard(t('insights.perf.summary.avg_turnaround'), turnHtml,
+      'insights.perf.detail.tip_turnaround');
 
     html += detailStatCard(t('insights.perf.detail.median_turnaround'),
-      metricValueHtml(t8n.medianDays, t8n.n, t8n.sufficient, fmtDays));
+      metricValueHtml(t8n.medianDays, t8n.n, t8n.sufficient, fmtDays),
+      'insights.perf.detail.tip_median');
 
     var onTimeHtml = metricValueHtml(ot.pct, ot.n, ot.sufficient, fmtPercent);
     var ob = vsPracticeText(vs.onTimePct, 'pts');
@@ -1457,20 +1530,63 @@
       onTimeHtml += '<div class="li-metric-note">' +
         escapeHtml(t('insights.perf.context.due_date_coverage', { pct: ot.dueDateCoveragePct })) + '</div>';
     }
-    html += detailStatCard(t('insights.perf.summary.on_time'), onTimeHtml);
+    html += detailStatCard(t('insights.perf.summary.on_time'), onTimeHtml,
+      'insights.perf.detail.tip_ontime');
 
     html += detailStatCard(t('insights.perf.detail.avg_days_late'),
-      metricValueHtml(dl.avgDays, dl.n, dl.n >= (liPerf.meta ? liPerf.meta.minSampleSize : 5), fmtDays));
+      metricValueHtml(dl.avgDays, dl.n, dl.n >= (liPerf.meta ? liPerf.meta.minSampleSize : 5), fmtDays),
+      'insights.perf.detail.tip_days_late');
 
-    var wlHtml = escapeHtml(I18n.pluralize(wl.openCases || 0, 'insights.perf.context.cases_count'));
-    if ((wl.late || 0) > 0) {
-      wlHtml += '<div class="li-metric-note li-metric-note-quiet">' +
-        escapeHtml(I18n.pluralize(wl.late, 'insights.perf.context.late_count')) + '</div>';
+    html += '</div></div>'; // delivery group
+
+    // ── Group 2: Current Workload (as of now, not range-filtered) ──
+    html += '<div class="li-scorecard-group">' +
+      '<h3 class="li-scorecard-group-title">' + escapeHtml(t('insights.perf.detail.group_workload')) + '</h3>' +
+      '<div class="li-scorecard-grid">';
+
+    html += scorecardStat(t('insights.perf.detail.active_associated'),
+      escapeHtml(fmtCount(wl.openCases || 0)),
+      { navTarget: 'lab_cases', labKey: navLab, tipKey: 'insights.perf.detail.tip_workload' });
+    html += scorecardStat(t('insights.perf.table.overdue'),
+      escapeHtml(fmtCount(scorecardOverdue(wl, attn))),
+      { navTarget: 'late', labKey: navLab, alert: true, tipKey: 'insights.perf.detail.tip_overdue' });
+    html += scorecardStat(t('insights.attention.filter_appt_risk'),
+      escapeHtml(fmtCount(attn.appt_risk)),
+      { navTarget: 'appt_risk', labKey: navLab, tipKey: 'insights.perf.detail.tip_appt_risk' });
+    html += scorecardStat(t('insights.attention.filter_awaiting_ack'),
+      escapeHtml(fmtCount(attn.awaiting_ack)),
+      { navTarget: 'awaiting_ack', labKey: navLab, tipKey: 'insights.perf.detail.tip_awaiting_ack' });
+
+    html += '</div></div>'; // workload group
+
+    // ── Group 3: Quality & Reliability ──
+    html += '<div class="li-scorecard-group">' +
+      '<h3 class="li-scorecard-group-title">' + escapeHtml(t('insights.perf.detail.group_quality')) + '</h3>' +
+      '<div class="li-scorecard-grid">';
+
+    var remakeDenom = rm.rateDenominator;
+    var remakeHtml = metricValueHtml(rm.remakeRatePct, remakeDenom, rm.rateSufficient, fmtPercent);
+    html += detailStatCard(t('insights.perf.summary.remake_rate'), remakeHtml,
+      'insights.perf.detail.tip_remake');
+    html += detailStatCard(t('insights.perf.summary.lab_remake_rate'),
+      metricValueHtml(rm.labAttributedRatePct, remakeDenom, rm.rateSufficient, fmtPercent),
+      'insights.perf.detail.tip_lab_attr');
+    var revHtml = escapeHtml(fmtCount(revCount));
+    if (revRate !== null && revRate !== undefined) {
+      revHtml += '<div class="li-metric-note">' + escapeHtml(fmtPercent(revRate)) + '</div>';
     }
-    wlHtml += '<div class="li-metric-note">' + escapeHtml(t('insights.perf.context.workload_now')) + '</div>';
-    html += detailStatCard(t('insights.perf.detail.current_workload'), wlHtml);
+    html += detailStatCard(t('insights.perf.detail.workflow_regressions'), revHtml,
+      'insights.perf.detail.tip_regressions');
 
-    html += '</div>'; // .li-detail-stats
+    html += '</div>';
+    // Supporting links to the detailed sections below — kept inside the
+    // group so the scorecard stays the summary, not a duplicate analysis.
+    html += '<p class="li-scorecard-links">' +
+      '<a href="#liDetailRemakes">' + escapeHtml(t('insights.perf.detail.remake_details_link')) + '</a>' +
+      ' &middot; ' +
+      '<a href="#liRevisionsSection">' + escapeHtml(t('insights.perf.detail.regressions_link')) + '</a>' +
+      '</p></div>'; // quality group
+    html += '</div>'; // .li-scorecard
 
     // ── Trend (contained chart card, aligned with Practice Insights) ──
     html += '<div class="li-detail-block">' +
@@ -1536,7 +1652,7 @@
     html += '</div>';
 
     // ── Remakes ──
-    html += '<div class="li-detail-block">' +
+    html += '<div class="li-detail-block" id="liDetailRemakes">' +
       '<h3 class="li-detail-heading">' + escapeHtml(t('insights.perf.detail.remakes')) + '</h3>';
 
     if ((rm.total || 0) === 0) {
@@ -2178,6 +2294,18 @@
         if (!link) { return; }
         e.preventDefault();
         e.stopPropagation();
+        liNavigateToLabCases(link.getAttribute('data-li-nav') || 'lab_cases',
+          link.getAttribute('data-li-lab') || '');
+      });
+    }
+
+    // Same drill-down links inside the Lab Detail scorecard body.
+    var detailBody = document.getElementById('liLabDetailBody');
+    if (detailBody) {
+      detailBody.addEventListener('click', function (e) {
+        var link = e.target.closest('.li-cell-link');
+        if (!link) { return; }
+        e.preventDefault();
         liNavigateToLabCases(link.getAttribute('data-li-nav') || 'lab_cases',
           link.getAttribute('data-li-lab') || '');
       });

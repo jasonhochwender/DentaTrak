@@ -657,3 +657,75 @@
     padding: 0.75rem;
   }
 }
+
+/* ── Lab Detail scorecard ────────────────────────────────────────────── */
+.li-scorecard {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.li-scorecard-group-title {
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-secondary, #64748b);
+  margin: 0 0 0.5rem;
+}
+
+.li-scorecard-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.li-scorecard-grid .li-stat {
+  background: var(--card-bg, #fff);
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: 10px;
+  padding: 0.75rem 0.9rem;
+}
+
+@media (max-width: 1100px) {
+  .li-scorecard-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .li-scorecard-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 420px) {
+  .li-scorecard-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.li-scorecard-links {
+  margin: 0.5rem 0 0;
+  font-size: 0.8rem;
+}
+
+.li-scorecard-links a {
+  color: var(--link-color, #2563eb);
+  text-decoration: none;
+}
+
+.li-scorecard-links a:hover,
+.li-scorecard-links a:focus-visible {
+  text-decoration: underline;
+}
+
+.li-stat .li-cell-link {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  text-align: left;
+}

@@ -426,6 +426,7 @@ try {
     $caseHealth = ['onTrack' => 0, 'dueSoon' => 0, 'appointmentRisk' => 0, 'overdue' => 0];
     $attentionItems = [];
     $attentionCounts = ['all' => 0, 'overdue' => 0, 'appt_risk' => 0, 'due_soon' => 0, 'awaiting_ack' => 0];
+    $attentionByLab = []; // labKey => category counts (multi-reason cases count in each)
     foreach ($activeLabCasesById as $caseId => $row) {
         $cls = classifyCaseAttentionRisk([
             'status' => $row['status'] ?? '',
@@ -457,6 +458,18 @@ try {
         if ($cls['apptRisk']) $attentionCounts['appt_risk']++;
         if ($cls['dueSoon']) $attentionCounts['due_soon']++;
         if ($cls['awaitingAck']) $attentionCounts['awaiting_ack']++;
+
+        $attnLabKey = $row['_labKey'] ?? null;
+        if ($attnLabKey !== null) {
+            if (!isset($attentionByLab[$attnLabKey])) {
+                $attentionByLab[$attnLabKey] = ['all' => 0, 'overdue' => 0, 'appt_risk' => 0, 'due_soon' => 0, 'awaiting_ack' => 0];
+            }
+            $attentionByLab[$attnLabKey]['all']++;
+            if ($cls['late']) $attentionByLab[$attnLabKey]['overdue']++;
+            if ($cls['apptRisk']) $attentionByLab[$attnLabKey]['appt_risk']++;
+            if ($cls['dueSoon']) $attentionByLab[$attnLabKey]['due_soon']++;
+            if ($cls['awaitingAck']) $attentionByLab[$attnLabKey]['awaiting_ack']++;
+        }
 
         // Decrypt patient identifiers via the same PIIEncryption path every
         // other authenticated case screen uses; a failure yields blanks
@@ -508,6 +521,7 @@ try {
         'items' => array_slice($attentionItems, 0, 200),
         'total' => $attentionCounts['all'],
         'counts' => $attentionCounts,
+        'countsByLab' => $attentionByLab,
     ];
     $activeLabCaseCount = count($activeLabCasesById);
     $overdueLabCaseCount = $caseHealth['overdue'];
