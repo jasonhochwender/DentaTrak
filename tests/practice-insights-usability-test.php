@@ -67,6 +67,30 @@ ok(strpos($js, 'detail_pattern') !== false && strpos($js, 'detail_evidence') !==
 ok(strpos($js, 'recs.length === 0') !== false, 'distinct zero-rec empty state');
 ok(strpos($js, 'hasDetails = insightBits.length > 0 || factLines.length > 1') !== false, 'View Details suppressed without substance');
 
+// ── 4b. Recommendation lifecycle correctness ────────────────────────────
+ok(strpos($js, "aiRecsFilter === 'active') return state === 'new'") !== false,
+   'Active filter shows new only (reviewed excluded)');
+ok(strpos($js, 'counts.new + counts.reviewed') === false
+   && strpos($js, 'const activeCount = counts.new') !== false,
+   'Active count excludes reviewed');
+ok(strpos($js, "state === 'reviewed'") !== false
+   && strpos($js, "insights.recs.mark_new") !== false,
+   'Reviewed offers Mark as new');
+ok((bool) preg_match("/state === 'reviewed'\) \{[\s\S]{0,600}data-rec-state=\"new\"[\s\S]{0,600}data-rec-state=\"dismissed\"/", $js),
+   'Reviewed actions are Mark as new + Dismiss (no Mark reviewed)');
+ok(strpos($js, 'empty_active') !== false && strpos($js, 'empty_active_sub') !== false,
+   'dedicated empty-active state rendered');
+ok(strpos($js, 'insights.recs.update_failed') !== false,
+   'failed status update surfaces an error');
+ok(strpos($js, 'aiRecsNotice') !== false, 'lifecycle notice state tracked');
+ok(strpos($recApi, 'data_signature') !== false
+   && strpos($recApi, 'aiRecSignature(gatherAnalyticsData') !== false,
+   'set_state anchors state to current data signature');
+ok(strpos($recStore, 'data_signature = COALESCE(VALUES(data_signature), data_signature)') !== false,
+   'set_state persists data_signature');
+ok(strpos($recStore, "data_signature'] !== null") !== false,
+   'dismissed reopen requires a known changed signature');
+
 // ── 5. Locale coverage ──────────────────────────────────────────────────
 $locales = ['en-US','de-DE','es-ES','fr-CA','fr-FR','it-IT','ko-KR','pt-BR','ru-RU'];
 $needKeys = [
@@ -79,6 +103,10 @@ $needKeys = [
   ['insights','recs','detail_action'],
   ['insights','recs','fact_overdue_by_status'],
   ['insights','recs','fact_overdue_by_type'],
+  ['insights','recs','mark_new'],
+  ['insights','recs','update_failed'],
+  ['insights','recs','empty_active'],
+  ['insights','recs','empty_active_sub'],
 ];
 foreach ($locales as $loc) {
   $d = json_decode(file_get_contents("$root/locales/$loc.json"), true);

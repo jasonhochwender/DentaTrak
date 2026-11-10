@@ -15,6 +15,7 @@
   // lifecycle actions and filter chips can re-render without refetching.
   let aiRecsData = null;
   let aiRecsFilter = 'active';
+  let aiRecsNotice = null;
 
   /**
    * Apply Control-entitlement-based visibility to Insights sections.
@@ -1880,6 +1881,7 @@
     // Clear any previous state and show loading indicator inside the container.
     // The static #apAILoading child is intentionally replaced here — it is inside
     // #apRecommendations and would be wiped by innerHTML anyway.
+    aiRecsNotice = null;
     container.innerHTML = '<li class="ap-rec ap-rec-empty"><span class="ap-rec-text">' + escapeHtml(t('insights.ai.generating')) + '</span></li>';
 
     // Manual Refresh forces a new generation (?refresh=1); the automatic
@@ -2029,7 +2031,9 @@
 
   function recMatchesFilter(state) {
     if (aiRecsFilter === 'all') return true;
-    if (aiRecsFilter === 'active') return state === 'new' || state === 'reviewed';
+    // Active = new, unreviewed recommendations only. Reviewed/dismissed/
+    // resolved each live in their own filter view.
+    if (aiRecsFilter === 'active') return state === 'new';
     return state === aiRecsFilter;
   }
 
@@ -2043,6 +2047,7 @@
     }
     if (aiRecsData.stale) parts.push(t('insights.recs.stale_note'));
     if (extraWarning) parts.push(extraWarning);
+    else if (aiRecsNotice) parts.push(aiRecsNotice);
     else if (aiRecsData.warning) parts.push(aiRecsData.warning);
     meta.textContent = parts.join(' · ');
     meta.classList.toggle('is-stale', !!aiRecsData.stale);
@@ -2063,7 +2068,7 @@
       const s = AP_STATE_ORDER.hasOwnProperty(r.state) ? r.state : 'new';
       counts[s] = (counts[s] || 0) + 1;
     });
-    const activeCount = counts.new + counts.reviewed;
+    const activeCount = counts.new;
     if (summaryEl) {
       summaryEl.textContent = I18n.pluralize(activeCount, 'insights.recs.summary_active');
     }
@@ -2089,7 +2094,12 @@
     if (visible.length === 0) {
       const empty = document.createElement('li');
       empty.className = 'ap-rec ap-rec-empty';
-      empty.innerHTML = '<span class="ap-rec-text">' + escapeHtml(t(recs.length === 0 ? 'insights.recs.empty' : 'insights.recs.empty_filtered')) + '</span>';
+      if (aiRecsFilter === 'active' && recs.length > 0) {
+        empty.innerHTML = '<span class="ap-rec-title">' + escapeHtml(t('insights.recs.empty_active')) + '</span>' +
+          '<span class="ap-rec-msg">' + escapeHtml(t('insights.recs.empty_active_sub')) + '</span>';
+      } else {
+        empty.innerHTML = '<span class="ap-rec-text">' + escapeHtml(t(recs.length === 0 ? 'insights.recs.empty' : 'insights.recs.empty_filtered')) + '</span>';
+      }
       container.appendChild(empty);
       if (moreBtn) moreBtn.style.display = 'none';
       return;
@@ -2202,10 +2212,16 @@
       html += '</div></details>';
     }
 
-    // Lifecycle actions: resolved is terminal/automatic; dismissed can be restored.
-    if (state === 'new' || state === 'reviewed') {
+    // Lifecycle actions: resolved is terminal/automatic. New can be marked
+    // reviewed or dismissed; reviewed/dismissed can be returned to new.
+    if (state === 'new') {
       html += '<button type="button" class="ap-rec-btn ap-rec-lifecycle" data-rec-state="reviewed">' +
         escapeHtml(t('insights.recs.mark_reviewed')) + '</button>' +
+        '<button type="button" class="ap-rec-btn ap-rec-lifecycle" data-rec-state="dismissed">' +
+        escapeHtml(t('insights.recs.dismiss')) + '</button>';
+    } else if (state === 'reviewed') {
+      html += '<button type="button" class="ap-rec-btn ap-rec-lifecycle" data-rec-state="new">' +
+        escapeHtml(t('insights.recs.mark_new')) + '</button>' +
         '<button type="button" class="ap-rec-btn ap-rec-lifecycle" data-rec-state="dismissed">' +
         escapeHtml(t('insights.recs.dismiss')) + '</button>';
     } else if (state === 'dismissed') {
@@ -2242,17 +2258,25 @@
         setRecommendationState(key, newState, {
           rec_key: rec.rec_key, title: rec.title, description: rec.description,
           priority: rec.priority, category: rec.category,
-          fact_keys: rec.fact_keys || [], action_target: rec.action_target || 'none'
+          fact_keys: rec.fact_keys || [], action_target: rec.action_target || 'none',
+          insight: rec.insight || null
         }).then(function (res) {
           if (res && res.success && aiRecsData) {
+            aiRecsNotice = null;
             aiRecsData.recommendations.forEach(function (r) {
               if (r.rec_key === key) r.state = newState;
             });
             renderAIRecommendations();
           } else {
+            aiRecsNotice = t('insights.recs.update_failed');
+            renderAIRecommendationsMeta();
             btn.disabled = false;
           }
-        }).catch(function () { btn.disabled = false; });
+        }).catch(function () {
+          aiRecsNotice = t('insights.recs.update_failed');
+          renderAIRecommendationsMeta();
+          btn.disabled = false;
+        });
       });
     });
 

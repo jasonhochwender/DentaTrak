@@ -120,7 +120,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // Snapshot for resolved/rotated-out recs: client may send the record.
         $snapshot = isset($body['snapshot']) && is_array($body['snapshot']) ? $body['snapshot'] : null;
         if ($recKey !== '' && in_array($newState, ['new', 'reviewed', 'dismissed'], true)) {
-            aiRecSetState($pdo, (int)$practiceId, $recKey, $newState, (int)$userId, $snapshot);
+            // Anchor the state to the current analytics signature so the
+            // merge logic can distinguish "data changed since this state was
+            // set" (dismissed recs may reopen; absent recs may resolve)
+            // from "unchanged". Best-effort: a failure leaves NULL, which
+            // the merge treats as unknown rather than as a change.
+            $stateSignature = null;
+            try {
+                ensureAuthorizedCaseIdsTempTable((int)$practiceId);
+                $stateSignature = aiRecSignature(gatherAnalyticsData($pdo, (int)$practiceId), getActiveLocale());
+            } catch (Exception $sigEx) {
+                error_log('AI rec set_state signature unavailable: ' . $sigEx->getMessage());
+            }
+            aiRecSetState($pdo, (int)$practiceId, $recKey, $newState, (int)$userId, $snapshot, $stateSignature);
             echo json_encode(['success' => true]);
         } else {
             http_response_code(400);

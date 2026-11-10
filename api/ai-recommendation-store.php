@@ -168,18 +168,19 @@ if (!function_exists('aiRecLoadStates')) {
 
 if (!function_exists('aiRecSetState')) {
     function aiRecSetState(PDO $pdo, int $practiceId, string $recKey, string $state,
-                           ?int $userId, ?array $snapshot = null): void {
+                           ?int $userId, ?array $snapshot = null, ?string $dataSignature = null): void {
         aiRecEnsureSchema($pdo);
         $allowed = ['new', 'reviewed', 'dismissed', 'resolved'];
         if (!in_array($state, $allowed, true)) return;
         $stmt = $pdo->prepare("INSERT INTO ai_recommendation_states
-            (practice_id, rec_key, status, snapshot_json, updated_by)
-            VALUES (?, ?, ?, ?, ?)
+            (practice_id, rec_key, status, data_signature, snapshot_json, updated_by)
+            VALUES (?, ?, ?, ?, ?, ?)
             ON DUPLICATE KEY UPDATE status = VALUES(status),
+                data_signature = COALESCE(VALUES(data_signature), data_signature),
                 snapshot_json = COALESCE(VALUES(snapshot_json), snapshot_json),
                 updated_by = VALUES(updated_by)");
         $stmt->execute([$practiceId, substr($recKey, 0, 160), $state,
-            $snapshot ? json_encode($snapshot, JSON_UNESCAPED_UNICODE) : null, $userId]);
+            $dataSignature, $snapshot ? json_encode($snapshot, JSON_UNESCAPED_UNICODE) : null, $userId]);
     }
 }
 
@@ -208,10 +209,14 @@ if (!function_exists('aiRecMerge')) {
             $seen[$key] = true;
             $st = $states[$key] ?? null;
             $status = $st['status'] ?? 'new';
-            if ($status === 'dismissed' && $st && $st['data_signature'] !== $signature) {
+            // Reopen a dismissal only when the recorded signature is known and
+            // differs - a NULL signature means "state just written, data
+            // identity unknown", never evidence that the issue changed.
+            if ($status === 'dismissed' && $st && $st['data_signature'] !== null
+                && $st['data_signature'] !== $signature) {
                 // Underlying data changed since dismissal - reopen.
                 $status = 'new';
-                aiRecSetState($pdo, $practiceId, $key, 'new', null, $rec);
+                aiRecSetState($pdo, $practiceId, $key, 'new', null, $rec, $signature);
                 if (isset($states[$key])) $states[$key]['status'] = 'new';
             }
             if ($st && $st['data_signature'] !== $signature) {
