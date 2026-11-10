@@ -565,7 +565,7 @@
      flags as the Case Health categories). Each item appears once;
      `reasons` drives chip filtering, `tier` preserves server priority.
      ========================================================= */
-  var attentionState = { items: [], counts: {}, filter: 'all', sort: 'priority' };
+  var attentionState = { items: [], counts: {}, filter: 'all', sort: 'priority', expanded: false };
   var attentionBound = false;
   var ATTENTION_PREVIEW_COUNT = 5;
 
@@ -695,11 +695,11 @@
     var empty = document.getElementById('apAttentionEmpty');
     var footer = document.getElementById('apAttentionFooter');
     var showing = document.getElementById('apAttentionShowing');
-    var viewAll = document.getElementById('apAttentionViewAll');
     if (!body) return;
 
     var sorted = attentionSortedItems();
-    var preview = sorted.slice(0, ATTENTION_PREVIEW_COUNT);
+    var rows = attentionState.expanded ? sorted : sorted.slice(0, ATTENTION_PREVIEW_COUNT);
+    var preview = rows;
     var totalForFilter = attentionState.counts[attentionChipCountKey(attentionState.filter)] || 0;
 
     if (preview.length === 0) {
@@ -727,7 +727,6 @@
       var reasons = attentionReasonEntries(item);
       var primary = reasons[0];
       var secondary = reasons.slice(1);
-      var shortId = String(item.id || '').slice(0, 8);
       var dateLabelDue = t('insights.attention.date_due');
       var dateLabelAppt = t('insights.attention.date_appt');
 
@@ -748,12 +747,11 @@
       if (!dateHtml) dateHtml = '<span class="ap-attn-muted">\u2014</span>';
 
       return '<tr class="ap-attn-row" data-attn-case="' + escapeHtml(item.id) + '">' +
-        '<td class="ap-attn-cell-case" data-label="' + escapeHtml(t('insights.attention.col_case')) + '">' +
-          '<button type="button" class="ap-attn-case-link" data-attn-open="' + escapeHtml(item.id) + '" title="' + escapeHtml(String(item.id)) + '">#' + escapeHtml(shortId) + '</button>' +
-        '</td>' +
         '<td class="ap-attn-cell-patient" data-label="' + escapeHtml(t('insights.attention.col_patient')) + '">' +
-          '<span class="ap-attn-patient">' + escapeHtml(name || '\u2014') + '</span>' +
-          (typeLabel ? '<span class="ap-attn-case-type">' + escapeHtml(typeLabel) + '</span>' : '') +
+          '<button type="button" class="ap-attn-patient-link" data-attn-open="' + escapeHtml(item.id) + '">' +
+            '<span class="ap-attn-patient">' + escapeHtml(name || '\u2014') + '</span>' +
+            (typeLabel ? '<span class="ap-attn-case-type">' + escapeHtml(typeLabel) + '</span>' : '') +
+          '</button>' +
         '</td>' +
         '<td class="ap-attn-cell-risk" data-label="' + escapeHtml(t('insights.attention.col_risk')) + '">' + reasonHtml + '</td>' +
         '<td class="ap-attn-cell-status" data-label="' + escapeHtml(t('insights.attention.col_status')) + '">' + escapeHtml(attentionStatusLabel(item.status)) + '</td>' +
@@ -770,10 +768,19 @@
     if (footer) {
       footer.hidden = false;
       if (showing) {
-        showing.textContent = t('insights.attention.showing', { shown: preview.length, total: totalForFilter });
+        showing.textContent = t('insights.attention.showing', { shown: rows.length, total: totalForFilter });
       }
-      if (viewAll) {
-        viewAll.hidden = !(attentionState.counts.all > ATTENTION_PREVIEW_COUNT);
+      var showAll = document.getElementById('apAttentionShowAll');
+      if (showAll) {
+        var canExpand = totalForFilter > ATTENTION_PREVIEW_COUNT || sorted.length > ATTENTION_PREVIEW_COUNT;
+        showAll.hidden = !canExpand;
+        showAll.textContent = attentionState.expanded
+          ? t('insights.attention.show_fewer')
+          : t('insights.attention.show_all', { count: totalForFilter || sorted.length });
+      }
+      var boardBtn = document.getElementById('apAttentionBoard');
+      if (boardBtn) {
+        boardBtn.hidden = !(totalForFilter > 0);
       }
     }
   }
@@ -804,6 +811,7 @@
         var chip = e.target.closest('[data-attention-filter]');
         if (!chip) return;
         attentionState.filter = chip.getAttribute('data-attention-filter') || 'all';
+        attentionState.expanded = false;
         filtersEl.querySelectorAll('.ap-attention-chip').forEach(function (c) {
           c.classList.toggle('is-active', c === chip);
         });
@@ -830,11 +838,19 @@
       });
     }
 
-    var viewAll = document.getElementById('apAttentionViewAll');
-    if (viewAll) {
-      viewAll.addEventListener('click', function () {
+    var showAll = document.getElementById('apAttentionShowAll');
+    if (showAll) {
+      showAll.addEventListener('click', function () {
+        attentionState.expanded = !attentionState.expanded;
+        renderAttentionRows();
+      });
+    }
+
+    var boardBtn = document.getElementById('apAttentionBoard');
+    if (boardBtn) {
+      boardBtn.addEventListener('click', function () {
         // Navigate to the board filter matching the active chip so the
-        // "View All" destination reconciles with the filtered preview.
+        // destination reconciles with the filtered preview.
         var targetByFilter = {
           all: 'attention', overdue: 'late', appt_risk: 'appt_risk',
           due_soon: 'due_soon', awaiting_ack: 'awaiting_ack'
@@ -1989,8 +2005,32 @@
     due_this_week: { label: 'insights.recs.fact_due_week' },
     awaiting_ack: { label: 'insights.recs.fact_awaiting_ack' },
     workload_imbalance: { label: 'insights.recs.fact_workload' },
-    throughput_30d: { label: 'insights.recs.fact_throughput' }
+    throughput_30d: { label: 'insights.recs.fact_throughput' },
+    overdue_by_status: { label: 'insights.recs.fact_overdue_by_status', breakdown: true },
+    overdue_by_type: { label: 'insights.recs.fact_overdue_by_type', breakdown: true }
   };
+
+  // Render a {key: count} breakdown as "Label (n), Label (n)" for up to
+  // three entries. Status keys go through the shared stage-label helper;
+  // case-type keys use the configured display label when available.
+  function formatFactBreakdown(map, kind) {
+    if (!map || typeof map !== 'object') return '';
+    var entries = Object.keys(map).map(function (k) {
+      return { k: k, n: parseInt(map[k], 10) || 0 };
+    }).filter(function (e) { return e.n > 0; })
+      .sort(function (a, b) { return b.n - a.n; })
+      .slice(0, 3)
+      .map(function (e) {
+        var label = e.k;
+        if (kind === 'status' && typeof window.getStageLabel === 'function') {
+          label = window.getStageLabel(e.k) || e.k;
+        } else if (kind === 'type' && typeof window.getCaseTypeDisplayLabel === 'function') {
+          label = window.getCaseTypeDisplayLabel(e.k) || e.k;
+        }
+        return label + ' (' + e.n + ')';
+      });
+    return entries.join(', ');
+  }
 
   function formatObservedFact(key, facts) {
     const def = AP_FACT_DEFS[key];
@@ -2004,6 +2044,11 @@
     }
     if (key === 'throughput_30d') {
       return t(def.label, { created: f.created, completed: f.completed });
+    }
+    if (def.breakdown) {
+      var detail = formatFactBreakdown(f, key === 'overdue_by_status' ? 'status' : 'type');
+      if (!detail) return '';
+      return t(def.label, { breakdown: detail });
     }
     return t(def.label, { count: f.count });
   }
@@ -2070,7 +2115,7 @@
     if (visible.length === 0) {
       const empty = document.createElement('li');
       empty.className = 'ap-rec ap-rec-empty';
-      empty.innerHTML = '<span class="ap-rec-text">' + escapeHtml(t('insights.recs.empty_filtered')) + '</span>';
+      empty.innerHTML = '<span class="ap-rec-text">' + escapeHtml(t(recs.length === 0 ? 'insights.recs.empty' : 'insights.recs.empty_filtered')) + '</span>';
       container.appendChild(empty);
       if (moreBtn) moreBtn.style.display = 'none';
       return;
@@ -2138,29 +2183,50 @@
           escapeHtml(actionLabel) + '</button>';
       }
     }
-    // Expanded view shows only additional structured information (category,
-    // full observed-fact evidence, generation timestamp) - never the
-    // description again.
-    var detailBits = [];
-    var categoryLabel = t('insights.recs.category_' + (rec.category || 'efficiency'));
-    if (categoryLabel) detailBits.push(escapeHtml(categoryLabel));
-    html += '<details class="ap-rec-details"><summary>' +
-      '<span class="ap-rec-details-label">' + escapeHtml(t('insights.recs.view_details')) + '</span></summary>' +
-      '<div class="ap-rec-details-body">' +
-      (detailBits.length ? '<p class="ap-rec-detail-meta">' + detailBits.join('') + '</p>' : '');
-    if (factLines.length) {
-      html += '<p class="ap-rec-detail-heading">' + escapeHtml(t('insights.recs.detail_facts')) + '</p>' +
-        '<ul class="ap-rec-fact-list">' + factLines.map(function (s) {
-          return '<li>' + escapeHtml(s) + '</li>';
-        }).join('') + '</ul>';
+    // Expanded view shows only additional structured information (insight
+    // sections, category, full observed-fact evidence, generation timestamp)
+    // - never the description again. The control is omitted entirely when no
+    // substantive detail exists beyond the collapsed summary.
+    var insight = rec.insight && typeof rec.insight === 'object' ? rec.insight : null;
+    var insightBits = [];
+    if (insight) {
+      [['pattern', 'insights.recs.detail_pattern'],
+       ['evidence', 'insights.recs.detail_evidence'],
+       ['significance', 'insights.recs.detail_significance'],
+       ['action', 'insights.recs.detail_action']].forEach(function (pair) {
+        var val = (insight[pair[0]] || '').toString().trim();
+        if (val) {
+          insightBits.push('<p class="ap-rec-detail-heading">' + escapeHtml(t(pair[1])) + '</p>' +
+            '<p class="ap-rec-detail-text">' + escapeHtml(val) + '</p>');
+        }
+      });
     }
-    if (aiRecsData && aiRecsData.generated_at) {
-      var d = new Date(String(aiRecsData.generated_at).replace(' ', 'T'));
-      if (!isNaN(d)) {
-        html += '<p class="ap-rec-generated">' + escapeHtml(t('insights.recs.generated_at', { time: d.toLocaleString() })) + '</p>';
+    // View Details is omitted when there is no substantive content beyond
+    // the collapsed summary (a lone supporting fact is already visible).
+    var hasDetails = insightBits.length > 0 || factLines.length > 1;
+    if (hasDetails) {
+      var detailBits = [];
+      var categoryLabel = t('insights.recs.category_' + (rec.category || 'efficiency'));
+      if (categoryLabel) detailBits.push(escapeHtml(categoryLabel));
+      html += '<details class="ap-rec-details"><summary>' +
+        '<span class="ap-rec-details-label">' + escapeHtml(t('insights.recs.view_details')) + '</span></summary>' +
+        '<div class="ap-rec-details-body">' +
+        (detailBits.length ? '<p class="ap-rec-detail-meta">' + detailBits.join('') + '</p>' : '') +
+        insightBits.join('');
+      if (factLines.length) {
+        html += '<p class="ap-rec-detail-heading">' + escapeHtml(t('insights.recs.detail_facts')) + '</p>' +
+          '<ul class="ap-rec-fact-list">' + factLines.map(function (s) {
+            return '<li>' + escapeHtml(s) + '</li>';
+          }).join('') + '</ul>';
       }
+      if (aiRecsData && aiRecsData.generated_at) {
+        var d = new Date(String(aiRecsData.generated_at).replace(' ', 'T'));
+        if (!isNaN(d)) {
+          html += '<p class="ap-rec-generated">' + escapeHtml(t('insights.recs.generated_at', { time: d.toLocaleString() })) + '</p>';
+        }
+      }
+      html += '</div></details>';
     }
-    html += '</div></details>';
 
     // Lifecycle actions: resolved is terminal/automatic; dismissed can be restored.
     if (state === 'new' || state === 'reviewed') {

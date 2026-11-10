@@ -49,17 +49,19 @@ $commonConfig = [
         'max_tokens' => 4096,
     ],
 
-    'ai_prompt' => 'Analyze the following dental lab workflow data and provide exactly 3 actionable recommendations to improve efficiency, quality, or scheduling. Return ONLY a JSON array with this exact format (no markdown, no extra text):
+    'ai_prompt' => 'Analyze the following dental lab workflow data and provide UP TO 3 actionable recommendations that identify meaningful operational patterns or improvement opportunities. Return ONLY a JSON array with this exact format (no markdown, no extra text). Return fewer than 3 - or an empty array [] - when the data does not support that many meaningful findings. Never pad the list with generic observations that merely restate a headline metric:
 [
-  {"title": "Brief title", "description": "Detailed recommendation (2-4 sentences)", "priority": "high|medium|low", "category": "efficiency|quality|scheduling|workload|communication", "fact_keys": ["key1"], "action_target": "overdue|appt_risk|due_soon|unassigned|unclassified|lab_ack|attention|none"},
-  {"title": "Brief title", "description": "Detailed recommendation (2-4 sentences)", "priority": "high|medium|low", "category": "efficiency|quality|scheduling|workload|communication", "fact_keys": ["key1"], "action_target": "overdue|appt_risk|due_soon|unassigned|unclassified|lab_ack|attention|none"},
-  {"title": "Brief title", "description": "Detailed recommendation (2-4 sentences)", "priority": "high|medium|low", "category": "efficiency|quality|scheduling|workload|communication", "fact_keys": ["key1"], "action_target": "overdue|appt_risk|due_soon|unassigned|unclassified|lab_ack|attention|none"}
+  {"title": "Brief pattern headline", "description": "One or two sentence summary of the observation and why it matters", "priority": "high|medium|low", "category": "efficiency|quality|scheduling|workload|communication", "fact_keys": ["key1"], "action_target": "overdue|appt_risk|due_soon|unassigned|unclassified|lab_ack|attention|none", "insight": {"pattern": "The specific observed pattern", "evidence": "Verifiable measurements from the data", "significance": "Why this pattern may matter operationally", "action": "A concrete next step the practice administrator could take"}},
+  {"title": "Brief pattern headline", "description": "One or two sentence summary", "priority": "high|medium|low", "category": "efficiency|quality|scheduling|workload|communication", "fact_keys": ["key1"], "action_target": "overdue|appt_risk|due_soon|unassigned|unclassified|lab_ack|attention|none", "insight": {"pattern": "...", "evidence": "...", "significance": "...", "action": "..."}}
 ]
 
 Rules:
 - Base every recommendation ONLY on the provided data. Never invent metrics, counts, or causes.
-- fact_keys must reference keys from the observed_facts object in the data (e.g. overdue_share, unassigned_cases). Use [] if none apply.
+- Each recommendation must identify a PATTERN or OPPORTUNITY (e.g. risk concentrated in one stage or case type, work accumulating before lab acknowledgment, sustained throughput imbalance), not a restatement of a single dashboard number.
+- fact_keys must reference keys from the observed_facts object in the data (e.g. overdue_share, unassigned_cases, overdue_by_status, overdue_by_type). Use [] only when no fact key applies.
 - action_target must be the single most relevant DentaTrak case-board destination for the issue, or "none".
+- insight.pattern/evidence/significance/action must contain information NOT already implied by the title and description. Do not repeat the description.
+- Do not claim causation or assign blame to labs, staff, or vendors based on correlation alone.
 - Use measured, professional language. Do not claim bottlenecks or causes the data does not support.
 
 Here is the workflow data to analyze:

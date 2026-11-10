@@ -1913,7 +1913,13 @@
             "category_quality": "Qualité",
             "category_scheduling": "Planification",
             "category_workload": "Charge de travail",
-            "category_communication": "Communication"
+            "category_communication": "Communication",
+            "detail_pattern": "Modèle observé",
+            "detail_evidence": "Éléments à l’appui",
+            "detail_significance": "Portée opérationnelle",
+            "detail_action": "Action suggérée",
+            "fact_overdue_by_status": "Cas en retard concentrés dans : {breakdown}",
+            "fact_overdue_by_type": "Cas en retard par type de cas : {breakdown}"
         },
         "metrics": {
             "new_this_month": "Nouveaux ce mois",
@@ -2006,7 +2012,10 @@
             "empty_subtitle": "Aucun cas ne répond aux critères de risque configurés.",
             "empty_filter_title": "Aucun cas dans cette catégorie.",
             "empty_filter_subtitle": "Essayez un autre filtre pour voir d'autres cas.",
-            "showing": "{shown} sur {total} affichés"
+            "showing": "{shown} sur {total} affichés",
+            "show_all": "Afficher les {count} cas",
+            "show_fewer": "Afficher moins",
+            "open_in_board": "Ouvrir dans le tableau des cas"
         },
         "sections": {
             "case_flow_status": "Statut du flux de cas",

@@ -1840,7 +1840,6 @@ endif;
                 <table class="ap-attention-table">
                   <thead>
                     <tr>
-                      <th scope="col"><?= t('insights.attention.col_case') ?></th>
                       <th scope="col"><?= t('insights.attention.col_patient') ?></th>
                       <th scope="col"><?= t('insights.attention.col_risk') ?></th>
                       <th scope="col"><?= t('insights.attention.col_status') ?></th>
@@ -1855,9 +1854,14 @@ endif;
 
               <div class="ap-attention-footer" id="apAttentionFooter" hidden>
                 <span class="ap-attention-showing" id="apAttentionShowing"></span>
-                <button type="button" class="ap-btn ap-btn-secondary ap-attention-viewall" id="apAttentionViewAll">
-                  <?= t('insights.attention.view_all') ?>
-                </button>
+                <div class="ap-attention-footer-actions">
+                  <button type="button" class="ap-btn ap-btn-secondary" id="apAttentionShowAll" hidden>
+                    <?= t('insights.attention.show_all', ['count' => 0]) ?>
+                  </button>
+                  <button type="button" class="ap-btn ap-btn-secondary" id="apAttentionBoard">
+                    <?= t('insights.attention.open_in_board') ?>
+                  </button>
+                </div>
               </div>
             </div>
 

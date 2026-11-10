@@ -1291,11 +1291,11 @@
     padding: 12px 16px !important;
   }
 
-  /* Insights subtabs - full width, tappable */
+  /* Insights subtabs - segmented control, full width, tappable */
   .insights-subtabs {
     margin: -12px -10px 16px -10px;
-    padding: 0 10px;
-    gap: 0;
+    padding: 8px 10px;
+    gap: 4px;
   }
 
   .insights-subtab {
@@ -1307,6 +1307,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
+    border-radius: 8px;
   }
 
   /* Metrics grid - single column */

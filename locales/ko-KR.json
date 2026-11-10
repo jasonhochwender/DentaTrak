@@ -1921,7 +1921,13 @@
             "category_quality": "품질",
             "category_scheduling": "일정 관리",
             "category_workload": "업무량",
-            "category_communication": "커뮤니케이션"
+            "category_communication": "커뮤니케이션",
+            "detail_pattern": "관찰된 패턴",
+            "detail_evidence": "뒷받침 근거",
+            "detail_significance": "운영상 의미",
+            "detail_action": "제안된 조치",
+            "fact_overdue_by_status": "기한 초과 사례 집중 단계: {breakdown}",
+            "fact_overdue_by_type": "기한 초과 사례 집중 유형: {breakdown}"
         },
         "metrics": {
             "new_this_month": "이번 달 신규",
@@ -2014,7 +2020,10 @@
             "empty_subtitle": "구성된 위험 기준을 충족하는 케이스가 없습니다.",
             "empty_filter_title": "이 카테고리에 케이스가 없습니다.",
             "empty_filter_subtitle": "다른 필터를 사용해 다른 케이스를 확인하세요.",
-            "showing": "{total}개 중 {shown}개 표시"
+            "showing": "{total}개 중 {shown}개 표시",
+            "show_all": "케이스 {count}건 모두 보기",
+            "show_fewer": "간단히 보기",
+            "open_in_board": "케이스 보드에서 열기"
         },
         "sections": {
             "case_flow_status": "케이스 흐름 상태",

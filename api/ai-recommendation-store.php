@@ -98,6 +98,19 @@ if (!function_exists('aiRecNormalize')) {
             }
             $action = in_array($rec['action_target'] ?? '', $allowedActions, true)
                 ? $rec['action_target'] : 'none';
+            // Structured insight detail survives normalization so the UI can
+            // render pattern/evidence/significance/action in expanded view.
+            $insight = null;
+            $insightSrc = isset($rec['insight']) && is_array($rec['insight'])
+                ? $rec['insight'] : (isset($rec['details']) && is_array($rec['details']) ? $rec['details'] : null);
+            if ($insightSrc) {
+                $insight = [];
+                foreach (['pattern', 'evidence', 'significance', 'action'] as $ik) {
+                    $v = trim(strip_tags((string)($insightSrc[$ik] ?? '')));
+                    if ($v !== '') { $insight[$ik] = mb_substr($v, 0, 600); }
+                }
+                if (count($insight) === 0) { $insight = null; }
+            }
             $out[] = [
                 'rec_key' => aiRecKey($category, $title),
                 'title' => $title,
@@ -106,6 +119,7 @@ if (!function_exists('aiRecNormalize')) {
                 'category' => $category,
                 'fact_keys' => $factKeys,
                 'action_target' => $action,
+                'insight' => $insight,
             ];
             if (count($out) >= 5) break;
         }

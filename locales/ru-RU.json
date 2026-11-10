@@ -3491,7 +3491,13 @@
             "category_quality": "Качество",
             "category_scheduling": "Планирование",
             "category_workload": "Рабочая нагрузка",
-            "category_communication": "Коммуникация"
+            "category_communication": "Коммуникация",
+            "detail_pattern": "Выявленная закономерность",
+            "detail_evidence": "Подтверждающие данные",
+            "detail_significance": "Операционное значение",
+            "detail_action": "Предлагаемое действие",
+            "fact_overdue_by_status": "Просроченные случаи на этапе: {breakdown}",
+            "fact_overdue_by_type": "Просроченные случаи по типу: {breakdown}"
         },
         "metrics": {
             "new_this_month": "Новых за месяц",
@@ -3596,7 +3602,10 @@
             "empty_subtitle": "Ни один случай не соответствует настроенным критериям риска.",
             "empty_filter_title": "В этой категории нет случаев.",
             "empty_filter_subtitle": "Попробуйте другой фильтр, чтобы увидеть другие случаи.",
-            "showing": "Показано {shown} из {total}"
+            "showing": "Показано {shown} из {total}",
+            "show_all": "Показать все {count} случаев",
+            "show_fewer": "Показать меньше",
+            "open_in_board": "Открыть в доске случаев"
         },
         "sections": {
             "case_flow_status": "Статус движения случаев",

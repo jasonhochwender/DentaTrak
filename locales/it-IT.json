@@ -1913,7 +1913,13 @@
             "category_quality": "Qualità",
             "category_scheduling": "Pianificazione",
             "category_workload": "Carico di lavoro",
-            "category_communication": "Comunicazione"
+            "category_communication": "Comunicazione",
+            "detail_pattern": "Schema osservato",
+            "detail_evidence": "Evidenze a supporto",
+            "detail_significance": "Rilevanza operativa",
+            "detail_action": "Azione suggerita",
+            "fact_overdue_by_status": "Casi scaduti concentrati in: {breakdown}",
+            "fact_overdue_by_type": "Casi scaduti per tipo di caso: {breakdown}"
         },
         "metrics": {
             "new_this_month": "Nuovi questo mese",
@@ -2006,7 +2012,10 @@
             "empty_subtitle": "Nessun caso soddisfa i criteri di rischio configurati.",
             "empty_filter_title": "Nessun caso in questa categoria.",
             "empty_filter_subtitle": "Prova un altro filtro per vedere altri casi.",
-            "showing": "Visualizzati {shown} di {total}"
+            "showing": "Visualizzati {shown} di {total}",
+            "show_all": "Mostra tutti i {count} casi",
+            "show_fewer": "Mostra meno",
+            "open_in_board": "Apri nella bacheca casi"
         },
         "sections": {
             "case_flow_status": "Stato del flusso dei casi",

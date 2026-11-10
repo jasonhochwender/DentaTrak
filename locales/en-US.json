@@ -1915,7 +1915,13 @@
             "category_quality": "Quality",
             "category_scheduling": "Scheduling",
             "category_workload": "Workload",
-            "category_communication": "Communication"
+            "category_communication": "Communication",
+            "detail_pattern": "Observed pattern",
+            "detail_evidence": "Supporting evidence",
+            "detail_significance": "Operational significance",
+            "detail_action": "Suggested action",
+            "fact_overdue_by_status": "Overdue cases concentrated in: {breakdown}",
+            "fact_overdue_by_type": "Overdue cases concentrated by case type: {breakdown}"
         },
         "metrics": {
             "new_this_month": "New This Month",
@@ -2012,7 +2018,10 @@
             "empty_subtitle": "No cases meet the configured risk criteria.",
             "empty_filter_title": "No cases in this category.",
             "empty_filter_subtitle": "Try a different filter to see other attention items.",
-            "showing": "Showing {shown} of {total}"
+            "showing": "Showing {shown} of {total}",
+            "show_all": "Show all {count} cases",
+            "show_fewer": "Show fewer",
+            "open_in_board": "Open in Case Board"
         },
         "sections": {
             "case_flow_status": "Case Flow Status",

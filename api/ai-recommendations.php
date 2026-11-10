@@ -303,7 +303,7 @@ function gatherAnalyticsData($pdo, $practiceId) {
 
     // Overdue cases (due_date < today and status not the practice's terminal column)
     $today = date('Y-m-d');
-    $terminalStatus = getLastActiveWorkflowColumnId($currentPracticeId);
+    $terminalStatus = getLastActiveWorkflowColumnId($practiceId);
     $legacyDone = ['Completed', 'Shipped'];
     $stmt = $pdo->prepare("
         SELECT COUNT(*)
@@ -406,7 +406,7 @@ function gatherAnalyticsData($pdo, $practiceId) {
     // These are computed from the same authorized, practice-scoped rows and
     // are rendered verbatim - the AI may reference them by key but can never
     // invent or alter the numbers.
-    $terminalStatus = getLastActiveWorkflowColumnId($currentPracticeId);
+    $terminalStatus = getLastActiveWorkflowColumnId($practiceId);
     $legacyDone = ['Completed', 'Shipped'];
     $activeFilter = "practice_id = ? AND archived = 0 AND status NOT IN (?, ?, ?)";
     $activeParams = [$practiceId, $terminalStatus, $legacyDone[0], $legacyDone[1]];
@@ -432,6 +432,36 @@ function gatherAnalyticsData($pdo, $practiceId) {
         $awaitingAck = (int)$stmt->fetchColumn();
     } catch (Exception $e) { $awaitingAck = 0; }
 
+    // Pattern-level aggregates so recommendations can identify WHERE risk
+    // concentrates (stage / case type) instead of restating headline counts.
+    $overdueByStatus = [];
+    $overdueByType = [];
+    try {
+        $stmt = $pdo->prepare("
+            SELECT status, COUNT(*) AS n FROM cases_cache
+            INNER JOIN authorized_case_ids a ON a.case_id = cases_cache.case_id COLLATE utf8mb4_unicode_ci
+            WHERE $practiceFilter AND archived = 0
+              AND due_date IS NOT NULL AND due_date != '' AND due_date < ?
+              AND status NOT IN (?, ?, ?)
+            GROUP BY status ORDER BY n DESC LIMIT 5
+        ");
+        $stmt->execute(array_merge($filterParams, [$today, $terminalStatus, $legacyDone[0], $legacyDone[1]]));
+        $overdueByStatus = $stmt->fetchAll(PDO::FETCH_KEY_PAIR);
+    } catch (Exception $e) { $overdueByStatus = []; }
+    try {
+        $stmt = $pdo->prepare("
+            SELECT COALESCE(NULLIF(case_type, ''), 'Unclassified') AS t, COUNT(*) AS n
+            FROM cases_cache
+            INNER JOIN authorized_case_ids a ON a.case_id = cases_cache.case_id COLLATE utf8mb4_unicode_ci
+            WHERE $practiceFilter AND archived = 0
+              AND due_date IS NOT NULL AND due_date != '' AND due_date < ?
+              AND status NOT IN (?, ?, ?)
+            GROUP BY t ORDER BY n DESC LIMIT 5
+        ");
+        $stmt->execute(array_merge($filterParams, [$today, $terminalStatus, $legacyDone[0], $legacyDone[1]]));
+        $overdueByType = $stmt->fetchAll(PDO::FETCH_KEY_PAIR);
+    } catch (Exception $e) { $overdueByType = []; }
+
     $data['observed_facts'] = [
         'overdue_share' => ['count' => (int)($data['overdue_cases'] ?? 0), 'total' => (int)($data['total_active_cases'] ?? 0)],
         'unassigned_cases' => ['count' => $unassigned],
@@ -440,6 +470,8 @@ function gatherAnalyticsData($pdo, $practiceId) {
         'awaiting_ack' => ['count' => $awaitingAck],
         'workload_imbalance' => ['avg' => (float)($data['avg_cases_per_assignee'] ?? 0), 'assignees' => (int)($data['unique_assignees'] ?? 0)],
         'throughput_30d' => ['created' => (int)($data['cases_created_last_30_days'] ?? 0), 'completed' => (int)($data['cases_completed_last_30_days'] ?? 0)],
+        'overdue_by_status' => $overdueByStatus,
+        'overdue_by_type' => $overdueByType,
     ];
 
     return $data;
@@ -497,25 +529,57 @@ function getAIRecommendations($appConfig, $analyticsData, $provider = 'gemini') 
         return [];
     }
 
+    $seenTitles = [];
     foreach ($recommendations as $rec) {
-        if (isset($rec['title']) && isset($rec['description'])) {
-            // Don't use htmlspecialchars here - it causes double-encoding (&#039;)
-            // Sanitization should happen at display time in the frontend
-            $factKeys = [];
-            foreach ((array)($rec['fact_keys'] ?? []) as $fk) {
-                if (is_string($fk)) $factKeys[] = $fk;
+        if (!isset($rec['title']) || !isset($rec['description'])) {
+            continue;
+        }
+        // Don't use htmlspecialchars here - it causes double-encoding (&#039;)
+        // Sanitization should happen at display time in the frontend
+        $factKeys = [];
+        foreach ((array)($rec['fact_keys'] ?? []) as $fk) {
+            if (is_string($fk)) $factKeys[] = $fk;
+        }
+        // fact_keys are validated against observed_facts later in
+        // aiRecNormalize(); here we only keep well-formed string keys.
+
+        // Structured insight detail (pattern/evidence/significance/action).
+        // Accepts either an 'insight' object or flat 'details' fields.
+        $insightSrc = isset($rec['insight']) && is_array($rec['insight']) ? $rec['insight'] : (isset($rec['details']) && is_array($rec['details']) ? $rec['details'] : null);
+        $insight = null;
+        if ($insightSrc) {
+            $insight = [];
+            foreach (['pattern', 'evidence', 'significance', 'action'] as $ik) {
+                $v = trim(strip_tags((string)($insightSrc[$ik] ?? '')));
+                if ($v !== '') { $insight[$ik] = mb_substr($v, 0, 600); }
             }
-            $validRecommendations[] = [
-                'title' => strip_tags(trim($rec['title'])),
-                'description' => strip_tags(trim($rec['description'])),
-                'priority' => in_array($rec['priority'] ?? '', ['high', 'medium', 'low']) ? $rec['priority'] : 'medium',
-                'category' => in_array($rec['category'] ?? '', ['efficiency', 'quality', 'scheduling', 'workload', 'communication']) ? $rec['category'] : 'efficiency',
-                'fact_keys' => array_slice($factKeys, 0, 4),
-                'action_target' => in_array($rec['action_target'] ?? '', ['overdue', 'appt_risk', 'due_soon', 'unassigned', 'unclassified', 'lab_ack', 'attention', 'none'], true) ? $rec['action_target'] : 'none'
-            ];
+            if (count($insight) === 0) { $insight = null; }
         }
 
-        // Only keep top 3
+        $title = mb_strtolower(trim(strip_tags((string)$rec['title'])));
+
+        // Quality gate: a recommendation must be grounded in at least one
+        // verified fact OR carry structured insight content. Generic recs
+        // that merely restate a headline metric are suppressed - zero
+        // meaningful recommendations beats several generic ones.
+        $grounded = count($factKeys) > 0 || $insight !== null;
+        $duplicate = $title !== '' && isset($seenTitles[$title]);
+        if (!$grounded || $duplicate) {
+            continue;
+        }
+        $seenTitles[$title] = true;
+
+        $validRecommendations[] = [
+            'title' => strip_tags(trim($rec['title'])),
+            'description' => strip_tags(trim($rec['description'])),
+            'priority' => in_array($rec['priority'] ?? '', ['high', 'medium', 'low']) ? $rec['priority'] : 'medium',
+            'category' => in_array($rec['category'] ?? '', ['efficiency', 'quality', 'scheduling', 'workload', 'communication']) ? $rec['category'] : 'efficiency',
+            'fact_keys' => array_slice($factKeys, 0, 4),
+            'action_target' => in_array($rec['action_target'] ?? '', ['overdue', 'appt_risk', 'due_soon', 'unassigned', 'unclassified', 'lab_ack', 'attention', 'none'], true) ? $rec['action_target'] : 'none',
+            'insight' => $insight,
+        ];
+
+        // Only keep top 3 meaningful recommendations
         if (count($validRecommendations) >= 3) {
             break;
         }

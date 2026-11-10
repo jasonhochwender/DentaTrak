@@ -3536,7 +3536,13 @@
             "category_quality": "Qualität",
             "category_scheduling": "Terminplanung",
             "category_workload": "Arbeitsbelastung",
-            "category_communication": "Kommunikation"
+            "category_communication": "Kommunikation",
+            "detail_pattern": "Beobachtetes Muster",
+            "detail_evidence": "Belege",
+            "detail_significance": "Operative Bedeutung",
+            "detail_action": "Empfohlene Maßnahme",
+            "fact_overdue_by_status": "Überfällige Fälle konzentriert in: {breakdown}",
+            "fact_overdue_by_type": "Überfällige Fälle nach Falltyp: {breakdown}"
         },
         "metrics": {
             "new_this_month": "Neu in diesem Monat",
@@ -3629,7 +3635,10 @@
             "empty_subtitle": "Keine Fälle erfüllen die konfigurierten Risikokriterien.",
             "empty_filter_title": "Keine Fälle in dieser Kategorie.",
             "empty_filter_subtitle": "Wählen Sie einen anderen Filter, um weitere Fälle anzuzeigen.",
-            "showing": "{shown} von {total} angezeigt"
+            "showing": "{shown} von {total} angezeigt",
+            "show_all": "Alle {count} Fälle anzeigen",
+            "show_fewer": "Weniger anzeigen",
+            "open_in_board": "Im Fallboard öffnen"
         },
         "sections": {
             "case_flow_status": "Status des Fallflusses",

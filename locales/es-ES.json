@@ -1921,7 +1921,13 @@
             "category_quality": "Calidad",
             "category_scheduling": "Programación",
             "category_workload": "Carga de trabajo",
-            "category_communication": "Comunicación"
+            "category_communication": "Comunicación",
+            "detail_pattern": "Patrón observado",
+            "detail_evidence": "Evidencia de apoyo",
+            "detail_significance": "Importancia operativa",
+            "detail_action": "Acción sugerida",
+            "fact_overdue_by_status": "Casos vencidos concentrados en: {breakdown}",
+            "fact_overdue_by_type": "Casos vencidos por tipo de caso: {breakdown}"
         },
         "metrics": {
             "new_this_month": "Nuevos este mes",
@@ -2014,7 +2020,10 @@
             "empty_subtitle": "Ningún caso cumple los criterios de riesgo configurados.",
             "empty_filter_title": "No hay casos en esta categoría.",
             "empty_filter_subtitle": "Pruebe con otro filtro para ver otros casos.",
-            "showing": "Mostrando {shown} de {total}"
+            "showing": "Mostrando {shown} de {total}",
+            "show_all": "Mostrar los {count} casos",
+            "show_fewer": "Mostrar menos",
+            "open_in_board": "Abrir en el tablero de casos"
         },
         "sections": {
             "case_flow_status": "Estado del flujo de casos",
