@@ -1943,15 +1943,6 @@ endif;
                       <h3 class="ap-chart-title"><?= t('insights.charts.status_distribution') ?></h3>
                       <p class="ap-chart-description"><?= t('insights.charts.status_distribution_description') ?></p>
                     </div>
-                    <div class="ap-chart-controls">
-                      <select class="ap-select" id="apStatusPeriod">
-                        <option value="active" selected><?= t('insights.filters.active_cases') ?></option>
-                        <option value="all"><?= t('insights.filters.all_time') ?></option>
-                        <option value="3"><?= t('insights.filters.last_n_months', ['count' => 3]) ?></option>
-                        <option value="6"><?= t('insights.filters.last_n_months', ['count' => 6]) ?></option>
-                        <option value="12"><?= t('insights.filters.last_n_months', ['count' => 12]) ?></option>
-                      </select>
-                    </div>
                   </div>
                   <div class="ap-chart-container">
                     <canvas id="apStatusChart" role="img" aria-label="Status distribution chart"></canvas>
@@ -1991,17 +1982,6 @@ endif;
                       <h3 class="ap-chart-title"><?= t('insights.charts.monthly_case_volume') ?></h3>
                       <p class="ap-chart-description"><?= t('insights.charts.monthly_case_volume_description') ?></p>
                     </div>
-                    <div class="ap-chart-controls">
-                      <select class="ap-select" id="apVolumePeriod">
-                        <option value="1"><?= t('insights.filters.last_month') ?></option>
-                        <option value="3"><?= t('insights.filters.last_n_months', ['count' => 3]) ?></option>
-                        <option value="6"><?= t('insights.filters.last_n_months', ['count' => 6]) ?></option>
-                        <option value="12" selected><?= t('insights.filters.last_n_months', ['count' => 12]) ?></option>
-                        <option value="24"><?= t('insights.filters.last_n_months', ['count' => 24]) ?></option>
-                        <option value="36"><?= t('insights.filters.last_n_months', ['count' => 36]) ?></option>
-                        <option value="all"><?= t('insights.filters.all_time') ?></option>
-                      </select>
-                    </div>
                   </div>
                   <div class="ap-chart-container">
                     <canvas id="apVolumeChart" role="img" aria-label="Monthly case volume chart"></canvas>
@@ -2021,24 +2001,6 @@ endif;
                         <button type="button" class="ap-seg-btn active" id="apTeamViewWorkload" aria-pressed="true"><?= t('insights.throughput.active_workload') ?></button>
                         <button type="button" class="ap-seg-btn" id="apTeamViewActivity" aria-pressed="false"><?= t('insights.throughput.creation_activity') ?></button>
                       </div>
-                      <span id="apTeamActivityControls">
-                      <!-- Assignee-type filter does not apply to Creation
-                           Activity (creator attribution); kept in the DOM for
-                           backward compatibility but hidden. -->
-                      <select class="ap-select" id="apTeamFilter" hidden>
-                        <option value="both" selected><?= t('insights.filters.all_assignees') ?></option>
-                        <option value="users"><?= t('insights.filters.practice_users_only') ?></option>
-                      </select>
-                      <select class="ap-select" id="apTeamPeriod">
-                        <option value="1"><?= t('insights.filters.last_month') ?></option>
-                        <option value="3"><?= t('insights.filters.last_n_months', ['count' => 3]) ?></option>
-                        <option value="6"><?= t('insights.filters.last_n_months', ['count' => 6]) ?></option>
-                        <option value="12" selected><?= t('insights.filters.last_n_months', ['count' => 12]) ?></option>
-                        <option value="24"><?= t('insights.filters.last_n_months', ['count' => 24]) ?></option>
-                        <option value="36"><?= t('insights.filters.last_n_months', ['count' => 36]) ?></option>
-                        <option value="all"><?= t('insights.filters.all_time') ?></option>
-                      </select>
-                      </span>
                     </div>
                   </div>
                   <div class="ap-workload-table-wrap" id="apWorkloadTableWrap">
@@ -2112,15 +2074,6 @@ endif;
                       <h3 class="ap-chart-title"><?= t('insights.charts.average_time_by_status') ?></h3>
                       <p class="ap-chart-description"><?= t('insights.charts.average_time_by_status_description') ?></p>
                     </div>
-                    <div class="ap-chart-controls">
-                      <select class="ap-select" id="apDurationPeriod">
-                        <option value="active" selected><?= t('insights.filters.active_cases') ?></option>
-                        <option value="all"><?= t('insights.filters.all_time') ?></option>
-                        <option value="3"><?= t('insights.filters.last_n_months', ['count' => 3]) ?></option>
-                        <option value="6"><?= t('insights.filters.last_n_months', ['count' => 6]) ?></option>
-                        <option value="12"><?= t('insights.filters.last_n_months', ['count' => 12]) ?></option>
-                      </select>
-                    </div>
                   </div>
                   <div class="ap-chart-container">
                     <canvas id="apDurationChart" role="img" aria-label="Status duration chart"></canvas>
@@ -2168,15 +2121,6 @@ endif;
                       <h3 class="ap-chart-title"><?= t('insights.charts.case_type_breakdown') ?></h3>
                       <p class="ap-chart-description"><?= t('insights.charts.case_type_breakdown_description') ?></p>
                     </div>
-                    <div class="ap-chart-controls">
-                      <select class="ap-select" id="apTypePeriod">
-                        <option value="active" selected><?= t('insights.filters.active_cases') ?></option>
-                        <option value="all"><?= t('insights.filters.all_time') ?></option>
-                        <option value="3"><?= t('insights.filters.last_n_months', ['count' => 3]) ?></option>
-                        <option value="6"><?= t('insights.filters.last_n_months', ['count' => 6]) ?></option>
-                        <option value="12"><?= t('insights.filters.last_n_months', ['count' => 12]) ?></option>
-                      </select>
-                    </div>
                   </div>
                   <div class="ap-chart-scroll">
                     <div class="ap-chart-container">
@@ -2201,15 +2145,6 @@ endif;
                 <div>
                   <h2 class="ap-section-title"><?= t('insights.sections.cases_created_by_user') ?></h2>
                   <p class="ap-section-subtitle"><?= t('insights.sections.cases_created_by_user_subtitle') ?></p>
-                </div>
-                <div class="ap-section-actions">
-                  <select class="ap-select" id="apCreatorPeriod">
-                    <option value="all" selected><?= t('insights.filters.all_time') ?></option>
-                    <option value="active"><?= t('insights.filters.active_cases') ?></option>
-                    <option value="3"><?= t('insights.filters.last_n_months', ['count' => 3]) ?></option>
-                    <option value="6"><?= t('insights.filters.last_n_months', ['count' => 6]) ?></option>
-                    <option value="12"><?= t('insights.filters.last_n_months', ['count' => 12]) ?></option>
-                  </select>
                 </div>
               </div>
 

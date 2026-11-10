@@ -112,8 +112,9 @@ if ($caStart !== false) {
         strpos($caBlock, 'c.archived = 0') !== false);
     check('creationActivity applies global filters',
         strpos($caBlock, '$afScopeSql') !== false);
-    check('creationActivity period uses team_period',
-        strpos($caBlock, 'buildTimePeriodClause($teamPeriod)') !== false);
+    check('creationActivity period follows global reporting period',
+        strpos($caBlock, '$afScopeSql') !== false
+        && strpos($caBlock, 'buildTimePeriodClause') === false);
     check('creationActivity does NOT group by assignee',
         strpos($caBlock, 'assigned_to') === false
         || strpos($caBlock, 'GROUP BY') !== false && strpos(substr($caBlock, strpos($caBlock, 'GROUP BY'), 200), 'assigned_to') === false);
@@ -143,10 +144,12 @@ if ($rtcStart !== false) {
         strpos($rtcBody, "navigateToFilteredCasesParam('assigned_to'") === false);
 }
 
-// --- 4. Assignee-type filter hidden ----------------------------------------
-check('apTeamFilter is hidden in markup',
-    (bool) preg_match('/id="apTeamFilter"[^>]*hidden|hidden[^>]*id="apTeamFilter"/s', $main)
-    || (bool) preg_match('/<select[^>]*id="apTeamFilter"[^>]*hidden/s', $main));
+// --- 4. Assignee-type filter removed with chart-level controls -------------
+// The hidden apTeamFilter select was removed along with the other
+// chart-level period controls; the global toolbar is the single filter
+// context now.
+check('apTeamFilter removed from markup',
+    strpos($main, 'id="apTeamFilter"') === false);
 
 // --- 5. Locale keys present in all 9 locales --------------------------------
 $locales = ['en-US','de-DE','es-ES','fr-CA','fr-FR','it-IT','ko-KR','pt-BR','ru-RU'];

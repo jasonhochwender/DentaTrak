@@ -110,26 +110,6 @@
     }
   };
 
-  // Restore saved filter values from localStorage
-  function restoreSavedFilters() {
-    const filters = {
-      'apTeamPeriod': localStorage.getItem('ap_team_period') || '12',
-      'apTeamFilter': localStorage.getItem('ap_team_filter') || 'both',
-      'apVolumePeriod': localStorage.getItem('ap_volume_period') || '12',
-      'apStatusPeriod': localStorage.getItem('ap_status_period') || 'active',
-      'apTypePeriod': localStorage.getItem('ap_type_period') || 'active',
-      'apDurationPeriod': localStorage.getItem('ap_duration_period') || 'active',
-      'apCreatorPeriod': localStorage.getItem('ap_creator_period') || 'all'
-    };
-
-    Object.keys(filters).forEach(id => {
-      const el = document.getElementById(id);
-      if (el) {
-        el.value = filters[id];
-      }
-    });
-  }
-
   // Load Analytics Pro data
   function setAnalyticsLoading(isLoading) {
     var el = document.getElementById('apLoading');
@@ -181,7 +161,7 @@
     if (afFilters.assignee) p.set('af_assignee', afFilters.assignee);
     if (afFilters.carrier) p.set('af_carrier', afFilters.carrier);
     const s = p.toString();
-    return s ? '&' + s : '';
+    return s ? '?' + s : '';
   }
 
   function afActiveCount() {
@@ -410,15 +390,9 @@
     setAnalyticsLoading(true);
     setAnalyticsError('');
 
-    const teamPeriod = document.getElementById('apTeamPeriod')?.value || '12';
-    const teamFilter = document.getElementById('apTeamFilter')?.value || 'both';
-    const volumePeriod = document.getElementById('apVolumePeriod')?.value || '12';
-    const statusPeriod = document.getElementById('apStatusPeriod')?.value || 'active';
-    const typePeriod = document.getElementById('apTypePeriod')?.value || 'active';
-    const durationPeriod = document.getElementById('apDurationPeriod')?.value || 'active';
-    const creatorPeriod = document.getElementById('apCreatorPeriod')?.value || 'all';
-
-    const apiUrl = `api/get-analytics.php?team_period=${teamPeriod}&team_filter=${teamFilter}&volume_period=${volumePeriod}&status_period=${statusPeriod}&type_period=${typePeriod}&duration_period=${durationPeriod}&creator_period=${creatorPeriod}${buildAfQuery()}`;
+    // The global filter toolbar (af_*) is the single filtering context for
+    // Practice Insights; chart-level period selectors were removed.
+    const apiUrl = `api/get-analytics.php${buildAfQuery()}`;
     const reqSeq = ++afRequestSeq;
 
     // A pending flag set by activateInsightsSubview() marks this request as a
@@ -2487,14 +2461,9 @@
   var eventListenersInitialized = false;
   function initializeEventListeners() {
     if (eventListenersInitialized) {
-      // Restore filters without re-attaching listeners on every tab visit.
-      restoreSavedFilters();
       return;
     }
     eventListenersInitialized = true;
-
-    // Restore saved filter values from localStorage (always do this)
-    restoreSavedFilters();
 
     // Refresh button
     const refreshBtn = document.getElementById('apRefreshData');
@@ -2523,28 +2492,6 @@
       recsFilters.setAttribute('data-ap-listener', 'true');
     }
 
-    // Filter dropdowns - map element IDs to localStorage keys
-    const filterStorageKeys = {
-      'apStatusPeriod': 'ap_status_period',
-      'apTypePeriod': 'ap_type_period',
-      'apVolumePeriod': 'ap_volume_period',
-      'apTeamPeriod': 'ap_team_period',
-      'apTeamFilter': 'ap_team_filter',
-      'apDurationPeriod': 'ap_duration_period',
-      'apCreatorPeriod': 'ap_creator_period'
-    };
-
-    Object.keys(filterStorageKeys).forEach(id => {
-      const el = document.getElementById(id);
-      if (el && !el.hasAttribute('data-ap-listener')) {
-        el.addEventListener('change', function() {
-          // Save to localStorage
-          localStorage.setItem(filterStorageKeys[id], this.value);
-          loadAnalyticsPro();
-        });
-        el.setAttribute('data-ap-listener', 'true');
-      }
-    });
   }
 
   // Status Duration Chart (Bar)
@@ -2728,15 +2675,6 @@
     // DOM already loaded (script was lazy-loaded)
     initOnLoad();
   }
-
-  // Use event delegation for the team filter dropdown as a fallback
-  // This ensures it works even if the regular listener wasn't attached
-  document.addEventListener('change', function(e) {
-    if (e.target && e.target.id === 'apTeamFilter') {
-      localStorage.setItem('ap_team_filter', e.target.value);
-      loadAnalyticsPro();
-    }
-  });
 
   // Resize and orientation-change handler: Chart.js responsive does not always
   // notice when the Insights tab becomes visible or the viewport changes on a

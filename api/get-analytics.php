@@ -84,32 +84,33 @@ function getCalendarDayDiff($dateString) {
     }
 }
 
+// Number of monthly buckets the Monthly Case Volume chart should cover for
+// the global reporting period. The period's own date bound ($afScopeSql)
+// restricts the rows; this only sizes the LIMIT so sparse periods still
+// render their full span and 'all' reaches back far enough to matter.
+function afPeriodSpanMonths($afPeriod, $afFrom, $afTo) {
+    if ($afPeriod === '30d') return 3;
+    if ($afPeriod === '90d') return 4;
+    if ($afPeriod === '12m') return 13;
+    if ($afPeriod === 'all') return 120;
+    if ($afPeriod === 'custom') {
+        $d1 = DateTime::createFromFormat('Y-m-d', (string)$afFrom);
+        $d2 = DateTime::createFromFormat('Y-m-d', (string)$afTo);
+        if ($d1 && $d2 && $d1 <= $d2) {
+            $m = (int)$d1->diff($d2)->y * 12 + (int)$d1->diff($d2)->m + 1;
+            return max(1, min(60, $m));
+        }
+        return 13;
+    }
+    return 13; // no/unknown period: legacy default window
+}
+
 // Get time period filters
 $userId = $_SESSION['db_user_id'];
 $teamPeriod = $_GET['team_period'] ?? '12'; // Default: last 12 months
 $teamFilter = $_GET['team_filter'] ?? 'both'; // Default: both users and labels
-$durationPeriod = $_GET['duration_period'] ?? 'active'; // Default: active cases
 
 // SECURITY: Use ONLY the validated practice ID - NO fallbacks to other practices
-$volumePeriod = $_GET['volume_period'] ?? '13'; // Default: last 13 months
-$completionTimeframe = $_GET['completion_timeframe'] ?? '12'; // Default: last 12 months for completion predictions
-$statusPeriod = $_GET['status_period'] ?? 'active'; // Default: active cases
-$typePeriod = $_GET['type_period'] ?? 'active'; // Default: active cases
-
-// Helper function to build time period WHERE clause
-function buildTimePeriodClause($period, $dateColumn = 'creation_date') {
-    if ($period === 'active') {
-        return "AND status != '{$GLOBALS['workflowTerminalStatus']}'";
-    } elseif ($period === 'all') {
-        return "";
-    } else {
-        $months = (int)$period;
-        if ($months < 1) $months = 1;
-        if ($months > 60) $months = 60;
-        // Handle string dates by extracting first 10 chars (YYYY-MM-DD) and converting
-        return "AND STR_TO_DATE(LEFT(COALESCE($dateColumn, CURRENT_DATE()), 10), '%Y-%m-%d') >= DATE_SUB(CURRENT_DATE(), INTERVAL $months MONTH)";
-    }
-}
 
 try {
     // SECURITY: Build a per-request authorized case list. All `cases_cache`
@@ -836,35 +837,38 @@ try {
         $metrics['totalRegressions'] = 0;
     }
     
-    // Case Status Distribution - use time period filtering
+    // Case Status Distribution - current-state pipeline snapshot. The
+    // reporting period must NOT shrink this population (an active case
+    // created months ago still belongs in the breakdown); dimension
+    // filters apply via $afDimSql. The af_status filter is intentionally
+    // not applied - a status breakdown pre-filtered to one status would
+    // be meaningless.
     try {
-        $statusClause = buildTimePeriodClause($statusPeriod);
         $stmt = $pdo->prepare("
-            SELECT 
+            SELECT
                 status,
                 COUNT(*) as count
             FROM cases_cache INNER JOIN authorized_case_ids a ON a.case_id = cases_cache.case_id COLLATE utf8mb4_unicode_ci
             WHERE practice_id = :practice_id
-            $statusClause
-            $afScopeSql
+            AND status != '{$GLOBALS['workflowTerminalStatus']}'
+            $afDimSql
             GROUP BY status
             ORDER BY " . getWorkflowStageOrderCaseSqlForPractice($practiceId) . "
         ");
-        $stmt->execute(array_merge(['practice_id' => $practiceId], $afScopeParams));
+        $stmt->execute(array_merge(['practice_id' => $practiceId], $afDimParams));
         $statusDistribution = $stmt->fetchAll(PDO::FETCH_ASSOC);
     } catch (Exception $e) {
         $statusDistribution = [];
     }
     
-    // Monthly Case Volume - use creation_date (string) and requested period
+    // Monthly Case Volume - bucket count follows the global reporting
+    // period ($afScopeSql already bounds creation_date); 'all' shows the
+    // most recent 120 months. No separate chart-level timeframe exists.
     try {
-        $months = (int)$volumePeriod;
-        if ($months < 1) {
-            $months = 1;
-        }
+        $months = afPeriodSpanMonths($afPeriod, $afFrom, $afTo);
 
         $sql = "
-            SELECT 
+            SELECT
                 DATE_FORMAT(
                     STR_TO_DATE(LEFT(COALESCE(creation_date, CURRENT_DATE()), 10), '%Y-%m-%d'),
                     '%Y-%m'
@@ -873,7 +877,6 @@ try {
                 SUM(CASE WHEN status = '{$GLOBALS['workflowTerminalStatus']}' THEN 1 ELSE 0 END) as cases_delivered
             FROM cases_cache INNER JOIN authorized_case_ids a ON a.case_id = cases_cache.case_id COLLATE utf8mb4_unicode_ci
             WHERE practice_id = :practice_id
-            AND STR_TO_DATE(LEFT(COALESCE(creation_date, CURRENT_DATE()), 10), '%Y-%m-%d') >= DATE_SUB(CURRENT_DATE(), INTERVAL $months MONTH)
             $afScopeSql
             GROUP BY month
             ORDER BY month DESC
@@ -887,21 +890,19 @@ try {
         $monthlyVolume = [];
     }
     
-    // Case Type Breakdown - use time period filtering
+    // Case Type Breakdown - follows the global reporting period and
+    // dimension filters ($afScopeSql); no chart-level timeframe.
     try {
-        $typeClause = buildTimePeriodClause($typePeriod);
-        
         // First try with practice filter
         $stmt = $pdo->prepare("
-            SELECT 
-                CASE 
+            SELECT
+                CASE
                     WHEN case_type IS NULL OR case_type = '' THEN 'Unspecified'
-                    ELSE case_type 
+                    ELSE case_type
                 END as case_type,
                 COUNT(*) as count
             FROM cases_cache INNER JOIN authorized_case_ids a ON a.case_id = cases_cache.case_id COLLATE utf8mb4_unicode_ci
             WHERE practice_id = :practice_id
-            $typeClause
             $afScopeSql
             GROUP BY case_type
             ORDER BY count DESC, case_type ASC
@@ -990,9 +991,6 @@ try {
     // Creator Breakdown - cases created by authenticated user (not provider-specific)
     $creatorBreakdown = [];
     try {
-        $creatorPeriod = $_GET['creator_period'] ?? 'all';
-        $creatorClause = buildTimePeriodClause($creatorPeriod);
-
         $stmt = $pdo->prepare("
             SELECT
                 c.created_by_user_id as user_id,
@@ -1003,7 +1001,6 @@ try {
             LEFT JOIN users u ON u.id = c.created_by_user_id
             WHERE c.practice_id = :practice_id
             AND c.archived = 0
-            $creatorClause
             $afScopeSql
             GROUP BY c.created_by_user_id, u.first_name, u.last_name
             ORDER BY cases_count DESC, first_name ASC, last_name ASC
@@ -1024,15 +1021,13 @@ try {
     }
 
     // Creation Activity (Team Workload "Creation Activity" view): cases
-    // created within the selected team_period grouped by the user who
+    // created within the global reporting period grouped by the user who
     // CREATED them (created_by_user_id) - deliberately independent of the
     // current assignee, which is a different concept. Mirrors the
     // creatorBreakdown query so values reconcile with "Cases Created by
-    // User" when the same period is selected.
+    // User" under the same filters.
     $creationActivity = [];
     try {
-        $activityClause = buildTimePeriodClause($teamPeriod);
-
         $stmt = $pdo->prepare("
             SELECT
                 c.created_by_user_id as user_id,
@@ -1044,7 +1039,6 @@ try {
             LEFT JOIN users u ON u.id = c.created_by_user_id
             WHERE c.practice_id = :practice_id
             AND c.archived = 0
-            $activityClause
             $afScopeSql
             GROUP BY c.created_by_user_id, u.first_name, u.last_name, u.email
             ORDER BY cases_count DESC, first_name ASC, last_name ASC
@@ -1067,12 +1061,12 @@ try {
         $creationActivity = [];
     }
 
-    // Status Duration Analytics - NEW
+    // Status Duration Analytics - historical metric following the global
+    // reporting period and filters ($afScopeSql); the fixed active /
+    // non-archived population is retained since this measures time-in-stage
+    // for cases currently in each status.
     $statusDurationData = [];
     try {
-        // Build time period clause for duration data
-        $durationClause = buildTimePeriodClause($durationPeriod);
-        
         // Calculate average time in each status for active cases
         $stmt = $pdo->prepare("
             SELECT 
@@ -1095,7 +1089,6 @@ try {
             AND status != '{$GLOBALS['workflowTerminalStatus']}'
             AND archived = 0
             AND status_changed_at IS NOT NULL
-            $durationClause
             $afScopeSql
             GROUP BY status
             ORDER BY " . getWorkflowStageOrderCaseSqlForPractice($practiceId) . "
