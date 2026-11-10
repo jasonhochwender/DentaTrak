@@ -1315,6 +1315,11 @@ endif;
                  (lab cases + late = overdue lab cases); persisted via
                  case-filter-sort.js like the other board filters. -->
             <input type="checkbox" id="filterLabCases" hidden>
+            <!-- Optional single-laboratory scope set transiently by Lab
+                 Insights navigation (workload/overdue drill-downs and the
+                 comparison table). Not persisted; cleared with the other
+                 filters. Value is a Lab Insights labKey ('user:N'/'label:N'). -->
+            <input type="hidden" id="filterLabKey" value="">
           </div>
 
 <?php if (isFeatureEnabled('SHOW_AT_RISK')): ?>
@@ -2700,11 +2705,18 @@ endif;
                       <h2 class="ap-section-title"><?= t('insights.perf.sections.lab_performance') ?></h2>
                       <p class="ap-section-subtitle"><?= t('insights.perf.sections.lab_performance_subtitle') ?></p>
                     </div>
+                    <div class="ap-section-actions">
+                      <label class="li-case-type-filter">
+                        <span class="ap-attention-sort-text"><?= t('insights.perf.case_type_filter.label') ?></span>
+                        <select class="ap-select" id="liCaseTypeFilter" aria-label="<?= htmlspecialchars(t('insights.perf.case_type_filter.label')) ?>"></select>
+                      </label>
+                    </div>
                   </div>
                   <div class="li-table-wrap">
-                    <table class="li-table" id="liPerfTable">
+                    <table class="li-table li-perf-table" id="liPerfTable">
                       <thead>
                         <tr>
+                          <th class="li-compare-col" data-nosort><span class="ap-sr-only"><?= t('insights.perf.compare.select_label') ?></span></th>
                           <th data-sort="name"><?= t('insights.perf.table.lab') ?></th>
                           <th data-sort="cases"><?= t('insights.perf.table.cases') ?></th>
                           <th data-sort="turnaround"><?= t('insights.perf.table.avg_turnaround') ?></th>
@@ -2712,12 +2724,14 @@ endif;
                           <th data-sort="remakeRate"><?= t('insights.perf.table.remake_rate') ?></th>
                           <th data-sort="labAttrRate"><?= t('insights.perf.table.lab_attributed') ?></th>
                           <th data-sort="workload"><?= t('insights.perf.table.current_workload') ?></th>
+                          <th data-sort="overdue"><?= t('insights.perf.table.overdue') ?></th>
                         </tr>
                       </thead>
                       <tbody id="liPerfTableBody"></tbody>
                     </table>
                   </div>
                   <p class="li-table-footnote"><?= t('insights.perf.context.workload_now_note') ?></p>
+                  <div class="li-compare-panel" id="liComparePanel" hidden></div>
                 </div>
 
                 <div class="ap-section li-inner-section" id="liLabDetail" style="display: none;">

@@ -935,6 +935,8 @@
      'filterAttentionOnly', 'filterLabCases'].forEach(function (id) {
       setCheck(id, false);
     });
+    var labKeyEl = document.getElementById('filterLabKey');
+    if (labKeyEl) labKeyEl.value = '';
 
     var setSelectFilter = function (id, value, optionLabel) {
       var el = document.getElementById(id);

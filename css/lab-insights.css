@@ -419,3 +419,241 @@
     width: 100%;
   }
 }
+
+/* ── Lab Performance comparison tool ─────────────────────────────────── */
+
+.li-perf-table .li-num {
+  text-align: right;
+}
+
+.li-perf-table .li-num .li-metric-note {
+  text-align: left;
+}
+
+.li-compare-col {
+  width: 2rem;
+  text-align: center;
+}
+
+.li-perf-table--no-compare .li-compare-col {
+  display: none;
+}
+
+.li-compare-check {
+  width: 1rem;
+  height: 1rem;
+  accent-color: var(--primary, #2563eb);
+  cursor: pointer;
+}
+
+.li-compare-check:focus-visible {
+  outline: 2px solid var(--primary, #2563eb);
+  outline-offset: 2px;
+}
+
+.li-cell-link {
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  color: var(--primary, #2563eb);
+  cursor: pointer;
+  text-decoration: underline;
+  text-decoration-color: transparent;
+  text-underline-offset: 2px;
+}
+
+.li-cell-link:hover,
+.li-cell-link:focus-visible {
+  text-decoration-color: currentColor;
+}
+
+.li-cell-link:focus-visible {
+  outline: 2px solid var(--primary, #2563eb);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+.li-cell-link-late {
+  color: #dc2626;
+}
+
+.li-metric-note-late {
+  color: #dc2626;
+}
+
+.li-case-type-filter {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.li-case-type-filter .ap-select {
+  min-width: 10rem;
+}
+
+/* Comparison panel */
+.li-compare-panel {
+  margin-top: 1rem;
+  padding: 1rem;
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: 10px;
+  background: var(--card-bg, #fff);
+}
+
+.li-compare-head {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.li-compare-names {
+  color: var(--text-secondary, #64748b);
+  font-size: 0.9rem;
+}
+
+.li-compare-close {
+  margin-left: auto;
+}
+
+.li-compare-controls {
+  margin-bottom: 0.75rem;
+}
+
+.li-compare-metric-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  color: var(--text-secondary, #64748b);
+}
+
+.li-compare-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 1.25rem;
+  align-items: start;
+}
+
+@media (max-width: 900px) {
+  .li-compare-body {
+    grid-template-columns: 1fr;
+  }
+}
+
+.li-compare-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.li-compare-table th,
+.li-compare-table td {
+  padding: 0.4rem 0.5rem;
+  border-bottom: 1px solid var(--border, #e2e8f0);
+  text-align: left;
+}
+
+.li-compare-table thead th {
+  font-weight: 600;
+}
+
+.li-compare-table tbody th {
+  font-weight: 500;
+  color: var(--text-secondary, #64748b);
+}
+
+.li-compare-table td {
+  text-align: right;
+}
+
+.li-compare-chart {
+  min-width: 0;
+}
+
+.li-cmp-chart-title {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-secondary, #64748b);
+  margin-bottom: 0.5rem;
+}
+
+.li-cmp-bar-row {
+  display: grid;
+  grid-template-columns: minmax(0, 38%) 1fr auto;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.45rem;
+  font-size: 0.85rem;
+}
+
+.li-cmp-bar-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.li-cmp-bar-track {
+  height: 10px;
+  background: var(--surface-alt, #f1f5f9);
+  border-radius: 5px;
+  overflow: hidden;
+}
+
+.li-cmp-bar-fill {
+  display: block;
+  height: 100%;
+  background: var(--primary, #2563eb);
+  border-radius: 5px;
+}
+
+.li-cmp-bar-val {
+  font-variant-numeric: tabular-nums;
+  min-width: 3.5rem;
+  text-align: right;
+}
+
+/* Mobile: perf table becomes stacked cards */
+@media (max-width: 720px) {
+  .li-perf-table thead {
+    display: none;
+  }
+  .li-perf-table,
+  .li-perf-table tbody,
+  .li-perf-table tr,
+  .li-perf-table td {
+    display: block;
+    width: 100%;
+  }
+  .li-perf-table tbody tr {
+    border: 1px solid var(--border, #e2e8f0);
+    border-radius: 10px;
+    margin-bottom: 0.75rem;
+    padding: 0.6rem 0.75rem;
+  }
+  .li-perf-table td {
+    border: none;
+    padding: 0.2rem 0;
+    text-align: left !important;
+  }
+  .li-perf-table td[data-label]::before {
+    content: attr(data-label);
+    display: block;
+    font-size: 0.72rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-secondary, #64748b);
+  }
+  .li-perf-table td.li-compare-col {
+    display: none;
+  }
+  .li-perf-table td.li-num .li-metric-note {
+    text-align: left;
+  }
+  .li-compare-panel {
+    padding: 0.75rem;
+  }
+}

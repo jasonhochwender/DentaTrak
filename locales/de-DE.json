@@ -3268,7 +3268,8 @@
                 "remake_rate": "Anfertigungsrate",
                 "lab_attributed": "Laborzugeordnet",
                 "current_workload": "Aktuelle Auslastung",
-                "removed_suffix": " (nicht mehr ein Labor)"
+                "removed_suffix": " (nicht mehr ein Labor)",
+                "overdue": "Überfällig"
             },
             "summary": {
                 "lab_cases": "Laborfälle",
@@ -3340,7 +3341,10 @@
                 "engagements_one": "1 Laborbeauftragung",
                 "engagements_other": "{count} Laborbeauftragungen",
                 "engagements_few": "{count} Laborbeauftragungen",
-                "engagements_many": "{count} Laborbeauftragungen"
+                "engagements_many": "{count} Laborbeauftragungen",
+                "limited_history": "Begrenzte Historie",
+                "not_by_type": "Nach Falltyp nicht verfügbar",
+                "active_cases_note": "jetzt aktiv"
             },
             "revisions": {
                 "title": "Workflow-Rückschritte (Revisionen)",
@@ -3348,6 +3352,25 @@
                 "note": "Revisionen zählen Fälle, die im Workflow rückwärts bewegt wurden. Sie sind keine Neuanfertigungen – ein Rückschritt wird nur dann zu einer Neuanfertigung, wenn jemand sie ausdrücklich erfasst.",
                 "count_header": "Rückschritte",
                 "rate_header": "Rückschrittsrate"
+            },
+            "case_type_filter": {
+                "label": "Falltyp",
+                "all": "Alle Falltypen"
+            },
+            "compare": {
+                "title": "Laborvergleich",
+                "select_label": "Zum Vergleich auswählen",
+                "need_two": "Wählen Sie ein weiteres Labor zum Vergleichen.",
+                "clear": "Vergleich zurücksetzen",
+                "compare_by": "Vergleichen nach",
+                "disclaimer": "Werte entsprechen dem gewählten Zeitraum und Falltypfilter. Kleine Stichproben sind möglicherweise nicht repräsentativ.",
+                "metric_cases": "Fälle",
+                "metric_completed": "Abgeschlossene Fälle",
+                "metric_turnaround": "Ø Durchlaufzeit",
+                "metric_ontime": "Pünktliche Lieferung",
+                "metric_workload": "Aktuelle Auslastung",
+                "metric_overdue": "Überfällige Fälle",
+                "metric_remake": "Nacharbeitsquote"
             }
         },
         "recs": {

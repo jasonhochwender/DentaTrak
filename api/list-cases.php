@@ -298,6 +298,45 @@ try {
         }));
     }
 
+    // Lab Insights comparison navigation: restrict the board to a single
+    // laboratory identity. lab_key uses the Lab Insights labKey format
+    // ('user:<practice_users.user_id>' or 'label:<practice_assignment_labels.id>')
+    // and is resolved to the assignee value stored on cases (member email
+    // or label text) within this practice only.
+    $labKeyParam = trim((string)($_GET['lab_key'] ?? ''));
+    if ($labKeyParam !== '') {
+        $labAssignee = null;
+        if (preg_match('/^user:(\d+)$/', $labKeyParam, $m)) {
+            $lkStmt = $pdo->prepare("
+                SELECT u.email AS nm
+                FROM practice_users pu
+                JOIN users u ON u.id = pu.user_id
+                WHERE pu.practice_id = :practice_id AND pu.user_id = :uid
+                LIMIT 1
+            ");
+            $lkStmt->execute(['practice_id' => $currentPracticeId, 'uid' => (int)$m[1]]);
+            $labAssignee = $lkStmt->fetchColumn() ?: null;
+        } elseif (preg_match('/^label:(\d+)$/', $labKeyParam, $m)) {
+            $lkStmt = $pdo->prepare("
+                SELECT label AS nm
+                FROM practice_assignment_labels
+                WHERE practice_id = :practice_id AND id = :lid
+                LIMIT 1
+            ");
+            $lkStmt->execute(['practice_id' => $currentPracticeId, 'lid' => (int)$m[1]]);
+            $labAssignee = $lkStmt->fetchColumn() ?: null;
+        }
+        if ($labAssignee !== null) {
+            $want = mb_strtolower(trim((string)$labAssignee));
+            $cases = array_values(array_filter($cases, function($case) use ($want) {
+                return mb_strtolower(trim((string)($case['assignedTo'] ?? ''))) === $want;
+            }));
+        } else {
+            // Unresolvable lab key must not silently widen the result set.
+            $cases = [];
+        }
+    }
+
     // Review Status filtering is only honored while the practice-level Case
     // Review Tracking feature is enabled. When disabled, a stale or manually
     // supplied review_status parameter must not hide cases.

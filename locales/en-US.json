@@ -1645,7 +1645,8 @@
                 "remake_rate": "Remake Rate",
                 "lab_attributed": "Lab-Attributed",
                 "current_workload": "Current Workload",
-                "removed_suffix": " (no longer a lab)"
+                "removed_suffix": " (no longer a lab)",
+                "overdue": "Overdue"
             },
             "summary": {
                 "lab_cases": "Lab Cases",
@@ -1717,7 +1718,10 @@
                 "engagements_one": "1 lab engagement",
                 "engagements_other": "{count} lab engagements",
                 "engagements_few": "{count} lab engagements",
-                "engagements_many": "{count} lab engagements"
+                "engagements_many": "{count} lab engagements",
+                "limited_history": "Limited history",
+                "not_by_type": "Not available by case type",
+                "active_cases_note": "active now"
             },
             "revisions": {
                 "title": "Workflow Regressions (Revisions)",
@@ -1725,6 +1729,25 @@
                 "note": "Revisions count cases that moved backward in the workflow. They are not remakes - a regression only becomes a remake when someone explicitly records one.",
                 "count_header": "Regressions",
                 "rate_header": "Regression Rate"
+            },
+            "case_type_filter": {
+                "label": "Case type",
+                "all": "All case types"
+            },
+            "compare": {
+                "title": "Laboratory Comparison",
+                "select_label": "Select for comparison",
+                "need_two": "Select one more laboratory to compare.",
+                "clear": "Clear comparison",
+                "compare_by": "Compare by",
+                "disclaimer": "Values reflect the selected reporting period and case-type filter. Small samples may not represent typical performance.",
+                "metric_cases": "Cases",
+                "metric_completed": "Completed cases",
+                "metric_turnaround": "Average turnaround",
+                "metric_ontime": "On-time delivery",
+                "metric_workload": "Current workload",
+                "metric_overdue": "Overdue cases",
+                "metric_remake": "Remake rate"
             }
         },
         "recs": {

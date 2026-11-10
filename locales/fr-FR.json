@@ -1645,7 +1645,8 @@
                 "remake_rate": "Taux de reprise",
                 "lab_attributed": "Attribué au laboratoire",
                 "current_workload": "Charge actuelle",
-                "removed_suffix": " (n'est plus un laboratoire)"
+                "removed_suffix": " (n'est plus un laboratoire)",
+                "overdue": "En retard"
             },
             "summary": {
                 "lab_cases": "Cas de laboratoire",
@@ -1717,7 +1718,10 @@
                 "engagements_one": "1 intervention de laboratoire",
                 "engagements_other": "{count} interventions de laboratoire",
                 "engagements_few": "{count} interventions de laboratoire",
-                "engagements_many": "{count} interventions de laboratoire"
+                "engagements_many": "{count} interventions de laboratoire",
+                "limited_history": "Historique limité",
+                "not_by_type": "Non disponible par type de cas",
+                "active_cases_note": "actifs maintenant"
             },
             "revisions": {
                 "title": "Régressions du flux de travail (révisions)",
@@ -1725,6 +1729,25 @@
                 "note": "Les révisions comptent les cas ayant reculé dans le flux de travail. Ce ne sont pas des reprises - une régression ne devient une reprise que lorsque quelqu'un l'enregistre explicitement.",
                 "count_header": "Régressions",
                 "rate_header": "Taux de régression"
+            },
+            "case_type_filter": {
+                "label": "Type de cas",
+                "all": "Tous les types"
+            },
+            "compare": {
+                "title": "Comparaison des laboratoires",
+                "select_label": "Sélectionner pour comparer",
+                "need_two": "Sélectionnez un autre laboratoire pour comparer.",
+                "clear": "Effacer la comparaison",
+                "compare_by": "Comparer par",
+                "disclaimer": "Les valeurs reflètent la période et le filtre de type de cas sélectionnés. Les petits échantillons peuvent ne pas être représentatifs.",
+                "metric_cases": "Cas",
+                "metric_completed": "Cas terminés",
+                "metric_turnaround": "Délai moyen",
+                "metric_ontime": "Livraison à temps",
+                "metric_workload": "Charge actuelle",
+                "metric_overdue": "Cas en retard",
+                "metric_remake": "Taux de retouches"
             }
         },
         "recs": {

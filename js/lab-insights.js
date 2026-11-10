@@ -28,8 +28,12 @@
 
   var liPerf = null;            // last performance payload
   var liPerfLabs = [];          // performance.labs (sorted view)
-  var liPerfSort = { key: 'turnaround', dir: 'asc' };
+  var liPerfSort = { key: 'workload', dir: 'desc' };
   var liSelectedLab = null;     // labKey or 'practice'
+  var liCaseType = '';          // '' = all case types
+  var liCompare = [];           // up to 2 labKeys selected for comparison
+  var liCompareMetric = 'turnaround';
+  var LI_COMPARE_MAX = 2;
   var liTrendMetric = 'turnaroundDays';
   var liPerfChart = null;
 
@@ -130,9 +134,15 @@
    * filterLabCases scope so the destination is lab cases only.
    * 'lab_cases' leaves every risk filter cleared.
    */
-  function liNavigateToCases(target) {
+  function liNavigateToCases(target, labKey) {
     var casesTab = document.querySelector('.main-tab[data-tab="cases"]');
     if (casesTab) { casesTab.click(); }
+
+    // Optional single-laboratory scope (Lab Insights labKey). Always reset
+    // first so KPI/health/queue navigation without a lab clears any stale
+    // drill-down scope left by the comparison table.
+    var labKeyInput = document.getElementById('filterLabKey');
+    if (labKeyInput) { labKeyInput.value = labKey || ''; }
 
     var setCheck = function (id, checked) {
       var el = document.getElementById(id);
@@ -674,15 +684,60 @@
   // Performance layout (new)
   // ======================================================================
 
+  /**
+   * Display-ready metrics for a lab honoring the active case-type filter.
+   * Per-type stats already ship in performance.labs[].caseTypes, so the
+   * filter is applied client-side with the same denominators the backend
+   * used - table, comparison panel, and chart all read this one helper.
+   * Lab-attributed remake rate has no per-type breakdown upstream, so it
+   * reports null under a type filter rather than implying all-type data.
+   */
+  function labRowMetrics(lab) {
+    var ct = liCaseType;
+    if (ct) {
+      var ts = (lab.caseTypes || {})[ct];
+      if (!ts) {
+        return {
+          volume: 0, completed: 0, hasTypeData: false,
+          turnaround: { avgDays: null, n: 0, sufficient: false },
+          onTime: { pct: null, n: 0, sufficient: false },
+          remake: { remakeRatePct: null, rateDenominator: 0, rateSufficient: false },
+          labAttrRate: null
+        };
+      }
+      return {
+        volume: ts.uniqueCases || 0,
+        completed: ts.completedCases || 0,
+        hasTypeData: true,
+        turnaround: { avgDays: ts.avgTurnaroundDays, n: ts.turnaroundN || 0, sufficient: !!ts.sufficient },
+        onTime: { pct: ts.onTimePct, n: ts.onTimeN || 0, sufficient: !!ts.sufficient },
+        remake: { remakeRatePct: ts.remakeRatePct, rateDenominator: ts.uniqueCases || 0, rateSufficient: !!ts.sufficient },
+        labAttrRate: null
+      };
+    }
+    var rm = lab.remakes || {};
+    return {
+      volume: lab.volume ? lab.volume.uniqueCases : 0,
+      completed: lab.completed ? lab.completed.uniqueCases : 0,
+      hasTypeData: true,
+      turnaround: lab.turnaround || { avgDays: null, n: 0, sufficient: false },
+      onTime: lab.onTime || { pct: null, n: 0, sufficient: false },
+      remake: { remakeRatePct: rm.remakeRatePct, rateDenominator: rm.rateDenominator, rateSufficient: rm.rateSufficient },
+      labAttrRate: rm.labAttributedRatePct
+    };
+  }
+
   function perfSortValue(lab, key) {
+    var m = labRowMetrics(lab);
     switch (key) {
       case 'name': return lab.name;
-      case 'cases': return lab.volume ? lab.volume.uniqueCases : null;
-      case 'turnaround': return lab.turnaround ? lab.turnaround.avgDays : null;
-      case 'onTime': return lab.onTime ? lab.onTime.pct : null;
-      case 'remakeRate': return lab.remakes ? lab.remakes.remakeRatePct : null;
-      case 'labAttrRate': return lab.remakes ? lab.remakes.labAttributedRatePct : null;
+      case 'cases': return m.volume;
+      case 'turnaround': return m.turnaround.avgDays;
+      case 'onTime': return m.onTime.pct;
+      case 'remakeRate': return m.remake.remakeRatePct;
+      case 'labAttrRate': return liCaseType ? null : m.labAttrRate;
       case 'workload': return lab.workload ? lab.workload.openCases : null;
+      case 'overdue': return lab.workload ? (lab.workload.late || 0) : null;
       default: return null;
     }
   }
@@ -733,7 +788,8 @@
     var note = '';
     if (!sufficient) {
       note = '<div class="li-metric-note li-metric-note-quiet">' +
-        escapeHtml(I18n.pluralize(n, 'insights.perf.context.based_on_cases')) + '</div>';
+        escapeHtml(I18n.pluralize(n, 'insights.perf.context.based_on_cases')) +
+        ' &middot; ' + escapeHtml(t('insights.perf.context.limited_history')) + '</div>';
     }
     return '<span class="' + (sufficient ? '' : 'li-value-muted') + '">' +
       escapeHtml(fmt(value)) + '</span>' + note;
@@ -920,12 +976,25 @@
     }
   }
 
+  /** Navigate to the Case Board scoped to one laboratory (+ optional risk). */
+  function liNavigateToLabCases(target, labKey) {
+    liNavigateToCases(target, labKey);
+  }
+
   function renderPerfTable() {
     var tbody = document.getElementById('liPerfTableBody');
+    var table = document.getElementById('liPerfTable');
     if (!tbody) { return; }
     tbody.innerHTML = '';
     sortPerfLabs();
     renderPerfSortIndicators();
+
+    var canCompare = liPerfLabs.length >= 2;
+    if (table) { table.classList.toggle('li-perf-table--no-compare', !canCompare); }
+    // Drop stale selections if labs disappeared (e.g. range/filter change).
+    liCompare = liCompare.filter(function (k) {
+      return liPerfLabs.some(function (l) { return l.labKey === k; });
+    });
 
     liPerfLabs.forEach(function (lab) {
       var row = document.createElement('tr');
@@ -935,46 +1004,97 @@
       row.setAttribute('role', 'button');
       row.setAttribute('aria-label', lab.name);
 
+      var m = labRowMetrics(lab);
+      var rm = lab.remakes || {};
+      var wl = lab.workload || {};
+      var openCases = wl.openCases || 0;
+      var lateCases = wl.late || 0;
+
+      var compareCell = '<td class="li-compare-col">';
+      if (canCompare) {
+        var checked = liCompare.indexOf(lab.labKey) !== -1;
+        compareCell += '<input type="checkbox" class="li-compare-check" data-lab-key="' +
+          escapeHtml(lab.labKey) + '"' + (checked ? ' checked' : '') +
+          ' aria-label="' + escapeHtml(t('insights.perf.compare.select_label')) + ' ' + escapeHtml(lab.name) + '">';
+      }
+      compareCell += '</td>';
+
       var nameCell = lab.isLive
         ? '<span class="li-lab-name" title="' + escapeHtml(lab.name) + '">' + escapeHtml(lab.name) + '</span>'
         : '<span class="li-lab-name li-lab-name-removed" title="' + escapeHtml(lab.name) +
           escapeHtml(t('insights.perf.table.removed_suffix')) + '">' + escapeHtml(lab.name) + '</span>';
 
       var turnHtml = metricValueHtml(
-        lab.turnaround.avgDays, lab.turnaround.n, lab.turnaround.sufficient, fmtDays);
-      var turnBench = vsPracticeText(lab.benchmarks.vsPractice.avgTurnaroundDays, 'days');
-      if (turnBench) {
-        turnHtml += '<div class="li-metric-note">' + escapeHtml(turnBench) + '</div>';
+        m.turnaround.avgDays, m.turnaround.n, m.turnaround.sufficient, fmtDays);
+      if (!liCaseType) {
+        var turnBench = vsPracticeText(lab.benchmarks && lab.benchmarks.vsPractice
+          ? lab.benchmarks.vsPractice.avgTurnaroundDays : null, 'days');
+        if (turnBench) {
+          turnHtml += '<div class="li-metric-note">' + escapeHtml(turnBench) + '</div>';
+        }
       }
 
-      var onTimeHtml = metricValueHtml(lab.onTime.pct, lab.onTime.n, lab.onTime.sufficient, fmtPercent);
-      var onTimeBench = vsPracticeText(lab.benchmarks.vsPractice.onTimePct, 'pts');
-      if (onTimeBench) {
-        onTimeHtml += '<div class="li-metric-note">' + escapeHtml(onTimeBench) + '</div>';
+      var onTimeHtml = metricValueHtml(m.onTime.pct, m.onTime.n, m.onTime.sufficient, fmtPercent);
+      if (!liCaseType && lab.onTime && lab.onTime.dueDateCoveragePct !== null
+          && lab.onTime.dueDateCoveragePct < 100) {
+        onTimeHtml += '<div class="li-metric-note">' +
+          escapeHtml(t('insights.perf.context.due_date_coverage', { pct: lab.onTime.dueDateCoveragePct })) + '</div>';
+      }
+      if (!liCaseType) {
+        var onTimeBench = vsPracticeText(lab.benchmarks && lab.benchmarks.vsPractice
+          ? lab.benchmarks.vsPractice.onTimePct : null, 'pts');
+        if (onTimeBench) {
+          onTimeHtml += '<div class="li-metric-note">' + escapeHtml(onTimeBench) + '</div>';
+        }
       }
 
-      var rm = lab.remakes;
-      var remakeHtml = metricValueHtml(rm.remakeRatePct, rm.rateDenominator, rm.rateSufficient, fmtPercent);
-      var labAttrHtml = metricValueHtml(rm.labAttributedRatePct, rm.rateDenominator, rm.rateSufficient, fmtPercent);
-
-      var wl = lab.workload;
-      var workloadHtml = escapeHtml(I18n.pluralize(wl.openCases || 0, 'insights.perf.context.cases_count'));
-      if ((wl.late || 0) > 0) {
-        workloadHtml += '<div class="li-metric-note li-metric-note-quiet">' +
-          escapeHtml(I18n.pluralize(wl.late, 'insights.perf.context.late_count')) + '</div>';
+      var remakeDenom = liCaseType ? m.volume : rm.rateDenominator;
+      var remakeHtml = metricValueHtml(m.remake.remakeRatePct, remakeDenom, m.remake.rateSufficient, fmtPercent);
+      var labAttrHtml;
+      if (liCaseType) {
+        labAttrHtml = '<span class="li-muted">—</span><div class="li-metric-note li-metric-note-quiet">' +
+          escapeHtml(t('insights.perf.context.not_by_type')) + '</div>';
+      } else {
+        labAttrHtml = metricValueHtml(m.labAttrRate, rm.rateDenominator, rm.rateSufficient, fmtPercent);
       }
+
+      // Current-state cells link to the Case Board scoped to this lab;
+      // they stop propagation so the row's Lab Detail navigation is not
+      // triggered. Counts always reflect live open periods, never the
+      // selected reporting range.
+      var workloadHtml = '<button type="button" class="li-cell-link" data-li-nav="lab_cases" data-li-lab="' +
+        escapeHtml(lab.labKey) + '">' + escapeHtml(fmtCount(openCases)) + '</button>' +
+        '<div class="li-metric-note li-metric-note-quiet">' +
+        escapeHtml(t('insights.perf.context.active_cases_note')) + '</div>';
+      if (lateCases > 0) {
+        workloadHtml += '<div class="li-metric-note li-metric-note-late">' +
+          '<button type="button" class="li-cell-link li-cell-link-late" data-li-nav="late" data-li-lab="' +
+          escapeHtml(lab.labKey) + '">' + escapeHtml(I18n.pluralize(lateCases, 'insights.perf.context.late_count')) +
+          '</button></div>';
+      }
+
+      var overdueHtml = lateCases > 0
+        ? '<button type="button" class="li-cell-link li-cell-link-late" data-li-nav="late" data-li-lab="' +
+          escapeHtml(lab.labKey) + '">' + escapeHtml(fmtCount(lateCases)) + '</button>'
+        : '<span class="li-muted">0</span>';
 
       row.innerHTML =
-        '<td>' + nameCell + '</td>' +
-        '<td>' + escapeHtml(fmtCount(lab.volume.uniqueCases)) + '</td>' +
-        '<td>' + turnHtml + '</td>' +
-        '<td>' + onTimeHtml + '</td>' +
-        '<td>' + remakeHtml + '</td>' +
-        '<td>' + labAttrHtml + '</td>' +
-        '<td>' + workloadHtml + '</td>';
+        compareCell +
+        '<td data-label="' + escapeHtml(t('insights.perf.table.lab')) + '">' + nameCell + '</td>' +
+        '<td class="li-num" data-label="' + escapeHtml(t('insights.perf.table.cases')) + '">' + escapeHtml(fmtCount(m.volume)) + '</td>' +
+        '<td class="li-num" data-label="' + escapeHtml(t('insights.perf.table.avg_turnaround')) + '">' + turnHtml + '</td>' +
+        '<td class="li-num" data-label="' + escapeHtml(t('insights.perf.table.on_time')) + '">' + onTimeHtml + '</td>' +
+        '<td class="li-num" data-label="' + escapeHtml(t('insights.perf.table.remake_rate')) + '">' + remakeHtml + '</td>' +
+        '<td class="li-num" data-label="' + escapeHtml(t('insights.perf.table.lab_attributed')) + '">' + labAttrHtml + '</td>' +
+        '<td class="li-num" data-label="' + escapeHtml(t('insights.perf.table.current_workload')) + '">' + workloadHtml + '</td>' +
+        '<td class="li-num" data-label="' + escapeHtml(t('insights.perf.table.overdue')) + '">' + overdueHtml + '</td>';
 
-      row.addEventListener('click', function () { selectLab(lab.labKey); });
+      row.addEventListener('click', function (e) {
+        if (e.target.closest('.li-compare-check, .li-cell-link')) { return; }
+        selectLab(lab.labKey);
+      });
       row.addEventListener('keydown', function (e) {
+        if (e.target !== row) { return; }
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault();
           selectLab(lab.labKey);
@@ -982,6 +1102,250 @@
       });
       tbody.appendChild(row);
     });
+
+    renderComparePanel();
+  }
+
+  // ======================================================================
+  // Two-laboratory comparison + metric bar visualization
+  // ======================================================================
+
+  function findPerfLab(labKey) {
+    for (var i = 0; i < liPerfLabs.length; i++) {
+      if (liPerfLabs[i].labKey === labKey) { return liPerfLabs[i]; }
+    }
+    return null;
+  }
+
+  /** Populate the case-type filter from types actually present in the data. */
+  function populateCaseTypeFilter() {
+    var sel = document.getElementById('liCaseTypeFilter');
+    if (!sel) { return; }
+    var types = {};
+    var collect = function (cts) {
+      Object.keys(cts || {}).forEach(function (k) {
+        if (k && k !== 'Unknown') { types[k] = true; }
+      });
+    };
+    if (liPerf && liPerf.practice) { collect(liPerf.practice.caseTypes); }
+    liPerfLabs.forEach(function (l) { collect(l.caseTypes); });
+    var keys = Object.keys(types).sort(function (a, b) {
+      return liCaseTypeLabel(a).localeCompare(liCaseTypeLabel(b));
+    });
+    var prev = liCaseType;
+    sel.innerHTML = '<option value="">' + escapeHtml(t('insights.perf.case_type_filter.all')) + '</option>';
+    keys.forEach(function (k) {
+      var opt = document.createElement('option');
+      opt.value = k;
+      opt.textContent = liCaseTypeLabel(k);
+      sel.appendChild(opt);
+    });
+    // Keep the selection only if the type still exists in the data.
+    liCaseType = keys.indexOf(prev) !== -1 ? prev : '';
+    sel.value = liCaseType;
+  }
+
+  function liCaseTypeLabel(caseType) {
+    if (caseType && typeof window.getCaseTypeDisplayLabel === 'function') {
+      return window.getCaseTypeDisplayLabel(caseType);
+    }
+    return caseType || '';
+  }
+
+  /** Comparison metric definitions: value extractor + formatter. */
+  function compareMetricDefs() {
+    return {
+      turnaround: {
+        label: t('insights.perf.compare.metric_turnaround'),
+        value: function (lab) { return labRowMetrics(lab).turnaround.avgDays; },
+        fmt: fmtDays,
+        note: function (lab) { return labRowMetrics(lab).turnaround; }
+      },
+      onTime: {
+        label: t('insights.perf.compare.metric_ontime'),
+        value: function (lab) { return labRowMetrics(lab).onTime.pct; },
+        fmt: fmtPercent,
+        note: function (lab) { return labRowMetrics(lab).onTime; }
+      },
+      workload: {
+        label: t('insights.perf.compare.metric_workload'),
+        value: function (lab) { return lab.workload ? lab.workload.openCases : null; },
+        fmt: function (v) { return fmtCount(v); },
+        note: function () { return null; }
+      },
+      overdue: {
+        label: t('insights.perf.compare.metric_overdue'),
+        value: function (lab) { return lab.workload ? (lab.workload.late || 0) : null; },
+        fmt: function (v) { return fmtCount(v); },
+        note: function () { return null; }
+      },
+      remake: {
+        label: t('insights.perf.compare.metric_remake'),
+        value: function (lab) { return labRowMetrics(lab).remake.remakeRatePct; },
+        fmt: fmtPercent,
+        note: function (lab) { return labRowMetrics(lab).remake; }
+      }
+    };
+  }
+
+  function compareMetricCellHtml(lab, metricKey) {
+    var defs = compareMetricDefs();
+    var def = defs[metricKey] || defs.turnaround;
+    var m = labRowMetrics(lab);
+    var v;
+    switch (metricKey) {
+      case 'cases': v = m.volume; break;
+      case 'completed': v = m.completed; break;
+      case 'workload': v = lab.workload ? lab.workload.openCases : null; break;
+      case 'overdue': v = lab.workload ? (lab.workload.late || 0) : null; break;
+      default: v = def.value(lab); break;
+    }
+    var fmt = metricKey === 'cases' || metricKey === 'completed' || metricKey === 'workload' || metricKey === 'overdue'
+      ? function (x) { return fmtCount(x); }
+      : def.fmt;
+    if (v === null || v === undefined) {
+      return '<span class="li-muted">—</span>';
+    }
+    var note = '';
+    var n = null;
+    if (metricKey === 'turnaround') { n = m.turnaround.n; }
+    else if (metricKey === 'onTime') { n = m.onTime.n; }
+    else if (metricKey === 'remake') { n = liCaseType ? m.volume : (lab.remakes ? lab.remakes.rateDenominator : null); }
+    if (n !== null && n !== undefined && n > 0) {
+      note = '<div class="li-metric-note li-metric-note-quiet">' +
+        escapeHtml(I18n.pluralize(n, 'insights.perf.context.based_on_cases')) + '</div>';
+    }
+    return '<span>' + escapeHtml(fmt(v)) + '</span>' + note;
+  }
+
+  function renderComparePanel() {
+    var panel = document.getElementById('liComparePanel');
+    if (!panel) { return; }
+    if (liCompare.length === 0) {
+      panel.hidden = true;
+      panel.innerHTML = '';
+      return;
+    }
+    panel.hidden = false;
+
+    var labA = findPerfLab(liCompare[0]);
+    var labB = liCompare.length > 1 ? findPerfLab(liCompare[1]) : null;
+
+    if (!labB) {
+      panel.innerHTML =
+        '<div class="li-compare-head">' +
+          '<strong>' + escapeHtml(t('insights.perf.compare.title')) + '</strong>' +
+          '<span class="li-compare-hint">' + escapeHtml(t('insights.perf.compare.need_two')) + '</span>' +
+          '<button type="button" class="ap-btn ap-btn-secondary li-compare-close">' +
+            escapeHtml(t('insights.perf.compare.clear')) + '</button>' +
+        '</div>';
+      bindCompareClose(panel);
+      return;
+    }
+
+    var defs = compareMetricDefs();
+    var metricKeys = ['turnaround', 'onTime', 'workload', 'overdue', 'remake'];
+    if (!defs[liCompareMetric]) { liCompareMetric = 'turnaround'; }
+
+    var rows = [
+      ['cases', t('insights.perf.compare.metric_cases')],
+      ['completed', t('insights.perf.compare.metric_completed')],
+      ['turnaround', t('insights.perf.compare.metric_turnaround')],
+      ['ontime', t('insights.perf.compare.metric_ontime')],
+      ['workload', t('insights.perf.compare.metric_workload')],
+      ['overdue', t('insights.perf.compare.metric_overdue')],
+      ['remake', t('insights.perf.compare.metric_remake')]
+    ];
+
+    var html =
+      '<div class="li-compare-head">' +
+        '<strong>' + escapeHtml(t('insights.perf.compare.title')) + '</strong>' +
+        '<span class="li-compare-names">' + escapeHtml(labA.name) + ' &harr; ' + escapeHtml(labB.name) + '</span>' +
+        '<button type="button" class="ap-btn ap-btn-secondary li-compare-close">' +
+          escapeHtml(t('insights.perf.compare.clear')) + '</button>' +
+      '</div>' +
+      '<div class="li-compare-controls">' +
+        '<label class="li-compare-metric-label" for="liCompareMetric">' +
+          escapeHtml(t('insights.perf.compare.compare_by')) +
+          '<select class="ap-select" id="liCompareMetric">' +
+            metricKeys.map(function (k) {
+              return '<option value="' + k + '"' + (k === liCompareMetric ? ' selected' : '') + '>' +
+                escapeHtml(defs[k].label) + '</option>';
+            }).join('') +
+          '</select>' +
+        '</label>' +
+      '</div>' +
+      '<div class="li-compare-body">' +
+        '<table class="li-compare-table">' +
+          '<thead><tr><th></th><th>' + escapeHtml(labA.name) + '</th><th>' + escapeHtml(labB.name) + '</th></tr></thead>' +
+          '<tbody>' +
+            rows.map(function (r) {
+              var key = r[0];
+              var cellKey = key === 'ontime' ? 'onTime' : key;
+              return '<tr><th scope="row">' + escapeHtml(r[1]) + '</th>' +
+                '<td>' + compareMetricCellHtml(labA, cellKey) + '</td>' +
+                '<td>' + compareMetricCellHtml(labB, cellKey) + '</td></tr>';
+            }).join('') +
+          '</tbody>' +
+        '</table>' +
+        '<div class="li-compare-chart" id="liCompareChart"></div>' +
+      '</div>' +
+      '<p class="li-table-footnote">' + escapeHtml(t('insights.perf.compare.disclaimer')) + '</p>';
+
+    panel.innerHTML = html;
+    bindCompareClose(panel);
+
+    var metricSel = panel.querySelector('#liCompareMetric');
+    if (metricSel) {
+      metricSel.addEventListener('change', function () {
+        liCompareMetric = metricSel.value || 'turnaround';
+        renderComparePanel();
+      });
+    }
+    renderCompareBars(labA, labB, liCompareMetric);
+  }
+
+  function bindCompareClose(panel) {
+    var btn = panel.querySelector('.li-compare-close');
+    if (btn) {
+      btn.addEventListener('click', function () {
+        liCompare = [];
+        renderComparePanel();
+        renderPerfTableBodyOnly();
+      });
+    }
+  }
+
+  /** Re-render only row checkboxes after compare state changes. */
+  function renderPerfTableBodyOnly() {
+    var tbody = document.getElementById('liPerfTableBody');
+    if (!tbody) { return; }
+    tbody.querySelectorAll('.li-compare-check').forEach(function (cb) {
+      cb.checked = liCompare.indexOf(cb.getAttribute('data-lab-key')) !== -1;
+    });
+  }
+
+  function renderCompareBars(labA, labB, metricKey) {
+    var host = document.getElementById('liCompareChart');
+    if (!host) { return; }
+    var defs = compareMetricDefs();
+    var def = defs[metricKey] || defs.turnaround;
+    var va = def.value(labA);
+    var vb = def.value(labB);
+    if (va === null || va === undefined) { va = 0; }
+    if (vb === null || vb === undefined) { vb = 0; }
+    var max = Math.max(va, vb, 0.0001);
+    var bar = function (lab, v) {
+      var pct = Math.max(0, Math.min(100, (v / max) * 100));
+      return '<div class="li-cmp-bar-row">' +
+        '<span class="li-cmp-bar-name" title="' + escapeHtml(lab.name) + '">' + escapeHtml(lab.name) + '</span>' +
+        '<span class="li-cmp-bar-track"><span class="li-cmp-bar-fill" style="width:' + pct.toFixed(1) + '%"></span></span>' +
+        '<span class="li-cmp-bar-val">' + escapeHtml(def.fmt(v)) + '</span>' +
+      '</div>';
+    };
+    host.innerHTML =
+      '<div class="li-cmp-chart-title">' + escapeHtml(def.label) + '</div>' +
+      bar(labA, va) + bar(labB, vb);
   }
 
   function renderLabDetailSelect() {
@@ -1367,6 +1731,7 @@
     liPerf = data.performance;
     liPerfLabs = (liPerf.labs || []).slice();
     if (!liSelectedLab) { liSelectedLab = 'practice'; }
+    populateCaseTypeFilter();
 
     try {
       renderPerfSummary(liPerf.practice);
@@ -1759,6 +2124,7 @@
     perfHeaders.forEach(function (th) {
       th.addEventListener('click', function () {
         var key = th.dataset.sort;
+        if (!key || th.hasAttribute('data-nosort')) { return; }
         if (liPerfSort.key === key) {
           liPerfSort.dir = liPerfSort.dir === 'asc' ? 'desc' : 'asc';
         } else {
@@ -1775,6 +2141,45 @@
         liSelectedLab = detailSelect.value;
         renderPerfTable();
         renderPerfDetail();
+      });
+    }
+
+    var caseTypeSelect = document.getElementById('liCaseTypeFilter');
+    if (caseTypeSelect) {
+      caseTypeSelect.addEventListener('change', function () {
+        liCaseType = caseTypeSelect.value || '';
+        renderPerfTable();
+      });
+    }
+
+    // Delegated handlers for the comparison checkboxes and the
+    // workload/overdue Case Board drill-down links inside perf rows.
+    var perfBody = document.getElementById('liPerfTableBody');
+    if (perfBody) {
+      perfBody.addEventListener('change', function (e) {
+        var cb = e.target.closest('.li-compare-check');
+        if (!cb) { return; }
+        var key = cb.getAttribute('data-lab-key');
+        var idx = liCompare.indexOf(key);
+        if (cb.checked) {
+          if (idx === -1) {
+            if (liCompare.length >= LI_COMPARE_MAX) {
+              liCompare.shift(); // keep the two most recently selected
+            }
+            liCompare.push(key);
+          }
+        } else if (idx !== -1) {
+          liCompare.splice(idx, 1);
+        }
+        renderPerfTable();
+      });
+      perfBody.addEventListener('click', function (e) {
+        var link = e.target.closest('.li-cell-link');
+        if (!link) { return; }
+        e.preventDefault();
+        e.stopPropagation();
+        liNavigateToLabCases(link.getAttribute('data-li-nav') || 'lab_cases',
+          link.getAttribute('data-li-lab') || '');
       });
     }
 

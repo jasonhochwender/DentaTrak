@@ -1653,7 +1653,8 @@
                 "remake_rate": "Tasa de repeticiones",
                 "lab_attributed": "Atribuidas al laboratorio",
                 "current_workload": "Carga de trabajo actual",
-                "removed_suffix": " (ya no es laboratorio)"
+                "removed_suffix": " (ya no es laboratorio)",
+                "overdue": "Vencidos"
             },
             "summary": {
                 "lab_cases": "Casos de laboratorio",
@@ -1725,7 +1726,10 @@
                 "engagements_one": "1 encargo de laboratorio",
                 "engagements_other": "{count} encargos de laboratorio",
                 "engagements_few": "{count} encargos de laboratorio",
-                "engagements_many": "{count} encargos de laboratorio"
+                "engagements_many": "{count} encargos de laboratorio",
+                "limited_history": "Historial limitado",
+                "not_by_type": "No disponible por tipo de caso",
+                "active_cases_note": "activos ahora"
             },
             "revisions": {
                 "title": "Retrocesos del flujo de trabajo (revisiones)",
@@ -1733,6 +1737,25 @@
                 "note": "Las revisiones cuentan los casos que retrocedieron en el flujo de trabajo. No son repeticiones: un retroceso solo se convierte en repetición cuando alguien la registra explícitamente.",
                 "count_header": "Retrocesos",
                 "rate_header": "Tasa de retrocesos"
+            },
+            "case_type_filter": {
+                "label": "Tipo de caso",
+                "all": "Todos los tipos"
+            },
+            "compare": {
+                "title": "Comparación de laboratorios",
+                "select_label": "Seleccionar para comparar",
+                "need_two": "Seleccione otro laboratorio para comparar.",
+                "clear": "Borrar comparación",
+                "compare_by": "Comparar por",
+                "disclaimer": "Los valores reflejan el período y el filtro de tipo de caso seleccionados. Las muestras pequeñas pueden no ser representativas.",
+                "metric_cases": "Casos",
+                "metric_completed": "Casos completados",
+                "metric_turnaround": "Tiempo medio de entrega",
+                "metric_ontime": "Entrega a tiempo",
+                "metric_workload": "Carga actual",
+                "metric_overdue": "Casos vencidos",
+                "metric_remake": "Tasa de retrabajos"
             }
         },
         "recs": {

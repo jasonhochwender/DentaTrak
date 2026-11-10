@@ -1653,7 +1653,8 @@
                 "remake_rate": "재제작률",
                 "lab_attributed": "기공소 귀책",
                 "current_workload": "현재 작업량",
-                "removed_suffix": " (더 이상 기공소 아님)"
+                "removed_suffix": " (더 이상 기공소 아님)",
+                "overdue": "기한 초과"
             },
             "summary": {
                 "lab_cases": "기공소 케이스",
@@ -1725,7 +1726,10 @@
                 "late_count_few": "지연 {count}건",
                 "late_count_many": "지연 {count}건",
                 "engagements_few": "기공소 거래 {count}건",
-                "engagements_many": "기공소 거래 {count}건"
+                "engagements_many": "기공소 거래 {count}건",
+                "limited_history": "제한된 이력",
+                "not_by_type": "케이스 유형별로 제공되지 않음",
+                "active_cases_note": "현재 진행 중"
             },
             "revisions": {
                 "title": "작업 흐름 역행(수정)",
@@ -1733,6 +1737,25 @@
                 "note": "수정은 작업 흐름에서 이전 단계로 이동한 케이스를 집계합니다. 재제작이 아니며, 명시적으로 재제작으로 기록된 경우에만 재제작이 됩니다.",
                 "count_header": "역행",
                 "rate_header": "역행률"
+            },
+            "case_type_filter": {
+                "label": "케이스 유형",
+                "all": "모든 유형"
+            },
+            "compare": {
+                "title": "기공소 비교",
+                "select_label": "비교용 선택",
+                "need_two": "비교할 다른 기공소를 선택하세요.",
+                "clear": "비교 지우기",
+                "compare_by": "비교 기준",
+                "disclaimer": "값은 선택한 기간과 케이스 유형 필터를 반영합니다. 작은 표본은 대표적이지 않을 수 있습니다.",
+                "metric_cases": "케이스",
+                "metric_completed": "완료된 케이스",
+                "metric_turnaround": "평균 소요 시간",
+                "metric_ontime": "정시 납품",
+                "metric_workload": "현재 작업량",
+                "metric_overdue": "기한 초과 케이스",
+                "metric_remake": "재작업 비율"
             }
         },
         "recs": {

@@ -14541,6 +14541,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const filterDeliveredMonth = document.getElementById('filterDeliveredMonth');
     const filterAttentionOnly = document.getElementById('filterAttentionOnly');
     const filterLabCases = document.getElementById('filterLabCases');
+    const filterLabKey = document.getElementById('filterLabKey');
     const clearFiltersBtn = document.getElementById('clearFiltersBtn');
     const kanbanFilterActiveDot = document.getElementById('kanbanFilterActiveDot');
 
@@ -14583,6 +14584,8 @@ document.addEventListener('DOMContentLoaded', function () {
         if (deliveredMonthOnly) params.append('delivered_this_month', 'true');
         if (attentionOnly) params.append('attention_only', 'true');
         if (labCasesOnly) params.append('lab_only', 'true');
+        const labKeyScope = filterLabKey ? (filterLabKey.value || '').trim() : '';
+        if (labCasesOnly && labKeyScope !== '') params.append('lab_key', labKeyScope);
         // Open Dental patient scope (od-launch.js): constrain the board to
         // the synced patient's cases while the launch banner is active.
         const odIds = window.odPatientScope ? window.odPatientScope.caseIds() : null;
@@ -14789,6 +14792,7 @@ document.addEventListener('DOMContentLoaded', function () {
         if (filterDeliveredMonth) filterDeliveredMonth.checked = false;
         if (filterAttentionOnly) filterAttentionOnly.checked = false;
         if (filterLabCases) filterLabCases.checked = false;
+        if (filterLabKey) filterLabKey.value = '';
 
         // Apply cleared filters
         applyFilters();

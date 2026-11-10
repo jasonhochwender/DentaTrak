@@ -1645,7 +1645,8 @@
                 "remake_rate": "Tasso di rifacimento",
                 "lab_attributed": "Imputati al laboratorio",
                 "current_workload": "Carico attuale",
-                "removed_suffix": " (non più un laboratorio)"
+                "removed_suffix": " (non più un laboratorio)",
+                "overdue": "Scaduti"
             },
             "summary": {
                 "lab_cases": "Casi al laboratorio",
@@ -1717,7 +1718,10 @@
                 "engagements_one": "1 incarico al laboratorio",
                 "engagements_other": "{count} incarichi al laboratorio",
                 "engagements_few": "{count} incarichi al laboratorio",
-                "engagements_many": "{count} incarichi al laboratorio"
+                "engagements_many": "{count} incarichi al laboratorio",
+                "limited_history": "Cronologia limitata",
+                "not_by_type": "Non disponibile per tipo di caso",
+                "active_cases_note": "attivi ora"
             },
             "revisions": {
                 "title": "Regressioni del flusso di lavoro (revisioni)",
@@ -1725,6 +1729,25 @@
                 "note": "Le revisioni contano i casi tornati indietro nel flusso di lavoro. Non sono rifacimenti: una regressione diventa un rifacimento solo quando qualcuno la registra esplicitamente.",
                 "count_header": "Regressioni",
                 "rate_header": "Tasso di regressione"
+            },
+            "case_type_filter": {
+                "label": "Tipo di caso",
+                "all": "Tutti i tipi"
+            },
+            "compare": {
+                "title": "Confronto laboratori",
+                "select_label": "Seleziona per confrontare",
+                "need_two": "Seleziona un altro laboratorio per confrontare.",
+                "clear": "Cancella confronto",
+                "compare_by": "Confronta per",
+                "disclaimer": "I valori riflettono il periodo e il filtro tipo di caso selezionati. Campioni ridotti potrebbero non essere rappresentativi.",
+                "metric_cases": "Casi",
+                "metric_completed": "Casi completati",
+                "metric_turnaround": "Tempo medio di consegna",
+                "metric_ontime": "Consegna puntuale",
+                "metric_workload": "Carico attuale",
+                "metric_overdue": "Casi scaduti",
+                "metric_remake": "Tasso di rilavorazioni"
             }
         },
         "recs": {

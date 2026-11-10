@@ -5466,7 +5466,8 @@
                 "remake_rate": "Taxa de repetições",
                 "lab_attributed": "Atribuídas ao laboratório",
                 "current_workload": "Carga atual",
-                "removed_suffix": " (não é mais um laboratório)"
+                "removed_suffix": " (não é mais um laboratório)",
+                "overdue": "Vencidos"
             },
             "summary": {
                 "lab_cases": "Casos de laboratório",
@@ -5538,7 +5539,10 @@
                 "engagements_one": "1 trabalho de laboratório",
                 "engagements_other": "{count} trabalhos de laboratório",
                 "engagements_few": "{count} trabalhos de laboratório",
-                "engagements_many": "{count} trabalhos de laboratório"
+                "engagements_many": "{count} trabalhos de laboratório",
+                "limited_history": "Histórico limitado",
+                "not_by_type": "Indisponível por tipo de caso",
+                "active_cases_note": "ativos agora"
             },
             "revisions": {
                 "title": "Regressões do fluxo de trabalho (revisões)",
@@ -5546,6 +5550,25 @@
                 "note": "As revisões contam casos que retrocederam no fluxo de trabalho. Não são repetições - uma regressão só se torna uma repetição quando alguém a registra explicitamente.",
                 "count_header": "Regressões",
                 "rate_header": "Taxa de regressões"
+            },
+            "case_type_filter": {
+                "label": "Tipo de caso",
+                "all": "Todos os tipos"
+            },
+            "compare": {
+                "title": "Comparação de laboratórios",
+                "select_label": "Selecionar para comparar",
+                "need_two": "Selecione outro laboratório para comparar.",
+                "clear": "Limpar comparação",
+                "compare_by": "Comparar por",
+                "disclaimer": "Os valores refletem o período e o filtro de tipo de caso selecionados. Amostras pequenas podem não ser representativas.",
+                "metric_cases": "Casos",
+                "metric_completed": "Casos concluídos",
+                "metric_turnaround": "Tempo médio de entrega",
+                "metric_ontime": "Entrega no prazo",
+                "metric_workload": "Carga atual",
+                "metric_overdue": "Casos vencidos",
+                "metric_remake": "Taxa de retrabalhos"
             }
         },
         "recs": {
