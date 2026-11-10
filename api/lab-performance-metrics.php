@@ -657,17 +657,30 @@ function labPerfCaseTypeDetail(array $typeStats, array $remakeByType, array $ctx
     return $out;
 }
 
+/** Bucket key for a timestamp: 'Y-m' for month, ISO 'o-Www' for week. */
+function labPerfBucketKey($ts, string $bucket): string {
+    $d = new DateTimeImmutable($ts);
+    return $bucket === 'week' ? $d->format('o-\WW') : $d->format('Y-m');
+}
+
 /**
- * Monthly trend buckets for the window (raw data, not formatted text).
- * Per month: volume (periods started), completed/turnaround/on-time (periods
- * ended), remake events/rates (initiated).
+ * Trend buckets for the window (raw data, not formatted text).
+ * Per bucket: volume (periods started), completed/turnaround/on-time (periods
+ * ended), remake events/rates (initiated). $bucket is 'month' or 'week';
+ * per-bucket on-time numerator/denominator counts are retained for tooltips.
  */
-function labPerfTrends(array $ctx, array $labKeys, DateTimeImmutable $trendStart, DateTimeImmutable $winEnd) {
+function labPerfTrends(array $ctx, array $labKeys, DateTimeImmutable $trendStart, DateTimeImmutable $winEnd, string $bucket = 'month') {
     $months = [];
     $cursor = $trendStart->modify('first day of this month midnight');
-    while ($cursor <= $winEnd) {
-        $months[] = $cursor->format('Y-m');
-        $cursor = $cursor->modify('+1 month');
+    $step = $bucket === 'week' ? '+1 week' : '+1 month';
+    $cursorEnd = $bucket === 'week'
+        ? $winEnd->modify('monday this week')
+        : $winEnd->modify('first day of this month midnight');
+    while ($cursor <= $cursorEnd) {
+        $months[] = $bucket === 'week'
+            ? $cursor->format('o-\WW')
+            : $cursor->format('Y-m');
+        $cursor = $cursor->modify($step);
     }
 
     $blank = function () use ($months) {
@@ -680,6 +693,9 @@ function labPerfTrends(array $ctx, array $labKeys, DateTimeImmutable $trendStart
             'remakeEvents' => array_fill_keys($months, 0),
             'remakeRatePct' => array_fill_keys($months, null),
             'labAttrRemakeRatePct' => array_fill_keys($months, null),
+            'onTimeOn' => array_fill_keys($months, 0),
+            'onTimeLate' => array_fill_keys($months, 0),
+            'onTimeEligible' => array_fill_keys($months, 0),
             '_turnDurations' => array_fill_keys($months, null), // [month][caseId]=sec
             '_onTime' => array_fill_keys($months, null),        // [month]=>['on'=>n,'late'=>n]
             '_remadeCases' => array_fill_keys($months, null),
@@ -694,7 +710,7 @@ function labPerfTrends(array $ctx, array $labKeys, DateTimeImmutable $trendStart
         if (!isset($series[$labKey])) { $series[$labKey] = $blank(); }
         $caseId = $p['case_id'];
 
-        $sm = substr($p['started_at'], 0, 7);
+        $sm = labPerfBucketKey($p['started_at'], $bucket);
         if (isset($series['practice']['volumeUniqueCases'][$sm])
             && new DateTimeImmutable($p['started_at']) >= $trendStart) {
             foreach ([$labKey, 'practice'] as $scope) {
@@ -705,7 +721,7 @@ function labPerfTrends(array $ctx, array $labKeys, DateTimeImmutable $trendStart
 
         if ($p['history_quality'] === 'observed' && $p['ended_at'] !== null
             && $p['end_reason'] === 'delivered') {
-            $em = substr($p['ended_at'], 0, 7);
+            $em = labPerfBucketKey($p['ended_at'], $bucket);
             if (isset($series['practice']['completedCases'][$em])
                 && new DateTimeImmutable($p['ended_at']) >= $trendStart) {
                 $sec = strtotime($p['ended_at']) - strtotime($p['started_at']);
@@ -725,7 +741,7 @@ function labPerfTrends(array $ctx, array $labKeys, DateTimeImmutable $trendStart
     }
 
     foreach ($ctx['remakes'] as $r) {
-        $im = substr($r['initiated_at'], 0, 7);
+        $im = labPerfBucketKey($r['initiated_at'], $bucket);
         if (!isset($series['practice']['remakeEvents'][$im])
             || new DateTimeImmutable($r['initiated_at']) < $trendStart) { continue; }
         $period = !empty($r['lab_period_id']) ? ($ctx['periodsById'][$r['lab_period_id']] ?? null) : null;
@@ -777,6 +793,9 @@ function labPerfTrends(array $ctx, array $labKeys, DateTimeImmutable $trendStart
                 if ($endedDate > $due) { $late++; } else { $on++; }
             }
             $s['onTimePct'][$m] = labPerfPct($on, $eligible);
+            $s['onTimeOn'][$m] = $on;
+            $s['onTimeLate'][$m] = $late;
+            $s['onTimeEligible'][$m] = $eligible;
 
             $remade = isset($s['_remadeCases'][$m]) ? count($s['_remadeCases'][$m]) : 0;
             $labAttr = isset($s['_labAttrCases'][$m]) ? count($s['_labAttrCases'][$m]) : 0;
@@ -788,7 +807,7 @@ function labPerfTrends(array $ctx, array $labKeys, DateTimeImmutable $trendStart
     }
     unset($s);
 
-    return ['bucket' => 'month', 'months' => $months, 'series' => $series];
+    return ['bucket' => $bucket, 'buckets' => $months, 'series' => $series];
 }
 
 // ── Public entry point ──────────────────────────────────────────────────────
@@ -1050,11 +1069,18 @@ function computeLabPerformanceMetrics($pdo, $practiceId, ?DateTimeImmutable $ran
         'topAttributions' => array_slice($practiceRemakes['attributions'], 0, 6, true),
     ];
 
-    // ── Trends: monthly buckets over the range (cap 24, min observed span) ──
+    // ── Trends: monthly buckets over the range; weekly buckets are added
+    // for spans where weekly grouping is meaningful (<= ~13 months) so the
+    // Performance Trends chart can adapt its interval to the period. ──
     $trendStart = $rangeStart !== null
         ? $rangeStart
         : $now->modify('-12 months');
-    $trends = labPerfTrends($ctx, array_keys($labs), $trendStart, $winEnd);
+    $trends = [
+        'month' => labPerfTrends($ctx, array_keys($labs), $trendStart, $winEnd, 'month'),
+    ];
+    if ($winEnd->getTimestamp() - $trendStart->getTimestamp() <= 400 * 86400) {
+        $trends['week'] = labPerfTrends($ctx, array_keys($labs), $trendStart, $winEnd, 'week');
+    }
 
     // ── Population + coverage meta ──
     $demoCases = count(array_filter($casesById, function ($c) {

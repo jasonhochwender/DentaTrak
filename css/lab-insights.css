@@ -352,12 +352,12 @@
    oversized for a secondary drill-down chart. */
 .li-trend-chart {
   min-height: 0;
-  height: 200px;
+  height: 240px;
 }
 
 @media (max-width: 720px) {
   .li-trend-chart {
-    height: 170px;
+    height: 200px;
   }
 }
 
@@ -728,4 +728,101 @@
   padding: 0;
   cursor: pointer;
   text-align: left;
+}
+
+/* ── Performance Trends: adaptive states + summary ────────────────────── */
+.li-trend-controls {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.li-trend-controls .li-trend-select {
+  width: auto;
+  min-width: 9rem;
+}
+
+.li-trend-summary {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  padding: 0 0.25rem 0.5rem;
+  font-size: 0.85rem;
+  color: var(--text-secondary, #64748b);
+}
+
+.li-trend-summary-value {
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: var(--text-primary, #0f172a);
+}
+
+.li-trend-summary-delta {
+  font-size: 0.78rem;
+}
+
+.li-trend-delta-good { color: #15803d; }
+.li-trend-delta-bad { color: #b91c1c; }
+[data-theme="dark"] .li-trend-delta-good { color: #4ade80; }
+[data-theme="dark"] .li-trend-delta-bad { color: #f87171; }
+
+.li-trend-state {
+  display: none;
+}
+
+.li-trend-empty,
+.li-trend-single {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  text-align: center;
+  padding: 1.5rem 1rem;
+  color: var(--text-secondary, #64748b);
+  font-size: 0.85rem;
+}
+
+.li-trend-empty strong {
+  color: var(--text-primary, #0f172a);
+  font-size: 0.95rem;
+}
+
+.li-trend-single-value {
+  font-size: 1.6rem;
+  font-weight: 600;
+  color: var(--text-primary, #0f172a);
+}
+
+.li-trend-single-label {
+  font-size: 0.85rem;
+  color: var(--text-secondary, #64748b);
+}
+
+.li-trend-single-n {
+  font-size: 0.8rem;
+  color: var(--text-secondary, #64748b);
+}
+
+.li-trend-single-note {
+  font-size: 0.78rem;
+  font-style: italic;
+}
+
+.li-trend-chart--compact {
+  height: auto !important;
+  min-height: 0 !important;
+}
+
+.li-trend-chart--summary {
+  height: auto !important;
+  min-height: 0 !important;
+}
+
+@media (max-width: 720px) {
+  .li-trend-controls .li-trend-select {
+    flex: 1 1 100%;
+    min-width: 0;
+  }
 }

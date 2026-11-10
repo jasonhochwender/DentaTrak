@@ -35,6 +35,7 @@
   var liCompareMetric = 'turnaround';
   var LI_COMPARE_MAX = 2;
   var liTrendMetric = 'turnaroundDays';
+  var liTrendGranularity = 'auto';   // auto | week | month | quarter
   var liPerfChart = null;
 
   function fmtDays(value) {
@@ -1588,23 +1589,28 @@
       '</p></div>'; // quality group
     html += '</div>'; // .li-scorecard
 
-    // ── Trend (contained chart card, aligned with Practice Insights) ──
+    // ── Performance Trends (adaptive: empty / single-observation / chart) ──
     html += '<div class="li-detail-block">' +
       '<div class="ap-chart-card full-width">' +
       '<div class="ap-chart-header">' +
       '<div>' +
-      '<h3 class="ap-chart-title">' + escapeHtml(t('insights.perf.detail.trend')) + '</h3>' +
-      '<p class="ap-chart-description">' + escapeHtml(t('insights.perf.detail.trend_subtitle')) + '</p>' +
+      '<h3 class="ap-chart-title">' + escapeHtml(t('insights.perf.detail.trend_title')) + '</h3>' +
+      '<p class="ap-chart-description">' + escapeHtml(t('insights.perf.detail.trend_desc')) + '</p>' +
       '</div>' +
-      '<div class="ap-chart-controls">' +
+      '<div class="ap-chart-controls li-trend-controls">' +
       '<select class="ap-select li-trend-select" id="liTrendMetricSelect" aria-label="' +
         escapeHtml(t('insights.perf.detail.trend_metric')) + '">' +
       '<option value="turnaroundDays"' + (liTrendMetric === 'turnaroundDays' ? ' selected' : '') + '>' + escapeHtml(t('insights.perf.detail.trend_turnaround')) + '</option>' +
       '<option value="onTimePct"' + (liTrendMetric === 'onTimePct' ? ' selected' : '') + '>' + escapeHtml(t('insights.perf.detail.trend_on_time')) + '</option>' +
-      '<option value="volumeUniqueCases"' + (liTrendMetric === 'volumeUniqueCases' ? ' selected' : '') + '>' + escapeHtml(t('insights.perf.detail.trend_volume')) + '</option>' +
+      '<option value="completedCases"' + (liTrendMetric === 'completedCases' ? ' selected' : '') + '>' + escapeHtml(t('insights.perf.detail.trend_completed_volume')) + '</option>' +
       '<option value="remakeRatePct"' + (liTrendMetric === 'remakeRatePct' ? ' selected' : '') + '>' + escapeHtml(t('insights.perf.detail.trend_remake_rate')) + '</option>' +
-      '</select></div></div>' +
-      '<div class="ap-chart-container li-trend-chart">' +
+      '</select>' +
+      '<select class="ap-select li-trend-select" id="liTrendGranularitySelect" aria-label="' +
+        escapeHtml(t('insights.perf.detail.trend_granularity')) + '"></select>' +
+      '</div></div>' +
+      '<div class="li-trend-summary" id="liTrendSummary"></div>' +
+      '<div class="ap-chart-container li-trend-chart" id="liTrendChartWrap">' +
+      '<div class="li-trend-state" id="liTrendState"></div>' +
       '<canvas id="liPerfTrendChart" role="img" aria-label="' + escapeHtml(t('insights.labs.perf_trend_aria')) + '"></canvas>' +
       '</div></div></div>';
 
@@ -1700,6 +1706,13 @@
         renderPerfTrendChart();
       });
     }
+    var granSel = document.getElementById('liTrendGranularitySelect');
+    if (granSel) {
+      granSel.addEventListener('change', function () {
+        liTrendGranularity = granSel.value;
+        renderPerfTrendChart();
+      });
+    }
     renderPerfTrendChart();
   }
 
@@ -1725,39 +1738,315 @@
     return html;
   }
 
+  // ── Performance Trends: adaptive rendering ────────────────────────────
+
+  var LI_TREND_METRICS = {
+    turnaroundDays:  { kind: 'line', fmt: 'days',  prevKey: 'avgTurnaroundDays' },
+    onTimePct:       { kind: 'line', fmt: 'pct',   prevKey: 'onTimePct' },
+    completedCases:  { kind: 'bar',  fmt: 'count', prevKey: 'volumeUniqueCases' },
+    remakeRatePct:   { kind: 'line', fmt: 'pct',   prevKey: 'remakeRatePct' },
+  };
+
+  function liTrendScope() {
+    return (liSelectedLab && liSelectedLab !== 'practice') ? liSelectedLab : 'practice';
+  }
+
+  /** Days covered by the current reporting range (null when unbounded). */
+  function liTrendSpanDays() {
+    var r = liPerf && liPerf.range;
+    if (!r || !r.start || !r.end) { return null; }
+    var s = Date.parse(r.start), e = Date.parse(r.end);
+    if (isNaN(s) || isNaN(e)) { return null; }
+    return Math.round((e - s) / 86400000);
+  }
+
+  function liTrendMonthBucketCount() {
+    var m = liPerf && liPerf.trends && liPerf.trends.month;
+    return m && m.buckets ? m.buckets.length : 0;
+  }
+
+  /** Auto granularity: week for short ranges, quarter for long histories. */
+  function liTrendAutoGranularity() {
+    var span = liTrendSpanDays();
+    var hasWeek = !!(liPerf && liPerf.trends && liPerf.trends.week);
+    if (hasWeek && span !== null && span <= 130) { return 'week'; }
+    if ((span !== null && span > 550) || liTrendMonthBucketCount() > 18) { return 'quarter'; }
+    return 'month';
+  }
+
+  function liTrendResolvedGranularity() {
+    var g = liTrendGranularity;
+    if (g === 'auto') { return liTrendAutoGranularity(); }
+    // Fall back when the requested granularity has no backing data.
+    if (g === 'week' && !(liPerf.trends && liPerf.trends.week)) { return 'month'; }
+    if (g === 'quarter') { return 'quarter'; } // aggregated client-side from months
+    return 'month';
+  }
+
+  /** 'YYYY-MM' -> 'Nov 2025'; '2025-W45' -> 'W45 2025'. */
+  function liTrendBucketLabel(b, gran) {
+    if (gran === 'quarter') {
+      var qm = b.match(/^(\d{4})-Q([1-4])$/);
+      return qm ? 'Q' + qm[2] + ' ' + qm[1] : b;
+    }
+    if (gran === 'week') {
+      var wm = b.match(/^(\d{4})-W(\d{2})$/);
+      return wm ? 'W' + wm[2] + ' ' + wm[1].slice(2) : b;
+    }
+    var mm = b.match(/^(\d{4})-(\d{2})$/);
+    if (!mm) { return b; }
+    var names = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    return names[parseInt(mm[2], 10) - 1] + ' ' + mm[1];
+  }
+
+  /**
+   * Extract {buckets, values, aux, granularity} for the current scope+metric.
+   * Quarter granularity is aggregated client-side from monthly buckets
+   * (turnaround/on-time pooled with their sample sizes so zeros and missing
+   * data are never fabricated).
+   */
+  function liTrendData() {
+    var tr = liPerf.trends;
+    var gran = liTrendResolvedGranularity();
+    var scope = liTrendScope();
+    var src = (gran === 'quarter') ? tr.month : (tr[gran] || tr.month);
+    var series = (src && src.series && src.series[scope]) || {};
+    var buckets = (src && src.buckets) || [];
+    var metric = LI_TREND_METRICS[liTrendMetric] || LI_TREND_METRICS.turnaroundDays;
+
+    if (gran !== 'quarter') {
+      return {
+        buckets: buckets.slice(),
+        values: buckets.map(function (b) { return series[liTrendMetric] ? series[liTrendMetric][b] : null; }),
+        aux: {
+          n: function (b) { return series.completedCases ? series.completedCases[b] : null; },
+          eligible: function (b) { return series.onTimeEligible ? series.onTimeEligible[b] : null; },
+          on: function (b) { return series.onTimeOn ? series.onTimeOn[b] : null; },
+          events: function (b) { return series.remakeEvents ? series.remakeEvents[b] : null; },
+          volume: function (b) { return series.volumeUniqueCases ? series.volumeUniqueCases[b] : null; },
+        },
+        granularity: gran,
+      };
+    }
+
+    // Aggregate months into quarters.
+    var qmap = {}; // 'YYYY-Qn' => {order, vals...}
+    var order = [];
+    buckets.forEach(function (b, i) {
+      var m = b.match(/^(\d{4})-(\d{2})$/);
+      if (!m) { return; }
+      var q = 'Q' + (Math.ceil(parseInt(m[2], 10) / 3));
+      var key = m[1] + '-' + q;
+      if (!qmap[key]) {
+        qmap[key] = { order: order.length, turnSum: 0, turnN: 0, on: 0, late: 0,
+                      completed: 0, events: 0, volume: 0 };
+        order.push(key);
+      }
+      var qv = qmap[key];
+      var get = function (k) { return series[k] ? series[k][b] : null; };
+      var td = get('turnaroundDays'), cn = get('completedCases') || 0;
+      if (td !== null && td !== undefined && cn > 0) { qv.turnSum += td * cn; qv.turnN += cn; }
+      qv.completed += get('completedCases') || 0;
+      qv.on += get('onTimeOn') || 0;
+      qv.late += get('onTimeLate') || 0;
+      qv.events += get('remakeEvents') || 0;
+      qv.volume += get('volumeUniqueCases') || 0;
+    });
+    var qb = order, qv = order.map(function (k) { return qmap[k]; });
+    var qvalues = qv.map(function (q) {
+      if (liTrendMetric === 'turnaroundDays') { return q.turnN > 0 ? q.turnSum / q.turnN : null; }
+      if (liTrendMetric === 'onTimePct') { return (q.on + q.late) > 0 ? (q.on / (q.on + q.late)) * 100 : null; }
+      if (liTrendMetric === 'completedCases') { return q.completed; }
+      if (liTrendMetric === 'remakeRatePct') { return q.volume > 0 ? (q.events / q.volume) * 100 : null; }
+      return null;
+    });
+    return {
+      buckets: qb,
+      values: qvalues,
+      aux: {
+        n: function (b) { return qmap[b].turnN || null; },
+        eligible: function (b) { var q = qmap[b]; return (q.on + q.late) || null; },
+        on: function (b) { return qmap[b].on || null; },
+        events: function (b) { return qmap[b].events || null; },
+        volume: function (b) { return qmap[b].volume || null; },
+      },
+      granularity: 'quarter',
+    };
+  }
+
+  /** Compact range summary above the chart (value + sample + prev-period). */
+  function renderTrendSummary() {
+    var el = document.getElementById('liTrendSummary');
+    if (!el) { return; }
+    var d = selectedScopeData();
+    var metric = LI_TREND_METRICS[liTrendMetric] || LI_TREND_METRICS.turnaroundDays;
+    var html = '';
+    if (d) {
+      var value = null, n = null;
+      if (liTrendMetric === 'turnaroundDays') { value = d.turnaround && d.turnaround.avgDays; n = d.turnaround && d.turnaround.n; }
+      else if (liTrendMetric === 'onTimePct') { value = d.onTime && d.onTime.pct; n = d.onTime && d.onTime.n; }
+      else if (liTrendMetric === 'completedCases') { value = d.completed && d.completed.uniqueCases; n = null; }
+      else if (liTrendMetric === 'remakeRatePct') {
+        value = d.remakes && d.remakes.remakeRatePct;
+        n = d.remakes && d.remakes.rateDenominator;
+      }
+      if (value !== null && value !== undefined) {
+        var fmt = metric.fmt === 'pct' ? fmtPercent : (metric.fmt === 'count' ? fmtCount : fmtDays);
+        html += '<span class="li-trend-summary-value">' + escapeHtml(fmt(value)) + '</span>';
+        html += '<span class="li-trend-summary-label">' + escapeHtml(t('insights.perf.detail.trend_summary_label')) + '</span>';
+        if (n !== null && n !== undefined && metric.fmt !== 'count') {
+          html += '<span class="li-trend-summary-n">' + escapeHtml(
+            I18n.pluralize(n, 'insights.perf.detail.trend_based_on')) + '</span>';
+        }
+        var prev = d.benchmarks && d.benchmarks.previousPeriod && d.benchmarks.previousPeriod[metric.prevKey];
+        if (prev && prev.delta !== null && prev.delta !== undefined) {
+          var better = metric.prevKey === 'onTimePct' ? prev.delta > 0
+            : (metric.prevKey === 'remakeRatePct' || metric.prevKey === 'volumeUniqueCases' ? prev.delta < 0 : prev.delta < 0);
+          html += '<span class="li-trend-summary-delta' + (better ? ' li-trend-delta-good' : ' li-trend-delta-bad') + '">' +
+            escapeHtml(t('insights.perf.detail.trend_vs_prev', { delta: fmt(Math.abs(prev.delta)) })) + '</span>';
+        }
+      }
+    }
+    el.innerHTML = html;
+  }
+
   function renderPerfTrendChart() {
     var canvas = document.getElementById('liPerfTrendChart');
+    var stateEl = document.getElementById('liTrendState');
+    var wrap = document.getElementById('liTrendChartWrap');
     if (!canvas || !liPerf || !liPerf.trends) { return; }
     if (liPerfChart) { liPerfChart.destroy(); liPerfChart = null; }
+    renderTrendSummary();
 
-    var scope = (liSelectedLab && liSelectedLab !== 'practice') ? liSelectedLab : 'practice';
-    var series = liPerf.trends.series[scope];
-    var months = liPerf.trends.months || [];
-    if (!series || months.length === 0) { return; }
+    var metric = LI_TREND_METRICS[liTrendMetric] || LI_TREND_METRICS.turnaroundDays;
+    var data = liTrendData();
+    var gran = data.granularity;
+    var buckets = data.buckets;
+    var values = data.values;
 
-    var values = months.map(function (m) { return series[liTrendMetric][m]; });
-
-    // Trim leading months that have no data for the selected metric so short
-    // histories don't render a long run of empty axis before the first real
-    // point. Trailing months stay: they represent the rest of the selected range.
-    var firstDataIdx = 0;
-    while (firstDataIdx < values.length && (values[firstDataIdx] === null || values[firstDataIdx] === undefined)) {
-      firstDataIdx++;
+    // Populate the granularity selector with only meaningful options.
+    var granSel = document.getElementById('liTrendGranularitySelect');
+    if (granSel) {
+      var hasWeek = !!(liPerf.trends.week);
+      var monthCount = liTrendMonthBucketCount();
+      var opts = [];
+      if (hasWeek) { opts.push(['week', t('insights.perf.detail.gran_week')]); }
+      opts.push(['month', t('insights.perf.detail.gran_month')]);
+      if (monthCount > 4) { opts.push(['quarter', t('insights.perf.detail.gran_quarter')]); }
+      var cur = liTrendGranularity === 'auto' ? gran : liTrendGranularity;
+      if (opts.every(function (o) { return o[0] !== cur; })) { cur = gran; }
+      granSel.innerHTML = opts.map(function (o) {
+        return '<option value="' + o[0] + '"' + (o[0] === cur ? ' selected' : '') + '>' + escapeHtml(o[1]) + '</option>';
+      }).join('');
     }
-    if (firstDataIdx > 0 && firstDataIdx < values.length) {
-      months = months.slice(firstDataIdx);
-      values = values.slice(firstDataIdx);
+
+    // Trim leading buckets with no observations for the selected metric.
+    // Line metrics: only null/undefined are "no data" (a real 0% is data).
+    // Bar metric: leading zero months before first activity are noise.
+    var isBar = metric.kind === 'bar';
+    var isEmptyVal = function (v) {
+      if (v === null || v === undefined) { return true; }
+      return isBar && v === 0;
+    };
+    var hasAny = false, hasPositive = false;
+    for (var i = 0; i < values.length; i++) {
+      var vv = values[i];
+      if (vv !== null && vv !== undefined) { hasAny = true; }
+      if (vv !== null && vv !== undefined && vv !== 0) { hasPositive = true; }
+    }
+    var firstIdx = 0;
+    while (firstIdx < values.length && isEmptyVal(values[firstIdx])) { firstIdx++; }
+    if (firstIdx > 0 && firstIdx < values.length) {
+      buckets = buckets.slice(firstIdx);
+      values = values.slice(firstIdx);
     }
 
-    var isBar = liTrendMetric === 'volumeUniqueCases';
-    var isPct = liTrendMetric === 'onTimePct' || liTrendMetric === 'remakeRatePct';
+    // Observation count drives the adaptive state.
+    var obs = 0, firstVal = null, firstAuxN = null;
+    for (var j = 0; j < values.length; j++) {
+      var v = values[j];
+      if (isEmptyVal(v)) { continue; }
+      obs++;
+      if (firstVal === null) {
+        firstVal = v;
+        firstAuxN = metric.fmt === 'days' ? (data.aux.n(buckets[j]) || 0)
+          : (metric.fmt === 'pct' ? (data.aux.eligible(buckets[j]) || 0) : v);
+      }
+    }
+
+    var isPct = metric.fmt === 'pct';
+
+    // ── Adaptive states ──
+    if (stateEl) { stateEl.style.display = 'none'; stateEl.innerHTML = ''; }
+    canvas.style.display = 'none';
+    if (wrap) { wrap.classList.remove('li-trend-chart--compact', 'li-trend-chart--summary'); }
+
+    if (!hasAny || obs === 0) {
+      // No qualifying observations at all.
+      if (stateEl) {
+        stateEl.style.display = 'block';
+        stateEl.innerHTML = '<div class="li-trend-empty">' +
+          '<strong>' + escapeHtml(t('insights.perf.detail.trend_empty_title')) + '</strong>' +
+          '<span>' + escapeHtml(t('insights.perf.detail.trend_empty_body')) + '</span></div>';
+      }
+      if (wrap) { wrap.classList.add('li-trend-chart--compact'); }
+      return;
+    }
+    if (obs === 1) {
+      // Single observation: compact summary, no chart.
+      var fmtSingle = metric.fmt === 'pct' ? fmtPercent : (metric.fmt === 'count' ? fmtCount : fmtDays);
+      var singleN = metric.fmt === 'days'
+        ? I18n.pluralize(firstAuxN, 'insights.perf.detail.trend_cases_n')
+        : (metric.fmt === 'pct' && firstAuxN > 0
+            ? I18n.pluralize(firstAuxN, 'insights.perf.detail.trend_cases_n') : '');
+      if (stateEl) {
+        stateEl.style.display = 'block';
+        stateEl.innerHTML = '<div class="li-trend-single">' +
+          '<div class="li-trend-single-value">' + escapeHtml(fmtSingle(firstVal)) + '</div>' +
+          '<div class="li-trend-single-label">' + escapeHtml(t('insights.perf.detail.trend_single_label')) + '</div>' +
+          (singleN ? '<div class="li-trend-single-n">' + escapeHtml(singleN) + '</div>' : '') +
+          '<div class="li-trend-single-note">' + escapeHtml(t('insights.perf.detail.trend_single_note')) + '</div></div>';
+      }
+      if (wrap) { wrap.classList.add('li-trend-chart--summary'); }
+      return;
+    }
+
+    // ── Full chart ──
+    canvas.style.display = 'block';
+    if (wrap) { wrap.classList.remove('li-trend-chart--compact', 'li-trend-chart--summary'); }
+
     var color = '#1e40af';
-
     var isNarrow = window.innerWidth < 480;
+    var scope = liTrendScope();
+    var labels = buckets.map(function (b) { return liTrendBucketLabel(b, gran); });
+
+    function tooltipText(ctx) {
+      var bi = ctx.dataIndex;
+      var b = buckets[bi];
+      var lines = [labels[bi]];
+      var v = ctx.parsed.y;
+      if (metric.fmt === 'days') {
+        lines.push(fmtDays(v));
+        var n = data.aux.n(b);
+        if (n) { lines.push(I18n.pluralize(n, 'insights.perf.detail.trend_cases_n')); }
+      } else if (metric.fmt === 'pct') {
+        if (liTrendMetric === 'onTimePct') {
+          var elig = data.aux.eligible(b) || 0, on = data.aux.on(b) || 0;
+          lines.push(fmtPercent(v) + ' (' + on + '/' + elig + ')');
+        } else {
+          var ev = data.aux.events(b);
+          lines.push(fmtPercent(v) + (ev !== null && ev !== undefined ? ' · ' + I18n.pluralize(ev, 'insights.perf.detail.trend_events_n') : ''));
+        }
+      } else {
+        lines.push(I18n.pluralize(v, 'insights.perf.detail.trend_cases_n'));
+      }
+      return lines;
+    }
+
     liPerfChart = new Chart(canvas.getContext('2d'), {
       type: isBar ? 'bar' : 'line',
       data: {
-        labels: months,
+        labels: labels,
         datasets: [{
           label: scope === 'practice'
             ? t('insights.perf.detail.practice_option')
@@ -1767,7 +2056,7 @@
           backgroundColor: isBar ? color : color,
           tension: 0.3,
           fill: false,
-          spanGaps: true,
+          spanGaps: false,
         }],
       },
       options: {
@@ -1775,25 +2064,30 @@
         maintainAspectRatio: false,
         scales: {
           x: { ticks: { autoSkip: true, maxRotation: isNarrow ? 45 : 0, font: { size: isNarrow ? 12 : 10, family: "'Poppins', sans-serif" } } },
-          y: { beginAtZero: true, suggestedMax: isPct ? 100 : undefined,
-               ticks: { precision: isPct || isBar ? 0 : 1, font: { size: isNarrow ? 12 : 10, family: "'Poppins', sans-serif" } } },
+          y: {
+            beginAtZero: isBar || isPct,
+            suggestedMax: isPct ? 100 : undefined,
+            max: isPct ? 100 : undefined,
+            min: isPct ? 0 : undefined,
+            ticks: {
+              precision: isPct || isBar ? 0 : 1,
+              callback: isPct ? function (v) { return v + '%'; } : undefined,
+              font: { size: isNarrow ? 12 : 10, family: "'Poppins', sans-serif" },
+            },
+          },
         },
         plugins: {
           legend: { display: false },
           tooltip: {
             callbacks: {
-              label: function (item) {
-                var v = item.parsed.y;
-                if (v === null || v === undefined) { return t('insights.charts.no_data'); }
-                return isPct ? v + '%' : (isBar ? v + ' ' + t('insights.charts.dataset_cases') : I18n.pluralize(v, 'insights.metrics.days'));
-              },
+              label: function (item) { return tooltipText(item); },
             },
           },
         },
       },
     });
 
-    setChartAriaLabel(canvas, t('insights.labs.perf_trend_aria'), months, values,
+    setChartAriaLabel(canvas, t('insights.labs.perf_trend_aria'), labels, values,
       function (v) { return v === null ? t('insights.empty.no_data') : String(v); });
   }
 

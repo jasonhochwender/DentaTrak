@@ -147,6 +147,7 @@ screenshots/
 !/tests/lab-insights-operational-test.php
 !/tests/lab-performance-compare-test.php
 !/tests/lab-detail-scorecard-test.php
+!/tests/lab-trend-viz-test.php
 !/tests/admin-practices-auth-test.php
 !/tests/admin-practices-csrf-and-auth-test.php
 !/tests/admin-practices-subscription-test.php
