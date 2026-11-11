@@ -2625,11 +2625,33 @@ endif;
                       </svg>
                     </div>
                     <div>
-                      <h2 class="ap-section-title"><?= t('insights.recs.title') ?></h2>
-                      <p class="ap-section-subtitle"><?= t('insights.recs.subtitle') ?></p>
+                      <h2 class="ap-section-title"><?= t('insights.labrecs.title') ?></h2>
+                      <p class="ap-section-subtitle"><?= t('insights.labrecs.subtitle') ?></p>
                     </div>
                   </div>
-                  <ul class="ap-rec-list" id="liRecsList"></ul>
+                  <div class="lir-toolbar" id="liRecsToolbar" hidden>
+                    <span class="lir-summary" id="liRecsSummary"></span>
+                    <div class="lir-controls">
+                      <label class="lir-control">
+                        <span class="lir-control-label"><?= t('insights.labrecs.scope_label') ?></span>
+                        <select class="ap-select" id="liRecScope" aria-label="<?= htmlspecialchars(t('insights.labrecs.scope_label')) ?>"></select>
+                      </label>
+                      <div class="lir-state-chips" id="liRecStateChips" role="group" aria-label="<?= htmlspecialchars(t('insights.labrecs.state_label')) ?>">
+                        <button type="button" class="lir-chip is-active" data-rec-state-filter="active"><?= t('insights.labrecs.state_active') ?> <span class="lir-chip-count" id="liRecCountActive">0</span></button>
+                        <button type="button" class="lir-chip" data-rec-state-filter="reviewed"><?= t('insights.labrecs.state_reviewed') ?> <span class="lir-chip-count" id="liRecCountReviewed">0</span></button>
+                        <button type="button" class="lir-chip" data-rec-state-filter="dismissed"><?= t('insights.labrecs.state_dismissed') ?> <span class="lir-chip-count" id="liRecCountDismissed">0</span></button>
+                        <button type="button" class="lir-chip" data-rec-state-filter="resolved"><?= t('insights.labrecs.state_resolved') ?> <span class="lir-chip-count" id="liRecCountResolved">0</span></button>
+                        <button type="button" class="lir-chip" data-rec-state-filter="all"><?= t('insights.labrecs.state_all') ?></button>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="lir-status" id="liRecsStatus" hidden></div>
+                  <div id="liRecsActive"></div>
+                  <div id="liRecsPositive" class="lir-positive" hidden>
+                    <h3 class="lir-positive-title"><?= t('insights.labrecs.positive_title') ?></h3>
+                    <p class="lir-positive-sub"><?= t('insights.labrecs.positive_sub') ?></p>
+                    <ul class="lir-list" id="liRecsPositiveList"></ul>
+                  </div>
                   <button type="button" class="ap-rec-more" id="liRecsMore" style="display: none;"></button>
                 </div>
 

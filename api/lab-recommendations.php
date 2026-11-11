@@ -41,6 +41,53 @@ const REC_MIN_REMAKE_EVENTS       = 3;     // for concentration claims
 const REC_CONCENTRATION_SHARE     = 0.5;   // 50%+ of remakes in one bucket
 const REC_LAB_ATTR_RATE_PCT       = 5.0;   // lab-attributed rate worth noting
 const REC_DUE_COVERAGE_MIN_PCT    = 50.0;  // suppress on-time recs below this
+// Current-state insight thresholds (from the attention classification,
+// not the historical performance payload): minimum per-lab case counts
+// before a coordination pattern is worth surfacing.
+const REC_APPT_RISK_MIN           = 1;     // appointment risk: any case
+const REC_ACK_MIN                 = 2;     // awaiting ack: repeated signal
+const REC_DUE_SOON_MIN            = 2;     // due soon: repeated signal
+
+/**
+ * Recommendation types computed from CURRENT operational state (the
+ * attention classification) rather than the selected reporting period.
+ * The UI labels these "Current state" so users never mistake them for
+ * period-filtered history.
+ */
+const REC_CURRENT_TYPES = [
+    'late_workload_lab', 'late_workload_practice',
+    'insight_appt_risk', 'insight_appt_risk_practice',
+    'insight_awaiting_ack', 'insight_awaiting_ack_practice',
+    'insight_due_soon', 'insight_due_soon_practice',
+];
+
+/**
+ * Structured navigation target for a recommendation. 'cases' drills into
+ * the Case Board with the lab scope + risk filter applied; 'perf' opens
+ * the Lab Detail analysis for the relevant lab; 'none' renders no button.
+ */
+function labRecAction(array $r): array {
+    $labKey = $r['scope'] === 'lab' ? $r['labKey'] : null;
+    switch ($r['type']) {
+        case 'late_workload_lab':
+        case 'late_workload_practice':
+            return ['type' => 'cases', 'filter' => 'late', 'labKey' => $labKey];
+        case 'insight_appt_risk':
+        case 'insight_appt_risk_practice':
+            return ['type' => 'cases', 'filter' => 'appt_risk', 'labKey' => $labKey];
+        case 'insight_awaiting_ack':
+        case 'insight_awaiting_ack_practice':
+            return ['type' => 'cases', 'filter' => 'awaiting_ack', 'labKey' => $labKey];
+        case 'insight_due_soon':
+        case 'insight_due_soon_practice':
+            return ['type' => 'cases', 'filter' => 'due_soon', 'labKey' => $labKey];
+        case 'no_remakes_lab':
+        case 'no_remakes_practice':
+            return ['type' => 'none'];
+        default:
+            return ['type' => 'perf', 'labKey' => $labKey];
+    }
+}
 
 /**
  * Build one structured recommendation object.
@@ -71,7 +118,7 @@ function labRec($type, $severity, $scope, $labKey, $labName, $caseType,
  * Returns ['items' => [...], 'visible' => int]. Items are ordered by
  * severity then magnitude; 'priority' is the 1-based rank.
  */
-function buildLabRecommendations(array $perf) {
+function buildLabRecommendations(array $perf, ?array $current = null) {
     $min   = (int)($perf['meta']['minSampleSize'] ?? 5);
     $labs  = $perf['labs'] ?? [];
     $prac  = $perf['practice'] ?? [];
@@ -325,6 +372,45 @@ function buildLabRecommendations(array $perf) {
             'remakeRatePct', 0, null, $pracVol['uniqueCases'], 0.02, []));
     }
 
+    // ── Current-state insights (attention classification) ────────────────
+    // $current carries the same per-category attention counts that power
+    // Lab Cases Requiring Attention, so these insights describe the live
+    // case population - never the selected reporting period. Per-lab
+    // recs are emitted for a single affected lab; two or more affected
+    // labs roll up into one practice-level item (same convention as
+    // late_workload_*).
+    if (is_array($current)) {
+        $attnByLab = $current['attentionByLab'] ?? [];
+        $labNames  = $current['labNames'] ?? [];
+        $catSpecs = [
+            'appt_risk'     => ['type' => 'insight_appt_risk',     'severity' => 'attention', 'min' => REC_APPT_RISK_MIN],
+            'awaiting_ack'  => ['type' => 'insight_awaiting_ack',  'severity' => 'watch',     'min' => REC_ACK_MIN],
+            'due_soon'      => ['type' => 'insight_due_soon',      'severity' => 'watch',     'min' => REC_DUE_SOON_MIN],
+        ];
+        foreach ($catSpecs as $cat => $spec) {
+            $labsHit = [];
+            foreach ($attnByLab as $lk => $counts) {
+                $n = (int)($counts[$cat] ?? 0);
+                if ($n >= $spec['min']) { $labsHit[$lk] = $n; }
+            }
+            if (!$labsHit) { continue; }
+            $total = array_sum($labsHit);
+            if (count($labsHit) >= 2) {
+                // Practice rollup gets its own type so i18n templates can
+                // name the affected-lab count ({labs}) instead of {lab}.
+                $put(labRec($spec['type'] . '_practice', $spec['severity'], 'practice', null, null, null,
+                    'attn_' . $cat, $total, null, null, $total,
+                    ['count' => $total, 'labs' => count($labsHit)]));
+            } else {
+                $lk = array_key_first($labsHit);
+                $name = $labNames[$lk] ?? $lk;
+                $put(labRec($spec['type'], $spec['severity'], 'lab', $lk, $name, null,
+                    'attn_' . $cat, $labsHit[$lk], null, null, $labsHit[$lk],
+                    ['lab' => $name, 'count' => $labsHit[$lk]]));
+            }
+        }
+    }
+
     // ── Sort: severity rank, then magnitude desc, then lab name ──────────
     $rank = ['attention' => 0, 'watch' => 1, 'improvement' => 2, 'info' => 3];
     $items = array_values($recs);
@@ -341,6 +427,15 @@ function buildLabRecommendations(array $perf) {
     $out = [];
     foreach ($items as $i => $r) {
         unset($r['_magnitude']);
+        // 'improvement' severity items are favorable observations, not
+        // issues requiring intervention - the UI renders them separately.
+        $r['kind']    = $r['severity'] === 'improvement' ? 'observation' : 'insight';
+        $r['action']  = labRecAction($r);
+        $r['context'] = in_array($r['type'], REC_CURRENT_TYPES, true) ? 'current' : 'period';
+        // Stable lifecycle key: survives metric wording changes; the
+        // 'lab|' prefix keeps these states disjoint from Practice
+        // Insights recommendation keys in the shared states table.
+        $r['rec_key'] = 'lab|' . $r['id'];
         $r['priority'] = $i + 1;
         $out[] = $r;
     }

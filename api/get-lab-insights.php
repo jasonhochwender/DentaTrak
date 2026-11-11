@@ -836,10 +836,50 @@ try {
     try {
         $performance = computeLabPerformanceMetrics($pdo, $practiceId, $rangeStart, $now);
         if (is_array($performance)) {
-            $recommendations = buildLabRecommendations($performance);
+            // Current-state context for the insight rules: the same
+            // per-category attention counts that power Lab Cases Requiring
+            // Attention (live case population, not the selected period).
+            $recLabNames = [];
+            foreach (($labs ?? []) as $lk => $li) {
+                if (!empty($li['currentName'])) { $recLabNames[$lk] = $li['currentName']; }
+            }
+            foreach (($performance['labs'] ?? []) as $pl) {
+                if (!empty($pl['labKey']) && !isset($recLabNames[$pl['labKey']])) {
+                    $recLabNames[$pl['labKey']] = $pl['name'] ?? $pl['labKey'];
+                }
+            }
+            $recs = buildLabRecommendations($performance, [
+                'attentionByLab' => $attentionByLab,
+                'labNames'      => $recLabNames,
+            ]);
+
+            // Lifecycle merge (shared ai_recommendation_states store,
+            // 'lab|'-prefixed keys). Deterministic generation means an
+            // absent rec is verified-gone => resolved; a changed metric
+            // signature reopens dismissed recs - same rules as Practice
+            // Insights. The signature covers the emitted metrics only
+            // (no timestamps/locale), so cosmetic payload drift cannot
+            // resurrect dismissed items.
+            require_once __DIR__ . '/ai-recommendation-store.php';
+            $recSignature = md5(json_encode(array_map(function ($r) {
+                return [$r['id'], $r['currentValue'], $r['comparisonValue'], $r['sampleSize'], $r['params']];
+            }, $recs['items'])));
+            $merged = aiRecMerge($pdo, (int)$practiceId, $recSignature, $recs['items']);
+            $mergedItems = array_merge($merged['active'], $merged['resolved']);
+            $minN = (int)($performance['meta']['minSampleSize'] ?? 5);
+            $insufficient = empty($performance['labs'])
+                || (int)($performance['population']['uniqueLabCases'] ?? 0) < $minN;
+            $recommendations = [
+                'status'      => $insufficient ? 'insufficient' : 'ok',
+                'items'       => $mergedItems,
+                'computed_at' => date('Y-m-d H:i:s'),
+            ];
+        } else {
+            $recommendations = ['status' => 'unavailable', 'items' => [], 'computed_at' => date('Y-m-d H:i:s')];
         }
     } catch (Throwable $perfEx) {
         error_log('[get-lab-insights] performance metrics failed: ' . $perfEx->getMessage());
+        $recommendations = ['status' => 'unavailable', 'items' => [], 'computed_at' => date('Y-m-d H:i:s')];
     }
 
     // Record a Lab Insights visit only for screen-activation loads

@@ -1168,6 +1168,327 @@
 }
 
 /* ========================================
+   Lab Insights & Recommendations (cards)
+   ======================================== */
+.lir-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px 16px;
+  margin-bottom: 14px;
+}
+
+.lir-summary {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.lir-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 14px;
+}
+
+.lir-control {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.lir-control-label {
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+}
+
+.lir-state-chips {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.lir-chip {
+  border: 1px solid var(--border-light);
+  background: var(--background-card, #fff);
+  color: var(--text-secondary);
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.lir-chip:hover { border-color: var(--primary-color); color: var(--text-primary); }
+.lir-chip.is-active {
+  border-color: var(--primary-color);
+  color: var(--primary-color);
+  background: rgba(30, 64, 175, 0.06);
+}
+
+.lir-chip-count {
+  font-weight: 700;
+  margin-left: 2px;
+}
+
+.lir-status {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  padding: 10px 14px;
+  border: 1px dashed var(--border-light);
+  border-radius: 8px;
+  margin-bottom: 12px;
+}
+
+.lir-status-warn { color: #92400e; border-color: #f59e0b; background: #fffbeb; }
+[data-theme="dark"] .lir-status-warn { color: #fcd34d; border-color: #b45309; background: rgba(251, 191, 36, 0.08); }
+
+.lir-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.lir-card {
+  border: 1px solid var(--border-light);
+  border-left-width: 3px;
+  border-radius: 10px;
+  background: var(--background-card, #fff);
+  padding: 12px 14px;
+}
+
+.lir-attention { border-left-color: #d97706; }
+.lir-watch { border-left-color: #2563eb; }
+.lir-improvement { border-left-color: #059669; }
+.lir-info { border-left-color: #94a3b8; }
+.lir-observation { background: var(--background-subtle, #f8fafc); }
+
+.lir-card-head {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+  margin-bottom: 6px;
+}
+
+.lir-priority {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--text-muted, #64748b);
+}
+
+.lir-sev {
+  font-size: 0.66rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+
+.lir-sev-attention { color: #92400e; background: #fef3c7; }
+.lir-sev-watch { color: #1e40af; background: #dbeafe; }
+.lir-sev-improvement { color: #065f46; background: #d1fae5; }
+.lir-sev-info { color: #475569; background: #e2e8f0; }
+
+.lir-state {
+  font-size: 0.68rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--border-light);
+  color: var(--text-secondary);
+}
+
+.lir-state-reviewed { color: #1e40af; border-color: #93c5fd; }
+.lir-state-dismissed { color: #64748b; }
+.lir-state-resolved { color: #065f46; border-color: #6ee7b7; }
+
+.lir-lab {
+  margin-left: auto;
+  font-size: 0.74rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  background: var(--background-subtle, #f1f5f9);
+  padding: 2px 8px;
+  border-radius: 6px;
+}
+
+.lir-title {
+  margin: 0 0 6px;
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.lir-observed,
+.lir-why {
+  margin: 0 0 6px;
+  font-size: 0.85rem;
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+
+.lir-tag {
+  display: inline-block;
+  font-size: 0.64rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted, #64748b);
+  margin-right: 4px;
+}
+
+.lir-card-foot {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.lir-context {
+  font-size: 0.72rem;
+  color: var(--text-muted, #64748b);
+}
+
+.lir-spacer { flex: 1; }
+
+.lir-btn {
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 5px 10px;
+  border-radius: 7px;
+  border: 1px solid var(--border-light);
+  background: var(--background-card, #fff);
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.lir-btn:hover:not(:disabled) { border-color: var(--primary-color); color: var(--primary-color); }
+.lir-btn:disabled { opacity: 0.55; cursor: default; }
+
+.lir-btn-primary {
+  border-color: var(--primary-color);
+  color: #fff;
+  background: var(--primary-color);
+}
+
+.lir-btn-primary:hover:not(:disabled) { color: #fff; filter: brightness(1.08); }
+
+.lir-noaction {
+  font-size: 0.74rem;
+  color: var(--text-muted, #64748b);
+  font-style: italic;
+}
+
+.lir-detail {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border-light);
+}
+
+.lir-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 8px 16px;
+}
+
+.lir-detail-item {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.lir-detail-k {
+  font-size: 0.68rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted, #64748b);
+}
+
+.lir-detail-v {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.lir-detail-meta,
+.lir-detail-empty {
+  margin: 10px 0 0;
+  font-size: 0.74rem;
+  color: var(--text-muted, #64748b);
+}
+
+.lir-error {
+  font-size: 0.74rem;
+  color: #b91c1c;
+}
+
+.lir-empty {
+  padding: 18px 14px;
+  border: 1px dashed var(--border-light);
+  border-radius: 10px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.lir-empty-sub {
+  font-size: 0.8rem;
+  font-weight: 400;
+  color: var(--text-secondary);
+}
+
+.lir-positive { margin-top: 18px; }
+
+.lir-positive-title {
+  margin: 0 0 2px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.lir-positive-sub {
+  margin: 0 0 10px;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.lir-obs {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 8px 12px;
+  border: 1px solid var(--border-light);
+  border-radius: 8px;
+  background: var(--background-subtle, #f8fafc);
+  font-size: 0.82rem;
+}
+
+.lir-obs-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #059669;
+  flex-shrink: 0;
+}
+
+.lir-obs-text { flex: 1; min-width: 200px; color: var(--text-secondary); }
+.lir-obs-text strong { color: var(--text-primary); }
+.lir-obs-actions { display: inline-flex; gap: 6px; }
+.lir-obs .lir-btn { padding: 3px 8px; font-size: 0.72rem; }
+
+/* ========================================
    Dark theme - token remap + leftovers
    ======================================== */
 [data-theme="dark"] .analytics-pro {
@@ -1222,6 +1543,38 @@
 [data-theme="dark"] .ap-rec-watch .ap-rec-severity { color: #93c5fd; background: rgba(96, 165, 250, 0.15); }
 [data-theme="dark"] .ap-rec-improvement .ap-rec-severity { color: #6ee7b7; background: rgba(52, 211, 153, 0.15); }
 [data-theme="dark"] .ap-rec-info .ap-rec-severity { color: #cbd5e1; background: #334155; }
+
+/* Lab Insights & Recommendations - dark theme */
+[data-theme="dark"] .lir-chip {
+  background: #1e293b;
+  border-color: #334155;
+  color: #cbd5e1;
+}
+[data-theme="dark"] .lir-chip.is-active {
+  border-color: #60a5fa;
+  color: #93c5fd;
+  background: rgba(96, 165, 250, 0.12);
+}
+[data-theme="dark"] .lir-card { background: #1e293b; border-color: #334155; }
+[data-theme="dark"] .lir-observation { background: #182338; }
+[data-theme="dark"] .lir-attention { border-left-color: #f59e0b; }
+[data-theme="dark"] .lir-watch { border-left-color: #60a5fa; }
+[data-theme="dark"] .lir-improvement { border-left-color: #34d399; }
+[data-theme="dark"] .lir-info { border-left-color: #64748b; }
+[data-theme="dark"] .lir-sev-attention { color: #fcd34d; background: rgba(251, 191, 36, 0.15); }
+[data-theme="dark"] .lir-sev-watch { color: #93c5fd; background: rgba(96, 165, 250, 0.15); }
+[data-theme="dark"] .lir-sev-improvement { color: #6ee7b7; background: rgba(52, 211, 153, 0.15); }
+[data-theme="dark"] .lir-sev-info { color: #cbd5e1; background: #334155; }
+[data-theme="dark"] .lir-state-reviewed { color: #93c5fd; border-color: #3b82f6; }
+[data-theme="dark"] .lir-state-dismissed { color: #94a3b8; }
+[data-theme="dark"] .lir-state-resolved { color: #6ee7b7; border-color: #059669; }
+[data-theme="dark"] .lir-lab { background: #273349; color: #cbd5e1; }
+[data-theme="dark"] .lir-btn { background: #1e293b; border-color: #334155; color: #cbd5e1; }
+[data-theme="dark"] .lir-btn:hover:not(:disabled) { border-color: #60a5fa; color: #93c5fd; }
+[data-theme="dark"] .lir-btn-primary { background: #2563eb; border-color: #2563eb; color: #fff; }
+[data-theme="dark"] .lir-obs { background: #182338; border-color: #334155; }
+[data-theme="dark"] .lir-empty { border-color: #334155; }
+[data-theme="dark"] .lir-detail, [data-theme="dark"] .lir-card-foot { border-color: #334155; }
 
 /* ========================================
    Operational KPI Summary + Case Health

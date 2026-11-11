@@ -875,15 +875,29 @@
   }
 
   // ======================================================================
-  // Smart Recommendations
+  // Lab Insights & Recommendations
   // ======================================================================
+  // Structured cards over api/lab-recommendations.php output, merged with
+  // persisted lifecycle states (new/reviewed/dismissed/resolved) served by
+  // get-lab-insights.php. Deterministic metrics - no AI calls happen here.
 
   var LI_RECS_PREVIEW = 3;
   var LI_RECS_PLURAL_TYPES = {
     multi_remake: true,
     late_workload_lab: true,
-    late_workload_practice: true
+    late_workload_practice: true,
+    insight_appt_risk: true,
+    insight_appt_risk_practice: true,
+    insight_awaiting_ack: true,
+    insight_awaiting_ack_practice: true,
+    insight_due_soon: true,
+    insight_due_soon_practice: true
   };
+  var liRecsPayload = null;        // {status, items, computed_at}
+  var liRecStateFilter = 'active'; // active|reviewed|dismissed|resolved|all
+  var liRecScope = 'practice';     // 'practice' or a labKey - mirrors liSelectedLab
+  var liRecShowAll = false;
+  var liRecBusy = false;
 
   /** Map a structured recommendation object to localized display text. */
   function recMessage(rec) {
@@ -909,70 +923,449 @@
     return t('insights.recs.heading.' + rec.type) || rec.title || '';
   }
 
+  /** Brief "why it matters" explanation; falls back to a generic note. */
+  function recWhy(rec) {
+    var key = 'insights.labrecs.why.' + rec.type;
+    var v = t(key);
+    return (v && v !== key) ? v : t('insights.labrecs.why_default');
+  }
+
   function recSeverityLabel(severity) {
     var known = { attention: 1, watch: 1, improvement: 1, info: 1 };
     return known[severity] ? t('insights.recs.severity.' + severity) : '';
   }
 
-  /**
-   * Render structured recommendation objects produced by
-   * api/lab-recommendations.php. The frontend performs no metric math; it
-   * only maps each item's params through i18n templates.
-   */
-  function renderRecommendations(recs) {
-    var section = document.getElementById('liRecs');
-    var list = document.getElementById('liRecsList');
-    var moreBtn = document.getElementById('liRecsMore');
-    if (!section || !list || !moreBtn) { return; }
+  function recStateLabel(state) {
+    var map = { new: 'state_new', reviewed: 'state_reviewed_chip',
+                dismissed: 'state_dismissed_chip', resolved: 'state_resolved_chip' };
+    return map[state] ? t('insights.labrecs.' + map[state]) : '';
+  }
 
-    recs = (recs && Array.isArray(recs.items)) ? recs.items
-      : (Array.isArray(recs) ? recs : []);
-    if (recs.length === 0) {
-      section.style.display = 'block';
-      list.innerHTML = '<li class="ap-rec ap-rec-empty">' +
-        escapeHtml(t('insights.recs.empty')) + '</li>';
-      moreBtn.style.display = 'none';
-      return;
+  /** Lab badge text: configured lab name, or an honest scope label. */
+  function recLabLabel(rec) {
+    if (rec.scope === 'lab' && rec.labName) { return rec.labName; }
+    var labs = (rec.params && rec.params.labs) ? parseInt(rec.params.labs, 10) : 0;
+    if (labs > 1) { return t('insights.labrecs.multi_lab'); }
+    return t('insights.labrecs.scope_all');
+  }
+
+  function recContextLabel(rec) {
+    return rec.context === 'current'
+      ? t('insights.labrecs.context_current')
+      : t('insights.labrecs.context_period');
+  }
+
+  /** Action button label for a rec's structured action target. */
+  function recActionLabel(rec) {
+    var a = rec.action || {};
+    if (a.type === 'cases') {
+      return t('insights.labrecs.action_cases_' + (a.filter || 'lab_cases'));
     }
+    if (a.type === 'perf') { return t('insights.labrecs.action_perf'); }
+    return '';
+  }
 
-    section.style.display = 'block';
-    var html = '';
-    recs.forEach(function (rec, idx) {
-      var severity = rec.severity || 'info';
-      var hidden = idx >= LI_RECS_PREVIEW ? ' ap-rec-collapsed' : '';
-      html += '<li class="ap-rec ap-rec-' + escapeHtml(severity) + hidden + '">' +
-        '<span class="ap-rec-severity">' + escapeHtml(recSeverityLabel(severity)) + '</span>' +
-        '<span class="ap-rec-text">' +
-        '<strong class="ap-rec-title">' + escapeHtml(recHeading(rec)) + '</strong> ' +
-        '<span class="ap-rec-msg">' + escapeHtml(recMessage(rec)) + '</span>' +
-        '</span></li>';
+  function recMatchesState(rec) {
+    var st = rec.state || 'new';
+    if (liRecStateFilter === 'all') { return true; }
+    if (liRecStateFilter === 'active') { return st === 'new'; }
+    return st === liRecStateFilter;
+  }
+
+  function recMatchesScope(rec) {
+    if (liRecScope === 'practice' || !liRecScope) { return true; }
+    return rec.scope === 'lab' && rec.labKey === liRecScope;
+  }
+
+  function recFilteredItems(kind) {
+    var items = (liRecsPayload && Array.isArray(liRecsPayload.items)) ? liRecsPayload.items : [];
+    return items.filter(function (r) {
+      var isObs = (r.kind === 'observation');
+      if (kind === 'observation' ? !isObs : isObs) { return false; }
+      return recMatchesState(r) && recMatchesScope(r);
     });
-    list.innerHTML = html;
+  }
 
-    var extra = recs.length - LI_RECS_PREVIEW;
-    if (extra > 0) {
-      moreBtn.style.display = '';
-      moreBtn.textContent = I18n.pluralize(extra, 'insights.recs.more');
-      moreBtn.onclick = function () {
-        var collapsed = list.querySelectorAll('.ap-rec-collapsed');
-        var showing = collapsed.length === 0;
-        if (showing) {
-          recs.forEach(function (rec, idx) {
-            if (idx >= LI_RECS_PREVIEW && list.children[idx]) {
-              list.children[idx].classList.add('ap-rec-collapsed');
-            }
-          });
-        } else {
-          collapsed.forEach(function (el) { el.classList.remove('ap-rec-collapsed'); });
-        }
-        moreBtn.textContent = showing
-          ? I18n.pluralize(extra, 'insights.recs.more')
-          : t('insights.recs.less');
-      };
-    } else {
-      moreBtn.style.display = 'none';
-      moreBtn.onclick = null;
+  function liRecCounts() {
+    var items = (liRecsPayload && Array.isArray(liRecsPayload.items)) ? liRecsPayload.items : [];
+    var c = { new: 0, reviewed: 0, dismissed: 0, resolved: 0 };
+    items.forEach(function (r) {
+      var st = r.state || 'new';
+      if (c[st] !== undefined) { c[st]++; }
+    });
+    return c;
+  }
+
+  function renderRecCounts() {
+    var c = liRecCounts();
+    var map = { new: 'liRecCountActive', reviewed: 'liRecCountReviewed',
+                dismissed: 'liRecCountDismissed', resolved: 'liRecCountResolved' };
+    Object.keys(map).forEach(function (k) {
+      var el = document.getElementById(map[k]);
+      if (el) { el.textContent = c[k]; }
+    });
+  }
+
+  /** Populate the scope select from the loaded labs; keep selection. */
+  function renderRecScopeSelect() {
+    var sel = document.getElementById('liRecScope');
+    if (!sel) { return; }
+    var prev = liRecScope || 'practice';
+    sel.innerHTML = '';
+    var optAll = document.createElement('option');
+    optAll.value = 'practice';
+    optAll.textContent = t('insights.labrecs.scope_all');
+    sel.appendChild(optAll);
+    (liPerfLabs || []).forEach(function (l) {
+      if (!l.labKey) { return; }
+      var o = document.createElement('option');
+      o.value = l.labKey;
+      o.textContent = l.name || l.labKey;
+      sel.appendChild(o);
+    });
+    // Honor the lab detail selection when it names a real lab.
+    var effective = (liSelectedLab && liSelectedLab !== 'practice'
+        && (liPerfLabs || []).some(function (l) { return l.labKey === liSelectedLab; }))
+        ? liSelectedLab : prev;
+    liRecScope = effective === 'practice' ? 'practice' : effective;
+    sel.value = liRecScope;
+  }
+
+  /** Sync the rec scope selector whenever the lab detail selection changes. */
+  function liRecSyncScope() {
+    var sel = document.getElementById('liRecScope');
+    if (sel && liSelectedLab) {
+      var valid = liSelectedLab === 'practice'
+        || (liPerfLabs || []).some(function (l) { return l.labKey === liSelectedLab; });
+      if (valid) {
+        liRecScope = liSelectedLab;
+        sel.value = liRecScope;
+        if (liRecsPayload) { renderRecommendationLists(); }
+      }
     }
+  }
+
+  function liRecParamLabel(key) {
+    var map = { cur: 'metric_current', prev: 'metric_previous', delta: 'metric_change',
+                count: 'metric_count', total: 'metric_total', pct: 'metric_rate',
+                overall: 'metric_overall', type: 'metric_case_type', lab: 'metric_lab',
+                labs: 'metric_labs', reasonLabel: 'metric_reason', attrLabel: 'metric_attribution' };
+    return map[key] ? t('insights.labrecs.' + map[key]) : key;
+  }
+
+  /** Structured detail rows for the expander - verified params only. */
+  function recDetailRows(rec) {
+    var params = rec.params || {};
+    var skip = { reasonCode: 1, attrCode: 1, type: 1 };
+    var rows = [];
+    Object.keys(params).forEach(function (k) {
+      if (skip[k]) { return; }
+      var v = params[k];
+      if (v === null || v === undefined || v === '') { return; }
+      if (typeof v === 'number') { v = (Math.round(v * 10) / 10).toString(); }
+      rows.push({ label: liRecParamLabel(k), value: String(v) });
+    });
+    return rows;
+  }
+
+  function recLifecycleButtons(rec) {
+    var st = rec.state || 'new';
+    var key = rec.rec_key || rec.id;
+    var btn = function (state, label, cls) {
+      return '<button type="button" class="lir-btn ' + (cls || 'lir-btn-ghost') +
+        '" data-rec-key="' + escapeHtml(key) + '" data-rec-state="' + state + '">' +
+        escapeHtml(label) + '</button>';
+    };
+    if (st === 'new') {
+      return btn('reviewed', t('insights.recs.mark_reviewed')) +
+             btn('dismissed', t('insights.recs.dismiss'));
+    }
+    if (st === 'reviewed') {
+      return btn('new', t('insights.recs.mark_new')) +
+             btn('dismissed', t('insights.recs.dismiss'));
+    }
+    if (st === 'dismissed') {
+      return btn('new', t('insights.recs.restore'));
+    }
+    return '';
+  }
+
+  function renderRecCard(rec, idx) {
+    var severity = rec.severity || 'info';
+    var st = rec.state || 'new';
+    var isObs = rec.kind === 'observation';
+    var action = rec.action || {};
+    var actionLabel = recActionLabel(rec);
+    var detailId = 'lirDet-' + (rec.rec_key || rec.id || idx);
+
+    var html = '<li class="lir-card lir-' + escapeHtml(severity) +
+      (isObs ? ' lir-observation' : '') + '" data-rec-key="' + escapeHtml(rec.rec_key || '') + '">' +
+      '<div class="lir-card-head">' +
+        '<span class="lir-priority">#' + (idx + 1) + '</span>' +
+        '<span class="lir-sev lir-sev-' + escapeHtml(severity) + '">' + escapeHtml(recSeverityLabel(severity)) + '</span>' +
+        (st !== 'new' ? '<span class="lir-state lir-state-' + escapeHtml(st) + '">' + escapeHtml(recStateLabel(st)) + '</span>' : '') +
+        '<span class="lir-lab">' + escapeHtml(recLabLabel(rec)) + '</span>' +
+      '</div>' +
+      '<h3 class="lir-title">' + escapeHtml(recHeading(rec)) + '</h3>' +
+      '<p class="lir-observed"><span class="lir-tag">' + escapeHtml(t('insights.labrecs.observed')) + '</span> ' +
+        escapeHtml(recMessage(rec)) + '</p>' +
+      '<p class="lir-why"><span class="lir-tag">' + escapeHtml(t('insights.labrecs.why_label')) + '</span> ' +
+        escapeHtml(recWhy(rec)) + '</p>' +
+      '<div class="lir-card-foot">' +
+        '<span class="lir-context">' + escapeHtml(recContextLabel(rec)) + '</span>' +
+        '<span class="lir-spacer"></span>';
+
+    if (actionLabel) {
+      html += '<button type="button" class="lir-btn lir-btn-primary" data-rec-action="' +
+        escapeHtml(JSON.stringify(action)) + '">' + escapeHtml(actionLabel) + '</button>';
+    } else if (!isObs) {
+      html += '<span class="lir-noaction">' + escapeHtml(t('insights.labrecs.informational')) + '</span>';
+    }
+    html += '<button type="button" class="lir-btn lir-btn-ghost" data-rec-detail="' + escapeHtml(detailId) + '">' +
+      escapeHtml(t('insights.recs.view_details')) + '</button>' +
+      recLifecycleButtons(rec) +
+      '</div>' +
+      '<div class="lir-detail" id="' + escapeHtml(detailId) + '" hidden>' +
+        '<div class="lir-detail-grid"></div>' +
+        '<p class="lir-detail-meta">' + escapeHtml(t('insights.labrecs.detail_meta', {
+          period: recContextLabel(rec),
+          time: liRecsPayload && liRecsPayload.computed_at ? liRecsPayload.computed_at : ''
+        })) + '</p>' +
+      '</div>' +
+    '</li>';
+    return html;
+  }
+
+  /** Fill the expander grid lazily on first open. */
+  function fillRecDetail(rec, container) {
+    if (container.dataset.filled === '1') { return; }
+    container.dataset.filled = '1';
+    var rows = recDetailRows(rec);
+    var html = '';
+    rows.forEach(function (r) {
+      html += '<div class="lir-detail-item"><span class="lir-detail-k">' + escapeHtml(r.label) +
+        '</span><span class="lir-detail-v">' + escapeHtml(r.value) + '</span></div>';
+    });
+    if (!rows.length) {
+      html = '<p class="lir-detail-empty">' + escapeHtml(t('insights.labrecs.detail_empty')) + '</p>';
+    }
+    container.querySelector('.lir-detail-grid').innerHTML = html;
+  }
+
+  function renderObservationRow(rec) {
+    var st = rec.state || 'new';
+    var key = rec.rec_key || rec.id;
+    return '<li class="lir-obs" data-rec-key="' + escapeHtml(key) + '">' +
+      '<span class="lir-obs-dot"></span>' +
+      '<span class="lir-obs-text"><strong>' + escapeHtml(recHeading(rec)) + '</strong> ' +
+        escapeHtml(recMessage(rec)) + '</span>' +
+      (st !== 'new' ? '<span class="lir-state lir-state-' + escapeHtml(st) + '">' + escapeHtml(recStateLabel(st)) + '</span>' : '') +
+      '<span class="lir-obs-actions">' + recLifecycleButtons(rec) + '</span>' +
+    '</li>';
+  }
+
+  function renderRecommendationLists() {
+    var host = document.getElementById('liRecsActive');
+    var posHost = document.getElementById('liRecsPositive');
+    var posList = document.getElementById('liRecsPositiveList');
+    var moreBtn = document.getElementById('liRecsMore');
+    var statusEl = document.getElementById('liRecsStatus');
+    if (!host) { return; }
+
+    var status = liRecsPayload ? liRecsPayload.status : 'unavailable';
+    var insights = recFilteredItems('insight');
+    var observations = recFilteredItems('observation');
+
+    // Status messaging for non-ok envelopes.
+    if (statusEl) {
+      statusEl.hidden = (status === 'ok');
+      if (status === 'unavailable') {
+        statusEl.textContent = t('insights.labrecs.unavailable');
+        statusEl.className = 'lir-status lir-status-warn';
+      } else if (status === 'insufficient') {
+        statusEl.textContent = t('insights.labrecs.insufficient');
+        statusEl.className = 'lir-status';
+      }
+    }
+
+    // Summary line.
+    var summaryEl = document.getElementById('liRecsSummary');
+    if (summaryEl) {
+      var activeCount = recFilteredItems('insight').filter(function (r) { return (r.state || 'new') === 'new'; }).length
+        + observations.filter(function (r) { return (r.state || 'new') === 'new'; }).length;
+      var labs = {};
+      (liRecsPayload && liRecsPayload.items || []).forEach(function (r) {
+        if ((r.state || 'new') === 'new' && r.scope === 'lab' && r.labKey) { labs[r.labKey] = true; }
+      });
+      var labCount = Object.keys(labs).length;
+      var scopeSuffix = liRecScope !== 'practice' ? ' ' + t('insights.labrecs.summary_scoped') : '';
+      summaryEl.textContent = I18n.pluralize(activeCount, 'insights.labrecs.summary_active') +
+        (labCount > 0 ? ' ' + I18n.pluralize(labCount, 'insights.labrecs.summary_labs') : '') + scopeSuffix;
+    }
+
+    // Active insights list (top N + view-all).
+    if (!insights.length) {
+      host.innerHTML = '<div class="lir-empty">' + escapeHtml(t('insights.labrecs.empty_active')) +
+        '<span class="lir-empty-sub">' + escapeHtml(t('insights.labrecs.empty_active_sub')) + '</span></div>';
+    } else {
+      var showAll = liRecShowAll || liRecStateFilter !== 'active';
+      var visible = showAll ? insights : insights.slice(0, LI_RECS_PREVIEW);
+      var html = '<ul class="lir-list">';
+      visible.forEach(function (rec, idx) { html += renderRecCard(rec, idx); });
+      html += '</ul>';
+      host.innerHTML = html;
+    }
+
+    // View-all toggle (only meaningful for the default Active view).
+    if (moreBtn) {
+      var extra = insights.length - LI_RECS_PREVIEW;
+      if (liRecStateFilter === 'active' && extra > 0) {
+        moreBtn.style.display = '';
+        moreBtn.textContent = liRecShowAll
+          ? t('insights.recs.less')
+          : I18n.pluralize(extra, 'insights.recs.more');
+      } else {
+        moreBtn.style.display = 'none';
+        moreBtn.onclick = null;
+      }
+    }
+
+    // Positive observations - compact secondary subsection.
+    if (posHost && posList) {
+      if (observations.length) {
+        posHost.hidden = false;
+        posList.innerHTML = observations.map(renderObservationRow).join('');
+      } else {
+        posHost.hidden = true;
+        posList.innerHTML = '';
+      }
+    }
+    wireRecEvents(host);
+    if (posList) { wireRecEvents(posList); }
+  }
+
+  function wireRecEvents(root) {
+    root.querySelectorAll('[data-rec-action]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var action;
+        try { action = JSON.parse(btn.dataset.recAction); } catch (e) { return; }
+        liRecNavigate(action);
+      });
+    });
+    root.querySelectorAll('[data-rec-detail]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var panel = document.getElementById(btn.dataset.recDetail);
+        if (!panel) { return; }
+        var card = btn.closest('.lir-card');
+        var rec = liRecsPayload && liRecsPayload.items
+          ? liRecsPayload.items.filter(function (r) { return (r.rec_key || r.id) === card.dataset.recKey; })[0]
+          : null;
+        if (rec) { fillRecDetail(rec, panel); }
+        panel.hidden = !panel.hidden;
+        btn.textContent = panel.hidden
+          ? t('insights.recs.view_details')
+          : t('insights.labrecs.hide_details');
+      });
+    });
+    root.querySelectorAll('[data-rec-state]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        liRecSetState(btn.dataset.recKey, btn.dataset.recState, btn);
+      });
+    });
+  }
+
+  /** Navigate from a recommendation's structured action target. */
+  function liRecNavigate(action) {
+    if (!action || !action.type) { return; }
+    if (action.type === 'cases') {
+      liNavigateToCases(action.filter || 'lab_cases', action.labKey || '');
+    } else if (action.type === 'perf') {
+      selectLab(action.labKey || 'practice', { noScroll: true });
+      var detail = document.getElementById('liLabDetail');
+      if (detail) { detail.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); }
+    } else if (action.type === 'attention') {
+      var attn = document.getElementById('liAttentionSection');
+      if (attn) { attn.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+    }
+  }
+
+  /** Persist a lifecycle transition, then update local state + counts. */
+  function liRecSetState(recKey, state, btn) {
+    if (liRecBusy || !recKey) { return; }
+    liRecBusy = true;
+    if (btn) { btn.disabled = true; }
+    var csrf = document.querySelector('meta[name="csrf-token"]');
+    fetch('api/lab-recommendation-state.php', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRF-Token': csrf ? csrf.getAttribute('content') : ''
+      },
+      body: JSON.stringify({
+        action: 'set_state',
+        rec_key: recKey,
+        state: state
+      })
+    }).then(function (r) { return r.json(); }).then(function (d) {
+      liRecBusy = false;
+      if (!d || !d.success) {
+        if (btn) { btn.disabled = false; }
+        var meta = btn && btn.closest('.lir-card, .lir-obs');
+        if (meta) {
+          var err = meta.querySelector('.lir-error');
+          if (!err) {
+            err = document.createElement('span');
+            err.className = 'lir-error';
+            meta.appendChild(err);
+          }
+          err.textContent = t('insights.labrecs.update_failed');
+        }
+        return;
+      }
+      if (liRecsPayload && liRecsPayload.items) {
+        liRecsPayload.items.forEach(function (r) {
+          if ((r.rec_key || r.id) === recKey) { r.state = state; }
+        });
+      }
+      renderRecCounts();
+      renderRecommendationLists();
+    }).catch(function () {
+      liRecBusy = false;
+      if (btn) { btn.disabled = false; }
+    });
+  }
+
+  /**
+   * Render Lab Insights & Recommendations. `data` is the recommendations
+   * envelope from get-lab-insights.php: {status, items, computed_at}.
+   */
+  function renderRecommendations(data) {
+    var section = document.getElementById('liRecs');
+    if (!section) { return; }
+    section.style.display = 'block';
+    liRecShowAll = false;
+
+    var statusEl = document.getElementById('liRecsStatus');
+    var toolbar = document.getElementById('liRecsToolbar');
+    liRecsPayload = (data && typeof data === 'object' && data.status) ? data
+      : { status: 'unavailable', items: [], computed_at: null };
+
+    if (toolbar) { toolbar.hidden = false; }
+    renderRecScopeSelect();
+    renderRecCounts();
+
+    // State filter chips.
+    document.querySelectorAll('#liRecStateChips .lir-chip').forEach(function (chip) {
+      chip.classList.toggle('is-active', chip.dataset.recStateFilter === liRecStateFilter);
+    });
+
+    renderRecommendationLists();
+
+    // Empty-state copy lives inside renderRecommendationLists; the legacy
+    // liRecsList container is gone - guard for stale callers.
+    var legacy = document.getElementById('liRecsList');
+    if (legacy) { legacy.innerHTML = ''; }
   }
 
   /** Navigate to the Case Board scoped to one laboratory (+ optional risk). */
@@ -2087,11 +2480,13 @@
       function (v) { return v === null ? t('insights.empty.no_data') : String(v); });
   }
 
-  function selectLab(labKey) {
+  function selectLab(labKey, opts) {
     liSelectedLab = labKey;
     renderLabDetailSelect();
     renderPerfTable();
     renderPerfDetail();
+    liRecSyncScope();
+    if (opts && opts.noScroll) { return; }
     var detail = document.getElementById('liLabDetail');
     if (detail) {
       detail.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
@@ -2547,6 +2942,36 @@
         liSelectedLab = detailSelect.value;
         renderPerfTable();
         renderPerfDetail();
+        liRecSyncScope();
+      });
+    }
+
+    // Lab Insights & Recommendations controls: laboratory scope, lifecycle
+    // state chips, and the view-all toggle.
+    var recScope = document.getElementById('liRecScope');
+    if (recScope) {
+      recScope.addEventListener('change', function () {
+        selectLab(recScope.value, { noScroll: true });
+      });
+    }
+    var recChips = document.getElementById('liRecStateChips');
+    if (recChips) {
+      recChips.addEventListener('click', function (e) {
+        var chip = e.target.closest('.lir-chip');
+        if (!chip) { return; }
+        liRecStateFilter = chip.dataset.recStateFilter || 'active';
+        liRecShowAll = false;
+        recChips.querySelectorAll('.lir-chip').forEach(function (c) {
+          c.classList.toggle('is-active', c === chip);
+        });
+        renderRecommendationLists();
+      });
+    }
+    var recMore = document.getElementById('liRecsMore');
+    if (recMore) {
+      recMore.addEventListener('click', function () {
+        liRecShowAll = !liRecShowAll;
+        renderRecommendationLists();
       });
     }
 
