@@ -2452,6 +2452,13 @@ endif;
 <?php endif; ?>
               </div>
 
+              <div class="li-tab-bar insights-subtabs" id="liTabBar" role="tablist" aria-label="<?= htmlspecialchars(t('insights.tabs.aria_label')) ?>">
+                <button type="button" class="insights-subtab active" data-li-tab="overview" role="tab" aria-selected="true"><?= t('insights.tabs.overview') ?></button>
+                <button type="button" class="insights-subtab" data-li-tab="performance" role="tab" aria-selected="false"><?= t('insights.tabs.performance') ?></button>
+                <button type="button" class="insights-subtab" data-li-tab="quality" role="tab" aria-selected="false"><?= t('insights.tabs.quality') ?></button>
+              </div>
+
+              <div class="li-tab-panel" data-li-panel="overview" id="liPanelOverview">
               <!-- Operational KPI summary + Lab Case Health. Current-state
                    metrics (active/overdue/health) sit beside selected-period
                    metrics (turnaround/on-time) - see api/get-lab-insights.php
@@ -2581,6 +2588,64 @@ endif;
                 </div>
               </div>
 
+              <div class="ap-section li-inner-section" id="liRecs" style="display: none;">
+                <div class="ap-section-header">
+                  <div class="ap-section-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+                      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                    </svg>
+                  </div>
+                  <div>
+                    <h2 class="ap-section-title"><?= t('insights.labrecs.title') ?></h2>
+                    <p class="ap-section-subtitle"><?= t('insights.labrecs.subtitle') ?></p>
+                  </div>
+                </div>
+                <div class="lir-toolbar" id="liRecsToolbar" hidden>
+                  <span class="lir-summary" id="liRecsSummary"></span>
+                  <div class="lir-controls">
+                    <label class="lir-control">
+                      <span class="lir-control-label"><?= t('insights.labrecs.scope_label') ?></span>
+                      <select class="ap-select" id="liRecScope" aria-label="<?= htmlspecialchars(t('insights.labrecs.scope_label')) ?>"></select>
+                    </label>
+                    <div class="lir-state-chips" id="liRecStateChips" role="group" aria-label="<?= htmlspecialchars(t('insights.labrecs.state_label')) ?>">
+                      <button type="button" class="lir-chip is-active" data-rec-state-filter="active"><?= t('insights.labrecs.state_active') ?> <span class="lir-chip-count" id="liRecCountActive">0</span></button>
+                      <button type="button" class="lir-chip" data-rec-state-filter="reviewed"><?= t('insights.labrecs.state_reviewed') ?> <span class="lir-chip-count" id="liRecCountReviewed">0</span></button>
+                      <button type="button" class="lir-chip" data-rec-state-filter="dismissed"><?= t('insights.labrecs.state_dismissed') ?> <span class="lir-chip-count" id="liRecCountDismissed">0</span></button>
+                      <button type="button" class="lir-chip" data-rec-state-filter="resolved"><?= t('insights.labrecs.state_resolved') ?> <span class="lir-chip-count" id="liRecCountResolved">0</span></button>
+                      <button type="button" class="lir-chip" data-rec-state-filter="all"><?= t('insights.labrecs.state_all') ?></button>
+                    </div>
+                  </div>
+                </div>
+                <div class="lir-status" id="liRecsStatus" hidden></div>
+                <div id="liRecsActive"></div>
+                <div id="liRecsPositive" class="lir-positive" hidden>
+                  <h3 class="lir-positive-title"><?= t('insights.labrecs.positive_title') ?></h3>
+                  <p class="lir-positive-sub"><?= t('insights.labrecs.positive_sub') ?></p>
+                  <ul class="lir-list" id="liRecsPositiveList"></ul>
+                </div>
+                <button type="button" class="ap-rec-more" id="liRecsMore" style="display: none;"></button>
+              </div>
+                <div class="ap-section li-inner-section" id="liWorkloadSummary">
+                  <div class="ap-section-header">
+                    <div class="ap-section-icon">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                        <circle cx="9" cy="7" r="4"></circle>
+                        <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                        <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                      </svg>
+                    </div>
+                    <div>
+                      <h2 class="ap-section-title"><?= t('insights.workload_summary.title') ?></h2>
+                      <p class="ap-section-subtitle"><?= t('insights.workload_summary.subtitle') ?></p>
+                    </div>
+                    <div class="ap-section-actions">
+                      <button type="button" class="ap-btn ap-btn-secondary" id="liWorkloadViewPerf"><?= t('insights.workload_summary.view_performance') ?></button>
+                    </div>
+                  </div>
+                  <div id="liWorkloadSummaryBody"></div>
+                </div>
+              </div>
               <!-- Legacy Lab Insights layout - rendered when the performance
                    metrics layer is unavailable (performance: null) -->
               <div id="liLegacy">
@@ -2674,47 +2739,11 @@ endif;
 
               <!-- Lab Performance Intelligence layout (drives off the
                    additive `performance` payload from get-lab-insights.php) -->
+              <div class="li-tab-panel" data-li-panel="performance" id="liPanelPerformance" hidden>
               <div id="liPerf" style="display: none;">
                 <div class="ap-metrics-grid li-summary-grid ap-metrics-grid--compact" id="liPerfSummary"></div>
                 <div class="ap-now-strip" id="liPerfNow"></div>
 
-                <div class="ap-section li-inner-section" id="liRecs" style="display: none;">
-                  <div class="ap-section-header">
-                    <div class="ap-section-icon">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
-                        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
-                      </svg>
-                    </div>
-                    <div>
-                      <h2 class="ap-section-title"><?= t('insights.labrecs.title') ?></h2>
-                      <p class="ap-section-subtitle"><?= t('insights.labrecs.subtitle') ?></p>
-                    </div>
-                  </div>
-                  <div class="lir-toolbar" id="liRecsToolbar" hidden>
-                    <span class="lir-summary" id="liRecsSummary"></span>
-                    <div class="lir-controls">
-                      <label class="lir-control">
-                        <span class="lir-control-label"><?= t('insights.labrecs.scope_label') ?></span>
-                        <select class="ap-select" id="liRecScope" aria-label="<?= htmlspecialchars(t('insights.labrecs.scope_label')) ?>"></select>
-                      </label>
-                      <div class="lir-state-chips" id="liRecStateChips" role="group" aria-label="<?= htmlspecialchars(t('insights.labrecs.state_label')) ?>">
-                        <button type="button" class="lir-chip is-active" data-rec-state-filter="active"><?= t('insights.labrecs.state_active') ?> <span class="lir-chip-count" id="liRecCountActive">0</span></button>
-                        <button type="button" class="lir-chip" data-rec-state-filter="reviewed"><?= t('insights.labrecs.state_reviewed') ?> <span class="lir-chip-count" id="liRecCountReviewed">0</span></button>
-                        <button type="button" class="lir-chip" data-rec-state-filter="dismissed"><?= t('insights.labrecs.state_dismissed') ?> <span class="lir-chip-count" id="liRecCountDismissed">0</span></button>
-                        <button type="button" class="lir-chip" data-rec-state-filter="resolved"><?= t('insights.labrecs.state_resolved') ?> <span class="lir-chip-count" id="liRecCountResolved">0</span></button>
-                        <button type="button" class="lir-chip" data-rec-state-filter="all"><?= t('insights.labrecs.state_all') ?></button>
-                      </div>
-                    </div>
-                  </div>
-                  <div class="lir-status" id="liRecsStatus" hidden></div>
-                  <div id="liRecsActive"></div>
-                  <div id="liRecsPositive" class="lir-positive" hidden>
-                    <h3 class="lir-positive-title"><?= t('insights.labrecs.positive_title') ?></h3>
-                    <p class="lir-positive-sub"><?= t('insights.labrecs.positive_sub') ?></p>
-                    <ul class="lir-list" id="liRecsPositiveList"></ul>
-                  </div>
-                  <button type="button" class="ap-rec-more" id="liRecsMore" style="display: none;"></button>
-                </div>
 
                 <div class="ap-section li-inner-section">
                   <div class="ap-section-header">
@@ -2795,6 +2824,11 @@ endif;
                   <div id="liLabDetailBody"></div>
                 </div>
 
+
+              </div>
+              </div>
+
+              <div class="li-tab-panel" data-li-panel="quality" id="liPanelQuality" hidden>
                 <div class="ap-section li-inner-section" id="liQualitySection" style="display: none;">
                   <div class="ap-section-header">
                     <div class="ap-section-icon">

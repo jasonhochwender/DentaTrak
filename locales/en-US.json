@@ -2553,6 +2553,18 @@
             "view_case": "View Case",
             "show_less": "Show less",
             "view_all": "View all {count} cases"
+        },
+        "tabs": {
+            "aria_label": "Lab Insights views",
+            "overview": "Overview",
+            "performance": "Lab Performance",
+            "quality": "Quality & Trends"
+        },
+        "workload_summary": {
+            "title": "Laboratory Workload",
+            "subtitle": "Current active cases by laboratory.",
+            "view_performance": "View Lab Performance",
+            "col_active": "Active cases"
         }
     },
     "users": {

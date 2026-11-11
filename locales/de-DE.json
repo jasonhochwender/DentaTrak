@@ -4166,6 +4166,18 @@
             "view_case": "Fall ansehen",
             "show_less": "Weniger anzeigen",
             "view_all": "Alle {count} Fälle anzeigen"
+        },
+        "tabs": {
+            "aria_label": "Lab-Insights-Ansichten",
+            "overview": "Übersicht",
+            "performance": "Laborleistung",
+            "quality": "Qualität & Trends"
+        },
+        "workload_summary": {
+            "title": "Laborarbeitsaufkommen",
+            "subtitle": "Aktuelle aktive Fälle nach Labor.",
+            "view_performance": "Laborleistung anzeigen",
+            "col_active": "Aktive Fälle"
         }
     },
     "admin_practices": {

@@ -2543,6 +2543,18 @@
             "view_case": "Vedi caso",
             "show_less": "Mostra meno",
             "view_all": "Vedi tutti i {count} casi"
+        },
+        "tabs": {
+            "aria_label": "Viste degli approfondimenti sul laboratorio",
+            "overview": "Panoramica",
+            "performance": "Prestazioni del laboratorio",
+            "quality": "Qualità e tendenze"
+        },
+        "workload_summary": {
+            "title": "Carico di lavoro del laboratorio",
+            "subtitle": "Casi attivi attuali per laboratorio.",
+            "view_performance": "Vedi prestazioni del laboratorio",
+            "col_active": "Casi attivi"
         }
     },
     "users": {

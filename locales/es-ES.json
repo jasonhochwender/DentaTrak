@@ -2551,6 +2551,18 @@
             "view_case": "Ver caso",
             "show_less": "Mostrar menos",
             "view_all": "Ver los {count} casos"
+        },
+        "tabs": {
+            "aria_label": "Vistas de Insights de laboratorio",
+            "overview": "Resumen",
+            "performance": "Rendimiento del laboratorio",
+            "quality": "Calidad y tendencias"
+        },
+        "workload_summary": {
+            "title": "Carga de trabajo del laboratorio",
+            "subtitle": "Casos activos actuales por laboratorio.",
+            "view_performance": "Ver rendimiento del laboratorio",
+            "col_active": "Casos activos"
         }
     },
     "users": {

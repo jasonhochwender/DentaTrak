@@ -274,3 +274,4 @@ NUL
 !/tests/attention-classifier-test.php
 !/tests/ai-recommendation-store-test.php
 !/tests/lab-global-filters-test.php
+!/tests/lab-tabs-test.php

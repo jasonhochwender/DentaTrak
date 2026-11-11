@@ -48,6 +48,71 @@
   var liFetchSeq = 0;            // stale-response guard
   var LI_FILTERS_KEY = 'dt_li_global_filters';
 
+  // ── Tab state ────────────────────────────────────────────────────────
+  // Three focused views over the same payload: Overview (current ops),
+  // Lab Performance (comparison/scorecard/aging), Quality & Trends
+  // (historical quality). Selection persists in sessionStorage and the
+  // URL hash so refresh/back-forward/direct links keep the view.
+  var LI_TABS = ['overview', 'performance', 'quality'];
+  var liActiveTab = 'overview';
+  var LI_TAB_KEY = 'dt_li_tab';
+
+  function liSetTab(name, opts) {
+    if (LI_TABS.indexOf(name) === -1) { name = 'overview'; }
+    liActiveTab = name;
+    LI_TABS.forEach(function (tab) {
+      var panel = document.querySelector('[data-li-panel="' + tab + '"]');
+      if (panel) { panel.hidden = (tab !== name); }
+      var btn = document.querySelector('[data-li-tab="' + tab + '"]');
+      if (btn) {
+        btn.classList.toggle('active', tab === name);
+        btn.setAttribute('aria-selected', tab === name ? 'true' : 'false');
+      }
+    });
+    try { sessionStorage.setItem(LI_TAB_KEY, name); } catch (e) { /* ignore */ }
+    if (!(opts && opts.fromHash)) {
+      try { history.replaceState(null, '', '#li-tab-' + name); } catch (e) { /* ignore */ }
+    }
+  }
+
+  function liTabFromHash() {
+    var m = /#li-tab-(overview|performance|quality)/.exec(window.location.hash || '');
+    return m ? m[1] : null;
+  }
+
+  /** Compact per-lab current workload summary for the Overview tab. */
+  function liRenderWorkloadSummary() {
+    var body = document.getElementById('liWorkloadSummaryBody');
+    var section = document.getElementById('liWorkloadSummary');
+    if (!body || !section) { return; }
+    var names = {};
+    liPerfLabs.forEach(function (l) { names[l.labKey] = l.name; });
+    var keys = Object.keys(liWorkloadByLab || {});
+    if (!keys.length) {
+      section.style.display = 'none';
+      return;
+    }
+    section.style.display = 'block';
+    var rows = keys.map(function (k) {
+      var cases = liWorkloadByLab[k] || [];
+      var overdue = cases.filter(function (c) {
+        return c.daysLate !== null && c.daysLate !== undefined && c.daysLate > 0;
+      }).length;
+      return { key: k, name: names[k] || k, active: cases.length, overdue: overdue };
+    }).sort(function (a, b) { return b.active - a.active || a.name.localeCompare(b.name); });
+    var html = '<div class="li-table-wrap"><table class="li-table li-workload-summary-table"><thead><tr>' +
+      '<th>' + escapeHtml(t('insights.perf.table.lab')) + '</th>' +
+      '<th>' + escapeHtml(t('insights.workload_summary.col_active')) + '</th>' +
+      '<th>' + escapeHtml(t('insights.perf.table.overdue')) + '</th></tr></thead><tbody>';
+    rows.forEach(function (r) {
+      html += '<tr><td>' + escapeHtml(r.name) + '</td>' +
+        '<td>' + escapeHtml(String(r.active)) + '</td>' +
+        '<td>' + (r.overdue > 0 ? '<span class="li-days-late">' + escapeHtml(String(r.overdue)) + '</span>' : '0') + '</td></tr>';
+    });
+    html += '</tbody></table></div>';
+    body.innerHTML = html;
+  }
+
   function liRiskCategory(item) {
     // Map an item's risk signals to the shared risk-filter vocabulary.
     var reasons = item.reasons || [];
@@ -3361,6 +3426,8 @@
     if (!data.performance) {
       perfWrap.style.display = 'none';
       legacy.style.display = 'block';
+      var noPerfTabBar = document.getElementById('liTabBar');
+      if (noPerfTabBar) { noPerfTabBar.style.display = 'none'; }
       return false;
     }
 
@@ -3424,6 +3491,9 @@
         var aSec = document.getElementById('liAgingSection');
         if (aSec) { aSec.style.display = 'none'; }
       }
+      liRenderWorkloadSummary();
+      var tabBar = document.getElementById('liTabBar');
+      if (tabBar) { tabBar.style.display = ''; }
     } catch (e) {
       // Any render failure must not break the page - restore the legacy
       // layout and let the existing renderers handle the payload.
@@ -3432,6 +3502,8 @@
       }
       perfWrap.style.display = 'none';
       legacy.style.display = 'block';
+      var legacyTabBar = document.getElementById('liTabBar');
+      if (legacyTabBar) { legacyTabBar.style.display = 'none'; }
       return false;
     }
 
@@ -4041,6 +4113,24 @@
           renderPerfDetail();
         });
       }
+    });
+
+    // Tab navigation: click switches views; hash gives back/forward and
+    // deep links; sessionStorage restores the last view on refresh.
+    document.querySelectorAll('[data-li-tab]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        liSetTab(btn.getAttribute('data-li-tab'));
+      });
+    });
+    window.addEventListener('hashchange', function () {
+      var fromHash = liTabFromHash();
+      if (fromHash) { liSetTab(fromHash, { fromHash: true }); }
+    });
+    var savedTab = null;
+    try { savedTab = sessionStorage.getItem(LI_TAB_KEY); } catch (e) { savedTab = null; }
+    liSetTab(liTabFromHash() || savedTab || 'overview', { fromHash: !!liTabFromHash() });
+    document.getElementById('liWorkloadViewPerf').addEventListener('click', function () {
+      liSetTab('performance');
     });
 
     var filtersReset = document.getElementById('liFiltersReset');

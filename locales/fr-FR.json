@@ -2543,6 +2543,18 @@
             "view_case": "Voir le cas",
             "show_less": "Afficher moins",
             "view_all": "Voir les {count} cas"
+        },
+        "tabs": {
+            "aria_label": "Vues des analyses de laboratoire",
+            "overview": "Aperçu",
+            "performance": "Rendement du laboratoire",
+            "quality": "Qualité et tendances"
+        },
+        "workload_summary": {
+            "title": "Charge de travail du laboratoire",
+            "subtitle": "Cas actifs actuels par laboratoire.",
+            "view_performance": "Voir le rendement du laboratoire",
+            "col_active": "Cas actifs"
         }
     },
     "users": {

@@ -901,3 +901,8 @@
   .li-gf-control .ap-select { min-width: 120px; width: 100%; }
   .li-gf-context { margin-left: 0; width: 100%; }
 }
+
+/* ── Focused view tabs ──────────────────────────────────────────────── */
+.li-tab-bar { margin: 0 0 16px; }
+.li-tab-panel[hidden] { display: none !important; }
+.li-tab-panel .ap-section + .ap-section { margin-top: 20px; }

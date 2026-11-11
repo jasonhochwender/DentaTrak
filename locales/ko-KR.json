@@ -2555,6 +2555,18 @@
             "view_case": "사례 보기",
             "show_less": "간략히 보기",
             "view_all": "사례 {count}건 모두 보기"
+        },
+        "tabs": {
+            "aria_label": "랩 인사이트 보기",
+            "overview": "개요",
+            "performance": "랩 성과",
+            "quality": "품질 및 추세"
+        },
+        "workload_summary": {
+            "title": "검사실 작업량",
+            "subtitle": "검사실별 현재 활성 케이스.",
+            "view_performance": "랩 성과 보기",
+            "col_active": "활성 케이스"
         }
     },
     "users": {
