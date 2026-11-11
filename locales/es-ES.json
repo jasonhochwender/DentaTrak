@@ -4610,7 +4610,8 @@
                         "Seguimiento de casos de corona y puente",
                         "Seguimiento de casos de implantes",
                         "Software de seguimiento de casos dentales vs. PMS",
-                        "Acerca de DentaTrak"
+                        "Acerca de DentaTrak",
+                        "Cómo medir el rendimiento del laboratorio"
                     ]
                 },
                 "seo": {
@@ -5419,7 +5420,8 @@
                     "items": [
                         "Software de seguimiento de casos dentales",
                         "Seguimiento de casos de corona y puente",
-                        "Software de seguimiento de casos dentales vs. hojas de cálculo"
+                        "Software de seguimiento de casos dentales vs. hojas de cálculo",
+                        "Cómo medir el rendimiento del laboratorio"
                     ]
                 },
                 "cta": {
@@ -5855,7 +5857,8 @@
                         "Seguimiento de casos de laboratorio dental",
                         "Seguimiento de casos de corona y puente",
                         "Seguimiento de casos de implantes",
-                        "Acerca de DentaTrak"
+                        "Acerca de DentaTrak",
+                        "Cómo medir el rendimiento del laboratorio"
                     ]
                 },
                 "cta": {
@@ -6146,11 +6149,151 @@
                         "Seguimiento de casos de laboratorio dental",
                         "Software de seguimiento de casos dentales",
                         "Cómo hacer seguimiento de casos dentales sin perderlos",
-                        "Por qué la gestión visual del flujo de trabajo funciona para casos dentales complejos"
+                        "Por qué la gestión visual del flujo de trabajo funciona para casos dentales complejos",
+                        "Cómo medir el rendimiento del laboratorio"
                     ]
                 },
                 "cta": {
                     "body": "Pruebe DentaTrak gratis. No se requiere tarjeta de crédito. Configure su consultorio, defina sus etapas de flujo de trabajo y comience a seguir casos de laboratorios externos en minutos."
+                }
+            },
+            "lab_performance_metrics": {
+                "title": "Cómo medir el rendimiento del laboratorio dental: 5 métricas que toda clínica debe seguir | DentaTrak",
+                "h1": "Cómo medir el rendimiento del laboratorio dental: 5 métricas que toda clínica debe seguir",
+                "description": "Aprende a medir el tiempo de entrega, la puntualidad, la preparación para citas, la tasa de retrabajos y la carga retrasada de un laboratorio dental - con una tabla de Excel gratuita.",
+                "seo": {
+                    "title": "Cómo medir el rendimiento del laboratorio dental: 5 métricas | DentaTrak",
+                    "description": "Aprende a medir el tiempo de entrega, la puntualidad, la preparación para citas, la tasa de retrabajos y la carga retrasada de un laboratorio dental - con una tabla de Excel gratuita."
+                },
+                "meta": {
+                    "by": "Por",
+                    "published": "Publicado"
+                },
+                "intro": "La mayoría de las clínicas dentales evalúan sus laboratorios a través de experiencias individuales: una corona llega tarde antes de una cita del paciente, un puente vuelve necesitando ajustes o un caso queda una semana sin que nadie lo note. Cada momento es real, pero ninguno muestra si el laboratorio está mejorando, cuál rinde mejor o si un retraso reciente fue una excepción o un patrón. Esta guía muestra cómo medir cinco indicadores de rendimiento significativos usando información que probablemente ya recopilas, para comparar laboratorios con justicia, detectar problemas antes y tener mejores conversaciones con tus socios de laboratorio.",
+                "example_label": "Ejemplo",
+                "sections": {
+                    "why_track": {
+                        "heading": "Por qué medir supera a recordar",
+                        "body_1": "Los recuerdos son selectivos. El retrabajo que frustró a todos el mes pasado es vívido; los cuarenta casos que transcurrieron sin problemas son invisibles. Sin registros consistentes, una clínica puede pasar años creyendo que un laboratorio \"normalmente está bien\" mientras absorbe silenciosamente retrasos, retrabajos y problemas de agenda que un simple conteo habría revelado.",
+                        "body_2": "Medir no requiere software. Una hoja de cálculo, una libreta o un sistema de seguimiento de casos sirven. Lo importante es registrar algunas fechas y resultados de cada caso enviado a un laboratorio y revisarlos con regularidad: semanalmente para la carga activa, mensualmente o trimestralmente para las tendencias."
+                    },
+                    "turnaround": {
+                        "heading": "Métrica 1: Tiempo medio de entrega del laboratorio",
+                        "body_1": "El tiempo de entrega es el número de días naturales entre el día en que un caso se envía al laboratorio y el día en que la restauración terminada regresa a la clínica. Es la medida más básica de la velocidad de un laboratorio.",
+                        "body_2": "Para calcularlo en un caso, resta la fecha de envío de la fecha de devolución. Para el promedio, suma los días de entrega de los casos completados y divide entre el número de casos completados. Si diez coronas tardaron 8, 9, 10, 11, 12, 9, 10, 13, 9 y 11 días respectivamente, el promedio es de 10,2 días.",
+                        "body_3": "Dos advertencias aplican. Primero, compara el tiempo de entrega por tipo de caso: una guía quirúrgica de implante tarda legítimamente más que una corona simple, y mezclarlas en un solo promedio oculta diferencias reales. Segundo, un promedio puede ocultar valores atípicos: nueve casos de nueve días y un caso de cuarenta días aún promedian menos de trece días. Sigue junto al promedio el rango o los casos más lentos para que los retrasos inusuales sigan visibles.",
+                        "example": "Los casos de corona promedian 8 días; los de puente promedian 14 días. Un promedio combinado de 11 días ocultaría que el trabajo de puentes es consistentemente más lento y merece otra conversación con el laboratorio."
+                    },
+                    "on_time": {
+                        "heading": "Métrica 2: Tasa de entregas a tiempo",
+                        "body_1": "La entrega a tiempo mide fiabilidad, no velocidad. Un laboratorio puede tener un tiempo medio rápido y aún perder citas si incumple las fechas prometidas. La tasa a tiempo es el porcentaje de casos completados devueltos en o antes de la fecha de entrega acordada originalmente.",
+                        "body_2": "El cálculo es directo: cuenta los casos completados que tenían una fecha de devolución prometida válida y divide los devueltos en o antes de esa fecha entre esa cantidad. Si 18 de 20 casos completados cumplieron su fecha, la tasa es del 90 %.",
+                        "body_3": "Dos hábitos de registro hacen fiable esta métrica. Primero, registra la fecha de devolución esperada original cuando se envía el caso, no una fecha revisada después. Segundo, vigila las fechas que se mueven: cada vez que una fecha prometida se extiende silenciosamente, el caso se vuelve más fácil de \"cumplir\" y tu tasa mejora sin que el laboratorio haya mejorado de verdad. Si los cambios de fecha son comunes, registra con qué frecuencia ocurren; las revisiones frecuentes son en sí una señal de rendimiento.",
+                        "example": "Un laboratorio devuelve 19 de 20 casos a tiempo (95 %), pero antes extiende las fechas prometidas en 8 de esos casos. La cifra principal luce excelente; el patrón de revisiones cuenta otra historia."
+                    },
+                    "appointment": {
+                        "heading": "Métrica 3: Preparación para citas",
+                        "body_1": "La preparación para citas plantea una pregunta distinta a la entrega a tiempo: ¿el caso volvió a la clínica lo bastante temprano para la cita del paciente que apoya? Un caso puede cumplir la fecha prometida por el laboratorio y aún llegar tarde para el paciente, porque la fecha prometida y la fecha de la cita no siempre son la misma.",
+                        "body_2": "En esa brecha nacen los problemas de agenda. Una corona prometida para el viernes que se asienta el lunes solo funciona si la cita del paciente es el martes o después. Si la cita es el lunes por la mañana, el caso cumplió técnicamente su fecha de laboratorio y aun así creó un caos de último minuto: tarifa de urgencia, restauración temporal o paciente reprogramado.",
+                        "body_3": "Para medir la preparación, registra la fecha de la cita del paciente junto con las fechas del caso y verifica si la devolución real fue en o antes de ella. Reporta la preparación por separado de la entrega a tiempo: un laboratorio puede estar 95 % a tiempo y solo 70 % preparado para citas, y esa brecha es exactamente la información que tu recepción necesita.",
+                        "example": "Un paciente tiene programada la cementación de una corona el día 14. El laboratorio promete devolución el 12 y entrega el 13: a tiempo según su propia promesa, pero un día tarde para la cita. Sin registrar la fecha de la cita, este casi fallo es invisible."
+                    },
+                    "remake": {
+                        "heading": "Métrica 4: Tasa de retrabajos",
+                        "body_1": "Un retrabajo es una restauración que debe devolverse al laboratorio - o reiniciarse por completo - porque no puede usarse tal como se entregó. Los retrabajos son distintos de las revisiones (ajustes menores en la cementación), de los cambios rutinarios de flujo y de los casos que simplemente tardan más de lo esperado.",
+                        "body_2": "Calcula la tasa de retrabajos como el número de casos completados que requirieron retrabajo dividido entre el total de casos completados, en porcentaje. Si 3 de 60 casos completados necesitaron retrabajo, la tasa es 5 %. Mantén el denominador consistente: usa el mismo conjunto de casos completados que usas para tiempo de entrega y puntualidad.",
+                        "body_3": "La atribución importa al comparar laboratorios. No todo retrabajo es culpa del laboratorio: un problema de preparación, una impresión o escaneo impreciso, instrucciones poco claras o un tono mal comunicado pueden originarse del lado de la clínica. Registra quién o qué causó cada retrabajo (laboratorio, clínica o indeterminado) para que las comparaciones reflejen el rendimiento real del laboratorio y no el ruido de tu propio flujo. Los retrabajos también conllevan los costos financieros cubiertos en nuestra guía sobre el costo de los retrabajos dentales.",
+                        "link_text": "Lee: Lo que los retrabajos dentales realmente le cuestan a tu clínica"
+                    },
+                    "overdue": {
+                        "heading": "Métrica 5: Carga atrasada y en riesgo",
+                        "body_1": "Las cuatro primeras métricas describen trabajo completado. Esta describe trabajo en curso - y es la métrica que tu equipo necesita con más frecuencia. Cuenta cuántos casos activos superaron su fecha de devolución esperada y, por separado, cuántos se acercan a ella.",
+                        "body_2": "Vale la pena distinguir tres estados. Atrasado significa que la fecha esperada pasó y el caso no ha vuelto. Próximo a vencer significa que la fecha está dentro de tu ventana elegida - cinco días hábiles, por ejemplo. Riesgo de cita significa que el caso sigue activo y la cita del paciente se acerca antes de la devolución esperada.",
+                        "body_3": "Esta es una métrica operativa, no histórica: cambia a diario y te dice a quién llamar hoy. Una clínica con 95 % de entregas a tiempo puede tener tres casos de implante atrasados madurando silenciosamente hacia una crisis. Revisar semanalmente la lista de riesgo - y llamar al laboratorio antes de que el paciente te llame - es la mejora de rendimiento más barata disponible."
+                    },
+                    "comparing": {
+                        "heading": "Comparar laboratorios con justicia",
+                        "body_1": "Las cifras brutas engañan cuando los laboratorios manejan trabajos distintos. Antes de concluir que el laboratorio A supera al B, verifica que se comparen en igualdad de condiciones.",
+                        "body_2": "Nada de esto significa que las métricas sean poco fiables: significa que premian definiciones consistentes y denominadores honestos. Usadas así, convierten \"creo que el laboratorio A es mejor\" en \"el laboratorio A devuelve coronas dos días más rápido con mayor puntualidad en tipos de caso comparables\".",
+                        "list_items": {
+                            "1": {
+                                "title": "Complejidad del caso:",
+                                "body": "Un caso de implante o arco completo tarda legítimamente más y tiene más pasos que una corona simple. Compara laboratorios dentro del mismo tipo de caso o pondera la comparación en consecuencia."
+                            },
+                            "2": {
+                                "title": "Volumen de casos:",
+                                "body": "Un laboratorio con doce casos y un retrabajo se ve peor que uno con doscientos casos y diez retrabajos. Las muestras pequeñas oscilan mucho: trata los porcentajes de menos de unos treinta casos como indicativos, no definitivos."
+                            },
+                            "3": {
+                                "title": "Factores del lado de la clínica:",
+                                "body": "Información faltante, aprobaciones demoradas, recetas poco claras o problemas de preparación inflan las cifras de entrega y retrabajo por razones ajenas al laboratorio."
+                            },
+                            "4": {
+                                "title": "Retrabajos versus revisiones:",
+                                "body": "Un ajuste de tono en la cementación no es un retrabajo. Las definiciones consistentes mantienen la comparación honesta."
+                            },
+                            "5": {
+                                "title": "Período de reporte:",
+                                "body": "Compara la misma ventana de tiempo para cada laboratorio: trimestre contra trimestre, no \"todo el historial\" para uno y \"este mes\" para otro."
+                            },
+                            "6": {
+                                "title": "Fechas prometidas originales:",
+                                "body": "Si las fechas de un laboratorio se inflan rutinariamente y las del otro no, las tasas a tiempo miden cosas distintas. Observa la frecuencia de revisiones junto con el porcentaje."
+                            }
+                        }
+                    },
+                    "action": {
+                        "heading": "Convertir métricas en acción",
+                        "body_1": "Las métricas solo sirven si cambian el comportamiento. Un ritmo práctico se ve así:",
+                        "body_2": "El objetivo no es vigilar a los laboratorios. Es reemplazar impresiones vagas por hechos compartidos, para que ambas partes corrijan las fallas específicas - recetas poco claras, daños en el embalaje, desfases de agenda - que realmente causan retrasos y retrabajos.",
+                        "list_items": {
+                            "1": {
+                                "title": "Semanal:",
+                                "body": "Revisa los casos atrasados y en riesgo; llama o escribe al laboratorio sobre todo lo que supere su devolución esperada."
+                            },
+                            "2": {
+                                "title": "Mensual:",
+                                "body": "Actualiza las cifras de tiempo de entrega, puntualidad y retrabajos por laboratorio y tipo de caso."
+                            },
+                            "3": {
+                                "title": "Trimestral:",
+                                "body": "Compara laboratorios en trabajos comparables, discute patrones con tus socios y decide si el volumen debe moverse."
+                            },
+                            "4": {
+                                "title": "Cuando los problemas se repiten:",
+                                "body": "Usa tendencias documentadas - no la memoria - en las conversaciones con el laboratorio. \"Los casos de puente promediaron 16 días el trimestre pasado frente a 11 el anterior\" es una observación concreta y accionable."
+                            }
+                        }
+                    },
+                    "scorecard": {
+                        "heading": "Empieza con la tabla de rendimiento de laboratorio gratuita",
+                        "body_1": "No necesitas software para empezar. La DentaTrak Dental Lab Performance Scorecard es un libro de Excel gratuito que registra automáticamente las cinco métricas de este artículo: registra cada caso una vez y la hoja calcula el tiempo de entrega, la puntualidad, la preparación para citas, la tasa de retrabajos y la carga atrasada por laboratorio.",
+                        "body_2": "Incluye instrucciones, un registro de casos con cálculos integrados, una tabla por laboratorio y una hoja de definiciones para que todos interpreten los números igual. Descárgala abajo: no requiere cuenta ni registro."
+                    },
+                    "dentatrak": {
+                        "heading": "Cómo DentaTrak hace esto automáticamente",
+                        "body_1": "Si tu clínica ya registra casos en DentaTrak, la mayor parte de esta medición ocurre sin una segunda entrada. Los casos llevan su fecha de envío, devolución esperada, cita del paciente y estado como parte del flujo normal, así que Practice Insights y Lab Insights pueden reportar tiempo de entrega, puntualidad, riesgo de citas, seguimiento de retrabajos y comparaciones entre laboratorios a partir de datos que ya mantienes.",
+                        "body_2": "La diferencia es la continuidad: en lugar de un ejercicio trimestral de hojas de cálculo, el rendimiento permanece visible mientras los casos avanzan - la carga activa, los casos atrasados y el riesgo de citas se actualizan continuamente, y las tendencias se acumulan mes a mes. La tabla de arriba sigue siendo una buena forma de empezar; DentaTrak es cómo las clínicas la mantienen funcionando sin el trabajo manual."
+                    }
+                },
+                "scorecard_cta": {
+                    "title": "DentaTrak Dental Lab Performance Scorecard",
+                    "subtitle": "Un libro de Excel gratuito que calcula automáticamente tiempo de entrega, puntualidad, preparación para citas, tasa de retrabajos y casos atrasados por laboratorio.",
+                    "button": "Descargar la tabla gratis"
+                },
+                "cta": {
+                    "body": "Descubre cómo DentaTrak convierte la información de casos que ya registras en Practice y Lab Insights en vivo: visibilidad del tiempo de entrega, rendimiento de puntualidad, carga activa, comparaciones entre laboratorios y tendencias que se actualizan a medida que avanzan los casos.",
+                    "button": "Mira cómo DentaTrak sigue el rendimiento de práctica y laboratorio"
+                },
+                "related_resources": {
+                    "heading": "Recursos relacionados",
+                    "items": [
+                        "Seguimiento de casos de laboratorio dental: Una guía práctica",
+                        "Gestión de casos con laboratorios dentales externos",
+                        "Lo que los retrabajos dentales realmente le cuestan a tu clínica",
+                        "Software de seguimiento de casos dentales: Qué buscar",
+                        "Tabla gratuita de rendimiento de laboratorio dental (Excel)"
+                    ]
                 }
             }
         },
@@ -6468,7 +6611,13 @@
             "card_hipaa_cta": "Conozca sobre HIPAA y seguridad",
             "type_security": "Seguridad",
             "card_external_labs_mgmt_title": "Gestión de casos con laboratorios externos",
-            "card_external_labs_mgmt_desc": "Cómo los consultorios pueden gestionar casos de laboratorios externos, comunicación, archivos, plazos, repeticiones y rendimiento del laboratorio en un solo flujo de trabajo."
+            "card_external_labs_mgmt_desc": "Cómo los consultorios pueden gestionar casos de laboratorios externos, comunicación, archivos, plazos, repeticiones y rendimiento del laboratorio en un solo flujo de trabajo.",
+            "tool_scorecard_type": "Descarga",
+            "tool_scorecard_title": "DentaTrak Dental Lab Performance Scorecard",
+            "tool_scorecard_desc": "Compara laboratorios dentales por tiempo de entrega, puntualidad, preparación para citas, retrabajos y casos retrasados. Plantilla de Excel gratuita con cálculos automáticos y panel de rendimiento.",
+            "tool_scorecard_cta": "Descargar la tabla gratis",
+            "card_lab_perf_title": "Cómo medir el rendimiento del laboratorio dental: 5 métricas que toda clínica debe seguir",
+            "card_lab_perf_desc": "Aprende a medir los tiempos de entrega del laboratorio, la fiabilidad de entrega, la preparación para citas, las tasas de retrabajo y la carga retrasada para tomar mejores decisiones operativas."
         },
         "hipaa": {
             "title": "HIPAA y seguridad | DentaTrak",

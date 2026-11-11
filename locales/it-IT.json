@@ -4610,7 +4610,8 @@
                         "Tracciamento dei casi di corone e ponti",
                         "Tracciamento dei casi implantari",
                         "Software di tracciamento dei casi dentali vs. PMS",
-                        "Chi siamo | DentaTrak"
+                        "Chi siamo | DentaTrak",
+                        "Come misurare le prestazioni del laboratorio"
                     ]
                 },
                 "seo": {
@@ -5419,7 +5420,8 @@
                     "items": [
                         "Software di tracciamento dei casi dentali",
                         "Tracciamento dei casi di corone e ponti",
-                        "Software di tracciamento dei casi dentali vs fogli di calcolo"
+                        "Software di tracciamento dei casi dentali vs fogli di calcolo",
+                        "Come misurare le prestazioni del laboratorio"
                     ]
                 },
                 "cta": {
@@ -5855,7 +5857,8 @@
                         "Tracciamento dei casi del laboratorio odontotecnico",
                         "Tracciamento dei casi di corone e ponti",
                         "Tracciamento dei casi implantari",
-                        "Chi siamo | DentaTrak"
+                        "Chi siamo | DentaTrak",
+                        "Come misurare le prestazioni del laboratorio"
                     ]
                 },
                 "cta": {
@@ -6146,11 +6149,151 @@
                         "Tracciamento dei casi del laboratorio odontotecnico",
                         "Software di tracciamento dei casi dentali",
                         "Come tracciare i casi dentali senza perderli",
-                        "Perché la gestione visuale del flusso di lavoro funziona per i casi dentali complessi"
+                        "Perché la gestione visuale del flusso di lavoro funziona per i casi dentali complessi",
+                        "Come misurare le prestazioni del laboratorio"
                     ]
                 },
                 "cta": {
                     "body": "Prova DentaTrak gratis. Nessuna carta di credito richiesta. Configura il tuo studio, definisci le fasi del flusso di lavoro e inizia a tracciare i casi dei laboratori esterni in pochi minuti."
+                }
+            },
+            "lab_performance_metrics": {
+                "title": "Come misurare le prestazioni del laboratorio dentistico: 5 metriche da monitorare | DentaTrak",
+                "h1": "Come misurare le prestazioni del laboratorio dentistico: 5 metriche da monitorare",
+                "description": "Scopri come misurare tempi di consegna, puntualità, prontezza per gli appuntamenti, tasso di rilavorazione e carico in ritardo di un laboratorio dentistico - con una scheda Excel gratuita.",
+                "seo": {
+                    "title": "Come misurare le prestazioni del laboratorio dentistico: 5 metriche | DentaTrak",
+                    "description": "Scopri come misurare tempi di consegna, puntualità, prontezza per gli appuntamenti, tasso di rilavorazione e carico in ritardo di un laboratorio dentistico - con una scheda Excel gratuita."
+                },
+                "meta": {
+                    "by": "Di",
+                    "published": "Pubblicato"
+                },
+                "intro": "La maggior parte degli studi dentistici valuta i propri laboratori attraverso esperienze singole: una corona arriva in ritardo prima di un appuntamento, un ponte torna da ritoccare o un caso resta inosservato per una settimana. Ogni momento è reale, ma nessuno mostra se il laboratorio sta migliorando, quale performa meglio o se un ritardo recente è stato un'eccezione o un pattern. Questa guida mostra come misurare cinque indicatori di prestazione significativi usando informazioni che probabilmente raccogli già, per confrontare i laboratori in modo equo, individuare i problemi prima e avere conversazioni migliori con i tuoi partner.",
+                "example_label": "Esempio",
+                "sections": {
+                    "why_track": {
+                        "heading": "Perché misurare batte il ricordare",
+                        "body_1": "I ricordi sono selettivi. La rilavorazione che ha frustrato tutti il mese scorso è vivida; i quaranta casi andati lisci sono invisibili. Senza registrazioni coerenti, uno studio può passare anni a credere che un laboratorio sia «di solito a posto» mentre assorbe silenziosamente ritardi, rilavorazioni e problemi di agenda che un semplice conteggio avrebbe rivelato.",
+                        "body_2": "Misurare non richiede software. Un foglio di calcolo, un quaderno o un sistema di tracciamento dei casi vanno bene. Ciò che conta è registrare alcune date e risultati per ogni caso inviato a un laboratorio, poi rivederli regolarmente: settimanalmente per il carico attivo, mensilmente o trimestralmente per i trend."
+                    },
+                    "turnaround": {
+                        "heading": "Metrica 1: Tempo medio di consegna del laboratorio",
+                        "body_1": "Il tempo di consegna è il numero di giorni di calendario tra il giorno in cui un caso viene inviato al laboratorio e il giorno in cui il restauro finito torna allo studio. È la misura più basilare della velocità di un laboratorio.",
+                        "body_2": "Per un singolo caso, sottrai la data di invio dalla data di ritorno. Per la media, somma i giorni di consegna dei casi completati e dividi per il loro numero. Se dieci corone hanno impiegato 8, 9, 10, 11, 12, 9, 10, 13, 9 e 11 giorni, la media è di 10,2 giorni.",
+                        "body_3": "Due avvertenze. Primo, confronta i tempi per tipo di caso: una guida chirurgica implantare richiede legittimamente più tempo di una corona singola, e mescolarle in una media unica nasconde differenze reali. Secondo, una media può nascondere i valori anomali: nove casi a nove giorni e uno a quaranta giorni danno comunque meno di tredici giorni di media. Traccia l'intervallo o i casi più lenti insieme alla media, così i ritardi insoliti restano visibili.",
+                        "example": "I casi corona hanno una media di 8 giorni; i ponti 14. Una media combinata di 11 giorni nasconderebbe che i ponti sono sistematicamente più lenti e meritano una conversazione diversa con il laboratorio."
+                    },
+                    "on_time": {
+                        "heading": "Metrica 2: Tasso di consegna puntuale",
+                        "body_1": "La consegna puntuale misura l'affidabilità, non la velocità. Un laboratorio può avere una media di consegna veloce e ancora mancare gli appuntamenti se non rispetta le date promesse. Il tasso puntuale è la percentuale di casi completati restituiti entro o prima della data di consegna concordata originariamente.",
+                        "body_2": "Il calcolo è semplice: conta i casi completati con una data di ritorno promessa valida, poi dividi quelli restituiti entro quella data per quel numero. Se 18 casi completati su 20 hanno rispettato la data promessa, il tasso è del 90 %.",
+                        "body_3": "Due abitudini di registrazione rendono questa metrica affidabile. Primo, annota la data di ritorno attesa originale all'invio del caso, non una data rivista dopo. Secondo, occhio alle date che si spostano: ogni volta che una data promessa viene silenziosamente estesa, il caso diventa più facile da «rispettare» e il tuo tasso migliora senza che il laboratorio sia migliorato davvero. Se i cambi di data sono frequenti, registra quanto spesso avvengono; le revisioni frequenti sono di per sé un segnale di prestazione.",
+                        "example": "Un laboratorio restituisce 19 casi su 20 puntualmente (95 %), ma prima estende le date promesse su 8 di quei casi. Il numero in evidenza sembra eccellente; il pattern delle revisioni racconta un'altra storia."
+                    },
+                    "appointment": {
+                        "heading": "Metrica 3: Prontezza per gli appuntamenti",
+                        "body_1": "La prontezza per gli appuntamenti pone una domanda diversa dalla consegna puntuale: il caso era tornato in studio abbastanza presto per l'appuntamento del paziente che supporta? Un caso può rispettare la data promessa dal laboratorio e arrivare comunque troppo tardi per il paziente, perché la data promessa e la data dell'appuntamento non sono sempre uguali.",
+                        "body_2": "È in questo divario che nascono i problemi di agenda. Una corona promessa per venerdì e cementata lunedì funziona solo se l'appuntamento del paziente è martedì o dopo. Se l'appuntamento è lunedì mattina, il caso ha tecnicamente rispettato la sua data di laboratorio e ha comunque creato un caos dell'ultimo minuto: sovrapprezzo urgente, restauro provvisorio o paziente riprogrammato.",
+                        "body_3": "Per misurare la prontezza, registra la data dell'appuntamento del paziente insieme alle date del caso, poi verifica se la data di ritorno effettiva era entro o prima di essa. Riporta la prontezza separatamente dalla consegna puntuale: un laboratorio può essere al 95 % puntuale e solo al 70 % pronto per gli appuntamenti, e quel divario è esattamente l'informazione di cui la tua reception ha bisogno.",
+                        "example": "Un paziente ha la cementazione di una corona il 14. Il laboratorio promette il ritorno il 12 e consegna il 13: puntuale secondo la propria promessa, ma un giorno troppo tardi per l'appuntamento. Senza tracciare la data dell'appuntamento, questo quasi-mancato è invisibile."
+                    },
+                    "remake": {
+                        "heading": "Metrica 4: Tasso di rilavorazione",
+                        "body_1": "Una rilavorazione è un restauro che deve essere rispedito al laboratorio - o ricominciato da capo - perché non può essere usato come consegnato. Le rilavorazioni differiscono dalle revisioni (piccoli aggiustamenti alla cementazione), dai cambi di flusso di routine e dai casi che semplicemente richiedono più tempo del previsto.",
+                        "body_2": "Calcola il tasso di rilavorazione come il numero di casi completati che hanno richiesto rilavorazione diviso per il totale dei casi completati, in percentuale. Se 3 casi completati su 60 hanno richiesto rilavorazione, il tasso è del 5 %. Mantieni il denominatore coerente: usa lo stesso insieme di casi completati usato per tempi e puntualità.",
+                        "body_3": "L'attribuzione conta nel confrontare i laboratori. Non ogni rilavorazione è colpa del laboratorio: un problema di preparazione, un'impronta o una scansione imprecisa, istruzioni poco chiare o una tonalità mal comunicata possono originare dallo studio. Registra chi o cosa ha causato ogni rilavorazione (laboratorio, studio o indeterminato) così i confronti riflettono le prestazioni reali del laboratorio e non il rumore del tuo flusso. Le rilavorazioni comportano anche i costi finanziari coperti dalla nostra guida sul costo delle rilavorazioni dentali.",
+                        "link_text": "Leggi: Quanto costano davvero le rilavorazioni dentali al tuo studio"
+                    },
+                    "overdue": {
+                        "heading": "Metrica 5: Carico in ritardo e a rischio",
+                        "body_1": "Le prime quattro metriche descrivono il lavoro completato. Questa descrive il lavoro in corso - ed è la metrica di cui il tuo team ha più bisogno. Conta quanti casi attivi hanno superato la data di ritorno attesa e, separatamente, quanti vi si avvicinano.",
+                        "body_2": "Vale la pena distinguere tre stati. In ritardo significa che la data di ritorno attesa è passata e il caso non è tornato. In scadenza significa che la data rientra nella tua finestra scelta - cinque giorni lavorativi, ad esempio. Rischio appuntamento significa che il caso è ancora attivo e l'appuntamento del paziente si avvicina prima del ritorno atteso.",
+                        "body_3": "Questa è una metrica operativa, non storica: cambia ogni giorno e ti dice chi chiamare oggi. Uno studio con il 95 % di consegne puntuali può comunque avere tre casi implantari in ritardo che invecchiano silenziosamente verso una crisi. Rivedere settimanalmente la lista a rischio - e chiamare il laboratorio prima che lo faccia il paziente - è il miglioramento di prestazione più economico disponibile."
+                    },
+                    "comparing": {
+                        "heading": "Confrontare i laboratori in modo equo",
+                        "body_1": "I numeri grezzi ingannano quando i laboratori trattano lavori diversi. Prima di concludere che il laboratorio A supera il B, verifica che siano confrontati a parità di condizioni.",
+                        "body_2": "Nulla di tutto ciò significa che le metriche siano inaffidabili: significa che premiano definizioni coerenti e denominatori onesti. Usate così, trasformano «credo che il laboratorio A sia migliore» in «il laboratorio A restituisce le corone due giorni prima con un tasso puntuale più alto su tipi di caso comparabili».",
+                        "list_items": {
+                            "1": {
+                                "title": "Complessità dei casi:",
+                                "body": "Un caso implantare o full-arch richiede legittimamente più tempo e più passaggi di una corona singola. Confronta i laboratori entro lo stesso tipo di caso o pondera il confronto di conseguenza."
+                            },
+                            "2": {
+                                "title": "Volume di casi:",
+                                "body": "Un laboratorio con dodici casi e una rilavorazione sembra peggiore di uno con duecento casi e dieci rilavorazioni. I campioni piccoli oscillano molto: tratta le percentuali da meno di circa trenta casi come indicative, non definitive."
+                            },
+                            "3": {
+                                "title": "Fattori lato studio:",
+                                "body": "Informazioni mancanti, approvazioni ritardate, prescrizioni poco chiare o problemi di preparazione gonfiano i numeri di consegna e rilavorazione per ragioni estranee al laboratorio."
+                            },
+                            "4": {
+                                "title": "Rilavorazioni versus revisioni:",
+                                "body": "Un aggiustamento di tonalità alla cementazione non è una rilavorazione. Definizioni coerenti mantengono il confronto onesto."
+                            },
+                            "5": {
+                                "title": "Periodo di rendicontazione:",
+                                "body": "Confronta la stessa finestra temporale per ogni laboratorio: trimestre contro trimestre, non «tutto lo storico» per uno e «questo mese» per l'altro."
+                            },
+                            "6": {
+                                "title": "Date promesse originali:",
+                                "body": "Se le date di un laboratorio sono sistematicamente gonfiate e quelle dell'altro no, i tassi puntuali misurano cose diverse. Guarda la frequenza delle revisioni insieme alla percentuale."
+                            }
+                        }
+                    },
+                    "action": {
+                        "heading": "Trasformare le metriche in azione",
+                        "body_1": "Le metriche sono utili solo se cambiano i comportamenti. Un ritmo pratico si vede così:",
+                        "body_2": "L'obiettivo non è sorvegliare i laboratori. È sostituire impressioni vaghe con fatti condivisi, così entrambe le parti possono correggere i guasti specifici - prescrizioni poco chiare, danni da imballaggio, disallineamenti di agenda - che causano davvero ritardi e rilavorazioni.",
+                        "list_items": {
+                            "1": {
+                                "title": "Settimanale:",
+                                "body": "Rivedi i casi in ritardo e a rischio; chiama o scrivi al laboratorio per tutto ciò che supera la data di ritorno attesa."
+                            },
+                            "2": {
+                                "title": "Mensile:",
+                                "body": "Aggiorna i dati di consegna, puntualità e rilavorazione per laboratorio e tipo di caso."
+                            },
+                            "3": {
+                                "title": "Trimestrale:",
+                                "body": "Confronta i laboratori su lavori comparabili, discuti i pattern con i partner e decidi se il volume deve spostarsi."
+                            },
+                            "4": {
+                                "title": "Quando i problemi si ripetono:",
+                                "body": "Usa i trend documentati - non la memoria - nelle conversazioni con il laboratorio. «I ponti hanno avuto una media di 16 giorni lo scorso trimestre contro 11 del precedente» è un'osservazione concreta e attuabile."
+                            }
+                        }
+                    },
+                    "scorecard": {
+                        "heading": "Inizia con la scheda di prestazione del laboratorio gratuita",
+                        "body_1": "Non ti serve software per iniziare. La DentaTrak Dental Lab Performance Scorecard è una cartella Excel gratuita che traccia automaticamente le cinque metriche di questo articolo: inserisci ogni caso una volta e il file calcola tempi di consegna, puntualità, prontezza per gli appuntamenti, tasso di rilavorazione e carico in ritardo per laboratorio.",
+                        "body_2": "Include istruzioni, un registro casi con calcoli integrati, una scheda per laboratorio e un foglio di definizioni affinché tutti interpretino i numeri allo stesso modo. Scaricala qui sotto: nessun account o registrazione richiesta."
+                    },
+                    "dentatrak": {
+                        "heading": "Come DentaTrak traccia tutto questo automaticamente",
+                        "body_1": "Se il tuo studio registra già i casi in DentaTrak, gran parte di questa misurazione avviene senza doppia inserzione. I casi portano data di invio, ritorno atteso, appuntamento del paziente e stato come parte del flusso normale, quindi Practice Insights e Lab Insights possono riportare tempi di consegna, puntualità, rischio appuntamenti, tracciamento delle rilavorazioni e confronti tra laboratori dai dati che mantieni già.",
+                        "body_2": "La differenza è la continuità: invece di un esercizio trimestrale di fogli di calcolo, le prestazioni restano visibili mentre i casi avanzano - carico attivo, casi in ritardo e rischio appuntamenti si aggiornano continuamente, e i trend si accumulano mese dopo mese. La scheda qui sopra resta un buon punto di partenza; DentaTrak è il modo per farla funzionare senza il lavoro manuale."
+                    }
+                },
+                "scorecard_cta": {
+                    "title": "DentaTrak Dental Lab Performance Scorecard",
+                    "subtitle": "Una cartella Excel gratuita che calcola automaticamente tempi di consegna, puntualità, prontezza per gli appuntamenti, tasso di rilavorazione e casi in ritardo per laboratorio.",
+                    "button": "Scarica la scheda gratuita"
+                },
+                "cta": {
+                    "body": "Scopri come DentaTrak trasforma le informazioni sui casi che tracci già in Practice e Lab Insights in tempo reale: visibilità dei tempi di consegna, prestazioni di puntualità, carico attivo, confronti tra laboratori e trend che si aggiornano mentre i casi avanzano.",
+                    "button": "Scopri come DentaTrak traccia le prestazioni di studio e laboratorio"
+                },
+                "related_resources": {
+                    "heading": "Risorse correlate",
+                    "items": [
+                        "Tracciamento dei casi di laboratorio dentistico: Una guida pratica",
+                        "Gestione dei casi con laboratori dentistici esterni",
+                        "Quanto costano davvero le rilavorazioni dentali al tuo studio",
+                        "Software di tracciamento dei casi dentistici: Cosa cercare",
+                        "Scheda gratuita di prestazione del laboratorio dentistico (Excel)"
+                    ]
                 }
             }
         },
@@ -6468,7 +6611,13 @@
             "card_hipaa_cta": "Scopri HIPAA e sicurezza",
             "type_security": "Sicurezza",
             "card_external_labs_mgmt_title": "Gestione dei casi con laboratori esterni",
-            "card_external_labs_mgmt_desc": "Come gli studi possono gestire i casi dei laboratori esterni, la comunicazione, i file, le scadenze, i rifacimenti e le prestazioni dei laboratori in un unico flusso di lavoro."
+            "card_external_labs_mgmt_desc": "Come gli studi possono gestire i casi dei laboratori esterni, la comunicazione, i file, le scadenze, i rifacimenti e le prestazioni dei laboratori in un unico flusso di lavoro.",
+            "tool_scorecard_type": "Download",
+            "tool_scorecard_title": "DentaTrak Dental Lab Performance Scorecard",
+            "tool_scorecard_desc": "Confronta i laboratori dentistici in base a tempi di consegna, puntualità, prontezza per gli appuntamenti, rilavorazioni e casi in ritardo. Modello Excel gratuito con calcoli automatici e dashboard delle prestazioni.",
+            "tool_scorecard_cta": "Scarica la scheda gratuita",
+            "card_lab_perf_title": "Come misurare le prestazioni del laboratorio dentistico: 5 metriche da monitorare",
+            "card_lab_perf_desc": "Scopri come misurare i tempi di consegna del laboratorio, l’affidabilità delle consegne, la prontezza per gli appuntamenti, i tassi di rilavorazione e il carico in ritardo per decisioni operative migliori."
         },
         "hipaa": {
             "title": "HIPAA e sicurezza | DentaTrak",

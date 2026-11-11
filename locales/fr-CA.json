@@ -4610,7 +4610,8 @@
                         "Suivi des cas de couronnes et bridges",
                         "Suivi des cas d'implants",
                         "Logiciel de suivi des cas dentaires vs. PMS",
-                        "À propos de DentaTrak"
+                        "À propos de DentaTrak",
+                        "Comment mesurer la performance du laboratoire"
                     ]
                 },
                 "seo": {
@@ -5419,7 +5420,8 @@
                     "items": [
                         "Logiciel de suivi des cas dentaires",
                         "Suivi des cas de couronnes et bridges",
-                        "Logiciel de suivi des cas dentaires vs. tableurs"
+                        "Logiciel de suivi des cas dentaires vs. tableurs",
+                        "Comment mesurer la performance du laboratoire"
                     ]
                 },
                 "cta": {
@@ -5855,7 +5857,8 @@
                         "Suivi des cas de laboratoires dentaires",
                         "Suivi des cas de couronnes et bridges",
                         "Suivi des cas d'implants",
-                        "À propos de DentaTrak"
+                        "À propos de DentaTrak",
+                        "Comment mesurer la performance du laboratoire"
                     ]
                 },
                 "cta": {
@@ -6146,11 +6149,151 @@
                         "Suivi des cas des laboratoires dentaires",
                         "Logiciel de suivi des cas dentaires",
                         "Comment suivre les cas dentaires sans les perdre",
-                        "Pourquoi la gestion visuelle des flux fonctionne pour les cas dentaires complexes"
+                        "Pourquoi la gestion visuelle des flux fonctionne pour les cas dentaires complexes",
+                        "Comment mesurer la performance du laboratoire"
                     ]
                 },
                 "cta": {
                     "body": "Essayez DentaTrak gratuitement. Aucune carte bancaire requise. Configurez votre clinique, définissez vos étapes de flux de travail et commencez à suivre vos cas de laboratoires externes en quelques minutes."
+                }
+            },
+            "lab_performance_metrics": {
+                "title": "Comment mesurer la performance du laboratoire dentaire : 5 indicateurs à suivre | DentaTrak",
+                "h1": "Comment mesurer la performance du laboratoire dentaire : 5 indicateurs à suivre",
+                "description": "Découvrez comment mesurer le délai de fabrication, la ponctualité, la disponibilité pour les rendez-vous, le taux de retouche et la charge en retard d'un laboratoire dentaire - avec une fiche Excel gratuite.",
+                "seo": {
+                    "title": "Comment mesurer la performance du laboratoire dentaire : 5 indicateurs | DentaTrak",
+                    "description": "Découvrez comment mesurer le délai de fabrication, la ponctualité, la disponibilité pour les rendez-vous, le taux de retouche et la charge en retard d'un laboratoire dentaire - avec une fiche Excel gratuite."
+                },
+                "meta": {
+                    "by": "Par",
+                    "published": "Publié"
+                },
+                "intro": "La plupart des cabinets dentaires évaluent leurs laboratoires à travers des expériences isolées : une couronne arrive en retard avant un rendez-vous patient, un bridge revient à retoucher ou un cas reste invisible pendant une semaine. Chacun de ces moments est réel, mais aucun ne montre si le laboratoire progresse, lequel performe le mieux ou si un retard récent était une exception ou un schéma. Ce guide explique comment mesurer cinq indicateurs de performance significatifs avec des informations que vous collectez probablement déjà, pour comparer les laboratoires équitablement, repérer les problèmes plus tôt et avoir de meilleures conversations avec vos partenaires.",
+                "example_label": "Exemple",
+                "sections": {
+                    "why_track": {
+                        "heading": "Pourquoi mesurer vaut mieux que se souvenir",
+                        "body_1": "Les souvenirs sont sélectifs. La retouche qui a frustré tout le monde le mois dernier est vive ; les quarante cas qui se sont bien passés sont invisibles. Sans enregistrements cohérents, un cabinet peut passer des années à croire qu'un laboratoire est « généralement correct » tout en absorbant silencieusement retards, retouches et problèmes de planning qu'un simple comptage aurait révélés.",
+                        "body_2": "Mesurer ne nécessite pas de logiciel. Un tableur, un carnet ou un système de suivi des cas conviennent. L'essentiel est d'enregistrer quelques dates et résultats pour chaque cas envoyé à un laboratoire, puis de les examiner régulièrement : chaque semaine pour la charge active, chaque mois ou trimestre pour les tendances."
+                    },
+                    "turnaround": {
+                        "heading": "Indicateur 1 : Délai moyen de fabrication du laboratoire",
+                        "body_1": "Le délai de fabrication est le nombre de jours calendaires entre l'envoi du cas au laboratoire et la réception de la restauration terminée au cabinet. C'est la mesure la plus basique de la rapidité d'un laboratoire.",
+                        "body_2": "Pour un cas, soustrayez la date d'envoi de la date de retour. Pour la moyenne, additionnez les délais des cas terminés et divisez par leur nombre. Si dix couronnes ont pris 8, 9, 10, 11, 12, 9, 10, 13, 9 et 11 jours, le délai moyen est de 10,2 jours.",
+                        "body_3": "Deux précautions s'imposent. D'abord, comparez le délai par type de cas : un guide chirurgical d'implant met légitimement plus de temps qu'une couronne simple, et les mélanger dans une moyenne unique masque de vraies différences. Ensuite, une moyenne peut cacher des valeurs aberrantes : neuf cas à neuf jours et un cas à quarante jours donnent encore moins de treize jours en moyenne. Suivez l'étendue ou les cas les plus lents en plus de la moyenne pour que les retards inhabituels restent visibles.",
+                        "example": "Les couronnes mettent en moyenne 8 jours ; les bridges 14 jours. Une moyenne combinée de 11 jours masquerait que les bridges sont systématiquement plus lents et méritent une conversation différente avec le laboratoire."
+                    },
+                    "on_time": {
+                        "heading": "Indicateur 2 : Taux de livraison à temps",
+                        "body_1": "La livraison à temps mesure la fiabilité, pas la rapidité. Un laboratoire peut avoir un délai moyen rapide et manquer des rendez-vous s'il manque les dates promises. Le taux à temps est le pourcentage de cas terminés retournés au plus tard à la date de livraison convenue à l'origine.",
+                        "body_2": "Le calcul est simple : comptez les cas terminés ayant une date de retour promise valide, puis divisez le nombre retourné à temps par ce total. Si 18 cas terminés sur 20 ont respecté leur date, le taux est de 90 %.",
+                        "body_3": "Deux habitudes d'enregistrement rendent cet indicateur fiable. D'abord, notez la date de retour attendue d'origine à l'envoi du cas, pas une date révisée après coup. Ensuite, surveillez les dates déplacées : chaque fois qu'une date promise est discrètement repoussée, le cas devient plus facile à « respecter » et votre taux s'améliore sans que le laboratoire se soit amélioré. Si les changements de date sont fréquents, notez leur fréquence ; les révisions fréquentes sont elles-mêmes un signal de performance.",
+                        "example": "Un laboratoire retourne 19 cas sur 20 à temps (95 %), mais repousse d'abord les dates promises sur 8 de ces cas. Le chiffre affiché semble excellent ; le schéma de révisions raconte une autre histoire."
+                    },
+                    "appointment": {
+                        "heading": "Indicateur 3 : Disponibilité pour les rendez-vous",
+                        "body_1": "La disponibilité pour les rendez-vous pose une question différente de la livraison à temps : le cas était-il de retour au cabinet assez tôt pour le rendez-vous patient qu'il accompagne ? Un cas peut respecter la date promise par le laboratoire et arriver trop tard pour le patient, car la date promise et la date du rendez-vous ne sont pas toujours identiques.",
+                        "body_2": "C'est dans cet écart que naissent les problèmes de planning. Une couronne promise vendredi et scellée lundi ne fonctionne que si le rendez-vous patient est mardi ou plus tard. Si le rendez-vous est lundi matin, le cas a techniquement respecté sa date laboratoire et a quand même créé un last-minute : supplément d'urgence, restauration provisoire ou patient reprogrammé.",
+                        "body_3": "Pour mesurer la disponibilité, notez la date du rendez-vous patient avec les dates du cas, puis vérifiez si la date de retour réelle était au plus tard à cette date. Rapportez la disponibilité séparément de la livraison à temps : un laboratoire peut être à 95 % à temps et seulement à 70 % disponible pour les rendez-vous, et cet écart est exactement l'information dont votre accueil a besoin.",
+                        "example": "Un patient a un rendez-vous de scellement de couronne le 14. Le laboratoire promet un retour le 12 et livre le 13 : à temps selon sa propre promesse, mais un jour trop tard pour le rendez-vous. Sans suivre la date du rendez-vous, ce quasi-échec reste invisible."
+                    },
+                    "remake": {
+                        "heading": "Indicateur 4 : Taux de retouche",
+                        "body_1": "Une retouche est une restauration qui doit être renvoyée au laboratoire - ou entièrement refaite - car elle ne peut pas être utilisée telle que livrée. Les retouches diffèrent des révisions (petits ajustements au scellement), des changements de flux routiniers et des cas qui prennent simplement plus de temps que prévu.",
+                        "body_2": "Calculez le taux de retouche comme le nombre de cas terminés nécessitant une retouche divisé par le total des cas terminés, en pourcentage. Si 3 cas terminés sur 60 ont nécessité une retouche, le taux est de 5 %. Gardez le dénominateur cohérent : utilisez le même ensemble de cas terminés que pour le délai et la ponctualité.",
+                        "body_3": "L'attribution compte pour comparer les laboratoires. Toute retouche n'est pas la faute du laboratoire : un problème de préparation, une empreinte ou un scan imprécis, des instructions floues ou une teinte mal communiquée peuvent tous venir du cabinet. Notez qui ou quoi a causé chaque retouche (laboratoire, cabinet ou indéterminé) pour que les comparaisons reflètent la performance réelle du laboratoire et non le bruit de votre propre flux. Les retouches engendrent aussi les coûts financiers couverts dans notre guide sur le coût des retouches dentaires.",
+                        "link_text": "Lire : Ce que les retouches dentaires coûtent vraiment à votre cabinet"
+                    },
+                    "overdue": {
+                        "heading": "Indicateur 5 : Charge en retard et à risque",
+                        "body_1": "Les quatre premiers indicateurs décrivent le travail terminé. Celui-ci décrit le travail en cours - et c'est l'indicateur dont votre équipe a le plus besoin. Comptez combien de cas actifs ont dépassé leur date de retour attendue et, séparément, combien s'en approchent.",
+                        "body_2": "Trois états méritent d'être distingués. En retard signifie que la date de retour attendue est passée et que le cas n'est pas revenu. Échéance proche signifie qu'elle tombe dans votre fenêtre choisie - cinq jours ouvrés, par exemple. Risque de rendez-vous signifie que le cas est encore actif et que le rendez-vous patient approche avant le retour attendu.",
+                        "body_3": "C'est un indicateur opérationnel, pas historique : il change chaque jour et vous dit qui appeler aujourd'hui. Un cabinet à 95 % de livraisons à temps peut avoir trois cas d'implant en retard vieillissant silencieusement vers une crise. Relire la liste des risques chaque semaine - et appeler le laboratoire avant que le patient ne vous appelle - est l'amélioration de performance la moins chère disponible."
+                    },
+                    "comparing": {
+                        "heading": "Comparer les laboratoires équitablement",
+                        "body_1": "Les chiffres bruts induisent en erreur quand les laboratoires traitent des travaux différents. Avant de conclure que le laboratoire A surpasse le B, vérifiez qu'ils sont comparés à conditions égales.",
+                        "body_2": "Rien de tout cela ne signifie que les indicateurs sont peu fiables : cela signifie qu'ils récompensent des définitions cohérentes et des dénominateurs honnêtes. Utilisés ainsi, ils transforment « je pense que le laboratoire A est meilleur » en « le laboratoire A rend les couronnes deux jours plus vite avec un meilleur taux à temps sur des types de cas comparables ».",
+                        "list_items": {
+                            "1": {
+                                "title": "Complexité des cas :",
+                                "body": "Un cas d'implant ou d'arcade complète prend légitimement plus de temps et comporte plus d'étapes qu'une couronne simple. Comparez les laboratoires au sein d'un même type de cas ou pondérez la comparaison en conséquence."
+                            },
+                            "2": {
+                                "title": "Volume de cas :",
+                                "body": "Un laboratoire avec douze cas et une retouche paraît pire qu'un laboratoire avec deux cents cas et dix retouches. Les petits échantillons fluctuent fortement : traitez les pourcentages issus de moins d'une trentaine de cas comme indicatifs, pas définitifs."
+                            },
+                            "3": {
+                                "title": "Facteurs côté cabinet :",
+                                "body": "Informations manquantes, validations retardées, prescriptions floues ou problèmes de préparation gonflent les chiffres de délai et de retouche pour des raisons sans rapport avec le laboratoire."
+                            },
+                            "4": {
+                                "title": "Retouches versus révisions :",
+                                "body": "Un ajustement de teinte au scellement n'est pas une retouche. Des définitions cohérentes gardent la comparaison honnête."
+                            },
+                            "5": {
+                                "title": "Période de rapport :",
+                                "body": "Comparez la même fenêtre temporelle pour chaque laboratoire : trimestre contre trimestre, pas « tout l'historique » pour l'un et « ce mois-ci » pour l'autre."
+                            },
+                            "6": {
+                                "title": "Dates promises d'origine :",
+                                "body": "Si les dates d'un laboratoire sont systématiquement gonflées et pas celles de l'autre, les taux à temps mesurent des choses différentes. Regardez la fréquence des révisions en plus du pourcentage."
+                            }
+                        }
+                    },
+                    "action": {
+                        "heading": "Transformer les indicateurs en actions",
+                        "body_1": "Les indicateurs ne sont utiles que s'ils changent les comportements. Un rythme pratique ressemble à ceci :",
+                        "body_2": "L'objectif n'est pas de surveiller les laboratoires. C'est de remplacer les impressions vagues par des faits partagés, pour que les deux parties corrigent les défaillances précises - prescriptions floues, dommages d'emballage, décalages de planning - qui causent réellement retards et retouches.",
+                        "list_items": {
+                            "1": {
+                                "title": "Hebdomadaire :",
+                                "body": "Examinez les cas en retard et à risque ; appelez ou écrivez au laboratoire pour tout ce qui dépasse sa date de retour attendue."
+                            },
+                            "2": {
+                                "title": "Mensuel :",
+                                "body": "Mettez à jour les chiffres de délai, de ponctualité et de retouches par laboratoire et par type de cas."
+                            },
+                            "3": {
+                                "title": "Trimestriel :",
+                                "body": "Comparez les laboratoires sur des travaux comparables, discutez des schémas avec vos partenaires et décidez si le volume doit bouger."
+                            },
+                            "4": {
+                                "title": "Quand les problèmes reviennent :",
+                                "body": "Utilisez des tendances documentées - pas la mémoire - dans vos conversations avec le laboratoire. « Les bridges ont pris en moyenne 16 jours le trimestre dernier contre 11 le précédent » est une observation concrète et actionnable."
+                            }
+                        }
+                    },
+                    "scorecard": {
+                        "heading": "Commencez avec la fiche de performance de laboratoire gratuite",
+                        "body_1": "Vous n'avez pas besoin de logiciel pour commencer. La DentaTrak Dental Lab Performance Scorecard est un classeur Excel gratuit qui suit automatiquement les cinq indicateurs de cet article : saisissez chaque cas une fois et le classeur calcule le délai, la ponctualité, la disponibilité pour les rendez-vous, le taux de retouche et la charge en retard par laboratoire.",
+                        "body_2": "Elle comprend des instructions, un journal de cas avec calculs intégrés, une fiche par laboratoire et une feuille de définitions pour que tout le monde interprète les chiffres de la même façon. Téléchargez-la ci-dessous : aucun compte ni inscription requis."
+                    },
+                    "dentatrak": {
+                        "heading": "Comment DentaTrak suit cela automatiquement",
+                        "body_1": "Si votre cabinet enregistre déjà les cas dans DentaTrak, une grande partie de cette mesure se fait sans double saisie. Les cas portent leur date d'envoi, leur retour attendu, le rendez-vous patient et leur statut dans le flux normal, donc Practice Insights et Lab Insights peuvent rapporter délai, ponctualité, risque de rendez-vous, suivi des retouches et comparaisons entre laboratoires à partir des données que vous maintenez déjà.",
+                        "body_2": "La différence est la continuité : au lieu d'un exercice trimestriel de tableur, la performance reste visible au fil des cas - charge active, cas en retard et risque de rendez-vous se mettent à jour en continu, et les tendances s'accumulent mois après mois. La fiche ci-dessus reste un bon point de départ ; DentaTrak est la façon de la faire tourner sans le travail manuel."
+                    }
+                },
+                "scorecard_cta": {
+                    "title": "DentaTrak Dental Lab Performance Scorecard",
+                    "subtitle": "Un classeur Excel gratuit qui calcule automatiquement délai, ponctualité, disponibilité pour les rendez-vous, taux de retouche et cas en retard par laboratoire.",
+                    "button": "Télécharger la fiche gratuite"
+                },
+                "cta": {
+                    "body": "Découvrez comment DentaTrak transforme les informations de cas que vous suivez déjà en Practice et Lab Insights en direct : visibilité des délais, performance de ponctualité, charge active, comparaisons entre laboratoires et tendances qui se mettent à jour au fil des cas.",
+                    "button": "Voir comment DentaTrak suit la performance du cabinet et des laboratoires"
+                },
+                "related_resources": {
+                    "heading": "Ressources associées",
+                    "items": [
+                        "Suivi des cas de laboratoire dentaire : Un guide pratique",
+                        "Gérer les cas avec des laboratoires dentaires externes",
+                        "Ce que les retouches dentaires coûtent vraiment à votre cabinet",
+                        "Logiciel de suivi des cas dentaires : À quoi regarder",
+                        "Fiche gratuite de performance de laboratoire dentaire (Excel)"
+                    ]
                 }
             }
         },
@@ -6468,7 +6611,13 @@
             "card_hipaa_cta": "En savoir plus sur HIPAA et la sécurité",
             "type_security": "Sécurité",
             "card_external_labs_mgmt_title": "Gestion des cas avec des laboratoires externes",
-            "card_external_labs_mgmt_desc": "Comment les cliniques peuvent gérer les cas en laboratoire externe, la communication, les fichiers, les échéances, les reprises et la performance des laboratoires dans un seul flux de travail."
+            "card_external_labs_mgmt_desc": "Comment les cliniques peuvent gérer les cas en laboratoire externe, la communication, les fichiers, les échéances, les reprises et la performance des laboratoires dans un seul flux de travail.",
+            "tool_scorecard_type": "Téléchargement",
+            "tool_scorecard_title": "DentaTrak Dental Lab Performance Scorecard",
+            "tool_scorecard_desc": "Comparez les laboratoires dentaires selon le délai de fabrication, la ponctualité, la disponibilité pour les rendez-vous, les retouches et les cas en retard. Modèle Excel gratuit avec calculs automatiques et tableau de bord.",
+            "tool_scorecard_cta": "Télécharger la fiche gratuite",
+            "card_lab_perf_title": "Comment mesurer la performance du laboratoire dentaire : 5 indicateurs à suivre",
+            "card_lab_perf_desc": "Découvrez comment mesurer les délais de fabrication, la fiabilité des livraisons, la disponibilité pour les rendez-vous, les taux de retouche et la charge en retard pour de meilleures décisions."
         },
         "hipaa": {
             "title": "HIPAA et sécurité | DentaTrak",

@@ -7,6 +7,7 @@ $appName = $appConfig['appName'] ?? 'DentaTrak';
 $baseUrl = rtrim($appConfig['baseUrl'], '/') . '/';
 $articleUrls = $appConfig['public_urls'] ?? [];
 $remakeCalcUrl = $baseUrl . ($articleUrls['article_dental_remake_cost'] ?? 'dental-remake-cost');
+$scorecardUrl = $baseUrl . 'resource-assets/DentaTrak_Dental_Lab_Performance_Scorecard.xlsx';
 ?><!DOCTYPE html>
 <html lang="<?php echo getHtmlLang(); ?>">
 <head>
@@ -169,6 +170,16 @@ $remakeCalcUrl = $baseUrl . ($articleUrls['article_dental_remake_cost'] ?? 'dent
           <p><?php echo t('marketing.resources.tool_spreadsheet_desc'); ?></p>
           <span class="tool-cta"><?php echo t('marketing.resources.tool_spreadsheet_cta'); ?></span>
         </a>
+        <a class="tool-card tool-card--download" href="<?= $scorecardUrl ?>" download="DentaTrak_Dental_Lab_Performance_Scorecard.xlsx">
+          <span class="resource-type resource-type--download"><?php echo t('marketing.resources.tool_scorecard_type'); ?></span>
+          <svg class="tool-card__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M3 3v18h18"></path>
+            <path d="M7 14l4-4 3 3 5-6"></path>
+          </svg>
+          <h3><?php echo t('marketing.resources.tool_scorecard_title'); ?></h3>
+          <p><?php echo t('marketing.resources.tool_scorecard_desc'); ?></p>
+          <span class="tool-cta"><?php echo t('marketing.resources.tool_scorecard_cta'); ?></span>
+        </a>
         <a class="tool-card tool-card--calculator" href="<?= $remakeCalcUrl ?>">
           <span class="resource-type resource-type--calculator"><?php echo t('marketing.resources.tool_calculator_type'); ?></span>
           <svg class="tool-card__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -214,10 +225,10 @@ $remakeCalcUrl = $baseUrl . ($articleUrls['article_dental_remake_cost'] ?? 'dent
           <p><?php echo t('marketing.resources.card_how_to_track_desc'); ?></p>
           <span class="resource-cta"><?php echo t('marketing.resources.read_guide'); ?></span>
         </a>
-        <a class="resource-card" href="<?= $baseUrl . ($articleUrls['article_visual_workflow'] ?? 'visual-dental-case-workflow') ?>">
+        <a class="resource-card" href="<?= $baseUrl . ($articleUrls['article_lab_performance'] ?? 'how-to-measure-dental-lab-performance') ?>">
           <span class="resource-type resource-type--guide"><?php echo t('marketing.resources.type_guide'); ?></span>
-          <h3><?php echo t('marketing.resources.card_visual_workflow_title'); ?></h3>
-          <p><?php echo t('marketing.resources.card_visual_workflow_desc'); ?></p>
+          <h3><?php echo t('marketing.resources.card_lab_perf_title'); ?></h3>
+          <p><?php echo t('marketing.resources.card_lab_perf_desc'); ?></p>
           <span class="resource-cta"><?php echo t('marketing.resources.read_guide'); ?></span>
         </a>
       </div>
@@ -249,6 +260,12 @@ $remakeCalcUrl = $baseUrl . ($articleUrls['article_dental_remake_cost'] ?? 'dent
             <p><?php echo t('marketing.resources.card_external_labs_mgmt_desc'); ?></p>
             <span class="resource-cta"><?php echo t('marketing.resources.read_guide'); ?></span>
           </a>
+          <a class="resource-card" href="<?= $baseUrl . ($articleUrls['article_visual_workflow'] ?? 'visual-dental-case-workflow') ?>">
+            <span class="resource-type resource-type--guide"><?php echo t('marketing.resources.type_guide'); ?></span>
+            <h3><?php echo t('marketing.resources.card_visual_workflow_title'); ?></h3>
+            <p><?php echo t('marketing.resources.card_visual_workflow_desc'); ?></p>
+            <span class="resource-cta"><?php echo t('marketing.resources.read_guide'); ?></span>
+          </a>
         </div>
       </div>
 
@@ -277,6 +294,12 @@ $remakeCalcUrl = $baseUrl . ($articleUrls['article_dental_remake_cost'] ?? 'dent
             <span class="resource-type resource-type--tool"><?php echo t('marketing.resources.type_tool'); ?></span>
             <h3><?php echo t('marketing.resources.card_remake_cost_title'); ?></h3>
             <p><?php echo t('marketing.resources.card_remake_cost_desc'); ?></p>
+            <span class="resource-cta"><?php echo t('marketing.resources.read_guide'); ?></span>
+          </a>
+          <a class="resource-card" href="<?= $baseUrl . ($articleUrls['article_lab_performance'] ?? 'how-to-measure-dental-lab-performance') ?>">
+            <span class="resource-type resource-type--guide"><?php echo t('marketing.resources.type_guide'); ?></span>
+            <h3><?php echo t('marketing.resources.card_lab_perf_title'); ?></h3>
+            <p><?php echo t('marketing.resources.card_lab_perf_desc'); ?></p>
             <span class="resource-cta"><?php echo t('marketing.resources.read_guide'); ?></span>
           </a>
         </div>

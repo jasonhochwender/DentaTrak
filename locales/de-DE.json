@@ -4752,7 +4752,13 @@
             "card_hipaa_cta": "Über HIPAA & Sicherheit erfahren",
             "type_security": "Sicherheit",
             "card_external_labs_mgmt_title": "Fallmanagement für externe Labore",
-            "card_external_labs_mgmt_desc": "Wie Praxen Fälle in externen Laboren, Kommunikation, Dateien, Fristen, Neuanfertigungen und Laborleistung in einem Workflow verwalten."
+            "card_external_labs_mgmt_desc": "Wie Praxen Fälle in externen Laboren, Kommunikation, Dateien, Fristen, Neuanfertigungen und Laborleistung in einem Workflow verwalten.",
+            "tool_scorecard_type": "Download",
+            "tool_scorecard_title": "DentaTrak Dental Lab Performance Scorecard",
+            "tool_scorecard_desc": "Vergleichen Sie Dentallabore anhand von Durchlaufzeit, Termintreue, Terminbereitschaft, Nacharbeit und überfälligen Fällen. Kostenlose Excel-Vorlage mit automatischen Berechnungen und Leistungsübersicht.",
+            "tool_scorecard_cta": "Kostenlose Scorecard laden",
+            "card_lab_perf_title": "So messen Sie die Laborleistung: 5 Kennzahlen, die jede Praxis verfolgen sollte",
+            "card_lab_perf_desc": "Erfahren Sie, wie Sie Labor-Durchlaufzeiten, Lieferzuverlässigkeit, Terminbereitschaft, Nacharbeitsquoten und überfällige Arbeitsbestände messen, um bessere operative Entscheidungen zu treffen."
         },
         "hipaa": {
             "title": "HIPAA & Sicherheit | DentaTrak",
@@ -5061,7 +5067,8 @@
                         "Fallverfolgung für Kronen und Brücken",
                         "Fallverfolgung für Implantate",
                         "Fallverfolgungssoftware vs. PMS",
-                        "Über DentaTrak"
+                        "Über DentaTrak",
+                        "So messen Sie die Laborleistung"
                     ]
                 },
                 "seo": {
@@ -5870,7 +5877,8 @@
                     "items": [
                         "Software zur Fallverfolgung in der Zahnmedizin",
                         "Fallverfolgung für Kronen und Brücken",
-                        "Fallverfolgungssoftware vs. Tabellen"
+                        "Fallverfolgungssoftware vs. Tabellen",
+                        "So messen Sie die Laborleistung"
                     ]
                 },
                 "cta": {
@@ -6306,7 +6314,8 @@
                         "Fallverfolgung im Dentallabor",
                         "Fallverfolgung für Kronen und Brücken",
                         "Fallverfolgung für Implantate",
-                        "Über DentaTrak"
+                        "Über DentaTrak",
+                        "So messen Sie die Laborleistung"
                     ]
                 },
                 "cta": {
@@ -6597,11 +6606,151 @@
                         "Fallverfolgung im Dentallabor",
                         "Software zur Fallverfolgung in der Zahnmedizin",
                         "Dentale Fälle verfolgen, ohne sie zu verlieren",
-                        "Warum visuelles Workflow-Management bei komplexen dentalen Fällen funktioniert"
+                        "Warum visuelles Workflow-Management bei komplexen dentalen Fällen funktioniert",
+                        "So messen Sie die Laborleistung"
                     ]
                 },
                 "cta": {
                     "body": "Testen Sie DentaTrak kostenlos. Keine Kreditkarte erforderlich. Richten Sie Ihre Praxis ein, definieren Sie Ihre Workflow-Stufen und beginnen Sie in wenigen Minuten mit der Nachverfolgung externer Laborfälle."
+                }
+            },
+            "lab_performance_metrics": {
+                "title": "So messen Sie die Laborleistung: 5 Kennzahlen, die jede Praxis verfolgen sollte | DentaTrak",
+                "h1": "So messen Sie die Laborleistung: 5 Kennzahlen, die jede Praxis verfolgen sollte",
+                "description": "Erfahren Sie, wie Sie Durchlaufzeit, Termintreue, Terminbereitschaft, Nacharbeitsquote und überfälligen Arbeitsbestand eines Dentallabors messen - mit kostenloser Excel-Scorecard.",
+                "seo": {
+                    "title": "So messen Sie die Laborleistung: 5 Kennzahlen für jede Praxis | DentaTrak",
+                    "description": "Erfahren Sie, wie Sie Durchlaufzeit, Termintreue, Terminbereitschaft, Nacharbeitsquote und überfälligen Arbeitsbestand eines Dentallabors messen - mit kostenloser Excel-Scorecard."
+                },
+                "meta": {
+                    "by": "Von",
+                    "published": "Veröffentlicht"
+                },
+                "intro": "Die meisten Zahnarztpraxen bewerten ihre Labore anhand einzelner Erfahrungen: Eine Krone kommt zu spät vor einem Patiententermin an, eine Brücke muss nachgearbeitet werden oder ein Fall liegt eine Woche unbemerkt herum. Jeder dieser Momente ist real, aber keiner zeigt, ob sich das Labor verbessert, welches Labor am besten abschneidet oder ob eine jüngste Verzögerung eine Ausnahme oder ein Muster war. Dieser Leitfaden zeigt, wie Sie fünf aussagekräftige Leistungskennzahlen eines Labors mit Informationen messen, die Sie wahrscheinlich bereits erfassen - damit Sie Labore fair vergleichen, Probleme früher erkennen und bessere Gespräche mit Ihren Laborpartnern führen können.",
+                "example_label": "Beispiel",
+                "sections": {
+                    "why_track": {
+                        "heading": "Warum Messen besser ist als Erinnern",
+                        "body_1": "Erinnerungen sind selektiv. Die Nacharbeit, die letzten Monat alle frustrierte, ist vividly; die vierzig Fälle, die reibungslos liefen, sind unsichtbar. Ohne konsistente Aufzeichnungen kann eine Praxis jahrelang glauben, ein Labor sei „normalerweise in Ordnung\", während sie stillschweigend Verzögerungen, Nacharbeiten und Terminprobleme aufnimmt, die eine einfache Zählung sofort offengelegt hätte.",
+                        "body_2": "Für die Messung ist keine Software nötig. Eine Tabelle, ein Notizbuch oder ein Fallverfolgungssystem funktionieren alle. Entscheidend ist, für jeden an ein Labor gesendeten Fall einige Daten und Ergebnisse zu erfassen und sie regelmäßig auszuwerten - wöchentlich für den aktiven Arbeitsbestand, monatlich oder vierteljährlich für Leistungstrends."
+                    },
+                    "turnaround": {
+                        "heading": "Kennzahl 1: Durchschnittliche Labor-Durchlaufzeit",
+                        "body_1": "Die Durchlaufzeit ist die Anzahl der Kalendertage zwischen dem Tag, an dem ein Fall an das Labor gesendet wird, und dem Tag, an dem die fertige Restauration in der Praxis eintrifft. Sie ist dasste Maß für die Geschwindigkeit eines Labors.",
+                        "body_2": "Für einen einzelnen Fall ziehen Sie das Sendedatum vom Rückgabedatum ab. Für den Durchschnitt addieren Sie die Durchlaufzeiten abgeschlossener Fälle und teilen durch deren Anzahl. Wenn zehn Kronen beispielsweise 8, 9, 10, 11, 12, 9, 10, 13, 9 und 11 Tage brauchten, beträgt die durchschnittliche Durchlaufzeit 10,2 Tage.",
+                        "body_3": "Zwei Hinweise sind wichtig. Erstens: Vergleichen Sie die Durchlaufzeit nach Falltyp - eine implantatgetragene Operationsschablone braucht legitimerweise länger als eine einzelne Krone, und ein gemeinsamer Durchschnitt verbirgt echte Unterschiede. Zweitens: Ein Durchschnitt kann Ausreißer verbergen - neun Fälle mit neun Tagen und ein Fall mit vierzig Tagen ergeben immer noch unter dreizehn Tage im Schnitt. Verfolgen Sie neben dem Durchschnitt auch die Spanne oder die langsamsten Fälle, damit ungewöhnlich verzögerte Arbeiten sichtbar bleiben.",
+                        "example": "Kronenfälle dauern im Schnitt 8 Tage, Brückenfälle 14 Tage. Ein gemischter Durchschnitt von 11 Tagen würde verbergen, dass Brückenarbeiten durchgehend langsamer sind und ein anderes Gespräch mit dem Labor verdienen."
+                    },
+                    "on_time": {
+                        "heading": "Kennzahl 2: Termintreue-Quote",
+                        "body_1": "Termintreue misst Zuverlässigkeit, nicht Geschwindigkeit. Ein Labor kann eine schnelle durchschnittliche Durchlaufzeit haben und trotzdem Termine verpassen, wenn es die versprochenen Daten nicht einhält. Die Termintreue-Quote ist der Prozentsatz abgeschlossener Fälle, die am oder vor dem ursprünglich vereinbarten Lieferdatum zurückkamen.",
+                        "body_2": "Die Berechnung ist einfach: Zählen Sie abgeschlossene Fälle mit gültigem zugesagtem Rückgabedatum und teilen Sie die Anzahl der Fälle, die an oder vor diesem Datum zurückkamen, durch diese Zahl. Wenn 18 von 20 abgeschlossenen Fällen ihr Datum einhielten, beträgt die Quote 90 %.",
+                        "body_3": "Zwei Aufzeichnungsgewohnheiten machen diese Kennzahl vertrauenswürdig. Erstens: Erfassen Sie das ursprüngliche erwartete Rückgabedatum beim Senden des Falls - nicht ein nachträglich geändertes Datum. Zweitens: Achten Sie auf verschobene Fälligkeiten - jedes Mal, wenn ein versprochenes Datum still verlängert wird, wird der Fall leichter „eingehalten\", und Ihre Quote verbessert sich, ohne dass sich das Labor tatsächlich verbessert hat. Wenn Datumsänderungen häufig sind, erfassen Sie deren Häufigkeit; häufige Korrekturen sind selbst ein Leistungssignal.",
+                        "example": "Ein Labor liefert 19 von 20 Fällen pünktlich (95 %), verlängert aber zuerst bei 8 dieser Fälle die Termine. Die Schlagzeilenzahl sieht ausgezeichnet aus; das Korrektur-Muster erzählt eine andere Geschichte."
+                    },
+                    "appointment": {
+                        "heading": "Kennzahl 3: Terminbereitschaft",
+                        "body_1": "Terminbereitschaft stellt eine andere Frage als Termintreue: War der Fall früh genug wieder in der Praxis für den Patiententermin, den er unterstützt? Ein Fall kann das vom Labor versprochene Datum einhalten und trotzdem zu spät für den Patienten eintreffen, weil versprochenes Datum und Termin nicht immer identisch sind.",
+                        "body_2": "In dieser Lücke entstehen Terminprobleme. Eine für Freitag versprochene Krone, die montags eingesetzt wird, funktioniert nur, wenn der Patientetermin Dienstag oder später liegt. Ist der Termin Montagmorgen, hat der Fall sein Labordatum zwar technisch eingehalten, verursachte aber trotzdem einen Last-Minute-Aufwand - eine Expressgebühr, eine provisorische Versorgung oder einen verschobenen Patienten.",
+                        "body_3": "Um die Bereitschaft zu messen, erfassen Sie das Patiententermin-Datum zusammen mit den Falldaten und prüfen Sie, ob das tatsächliche Rückgabedatum am oder vor diesem Datum lag. Berichten Sie die Bereitschaft getrennt von der Termintreue: Ein Labor kann zu 95 % pünktlich und nur zu 70 % terminbereit sein - und genau diese Lücke braucht Ihr Empfang.",
+                        "example": "Ein Patient ist für die Kroneneingliederung am 14. vorgesehen. Das Labor verspricht Rückgabe am 12. und liefert am 13. - pünktlich nach eigenem Versprechen, aber einen Tag zu spät für den Termin. Ohne Erfassung des Termindatums bleibt dieser Beinahe-Fehlschlag unsichtbar."
+                    },
+                    "remake": {
+                        "heading": "Kennzahl 4: Nacharbeitsquote",
+                        "body_1": "Eine Nacharbeit ist eine Restauration, die an das Labor zurückgesendet - oder komplett neu angefertigt - werden muss, weil sie nicht wie geliefert verwendet werden kann. Nacharbeiten unterscheiden sich von Revisionen (kleine Anpassungen bei der Eingliederung), von routinemäßigen Workflow-Änderungen und von Fällen, die einfach länger dauern als erwartet.",
+                        "body_2": "Berechnen Sie die Nacharbeitsquote als Anzahl der abgeschlossenen Fälle mit Nacharbeit geteilt durch die Gesamtzahl abgeschlossener Fälle, in Prozent. Wenn 3 von 60 abgeschlossenen Fällen eine Nacharbeit benötigten, beträgt die Quote 5 %. Halten Sie den Nenner konsistent: Verwenden Sie dieselbe Menge abgeschlossener Fälle wie für Durchlaufzeit und Termintreue.",
+                        "body_3": "Die Zuordnung ist beim Vergleich von Laboren wichtig. Nicht jede Nacharbeit ist Schuld des Labors - ein Präparationsproblem, ein ungenauer Abdruck oder Scan, unklare Anweisungen oder ein schlecht kommunizierter Farbton können alle auf der Praxisseite entstehen. Erfassen Sie, wer oder was jede Nacharbeit verursacht hat (Labor, Praxis oder unbestimmt), damit Laborvergleiche die tatsächliche Laborleistung widerspiegeln und nicht Ihr eigenes Workflow-Rauschen. Nacharbeiten verursachen auch die finanziellen Kosten aus unserem Leitfaden zu Nacharbeitskosten.",
+                        "link_text": "Lesen: Was Dentale Nacharbeit Ihre Praxis wirklich kostet"
+                    },
+                    "overdue": {
+                        "heading": "Kennzahl 5: Überfälliger und gefährdeter Arbeitsbestand",
+                        "body_1": "Die ersten vier Kennzahlen beschreiben abgeschlossene Arbeiten. Diese hier beschreibt laufende Arbeiten - und sie ist die Kennzahl, die Ihr Team am häufigsten braucht. Zählen Sie, wie viele aktive Fälle ihr erwartetes Rückgabedatum überschritten haben und wie viele sich ihm nähern.",
+                        "body_2": "Drei Zustände sind zu unterscheiden. Überfällig bedeutet: Das erwartete Rückgabedatum ist verstrichen und der Fall ist nicht zurück. Bald fällig bedeutet: Das Datum liegt innerhalb Ihres gewählten Fensters - zum Beispiel fünf Werktage. Terminrisiko bedeutet: Der Fall ist noch aktiv und der Patiententermin rückt vor der erwarteten Rückgabe näher.",
+                        "body_3": "Dies ist eine operative Kennzahl, kein historischer Messwert: Sie ändert sich täglich und sagt Ihnen, wen Sie heute anrufen müssen. Eine Praxis mit 95 % Termintreue kann trotzdem drei überfällige Implantatfälle haben, die still zu einer Krise altern. Die wöchentliche Durchsicht der Risikoliste - und der Anruf beim Labor, bevor der Patient Sie anruft - ist die günstigste verfügbare Leistungsverbesserung."
+                    },
+                    "comparing": {
+                        "heading": "Labore fair vergleichen",
+                        "body_1": "Rohe Zahlen täuschen, wenn Labore unterschiedliche Arbeiten verrichten. Bevor Sie conclude Lab A Lab B übertrifft, prüfen Sie, ob der Vergleich unter gleichen Bedingungen erfolgt.",
+                        "body_2": "Nichts davon bedeutet, dass die Kennzahlen unzuverlässig sind - sie belohnen konsistente Definitionen und ehrliche Nenner. So angewendet verwandeln sie „Ich glaube, Lab A ist besser\" in „Lab A liefert Kronen zwei Tage schneller mit höherer Termintreue bei vergleichbaren Falltypen.\"",
+                        "list_items": {
+                            "1": {
+                                "title": "Fallkomplexität:",
+                                "body": "Ein Implantat- oder Total-Fall dauert legitimerweise länger und hat mehr Schritte als eine einzelne Krone. Vergleichen Sie Labore innerhalb eines Falltyps oder gewichten Sie den Vergleich entsprechend."
+                            },
+                            "2": {
+                                "title": "Fallvolumen:",
+                                "body": "Ein Labor mit zwölf Fällen und einer Nacharbeit wirkt schlechter als eines mit zweihundert Fällen und zehn Nacharbeiten. Kleine Stichproben schwanken stark - behandeln Sie Prozentsätze aus weniger als etwa dreißig Fällen als richtungsweisend, nicht als endgültig."
+                            },
+                            "3": {
+                                "title": "Praxisseitige Faktoren:",
+                                "body": "Fehlende Informationen, verzögerte Freigaben, unklare Verordnungen oder Präparationsprobleme blähen Durchlauf- und Nacharbeitszahlen aus Gründen auf, die nichts mit dem Labor zu tun haben."
+                            },
+                            "4": {
+                                "title": "Nacharbeit versus Revision:",
+                                "body": "Eine Farbanpassung bei der Eingliederung ist keine Nacharbeit. Konsistente Definitionen halten den Vergleich ehrlich."
+                            },
+                            "5": {
+                                "title": "Berichtszeitraum:",
+                                "body": "Vergleichen Sie dasselbe Zeitfenster für jedes Labor - Quartal gegen Quartal, nicht „alles\" für das eine und „dieser Monat\" für das andere."
+                            },
+                            "6": {
+                                "title": "Ursprüngliche Zusagedaten:",
+                                "body": "Wenn die Termine eines Labors routinemäßig gepolstert sind und die des anderen nicht, messen Termintreue-Quoten Verschiedenes. Betrachten Sie die Korrekturhäufigkeit zusammen mit dem Prozentsatz."
+                            }
+                        }
+                    },
+                    "action": {
+                        "heading": "Von Kennzahlen zu Maßnahmen",
+                        "body_1": "Kennzahlen sind nur nützlich, wenn sie Verhalten ändern. Ein praktischer Rhythmus sieht so aus:",
+                        "body_2": "Das Ziel ist nicht, Labore zu kontrollieren. Es geht darum, vage Eindrücke durch gemeinsame Fakten zu ersetzen, damit beide Seiten die konkreten Störungen - unklare Verordnungen, Verpackungsschäden, Termin-Mismatch - beheben können, die Verzögerungen und Nacharbeiten tatsächlich verursachen.",
+                        "list_items": {
+                            "1": {
+                                "title": "Wöchentlich:",
+                                "body": "Überfällige und gefährdete Fälle prüfen; das Labor bei allem anrufen oder anschreiben, das sein Rückgabedatum überschritten hat."
+                            },
+                            "2": {
+                                "title": "Monatlich:",
+                                "body": "Durchlaufzeit-, Termintreue- und Nacharbeitszahlen pro Labor und Falltyp aktualisieren."
+                            },
+                            "3": {
+                                "title": "Vierteljährlich:",
+                                "body": "Labore bei vergleichbarer Arbeit gegenüberstellen, Muster mit Laborpartnern besprechen und entscheiden, ob sich Volumen verschieben sollte."
+                            },
+                            "4": {
+                                "title": "Bei wiederkehrenden Problemen:",
+                                "body": "Nutzen Sie dokumentierte Trends - nicht Erinnerungen - in Gesprächen mit dem Labor. „Brückenfälle dauerten letztes Quartal im Schnitt 16 Tage gegenüber 11 im Vorquartal\" ist eine konkrete, umsetzbare Beobachtung."
+                            }
+                        }
+                    },
+                    "scorecard": {
+                        "heading": "Starten Sie mit der kostenlosen Labor-Scorecard",
+                        "body_1": "Für den Anfang brauchen Sie keine Software. Die DentaTrak Dental Lab Performance Scorecard ist eine kostenlose Excel-Arbeitsmappe, die die fünf Kennzahlen dieses Leitfadens automatisch verfolgt: Erfassen Sie jeden Fall einmal, und die Arbeitsmappe berechnet Durchlaufzeit, Termintreue, Terminbereitschaft, Nacharbeitsquote und überfälligen Arbeitsbestand pro Labor.",
+                        "body_2": "Sie enthält eine Anleitung, ein Fallprotokoll mit integrierten Berechnungen, eine Scorecard pro Labor und ein Definitionen-Blatt, damit alle die Zahlen gleich interpretieren. Laden Sie sie unten herunter - kein Konto oder keine Registrierung erforderlich."
+                    },
+                    "dentatrak": {
+                        "heading": "Wie DentaTrak dies automatisch verfolgt",
+                        "body_1": "Wenn Ihre Praxis Fälle bereits in DentaTrak erfasst, passiert ein Großteil dieser Messung ohne Zweiteingabe. Fälle tragen Sendedatum, erwartete Rückgabe, Patiententermin und Status als Teil des normalen Workflows, sodass Practice Insights und Lab Insights Durchlaufzeit, Termintreue, Terminrisiko, Nachverfolgung von Nacharbeiten und Laborvergleiche aus Daten melden können, die Sie bereits pflegen.",
+                        "body_2": "Der Unterschied ist Kontinuität: Statt einer vierteljährlichen Tabellenübung bleiben Leistungen sichtbar, während Fälle sich bewegen - aktiver Arbeitsbestand, überfällige Fälle und Terminrisiko aktualisieren sich laufend, und Trends akkumulieren von Monat zu Monat. Die Scorecard oben bleibt ein guter Einstieg; DentaTrak ist der Weg, dies ohne manuelle Arbeit am Laufen zu halten."
+                    }
+                },
+                "scorecard_cta": {
+                    "title": "DentaTrak Dental Lab Performance Scorecard",
+                    "subtitle": "Eine kostenlose Excel-Arbeitsmappe, die Durchlaufzeit, Termintreue, Terminbereitschaft, Nacharbeitsquote und überfällige Fälle pro Labor automatisch berechnet.",
+                    "button": "Kostenlose Scorecard laden"
+                },
+                "cta": {
+                    "body": "Sehen Sie, wie DentaTrak die Fallinformationen, die Sie bereits verfolgen, in live Practice- und Lab-Insights verwandelt - Durchlaufsichtbarkeit, Termintreue, aktiver Arbeitsbestand, Laborvergleiche und Trends, die sich mit den Fällen aktualisieren.",
+                    "button": "So verfolgt DentaTrak Practice- und Lab-Leistung"
+                },
+                "related_resources": {
+                    "heading": "Verwandte Ressourcen",
+                    "items": [
+                        "Dental Lab Case Tracking: Ein praktischer Leitfaden",
+                        "Fallverwaltung mit externen Dentallaboren",
+                        "Was Dentale Nacharbeit Ihre Praxis wirklich kostet",
+                        "Dentale Fallverfolgungssoftware: Worauf es ankommt",
+                        "Kostenlose Dental Lab Performance Scorecard (Excel)"
+                    ]
                 }
             }
         },

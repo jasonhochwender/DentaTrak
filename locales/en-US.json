@@ -4620,7 +4620,8 @@
                         "Crown and Bridge Case Tracking",
                         "Implant Case Tracking",
                         "Dental Case Tracking Software vs. PMS",
-                        "About DentaTrak"
+                        "About DentaTrak",
+                        "How to Measure Dental Lab Performance"
                     ]
                 },
                 "seo": {
@@ -5429,7 +5430,8 @@
                     "items": [
                         "Dental Case Tracking Software",
                         "Crown and Bridge Case Tracking",
-                        "Dental Case Tracking Software vs. Spreadsheets"
+                        "Dental Case Tracking Software vs. Spreadsheets",
+                        "How to Measure Dental Lab Performance"
                     ]
                 },
                 "cta": {
@@ -5865,7 +5867,8 @@
                         "Dental Lab Case Tracking",
                         "Crown and Bridge Case Tracking",
                         "Implant Case Tracking",
-                        "About DentaTrak"
+                        "About DentaTrak",
+                        "How to Measure Dental Lab Performance"
                     ]
                 },
                 "cta": {
@@ -6156,11 +6159,151 @@
                         "Dental Lab Case Tracking",
                         "Dental Case Tracking Software",
                         "How to Track Dental Cases Without Losing Them",
-                        "Visual Dental Case Workflow"
+                        "Visual Dental Case Workflow",
+                        "How to Measure Dental Lab Performance"
                     ]
                 },
                 "cta": {
                     "body": "Try DentaTrak free. No credit card required. Set up your practice, define your workflow stages, and begin tracking external-lab cases in minutes."
+                }
+            },
+            "lab_performance_metrics": {
+                "title": "How to Measure Dental Lab Performance: 5 Metrics Every Dental Practice Should Track | DentaTrak",
+                "h1": "How to Measure Dental Lab Performance: 5 Metrics Every Dental Practice Should Track",
+                "description": "Learn how to measure dental laboratory turnaround time, on-time delivery, appointment readiness, remake rate, and overdue workload - with a free Excel scorecard.",
+                "seo": {
+                    "title": "How to Measure Dental Lab Performance: 5 Metrics Every Practice Should Track | DentaTrak",
+                    "description": "Learn how to measure dental laboratory turnaround time, on-time delivery, appointment readiness, remake rate, and overdue workload - with a free Excel scorecard."
+                },
+                "meta": {
+                    "by": "By",
+                    "published": "Published"
+                },
+                "intro": "Most dental practices evaluate their laboratories through individual experiences: a crown arrives late before a patient appointment, a bridge comes back needing adjustment, or a case sits unnoticed for a week. Each moment is real, but none of them shows whether the laboratory is improving, which lab performs best, or whether a recent delay was an exception or a pattern. This guide shows how to measure five meaningful laboratory performance indicators using information you likely already collect, so you can compare labs fairly, spot problems earlier, and have better conversations with your laboratory partners.",
+                "example_label": "Example",
+                "sections": {
+                    "why_track": {
+                        "heading": "Why Measuring Beats Remembering",
+                        "body_1": "Memories are selective. The remake that frustrated everyone last month is vivid; the forty cases that went smoothly are invisible. Without consistent records, a practice can spend years believing a laboratory is \"usually fine\" while quietly absorbing delays, remakes, and scheduling problems that a simple count would have revealed.",
+                        "body_2": "Measurement does not require software. A spreadsheet, a notebook, or a case-tracking system can all work. What matters is recording a handful of dates and outcomes for every case sent to a laboratory, then reviewing them on a regular schedule - weekly for active workload, monthly or quarterly for performance trends."
+                    },
+                    "turnaround": {
+                        "heading": "Metric 1: Average Lab Turnaround Time",
+                        "body_1": "Turnaround time is the number of calendar days between the day a case is sent to the laboratory and the day the finished restoration is received back by the practice. It is the most basic measure of laboratory speed.",
+                        "body_2": "To calculate it for a single case, subtract the send date from the return date. For your average, add the turnaround days of completed cases and divide by the number of completed cases. If ten crowns took 8, 9, 10, 11, 12, 9, 10, 13, 9, and 11 days respectively, the average turnaround is 10.2 days.",
+                        "body_3": "Two cautions apply. First, compare turnaround by case type: an implant surgical guide legitimately takes longer than a single crown, so mixing them in one average hides real differences. Second, an average can conceal outliers - nine cases at nine days and one case at forty days still averages under thirteen days. Track the range or slowest cases alongside the average so unusually delayed work stays visible.",
+                        "example": "Crown cases average 8 days; bridge cases average 14 days. Reporting one blended average of 11 days would hide the fact that bridge work is consistently slower and deserves a different conversation with the lab."
+                    },
+                    "on_time": {
+                        "heading": "Metric 2: On-Time Delivery Rate",
+                        "body_1": "On-time delivery measures reliability, not speed. A laboratory can have a fast average turnaround and still miss appointments if it misses the dates it promised. On-time rate is the percentage of completed cases returned on or before the originally agreed delivery date.",
+                        "body_2": "The calculation is straightforward: count completed cases that had a valid promised return date, then divide the number returned on or before that date by that count. If 18 of 20 completed cases met their promised date, the on-time rate is 90%.",
+                        "body_3": "Two recording habits make this metric trustworthy. First, record the original expected return date when the case is sent - not a revised date after the fact. Second, watch for moving due dates: every time a promised date is quietly extended, the case becomes easier to \"meet,\" and your on-time rate improves without the laboratory actually improving. If date changes are common, track how often they happen; frequent revisions are themselves a performance signal.",
+                        "example": "A lab returns 19 of 20 cases on time (95%), but extends promised dates on 8 of those cases first. The headline number looks excellent; the revision pattern tells a different story."
+                    },
+                    "appointment": {
+                        "heading": "Metric 3: Appointment Readiness",
+                        "body_1": "Appointment readiness asks a different question than on-time delivery: was the case back in the practice early enough for the patient appointment it supports? A case can meet the laboratory's promised date and still arrive too late for the patient, because the promised date and the appointment date are not always the same.",
+                        "body_2": "This gap is where scheduling problems are born. A crown promised for Friday that seats Monday works only if the patient's appointment is Tuesday or later. If the appointment is Monday morning, the case technically met its lab date and still created a last-minute scramble - a rush fee, a temporary restoration, or a rescheduled patient.",
+                        "body_3": "To measure readiness, record the patient appointment date alongside the case dates, then check whether the actual return date was on or before it. Report readiness separately from on-time delivery: a lab can be 95% on-time and only 70% appointment-ready, and that gap is exactly the information your front desk needs.",
+                        "example": "A patient is scheduled for crown seating on the 14th. The lab promises return on the 12th and delivers on the 13th - on time by its own promise, but one day too late for the appointment. Without tracking the appointment date, this near-miss is invisible."
+                    },
+                    "remake": {
+                        "heading": "Metric 4: Remake Rate",
+                        "body_1": "A remake is a restoration that must be sent back to the laboratory - or completely restarted - because it cannot be used as delivered. Remakes are different from revisions (minor adjustments made at seating), from routine workflow changes, and from cases that simply take longer than expected.",
+                        "body_2": "Calculate remake rate as the number of completed cases requiring a remake divided by total completed cases, expressed as a percentage. If 3 of 60 completed cases needed a remake, the rate is 5%. Keep the denominator consistent: use the same set of completed cases you use for turnaround and on-time calculations.",
+                        "body_3": "Attribution matters when comparing laboratories. Not every remake is the laboratory's fault - a preparation issue, an inaccurate impression or scan, unclear instructions, or a poorly communicated shade can all originate on the practice side. Record who or what caused each remake (lab, practice, or undetermined) so lab-to-lab comparisons reflect actual lab performance rather than your own workflow noise. Remakes also carry the financial costs covered in our dental remake cost guide.",
+                        "link_text": "Read: What Dental Remakes Really Cost Your Practice"
+                    },
+                    "overdue": {
+                        "heading": "Metric 5: Overdue and At-Risk Workload",
+                        "body_1": "The first four metrics describe completed work. This one describes work in progress - and it is the metric your team needs most often. Count how many active cases are past their expected return date, and separately how many are approaching it.",
+                        "body_2": "Three states are worth distinguishing. Overdue means the expected return date has passed and the case has not come back. Due soon means the expected return date is within your chosen window - five business days, for example. Appointment risk means the case is still active and the patient appointment is approaching before the expected return.",
+                        "body_3": "This is an operational metric, not a historical one: it changes daily and tells you who to call today. A practice with a 95% on-time rate can still have three overdue implant cases quietly aging toward a crisis. Reviewing the at-risk list weekly - and calling the laboratory before the patient calls you - is the cheapest performance improvement available."
+                    },
+                    "comparing": {
+                        "heading": "Comparing Laboratories Fairly",
+                        "body_1": "Raw numbers mislead when laboratories handle different work. Before concluding that Lab A outperforms Lab B, check whether they are being compared on like terms.",
+                        "body_2": "None of this means the metrics are unreliable - it means they reward consistent definitions and honest denominators. Used that way, they turn \"I think Lab A is better\" into \"Lab A returns crowns two days faster with a higher on-time rate on comparable case types.\"",
+                        "list_items": {
+                            "1": {
+                                "title": "Case complexity:",
+                                "body": "An implant or full-arch case legitimately takes longer and has more steps than a single crown. Compare labs within case type, or weight the comparison accordingly."
+                            },
+                            "2": {
+                                "title": "Case volume:",
+                                "body": "A lab with twelve cases and one remake looks worse than a lab with two hundred cases and ten remakes. Small samples swing wildly - treat percentages from fewer than roughly thirty cases as directional, not definitive."
+                            },
+                            "3": {
+                                "title": "Practice-side factors:",
+                                "body": "Missing information, delayed approvals, unclear prescriptions, or preparation problems inflate turnaround and remake numbers for reasons unrelated to the lab."
+                            },
+                            "4": {
+                                "title": "Remakes versus revisions:",
+                                "body": "A shade adjustment at seating is not a remake. Consistent definitions keep the comparison honest."
+                            },
+                            "5": {
+                                "title": "Reporting period:",
+                                "body": "Compare the same time window for each lab - quarter over quarter, not \"all time\" for one and \"this month\" for another."
+                            },
+                            "6": {
+                                "title": "Original promised dates:",
+                                "body": "If one lab's dates are routinely padded and another's are not, on-time rates measure different things. Look at revision frequency alongside the percentage."
+                            }
+                        }
+                    },
+                    "action": {
+                        "heading": "Turning Metrics Into Action",
+                        "body_1": "Metrics are only useful if they change behavior. A practical rhythm looks like this:",
+                        "body_2": "The goal is not to police laboratories. It is to replace vague impressions with shared facts, so both sides can fix the specific breakdowns - unclear prescriptions, packaging damage, scheduling mismatches - that actually cause delays and remakes.",
+                        "list_items": {
+                            "1": {
+                                "title": "Weekly:",
+                                "body": "Review overdue and at-risk cases; call or message the laboratory about anything past its expected return."
+                            },
+                            "2": {
+                                "title": "Monthly:",
+                                "body": "Update turnaround, on-time, and remake figures by laboratory and by case type."
+                            },
+                            "3": {
+                                "title": "Quarterly:",
+                                "body": "Compare labs on comparable work, discuss patterns with lab partners, and decide whether volume should shift."
+                            },
+                            "4": {
+                                "title": "When issues recur:",
+                                "body": "Use documented trends - not memory - in conversations with the laboratory. \"Bridge cases averaged 16 days last quarter versus 11 the quarter before\" is a specific, actionable observation."
+                            }
+                        }
+                    },
+                    "scorecard": {
+                        "heading": "Start With the Free Lab Performance Scorecard",
+                        "body_1": "You do not need software to begin. The DentaTrak Dental Lab Performance Scorecard is a free Excel workbook that tracks the five metrics in this article automatically: enter each case once, and the workbook calculates turnaround, on-time delivery, appointment readiness, remake rate, and overdue workload by laboratory.",
+                        "body_2": "It includes instructions, a case log with built-in calculations, a per-laboratory scorecard, and a definitions sheet so everyone interprets the numbers the same way. Download it below - no account or registration required."
+                    },
+                    "dentatrak": {
+                        "heading": "How DentaTrak Tracks This Automatically",
+                        "body_1": "If your practice already records cases in DentaTrak, most of this measurement happens without a second entry. Cases carry their send date, expected return, patient appointment, and status as part of normal workflow, so Practice Insights and Lab Insights can report turnaround, on-time delivery, appointment risk, remake tracking, and lab-by-lab comparisons from data you already maintain.",
+                        "body_2": "The difference is continuity: instead of a quarterly spreadsheet exercise, performance stays visible as cases move - active workload, overdue cases, and appointment risk update continuously, and trends accumulate month over month. The scorecard above remains a good way to start; DentaTrak is how practices keep it running without the manual work."
+                    }
+                },
+                "scorecard_cta": {
+                    "title": "DentaTrak Dental Lab Performance Scorecard",
+                    "subtitle": "A free Excel workbook that calculates turnaround, on-time delivery, appointment readiness, remake rate, and overdue cases by laboratory - automatically.",
+                    "button": "Download Free Scorecard"
+                },
+                "cta": {
+                    "body": "See how DentaTrak turns the case information you already track into live Practice and Lab Insights - turnaround visibility, on-time performance, active workload, laboratory comparisons, and trends that update as cases move.",
+                    "button": "See How DentaTrak Tracks Practice and Lab Performance"
+                },
+                "related_resources": {
+                    "heading": "Related Resources",
+                    "items": [
+                        "Dental Lab Case Tracking: A Practical Guide",
+                        "Managing Cases with External Dental Laboratories",
+                        "What Dental Remakes Really Cost Your Practice",
+                        "Dental Case Tracking Software: What to Look For",
+                        "Free Dental Lab Performance Scorecard (Excel)"
+                    ]
                 }
             }
         },
@@ -6516,7 +6659,13 @@
             "card_hipaa_cta": "Learn About HIPAA & Security",
             "type_security": "Security",
             "card_external_labs_mgmt_title": "Case Management for External Labs",
-            "card_external_labs_mgmt_desc": "How practices can manage external-lab cases, communication, files, deadlines, remakes, and lab performance in one workflow."
+            "card_external_labs_mgmt_desc": "How practices can manage external-lab cases, communication, files, deadlines, remakes, and lab performance in one workflow.",
+            "tool_scorecard_type": "Download",
+            "tool_scorecard_title": "DentaTrak Dental Lab Performance Scorecard",
+            "tool_scorecard_desc": "Compare dental laboratories using turnaround time, on-time delivery, appointment readiness, remakes, and overdue cases. Free Excel template with automatic calculations and a performance dashboard.",
+            "tool_scorecard_cta": "Download Free Scorecard",
+            "card_lab_perf_title": "How to Measure Dental Lab Performance: 5 Metrics Every Practice Should Track",
+            "card_lab_perf_desc": "Learn how to measure laboratory turnaround, delivery reliability, appointment readiness, remake rates, and overdue workload so you can make better operational decisions."
         },
         "hipaa": {
             "title": "HIPAA & Security | DentaTrak",

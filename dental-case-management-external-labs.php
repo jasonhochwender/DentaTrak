@@ -271,6 +271,7 @@ $k = 'marketing.articles.dental_case_management_external_labs';
         <li><a href="<?= $baseUrl . ($articleUrls['article_dental_case_tracking_software'] ?? 'dental-case-tracking-software') ?>"><?php echo t("$k.related_resources.items.1"); ?></a></li>
         <li><a href="<?= $baseUrl . ($articleUrls['article_how_to_track'] ?? 'how-to-track-dental-cases') ?>"><?php echo t("$k.related_resources.items.2"); ?></a></li>
         <li><a href="<?= $baseUrl . ($articleUrls['article_visual_workflow'] ?? 'visual-dental-case-workflow') ?>"><?php echo t("$k.related_resources.items.3"); ?></a></li>
+        <li><a href="<?= $baseUrl . ($articleUrls['article_lab_performance'] ?? 'how-to-measure-dental-lab-performance') ?>"><?php echo t("$k.related_resources.items.4"); ?></a></li>
       </ul>
     </div>
 

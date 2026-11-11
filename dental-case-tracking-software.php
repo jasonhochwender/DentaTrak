@@ -380,6 +380,7 @@ $articleUrls = $appConfig['public_urls'] ?? [];
         <li><a href="<?= $baseUrl . ($articleUrls['article_implant'] ?? 'implant-case-tracking') ?>"><?php echo t('marketing.articles.dental_case_tracking_software.related_resources.items.2'); ?></a></li>
         <li><a href="<?= $baseUrl . ($articleUrls['article_vs_pms'] ?? 'dental-case-tracking-software-vs-pms') ?>"><?php echo t('marketing.articles.dental_case_tracking_software.related_resources.items.3'); ?></a></li>
         <li><a href="<?= $baseUrl . ($articleUrls['page_about'] ?? 'about') ?>"><?php echo t('marketing.articles.dental_case_tracking_software.related_resources.items.4'); ?></a></li>
+        <li><a href="<?= $baseUrl . ($articleUrls['article_lab_performance'] ?? 'how-to-measure-dental-lab-performance') ?>"><?php echo t('marketing.articles.dental_case_tracking_software.related_resources.items.5'); ?></a></li>
       </ul>
     </div>
 

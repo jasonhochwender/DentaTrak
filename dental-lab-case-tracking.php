@@ -227,6 +227,7 @@ $articleUrls = $appConfig['public_urls'] ?? [];
         <li><a href="<?= $baseUrl . ($articleUrls['article_dental_case_tracking_software'] ?? 'dental-case-tracking-software') ?>"><?php echo t('marketing.articles.dental_lab_case_tracking.related_resources.items.0'); ?></a></li>
         <li><a href="<?= $baseUrl . ($articleUrls['article_crown_bridge'] ?? 'crown-and-bridge-case-tracking') ?>"><?php echo t('marketing.articles.dental_lab_case_tracking.related_resources.items.1'); ?></a></li>
         <li><a href="<?= $baseUrl . ($articleUrls['article_comparison'] ?? 'dental-case-tracking-vs-spreadsheets') ?>"><?php echo t('marketing.articles.dental_lab_case_tracking.related_resources.items.2'); ?></a></li>
+        <li><a href="<?= $baseUrl . ($articleUrls['article_lab_performance'] ?? 'how-to-measure-dental-lab-performance') ?>"><?php echo t('marketing.articles.dental_lab_case_tracking.related_resources.items.3'); ?></a></li>
       </ul>
     </div>
 

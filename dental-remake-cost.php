@@ -327,6 +327,7 @@ $articleUrls = $appConfig['public_urls'] ?? [];
         <li><a href="<?= $baseUrl . ($articleUrls['article_crown_bridge'] ?? 'crown-and-bridge-case-tracking') ?>"><?php echo t('marketing.articles.dental_remake_cost.related_resources.items.1'); ?></a></li>
         <li><a href="<?= $baseUrl . ($articleUrls['article_implant'] ?? 'implant-case-tracking') ?>"><?php echo t('marketing.articles.dental_remake_cost.related_resources.items.2'); ?></a></li>
         <li><a href="<?= $baseUrl . ($articleUrls['page_about'] ?? 'about') ?>"><?php echo t('marketing.articles.dental_remake_cost.related_resources.items.3'); ?></a></li>
+        <li><a href="<?= $baseUrl . ($articleUrls['article_lab_performance'] ?? 'how-to-measure-dental-lab-performance') ?>"><?php echo t('marketing.articles.dental_remake_cost.related_resources.items.4'); ?></a></li>
       </ul>
     </div>
 
