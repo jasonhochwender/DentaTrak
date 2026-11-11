@@ -383,11 +383,13 @@ try {
     $currentWorkloadCaseIds = [];   // labKey => [caseId => true]
     $currentWorkloadLateCount = []; // labKey => int
     $activeLabCasesById = [];       // caseId => row (deduped across labs)
+    $caseAllLabKeys = [];           // caseId => [labKey => true] (all live labs)
     $stmt = $pdo->prepare("
         SELECT cases_cache.case_id, status, due_date, archived, case_type, assigned_to,
                patient_first_name, patient_last_name,
                patient_appointment_date, lab_ack_status,
-               lab_promised_date, tracking_number
+               lab_promised_date, tracking_number,
+               created_at, status_changed_at
         FROM cases_cache INNER JOIN authorized_case_ids a ON a.case_id = cases_cache.case_id COLLATE utf8mb4_unicode_ci
         WHERE practice_id = :practice_id AND archived = 0
     ");
@@ -409,6 +411,7 @@ try {
             continue;
         }
         $currentWorkloadCaseIds[$labKey][$row['case_id']] = true;
+        $caseAllLabKeys[$row['case_id']][$labKey] = true;
         $casesById[$row['case_id']] = $row;
         // A case assigned to multiple live labs counts ONCE in the
         // practice-wide operational summary (per-lab rows may still
@@ -430,6 +433,7 @@ try {
     // due soon > on track), so each active lab case lands in exactly one
     // bucket and the counts reconcile with the Case Board risk filters.
     $caseHealth = ['onTrack' => 0, 'dueSoon' => 0, 'appointmentRisk' => 0, 'overdue' => 0];
+    $agingRisk = []; // caseId => risk snapshot for the Case Aging section
     $attentionItems = [];
     $attentionCounts = ['all' => 0, 'overdue' => 0, 'appt_risk' => 0, 'due_soon' => 0, 'awaiting_ack' => 0];
     $attentionByLab = []; // labKey => category counts (multi-reason cases count in each)
@@ -440,6 +444,12 @@ try {
             'patientAppointmentDate' => $row['patient_appointment_date'] ?? null,
             'labAckStatus' => $row['lab_ack_status'] ?? null,
         ], $practiceDisplay, $TERMINAL_CASE_STATUSES[0] ?? null);
+        $agingRisk[$caseId] = [
+            'primary'     => $cls['primaryReason'] ?? null,
+            'reasons'     => $cls['reasons'] ?? [],
+            'awaitingAck' => !empty($cls['awaitingAck']),
+            'late'        => !empty($cls['late']),
+        ];
         if ($cls['late']) {
             $caseHealth['overdue']++;
         } elseif ($cls['apptRisk']) {
@@ -776,6 +786,105 @@ try {
         }
     }
 
+    // ── Case Aging & Bottlenecks payload ────────────────────────────────
+    // Current-state analysis of the SAME active lab-associated population
+    // as Lab Case Health (deduped by case, never range-filtered). Emits
+    // per-case age measurements; bucketing/sorting happens client-side.
+    // Total age = cases_cache.created_at; stage age = status_changed_at
+    // (fallback: latest matching status_changed activity event); lab time
+    // = earliest currently-open observed lab period start. All nullable -
+    // missing timestamps stay null rather than becoming fake zeros.
+    $agingCases = [];
+    {
+        // Cases missing status_changed_at: recover stage-entry time from
+        // the latest status_changed event whose new_status matches the
+        // case's CURRENT status (one batched query, no per-case lookups).
+        $stageTsFallback = [];
+        $missingStage = [];
+        foreach ($activeLabCasesById as $cid => $row) {
+            if (empty($row['status_changed_at'])) { $missingStage[$cid] = $row['status'] ?? ''; }
+        }
+        if (!empty($missingStage)) {
+            $chunks = array_chunk(array_keys($missingStage), 500);
+            foreach ($chunks as $chunk) {
+                $ph = implode(',', array_fill(0, count($chunk), '?'));
+                $st = $pdo->prepare("
+                    SELECT case_id, new_status, MAX(created_at) AS ts
+                    FROM case_activity_log
+                    WHERE event_type = 'status_changed' AND case_id IN ($ph)
+                    GROUP BY case_id, new_status
+                ");
+                $st->execute($chunk);
+                foreach ($st->fetchAll(PDO::FETCH_ASSOC) as $r) {
+                    if (($missingStage[$r['case_id']] ?? null) === $r['new_status']) {
+                        $stageTsFallback[$r['case_id']] = $r['ts'];
+                    }
+                }
+            }
+        }
+
+        // Earliest currently-open observed lab period per case = when the
+        // case most recently entered lab custody (any associated lab).
+        $labSinceByCase = [];
+        foreach ($periodsByLab as $plKey => $plPeriods) {
+            foreach ((array)$plPeriods as $pp) {
+                if (($pp['history_quality'] ?? '') !== 'observed') { continue; }
+                if (!empty($pp['ended_at'])) { continue; }
+                $cid = $pp['case_id'] ?? null;
+                $st = strtotime((string)($pp['started_at'] ?? ''));
+                if (!$cid || $st === false) { continue; }
+                if (!isset($labSinceByCase[$cid]) || $st < $labSinceByCase[$cid]) {
+                    $labSinceByCase[$cid] = $st;
+                }
+            }
+        }
+
+        $dayDiff = function ($ts) use ($now) {
+            if (!$ts) { return null; }
+            $t = strtotime((string)$ts);
+            if ($t === false) { return null; }
+            $d = $now->getTimestamp() - $t;
+            return $d < 0 ? 0 : round($d / 86400, 1);
+        };
+
+        foreach ($activeLabCasesById as $cid => $row) {
+            $stageTs = $row['status_changed_at'] ?? null;
+            if (empty($stageTs)) { $stageTs = $stageTsFallback[$cid] ?? null; }
+            $daysLate = null;
+            if (labIsLate($row, $now, $TERMINAL_CASE_STATUSES)) {
+                $due = new DateTimeImmutable(substr($row['due_date'], 0, 10));
+                $daysLate = $now->modify('midnight')->diff($due)->days;
+            }
+            $labKeys = array_keys($caseAllLabKeys[$cid] ?? []);
+            if (empty($labKeys) && !empty($row['_labKey'])) { $labKeys = [$row['_labKey']]; }
+            $agingCases[] = [
+                'caseId'       => $cid,
+                'labKeys'      => $labKeys,
+                'status'       => $row['status'] ?? '',
+                'caseType'     => $row['case_type'] ?? '',
+                'dueDate'      => $row['due_date'] ?: null,
+                'ageDays'      => $dayDiff($row['created_at'] ?? null),
+                'stageAgeDays' => $dayDiff($stageTs),
+                'labDays'      => isset($labSinceByCase[$cid])
+                    ? round(max(0, $now->getTimestamp() - $labSinceByCase[$cid]) / 86400, 1) : null,
+                'daysLate'     => $daysLate,
+                'risk'         => $agingRisk[$cid] ?? ['primary' => null, 'reasons' => [], 'awaitingAck' => false, 'late' => false],
+            ];
+        }
+        usort($agingCases, function ($a, $b) {
+            return ($b['ageDays'] ?? -1) <=> ($a['ageDays'] ?? -1);
+        });
+    }
+    $agingLabNames = [];
+    foreach (($labs ?? []) as $alk => $ali) {
+        if (!empty($ali['currentName'])) { $agingLabNames[$alk] = $ali['currentName']; }
+    }
+    $aging = [
+        'cases'    => $agingCases,
+        'labNames' => $agingLabNames,
+        'computed_at' => date('Y-m-d H:i:s'),
+    ];
+
     // ── Trend: cases handled per lab per month, over the selected range
     // (or last 12 months if 'all', to keep the chart readable). ──────────
     $trendMonths = $rangeStart !== null ? (int)$rangeParam : 12;
@@ -954,6 +1063,7 @@ try {
             return $m;
         }, $labMetrics)),
         'currentWorkload' => $currentWorkload,
+        'aging' => $aging,
         'trend' => $trend,
         'performance' => $performance,
         'recommendations' => $recommendations,

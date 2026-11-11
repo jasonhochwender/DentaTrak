@@ -901,6 +901,12 @@
   var liQualityChart = null;
   var liQualityTrendMetric = 'remakeCases';
   var liQualityShowAllEvents = false;
+  var liAging = null;               // last aging payload (data.aging)
+  var liAgingLab = 'practice';      // Case Aging lab scope
+  var liAgingMeasure = 'age';       // 'age' | 'stage' | 'lab'
+  var liAgingStageSort = 'workflow';// 'workflow' | 'count' | 'age'
+  var liAgingCaseSort = 'age';      // details-table sort key
+  var liAgingShowAll = false;
   var liRecShowAll = false;
   var liRecBusy = false;
 
@@ -2493,6 +2499,8 @@
     liRecSyncScope();
     liQualitySyncScope();
     renderQualitySection();
+    liAgingSyncScope();
+    renderAgingSection();
     if (opts && opts.noScroll) { return; }
     var detail = document.getElementById('liLabDetail');
     if (detail) {
@@ -2912,6 +2920,279 @@
     section.style.display = 'block';
   }
 
+  // ======================================================================
+  // Case Aging & Bottlenecks
+  //
+  // Current-state analysis of the same active lab-associated population as
+  // Lab Case Health. Total age, current-stage age, and time at the current
+  // lab assignment are distinct measurements - never conflated with
+  // overdue status. All bucketing/sorting is client-side over the emitted
+  // per-case rows; nothing here is range-filtered.
+  // ======================================================================
+
+  var LI_AGING_BUCKETS = [
+    { key: 'b0', label: 'insights.aging.bucket_0_7', min: 0, max: 7 },
+    { key: 'b1', label: 'insights.aging.bucket_8_14', min: 8, max: 14 },
+    { key: 'b2', label: 'insights.aging.bucket_15_30', min: 15, max: 30 },
+    { key: 'b3', label: 'insights.aging.bucket_31', min: 31, max: null },
+  ];
+
+  var LI_AGING_MEASURE_FIELD = { age: 'ageDays', stage: 'stageAgeDays', lab: 'labDays' };
+
+  function liAgingSyncScope() {
+    var sel = document.getElementById('liAgingLab');
+    if (!sel || !liAging) { return; }
+    var names = liAging.labNames || {};
+    var valid = liSelectedLab === 'practice' || liSelectedLab === 'all'
+      || names[liSelectedLab];
+    liAgingLab = valid && liSelectedLab !== 'all' ? liSelectedLab : 'practice';
+    sel.value = liAgingLab;
+  }
+
+  function liAgingPopulateScope() {
+    var sel = document.getElementById('liAgingLab');
+    if (!sel || !liAging) { return; }
+    var names = liAging.labNames || {};
+    var used = {};
+    (liAging.cases || []).forEach(function (c) {
+      (c.labKeys || []).forEach(function (k) { used[k] = true; });
+    });
+    var keys = Object.keys(names).filter(function (k) { return used[k]; })
+      .sort(function (a, b) { return String(names[a]).localeCompare(String(names[b])); });
+    var html = '<option value="practice">' + escapeHtml(t('insights.aging.scope_all')) + '</option>';
+    keys.forEach(function (k) {
+      html += '<option value="' + escapeHtml(k) + '">' + escapeHtml(names[k]) + '</option>';
+    });
+    sel.innerHTML = html;
+    var valid = liAgingLab === 'practice' || used[liAgingLab];
+    if (!valid) { liAgingLab = 'practice'; }
+    sel.value = liAgingLab;
+  }
+
+  function liAgingFilteredCases() {
+    var cases = (liAging && liAging.cases) || [];
+    return cases.filter(function (c) {
+      if (liAgingLab !== 'practice' && (c.labKeys || []).indexOf(liAgingLab) === -1) { return false; }
+      if (liCaseType && c.caseType !== liCaseType) { return false; }
+      return true;
+    });
+  }
+
+  function liAgingMeasureValue(c) {
+    var f = LI_AGING_MEASURE_FIELD[liAgingMeasure] || 'ageDays';
+    var v = c[f];
+    return (v === null || v === undefined) ? null : v;
+  }
+
+  function liAgingIsOverdue(c) {
+    return c.daysLate !== null && c.daysLate !== undefined && c.daysLate > 0;
+  }
+
+  function liAgingRiskLabel(c) {
+    var p = c.risk && c.risk.primary;
+    var map = {
+      late: 'insights.attention.filter_overdue',
+      late_appt: 'insights.attention.filter_overdue',
+      appt_risk: 'insights.attention.filter_appt_risk',
+      due_soon: 'insights.attention.filter_due_soon',
+      awaiting_ack: 'insights.attention.filter_awaiting_ack',
+    };
+    if (p && map[p]) { return t(map[p]); }
+    return t('insights.aging.risk_on_track');
+  }
+
+  function liAgingLabNames(c) {
+    var names = (liAging && liAging.labNames) || {};
+    return (c.labKeys || []).map(function (k) { return names[k] || k; }).join(', ') || '—';
+  }
+
+  function liAgingStatCard(label, valueHtml, tipKey) {
+    var tip = tipKey ? ' title="' + escapeHtml(t(tipKey)) + '"' : '';
+    return '<div class="li-quality-stat"' + tip + '>' +
+      '<div class="li-quality-stat-label">' + escapeHtml(label) + '</div>' +
+      '<div class="li-quality-stat-value">' + valueHtml + '</div></div>';
+  }
+
+  function renderAgingSection() {
+    var section = document.getElementById('liAgingSection');
+    var body = document.getElementById('liAgingBody');
+    if (!section || !body) { return; }
+    if (!liAging) {
+      section.style.display = 'none';
+      return;
+    }
+    liAgingPopulateScope();
+    var cases = liAgingFilteredCases();
+    var measureLabel = t('insights.aging.measure_' + liAgingMeasure);
+
+    if (!cases.length) {
+      section.style.display = 'block';
+      body.innerHTML = '<p class="li-muted li-aging-empty">' + escapeHtml(t('insights.aging.empty')) + '</p>';
+      return;
+    }
+
+    var html = '';
+
+    // ── Active Case Aging ──
+    var buckets = LI_AGING_BUCKETS.map(function (b) {
+      return { label: t(b.label), count: 0, overdue: 0 };
+    });
+    var measured = 0, unmeasured = 0, overdueTotal = 0, ackAwaiting = 0;
+    cases.forEach(function (c) {
+      var v = liAgingMeasureValue(c);
+      if (liAgingIsOverdue(c)) { overdueTotal++; }
+      if (c.risk && c.risk.awaitingAck) { ackAwaiting++; }
+      if (v === null) { unmeasured++; return; }
+      measured++;
+      var idx = v <= 7 ? 0 : (v <= 14 ? 1 : (v <= 30 ? 2 : 3));
+      buckets[idx].count++;
+      if (liAgingIsOverdue(c)) { buckets[idx].overdue++; }
+    });
+
+    html += '<div class="li-quality-block">' +
+      '<div class="li-quality-breakdowns"><div class="li-quality-breakdown">' +
+      '<h4 class="li-quality-subhead">' + escapeHtml(t('insights.aging.buckets_title', { measure: measureLabel })) + '</h4>' +
+      '<ul class="li-quality-bars">';
+    var maxBucket = Math.max.apply(null, buckets.map(function (b) { return b.count; }).concat([1]));
+    buckets.forEach(function (b) {
+      var pct = Math.max(4, Math.round((b.count / maxBucket) * 100));
+      var suffix = b.overdue > 0
+        ? ' <span class="li-aging-overdue-note">' + escapeHtml(t('insights.aging.bucket_overdue', { count: b.overdue })) + '</span>'
+        : '';
+      html += '<li class="li-quality-bar-row">' +
+        '<span class="li-quality-bar-label">' + escapeHtml(b.label) + '</span>' +
+        '<span class="li-quality-bar-track"><span class="li-quality-bar-fill" style="width:' + pct + '%"></span></span>' +
+        '<span class="li-quality-bar-count">' + escapeHtml(fmtCount(b.count)) + suffix + '</span></li>';
+    });
+    html += '</ul>' +
+      '<p class="li-quality-note">' + escapeHtml(t('insights.aging.buckets_summary', {
+        total: cases.length, measured: measured, overdue: overdueTotal,
+        awaiting: ackAwaiting })) + '</p>';
+    if (unmeasured > 0) {
+      html += '<p class="li-quality-note">' + escapeHtml(t('insights.aging.unmeasured_note', { count: unmeasured })) + '</p>';
+    }
+    html += '</div></div></div>';
+
+    // ── Workflow Stage Distribution ──
+    var stageMap = {};
+    cases.forEach(function (c) {
+      var s = c.status || '';
+      if (!stageMap[s]) { stageMap[s] = { status: s, count: 0, stageSum: 0, stageN: 0, overdue: 0 }; }
+      var st = stageMap[s];
+      st.count++;
+      var sa = c.stageAgeDays;
+      if (sa !== null && sa !== undefined) { st.stageSum += sa; st.stageN++; }
+      if (liAgingIsOverdue(c)) { st.overdue++; }
+    });
+    var stageRows = Object.keys(stageMap).map(function (k) { return stageMap[k]; });
+    var stageOrder = (typeof window.workflowStageOrder === 'object' && window.workflowStageOrder) || [];
+    var orderIdx = {};
+    stageOrder.forEach(function (s, i) { orderIdx[s] = i; });
+    if (liAgingStageSort === 'count') {
+      stageRows.sort(function (a, b) { return b.count - a.count; });
+    } else if (liAgingStageSort === 'age') {
+      stageRows.sort(function (a, b) {
+        var av = a.stageN ? a.stageSum / a.stageN : -1;
+        var bv = b.stageN ? b.stageSum / b.stageN : -1;
+        return bv - av;
+      });
+    } else {
+      stageRows.sort(function (a, b) {
+        var ai = orderIdx[a.status] !== undefined ? orderIdx[a.status] : 9999;
+        var bi = orderIdx[b.status] !== undefined ? orderIdx[b.status] : 9999;
+        if (ai !== bi) { return ai - bi; }
+        return String(a.status).localeCompare(String(b.status));
+      });
+    }
+    var stageLabel = function (s) {
+      return (s && typeof getStageLabel === 'function') ? getStageLabel(s) : (s || t('insights.aging.unknown_status'));
+    };
+    html += '<div class="li-quality-block">' +
+      '<div class="li-quality-block-head"><h3 class="li-quality-subhead">' + escapeHtml(t('insights.aging.stages_title')) + '</h3>' +
+      '<select class="ap-select li-aging-stage-sort" id="liAgingStageSort" aria-label="' + escapeHtml(t('insights.aging.stage_sort_label')) + '">' +
+      '<option value="workflow"' + (liAgingStageSort === 'workflow' ? ' selected' : '') + '>' + escapeHtml(t('insights.aging.sort_workflow')) + '</option>' +
+      '<option value="count"' + (liAgingStageSort === 'count' ? ' selected' : '') + '>' + escapeHtml(t('insights.aging.sort_count')) + '</option>' +
+      '<option value="age"' + (liAgingStageSort === 'age' ? ' selected' : '') + '>' + escapeHtml(t('insights.aging.sort_age')) + '</option>' +
+      '</select></div>' +
+      '<div class="li-table-wrap"><table class="li-table li-quality-table"><thead><tr>' +
+      '<th>' + escapeHtml(t('insights.aging.col_stage')) + '</th>' +
+      '<th>' + escapeHtml(t('insights.aging.col_cases')) + '</th>' +
+      '<th>' + escapeHtml(t('insights.aging.col_avg_stage_age')) + '</th>' +
+      '<th>' + escapeHtml(t('insights.aging.col_overdue')) + '</th>' +
+      '</tr></thead><tbody>';
+    stageRows.forEach(function (st) {
+      var avgAge = st.stageN ? (st.stageSum / st.stageN) : null;
+      html += '<tr>' +
+        '<td>' + escapeHtml(stageLabel(st.status)) + '</td>' +
+        '<td>' + escapeHtml(fmtCount(st.count)) + '</td>' +
+        '<td>' + (avgAge === null ? '<span class="li-muted">' + escapeHtml(t('insights.aging.not_available')) + '</span>'
+          : escapeHtml(fmtDays(avgAge))) + '</td>' +
+        '<td>' + (st.overdue > 0
+          ? '<span class="li-aging-overdue">' + escapeHtml(fmtCount(st.overdue)) + '</span>'
+          : escapeHtml(fmtCount(0))) + '</td>' +
+        '</tr>';
+    });
+    html += '</tbody></table></div>' +
+      '<p class="li-quality-note">' + escapeHtml(t('insights.aging.stages_note')) + '</p></div>';
+
+    // ── Aging Case Details ──
+    var sortFns = {
+      age: function (a, b) { return (b.ageDays === null ? -1 : b.ageDays) - (a.ageDays === null ? -1 : a.ageDays); },
+      stage: function (a, b) { return (b.stageAgeDays === null ? -1 : b.stageAgeDays) - (a.stageAgeDays === null ? -1 : a.stageAgeDays); },
+      daysLate: function (a, b) { return (b.daysLate || 0) - (a.daysLate || 0); },
+      due: function (a, b) { return String(a.dueDate || '9999').localeCompare(String(b.dueDate || '9999')); },
+      lab: function (a, b) { return liAgingLabNames(a).localeCompare(liAgingLabNames(b)); },
+      status: function (a, b) { return String(a.status).localeCompare(String(b.status)); },
+    };
+    var sorted = cases.slice().sort(sortFns[liAgingCaseSort] || sortFns.age);
+    var visible = liAgingShowAll ? sorted : sorted.slice(0, 5);
+    html += '<div class="li-quality-block">' +
+      '<div class="li-quality-block-head"><h3 class="li-quality-subhead">' + escapeHtml(t('insights.aging.details_title')) + '</h3>' +
+      '<select class="ap-select li-aging-case-sort" id="liAgingCaseSort" aria-label="' + escapeHtml(t('insights.aging.case_sort_label')) + '">' +
+      [['age', 'insights.aging.sort_age'], ['stage', 'insights.aging.sort_stage'], ['daysLate', 'insights.aging.sort_days_late'],
+       ['due', 'insights.aging.sort_due'], ['lab', 'insights.aging.sort_lab'], ['status', 'insights.aging.sort_status']]
+        .map(function (o) {
+          return '<option value="' + o[0] + '"' + (o[0] === liAgingCaseSort ? ' selected' : '') + '>' + escapeHtml(t(o[1])) + '</option>';
+        }).join('') + '</select></div>' +
+      '<div class="li-table-wrap"><table class="li-table li-quality-table"><thead><tr>' +
+      '<th>' + escapeHtml(t('insights.aging.col_case')) + '</th>' +
+      '<th>' + escapeHtml(t('insights.aging.col_lab')) + '</th>' +
+      '<th>' + escapeHtml(t('insights.aging.col_status')) + '</th>' +
+      '<th>' + escapeHtml(t('insights.aging.col_total_age')) + '</th>' +
+      '<th>' + escapeHtml(t('insights.aging.col_stage_age')) + '</th>' +
+      '<th>' + escapeHtml(t('insights.aging.col_due')) + '</th>' +
+      '<th>' + escapeHtml(t('insights.aging.col_risk')) + '</th>' +
+      '<th></th></tr></thead><tbody>';
+    visible.forEach(function (c) {
+      var ageTxt = c.ageDays === null ? '—' : escapeHtml(fmtDays(c.ageDays));
+      var stageTxt = c.stageAgeDays === null
+        ? '<span class="li-muted">' + escapeHtml(t('insights.aging.not_available')) + '</span>'
+        : escapeHtml(fmtDays(c.stageAgeDays));
+      var lateTxt = c.daysLate !== null && c.daysLate !== undefined && c.daysLate > 0
+        ? '<span class="li-aging-overdue">' + escapeHtml(I18n.pluralize(c.daysLate, 'insights.aging.days_late_n')) + '</span>'
+        : '—';
+      html += '<tr>' +
+        '<td><button type="button" class="li-quality-case-link" data-li-aging-case="' + escapeHtml(c.caseId) + '">' + escapeHtml(c.caseId) + '</button></td>' +
+        '<td>' + escapeHtml(liAgingLabNames(c)) + '</td>' +
+        '<td>' + escapeHtml(stageLabel(c.status)) + '</td>' +
+        '<td>' + ageTxt + '</td>' +
+        '<td>' + stageTxt + '</td>' +
+        '<td>' + escapeHtml(c.dueDate ? String(c.dueDate).slice(0, 10) : '—') + (lateTxt !== '—' ? '<div class="li-metric-note">' + lateTxt + '</div>' : '') + '</td>' +
+        '<td>' + escapeHtml(liAgingRiskLabel(c)) + '</td>' +
+        '<td><button type="button" class="li-quality-case-link" data-li-aging-case="' + escapeHtml(c.caseId) + '">' + escapeHtml(t('insights.aging.view_case')) + '</button></td>' +
+        '</tr>';
+    });
+    html += '</tbody></table></div>';
+    if (sorted.length > 5) {
+      html += '<button type="button" class="li-quality-more" id="liAgingShowAll">' +
+        escapeHtml(liAgingShowAll ? t('insights.aging.show_less') : t('insights.aging.view_all', { count: sorted.length })) + '</button>';
+    }
+    html += '</div>';
+
+    body.innerHTML = html;
+    section.style.display = 'block';
+  }
+
   /** Render the performance layout; returns false when no perf payload. */
   function renderPerformance(data) {
     var perfWrap = document.getElementById('liPerf');
@@ -2928,6 +3209,8 @@
     liPerfLabs = (liPerf.labs || []).slice();
     liQuality = data.quality || null;
     liQualityShowAllEvents = false;
+    liAging = data.aging || null;
+    liAgingShowAll = false;
     if (!liSelectedLab) { liSelectedLab = 'practice'; }
     populateCaseTypeFilter();
 
@@ -2956,6 +3239,17 @@
         }
         var qSec = document.getElementById('liQualitySection');
         if (qSec) { qSec.style.display = 'none'; }
+      }
+      try {
+        liAgingSyncScope();
+        renderAgingSection();
+      } catch (aErr) {
+        // A bad aging payload must not take down the perf layout.
+        if (typeof console !== 'undefined' && console.error) {
+          console.error('[Lab Insights] Aging render failed:', aErr);
+        }
+        var aSec = document.getElementById('liAgingSection');
+        if (aSec) { aSec.style.display = 'none'; }
       }
     } catch (e) {
       // Any render failure must not break the page - restore the legacy
@@ -3388,6 +3682,7 @@
         liCaseType = caseTypeSelect.value || '';
         renderPerfTable();
         renderQualitySection();
+        renderAgingSection();
       });
     }
 
@@ -3396,6 +3691,50 @@
       qualityLabSel.addEventListener('change', function () {
         liQualityLab = qualityLabSel.value || 'practice';
         renderQualitySection();
+      });
+    }
+
+    var agingLabSel = document.getElementById('liAgingLab');
+    if (agingLabSel) {
+      agingLabSel.addEventListener('change', function () {
+        liAgingLab = agingLabSel.value || 'practice';
+        renderAgingSection();
+      });
+    }
+    var agingMeasureSel = document.getElementById('liAgingMeasure');
+    if (agingMeasureSel) {
+      agingMeasureSel.addEventListener('change', function () {
+        liAgingMeasure = agingMeasureSel.value || 'age';
+        renderAgingSection();
+      });
+    }
+    var agingStageSortSel = document.getElementById('liAgingStageSort');
+    if (agingStageSortSel) {
+      agingStageSortSel.addEventListener('change', function () {
+        liAgingStageSort = agingStageSortSel.value || 'workflow';
+        renderAgingSection();
+      });
+    }
+    var agingCaseSortSel = document.getElementById('liAgingCaseSort');
+    if (agingCaseSortSel) {
+      agingCaseSortSel.addEventListener('change', function () {
+        liAgingCaseSort = agingCaseSortSel.value || 'age';
+        renderAgingSection();
+      });
+    }
+    var agingBody = document.getElementById('liAgingBody');
+    if (agingBody) {
+      agingBody.addEventListener('click', function (e) {
+        var showAllBtn = e.target.closest('#liAgingShowAll');
+        if (showAllBtn) {
+          liAgingShowAll = !liAgingShowAll;
+          renderAgingSection();
+          return;
+        }
+        var caseBtn = e.target.closest('[data-li-aging-case]');
+        if (caseBtn && typeof window.openCaseById === 'function') {
+          window.openCaseById(caseBtn.getAttribute('data-li-aging-case'));
+        }
       });
     }
     var qualityBody = document.getElementById('liQualityBody');

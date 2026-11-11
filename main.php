@@ -2697,6 +2697,30 @@ endif;
                   <div class="li-compare-panel" id="liComparePanel" hidden></div>
                 </div>
 
+                <div class="ap-section li-inner-section" id="liAgingSection" style="display: none;">
+                  <div class="ap-section-header">
+                    <div class="ap-section-icon">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <polyline points="12 6 12 12 16 14"></polyline>
+                      </svg>
+                    </div>
+                    <div>
+                      <h2 class="ap-section-title"><?= t('insights.aging.title') ?></h2>
+                      <p class="ap-section-subtitle"><?= t('insights.aging.subtitle') ?></p>
+                    </div>
+                    <div class="ap-section-actions">
+                      <select class="ap-select" id="liAgingLab" aria-label="<?= t('insights.aging.lab_scope_label') ?>"></select>
+                      <select class="ap-select" id="liAgingMeasure" aria-label="<?= t('insights.aging.measure_label') ?>">
+                        <option value="age"><?= t('insights.aging.measure_age') ?></option>
+                        <option value="stage"><?= t('insights.aging.measure_stage') ?></option>
+                        <option value="lab"><?= t('insights.aging.measure_lab') ?></option>
+                      </select>
+                    </div>
+                  </div>
+                  <div id="liAgingBody"></div>
+                </div>
+
                 <div class="ap-section li-inner-section" id="liLabDetail" style="display: none;">
                   <div class="ap-section-header">
                     <div class="ap-section-icon">

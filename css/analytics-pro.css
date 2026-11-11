@@ -3066,3 +3066,30 @@ button.ap-health-seg:focus-visible {
   .li-quality-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .li-quality-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
+
+/* ---- Lab Insights: Case Aging & Bottlenecks ---- */
+.li-quality-block-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+.li-quality-block-head .li-quality-subhead { margin-bottom: 0; }
+.li-aging-stage-sort,
+.li-aging-case-sort { max-width: 180px; }
+.li-aging-overdue {
+  color: #b45309;
+  font-weight: 600;
+}
+.li-aging-overdue-note {
+  color: #b45309;
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+.li-aging-empty { padding: 8px 0; }
+@media (max-width: 560px) {
+  .li-aging-stage-sort,
+  .li-aging-case-sort { max-width: 100%; flex: 1 1 100%; }
+}
