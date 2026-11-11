@@ -12,31 +12,42 @@
   background: var(--background-white, #fff);
   padding: 0 24px;
   gap: 4px;
+  margin-bottom: 8px;
 }
 
 .main-tab {
   background: none;
   border: none;
-  padding: 14px 24px;
-  font-size: 0.9rem;
-  font-weight: 600;
-  color: var(--text-light, #94a3b8);
+  border-bottom: 3px solid transparent;
+  border-radius: 10px 10px 0 0;
+  padding: 12px 28px;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.92rem;
+  font-weight: 500;
+  color: var(--text-secondary, #475569);
   cursor: pointer;
-  border-bottom: 2px solid transparent;
-  transition: all 0.2s ease;
+  transition: color 0.15s ease, background-color 0.15s ease, border-color 0.15s ease;
   letter-spacing: -0.01em;
   margin-bottom: -1px;
 }
 
 .main-tab:hover {
-  color: var(--text-secondary, #475569);
+  color: var(--text-primary, #1e293b);
   background: var(--background-subtle, #f8fafc);
 }
 
+.main-tab:focus-visible {
+  outline: 2px solid var(--primary-color, #1e40af);
+  outline-offset: -2px;
+}
+
 .main-tab.active {
-  color: var(--primary-color, #0f766e);
-  border-bottom-color: var(--primary-color, #0f766e);
-  background: transparent;
+  color: var(--primary-color, #1e40af);
+  font-weight: 600;
+  background: var(--main-tab-active-bg, rgba(30, 64, 175, 0.08));
+  border-bottom-color: var(--primary-color, #1e40af);
 }
 
 /* Tab Content */

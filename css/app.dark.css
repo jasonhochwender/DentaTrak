@@ -857,6 +857,14 @@
   border-bottom-color: var(--primary-color);
 }
 
+[data-theme="dark"] .main-tab {
+  color: var(--text-secondary);
+}
+
+[data-theme="dark"] .main-tab.active {
+  --main-tab-active-bg: rgba(96, 165, 250, 0.16);
+}
+
 /* ---------------- Ask DentaTrak / AI chat ---------------- */
 
 [data-theme="dark"] .ai-chat-body,
