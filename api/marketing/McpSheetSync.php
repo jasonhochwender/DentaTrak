@@ -42,6 +42,50 @@ class McpSheetSync {
         }
         return ['ok'=>empty($flags),'flags'=>$flags];
     }
+    /** Full sheet snapshot: ['header'=>string[], 'rows'=>array<int,array>] (row 0 = first data row). */
+    public function sheet(): array {
+        $this->load();
+        return ['header' => $this->header ?? [], 'rows' => $this->rows ?? []];
+    }
+
+    /** Column index for a header name (case-sensitive match on trimmed header). */
+    public function colIndex(string $name): ?int { return $this->col($name); }
+
+    /** Case-insensitive column lookup across common header variants. */
+    public function colAny(array $names): ?int {
+        foreach ($names as $n) { $i = $this->col($n); if ($i !== null) return $i; }
+        $this->load();
+        $lower = array_map(fn($h) => strtolower(trim((string)$h)), $this->header ?? []);
+        foreach ($names as $n) { $i = array_search(strtolower($n), $lower, true); if ($i !== false) return $i; }
+        return null;
+    }
+
+    /**
+     * Write selected header=>value pairs into one sheet row (1-based sheet
+     * row number, i.e. header is row 1). Only the named columns are touched;
+     * the full row is re-read and rewritten so other cells are preserved.
+     */
+    public function updateRow(int $sheetRow, array $fields): bool {
+        $this->load();
+        $dataRow = $sheetRow - 2; // sheet row -> index into $this->rows
+        if ($dataRow < 0 || $dataRow >= count($this->rows)) return false;
+        $row = $this->rows[$dataRow];
+        foreach ($fields as $header => $value) {
+            $c = $this->colAny([$header]);
+            if ($c === null) continue;
+            $row[$c] = (string) $value;
+        }
+        // normalize: ensure trailing cells exist up to highest written index
+        $max = max(array_keys($row));
+        for ($i = 0; $i <= $max; $i++) { if (!isset($row[$i])) $row[$i] = ''; }
+        ksort($row);
+        ProspectSheetSync::httpPublic('PUT',
+            'https://sheets.googleapis.com/v4/spreadsheets/' . self::SHEET_ID . '/values/' . rawurlencode(self::TAB . "!$sheetRow:$sheetRow"),
+            ['range' => self::TAB . "!$sheetRow:$sheetRow", 'majorDimension' => 'ROWS', 'values' => [array_values($row)]],
+            false, $this->token);
+        return true;
+    }
+
     public function markSent(string $email, string $campaign, string $msgId): bool {
         $p=$this->prospectRow($email); if(!$p) return false;
         $now=gmdate('Y-m-d');

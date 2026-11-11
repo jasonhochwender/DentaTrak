@@ -20,13 +20,18 @@ require_once __DIR__ . '/api/asset-url.php';
 if (!function_exists('paAdminSections')) {
     /** Canonical section map: key => [url, locale key]. */
     function paAdminSections(): array {
-        return [
+        $sections = [
             'overview' => ['platform-admin.php', 'admin_nav.overview'],
             'practices' => ['admin-practices.php', 'admin_nav.practices'],
             'usage' => ['practice-usage-report.php', 'admin_nav.usage'],
             'ai' => ['dev-ask-usage.php', 'admin_nav.ai_analytics'],
             'test' => ['test-diagnostics.php', 'admin_nav.test_diag'],
         ];
+        // Marketing Outreach stays hidden until the feature flag is enabled.
+        if (function_exists('isFeatureEnabled') && isFeatureEnabled('MARKETING_OUTREACH')) {
+            $sections['marketing'] = ['marketing-outreach.php', 'admin_nav.marketing'];
+        }
+        return $sections;
     }
 }
 

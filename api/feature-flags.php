@@ -20,6 +20,11 @@ $FEATURE_DEFAULTS = [
     'SHOW_AI_CHAT' => false,
     'SHOW_IN_STATUS' => false,
     'SHOW_DEV_TOOLS' => false,
+    'MARKETING_OUTREACH' => false, // Platform Administration > Marketing
+                                   // Outreach. Must remain OFF until the
+                                   // admin UI, sheet sync, suppression, and
+                                   // unsubscribe flow are verified end-to-end.
+                                   // Enable via env var only.
     'SHOW_REVISION_COUNT' => true,
     'SHOW_GOOGLE_DRIVE_BACKUP' => false,
     'SHOW_TOUR' => false,
@@ -121,7 +126,7 @@ function isFeatureEnabled($featureName) {
     // test fixtures.  This is never available in Cloud Run because the
     // override is keyed to a trusted server-side environment indicator,
     // not a user-controlled HTTP_HOST.
-    if ($featureName === 'SHOW_NOTIFICATIONS' && session_status() === PHP_SESSION_ACTIVE) {
+    if (in_array($featureName, ['SHOW_NOTIFICATIONS', 'MARKETING_OUTREACH'], true) && session_status() === PHP_SESSION_ACTIVE) {
         $currentEnv = $appConfig['current_environment'] ?? 'production';
         $isTestMode = in_array($currentEnv, ['development', 'test', 'local'], true)
             || getEnvVar('DENTATRAK_TEST_MODE', 'false') === 'true';
