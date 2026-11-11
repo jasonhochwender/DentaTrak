@@ -216,6 +216,20 @@ switch ($action) {
         unset($_SESSION['totp_verified']);
         echo json_encode(['success' => true]);
         break;
+    case 'set_session_flag':
+        // Sets a session-level feature-flag override. Only flags that
+        // feature-flags.php explicitly allows to be session-overridden in
+        // dev/test may be set here; MARKETING_SENDING can never be.
+        $flag = strtoupper(trim((string)($input['flag'] ?? '')));
+        $allowed = ['SHOW_NOTIFICATIONS', 'MARKETING_OUTREACH'];
+        if (!in_array($flag, $allowed, true)) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'message' => 'Flag not allowed']);
+            break;
+        }
+        $_SESSION[$flag] = !empty($input['value']);
+        echo json_encode(['success' => true, 'flag' => $flag, 'value' => (bool)$_SESSION[$flag]]);
+        break;
 
     default:
         http_response_code(400);

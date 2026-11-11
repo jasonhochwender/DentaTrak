@@ -155,6 +155,8 @@ screenshots/
 !/tests/marketing-eligibility-test.php
 !/tests/marketing-mailer-test.php
 !/tests/marketing-thread-test.php
+!/tests/marketing-outreach-page-test.php
+!/tests/marketing-outreach-tabs-e2e-test.js
 !/tests/lab-insights-recs-test.php
 !/tests/lab-quality-test.php
 !/tests/lab-aging-test.php

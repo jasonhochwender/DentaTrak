@@ -628,7 +628,7 @@ function ma($k) { return t('marketing_admin.' . $k); }
         apiPost('generate', { campaign_id: state.currentCampaign }).then(function (d) {
             btn.disabled = false; btn.textContent = <?php echo json_encode(ma('generate_emails')); ?>;
             if (!d.success) { showErr(d.error || STR.loadFailed); return; }
-            showOk(<?php echo json_encode(ma('generated_ok')).replace('{n}', '%s'); ?>.replace('%s', d.generated));
+            showOk(<?php echo json_encode(ma('generated_ok')); ?>.replace('{n}', d.generated));
             openCampaign(state.currentCampaign);
         });
     });
