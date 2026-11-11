@@ -179,7 +179,7 @@
 .hero-content {
   position: relative;
   z-index: 1;
-  transform: translateY(-32px);
+  transform: translateY(-18px);
 }
 
 .hero-logo {
@@ -235,7 +235,7 @@
   font-size: 1.2rem;
   font-weight: 600;
   opacity: 0.95;
-  margin: 0 0 5px;
+  margin: 0 0 8px;
   line-height: 1.4;
   max-width: 400px;
 }
@@ -243,7 +243,7 @@
 .hero-tagline {
   font-size: 1.1rem;
   opacity: 0.9;
-  margin: 0 0 30px;
+  margin: 0 0 38px;
   line-height: 1.5;
   max-width: 400px;
 }
@@ -251,7 +251,7 @@
 .hero-features {
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 22px;
 }
 
 .feature-item {
@@ -296,7 +296,7 @@
   position: relative;
   z-index: 1;
   margin-top: 34px;
-  transform: translateY(34px);
+  transform: translateY(26px);
 }
 
 .trust-badges {
