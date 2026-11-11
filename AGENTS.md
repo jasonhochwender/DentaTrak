@@ -93,3 +93,8 @@
 - Google Sheet write-back is durable: `marketing_campaign_recipients.sheet_sync_*` tracks pending/synced/failed and `retry_sheet_sync` re-attempts without resending mail.
 - Migrations: `2026_11_03_marketing_admin.php` then `2026_11_12_marketing_send_hardening.php` (idempotent, additive). Verify with `php scripts/marketing-schema-check.php --pre|--post` (read-only). Admin API fails closed with `schema_not_migrated` until both have run.
 - Verification: `php tests/marketing-eligibility-test.php` (no DB), `php tests/marketing-mailer-test.php` and `php tests/marketing-thread-test.php` (local dev DB on 3308, self-cleaning), `php tests/marketing-admin-test.php` (static), `php tests/mcp-marketing-test.php`.
+
+# Local MAMP PHP environment
+
+- Apache serves PHP via `php8apache2_4.dll` from `C:\MAMP\bin\php\php8.5.12\` with `PHPIniDir "C:\MAMP\conf\php8.5.12\php.ini"` (NOT the php.ini inside bin/php).
+- Windows DLL search order puts `C:\MAMP\bin\apache\bin\` first. Matching `libcrypto-3-x64.dll` / `libssl-3-x64.dll` copies from `php8.5.12` live there because the Machine PATH still contains stale `C:\MAMP\bin\php\php8.3.1` (User PATH has php8.5.12, but Machine PATH wins). Without the apache/bin copies, PHP 8.5 extensions bind OpenSSL 3.0-era DLLs and curl/openssl/sqlite fail with "The specified procedure could not be found". If PHP version changes, refresh those two DLLs.
